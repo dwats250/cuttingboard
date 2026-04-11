@@ -30,9 +30,9 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      POLYGON_API_KEY:    ${{ secrets.POLYGON_API_KEY }}
-      PUSHOVER_USER_KEY:  ${{ secrets.PUSHOVER_USER_KEY }}
-      PUSHOVER_APP_TOKEN: ${{ secrets.PUSHOVER_APP_TOKEN }}
+      POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+      NTFY_TOPIC:      ${{ secrets.NTFY_TOPIC }}
+      NTFY_URL:        ${{ secrets.NTFY_URL }}
 
     steps:
       - name: Checkout

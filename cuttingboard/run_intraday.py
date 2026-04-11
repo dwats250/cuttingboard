@@ -5,7 +5,7 @@ Scheduled entry point: every 30 minutes, 14:00–21:00 UTC Monday–Friday.
   python -m cuttingboard.run_intraday
 
 Runs L1–L5 (ingest → normalize → validate → derived → regime) and sends a
-Pushover alert on any of three trigger conditions:
+ntfy alert on any of three trigger conditions:
 
   1. Regime becomes CHAOTIC
   2. RISK_ON ↔ RISK_OFF crossover (directional regime flip)
@@ -42,7 +42,6 @@ from cuttingboard.validation import validate_quotes
 logger = logging.getLogger(__name__)
 
 _STATE_PATH       = "logs/intraday_state.json"
-_PUSHOVER_URL     = "https://api.pushover.net/1/messages.json"
 _DEDUP_MINUTES    = 90
 _VIX_SPIKE_LIMIT  = 0.20   # 20% single-interval move triggers alert
 
@@ -153,16 +152,16 @@ def _within_dedup_window(state: dict, now: datetime) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Pushover delivery
+# ntfy delivery
 # ---------------------------------------------------------------------------
 
 def _send_alert(regime: RegimeState, alert_type: str, run_at: datetime) -> bool:
-    """Format and deliver a Pushover notification. Returns True on success."""
-    user_key  = config.PUSHOVER_USER_KEY
-    app_token = config.PUSHOVER_APP_TOKEN
+    """Format and deliver an ntfy notification. Returns True on success."""
+    topic = config.NTFY_TOPIC
+    ntfy_url = config.NTFY_URL
 
-    if not user_key or not app_token:
-        logger.debug("Pushover not configured — intraday alert skipped")
+    if not topic or not ntfy_url:
+        logger.debug("ntfy not configured — intraday alert skipped")
         return False
 
     time_str = run_at.strftime("%Y-%m-%d %H:%M UTC")
@@ -195,25 +194,22 @@ def _send_alert(regime: RegimeState, alert_type: str, run_at: datetime) -> bool:
             f"Review immediately"
         )
 
+    body = f"{title}\n\n{message}"
+
     try:
         resp = requests.post(
-            _PUSHOVER_URL,
-            data={
-                "token":   app_token,
-                "user":    user_key,
-                "title":   title,
-                "message": message,
-            },
+            f"{ntfy_url.rstrip('/')}/{topic}",
+            data=body.encode(),
             timeout=10,
         )
         if resp.status_code == 200:
             logger.info(f"Intraday alert delivered: {alert_type}")
             return True
         logger.warning(
-            f"Pushover delivery failed: HTTP {resp.status_code} — {resp.text[:200]}"
+            f"ntfy delivery failed: HTTP {resp.status_code} — {resp.text[:200]}"
         )
     except Exception as exc:
-        logger.warning(f"Pushover delivery error: {exc}")
+        logger.warning(f"ntfy delivery error: {exc}")
 
     return False
 

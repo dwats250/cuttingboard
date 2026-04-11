@@ -241,10 +241,10 @@ class TestStateIO:
 # ---------------------------------------------------------------------------
 
 class TestSendAlert:
-    def test_skips_when_no_credentials(self):
+    def test_skips_when_not_configured(self):
         from cuttingboard import config
-        with patch.object(config, "PUSHOVER_USER_KEY", None):
-            with patch.object(config, "PUSHOVER_APP_TOKEN", None):
+        with patch.object(config, "NTFY_TOPIC", None):
+            with patch.object(config, "NTFY_URL", None):
                 result = _send_alert(_regime(), ALERT_CHAOTIC, _NOW)
         assert result is False
 
@@ -252,8 +252,8 @@ class TestSendAlert:
         from cuttingboard import config
         mock_resp = MagicMock()
         mock_resp.status_code = 200
-        with patch.object(config, "PUSHOVER_USER_KEY", "u"):
-            with patch.object(config, "PUSHOVER_APP_TOKEN", "t"):
+        with patch.object(config, "NTFY_TOPIC", "topic"):
+            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
                 with patch("requests.post", return_value=mock_resp):
                     result = _send_alert(_regime(), ALERT_CHAOTIC, _NOW)
         assert result is True
@@ -263,8 +263,8 @@ class TestSendAlert:
         mock_resp = MagicMock()
         mock_resp.status_code = 500
         mock_resp.text = "error"
-        with patch.object(config, "PUSHOVER_USER_KEY", "u"):
-            with patch.object(config, "PUSHOVER_APP_TOKEN", "t"):
+        with patch.object(config, "NTFY_TOPIC", "topic"):
+            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
                 with patch("requests.post", return_value=mock_resp):
                     result = _send_alert(_regime(), ALERT_CHAOTIC, _NOW)
         assert result is False
@@ -273,51 +273,49 @@ class TestSendAlert:
         from cuttingboard import config
         captured = {}
         def capture(**kwargs):
-            captured.update(kwargs.get("data", {}))
+            captured["data"] = kwargs.get("data", b"")
             m = MagicMock()
             m.status_code = 200
             return m
-        with patch.object(config, "PUSHOVER_USER_KEY", "u"):
-            with patch.object(config, "PUSHOVER_APP_TOKEN", "t"):
+        with patch.object(config, "NTFY_TOPIC", "topic"):
+            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
                 with patch("requests.post", side_effect=lambda url, **kw: capture(**kw) or MagicMock(status_code=200)):
                     _send_alert(
                         _regime(regime=RISK_ON, posture=AGGRESSIVE_LONG),
                         ALERT_REGIME_SHIFT, _NOW,
                     )
-        # Verify a POST was attempted (even if captured dict is empty due to side_effect ordering)
-        # Just confirm no exception was raised
-        assert True
+        assert "New regime: RISK_ON / AGGRESSIVE_LONG" in captured["data"].decode()
 
     def test_chaotic_message_contains_do_not_trade(self):
         from cuttingboard import config
         posted_data = {}
         def capture_post(url, data=None, **kwargs):
-            posted_data.update(data or {})
+            posted_data["body"] = data.decode() if isinstance(data, bytes) else data
             m = MagicMock()
             m.status_code = 200
             return m
-        with patch.object(config, "PUSHOVER_USER_KEY", "u"):
-            with patch.object(config, "PUSHOVER_APP_TOKEN", "t"):
+        with patch.object(config, "NTFY_TOPIC", "topic"):
+            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
                 with patch("requests.post", side_effect=capture_post):
                     _send_alert(_regime(regime=CHAOTIC), ALERT_CHAOTIC, _NOW)
-        assert "DO NOT TRADE" in posted_data.get("message", "")
+        assert "DO NOT TRADE" in posted_data.get("body", "")
 
     def test_vix_spike_title_contains_percentage(self):
         from cuttingboard import config
         posted_data = {}
         def capture_post(url, data=None, **kwargs):
-            posted_data.update(data or {})
+            posted_data["body"] = data.decode() if isinstance(data, bytes) else data
             m = MagicMock()
             m.status_code = 200
             return m
-        with patch.object(config, "PUSHOVER_USER_KEY", "u"):
-            with patch.object(config, "PUSHOVER_APP_TOKEN", "t"):
+        with patch.object(config, "NTFY_TOPIC", "topic"):
+            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
                 with patch("requests.post", side_effect=capture_post):
                     _send_alert(
                         _regime(vix_pct_change=0.22),
                         ALERT_VIX_SPIKE, _NOW,
                     )
-        assert "%" in posted_data.get("title", "")
+        assert "%" in posted_data.get("body", "")
 
 
 # ---------------------------------------------------------------------------

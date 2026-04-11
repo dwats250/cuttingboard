@@ -33,7 +33,7 @@ from cuttingboard.options import (
 )
 from cuttingboard.output import (
     render_report,
-    send_pushover,
+    send_ntfy,
     OUTCOME_TRADE, OUTCOME_NO_TRADE, OUTCOME_HALT,
 )
 from cuttingboard.qualification import (
@@ -449,7 +449,7 @@ class TestBuildAuditRecord:
             qualification_summary=qual,
             option_setups=[],
             halt_reason=None,
-            pushover_sent=False,
+            ntfy_sent=False,
             report_path="reports/2026-04-10.md",
         )
 
@@ -465,7 +465,7 @@ class TestBuildAuditRecord:
             "symbols_qualified", "symbols_watchlist", "symbols_excluded",
             "regime_short_circuited", "regime_failure_reason",
             "qualified_trades", "watchlist", "excluded_symbols",
-            "halt_reason", "pushover_sent", "report_path",
+            "halt_reason", "ntfy_sent", "report_path",
         ]
         for field in required:
             assert field in record, f"Missing field: {field}"
@@ -493,8 +493,8 @@ class TestBuildAuditRecord:
     def test_halt_reason_null_on_no_trade(self):
         assert self._base_record()["halt_reason"] is None
 
-    def test_pushover_sent_false(self):
-        assert self._base_record()["pushover_sent"] is False
+    def test_ntfy_sent_false(self):
+        assert self._base_record()["ntfy_sent"] is False
 
     def test_none_regime_serializes(self):
         val = _val_summary()
@@ -503,7 +503,7 @@ class TestBuildAuditRecord:
             outcome=OUTCOME_HALT, regime=None,
             validation_summary=val, qualification_summary=None,
             option_setups=[], halt_reason="test halt",
-            pushover_sent=False, report_path="reports/2026-04-10.md",
+            ntfy_sent=False, report_path="reports/2026-04-10.md",
         )
         assert record["regime"] is None
         assert record["halt_reason"] == "test halt"
@@ -530,7 +530,7 @@ class TestAuditFileWriter:
             outcome=OUTCOME_NO_TRADE,
             regime=_stay_flat(), validation_summary=val,
             qualification_summary=qual, option_setups=[],
-            halt_reason=None, pushover_sent=False,
+            halt_reason=None, ntfy_sent=False,
             report_path="reports/2026-04-10.md",
         )
         log_file = tmp_path / "logs" / "audit.jsonl"
@@ -548,7 +548,7 @@ class TestAuditFileWriter:
                 outcome=OUTCOME_NO_TRADE,
                 regime=_stay_flat(), validation_summary=val,
                 qualification_summary=qual, option_setups=[],
-                halt_reason=None, pushover_sent=False,
+                halt_reason=None, ntfy_sent=False,
                 report_path="reports/2026-04-10.md",
             )
 
@@ -565,7 +565,7 @@ class TestAuditFileWriter:
             outcome=OUTCOME_NO_TRADE,
             regime=_stay_flat(), validation_summary=val,
             qualification_summary=qual, option_setups=[],
-            halt_reason=None, pushover_sent=False,
+            halt_reason=None, ntfy_sent=False,
             report_path="reports/2026-04-10.md",
         )
         line = (tmp_path / "logs" / "audit.jsonl").read_text().strip()
@@ -675,38 +675,38 @@ class TestRenderReport:
 
 
 # ---------------------------------------------------------------------------
-# output.py — send_pushover
+# output.py — send_ntfy
 # ---------------------------------------------------------------------------
 
-class TestSendPushover:
-    def test_skips_when_no_credentials(self):
-        with patch.object(config, "PUSHOVER_USER_KEY", None):
-            with patch.object(config, "PUSHOVER_APP_TOKEN", None):
-                result = send_pushover("report text", "2026-04-10", OUTCOME_NO_TRADE)
+class TestSendNtfy:
+    def test_skips_when_not_configured(self):
+        with patch.object(config, "NTFY_TOPIC", None):
+            with patch.object(config, "NTFY_URL", None):
+                result = send_ntfy("report text", "2026-04-10", OUTCOME_NO_TRADE)
         assert result is False
 
     def test_returns_true_on_200(self):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
-        with patch.object(config, "PUSHOVER_USER_KEY", "test_user"):
-            with patch.object(config, "PUSHOVER_APP_TOKEN", "test_token"):
+        with patch.object(config, "NTFY_TOPIC", "test-topic"):
+            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
                 with patch("requests.post", return_value=mock_resp):
-                    result = send_pushover("report", "2026-04-10", OUTCOME_NO_TRADE)
+                    result = send_ntfy("report", "2026-04-10", OUTCOME_NO_TRADE)
         assert result is True
 
     def test_returns_false_on_non_200(self):
         mock_resp = MagicMock()
         mock_resp.status_code = 429
         mock_resp.text = "rate limited"
-        with patch.object(config, "PUSHOVER_USER_KEY", "test_user"):
-            with patch.object(config, "PUSHOVER_APP_TOKEN", "test_token"):
+        with patch.object(config, "NTFY_TOPIC", "test-topic"):
+            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
                 with patch("requests.post", return_value=mock_resp):
-                    result = send_pushover("report", "2026-04-10", OUTCOME_NO_TRADE)
+                    result = send_ntfy("report", "2026-04-10", OUTCOME_NO_TRADE)
         assert result is False
 
     def test_returns_false_on_exception(self):
-        with patch.object(config, "PUSHOVER_USER_KEY", "test_user"):
-            with patch.object(config, "PUSHOVER_APP_TOKEN", "test_token"):
+        with patch.object(config, "NTFY_TOPIC", "test-topic"):
+            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
                 with patch("requests.post", side_effect=ConnectionError("timeout")):
-                    result = send_pushover("report", "2026-04-10", OUTCOME_NO_TRADE)
+                    result = send_ntfy("report", "2026-04-10", OUTCOME_NO_TRADE)
         assert result is False

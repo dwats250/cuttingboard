@@ -33,7 +33,7 @@ def write_audit_record(
     qualification_summary: Optional[QualificationSummary],
     option_setups: list[OptionSetup],
     halt_reason: Optional[str],
-    pushover_sent: bool,
+    ntfy_sent: bool,
     report_path: str,
 ) -> dict:
     """Build and append one audit record to logs/audit.jsonl.
@@ -53,7 +53,7 @@ def write_audit_record(
         qualification_summary=qualification_summary,
         option_setups=option_setups,
         halt_reason=halt_reason,
-        pushover_sent=pushover_sent,
+        ntfy_sent=ntfy_sent,
         report_path=report_path,
     )
 
@@ -74,7 +74,7 @@ def _build_record(
     qualification_summary: Optional[QualificationSummary],
     option_setups: list[OptionSetup],
     halt_reason: Optional[str],
-    pushover_sent: bool,
+    ntfy_sent: bool,
     report_path: str,
 ) -> dict:
     qual = qualification_summary
@@ -136,7 +136,7 @@ def _build_record(
 
         # Run metadata
         "halt_reason":            halt_reason,
-        "pushover_sent":          pushover_sent,
+        "ntfy_sent":              ntfy_sent,
         "report_path":            report_path,
     }
 

@@ -6,11 +6,11 @@
 |------------|-----------|-------|
 | 13:00 | 06:00 | Premarket run fires via GitHub Actions |
 | 13:01–13:05 | 06:01–06:05 | Report committed to `reports/YYYY-MM-DD.md` |
-| 13:01–13:05 | 06:01–06:05 | Pushover alert delivered (if credentials configured) |
+| 13:01–13:05 | 06:01–06:05 | ntfy alert delivered (if configured) |
 | 14:00–21:00 | 07:00–14:00 | Intraday monitor runs every 30 minutes |
-| Intraday | Intraday | Pushover fires on regime shifts or VIX spikes only |
+| Intraday | Intraday | ntfy fires on regime shifts or VIX spikes only |
 
-If no Pushover arrives by 06:10 PT, check GitHub Actions — the run may have failed or the alert was suppressed because no credentials are set.
+If no ntfy alert arrives by 06:10 PT, check GitHub Actions — the run may have failed or the alert was suppressed because ntfy is not configured.
 
 ---
 
@@ -131,7 +131,7 @@ The regime is computed fresh on every run from current market data. It is not a 
 CHAOTIC overrides everything. It fires when VIX pct_change (single interval) exceeds 15%. This detects flash crashes and gap events. During CHAOTIC:
 - Posture is always STAY_FLAT
 - No trades evaluated
-- Intraday monitor sends an immediate Pushover alert
+- Intraday monitor sends an immediate ntfy alert
 
 If you see CHAOTIC on a morning report: do not trade. Wait for the next day's premarket run to confirm conditions have stabilized.
 
@@ -301,10 +301,10 @@ for line in sys.stdin:
 "
 ```
 
-### Check for Pushover delivery gaps
+### Check for ntfy delivery gaps
 
 ```bash
-grep '"pushover_sent": false' logs/audit.jsonl | wc -l
+grep '"ntfy_sent": false' logs/audit.jsonl | wc -l
 ```
 
 ### With `jq` (if installed)
@@ -338,10 +338,10 @@ Key fields:
 | `last_regime` | Regime at the most recent intraday run |
 | `last_posture` | Posture at the most recent intraday run |
 | `last_run_at_utc` | Timestamp of the most recent intraday run |
-| `last_alert_at_utc` | Timestamp of the most recent Pushover alert |
+| `last_alert_at_utc` | Timestamp of the most recent ntfy alert |
 | `last_alert_type` | What triggered the most recent alert (CHAOTIC / REGIME_SHIFT / VIX_SPIKE) |
 
-If `last_alert_at_utc` is recent and no alert was received, check `pushover_sent` in the audit log — credentials may not be configured.
+If `last_alert_at_utc` is recent and no alert was received, check `ntfy_sent` in the audit log — ntfy may not be configured.
 
 ---
 
@@ -357,17 +357,17 @@ The premarket run did not commit. Check:
 
 `audit.jsonl` is written before the git commit. If the commit failed but the run succeeded, the record exists locally on the runner but wasn't pushed. Check the workflow logs.
 
-### "Pushover not delivering"
+### "ntfy not delivering"
 
-1. Verify credentials in `.env` (local) or GitHub Secrets (CI):
+1. Verify ntfy settings in `.env` (local) or GitHub Secrets (CI):
    ```bash
-   python3 -c "from cuttingboard import config; print(bool(config.PUSHOVER_USER_KEY), bool(config.PUSHOVER_APP_TOKEN))"
+   python3 -c "from cuttingboard import config; print(bool(config.NTFY_TOPIC), bool(config.NTFY_URL))"
    ```
-2. Test Pushover delivery manually:
+2. Test ntfy delivery manually:
    ```bash
    python3 -c "
-   from cuttingboard.output import send_pushover
-   ok = send_pushover('Test message from Cuttingboard', '2026-01-01', 'NO_TRADE')
+   from cuttingboard.output import send_ntfy
+   ok = send_ntfy('Test message from Cuttingboard', '2026-01-01', 'NO_TRADE')
    print('Delivered:', ok)
    "
    ```

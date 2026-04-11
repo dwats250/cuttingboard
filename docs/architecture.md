@@ -4,8 +4,8 @@
 
 Cuttingboard is a macro-driven trade signal engine. Every trading day it runs two scheduled jobs:
 
-- **Premarket (13:00 UTC / 06:00 PT):** Fetches all 20 symbols, computes regime, structure, and options setups, writes a markdown report, and commits it to git. Sends a Pushover alert with the day's trades.
-- **Intraday (every 30 min, 14:00–21:00 UTC):** Runs the data spine and regime engine only. Sends a Pushover alert if the regime shifts or VIX spikes — no report written.
+- **Premarket (13:00 UTC / 06:00 PT):** Fetches all 20 symbols, computes regime, structure, and options setups, writes a markdown report, and commits it to git. Sends an ntfy alert with the day's trades.
+- **Intraday (every 30 min, 14:00–21:00 UTC):** Runs the data spine and regime engine only. Sends an ntfy alert if the regime shifts or VIX spikes — no report written.
 
 The system always produces one of three terminal states: **TRADE**, **NO TRADE**, or **HALT**.
 
@@ -115,15 +115,15 @@ L8  OPTIONS EXPRESSION  options.py
          ▼
 L9  OUTPUT ENGINE       output.py
     In:  All above results
-    Out: Terminal print, reports/YYYY-MM-DD.md, Pushover alert
+    Out: Terminal print, reports/YYYY-MM-DD.md, ntfy alert
     ─────────────────────────────────────────────────────────
     Three write destinations per run. Report written even on
-    NO TRADE days. Pushover skipped silently if credentials
-    not in .env.
+    NO TRADE days. ntfy skipped silently if not configured
+    in .env.
          │
          ▼
 L10 AUDIT               audit.py
-    In:  All above results + pushover_sent status
+    In:  All above results + ntfy_sent status
     Out: One JSON record appended to logs/audit.jsonl
     ─────────────────────────────────────────────────────────
     Append-only. sort_keys=True. Never overwritten.
@@ -182,7 +182,7 @@ The system halts when any **HALT_SYMBOL** fails validation. HALT_SYMBOLS are:
 These five symbols are required for regime computation. If any of them fails validation (bad data, fetch failure, stale quote, price out of bounds), `ValidationSummary.system_halted = True` and the pipeline:
 
 1. Renders a HALT report (terminal + markdown)
-2. Sends a Pushover HALT alert
+2. Sends an ntfy HALT alert
 3. Writes an audit record with `outcome = "HALT"`
 4. Exits with code `1`
 
@@ -240,7 +240,7 @@ docs/                       you are here
   trade_qualification.md
   options_framework.md
 
-.env                        POLYGON_API_KEY, PUSHOVER_USER_KEY, PUSHOVER_APP_TOKEN
+.env                        POLYGON_API_KEY, NTFY_TOPIC, NTFY_URL
                             (gitignored — never committed)
 pyproject.toml              package metadata + dependencies
 ```
@@ -268,5 +268,5 @@ L1 → L2 → L3 [system_halted=True] → L9 (HALT report) → L10 → exit(1)
 
 **Intraday run:**
 ```
-L1 → L2 → L3 → L4 + L5 → compare to last state → Pushover if trigger → update state
+L1 → L2 → L3 → L4 + L5 → compare to last state → ntfy if trigger → update state
 ```

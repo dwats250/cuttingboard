@@ -15,8 +15,8 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 
 POLYGON_API_KEY: str | None = os.getenv("POLYGON_API_KEY")
-PUSHOVER_USER_KEY: str | None = os.getenv("PUSHOVER_USER_KEY")
-PUSHOVER_APP_TOKEN: str | None = os.getenv("PUSHOVER_APP_TOKEN")
+NTFY_TOPIC: str | None = os.getenv("NTFY_TOPIC")
+NTFY_URL: str | None = os.getenv("NTFY_URL")
 
 # ---------------------------------------------------------------------------
 # Pipeline constants

@@ -4,7 +4,7 @@ Layer 9 — Output Engine.
 Three write destinations per run:
   1. Terminal  — printed immediately after all layers complete
   2. Markdown  — reports/YYYY-MM-DD.md (written even on NO TRADE days)
-  3. Pushover  — alert sent when PUSHOVER credentials are in .env
+  3. ntfy      — alert sent when NTFY settings are in .env
 
 Report is written and committed on every run, including NO TRADE days.
 
@@ -40,9 +40,6 @@ logger = logging.getLogger(__name__)
 _BORDER = "═" * 54
 _DIVIDER = "─" * 54
 _REPORT_DIR = "reports"
-
-# Pushover API endpoint
-_PUSHOVER_URL = "https://api.pushover.net/1/messages.json"
 
 
 # ---------------------------------------------------------------------------
@@ -185,53 +182,45 @@ def write_markdown(report: str, date_str: str) -> str:
     return path
 
 
-def send_pushover(
+def send_ntfy(
     report: str,
     date_str: str,
     outcome: str,
 ) -> bool:
-    """Send Pushover notification. Returns True on success, False otherwise.
+    """Send ntfy notification. Returns True on success, False otherwise.
 
-    Silently skips (returns False) when credentials are not configured.
+    Silently skips (returns False) when ntfy is not configured.
     Logs warnings on delivery failure — never raises.
     """
-    user_key  = config.PUSHOVER_USER_KEY
-    app_token = config.PUSHOVER_APP_TOKEN
+    topic = config.NTFY_TOPIC
+    ntfy_url = config.NTFY_URL
 
-    if not user_key or not app_token:
-        logger.debug("Pushover credentials not configured — notification skipped")
+    if not topic or not ntfy_url:
+        logger.debug("ntfy not configured — notification skipped")
         return False
 
-    # Title reflects outcome
     title_map = {
         OUTCOME_TRADE:    f"Cuttingboard {date_str} — TRADE",
         OUTCOME_NO_TRADE: f"Cuttingboard {date_str} — NO TRADE",
         OUTCOME_HALT:     f"Cuttingboard {date_str} — ⚠ HALT",
     }
     title = title_map.get(outcome, f"Cuttingboard {date_str}")
-
-    # Trim to Pushover's 1024-char message limit
-    message = report[:1024]
+    message = f"{title}\n\n{report}"
 
     try:
         resp = requests.post(
-            _PUSHOVER_URL,
-            data={
-                "token":   app_token,
-                "user":    user_key,
-                "title":   title,
-                "message": message,
-            },
+            f"{ntfy_url.rstrip('/')}/{topic}",
+            data=message.encode(),
             timeout=10,
         )
         if resp.status_code == 200:
-            logger.info("Pushover notification delivered")
+            logger.info("ntfy notification delivered")
             return True
         logger.warning(
-            f"Pushover delivery failed: HTTP {resp.status_code} — {resp.text[:200]}"
+            f"ntfy delivery failed: HTTP {resp.status_code} — {resp.text[:200]}"
         )
     except Exception as exc:
-        logger.warning(f"Pushover delivery error: {exc}")
+        logger.warning(f"ntfy delivery error: {exc}")
 
     return False
 
@@ -278,7 +267,7 @@ def run_pipeline() -> int:
         )
         write_terminal(report)
         report_path = write_markdown(report, date_str)
-        pushover_sent = send_pushover(report, date_str, OUTCOME_HALT)
+        ntfy_sent = send_ntfy(report, date_str, OUTCOME_HALT)
 
         write_audit_record(
             run_at_utc=run_at,
@@ -289,7 +278,7 @@ def run_pipeline() -> int:
             qualification_summary=None,
             option_setups=[],
             halt_reason=val.halt_reason,
-            pushover_sent=pushover_sent,
+            ntfy_sent=ntfy_sent,
             report_path=report_path,
         )
         return 1
@@ -327,7 +316,7 @@ def run_pipeline() -> int:
 
     write_terminal(report)
     report_path = write_markdown(report, date_str)
-    pushover_sent = send_pushover(report, date_str, outcome)
+    ntfy_sent = send_ntfy(report, date_str, outcome)
 
     write_audit_record(
         run_at_utc=run_at,
@@ -338,7 +327,7 @@ def run_pipeline() -> int:
         qualification_summary=qual,
         option_setups=setups,
         halt_reason=None,
-        pushover_sent=pushover_sent,
+        ntfy_sent=ntfy_sent,
         report_path=report_path,
     )
 
