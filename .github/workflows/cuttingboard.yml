@@ -1,0 +1,80 @@
+name: Cuttingboard Pipeline
+
+on:
+  schedule:
+    # Premarket: 06:00 PT / 13:00 UTC, Monday–Friday
+    - cron: '0 13 * * 1-5'
+    # Intraday: every 30 minutes from 14:00–21:30 UTC, Monday–Friday
+    - cron: '*/30 14-21 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Run mode'
+        required: false
+        default: 'premarket'
+        type: choice
+        options:
+          - premarket
+          - intraday
+
+# Never cancel a mid-run pipeline — queue instead.
+concurrency:
+  group: cuttingboard-pipeline
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+
+    env:
+      POLYGON_API_KEY:    ${{ secrets.POLYGON_API_KEY }}
+      PUSHOVER_USER_KEY:  ${{ secrets.PUSHOVER_USER_KEY }}
+      PUSHOVER_APP_TOKEN: ${{ secrets.PUSHOVER_APP_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install package
+        run: pip install -e .
+
+      - name: Determine run mode
+        id: mode
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "mode=${{ github.event.inputs.mode }}" >> "$GITHUB_OUTPUT"
+          elif [[ "$(date -u +%H)" == "13" ]]; then
+            echo "mode=premarket" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=intraday" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run premarket pipeline
+        if: steps.mode.outputs.mode == 'premarket'
+        run: python -m cuttingboard.run_premarket
+
+      - name: Run intraday monitor
+        if: steps.mode.outputs.mode == 'intraday'
+        run: python -m cuttingboard.run_intraday
+
+      - name: Commit reports and logs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/ logs/
+          if [ -f .cb_commit_msg ]; then
+            git diff --staged --quiet || git commit -F .cb_commit_msg
+          else
+            git diff --staged --quiet || git commit -m "CB run: $(date -u +%Y-%m-%d)"
+          fi
+
+      - name: Push
+        run: git push

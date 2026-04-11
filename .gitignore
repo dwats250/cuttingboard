@@ -1,1 +1,31 @@
-.env\ndata/\nlogs/\n__pycache__/\n*.pyc\n*.egg-info/
+# Secrets — never commit
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# Data cache — regenerated at runtime
+data/cache/*.parquet
+
+# CI artifacts — generated per-run, not committed
+.cb_commit_msg
+
+# IDE
+.vscode/
+.idea/
+*.swp
