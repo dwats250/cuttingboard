@@ -15,6 +15,7 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 
 POLYGON_API_KEY: str | None = os.getenv("POLYGON_API_KEY")
+TRADIER_API_KEY: str | None = os.getenv("TRADIER_API_KEY")
 NTFY_TOPIC: str | None = os.getenv("NTFY_TOPIC")
 NTFY_URL: str | None = os.getenv("NTFY_URL")
 

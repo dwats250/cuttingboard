@@ -26,6 +26,11 @@ import requests
 
 from cuttingboard import config
 from cuttingboard.audit import write_audit_record
+from cuttingboard.chain_validation import (
+    ChainValidationResult,
+    validate_option_chains,
+    VALIDATED, OPTIONS_WEAK, CHAIN_FAILED, OPTIONS_INVALID, MANUAL_CHECK,
+)
 from cuttingboard.derived import compute_all_derived
 from cuttingboard.ingestion import fetch_all
 from cuttingboard.normalization import normalize_all
@@ -64,9 +69,11 @@ def render_report(
     option_setups: list[OptionSetup],
     outcome: str,
     halt_reason: Optional[str] = None,
+    chain_results: Optional[dict[str, "ChainValidationResult"]] = None,
 ) -> str:
     """Render the full report as a string (terminal and markdown use same text)."""
     lines: list[str] = []
+    cr = chain_results or {}
 
     # ---- Header ----
     lines.append(_BORDER)
@@ -99,13 +106,19 @@ def render_report(
             )
 
     else:
-        # TRADE — qualified setups
-        qual = qualification_summary
-        assert qual is not None
+        # TRADE — show only chain-validated setups
+        trade_setups = [
+            s for s in option_setups
+            if not cr or cr.get(s.symbol, ChainValidationResult(
+                symbol=s.symbol, classification=VALIDATED, reason=None,
+                spread_pct=None, open_interest=None, volume=None,
+                expiry_used=None, data_source=None,
+            )).classification == VALIDATED
+        ]
 
-        lines.append(f"  TRADES  ({qual.symbols_qualified})")
+        lines.append(f"  TRADES  ({len(trade_setups)})")
         lines.append("  " + "─" * 50)
-        for setup in option_setups:
+        for setup in trade_setups:
             lines.append(
                 f"  {setup.symbol:<8}  {setup.strategy:<18}  "
                 f"{setup.structure} / {setup.iv_environment}"
@@ -121,6 +134,16 @@ def render_report(
                 f"             {contracts} contract{'s' if contracts != 1 else ''}"
                 f"  ·  max risk ${risk:.0f}"
             )
+            if cr and setup.symbol in cr:
+                cv = cr[setup.symbol]
+                chain_line = f"             Chain: {cv.classification}"
+                if cv.open_interest is not None:
+                    chain_line += f"  OI={cv.open_interest}"
+                if cv.spread_pct is not None:
+                    chain_line += f"  spread={cv.spread_pct:.1%}"
+                if cv.expiry_used:
+                    chain_line += f"  exp={cv.expiry_used}"
+                lines.append(chain_line)
             lines.append("             Exit: +50% profit or full debit loss")
             lines.append("")
 
@@ -141,6 +164,21 @@ def render_report(
             lines.append("  " + "─" * 50)
             for sym, reason in sorted(qual.excluded.items()):
                 lines.append(f"  {sym:<8}  {reason}")
+            lines.append("")
+
+    # Chain issues section — setups that failed chain validation
+    if cr:
+        chain_issues = [
+            (sym, cv) for sym, cv in cr.items()
+            if cv.classification != VALIDATED
+        ]
+        if chain_issues:
+            lines.append(f"  CHAIN ISSUES  ({len(chain_issues)})")
+            lines.append("  " + "─" * 50)
+            for sym, cv in sorted(chain_issues):
+                note = cv.reason or cv.classification
+                lines.append(f"  {sym:<8}  {cv.classification}")
+                lines.append(f"           {note}")
             lines.append("")
 
     # ---- Data status footer ----
@@ -297,9 +335,26 @@ def run_pipeline() -> int:
     if qual.qualified_trades:
         setups = build_option_setups(qual.qualified_trades, structure, dm)
 
+    # ----- Layer 10: Chain validation -----
+    chain_results: dict[str, ChainValidationResult] = {}
+    if setups:
+        chain_results = validate_option_chains(setups, val.valid_quotes)
+
     # ----- Determine outcome -----
-    if qual.symbols_qualified > 0 and setups:
+    # Only VALIDATED setups count as actionable trades
+    validated_count = sum(
+        1 for s in setups
+        if chain_results.get(s.symbol, ChainValidationResult(
+            symbol=s.symbol, classification=VALIDATED, reason=None,
+            spread_pct=None, open_interest=None, volume=None,
+            expiry_used=None, data_source=None,
+        )).classification == VALIDATED
+    )
+    if validated_count > 0:
         outcome = OUTCOME_TRADE
+    elif qual.symbols_qualified > 0 and setups:
+        # Setups existed but all failed chain validation
+        outcome = OUTCOME_NO_TRADE
     else:
         outcome = OUTCOME_NO_TRADE
 
@@ -312,6 +367,7 @@ def run_pipeline() -> int:
         qualification_summary=qual,
         option_setups=setups,
         outcome=outcome,
+        chain_results=chain_results,
     )
 
     write_terminal(report)
