@@ -15,7 +15,6 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import os
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -107,6 +106,7 @@ class PipelineResult:
     validation_summary: ValidationSummary
     regime: Optional[RegimeState]
     qualification_summary: Optional[QualificationSummary]
+    candidates_generated: int
     option_setups: list[OptionSetup]
     chain_results: dict[str, ChainValidationResult]
     outcome: str
@@ -149,10 +149,15 @@ def cli_main(argv: Optional[list[str]] = None) -> int:
             print(f"WARNING: {line}")
         return 0 if result["pass"] else 1
 
-    run_date = _resolve_run_date(args.date)
     requested_mode = args.mode
-    effective_mode = _resolve_effective_mode(requested_mode, run_date)
-    fixture_path = _resolve_fixture_path(args.fixture_file, run_date) if effective_mode == MODE_FIXTURE else None
+    requested_run_date = _resolve_run_date(args.date)
+    effective_mode = _resolve_effective_mode(requested_mode, requested_run_date)
+    fixture_path = _resolve_cli_fixture_path(
+        effective_mode=effective_mode,
+        fixture_file=args.fixture_file,
+        requested_run_date=requested_run_date,
+    )
+    run_date = _effective_run_date(effective_mode, requested_run_date, fixture_path, args.date is not None)
 
     result = execute_run(
         mode=effective_mode,
@@ -226,6 +231,7 @@ def _run_pipeline(
     run_date: date,
     fixture_file: Optional[Path],
 ) -> PipelineResult:
+    fixture_backed = _is_fixture_backed(mode, fixture_file)
     run_at_utc = _deterministic_run_at(mode, fixture_file) if mode == MODE_FIXTURE else datetime.now(timezone.utc)
     date_str = run_date.isoformat()
     warnings: list[str] = []
@@ -233,10 +239,12 @@ def _run_pipeline(
 
     raw_quotes, normalized_quotes = _load_inputs(mode, fixture_file)
     fetch_failures = extract_fetch_failures(raw_quotes) if raw_quotes else None
-    validation_summary = validate_quotes(normalized_quotes, fetch_failures)
+    with _fixture_validation_clock(mode, fixture_file, normalized_quotes):
+        validation_summary = validate_quotes(normalized_quotes, fetch_failures)
 
     regime: Optional[RegimeState] = None
     qualification_summary: Optional[QualificationSummary] = None
+    candidates_generated = 0
     option_setups: list[OptionSetup] = []
     chain_results: dict[str, ChainValidationResult] = {}
     outcome = OUTCOME_NO_TRADE
@@ -248,10 +256,11 @@ def _run_pipeline(
         regime = compute_regime(validation_summary.valid_quotes)
 
         if mode != MODE_SUNDAY:
-            with _fixture_cache_only_ohlcv(mode):
+            with _fixture_cache_only_ohlcv(mode, fixture_file):
                 derived = compute_all_derived(validation_summary.valid_quotes)
             structure = classify_all_structure(validation_summary.valid_quotes, derived, regime.vix_level)
             candidates = generate_candidates(structure, derived, validation_summary.valid_quotes, regime)
+            candidates_generated = len(candidates)
             qualification_summary = qualify_all(regime, structure, candidates or None, derived)
 
             if qualification_summary.qualified_trades:
@@ -287,7 +296,7 @@ def _run_pipeline(
     report_path = str(REPORTS_DIR / f"{date_str}.md")
 
     ntfy_sent = False
-    if mode in {MODE_LIVE, MODE_SUNDAY}:
+    if mode in {MODE_LIVE, MODE_SUNDAY} and not fixture_backed:
         ntfy_sent = send_ntfy(report, date_str, outcome)
 
     audit_record = write_audit_record(
@@ -311,6 +320,7 @@ def _run_pipeline(
         validation_summary=validation_summary,
         regime=regime,
         qualification_summary=qualification_summary,
+        candidates_generated=candidates_generated,
         option_setups=option_setups,
         chain_results=chain_results,
         warnings=warnings,
@@ -327,6 +337,7 @@ def _run_pipeline(
         validation_summary=validation_summary,
         regime=regime,
         qualification_summary=qualification_summary,
+        candidates_generated=candidates_generated,
         option_setups=option_setups,
         chain_results=chain_results,
         outcome=outcome,
@@ -348,6 +359,7 @@ def _build_run_summary(
     validation_summary: ValidationSummary,
     regime: Optional[RegimeState],
     qualification_summary: Optional[QualificationSummary],
+    candidates_generated: int,
     option_setups: list[OptionSetup],
     chain_results: dict[str, ChainValidationResult],
     warnings: list[str],
@@ -355,7 +367,7 @@ def _build_run_summary(
     fixture_file: Optional[Path],
 ) -> dict[str, Any]:
     fallback_used = any(raw.source == "polygon" for raw in raw_quotes.values())
-    data_status = _data_status(mode, raw_quotes, normalized_quotes)
+    data_status = _data_status(mode, raw_quotes, normalized_quotes, fixture_file)
     kill_switch = _kill_switch(regime, normalized_quotes)
     validated_count = sum(
         1
@@ -392,7 +404,7 @@ def _build_run_summary(
         "fallback_used": fallback_used,
         "system_halted": validation_summary.system_halted,
         "halt_reason": validation_summary.halt_reason,
-        "candidates_generated": 0 if mode == MODE_SUNDAY else (qualification_summary.symbols_evaluated if qualification_summary else 0),
+        "candidates_generated": 0 if mode == MODE_SUNDAY else candidates_generated,
         "candidates_qualified": 0 if mode == MODE_SUNDAY else validated_count,
         "candidates_watchlist": 0 if qualification_summary is None else qualification_summary.symbols_watchlist,
         "chain_validation": {
@@ -474,7 +486,12 @@ def verify_run_summary(path: str) -> dict[str, Any]:
         errors.append(f"invalid data_status: {data_status}")
 
     try:
-        ts = datetime.fromisoformat(str(summary.get("timestamp")).replace("Z", "+00:00"))
+        raw_timestamp = summary.get("timestamp")
+        if not isinstance(raw_timestamp, str) or "T" not in raw_timestamp:
+            raise ValueError("timestamp must be an ISO-8601 datetime string")
+        ts = datetime.fromisoformat(raw_timestamp.replace("Z", "+00:00"))
+        if ts.tzinfo is None:
+            raise ValueError("timestamp must be timezone-aware")
         if summary.get("mode") in {SUMMARY_MODE_LIVE, SUMMARY_MODE_SUNDAY}:
             age = datetime.now(timezone.utc) - ts.astimezone(timezone.utc)
             if age.total_seconds() > 6 * 3600:
@@ -482,14 +499,16 @@ def verify_run_summary(path: str) -> dict[str, Any]:
     except Exception:
         errors.append(f"invalid timestamp: {summary.get('timestamp')}")
 
+    if summary.get("kill_switch") and summary.get("candidates_qualified") != 0:
+        errors.append("kill_switch runs must not qualify trades")
     if summary.get("regime") == CHAOTIC and summary.get("candidates_qualified") != 0:
         errors.append("CHAOTIC runs must not qualify trades")
     if summary.get("posture") == "STAY_FLAT" and summary.get("candidates_qualified") != 0:
         errors.append("STAY_FLAT runs must not qualify trades")
-    if summary.get("kill_switch") and summary.get("candidates_qualified") != 0:
-        errors.append("kill_switch runs must not qualify trades")
     if summary.get("regime") == NEUTRAL and summary.get("min_rr_applied") != 3.0:
         errors.append("NEUTRAL runs must apply min_rr_applied == 3.0")
+    if summary.get("system_halted") and summary.get("status") != SUMMARY_STATUS_FAIL:
+        errors.append("system_halted runs must have status FAIL")
 
     chain_validation = summary.get("chain_validation")
     if not isinstance(chain_validation, dict):
@@ -514,9 +533,6 @@ def verify_run_summary(path: str) -> dict[str, Any]:
     if chain_validation and invalid_count == len(chain_validation):
         warnings.append("all candidates invalid at chain validation")
 
-    if summary.get("system_halted") and summary.get("status") != SUMMARY_STATUS_FAIL:
-        errors.append("system_halted runs must have status FAIL")
-
     return {
         "pass": not errors,
         "warnings": list(dict.fromkeys(warnings)),
@@ -528,7 +544,7 @@ def _load_inputs(
     mode: str,
     fixture_file: Optional[Path],
 ) -> tuple[dict[str, RawQuote], dict[str, NormalizedQuote]]:
-    if mode == MODE_FIXTURE:
+    if _is_fixture_backed(mode, fixture_file):
         normalized = _load_fixture_quotes(fixture_file)
         raw_quotes = {
             symbol: RawQuote(
@@ -553,7 +569,12 @@ def _load_inputs(
 def _load_fixture_quotes(path: Optional[Path]) -> dict[str, NormalizedQuote]:
     if path is None:
         raise ValueError("fixture mode requires a fixture file")
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise ValueError(f"fixture file not found: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"invalid fixture JSON: {exc}") from exc
     if not isinstance(payload, dict):
         raise ValueError("fixture file must be a JSON object keyed by symbol")
 
@@ -581,10 +602,9 @@ def _load_fixture_quotes(path: Optional[Path]) -> dict[str, NormalizedQuote]:
         )
     return quotes
 
-
 @contextmanager
-def _fixture_cache_only_ohlcv(mode: str):
-    if mode != MODE_FIXTURE:
+def _fixture_cache_only_ohlcv(mode: str, fixture_file: Optional[Path]):
+    if not _is_fixture_backed(mode, fixture_file):
         yield
         return
 
@@ -614,6 +634,29 @@ def _fixture_chain_results(setups: list[OptionSetup]) -> dict[str, ChainValidati
     return results
 
 
+@contextmanager
+def _fixture_validation_clock(
+    mode: str,
+    fixture_file: Optional[Path],
+    normalized_quotes: dict[str, NormalizedQuote],
+):
+    if not _is_fixture_backed(mode, fixture_file) or not normalized_quotes:
+        yield
+        return
+
+    frozen_now = max(quote.fetched_at_utc for quote in normalized_quotes.values())
+
+    class _FixtureDateTime:
+        @classmethod
+        def now(cls, tz=None):
+            if tz is None:
+                return frozen_now.replace(tzinfo=None)
+            return frozen_now.astimezone(tz)
+
+    with patch("cuttingboard.validation.datetime", _FixtureDateTime):
+        yield
+
+
 def _write_markdown_report(report: str, date_str: str, verification: str) -> Path:
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     path = REPORTS_DIR / f"{date_str}.md"
@@ -640,7 +683,10 @@ def _data_status(
     mode: str,
     raw_quotes: dict[str, RawQuote],
     normalized_quotes: dict[str, NormalizedQuote],
+    fixture_file: Optional[Path],
 ) -> str:
+    if _is_fixture_backed(mode, fixture_file):
+        return "ok"
     if any(_quote_age_seconds(quote) > config.FRESHNESS_SECONDS for quote in normalized_quotes.values()):
         return "stale"
     if mode != MODE_FIXTURE and any(raw.source == "polygon" for raw in raw_quotes.values()):
@@ -703,14 +749,41 @@ def _resolve_effective_mode(requested_mode: str, run_date: date) -> str:
     return requested_mode
 
 
+def _resolve_cli_fixture_path(
+    effective_mode: str,
+    fixture_file: Optional[str],
+    requested_run_date: date,
+) -> Optional[Path]:
+    if effective_mode == MODE_FIXTURE:
+        return _resolve_fixture_path(fixture_file, requested_run_date)
+    if effective_mode == MODE_SUNDAY and fixture_file:
+        return Path(fixture_file)
+    return None
+
+
 def _resolve_fixture_path(fixture_file: Optional[str], run_date: date) -> Path:
     if fixture_file:
         return Path(fixture_file)
     return DEFAULT_FIXTURE_DIR / f"{run_date.isoformat()}.json"
 
 
+def _effective_run_date(
+    mode: str,
+    requested_run_date: date,
+    fixture_file: Optional[Path],
+    explicit_date: bool,
+) -> date:
+    if mode not in {MODE_FIXTURE, MODE_SUNDAY} or explicit_date or fixture_file is None:
+        return requested_run_date
+
+    try:
+        return date.fromisoformat(fixture_file.stem)
+    except ValueError:
+        return requested_run_date
+
+
 def _deterministic_run_at(mode: str, fixture_file: Optional[Path]) -> datetime:
-    if mode != MODE_FIXTURE or fixture_file is None:
+    if not _is_fixture_backed(mode, fixture_file):
         return datetime.now(timezone.utc)
     quotes = _load_fixture_quotes(fixture_file)
     if not quotes:
@@ -723,9 +796,13 @@ def _quote_age_seconds(quote: NormalizedQuote) -> float:
 
 
 def _run_id(mode: str, run_at_utc: datetime, fixture_file: Optional[Path]) -> str:
-    if mode == MODE_FIXTURE and fixture_file is not None:
-        return f"fixture-{fixture_file.stem}"
+    if _is_fixture_backed(mode, fixture_file):
+        return f"{mode}-fixture-{fixture_file.stem}"
     return f"{mode}-{run_at_utc.strftime('%Y%m%dT%H%M%SZ')}"
+
+
+def _is_fixture_backed(mode: str, fixture_file: Optional[Path]) -> bool:
+    return fixture_file is not None and mode in {MODE_FIXTURE, MODE_SUNDAY}
 
 
 def _failure_summary(
@@ -750,7 +827,7 @@ def _failure_summary(
         "net_score": 0,
         "permission": "No trades permitted. Run failed.",
         "kill_switch": False,
-        "min_rr_applied": config.MIN_RR_RATIO,
+        "min_rr_applied": config.NEUTRAL_RR_RATIO,
         "data_status": "stale",
         "fallback_used": False,
         "system_halted": True,
