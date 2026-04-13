@@ -6,6 +6,10 @@ The regime engine translates current market conditions into a single **regime** 
 
 The regime is computed fresh on every run. It has no memory of yesterday's regime. A single large VIX move can flip the regime in one interval.
 
+`NEUTRAL` is an active regime, not a pass-through state. It allows selective trades only with defined risk and `R:R >= 3.0` when posture resolves to `NEUTRAL_PREMIUM`.
+
+`TRANSITION` remains as a legacy constant in code for compatibility, but the engine does not return it.
+
 ---
 
 ## The 8 Inputs
@@ -75,13 +79,13 @@ net_score ≥ 4  AND  confidence ≥ 0.60  →  RISK_ON
 net_score ≥ 2                           →  RISK_ON
 net_score ≤ −4 AND  confidence ≥ 0.60  →  RISK_OFF
 net_score ≤ −2                          →  RISK_OFF
-otherwise                               →  TRANSITION
+otherwise                               →  NEUTRAL
 ```
 
 The two-tier threshold (score alone vs. score + confidence) means:
 - A strong, unanimous signal (≥4 votes one way, high confidence) → clear regime
 - A moderate signal (≥2 votes one way) → regime even without high confidence
-- A split signal (±1 or 0) → TRANSITION regardless
+- A split signal (±1 or 0) → NEUTRAL regardless
 
 ---
 
@@ -96,12 +100,12 @@ The two-tier threshold (score alone vs. score + confidence) means:
 | RISK_ON | `confidence < 0.55` | `STAY_FLAT` |
 | RISK_OFF | `confidence ≥ 0.55` | `DEFENSIVE_SHORT` |
 | RISK_OFF | `confidence < 0.55` | `STAY_FLAT` |
-| TRANSITION | `VIX 18–25` | `NEUTRAL_PREMIUM` |
-| TRANSITION | `VIX < 18 or > 25 or unknown` | `STAY_FLAT` |
+| NEUTRAL | `VIX 18–25` | `NEUTRAL_PREMIUM` |
+| NEUTRAL | `VIX < 18 or > 25 or unknown` | `STAY_FLAT` |
 
 **The minimum confidence floor is 0.50.** Below this, the signal-to-noise ratio is too low to trade regardless of regime. A confidence of 0.50 on 8 votes means only 2 more votes one way than the other — a very weak signal.
 
-**NEUTRAL_PREMIUM** is the one posture that allows trading during TRANSITION. It requires VIX to be in the 18–25 range, which means some volatility exists to sell. This posture currently generates no directional candidates (the options layer returns an empty candidate set when `direction_for_regime()` returns None). It is reserved for future premium-selling strategies.
+**NEUTRAL_PREMIUM** is the posture that allows selective trading during NEUTRAL. It requires VIX to be in the 18–25 range. Direction comes from `net_score`: positive is LONG, negative is SHORT, zero means no trade. NEUTRAL + VIX 18–25 resolves to `NEUTRAL_PREMIUM`; NEUTRAL + VIX outside that band resolves to `STAY_FLAT`. NEUTRAL trades also use the stricter `R:R >= 3.0` rule.
 
 ---
 
@@ -114,8 +118,8 @@ The two-tier threshold (score alone vs. score + confidence) means:
 | +4 | 8 | 0.50 | RISK_ON + STAY_FLAT (conf < 0.55) |
 | +3 | 7 | 0.43 | RISK_ON + STAY_FLAT |
 | +2 | 6 | 0.33 | RISK_ON + STAY_FLAT |
-| +1 | 5 | 0.20 | TRANSITION + STAY_FLAT |
-| 0 | 4 | 0.00 | TRANSITION + STAY_FLAT |
+| +1 | 5 | 0.20 | NEUTRAL + STAY_FLAT |
+| 0 | 4 | 0.00 | NEUTRAL + STAY_FLAT |
 | −2 | 8 | 0.25 | RISK_OFF + STAY_FLAT |
 | −4 | 7 | 0.57 | RISK_OFF + DEFENSIVE_SHORT |
 | −6 | 8 | 0.75 | RISK_OFF + DEFENSIVE_SHORT |
@@ -155,7 +159,7 @@ Regime: CHAOTIC / STAY_FLAT. Vote counting still runs for the audit record but d
 
 ---
 
-### Example 3: Mixed Signal (TRANSITION)
+### Example 3: Mixed Signal (NEUTRAL)
 
 SPY +0.1%, QQQ +0.2%, IWM −0.1%. VIX flat at 20. DXY flat. TNX flat. BTC +0.5%.
 
@@ -171,7 +175,7 @@ SPY +0.1%, QQQ +0.2%, IWM −0.1%. VIX flat at 20. DXY flat. TNX flat. BTC +0.5%
 | BTC pct_change | +0.005 | NEUTRAL |
 
 Result: risk_on=0, risk_off=0, neutral=8, total=8, net=0, confidence=0.00
-Regime: TRANSITION / STAY_FLAT. VIX is 20, which is in the 18–25 range, so NEUTRAL_PREMIUM would apply — but confidence of 0.00 overrides to STAY_FLAT first.
+Regime: NEUTRAL / STAY_FLAT. VIX is 20, which is in the 18–25 range, so NEUTRAL_PREMIUM would apply if confidence were high enough. With confidence at 0.00, posture correctly remains STAY_FLAT.
 
 ---
 

@@ -2,19 +2,19 @@
 
 ## Overview
 
-Every trade candidate passes through 9 gates in sequence. Gates 1–4 are **hard stops**: failure immediately rejects the symbol with no watchlist eligibility. Gates 5–9 are **soft stops**: exactly one failure puts the symbol on the watchlist; two or more failures reject it.
+Every trade candidate passes through 11 gates in sequence. Gates 1–4 are **hard stops**: failure immediately rejects the symbol with no watchlist eligibility. Gates 5–11 are **soft stops**: exactly one failure puts the symbol on the watchlist; two or more failures reject it.
 
 There is no partial credit. Every gate either passes or fails.
 
 ```
-Gates 1–4 (HARD):  fail → REJECT immediately, no watchlist
-Gates 5–9 (SOFT):  1 miss → WATCHLIST
+Gates 1–4 (HARD):   fail → REJECT immediately, no watchlist
+Gates 5–11 (SOFT):  1 miss → WATCHLIST
                    2+ misses → REJECT
 ```
 
 ---
 
-## The 9 Gates
+## The 11 Gates
 
 ### Gate 1 — REGIME (Hard)
 
@@ -27,7 +27,7 @@ if regime.posture == STAY_FLAT:
 
 This gate is also checked at the system level in `qualify_all()` before any per-symbol work runs. If posture is STAY_FLAT, the qualification loop short-circuits immediately — no symbols are evaluated, no CHOP symbols are logged from qualification. (CHOP detection in the structure layer still runs independently.)
 
-**Failure message:** `REGIME: posture is STAY_FLAT (regime=TRANSITION)`
+**Failure message:** `REGIME: posture is STAY_FLAT (regime=NEUTRAL)`
 
 ---
 
@@ -54,13 +54,13 @@ Note: Gate 1 already catches STAY_FLAT posture (which is assigned when confidenc
 
 ```python
 expected = direction_for_regime(regime)
-# RISK_ON → "LONG", RISK_OFF → "SHORT", TRANSITION/CHAOTIC → None
+# RISK_ON → "LONG", RISK_OFF → "SHORT", NEUTRAL uses net_score, CHAOTIC → None
 
 if expected is not None and candidate.direction != expected:
     → REJECT
 ```
 
-When `expected` is None (TRANSITION or CHAOTIC), this gate always passes — no directional constraint is imposed.
+When `expected` is None (`NEUTRAL` with `net_score = 0`, or `CHAOTIC`), this gate always passes — no directional constraint is imposed.
 
 In practice, candidates are generated with the correct direction by `generate_candidates()`, which already calls `direction_for_regime()`. Gate 3 exists as a validation layer in case candidates are constructed manually or passed in from external sources.
 
@@ -240,7 +240,38 @@ This is the maximum number of contracts and maximum dollar risk. You can trade f
 
 ## Worked Examples
 
-### Example A — Fully Qualified Setup (all 9 gates pass)
+### Gate 10 — EXTENSION (Soft)
+
+**Rule:** Price must not be excessively extended relative to EMA21 and ATR14.
+
+```python
+extension = abs(entry_price - ema21) / atr14
+if extension > 1.5:   # config.EXTENSION_ATR_MULTIPLIER
+    → soft failure
+```
+
+This gate prevents chasing entries after the move is already stretched. If EMA21 or ATR14 is unavailable, the gate passes fail-open.
+
+**Failure message:** `EXTENSION: price 1.8× ATR from EMA21 (max 1.5×) — entry extended`
+
+---
+
+### Gate 11 — TIME (Soft)
+
+**Rule:** New entries must not be opened after the late-session cutoff.
+
+```python
+if current_time_et >= 15:30:   # config.LATE_SESSION_CUTOFF
+    → soft failure
+```
+
+This gate preserves execution discipline without changing the underlying signal logic.
+
+**Failure message:** `TIME: entry blocked after 3:30 PM ET`
+
+---
+
+### Example A — Fully Qualified Setup (all 11 gates pass)
 
 **Conditions:** RISK_ON regime, AGGRESSIVE_LONG posture, confidence=0.75.
 **Symbol:** QQQ, structure=TREND, iv_environment=NORMAL_IV.
@@ -257,6 +288,8 @@ This is the maximum number of contracts and maximum dollar risk. You can trade f
 | 7 RR_RATIO | reward=9.60, risk=4.80, RR=2.0 ≥ 2.0 | ✓ PASS |
 | 8 MAX_RISK | spread_cost=$150, max_c=floor(150/150)=1 | ✓ PASS |
 | 9 EARNINGS | has_earnings_soon=None → fail-open | ✓ PASS |
+| 10 EXTENSION | entry close enough to EMA21 relative to ATR14 | ✓ PASS |
+| 11 TIME | run occurs before 3:30 PM ET | ✓ PASS |
 
 **Outcome:** `qualified=True`, max_contracts=1, dollar_risk=$150.
 
@@ -274,6 +307,8 @@ Same conditions as Example A, but the R:R is marginal:
 | 7 RR_RATIO | reward=7.20, risk=4.80, RR=1.5 < 2.0 | ✗ FAIL |
 | 8 MAX_RISK | (computed, max_c=1) | ✓ PASS |
 | 9 EARNINGS | None → pass | ✓ PASS |
+| 10 EXTENSION | entry close enough to EMA21 relative to ATR14 | ✓ PASS |
+| 11 TIME | run occurs before 3:30 PM ET | ✓ PASS |
 
 **Outcome:** `watchlist=True`, `watchlist_reason="R:R 1.5 below 2.0 minimum"`.
 
@@ -294,6 +329,8 @@ Same conditions, but with a tight stop AND earnings coming:
 | 7 RR_RATIO | reward=10, risk=0.96, RR=10.4 ≥ 2.0 | ✓ PASS |
 | 8 MAX_RISK | spread_cost=$75, max_c=2 | ✓ PASS |
 | 9 EARNINGS | has_earnings_soon=True | ✗ FAIL |
+| 10 EXTENSION | entry close enough to EMA21 relative to ATR14 | ✓ PASS |
+| 11 TIME | run occurs before 3:30 PM ET | ✓ PASS |
 
 Two soft gate failures → **REJECT**. The hard_failure message will read:
 `"2 soft gates failed: stop distance 0.2% below 1.0% minimum; earnings within 5 calendar days"`

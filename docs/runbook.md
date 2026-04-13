@@ -2,15 +2,16 @@
 
 ## Daily Rhythm
 
-| Time (UTC) | Time (PT) | Event |
-|------------|-----------|-------|
-| 13:00 | 06:00 | Premarket run fires via GitHub Actions |
-| 13:01–13:05 | 06:01–06:05 | Report committed to `reports/YYYY-MM-DD.md` |
-| 13:01–13:05 | 06:01–06:05 | ntfy alert delivered (if configured) |
-| 14:00–21:00 | 07:00–14:00 | Intraday monitor runs every 30 minutes |
-| Intraday | Intraday | ntfy fires on regime shifts or VIX spikes only |
+| Time (UTC) | Day | Event |
+|------------|-----|-------|
+| 13:00 | Mon–Fri | Live run fires (GHA or cron) |
+| 13:05 | Mon–Fri | Verify run fires — confirms artifact is valid |
+| 13:01–13:06 | Mon–Fri | Report committed to `reports/YYYY-MM-DD.md` (GHA) |
+| 13:01–13:06 | Mon–Fri | ntfy alert delivered (if configured) |
+| 14:00–21:30 | Mon–Fri | Intraday monitor runs every 30 minutes |
+| 10:00 | Sunday | Sunday regime report fires (no trade candidates) |
 
-If no ntfy alert arrives by 06:10 PT, check GitHub Actions — the run may have failed or the alert was suppressed because ntfy is not configured.
+Confirm the run succeeded by checking `logs/latest_run.json` → `status: SUCCESS`. If status is FAIL or the file is missing, inspect GitHub Actions logs or run verify manually.
 
 ---
 
@@ -27,7 +28,7 @@ The report has four sections. Here's how to read each one.
 ══════════════════════════════════════════════════════
 ```
 
-- **Regime:** The macro state — RISK_ON, RISK_OFF, TRANSITION, or CHAOTIC.
+- **Regime:** The macro state — RISK_ON, RISK_OFF, NEUTRAL, or CHAOTIC.
 - **Posture:** The trading posture — what you can do today (see table below).
 - **conf=:** Confidence in the regime. `abs(net_score) / total_votes`. Below 0.50 → STAY_FLAT regardless of regime.
 - **net=:** Risk-on votes minus risk-off votes. Range: −8 to +8.
@@ -39,14 +40,14 @@ The report has four sections. Here's how to read each one.
 | `AGGRESSIVE_LONG` | RISK_ON + conf ≥ 0.75 | Full position size, all qualified longs |
 | `CONTROLLED_LONG` | RISK_ON + 0.55 ≤ conf < 0.75 | Reduced size or selective entries |
 | `DEFENSIVE_SHORT` | RISK_OFF + conf ≥ 0.55 | Qualified short setups only |
-| `NEUTRAL_PREMIUM` | TRANSITION + VIX 18–25 | Premium-selling only; no directional bias |
+| `NEUTRAL_PREMIUM` | NEUTRAL + VIX 18–25 | Defined-risk only; direction comes from `net_score` |
 | `STAY_FLAT` | Anything else | Do not trade. No exceptions. |
 
 **When posture is STAY_FLAT:** The pipeline short-circuits before evaluating any symbol. Zero trades, zero watchlist. The report shows:
 
 ```
   NO TRADE
-  Reason: STAY_FLAT posture (regime=TRANSITION, confidence=0.12)
+  Reason: STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)
 ```
 
 This is normal. It happens most days. The system is being conservative by design.
@@ -135,14 +136,18 @@ CHAOTIC overrides everything. It fires when VIX pct_change (single interval) exc
 
 If you see CHAOTIC on a morning report: do not trade. Wait for the next day's premarket run to confirm conditions have stabilized.
 
-### TRANSITION regime
+### NEUTRAL regime
 
-TRANSITION means the vote model is split — no clear directional consensus. This is the most common state during low-volatility, range-bound markets.
+NEUTRAL means the vote model is mixed but still active.
 
-- VIX 18–25 during TRANSITION → NEUTRAL_PREMIUM posture (premium selling may apply)
-- VIX outside 18–25 → STAY_FLAT
+- `net_score > 0` during NEUTRAL → LONG candidates
+- `net_score < 0` during NEUTRAL → SHORT candidates
+- `net_score = 0` during NEUTRAL → no directional trade
+- NEUTRAL trades must clear the stricter `R:R >= 3.0` gate
+- `VIX 18–25` during NEUTRAL → `NEUTRAL_PREMIUM`
+- `VIX < 18` or `VIX > 25` during NEUTRAL → `STAY_FLAT`
 
-TRANSITION with STAY_FLAT is not a problem. The system is designed to sit out unclear conditions.
+`TRANSITION` remains as a legacy constant in code, but it is not returned by the engine.
 
 ---
 
@@ -202,6 +207,61 @@ A HALT means a required market data symbol failed validation. The report will lo
 
 ---
 
+## Local Automation (Cron)
+
+### Quick setup
+
+```bash
+chmod +x run_daily.sh
+```
+
+`run_daily.sh` runs live then verify in sequence. On Sunday it auto-converts to sunday mode (regime-only, no candidates). Exit code is 0 on PASS, 1 on any failure.
+
+### Cron entries
+
+Add to `crontab -e`. Replace `/home/user/cuttingboard` and `.venv` with your actual paths.
+
+```cron
+# Premarket live + verify — 06:00 PT (13:00 UTC), Monday–Friday
+0 13 * * 1-5  cd /home/user/cuttingboard && .venv/bin/python -m cuttingboard --mode live && .venv/bin/python -m cuttingboard --mode verify >> logs/cron.log 2>&1
+
+# Or via the helper script:
+# 0 13 * * 1-5  cd /home/user/cuttingboard && ./run_daily.sh >> logs/cron.log 2>&1
+
+# Verify-only run 5 minutes later (belt-and-suspenders):
+# 5 13 * * 1-5  cd /home/user/cuttingboard && .venv/bin/python -m cuttingboard --mode verify >> logs/cron.log 2>&1
+
+# Sunday regime report — 10:00 UTC
+0 10 * * 0    cd /home/user/cuttingboard && .venv/bin/python -m cuttingboard --mode sunday && .venv/bin/python -m cuttingboard --mode verify >> logs/cron.log 2>&1
+```
+
+**Rules:**
+- Run from project root (`cd` before any command)
+- Use the full venv path — cron does not inherit your shell's `PATH`
+- Redirect stdout and stderr to `logs/cron.log` so failures leave a trace
+
+### Detecting failures locally
+
+```bash
+# Did the last run pass?
+python -m cuttingboard --mode verify
+
+# What did the last cron run do?
+tail -50 logs/cron.log
+
+# What is the current run state?
+python3 -c "import json; s=json.load(open('logs/latest_run.json')); print(s['status'], s['regime'], s['posture'])"
+```
+
+A non-zero exit from any cron command is logged by the system. On Linux:
+
+```bash
+# Check for cron failures in system mail or syslog:
+grep CRON /var/log/syslog | grep -i fail | tail -10
+```
+
+---
+
 ## Triggering a Manual Run
 
 ### From GitHub Actions UI
@@ -209,7 +269,7 @@ A HALT means a required market data symbol failed validation. The report will lo
 1. Go to the repository on GitHub
 2. Click **Actions** → **Cuttingboard Pipeline**
 3. Click **Run workflow** (top right)
-4. Select `mode`: `premarket` or `intraday`
+4. Select `mode`: `live`, `sunday`, `verify`, or `intraday`
 5. Click **Run workflow**
 
 ### From the command line (local)
@@ -218,15 +278,27 @@ A HALT means a required market data symbol failed validation. The report will lo
 cd ~/cuttingboard
 source .venv/bin/activate
 
-# Full premarket run (writes report + audit)
-python -m cuttingboard.run_premarket
+# Default live run
+python -m cuttingboard
 
-# Intraday regime check only (no report)
-python -m cuttingboard.run_intraday
+# Deterministic fixture run
+python -m cuttingboard --mode fixture --fixture-file tests/fixtures/2026-04-12.json
 
-# Just the pipeline without writing .cb_commit_msg
-python -c "from cuttingboard.output import run_pipeline; run_pipeline()"
+# Sunday regime-only run
+python -m cuttingboard --mode sunday
+
+# Verification only
+python -m cuttingboard --mode verify
+
+# Verification against a specific summary file
+python -m cuttingboard --mode verify --file logs/run_2026-04-12_130000.json
 ```
+
+The CLI supports four modes: `live`, `fixture`, `sunday`, and `verify`.
+`--fixture-file PATH` selects the JSON fixture for fixture mode.
+`--file PATH` selects which summary verify mode checks. Without `--file`, verify mode reads `logs/latest_run.json`.
+
+`logs/latest_run.json` is the machine-readable source of truth for the most recent run. `reports/YYYY-MM-DD.md` is the human-readable report. HTML output is not generated.
 
 ### Inspecting output without writing files
 
