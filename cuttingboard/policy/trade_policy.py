@@ -28,27 +28,28 @@ def evaluate_trade(
     posture = determine_posture(macro)
     market_reason = check_market_gate(quality)
     if market_reason is not None:
-        return _reject(posture, market_reason)
+        return _reject(posture, market_reason, candidate)
 
     if posture == "NEUTRAL":
-        return _reject(posture, "NEUTRAL_POSTURE")
+        return _reject(posture, "NEUTRAL_POSTURE", candidate)
 
     price_reason = validate_price_relationships(candidate)
     if price_reason is not None:
-        return _reject(posture, price_reason)
+        return _reject(posture, price_reason, candidate)
 
     mean_reversion = is_mean_reversion_exception(posture, candidate)
     if not direction_matches_posture(posture, candidate.direction) and not mean_reversion:
-        return _reject(posture, "MACRO_CONFLICT")
+        return _reject(posture, "MACRO_CONFLICT", candidate)
 
     if not structure_is_valid(candidate):
-        return _reject(posture, "NO_STRUCTURE")
+        return _reject(posture, "NO_STRUCTURE", candidate)
 
     if not risk_reward_is_valid(candidate, require_high_rr=mean_reversion):
-        return _reject(posture, "RR_INVALID")
+        return _reject(posture, "RR_INVALID", candidate)
 
     options_plan = map_options_expression(posture, candidate, macro.vix_regime)
     return TradeDecision(
+        candidate=candidate,
         posture=posture,
         decision="APPROVED",
         reason=None,
@@ -56,8 +57,9 @@ def evaluate_trade(
     )
 
 
-def _reject(posture: str, reason: str) -> TradeDecision:
+def _reject(posture: str, reason: str, candidate: TradeCandidate) -> TradeDecision:
     return TradeDecision(
+        candidate=candidate,
         posture=posture,
         decision="REJECTED",
         reason=reason,

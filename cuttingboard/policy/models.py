@@ -47,6 +47,7 @@ class OptionsExpression:
 
 @dataclass(frozen=True)
 class TradeDecision:
+    candidate: TradeCandidate
     posture: Posture
     decision: TradeDecisionStatus
     reason: str | None
