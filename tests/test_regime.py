@@ -12,7 +12,7 @@ import pytest
 
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.regime import (
-    RISK_ON, RISK_OFF, TRANSITION, CHAOTIC,
+    RISK_ON, RISK_OFF, NEUTRAL, TRANSITION, CHAOTIC,
     AGGRESSIVE_LONG, CONTROLLED_LONG, NEUTRAL_PREMIUM, DEFENSIVE_SHORT, STAY_FLAT,
     RegimeState, compute_regime, from_validation_results,
 )
@@ -87,9 +87,9 @@ class TestRegimeClassification:
         state = compute_regime(_risk_off_quotes())
         assert state.regime == RISK_OFF
 
-    def test_transition_mixed(self):
+    def test_neutral_mixed(self):
         state = compute_regime(_transition_quotes())
-        assert state.regime == TRANSITION
+        assert state.regime == NEUTRAL
 
     def test_chaotic_override_on_vix_spike(self):
         quotes = _risk_on_quotes()
@@ -279,26 +279,26 @@ class TestPosture:
         assert state.confidence < 0.50
         assert state.posture == STAY_FLAT
 
-    def test_neutral_premium_transition_vix_20_to_25(self):
-        # Need TRANSITION + confidence ≥ 0.50 + VIX level 18–25 → NEUTRAL_PREMIUM
+    def test_neutral_premium_vix_18_to_25(self):
+        # NEUTRAL + confidence ≥ 0.50 + VIX level 18–25 → NEUTRAL_PREMIUM
         # VIX alone: level=22 → NEUTRAL (18–25), pct=-0.04 → RISK_ON (< -0.03)
-        # → 1 on, 0 off, 1 neutral; net=1, total=2, confidence=0.50; regime=TRANSITION
+        # → 1 on, 0 off, 1 neutral; net=1, total=2, confidence=0.50; regime=NEUTRAL
         quotes = {
             "^VIX": _q("^VIX", 22.0, -0.04, "index_level"),
         }
         state = compute_regime(quotes)
-        assert state.regime == TRANSITION
+        assert state.regime == NEUTRAL
         assert state.net_score == 1
         assert state.total_votes == 2
         assert state.confidence == pytest.approx(0.50)
         assert state.vix_level == pytest.approx(22.0)
         assert state.posture == NEUTRAL_PREMIUM
 
-    def test_stay_flat_transition_vix_above_25(self):
+    def test_stay_flat_neutral_vix_above_25(self):
         quotes = dict(_transition_quotes())
         quotes["^VIX"] = _q("^VIX", 26.0, +0.010, "index_level")  # VIX > 25
         state = compute_regime(quotes)
-        assert state.regime == TRANSITION
+        assert state.regime == NEUTRAL
         assert state.posture == STAY_FLAT
 
 

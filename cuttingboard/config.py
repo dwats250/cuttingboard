@@ -15,7 +15,6 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 
 POLYGON_API_KEY: str | None = os.getenv("POLYGON_API_KEY")
-TRADIER_API_KEY: str | None = os.getenv("TRADIER_API_KEY")
 NTFY_TOPIC: str | None = os.getenv("NTFY_TOPIC")
 NTFY_URL: str | None = os.getenv("NTFY_URL")
 
@@ -40,6 +39,16 @@ VIX_HIGH                = 28
 VIX_ELEVATED            = 20
 VIX_LOW                 = 15
 INTRADAY_ALERT_COOLDOWN = 90         # minutes
+
+EXTENSION_ATR_MULTIPLIER            = 1.5   # reject if |price − ema21| > multiplier × ATR14
+NEUTRAL_RR_RATIO                    = 3.0   # minimum R:R for NEUTRAL regime trades
+REGIME_RISK_MULTIPLIER: dict[str, float] = {
+    "RISK_ON":  1.0,
+    "RISK_OFF": 1.0,
+    "NEUTRAL":  0.6,
+    "CHAOTIC":  0.0,
+}
+LATE_SESSION_CUTOFF                 = (15, 30)  # (hour, minute) ET — no entries after 3:30 PM
 
 # ---------------------------------------------------------------------------
 # Data fetch settings

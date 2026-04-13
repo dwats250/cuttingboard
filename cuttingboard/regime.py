@@ -4,11 +4,12 @@ Layer 5 — Macro Regime Engine.
 Translates validated quotes into a regime state via an 8-input vote model.
 No derived metrics are required — only pct_change and price from Layer 3.
 
-Regime states:  RISK_ON | RISK_OFF | TRANSITION | CHAOTIC
+Regime states:  RISK_ON | RISK_OFF | NEUTRAL | CHAOTIC
 Postures:       AGGRESSIVE_LONG | CONTROLLED_LONG | NEUTRAL_PREMIUM
                 DEFENSIVE_SHORT | STAY_FLAT
 
-STAY_FLAT and CHAOTIC → NO TRADE.
+NEUTRAL replaces TRANSITION — allows selective trades (R:R ≥ 3:1, defined risk).
+CHAOTIC and STAY_FLAT posture → NO TRADE.
 """
 
 import logging
@@ -27,7 +28,8 @@ logger = logging.getLogger(__name__)
 
 RISK_ON    = "RISK_ON"
 RISK_OFF   = "RISK_OFF"
-TRANSITION = "TRANSITION"
+NEUTRAL    = "NEUTRAL"
+TRANSITION = "TRANSITION"   # legacy alias — compute_regime never returns this
 CHAOTIC    = "CHAOTIC"
 
 AGGRESSIVE_LONG = "AGGRESSIVE_LONG"
@@ -265,7 +267,7 @@ def _classify_regime(
         return RISK_OFF
     if net_score <= -2:
         return RISK_OFF
-    return TRANSITION
+    return NEUTRAL
 
 
 def _determine_posture(
@@ -289,11 +291,11 @@ def _determine_posture(
             return DEFENSIVE_SHORT
         return STAY_FLAT  # 0.50 ≤ confidence < 0.55
 
-    if regime == TRANSITION:
+    if regime in (NEUTRAL, TRANSITION):
         if vix_level is not None and vix_level > 25:
-            return STAY_FLAT         # PRD: TRANSITION with VIX > 25 → STAY_FLAT
+            return STAY_FLAT        # elevated VIX in mixed regime → no trade
         if vix_level is not None and vix_level >= 18:
-            return NEUTRAL_PREMIUM   # PRD: TRANSITION with VIX 18–25 → NEUTRAL_PREMIUM
-        return STAY_FLAT             # VIX < 18 or unknown during TRANSITION
+            return NEUTRAL_PREMIUM  # VIX 18–25 → selective defined-risk trades
+        return STAY_FLAT            # VIX < 18 during mixed signals → complacency, no trade
 
     return STAY_FLAT

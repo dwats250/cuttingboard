@@ -16,6 +16,7 @@ Short-circuit: STAY_FLAT / CHAOTIC posture halts before any per-symbol work.
 import logging
 import math
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Optional
 
 from cuttingboard import config
@@ -23,7 +24,7 @@ from cuttingboard.derived import DerivedMetrics
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.regime import (
     RegimeState,
-    RISK_ON, RISK_OFF, TRANSITION, CHAOTIC,
+    RISK_ON, RISK_OFF, TRANSITION, CHAOTIC, NEUTRAL,
     STAY_FLAT,
 )
 from cuttingboard.structure import StructureResult, CHOP
@@ -40,9 +41,12 @@ GATE_STOP_DIST   = "STOP_DISTANCE"
 GATE_RR          = "RR_RATIO"
 GATE_MAX_RISK    = "MAX_RISK"
 GATE_EARNINGS    = "EARNINGS"
+GATE_EXTENSION   = "EXTENSION"
+GATE_TIME        = "TIME"
 
 HARD_GATES = {GATE_REGIME, GATE_CONFIDENCE, GATE_DIRECTION, GATE_STRUCTURE}
-SOFT_GATES = {GATE_STOP_DEF, GATE_STOP_DIST, GATE_RR, GATE_MAX_RISK, GATE_EARNINGS}
+SOFT_GATES = {GATE_STOP_DEF, GATE_STOP_DIST, GATE_RR, GATE_MAX_RISK, GATE_EARNINGS,
+              GATE_EXTENSION, GATE_TIME}
 
 
 # ---------------------------------------------------------------------------
@@ -280,37 +284,44 @@ def qualify_candidate(
     else:
         soft_failures.append((GATE_STOP_DIST, "entry or stop undefined — cannot compute"))
 
-    # Gate 7: R:R ≥ 2.0
+    # Gate 7: R:R minimum — stricter in NEUTRAL regime
+    min_rr = config.NEUTRAL_RR_RATIO if regime.regime == NEUTRAL else config.MIN_RR_RATIO
     if risk > 0:
         rr = reward / risk
-        if rr < config.MIN_RR_RATIO:
+        if rr < min_rr:
             soft_failures.append((
                 GATE_RR,
-                f"R:R {rr:.2f} below {config.MIN_RR_RATIO:.1f} minimum",
+                f"R:R {rr:.2f} below {min_rr:.1f} minimum"
+                + (" (NEUTRAL stricter gate)" if regime.regime == NEUTRAL else ""),
             ))
         else:
             gates_passed.append(GATE_RR)
     else:
         soft_failures.append((GATE_RR, "risk is zero — cannot compute R:R"))
 
-    # Gate 8: Fits within $100–$200 max risk
+    # Gate 8: Fits within risk budget — scaled by regime multiplier
+    risk_multiplier = config.REGIME_RISK_MULTIPLIER.get(regime.regime, 1.0)
+    effective_target = config.TARGET_DOLLAR_RISK * risk_multiplier
     spread_cost = candidate.spread_width * 100  # 1 contract = 100 multiplier
     max_contracts: Optional[int] = None
     dollar_risk: Optional[float] = None
 
-    if spread_cost > 0:
-        max_c = math.floor(config.TARGET_DOLLAR_RISK / spread_cost)
+    if spread_cost > 0 and effective_target > 0:
+        max_c = math.floor(effective_target / spread_cost)
         if max_c < 1:
             soft_failures.append((
                 GATE_MAX_RISK,
                 f"1 contract at ${candidate.spread_width:.2f} "
-                f"width = ${spread_cost:.0f} — exceeds ${config.MAX_DOLLAR_RISK} maximum",
+                f"width = ${spread_cost:.0f} — exceeds budget "
+                f"(${effective_target:.0f} after {regime.regime} multiplier)",
             ))
         else:
             dr = max_c * spread_cost
             max_contracts = max_c
             dollar_risk = dr
             gates_passed.append(GATE_MAX_RISK)
+    elif spread_cost > 0 and effective_target == 0:
+        soft_failures.append((GATE_MAX_RISK, f"zero risk budget for {regime.regime} regime"))
     else:
         soft_failures.append((GATE_MAX_RISK, "spread width undefined"))
 
@@ -320,6 +331,26 @@ def qualify_candidate(
     else:
         # None = unknown → pass (fail-open per PRD)
         gates_passed.append(GATE_EARNINGS)
+
+    # Gate 10: Not extended — price within EXTENSION_ATR_MULTIPLIER × ATR14 of EMA21
+    if dm is not None and dm.ema21 is not None and dm.atr14 is not None and dm.atr14 > 0:
+        extension = abs(candidate.entry_price - dm.ema21) / dm.atr14
+        if extension > config.EXTENSION_ATR_MULTIPLIER:
+            soft_failures.append((
+                GATE_EXTENSION,
+                f"price {extension:.1f}× ATR from EMA21 "
+                f"(max {config.EXTENSION_ATR_MULTIPLIER}×) — entry extended",
+            ))
+        else:
+            gates_passed.append(GATE_EXTENSION)
+    else:
+        gates_passed.append(GATE_EXTENSION)  # fail-open when metrics unavailable
+
+    # Gate 11: Not late session — no new entries after 3:30 PM ET
+    if _is_late_session():
+        soft_failures.append((GATE_TIME, "entry blocked after 3:30 PM ET"))
+    else:
+        gates_passed.append(GATE_TIME)
 
     # -----------------------------------------------------------------------
     # Outcome
@@ -375,13 +406,20 @@ def qualify_candidate(
 def direction_for_regime(regime: RegimeState) -> Optional[str]:
     """Return expected trade direction for the current regime.
 
-    Returns None for TRANSITION and CHAOTIC — no directional bias.
+    NEUTRAL: net_score breaks the tie (+1 → LONG, -1 → SHORT, 0 → None).
+    CHAOTIC and TRANSITION (legacy): no directional bias.
     """
     if regime.regime == RISK_ON:
         return "LONG"
     if regime.regime == RISK_OFF:
         return "SHORT"
-    return None
+    if regime.regime == NEUTRAL:
+        if regime.net_score > 0:
+            return "LONG"
+        if regime.net_score < 0:
+            return "SHORT"
+        return None  # net_score == 0 → truly ambiguous → no trade
+    return None  # CHAOTIC, TRANSITION
 
 
 def print_qualification_summary(
@@ -456,3 +494,19 @@ def _hard_reject(
         max_contracts=None,
         dollar_risk=None,
     )
+
+
+def _is_late_session() -> bool:
+    """True if current ET time is at or after the LATE_SESSION_CUTOFF (3:30 PM ET).
+
+    Uses zoneinfo for DST-aware conversion. Fails open (returns False) if the
+    timezone database is unavailable so tests and environments without tzdata
+    are not blocked.
+    """
+    try:
+        from zoneinfo import ZoneInfo
+        now_et = datetime.now(ZoneInfo("America/New_York"))
+        cutoff = config.LATE_SESSION_CUTOFF
+        return (now_et.hour, now_et.minute) >= cutoff
+    except Exception:
+        return False  # fail-open
