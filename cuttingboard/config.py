@@ -34,6 +34,7 @@ EMA_FAST                = 9
 EMA_SLOW                = 21
 EMA_TREND               = 50
 ATR_PERIOD              = 14
+SIGNAL_MIN_VOLUME       = 500_000
 VIX_CHAOTIC_SPIKE       = 0.15
 VIX_HIGH                = 28
 VIX_ELEVATED            = 20
