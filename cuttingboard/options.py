@@ -35,7 +35,7 @@ from cuttingboard import config
 from cuttingboard.derived import DerivedMetrics
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.qualification import TradeCandidate, QualificationResult, direction_for_regime
-from cuttingboard.regime import RegimeState
+from cuttingboard.regime import RegimeState, NEUTRAL
 from cuttingboard.structure import (
     StructureResult,
     TREND, PULLBACK, BREAKOUT, REVERSAL, CHOP,
@@ -122,7 +122,12 @@ def generate_candidates(
     """
     direction = direction_for_regime(regime)
     if direction is None:
-        logger.info("generate_candidates: no directional bias — returning empty candidate set")
+        reason = (
+            "net_score=0 in NEUTRAL regime — no tiebreaker direction"
+            if regime.regime == NEUTRAL
+            else "no directional bias"
+        )
+        logger.info(f"generate_candidates: {reason} — returning empty candidate set")
         return {}
 
     candidates: dict[str, TradeCandidate] = {}

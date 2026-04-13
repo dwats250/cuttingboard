@@ -8,28 +8,33 @@ executed against a liquid, efficient market.
 Data source priority:
   1. yfinance   — primary (always attempted)
   2. yahooquery — fallback (skipped if not installed)
-  3. Tradier    — conditional (API key required; top-tier + spread near threshold)
 
 Single-retry model — no loops. Any fetch failure yields NEEDS_MANUAL_CHECK.
+Manual broker confirmation (Moomoo) occurs outside this system.
 
 Classification outputs
 ----------------------
-  TOP_TRADE_VALIDATED        — all gates pass
-  WATCHLIST_OPTIONS_WEAK     — spread is 10–20% (minor issue)
-  TOP_TRADE_CHAIN_FAILED     — structure good, chain bad (expiry, spread > 20%)
-  DISQUALIFIED_OPTIONS_INVALID — hard liquidity failure
-  NEEDS_MANUAL_CHECK         — data unavailable or broken quotes
+  TOP_TRADE_VALIDATED          — all gates pass
+  WATCHLIST_OPTIONS_WEAK       — spread 8–15% or marginal execution quality
+  TOP_TRADE_CHAIN_FAILED       — structure good, chain bad (expiry out of range)
+  DISQUALIFIED_OPTIONS_INVALID — hard liquidity or spread failure; broken chain
+  NEEDS_MANUAL_CHECK           — data unavailable, ambiguous, or broken quotes
 
 Hard gates (immediate DISQUALIFIED_OPTIONS_INVALID)
-  Liquidity : OI ≥ 100, volume ≥ 10, bid > 0, ask > 0
-  Spread    : > 20% of mid
+  Liquidity : OI ≥ 200, volume ≥ 20, bid > 0, ask > 0
+  Spread    : > 15% of mid
+  Consistency: isolated OI spike (best > 10× median neighbors)
 
 Soft issue (WATCHLIST_OPTIONS_WEAK)
-  Spread    : 10–20% of mid
+  Spread    : 8–15% of mid
+  Execution : bid < $0.10, OR (OI < 400 AND volume < 40)
 
-Structure gates (TOP_TRADE_CHAIN_FAILED)
+Structure gate (TOP_TRADE_CHAIN_FAILED)
   Expiry    : DTE outside [50%, 250%] of target
-  Tradier   : IV > 500% (broken data sentinel)
+
+Ambiguous issues (NEEDS_MANUAL_CHECK)
+  Sanity    : inverted quote (ask < bid), zero strike
+  Consistency: irregular strike gaps, excessive spread variance across strikes
 """
 
 import logging
@@ -41,7 +46,6 @@ from typing import Optional
 import pandas as pd
 import yfinance as yf
 
-from cuttingboard import config
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.options import (
     OptionSetup,
@@ -74,14 +78,23 @@ MANUAL_CHECK    = "NEEDS_MANUAL_CHECK"
 # Thresholds
 # ---------------------------------------------------------------------------
 
-_MIN_OI        = 100
-_MIN_VOLUME    = 10
-_SPREAD_PASS   = 0.10    # ≤ 10% → PASS
-_SPREAD_WEAK   = 0.20    # 10–20% → WEAK; > 20% → FAIL
+_MIN_OI        = 200     # ≥ 200 open interest required
+_MIN_VOLUME    = 20      # ≥ 20 volume required
+_SPREAD_PASS   = 0.08    # ≤ 8%  → PASS
+_SPREAD_WEAK   = 0.15    # 8–15% → WEAK; > 15% → FAIL
 _MIN_DTE_MULT  = 0.50    # expiry must be ≥ 50% of target DTE
 _MAX_DTE_MULT  = 2.50    # expiry must be ≤ 250% of target DTE
 _STRIKE_BAND   = 10      # evaluate ≤ N strikes nearest to ATM
-_IV_SANITY_MAX = 5.0     # Tradier IV above this (500%) is a broken-data sentinel
+
+# Internal consistency thresholds
+_MAX_GAP_MULT       = 3.0   # any gap > N × median gap → irregular spacing
+_OI_SPIKE_MULT      = 10.0  # best OI > N × median OI → isolated spike
+_MAX_SPREAD_RATIO   = 5.0   # max/min spread_pct across strikes > N → unstable
+
+# Execution reality filter thresholds
+_MIN_BID_EXECUTION  = 0.10  # bid < $0.10 → near-zero bid, unpredictable fills
+_MIN_OI_EXECUTION   = 400   # OI below this (but ≥ _MIN_OI) is thin for execution
+_MIN_VOL_EXECUTION  = 40    # volume below this (but ≥ _MIN_VOLUME) is thin
 
 _OPTION_TYPE: dict[str, str] = {
     BULL_CALL_SPREAD: "calls",
@@ -163,9 +176,19 @@ def _validate_setup(
     current_price: Optional[float],
     today: date,
 ) -> ChainValidationResult:
-    """Full 7-step chain validation pipeline for one OptionSetup."""
+    """8-step chain validation pipeline for one OptionSetup.
 
-    # Step 1 — Fetch chain (primary: yfinance; fallback: yahooquery)
+    Steps:
+      1  Fetch chain (yfinance → yahooquery)
+      2  Select nearest expiry to target DTE
+      3  Expiry fit gate
+      4  Contract selection — filter near ATM, pick best by OI
+      5  Structural pricing sanity (per-contract)
+      6  Liquidity gate + spread gate (per-contract, hard fails)
+      7  Internal consistency validation (across near-ATM strikes)
+      8  Execution reality filter (soft downgrade)
+    """
+    # Step 1 — Fetch chain
     ticker, expirations, source = _fetch_chain_yfinance(setup.symbol)
 
     if ticker is None:
@@ -182,7 +205,7 @@ def _validate_setup(
 
     expiry_dte = (date.fromisoformat(expiry) - today).days
 
-    # Step 5 — Expiry fit gate (checked early to short-circuit chain fetch)
+    # Step 3 — Expiry fit gate
     if not _expiry_fit_ok(expiry_dte, setup.dte):
         return _result(
             setup.symbol, CHAIN_FAILED,
@@ -190,13 +213,13 @@ def _validate_setup(
             expiry=expiry, source=source,
         )
 
-    # Step 3 — Contract selection
     if not current_price or current_price <= 0:
         return _result(
             setup.symbol, MANUAL_CHECK,
             "underlying price unavailable", expiry=expiry, source=source,
         )
 
+    # Step 4 — Contract selection
     opt_type = _OPTION_TYPE.get(setup.strategy, "calls")
     try:
         chain_df = _get_chain_df(ticker, source, expiry, opt_type)
@@ -215,7 +238,7 @@ def _validate_setup(
     if best_row is None:
         return _result(setup.symbol, MANUAL_CHECK, "no evaluable contracts", expiry=expiry, source=source)
 
-    # Step 6 — Structural pricing sanity
+    # Step 5 — Structural pricing sanity (per-contract)
     ev = _eval_contract(best_row)
     if ev is None:
         return _result(setup.symbol, MANUAL_CHECK, "contract evaluation error", expiry=expiry, source=source)
@@ -227,7 +250,7 @@ def _validate_setup(
             expiry=expiry, source=source,
         )
 
-    # Step 4 — Liquidity gate (hard fail)
+    # Step 6 — Liquidity gate (hard fail)
     if not ev.liquidity_ok:
         return _result(
             setup.symbol, OPTIONS_INVALID,
@@ -237,7 +260,7 @@ def _validate_setup(
             expiry=expiry, source=source,
         )
 
-    # Step 4 — Spread gate
+    # Step 6 — Spread gate (hard fail)
     if ev.spread_grade == "FAIL":
         return _result(
             setup.symbol, OPTIONS_INVALID,
@@ -246,27 +269,37 @@ def _validate_setup(
             expiry=expiry, source=source,
         )
 
-    # Step 7 — Conditional Tradier validation (spread near threshold only)
-    near_threshold = _SPREAD_PASS < ev.spread_pct <= _SPREAD_WEAK
-    if near_threshold and _tradier_configured():
-        tradier_ok = _tradier_iv_check(
-            setup.symbol, expiry,
-            float(best_row.get("strike", 0) if hasattr(best_row, "get") else getattr(best_row, "strike", 0)),
-            opt_type,
-        )
-        if not tradier_ok:
+    # Step 7 — Internal consistency validation (across near-ATM strikes)
+    consistency_reason = _internal_consistency_check(near_atm)
+    if consistency_reason is not None:
+        # Isolated OI spike is a hard chain integrity failure
+        if "isolated" in consistency_reason:
             return _result(
-                setup.symbol, CHAIN_FAILED,
-                "Tradier IV validation failed — possible broken chain",
+                setup.symbol, OPTIONS_INVALID, consistency_reason,
                 spread_pct=ev.spread_pct, oi=ev.open_interest, vol=ev.volume,
                 expiry=expiry, source=source,
             )
+        # Other consistency issues are ambiguous — flag for manual review
+        return _result(
+            setup.symbol, MANUAL_CHECK, consistency_reason,
+            spread_pct=ev.spread_pct, oi=ev.open_interest, vol=ev.volume,
+            expiry=expiry, source=source,
+        )
+
+    # Step 8 — Execution reality filter (soft downgrade)
+    execution_reason = _execution_reality_check(ev)
+    if execution_reason is not None:
+        return _result(
+            setup.symbol, OPTIONS_WEAK, execution_reason,
+            spread_pct=ev.spread_pct, oi=ev.open_interest, vol=ev.volume,
+            expiry=expiry, source=source,
+        )
 
     # Final classification
     if ev.spread_grade == "WEAK":
         return _result(
             setup.symbol, OPTIONS_WEAK,
-            f"spread {ev.spread_pct:.1%} (10–20% range)",
+            f"spread {ev.spread_pct:.1%} (8–15% range)",
             spread_pct=ev.spread_pct, oi=ev.open_interest, vol=ev.volume,
             expiry=expiry, source=source,
         )
@@ -392,7 +425,7 @@ def _expiry_fit_ok(expiry_dte: int, target_dte: int) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Strike selection and evaluation
+# Strike selection and per-contract evaluation
 # ---------------------------------------------------------------------------
 
 def _filter_near_atm(
@@ -435,8 +468,7 @@ def _safe_int(val, default: int = 0) -> int:
 def _eval_contract(row: pd.Series) -> Optional[_ContractEval]:
     """Evaluate a single contract row for liquidity, spread, and sanity.
 
-    Returns None only if numeric parsing fails entirely (should not occur
-    with _safe_float/_safe_int, but kept for defensive completeness).
+    Returns None only if numeric parsing fails entirely.
     """
     try:
         bid    = _safe_float(row.get("bid",          0))
@@ -479,78 +511,89 @@ def _eval_contract(row: pd.Series) -> Optional[_ContractEval]:
 
 
 # ---------------------------------------------------------------------------
-# Tradier conditional validation
+# Step 7 — Internal consistency validation (across near-ATM strikes)
 # ---------------------------------------------------------------------------
 
-def _tradier_configured() -> bool:
-    """True when TRADIER_API_KEY is set in config."""
-    return bool(getattr(config, "TRADIER_API_KEY", None))
+def _internal_consistency_check(near_atm: pd.DataFrame) -> Optional[str]:
+    """Check chain integrity across multiple strikes.
 
+    Requires ≥ 3 strikes to be meaningful. Returns None if chain is
+    internally consistent, or a reason string if a problem is detected.
 
-def _tradier_iv_check(
-    symbol: str,
-    expiry: str,
-    strike: float,
-    opt_type: str,
-) -> bool:
-    """Spot-check IV sanity via Tradier. Conditional — only called when needed.
-
-    Returns True  if IV looks valid, data is missing, or request fails.
-    Returns False only on confirmed IV anomaly (IV > 500%).
-
-    Never raises. All errors are treated as inconclusive (True = pass).
+    Checks:
+      1. Strike continuity — no large irregular gaps between adjacent strikes
+      2. Liquidity clustering — reject isolated OI spikes with thin neighbors
+      3. Spread stability — reject if spread varies excessively across strikes
     """
-    import requests as _req
+    if len(near_atm) < 3:
+        return None
 
-    api_key = getattr(config, "TRADIER_API_KEY", None)
-    if not api_key:
-        return True
+    strikes = sorted(near_atm["strike"].dropna().tolist())
 
-    tradier_type = "call" if opt_type == "calls" else "put"
+    # 1. Strike continuity
+    if len(strikes) >= 2:
+        gaps = [strikes[i + 1] - strikes[i] for i in range(len(strikes) - 1)]
+        sorted_gaps = sorted(gaps)
+        # Use lower median so one large gap doesn't inflate the reference value.
+        median_gap = sorted_gaps[(len(sorted_gaps) - 1) // 2]
+        if median_gap > 0 and any(g > _MAX_GAP_MULT * median_gap for g in gaps):
+            return "irregular strike spacing detected"
 
-    try:
-        resp = _req.get(
-            "https://api.tradier.com/v1/markets/options/chains",
-            params={"symbol": symbol, "expiration": expiry, "greeks": "true"},
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Accept": "application/json",
-            },
-            timeout=config.FETCH_TIMEOUT_SECONDS,
+    # 2. Liquidity clustering — isolated OI spike
+    if "openInterest" in near_atm.columns:
+        oi_vals = [_safe_float(v) for v in near_atm["openInterest"].tolist()]
+        positive_oi = [v for v in oi_vals if v > 0]
+        if len(positive_oi) >= 3:
+            sorted_oi = sorted(positive_oi)
+            median_oi = sorted_oi[len(sorted_oi) // 2]
+            max_oi = sorted_oi[-1]
+            if median_oi > 0 and max_oi > _OI_SPIKE_MULT * median_oi:
+                return "isolated OI spike — thin liquidity cluster"
+
+    # 3. Spread stability
+    if "bid" in near_atm.columns and "ask" in near_atm.columns:
+        sp_vals: list[float] = []
+        for _, row in near_atm.iterrows():
+            b = _safe_float(row.get("bid", 0))
+            a = _safe_float(row.get("ask", 0))
+            mid = (b + a) / 2.0
+            if mid > 0 and a >= b:
+                sp_vals.append((a - b) / mid)
+
+        if len(sp_vals) >= 3:
+            sorted_sp = sorted(sp_vals)
+            min_sp = sorted_sp[0]
+            max_sp = sorted_sp[-1]
+            if min_sp > 0.001 and max_sp > _MAX_SPREAD_RATIO * min_sp:
+                return "spread varies excessively across strikes"
+
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Step 8 — Execution reality filter (soft downgrade)
+# ---------------------------------------------------------------------------
+
+def _execution_reality_check(ev: _ContractEval) -> Optional[str]:
+    """Soft downgrade: check whether this trade would realistically fill well.
+
+    Called after all hard gates pass. Returns a downgrade reason if execution
+    quality is marginal, or None if the trade looks fillable.
+
+    Near-zero bid: market-maker interest is nearly absent — fills unpredictable.
+    Thin OI + volume: the contract technically passes thresholds but is borderline
+    in both dimensions simultaneously, making real execution unreliable.
+    """
+    if ev.bid < _MIN_BID_EXECUTION:
+        return f"near-zero bid ${ev.bid:.2f} — fill risk too high"
+
+    if ev.open_interest < _MIN_OI_EXECUTION and ev.volume < _MIN_VOL_EXECUTION:
+        return (
+            f"thin execution quality: OI={ev.open_interest} vol={ev.volume} "
+            f"(both below reliable fill threshold)"
         )
-    except Exception as exc:
-        logger.warning("%s: Tradier request error: %s", symbol, exc)
-        return True
 
-    if resp.status_code != 200:
-        logger.warning("%s: Tradier HTTP %d", symbol, resp.status_code)
-        return True
-
-    try:
-        options = (resp.json().get("options") or {}).get("option") or []
-    except Exception:
-        return True
-
-    for opt in options:
-        try:
-            if (
-                abs(float(opt.get("strike", 0)) - strike) < 0.01
-                and opt.get("option_type", "") == tradier_type
-            ):
-                iv_raw = (opt.get("greeks") or {}).get("mid_iv")
-                if iv_raw is None:
-                    return True  # missing Greeks → don't fail
-                iv = float(iv_raw)
-                if iv > _IV_SANITY_MAX:
-                    logger.warning(
-                        "%s: Tradier IV=%.0f%% exceeds sanity bound", symbol, iv * 100
-                    )
-                    return False
-                return True
-        except (TypeError, ValueError):
-            continue
-
-    return True  # strike not found → inconclusive → pass
+    return None
 
 
 # ---------------------------------------------------------------------------

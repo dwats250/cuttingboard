@@ -1,0 +1,781 @@
+"""
+Operational runtime layer for the public CLI.
+
+This module wraps the existing engine layers without modifying their logic.
+It adds:
+  - public mode dispatch
+  - fixture loading
+  - Sunday-mode truncation
+  - JSON run summaries
+  - run verification
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import logging
+import os
+from contextlib import contextmanager
+from dataclasses import dataclass
+from datetime import date, datetime, timezone
+from pathlib import Path
+from typing import Any, Optional
+from unittest.mock import patch
+
+import pandas as pd
+
+from cuttingboard import config
+from cuttingboard.audit import write_audit_record
+from cuttingboard.chain_validation import (
+    ChainValidationResult,
+    MANUAL_CHECK,
+    VALIDATED,
+    validate_option_chains,
+)
+from cuttingboard.derived import compute_all_derived
+from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all
+from cuttingboard.normalization import NormalizedQuote, normalize_all
+from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
+from cuttingboard.output import (
+    OUTCOME_HALT,
+    OUTCOME_NO_TRADE,
+    OUTCOME_TRADE,
+    render_report,
+    send_ntfy,
+)
+from cuttingboard.qualification import QualificationSummary, qualify_all
+from cuttingboard.regime import CHAOTIC, NEUTRAL, RegimeState, compute_regime
+from cuttingboard.structure import classify_all_structure
+from cuttingboard.validation import ValidationSummary, extract_fetch_failures, validate_quotes
+
+logger = logging.getLogger(__name__)
+
+MODE_LIVE = "live"
+MODE_FIXTURE = "fixture"
+MODE_SUNDAY = "sunday"
+MODE_VERIFY = "verify"
+
+SUMMARY_MODE_LIVE = "LIVE"
+SUMMARY_MODE_FIXTURE = "FIXTURE"
+SUMMARY_MODE_SUNDAY = "SUNDAY"
+
+SUMMARY_STATUS_SUCCESS = "SUCCESS"
+SUMMARY_STATUS_FAIL = "FAIL"
+
+REPORTS_DIR = Path("reports")
+LOGS_DIR = Path("logs")
+LATEST_RUN_PATH = LOGS_DIR / "latest_run.json"
+DEFAULT_FIXTURE_DIR = Path("tests/fixtures")
+
+VALID_REGIMES = {"RISK_ON", "RISK_OFF", "NEUTRAL", "CHAOTIC"}
+VALID_POSTURES = {
+    "AGGRESSIVE_LONG",
+    "CONTROLLED_LONG",
+    "DEFENSIVE_SHORT",
+    "NEUTRAL_PREMIUM",
+    "STAY_FLAT",
+}
+
+_FIXTURE_QUOTE_FIELDS = {
+    "symbol",
+    "price",
+    "pct_change_decimal",
+    "volume",
+    "fetched_at_utc",
+    "source",
+    "units",
+    "age_seconds",
+}
+
+_PERMISSION_LINES: dict[str, str] = {
+    "AGGRESSIVE_LONG": "Long bias — trend continuation allowed.",
+    "CONTROLLED_LONG": "Long bias — defined risk preferred.",
+    "DEFENSIVE_SHORT": "Short bias — breakdown trades allowed.",
+    "NEUTRAL_PREMIUM": "Selective only — defined risk, R:R >= 3:1.",
+    "STAY_FLAT": "No new trades permitted.",
+}
+
+
+@dataclass(frozen=True)
+class PipelineResult:
+    mode: str
+    run_at_utc: datetime
+    date_str: str
+    raw_quotes: dict[str, RawQuote]
+    normalized_quotes: dict[str, NormalizedQuote]
+    validation_summary: ValidationSummary
+    regime: Optional[RegimeState]
+    qualification_summary: Optional[QualificationSummary]
+    option_setups: list[OptionSetup]
+    chain_results: dict[str, ChainValidationResult]
+    outcome: str
+    ntfy_sent: bool
+    report: str
+    report_path: str
+    audit_record: dict[str, Any]
+    warnings: list[str]
+    errors: list[str]
+    summary: dict[str, Any]
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="python -m cuttingboard")
+    parser.add_argument(
+        "--mode",
+        choices=[MODE_LIVE, MODE_FIXTURE, MODE_SUNDAY, MODE_VERIFY],
+        default=MODE_LIVE,
+    )
+    parser.add_argument("--fixture-file")
+    parser.add_argument("--file")
+    parser.add_argument("--date")
+    return parser
+
+
+def cli_main(argv: Optional[list[str]] = None) -> int:
+    args = build_parser().parse_args(argv)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s  %(levelname)-8s  %(name)s — %(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%SZ",
+    )
+
+    if args.mode == MODE_VERIFY:
+        result = verify_run_summary(args.file or str(LATEST_RUN_PATH))
+        print("PASS" if result["pass"] else "FAIL")
+        for line in result["errors"]:
+            print(f"ERROR: {line}")
+        for line in result["warnings"]:
+            print(f"WARNING: {line}")
+        return 0 if result["pass"] else 1
+
+    run_date = _resolve_run_date(args.date)
+    requested_mode = args.mode
+    effective_mode = _resolve_effective_mode(requested_mode, run_date)
+    fixture_path = _resolve_fixture_path(args.fixture_file, run_date) if effective_mode == MODE_FIXTURE else None
+
+    result = execute_run(
+        mode=effective_mode,
+        run_date=run_date,
+        fixture_file=fixture_path,
+    )
+    return 0 if result["status"] == SUMMARY_STATUS_SUCCESS else 1
+
+
+def execute_run(
+    mode: str,
+    run_date: date,
+    fixture_file: Optional[Path] = None,
+) -> dict[str, Any]:
+    warnings: list[str] = []
+    errors: list[str] = []
+    report_path: Optional[Path] = None
+    summary_path: Optional[Path] = None
+
+    try:
+        pipeline = _run_pipeline(mode=mode, run_date=run_date, fixture_file=fixture_file)
+        report_path = Path(pipeline.report_path)
+        summary_path, latest_path = _write_summary_files(
+            pipeline.summary,
+            pipeline.run_at_utc,
+        )
+
+        verification = verify_run_summary(str(latest_path))
+        _write_markdown_report(
+            pipeline.report,
+            pipeline.date_str,
+            "PASS" if verification["pass"] else "FAIL",
+        )
+
+        pipeline.summary["warnings"] = list(dict.fromkeys(pipeline.summary["warnings"] + verification["warnings"]))
+        pipeline.summary["errors"] = list(dict.fromkeys(pipeline.summary["errors"] + verification["errors"]))
+        pipeline.summary["status"] = (
+            SUMMARY_STATUS_SUCCESS
+            if verification["pass"] and pipeline.summary["status"] == SUMMARY_STATUS_SUCCESS
+            else SUMMARY_STATUS_FAIL
+        )
+        _rewrite_summary_file(summary_path, pipeline.summary)
+        _rewrite_summary_file(latest_path, pipeline.summary)
+        return pipeline.summary
+    except Exception as exc:
+        logger.exception("Run failed")
+        errors.append(str(exc))
+        timestamped_path, latest_path = _write_summary_files(
+            _failure_summary(
+                mode=mode,
+                run_date=run_date,
+                errors=errors,
+                report_path=report_path,
+            ),
+            datetime.now(timezone.utc),
+        )
+        _write_markdown_report(
+            _failure_report(run_date, errors),
+            run_date.isoformat(),
+            "FAIL",
+        )
+        summary = json.loads(latest_path.read_text(encoding="utf-8"))
+        summary["status"] = SUMMARY_STATUS_FAIL
+        _rewrite_summary_file(timestamped_path, summary)
+        _rewrite_summary_file(latest_path, summary)
+        return summary
+
+
+def _run_pipeline(
+    mode: str,
+    run_date: date,
+    fixture_file: Optional[Path],
+) -> PipelineResult:
+    run_at_utc = _deterministic_run_at(mode, fixture_file) if mode == MODE_FIXTURE else datetime.now(timezone.utc)
+    date_str = run_date.isoformat()
+    warnings: list[str] = []
+    errors: list[str] = []
+
+    raw_quotes, normalized_quotes = _load_inputs(mode, fixture_file)
+    fetch_failures = extract_fetch_failures(raw_quotes) if raw_quotes else None
+    validation_summary = validate_quotes(normalized_quotes, fetch_failures)
+
+    regime: Optional[RegimeState] = None
+    qualification_summary: Optional[QualificationSummary] = None
+    option_setups: list[OptionSetup] = []
+    chain_results: dict[str, ChainValidationResult] = {}
+    outcome = OUTCOME_NO_TRADE
+
+    if validation_summary.system_halted:
+        errors.append(validation_summary.halt_reason or "system halted")
+        outcome = OUTCOME_HALT
+    else:
+        regime = compute_regime(validation_summary.valid_quotes)
+
+        if mode != MODE_SUNDAY:
+            with _fixture_cache_only_ohlcv(mode):
+                derived = compute_all_derived(validation_summary.valid_quotes)
+            structure = classify_all_structure(validation_summary.valid_quotes, derived, regime.vix_level)
+            candidates = generate_candidates(structure, derived, validation_summary.valid_quotes, regime)
+            qualification_summary = qualify_all(regime, structure, candidates or None, derived)
+
+            if qualification_summary.qualified_trades:
+                option_setups = build_option_setups(qualification_summary.qualified_trades, structure, derived)
+
+            if option_setups:
+                if mode == MODE_FIXTURE:
+                    chain_results = _fixture_chain_results(option_setups)
+                    warnings.extend(_chain_warning_lines(chain_results))
+                else:
+                    chain_results = validate_option_chains(option_setups, validation_summary.valid_quotes)
+                    warnings.extend(_chain_warning_lines(chain_results))
+
+            validated_count = sum(
+                1
+                for setup in option_setups
+                if chain_results.get(setup.symbol, _validated_chain_result(setup.symbol)).classification == VALIDATED
+            )
+            outcome = OUTCOME_TRADE if validated_count > 0 else OUTCOME_NO_TRADE
+
+    report = render_report(
+        date_str=date_str,
+        run_at_utc=run_at_utc,
+        regime=regime,
+        validation_summary=validation_summary,
+        qualification_summary=qualification_summary,
+        option_setups=option_setups,
+        outcome=outcome,
+        halt_reason=validation_summary.halt_reason,
+        chain_results=chain_results,
+    )
+    _write_markdown_report(report, date_str, "NOT RUN")
+    report_path = str(REPORTS_DIR / f"{date_str}.md")
+
+    ntfy_sent = False
+    if mode in {MODE_LIVE, MODE_SUNDAY}:
+        ntfy_sent = send_ntfy(report, date_str, outcome)
+
+    audit_record = write_audit_record(
+        run_at_utc=run_at_utc,
+        date_str=date_str,
+        outcome=outcome,
+        regime=regime,
+        validation_summary=validation_summary,
+        qualification_summary=qualification_summary,
+        option_setups=option_setups,
+        halt_reason=validation_summary.halt_reason,
+        ntfy_sent=ntfy_sent,
+        report_path=report_path,
+    )
+
+    summary = _build_run_summary(
+        mode=mode,
+        run_at_utc=run_at_utc,
+        raw_quotes=raw_quotes,
+        normalized_quotes=normalized_quotes,
+        validation_summary=validation_summary,
+        regime=regime,
+        qualification_summary=qualification_summary,
+        option_setups=option_setups,
+        chain_results=chain_results,
+        warnings=warnings,
+        errors=errors,
+        fixture_file=fixture_file,
+    )
+
+    return PipelineResult(
+        mode=mode,
+        run_at_utc=run_at_utc,
+        date_str=date_str,
+        raw_quotes=raw_quotes,
+        normalized_quotes=normalized_quotes,
+        validation_summary=validation_summary,
+        regime=regime,
+        qualification_summary=qualification_summary,
+        option_setups=option_setups,
+        chain_results=chain_results,
+        outcome=outcome,
+        ntfy_sent=ntfy_sent,
+        report=report,
+        report_path=report_path,
+        audit_record=audit_record,
+        warnings=warnings,
+        errors=errors,
+        summary=summary,
+    )
+
+
+def _build_run_summary(
+    mode: str,
+    run_at_utc: datetime,
+    raw_quotes: dict[str, RawQuote],
+    normalized_quotes: dict[str, NormalizedQuote],
+    validation_summary: ValidationSummary,
+    regime: Optional[RegimeState],
+    qualification_summary: Optional[QualificationSummary],
+    option_setups: list[OptionSetup],
+    chain_results: dict[str, ChainValidationResult],
+    warnings: list[str],
+    errors: list[str],
+    fixture_file: Optional[Path],
+) -> dict[str, Any]:
+    fallback_used = any(raw.source == "polygon" for raw in raw_quotes.values())
+    data_status = _data_status(mode, raw_quotes, normalized_quotes)
+    kill_switch = _kill_switch(regime, normalized_quotes)
+    validated_count = sum(
+        1
+        for setup in option_setups
+        if chain_results.get(setup.symbol, _validated_chain_result(setup.symbol)).classification == VALIDATED
+    )
+    if kill_switch:
+        validated_count = 0
+
+    summary_mode = {
+        MODE_LIVE: SUMMARY_MODE_LIVE,
+        MODE_FIXTURE: SUMMARY_MODE_FIXTURE,
+        MODE_SUNDAY: SUMMARY_MODE_SUNDAY,
+    }[mode]
+
+    regime_label, posture_label, confidence, net_score = _summary_regime_fields(regime)
+    permission = _PERMISSION_LINES.get(posture_label, "No new trades permitted.")
+    if validation_summary.system_halted:
+        permission = "No trades permitted. System halted."
+
+    summary = {
+        "run_id": _run_id(mode, run_at_utc, fixture_file),
+        "timestamp": _iso_z(run_at_utc),
+        "mode": summary_mode,
+        "status": SUMMARY_STATUS_FAIL if validation_summary.system_halted or errors else SUMMARY_STATUS_SUCCESS,
+        "regime": regime_label,
+        "posture": posture_label,
+        "confidence": confidence,
+        "net_score": net_score,
+        "permission": permission,
+        "kill_switch": kill_switch,
+        "min_rr_applied": config.NEUTRAL_RR_RATIO if regime and regime.regime == NEUTRAL else config.MIN_RR_RATIO,
+        "data_status": data_status,
+        "fallback_used": fallback_used,
+        "system_halted": validation_summary.system_halted,
+        "halt_reason": validation_summary.halt_reason,
+        "candidates_generated": 0 if mode == MODE_SUNDAY else (qualification_summary.symbols_evaluated if qualification_summary else 0),
+        "candidates_qualified": 0 if mode == MODE_SUNDAY else validated_count,
+        "candidates_watchlist": 0 if qualification_summary is None else qualification_summary.symbols_watchlist,
+        "chain_validation": {
+            symbol: {
+                "classification": result.classification,
+                "reason": result.reason,
+            }
+            for symbol, result in sorted(chain_results.items())
+        },
+        "warnings": list(dict.fromkeys(warnings)),
+        "errors": list(dict.fromkeys(errors)),
+    }
+    return summary
+
+
+def verify_run_summary(path: str) -> dict[str, Any]:
+    warnings: list[str] = []
+    errors: list[str] = []
+    file_path = Path(path)
+
+    if not file_path.exists():
+        return {"pass": False, "warnings": [], "errors": [f"file not found: {path}"]}
+
+    try:
+        summary = json.loads(file_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return {"pass": False, "warnings": [], "errors": [f"invalid JSON: {exc}"]}
+
+    required_fields = {
+        "run_id",
+        "timestamp",
+        "mode",
+        "status",
+        "regime",
+        "posture",
+        "confidence",
+        "net_score",
+        "permission",
+        "kill_switch",
+        "min_rr_applied",
+        "data_status",
+        "fallback_used",
+        "system_halted",
+        "halt_reason",
+        "candidates_generated",
+        "candidates_qualified",
+        "candidates_watchlist",
+        "chain_validation",
+        "warnings",
+        "errors",
+    }
+    missing = sorted(required_fields - set(summary))
+    if missing:
+        errors.append(f"missing required fields: {', '.join(missing)}")
+
+    for key, value in summary.items():
+        if value is None and key != "halt_reason":
+            errors.append(f"{key} must not be null")
+
+    if summary.get("mode") not in {SUMMARY_MODE_LIVE, SUMMARY_MODE_FIXTURE, SUMMARY_MODE_SUNDAY}:
+        errors.append(f"invalid mode: {summary.get('mode')}")
+    if summary.get("status") not in {SUMMARY_STATUS_SUCCESS, SUMMARY_STATUS_FAIL}:
+        errors.append(f"invalid status: {summary.get('status')}")
+    if summary.get("regime") not in VALID_REGIMES:
+        errors.append(f"invalid regime: {summary.get('regime')}")
+    if summary.get("posture") not in VALID_POSTURES:
+        errors.append(f"invalid posture: {summary.get('posture')}")
+
+    confidence = summary.get("confidence")
+    if not isinstance(confidence, (int, float)) or not 0.0 <= confidence <= 1.0:
+        errors.append(f"confidence out of range: {confidence}")
+
+    net_score = summary.get("net_score")
+    if not isinstance(net_score, int) or not -8 <= net_score <= 8:
+        errors.append(f"net_score out of range: {net_score}")
+
+    data_status = summary.get("data_status")
+    if data_status not in {"ok", "fallback", "stale"}:
+        errors.append(f"invalid data_status: {data_status}")
+
+    try:
+        ts = datetime.fromisoformat(str(summary.get("timestamp")).replace("Z", "+00:00"))
+        if summary.get("mode") in {SUMMARY_MODE_LIVE, SUMMARY_MODE_SUNDAY}:
+            age = datetime.now(timezone.utc) - ts.astimezone(timezone.utc)
+            if age.total_seconds() > 6 * 3600:
+                errors.append(f"timestamp older than 6 hours: {summary.get('timestamp')}")
+    except Exception:
+        errors.append(f"invalid timestamp: {summary.get('timestamp')}")
+
+    if summary.get("regime") == CHAOTIC and summary.get("candidates_qualified") != 0:
+        errors.append("CHAOTIC runs must not qualify trades")
+    if summary.get("posture") == "STAY_FLAT" and summary.get("candidates_qualified") != 0:
+        errors.append("STAY_FLAT runs must not qualify trades")
+    if summary.get("kill_switch") and summary.get("candidates_qualified") != 0:
+        errors.append("kill_switch runs must not qualify trades")
+    if summary.get("regime") == NEUTRAL and summary.get("min_rr_applied") != 3.0:
+        errors.append("NEUTRAL runs must apply min_rr_applied == 3.0")
+
+    chain_validation = summary.get("chain_validation")
+    if not isinstance(chain_validation, dict):
+        errors.append("chain_validation must be an object")
+        chain_validation = {}
+
+    invalid_count = 0
+    for symbol, payload in chain_validation.items():
+        if not isinstance(payload, dict):
+            errors.append(f"chain_validation[{symbol}] must be an object")
+            continue
+        if "classification" not in payload or "reason" not in payload:
+            errors.append(f"chain_validation[{symbol}] missing classification or reason")
+            continue
+        classification = payload["classification"]
+        if classification == "DISQUALIFIED_OPTIONS_INVALID":
+            warnings.append(f"{symbol}: options invalid")
+            invalid_count += 1
+        if classification == MANUAL_CHECK:
+            warnings.append(f"{symbol}: needs manual chain check")
+
+    if chain_validation and invalid_count == len(chain_validation):
+        warnings.append("all candidates invalid at chain validation")
+
+    if summary.get("system_halted") and summary.get("status") != SUMMARY_STATUS_FAIL:
+        errors.append("system_halted runs must have status FAIL")
+
+    return {
+        "pass": not errors,
+        "warnings": list(dict.fromkeys(warnings)),
+        "errors": list(dict.fromkeys(errors)),
+    }
+
+
+def _load_inputs(
+    mode: str,
+    fixture_file: Optional[Path],
+) -> tuple[dict[str, RawQuote], dict[str, NormalizedQuote]]:
+    if mode == MODE_FIXTURE:
+        normalized = _load_fixture_quotes(fixture_file)
+        raw_quotes = {
+            symbol: RawQuote(
+                symbol=quote.symbol,
+                price=quote.price,
+                pct_change_raw=quote.pct_change_decimal,
+                volume=quote.volume,
+                fetched_at_utc=quote.fetched_at_utc,
+                source=quote.source,
+                fetch_succeeded=True,
+                failure_reason=None,
+            )
+            for symbol, quote in normalized.items()
+        }
+        return raw_quotes, normalized
+
+    raw_quotes = fetch_all()
+    normalized = normalize_all(raw_quotes)
+    return raw_quotes, normalized
+
+
+def _load_fixture_quotes(path: Optional[Path]) -> dict[str, NormalizedQuote]:
+    if path is None:
+        raise ValueError("fixture mode requires a fixture file")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("fixture file must be a JSON object keyed by symbol")
+
+    quotes: dict[str, NormalizedQuote] = {}
+    for symbol, item in payload.items():
+        if not isinstance(item, dict):
+            raise ValueError(f"fixture[{symbol}] must be an object")
+        extra = set(item) - _FIXTURE_QUOTE_FIELDS
+        missing = _FIXTURE_QUOTE_FIELDS - set(item)
+        if extra or missing:
+            raise ValueError(
+                f"fixture[{symbol}] schema mismatch; missing={sorted(missing)} extra={sorted(extra)}"
+            )
+        if item["symbol"] != symbol:
+            raise ValueError(f"fixture key mismatch for {symbol}")
+        quotes[symbol] = NormalizedQuote(
+            symbol=str(item["symbol"]),
+            price=float(item["price"]),
+            pct_change_decimal=float(item["pct_change_decimal"]),
+            volume=None if item["volume"] is None else float(item["volume"]),
+            fetched_at_utc=datetime.fromisoformat(str(item["fetched_at_utc"]).replace("Z", "+00:00")).astimezone(timezone.utc),
+            source=str(item["source"]),
+            units=str(item["units"]),
+            age_seconds=float(item["age_seconds"]),
+        )
+    return quotes
+
+
+@contextmanager
+def _fixture_cache_only_ohlcv(mode: str):
+    if mode != MODE_FIXTURE:
+        yield
+        return
+
+    def _cache_only(symbol: str) -> Optional[pd.DataFrame]:
+        cache_path = _ohlcv_cache_path(symbol)
+        if not cache_path.exists():
+            return None
+        return pd.read_parquet(cache_path)
+
+    with patch("cuttingboard.derived.fetch_ohlcv", side_effect=_cache_only):
+        yield
+
+
+def _fixture_chain_results(setups: list[OptionSetup]) -> dict[str, ChainValidationResult]:
+    results: dict[str, ChainValidationResult] = {}
+    for setup in setups:
+        results[setup.symbol] = ChainValidationResult(
+            symbol=setup.symbol,
+            classification=MANUAL_CHECK,
+            reason="fixture mode skips live chain validation",
+            spread_pct=None,
+            open_interest=None,
+            volume=None,
+            expiry_used=None,
+            data_source=None,
+        )
+    return results
+
+
+def _write_markdown_report(report: str, date_str: str, verification: str) -> Path:
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    path = REPORTS_DIR / f"{date_str}.md"
+    body = f"Verification: {verification}\n\n```\n{report}\n```\n"
+    path.write_text(body, encoding="utf-8")
+    return path
+
+
+def _write_summary_files(summary: dict[str, Any], run_at_utc: datetime) -> tuple[Path, Path]:
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    filename = f"run_{run_at_utc.strftime('%Y-%m-%d_%H%M%S')}.json"
+    timestamped_path = LOGS_DIR / filename
+    text = json.dumps(summary, indent=2, sort_keys=True)
+    timestamped_path.write_text(text + "\n", encoding="utf-8")
+    LATEST_RUN_PATH.write_text(text + "\n", encoding="utf-8")
+    return timestamped_path, LATEST_RUN_PATH
+
+
+def _rewrite_summary_file(path: Path, summary: dict[str, Any]) -> None:
+    path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _data_status(
+    mode: str,
+    raw_quotes: dict[str, RawQuote],
+    normalized_quotes: dict[str, NormalizedQuote],
+) -> str:
+    if any(_quote_age_seconds(quote) > config.FRESHNESS_SECONDS for quote in normalized_quotes.values()):
+        return "stale"
+    if mode != MODE_FIXTURE and any(raw.source == "polygon" for raw in raw_quotes.values()):
+        return "fallback"
+    return "ok"
+
+
+def _kill_switch(regime: Optional[RegimeState], normalized_quotes: dict[str, NormalizedQuote]) -> bool:
+    spy = normalized_quotes.get("SPY")
+    spy_pct_change = spy.pct_change_decimal if spy is not None else 0.0
+    vix_level = regime.vix_level if regime is not None and regime.vix_level is not None else 0.0
+    vix_pct_change = regime.vix_pct_change if regime is not None and regime.vix_pct_change is not None else 0.0
+    return (
+        vix_level > 35
+        or vix_pct_change > 0.15
+        or abs(spy_pct_change) > 0.03
+    )
+
+
+def _summary_regime_fields(regime: Optional[RegimeState]) -> tuple[str, str, float, int]:
+    if regime is None:
+        return NEUTRAL, "STAY_FLAT", 0.0, 0
+    return regime.regime, regime.posture, float(regime.confidence), int(regime.net_score)
+
+
+def _chain_warning_lines(chain_results: dict[str, ChainValidationResult]) -> list[str]:
+    warnings: list[str] = []
+    invalid_count = 0
+    for symbol, result in sorted(chain_results.items()):
+        if result.classification == "DISQUALIFIED_OPTIONS_INVALID":
+            warnings.append(f"{symbol}: options invalid")
+            invalid_count += 1
+        elif result.classification == MANUAL_CHECK:
+            warnings.append(f"{symbol}: needs manual chain check")
+    if chain_results and invalid_count == len(chain_results):
+        warnings.append("all candidates invalid at chain validation")
+    return warnings
+
+
+def _validated_chain_result(symbol: str) -> ChainValidationResult:
+    return ChainValidationResult(
+        symbol=symbol,
+        classification=VALIDATED,
+        reason=None,
+        spread_pct=None,
+        open_interest=None,
+        volume=None,
+        expiry_used=None,
+        data_source=None,
+    )
+
+
+def _resolve_run_date(date_arg: Optional[str]) -> date:
+    return date.fromisoformat(date_arg) if date_arg else datetime.now(timezone.utc).date()
+
+
+def _resolve_effective_mode(requested_mode: str, run_date: date) -> str:
+    if requested_mode == MODE_LIVE and run_date.weekday() == 6:
+        return MODE_SUNDAY
+    return requested_mode
+
+
+def _resolve_fixture_path(fixture_file: Optional[str], run_date: date) -> Path:
+    if fixture_file:
+        return Path(fixture_file)
+    return DEFAULT_FIXTURE_DIR / f"{run_date.isoformat()}.json"
+
+
+def _deterministic_run_at(mode: str, fixture_file: Optional[Path]) -> datetime:
+    if mode != MODE_FIXTURE or fixture_file is None:
+        return datetime.now(timezone.utc)
+    quotes = _load_fixture_quotes(fixture_file)
+    if not quotes:
+        return datetime.now(timezone.utc)
+    return max(quote.fetched_at_utc for quote in quotes.values())
+
+
+def _quote_age_seconds(quote: NormalizedQuote) -> float:
+    return (datetime.now(timezone.utc) - quote.fetched_at_utc).total_seconds()
+
+
+def _run_id(mode: str, run_at_utc: datetime, fixture_file: Optional[Path]) -> str:
+    if mode == MODE_FIXTURE and fixture_file is not None:
+        return f"fixture-{fixture_file.stem}"
+    return f"{mode}-{run_at_utc.strftime('%Y%m%dT%H%M%SZ')}"
+
+
+def _failure_summary(
+    mode: str,
+    run_date: date,
+    errors: list[str],
+    report_path: Optional[Path],
+) -> dict[str, Any]:
+    summary_mode = {
+        MODE_LIVE: SUMMARY_MODE_LIVE,
+        MODE_FIXTURE: SUMMARY_MODE_FIXTURE,
+        MODE_SUNDAY: SUMMARY_MODE_SUNDAY,
+    }.get(mode, SUMMARY_MODE_LIVE)
+    return {
+        "run_id": f"failed-{summary_mode.lower()}-{run_date.isoformat()}",
+        "timestamp": _iso_z(datetime.now(timezone.utc)),
+        "mode": summary_mode,
+        "status": SUMMARY_STATUS_FAIL,
+        "regime": NEUTRAL,
+        "posture": "STAY_FLAT",
+        "confidence": 0.0,
+        "net_score": 0,
+        "permission": "No trades permitted. Run failed.",
+        "kill_switch": False,
+        "min_rr_applied": config.MIN_RR_RATIO,
+        "data_status": "stale",
+        "fallback_used": False,
+        "system_halted": True,
+        "halt_reason": "; ".join(errors) if errors else "run failed",
+        "candidates_generated": 0,
+        "candidates_qualified": 0,
+        "candidates_watchlist": 0,
+        "chain_validation": {},
+        "warnings": [],
+        "errors": errors,
+    }
+
+
+def _failure_report(run_date: date, errors: list[str]) -> str:
+    lines = [
+        "======================================================",
+        f"  CUTTINGBOARD  ·  {run_date.isoformat()}",
+        "  RUN FAILED",
+        "======================================================",
+        "",
+    ]
+    for line in errors or ["Unknown failure"]:
+        lines.append(f"  {line}")
+    return "\n".join(lines)
+
+
+def _iso_z(value: datetime) -> str:
+    return value.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")

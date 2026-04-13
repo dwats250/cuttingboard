@@ -17,11 +17,12 @@ from cuttingboard.qualification import (
     QualificationSummary,
     GATE_REGIME, GATE_CONFIDENCE, GATE_DIRECTION, GATE_STRUCTURE,
     GATE_STOP_DEF, GATE_STOP_DIST, GATE_RR, GATE_MAX_RISK, GATE_EARNINGS,
+    GATE_EXTENSION, GATE_TIME,
     HARD_GATES, SOFT_GATES,
 )
 from cuttingboard.regime import (
     RegimeState,
-    RISK_ON, RISK_OFF, TRANSITION, CHAOTIC,
+    RISK_ON, RISK_OFF, TRANSITION, NEUTRAL, CHAOTIC,
     AGGRESSIVE_LONG, CONTROLLED_LONG, NEUTRAL_PREMIUM,
     DEFENSIVE_SHORT, STAY_FLAT,
 )
@@ -129,7 +130,17 @@ class TestDirectionForRegime:
     def test_risk_off_is_short(self):
         assert direction_for_regime(_regime(regime=RISK_OFF, posture=DEFENSIVE_SHORT)) == "SHORT"
 
+    def test_neutral_positive_net_score_is_long(self):
+        assert direction_for_regime(_regime(regime=NEUTRAL, posture=NEUTRAL_PREMIUM, net_score=1)) == "LONG"
+
+    def test_neutral_negative_net_score_is_short(self):
+        assert direction_for_regime(_regime(regime=NEUTRAL, posture=NEUTRAL_PREMIUM, net_score=-1)) == "SHORT"
+
+    def test_neutral_zero_net_score_is_none(self):
+        assert direction_for_regime(_regime(regime=NEUTRAL, posture=NEUTRAL_PREMIUM, net_score=0)) is None
+
     def test_transition_is_none(self):
+        # TRANSITION is legacy — direction always None
         assert direction_for_regime(_regime(regime=TRANSITION, posture=NEUTRAL_PREMIUM)) is None
 
     def test_chaotic_is_none(self):
@@ -145,7 +156,7 @@ class TestGateConstants:
         assert len(HARD_GATES) == 4
 
     def test_soft_gates_count(self):
-        assert len(SOFT_GATES) == 5
+        assert len(SOFT_GATES) == 7
 
     def test_hard_and_soft_disjoint(self):
         assert HARD_GATES & SOFT_GATES == set()
@@ -154,6 +165,7 @@ class TestGateConstants:
         all_gates = {
             GATE_REGIME, GATE_CONFIDENCE, GATE_DIRECTION, GATE_STRUCTURE,
             GATE_STOP_DEF, GATE_STOP_DIST, GATE_RR, GATE_MAX_RISK, GATE_EARNINGS,
+            GATE_EXTENSION, GATE_TIME,
         }
         assert all_gates == HARD_GATES | SOFT_GATES
 

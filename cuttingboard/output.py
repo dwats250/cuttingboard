@@ -24,6 +24,8 @@ from typing import Optional
 
 import requests
 
+from datetime import date as _date
+
 from cuttingboard import config
 from cuttingboard.audit import write_audit_record
 from cuttingboard.chain_validation import (
@@ -45,6 +47,36 @@ logger = logging.getLogger(__name__)
 _BORDER = "═" * 54
 _DIVIDER = "─" * 54
 _REPORT_DIR = "reports"
+
+_PERMISSION_LINES: dict[str, str] = {
+    "AGGRESSIVE_LONG": "Long bias — trend continuation allowed. Kill: VIX spikes >15%.",
+    "CONTROLLED_LONG": "Long bias — defined risk preferred. Kill: VIX crosses 25.",
+    "DEFENSIVE_SHORT": "Short bias — no longs without VIX declining + support. Kill: VIX <20.",
+    "NEUTRAL_PREMIUM": "Selective only — defined risk, R:R ≥ 3:1. Kill: VIX spikes >15%.",
+    "STAY_FLAT":       "FLAT — no new positions. Await regime clarity.",
+}
+
+_PERMISSION_MATRIX = """\
+  REGIME PERMISSIONS
+  ─────────────────────────────────────────────────────
+  RISK_ON   │ Trend continuation / BULL spreads
+  RISK_OFF  │ Breakdown shorts / BEAR spreads
+  NEUTRAL   │ Defined risk only / R:R ≥ 3:1
+  CHAOTIC   │ FLAT — no new positions
+  ─────────────────────────────────────────────────────
+  Kill switch: VIX > 35 OR SPY gaps >3% → halt all new positions"""
+
+
+def _permission_line(regime: RegimeState) -> str:
+    return _PERMISSION_LINES.get(regime.posture, "Awaiting regime clarity.")
+
+
+def _is_sunday(date_str: str) -> bool:
+    try:
+        d = _date.fromisoformat(date_str)
+        return d.weekday() == 6
+    except ValueError:
+        return False
 
 
 # ---------------------------------------------------------------------------
@@ -88,8 +120,15 @@ def render_report(
             f"  |  conf={regime.confidence:.2f}"
             f"  |  net={sign}{regime.net_score}"
         )
+        lines.append(f"  {_permission_line(regime)}")
+
     lines.append(_BORDER)
     lines.append("")
+
+    # ---- Sunday weekly context block ----
+    if _is_sunday(date_str) and regime is not None and outcome != OUTCOME_HALT:
+        lines.append(_PERMISSION_MATRIX)
+        lines.append("")
 
     # ---- Body ----
     if outcome == OUTCOME_HALT:

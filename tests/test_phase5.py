@@ -44,7 +44,7 @@ from cuttingboard.qualification import (
 )
 from cuttingboard.regime import (
     RegimeState,
-    RISK_ON, RISK_OFF, TRANSITION,
+    RISK_ON, RISK_OFF, TRANSITION, NEUTRAL,
     AGGRESSIVE_LONG, DEFENSIVE_SHORT, STAY_FLAT, NEUTRAL_PREMIUM,
 )
 from cuttingboard.structure import (
@@ -300,14 +300,24 @@ class TestGenerateCandidates:
         result = generate_candidates(sr, dm, vq, _regime())
         assert "AAPL" not in result
 
-    def test_no_direction_returns_empty(self):
-        # TRANSITION regime → no directional bias → empty
-        regime = _regime(regime=TRANSITION, posture=NEUTRAL_PREMIUM, net_score=1)
+    def test_no_direction_returns_empty_for_neutral_zero(self):
+        # NEUTRAL + net_score=0 → no tiebreaker → empty
+        regime = _regime(regime=NEUTRAL, posture=NEUTRAL_PREMIUM, net_score=0)
         sr = {"AAPL": _structure("AAPL", TREND)}
         dm = {"AAPL": _dm("AAPL")}
         vq = {"AAPL": _quote("AAPL")}
         result = generate_candidates(sr, dm, vq, regime)
         assert result == {}
+
+    def test_neutral_positive_net_score_generates_long_candidates(self):
+        # NEUTRAL + net_score=+1 → LONG direction
+        regime = _regime(regime=NEUTRAL, posture=NEUTRAL_PREMIUM, net_score=1)
+        sr = {"AAPL": _structure("AAPL", TREND)}
+        dm = {"AAPL": _dm("AAPL")}
+        vq = {"AAPL": _quote("AAPL")}
+        result = generate_candidates(sr, dm, vq, regime)
+        assert "AAPL" in result
+        assert result["AAPL"].direction == "LONG"
 
     def test_long_direction_in_risk_on(self):
         sr, dm, vq = self._make_inputs()
