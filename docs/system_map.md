@@ -2,135 +2,110 @@
 
 ## Purpose
 
-This document is the high-level map of Cuttingboard as it exists in the current pre-beta state. It is intended to make module boundaries, artifact flow, and read-only versus active behavior explicit without requiring code inspection first.
+This document defines the current high-level architecture of Cuttingboard as a deterministic trade qualification engine. It separates the future engine layer from the current observational ORB layer and makes the artifact flow explicit.
 
-## Architecture Summary
+## Architecture
 
-Cuttingboard currently contains two adjacent systems:
+Cuttingboard currently has three layers:
 
-- Core engine under development: the future primary runtime path that ingests market data, validates it, classifies structure, qualifies setups, and emits reports and summaries.
-- Read-only ORB shadow system: the current ORB 0DTE observational layer that runs alongside the runtime but does not alter trading logic.
+1. Engine layer
+   Future trade qualification logic and orchestration.
+2. Observation layer
+   Current ORB 0DTE shadow observer.
+3. Output layer
+   Durable artifacts and compact report surfaces.
 
-## High-Level Flow
+## Layer Definitions
+
+### Engine Layer
+
+This is the future active qualification path.
+
+- Runtime orchestration
+- Data ingestion and normalization
+- Validation
+- Structure and qualification logic
+- Audit generation
+
+This layer is where future active trade qualification logic belongs.
+
+### Observation Layer
+
+This is the current operational layer.
+
+- `cuttingboard/orb_0dte.py`
+- `cuttingboard/orb_observation.py`
+- `cuttingboard/orb_replay.py`
+- `cuttingboard/orb_shadow.py`
+
+The ORB layer is observational only. It evaluates session conditions, records outcomes, and writes artifacts. It does not execute trades.
+
+### Output Layer
+
+This layer persists and renders the current observable outputs.
+
+- `data/orb_0dte_ledger.jsonl`
+- `data/orb_0dte_status/YYYY-MM-DD.json`
+- Report blocks in `reports/YYYY-MM-DD.md`
+
+## Current Flow
+
+```text
+runtime -> orb_shadow -> ledger + status -> report
+```
+
+Expanded path:
 
 ```text
 python -m cuttingboard
   -> runtime.py
-  -> ingestion / normalization / validation
-  -> derived / regime / structure / qualification / options
-  -> output report + run summary + audit
-  -> ORB shadow collection
-     -> orb_shadow.py
-     -> orb_observation.py
-     -> data/orb_0dte_ledger.jsonl
-     -> data/orb_0dte_status/YYYY-MM-DD.json
-     -> reports/YYYY-MM-DD.md
+  -> orb_shadow.py
+  -> orb_observation.py
+  -> data/orb_0dte_ledger.jsonl
+  -> data/orb_0dte_status/YYYY-MM-DD.json
+  -> reports/YYYY-MM-DD.md
 ```
 
-## ORB Shadow Data Flow
-
-```text
-runtime.py
-  -> collect_orb_shadow_operational_status(...)
-  -> orb_shadow.py loads session input
-  -> orb_observation.py builds observation payload
-  -> orb_shadow.py appends ledger record
-  -> orb_shadow.py writes compact daily status
-  -> runtime summary includes compact status
-  -> report renders ORB observation and ORB shadow health blocks
-```
-
-Required path:
-
-- `runtime -> ORB shadow -> ledger -> report`
-
-That path is additive only. It does not feed back into the core qualification path.
-
-## Module Boundaries
-
-### Core engine modules
-
-- `cuttingboard/runtime.py`
-  - Public orchestration layer
-  - Writes run summaries and markdown reports
-- `cuttingboard/ingestion.py`
-  - Live and fixture data ingestion
-- `cuttingboard/normalization.py`
-  - Quote normalization and timestamp normalization
-- `cuttingboard/validation.py`
-  - Data-quality gates and halt behavior
-- `cuttingboard/derived.py`
-  - Derived technical metrics
-- `cuttingboard/regime.py`
-  - Regime and posture determination
-- `cuttingboard/structure.py`
-  - Structure classification
-- `cuttingboard/qualification.py`
-  - Main qualification gating
-- `cuttingboard/options.py`
-  - Options expression mapping
-- `cuttingboard/output/*`
-  - Report and notification surfaces
-- `cuttingboard/audit.py`
-  - Append-only audit log
-
-### Observational modules
-
-- `cuttingboard/orb_0dte.py`
-  - Deterministic ORB engine
-  - Computes session result only
-- `cuttingboard/orb_observation.py`
-  - Converts ORB session result into observation and display payloads
-- `cuttingboard/orb_replay.py`
-  - Loads ORB fixture files and runs replay review
-- `cuttingboard/orb_shadow.py`
-  - Coordinates post-session shadow collection and observational artifacts
+This flow is additive and read-only from the perspective of trade behavior.
 
 ## Read-Only vs Active
 
-### Core engine path
+### Read-only components
 
-- Regime and posture
-- Qualification outcomes
-- Options expression mapping
-- Runtime summary generation
-- Audit logging
-- External alerting
+- `orb_0dte.py`
+- `orb_observation.py`
+- `orb_replay.py`
+- `orb_shadow.py`
+- ORB ledger writes
+- ORB daily status writes
+- ORB report blocks
 
-### Observational path
+These components may write observational artifacts, but they do not activate execution behavior.
 
-- ORB replay
-- ORB observation formatting
-- ORB shadow ledger generation
-- ORB daily status generation
+### Active components
 
-Read-only here means the subsystem may write observational artifacts, but it must not change the active trade decision path.
+There is no active ORB execution path.
 
-## Artifact Map
+The future engine layer is where active qualification logic will live, but that is not the current operational state represented by this repository.
 
-### Main runtime artifacts
+## Module Boundaries
 
-- `reports/YYYY-MM-DD.md`
-- `logs/run_YYYY-MM-DD_HHMMSS.json`
-- `logs/latest_run.json`
-- `logs/audit.jsonl`
+### Runtime boundary
 
-### ORB shadow artifacts
+`cuttingboard/runtime.py` is the public orchestrator. It can invoke the ORB shadow observer and surface the resulting status, but the shadow path must remain isolated from live trade behavior.
 
-- `data/orb_0dte_ledger.jsonl`
-- `data/orb_0dte_status/YYYY-MM-DD.json`
+### ORB shadow boundary
 
-## Stability Labels
+`cuttingboard/orb_shadow.py` coordinates collection timing, artifact writes, and compact operational status.
 
-- Stable:
-  - Runtime artifact flow
-  - Report and summary generation
-  - Audit output
-- Experimental:
-  - ORB 0DTE shadow observer
-  - ORB replay review flow
-  - ORB operational health reporting
+### Observation formatting boundary
+
+`cuttingboard/orb_observation.py` converts ORB results into durable observation fields and compact report-ready structures.
+
+### Replay boundary
+
+`cuttingboard/orb_replay.py` supports deterministic review from fixtures. It is an observational tool, not an execution path.
 
 ## Design Rule
 
-The ORB shadow system is intentionally isolated. It may observe, record, and summarize. It may not alter trade qualification, execution behavior, or the core ORB rule set during this documentation phase.
+The ORB shadow module may observe, summarize, and persist. It may not alter qualification rules, execution behavior, or system trading decisions.

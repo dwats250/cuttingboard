@@ -47,6 +47,12 @@ Required fields:
 - `selected_symbol`
 - `exit_cause`
 
+Purpose:
+
+- Confirm whether ORB shadow collection ran for the PT session
+- Confirm whether the ledger write succeeded
+- Surface the compact final observation state without reading the full ledger
+
 ## Field Meanings
 
 ### `MODE`
@@ -100,6 +106,8 @@ Examples:
 - `NOOP_DISABLED`: ORB shadow collection was disabled
 - `NOOP_UNSUPPORTED_MODE`: runtime mode was not eligible
 - `NOOP_WAITING_FOR_WINDOW`: live runtime was before the post-session collection window
+
+This is the primary compact field for determining whether a session was healthy, degraded, or intentionally skipped.
 
 ## Operational Interpretation
 
