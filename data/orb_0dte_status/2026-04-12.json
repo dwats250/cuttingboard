@@ -1,0 +1,9 @@
+{
+  "exit_cause": null,
+  "ledger_write_success": false,
+  "observation_status": "NOOP_DISABLED",
+  "orb_shadow_enabled": false,
+  "run_attempted": false,
+  "selected_symbol": null,
+  "session_date": "2026-04-12"
+}

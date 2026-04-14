@@ -8,6 +8,11 @@ It adds:
   - Sunday-mode truncation
   - JSON run summaries
   - run verification
+  - optional ORB 0DTE shadow-mode observation via
+    `--observe-orb-0dte --orb-session-file <path>`
+  - optional automatic ORB 0DTE shadow collection when
+    `config.ORB_SHADOW_ENABLED` is set and the live run occurs after session
+    close
 """
 
 from __future__ import annotations
@@ -36,6 +41,14 @@ from cuttingboard.derived import compute_all_derived
 from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all
 from cuttingboard.normalization import NormalizedQuote, normalize_all
 from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
+from cuttingboard.orb_0dte import SessionInput as ORBSessionInput
+from cuttingboard.orb_observation import build_orb_observation
+from cuttingboard.orb_replay import load_orb_session_fixture
+from cuttingboard.orb_shadow import (
+    ORB_SHADOW_STATUS_DIR,
+    collect_orb_shadow_operational_status,
+    write_orb_shadow_status_record,
+)
 from cuttingboard.output import (
     OUTCOME_HALT,
     OUTCOME_NO_TRADE,
@@ -111,6 +124,8 @@ class PipelineResult:
     chain_results: dict[str, ChainValidationResult]
     outcome: str
     ntfy_sent: bool
+    orb_observation: Optional[dict[str, Any]]
+    orb_shadow_status: dict[str, Any]
     report: str
     report_path: str
     audit_record: dict[str, Any]
@@ -129,11 +144,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fixture-file")
     parser.add_argument("--file")
     parser.add_argument("--date")
+    parser.add_argument("--observe-orb-0dte", action="store_true")
+    parser.add_argument("--orb-session-file")
     return parser
 
 
 def cli_main(argv: Optional[list[str]] = None) -> int:
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s  %(levelname)-8s  %(name)s — %(message)s",
@@ -158,11 +176,18 @@ def cli_main(argv: Optional[list[str]] = None) -> int:
         requested_run_date=requested_run_date,
     )
     run_date = _effective_run_date(effective_mode, requested_run_date, fixture_path, args.date is not None)
+    orb_session_input = _resolve_orb_session_input(
+        observe_orb_0dte=args.observe_orb_0dte,
+        orb_session_file=args.orb_session_file,
+        parser=parser,
+    )
 
     result = execute_run(
         mode=effective_mode,
         run_date=run_date,
         fixture_file=fixture_path,
+        observe_orb_0dte=args.observe_orb_0dte,
+        orb_session_input=orb_session_input,
     )
     return 0 if result["status"] == SUMMARY_STATUS_SUCCESS else 1
 
@@ -171,6 +196,9 @@ def execute_run(
     mode: str,
     run_date: date,
     fixture_file: Optional[Path] = None,
+    *,
+    observe_orb_0dte: bool = False,
+    orb_session_input: Optional[ORBSessionInput] = None,
 ) -> dict[str, Any]:
     warnings: list[str] = []
     errors: list[str] = []
@@ -178,7 +206,13 @@ def execute_run(
     summary_path: Optional[Path] = None
 
     try:
-        pipeline = _run_pipeline(mode=mode, run_date=run_date, fixture_file=fixture_file)
+        pipeline = _run_pipeline(
+            mode=mode,
+            run_date=run_date,
+            fixture_file=fixture_file,
+            observe_orb_0dte=observe_orb_0dte,
+            orb_session_input=orb_session_input,
+        )
         report_path = Path(pipeline.report_path)
         summary_path, latest_path = _write_summary_files(
             pipeline.summary,
@@ -230,6 +264,9 @@ def _run_pipeline(
     mode: str,
     run_date: date,
     fixture_file: Optional[Path],
+    *,
+    observe_orb_0dte: bool = False,
+    orb_session_input: Optional[ORBSessionInput] = None,
 ) -> PipelineResult:
     fixture_backed = _is_fixture_backed(mode, fixture_file)
     run_at_utc = _deterministic_run_at(mode, fixture_file) if mode == MODE_FIXTURE else datetime.now(timezone.utc)
@@ -247,6 +284,8 @@ def _run_pipeline(
     candidates_generated = 0
     option_setups: list[OptionSetup] = []
     chain_results: dict[str, ChainValidationResult] = {}
+    orb_observation: Optional[dict[str, Any]] = None
+    orb_shadow_status: dict[str, Any]
     outcome = OUTCOME_NO_TRADE
 
     if validation_summary.system_halted:
@@ -281,6 +320,21 @@ def _run_pipeline(
             )
             outcome = OUTCOME_TRADE if validated_count > 0 else OUTCOME_NO_TRADE
 
+    shadow_observation, orb_shadow_status = collect_orb_shadow_operational_status(
+        mode=mode,
+        run_date=run_date,
+        run_at_utc=run_at_utc,
+        explicit_session_input=orb_session_input if observe_orb_0dte else None,
+    )
+    write_orb_shadow_status_record(
+        ORB_SHADOW_STATUS_DIR / f"{run_date.isoformat()}.json",
+        orb_shadow_status,
+    )
+    if shadow_observation is not None:
+        orb_observation = shadow_observation
+    elif observe_orb_0dte and orb_session_input is not None:
+        orb_observation = build_orb_observation(orb_session_input)
+
     report = render_report(
         date_str=date_str,
         run_at_utc=run_at_utc,
@@ -291,13 +345,24 @@ def _run_pipeline(
         outcome=outcome,
         halt_reason=validation_summary.halt_reason,
         chain_results=chain_results,
+        orb_observation=orb_observation,
+        orb_shadow_status=orb_shadow_status,
     )
     _write_markdown_report(report, date_str, "NOT RUN")
     report_path = str(REPORTS_DIR / f"{date_str}.md")
 
     ntfy_sent = False
     if mode in {MODE_LIVE, MODE_SUNDAY} and not fixture_backed:
-        ntfy_sent = send_ntfy(report, date_str, outcome)
+        ntfy_sent = send_ntfy(
+            report,
+            date_str,
+            outcome,
+            regime=regime,
+            validation_summary=validation_summary,
+            qualification_summary=qualification_summary,
+            report_path=report_path,
+            halt_reason=validation_summary.halt_reason,
+        )
 
     audit_record = write_audit_record(
         run_at_utc=run_at_utc,
@@ -326,6 +391,8 @@ def _run_pipeline(
         warnings=warnings,
         errors=errors,
         fixture_file=fixture_file,
+        orb_observation=orb_observation,
+        orb_shadow_status=orb_shadow_status,
     )
 
     return PipelineResult(
@@ -342,6 +409,8 @@ def _run_pipeline(
         chain_results=chain_results,
         outcome=outcome,
         ntfy_sent=ntfy_sent,
+        orb_observation=orb_observation,
+        orb_shadow_status=orb_shadow_status,
         report=report,
         report_path=report_path,
         audit_record=audit_record,
@@ -365,6 +434,8 @@ def _build_run_summary(
     warnings: list[str],
     errors: list[str],
     fixture_file: Optional[Path],
+    orb_observation: Optional[dict[str, Any]],
+    orb_shadow_status: dict[str, Any],
 ) -> dict[str, Any]:
     fallback_used = any(raw.source == "polygon" for raw in raw_quotes.values())
     data_status = _data_status(mode, raw_quotes, normalized_quotes, fixture_file)
@@ -417,7 +488,12 @@ def _build_run_summary(
         "warnings": list(dict.fromkeys(warnings)),
         "errors": list(dict.fromkeys(errors)),
     }
+    if orb_observation is not None:
+        summary["orb_0dte_observation"] = orb_observation
+    summary["orb_shadow_operational_status"] = orb_shadow_status
     return summary
+
+
 
 
 def verify_run_summary(path: str) -> dict[str, Any]:
@@ -741,6 +817,19 @@ def _validated_chain_result(symbol: str) -> ChainValidationResult:
 
 def _resolve_run_date(date_arg: Optional[str]) -> date:
     return date.fromisoformat(date_arg) if date_arg else datetime.now(timezone.utc).date()
+
+
+def _resolve_orb_session_input(
+    *,
+    observe_orb_0dte: bool,
+    orb_session_file: Optional[str],
+    parser: argparse.ArgumentParser,
+) -> Optional[ORBSessionInput]:
+    if not observe_orb_0dte:
+        return None
+    if not orb_session_file:
+        parser.error("--observe-orb-0dte requires --orb-session-file")
+    return load_orb_session_fixture(orb_session_file)
 
 
 def _resolve_effective_mode(requested_mode: str, run_date: date) -> str:

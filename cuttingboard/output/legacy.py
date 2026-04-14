@@ -37,6 +37,15 @@ from cuttingboard.derived import compute_all_derived
 from cuttingboard.ingestion import fetch_all
 from cuttingboard.normalization import normalize_all
 from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
+from cuttingboard.orb_observation import (
+    format_orb_observation_lines,
+    format_orb_shadow_health_lines,
+)
+from cuttingboard.output.notification_formatter import (
+    build_output_summary,
+    format_ntfy_message,
+    format_report_summary_lines,
+)
 from cuttingboard.qualification import QualificationSummary, qualify_all
 from cuttingboard.regime import RegimeState, compute_regime
 from cuttingboard.structure import classify_all_structure
@@ -102,6 +111,8 @@ def render_report(
     outcome: str,
     halt_reason: Optional[str] = None,
     chain_results: Optional[dict[str, "ChainValidationResult"]] = None,
+    orb_observation: Optional[dict[str, object]] = None,
+    orb_shadow_status: Optional[dict[str, object]] = None,
 ) -> str:
     """Render the full report as a string (terminal and markdown use same text)."""
     lines: list[str] = []
@@ -112,14 +123,18 @@ def render_report(
     lines.append(f"  CUTTINGBOARD  ·  {date_str}")
 
     if outcome == OUTCOME_HALT:
-        lines.append("  ⚠  SYSTEM HALT")
+        lines.append("  HALT | system halted")
     elif regime is not None:
-        sign = "+" if regime.net_score >= 0 else ""
-        lines.append(
-            f"  {regime.regime} / {regime.posture}"
-            f"  |  conf={regime.confidence:.2f}"
-            f"  |  net={sign}{regime.net_score}"
+        summary = build_output_summary(
+            date_str=date_str,
+            outcome=outcome,
+            regime=regime,
+            validation_summary=validation_summary,
+            qualification_summary=qualification_summary,
+            halt_reason=halt_reason,
         )
+        for summary_line in format_report_summary_lines(summary):
+            lines.append(f"  {summary_line}")
         lines.append(f"  {_permission_line(regime)}")
 
     lines.append(_BORDER)
@@ -220,6 +235,11 @@ def render_report(
                 lines.append(f"           {note}")
             lines.append("")
 
+    if orb_observation is not None:
+        lines.extend(format_orb_observation_lines(orb_observation))
+    if orb_shadow_status is not None:
+        lines.extend(format_orb_shadow_health_lines(orb_shadow_status))
+
     # ---- Data status footer ----
     lines.append("")
     lines.append(_DIVIDER + " DATA STATUS " + "─" * max(0, 54 - len(_DIVIDER) - 13))
@@ -263,6 +283,12 @@ def send_ntfy(
     report: str,
     date_str: str,
     outcome: str,
+    *,
+    regime: Optional[RegimeState] = None,
+    validation_summary: Optional[ValidationSummary] = None,
+    qualification_summary: Optional[QualificationSummary] = None,
+    report_path: Optional[str] = None,
+    halt_reason: Optional[str] = None,
 ) -> bool:
     """Send ntfy notification. Returns True on success, False otherwise.
 
@@ -276,13 +302,17 @@ def send_ntfy(
         logger.debug("ntfy not configured — notification skipped")
         return False
 
-    title_map = {
-        OUTCOME_TRADE:    f"Cuttingboard {date_str} — TRADE",
-        OUTCOME_NO_TRADE: f"Cuttingboard {date_str} — NO TRADE",
-        OUTCOME_HALT:     f"Cuttingboard {date_str} — ⚠ HALT",
-    }
-    title = title_map.get(outcome, f"Cuttingboard {date_str}")
-    message = f"{title}\n\n{report}"
+    message = format_ntfy_message(
+        build_output_summary(
+            date_str=date_str,
+            outcome=outcome,
+            regime=regime,
+            validation_summary=validation_summary,
+            qualification_summary=qualification_summary,
+            report_path=report_path,
+            halt_reason=halt_reason,
+        )
+    )
 
     try:
         resp = requests.post(
@@ -344,7 +374,14 @@ def run_pipeline() -> int:
         )
         write_terminal(report)
         report_path = write_markdown(report, date_str)
-        ntfy_sent = send_ntfy(report, date_str, OUTCOME_HALT)
+        ntfy_sent = send_ntfy(
+            report,
+            date_str,
+            OUTCOME_HALT,
+            validation_summary=val,
+            report_path=report_path,
+            halt_reason=val.halt_reason,
+        )
 
         write_audit_record(
             run_at_utc=run_at,
@@ -411,7 +448,15 @@ def run_pipeline() -> int:
 
     write_terminal(report)
     report_path = write_markdown(report, date_str)
-    ntfy_sent = send_ntfy(report, date_str, outcome)
+    ntfy_sent = send_ntfy(
+        report,
+        date_str,
+        outcome,
+        regime=regime,
+        validation_summary=val,
+        qualification_summary=qual,
+        report_path=report_path,
+    )
 
     write_audit_record(
         run_at_utc=run_at,

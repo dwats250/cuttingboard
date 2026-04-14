@@ -95,7 +95,7 @@ def test_main_module_dispatches_to_cli(monkeypatch):
 def test_cli_main_fixture_dispatches_to_fixture_path(monkeypatch):
     captured = {}
 
-    def _fake_execute_run(mode, run_date, fixture_file=None):
+    def _fake_execute_run(mode, run_date, fixture_file=None, **kwargs):
         captured["mode"] = mode
         captured["run_date"] = run_date
         captured["fixture_file"] = fixture_file
@@ -158,7 +158,7 @@ def test_cli_main_invalid_mode_fails_cleanly():
 def test_cli_main_auto_switches_live_to_sunday(monkeypatch):
     captured = {}
 
-    def _fake_execute_run(mode, run_date, fixture_file=None):
+    def _fake_execute_run(mode, run_date, fixture_file=None, **kwargs):
         captured["mode"] = mode
         captured["run_date"] = run_date
         captured["fixture_file"] = fixture_file

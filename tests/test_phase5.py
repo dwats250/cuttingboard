@@ -32,8 +32,12 @@ from cuttingboard.options import (
     _DTE_FAST, _DTE_SHORT, _DTE_MEDIUM,
 )
 from cuttingboard.output import (
+    build_output_summary,
+    format_ntfy_message,
     render_report,
     send_ntfy,
+    summarize_reason,
+    summarize_top_symbols,
     OUTCOME_TRADE, OUTCOME_NO_TRADE, OUTCOME_HALT,
 )
 from cuttingboard.qualification import (
@@ -677,11 +681,161 @@ class TestRenderReport:
 
     def test_confidence_in_header(self):
         report = self._no_trade_report()
-        assert "conf=0.25" in report
+        assert "conf 0.25" in report
+        assert "NO TRADE | TRANSITION | STAY_FLAT | conf 0.25 | net +2" in report
 
     def test_vix_in_footer(self):
         report = self._no_trade_report()
         assert "22.0" in report
+
+
+# ---------------------------------------------------------------------------
+# output.py — compact notification formatting
+# ---------------------------------------------------------------------------
+
+class TestNotificationFormatting:
+    def test_trade_notification_formatting_with_top_three_symbols(self):
+        summary = build_output_summary(
+            date_str="2026-04-13",
+            outcome=OUTCOME_TRADE,
+            regime=_regime(posture="CONTROLLED_LONG", confidence=0.625, net_score=5, vix_level=19.54),
+            validation_summary=_val_summary(validated=20, attempted=20),
+            qualification_summary=_qual_summary(
+                qualified=[
+                    _qual_result("TSLA"),
+                    _qual_result("XLE"),
+                    _qual_result("COIN"),
+                    _qual_result("GLD"),
+                ]
+            ),
+            report_path="reports/2026-04-13.md",
+        )
+
+        message = format_ntfy_message(summary)
+        assert message.splitlines() == [
+            "CUTTINGBOARD 2026-04-13",
+            "TRADE | RISK_ON | CONTROLLED_LONG | conf 0.62 | net +5",
+            "Qualified 4/20 | VIX 19.5",
+            "Top: TSLA, XLE, COIN",
+            "Report: reports/2026-04-13.md",
+        ]
+
+    def test_trade_notification_formatting_with_fewer_symbols(self):
+        summary = build_output_summary(
+            date_str="2026-04-13",
+            outcome=OUTCOME_TRADE,
+            regime=_regime(posture="CONTROLLED_LONG", confidence=0.625, net_score=5, vix_level=19.54),
+            validation_summary=_val_summary(validated=20, attempted=20),
+            qualification_summary=_qual_summary(
+                qualified=[_qual_result("TSLA"), _qual_result("XLE")]
+            ),
+        )
+
+        message = format_ntfy_message(summary)
+        assert "Top: TSLA, XLE" in message
+        assert "COIN" not in message
+
+    def test_no_trade_formatting_with_regime_failure_reason(self):
+        summary = build_output_summary(
+            date_str="2026-04-13",
+            outcome=OUTCOME_NO_TRADE,
+            regime=_regime(posture=STAY_FLAT, confidence=0.5, net_score=4, vix_level=19.63),
+            validation_summary=_val_summary(validated=20, attempted=20),
+            qualification_summary=_qual_summary(
+                short_circuited=True,
+                failure_reason="STAY_FLAT posture (regime=RISK_ON, confidence=0.50)",
+            ),
+            report_path="reports/2026-04-13.md",
+        )
+
+        message = format_ntfy_message(summary)
+        assert message.splitlines() == [
+            "CUTTINGBOARD 2026-04-13",
+            "NO TRADE | RISK_ON | STAY_FLAT | conf 0.50 | net +4",
+            "Reason: regime short-circuited",
+            "Validated 20/20 | VIX 19.6",
+            "Report: reports/2026-04-13.md",
+        ]
+
+    def test_no_trade_formatting_with_generic_halt_reason_fallback(self):
+        summary = build_output_summary(
+            date_str="2026-04-13",
+            outcome=OUTCOME_NO_TRADE,
+            validation_summary=_val_summary(validated=19, attempted=20, failed=1),
+            halt_reason="Failed: ^VIX (fetch error)",
+        )
+
+        message = format_ntfy_message(summary)
+        assert "Reason: Failed: ^VIX (fetch error)" in message
+        assert "Validated 19/20" in message
+
+    def test_missing_optional_fields_omit_lines_cleanly(self):
+        message = format_ntfy_message(
+            {
+                "date": "2026-04-13",
+                "outcome": OUTCOME_TRADE,
+                "qualified_count": 0,
+                "qualified_symbols": [],
+            }
+        )
+
+        assert message.splitlines() == [
+            "CUTTINGBOARD 2026-04-13",
+            "TRADE",
+            "Qualified 0",
+        ]
+
+    def test_notification_output_contains_no_json_dict_blobs(self):
+        message = format_ntfy_message(
+            {
+                "date": "2026-04-13",
+                "outcome": OUTCOME_NO_TRADE,
+                "regime_failure_reason": {"raw": "dict"},
+                "regime_short_circuited": False,
+            }
+        )
+
+        assert "{" not in message
+        assert "}" not in message
+        assert "Reason: details in report" in message
+
+    def test_notification_output_remains_compact(self):
+        summary = build_output_summary(
+            date_str="2026-04-13",
+            outcome=OUTCOME_NO_TRADE,
+            regime=_regime(posture=STAY_FLAT, confidence=0.5, net_score=4, vix_level=19.63),
+            validation_summary=_val_summary(validated=20, attempted=20),
+            qualification_summary=_qual_summary(short_circuited=True, failure_reason="STAY_FLAT posture"),
+            report_path="reports/2026-04-13.md",
+        )
+        assert len(format_ntfy_message(summary).splitlines()) <= 5
+
+    def test_formatter_output_is_deterministic(self):
+        summary = build_output_summary(
+            date_str="2026-04-13",
+            outcome=OUTCOME_TRADE,
+            regime=_regime(posture="CONTROLLED_LONG", confidence=0.625, net_score=5, vix_level=19.54),
+            validation_summary=_val_summary(validated=20, attempted=20),
+            qualification_summary=_qual_summary(
+                qualified=[_qual_result("TSLA"), _qual_result("XLE"), _qual_result("COIN")]
+            ),
+            report_path="reports/2026-04-13.md",
+        )
+        assert format_ntfy_message(summary) == format_ntfy_message(summary)
+
+    def test_summary_helpers_respect_ranked_symbols_and_reason_mapping(self):
+        summary = build_output_summary(
+            date_str="2026-04-13",
+            outcome=OUTCOME_NO_TRADE,
+            qualification_summary=_qual_summary(
+                qualified=[_qual_result("TSLA"), _qual_result("XLE"), _qual_result("COIN"), _qual_result("GLD")],
+                short_circuited=True,
+                failure_reason="STAY_FLAT posture (regime=RISK_ON, confidence=0.50)",
+            ),
+        )
+
+        assert summarize_top_symbols(summary) == "Top: TSLA, XLE, COIN"
+        assert summarize_reason(summary) == "regime short-circuited"
 
 
 # ---------------------------------------------------------------------------
@@ -698,11 +852,35 @@ class TestSendNtfy:
     def test_returns_true_on_200(self):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
+        posted = {}
+
+        def capture_post(url, data=None, **kwargs):
+            posted["body"] = data.decode() if isinstance(data, bytes) else data
+            return mock_resp
+
         with patch.object(config, "NTFY_TOPIC", "test-topic"):
             with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
-                with patch("requests.post", return_value=mock_resp):
-                    result = send_ntfy("report", "2026-04-10", OUTCOME_NO_TRADE)
+                with patch("requests.post", side_effect=capture_post):
+                    result = send_ntfy(
+                        "report",
+                        "2026-04-10",
+                        OUTCOME_NO_TRADE,
+                        regime=_regime(posture=STAY_FLAT, confidence=0.5, net_score=4, vix_level=19.6),
+                        validation_summary=_val_summary(validated=20, attempted=20),
+                        qualification_summary=_qual_summary(
+                            short_circuited=True,
+                            failure_reason="STAY_FLAT posture (regime=RISK_ON, confidence=0.50)",
+                        ),
+                        report_path="reports/2026-04-10.md",
+                    )
         assert result is True
+        assert posted["body"].splitlines() == [
+            "CUTTINGBOARD 2026-04-10",
+            "NO TRADE | RISK_ON | STAY_FLAT | conf 0.50 | net +4",
+            "Reason: regime short-circuited",
+            "Validated 20/20 | VIX 19.6",
+            "Report: reports/2026-04-10.md",
+        ]
 
     def test_returns_false_on_non_200(self):
         mock_resp = MagicMock()

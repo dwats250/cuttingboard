@@ -1,73 +1,158 @@
 # Cuttingboard
 
-A constraint-driven trading signal engine. It now exposes a single public CLI, writes one trusted markdown report plus one JSON run summary per run, and verifies those artifacts without changing engine logic.
+Cuttingboard is a deterministic trade qualification engine. Its purpose is to scan market conditions and surface only structurally valid trades under explicit rules, with selectivity favored over activity.
 
----
+## Project Overview
 
-## What It Does
+The repository currently has two tracks:
 
-**`python -m cuttingboard`**
-Dispatches `live`, `fixture`, `sunday`, or `verify` from one public entrypoint.
+- Core engine under development: the future primary path that ingests data, validates it, classifies structure, qualifies setups, maps options expressions, and emits reports and summaries.
+- ORB 0DTE Shadow Observer: the current deterministic read-only observational layer that runs after the PT cash session and persists daily artifacts for review.
 
-**LIVE (default)**
-Fetches live data and runs the full pipeline. Writes `reports/YYYY-MM-DD.md`, `logs/run_*.json`, and `logs/latest_run.json`.
+`python -m cuttingboard` is the public entrypoint for `live`, `fixture`, `sunday`, and `verify` modes.
 
-**SUNDAY**
-Runs the live spine through regime only. Produces regime context with no candidates.
+## System Philosophy
 
-**FIXTURE**
-Loads a normalized snapshot from `tests/fixtures/` and starts at validation with deterministic output.
+- Selectivity over frequency
+- Deterministic rules over discretion
+- Flat is a valid position
+- No trade unless conditions are clearly favorable
 
-**VERIFY**
-Reads `logs/latest_run.json` or `--file PATH` and returns `PASS` or `FAIL` without rerunning the engine.
+## Current Focus
 
----
+- Intraday 0DTE options
+- SPY and QQQ
+- ORB momentum-based qualification
 
-## Pipeline
+## Future Direction
 
+The longer-term direction is broader instrument coverage under the same qualification discipline:
+
+- metals
+- macro-driven trades
+- liquid options strategies
+
+Expansion does not change the operating principle: no trade should be surfaced unless it passes clear deterministic qualification logic.
+
+## Current Modules
+
+- Core engine modules
+  - `runtime.py`
+  - `ingestion.py`
+  - `normalization.py`
+  - `validation.py`
+  - `derived.py`
+  - `regime.py`
+  - `structure.py`
+  - `qualification.py`
+  - `options.py`
+  - `output/*`
+  - `audit.py`
+- ORB 0DTE Shadow Observer
+  - `orb_0dte.py`
+  - `orb_observation.py`
+  - `orb_replay.py`
+  - `orb_shadow.py`
+
+## Status
+
+- ORB module: observational and pre-beta
+- Core engine: under development
+
+## High-Level Pipeline
+
+```text
+L1  Ingestion       -> RawQuote per symbol
+L2  Normalization   -> NormalizedQuote
+L3  Validation      -> ValidationSummary
+L4  Derived         -> EMA, ATR, momentum, volume metrics
+L5  Regime          -> market state and posture
+L6  Structure       -> symbol structure + IV environment
+L7  Qualification   -> qualified / watchlist / reject
+L8  Options         -> options expression mapping
+L9  Output          -> terminal, markdown, ntfy
+L10 Audit           -> append-only audit log
+ORB Shadow          -> read-only ORB observation + ledger + daily status
 ```
-L1  Ingestion       → RawQuote per symbol (yfinance + Polygon fallback)
-L2  Normalization   → NormalizedQuote (decimal pct_change, UTC timestamps)
-L3  Validation      → 7 hard rules per symbol; HALT if any core symbol fails
-L4  Derived         → EMA9/21/50, ATR14, momentum_5d, volume_ratio
-L5  Regime          → 8-input vote model → RISK_ON / RISK_OFF / NEUTRAL / CHAOTIC
-L6  Structure       → TREND / PULLBACK / BREAKOUT / REVERSAL / CHOP + IV environment
-L7  Qualification   → 11 gates (4 hard, 7 soft) → QUALIFIED / WATCHLIST / REJECT
-L8  Options         → Strategy + DTE from direction × IV matrix
-L9  Output          → Terminal, reports/YYYY-MM-DD.md, ntfy alert
-L10 Audit           → Append-only JSON record to logs/audit.jsonl
-Ops Summary         → logs/run_YYYY-MM-DD_HHMMSS.json + logs/latest_run.json
-```
 
----
+## ORB Shadow Mode
 
-## Instrument Universe
+The ORB shadow system is a read-only observer. It evaluates an ORB 0DTE session, records what the model would have selected, and writes durable artifacts for operational review.
 
-| Category | Symbols |
-|---|---|
-| Core | SPY, QQQ, GLD, IAU, SLV, SIVR |
-| High Liquidity Options | NVDA, TSLA, AAPL, MSFT, AMZN, META, GOOG, PLTR |
-| High Beta / Volatility | MSTR, COIN, SMCI, MU |
-| Macro / Context | XLE, USO, GDX, DXY, US10Y (^TNX fallback), VIX |
+What it does:
 
-Focus: 5–8 tickers per session.
+- Runs after the PT session window when shadow collection is eligible.
+- Builds an ORB observation payload from session candles and option snapshots.
+- Writes one append-only ledger record per PT session.
+- Writes one compact daily operational status record per PT session.
+- Surfaces compact status in the markdown report and JSON summary.
 
----
+What it does not do:
 
-## Halt Conditions
+- It does not place trades.
+- It does not alter qualification or option-selection behavior in the main runtime.
+- It does not change execution logic.
 
-If any core symbol (`^VIX`, `DX-Y.NYB`, `^TNX`, `SPY`, `QQQ`) fails validation, the system halts immediately — no regime, no trades. A HALT report and ntfy alert are sent and the process exits with code `1`.
+When it runs:
 
----
+- Automatic shadow collection is gated by `config.ORB_SHADOW_ENABLED`.
+- Live-mode collection is eligible only after `13:00 PT`.
+- Fixture-mode collection can be exercised deterministically in tests.
+
+Where outputs are written:
+
+- Ledger: `data/orb_0dte_ledger.jsonl`
+- Daily status: `data/orb_0dte_status/YYYY-MM-DD.json`
+- Human-readable report block: `reports/YYYY-MM-DD.md`
+
+## ORB Shadow Artifacts
+
+Ledger records are JSONL objects containing ORB observation fields, including:
+
+- `session_date`
+- `timezone`
+- `MODE`
+- `BIAS`
+- `EXECUTION_READY`
+- `qualification_audit`
+- `exit_audit`
+- `exit_cause`
+- `selected_symbol`
+- `selected_contract_summary`
+- `observation_status`
+
+Daily status files are compact JSON objects containing:
+
+- `session_date`
+- `orb_shadow_enabled`
+- `run_attempted`
+- `ledger_write_success`
+- `observation_status`
+- `selected_symbol`
+- `exit_cause`
+
+Meaning of core fields:
+
+- `MODE`: whether the ORB engine ended in an enabled or disabled state for that session.
+- `BIAS`: directional bias produced by the ORB model, or `NONE`.
+- `EXECUTION_READY`: whether the ORB model reached deterministic readiness for entry.
+- `qualification_audit`: compact audit trail for why the model qualified, degraded, or failed.
+- `exit_audit`: compact audit trail for how management and exits unfolded.
+- `exit_cause`: terminal exit reason such as `TP2`, `HEADLINE`, `STOP`, or `NONE`.
+- `observation_status`: operational interpretation of the record, such as `OK`, `DATA_INVALID`, or a no-op status.
 
 ## Setup
 
 ```bash
 pip install -e .
-cp .env.example .env   # fill in POLYGON_API_KEY, NTFY_TOPIC, NTFY_URL
+cp .env.example .env
 ```
 
-Run manually:
+Populate `.env` with the required external configuration such as `POLYGON_API_KEY`, `NTFY_TOPIC`, and `NTFY_URL` if those integrations are used.
+
+## Usage
+
+Run the main system:
 
 ```bash
 python -m cuttingboard
@@ -75,23 +160,42 @@ python -m cuttingboard --mode fixture --fixture-file tests/fixtures/2026-04-12.j
 python -m cuttingboard --mode verify
 ```
 
----
+Enable ORB shadow collection:
 
-## Tests
-
-```bash
-pytest tests/
+```python
+# cuttingboard/config.py
+ORB_SHADOW_ENABLED = True
 ```
 
-297 tests across all layers.
+Run tests:
 
----
+```bash
+python3 -m pytest tests/test_orb_shadow_collection.py -q
+python3 -m pytest tests/test_orb_observational_replay.py -q
+python3 -m pytest tests/test_operationalization.py -q
+```
+
+No full test suite is required for documentation-only changes. If code behavior is touched, rerun only the targeted tests that cover that area.
+
+## Branch and Workflow Rules
+
+- Branch naming: `feature/<clear-scope>`
+- One feature per branch
+- No mixed-scope development
+- One milestone per commit
+- No bundling unrelated changes
+- Preferred workflow: `PRD -> Codex -> summary -> validation -> commit`
+
+The intent is low ambiguity. Each branch should carry one scoped change set, and each commit should mark a meaningful checkpoint that can be reviewed independently.
 
 ## Docs
 
+- `docs/system_map.md` — high-level architecture, module boundaries, read-only vs active paths
+- `docs/roadmap_beta.md` — ORB shadow beta phase definition and exit criteria
+- `docs/orb_shadow_artifacts.md` — ledger and status file semantics
 - `docs/architecture.md` — full layer diagram and data contracts
 - `docs/regime_model.md` — vote thresholds and posture rules
-- `docs/trade_qualification.md` — all 11 qualification gates
-- `docs/options_framework.md` — direction × IV strategy matrix
+- `docs/trade_qualification.md` — qualification gates
+- `docs/options_framework.md` — options expression mapping
 - `docs/runbook.md` — operational procedures
-- `docs/data_sources.md` — data source details and fallback logic
+- `docs/data_sources.md` — data source and fallback details

@@ -1,0 +1,3 @@
+0 17 * * 0 cd ~/trading-system && python3 -m reports.run_sunday
+0 6 * * 1-5 /data/data/com.termux/files/usr/bin/bash /home/dustin/signal-forge/scripts/run_reports_termux.sh
+30 6 * * 1-5 /data/data/com.termux/files/usr/bin/bash /home/dustin/signal-forge/scripts/run_observation_termux.sh

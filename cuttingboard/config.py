@@ -40,6 +40,7 @@ VIX_HIGH                = 28
 VIX_ELEVATED            = 20
 VIX_LOW                 = 15
 INTRADAY_ALERT_COOLDOWN = 90         # minutes
+ORB_SHADOW_ENABLED      = False      # end-of-session ORB 0DTE shadow collection gate
 
 EXTENSION_ATR_MULTIPLIER            = 1.5   # reject if |price − ema21| > multiplier × ATR14
 NEUTRAL_RR_RATIO                    = 3.0   # minimum R:R for NEUTRAL regime trades

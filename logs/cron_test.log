@@ -1,0 +1,159 @@
+2026-04-13T11:47:15Z  INFO      cuttingboard.output.legacy — Pipeline start
+2026-04-13T11:47:16Z  INFO      cuttingboard.ingestion — yfinance ^VIX: price=19.5100 pct=+0.0146 vol=0.0 attempt=1 duration=0.46s
+2026-04-13T11:47:16Z  INFO      cuttingboard.ingestion — yfinance DX-Y.NYB: price=98.4540 pct=-0.0056 vol=0.0 attempt=1 duration=0.30s
+2026-04-13T11:47:16Z  INFO      cuttingboard.ingestion — yfinance ^TNX: price=4.3010 pct=-0.0037 vol=0.0 attempt=1 duration=0.28s
+2026-04-13T11:47:16Z  INFO      cuttingboard.ingestion — yfinance BTC-USD: price=72399.4844 pct=+0.0237 vol=40499601408.0 attempt=1 duration=0.28s
+2026-04-13T11:47:17Z  INFO      cuttingboard.ingestion — yfinance SPY: price=683.0550 pct=+0.0035 vol=29096850.0 attempt=1 duration=0.34s
+2026-04-13T11:47:17Z  INFO      cuttingboard.ingestion — yfinance QQQ: price=614.7750 pct=+0.0037 vol=23215924.0 attempt=1 duration=0.40s
+2026-04-13T11:47:18Z  INFO      cuttingboard.ingestion — yfinance IWM: price=264.3735 pct=+0.0097 vol=15452032.0 attempt=1 duration=0.33s
+2026-04-13T11:47:18Z  INFO      cuttingboard.ingestion — yfinance GLD: price=434.8050 pct=-0.0043 vol=4117047.0 attempt=1 duration=0.27s
+2026-04-13T11:47:18Z  INFO      cuttingboard.ingestion — yfinance SLV: price=68.2500 pct=-0.0087 vol=19519988.0 attempt=1 duration=0.27s
+2026-04-13T11:47:18Z  INFO      cuttingboard.ingestion — yfinance GDX: price=98.9900 pct=+0.0011 vol=7585418.0 attempt=1 duration=0.28s
+2026-04-13T11:47:19Z  INFO      cuttingboard.ingestion — yfinance PAAS: price=57.3800 pct=-0.0007 vol=1918272.0 attempt=1 duration=0.29s
+2026-04-13T11:47:19Z  INFO      cuttingboard.ingestion — yfinance USO: price=128.9550 pct=+0.0352 vol=19207243.0 attempt=1 duration=0.28s
+2026-04-13T11:47:19Z  INFO      cuttingboard.ingestion — yfinance XLE: price=56.9000 pct=-0.0014 vol=35090087.0 attempt=1 duration=0.31s
+2026-04-13T11:47:20Z  INFO      cuttingboard.ingestion — yfinance NVDA: price=188.3650 pct=-0.0003 vol=91673252.0 attempt=1 duration=0.30s
+2026-04-13T11:47:20Z  INFO      cuttingboard.ingestion — yfinance TSLA: price=352.0600 pct=+0.0022 vol=41476272.0 attempt=1 duration=0.27s
+2026-04-13T11:47:20Z  INFO      cuttingboard.ingestion — yfinance AAPL: price=258.3800 pct=-0.0100 vol=18185580.0 attempt=1 duration=0.29s
+2026-04-13T11:47:20Z  INFO      cuttingboard.ingestion — yfinance META: price=632.3000 pct=+0.0030 vol=6175523.0 attempt=1 duration=0.25s
+2026-04-13T11:47:21Z  INFO      cuttingboard.ingestion — yfinance AMZN: price=238.7700 pct=+0.0019 vol=26813419.0 attempt=1 duration=0.27s
+2026-04-13T11:47:21Z  INFO      cuttingboard.ingestion — yfinance COIN: price=172.1200 pct=+0.0259 vol=5296880.0 attempt=1 duration=0.29s
+2026-04-13T11:47:21Z  INFO      cuttingboard.ingestion — yfinance MSTR: price=130.6500 pct=+0.0150 vol=9035705.0 attempt=1 duration=0.27s
+2026-04-13T11:47:21Z  INFO      cuttingboard.validation — Validation complete: 20/20 symbols passed, system_halted=False
+2026-04-13T11:47:21Z  INFO      cuttingboard.regime — Regime: RISK_ON | CONTROLLED_LONG | confidence=0.62 | net=+5 (on=5 off=0 neutral=3)
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — ^VIX: EMA9=22.8230 EMA21=23.8956 EMA50=22.5963 ATR14=3.5962 mom5d=-0.1944 vol_ratio=N/A
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — DX-Y.NYB: EMA9=99.3445 EMA21=99.3798 EMA50=99.0088 ATR14=0.6816 mom5d=-0.0138 vol_ratio=N/A
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — ^TNX: EMA9=4.3185 EMA21=4.2955 EMA50=4.2393 ATR14=0.0674 mom5d=+0.0009 vol_ratio=N/A
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — BTC-USD: EMA9=70906.5866 EMA21=69983.0183 EMA50=70714.1705 ATR14=2421.9333 mom5d=-0.0165 vol_ratio=0.85x
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — SPY: EMA9=666.0023 EMA21=663.3199 EMA50=668.9907 ATR14=9.8770 mom5d=+0.0360 vol_ratio=0.43x
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — QQQ: EMA9=596.0085 EMA21=592.9727 EMA50=598.5090 ATR14=10.9386 mom5d=+0.0446 vol_ratio=0.52x
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — IWM: EMA9=255.3034 EMA21=252.9916 EMA50=253.8800 ATR14=5.5452 mom5d=+0.0398 vol_ratio=0.46x
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — GLD: EMA9=431.9466 EMA21=434.9330 EMA50=439.1498 ATR14=11.3579 mom5d=+0.0180 vol_ratio=0.41x
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — SLV: EMA9=67.1943 EMA21=68.1351 EMA50=70.1057 ATR14=3.4767 mom5d=+0.0500 vol_ratio=0.48x
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — GDX: EMA9=95.1792 EMA21=94.1643 EMA50=95.2106 ATR14=4.4856 mom5d=+0.0507 vol_ratio=0.57x
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — PAAS: EMA9=55.8126 EMA21=55.4382 EMA50=55.7493 ATR14=2.9848 mom5d=+0.0335 vol_ratio=0.36x
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — USO: EMA9=127.6312 EMA21=121.0557 EMA50=106.1428 ATR14=7.9961 mom5d=-0.0950 vol_ratio=0.29x
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — XLE: EMA9=58.7375 EMA21=58.6224 EMA50=56.1025 ATR14=1.6028 mom5d=-0.0390 vol_ratio=0.73x
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — NVDA: EMA9=180.4350 EMA21=179.2063 EMA50=181.0159 ATR14=5.3867 mom5d=+0.0634 vol_ratio=0.95x
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — TSLA: EMA9=355.4498 EMA21=369.2165 EMA50=390.2890 ATR14=14.7585 mom5d=-0.0323 vol_ratio=0.78x
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — AAPL: EMA9=256.9684 EMA21=256.1388 EMA50=258.6349 ATR14=5.8987 mom5d=+0.0178 vol_ratio=0.76x
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — META: EMA9=598.9032 EMA21=600.2953 EMA50=619.6031 ATR14=21.6251 mom5d=+0.0964 vol_ratio=0.72x
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — AMZN: EMA9=220.8049 EMA21=215.2817 EMA50=216.0644 ATR14=6.6888 mom5d=+0.1364 vol_ratio=1.30x
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — COIN: EMA9=172.9400 EMA21=178.5173 EMA50=190.3744 ATR14=11.2362 mom5d=-0.0211 vol_ratio=0.71x
+2026-04-13T11:47:21Z  INFO      cuttingboard.derived — MSTR: EMA9=127.6648 EMA21=130.4802 EMA50=138.8701 ATR14=7.8171 mom5d=+0.0735 vol_ratio=0.69x
+2026-04-13T11:47:21Z  INFO      cuttingboard.structure — CHOP ^VIX: EMA not aligned, momentum flat
+2026-04-13T11:47:21Z  INFO      cuttingboard.structure — CHOP BTC-USD: EMA not aligned, momentum flat
+2026-04-13T11:47:21Z  INFO      cuttingboard.structure — CHOP SPY: EMA not aligned, momentum flat
+2026-04-13T11:47:21Z  INFO      cuttingboard.structure — CHOP QQQ: EMA not aligned, momentum flat
+2026-04-13T11:47:21Z  INFO      cuttingboard.structure — CHOP IWM: EMA not aligned, momentum flat
+2026-04-13T11:47:21Z  INFO      cuttingboard.structure — CHOP SLV: price outside tradeable EMA zone
+2026-04-13T11:47:21Z  INFO      cuttingboard.structure — CHOP GDX: EMA not aligned, momentum flat
+2026-04-13T11:47:21Z  INFO      cuttingboard.structure — CHOP PAAS: EMA not aligned, momentum flat
+2026-04-13T11:47:21Z  INFO      cuttingboard.structure — CHOP NVDA: EMA not aligned, momentum flat
+2026-04-13T11:47:21Z  INFO      cuttingboard.structure — CHOP AAPL: EMA not aligned, momentum flat
+2026-04-13T11:47:21Z  INFO      cuttingboard.structure — CHOP META: price outside tradeable EMA zone
+2026-04-13T11:47:21Z  INFO      cuttingboard.structure — CHOP AMZN: EMA not aligned, momentum flat
+2026-04-13T11:47:21Z  INFO      cuttingboard.structure — CHOP MSTR: price outside tradeable EMA zone
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — REJECTED ^VIX: CHOP — never qualifies
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — WATCHLIST DX-Y.NYB: missing — stop distance 0.7% below 1.0% minimum
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — QUALIFIED ^TNX: LONG | PULLBACK | contracts=2 risk=$150
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — REJECTED BTC-USD: CHOP — never qualifies
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — REJECTED SPY: CHOP — never qualifies
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — REJECTED QQQ: CHOP — never qualifies
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — REJECTED IWM: CHOP — never qualifies
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — QUALIFIED GLD: LONG | PULLBACK | contracts=2 risk=$150
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — REJECTED SLV: CHOP — never qualifies
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — REJECTED GDX: CHOP — never qualifies
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — REJECTED PAAS: CHOP — never qualifies
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — QUALIFIED USO: LONG | TREND | contracts=2 risk=$150
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — QUALIFIED XLE: LONG | REVERSAL | contracts=2 risk=$150
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — REJECTED NVDA: CHOP — never qualifies
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — QUALIFIED TSLA: LONG | TREND | contracts=2 risk=$150
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — REJECTED AAPL: CHOP — never qualifies
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — REJECTED META: CHOP — never qualifies
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — REJECTED AMZN: CHOP — never qualifies
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — QUALIFIED COIN: LONG | TREND | contracts=2 risk=$150
+2026-04-13T11:47:21Z  INFO      cuttingboard.qualification — REJECTED MSTR: CHOP — never qualifies
+2026-04-13T11:47:21Z  INFO      cuttingboard.options — OPTION_SETUP ^TNX: BULL_CALL_SPREAD  1_ITM/ATM  14 DTE  2c  $150
+2026-04-13T11:47:21Z  INFO      cuttingboard.options — OPTION_SETUP GLD: BULL_CALL_SPREAD  1_ITM/ATM  14 DTE  2c  $150
+2026-04-13T11:47:21Z  INFO      cuttingboard.options — OPTION_SETUP USO: BULL_CALL_SPREAD  1_ITM/ATM  14 DTE  2c  $150
+2026-04-13T11:47:21Z  INFO      cuttingboard.options — OPTION_SETUP XLE: BULL_CALL_SPREAD  1_ITM/ATM  7 DTE  2c  $150
+2026-04-13T11:47:21Z  INFO      cuttingboard.options — OPTION_SETUP TSLA: BULL_CALL_SPREAD  1_ITM/ATM  14 DTE  2c  $150
+2026-04-13T11:47:21Z  INFO      cuttingboard.options — OPTION_SETUP COIN: BULL_CALL_SPREAD  1_ITM/ATM  21 DTE  2c  $150
+2026-04-13T11:47:21Z  WARNING   cuttingboard.chain_validation — ^TNX: yfinance returned no expirations
+2026-04-13T11:47:21Z  WARNING   cuttingboard.chain_validation — ^TNX: yfinance chain unavailable — trying yahooquery
+2026-04-13T11:47:21Z  INFO      cuttingboard.chain_validation — CHAIN ^TNX: NEEDS_MANUAL_CHECK — chain data unavailable from all sources
+2026-04-13T11:47:22Z  INFO      cuttingboard.chain_validation — CHAIN GLD: TOP_TRADE_VALIDATED
+2026-04-13T11:47:22Z  INFO      cuttingboard.chain_validation — CHAIN USO: NEEDS_MANUAL_CHECK — spread varies excessively across strikes
+2026-04-13T11:47:22Z  INFO      cuttingboard.chain_validation — CHAIN XLE: TOP_TRADE_VALIDATED
+2026-04-13T11:47:22Z  INFO      cuttingboard.chain_validation — CHAIN TSLA: TOP_TRADE_VALIDATED
+2026-04-13T11:47:22Z  INFO      cuttingboard.chain_validation — CHAIN COIN: TOP_TRADE_VALIDATED
+2026-04-13T11:47:22Z  INFO      cuttingboard.output.legacy — Report written to reports/2026-04-13.md
+2026-04-13T11:47:23Z  INFO      cuttingboard.output.legacy — ntfy notification delivered
+2026-04-13T11:47:23Z  INFO      cuttingboard.audit — Audit record written to logs/audit.jsonl
+2026-04-13T11:47:23Z  INFO      cuttingboard.output.legacy — Pipeline complete: TRADE  qualified=6  watchlist=1
+2026-04-13T11:47:23Z  INFO      __main__ — Commit message written: CB report: 2026-04-13 | RISK_ON | 6 trades [^TNX, GLD, USO, XLE, TSLA, COIN]
+══════════════════════════════════════════════════════
+  CUTTINGBOARD  ·  2026-04-13
+  RISK_ON / CONTROLLED_LONG  |  conf=0.62  |  net=+5
+  Long bias — defined risk preferred. Kill: VIX crosses 25.
+══════════════════════════════════════════════════════
+
+  TRADES  (4)
+  ──────────────────────────────────────────────────
+  GLD       BULL_CALL_SPREAD    PULLBACK / NORMAL_IV
+             1_ITM / ATM  ·  $2.50 wide  ·  14 DTE
+             2 contracts  ·  max risk $150
+             Chain: TOP_TRADE_VALIDATED  OI=643  spread=3.2%  exp=2026-04-24
+             Exit: +50% profit or full debit loss
+
+  XLE       BULL_CALL_SPREAD    REVERSAL / NORMAL_IV
+             1_ITM / ATM  ·  $2.50 wide  ·  7 DTE
+             2 contracts  ·  max risk $150
+             Chain: TOP_TRADE_VALIDATED  OI=35983  spread=2.0%  exp=2026-04-17
+             Exit: +50% profit or full debit loss
+
+  TSLA      BULL_CALL_SPREAD    TREND / NORMAL_IV
+             1_ITM / ATM  ·  $2.50 wide  ·  14 DTE
+             2 contracts  ·  max risk $150
+             Chain: TOP_TRADE_VALIDATED  OI=1886  spread=1.0%  exp=2026-04-24
+             Exit: +50% profit or full debit loss
+
+  COIN      BULL_CALL_SPREAD    TREND / NORMAL_IV
+             1_ITM / ATM  ·  $2.50 wide  ·  21 DTE
+             2 contracts  ·  max risk $150
+             Chain: TOP_TRADE_VALIDATED  OI=691  spread=4.6%  exp=2026-05-01
+             Exit: +50% profit or full debit loss
+
+  WATCHLIST  (1)
+  ──────────────────────────────────────────────────
+  DX-Y.NYB  stop distance 0.7% below 1.0% minimum
+
+  EXCLUDED  (13)
+  ──────────────────────────────────────────────────
+  AAPL      CHOP
+  AMZN      CHOP
+  BTC-USD   CHOP
+  GDX       CHOP
+  IWM       CHOP
+  META      CHOP
+  MSTR      CHOP
+  NVDA      CHOP
+  PAAS      CHOP
+  QQQ       CHOP
+  SLV       CHOP
+  SPY       CHOP
+  ^VIX      CHOP
+
+  CHAIN ISSUES  (2)
+  ──────────────────────────────────────────────────
+  USO       NEEDS_MANUAL_CHECK
+           spread varies excessively across strikes
+  ^TNX      NEEDS_MANUAL_CHECK
+           chain data unavailable from all sources
+
+
+────────────────────────────────────────────────────── DATA STATUS 
+  Validated : 20 / 20    VIX : 19.5
+  Run       : 2026-04-13T18:47:15Z
+══════════════════════════════════════════════════════
