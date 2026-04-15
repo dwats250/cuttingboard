@@ -75,6 +75,11 @@ ema_fast_len     = input.int(9, "EMA Fast Length", group=g_tf, minval=1)
 ema_slow_len     = input.int(21, "EMA Slow Length", group=g_tf, minval=1)
 show_trend_emas  = input.bool(false, "Show Trend EMAs", group=g_tf)
 
+// ── Conversion Layer ─────────────────────────────────────────────────────────
+var g_cv = "Conversion Layer"
+show_conversion = input.bool(true, "Show Conversion Table", group=g_cv)
+lookback_n      = input.int(20, "Lookback N (Levels)", group=g_cv, minval=10, maxval=20)
+
 // ── Alerts ───────────────────────────────────────────────────────────────────
 var g_al = "Alerts"
 alert_on_b_grade = input.bool(true, "Alert On Grade B", group=g_al)
@@ -274,6 +279,52 @@ exh_short_ok = not exh_short_blocked
 trend_long_ok  = not use_trend_filter or ema_fast > ema_slow
 trend_short_ok = not use_trend_filter or ema_fast < ema_slow
 trend_state = ema_fast > ema_slow ? "BULL" : ema_fast < ema_slow ? "BEAR" : "NEUTRAL"
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  CONVERSION LAYER — PRD Phase 1 (Detection → State → Execution Paths)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Layer 1 — Detection
+// ATR14 is separate from the trailing stop's raw_atr (ATR3)
+atr14 = ta.atr(14)
+
+// PRD bias is EMA-structural only — independent of TICK/OR bias below
+prd_bull = close > ema_slow and ema_fast > ema_slow
+
+// Lookback levels
+recentHigh = ta.highest(high, lookback_n)
+recentLow  = ta.lowest(low, lookback_n)
+
+// Layer 2 — Conversion levels
+breakoutLevel     = recentHigh
+reclaimLevel      = ema_fast           // EMA9 primary
+invalidationLevel = recentLow
+
+nearThreshold = 0.5 * atr14
+
+distToBreak   = close - breakoutLevel
+distToReclaim = math.abs(close - reclaimLevel)
+
+nearBreak   = math.abs(distToBreak) <= nearThreshold and distToBreak <= 0
+nearReclaim = distToReclaim <= nearThreshold
+
+extended = (close - ema_fast) > (1.0 * atr14)
+
+// Layer 3 — State model (priority: BROKEN > NEEDS_PULLBACK > NEAR_BREAKOUT > NEEDS_BREAKOUT > COMPRESSION)
+_cv_broken         = close < invalidationLevel or not prd_bull
+_cv_needs_pullback = not _cv_broken and (extended or close > breakoutLevel) and close > ema_fast
+_cv_near_breakout  = not _cv_broken and not _cv_needs_pullback and nearBreak and close <= breakoutLevel
+_cv_needs_breakout = not _cv_broken and not _cv_needs_pullback and not _cv_near_breakout and close < breakoutLevel and not extended
+_cv_compression    = not _cv_broken and not _cv_needs_pullback and not _cv_near_breakout and not _cv_needs_breakout and math.abs(ema_fast - ema_slow) <= (0.1 * atr14) and close >= math.min(ema_fast, ema_slow) and close <= math.max(ema_fast, ema_slow)
+
+prd_state = _cv_broken         ? "BROKEN"        :
+             _cv_needs_pullback ? "NEEDS_PULLBACK" :
+             _cv_near_breakout  ? "NEAR_BREAKOUT"  :
+             _cv_needs_breakout ? "NEEDS_BREAKOUT" :
+             _cv_compression    ? "COMPRESSION"    : "BROKEN"
+
+prd_actionable    = prd_state == "NEAR_BREAKOUT" or prd_state == "NEEDS_BREAKOUT" or prd_state == "NEEDS_PULLBACK"
+prd_proximity_tag = nearBreak ? " ▲ NEAR TRIGGER" : nearReclaim ? " ↓ NEAR RECLAIM" : ""
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  STAGE 1: BIAS
@@ -590,6 +641,53 @@ if barstate.islast and show_table
     table.cell(status, 1, 9, release_str, bgcolor=release_bg, text_color=C_TXT, text_size=size.small)
 else if barstate.islast
     table.clear(status, 0, 0, 1, 9)
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  CONVERSION TABLE — PRD Phase 1
+// ══════════════════════════════════════════════════════════════════════════════
+prd_state_color(s) =>
+    s == "NEAR_BREAKOUT"  ? color.new(#00C853, 25) :
+     s == "NEEDS_BREAKOUT" ? color.new(#FDD835, 25) :
+     s == "NEEDS_PULLBACK" ? color.new(#FDD835, 25) :
+     s == "COMPRESSION"   ? color.new(#546E7A, 35)  :
+     color.new(#B71C1C, 35)  // BROKEN
+
+C_CV_HDR = color.new(#1A237E, 0)
+C_CV_BG  = color.new(#263238, 20)
+C_CV_OFF = color.new(#263238, 80)
+
+var table cv_table = table.new(position.top_right, 2, 5,
+     bgcolor=color.new(#1A237E, 10), border_color=color.new(#3949AB, 40), border_width=1,
+     frame_color=color.new(#3949AB, 40), frame_width=1)
+
+if barstate.islast and show_conversion
+    _state_bg  = prd_state_color(prd_state)
+    _state_txt = (prd_state == "NEEDS_PULLBACK" or prd_state == "NEEDS_BREAKOUT") ? color.black : color.white
+
+    table.cell(cv_table, 0, 0, "SETUP",    bgcolor=C_CV_HDR, text_color=color.white, text_size=size.small)
+    table.cell(cv_table, 1, 0, prd_state + prd_proximity_tag, bgcolor=_state_bg, text_color=_state_txt, text_size=size.small)
+
+    if prd_actionable
+        table.cell(cv_table, 0, 1, "BREAK >",   bgcolor=C_CV_HDR, text_color=color.white, text_size=size.small)
+        table.cell(cv_table, 1, 1, str.tostring(breakoutLevel,    format.mintick), bgcolor=C_CV_BG, text_color=color.white, text_size=size.small)
+        table.cell(cv_table, 0, 2, "RECLAIM",   bgcolor=C_CV_HDR, text_color=color.white, text_size=size.small)
+        table.cell(cv_table, 1, 2, str.tostring(reclaimLevel,     format.mintick), bgcolor=C_CV_BG, text_color=color.white, text_size=size.small)
+        table.cell(cv_table, 0, 3, "INVALID <", bgcolor=C_CV_HDR, text_color=color.white, text_size=size.small)
+        table.cell(cv_table, 1, 3, str.tostring(invalidationLevel, format.mintick), bgcolor=C_CV_BG, text_color=color.white, text_size=size.small)
+        table.cell(cv_table, 0, 4, "", bgcolor=C_CV_OFF, text_color=color.white, text_size=size.tiny)
+        table.cell(cv_table, 1, 4, "", bgcolor=C_CV_OFF, text_color=color.white, text_size=size.tiny)
+    else
+        _no_trade = prd_state == "COMPRESSION" ? "Await expansion. No entry." : "No long setup. Stand aside."
+        table.cell(cv_table, 0, 1, "", bgcolor=C_CV_OFF, text_color=color.white, text_size=size.tiny)
+        table.cell(cv_table, 1, 1, _no_trade, bgcolor=C_CV_BG, text_color=color.new(#9E9E9E, 0), text_size=size.small)
+        table.cell(cv_table, 0, 2, "", bgcolor=C_CV_OFF, text_color=color.white, text_size=size.tiny)
+        table.cell(cv_table, 1, 2, "", bgcolor=C_CV_OFF, text_color=color.white, text_size=size.tiny)
+        table.cell(cv_table, 0, 3, "", bgcolor=C_CV_OFF, text_color=color.white, text_size=size.tiny)
+        table.cell(cv_table, 1, 3, "", bgcolor=C_CV_OFF, text_color=color.white, text_size=size.tiny)
+        table.cell(cv_table, 0, 4, "", bgcolor=C_CV_OFF, text_color=color.white, text_size=size.tiny)
+        table.cell(cv_table, 1, 4, "", bgcolor=C_CV_OFF, text_color=color.white, text_size=size.tiny)
+else if barstate.islast
+    table.clear(cv_table, 0, 0, 1, 4)
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  ALERTS
