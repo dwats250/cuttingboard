@@ -1,0 +1,152 @@
+2026-04-14T05:50:02Z  INFO      cuttingboard.ingestion — yfinance ^VIX: price=18.2300 pct=-0.0470 vol=0.0 attempt=1 duration=0.49s
+2026-04-14T05:50:03Z  INFO      cuttingboard.ingestion — yfinance DX-Y.NYB: price=98.0360 pct=-0.0029 vol=0.0 attempt=1 duration=0.27s
+2026-04-14T05:50:03Z  INFO      cuttingboard.ingestion — yfinance ^TNX: price=4.2930 pct=-0.0009 vol=0.0 attempt=1 duration=0.28s
+2026-04-14T05:50:03Z  INFO      cuttingboard.ingestion — yfinance BTC-USD: price=74353.2656 pct=-0.0024 vol=55643062272.0 attempt=1 duration=0.29s
+2026-04-14T05:50:04Z  INFO      cuttingboard.ingestion — yfinance SPY: price=686.1000 pct=-0.0005 vol=54083800.0 attempt=1 duration=0.34s
+2026-04-14T05:50:04Z  INFO      cuttingboard.ingestion — yfinance QQQ: price=617.3900 pct=-0.0017 vol=32781900.0 attempt=1 duration=0.30s
+2026-04-14T05:50:04Z  INFO      cuttingboard.ingestion — yfinance IWM: price=265.0700 pct=-0.0022 vol=23769500.0 attempt=1 duration=0.33s
+2026-04-14T05:50:05Z  INFO      cuttingboard.ingestion — yfinance GLD: price=435.3600 pct=-0.0048 vol=5520200.0 attempt=1 duration=0.52s
+2026-04-14T05:50:05Z  INFO      cuttingboard.ingestion — yfinance SLV: price=68.2800 pct=-0.0041 vol=25166900.0 attempt=1 duration=0.28s
+2026-04-14T05:50:05Z  INFO      cuttingboard.ingestion — yfinance GDX: price=98.7800 pct=-0.0030 vol=12430800.0 attempt=1 duration=0.33s
+2026-04-14T05:50:06Z  INFO      cuttingboard.ingestion — yfinance PAAS: price=57.2700 pct=-0.0019 vol=3091100.0 attempt=1 duration=0.32s
+2026-04-14T05:50:06Z  INFO      cuttingboard.ingestion — yfinance USO: price=128.4700 pct=+0.0128 vol=22175000.0 attempt=1 duration=0.28s
+2026-04-14T05:50:06Z  INFO      cuttingboard.ingestion — yfinance XLE: price=57.1100 pct=+0.0007 vol=43045200.0 attempt=1 duration=0.34s
+2026-04-14T05:50:07Z  INFO      cuttingboard.ingestion — yfinance NVDA: price=189.3100 pct=+0.0016 vol=133242100.0 attempt=1 duration=0.34s
+2026-04-14T05:50:07Z  INFO      cuttingboard.ingestion — yfinance TSLA: price=352.4200 pct=-0.0025 vol=53399400.0 attempt=1 duration=0.28s
+2026-04-14T05:50:07Z  INFO      cuttingboard.ingestion — yfinance AAPL: price=259.2000 pct=-0.0005 vol=35196600.0 attempt=1 duration=0.33s
+2026-04-14T05:50:07Z  INFO      cuttingboard.ingestion — yfinance META: price=634.5300 pct=-0.0056 vol=9488700.0 attempt=1 duration=0.30s
+2026-04-14T05:50:08Z  INFO      cuttingboard.ingestion — yfinance AMZN: price=239.8900 pct=+0.0002 vol=42075000.0 attempt=1 duration=0.29s
+2026-04-14T05:50:08Z  INFO      cuttingboard.ingestion — yfinance COIN: price=174.5300 pct=-0.0124 vol=7357400.0 attempt=1 duration=0.28s
+2026-04-14T05:50:08Z  INFO      cuttingboard.ingestion — yfinance MSTR: price=132.3600 pct=-0.0185 vol=12370800.0 attempt=1 duration=0.28s
+2026-04-14T05:50:08Z  INFO      cuttingboard.validation — Validation complete: 20/20 symbols passed, system_halted=False
+2026-04-14T05:50:08Z  INFO      cuttingboard.regime — Regime: RISK_ON | STAY_FLAT | confidence=0.25 | net=+2 (on=2 off=0 neutral=6)
+2026-04-14T05:50:09Z  INFO      cuttingboard.ingestion — ^VIX: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:09Z  INFO      cuttingboard.derived — ^VIX: EMA9=22.0824 EMA21=23.4615 EMA50=22.4938 ATR14=3.5269 mom5d=-0.2089 vol_ratio=N/A
+2026-04-14T05:50:09Z  INFO      cuttingboard.ingestion — DX-Y.NYB: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:09Z  INFO      cuttingboard.derived — DX-Y.NYB: EMA9=99.1496 EMA21=99.2880 EMA50=98.9801 ATR14=0.6915 mom5d=-0.0161 vol_ratio=N/A
+2026-04-14T05:50:09Z  INFO      cuttingboard.ingestion — ^TNX: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:09Z  INFO      cuttingboard.derived — ^TNX: EMA9=4.3142 EMA21=4.2957 EMA50=4.2409 ATR14=0.0665 mom5d=-0.0088 vol_ratio=N/A
+2026-04-14T05:50:09Z  INFO      cuttingboard.ingestion — BTC-USD: OHLCV fetched 186 bars from yfinance
+2026-04-14T05:50:09Z  INFO      cuttingboard.derived — BTC-USD: EMA9=71622.1974 EMA21=70392.2565 EMA50=70857.0502 ATR14=2556.6517 mom5d=+0.0473 vol_ratio=1.54x
+2026-04-14T05:50:09Z  INFO      cuttingboard.ingestion — SPY: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:09Z  INFO      cuttingboard.derived — SPY: EMA9=670.0219 EMA21=665.3907 EMA50=669.5449 ATR14=9.8672 mom5d=+0.0412 vol_ratio=0.58x
+2026-04-14T05:50:09Z  INFO      cuttingboard.ingestion — QQQ: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:09Z  INFO      cuttingboard.derived — QQQ: EMA9=600.2848 EMA21=595.1924 EMA50=599.1127 ATR14=11.4897 mom5d=+0.0491 vol_ratio=0.52x
+2026-04-14T05:50:10Z  INFO      cuttingboard.ingestion — IWM: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:10Z  INFO      cuttingboard.derived — IWM: EMA9=257.2567 EMA21=254.0896 EMA50=254.2716 ATR14=5.5311 mom5d=+0.0504 vol_ratio=0.51x
+2026-04-14T05:50:10Z  INFO      cuttingboard.ingestion — GLD: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:10Z  INFO      cuttingboard.derived — GLD: EMA9=432.6293 EMA21=434.9718 EMA50=439.0251 ATR14=10.9390 mom5d=+0.0180 vol_ratio=0.37x
+2026-04-14T05:50:10Z  INFO      cuttingboard.ingestion — SLV: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:10Z  INFO      cuttingboard.derived — SLV: EMA9=67.4114 EMA21=68.1483 EMA50=70.0388 ATR14=3.4068 mom5d=+0.0331 vol_ratio=0.59x
+2026-04-14T05:50:10Z  INFO      cuttingboard.ingestion — GDX: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:10Z  INFO      cuttingboard.derived — GDX: EMA9=95.8994 EMA21=94.5839 EMA50=95.3517 ATR14=4.3106 mom5d=+0.0529 vol_ratio=0.40x
+2026-04-14T05:50:10Z  INFO      cuttingboard.ingestion — PAAS: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:10Z  INFO      cuttingboard.derived — PAAS: EMA9=56.1041 EMA21=55.6047 EMA50=55.8086 ATR14=2.8701 mom5d=+0.0234 vol_ratio=0.39x
+2026-04-14T05:50:11Z  INFO      cuttingboard.ingestion — USO: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:11Z  INFO      cuttingboard.derived — USO: EMA9=127.7990 EMA21=121.7297 EMA50=106.9982 ATR14=8.0471 mom5d=-0.0754 vol_ratio=0.43x
+2026-04-14T05:50:11Z  INFO      cuttingboard.ingestion — XLE: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:11Z  INFO      cuttingboard.derived — XLE: EMA9=58.4120 EMA21=58.4849 EMA50=56.1339 ATR14=1.5647 mom5d=-0.0431 vol_ratio=0.76x
+2026-04-14T05:50:11Z  INFO      cuttingboard.ingestion — NVDA: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:11Z  INFO      cuttingboard.derived — NVDA: EMA9=182.2100 EMA21=180.1248 EMA50=181.2803 ATR14=5.2827 mom5d=+0.0657 vol_ratio=0.79x
+2026-04-14T05:50:11Z  INFO      cuttingboard.ingestion — TSLA: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:11Z  INFO      cuttingboard.derived — TSLA: EMA9=354.8439 EMA21=367.6894 EMA50=388.6613 ATR14=14.2620 mom5d=-0.0011 vol_ratio=0.82x
+2026-04-14T05:50:11Z  INFO      cuttingboard.ingestion — AAPL: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:11Z  INFO      cuttingboard.derived — AAPL: EMA9=257.4147 EMA21=256.4171 EMA50=258.6005 ATR14=5.7509 mom5d=+0.0013 vol_ratio=0.86x
+2026-04-14T05:50:12Z  INFO      cuttingboard.ingestion — META: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:12Z  INFO      cuttingboard.derived — META: EMA9=606.0285 EMA21=603.4074 EMA50=620.0063 ATR14=20.8384 mom5d=+0.1073 vol_ratio=0.51x
+2026-04-14T05:50:12Z  INFO      cuttingboard.ingestion — AMZN: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:12Z  INFO      cuttingboard.derived — AMZN: EMA9=224.6219 EMA21=217.5187 EMA50=216.9252 ATR14=6.5151 mom5d=+0.1274 vol_ratio=0.95x
+2026-04-14T05:50:12Z  INFO      cuttingboard.ingestion — COIN: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:12Z  INFO      cuttingboard.derived — COIN: EMA9=173.2580 EMA21=178.1546 EMA50=189.5590 ATR14=11.2000 mom5d=-0.0015 vol_ratio=0.66x
+2026-04-14T05:50:12Z  INFO      cuttingboard.ingestion — MSTR: OHLCV fetched 126 bars from yfinance
+2026-04-14T05:50:12Z  INFO      cuttingboard.derived — MSTR: EMA9=128.6038 EMA21=130.6510 EMA50=138.5145 ATR14=7.7917 mom5d=+0.0366 vol_ratio=0.65x
+2026-04-14T05:50:12Z  INFO      cuttingboard.structure — CHOP ^VIX: EMA not aligned, momentum flat
+2026-04-14T05:50:12Z  INFO      cuttingboard.structure — CHOP ^TNX: price outside tradeable EMA zone
+2026-04-14T05:50:12Z  INFO      cuttingboard.structure — CHOP SPY: EMA not aligned, momentum flat
+2026-04-14T05:50:12Z  INFO      cuttingboard.structure — CHOP QQQ: EMA not aligned, momentum flat
+2026-04-14T05:50:12Z  INFO      cuttingboard.structure — CHOP IWM: EMA not aligned, momentum flat
+2026-04-14T05:50:12Z  INFO      cuttingboard.structure — CHOP GLD: price outside tradeable EMA zone
+2026-04-14T05:50:12Z  INFO      cuttingboard.structure — CHOP SLV: price outside tradeable EMA zone
+2026-04-14T05:50:12Z  INFO      cuttingboard.structure — CHOP GDX: EMA not aligned, momentum flat
+2026-04-14T05:50:12Z  INFO      cuttingboard.structure — CHOP PAAS: EMA not aligned, momentum flat
+2026-04-14T05:50:12Z  INFO      cuttingboard.structure — CHOP NVDA: EMA not aligned, momentum flat
+2026-04-14T05:50:12Z  INFO      cuttingboard.structure — CHOP AAPL: EMA not aligned, momentum flat
+2026-04-14T05:50:12Z  INFO      cuttingboard.structure — CHOP META: EMA not aligned, momentum flat
+2026-04-14T05:50:12Z  INFO      cuttingboard.structure — CHOP MSTR: price outside tradeable EMA zone
+2026-04-14T05:50:12Z  INFO      cuttingboard.qualification — Qualification short-circuited — STAY_FLAT posture (regime=RISK_ON, confidence=0.25)
+2026-04-14T05:50:12Z  INFO      cuttingboard.output — ntfy notification delivered
+2026-04-14T05:50:12Z  INFO      cuttingboard.audit — Audit record written to logs/audit.jsonl
+2026-04-14T06:00:01Z  INFO      cuttingboard.output — Pipeline start
+2026-04-14T06:00:02Z  INFO      cuttingboard.ingestion — yfinance ^VIX: price=18.1900 pct=-0.0491 vol=0.0 attempt=1 duration=0.49s
+2026-04-14T06:00:02Z  INFO      cuttingboard.ingestion — yfinance DX-Y.NYB: price=98.0170 pct=-0.0031 vol=0.0 attempt=1 duration=0.30s
+2026-04-14T06:00:02Z  INFO      cuttingboard.ingestion — yfinance ^TNX: price=4.2990 pct=+0.0005 vol=0.0 attempt=1 duration=0.28s
+2026-04-14T06:00:03Z  INFO      cuttingboard.ingestion — yfinance BTC-USD: price=74422.2188 pct=-0.0015 vol=55547039744.0 attempt=1 duration=0.25s
+2026-04-14T06:00:03Z  INFO      cuttingboard.ingestion — yfinance SPY: price=686.1000 pct=-0.0005 vol=54083800.0 attempt=1 duration=0.31s
+2026-04-14T06:00:03Z  INFO      cuttingboard.ingestion — yfinance QQQ: price=617.3900 pct=-0.0017 vol=32781900.0 attempt=1 duration=0.32s
+2026-04-14T06:00:03Z  INFO      cuttingboard.ingestion — yfinance IWM: price=265.0700 pct=-0.0022 vol=23769500.0 attempt=1 duration=0.33s
+2026-04-14T06:00:04Z  INFO      cuttingboard.ingestion — yfinance GLD: price=435.3600 pct=-0.0048 vol=5520200.0 attempt=1 duration=0.27s
+2026-04-14T06:00:04Z  INFO      cuttingboard.ingestion — yfinance SLV: price=68.2800 pct=-0.0041 vol=25166900.0 attempt=1 duration=0.28s
+2026-04-14T06:00:04Z  INFO      cuttingboard.ingestion — yfinance GDX: price=98.7800 pct=-0.0030 vol=12430800.0 attempt=1 duration=0.31s
+2026-04-14T06:00:05Z  INFO      cuttingboard.ingestion — yfinance PAAS: price=57.2700 pct=-0.0019 vol=3091100.0 attempt=1 duration=0.38s
+2026-04-14T06:00:05Z  INFO      cuttingboard.ingestion — yfinance USO: price=128.4700 pct=+0.0128 vol=22175000.0 attempt=1 duration=0.27s
+2026-04-14T06:00:05Z  INFO      cuttingboard.ingestion — yfinance XLE: price=57.1100 pct=+0.0007 vol=43045200.0 attempt=1 duration=0.37s
+2026-04-14T06:00:07Z  INFO      cuttingboard.ingestion — yfinance NVDA: price=189.3100 pct=+0.0016 vol=133242100.0 attempt=1 duration=1.40s
+2026-04-14T06:00:07Z  INFO      cuttingboard.ingestion — yfinance TSLA: price=352.4200 pct=-0.0025 vol=53399400.0 attempt=1 duration=0.29s
+2026-04-14T06:00:07Z  INFO      cuttingboard.ingestion — yfinance AAPL: price=259.2000 pct=-0.0005 vol=35196600.0 attempt=1 duration=0.35s
+2026-04-14T06:00:08Z  INFO      cuttingboard.ingestion — yfinance META: price=634.5300 pct=-0.0056 vol=9488700.0 attempt=1 duration=0.29s
+2026-04-14T06:00:08Z  INFO      cuttingboard.ingestion — yfinance AMZN: price=239.8900 pct=+0.0002 vol=42075000.0 attempt=1 duration=0.30s
+2026-04-14T06:00:08Z  INFO      cuttingboard.ingestion — yfinance COIN: price=174.5300 pct=-0.0124 vol=7357400.0 attempt=1 duration=0.28s
+2026-04-14T06:00:09Z  INFO      cuttingboard.ingestion — yfinance MSTR: price=132.3600 pct=-0.0185 vol=12370800.0 attempt=1 duration=0.28s
+2026-04-14T06:00:09Z  INFO      cuttingboard.validation — Validation complete: 20/20 symbols passed, system_halted=False
+2026-04-14T06:00:09Z  INFO      cuttingboard.regime — Regime: RISK_ON | STAY_FLAT | confidence=0.25 | net=+2 (on=2 off=0 neutral=6)
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — ^VIX: EMA9=22.0824 EMA21=23.4615 EMA50=22.4938 ATR14=3.5269 mom5d=-0.2089 vol_ratio=N/A
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — DX-Y.NYB: EMA9=99.1496 EMA21=99.2880 EMA50=98.9801 ATR14=0.6915 mom5d=-0.0161 vol_ratio=N/A
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — ^TNX: EMA9=4.3142 EMA21=4.2957 EMA50=4.2409 ATR14=0.0665 mom5d=-0.0088 vol_ratio=N/A
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — BTC-USD: EMA9=71622.1974 EMA21=70392.2565 EMA50=70857.0502 ATR14=2556.6517 mom5d=+0.0473 vol_ratio=1.54x
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — SPY: EMA9=670.0219 EMA21=665.3907 EMA50=669.5449 ATR14=9.8672 mom5d=+0.0412 vol_ratio=0.58x
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — QQQ: EMA9=600.2848 EMA21=595.1924 EMA50=599.1127 ATR14=11.4897 mom5d=+0.0491 vol_ratio=0.52x
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — IWM: EMA9=257.2567 EMA21=254.0896 EMA50=254.2716 ATR14=5.5311 mom5d=+0.0504 vol_ratio=0.51x
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — GLD: EMA9=432.6293 EMA21=434.9718 EMA50=439.0251 ATR14=10.9390 mom5d=+0.0180 vol_ratio=0.37x
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — SLV: EMA9=67.4114 EMA21=68.1483 EMA50=70.0388 ATR14=3.4068 mom5d=+0.0331 vol_ratio=0.59x
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — GDX: EMA9=95.8994 EMA21=94.5839 EMA50=95.3517 ATR14=4.3106 mom5d=+0.0529 vol_ratio=0.40x
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — PAAS: EMA9=56.1041 EMA21=55.6047 EMA50=55.8086 ATR14=2.8701 mom5d=+0.0234 vol_ratio=0.39x
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — USO: EMA9=127.7990 EMA21=121.7297 EMA50=106.9982 ATR14=8.0471 mom5d=-0.0754 vol_ratio=0.43x
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — XLE: EMA9=58.4120 EMA21=58.4849 EMA50=56.1339 ATR14=1.5647 mom5d=-0.0431 vol_ratio=0.76x
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — NVDA: EMA9=182.2100 EMA21=180.1248 EMA50=181.2803 ATR14=5.2827 mom5d=+0.0657 vol_ratio=0.79x
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — TSLA: EMA9=354.8439 EMA21=367.6894 EMA50=388.6613 ATR14=14.2620 mom5d=-0.0011 vol_ratio=0.82x
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — AAPL: EMA9=257.4147 EMA21=256.4171 EMA50=258.6005 ATR14=5.7509 mom5d=+0.0013 vol_ratio=0.86x
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — META: EMA9=606.0285 EMA21=603.4074 EMA50=620.0063 ATR14=20.8384 mom5d=+0.1073 vol_ratio=0.51x
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — AMZN: EMA9=224.6219 EMA21=217.5187 EMA50=216.9252 ATR14=6.5151 mom5d=+0.1274 vol_ratio=0.95x
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — COIN: EMA9=173.2580 EMA21=178.1546 EMA50=189.5590 ATR14=11.2000 mom5d=-0.0015 vol_ratio=0.66x
+2026-04-14T06:00:09Z  INFO      cuttingboard.derived — MSTR: EMA9=128.6038 EMA21=130.6510 EMA50=138.5145 ATR14=7.7917 mom5d=+0.0366 vol_ratio=0.65x
+2026-04-14T06:00:09Z  INFO      cuttingboard.structure — CHOP ^VIX: EMA not aligned, momentum flat
+2026-04-14T06:00:09Z  INFO      cuttingboard.structure — CHOP SPY: EMA not aligned, momentum flat
+2026-04-14T06:00:09Z  INFO      cuttingboard.structure — CHOP QQQ: EMA not aligned, momentum flat
+2026-04-14T06:00:09Z  INFO      cuttingboard.structure — CHOP IWM: EMA not aligned, momentum flat
+2026-04-14T06:00:09Z  INFO      cuttingboard.structure — CHOP GLD: price outside tradeable EMA zone
+2026-04-14T06:00:09Z  INFO      cuttingboard.structure — CHOP SLV: price outside tradeable EMA zone
+2026-04-14T06:00:09Z  INFO      cuttingboard.structure — CHOP GDX: EMA not aligned, momentum flat
+2026-04-14T06:00:09Z  INFO      cuttingboard.structure — CHOP PAAS: EMA not aligned, momentum flat
+2026-04-14T06:00:09Z  INFO      cuttingboard.structure — CHOP NVDA: EMA not aligned, momentum flat
+2026-04-14T06:00:09Z  INFO      cuttingboard.structure — CHOP AAPL: EMA not aligned, momentum flat
+2026-04-14T06:00:09Z  INFO      cuttingboard.structure — CHOP META: EMA not aligned, momentum flat
+2026-04-14T06:00:09Z  INFO      cuttingboard.structure — CHOP MSTR: price outside tradeable EMA zone
+2026-04-14T06:00:09Z  INFO      cuttingboard.qualification — Qualification short-circuited — STAY_FLAT posture (regime=RISK_ON, confidence=0.25)
+2026-04-14T06:00:09Z  INFO      cuttingboard.output — Report written to reports/2026-04-14.md
+2026-04-14T06:00:09Z  INFO      cuttingboard.output — ntfy notification delivered
+2026-04-14T06:00:09Z  INFO      cuttingboard.audit — Audit record written to logs/audit.jsonl
+2026-04-14T06:00:09Z  INFO      cuttingboard.output — Pipeline complete: NO_TRADE  qualified=0  watchlist=0
+2026-04-14T06:00:09Z  INFO      __main__ — Commit message written: CB report: 2026-04-14 | RISK_ON | 0 trades []
+══════════════════════════════════════════════════════
+  CUTTINGBOARD  ·  2026-04-14
+  RISK_ON / STAY_FLAT  |  conf=0.25  |  net=+2
+  FLAT — no new positions. Await regime clarity.
+══════════════════════════════════════════════════════
+
+  NO TRADE
+  Reason: STAY_FLAT posture (regime=RISK_ON, confidence=0.25)
+
+────────────────────────────────────────────────────── DATA STATUS 
+  Validated : 20 / 20    VIX : 18.2
+  Run       : 2026-04-14T13:00:01Z
+══════════════════════════════════════════════════════

@@ -2,96 +2,612 @@
 // © signal-forge
 
 //@version=6
-indicator("0DTE Momentum Execution Overlay", overlay=true, max_lines_count=4, max_labels_count=10)
+indicator("0DTE Momentum Execution Overlay",
+  overlay=true,
+  max_lines_count=10,
+  max_labels_count=10)
 
-lookbackN = input.int(20, "Breakout Lookback", minval=10, maxval=20)
-showTable = input.bool(true, "Show Status Table", group="Display")
-showLevels = input.bool(true, "Show Levels", group="Display")
-showEMAs = input.bool(true, "Show EMAs", group="Display")
+// ══════════════════════════════════════════════════════════════════════════════
+//  INPUTS
+// ══════════════════════════════════════════════════════════════════════════════
 
-ema9 = ta.ema(close, 9)
-ema21 = ta.ema(close, 21)
-atr14 = ta.atr(14)
+// ── Bollinger Band Squeeze ───────────────────────────────────────────────────
+var g_sq = "Bollinger Band Squeeze"
+bb_len      = input.int(20, "BB Length", group=g_sq)
+bb_mult     = input.float(2.0, "BB Std Dev Multiplier", group=g_sq, step=0.1)
+kc_len      = input.int(20, "KC Length", group=g_sq)
+kc_mult     = input.float(1.5, "KC ATR Multiplier", group=g_sq, step=0.1)
+sq_min_bars = input.int(5, "Min Bars in Squeeze", group=g_sq, minval=1,
+     tooltip="Minimum consecutive bars inside the squeeze before the release state becomes actionable.")
+max_bars_after_release = input.int(5, "Max Bars After Release", group=g_sq, minval=1)
 
-recentHigh = ta.highest(high, lookbackN)
-recentLow = ta.lowest(low, lookbackN)
+// ── NYSE TICK ────────────────────────────────────────────────────────────────
+var g_tk = "NYSE TICK"
+tick_sym            = input.symbol("USI:TICK", "TICK Symbol", group=g_tk,
+     tooltip="TradingView symbol for the NYSE TICK. Common: USI:TICK, TVC:TICK")
+tick_tf             = input.timeframe("", "TICK Timeframe", group=g_tk,
+     tooltip="Leave blank to match chart timeframe.")
+tick_bull_threshold = input.int(200, "Bull Threshold", group=g_tk, step=50)
+tick_bear_threshold = input.int(-200, "Bear Threshold", group=g_tk, step=50)
 
-breakoutLevel = nz(recentHigh[1], recentHigh)
-reclaimLevelPrimary = ema9
-invalidationLevel = nz(recentLow[1], recentLow)
+// ── ATR Trailing Stop ────────────────────────────────────────────────────────
+var g_ts = "ATR Trailing Stop"
+ts_len  = input.int(3, "ATR Period", group=g_ts)
+ts_mult = input.float(1.0, "ATR Multiplier", group=g_ts, step=0.1)
 
-bias = close > ema21 and ema9 > ema21 ? "BULL" : close < ema21 and ema9 < ema21 ? "BEAR" : "NEUTRAL"
+// ── Trade Levels ─────────────────────────────────────────────────────────────
+var g_lv = "Trade Levels"
+show_trade_levels      = input.bool(true, "Show Trade Levels", group=g_lv)
+levels_extend_bars     = input.int(20, "Levels Extend Bars", group=g_lv, minval=1)
+max_active_trade_bars  = input.int(20, "Max Active Trade Bars", group=g_lv, minval=1)
+signal_atr_buffer_mult = input.float(0.15, "Signal ATR Buffer Multiplier", group=g_lv, step=0.01, minval=0.0)
+tp1_r_multiple         = input.float(1.0, "TP1 R Multiple", group=g_lv, step=0.1, minval=0.1)
+tp2_r_multiple         = input.float(2.0, "TP2 R Multiple", group=g_lv, step=0.1, minval=0.1)
+show_level_labels      = input.bool(true, "Show Level Labels", group=g_lv)
 
-nearThreshold = 0.5 * atr14
-distToBreak = close - breakoutLevel
-distToReclaim = math.abs(close - reclaimLevelPrimary)
+// ── Opening Range ────────────────────────────────────────────────────────────
+var g_or = "Opening Range"
+use_or_filter            = input.bool(true, "Use Opening Range Filter", group=g_or)
+or_minutes               = input.int(15, "Opening Range Minutes", group=g_or, minval=1)
+or_mode                  = input.string("PERMISSIVE", "OR Mode", options=["PERMISSIVE", "STRICT", "CONFIRMED BREAK"], group=g_or)
+or_break_buffer_atr_mult = input.float(0.1, "Confirmed Break ATR Buffer", group=g_or, step=0.01, minval=0.0)
+session_tz               = input.string("America/New_York", "Session Timezone", group=g_or)
 
-nearBreak = math.abs(distToBreak) <= nearThreshold and close <= breakoutLevel
-nearReclaim = distToReclaim <= nearThreshold
-extended = close - ema9 > atr14
+// ── Session Time Gating ──────────────────────────────────────────────────────
+var g_tm = "Session Time Gating"
+enable_time_filter     = input.bool(true, "Enable Time Filter", group=g_tm)
+primary_session        = input.session("0945-1130", "Primary Trigger Window", group=g_tm)
+enable_secondary_time  = input.bool(false, "Enable Secondary Window", group=g_tm)
+secondary_session      = input.session("1300-1500", "Secondary Trigger Window", group=g_tm)
 
-brokenCond = bias != "BULL" or close < invalidationLevel
-needsPullbackCond = bias == "BULL" and close > ema9 and (extended or close > breakoutLevel)
-nearBreakoutCond = bias == "BULL" and nearBreak and close <= breakoutLevel
-compressionCond = bias == "BULL" and math.abs(ema9 - ema21) <= 0.1 * atr14 and close >= math.min(ema9, ema21) and close <= math.max(ema9, ema21)
-needsBreakoutCond = bias == "BULL" and close < breakoutLevel and not extended and close >= ema9
+// ── Exhaustion Filter ────────────────────────────────────────────────────────
+var g_ex = "Exhaustion Filter"
+use_exhaustion_filter         = input.bool(true, "Use Exhaustion Filter", group=g_ex)
+exhaustion_bar_atr_mult       = input.float(0.8, "Bar Range ATR Multiplier", group=g_ex, step=0.1, minval=0.1)
+exhaustion_close_pct          = input.float(0.10, "Close Percent Threshold", group=g_ex, step=0.01, minval=0.01, maxval=0.49)
+max_distance_from_ema_fast_atr = input.float(1.5, "Max Distance From EMA Fast (ATR)", group=g_ex, step=0.1, minval=0.1)
+max_consecutive_bars          = input.int(3, "Max Consecutive Same-Direction Bars", group=g_ex, minval=1)
 
-state =
-     brokenCond ? "BROKEN" :
-     needsPullbackCond ? "NEEDS_PULLBACK" :
-     nearBreakoutCond ? "NEAR_BREAKOUT" :
-     compressionCond ? "COMPRESSION" :
-     needsBreakoutCond ? "NEEDS_BREAKOUT" :
-     "BROKEN"
+// ── Trend Filter ─────────────────────────────────────────────────────────────
+var g_tf = "Trend Filter"
+use_trend_filter = input.bool(false, "Use Trend Filter", group=g_tf)
+ema_fast_len     = input.int(9, "EMA Fast Length", group=g_tf, minval=1)
+ema_slow_len     = input.int(21, "EMA Slow Length", group=g_tf, minval=1)
+show_trend_emas  = input.bool(false, "Show Trend EMAs", group=g_tf)
 
-stateColor =
-     state == "NEEDS_PULLBACK" ? color.new(#EF6C00, 15) :
-     state == "NEAR_BREAKOUT" ? color.new(#00C853, 15) :
-     state == "COMPRESSION" ? color.new(#546E7A, 15) :
-     state == "NEEDS_BREAKOUT" ? color.new(#1E88E5, 15) :
-     color.new(#C62828, 15)
+// ── Alerts ───────────────────────────────────────────────────────────────────
+var g_al = "Alerts"
+alert_on_b_grade = input.bool(true, "Alert On Grade B", group=g_al)
 
-fmtPrice(value) =>
-    str.tostring(value, format.mintick)
+// ── Display ──────────────────────────────────────────────────────────────────
+var g_ui = "Display"
+show_bb     = input.bool(true, "Show Bollinger Bands", group=g_ui)
+show_kc     = input.bool(true, "Show Keltner Channel", group=g_ui)
+show_labels = input.bool(true, "Show Entry Labels", group=g_ui)
+show_table  = input.bool(true, "Show Status Table", group=g_ui)
 
-tagLine = nearBreak and nearReclaim ? "NEAR TRIGGER | NEAR RECLAIM" : nearBreak ? "NEAR TRIGGER" : nearReclaim ? "NEAR RECLAIM" : ""
+// ══════════════════════════════════════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════════════════════════════════════
+score_grade(score) =>
+    score >= 80 ? "A" : score >= 65 ? "B" : score >= 50 ? "C" : "FAIL"
 
-plot(showEMAs ? ema9 : na, "EMA9", color=color.new(#FFA726, 0), linewidth=2)
-plot(showEMAs ? ema21 : na, "EMA21", color=color.new(#26A69A, 0), linewidth=2)
-plot(showLevels ? breakoutLevel : na, "Breakout Level", color=color.new(#00C853, 0), linewidth=2, style=plot.style_linebr)
-plot(showLevels ? invalidationLevel : na, "Invalidation Level", color=color.new(#E53935, 0), linewidth=2, style=plot.style_linebr)
+grade_color(grade) =>
+    grade == "A" ? color.new(#00C853, 35) :
+     grade == "B" ? color.new(#FDD835, 25) :
+     grade == "C" ? color.new(#FB8C00, 25) :
+     color.new(#B71C1C, 35)
 
-var table status = table.new(
-     position.bottom_right,
-     1,
-     6,
-     bgcolor=color.new(#263238, 8),
-     border_color=color.new(#546E7A, 40),
-     border_width=1,
-     frame_color=color.new(#546E7A, 40),
-     frame_width=1)
+grade_text_color(grade) =>
+    grade == "B" ? color.black : color.white
 
-if barstate.islast and showTable
-    table.clear(status, 0, 0, 0, 5)
-    table.cell(status, 0, 0, "STATE: " + state, bgcolor=stateColor, text_color=color.white, text_size=size.small)
+state_color(state) =>
+    state == "BULL" or state == "READY" or state == "VALID" ? color.new(#00C853, 35) :
+     state == "BEAR" ? color.new(#F44336, 35) :
+     state == "FORMING" ? color.new(#FFB300, 35) :
+     state == "BLOCKED" ? color.new(#E53935, 35) :
+     color.new(#546E7A, 35)
 
-    if state == "COMPRESSION"
-        table.cell(status, 0, 1, "Await expansion. No entry.", bgcolor=color.new(#263238, 0), text_color=color.white, text_size=size.small)
-        table.cell(status, 0, 2, "", bgcolor=color.new(#263238, 0), text_color=color.white, text_size=size.small)
-        table.cell(status, 0, 3, "", bgcolor=color.new(#263238, 0), text_color=color.white, text_size=size.small)
-        table.cell(status, 0, 4, "", bgcolor=color.new(#263238, 0), text_color=color.white, text_size=size.small)
-        table.cell(status, 0, 5, "", bgcolor=color.new(#263238, 0), text_color=color.white, text_size=size.small)
-    else if state == "BROKEN"
-        table.cell(status, 0, 1, "No long setup. Stand aside.", bgcolor=color.new(#263238, 0), text_color=color.white, text_size=size.small)
-        table.cell(status, 0, 2, "", bgcolor=color.new(#263238, 0), text_color=color.white, text_size=size.small)
-        table.cell(status, 0, 3, "", bgcolor=color.new(#263238, 0), text_color=color.white, text_size=size.small)
-        table.cell(status, 0, 4, "", bgcolor=color.new(#263238, 0), text_color=color.white, text_size=size.small)
-        table.cell(status, 0, 5, "", bgcolor=color.new(#263238, 0), text_color=color.white, text_size=size.small)
+build_alert_message(direction, grade, or_state, tick_state, score) =>
+    direction + " " + grade + " SETUP - OR " + or_state + " - TICK " + tick_state + " - SCORE " + str.tostring(score)
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  BOLLINGER BAND SQUEEZE
+// ══════════════════════════════════════════════════════════════════════════════
+bb_basis   = ta.sma(close, bb_len)
+bb_dev     = ta.stdev(close, bb_len) * bb_mult
+bb_upper   = bb_basis + bb_dev
+bb_lower   = bb_basis - bb_dev
+
+kc_basis   = ta.sma(close, kc_len)
+kc_atr     = ta.atr(kc_len)
+kc_upper   = kc_basis + kc_mult * kc_atr
+kc_lower   = kc_basis - kc_mult * kc_atr
+
+in_squeeze = bb_upper < kc_upper and bb_lower > kc_lower
+
+var int sq_count = 0
+sq_count := in_squeeze ? sq_count + 1 : 0
+sq_ready = sq_count >= sq_min_bars
+squeeze_released = not in_squeeze and in_squeeze[1] and sq_count[1] >= sq_min_bars
+
+var int bars_since_squeeze_release = na
+var float squeeze_release_price = na
+if in_squeeze
+    bars_since_squeeze_release := na
+    squeeze_release_price := na
+else if squeeze_released
+    bars_since_squeeze_release := 0
+    squeeze_release_price := close
+else if not na(bars_since_squeeze_release)
+    bars_since_squeeze_release += 1
+
+release_window_ok = not na(bars_since_squeeze_release) and bars_since_squeeze_release <= max_bars_after_release
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  NYSE TICK
+// ══════════════════════════════════════════════════════════════════════════════
+_tick_tf   = tick_tf == "" ? timeframe.period : tick_tf
+tick_val   = request.security(tick_sym, _tick_tf, close, ignore_invalid_symbol=true)
+tick_state = na(tick_val) ? "N/A" : tick_val >= tick_bull_threshold ? "STRONG BULL" : tick_val <= tick_bear_threshold ? "STRONG BEAR" : "WEAK"
+tick_bull  = tick_state == "STRONG BULL"
+tick_bear  = tick_state == "STRONG BEAR"
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  ATR TRAILING STOP
+// ══════════════════════════════════════════════════════════════════════════════
+raw_atr = ta.atr(ts_len)
+ts_atr  = raw_atr * ts_mult
+
+var float ts_level = na
+var int ts_dir = 0
+
+if na(ts_level)
+    ts_level := close - ts_atr
+    ts_dir := 1
+else
+    if ts_dir == 1
+        if close < ts_level
+            ts_dir := -1
+            ts_level := close + ts_atr
+        else
+            ts_level := math.max(ts_level, close - ts_atr)
     else
-        table.cell(status, 0, 1, "LONG: Break > " + fmtPrice(breakoutLevel), bgcolor=color.new(#263238, 0), text_color=color.white, text_size=size.small)
-        table.cell(status, 0, 2, "OR: Pullback to " + fmtPrice(reclaimLevelPrimary) + " -> reclaim", bgcolor=color.new(#263238, 0), text_color=color.white, text_size=size.small)
-        table.cell(status, 0, 3, "INVALID: Below " + fmtPrice(invalidationLevel), bgcolor=color.new(#263238, 0), text_color=color.white, text_size=size.small)
-        table.cell(status, 0, 4, tagLine, bgcolor=color.new(#263238, 0), text_color=color.white, text_size=size.small)
-        table.cell(status, 0, 5, "", bgcolor=color.new(#263238, 0), text_color=color.white, text_size=size.small)
+        if close > ts_level
+            ts_dir := 1
+            ts_level := close - ts_atr
+        else
+            ts_level := math.min(ts_level, close + ts_atr)
+
+ts_flipped_long  = ts_dir == 1 and ts_dir[1] == -1
+ts_flipped_short = ts_dir == -1 and ts_dir[1] == 1
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  OPENING RANGE FILTER
+// ══════════════════════════════════════════════════════════════════════════════
+var float or_high = na
+var float or_low = na
+var bool or_formed = false
+var int or_open_time = na
+
+session_open_bar = hour(time, session_tz) == 9 and minute(time, session_tz) == 30
+session_open_trigger = session_open_bar and not session_open_bar[1]
+
+if session_open_trigger
+    or_high := high
+    or_low := low
+    or_formed := false
+    or_open_time := time
+else if not na(or_open_time)
+    if not or_formed
+        or_high := math.max(nz(or_high, high), high)
+        or_low := math.min(nz(or_low, low), low)
+        if time - or_open_time >= or_minutes * 60 * 1000
+            or_formed := true
+
+or_buffer = raw_atr * or_break_buffer_atr_mult
+or_above = not na(or_high) and close > or_high
+or_below = not na(or_low) and close < or_low
+or_confirmed_above = not na(or_high) and close > or_high + or_buffer
+or_confirmed_below = not na(or_low) and close < or_low - or_buffer
+
+or_long_permission = not use_or_filter ? true :
+     or_mode == "PERMISSIVE" ? (not or_formed or or_above) :
+     or_mode == "STRICT" ? (or_formed and or_above) :
+     (or_formed and or_confirmed_above)
+
+or_short_permission = not use_or_filter ? true :
+     or_mode == "PERMISSIVE" ? (not or_formed or or_below) :
+     or_mode == "STRICT" ? (or_formed and or_below) :
+     (or_formed and or_confirmed_below)
+
+or_state = not use_or_filter ? "OFF" :
+     not or_formed ? "FORMING" :
+     or_confirmed_above ? "ABOVE+" :
+     or_confirmed_below ? "BELOW+" :
+     or_above ? "ABOVE" :
+     or_below ? "BELOW" : "INSIDE"
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  SESSION TIME GATING
+// ══════════════════════════════════════════════════════════════════════════════
+in_primary_window = not na(time(timeframe.period, primary_session, session_tz))
+in_secondary_window = enable_secondary_time and not na(time(timeframe.period, secondary_session, session_tz))
+trigger_time_ok = not enable_time_filter or in_primary_window or in_secondary_window
+time_state = not enable_time_filter ? "OFF" : trigger_time_ok ? "OPEN" : "BLOCKED"
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  EXHAUSTION FILTER
+// ══════════════════════════════════════════════════════════════════════════════
+bar_range       = high - low
+close_pct       = (close - low) / math.max(bar_range, syminfo.mintick)
+big_bar         = bar_range > raw_atr * exhaustion_bar_atr_mult
+long_exhausted  = big_bar and close_pct >= (1.0 - exhaustion_close_pct)
+short_exhausted = big_bar and close_pct <= exhaustion_close_pct
+
+ema_fast = ta.ema(close, ema_fast_len)
+ema_slow = ta.ema(close, ema_slow_len)
+
+dist_from_fast_atr = raw_atr > 0 ? math.abs(close - ema_fast) / raw_atr : 0.0
+release_dist_long = raw_atr > 0 and not na(squeeze_release_price) ? math.max(close - squeeze_release_price, 0.0) / raw_atr : 0.0
+release_dist_short = raw_atr > 0 and not na(squeeze_release_price) ? math.max(squeeze_release_price - close, 0.0) / raw_atr : 0.0
+
+var int bull_run = 0
+var int bear_run = 0
+bull_run := close > open ? nz(bull_run[1]) + 1 : 0
+bear_run := close < open ? nz(bear_run[1]) + 1 : 0
+
+too_far_from_fast = dist_from_fast_atr > max_distance_from_ema_fast_atr
+too_many_bull_bars = bull_run > max_consecutive_bars
+too_many_bear_bars = bear_run > max_consecutive_bars
+too_far_from_release_long = release_dist_long > max_distance_from_ema_fast_atr
+too_far_from_release_short = release_dist_short > max_distance_from_ema_fast_atr
+
+exh_long_blocked = use_exhaustion_filter and (long_exhausted or too_far_from_fast or too_many_bull_bars or too_far_from_release_long)
+exh_short_blocked = use_exhaustion_filter and (short_exhausted or too_far_from_fast or too_many_bear_bars or too_far_from_release_short)
+exh_long_ok = not exh_long_blocked
+exh_short_ok = not exh_short_blocked
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  TREND FILTER
+// ══════════════════════════════════════════════════════════════════════════════
+trend_long_ok  = not use_trend_filter or ema_fast > ema_slow
+trend_short_ok = not use_trend_filter or ema_fast < ema_slow
+trend_state = ema_fast > ema_slow ? "BULL" : ema_fast < ema_slow ? "BEAR" : "NEUTRAL"
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  STAGE 1: BIAS
+// ══════════════════════════════════════════════════════════════════════════════
+bias_long_ok = tick_bull and or_long_permission and trend_long_ok
+bias_short_ok = tick_bear and or_short_permission and trend_short_ok
+
+bias_state = bias_long_ok ? "BULL" : bias_short_ok ? "BEAR" : "NEUTRAL"
+bias_dir = bias_state == "BULL" ? 1 : bias_state == "BEAR" ? -1 : 0
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  STAGE 2: SETUP
+// ══════════════════════════════════════════════════════════════════════════════
+setup_long_forming = bias_long_ok and in_squeeze and sq_ready
+setup_short_forming = bias_short_ok and in_squeeze and sq_ready
+setup_long_ready = bias_long_ok and release_window_ok and or_long_permission
+setup_short_ready = bias_short_ok and release_window_ok and or_short_permission
+
+setup_state_long = setup_long_ready ? "READY" : setup_long_forming ? "FORMING" : "NOT READY"
+setup_state_short = setup_short_ready ? "READY" : setup_short_forming ? "FORMING" : "NOT READY"
+setup_state = bias_state == "BULL" ? setup_state_long : bias_state == "BEAR" ? setup_state_short : "NOT READY"
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  STAGE 3: TRIGGER
+// ══════════════════════════════════════════════════════════════════════════════
+long_trigger_attempt = setup_long_ready and ts_flipped_long
+short_trigger_attempt = setup_short_ready and ts_flipped_short
+
+long_trigger_valid = long_trigger_attempt and trigger_time_ok and release_window_ok and exh_long_ok
+short_trigger_valid = short_trigger_attempt and trigger_time_ok and release_window_ok and exh_short_ok
+
+long_trigger_blocked = long_trigger_attempt and not long_trigger_valid
+short_trigger_blocked = short_trigger_attempt and not short_trigger_valid
+
+trigger_state = long_trigger_valid or short_trigger_valid ? "VALID" :
+     long_trigger_blocked or short_trigger_blocked ? "BLOCKED" : "WAITING"
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  SIGNAL SCORING
+// ══════════════════════════════════════════════════════════════════════════════
+or_long_points = not use_or_filter ? 0.0 : or_long_permission ? (or_mode == "PERMISSIVE" and not or_formed ? 15.0 : 25.0) : 0.0
+or_short_points = not use_or_filter ? 0.0 : or_short_permission ? (or_mode == "PERMISSIVE" and not or_formed ? 15.0 : 25.0) : 0.0
+or_weight = use_or_filter ? 25.0 : 0.0
+
+tick_long_points = tick_bull ? 20.0 : 0.0
+tick_short_points = tick_bear ? 20.0 : 0.0
+
+setup_long_points = setup_long_ready ? 15.0 : setup_long_forming ? 8.0 : 0.0
+setup_short_points = setup_short_ready ? 15.0 : setup_short_forming ? 8.0 : 0.0
+
+atr_long_points = not long_trigger_attempt ? 0.0 : bars_since_squeeze_release <= 1 ? 20.0 : bars_since_squeeze_release <= 3 ? 16.0 : 12.0
+atr_short_points = not short_trigger_attempt ? 0.0 : bars_since_squeeze_release <= 1 ? 20.0 : bars_since_squeeze_release <= 3 ? 16.0 : 12.0
+
+exh_long_points = not use_exhaustion_filter ? 0.0 : exh_long_ok ? 10.0 : 0.0
+exh_short_points = not use_exhaustion_filter ? 0.0 : exh_short_ok ? 10.0 : 0.0
+exh_weight = use_exhaustion_filter ? 10.0 : 0.0
+
+trend_long_points = not use_trend_filter ? 0.0 : trend_long_ok ? 10.0 : 0.0
+trend_short_points = not use_trend_filter ? 0.0 : trend_short_ok ? 10.0 : 0.0
+trend_weight = use_trend_filter ? 10.0 : 0.0
+
+active_weight = 20.0 + 15.0 + 20.0 + or_weight + exh_weight + trend_weight
+
+long_score_raw = or_long_points + tick_long_points + setup_long_points + atr_long_points + exh_long_points + trend_long_points
+short_score_raw = or_short_points + tick_short_points + setup_short_points + atr_short_points + exh_short_points + trend_short_points
+
+long_score = active_weight > 0 ? math.round(long_score_raw / active_weight * 100.0) : 0
+short_score = active_weight > 0 ? math.round(short_score_raw / active_weight * 100.0) : 0
+
+long_grade = score_grade(long_score)
+short_grade = score_grade(short_score)
+long_trade_ok = long_trigger_valid and long_score >= 50
+short_trade_ok = short_trigger_valid and short_score >= 50
+
+selected_score = bias_state == "BULL" ? long_score : bias_state == "BEAR" ? short_score : math.max(long_score, short_score)
+selected_grade = bias_state == "BULL" ? long_grade : bias_state == "BEAR" ? short_grade : score_grade(math.max(long_score, short_score))
+
+grade_a_long = long_trade_ok and long_grade == "A"
+grade_b_long = long_trade_ok and long_grade == "B"
+grade_a_short = short_trade_ok and short_grade == "A"
+grade_b_short = short_trade_ok and short_grade == "B"
+
+long_entry_confirmed = long_trade_ok
+short_entry_confirmed = short_trade_ok
+long_setup = setup_long_ready and not ts_flipped_long
+short_setup = setup_short_ready and not ts_flipped_short
+long_exit = ts_flipped_short
+short_exit = ts_flipped_long
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  TRADE FRAMING LAYER
+// ══════════════════════════════════════════════════════════════════════════════
+var float active_entry_price = na
+var float active_stop_price = na
+var float active_tp1_price = na
+var float active_tp2_price = na
+var bool active_levels = false
+var int active_trade_dir = 0
+var int active_trade_start_bar = na
+var string active_trade_grade = ""
+var int active_trade_score = 0
+
+var line entry_line = na
+var line stop_line = na
+var line tp1_line = na
+var line tp2_line = na
+
+var label entry_label = na
+var label stop_label = na
+var label tp1_label = na
+var label tp2_label = na
+
+if na(entry_line)
+    entry_line := line.new(bar_index, close, bar_index, close, xloc=xloc.bar_index, extend=extend.none, color=color.new(color.white, 100), width=2)
+if na(stop_line)
+    stop_line := line.new(bar_index, close, bar_index, close, xloc=xloc.bar_index, extend=extend.none, color=color.new(color.red, 100), width=2)
+if na(tp1_line)
+    tp1_line := line.new(bar_index, close, bar_index, close, xloc=xloc.bar_index, extend=extend.none, color=color.new(color.yellow, 100), width=2)
+if na(tp2_line)
+    tp2_line := line.new(bar_index, close, bar_index, close, xloc=xloc.bar_index, extend=extend.none, color=color.new(color.green, 100), width=2)
+
+if na(entry_label)
+    entry_label := label.new(bar_index, close, "E", xloc=xloc.bar_index, style=label.style_label_right, textcolor=color.white, color=color.new(color.white, 100), size=size.tiny)
+if na(stop_label)
+    stop_label := label.new(bar_index, close, "SL", xloc=xloc.bar_index, style=label.style_label_right, textcolor=color.white, color=color.new(color.red, 100), size=size.tiny)
+if na(tp1_label)
+    tp1_label := label.new(bar_index, close, "TP1", xloc=xloc.bar_index, style=label.style_label_right, textcolor=color.black, color=color.new(color.yellow, 100), size=size.tiny)
+if na(tp2_label)
+    tp2_label := label.new(bar_index, close, "TP2", xloc=xloc.bar_index, style=label.style_label_right, textcolor=color.white, color=color.new(color.green, 100), size=size.tiny)
+
+hide_trade_objects() =>
+    line.set_color(entry_line, color.new(color.white, 100))
+    line.set_color(stop_line, color.new(color.red, 100))
+    line.set_color(tp1_line, color.new(color.yellow, 100))
+    line.set_color(tp2_line, color.new(color.green, 100))
+    label.set_color(entry_label, color.new(color.white, 100))
+    label.set_color(stop_label, color.new(color.red, 100))
+    label.set_color(tp1_label, color.new(color.yellow, 100))
+    label.set_color(tp2_label, color.new(color.green, 100))
+    label.set_textcolor(entry_label, color.new(color.white, 100))
+    label.set_textcolor(stop_label, color.new(color.white, 100))
+    label.set_textcolor(tp1_label, color.new(color.black, 100))
+    label.set_textcolor(tp2_label, color.new(color.white, 100))
+
+hide_trade_labels() =>
+    label.set_color(entry_label, color.new(color.white, 100))
+    label.set_color(stop_label, color.new(color.red, 100))
+    label.set_color(tp1_label, color.new(color.yellow, 100))
+    label.set_color(tp2_label, color.new(color.green, 100))
+    label.set_textcolor(entry_label, color.new(color.white, 100))
+    label.set_textcolor(stop_label, color.new(color.white, 100))
+    label.set_textcolor(tp1_label, color.new(color.black, 100))
+    label.set_textcolor(tp2_label, color.new(color.white, 100))
+
+set_line_points(line_id, y) =>
+    line.set_xy1(line_id, bar_index, y)
+    line.set_xy2(line_id, bar_index + levels_extend_bars, y)
+
+set_level_label(label_id, y, txt, bg, txt_color) =>
+    label.set_xy(label_id, bar_index + levels_extend_bars, y)
+    label.set_text(label_id, txt)
+    label.set_color(label_id, bg)
+    label.set_textcolor(label_id, txt_color)
+
+clear_active_trade = false
+if active_levels
+    active_bars = bar_index - nz(active_trade_start_bar, bar_index)
+    tp2_hit = active_trade_dir == 1 ? high >= active_tp2_price : low <= active_tp2_price
+    atr_flip_against = active_trade_dir == 1 ? ts_flipped_short : ts_flipped_long
+    bias_flipped = active_trade_dir == 1 ? bias_state == "BEAR" : bias_state == "BULL"
+    clear_active_trade := atr_flip_against or active_bars >= max_active_trade_bars or tp2_hit or bias_flipped
+
+if clear_active_trade
+    active_entry_price := na
+    active_stop_price := na
+    active_tp1_price := na
+    active_tp2_price := na
+    active_levels := false
+    active_trade_dir := 0
+    active_trade_start_bar := na
+    active_trade_grade := ""
+    active_trade_score := 0
+
+new_long_trade = long_entry_confirmed and not active_levels
+new_short_trade = short_entry_confirmed and not active_levels
+
+if new_long_trade or new_short_trade
+    direction_long = new_long_trade
+    entry_price = close
+    stop_candidate_1 = ts_level
+    stop_candidate_2 = direction_long ? low - raw_atr * signal_atr_buffer_mult : high + raw_atr * signal_atr_buffer_mult
+    stop_price = direction_long ? math.min(stop_candidate_1, stop_candidate_2) : math.max(stop_candidate_1, stop_candidate_2)
+    risk_r = direction_long ? entry_price - stop_price : stop_price - entry_price
+    if risk_r > 0
+        active_entry_price := entry_price
+        active_stop_price := stop_price
+        active_tp1_price := direction_long ? entry_price + risk_r * tp1_r_multiple : entry_price - risk_r * tp1_r_multiple
+        active_tp2_price := direction_long ? entry_price + risk_r * tp2_r_multiple : entry_price - risk_r * tp2_r_multiple
+        active_levels := true
+        active_trade_dir := direction_long ? 1 : -1
+        active_trade_start_bar := bar_index
+        active_trade_grade := direction_long ? long_grade : short_grade
+        active_trade_score := direction_long ? long_score : short_score
+    else
+        active_levels := false
+
+if active_levels and show_trade_levels
+    entry_bg = grade_color(active_trade_grade)
+    entry_txt = (active_trade_dir == 1 ? "LONG " : "SHORT ") + active_trade_grade + " " + str.tostring(active_trade_score)
+
+    set_line_points(entry_line, active_entry_price)
+    set_line_points(stop_line, active_stop_price)
+    set_line_points(tp1_line, active_tp1_price)
+    set_line_points(tp2_line, active_tp2_price)
+
+    line.set_color(entry_line, color.new(color.white, 0))
+    line.set_color(stop_line, color.new(color.red, 0))
+    line.set_color(tp1_line, color.new(color.yellow, 0))
+    line.set_color(tp2_line, color.new(color.green, 0))
+
+    if show_level_labels
+        set_level_label(entry_label, active_entry_price, entry_txt, entry_bg, grade_text_color(active_trade_grade))
+        set_level_label(stop_label, active_stop_price, "SL", color.red, color.white)
+        set_level_label(tp1_label, active_tp1_price, "TP1", color.yellow, color.black)
+        set_level_label(tp2_label, active_tp2_price, "TP2", color.green, color.white)
+    else
+        hide_trade_labels()
+else
+    hide_trade_objects()
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  PLOTS
+// ══════════════════════════════════════════════════════════════════════════════
+ts_color = ts_dir == 1 ? color.new(#2962FF, 0) : color.new(#E91E8C, 0)
+plot(ts_level, "ATR Trailing Stop", color=ts_color, linewidth=2, style=plot.style_line)
+
+p_bb_hi = plot(show_bb ? bb_upper : na, "BB Upper", color=color.new(#9C27B0, 55), linewidth=1)
+p_bb_lo = plot(show_bb ? bb_lower : na, "BB Lower", color=color.new(#9C27B0, 55), linewidth=1)
+fill(p_bb_hi, p_bb_lo, color=color.new(#9C27B0, 88))
+
+p_kc_hi = plot(show_kc ? kc_upper : na, "KC Upper", color=color.new(#2962FF, 55), linewidth=1)
+p_kc_lo = plot(show_kc ? kc_lower : na, "KC Lower", color=color.new(#2962FF, 55), linewidth=1)
+fill(p_kc_hi, p_kc_lo, color=color.new(#2962FF, 92))
+
+plot(show_trend_emas ? ema_fast : na, "EMA Fast", color=color.new(#FFA726, 45), linewidth=1)
+plot(show_trend_emas ? ema_slow : na, "EMA Slow", color=color.new(#26A69A, 45), linewidth=1)
+
+sq_dot_col = in_squeeze ? color.new(#FF9800, 0) : squeeze_released ? color.new(#00C853, 0) : release_window_ok ? color.new(#FDD835, 0) : color.new(#9E9E9E, 80)
+plotshape(true, "Squeeze Dots", shape.circle, location.bottom, color=sq_dot_col, size=size.tiny)
+
+plotshape(long_entry_confirmed and show_labels, "Long Entry", shape.triangleup, location.belowbar, color=grade_color(long_grade), size=size.normal, text="BUY", textcolor=grade_text_color(long_grade))
+plotshape(long_entry_confirmed and not show_labels, "Long Entry (Silent)", shape.triangleup, location.belowbar, color=grade_color(long_grade), size=size.normal)
+plotshape(short_entry_confirmed and show_labels, "Short Entry", shape.triangledown, location.abovebar, color=grade_color(short_grade), size=size.normal, text="SELL", textcolor=grade_text_color(short_grade))
+plotshape(short_entry_confirmed and not show_labels, "Short Entry (Silent)", shape.triangledown, location.abovebar, color=grade_color(short_grade), size=size.normal)
+
+plotshape(long_setup and not ts_flipped_long, "Long Setup", shape.diamond, location.belowbar, color=color.new(#00C853, 70), size=size.tiny)
+plotshape(short_setup and not ts_flipped_short, "Short Setup", shape.diamond, location.abovebar, color=color.new(#F44336, 70), size=size.tiny)
+
+plotshape(long_trigger_blocked, "Long Trigger Blocked", shape.xcross, location.abovebar, color=color.new(#E53935, 0), size=size.small, text="BLOCK")
+plotshape(short_trigger_blocked, "Short Trigger Blocked", shape.xcross, location.belowbar, color=color.new(#E53935, 0), size=size.small, text="BLOCK")
+
+plotshape(long_exit and not long_entry_confirmed, "Long Exit", shape.xcross, location.abovebar, color=color.new(#2962FF, 20), size=size.small)
+plotshape(short_exit and not short_entry_confirmed, "Short Exit", shape.xcross, location.belowbar, color=color.new(#E91E8C, 20), size=size.small)
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  STATUS TABLE
+// ══════════════════════════════════════════════════════════════════════════════
+C_HDR = color.new(#263238, 0)
+C_TXT = color.white
+C_OFF = color.new(#455A64, 50)
+
+var table status = table.new(position.bottom_right, 2, 10,
+     bgcolor=color.new(#263238, 10), border_color=color.new(#546E7A, 40), border_width=1,
+     frame_color=color.new(#546E7A, 40), frame_width=1)
+
+if barstate.islast and show_table
+    table.cell(status, 0, 0, "0DTE EXECUTION", bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 0, bias_state == "BULL" ? "LONG" : bias_state == "BEAR" ? "SHORT" : "WAIT", bgcolor=state_color(bias_state), text_color=C_TXT, text_size=size.small)
+
+    tick_bg = tick_state == "STRONG BULL" ? color.new(#00C853, 35) : tick_state == "STRONG BEAR" ? color.new(#F44336, 35) : C_OFF
+    tick_str = na(tick_val) ? "N/A" : tick_state + " (" + str.tostring(math.round(tick_val)) + ")"
+    table.cell(status, 0, 1, "TICK", bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 1, tick_str, bgcolor=tick_bg, text_color=C_TXT, text_size=size.small)
+
+    table.cell(status, 0, 2, "OR", bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    or_bg = or_state == "ABOVE" or or_state == "ABOVE+" ? color.new(#00C853, 35) :
+         or_state == "BELOW" or or_state == "BELOW+" ? color.new(#F44336, 35) :
+         color.new(#FFB300, 35)
+    table.cell(status, 1, 2, or_mode + " / " + or_state, bgcolor=or_bg, text_color=C_TXT, text_size=size.small)
+
+    table.cell(status, 0, 3, "BIAS", bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 3, bias_state, bgcolor=state_color(bias_state), text_color=C_TXT, text_size=size.small)
+
+    table.cell(status, 0, 4, "SETUP", bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 4, setup_state, bgcolor=state_color(setup_state), text_color=C_TXT, text_size=size.small)
+
+    table.cell(status, 0, 5, "TRIGGER", bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 5, trigger_state, bgcolor=state_color(trigger_state), text_color=C_TXT, text_size=size.small)
+
+    exhaustion_state = not use_exhaustion_filter ? "OFF" : bias_state == "BULL" ? (exh_long_ok ? "CLEAR" : "BLOCKED") : bias_state == "BEAR" ? (exh_short_ok ? "CLEAR" : "BLOCKED") : "WAIT"
+    exhaustion_bg = not use_exhaustion_filter ? C_OFF : exhaustion_state == "CLEAR" ? color.new(#00C853, 35) : exhaustion_state == "BLOCKED" ? color.new(#E53935, 35) : C_OFF
+    table.cell(status, 0, 6, "EXHAUST", bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 6, exhaustion_state + " / " + time_state, bgcolor=exhaustion_bg, text_color=C_TXT, text_size=size.small)
+
+    table.cell(status, 0, 7, "SCORE", bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 7, str.tostring(selected_score), bgcolor=grade_color(selected_grade), text_color=grade_text_color(selected_grade), text_size=size.small)
+
+    table.cell(status, 0, 8, "GRADE", bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 8, selected_grade, bgcolor=grade_color(selected_grade), text_color=grade_text_color(selected_grade), text_size=size.small)
+
+    release_str = squeeze_released ? "RELEASE 0" : release_window_ok ? "REL " + str.tostring(bars_since_squeeze_release) : in_squeeze ? "IN SQ " + str.tostring(sq_count) : "STALE"
+    release_bg = squeeze_released or release_window_ok ? color.new(#00C853, 35) : in_squeeze ? color.new(#FFB300, 35) : C_OFF
+    table.cell(status, 0, 9, "RELEASE", bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 9, release_str, bgcolor=release_bg, text_color=C_TXT, text_size=size.small)
 else if barstate.islast
-    table.clear(status, 0, 0, 0, 5)
+    table.clear(status, 0, 0, 1, 9)
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  ALERTS
+// ══════════════════════════════════════════════════════════════════════════════
+alertcondition(grade_a_long, "0DTE Long Grade A", "0DTE Momentum: LONG grade A trigger")
+alertcondition(grade_a_short, "0DTE Short Grade A", "0DTE Momentum: SHORT grade A trigger")
+alertcondition(alert_on_b_grade and grade_b_long, "0DTE Long Grade B", "0DTE Momentum: LONG grade B trigger")
+alertcondition(alert_on_b_grade and grade_b_short, "0DTE Short Grade B", "0DTE Momentum: SHORT grade B trigger")
+alertcondition(long_trigger_blocked, "0DTE Long Trigger Blocked", "0DTE Momentum: LONG trigger blocked")
+alertcondition(short_trigger_blocked, "0DTE Short Trigger Blocked", "0DTE Momentum: SHORT trigger blocked")
+alertcondition(long_exit, "0DTE Long Exit", "0DTE Momentum: Exit LONG - ATR trailing stop flipped short")
+alertcondition(short_exit, "0DTE Short Exit", "0DTE Momentum: Exit SHORT - ATR trailing stop flipped long")
+
+if grade_a_long
+    alert(build_alert_message("LONG", long_grade, or_state, tick_state, long_score), alert.freq_once_per_bar_close)
+if grade_a_short
+    alert(build_alert_message("SHORT", short_grade, or_state, tick_state, short_score), alert.freq_once_per_bar_close)
+if alert_on_b_grade and grade_b_long
+    alert(build_alert_message("LONG", long_grade, or_state, tick_state, long_score), alert.freq_once_per_bar_close)
+if alert_on_b_grade and grade_b_short
+    alert(build_alert_message("SHORT", short_grade, or_state, tick_state, short_score), alert.freq_once_per_bar_close)

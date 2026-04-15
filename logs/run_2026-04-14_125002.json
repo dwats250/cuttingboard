@@ -1,0 +1,23 @@
+{
+  "candidates_generated": 7,
+  "candidates_qualified": 0,
+  "candidates_watchlist": 0,
+  "chain_validation": {},
+  "confidence": 0.25,
+  "data_status": "ok",
+  "errors": [],
+  "fallback_used": false,
+  "halt_reason": null,
+  "kill_switch": false,
+  "min_rr_applied": 2.0,
+  "mode": "LIVE",
+  "net_score": 2,
+  "permission": "No new trades permitted.",
+  "posture": "STAY_FLAT",
+  "regime": "RISK_ON",
+  "run_id": "live-20260414T125002Z",
+  "status": "SUCCESS",
+  "system_halted": false,
+  "timestamp": "2026-04-14T12:50:02Z",
+  "warnings": []
+}
