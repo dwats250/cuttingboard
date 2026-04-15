@@ -35,6 +35,17 @@ from cuttingboard.chain_validation import (
 from cuttingboard.derived import compute_all_derived
 from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all
 from cuttingboard.normalization import NormalizedQuote, normalize_all
+from cuttingboard.notifications import (
+    NOTIFY_MODES,
+    NOTIFY_PREMARKET,
+    NOTIFY_ORB_TRAJECTORY,
+    NOTIFY_POST_ORB,
+    NOTIFY_MIDMORNING,
+    NOTIFY_POWER_HOUR,
+    format_failure_notification,
+    format_notification,
+    should_suppress,
+)
 from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
 from cuttingboard.output import (
     OUTCOME_HALT,
@@ -54,6 +65,11 @@ MODE_LIVE = "live"
 MODE_FIXTURE = "fixture"
 MODE_SUNDAY = "sunday"
 MODE_VERIFY = "verify"
+MODE_PREFETCH = "prefetch"
+
+# Notify modes that skip the full pipeline (not premarket)
+_REGIME_ONLY_MODES = frozenset({NOTIFY_ORB_TRAJECTORY, NOTIFY_MIDMORNING})
+_QUALIFY_ONLY_MODES = frozenset({NOTIFY_POST_ORB, NOTIFY_POWER_HOUR})
 
 SUMMARY_MODE_LIVE = "LIVE"
 SUMMARY_MODE_FIXTURE = "FIXTURE"
@@ -123,8 +139,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m cuttingboard")
     parser.add_argument(
         "--mode",
-        choices=[MODE_LIVE, MODE_FIXTURE, MODE_SUNDAY, MODE_VERIFY],
+        choices=[MODE_LIVE, MODE_FIXTURE, MODE_SUNDAY, MODE_VERIFY, MODE_PREFETCH],
         default=MODE_LIVE,
+    )
+    parser.add_argument(
+        "--notify-mode",
+        choices=sorted(NOTIFY_MODES),
+        default=None,
+        dest="notify_mode",
     )
     parser.add_argument("--fixture-file")
     parser.add_argument("--file")
@@ -149,6 +171,9 @@ def cli_main(argv: Optional[list[str]] = None) -> int:
             print(f"WARNING: {line}")
         return 0 if result["pass"] else 1
 
+    if args.mode == MODE_PREFETCH:
+        return execute_prefetch()
+
     requested_mode = args.mode
     requested_run_date = _resolve_run_date(args.date)
     effective_mode = _resolve_effective_mode(requested_mode, requested_run_date)
@@ -163,22 +188,43 @@ def cli_main(argv: Optional[list[str]] = None) -> int:
         mode=effective_mode,
         run_date=run_date,
         fixture_file=fixture_path,
+        notify_mode=args.notify_mode,
     )
     return 0 if result["status"] == SUMMARY_STATUS_SUCCESS else 1
+
+
+def execute_prefetch() -> int:
+    """L1-L4 warm-up: fetch, normalize, validate, derive. No ntfy, no report."""
+    try:
+        raw = fetch_all()
+        normed = normalize_all(raw)
+        val = validate_quotes(normed)
+        if not val.system_halted:
+            compute_all_derived(val.valid_quotes)
+        logger.info("Prefetch complete")
+        return 0
+    except Exception as exc:
+        logger.exception("Prefetch failed: %s", exc)
+        return 1
 
 
 def execute_run(
     mode: str,
     run_date: date,
     fixture_file: Optional[Path] = None,
+    notify_mode: Optional[str] = None,
 ) -> dict[str, Any]:
+    # Non-premarket notify modes use a lighter path — no summary JSON or markdown.
+    if notify_mode and notify_mode != NOTIFY_PREMARKET:
+        return _execute_notify_run(mode=mode, run_date=run_date, notify_mode=notify_mode)
+
     warnings: list[str] = []
     errors: list[str] = []
     report_path: Optional[Path] = None
     summary_path: Optional[Path] = None
 
     try:
-        pipeline = _run_pipeline(mode=mode, run_date=run_date, fixture_file=fixture_file)
+        pipeline = _run_pipeline(mode=mode, run_date=run_date, fixture_file=fixture_file, notify_mode=notify_mode)
         report_path = Path(pipeline.report_path)
         summary_path, latest_path = _write_summary_files(
             pipeline.summary,
@@ -226,10 +272,64 @@ def execute_run(
         return summary
 
 
+def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str, Any]:
+    """Lightweight path for non-premarket notify modes.
+
+    Runs the appropriate pipeline depth, formats a mode-specific ntfy message,
+    and returns a minimal status dict. Does not write markdown or summary JSON.
+    """
+    date_str = run_date.isoformat()
+    try:
+        raw_quotes = fetch_all()
+        normalized_quotes = normalize_all(raw_quotes)
+        fetch_failures = extract_fetch_failures(raw_quotes)
+        validation_summary = validate_quotes(normalized_quotes, fetch_failures)
+
+        regime: Optional[RegimeState] = None
+        qualification_summary: Optional[QualificationSummary] = None
+
+        if not validation_summary.system_halted:
+            regime = compute_regime(validation_summary.valid_quotes)
+
+            if notify_mode in _QUALIFY_ONLY_MODES:
+                derived = compute_all_derived(validation_summary.valid_quotes)
+                structure = classify_all_structure(validation_summary.valid_quotes, derived, regime.vix_level)
+                candidates = generate_candidates(structure, derived, validation_summary.valid_quotes, regime)
+                qualification_summary = qualify_all(regime, structure, candidates or None, derived)
+
+        if should_suppress(notify_mode, regime, qualification_summary):
+            logger.info(f"notify-mode={notify_mode} suppressed (low signal)")
+            return {"status": SUMMARY_STATUS_SUCCESS, "suppressed": True}
+
+        ntfy_title, ntfy_body = format_notification(
+            notify_mode=notify_mode,
+            date_str=date_str,
+            regime=regime,
+            validation_summary=validation_summary,
+            qualification_summary=qualification_summary,
+            normalized_quotes=normalized_quotes,
+        )
+
+        if mode == MODE_LIVE:
+            send_ntfy(ntfy_body, date_str, OUTCOME_NO_TRADE, title=ntfy_title)
+
+        return {"status": SUMMARY_STATUS_SUCCESS, "suppressed": False}
+
+    except Exception as exc:
+        logger.exception("notify-mode run failed: %s", exc)
+        ntfy_title, ntfy_body = format_failure_notification(notify_mode, date_str, str(exc)[:120])
+        try:
+            send_ntfy(ntfy_body, date_str, OUTCOME_NO_TRADE, title=ntfy_title)
+        except Exception:
+            pass
+        return {"status": SUMMARY_STATUS_FAIL, "suppressed": False}
+
+
 def _run_pipeline(
     mode: str,
     run_date: date,
     fixture_file: Optional[Path],
+    notify_mode: Optional[str] = None,
 ) -> PipelineResult:
     fixture_backed = _is_fixture_backed(mode, fixture_file)
     run_at_utc = _deterministic_run_at(mode, fixture_file) if mode == MODE_FIXTURE else datetime.now(timezone.utc)
@@ -297,7 +397,27 @@ def _run_pipeline(
 
     ntfy_sent = False
     if mode in {MODE_LIVE, MODE_SUNDAY} and not fixture_backed:
-        ntfy_sent = send_ntfy(report, date_str, outcome)
+        if notify_mode == NOTIFY_PREMARKET:
+            ntfy_title, ntfy_body = format_notification(
+                notify_mode=NOTIFY_PREMARKET,
+                date_str=date_str,
+                regime=regime,
+                validation_summary=validation_summary,
+                qualification_summary=qualification_summary,
+                normalized_quotes=normalized_quotes,
+            )
+            ntfy_sent = send_ntfy(ntfy_body, date_str, outcome, title=ntfy_title)
+        else:
+            # Default (no notify-mode flag): send the full rendered report with Title header
+            title_map = {
+                OUTCOME_TRADE:    f"CUTTINGBOARD · {date_str} · TRADE",
+                OUTCOME_NO_TRADE: f"CUTTINGBOARD · {date_str} · NO TRADE",
+                OUTCOME_HALT:     f"CUTTINGBOARD · {date_str} · HALT",
+            }
+            ntfy_sent = send_ntfy(
+                report, date_str, outcome,
+                title=title_map.get(outcome, f"CUTTINGBOARD · {date_str}"),
+            )
 
     audit_record = write_audit_record(
         run_at_utc=run_at_utc,

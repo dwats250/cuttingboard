@@ -263,8 +263,15 @@ def send_ntfy(
     report: str,
     date_str: str,
     outcome: str,
+    title: Optional[str] = None,
 ) -> bool:
     """Send ntfy notification. Returns True on success, False otherwise.
+
+    When title is provided it is sent as the ntfy Title header (displays as
+    push notification headline on mobile). The report is sent as the body.
+
+    When title is None the legacy behaviour applies: a title is constructed
+    from outcome and prepended to the body.
 
     Silently skips (returns False) when ntfy is not configured.
     Logs warnings on delivery failure — never raises.
@@ -276,18 +283,23 @@ def send_ntfy(
         logger.debug("ntfy not configured — notification skipped")
         return False
 
-    title_map = {
-        OUTCOME_TRADE:    f"Cuttingboard {date_str} — TRADE",
-        OUTCOME_NO_TRADE: f"Cuttingboard {date_str} — NO TRADE",
-        OUTCOME_HALT:     f"Cuttingboard {date_str} — ⚠ HALT",
-    }
-    title = title_map.get(outcome, f"Cuttingboard {date_str}")
-    message = f"{title}\n\n{report}"
+    if title is not None:
+        headers = {"Title": title}
+        body = report
+    else:
+        title_map = {
+            OUTCOME_TRADE:    f"Cuttingboard {date_str} — TRADE",
+            OUTCOME_NO_TRADE: f"Cuttingboard {date_str} — NO TRADE",
+            OUTCOME_HALT:     f"Cuttingboard {date_str} — ⚠ HALT",
+        }
+        headers = {"Title": title_map.get(outcome, f"Cuttingboard {date_str}")}
+        body = report
 
     try:
         resp = requests.post(
             f"{ntfy_url.rstrip('/')}/{topic}",
-            data=message.encode(),
+            headers=headers,
+            data=body.encode(),
             timeout=10,
         )
         if resp.status_code == 200:

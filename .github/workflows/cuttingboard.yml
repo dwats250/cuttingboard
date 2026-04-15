@@ -2,11 +2,16 @@ name: Cuttingboard Pipeline
 
 on:
   schedule:
+    # Prefetch warm-up: 05:50 PT / 12:50 UTC, Monday–Friday
+    - cron: '50 12 * * 1-5'
     # Premarket: 06:00 PT / 13:00 UTC, Monday–Friday
     - cron: '0 13 * * 1-5'
-    # Sunday: 10:00 UTC, regime-only report
+    # ORB trajectory: 06:50 PT / 13:50 UTC, Monday–Friday
+    - cron: '50 13 * * 1-5'
+    # Sunday regime-only report: 10:00 UTC
     - cron: '0 10 * * 0'
-    # Intraday: every 30 minutes from 14:00–21:30 UTC, Monday–Friday
+    # Intraday monitor + post-ORB/mid-morning/power-hour: every 30 min 14:00–21:30 UTC Mon–Fri
+    # Time-based routing below maps 14:30→post_orb, 16:30→midmorning, 19:00→power_hour
     - cron: '*/30 14-21 * * 1-5'
   workflow_dispatch:
     inputs:
@@ -20,6 +25,11 @@ on:
           - sunday
           - verify
           - intraday
+          - prefetch
+          - orb_trajectory
+          - post_orb
+          - midmorning
+          - power_hour
 
 # Never cancel a mid-run pipeline — queue instead.
 concurrency:
@@ -53,44 +63,83 @@ jobs:
       - name: Determine run mode
         id: mode
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "mode=${{ github.event.inputs.mode }}" >> "$GITHUB_OUTPUT"
+          TIME=$(date -u +%H%M)
+          EVENT="${{ github.event_name }}"
+          DISPATCH_MODE="${{ github.event.inputs.mode }}"
+
+          if [[ "$EVENT" == "workflow_dispatch" ]]; then
+            echo "job_mode=$DISPATCH_MODE" >> "$GITHUB_OUTPUT"
           elif [[ "$(date -u +%u)" == "7" ]]; then
-            echo "mode=sunday" >> "$GITHUB_OUTPUT"
-          elif [[ "$(date -u +%H)" == "13" ]]; then
-            echo "mode=live" >> "$GITHUB_OUTPUT"
+            echo "job_mode=sunday" >> "$GITHUB_OUTPUT"
+          elif [[ "$TIME" == "1250" ]]; then
+            echo "job_mode=prefetch" >> "$GITHUB_OUTPUT"
+          elif [[ "$TIME" == "1300" ]]; then
+            echo "job_mode=live" >> "$GITHUB_OUTPUT"
+          elif [[ "$TIME" == "1350" ]]; then
+            echo "job_mode=orb_trajectory" >> "$GITHUB_OUTPUT"
+          elif [[ "$TIME" == "1430" ]]; then
+            echo "job_mode=post_orb" >> "$GITHUB_OUTPUT"
+          elif [[ "$TIME" == "1630" ]]; then
+            echo "job_mode=midmorning" >> "$GITHUB_OUTPUT"
+          elif [[ "$TIME" == "1900" ]]; then
+            echo "job_mode=power_hour" >> "$GITHUB_OUTPUT"
           else
-            echo "mode=intraday" >> "$GITHUB_OUTPUT"
+            echo "job_mode=intraday" >> "$GITHUB_OUTPUT"
           fi
 
-      # --- Premarket live run (Monday–Friday) ---
+      # --- Prefetch warm-up ---
+      - name: Run prefetch
+        if: steps.mode.outputs.job_mode == 'prefetch'
+        run: python -m cuttingboard --mode prefetch
+
+      # --- Premarket full pipeline ---
       - name: Run live pipeline
-        if: steps.mode.outputs.mode == 'live'
-        run: python -m cuttingboard --mode live
+        if: steps.mode.outputs.job_mode == 'live'
+        run: python -m cuttingboard --mode live --notify-mode premarket
 
       # --- Sunday regime-only report ---
       - name: Run Sunday regime report
-        if: steps.mode.outputs.mode == 'sunday'
+        if: steps.mode.outputs.job_mode == 'sunday'
         run: python -m cuttingboard --mode sunday
 
       # --- Verify: runs after live or sunday, or standalone via workflow_dispatch ---
       - name: Verify run
         if: >-
-          steps.mode.outputs.mode == 'live' ||
-          steps.mode.outputs.mode == 'sunday' ||
-          steps.mode.outputs.mode == 'verify'
+          steps.mode.outputs.job_mode == 'live' ||
+          steps.mode.outputs.job_mode == 'sunday' ||
+          steps.mode.outputs.job_mode == 'verify'
         run: python -m cuttingboard --mode verify
 
-      # --- Intraday regime monitor (every 30 min during session) ---
+      # --- ORB trajectory: 06:50 PT ---
+      - name: Run ORB trajectory scan
+        if: steps.mode.outputs.job_mode == 'orb_trajectory'
+        run: python -m cuttingboard --mode live --notify-mode orb_trajectory
+
+      # --- Post-ORB: 07:30 PT ---
+      - name: Run post-ORB scan
+        if: steps.mode.outputs.job_mode == 'post_orb'
+        run: python -m cuttingboard --mode live --notify-mode post_orb
+
+      # --- Mid-morning: 09:30 PT ---
+      - name: Run mid-morning scan
+        if: steps.mode.outputs.job_mode == 'midmorning'
+        run: python -m cuttingboard --mode live --notify-mode midmorning
+
+      # --- Power hour: 12:00 PT (3:00 PM ET) ---
+      - name: Run power-hour scan
+        if: steps.mode.outputs.job_mode == 'power_hour'
+        run: python -m cuttingboard --mode live --notify-mode power_hour
+
+      # --- Intraday regime monitor (event-driven, every 30 min during session) ---
       - name: Run intraday monitor
-        if: steps.mode.outputs.mode == 'intraday'
+        if: steps.mode.outputs.job_mode == 'intraday'
         run: python -m cuttingboard.run_intraday
 
-      # --- Generate commit message from latest_run.json ---
+      # --- Generate commit message from latest_run.json (live and sunday only) ---
       - name: Generate commit message
         if: >-
           always() &&
-          (steps.mode.outputs.mode == 'live' || steps.mode.outputs.mode == 'sunday')
+          (steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday')
         run: |
           python3 - <<'PY'
           import json, sys
@@ -116,13 +165,13 @@ jobs:
           print(msg)
           PY
 
-      # --- Commit all artifacts (always runs so FAIL state is visible in repo) ---
+      # --- Commit artifacts (live and sunday write reports/logs; intraday writes logs) ---
       - name: Commit artifacts
         if: >-
           always() &&
-          (steps.mode.outputs.mode == 'live' ||
-           steps.mode.outputs.mode == 'sunday' ||
-           steps.mode.outputs.mode == 'intraday')
+          (steps.mode.outputs.job_mode == 'live' ||
+           steps.mode.outputs.job_mode == 'sunday' ||
+           steps.mode.outputs.job_mode == 'intraday')
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -130,13 +179,13 @@ jobs:
           if [ -f .cb_commit_msg ]; then
             git diff --staged --quiet || git commit -F .cb_commit_msg
           else
-            git diff --staged --quiet || git commit -m "CB ${{ steps.mode.outputs.mode }}: $(date -u +%Y-%m-%d)"
+            git diff --staged --quiet || git commit -m "CB ${{ steps.mode.outputs.job_mode }}: $(date -u +%Y-%m-%d)"
           fi
 
       - name: Push
         if: >-
           always() &&
-          (steps.mode.outputs.mode == 'live' ||
-           steps.mode.outputs.mode == 'sunday' ||
-           steps.mode.outputs.mode == 'intraday')
+          (steps.mode.outputs.job_mode == 'live' ||
+           steps.mode.outputs.job_mode == 'sunday' ||
+           steps.mode.outputs.job_mode == 'intraday')
         run: git push
