@@ -1,7 +1,7 @@
 {
-  "last_confidence": 0.375,
+  "last_confidence": 0.25,
   "last_posture": "STAY_FLAT",
   "last_regime": "RISK_ON",
-  "last_run_at_utc": "2026-04-15T14:59:06.847035+00:00",
-  "last_vix_level": 17.8700008392334
+  "last_run_at_utc": "2026-04-15T16:04:30.800375+00:00",
+  "last_vix_level": 18.049999237060547
 }
