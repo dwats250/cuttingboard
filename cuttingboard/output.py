@@ -37,6 +37,7 @@ from cuttingboard.derived import compute_all_derived
 from cuttingboard.ingestion import fetch_all
 from cuttingboard.normalization import normalize_all
 from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
+from cuttingboard.notifications import format_run_alert
 from cuttingboard.qualification import QualificationSummary, qualify_all
 from cuttingboard.regime import RegimeState, compute_regime
 from cuttingboard.structure import classify_all_structure
@@ -419,7 +420,16 @@ def run_pipeline() -> int:
         )
         write_terminal(report)
         report_path = write_markdown(report, date_str)
-        ntfy_sent = send_ntfy(report, date_str, OUTCOME_HALT)
+        ntfy_title, ntfy_body = format_run_alert(
+            outcome=OUTCOME_HALT,
+            run_at_utc=run_at,
+            regime=None,
+            validation_summary=val,
+            qualification_summary=None,
+            watch_summary=None,
+            halt_reason=val.halt_reason,
+        )
+        ntfy_sent = send_ntfy(ntfy_body, date_str, OUTCOME_HALT, title=ntfy_title)
 
         write_audit_record(
             run_at_utc=run_at,
@@ -497,7 +507,15 @@ def run_pipeline() -> int:
 
     write_terminal(report)
     report_path = write_markdown(report, date_str)
-    ntfy_sent = send_ntfy(report, date_str, outcome)
+    ntfy_title, ntfy_body = format_run_alert(
+        outcome=outcome,
+        run_at_utc=run_at,
+        regime=regime,
+        validation_summary=val,
+        qualification_summary=qual,
+        watch_summary=watch_summary,
+    )
+    ntfy_sent = send_ntfy(ntfy_body, date_str, outcome, title=ntfy_title)
 
     write_audit_record(
         run_at_utc=run_at,

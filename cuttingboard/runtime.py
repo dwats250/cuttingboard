@@ -44,6 +44,7 @@ from cuttingboard.notifications import (
     NOTIFY_POWER_HOUR,
     format_failure_notification,
     format_notification,
+    format_run_alert,
 )
 from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
 from cuttingboard.output import (
@@ -305,6 +306,7 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
             validation_summary=validation_summary,
             qualification_summary=qualification_summary,
             normalized_quotes=normalized_quotes,
+            outcome=OUTCOME_NO_TRADE,
         )
 
         if mode == MODE_LIVE:
@@ -416,18 +418,26 @@ def _run_pipeline(
                 validation_summary=validation_summary,
                 qualification_summary=qualification_summary,
                 normalized_quotes=normalized_quotes,
+                watch_summary=watch_summary,
+                outcome=outcome,
+                halt_reason=validation_summary.halt_reason,
             )
             ntfy_sent = send_ntfy(ntfy_body, date_str, outcome, title=ntfy_title)
         else:
-            # Default (no notify-mode flag): send the full rendered report with Title header
-            title_map = {
-                OUTCOME_TRADE:    f"CUTTINGBOARD - {date_str} - TRADE",
-                OUTCOME_NO_TRADE: f"CUTTINGBOARD - {date_str} - NO TRADE",
-                OUTCOME_HALT:     f"CUTTINGBOARD - {date_str} - HALT",
-            }
+            ntfy_title, ntfy_body = format_run_alert(
+                outcome=outcome,
+                run_at_utc=run_at_utc,
+                regime=regime,
+                validation_summary=validation_summary,
+                qualification_summary=qualification_summary,
+                watch_summary=watch_summary,
+                halt_reason=validation_summary.halt_reason,
+            )
             ntfy_sent = send_ntfy(
-                report, date_str, outcome,
-                title=title_map.get(outcome, f"CUTTINGBOARD - {date_str}"),
+                ntfy_body,
+                date_str,
+                outcome,
+                title=ntfy_title,
             )
 
     audit_record = write_audit_record(

@@ -738,6 +738,23 @@ class TestSendNtfy:
                     result = send_ntfy("report", "2026-04-10", OUTCOME_NO_TRADE)
         assert result is True
 
+    def test_sanitizes_unicode_title_and_body_before_post(self):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        with patch.object(config, "NTFY_TOPIC", "test-topic"):
+            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
+                with patch("requests.post", return_value=mock_resp) as mock_post:
+                    result = send_ntfy(
+                        "FLAT — no new positions. Await regime clarity.",
+                        "2026-04-10",
+                        OUTCOME_NO_TRADE,
+                        title="NO TRADE — TEST",
+                    )
+        assert result is True
+        _, kwargs = mock_post.call_args
+        assert kwargs["headers"]["Title"] == "NO TRADE - TEST"
+        assert kwargs["data"] == b"FLAT - no new positions. Await regime clarity."
+
     def test_returns_false_on_non_200(self):
         mock_resp = MagicMock()
         mock_resp.status_code = 429

@@ -31,6 +31,7 @@ import requests
 from cuttingboard import config
 from cuttingboard.derived import compute_all_derived
 from cuttingboard.ingestion import fetch_all
+from cuttingboard.notifications import format_intraday_alert
 from cuttingboard.normalization import normalize_all
 from cuttingboard.regime import (
     RegimeState,
@@ -178,35 +179,11 @@ def _send_alert(regime: RegimeState, alert_type: str, run_at: datetime) -> bool:
         logger.debug("ntfy not configured — intraday alert skipped")
         return False
 
-    time_str = run_at.strftime("%Y-%m-%d %H:%M UTC")
-    vix_str  = f"{regime.vix_level:.1f}" if regime.vix_level is not None else "N/A"
-    vix_pct  = regime.vix_pct_change or 0.0
-
-    if alert_type == ALERT_CHAOTIC:
-        title   = f"CUTTINGBOARD - CHAOTIC  {time_str}"
-        message = (
-            f"Regime: CHAOTIC\n"
-            f"VIX: {vix_str} ({vix_pct:+.1%})\n"
-            f"Confidence: {regime.confidence:.2f}\n"
-            f"DO NOT TRADE - stay flat"
-        )
-
-    elif alert_type == ALERT_REGIME_SHIFT:
-        title   = f"REGIME SHIFT -> {regime.regime}  {time_str}"
-        message = (
-            f"New regime: {regime.regime} / {regime.posture}\n"
-            f"Confidence: {regime.confidence:.2f}  net={regime.net_score:+d}\n"
-            f"VIX: {vix_str}"
-        )
-
-    else:  # VIX_SPIKE
-        title   = f"VIX SPIKE {vix_pct:+.1%}  {time_str}"
-        message = (
-            f"VIX: {vix_str} ({vix_pct:+.1%})\n"
-            f"Regime: {regime.regime} / {regime.posture}\n"
-            f"Confidence: {regime.confidence:.2f}\n"
-            f"Review immediately"
-        )
+    title, message = format_intraday_alert(
+        alert_type=alert_type,
+        asof_utc=run_at,
+        regime=regime,
+    )
 
     safe_title   = _ascii_safe(title)
     safe_message = _ascii_safe(message)

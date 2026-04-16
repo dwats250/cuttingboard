@@ -5,6 +5,7 @@ from cuttingboard.notifications import (
     NOTIFY_POWER_HOUR,
     NOTIFY_PREMARKET,
     format_failure_notification,
+    format_intraday_alert,
     format_notification,
 )
 from cuttingboard.qualification import QualificationResult, QualificationSummary
@@ -114,23 +115,16 @@ def test_notification_matches_structured_prd_shape():
         {},
     )
 
-    assert title == "CUTTINGBOARD - POST-ORB"
+    assert title == "BTC-USD LONG READY"
     assert body == (
-        "POST-ORB - 07:30 PT\n"
-        "Conf 0.62 | Net +5 | VIX 17.8 (-0.6)\n"
+        "7:30 AM\n"
         "\n"
-        "RISK_ON / CONTROLLED_LONG\n"
+        "Long setup ready\n"
+        "Long bias\n"
+        "Defined risk\n"
         "\n"
-        "Focus:\n"
-        "BTC-USD\n"
-        "IWM\n"
-        "AMZN\n"
-        "\n"
-        "Watch:\n"
-        "NVDA\n"
-        "MU\n"
-        "\n"
-        "Continuations favored. Defined risk."
+        "Trigger\n"
+        "BTC-USD"
     )
     assert "CUTTINGBOARD" not in body
     assert all(ord(ch) < 128 for ch in body)
@@ -147,14 +141,14 @@ def test_notification_omits_focus_and_watch_when_empty():
         {},
     )
 
-    assert title == "CUTTINGBOARD - PREMARKET"
+    assert title == "NO TRADE"
     assert body == (
-        "PREMARKET - 07:30 PT\n"
-        "Conf 0.12 | Net +1 | VIX 18.2 (+0.3)\n"
+        "7:30 AM\n"
         "\n"
-        "RISK_ON / STAY_FLAT\n"
-        "\n"
-        "No edge. Stay flat."
+        "Risk-on tape - stay flat\n"
+        "Off session\n"
+        "VIX 18.2 (+0.3%)\n"
+        "Leaning long"
     )
 
 
@@ -169,14 +163,31 @@ def test_notification_uses_watch_only_summary_when_no_focus():
         {},
     )
 
-    assert "Focus:" not in body
-    assert "Watch:\nNVDA" in body
-    assert body.endswith("Expansion building. Watch breaks.")
+    assert body.startswith("7:30 AM\n\nDeveloping")
+    assert "\nWatch\nNVDA" in body
+    assert "Long bias" in body
+    assert "Trend intact" in body
 
 
 def test_failure_notification_body_has_no_repeated_branding():
     title, body = format_failure_notification(NOTIFY_POST_ORB, "2026-04-15", "timeout")
 
-    assert title == "CUTTINGBOARD - POST-ORB FAILED"
+    assert title == "POST-ORB FAILED"
     assert "CUTTINGBOARD" not in body
-    assert "Reason: timeout" in body
+    assert body.endswith("\n\nFailure\ntimeout")
+
+
+def test_intraday_notification_uses_shared_compact_style():
+    title, body = format_intraday_alert(
+        alert_type="REGIME_SHIFT",
+        asof_utc=datetime(2026, 4, 15, 17, 12, tzinfo=timezone.utc),
+        regime=_regime(),
+    )
+
+    assert title == "REGIME SHIFT"
+    assert body.startswith("10:12 AM\n\n")
+    assert "CUTTINGBOARD" not in title
+    assert "CUTTINGBOARD" not in body
+    assert "REGIME SHIFT ->" not in body
+    assert "New regime:" not in body
+    assert "Risk improving" in body

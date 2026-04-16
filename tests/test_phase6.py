@@ -269,53 +269,57 @@ class TestSendAlert:
                     result = _send_alert(_regime(), ALERT_CHAOTIC, _NOW)
         assert result is False
 
-    def test_regime_shift_message_contains_new_regime(self):
+    def test_delegates_message_formatting_to_shared_formatter(self):
         from cuttingboard import config
-        captured = {}
-        def capture(**kwargs):
-            captured["data"] = kwargs.get("data", b"")
+        posted = {}
+
+        def capture_post(url, data=None, headers=None, **kwargs):
+            posted["body"] = data.decode() if isinstance(data, bytes) else data
+            posted["title"] = headers["Title"]
             m = MagicMock()
             m.status_code = 200
             return m
+
         with patch.object(config, "NTFY_TOPIC", "topic"):
             with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
-                with patch("requests.post", side_effect=lambda url, **kw: capture(**kw) or MagicMock(status_code=200)):
+                with patch("cuttingboard.run_intraday.format_intraday_alert", return_value=("REGIME SHIFT", "10:12 AM\n\nRisk improving")) as mock_format:
+                    with patch("requests.post", side_effect=capture_post):
+                        _send_alert(
+                            _regime(regime=RISK_ON, posture=AGGRESSIVE_LONG),
+                            ALERT_REGIME_SHIFT, _NOW,
+                        )
+        mock_format.assert_called_once_with(
+            alert_type=ALERT_REGIME_SHIFT,
+            asof_utc=_NOW,
+            regime=_regime(regime=RISK_ON, posture=AGGRESSIVE_LONG),
+        )
+        assert posted["title"] == "REGIME SHIFT"
+        assert posted["body"] == "10:12 AM\n\nRisk improving"
+
+    def test_regime_shift_body_drops_legacy_phrasing(self):
+        from cuttingboard import config
+        posted_data = {}
+
+        def capture_post(url, data=None, headers=None, **kwargs):
+            posted_data["title"] = headers["Title"]
+            posted_data["body"] = data.decode() if isinstance(data, bytes) else data
+            m = MagicMock()
+            m.status_code = 200
+            return m
+
+        with patch.object(config, "NTFY_TOPIC", "topic"):
+            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
+                with patch("requests.post", side_effect=capture_post):
                     _send_alert(
                         _regime(regime=RISK_ON, posture=AGGRESSIVE_LONG),
                         ALERT_REGIME_SHIFT, _NOW,
                     )
-        assert "New regime: RISK_ON / AGGRESSIVE_LONG" in captured["data"].decode()
-
-    def test_chaotic_message_contains_do_not_trade(self):
-        from cuttingboard import config
-        posted_data = {}
-        def capture_post(url, data=None, **kwargs):
-            posted_data["body"] = data.decode() if isinstance(data, bytes) else data
-            m = MagicMock()
-            m.status_code = 200
-            return m
-        with patch.object(config, "NTFY_TOPIC", "topic"):
-            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
-                with patch("requests.post", side_effect=capture_post):
-                    _send_alert(_regime(regime=CHAOTIC), ALERT_CHAOTIC, _NOW)
-        assert "DO NOT TRADE" in posted_data.get("body", "")
-
-    def test_vix_spike_title_contains_percentage(self):
-        from cuttingboard import config
-        posted_data = {}
-        def capture_post(url, data=None, **kwargs):
-            posted_data["body"] = data.decode() if isinstance(data, bytes) else data
-            m = MagicMock()
-            m.status_code = 200
-            return m
-        with patch.object(config, "NTFY_TOPIC", "topic"):
-            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
-                with patch("requests.post", side_effect=capture_post):
-                    _send_alert(
-                        _regime(vix_pct_change=0.22),
-                        ALERT_VIX_SPIKE, _NOW,
-                    )
-        assert "%" in posted_data.get("body", "")
+        assert posted_data["title"] == "REGIME SHIFT"
+        assert "CUTTINGBOARD" not in posted_data["title"]
+        assert "CUTTINGBOARD" not in posted_data["body"]
+        assert "REGIME SHIFT ->" not in posted_data["body"]
+        assert "New regime:" not in posted_data["body"]
+        assert posted_data["body"]
 
 
 # ---------------------------------------------------------------------------
