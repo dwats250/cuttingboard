@@ -83,6 +83,8 @@ jobs:
             echo "job_mode=midmorning" >> "$GITHUB_OUTPUT"
           elif [[ "$TIME" == "1900" ]]; then
             echo "job_mode=power_hour" >> "$GITHUB_OUTPUT"
+          elif [[ "$TIME" == "2000" ]]; then
+            echo "job_mode=power_hour" >> "$GITHUB_OUTPUT"
           else
             echo "job_mode=intraday" >> "$GITHUB_OUTPUT"
           fi

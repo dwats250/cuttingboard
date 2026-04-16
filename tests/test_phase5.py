@@ -53,6 +53,7 @@ from cuttingboard.structure import (
     LOW_IV, NORMAL_IV, ELEVATED_IV, HIGH_IV,
 )
 from cuttingboard.validation import ValidationSummary
+from cuttingboard.watch import WatchItem, WatchSummary
 
 
 # ---------------------------------------------------------------------------
@@ -155,6 +156,16 @@ def _qual_summary(
         symbols_qualified=len(q),
         symbols_watchlist=len(w),
         symbols_excluded=len(e),
+    )
+
+
+def _watch_summary(items=None, session="MORNING", execution_posture="A+ Only") -> WatchSummary:
+    return WatchSummary(
+        session=session,
+        threshold=3,
+        watchlist=items or [],
+        ignored_symbols=[],
+        execution_posture=execution_posture,
     )
 
 
@@ -640,10 +651,10 @@ class TestRenderReport:
         )
         assert "SPY" in report
         assert "BULL_CALL_SPREAD" in report
-        assert "TRADES" in report
+        assert "A+ TRADES" in report
         assert "Exit:" in report
 
-    def test_watchlist_section_appears(self):
+    def test_near_a_plus_section_appears(self):
         watchlist_result = QualificationResult(
             symbol="NVDA", qualified=False, watchlist=True,
             direction="LONG",
@@ -661,8 +672,31 @@ class TestRenderReport:
             qualification_summary=qual, option_setups=[],
             outcome=OUTCOME_NO_TRADE,
         )
-        assert "WATCHLIST" in report
+        assert "NEAR_A_PLUS" in report
         assert "NVDA" in report
+
+    def test_watchlist_section_appears(self):
+        watch_item = WatchItem(
+            symbol="TSLA",
+            score=71.5,
+            structure=TREND,
+            structure_note="TREND near ORB with tight range",
+            missing_conditions=["break above ORB high"],
+            total_signals=4,
+            level="ORB",
+            bias="LONG",
+        )
+        report = render_report(
+            date_str="2026-04-10", run_at_utc=_NOW,
+            regime=_regime(), validation_summary=_val_summary(),
+            qualification_summary=_qual_summary(),
+            option_setups=[],
+            outcome=OUTCOME_NO_TRADE,
+            watch_summary=_watch_summary([watch_item]),
+        )
+        assert "WATCHLIST" in report
+        assert "TSLA" in report
+        assert "Missing: break above ORB high" in report
 
     def test_excluded_section_appears(self):
         qual = _qual_summary(excluded={"AAPL": "CHOP", "MSTR": "CHOP"})
@@ -675,9 +709,9 @@ class TestRenderReport:
         assert "EXCLUDED" in report
         assert "AAPL" in report
 
-    def test_confidence_in_header(self):
+    def test_session_in_header(self):
         report = self._no_trade_report()
-        assert "conf=0.25" in report
+        assert "Session:" in report
 
     def test_vix_in_footer(self):
         report = self._no_trade_report()

@@ -41,30 +41,64 @@ from cuttingboard.qualification import QualificationSummary, qualify_all
 from cuttingboard.regime import RegimeState, compute_regime
 from cuttingboard.structure import classify_all_structure
 from cuttingboard.validation import ValidationSummary, validate_quotes
+from cuttingboard.watch import (
+    WatchSummary,
+    classify_watchlist,
+    compute_all_intraday_metrics,
+    get_session_phase,
+    regime_bias,
+)
 
 logger = logging.getLogger(__name__)
 
-_BORDER = "═" * 54
-_DIVIDER = "─" * 54
+_BORDER = "=" * 54
+_DIVIDER = "-" * 54
 _REPORT_DIR = "reports"
 
+# ---------------------------------------------------------------------------
+# ASCII sanitisation
+# ---------------------------------------------------------------------------
+
+_UNICODE_REPLACEMENTS = [
+    ("\u2014", "-"),    # em dash —
+    ("\u2013", "-"),    # en dash –
+    ("\u00B7", "-"),    # middle dot ·
+    ("\u2022", "*"),    # bullet •
+    ("\u2192", "->"),   # right arrow →
+    ("\u2265", ">="),   # ≥
+    ("\u2264", "<="),   # ≤
+    ("\u2550", "="),    # ═  box double horizontal
+    ("\u2500", "-"),    # ─  box light horizontal
+    ("\u2502", "|"),    # │  box light vertical
+    ("\u2019", "'"),    ("\u2018", "'"),
+    ("\u201C", '"'),    ("\u201D", '"'),
+    ("\u26A0", "!!"),   # ⚠
+]
+
+
+def _ascii_safe(text: str) -> str:
+    """Replace common non-ASCII chars with ASCII equivalents, then strip the rest."""
+    for src, dst in _UNICODE_REPLACEMENTS:
+        text = text.replace(src, dst)
+    return text.encode("ascii", errors="replace").decode("ascii")
+
 _PERMISSION_LINES: dict[str, str] = {
-    "AGGRESSIVE_LONG": "Long bias — trend continuation allowed. Kill: VIX spikes >15%.",
-    "CONTROLLED_LONG": "Long bias — defined risk preferred. Kill: VIX crosses 25.",
-    "DEFENSIVE_SHORT": "Short bias — no longs without VIX declining + support. Kill: VIX <20.",
-    "NEUTRAL_PREMIUM": "Selective only — defined risk, R:R ≥ 3:1. Kill: VIX spikes >15%.",
-    "STAY_FLAT":       "FLAT — no new positions. Await regime clarity.",
+    "AGGRESSIVE_LONG": "Long bias - trend continuation allowed. Kill: VIX spikes >15%.",
+    "CONTROLLED_LONG": "Long bias - defined risk preferred. Kill: VIX crosses 25.",
+    "DEFENSIVE_SHORT": "Short bias - no longs without VIX declining + support. Kill: VIX <20.",
+    "NEUTRAL_PREMIUM": "Selective only - defined risk, R:R >= 3:1. Kill: VIX spikes >15%.",
+    "STAY_FLAT":       "FLAT - no new positions. Await regime clarity.",
 }
 
 _PERMISSION_MATRIX = """\
   REGIME PERMISSIONS
-  ─────────────────────────────────────────────────────
-  RISK_ON   │ Trend continuation / BULL spreads
-  RISK_OFF  │ Breakdown shorts / BEAR spreads
-  NEUTRAL   │ Defined risk only / R:R ≥ 3:1
-  CHAOTIC   │ FLAT — no new positions
-  ─────────────────────────────────────────────────────
-  Kill switch: VIX > 35 OR SPY gaps >3% → halt all new positions"""
+  -----------------------------------------------------
+  RISK_ON   | Trend continuation / BULL spreads
+  RISK_OFF  | Breakdown shorts / BEAR spreads
+  NEUTRAL   | Defined risk only / R:R >= 3:1
+  CHAOTIC   | FLAT - no new positions
+  -----------------------------------------------------
+  Kill switch: VIX > 35 OR SPY gaps >3% -> halt all new positions"""
 
 
 def _permission_line(regime: RegimeState) -> str:
@@ -102,6 +136,7 @@ def render_report(
     outcome: str,
     halt_reason: Optional[str] = None,
     chain_results: Optional[dict[str, "ChainValidationResult"]] = None,
+    watch_summary: Optional[WatchSummary] = None,
 ) -> str:
     """Render the full report as a string (terminal and markdown use same text)."""
     lines: list[str] = []
@@ -109,18 +144,19 @@ def render_report(
 
     # ---- Header ----
     lines.append(_BORDER)
-    lines.append(f"  CUTTINGBOARD  ·  {date_str}")
+    lines.append(f"  CUTTINGBOARD  |  {date_str}")
 
     if outcome == OUTCOME_HALT:
         lines.append("  ⚠  SYSTEM HALT")
     elif regime is not None:
-        sign = "+" if regime.net_score >= 0 else ""
-        lines.append(
-            f"  {regime.regime} / {regime.posture}"
-            f"  |  conf={regime.confidence:.2f}"
-            f"  |  net={sign}{regime.net_score}"
-        )
-        lines.append(f"  {_permission_line(regime)}")
+        session = watch_summary.session if watch_summary is not None else get_session_phase(run_at_utc)
+        delta = "N/A" if regime.vix_pct_change is None else f"{regime.vix_pct_change:+.1%}"
+        vix_text = "N/A" if regime.vix_level is None else f"{regime.vix_level:.1f}"
+        lines.append(f"  Timestamp: {run_at_utc.strftime('%Y-%m-%dT%H:%M:%SZ')}")
+        lines.append(f"  Session: {session or 'OFF_SESSION'}")
+        lines.append(f"  Regime: {regime.regime} / {regime.posture}")
+        lines.append(f"  VIX: {vix_text}  |  delta: {delta}")
+        lines.append(f"  Bias: {regime_bias(regime)}")
 
     lines.append(_BORDER)
     lines.append("")
@@ -143,6 +179,7 @@ def render_report(
             lines.append(
                 f"  Reason: {regime.posture} posture — no qualifying setups"
             )
+        lines.append("")
 
     else:
         # TRADE — show only chain-validated setups
@@ -155,7 +192,7 @@ def render_report(
             )).classification == VALIDATED
         ]
 
-        lines.append(f"  TRADES  ({len(trade_setups)})")
+        lines.append(f"  A+ TRADES  ({len(trade_setups)})")
         lines.append("  " + "─" * 50)
         for setup in trade_setups:
             lines.append(
@@ -188,11 +225,21 @@ def render_report(
 
     # Watchlist and excluded appear for both TRADE and NO_TRADE outcomes
     # (not for HALT — there is no qualification data)
+    if outcome != OUTCOME_HALT and watch_summary is not None and watch_summary.watchlist:
+        lines.append(f"  WATCHLIST  ({len(watch_summary.watchlist)})")
+        lines.append("  " + "─" * 50)
+        for item in watch_summary.watchlist:
+            lines.append(f"  {item.symbol:<8}  score {item.score:.1f}")
+            lines.append(f"           {item.structure_note}")
+            missing = ", ".join(item.missing_conditions) if item.missing_conditions else "none"
+            lines.append(f"           Missing: {missing}")
+        lines.append("")
+
     if outcome != OUTCOME_HALT and qualification_summary is not None:
         qual = qualification_summary
 
         if qual.symbols_watchlist > 0:
-            lines.append(f"  WATCHLIST  ({qual.symbols_watchlist})")
+            lines.append(f"  NEAR_A_PLUS  ({qual.symbols_watchlist})")
             lines.append("  " + "─" * 50)
             for r in qual.watchlist:
                 lines.append(f"  {r.symbol:<8}  {r.watchlist_reason}")
@@ -219,6 +266,18 @@ def render_report(
                 lines.append(f"  {sym:<8}  {cv.classification}")
                 lines.append(f"           {note}")
             lines.append("")
+
+    if outcome != OUTCOME_HALT and regime is not None:
+        lines.append("  SUMMARY")
+        lines.append("  " + "─" * 50)
+        lines.append(f"  Market state: {regime.regime} / {regime.posture}")
+        execution_posture = (
+            watch_summary.execution_posture
+            if watch_summary is not None
+            else ("No Trade" if regime.posture == "STAY_FLAT" else "A+ Only")
+        )
+        lines.append(f"  Execution posture: {execution_posture}")
+        lines.append("")
 
     # ---- Data status footer ----
     lines.append("")
@@ -284,32 +343,35 @@ def send_ntfy(
         return False
 
     if title is not None:
-        headers = {"Title": title}
+        raw_title = title
         body = report
     else:
         title_map = {
-            OUTCOME_TRADE:    f"Cuttingboard {date_str} — TRADE",
-            OUTCOME_NO_TRADE: f"Cuttingboard {date_str} — NO TRADE",
-            OUTCOME_HALT:     f"Cuttingboard {date_str} — ⚠ HALT",
+            OUTCOME_TRADE:    f"CUTTINGBOARD - {date_str} - TRADE",
+            OUTCOME_NO_TRADE: f"CUTTINGBOARD - {date_str} - NO TRADE",
+            OUTCOME_HALT:     f"CUTTINGBOARD - {date_str} - HALT",
         }
-        headers = {"Title": title_map.get(outcome, f"Cuttingboard {date_str}")}
+        raw_title = title_map.get(outcome, f"CUTTINGBOARD - {date_str}")
         body = report
+
+    safe_title = _ascii_safe(raw_title)
+    safe_body = _ascii_safe(body)
 
     try:
         resp = requests.post(
             f"{ntfy_url.rstrip('/')}/{topic}",
-            headers=headers,
-            data=body.encode(),
+            headers={"Title": safe_title},
+            data=safe_body.encode("utf-8"),
             timeout=10,
         )
         if resp.status_code == 200:
-            logger.info("ntfy notification delivered")
+            logger.info(f"ntfy delivered: {safe_title!r} ({len(safe_body)} bytes)")
             return True
         logger.warning(
-            f"ntfy delivery failed: HTTP {resp.status_code} — {resp.text[:200]}"
+            f"ntfy failed: HTTP {resp.status_code} for {safe_title!r} - {resp.text[:200]}"
         )
     except Exception as exc:
-        logger.warning(f"ntfy delivery error: {exc}")
+        logger.warning(f"ntfy delivery error for {safe_title!r}: {exc}")
 
     return False
 
@@ -350,6 +412,7 @@ def run_pipeline() -> int:
             regime=None,
             validation_summary=val,
             qualification_summary=None,
+            watch_summary=None,
             option_setups=[],
             outcome=OUTCOME_HALT,
             halt_reason=val.halt_reason,
@@ -365,6 +428,7 @@ def run_pipeline() -> int:
             regime=None,
             validation_summary=val,
             qualification_summary=None,
+            watch_summary=None,
             option_setups=[],
             halt_reason=val.halt_reason,
             ntfy_sent=ntfy_sent,
@@ -376,6 +440,15 @@ def run_pipeline() -> int:
     regime    = compute_regime(val.valid_quotes)
     dm        = compute_all_derived(val.valid_quotes)
     structure = classify_all_structure(val.valid_quotes, dm, regime.vix_level)
+    intraday_metrics, ignored_watch_symbols = compute_all_intraday_metrics(list(val.valid_quotes))
+    watch_summary = classify_watchlist(
+        structure,
+        dm,
+        intraday_metrics,
+        regime,
+        asof=run_at,
+        ignored_symbols=ignored_watch_symbols,
+    )
 
     # ----- Layers 7–8: Qualification -----
     candidates = generate_candidates(structure, dm, val.valid_quotes, regime)
@@ -416,6 +489,7 @@ def run_pipeline() -> int:
         regime=regime,
         validation_summary=val,
         qualification_summary=qual,
+        watch_summary=watch_summary,
         option_setups=setups,
         outcome=outcome,
         chain_results=chain_results,
@@ -432,6 +506,7 @@ def run_pipeline() -> int:
         regime=regime,
         validation_summary=val,
         qualification_summary=qual,
+        watch_summary=watch_summary,
         option_setups=setups,
         halt_reason=None,
         ntfy_sent=ntfy_sent,
@@ -441,6 +516,7 @@ def run_pipeline() -> int:
     logger.info(
         f"Pipeline complete: {outcome}  "
         f"qualified={qual.symbols_qualified}  "
-        f"watchlist={qual.symbols_watchlist}"
+        f"near_a_plus={qual.symbols_watchlist}  "
+        f"watch={len(watch_summary.watchlist)}"
     )
     return 0

@@ -1,153 +1,136 @@
-# CLAUDE.md — CUTTING BOARD
+## claude.md — cutting board
 
-## PURPOSE
+## purpose
 
 Claude builds and refines a constraint-driven trading system.
 
 Goal:
 
-- Improve trade decisions
-- Enforce clarity and discipline
-- Prevent system drift
+improve trade decisions
+- enforce clarity and discipline
+- prevent system drift
 
-System type:
-
-- Decision engine supported by minimal tools
-- Not a research library
-- Not a feature-rich platform
+system type:- Decision engine supported by minimal tools
+not a research library
+- not a feature-rich platform
 
 ---
 
-## INSTRUMENT UNIVERSE
+## instrument universe
 
-### CORE (PRIMARY)
+## core (primary)
 
-SPY, QQQ
-GLD, IAU
-SLV, SIVR
+spy, qqq
+gld, iau
+slv, sivr
 
-### HIGH LIQUIDITY OPTIONS
+## high liquidity options
 
-NVDA, TSLA, AAPL, MSFT, AMZN, META, GOOG, PLTR
+nvda, tsla, aapl, msft, amzn, meta, goog, pltr
 
-### HIGH BETA / VOLATILITY
+## high beta / volatility
 
-MSTR, COIN, SMCI, MU
+mstr, coin, smci, mu
 
-### MACRO / CONTEXT (REFERENCE)
+## macro / context (reference)
 
-XLE, USO, GDX
-DXY
-US10Y (preferred) or ^TNX fallback
-VIX
+xle, uso, gdx
+dxy
+us10y (preferred) or ^tnx fallback
+vix
 
-### CONSTRAINTS
+## constraints
 
-- Trade only liquid instruments
-- Prefer tight spreads and high open interest
-- Do not expand universe without justification
-- Focus on 5–8 tickers per session
+- trade only liquid instruments
+- prefer tight spreads and high open interest
+- do not expand universe without justification
+- focus on 5–8 tickers per session
 
 ---
 
-## CORE RULES
+## core rules
 
-### 1. EXECUTION ONLY
+## 1. execution only
 
-- All outputs must affect:
-  - entry
+- all outputs must affect:- entry
   - exit
   - sizing
   - avoidance
-- Otherwise: reject
+otherwise:reject
 
-### 2. NO BLOAT
+## 2. no bloat
 
-- Do not add features, signals, or abstractions
-- Default to the simplest working solution
+do not add features, signals, or abstractions
+- default to the simplest working solution
 
-### 3. CONSTRAINTS FIRST
+## 3. constraints first
 
-- Prefer strict rules over flexible logic
-- Limit number of conditions and inputs
+- prefer strict rules over flexible logic
+- limit number of conditions and inputs
 
-### 4. SINGLE RESPONSIBILITY
+## 4. single responsibility
 
-- Each component has one purpose
-- No overlapping logic
+- each component has one purpose
+- no overlapping logic
 
 ---
 
-## OUTPUT
+## output
 
-Be:
-
-- concise
-- structured
+be:- concise
+structured
 - direct
 
-Do not:
-
-- repeat prompt
-- over-explain
+do not:- repeat prompt
+over-explain
 - add filler
 
 ---
 
-## PRD REQUIREMENT
+## prd requirement
 
-Always define before building:
+always define before building:- OBJECTIVE
+scope (include + exclude)
+- requirements
+- data flow
+- fail conditions
 
-- OBJECTIVE
-- SCOPE (include + exclude)
-- REQUIREMENTS
-- DATA FLOW
-- FAIL CONDITIONS
-
-No coding without this.
+no coding without this.
 
 ---
 
-## RESEARCH RULE
+## research rule
 
-Only output:
+only output:INSIGHT:
 
-INSIGHT:
+one sentence
 
-- one sentence
-
-CONDITIONS:
-
-- measurable only
+conditions:- measurable only
 
 TRADE IMPACT:
 
-- entry / exit / sizing / avoidance
+entry / exit / sizing / avoidance
 
-INTEGRATION:
-
-- one playbook only
+integration:- one playbook only
 
 Reject if unclear.
 
 ---
 
-## FAILURE CONDITIONS
+## failure conditions
 
 Reject or correct if:
 
-- adds complexity
+adds complexity
 - expands scope
 - lacks execution impact
 - introduces vague logic
 
 ---
 
-## PRIORITY ORDER
+## priority order
 
-When rules conflict, prioritize:
-
-1. correctness
+when rules conflict, prioritize:1. correctness
 2. scope control
 3. simplicity
 4. execution relevance
@@ -158,38 +141,35 @@ When rules conflict, prioritize:
 
 ---
 
-## ASSUMPTIONS
+## assumptions
 
-- Use the narrowest reasonable interpretation of the request
-- Do not expand scope based on assumptions
-- If an assumption materially affects logic or structure:
-  - state it briefly
+use the narrowest reasonable interpretation of the request
+- do not expand scope based on assumptions
+- if an assumption materially affects logic or structure:- state it briefly
   - proceed without expanding beyond it
 
 ---
 
-## DOCUMENTATION EXPECTATION
+## documentation expectation
 
 Document only what improves:
 
-- decision clarity
+decision clarity
 - system behavior
 - integration understanding
 
-Do not:
-
-- add general explanations
-- repeat known information
+do not:- add general explanations
+repeat known information
 - create essay-style documentation
 
 ---
 
-## PACKAGE
+## package
 
-The Python package is named `cuttingboard`.
-All imports use: `from cuttingboard.xxx import yyy`
+the python package is named `cuttingboard`.
+all imports use:`from cuttingboard.xxx import yyy`
 
-## TECHNICAL RULES
+## technical rules
 
 1. Build in strict phase order. Do not begin Phase N+1 until Phase N has passing tests.
 2. Never hardcode secrets. All secrets come from .env via config.py.
@@ -207,7 +187,7 @@ Do not advance a phase without passing unit tests and manual spot-check against 
 
 ---
 
-## FINAL RULE
+## final rule
 
 When uncertain:
 → simplify

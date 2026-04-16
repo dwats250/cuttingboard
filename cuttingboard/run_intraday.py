@@ -39,6 +39,20 @@ from cuttingboard.regime import (
 )
 from cuttingboard.validation import validate_quotes
 
+_UNICODE_REPLACEMENTS = [
+    ("\u2014", "-"),  ("\u2013", "-"),  ("\u00B7", "-"),
+    ("\u2022", "*"),  ("\u2192", "->"), ("\u2265", ">="),
+    ("\u2264", "<="), ("\u2550", "="),  ("\u2500", "-"),
+    ("\u2502", "|"),  ("\u2019", "'"),  ("\u2018", "'"),
+    ("\u201C", '"'),  ("\u201D", '"'),  ("\u26A0", "!!"),
+]
+
+
+def _ascii_safe(text: str) -> str:
+    for src, dst in _UNICODE_REPLACEMENTS:
+        text = text.replace(src, dst)
+    return text.encode("ascii", errors="replace").decode("ascii")
+
 logger = logging.getLogger(__name__)
 
 _STATE_PATH       = "logs/intraday_state.json"
@@ -169,16 +183,16 @@ def _send_alert(regime: RegimeState, alert_type: str, run_at: datetime) -> bool:
     vix_pct  = regime.vix_pct_change or 0.0
 
     if alert_type == ALERT_CHAOTIC:
-        title   = f"⚠ CUTTINGBOARD — CHAOTIC  {time_str}"
+        title   = f"CUTTINGBOARD - CHAOTIC  {time_str}"
         message = (
             f"Regime: CHAOTIC\n"
             f"VIX: {vix_str} ({vix_pct:+.1%})\n"
             f"Confidence: {regime.confidence:.2f}\n"
-            f"DO NOT TRADE — stay flat"
+            f"DO NOT TRADE - stay flat"
         )
 
     elif alert_type == ALERT_REGIME_SHIFT:
-        title   = f"📊 REGIME SHIFT → {regime.regime}  {time_str}"
+        title   = f"REGIME SHIFT -> {regime.regime}  {time_str}"
         message = (
             f"New regime: {regime.regime} / {regime.posture}\n"
             f"Confidence: {regime.confidence:.2f}  net={regime.net_score:+d}\n"
@@ -186,7 +200,7 @@ def _send_alert(regime: RegimeState, alert_type: str, run_at: datetime) -> bool:
         )
 
     else:  # VIX_SPIKE
-        title   = f"🔺 VIX SPIKE {vix_pct:+.1%}  {time_str}"
+        title   = f"VIX SPIKE {vix_pct:+.1%}  {time_str}"
         message = (
             f"VIX: {vix_str} ({vix_pct:+.1%})\n"
             f"Regime: {regime.regime} / {regime.posture}\n"
@@ -194,22 +208,24 @@ def _send_alert(regime: RegimeState, alert_type: str, run_at: datetime) -> bool:
             f"Review immediately"
         )
 
-    body = f"{title}\n\n{message}"
+    safe_title   = _ascii_safe(title)
+    safe_message = _ascii_safe(message)
 
     try:
         resp = requests.post(
             f"{ntfy_url.rstrip('/')}/{topic}",
-            data=body.encode(),
+            headers={"Title": safe_title},
+            data=safe_message.encode("utf-8"),
             timeout=10,
         )
         if resp.status_code == 200:
-            logger.info(f"Intraday alert delivered: {alert_type}")
+            logger.info(f"Intraday alert delivered: {alert_type} - {safe_title!r}")
             return True
         logger.warning(
-            f"ntfy delivery failed: HTTP {resp.status_code} — {resp.text[:200]}"
+            f"ntfy failed: HTTP {resp.status_code} for {alert_type} - {resp.text[:200]}"
         )
     except Exception as exc:
-        logger.warning(f"ntfy delivery error: {exc}")
+        logger.warning(f"ntfy delivery error for {alert_type}: {exc}")
 
     return False
 

@@ -126,6 +126,65 @@ def fetch_ohlcv(symbol: str) -> Optional[pd.DataFrame]:
     return None
 
 
+def fetch_intraday_bars(symbol: str) -> Optional[pd.DataFrame]:
+    """Fetch the current regular session's 1-minute bars from yfinance.
+
+    Returns up to the last 120 regular-session bars for the latest session date.
+    Failure is per-symbol and returns None without raising.
+    """
+    def _do_download() -> pd.DataFrame:
+        df = yf.download(
+            symbol,
+            period="7d",
+            interval="1m",
+            auto_adjust=False,
+            progress=False,
+            prepost=False,
+            multi_level_index=False,
+        )
+        if df.empty:
+            raise ValueError("yfinance returned empty intraday DataFrame")
+        df.columns = [
+            c.capitalize() if c.lower() in ("open", "high", "low", "close", "volume") else c
+            for c in df.columns
+        ]
+        frame = df[["Open", "High", "Low", "Close", "Volume"]].copy()
+        idx = pd.to_datetime(frame.index)
+        if idx.tz is None:
+            idx = idx.tz_localize("UTC")
+        frame.index = idx.tz_convert("America/New_York")
+        frame = frame.between_time("09:30", "15:30")
+        if frame.empty:
+            raise ValueError("no regular-session intraday bars")
+        latest_date = frame.index[-1].date()
+        frame = frame.loc[frame.index.date == latest_date]
+        if frame.empty:
+            raise ValueError("no bars for latest session date")
+        frame.index = frame.index.tz_convert("UTC")
+        return frame.tail(120)
+
+    last_error: Optional[str] = None
+    for attempt in range(config.FETCH_RETRIES):
+        try:
+            df = _run_with_timeout(_do_download, config.FETCH_TIMEOUT_SECONDS * 3)
+            logger.info("%s: intraday fetched %d bars from yfinance", symbol, len(df))
+            return df
+        except Exception as exc:
+            last_error = str(exc)
+            logger.warning(
+                "%s: intraday attempt %d/%d failed: %s",
+                symbol,
+                attempt + 1,
+                config.FETCH_RETRIES,
+                exc,
+            )
+            if attempt < config.FETCH_RETRIES - 1:
+                time.sleep(config.FETCH_BACKOFF_SECONDS)
+
+    logger.info("%s: intraday unavailable for WATCH — %s", symbol, last_error)
+    return None
+
+
 # ---------------------------------------------------------------------------
 # yfinance
 # ---------------------------------------------------------------------------

@@ -18,6 +18,7 @@ from cuttingboard.options import OptionSetup
 from cuttingboard.qualification import QualificationSummary
 from cuttingboard.regime import RegimeState
 from cuttingboard.validation import ValidationSummary
+from cuttingboard.watch import WatchSummary
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ def write_audit_record(
     halt_reason: Optional[str],
     ntfy_sent: bool,
     report_path: str,
+    watch_summary: Optional[WatchSummary] = None,
 ) -> dict:
     """Build and append one audit record to logs/audit.jsonl.
 
@@ -51,6 +53,7 @@ def write_audit_record(
         regime=regime,
         validation_summary=validation_summary,
         qualification_summary=qualification_summary,
+        watch_summary=watch_summary,
         option_setups=option_setups,
         halt_reason=halt_reason,
         ntfy_sent=ntfy_sent,
@@ -76,11 +79,13 @@ def _build_record(
     halt_reason: Optional[str],
     ntfy_sent: bool,
     report_path: str,
+    watch_summary: Optional[WatchSummary] = None,
 ) -> dict:
     qual = qualification_summary
 
     qualified_list = []
     watchlist_list = []
+    near_a_plus_list = []
     excluded_dict: dict = {}
 
     if qual is not None:
@@ -98,12 +103,21 @@ def _build_record(
             qualified_list.append(entry)
 
         for r in qual.watchlist:
-            watchlist_list.append({
+            near_a_plus_list.append({
                 "symbol": r.symbol,
                 "reason": r.watchlist_reason,
             })
 
         excluded_dict = dict(qual.excluded)
+
+    if watch_summary is not None:
+        for item in watch_summary.watchlist:
+            watchlist_list.append({
+                "symbol": item.symbol,
+                "score": item.score,
+                "structure_note": item.structure_note,
+                "missing_conditions": list(item.missing_conditions),
+            })
 
     record: dict = {
         "run_at_utc":             run_at_utc.isoformat(),
@@ -124,7 +138,8 @@ def _build_record(
 
         # Qualification
         "symbols_qualified":      qual.symbols_qualified if qual else 0,
-        "symbols_watchlist":      qual.symbols_watchlist if qual else 0,
+        "symbols_near_a_plus":    qual.symbols_watchlist if qual else 0,
+        "symbols_watchlist":      len(watch_summary.watchlist) if watch_summary else 0,
         "symbols_excluded":       qual.symbols_excluded if qual else 0,
         "regime_short_circuited": qual.regime_short_circuited if qual else None,
         "regime_failure_reason":  qual.regime_failure_reason if qual else None,
@@ -132,6 +147,7 @@ def _build_record(
         # Trades
         "qualified_trades":       qualified_list,
         "watchlist":              watchlist_list,
+        "near_a_plus":            near_a_plus_list,
         "excluded_symbols":       excluded_dict,
 
         # Run metadata

@@ -44,7 +44,6 @@ from cuttingboard.notifications import (
     NOTIFY_POWER_HOUR,
     format_failure_notification,
     format_notification,
-    should_suppress,
 )
 from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
 from cuttingboard.output import (
@@ -58,6 +57,7 @@ from cuttingboard.qualification import QualificationSummary, qualify_all
 from cuttingboard.regime import CHAOTIC, NEUTRAL, RegimeState, compute_regime
 from cuttingboard.structure import classify_all_structure
 from cuttingboard.validation import ValidationSummary, extract_fetch_failures, validate_quotes
+from cuttingboard.watch import WatchSummary, classify_watchlist, compute_all_intraday_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +122,7 @@ class PipelineResult:
     validation_summary: ValidationSummary
     regime: Optional[RegimeState]
     qualification_summary: Optional[QualificationSummary]
+    watch_summary: Optional[WatchSummary]
     candidates_generated: int
     option_setups: list[OptionSetup]
     chain_results: dict[str, ChainValidationResult]
@@ -297,10 +298,6 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
                 candidates = generate_candidates(structure, derived, validation_summary.valid_quotes, regime)
                 qualification_summary = qualify_all(regime, structure, candidates or None, derived)
 
-        if should_suppress(notify_mode, regime, qualification_summary):
-            logger.info(f"notify-mode={notify_mode} suppressed (low signal)")
-            return {"status": SUMMARY_STATUS_SUCCESS, "suppressed": True}
-
         ntfy_title, ntfy_body = format_notification(
             notify_mode=notify_mode,
             date_str=date_str,
@@ -344,6 +341,7 @@ def _run_pipeline(
 
     regime: Optional[RegimeState] = None
     qualification_summary: Optional[QualificationSummary] = None
+    watch_summary: Optional[WatchSummary] = None
     candidates_generated = 0
     option_setups: list[OptionSetup] = []
     chain_results: dict[str, ChainValidationResult] = {}
@@ -359,6 +357,18 @@ def _run_pipeline(
             with _fixture_cache_only_ohlcv(mode, fixture_file):
                 derived = compute_all_derived(validation_summary.valid_quotes)
             structure = classify_all_structure(validation_summary.valid_quotes, derived, regime.vix_level)
+            if mode == MODE_FIXTURE:
+                intraday_metrics, ignored_watch_symbols = ({}, sorted(validation_summary.valid_quotes))
+            else:
+                intraday_metrics, ignored_watch_symbols = compute_all_intraday_metrics(list(validation_summary.valid_quotes))
+            watch_summary = classify_watchlist(
+                structure,
+                derived,
+                intraday_metrics,
+                regime,
+                asof=run_at_utc,
+                ignored_symbols=ignored_watch_symbols,
+            )
             candidates = generate_candidates(structure, derived, validation_summary.valid_quotes, regime)
             candidates_generated = len(candidates)
             qualification_summary = qualify_all(regime, structure, candidates or None, derived)
@@ -387,6 +397,7 @@ def _run_pipeline(
         regime=regime,
         validation_summary=validation_summary,
         qualification_summary=qualification_summary,
+        watch_summary=watch_summary,
         option_setups=option_setups,
         outcome=outcome,
         halt_reason=validation_summary.halt_reason,
@@ -410,13 +421,13 @@ def _run_pipeline(
         else:
             # Default (no notify-mode flag): send the full rendered report with Title header
             title_map = {
-                OUTCOME_TRADE:    f"CUTTINGBOARD · {date_str} · TRADE",
-                OUTCOME_NO_TRADE: f"CUTTINGBOARD · {date_str} · NO TRADE",
-                OUTCOME_HALT:     f"CUTTINGBOARD · {date_str} · HALT",
+                OUTCOME_TRADE:    f"CUTTINGBOARD - {date_str} - TRADE",
+                OUTCOME_NO_TRADE: f"CUTTINGBOARD - {date_str} - NO TRADE",
+                OUTCOME_HALT:     f"CUTTINGBOARD - {date_str} - HALT",
             }
             ntfy_sent = send_ntfy(
                 report, date_str, outcome,
-                title=title_map.get(outcome, f"CUTTINGBOARD · {date_str}"),
+                title=title_map.get(outcome, f"CUTTINGBOARD - {date_str}"),
             )
 
     audit_record = write_audit_record(
@@ -426,6 +437,7 @@ def _run_pipeline(
         regime=regime,
         validation_summary=validation_summary,
         qualification_summary=qualification_summary,
+        watch_summary=watch_summary,
         option_setups=option_setups,
         halt_reason=validation_summary.halt_reason,
         ntfy_sent=ntfy_sent,
@@ -440,6 +452,7 @@ def _run_pipeline(
         validation_summary=validation_summary,
         regime=regime,
         qualification_summary=qualification_summary,
+        watch_summary=watch_summary,
         candidates_generated=candidates_generated,
         option_setups=option_setups,
         chain_results=chain_results,
@@ -457,6 +470,7 @@ def _run_pipeline(
         validation_summary=validation_summary,
         regime=regime,
         qualification_summary=qualification_summary,
+        watch_summary=watch_summary,
         candidates_generated=candidates_generated,
         option_setups=option_setups,
         chain_results=chain_results,
@@ -479,6 +493,7 @@ def _build_run_summary(
     validation_summary: ValidationSummary,
     regime: Optional[RegimeState],
     qualification_summary: Optional[QualificationSummary],
+    watch_summary: Optional[WatchSummary],
     candidates_generated: int,
     option_setups: list[OptionSetup],
     chain_results: dict[str, ChainValidationResult],
@@ -527,6 +542,7 @@ def _build_run_summary(
         "candidates_generated": 0 if mode == MODE_SUNDAY else candidates_generated,
         "candidates_qualified": 0 if mode == MODE_SUNDAY else validated_count,
         "candidates_watchlist": 0 if qualification_summary is None else qualification_summary.symbols_watchlist,
+        "watch_candidates": 0 if watch_summary is None else len(watch_summary.watchlist),
         "chain_validation": {
             symbol: {
                 "classification": result.classification,
@@ -964,7 +980,7 @@ def _failure_summary(
 def _failure_report(run_date: date, errors: list[str]) -> str:
     lines = [
         "======================================================",
-        f"  CUTTINGBOARD  ·  {run_date.isoformat()}",
+        f"  CUTTINGBOARD  -  {run_date.isoformat()}",
         "  RUN FAILED",
         "======================================================",
         "",
