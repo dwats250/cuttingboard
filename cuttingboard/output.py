@@ -138,6 +138,7 @@ def render_report(
     halt_reason: Optional[str] = None,
     chain_results: Optional[dict[str, "ChainValidationResult"]] = None,
     watch_summary: Optional[WatchSummary] = None,
+    **_: object,
 ) -> str:
     """Render the full report as a string (terminal and markdown use same text)."""
     lines: list[str] = []
@@ -375,6 +376,11 @@ def send_ntfy(
         logger.warning(f"ntfy delivery error for {safe_title!r}: {exc}")
 
     return False
+
+
+def send_notification(title: str, body: str) -> bool:
+    """Compatibility wrapper for runtime's notification call sites."""
+    return send_ntfy(body, datetime.now(timezone.utc).date().isoformat(), OUTCOME_NO_TRADE, title=title)
 
 
 # ---------------------------------------------------------------------------

@@ -30,18 +30,20 @@ def write_audit_record(
     date_str: str,
     outcome: str,                                    # "TRADE" | "NO_TRADE" | "HALT"
     regime: Optional[RegimeState],
-    router_mode: str,
-    energy_score: float,
-    index_score: float,
+    *,
+    router_mode: str = "MIXED",
+    energy_score: float = 0.0,
+    index_score: float = 0.0,
     validation_summary: ValidationSummary,
     qualification_summary: Optional[QualificationSummary],
     option_setups: list[OptionSetup],
     halt_reason: Optional[str],
-    alert_sent: bool,
+    alert_sent: Optional[bool] = None,
     report_path: str,
     watch_summary: Optional[WatchSummary] = None,
     suppressed_candidates: Optional[list] = None,
     intraday_state_context: Optional[dict[str, dict]] = None,
+    ntfy_sent: Optional[bool] = None,
 ) -> dict:
     """Build and append one audit record to logs/audit.jsonl.
 
@@ -51,6 +53,9 @@ def write_audit_record(
 
     Returns the record dict (for testing and debugging).
     """
+    if alert_sent is None:
+        alert_sent = bool(ntfy_sent)
+
     record = _build_record(
         run_at_utc=run_at_utc,
         date_str=date_str,
@@ -83,19 +88,24 @@ def _build_record(
     date_str: str,
     outcome: str,
     regime: Optional[RegimeState],
-    router_mode: str,
-    energy_score: float,
-    index_score: float,
+    *,
+    router_mode: str = "MIXED",
+    energy_score: float = 0.0,
+    index_score: float = 0.0,
     validation_summary: ValidationSummary,
     qualification_summary: Optional[QualificationSummary],
     option_setups: list[OptionSetup],
     halt_reason: Optional[str],
-    alert_sent: bool,
+    alert_sent: Optional[bool] = None,
     report_path: str,
     watch_summary: Optional[WatchSummary] = None,
     suppressed_candidates: Optional[list] = None,
     intraday_state_context: Optional[dict[str, dict]] = None,
+    ntfy_sent: Optional[bool] = None,
 ) -> dict:
+    if alert_sent is None:
+        alert_sent = bool(ntfy_sent)
+
     qual = qualification_summary
 
     qualified_list = []
@@ -182,7 +192,8 @@ def _build_record(
 
         # Run metadata
         "halt_reason":            halt_reason,
-        "alert_sent":              alert_sent,
+        "alert_sent":             alert_sent,
+        "ntfy_sent":              alert_sent,
         "report_path":            report_path,
     }
 

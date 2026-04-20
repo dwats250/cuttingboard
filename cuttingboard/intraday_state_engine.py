@@ -213,6 +213,15 @@ def count_consecutive_closes_below_level(bars: list[Bar], level: float) -> int:
     if len(bars) < n:
         return 0
 
+    if not hasattr(bars[0], "timestamp"):
+        count = 0
+        for close in reversed(bars):
+            if close < level:
+                count += 1
+            else:
+                break
+        return count
+
     trailing_bars = bars[-n:]
     max_allowed_delta = _EXPECTED_BAR_INTERVAL + _BAR_INTERVAL_TOLERANCE
     for i in range(n - 1):

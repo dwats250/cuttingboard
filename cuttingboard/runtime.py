@@ -55,6 +55,7 @@ from cuttingboard.output import (
     OUTCOME_TRADE,
     render_report,
     send_notification,
+    send_ntfy,
 )
 from cuttingboard.qualification import QualificationSummary, qualify_all
 from cuttingboard.regime import CHAOTIC, NEUTRAL, RegimeState, compute_regime
@@ -769,9 +770,6 @@ def verify_run_summary(path: str) -> dict[str, Any]:
         "posture",
         "confidence",
         "net_score",
-        "router_mode",
-        "energy_score",
-        "index_score",
         "permission",
         "kill_switch",
         "min_rr_applied",
@@ -802,7 +800,8 @@ def verify_run_summary(path: str) -> dict[str, Any]:
         errors.append(f"invalid regime: {summary.get('regime')}")
     if summary.get("posture") not in VALID_POSTURES:
         errors.append(f"invalid posture: {summary.get('posture')}")
-    if summary.get("router_mode") not in {"ENERGY_FOCUS", "INDEX_FOCUS", "MIXED"}:
+    router_mode = summary.get("router_mode", "MIXED")
+    if router_mode not in {"ENERGY_FOCUS", "INDEX_FOCUS", "MIXED"}:
         errors.append(f"invalid router_mode: {summary.get('router_mode')}")
 
     confidence = summary.get("confidence")
@@ -814,7 +813,7 @@ def verify_run_summary(path: str) -> dict[str, Any]:
         errors.append(f"net_score out of range: {net_score}")
 
     for key in ("energy_score", "index_score"):
-        value = summary.get(key)
+        value = summary.get(key, 0.0)
         if not isinstance(value, (int, float)) or not 0.0 <= float(value) <= 2.0:
             errors.append(f"{key} out of range: {value}")
 

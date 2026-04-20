@@ -27,9 +27,17 @@ NOTIFY_ORB_TRAJECTORY = "orb_trajectory"
 NOTIFY_POST_ORB = "post_orb"
 NOTIFY_MIDMORNING = "midmorning"
 NOTIFY_POWER_HOUR = "power_hour"
+NOTIFY_MARKET_CLOSE = "market_close"
 
 NOTIFY_MODES = frozenset(
-    {NOTIFY_PREMARKET, NOTIFY_ORB_TRAJECTORY, NOTIFY_POST_ORB, NOTIFY_MIDMORNING, NOTIFY_POWER_HOUR}
+    {
+        NOTIFY_PREMARKET,
+        NOTIFY_ORB_TRAJECTORY,
+        NOTIFY_POST_ORB,
+        NOTIFY_MIDMORNING,
+        NOTIFY_POWER_HOUR,
+        NOTIFY_MARKET_CLOSE,
+    }
 )
 
 _SUPPRESS_CONFIDENCE = 0.55
@@ -82,6 +90,7 @@ def format_notification(
     watch_summary: Optional[WatchSummary] = None,
     outcome: str = "NO_TRADE",
     halt_reason: Optional[str] = None,
+    **_: object,
 ) -> tuple[str, str]:
     """Return compact (title, body) for ntfy."""
     del date_str, normalized_quotes
@@ -108,6 +117,7 @@ def format_run_alert(
     watch_summary: Optional[WatchSummary],
     halt_reason: Optional[str] = None,
     notify_mode: Optional[str] = None,
+    **_: object,
 ) -> tuple[str, str]:
     """Format the default live/sunday ntfy alert from pipeline state."""
     event = AlertEvent(
