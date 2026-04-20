@@ -30,13 +30,18 @@ def write_audit_record(
     date_str: str,
     outcome: str,                                    # "TRADE" | "NO_TRADE" | "HALT"
     regime: Optional[RegimeState],
+    router_mode: str,
+    energy_score: float,
+    index_score: float,
     validation_summary: ValidationSummary,
     qualification_summary: Optional[QualificationSummary],
     option_setups: list[OptionSetup],
     halt_reason: Optional[str],
-    ntfy_sent: bool,
+    alert_sent: bool,
     report_path: str,
     watch_summary: Optional[WatchSummary] = None,
+    suppressed_candidates: Optional[list] = None,
+    intraday_state_context: Optional[dict[str, dict]] = None,
 ) -> dict:
     """Build and append one audit record to logs/audit.jsonl.
 
@@ -51,12 +56,17 @@ def write_audit_record(
         date_str=date_str,
         outcome=outcome,
         regime=regime,
+        router_mode=router_mode,
+        energy_score=energy_score,
+        index_score=index_score,
         validation_summary=validation_summary,
         qualification_summary=qualification_summary,
         watch_summary=watch_summary,
         option_setups=option_setups,
+        suppressed_candidates=suppressed_candidates,
+        intraday_state_context=intraday_state_context,
         halt_reason=halt_reason,
-        ntfy_sent=ntfy_sent,
+        alert_sent=alert_sent,
         report_path=report_path,
     )
 
@@ -73,13 +83,18 @@ def _build_record(
     date_str: str,
     outcome: str,
     regime: Optional[RegimeState],
+    router_mode: str,
+    energy_score: float,
+    index_score: float,
     validation_summary: ValidationSummary,
     qualification_summary: Optional[QualificationSummary],
     option_setups: list[OptionSetup],
     halt_reason: Optional[str],
-    ntfy_sent: bool,
+    alert_sent: bool,
     report_path: str,
     watch_summary: Optional[WatchSummary] = None,
+    suppressed_candidates: Optional[list] = None,
+    intraday_state_context: Optional[dict[str, dict]] = None,
 ) -> dict:
     qual = qualification_summary
 
@@ -100,13 +115,24 @@ def _build_record(
                 "contracts":  r.max_contracts,
                 "dollar_risk": r.dollar_risk,
             }
+            meta = (intraday_state_context or {}).get(r.symbol)
+            if meta is not None:
+                entry["downside_permission"] = meta.get("downside_permission")
+                entry["intraday_state"] = meta.get("intraday_state")
+                entry["intraday_state_available"] = meta.get("intraday_state_available")
             qualified_list.append(entry)
 
         for r in qual.watchlist:
-            near_a_plus_list.append({
+            entry = {
                 "symbol": r.symbol,
                 "reason": r.watchlist_reason,
-            })
+            }
+            meta = (intraday_state_context or {}).get(r.symbol)
+            if meta is not None:
+                entry["downside_permission"] = meta.get("downside_permission")
+                entry["intraday_state"] = meta.get("intraday_state")
+                entry["intraday_state_available"] = meta.get("intraday_state_available")
+            near_a_plus_list.append(entry)
 
         excluded_dict = dict(qual.excluded)
 
@@ -130,6 +156,9 @@ def _build_record(
         "confidence":             round(regime.confidence, 4) if regime else None,
         "net_score":              regime.net_score if regime else None,
         "vix_level":              regime.vix_level if regime else None,
+        "router_mode":            router_mode,
+        "energy_score":           round(energy_score, 2),
+        "index_score":            round(index_score, 2),
 
         # Validation
         "symbols_validated":      validation_summary.symbols_validated,
@@ -149,10 +178,11 @@ def _build_record(
         "watchlist":              watchlist_list,
         "near_a_plus":            near_a_plus_list,
         "excluded_symbols":       excluded_dict,
+        "suppressed_candidates":  list(suppressed_candidates or []),
 
         # Run metadata
         "halt_reason":            halt_reason,
-        "ntfy_sent":              ntfy_sent,
+        "alert_sent":              alert_sent,
         "report_path":            report_path,
     }
 

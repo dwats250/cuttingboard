@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from typing import Optional
 
 import pytz
@@ -45,6 +45,8 @@ _VOLUME_BUFFER   = 0.10    # ±10%
 _HOLD_BARS_MIN   = 3
 _GAP_THRESHOLD   = 0.0025
 _ACCEPTANCE_CLOSES_MIN = 2
+_EXPECTED_BAR_INTERVAL = timedelta(minutes=1)
+_BAR_INTERVAL_TOLERANCE = timedelta(minutes=1)
 
 
 # ---------------------------------------------------------------------------
@@ -206,10 +208,21 @@ def detect_failed_reclaim(high: float, close: float, level: float) -> bool:
     return reclaim_attempt and close < level
 
 
-def count_consecutive_closes_below_level(closes: list[float], level: float) -> int:
+def count_consecutive_closes_below_level(bars: list[Bar], level: float) -> int:
+    n = _ACCEPTANCE_CLOSES_MIN
+    if len(bars) < n:
+        return 0
+
+    trailing_bars = bars[-n:]
+    max_allowed_delta = _EXPECTED_BAR_INTERVAL + _BAR_INTERVAL_TOLERANCE
+    for i in range(n - 1):
+        delta = trailing_bars[i + 1].timestamp - trailing_bars[i].timestamp
+        if delta > max_allowed_delta:
+            return 0
+
     count = 0
-    for close in reversed(closes):
-        if close < level:
+    for bar in reversed(bars):
+        if bar.close < level:
             count += 1
         else:
             break
@@ -217,11 +230,11 @@ def count_consecutive_closes_below_level(closes: list[float], level: float) -> i
 
 
 def detect_acceptance_below_level(
-    closes: list[float],
+    bars: list[Bar],
     level: float,
     consecutive_closes_required: int = _ACCEPTANCE_CLOSES_MIN,
 ) -> tuple[bool, int]:
-    count = count_consecutive_closes_below_level(closes, level)
+    count = count_consecutive_closes_below_level(bars, level)
     return count >= consecutive_closes_required, count
 
 
@@ -445,9 +458,8 @@ def compute_intraday_state(
         bars, orb_high, orb_low
     )
     post_orb = [b for b in bars if _et_time(b.timestamp) > _ORB_END]
-    post_orb_closes = [b.close for b in post_orb]
     failed_reclaim = any(detect_failed_reclaim(b.high, b.close, orb_low) for b in post_orb)
-    acceptance_below_level, consecutive_closes_below_level = detect_acceptance_below_level(post_orb_closes, orb_low)
+    acceptance_below_level, consecutive_closes_below_level = detect_acceptance_below_level(post_orb, orb_low)
     downside_permission = downside_short_permission(
         session_context,
         DownsidePermissionState(

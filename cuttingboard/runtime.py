@@ -33,7 +33,8 @@ from cuttingboard.chain_validation import (
     validate_option_chains,
 )
 from cuttingboard.derived import compute_all_derived
-from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all
+from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all, fetch_intraday_bars
+from cuttingboard.intraday_state_engine import Bar as IntradayStateBar, compute_intraday_state
 from cuttingboard.normalization import NormalizedQuote, normalize_all
 from cuttingboard.notifications import (
     NOTIFY_MODES,
@@ -42,6 +43,7 @@ from cuttingboard.notifications import (
     NOTIFY_POST_ORB,
     NOTIFY_MIDMORNING,
     NOTIFY_POWER_HOUR,
+    NOTIFY_MARKET_CLOSE,
     format_failure_notification,
     format_notification,
     format_run_alert,
@@ -52,11 +54,18 @@ from cuttingboard.output import (
     OUTCOME_NO_TRADE,
     OUTCOME_TRADE,
     render_report,
-    send_ntfy,
+    send_notification,
 )
 from cuttingboard.qualification import QualificationSummary, qualify_all
 from cuttingboard.regime import CHAOTIC, NEUTRAL, RegimeState, compute_regime
+from cuttingboard.sector_router import (
+    SectorRouterState,
+    SuppressedCandidate,
+    apply_sector_router,
+    resolve_sector_router,
+)
 from cuttingboard.structure import classify_all_structure
+from cuttingboard.universe import filter_execution_dict, filter_execution_items, log_universe_configuration
 from cuttingboard.validation import ValidationSummary, extract_fetch_failures, validate_quotes
 from cuttingboard.watch import WatchSummary, classify_watchlist, compute_all_intraday_metrics
 
@@ -70,7 +79,7 @@ MODE_PREFETCH = "prefetch"
 
 # Notify modes that skip the full pipeline (not premarket)
 _REGIME_ONLY_MODES = frozenset({NOTIFY_ORB_TRAJECTORY, NOTIFY_MIDMORNING})
-_QUALIFY_ONLY_MODES = frozenset({NOTIFY_POST_ORB, NOTIFY_POWER_HOUR})
+_QUALIFY_ONLY_MODES = frozenset({NOTIFY_POST_ORB, NOTIFY_POWER_HOUR, NOTIFY_MARKET_CLOSE})
 
 SUMMARY_MODE_LIVE = "LIVE"
 SUMMARY_MODE_FIXTURE = "FIXTURE"
@@ -122,13 +131,17 @@ class PipelineResult:
     normalized_quotes: dict[str, NormalizedQuote]
     validation_summary: ValidationSummary
     regime: Optional[RegimeState]
+    router_mode: str
+    energy_score: float
+    index_score: float
     qualification_summary: Optional[QualificationSummary]
     watch_summary: Optional[WatchSummary]
     candidates_generated: int
     option_setups: list[OptionSetup]
+    suppressed_candidates: list[SuppressedCandidate]
     chain_results: dict[str, ChainValidationResult]
     outcome: str
-    ntfy_sent: bool
+    alert_sent: bool
     report: str
     report_path: str
     audit_record: dict[str, Any]
@@ -196,7 +209,7 @@ def cli_main(argv: Optional[list[str]] = None) -> int:
 
 
 def execute_prefetch() -> int:
-    """L1-L4 warm-up: fetch, normalize, validate, derive. No ntfy, no report."""
+    """L1-L4 warm-up: fetch, normalize, validate, derive. No notification, no report."""
     try:
         raw = fetch_all()
         normed = normalize_all(raw)
@@ -277,7 +290,7 @@ def execute_run(
 def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str, Any]:
     """Lightweight path for non-premarket notify modes.
 
-    Runs the appropriate pipeline depth, formats a mode-specific ntfy message,
+    Runs the appropriate pipeline depth, formats a mode-specific alert,
     and returns a minimal status dict. Does not write markdown or summary JSON.
     """
     date_str = run_date.isoformat()
@@ -288,21 +301,47 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
         validation_summary = validate_quotes(normalized_quotes, fetch_failures)
 
         regime: Optional[RegimeState] = None
+        router_state = SectorRouterState(
+            mode="MIXED",
+            energy_score=0.0,
+            index_score=0.0,
+            computed_at_utc=datetime.now(timezone.utc),
+            session_date=run_date.isoformat(),
+        )
         qualification_summary: Optional[QualificationSummary] = None
 
         if not validation_summary.system_halted:
             regime = compute_regime(validation_summary.valid_quotes)
+            derived = compute_all_derived(validation_summary.valid_quotes)
+            router_state = resolve_sector_router(
+                validation_summary.valid_quotes,
+                derived,
+                datetime.now(timezone.utc),
+                state_path=_sector_router_state_path(mode),
+            )
 
             if notify_mode in _QUALIFY_ONLY_MODES:
-                derived = compute_all_derived(validation_summary.valid_quotes)
+                log_universe_configuration(logger)
                 structure = classify_all_structure(validation_summary.valid_quotes, derived, regime.vix_level)
-                candidates = generate_candidates(structure, derived, validation_summary.valid_quotes, regime)
-                qualification_summary = qualify_all(regime, structure, candidates or None, derived)
+                execution_quotes = filter_execution_dict(validation_summary.valid_quotes, log=logger)
+                execution_derived = filter_execution_dict(derived, log=logger)
+                execution_structure = filter_execution_dict(structure, log=logger)
+                candidates = generate_candidates(execution_structure, execution_derived, execution_quotes, regime)
+                candidates, _ = _apply_intraday_short_permission(candidates, execution_quotes)
+                qualification_summary = qualify_all(regime, execution_structure, candidates or None, execution_derived)
+                qualification_summary, _ = apply_sector_router(
+                    qualification_summary,
+                    router_state,
+                    datetime.now(timezone.utc),
+                )
 
         ntfy_title, ntfy_body = format_notification(
             notify_mode=notify_mode,
             date_str=date_str,
             regime=regime,
+            router_mode=router_state.mode,
+            energy_score=router_state.energy_score,
+            index_score=router_state.index_score,
             validation_summary=validation_summary,
             qualification_summary=qualification_summary,
             normalized_quotes=normalized_quotes,
@@ -310,7 +349,7 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
         )
 
         if mode == MODE_LIVE:
-            send_ntfy(ntfy_body, date_str, OUTCOME_NO_TRADE, title=ntfy_title)
+            send_notification(ntfy_title, ntfy_body)
 
         return {"status": SUMMARY_STATUS_SUCCESS, "suppressed": False}
 
@@ -318,7 +357,7 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
         logger.exception("notify-mode run failed: %s", exc)
         ntfy_title, ntfy_body = format_failure_notification(notify_mode, date_str, str(exc)[:120])
         try:
-            send_ntfy(ntfy_body, date_str, OUTCOME_NO_TRADE, title=ntfy_title)
+            send_notification(ntfy_title, ntfy_body)
         except Exception:
             pass
         return {"status": SUMMARY_STATUS_FAIL, "suppressed": False}
@@ -342,10 +381,19 @@ def _run_pipeline(
         validation_summary = validate_quotes(normalized_quotes, fetch_failures)
 
     regime: Optional[RegimeState] = None
+    router_state = SectorRouterState(
+        mode="MIXED",
+        energy_score=0.0,
+        index_score=0.0,
+        computed_at_utc=run_at_utc,
+        session_date=date_str,
+    )
     qualification_summary: Optional[QualificationSummary] = None
     watch_summary: Optional[WatchSummary] = None
     candidates_generated = 0
     option_setups: list[OptionSetup] = []
+    suppressed_candidates: list[SuppressedCandidate] = []
+    intraday_state_context: dict[str, dict[str, Any]] = {}
     chain_results: dict[str, ChainValidationResult] = {}
     outcome = OUTCOME_NO_TRADE
 
@@ -358,25 +406,49 @@ def _run_pipeline(
         if mode != MODE_SUNDAY:
             with _fixture_cache_only_ohlcv(mode, fixture_file):
                 derived = compute_all_derived(validation_summary.valid_quotes)
-            structure = classify_all_structure(validation_summary.valid_quotes, derived, regime.vix_level)
-            if mode == MODE_FIXTURE:
-                intraday_metrics, ignored_watch_symbols = ({}, sorted(validation_summary.valid_quotes))
-            else:
-                intraday_metrics, ignored_watch_symbols = compute_all_intraday_metrics(list(validation_summary.valid_quotes))
-            watch_summary = classify_watchlist(
-                structure,
+            router_state = resolve_sector_router(
+                validation_summary.valid_quotes,
                 derived,
+                run_at_utc,
+                state_path=_sector_router_state_path(mode),
+            )
+            structure = classify_all_structure(validation_summary.valid_quotes, derived, regime.vix_level)
+            log_universe_configuration(logger)
+            execution_quotes = filter_execution_dict(validation_summary.valid_quotes, log=logger)
+            execution_derived = filter_execution_dict(derived, log=logger)
+            execution_structure = filter_execution_dict(structure, log=logger)
+            if mode == MODE_FIXTURE:
+                intraday_metrics, ignored_watch_symbols = ({}, sorted(execution_quotes))
+            else:
+                intraday_metrics, ignored_watch_symbols = compute_all_intraday_metrics(list(execution_quotes))
+            watch_summary = classify_watchlist(
+                execution_structure,
+                execution_derived,
                 intraday_metrics,
                 regime,
                 asof=run_at_utc,
                 ignored_symbols=ignored_watch_symbols,
             )
-            candidates = generate_candidates(structure, derived, validation_summary.valid_quotes, regime)
+            watch_summary = WatchSummary(
+                session=watch_summary.session,
+                threshold=watch_summary.threshold,
+                watchlist=filter_execution_items(watch_summary.watchlist, symbol_getter=lambda item: item.symbol, log=logger),
+                ignored_symbols=watch_summary.ignored_symbols,
+                execution_posture=watch_summary.execution_posture,
+            )
+            candidates = generate_candidates(execution_structure, execution_derived, execution_quotes, regime)
+            if mode != MODE_FIXTURE:
+                candidates, intraday_state_context = _apply_intraday_short_permission(candidates, execution_quotes)
             candidates_generated = len(candidates)
-            qualification_summary = qualify_all(regime, structure, candidates or None, derived)
+            qualification_summary = qualify_all(regime, execution_structure, candidates or None, execution_derived)
+            qualification_summary, suppressed_candidates = apply_sector_router(
+                qualification_summary,
+                router_state,
+                run_at_utc,
+            )
 
             if qualification_summary.qualified_trades:
-                option_setups = build_option_setups(qualification_summary.qualified_trades, structure, derived)
+                option_setups = build_option_setups(qualification_summary.qualified_trades, execution_structure, execution_derived)
 
             if option_setups:
                 if mode == MODE_FIXTURE:
@@ -397,6 +469,9 @@ def _run_pipeline(
         date_str=date_str,
         run_at_utc=run_at_utc,
         regime=regime,
+        router_mode=router_state.mode,
+        energy_score=router_state.energy_score,
+        index_score=router_state.index_score,
         validation_summary=validation_summary,
         qualification_summary=qualification_summary,
         watch_summary=watch_summary,
@@ -408,13 +483,16 @@ def _run_pipeline(
     _write_markdown_report(report, date_str, "NOT RUN")
     report_path = str(REPORTS_DIR / f"{date_str}.md")
 
-    ntfy_sent = False
+    alert_sent = False
     if mode in {MODE_LIVE, MODE_SUNDAY} and not fixture_backed:
         if notify_mode == NOTIFY_PREMARKET:
             ntfy_title, ntfy_body = format_notification(
                 notify_mode=NOTIFY_PREMARKET,
                 date_str=date_str,
                 regime=regime,
+                router_mode=router_state.mode,
+                energy_score=router_state.energy_score,
+                index_score=router_state.index_score,
                 validation_summary=validation_summary,
                 qualification_summary=qualification_summary,
                 normalized_quotes=normalized_quotes,
@@ -422,36 +500,39 @@ def _run_pipeline(
                 outcome=outcome,
                 halt_reason=validation_summary.halt_reason,
             )
-            ntfy_sent = send_ntfy(ntfy_body, date_str, outcome, title=ntfy_title)
+            alert_sent = send_notification(ntfy_title, ntfy_body)
         else:
             ntfy_title, ntfy_body = format_run_alert(
                 outcome=outcome,
                 run_at_utc=run_at_utc,
                 regime=regime,
+                router_mode=router_state.mode,
+                energy_score=router_state.energy_score,
+                index_score=router_state.index_score,
                 validation_summary=validation_summary,
                 qualification_summary=qualification_summary,
                 watch_summary=watch_summary,
                 halt_reason=validation_summary.halt_reason,
             )
-            ntfy_sent = send_ntfy(
-                ntfy_body,
-                date_str,
-                outcome,
-                title=ntfy_title,
-            )
+            alert_sent = send_notification(ntfy_title, ntfy_body)
 
     audit_record = write_audit_record(
         run_at_utc=run_at_utc,
         date_str=date_str,
         outcome=outcome,
         regime=regime,
+        router_mode=router_state.mode,
+        energy_score=router_state.energy_score,
+        index_score=router_state.index_score,
         validation_summary=validation_summary,
         qualification_summary=qualification_summary,
         watch_summary=watch_summary,
         option_setups=option_setups,
+        suppressed_candidates=suppressed_candidates,
         halt_reason=validation_summary.halt_reason,
-        ntfy_sent=ntfy_sent,
+        alert_sent=alert_sent,
         report_path=report_path,
+        intraday_state_context=intraday_state_context,
     )
 
     summary = _build_run_summary(
@@ -461,6 +542,9 @@ def _run_pipeline(
         normalized_quotes=normalized_quotes,
         validation_summary=validation_summary,
         regime=regime,
+        router_mode=router_state.mode,
+        energy_score=router_state.energy_score,
+        index_score=router_state.index_score,
         qualification_summary=qualification_summary,
         watch_summary=watch_summary,
         candidates_generated=candidates_generated,
@@ -479,13 +563,17 @@ def _run_pipeline(
         normalized_quotes=normalized_quotes,
         validation_summary=validation_summary,
         regime=regime,
+        router_mode=router_state.mode,
+        energy_score=router_state.energy_score,
+        index_score=router_state.index_score,
         qualification_summary=qualification_summary,
         watch_summary=watch_summary,
         candidates_generated=candidates_generated,
         option_setups=option_setups,
+        suppressed_candidates=suppressed_candidates,
         chain_results=chain_results,
         outcome=outcome,
-        ntfy_sent=ntfy_sent,
+        alert_sent=alert_sent,
         report=report,
         report_path=report_path,
         audit_record=audit_record,
@@ -502,6 +590,9 @@ def _build_run_summary(
     normalized_quotes: dict[str, NormalizedQuote],
     validation_summary: ValidationSummary,
     regime: Optional[RegimeState],
+    router_mode: str,
+    energy_score: float,
+    index_score: float,
     qualification_summary: Optional[QualificationSummary],
     watch_summary: Optional[WatchSummary],
     candidates_generated: int,
@@ -542,6 +633,9 @@ def _build_run_summary(
         "posture": posture_label,
         "confidence": confidence,
         "net_score": net_score,
+        "router_mode": router_mode,
+        "energy_score": round(energy_score, 2),
+        "index_score": round(index_score, 2),
         "permission": permission,
         "kill_switch": kill_switch,
         "min_rr_applied": config.NEUTRAL_RR_RATIO if regime and regime.regime == NEUTRAL else config.MIN_RR_RATIO,
@@ -566,6 +660,93 @@ def _build_run_summary(
     return summary
 
 
+def _apply_intraday_short_permission(
+    candidates: dict[str, Any],
+    execution_quotes: dict[str, NormalizedQuote],
+) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+    filtered = dict(candidates)
+    context: dict[str, dict[str, Any]] = {}
+
+    for symbol, candidate in candidates.items():
+        if candidate.direction != "SHORT":
+            continue
+
+        intraday_df = fetch_intraday_bars(symbol)
+        if intraday_df is None or intraday_df.empty:
+            continue
+
+        symbol_bars = _intraday_state_bars_from_df(intraday_df)
+        if not symbol_bars:
+            continue
+
+        previous_close = _reconstruct_previous_close(execution_quotes.get(symbol))
+        try:
+            intra_state = compute_intraday_state(symbol, symbol_bars, previous_close=previous_close)
+            intraday_state_available = intra_state is not None
+        except Exception as exc:
+            logger.info("Skipping intraday short gate for %s: %s", symbol, exc)
+            intra_state = None
+            intraday_state_available = False
+
+        if not intraday_state_available:
+            logger.debug("[INTRA] state unavailable — fail-open applied")
+            context[symbol] = {"intraday_state_available": False}
+            continue
+
+        downside_permission = _downside_permission_from_state(intra_state)
+        context[symbol] = {
+            "downside_permission": downside_permission,
+            "intraday_state": intra_state.state,
+            "intraday_state_available": True,
+        }
+        if not downside_permission:
+            filtered.pop(symbol, None)
+            logger.info("SUPPRESSED %s: SHORT blocked pending downside permission", symbol)
+
+    return filtered, context
+
+
+def _intraday_state_bars_from_df(df: pd.DataFrame) -> list[IntradayStateBar]:
+    frame = df.copy()
+    frame.index = pd.to_datetime(frame.index, utc=True)
+    bars: list[IntradayStateBar] = []
+    for ts, row in frame.iterrows():
+        bars.append(
+            IntradayStateBar(
+                timestamp=ts.to_pydatetime(),
+                open=float(row["Open"]),
+                high=float(row["High"]),
+                low=float(row["Low"]),
+                close=float(row["Close"]),
+                volume=int(row["Volume"]),
+            )
+        )
+    return bars
+
+
+def _reconstruct_previous_close(quote: Optional[NormalizedQuote]) -> Optional[float]:
+    if quote is None:
+        return None
+    denominator = 1.0 + quote.pct_change_decimal
+    if denominator <= 0:
+        return None
+    return quote.price / denominator
+
+
+def _downside_permission_from_state(intra_state: Any) -> bool:
+    if intra_state.gap_type != "DOWN":
+        return True
+    if intra_state.phase == "OPEN":
+        return False
+    if intra_state.orb_break_direction == "SHORT" and not (
+        intra_state.failed_reclaim or intra_state.acceptance_below_level
+    ):
+        return False
+    if intra_state.failed_reclaim or intra_state.acceptance_below_level:
+        return True
+    return False
+
+
 def verify_run_summary(path: str) -> dict[str, Any]:
     warnings: list[str] = []
     errors: list[str] = []
@@ -588,6 +769,9 @@ def verify_run_summary(path: str) -> dict[str, Any]:
         "posture",
         "confidence",
         "net_score",
+        "router_mode",
+        "energy_score",
+        "index_score",
         "permission",
         "kill_switch",
         "min_rr_applied",
@@ -618,6 +802,8 @@ def verify_run_summary(path: str) -> dict[str, Any]:
         errors.append(f"invalid regime: {summary.get('regime')}")
     if summary.get("posture") not in VALID_POSTURES:
         errors.append(f"invalid posture: {summary.get('posture')}")
+    if summary.get("router_mode") not in {"ENERGY_FOCUS", "INDEX_FOCUS", "MIXED"}:
+        errors.append(f"invalid router_mode: {summary.get('router_mode')}")
 
     confidence = summary.get("confidence")
     if not isinstance(confidence, (int, float)) or not 0.0 <= confidence <= 1.0:
@@ -626,6 +812,11 @@ def verify_run_summary(path: str) -> dict[str, Any]:
     net_score = summary.get("net_score")
     if not isinstance(net_score, int) or not -8 <= net_score <= 8:
         errors.append(f"net_score out of range: {net_score}")
+
+    for key in ("energy_score", "index_score"):
+        value = summary.get(key)
+        if not isinstance(value, (int, float)) or not 0.0 <= float(value) <= 2.0:
+            errors.append(f"{key} out of range: {value}")
 
     data_status = summary.get("data_status")
     if data_status not in {"ok", "fallback", "stale"}:
@@ -951,6 +1142,12 @@ def _is_fixture_backed(mode: str, fixture_file: Optional[Path]) -> bool:
     return fixture_file is not None and mode in {MODE_FIXTURE, MODE_SUNDAY}
 
 
+def _sector_router_state_path(mode: str) -> Optional[str]:
+    if mode == MODE_FIXTURE:
+        return None
+    return str(LOGS_DIR / "sector_router_state.json")
+
+
 def _failure_summary(
     mode: str,
     run_date: date,
@@ -971,6 +1168,9 @@ def _failure_summary(
         "posture": "STAY_FLAT",
         "confidence": 0.0,
         "net_score": 0,
+        "router_mode": "MIXED",
+        "energy_score": 0.0,
+        "index_score": 0.0,
         "permission": "No trades permitted. Run failed.",
         "kill_switch": False,
         "min_rr_applied": config.NEUTRAL_RR_RATIO,
