@@ -58,51 +58,69 @@ jobs:
           python-version: '3.11'
 
       - name: Install package
-        run: pip install -e .
+        run: |
+          set -euo pipefail
+          pip install -e .
 
       - name: Determine run mode
         id: mode
         run: |
+          set -euo pipefail
           TIME=$(date -u +%H%M)
           EVENT="${{ github.event_name }}"
           DISPATCH_MODE="${{ github.event.inputs.mode }}"
 
           if [[ "$EVENT" == "workflow_dispatch" ]]; then
-            echo "job_mode=$DISPATCH_MODE" >> "$GITHUB_OUTPUT"
+            job_mode="$DISPATCH_MODE"
           elif [[ "$(date -u +%u)" == "7" ]]; then
-            echo "job_mode=sunday" >> "$GITHUB_OUTPUT"
+            job_mode="sunday"
           elif [[ "$TIME" == "1250" ]]; then
-            echo "job_mode=prefetch" >> "$GITHUB_OUTPUT"
+            job_mode="prefetch"
           elif [[ "$TIME" == "1300" ]]; then
-            echo "job_mode=live" >> "$GITHUB_OUTPUT"
+            job_mode="live"
           elif [[ "$TIME" == "1350" ]]; then
-            echo "job_mode=orb_trajectory" >> "$GITHUB_OUTPUT"
+            job_mode="orb_trajectory"
           elif [[ "$TIME" == "1430" ]]; then
-            echo "job_mode=post_orb" >> "$GITHUB_OUTPUT"
+            job_mode="post_orb"
           elif [[ "$TIME" == "1630" ]]; then
-            echo "job_mode=midmorning" >> "$GITHUB_OUTPUT"
+            job_mode="midmorning"
           elif [[ "$TIME" == "1900" ]]; then
-            echo "job_mode=power_hour" >> "$GITHUB_OUTPUT"
+            job_mode="power_hour"
           elif [[ "$TIME" == "2000" ]]; then
-            echo "job_mode=power_hour" >> "$GITHUB_OUTPUT"
+            job_mode="power_hour"
           else
-            echo "job_mode=intraday" >> "$GITHUB_OUTPUT"
+            job_mode="intraday"
           fi
+
+          echo "job_mode=$job_mode" >> "$GITHUB_OUTPUT"
+          echo "Resolved mode: $job_mode"
 
       # --- Prefetch warm-up ---
       - name: Run prefetch
         if: steps.mode.outputs.job_mode == 'prefetch'
-        run: python -m cuttingboard --mode prefetch
+        run: |
+          set -euo pipefail
+          echo "=== START PREFETCH ==="
+          python -m cuttingboard --mode prefetch
+          echo "=== END PREFETCH ==="
 
       # --- Premarket full pipeline ---
       - name: Run live pipeline
         if: steps.mode.outputs.job_mode == 'live'
-        run: python -m cuttingboard --mode live --notify-mode premarket
+        run: |
+          set -euo pipefail
+          echo "=== START LIVE ==="
+          python -m cuttingboard --mode live --notify-mode premarket
+          echo "=== END LIVE ==="
 
       # --- Sunday regime-only report ---
       - name: Run Sunday regime report
         if: steps.mode.outputs.job_mode == 'sunday'
-        run: python -m cuttingboard --mode sunday
+        run: |
+          set -euo pipefail
+          echo "=== START SUNDAY ==="
+          python -m cuttingboard --mode sunday
+          echo "=== END SUNDAY ==="
 
       # --- Verify: runs after live or sunday, or standalone via workflow_dispatch ---
       - name: Verify run
@@ -110,32 +128,56 @@ jobs:
           steps.mode.outputs.job_mode == 'live' ||
           steps.mode.outputs.job_mode == 'sunday' ||
           steps.mode.outputs.job_mode == 'verify'
-        run: python -m cuttingboard --mode verify
+        run: |
+          set -euo pipefail
+          echo "=== START VERIFY ==="
+          python -m cuttingboard --mode verify
+          echo "=== END VERIFY ==="
 
       # --- ORB trajectory: 06:50 PT ---
       - name: Run ORB trajectory scan
         if: steps.mode.outputs.job_mode == 'orb_trajectory'
-        run: python -m cuttingboard --mode live --notify-mode orb_trajectory
+        run: |
+          set -euo pipefail
+          echo "=== START ORB_TRAJECTORY ==="
+          python -m cuttingboard --mode live --notify-mode orb_trajectory
+          echo "=== END ORB_TRAJECTORY ==="
 
       # --- Post-ORB: 07:30 PT ---
       - name: Run post-ORB scan
         if: steps.mode.outputs.job_mode == 'post_orb'
-        run: python -m cuttingboard --mode live --notify-mode post_orb
+        run: |
+          set -euo pipefail
+          echo "=== START POST_ORB ==="
+          python -m cuttingboard --mode live --notify-mode post_orb
+          echo "=== END POST_ORB ==="
 
       # --- Mid-morning: 09:30 PT ---
       - name: Run mid-morning scan
         if: steps.mode.outputs.job_mode == 'midmorning'
-        run: python -m cuttingboard --mode live --notify-mode midmorning
+        run: |
+          set -euo pipefail
+          echo "=== START MIDMORNING ==="
+          python -m cuttingboard --mode live --notify-mode midmorning
+          echo "=== END MIDMORNING ==="
 
       # --- Power hour: 12:00 PT (3:00 PM ET) ---
       - name: Run power-hour scan
         if: steps.mode.outputs.job_mode == 'power_hour'
-        run: python -m cuttingboard --mode live --notify-mode power_hour
+        run: |
+          set -euo pipefail
+          echo "=== START POWER_HOUR ==="
+          python -m cuttingboard --mode live --notify-mode power_hour
+          echo "=== END POWER_HOUR ==="
 
       # --- Intraday regime monitor (event-driven, every 30 min during session) ---
       - name: Run intraday monitor
         if: steps.mode.outputs.job_mode == 'intraday'
-        run: python -m cuttingboard.run_intraday
+        run: |
+          set -euo pipefail
+          echo "=== START INTRADAY ==="
+          python -m cuttingboard.run_intraday
+          echo "=== END INTRADAY ==="
 
       # --- Generate commit message from latest_run.json (live and sunday only) ---
       - name: Generate commit message
@@ -143,6 +185,7 @@ jobs:
           always() &&
           (steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday')
         run: |
+          set -euo pipefail
           python3 - <<'PY'
           import json, sys
           from pathlib import Path
@@ -150,7 +193,7 @@ jobs:
           p = Path("logs/latest_run.json")
           if not p.exists():
               Path(".cb_commit_msg").write_text("CB run: failed — no summary\n")
-              sys.exit(0)
+              sys.exit(1)
 
           s = json.loads(p.read_text())
           date_str  = s.get("timestamp", "")[:10]
@@ -175,6 +218,8 @@ jobs:
            steps.mode.outputs.job_mode == 'sunday' ||
            steps.mode.outputs.job_mode == 'intraday')
         run: |
+          set -euo pipefail
+          PRE_SHA=$(git rev-parse HEAD)
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add reports/ logs/
@@ -183,6 +228,9 @@ jobs:
           else
             git diff --staged --quiet || git commit -m "CB ${{ steps.mode.outputs.job_mode }}: $(date -u +%Y-%m-%d)"
           fi
+          POST_SHA=$(git rev-parse HEAD)
+          echo "PRE_SHA=$PRE_SHA" >> "$GITHUB_ENV"
+          echo "POST_SHA=$POST_SHA" >> "$GITHUB_ENV"
 
       - name: Push
         if: >-
@@ -190,4 +238,11 @@ jobs:
           (steps.mode.outputs.job_mode == 'live' ||
            steps.mode.outputs.job_mode == 'sunday' ||
            steps.mode.outputs.job_mode == 'intraday')
-        run: git push
+        run: |
+          set -euo pipefail
+          if [ "$PRE_SHA" = "$POST_SHA" ]; then
+            echo "No new commit — skipping push"
+            exit 0
+          fi
+
+          git push
