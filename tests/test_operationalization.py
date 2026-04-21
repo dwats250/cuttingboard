@@ -4,6 +4,7 @@ import json
 import runpy
 from datetime import date, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -257,6 +258,49 @@ def test_fixture_run_is_deterministic_and_matches_pipeline(monkeypatch, tmp_path
     assert set(pipeline.summary["chain_validation"]) == set(pipeline.chain_results)
 
     assert logs_dir.joinpath("latest_run.json").exists()
+
+
+def test_execute_run_writes_latest_summary_on_controlled_failure(monkeypatch, tmp_path):
+    logs_dir, reports_dir = _isolate_artifacts(monkeypatch, tmp_path)
+
+    fake_pipeline = SimpleNamespace(
+        report_path=str(reports_dir / "2026-04-12.md"),
+        report="pipeline report",
+        date_str="2026-04-12",
+        run_at_utc=runtime.datetime(2026, 4, 12, 13, 0, tzinfo=runtime.timezone.utc),
+        summary=_valid_summary(),
+    )
+
+    def _fake_run_pipeline(*_args, **_kwargs):
+        reports_dir.mkdir(parents=True, exist_ok=True)
+        Path(fake_pipeline.report_path).write_text(fake_pipeline.report, encoding="utf-8")
+        raise AssertionError(
+            "trade-only formatter invoked for NO_TRADE run"
+        )
+
+    monkeypatch.setattr(runtime, "_run_pipeline", _fake_run_pipeline)
+
+    summary = runtime.execute_run(
+        mode=runtime.MODE_LIVE,
+        run_date=date.fromisoformat("2026-04-12"),
+    )
+
+    latest_path = logs_dir / "latest_run.json"
+    timestamped_runs = sorted(logs_dir.glob("run_*.json"))
+    report_path = reports_dir / "2026-04-12.md"
+
+    assert summary["status"] == "FAIL"
+    assert latest_path.exists()
+    assert len(timestamped_runs) == 1
+    assert report_path.exists()
+
+    latest_summary = json.loads(latest_path.read_text(encoding="utf-8"))
+    assert latest_summary["status"] == "FAIL"
+    assert latest_summary["system_halted"] is True
+    assert any("trade-only formatter invoked" in error for error in latest_summary["errors"])
+
+    report_text = report_path.read_text(encoding="utf-8")
+    assert report_text.startswith("Verification: FAIL")
 
 
 def test_fixture_invalid_json_fails_immediately(monkeypatch, tmp_path):

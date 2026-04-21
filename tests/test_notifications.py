@@ -7,6 +7,7 @@ from cuttingboard.notifications import (
     format_failure_notification,
     format_intraday_alert,
     format_notification,
+    format_run_alert,
 )
 from cuttingboard.qualification import QualificationResult, QualificationSummary
 from cuttingboard.regime import (
@@ -167,6 +168,52 @@ def test_notification_uses_watch_only_summary_when_no_focus():
     assert "\nWatch\nNVDA" in body
     assert "Long bias" in body
     assert "Trend intact" in body
+
+
+def test_run_alert_formats_trade_only_from_qualified_trade():
+    title, body = format_run_alert(
+        outcome="TRADE",
+        run_at_utc=datetime(2026, 4, 15, 14, 30, tzinfo=timezone.utc),
+        regime=_regime(),
+        validation_summary=_validation_summary(),
+        qualification_summary=_qualification_summary(["SPY"], ["NVDA"]),
+        watch_summary=None,
+    )
+
+    assert title == "SPY LONG READY"
+    assert body == (
+        "7:30 AM\n"
+        "\n"
+        "Long setup ready\n"
+        "Long bias\n"
+        "Defined risk\n"
+        "\n"
+        "Trigger\n"
+        "SPY"
+    )
+
+
+def test_run_alert_stay_flat_no_trade_never_enters_trade_only_formatter():
+    regime = _regime(posture=STAY_FLAT, confidence=0.12, net_score=1, vix_level=18.2, vix_pct_change=0.003)
+
+    title, body = format_run_alert(
+        outcome="NO_TRADE",
+        run_at_utc=datetime(2026, 4, 15, 14, 30, tzinfo=timezone.utc),
+        regime=regime,
+        validation_summary=_validation_summary(),
+        qualification_summary=_qualification_summary([], ["NVDA"]),
+        watch_summary=None,
+    )
+
+    assert title == "NO TRADE"
+    assert body == (
+        "7:30 AM\n"
+        "\n"
+        "Risk-on tape - stay flat\n"
+        "VIX 18.2 (+0.3%)\n"
+        "Leaning long"
+    )
+    assert "Watch\nNVDA" not in body
 
 
 def test_failure_notification_body_has_no_repeated_branding():

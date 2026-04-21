@@ -33,9 +33,14 @@ OUTCOME_TRADE = "TRADE"
 OUTCOME_NO_TRADE = "NO_TRADE"
 OUTCOME_HALT = "HALT"
 
+ALERT_CONTEXT_NOTIFY = "notify"
+ALERT_CONTEXT_RUN = "run"
+ALERT_CONTEXT_INTRADAY = "intraday"
+
 
 @dataclass(frozen=True)
 class AlertEvent:
+    alert_context: str
     notify_mode: Optional[str]
     outcome: str
     asof_utc: datetime
@@ -55,6 +60,8 @@ def format_ntfy_alert(event: AlertEvent) -> tuple[str, str]:
         return _format_intraday(event)
     if event.outcome == OUTCOME_HALT or event.halt_reason:
         return _format_halt(event)
+    if event.alert_context == ALERT_CONTEXT_RUN:
+        return _format_run_summary(event)
     if event.notify_mode == NOTIFY_PREMARKET:
         return _format_premarket(event)
     if _qualified_focus(event):
@@ -65,6 +72,14 @@ def format_ntfy_alert(event: AlertEvent) -> tuple[str, str]:
         return _format_session_check(event)
     if _focus_candidates(event):
         return _format_watchlist_update(event)
+    return _format_no_trade(event)
+
+
+def _format_run_summary(event: AlertEvent) -> tuple[str, str]:
+    # End-of-run alerts are contract-driven: TRADE alerts require a qualified
+    # trade, and every non-trade outcome renders the generic no-trade summary.
+    if event.outcome == OUTCOME_TRADE:
+        return _format_setup_ready(event)
     return _format_no_trade(event)
 
 

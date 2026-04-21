@@ -16,7 +16,13 @@ from cuttingboard.regime import CHAOTIC, RegimeState, STAY_FLAT
 from cuttingboard.validation import ValidationSummary
 from cuttingboard.watch import WatchSummary
 
-from .formatter import AlertEvent, format_ntfy_alert
+from .formatter import (
+    ALERT_CONTEXT_INTRADAY,
+    ALERT_CONTEXT_NOTIFY,
+    ALERT_CONTEXT_RUN,
+    AlertEvent,
+    format_ntfy_alert,
+)
 
 # ---------------------------------------------------------------------------
 # Notify mode constants
@@ -46,6 +52,7 @@ _SUPPRESS_CONFIDENCE = 0.55
 def ntfy_title(notify_mode: str, date_str: str) -> str:
     del date_str
     event = AlertEvent(
+        alert_context=ALERT_CONTEXT_NOTIFY,
         notify_mode=notify_mode,
         outcome="NO_TRADE",
         asof_utc=datetime.now(timezone.utc),
@@ -95,6 +102,7 @@ def format_notification(
     """Return compact (title, body) for ntfy."""
     del date_str, normalized_quotes
     event = AlertEvent(
+        alert_context=ALERT_CONTEXT_NOTIFY,
         notify_mode=notify_mode,
         outcome=outcome,
         asof_utc=(regime.computed_at_utc if regime is not None else datetime.now(timezone.utc)),
@@ -121,6 +129,7 @@ def format_run_alert(
 ) -> tuple[str, str]:
     """Format the default live/sunday ntfy alert from pipeline state."""
     event = AlertEvent(
+        alert_context=ALERT_CONTEXT_RUN,
         notify_mode=notify_mode,
         outcome=outcome,
         asof_utc=run_at_utc,
@@ -141,6 +150,7 @@ def format_intraday_alert(
 ) -> tuple[str, str]:
     """Format an intraday trigger using the shared ntfy formatter."""
     event = AlertEvent(
+        alert_context=ALERT_CONTEXT_INTRADAY,
         notify_mode=None,
         outcome="NO_TRADE",
         asof_utc=asof_utc,
@@ -153,6 +163,7 @@ def format_intraday_alert(
 def format_failure_notification(notify_mode: str, date_str: str, reason: str) -> tuple[str, str]:
     del date_str
     event = AlertEvent(
+        alert_context=ALERT_CONTEXT_NOTIFY,
         notify_mode=notify_mode,
         outcome="NO_TRADE",
         asof_utc=datetime.now(timezone.utc),

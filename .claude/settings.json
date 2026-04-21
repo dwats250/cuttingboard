@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "mcp__memory__create_entities"
+      "mcp__memory__create_entities",
+      "Edit",
+      "Write"
     ]
   }
 }
