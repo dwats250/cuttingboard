@@ -1,3 +1,4 @@
+from __future__ import annotations
 from datetime import timedelta
 """
 Intraday State Engine — ORB classification, Phase 1.
@@ -6,7 +7,6 @@ Public API: compute_intraday_state(symbol, bars) -> IntraState | None
 All other functions are internal.
 """
 
-from __future__ import annotations
 
 # ---------------------------------------------------------------------------
 _VWAP_BUFFER     = 0.001   # ±10 bps
