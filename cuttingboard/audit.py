@@ -34,7 +34,7 @@ def write_audit_record(
     qualification_summary: Optional[QualificationSummary],
     option_setups: list[OptionSetup],
     halt_reason: Optional[str],
-    ntfy_sent: bool,
+    alert_sent: bool,
     report_path: str,
     router_mode: str = "",
     energy_score: float = 0.0,
@@ -66,7 +66,7 @@ def write_audit_record(
         suppressed_candidates=suppressed_candidates,
         intraday_state_context=intraday_state_context,
         halt_reason=halt_reason,
-        ntfy_sent=ntfy_sent,
+        alert_sent=alert_sent,
         report_path=report_path,
     )
 
@@ -87,7 +87,7 @@ def _build_record(
     qualification_summary: Optional[QualificationSummary],
     option_setups: list[OptionSetup],
     halt_reason: Optional[str],
-    ntfy_sent: bool,
+    alert_sent: bool,
     report_path: str,
     router_mode: str = "",
     energy_score: float = 0.0,
@@ -182,7 +182,7 @@ def _build_record(
 
         # Run metadata
         "halt_reason":            halt_reason,
-        "ntfy_sent":              ntfy_sent,
+        "alert_sent":             alert_sent,
         "report_path":            report_path,
     }
 

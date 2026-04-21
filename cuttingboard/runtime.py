@@ -55,7 +55,6 @@ from cuttingboard.output import (
     OUTCOME_TRADE,
     render_report,
     send_notification,
-    send_ntfy,
 )
 from cuttingboard.qualification import QualificationSummary, qualify_all
 from cuttingboard.regime import CHAOTIC, NEUTRAL, RegimeState, compute_regime
@@ -336,7 +335,7 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
                     datetime.now(timezone.utc),
                 )
 
-        ntfy_title, ntfy_body = format_notification(
+        alert_title, alert_body = format_notification(
             notify_mode=notify_mode,
             date_str=date_str,
             regime=regime,
@@ -350,15 +349,15 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
         )
 
         if mode == MODE_LIVE:
-            send_notification(ntfy_title, ntfy_body)
+            send_notification(alert_title, alert_body)
 
         return {"status": SUMMARY_STATUS_SUCCESS, "suppressed": False}
 
     except Exception as exc:
         logger.exception("notify-mode run failed: %s", exc)
-        ntfy_title, ntfy_body = format_failure_notification(notify_mode, date_str, str(exc)[:120])
+        alert_title, alert_body = format_failure_notification(notify_mode, date_str, str(exc)[:120])
         try:
-            send_notification(ntfy_title, ntfy_body)
+            send_notification(alert_title, alert_body)
         except Exception:
             pass
         return {"status": SUMMARY_STATUS_FAIL, "suppressed": False}
@@ -487,7 +486,7 @@ def _run_pipeline(
     alert_sent = False
     if mode in {MODE_LIVE, MODE_SUNDAY} and not fixture_backed:
         if notify_mode == NOTIFY_PREMARKET:
-            ntfy_title, ntfy_body = format_notification(
+            alert_title, alert_body = format_notification(
                 notify_mode=NOTIFY_PREMARKET,
                 date_str=date_str,
                 regime=regime,
@@ -501,9 +500,9 @@ def _run_pipeline(
                 outcome=outcome,
                 halt_reason=validation_summary.halt_reason,
             )
-            alert_sent = send_notification(ntfy_title, ntfy_body)
+            alert_sent = send_notification(alert_title, alert_body)
         else:
-            ntfy_title, ntfy_body = format_run_alert(
+            alert_title, alert_body = format_run_alert(
                 outcome=outcome,
                 run_at_utc=run_at_utc,
                 regime=regime,
@@ -515,7 +514,7 @@ def _run_pipeline(
                 watch_summary=watch_summary,
                 halt_reason=validation_summary.halt_reason,
             )
-            alert_sent = send_notification(ntfy_title, ntfy_body)
+            alert_sent = send_notification(alert_title, alert_body)
 
     audit_record = write_audit_record(
         run_at_utc=run_at_utc,
@@ -531,7 +530,7 @@ def _run_pipeline(
         option_setups=option_setups,
         suppressed_candidates=suppressed_candidates,
         halt_reason=validation_summary.halt_reason,
-        ntfy_sent=alert_sent,
+        alert_sent=alert_sent,
         report_path=report_path,
         intraday_state_context=intraday_state_context,
     )

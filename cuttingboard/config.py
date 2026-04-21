@@ -15,8 +15,8 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 
 POLYGON_API_KEY: str | None = os.getenv("POLYGON_API_KEY")
-NTFY_TOPIC: str | None = os.getenv("NTFY_TOPIC")
-NTFY_URL: str | None = os.getenv("NTFY_URL")
+TELEGRAM_BOT_TOKEN: str | None = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID: str | None = os.getenv("TELEGRAM_CHAT_ID")
 
 # ---------------------------------------------------------------------------
 # Pipeline constants

@@ -4,7 +4,7 @@ Layer 9 — Output Engine.
 Three write destinations per run:
   1. Terminal  — printed immediately after all layers complete
   2. Markdown  — reports/YYYY-MM-DD.md (written even on NO TRADE days)
-  3. ntfy      — alert sent when NTFY settings are in .env
+  3. Telegram  — alert sent when TELEGRAM settings are in .env
 
 Report is written and committed on every run, including NO TRADE days.
 
@@ -320,67 +320,43 @@ def write_markdown(report: str, date_str: str) -> str:
     return path
 
 
-def send_ntfy(
-    report: str,
-    date_str: str,
-    outcome: str,
-    title: Optional[str] = None,
-) -> bool:
-    """Send ntfy notification. Returns True on success, False otherwise.
+def send_telegram(title: str, body: str) -> bool:
+    """Send Telegram notification. Returns True on success, False otherwise.
 
-    When title is provided it is sent as the ntfy Title header (displays as
-    push notification headline on mobile). The report is sent as the body.
-
-    When title is None the legacy behaviour applies: a title is constructed
-    from outcome and prepended to the body.
-
-    Silently skips (returns False) when ntfy is not configured.
+    Silently skips (returns False) when Telegram is not configured.
     Logs warnings on delivery failure — never raises.
     """
-    topic = config.NTFY_TOPIC
-    ntfy_url = config.NTFY_URL
+    token = config.TELEGRAM_BOT_TOKEN
+    chat_id = config.TELEGRAM_CHAT_ID
 
-    if not topic or not ntfy_url:
-        logger.debug("ntfy not configured — notification skipped")
+    if not token or not chat_id:
+        logger.debug("Telegram not configured — notification skipped")
         return False
 
-    if title is not None:
-        raw_title = title
-        body = report
-    else:
-        title_map = {
-            OUTCOME_TRADE:    f"CUTTINGBOARD - {date_str} - TRADE",
-            OUTCOME_NO_TRADE: f"CUTTINGBOARD - {date_str} - NO TRADE",
-            OUTCOME_HALT:     f"CUTTINGBOARD - {date_str} - HALT",
-        }
-        raw_title = title_map.get(outcome, f"CUTTINGBOARD - {date_str}")
-        body = report
-
-    safe_title = _ascii_safe(raw_title)
-    safe_body = _ascii_safe(body)
+    text = f"{title}\n\n{body}" if body else title
+    safe_text = _ascii_safe(text)
 
     try:
         resp = requests.post(
-            f"{ntfy_url.rstrip('/')}/{topic}",
-            headers={"Title": safe_title},
-            data=safe_body.encode("utf-8"),
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={"chat_id": chat_id, "text": safe_text},
             timeout=10,
         )
         if resp.status_code == 200:
-            logger.info(f"ntfy delivered: {safe_title!r} ({len(safe_body)} bytes)")
+            logger.info(f"Telegram delivered: {title!r} ({len(safe_text)} bytes)")
             return True
         logger.warning(
-            f"ntfy failed: HTTP {resp.status_code} for {safe_title!r} - {resp.text[:200]}"
+            f"Telegram failed: HTTP {resp.status_code} for {title!r} - {resp.text[:200]}"
         )
     except Exception as exc:
-        logger.warning(f"ntfy delivery error for {safe_title!r}: {exc}")
+        logger.warning(f"Telegram delivery error for {title!r}: {exc}")
 
     return False
 
 
 def send_notification(title: str, body: str) -> bool:
-    """Compatibility wrapper for runtime's notification call sites."""
-    return send_ntfy(body, datetime.now(timezone.utc).date().isoformat(), OUTCOME_NO_TRADE, title=title)
+    """Single notification dispatch point. Sends via Telegram."""
+    return send_telegram(title, body)
 
 
 # ---------------------------------------------------------------------------
@@ -426,7 +402,7 @@ def run_pipeline() -> int:
         )
         write_terminal(report)
         report_path = write_markdown(report, date_str)
-        ntfy_title, ntfy_body = format_run_alert(
+        alert_title, alert_body = format_run_alert(
             outcome=OUTCOME_HALT,
             run_at_utc=run_at,
             regime=None,
@@ -435,7 +411,7 @@ def run_pipeline() -> int:
             watch_summary=None,
             halt_reason=val.halt_reason,
         )
-        ntfy_sent = send_ntfy(ntfy_body, date_str, OUTCOME_HALT, title=ntfy_title)
+        alert_sent = send_notification(alert_title, alert_body)
 
         write_audit_record(
             run_at_utc=run_at,
@@ -447,7 +423,7 @@ def run_pipeline() -> int:
             watch_summary=None,
             option_setups=[],
             halt_reason=val.halt_reason,
-            ntfy_sent=ntfy_sent,
+            alert_sent=alert_sent,
             report_path=report_path,
         )
         return 1
@@ -513,7 +489,7 @@ def run_pipeline() -> int:
 
     write_terminal(report)
     report_path = write_markdown(report, date_str)
-    ntfy_title, ntfy_body = format_run_alert(
+    alert_title, alert_body = format_run_alert(
         outcome=outcome,
         run_at_utc=run_at,
         regime=regime,
@@ -521,7 +497,7 @@ def run_pipeline() -> int:
         qualification_summary=qual,
         watch_summary=watch_summary,
     )
-    ntfy_sent = send_ntfy(ntfy_body, date_str, outcome, title=ntfy_title)
+    alert_sent = send_notification(alert_title, alert_body)
 
     write_audit_record(
         run_at_utc=run_at,
@@ -533,7 +509,7 @@ def run_pipeline() -> int:
         watch_summary=watch_summary,
         option_setups=setups,
         halt_reason=None,
-        ntfy_sent=ntfy_sent,
+        alert_sent=alert_sent,
         report_path=report_path,
     )
 

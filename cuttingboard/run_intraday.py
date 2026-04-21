@@ -5,7 +5,7 @@ Scheduled entry point: every 30 minutes, 14:00–21:00 UTC Monday–Friday.
   python -m cuttingboard.run_intraday
 
 Runs L1–L5 (ingest → normalize → validate → derived → regime) and sends a
-ntfy alert on any of three trigger conditions:
+Telegram alert on any of three trigger conditions:
 
   1. Regime becomes CHAOTIC
   2. RISK_ON ↔ RISK_OFF crossover (directional regime flip)
@@ -26,12 +26,10 @@ import sys
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-import requests
-
-from cuttingboard import config
 from cuttingboard.derived import compute_all_derived
 from cuttingboard.ingestion import fetch_all
 from cuttingboard.notifications import format_intraday_alert
+from cuttingboard.output import send_notification
 from cuttingboard.normalization import normalize_all
 from cuttingboard.regime import (
     RegimeState,
@@ -167,44 +165,20 @@ def _within_dedup_window(state: dict, now: datetime) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# ntfy delivery
+# Telegram delivery
 # ---------------------------------------------------------------------------
 
 def _send_alert(regime: RegimeState, alert_type: str, run_at: datetime) -> bool:
-    """Format and deliver an ntfy notification. Returns True on success."""
-    topic = config.NTFY_TOPIC
-    ntfy_url = config.NTFY_URL
-
-    if not topic or not ntfy_url:
-        logger.debug("ntfy not configured — intraday alert skipped")
-        return False
-
+    """Format and deliver a Telegram notification. Returns True on success."""
     title, message = format_intraday_alert(
         alert_type=alert_type,
         asof_utc=run_at,
         regime=regime,
     )
-
-    safe_title   = _ascii_safe(title)
-    safe_message = _ascii_safe(message)
-
-    try:
-        resp = requests.post(
-            f"{ntfy_url.rstrip('/')}/{topic}",
-            headers={"Title": safe_title},
-            data=safe_message.encode("utf-8"),
-            timeout=10,
-        )
-        if resp.status_code == 200:
-            logger.info(f"Intraday alert delivered: {alert_type} - {safe_title!r}")
-            return True
-        logger.warning(
-            f"ntfy failed: HTTP {resp.status_code} for {alert_type} - {resp.text[:200]}"
-        )
-    except Exception as exc:
-        logger.warning(f"ntfy delivery error for {alert_type}: {exc}")
-
-    return False
+    sent = send_notification(title, message)
+    if sent:
+        logger.info(f"Intraday alert delivered: {alert_type} - {title!r}")
+    return sent
 
 
 # ---------------------------------------------------------------------------

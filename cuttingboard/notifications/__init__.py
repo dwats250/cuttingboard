@@ -2,7 +2,7 @@
 Notification formatters for scheduled notify-mode runs.
 
 Public API is kept here for callers that import `cuttingboard.notifications`.
-The dedicated ntfy renderer lives in formatter.py.
+The alert renderer lives in formatter.py.
 """
 
 from __future__ import annotations

@@ -243,8 +243,8 @@ class TestStateIO:
 class TestSendAlert:
     def test_skips_when_not_configured(self):
         from cuttingboard import config
-        with patch.object(config, "NTFY_TOPIC", None):
-            with patch.object(config, "NTFY_URL", None):
+        with patch.object(config, "TELEGRAM_BOT_TOKEN", None):
+            with patch.object(config, "TELEGRAM_CHAT_ID", None):
                 result = _send_alert(_regime(), ALERT_CHAOTIC, _NOW)
         assert result is False
 
@@ -252,8 +252,8 @@ class TestSendAlert:
         from cuttingboard import config
         mock_resp = MagicMock()
         mock_resp.status_code = 200
-        with patch.object(config, "NTFY_TOPIC", "topic"):
-            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
+        with patch.object(config, "TELEGRAM_BOT_TOKEN", "bot-token"):
+            with patch.object(config, "TELEGRAM_CHAT_ID", "12345"):
                 with patch("requests.post", return_value=mock_resp):
                     result = _send_alert(_regime(), ALERT_CHAOTIC, _NOW)
         assert result is True
@@ -263,63 +263,51 @@ class TestSendAlert:
         mock_resp = MagicMock()
         mock_resp.status_code = 500
         mock_resp.text = "error"
-        with patch.object(config, "NTFY_TOPIC", "topic"):
-            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
+        with patch.object(config, "TELEGRAM_BOT_TOKEN", "bot-token"):
+            with patch.object(config, "TELEGRAM_CHAT_ID", "12345"):
                 with patch("requests.post", return_value=mock_resp):
                     result = _send_alert(_regime(), ALERT_CHAOTIC, _NOW)
         assert result is False
 
     def test_delegates_message_formatting_to_shared_formatter(self):
-        from cuttingboard import config
-        posted = {}
+        captured = {}
 
-        def capture_post(url, data=None, headers=None, **kwargs):
-            posted["body"] = data.decode() if isinstance(data, bytes) else data
-            posted["title"] = headers["Title"]
-            m = MagicMock()
-            m.status_code = 200
-            return m
+        def capture_send(title, body):
+            captured["title"] = title
+            captured["body"] = body
+            return True
 
-        with patch.object(config, "NTFY_TOPIC", "topic"):
-            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
-                with patch("cuttingboard.run_intraday.format_intraday_alert", return_value=("REGIME SHIFT", "10:12 AM\n\nRisk improving")) as mock_format:
-                    with patch("requests.post", side_effect=capture_post):
-                        _send_alert(
-                            _regime(regime=RISK_ON, posture=AGGRESSIVE_LONG),
-                            ALERT_REGIME_SHIFT, _NOW,
-                        )
+        with patch("cuttingboard.run_intraday.format_intraday_alert", return_value=("REGIME SHIFT", "10:12 AM\n\nRisk improving")) as mock_format:
+            with patch("cuttingboard.run_intraday.send_notification", side_effect=capture_send):
+                _send_alert(
+                    _regime(regime=RISK_ON, posture=AGGRESSIVE_LONG),
+                    ALERT_REGIME_SHIFT, _NOW,
+                )
         mock_format.assert_called_once_with(
             alert_type=ALERT_REGIME_SHIFT,
             asof_utc=_NOW,
             regime=_regime(regime=RISK_ON, posture=AGGRESSIVE_LONG),
         )
-        assert posted["title"] == "REGIME SHIFT"
-        assert posted["body"] == "10:12 AM\n\nRisk improving"
+        assert captured["title"] == "REGIME SHIFT"
+        assert captured["body"] == "10:12 AM\n\nRisk improving"
 
     def test_regime_shift_body_drops_legacy_phrasing(self):
         from cuttingboard import config
-        posted_data = {}
-
-        def capture_post(url, data=None, headers=None, **kwargs):
-            posted_data["title"] = headers["Title"]
-            posted_data["body"] = data.decode() if isinstance(data, bytes) else data
-            m = MagicMock()
-            m.status_code = 200
-            return m
-
-        with patch.object(config, "NTFY_TOPIC", "topic"):
-            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
-                with patch("requests.post", side_effect=capture_post):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        with patch.object(config, "TELEGRAM_BOT_TOKEN", "bot-token"):
+            with patch.object(config, "TELEGRAM_CHAT_ID", "12345"):
+                with patch("requests.post", return_value=mock_resp) as mock_post:
                     _send_alert(
                         _regime(regime=RISK_ON, posture=AGGRESSIVE_LONG),
                         ALERT_REGIME_SHIFT, _NOW,
                     )
-        assert posted_data["title"] == "REGIME SHIFT"
-        assert "CUTTINGBOARD" not in posted_data["title"]
-        assert "CUTTINGBOARD" not in posted_data["body"]
-        assert "REGIME SHIFT ->" not in posted_data["body"]
-        assert "New regime:" not in posted_data["body"]
-        assert posted_data["body"]
+        _, kwargs = mock_post.call_args
+        sent_text = kwargs["json"]["text"]
+        assert "REGIME SHIFT" in sent_text
+        assert "CUTTINGBOARD" not in sent_text.split("\n")[0]
+        assert "REGIME SHIFT ->" not in sent_text
+        assert "New regime:" not in sent_text
 
 
 # ---------------------------------------------------------------------------

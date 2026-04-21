@@ -352,7 +352,7 @@ def test_fixture_schema_mismatch_identifies_symbol(monkeypatch, tmp_path):
 def test_sunday_mode_fixture_run_is_end_to_end_and_offline(monkeypatch, tmp_path):
     _isolate_artifacts(monkeypatch, tmp_path)
     monkeypatch.setattr(runtime, "fetch_all", lambda: pytest.fail("sunday fixture run called fetch_all"))
-    monkeypatch.setattr(runtime, "send_ntfy", lambda *_args, **_kwargs: pytest.fail("sunday fixture run sent ntfy"))
+    monkeypatch.setattr(runtime, "send_notification", lambda *_args, **_kwargs: pytest.fail("sunday fixture run sent notification"))
 
     summary = runtime.execute_run(
         mode=runtime.MODE_SUNDAY,

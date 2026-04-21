@@ -33,7 +33,7 @@ from cuttingboard.options import (
 )
 from cuttingboard.output import (
     render_report,
-    send_ntfy,
+    send_telegram,
     OUTCOME_TRADE, OUTCOME_NO_TRADE, OUTCOME_HALT,
 )
 from cuttingboard.qualification import (
@@ -470,7 +470,7 @@ class TestBuildAuditRecord:
             qualification_summary=qual,
             option_setups=[],
             halt_reason=None,
-            ntfy_sent=False,
+            alert_sent=False,
             report_path="reports/2026-04-10.md",
         )
 
@@ -486,7 +486,7 @@ class TestBuildAuditRecord:
             "symbols_qualified", "symbols_watchlist", "symbols_excluded",
             "regime_short_circuited", "regime_failure_reason",
             "qualified_trades", "watchlist", "excluded_symbols",
-            "halt_reason", "ntfy_sent", "report_path",
+            "halt_reason", "alert_sent", "report_path",
         ]
         for field in required:
             assert field in record, f"Missing field: {field}"
@@ -514,8 +514,8 @@ class TestBuildAuditRecord:
     def test_halt_reason_null_on_no_trade(self):
         assert self._base_record()["halt_reason"] is None
 
-    def test_ntfy_sent_false(self):
-        assert self._base_record()["ntfy_sent"] is False
+    def test_alert_sent_false(self):
+        assert self._base_record()["alert_sent"] is False
 
     def test_none_regime_serializes(self):
         val = _val_summary()
@@ -524,7 +524,7 @@ class TestBuildAuditRecord:
             outcome=OUTCOME_HALT, regime=None,
             validation_summary=val, qualification_summary=None,
             option_setups=[], halt_reason="test halt",
-            ntfy_sent=False, report_path="reports/2026-04-10.md",
+            alert_sent=False, report_path="reports/2026-04-10.md",
         )
         assert record["regime"] is None
         assert record["halt_reason"] == "test halt"
@@ -551,7 +551,7 @@ class TestAuditFileWriter:
             outcome=OUTCOME_NO_TRADE,
             regime=_stay_flat(), validation_summary=val,
             qualification_summary=qual, option_setups=[],
-            halt_reason=None, ntfy_sent=False,
+            halt_reason=None, alert_sent=False,
             report_path="reports/2026-04-10.md",
         )
         log_file = tmp_path / "logs" / "audit.jsonl"
@@ -569,7 +569,7 @@ class TestAuditFileWriter:
                 outcome=OUTCOME_NO_TRADE,
                 regime=_stay_flat(), validation_summary=val,
                 qualification_summary=qual, option_setups=[],
-                halt_reason=None, ntfy_sent=False,
+                halt_reason=None, alert_sent=False,
                 report_path="reports/2026-04-10.md",
             )
 
@@ -586,7 +586,7 @@ class TestAuditFileWriter:
             outcome=OUTCOME_NO_TRADE,
             regime=_stay_flat(), validation_summary=val,
             qualification_summary=qual, option_setups=[],
-            halt_reason=None, ntfy_sent=False,
+            halt_reason=None, alert_sent=False,
             report_path="reports/2026-04-10.md",
         )
         line = (tmp_path / "logs" / "audit.jsonl").read_text().strip()
@@ -719,55 +719,55 @@ class TestRenderReport:
 
 
 # ---------------------------------------------------------------------------
-# output.py — send_ntfy
+# output.py — send_telegram
 # ---------------------------------------------------------------------------
 
-class TestSendNtfy:
+class TestSendTelegram:
     def test_skips_when_not_configured(self):
-        with patch.object(config, "NTFY_TOPIC", None):
-            with patch.object(config, "NTFY_URL", None):
-                result = send_ntfy("report text", "2026-04-10", OUTCOME_NO_TRADE)
+        with patch.object(config, "TELEGRAM_BOT_TOKEN", None):
+            with patch.object(config, "TELEGRAM_CHAT_ID", None):
+                result = send_telegram("NO TRADE", "report text")
         assert result is False
 
     def test_returns_true_on_200(self):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
-        with patch.object(config, "NTFY_TOPIC", "test-topic"):
-            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
+        with patch.object(config, "TELEGRAM_BOT_TOKEN", "bot-token"):
+            with patch.object(config, "TELEGRAM_CHAT_ID", "12345"):
                 with patch("requests.post", return_value=mock_resp):
-                    result = send_ntfy("report", "2026-04-10", OUTCOME_NO_TRADE)
+                    result = send_telegram("NO TRADE", "report")
         assert result is True
 
-    def test_sanitizes_unicode_title_and_body_before_post(self):
+    def test_sanitizes_unicode_in_text_before_post(self):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
-        with patch.object(config, "NTFY_TOPIC", "test-topic"):
-            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
+        with patch.object(config, "TELEGRAM_BOT_TOKEN", "bot-token"):
+            with patch.object(config, "TELEGRAM_CHAT_ID", "12345"):
                 with patch("requests.post", return_value=mock_resp) as mock_post:
-                    result = send_ntfy(
-                        "FLAT — no new positions. Await regime clarity.",
-                        "2026-04-10",
-                        OUTCOME_NO_TRADE,
-                        title="NO TRADE — TEST",
+                    result = send_telegram(
+                        "NO TRADE — TEST",
+                        "FLAT — no new positions.",
                     )
         assert result is True
         _, kwargs = mock_post.call_args
-        assert kwargs["headers"]["Title"] == "NO TRADE - TEST"
-        assert kwargs["data"] == b"FLAT - no new positions. Await regime clarity."
+        sent_text = kwargs["json"]["text"]
+        assert "—" not in sent_text
+        assert "NO TRADE - TEST" in sent_text
+        assert "FLAT - no new positions." in sent_text
 
     def test_returns_false_on_non_200(self):
         mock_resp = MagicMock()
         mock_resp.status_code = 429
         mock_resp.text = "rate limited"
-        with patch.object(config, "NTFY_TOPIC", "test-topic"):
-            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
+        with patch.object(config, "TELEGRAM_BOT_TOKEN", "bot-token"):
+            with patch.object(config, "TELEGRAM_CHAT_ID", "12345"):
                 with patch("requests.post", return_value=mock_resp):
-                    result = send_ntfy("report", "2026-04-10", OUTCOME_NO_TRADE)
+                    result = send_telegram("NO TRADE", "report")
         assert result is False
 
     def test_returns_false_on_exception(self):
-        with patch.object(config, "NTFY_TOPIC", "test-topic"):
-            with patch.object(config, "NTFY_URL", "https://ntfy.example.com"):
+        with patch.object(config, "TELEGRAM_BOT_TOKEN", "bot-token"):
+            with patch.object(config, "TELEGRAM_CHAT_ID", "12345"):
                 with patch("requests.post", side_effect=ConnectionError("timeout")):
-                    result = send_ntfy("report", "2026-04-10", OUTCOME_NO_TRADE)
+                    result = send_telegram("NO TRADE", "report")
         assert result is False
