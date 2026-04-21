@@ -59,13 +59,13 @@ jobs:
 
       - name: Install package
         run: |
-          set -euo pipefail
+          set -eo pipefail
           pip install -e .
 
       - name: Determine run mode
         id: mode
         run: |
-          set -euo pipefail
+          set -eo pipefail
           TIME=$(date -u +%H%M)
           EVENT="${{ github.event_name }}"
           DISPATCH_MODE="${{ github.event.inputs.mode }}"
@@ -99,7 +99,7 @@ jobs:
       - name: Run prefetch
         if: steps.mode.outputs.job_mode == 'prefetch'
         run: |
-          set -euo pipefail
+          set -eo pipefail
           echo "=== START prefetch ==="
           python -m cuttingboard --mode prefetch --notify-mode none
           echo "=== END prefetch ==="
@@ -108,7 +108,7 @@ jobs:
       - name: Run live pipeline
         if: steps.mode.outputs.job_mode == 'live'
         run: |
-          set -euo pipefail
+          set -eo pipefail
           echo "=== START live ==="
           python -m cuttingboard --mode live --notify-mode premarket
           echo "=== END live ==="
@@ -117,7 +117,7 @@ jobs:
       - name: Run Sunday regime report
         if: steps.mode.outputs.job_mode == 'sunday'
         run: |
-          set -euo pipefail
+          set -eo pipefail
           echo "=== START sunday ==="
           python -m cuttingboard --mode sunday --notify-mode none
           echo "=== END sunday ==="
@@ -129,7 +129,7 @@ jobs:
           steps.mode.outputs.job_mode == 'sunday' ||
           steps.mode.outputs.job_mode == 'verify'
         run: |
-          set -euo pipefail
+          set -eo pipefail
           echo "=== START verify ==="
           python -m cuttingboard --mode verify --notify-mode none
           echo "=== END verify ==="
@@ -138,7 +138,7 @@ jobs:
       - name: Run ORB trajectory scan
         if: steps.mode.outputs.job_mode == 'orb_trajectory'
         run: |
-          set -euo pipefail
+          set -eo pipefail
           echo "=== START orb_trajectory ==="
           python -m cuttingboard --mode orb_trajectory --notify-mode intraday
           echo "=== END orb_trajectory ==="
@@ -147,7 +147,7 @@ jobs:
       - name: Run post-ORB scan
         if: steps.mode.outputs.job_mode == 'post_orb'
         run: |
-          set -euo pipefail
+          set -eo pipefail
           echo "=== START post_orb ==="
           python -m cuttingboard --mode post_orb --notify-mode intraday
           echo "=== END post_orb ==="
@@ -156,7 +156,7 @@ jobs:
       - name: Run mid-morning scan
         if: steps.mode.outputs.job_mode == 'midmorning'
         run: |
-          set -euo pipefail
+          set -eo pipefail
           echo "=== START midmorning ==="
           python -m cuttingboard --mode midmorning --notify-mode intraday
           echo "=== END midmorning ==="
@@ -165,7 +165,7 @@ jobs:
       - name: Run power-hour scan
         if: steps.mode.outputs.job_mode == 'power_hour'
         run: |
-          set -euo pipefail
+          set -eo pipefail
           echo "=== START power_hour ==="
           python -m cuttingboard --mode power_hour --notify-mode intraday
           echo "=== END power_hour ==="
@@ -174,7 +174,7 @@ jobs:
       - name: Run intraday monitor
         if: steps.mode.outputs.job_mode == 'intraday'
         run: |
-          set -euo pipefail
+          set -eo pipefail
           echo "=== START intraday ==="
           python -m cuttingboard --mode live --notify-mode intraday
           echo "=== END intraday ==="
@@ -185,7 +185,7 @@ jobs:
           always() &&
           (steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday')
         run: |
-          set -euo pipefail
+          set -eo pipefail
           python3 - <<'PY'
           import json, sys
           from pathlib import Path
@@ -214,7 +214,7 @@ jobs:
       - name: Commit artifacts
         if: ${{ success() }}
         run: |
-          set -euo pipefail
+          set -eo pipefail
           PRE_SHA=$(git rev-parse HEAD)
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -232,7 +232,7 @@ jobs:
       - name: Push
         if: ${{ success() }}
         run: |
-          set -euo pipefail
+          set -eo pipefail
           if [ -z "${PRE_SHA:-}" ] || [ -z "${POST_SHA:-}" ]; then
             echo "Missing SHA state - skipping push"
             exit 0
