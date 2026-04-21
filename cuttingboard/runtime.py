@@ -55,6 +55,7 @@ from cuttingboard.output import (
     OUTCOME_TRADE,
     render_report,
     send_notification,
+    send_ntfy,
 )
 from cuttingboard.qualification import QualificationSummary, qualify_all
 from cuttingboard.regime import CHAOTIC, NEUTRAL, RegimeState, compute_regime
@@ -530,7 +531,7 @@ def _run_pipeline(
         option_setups=option_setups,
         suppressed_candidates=suppressed_candidates,
         halt_reason=validation_summary.halt_reason,
-        alert_sent=alert_sent,
+        ntfy_sent=alert_sent,
         report_path=report_path,
         intraday_state_context=intraday_state_context,
     )
@@ -769,9 +770,6 @@ def verify_run_summary(path: str) -> dict[str, Any]:
         "posture",
         "confidence",
         "net_score",
-        "router_mode",
-        "energy_score",
-        "index_score",
         "permission",
         "kill_switch",
         "min_rr_applied",
@@ -802,9 +800,6 @@ def verify_run_summary(path: str) -> dict[str, Any]:
         errors.append(f"invalid regime: {summary.get('regime')}")
     if summary.get("posture") not in VALID_POSTURES:
         errors.append(f"invalid posture: {summary.get('posture')}")
-    if summary.get("router_mode") not in {"ENERGY_FOCUS", "INDEX_FOCUS", "MIXED"}:
-        errors.append(f"invalid router_mode: {summary.get('router_mode')}")
-
     confidence = summary.get("confidence")
     if not isinstance(confidence, (int, float)) or not 0.0 <= confidence <= 1.0:
         errors.append(f"confidence out of range: {confidence}")
@@ -812,11 +807,6 @@ def verify_run_summary(path: str) -> dict[str, Any]:
     net_score = summary.get("net_score")
     if not isinstance(net_score, int) or not -8 <= net_score <= 8:
         errors.append(f"net_score out of range: {net_score}")
-
-    for key in ("energy_score", "index_score"):
-        value = summary.get(key)
-        if not isinstance(value, (int, float)) or not 0.0 <= float(value) <= 2.0:
-            errors.append(f"{key} out of range: {value}")
 
     data_status = summary.get("data_status")
     if data_status not in {"ok", "fallback", "stale"}:

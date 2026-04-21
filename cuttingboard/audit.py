@@ -30,15 +30,15 @@ def write_audit_record(
     date_str: str,
     outcome: str,                                    # "TRADE" | "NO_TRADE" | "HALT"
     regime: Optional[RegimeState],
-    router_mode: str,
-    energy_score: float,
-    index_score: float,
     validation_summary: ValidationSummary,
     qualification_summary: Optional[QualificationSummary],
     option_setups: list[OptionSetup],
     halt_reason: Optional[str],
-    alert_sent: bool,
+    ntfy_sent: bool,
     report_path: str,
+    router_mode: str = "",
+    energy_score: float = 0.0,
+    index_score: float = 0.0,
     watch_summary: Optional[WatchSummary] = None,
     suppressed_candidates: Optional[list] = None,
     intraday_state_context: Optional[dict[str, dict]] = None,
@@ -66,7 +66,7 @@ def write_audit_record(
         suppressed_candidates=suppressed_candidates,
         intraday_state_context=intraday_state_context,
         halt_reason=halt_reason,
-        alert_sent=alert_sent,
+        ntfy_sent=ntfy_sent,
         report_path=report_path,
     )
 
@@ -83,15 +83,15 @@ def _build_record(
     date_str: str,
     outcome: str,
     regime: Optional[RegimeState],
-    router_mode: str,
-    energy_score: float,
-    index_score: float,
     validation_summary: ValidationSummary,
     qualification_summary: Optional[QualificationSummary],
     option_setups: list[OptionSetup],
     halt_reason: Optional[str],
-    alert_sent: bool,
+    ntfy_sent: bool,
     report_path: str,
+    router_mode: str = "",
+    energy_score: float = 0.0,
+    index_score: float = 0.0,
     watch_summary: Optional[WatchSummary] = None,
     suppressed_candidates: Optional[list] = None,
     intraday_state_context: Optional[dict[str, dict]] = None,
@@ -182,7 +182,7 @@ def _build_record(
 
         # Run metadata
         "halt_reason":            halt_reason,
-        "alert_sent":              alert_sent,
+        "ntfy_sent":              ntfy_sent,
         "report_path":            report_path,
     }
 
