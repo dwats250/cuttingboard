@@ -7,37 +7,6 @@ All other functions are internal.
 
 from __future__ import annotations
 
-import logging
-from dataclasses import dataclass
-from datetime import datetime, time, timedelta
-from typing import Optional
-
-import pytz
-
-    DIRECTION_DOWN,
-    DIRECTION_UP,
-    STATE_BREAK_ONLY,
-    STATE_FAILURE_CONFIRMED,
-    STATE_HOLD_CONFIRMED,
-    LevelConfirmation,
-    evaluate_level_confirmation,
-)
-
-logger = logging.getLogger(__name__)
-
-ET = pytz.timezone("US/Eastern")
-
-# ---------------------------------------------------------------------------
-# Time boundaries (ET wall-clock)
-# ---------------------------------------------------------------------------
-_ORB_START  = time(9, 30)
-_ORB_END    = time(9, 35)   # inclusive — 5 bars closing at :31–:35
-_NOISE_END  = time(9, 45)   # before this → UNCONFIRMED
-_PRIMARY_END = time(10, 30)
-_MIDDAY_END  = time(13, 30)
-
-# ---------------------------------------------------------------------------
-# Thresholds
 # ---------------------------------------------------------------------------
 _VWAP_BUFFER     = 0.001   # ±10 bps
 _VOLUME_BUFFER   = 0.10    # ±10%
