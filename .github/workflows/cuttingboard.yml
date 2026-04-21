@@ -100,27 +100,27 @@ jobs:
         if: steps.mode.outputs.job_mode == 'prefetch'
         run: |
           set -euo pipefail
-          echo "=== START PREFETCH ==="
-          python -m cuttingboard --mode prefetch
-          echo "=== END PREFETCH ==="
+          echo "=== START prefetch ==="
+          python -m cuttingboard --mode prefetch --notify-mode none
+          echo "=== END prefetch ==="
 
       # --- Premarket full pipeline ---
       - name: Run live pipeline
         if: steps.mode.outputs.job_mode == 'live'
         run: |
           set -euo pipefail
-          echo "=== START LIVE ==="
+          echo "=== START live ==="
           python -m cuttingboard --mode live --notify-mode premarket
-          echo "=== END LIVE ==="
+          echo "=== END live ==="
 
       # --- Sunday regime-only report ---
       - name: Run Sunday regime report
         if: steps.mode.outputs.job_mode == 'sunday'
         run: |
           set -euo pipefail
-          echo "=== START SUNDAY ==="
-          python -m cuttingboard --mode sunday
-          echo "=== END SUNDAY ==="
+          echo "=== START sunday ==="
+          python -m cuttingboard --mode sunday --notify-mode none
+          echo "=== END sunday ==="
 
       # --- Verify: runs after live or sunday, or standalone via workflow_dispatch ---
       - name: Verify run
@@ -130,54 +130,54 @@ jobs:
           steps.mode.outputs.job_mode == 'verify'
         run: |
           set -euo pipefail
-          echo "=== START VERIFY ==="
-          python -m cuttingboard --mode verify
-          echo "=== END VERIFY ==="
+          echo "=== START verify ==="
+          python -m cuttingboard --mode verify --notify-mode none
+          echo "=== END verify ==="
 
       # --- ORB trajectory: 06:50 PT ---
       - name: Run ORB trajectory scan
         if: steps.mode.outputs.job_mode == 'orb_trajectory'
         run: |
           set -euo pipefail
-          echo "=== START ORB_TRAJECTORY ==="
-          python -m cuttingboard --mode live --notify-mode orb_trajectory
-          echo "=== END ORB_TRAJECTORY ==="
+          echo "=== START orb_trajectory ==="
+          python -m cuttingboard --mode orb_trajectory --notify-mode intraday
+          echo "=== END orb_trajectory ==="
 
       # --- Post-ORB: 07:30 PT ---
       - name: Run post-ORB scan
         if: steps.mode.outputs.job_mode == 'post_orb'
         run: |
           set -euo pipefail
-          echo "=== START POST_ORB ==="
-          python -m cuttingboard --mode live --notify-mode post_orb
-          echo "=== END POST_ORB ==="
+          echo "=== START post_orb ==="
+          python -m cuttingboard --mode post_orb --notify-mode intraday
+          echo "=== END post_orb ==="
 
       # --- Mid-morning: 09:30 PT ---
       - name: Run mid-morning scan
         if: steps.mode.outputs.job_mode == 'midmorning'
         run: |
           set -euo pipefail
-          echo "=== START MIDMORNING ==="
-          python -m cuttingboard --mode live --notify-mode midmorning
-          echo "=== END MIDMORNING ==="
+          echo "=== START midmorning ==="
+          python -m cuttingboard --mode midmorning --notify-mode intraday
+          echo "=== END midmorning ==="
 
       # --- Power hour: 12:00 PT (3:00 PM ET) ---
       - name: Run power-hour scan
         if: steps.mode.outputs.job_mode == 'power_hour'
         run: |
           set -euo pipefail
-          echo "=== START POWER_HOUR ==="
-          python -m cuttingboard --mode live --notify-mode power_hour
-          echo "=== END POWER_HOUR ==="
+          echo "=== START power_hour ==="
+          python -m cuttingboard --mode power_hour --notify-mode intraday
+          echo "=== END power_hour ==="
 
       # --- Intraday regime monitor (event-driven, every 30 min during session) ---
       - name: Run intraday monitor
         if: steps.mode.outputs.job_mode == 'intraday'
         run: |
           set -euo pipefail
-          echo "=== START INTRADAY ==="
-          python -m cuttingboard.run_intraday
-          echo "=== END INTRADAY ==="
+          echo "=== START intraday ==="
+          python -m cuttingboard --mode intraday --notify-mode intraday
+          echo "=== END intraday ==="
 
       # --- Generate commit message from latest_run.json (live and sunday only) ---
       - name: Generate commit message
