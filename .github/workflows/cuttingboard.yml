@@ -138,7 +138,7 @@ jobs:
         run: |
           set -eo pipefail
           echo "=== START orb_trajectory ==="
-          python -m cuttingboard --mode orb_trajectory --notify-mode intraday
+          python -m cuttingboard --mode orb_trajectory --notify-mode orb_trajectory
           echo "=== END orb_trajectory ==="
 
       # --- Post-ORB: 07:30 PT ---
@@ -147,7 +147,7 @@ jobs:
         run: |
           set -eo pipefail
           echo "=== START post_orb ==="
-          python -m cuttingboard --mode post_orb --notify-mode intraday
+          python -m cuttingboard --mode post_orb --notify-mode post_orb
           echo "=== END post_orb ==="
 
       # --- Mid-morning: 09:30 PT ---
@@ -156,7 +156,7 @@ jobs:
         run: |
           set -eo pipefail
           echo "=== START midmorning ==="
-          python -m cuttingboard --mode midmorning --notify-mode intraday
+          python -m cuttingboard --mode midmorning --notify-mode midmorning
           echo "=== END midmorning ==="
 
       # --- Power hour: 12:00 PT (3:00 PM ET) ---
@@ -165,12 +165,12 @@ jobs:
         run: |
           set -eo pipefail
           echo "=== START power_hour ==="
-          python -m cuttingboard --mode power_hour --notify-mode intraday
+          python -m cuttingboard --mode power_hour --notify-mode power_hour
           echo "=== END power_hour ==="
 
-      # --- Intraday regime monitor (event-driven, every 30 min during session) ---
+      # --- Intraday regime monitor (disabled: no valid --notify-mode for live mode) ---
       - name: Run intraday monitor
-        if: steps.mode.outputs.job_mode == 'intraday'
+        if: false
         run: |
           set -eo pipefail
           echo "=== START intraday ==="
