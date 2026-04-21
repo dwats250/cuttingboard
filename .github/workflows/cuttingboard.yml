@@ -176,7 +176,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "=== START intraday ==="
-          python -m cuttingboard --mode intraday --notify-mode intraday
+          python -m cuttingboard --mode live --notify-mode intraday
           echo "=== END intraday ==="
 
       # --- Generate commit message from latest_run.json (live and sunday only) ---
