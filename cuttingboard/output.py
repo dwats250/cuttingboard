@@ -41,6 +41,7 @@ from cuttingboard.notifications import format_run_alert
 from cuttingboard.qualification import QualificationSummary, qualify_all
 from cuttingboard.regime import RegimeState, compute_regime
 from cuttingboard.structure import classify_all_structure
+from cuttingboard.universe import is_tradable_symbol
 from cuttingboard.validation import ValidationSummary, validate_quotes
 from cuttingboard.watch import (
     WatchSummary,
@@ -432,7 +433,11 @@ def run_pipeline() -> int:
     regime    = compute_regime(val.valid_quotes)
     dm        = compute_all_derived(val.valid_quotes)
     structure = classify_all_structure(val.valid_quotes, dm, regime.vix_level)
-    intraday_metrics, ignored_watch_symbols = compute_all_intraday_metrics(list(val.valid_quotes))
+    tradable_symbols = [
+        symbol for symbol in val.valid_quotes
+        if is_tradable_symbol(symbol)
+    ]
+    intraday_metrics, ignored_watch_symbols = compute_all_intraday_metrics(tradable_symbols)
     watch_summary = classify_watchlist(
         structure,
         dm,

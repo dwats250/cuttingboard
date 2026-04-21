@@ -6,7 +6,15 @@ from collections.abc import Callable, Iterable, Mapping
 from logging import Logger
 from typing import TypeVar
 
+from cuttingboard import config
+
 T = TypeVar("T")
+
+
+def is_tradable_symbol(symbol: str) -> bool:
+    if symbol.startswith("^"):
+        return False
+    return symbol not in config.NON_TRADABLE_SYMBOLS
 
 
 def filter_execution_dict(items: Mapping[str, T], *, log: Logger | None = None) -> dict[str, T]:

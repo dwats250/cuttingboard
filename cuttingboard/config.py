@@ -65,6 +65,7 @@ FETCH_TIMEOUT_SECONDS   = 10
 # ---------------------------------------------------------------------------
 
 MACRO_DRIVERS = ["^VIX", "DX-Y.NYB", "^TNX", "BTC-USD"]
+NON_TRADABLE_SYMBOLS: frozenset[str] = frozenset(MACRO_DRIVERS)
 INDICES       = ["SPY", "QQQ", "IWM"]
 COMMODITIES   = ["GLD", "SLV", "GDX", "PAAS", "USO", "XLE"]
 HIGH_BETA     = ["NVDA", "TSLA", "AAPL", "META", "AMZN", "COIN", "MSTR"]
