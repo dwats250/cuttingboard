@@ -234,11 +234,11 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${PRE_SHA:-}" ] || [ -z "${POST_SHA:-}" ]; then
-            echo "Missing SHA state — skipping push"
+            echo "Missing SHA state - skipping push"
             exit 0
           fi
           if [ "$PRE_SHA" = "$POST_SHA" ]; then
-            echo "No new commit — skipping push"
+            echo "No new commit - skipping push"
             exit 0
           fi
 
