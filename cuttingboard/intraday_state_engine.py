@@ -14,7 +14,6 @@ from typing import Optional
 
 import pytz
 
-from cuttingboard.confirmation import (
     DIRECTION_DOWN,
     DIRECTION_UP,
     STATE_BREAK_ONLY,
