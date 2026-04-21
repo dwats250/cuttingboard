@@ -24,7 +24,6 @@ on:
           - live
           - sunday
           - verify
-          - intraday
           - prefetch
           - orb_trajectory
           - post_orb
@@ -87,7 +86,7 @@ jobs:
           elif [[ "$TIME" == "2000" ]]; then
             job_mode="power_hour"
           else
-            job_mode="intraday"
+            job_mode="noop"
           fi
 
           echo "job_mode=$job_mode" >> "$GITHUB_OUTPUT"
@@ -167,15 +166,6 @@ jobs:
           echo "=== START power_hour ==="
           python -m cuttingboard --mode power_hour --notify-mode power_hour
           echo "=== END power_hour ==="
-
-      # --- Intraday regime monitor (disabled: no valid --notify-mode for live mode) ---
-      - name: Run intraday monitor
-        if: false
-        run: |
-          set -eo pipefail
-          echo "=== START intraday ==="
-          python -m cuttingboard --mode live --notify-mode intraday
-          echo "=== END intraday ==="
 
       # --- Generate commit message from latest_run.json (live and sunday only) ---
       - name: Generate commit message
