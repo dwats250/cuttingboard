@@ -30,3 +30,6 @@ data/cache/*.parquet
 .idea/
 *.swp
 logs/
+_site/
+reports/output/
+*.json

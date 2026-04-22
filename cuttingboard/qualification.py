@@ -54,6 +54,18 @@ HARD_GATES = {GATE_REGIME, GATE_CONFIDENCE, GATE_DIRECTION, GATE_STRUCTURE}
 SOFT_GATES = {GATE_STOP_DEF, GATE_STOP_DIST, GATE_RR, GATE_MAX_RISK, GATE_EARNINGS,
               GATE_EXTENSION, GATE_TIME}
 
+CONTINUATION_REJECTION_REASONS = (
+    "DATA_INCOMPLETE",
+    "VIX_BLOCKED",
+    "NO_BREAKOUT",
+    "NO_HOLD_CONFIRMATION",
+    "INSUFFICIENT_MOMENTUM",
+    "EXTENDED_FROM_MEAN",
+    "STOP_TOO_TIGHT",
+    "RR_BELOW_THRESHOLD",
+    "TIME_BLOCKED",
+)
+
 
 # ---------------------------------------------------------------------------
 # Data structures
@@ -89,6 +101,7 @@ class QualificationResult:
     dollar_risk: Optional[float]     # max_contracts × spread_width × 100
     entry_mode: str = ENTRY_MODE_DIRECT
     imbalance_zone: Optional["FVGZone"] = None
+    rejection_reason: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -109,6 +122,7 @@ class QualificationSummary:
     symbols_qualified: int
     symbols_watchlist: int
     symbols_excluded: int
+    continuation_audit: Optional[dict[str, int]] = None
 
 
 # ---------------------------------------------------------------------------
@@ -146,6 +160,7 @@ def qualify_all(
             symbols_qualified=0,
             symbols_watchlist=0,
             symbols_excluded=0,
+            continuation_audit=None,
         )
 
     # --- Per-symbol evaluation ---
@@ -153,6 +168,7 @@ def qualify_all(
     qualified: list[QualificationResult] = []
     watchlist_trades: list[QualificationResult] = []
     expected_direction = direction_for_regime(regime)
+    continuation_rejections: list[QualificationResult] = []
 
     for symbol, sr in structure_results.items():
         # Gate 4: CHOP — hard stop, no watchlist
@@ -196,20 +212,18 @@ def qualify_all(
                 logger.info(f"REJECTED {symbol}: {excluded[symbol]}")
 
     # --- Continuation path (EXPANSION regime only) ---
-    if regime.regime == EXPANSION and ohlcv:
+    if regime.regime == EXPANSION:
         qualified_syms = {r.symbol for r in qualified}
         watchlist_syms = {r.symbol for r in watchlist_trades}
 
-        for symbol, df in ohlcv.items():
+        for symbol, sr in structure_results.items():
             if symbol in qualified_syms or symbol in watchlist_syms:
                 continue
-            sr = structure_results.get(symbol)
-            if sr is None or sr.structure == CHOP:
+            if sr.structure == CHOP:
                 continue
             dm = (derived_metrics or {}).get(symbol)
+            df = (ohlcv or {}).get(symbol)
             cont = _qualify_continuation_candidate(symbol, df, sr, regime, dm, now_et)
-            if cont is None:
-                continue
             if cont.qualified:
                 qualified.append(cont)
                 qualified_syms.add(symbol)
@@ -221,6 +235,20 @@ def qualify_all(
                 watchlist_trades.append(cont)
                 watchlist_syms.add(symbol)
                 logger.info(f"EXPANSION WATCHLIST {symbol}: {cont.watchlist_reason}")
+            else:
+                continuation_rejections.append(cont)
+                logger.info(
+                    "EXPANSION REJECTED %s: CONTINUATION | %s",
+                    symbol,
+                    cont.rejection_reason or "UNKNOWN",
+                )
+
+    continuation_audit = _build_continuation_audit(
+        regime,
+        qualified,
+        watchlist_trades,
+        continuation_rejections,
+    )
 
     return QualificationSummary(
         regime_passed=True,
@@ -233,6 +261,7 @@ def qualify_all(
         symbols_qualified=len(qualified),
         symbols_watchlist=len(watchlist_trades),
         symbols_excluded=len(excluded),
+        continuation_audit=continuation_audit,
     )
 
 
@@ -570,31 +599,18 @@ def print_qualification_summary(
 
 def detect_continuation_breakout(
     df: pd.DataFrame,
-    atr14: float,
 ) -> Optional[float]:
-    """Return breakout level if continuation conditions are satisfied, else None.
-
-    Conditions:
-      1. Current close > highest high of last CONTINUATION_BREAKOUT_BARS candles
-      2. Previous close also above breakout level (hold confirmation)
-      3. Last candle range >= CONTINUATION_MOMENTUM_K * ATR14
-    """
+    """Return breakout level when current close clears the recent high."""
     n = config.CONTINUATION_BREAKOUT_BARS
-    if len(df) < n + 2:
+    hold_candles = max(1, config.CONTINUATION_HOLD_CANDLES)
+    if len(df) < n + 1 + hold_candles:
         return None
 
     lookback = df.iloc[-(n + 1):-1]
     breakout_level = float(lookback["High"].max())
     current_close = float(df.iloc[-1]["Close"])
-    prev_close = float(df.iloc[-2]["Close"])
 
     if current_close <= breakout_level:
-        return None
-    if prev_close <= breakout_level:
-        return None
-
-    candle_range = float(df.iloc[-1]["High"]) - float(df.iloc[-1]["Low"])
-    if candle_range < config.CONTINUATION_MOMENTUM_K * atr14:
         return None
 
     return breakout_level
@@ -607,59 +623,87 @@ def _qualify_continuation_candidate(
     regime: RegimeState,
     dm: Optional[DerivedMetrics],
     now_et: Optional[datetime] = None,
-) -> Optional["QualificationResult"]:
-    """Build and qualify a continuation candidate for EXPANSION regime.
-
-    Returns a QualificationResult with entry_mode=CONTINUATION, or None if
-    continuation conditions are not met (missing data, VIX spike, no breakout).
-    """
+) -> "QualificationResult":
+    """Build and qualify a continuation candidate for EXPANSION regime."""
     if df is None or dm is None or dm.atr14 is None or dm.atr14 <= 0:
-        return None
+        return _continuation_reject(symbol, "DATA_INCOMPLETE")
 
-    # Fail-safe: block if VIX is spiking against the move
+    entry_price = float(df.iloc[-1]["Close"])
+    gates_passed: list[str] = []
+
     if (
         regime.vix_pct_change is not None
         and regime.vix_pct_change > config.CONTINUATION_VIX_SPIKE_BLOCK
     ):
-        return None
+        return _continuation_reject(symbol, "VIX_BLOCKED", gates_passed)
+    gates_passed.append("VIX")
 
-    breakout_level = detect_continuation_breakout(df, dm.atr14)
+    breakout_level = detect_continuation_breakout(df)
     if breakout_level is None:
-        return None
+        return _continuation_reject(symbol, "NO_BREAKOUT", gates_passed)
+    gates_passed.append("BREAKOUT")
 
-    entry_price = float(df.iloc[-1]["Close"])
+    hold_candles = max(1, config.CONTINUATION_HOLD_CANDLES)
+    hold_close = float(df.iloc[-(hold_candles + 1)]["Close"])
+    if hold_close <= breakout_level:
+        return _continuation_reject(symbol, "NO_HOLD_CONFIRMATION", gates_passed)
+    gates_passed.append("HOLD")
 
-    # Stop: tighter of breakout_level or breakout_level - 0.5*ATR14
-    # For LONG, tighter = higher stop price (less room below)
-    stop_raw = max(breakout_level, breakout_level - 0.5 * dm.atr14)
-    risk = entry_price - stop_raw
+    candle_range = float(df.iloc[-1]["High"]) - float(df.iloc[-1]["Low"])
+    if candle_range < config.CONTINUATION_MOMENTUM_K * dm.atr14:
+        return _continuation_reject(symbol, "INSUFFICIENT_MOMENTUM", gates_passed)
+    gates_passed.append("MOMENTUM")
 
-    # Enforce >= 1% minimum stop distance
+    if dm.ema21 is not None:
+        extension = abs(entry_price - dm.ema21) / dm.atr14
+        if extension > config.CONTINUATION_MAX_EXTENSION_ATR:
+            return _continuation_reject(symbol, "EXTENDED_FROM_MEAN", gates_passed)
+    gates_passed.append("EXTENSION")
+
+    stop_price = breakout_level
+    risk = entry_price - stop_price
     min_risk = entry_price * 0.01
-    if risk < min_risk:
-        stop_raw = entry_price - min_risk
-        risk = min_risk
+    if stop_price <= 0 or stop_price >= entry_price or risk < min_risk:
+        return _continuation_reject(symbol, "STOP_TOO_TIGHT", gates_passed)
+    gates_passed.append("STOP")
 
-    stop_price = stop_raw
-    target_price = entry_price + risk * config.EXPANSION_RR_RATIO
-
-    # Spread width estimate: 5% of ATR14, minimum $0.50
-    spread_width = max(0.50, dm.atr14 * 0.05)
-
-    candidate = TradeCandidate(
-        symbol=symbol,
-        direction="LONG",
-        entry_price=entry_price,
-        stop_price=stop_price,
-        target_price=target_price,
-        spread_width=spread_width,
-        has_earnings_soon=None,
+    reward = dm.atr14 * (
+        (config.CONTINUATION_BREAKOUT_BARS + max(1, config.CONTINUATION_HOLD_CANDLES))
+        / 2.0
     )
+    rr = reward / risk
+    if rr < config.EXPANSION_RR_RATIO:
+        return _continuation_reject(symbol, "RR_BELOW_THRESHOLD", gates_passed)
+    gates_passed.append("RR")
 
-    result = qualify_candidate(candidate, regime, sr, dm, now_et)
-    if result.qualified or result.watchlist:
-        result = replace(result, entry_mode=ENTRY_MODE_CONTINUATION)
-    return result
+    if _is_late_session(now_et):
+        return _continuation_reject(symbol, "TIME_BLOCKED", gates_passed)
+    gates_passed.append("TIME")
+
+    target_price = entry_price + reward
+
+    spread_width = max(0.50, dm.atr14 * 0.05)
+    spread_cost = spread_width * 100
+    max_contracts = math.floor(config.TARGET_DOLLAR_RISK / spread_cost) if spread_cost > 0 else None
+    dollar_risk = (max_contracts * spread_cost) if max_contracts and max_contracts > 0 else None
+
+    if max_contracts is None or max_contracts < 1 or dollar_risk is None:
+        return _continuation_reject(symbol, "STOP_TOO_TIGHT", gates_passed)
+
+    return QualificationResult(
+        symbol=symbol,
+        qualified=True,
+        watchlist=False,
+        direction="LONG",
+        gates_passed=gates_passed,
+        gates_failed=[],
+        hard_failure=None,
+        watchlist_reason=None,
+        max_contracts=max_contracts,
+        dollar_risk=dollar_risk,
+        entry_mode=ENTRY_MODE_CONTINUATION,
+        rejection_reason=None,
+    )
 
 
 def _check_regime_gates(regime: RegimeState) -> Optional[str]:
@@ -763,6 +807,52 @@ def _hard_reject(
         max_contracts=None,
         dollar_risk=None,
     )
+
+
+def _continuation_reject(
+    symbol: str,
+    rejection_reason: str,
+    gates_passed: Optional[list[str]] = None,
+) -> QualificationResult:
+    if rejection_reason not in CONTINUATION_REJECTION_REASONS:
+        raise ValueError(f"invalid continuation rejection reason: {rejection_reason}")
+    return QualificationResult(
+        symbol=symbol,
+        qualified=False,
+        watchlist=False,
+        direction="LONG",
+        gates_passed=list(gates_passed or []),
+        gates_failed=[rejection_reason],
+        hard_failure=rejection_reason,
+        watchlist_reason=None,
+        max_contracts=None,
+        dollar_risk=None,
+        entry_mode=ENTRY_MODE_CONTINUATION,
+        rejection_reason=rejection_reason,
+    )
+
+
+def _build_continuation_audit(
+    regime: RegimeState,
+    qualified: list[QualificationResult],
+    watchlist_trades: list[QualificationResult],
+    rejected: list[QualificationResult],
+) -> Optional[dict[str, int]]:
+    if regime.regime != EXPANSION:
+        return None
+
+    accepted = sum(
+        1
+        for result in [*qualified, *watchlist_trades]
+        if result.entry_mode == ENTRY_MODE_CONTINUATION and (result.qualified or result.watchlist)
+    )
+    audit = {
+        "total_candidates": accepted + len(rejected),
+        "accepted": accepted,
+    }
+    for reason in CONTINUATION_REJECTION_REASONS:
+        audit[reason] = sum(1 for result in rejected if result.rejection_reason == reason)
+    return audit
 
 
 def _is_late_session(now_et: datetime | None = None) -> bool:

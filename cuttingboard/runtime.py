@@ -349,6 +349,7 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
                     router_state,
                     datetime.now(timezone.utc),
                 )
+                _log_continuation_audit(regime, qualification_summary)
 
         alert_title, alert_body = format_notification(
             notify_mode=notify_mode,
@@ -476,6 +477,7 @@ def _run_pipeline(
                 router_state,
                 run_at_utc,
             )
+            _log_continuation_audit(regime, qualification_summary)
 
             if qualification_summary.qualified_trades:
                 option_setups = build_option_setups(
@@ -681,6 +683,7 @@ def _build_run_summary(
         "candidates_generated": 0 if mode == MODE_SUNDAY else candidates_generated,
         "candidates_qualified": 0 if mode == MODE_SUNDAY else validated_count,
         "candidates_watchlist": 0 if qualification_summary is None else qualification_summary.symbols_watchlist,
+        "continuation_audit": None if qualification_summary is None else qualification_summary.continuation_audit,
         "watch_candidates": 0 if watch_summary is None else len(watch_summary.watchlist),
         "chain_validation": {
             symbol: {
@@ -739,6 +742,36 @@ def _apply_intraday_short_permission(
             logger.info("SUPPRESSED %s: SHORT blocked pending downside permission", symbol)
 
     return filtered, context
+
+
+def _log_continuation_audit(
+    regime: Optional[RegimeState],
+    qualification_summary: Optional[QualificationSummary],
+) -> None:
+    if regime is None or regime.regime != EXPANSION or qualification_summary is None:
+        return
+
+    audit = qualification_summary.continuation_audit
+    if not audit:
+        return
+
+    logger.info("[CONTINUATION_AUDIT]")
+    logger.info("total_candidates=%d", audit["total_candidates"])
+    logger.info("accepted=%d", audit["accepted"])
+    logger.info("")
+    logger.info("rejections:")
+    for reason in (
+        "DATA_INCOMPLETE",
+        "VIX_BLOCKED",
+        "NO_BREAKOUT",
+        "NO_HOLD_CONFIRMATION",
+        "INSUFFICIENT_MOMENTUM",
+        "EXTENDED_FROM_MEAN",
+        "STOP_TOO_TIGHT",
+        "RR_BELOW_THRESHOLD",
+        "TIME_BLOCKED",
+    ):
+        logger.info("%s=%d", reason, audit.get(reason, 0))
 
 
 def _intraday_state_bars_from_df(df: pd.DataFrame) -> list[IntradayStateBar]:

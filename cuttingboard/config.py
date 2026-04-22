@@ -68,8 +68,10 @@ EXPANSION_LEADERSHIP_MIN_COUNT = 2     # at least N leaders required
 
 # Continuation entry parameters
 CONTINUATION_BREAKOUT_BARS    = 5      # look back N candles for breakout level
+CONTINUATION_HOLD_CANDLES     = 1      # completed candles that must hold above breakout
 CONTINUATION_MOMENTUM_K       = 0.75   # last candle range >= K * ATR14
 CONTINUATION_VIX_SPIKE_BLOCK  = 0.01   # block continuation if VIX pct > +1%
+CONTINUATION_MAX_EXTENSION_ATR = 2.5   # reject if continuation entry is too far from EMA21
 ENTRY_CUTOFF_ET                     = time(15, 30)  # no new entries at or after 3:30 PM ET
 
 # ---------------------------------------------------------------------------

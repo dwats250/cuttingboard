@@ -186,7 +186,7 @@ def render_report(
 
     elif outcome == OUTCOME_NO_TRADE:
         if regime is not None and regime.regime == EXPANSION:
-            lines.append("  EXPANSION MODE - No valid continuation entries yet")
+            lines.append("  EXPANSION MODE — No valid continuation entries yet")
         else:
             lines.append("  NO TRADE")
             if qualification_summary is not None and qualification_summary.regime_short_circuited:
@@ -247,6 +247,32 @@ def render_report(
                 lines.append(chain_line)
             lines.append("             Exit: +50% profit or full debit loss")
             lines.append("")
+
+    if (
+        regime is not None
+        and regime.regime == EXPANSION
+        and qualification_summary is not None
+        and qualification_summary.continuation_audit is not None
+    ):
+        audit = qualification_summary.continuation_audit
+        lines.append("  [CONTINUATION_AUDIT]")
+        lines.append(f"  total_candidates={audit['total_candidates']}")
+        lines.append(f"  accepted={audit['accepted']}")
+        lines.append("")
+        lines.append("  rejections:")
+        for reason in (
+            "DATA_INCOMPLETE",
+            "VIX_BLOCKED",
+            "NO_BREAKOUT",
+            "NO_HOLD_CONFIRMATION",
+            "INSUFFICIENT_MOMENTUM",
+            "EXTENDED_FROM_MEAN",
+            "STOP_TOO_TIGHT",
+            "RR_BELOW_THRESHOLD",
+            "TIME_BLOCKED",
+        ):
+            lines.append(f"  {reason}={audit.get(reason, 0)}")
+        lines.append("")
 
     # Watchlist and excluded appear for both TRADE and NO_TRADE outcomes
     # (not for HALT — there is no qualification data)

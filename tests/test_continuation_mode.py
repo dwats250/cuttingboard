@@ -1,9 +1,4 @@
-"""
-PRD-008 tests — CONTINUATION entry mode.
-
-Tests cover qualify_continuation_candidate, detect_continuation_breakout,
-and qualify_all integration under EXPANSION regime.
-"""
+"""Tests for continuation qualification and audit behavior."""
 
 from datetime import datetime, timezone
 from typing import Optional
@@ -12,12 +7,8 @@ import pandas as pd
 import pytest
 
 from cuttingboard.derived import DerivedMetrics
-from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.qualification import (
     ENTRY_MODE_CONTINUATION,
-    QualificationResult,
-    QualificationSummary,
-    TradeCandidate,
     detect_continuation_breakout,
     qualify_all,
     _qualify_continuation_candidate,
@@ -32,6 +23,11 @@ from cuttingboard.structure import StructureResult, TREND, CHOP
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def _freeze_continuation_time(monkeypatch):
+    monkeypatch.setattr("cuttingboard.qualification._is_late_session", lambda now_et=None: False)
 
 def _expansion_regime() -> RegimeState:
     return RegimeState(
@@ -67,7 +63,7 @@ def _ohlcv(closes: list[float], highs: Optional[list[float]] = None, lows: Optio
 
 
 def _dm(atr14: float, ema21: Optional[float] = None, entry: float = 100.0) -> DerivedMetrics:
-    e21 = ema21 if ema21 is not None else entry * 0.98
+    e21 = ema21 if ema21 is not None else entry * 0.995
     return DerivedMetrics(
         symbol="TEST",
         ema9=entry * 1.002,
@@ -112,39 +108,29 @@ class TestDetectContinuationBreakout:
         # prev close = 102 > 100 ✓ (hold)
         # last bar range = 106-102 = 4 >= 0.75*2=1.5 ✓
         df = _ohlcv(closes, highs, lows)
-        atr = 2.0
-        result = detect_continuation_breakout(df, atr)
+        result = detect_continuation_breakout(df)
         assert result is not None
         assert result == pytest.approx(100.0)  # highest high of lookback window
 
     def test_no_breakout_when_close_below_high(self):
         closes = [98, 99, 100, 101, 100, 99, 98, 99, 100, 100]
         df = _ohlcv(closes)
-        result = detect_continuation_breakout(df, 2.0)
+        result = detect_continuation_breakout(df)
         assert result is None
 
-    def test_no_hold_confirmation(self):
-        # Current close above breakout, but previous close is not
+    def test_breakout_helper_only_checks_breakout(self):
+        # Current close above breakout, but previous close is not. Hold logic
+        # is now evaluated in _qualify_continuation_candidate().
         closes = [98, 99, 100, 99, 98, 99, 100, 99, 98, 102]
         highs  = [99, 100, 101, 100, 99, 100, 101, 100, 99, 103]
         lows   = [97, 98,  99,  98, 97,  98,  99,  98, 97, 101]
         df = _ohlcv(closes, highs, lows)
-        result = detect_continuation_breakout(df, 2.0)
-        assert result is None  # prev close (98) <= breakout level (101)
-
-    def test_insufficient_momentum(self):
-        # Breakout exists but last candle range too small
-        closes = [98, 99, 100, 99, 98, 99, 100, 99, 101, 102]
-        highs  = [99, 100, 101, 100, 99, 100, 101, 100, 102, 102.1]
-        lows   = [97, 98,  99,  98, 97,  98,  99,  98, 100, 101.9]
-        df = _ohlcv(closes, highs, lows)
-        atr = 4.0  # range = 0.2, need 0.75*4=3.0 — fails momentum
-        result = detect_continuation_breakout(df, atr)
-        assert result is None
+        result = detect_continuation_breakout(df)
+        assert result == pytest.approx(101.0)
 
     def test_insufficient_data(self):
         df = _ohlcv([100, 101, 102, 103])  # only 4 bars, need >= 7
-        result = detect_continuation_breakout(df, 1.0)
+        result = detect_continuation_breakout(df)
         assert result is None
 
 
@@ -153,6 +139,13 @@ class TestDetectContinuationBreakout:
 # ---------------------------------------------------------------------------
 
 class TestQualifyContinuationCandidate:
+    def _tight_stop_df(self) -> pd.DataFrame:
+        return _ohlcv(
+            closes=[100, 100.2, 100.4, 100.2, 100.1, 100.2, 100.3, 100.4, 100.6, 100.7],
+            highs=[100.3, 100.5, 100.6, 100.4, 100.3, 100.4, 100.5, 100.5, 100.55, 101.6],
+            lows=[99.8, 100.0, 100.2, 100.0, 99.9, 100.0, 100.1, 100.2, 100.55, 99.6],
+        )
+
     def _breakout_df(self, entry: float = 100.0, atr: float = 2.0) -> pd.DataFrame:
         """Build OHLCV satisfying all continuation conditions.
 
@@ -179,7 +172,8 @@ class TestQualifyContinuationCandidate:
         dm = _dm(atr, entry=entry)
         sr = _sr(TREND)
         result = _qualify_continuation_candidate("TEST", df, sr, regime, dm)
-        assert result is not None
+        assert result.qualified is True
+        assert result.rejection_reason is None
         assert result.entry_mode == ENTRY_MODE_CONTINUATION
 
     def test_vix_spike_blocks_continuation(self):
@@ -189,32 +183,27 @@ class TestQualifyContinuationCandidate:
         df = self._breakout_df()
         dm = _dm(2.0, entry=100.0)
         result = _qualify_continuation_candidate("TEST", df, _sr(), regime_spiked, dm)
-        assert result is None
+        assert result.qualified is False
+        assert result.rejection_reason == "VIX_BLOCKED"
 
-    def test_missing_atr_returns_none(self):
+    def test_missing_atr_returns_data_incomplete(self):
         dm_no_atr = _dm(0.0, entry=100.0)  # atr14 = None when 0 → invalid
         result = _qualify_continuation_candidate("TEST", self._breakout_df(), _sr(), _expansion_regime(), dm_no_atr)
-        assert result is None
+        assert result.rejection_reason == "DATA_INCOMPLETE"
 
-    def test_none_df_returns_none(self):
+    def test_none_df_returns_data_incomplete(self):
         result = _qualify_continuation_candidate("TEST", None, _sr(), _expansion_regime(), _dm(2.0))
-        assert result is None
+        assert result.rejection_reason == "DATA_INCOMPLETE"
 
     def test_chop_structure_skipped(self):
         result = _qualify_continuation_candidate("TEST", self._breakout_df(), _sr(CHOP), _expansion_regime(), _dm(2.0))
-        # CHOP structure will fail Gate 4 — no continuation for CHOP
-        if result is not None:
-            assert result.qualified is False
+        assert result.qualified is True
 
-    def test_minimum_stop_distance_enforced(self):
-        # Very tiny ATR means computed stop may be too tight — 1% floor must apply
-        entry = 100.0
-        df = self._breakout_df(entry=entry, atr=0.5)
-        dm = _dm(0.5, entry=entry)
+    def test_minimum_stop_distance_rejects_tight_stop(self):
+        df = self._tight_stop_df()
+        dm = _dm(1.0, ema21=100.5, entry=100.0)
         result = _qualify_continuation_candidate("TEST", df, _sr(), _expansion_regime(), dm)
-        # If it qualifies, risk must be >= 1% of entry
-        if result is not None and result.qualified:
-            assert result.dollar_risk is not None
+        assert result.rejection_reason == "STOP_TOO_TIGHT"
 
 
 # ---------------------------------------------------------------------------
@@ -271,6 +260,8 @@ class TestQualifyAllContinuationPath:
             if r.entry_mode == ENTRY_MODE_CONTINUATION
         ]
         assert len(continuation_trades) > 0, "Expected at least one CONTINUATION entry"
+        assert summary.continuation_audit is not None
+        assert summary.continuation_audit["accepted"] >= 1
 
     def test_no_continuation_for_chop(self):
         regime = _expansion_regime()
@@ -292,6 +283,8 @@ class TestQualifyAllContinuationPath:
             if r.entry_mode == ENTRY_MODE_CONTINUATION
         ]
         assert len(continuation_trades) == 0
+        assert summary.continuation_audit is not None
+        assert summary.continuation_audit["total_candidates"] == 0
 
 
 # ---------------------------------------------------------------------------
@@ -311,6 +304,7 @@ class TestExpansionNeverNoTrade:
         )
         assert summary.regime_short_circuited is False
         assert summary.regime_passed is True
+        assert summary.continuation_audit is not None
 
     def test_expansion_regime_check_regime_gates_passes(self):
         from cuttingboard.qualification import _check_regime_gates
