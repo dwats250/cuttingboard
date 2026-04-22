@@ -38,8 +38,10 @@ from cuttingboard.ingestion import fetch_all, fetch_ohlcv
 from cuttingboard.normalization import normalize_all
 from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
 from cuttingboard.notifications import format_run_alert
-from cuttingboard.qualification import QualificationSummary, qualify_all
-from cuttingboard.regime import RegimeState, compute_regime
+from cuttingboard.qualification import (
+    QualificationSummary, qualify_all, ENTRY_MODE_CONTINUATION,
+)
+from cuttingboard.regime import RegimeState, compute_regime, EXPANSION
 from cuttingboard.structure import classify_all_structure
 from cuttingboard.universe import is_tradable_symbol
 from cuttingboard.validation import ValidationSummary, validate_quotes
@@ -90,6 +92,7 @@ _PERMISSION_LINES: dict[str, str] = {
     "DEFENSIVE_SHORT": "Short bias - no longs without VIX declining + support. Kill: VIX <20.",
     "NEUTRAL_PREMIUM": "Selective only - defined risk, R:R >= 3:1. Kill: VIX spikes >15%.",
     "STAY_FLAT":       "FLAT - no new positions. Await regime clarity.",
+    "EXPANSION_LONG":  "EXPANSION - momentum allowed. Continuation entries. R:R >= 1.5.",
 }
 
 _PERMISSION_MATRIX = """\
@@ -169,19 +172,28 @@ def render_report(
         lines.append(_PERMISSION_MATRIX)
         lines.append("")
 
+    # ---- EXPANSION banner ----
+    if regime is not None and regime.regime == EXPANSION and outcome != OUTCOME_HALT:
+        lines.append("  EXPANSION MODE - Momentum allowed")
+        lines.append("  Bias: LONG")
+        lines.append("")
+
     # ---- Body ----
     if outcome == OUTCOME_HALT:
         lines.append("  HALT — MACRO DATA INVALID")
         lines.append(f"  {halt_reason or 'unknown halt reason'}")
 
     elif outcome == OUTCOME_NO_TRADE:
-        lines.append("  NO TRADE")
-        if qualification_summary is not None and qualification_summary.regime_short_circuited:
-            lines.append(f"  Reason: {qualification_summary.regime_failure_reason}")
-        elif regime is not None:
-            lines.append(
-                f"  Reason: {regime.posture} posture — no qualifying setups"
-            )
+        if regime is not None and regime.regime == EXPANSION:
+            lines.append("  EXPANSION MODE - No valid continuation entries yet")
+        else:
+            lines.append("  NO TRADE")
+            if qualification_summary is not None and qualification_summary.regime_short_circuited:
+                lines.append(f"  Reason: {qualification_summary.regime_failure_reason}")
+            elif regime is not None:
+                lines.append(
+                    f"  Reason: {regime.posture} posture — no qualifying setups"
+                )
         lines.append("")
 
     else:
@@ -195,12 +207,21 @@ def render_report(
             )).classification == VALIDATED
         ]
 
+        entry_mode_for: dict[str, str] = {}
+        if qualification_summary is not None:
+            entry_mode_for = {
+                r.symbol: r.entry_mode
+                for r in qualification_summary.qualified_trades
+            }
+
         lines.append(f"  A+ TRADES  ({len(trade_setups)})")
         lines.append("  " + "─" * 50)
         for setup in trade_setups:
+            mode = entry_mode_for.get(setup.symbol, "")
+            mode_tag = f"  [{mode}]" if mode and mode != "DIRECT" else ""
             lines.append(
                 f"  {setup.symbol:<8}  {setup.strategy:<18}  "
-                f"{setup.structure} / {setup.iv_environment}"
+                f"{setup.structure} / {setup.iv_environment}{mode_tag}"
             )
             lines.append(
                 f"             {setup.long_strike} / {setup.short_strike}"

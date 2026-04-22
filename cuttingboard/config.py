@@ -42,16 +42,33 @@ INTRADAY_ALERT_COOLDOWN = 90         # minutes
 
 EXTENSION_ATR_MULTIPLIER            = 1.5   # reject if |price − ema21| > multiplier × ATR14
 NEUTRAL_RR_RATIO                    = 3.0   # minimum R:R for NEUTRAL regime trades
+EXPANSION_RR_RATIO                  = 1.5   # reduced R:R for EXPANSION continuation entries
 FVG_DISPLACEMENT_K                  = 1.2   # displacement candle body vs ATR14
 FVG_GAP_K                           = 0.3   # minimum gap size vs ATR14
 FVG_PROXIMITY_K                     = 1.5   # max distance from current price to zone midpoint vs ATR14
 FVG_LOOKBACK_CANDLES                = 6     # scan window in completed daily bars
 REGIME_RISK_MULTIPLIER: dict[str, float] = {
-    "RISK_ON":  1.0,
-    "RISK_OFF": 1.0,
-    "NEUTRAL":  0.6,
-    "CHAOTIC":  0.0,
+    "RISK_ON":   1.0,
+    "RISK_OFF":  1.0,
+    "NEUTRAL":   0.6,
+    "CHAOTIC":   0.0,
+    "EXPANSION": 1.0,
 }
+
+# ---------------------------------------------------------------------------
+# EXPANSION regime detection
+# ---------------------------------------------------------------------------
+
+EXPANSION_LEADERSHIP_SYMBOLS  = ["NVDA", "COIN", "MSTR", "SMCI", "TSLA"]
+EXPANSION_MIN_BREADTH         = 0.70   # advancing / total watchlist symbols
+EXPANSION_VIX_PCT_THRESHOLD   = -0.01  # VIX must be <= -1% to confirm falling volatility
+EXPANSION_LEADERSHIP_MIN_PCT  = 0.015  # leadership symbol must gain >= +1.5%
+EXPANSION_LEADERSHIP_MIN_COUNT = 2     # at least N leaders required
+
+# Continuation entry parameters
+CONTINUATION_BREAKOUT_BARS    = 5      # look back N candles for breakout level
+CONTINUATION_MOMENTUM_K       = 0.75   # last candle range >= K * ATR14
+CONTINUATION_VIX_SPIKE_BLOCK  = 0.01   # block continuation if VIX pct > +1%
 LATE_SESSION_CUTOFF                 = (15, 30)  # (hour, minute) ET — no entries after 3:30 PM
 
 # ---------------------------------------------------------------------------

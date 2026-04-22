@@ -58,7 +58,7 @@ from cuttingboard.output import (
     send_notification,
 )
 from cuttingboard.qualification import QualificationSummary, qualify_all
-from cuttingboard.regime import CHAOTIC, NEUTRAL, RegimeState, compute_regime
+from cuttingboard.regime import CHAOTIC, NEUTRAL, EXPANSION, RegimeState, compute_regime
 from cuttingboard.sector_router import (
     SectorRouterState,
     SuppressedCandidate,
@@ -94,13 +94,14 @@ LOGS_DIR = Path("logs")
 LATEST_RUN_PATH = LOGS_DIR / "latest_run.json"
 DEFAULT_FIXTURE_DIR = Path("tests/fixtures")
 
-VALID_REGIMES = {"RISK_ON", "RISK_OFF", "NEUTRAL", "CHAOTIC"}
+VALID_REGIMES = {"RISK_ON", "RISK_OFF", "NEUTRAL", "CHAOTIC", "EXPANSION"}
 VALID_POSTURES = {
     "AGGRESSIVE_LONG",
     "CONTROLLED_LONG",
     "DEFENSIVE_SHORT",
     "NEUTRAL_PREMIUM",
     "STAY_FLAT",
+    "EXPANSION_LONG",
 }
 
 _FIXTURE_QUOTE_FIELDS = {
@@ -119,7 +120,8 @@ _PERMISSION_LINES: dict[str, str] = {
     "CONTROLLED_LONG": "Long bias — defined risk preferred.",
     "DEFENSIVE_SHORT": "Short bias — breakdown trades allowed.",
     "NEUTRAL_PREMIUM": "Selective only — defined risk, R:R >= 3:1.",
-    "STAY_FLAT": "No new trades permitted.",
+    "STAY_FLAT":       "No new trades permitted.",
+    "EXPANSION_LONG":  "EXPANSION — momentum allowed. Continuation entries. R:R >= 1.5.",
 }
 
 
@@ -666,7 +668,7 @@ def _build_run_summary(
         "index_score": round(index_score, 2),
         "permission": permission,
         "kill_switch": kill_switch,
-        "min_rr_applied": config.NEUTRAL_RR_RATIO if regime and regime.regime == NEUTRAL else config.MIN_RR_RATIO,
+        "min_rr_applied": _min_rr_for_regime(regime),
         "data_status": data_status,
         "fallback_used": fallback_used,
         "system_halted": validation_summary.system_halted,
@@ -1058,6 +1060,16 @@ def _kill_switch(regime: Optional[RegimeState], normalized_quotes: dict[str, Nor
         or vix_pct_change > 0.15
         or abs(spy_pct_change) > 0.03
     )
+
+
+def _min_rr_for_regime(regime: Optional[RegimeState]) -> float:
+    if regime is None:
+        return config.NEUTRAL_RR_RATIO
+    if regime.regime == NEUTRAL:
+        return config.NEUTRAL_RR_RATIO
+    if regime.regime == EXPANSION:
+        return config.EXPANSION_RR_RATIO
+    return config.MIN_RR_RATIO
 
 
 def _summary_regime_fields(regime: Optional[RegimeState]) -> tuple[str, str, float, int]:

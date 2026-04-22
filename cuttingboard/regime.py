@@ -31,12 +31,14 @@ RISK_OFF   = "RISK_OFF"
 NEUTRAL    = "NEUTRAL"
 TRANSITION = "TRANSITION"   # legacy alias — compute_regime never returns this
 CHAOTIC    = "CHAOTIC"
+EXPANSION  = "EXPANSION"    # broad risk-on advance with breadth + leadership confirmation
 
 AGGRESSIVE_LONG = "AGGRESSIVE_LONG"
 CONTROLLED_LONG = "CONTROLLED_LONG"
 NEUTRAL_PREMIUM = "NEUTRAL_PREMIUM"
 DEFENSIVE_SHORT = "DEFENSIVE_SHORT"
 STAY_FLAT       = "STAY_FLAT"
+EXPANSION_LONG  = "EXPANSION_LONG"  # posture when EXPANSION regime is active
 
 _VOTE_RISK_ON  = "RISK_ON"
 _VOTE_RISK_OFF = "RISK_OFF"
@@ -79,23 +81,84 @@ class RegimeState:
 # Public API
 # ---------------------------------------------------------------------------
 
+def detect_expansion_regime(valid_quotes: dict[str, NormalizedQuote]) -> bool:
+    """Return True when broad risk-on expansion conditions are all met.
+
+    All four conditions must hold simultaneously:
+      1. Index alignment  — SPY and QQQ both positive
+      2. VIX confirmation — VIX pct_change <= -1.0%
+      3. Breadth          — >= 70% of tradable watchlist symbols advancing
+      4. Leadership       — >= 2 of the leadership symbols up >= +1.5%
+    """
+    spy = valid_quotes.get("SPY")
+    qqq = valid_quotes.get("QQQ")
+    vix = valid_quotes.get("^VIX")
+
+    # 1. Index alignment
+    if spy is None or qqq is None:
+        return False
+    if spy.pct_change_decimal <= 0 or qqq.pct_change_decimal <= 0:
+        return False
+
+    # 2. VIX confirmation — falling volatility
+    if vix is None or vix.pct_change_decimal > config.EXPANSION_VIX_PCT_THRESHOLD:
+        return False
+
+    # 3. Breadth — count tradable symbols with pct_change > 0
+    tradable = [
+        s for s in valid_quotes
+        if s not in config.NON_TRADABLE_SYMBOLS
+    ]
+    advancing = sum(1 for s in tradable if valid_quotes[s].pct_change_decimal > 0)
+    total = len(tradable)
+    if total == 0 or (advancing / total) < config.EXPANSION_MIN_BREADTH:
+        return False
+
+    # 4. Leadership — at least N symbols from the leadership list up >= +1.5%
+    leading = sum(
+        1 for s in config.EXPANSION_LEADERSHIP_SYMBOLS
+        if s in valid_quotes and valid_quotes[s].pct_change_decimal >= config.EXPANSION_LEADERSHIP_MIN_PCT
+    )
+    return leading >= config.EXPANSION_LEADERSHIP_MIN_COUNT
+
+
 def compute_regime(valid_quotes: dict[str, NormalizedQuote]) -> RegimeState:
     """Compute macro regime from validated quotes (Layer 3 output).
+
+    EXPANSION is checked first. If all breadth + leadership conditions are met,
+    EXPANSION is returned immediately without running the vote model.
 
     Every input that is absent from valid_quotes is skipped with a warning.
     The confidence formula uses only the votes that were actually cast, so a
     missing optional symbol (e.g. IWM) degrades gracefully without halting.
     """
+    vix = valid_quotes.get("^VIX")
+    vix_level = vix.price              if vix else None
+    vix_pct   = vix.pct_change_decimal if vix else None
+
+    if detect_expansion_regime(valid_quotes):
+        logger.info("Regime: EXPANSION | EXPANSION_LONG | breadth + leadership confirmed")
+        return RegimeState(
+            regime=EXPANSION,
+            posture=EXPANSION_LONG,
+            confidence=1.0,
+            net_score=0,
+            risk_on_votes=0,
+            risk_off_votes=0,
+            neutral_votes=0,
+            total_votes=0,
+            vote_breakdown={},
+            vix_level=vix_level,
+            vix_pct_change=vix_pct,
+            computed_at_utc=datetime.now(timezone.utc),
+        )
+
     spy = valid_quotes.get("SPY")
     qqq = valid_quotes.get("QQQ")
     iwm = valid_quotes.get("IWM")
-    vix = valid_quotes.get("^VIX")
     dxy = valid_quotes.get("DX-Y.NYB")
     tnx = valid_quotes.get("^TNX")
     btc = valid_quotes.get("BTC-USD")
-
-    vix_level = vix.price               if vix else None
-    vix_pct   = vix.pct_change_decimal  if vix else None
 
     # 8 votes in PRD order
     raw_votes: list[tuple[str, Optional[str]]] = [

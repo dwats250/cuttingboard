@@ -26,15 +26,16 @@ from cuttingboard.derived import DerivedMetrics
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.regime import (
     RegimeState,
-    RISK_ON, RISK_OFF, TRANSITION, CHAOTIC, NEUTRAL,
+    RISK_ON, RISK_OFF, TRANSITION, CHAOTIC, NEUTRAL, EXPANSION,
     STAY_FLAT,
 )
-from cuttingboard.structure import StructureResult, CHOP
+from cuttingboard.structure import StructureResult, CHOP, TREND
 
 logger = logging.getLogger(__name__)
 
 ENTRY_MODE_DIRECT = "DIRECT"
 ENTRY_MODE_PULLBACK_IMBALANCE = "PULLBACK_IMBALANCE"
+ENTRY_MODE_CONTINUATION = "CONTINUATION"
 
 # Gate name constants — used in gates_passed / gates_failed lists
 GATE_REGIME      = "REGIME"
@@ -193,6 +194,33 @@ def qualify_all(
                 excluded[symbol] = result.hard_failure or "failed qualification"
                 logger.info(f"REJECTED {symbol}: {excluded[symbol]}")
 
+    # --- Continuation path (EXPANSION regime only) ---
+    if regime.regime == EXPANSION and ohlcv:
+        qualified_syms = {r.symbol for r in qualified}
+        watchlist_syms = {r.symbol for r in watchlist_trades}
+
+        for symbol, df in ohlcv.items():
+            if symbol in qualified_syms or symbol in watchlist_syms:
+                continue
+            sr = structure_results.get(symbol)
+            if sr is None or sr.structure == CHOP:
+                continue
+            dm = (derived_metrics or {}).get(symbol)
+            cont = _qualify_continuation_candidate(symbol, df, sr, regime, dm)
+            if cont is None:
+                continue
+            if cont.qualified:
+                qualified.append(cont)
+                qualified_syms.add(symbol)
+                logger.info(
+                    f"EXPANSION QUALIFIED {symbol}: CONTINUATION | "
+                    f"contracts={cont.max_contracts} risk=${cont.dollar_risk:.0f}"
+                )
+            elif cont.watchlist:
+                watchlist_trades.append(cont)
+                watchlist_syms.add(symbol)
+                logger.info(f"EXPANSION WATCHLIST {symbol}: {cont.watchlist_reason}")
+
     return QualificationSummary(
         regime_passed=True,
         regime_short_circuited=False,
@@ -300,8 +328,13 @@ def qualify_candidate(
     else:
         soft_failures.append((GATE_STOP_DIST, "entry or stop undefined — cannot compute"))
 
-    # Gate 7: R:R minimum — stricter in NEUTRAL regime
-    min_rr = config.NEUTRAL_RR_RATIO if regime.regime == NEUTRAL else config.MIN_RR_RATIO
+    # Gate 7: R:R minimum — stricter in NEUTRAL, relaxed in EXPANSION
+    if regime.regime == NEUTRAL:
+        min_rr = config.NEUTRAL_RR_RATIO
+    elif regime.regime == EXPANSION:
+        min_rr = config.EXPANSION_RR_RATIO
+    else:
+        min_rr = config.MIN_RR_RATIO
     if risk > 0:
         rr = reward / risk
         if rr < min_rr:
@@ -474,12 +507,15 @@ def direction_for_regime(regime: RegimeState) -> Optional[str]:
     """Return expected trade direction for the current regime.
 
     NEUTRAL: net_score breaks the tie (+1 → LONG, -1 → SHORT, 0 → None).
+    EXPANSION: always LONG (momentum/continuation bias).
     CHAOTIC and TRANSITION (legacy): no directional bias.
     """
     if regime.regime == RISK_ON:
         return "LONG"
     if regime.regime == RISK_OFF:
         return "SHORT"
+    if regime.regime == EXPANSION:
+        return "LONG"
     if regime.regime == NEUTRAL:
         if regime.net_score > 0:
             return "LONG"
@@ -530,6 +566,100 @@ def print_qualification_summary(
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+def detect_continuation_breakout(
+    df: pd.DataFrame,
+    atr14: float,
+) -> Optional[float]:
+    """Return breakout level if continuation conditions are satisfied, else None.
+
+    Conditions:
+      1. Current close > highest high of last CONTINUATION_BREAKOUT_BARS candles
+      2. Previous close also above breakout level (hold confirmation)
+      3. Last candle range >= CONTINUATION_MOMENTUM_K * ATR14
+    """
+    n = config.CONTINUATION_BREAKOUT_BARS
+    if len(df) < n + 2:
+        return None
+
+    lookback = df.iloc[-(n + 1):-1]
+    breakout_level = float(lookback["High"].max())
+    current_close = float(df.iloc[-1]["Close"])
+    prev_close = float(df.iloc[-2]["Close"])
+
+    if current_close <= breakout_level:
+        return None
+    if prev_close <= breakout_level:
+        return None
+
+    candle_range = float(df.iloc[-1]["High"]) - float(df.iloc[-1]["Low"])
+    if candle_range < config.CONTINUATION_MOMENTUM_K * atr14:
+        return None
+
+    return breakout_level
+
+
+def _qualify_continuation_candidate(
+    symbol: str,
+    df: Optional[pd.DataFrame],
+    sr: StructureResult,
+    regime: RegimeState,
+    dm: Optional[DerivedMetrics],
+    now_et: Optional[datetime] = None,
+) -> Optional["QualificationResult"]:
+    """Build and qualify a continuation candidate for EXPANSION regime.
+
+    Returns a QualificationResult with entry_mode=CONTINUATION, or None if
+    continuation conditions are not met (missing data, VIX spike, no breakout).
+    """
+    if df is None or dm is None or dm.atr14 is None or dm.atr14 <= 0:
+        return None
+
+    # Fail-safe: block if VIX is spiking against the move
+    if (
+        regime.vix_pct_change is not None
+        and regime.vix_pct_change > config.CONTINUATION_VIX_SPIKE_BLOCK
+    ):
+        return None
+
+    breakout_level = detect_continuation_breakout(df, dm.atr14)
+    if breakout_level is None:
+        return None
+
+    entry_price = float(df.iloc[-1]["Close"])
+
+    # Stop: tighter of breakout_level or breakout_level - 0.5*ATR14
+    # For LONG, tighter = higher stop price (less room below)
+    stop_raw = max(breakout_level, breakout_level - 0.5 * dm.atr14)
+    risk = entry_price - stop_raw
+
+    # Enforce >= 1% minimum stop distance
+    min_risk = entry_price * 0.01
+    if risk < min_risk:
+        stop_raw = entry_price - min_risk
+        risk = min_risk
+
+    stop_price = stop_raw
+    target_price = entry_price + risk * config.EXPANSION_RR_RATIO
+
+    # Spread width estimate: 5% of ATR14, minimum $0.50
+    spread_width = max(0.50, dm.atr14 * 0.05)
+
+    candidate = TradeCandidate(
+        symbol=symbol,
+        direction="LONG",
+        entry_price=entry_price,
+        stop_price=stop_price,
+        target_price=target_price,
+        spread_width=spread_width,
+        has_earnings_soon=None,
+    )
+
+    result = qualify_candidate(candidate, regime, sr, dm, now_et)
+    if result.qualified or result.watchlist:
+        result = replace(result, entry_mode=ENTRY_MODE_CONTINUATION)
+    return result
+
 
 def _check_regime_gates(regime: RegimeState) -> Optional[str]:
     """Return failure reason if gates 1–2 fail, else None."""
