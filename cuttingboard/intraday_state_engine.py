@@ -1,13 +1,39 @@
-from __future__ import annotations
-from dataclasses import dataclass
-from datetime import timedelta
 """
 Intraday State Engine — ORB classification, Phase 1.
 
 Public API: compute_intraday_state(symbol, bars) -> IntraState | None
 All other functions are internal.
 """
+from __future__ import annotations
 
+import logging
+from dataclasses import dataclass
+from datetime import datetime, time, timedelta
+from typing import Optional
+from zoneinfo import ZoneInfo
+
+from cuttingboard.confirmation import (
+    DIRECTION_DOWN,
+    DIRECTION_UP,
+    STATE_BREAK_ONLY,
+    STATE_FAILURE_CONFIRMED,
+    STATE_HOLD_CONFIRMED,
+    LevelConfirmation,
+    evaluate_level_confirmation,
+)
+
+logger = logging.getLogger(__name__)
+
+ET = ZoneInfo("America/New_York")
+
+# ---------------------------------------------------------------------------
+# Time boundaries (ET wall-clock)
+# ---------------------------------------------------------------------------
+_ORB_START   = time(9, 30)
+_ORB_END     = time(9, 35)
+_NOISE_END   = time(9, 45)
+_PRIMARY_END = time(10, 30)
+_MIDDAY_END  = time(13, 30)
 
 # ---------------------------------------------------------------------------
 _VWAP_BUFFER     = 0.001   # ±10 bps

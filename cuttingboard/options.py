@@ -28,13 +28,18 @@ Exit rule: close at +50% of max profit OR full debit loss — every trade.
 
 import logging
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Optional
 
 from cuttingboard import config
 from cuttingboard.derived import DerivedMetrics
 from cuttingboard.normalization import NormalizedQuote
-from cuttingboard.qualification import TradeCandidate, QualificationResult, direction_for_regime
+from cuttingboard.qualification import (
+    ENTRY_MODE_PULLBACK_IMBALANCE,
+    TradeCandidate,
+    QualificationResult,
+    direction_for_regime,
+)
 from cuttingboard.regime import RegimeState, NEUTRAL
 from cuttingboard.structure import (
     StructureResult,
@@ -157,6 +162,7 @@ def build_option_setups(
     qualified_trades: list[QualificationResult],
     structure_results: dict[str, StructureResult],
     derived_metrics: dict[str, DerivedMetrics],
+    candidates: Optional[dict[str, TradeCandidate]] = None,
 ) -> list["OptionSetup"]:
     """Map each qualified trade to a fully expressed OptionSetup.
 
@@ -175,10 +181,31 @@ def build_option_setups(
         dm = derived_metrics.get(symbol)
         strategy = _select_strategy(result.direction, sr.iv_environment)
         dte = _select_dte(sr.structure, dm)
+        candidate = (candidates or {}).get(symbol)
+        if (
+            result.entry_mode == ENTRY_MODE_PULLBACK_IMBALANCE
+            and result.imbalance_zone is not None
+            and candidate is not None
+        ):
+            midpoint = (
+                result.imbalance_zone.upper_bound + result.imbalance_zone.lower_bound
+            ) / 2.0
+            stop_price = (
+                result.imbalance_zone.lower_bound
+                if result.direction == "LONG"
+                else result.imbalance_zone.upper_bound
+            )
+            candidate = replace(candidate, entry_price=midpoint, stop_price=stop_price)
+            logger.info(
+                "build_option_setups: %s using imbalance pullback entry=%.2f stop=%.2f",
+                symbol,
+                candidate.entry_price,
+                candidate.stop_price,
+            )
         strike_distance = (
             _MAX_STRIKE_DIST_ETF if symbol in _INDEX_ETFS else _MAX_STRIKE_DIST_STK
         )
-        spread_width = _estimated_debit(strike_distance)
+        spread_width = candidate.spread_width if candidate is not None else _estimated_debit(strike_distance)
         long_strike, short_strike = _format_strikes(strategy, strike_distance)
 
         if result.max_contracts is None or result.dollar_risk is None:
@@ -204,7 +231,8 @@ def build_option_setups(
         setups.append(setup)
         logger.info(
             f"OPTION_SETUP {symbol}: {strategy}  {long_strike}/{short_strike}  "
-            f"{dte} DTE  {result.max_contracts}c  ${result.dollar_risk:.0f}"
+            f"{dte} DTE  {result.max_contracts}c  ${result.dollar_risk:.0f}  "
+            f"mode={result.entry_mode}"
         )
 
     return setups

@@ -34,7 +34,7 @@ from cuttingboard.chain_validation import (
     VALIDATED, OPTIONS_WEAK, CHAIN_FAILED, OPTIONS_INVALID, MANUAL_CHECK,
 )
 from cuttingboard.derived import compute_all_derived
-from cuttingboard.ingestion import fetch_all
+from cuttingboard.ingestion import fetch_all, fetch_ohlcv
 from cuttingboard.normalization import normalize_all
 from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
 from cuttingboard.notifications import format_run_alert
@@ -449,12 +449,17 @@ def run_pipeline() -> int:
 
     # ----- Layers 7–8: Qualification -----
     candidates = generate_candidates(structure, dm, val.valid_quotes, regime)
-    qual       = qualify_all(regime, structure, candidates or None, dm)
+    ohlcv = {
+        symbol: df
+        for symbol in candidates
+        if (df := fetch_ohlcv(symbol)) is not None
+    }
+    qual       = qualify_all(regime, structure, candidates or None, dm, ohlcv=ohlcv)
 
     # ----- Layer 9: Options expression -----
     setups: list[OptionSetup] = []
     if qual.qualified_trades:
-        setups = build_option_setups(qual.qualified_trades, structure, dm)
+        setups = build_option_setups(qual.qualified_trades, structure, dm, candidates)
 
     # ----- Layer 10: Chain validation -----
     chain_results: dict[str, ChainValidationResult] = {}

@@ -15,9 +15,11 @@ Short-circuit: STAY_FLAT / CHAOTIC posture halts before any per-symbol work.
 
 import logging
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Optional
+
+import pandas as pd
 
 from cuttingboard import config
 from cuttingboard.derived import DerivedMetrics
@@ -30,6 +32,9 @@ from cuttingboard.regime import (
 from cuttingboard.structure import StructureResult, CHOP
 
 logger = logging.getLogger(__name__)
+
+ENTRY_MODE_DIRECT = "DIRECT"
+ENTRY_MODE_PULLBACK_IMBALANCE = "PULLBACK_IMBALANCE"
 
 # Gate name constants — used in gates_passed / gates_failed lists
 GATE_REGIME      = "REGIME"
@@ -81,6 +86,14 @@ class QualificationResult:
     watchlist_reason: Optional[str]  # the one missed soft gate description
     max_contracts: Optional[int]     # floor(150 / spread_width×100)
     dollar_risk: Optional[float]     # max_contracts × spread_width × 100
+    entry_mode: str = ENTRY_MODE_DIRECT
+    imbalance_zone: Optional["FVGZone"] = None
+
+
+@dataclass(frozen=True)
+class FVGZone:
+    upper_bound: float
+    lower_bound: float
 
 
 @dataclass(frozen=True)
@@ -106,6 +119,7 @@ def qualify_all(
     structure_results: dict[str, StructureResult],
     candidates: Optional[dict[str, "TradeCandidate"]] = None,
     derived_metrics: Optional[dict[str, DerivedMetrics]] = None,
+    ohlcv: Optional[dict[str, pd.DataFrame]] = None,
 ) -> QualificationSummary:
     """Run all qualification gates for all symbols.
 
@@ -161,13 +175,14 @@ def qualify_all(
 
             dm = (derived_metrics or {}).get(symbol)
             result = qualify_candidate(candidate, regime, sr, dm)
+            result = _resolve_entry_mode(result, candidate, regime, dm, (ohlcv or {}).get(symbol))
 
             if result.qualified:
                 qualified.append(result)
                 logger.info(
                     f"QUALIFIED {symbol}: {result.direction} | "
-                    f"{sr.structure} | contracts={result.max_contracts} "
-                    f"risk=${result.dollar_risk:.0f}"
+                    f"{sr.structure} | mode={result.entry_mode} | "
+                    f"contracts={result.max_contracts} risk=${result.dollar_risk:.0f}"
                 )
             elif result.watchlist:
                 watchlist_trades.append(result)
@@ -197,6 +212,7 @@ def qualify_candidate(
     regime: RegimeState,
     structure: StructureResult,
     dm: Optional[DerivedMetrics] = None,
+    now_et: Optional[datetime] = None,
 ) -> QualificationResult:
     """Run all 9 gates for a single trade candidate.
 
@@ -347,7 +363,7 @@ def qualify_candidate(
         gates_passed.append(GATE_EXTENSION)  # fail-open when metrics unavailable
 
     # Gate 11: Not late session — no new entries after 3:30 PM ET
-    if _is_late_session():
+    if _is_late_session(now_et):
         soft_failures.append((GATE_TIME, "entry blocked after 3:30 PM ET"))
     else:
         gates_passed.append(GATE_TIME)
@@ -401,6 +417,57 @@ def qualify_candidate(
         max_contracts=max_contracts,
         dollar_risk=dollar_risk,
     )
+
+
+def detect_fvg(
+    df: pd.DataFrame,
+    direction: str,
+    atr14: Optional[float],
+) -> Optional[FVGZone]:
+    """Return the most recent valid, non-invalidated FVG within the lookback window."""
+    if atr14 is None or atr14 <= 0:
+        return None
+    if direction not in {"LONG", "SHORT"}:
+        return None
+    if len(df) < 3:
+        return None
+
+    window = df.iloc[-(config.FVG_LOOKBACK_CANDLES + 2):]
+    if len(window) < 3:
+        return None
+
+    for i in range(len(window) - 1, 1, -1):
+        candle1 = window.iloc[i - 2]
+        candle2 = window.iloc[i - 1]
+        candle3 = window.iloc[i]
+
+        if direction == "LONG":
+            has_gap = float(candle1["High"]) < float(candle3["Low"])
+            lower_bound = float(candle1["High"])
+            upper_bound = float(candle3["Low"])
+        else:
+            has_gap = float(candle1["Low"]) > float(candle3["High"])
+            upper_bound = float(candle1["Low"])
+            lower_bound = float(candle3["High"])
+
+        if not has_gap:
+            continue
+        if not _is_displacement_candle(candle2, direction, atr14):
+            continue
+
+        gap_size = upper_bound - lower_bound
+        if gap_size < (config.FVG_GAP_K * atr14):
+            continue
+
+        closes_after = window.iloc[i + 1:]["Close"].astype(float)
+        if direction == "LONG" and (closes_after < lower_bound).any():
+            continue
+        if direction == "SHORT" and (closes_after > upper_bound).any():
+            continue
+
+        return FVGZone(upper_bound=upper_bound, lower_bound=lower_bound)
+
+    return None
 
 
 def direction_for_regime(regime: RegimeState) -> Optional[str]:
@@ -476,6 +543,77 @@ def _check_regime_gates(regime: RegimeState) -> Optional[str]:
     return None
 
 
+def _resolve_entry_mode(
+    result: QualificationResult,
+    candidate: TradeCandidate,
+    regime: RegimeState,
+    dm: Optional[DerivedMetrics],
+    df: Optional[pd.DataFrame],
+) -> QualificationResult:
+    if not result.qualified:
+        return result
+    if result.direction not in {"LONG", "SHORT"}:
+        return result
+    if df is None or dm is None or dm.atr14 is None or dm.atr14 <= 0:
+        return result
+
+    zone = detect_fvg(df, result.direction, dm.atr14)
+    if zone is None:
+        return result
+
+    midpoint = (zone.upper_bound + zone.lower_bound) / 2.0
+    current_close = float(df.iloc[-1]["Close"])
+    distance = abs(current_close - midpoint)
+    if distance > (config.FVG_PROXIMITY_K * dm.atr14):
+        return result
+
+    stop_price = zone.lower_bound if result.direction == "LONG" else zone.upper_bound
+    risk = abs(midpoint - stop_price)
+    reward = abs(candidate.target_price - midpoint)
+    imbalance_rr = (reward / risk) if risk > 0 else 0.0
+    min_rr = config.NEUTRAL_RR_RATIO if regime.regime == NEUTRAL else config.MIN_RR_RATIO
+    if imbalance_rr < min_rr:
+        return result
+
+    return replace(
+        result,
+        entry_mode=ENTRY_MODE_PULLBACK_IMBALANCE,
+        imbalance_zone=zone,
+    )
+
+
+def _is_displacement_candle(
+    candle: pd.Series,
+    direction: str,
+    atr14: float,
+) -> bool:
+    open_price = float(candle["Open"])
+    high_price = float(candle["High"])
+    low_price = float(candle["Low"])
+    close_price = float(candle["Close"])
+
+    if high_price == low_price:
+        return False
+
+    range_size = high_price - low_price
+    close_location = (close_price - low_price) / range_size
+
+    if direction == "LONG":
+        body = close_price - open_price
+        return (
+            close_price > open_price
+            and body >= (config.FVG_DISPLACEMENT_K * atr14)
+            and close_location >= 0.75
+        )
+
+    body = open_price - close_price
+    return (
+        open_price > close_price
+        and body >= (config.FVG_DISPLACEMENT_K * atr14)
+        and close_location <= 0.25
+    )
+
+
 def _hard_reject(
     candidate: TradeCandidate,
     failed_gate: str,
@@ -496,16 +634,16 @@ def _hard_reject(
     )
 
 
-def _is_late_session() -> bool:
-    """True if current ET time is at or after the LATE_SESSION_CUTOFF (3:30 PM ET).
+def _is_late_session(now_et: datetime | None = None) -> bool:
+    """True if ET time is at or after the LATE_SESSION_CUTOFF (3:30 PM ET).
 
-    Uses zoneinfo for DST-aware conversion. Fails open (returns False) if the
-    timezone database is unavailable so tests and environments without tzdata
-    are not blocked.
+    Accepts an optional now_et for deterministic testing. Falls back to the
+    real wall-clock. Fails open (returns False) on any tzdata error.
     """
     try:
-        from zoneinfo import ZoneInfo
-        now_et = datetime.now(ZoneInfo("America/New_York"))
+        if now_et is None:
+            from zoneinfo import ZoneInfo
+            now_et = datetime.now(ZoneInfo("America/New_York"))
         cutoff = config.LATE_SESSION_CUTOFF
         return (now_et.hour, now_et.minute) >= cutoff
     except Exception:

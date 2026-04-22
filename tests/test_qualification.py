@@ -4,11 +4,16 @@ All tests are offline — synthetic RegimeState, StructureResult, TradeCandidate
 """
 
 import pytest
+import pandas as pd
 from datetime import datetime, timezone
 
 from cuttingboard import config
 from cuttingboard.derived import DerivedMetrics
 from cuttingboard.qualification import (
+    ENTRY_MODE_DIRECT,
+    ENTRY_MODE_PULLBACK_IMBALANCE,
+    FVGZone,
+    detect_fvg,
     qualify_all,
     qualify_candidate,
     direction_for_regime,
@@ -34,6 +39,12 @@ from cuttingboard.structure import StructureResult, TREND, PULLBACK, BREAKOUT, C
 # ---------------------------------------------------------------------------
 
 _NOW = datetime.now(timezone.utc)
+
+
+@pytest.fixture(autouse=True)
+def _freeze_session_time(monkeypatch):
+    """Ensure GATE_TIME always passes — tests must not depend on wall-clock."""
+    monkeypatch.setattr("cuttingboard.qualification._is_late_session", lambda now_et=None: False)
 
 
 def _regime(
@@ -116,6 +127,115 @@ def _dm(symbol="TEST", atr14=1.5) -> DerivedMetrics:
         momentum_5d=0.01, volume_ratio=1.2,
         computed_at_utc=_NOW,
         sufficient_history=True,
+    )
+
+
+def _ohlcv_frame(rows: list[tuple[float, float, float, float, float]]) -> pd.DataFrame:
+    return pd.DataFrame(rows, columns=["Open", "High", "Low", "Close", "Volume"])
+
+
+def _valid_long_fvg_df() -> pd.DataFrame:
+    return _ohlcv_frame([
+        (98.0, 99.0, 97.5, 98.6, 1000),
+        (98.6, 99.2, 98.0, 98.9, 1000),
+        (98.9, 99.4, 98.4, 99.1, 1000),
+        (99.1, 99.6, 98.7, 99.3, 1000),
+        (99.3, 99.8, 98.9, 99.5, 1000),
+        (99.4, 100.0, 99.1, 99.8, 1200),
+        (99.8, 104.2, 99.8, 103.4, 1800),
+        (101.4, 102.2, 101.2, 101.6, 1500),
+    ])
+
+
+def _no_displacement_long_fvg_df() -> pd.DataFrame:
+    return _ohlcv_frame([
+        (98.0, 99.0, 97.5, 98.6, 1000),
+        (98.6, 99.2, 98.0, 98.9, 1000),
+        (98.9, 99.4, 98.4, 99.1, 1000),
+        (99.1, 99.6, 98.7, 99.3, 1000),
+        (99.3, 99.8, 98.9, 99.5, 1000),
+        (99.4, 100.0, 99.1, 99.8, 1200),
+        (100.0, 101.0, 99.8, 100.3, 1800),
+        (101.4, 102.2, 101.2, 101.6, 1500),
+    ])
+
+
+def _invalidated_long_fvg_df() -> pd.DataFrame:
+    return _ohlcv_frame([
+        (98.0, 99.0, 97.5, 98.6, 1000),
+        (98.6, 99.2, 98.0, 98.9, 1000),
+        (98.9, 99.4, 98.4, 99.1, 1000),
+        (99.1, 99.6, 98.7, 99.3, 1000),
+        (99.3, 99.8, 98.9, 99.5, 1000),
+        (99.4, 100.0, 99.1, 99.8, 1200),
+        (99.8, 104.2, 99.8, 103.4, 1800),
+        (101.4, 102.2, 101.2, 101.6, 1500),
+        (99.8, 100.0, 99.0, 99.5, 1400),
+    ])
+
+
+def _far_from_zone_long_fvg_df() -> pd.DataFrame:
+    return _ohlcv_frame([
+        (98.0, 99.0, 97.5, 98.6, 1000),
+        (98.6, 99.2, 98.0, 98.9, 1000),
+        (98.9, 99.4, 98.4, 99.1, 1000),
+        (99.1, 99.6, 98.7, 99.3, 1000),
+        (99.3, 99.8, 98.9, 99.5, 1000),
+        (99.4, 100.0, 99.1, 99.8, 1200),
+        (99.8, 104.2, 99.8, 103.4, 1800),
+        (101.4, 104.5, 101.2, 104.4, 1500),
+    ])
+
+
+def _low_rr_long_fvg_df() -> pd.DataFrame:
+    return _ohlcv_frame([
+        (97.0, 97.8, 96.6, 97.2, 1000),
+        (97.2, 97.9, 96.9, 97.5, 1000),
+        (97.5, 98.1, 97.1, 97.7, 1000),
+        (97.7, 98.3, 97.4, 97.9, 1000),
+        (97.9, 98.6, 97.7, 98.1, 1000),
+        (89.8, 90.0, 89.4, 89.9, 1200),
+        (90.0, 102.0, 90.0, 101.5, 1800),
+        (101.1, 102.2, 101.0, 101.5, 1500),
+    ])
+
+
+def _flat_displacement_df() -> pd.DataFrame:
+    return _ohlcv_frame([
+        (98.0, 99.0, 97.5, 98.6, 1000),
+        (98.6, 99.2, 98.0, 98.9, 1000),
+        (98.9, 99.4, 98.4, 99.1, 1000),
+        (99.1, 99.6, 98.7, 99.3, 1000),
+        (99.3, 99.8, 98.9, 99.5, 1000),
+        (99.4, 100.0, 99.1, 99.8, 1200),
+        (100.0, 100.0, 100.0, 100.0, 1800),
+        (101.2, 102.0, 101.0, 101.5, 1500),
+    ])
+
+
+def _qualify_with_ohlcv(
+    df: pd.DataFrame,
+    *,
+    candidate: TradeCandidate | None = None,
+    regime: RegimeState | None = None,
+    dm: DerivedMetrics | None = None,
+) -> QualificationSummary:
+    regime = regime or _regime()
+    candidate = candidate or _candidate(
+        symbol="TEST",
+        direction="LONG",
+        entry_price=100.0,
+        stop_price=99.0,
+        target_price=102.0,
+        spread_width=0.5,
+    )
+    dm = dm or _dm(symbol="TEST", atr14=2.0)
+    return qualify_all(
+        regime,
+        {"TEST": _structure("TEST", TREND)},
+        {"TEST": candidate},
+        {"TEST": dm},
+        ohlcv={"TEST": df},
     )
 
 
@@ -636,3 +756,71 @@ class TestQualifyAllCounts:
         )
         # Total qualified + watchlist + excluded should account for all non-skipped symbols
         assert total <= summary.symbols_evaluated
+
+
+# ---------------------------------------------------------------------------
+# FVG entry mode
+# ---------------------------------------------------------------------------
+
+class TestImbalancePullbackEntryMode:
+    def test_no_displacement_candle_stays_direct(self):
+        summary = _qualify_with_ohlcv(_no_displacement_long_fvg_df())
+        result = summary.qualified_trades[0]
+        assert result.entry_mode == ENTRY_MODE_DIRECT
+        assert result.imbalance_zone is None
+
+    def test_unqualified_candidate_never_uses_pullback_mode(self):
+        summary = _qualify_with_ohlcv(
+            _valid_long_fvg_df(),
+            candidate=_candidate(
+                symbol="TEST",
+                direction="LONG",
+                entry_price=100.0,
+                stop_price=99.0,
+                target_price=102.0,
+                spread_width=0.5,
+                has_earnings_soon=True,
+            ),
+        )
+        result = summary.watchlist[0]
+        assert result.entry_mode == ENTRY_MODE_DIRECT
+        assert result.imbalance_zone is None
+
+    def test_valid_imbalance_enables_pullback_mode(self):
+        summary = _qualify_with_ohlcv(_valid_long_fvg_df())
+        result = summary.qualified_trades[0]
+        assert result.entry_mode == ENTRY_MODE_PULLBACK_IMBALANCE
+        assert result.imbalance_zone == FVGZone(upper_bound=101.2, lower_bound=100.0)
+
+    def test_invalidated_imbalance_stays_direct(self):
+        summary = _qualify_with_ohlcv(_invalidated_long_fvg_df())
+        result = summary.qualified_trades[0]
+        assert result.entry_mode == ENTRY_MODE_DIRECT
+        assert result.imbalance_zone is None
+
+    def test_low_imbalance_rr_stays_direct(self):
+        summary = _qualify_with_ohlcv(
+            _low_rr_long_fvg_df(),
+            candidate=_candidate(
+                symbol="TEST",
+                direction="LONG",
+                entry_price=101.5,
+                stop_price=99.5,
+                target_price=105.5,
+                spread_width=0.5,
+            ),
+            dm=_dm(symbol="TEST", atr14=4.0),
+        )
+        result = summary.qualified_trades[0]
+        assert result.entry_mode == ENTRY_MODE_DIRECT
+        assert result.imbalance_zone is None
+
+    def test_far_from_zone_stays_direct(self):
+        summary = _qualify_with_ohlcv(_far_from_zone_long_fvg_df())
+        result = summary.qualified_trades[0]
+        assert result.entry_mode == ENTRY_MODE_DIRECT
+        assert result.imbalance_zone is None
+
+    def test_high_equals_low_displacement_is_invalid(self):
+        zone = detect_fvg(_flat_displacement_df(), "LONG", atr14=2.0)
+        assert zone is None

@@ -42,6 +42,10 @@ INTRADAY_ALERT_COOLDOWN = 90         # minutes
 
 EXTENSION_ATR_MULTIPLIER            = 1.5   # reject if |price − ema21| > multiplier × ATR14
 NEUTRAL_RR_RATIO                    = 3.0   # minimum R:R for NEUTRAL regime trades
+FVG_DISPLACEMENT_K                  = 1.2   # displacement candle body vs ATR14
+FVG_GAP_K                           = 0.3   # minimum gap size vs ATR14
+FVG_PROXIMITY_K                     = 1.5   # max distance from current price to zone midpoint vs ATR14
+FVG_LOOKBACK_CANDLES                = 6     # scan window in completed daily bars
 REGIME_RISK_MULTIPLIER: dict[str, float] = {
     "RISK_ON":  1.0,
     "RISK_OFF": 1.0,

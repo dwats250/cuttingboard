@@ -33,6 +33,7 @@ from cuttingboard.chain_validation import (
     validate_option_chains,
 )
 from cuttingboard.derived import compute_all_derived
+from cuttingboard.ingestion import fetch_ohlcv
 from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all, fetch_intraday_bars
 from cuttingboard.intraday_state_engine import Bar as IntradayStateBar, compute_intraday_state
 from cuttingboard.normalization import NormalizedQuote, normalize_all
@@ -328,7 +329,18 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
                 execution_structure = filter_execution_dict(structure, log=logger)
                 candidates = generate_candidates(execution_structure, execution_derived, execution_quotes, regime)
                 candidates, _ = _apply_intraday_short_permission(candidates, execution_quotes)
-                qualification_summary = qualify_all(regime, execution_structure, candidates or None, execution_derived)
+                ohlcv = {
+                    symbol: df
+                    for symbol in candidates
+                    if (df := fetch_ohlcv(symbol)) is not None
+                }
+                qualification_summary = qualify_all(
+                    regime,
+                    execution_structure,
+                    candidates or None,
+                    execution_derived,
+                    ohlcv=ohlcv,
+                )
                 qualification_summary, _ = apply_sector_router(
                     qualification_summary,
                     router_state,
@@ -440,7 +452,18 @@ def _run_pipeline(
             if mode != MODE_FIXTURE:
                 candidates, intraday_state_context = _apply_intraday_short_permission(candidates, execution_quotes)
             candidates_generated = len(candidates)
-            qualification_summary = qualify_all(regime, execution_structure, candidates or None, execution_derived)
+            ohlcv = {
+                symbol: df
+                for symbol in candidates
+                if (df := fetch_ohlcv(symbol)) is not None
+            }
+            qualification_summary = qualify_all(
+                regime,
+                execution_structure,
+                candidates or None,
+                execution_derived,
+                ohlcv=ohlcv,
+            )
             qualification_summary, suppressed_candidates = apply_sector_router(
                 qualification_summary,
                 router_state,
@@ -448,7 +471,12 @@ def _run_pipeline(
             )
 
             if qualification_summary.qualified_trades:
-                option_setups = build_option_setups(qualification_summary.qualified_trades, execution_structure, execution_derived)
+                option_setups = build_option_setups(
+                    qualification_summary.qualified_trades,
+                    execution_structure,
+                    execution_derived,
+                    candidates,
+                )
 
             if option_setups:
                 if mode == MODE_FIXTURE:
