@@ -24,7 +24,7 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from cuttingboard import config
+from cuttingboard import config, time_utils
 from cuttingboard.audit import write_audit_record
 from cuttingboard.chain_validation import (
     ChainValidationResult,
@@ -342,6 +342,7 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
                     candidates or None,
                     execution_derived,
                     ohlcv=ohlcv,
+                    now_et=time_utils.convert_utc_to_et(datetime.now(timezone.utc)),
                 )
                 qualification_summary, _ = apply_sector_router(
                     qualification_summary,
@@ -388,6 +389,9 @@ def _run_pipeline(
     date_str = run_date.isoformat()
     warnings: list[str] = []
     errors: list[str] = []
+
+    now_et = time_utils.convert_utc_to_et(run_at_utc)
+    _log_time_diagnostics(run_at_utc, now_et)
 
     raw_quotes, normalized_quotes = _load_inputs(mode, fixture_file)
     fetch_failures = extract_fetch_failures(raw_quotes) if raw_quotes else None
@@ -465,6 +469,7 @@ def _run_pipeline(
                 candidates or None,
                 execution_derived,
                 ohlcv=ohlcv,
+                now_et=now_et,
             )
             qualification_summary, suppressed_candidates = apply_sector_router(
                 qualification_summary,
@@ -1231,3 +1236,24 @@ def _failure_report(run_date: date, errors: list[str]) -> str:
 
 def _iso_z(value: datetime) -> str:
     return value.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _log_time_diagnostics(run_at_utc: datetime, now_et: datetime) -> None:
+    market_open = time_utils.is_market_open(now_et)
+    after_cutoff = time_utils.is_after_entry_cutoff(now_et, config.ENTRY_CUTOFF_ET)
+    logger.info(
+        "[TIME] now_utc=%s now_et=%s market_open=%s entry_cutoff_et=%s is_after_cutoff=%s",
+        run_at_utc.replace(microsecond=0).isoformat(),
+        now_et.replace(microsecond=0).isoformat(),
+        market_open,
+        config.ENTRY_CUTOFF_ET.strftime("%H:%M:%S"),
+        after_cutoff,
+    )
+    if after_cutoff:
+        logger.info(
+            "[TIME_GATE] blocked=True reason=AFTER_CUTOFF now_et=%s cutoff_et=%s",
+            now_et.replace(microsecond=0).isoformat(),
+            config.ENTRY_CUTOFF_ET.strftime("%H:%M:%S"),
+        )
+    else:
+        logger.info("[TIME_GATE] blocked=False")

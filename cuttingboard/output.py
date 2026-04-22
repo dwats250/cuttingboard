@@ -26,7 +26,7 @@ import requests
 
 from datetime import date as _date
 
-from cuttingboard import config
+from cuttingboard import config, time_utils
 from cuttingboard.audit import write_audit_record
 from cuttingboard.chain_validation import (
     ChainValidationResult,
@@ -158,7 +158,8 @@ def render_report(
         session = watch_summary.session if watch_summary is not None else get_session_phase(run_at_utc)
         delta = "N/A" if regime.vix_pct_change is None else f"{regime.vix_pct_change:+.1%}"
         vix_text = "N/A" if regime.vix_level is None else f"{regime.vix_level:.1f}"
-        lines.append(f"  Timestamp: {run_at_utc.strftime('%Y-%m-%dT%H:%M:%SZ')}")
+        now_et = time_utils.convert_utc_to_et(run_at_utc)
+        lines.append(f"  Timestamp: {now_et.strftime('%Y-%m-%dT%H:%M:%S')} ET")
         lines.append(f"  Session: {session or 'OFF_SESSION'}")
         lines.append(f"  Regime: {regime.regime} / {regime.posture}")
         lines.append(f"  VIX: {vix_text}  |  delta: {delta}")
@@ -315,7 +316,7 @@ def render_report(
         f"{validation_summary.symbols_attempted}"
         f"    VIX : {vix_str}"
     )
-    lines.append(f"  Run       : {run_at_utc.strftime('%Y-%m-%dT%H:%M:%SZ')}")
+    lines.append(f"  Run       : {time_utils.convert_utc_to_et(run_at_utc).strftime('%Y-%m-%dT%H:%M:%S')} ET")
     lines.append(_BORDER)
 
     return "\n".join(lines)

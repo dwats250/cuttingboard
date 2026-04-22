@@ -6,6 +6,7 @@ Never hardcode API keys, tokens, or credentials here.
 """
 
 import os
+from datetime import time
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -69,7 +70,7 @@ EXPANSION_LEADERSHIP_MIN_COUNT = 2     # at least N leaders required
 CONTINUATION_BREAKOUT_BARS    = 5      # look back N candles for breakout level
 CONTINUATION_MOMENTUM_K       = 0.75   # last candle range >= K * ATR14
 CONTINUATION_VIX_SPIKE_BLOCK  = 0.01   # block continuation if VIX pct > +1%
-LATE_SESSION_CUTOFF                 = (15, 30)  # (hour, minute) ET — no entries after 3:30 PM
+ENTRY_CUTOFF_ET                     = time(15, 30)  # no new entries at or after 3:30 PM ET
 
 # ---------------------------------------------------------------------------
 # Data fetch settings

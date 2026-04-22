@@ -21,7 +21,7 @@ from typing import Optional
 
 import pandas as pd
 
-from cuttingboard import config
+from cuttingboard import config, time_utils
 from cuttingboard.derived import DerivedMetrics
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.regime import (
@@ -121,6 +121,7 @@ def qualify_all(
     candidates: Optional[dict[str, "TradeCandidate"]] = None,
     derived_metrics: Optional[dict[str, DerivedMetrics]] = None,
     ohlcv: Optional[dict[str, pd.DataFrame]] = None,
+    now_et: Optional[datetime] = None,
 ) -> QualificationSummary:
     """Run all qualification gates for all symbols.
 
@@ -175,7 +176,7 @@ def qualify_all(
                 continue
 
             dm = (derived_metrics or {}).get(symbol)
-            result = qualify_candidate(candidate, regime, sr, dm)
+            result = qualify_candidate(candidate, regime, sr, dm, now_et)
             result = _resolve_entry_mode(result, candidate, regime, dm, (ohlcv or {}).get(symbol))
 
             if result.qualified:
@@ -206,7 +207,7 @@ def qualify_all(
             if sr is None or sr.structure == CHOP:
                 continue
             dm = (derived_metrics or {}).get(symbol)
-            cont = _qualify_continuation_candidate(symbol, df, sr, regime, dm)
+            cont = _qualify_continuation_candidate(symbol, df, sr, regime, dm, now_et)
             if cont is None:
                 continue
             if cont.qualified:
@@ -765,16 +766,14 @@ def _hard_reject(
 
 
 def _is_late_session(now_et: datetime | None = None) -> bool:
-    """True if ET time is at or after the LATE_SESSION_CUTOFF (3:30 PM ET).
+    """True if ET time is at or after ENTRY_CUTOFF_ET (3:30 PM ET).
 
     Accepts an optional now_et for deterministic testing. Falls back to the
-    real wall-clock. Fails open (returns False) on any tzdata error.
+    real wall-clock. Fails open (returns False) on any error.
     """
     try:
         if now_et is None:
-            from zoneinfo import ZoneInfo
-            now_et = datetime.now(ZoneInfo("America/New_York"))
-        cutoff = config.LATE_SESSION_CUTOFF
-        return (now_et.hour, now_et.minute) >= cutoff
+            now_et = time_utils.get_now_et()
+        return time_utils.is_after_entry_cutoff(now_et, config.ENTRY_CUTOFF_ET)
     except Exception:
         return False  # fail-open
