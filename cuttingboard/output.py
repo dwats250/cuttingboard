@@ -364,6 +364,82 @@ def render_report(
     return "\n".join(lines)
 
 
+def render_report_from_payload(payload: dict) -> str:
+    """Render a report string from a canonical ReportPayload dict.
+
+    Adapter: validates the payload, then calls the canonical render_report()
+    with stub objects extracted from payload fields. Sections that require
+    rich runtime objects (per-symbol continuation audit, option setup detail,
+    VIX header) are absent in this path; they appear when calling
+    render_report() directly with full pipeline objects.
+    """
+    from cuttingboard.delivery.payload import assert_valid_payload
+    from cuttingboard.validation import ValidationSummary
+
+    assert_valid_payload(payload)
+
+    meta = payload.get("meta", {})
+    summary = payload.get("summary", {})
+    sections = payload.get("sections", {})
+    run_status = payload.get("run_status", "ERROR")
+
+    timestamp_str = meta.get("timestamp", "")
+    try:
+        from datetime import datetime, timezone as _tz
+        run_at_utc = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+    except (ValueError, AttributeError):
+        from datetime import datetime, timezone as _tz
+        run_at_utc = datetime.now(_tz.utc)
+
+    date_str = run_at_utc.strftime("%Y-%m-%d")
+
+    if run_status == "ERROR":
+        outcome = OUTCOME_HALT
+    elif sections.get("top_trades"):
+        outcome = OUTCOME_TRADE
+    else:
+        outcome = OUTCOME_NO_TRADE
+
+    vhd = sections.get("validation_halt_detail")
+    halt_reason: Optional[str] = vhd.get("reason") if vhd else None
+
+    fake_contract = {
+        "system_state": {
+            "market_regime": summary.get("market_regime", ""),
+            "tradable": summary.get("tradable"),
+            "router_mode": summary.get("router_mode"),
+            "stay_flat_reason": halt_reason,
+        }
+    }
+
+    symbols_scanned = int(meta.get("symbols_scanned") or 0)
+    stub_validation = ValidationSummary(
+        system_halted=(run_status == "ERROR"),
+        halt_reason=halt_reason,
+        failed_halt_symbols=[],
+        results={},
+        valid_quotes={},
+        invalid_symbols={},
+        symbols_attempted=symbols_scanned,
+        symbols_validated=symbols_scanned,
+        symbols_failed=0,
+    )
+
+    return render_report(
+        date_str=date_str,
+        run_at_utc=run_at_utc,
+        regime=None,
+        validation_summary=stub_validation,
+        qualification_summary=None,
+        option_setups=[],
+        outcome=outcome,
+        halt_reason=halt_reason,
+        chain_results=None,
+        watch_summary=None,
+        contract=fake_contract,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Write destinations
 # ---------------------------------------------------------------------------

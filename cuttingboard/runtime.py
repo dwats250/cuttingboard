@@ -298,15 +298,18 @@ def execute_run(
         _rewrite_summary_file(summary_path, pipeline.summary)
         _rewrite_summary_file(latest_path, pipeline.summary)
         _write_contract_file(pipeline.contract)
+        _write_payload_artifacts(pipeline.contract)
         return pipeline.summary
     except Exception as exc:
         logger.exception("Run failed")
         errors.append(str(exc))
-        _write_contract_file(build_error_contract(
+        error_contract = build_error_contract(
             generated_at=datetime.now(timezone.utc),
             artifacts={"report_path": str(report_path) if report_path else None},
             error_detail=str(exc)[:200],
-        ))
+        )
+        _write_contract_file(error_contract)
+        _write_payload_artifacts(error_contract)
         timestamped_path, latest_path = _write_summary_files(
             _failure_summary(
                 mode=mode,
@@ -1143,6 +1146,19 @@ def _write_contract_file(contract: dict[str, Any]) -> None:
     Path(LATEST_CONTRACT_PATH).write_text(
         json.dumps(contract, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+
+
+def _write_payload_artifacts(contract: dict[str, Any]) -> None:
+    try:
+        from cuttingboard.delivery.payload import build_report_payload, assert_valid_payload
+        from cuttingboard.delivery.transport import deliver_json, deliver_html
+
+        payload = build_report_payload(contract)
+        assert_valid_payload(payload)
+        deliver_json(payload)
+        deliver_html(payload)
+    except Exception:
+        logger.exception("Payload artifact generation failed — contract artifacts unaffected")
 
 
 def _data_status(
