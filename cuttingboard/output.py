@@ -367,11 +367,14 @@ def render_report(
 def render_report_from_payload(payload: dict) -> str:
     """Render a report string from a canonical ReportPayload dict.
 
-    Adapter: validates the payload, then calls the canonical render_report()
-    with stub objects extracted from payload fields. Sections that require
-    rich runtime objects (per-symbol continuation audit, option setup detail,
-    VIX header) are absent in this path; they appear when calling
-    render_report() directly with full pipeline objects.
+    Minimal rendering path: produces a date header, outcome body (NO TRADE /
+    HALT text), and DATA STATUS footer. The header timestamp/VIX/session block
+    and the SUMMARY block (market_regime, tradable, posture_label) are NOT
+    rendered because those sections in render_report() are gated on regime != None
+    and this adapter does not reconstruct a full regime object.
+
+    The payload dict is the authoritative input for UI layers; this adapter
+    exists only for backward-compatible text output.
     """
     from cuttingboard.delivery.payload import assert_valid_payload
     from cuttingboard.validation import ValidationSummary
@@ -379,17 +382,17 @@ def render_report_from_payload(payload: dict) -> str:
     assert_valid_payload(payload)
 
     meta = payload.get("meta", {})
-    summary = payload.get("summary", {})
     sections = payload.get("sections", {})
     run_status = payload.get("run_status", "ERROR")
 
     timestamp_str = meta.get("timestamp", "")
     try:
-        from datetime import datetime, timezone as _tz
+        from datetime import datetime
         run_at_utc = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
     except (ValueError, AttributeError):
-        from datetime import datetime, timezone as _tz
-        run_at_utc = datetime.now(_tz.utc)
+        raise ValueError(
+            f"render_report_from_payload: unparseable timestamp in payload: {timestamp_str!r}"
+        )
 
     date_str = run_at_utc.strftime("%Y-%m-%d")
 
@@ -402,15 +405,6 @@ def render_report_from_payload(payload: dict) -> str:
 
     vhd = sections.get("validation_halt_detail")
     halt_reason: Optional[str] = vhd.get("reason") if vhd else None
-
-    fake_contract = {
-        "system_state": {
-            "market_regime": summary.get("market_regime", ""),
-            "tradable": summary.get("tradable"),
-            "router_mode": summary.get("router_mode"),
-            "stay_flat_reason": halt_reason,
-        }
-    }
 
     symbols_scanned = int(meta.get("symbols_scanned") or 0)
     stub_validation = ValidationSummary(
@@ -436,7 +430,6 @@ def render_report_from_payload(payload: dict) -> str:
         halt_reason=halt_reason,
         chain_results=None,
         watch_summary=None,
-        contract=fake_contract,
     )
 
 

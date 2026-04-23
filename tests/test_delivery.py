@@ -162,6 +162,43 @@ class TestRenderReportFromPayload:
         source = inspect.getsource(mod.render_report_from_payload)
         assert "RegimeState" not in source
 
+    # --- adapter degradation documentation (audit fix A) ---
+
+    def test_adapter_does_not_render_summary_block(self):
+        # The SUMMARY block in render_report is gated on regime != None.
+        # The adapter passes regime=None, so "Market state:" never appears.
+        result = render_report_from_payload(_payload(_contract(market_regime="RISK_ON")))
+        assert "Market state:" not in result
+
+    def test_adapter_does_not_render_vix_header(self):
+        # VIX header is also gated on regime != None.
+        result = render_report_from_payload(_payload(_contract()))
+        assert "VIX:" not in result
+
+    def test_adapter_renders_date(self):
+        # Date border is always rendered regardless of regime.
+        result = render_report_from_payload(_payload(_contract()))
+        assert "2026-04-23" in result
+
+    # --- timestamp determinism / failure (audit fix C) ---
+
+    def test_empty_timestamp_raises_value_error(self):
+        p = _payload()
+        p["meta"]["timestamp"] = ""
+        with pytest.raises(ValueError, match="unparseable timestamp"):
+            render_report_from_payload(p)
+
+    def test_malformed_timestamp_raises_value_error(self):
+        p = _payload()
+        p["meta"]["timestamp"] = "not-a-date"
+        with pytest.raises(ValueError, match="unparseable timestamp"):
+            render_report_from_payload(p)
+
+    def test_valid_timestamp_is_deterministic(self):
+        # Same payload called twice must produce identical output (no datetime.now fallback).
+        p = _payload()
+        assert render_report_from_payload(p) == render_report_from_payload(p)
+
 
 # ---------------------------------------------------------------------------
 # B. html_renderer
@@ -364,6 +401,46 @@ class TestErrorContractPath:
         result = render_report_from_payload(payload)
         assert isinstance(result, str)
         assert "HALT" in result
+
+
+# ---------------------------------------------------------------------------
+# E. Compatibility: existing render_report interface untouched
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# F. Roundtrip safety (audit fix D)
+# ---------------------------------------------------------------------------
+
+class TestJsonRoundtrip:
+    def test_deliver_json_roundtrip(self, tmp_path):
+        from cuttingboard.delivery.payload import assert_valid_payload
+        p = _payload()
+        out = str(tmp_path / "payload.json")
+        deliver_json(p, output_path=out)
+        import json as _json
+        loaded = _json.loads(Path(out).read_text(encoding="utf-8"))
+        assert_valid_payload(loaded)
+
+    def test_roundtrip_preserves_run_status(self, tmp_path):
+        import json as _json
+        for status in ("OK", "STAY_FLAT", "ERROR"):
+            if status == "ERROR":
+                p = _payload(_error_contract())
+            else:
+                c = _contract(status=status)
+                p = _payload(c)
+            out = str(tmp_path / f"p_{status}.json")
+            deliver_json(p, output_path=out)
+            loaded = _json.loads(Path(out).read_text(encoding="utf-8"))
+            assert loaded["run_status"] == status
+
+    def test_roundtrip_preserves_tradable_null(self, tmp_path):
+        import json as _json
+        p = _payload(_contract(tradable=None))
+        out = str(tmp_path / "payload_null.json")
+        deliver_json(p, output_path=out)
+        loaded = _json.loads(Path(out).read_text(encoding="utf-8"))
+        assert loaded["summary"]["tradable"] is None
 
 
 # ---------------------------------------------------------------------------

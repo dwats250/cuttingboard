@@ -14,14 +14,6 @@ PAYLOAD_SCHEMA_VERSION = "1.0"
 
 _VALID_RUN_STATUSES = frozenset({"OK", "STAY_FLAT", "ERROR"})
 
-_NULLABLE_FIELDS = frozenset({
-    "summary.tradable",
-    "summary.router_mode",
-    "sections.continuation_audit",
-    "sections.watch_summary_detail",
-    "sections.validation_halt_detail",
-})
-
 
 def build_report_payload(contract: dict) -> dict:
     """Build a ReportPayload dict from a canonical PRD-011 contract dict.
@@ -85,7 +77,8 @@ def build_report_payload(contract: dict) -> dict:
     timestamp = contract.get("generated_at") or ""
     qualified_count = int(ac.get("qualified_count") or 0)
     rejected_count = int(ac.get("rejected_count") or 0)
-    symbols_scanned = qualified_count + rejected_count
+    watchlist_count = len(watchlist)
+    symbols_scanned = qualified_count + rejected_count + watchlist_count
 
     return {
         "schema_version": PAYLOAD_SCHEMA_VERSION,

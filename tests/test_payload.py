@@ -212,8 +212,34 @@ class TestBuildReportPayload:
         assert payload["sections"]["validation_halt_detail"] is None
 
     def test_symbols_scanned_from_counts(self):
+        # No watchlist entries: qualified + rejected only
         payload = build_report_payload(_minimal_contract(qualified_count=3, rejected_count=5))
         assert payload["meta"]["symbols_scanned"] == 8
+
+    def test_symbols_scanned_includes_watchlist(self):
+        # qualified=1, rejected=1, one WATCHLIST rejection -> scanned=3, not 2
+        rejections = [
+            _rejection("NVDA", stage="WATCHLIST", reason="ONE_SOFT_MISS"),
+        ]
+        payload = build_report_payload(_minimal_contract(
+            qualified_count=1,
+            rejected_count=1,
+            rejections=rejections,
+        ))
+        assert payload["meta"]["symbols_scanned"] == 3
+
+    def test_symbols_scanned_watchlist_only(self):
+        # All symbols went to watchlist: qualified=0, rejected=0, watchlist=2 -> scanned=2
+        rejections = [
+            _rejection("NVDA", stage="WATCHLIST", reason="ONE_SOFT_MISS"),
+            _rejection("TSLA", stage="WATCHLIST", reason="ONE_SOFT_MISS"),
+        ]
+        payload = build_report_payload(_minimal_contract(
+            qualified_count=0,
+            rejected_count=0,
+            rejections=rejections,
+        ))
+        assert payload["meta"]["symbols_scanned"] == 2
 
     def test_timestamp_from_generated_at(self):
         payload = build_report_payload(_minimal_contract())
