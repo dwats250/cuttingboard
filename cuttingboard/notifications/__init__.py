@@ -22,6 +22,7 @@ from .formatter import (
     ALERT_CONTEXT_RUN,
     AlertEvent,
     format_ntfy_alert,
+    NOTIFY_HOURLY,
 )
 
 # ---------------------------------------------------------------------------
@@ -43,6 +44,7 @@ NOTIFY_MODES = frozenset(
         NOTIFY_MIDMORNING,
         NOTIFY_POWER_HOUR,
         NOTIFY_MARKET_CLOSE,
+        NOTIFY_HOURLY,
     }
 )
 
@@ -156,6 +158,29 @@ def format_intraday_alert(
         asof_utc=asof_utc,
         regime=regime,
         intraday_alert_type=alert_type,
+    )
+    return format_ntfy_alert(event)
+
+
+def format_hourly_notification(
+    *,
+    asof_utc: datetime,
+    regime: Optional[RegimeState],
+    validation_summary: ValidationSummary,
+    qualification_summary: Optional[QualificationSummary],
+    candidate_lines: tuple[str, ...] = (),
+    halt_reason: Optional[str] = None,
+) -> tuple[str, str]:
+    event = AlertEvent(
+        alert_context=ALERT_CONTEXT_NOTIFY,
+        notify_mode=NOTIFY_HOURLY,
+        outcome="NO_TRADE",
+        asof_utc=asof_utc,
+        regime=regime,
+        validation_summary=validation_summary,
+        qualification_summary=qualification_summary,
+        halt_reason=halt_reason,
+        candidate_lines=candidate_lines,
     )
     return format_ntfy_alert(event)
 

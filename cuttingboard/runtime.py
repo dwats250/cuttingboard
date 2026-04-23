@@ -55,7 +55,9 @@ from cuttingboard.notifications import (
     NOTIFY_MIDMORNING,
     NOTIFY_POWER_HOUR,
     NOTIFY_MARKET_CLOSE,
+    NOTIFY_HOURLY,
     format_failure_notification,
+    format_hourly_notification,
     format_notification,
     format_run_alert,
 )
@@ -76,7 +78,7 @@ from cuttingboard.sector_router import (
     resolve_sector_router,
 )
 from cuttingboard.structure import classify_all_structure
-from cuttingboard.universe import filter_execution_dict, filter_execution_items, log_universe_configuration
+from cuttingboard.universe import filter_execution_dict, filter_execution_items, is_tradable_symbol, log_universe_configuration
 from cuttingboard.validation import ValidationSummary, extract_fetch_failures, validate_quotes
 from cuttingboard.watch import WatchSummary, classify_watchlist, compute_all_intraday_metrics
 
@@ -112,6 +114,7 @@ MODE_PREFETCH = "prefetch"
 # Notify modes that skip the full pipeline (not premarket)
 _REGIME_ONLY_MODES = frozenset({NOTIFY_ORB_TRAJECTORY, NOTIFY_MIDMORNING})
 _QUALIFY_ONLY_MODES = frozenset({NOTIFY_POST_ORB, NOTIFY_POWER_HOUR, NOTIFY_MARKET_CLOSE})
+_HOURLY_MODES = frozenset({NOTIFY_HOURLY})
 
 SUMMARY_MODE_LIVE = "LIVE"
 SUMMARY_MODE_FIXTURE = "FIXTURE"
@@ -331,6 +334,31 @@ def execute_run(
         return summary
 
 
+def _hourly_rr(candidate: Any) -> float:
+    risk = abs(candidate.entry_price - candidate.stop_price)
+    reward = abs(candidate.target_price - candidate.entry_price)
+    return reward / risk if risk > 0 else 0.0
+
+
+def _build_hourly_candidate_lines(
+    qualified_trades: list[Any],
+    execution_structure: dict[str, Any],
+    candidates: dict[str, Any],
+    limit: int = 5,
+) -> tuple[str, ...]:
+    lines = []
+    for trade in qualified_trades[:limit]:
+        symbol = trade.symbol
+        if not is_tradable_symbol(symbol):
+            continue
+        if symbol not in execution_structure or symbol not in candidates:
+            continue
+        structure = execution_structure[symbol].structure
+        rr = _hourly_rr(candidates[symbol])
+        lines.append(f"{symbol} | {trade.direction} | {structure} | {rr:.1f}:1")
+    return tuple(lines)
+
+
 def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str, Any]:
     """Lightweight path for non-premarket notify modes.
 
@@ -353,6 +381,7 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
             session_date=run_date.isoformat(),
         )
         qualification_summary: Optional[QualificationSummary] = None
+        candidate_lines: tuple[str, ...] = ()
 
         if not validation_summary.system_halted:
             regime = compute_regime(validation_summary.valid_quotes)
@@ -392,18 +421,61 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
                 )
                 _log_continuation_audit(regime, qualification_summary)
 
-        alert_title, alert_body = format_notification(
-            notify_mode=notify_mode,
-            date_str=date_str,
-            regime=regime,
-            router_mode=router_state.mode,
-            energy_score=router_state.energy_score,
-            index_score=router_state.index_score,
-            validation_summary=validation_summary,
-            qualification_summary=qualification_summary,
-            normalized_quotes=normalized_quotes,
-            outcome=OUTCOME_NO_TRADE,
-        )
+            elif notify_mode in _HOURLY_MODES and regime.posture != "STAY_FLAT":
+                log_universe_configuration(logger)
+                structure = classify_all_structure(validation_summary.valid_quotes, derived, regime.vix_level)
+                execution_quotes = filter_execution_dict(validation_summary.valid_quotes, log=logger)
+                execution_derived = filter_execution_dict(derived, log=logger)
+                execution_structure = filter_execution_dict(structure, log=logger)
+                candidates = generate_candidates(execution_structure, execution_derived, execution_quotes, regime)
+                candidates, _ = _apply_intraday_short_permission(candidates, execution_quotes)
+                ohlcv = {
+                    symbol: df
+                    for symbol in candidates
+                    if (df := fetch_ohlcv(symbol)) is not None
+                }
+                qualification_summary = qualify_all(
+                    regime,
+                    execution_structure,
+                    candidates or None,
+                    execution_derived,
+                    ohlcv=ohlcv,
+                    now_et=time_utils.convert_utc_to_et(datetime.now(timezone.utc)),
+                )
+                qualification_summary, _ = apply_sector_router(
+                    qualification_summary,
+                    router_state,
+                    datetime.now(timezone.utc),
+                )
+                _log_continuation_audit(regime, qualification_summary)
+                candidate_lines = _build_hourly_candidate_lines(
+                    qualification_summary.qualified_trades,
+                    execution_structure,
+                    candidates,
+                )
+
+        if notify_mode in _HOURLY_MODES:
+            alert_title, alert_body = format_hourly_notification(
+                asof_utc=regime.computed_at_utc if regime is not None else datetime.now(timezone.utc),
+                regime=regime,
+                validation_summary=validation_summary,
+                qualification_summary=qualification_summary,
+                candidate_lines=candidate_lines,
+                halt_reason=validation_summary.halt_reason if validation_summary.system_halted else None,
+            )
+        else:
+            alert_title, alert_body = format_notification(
+                notify_mode=notify_mode,
+                date_str=date_str,
+                regime=regime,
+                router_mode=router_state.mode,
+                energy_score=router_state.energy_score,
+                index_score=router_state.index_score,
+                validation_summary=validation_summary,
+                qualification_summary=qualification_summary,
+                normalized_quotes=normalized_quotes,
+                outcome=OUTCOME_NO_TRADE,
+            )
 
         if mode == MODE_LIVE:
             send_notification(alert_title, alert_body)
@@ -411,7 +483,10 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
         return {"status": SUMMARY_STATUS_SUCCESS, "suppressed": False}
 
     except Exception as exc:
+        import traceback as _tb
         logger.exception("notify-mode run failed: %s", exc)
+        if notify_mode in _HOURLY_MODES:
+            Path("traceback.txt").write_text(_tb.format_exc(), encoding="utf-8")
         alert_title, alert_body = format_failure_notification(notify_mode, date_str, str(exc)[:120])
         try:
             send_notification(alert_title, alert_body)

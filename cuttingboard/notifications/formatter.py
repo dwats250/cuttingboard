@@ -22,12 +22,14 @@ from cuttingboard.validation import ValidationSummary
 from cuttingboard.watch import WatchItem, WatchSummary, regime_bias
 
 LOCAL_TZ = ZoneInfo("America/Vancouver")
+_ET_TZ = ZoneInfo("America/New_York")
 
 NOTIFY_PREMARKET = "premarket"
 NOTIFY_ORB_TRAJECTORY = "orb_trajectory"
 NOTIFY_POST_ORB = "post_orb"
 NOTIFY_MIDMORNING = "midmorning"
 NOTIFY_POWER_HOUR = "power_hour"
+NOTIFY_HOURLY = "hourly"
 
 OUTCOME_TRADE = "TRADE"
 OUTCOME_NO_TRADE = "NO_TRADE"
@@ -51,6 +53,7 @@ class AlertEvent:
     halt_reason: Optional[str] = None
     failure_reason: Optional[str] = None
     intraday_alert_type: Optional[str] = None
+    candidate_lines: tuple[str, ...] = ()
 
 
 def format_ntfy_alert(event: AlertEvent) -> tuple[str, str]:
@@ -60,6 +63,8 @@ def format_ntfy_alert(event: AlertEvent) -> tuple[str, str]:
         return _format_intraday(event)
     if event.outcome == OUTCOME_HALT or event.halt_reason:
         return _format_halt(event)
+    if event.notify_mode == NOTIFY_HOURLY:
+        return _format_hourly(event)
     if event.alert_context == ALERT_CONTEXT_RUN:
         return _format_run_summary(event)
     if event.notify_mode == NOTIFY_PREMARKET:
@@ -73,6 +78,43 @@ def format_ntfy_alert(event: AlertEvent) -> tuple[str, str]:
     if _focus_candidates(event):
         return _format_watchlist_update(event)
     return _format_no_trade(event)
+
+
+def _format_hourly(event: AlertEvent) -> tuple[str, str]:
+    regime = event.regime
+    posture = regime.posture if regime is not None else STAY_FLAT
+    tradable = posture != STAY_FLAT
+
+    qual = event.qualification_summary
+    candidate_count = qual.symbols_qualified if (qual is not None and tradable) else 0
+
+    ts = event.asof_utc.astimezone(_ET_TZ).strftime("%H:%M ET")
+    regime_str = regime.regime if regime is not None else "UNKNOWN"
+    confidence_str = f"{regime.confidence:.2f}" if regime is not None else "0.00"
+
+    lines = [
+        ts,
+        "",
+        f"Regime: {regime_str}",
+        f"Posture: {posture}",
+        f"Confidence: {confidence_str}",
+        f"Tradable: {'Yes' if tradable else 'No'}",
+        f"Setups: {candidate_count}",
+    ]
+
+    if candidate_count > 0 and event.candidate_lines:
+        lines.append("")
+        lines.extend(event.candidate_lines)
+        first = qual.qualified_trades[0]
+        title = f"{first.symbol} {first.direction} READY"
+    elif candidate_count == 0 and tradable:
+        lines.extend(["", "No A+ setups"])
+        title = "NO SETUP"
+    else:
+        lines.extend(["", "STAY_FLAT — no entries"])
+        title = "STAY FLAT"
+
+    return title, "\n".join(lines)
 
 
 def _format_run_summary(event: AlertEvent) -> tuple[str, str]:
@@ -328,6 +370,7 @@ def _mode_label(notify_mode: Optional[str]) -> str:
         NOTIFY_POST_ORB: "POST-ORB",
         NOTIFY_MIDMORNING: "MIDDAY",
         NOTIFY_POWER_HOUR: "POWER HOUR",
+        NOTIFY_HOURLY: "HOURLY",
         None: "ALERT",
     }.get(notify_mode, str(notify_mode).upper())
 

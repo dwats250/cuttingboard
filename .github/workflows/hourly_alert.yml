@@ -1,0 +1,52 @@
+name: Cuttingboard Hourly Alert
+
+on:
+  schedule:
+    # Pre-open warm-up: 12:50 UTC / 8:50 AM ET, Monday–Friday
+    - cron: '50 12 * * 1-5'
+    # Pre-open: 13:00 UTC / 9:00 AM ET, Monday–Friday
+    - cron: '0 13 * * 1-5'
+    # ORB window / market open: 13:50 UTC / 9:50 AM ET, Monday–Friday
+    - cron: '50 13 * * 1-5'
+    # Intraday every 30 min: 14:00–21:30 UTC, Monday–Friday
+    - cron: '*/30 14-21 * * 1-5'
+  workflow_dispatch:
+
+concurrency:
+  group: hourly-alert
+  cancel-in-progress: false
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+
+    env:
+      POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install package
+        run: pip install -e .
+
+      - name: Run hourly alert
+        run: python -m cuttingboard --mode live --notify-mode hourly
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hourly-alert-failure-${{ github.run_number }}
+          path: |
+            traceback.txt
+            logs/latest_contract.json
+          if-no-files-found: ignore
+          retention-days: 7
