@@ -61,6 +61,7 @@ from cuttingboard.notifications import (
     format_notification,
     format_run_alert,
 )
+from cuttingboard.flow import load_flow_snapshot
 from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
 from cuttingboard.output import (
     OUTCOME_HALT,
@@ -359,6 +360,19 @@ def _build_hourly_candidate_lines(
     return tuple(lines)
 
 
+def _load_flow() -> Optional[dict]:
+    """Single authoritative call site for flow snapshot loading.
+
+    Reads flow_data_path from config.toml [flow] section via config.get_flow_data_path().
+    Returns snapshot.symbols when path is set; None when path is absent/empty.
+    Raises on any load or parse failure — never returns a partial result.
+    """
+    path = config.get_flow_data_path()
+    if path is None:
+        return None
+    return load_flow_snapshot(path).symbols
+
+
 def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str, Any]:
     """Lightweight path for non-premarket notify modes.
 
@@ -393,6 +407,8 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
                 state_path=_sector_router_state_path(mode),
             )
 
+            flow_snapshot = _load_flow()
+
             if notify_mode in _QUALIFY_ONLY_MODES:
                 log_universe_configuration(logger)
                 structure = classify_all_structure(validation_summary.valid_quotes, derived, regime.vix_level)
@@ -413,6 +429,7 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
                     execution_derived,
                     ohlcv=ohlcv,
                     now_et=time_utils.convert_utc_to_et(datetime.now(timezone.utc)),
+                    flow_snapshot=flow_snapshot,
                 )
                 qualification_summary, _ = apply_sector_router(
                     qualification_summary,
@@ -441,6 +458,7 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
                     execution_derived,
                     ohlcv=ohlcv,
                     now_et=time_utils.convert_utc_to_et(datetime.now(timezone.utc)),
+                    flow_snapshot=flow_snapshot,
                 )
                 qualification_summary, _ = apply_sector_router(
                     qualification_summary,
@@ -587,6 +605,7 @@ def _run_pipeline(
                 execution_derived,
                 ohlcv=ohlcv,
                 now_et=now_et,
+                flow_snapshot=_load_flow(),
             )
             qualification_summary, suppressed_candidates = apply_sector_router(
                 qualification_summary,

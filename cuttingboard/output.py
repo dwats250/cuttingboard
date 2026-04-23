@@ -39,7 +39,7 @@ from cuttingboard.normalization import normalize_all
 from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
 from cuttingboard.notifications import format_run_alert
 from cuttingboard.qualification import (
-    QualificationSummary, qualify_all, ENTRY_MODE_CONTINUATION,
+    QualificationSummary, qualify_all,
 )
 from cuttingboard.regime import RegimeState, compute_regime, EXPANSION
 from cuttingboard.structure import classify_all_structure
@@ -142,14 +142,9 @@ def render_report(
     halt_reason: Optional[str] = None,
     chain_results: Optional[dict[str, "ChainValidationResult"]] = None,
     watch_summary: Optional[WatchSummary] = None,
-    contract: Optional[dict] = None,
     **_: object,
 ) -> str:
-    """Render the full report as a string (terminal and markdown use same text).
-
-    When ``contract`` is provided the SUMMARY section reads market_regime and
-    tradable state from the canonical contract rather than the raw regime object.
-    """
+    """Render the full report as a string (terminal and markdown use same text)."""
     lines: list[str] = []
     cr = chain_results or {}
 
@@ -326,17 +321,8 @@ def render_report(
     if outcome != OUTCOME_HALT and regime is not None:
         lines.append("  SUMMARY")
         lines.append("  " + "─" * 50)
-        # Prefer contract fields when available; fall back to raw regime object.
-        if contract is not None:
-            ss = contract.get("system_state", {})
-            market_regime = ss.get("market_regime") or regime.regime
-            tradable = ss.get("tradable", True)
-            posture_label = regime.posture
-            if not tradable and ss.get("stay_flat_reason"):
-                posture_label = f"STAY_FLAT ({ss['stay_flat_reason']})"
-        else:
-            market_regime = regime.regime
-            posture_label = regime.posture
+        market_regime = regime.regime
+        posture_label = regime.posture
         lines.append(f"  Market state: {market_regime} / {posture_label}")
         execution_posture = (
             watch_summary.execution_posture
@@ -587,7 +573,8 @@ def run_pipeline() -> int:
         for symbol in candidates
         if (df := fetch_ohlcv(symbol)) is not None
     }
-    qual       = qualify_all(regime, structure, candidates or None, dm, ohlcv=ohlcv)
+    qual       = qualify_all(regime, structure, candidates or None, dm, ohlcv=ohlcv,
+                             flow_snapshot=None)
 
     # ----- Layer 9: Options expression -----
     setups: list[OptionSetup] = []

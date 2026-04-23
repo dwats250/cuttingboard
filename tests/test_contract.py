@@ -356,11 +356,8 @@ def test_no_non_json_types():
 # 5. Renderer smoke test – render_report uses contract fields
 # ---------------------------------------------------------------------------
 
-def test_render_report_accepts_contract():
+def test_render_report_no_crash():
     from cuttingboard.output import OUTCOME_NO_TRADE, render_report
-    pr = _FakePipelineResult(regime=_regime(), qualification_summary=_qual_summary())
-    contract = _build(pr)
-
     report = render_report(
         date_str="2026-04-23",
         run_at_utc=_NOW,
@@ -369,7 +366,6 @@ def test_render_report_accepts_contract():
         qualification_summary=_qual_summary(),
         option_setups=[],
         outcome=OUTCOME_NO_TRADE,
-        contract=contract,
     )
     assert isinstance(report, str)
     assert len(report) > 0
@@ -381,12 +377,6 @@ def test_render_report_stay_flat_no_crash():
     qual = _qual_summary(
         regime_short_circuited=True, regime_failure_reason="STAY_FLAT_LOW_CONF"
     )
-    contract = build_error_contract(
-        generated_at=_NOW,
-        artifacts={},
-        error_detail="STAY_FLAT",
-    )
-    # Must not crash even with empty trade_candidates / rejections
     report = render_report(
         date_str="2026-04-23",
         run_at_utc=_NOW,
@@ -395,7 +385,6 @@ def test_render_report_stay_flat_no_crash():
         qualification_summary=qual,
         option_setups=[],
         outcome=OUTCOME_NO_TRADE,
-        contract=contract,
     )
     assert isinstance(report, str)
 

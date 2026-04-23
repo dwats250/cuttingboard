@@ -6,10 +6,32 @@ Never hardcode API keys, tokens, or credentials here.
 """
 
 import os
+import tomllib
 from datetime import time
+from pathlib import Path
+from typing import Optional
+
 from dotenv import load_dotenv
 
 load_dotenv()
+
+_PROJECT_ROOT = Path(__file__).parent.parent
+_CONFIG_TOML = _PROJECT_ROOT / "config.toml"
+
+
+def get_flow_data_path(_config_path: Optional[Path] = None) -> Optional[str]:
+    """Return flow data_path from config.toml [flow] section, or None if absent/empty.
+
+    Accepts an optional _config_path for test isolation (overrides default location).
+    Never reads from environment variables.
+    """
+    path = _config_path if _config_path is not None else _CONFIG_TOML
+    if not path.exists():
+        return None
+    with open(path, "rb") as fh:
+        data = tomllib.load(fh)
+    value = data.get("flow", {}).get("data_path", "")
+    return str(value) if value else None
 
 # ---------------------------------------------------------------------------
 # Secrets — loaded from .env only, never hardcoded
