@@ -14,11 +14,11 @@ Build and refine a constraint-driven options trading decision engine.
 
 ---
 
-## system state (as of 2026-04-20)
+## system state (as of 2026-04-23)
 
-All pipeline layers are built and wired. 360 tests passing.
+All pipeline layers are built and wired. 712 tests passing.
 
-**Known broken:** `test_phase5.py` — 13 audit record tests failing (interface mismatch). `test_gap_down_permission_integration.py`, `test_intraday_state.py`, `test_operationalization.py` — collection errors (import issues).
+**Known broken:** `test_operationalization.py::test_sunday_mode_fixture_run_is_end_to_end_and_offline` — pre-existing fixture failure unrelated to pipeline logic.
 
 ### pipeline layers
 
@@ -34,10 +34,10 @@ All pipeline layers are built and wired. 360 tests passing.
 | 8 | `qualification.py` | 9-gate trade qualification. Hard gates 1–4, soft gates 5–9. |
 | 9 | `options.py` | Options expression engine. Spread selection, DTE, strike distance. |
 | 10 | `chain_validation.py` | Live chain liquidity gate. OI, spread %, bid/ask sanity. |
-| 11 | `output.py` | Terminal + markdown report + ntfy alert. Writes on every run including NO TRADE. |
+| 11 | `output.py` | Pure render + delivery layer. Terminal, markdown, Telegram. No pipeline logic. |
 | — | `audit.py` | Append-only JSONL audit log per run. |
-| — | `run_premarket.py` | Full pipeline runner. Scheduled 13:00 UTC Mon–Fri. |
-| — | `run_intraday.py` | Regime watch. Layers 1–5 only. Every 30 min, 14:00–21:00 UTC. |
+| — | `runtime.py` | Sole production orchestrator. All modes routed through `cli_main()`. |
+| — | `run_intraday.py` | Unscheduled legacy module. Trigger-based regime monitor (L1–5). Not invoked by any workflow. |
 | — | `watch.py` | Intraday watchlist classification and session phase tracking. |
 | — | `intraday_state_engine.py` | ORB classification engine. |
 | — | `notifications/` | ntfy alert formatting. |

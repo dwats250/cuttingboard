@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from cuttingboard.notifications import (
     NOTIFY_POST_ORB,
     NOTIFY_POWER_HOUR,
-    NOTIFY_PREMARKET,
     format_failure_notification,
     format_intraday_alert,
     format_notification,
@@ -129,28 +128,6 @@ def test_notification_matches_structured_prd_shape():
     )
     assert "CUTTINGBOARD" not in body
     assert all(ord(ch) < 128 for ch in body)
-
-
-def test_notification_omits_focus_and_watch_when_empty():
-    regime = _regime(posture=STAY_FLAT, confidence=0.12, net_score=1, vix_level=18.2, vix_pct_change=0.003)
-    title, body = format_notification(
-        NOTIFY_PREMARKET,
-        "2026-04-15",
-        regime,
-        _validation_summary(),
-        _qualification_summary([], []),
-        {},
-    )
-
-    assert title == "NO TRADE"
-    assert body == (
-        "7:30 AM\n"
-        "\n"
-        "Risk-on tape - stay flat\n"
-        "Off session\n"
-        "VIX 18.2 (+0.3%)\n"
-        "Leaning long"
-    )
 
 
 def test_notification_uses_watch_only_summary_when_no_focus():

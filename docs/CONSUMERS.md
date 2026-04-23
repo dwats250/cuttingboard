@@ -41,19 +41,14 @@ Every consumer must fail loudly on missing or corrupt contract data:
 
 ---
 
-## FLAGGED
-
-**flow_snapshot — FLAGGED: MISSING DATA SOURCE**
-
-`qualify_all()` accepts a `flow_snapshot: Optional[dict[str, list[FlowPrint]]]` parameter that feeds the PRD-013 flow alignment gate. All three production call sites in `runtime.py` (lines 409, 437, 583) pass `ohlcv=` only. `flow_snapshot` is always `None`. The gate is wired and correct but never supplied live data. Do not add logic to supply it until a data source is identified and tested.
-
----
-
 ## CLI Flags (Verified)
 
-| Flag | Valid Values |
+| Flag | Values / Notes |
 |---|---|
 | `--mode` | `live`, `fixture`, `sunday`, `verify`, `prefetch` |
 | `--notify-mode` | `premarket`, `orb_trajectory`, `post_orb`, `midmorning`, `power_hour`, `market_close`, `hourly` |
+| `--fixture-file` | Path to fixture JSON; used with `--mode fixture` |
+| `--file` | Path to run summary JSON; used with `--mode verify` |
+| `--date` | Override run date (YYYY-MM-DD) |
 
-No `--intraday`, `--dry-run`, or other flags found in workflow or production code.
+All five flags are the complete CLI surface. No other flags exist.

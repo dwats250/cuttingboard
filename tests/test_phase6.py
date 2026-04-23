@@ -1,8 +1,8 @@
 """
-Tests for Phase 6 — run_premarket.py and run_intraday.py.
+Tests for Phase 6 — run_intraday.py.
 
 All tests are offline — no network, no disk side-effects in most cases.
-File-writing tests use tmp_path to sandbox state and commit message files.
+File-writing tests use tmp_path to sandbox state files.
 """
 
 import json
@@ -29,7 +29,6 @@ from cuttingboard.run_intraday import (
     _DEDUP_MINUTES,
     _VIX_SPIKE_LIMIT,
 )
-from cuttingboard.run_premarket import _write_commit_msg, _COMMIT_MSG_PATH, _AUDIT_LOG_PATH
 
 
 # ---------------------------------------------------------------------------
@@ -309,130 +308,3 @@ class TestSendAlert:
         assert "REGIME SHIFT ->" not in sent_text
         assert "New regime:" not in sent_text
 
-
-# ---------------------------------------------------------------------------
-# run_premarket — _write_commit_msg
-# ---------------------------------------------------------------------------
-
-class TestWriteCommitMsg:
-    def _make_audit_record(self, **overrides) -> dict:
-        base = {
-            "date": "2026-04-11",
-            "regime": "RISK_ON",
-            "outcome": "TRADE",
-            "qualified_trades": [
-                {"symbol": "SPY", "direction": "LONG"},
-                {"symbol": "QQQ", "direction": "LONG"},
-            ],
-        }
-        base.update(overrides)
-        return base
-
-    def test_writes_commit_msg_file(self, tmp_path, monkeypatch):
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / "logs").mkdir()
-        audit = tmp_path / "logs" / "audit.jsonl"
-        audit.write_text(json.dumps(self._make_audit_record()) + "\n")
-
-        with patch("cuttingboard.run_premarket._AUDIT_LOG_PATH", str(audit)):
-            with patch("cuttingboard.run_premarket._COMMIT_MSG_PATH",
-                       str(tmp_path / ".cb_commit_msg")):
-                _write_commit_msg()
-
-        assert (tmp_path / ".cb_commit_msg").exists()
-
-    def test_commit_msg_format_with_trades(self, tmp_path, monkeypatch):
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / "logs").mkdir()
-        audit = tmp_path / "logs" / "audit.jsonl"
-        audit.write_text(json.dumps(self._make_audit_record()) + "\n")
-        msg_path = tmp_path / ".cb_commit_msg"
-
-        with patch("cuttingboard.run_premarket._AUDIT_LOG_PATH", str(audit)):
-            with patch("cuttingboard.run_premarket._COMMIT_MSG_PATH", str(msg_path)):
-                _write_commit_msg()
-
-        msg = msg_path.read_text().strip()
-        assert msg.startswith("CB report: 2026-04-11")
-        assert "RISK_ON" in msg
-        assert "2 trades" in msg
-        assert "SPY" in msg
-        assert "QQQ" in msg
-
-    def test_commit_msg_format_no_trades(self, tmp_path, monkeypatch):
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / "logs").mkdir()
-        audit = tmp_path / "logs" / "audit.jsonl"
-        record = self._make_audit_record(
-            regime="TRANSITION", outcome="NO_TRADE", qualified_trades=[],
-        )
-        audit.write_text(json.dumps(record) + "\n")
-        msg_path = tmp_path / ".cb_commit_msg"
-
-        with patch("cuttingboard.run_premarket._AUDIT_LOG_PATH", str(audit)):
-            with patch("cuttingboard.run_premarket._COMMIT_MSG_PATH", str(msg_path)):
-                _write_commit_msg()
-
-        msg = msg_path.read_text().strip()
-        assert "0 trades []" in msg
-        assert "TRANSITION" in msg
-
-    def test_uses_last_record_when_multiple_present(self, tmp_path, monkeypatch):
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / "logs").mkdir()
-        audit = tmp_path / "logs" / "audit.jsonl"
-        # Two records — only last should be used
-        r1 = self._make_audit_record(date="2026-04-10", regime="TRANSITION",
-                                     qualified_trades=[])
-        r2 = self._make_audit_record(date="2026-04-11", regime="RISK_ON")
-        audit.write_text(
-            json.dumps(r1) + "\n" + json.dumps(r2) + "\n"
-        )
-        msg_path = tmp_path / ".cb_commit_msg"
-
-        with patch("cuttingboard.run_premarket._AUDIT_LOG_PATH", str(audit)):
-            with patch("cuttingboard.run_premarket._COMMIT_MSG_PATH", str(msg_path)):
-                _write_commit_msg()
-
-        msg = msg_path.read_text()
-        assert "2026-04-11" in msg
-        assert "RISK_ON" in msg
-
-    def test_fallback_on_missing_audit_log(self, tmp_path, monkeypatch):
-        monkeypatch.chdir(tmp_path)
-        msg_path = tmp_path / ".cb_commit_msg"
-
-        with patch("cuttingboard.run_premarket._AUDIT_LOG_PATH",
-                   str(tmp_path / "nonexistent.jsonl")):
-            with patch("cuttingboard.run_premarket._COMMIT_MSG_PATH", str(msg_path)):
-                _write_commit_msg()  # must not raise
-
-        # Fallback file should be written
-        assert msg_path.exists()
-
-    def test_fallback_on_empty_audit_log(self, tmp_path, monkeypatch):
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / "logs").mkdir()
-        audit = tmp_path / "logs" / "audit.jsonl"
-        audit.write_text("")  # empty
-        msg_path = tmp_path / ".cb_commit_msg"
-
-        with patch("cuttingboard.run_premarket._AUDIT_LOG_PATH", str(audit)):
-            with patch("cuttingboard.run_premarket._COMMIT_MSG_PATH", str(msg_path)):
-                _write_commit_msg()
-
-        assert msg_path.exists()
-
-    def test_commit_msg_has_newline(self, tmp_path, monkeypatch):
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / "logs").mkdir()
-        audit = tmp_path / "logs" / "audit.jsonl"
-        audit.write_text(json.dumps(self._make_audit_record()) + "\n")
-        msg_path = tmp_path / ".cb_commit_msg"
-
-        with patch("cuttingboard.run_premarket._AUDIT_LOG_PATH", str(audit)):
-            with patch("cuttingboard.run_premarket._COMMIT_MSG_PATH", str(msg_path)):
-                _write_commit_msg()
-
-        content = msg_path.read_text()
-        assert content.endswith("\n"), "Commit message must end with newline for git -F"

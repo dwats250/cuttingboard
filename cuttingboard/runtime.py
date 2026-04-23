@@ -658,18 +658,19 @@ def _run_pipeline(
     alert_sent = False
     if mode in {MODE_LIVE, MODE_SUNDAY} and not fixture_backed:
         if notify_mode == NOTIFY_PREMARKET:
-            alert_title, alert_body = format_notification(
-                notify_mode=NOTIFY_PREMARKET,
-                date_str=date_str,
+            premarket_candidate_lines: tuple[str, ...] = ()
+            if qualification_summary and qualification_summary.qualified_trades and mode != MODE_SUNDAY:
+                premarket_candidate_lines = _build_hourly_candidate_lines(
+                    qualification_summary.qualified_trades,
+                    execution_structure,
+                    candidates,
+                )
+            alert_title, alert_body = format_hourly_notification(
+                asof_utc=run_at_utc,
                 regime=regime,
-                router_mode=router_state.mode,
-                energy_score=router_state.energy_score,
-                index_score=router_state.index_score,
                 validation_summary=validation_summary,
                 qualification_summary=qualification_summary,
-                normalized_quotes=normalized_quotes,
-                watch_summary=watch_summary,
-                outcome=outcome,
+                candidate_lines=premarket_candidate_lines,
                 halt_reason=validation_summary.halt_reason,
             )
             alert_sent = send_notification(alert_title, alert_body)

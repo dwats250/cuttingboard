@@ -51,18 +51,6 @@ NOTIFY_MODES = frozenset(
 _SUPPRESS_CONFIDENCE = 0.55
 
 
-def ntfy_title(notify_mode: str, date_str: str) -> str:
-    del date_str
-    event = AlertEvent(
-        alert_context=ALERT_CONTEXT_NOTIFY,
-        notify_mode=notify_mode,
-        outcome="NO_TRADE",
-        asof_utc=datetime.now(timezone.utc),
-    )
-    title, _ = format_ntfy_alert(event)
-    return title
-
-
 def should_suppress(
     notify_mode: str,
     regime: Optional[RegimeState],
@@ -71,7 +59,7 @@ def should_suppress(
     """Return True if the notification should be suppressed.
 
     Only applies to midmorning and power_hour.
-    CHAOTIC is always suppressed — run_intraday.py handles crisis alerts.
+    CHAOTIC is always suppressed — the hourly workflow handles crisis-level alerts.
     Suppress when posture is STAY_FLAT, confidence is low, and no watchlist.
     """
     if notify_mode not in {NOTIFY_MIDMORNING, NOTIFY_POWER_HOUR}:

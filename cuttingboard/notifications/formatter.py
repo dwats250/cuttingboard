@@ -67,8 +67,6 @@ def format_ntfy_alert(event: AlertEvent) -> tuple[str, str]:
         return _format_hourly(event)
     if event.alert_context == ALERT_CONTEXT_RUN:
         return _format_run_summary(event)
-    if event.notify_mode == NOTIFY_PREMARKET:
-        return _format_premarket(event)
     if _qualified_focus(event):
         return _format_setup_ready(event)
     if _forming_focus(event):
@@ -194,12 +192,6 @@ def _format_halt(event: AlertEvent) -> tuple[str, str]:
     if event.halt_reason:
         lines.append(_clean_reason(event.halt_reason))
     return "SYSTEM HALT", "\n".join(lines)
-
-
-def _format_premarket(event: AlertEvent) -> tuple[str, str]:
-    if _focus_candidates(event):
-        return _format_watchlist_update(event)
-    return _format_no_trade(event)
 
 
 def _format_no_trade(event: AlertEvent) -> tuple[str, str]:

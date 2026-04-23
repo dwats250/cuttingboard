@@ -14,7 +14,7 @@ Outcomes
   NO_TRADE    — regime short-circuit or zero qualified (non-halt)
   HALT        — a HALT_SYMBOL failed validation
 
-Full pipeline entry point: run_pipeline()
+Consumed by runtime.py — pure render and delivery layer, no pipeline logic.
 """
 
 import logging
@@ -27,28 +27,16 @@ import requests
 from datetime import date as _date
 
 from cuttingboard import config, time_utils
-from cuttingboard.audit import write_audit_record
 from cuttingboard.chain_validation import (
     ChainValidationResult,
-    validate_option_chains,
-    VALIDATED, OPTIONS_WEAK, CHAIN_FAILED, OPTIONS_INVALID, MANUAL_CHECK,
+    VALIDATED,
 )
-from cuttingboard.derived import compute_all_derived
-from cuttingboard.ingestion import fetch_all, fetch_ohlcv
-from cuttingboard.normalization import normalize_all
-from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
-from cuttingboard.notifications import format_run_alert
-from cuttingboard.qualification import (
-    QualificationSummary, qualify_all,
-)
-from cuttingboard.regime import RegimeState, compute_regime, EXPANSION
-from cuttingboard.structure import classify_all_structure
-from cuttingboard.universe import is_tradable_symbol
-from cuttingboard.validation import ValidationSummary, validate_quotes
+from cuttingboard.options import OptionSetup
+from cuttingboard.qualification import QualificationSummary
+from cuttingboard.regime import RegimeState, EXPANSION
+from cuttingboard.validation import ValidationSummary
 from cuttingboard.watch import (
     WatchSummary,
-    classify_watchlist,
-    compute_all_intraday_metrics,
     get_session_phase,
     regime_bias,
 )
@@ -477,176 +465,3 @@ def send_telegram(title: str, body: str) -> bool:
 def send_notification(title: str, body: str) -> bool:
     """Single notification dispatch point. Sends via Telegram."""
     return send_telegram(title, body)
-
-
-# ---------------------------------------------------------------------------
-# Full pipeline runner
-# ---------------------------------------------------------------------------
-
-def run_pipeline() -> int:
-    """Execute all 9 layers and write all three output destinations.
-
-    Layer execution order:
-        1  fetch_all            — ingest raw quotes
-        2  normalize_all        — unit normalization
-        3  validate_quotes      — hard validation gate
-        4  compute_regime       — 8-input vote model
-        5  compute_all_derived  — EMA / ATR / momentum
-        6  classify_all_structure
-        7  generate_candidates  — options-aware TradeCandidate objects
-        8  qualify_all          — 9-gate qualification
-        9  build_option_setups  — strategy expression
-
-    Returns 0 on success, 1 on HALT.
-    """
-    run_at = datetime.now(timezone.utc)
-    date_str = run_at.strftime("%Y-%m-%d")
-
-    # ----- Layers 1–3: Data spine -----
-    logger.info("Pipeline start")
-    raw    = fetch_all()
-    normed = normalize_all(raw)
-    val    = validate_quotes(normed)
-
-    if val.system_halted:
-        report = render_report(
-            date_str=date_str,
-            run_at_utc=run_at,
-            regime=None,
-            validation_summary=val,
-            qualification_summary=None,
-            watch_summary=None,
-            option_setups=[],
-            outcome=OUTCOME_HALT,
-            halt_reason=val.halt_reason,
-        )
-        write_terminal(report)
-        report_path = write_markdown(report, date_str)
-        alert_title, alert_body = format_run_alert(
-            outcome=OUTCOME_HALT,
-            run_at_utc=run_at,
-            regime=None,
-            validation_summary=val,
-            qualification_summary=None,
-            watch_summary=None,
-            halt_reason=val.halt_reason,
-        )
-        alert_sent = send_notification(alert_title, alert_body)
-
-        write_audit_record(
-            run_at_utc=run_at,
-            date_str=date_str,
-            outcome=OUTCOME_HALT,
-            regime=None,
-            validation_summary=val,
-            qualification_summary=None,
-            watch_summary=None,
-            option_setups=[],
-            halt_reason=val.halt_reason,
-            alert_sent=alert_sent,
-            report_path=report_path,
-        )
-        return 1
-
-    # ----- Layers 4–6: Analysis -----
-    regime    = compute_regime(val.valid_quotes)
-    dm        = compute_all_derived(val.valid_quotes)
-    structure = classify_all_structure(val.valid_quotes, dm, regime.vix_level)
-    tradable_symbols = [
-        symbol for symbol in val.valid_quotes
-        if is_tradable_symbol(symbol)
-    ]
-    intraday_metrics, ignored_watch_symbols = compute_all_intraday_metrics(tradable_symbols)
-    watch_summary = classify_watchlist(
-        structure,
-        dm,
-        intraday_metrics,
-        regime,
-        asof=run_at,
-        ignored_symbols=ignored_watch_symbols,
-    )
-
-    # ----- Layers 7–8: Qualification -----
-    candidates = generate_candidates(structure, dm, val.valid_quotes, regime)
-    ohlcv = {
-        symbol: df
-        for symbol in candidates
-        if (df := fetch_ohlcv(symbol)) is not None
-    }
-    qual       = qualify_all(regime, structure, candidates or None, dm, ohlcv=ohlcv,
-                             flow_snapshot=None)
-
-    # ----- Layer 9: Options expression -----
-    setups: list[OptionSetup] = []
-    if qual.qualified_trades:
-        setups = build_option_setups(qual.qualified_trades, structure, dm, candidates)
-
-    # ----- Layer 10: Chain validation -----
-    chain_results: dict[str, ChainValidationResult] = {}
-    if setups:
-        chain_results = validate_option_chains(setups, val.valid_quotes)
-
-    # ----- Determine outcome -----
-    # Only VALIDATED setups count as actionable trades
-    validated_count = sum(
-        1 for s in setups
-        if chain_results.get(s.symbol, ChainValidationResult(
-            symbol=s.symbol, classification=VALIDATED, reason=None,
-            spread_pct=None, open_interest=None, volume=None,
-            expiry_used=None, data_source=None,
-        )).classification == VALIDATED
-    )
-    if validated_count > 0:
-        outcome = OUTCOME_TRADE
-    elif qual.symbols_qualified > 0 and setups:
-        # Setups existed but all failed chain validation
-        outcome = OUTCOME_NO_TRADE
-    else:
-        outcome = OUTCOME_NO_TRADE
-
-    # ----- Render and write -----
-    report = render_report(
-        date_str=date_str,
-        run_at_utc=run_at,
-        regime=regime,
-        validation_summary=val,
-        qualification_summary=qual,
-        watch_summary=watch_summary,
-        option_setups=setups,
-        outcome=outcome,
-        chain_results=chain_results,
-    )
-
-    write_terminal(report)
-    report_path = write_markdown(report, date_str)
-    alert_title, alert_body = format_run_alert(
-        outcome=outcome,
-        run_at_utc=run_at,
-        regime=regime,
-        validation_summary=val,
-        qualification_summary=qual,
-        watch_summary=watch_summary,
-    )
-    alert_sent = send_notification(alert_title, alert_body)
-
-    write_audit_record(
-        run_at_utc=run_at,
-        date_str=date_str,
-        outcome=outcome,
-        regime=regime,
-        validation_summary=val,
-        qualification_summary=qual,
-        watch_summary=watch_summary,
-        option_setups=setups,
-        halt_reason=None,
-        alert_sent=alert_sent,
-        report_path=report_path,
-    )
-
-    logger.info(
-        f"Pipeline complete: {outcome}  "
-        f"qualified={qual.symbols_qualified}  "
-        f"near_a_plus={qual.symbols_watchlist}  "
-        f"watch={len(watch_summary.watchlist)}"
-    )
-    return 0
