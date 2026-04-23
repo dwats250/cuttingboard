@@ -26,6 +26,16 @@ import pandas as pd
 
 from cuttingboard import config, time_utils
 from cuttingboard.audit import write_audit_record
+from cuttingboard.contract import (
+    LATEST_CONTRACT_PATH,
+    STATUS_ERROR,
+    STATUS_OK,
+    STATUS_STAY_FLAT,
+    assert_valid_contract,
+    build_error_contract,
+    build_pipeline_output_contract,
+    derive_run_status,
+)
 from cuttingboard.chain_validation import (
     ChainValidationResult,
     MANUAL_CHECK,
@@ -71,6 +81,27 @@ from cuttingboard.validation import ValidationSummary, extract_fetch_failures, v
 from cuttingboard.watch import WatchSummary, classify_watchlist, compute_all_intraday_metrics
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class _PartialPipelineResult:
+    """Lightweight view passed to the contract builder before PipelineResult is frozen."""
+    mode: str
+    run_at_utc: datetime
+    date_str: str
+    raw_quotes: dict
+    normalized_quotes: dict
+    validation_summary: Any
+    regime: Any
+    router_mode: str
+    qualification_summary: Any
+    watch_summary: Any
+    option_setups: list
+    chain_results: dict
+    alert_sent: bool
+    report_path: str
+    errors: list
+
 
 MODE_LIVE = "live"
 MODE_FIXTURE = "fixture"
@@ -151,6 +182,7 @@ class PipelineResult:
     warnings: list[str]
     errors: list[str]
     summary: dict[str, Any]
+    contract: dict[str, Any]
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -265,10 +297,16 @@ def execute_run(
         )
         _rewrite_summary_file(summary_path, pipeline.summary)
         _rewrite_summary_file(latest_path, pipeline.summary)
+        _write_contract_file(pipeline.contract)
         return pipeline.summary
     except Exception as exc:
         logger.exception("Run failed")
         errors.append(str(exc))
+        _write_contract_file(build_error_contract(
+            generated_at=datetime.now(timezone.utc),
+            artifacts={"report_path": str(report_path) if report_path else None},
+            error_detail=str(exc)[:200],
+        ))
         timestamped_path, latest_path = _write_summary_files(
             _failure_summary(
                 mode=mode,
@@ -592,6 +630,32 @@ def _run_pipeline(
         fixture_file=fixture_file,
     )
 
+    contract_status = derive_run_status(outcome, regime, validation_summary.system_halted)
+    data_quality = _data_status(mode, raw_quotes, normalized_quotes, fixture_file)
+    contract = build_pipeline_output_contract(
+        _PartialPipelineResult(
+            mode=mode,
+            run_at_utc=run_at_utc,
+            date_str=date_str,
+            raw_quotes=raw_quotes,
+            normalized_quotes=normalized_quotes,
+            validation_summary=validation_summary,
+            regime=regime,
+            router_mode=router_state.mode,
+            qualification_summary=qualification_summary,
+            watch_summary=watch_summary,
+            option_setups=option_setups,
+            chain_results=chain_results,
+            alert_sent=alert_sent,
+            report_path=report_path,
+            errors=errors,
+        ),
+        generated_at=run_at_utc,
+        status=contract_status,
+        artifacts={"report_path": report_path, "log_path": str(LATEST_RUN_PATH)},
+        data_quality=data_quality,
+    )
+
     return PipelineResult(
         mode=mode,
         run_at_utc=run_at_utc,
@@ -617,6 +681,7 @@ def _run_pipeline(
         warnings=warnings,
         errors=errors,
         summary=summary,
+        contract=contract,
     )
 
 
@@ -1071,6 +1136,13 @@ def _write_summary_files(summary: dict[str, Any], run_at_utc: datetime) -> tuple
 
 def _rewrite_summary_file(path: Path, summary: dict[str, Any]) -> None:
     path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _write_contract_file(contract: dict[str, Any]) -> None:
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    Path(LATEST_CONTRACT_PATH).write_text(
+        json.dumps(contract, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
 def _data_status(
