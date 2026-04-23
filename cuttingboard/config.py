@@ -75,6 +75,14 @@ CONTINUATION_MAX_EXTENSION_ATR = 2.5   # reject if continuation entry is too far
 ENTRY_CUTOFF_ET                     = time(15, 30)  # no new entries at or after 3:30 PM ET
 
 # ---------------------------------------------------------------------------
+# Flow alignment gate (PRD-013)
+# ---------------------------------------------------------------------------
+
+FLOW_MIN_PREMIUM    = 250_000   # minimum print premium to qualify
+FLOW_MIN_SPEC_SHARE = 0.60      # OTM ask premium must be >= 60% of total to classify SPECULATIVE
+FLOW_RATIO_THRESHOLD = 1.50     # dominant direction premium must exceed opposite by 1.5×
+
+# ---------------------------------------------------------------------------
 # Data fetch settings
 # ---------------------------------------------------------------------------
 

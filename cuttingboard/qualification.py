@@ -23,6 +23,7 @@ import pandas as pd
 
 from cuttingboard import config, time_utils
 from cuttingboard.derived import DerivedMetrics
+from cuttingboard.flow import FlowPrint, apply_flow_gate
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.regime import (
     RegimeState,
@@ -102,6 +103,7 @@ class QualificationResult:
     entry_mode: str = ENTRY_MODE_DIRECT
     imbalance_zone: Optional["FVGZone"] = None
     rejection_reason: Optional[str] = None
+    flow_alignment: Optional[str] = None  # "SUPPORTS" | "OPPOSES" | "NEUTRAL" | "NO_DATA"
 
 
 @dataclass(frozen=True)
@@ -136,6 +138,7 @@ def qualify_all(
     derived_metrics: Optional[dict[str, DerivedMetrics]] = None,
     ohlcv: Optional[dict[str, pd.DataFrame]] = None,
     now_et: Optional[datetime] = None,
+    flow_snapshot: Optional[dict[str, list[FlowPrint]]] = None,
 ) -> QualificationSummary:
     """Run all qualification gates for all symbols.
 
@@ -242,6 +245,18 @@ def qualify_all(
                     symbol,
                     cont.rejection_reason or "UNKNOWN",
                 )
+
+    # --- Flow alignment gate (PRD-013) — post-qualification, PASS only ---
+    if flow_snapshot:
+        gated_qualified: list[QualificationResult] = []
+        for result in qualified:
+            updated, alignment = apply_flow_gate(result, flow_snapshot)
+            if alignment == "OPPOSES":
+                watchlist_trades.append(updated)
+                logger.info(f"FLOW DOWNGRADE {result.symbol}: opposing speculative flow → WATCHLIST")
+            else:
+                gated_qualified.append(updated)
+        qualified = gated_qualified
 
     continuation_audit = _build_continuation_audit(
         regime,
