@@ -204,6 +204,8 @@ def write_notification_audit(
     reason: Optional[str] = None,
     message_preview: Optional[str] = None,
     retry_count: int = 0,
+    priority: Optional[str] = None,
+    state_key: Optional[str] = None,
 ) -> dict:
     """Write one notification attempt record to audit.jsonl.
 
@@ -218,6 +220,8 @@ def write_notification_audit(
     error       — Exception message or HTTP error body excerpt.
     reason      — Human-readable explanation for skip/failure.
     retry_count — Number of retries made (0 = first attempt succeeded/failed, 1 = one retry).
+    priority    — NotificationPriority tier string (CRITICAL/HIGH/MEDIUM/LOW).
+    state_key   — notification_state_key() value for this run.
     """
     record: dict = {
         "event": "notification",
@@ -230,6 +234,8 @@ def write_notification_audit(
         "error": error,
         "reason": reason,
         "retry_count": retry_count,
+        "priority": priority,
+        "state_key": state_key,
         "message_preview": (message_preview[:120] if message_preview else None),
     }
     _append_record(record)

@@ -447,7 +447,13 @@ def write_markdown(report: str, date_str: str) -> str:
     return path
 
 
-def send_telegram(title: str, body: str = "") -> bool:
+def send_telegram(
+    title: str,
+    body: str = "",
+    *,
+    notification_priority: str = "",
+    notification_state_key: str = "",
+) -> bool:
     """Send Telegram notification. Returns True on success, False otherwise.
 
     Enforces a global minimum send interval (rate limit). Retries once on
@@ -456,9 +462,15 @@ def send_telegram(title: str, body: str = "") -> bool:
     Writes exactly one structured audit record to audit.jsonl per call:
     skip (not configured), success, HTTP failure, or exception.
     Never raises — notification failure must not crash the pipeline.
+
+    notification_priority and notification_state_key are forwarded to the
+    audit record when provided by the PRD-018 suppression layer.
     """
     token = config.TELEGRAM_BOT_TOKEN
     chat_id = config.TELEGRAM_CHAT_ID
+
+    _priority = notification_priority or None
+    _state_key = notification_state_key or None
 
     if not token or not chat_id:
         logger.debug("Telegram not configured — notification skipped")
@@ -468,6 +480,8 @@ def send_telegram(title: str, body: str = "") -> bool:
             attempted=False,
             success=False,
             reason="not_configured",
+            priority=_priority,
+            state_key=_state_key,
             message_preview=body[:120] if body else None,
         )
         return False
@@ -523,6 +537,8 @@ def send_telegram(title: str, body: str = "") -> bool:
             success=True,
             http_status=200,
             retry_count=retry_count,
+            priority=_priority,
+            state_key=_state_key,
             message_preview=preview,
         )
         return True
@@ -540,14 +556,27 @@ def send_telegram(title: str, body: str = "") -> bool:
         error=error_detail,
         retry_count=retry_count,
         reason="exception" if http_status is None else None,
+        priority=_priority,
+        state_key=_state_key,
         message_preview=preview,
     )
     return False
 
 
-def send_notification(title: str, body: str = "") -> bool:
+def send_notification(
+    title: str,
+    body: str = "",
+    *,
+    notification_priority: str = "",
+    notification_state_key: str = "",
+) -> bool:
     """Single notification dispatch point. Sends via Telegram."""
-    return send_telegram(title, body)
+    return send_telegram(
+        title,
+        body,
+        notification_priority=notification_priority,
+        notification_state_key=notification_state_key,
+    )
 
 
 def build_notification_message(contract: dict) -> str:

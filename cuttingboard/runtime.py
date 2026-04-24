@@ -25,7 +25,7 @@ from unittest.mock import patch
 import pandas as pd
 
 from cuttingboard import config, time_utils
-from cuttingboard.audit import write_audit_record
+from cuttingboard.audit import write_audit_record, write_notification_audit
 from cuttingboard.contract import (
     LATEST_CONTRACT_PATH,
     STATUS_ERROR,
@@ -59,6 +59,15 @@ from cuttingboard.notifications import (
     format_failure_notification,
     format_hourly_notification,
     format_notification,
+)
+from cuttingboard.notifications.state import (
+    NotificationPriority,
+    classify_notification_priority,
+    load_last_state,
+    notification_state_key,
+    save_last_state,
+    should_send,
+    LAST_STATE_PATH,
 )
 from cuttingboard.flow import load_flow_snapshot
 from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
@@ -683,11 +692,33 @@ def _run_pipeline(
         data_quality=data_quality,
     )
 
-    # Exactly one notification send per run.
+    # Exactly one notification send per run. PRD-018 suppression gate applied
+    # before send; state persisted only on confirmed success (R7).
     alert_sent = False
     if mode in {MODE_LIVE, MODE_SUNDAY} and not fixture_backed:
-        message = build_notification_message(contract)
-        alert_sent = send_notification(message)
+        current_key = notification_state_key(contract)
+        priority = classify_notification_priority(contract)
+        last_key = load_last_state(LAST_STATE_PATH)
+
+        if should_send(current_key, priority, last_key):
+            message = build_notification_message(contract)
+            alert_sent = send_notification(
+                message,
+                notification_priority=priority.value,
+                notification_state_key=current_key,
+            )
+            if alert_sent:
+                save_last_state(current_key, LAST_STATE_PATH)
+        else:
+            write_notification_audit(
+                transport="telegram",
+                alert_title="suppressed",
+                attempted=False,
+                success=False,
+                reason="suppressed_unchanged_state",
+                priority=priority.value,
+                state_key=current_key,
+            )
 
     contract["artifacts"]["notification_sent"] = alert_sent
 

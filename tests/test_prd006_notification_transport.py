@@ -58,7 +58,11 @@ class TestTelegramDispatchOnly:
         """send_notification must call send_telegram — no other transport."""
         with patch("cuttingboard.output.send_telegram", return_value=True) as mock_tg:
             result = send_notification("HALT", "system halted")
-        mock_tg.assert_called_once_with("HALT", "system halted")
+        mock_tg.assert_called_once_with(
+            "HALT", "system halted",
+            notification_priority="",
+            notification_state_key="",
+        )
         assert result is True
 
     def test_send_telegram_posts_to_telegram_api(self):
