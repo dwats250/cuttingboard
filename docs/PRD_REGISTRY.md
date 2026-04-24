@@ -26,7 +26,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-014 | 30ce0adc | Structural hardening, flow wiring, config-driven ingestion | COMPLETE |
 | PRD-015 / 015.1 | 30ce0adc | Flow wiring and ingestion config consolidation (bundled with PRD-014) | COMPLETE |
 | PRD-016 / 016.1 | 3d707356 | Pre-UI audit: legacy cleanup, interface lock, output contract verification | COMPLETE |
-| PRD-017 | — | Notification delivery stabilization: rate limit, retry, aggregation, audit | IN PROGRESS |
+| PRD-017 | fc7f5e9 | Notification delivery stabilization: rate limit, retry, aggregation, audit | COMPLETE |
 
 ---
 
