@@ -3,7 +3,9 @@
     "allow": [
       "mcp__memory__create_entities",
       "Edit",
-      "Write"
+      "Write",
+      "Bash(.venv/bin/pytest tests/ *)",
+      "Bash(.venv/bin/pytest tests/*)"
     ]
   }
 }

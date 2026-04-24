@@ -59,7 +59,6 @@ from cuttingboard.notifications import (
     format_failure_notification,
     format_hourly_notification,
     format_notification,
-    format_run_alert,
 )
 from cuttingboard.flow import load_flow_snapshot
 from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
@@ -67,6 +66,7 @@ from cuttingboard.output import (
     OUTCOME_HALT,
     OUTCOME_NO_TRADE,
     OUTCOME_TRADE,
+    build_notification_message,
     render_report,
     send_notification,
 )
@@ -508,8 +508,8 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
         alert_title, alert_body = format_failure_notification(notify_mode, date_str, str(exc)[:120])
         try:
             send_notification(alert_title, alert_body)
-        except Exception:
-            pass
+        except Exception as _notify_exc:
+            logger.warning("Failed to send failure notification: %s", _notify_exc)
         return {"status": SUMMARY_STATUS_FAIL, "suppressed": False}
 
 
@@ -655,39 +655,41 @@ def _run_pipeline(
     _write_markdown_report(report, date_str, "NOT RUN")
     report_path = str(REPORTS_DIR / f"{date_str}.md")
 
+    # Build contract before sending notification so build_notification_message
+    # can derive message content from the canonical contract.
+    contract_status = derive_run_status(outcome, regime, validation_summary.system_halted)
+    data_quality = _data_status(mode, raw_quotes, normalized_quotes, fixture_file)
+    contract = build_pipeline_output_contract(
+        _PartialPipelineResult(
+            mode=mode,
+            run_at_utc=run_at_utc,
+            date_str=date_str,
+            raw_quotes=raw_quotes,
+            normalized_quotes=normalized_quotes,
+            validation_summary=validation_summary,
+            regime=regime,
+            router_mode=router_state.mode,
+            qualification_summary=qualification_summary,
+            watch_summary=watch_summary,
+            option_setups=option_setups,
+            chain_results=chain_results,
+            alert_sent=False,
+            report_path=report_path,
+            errors=errors,
+        ),
+        generated_at=run_at_utc,
+        status=contract_status,
+        artifacts={"report_path": report_path, "log_path": str(LATEST_RUN_PATH)},
+        data_quality=data_quality,
+    )
+
+    # Exactly one notification send per run.
     alert_sent = False
     if mode in {MODE_LIVE, MODE_SUNDAY} and not fixture_backed:
-        if notify_mode == NOTIFY_PREMARKET:
-            premarket_candidate_lines: tuple[str, ...] = ()
-            if qualification_summary and qualification_summary.qualified_trades and mode != MODE_SUNDAY:
-                premarket_candidate_lines = _build_hourly_candidate_lines(
-                    qualification_summary.qualified_trades,
-                    execution_structure,
-                    candidates,
-                )
-            alert_title, alert_body = format_hourly_notification(
-                asof_utc=run_at_utc,
-                regime=regime,
-                validation_summary=validation_summary,
-                qualification_summary=qualification_summary,
-                candidate_lines=premarket_candidate_lines,
-                halt_reason=validation_summary.halt_reason,
-            )
-            alert_sent = send_notification(alert_title, alert_body)
-        else:
-            alert_title, alert_body = format_run_alert(
-                outcome=outcome,
-                run_at_utc=run_at_utc,
-                regime=regime,
-                router_mode=router_state.mode,
-                energy_score=router_state.energy_score,
-                index_score=router_state.index_score,
-                validation_summary=validation_summary,
-                qualification_summary=qualification_summary,
-                watch_summary=watch_summary,
-                halt_reason=validation_summary.halt_reason,
-            )
-            alert_sent = send_notification(alert_title, alert_body)
+        message = build_notification_message(contract)
+        alert_sent = send_notification(message)
+
+    contract["artifacts"]["notification_sent"] = alert_sent
 
     audit_record = write_audit_record(
         run_at_utc=run_at_utc,
@@ -726,32 +728,6 @@ def _run_pipeline(
         warnings=warnings,
         errors=errors,
         fixture_file=fixture_file,
-    )
-
-    contract_status = derive_run_status(outcome, regime, validation_summary.system_halted)
-    data_quality = _data_status(mode, raw_quotes, normalized_quotes, fixture_file)
-    contract = build_pipeline_output_contract(
-        _PartialPipelineResult(
-            mode=mode,
-            run_at_utc=run_at_utc,
-            date_str=date_str,
-            raw_quotes=raw_quotes,
-            normalized_quotes=normalized_quotes,
-            validation_summary=validation_summary,
-            regime=regime,
-            router_mode=router_state.mode,
-            qualification_summary=qualification_summary,
-            watch_summary=watch_summary,
-            option_setups=option_setups,
-            chain_results=chain_results,
-            alert_sent=alert_sent,
-            report_path=report_path,
-            errors=errors,
-        ),
-        generated_at=run_at_utc,
-        status=contract_status,
-        artifacts={"report_path": report_path, "log_path": str(LATEST_RUN_PATH)},
-        data_quality=data_quality,
     )
 
     return PipelineResult(

@@ -190,6 +190,53 @@ def _build_record(
 
 
 # ---------------------------------------------------------------------------
+# Notification audit
+# ---------------------------------------------------------------------------
+
+def write_notification_audit(
+    *,
+    transport: str,
+    alert_title: str,
+    attempted: bool,
+    success: bool,
+    http_status: Optional[int] = None,
+    error: Optional[str] = None,
+    reason: Optional[str] = None,
+    message_preview: Optional[str] = None,
+    retry_count: int = 0,
+) -> dict:
+    """Write one notification attempt record to audit.jsonl.
+
+    Called unconditionally from send_telegram — every attempt (skip, success,
+    HTTP failure, exception) produces exactly one record.
+
+    Fields
+    ------
+    attempted   — False means the send was skipped before any HTTP call.
+    success     — True only when HTTP 200 was received.
+    http_status — Set when an HTTP response was received (success or failure).
+    error       — Exception message or HTTP error body excerpt.
+    reason      — Human-readable explanation for skip/failure.
+    retry_count — Number of retries made (0 = first attempt succeeded/failed, 1 = one retry).
+    """
+    record: dict = {
+        "event": "notification",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "transport": transport,
+        "alert_title": alert_title,
+        "attempted": attempted,
+        "success": success,
+        "http_status": http_status,
+        "error": error,
+        "reason": reason,
+        "retry_count": retry_count,
+        "message_preview": (message_preview[:120] if message_preview else None),
+    }
+    _append_record(record)
+    return record
+
+
+# ---------------------------------------------------------------------------
 # File writer
 # ---------------------------------------------------------------------------
 

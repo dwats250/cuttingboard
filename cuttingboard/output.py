@@ -19,6 +19,7 @@ Consumed by runtime.py — pure render and delivery layer, no pipeline logic.
 
 import logging
 import os
+import time
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -27,6 +28,7 @@ import requests
 from datetime import date as _date
 
 from cuttingboard import config, time_utils
+from cuttingboard.audit import write_notification_audit
 from cuttingboard.chain_validation import (
     ChainValidationResult,
     VALIDATED,
@@ -42,6 +44,23 @@ from cuttingboard.watch import (
 )
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Rate limiting
+# ---------------------------------------------------------------------------
+
+_LAST_SEND_TS: float = 0.0
+_MIN_SEND_INTERVAL: float = 1.1  # seconds between Telegram sends
+
+
+def _rate_limit_send() -> None:
+    """Block until at least _MIN_SEND_INTERVAL has elapsed since last send."""
+    global _LAST_SEND_TS
+    elapsed = time.monotonic() - _LAST_SEND_TS
+    if elapsed < _MIN_SEND_INTERVAL:
+        time.sleep(_MIN_SEND_INTERVAL - elapsed)
+    _LAST_SEND_TS = time.monotonic()
+
 
 _BORDER = "=" * 54
 _DIVIDER = "-" * 54
@@ -428,40 +447,135 @@ def write_markdown(report: str, date_str: str) -> str:
     return path
 
 
-def send_telegram(title: str, body: str) -> bool:
+def send_telegram(title: str, body: str = "") -> bool:
     """Send Telegram notification. Returns True on success, False otherwise.
 
-    Silently skips (returns False) when Telegram is not configured.
-    Logs warnings on delivery failure — never raises.
+    Enforces a global minimum send interval (rate limit). Retries once on
+    HTTP 429 (after 2s) or timeout/5xx (after 1s). Max 2 attempts total.
+
+    Writes exactly one structured audit record to audit.jsonl per call:
+    skip (not configured), success, HTTP failure, or exception.
+    Never raises — notification failure must not crash the pipeline.
     """
     token = config.TELEGRAM_BOT_TOKEN
     chat_id = config.TELEGRAM_CHAT_ID
 
     if not token or not chat_id:
         logger.debug("Telegram not configured — notification skipped")
+        write_notification_audit(
+            transport="telegram",
+            alert_title=title,
+            attempted=False,
+            success=False,
+            reason="not_configured",
+            message_preview=body[:120] if body else None,
+        )
         return False
+
+    _rate_limit_send()
 
     text = f"{title}\n\n{body}" if body else title
     safe_text = _ascii_safe(text)
+    preview = safe_text[:120]
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {"chat_id": chat_id, "text": safe_text}
 
-    try:
-        resp = requests.post(
-            f"https://api.telegram.org/bot{token}/sendMessage",
-            json={"chat_id": chat_id, "text": safe_text},
-            timeout=10,
-        )
-        if resp.status_code == 200:
-            logger.info(f"Telegram delivered: {title!r} ({len(safe_text)} bytes)")
-            return True
-        logger.warning(
-            f"Telegram failed: HTTP {resp.status_code} for {title!r} - {resp.text[:200]}"
-        )
-    except Exception as exc:
-        logger.warning(f"Telegram delivery error for {title!r}: {exc}")
+    success = False
+    http_status: Optional[int] = None
+    error_detail: Optional[str] = None
+    attempts_made = 0
 
+    for attempt in range(2):
+        attempts_made = attempt + 1
+        try:
+            resp = requests.post(url, json=payload, timeout=10)
+            http_status = resp.status_code
+            if resp.status_code == 200:
+                success = True
+                break
+            if attempt == 0:
+                if resp.status_code == 429:
+                    time.sleep(2)
+                    continue
+                if resp.status_code >= 500:
+                    time.sleep(1)
+                    continue
+            error_detail = resp.text[:200]
+            break
+        except requests.exceptions.Timeout as exc:
+            error_detail = str(exc)
+            if attempt == 0:
+                time.sleep(1)
+                continue
+            break
+        except Exception as exc:
+            error_detail = str(exc)
+            break
+
+    retry_count = attempts_made - 1
+
+    if success:
+        logger.info(f"Telegram delivered: {title!r} ({len(safe_text)} bytes)")
+        write_notification_audit(
+            transport="telegram",
+            alert_title=title,
+            attempted=True,
+            success=True,
+            http_status=200,
+            retry_count=retry_count,
+            message_preview=preview,
+        )
+        return True
+
+    logger.warning(
+        f"Telegram failed: HTTP {http_status} for {title!r}"
+        + (f" - {error_detail}" if error_detail else "")
+    )
+    write_notification_audit(
+        transport="telegram",
+        alert_title=title,
+        attempted=True,
+        success=False,
+        http_status=http_status,
+        error=error_detail,
+        retry_count=retry_count,
+        reason="exception" if http_status is None else None,
+        message_preview=preview,
+    )
     return False
 
 
-def send_notification(title: str, body: str) -> bool:
+def send_notification(title: str, body: str = "") -> bool:
     """Single notification dispatch point. Sends via Telegram."""
     return send_telegram(title, body)
+
+
+def build_notification_message(contract: dict) -> str:
+    """Build a single aggregated notification string from the canonical contract.
+
+    Reads system_state and trade_candidates from the contract. Returns a
+    plain-text message suitable for a single send_telegram() call.
+    """
+    ss = contract.get("system_state", {})
+    market_regime = ss.get("market_regime") or "UNKNOWN"
+    tradable = ss.get("tradable", False)
+    execution_posture = "TRADE_READY" if tradable else "STAY_FLAT"
+    timestamp = (contract.get("generated_at") or "")[:16]
+
+    lines = [
+        f"cuttingboard | {timestamp}",
+        f"regime: {market_regime}  posture: {execution_posture}  tradable: {tradable}",
+    ]
+
+    candidates = (contract.get("trade_candidates") or [])[:3]
+    if candidates:
+        lines.append("setups:")
+        for c in candidates:
+            parts = [
+                c.get("symbol") or "",
+                c.get("direction") or "",
+                c.get("strategy_tag") or "",
+            ]
+            lines.append("  " + " | ".join(p for p in parts if p))
+
+    return "\n".join(lines)

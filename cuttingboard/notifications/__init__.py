@@ -61,6 +61,11 @@ def should_suppress(
     Only applies to midmorning and power_hour.
     CHAOTIC is always suppressed — the hourly workflow handles crisis-level alerts.
     Suppress when posture is STAY_FLAT, confidence is low, and no watchlist.
+
+    NOTE: This function is currently NOT called from _execute_notify_run() or any
+    live send path. Suppression does not happen at runtime. If wired in, callers
+    must write a notification audit record with reason="suppressed" so skips are
+    visible in logs/audit.jsonl.
     """
     if notify_mode not in {NOTIFY_MIDMORNING, NOTIFY_POWER_HOUR}:
         return False

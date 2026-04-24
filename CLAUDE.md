@@ -199,6 +199,18 @@ Reject or flag output that:
 
 ---
 
+## PRD documentation rule
+
+Every PRD implementation must end with an update to `docs/PRD_REGISTRY.md`:
+
+1. If the PRD row does not exist, add it before coding begins with status `IN PROGRESS`.
+2. When merged to main, set status to `COMPLETE` and fill in the commit hash.
+3. If a formal audit was performed, link the audit report doc in the Audit Reports table.
+
+This is not optional. A PRD is not complete until the registry reflects it.
+
+---
+
 ## final rule
 
 When uncertain: simplify → reduce → constrain.
