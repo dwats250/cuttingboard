@@ -1,0 +1,14 @@
+{
+  "expected_failed_tests": [
+    "test_sunday_mode_fixture_run_is_end_to_end_and_offline"
+  ],
+  "expected_circular_dependencies": [
+    ["flow", "qualification"],
+    ["delivery", "output"]
+  ],
+  "required_runtime_files": [
+    "logs/audit.jsonl",
+    ".env",
+    "config.toml"
+  ]
+}
