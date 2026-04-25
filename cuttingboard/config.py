@@ -33,6 +33,20 @@ def get_flow_data_path(_config_path: Optional[Path] = None) -> Optional[str]:
     value = data.get("flow", {}).get("data_path", "")
     return str(value) if value else None
 
+
+def get_engine_doctor_runtime_gate(_config_path: Optional[Path] = None) -> bool:
+    """Return runtime_gate_enabled from config.toml [engine_doctor] section.
+
+    Defaults to False when the section or key is absent.
+    Accepts an optional _config_path for test isolation.
+    """
+    path = _config_path if _config_path is not None else _CONFIG_TOML
+    if not path.exists():
+        return False
+    with open(path, "rb") as fh:
+        data = tomllib.load(fh)
+    return bool(data.get("engine_doctor", {}).get("runtime_gate_enabled", False))
+
 # ---------------------------------------------------------------------------
 # Secrets — loaded from .env only, never hardcoded
 # ---------------------------------------------------------------------------

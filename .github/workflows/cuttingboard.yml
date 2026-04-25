@@ -60,7 +60,6 @@ jobs:
           pip install -e .
 
       - name: Engine health check
-        continue-on-error: true
         run: |
           set -eo pipefail
           python3 tools/engine_doctor.py --json --baseline tools/baseline.json > engine_doctor.json

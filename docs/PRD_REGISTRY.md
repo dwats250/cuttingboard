@@ -28,7 +28,8 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-016 / 016.1 | 3d707356 | Pre-UI audit: legacy cleanup, interface lock, output contract verification | COMPLETE |
 | PRD-017 | fc7f5e9 | Notification delivery stabilization: rate limit, retry, aggregation, audit | COMPLETE |
 | PRD-018 | 0f7c341 | Notification signal hierarchy and suppression: state key, priority, dedup | COMPLETE |
-| PRD-019 | — | Notification decision audit / delivery safety layer | IN PROGRESS |
+| PRD-019 | c7c64c9, 0aea646 | Engine doctor — canonical pipeline health authority | COMPLETE |
+| PRD-020 | — | Engine doctor gate system (CI + runtime guardrails) | IN PROGRESS |
 
 ---
 

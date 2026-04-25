@@ -2,3 +2,8 @@
 # Set to absolute path of flow JSON file to enable the PRD-013 flow alignment gate.
 # Leave empty (or omit) to run without flow data — gate behaves as "no data" (no downgrades).
 data_path = ""
+
+[engine_doctor]
+# Set to true to run engine_doctor before every pipeline execution.
+# CI enforcement is always active (exit codes). This flag controls runtime-only.
+runtime_gate_enabled = false

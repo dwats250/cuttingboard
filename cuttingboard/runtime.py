@@ -15,6 +15,8 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import subprocess
+import sys
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -236,6 +238,8 @@ def cli_main(argv: Optional[list[str]] = None) -> int:
 
     if args.mode == MODE_PREFETCH:
         return execute_prefetch()
+
+    _run_engine_health_gate()
 
     requested_mode = args.mode
     requested_run_date = _resolve_run_date(args.date)
@@ -1442,6 +1446,47 @@ def _failure_summary(
         "warnings": [],
         "errors": errors,
     }
+
+
+_ROOT = Path(__file__).resolve().parent.parent
+_DOCTOR_PATH = _ROOT / "tools" / "engine_doctor.py"
+_BASELINE_PATH = _ROOT / "tools" / "baseline.json"
+
+
+def _run_engine_health_gate() -> None:
+    """Abort execution if engine_doctor reports a failure (runtime_gate_enabled=true).
+
+    No-op when runtime_gate_enabled is false (default). Runs without --tests for speed.
+    Exit code from engine_doctor is propagated on failure.
+    """
+    if not config.get_engine_doctor_runtime_gate():
+        return
+
+    result = subprocess.run(
+        [sys.executable, str(_DOCTOR_PATH), "--json", "--baseline", str(_BASELINE_PATH)],
+        capture_output=True,
+        text=True,
+        cwd=str(_ROOT),
+    )
+
+    if result.returncode == 0:
+        return
+
+    try:
+        report = json.loads(result.stdout)
+        status = report.get("status", "FAIL")
+    except (json.JSONDecodeError, ValueError):
+        status = "FAIL"
+
+    logger.error(
+        "ENGINE HEALTH GATE FAILED — status=%s exit_code=%d",
+        status,
+        result.returncode,
+    )
+    if result.stderr:
+        logger.error("engine_doctor stderr: %s", result.stderr[:500])
+
+    raise SystemExit(result.returncode)
 
 
 def _failure_report(run_date: date, errors: list[str]) -> str:
