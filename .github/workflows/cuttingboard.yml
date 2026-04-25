@@ -59,6 +59,22 @@ jobs:
           set -eo pipefail
           pip install -e .
 
+      - name: Engine health check
+        continue-on-error: true
+        run: |
+          set -eo pipefail
+          python3 tools/engine_doctor.py --json --baseline tools/baseline.json > engine_doctor.json
+          python3 tools/engine_doctor.py --baseline tools/baseline.json > engine_doctor.txt 2>&1 || true
+
+      - name: Upload engine doctor artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-doctor-${{ github.run_id }}
+          path: |
+            engine_doctor.json
+            engine_doctor.txt
+
       - name: Determine run mode
         id: mode
         run: |
