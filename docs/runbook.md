@@ -70,7 +70,7 @@ This is normal. It happens most days. The system is being conservative by design
 
 Each trade block tells you:
 - **Symbol + strategy:** What kind of spread to put on.
-- **Structure / IV:** Why this strategy was selected (see options_framework.md).
+- **Structure / IV:** Why this strategy was selected (direction × IV matrix in `options.py`).
 - **Strike labels:** Relative to current price. 1_ITM = one strike in the money. ATM = at the money.
 - **Strike width:** Distance between the two strikes in underlying price points.
 - **DTE:** Target days to expiry. Find the nearest weekly expiry at or above this number.

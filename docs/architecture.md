@@ -1,15 +1,61 @@
 # Cuttingboard — System Architecture
 
+## Pipeline
+
+```
+ingestion → normalization → validation → derived → regime → structure → qualification → flow → options → chain_validation → output
+```
+
+## Module Mapping
+
+| Module | Layer | Role |
+|---|---|---|
+| `ingestion.py` | ingestion | RawQuote per symbol, fetch_all, yfinance + Polygon fallback |
+| `normalization.py` | normalization | NormalizedQuote, decimal pct_change, UTC enforcement |
+| `validation.py` | validation | ValidationSummary, 7 hard rules, HALT_SYMBOL gate |
+| `derived.py` | derived | DerivedMetrics, EMA9/21/50, ATR14, momentum_5d, volume_ratio |
+| `regime.py` | regime | RegimeState, 8-input vote model, posture |
+| `structure.py` | structure | StructureResult, TREND/PULLBACK/BREAKOUT/REVERSAL/CHOP |
+| `qualification.py` | qualification | TradeCandidate, QualificationSummary, 11 gates |
+| `flow.py` | flow | FlowPrint, apply_flow_gate — directional alignment soft gate |
+| `options.py` | options | OptionSetup, strategy selection, DTE, strike distance |
+| `chain_validation.py` | chain_validation | ChainValidationResult, live OI/spread/bid-ask check |
+| `output.py` | output | render_report, markdown, ntfy alert |
+
+## Support Modules
+
+These modules are not pipeline stages. They are imported by pipeline stages or operate alongside the pipeline.
+
+| Module | Role |
+|---|---|
+| `config.py` | All constants and secrets (via dotenv). Never hardcode. |
+| `audit.py` | Append-only JSONL record to `logs/audit.jsonl` on every run. |
+| `runtime.py` | Sole production orchestrator. All modes routed through `cli_main()`. |
+| `contract.py` | Cross-layer output contract dataclasses. Frozen. |
+| `confirmation.py` | Level confirmation evaluation for entry candidates. |
+| `universe.py` | Symbol tradability check. |
+| `sector_router.py` | Sector-aware routing for position sizing. |
+| `time_utils.py` | ET timezone helpers, market hours. |
+| `watch.py` | Intraday watchlist classification and session phase tracking. |
+| `intraday_state_engine.py` | ORB classification engine. |
+| `notifications/` | ntfy alert formatting. |
+
+## Delivery Clarification
+
+Delivery (ntfy transport, Telegram, terminal output) is NOT part of the decision pipeline. It is a post-pipeline transport layer handled inside `output.py`. It has no influence on qualification, options selection, or any upstream stage.
+
+---
+
 ## What This System Does
 
-Cuttingboard is a macro-driven trade signal engine exposed through the public CLI entrypoint:
+Cuttingboard is a deterministic market interpretation and trade qualification engine. It produces one of three terminal states: **TRADE**, **NO TRADE**, or **HALT**.
+
+CLI entrypoint:
 
 - `python -m cuttingboard` → live mode
 - `python -m cuttingboard --mode fixture --fixture-file PATH` → deterministic fixture mode
 - `python -m cuttingboard --mode sunday` → regime-only Sunday mode
 - `python -m cuttingboard --mode verify --file PATH` → summary verification only
-
-The engine still produces one of three terminal states: **TRADE**, **NO TRADE**, or **HALT**. The runtime layer wraps those outcomes with a markdown report, machine-readable JSON summaries, and verification without changing engine decisions.
 
 ---
 
@@ -102,7 +148,17 @@ L7  TRADE QUALIFICATION qualification.py
     See trade_qualification.md for full gate table.
          │
          ▼
-L8  OPTIONS EXPRESSION  options.py
+L8  FLOW GATE           flow.py
+    In:  QualificationSummary, flow snapshot data
+    Out: QualificationSummary (PASS candidates may be downgraded)
+    ─────────────────────────────────────────────────────────
+    Soft gate only. Applies after qualification.
+    When dominant speculative options flow opposes the
+    candidate direction, PASS → WATCHLIST.
+    No effect on REJECT or existing WATCHLIST results.
+         │
+         ▼
+L10 OPTIONS EXPRESSION  options.py
     In:  list[QualificationResult], dict[str, StructureResult],
          dict[str, DerivedMetrics]
     Out: list[OptionSetup]
@@ -117,10 +173,18 @@ L8  OPTIONS EXPRESSION  options.py
       DISQUALIFIED_OPTIONS_INVALID
     NEEDS_MANUAL_CHECK is surfaced as a warning and does
     not by itself force verify mode to FAIL.
-    See options_framework.md for full matrix.
          │
          ▼
-L9  OUTPUT ENGINE       output.py
+L11 CHAIN VALIDATION    chain_validation.py
+    In:  list[OptionSetup]
+    Out: dict[str, ChainValidationResult]
+    ─────────────────────────────────────────────────────────
+    Live liquidity gate. Checks OI, spread %, bid/ask sanity.
+    Classifies each setup: TOP_TRADE_VALIDATED /
+    NEEDS_MANUAL_CHECK / DISQUALIFIED_OPTIONS_INVALID.
+         │
+         ▼
+L12 OUTPUT ENGINE       output.py
     In:  All above results
     Out: reports/YYYY-MM-DD.md, logs/run_*.json,
          logs/latest_run.json, optional ntfy alert
@@ -132,7 +196,7 @@ L9  OUTPUT ENGINE       output.py
     silently if not configured in .env.
          │
          ▼
-L10 AUDIT               audit.py
+ —  AUDIT               audit.py
     In:  All above results + ntfy_sent status
     Out: One JSON record appended to logs/audit.jsonl
     ─────────────────────────────────────────────────────────
@@ -250,10 +314,11 @@ reports/
 docs/                       you are here
   architecture.md           this file
   runbook.md
-  data_sources.md
-  regime_model.md
-  trade_qualification.md
-  options_framework.md
+  engine_doctor.md
+  PRD_REGISTRY.md
+  regime_model.md           (optional — regime vote model details)
+  trade_qualification.md    (optional — full gate reference)
+  prd_history/              archived PRDs and audit reports
 
 .env                        POLYGON_API_KEY, NTFY_TOPIC, NTFY_URL
                             (gitignored — never committed)
@@ -279,22 +344,23 @@ pyproject.toml              package metadata + dependencies
 
 **Normal premarket run (TRADE day):**
 ```
-L1 → L2 → L3 → L4 + L5 → L6 → [L7 generate_candidates] → L7 qualify_all
-→ L8 → L9 → L10
+ingestion → normalization → validation → derived + regime → structure
+→ [generate_candidates] → qualification → flow → options → chain_validation
+→ output → audit
 ```
 
 **Normal premarket run (NO TRADE day — STAY_FLAT):**
 ```
-L1 → L2 → L3 → L4 + L5 [posture=STAY_FLAT] → L6 → qualify_all short-circuits
-→ L9 → L10
+ingestion → normalization → validation → derived + regime [posture=STAY_FLAT]
+→ structure → qualify_all short-circuits → output → audit
 ```
 
 **HALT (required symbol failed validation):**
 ```
-L1 → L2 → L3 [system_halted=True] → L9 (HALT report) → L10 → exit(1)
+ingestion → normalization → validation [system_halted=True] → output (HALT report) → audit → exit(1)
 ```
 
 **Intraday run:**
 ```
-L1 → L2 → L3 → L4 + L5 → compare to last state → ntfy if trigger → update state
+ingestion → normalization → validation → derived + regime → compare to last state → ntfy if trigger → update state
 ```

@@ -1,97 +1,108 @@
 # Cuttingboard
 
-A constraint-driven trading signal engine. It now exposes a single public CLI, writes one trusted markdown report plus one JSON run summary per run, and verifies those artifacts without changing engine logic.
+Cuttingboard is a deterministic market interpretation and trade qualification engine.
 
 ---
 
-## What It Does
+## Core Function
 
-**`python -m cuttingboard`**
-Dispatches `live`, `fixture`, `sunday`, or `verify` from one public entrypoint.
-
-**LIVE (default)**
-Fetches live data and runs the full pipeline. Writes `reports/YYYY-MM-DD.md`, `logs/run_*.json`, and `logs/latest_run.json`.
-
-**SUNDAY**
-Runs the live spine through regime only. Produces regime context with no candidates.
-
-**FIXTURE**
-Loads a normalized snapshot from `tests/fixtures/` and starts at validation with deterministic output.
-
-**VERIFY**
-Reads `logs/latest_run.json` or `--file PATH` and returns `PASS` or `FAIL` without rerunning the engine.
+The system answers: Should a trade be taken right now?
 
 ---
 
-## Pipeline
+## System Behavior
+
+- Produces TRADE, NO TRADE, or HALT
+- Explains reasoning for every outcome
+- Defaults to no trade when uncertain
+
+---
+
+## Pipeline Architecture
 
 ```
-L1  Ingestion       → RawQuote per symbol (yfinance + Polygon fallback)
-L2  Normalization   → NormalizedQuote (decimal pct_change, UTC timestamps)
-L3  Validation      → 7 hard rules per symbol; HALT if any core symbol fails
-L4  Derived         → EMA9/21/50, ATR14, momentum_5d, volume_ratio
-L5  Regime          → 8-input vote model → RISK_ON / RISK_OFF / NEUTRAL / CHAOTIC
-L6  Structure       → TREND / PULLBACK / BREAKOUT / REVERSAL / CHOP + IV environment
-L7  Qualification   → 11 gates (4 hard, 7 soft) → QUALIFIED / WATCHLIST / REJECT
-L8  Options         → Strategy + DTE from direction × IV matrix
-L9  Output          → Terminal, reports/YYYY-MM-DD.md, ntfy alert
-L10 Audit           → Append-only JSON record to logs/audit.jsonl
-Ops Summary         → logs/run_YYYY-MM-DD_HHMMSS.json + logs/latest_run.json
+ingestion → normalization → validation → derived → regime → structure → qualification → flow → options → chain_validation → output
 ```
+
+| Stage | Module | Role |
+|---|---|---|
+| ingestion | `ingestion.py` | Fetch RawQuote per symbol. yfinance primary, Polygon fallback. |
+| normalization | `normalization.py` | Convert pct_change to decimal, enforce UTC timestamps. |
+| validation | `validation.py` | 7 hard rules per symbol. HALT_SYMBOL failure stops pipeline. |
+| derived | `derived.py` | Compute EMA9/21/50, ATR14 (Wilder RMA), momentum_5d, volume_ratio. |
+| regime | `regime.py` | 8-input vote model → RISK_ON / RISK_OFF / NEUTRAL / CHAOTIC + posture. |
+| structure | `structure.py` | Classify each symbol: TREND / PULLBACK / BREAKOUT / REVERSAL / CHOP. |
+| qualification | `qualification.py` | 11 gates (4 hard, 7 soft) → QUALIFIED / WATCHLIST / REJECT. |
+| flow | `flow.py` | Options flow alignment gate. Downgrades PASS → WATCHLIST on direction conflict. |
+| options | `options.py` | Select strategy, DTE, and strike distance from direction × IV matrix. |
+| chain_validation | `chain_validation.py` | Live chain liquidity gate. Validates OI, spread %, bid/ask. |
+| output | `output.py` | Render terminal output, markdown report, and ntfy alert. |
 
 ---
 
-## Instrument Universe
+## Decision Model
 
-| Category | Symbols |
+- Regime drives context: RISK_ON, RISK_OFF, NEUTRAL, or CHAOTIC
+- Structure classifies price behavior: TREND, PULLBACK, BREAKOUT, REVERSAL, or CHOP
+- Qualification enforces hard and soft gates before any trade is considered
+- Flow applies directional alignment against live options activity
+- Options expresses only risk-defined trades within the $150 target risk budget
+
+---
+
+## Logging and Outputs
+
+| File | Description |
 |---|---|
-| Core | SPY, QQQ, GLD, IAU, SLV, SIVR |
-| High Liquidity Options | NVDA, TSLA, AAPL, MSFT, AMZN, META, GOOG, PLTR |
-| High Beta / Volatility | MSTR, COIN, SMCI, MU |
-| Macro / Context | XLE, USO, GDX, DXY, US10Y (^TNX fallback), VIX |
+| `logs/audit.jsonl` | Append-only record of every run, regardless of outcome |
+| `logs/latest_run.json` | Most recent run summary — canonical machine-readable source of truth |
+| `logs/latest_contract.json` | Most recent pipeline output contract |
+| `logs/latest_payload.json` | Most recent delivery payload |
+| `logs/run_YYYY-MM-DD_HHMMSS.json` | Timestamped per-run archive |
 
-Focus: 5–8 tickers per session.
-
----
-
-## Halt Conditions
-
-If any core symbol (`^VIX`, `DX-Y.NYB`, `^TNX`, `SPY`, `QQQ`) fails validation, the system halts immediately — no regime, no trades. A HALT report and ntfy alert are sent and the process exits with code `1`.
+All system behavior is logged and reproducible.
 
 ---
 
-## Setup
+## System Health
 
-```bash
-pip install -e .
-cp .env.example .env   # fill in POLYGON_API_KEY, NTFY_TOPIC, NTFY_URL
-```
+The engine doctor (`tools/engine_doctor.py`) is the canonical pipeline health authority. It verifies module importability, dependency graph integrity, runtime file presence, and test suite status — without touching the pipeline.
 
-Run manually:
+CI gating (PRD-020): every pull request runs the engine doctor in strict + baseline mode. Import failures, new circular dependencies, and unexpected test failures block merge.
 
-```bash
-python -m cuttingboard
-python -m cuttingboard --mode fixture --fixture-file tests/fixtures/2026-04-12.json
-python -m cuttingboard --mode verify
-```
+Baseline enforcement: `tools/baseline.json` captures the known-good state. Any deviation from baseline fails CI with exit code 5.
 
 ---
 
-## Tests
+## Safety Model
 
-```bash
-pytest tests/
-```
-
-297 tests across all layers.
+- Immutable dataclass boundaries: all pipeline contracts are `frozen=True`
+- Strict validation gate: HALT_SYMBOL failure stops the pipeline before any analysis runs
+- Default no-trade bias: STAY_FLAT posture short-circuits all qualification — zero candidates evaluated
 
 ---
 
-## Docs
+## Current State
 
-- `docs/architecture.md` — full layer diagram and data contracts
-- `docs/regime_model.md` — vote thresholds and posture rules
-- `docs/trade_qualification.md` — all 11 qualification gates
-- `docs/options_framework.md` — direction × IV strategy matrix
-- `docs/runbook.md` — operational procedures
-- `docs/data_sources.md` — data source details and fallback logic
+- Full pipeline implemented and wired: ingestion through output
+- 802 tests passing (1 known pre-existing fixture failure)
+- Engine doctor with CI integration and baseline enforcement (PRD-019, PRD-020)
+- Append-only audit log on every run
+- ntfy alert delivery on TRADE and HALT outcomes
+- Intraday regime monitor with deduplication state
+
+---
+
+## Roadmap
+
+- Chain validation against live Polygon options data
+- Earnings calendar integration (Gate 9 currently fail-open)
+- Sector-aware position sizing via `sector_router.py`
+- Intraday alert threshold calibration
+- Fixture coverage for flow gate and chain validation layers
+
+---
+
+## Authorship
+
+Author: Dustin Watson

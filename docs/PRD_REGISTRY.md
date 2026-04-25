@@ -30,6 +30,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-018 | 0f7c341 | Notification signal hierarchy and suppression: state key, priority, dedup | COMPLETE |
 | PRD-019 | c7c64c9, 0aea646 | Engine doctor — canonical pipeline health authority | COMPLETE |
 | PRD-020 | 0472cfd | Engine doctor gate system (CI + runtime guardrails) | COMPLETE |
+| PRD-021 | — | Documentation canonicalization (README + docs system) | IN PROGRESS |
 
 ---
 
@@ -37,12 +38,4 @@ All product requirement documents for the cuttingboard decision engine, in order
 
 | PRD | File |
 |-----|------|
-| PRD-016 | [docs/AUDIT_PRD016.md](AUDIT_PRD016.md) |
-
----
-
-## How to use this file
-
-- Add a row when a new PRD is defined (before coding begins).
-- Link to an audit report doc when a formal pre/post audit is performed.
-- Status: `IN PROGRESS` while active, `COMPLETE` when merged to main.
+| PRD-016 | [docs/prd_history/AUDIT_PRD016.md](prd_history/AUDIT_PRD016.md) |
