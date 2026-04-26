@@ -32,6 +32,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-020 | 0472cfd | Engine doctor gate system (CI + runtime guardrails) | COMPLETE |
 | PRD-021 | — | Documentation canonicalization (README + docs system) | IN PROGRESS |
 | PRD-022 | 2b6009a | Sunday mode isolation — no live data, forced STAY_FLAT, non-live execution path | COMPLETE |
+| PRD-023 | 314ca46 | GLD–DXY correlation policy layer — advisory risk_modifier, no qualification mutation | COMPLETE |
 
 ---
 
