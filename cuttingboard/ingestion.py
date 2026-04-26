@@ -7,8 +7,10 @@ Each symbol is fetched independently; one failure never contaminates another.
 
 import logging
 import math
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -36,6 +38,31 @@ class RawQuote:
 
 
 # ---------------------------------------------------------------------------
+# Live-data guard
+# ---------------------------------------------------------------------------
+
+_live_data_blocked = threading.local()
+
+
+@contextmanager
+def block_live_data():
+    """Block live data fetches within the context.
+
+    Raises RuntimeError("LIVE_DATA_FORBIDDEN_IN_SUNDAY_MODE") if
+    fetch_all_quotes or fetch_intraday_bars is called while active.
+    """
+    _live_data_blocked.blocked = True
+    try:
+        yield
+    finally:
+        _live_data_blocked.blocked = False
+
+
+def _is_live_data_blocked() -> bool:
+    return bool(getattr(_live_data_blocked, "blocked", False))
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -45,6 +72,8 @@ def fetch_all_quotes() -> dict[str, "RawQuote"]:
     Returns a dict keyed by symbol. Every symbol appears in the result —
     failures are represented as RawQuote(fetch_succeeded=False, ...).
     """
+    if _is_live_data_blocked():
+        raise RuntimeError("LIVE_DATA_FORBIDDEN_IN_SUNDAY_MODE")
     results: dict[str, RawQuote] = {}
     for symbol in config.ALL_SYMBOLS:
         results[symbol] = fetch_quote(symbol)
@@ -132,6 +161,8 @@ def fetch_intraday_bars(symbol: str) -> Optional[pd.DataFrame]:
     Returns up to the last 120 regular-session bars for the latest session date.
     Failure is per-symbol and returns None without raising.
     """
+    if _is_live_data_blocked():
+        raise RuntimeError("LIVE_DATA_FORBIDDEN_IN_SUNDAY_MODE")
     def _do_download() -> pd.DataFrame:
         df = yf.download(
             symbol,

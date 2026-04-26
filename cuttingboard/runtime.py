@@ -46,7 +46,7 @@ from cuttingboard.chain_validation import (
 )
 from cuttingboard.derived import compute_all_derived
 from cuttingboard.ingestion import fetch_ohlcv
-from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all, fetch_intraday_bars
+from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, block_live_data, fetch_all, fetch_intraday_bars
 from cuttingboard.intraday_state_engine import Bar as IntradayStateBar, compute_intraday_state
 from cuttingboard.normalization import NormalizedQuote, normalize_all
 from cuttingboard.notifications import (
@@ -541,10 +541,26 @@ def _run_pipeline(
     now_et = time_utils.convert_utc_to_et(run_at_utc)
     _log_time_diagnostics(run_at_utc, now_et)
 
-    raw_quotes, normalized_quotes = _load_inputs(mode, fixture_file)
-    fetch_failures = extract_fetch_failures(raw_quotes) if raw_quotes else None
-    with _fixture_validation_clock(mode, fixture_file, normalized_quotes):
-        validation_summary = validate_quotes(normalized_quotes, fetch_failures)
+    if mode == MODE_SUNDAY and not fixture_backed:
+        # Sunday non-live path: no data fetch, forced STAY_FLAT.
+        raw_quotes: dict[str, RawQuote] = {}
+        normalized_quotes: dict[str, NormalizedQuote] = {}
+        validation_summary = ValidationSummary(
+            system_halted=False,
+            halt_reason=None,
+            failed_halt_symbols=[],
+            results={},
+            valid_quotes={},
+            invalid_symbols={},
+            symbols_attempted=0,
+            symbols_validated=0,
+            symbols_failed=0,
+        )
+    else:
+        raw_quotes, normalized_quotes = _load_inputs(mode, fixture_file)
+        fetch_failures = extract_fetch_failures(raw_quotes) if raw_quotes else None
+        with _fixture_validation_clock(mode, fixture_file, normalized_quotes):
+            validation_summary = validate_quotes(normalized_quotes, fetch_failures)
 
     regime: Optional[RegimeState] = None
     router_state = SectorRouterState(
@@ -1029,8 +1045,9 @@ def verify_run_summary(path: str) -> dict[str, Any]:
     if missing:
         errors.append(f"missing required fields: {', '.join(missing)}")
 
+    _nullable_summary_fields = frozenset({"halt_reason", "continuation_audit"})
     for key, value in summary.items():
-        if value is None and key != "halt_reason":
+        if value is None and key not in _nullable_summary_fields:
             errors.append(f"{key} must not be null")
 
     if summary.get("mode") not in {SUMMARY_MODE_LIVE, SUMMARY_MODE_FIXTURE, SUMMARY_MODE_SUNDAY}:
