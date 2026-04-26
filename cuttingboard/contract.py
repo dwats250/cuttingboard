@@ -60,6 +60,7 @@ def build_pipeline_output_contract(
     run_at_utc: Optional[datetime] = getattr(pr, "run_at_utc", None)
     router_mode: Optional[str] = _safe_str(getattr(pr, "router_mode", None))
     errors = list(getattr(pr, "errors", []))
+    correlation = getattr(pr, "correlation", None)
 
     dq = data_quality or _compute_data_quality(normalized_quotes, raw_quotes, generated_at)
 
@@ -80,6 +81,7 @@ def build_pipeline_output_contract(
         "rejections": _build_rejections(qual),
         "audit_summary": _build_audit_summary(qual, errors),
         "artifacts": _build_artifacts(artifacts, pr),
+        "correlation": _build_correlation(correlation),
     }
 
 
@@ -128,6 +130,7 @@ def build_error_contract(
             "log_path": artifacts.get("log_path"),
             "notification_sent": artifacts.get("notification_sent"),
         },
+        "correlation": None,
     }
 
 
@@ -353,6 +356,18 @@ def _safe_str(value: Any) -> Optional[str]:
     return str(value)
 
 
+def _build_correlation(correlation: Any) -> Optional[dict]:
+    if correlation is None:
+        return None
+    return {
+        "gold_symbol":   correlation.gold_symbol,
+        "dollar_symbol": correlation.dollar_symbol,
+        "state":         correlation.state,
+        "score":         int(correlation.score),
+        "risk_modifier": float(correlation.risk_modifier),
+    }
+
+
 def _compute_data_quality(
     normalized_quotes: dict,
     raw_quotes: dict,
@@ -375,7 +390,7 @@ def assert_valid_contract(contract: dict) -> None:
     required_top = {
         "schema_version", "generated_at", "session_date", "mode", "status",
         "timezone", "system_state", "market_context", "trade_candidates",
-        "rejections", "audit_summary", "artifacts",
+        "rejections", "audit_summary", "artifacts", "correlation",
     }
     missing = required_top - set(contract)
     assert not missing, f"Missing required contract keys: {missing}"
@@ -391,6 +406,18 @@ def assert_valid_contract(contract: dict) -> None:
     assert isinstance(contract["audit_summary"], dict), "audit_summary must be a dict"
     assert isinstance(contract["artifacts"], dict), "artifacts must be a dict"
     assert isinstance(contract["system_state"]["tradable"], bool), "system_state.tradable must be bool"
+
+    corr = contract.get("correlation")
+    if corr is not None:
+        assert isinstance(corr, dict), "correlation must be a dict"
+        assert corr.get("state") in ("ALIGNED", "NEUTRAL", "CONFLICT"), \
+            f"invalid correlation state: {corr.get('state')!r}"
+        assert corr.get("score") in (-1, 0, 1), \
+            f"invalid correlation score: {corr.get('score')!r}"
+        assert isinstance(corr.get("risk_modifier"), float), \
+            "correlation.risk_modifier must be float"
+        assert corr.get("gold_symbol") is not None, "correlation.gold_symbol required"
+        assert corr.get("dollar_symbol") is not None, "correlation.dollar_symbol required"
 
     # Must be JSON-serializable with no custom encoder
     json.dumps(contract)

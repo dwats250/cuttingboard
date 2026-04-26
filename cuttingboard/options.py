@@ -163,6 +163,8 @@ def build_option_setups(
     structure_results: dict[str, StructureResult],
     derived_metrics: dict[str, DerivedMetrics],
     candidates: Optional[dict[str, TradeCandidate]] = None,
+    *,
+    risk_modifier: float = 1.0,
 ) -> list["OptionSetup"]:
     """Map each qualified trade to a fully expressed OptionSetup.
 
@@ -212,6 +214,17 @@ def build_option_setups(
             logger.warning(f"build_option_setups: {symbol} missing sizing — skipped")
             continue
 
+        # Apply correlation risk_modifier: reduce effective risk budget and
+        # recompute max contracts. Never go below 1 contract (AC4: no removal).
+        effective_risk = config.TARGET_DOLLAR_RISK * risk_modifier
+        risk_per_contract = spread_width * 100
+        if risk_per_contract > 0:
+            raw_adjusted = int(effective_risk // risk_per_contract)
+            final_contracts = max(1, min(result.max_contracts, raw_adjusted))
+        else:
+            final_contracts = result.max_contracts
+        final_dollar_risk = round(float(final_contracts) * risk_per_contract, 2)
+
         setup = OptionSetup(
             symbol=symbol,
             strategy=strategy,
@@ -223,8 +236,8 @@ def build_option_setups(
             strike_distance=strike_distance,
             spread_width=spread_width,
             dte=dte,
-            max_contracts=result.max_contracts,
-            dollar_risk=result.dollar_risk,
+            max_contracts=final_contracts,
+            dollar_risk=final_dollar_risk,
             exit_profit_pct=_EXIT_PROFIT_TARGET,
             exit_loss=_EXIT_LOSS,
         )

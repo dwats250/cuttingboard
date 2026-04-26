@@ -72,7 +72,9 @@ from cuttingboard.notifications.state import (
     LAST_STATE_PATH,
 )
 from cuttingboard.flow import load_flow_snapshot
+from cuttingboard.correlation import CorrelationResult, compute_correlation
 from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
+from cuttingboard.trade_policy import PolicyContext, evaluate_policy
 from cuttingboard.output import (
     OUTCOME_HALT,
     OUTCOME_NO_TRADE,
@@ -115,6 +117,7 @@ class _PartialPipelineResult:
     alert_sent: bool
     report_path: str
     errors: list
+    correlation: Optional[CorrelationResult] = None
 
 
 MODE_LIVE = "live"
@@ -198,6 +201,7 @@ class PipelineResult:
     errors: list[str]
     summary: dict[str, Any]
     contract: dict[str, Any]
+    correlation: Optional[CorrelationResult] = None
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -563,6 +567,7 @@ def _run_pipeline(
             validation_summary = validate_quotes(normalized_quotes, fetch_failures)
 
     regime: Optional[RegimeState] = None
+    correlation_result: Optional[CorrelationResult] = None
     router_state = SectorRouterState(
         mode="MIXED",
         energy_score=0.0,
@@ -584,6 +589,8 @@ def _run_pipeline(
         outcome = OUTCOME_HALT
     else:
         regime = compute_regime(validation_summary.valid_quotes)
+        correlation_result = compute_correlation(validation_summary.valid_quotes)
+        policy_context: PolicyContext = evaluate_policy(correlation_result)
 
         if mode != MODE_SUNDAY:
             with _fixture_cache_only_ohlcv(mode, fixture_file):
@@ -649,6 +656,7 @@ def _run_pipeline(
                     execution_structure,
                     execution_derived,
                     candidates,
+                    risk_modifier=policy_context.risk_modifier,
                 )
 
             if option_setups:
@@ -705,6 +713,7 @@ def _run_pipeline(
             alert_sent=False,
             report_path=report_path,
             errors=errors,
+            correlation=correlation_result,
         ),
         generated_at=run_at_utc,
         status=contract_status,
@@ -807,6 +816,7 @@ def _run_pipeline(
         errors=errors,
         summary=summary,
         contract=contract,
+        correlation=correlation_result,
     )
 
 

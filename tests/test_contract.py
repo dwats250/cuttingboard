@@ -196,7 +196,7 @@ class TestSuccessfulRun:
         required = {
             "schema_version", "generated_at", "session_date", "mode", "status",
             "timezone", "system_state", "market_context", "trade_candidates",
-            "rejections", "audit_summary", "artifacts",
+            "rejections", "audit_summary", "artifacts", "correlation",
         }
         assert required == set(self.contract), (
             f"Missing: {required - set(self.contract)}, "
@@ -556,4 +556,113 @@ def test_assert_fails_invalid_status():
     contract = _build(pr)
     contract["status"] = "INVALID"
     with pytest.raises(AssertionError, match="status"):
+        assert_valid_contract(contract)
+
+
+# ---------------------------------------------------------------------------
+# PRD-023 — Correlation block
+# ---------------------------------------------------------------------------
+
+def _make_correlation(state: str = "ALIGNED") -> Any:
+    from cuttingboard.correlation import CorrelationResult
+    from cuttingboard import config
+    score = {"ALIGNED": 1, "NEUTRAL": 0, "CONFLICT": -1}[state]
+    modifier = {
+        "ALIGNED":  config.CORRELATION_RISK_MODIFIER_ALIGNED,
+        "NEUTRAL":  config.CORRELATION_RISK_MODIFIER_NEUTRAL,
+        "CONFLICT": config.CORRELATION_RISK_MODIFIER_CONFLICT,
+    }[state]
+    return CorrelationResult(
+        gold_symbol="GLD",
+        dollar_symbol="DX-Y.NYB",
+        state=state,
+        score=score,
+        risk_modifier=modifier,
+    )
+
+
+class TestCorrelationBlock:
+    def test_correlation_key_present_when_none(self):
+        pr = _FakePipelineResult(regime=_regime())
+        contract = _build(pr)
+        assert "correlation" in contract
+
+    def test_correlation_none_when_not_set(self):
+        pr = _FakePipelineResult(regime=_regime())
+        contract = _build(pr)
+        assert contract["correlation"] is None
+
+    def test_correlation_block_with_aligned(self):
+        class _PRWithCorr(_FakePipelineResult):
+            correlation = _make_correlation("ALIGNED")
+
+        pr = _PRWithCorr(regime=_regime())
+        contract = _build(pr)
+        corr = contract["correlation"]
+        assert corr["state"] == "ALIGNED"
+        assert corr["score"] == 1
+        assert corr["gold_symbol"] == "GLD"
+        assert corr["dollar_symbol"] == "DX-Y.NYB"
+        assert isinstance(corr["risk_modifier"], float)
+
+    def test_correlation_block_with_neutral(self):
+        class _PRWithCorr(_FakePipelineResult):
+            correlation = _make_correlation("NEUTRAL")
+
+        pr = _PRWithCorr(regime=_regime())
+        contract = _build(pr)
+        corr = contract["correlation"]
+        assert corr["state"] == "NEUTRAL"
+        assert corr["score"] == 0
+
+    def test_correlation_block_with_conflict(self):
+        class _PRWithCorr(_FakePipelineResult):
+            correlation = _make_correlation("CONFLICT")
+
+        pr = _PRWithCorr(regime=_regime())
+        contract = _build(pr)
+        corr = contract["correlation"]
+        assert corr["state"] == "CONFLICT"
+        assert corr["score"] == -1
+
+    def test_assert_valid_contract_passes_with_correlation(self):
+        class _PRWithCorr(_FakePipelineResult):
+            correlation = _make_correlation("ALIGNED")
+
+        pr = _PRWithCorr(regime=_regime())
+        contract = _build(pr)
+        assert_valid_contract(contract)
+
+    def test_assert_fails_invalid_correlation_state(self):
+        pr = _FakePipelineResult(regime=_regime())
+        contract = _build(pr)
+        contract["correlation"] = {
+            "gold_symbol": "GLD",
+            "dollar_symbol": "DX-Y.NYB",
+            "state": "UNKNOWN",
+            "score": 0,
+            "risk_modifier": 1.0,
+        }
+        with pytest.raises(AssertionError, match="state"):
+            assert_valid_contract(contract)
+
+    def test_assert_fails_missing_correlation_key(self):
+        pr = _FakePipelineResult(regime=_regime())
+        contract = _build(pr)
+        del contract["correlation"]
+        with pytest.raises(AssertionError, match="correlation"):
+            assert_valid_contract(contract)
+
+    def test_correlation_json_serializable(self):
+        class _PRWithCorr(_FakePipelineResult):
+            correlation = _make_correlation("CONFLICT")
+
+        pr = _PRWithCorr(regime=_regime())
+        contract = _build(pr)
+        json.dumps(contract)  # must not raise
+
+    def test_error_contract_correlation_is_none(self):
+        contract = build_error_contract(generated_at=_NOW, artifacts={})
+        assert "correlation" in contract
+        assert contract["correlation"] is None
         assert_valid_contract(contract)

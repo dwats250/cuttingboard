@@ -196,3 +196,14 @@ DEFAULT_UNITS = "usd_price"
 # ---------------------------------------------------------------------------
 
 POLYGON_PREV_URL = "https://api.polygon.io/v2/aggs/ticker/{symbol}/prev"
+
+# ---------------------------------------------------------------------------
+# Correlation policy layer (PRD-023)
+# ---------------------------------------------------------------------------
+
+CORRELATION_ENABLED                 = True
+CORRELATION_GOLD_SYMBOL             = "GLD"
+CORRELATION_DOLLAR_SYMBOL           = "DX-Y.NYB"
+CORRELATION_RISK_MODIFIER_ALIGNED   = 1.0
+CORRELATION_RISK_MODIFIER_NEUTRAL   = 0.7
+CORRELATION_RISK_MODIFIER_CONFLICT  = 0.4
