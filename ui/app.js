@@ -51,35 +51,122 @@ function setText(id, val) {
   document.getElementById(id).textContent = val;
 }
 
-function setClass(id, cls) {
-  document.getElementById(id).className = cls;
-}
-
 // ---------------------------------------------------------------------------
 // Block renderers
 // ---------------------------------------------------------------------------
 
-function renderHeader(contract) {
-  const raw = safeGet(contract, 'generated_at');
-  let ts = 'N/A';
-  if (raw) {
-    try { ts = new Date(raw).toLocaleString(); } catch (_) { ts = raw; }
-  }
-  setText('header-timestamp', ts);
-  setText('header-regime', display(safeGet(contract, 'system_state', 'market_regime')));
-  setText('header-status', display(safeGet(contract, 'status')));
-}
-
-function renderExecution(contract) {
+function renderSignalBar(contract) {
   const status = safeGet(contract, 'status');
   const tradable = safeGet(contract, 'system_state', 'tradable');
   const posture = derivePosture(status, tradable);
 
-  const el = document.getElementById('posture-value');
-  el.textContent = posture;
-  el.className = posture;
+  const postureEl = document.getElementById('sig-posture');
+  postureEl.textContent = posture;
+  postureEl.className = 'sig-val ' + posture;
 
-  setText('tradable-value', display(tradable));
+  const corrState = safeGet(contract, 'correlation', 'state');
+  const riskModifier = safeGet(contract, 'correlation', 'risk_modifier');
+
+  const corrEl = document.getElementById('sig-corr-state');
+  corrEl.textContent = corrState !== null ? display(corrState) : 'N/A';
+  corrEl.className = 'sig-val' + (corrState ? ' ' + corrState : '');
+
+  const riskEl = document.getElementById('sig-risk');
+  riskEl.textContent = riskModifier !== null ? riskModifier + 'x' : 'N/A';
+}
+
+function renderPrimaryTrade(contract) {
+  const block = document.getElementById('primary-trade-block');
+  const candidates = safeGet(contract, 'trade_candidates');
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    block.style.display = 'none';
+    return;
+  }
+  block.style.display = '';
+
+  const c = candidates[0];
+  const rr = safeGet(c, 'risk_reward');
+  const rrDisplay = rr != null ? Number(rr).toFixed(1) : 'N/A';
+
+  document.getElementById('primary-trade-inner').innerHTML =
+    `<div class="primary-trade-symbol">${display(safeGet(c, 'symbol'))}</div>` +
+    `<div class="primary-trade-meta">` +
+    `<span>${display(safeGet(c, 'direction'))}</span>` +
+    `<span>${display(safeGet(c, 'entry_mode'))}</span>` +
+    `<span>${display(safeGet(c, 'strategy_tag'))}</span>` +
+    `<span>R:R ${rrDisplay}</span>` +
+    `</div>`;
+}
+
+function renderNoTrade(contract) {
+  const block = document.getElementById('no-trade-block');
+  const status = safeGet(contract, 'status');
+  const tradable = safeGet(contract, 'system_state', 'tradable');
+  if (derivePosture(status, tradable) !== 'STAY_FLAT') {
+    block.style.display = 'none';
+    return;
+  }
+  block.style.display = '';
+
+  const reasons = [];
+
+  const stayFlatReason = safeGet(contract, 'system_state', 'stay_flat_reason');
+  if (stayFlatReason) reasons.push(stayFlatReason);
+
+  const candidates = safeGet(contract, 'trade_candidates');
+  if (!Array.isArray(candidates) || candidates.length === 0) reasons.push('No valid setups');
+
+  const corrState = safeGet(contract, 'correlation', 'state');
+  if (corrState === 'CONFLICT') reasons.push('Correlation conflict');
+
+  document.getElementById('no-trade-reasons').innerHTML =
+    reasons.map(r => `<div class="reason-item">${r}</div>`).join('');
+}
+
+function renderWatchlist(contract) {
+  const block = document.getElementById('watchlist-block');
+  const status = safeGet(contract, 'status');
+  const tradable = safeGet(contract, 'system_state', 'tradable');
+  if (derivePosture(status, tradable) !== 'WATCHLIST') {
+    block.style.display = 'none';
+    return;
+  }
+  block.style.display = '';
+
+  const candidates = safeGet(contract, 'trade_candidates');
+  const reason = (Array.isArray(candidates) && candidates.length > 0)
+    ? 'Candidates present but system not tradable'
+    : 'No valid setups';
+
+  document.getElementById('watchlist-reasons').innerHTML =
+    `<div class="reason-item">${reason}</div>`;
+}
+
+function renderSecondarySetups(contract) {
+  const block = document.getElementById('secondary-setups-block');
+  const candidates = safeGet(contract, 'trade_candidates');
+  if (!Array.isArray(candidates) || candidates.length <= 1) {
+    block.style.display = 'none';
+    return;
+  }
+  block.style.display = '';
+
+  const tbody = document.getElementById('secondary-setups-tbody');
+  tbody.innerHTML = '';
+
+  const slice = candidates.slice(1, 5);
+  for (const c of slice) {
+    const rr = safeGet(c, 'risk_reward');
+    const rrDisplay = rr != null ? Number(rr).toFixed(1) : 'N/A';
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      `<td>${display(safeGet(c, 'symbol'))}</td>` +
+      `<td>${display(safeGet(c, 'direction'))}</td>` +
+      `<td>${display(safeGet(c, 'entry_mode'))}</td>` +
+      `<td>${display(safeGet(c, 'strategy_tag'))}</td>` +
+      `<td>${rrDisplay}</td>`;
+    tbody.appendChild(tr);
+  }
 }
 
 function renderCorrelation(contract) {
@@ -91,44 +178,15 @@ function renderCorrelation(contract) {
   }
   block.style.display = '';
 
-  const state = display(safeGet(corr, 'state'));
+  const state = safeGet(corr, 'state');
+  block.className = 'block' + (state ? ' corr-' + state : '');
+
   const el = document.getElementById('corr-state');
-  el.textContent = state;
-  el.className = state;
+  el.textContent = display(state);
+  el.className = display(state);
 
   setText('corr-modifier', display(safeGet(corr, 'risk_modifier')));
   setText('corr-pair', `${display(safeGet(corr, 'gold_symbol'))} / ${display(safeGet(corr, 'dollar_symbol'))}`);
-}
-
-function renderSetups(contract) {
-  const tbody = document.getElementById('setups-tbody');
-  const empty = document.getElementById('setups-empty');
-  tbody.innerHTML = '';
-
-  const candidates = safeGet(contract, 'trade_candidates');
-  if (!Array.isArray(candidates) || candidates.length === 0) {
-    empty.style.display = '';
-    document.getElementById('setups-table').style.display = 'none';
-    return;
-  }
-
-  empty.style.display = 'none';
-  document.getElementById('setups-table').style.display = '';
-
-  const slice = candidates.slice(0, 5);
-  for (const c of slice) {
-    const rr = safeGet(c, 'risk_reward');
-    const rrDisplay = rr != null ? Number(rr).toFixed(1) : 'N/A';
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${display(safeGet(c, 'symbol'))}</td>
-      <td>${display(safeGet(c, 'direction'))}</td>
-      <td>${display(safeGet(c, 'entry_mode'))}</td>
-      <td>${display(safeGet(c, 'strategy_tag'))}</td>
-      <td>${rrDisplay}</td>
-    `;
-    tbody.appendChild(tr);
-  }
 }
 
 function renderRejections(contract) {
@@ -148,13 +206,23 @@ function renderRejections(contract) {
 
   for (const r of rejections) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${display(safeGet(r, 'symbol'))}</td>
-      <td>${display(safeGet(r, 'stage'))}</td>
-      <td>${display(safeGet(r, 'reason'))}</td>
-    `;
+    tr.innerHTML =
+      `<td>${display(safeGet(r, 'symbol'))}</td>` +
+      `<td>${display(safeGet(r, 'stage'))}</td>` +
+      `<td>${display(safeGet(r, 'reason'))}</td>`;
     tbody.appendChild(tr);
   }
+}
+
+function renderHeader(contract) {
+  const raw = safeGet(contract, 'generated_at');
+  let ts = 'N/A';
+  if (raw) {
+    try { ts = new Date(raw).toLocaleString(); } catch (_) { ts = raw; }
+  }
+  setText('header-timestamp', ts);
+  setText('header-regime', display(safeGet(contract, 'system_state', 'market_regime')));
+  setText('header-status', display(safeGet(contract, 'status')));
 }
 
 function renderRouter(contract) {
@@ -173,11 +241,14 @@ function renderRouter(contract) {
 // ---------------------------------------------------------------------------
 
 function renderContract(contract) {
-  renderHeader(contract);
-  renderExecution(contract);
+  renderSignalBar(contract);
+  renderPrimaryTrade(contract);
+  renderNoTrade(contract);
+  renderWatchlist(contract);
+  renderSecondarySetups(contract);
   renderCorrelation(contract);
-  renderSetups(contract);
   renderRejections(contract);
+  renderHeader(contract);
   renderRouter(contract);
   showContract();
 }
@@ -208,7 +279,6 @@ function loadJSON(text) {
 document.addEventListener('DOMContentLoaded', function () {
   showStatus('NO CONTRACT LOADED', false);
 
-  // File input
   document.getElementById('file-input').addEventListener('change', function (e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -216,17 +286,13 @@ document.addEventListener('DOMContentLoaded', function () {
     reader.onload = function (ev) { loadJSON(ev.target.result); };
     reader.onerror = function () { showStatus('FILE READ ERROR', true); };
     reader.readAsText(file);
-    // Reset so same file can be re-loaded
     e.target.value = '';
   });
 
-  // Paste toggle
   document.getElementById('paste-toggle').addEventListener('click', function () {
-    const area = document.getElementById('paste-area');
-    area.classList.toggle('visible');
+    document.getElementById('paste-area').classList.toggle('visible');
   });
 
-  // Paste render
   document.getElementById('paste-btn').addEventListener('click', function () {
     const text = document.getElementById('paste-input').value.trim();
     if (!text) { showStatus('NO CONTRACT LOADED', false); return; }

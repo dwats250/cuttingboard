@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cutting Board — Contract View</title>
+  <title>Cutting Board — Decision Surface</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -27,24 +27,62 @@
   <!-- Contract view -->
   <div id="contract-view">
 
-    <!-- 1. Header -->
-    <div class="block" id="header-block">
-      <div id="header-timestamp"></div>
-      <div id="header-regime"></div>
-      <span id="header-status"></span>
-    </div>
-
-    <!-- 2. Execution -->
-    <div class="block" id="execution-block">
-      <div class="block-title">Execution</div>
-      <div id="posture-value"></div>
-      <div class="kv-row">
-        <span class="kv-key">Tradable</span>
-        <span class="kv-val" id="tradable-value"></span>
+    <!-- 1. Signal Bar -->
+    <div class="block" id="signal-bar">
+      <div id="signal-bar-inner">
+        <div class="signal-cell">
+          <div class="sig-label">Posture</div>
+          <div class="sig-val" id="sig-posture"></div>
+        </div>
+        <div class="signal-cell">
+          <div class="sig-label">Correlation</div>
+          <div class="sig-val" id="sig-corr-state"></div>
+        </div>
+        <div class="signal-cell">
+          <div class="sig-label">Risk</div>
+          <div class="sig-val" id="sig-risk"></div>
+        </div>
       </div>
     </div>
 
-    <!-- 3. Correlation -->
+    <!-- 2. Primary Trade -->
+    <div class="block" id="primary-trade-block">
+      <div class="block-title">Primary Trade</div>
+      <div id="primary-trade-inner"></div>
+    </div>
+
+    <!-- 3. No Trade (STAY_FLAT) -->
+    <div class="block" id="no-trade-block">
+      <div id="no-trade-label">NO TRADE</div>
+      <div id="no-trade-reasons"></div>
+    </div>
+
+    <!-- 4. Watchlist -->
+    <div class="block" id="watchlist-block">
+      <div id="watchlist-label">WATCHLIST</div>
+      <div id="watchlist-reasons"></div>
+    </div>
+
+    <!-- 5. Secondary Setups -->
+    <div class="block" id="secondary-setups-block">
+      <div class="block-title">Other Setups</div>
+      <div class="table-wrap">
+        <table id="secondary-setups-table">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Dir</th>
+              <th>Entry Mode</th>
+              <th>Strategy</th>
+              <th>R:R</th>
+            </tr>
+          </thead>
+          <tbody id="secondary-setups-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 6. Correlation -->
     <div class="block" id="correlation-block">
       <div class="block-title">Correlation</div>
       <div id="corr-state"></div>
@@ -58,27 +96,7 @@
       </div>
     </div>
 
-    <!-- 4. Setups -->
-    <div class="block" id="setups-block">
-      <div class="block-title">Setups</div>
-      <div class="table-wrap">
-        <table id="setups-table">
-          <thead>
-            <tr>
-              <th>Symbol</th>
-              <th>Dir</th>
-              <th>Entry Mode</th>
-              <th>Strategy</th>
-              <th>R:R</th>
-            </tr>
-          </thead>
-          <tbody id="setups-tbody"></tbody>
-        </table>
-      </div>
-      <div id="setups-empty" class="empty-state">No valid setups</div>
-    </div>
-
-    <!-- 5. Rejections -->
+    <!-- 7. Rejections -->
     <div class="block" id="rejections-block">
       <details>
         <summary>Rejections</summary>
@@ -98,7 +116,14 @@
       </details>
     </div>
 
-    <!-- 6. Router -->
+    <!-- 8. Header (de-emphasized) -->
+    <div class="block" id="header-block">
+      <div id="header-timestamp"></div>
+      <div id="header-regime"></div>
+      <span id="header-status"></span>
+    </div>
+
+    <!-- 9. Router -->
     <div class="block" id="router-block">
       <div class="block-title">Router Mode</div>
       <div id="router-value"></div>
@@ -106,7 +131,7 @@
 
   </div><!-- /contract-view -->
 
-  <footer>Cutting Board — Contract View</footer>
+  <footer>Cutting Board — Decision Surface</footer>
 
   <script src="app.js"></script>
 </body>

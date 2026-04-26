@@ -172,7 +172,121 @@ body {
   margin-bottom: 8px;
 }
 
-/* Header */
+/* Signal bar */
+
+#signal-bar-inner {
+  display: flex;
+  align-items: stretch;
+}
+
+.signal-cell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 4px;
+  border-right: 1px solid var(--color-border);
+}
+
+.signal-cell:last-child {
+  border-right: none;
+}
+
+.sig-label {
+  color: var(--color-muted);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.sig-val {
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 0.06em;
+}
+
+#sig-posture.TRADE_READY { color: var(--color-trade-ready); }
+#sig-posture.WATCHLIST   { color: var(--color-watchlist); }
+#sig-posture.STAY_FLAT   { color: var(--color-stay-flat); }
+#sig-posture.ERROR       { color: var(--color-error); }
+
+#sig-corr-state.ALIGNED  { color: var(--color-trade-ready); }
+#sig-corr-state.NEUTRAL  { color: var(--color-muted); }
+#sig-corr-state.CONFLICT { color: var(--color-stay-flat); }
+
+/* Primary trade block */
+
+#primary-trade-block {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.primary-trade-symbol {
+  font-size: 28px;
+  font-weight: bold;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+.primary-trade-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.primary-trade-meta span {
+  white-space: nowrap;
+}
+
+/* No trade block */
+
+#no-trade-block {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.06);
+}
+
+#no-trade-label {
+  color: var(--color-stay-flat);
+  font-size: 18px;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+/* Watchlist block */
+
+#watchlist-block {
+  border-color: rgba(250, 204, 21, 0.4);
+  background: rgba(250, 204, 21, 0.05);
+}
+
+#watchlist-label {
+  color: var(--color-watchlist);
+  font-size: 18px;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+/* Reason items */
+
+.reason-item {
+  color: var(--color-muted);
+  font-size: 12px;
+  padding: 2px 0;
+}
+
+.reason-item::before {
+  content: '— ';
+}
+
+/* Header (de-emphasized) */
+
+#header-block {
+  opacity: 0.6;
+}
 
 #header-timestamp {
   color: var(--color-muted);
@@ -181,7 +295,7 @@ body {
 }
 
 #header-regime {
-  font-size: 20px;
+  font-size: 14px;
   font-weight: bold;
   letter-spacing: 0.05em;
 }
@@ -197,19 +311,7 @@ body {
   margin-top: 4px;
 }
 
-/* Execution */
-
-#posture-value {
-  font-size: 18px;
-  font-weight: bold;
-  letter-spacing: 0.08em;
-  margin-bottom: 6px;
-}
-
-#posture-value.TRADE_READY { color: var(--color-trade-ready); }
-#posture-value.WATCHLIST   { color: var(--color-watchlist); }
-#posture-value.STAY_FLAT   { color: var(--color-stay-flat); }
-#posture-value.ERROR       { color: var(--color-error); }
+/* KV rows */
 
 .kv-row {
   display: flex;
@@ -243,7 +345,17 @@ body {
 #corr-state.NEUTRAL  { color: var(--color-watchlist); }
 #corr-state.CONFLICT { color: var(--color-stay-flat); }
 
-/* Tables (setups + rejections) */
+.block.corr-ALIGNED  {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.block.corr-CONFLICT {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+/* Tables (secondary setups + rejections) */
 
 .table-wrap {
   overflow-x: auto;
@@ -284,12 +396,12 @@ tr:last-child td {
   padding: 8px 0;
 }
 
-/* Setups column widths */
-#setups-table th:nth-child(1), #setups-table td:nth-child(1) { width: 18%; }
-#setups-table th:nth-child(2), #setups-table td:nth-child(2) { width: 14%; }
-#setups-table th:nth-child(3), #setups-table td:nth-child(3) { width: 22%; }
-#setups-table th:nth-child(4), #setups-table td:nth-child(4) { width: 28%; }
-#setups-table th:nth-child(5), #setups-table td:nth-child(5) { width: 18%; }
+/* Secondary setups column widths */
+#secondary-setups-table th:nth-child(1), #secondary-setups-table td:nth-child(1) { width: 18%; }
+#secondary-setups-table th:nth-child(2), #secondary-setups-table td:nth-child(2) { width: 14%; }
+#secondary-setups-table th:nth-child(3), #secondary-setups-table td:nth-child(3) { width: 22%; }
+#secondary-setups-table th:nth-child(4), #secondary-setups-table td:nth-child(4) { width: 28%; }
+#secondary-setups-table th:nth-child(5), #secondary-setups-table td:nth-child(5) { width: 18%; }
 
 /* Rejections column widths */
 #rej-table th:nth-child(1), #rej-table td:nth-child(1) { width: 22%; }
