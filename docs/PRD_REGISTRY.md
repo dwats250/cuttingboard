@@ -31,6 +31,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-019 | c7c64c9, 0aea646 | Engine doctor — canonical pipeline health authority | COMPLETE |
 | PRD-020 | 0472cfd | Engine doctor gate system (CI + runtime guardrails) | COMPLETE |
 | PRD-021 | — | Documentation canonicalization (README + docs system) | IN PROGRESS |
+| PRD-022 | 2b6009a | Sunday mode isolation — no live data, forced STAY_FLAT, non-live execution path | COMPLETE |
 
 ---
 

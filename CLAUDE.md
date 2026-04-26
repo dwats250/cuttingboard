@@ -16,9 +16,7 @@ Build and refine a constraint-driven options trading decision engine.
 
 ## system state (as of 2026-04-23)
 
-All pipeline layers are built and wired. 712 tests passing.
-
-**Known broken:** `test_operationalization.py::test_sunday_mode_fixture_run_is_end_to_end_and_offline` — pre-existing fixture failure unrelated to pipeline logic.
+All pipeline layers are built and wired. 830 tests passing.
 
 ### pipeline layers
 
