@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cutting Board — Contract View</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Controls -->
+  <div id="controls">
+    <div id="controls-load">
+      <label id="file-label" for="file-input">Load Contract</label>
+      <input type="file" id="file-input" accept=".json">
+      <button id="paste-toggle">paste JSON</button>
+    </div>
+    <div id="paste-area">
+      <textarea id="paste-input" placeholder="Paste contract JSON here..."></textarea>
+      <button id="paste-btn">Render</button>
+    </div>
+  </div>
+
+  <!-- Error / empty state -->
+  <div id="status-msg"></div>
+
+  <!-- Contract view -->
+  <div id="contract-view">
+
+    <!-- 1. Header -->
+    <div class="block" id="header-block">
+      <div id="header-timestamp"></div>
+      <div id="header-regime"></div>
+      <span id="header-status"></span>
+    </div>
+
+    <!-- 2. Execution -->
+    <div class="block" id="execution-block">
+      <div class="block-title">Execution</div>
+      <div id="posture-value"></div>
+      <div class="kv-row">
+        <span class="kv-key">Tradable</span>
+        <span class="kv-val" id="tradable-value"></span>
+      </div>
+    </div>
+
+    <!-- 3. Correlation -->
+    <div class="block" id="correlation-block">
+      <div class="block-title">Correlation</div>
+      <div id="corr-state"></div>
+      <div class="kv-row">
+        <span class="kv-key">Risk modifier</span>
+        <span class="kv-val" id="corr-modifier"></span>
+      </div>
+      <div class="kv-row">
+        <span class="kv-key">Pair</span>
+        <span class="kv-val" id="corr-pair"></span>
+      </div>
+    </div>
+
+    <!-- 4. Setups -->
+    <div class="block" id="setups-block">
+      <div class="block-title">Setups</div>
+      <div class="table-wrap">
+        <table id="setups-table">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Dir</th>
+              <th>Entry Mode</th>
+              <th>Strategy</th>
+              <th>R:R</th>
+            </tr>
+          </thead>
+          <tbody id="setups-tbody"></tbody>
+        </table>
+      </div>
+      <div id="setups-empty" class="empty-state">No valid setups</div>
+    </div>
+
+    <!-- 5. Rejections -->
+    <div class="block" id="rejections-block">
+      <details>
+        <summary>Rejections</summary>
+        <div class="table-wrap">
+          <table id="rej-table">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Stage</th>
+                <th>Reason</th>
+              </tr>
+            </thead>
+            <tbody id="rej-tbody"></tbody>
+          </table>
+        </div>
+        <div id="rej-empty" class="empty-state">No rejections</div>
+      </details>
+    </div>
+
+    <!-- 6. Router -->
+    <div class="block" id="router-block">
+      <div class="block-title">Router Mode</div>
+      <div id="router-value"></div>
+    </div>
+
+  </div><!-- /contract-view -->
+
+  <footer>Cutting Board — Contract View</footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
