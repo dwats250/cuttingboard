@@ -21,6 +21,7 @@ import pytest
 
 from cuttingboard import config
 from cuttingboard.output import (
+    DASHBOARD_URL,
     _MIN_SEND_INTERVAL,
     build_notification_message,
     send_notification,
@@ -151,6 +152,50 @@ class TestBuildNotificationMessage:
         title, body = build_notification_message({})
         assert isinstance(title, str)
         assert isinstance(body, str)
+
+    def test_dashboard_link_present(self):
+        _, body = build_notification_message(_make_contract())
+        assert DASHBOARD_URL in body
+
+    def test_dashboard_link_at_end(self):
+        _, body = build_notification_message(_make_contract())
+        assert body.endswith(f"---\nView Dashboard:\n{DASHBOARD_URL}")
+        assert f"\n\n---\nView Dashboard:\n{DASHBOARD_URL}" in body
+
+    @pytest.mark.parametrize(
+        "contract",
+        [
+            _make_contract(outcome="NO_TRADE", trade_candidates=[]),
+            _make_contract(
+                outcome="TRADE",
+                trade_candidates=[{"symbol": "SPY", "setup_quality": "TOP_TRADE_VALIDATED"}],
+            ),
+            _make_contract(status="FAIL", outcome="HALT"),
+            {},
+        ],
+    )
+    def test_dashboard_link_always_included(self, contract):
+        _, body = build_notification_message(contract)
+        assert body.endswith(f"---\nView Dashboard:\n{DASHBOARD_URL}")
+
+    def test_notification_body_unchanged_except_link(self):
+        _, body = build_notification_message(_make_contract())
+        expected_prefix = (
+            "Time: 2026-04-24T14:00\n"
+            "Regime: RISK_ON\n"
+            "Tradable: True\n"
+            "Setups: 0\n"
+            "Status: OK\n"
+            "Reason: no qualifying setups"
+        )
+        assert body == f"{expected_prefix}\n\n---\nView Dashboard:\n{DASHBOARD_URL}"
+
+    def test_deterministic_output(self):
+        contract = _make_contract(
+            outcome="TRADE",
+            trade_candidates=[{"symbol": "SPY", "setup_quality": "TOP_TRADE_VALIDATED"}],
+        )
+        assert build_notification_message(contract) == build_notification_message(contract)
 
 
 # ---------------------------------------------------------------------------

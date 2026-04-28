@@ -65,6 +65,7 @@ def _rate_limit_send() -> None:
 _BORDER = "=" * 54
 _DIVIDER = "-" * 54
 _REPORT_DIR = "reports"
+DASHBOARD_URL = "https://dwats250.github.io/cuttingboard/dashboard.html"
 
 # ---------------------------------------------------------------------------
 # ASCII sanitisation
@@ -630,4 +631,6 @@ def build_notification_message(contract: dict) -> tuple[str, str]:
     elif outcome == OUTCOME_NO_TRADE:
         lines.append("Reason: setups forming but no validated trade")
 
-    return title, "\n".join(lines)
+    body = "\n".join(lines)
+    body = f"{body}\n\n---\nView Dashboard:\n{DASHBOARD_URL}"
+    return title, body
