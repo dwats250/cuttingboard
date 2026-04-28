@@ -67,6 +67,7 @@ def _run(
     *,
     status: str = "SUCCESS",
     posture: str = "CONTROLLED_LONG",
+    confidence: float = 0.75,
     system_halted: bool = False,
     kill_switch: bool = False,
     errors: list | None = None,
@@ -76,6 +77,7 @@ def _run(
         "run_id": "live-20260428T120000Z",
         "status": status,
         "posture": posture,
+        "confidence": confidence,
         "system_halted": system_halted,
         "kill_switch": kill_switch,
         "errors": errors if errors is not None else [],
@@ -159,6 +161,7 @@ def test_field_mapping_exact() -> None:
     r = _run(
         status="HALT",
         posture="STAY_FLAT",
+        confidence=0.625,
         system_halted=True,
         kill_switch=False,
         errors=["quota_exceeded_unique"],
@@ -171,6 +174,7 @@ def test_field_mapping_exact() -> None:
     assert "HALT" in html                         # run["status"]
     assert "CHAOTIC" in html                      # payload["summary"]["market_regime"]
     assert "STAY_FLAT" in html                    # run["posture"]
+    assert "0.625" in html                        # run["confidence"]
 
     # SYSTEM STATE
     assert "NO" in html                           # tradable=False → NO
@@ -253,7 +257,6 @@ def test_hidden_sections() -> None:
 def test_no_unapproved_fields() -> None:
     html = render_dashboard_html(_payload(), _run()).lower()
     for field in (
-        "confidence",
         "net_score",
         "router_mode",
         "run_id",
@@ -286,6 +289,104 @@ def test_deterministic_output() -> None:
     p = _payload(top_trades=[_trade("SPY"), _trade("QQQ")])
     r = _run()
     assert render_dashboard_html(p, r) == render_dashboard_html(p, r)
+
+
+# ---------------------------------------------------------------------------
+# test_macro_tape_present
+# ---------------------------------------------------------------------------
+
+def test_macro_tape_present() -> None:
+    html = render_dashboard_html(_payload(), _run())
+    assert 'id="macro-tape"' in html
+
+
+# ---------------------------------------------------------------------------
+# test_macro_tape_section_order
+# ---------------------------------------------------------------------------
+
+def test_macro_tape_section_order() -> None:
+    html = render_dashboard_html(_payload(), _run())
+    header_pos = html.index('id="dashboard-header"')
+    macro_pos = html.index('id="macro-tape"')
+    system_pos = html.index('id="system-state"')
+    assert header_pos < macro_pos < system_pos
+
+
+# ---------------------------------------------------------------------------
+# test_macro_tape_exact_fields
+# ---------------------------------------------------------------------------
+
+def test_macro_tape_exact_fields() -> None:
+    p = _payload(market_regime="RISK_OFF", tradable=False)
+    r = _run(
+        posture="STAY_FLAT",
+        confidence=0.25,
+        system_halted=True,
+        kill_switch=False,
+        data_status="stale",
+    )
+    html = render_dashboard_html(p, r)
+    macro = html.split('<div class="block" id="macro-tape">', 1)[1]
+    macro = macro.split('<div class="block" id="system-state">', 1)[0]
+
+    for label, value in (
+        ("market_regime", "RISK_OFF"),
+        ("posture", "STAY_FLAT"),
+        ("confidence", "0.25"),
+        ("tradable", "NO"),
+        ("system_halted", "YES"),
+        ("kill_switch", "NO"),
+        ("data_status", "stale"),
+    ):
+        assert label in macro
+        assert value in macro
+
+
+# ---------------------------------------------------------------------------
+# test_macro_tape_includes_confidence
+# ---------------------------------------------------------------------------
+
+def test_macro_tape_includes_confidence() -> None:
+    html = render_dashboard_html(_payload(), _run(confidence=0.875))
+    macro = html.split('<div class="block" id="macro-tape">', 1)[1]
+    assert "confidence" in macro
+    assert "0.875" in macro
+
+
+# ---------------------------------------------------------------------------
+# test_macro_tape_rejects_phantom_fields
+# ---------------------------------------------------------------------------
+
+def test_macro_tape_rejects_phantom_fields() -> None:
+    html = render_dashboard_html(_payload(), _run())
+    macro = html.split('<div class="block" id="macro-tape">', 1)[1]
+    macro = macro.split('<div class="block" id="system-state">', 1)[0].lower()
+    for field in (
+        '<div class="label">timestamp</div>',
+        '<div class="label">status</div>',
+        '<div class="label">stay flat reason</div>',
+        '<div class="label">error</div>',
+        '<div class="label">stale data</div>',
+        '<div class="label">router_mode</div>',
+        '<div class="label">run_id</div>',
+        '<div class="label">net_score</div>',
+    ):
+        assert field not in macro, f"Phantom macro field rendered: {field}"
+
+
+# ---------------------------------------------------------------------------
+# test_macro_tape_no_derivation
+# ---------------------------------------------------------------------------
+
+def test_macro_tape_no_derivation() -> None:
+    html = render_dashboard_html(_payload(tradable=True), _run(data_status="delayed"))
+    macro = html.split('<div class="block" id="macro-tape">', 1)[1]
+    macro = macro.split('<div class="block" id="system-state">', 1)[0]
+    assert "data_status" in macro
+    assert "delayed" in macro
+    assert "Stale Data" not in macro
+    assert ">YES<" in macro  # tradable only
+    assert ">NO<" in macro   # system_halted and kill_switch only
 
 
 # ---------------------------------------------------------------------------

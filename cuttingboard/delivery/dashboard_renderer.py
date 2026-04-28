@@ -86,6 +86,7 @@ def render_dashboard_html(payload: dict, run: dict) -> str:
     status = _req(run, "status")
     market_regime = _req(payload, "summary", "market_regime")
     execution_posture = _req(run, "posture")
+    confidence = _req(run, "confidence")
 
     # R3 — SYSTEM STATE
     tradable = _req(payload, "summary", "tradable")
@@ -104,9 +105,10 @@ def render_dashboard_html(payload: dict, run: dict) -> str:
     # R3 — RUN HEALTH
     system_halted = _req(run, "system_halted")
     kill_switch = _req(run, "kill_switch")
+    data_status = _req(run, "data_status")
     errors = _req(run, "errors")
     first_error = errors[0] if len(errors) > 0 else None
-    stale_data = _req(run, "data_status") != "ok"  # R4: permitted string equality check
+    stale_data = data_status != "ok"  # R4: permitted string equality check
 
     lines: list[str] = []
 
@@ -137,6 +139,27 @@ def render_dashboard_html(payload: dict, run: dict) -> str:
       f'<div class="value"><span class="badge {regime_cls}">{_esc(market_regime)}</span></div></div>')
     w(f'    <div class="field"><div class="label">Posture</div>'
       f'<div class="value"><span class="badge {posture_cls}">{_esc(execution_posture)}</span></div></div>')
+    w("  </div>")
+    w("</div>")
+
+    # --- macro-tape ---
+    w('<div class="block" id="macro-tape">')
+    w("  <h2>Macro Tape</h2>")
+    w('  <div class="row">')
+    w(f'    <div class="field"><div class="label">market_regime</div>'
+      f'<div class="value">{_esc(market_regime)}</div></div>')
+    w(f'    <div class="field"><div class="label">posture</div>'
+      f'<div class="value">{_esc(execution_posture)}</div></div>')
+    w(f'    <div class="field"><div class="label">confidence</div>'
+      f'<div class="value">{_esc(confidence)}</div></div>')
+    w(f'    <div class="field"><div class="label">tradable</div>'
+      f'<div class="value">{_bool_str(tradable)}</div></div>')
+    w(f'    <div class="field"><div class="label">system_halted</div>'
+      f'<div class="value">{_bool_str(system_halted)}</div></div>')
+    w(f'    <div class="field"><div class="label">kill_switch</div>'
+      f'<div class="value">{_bool_str(kill_switch)}</div></div>')
+    w(f'    <div class="field"><div class="label">data_status</div>'
+      f'<div class="value">{_esc(data_status)}</div></div>')
     w("  </div>")
     w("</div>")
 
