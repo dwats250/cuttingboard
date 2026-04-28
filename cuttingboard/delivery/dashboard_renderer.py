@@ -16,6 +16,7 @@ from pathlib import Path
 _PAYLOAD_PATH = Path("logs/latest_payload.json")
 _RUN_PATH = Path("logs/latest_run.json")
 _OUTPUT_PATH = Path("reports/output/dashboard.html")
+HISTORY_LIMIT = 5
 
 _CSS = (
     "*{box-sizing:border-box;margin:0;padding:0}"
@@ -90,6 +91,7 @@ def render_dashboard_html(
     run: dict,
     *,
     previous_run: dict | None = None,
+    history_runs: list[dict] | None = None,
 ) -> str:
     """Return deterministic dashboard HTML from payload and run dicts.
 
@@ -219,6 +221,24 @@ def render_dashboard_html(
     w("  </div>")
     w("</div>")
 
+    # --- run-history ---
+    if history_runs:
+        w('<div class="block" id="run-history">')
+        w("  <h2>History</h2>")
+        w("  <div class=\"value\">timestamp | regime | posture | confidence</div>")
+        for history_run in history_runs:
+            history_timestamp = str(_req(history_run, "timestamp"))[11:16]
+            history_regime = _req(history_run, "regime")
+            history_posture = _req(history_run, "posture")
+            history_confidence = _req(history_run, "confidence")
+            w(
+                "  <div class=\"value\">"
+                f"{_esc(history_timestamp)} | {_esc(history_regime)} | "
+                f"{_esc(history_posture)} | {_esc(history_confidence)}"
+                "</div>"
+            )
+        w("</div>")
+
     # --- primary-setup (hidden if no top_trades) ---
     if primary is not None:
         w('<div class="block" id="primary-setup">')
@@ -284,9 +304,15 @@ def write_dashboard(
     payload: dict,
     run: dict,
     previous_run: dict | None = None,
+    history_runs: list[dict] | None = None,
     output_path: Path = _OUTPUT_PATH,
 ) -> None:
-    html = render_dashboard_html(payload, run, previous_run=previous_run)
+    html = render_dashboard_html(
+        payload,
+        run,
+        previous_run=previous_run,
+        history_runs=history_runs,
+    )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")
 
@@ -300,7 +326,11 @@ def main(
     payload = _load_json(payload_path)
     run = _load_json(run_path)
     previous_run = _resolve_previous_run(logs_dir)
-    write_dashboard(payload, run, previous_run, output_path)
+    history_run_files = sorted(logs_dir.glob("run_*.json"))
+    history_runs = [_load_json(path) for path in history_run_files]
+    history_runs.sort(key=lambda history_run: str(_req(history_run, "timestamp")), reverse=True)
+    history_runs = history_runs[:HISTORY_LIMIT]
+    write_dashboard(payload, run, previous_run, history_runs, output_path)
     print(f"Dashboard written: {output_path}")
 
 

@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from cuttingboard.delivery.dashboard_renderer import (
+    HISTORY_LIMIT,
     _resolve_previous_run,
     main,
     render_dashboard_html,
@@ -499,4 +500,117 @@ def test_run_delta_deterministic_output() -> None:
     previous = _run(regime="RISK_ON", posture="CONTROLLED_LONG", confidence=0.75)
     assert render_dashboard_html(payload, current, previous_run=previous) == render_dashboard_html(
         payload, current, previous_run=previous
+    )
+
+
+# ---------------------------------------------------------------------------
+# PRD-042 — run history
+# ---------------------------------------------------------------------------
+
+def test_run_history_present() -> None:
+    history_runs = [_run()]
+    html = render_dashboard_html(_payload(), _run(), history_runs=history_runs)
+    assert 'id="run-history"' in html
+
+
+def test_run_history_limit_enforced(tmp_path: Path) -> None:
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir()
+    payload_file = tmp_path / "latest_payload.json"
+    run_file = tmp_path / "latest_run.json"
+    out_file = tmp_path / "dashboard.html"
+    payload_file.write_text(json.dumps(_payload()), encoding="utf-8")
+    run_file.write_text(json.dumps(_run()), encoding="utf-8")
+
+    for i in range(HISTORY_LIMIT + 2):
+        history_run = _run(
+            regime=f"RISK_{i}",
+            posture=f"POSTURE_{i}",
+            confidence=i,
+        )
+        history_run["timestamp"] = f"2026-04-28T12:{i:02d}:00Z"
+        (logs_dir / f"run_{i}.json").write_text(json.dumps(history_run), encoding="utf-8")
+
+    main(payload_path=payload_file, run_path=run_file, output_path=out_file, logs_dir=logs_dir)
+    history = out_file.read_text(encoding="utf-8").split('<div class="block" id="run-history">', 1)[1]
+    rows = [line for line in history.splitlines() if " | " in line][1:]
+    assert len(rows) == HISTORY_LIMIT
+
+
+def test_run_history_sorted_descending(tmp_path: Path) -> None:
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir()
+    payload_file = tmp_path / "latest_payload.json"
+    run_file = tmp_path / "latest_run.json"
+    out_file = tmp_path / "dashboard.html"
+    payload_file.write_text(json.dumps(_payload()), encoding="utf-8")
+    run_file.write_text(json.dumps(_run()), encoding="utf-8")
+
+    older = _run(regime="OLDER")
+    older["timestamp"] = "2026-04-28T10:00:00Z"
+    newest = _run(regime="NEWEST")
+    newest["timestamp"] = "2026-04-28T12:00:00Z"
+    middle = _run(regime="MIDDLE")
+    middle["timestamp"] = "2026-04-28T11:00:00Z"
+
+    (logs_dir / "run_older.json").write_text(json.dumps(older), encoding="utf-8")
+    (logs_dir / "run_newest.json").write_text(json.dumps(newest), encoding="utf-8")
+    (logs_dir / "run_middle.json").write_text(json.dumps(middle), encoding="utf-8")
+
+    main(payload_path=payload_file, run_path=run_file, output_path=out_file, logs_dir=logs_dir)
+    history = out_file.read_text(encoding="utf-8").split('<div class="block" id="run-history">', 1)[1]
+    newest_pos = history.index("12:00 | NEWEST")
+    middle_pos = history.index("11:00 | MIDDLE")
+    older_pos = history.index("10:00 | OLDER")
+    assert newest_pos < middle_pos < older_pos
+
+
+def test_run_history_field_mapping_exact() -> None:
+    history_run = _run(
+        regime="RISK_OFF",
+        posture="STAY_FLAT",
+        confidence=0.25,
+    )
+    history_run["timestamp"] = "2026-04-28T12:50:00Z"
+
+    html = render_dashboard_html(_payload(), _run(), history_runs=[history_run])
+    history = html.split('<div class="block" id="run-history">', 1)[1]
+
+    assert "12:50 | RISK_OFF | STAY_FLAT | 0.25" in history
+
+
+def test_run_history_timestamp_format() -> None:
+    history_run = _run()
+    history_run["timestamp"] = "2026-04-28T09:30:45Z"
+
+    html = render_dashboard_html(_payload(), _run(), history_runs=[history_run])
+    history = html.split('<div class="block" id="run-history">', 1)[1]
+
+    assert "09:30 |" in history
+    assert "2026-04-28T09:30:45Z" not in history
+
+
+def test_run_history_no_extra_fields() -> None:
+    history_run = _run(status="FAIL", system_halted=True, kill_switch=True, data_status="stale")
+    html = render_dashboard_html(_payload(), _run(), history_runs=[history_run])
+    history = html.split('<div class="block" id="run-history">', 1)[1].lower()
+
+    for field in ("status", "system_halted", "kill_switch", "data_status", "outcome", "run_id"):
+        assert field not in history
+
+
+def test_run_history_deterministic_output() -> None:
+    payload = _payload()
+    run = _run()
+    history_runs = [
+        _run(regime="RISK_OFF", posture="STAY_FLAT", confidence=0.25),
+        _run(regime="NEUTRAL", posture="CONTROLLED_LONG", confidence=0.75),
+    ]
+    history_runs[0]["timestamp"] = "2026-04-28T12:50:00Z"
+    history_runs[1]["timestamp"] = "2026-04-28T11:45:00Z"
+
+    assert render_dashboard_html(payload, run, history_runs=history_runs) == render_dashboard_html(
+        payload,
+        run,
+        history_runs=history_runs,
     )
