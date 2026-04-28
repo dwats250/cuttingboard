@@ -225,6 +225,8 @@ jobs:
           git add -f logs/ || true
           cp logs/latest_contract.json ui/contract.json 2>/dev/null || true
           git add ui/contract.json || true
+          python3 -m cuttingboard.delivery.dashboard_renderer --output ui/dashboard.html 2>/dev/null || true
+          git add ui/dashboard.html || true
           if [ -f .cb_commit_msg ]; then
             git diff --staged --quiet || git commit -F .cb_commit_msg
           else

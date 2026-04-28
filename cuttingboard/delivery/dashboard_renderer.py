@@ -235,4 +235,11 @@ def main(
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Render slim HTML dashboard")
+    parser.add_argument("--output", type=Path, default=_OUTPUT_PATH)
+    parser.add_argument("--payload", type=Path, default=_PAYLOAD_PATH)
+    parser.add_argument("--run", type=Path, default=_RUN_PATH)
+    args = parser.parse_args()
+    main(payload_path=args.payload, run_path=args.run, output_path=args.output)
