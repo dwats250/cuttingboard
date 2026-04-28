@@ -21,9 +21,15 @@ env/
 
 # Data cache — regenerated at runtime
 data/cache/*.parquet
+data/backtests/*
+!data/backtests/.gitkeep
+
+# Research backtest outputs — generated locally
+backtesting/output/
 
 # CI artifacts — generated per-run, not committed
 .cb_commit_msg
+.claude/state/
 
 # IDE
 .vscode/
