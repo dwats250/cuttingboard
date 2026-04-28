@@ -1,17 +1,17 @@
 {
   "schema_version": "v1",
-  "generated_at": "2026-04-25T12:30:00Z",
-  "session_date": "2026-04-25",
+  "generated_at": "2026-04-28T16:10:22Z",
+  "session_date": "2026-04-28",
   "mode": "live",
-  "status": "OK",
+  "status": "STAY_FLAT",
   "timezone": "America/New_York",
   "system_state": {
     "router_mode": "MIXED",
-    "market_regime": "RISK_ON",
+    "market_regime": "NEUTRAL",
     "intraday_state": null,
     "time_gate_open": true,
-    "tradable": true,
-    "stay_flat_reason": null
+    "tradable": false,
+    "stay_flat_reason": "STAY_FLAT"
   },
   "market_context": {
     "expansion_regime": null,
@@ -20,44 +20,11 @@
     "stale_data_detected": false,
     "data_quality": "ok"
   },
-  "trade_candidates": [
-    {
-      "symbol": "NVDA",
-      "direction": "LONG",
-      "entry_mode": "PULLBACK",
-      "strategy_tag": "bull_call_spread",
-      "trigger": null,
-      "entry": null,
-      "stop": null,
-      "target": null,
-      "risk_reward": 2.5,
-      "timeframe": "21",
-      "setup_quality": "LIQUID",
-      "notes": null
-    },
-    {
-      "symbol": "META",
-      "direction": "LONG",
-      "entry_mode": "TREND",
-      "strategy_tag": "bull_call_spread",
-      "trigger": null,
-      "entry": null,
-      "stop": null,
-      "target": null,
-      "risk_reward": 3.1,
-      "timeframe": "14",
-      "setup_quality": "LIQUID",
-      "notes": null
-    }
-  ],
-  "rejections": [
-    {"symbol": "TSLA",   "stage": "QUALIFICATION", "reason": "CHOP",             "detail": null},
-    {"symbol": "COIN",   "stage": "QUALIFICATION", "reason": "EXTENSION",        "detail": null},
-    {"symbol": "REGIME", "stage": "REGIME",        "reason": "STAY_FLAT posture", "detail": null}
-  ],
+  "trade_candidates": [],
+  "rejections": [],
   "audit_summary": {
-    "qualified_count": 2,
-    "rejected_count": 2,
+    "qualified_count": 0,
+    "rejected_count": 0,
     "continuation_audit_present": false,
     "continuation_accepted_count": null,
     "continuation_rejected_count": null,
@@ -73,6 +40,28 @@
     "dollar_symbol": "DX-Y.NYB",
     "state": "NEUTRAL",
     "score": 0,
-    "risk_modifier": 0.7
+    "risk_modifier": 1.0
+  },
+  "regime": {
+    "classification": "NEUTRAL",
+    "posture": "STAY_FLAT",
+    "confidence": 0.375,
+    "net_score": -1,
+    "risk_on_votes": 2,
+    "risk_off_votes": 3,
+    "neutral_votes": 3,
+    "total_votes": 8,
+    "vote_breakdown": {
+      "SPY pct_change": "RISK_OFF",
+      "QQQ pct_change": "RISK_OFF",
+      "IWM pct_change": "RISK_OFF",
+      "VIX level": "NEUTRAL",
+      "VIX pct_change": "NEUTRAL",
+      "DXY pct_change": "RISK_ON",
+      "TNX pct_change": "RISK_ON",
+      "BTC pct_change": "NEUTRAL"
+    },
+    "vix_level": 18.66,
+    "vix_pct_change": 0.03552
   }
 }
