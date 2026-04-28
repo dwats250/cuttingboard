@@ -45,11 +45,13 @@ def _make_contract(
     tradable: bool = True,
     trade_candidates: list | None = None,
     generated_at: str = "2026-04-24T14:00:00Z",
-    status: str = "SUCCESS",
+    status: str = "OK",
+    outcome: str = "NO_TRADE",
 ) -> dict:
     return {
         "generated_at": generated_at,
         "status": status,
+        "outcome": outcome,
         "system_state": {
             "market_regime": market_regime,
             "tradable": tradable,
@@ -71,25 +73,36 @@ class TestBuildNotificationMessage:
         _, body = build_notification_message(_make_contract(market_regime="RISK_OFF"))
         assert "RISK_OFF" in body
 
-    def test_tradable_true_gives_trade_ready_title(self):
-        title, _ = build_notification_message(_make_contract(tradable=True))
+    def test_trade_outcome_gives_trade_ready_title(self):
+        candidates = [{"symbol": "SPY", "setup_quality": "TOP_TRADE_VALIDATED"}]
+        title, _ = build_notification_message(
+            _make_contract(tradable=True, outcome="TRADE", trade_candidates=candidates)
+        )
         assert title == "TRADE READY"
 
+    def test_tradable_true_no_trade_never_gives_trade_ready_title(self):
+        title, _ = build_notification_message(_make_contract(tradable=True, outcome="NO_TRADE"))
+        assert title == "NO TRADE - SYSTEM ACTIVE"
+
     def test_not_tradable_no_candidates_gives_no_trade_title(self):
-        title, _ = build_notification_message(_make_contract(tradable=False, trade_candidates=[]))
+        title, _ = build_notification_message(
+            _make_contract(tradable=False, outcome="NO_TRADE", trade_candidates=[])
+        )
         assert title == "NO TRADE - SYSTEM ACTIVE"
 
     def test_not_tradable_with_candidates_gives_watchlist_title(self):
         candidates = [{"symbol": "SPY", "direction": "LONG", "strategy_tag": "BULL_CALL"}]
-        title, _ = build_notification_message(_make_contract(tradable=False, trade_candidates=candidates))
+        title, _ = build_notification_message(
+            _make_contract(tradable=False, outcome="NO_TRADE", trade_candidates=candidates)
+        )
         assert title == "WATCHLIST - SETUPS FORMING"
 
     def test_fail_status_gives_halt_title(self):
-        title, _ = build_notification_message(_make_contract(status="FAIL"))
+        title, _ = build_notification_message(_make_contract(status="FAIL", outcome="HALT"))
         assert title == "HALT - SYSTEM ERROR"
 
     def test_error_status_gives_halt_title(self):
-        title, _ = build_notification_message(_make_contract(status="ERROR"))
+        title, _ = build_notification_message(_make_contract(status="ERROR", outcome="HALT"))
         assert title == "HALT - SYSTEM ERROR"
 
     def test_includes_tradable_in_body(self):
@@ -111,16 +124,16 @@ class TestBuildNotificationMessage:
         assert keys[:5] == ["Time", "Regime", "Tradable", "Setups", "Status"]
 
     def test_reason_no_qualifying_setups(self):
-        _, body = build_notification_message(_make_contract(tradable=False, trade_candidates=[]))
+        _, body = build_notification_message(_make_contract(outcome="NO_TRADE", tradable=False, trade_candidates=[]))
         assert "Reason: no qualifying setups" in body
 
     def test_reason_setups_present_but_not_tradable(self):
         candidates = [{"symbol": "SPY"}]
-        _, body = build_notification_message(_make_contract(tradable=False, trade_candidates=candidates))
-        assert "Reason: setups present but not tradable" in body
+        _, body = build_notification_message(_make_contract(outcome="NO_TRADE", tradable=False, trade_candidates=candidates))
+        assert "Reason: setups forming but no validated trade" in body
 
     def test_reason_pipeline_failure(self):
-        _, body = build_notification_message(_make_contract(status="FAIL"))
+        _, body = build_notification_message(_make_contract(status="FAIL", outcome="HALT"))
         assert "Reason: pipeline failure" in body
 
     def test_ascii_only_output(self):

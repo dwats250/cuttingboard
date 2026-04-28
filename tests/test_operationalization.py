@@ -9,6 +9,7 @@ from types import SimpleNamespace
 import pytest
 
 from cuttingboard import audit, runtime
+from cuttingboard.notifications import NOTIFY_HOURLY
 
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "2026-04-12.json"
@@ -17,6 +18,7 @@ REQUIRED_SUMMARY_FIELDS = {
     "timestamp",
     "mode",
     "status",
+    "outcome",
     "regime",
     "posture",
     "confidence",
@@ -43,6 +45,7 @@ def _isolate_artifacts(monkeypatch, tmp_path):
     monkeypatch.setattr(runtime, "LOGS_DIR", logs_dir)
     monkeypatch.setattr(runtime, "REPORTS_DIR", reports_dir)
     monkeypatch.setattr(runtime, "LATEST_RUN_PATH", logs_dir / "latest_run.json")
+    monkeypatch.setattr(runtime, "LATEST_CONTRACT_PATH", str(logs_dir / "latest_contract.json"))
     monkeypatch.setattr(audit, "AUDIT_LOG_PATH", str(logs_dir / "audit.jsonl"))
     return logs_dir, reports_dir
 
@@ -53,6 +56,7 @@ def _valid_summary(**overrides):
         "timestamp": "2026-04-12T13:00:00Z",
         "mode": "FIXTURE",
         "status": "SUCCESS",
+        "outcome": "TRADE",
         "regime": "RISK_ON",
         "posture": "AGGRESSIVE_LONG",
         "confidence": 0.875,
@@ -195,13 +199,44 @@ def test_fixture_run_writes_expected_artifacts_and_required_fields(monkeypatch, 
     assert len(run_paths) == 1
     assert report_path.exists()
     assert (logs_dir / "audit.jsonl").exists()
+    assert (logs_dir / "latest_contract.json").exists()
 
     latest_summary = json.loads(latest_path.read_text(encoding="utf-8"))
     timestamped_summary = json.loads(run_paths[0].read_text(encoding="utf-8"))
+    latest_contract = json.loads((logs_dir / "latest_contract.json").read_text(encoding="utf-8"))
 
     assert REQUIRED_SUMMARY_FIELDS <= set(latest_summary)
     assert REQUIRED_SUMMARY_FIELDS <= set(timestamped_summary)
     assert latest_summary == timestamped_summary
+    assert latest_contract["outcome"] in {"TRADE", "NO_TRADE", "HALT"}
+    assert latest_contract["outcome"] == latest_summary["outcome"]
+
+
+def test_notify_mode_execute_run_writes_canonical_artifacts(monkeypatch, tmp_path):
+    logs_dir, reports_dir = _isolate_artifacts(monkeypatch, tmp_path)
+
+    summary = runtime.execute_run(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-12"),
+        fixture_file=FIXTURE_PATH,
+        notify_mode=NOTIFY_HOURLY,
+    )
+
+    latest_path = logs_dir / "latest_run.json"
+    contract_path = logs_dir / "latest_contract.json"
+    report_path = reports_dir / "2026-04-12.md"
+
+    assert summary["status"] == "SUCCESS"
+    assert latest_path.exists()
+    assert contract_path.exists()
+    assert report_path.exists()
+
+    latest_summary = json.loads(latest_path.read_text(encoding="utf-8"))
+    latest_contract = json.loads(contract_path.read_text(encoding="utf-8"))
+
+    assert REQUIRED_SUMMARY_FIELDS <= set(latest_summary)
+    assert latest_contract["outcome"] in {"TRADE", "NO_TRADE", "HALT"}
+    assert latest_contract["outcome"] == latest_summary["outcome"]
 
 
 def test_fixture_mode_does_not_invoke_fetch_all(monkeypatch, tmp_path):
@@ -411,6 +446,9 @@ def test_verify_rejects_malformed_json(tmp_path):
         ("missing required field", lambda s: s.pop("permission"), "missing required fields"),
         ("invalid mode", lambda s: s.__setitem__("mode", "BROKEN"), "invalid mode"),
         ("invalid status", lambda s: s.__setitem__("status", "BROKEN"), "invalid status"),
+        ("invalid outcome", lambda s: s.__setitem__("outcome", "BROKEN"), "invalid outcome"),
+        ("trade outcome contradiction", lambda s: s.update(outcome="TRADE", candidates_qualified=0), "TRADE outcome requires qualified candidates"),
+        ("no trade outcome contradiction", lambda s: s.update(outcome="NO_TRADE", candidates_qualified=1), "NO_TRADE outcome cannot qualify trades"),
         ("invalid regime", lambda s: s.__setitem__("regime", "BROKEN"), "invalid regime"),
         ("invalid posture", lambda s: s.__setitem__("posture", "BROKEN"), "invalid posture"),
         ("confidence out of range", lambda s: s.__setitem__("confidence", 1.5), "confidence out of range"),

@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 
 from cuttingboard import config
 from cuttingboard import time_utils
+from cuttingboard import qualification
 from cuttingboard.qualification import qualify_candidate, qualify_all, GATE_TIME, TradeCandidate
 from cuttingboard.regime import RegimeState, RISK_ON
 from cuttingboard.structure import StructureResult, TREND, NORMAL_IV
@@ -131,6 +132,24 @@ def test_qualify_all_no_now_et_does_not_crash():
     candidates = {"SPY": _make_candidate()}
     summary = qualify_all(regime, structure, candidates)
     assert summary is not None
+
+
+def test_time_gate_exception_fails_closed(monkeypatch):
+    monkeypatch.setattr(
+        qualification.time_utils,
+        "is_after_entry_cutoff",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("clock failed")),
+    )
+
+    result = qualify_candidate(
+        _make_candidate(),
+        _make_regime(),
+        _make_structure(),
+        now_et=_et(2026, 4, 22, 9, 45),
+    )
+
+    assert GATE_TIME in result.gates_failed
+    assert not result.qualified
 
 
 # ---------------------------------------------------------------------------

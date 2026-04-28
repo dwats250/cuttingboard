@@ -874,11 +874,12 @@ def _is_late_session(now_et: datetime | None = None) -> bool:
     """True if ET time is at or after ENTRY_CUTOFF_ET (3:30 PM ET).
 
     Accepts an optional now_et for deterministic testing. Falls back to the
-    real wall-clock. Fails open (returns False) on any error.
+    real wall-clock. Fails closed (returns True) on any error.
     """
     try:
         if now_et is None:
             now_et = time_utils.get_now_et()
         return time_utils.is_after_entry_cutoff(now_et, config.ENTRY_CUTOFF_ET)
     except Exception:
-        return False  # fail-open
+        logger.exception("Late-session gate failed; blocking entries")
+        return True

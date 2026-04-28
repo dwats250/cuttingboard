@@ -289,10 +289,6 @@ def execute_run(
     fixture_file: Optional[Path] = None,
     notify_mode: Optional[str] = None,
 ) -> dict[str, Any]:
-    # Non-premarket notify modes use a lighter path — no summary JSON or markdown.
-    if notify_mode and notify_mode != NOTIFY_PREMARKET:
-        return _execute_notify_run(mode=mode, run_date=run_date, notify_mode=notify_mode)
-
     warnings: list[str] = []
     errors: list[str] = []
     report_path: Optional[Path] = None
@@ -333,6 +329,7 @@ def execute_run(
             artifacts={"report_path": str(report_path) if report_path else None},
             error_detail=str(exc)[:200],
         )
+        error_contract["outcome"] = OUTCOME_HALT
         _write_contract_file(error_contract)
         _write_payload_artifacts(error_contract)
         timestamped_path, latest_path = _write_summary_files(
@@ -724,6 +721,7 @@ def _run_pipeline(
         artifacts={"report_path": report_path, "log_path": str(LATEST_RUN_PATH)},
         data_quality=data_quality,
     )
+    contract["outcome"] = outcome
 
     # Exactly one notification send per run. PRD-018 suppression gate applied
     # before send; state persisted only on confirmed success (R7).
@@ -797,6 +795,7 @@ def _run_pipeline(
         warnings=warnings,
         errors=errors,
         fixture_file=fixture_file,
+        outcome=outcome,
     )
 
     return PipelineResult(
@@ -849,6 +848,7 @@ def _build_run_summary(
     warnings: list[str],
     errors: list[str],
     fixture_file: Optional[Path],
+    outcome: str,
 ) -> dict[str, Any]:
     fallback_used = any(raw.source == "polygon" for raw in raw_quotes.values())
     data_status = _data_status(mode, raw_quotes, normalized_quotes, fixture_file)
@@ -876,6 +876,7 @@ def _build_run_summary(
         "run_id": _run_id(mode, run_at_utc, fixture_file),
         "timestamp": _iso_z(run_at_utc),
         "mode": summary_mode,
+        "outcome": outcome,
         "status": SUMMARY_STATUS_FAIL if validation_summary.system_halted or errors else SUMMARY_STATUS_SUCCESS,
         "regime": regime_label,
         "posture": posture_label,
@@ -1043,6 +1044,7 @@ def verify_run_summary(path: str) -> dict[str, Any]:
         "run_id",
         "timestamp",
         "mode",
+        "outcome",
         "status",
         "regime",
         "posture",
@@ -1073,6 +1075,8 @@ def verify_run_summary(path: str) -> dict[str, Any]:
 
     if summary.get("mode") not in {SUMMARY_MODE_LIVE, SUMMARY_MODE_FIXTURE, SUMMARY_MODE_SUNDAY}:
         errors.append(f"invalid mode: {summary.get('mode')}")
+    if summary.get("outcome") not in {OUTCOME_TRADE, OUTCOME_NO_TRADE, OUTCOME_HALT}:
+        errors.append(f"invalid outcome: {summary.get('outcome')}")
     if summary.get("status") not in {SUMMARY_STATUS_SUCCESS, SUMMARY_STATUS_FAIL}:
         errors.append(f"invalid status: {summary.get('status')}")
     if summary.get("regime") not in VALID_REGIMES:
@@ -1115,6 +1119,14 @@ def verify_run_summary(path: str) -> dict[str, Any]:
         errors.append("NEUTRAL runs must apply min_rr_applied == 3.0")
     if summary.get("system_halted") and summary.get("status") != SUMMARY_STATUS_FAIL:
         errors.append("system_halted runs must have status FAIL")
+    if summary.get("system_halted") and summary.get("outcome") != OUTCOME_HALT:
+        errors.append("system_halted runs must have outcome HALT")
+    if summary.get("outcome") == OUTCOME_TRADE and summary.get("candidates_qualified", 0) < 1:
+        errors.append("TRADE outcome requires qualified candidates")
+    if summary.get("outcome") == OUTCOME_NO_TRADE and summary.get("candidates_qualified", 0) > 0:
+        errors.append("NO_TRADE outcome cannot qualify trades")
+    if summary.get("outcome") == OUTCOME_HALT and not summary.get("system_halted"):
+        errors.append("HALT outcome requires system_halted true")
 
     chain_validation = summary.get("chain_validation")
     if not isinstance(chain_validation, dict):
@@ -1491,6 +1503,7 @@ def _failure_summary(
         "run_id": f"failed-{summary_mode.lower()}-{run_date.isoformat()}",
         "timestamp": _iso_z(datetime.now(timezone.utc)),
         "mode": summary_mode,
+        "outcome": OUTCOME_HALT,
         "status": SUMMARY_STATUS_FAIL,
         "regime": NEUTRAL,
         "posture": "STAY_FLAT",

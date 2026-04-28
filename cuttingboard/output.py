@@ -582,20 +582,33 @@ def send_notification(
 def build_notification_message(contract: dict) -> tuple[str, str]:
     """Return (title, body) for a Telegram alert derived from the canonical contract.
 
-    Uses only: contract["status"], contract["generated_at"],
-    contract["system_state"]["market_regime"], contract["system_state"]["tradable"],
-    contract["trade_candidates"].
+    The alert title is bound to contract["outcome"] and validated candidate
+    presence. Tradability remains visible in the body only.
     """
     status = contract.get("status") or ""
+    outcome = contract.get("outcome")
     ss = contract.get("system_state") or {}
     market_regime = ss.get("market_regime") or "UNKNOWN"
     tradable = bool(ss.get("tradable", False))
     candidates = contract.get("trade_candidates") or []
+    validated_candidates = [
+        candidate
+        for candidate in candidates
+        if candidate.get("setup_quality") == VALIDATED
+    ]
     generated_at = (contract.get("generated_at") or "")[:16]
 
-    if status in {"FAIL", "ERROR"}:
+    if outcome not in {OUTCOME_TRADE, OUTCOME_NO_TRADE, OUTCOME_HALT}:
+        if status in {"FAIL", "ERROR"}:
+            outcome = OUTCOME_HALT
+        elif validated_candidates:
+            outcome = OUTCOME_TRADE
+        else:
+            outcome = OUTCOME_NO_TRADE
+
+    if outcome == OUTCOME_HALT:
         title = "HALT - SYSTEM ERROR"
-    elif tradable:
+    elif outcome == OUTCOME_TRADE:
         title = "TRADE READY"
     elif candidates:
         title = "WATCHLIST - SETUPS FORMING"
@@ -610,11 +623,11 @@ def build_notification_message(contract: dict) -> tuple[str, str]:
         f"Status: {status}",
     ]
 
-    if status in {"FAIL", "ERROR"}:
+    if outcome == OUTCOME_HALT:
         lines.append("Reason: pipeline failure")
-    elif not tradable and not candidates:
+    elif outcome == OUTCOME_NO_TRADE and not candidates:
         lines.append("Reason: no qualifying setups")
-    elif not tradable:
-        lines.append("Reason: setups present but not tradable")
+    elif outcome == OUTCOME_NO_TRADE:
+        lines.append("Reason: setups forming but no validated trade")
 
     return title, "\n".join(lines)

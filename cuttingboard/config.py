@@ -64,6 +64,7 @@ MIN_REGIME_CONFIDENCE   = 0.50
 TARGET_DOLLAR_RISK      = 150
 MAX_DOLLAR_RISK         = 200
 FRESHNESS_SECONDS       = 300        # 5 minutes — max quote age for valid data
+MAX_CLOCK_SKEW_SECONDS  = 5          # max tolerated quote timestamp skew into the future
 HALT_SYMBOLS            = ["^VIX", "DX-Y.NYB", "^TNX", "SPY", "QQQ"]
 OHLCV_MIN_BARS          = 21
 OHLCV_FETCH_MONTHS      = 6

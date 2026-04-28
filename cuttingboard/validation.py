@@ -163,6 +163,15 @@ def _validate_symbol(quote: NormalizedQuote) -> SymbolValidation:
     now_utc = datetime.now(timezone.utc)
     age_seconds = (now_utc - quote.fetched_at_utc).total_seconds()
 
+    if age_seconds < -config.MAX_CLOCK_SKEW_SECONDS:
+        return _fail(
+            symbol,
+            (
+                f"fetched_at_utc is {-age_seconds:.0f}s in the future, "
+                f"exceeds {config.MAX_CLOCK_SKEW_SECONDS}s clock skew tolerance"
+            ),
+        )
+
     if age_seconds >= config.FRESHNESS_SECONDS:
         return _fail(
             symbol,

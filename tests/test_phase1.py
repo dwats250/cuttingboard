@@ -105,6 +105,9 @@ class TestConfig:
     def test_freshness_seconds(self):
         assert config.FRESHNESS_SECONDS == 300
 
+    def test_max_clock_skew_seconds(self):
+        assert config.MAX_CLOCK_SKEW_SECONDS == 5
+
     def test_polygon_url_template(self):
         url = config.POLYGON_PREV_URL.format(symbol="SPY")
         assert "SPY" in url
@@ -210,6 +213,20 @@ class TestValidation:
         summary = validate_quotes({"SPY": nq})
         assert "SPY" not in summary.valid_quotes
         assert "SPY" in summary.invalid_symbols
+
+    def test_future_quote_beyond_clock_skew_fails(self):
+        nq = _normalized("SPY", price=540.0, age_seconds=-10)
+        summary = validate_quotes({"SPY": nq})
+        assert "SPY" not in summary.valid_quotes
+        assert "future" in summary.invalid_symbols["SPY"]
+
+    def test_future_halt_symbol_halts_system(self):
+        all_halt = self._all_halt_symbols_valid(
+            **{"^VIX": _normalized("^VIX", price=18.5, age_seconds=-10, units="index_level")}
+        )
+        summary = validate_quotes(all_halt)
+        assert summary.system_halted
+        assert "^VIX" in summary.failed_halt_symbols
 
     def test_price_out_of_bounds_fails(self):
         nq = _normalized("SPY", price=100.0, age_seconds=10)  # SPY min is 300

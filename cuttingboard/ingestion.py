@@ -128,31 +128,36 @@ def fetch_ohlcv(symbol: str) -> Optional[pd.DataFrame]:
     cache_path = _ohlcv_cache_path(symbol)
 
     if cache_path.exists():
-        age_hours = (time.time() - cache_path.stat().st_mtime) / 3600
-        if age_hours < config.OHLCV_STALE_HOURS:
-            try:
-                df = pd.read_parquet(cache_path)
-                logger.debug(f"{symbol}: OHLCV from cache (age {age_hours:.1f}h, {len(df)} bars)")
+        try:
+            df = pd.read_parquet(cache_path)
+            if _is_fresh_ohlcv_cache(df):
+                logger.debug(f"{symbol}: OHLCV from fresh cache ({len(df)} bars)")
                 return df
-            except Exception as exc:
-                logger.warning(f"{symbol}: cache read failed: {exc}")
+            logger.info(f"{symbol}: OHLCV cache stale — live refresh required")
+        except Exception as exc:
+            logger.warning(f"{symbol}: cache read failed: {exc}")
 
     df = _fetch_ohlcv_from_yfinance(symbol)
     if df is not None:
         _write_ohlcv_cache(symbol, cache_path, df)
         return df
 
-    # Fresh fetch failed — fall back to stale cache rather than returning None
-    if cache_path.exists():
-        try:
-            df = pd.read_parquet(cache_path)
-            logger.error(f"{symbol}: OHLCV fetch failed — using stale cache ({len(df)} bars)")
-            return df
-        except Exception as exc:
-            logger.error(f"{symbol}: OHLCV fetch failed and stale cache unreadable: {exc}")
-
     logger.error(f"{symbol}: OHLCV unavailable — symbol INVALID for derived metrics")
     return None
+
+
+def _is_fresh_ohlcv_cache(df: pd.DataFrame) -> bool:
+    if df is None or df.empty or df.index.empty:
+        return False
+
+    last_bar = pd.Timestamp(df.index.max())
+    if last_bar.tzinfo is None:
+        last_bar = last_bar.tz_localize(timezone.utc)
+    else:
+        last_bar = last_bar.tz_convert(timezone.utc)
+
+    age_seconds = (datetime.now(timezone.utc) - last_bar.to_pydatetime()).total_seconds()
+    return 0 <= age_seconds < config.FRESHNESS_SECONDS
 
 
 def fetch_intraday_bars(symbol: str) -> Optional[pd.DataFrame]:

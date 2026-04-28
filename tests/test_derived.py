@@ -15,6 +15,7 @@ import pytest
 
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.derived import DerivedMetrics, compute_derived, compute_all_derived
+from cuttingboard.ingestion import fetch_ohlcv
 
 
 # ---------------------------------------------------------------------------
@@ -245,6 +246,22 @@ class TestInsufficientHistory:
             dm = compute_derived("SPY", quote)
         assert dm.sufficient_history is False
         assert dm.ema9 is None
+
+    def test_stale_ohlcv_cache_rejected_after_fetch_failure(self, tmp_path, monkeypatch):
+        stale_df = _make_ohlcv(30)
+        stale_df.index = pd.date_range(
+            end=datetime.now(timezone.utc) - timedelta(minutes=10),
+            periods=len(stale_df),
+            freq="s",
+        )
+        cache_path = tmp_path / "SPY_ohlcv.parquet"
+        cache_path.write_text("placeholder", encoding="utf-8")
+
+        monkeypatch.setattr("cuttingboard.ingestion._ohlcv_cache_path", lambda _symbol: cache_path)
+        monkeypatch.setattr("cuttingboard.ingestion.pd.read_parquet", lambda _path: stale_df)
+        monkeypatch.setattr("cuttingboard.ingestion._fetch_ohlcv_from_yfinance", lambda _symbol: None)
+
+        assert fetch_ohlcv("SPY") is None
 
     def test_exactly_21_bars_is_sufficient(self):
         df = _make_ohlcv(21)
