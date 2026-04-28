@@ -38,7 +38,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-024 | 6f97d12 | Contract UI consumer — static HTML read-only decision surface | COMPLETE |
 | PRD-025 | 3d532cd | Decision compression layer — primary signal and trade promotion | COMPLETE |
 | PRD-026 | 442b813 | Alert visibility upgrade — deterministic ASCII titles and structured body | COMPLETE |
-| PRD-027 | TBD | Context report layer — deterministic premarket and postmarket reports | IN PROGRESS |
+| PRD-027 | b8dc599 | Context report layer — deterministic premarket and postmarket reports | COMPLETE |
 
 ---
 
