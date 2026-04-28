@@ -1,0 +1,62 @@
+/* echofi.css — Near-black + teal accent theme */
+/* Inspired by mockup_echofi.html (EchoFi style) */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Surfaces */
+  --cb-bg:          #0b0d13;
+  --cb-bg-card:     #10131c;
+  --cb-bg-elevated: #161b28;
+
+  /* Borders */
+  --cb-border:      rgba(255, 255, 255, 0.055);
+  --cb-border-hi:   rgba(255, 255, 255, 0.09);
+
+  /* Text */
+  --cb-text:   #e2eaf8;
+  --cb-text-2: #7a8aaa;
+  --cb-text-3: #3d4a62;
+
+  /* Semantic */
+  --cb-green:      #22c55e;
+  --cb-green-dim:  rgba(34, 197, 94, 0.10);
+  --cb-red:        #ef4444;
+  --cb-red-dim:    rgba(239, 68, 68, 0.10);
+  --cb-amber:      #f59e0b;
+  --cb-amber-dim:  rgba(245, 158, 11, 0.10);
+  --cb-accent:     #00d4c0;
+  --cb-accent-dim: rgba(0, 212, 192, 0.15);
+
+  /* Typography */
+  --cb-font-ui:   'DM Sans', system-ui, sans-serif;
+  --cb-font-mono: 'JetBrains Mono', monospace;
+
+  /* Shape */
+  --cb-radius:    8px;
+  --cb-radius-sm: 5px;
+}
+
+body {
+  font-family: var(--cb-font-ui);
+}
+
+#file-label,
+#paste-input,
+#paste-btn,
+#status-msg,
+.block {
+  border-radius: var(--cb-radius);
+}
+
+#header-status,
+#theme-select {
+  border-radius: var(--cb-radius-sm);
+}
+
+#paste-toggle,
+#paste-input,
+#paste-btn,
+#theme-select {
+  font-family: inherit;
+}

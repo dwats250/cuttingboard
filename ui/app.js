@@ -1,6 +1,68 @@
 'use strict';
 
 // ---------------------------------------------------------------------------
+// Theme system
+// ---------------------------------------------------------------------------
+
+const THEME_MANIFEST = [
+  { id: 'default',            label: 'Default' },
+  { id: 'projection-finance', label: 'Projection Finance' },
+  { id: 'echofi',             label: 'EchoFi' },
+];
+
+const THEME_STORAGE_KEY = 'cb_theme';
+
+function currentThemeId() {
+  return localStorage.getItem(THEME_STORAGE_KEY) || 'default';
+}
+
+function applyTheme(id) {
+  const link = document.getElementById('theme-link');
+  if (!link) return;
+  const valid = THEME_MANIFEST.some(function (t) { return t.id === id; });
+  const safeId = valid ? id : 'default';
+  link.href = 'themes/' + safeId + '.css';
+  localStorage.setItem(THEME_STORAGE_KEY, safeId);
+  const sel = document.getElementById('theme-select');
+  if (sel) sel.value = safeId;
+}
+
+function initTheme() {
+  const link = document.getElementById('theme-link');
+  if (!link) return;
+  link.addEventListener('error', function () {
+    const failedId = currentThemeId();
+    console.warn('[cuttingboard] theme failed to load: ' + failedId + ' — falling back to default');
+    localStorage.setItem(THEME_STORAGE_KEY, 'default');
+    link.href = 'themes/default.css';
+    const sel = document.getElementById('theme-select');
+    if (sel) sel.value = 'default';
+  });
+  applyTheme(currentThemeId());
+}
+
+function renderThemeSwitcher() {
+  const container = document.getElementById('theme-switcher');
+  if (!container) return;
+  const lbl = document.createElement('span');
+  lbl.id = 'theme-switcher-label';
+  lbl.textContent = 'Theme';
+  const sel = document.createElement('select');
+  sel.id = 'theme-select';
+  const active = currentThemeId();
+  for (const t of THEME_MANIFEST) {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = t.label;
+    if (t.id === active) opt.selected = true;
+    sel.appendChild(opt);
+  }
+  sel.addEventListener('change', function () { applyTheme(sel.value); });
+  container.appendChild(lbl);
+  container.appendChild(sel);
+}
+
+// ---------------------------------------------------------------------------
 // Defensive accessors
 // ---------------------------------------------------------------------------
 
@@ -277,6 +339,8 @@ function loadJSON(text) {
 // ---------------------------------------------------------------------------
 
 document.addEventListener('DOMContentLoaded', function () {
+  initTheme();
+  renderThemeSwitcher();
   showStatus('NO CONTRACT LOADED', false);
 
   document.getElementById('file-input').addEventListener('change', function (e) {

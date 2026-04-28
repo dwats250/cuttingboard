@@ -1,0 +1,62 @@
+/* projection-finance.css — Dark navy + blue accent theme */
+/* Inspired by mockup.html (Projection Finance style) */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Surfaces */
+  --cb-bg:          #090e1a;
+  --cb-bg-card:     #0f1629;
+  --cb-bg-elevated: #141e35;
+
+  /* Borders */
+  --cb-border:      rgba(255, 255, 255, 0.055);
+  --cb-border-hi:   rgba(255, 255, 255, 0.09);
+
+  /* Text */
+  --cb-text:   #eef2ff;
+  --cb-text-2: #a0aec8;
+  --cb-text-3: #556078;
+
+  /* Semantic */
+  --cb-green:      #22c55e;
+  --cb-green-dim:  rgba(34, 197, 94, 0.12);
+  --cb-red:        #ef4444;
+  --cb-red-dim:    rgba(239, 68, 68, 0.12);
+  --cb-amber:      #f59e0b;
+  --cb-amber-dim:  rgba(245, 158, 11, 0.12);
+  --cb-accent:     #4b7ef5;
+  --cb-accent-dim: rgba(75, 126, 245, 0.18);
+
+  /* Typography */
+  --cb-font-ui:   'Plus Jakarta Sans', system-ui, sans-serif;
+  --cb-font-mono: 'JetBrains Mono', monospace;
+
+  /* Shape */
+  --cb-radius:    10px;
+  --cb-radius-sm: 6px;
+}
+
+body {
+  font-family: var(--cb-font-ui);
+}
+
+#file-label,
+#paste-input,
+#paste-btn,
+#status-msg,
+.block {
+  border-radius: var(--cb-radius);
+}
+
+#header-status,
+#theme-select {
+  border-radius: var(--cb-radius-sm);
+}
+
+#paste-toggle,
+#paste-input,
+#paste-btn,
+#theme-select {
+  font-family: inherit;
+}

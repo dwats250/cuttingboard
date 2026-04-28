@@ -1,0 +1,60 @@
+/* default.css — Cuttingboard default theme */
+/* Extracted from original styles.css. Monospace terminal aesthetic. */
+
+:root {
+  /* Surfaces */
+  --cb-bg:          #111827;
+  --cb-bg-card:     #1f2937;
+  --cb-bg-elevated: #374151;
+
+  /* Borders */
+  --cb-border:      #374151;
+  --cb-border-hi:   #4b5563;
+
+  /* Text */
+  --cb-text:   #f9fafb;
+  --cb-text-2: #9ca3af;
+  --cb-text-3: #6b7280;
+
+  /* Semantic — full-opacity + tinted backgrounds */
+  --cb-green:      #22c55e;
+  --cb-green-dim:  rgba(34, 197, 94, 0.15);
+  --cb-red:        #ef4444;
+  --cb-red-dim:    rgba(239, 68, 68, 0.15);
+  --cb-amber:      #facc15;
+  --cb-amber-dim:  rgba(250, 204, 21, 0.15);
+  --cb-accent:     #3b82f6;
+  --cb-accent-dim: rgba(59, 130, 246, 0.20);
+
+  /* Typography */
+  --cb-font-ui:   'Menlo', 'Monaco', 'Consolas', monospace;
+  --cb-font-mono: 'Menlo', 'Monaco', 'Consolas', monospace;
+
+  /* Shape */
+  --cb-radius:    6px;
+  --cb-radius-sm: 3px;
+}
+
+body {
+  font-family: var(--cb-font-ui);
+}
+
+#file-label,
+#paste-input,
+#paste-btn,
+#status-msg,
+.block {
+  border-radius: var(--cb-radius);
+}
+
+#header-status,
+#theme-select {
+  border-radius: var(--cb-radius-sm);
+}
+
+#paste-toggle,
+#paste-input,
+#paste-btn,
+#theme-select {
+  font-family: inherit;
+}

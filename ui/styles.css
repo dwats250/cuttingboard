@@ -1,15 +1,8 @@
+/* ── STRUCTURAL LAYER ── */
+/* No hardcoded colors, typography families, or shape values. */
+/* All aesthetic values are defined in ui/themes/{name}.css via --cb-* properties. */
+
 :root {
-  --color-trade-ready: #22c55e;
-  --color-watchlist: #facc15;
-  --color-stay-flat: #ef4444;
-  --color-error: #6b7280;
-  --color-bg: #111827;
-  --color-surface: #1f2937;
-  --color-border: #374151;
-  --color-text: #f9fafb;
-  --color-muted: #9ca3af;
-  --color-accent: #3b82f6;
-  --radius: 6px;
   --gap: 12px;
 }
 
@@ -20,9 +13,8 @@
 }
 
 body {
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+  background: var(--cb-bg);
+  color: var(--cb-text);
   font-size: 13px;
   line-height: 1.5;
   padding: var(--gap);
@@ -30,7 +22,7 @@ body {
   margin: 0 auto;
 }
 
-/* Controls */
+/* ── Controls ── */
 
 #controls {
   margin-bottom: 16px;
@@ -46,16 +38,15 @@ body {
 #file-label {
   display: inline-block;
   padding: 6px 12px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  background: var(--cb-bg-card);
+  border: 1px solid var(--cb-border);
   cursor: pointer;
-  color: var(--color-text);
+  color: var(--cb-text);
   white-space: nowrap;
 }
 
 #file-label:hover {
-  border-color: var(--color-accent);
+  border-color: var(--cb-accent);
 }
 
 #file-input {
@@ -65,16 +56,15 @@ body {
 #paste-toggle {
   background: none;
   border: none;
-  color: var(--color-muted);
+  color: var(--cb-text-2);
   cursor: pointer;
-  font-family: inherit;
   font-size: 12px;
   padding: 0;
   text-decoration: underline;
 }
 
 #paste-toggle:hover {
-  color: var(--color-text);
+  color: var(--cb-text);
 }
 
 #paste-area {
@@ -88,11 +78,9 @@ body {
 }
 
 #paste-input {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  color: var(--color-text);
-  font-family: inherit;
+  background: var(--cb-bg-card);
+  border: 1px solid var(--cb-border);
+  color: var(--cb-text);
   font-size: 11px;
   padding: 8px;
   resize: vertical;
@@ -102,34 +90,31 @@ body {
 
 #paste-input:focus {
   outline: none;
-  border-color: var(--color-accent);
+  border-color: var(--cb-accent);
 }
 
 #paste-btn {
   align-self: flex-start;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  color: var(--color-text);
+  background: var(--cb-bg-card);
+  border: 1px solid var(--cb-border);
+  color: var(--cb-text);
   cursor: pointer;
-  font-family: inherit;
   font-size: 12px;
   padding: 5px 10px;
 }
 
 #paste-btn:hover {
-  border-color: var(--color-accent);
+  border-color: var(--cb-accent);
 }
 
-/* Error / empty states */
+/* ── Status / empty state ── */
 
 #status-msg {
   display: none;
   padding: 16px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  color: var(--color-muted);
+  background: var(--cb-bg-card);
+  border: 1px solid var(--cb-border);
+  color: var(--cb-text-2);
   text-align: center;
   letter-spacing: 0.05em;
 }
@@ -139,11 +124,11 @@ body {
 }
 
 #status-msg.error {
-  color: var(--color-stay-flat);
-  border-color: var(--color-stay-flat);
+  color: var(--cb-red);
+  border-color: var(--cb-red);
 }
 
-/* Contract view */
+/* ── Contract view ── */
 
 #contract-view {
   display: none;
@@ -155,24 +140,23 @@ body {
   display: flex;
 }
 
-/* Blocks */
+/* ── Blocks ── */
 
 .block {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  background: var(--cb-bg-card);
+  border: 1px solid var(--cb-border);
   padding: 12px;
 }
 
 .block-title {
-  color: var(--color-muted);
+  color: var(--cb-text-2);
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   margin-bottom: 8px;
 }
 
-/* Signal bar */
+/* ── Signal bar ── */
 
 #signal-bar-inner {
   display: flex;
@@ -185,7 +169,7 @@ body {
   flex-direction: column;
   align-items: center;
   padding: 6px 4px;
-  border-right: 1px solid var(--color-border);
+  border-right: 1px solid var(--cb-border);
 }
 
 .signal-cell:last-child {
@@ -193,7 +177,7 @@ body {
 }
 
 .sig-label {
-  color: var(--color-muted);
+  color: var(--cb-text-2);
   font-size: 9px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -206,19 +190,19 @@ body {
   letter-spacing: 0.06em;
 }
 
-#sig-posture.TRADE_READY { color: var(--color-trade-ready); }
-#sig-posture.WATCHLIST   { color: var(--color-watchlist); }
-#sig-posture.STAY_FLAT   { color: var(--color-stay-flat); }
-#sig-posture.ERROR       { color: var(--color-error); }
+#sig-posture.TRADE_READY { color: var(--cb-green); }
+#sig-posture.WATCHLIST   { color: var(--cb-amber); }
+#sig-posture.STAY_FLAT   { color: var(--cb-red); }
+#sig-posture.ERROR       { color: var(--cb-text-3); }
 
-#sig-corr-state.ALIGNED  { color: var(--color-trade-ready); }
-#sig-corr-state.NEUTRAL  { color: var(--color-muted); }
-#sig-corr-state.CONFLICT { color: var(--color-stay-flat); }
+#sig-corr-state.ALIGNED  { color: var(--cb-green); }
+#sig-corr-state.NEUTRAL  { color: var(--cb-text-2); }
+#sig-corr-state.CONFLICT { color: var(--cb-red); }
 
-/* Primary trade block */
+/* ── Primary trade block ── */
 
 #primary-trade-block {
-  border-color: rgba(59, 130, 246, 0.4);
+  border-color: var(--cb-accent-dim);
 }
 
 .primary-trade-symbol {
@@ -232,7 +216,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  color: var(--color-muted);
+  color: var(--cb-text-2);
   font-size: 12px;
 }
 
@@ -240,40 +224,40 @@ body {
   white-space: nowrap;
 }
 
-/* No trade block */
+/* ── No trade block ── */
 
 #no-trade-block {
-  border-color: rgba(239, 68, 68, 0.4);
-  background: rgba(239, 68, 68, 0.06);
+  border-color: var(--cb-red-dim);
+  background: var(--cb-red-dim);
 }
 
 #no-trade-label {
-  color: var(--color-stay-flat);
+  color: var(--cb-red);
   font-size: 18px;
   font-weight: bold;
   letter-spacing: 0.08em;
   margin-bottom: 6px;
 }
 
-/* Watchlist block */
+/* ── Watchlist block ── */
 
 #watchlist-block {
-  border-color: rgba(250, 204, 21, 0.4);
-  background: rgba(250, 204, 21, 0.05);
+  border-color: var(--cb-amber-dim);
+  background: var(--cb-amber-dim);
 }
 
 #watchlist-label {
-  color: var(--color-watchlist);
+  color: var(--cb-amber);
   font-size: 18px;
   font-weight: bold;
   letter-spacing: 0.08em;
   margin-bottom: 6px;
 }
 
-/* Reason items */
+/* ── Reason items ── */
 
 .reason-item {
-  color: var(--color-muted);
+  color: var(--cb-text-2);
   font-size: 12px;
   padding: 2px 0;
 }
@@ -282,14 +266,14 @@ body {
   content: '— ';
 }
 
-/* Header (de-emphasized) */
+/* ── Header block (de-emphasized) ── */
 
 #header-block {
   opacity: 0.6;
 }
 
 #header-timestamp {
-  color: var(--color-muted);
+  color: var(--cb-text-2);
   font-size: 11px;
   margin-bottom: 6px;
 }
@@ -305,19 +289,18 @@ body {
   font-size: 10px;
   letter-spacing: 0.1em;
   padding: 2px 6px;
-  border-radius: 3px;
-  background: var(--color-border);
-  color: var(--color-muted);
+  background: var(--cb-bg-elevated);
+  color: var(--cb-text-2);
   margin-top: 4px;
 }
 
-/* KV rows */
+/* ── KV rows ── */
 
 .kv-row {
   display: flex;
   justify-content: space-between;
   padding: 3px 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--cb-border);
 }
 
 .kv-row:last-child {
@@ -325,14 +308,14 @@ body {
 }
 
 .kv-key {
-  color: var(--color-muted);
+  color: var(--cb-text-2);
 }
 
 .kv-val {
-  color: var(--color-text);
+  color: var(--cb-text);
 }
 
-/* Correlation */
+/* ── Correlation ── */
 
 #corr-state {
   font-size: 16px;
@@ -341,21 +324,21 @@ body {
   margin-bottom: 6px;
 }
 
-#corr-state.ALIGNED  { color: var(--color-trade-ready); }
-#corr-state.NEUTRAL  { color: var(--color-watchlist); }
-#corr-state.CONFLICT { color: var(--color-stay-flat); }
+#corr-state.ALIGNED  { color: var(--cb-green); }
+#corr-state.NEUTRAL  { color: var(--cb-amber); }
+#corr-state.CONFLICT { color: var(--cb-red); }
 
-.block.corr-ALIGNED  {
-  border-color: rgba(34, 197, 94, 0.3);
-  background: rgba(34, 197, 94, 0.05);
+.block.corr-ALIGNED {
+  border-color: var(--cb-green-dim);
+  background: var(--cb-green-dim);
 }
 
 .block.corr-CONFLICT {
-  border-color: rgba(239, 68, 68, 0.3);
-  background: rgba(239, 68, 68, 0.05);
+  border-color: var(--cb-red-dim);
+  background: var(--cb-red-dim);
 }
 
-/* Tables (secondary setups + rejections) */
+/* ── Tables ── */
 
 .table-wrap {
   overflow-x: auto;
@@ -369,19 +352,19 @@ table {
 }
 
 th {
-  color: var(--color-muted);
+  color: var(--cb-text-2);
   font-size: 10px;
   font-weight: normal;
   letter-spacing: 0.08em;
   text-align: left;
   text-transform: uppercase;
   padding: 4px 6px 6px 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--cb-border);
 }
 
 td {
   padding: 5px 6px 5px 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--cb-border);
   word-break: break-word;
   vertical-align: top;
 }
@@ -391,7 +374,7 @@ tr:last-child td {
 }
 
 .empty-state {
-  color: var(--color-muted);
+  color: var(--cb-text-2);
   font-size: 12px;
   padding: 8px 0;
 }
@@ -412,7 +395,7 @@ tr:last-child td {
 details > summary {
   cursor: pointer;
   list-style: none;
-  color: var(--color-muted);
+  color: var(--cb-text-2);
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -435,20 +418,51 @@ details[open] > summary {
   margin-bottom: 8px;
 }
 
-/* Router */
+/* ── Router ── */
 
 #router-value {
-  color: var(--color-text);
+  color: var(--cb-text);
   font-size: 14px;
   letter-spacing: 0.06em;
 }
 
-/* Footer */
+/* ── Footer + theme switcher ── */
 
 footer {
-  color: var(--color-muted);
+  color: var(--cb-text-2);
   font-size: 10px;
   letter-spacing: 0.1em;
   text-align: center;
   padding: 8px 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+#theme-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+#theme-switcher-label {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--cb-text-3);
+  text-transform: uppercase;
+}
+
+#theme-select {
+  background: var(--cb-bg-card);
+  border: 1px solid var(--cb-border);
+  color: var(--cb-text-2);
+  font-size: 10px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
+#theme-select:hover {
+  border-color: var(--cb-accent);
+  color: var(--cb-text);
 }
