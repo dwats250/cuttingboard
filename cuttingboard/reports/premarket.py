@@ -4,19 +4,19 @@ _SCENARIOS: dict[str, list[dict]] = {
     "RISK_ON": [
         {
             "id": "risk_on_1",
-            "condition": "Indices hold above prior close and trend higher",
+            "condition": "Indices hold above prior_close and trend higher; prior_high as upside target",
             "expected_behavior": "Momentum continuation; strength concentrated in high-beta names",
             "preferred_direction": "LONG",
         },
         {
             "id": "risk_on_2",
-            "condition": "VIX spikes intraday above 22",
+            "condition": "VIX spikes intraday above 22; gap_direction determines re-entry bias",
             "expected_behavior": "Long setups pause; hold existing positions, no new entries",
             "preferred_direction": "NEUTRAL",
         },
         {
             "id": "risk_on_3",
-            "condition": "Early-session gap-up fades within 30 minutes",
+            "condition": "gap_direction UP fades within 30 minutes; prior_close as stabilization level",
             "expected_behavior": "Pullback entry available; wait for stabilization before sizing",
             "preferred_direction": "LONG",
         },
@@ -24,19 +24,19 @@ _SCENARIOS: dict[str, list[dict]] = {
     "RISK_OFF": [
         {
             "id": "risk_off_1",
-            "condition": "Indices break below prior session low",
+            "condition": "Indices break below prior_low; downside continuation expected",
             "expected_behavior": "Downside continuation; defensive positioning maintained",
             "preferred_direction": "SHORT",
         },
         {
             "id": "risk_off_2",
-            "condition": "Brief bounce into prior support",
+            "condition": "Brief bounce into range_mid or prior_high; fade bounce",
             "expected_behavior": "Fade bounce; short bias intact",
             "preferred_direction": "SHORT",
         },
         {
             "id": "risk_off_3",
-            "condition": "VIX reaches 30+ and stalls or reverses",
+            "condition": "VIX reaches 30+ above prior_high volatility zone and stalls or reverses",
             "expected_behavior": "Reduce short exposure; potential VIX exhaustion",
             "preferred_direction": "NEUTRAL",
         },
@@ -44,19 +44,19 @@ _SCENARIOS: dict[str, list[dict]] = {
     "NEUTRAL": [
         {
             "id": "neutral_1",
-            "condition": "Indices hold within prior session range",
+            "condition": "Indices hold within prior_high to prior_low range; no directional bias",
             "expected_behavior": "Range-bound; premium selling opportunity; no directional bias",
             "preferred_direction": "NEUTRAL",
         },
         {
             "id": "neutral_2",
-            "condition": "SPY breaks above prior session high on above-average volume",
+            "condition": "SPY breaks above prior_high on above-average volume",
             "expected_behavior": "Trend shift signal; initiate LONG on confirmation",
             "preferred_direction": "LONG",
         },
         {
             "id": "neutral_3",
-            "condition": "SPY breaks below prior session low on above-average volume",
+            "condition": "SPY breaks below prior_low on above-average volume",
             "expected_behavior": "Trend shift signal; initiate SHORT on confirmation",
             "preferred_direction": "SHORT",
         },
@@ -64,13 +64,13 @@ _SCENARIOS: dict[str, list[dict]] = {
     "CHAOTIC": [
         {
             "id": "chaotic_1",
-            "condition": "VIX spike sustained above 30 with intraday swings exceeding 2%",
+            "condition": "VIX spike sustained above 30; gap_direction undefined; all setups invalid",
             "expected_behavior": "All setups invalid; stay flat regardless of direction",
             "preferred_direction": "NEUTRAL",
         },
         {
             "id": "chaotic_2",
-            "condition": "VIX reverses from spike; indices stabilize above session low",
+            "condition": "VIX reverses from spike; price stabilizes above prior_low; monitor only",
             "expected_behavior": "Monitor only; no new entries until regime normalizes",
             "preferred_direction": "NEUTRAL",
         },
@@ -80,13 +80,13 @@ _SCENARIOS: dict[str, list[dict]] = {
 _DEFAULT_SCENARIOS: list[dict] = [
     {
         "id": "unknown_1",
-        "condition": "Regime data unavailable or indeterminate",
+        "condition": "Regime unavailable; gap_direction and prior_close indeterminate; no trade",
         "expected_behavior": "No trade; wait for regime resolution",
         "preferred_direction": "NEUTRAL",
     },
     {
         "id": "unknown_2",
-        "condition": "System operating without confirmed regime",
+        "condition": "System without confirmed regime; prior_high and prior_low unresolved; stay flat",
         "expected_behavior": "Stay flat; do not size any position",
         "preferred_direction": "NEUTRAL",
     },
@@ -94,24 +94,24 @@ _DEFAULT_SCENARIOS: list[dict] = [
 
 _INVALIDATION: dict[str, list[str]] = {
     "RISK_ON": [
-        "VIX closes above 25 — regime shift to RISK_OFF likely",
-        "SPY loses prior session support on volume",
+        "VIX closes above 25 — regime shift to RISK_OFF likely; prior_high at risk",
+        "SPY loses prior_low (prior session support) on volume",
     ],
     "RISK_OFF": [
-        "VIX drops and holds below 20 — potential regime reversal",
-        "SPY reclaims prior session high intraday",
+        "VIX drops and holds below 20; prior_close may shift to support",
+        "SPY reclaims prior_high intraday",
     ],
     "NEUTRAL": [
-        "VIX spike above 25 without intraday recovery",
-        "SPY moves more than 1% in either direction with volume confirmation",
+        "VIX spike above 25 without intraday recovery; prior_low at risk",
+        "SPY moves more than 1% above prior_high or below prior_low on volume",
     ],
     "CHAOTIC": [
-        "VIX does not normalize below 25 within session — no trade permitted",
+        "VIX does not normalize; gap_direction remains undefined; no trade permitted",
     ],
 }
 
 _DEFAULT_INVALIDATION: list[str] = [
-    "Regime indeterminate — no trade permitted until regime resolves",
+    "Regime indeterminate; prior_close and gap_direction unavailable; no trade",
 ]
 
 _VOLATILITY_STATE: dict[str, str] = {
@@ -122,7 +122,7 @@ _VOLATILITY_STATE: dict[str, str] = {
 }
 
 
-def build_premarket_report(contract: dict) -> dict:
+def build_premarket_report(contract: dict, levels: dict | None = None) -> dict:
     ss = contract.get("system_state") or {}
     mc = contract.get("market_context") or {}
     correlation = contract.get("correlation")
@@ -169,11 +169,11 @@ def build_premarket_report(contract: dict) -> dict:
             "expansion_enabled": expansion_enabled,
         },
         "key_levels": {
-            "prior_high": None,
-            "prior_low": None,
+            "prior_high": levels.get("prior_high") if levels else None,
+            "prior_low": levels.get("prior_low") if levels else None,
             "overnight_high": None,
             "overnight_low": None,
-            "gap_direction": None,
+            "gap_direction": levels.get("gap_direction") if levels else None,
         },
         "scenarios": scenarios,
         "focus_list": focus_list,
