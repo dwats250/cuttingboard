@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CUTTINGBOARD — EchoFi Style</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #0b0d13;
+  --bg-2:     #10131c;
+  --bg-3:     #161b28;
+  --bg-4:     #1c2235;
+  --border:   rgba(255,255,255,0.055);
+  --border-hi:rgba(255,255,255,0.09);
+  --text:     #e2eaf8;
+  --text-2:   #7a8aaa;
+  --text-3:   #3d4a62;
+  --teal:     #00d4c0;
+  --teal-dim: rgba(0,212,192,0.1);
+  --teal-glow:rgba(0,212,192,0.2);
+  --green:    #22c55e;
+  --green-dim:rgba(34,197,94,0.1);
+  --red:      #ef4444;
+  --red-dim:  rgba(239,68,68,0.1);
+  --amber:    #f59e0b;
+  --amber-dim:rgba(245,158,11,0.1);
+  --ui:  'DM Sans', system-ui, sans-serif;
+  --mono:'JetBrains Mono', monospace;
+}
+
+html, body { background: var(--bg); color: var(--text); font-family: var(--ui); font-size: 13px; line-height: 1.5; height: 100vh; overflow: hidden; }
+
+/* ── MOCKUP NAV ── */
+.mockup-switcher {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 16px;
+  background: #070910;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 11px;
+  font-weight: 500;
+}
+.mockup-switcher span { color: var(--text-3); margin-right: 10px; letter-spacing: 0.08em; text-transform: uppercase; font-size: 9px; }
+.sw-link {
+  padding: 4px 12px;
+  border-radius: 4px;
+  color: var(--text-2);
+  text-decoration: none;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+  font-size: 11px;
+}
+.sw-link:hover { color: var(--text); background: var(--bg-3); }
+.sw-link.active { color: var(--teal); background: var(--teal-dim); border-color: rgba(0,212,192,0.2); }
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+.a1 { animation: fadeUp 0.35s ease both 0.04s; }
+.a2 { animation: fadeUp 0.35s ease both 0.10s; }
+.a3 { animation: fadeUp 0.35s ease both 0.16s; }
+.a4 { animation: fadeUp 0.35s ease both 0.22s; }
+.a5 { animation: fadeUp 0.35s ease both 0.28s; }
+
+/* ── TOP NAV ── */
+.topnav {
+  display: flex;
+  align-items: center;
+  height: 52px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-2);
+  gap: 24px;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+}
+
+.logo-sq {
+  width: 28px; height: 28px;
+  background: var(--teal);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-sq svg { width: 14px; height: 14px; fill: #0b0d13; }
+.logo-nm { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
+
+.nav-center {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  justify-content: center;
+}
+
+.nc-link {
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.nc-link:hover { color: var(--text); background: var(--bg-3); }
+.nc-link.active { color: var(--text); background: var(--bg-3); }
+
+.nav-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.pill-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+}
+.pill-session { background: var(--green-dim); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
+
+.btn-sm {
+  font-family: var(--ui);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  border: none;
+}
+.btn-outline { background: transparent; color: var(--text-2); border: 1px solid var(--border-hi); }
+.btn-teal { background: var(--teal); color: #0b0d13; }
+
+/* ── METRICS TICKER ── */
+.ticker {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ticker::-webkit-scrollbar { display: none; }
+
+.tick-cell {
+  padding: 8px 18px;
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.tick-cell:last-child { border-right: none; }
+.tick-sym { font-size: 10px; font-weight: 600; color: var(--text-2); letter-spacing: 0.04em; display: flex; align-items: center; gap: 5px; }
+.tick-val { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--text); }
+.tick-chg { font-family: var(--mono); font-size: 10px; font-weight: 500; }
+.up { color: #4ade80; }
+.dn { color: #f87171; }
+.fl { color: var(--text-2); }
+
+/* ── MAIN LAYOUT ── */
+.main {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  height: calc(100vh - 52px - 38px - 38px);
+  overflow: hidden;
+}
+
+/* ── LEFT PANEL (CHART) ── */
+.chart-panel {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chart-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.chart-tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-3);
+  padding: 3px;
+  border-radius: 7px;
+}
+
+.chart-tab {
+  padding: 4px 14px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-2);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.chart-tab.active { background: var(--bg-4); color: var(--text); }
+
+.chart-toggles {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.toggle-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.toggle-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+.td-teal { background: var(--teal); }
+.td-gray { background: var(--text-3); }
+
+.chart-range {
+  display: flex;
+  gap: 2px;
+}
+.range-btn {
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.range-btn:hover { color: var(--text-2); }
+.range-btn.active { background: var(--bg-4); color: var(--text); }
+
+.chart-area {
+  flex: 1;
+  padding: 0 18px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chart-headline {
+  padding: 14px 0 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.chart-main-val {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  font-family: var(--mono);
+  letter-spacing: -0.02em;
+}
+
+.chart-delta {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--mono);
+}
+
+.chart-sub {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-left: 4px;
+}
+
+.chart-svg-wrap {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.chart-svg-wrap svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Y-axis labels */
+.y-labels {
+  position: absolute;
+  top: 0; right: 0;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.y-lbl {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-3);
+  text-align: right;
+}
+
+/* Tooltip */
+.chart-tooltip {
+  position: absolute;
+  left: calc(62.5% - 1px);
+  top: 0;
+  bottom: 24px;
+  pointer-events: none;
+}
+.tooltip-line {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 1px;
+  background: var(--border-hi);
+}
+.tooltip-dot {
+  position: absolute;
+  left: -4px;
+  top: 30%;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 8px var(--teal);
+  border: 2px solid var(--bg);
+}
+.tooltip-box {
+  position: absolute;
+  left: 12px;
+  top: calc(30% - 28px);
+  background: var(--bg-4);
+  border: 1px solid var(--border-hi);
+  border-radius: 7px;
+  padding: 8px 12px;
+  min-width: 130px;
+}
+.tt-date { font-size: 10px; color: var(--text-2); margin-bottom: 4px; }
+.tt-row { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text); }
+.tt-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--teal); }
+
+/* ── RIGHT PANEL (TRADE SETUP) ── */
+.trade-panel {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.trade-panel::-webkit-scrollbar { display: none; }
+
+.tp-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.tp-tab {
+  flex: 1;
+  text-align: center;
+  padding: 14px 0;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+.tp-tab.active-long {
+  color: var(--teal);
+  border-bottom-color: var(--teal);
+}
+.tp-tab.inactive { color: var(--text-3); }
+
+.tp-subtabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.tp-stab {
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  cursor: pointer;
+  border-radius: 5px;
+  transition: all 0.15s;
+}
+.tp-stab.active { background: var(--bg-3); color: var(--text); }
+
+.tp-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+}
+
+.tp-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tp-lbl {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-2);
+  display: flex;
+  justify-content: space-between;
+}
+
+.tp-lbl span { color: var(--text-3); }
+
+.tp-input {
+  background: var(--bg-3);
+  border: 1px solid var(--border-hi);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tp-input-val {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.tp-input-sym {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--teal);
+  background: var(--teal-dim);
+  padding: 3px 8px;
+  border-radius: 5px;
+}
+
+/* Range slider */
+.tp-slider-wrap {
+  padding: 4px 0;
+}
+.tp-slider {
+  width: 100%;
+  height: 4px;
+  background: var(--bg-4);
+  border-radius: 2px;
+  position: relative;
+}
+.tp-slider-fill {
+  height: 100%;
+  width: 90%;
+  background: linear-gradient(90deg, var(--teal) 0%, rgba(0,212,192,0.6) 100%);
+  border-radius: 2px;
+}
+.tp-slider-thumb {
+  position: absolute;
+  left: calc(90% - 7px);
+  top: -5px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 8px var(--teal-glow);
+  border: 2px solid var(--bg);
+}
+.tp-pcts {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+.tp-pct {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+.tp-pct.active { color: var(--teal); }
+
+/* Detail rows */
+.tp-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-3);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.tp-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.tdr-key { color: var(--text-2); }
+.tdr-val { font-family: var(--mono); font-weight: 600; color: var(--text); }
+.tdr-val.highlight { color: var(--teal); }
+.tdr-val.warn { color: var(--amber); }
+.tdr-val.ok { color: #4ade80; }
+
+.tp-divider { height: 1px; background: var(--border); }
+
+.chain-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--bg-3);
+  border: 1px solid rgba(34,197,94,0.15);
+  border-radius: 8px;
+}
+.cr-dot { width: 5px; height: 5px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 5px #22c55e; }
+.cr-text { font-size: 11px; font-weight: 600; color: #4ade80; }
+.cr-sub { font-size: 10px; color: var(--text-2); font-family: var(--mono); margin-left: auto; }
+
+.btn-execute {
+  width: 100%;
+  padding: 13px;
+  background: var(--teal);
+  color: #0b0d13;
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 10px;
+  cursor: pointer;
+  border: none;
+  letter-spacing: 0.02em;
+  transition: opacity 0.15s;
+  margin-top: auto;
+}
+.btn-execute:hover { opacity: 0.9; }
+
+.tp-second-card {
+  margin: 0 16px 8px;
+  padding: 12px;
+  background: var(--bg-3);
+  border: 1px solid var(--border-hi);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  flex-shrink: 0;
+}
+.tp-second-card:hover { border-color: var(--teal-glow); }
+.tsc-left { display: flex; flex-direction: column; gap: 2px; }
+.tsc-sym { font-size: 14px; font-weight: 700; font-family: var(--mono); color: var(--text); }
+.tsc-sub { font-size: 10px; color: var(--text-2); }
+.tsc-right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.tsc-risk { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--amber); }
+.tsc-badge { font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 4px; background: var(--teal-dim); color: var(--teal); }
+
+.tp-section-lbl {
+  padding: 10px 16px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-3);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+
+<!-- ── MOCKUP SWITCHER ── -->
+<div class="mockup-switcher">
+  <span>Theme</span>
+  <a href="mockup.html" class="sw-link">Projection Finance</a>
+  <a href="mockup_echofi.html" class="sw-link active">EchoFi</a>
+  <a href="mockup_zeex.html" class="sw-link">ZEEX</a>
+</div>
+
+<!-- ── TOP NAV ── -->
+<nav class="topnav a1">
+  <div class="nav-logo">
+    <div class="logo-sq">
+      <svg viewBox="0 0 14 14"><rect x="1" y="1" width="12" height="2" rx="1"/><rect x="1" y="5" width="8" height="2" rx="1"/><rect x="1" y="9" width="5" height="2" rx="1"/></svg>
+    </div>
+    <span class="logo-nm">Cuttingboard</span>
+  </div>
+
+  <div class="nav-center">
+    <span class="nc-link active">Dashboard</span>
+    <span class="nc-link">Reports</span>
+    <span class="nc-link">Regime</span>
+    <span class="nc-link">Audit</span>
+  </div>
+
+  <div class="nav-right">
+    <span class="pill-badge pill-session">● REGULAR</span>
+    <span style="font-family:var(--mono);font-size:11px;color:var(--text-3);padding:5px 10px;background:var(--bg-3);border-radius:6px;border:1px solid var(--border);">09:47:23 ET</span>
+    <button class="btn-sm btn-outline">Export</button>
+    <button class="btn-sm btn-teal">Run Report</button>
+  </div>
+</nav>
+
+<!-- ── METRICS TICKER ── -->
+<div class="ticker a2">
+  <div class="tick-cell">
+    <span class="tick-sym">
+      <svg width="8" height="8" viewBox="0 0 8 8" fill="none" style="flex-shrink:0"><circle cx="4" cy="4" r="3.5" fill="#22c55e" opacity="0.8"/></svg>
+      SPY
+    </span>
+    <span class="tick-val">547.82</span>
+    <span class="tick-chg up">+0.82%</span>
+  </div>
+  <div class="tick-cell">
+    <span class="tick-sym">QQQ</span>
+    <span class="tick-val">463.14</span>
+    <span class="tick-chg up">+1.14%</span>
+  </div>
+  <div class="tick-cell">
+    <span class="tick-sym">VIX</span>
+    <span class="tick-val">19.4</span>
+    <span class="tick-chg up">▼ 4.2%</span>
+  </div>
+  <div class="tick-cell">
+    <span class="tick-sym">IWM</span>
+    <span class="tick-val">198.33</span>
+    <span class="tick-chg up">+0.52%</span>
+  </div>
+  <div class="tick-cell">
+    <span class="tick-sym">DXY</span>
+    <span class="tick-val">103.41</span>
+    <span class="tick-chg up">−0.31%</span>
+  </div>
+  <div class="tick-cell">
+    <span class="tick-sym">TNX</span>
+    <span class="tick-val">4.28%</span>
+    <span class="tick-chg up">−0.61%</span>
+  </div>
+  <div class="tick-cell">
+    <span class="tick-sym">BTC</span>
+    <span class="tick-val">63,480</span>
+    <span class="tick-chg up">+2.08%</span>
+  </div>
+  <div class="tick-cell" style="margin-left:auto;">
+    <span class="tick-sym">Regime</span>
+    <span class="tick-val" style="color:#00d4c0;">RISK_ON</span>
+    <span class="tick-chg fl">+5 net votes</span>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div class="main a3">
+
+  <!-- LEFT: CHART PANEL -->
+  <div class="chart-panel">
+    <div class="chart-controls">
+      <div class="chart-tabs">
+        <span class="chart-tab active">Confidence</span>
+        <span class="chart-tab">Regime</span>
+        <span class="chart-tab">Votes</span>
+      </div>
+      <div class="chart-toggles">
+        <span class="toggle-item"><span class="toggle-dot td-teal"></span>Confidence</span>
+        <span class="toggle-item"><span class="toggle-dot td-gray"></span>Threshold</span>
+      </div>
+      <div class="chart-range">
+        <span class="range-btn active">1D</span>
+        <span class="range-btn">5D</span>
+        <span class="range-btn">1W</span>
+        <span class="range-btn">1M</span>
+      </div>
+    </div>
+
+    <div class="chart-area">
+      <div class="chart-headline">
+        <span class="chart-main-val">0.75</span>
+        <span class="chart-delta up">▲ +0.12</span>
+        <span class="chart-sub">confidence · AGGRESSIVE_LONG</span>
+      </div>
+
+      <div class="chart-svg-wrap">
+        <svg viewBox="0 0 800 200" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#00d4c0" stop-opacity="0.22"/>
+              <stop offset="100%" stop-color="#00d4c0" stop-opacity="0"/>
+            </linearGradient>
+            <!-- Grid lines -->
+          </defs>
+          <!-- Horizontal grid lines -->
+          <line x1="0" y1="40"  x2="800" y2="40"  stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <line x1="0" y1="80"  x2="800" y2="80"  stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <line x1="0" y1="120" x2="800" y2="120" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <line x1="0" y1="160" x2="800" y2="160" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <!-- 0.50 threshold line -->
+          <line x1="0" y1="100" x2="800" y2="100" stroke="rgba(245,158,11,0.25)" stroke-width="1" stroke-dasharray="6,4"/>
+          <!-- Area fill -->
+          <path d="M 0,155 C 30,152 60,148 90,142 C 120,136 150,148 180,138 C 210,128 240,145 270,132 C 300,119 325,138 355,122 C 385,106 405,128 430,112 C 455,96 475,118 500,100 C 525,82 545,100 570,88 C 595,76 615,94 640,80 C 665,66 685,84 710,70 C 730,58 760,72 800,58 L 800,200 L 0,200 Z" fill="url(#areaGrad)"/>
+          <!-- Line -->
+          <path d="M 0,155 C 30,152 60,148 90,142 C 120,136 150,148 180,138 C 210,128 240,145 270,132 C 300,119 325,138 355,122 C 385,106 405,128 430,112 C 455,96 475,118 500,100 C 525,82 545,100 570,88 C 595,76 615,94 640,80 C 665,66 685,84 710,70 C 730,58 760,72 800,58" fill="none" stroke="#00d4c0" stroke-width="2" stroke-linecap="round"/>
+          <!-- Tooltip point at ~62.5% = x=500 -->
+          <circle cx="500" cy="100" r="4" fill="#00d4c0" stroke="#0b0d13" stroke-width="2"/>
+          <!-- Threshold label -->
+          <text x="4" y="97" font-size="9" fill="rgba(245,158,11,0.6)" font-family="monospace">0.50 threshold</text>
+          <!-- X-axis labels -->
+          <text x="0"   y="196" font-size="9" fill="rgba(255,255,255,0.2)" font-family="monospace">9:30</text>
+          <text x="150" y="196" font-size="9" fill="rgba(255,255,255,0.2)" font-family="monospace">10:30</text>
+          <text x="300" y="196" font-size="9" fill="rgba(255,255,255,0.2)" font-family="monospace">11:30</text>
+          <text x="455" y="196" font-size="9" fill="rgba(255,255,255,0.2)" font-family="monospace">12:30</text>
+          <text x="620" y="196" font-size="9" fill="rgba(255,255,255,0.2)" font-family="monospace">14:00</text>
+          <text x="760" y="196" font-size="9" fill="rgba(255,255,255,0.2)" font-family="monospace">Now</text>
+        </svg>
+
+        <!-- Tooltip -->
+        <div class="chart-tooltip">
+          <div class="tooltip-line"></div>
+          <div class="tooltip-dot"></div>
+          <div class="tooltip-box">
+            <div class="tt-date">09:47:23 ET</div>
+            <div class="tt-row"><span class="tt-dot"></span>Confidence: <strong style="margin-left:4px;font-family:var(--mono)">0.75</strong></div>
+            <div class="tt-row" style="color:var(--text-2);font-size:10px;margin-top:3px;padding-left:10px;">+5 net votes</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: TRADE SETUP PANEL -->
+  <div class="trade-panel a4">
+    <div class="tp-tabs">
+      <div class="tp-tab active-long">Setup</div>
+      <div class="tp-tab inactive">Watchlist</div>
+    </div>
+
+    <div class="tp-subtabs">
+      <span class="tp-stab active">SPY</span>
+      <span class="tp-stab">QQQ</span>
+      <span class="tp-stab">NVDA ·</span>
+    </div>
+
+    <div class="tp-body">
+      <div class="tp-row">
+        <div class="tp-lbl">Symbol <span style="color:#4ade80;font-weight:600;">BULL CALL SPREAD</span></div>
+        <div class="tp-input">
+          <span class="tp-input-val">SPY</span>
+          <span class="tp-input-sym">TREND / LOW IV</span>
+        </div>
+      </div>
+
+      <div class="tp-row">
+        <div class="tp-lbl">Strikes <span>$3.00 wide</span></div>
+        <div class="tp-input">
+          <span class="tp-input-val">547 / 550</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">7 DTE</span>
+        </div>
+      </div>
+
+      <div class="tp-row">
+        <div class="tp-lbl">Contracts <span>max risk</span></div>
+        <div class="tp-input">
+          <span class="tp-input-val">2</span>
+          <span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--amber);">$180</span>
+        </div>
+      </div>
+
+      <div class="tp-slider-wrap">
+        <div class="tp-slider">
+          <div class="tp-slider-fill"></div>
+          <div class="tp-slider-thumb"></div>
+        </div>
+        <div class="tp-pcts">
+          <span class="tp-pct">0%</span>
+          <span class="tp-pct">25%</span>
+          <span class="tp-pct">50%</span>
+          <span class="tp-pct">75%</span>
+          <span class="tp-pct active">90%</span>
+        </div>
+      </div>
+
+      <div class="tp-detail">
+        <div class="tp-detail-row">
+          <span class="tdr-key">Expiry</span>
+          <span class="tdr-val">2026-05-02</span>
+        </div>
+        <div class="tp-divider"></div>
+        <div class="tp-detail-row">
+          <span class="tdr-key">R:R Ratio</span>
+          <span class="tdr-val highlight">≥ 2.0 : 1</span>
+        </div>
+        <div class="tp-divider"></div>
+        <div class="tp-detail-row">
+          <span class="tdr-key">Stop Distance</span>
+          <span class="tdr-val">1.4× ATR14</span>
+        </div>
+        <div class="tp-divider"></div>
+        <div class="tp-detail-row">
+          <span class="tdr-key">Max Risk</span>
+          <span class="tdr-val warn">$180 / $200 limit</span>
+        </div>
+        <div class="tp-divider"></div>
+        <div class="tp-detail-row">
+          <span class="tdr-key">Gates Passed</span>
+          <span class="tdr-val ok">11 / 11</span>
+        </div>
+      </div>
+
+      <div class="chain-row">
+        <div class="cr-dot"></div>
+        <span class="cr-text">Chain Validated</span>
+        <span class="cr-sub">OI 8,420 · spread 1.2%</span>
+      </div>
+
+      <button class="btn-execute">Execute Setup → SPY</button>
+    </div>
+
+    <!-- Second trade card -->
+    <div class="tp-section-lbl">Also Qualified</div>
+    <div class="tp-second-card">
+      <div class="tsc-left">
+        <span class="tsc-sym">QQQ</span>
+        <span class="tsc-sub">BULL CALL SPREAD · 462/466 · 14 DTE</span>
+      </div>
+      <div class="tsc-right">
+        <span class="tsc-risk">$145</span>
+        <span class="tsc-badge">BREAKOUT</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

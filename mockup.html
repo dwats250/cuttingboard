@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CUTTINGBOARD — 2026-04-27</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:            #090e1a;
+  --bg-card:       #0f1629;
+  --bg-elevated:   #141e35;
+  --bg-input:      #0b1120;
+  --border:        rgba(255,255,255,0.055);
+  --border-hi:     rgba(255,255,255,0.09);
+  --border-focus:  rgba(75,126,245,0.4);
+
+  --text:          #eef2ff;
+  --text-2:        #a0aec8;
+  --text-3:        #556078;
+
+  --blue:          #4B7EF5;
+  --blue-hi:       #6b97ff;
+  --blue-dim:      rgba(75,126,245,0.12);
+  --blue-glow:     rgba(75,126,245,0.25);
+
+  --green:         #22c55e;
+  --green-hi:      #4ade80;
+  --green-dim:     rgba(34,197,94,0.11);
+
+  --red:           #ef4444;
+  --red-hi:        #f87171;
+  --red-dim:       rgba(239,68,68,0.11);
+
+  --amber:         #f59e0b;
+  --amber-hi:      #fbbf24;
+  --amber-dim:     rgba(245,158,11,0.11);
+
+  --magenta:       #ec4899;
+
+  --ui:    'Plus Jakarta Sans', system-ui, sans-serif;
+  --mono:  'JetBrains Mono', monospace;
+
+  --radius-sm:  6px;
+  --radius:     10px;
+  --radius-lg:  14px;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ui);
+  font-size: 13px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ── LAYOUT ── */
+.app {
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto;
+  min-height: 100vh;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pulseBlue {
+  0%,100% { box-shadow: 0 0 0 0 rgba(75,126,245,0); }
+  50%     { box-shadow: 0 0 0 4px rgba(75,126,245,0.15); }
+}
+
+.a1 { animation: fadeUp 0.4s ease both 0.04s; }
+.a2 { animation: fadeUp 0.4s ease both 0.10s; }
+.a3 { animation: fadeUp 0.4s ease both 0.16s; }
+.a4 { animation: fadeUp 0.4s ease both 0.22s; }
+.a5 { animation: fadeUp 0.4s ease both 0.28s; }
+.a6 { animation: fadeUp 0.4s ease both 0.34s; }
+.a7 { animation: fadeUp 0.4s ease both 0.40s; }
+
+/* ── TOP NAV ── */
+nav {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 28px;
+  height: 58px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: 36px;
+}
+
+.logo-icon {
+  width: 30px;
+  height: 30px;
+  background: var(--blue);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.logo-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: white;
+}
+
+.logo-name {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+
+.nav-link {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  text-decoration: none;
+}
+
+.nav-link:hover { color: var(--text-2); background: var(--bg-elevated); }
+.nav-link.active { color: var(--text); background: var(--bg-elevated); }
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.session-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--green-dim);
+  color: var(--green-hi);
+  border: 1px solid rgba(34,197,94,0.2);
+  letter-spacing: 0.03em;
+}
+
+.nav-time {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+  padding: 5px 12px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+/* ── PAGE HEADER ── */
+.page-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 28px;
+  gap: 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.outcome-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.outcome-pill.trade {
+  background: var(--green-dim);
+  color: var(--green-hi);
+  border: 1px solid rgba(34,197,94,0.25);
+}
+.outcome-pill.no-trade {
+  background: var(--amber-dim);
+  color: var(--amber-hi);
+  border: 1px solid rgba(245,158,11,0.25);
+}
+.outcome-pill.halt {
+  background: var(--red-dim);
+  color: var(--red-hi);
+  border: 1px solid rgba(239,68,68,0.25);
+}
+
+.page-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.meta-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  font-family: var(--ui);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+}
+
+.btn:hover { opacity: 0.85; }
+
+.btn-primary {
+  background: var(--blue);
+  color: #fff;
+}
+
+.btn-ghost {
+  background: var(--bg-elevated);
+  color: var(--text-2);
+  border: 1px solid var(--border-hi);
+}
+
+/* ── KPI STRIP ── */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.kpi-cell {
+  padding: 18px 24px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.kpi-cell:last-child { border-right: none; }
+
+.kpi-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+  letter-spacing: 0.03em;
+}
+
+.kpi-value {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-family: var(--mono);
+}
+
+.kpi-sub {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.delta-up   { color: var(--green-hi); }
+.delta-down { color: var(--red-hi); }
+.delta-flat { color: var(--text-3); }
+
+.regime-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 20px;
+}
+
+.regime-tag .dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+}
+
+.regime-risk-on  { background: var(--green-dim);  color: var(--green-hi);  border: 1px solid rgba(34,197,94,0.2); }
+.regime-risk-off { background: var(--red-dim);    color: var(--red-hi);    border: 1px solid rgba(239,68,68,0.2); }
+.regime-neutral  { background: var(--amber-dim);  color: var(--amber-hi);  border: 1px solid rgba(245,158,11,0.2); }
+.regime-chaotic  { background: rgba(236,72,153,0.1); color: var(--magenta); border: 1px solid rgba(236,72,153,0.2); }
+
+.dot-green   { background: var(--green); box-shadow: 0 0 5px var(--green); }
+.dot-red     { background: var(--red);   box-shadow: 0 0 5px var(--red); }
+.dot-amber   { background: var(--amber); box-shadow: 0 0 5px var(--amber); }
+.dot-magenta { background: var(--magenta); box-shadow: 0 0 5px var(--magenta); }
+
+.conf-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.conf-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--bg-elevated);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.conf-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--blue);
+  box-shadow: 0 0 6px var(--blue-glow);
+}
+
+.conf-pct {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--blue-hi);
+}
+
+/* ── VOTE PIPS ── */
+.vote-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vote-pip {
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.pip-on      { background: var(--green); }
+.pip-off     { background: var(--red); }
+.pip-neutral { background: var(--bg-elevated); border: 1px solid var(--border-hi); }
+
+/* ── MAIN CONTENT ── */
+.content {
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── SECTION ── */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.section-count {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+  background: var(--bg-elevated);
+  padding: 2px 9px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+}
+
+/* ── TRADE CARDS ── */
+.trades-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.trade-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.trade-card:hover { border-color: var(--border-hi); }
+
+.tc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tc-symbol-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tc-symbol {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-family: var(--mono);
+}
+
+.tc-strategy {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--blue-hi);
+}
+
+.tc-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.badge-trend    { background: var(--green-dim); color: var(--green-hi);  border: 1px solid rgba(34,197,94,0.2); }
+.badge-breakout { background: var(--blue-dim);  color: var(--blue-hi);   border: 1px solid rgba(75,126,245,0.2); }
+.badge-pullback { background: var(--amber-dim); color: var(--amber-hi);  border: 1px solid rgba(245,158,11,0.2); }
+.badge-low-iv   { background: rgba(34,197,94,0.07); color: #6EE7A0; border: 1px solid rgba(34,197,94,0.13); }
+.badge-normal-iv{ background: rgba(75,126,245,0.07); color: #93B8FF; border: 1px solid rgba(75,126,245,0.13); }
+.badge-validated{ background: var(--green-dim); color: var(--green-hi); border: 1px solid rgba(34,197,94,0.2); }
+
+.tc-body {
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px 10px;
+}
+
+.tc-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.stat-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-3);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  font-family: var(--mono);
+  letter-spacing: -0.01em;
+}
+
+.stat-value.sm {
+  font-size: 12px;
+}
+
+.stat-sub {
+  font-size: 10px;
+  color: var(--text-3);
+  font-family: var(--mono);
+}
+
+.tc-chain {
+  margin: 0 18px 14px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chain-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--green-hi);
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.chain-label::before {
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 5px var(--green);
+}
+
+.chain-sep { color: var(--text-3); font-size: 10px; }
+
+.chain-stat {
+  font-size: 11px;
+  color: var(--text-2);
+  font-family: var(--mono);
+}
+
+.chain-stat b { color: var(--text); font-weight: 600; }
+
+.tc-footer {
+  margin: 0 18px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.risk-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.risk-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.risk-label-sm {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.risk-amount {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--amber-hi);
+}
+
+.risk-track {
+  height: 3px;
+  background: var(--bg-elevated);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.risk-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--amber), var(--amber-hi));
+  border-radius: 2px;
+}
+
+.exit-note {
+  font-size: 10px;
+  color: var(--text-3);
+  font-style: italic;
+  margin-top: 4px;
+  font-family: var(--mono);
+}
+
+.exit-note span { color: var(--blue-hi); font-style: normal; }
+
+/* ── LOWER GRID ── */
+.lower-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ── WATCHLIST ITEMS ── */
+.watch-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.watch-item:last-child { border-bottom: none; }
+
+.watch-score-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 10px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  min-width: 48px;
+}
+
+.score-num {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--amber-hi);
+  line-height: 1;
+}
+
+.score-lbl {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.watch-body { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+
+.watch-sym {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  font-family: var(--mono);
+}
+
+.watch-note {
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.missing-row {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.missing-chip {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--amber-dim);
+  color: var(--amber-hi);
+  border: 1px solid rgba(245,158,11,0.2);
+}
+
+/* ── EXCLUDED ── */
+.excl-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.excl-item:last-child { border-bottom: none; }
+
+.excl-sym {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-2);
+  font-family: var(--mono);
+  width: 46px;
+  flex-shrink: 0;
+}
+
+.excl-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.excl-gate {
+  display: inline-flex;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--red-dim);
+  color: var(--red-hi);
+  border: 1px solid rgba(239,68,68,0.2);
+  width: fit-content;
+  margin-bottom: 2px;
+}
+
+.excl-reason {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+/* ── FOOTER ── */
+footer {
+  padding: 12px 28px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.foot-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.foot-lbl {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.foot-val {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.foot-val.ok  { color: var(--green-hi); }
+.foot-val.dim { color: var(--text-3); }
+
+.foot-sep {
+  width: 1px;
+  height: 28px;
+  background: var(--border-hi);
+}
+
+.foot-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulseBlue 2s ease-in-out infinite;
+}
+
+.status-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green-hi);
+}
+
+/* ── DIVIDER ── */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0;
+}
+
+</style>
+</head>
+<style>
+.mockup-switcher {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 16px;
+  background: #05070c;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 11px;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.mockup-switcher span { color: rgba(255,255,255,0.18); margin-right: 10px; letter-spacing: 0.08em; text-transform: uppercase; font-size: 9px; }
+.sw-link { padding: 4px 12px; border-radius: 4px; color: rgba(255,255,255,0.35); text-decoration: none; transition: all 0.15s; border: 1px solid transparent; font-size: 11px; font-weight: 500; }
+.sw-link:hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.05); }
+.sw-link.active { color: #4B7EF5; background: rgba(75,126,245,0.12); border-color: rgba(75,126,245,0.25); }
+</style>
+<body>
+<div class="mockup-switcher">
+  <span>Theme</span>
+  <a href="mockup.html" class="sw-link active">Projection Finance</a>
+  <a href="mockup_echofi.html" class="sw-link">EchoFi</a>
+  <a href="mockup_zeex.html" class="sw-link">ZEEX</a>
+</div>
+<div class="app">
+
+  <!-- ── TOP NAV ── -->
+  <nav class="a1">
+    <div class="nav-logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 16 16"><path d="M2 3h12v2H2zm0 4h8v2H2zm0 4h5v2H2z"/></svg>
+      </div>
+      <span class="logo-name">Cuttingboard</span>
+    </div>
+
+    <div class="nav-links">
+      <a class="nav-link active">Dashboard</a>
+      <a class="nav-link">Reports</a>
+      <a class="nav-link">Regime</a>
+      <a class="nav-link">Audit</a>
+    </div>
+
+    <div class="nav-right">
+      <span class="session-badge">● REGULAR SESSION</span>
+      <span class="nav-time">09:47:23 ET</span>
+    </div>
+  </nav>
+
+  <!-- ── PAGE HEADER ── -->
+  <div class="page-header a2">
+    <div style="display:flex; flex-direction:column; gap:3px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <h1 class="page-title">Run Summary</h1>
+        <span class="outcome-pill trade">TRADES</span>
+      </div>
+      <span style="font-size:12px; color:var(--text-3);">2026-04-27 · 2 qualified setups · chain validated</span>
+    </div>
+    <div class="page-meta">
+      <div class="meta-item">
+        <div class="meta-dot" style="background:var(--green); box-shadow:0 0 4px var(--green)"></div>
+        <span>14 / 15 symbols validated</span>
+      </div>
+      <div style="width:1px; height:20px; background:var(--border-hi);"></div>
+      <button class="btn btn-ghost">↓ Export</button>
+      <button class="btn btn-primary">View Report</button>
+    </div>
+  </div>
+
+  <!-- ── KPI STRIP ── -->
+  <div class="kpi-strip a3">
+
+    <div class="kpi-cell">
+      <span class="kpi-label">Regime</span>
+      <div style="display:flex; align-items:center; gap:8px; margin-top:2px;">
+        <span class="regime-tag regime-risk-on">
+          <span class="dot dot-green"></span>RISK_ON
+        </span>
+      </div>
+      <div class="kpi-sub delta-flat" style="margin-top:4px;">
+        <span style="color:var(--text-3);">posture</span>
+        <span style="color:var(--green-hi); font-weight:600;">AGGRESSIVE_LONG</span>
+      </div>
+    </div>
+
+    <div class="kpi-cell">
+      <span class="kpi-label">Confidence</span>
+      <div class="kpi-value" style="font-size:26px; color:var(--blue-hi);">0.75</div>
+      <div class="conf-row" style="margin-top:4px;">
+        <div class="conf-bar">
+          <div class="conf-fill" style="width:75%"></div>
+        </div>
+        <span class="conf-pct">75%</span>
+      </div>
+    </div>
+
+    <div class="kpi-cell">
+      <span class="kpi-label">Net Votes</span>
+      <div class="kpi-value" style="color:var(--green-hi);">+5 / 8</div>
+      <div class="vote-row" style="margin-top:6px;">
+        <div class="vote-pip pip-on"></div>
+        <div class="vote-pip pip-on"></div>
+        <div class="vote-pip pip-on"></div>
+        <div class="vote-pip pip-on"></div>
+        <div class="vote-pip pip-on"></div>
+        <div class="vote-pip pip-off"></div>
+        <div class="vote-pip pip-neutral"></div>
+        <div class="vote-pip pip-neutral"></div>
+      </div>
+    </div>
+
+    <div class="kpi-cell">
+      <span class="kpi-label">VIX Level</span>
+      <div class="kpi-value">19.4</div>
+      <div class="kpi-sub delta-up" style="margin-top:4px;">
+        <span>▼ 4.2%</span>
+        <span style="color:var(--text-3);">from prev close</span>
+      </div>
+    </div>
+
+    <div class="kpi-cell">
+      <span class="kpi-label">Bias</span>
+      <div class="kpi-value" style="font-size:20px; color:var(--green-hi); letter-spacing:0.04em;">LONG</div>
+      <div class="kpi-sub" style="margin-top:4px;">
+        <span style="color:var(--text-3);">Kill: VIX spike &gt;15%</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── MAIN CONTENT ── -->
+  <div class="content">
+
+    <!-- TRADES -->
+    <div class="a4">
+      <div class="section-head">
+        <span class="section-title">A+ Trades</span>
+        <span class="section-count">2 validated</span>
+      </div>
+
+      <div class="trades-grid">
+
+        <!-- SPY -->
+        <div class="trade-card">
+          <div class="tc-header">
+            <div class="tc-symbol-row">
+              <span class="tc-symbol">SPY</span>
+              <span class="tc-strategy">Bull Call Spread</span>
+            </div>
+            <div class="tc-badges">
+              <span class="badge badge-trend">Trend</span>
+              <span class="badge badge-low-iv">Low IV</span>
+            </div>
+          </div>
+
+          <div class="tc-body">
+            <div class="tc-stat">
+              <span class="stat-label">Strikes</span>
+              <span class="stat-value">547 / 550</span>
+              <span class="stat-sub">$3.00 wide</span>
+            </div>
+            <div class="tc-stat">
+              <span class="stat-label">DTE</span>
+              <span class="stat-value">7</span>
+              <span class="stat-sub">exp 05-02</span>
+            </div>
+            <div class="tc-stat">
+              <span class="stat-label">Contracts</span>
+              <span class="stat-value">2</span>
+              <span class="stat-sub">max risk $180</span>
+            </div>
+          </div>
+
+          <div class="tc-chain">
+            <span class="chain-label">VALIDATED</span>
+            <span class="chain-sep">·</span>
+            <span class="chain-stat"><b>OI</b> 8,420</span>
+            <span class="chain-sep">·</span>
+            <span class="chain-stat"><b>spread</b> 1.2%</span>
+            <span class="chain-sep">·</span>
+            <span class="chain-stat"><b>exp</b> 2026-05-02</span>
+          </div>
+
+          <div class="tc-footer">
+            <div class="risk-block">
+              <div class="risk-top">
+                <span class="risk-label-sm">Max Risk</span>
+                <span class="risk-amount">$180</span>
+              </div>
+              <div class="risk-track">
+                <div class="risk-fill" style="width:90%"></div>
+              </div>
+              <div class="exit-note">Exit: <span>+50% profit</span> or <span>full debit loss</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- QQQ -->
+        <div class="trade-card">
+          <div class="tc-header">
+            <div class="tc-symbol-row">
+              <span class="tc-symbol">QQQ</span>
+              <span class="tc-strategy">Bull Call Spread</span>
+            </div>
+            <div class="tc-badges">
+              <span class="badge badge-breakout">Breakout</span>
+              <span class="badge badge-normal-iv">Normal IV</span>
+            </div>
+          </div>
+
+          <div class="tc-body">
+            <div class="tc-stat">
+              <span class="stat-label">Strikes</span>
+              <span class="stat-value">462 / 466</span>
+              <span class="stat-sub">$4.00 wide</span>
+            </div>
+            <div class="tc-stat">
+              <span class="stat-label">DTE</span>
+              <span class="stat-value">14</span>
+              <span class="stat-sub">exp 05-09</span>
+            </div>
+            <div class="tc-stat">
+              <span class="stat-label">Contracts</span>
+              <span class="stat-value">1</span>
+              <span class="stat-sub">max risk $145</span>
+            </div>
+          </div>
+
+          <div class="tc-chain">
+            <span class="chain-label">VALIDATED</span>
+            <span class="chain-sep">·</span>
+            <span class="chain-stat"><b>OI</b> 6,130</span>
+            <span class="chain-sep">·</span>
+            <span class="chain-stat"><b>spread</b> 1.8%</span>
+            <span class="chain-sep">·</span>
+            <span class="chain-stat"><b>exp</b> 2026-05-09</span>
+          </div>
+
+          <div class="tc-footer">
+            <div class="risk-block">
+              <div class="risk-top">
+                <span class="risk-label-sm">Max Risk</span>
+                <span class="risk-amount">$145</span>
+              </div>
+              <div class="risk-track">
+                <div class="risk-fill" style="width:72.5%"></div>
+              </div>
+              <div class="exit-note">Exit: <span>+50% profit</span> or <span>full debit loss</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- WATCHLIST + EXCLUDED -->
+    <div class="lower-grid a5">
+
+      <!-- WATCHLIST -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="section-title">Near A+</span>
+          <span class="section-count">2 setups</span>
+        </div>
+
+        <div class="watch-item">
+          <div class="watch-score-block">
+            <span class="score-num">7.2</span>
+            <span class="score-lbl">score</span>
+          </div>
+          <div class="watch-body">
+            <span class="watch-sym">NVDA</span>
+            <span class="watch-note">TREND — near qualification</span>
+            <div class="missing-row">
+              <span class="missing-chip">STOP_DISTANCE</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="watch-item">
+          <div class="watch-score-block">
+            <span class="score-num">6.8</span>
+            <span class="score-lbl">score</span>
+          </div>
+          <div class="watch-body">
+            <span class="watch-sym">TSLA</span>
+            <span class="watch-note">PULLBACK — near qualification</span>
+            <div class="missing-row">
+              <span class="missing-chip">RR_RATIO</span>
+              <span class="missing-chip">EARNINGS</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXCLUDED -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="section-title">Excluded</span>
+          <span class="section-count">3 symbols</span>
+        </div>
+
+        <div class="excl-item">
+          <span class="excl-sym">IWM</span>
+          <div class="excl-detail">
+            <span class="excl-gate">STRUCTURE</span>
+            <span class="excl-reason">CHOP — structure gate failed</span>
+          </div>
+        </div>
+
+        <div class="excl-item">
+          <span class="excl-sym">GLD</span>
+          <div class="excl-detail">
+            <span class="excl-gate">REGIME</span>
+            <span class="excl-reason">STAY_FLAT posture — no entries</span>
+          </div>
+        </div>
+
+        <div class="excl-item">
+          <span class="excl-sym">COIN</span>
+          <div class="excl-detail">
+            <span class="excl-gate">DIRECTION</span>
+            <span class="excl-reason">VIX too elevated for aggressive long</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── FOOTER ── -->
+  <footer class="a6">
+    <div class="foot-item">
+      <span class="foot-lbl">Symbols</span>
+      <span class="foot-val ok">14 / 15</span>
+    </div>
+    <div class="foot-sep"></div>
+    <div class="foot-item">
+      <span class="foot-lbl">VIX</span>
+      <span class="foot-val">19.4</span>
+    </div>
+    <div class="foot-sep"></div>
+    <div class="foot-item">
+      <span class="foot-lbl">Confidence</span>
+      <span class="foot-val" style="color:var(--blue-hi)">0.75</span>
+    </div>
+    <div class="foot-sep"></div>
+    <div class="foot-item">
+      <span class="foot-lbl">Net Votes</span>
+      <span class="foot-val ok">+5 / 8</span>
+    </div>
+    <div class="foot-sep"></div>
+    <div class="foot-item">
+      <span class="foot-lbl">Outcome</span>
+      <span class="foot-val ok">TRADE</span>
+    </div>
+    <div class="foot-sep"></div>
+    <div class="foot-item">
+      <span class="foot-lbl">Run At</span>
+      <span class="foot-val dim">2026-04-27T09:47:23 ET</span>
+    </div>
+    <div class="foot-right">
+      <div class="status-dot"></div>
+      <span class="status-text">System Active</span>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

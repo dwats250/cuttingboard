@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CUTTINGBOARD — ZEEX Style</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #090b10;
+  --bg-card:  #0f1219;
+  --bg-3:     #141923;
+  --bg-4:     #1a2030;
+  --border:   rgba(255,255,255,0.055);
+  --border-hi:rgba(255,255,255,0.09);
+  --text:     #dce6f5;
+  --text-2:   #6b7a99;
+  --text-3:   #323d52;
+  --teal:     #00c896;
+  --teal-dim: rgba(0,200,150,0.1);
+  --teal-glow:rgba(0,200,150,0.18);
+  --green:    #22c55e;
+  --green-dim:rgba(34,197,94,0.1);
+  --red:      #ef4444;
+  --red-dim:  rgba(239,68,68,0.1);
+  --amber:    #f59e0b;
+  --amber-dim:rgba(245,158,11,0.1);
+  --blue:     #4b7ef5;
+  --ui:  'Syne', system-ui, sans-serif;
+  --mono:'JetBrains Mono', monospace;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ui);
+  font-size: 13px;
+  line-height: 1.5;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Dot grid texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── MOCKUP SWITCHER ── */
+.mockup-switcher {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 16px;
+  background: #050609;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 11px;
+  z-index: 100;
+}
+.mockup-switcher span { color: var(--text-3); margin-right: 10px; letter-spacing: 0.08em; text-transform: uppercase; font-size: 9px; }
+.sw-link {
+  padding: 3px 12px;
+  border-radius: 4px;
+  color: var(--text-2);
+  text-decoration: none;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+  font-size: 11px;
+}
+.sw-link:hover { color: var(--text); background: var(--bg-3); }
+.sw-link.active { color: var(--teal); background: var(--teal-dim); border-color: rgba(0,200,150,0.2); }
+
+/* ── APP SHELL ── */
+.app {
+  position: fixed;
+  inset: 0;
+  top: 30px; /* switcher height */
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  z-index: 1;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.sidebar::-webkit-scrollbar { display: none; }
+
+.sb-logo {
+  padding: 0 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+.sb-logo-icon {
+  width: 34px; height: 34px;
+  background: var(--teal);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sb-logo-icon svg { width: 16px; height: 16px; fill: #090b10; }
+.sb-logo-name {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.sb-logo-sub { font-size: 10px; color: var(--text-2); font-weight: 400; margin-top: -2px; }
+
+.sb-section-lbl {
+  padding: 8px 20px 4px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-3);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.sb-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 20px;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 500;
+  border-right: 2px solid transparent;
+  margin: 1px 0;
+}
+.sb-item:hover { color: var(--text); background: var(--bg-3); }
+.sb-item.active {
+  color: var(--teal);
+  background: var(--teal-dim);
+  border-right-color: var(--teal);
+}
+.sb-icon {
+  width: 16px; height: 16px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sb-icon svg { width: 14px; height: 14px; fill: currentColor; }
+
+.sb-spacer { flex: 1; }
+
+.sb-status {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sb-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+}
+.ss-key { color: var(--text-2); }
+.ss-val { font-family: var(--mono); font-weight: 600; color: var(--text); }
+.ss-val.ok { color: var(--teal); }
+
+/* ── MAIN CONTENT ── */
+.main {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-3) transparent;
+}
+
+.main-inner {
+  padding: 20px 24px 32px;
+  max-width: 900px;
+}
+
+/* ── PAGE HEADER ── */
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.ph-left { display: flex; flex-direction: column; gap: 2px; }
+.ph-title { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.ph-sub { font-size: 12px; color: var(--text-2); }
+.ph-right { display: flex; align-items: center; gap: 8px; }
+
+.outcome-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 16px;
+  border-radius: 8px;
+  letter-spacing: 0.04em;
+}
+.ob-trade { background: var(--teal-dim); color: var(--teal); border: 1px solid rgba(0,200,150,0.2); }
+.ob-no    { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+.ob-halt  { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(239,68,68,0.2); }
+
+/* ── TOP ROW ── */
+.top-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+}
+.ch-title { font-size: 12px; font-weight: 600; color: var(--text-2); }
+.ch-action { font-size: 10px; color: var(--teal); cursor: pointer; }
+
+/* Total Decision card */
+.decision-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dc-main {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.dc-value {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  font-family: var(--mono);
+  line-height: 1;
+}
+.dc-unit {
+  font-size: 12px;
+  color: var(--text-2);
+  margin-bottom: 4px;
+}
+.dc-delta {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--mono);
+}
+.dc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+}
+.dc-key { color: var(--text-2); }
+.dc-val { font-family: var(--mono); font-weight: 600; color: var(--text); }
+
+/* Confidence gauge card */
+.gauge-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.gauge-wrap { position: relative; width: 110px; height: 110px; }
+.gauge-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+.gauge-pct {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  font-family: var(--mono);
+  line-height: 1;
+}
+.gauge-sub { font-size: 10px; color: var(--text-2); margin-top: 2px; }
+
+.gauge-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+.gl-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+}
+.gl-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.gl-key { color: var(--text-2); flex: 1; }
+.gl-val { font-family: var(--mono); font-weight: 600; color: var(--text); }
+
+/* Area chart card */
+.chart-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.cc-top {
+  padding: 14px 16px 8px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.cc-meta { display: flex; flex-direction: column; gap: 3px; }
+.cc-label { font-size: 11px; color: var(--text-2); font-weight: 500; }
+.cc-value { font-size: 20px; font-weight: 700; font-family: var(--mono); letter-spacing: -0.02em; }
+.cc-delta { font-size: 11px; font-weight: 600; font-family: var(--mono); }
+
+.cc-tabs { display: flex; gap: 2px; background: var(--bg-3); padding: 3px; border-radius: 7px; align-self: flex-start; }
+.cc-tab { padding: 3px 10px; font-size: 10px; font-weight: 600; color: var(--text-3); border-radius: 5px; cursor: pointer; }
+.cc-tab.active { background: var(--bg-4); color: var(--text); }
+
+.cc-chart { width: 100%; height: 90px; padding: 0 16px 12px; }
+.cc-chart svg { width: 100%; height: 100%; }
+
+/* ── SECOND ROW ── */
+.mid-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+/* ── TRADE TABLE ── */
+.table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.tc2-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tc2-title { font-size: 13px; font-weight: 700; }
+.tc2-badge { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+.tcb-trade { background: var(--teal-dim); color: var(--teal); border: 1px solid rgba(0,200,150,0.2); }
+.tcb-watch { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+
+.table-cols {
+  display: grid;
+  grid-template-columns: 60px 1fr 80px 70px 70px;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 80px 70px 70px;
+  gap: 8px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  transition: background 0.12s;
+  cursor: pointer;
+}
+.table-row:hover { background: var(--bg-3); }
+.table-row:last-child { border-bottom: none; }
+
+.tr-sym { font-size: 13px; font-weight: 700; font-family: var(--mono); color: var(--text); }
+.tr-strat { display: flex; flex-direction: column; gap: 1px; }
+.tr-strat-name { font-size: 11px; font-weight: 600; color: var(--text); }
+.tr-strat-sub { font-size: 10px; color: var(--text-2); font-family: var(--mono); }
+.tr-badges { display: flex; gap: 4px; }
+.tr-badge { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
+.trb-trend    { background: var(--teal-dim);  color: var(--teal);  }
+.trb-breakout { background: rgba(75,126,245,0.1); color: #7aa4ff; }
+.tr-risk { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--amber); }
+.tr-chain { display: flex; align-items: center; gap: 4px; font-size: 10px; }
+.tr-chain-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 4px var(--teal); }
+.tr-chain-val { color: var(--teal); font-weight: 600; }
+.tr-arrow { color: var(--text-3); font-size: 12px; text-align: right; }
+
+/* ── BOTTOM ROW ── */
+.bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* Excluded rows */
+.excl-row {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+.excl-row:last-child { border-bottom: none; }
+.er-sym { font-size: 12px; font-weight: 700; font-family: var(--mono); color: var(--text-2); }
+.er-info { display: flex; flex-direction: column; gap: 2px; }
+.er-gate { font-size: 9px; font-weight: 700; color: var(--red); letter-spacing: 0.06em; text-transform: uppercase; }
+.er-reason { font-size: 10px; color: var(--text-2); }
+.er-arrow { color: var(--text-3); font-size: 12px; }
+
+/* Watchlist rows */
+.watch-row {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.watch-row:hover { background: var(--bg-3); }
+.watch-row:last-child { border-bottom: none; }
+.wr-sym { font-size: 12px; font-weight: 700; font-family: var(--mono); color: var(--text); }
+.wr-info { display: flex; flex-direction: column; gap: 3px; }
+.wr-note { font-size: 10px; color: var(--text-2); }
+.wr-chips { display: flex; gap: 4px; }
+.wr-chip {
+  font-size: 9px; font-weight: 600;
+  padding: 1px 6px; border-radius: 3px;
+  background: var(--amber-dim);
+  color: var(--amber);
+  border: 1px solid rgba(245,158,11,0.15);
+}
+.wr-score { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.wr-score-val { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--amber); line-height: 1; }
+.wr-score-lbl { font-size: 9px; color: var(--text-3); letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* ── GATE LOG ── */
+.gate-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.gate-row:last-child { border-bottom: none; }
+.gr-type { display: flex; align-items: center; gap: 6px; }
+.gr-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.grb-hard { background: var(--red-dim); color: var(--red); }
+.grb-soft { background: rgba(75,126,245,0.1); color: #7aa4ff; }
+.gr-name { color: var(--text-2); font-weight: 500; }
+.gr-pass { display: flex; align-items: center; gap: 4px; }
+.gr-check { color: var(--teal); font-weight: 700; font-size: 12px; }
+.gr-x     { color: var(--red);  font-weight: 700; font-size: 12px; }
+.gr-sym { font-family: var(--mono); font-size: 10px; color: var(--text-3); }
+</style>
+</head>
+<body>
+
+<!-- ── MOCKUP SWITCHER ── -->
+<div class="mockup-switcher">
+  <span>Theme</span>
+  <a href="mockup.html" class="sw-link">Projection Finance</a>
+  <a href="mockup_echofi.html" class="sw-link">EchoFi</a>
+  <a href="mockup_zeex.html" class="sw-link active">ZEEX</a>
+</div>
+
+<div class="app">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-icon">
+        <svg viewBox="0 0 16 16"><rect x="1" y="1" width="14" height="2.5" rx="1.25"/><rect x="1" y="5.5" width="9" height="2.5" rx="1.25"/><rect x="1" y="10" width="6" height="2.5" rx="1.25"/></svg>
+      </div>
+      <div>
+        <div class="sb-logo-name">Cuttingboard</div>
+        <div class="sb-logo-sub">Decision Engine</div>
+      </div>
+    </div>
+
+    <div class="sb-section-lbl">Navigation</div>
+
+    <div class="sb-item active">
+      <span class="sb-icon"><svg viewBox="0 0 14 14"><rect x="1" y="1" width="5" height="5" rx="1"/><rect x="8" y="1" width="5" height="5" rx="1"/><rect x="1" y="8" width="5" height="5" rx="1"/><rect x="8" y="8" width="5" height="5" rx="1"/></svg></span>
+      Dashboard
+    </div>
+    <div class="sb-item">
+      <span class="sb-icon"><svg viewBox="0 0 14 14"><path d="M1 11 L4 7 L7 9 L10 4 L13 6"/><rect x="1" y="12" width="12" height="1"/></svg></span>
+      Reports
+    </div>
+    <div class="sb-item">
+      <span class="sb-icon"><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" stroke-width="1.5" fill="none" stroke="currentColor"/><circle cx="7" cy="7" r="2" fill="currentColor"/><line x1="7" y1="2" x2="7" y2="0" stroke="currentColor" stroke-width="1.5"/><line x1="7" y1="14" x2="7" y2="12" stroke="currentColor" stroke-width="1.5"/></svg></span>
+      Regime
+    </div>
+    <div class="sb-item">
+      <span class="sb-icon"><svg viewBox="0 0 14 14"><rect x="2" y="1" width="10" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="4" y1="5" x2="10" y2="5" stroke="currentColor" stroke-width="1.2"/><line x1="4" y1="7.5" x2="10" y2="7.5" stroke="currentColor" stroke-width="1.2"/><line x1="4" y1="10" x2="8" y2="10" stroke="currentColor" stroke-width="1.2"/></svg></span>
+      Audit Log
+    </div>
+    <div class="sb-item">
+      <span class="sb-icon"><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="7" cy="5" r="1.5" fill="currentColor"/><path d="M4.5 10c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></span>
+      Settings
+    </div>
+
+    <div class="sb-spacer"></div>
+
+    <div class="sb-status">
+      <div class="sb-status-row">
+        <span class="ss-key">Session</span>
+        <span class="ss-val ok">REGULAR</span>
+      </div>
+      <div class="sb-status-row">
+        <span class="ss-key">Regime</span>
+        <span class="ss-val ok">RISK_ON</span>
+      </div>
+      <div class="sb-status-row">
+        <span class="ss-key">Run</span>
+        <span class="ss-val" style="color:var(--text-2); font-size:10px;">09:47:23 ET</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+    <div class="main-inner">
+
+      <!-- PAGE HEADER -->
+      <div class="page-head">
+        <div class="ph-left">
+          <div class="ph-title">Today's Decision</div>
+          <div class="ph-sub">2026-04-27 · Run 0427-0947 · 14/15 symbols validated</div>
+        </div>
+        <div class="ph-right">
+          <span class="outcome-badge ob-trade">TRADES</span>
+          <button style="font-family:var(--ui);font-size:11px;font-weight:600;padding:7px 14px;border-radius:8px;background:var(--bg-3);color:var(--text-2);border:1px solid var(--border-hi);cursor:pointer;">Export</button>
+        </div>
+      </div>
+
+      <!-- TOP ROW: Decision + Confidence + Chart -->
+      <div class="top-row">
+
+        <!-- Total Risk Card -->
+        <div class="decision-card">
+          <div style="font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:4px;">Total Max Risk</div>
+          <div class="dc-main">
+            <span class="dc-value">$325</span>
+            <span class="dc-unit">USD</span>
+            <span class="dc-delta up" style="margin-bottom:4px;">↑ 2 setups</span>
+          </div>
+          <div style="height:1px;background:var(--border);margin:8px 0;"></div>
+          <div class="dc-row"><span class="dc-key">SPY exposure</span><span class="dc-val">$180</span></div>
+          <div class="dc-row"><span class="dc-key">QQQ exposure</span><span class="dc-val">$145</span></div>
+          <div class="dc-row"><span class="dc-key">Max budget</span><span class="dc-val" style="color:var(--text-2);">$400</span></div>
+          <div style="margin-top:8px;">
+            <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px;">
+              <span style="color:var(--text-2);">Budget used</span>
+              <span style="font-family:var(--mono);font-weight:700;color:var(--amber);">81.25%</span>
+            </div>
+            <div style="height:4px;background:var(--bg-4);border-radius:2px;overflow:hidden;">
+              <div style="width:81.25%;height:100%;background:linear-gradient(90deg,var(--teal),var(--amber));border-radius:2px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Confidence Gauge -->
+        <div class="gauge-card">
+          <div style="font-size:11px;font-weight:600;color:var(--text-2);align-self:flex-start;">Regime Confidence</div>
+          <div class="gauge-wrap">
+            <svg viewBox="0 0 110 110" style="position:absolute;inset:0;width:100%;height:100%;">
+              <!-- Track -->
+              <circle cx="55" cy="55" r="42" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+              <!-- Teal fill: 75% = 263.89px of 351.86px circumference -->
+              <circle cx="55" cy="55" r="42" fill="none" stroke="#00c896" stroke-width="10"
+                stroke-dasharray="197.9 65.97"
+                stroke-dashoffset="-16.5"
+                stroke-linecap="round"
+                transform="rotate(-90 55 55)"/>
+              <!-- Remaining: soft indicator -->
+              <circle cx="55" cy="55" r="42" fill="none" stroke="rgba(245,158,11,0.25)" stroke-width="10"
+                stroke-dasharray="65.97 197.9"
+                stroke-dashoffset="-214.4"
+                stroke-linecap="round"
+                transform="rotate(-90 55 55)"/>
+            </svg>
+            <div class="gauge-label">
+              <span class="gauge-pct">75%</span>
+              <span class="gauge-sub">confidence</span>
+            </div>
+          </div>
+          <div class="gauge-legend">
+            <div class="gl-row">
+              <div class="gl-dot" style="background:var(--teal);"></div>
+              <span class="gl-key">RISK_ON votes</span>
+              <span class="gl-val" style="color:var(--teal);">5</span>
+            </div>
+            <div class="gl-row">
+              <div class="gl-dot" style="background:var(--red);"></div>
+              <span class="gl-key">RISK_OFF votes</span>
+              <span class="gl-val" style="color:var(--red);">1</span>
+            </div>
+            <div class="gl-row">
+              <div class="gl-dot" style="background:var(--bg-4);border:1px solid var(--border-hi);"></div>
+              <span class="gl-key">Neutral votes</span>
+              <span class="gl-val" style="color:var(--text-2);">2</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Regime Chart Card -->
+        <div class="chart-card">
+          <div class="cc-top">
+            <div class="cc-meta">
+              <span class="cc-label">Confidence Signal</span>
+              <span class="cc-value" style="color:var(--teal);">AGGRESSIVE_LONG</span>
+              <span class="cc-delta up">▲ +0.12 today</span>
+            </div>
+            <div class="cc-tabs">
+              <span class="cc-tab active">1D</span>
+              <span class="cc-tab">7D</span>
+              <span class="cc-tab">30D</span>
+            </div>
+          </div>
+          <div class="cc-chart">
+            <svg viewBox="0 0 280 70" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="zGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#00c896" stop-opacity="0.3"/>
+                  <stop offset="100%" stop-color="#00c896" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M 0,55 C 15,53 25,50 40,48 C 55,46 65,52 80,46 C 95,40 105,50 120,44 C 135,38 145,42 160,36 C 175,30 185,40 200,34 C 215,28 225,34 240,28 C 255,22 265,25 280,20 L 280,70 L 0,70 Z" fill="url(#zGrad)"/>
+              <path d="M 0,55 C 15,53 25,50 40,48 C 55,46 65,52 80,46 C 95,40 105,50 120,44 C 135,38 145,42 160,36 C 175,30 185,40 200,34 C 215,28 225,34 240,28 C 255,22 265,25 280,20" fill="none" stroke="#00c896" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="0" y1="35" x2="280" y2="35" stroke="rgba(245,158,11,0.2)" stroke-dasharray="4,3" stroke-width="1"/>
+            </svg>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- MID ROW: Trade Table + Gate Log -->
+      <div class="mid-row">
+
+        <!-- Trades Table -->
+        <div class="table-card">
+          <div class="tc2-head">
+            <span class="tc2-title">A+ Trades</span>
+            <span class="tc2-badge tcb-trade">2 qualified</span>
+          </div>
+          <div class="table-cols">
+            <span>Symbol</span>
+            <span>Strategy</span>
+            <span>Structure</span>
+            <span>Risk</span>
+            <span>Chain</span>
+          </div>
+          <div class="table-row">
+            <span class="tr-sym">SPY</span>
+            <div class="tr-strat">
+              <span class="tr-strat-name">Bull Call Spread</span>
+              <span class="tr-strat-sub">547 / 550 · 7 DTE</span>
+            </div>
+            <div class="tr-badges">
+              <span class="tr-badge trb-trend">TREND</span>
+            </div>
+            <span class="tr-risk">$180</span>
+            <div class="tr-chain">
+              <span class="tr-chain-dot"></span>
+              <span class="tr-chain-val">OK</span>
+            </div>
+          </div>
+          <div class="table-row">
+            <span class="tr-sym">QQQ</span>
+            <div class="tr-strat">
+              <span class="tr-strat-name">Bull Call Spread</span>
+              <span class="tr-strat-sub">462 / 466 · 14 DTE</span>
+            </div>
+            <div class="tr-badges">
+              <span class="tr-badge trb-breakout">BREAKOUT</span>
+            </div>
+            <span class="tr-risk">$145</span>
+            <div class="tr-chain">
+              <span class="tr-chain-dot"></span>
+              <span class="tr-chain-val">OK</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gate Audit Log -->
+        <div class="table-card">
+          <div class="tc2-head">
+            <span class="tc2-title">Gate Results — SPY</span>
+            <span class="tc2-badge" style="background:var(--teal-dim);color:var(--teal);border:1px solid rgba(0,200,150,0.2);">11 / 11 pass</span>
+          </div>
+          <div class="gate-row">
+            <div class="gr-type"><span class="gr-badge grb-hard">HARD</span><span class="gr-name">Regime</span></div>
+            <div class="gr-pass"><span class="gr-check">✓</span><span class="gr-sym">AGGRESSIVE_LONG</span></div>
+          </div>
+          <div class="gate-row">
+            <div class="gr-type"><span class="gr-badge grb-hard">HARD</span><span class="gr-name">Confidence</span></div>
+            <div class="gr-pass"><span class="gr-check">✓</span><span class="gr-sym">0.75 ≥ 0.50</span></div>
+          </div>
+          <div class="gate-row">
+            <div class="gr-type"><span class="gr-badge grb-hard">HARD</span><span class="gr-name">Direction</span></div>
+            <div class="gr-pass"><span class="gr-check">✓</span><span class="gr-sym">LONG ↔ RISK_ON</span></div>
+          </div>
+          <div class="gate-row">
+            <div class="gr-type"><span class="gr-badge grb-hard">HARD</span><span class="gr-name">Structure</span></div>
+            <div class="gr-pass"><span class="gr-check">✓</span><span class="gr-sym">TREND ≠ CHOP</span></div>
+          </div>
+          <div class="gate-row">
+            <div class="gr-type"><span class="gr-badge grb-soft">SOFT</span><span class="gr-name">R:R Ratio</span></div>
+            <div class="gr-pass"><span class="gr-check">✓</span><span class="gr-sym">2.4 ≥ 2.0</span></div>
+          </div>
+          <div class="gate-row">
+            <div class="gr-type"><span class="gr-badge grb-soft">SOFT</span><span class="gr-name">Max Risk</span></div>
+            <div class="gr-pass"><span class="gr-check">✓</span><span class="gr-sym">$180 ≤ $200</span></div>
+          </div>
+          <div class="gate-row">
+            <div class="gr-type"><span class="gr-badge grb-soft">SOFT</span><span class="gr-name">Earnings</span></div>
+            <div class="gr-pass"><span class="gr-check">✓</span><span class="gr-sym">&gt;5d clear</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- BOTTOM ROW: Watchlist + Excluded -->
+      <div class="bottom-row">
+
+        <!-- Watchlist -->
+        <div class="table-card">
+          <div class="tc2-head">
+            <span class="tc2-title">Watchlist</span>
+            <span class="tc2-badge tcb-watch">2 near A+</span>
+          </div>
+          <div class="watch-row">
+            <span class="wr-sym">NVDA</span>
+            <div class="wr-info">
+              <span class="wr-note">TREND — near qualification</span>
+              <div class="wr-chips"><span class="wr-chip">STOP_DISTANCE</span></div>
+            </div>
+            <div class="wr-score">
+              <span class="wr-score-val">7.2</span>
+              <span class="wr-score-lbl">score</span>
+            </div>
+          </div>
+          <div class="watch-row">
+            <span class="wr-sym">TSLA</span>
+            <div class="wr-info">
+              <span class="wr-note">PULLBACK — near qualification</span>
+              <div class="wr-chips"><span class="wr-chip">RR_RATIO</span><span class="wr-chip">EARNINGS</span></div>
+            </div>
+            <div class="wr-score">
+              <span class="wr-score-val">6.8</span>
+              <span class="wr-score-lbl">score</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Excluded -->
+        <div class="table-card">
+          <div class="tc2-head">
+            <span class="tc2-title">Excluded</span>
+            <span class="tc2-badge" style="background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,0.2);">3 rejected</span>
+          </div>
+          <div class="excl-row">
+            <span class="er-sym">IWM</span>
+            <div class="er-info">
+              <span class="er-gate">Structure</span>
+              <span class="er-reason">CHOP — structure gate failed</span>
+            </div>
+            <span class="er-arrow">›</span>
+          </div>
+          <div class="excl-row">
+            <span class="er-sym">GLD</span>
+            <div class="er-info">
+              <span class="er-gate">Regime</span>
+              <span class="er-reason">STAY_FLAT posture — no entries</span>
+            </div>
+            <span class="er-arrow">›</span>
+          </div>
+          <div class="excl-row">
+            <span class="er-sym">COIN</span>
+            <div class="er-info">
+              <span class="er-gate">Direction</span>
+              <span class="er-reason">VIX elevated for aggressive long</span>
+            </div>
+            <span class="er-arrow">›</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+</div>
+</body>
+</html>
