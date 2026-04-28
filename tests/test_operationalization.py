@@ -16,6 +16,7 @@ FIXTURE_PATH = Path(__file__).parent / "fixtures" / "2026-04-12.json"
 REQUIRED_SUMMARY_FIELDS = {
     "run_id",
     "timestamp",
+    "run_at_utc",
     "mode",
     "status",
     "outcome",
@@ -54,6 +55,7 @@ def _valid_summary(**overrides):
     summary = {
         "run_id": "fixture-2026-04-12",
         "timestamp": "2026-04-12T13:00:00Z",
+        "run_at_utc": "2026-04-12T13:00:00Z",
         "mode": "FIXTURE",
         "status": "SUCCESS",
         "outcome": "TRADE",
@@ -86,6 +88,18 @@ def _valid_summary(**overrides):
 
 def _write_summary(path: Path, summary: dict) -> None:
     path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _valid_contract(**overrides):
+    contract = {
+        "generated_at": "2026-04-12T13:00:00Z",
+        "outcome": "NO_TRADE",
+        "status": "STAY_FLAT",
+        "system_state": {"tradable": False, "market_regime": "RISK_OFF"},
+        "trade_candidates": [],
+    }
+    contract.update(overrides)
+    return contract
 
 
 def test_main_module_dispatches_to_cli(monkeypatch):
@@ -336,6 +350,91 @@ def test_execute_run_writes_latest_summary_on_controlled_failure(monkeypatch, tm
 
     report_text = report_path.read_text(encoding="utf-8")
     assert report_text.startswith("Verification: FAIL")
+
+
+def test_safe_write_creates_file_when_missing(tmp_path):
+    path = tmp_path / "latest_run.json"
+    summary = _valid_summary()
+
+    runtime.safe_write_latest(path, summary, "run_at_utc")
+
+    assert json.loads(path.read_text(encoding="utf-8")) == summary
+
+
+def test_safe_write_overwrites_when_newer(tmp_path):
+    path = tmp_path / "latest_run.json"
+    older = _valid_summary(run_at_utc="2026-04-12T12:00:00Z", timestamp="2026-04-12T12:00:00Z")
+    newer = _valid_summary(run_at_utc="2026-04-12T13:00:00Z", timestamp="2026-04-12T13:00:00Z")
+    _write_summary(path, older)
+
+    runtime.safe_write_latest(path, newer, "run_at_utc")
+
+    assert json.loads(path.read_text(encoding="utf-8")) == newer
+
+
+def test_safe_write_rejects_older(tmp_path):
+    path = tmp_path / "latest_run.json"
+    newer = _valid_summary(run_at_utc="2026-04-12T13:00:00Z", timestamp="2026-04-12T13:00:00Z")
+    older = _valid_summary(run_at_utc="2026-04-12T12:00:00Z", timestamp="2026-04-12T12:00:00Z")
+    _write_summary(path, newer)
+
+    runtime.safe_write_latest(path, older, "run_at_utc")
+
+    assert json.loads(path.read_text(encoding="utf-8")) == newer
+
+
+def test_safe_write_rejects_equal_timestamp(tmp_path):
+    path = tmp_path / "latest_run.json"
+    existing = _valid_summary()
+    replacement = _valid_summary(status="FAIL", system_halted=True, halt_reason="should not overwrite")
+    _write_summary(path, existing)
+
+    runtime.safe_write_latest(path, replacement, "run_at_utc")
+
+    assert json.loads(path.read_text(encoding="utf-8")) == existing
+
+
+def test_missing_timestamp_raises(tmp_path):
+    path = tmp_path / "latest_run.json"
+
+    with pytest.raises(RuntimeError, match="Missing required timestamp field in new data: run_at_utc"):
+        runtime.safe_write_latest(path, {"status": "SUCCESS"}, "run_at_utc")
+
+    _write_summary(path, {"status": "SUCCESS"})
+    with pytest.raises(RuntimeError, match="Missing required timestamp field in existing data: run_at_utc"):
+        runtime.safe_write_latest(path, _valid_summary(), "run_at_utc")
+
+
+def test_latest_run_integrity_under_simulated_race(monkeypatch, tmp_path):
+    logs_dir, _ = _isolate_artifacts(monkeypatch, tmp_path)
+    older_at = runtime.datetime(2026, 4, 12, 12, 0, tzinfo=runtime.timezone.utc)
+    newer_at = runtime.datetime(2026, 4, 12, 13, 0, tzinfo=runtime.timezone.utc)
+    older = _valid_summary(run_id="older", timestamp="2026-04-12T12:00:00Z", run_at_utc="2026-04-12T12:00:00Z")
+    newer = _valid_summary(run_id="newer", timestamp="2026-04-12T13:00:00Z", run_at_utc="2026-04-12T13:00:00Z")
+
+    runtime._write_summary_files(newer, newer_at)
+    runtime._write_summary_files(older, older_at)
+
+    latest_summary = json.loads((logs_dir / "latest_run.json").read_text(encoding="utf-8"))
+    older_timestamped = json.loads((logs_dir / "run_2026-04-12_120000.json").read_text(encoding="utf-8"))
+    newer_timestamped = json.loads((logs_dir / "run_2026-04-12_130000.json").read_text(encoding="utf-8"))
+
+    assert older_timestamped["run_id"] == "older"
+    assert newer_timestamped["run_id"] == "newer"
+    assert latest_summary["run_id"] == "newer"
+    assert latest_summary == newer_timestamped
+
+
+def test_latest_contract_integrity_under_simulated_race(monkeypatch, tmp_path):
+    logs_dir, _ = _isolate_artifacts(monkeypatch, tmp_path)
+    newer = _valid_contract(generated_at="2026-04-12T13:00:00Z", outcome="NO_TRADE")
+    older = _valid_contract(generated_at="2026-04-12T12:00:00Z", outcome="HALT")
+
+    runtime._write_contract_file(newer)
+    runtime._write_contract_file(older)
+
+    latest_contract = json.loads((logs_dir / "latest_contract.json").read_text(encoding="utf-8"))
+    assert latest_contract == newer
 
 
 def test_fixture_invalid_json_fails_immediately(monkeypatch, tmp_path):

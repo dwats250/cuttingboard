@@ -875,6 +875,7 @@ def _build_run_summary(
     summary = {
         "run_id": _run_id(mode, run_at_utc, fixture_file),
         "timestamp": _iso_z(run_at_utc),
+        "run_at_utc": _iso_z(run_at_utc),
         "mode": summary_mode,
         "outcome": outcome,
         "status": SUMMARY_STATUS_FAIL if validation_summary.system_halted or errors else SUMMARY_STATUS_SUCCESS,
@@ -1283,13 +1284,50 @@ def _write_markdown_report(report: str, date_str: str, verification: str) -> Pat
     return path
 
 
+def safe_write_latest(path: str | Path, new_data: dict[str, Any], ts_key: str) -> Path:
+    target = Path(path)
+    if ts_key not in new_data:
+        raise RuntimeError(f"Missing required timestamp field in new data: {ts_key}")
+
+    def _parse_timestamp(value: Any, *, source: str) -> datetime:
+        if not isinstance(value, str):
+            raise RuntimeError(f"Missing required timestamp field in {source}: {ts_key}")
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise RuntimeError(
+                f"Invalid timestamp field in {source}: {ts_key}={value!r}"
+            ) from exc
+
+    new_ts = _parse_timestamp(new_data[ts_key], source="new data")
+    payload = json.dumps(new_data, indent=2, sort_keys=True) + "\n"
+
+    if not target.exists():
+        target.write_text(payload, encoding="utf-8")
+        return target
+
+    try:
+        existing = json.loads(target.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Invalid JSON in existing latest artifact: {target}") from exc
+
+    if ts_key not in existing:
+        raise RuntimeError(f"Missing required timestamp field in existing data: {ts_key}")
+
+    old_ts = _parse_timestamp(existing[ts_key], source="existing data")
+    if new_ts > old_ts:
+        target.write_text(payload, encoding="utf-8")
+    return target
+
+
 def _write_summary_files(summary: dict[str, Any], run_at_utc: datetime) -> tuple[Path, Path]:
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     filename = f"run_{run_at_utc.strftime('%Y-%m-%d_%H%M%S')}.json"
     timestamped_path = LOGS_DIR / filename
-    text = json.dumps(summary, indent=2, sort_keys=True)
+    summary_to_write = dict(summary)
+    text = json.dumps(summary_to_write, indent=2, sort_keys=True)
     timestamped_path.write_text(text + "\n", encoding="utf-8")
-    LATEST_RUN_PATH.write_text(text + "\n", encoding="utf-8")
+    safe_write_latest(LATEST_RUN_PATH, summary_to_write, "run_at_utc")
     return timestamped_path, LATEST_RUN_PATH
 
 
@@ -1328,9 +1366,7 @@ def _load_run_history(path: Path, limit: int = 5) -> list[dict]:
 
 def _write_contract_file(contract: dict[str, Any]) -> None:
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
-    Path(LATEST_CONTRACT_PATH).write_text(
-        json.dumps(contract, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    safe_write_latest(LATEST_CONTRACT_PATH, contract, "generated_at")
 
 
 def _write_payload_artifacts(contract: dict[str, Any]) -> None:
@@ -1494,6 +1530,7 @@ def _failure_summary(
     errors: list[str],
     report_path: Optional[Path],
 ) -> dict[str, Any]:
+    now_utc = datetime.now(timezone.utc)
     summary_mode = {
         MODE_LIVE: SUMMARY_MODE_LIVE,
         MODE_FIXTURE: SUMMARY_MODE_FIXTURE,
@@ -1501,7 +1538,8 @@ def _failure_summary(
     }.get(mode, SUMMARY_MODE_LIVE)
     return {
         "run_id": f"failed-{summary_mode.lower()}-{run_date.isoformat()}",
-        "timestamp": _iso_z(datetime.now(timezone.utc)),
+        "timestamp": _iso_z(now_utc),
+        "run_at_utc": _iso_z(now_utc),
         "mode": summary_mode,
         "outcome": OUTCOME_HALT,
         "status": SUMMARY_STATUS_FAIL,
