@@ -42,6 +42,10 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-028 | — | PRD system hardening — template, lifecycle states, file enforcement, scope lock | IN PROGRESS | [PRD-028](prd_history/PRD-028.md) |
 | PRD-029 | 57c23f9 | Level awareness layer — derived price levels for premarket and postmarket reports | COMPLETE | [PRD-029](prd_history/PRD-029.md) |
 | PRD-030 | 83bdd3b | Scenario engine hardening — regime + level driven scenario generation | COMPLETE | [PRD-030](prd_history/PRD-030.md) |
+| PRD-031 | — | Claude Code hooks — commit gate, file guard, test gate, state snapshot | IN PROGRESS | [PRD-031](prd_history/PRD-031.md) |
+| PRD-032 | — | Catastrophic output and validation contract repair | PATCH | [PRD-032](prd_history/PRD-032.md) |
+| PRD-033 | — | UI theme layer — sideloadable CSS theme system | IN PROGRESS | [PRD-033](prd_history/PRD-033.md) |
+| PRD-034 | — | GitHub Pages deployment — remote read-only access | IN PROGRESS | [PRD-034](prd_history/PRD-034.md) |
 
 ---
 

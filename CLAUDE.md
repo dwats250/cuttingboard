@@ -199,13 +199,40 @@ Reject or flag output that:
 
 ## PRD documentation rule
 
-Every PRD implementation must end with an update to `docs/PRD_REGISTRY.md`:
+Canonical process: `docs/PRD_PROCESS.md`. Summary below.
 
-1. If the PRD row does not exist, add it before coding begins with status `IN PROGRESS`.
-2. When merged to main, set status to `COMPLETE` and fill in the commit hash.
-3. If a formal audit was performed, link the audit report doc in the Audit Reports table.
+### Lifecycle states
 
-This is not optional. A PRD is not complete until the registry reflects it.
+| State | Meaning |
+|-------|---------|
+| PROPOSED | Drafted. Not approved for implementation. |
+| IN PROGRESS | File exists in prd_history/. Implementation has begun. |
+| COMPLETE | Implementation merged. Commit hash recorded in registry. |
+| PATCH | Corrective PRD targeting a specific defect in a prior PRD. |
+| DEPRECATED | Requirement superseded or withdrawn before completion. |
+
+No other status values are permitted in `PRD_REGISTRY.md`.
+
+### Starting a PRD
+
+1. Copy `docs/PRD_TEMPLATE.md` to `docs/prd_history/PRD-NNN.md` before writing any code.
+2. Section order is fixed: `GOAL → SCOPE → OUT OF SCOPE → FILES → REQUIREMENTS → DATA FLOW → FAIL CONDITIONS → VALIDATION`
+3. Add registry row with `IN PROGRESS` and file link immediately.
+4. Every requirement (R1, R2, …) must have an inline `FAIL:` line — observable, binary, non-subjective.
+
+### Scope lock
+
+The `FILES` section defines a hard boundary. Any file modified during implementation that is not listed in `FILES` is a scope violation. Resolve by amending the PRD before touching the file, or write a separate PRD.
+
+### Closing a PRD
+
+After merge: set registry status to `COMPLETE`, record commit hash, and ensure the `File` column links to the prd_history file.
+
+### Patch PRDs
+
+A PATCH PRD corrects a defect in a prior implementation. Must include a `ROOT CAUSE` section identifying exactly one of: `missing fail condition`, `ambiguous requirement`, or `hidden dependency`.
+
+A PRD is not complete until the registry reflects it.
 
 ---
 

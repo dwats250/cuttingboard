@@ -10,11 +10,9 @@ Implement defined systems with precision and minimal scope.
 
 ---
 
-## SYSTEM STATE (2026-04-20)
+## SYSTEM STATE (2026-04-27)
 
-All pipeline layers are built and wired. 360 tests passing.
-
-**Known broken:** `test_phase5.py` (13 audit record tests), collection errors in `test_gap_down_permission_integration.py`, `test_intraday_state.py`, `test_operationalization.py`.
+All pipeline layers are built and wired. 830 tests passing.
 
 ### PIPELINE LAYERS
 
@@ -30,10 +28,10 @@ All pipeline layers are built and wired. 360 tests passing.
 | 8 | `qualification.py` | 9-gate qualification. Hard gates 1–4, soft gates 5–9+. |
 | 9 | `options.py` | Spread selection, DTE, strike distance. |
 | 10 | `chain_validation.py` | Live chain liquidity gate. OI, spread %, bid/ask sanity. |
-| 11 | `output.py` | Terminal + markdown report + ntfy. Writes on every run. |
+| 11 | `output.py` | Pure render + delivery layer. Terminal, markdown, Telegram. No pipeline logic. |
 | — | `audit.py` | Append-only JSONL per run. |
-| — | `run_premarket.py` | Full pipeline. 13:00 UTC Mon–Fri. |
-| — | `run_intraday.py` | Regime watch (Layers 1–5). Every 30 min, 14:00–21:00 UTC. |
+| — | `runtime.py` | Sole production orchestrator. All modes routed through `cli_main()`. |
+| — | `run_intraday.py` | Unscheduled legacy module. Trigger-based regime monitor (L1–5). Not invoked by any workflow. |
 | — | `watch.py` | Intraday watchlist classification and session phase. |
 | — | `intraday_state_engine.py` | ORB classification. |
 | — | `notifications/` | ntfy alert formatting. |
@@ -221,11 +219,38 @@ Reject or flag output that:
 
 ## PRD DOCUMENTATION RULE
 
-Every PRD implementation must end with an update to `docs/PRD_REGISTRY.md`:
+Canonical process: `docs/PRD_PROCESS.md`. Summary below.
 
-1. Add the row before coding begins with status `IN PROGRESS`.
-2. On merge to main: set status to `COMPLETE` and fill in the commit hash.
-3. If a formal audit was performed: link the audit report in the Audit Reports table.
+### Lifecycle States
+
+| State | Meaning |
+|-------|---------|
+| PROPOSED | Drafted. Not approved for implementation. |
+| IN PROGRESS | File exists in prd_history/. Implementation has begun. |
+| COMPLETE | Implementation merged. Commit hash recorded in registry. |
+| PATCH | Corrective PRD targeting a specific defect in a prior PRD. |
+| DEPRECATED | Requirement superseded or withdrawn before completion. |
+
+No other status values are permitted in `PRD_REGISTRY.md`.
+
+### Starting a PRD
+
+1. Copy `docs/PRD_TEMPLATE.md` to `docs/prd_history/PRD-NNN.md` before writing any code.
+2. Section order is fixed: `GOAL → SCOPE → OUT OF SCOPE → FILES → REQUIREMENTS → DATA FLOW → FAIL CONDITIONS → VALIDATION`
+3. Add registry row with `IN PROGRESS` and file link immediately.
+4. Every requirement (R1, R2, …) must have an inline `FAIL:` line — observable, binary, non-subjective.
+
+### Scope Lock
+
+The `FILES` section defines a hard boundary. Any file modified during implementation that is not listed in `FILES` is a scope violation. Resolve by amending the PRD before touching the file, or write a separate PRD.
+
+### Closing a PRD
+
+After merge: set registry status to `COMPLETE`, record commit hash, and ensure the `File` column links to the prd_history file.
+
+### Patch PRDs
+
+A PATCH PRD corrects a defect in a prior implementation. Must include a `ROOT CAUSE` section identifying exactly one of: `missing fail condition`, `ambiguous requirement`, or `hidden dependency`.
 
 A PRD is not complete until the registry reflects it.
 
