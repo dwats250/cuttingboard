@@ -47,6 +47,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-033 | — | UI theme layer — sideloadable CSS theme system | IN PROGRESS | [PRD-033](prd_history/PRD-033.md) |
 | PRD-034 | — | GitHub Pages deployment — remote read-only access | IN PROGRESS | [PRD-034](prd_history/PRD-034.md) |
 | PRD-035 | feature/ui-decision-layer | Signal Forge dashboard — contract regime block + UI macro strip | COMPLETE | [PRD-035](prd_history/PRD-035.md) |
+| PRD-036 | — | Slim dashboard renderer — read-only HTML from payload + run artifacts | IN PROGRESS | [PRD-036](prd_history/PRD-036.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
