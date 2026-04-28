@@ -7,9 +7,7 @@
   "continuation_audit": null,
   "data_status": "ok",
   "energy_score": 0.0,
-  "errors": [
-    "continuation_audit must not be null"
-  ],
+  "errors": [],
   "fallback_used": false,
   "halt_reason": null,
   "index_score": 0.0,
@@ -21,10 +19,10 @@
   "posture": "STAY_FLAT",
   "regime": "NEUTRAL",
   "router_mode": "MIXED",
-  "run_id": "live-20260424T125002Z",
-  "status": "FAIL",
+  "run_id": "live-20260427T125001Z",
+  "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-04-24T12:50:02Z",
+  "timestamp": "2026-04-27T12:50:01Z",
   "warnings": [],
   "watch_candidates": 0
 }
