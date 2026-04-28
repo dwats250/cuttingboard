@@ -8,7 +8,7 @@ import pkgutil
 import pytest
 
 from cuttingboard.reports.levels import derive_key_levels
-from cuttingboard.reports.premarket import _SCENARIOS, _DEFAULT_SCENARIOS, _INVALIDATION, _DEFAULT_INVALIDATION, build_premarket_report
+from cuttingboard.reports.premarket import _generate_scenarios, _generate_invalidation, build_premarket_report
 from cuttingboard.reports.postmarket import build_postmarket_report
 
 _LEVEL_KEYS = {"prior_high", "prior_low", "prior_close", "current_price", "gap_direction", "range_mid"}
@@ -263,37 +263,33 @@ class TestRangeMid:
 # ---------------------------------------------------------------------------
 
 class TestScenarioLevelTokens:
-    def _all_scenarios(self) -> list[dict]:
-        all_s: list[dict] = []
-        for s_list in _SCENARIOS.values():
-            all_s.extend(s_list)
-        all_s.extend(_DEFAULT_SCENARIOS)
-        return all_s
+    _REGIMES = ["RISK_ON", "RISK_OFF", "NEUTRAL", "CHAOTIC", "EXPANSION", None]
 
     def test_every_scenario_has_level_token(self):
-        for scenario in self._all_scenarios():
-            condition = scenario["condition"]
-            has_token = any(token in condition for token in _LEVEL_TOKENS)
-            assert has_token, f"Scenario '{scenario['id']}' condition missing level token: {condition!r}"
+        for regime in self._REGIMES:
+            for s in _generate_scenarios(regime, None, {}):
+                condition = s["condition"]
+                has_token = any(token in condition for token in _LEVEL_TOKENS)
+                assert has_token, f"Scenario '{s['id']}' condition missing level token: {condition!r}"
 
     def test_risk_on_scenarios_have_tokens(self):
-        for s in _SCENARIOS["RISK_ON"]:
+        for s in _generate_scenarios("RISK_ON", None, {}):
             assert any(t in s["condition"] for t in _LEVEL_TOKENS)
 
     def test_risk_off_scenarios_have_tokens(self):
-        for s in _SCENARIOS["RISK_OFF"]:
+        for s in _generate_scenarios("RISK_OFF", None, {}):
             assert any(t in s["condition"] for t in _LEVEL_TOKENS)
 
     def test_neutral_scenarios_have_tokens(self):
-        for s in _SCENARIOS["NEUTRAL"]:
+        for s in _generate_scenarios("NEUTRAL", None, {}):
             assert any(t in s["condition"] for t in _LEVEL_TOKENS)
 
     def test_chaotic_scenarios_have_tokens(self):
-        for s in _SCENARIOS["CHAOTIC"]:
+        for s in _generate_scenarios("CHAOTIC", None, {}):
             assert any(t in s["condition"] for t in _LEVEL_TOKENS)
 
     def test_default_scenarios_have_tokens(self):
-        for s in _DEFAULT_SCENARIOS:
+        for s in _generate_scenarios(None, None, {}):
             assert any(t in s["condition"] for t in _LEVEL_TOKENS)
 
 
@@ -302,25 +298,25 @@ class TestScenarioLevelTokens:
 # ---------------------------------------------------------------------------
 
 class TestInvalidationLevelReferences:
-    def _all_invalidation(self) -> list[str]:
-        all_inv: list[str] = []
-        for inv_list in _INVALIDATION.values():
-            all_inv.extend(inv_list)
-        all_inv.extend(_DEFAULT_INVALIDATION)
-        return all_inv
+    _REGIMES = ["RISK_ON", "RISK_OFF", "NEUTRAL", "CHAOTIC", "EXPANSION", None]
+    _INV_TOKENS = {"prior_high", "prior_low", "range_mid", "gap_direction", "prior_close"}
 
     def test_each_regime_invalidation_has_level_reference(self):
-        for regime, inv_list in _INVALIDATION.items():
+        for regime in self._REGIMES:
+            scenarios = _generate_scenarios(regime, None, {})
+            inv = _generate_invalidation(regime, None, scenarios)
             has_level = any(
-                any(token in cond for token in _LEVEL_TOKENS)
-                for cond in inv_list
+                any(token in cond for token in self._INV_TOKENS)
+                for cond in inv
             )
             assert has_level, f"Regime {regime!r} invalidation has no level-based condition"
 
     def test_default_invalidation_has_level_reference(self):
+        scenarios = _generate_scenarios(None, None, {})
+        inv = _generate_invalidation(None, None, scenarios)
         has_level = any(
-            any(token in cond for token in _LEVEL_TOKENS)
-            for cond in _DEFAULT_INVALIDATION
+            any(token in cond for token in self._INV_TOKENS)
+            for cond in inv
         )
         assert has_level, "Default invalidation has no level-based condition"
 
