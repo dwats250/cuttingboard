@@ -40,7 +40,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-026 | 442b813 | Alert visibility upgrade — deterministic ASCII titles and structured body | COMPLETE | [PRD-026](prd_history/PRD-026.md) |
 | PRD-027 | b8dc599 | Context report layer — deterministic premarket and postmarket reports | COMPLETE | [PRD-027](prd_history/PRD-027.md) |
 | PRD-028 | — | PRD system hardening — template, lifecycle states, file enforcement, scope lock | IN PROGRESS | [PRD-028](prd_history/PRD-028.md) |
-| PRD-029 | — | Level awareness layer — derived price levels for premarket and postmarket reports | PROPOSED | [PRD-029](prd_history/PRD-029.md) |
+| PRD-029 | 57c23f9 | Level awareness layer — derived price levels for premarket and postmarket reports | COMPLETE | [PRD-029](prd_history/PRD-029.md) |
 
 ---
 
