@@ -579,32 +579,42 @@ def send_notification(
     )
 
 
-def build_notification_message(contract: dict) -> str:
-    """Build a single aggregated notification string from the canonical contract.
+def build_notification_message(contract: dict) -> tuple[str, str]:
+    """Return (title, body) for a Telegram alert derived from the canonical contract.
 
-    Reads system_state and trade_candidates from the contract. Returns a
-    plain-text message suitable for a single send_telegram() call.
+    Uses only: contract["status"], contract["generated_at"],
+    contract["system_state"]["market_regime"], contract["system_state"]["tradable"],
+    contract["trade_candidates"].
     """
-    ss = contract.get("system_state", {})
+    status = contract.get("status") or ""
+    ss = contract.get("system_state") or {}
     market_regime = ss.get("market_regime") or "UNKNOWN"
-    tradable = ss.get("tradable", False)
-    execution_posture = "TRADE_READY" if tradable else "STAY_FLAT"
-    timestamp = (contract.get("generated_at") or "")[:16]
+    tradable = bool(ss.get("tradable", False))
+    candidates = contract.get("trade_candidates") or []
+    generated_at = (contract.get("generated_at") or "")[:16]
+
+    if status in {"FAIL", "ERROR"}:
+        title = "HALT - SYSTEM ERROR"
+    elif tradable:
+        title = "TRADE READY"
+    elif candidates:
+        title = "WATCHLIST - SETUPS FORMING"
+    else:
+        title = "NO TRADE - SYSTEM ACTIVE"
 
     lines = [
-        f"cuttingboard | {timestamp}",
-        f"regime: {market_regime}  posture: {execution_posture}  tradable: {tradable}",
+        f"Time: {generated_at}",
+        f"Regime: {market_regime}",
+        f"Tradable: {tradable}",
+        f"Setups: {len(candidates)}",
+        f"Status: {status}",
     ]
 
-    candidates = (contract.get("trade_candidates") or [])[:3]
-    if candidates:
-        lines.append("setups:")
-        for c in candidates:
-            parts = [
-                c.get("symbol") or "",
-                c.get("direction") or "",
-                c.get("strategy_tag") or "",
-            ]
-            lines.append("  " + " | ".join(p for p in parts if p))
+    if status in {"FAIL", "ERROR"}:
+        lines.append("Reason: pipeline failure")
+    elif not tradable and not candidates:
+        lines.append("Reason: no qualifying setups")
+    elif not tradable:
+        lines.append("Reason: setups present but not tradable")
 
-    return "\n".join(lines)
+    return title, "\n".join(lines)

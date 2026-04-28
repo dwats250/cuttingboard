@@ -730,9 +730,10 @@ def _run_pipeline(
         last_key = load_last_state(LAST_STATE_PATH)
 
         if should_send(current_key, priority, last_key):
-            message = build_notification_message(contract)
+            title, body = build_notification_message(contract)
             alert_sent = send_notification(
-                message,
+                title,
+                body,
                 notification_priority=priority.value,
                 notification_state_key=current_key,
             )

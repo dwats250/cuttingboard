@@ -7,6 +7,8 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD | Commit(s) | Title | Status |
 |-----|-----------|-------|--------|
 | Init | d84cd027 | Bootstrap — initial PRD committed | COMPLETE |
+| PRD-001 | d37e72f, 094b428 | 10-layer pipeline bootstrap — full system, 297 tests, GHA workflow | COMPLETE |
+| PRD-002 | 6bc67e6, 3d4a214 | Options chain validation + runtime orchestrator | COMPLETE |
 | PRD-003 | 809214bc | Enforce deterministic failure visibility in CI pipeline | COMPLETE |
 | PRD-003.2 | 7838f461 | Fix remaining workflow patch drift | COMPLETE |
 | PRD-003.3 | 6202bc9e | Fix CI failure-path guards | COMPLETE |
@@ -30,10 +32,12 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-018 | 0f7c341 | Notification signal hierarchy and suppression: state key, priority, dedup | COMPLETE |
 | PRD-019 | c7c64c9, 0aea646 | Engine doctor — canonical pipeline health authority | COMPLETE |
 | PRD-020 | 0472cfd | Engine doctor gate system (CI + runtime guardrails) | COMPLETE |
-| PRD-021 | — | Documentation canonicalization (README + docs system) | IN PROGRESS |
+| PRD-021 | e6b017c | Documentation canonicalization (README + docs system) | COMPLETE |
 | PRD-022 | 2b6009a | Sunday mode isolation — no live data, forced STAY_FLAT, non-live execution path | COMPLETE |
 | PRD-023 | 314ca46 | GLD–DXY correlation policy layer — advisory risk_modifier, no qualification mutation | COMPLETE |
 | PRD-024 | 6f97d12 | Contract UI consumer — static HTML read-only decision surface | COMPLETE |
+| PRD-025 | 3d532cd | Decision compression layer — primary signal and trade promotion | COMPLETE |
+| PRD-026 | TBD | Alert visibility upgrade — deterministic ASCII titles and structured body | COMPLETE |
 
 ---
 

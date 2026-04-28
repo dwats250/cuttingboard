@@ -41,8 +41,8 @@ def _suppress_notification(monkeypatch):
     """Suppress notification delivery; return a call-count list."""
     calls = []
 
-    def _mock_send(message, notification_priority=None, notification_state_key=None):
-        calls.append(message)
+    def _mock_send(title, body="", *, notification_priority=None, notification_state_key=None):
+        calls.append(title)
         return True
 
     monkeypatch.setattr(runtime, "send_notification", _mock_send)
