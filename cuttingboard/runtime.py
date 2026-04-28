@@ -18,7 +18,7 @@ import logging
 import subprocess
 import sys
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -84,6 +84,8 @@ from cuttingboard.output import (
     send_notification,
 )
 from cuttingboard.qualification import QualificationSummary, qualify_all
+from cuttingboard.reports.premarket import build_premarket_report
+from cuttingboard.reports.postmarket import build_postmarket_report
 from cuttingboard.regime import CHAOTIC, NEUTRAL, EXPANSION, RegimeState, compute_regime
 from cuttingboard.sector_router import (
     SectorRouterState,
@@ -202,6 +204,8 @@ class PipelineResult:
     summary: dict[str, Any]
     contract: dict[str, Any]
     correlation: Optional[CorrelationResult] = None
+    premarket_report: dict[str, Any] = field(default_factory=dict)
+    postmarket_report: dict[str, Any] = field(default_factory=dict)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -752,6 +756,10 @@ def _run_pipeline(
 
     contract["artifacts"]["notification_sent"] = alert_sent
 
+    run_history = _load_run_history(LOGS_DIR / "audit.jsonl")
+    premarket_report = build_premarket_report(contract)
+    postmarket_report = build_postmarket_report(contract, run_history)
+
     audit_record = write_audit_record(
         run_at_utc=run_at_utc,
         date_str=date_str,
@@ -818,6 +826,8 @@ def _run_pipeline(
         summary=summary,
         contract=contract,
         correlation=correlation_result,
+        premarket_report=premarket_report,
+        postmarket_report=postmarket_report,
     )
 
 
@@ -1273,6 +1283,35 @@ def _write_summary_files(summary: dict[str, Any], run_at_utc: datetime) -> tuple
 
 def _rewrite_summary_file(path: Path, summary: dict[str, Any]) -> None:
     path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _load_run_history(path: Path, limit: int = 5) -> list[dict]:
+    """Return up to `limit` pipeline run records from audit.jsonl (most recent first).
+
+    Filters out notification-event entries. Returns [] on missing file or parse error.
+    """
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        return []
+    except Exception:
+        logger.exception("Failed to read run history from %s", path)
+        return []
+
+    records: list[dict] = []
+    for line in reversed(lines):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if "outcome" in record and "run_at_utc" in record:
+            records.append(record)
+            if len(records) >= limit:
+                break
+    return records
 
 
 def _write_contract_file(contract: dict[str, Any]) -> None:
