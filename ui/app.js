@@ -334,6 +334,14 @@ function loadJSON(text) {
   renderContract(data);
 }
 
+function autoFetch() {
+  if (location.protocol === 'file:') return;
+  fetch('./contract.json')
+    .then(function (r) { return r.ok ? r.text() : null; })
+    .then(function (text) { if (text) loadJSON(text); })
+    .catch(function () {});
+}
+
 // ---------------------------------------------------------------------------
 // Event wiring
 // ---------------------------------------------------------------------------
@@ -362,4 +370,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!text) { showStatus('NO CONTRACT LOADED', false); return; }
     loadJSON(text);
   });
+
+  autoFetch();
 });
