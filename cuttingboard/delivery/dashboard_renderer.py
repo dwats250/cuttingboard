@@ -118,6 +118,13 @@ def render_dashboard_html(
     primary = top_trades[0] if len(top_trades) >= 1 else None
     secondary = top_trades[1:5] if len(top_trades) >= 2 else []
 
+    if not tradable:
+        decision_text = "STAY FLAT"
+    elif primary is not None:
+        decision_text = f"{_req(primary, 'direction')} {_req(primary, 'symbol')}".upper()
+    else:
+        decision_text = "ACTIVE - NO SETUP"
+
     # R3 — RUN HEALTH
     system_halted = _req(run, "system_halted")
     kill_switch = _req(run, "kill_switch")
@@ -141,6 +148,14 @@ def render_dashboard_html(
     w("</head>")
     w("<body>")
     w('<div class="wrap">')
+
+    # --- decision-summary ---
+    w('<div class="block" id="decision-summary">')
+    w(f'  <div class="value">{_esc(decision_text)}</div>')
+    w(f'  <div class="value">Regime: {_esc(market_regime)}</div>')
+    w(f'  <div class="value">Posture: {_esc(execution_posture)}</div>')
+    w(f'  <div class="value">Confidence: {_esc(confidence)}</div>')
+    w("</div>")
 
     # --- dashboard-header ---
     regime_cls = _esc(market_regime)

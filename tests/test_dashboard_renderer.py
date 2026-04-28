@@ -191,6 +191,74 @@ def test_field_mapping_exact() -> None:
 
 
 # ---------------------------------------------------------------------------
+# PRD-043 — decision summary
+# ---------------------------------------------------------------------------
+
+def test_decision_summary_present() -> None:
+    html = render_dashboard_html(_payload(), _run())
+    assert 'id="decision-summary"' in html
+
+
+def test_decision_summary_position_top() -> None:
+    html = render_dashboard_html(_payload(), _run())
+    summary_pos = html.index('id="decision-summary"')
+    header_pos = html.index('id="dashboard-header"')
+    assert summary_pos < header_pos
+
+
+def test_stay_flat_when_not_tradable() -> None:
+    html = render_dashboard_html(_payload(tradable=False, top_trades=[_trade("QQQ", "SHORT")]), _run())
+    summary = html.split('<div class="block" id="decision-summary">', 1)[1]
+    summary = summary.split('<div class="block" id="dashboard-header">', 1)[0]
+
+    assert "STAY FLAT" in summary
+    assert "SHORT QQQ" not in summary
+
+
+def test_trade_display_when_tradable_with_setup() -> None:
+    html = render_dashboard_html(_payload(top_trades=[_trade("QQQ", "SHORT")]), _run())
+    summary = html.split('<div class="block" id="decision-summary">', 1)[1]
+    summary = summary.split('<div class="block" id="dashboard-header">', 1)[0]
+
+    assert "SHORT QQQ" in summary
+    assert "ACTIVE - NO SETUP" not in summary
+
+
+def test_active_no_setup_case() -> None:
+    html = render_dashboard_html(_payload(top_trades=[]), _run())
+    summary = html.split('<div class="block" id="decision-summary">', 1)[1]
+    summary = summary.split('<div class="block" id="dashboard-header">', 1)[0]
+
+    assert "ACTIVE - NO SETUP" in summary
+
+
+def test_decision_uses_only_allowed_fields() -> None:
+    html = render_dashboard_html(
+        _payload(top_trades=[_trade("QQQ", "SHORT")]),
+        _run(status="FAIL", regime="NEUTRAL", system_halted=True, kill_switch=True, data_status="stale"),
+    )
+    summary = html.split('<div class="block" id="decision-summary">', 1)[1]
+    summary = summary.split('<div class="block" id="dashboard-header">', 1)[0].lower()
+
+    assert "short qqq" in summary
+    assert "regime: risk_on" in summary
+    assert "posture: controlled_long" in summary
+    assert "confidence: 0.75" in summary
+    for field in ("status", "system_halted", "kill_switch", "data_status", "run_id", "strategy_tag", "entry_mode"):
+        assert field not in summary
+
+
+def test_no_interpretation_added() -> None:
+    html = render_dashboard_html(_payload(top_trades=[]), _run(confidence=0.25))
+    summary = html.split('<div class="block" id="decision-summary">', 1)[1]
+    summary = summary.split('<div class="block" id="dashboard-header">', 1)[0]
+
+    assert "Confidence: 0.25" in summary
+    for text in ("good", "bad", "bullish", "bearish", "weak", "strong", "reason"):
+        assert text not in summary.lower()
+
+
+# ---------------------------------------------------------------------------
 # test_primary_visibility
 # ---------------------------------------------------------------------------
 
