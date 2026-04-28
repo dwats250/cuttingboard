@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from cuttingboard.delivery.dashboard_renderer import (
+    _resolve_previous_run,
     main,
     render_dashboard_html,
     write_dashboard,
@@ -66,6 +67,7 @@ def _payload(
 def _run(
     *,
     status: str = "SUCCESS",
+    regime: str = "RISK_ON",
     posture: str = "CONTROLLED_LONG",
     confidence: float = 0.75,
     system_halted: bool = False,
@@ -76,6 +78,7 @@ def _run(
     return {
         "run_id": "live-20260428T120000Z",
         "status": status,
+        "regime": regime,
         "posture": posture,
         "confidence": confidence,
         "system_halted": system_halted,
@@ -401,3 +404,99 @@ def test_no_mutation() -> None:
     render_dashboard_html(p, r)
     assert p == p_before
     assert r == r_before
+
+
+# ---------------------------------------------------------------------------
+# PRD-041 — run delta
+# ---------------------------------------------------------------------------
+
+def test_run_delta_present_with_previous_run() -> None:
+    html = render_dashboard_html(_payload(), _run(), previous_run=_run(posture="STAY_FLAT"))
+    assert 'id="run-delta"' in html
+
+
+def test_run_delta_hidden_without_previous_run() -> None:
+    html = render_dashboard_html(_payload(), _run(), previous_run=None)
+    assert 'id="run-delta"' not in html
+
+
+def test_run_delta_detects_changes() -> None:
+    current = _run(
+        regime="NEUTRAL",
+        posture="CONTROLLED_LONG",
+        confidence=0.75,
+        system_halted=False,
+    )
+    previous = _run(
+        regime="RISK_OFF",
+        posture="STAY_FLAT",
+        confidence=0.25,
+        system_halted=True,
+    )
+    html = render_dashboard_html(_payload(), current, previous_run=previous)
+    delta = html.split('<div class="block" id="run-delta">', 1)[1]
+    delta = delta.split('<div class="block" id="system-state">', 1)[0]
+
+    assert "Regime: RISK_OFF -&gt; NEUTRAL" in delta
+    assert "Posture: STAY_FLAT -&gt; CONTROLLED_LONG" in delta
+    assert "Confidence: 0.25 -&gt; 0.75" in delta
+    assert "System Halted: YES -&gt; NO" in delta
+
+
+def test_run_delta_ignores_unchanged_fields() -> None:
+    current = _run()
+    previous = _run()
+    html = render_dashboard_html(_payload(), current, previous_run=previous)
+    delta = html.split('<div class="block" id="run-delta">', 1)[1]
+    delta = delta.split('<div class="block" id="system-state">', 1)[0]
+
+    assert "No changes since last run" in delta
+    assert "Regime:" not in delta
+    assert "Posture:" not in delta
+    assert "Confidence:" not in delta
+    assert "System Halted:" not in delta
+
+
+def test_run_delta_correct_previous_selection_by_timestamp(tmp_path: Path) -> None:
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir()
+    oldest = _run(status="OLD", confidence=0.1)
+    oldest["timestamp"] = "2026-04-28T10:00:00Z"
+    newest = _run(status="NEW", confidence=0.2)
+    newest["timestamp"] = "2026-04-28T12:00:00Z"
+    previous = _run(status="PREV", confidence=0.3)
+    previous["timestamp"] = "2026-04-28T11:00:00Z"
+
+    (logs_dir / "run_oldest.json").write_text(json.dumps(oldest), encoding="utf-8")
+    (logs_dir / "run_newest.json").write_text(json.dumps(newest), encoding="utf-8")
+    (logs_dir / "run_previous.json").write_text(json.dumps(previous), encoding="utf-8")
+
+    assert _resolve_previous_run(logs_dir) == previous
+
+
+def test_run_delta_no_unapproved_fields() -> None:
+    previous = _run(status="HALT", kill_switch=True, data_status="stale")
+    html = render_dashboard_html(_payload(), _run(), previous_run=previous)
+    delta = html.split('<div class="block" id="run-delta">', 1)[1]
+    delta = delta.split('<div class="block" id="system-state">', 1)[0]
+
+    for field in ("Status:", "Kill Switch:", "Data Status:", "Outcome:", "Run Id:"):
+        assert field not in delta
+
+
+def test_render_function_does_not_discover_files(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "cuttingboard.delivery.dashboard_renderer._resolve_previous_run",
+        lambda logs_dir: (_ for _ in ()).throw(AssertionError("unexpected discovery")),
+    )
+    html = render_dashboard_html(_payload(), _run(), previous_run=_run())
+    assert 'id="run-delta"' in html
+
+
+def test_run_delta_deterministic_output() -> None:
+    payload = _payload()
+    current = _run(regime="NEUTRAL", posture="STAY_FLAT", confidence=0.0)
+    previous = _run(regime="RISK_ON", posture="CONTROLLED_LONG", confidence=0.75)
+    assert render_dashboard_html(payload, current, previous_run=previous) == render_dashboard_html(
+        payload, current, previous_run=previous
+    )

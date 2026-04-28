@@ -76,7 +76,21 @@ def _bool_str(value: object) -> str:
     return ""
 
 
-def render_dashboard_html(payload: dict, run: dict) -> str:
+def _resolve_previous_run(logs_dir: Path) -> dict | None:
+    run_files = sorted(logs_dir.glob("run_*.json"))
+    if len(run_files) < 2:
+        return None
+    runs = [_load_json(path) for path in run_files]
+    runs.sort(key=lambda run: str(_req(run, "timestamp")), reverse=True)
+    return runs[1]
+
+
+def render_dashboard_html(
+    payload: dict,
+    run: dict,
+    *,
+    previous_run: dict | None = None,
+) -> str:
     """Return deterministic dashboard HTML from payload and run dicts.
 
     No payload or run mutation. No engine calls.
@@ -163,6 +177,36 @@ def render_dashboard_html(payload: dict, run: dict) -> str:
     w("  </div>")
     w("</div>")
 
+    # --- run-delta ---
+    if previous_run is not None:
+        delta_fields = (
+            ("Regime", _req(run, "regime"), _req(previous_run, "regime")),
+            ("Posture", _req(run, "posture"), _req(previous_run, "posture")),
+            ("Confidence", _req(run, "confidence"), _req(previous_run, "confidence")),
+            (
+                "System Halted",
+                _bool_str(_req(run, "system_halted")),
+                _bool_str(_req(previous_run, "system_halted")),
+            ),
+        )
+        changed_fields = [
+            (label, previous_value, current_value)
+            for label, current_value, previous_value in delta_fields
+            if current_value != previous_value
+        ]
+
+        w('<div class="block" id="run-delta">')
+        w("  <h2>Delta</h2>")
+        if changed_fields:
+            for label, previous_value, current_value in changed_fields:
+                w(
+                    f'  <div class="value">{_esc(label)}: '
+                    f'{_esc(previous_value)} -&gt; {_esc(current_value)}</div>'
+                )
+        else:
+            w("  <div class=\"value\">No changes since last run</div>")
+        w("</div>")
+
     # --- system-state ---
     w('<div class="block" id="system-state">')
     w("  <h2>System State</h2>")
@@ -239,9 +283,10 @@ def render_dashboard_html(payload: dict, run: dict) -> str:
 def write_dashboard(
     payload: dict,
     run: dict,
+    previous_run: dict | None = None,
     output_path: Path = _OUTPUT_PATH,
 ) -> None:
-    html = render_dashboard_html(payload, run)
+    html = render_dashboard_html(payload, run, previous_run=previous_run)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")
 
@@ -250,10 +295,12 @@ def main(
     payload_path: Path = _PAYLOAD_PATH,
     run_path: Path = _RUN_PATH,
     output_path: Path = _OUTPUT_PATH,
+    logs_dir: Path = Path("logs"),
 ) -> None:
     payload = _load_json(payload_path)
     run = _load_json(run_path)
-    write_dashboard(payload, run, output_path)
+    previous_run = _resolve_previous_run(logs_dir)
+    write_dashboard(payload, run, previous_run, output_path)
     print(f"Dashboard written: {output_path}")
 
 
@@ -264,5 +311,11 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, default=_OUTPUT_PATH)
     parser.add_argument("--payload", type=Path, default=_PAYLOAD_PATH)
     parser.add_argument("--run", type=Path, default=_RUN_PATH)
+    parser.add_argument("--logs-dir", type=Path, default=Path("logs"))
     args = parser.parse_args()
-    main(payload_path=args.payload, run_path=args.run, output_path=args.output)
+    main(
+        payload_path=args.payload,
+        run_path=args.run,
+        output_path=args.output,
+        logs_dir=args.logs_dir,
+    )
