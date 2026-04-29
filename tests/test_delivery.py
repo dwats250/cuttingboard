@@ -30,7 +30,7 @@ def _contract(
     stay_flat_reason: str | None = None,
 ) -> dict:
     return {
-        "schema_version": "v1",
+        "schema_version": "v2",
         "generated_at": "2026-04-23T14:00:00Z",
         "session_date": "2026-04-23",
         "mode": "live",
@@ -66,12 +66,20 @@ def _contract(
             "log_path": "logs/latest_run.json",
             "notification_sent": False,
         },
+        "correlation": None,
+        "regime": None,
+        "macro_drivers": {
+            "volatility": {"symbol": "^VIX", "level": 18.5, "change_pct": -2.0},
+            "dollar": {"symbol": "DX-Y.NYB", "level": 104.0, "change_pct": 0.1},
+            "rates": {"symbol": "^TNX", "level": 4.3, "change_pct": -0.3, "change_bps": -1.29},
+            "bitcoin": {"symbol": "BTC-USD", "level": 65000.0, "change_pct": 1.5},
+        },
     }
 
 
 def _error_contract() -> dict:
     return {
-        "schema_version": "v1",
+        "schema_version": "v2",
         "generated_at": "2026-04-23T14:00:00Z",
         "session_date": None,
         "mode": None,
@@ -107,6 +115,9 @@ def _error_contract() -> dict:
             "log_path": None,
             "notification_sent": None,
         },
+        "correlation": None,
+        "regime": None,
+        "macro_drivers": {},
     }
 
 

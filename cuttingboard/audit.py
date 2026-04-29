@@ -17,6 +17,7 @@ from typing import Optional
 from cuttingboard.options import OptionSetup
 from cuttingboard.qualification import QualificationSummary
 from cuttingboard.regime import RegimeState
+from cuttingboard.trade_decision import TradeDecision
 from cuttingboard.validation import ValidationSummary
 from cuttingboard.watch import WatchSummary
 
@@ -36,6 +37,7 @@ def write_audit_record(
     halt_reason: Optional[str],
     alert_sent: bool,
     report_path: str,
+    trade_decisions: Optional[list[TradeDecision]] = None,
     router_mode: str = "",
     energy_score: float = 0.0,
     index_score: float = 0.0,
@@ -63,6 +65,7 @@ def write_audit_record(
         qualification_summary=qualification_summary,
         watch_summary=watch_summary,
         option_setups=option_setups,
+        trade_decisions=trade_decisions,
         suppressed_candidates=suppressed_candidates,
         intraday_state_context=intraday_state_context,
         halt_reason=halt_reason,
@@ -89,6 +92,7 @@ def _build_record(
     halt_reason: Optional[str],
     alert_sent: bool,
     report_path: str,
+    trade_decisions: Optional[list[TradeDecision]] = None,
     router_mode: str = "",
     energy_score: float = 0.0,
     index_score: float = 0.0,
@@ -97,8 +101,15 @@ def _build_record(
     intraday_state_context: Optional[dict[str, dict]] = None,
 ) -> dict:
     qual = qualification_summary
+    decisions_by_symbol = {
+        decision.ticker: decision for decision in (trade_decisions or [])
+    }
+    setup_by_symbol = {
+        setup.symbol: setup for setup in option_setups
+    }
 
     qualified_list = []
+    trade_decision_list = []
     watchlist_list = []
     near_a_plus_list = []
     excluded_dict: dict = {}
@@ -106,6 +117,7 @@ def _build_record(
     if qual is not None:
         for r in qual.qualified_trades:
             setup = next((s for s in option_setups if s.symbol == r.symbol), None)
+            decision = decisions_by_symbol.get(r.symbol)
             entry: dict = {
                 "symbol":     r.symbol,
                 "direction":  r.direction,
@@ -115,6 +127,14 @@ def _build_record(
                 "contracts":  r.max_contracts,
                 "dollar_risk": r.dollar_risk,
             }
+            if decision is not None:
+                entry["entry"] = decision.entry
+                entry["stop"] = decision.stop
+                entry["target"] = decision.target
+                entry["risk_reward"] = decision.r_r
+                entry["decision_status"] = decision.status
+                entry["block_reason"] = decision.block_reason
+                entry["decision_trace"] = dict(decision.decision_trace)
             meta = (intraday_state_context or {}).get(r.symbol)
             if meta is not None:
                 entry["downside_permission"] = meta.get("downside_permission")
@@ -135,6 +155,25 @@ def _build_record(
             near_a_plus_list.append(entry)
 
         excluded_dict = dict(qual.excluded)
+
+    for decision in trade_decisions or []:
+        setup = setup_by_symbol.get(decision.ticker)
+        trade_decision_list.append({
+            "symbol": decision.ticker,
+            "direction": decision.direction,
+            "strategy": setup.strategy if setup else None,
+            "structure": setup.structure if setup else None,
+            "dte": setup.dte if setup else None,
+            "contracts": decision.contracts,
+            "dollar_risk": decision.dollar_risk,
+            "entry": decision.entry,
+            "stop": decision.stop,
+            "target": decision.target,
+            "risk_reward": decision.r_r,
+            "decision_status": decision.status,
+            "block_reason": decision.block_reason,
+            "decision_trace": dict(decision.decision_trace),
+        })
 
     if watch_summary is not None:
         for item in watch_summary.watchlist:
@@ -175,6 +214,7 @@ def _build_record(
 
         # Trades
         "qualified_trades":       qualified_list,
+        "trade_decisions":        trade_decision_list,
         "watchlist":              watchlist_list,
         "near_a_plus":            near_a_plus_list,
         "excluded_symbols":       excluded_dict,

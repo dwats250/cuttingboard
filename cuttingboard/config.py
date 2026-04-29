@@ -128,6 +128,8 @@ OHLCV_CACHE_DIR         = "data/cache"
 FETCH_RETRIES           = 3
 FETCH_BACKOFF_SECONDS   = 2
 FETCH_TIMEOUT_SECONDS   = 10
+EVALUATION_WINDOW_BARS  = 78
+EVALUATION_TIMEFRAME    = "1m"
 
 # ---------------------------------------------------------------------------
 # Instrument universe

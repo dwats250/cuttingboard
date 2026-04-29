@@ -34,7 +34,7 @@ def _minimal_contract(
     stay_flat_reason: str | None = None,
 ) -> dict:
     return {
-        "schema_version": "v1",
+        "schema_version": "v2",
         "generated_at": "2026-04-23T14:00:00Z",
         "session_date": "2026-04-23",
         "mode": "live",
@@ -69,6 +69,14 @@ def _minimal_contract(
             "report_path": "reports/2026-04-23.md",
             "log_path": "logs/latest_run.json",
             "notification_sent": False,
+        },
+        "correlation": None,
+        "regime": None,
+        "macro_drivers": {
+            "volatility": {"symbol": "^VIX", "level": 18.5, "change_pct": -2.0},
+            "dollar": {"symbol": "DX-Y.NYB", "level": 104.0, "change_pct": 0.1},
+            "rates": {"symbol": "^TNX", "level": 4.3, "change_pct": -0.3, "change_bps": -1.29},
+            "bitcoin": {"symbol": "BTC-USD", "level": 65000.0, "change_pct": 1.5},
         },
     }
 
@@ -304,6 +312,8 @@ class TestAssertValidPayload:
         for status in ("OK", "STAY_FLAT", "ERROR"):
             p = self._base_payload()
             p["run_status"] = status
+            if status == "ERROR":
+                p["macro_drivers"] = {}
             assert_valid_payload(p)  # no exception
 
     def test_market_regime_must_be_str(self):

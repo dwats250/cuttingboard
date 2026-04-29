@@ -48,6 +48,7 @@ from cuttingboard.derived import compute_all_derived
 from cuttingboard.ingestion import fetch_ohlcv
 from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, block_live_data, fetch_all, fetch_intraday_bars
 from cuttingboard.intraday_state_engine import Bar as IntradayStateBar, compute_intraday_state
+from cuttingboard.evaluation import run_post_trade_evaluation
 from cuttingboard.normalization import NormalizedQuote, normalize_all
 from cuttingboard.notifications import (
     NOTIFY_MODES,
@@ -75,6 +76,7 @@ from cuttingboard.flow import load_flow_snapshot
 from cuttingboard.correlation import CorrelationResult, compute_correlation
 from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
 from cuttingboard.trade_policy import PolicyContext, evaluate_policy
+from cuttingboard.trade_decision import TradeDecision, create_trade_decision, ALLOW_TRADE
 from cuttingboard.output import (
     OUTCOME_HALT,
     OUTCOME_NO_TRADE,
@@ -120,6 +122,7 @@ class _PartialPipelineResult:
     report_path: str
     errors: list
     correlation: Optional[CorrelationResult] = None
+    trade_decisions: list[TradeDecision] = field(default_factory=list)
 
 
 MODE_LIVE = "live"
@@ -192,6 +195,7 @@ class PipelineResult:
     watch_summary: Optional[WatchSummary]
     candidates_generated: int
     option_setups: list[OptionSetup]
+    trade_decisions: list[TradeDecision]
     suppressed_candidates: list[SuppressedCandidate]
     chain_results: dict[str, ChainValidationResult]
     outcome: str
@@ -580,6 +584,7 @@ def _run_pipeline(
     watch_summary: Optional[WatchSummary] = None
     candidates_generated = 0
     option_setups: list[OptionSetup] = []
+    trade_decisions: list[TradeDecision] = []
     suppressed_candidates: list[SuppressedCandidate] = []
     intraday_state_context: dict[str, dict[str, Any]] = {}
     chain_results: dict[str, ChainValidationResult] = {}
@@ -668,12 +673,26 @@ def _run_pipeline(
                     chain_results = validate_option_chains(option_setups, validation_summary.valid_quotes)
                     warnings.extend(_chain_warning_lines(chain_results))
 
-            validated_count = sum(
-                1
-                for setup in option_setups
-                if chain_results.get(setup.symbol, _validated_chain_result(setup.symbol)).classification == VALIDATED
+            if option_setups:
+                setup_by_symbol = {setup.symbol: setup for setup in option_setups}
+                qualified_by_symbol = {
+                    result.symbol: result for result in qualification_summary.qualified_trades
+                }
+                trade_decisions = [
+                    create_trade_decision(
+                        candidates[symbol],
+                        qualified_by_symbol[symbol],
+                        setup,
+                        chain_results.get(symbol, _validated_chain_result(symbol)),
+                    )
+                    for symbol, setup in setup_by_symbol.items()
+                ]
+
+            outcome = (
+                OUTCOME_TRADE
+                if any(decision.status == ALLOW_TRADE for decision in trade_decisions)
+                else OUTCOME_NO_TRADE
             )
-            outcome = OUTCOME_TRADE if validated_count > 0 else OUTCOME_NO_TRADE
 
     report = render_report(
         date_str=date_str,
@@ -715,6 +734,7 @@ def _run_pipeline(
             report_path=report_path,
             errors=errors,
             correlation=correlation_result,
+            trade_decisions=trade_decisions,
         ),
         generated_at=run_at_utc,
         status=contract_status,
@@ -770,12 +790,14 @@ def _run_pipeline(
         qualification_summary=qualification_summary,
         watch_summary=watch_summary,
         option_setups=option_setups,
+        trade_decisions=trade_decisions,
         suppressed_candidates=suppressed_candidates,
         halt_reason=validation_summary.halt_reason,
         alert_sent=alert_sent,
         report_path=report_path,
         intraday_state_context=intraday_state_context,
     )
+    run_post_trade_evaluation(current_run_at_utc=run_at_utc)
 
     summary = _build_run_summary(
         mode=mode,
@@ -791,6 +813,7 @@ def _run_pipeline(
         watch_summary=watch_summary,
         candidates_generated=candidates_generated,
         option_setups=option_setups,
+        trade_decisions=trade_decisions,
         chain_results=chain_results,
         warnings=warnings,
         errors=errors,
@@ -813,6 +836,7 @@ def _run_pipeline(
         watch_summary=watch_summary,
         candidates_generated=candidates_generated,
         option_setups=option_setups,
+        trade_decisions=trade_decisions,
         suppressed_candidates=suppressed_candidates,
         chain_results=chain_results,
         outcome=outcome,
@@ -844,6 +868,7 @@ def _build_run_summary(
     watch_summary: Optional[WatchSummary],
     candidates_generated: int,
     option_setups: list[OptionSetup],
+    trade_decisions: list[TradeDecision],
     chain_results: dict[str, ChainValidationResult],
     warnings: list[str],
     errors: list[str],
@@ -853,11 +878,7 @@ def _build_run_summary(
     fallback_used = any(raw.source == "polygon" for raw in raw_quotes.values())
     data_status = _data_status(mode, raw_quotes, normalized_quotes, fixture_file)
     kill_switch = _kill_switch(regime, normalized_quotes)
-    validated_count = sum(
-        1
-        for setup in option_setups
-        if chain_results.get(setup.symbol, _validated_chain_result(setup.symbol)).classification == VALIDATED
-    )
+    validated_count = sum(1 for decision in trade_decisions if decision.status == ALLOW_TRADE)
     if kill_switch:
         validated_count = 0
 
