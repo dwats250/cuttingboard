@@ -296,7 +296,14 @@ def test_format_hourly_notification_wrapper_uses_watch_optimized_shape():
     )
 
     assert title == "ACTIVE - NO SETUP 10:00"
-    assert body == "EXPANSION | RISK ON | 0.72\nNO TRADE\nno setups"
+    assert body == (
+        "EXPANSION | RISK ON | 0.72\n"
+        "No trade.\n"
+        "Reason: no setups\n\n"
+        "TRIGGERS:\n"
+        "- breakout above resistance\n"
+        "- continuation hold above trigger"
+    )
 
 
 def test_format_hourly_notification_wrapper_filters_macro_candidates():

@@ -83,7 +83,14 @@ class TestBuildNotificationMessage:
             )
         )
         assert title == "STAY FLAT 10:00"
-        assert body == "EXPANSION | RISK ON | 0.72\nNO TRADE\nno setups"
+        assert body == (
+            "EXPANSION | RISK ON | 0.72\n"
+            "No trade.\n"
+            "Reason: no setups\n\n"
+            "TRIGGERS:\n"
+            "- breakout above resistance\n"
+            "- continuation hold above trigger"
+        )
 
     def test_primary_trade_prd_shape(self):
         candidates = [
@@ -91,6 +98,7 @@ class TestBuildNotificationMessage:
                 "symbol": "NVDA",
                 "direction": "LONG",
                 "entry": 482.30,
+                "stop": 479.00,
                 "risk_reward": 2.4,
                 "decision_status": "ALLOW_TRADE",
                 "orb_high": 481.20,
@@ -115,6 +123,9 @@ class TestBuildNotificationMessage:
             "ORB: 481.20 / 478.50 (0.56%)",
             "- META LONG RR 2.1",
             "- TSLA SHORT RR 1.8",
+            "",
+            "INVALIDATION:",
+            "- close below stop 479.00",
         ]
 
     def test_watchlist_prd_shape(self):
@@ -129,7 +140,16 @@ class TestBuildNotificationMessage:
             )
         )
         assert title == "ACTIVE - NO SETUP 10:00"
-        assert body == "NEUTRAL | MIXED | 0.55\nWATCHLIST\ncandidates gated"
+        assert body == (
+            "NEUTRAL | MIXED | 0.55\n"
+            "WATCHLIST\n"
+            "candidates gated\n\n"
+            "WATCH:\n"
+            "- SPY LONG\n\n"
+            "TRIGGERS:\n"
+            "- range break\n"
+            "- expansion confirmation"
+        )
 
     def test_primary_trade_requires_entry_and_rr(self):
         candidates = [{"symbol": "NVDA", "direction": "LONG", "decision_status": "ALLOW_TRADE"}]

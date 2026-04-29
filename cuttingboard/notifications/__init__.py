@@ -68,6 +68,25 @@ def _hourly_context_line(regime: Optional[RegimeState]) -> str:
     return f"{_compact_label(regime.regime)} | {_compact_label(regime.posture)} | {regime.confidence:.2f}"
 
 
+def _hourly_regime_label(regime: Optional[RegimeState]) -> str:
+    return _compact_label(regime.regime if regime is not None else None)
+
+
+def _trigger_conditions(regime_label: str) -> tuple[str, str]:
+    if regime_label == "RISK OFF":
+        return ("breakdown below support", "failed reclaim at breakdown level")
+    if regime_label in {"RISK ON", "EXPANSION"}:
+        return ("breakout above resistance", "continuation hold above trigger")
+    if regime_label == "NEUTRAL":
+        return ("range break", "expansion confirmation")
+    return ("range break", "confirmed direction")
+
+
+def _append_trigger_block(lines: list[str], regime_label: str) -> None:
+    lines.extend(["", "TRIGGERS:"])
+    lines.extend(f"- {condition}" for condition in _trigger_conditions(regime_label))
+
+
 def _hourly_reason(
     regime: Optional[RegimeState],
     validation_summary: ValidationSummary,
@@ -84,6 +103,23 @@ def _hourly_reason(
     if regime is not None and regime.posture == STAY_FLAT:
         return "stay flat posture"
     return "no setups"
+
+
+def _watch_lines_from_qualification(qualification_summary: Optional[QualificationSummary]) -> tuple[str, ...]:
+    if qualification_summary is None:
+        return ()
+    lines = []
+    ranked = sorted(
+        qualification_summary.watchlist,
+        key=lambda item: (item.symbol, item.direction),
+    )
+    for item in ranked:
+        if not is_tradable_symbol(item.symbol):
+            continue
+        lines.append(f"- {item.symbol.upper()} {item.direction.upper()}")
+        if len(lines) >= 2:
+            break
+    return tuple(lines)
 
 
 def _parse_candidate_line(line: str) -> Optional[tuple[str, str, str]]:
@@ -217,6 +253,7 @@ def format_hourly_notification(
 ) -> tuple[str, str]:
     del halt_reason
     hhmm = _hhmm(asof_utc)
+    regime_label = _hourly_regime_label(regime)
     lines = [_hourly_context_line(regime)]
     parsed = tuple(
         parsed_line
@@ -226,17 +263,19 @@ def format_hourly_notification(
 
     if regime is not None and regime.posture == STAY_FLAT:
         title = f"STAY FLAT {hhmm}"
+        reason = _hourly_reason(
+            regime,
+            validation_summary,
+            qualification_summary,
+            has_candidates=False,
+        )
         lines.extend(
             [
-                "NO TRADE",
-                _hourly_reason(
-                    regime,
-                    validation_summary,
-                    qualification_summary,
-                    has_candidates=False,
-                ),
+                "No trade.",
+                f"Reason: {reason}",
             ]
         )
+        _append_trigger_block(lines, regime_label)
         return title, "\n".join(lines)
 
     if parsed:
@@ -253,17 +292,23 @@ def format_hourly_notification(
         qualification_summary is not None
         and (qualification_summary.symbols_qualified or qualification_summary.symbols_watchlist)
     )
+    reason = _hourly_reason(
+        regime,
+        validation_summary,
+        qualification_summary,
+        has_candidates=has_candidates,
+    )
     lines.extend(
         [
-            "WATCHLIST" if has_candidates else "NO TRADE",
-            _hourly_reason(
-                regime,
-                validation_summary,
-                qualification_summary,
-                has_candidates=has_candidates,
-            ),
+            "WATCHLIST" if has_candidates else "No trade.",
+            f"Reason: {reason}",
         ]
     )
+    if has_candidates:
+        watch_lines = _watch_lines_from_qualification(qualification_summary)
+        if watch_lines:
+            lines.extend(["", "WATCH:", *watch_lines])
+    _append_trigger_block(lines, regime_label)
     return title, "\n".join(lines)
 
 
