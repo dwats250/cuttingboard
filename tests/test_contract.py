@@ -333,6 +333,9 @@ class TestSuccessfulRun:
         assert candidate["risk_reward"] == 2.0
         assert candidate["decision_status"] == ALLOW_TRADE
         assert candidate["block_reason"] is None
+        assert candidate["policy_allowed"] is True
+        assert candidate["policy_reason"] == "policy_not_evaluated"
+        assert candidate["size_multiplier"] == 1.0
         assert candidate["decision_trace"] == {
             "stage": "CHAIN_VALIDATION",
             "source": "chain_validation",
@@ -732,6 +735,40 @@ def test_assert_fails_block_reason_trace_mismatch():
     contract = _build(pr)
     contract["trade_candidates"][0]["decision_trace"]["reason"] = "different reason"
     with pytest.raises(AssertionError, match="block_reason"):
+        assert_valid_contract(contract)
+
+
+def test_assert_fails_missing_trade_candidate_policy_fields():
+    contract = build_pipeline_output_contract(
+        _FakePipelineResult(
+            qualification_summary=_qual_summary(qualified=1),
+            option_setups=[_option_setup()],
+            chain_results={"SPY": _chain_result()},
+            trade_decisions=[_trade_decision()],
+        ),
+        generated_at=_NOW,
+        status=STATUS_OK,
+        artifacts={},
+    )
+    del contract["trade_candidates"][0]["policy_allowed"]
+    with pytest.raises(AssertionError, match="policy_allowed"):
+        assert_valid_contract(contract)
+
+
+def test_assert_fails_policy_block_with_allow_trade():
+    contract = build_pipeline_output_contract(
+        _FakePipelineResult(
+            qualification_summary=_qual_summary(qualified=1),
+            option_setups=[_option_setup()],
+            chain_results={"SPY": _chain_result()},
+            trade_decisions=[_trade_decision()],
+        ),
+        generated_at=_NOW,
+        status=STATUS_OK,
+        artifacts={},
+    )
+    contract["trade_candidates"][0]["policy_allowed"] = False
+    with pytest.raises(AssertionError, match="policy_allowed"):
         assert_valid_contract(contract)
 
 

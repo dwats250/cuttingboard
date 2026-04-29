@@ -135,6 +135,9 @@ def _build_record(
                 entry["decision_status"] = decision.status
                 entry["block_reason"] = decision.block_reason
                 entry["decision_trace"] = dict(decision.decision_trace)
+                entry["policy_allowed"] = decision.policy_allowed
+                entry["policy_reason"] = decision.policy_reason
+                entry["size_multiplier"] = float(decision.size_multiplier)
             meta = (intraday_state_context or {}).get(r.symbol)
             if meta is not None:
                 entry["downside_permission"] = meta.get("downside_permission")
@@ -173,6 +176,9 @@ def _build_record(
             "decision_status": decision.status,
             "block_reason": decision.block_reason,
             "decision_trace": dict(decision.decision_trace),
+            "policy_allowed": decision.policy_allowed,
+            "policy_reason": decision.policy_reason,
+            "size_multiplier": float(decision.size_multiplier),
         })
 
     if watch_summary is not None:

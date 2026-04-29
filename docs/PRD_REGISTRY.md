@@ -61,6 +61,8 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-047 | — | *(intentionally skipped — number not assigned)* | — | — |
 | PRD-048 | 76f9786 | Trade decision visibility in payload and dashboard | COMPLETE | [PRD-048](prd_history/PRD-048.md) |
 | PRD-049 | — | Development process hardening — CI tests, linting, commit gate, snapshot cleanup | COMPLETE | [PRD-049](prd_history/PRD-049.md) |
+| PRD-050 | — | Alert runner fail-visible backstop | COMPLETE | — |
+| PRD-051 | — | Execution policy materialization | COMPLETE | — |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
