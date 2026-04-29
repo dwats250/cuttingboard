@@ -14,31 +14,34 @@ Build and refine a constraint-driven options trading decision engine.
 
 ---
 
-## system state (as of 2026-04-23)
+## system state
 
-All pipeline layers are built and wired. 830 tests passing.
+See `docs/PROJECT_STATE.md` for current test baseline, active PRD, and pipeline status. Pipeline architecture is indexed by GitNexus — use `gitnexus_query` or `gitnexus_context` to navigate modules rather than reading this file.
 
-### pipeline layers
+---
 
-| Layer | Module | Role |
-|---|---|---|
-| 1 | `config.py` | All constants and secrets (from .env). Never hardcode. |
-| 2 | `ingestion.py` | RawQuote fetch. yfinance primary, Polygon fallback. OHLCV parquet cache. |
-| 3 | `normalization.py` | NormalizedQuote. pct_change → decimal, UTC enforcement, units. |
-| 4 | `validation.py` | Hard validation gate. HALT_SYMBOL failure stops the pipeline. |
-| 5 | `derived.py` | EMA9/21/50, ATR14 (Wilder RMA), momentum_5d, volume_ratio. Validated symbols only. |
-| 6 | `structure.py` | Per-ticker classification: TREND / PULLBACK / BREAKOUT / REVERSAL / CHOP. |
-| 7 | `regime.py` | 8-vote macro regime model → RISK_ON / RISK_OFF / NEUTRAL / CHAOTIC + posture. |
-| 8 | `qualification.py` | 9-gate trade qualification. Hard gates 1–4, soft gates 5–9. |
-| 9 | `options.py` | Options expression engine. Spread selection, DTE, strike distance. |
-| 10 | `chain_validation.py` | Live chain liquidity gate. OI, spread %, bid/ask sanity. |
-| 11 | `output.py` | Pure render + delivery layer. Terminal, markdown, Telegram. No pipeline logic. |
-| — | `audit.py` | Append-only JSONL audit log per run. |
-| — | `runtime.py` | Sole production orchestrator. All modes routed through `cli_main()`. |
-| — | `run_intraday.py` | Unscheduled legacy module. Trigger-based regime monitor (L1–5). Not invoked by any workflow. |
-| — | `watch.py` | Intraday watchlist classification and session phase tracking. |
-| — | `intraday_state_engine.py` | ORB classification engine. |
-| — | `notifications/` | ntfy alert formatting. |
+## session mode
+
+Operate REPO-FIRST. Memory hierarchy (strict):
+
+1. Active PRD (`docs/prd_history/PRD-NNN.md`)
+2. `docs/PROJECT_STATE.md`
+3. This file (CLAUDE.md)
+4. Repo source code via GitNexus
+5. Chat context — last resort only
+
+**Startup sequence every session:**
+1. Read `docs/PROJECT_STATE.md` — identifies active PRD and test baseline
+2. Read the active PRD — defines exact scope, files, and requirements
+3. Use GitNexus to locate affected modules and consumers before touching any code
+
+**Constraints:**
+- Do not rely on chat history for system understanding
+- Do not ask for project summaries — query the repo
+- Read only the minimum files needed
+- No scope drift, no inferred features, no modifications outside PRD FILES section
+- Raise errors instead of silently handling invalid states
+- All changes must preserve contract integrity, notification behavior, and decision logic
 
 ---
 
@@ -243,7 +246,7 @@ When uncertain: simplify → reduce → constrain.
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **cuttingboard** (5558 symbols, 11660 relationships, 144 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **cuttingboard** (5634 symbols, 11899 relationships, 144 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -281,12 +284,5 @@ This project is indexed by GitNexus as **cuttingboard** (5558 symbols, 11660 rel
 | Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
 | Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
-| Work in the Tests area (1331 symbols) | `.claude/skills/generated/tests/SKILL.md` |
-| Work in the Cuttingboard area (81 symbols) | `.claude/skills/generated/cuttingboard/SKILL.md` |
-| Work in the Notifications area (47 symbols) | `.claude/skills/generated/notifications/SKILL.md` |
-| Work in the Tools area (33 symbols) | `.claude/skills/generated/tools/SKILL.md` |
-| Work in the Ui area (22 symbols) | `.claude/skills/generated/ui/SKILL.md` |
-| Work in the Algos area (5 symbols) | `.claude/skills/generated/algos/SKILL.md` |
-| Work in the Delivery area (4 symbols) | `.claude/skills/generated/delivery/SKILL.md` |
 
 <!-- gitnexus:end -->
