@@ -67,6 +67,17 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/prd_eval.sh",
+            "statusMessage": "Checking for PRD..."
+          }
+        ]
+      }
     ]
   }
 }

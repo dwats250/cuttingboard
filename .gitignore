@@ -40,3 +40,4 @@ _site/
 reports/output/
 *.json
 !ui/*.json
+.gitnexus
