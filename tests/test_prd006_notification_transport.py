@@ -10,7 +10,7 @@ Verifies:
 from unittest.mock import MagicMock, patch
 
 from cuttingboard import config
-from cuttingboard.output import send_notification, send_telegram
+from cuttingboard.output import DASHBOARD_URL, send_notification, send_telegram
 
 
 # ---------------------------------------------------------------------------
@@ -58,7 +58,7 @@ class TestTelegramDispatchOnly:
         with patch("cuttingboard.output.send_telegram", return_value=True) as mock_tg:
             result = send_notification("HALT", "system halted")
         mock_tg.assert_called_once_with(
-            "HALT", "system halted",
+            "HALT", f"system halted\n\n---\nView Dashboard:\n{DASHBOARD_URL}",
             notification_priority="",
             notification_state_key="",
         )

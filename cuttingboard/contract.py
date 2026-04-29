@@ -295,6 +295,9 @@ def _build_trade_candidates(
             "decision_status": decision.status,
             "block_reason": decision.block_reason,
             "decision_trace": dict(decision.decision_trace),
+            "policy_allowed": decision.policy_allowed,
+            "policy_reason": decision.policy_reason,
+            "size_multiplier": float(decision.size_multiplier),
         })
 
     return candidates
@@ -564,6 +567,25 @@ def _assert_trade_candidates_valid(trade_candidates: list[Any]) -> None:
         )
         block_reason = candidate.get("block_reason")
         decision_trace = candidate.get("decision_trace")
+        policy_allowed = candidate.get("policy_allowed")
+        policy_reason = candidate.get("policy_reason")
+        size_multiplier = candidate.get("size_multiplier")
+        assert isinstance(policy_allowed, bool), (
+            f"trade_candidates[{index}].policy_allowed must be bool"
+        )
+        assert isinstance(policy_reason, str) and policy_reason.strip(), (
+            f"trade_candidates[{index}].policy_reason must be non-empty string"
+        )
+        assert isinstance(size_multiplier, float), (
+            f"trade_candidates[{index}].size_multiplier must be float"
+        )
+        assert math.isfinite(size_multiplier) and size_multiplier >= 0.0, (
+            f"trade_candidates[{index}].size_multiplier must be finite and non-negative"
+        )
+        if policy_allowed is False:
+            assert decision_status != ALLOW_TRADE, (
+                f"trade_candidates[{index}] cannot be ALLOW_TRADE when policy_allowed is False"
+            )
         assert isinstance(decision_trace, dict), (
             f"trade_candidates[{index}].decision_trace must be a dict"
         )

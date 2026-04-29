@@ -196,9 +196,11 @@ def test_run_alert_stay_flat_no_trade_never_enters_trade_only_formatter():
 def test_failure_notification_body_has_no_repeated_branding():
     title, body = format_failure_notification(NOTIFY_POST_ORB, "2026-04-15", "timeout")
 
-    assert title == "POST-ORB FAILED"
+    assert title == "POST-ORB ERROR"
     assert "CUTTINGBOARD" not in body
+    assert "timestamp:" in body
     assert body.endswith("\n\nFailure\ntimeout")
+    assert (title + body).isascii()
 
 
 def test_intraday_notification_uses_shared_compact_style():

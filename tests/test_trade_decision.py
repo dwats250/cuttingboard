@@ -94,6 +94,9 @@ def test_create_trade_decision_allow_trade():
         dollar_risk=150.0,
         block_reason=None,
     )
+    assert decision.policy_allowed is True
+    assert decision.policy_reason == "policy_not_evaluated"
+    assert decision.size_multiplier == 1.0
 
 
 def test_create_trade_decision_block_trade_uses_reason():
@@ -105,6 +108,7 @@ def test_create_trade_decision_block_trade_uses_reason():
     )
     assert decision.status == BLOCK_TRADE
     assert decision.block_reason == "fixture mode skips live chain validation"
+    assert decision.policy_allowed is False
 
 
 def test_create_trade_decision_block_trade_falls_back_to_classification():
@@ -163,4 +167,23 @@ def test_trade_decision_requires_block_reason_for_block():
             contracts=2,
             dollar_risk=150.0,
             block_reason=None,
+        )
+
+
+def test_trade_decision_rejects_policy_block_with_allow_status():
+    with pytest.raises(ValueError, match="policy_allowed=False"):
+        TradeDecision(
+            ticker="SPY",
+            direction="LONG",
+            status=ALLOW_TRADE,
+            entry=100.0,
+            stop=97.0,
+            target=106.0,
+            r_r=2.0,
+            contracts=2,
+            dollar_risk=150.0,
+            block_reason=None,
+            policy_allowed=False,
+            policy_reason="low_confidence",
+            size_multiplier=0.0,
         )

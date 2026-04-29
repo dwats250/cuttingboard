@@ -37,10 +37,16 @@ class TradeDecision:
     dollar_risk: float
     block_reason: Optional[str]
     decision_trace: dict[str, str] = field(default_factory=_default_decision_trace)
+    policy_allowed: Optional[bool] = None
+    policy_reason: str = "policy_not_evaluated"
+    size_multiplier: float = 1.0
 
     def __post_init__(self) -> None:
         if self.status not in VALID_DECISION_STATUSES:
             raise ValueError(f"invalid trade decision status: {self.status!r}")
+
+        if self.policy_allowed is None:
+            object.__setattr__(self, "policy_allowed", self.status == ALLOW_TRADE)
 
         numeric_fields = {
             "entry": self.entry,
@@ -48,6 +54,7 @@ class TradeDecision:
             "target": self.target,
             "r_r": self.r_r,
             "dollar_risk": self.dollar_risk,
+            "size_multiplier": self.size_multiplier,
         }
         for label, value in numeric_fields.items():
             if not math.isfinite(float(value)):
@@ -62,6 +69,14 @@ class TradeDecision:
             raise ValueError("ALLOW_TRADE requires block_reason=None")
         if self.status == BLOCK_TRADE and not self.block_reason:
             raise ValueError("BLOCK_TRADE requires non-empty block_reason")
+        if self.policy_allowed is False and self.status == ALLOW_TRADE:
+            raise ValueError("policy_allowed=False requires non-ALLOW_TRADE status")
+        if not isinstance(self.policy_allowed, bool):
+            raise ValueError("policy_allowed must be bool")
+        if not isinstance(self.policy_reason, str) or not self.policy_reason.strip():
+            raise ValueError("policy_reason must be non-empty string")
+        if float(self.size_multiplier) < 0.0:
+            raise ValueError("size_multiplier must be >= 0")
 
         trace_keys = {"stage", "source", "reason"}
         if set(self.decision_trace) != trace_keys:

@@ -36,6 +36,7 @@ from cuttingboard.chain_validation import (
 from cuttingboard.options import OptionSetup
 from cuttingboard.qualification import QualificationSummary
 from cuttingboard.regime import RegimeState, EXPANSION
+from cuttingboard.universe import is_tradable_symbol
 from cuttingboard.validation import ValidationSummary
 from cuttingboard.watch import (
     WatchSummary,
@@ -66,6 +67,8 @@ _BORDER = "=" * 54
 _DIVIDER = "-" * 54
 _REPORT_DIR = "reports"
 DASHBOARD_URL = "https://dwats250.github.io/cuttingboard/dashboard.html"
+DASHBOARD_FOOTER = f"---\nView Dashboard:\n{DASHBOARD_URL}"
+ALLOW_TRADE = "ALLOW_TRADE"
 
 # ---------------------------------------------------------------------------
 # ASCII sanitisation
@@ -454,6 +457,7 @@ def send_telegram(
     *,
     notification_priority: str = "",
     notification_state_key: str = "",
+    notification_audit_reason: Optional[str] = None,
 ) -> bool:
     """Send Telegram notification. Returns True on success, False otherwise.
 
@@ -464,8 +468,8 @@ def send_telegram(
     skip (not configured), success, HTTP failure, or exception.
     Never raises — notification failure must not crash the pipeline.
 
-    notification_priority and notification_state_key are forwarded to the
-    audit record when provided by the PRD-018 suppression layer.
+    notification_priority, notification_state_key, and notification_audit_reason
+    are forwarded to the audit record when provided by callers.
     """
     token = config.TELEGRAM_BOT_TOKEN
     chat_id = config.TELEGRAM_CHAT_ID
@@ -480,7 +484,7 @@ def send_telegram(
             alert_title=title,
             attempted=False,
             success=False,
-            reason="not_configured",
+            reason=notification_audit_reason or "not_configured",
             priority=_priority,
             state_key=_state_key,
             message_preview=body[:120] if body else None,
@@ -538,6 +542,7 @@ def send_telegram(
             success=True,
             http_status=200,
             retry_count=retry_count,
+            reason=notification_audit_reason,
             priority=_priority,
             state_key=_state_key,
             message_preview=preview,
@@ -556,7 +561,7 @@ def send_telegram(
         http_status=http_status,
         error=error_detail,
         retry_count=retry_count,
-        reason="exception" if http_status is None else None,
+        reason=notification_audit_reason or ("exception" if http_status is None else None),
         priority=_priority,
         state_key=_state_key,
         message_preview=preview,
@@ -570,67 +575,216 @@ def send_notification(
     *,
     notification_priority: str = "",
     notification_state_key: str = "",
+    notification_audit_reason: Optional[str] = None,
 ) -> bool:
     """Single notification dispatch point. Sends via Telegram."""
+    if body and DASHBOARD_URL not in body:
+        body = f"{body}\n\n{DASHBOARD_FOOTER}"
+    kwargs = {
+        "notification_priority": notification_priority,
+        "notification_state_key": notification_state_key,
+    }
+    if notification_audit_reason is not None:
+        kwargs["notification_audit_reason"] = notification_audit_reason
     return send_telegram(
         title,
         body,
-        notification_priority=notification_priority,
-        notification_state_key=notification_state_key,
+        **kwargs,
     )
 
 
-def build_notification_message(contract: dict) -> tuple[str, str]:
-    """Return (title, body) for a Telegram alert derived from the canonical contract.
+def _alert_time(generated_at: str) -> str:
+    try:
+        raw = generated_at.replace("Z", "+00:00")
+        return time_utils.convert_utc_to_et(datetime.fromisoformat(raw)).strftime("%H:%M")
+    except Exception:
+        return generated_at[11:16] if len(generated_at) >= 16 else "00:00"
 
-    The alert title is bound to contract["outcome"] and validated candidate
-    presence. Tradability remains visible in the body only.
-    """
+
+def _compact_label(value: object) -> str:
+    return str(value or "UNKNOWN").replace("_", " ").upper()
+
+
+def _alert_context_line(contract: dict) -> str:
+    regime_block = contract.get("regime") or {}
+    system_state = contract.get("system_state") or {}
+    regime = regime_block.get("classification") or system_state.get("market_regime") or "UNKNOWN"
+    posture = regime_block.get("posture") or system_state.get("router_mode") or "UNKNOWN"
+    try:
+        confidence = float(regime_block.get("confidence"))
+    except (TypeError, ValueError):
+        confidence = 0.0
+    return f"{_compact_label(regime)} | {_compact_label(posture)} | {confidence:.2f}"
+
+
+def _alert_regime_label(contract: dict) -> str:
+    regime_block = contract.get("regime") or {}
+    system_state = contract.get("system_state") or {}
+    return _compact_label(regime_block.get("classification") or system_state.get("market_regime"))
+
+
+def _trigger_conditions(regime_label: str) -> tuple[str, str]:
+    if regime_label == "RISK OFF":
+        return ("breakdown below support", "failed reclaim at breakdown level")
+    if regime_label in {"RISK ON", "EXPANSION"}:
+        return ("breakout above resistance", "continuation hold above trigger")
+    if regime_label == "NEUTRAL":
+        return ("range break", "expansion confirmation")
+    return ("range break", "confirmed direction")
+
+
+def _append_trigger_block(lines: list[str], regime_label: str) -> None:
+    lines.extend(["", "TRIGGERS:"])
+    lines.extend(f"- {condition}" for condition in _trigger_conditions(regime_label))
+
+
+def _candidate_rr(candidate: dict) -> float:
+    try:
+        return float(candidate.get("risk_reward"))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _ranked_alert_candidates(contract: dict) -> list[dict]:
+    candidates = [
+        candidate
+        for candidate in (contract.get("trade_candidates") or [])
+        if is_tradable_symbol(str(candidate.get("symbol") or ""))
+    ]
+    return sorted(
+        candidates,
+        key=lambda candidate: (
+            candidate.get("decision_status") == ALLOW_TRADE,
+            _candidate_rr(candidate),
+            str(candidate.get("symbol") or ""),
+        ),
+        reverse=True,
+    )
+
+
+def _fmt_price(value: object) -> Optional[str]:
+    try:
+        return f"{float(value):.2f}"
+    except (TypeError, ValueError):
+        return None
+
+
+def _fmt_rr(value: object) -> Optional[str]:
+    try:
+        return f"{float(value):.1f}"
+    except (TypeError, ValueError):
+        return None
+
+
+def _orb_line(candidate: dict) -> Optional[str]:
+    orb = candidate.get("orb") or candidate.get("orb_context") or {}
+    high = candidate.get("orb_high", orb.get("high"))
+    low = candidate.get("orb_low", orb.get("low"))
+    high_text = _fmt_price(high)
+    low_text = _fmt_price(low)
+    if high_text is None or low_text is None:
+        return None
+
+    range_pct = candidate.get("orb_range_pct", orb.get("range_pct"))
+    try:
+        pct = float(range_pct)
+    except (TypeError, ValueError):
+        try:
+            pct = ((float(high) - float(low)) / float(low)) * 100.0
+        except (TypeError, ValueError, ZeroDivisionError):
+            return None
+    return f"ORB: {high_text} / {low_text} ({pct:.2f}%)"
+
+
+def _alert_reason(contract: dict, *, has_candidates: bool) -> str:
+    if has_candidates:
+        return "candidates gated"
+    system_state = contract.get("system_state") or {}
+    audit_summary = contract.get("audit_summary") or {}
+    reason = (
+        system_state.get("stay_flat_reason")
+        or audit_summary.get("regime_failure_reason")
+        or contract.get("error_detail")
+        or "no setups"
+    )
+    return str(reason).replace("\n", " ")[:80]
+
+
+def _watch_lines(candidates: list[dict]) -> list[str]:
+    lines = ["WATCH:"]
+    for candidate in candidates[:2]:
+        symbol = str(candidate.get("symbol") or "").upper()
+        direction = str(candidate.get("direction") or "").upper()
+        lines.append(f"- {symbol} {direction}")
+    return lines
+
+
+def _invalidation_line(candidate: dict) -> Optional[str]:
+    stop = _fmt_price(candidate.get("stop"))
+    direction = str(candidate.get("direction") or "").upper()
+    if stop is None:
+        return None
+    if direction == "SHORT":
+        return f"close above stop {stop}"
+    return f"close below stop {stop}"
+
+
+def build_notification_message(contract: dict) -> tuple[str, str]:
+    """Return a compact execution alert derived from the canonical contract."""
     status = contract.get("status") or ""
     outcome = contract.get("outcome")
-    ss = contract.get("system_state") or {}
-    market_regime = ss.get("market_regime") or "UNKNOWN"
-    tradable = bool(ss.get("tradable", False))
-    candidates = contract.get("trade_candidates") or []
-    validated_candidates = [
-        candidate
-        for candidate in candidates
-        if candidate.get("setup_quality") == VALIDATED
-    ]
-    generated_at = (contract.get("generated_at") or "")[:16]
+    generated_at = contract.get("generated_at") or ""
+    hhmm = _alert_time(generated_at)
+    candidates = _ranked_alert_candidates(contract)
+    allowed = [c for c in candidates if c.get("decision_status") == ALLOW_TRADE]
 
     if outcome not in {OUTCOME_TRADE, OUTCOME_NO_TRADE, OUTCOME_HALT}:
         if status in {"FAIL", "ERROR"}:
             outcome = OUTCOME_HALT
-        elif validated_candidates:
+        elif allowed:
             outcome = OUTCOME_TRADE
         else:
             outcome = OUTCOME_NO_TRADE
 
-    if outcome == OUTCOME_HALT:
-        title = "HALT - SYSTEM ERROR"
-    elif outcome == OUTCOME_TRADE:
-        title = "TRADE READY"
-    elif candidates:
-        title = "WATCHLIST - SETUPS FORMING"
+    regime_label = _alert_regime_label(contract)
+    lines = [_alert_context_line(contract)]
+    primary = allowed[0] if allowed else None
+    if primary is not None:
+        symbol = str(primary.get("symbol") or "").upper()
+        direction = str(primary.get("direction") or "").upper()
+        entry = _fmt_price(primary.get("entry"))
+        rr = _fmt_rr(primary.get("risk_reward"))
+        if entry is not None and rr is not None:
+            title = f"{direction} {symbol} {hhmm}"
+            lines.append(f"> {symbol} {direction} @ {entry} | RR {rr}")
+            orb = _orb_line(primary)
+            if orb is not None:
+                lines.append(orb)
+            for candidate in candidates:
+                if candidate is primary:
+                    continue
+                rr_line = _fmt_rr(candidate.get("risk_reward"))
+                if rr_line is None:
+                    continue
+                lines.append(
+                    f"- {str(candidate.get('symbol') or '').upper()} "
+                    f"{str(candidate.get('direction') or '').upper()} RR {rr_line}"
+                )
+                if len([line for line in lines if line.startswith("- ")]) >= 4:
+                    break
+            invalidation = _invalidation_line(primary)
+            if invalidation is not None:
+                lines.extend(["", "INVALIDATION:", f"- {invalidation}"])
+            return title, "\n".join(lines)
+
+    if candidates:
+        title = f"ACTIVE - NO SETUP {hhmm}"
+        lines.extend(["WATCHLIST", _alert_reason(contract, has_candidates=True), ""])
+        lines.extend(_watch_lines(candidates))
+        _append_trigger_block(lines, regime_label)
     else:
-        title = "NO TRADE - SYSTEM ACTIVE"
+        title = f"STAY FLAT {hhmm}"
+        lines.extend(["No trade.", f"Reason: {_alert_reason(contract, has_candidates=False)}"])
+        _append_trigger_block(lines, regime_label)
 
-    lines = [
-        f"Time: {generated_at}",
-        f"Regime: {market_regime}",
-        f"Tradable: {tradable}",
-        f"Setups: {len(candidates)}",
-        f"Status: {status}",
-    ]
-
-    if outcome == OUTCOME_HALT:
-        lines.append("Reason: pipeline failure")
-    elif outcome == OUTCOME_NO_TRADE and not candidates:
-        lines.append("Reason: no qualifying setups")
-    elif outcome == OUTCOME_NO_TRADE:
-        lines.append("Reason: setups forming but no validated trade")
-
-    body = "\n".join(lines)
-    body = f"{body}\n\n---\nView Dashboard:\n{DASHBOARD_URL}"
-    return title, body
+    return title, "\n".join(lines)

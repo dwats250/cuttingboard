@@ -9,10 +9,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.qualification import QualificationSummary
 from cuttingboard.regime import CHAOTIC, RegimeState, STAY_FLAT
+from cuttingboard.universe import is_tradable_symbol
 from cuttingboard.validation import ValidationSummary
 from cuttingboard.watch import WatchSummary
 
@@ -49,6 +51,91 @@ NOTIFY_MODES = frozenset(
 )
 
 _SUPPRESS_CONFIDENCE = 0.55
+_ET_TZ = ZoneInfo("America/New_York")
+
+
+def _hhmm(asof_utc: datetime) -> str:
+    return asof_utc.astimezone(_ET_TZ).strftime("%H:%M")
+
+
+def _compact_label(value: object) -> str:
+    return str(value or "UNKNOWN").replace("_", " ").upper()
+
+
+def _hourly_context_line(regime: Optional[RegimeState]) -> str:
+    if regime is None:
+        return "UNKNOWN | UNKNOWN | 0.00"
+    return f"{_compact_label(regime.regime)} | {_compact_label(regime.posture)} | {regime.confidence:.2f}"
+
+
+def _hourly_regime_label(regime: Optional[RegimeState]) -> str:
+    return _compact_label(regime.regime if regime is not None else None)
+
+
+def _trigger_conditions(regime_label: str) -> tuple[str, str]:
+    if regime_label == "RISK OFF":
+        return ("breakdown below support", "failed reclaim at breakdown level")
+    if regime_label in {"RISK ON", "EXPANSION"}:
+        return ("breakout above resistance", "continuation hold above trigger")
+    if regime_label == "NEUTRAL":
+        return ("range break", "expansion confirmation")
+    return ("range break", "confirmed direction")
+
+
+def _append_trigger_block(lines: list[str], regime_label: str) -> None:
+    lines.extend(["", "TRIGGERS:"])
+    lines.extend(f"- {condition}" for condition in _trigger_conditions(regime_label))
+
+
+def _hourly_reason(
+    regime: Optional[RegimeState],
+    validation_summary: ValidationSummary,
+    qualification_summary: Optional[QualificationSummary],
+    *,
+    has_candidates: bool,
+) -> str:
+    if validation_summary.system_halted:
+        return str(validation_summary.halt_reason or "system halted")[:80]
+    if has_candidates:
+        return "candidates gated"
+    if qualification_summary is not None and qualification_summary.regime_failure_reason:
+        return str(qualification_summary.regime_failure_reason)[:80]
+    if regime is not None and regime.posture == STAY_FLAT:
+        return "stay flat posture"
+    return "no setups"
+
+
+def _watch_lines_from_qualification(qualification_summary: Optional[QualificationSummary]) -> tuple[str, ...]:
+    if qualification_summary is None:
+        return ()
+    lines = []
+    ranked = sorted(
+        qualification_summary.watchlist,
+        key=lambda item: (item.symbol, item.direction),
+    )
+    for item in ranked:
+        if not is_tradable_symbol(item.symbol):
+            continue
+        lines.append(f"- {item.symbol.upper()} {item.direction.upper()}")
+        if len(lines) >= 2:
+            break
+    return tuple(lines)
+
+
+def _parse_candidate_line(line: str) -> Optional[tuple[str, str, str]]:
+    parts = [part.strip() for part in line.split("|")]
+    if len(parts) < 4:
+        return None
+    symbol = parts[0].upper()
+    direction = parts[1].upper()
+    rr = parts[-1].replace(":1", "").strip()
+    if not is_tradable_symbol(symbol):
+        return None
+    try:
+        rr_text = f"{float(rr):.1f}"
+    except ValueError:
+        return None
+    return symbol, direction, rr_text
 
 
 def should_suppress(
@@ -164,27 +251,87 @@ def format_hourly_notification(
     candidate_lines: tuple[str, ...] = (),
     halt_reason: Optional[str] = None,
 ) -> tuple[str, str]:
-    event = AlertEvent(
-        alert_context=ALERT_CONTEXT_NOTIFY,
-        notify_mode=NOTIFY_HOURLY,
-        outcome="NO_TRADE",
-        asof_utc=asof_utc,
-        regime=regime,
-        validation_summary=validation_summary,
-        qualification_summary=qualification_summary,
-        halt_reason=halt_reason,
-        candidate_lines=candidate_lines,
+    del halt_reason
+    hhmm = _hhmm(asof_utc)
+    regime_label = _hourly_regime_label(regime)
+    lines = [_hourly_context_line(regime)]
+    parsed = tuple(
+        parsed_line
+        for line in candidate_lines
+        if (parsed_line := _parse_candidate_line(line)) is not None
     )
-    return format_ntfy_alert(event)
+
+    if regime is not None and regime.posture == STAY_FLAT:
+        title = f"STAY FLAT {hhmm}"
+        reason = _hourly_reason(
+            regime,
+            validation_summary,
+            qualification_summary,
+            has_candidates=False,
+        )
+        lines.extend(
+            [
+                "No trade.",
+                f"Reason: {reason}",
+            ]
+        )
+        _append_trigger_block(lines, regime_label)
+        return title, "\n".join(lines)
+
+    if parsed:
+        first_symbol, first_direction, _ = parsed[0]
+        title = f"{first_direction} {first_symbol} {hhmm}"
+        lines.extend(
+            f"- {symbol} {direction} RR {rr}"
+            for symbol, direction, rr in parsed[:4]
+        )
+        return title, "\n".join(lines)
+
+    title = f"ACTIVE - NO SETUP {hhmm}"
+    has_candidates = bool(
+        qualification_summary is not None
+        and (qualification_summary.symbols_qualified or qualification_summary.symbols_watchlist)
+    )
+    reason = _hourly_reason(
+        regime,
+        validation_summary,
+        qualification_summary,
+        has_candidates=has_candidates,
+    )
+    lines.extend(
+        [
+            "WATCHLIST" if has_candidates else "No trade.",
+            f"Reason: {reason}",
+        ]
+    )
+    if has_candidates:
+        watch_lines = _watch_lines_from_qualification(qualification_summary)
+        if watch_lines:
+            lines.extend(["", "WATCH:", *watch_lines])
+    _append_trigger_block(lines, regime_label)
+    return title, "\n".join(lines)
 
 
 def format_failure_notification(notify_mode: str, date_str: str, reason: str) -> tuple[str, str]:
     del date_str
-    event = AlertEvent(
-        alert_context=ALERT_CONTEXT_NOTIFY,
-        notify_mode=notify_mode,
-        outcome="NO_TRADE",
-        asof_utc=datetime.now(timezone.utc),
-        failure_reason=reason,
+    label = {
+        NOTIFY_PREMARKET: "PREMARKET",
+        NOTIFY_ORB_TRAJECTORY: "EARLY SESSION",
+        NOTIFY_POST_ORB: "POST-ORB",
+        NOTIFY_MIDMORNING: "MIDDAY",
+        NOTIFY_POWER_HOUR: "POWER HOUR",
+        NOTIFY_MARKET_CLOSE: "MARKET CLOSE",
+        NOTIFY_HOURLY: "HOURLY",
+    }.get(notify_mode, str(notify_mode).upper())
+    timestamp = datetime.now(timezone.utc).isoformat()
+    safe_reason = str(reason)[:200].encode("ascii", errors="replace").decode("ascii")
+    title = f"{label} ERROR"
+    body = "\n".join(
+        [
+            f"timestamp: {timestamp}",
+            "",
+            "Failure",
+            safe_reason,
+        ]
     )
-    return format_ntfy_alert(event)
+    return title, body
