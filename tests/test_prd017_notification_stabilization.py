@@ -17,8 +17,6 @@ from datetime import date
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from cuttingboard import config
 from cuttingboard.output import (
     DASHBOARD_URL,
@@ -43,19 +41,28 @@ def _notification_records(audit_path: Path) -> list[dict]:
 
 def _make_contract(
     market_regime: str = "RISK_ON",
+    posture: str = "RISK_ON",
+    confidence: float = 0.72,
     tradable: bool = True,
     trade_candidates: list | None = None,
     generated_at: str = "2026-04-24T14:00:00Z",
     status: str = "OK",
     outcome: str = "NO_TRADE",
+    stay_flat_reason: str | None = None,
 ) -> dict:
     return {
         "generated_at": generated_at,
         "status": status,
         "outcome": outcome,
+        "regime": {
+            "classification": market_regime,
+            "posture": posture,
+            "confidence": confidence,
+        },
         "system_state": {
             "market_regime": market_regime,
             "tradable": tradable,
+            "stay_flat_reason": stay_flat_reason,
         },
         "trade_candidates": trade_candidates or [],
     }
@@ -66,76 +73,108 @@ def _make_contract(
 # ---------------------------------------------------------------------------
 
 class TestBuildNotificationMessage:
-    def test_includes_timestamp(self):
-        _, body = build_notification_message(_make_contract(generated_at="2026-04-24T14:35:00Z"))
-        assert "2026-04-24T14:35" in body
-
-    def test_includes_market_regime(self):
-        _, body = build_notification_message(_make_contract(market_regime="RISK_OFF"))
-        assert "RISK_OFF" in body
-
-    def test_trade_outcome_gives_trade_ready_title(self):
-        candidates = [{"symbol": "SPY", "setup_quality": "TOP_TRADE_VALIDATED"}]
-        title, _ = build_notification_message(
-            _make_contract(tradable=True, outcome="TRADE", trade_candidates=candidates)
+    def test_stay_flat_prd_shape(self):
+        title, body = build_notification_message(
+            _make_contract(
+                market_regime="EXPANSION",
+                posture="RISK_ON",
+                confidence=0.72,
+                trade_candidates=[],
+            )
         )
-        assert title == "TRADE READY"
+        assert title == "STAY FLAT 10:00"
+        assert body == "EXPANSION | RISK ON | 0.72\nNO TRADE\nno setups"
 
-    def test_tradable_true_no_trade_never_gives_trade_ready_title(self):
-        title, _ = build_notification_message(_make_contract(tradable=True, outcome="NO_TRADE"))
-        assert title == "NO TRADE - SYSTEM ACTIVE"
-
-    def test_not_tradable_no_candidates_gives_no_trade_title(self):
-        title, _ = build_notification_message(
-            _make_contract(tradable=False, outcome="NO_TRADE", trade_candidates=[])
+    def test_primary_trade_prd_shape(self):
+        candidates = [
+            {
+                "symbol": "NVDA",
+                "direction": "LONG",
+                "entry": 482.30,
+                "risk_reward": 2.4,
+                "decision_status": "ALLOW_TRADE",
+                "orb_high": 481.20,
+                "orb_low": 478.50,
+            },
+            {"symbol": "TSLA", "direction": "SHORT", "risk_reward": 1.8, "decision_status": "BLOCK_TRADE"},
+            {"symbol": "META", "direction": "LONG", "risk_reward": 2.1, "decision_status": "BLOCK_TRADE"},
+        ]
+        title, body = build_notification_message(
+            _make_contract(
+                market_regime="EXPANSION",
+                posture="RISK_ON",
+                confidence=0.81,
+                outcome="TRADE",
+                trade_candidates=candidates,
+            )
         )
-        assert title == "NO TRADE - SYSTEM ACTIVE"
+        assert title == "LONG NVDA 10:00"
+        assert body.splitlines() == [
+            "EXPANSION | RISK ON | 0.81",
+            "> NVDA LONG @ 482.30 | RR 2.4",
+            "ORB: 481.20 / 478.50 (0.56%)",
+            "- META LONG RR 2.1",
+            "- TSLA SHORT RR 1.8",
+        ]
 
-    def test_not_tradable_with_candidates_gives_watchlist_title(self):
-        candidates = [{"symbol": "SPY", "direction": "LONG", "strategy_tag": "BULL_CALL"}]
-        title, _ = build_notification_message(
-            _make_contract(tradable=False, outcome="NO_TRADE", trade_candidates=candidates)
+    def test_watchlist_prd_shape(self):
+        candidates = [{"symbol": "SPY", "direction": "LONG", "risk_reward": 1.2, "decision_status": "BLOCK_TRADE"}]
+        title, body = build_notification_message(
+            _make_contract(
+                market_regime="NEUTRAL",
+                posture="MIXED",
+                confidence=0.55,
+                tradable=False,
+                trade_candidates=candidates,
+            )
         )
-        assert title == "WATCHLIST - SETUPS FORMING"
+        assert title == "ACTIVE - NO SETUP 10:00"
+        assert body == "NEUTRAL | MIXED | 0.55\nWATCHLIST\ncandidates gated"
 
-    def test_fail_status_gives_halt_title(self):
-        title, _ = build_notification_message(_make_contract(status="FAIL", outcome="HALT"))
-        assert title == "HALT - SYSTEM ERROR"
+    def test_primary_trade_requires_entry_and_rr(self):
+        candidates = [{"symbol": "NVDA", "direction": "LONG", "decision_status": "ALLOW_TRADE"}]
+        title, body = build_notification_message(_make_contract(outcome="TRADE", trade_candidates=candidates))
+        assert title == "ACTIVE - NO SETUP 10:00"
+        assert "> NVDA" not in body
 
-    def test_error_status_gives_halt_title(self):
-        title, _ = build_notification_message(_make_contract(status="ERROR", outcome="HALT"))
-        assert title == "HALT - SYSTEM ERROR"
+    def test_orb_line_only_when_data_exists(self):
+        candidates = [
+            {
+                "symbol": "NVDA",
+                "direction": "LONG",
+                "entry": 482.30,
+                "risk_reward": 2.4,
+                "decision_status": "ALLOW_TRADE",
+            }
+        ]
+        _, body = build_notification_message(_make_contract(outcome="TRADE", trade_candidates=candidates))
+        assert "ORB:" not in body
 
-    def test_includes_tradable_in_body(self):
-        _, body = build_notification_message(_make_contract(tradable=True))
-        assert "Tradable:" in body
+    def test_secondary_setups_max_four_and_sorted_by_rr(self):
+        candidates = [
+            {"symbol": "NVDA", "direction": "LONG", "entry": 100, "risk_reward": 3.0, "decision_status": "ALLOW_TRADE"},
+            {"symbol": "AAPL", "direction": "LONG", "risk_reward": 1.1, "decision_status": "BLOCK_TRADE"},
+            {"symbol": "META", "direction": "LONG", "risk_reward": 2.1, "decision_status": "BLOCK_TRADE"},
+            {"symbol": "TSLA", "direction": "SHORT", "risk_reward": 1.8, "decision_status": "BLOCK_TRADE"},
+            {"symbol": "AMZN", "direction": "LONG", "risk_reward": 1.5, "decision_status": "BLOCK_TRADE"},
+            {"symbol": "SPY", "direction": "LONG", "risk_reward": 1.3, "decision_status": "BLOCK_TRADE"},
+        ]
+        _, body = build_notification_message(_make_contract(outcome="TRADE", trade_candidates=candidates))
+        secondary = [line for line in body.splitlines() if line.startswith("- ")]
+        assert secondary == [
+            "- META LONG RR 2.1",
+            "- TSLA SHORT RR 1.8",
+            "- AMZN LONG RR 1.5",
+            "- SPY LONG RR 1.3",
+        ]
 
-    def test_setups_count_in_body(self):
-        candidates = [{"symbol": f"SYM{i}"} for i in range(5)]
+    def test_macro_symbols_filtered(self):
+        candidates = [
+            {"symbol": "NVDA", "direction": "LONG", "risk_reward": 2.0, "decision_status": "BLOCK_TRADE"},
+            {"symbol": "^VIX", "direction": "LONG", "risk_reward": 9.0, "decision_status": "BLOCK_TRADE"},
+        ]
         _, body = build_notification_message(_make_contract(trade_candidates=candidates))
-        assert "Setups: 5" in body
-
-    def test_setups_zero_when_no_candidates(self):
-        _, body = build_notification_message(_make_contract(trade_candidates=[]))
-        assert "Setups: 0" in body
-
-    def test_body_line_order(self):
-        _, body = build_notification_message(_make_contract())
-        keys = [line.split(":")[0] for line in body.splitlines() if ":" in line]
-        assert keys[:5] == ["Time", "Regime", "Tradable", "Setups", "Status"]
-
-    def test_reason_no_qualifying_setups(self):
-        _, body = build_notification_message(_make_contract(outcome="NO_TRADE", tradable=False, trade_candidates=[]))
-        assert "Reason: no qualifying setups" in body
-
-    def test_reason_setups_present_but_not_tradable(self):
-        candidates = [{"symbol": "SPY"}]
-        _, body = build_notification_message(_make_contract(outcome="NO_TRADE", tradable=False, trade_candidates=candidates))
-        assert "Reason: setups forming but no validated trade" in body
-
-    def test_reason_pipeline_failure(self):
-        _, body = build_notification_message(_make_contract(status="FAIL", outcome="HALT"))
-        assert "Reason: pipeline failure" in body
+        assert "^VIX" not in body
 
     def test_ascii_only_output(self):
         title, body = build_notification_message(_make_contract())
@@ -153,42 +192,24 @@ class TestBuildNotificationMessage:
         assert isinstance(title, str)
         assert isinstance(body, str)
 
-    def test_dashboard_link_present(self):
-        _, body = build_notification_message(_make_contract())
-        assert DASHBOARD_URL in body
+    def test_direct_notification_send_appends_dashboard_link_once(self):
+        body = "STAY_FLAT - no entries"
 
-    def test_dashboard_link_at_end(self):
-        _, body = build_notification_message(_make_contract())
-        assert body.endswith(f"---\nView Dashboard:\n{DASHBOARD_URL}")
-        assert f"\n\n---\nView Dashboard:\n{DASHBOARD_URL}" in body
+        with patch("cuttingboard.output.send_telegram", return_value=True) as mock_send:
+            send_notification("STAY FLAT", body)
 
-    @pytest.mark.parametrize(
-        "contract",
-        [
-            _make_contract(outcome="NO_TRADE", trade_candidates=[]),
-            _make_contract(
-                outcome="TRADE",
-                trade_candidates=[{"symbol": "SPY", "setup_quality": "TOP_TRADE_VALIDATED"}],
-            ),
-            _make_contract(status="FAIL", outcome="HALT"),
-            {},
-        ],
-    )
-    def test_dashboard_link_always_included(self, contract):
-        _, body = build_notification_message(contract)
-        assert body.endswith(f"---\nView Dashboard:\n{DASHBOARD_URL}")
+        sent_body = mock_send.call_args.args[1]
+        assert sent_body.endswith(f"---\nView Dashboard:\n{DASHBOARD_URL}")
+        assert sent_body.count(DASHBOARD_URL) == 1
 
-    def test_notification_body_unchanged_except_link(self):
-        _, body = build_notification_message(_make_contract())
-        expected_prefix = (
-            "Time: 2026-04-24T14:00\n"
-            "Regime: RISK_ON\n"
-            "Tradable: True\n"
-            "Setups: 0\n"
-            "Status: OK\n"
-            "Reason: no qualifying setups"
-        )
-        assert body == f"{expected_prefix}\n\n---\nView Dashboard:\n{DASHBOARD_URL}"
+    def test_direct_notification_send_does_not_duplicate_dashboard_link(self):
+        body = f"STAY_FLAT - no entries\n\n---\nView Dashboard:\n{DASHBOARD_URL}"
+
+        with patch("cuttingboard.output.send_telegram", return_value=True) as mock_send:
+            send_notification("STAY FLAT", body)
+
+        sent_body = mock_send.call_args.args[1]
+        assert sent_body.count(DASHBOARD_URL) == 1
 
     def test_deterministic_output(self):
         contract = _make_contract(

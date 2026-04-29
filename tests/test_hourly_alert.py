@@ -4,7 +4,7 @@ import inspect
 from datetime import date, datetime, timezone
 from unittest.mock import MagicMock, patch
 
-from cuttingboard.notifications import NOTIFY_HOURLY
+from cuttingboard.notifications import NOTIFY_HOURLY, format_hourly_notification
 from cuttingboard.notifications.formatter import ALERT_CONTEXT_NOTIFY, AlertEvent, format_ntfy_alert
 from cuttingboard.qualification import QualificationResult, QualificationSummary, TradeCandidate
 from cuttingboard.regime import RegimeState
@@ -285,6 +285,32 @@ def test_format_hourly_system_halt_routes_to_halt_format():
     )
     title, body = format_ntfy_alert(event)
     assert title == "SYSTEM HALT"
+
+
+def test_format_hourly_notification_wrapper_uses_watch_optimized_shape():
+    title, body = format_hourly_notification(
+        asof_utc=datetime(2026, 4, 23, 14, 0, tzinfo=timezone.utc),
+        regime=_regime(regime="EXPANSION", posture="RISK_ON", confidence=0.72),
+        validation_summary=_validation(),
+        qualification_summary=_qual([]),
+    )
+
+    assert title == "ACTIVE - NO SETUP 10:00"
+    assert body == "EXPANSION | RISK ON | 0.72\nNO TRADE\nno setups"
+
+
+def test_format_hourly_notification_wrapper_filters_macro_candidates():
+    title, body = format_hourly_notification(
+        asof_utc=datetime(2026, 4, 23, 14, 0, tzinfo=timezone.utc),
+        regime=_regime(regime="EXPANSION", posture="RISK_ON", confidence=0.81),
+        validation_summary=_validation(),
+        qualification_summary=_qual(["^VIX", "NVDA"], direction="LONG"),
+        candidate_lines=("^VIX | LONG | TREND | 9.0:1", "NVDA | LONG | TREND | 2.4:1"),
+    )
+
+    assert title == "LONG NVDA 10:00"
+    assert "^VIX" not in body
+    assert "- NVDA LONG RR 2.4" in body
 
 
 # ---------------------------------------------------------------------------
