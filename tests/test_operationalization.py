@@ -394,15 +394,58 @@ def test_safe_write_rejects_equal_timestamp(tmp_path):
     assert json.loads(path.read_text(encoding="utf-8")) == existing
 
 
-def test_missing_timestamp_raises(tmp_path):
+def test_safe_write_overwrites_legacy_artifact_without_timestamp(tmp_path):
+    path = tmp_path / "latest_run.json"
+    legacy = _valid_summary()
+    legacy.pop("run_at_utc")
+    replacement = _valid_summary(run_at_utc="2026-04-12T14:00:00Z", timestamp="2026-04-12T14:00:00Z")
+    _write_summary(path, legacy)
+
+    runtime.safe_write_latest(path, replacement, "run_at_utc")
+
+    assert json.loads(path.read_text(encoding="utf-8")) == replacement
+
+
+def test_missing_new_timestamp_raises_and_legacy_existing_overwrites(tmp_path):
     path = tmp_path / "latest_run.json"
 
     with pytest.raises(RuntimeError, match="Missing required timestamp field in new data: run_at_utc"):
         runtime.safe_write_latest(path, {"status": "SUCCESS"}, "run_at_utc")
 
     _write_summary(path, {"status": "SUCCESS"})
-    with pytest.raises(RuntimeError, match="Missing required timestamp field in existing data: run_at_utc"):
-        runtime.safe_write_latest(path, _valid_summary(), "run_at_utc")
+    runtime.safe_write_latest(path, _valid_summary(), "run_at_utc")
+    assert REQUIRED_SUMMARY_FIELDS <= set(json.loads(path.read_text(encoding="utf-8")))
+
+
+def test_safe_write_overwrites_legacy_contract_artifact_without_timestamp(tmp_path):
+    path = tmp_path / "latest_contract.json"
+    legacy = _valid_contract()
+    legacy.pop("generated_at")
+    replacement = _valid_contract(generated_at="2026-04-12T14:00:00Z", outcome="TRADE")
+    _write_summary(path, legacy)
+
+    runtime.safe_write_latest(path, replacement, "generated_at")
+
+    assert json.loads(path.read_text(encoding="utf-8")) == replacement
+
+
+def test_execute_run_overwrites_legacy_latest_summary(monkeypatch, tmp_path):
+    logs_dir, reports_dir = _isolate_artifacts(monkeypatch, tmp_path)
+    legacy_summary = _valid_summary()
+    legacy_summary.pop("run_at_utc")
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    _write_summary(logs_dir / "latest_run.json", legacy_summary)
+
+    summary = runtime.execute_run(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-12"),
+        fixture_file=FIXTURE_PATH,
+    )
+
+    latest_path = logs_dir / "latest_run.json"
+    assert summary["status"] == "SUCCESS"
+    assert json.loads(latest_path.read_text(encoding="utf-8"))["run_at_utc"] == "2026-04-12T13:00:00Z"
+    assert (reports_dir / "2026-04-12.md").exists()
 
 
 def test_latest_run_integrity_under_simulated_race(monkeypatch, tmp_path):

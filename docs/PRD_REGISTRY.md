@@ -63,6 +63,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-049 | — | Development process hardening — CI tests, linting, commit gate, snapshot cleanup | COMPLETE | [PRD-049](prd_history/PRD-049.md) |
 | PRD-050 | — | Alert runner fail-visible backstop | COMPLETE | — |
 | PRD-051 | — | Execution policy materialization | COMPLETE | — |
+| PRD-052 | — | Runtime artifact self-healing — legacy tolerance for missing timestamp keys | COMPLETE | [PRD-052](prd_history/PRD-052.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

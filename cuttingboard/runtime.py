@@ -1378,8 +1378,10 @@ def safe_write_latest(path: str | Path, new_data: dict[str, Any], ts_key: str) -
     except json.JSONDecodeError as exc:
         raise RuntimeError(f"Invalid JSON in existing latest artifact: {target}") from exc
 
-    if ts_key not in existing:
-        raise RuntimeError(f"Missing required timestamp field in existing data: {ts_key}")
+    if not isinstance(existing, dict) or ts_key not in existing:
+        logger.info("LEGACY_ARTIFACT_OVERWRITE")
+        target.write_text(payload, encoding="utf-8")
+        return target
 
     old_ts = _parse_timestamp(existing[ts_key], source="existing data")
     if new_ts > old_ts:
