@@ -39,15 +39,15 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-025 | 3d532cd | Decision compression layer — primary signal and trade promotion | COMPLETE | [PRD-025](prd_history/PRD-025.md) |
 | PRD-026 | 442b813 | Alert visibility upgrade — deterministic ASCII titles and structured body | COMPLETE | [PRD-026](prd_history/PRD-026.md) |
 | PRD-027 | b8dc599 | Context report layer — deterministic premarket and postmarket reports | COMPLETE | [PRD-027](prd_history/PRD-027.md) |
-| PRD-028 | — | PRD system hardening — template, lifecycle states, file enforcement, scope lock | IN PROGRESS | [PRD-028](prd_history/PRD-028.md) |
+| PRD-028 | 2796df4 | PRD system hardening — template, lifecycle states, file enforcement, scope lock | COMPLETE | [PRD-028](prd_history/PRD-028.md) |
 | PRD-029 | 57c23f9 | Level awareness layer — derived price levels for premarket and postmarket reports | COMPLETE | [PRD-029](prd_history/PRD-029.md) |
 | PRD-030 | 83bdd3b | Scenario engine hardening — regime + level driven scenario generation | COMPLETE | [PRD-030](prd_history/PRD-030.md) |
-| PRD-031 | — | Claude Code hooks — commit gate, file guard, test gate, state snapshot | IN PROGRESS | [PRD-031](prd_history/PRD-031.md) |
+| PRD-031 | 0c61a87 | Claude Code hooks — commit gate, file guard, test gate, state snapshot | COMPLETE | [PRD-031](prd_history/PRD-031.md) |
 | PRD-032 | — | Catastrophic output and validation contract repair | PATCH | [PRD-032](prd_history/PRD-032.md) |
-| PRD-033 | — | UI theme layer — sideloadable CSS theme system | IN PROGRESS | [PRD-033](prd_history/PRD-033.md) |
-| PRD-034 | — | GitHub Pages deployment — remote read-only access | IN PROGRESS | [PRD-034](prd_history/PRD-034.md) |
+| PRD-033 | 7fe9eb7 | UI theme layer — sideloadable CSS theme system | COMPLETE | [PRD-033](prd_history/PRD-033.md) |
+| PRD-034 | 54d490e | GitHub Pages deployment — remote read-only access | COMPLETE | [PRD-034](prd_history/PRD-034.md) |
 | PRD-035 | feature/ui-decision-layer | Signal Forge dashboard — contract regime block + UI macro strip | COMPLETE | [PRD-035](prd_history/PRD-035.md) |
-| PRD-036 | — | Slim dashboard renderer — read-only HTML from payload + run artifacts | IN PROGRESS | [PRD-036](prd_history/PRD-036.md) |
+| PRD-036 | ccb53fb | Slim dashboard renderer — read-only HTML from payload + run artifacts | COMPLETE | [PRD-036](prd_history/PRD-036.md) |
 | PRD-037 | 0a80981 | Dashboard publish artifact — static copy of generated HTML to docs/ | COMPLETE | [PRD-037](prd_history/PRD-037.md) |
 | PRD-038 | d1a77e3 | Read-only macro tape consolidation block | COMPLETE | [PRD-038](prd_history/PRD-038.md) |
 | PRD-039 | 3e7a4f2 | Dashboard link in all Telegram alerts | COMPLETE | [PRD-039](prd_history/PRD-039.md) |
@@ -58,7 +58,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-044 | a5b1c85 | Macro driver payload surface with no-data mode support | COMPLETE | [PRD-044](prd_history/PRD-044.md) |
 | PRD-045 | 64a78d5 | Trade decision materialization — explicit ALLOW/BLOCK per candidate | COMPLETE | [PRD-045](prd_history/PRD-045.md) |
 | PRD-046 | 9fbd22b | Decision trace — first-failure explanation per candidate | COMPLETE | [PRD-046](prd_history/PRD-046.md) |
-| PRD-048 | — | Trade decision visibility in payload and dashboard | IN PROGRESS | [PRD-048](prd_history/PRD-048.md) |
+| PRD-048 | 76f9786 | Trade decision visibility in payload and dashboard | COMPLETE | [PRD-048](prd_history/PRD-048.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

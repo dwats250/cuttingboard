@@ -2,15 +2,15 @@
 
 Project: Cutting Board
 
-Latest completed PRD: PRD-047
-Current active PRD: PRD-048
+Latest completed PRD: PRD-048
+Current active PRD: PRD-032 (PATCH — catastrophic output and validation contract repair)
 
 Status:
-- PRD-047 COMPLETE (Post-Trade Evaluation Layer)
-- PRD-048 IN PROGRESS (Trade Decision Visibility)
+- PRD-048 COMPLETE (Trade Decision Visibility in Payload and Dashboard)
+- PRD-032 OPEN PATCH (no commit — genuinely unresolved)
 
 Test baseline:
-- 1407 passing
+- 1441 passing
 
 Architecture:
 - audit.jsonl → trade decisions

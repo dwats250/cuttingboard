@@ -18,6 +18,9 @@ d = json.load(sys.stdin)
 print(d.get('tool_input', {}).get('command', ''))
 ")
 
+# Ensure GitNexus DB is writable so MCP server FTS indexes succeed
+chmod 666 .gitnexus/lbug 2>/dev/null || true
+
 # Only act on Bash tool
 [[ "$TOOL_NAME" == "Bash" ]] || exit 0
 
