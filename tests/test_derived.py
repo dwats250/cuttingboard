@@ -5,7 +5,6 @@ All tests are offline: a synthetic OHLCV DataFrame is injected directly.
 No network calls are made.
 """
 
-import math
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch
 

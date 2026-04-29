@@ -5,6 +5,7 @@
 set -euo pipefail
 
 INPUT=$(cat)
+PATH=".venv/bin:$PATH"
 
 TOOL_NAME=$(echo "$INPUT" | python3 -c "
 import sys, json
@@ -98,28 +99,27 @@ transcript_path = "$TRANSCRIPT_PATH"
 approved = 0
 try:
     with open(transcript_path) as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                msg = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if msg.get('role') != 'user':
-                continue
-            content = msg.get('content', '')
-            if isinstance(content, str):
-                if 'APPROVE COMMIT' in content:
+        lines = [l.strip() for l in f if l.strip()]
+    # Only scan the most recent 50 entries so approval must be recent
+    for line in lines[-50:]:
+        try:
+            msg = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if msg.get('role') != 'user':
+            continue
+        content = msg.get('content', '')
+        if isinstance(content, str):
+            if 'APPROVE COMMIT' in content:
+                approved = 1
+                break
+        elif isinstance(content, list):
+            for part in content:
+                if isinstance(part, dict) and 'APPROVE COMMIT' in str(part.get('text', '')):
                     approved = 1
                     break
-            elif isinstance(content, list):
-                for part in content:
-                    if isinstance(part, dict) and 'APPROVE COMMIT' in str(part.get('text', '')):
-                        approved = 1
-                        break
-                if approved:
-                    break
+            if approved:
+                break
 except Exception:
     pass
 print(approved)
@@ -129,6 +129,14 @@ fi
 
 if [[ "$APPROVED" == "1" ]]; then
   echo "[git_gate] APPROVED: APPROVE COMMIT found in session transcript." >&2
+  if ! ruff check cuttingboard/ tests/; then
+    echo "[git_gate] BLOCKED: ruff errors must be fixed before commit." >&2
+    exit 1
+  fi
+  if ! pytest tests/ -q; then
+    echo "[git_gate] BLOCKED: tests must pass before commit." >&2
+    exit 1
+  fi
   exit 0
 fi
 

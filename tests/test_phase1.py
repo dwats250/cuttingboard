@@ -4,9 +4,7 @@ Phase 1 tests — config, ingestion, normalization, validation.
 Run with: pytest tests/test_phase1.py -v
 """
 
-import math
 from datetime import datetime, timezone, timedelta
-from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -14,8 +12,6 @@ from cuttingboard import config
 from cuttingboard.ingestion import RawQuote
 from cuttingboard.normalization import NormalizedQuote, normalize_quote, normalize_quotes
 from cuttingboard.validation import (
-    SymbolValidation,
-    ValidationSummary,
     validate_quotes,
     extract_fetch_failures,
 )

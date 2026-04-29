@@ -6,15 +6,14 @@ No network calls, no file I/O.
 """
 
 from datetime import datetime, timezone
-from typing import Optional
 
 import pytest
 
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.regime import (
-    RISK_ON, RISK_OFF, NEUTRAL, TRANSITION, CHAOTIC,
+    RISK_ON, RISK_OFF, NEUTRAL, CHAOTIC,
     AGGRESSIVE_LONG, CONTROLLED_LONG, NEUTRAL_PREMIUM, DEFENSIVE_SHORT, STAY_FLAT,
-    RegimeState, compute_regime, from_validation_results,
+    compute_regime, from_validation_results,
 )
 
 
@@ -329,7 +328,6 @@ class TestVIXState:
 
 class TestBridgeAndDataclass:
     def test_from_validation_results_bridge(self):
-        from cuttingboard.validation import ValidationResult
 
         # Build a fake flat results list
         class _FakeResult:

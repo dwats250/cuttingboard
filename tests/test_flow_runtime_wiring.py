@@ -17,7 +17,6 @@ from pathlib import Path
 import pytest
 
 import cuttingboard.config as config_mod
-from cuttingboard import config
 from cuttingboard.flow import FlowPrint
 from cuttingboard.runtime import _load_flow
 

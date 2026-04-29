@@ -88,7 +88,7 @@ def main() -> None:
         sys.exit(0)   # Don't fail CI — data outage is not a pipeline error
 
     # --- Layers 4–5: derived + regime ---
-    dm     = compute_all_derived(val.valid_quotes)
+    compute_all_derived(val.valid_quotes)
     regime = compute_regime(val.valid_quotes)
 
     logger.info(

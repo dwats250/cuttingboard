@@ -54,10 +54,20 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install package
+      - name: Install dev dependencies
         run: |
           set -eo pipefail
-          pip install -e .
+          pip install -e ".[dev]"
+
+      - name: Lint
+        run: |
+          set -eo pipefail
+          ruff check cuttingboard/ tests/
+
+      - name: Test
+        run: |
+          set -eo pipefail
+          pytest tests/ -q
 
       - name: Engine health check
         run: |

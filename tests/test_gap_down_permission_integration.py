@@ -12,7 +12,6 @@ from unittest.mock import patch
 
 import pandas as pd
 import pytz
-import pytest
 
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.qualification import TradeCandidate

@@ -3,6 +3,7 @@
 # Runs pytest -q when a scoped Python file changes; debounces within 10 seconds.
 
 INPUT=$(cat)
+PATH=".venv/bin:$PATH"
 
 FILE_PATH=$(echo "$INPUT" | python3 -c "
 import sys, json
@@ -33,9 +34,18 @@ fi
 echo "[test_gate] $FILE_PATH changed — running pytest..." >&2
 echo "$NOW" > "$DEBOUNCE_FILE"
 
+PYTEST_STATUS=0
 if .venv/bin/pytest -q tests/; then
   echo "[test_gate] All tests passed." >&2
 else
   echo "[test_gate] TESTS FAILED — review failures before proceeding." >&2
+  PYTEST_STATUS=1
+fi
+
+if ! RUFF_OUTPUT=$(ruff check "$FILE_PATH" 2>&1); then
+  echo "[test_gate] Ruff: $RUFF_OUTPUT" >&2
+fi
+
+if [[ "$PYTEST_STATUS" -ne 0 ]]; then
   exit 1
 fi

@@ -35,7 +35,7 @@ from cuttingboard.contract import (
 from cuttingboard.chain_validation import ChainValidationResult, VALIDATED
 from cuttingboard.options import OptionSetup
 from cuttingboard.normalization import NormalizedQuote
-from cuttingboard.output import OUTCOME_HALT, OUTCOME_NO_TRADE, OUTCOME_TRADE, render_report
+from cuttingboard.output import OUTCOME_HALT, OUTCOME_NO_TRADE, render_report
 from cuttingboard.qualification import (
     ENTRY_MODE_DIRECT,
     QualificationResult,
@@ -460,7 +460,7 @@ def test_no_non_json_types():
 # ---------------------------------------------------------------------------
 
 def test_render_report_no_crash():
-    from cuttingboard.output import OUTCOME_NO_TRADE, render_report
+    from cuttingboard.output import OUTCOME_NO_TRADE
     report = render_report(
         date_str="2026-04-23",
         run_at_utc=_NOW,
@@ -475,7 +475,7 @@ def test_render_report_no_crash():
 
 
 def test_render_report_stay_flat_no_crash():
-    from cuttingboard.output import OUTCOME_NO_TRADE, render_report
+    from cuttingboard.output import OUTCOME_NO_TRADE
     flat_regime = _regime(regime=NEUTRAL, posture=STAY_FLAT, confidence=0.4)
     qual = _qual_summary(
         regime_short_circuited=True, regime_failure_reason="STAY_FLAT_LOW_CONF"

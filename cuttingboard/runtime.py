@@ -30,10 +30,6 @@ from cuttingboard import config, time_utils
 from cuttingboard.audit import write_audit_record, write_notification_audit
 from cuttingboard.contract import (
     LATEST_CONTRACT_PATH,
-    STATUS_ERROR,
-    STATUS_OK,
-    STATUS_STAY_FLAT,
-    assert_valid_contract,
     build_error_contract,
     build_pipeline_output_contract,
     derive_run_status,
@@ -46,13 +42,12 @@ from cuttingboard.chain_validation import (
 )
 from cuttingboard.derived import compute_all_derived
 from cuttingboard.ingestion import fetch_ohlcv
-from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, block_live_data, fetch_all, fetch_intraday_bars
+from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all, fetch_intraday_bars
 from cuttingboard.intraday_state_engine import Bar as IntradayStateBar, compute_intraday_state
 from cuttingboard.evaluation import run_post_trade_evaluation
 from cuttingboard.normalization import NormalizedQuote, normalize_all
 from cuttingboard.notifications import (
     NOTIFY_MODES,
-    NOTIFY_PREMARKET,
     NOTIFY_ORB_TRAJECTORY,
     NOTIFY_POST_ORB,
     NOTIFY_MIDMORNING,
@@ -64,7 +59,6 @@ from cuttingboard.notifications import (
     format_notification,
 )
 from cuttingboard.notifications.state import (
-    NotificationPriority,
     classify_notification_priority,
     load_last_state,
     notification_state_key,
@@ -293,7 +287,6 @@ def execute_run(
     fixture_file: Optional[Path] = None,
     notify_mode: Optional[str] = None,
 ) -> dict[str, Any]:
-    warnings: list[str] = []
     errors: list[str] = []
     report_path: Optional[Path] = None
     summary_path: Optional[Path] = None

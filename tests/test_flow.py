@@ -23,7 +23,6 @@ Acceptance criteria (PRD-015):
 """
 
 import json
-import os
 import pytest
 
 from cuttingboard.flow import (
@@ -33,7 +32,7 @@ from cuttingboard.flow import (
     load_flow_snapshot,
     _classify_strike,
 )
-from cuttingboard.qualification import QualificationResult, ENTRY_MODE_DIRECT
+from cuttingboard.qualification import QualificationResult
 
 # ---------------------------------------------------------------------------
 # Constants for fixtures

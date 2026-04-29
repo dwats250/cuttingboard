@@ -19,11 +19,9 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from cuttingboard import config
 from cuttingboard.notifications.state import (
-    LAST_STATE_PATH,
     NotificationPriority,
     classify_notification_priority,
     load_last_state,
@@ -285,8 +283,6 @@ class TestStatePersistenceOnSend:
 
     def test_state_not_saved_after_failed_send(self, tmp_path):
         state_path = str(tmp_path / "state.json")
-        contract = _make_contract()
-        key = notification_state_key(contract)
 
         # Simulate failed send — do NOT call save_last_state
         assert load_last_state(state_path) is None

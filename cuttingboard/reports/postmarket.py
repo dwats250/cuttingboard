@@ -52,7 +52,6 @@ def _classify_evr_with_levels(
     prior_posture = prior.get("posture")
     prior_direction = _direction_from_posture(prior_posture)
 
-    prior_regime: str | None = prior.get("regime")
     realized_direction = _direction_from_posture(
         "AGGRESSIVE_LONG" if (market_regime == "RISK_ON" and tradable) else
         "DEFENSIVE_SHORT" if (market_regime == "RISK_OFF" and tradable) else

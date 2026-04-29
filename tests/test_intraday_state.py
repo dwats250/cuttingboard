@@ -6,7 +6,7 @@ initial breaks are informational only; trades only unlock after hold or
 failure confirmation.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pytest
 import pytz

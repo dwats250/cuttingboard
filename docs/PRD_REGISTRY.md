@@ -43,7 +43,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-029 | 57c23f9 | Level awareness layer — derived price levels for premarket and postmarket reports | COMPLETE | [PRD-029](prd_history/PRD-029.md) |
 | PRD-030 | 83bdd3b | Scenario engine hardening — regime + level driven scenario generation | COMPLETE | [PRD-030](prd_history/PRD-030.md) |
 | PRD-031 | 0c61a87 | Claude Code hooks — commit gate, file guard, test gate, state snapshot | COMPLETE | [PRD-031](prd_history/PRD-031.md) |
-| PRD-032 | — | Catastrophic output and validation contract repair | PATCH | [PRD-032](prd_history/PRD-032.md) |
+| PRD-032 | — | Catastrophic output and validation contract repair | DEPRECATED | [PRD-032](prd_history/PRD-032.md) |
 | PRD-033 | 7fe9eb7 | UI theme layer — sideloadable CSS theme system | COMPLETE | [PRD-033](prd_history/PRD-033.md) |
 | PRD-034 | 54d490e | GitHub Pages deployment — remote read-only access | COMPLETE | [PRD-034](prd_history/PRD-034.md) |
 | PRD-035 | feature/ui-decision-layer | Signal Forge dashboard — contract regime block + UI macro strip | COMPLETE | [PRD-035](prd_history/PRD-035.md) |
@@ -58,7 +58,9 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-044 | a5b1c85 | Macro driver payload surface with no-data mode support | COMPLETE | [PRD-044](prd_history/PRD-044.md) |
 | PRD-045 | 64a78d5 | Trade decision materialization — explicit ALLOW/BLOCK per candidate | COMPLETE | [PRD-045](prd_history/PRD-045.md) |
 | PRD-046 | 9fbd22b | Decision trace — first-failure explanation per candidate | COMPLETE | [PRD-046](prd_history/PRD-046.md) |
+| PRD-047 | — | *(intentionally skipped — number not assigned)* | — | — |
 | PRD-048 | 76f9786 | Trade decision visibility in payload and dashboard | COMPLETE | [PRD-048](prd_history/PRD-048.md) |
+| PRD-049 | — | Development process hardening — CI tests, linting, commit gate, snapshot cleanup | COMPLETE | [PRD-049](prd_history/PRD-049.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

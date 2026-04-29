@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, replace
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Optional
+from datetime import datetime
+from typing import TYPE_CHECKING
 
 from cuttingboard import config
 from cuttingboard.universe import is_tradable_symbol

@@ -7,12 +7,11 @@ No network calls, no file I/O.
 
 from datetime import datetime, timezone
 
-import pytest
 
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.regime import (
     EXPANSION, EXPANSION_LONG,
-    RISK_ON, NEUTRAL, CHAOTIC,
+    RISK_ON, CHAOTIC,
     detect_expansion_regime,
     compute_regime,
 )

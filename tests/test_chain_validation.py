@@ -28,7 +28,7 @@ from cuttingboard.chain_validation import (
     _MIN_BID_EXECUTION, _MIN_OI_EXECUTION, _MIN_VOL_EXECUTION,
 )
 from cuttingboard.normalization import NormalizedQuote
-from cuttingboard.options import OptionSetup, BULL_CALL_SPREAD, BEAR_PUT_SPREAD, BULL_PUT_SPREAD
+from cuttingboard.options import OptionSetup, BULL_CALL_SPREAD, BEAR_PUT_SPREAD
 
 
 # ---------------------------------------------------------------------------

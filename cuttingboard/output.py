@@ -20,7 +20,7 @@ Consumed by runtime.py — pure render and delivery layer, no pipeline logic.
 import logging
 import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 
 import requests

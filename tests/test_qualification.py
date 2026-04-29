@@ -18,7 +18,6 @@ from cuttingboard.qualification import (
     qualify_candidate,
     direction_for_regime,
     TradeCandidate,
-    QualificationResult,
     QualificationSummary,
     GATE_REGIME, GATE_CONFIDENCE, GATE_DIRECTION, GATE_STRUCTURE,
     GATE_STOP_DEF, GATE_STOP_DIST, GATE_RR, GATE_MAX_RISK, GATE_EARNINGS,
@@ -31,7 +30,7 @@ from cuttingboard.regime import (
     AGGRESSIVE_LONG, CONTROLLED_LONG, NEUTRAL_PREMIUM,
     DEFENSIVE_SHORT, STAY_FLAT,
 )
-from cuttingboard.structure import StructureResult, TREND, PULLBACK, BREAKOUT, CHOP, NORMAL_IV
+from cuttingboard.structure import StructureResult, TREND, CHOP, NORMAL_IV
 
 
 # ---------------------------------------------------------------------------
@@ -476,7 +475,6 @@ class TestFullyQualified:
 
     def test_position_sizing(self):
         regime = _regime()
-        c = _candidate(spread_width=0.50)
         r = qualify_candidate(
             _candidate(entry_price=100.0, stop_price=97.0, target_price=106.0, spread_width=0.50),
             regime, _structure(),
@@ -493,6 +491,7 @@ class TestFullyQualified:
         # LONG is correct for RISK_ON; verify it is recorded
         # entry=100, stop=97, target=106 gives RR=2.0 (exactly at boundary)
         # The gate passes when rr >= MIN_RR_RATIO
+        assert r.direction == "LONG"
 
 
 # ---------------------------------------------------------------------------

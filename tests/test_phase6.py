@@ -7,20 +7,17 @@ File-writing tests use tmp_path to sandbox state files.
 
 import json
 import os
-import pytest
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from cuttingboard.regime import (
     RegimeState,
-    RISK_ON, RISK_OFF, TRANSITION, CHAOTIC,
-    AGGRESSIVE_LONG, DEFENSIVE_SHORT, STAY_FLAT, NEUTRAL_PREMIUM,
+    RISK_ON, RISK_OFF, CHAOTIC,
+    AGGRESSIVE_LONG, DEFENSIVE_SHORT, STAY_FLAT,
 )
 from cuttingboard.run_intraday import (
     _detect_trigger,
     _within_dedup_window,
-    _load_state,
     _update_state,
     _send_alert,
     ALERT_CHAOTIC,
@@ -85,7 +82,6 @@ class TestDetectTrigger:
     def test_transition_to_risk_on_not_a_shift(self):
         # Shift only from RISK_ON ↔ RISK_OFF (not from TRANSITION)
         r = _regime(regime=RISK_ON)
-        state = {"last_regime": TRANSITION}
         result = _detect_trigger(r, {})
         # No last_regime in state, so shift can't be detected
         assert result != ALERT_REGIME_SHIFT
@@ -307,4 +303,3 @@ class TestSendAlert:
         assert "CUTTINGBOARD" not in sent_text.split("\n")[0]
         assert "REGIME SHIFT ->" not in sent_text
         assert "New regime:" not in sent_text
-

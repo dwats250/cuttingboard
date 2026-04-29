@@ -7,8 +7,7 @@ Verifies:
   3. A sample alert flows through send_notification → send_telegram exactly once
 """
 
-from unittest.mock import MagicMock, patch, call
-import pytest
+from unittest.mock import MagicMock, patch
 
 from cuttingboard import config
 from cuttingboard.output import send_notification, send_telegram

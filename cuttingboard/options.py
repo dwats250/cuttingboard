@@ -27,7 +27,6 @@ Exit rule: close at +50% of max profit OR full debit loss — every trade.
 """
 
 import logging
-import math
 from dataclasses import dataclass, replace
 from typing import Optional
 
@@ -44,7 +43,7 @@ from cuttingboard.regime import RegimeState, NEUTRAL
 from cuttingboard.structure import (
     StructureResult,
     TREND, PULLBACK, BREAKOUT, REVERSAL, CHOP,
-    LOW_IV, NORMAL_IV, ELEVATED_IV, HIGH_IV,
+    ELEVATED_IV, HIGH_IV,
 )
 
 logger = logging.getLogger(__name__)

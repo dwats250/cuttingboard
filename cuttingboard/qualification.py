@@ -24,13 +24,12 @@ import pandas as pd
 from cuttingboard import config, time_utils
 from cuttingboard.derived import DerivedMetrics
 from cuttingboard.flow import FlowPrint, apply_flow_gate
-from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.regime import (
     RegimeState,
-    RISK_ON, RISK_OFF, TRANSITION, CHAOTIC, NEUTRAL, EXPANSION,
+    RISK_ON, RISK_OFF, NEUTRAL, EXPANSION,
     STAY_FLAT,
 )
-from cuttingboard.structure import StructureResult, CHOP, TREND
+from cuttingboard.structure import StructureResult, CHOP
 
 logger = logging.getLogger(__name__)
 
@@ -576,11 +575,11 @@ def print_qualification_summary(
 ) -> None:
     """Print qualification summary to terminal."""
     print(f"\n{'─' * 52}")
-    print(f"  QUALIFICATION SUMMARY")
+    print("  QUALIFICATION SUMMARY")
     print(f"  Regime: {regime.regime} / {regime.posture}  conf={regime.confidence:.2f}")
     if summary.regime_short_circuited:
         print(f"  ⚠  SHORT-CIRCUITED: {summary.regime_failure_reason}")
-        print(f"  Symbols evaluated: 0  (regime gate blocked per-symbol work)")
+        print("  Symbols evaluated: 0  (regime gate blocked per-symbol work)")
     else:
         print(f"  Symbols evaluated:  {summary.symbols_evaluated}")
         print(f"  Qualified trades:   {summary.symbols_qualified}")
@@ -588,7 +587,7 @@ def print_qualification_summary(
         print(f"  Excluded:           {summary.symbols_excluded}")
 
     if summary.qualified_trades:
-        print(f"\n  QUALIFIED:")
+        print("\n  QUALIFIED:")
         for r in summary.qualified_trades:
             print(
                 f"    ✓ {r.symbol:<8} {r.direction:<5} "
@@ -596,12 +595,12 @@ def print_qualification_summary(
             )
 
     if summary.watchlist:
-        print(f"\n  WATCHLIST:")
+        print("\n  WATCHLIST:")
         for r in summary.watchlist:
             print(f"    ~ {r.symbol:<8} missing: {r.watchlist_reason}")
 
     if summary.excluded and not summary.regime_short_circuited:
-        print(f"\n  EXCLUDED:")
+        print("\n  EXCLUDED:")
         for sym, reason in sorted(summary.excluded.items()):
             print(f"    ✗ {sym:<8} {reason}")
 
@@ -694,8 +693,6 @@ def _qualify_continuation_candidate(
     if _is_late_session(now_et):
         return _continuation_reject(symbol, "TIME_BLOCKED", gates_passed)
     gates_passed.append("TIME")
-
-    target_price = entry_price + reward
 
     spread_width = max(0.50, dm.atr14 * 0.05)
     spread_cost = spread_width * 100

@@ -9,11 +9,10 @@ execution survives notification failures.
 from __future__ import annotations
 
 import json
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from cuttingboard import config
 from cuttingboard.output import send_telegram, send_notification

@@ -1,7 +1,6 @@
 """Tests for PRD-027: build_postmarket_report."""
 import copy
 
-import pytest
 
 from cuttingboard.reports.postmarket import build_postmarket_report
 

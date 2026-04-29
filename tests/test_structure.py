@@ -3,9 +3,7 @@ Tests for Layer 6 — Structure Engine (cuttingboard/structure.py).
 All tests are offline — inject synthetic DerivedMetrics, no network calls.
 """
 
-import pytest
 from datetime import datetime, timezone
-from unittest.mock import patch
 
 from cuttingboard.derived import DerivedMetrics
 from cuttingboard.normalization import NormalizedQuote
@@ -17,8 +15,7 @@ from cuttingboard.structure import (
     TREND, PULLBACK, BREAKOUT, REVERSAL, CHOP,
     LOW_IV, NORMAL_IV, ELEVATED_IV, HIGH_IV,
     _BREAKOUT_MOMENTUM_MIN, _BREAKOUT_VOLUME_MIN,
-    _REVERSAL_SPREAD_MAX, _REVERSAL_MOMENTUM_MIN,
-    _TREND_MOMENTUM_MIN,
+    _REVERSAL_MOMENTUM_MIN,
 )
 
 

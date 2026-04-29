@@ -12,7 +12,6 @@ AC7: block_live_data guard raises if fetch_all is called
 from __future__ import annotations
 
 from datetime import date
-from pathlib import Path
 
 import pytest
 

@@ -7,15 +7,13 @@ Audit write tests use a tmp_path fixture to sandbox the file.
 """
 
 import json
-import os
 import math
 import pytest
 from datetime import datetime, timezone
-from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 from cuttingboard import config
-from cuttingboard.audit import write_audit_record, _build_record, AUDIT_LOG_PATH
+from cuttingboard.audit import write_audit_record, _build_record
 from cuttingboard.derived import DerivedMetrics
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.options import (
@@ -25,10 +23,9 @@ from cuttingboard.options import (
     _select_dte,
     _format_strikes,
     _estimated_debit,
-    OptionSetup,
     BULL_CALL_SPREAD, BULL_PUT_SPREAD,
     BEAR_PUT_SPREAD, BEAR_CALL_SPREAD,
-    _INDEX_ETFS, _MAX_STRIKE_DIST_ETF, _MAX_STRIKE_DIST_STK,
+    _MAX_STRIKE_DIST_ETF, _MAX_STRIKE_DIST_STK,
     _DTE_FAST, _DTE_SHORT, _DTE_MEDIUM,
 )
 from cuttingboard.output import (
@@ -39,8 +36,6 @@ from cuttingboard.output import (
 from cuttingboard.qualification import (
     QualificationResult,
     QualificationSummary,
-    TradeCandidate,
-    GATE_REGIME,
 )
 from cuttingboard.regime import (
     RegimeState,
