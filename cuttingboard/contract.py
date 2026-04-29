@@ -10,6 +10,7 @@ inspect runtime internals after contract creation.
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -20,7 +21,7 @@ from cuttingboard.qualification import (
 )
 from cuttingboard.regime import EXPANSION, STAY_FLAT, RegimeState
 
-SCHEMA_VERSION = "v1"
+SCHEMA_VERSION = "v2"
 
 STATUS_OK = "OK"
 STATUS_STAY_FLAT = "STAY_FLAT"
@@ -29,6 +30,13 @@ STATUS_ERROR = "ERROR"
 _VALID_STATUSES = frozenset({STATUS_OK, STATUS_STAY_FLAT, STATUS_ERROR})
 
 LATEST_CONTRACT_PATH = "logs/latest_contract.json"
+
+_MACRO_DRIVER_SYMBOLS = {
+    "volatility": "^VIX",
+    "dollar": "DX-Y.NYB",
+    "rates": "^TNX",
+    "bitcoin": "BTC-USD",
+}
 
 
 def build_pipeline_output_contract(
@@ -63,6 +71,7 @@ def build_pipeline_output_contract(
     correlation = getattr(pr, "correlation", None)
 
     dq = data_quality or _compute_data_quality(normalized_quotes, raw_quotes, generated_at)
+    macro_drivers = {} if not normalized_quotes else _build_macro_drivers(normalized_quotes)
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -82,6 +91,8 @@ def build_pipeline_output_contract(
         "audit_summary": _build_audit_summary(qual, errors),
         "artifacts": _build_artifacts(artifacts, pr),
         "correlation": _build_correlation(correlation),
+        "regime": _build_regime_block(regime),
+        "macro_drivers": macro_drivers,
     }
 
 
@@ -131,6 +142,8 @@ def build_error_contract(
             "notification_sent": artifacts.get("notification_sent"),
         },
         "correlation": None,
+        "regime": None,
+        "macro_drivers": {},
     }
 
 
@@ -356,6 +369,24 @@ def _safe_str(value: Any) -> Optional[str]:
     return str(value)
 
 
+def _build_regime_block(regime: Optional[RegimeState]) -> Optional[dict]:
+    if regime is None:
+        return None
+    return {
+        "classification": str(regime.regime),
+        "posture":        str(regime.posture),
+        "confidence":     float(regime.confidence),
+        "net_score":      int(regime.net_score),
+        "risk_on_votes":  int(regime.risk_on_votes),
+        "risk_off_votes": int(regime.risk_off_votes),
+        "neutral_votes":  int(regime.neutral_votes),
+        "total_votes":    int(regime.total_votes),
+        "vote_breakdown": dict(regime.vote_breakdown),
+        "vix_level":      float(regime.vix_level) if regime.vix_level is not None else None,
+        "vix_pct_change": float(regime.vix_pct_change) if regime.vix_pct_change is not None else None,
+    }
+
+
 def _build_correlation(correlation: Any) -> Optional[dict]:
     if correlation is None:
         return None
@@ -385,12 +416,52 @@ def _compute_data_quality(
     return "ok"
 
 
+def _assert_macro_driver_mapping_sync() -> None:
+    assert set(_MACRO_DRIVER_SYMBOLS.values()).issubset(set(config.MACRO_DRIVERS))
+
+
+def _required_finite_float(value: Any, label: str) -> float:
+    if value is None:
+        raise ValueError(f"Missing required value: {label}")
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(f"Non-finite required value: {label}")
+    return number
+
+
+def _build_macro_drivers(normalized_quotes: dict) -> dict[str, dict[str, float | str]]:
+    _assert_macro_driver_mapping_sync()
+
+    macro_drivers: dict[str, dict[str, float | str]] = {}
+    for driver, symbol in _MACRO_DRIVER_SYMBOLS.items():
+        quote = normalized_quotes.get(symbol)
+        if quote is None:
+            raise ValueError(f"Missing macro driver quote: {symbol}")
+
+        price = _required_finite_float(getattr(quote, "price", None), f"{symbol}.price")
+        pct_change_decimal = _required_finite_float(
+            getattr(quote, "pct_change_decimal", None),
+            f"{symbol}.pct_change_decimal",
+        )
+        block: dict[str, float | str] = {
+            "symbol": symbol,
+            "level": price,
+            "change_pct": pct_change_decimal * 100.0,
+        }
+        if driver == "rates":
+            block["change_bps"] = pct_change_decimal * price * 100.0
+        macro_drivers[driver] = block
+
+    return macro_drivers
+
+
 def assert_valid_contract(contract: dict) -> None:
     """Raise AssertionError if the contract violates any hard invariants."""
     required_top = {
         "schema_version", "generated_at", "session_date", "mode", "status",
         "timezone", "system_state", "market_context", "trade_candidates",
-        "rejections", "audit_summary", "artifacts", "correlation",
+        "rejections", "audit_summary", "artifacts", "correlation", "regime",
+        "macro_drivers",
     }
     missing = required_top - set(contract)
     assert not missing, f"Missing required contract keys: {missing}"
@@ -399,6 +470,15 @@ def assert_valid_contract(contract: dict) -> None:
         f"schema_version must be {SCHEMA_VERSION!r}, got {contract['schema_version']!r}"
     assert contract["status"] in _VALID_STATUSES, \
         f"Invalid status: {contract['status']!r}"
+    _assert_macro_driver_mapping_sync()
+
+    macro_drivers = contract["macro_drivers"]
+    if contract["status"] == STATUS_ERROR:
+        assert macro_drivers == {}, "ERROR contracts must set macro_drivers to {}"
+        return
+    if macro_drivers == {}:
+        return
+
     assert isinstance(contract["trade_candidates"], list), "trade_candidates must be a list"
     assert isinstance(contract["rejections"], list), "rejections must be a list"
     assert isinstance(contract["system_state"], dict), "system_state must be a dict"
@@ -418,6 +498,39 @@ def assert_valid_contract(contract: dict) -> None:
             "correlation.risk_modifier must be float"
         assert corr.get("gold_symbol") is not None, "correlation.gold_symbol required"
         assert corr.get("dollar_symbol") is not None, "correlation.dollar_symbol required"
+
+    regime = contract.get("regime")
+    if regime is not None:
+        assert isinstance(regime, dict), "regime must be a dict or null"
+        _REGIME_REQUIRED = {
+            "classification", "posture", "confidence", "net_score",
+            "risk_on_votes", "risk_off_votes", "neutral_votes", "total_votes",
+            "vote_breakdown", "vix_level", "vix_pct_change",
+        }
+        missing_r = _REGIME_REQUIRED - set(regime)
+        assert not missing_r, f"regime missing keys: {missing_r}"
+        extra_r = set(regime) - _REGIME_REQUIRED
+        assert not extra_r, f"regime has unexpected keys: {extra_r}"
+        assert isinstance(regime["vote_breakdown"], dict), "regime.vote_breakdown must be dict"
+        assert isinstance(regime["total_votes"], int), "regime.total_votes must be int"
+        assert isinstance(regime["confidence"], float), "regime.confidence must be float"
+
+    expected_macro_keys = set(_MACRO_DRIVER_SYMBOLS)
+    assert isinstance(macro_drivers, dict), "macro_drivers must be a dict"
+    assert set(macro_drivers) == expected_macro_keys, "macro_drivers must have exact driver keys"
+
+    for driver, symbol in _MACRO_DRIVER_SYMBOLS.items():
+        block = macro_drivers[driver]
+        assert isinstance(block, dict), f"macro_drivers.{driver} must be a dict"
+        required_fields = {"symbol", "level", "change_pct"}
+        if driver == "rates":
+            required_fields = required_fields | {"change_bps"}
+        assert set(block) == required_fields, f"macro_drivers.{driver} has unexpected keys"
+        assert block["symbol"] == symbol, f"macro_drivers.{driver}.symbol must be {symbol!r}"
+        for field in required_fields - {"symbol"}:
+            value = block[field]
+            assert isinstance(value, float), f"macro_drivers.{driver}.{field} must be float"
+            assert math.isfinite(value), f"macro_drivers.{driver}.{field} must be finite"
 
     # Must be JSON-serializable with no custom encoder
     json.dumps(contract)

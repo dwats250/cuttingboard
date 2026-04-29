@@ -8,6 +8,7 @@ No access to PipelineResult, RegimeState, or any runtime internals.
 from __future__ import annotations
 
 import json
+import math
 from typing import Any, Optional
 
 PAYLOAD_SCHEMA_VERSION = "1.0"
@@ -83,6 +84,7 @@ def build_report_payload(contract: dict) -> dict:
     return {
         "schema_version": PAYLOAD_SCHEMA_VERSION,
         "run_status": contract.get("status", "ERROR"),
+        "macro_drivers": contract["macro_drivers"],
         "summary": {
             "market_regime": market_regime,
             "tradable": tradable,
@@ -107,10 +109,14 @@ def build_report_payload(contract: dict) -> dict:
 
 def assert_valid_payload(payload: dict) -> None:
     """Raise ValueError if the payload violates any schema invariants."""
-    _require_keys(payload, {"schema_version", "run_status", "summary", "sections", "meta"}, "payload")
+    _require_keys(payload, {"schema_version", "run_status", "macro_drivers", "summary", "sections", "meta"}, "payload")
 
     _require_eq(payload, "schema_version", PAYLOAD_SCHEMA_VERSION)
     _require_in(payload, "run_status", _VALID_RUN_STATUSES)
+
+    macro_drivers = payload["macro_drivers"]
+    if macro_drivers != {}:
+        _require_macro_drivers(macro_drivers)
 
     summary = payload["summary"]
     _require_keys(summary, {"market_regime", "tradable", "router_mode"}, "summary")
@@ -178,3 +184,28 @@ def _require_type_or_none(obj: dict, key: str, expected_type: type) -> None:
             f"Expected {key} to be {expected_type.__name__} or None, "
             f"got {type(obj[key]).__name__}"
         )
+
+
+def _require_macro_drivers(macro_drivers: dict) -> None:
+    if not isinstance(macro_drivers, dict):
+        raise ValueError("macro_drivers must be dict")
+    expected = {
+        "volatility": {"symbol", "level", "change_pct"},
+        "dollar": {"symbol", "level", "change_pct"},
+        "rates": {"symbol", "level", "change_pct", "change_bps"},
+        "bitcoin": {"symbol", "level", "change_pct"},
+    }
+    if set(macro_drivers) != set(expected):
+        raise ValueError("macro_drivers must have exact driver keys")
+    for driver, required_fields in expected.items():
+        block = macro_drivers[driver]
+        if not isinstance(block, dict):
+            raise ValueError(f"macro_drivers.{driver} must be dict")
+        if set(block) != required_fields:
+            raise ValueError(f"macro_drivers.{driver} has unexpected keys")
+        if not isinstance(block["symbol"], str):
+            raise ValueError(f"macro_drivers.{driver}.symbol must be str")
+        for field in required_fields - {"symbol"}:
+            value = block[field]
+            if not isinstance(value, float) or not math.isfinite(value):
+                raise ValueError(f"macro_drivers.{driver}.{field} must be finite float")

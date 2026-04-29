@@ -7,7 +7,7 @@ Acceptance criteria covered:
 3. Degraded/error fixture → status="ERROR", minimal valid shape
 4. json.dumps succeeds with no custom encoder
 5. Renderer smoke test using only contract fields
-6. Regression: schema_version == "v1"
+6. Regression: schema_version == "v2"
 7. Required non-nullable fields are not null
 8. trade_candidates is always a list
 9. rejections is always a list
@@ -32,6 +32,7 @@ from cuttingboard.contract import (
     build_pipeline_output_contract,
     derive_run_status,
 )
+from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.output import OUTCOME_HALT, OUTCOME_NO_TRADE, OUTCOME_TRADE, render_report
 from cuttingboard.qualification import (
     ENTRY_MODE_DIRECT,
@@ -55,6 +56,32 @@ from cuttingboard.validation import ValidationSummary
 # ---------------------------------------------------------------------------
 
 _NOW = datetime(2026, 4, 23, 14, 0, 0, tzinfo=timezone.utc)
+
+
+def _quote(symbol: str, price: float, pct_change_decimal: float) -> NormalizedQuote:
+    return NormalizedQuote(
+        symbol=symbol,
+        price=price,
+        pct_change_decimal=pct_change_decimal,
+        volume=1_000_000.0,
+        fetched_at_utc=_NOW,
+        source="fixture",
+        units=(
+            "yield_pct"
+            if symbol == "^TNX"
+            else "usd_price" if symbol == "BTC-USD" else "index_level"
+        ),
+        age_seconds=0.0,
+    )
+
+
+def _macro_quotes() -> dict[str, NormalizedQuote]:
+    return {
+        "^VIX": _quote("^VIX", 18.5, -0.02),
+        "DX-Y.NYB": _quote("DX-Y.NYB", 104.0, 0.001),
+        "^TNX": _quote("^TNX", 4.3, -0.003),
+        "BTC-USD": _quote("BTC-USD", 65000.0, 0.015),
+    }
 
 
 def _regime(
@@ -147,7 +174,7 @@ class _FakePipelineResult:
         option_setups: list = (),
         chain_results: dict = (),
         validation_summary: Optional[ValidationSummary] = None,
-        normalized_quotes: dict = (),
+        normalized_quotes: dict | None = None,
         raw_quotes: dict = (),
         alert_sent: bool = False,
         report_path: str = "reports/2026-04-23.md",
@@ -163,7 +190,7 @@ class _FakePipelineResult:
         self.option_setups = list(option_setups)
         self.chain_results = dict(chain_results)
         self.validation_summary = validation_summary or _val_summary()
-        self.normalized_quotes = dict(normalized_quotes)
+        self.normalized_quotes = dict(_macro_quotes() if normalized_quotes is None else normalized_quotes)
         self.raw_quotes = dict(raw_quotes)
         self.alert_sent = alert_sent
         self.report_path = report_path
@@ -196,15 +223,16 @@ class TestSuccessfulRun:
         required = {
             "schema_version", "generated_at", "session_date", "mode", "status",
             "timezone", "system_state", "market_context", "trade_candidates",
-            "rejections", "audit_summary", "artifacts", "correlation",
+            "rejections", "audit_summary", "artifacts", "correlation", "regime",
+            "macro_drivers",
         }
         assert required == set(self.contract), (
             f"Missing: {required - set(self.contract)}, "
             f"Extra: {set(self.contract) - required}"
         )
 
-    def test_schema_version_is_v1(self):
-        assert self.contract["schema_version"] == "v1"
+    def test_schema_version_is_v2(self):
+        assert self.contract["schema_version"] == "v2"
 
     def test_status_ok(self):
         assert self.contract["status"] == STATUS_OK
@@ -287,8 +315,8 @@ class TestErrorContract:
     def test_required_keys_present(self):
         assert_valid_contract(self.contract)
 
-    def test_schema_version_v1(self):
-        assert self.contract["schema_version"] == "v1"
+    def test_schema_version_v2(self):
+        assert self.contract["schema_version"] == "v2"
 
     def test_trade_candidates_empty(self):
         assert self.contract["trade_candidates"] == []
@@ -393,16 +421,16 @@ def test_render_report_stay_flat_no_crash():
 # 6. Schema version invariant
 # ---------------------------------------------------------------------------
 
-def test_schema_version_always_v1():
+def test_schema_version_always_v2():
     for status in (STATUS_OK, STATUS_STAY_FLAT):
         pr = _FakePipelineResult(regime=_regime())
         contract = _build(pr, status=status)
-        assert contract["schema_version"] == "v1", f"Failed for status={status}"
+        assert contract["schema_version"] == "v2", f"Failed for status={status}"
 
 
-def test_error_contract_schema_version_v1():
+def test_error_contract_schema_version_v2():
     contract = build_error_contract(generated_at=_NOW, artifacts={})
-    assert contract["schema_version"] == "v1"
+    assert contract["schema_version"] == "v2"
 
 
 # ---------------------------------------------------------------------------
@@ -546,8 +574,8 @@ def test_assert_fails_missing_key():
 def test_assert_fails_wrong_schema_version():
     pr = _FakePipelineResult(regime=_regime())
     contract = _build(pr)
-    contract["schema_version"] = "v2"
-    with pytest.raises(AssertionError, match="v1"):
+    contract["schema_version"] = "v1"
+    with pytest.raises(AssertionError, match="v2"):
         assert_valid_contract(contract)
 
 
@@ -665,4 +693,178 @@ class TestCorrelationBlock:
         contract = build_error_contract(generated_at=_NOW, artifacts={})
         assert "correlation" in contract
         assert contract["correlation"] is None
+        assert_valid_contract(contract)
+
+
+# ---------------------------------------------------------------------------
+# PRD-035 — Regime block
+# ---------------------------------------------------------------------------
+
+_REGIME_KEYS = {
+    "classification", "posture", "confidence", "net_score",
+    "risk_on_votes", "risk_off_votes", "neutral_votes", "total_votes",
+    "vote_breakdown", "vix_level", "vix_pct_change",
+}
+
+_CANONICAL_VOTE_KEYS = [
+    "SPY pct_change",
+    "QQQ pct_change",
+    "IWM pct_change",
+    "VIX level",
+    "VIX pct_change",
+    "DXY pct_change",
+    "TNX pct_change",
+    "BTC pct_change",
+]
+
+
+def _regime_with_votes() -> RegimeState:
+    breakdown = {k: "RISK_ON" for k in _CANONICAL_VOTE_KEYS}
+    return RegimeState(
+        regime=RISK_ON,
+        posture=AGGRESSIVE_LONG,
+        confidence=0.875,
+        net_score=7,
+        risk_on_votes=7,
+        risk_off_votes=0,
+        neutral_votes=1,
+        total_votes=8,
+        vote_breakdown=breakdown,
+        vix_level=16.5,
+        vix_pct_change=-0.042,
+        computed_at_utc=_NOW,
+    )
+
+
+class TestRegimeBlock:
+    def test_regime_key_present(self):
+        pr = _FakePipelineResult(regime=_regime())
+        contract = _build(pr)
+        assert "regime" in contract
+
+    def test_regime_has_exact_keys(self):
+        pr = _FakePipelineResult(regime=_regime())
+        contract = _build(pr)
+        assert set(contract["regime"]) == _REGIME_KEYS
+
+    def test_regime_values_correct_types(self):
+        pr = _FakePipelineResult(regime=_regime())
+        contract = _build(pr)
+        r = contract["regime"]
+        assert isinstance(r["classification"], str)
+        assert isinstance(r["posture"], str)
+        assert isinstance(r["confidence"], float)
+        assert isinstance(r["net_score"], int)
+        assert isinstance(r["risk_on_votes"], int)
+        assert isinstance(r["risk_off_votes"], int)
+        assert isinstance(r["neutral_votes"], int)
+        assert isinstance(r["total_votes"], int)
+        assert isinstance(r["vote_breakdown"], dict)
+
+    def test_regime_null_when_no_regime(self):
+        pr = _FakePipelineResult(regime=None)
+        contract = _build(pr)
+        assert contract["regime"] is None
+
+    def test_error_contract_regime_is_null(self):
+        contract = build_error_contract(generated_at=_NOW, artifacts={})
+        assert "regime" in contract
+        assert contract["regime"] is None
+
+    def test_regime_classification_matches_regime_state(self):
+        pr = _FakePipelineResult(regime=_regime(regime=RISK_ON))
+        contract = _build(pr)
+        assert contract["regime"]["classification"] == RISK_ON
+
+    def test_regime_posture_matches_regime_state(self):
+        pr = _FakePipelineResult(regime=_regime(posture=AGGRESSIVE_LONG))
+        contract = _build(pr)
+        assert contract["regime"]["posture"] == AGGRESSIVE_LONG
+
+    def test_regime_confidence_matches(self):
+        pr = _FakePipelineResult(regime=_regime(confidence=0.75))
+        contract = _build(pr)
+        assert contract["regime"]["confidence"] == 0.75
+
+    def test_vix_fields_populated(self):
+        pr = _FakePipelineResult(regime=_regime(vix_level=19.4, vix_pct_change=-0.042))
+        contract = _build(pr)
+        assert contract["regime"]["vix_level"] == 19.4
+        assert contract["regime"]["vix_pct_change"] == pytest.approx(-0.042)
+
+    def test_vix_fields_null_when_none(self):
+        pr = _FakePipelineResult(regime=_regime(vix_level=None, vix_pct_change=None))
+        contract = _build(pr)
+        assert contract["regime"]["vix_level"] is None
+        assert contract["regime"]["vix_pct_change"] is None
+
+    def test_vote_breakdown_preserves_keys(self):
+        pr = _FakePipelineResult(regime=_regime_with_votes())
+        contract = _build(pr)
+        assert list(contract["regime"]["vote_breakdown"]) == _CANONICAL_VOTE_KEYS
+
+    def test_total_votes_matches_vote_breakdown_count(self):
+        pr = _FakePipelineResult(regime=_regime_with_votes())
+        contract = _build(pr)
+        r = contract["regime"]
+        assert r["total_votes"] == len(r["vote_breakdown"])
+
+    def test_regime_json_serializable(self):
+        pr = _FakePipelineResult(regime=_regime_with_votes())
+        contract = _build(pr)
+        json.dumps(contract)
+
+    def test_assert_valid_contract_passes_with_regime(self):
+        pr = _FakePipelineResult(regime=_regime_with_votes())
+        contract = _build(pr)
+        assert_valid_contract(contract)
+
+    def test_assert_valid_contract_passes_with_null_regime(self):
+        pr = _FakePipelineResult(regime=None)
+        contract = _build(pr)
+        assert_valid_contract(contract)
+
+    def test_assert_fails_missing_regime_key(self):
+        pr = _FakePipelineResult(regime=_regime())
+        contract = _build(pr)
+        del contract["regime"]
+        with pytest.raises(AssertionError, match="regime"):
+            assert_valid_contract(contract)
+
+    def test_assert_fails_regime_missing_subkey(self):
+        pr = _FakePipelineResult(regime=_regime())
+        contract = _build(pr)
+        del contract["regime"]["confidence"]
+        with pytest.raises(AssertionError):
+            assert_valid_contract(contract)
+
+    def test_assert_fails_regime_extra_subkey(self):
+        pr = _FakePipelineResult(regime=_regime())
+        contract = _build(pr)
+        contract["regime"]["extra_field"] = "bad"
+        with pytest.raises(AssertionError):
+            assert_valid_contract(contract)
+
+    def test_expansion_regime_valid(self):
+        exp_regime = RegimeState(
+            regime=EXPANSION,
+            posture=EXPANSION_LONG,
+            confidence=1.0,
+            net_score=0,
+            risk_on_votes=0,
+            risk_off_votes=0,
+            neutral_votes=0,
+            total_votes=0,
+            vote_breakdown={},
+            vix_level=14.2,
+            vix_pct_change=-0.05,
+            computed_at_utc=_NOW,
+        )
+        pr = _FakePipelineResult(regime=exp_regime)
+        contract = _build(pr)
+        r = contract["regime"]
+        assert r["classification"] == EXPANSION
+        assert r["posture"] == EXPANSION_LONG
+        assert r["total_votes"] == 0
+        assert r["vote_breakdown"] == {}
         assert_valid_contract(contract)
