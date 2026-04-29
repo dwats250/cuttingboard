@@ -35,9 +35,32 @@ def _trade(
     }
 
 
+def _trade_decision(
+    symbol: str = "SPY",
+    direction: str = "LONG",
+    strategy_tag: str = "BULL_CALL_SPREAD",
+    entry_mode: str = "DIRECT",
+    decision_status: str = "ALLOW_TRADE",
+    block_reason: str | None = None,
+    trace_stage: str = "CHAIN_VALIDATION",
+    trace_source: str = "chain_validation",
+    trace_reason: str = "passed",
+) -> dict:
+    return {
+        "symbol": symbol,
+        "direction": direction,
+        "strategy_tag": strategy_tag,
+        "entry_mode": entry_mode,
+        "decision_status": decision_status,
+        "block_reason": block_reason,
+        "decision_trace": {"stage": trace_stage, "source": trace_source, "reason": trace_reason},
+    }
+
+
 def _payload(
     *,
     top_trades: list | None = None,
+    trade_decision_detail: list | None = None,
     validation_halt_detail: dict | None = None,
     tradable: bool | None = True,
     market_regime: str = "RISK_ON",
@@ -61,6 +84,7 @@ def _payload(
             "continuation_audit": None,
             "watch_summary_detail": None,
             "validation_halt_detail": validation_halt_detail,
+            "trade_decision_detail": trade_decision_detail if trade_decision_detail is not None else [],
         },
     }
 
@@ -682,3 +706,165 @@ def test_run_history_deterministic_output() -> None:
         run,
         history_runs=history_runs,
     )
+
+
+# ---------------------------------------------------------------------------
+# PRD-048 — trade decisions block
+# ---------------------------------------------------------------------------
+
+def test_trade_decisions_block_present_when_detail_exists() -> None:
+    html = render_dashboard_html(
+        _payload(trade_decision_detail=[_trade_decision()]),
+        _run(),
+    )
+    assert 'id="trade-decisions"' in html
+
+
+def test_trade_decisions_block_absent_when_detail_empty() -> None:
+    html = render_dashboard_html(_payload(trade_decision_detail=[]), _run())
+    assert 'id="trade-decisions"' not in html
+
+
+def test_trade_decisions_renders_exact_fields() -> None:
+    td = _trade_decision(
+        symbol="SPY",
+        direction="LONG",
+        strategy_tag="BULL_CALL_SPREAD",
+        entry_mode="DIRECT",
+        decision_status="ALLOW_TRADE",
+        trace_stage="CHAIN_VALIDATION",
+        trace_source="chain_validation",
+        trace_reason="passed",
+    )
+    html = render_dashboard_html(_payload(trade_decision_detail=[td]), _run())
+    block = html.split('<div class="block" id="trade-decisions">', 1)[1]
+    block = block.split('<div class="block" id="run-health">', 1)[0]
+
+    assert "SPY" in block
+    assert "LONG" in block
+    assert "BULL_CALL_SPREAD" in block
+    assert "DIRECT" in block
+    assert "ALLOW_TRADE" in block
+    assert "CHAIN_VALIDATION" in block
+    assert "chain_validation" in block
+    assert "passed" in block
+
+
+def test_trade_decisions_omits_block_reason_when_null() -> None:
+    td = _trade_decision(decision_status="ALLOW_TRADE", block_reason=None)
+    html = render_dashboard_html(_payload(trade_decision_detail=[td]), _run())
+    block = html.split('<div class="block" id="trade-decisions">', 1)[1]
+    block = block.split('<div class="block" id="run-health">', 1)[0]
+
+    assert "Block Reason" not in block
+
+
+def test_trade_decisions_renders_block_reason_when_present() -> None:
+    td = _trade_decision(
+        decision_status="BLOCK_TRADE",
+        block_reason="REGIME_MISMATCH",
+        trace_stage="QUALIFICATION",
+        trace_source="qualification",
+        trace_reason="REGIME_MISMATCH",
+    )
+    html = render_dashboard_html(_payload(trade_decision_detail=[td]), _run())
+    block = html.split('<div class="block" id="trade-decisions">', 1)[1]
+    block = block.split('<div class="block" id="run-health">', 1)[0]
+
+    assert "Block Reason" in block
+    assert "REGIME_MISMATCH" in block
+
+
+def test_trade_decisions_block_reason_matches_trace_reason() -> None:
+    td = _trade_decision(
+        decision_status="BLOCK_TRADE",
+        block_reason="LOW_CONFIDENCE",
+        trace_stage="QUALIFICATION",
+        trace_source="qualification",
+        trace_reason="LOW_CONFIDENCE",
+    )
+    html = render_dashboard_html(_payload(trade_decision_detail=[td]), _run())
+    block = html.split('<div class="block" id="trade-decisions">', 1)[1]
+    block = block.split('<div class="block" id="run-health">', 1)[0]
+
+    # both block_reason and trace reason must appear as the same literal string
+    assert block.count("LOW_CONFIDENCE") == 2
+
+
+def test_trade_decisions_no_interpretation_added() -> None:
+    td = _trade_decision(decision_status="BLOCK_TRADE", block_reason="RR_RATIO", trace_reason="RR_RATIO")
+    html = render_dashboard_html(_payload(trade_decision_detail=[td]), _run())
+    block = html.split('<div class="block" id="trade-decisions">', 1)[1]
+    block = block.split('<div class="block" id="run-health">', 1)[0].lower()
+
+    for text in ("good", "bad", "failed due to", "best trade", "liquidity", "weak", "strong"):
+        assert text not in block
+
+
+def test_trade_decisions_does_not_read_top_trades() -> None:
+    td = _trade_decision(symbol="QQQ_DECISION_UNIQUE")
+    # top_trades has a different symbol; block must show QQQ_DECISION_UNIQUE, not from top_trades
+    html = render_dashboard_html(
+        _payload(
+            top_trades=[_trade(symbol="SPY_TOP_UNIQUE")],
+            trade_decision_detail=[td],
+        ),
+        _run(),
+    )
+    block = html.split('<div class="block" id="trade-decisions">', 1)[1]
+    block = block.split('<div class="block" id="run-health">', 1)[0]
+
+    assert "QQQ_DECISION_UNIQUE" in block
+    assert "SPY_TOP_UNIQUE" not in block
+
+
+def test_trade_decisions_multiple_candidates_with_sep() -> None:
+    decisions = [
+        _trade_decision(symbol="SPY", decision_status="ALLOW_TRADE"),
+        _trade_decision(symbol="QQQ", decision_status="BLOCK_TRADE", block_reason="CHOP", trace_reason="CHOP"),
+    ]
+    html = render_dashboard_html(_payload(trade_decision_detail=decisions), _run())
+    block = html.split('<div class="block" id="trade-decisions">', 1)[1]
+    block = block.split('<div class="block" id="run-health">', 1)[0]
+
+    assert "SPY" in block
+    assert "QQQ" in block
+    assert "ALLOW_TRADE" in block
+    assert "BLOCK_TRADE" in block
+    assert '<div class="sep">' in block
+
+
+def test_trade_decisions_blocked_candidates_not_hidden() -> None:
+    decisions = [
+        _trade_decision(symbol="NVDA", decision_status="BLOCK_TRADE", block_reason="EXTENSION", trace_reason="EXTENSION"),
+    ]
+    html = render_dashboard_html(_payload(trade_decision_detail=decisions), _run())
+    assert "NVDA" in html
+    assert "BLOCK_TRADE" in html
+
+
+def test_trade_decisions_existing_blocks_intact() -> None:
+    html = render_dashboard_html(
+        _payload(trade_decision_detail=[_trade_decision()]),
+        _run(),
+    )
+    for block_id in ("decision-summary", "dashboard-header", "macro-tape", "system-state", "run-health"):
+        assert f'id="{block_id}"' in html
+
+
+def test_trade_decisions_primary_secondary_intact() -> None:
+    html = render_dashboard_html(
+        _payload(
+            top_trades=[_trade("SPY"), _trade("QQQ")],
+            trade_decision_detail=[_trade_decision()],
+        ),
+        _run(),
+    )
+    assert 'id="primary-setup"' in html
+    assert 'id="secondary-setups"' in html
+
+
+def test_trade_decisions_deterministic_output() -> None:
+    p = _payload(trade_decision_detail=[_trade_decision("SPY"), _trade_decision("QQQ")])
+    r = _run()
+    assert render_dashboard_html(p, r) == render_dashboard_html(p, r)

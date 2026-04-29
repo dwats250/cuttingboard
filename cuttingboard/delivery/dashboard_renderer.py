@@ -113,6 +113,9 @@ def render_dashboard_html(
         else None
     )
 
+    # R3 — TRADE DECISIONS
+    trade_decision_detail = _req(payload, "sections", "trade_decision_detail")
+
     # R3 — PRIMARY / SECONDARY
     top_trades = _req(payload, "sections", "top_trades")
     primary = top_trades[0] if len(top_trades) >= 1 else None
@@ -286,6 +289,40 @@ def render_dashboard_html(
               f'<div class="value">{_esc(setup.get("strategy_tag"))}</div></div>')
             w(f'    <div class="field"><div class="label">Entry Mode</div>'
               f'<div class="value">{_esc(setup.get("entry_mode"))}</div></div>')
+            w("  </div>")
+        w("</div>")
+
+    # --- trade-decisions ---
+    if trade_decision_detail:
+        w('<div class="block" id="trade-decisions">')
+        w("  <h2>Trade Decisions</h2>")
+        for _i, _candidate in enumerate(trade_decision_detail):
+            if _i > 0:
+                w('  <div class="sep"></div>')
+            w('  <div class="row">')
+            w(f'    <div class="field"><div class="label">Symbol</div>'
+              f'<div class="value">{_esc(_candidate.get("symbol"))}</div></div>')
+            w(f'    <div class="field"><div class="label">Direction</div>'
+              f'<div class="value">{_esc(_candidate.get("direction"))}</div></div>')
+            w(f'    <div class="field"><div class="label">Strategy</div>'
+              f'<div class="value">{_esc(_candidate.get("strategy_tag"))}</div></div>')
+            w(f'    <div class="field"><div class="label">Entry Mode</div>'
+              f'<div class="value">{_esc(_candidate.get("entry_mode"))}</div></div>')
+            w(f'    <div class="field"><div class="label">Decision</div>'
+              f'<div class="value">{_esc(_candidate.get("decision_status"))}</div></div>')
+            _block_reason = _candidate.get("block_reason")
+            if _block_reason is not None:
+                w(f'    <div class="field"><div class="label">Block Reason</div>'
+                  f'<div class="value">{_esc(_block_reason)}</div></div>')
+            w("  </div>")
+            _trace = _candidate.get("decision_trace") or {}
+            w('  <div class="row">')
+            w(f'    <div class="field"><div class="label">Trace Stage</div>'
+              f'<div class="value">{_esc(_trace.get("stage"))}</div></div>')
+            w(f'    <div class="field"><div class="label">Trace Source</div>'
+              f'<div class="value">{_esc(_trace.get("source"))}</div></div>')
+            w(f'    <div class="field"><div class="label">Trace Reason</div>'
+              f'<div class="value">{_esc(_trace.get("reason"))}</div></div>')
             w("  </div>")
         w("</div>")
 

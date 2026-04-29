@@ -95,6 +95,25 @@ def _trade_candidate(symbol: str = "SPY") -> dict:
         "timeframe": "7",
         "setup_quality": "VALIDATED",
         "notes": "OI=1200",
+        "decision_status": "ALLOW_TRADE",
+        "block_reason": None,
+        "decision_trace": {"stage": "CHAIN_VALIDATION", "source": "chain_validation", "reason": "passed"},
+    }
+
+
+def _valid_detail_item(
+    symbol: str = "SPY",
+    decision_status: str = "ALLOW_TRADE",
+    block_reason: str | None = None,
+) -> dict:
+    return {
+        "symbol": symbol,
+        "direction": "LONG",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "entry_mode": "DIRECT",
+        "decision_status": decision_status,
+        "block_reason": block_reason,
+        "decision_trace": {"stage": "CHAIN_VALIDATION", "source": "chain_validation", "reason": "passed"},
     }
 
 
@@ -278,6 +297,54 @@ class TestBuildReportPayload:
         ))
         json.dumps(payload)  # must not raise
 
+    def test_trade_decision_detail_section_present(self):
+        payload = build_report_payload(_minimal_contract(trade_candidates=[_trade_candidate("SPY")]))
+        assert "trade_decision_detail" in payload["sections"]
+
+    def test_trade_decision_detail_empty_when_no_candidates(self):
+        payload = build_report_payload(_minimal_contract(trade_candidates=[]))
+        assert payload["sections"]["trade_decision_detail"] == []
+
+    def test_trade_decision_detail_exact_keys(self):
+        payload = build_report_payload(_minimal_contract(trade_candidates=[_trade_candidate("SPY")]))
+        item = payload["sections"]["trade_decision_detail"][0]
+        assert set(item) == {"symbol", "direction", "strategy_tag", "entry_mode", "decision_status", "block_reason", "decision_trace"}
+
+    def test_trade_decision_detail_values_from_candidate(self):
+        tc = _trade_candidate("QQQ")
+        payload = build_report_payload(_minimal_contract(trade_candidates=[tc]))
+        item = payload["sections"]["trade_decision_detail"][0]
+        assert item["symbol"] == "QQQ"
+        assert item["direction"] == "LONG"
+        assert item["strategy_tag"] == "BULL_CALL_SPREAD"
+        assert item["entry_mode"] == "DIRECT"
+        assert item["decision_status"] == "ALLOW_TRADE"
+        assert item["block_reason"] is None
+        assert item["decision_trace"] == {"stage": "CHAIN_VALIDATION", "source": "chain_validation", "reason": "passed"}
+
+    def test_trade_decision_detail_preserves_order(self):
+        candidates = [_trade_candidate("SPY"), _trade_candidate("QQQ"), _trade_candidate("NVDA")]
+        payload = build_report_payload(_minimal_contract(trade_candidates=candidates))
+        symbols = [item["symbol"] for item in payload["sections"]["trade_decision_detail"]]
+        assert symbols == ["SPY", "QQQ", "NVDA"]
+
+    def test_trade_decision_detail_block_reason_non_null(self):
+        tc = _trade_candidate("SPY")
+        tc["decision_status"] = "BLOCK_TRADE"
+        tc["block_reason"] = "REGIME_MISMATCH"
+        tc["decision_trace"] = {"stage": "QUALIFICATION", "source": "qualification", "reason": "REGIME_MISMATCH"}
+        payload = build_report_payload(_minimal_contract(trade_candidates=[tc]))
+        item = payload["sections"]["trade_decision_detail"][0]
+        assert item["decision_status"] == "BLOCK_TRADE"
+        assert item["block_reason"] == "REGIME_MISMATCH"
+
+    def test_trade_decision_detail_no_enrichment(self):
+        tc = _trade_candidate("SPY")
+        payload = build_report_payload(_minimal_contract(trade_candidates=[tc]))
+        item = payload["sections"]["trade_decision_detail"][0]
+        for key in ("setup_quality", "notes", "timeframe", "trigger", "entry", "stop", "target", "risk_reward"):
+            assert key not in item
+
 
 # ---------------------------------------------------------------------------
 # B. Validator tests
@@ -397,4 +464,102 @@ class TestAssertValidPayload:
         # inject a datetime inside a dict field that passes structural checks
         p["sections"]["continuation_audit"] = {"accepted_count": datetime.now(timezone.utc)}
         with pytest.raises(ValueError, match="JSON-safe"):
+            assert_valid_payload(p)
+
+    def test_trade_decision_detail_required(self):
+        p = self._base_payload()
+        del p["sections"]["trade_decision_detail"]
+        with pytest.raises(ValueError, match="trade_decision_detail"):
+            assert_valid_payload(p)
+
+    def test_trade_decision_detail_must_be_list(self):
+        p = self._base_payload()
+        p["sections"]["trade_decision_detail"] = None
+        with pytest.raises(ValueError, match="trade_decision_detail"):
+            assert_valid_payload(p)
+
+    def test_trade_decision_detail_empty_list_is_valid(self):
+        p = self._base_payload()
+        p["sections"]["trade_decision_detail"] = []
+        assert_valid_payload(p)
+
+    def test_trade_decision_detail_valid_item_passes(self):
+        p = self._base_payload()
+        p["sections"]["trade_decision_detail"] = [_valid_detail_item()]
+        assert_valid_payload(p)
+
+    def test_trade_decision_detail_item_extra_key_raises(self):
+        p = self._base_payload()
+        item = _valid_detail_item()
+        item["extra_key"] = "bad"
+        p["sections"]["trade_decision_detail"] = [item]
+        with pytest.raises(ValueError):
+            assert_valid_payload(p)
+
+    def test_trade_decision_detail_item_missing_key_raises(self):
+        p = self._base_payload()
+        item = _valid_detail_item()
+        del item["decision_status"]
+        p["sections"]["trade_decision_detail"] = [item]
+        with pytest.raises(ValueError):
+            assert_valid_payload(p)
+
+    def test_trade_decision_detail_string_field_wrong_type_raises(self):
+        p = self._base_payload()
+        item = _valid_detail_item()
+        item["symbol"] = 123
+        p["sections"]["trade_decision_detail"] = [item]
+        with pytest.raises(ValueError, match="symbol"):
+            assert_valid_payload(p)
+
+    def test_trade_decision_detail_block_reason_none_is_valid(self):
+        p = self._base_payload()
+        p["sections"]["trade_decision_detail"] = [_valid_detail_item(block_reason=None)]
+        assert_valid_payload(p)
+
+    def test_trade_decision_detail_block_reason_nonempty_string_is_valid(self):
+        p = self._base_payload()
+        item = _valid_detail_item(decision_status="BLOCK_TRADE", block_reason="REGIME_MISMATCH")
+        item["decision_trace"] = {"stage": "QUALIFICATION", "source": "qualification", "reason": "REGIME_MISMATCH"}
+        p["sections"]["trade_decision_detail"] = [item]
+        assert_valid_payload(p)
+
+    def test_trade_decision_detail_block_reason_empty_string_raises(self):
+        p = self._base_payload()
+        item = _valid_detail_item()
+        item["block_reason"] = ""
+        p["sections"]["trade_decision_detail"] = [item]
+        with pytest.raises(ValueError, match="block_reason"):
+            assert_valid_payload(p)
+
+    def test_trade_decision_detail_trace_extra_key_raises(self):
+        p = self._base_payload()
+        item = _valid_detail_item()
+        item["decision_trace"]["extra"] = "bad"
+        p["sections"]["trade_decision_detail"] = [item]
+        with pytest.raises(ValueError):
+            assert_valid_payload(p)
+
+    def test_trade_decision_detail_trace_missing_key_raises(self):
+        p = self._base_payload()
+        item = _valid_detail_item()
+        del item["decision_trace"]["reason"]
+        p["sections"]["trade_decision_detail"] = [item]
+        with pytest.raises(ValueError):
+            assert_valid_payload(p)
+
+    def test_trade_decision_detail_trace_empty_value_raises(self):
+        p = self._base_payload()
+        item = _valid_detail_item()
+        item["decision_trace"]["reason"] = ""
+        p["sections"]["trade_decision_detail"] = [item]
+        with pytest.raises(ValueError, match="reason"):
+            assert_valid_payload(p)
+
+    def test_trade_decision_detail_trace_non_string_raises(self):
+        p = self._base_payload()
+        item = _valid_detail_item()
+        item["decision_trace"]["stage"] = None
+        p["sections"]["trade_decision_detail"] = [item]
+        with pytest.raises(ValueError, match="stage"):
             assert_valid_payload(p)

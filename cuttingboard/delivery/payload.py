@@ -14,6 +14,8 @@ from typing import Any, Optional
 PAYLOAD_SCHEMA_VERSION = "1.0"
 
 _VALID_RUN_STATUSES = frozenset({"OK", "STAY_FLAT", "ERROR"})
+_DECISION_DETAIL_KEYS = frozenset({"symbol", "direction", "strategy_tag", "entry_mode", "decision_status", "block_reason", "decision_trace"})
+_DECISION_TRACE_KEYS = frozenset({"stage", "source", "reason"})
 
 
 def build_report_payload(contract: dict) -> dict:
@@ -43,6 +45,19 @@ def build_report_payload(contract: dict) -> dict:
             "accepted_count": ac.get("continuation_accepted_count"),
             "rejected_count": ac.get("continuation_rejected_count"),
         }
+
+    trade_decision_detail = [
+        {
+            "symbol": t.get("symbol"),
+            "direction": t.get("direction"),
+            "strategy_tag": t.get("strategy_tag"),
+            "entry_mode": t.get("entry_mode"),
+            "decision_status": t.get("decision_status"),
+            "block_reason": t.get("block_reason"),
+            "decision_trace": t.get("decision_trace"),
+        }
+        for t in trade_candidates
+    ]
 
     option_setups_detail = [
         {
@@ -99,6 +114,7 @@ def build_report_payload(contract: dict) -> dict:
             "chain_results_detail": chain_results_detail,
             "watch_summary_detail": watch_summary_detail,
             "validation_halt_detail": validation_halt_detail,
+            "trade_decision_detail": trade_decision_detail,
         },
         "meta": {
             "timestamp": timestamp,
@@ -131,14 +147,35 @@ def assert_valid_payload(payload: dict) -> None:
             "top_trades", "watchlist", "rejected",
             "continuation_audit", "option_setups_detail",
             "chain_results_detail", "watch_summary_detail",
-            "validation_halt_detail",
+            "validation_halt_detail", "trade_decision_detail",
         },
         "sections",
     )
-    for list_field in ("top_trades", "watchlist", "rejected", "option_setups_detail", "chain_results_detail"):
+    for list_field in ("top_trades", "watchlist", "rejected", "option_setups_detail", "chain_results_detail", "trade_decision_detail"):
         _require_type(sections, list_field, list)
     for nullable_dict_field in ("continuation_audit", "watch_summary_detail", "validation_halt_detail"):
         _require_type_or_none(sections, nullable_dict_field, dict)
+
+    for i, item in enumerate(sections["trade_decision_detail"]):
+        _path = f"trade_decision_detail[{i}]"
+        if not isinstance(item, dict):
+            raise ValueError(f"{_path} must be a dict")
+        if set(item) != _DECISION_DETAIL_KEYS:
+            raise ValueError(f"{_path} has unexpected keys: {sorted(set(item) ^ _DECISION_DETAIL_KEYS)}")
+        for _str_field in ("symbol", "direction", "strategy_tag", "entry_mode", "decision_status"):
+            if not isinstance(item[_str_field], str):
+                raise ValueError(f"{_path}.{_str_field} must be str")
+        _block_reason = item["block_reason"]
+        if _block_reason is not None and (not isinstance(_block_reason, str) or not _block_reason):
+            raise ValueError(f"{_path}.block_reason must be None or non-empty str")
+        _trace = item["decision_trace"]
+        if not isinstance(_trace, dict):
+            raise ValueError(f"{_path}.decision_trace must be dict")
+        if set(_trace) != _DECISION_TRACE_KEYS:
+            raise ValueError(f"{_path}.decision_trace has unexpected keys: {sorted(set(_trace) ^ _DECISION_TRACE_KEYS)}")
+        for _trace_field in ("stage", "source", "reason"):
+            if not isinstance(_trace[_trace_field], str) or not _trace[_trace_field]:
+                raise ValueError(f"{_path}.decision_trace.{_trace_field} must be non-empty str")
 
     meta = payload["meta"]
     _require_keys(meta, {"timestamp", "symbols_scanned"}, "meta")
