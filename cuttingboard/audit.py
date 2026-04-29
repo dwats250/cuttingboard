@@ -130,6 +130,7 @@ def _build_record(
                 entry["risk_reward"] = decision.r_r
                 entry["decision_status"] = decision.status
                 entry["block_reason"] = decision.block_reason
+                entry["decision_trace"] = dict(decision.decision_trace)
             meta = (intraday_state_context or {}).get(r.symbol)
             if meta is not None:
                 entry["downside_permission"] = meta.get("downside_permission")

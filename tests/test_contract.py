@@ -194,6 +194,7 @@ def _chain_result(symbol: str = "SPY", classification: str = VALIDATED, reason: 
 
 
 def _trade_decision(symbol: str = "SPY", status: str = ALLOW_TRADE, block_reason: str | None = None) -> TradeDecision:
+    reason = "TOP_TRADE_VALIDATED" if status == ALLOW_TRADE else block_reason
     return TradeDecision(
         ticker=symbol,
         direction="LONG",
@@ -205,6 +206,11 @@ def _trade_decision(symbol: str = "SPY", status: str = ALLOW_TRADE, block_reason
         contracts=2,
         dollar_risk=150.0,
         block_reason=block_reason,
+        decision_trace={
+            "stage": "CHAIN_VALIDATION",
+            "source": "chain_validation",
+            "reason": reason,
+        },
     )
 
 
@@ -327,6 +333,11 @@ class TestSuccessfulRun:
         assert candidate["risk_reward"] == 2.0
         assert candidate["decision_status"] == ALLOW_TRADE
         assert candidate["block_reason"] is None
+        assert candidate["decision_trace"] == {
+            "stage": "CHAIN_VALIDATION",
+            "source": "chain_validation",
+            "reason": "TOP_TRADE_VALIDATED",
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -693,6 +704,48 @@ def test_assert_fails_block_trade_without_block_reason():
     contract = _build(pr)
     contract["trade_candidates"][0]["block_reason"] = None
     with pytest.raises(AssertionError, match="block_reason"):
+        assert_valid_contract(contract)
+
+
+def test_assert_fails_missing_decision_trace():
+    pr = _FakePipelineResult(
+        regime=_regime(),
+        qualification_summary=_qual_summary(qualified=1),
+        option_setups=[_option_setup()],
+        chain_results={"SPY": _chain_result()},
+        trade_decisions=[_trade_decision()],
+    )
+    contract = _build(pr)
+    del contract["trade_candidates"][0]["decision_trace"]
+    with pytest.raises(AssertionError, match="decision_trace"):
+        assert_valid_contract(contract)
+
+
+def test_assert_fails_block_reason_trace_mismatch():
+    pr = _FakePipelineResult(
+        regime=_regime(),
+        qualification_summary=_qual_summary(qualified=1),
+        option_setups=[_option_setup()],
+        chain_results={"SPY": _chain_result(classification="NEEDS_MANUAL_CHECK", reason="needs broker review")},
+        trade_decisions=[_trade_decision(status=BLOCK_TRADE, block_reason="needs broker review")],
+    )
+    contract = _build(pr)
+    contract["trade_candidates"][0]["decision_trace"]["reason"] = "different reason"
+    with pytest.raises(AssertionError, match="block_reason"):
+        assert_valid_contract(contract)
+
+
+def test_assert_fails_allow_trade_trace_reason_mismatch():
+    pr = _FakePipelineResult(
+        regime=_regime(),
+        qualification_summary=_qual_summary(qualified=1),
+        option_setups=[_option_setup()],
+        chain_results={"SPY": _chain_result()},
+        trade_decisions=[_trade_decision()],
+    )
+    contract = _build(pr)
+    contract["trade_candidates"][0]["decision_trace"]["reason"] = "wrong"
+    with pytest.raises(AssertionError, match="TOP_TRADE_VALIDATED"):
         assert_valid_contract(contract)
 
 

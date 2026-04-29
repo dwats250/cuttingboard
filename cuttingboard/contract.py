@@ -294,6 +294,7 @@ def _build_trade_candidates(
             "notes": _safe_str(chain.reason if chain else None),
             "decision_status": decision.status,
             "block_reason": decision.block_reason,
+            "decision_trace": dict(decision.decision_trace),
         })
 
     return candidates
@@ -562,9 +563,25 @@ def _assert_trade_candidates_valid(trade_candidates: list[Any]) -> None:
             f"trade_candidates[{index}].decision_status invalid: {decision_status!r}"
         )
         block_reason = candidate.get("block_reason")
+        decision_trace = candidate.get("decision_trace")
+        assert isinstance(decision_trace, dict), (
+            f"trade_candidates[{index}].decision_trace must be a dict"
+        )
+        expected_trace_keys = {"stage", "source", "reason"}
+        assert set(decision_trace) == expected_trace_keys, (
+            f"trade_candidates[{index}].decision_trace must contain exactly stage, source, reason"
+        )
+        for key in ("stage", "source", "reason"):
+            value = decision_trace.get(key)
+            assert isinstance(value, str) and value.strip(), (
+                f"trade_candidates[{index}].decision_trace.{key} must be non-empty string"
+            )
         if decision_status == ALLOW_TRADE:
             assert block_reason is None, (
                 f"trade_candidates[{index}].block_reason must be None for ALLOW_TRADE"
+            )
+            assert decision_trace["reason"] == "TOP_TRADE_VALIDATED", (
+                f"trade_candidates[{index}].decision_trace.reason must be TOP_TRADE_VALIDATED for ALLOW_TRADE"
             )
             for field in ("entry", "stop", "target", "risk_reward"):
                 value = candidate.get(field)
@@ -577,4 +594,7 @@ def _assert_trade_candidates_valid(trade_candidates: list[Any]) -> None:
         elif decision_status == BLOCK_TRADE:
             assert isinstance(block_reason, str) and block_reason.strip(), (
                 f"trade_candidates[{index}].block_reason must be non-empty for BLOCK_TRADE"
+            )
+            assert block_reason == decision_trace["reason"], (
+                f"trade_candidates[{index}].block_reason must match decision_trace.reason for BLOCK_TRADE"
             )
