@@ -49,6 +49,14 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-035 | feature/ui-decision-layer | Signal Forge dashboard — contract regime block + UI macro strip | COMPLETE | [PRD-035](prd_history/PRD-035.md) |
 | PRD-036 | — | Slim dashboard renderer — read-only HTML from payload + run artifacts | IN PROGRESS | [PRD-036](prd_history/PRD-036.md) |
 | PRD-037 | 0a80981 | Dashboard publish artifact — static copy of generated HTML to docs/ | COMPLETE | [PRD-037](prd_history/PRD-037.md) |
+| PRD-038 | d1a77e3 | Read-only macro tape consolidation block | COMPLETE | [PRD-038](prd_history/PRD-038.md) |
+| PRD-039 | 3e7a4f2 | Dashboard link in all Telegram alerts | COMPLETE | [PRD-039](prd_history/PRD-039.md) |
+| PRD-040 | 99c4d27 | Protect latest_* artifacts with timestamp guard | COMPLETE | [PRD-040](prd_history/PRD-040.md) |
+| PRD-041 | d0f2ded | Run delta change detection block | COMPLETE | [PRD-041](prd_history/PRD-041.md) |
+| PRD-042 | fd245a9 | Snapshot history — recent runs view | COMPLETE | [PRD-042](prd_history/PRD-042.md) |
+| PRD-043 | 34becf7 | Decision summary block | COMPLETE | [PRD-043](prd_history/PRD-043.md) |
+| PRD-044 | a5b1c85 | Macro driver payload surface with no-data mode support | COMPLETE | [PRD-044](prd_history/PRD-044.md) |
+| PRD-045 | — | Trade decision materialization — explicit ALLOW/BLOCK per candidate | IN PROGRESS | [PRD-045](prd_history/PRD-045.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
