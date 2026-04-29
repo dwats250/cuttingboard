@@ -31,6 +31,9 @@ backtesting/output/
 .cb_commit_msg
 .claude/state/
 
+# Auto-updated by GitNexus on every analyze run
+AGENTS.md
+
 # IDE
 .vscode/
 .idea/
