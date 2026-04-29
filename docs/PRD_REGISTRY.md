@@ -57,7 +57,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-043 | 34becf7 | Decision summary block | COMPLETE | [PRD-043](prd_history/PRD-043.md) |
 | PRD-044 | a5b1c85 | Macro driver payload surface with no-data mode support | COMPLETE | [PRD-044](prd_history/PRD-044.md) |
 | PRD-045 | 64a78d5 | Trade decision materialization — explicit ALLOW/BLOCK per candidate | COMPLETE | [PRD-045](prd_history/PRD-045.md) |
-| PRD-046 | — | Decision trace — first-failure explanation per candidate | IN PROGRESS | [PRD-046](prd_history/PRD-046.md) |
+| PRD-046 | 9fbd22b | Decision trace — first-failure explanation per candidate | COMPLETE | [PRD-046](prd_history/PRD-046.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
