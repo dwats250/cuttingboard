@@ -8,13 +8,36 @@
 </head>
 <body>
 <div class="wrap">
+<div class="block" id="decision-summary">
+  <div class="value">STAY FLAT</div>
+  <div class="value">Regime: NEUTRAL</div>
+  <div class="value">Posture: STAY_FLAT</div>
+  <div class="value">Confidence: 0.0</div>
+</div>
 <div class="block" id="dashboard-header">
   <div class="row">
-    <div class="field"><div class="label">Timestamp</div><div class="value">2026-04-28T19:49:57Z</div></div>
+    <div class="field"><div class="label">Timestamp</div><div class="value">2026-04-29T14:57:25Z</div></div>
     <div class="field"><div class="label">Status</div><div class="value">SUCCESS</div></div>
     <div class="field"><div class="label">Regime</div><div class="value"><span class="badge NEUTRAL">NEUTRAL</span></div></div>
     <div class="field"><div class="label">Posture</div><div class="value"><span class="badge STAY_FLAT">STAY_FLAT</span></div></div>
   </div>
+</div>
+<div class="block" id="macro-tape">
+  <h2>Macro Tape</h2>
+  <div class="row">
+    <div class="field"><div class="label">market_regime</div><div class="value">NEUTRAL</div></div>
+    <div class="field"><div class="label">posture</div><div class="value">STAY_FLAT</div></div>
+    <div class="field"><div class="label">confidence</div><div class="value">0.0</div></div>
+    <div class="field"><div class="label">tradable</div><div class="value">NO</div></div>
+    <div class="field"><div class="label">system_halted</div><div class="value">NO</div></div>
+    <div class="field"><div class="label">kill_switch</div><div class="value">NO</div></div>
+    <div class="field"><div class="label">data_status</div><div class="value">ok</div></div>
+  </div>
+</div>
+<div class="block" id="run-delta">
+  <h2>Delta</h2>
+  <div class="value">Regime: RISK_OFF -&gt; NEUTRAL</div>
+  <div class="value">Confidence: 0.25 -&gt; 0.0</div>
 </div>
 <div class="block" id="system-state">
   <h2>System State</h2>
@@ -22,6 +45,13 @@
     <div class="field"><div class="label">Tradable</div><div class="value">NO</div></div>
     <div class="field"><div class="label">Stay Flat Reason</div><div class="value warn">STAY_FLAT posture</div></div>
   </div>
+</div>
+<div class="block" id="run-history">
+  <h2>History</h2>
+  <div class="value">timestamp | regime | posture | confidence</div>
+  <div class="value">20:21 | RISK_OFF | DEFENSIVE_SHORT | 0.625</div>
+  <div class="value">19:25 | RISK_OFF | STAY_FLAT | 0.25</div>
+  <div class="value">10:41 | RISK_ON | CONTROLLED_LONG | 0.625</div>
 </div>
 <div class="block" id="run-health">
   <h2>Run Health</h2>
