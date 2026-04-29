@@ -15,6 +15,12 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from cuttingboard import config, time_utils
+from cuttingboard.trade_decision import (
+    ALLOW_TRADE,
+    BLOCK_TRADE,
+    TradeDecision,
+    VALID_DECISION_STATUSES,
+)
 from cuttingboard.qualification import (
     ENTRY_MODE_PULLBACK_IMBALANCE,
     QualificationSummary,
@@ -61,6 +67,7 @@ def build_pipeline_output_contract(
     qual: Optional[QualificationSummary] = getattr(pr, "qualification_summary", None)
     option_setups = getattr(pr, "option_setups", [])
     chain_results = getattr(pr, "chain_results", {})
+    trade_decisions = getattr(pr, "trade_decisions", [])
     watch_summary = getattr(pr, "watch_summary", None)
     validation_summary = getattr(pr, "validation_summary", None)
     normalized_quotes = getattr(pr, "normalized_quotes", {})
@@ -86,7 +93,7 @@ def build_pipeline_output_contract(
         "market_context": _build_market_context(
             regime, qual, normalized_quotes, raw_quotes, generated_at, dq
         ),
-        "trade_candidates": _build_trade_candidates(qual, option_setups, chain_results),
+        "trade_candidates": _build_trade_candidates(qual, option_setups, chain_results, trade_decisions),
         "rejections": _build_rejections(qual),
         "audit_summary": _build_audit_summary(qual, errors),
         "artifacts": _build_artifacts(artifacts, pr),
@@ -253,16 +260,24 @@ def _build_trade_candidates(
     qual: Optional[QualificationSummary],
     option_setups: list,
     chain_results: dict,
+    trade_decisions: list[TradeDecision],
 ) -> list[dict[str, Any]]:
     if qual is None:
         return []
 
     setup_by_symbol = {s.symbol: s for s in option_setups}
+    result_by_symbol = {result.symbol: result for result in qual.qualified_trades}
+    chain_by_symbol = dict(chain_results)
     candidates = []
 
-    for result in qual.qualified_trades:
+    for decision in trade_decisions:
+        result = result_by_symbol.get(decision.ticker)
+        if result is None:
+            raise ValueError(f"Missing QualificationResult for decision {decision.ticker}")
         setup = setup_by_symbol.get(result.symbol)
-        chain = chain_results.get(result.symbol)
+        if setup is None:
+            raise ValueError(f"Missing OptionSetup for decision {decision.ticker}")
+        chain = chain_by_symbol.get(result.symbol)
 
         candidates.append({
             "symbol": result.symbol,
@@ -270,13 +285,15 @@ def _build_trade_candidates(
             "entry_mode": _safe_str(getattr(result, "entry_mode", None)),
             "strategy_tag": _safe_str(setup.strategy if setup else None),
             "trigger": None,
-            "entry": None,
-            "stop": None,
-            "target": None,
-            "risk_reward": None,
+            "entry": float(decision.entry),
+            "stop": float(decision.stop),
+            "target": float(decision.target),
+            "risk_reward": float(decision.r_r),
             "timeframe": str(setup.dte) if setup else None,
             "setup_quality": _safe_str(chain.classification if chain else None),
             "notes": _safe_str(chain.reason if chain else None),
+            "decision_status": decision.status,
+            "block_reason": decision.block_reason,
         })
 
     return candidates
@@ -486,6 +503,7 @@ def assert_valid_contract(contract: dict) -> None:
     assert isinstance(contract["audit_summary"], dict), "audit_summary must be a dict"
     assert isinstance(contract["artifacts"], dict), "artifacts must be a dict"
     assert isinstance(contract["system_state"]["tradable"], bool), "system_state.tradable must be bool"
+    _assert_trade_candidates_valid(contract["trade_candidates"])
 
     corr = contract.get("correlation")
     if corr is not None:
@@ -534,3 +552,29 @@ def assert_valid_contract(contract: dict) -> None:
 
     # Must be JSON-serializable with no custom encoder
     json.dumps(contract)
+
+
+def _assert_trade_candidates_valid(trade_candidates: list[Any]) -> None:
+    for index, candidate in enumerate(trade_candidates):
+        assert isinstance(candidate, dict), f"trade_candidates[{index}] must be a dict"
+        decision_status = candidate.get("decision_status")
+        assert decision_status in VALID_DECISION_STATUSES, (
+            f"trade_candidates[{index}].decision_status invalid: {decision_status!r}"
+        )
+        block_reason = candidate.get("block_reason")
+        if decision_status == ALLOW_TRADE:
+            assert block_reason is None, (
+                f"trade_candidates[{index}].block_reason must be None for ALLOW_TRADE"
+            )
+            for field in ("entry", "stop", "target", "risk_reward"):
+                value = candidate.get(field)
+                assert isinstance(value, float), (
+                    f"trade_candidates[{index}].{field} must be float for ALLOW_TRADE"
+                )
+                assert math.isfinite(value), (
+                    f"trade_candidates[{index}].{field} must be finite for ALLOW_TRADE"
+                )
+        elif decision_status == BLOCK_TRADE:
+            assert isinstance(block_reason, str) and block_reason.strip(), (
+                f"trade_candidates[{index}].block_reason must be non-empty for BLOCK_TRADE"
+            )

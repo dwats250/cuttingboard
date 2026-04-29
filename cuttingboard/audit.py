@@ -17,6 +17,7 @@ from typing import Optional
 from cuttingboard.options import OptionSetup
 from cuttingboard.qualification import QualificationSummary
 from cuttingboard.regime import RegimeState
+from cuttingboard.trade_decision import TradeDecision
 from cuttingboard.validation import ValidationSummary
 from cuttingboard.watch import WatchSummary
 
@@ -36,6 +37,7 @@ def write_audit_record(
     halt_reason: Optional[str],
     alert_sent: bool,
     report_path: str,
+    trade_decisions: Optional[list[TradeDecision]] = None,
     router_mode: str = "",
     energy_score: float = 0.0,
     index_score: float = 0.0,
@@ -63,6 +65,7 @@ def write_audit_record(
         qualification_summary=qualification_summary,
         watch_summary=watch_summary,
         option_setups=option_setups,
+        trade_decisions=trade_decisions,
         suppressed_candidates=suppressed_candidates,
         intraday_state_context=intraday_state_context,
         halt_reason=halt_reason,
@@ -89,6 +92,7 @@ def _build_record(
     halt_reason: Optional[str],
     alert_sent: bool,
     report_path: str,
+    trade_decisions: Optional[list[TradeDecision]] = None,
     router_mode: str = "",
     energy_score: float = 0.0,
     index_score: float = 0.0,
@@ -97,6 +101,9 @@ def _build_record(
     intraday_state_context: Optional[dict[str, dict]] = None,
 ) -> dict:
     qual = qualification_summary
+    decisions_by_symbol = {
+        decision.ticker: decision for decision in (trade_decisions or [])
+    }
 
     qualified_list = []
     watchlist_list = []
@@ -106,6 +113,7 @@ def _build_record(
     if qual is not None:
         for r in qual.qualified_trades:
             setup = next((s for s in option_setups if s.symbol == r.symbol), None)
+            decision = decisions_by_symbol.get(r.symbol)
             entry: dict = {
                 "symbol":     r.symbol,
                 "direction":  r.direction,
@@ -115,6 +123,13 @@ def _build_record(
                 "contracts":  r.max_contracts,
                 "dollar_risk": r.dollar_risk,
             }
+            if decision is not None:
+                entry["entry"] = decision.entry
+                entry["stop"] = decision.stop
+                entry["target"] = decision.target
+                entry["risk_reward"] = decision.r_r
+                entry["decision_status"] = decision.status
+                entry["block_reason"] = decision.block_reason
             meta = (intraday_state_context or {}).get(r.symbol)
             if meta is not None:
                 entry["downside_permission"] = meta.get("downside_permission")

@@ -32,6 +32,8 @@ from cuttingboard.contract import (
     build_pipeline_output_contract,
     derive_run_status,
 )
+from cuttingboard.chain_validation import ChainValidationResult, VALIDATED
+from cuttingboard.options import OptionSetup
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.output import OUTCOME_HALT, OUTCOME_NO_TRADE, OUTCOME_TRADE, render_report
 from cuttingboard.qualification import (
@@ -49,6 +51,7 @@ from cuttingboard.regime import (
     RegimeState,
 )
 from cuttingboard.validation import ValidationSummary
+from cuttingboard.trade_decision import TradeDecision, ALLOW_TRADE, BLOCK_TRADE
 
 
 # ---------------------------------------------------------------------------
@@ -158,6 +161,53 @@ def _qual_summary(
     )
 
 
+def _option_setup(symbol: str = "SPY") -> OptionSetup:
+    return OptionSetup(
+        symbol=symbol,
+        strategy="BULL_CALL_SPREAD",
+        direction="LONG",
+        structure="TREND",
+        iv_environment="NORMAL_IV",
+        long_strike="1_ITM",
+        short_strike="ATM",
+        strike_distance=5.0,
+        spread_width=0.75,
+        dte=21,
+        max_contracts=2,
+        dollar_risk=150.0,
+        exit_profit_pct=0.5,
+        exit_loss="full_debit",
+    )
+
+
+def _chain_result(symbol: str = "SPY", classification: str = VALIDATED, reason: str | None = None) -> ChainValidationResult:
+    return ChainValidationResult(
+        symbol=symbol,
+        classification=classification,
+        reason=reason,
+        spread_pct=None,
+        open_interest=None,
+        volume=None,
+        expiry_used=None,
+        data_source=None,
+    )
+
+
+def _trade_decision(symbol: str = "SPY", status: str = ALLOW_TRADE, block_reason: str | None = None) -> TradeDecision:
+    return TradeDecision(
+        ticker=symbol,
+        direction="LONG",
+        status=status,
+        entry=100.0,
+        stop=97.0,
+        target=106.0,
+        r_r=2.0,
+        contracts=2,
+        dollar_risk=150.0,
+        block_reason=block_reason,
+    )
+
+
 class _FakePipelineResult:
     """Duck-typed stand-in for PipelineResult."""
 
@@ -179,6 +229,7 @@ class _FakePipelineResult:
         alert_sent: bool = False,
         report_path: str = "reports/2026-04-23.md",
         errors: list = (),
+        trade_decisions: list = (),
     ):
         self.mode = mode
         self.run_at_utc = run_at_utc
@@ -189,6 +240,7 @@ class _FakePipelineResult:
         self.watch_summary = watch_summary
         self.option_setups = list(option_setups)
         self.chain_results = dict(chain_results)
+        self.trade_decisions = list(trade_decisions)
         self.validation_summary = validation_summary or _val_summary()
         self.normalized_quotes = dict(_macro_quotes() if normalized_quotes is None else normalized_quotes)
         self.raw_quotes = dict(raw_quotes)
@@ -216,6 +268,9 @@ class TestSuccessfulRun:
         self.pr = _FakePipelineResult(
             regime=_regime(),
             qualification_summary=_qual_summary(qualified=1),
+            option_setups=[_option_setup()],
+            chain_results={"SPY": _chain_result()},
+            trade_decisions=[_trade_decision()],
         )
         self.contract = _build(self.pr)
 
@@ -263,6 +318,15 @@ class TestSuccessfulRun:
 
     def test_assert_valid_contract_passes(self):
         assert_valid_contract(self.contract)  # must not raise
+
+    def test_trade_candidate_materialized_from_trade_decision(self):
+        candidate = self.contract["trade_candidates"][0]
+        assert candidate["entry"] == 100.0
+        assert candidate["stop"] == 97.0
+        assert candidate["target"] == 106.0
+        assert candidate["risk_reward"] == 2.0
+        assert candidate["decision_status"] == ALLOW_TRADE
+        assert candidate["block_reason"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -468,6 +532,9 @@ def test_trade_candidates_and_rejections_always_lists(qualified, excluded):
     pr = _FakePipelineResult(
         regime=_regime(),
         qualification_summary=_qual_summary(qualified=qualified, excluded=excluded),
+        option_setups=[_option_setup()] if qualified else [],
+        chain_results={"SPY": _chain_result()} if qualified else {},
+        trade_decisions=[_trade_decision()] if qualified else [],
     )
     contract = _build(pr)
     assert isinstance(contract["trade_candidates"], list)
@@ -584,6 +651,48 @@ def test_assert_fails_invalid_status():
     contract = _build(pr)
     contract["status"] = "INVALID"
     with pytest.raises(AssertionError, match="status"):
+        assert_valid_contract(contract)
+
+
+def test_assert_fails_missing_trade_candidate_decision_status():
+    pr = _FakePipelineResult(
+        regime=_regime(),
+        qualification_summary=_qual_summary(qualified=1),
+        option_setups=[_option_setup()],
+        chain_results={"SPY": _chain_result()},
+        trade_decisions=[_trade_decision()],
+    )
+    contract = _build(pr)
+    del contract["trade_candidates"][0]["decision_status"]
+    with pytest.raises(AssertionError, match="decision_status"):
+        assert_valid_contract(contract)
+
+
+def test_assert_fails_allow_trade_with_nonfinite_numeric_field():
+    pr = _FakePipelineResult(
+        regime=_regime(),
+        qualification_summary=_qual_summary(qualified=1),
+        option_setups=[_option_setup()],
+        chain_results={"SPY": _chain_result()},
+        trade_decisions=[_trade_decision()],
+    )
+    contract = _build(pr)
+    contract["trade_candidates"][0]["entry"] = float("inf")
+    with pytest.raises(AssertionError, match="entry"):
+        assert_valid_contract(contract)
+
+
+def test_assert_fails_block_trade_without_block_reason():
+    pr = _FakePipelineResult(
+        regime=_regime(),
+        qualification_summary=_qual_summary(qualified=1),
+        option_setups=[_option_setup()],
+        chain_results={"SPY": _chain_result(classification="NEEDS_MANUAL_CHECK", reason="needs broker review")},
+        trade_decisions=[_trade_decision(status=BLOCK_TRADE, block_reason="needs broker review")],
+    )
+    contract = _build(pr)
+    contract["trade_candidates"][0]["block_reason"] = None
+    with pytest.raises(AssertionError, match="block_reason"):
         assert_valid_contract(contract)
 
 
