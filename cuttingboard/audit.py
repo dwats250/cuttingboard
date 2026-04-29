@@ -104,8 +104,12 @@ def _build_record(
     decisions_by_symbol = {
         decision.ticker: decision for decision in (trade_decisions or [])
     }
+    setup_by_symbol = {
+        setup.symbol: setup for setup in option_setups
+    }
 
     qualified_list = []
+    trade_decision_list = []
     watchlist_list = []
     near_a_plus_list = []
     excluded_dict: dict = {}
@@ -152,6 +156,25 @@ def _build_record(
 
         excluded_dict = dict(qual.excluded)
 
+    for decision in trade_decisions or []:
+        setup = setup_by_symbol.get(decision.ticker)
+        trade_decision_list.append({
+            "symbol": decision.ticker,
+            "direction": decision.direction,
+            "strategy": setup.strategy if setup else None,
+            "structure": setup.structure if setup else None,
+            "dte": setup.dte if setup else None,
+            "contracts": decision.contracts,
+            "dollar_risk": decision.dollar_risk,
+            "entry": decision.entry,
+            "stop": decision.stop,
+            "target": decision.target,
+            "risk_reward": decision.r_r,
+            "decision_status": decision.status,
+            "block_reason": decision.block_reason,
+            "decision_trace": dict(decision.decision_trace),
+        })
+
     if watch_summary is not None:
         for item in watch_summary.watchlist:
             watchlist_list.append({
@@ -191,6 +214,7 @@ def _build_record(
 
         # Trades
         "qualified_trades":       qualified_list,
+        "trade_decisions":        trade_decision_list,
         "watchlist":              watchlist_list,
         "near_a_plus":            near_a_plus_list,
         "excluded_symbols":       excluded_dict,

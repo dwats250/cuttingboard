@@ -48,6 +48,7 @@ from cuttingboard.derived import compute_all_derived
 from cuttingboard.ingestion import fetch_ohlcv
 from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, block_live_data, fetch_all, fetch_intraday_bars
 from cuttingboard.intraday_state_engine import Bar as IntradayStateBar, compute_intraday_state
+from cuttingboard.evaluation import run_post_trade_evaluation
 from cuttingboard.normalization import NormalizedQuote, normalize_all
 from cuttingboard.notifications import (
     NOTIFY_MODES,
@@ -796,6 +797,7 @@ def _run_pipeline(
         report_path=report_path,
         intraday_state_context=intraday_state_context,
     )
+    run_post_trade_evaluation(current_run_at_utc=run_at_utc)
 
     summary = _build_run_summary(
         mode=mode,
