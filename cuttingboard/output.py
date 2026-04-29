@@ -454,6 +454,7 @@ def send_telegram(
     *,
     notification_priority: str = "",
     notification_state_key: str = "",
+    notification_audit_reason: Optional[str] = None,
 ) -> bool:
     """Send Telegram notification. Returns True on success, False otherwise.
 
@@ -464,8 +465,8 @@ def send_telegram(
     skip (not configured), success, HTTP failure, or exception.
     Never raises — notification failure must not crash the pipeline.
 
-    notification_priority and notification_state_key are forwarded to the
-    audit record when provided by the PRD-018 suppression layer.
+    notification_priority, notification_state_key, and notification_audit_reason
+    are forwarded to the audit record when provided by callers.
     """
     token = config.TELEGRAM_BOT_TOKEN
     chat_id = config.TELEGRAM_CHAT_ID
@@ -480,7 +481,7 @@ def send_telegram(
             alert_title=title,
             attempted=False,
             success=False,
-            reason="not_configured",
+            reason=notification_audit_reason or "not_configured",
             priority=_priority,
             state_key=_state_key,
             message_preview=body[:120] if body else None,
@@ -538,6 +539,7 @@ def send_telegram(
             success=True,
             http_status=200,
             retry_count=retry_count,
+            reason=notification_audit_reason,
             priority=_priority,
             state_key=_state_key,
             message_preview=preview,
@@ -556,7 +558,7 @@ def send_telegram(
         http_status=http_status,
         error=error_detail,
         retry_count=retry_count,
-        reason="exception" if http_status is None else None,
+        reason=notification_audit_reason or ("exception" if http_status is None else None),
         priority=_priority,
         state_key=_state_key,
         message_preview=preview,
@@ -570,13 +572,19 @@ def send_notification(
     *,
     notification_priority: str = "",
     notification_state_key: str = "",
+    notification_audit_reason: Optional[str] = None,
 ) -> bool:
     """Single notification dispatch point. Sends via Telegram."""
+    kwargs = {
+        "notification_priority": notification_priority,
+        "notification_state_key": notification_state_key,
+    }
+    if notification_audit_reason is not None:
+        kwargs["notification_audit_reason"] = notification_audit_reason
     return send_telegram(
         title,
         body,
-        notification_priority=notification_priority,
-        notification_state_key=notification_state_key,
+        **kwargs,
     )
 
 

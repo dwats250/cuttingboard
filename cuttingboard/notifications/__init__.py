@@ -180,11 +180,24 @@ def format_hourly_notification(
 
 def format_failure_notification(notify_mode: str, date_str: str, reason: str) -> tuple[str, str]:
     del date_str
-    event = AlertEvent(
-        alert_context=ALERT_CONTEXT_NOTIFY,
-        notify_mode=notify_mode,
-        outcome="NO_TRADE",
-        asof_utc=datetime.now(timezone.utc),
-        failure_reason=reason,
+    label = {
+        NOTIFY_PREMARKET: "PREMARKET",
+        NOTIFY_ORB_TRAJECTORY: "EARLY SESSION",
+        NOTIFY_POST_ORB: "POST-ORB",
+        NOTIFY_MIDMORNING: "MIDDAY",
+        NOTIFY_POWER_HOUR: "POWER HOUR",
+        NOTIFY_MARKET_CLOSE: "MARKET CLOSE",
+        NOTIFY_HOURLY: "HOURLY",
+    }.get(notify_mode, str(notify_mode).upper())
+    timestamp = datetime.now(timezone.utc).isoformat()
+    safe_reason = str(reason)[:200].encode("ascii", errors="replace").decode("ascii")
+    title = f"{label} ERROR"
+    body = "\n".join(
+        [
+            f"timestamp: {timestamp}",
+            "",
+            "Failure",
+            safe_reason,
+        ]
     )
-    return format_ntfy_alert(event)
+    return title, body

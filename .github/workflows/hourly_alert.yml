@@ -38,7 +38,7 @@ jobs:
         run: pip install -e .
 
       - name: Run hourly alert
-        run: python -m cuttingboard --mode live --notify-mode hourly
+        run: python -m cuttingboard.alert_runner
 
       - name: Upload failure artifacts
         if: failure()
