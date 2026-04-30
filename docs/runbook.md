@@ -7,7 +7,6 @@
 | 13:00 | Mon–Fri | Live run fires (GHA or cron) |
 | 13:05 | Mon–Fri | Verify run fires — confirms artifact is valid |
 | 13:01–13:06 | Mon–Fri | Report committed to `reports/YYYY-MM-DD.md` (GHA) |
-| 13:01–13:06 | Mon–Fri | ntfy alert delivered (if configured) |
 | 14:00–21:30 | Mon–Fri | Intraday monitor runs every 30 minutes |
 | 10:00 | Sunday | Sunday regime report fires (no trade candidates) |
 
