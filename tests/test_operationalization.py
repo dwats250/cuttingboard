@@ -46,6 +46,7 @@ def _isolate_artifacts(monkeypatch, tmp_path):
     monkeypatch.setattr(runtime, "LOGS_DIR", logs_dir)
     monkeypatch.setattr(runtime, "REPORTS_DIR", reports_dir)
     monkeypatch.setattr(runtime, "LATEST_RUN_PATH", logs_dir / "latest_run.json")
+    monkeypatch.setattr(runtime, "MARKET_MAP_PATH", logs_dir / "market_map.json")
     monkeypatch.setattr(runtime, "LATEST_CONTRACT_PATH", str(logs_dir / "latest_contract.json"))
     monkeypatch.setattr(audit, "AUDIT_LOG_PATH", str(logs_dir / "audit.jsonl"))
     return logs_dir, reports_dir
@@ -214,16 +215,21 @@ def test_fixture_run_writes_expected_artifacts_and_required_fields(monkeypatch, 
     assert report_path.exists()
     assert (logs_dir / "audit.jsonl").exists()
     assert (logs_dir / "latest_contract.json").exists()
+    assert (logs_dir / "market_map.json").exists()
 
     latest_summary = json.loads(latest_path.read_text(encoding="utf-8"))
     timestamped_summary = json.loads(run_paths[0].read_text(encoding="utf-8"))
     latest_contract = json.loads((logs_dir / "latest_contract.json").read_text(encoding="utf-8"))
+    market_map = json.loads((logs_dir / "market_map.json").read_text(encoding="utf-8"))
 
     assert REQUIRED_SUMMARY_FIELDS <= set(latest_summary)
     assert REQUIRED_SUMMARY_FIELDS <= set(timestamped_summary)
     assert latest_summary == timestamped_summary
     assert latest_contract["outcome"] in {"TRADE", "NO_TRADE", "HALT"}
     assert latest_contract["outcome"] == latest_summary["outcome"]
+    assert market_map["schema_version"] == "market_map.v1"
+    assert market_map["primary_symbols"] == ["SPY", "QQQ", "GDX", "GLD", "SLV", "XLE"]
+    assert set(market_map["symbols"]) == {"SPY", "QQQ", "GDX", "GLD", "SLV", "XLE"}
 
 
 def test_notify_mode_execute_run_writes_canonical_artifacts(monkeypatch, tmp_path):
