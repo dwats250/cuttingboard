@@ -78,6 +78,10 @@ CONFIDENCE_MEDIUM = "MEDIUM"
 CONFIDENCE_LOW = "LOW"
 VALID_CONFIDENCE = frozenset({CONFIDENCE_HIGH, CONFIDENCE_MEDIUM, CONFIDENCE_LOW})
 
+UNAVAILABLE_WHAT_TO_LOOK_FOR = "Market data unavailable for this run; review during live market session."
+UNAVAILABLE_INVALIDATION = "No trade structure available until price, structure, and level data are present."
+UNAVAILABLE_REASON = "Market data unavailable for this run."
+
 ASSET_GROUPS = {
     "SPY": "INDEX",
     "QQQ": "INDEX",
@@ -407,7 +411,7 @@ def _what_to_look_for(
     missing: list[str],
 ) -> list[str]:
     if missing and grade == GRADE_F:
-        return [f"deferred: {', '.join(missing)}"]
+        return [UNAVAILABLE_WHAT_TO_LOOK_FOR]
 
     nearest = watch_zones[0]["type"] if watch_zones else "defined reference level"
     if setup_state == SETUP_EXTENDED:
@@ -425,7 +429,7 @@ def _invalidation(
     missing: list[str],
 ) -> list[str]:
     if missing and not watch_zones:
-        return [f"deferred: {', '.join(missing)}"]
+        return [UNAVAILABLE_INVALIDATION]
     nearest = watch_zones[0]["type"] if watch_zones else "reference level"
     if bias == BIAS_BULLISH:
         return [f"loses {nearest} with weak recovery", "momentum fades below primary trend reference"]
@@ -457,7 +461,7 @@ def _reason_for_grade(
     missing: list[str],
 ) -> str:
     if missing and grade == GRADE_F:
-        return f"{grade}: data unavailable - {', '.join(missing)}"
+        return UNAVAILABLE_REASON
     if structure == STRUCTURE_CHOPPY:
         return f"{grade}: structurally invalid - choppy market structure"
     if extended:

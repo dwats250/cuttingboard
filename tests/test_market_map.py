@@ -277,7 +277,17 @@ def test_missing_data_returns_deferred_record_not_crash():
         assert record["setup_state"] == "DATA_UNAVAILABLE"
         assert record["watch_zones"] == []
         assert record["fib_levels"] is None
-        assert "missing_quote" in record["reason_for_grade"]
+        assert record["what_to_look_for"] == [
+            "Market data unavailable for this run; review during live market session."
+        ]
+        assert record["invalidation"] == [
+            "No trade structure available until price, structure, and level data are present."
+        ]
+        assert record["reason_for_grade"] == "Market data unavailable for this run."
+        user_guidance = " ".join(
+            record["what_to_look_for"] + record["invalidation"] + [record["reason_for_grade"]]
+        )
+        assert "missing_" not in user_guidance
 
 
 def test_malformed_derived_input_degrades_to_unavailable():
@@ -293,7 +303,11 @@ def test_malformed_derived_input_degrades_to_unavailable():
 
     assert record["grade"] == "F"
     assert record["setup_state"] == "DATA_UNAVAILABLE"
-    assert "missing_derived_metrics" in record["reason_for_grade"]
+    assert record["reason_for_grade"] == "Market data unavailable for this run."
+    user_guidance = " ".join(
+        record["what_to_look_for"] + record["invalidation"] + [record["reason_for_grade"]]
+    )
+    assert "missing_derived_metrics" not in user_guidance
 
 
 def test_builder_does_not_mutate_inputs():
