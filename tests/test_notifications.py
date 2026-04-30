@@ -4,6 +4,7 @@ from cuttingboard.notifications import (
     NOTIFY_POST_ORB,
     NOTIFY_POWER_HOUR,
     format_failure_notification,
+    format_hourly_notification,
     format_intraday_alert,
     format_notification,
     format_run_alert,
@@ -217,3 +218,185 @@ def test_intraday_notification_uses_shared_compact_style():
     assert "REGIME SHIFT ->" not in body
     assert "New regime:" not in body
     assert "Risk improving" in body
+
+
+def test_run_alert_appends_meaningful_lifecycle_transitions_only():
+    market_map = {
+        "symbols": {
+            "nvda": {
+                "grade": "A+",
+                "direction": "long",
+                "setup_state": "breakout confirmed",
+                "reason_for_grade": "ignored because setup_state wins",
+                "lifecycle": {
+                    "previous_grade": "B",
+                    "grade_transition": "UPGRADED",
+                },
+            },
+            "meta": {
+                "grade": "A",
+                "direction": "LONG",
+                "reason_for_grade": "fresh high-grade setup",
+                "lifecycle": {
+                    "previous_grade": None,
+                    "grade_transition": "NEW",
+                },
+            },
+            "gdx": {
+                "grade": "C",
+                "direction": "LONG",
+                "lifecycle": {
+                    "previous_grade": None,
+                    "grade_transition": "NEW",
+                },
+            },
+            "msft": {
+                "grade": "A",
+                "direction": "LONG",
+                "lifecycle": {
+                    "previous_grade": "A",
+                    "grade_transition": "UNCHANGED",
+                },
+            },
+        },
+        "removed_symbols": [
+            {"symbol": "amd", "previous_grade": "B", "grade_transition": "REMOVED"},
+            {"symbol": "xle", "previous_grade": "C", "grade_transition": "REMOVED"},
+        ],
+    }
+
+    title, body = format_run_alert(
+        outcome="NO_TRADE",
+        run_at_utc=datetime(2026, 4, 15, 14, 42, tzinfo=timezone.utc),
+        regime=_regime(),
+        validation_summary=_validation_summary(),
+        qualification_summary=_qualification_summary([], []),
+        watch_summary=None,
+        market_map=market_map,
+    )
+
+    assert title == "NO TRADE"
+    assert "10:42 NVDA LONG - UPGRADED TO A+" in body
+    assert "breakout confirmed" in body
+    assert "10:42 META LONG - NEW (A)" in body
+    assert "fresh high-grade setup" in body
+    assert "10:42 AMD - REMOVED (prev: B)" in body
+    assert "GDX" not in body
+    assert "MSFT" not in body
+    assert "XLE" not in body
+    assert body.isascii()
+
+
+def test_lifecycle_notifications_handle_downgrades_reasons_and_malformed_entries():
+    market_map = {
+        "symbols": {
+            "tsla": {
+                "grade": "B",
+                "direction": "short",
+                "trade_framing": {"downgrade": "lost momentum"},
+                "setup_state": "ignored because downgrade wins",
+                "lifecycle": {
+                    "previous_grade": "A+",
+                    "grade_transition": "DOWNGRADED",
+                },
+            },
+            "iwm": {
+                "grade": "F",
+                "direction": "SHORT",
+                "lifecycle": {
+                    "previous_grade": "D",
+                    "grade_transition": "DOWNGRADED",
+                },
+            },
+            "bad": {
+                "grade": "A",
+                "direction": "LONG",
+                "lifecycle": "not-a-dict",
+            },
+            "unknown": {
+                "grade": "A",
+                "direction": "LONG",
+                "lifecycle": {
+                    "previous_grade": "B",
+                    "grade_transition": "UNKNOWN",
+                },
+            },
+        },
+        "removed_symbols": "not-a-list",
+    }
+
+    _, body = format_run_alert(
+        outcome="NO_TRADE",
+        run_at_utc=datetime(2026, 4, 15, 14, 30, tzinfo=timezone.utc),
+        regime=_regime(),
+        validation_summary=_validation_summary(),
+        qualification_summary=_qualification_summary([], []),
+        watch_summary=None,
+        market_map=market_map,
+    )
+
+    assert "10:30 TSLA SHORT - DOWNGRADED TO B" in body
+    assert "lost momentum" in body
+    assert "ignored because downgrade wins" not in body
+    assert "IWM" not in body
+    assert "BAD" not in body
+    assert "UNKNOWN" not in body
+
+
+def test_lifecycle_notifications_deduplicate_same_transition_in_one_build():
+    entry = {
+        "grade": "A",
+        "direction": "LONG",
+        "lifecycle": {
+            "previous_grade": "B",
+            "grade_transition": "UPGRADED",
+        },
+    }
+    market_map = {
+        "symbols": {
+            "nvda": entry,
+            "NVDA": entry,
+        },
+        "removed_symbols": [
+            {"symbol": "gdx", "previous_grade": "A", "grade_transition": "REMOVED"},
+            {"symbol": "GDX", "previous_grade": "A", "grade_transition": "REMOVED"},
+        ],
+    }
+
+    _, body = format_run_alert(
+        outcome="NO_TRADE",
+        run_at_utc=datetime(2026, 4, 15, 14, 5, tzinfo=timezone.utc),
+        regime=_regime(),
+        validation_summary=_validation_summary(),
+        qualification_summary=_qualification_summary([], []),
+        watch_summary=None,
+        market_map=market_map,
+    )
+
+    assert body.count("10:05 NVDA LONG - UPGRADED TO A") == 1
+    assert body.count("10:05 GDX - REMOVED (prev: A)") == 1
+
+
+def test_lifecycle_alerts_reuse_hourly_timestamp_convention():
+    title, body = format_hourly_notification(
+        asof_utc=datetime(2026, 4, 15, 15, 20, tzinfo=timezone.utc),
+        regime=_regime(posture=STAY_FLAT),
+        validation_summary=_validation_summary(),
+        qualification_summary=_qualification_summary([], []),
+        market_map={
+            "symbols": {
+                "meta": {
+                    "grade": "A",
+                    "direction": "LONG",
+                    "lifecycle": {
+                        "previous_grade": None,
+                        "grade_transition": "NEW",
+                    },
+                }
+            }
+        },
+    )
+
+    assert title == "STAY FLAT 11:20"
+    assert "11:20 META LONG - NEW (A)" in body
+    assert "15:20" not in body

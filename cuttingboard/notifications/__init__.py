@@ -8,7 +8,7 @@ The alert renderer lives in formatter.py.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
 from cuttingboard.normalization import NormalizedQuote
@@ -52,6 +52,7 @@ NOTIFY_MODES = frozenset(
 
 _SUPPRESS_CONFIDENCE = 0.55
 _ET_TZ = ZoneInfo("America/New_York")
+_LIFECYCLE_HIGH_GRADES = frozenset({"A+", "A", "B"})
 
 
 def _hhmm(asof_utc: datetime) -> str:
@@ -138,6 +139,124 @@ def _parse_candidate_line(line: str) -> Optional[tuple[str, str, str]]:
     return symbol, direction, rr_text
 
 
+def _as_clean_string(value: object) -> Optional[str]:
+    if not isinstance(value, str):
+        return None
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+    return cleaned.encode("ascii", errors="replace").decode("ascii")
+
+
+def _lifecycle_reason(entry: dict[str, Any]) -> Optional[str]:
+    trade_framing = entry.get("trade_framing")
+    downgrade = trade_framing.get("downgrade") if isinstance(trade_framing, dict) else None
+    for value in (downgrade, entry.get("setup_state"), entry.get("reason_for_grade")):
+        if reason := _as_clean_string(value):
+            return reason
+    return None
+
+
+def _current_lifecycle_line(symbol: object, entry: object, hhmm: str) -> Optional[tuple[str, str]]:
+    if not isinstance(symbol, str) or not isinstance(entry, dict):
+        return None
+    lifecycle = entry.get("lifecycle")
+    if not isinstance(lifecycle, dict):
+        return None
+
+    transition = _as_clean_string(lifecycle.get("grade_transition"))
+    current_grade = _as_clean_string(entry.get("grade"))
+    previous_grade = _as_clean_string(lifecycle.get("previous_grade"))
+    if transition is None or current_grade is None:
+        return None
+
+    should_alert = (
+        transition == "UPGRADED"
+        or (transition == "NEW" and current_grade in _LIFECYCLE_HIGH_GRADES)
+        or (transition == "DOWNGRADED" and previous_grade in _LIFECYCLE_HIGH_GRADES)
+    )
+    if not should_alert:
+        return None
+
+    symbol_text = symbol.strip().upper()
+    if not symbol_text:
+        return None
+    direction = _as_clean_string(entry.get("direction"))
+    prefix = f"{hhmm} {symbol_text}"
+    if direction:
+        prefix = f"{prefix} {direction.upper()}"
+
+    if transition == "UPGRADED":
+        line = f"{prefix} - UPGRADED TO {current_grade}"
+    elif transition == "DOWNGRADED":
+        line = f"{prefix} - DOWNGRADED TO {current_grade}"
+    else:
+        line = f"{prefix} - NEW ({current_grade})"
+    return line, f"{symbol_text}|{transition}|{previous_grade or ''}|{current_grade}"
+
+
+def _removed_lifecycle_line(entry: object, hhmm: str) -> Optional[tuple[str, str]]:
+    if not isinstance(entry, dict):
+        return None
+    symbol = _as_clean_string(entry.get("symbol"))
+    previous_grade = _as_clean_string(entry.get("previous_grade"))
+    transition = _as_clean_string(entry.get("grade_transition"))
+    if (
+        symbol is None
+        or previous_grade not in _LIFECYCLE_HIGH_GRADES
+        or transition != "REMOVED"
+    ):
+        return None
+    symbol_text = symbol.upper()
+    return (
+        f"{hhmm} {symbol_text} - REMOVED (prev: {previous_grade})",
+        f"{symbol_text}|REMOVED|{previous_grade}|",
+    )
+
+
+def _lifecycle_alert_lines(market_map: Optional[dict[str, Any]], asof_utc: datetime) -> tuple[str, ...]:
+    if not isinstance(market_map, dict):
+        return ()
+
+    hhmm = _hhmm(asof_utc)
+    lines: list[str] = []
+    seen: set[str] = set()
+    symbols = market_map.get("symbols")
+    if isinstance(symbols, dict):
+        for symbol, entry in symbols.items():
+            parsed = _current_lifecycle_line(symbol, entry, hhmm)
+            if parsed is None:
+                continue
+            line, key = parsed
+            if key in seen:
+                continue
+            seen.add(key)
+            lines.append(line)
+            if isinstance(entry, dict) and (reason := _lifecycle_reason(entry)):
+                lines.append(reason)
+
+    removed_symbols = market_map.get("removed_symbols")
+    if isinstance(removed_symbols, list):
+        for entry in removed_symbols:
+            parsed = _removed_lifecycle_line(entry, hhmm)
+            if parsed is None:
+                continue
+            line, key = parsed
+            if key in seen:
+                continue
+            seen.add(key)
+            lines.append(line)
+
+    return tuple(lines)
+
+
+def _append_lifecycle_alerts(body: str, market_map: Optional[dict[str, Any]], asof_utc: datetime) -> str:
+    lines = _lifecycle_alert_lines(market_map, asof_utc)
+    if not lines:
+        return body
+    return "\n".join([body, "", *lines])
+
+
 def should_suppress(
     notify_mode: str,
     regime: Optional[RegimeState],
@@ -179,22 +298,25 @@ def format_notification(
     watch_summary: Optional[WatchSummary] = None,
     outcome: str = "NO_TRADE",
     halt_reason: Optional[str] = None,
+    market_map: Optional[dict[str, Any]] = None,
     **_: object,
 ) -> tuple[str, str]:
     """Return compact (title, body) for ntfy."""
     del date_str, normalized_quotes
+    asof_utc = regime.computed_at_utc if regime is not None else datetime.now(timezone.utc)
     event = AlertEvent(
         alert_context=ALERT_CONTEXT_NOTIFY,
         notify_mode=notify_mode,
         outcome=outcome,
-        asof_utc=(regime.computed_at_utc if regime is not None else datetime.now(timezone.utc)),
+        asof_utc=asof_utc,
         regime=regime,
         validation_summary=validation_summary,
         qualification_summary=qualification_summary,
         watch_summary=watch_summary,
         halt_reason=halt_reason,
     )
-    return format_ntfy_alert(event)
+    title, body = format_ntfy_alert(event)
+    return title, _append_lifecycle_alerts(body, market_map, asof_utc)
 
 
 def format_run_alert(
@@ -207,6 +329,7 @@ def format_run_alert(
     watch_summary: Optional[WatchSummary],
     halt_reason: Optional[str] = None,
     notify_mode: Optional[str] = None,
+    market_map: Optional[dict[str, Any]] = None,
     **_: object,
 ) -> tuple[str, str]:
     """Format the default live/sunday ntfy alert from pipeline state."""
@@ -221,7 +344,8 @@ def format_run_alert(
         watch_summary=watch_summary,
         halt_reason=halt_reason,
     )
-    return format_ntfy_alert(event)
+    title, body = format_ntfy_alert(event)
+    return title, _append_lifecycle_alerts(body, market_map, run_at_utc)
 
 
 def format_intraday_alert(
@@ -250,6 +374,7 @@ def format_hourly_notification(
     qualification_summary: Optional[QualificationSummary],
     candidate_lines: tuple[str, ...] = (),
     halt_reason: Optional[str] = None,
+    market_map: Optional[dict[str, Any]] = None,
 ) -> tuple[str, str]:
     del halt_reason
     hhmm = _hhmm(asof_utc)
@@ -276,7 +401,8 @@ def format_hourly_notification(
             ]
         )
         _append_trigger_block(lines, regime_label)
-        return title, "\n".join(lines)
+        body = "\n".join(lines)
+        return title, _append_lifecycle_alerts(body, market_map, asof_utc)
 
     if parsed:
         first_symbol, first_direction, _ = parsed[0]
@@ -285,7 +411,8 @@ def format_hourly_notification(
             f"- {symbol} {direction} RR {rr}"
             for symbol, direction, rr in parsed[:4]
         )
-        return title, "\n".join(lines)
+        body = "\n".join(lines)
+        return title, _append_lifecycle_alerts(body, market_map, asof_utc)
 
     title = f"ACTIVE - NO SETUP {hhmm}"
     has_candidates = bool(
@@ -309,7 +436,8 @@ def format_hourly_notification(
         if watch_lines:
             lines.extend(["", "WATCH:", *watch_lines])
     _append_trigger_block(lines, regime_label)
-    return title, "\n".join(lines)
+    body = "\n".join(lines)
+    return title, _append_lifecycle_alerts(body, market_map, asof_utc)
 
 
 def format_failure_notification(notify_mode: str, date_str: str, reason: str) -> tuple[str, str]:
