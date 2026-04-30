@@ -33,6 +33,13 @@ _GRADE_CSS: dict[str, str] = {
 
 _HIGH_GRADES = frozenset({"A+", "A", "B"})
 
+_LIFECYCLE_BADGE_CSS: dict[str, str] = {
+    "NEW":        "lifecycle-new",
+    "UPGRADED":   "lifecycle-upgraded",
+    "DOWNGRADED": "lifecycle-downgraded",
+    "UNKNOWN":    "lifecycle-unknown",
+}
+
 _TIER_DEFS = [
     ("aplus", "A+ — ACTIONABLE", frozenset({"A+"})),
     ("a",     "A — HIGH QUALITY", frozenset({"A"})),
@@ -91,6 +98,15 @@ _CSS = (
     ".tape-no-data{color:#888;font-style:italic;margin-top:4px;font-size:0.8rem}"
     ".idle-summary{color:#888;margin-bottom:12px;padding:8px;"
     "border-left:3px solid #2a2a2a}"
+    ".lifecycle-badge{display:inline-block;padding:0.15rem 0.4rem;"
+    "border-radius:3px;font-size:0.75rem;margin-left:0.5rem}"
+    ".lifecycle-new{background:#0d2a3a;color:#29b6f6}"
+    ".lifecycle-upgraded{background:#1a3a1a;color:#4caf50}"
+    ".lifecycle-downgraded{background:#3a1a1a;color:#f44336}"
+    ".lifecycle-unknown{background:#222;color:#555}"
+    ".lifecycle-detail{color:#888;font-size:0.8rem;margin-bottom:4px}"
+    ".removed-symbols{margin-top:12px}"
+    ".removed-row{color:#888;font-size:0.8rem;padding:2px 0}"
 )
 
 _UP   = "↑"
@@ -208,13 +224,25 @@ def _render_candidate_card(w: object, sym: str, entry: dict) -> None:
     css_class = _GRADE_CSS.get(grade, "unknown")
     is_high = grade in _HIGH_GRADES
 
+    lifecycle: dict | None = entry.get("lifecycle")
+    lc_tr = lifecycle.get("grade_transition") if lifecycle else None
+    badge_css = _LIFECYCLE_BADGE_CSS.get(lc_tr) if lc_tr else None
+    badge_html = f'<span class="lifecycle-badge {badge_css}">{_esc(lc_tr)}</span>' if badge_css else ""
+
     w(f'<div class="candidate-card grade-{css_class}" id="card-{_esc(sym)}">')
     w(f'  <div class="label">SYMBOL</div><div class="value">{_esc(entry.get("symbol"))}</div>')
-    w(f'  <div class="label">GRADE</div><div class="value">{_esc(grade)}</div>')
+    w(f'  <div class="label">GRADE</div><div class="value">{_esc(grade)}{badge_html}</div>')
     w(f'  <div class="label">BIAS</div><div class="value">{_esc(entry.get("bias"))}</div>')
     w(f'  <div class="label">STRUCTURE</div><div class="value">{_esc(entry.get("structure"))}</div>')
 
     if is_high:
+        if lifecycle:
+            pg = _esc(lifecycle.get("previous_grade")) or _DASH
+            cg = _esc(lifecycle.get("current_grade")) or _DASH
+            ps = _esc(lifecycle.get("previous_setup_state")) or _DASH
+            cs = _esc(lifecycle.get("current_setup_state")) or _DASH
+            w(f'  <div class="lifecycle-detail">LIFECYCLE: {pg} → {cg} | {ps} → {cs}</div>')
+
         setup_state = entry.get("setup_state")
         if setup_state and setup_state != "DATA_UNAVAILABLE":
             w(f'  <div class="candidate-state">STATE: {_esc(setup_state)}</div>')
@@ -427,6 +455,15 @@ def render_dashboard_html(
                 for sym in tier_syms:
                     _render_candidate_card(w, sym, symbols[sym])
                 w("  </div>")
+        removed_syms: list = market_map.get("removed_symbols") or []
+        if removed_syms:
+            w('  <div class="removed-symbols">')
+            w('    <div class="tier-header">REMOVED</div>')
+            for removed_entry in removed_syms:
+                rsym  = _esc(removed_entry.get("symbol"))
+                rprev = _esc(removed_entry.get("previous_grade")) or _DASH
+                w(f'    <div class="removed-row">{rsym} — removed (prev: {rprev})</div>')
+            w("  </div>")
     w("</div>")
 
     # --- run-history ---

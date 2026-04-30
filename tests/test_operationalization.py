@@ -40,6 +40,15 @@ REQUIRED_SUMMARY_FIELDS = {
 }
 
 
+def _strip_lifecycle_fields(market_map: dict) -> dict:
+    import copy
+    result = copy.deepcopy(market_map)
+    for sym in result.get("symbols", {}).values():
+        sym.pop("lifecycle", None)
+    result.pop("removed_symbols", None)
+    return result
+
+
 def _isolate_artifacts(monkeypatch, tmp_path):
     logs_dir = tmp_path / "logs"
     reports_dir = tmp_path / "reports"
@@ -305,7 +314,9 @@ def test_fixture_run_is_deterministic_and_matches_pipeline(monkeypatch, tmp_path
 
     assert scrubbed_1 == scrubbed_2
     assert report_1 == report_2
-    assert market_map_1 == market_map_2
+    # Lifecycle fields intentionally differ between run 1 (no prior snapshot) and
+    # run 2 (prior snapshot exists). Strip them before comparing base map determinism.
+    assert _strip_lifecycle_fields(market_map_1) == _strip_lifecycle_fields(market_map_2)
     assert report_1.startswith("Verification: PASS")
     assert "Verification: NOT RUN" not in report_1
 

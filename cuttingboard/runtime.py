@@ -45,6 +45,7 @@ from cuttingboard.ingestion import fetch_ohlcv
 from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all, fetch_intraday_bars
 from cuttingboard.intraday_state_engine import Bar as IntradayStateBar, compute_intraday_state
 from cuttingboard.market_map import build_market_map
+from cuttingboard.market_map_lifecycle import inject_lifecycle
 from cuttingboard.evaluation import run_post_trade_evaluation
 from cuttingboard.execution_policy import (
     ExecutionSessionState,
@@ -325,7 +326,9 @@ def execute_run(
         _rewrite_summary_file(summary_path, pipeline.summary)
         _rewrite_summary_file(latest_path, pipeline.summary)
         _write_contract_file(pipeline.contract)
-        _write_market_map_file(pipeline.market_map)
+        _previous_market_map = _load_previous_market_map()
+        _enhanced_market_map = inject_lifecycle(pipeline.market_map, _previous_market_map)
+        _write_market_map_file(_enhanced_market_map)
         _write_payload_artifacts(pipeline.contract)
         return pipeline.summary
     except Exception as exc:
@@ -1465,6 +1468,16 @@ def _load_run_history(path: Path, limit: int = 5) -> list[dict]:
 def _write_contract_file(contract: dict[str, Any]) -> None:
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     safe_write_latest(LATEST_CONTRACT_PATH, contract, "generated_at")
+
+
+def _load_previous_market_map() -> dict[str, Any] | None:
+    if not MARKET_MAP_PATH.exists():
+        return None
+    text = MARKET_MAP_PATH.read_text(encoding="utf-8")
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Previous market_map.json is malformed: {MARKET_MAP_PATH}") from exc
 
 
 def _write_market_map_file(market_map: dict[str, Any]) -> None:

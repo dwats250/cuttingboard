@@ -1082,3 +1082,195 @@ def test_auto_refresh_meta_present() -> None:
 
 def test_dashboard_refresh_constant_value() -> None:
     assert _DASHBOARD_REFRESH_SECONDS == 30
+
+
+# ---------------------------------------------------------------------------
+# PRD-057 — Lifecycle badge and detail helpers
+# ---------------------------------------------------------------------------
+
+def _lifecycle(
+    grade_transition: str = "UPGRADED",
+    previous_grade: str | None = "B",
+    current_grade: str = "A",
+    previous_setup_state: str | None = "DEVELOPING",
+    current_setup_state: str | None = "ACTIONABLE",
+) -> dict:
+    return {
+        "previous_grade":          previous_grade,
+        "current_grade":           current_grade,
+        "grade_transition":        grade_transition,
+        "previous_setup_state":    previous_setup_state,
+        "current_setup_state":     current_setup_state,
+        "setup_state_transition":  "CHANGED",
+        "is_new":                  grade_transition == "NEW",
+        "is_removed":              False,
+    }
+
+
+def _sym_with_lc(
+    symbol: str,
+    grade: str,
+    grade_transition: str = "UPGRADED",
+    previous_grade: str | None = "B",
+    setup_state: str | None = "ACTIONABLE",
+    previous_setup_state: str | None = "DEVELOPING",
+) -> dict:
+    sym = _mm_symbol(symbol, grade=grade, setup_state=setup_state)
+    sym["lifecycle"] = _lifecycle(
+        grade_transition=grade_transition,
+        previous_grade=previous_grade,
+        current_grade=grade,
+        previous_setup_state=previous_setup_state,
+        current_setup_state=setup_state,
+    )
+    return sym
+
+
+# ---------------------------------------------------------------------------
+# PRD-057 — R1: Lifecycle badge
+# ---------------------------------------------------------------------------
+
+def test_lifecycle_badge_upgraded() -> None:
+    syms = {"SPY": _sym_with_lc("SPY", grade="A", grade_transition="UPGRADED")}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = html.split('id="card-SPY"', 1)[1]
+    assert 'class="lifecycle-badge lifecycle-upgraded"' in card
+    assert "UPGRADED" in card
+
+
+def test_lifecycle_badge_downgraded() -> None:
+    syms = {"SPY": _sym_with_lc("SPY", grade="C", grade_transition="DOWNGRADED", previous_grade="A")}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = html.split('id="card-SPY"', 1)[1]
+    assert 'class="lifecycle-badge lifecycle-downgraded"' in card
+
+
+def test_lifecycle_badge_new() -> None:
+    syms = {"SPY": _sym_with_lc("SPY", grade="B", grade_transition="NEW", previous_grade=None)}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = html.split('id="card-SPY"', 1)[1]
+    assert 'class="lifecycle-badge lifecycle-new"' in card
+
+
+def test_lifecycle_badge_unknown() -> None:
+    syms = {"SPY": _sym_with_lc("SPY", grade="B", grade_transition="UNKNOWN")}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = html.split('id="card-SPY"', 1)[1]
+    assert 'class="lifecycle-badge lifecycle-unknown"' in card
+
+
+def test_lifecycle_badge_unchanged_suppressed() -> None:
+    syms = {"SPY": _sym_with_lc("SPY", grade="B", grade_transition="UNCHANGED")}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = html.split('id="card-SPY"', 1)[1]
+    assert "lifecycle-badge" not in card
+
+
+def test_lifecycle_badge_absent_when_no_lifecycle() -> None:
+    syms = {"SPY": _mm_symbol("SPY", grade="A")}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = html.split('id="card-SPY"', 1)[1]
+    assert "lifecycle-badge" not in card
+
+
+# ---------------------------------------------------------------------------
+# PRD-057 — R3: Lifecycle detail row
+# ---------------------------------------------------------------------------
+
+def test_lifecycle_detail_rendered_for_a_grade() -> None:
+    syms = {"SPY": _sym_with_lc("SPY", grade="A", grade_transition="UPGRADED")}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = html.split('id="card-SPY"', 1)[1]
+    assert 'class="lifecycle-detail"' in card
+    assert "LIFECYCLE:" in card
+
+
+def test_lifecycle_detail_rendered_for_b_grade() -> None:
+    syms = {"GLD": _sym_with_lc("GLD", grade="B", grade_transition="UNCHANGED")}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = html.split('id="card-GLD"', 1)[1]
+    assert 'class="lifecycle-detail"' in card
+
+
+def test_lifecycle_detail_not_rendered_for_f_grade() -> None:
+    syms = {"XLE": _sym_with_lc("XLE", grade="F", grade_transition="DOWNGRADED")}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = html.split('id="card-XLE"', 1)[1]
+    assert 'class="lifecycle-detail"' not in card
+
+
+def test_lifecycle_detail_not_rendered_for_d_grade() -> None:
+    syms = {"XLE": _sym_with_lc("XLE", grade="D", grade_transition="UPGRADED")}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = html.split('id="card-XLE"', 1)[1]
+    assert 'class="lifecycle-detail"' not in card
+
+
+def test_lifecycle_detail_not_rendered_when_absent() -> None:
+    syms = {"SPY": _mm_symbol("SPY", grade="A+")}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    assert 'class="lifecycle-detail"' not in html
+
+
+def test_lifecycle_detail_null_prev_renders_dash() -> None:
+    sym = _mm_symbol("SPY", grade="A")
+    sym["lifecycle"] = _lifecycle(
+        grade_transition="NEW",
+        previous_grade=None,
+        previous_setup_state=None,
+        current_grade="A",
+        current_setup_state="ACTIONABLE",
+    )
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map({"SPY": sym}))
+    card = html.split('id="card-SPY"', 1)[1]
+    assert "LIFECYCLE: — →" in card
+
+
+def test_lifecycle_detail_before_setup_state() -> None:
+    syms = {"SPY": _sym_with_lc("SPY", grade="A+", grade_transition="UPGRADED", setup_state="ACTIONABLE")}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = html.split('id="card-SPY"', 1)[1]
+    detail_pos = card.index('class="lifecycle-detail"')
+    state_pos  = card.index('class="candidate-state"')
+    assert detail_pos < state_pos
+
+
+# ---------------------------------------------------------------------------
+# PRD-057 — R4: Removed symbols section
+# ---------------------------------------------------------------------------
+
+def test_removed_symbols_section_rendered() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    mm["removed_symbols"] = [{"symbol": "GLD", "previous_grade": "B", "grade_transition": "REMOVED", "is_removed": True}]
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    assert 'class="removed-symbols"' in html
+    assert "GLD" in html
+    assert "removed (prev: B)" in html
+
+
+def test_removed_symbols_section_absent_when_empty() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    mm["removed_symbols"] = []
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    assert 'class="removed-symbols"' not in html
+
+
+def test_removed_symbols_section_absent_when_key_missing() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    assert 'class="removed-symbols"' not in html
+
+
+def test_removed_symbols_not_in_tier_group() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    mm["removed_symbols"] = [{"symbol": "GLD", "previous_grade": "B", "grade_transition": "REMOVED", "is_removed": True}]
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    assert 'id="card-GLD"' not in html
+
+
+def test_removed_symbols_values_escaped() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    mm["removed_symbols"] = [{"symbol": "<XSS>", "previous_grade": "<b>", "grade_transition": "REMOVED", "is_removed": True}]
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    assert "<XSS>" not in html
+    assert "&lt;XSS&gt;" in html
