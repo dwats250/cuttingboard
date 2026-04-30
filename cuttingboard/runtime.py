@@ -44,6 +44,7 @@ from cuttingboard.derived import compute_all_derived
 from cuttingboard.ingestion import fetch_ohlcv
 from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all, fetch_intraday_bars
 from cuttingboard.intraday_state_engine import Bar as IntradayStateBar, compute_intraday_state
+from cuttingboard.market_map import build_market_map
 from cuttingboard.evaluation import run_post_trade_evaluation
 from cuttingboard.execution_policy import (
     ExecutionSessionState,
@@ -146,6 +147,7 @@ SUMMARY_STATUS_FAIL = "FAIL"
 REPORTS_DIR = Path("reports")
 LOGS_DIR = Path("logs")
 LATEST_RUN_PATH = LOGS_DIR / "latest_run.json"
+MARKET_MAP_PATH = LOGS_DIR / "market_map.json"
 DEFAULT_FIXTURE_DIR = Path("tests/fixtures")
 
 VALID_REGIMES = {"RISK_ON", "RISK_OFF", "NEUTRAL", "CHAOTIC", "EXPANSION"}
@@ -210,6 +212,7 @@ class PipelineResult:
     correlation: Optional[CorrelationResult] = None
     premarket_report: dict[str, Any] = field(default_factory=dict)
     postmarket_report: dict[str, Any] = field(default_factory=dict)
+    market_map: dict[str, Any] = field(default_factory=dict)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -322,6 +325,7 @@ def execute_run(
         _rewrite_summary_file(summary_path, pipeline.summary)
         _rewrite_summary_file(latest_path, pipeline.summary)
         _write_contract_file(pipeline.contract)
+        _write_market_map_file(pipeline.market_map)
         _write_payload_artifacts(pipeline.contract)
         return pipeline.summary
     except Exception as exc:
@@ -587,6 +591,10 @@ def _run_pipeline(
     suppressed_candidates: list[SuppressedCandidate] = []
     intraday_state_context: dict[str, dict[str, Any]] = {}
     chain_results: dict[str, ChainValidationResult] = {}
+    derived: dict[str, Any] = {}
+    structure: dict[str, Any] = {}
+    intraday_metrics: dict[str, Any] = {}
+    ohlcv: dict[str, pd.DataFrame] = {}
     outcome = OUTCOME_NO_TRADE
 
     if validation_summary.system_halted:
@@ -705,6 +713,20 @@ def _run_pipeline(
                 if any(decision.status == ALLOW_TRADE for decision in trade_decisions)
                 else OUTCOME_NO_TRADE
             )
+
+    market_map = build_market_map(
+        generated_at=run_at_utc,
+        session_date=date_str,
+        mode=mode,
+        run_at_utc=run_at_utc,
+        normalized_quotes=validation_summary.valid_quotes,
+        derived_metrics=derived,
+        structure_results=structure,
+        intraday_metrics=intraday_metrics,
+        regime=regime,
+        watch_summary=watch_summary,
+        bar_windows=ohlcv,
+    )
 
     report = render_report(
         date_str=date_str,
@@ -863,6 +885,7 @@ def _run_pipeline(
         correlation=correlation_result,
         premarket_report=premarket_report,
         postmarket_report=postmarket_report,
+        market_map=market_map,
     )
 
 
@@ -1436,6 +1459,11 @@ def _load_run_history(path: Path, limit: int = 5) -> list[dict]:
 def _write_contract_file(contract: dict[str, Any]) -> None:
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     safe_write_latest(LATEST_CONTRACT_PATH, contract, "generated_at")
+
+
+def _write_market_map_file(market_map: dict[str, Any]) -> None:
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    MARKET_MAP_PATH.write_text(json.dumps(market_map, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def _write_payload_artifacts(contract: dict[str, Any]) -> None:
