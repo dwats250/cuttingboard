@@ -164,7 +164,7 @@ def _build_symbol_record(
     }
     on_watch = _watch_contains(symbol, watch_summary)
 
-    if quote is None or derived is None or not derived.sufficient_history or structure_result is None:
+    if quote is None or not _derived_sufficient(derived) or structure_result is None:
         grade = GRADE_F
         setup_state = SETUP_DATA_UNAVAILABLE
     elif structure == STRUCTURE_CHOPPY:
@@ -424,7 +424,7 @@ def _invalidation(
     watch_zones: list[dict[str, Any]],
     missing: list[str],
 ) -> list[str]:
-    if missing:
+    if missing and not watch_zones:
         return [f"deferred: {', '.join(missing)}"]
     nearest = watch_zones[0]["type"] if watch_zones else "reference level"
     if bias == BIAS_BULLISH:
@@ -456,7 +456,7 @@ def _reason_for_grade(
     extended: bool,
     missing: list[str],
 ) -> str:
-    if missing:
+    if missing and grade == GRADE_F:
         return f"{grade}: data unavailable - {', '.join(missing)}"
     if structure == STRUCTURE_CHOPPY:
         return f"{grade}: structurally invalid - choppy market structure"

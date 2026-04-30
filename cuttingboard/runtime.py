@@ -725,7 +725,7 @@ def _run_pipeline(
         intraday_metrics=intraday_metrics,
         regime=regime,
         watch_summary=watch_summary,
-        bar_windows=ohlcv,
+        bar_windows=_market_map_bar_windows(ohlcv),
     )
 
     report = render_report(
@@ -887,6 +887,12 @@ def _run_pipeline(
         postmarket_report=postmarket_report,
         market_map=market_map,
     )
+
+
+def _market_map_bar_windows(ohlcv: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
+    """Return primary-symbol OHLCV windows already available in this runtime pass."""
+    primary_symbols = {"SPY", "QQQ", "GDX", "GLD", "SLV", "XLE"}
+    return {symbol: frame for symbol, frame in ohlcv.items() if symbol in primary_symbols}
 
 
 def _build_run_summary(

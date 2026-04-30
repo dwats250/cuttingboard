@@ -287,6 +287,7 @@ def test_fixture_run_is_deterministic_and_matches_pipeline(monkeypatch, tmp_path
         fixture_file=FIXTURE_PATH,
     )
     report_1 = (reports_dir / "2026-04-12.md").read_text(encoding="utf-8")
+    market_map_1 = json.loads((logs_dir / "market_map.json").read_text(encoding="utf-8"))
 
     summary_2 = runtime.execute_run(
         mode=runtime.MODE_FIXTURE,
@@ -294,6 +295,7 @@ def test_fixture_run_is_deterministic_and_matches_pipeline(monkeypatch, tmp_path
         fixture_file=FIXTURE_PATH,
     )
     report_2 = (reports_dir / "2026-04-12.md").read_text(encoding="utf-8")
+    market_map_2 = json.loads((logs_dir / "market_map.json").read_text(encoding="utf-8"))
 
     scrubbed_1 = dict(summary_1)
     scrubbed_2 = dict(summary_2)
@@ -303,6 +305,7 @@ def test_fixture_run_is_deterministic_and_matches_pipeline(monkeypatch, tmp_path
 
     assert scrubbed_1 == scrubbed_2
     assert report_1 == report_2
+    assert market_map_1 == market_map_2
     assert report_1.startswith("Verification: PASS")
     assert "Verification: NOT RUN" not in report_1
 

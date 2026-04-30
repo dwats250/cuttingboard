@@ -65,6 +65,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-051 | — | Execution policy materialization | COMPLETE | — |
 | PRD-052 | — | Runtime artifact self-healing — legacy tolerance for missing timestamp keys | COMPLETE | [PRD-052](prd_history/PRD-052.md) |
 | PRD-053 | — | Graded market map sidecar | READY | [PRD-053](prd_history/PRD-053.md) |
+| PRD-053 PATCH | — | Market map input plumbing + usefulness calibration | READY | [PRD-053-PATCH](prd_history/PRD-053-PATCH.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
