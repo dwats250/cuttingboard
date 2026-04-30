@@ -78,6 +78,22 @@ CONFIDENCE_MEDIUM = "MEDIUM"
 CONFIDENCE_LOW = "LOW"
 VALID_CONFIDENCE = frozenset({CONFIDENCE_HIGH, CONFIDENCE_MEDIUM, CONFIDENCE_LOW})
 
+TRADE_DIRECTION_LONG = "LONG"
+TRADE_DIRECTION_SHORT = "SHORT"
+TRADE_DIRECTION_NEUTRAL = "NEUTRAL"
+VALID_TRADE_DIRECTIONS = frozenset(
+    {TRADE_DIRECTION_LONG, TRADE_DIRECTION_SHORT, TRADE_DIRECTION_NEUTRAL}
+)
+
+TRADE_TYPE_CALL_SPREAD = "call_spread"
+TRADE_TYPE_PUT_SPREAD = "put_spread"
+TRADE_TYPE_NONE = "none"
+VALID_TRADE_TYPES = frozenset({TRADE_TYPE_CALL_SPREAD, TRADE_TYPE_PUT_SPREAD, TRADE_TYPE_NONE})
+
+IF_NOW_TAKE = "TAKE"
+IF_NOW_WAIT = "WAIT"
+VALID_IF_NOW = frozenset({IF_NOW_TAKE, IF_NOW_WAIT})
+
 UNAVAILABLE_WHAT_TO_LOOK_FOR = "Market data unavailable for this run; review during live market session."
 UNAVAILABLE_INVALIDATION = "No trade structure available until price, structure, and level data are present."
 UNAVAILABLE_REASON = "Market data unavailable for this run."
@@ -193,7 +209,7 @@ def _build_symbol_record(
         grade = GRADE_D
         setup_state = SETUP_LOW_QUALITY
 
-    return {
+    record = {
         "symbol": symbol,
         "asset_group": ASSET_GROUPS[symbol],
         "grade": grade,
@@ -216,6 +232,15 @@ def _build_symbol_record(
             missing=missing,
         ),
     }
+    record["trade_framing"] = _trade_framing(
+        grade=grade,
+        bias=bias,
+        structure=structure,
+        setup_state=setup_state,
+        watch_zones=watch_zones,
+        asset_group=record["asset_group"],
+    )
+    return record
 
 
 def _missing_inputs(
@@ -448,6 +473,73 @@ def _preferred_trade_structure(grade: str, bias: str, setup_state: str) -> str |
     if bias == BIAS_BEARISH:
         return "bearish defined-risk continuation"
     return "range-resolution watch"
+
+
+def _trade_framing(
+    *,
+    grade: str,
+    bias: str,
+    structure: str,
+    setup_state: str,
+    watch_zones: list[dict[str, Any]],
+    asset_group: str,
+) -> dict[str, str]:
+    nearest = watch_zones[0]["type"] if watch_zones else "defined reference level"
+    directional_grade = grade in {GRADE_A_PLUS, GRADE_A, GRADE_B}
+    actionable_now = grade == GRADE_A_PLUS and setup_state == SETUP_ACTIONABLE
+
+    if directional_grade and bias == BIAS_BULLISH:
+        return {
+            "direction": TRADE_DIRECTION_LONG,
+            "trade_type": TRADE_TYPE_CALL_SPREAD,
+            "setup": f"{asset_group.lower()} bullish {structure.lower()}",
+            "entry": f"hold above {nearest} with constructive follow-through",
+            "if_now": IF_NOW_TAKE if actionable_now else IF_NOW_WAIT,
+            "upgrade": "improves on clean hold near key level with expanding participation",
+            "downgrade": f"wait if price loses {nearest} or structure turns choppy",
+        }
+
+    if directional_grade and bias == BIAS_BEARISH:
+        return {
+            "direction": TRADE_DIRECTION_SHORT,
+            "trade_type": TRADE_TYPE_PUT_SPREAD,
+            "setup": f"{asset_group.lower()} bearish {structure.lower()}",
+            "entry": f"rejects near {nearest} with downside follow-through",
+            "if_now": IF_NOW_TAKE if actionable_now else IF_NOW_WAIT,
+            "upgrade": "improves on clean rejection near key level with expanding participation",
+            "downgrade": f"wait if price reclaims {nearest} or structure turns choppy",
+        }
+
+    if setup_state == SETUP_DATA_UNAVAILABLE:
+        return {
+            "direction": TRADE_DIRECTION_NEUTRAL,
+            "trade_type": TRADE_TYPE_NONE,
+            "setup": "market data unavailable for this run",
+            "entry": "wait for price, structure, and level data to populate",
+            "if_now": IF_NOW_WAIT,
+            "upgrade": "reassess when market data is available",
+            "downgrade": "remains unavailable while primary market data is absent",
+        }
+
+    if setup_state == SETUP_EXTENDED:
+        setup = f"{asset_group.lower()} extended {bias.lower()} structure"
+        entry = f"wait for reset toward {nearest} before defining risk"
+    elif setup_state == SETUP_CHOPPY:
+        setup = f"{asset_group.lower()} choppy structure"
+        entry = f"wait for cleaner structure around {nearest}"
+    else:
+        setup = f"{asset_group.lower()} low-quality {structure.lower()}"
+        entry = f"wait for clearer reaction around {nearest}"
+
+    return {
+        "direction": TRADE_DIRECTION_NEUTRAL,
+        "trade_type": TRADE_TYPE_NONE,
+        "setup": setup,
+        "entry": entry,
+        "if_now": IF_NOW_WAIT,
+        "upgrade": "improves with cleaner directional structure near a key level",
+        "downgrade": "weakens if structure stays mixed or moves away from reference levels",
+    }
 
 
 def _reason_for_grade(
