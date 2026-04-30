@@ -18,6 +18,7 @@ _PAYLOAD_PATH = Path("logs/latest_payload.json")
 _RUN_PATH = Path("logs/latest_run.json")
 _OUTPUT_PATH = Path("reports/output/dashboard.html")
 HISTORY_LIMIT = 5
+_DASHBOARD_REFRESH_SECONDS = 30
 
 _GRADE_ORDER: dict[str, int] = {"A+": 0, "A": 1, "B": 2, "C": 3, "D": 4, "F": 5}
 
@@ -73,17 +74,31 @@ _CSS = (
     ".grade-f{border-left-color:#424242;opacity:0.5}"
     ".unavailable{color:#888}"
     ".macro-bias{margin-top:6px;font-weight:bold}"
-    ".action-line{font-weight:bold;margin-bottom:8px}"
+    ".action-line{font-weight:bold;margin-bottom:8px;padding:8px 10px;"
+    "border-left:3px solid #4a6fa5;background:#111827;font-size:0.9rem;"
+    "letter-spacing:0.03em}"
     ".tier-group{margin-bottom:16px}"
     ".tier-header{font-weight:bold;margin-bottom:6px;opacity:0.9}"
     ".candidate-state{font-weight:bold;margin-bottom:4px}"
     ".candidate-risk{color:#ff9800}"
+    ".tape-slot.up{color:#4caf50}"
+    ".tape-slot.down{color:#f44336}"
+    ".tape-slot.flat{color:#888}"
+    ".tape-slot.na{color:#444;opacity:0.7}"
+    ".macro-bias.long{color:#4caf50}"
+    ".macro-bias.short{color:#f44336}"
+    ".macro-bias.mixed{color:#ff9800}"
+    ".tape-no-data{color:#888;font-style:italic;margin-top:4px;font-size:0.8rem}"
+    ".idle-summary{color:#888;margin-bottom:12px;padding:8px;"
+    "border-left:3px solid #2a2a2a}"
 )
 
 _UP   = "↑"
 _DOWN = "↓"
 _FLAT = "→"
 _DASH = "—"
+
+_ARROW_CSS: dict[str, str] = {_UP: "up", _DOWN: "down", _FLAT: "flat", _DASH: "na"}
 
 
 def _load_json(path: Path) -> dict:
@@ -283,10 +298,13 @@ def render_dashboard_html(
     down_count = sum(1 for _, arrow in tape_slots if arrow == _DOWN)
     if up_count > down_count:
         macro_bias = "MACRO BIAS: LONG"
+        macro_bias_css = "macro-bias long"
     elif down_count > up_count:
         macro_bias = "MACRO BIAS: SHORT"
+        macro_bias_css = "macro-bias short"
     else:
         macro_bias = "MACRO BIAS: MIXED"
+        macro_bias_css = "macro-bias mixed"
 
     lines: list[str] = []
 
@@ -298,6 +316,7 @@ def render_dashboard_html(
     w("<head>")
     w('  <meta charset="UTF-8">')
     w('  <meta name="viewport" content="width=device-width, initial-scale=1.0">')
+    w(f'  <meta http-equiv="refresh" content="{_DASHBOARD_REFRESH_SECONDS}">')
     w("  <title>Signal Forge</title>")
     w(f"  <style>{_CSS}</style>")
     w("</head>")
@@ -318,12 +337,14 @@ def render_dashboard_html(
     # --- macro-tape ---
     w('<div class="block" id="macro-tape">')
     w("  <h2>Macro Tape</h2>")
+    if not macro_drivers:
+        w('  <div class="tape-no-data">NO LIVE MACRO DATA</div>')
     tape_parts = [
-        f'<span class="tape-slot">{_esc(label)} {_esc(arrow)}</span>'
+        f'<span class="tape-slot {_ARROW_CSS.get(arrow, "na")}">{_esc(label)} {_esc(arrow)}</span>'
         for label, arrow in tape_slots
     ]
     w("  <div>" + " | ".join(tape_parts) + "</div>")
-    w(f'  <div class="macro-bias">{_esc(macro_bias)}</div>')
+    w(f'  <div class="{_esc(macro_bias_css)}">{_esc(macro_bias)}</div>')
     w("</div>")
 
     # --- run-delta ---
@@ -391,12 +412,18 @@ def render_dashboard_html(
                 symbols.keys(),
                 key=lambda sym: (_GRADE_ORDER.get(symbols[sym].get("grade", ""), 6), sym),
             )
+            has_actionable = any(symbols[s].get("grade", "") in _HIGH_GRADES for s in sorted_syms)
+            if not has_actionable:
+                w('  <div class="idle-summary">'
+                  '<div>NO ACTIONABLE SETUPS</div>'
+                  '<div>Market is not offering structure</div>'
+                  '</div>')
             for tier_id, tier_label, tier_grades in _TIER_DEFS:
                 tier_syms = [s for s in sorted_syms if symbols[s].get("grade", "") in tier_grades]
                 if not tier_syms:
                     continue
                 w(f'  <div class="tier-group" id="tier-{tier_id}">')
-                w(f'    <div class="tier-header">{_esc(tier_label)}</div>')
+                w(f'    <div class="tier-header">{_esc(tier_label)} ({len(tier_syms)})</div>')
                 for sym in tier_syms:
                     _render_candidate_card(w, sym, symbols[sym])
                 w("  </div>")
