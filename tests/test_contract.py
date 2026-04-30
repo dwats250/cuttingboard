@@ -341,6 +341,26 @@ class TestSuccessfulRun:
             "source": "chain_validation",
             "reason": "TOP_TRADE_VALIDATED",
         }
+        assert "overnight_policy" not in candidate
+
+    def test_optional_overnight_policy_is_validated(self):
+        candidate = self.contract["trade_candidates"][0]
+        candidate["overnight_policy"] = {
+            "decision": "ALLOW_HOLD",
+            "reason": "PASS_ALL",
+        }
+
+        assert_valid_contract(self.contract)
+
+    def test_invalid_overnight_policy_fails_validation(self):
+        candidate = self.contract["trade_candidates"][0]
+        candidate["overnight_policy"] = {
+            "decision": "ALLOW_HOLD",
+            "reason": "BROKEN",
+        }
+
+        with pytest.raises(AssertionError, match="overnight_policy.reason"):
+            assert_valid_contract(self.contract)
 
 
 # ---------------------------------------------------------------------------

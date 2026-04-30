@@ -21,6 +21,10 @@ from cuttingboard.trade_decision import (
     TradeDecision,
     VALID_DECISION_STATUSES,
 )
+from cuttingboard.overnight_policy import (
+    VALID_DECISIONS as VALID_OVERNIGHT_DECISIONS,
+    VALID_REASONS as VALID_OVERNIGHT_REASONS,
+)
 from cuttingboard.qualification import (
     ENTRY_MODE_PULLBACK_IMBALANCE,
     QualificationSummary,
@@ -585,6 +589,22 @@ def _assert_trade_candidates_valid(trade_candidates: list[Any]) -> None:
         if policy_allowed is False:
             assert decision_status != ALLOW_TRADE, (
                 f"trade_candidates[{index}] cannot be ALLOW_TRADE when policy_allowed is False"
+            )
+        overnight_policy = candidate.get("overnight_policy")
+        if overnight_policy is not None:
+            assert isinstance(overnight_policy, dict), (
+                f"trade_candidates[{index}].overnight_policy must be a dict"
+            )
+            assert set(overnight_policy) == {"decision", "reason"}, (
+                f"trade_candidates[{index}].overnight_policy must contain exactly decision, reason"
+            )
+            assert overnight_policy["decision"] in VALID_OVERNIGHT_DECISIONS, (
+                f"trade_candidates[{index}].overnight_policy.decision invalid: "
+                f"{overnight_policy['decision']!r}"
+            )
+            assert overnight_policy["reason"] in VALID_OVERNIGHT_REASONS, (
+                f"trade_candidates[{index}].overnight_policy.reason invalid: "
+                f"{overnight_policy['reason']!r}"
             )
         assert isinstance(decision_trace, dict), (
             f"trade_candidates[{index}].decision_trace must be a dict"

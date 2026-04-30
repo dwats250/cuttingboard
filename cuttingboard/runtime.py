@@ -75,6 +75,7 @@ from cuttingboard.notifications.state import (
     LAST_STATE_PATH,
 )
 from cuttingboard.flow import load_flow_snapshot
+from cuttingboard.overnight_policy import apply_overnight_policy
 from cuttingboard.correlation import CorrelationResult, compute_correlation
 from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
 from cuttingboard.trade_policy import PolicyContext, evaluate_policy
@@ -779,6 +780,11 @@ def _run_pipeline(
         data_quality=data_quality,
     )
     contract["outcome"] = outcome
+    contract = apply_overnight_policy(
+        contract=contract,
+        market_map=market_map,
+        timestamp=run_at_utc,
+    )
 
     # Exactly one notification send per run. PRD-018 suppression gate applied
     # before send; state persisted only on confirmed success (R7).
