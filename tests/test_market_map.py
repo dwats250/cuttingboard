@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 
 from cuttingboard.derived import DerivedMetrics
+from cuttingboard import runtime
 from cuttingboard.market_map import (
     PRIMARY_SYMBOLS,
     VALID_BIASES,
@@ -219,6 +220,16 @@ def test_a_plus_requires_alignment_structure_proximity_and_not_extended():
     assert result["symbols"]["SPY"]["setup_state"] == "EXTENDED"
 
 
+def test_valid_fixture_inputs_produce_useful_visibility():
+    result = _build(bar_windows={"SPY": _bars()})
+    record = result["symbols"]["SPY"]
+
+    assert record["grade"] != "F"
+    assert record["watch_zones"]
+    assert record["fib_levels"] is not None
+    assert record["reason_for_grade"] != ""
+
+
 def test_watch_zones_shape_validation():
     result = _build()
     zones = result["symbols"]["SPY"]["watch_zones"]
@@ -269,6 +280,22 @@ def test_missing_data_returns_deferred_record_not_crash():
         assert "missing_quote" in record["reason_for_grade"]
 
 
+def test_malformed_derived_input_degrades_to_unavailable():
+    quotes, _derived_map, structure, intraday = _full_inputs()
+
+    result = _build(
+        normalized_quotes=quotes,
+        derived_metrics={"SPY": object()},
+        structure_results=structure,
+        intraday_metrics=intraday,
+    )
+    record = result["symbols"]["SPY"]
+
+    assert record["grade"] == "F"
+    assert record["setup_state"] == "DATA_UNAVAILABLE"
+    assert "missing_derived_metrics" in record["reason_for_grade"]
+
+
 def test_builder_does_not_mutate_inputs():
     quotes, derived, structure, intraday = _full_inputs()
     before = copy.deepcopy((quotes, derived, structure, intraday))
@@ -315,3 +342,23 @@ def test_market_map_module_has_no_fetch_imports():
         "urllib",
     ):
         assert forbidden not in source
+
+
+def test_market_map_output_is_deterministic_except_allowed_timestamps():
+    first = _build()
+    second = _build()
+
+    first["generated_at"] = "<timestamp>"
+    second["generated_at"] = "<timestamp>"
+    first["source"]["run_at_utc"] = "<timestamp>"
+    second["source"]["run_at_utc"] = "<timestamp>"
+
+    assert first == second
+
+
+def test_runtime_filters_already_available_bar_windows_to_primary_symbols():
+    bars = _bars()
+
+    result = runtime._market_map_bar_windows({"SPY": bars, "USO": bars, "AAPL": bars})
+
+    assert result == {"SPY": bars}
