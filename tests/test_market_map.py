@@ -13,8 +13,11 @@ from cuttingboard.market_map import (
     VALID_BIASES,
     VALID_CONFIDENCE,
     VALID_GRADES,
+    VALID_IF_NOW,
     VALID_SETUP_STATES,
     VALID_STRUCTURES,
+    VALID_TRADE_DIRECTIONS,
+    VALID_TRADE_TYPES,
     build_market_map,
 )
 from cuttingboard.normalization import NormalizedQuote
@@ -38,6 +41,16 @@ SYMBOL_FIELDS = {
     "invalidation",
     "preferred_trade_structure",
     "reason_for_grade",
+    "trade_framing",
+}
+TRADE_FRAMING_FIELDS = {
+    "direction",
+    "trade_type",
+    "setup",
+    "entry",
+    "if_now",
+    "upgrade",
+    "downgrade",
 }
 
 
@@ -203,6 +216,21 @@ def test_grade_structure_setup_state_and_confidence_enums():
         assert record["confidence"] in VALID_CONFIDENCE
 
 
+def test_every_symbol_has_enum_constrained_trade_framing():
+    result = _build()
+
+    for record in result["symbols"].values():
+        framing = record["trade_framing"]
+        assert set(framing) == TRADE_FRAMING_FIELDS
+        assert framing["direction"] in VALID_TRADE_DIRECTIONS
+        assert framing["trade_type"] in VALID_TRADE_TYPES
+        assert framing["if_now"] in VALID_IF_NOW
+        assert framing["setup"]
+        assert framing["entry"]
+        assert framing["upgrade"]
+        assert framing["downgrade"]
+
+
 def test_a_plus_requires_alignment_structure_proximity_and_not_extended():
     result = _build()
     assert result["symbols"]["SPY"]["grade"] == "A+"
@@ -228,6 +256,78 @@ def test_valid_fixture_inputs_produce_useful_visibility():
     assert record["watch_zones"]
     assert record["fib_levels"] is not None
     assert record["reason_for_grade"] != ""
+
+
+def test_a_or_a_plus_symbols_produce_directional_trade_framing():
+    result = _build()
+    record = result["symbols"]["SPY"]
+    framing = record["trade_framing"]
+
+    assert record["grade"] == "A+"
+    assert framing["direction"] == "LONG"
+    assert framing["trade_type"] == "call_spread"
+    assert framing["if_now"] == "TAKE"
+    assert "hold above" in framing["entry"]
+
+
+def test_c_d_f_symbols_produce_coherent_wait_framing():
+    quotes, derived, structure, intraday = _full_inputs()
+    derived["SPY"] = _derived("SPY", extended=True)
+    result = _build(
+        normalized_quotes=quotes,
+        derived_metrics=derived,
+        structure_results=structure,
+        intraday_metrics=intraday,
+    )
+    d_framing = result["symbols"]["SPY"]["trade_framing"]
+
+    assert result["symbols"]["SPY"]["grade"] == "D"
+    assert d_framing["direction"] == "NEUTRAL"
+    assert d_framing["trade_type"] == "none"
+    assert d_framing["if_now"] == "WAIT"
+    assert "wait" in d_framing["entry"]
+
+    missing = build_market_map(
+        generated_at=RUN_AT,
+        session_date="2026-04-12",
+        mode="sunday",
+        run_at_utc=RUN_AT,
+        normalized_quotes={},
+        derived_metrics={},
+        structure_results={},
+        intraday_metrics={},
+        regime=None,
+    )
+    f_framing = missing["symbols"]["XLE"]["trade_framing"]
+
+    assert missing["symbols"]["XLE"]["grade"] == "F"
+    assert f_framing["direction"] == "NEUTRAL"
+    assert f_framing["trade_type"] == "none"
+    assert f_framing["if_now"] == "WAIT"
+    assert f_framing["setup"] == "market data unavailable for this run"
+
+
+def test_existing_prd_053_fields_remain_unchanged_except_trade_framing():
+    result = _build()
+    record = result["symbols"]["SPY"]
+    prd_053_fields = SYMBOL_FIELDS - {"trade_framing"}
+
+    assert prd_053_fields == {
+        "symbol",
+        "asset_group",
+        "grade",
+        "bias",
+        "structure",
+        "setup_state",
+        "confidence",
+        "watch_zones",
+        "fib_levels",
+        "what_to_look_for",
+        "invalidation",
+        "preferred_trade_structure",
+        "reason_for_grade",
+    }
+    assert set(record) - {"trade_framing"} == prd_053_fields
 
 
 def test_watch_zones_shape_validation():
