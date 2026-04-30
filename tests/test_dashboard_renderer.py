@@ -10,6 +10,7 @@ import pytest
 
 from cuttingboard.delivery.dashboard_renderer import (
     HISTORY_LIMIT,
+    _DASHBOARD_REFRESH_SECONDS,
     _GRADE_ORDER,
     _load_json_optional,
     _resolve_previous_run,
@@ -386,7 +387,7 @@ def test_macro_bias_mixed() -> None:
 
 def test_macro_bias_element_present() -> None:
     html = render_dashboard_html(_payload(), _run())
-    assert 'class="macro-bias"' in html
+    assert 'class="macro-bias' in html  # matches macro-bias long/short/mixed
 
 
 # ---------------------------------------------------------------------------
@@ -949,3 +950,135 @@ def test_run_health_no_error_when_empty() -> None:
     html = render_dashboard_html(_payload(), _run(errors=[]))
     health = html.split('id="run-health"', 1)[1]
     assert ">Error<" not in health
+
+
+# ---------------------------------------------------------------------------
+# PRD-055 PATCH — macro no-data banner
+# ---------------------------------------------------------------------------
+
+def test_macro_no_data_banner_when_empty() -> None:
+    html = render_dashboard_html(_payload(), _run())  # macro_drivers={}
+    tape = html.split('id="macro-tape"', 1)[1]
+    assert "NO LIVE MACRO DATA" in tape
+
+
+def test_macro_no_data_banner_absent_when_data_present() -> None:
+    p = _payload(macro_drivers=_macro_drivers())
+    html = render_dashboard_html(p, _run())
+    assert "NO LIVE MACRO DATA" not in html
+
+
+# ---------------------------------------------------------------------------
+# PRD-055 PATCH — tape slot directional CSS classes
+# ---------------------------------------------------------------------------
+
+def test_tape_slot_up_class() -> None:
+    p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.0, tnx=0.0, btc=0.0))
+    html = render_dashboard_html(p, _run())
+    assert 'class="tape-slot up"' in html
+
+
+def test_tape_slot_down_class() -> None:
+    p = _payload(macro_drivers=_macro_drivers(vix=-0.05, dxy=0.0, tnx=0.0, btc=0.0))
+    html = render_dashboard_html(p, _run())
+    assert 'class="tape-slot down"' in html
+
+
+def test_tape_slot_flat_class() -> None:
+    p = _payload(macro_drivers=_macro_drivers(vix=0.0, dxy=0.0, tnx=0.0, btc=0.0))
+    html = render_dashboard_html(p, _run())
+    assert 'class="tape-slot flat"' in html
+
+
+def test_tape_slot_na_class() -> None:
+    # macro_drivers={} → all slots are dashes → class "na"
+    html = render_dashboard_html(_payload(), _run())
+    assert 'class="tape-slot na"' in html
+
+
+# ---------------------------------------------------------------------------
+# PRD-055 PATCH — macro bias CSS class
+# ---------------------------------------------------------------------------
+
+def test_macro_bias_long_class() -> None:
+    p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.01, tnx=0.02, btc=0.03))
+    html = render_dashboard_html(p, _run(), market_map=None)
+    assert 'class="macro-bias long"' in html
+
+
+def test_macro_bias_short_class() -> None:
+    p = _payload(macro_drivers=_macro_drivers(vix=-0.05, dxy=-0.01, tnx=-0.02, btc=-0.01))
+    html = render_dashboard_html(p, _run(), market_map=None)
+    assert 'class="macro-bias short"' in html
+
+
+def test_macro_bias_mixed_class() -> None:
+    # 2 up, 2 down, no market_map
+    p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=-0.01, tnx=0.02, btc=-0.01))
+    html = render_dashboard_html(p, _run(), market_map=None)
+    assert 'class="macro-bias mixed"' in html
+
+
+# ---------------------------------------------------------------------------
+# PRD-055 PATCH — candidate idle summary
+# ---------------------------------------------------------------------------
+
+def test_candidate_idle_summary_when_no_actionable() -> None:
+    syms = {"GLD": _mm_symbol("GLD", grade="C"), "SLV": _mm_symbol("SLV", grade="D")}
+    mm   = _market_map(syms)
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    assert "NO ACTIONABLE SETUPS" in html
+    assert "Market is not offering structure" in html
+
+
+def test_candidate_idle_summary_absent_when_actionable() -> None:
+    syms = {"SPY": _mm_symbol("SPY", grade="A+")}
+    mm   = _market_map(syms)
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    assert "NO ACTIONABLE SETUPS" not in html
+
+
+def test_candidate_idle_summary_absent_when_no_symbols() -> None:
+    mm   = _market_map({})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    assert "NO ACTIONABLE SETUPS" not in html
+
+
+def test_candidate_idle_summary_absent_when_map_none() -> None:
+    html = render_dashboard_html(_payload(), _run(), market_map=None)
+    assert "NO ACTIONABLE SETUPS" not in html
+
+
+# ---------------------------------------------------------------------------
+# PRD-055 PATCH — tier counts
+# ---------------------------------------------------------------------------
+
+def test_tier_count_in_header() -> None:
+    syms = {
+        "SPY": _mm_symbol("SPY", grade="A+"),
+        "QQQ": _mm_symbol("QQQ", grade="A+"),
+    }
+    mm   = _market_map(syms)
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    assert "A+ — ACTIONABLE (2)" in html
+
+
+def test_tier_count_single() -> None:
+    syms = {"GLD": _mm_symbol("GLD", grade="B")}
+    mm   = _market_map(syms)
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    assert "B — DEVELOPING (1)" in html
+
+
+# ---------------------------------------------------------------------------
+# PRD-055 PATCH — auto-refresh meta
+# ---------------------------------------------------------------------------
+
+def test_auto_refresh_meta_present() -> None:
+    html = render_dashboard_html(_payload(), _run())
+    assert 'http-equiv="refresh"' in html
+    assert 'content="30"' in html
+
+
+def test_dashboard_refresh_constant_value() -> None:
+    assert _DASHBOARD_REFRESH_SECONDS == 30
