@@ -19,7 +19,7 @@
     "score": 0,
     "state": "NEUTRAL"
   },
-  "generated_at": "2026-04-30T18:50:19Z",
+  "generated_at": "2026-04-30T20:04:17Z",
   "macro_drivers": {},
   "market_context": {
     "continuation_enabled": false,
@@ -52,7 +52,7 @@
     "market_regime": "NEUTRAL",
     "router_mode": "MIXED",
     "stay_flat_reason": "STAY_FLAT posture",
-    "time_gate_open": true,
+    "time_gate_open": false,
     "tradable": false
   },
   "timezone": "America/New_York",
