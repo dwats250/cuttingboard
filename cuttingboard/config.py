@@ -114,6 +114,16 @@ CONTINUATION_MAX_EXTENSION_ATR = 2.5   # reject if continuation entry is too far
 ENTRY_CUTOFF_ET                     = time(15, 30)  # no new entries at or after 3:30 PM ET
 
 # ---------------------------------------------------------------------------
+# Overnight exit guidance (PRD-058)
+# ---------------------------------------------------------------------------
+
+OVERNIGHT_POLICY_EOD_WINDOW_MINUTES = 30
+OVERNIGHT_POLICY_MARKET_CLOSE_ET = time(16, 0)
+OVERNIGHT_POLICY_MIN_HOLD_DTE = 10
+OVERNIGHT_POLICY_HARD_EXIT_DTE = 7
+OVERNIGHT_POLICY_KEY_LEVEL_PROXIMITY_PCT = 0.01
+
+# ---------------------------------------------------------------------------
 # Flow alignment gate (PRD-013)
 # ---------------------------------------------------------------------------
 

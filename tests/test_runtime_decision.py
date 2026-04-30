@@ -15,6 +15,7 @@ from cuttingboard.watch import WatchSummary
 
 
 RUN_AT = datetime(2026, 4, 28, 13, 0, tzinfo=timezone.utc)
+EOD_RUN_AT = datetime(2026, 4, 28, 19, 45, tzinfo=timezone.utc)
 
 
 def _regime() -> RegimeState:
@@ -163,6 +164,16 @@ def _setup_runtime_mocks(monkeypatch, tmp_path):
     monkeypatch.setattr(runtime, "_load_run_history", lambda path: [])
     monkeypatch.setattr(runtime, "build_premarket_report", lambda contract: {})
     monkeypatch.setattr(runtime, "build_postmarket_report", lambda contract, history: {})
+    monkeypatch.setattr(runtime, "run_post_trade_evaluation", lambda **kwargs: None)
+    monkeypatch.setattr(runtime, "build_market_map", lambda **kwargs: {
+        "symbols": {
+            "SPY": {
+                "watch_zones": [
+                    {"type": "VWAP", "level": 120.0, "context": "session vwap"},
+                ]
+            }
+        }
+    })
 
 
 def _null_context():
@@ -238,3 +249,79 @@ def test_runtime_materializes_blocked_decision(monkeypatch, tmp_path):
     assert result.outcome == runtime.OUTCOME_NO_TRADE
     assert candidate["decision_status"] == BLOCK_TRADE
     assert candidate["block_reason"] == "fixture mode skips live chain validation"
+
+
+def test_runtime_eod_attaches_overnight_policy(monkeypatch, tmp_path):
+    _setup_runtime_mocks(monkeypatch, tmp_path)
+    monkeypatch.setattr(runtime, "_deterministic_run_at", lambda mode, fixture_file: EOD_RUN_AT)
+    monkeypatch.setattr(runtime, "_fixture_chain_results", lambda setups: {
+        "SPY": ChainValidationResult(
+            symbol="SPY",
+            classification=MANUAL_CHECK,
+            reason="fixture mode skips live chain validation",
+            spread_pct=None,
+            open_interest=None,
+            volume=None,
+            expiry_used=None,
+            data_source=None,
+        )
+    })
+    monkeypatch.setattr(runtime, "create_trade_decision", lambda *args, **kwargs: runtime.TradeDecision(
+        ticker="SPY",
+        direction="LONG",
+        status=ALLOW_TRADE,
+        entry=100.0,
+        stop=97.0,
+        target=106.0,
+        r_r=2.0,
+        contracts=2,
+        dollar_risk=150.0,
+        block_reason=None,
+    ))
+
+    result = runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+
+    candidate = result.contract["trade_candidates"][0]
+    assert candidate["overnight_policy"] == {"decision": "FORCE_EXIT", "reason": "SPREAD_FRAGILITY"}
+    assert candidate["decision_status"] == ALLOW_TRADE
+    assert candidate["policy_allowed"] is True
+
+
+def test_runtime_non_eod_does_not_attach_overnight_policy(monkeypatch, tmp_path):
+    _setup_runtime_mocks(monkeypatch, tmp_path)
+    monkeypatch.setattr(runtime, "_fixture_chain_results", lambda setups: {
+        "SPY": ChainValidationResult(
+            symbol="SPY",
+            classification=MANUAL_CHECK,
+            reason="fixture mode skips live chain validation",
+            spread_pct=None,
+            open_interest=None,
+            volume=None,
+            expiry_used=None,
+            data_source=None,
+        )
+    })
+    monkeypatch.setattr(runtime, "create_trade_decision", lambda *args, **kwargs: runtime.TradeDecision(
+        ticker="SPY",
+        direction="LONG",
+        status=ALLOW_TRADE,
+        entry=100.0,
+        stop=97.0,
+        target=106.0,
+        r_r=2.0,
+        contracts=2,
+        dollar_risk=150.0,
+        block_reason=None,
+    ))
+
+    result = runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+
+    assert "overnight_policy" not in result.contract["trade_candidates"][0]

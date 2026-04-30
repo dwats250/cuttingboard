@@ -329,6 +329,21 @@ def test_fixture_run_is_deterministic_and_matches_pipeline(monkeypatch, tmp_path
     assert logs_dir.joinpath("latest_run.json").exists()
 
 
+def test_fixture_run_non_eod_contract_omits_overnight_policy(monkeypatch, tmp_path):
+    logs_dir, _ = _isolate_artifacts(monkeypatch, tmp_path)
+
+    summary = runtime.execute_run(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-12"),
+        fixture_file=FIXTURE_PATH,
+    )
+
+    latest_contract = json.loads((logs_dir / "latest_contract.json").read_text(encoding="utf-8"))
+    assert summary["status"] == "SUCCESS"
+    for candidate in latest_contract["trade_candidates"]:
+        assert "overnight_policy" not in candidate
+
+
 def test_execute_run_writes_latest_summary_on_controlled_failure(monkeypatch, tmp_path):
     logs_dir, reports_dir = _isolate_artifacts(monkeypatch, tmp_path)
 
