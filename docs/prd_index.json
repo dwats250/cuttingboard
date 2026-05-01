@@ -1,0 +1,43 @@
+{
+  "tracking_start": 56,
+  "latest_complete": 60,
+  "next_prd": 61,
+  "entries": [
+    {
+      "number": 56,
+      "title": "Candidate lifecycle tracking — deterministic grade/setup_state transition metadata in market_map",
+      "status": "COMPLETE",
+      "commit": "e7365c6"
+    },
+    {
+      "number": 57,
+      "title": "Lifecycle visibility on Signal Forge dashboard — badge, detail row, removed symbols section",
+      "status": "COMPLETE",
+      "commit": "e7365c6"
+    },
+    {
+      "number": 58,
+      "title": "Overnight Exit Guidance Layer",
+      "status": "COMPLETE",
+      "commit": "8f942c7"
+    },
+    {
+      "number": 59,
+      "title": "Macro Tape value row hardening",
+      "status": "COMPLETE",
+      "commit": "64d6aac"
+    },
+    {
+      "number": 60,
+      "title": "Deterministic macro pressure snapshot",
+      "status": "COMPLETE",
+      "commit": "0ed003b"
+    },
+    {
+      "number": 61,
+      "title": "PRD Registry Numbering Guard",
+      "status": "IN PROGRESS",
+      "commit": null
+    }
+  ]
+}
