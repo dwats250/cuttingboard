@@ -68,11 +68,11 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-053 PATCH | — | Market map input plumbing + usefulness calibration | READY | [PRD-053-PATCH](prd_history/PRD-053-PATCH.md) |
 | PRD-054 | 23db81e | Add trade framing to market map sidecar | COMPLETE (unregistered — no PRD file; see PRD-055 continuity note) | — |
 | PRD-055 | 395d07e, a360e23 | Signal Forge: Dashboard upgrade — macro tape, system state, candidate visibility board | COMPLETE | [PRD-055](prd_history/PRD-055.md) |
-| PRD-056 | — | Candidate lifecycle tracking — deterministic grade/setup_state transition metadata in market_map | IN PROGRESS | [PRD-056](prd_history/PRD-056.md) |
-| PRD-057 | — | Lifecycle visibility on Signal Forge dashboard — badge, detail row, removed symbols section | IN PROGRESS | [PRD-057](prd_history/PRD-057.md) |
+| PRD-056 | e7365c6 | Candidate lifecycle tracking — deterministic grade/setup_state transition metadata in market_map | COMPLETE | [PRD-056](prd_history/PRD-056.md) |
+| PRD-057 | e7365c6 | Lifecycle visibility on Signal Forge dashboard — badge, detail row, removed symbols section | COMPLETE | [PRD-057](prd_history/PRD-057.md) |
 | PRD-058 | 8f942c7 | Overnight Exit Guidance Layer | COMPLETE | [PRD-058](prd_history/PRD-058.md) |
-| PRD-062 | — | Macro Tape value row hardening | COMPLETE | [PRD-062](prd_history/PRD-062.md) |
-| PRD-063 | — | Deterministic macro pressure snapshot | COMPLETE | [PRD-063](prd_history/PRD-063.md) |
+| PRD-059 | 64d6aac | Macro Tape value row hardening | COMPLETE | [PRD-059](prd_history/PRD-059.md) |
+| PRD-060 | 0ed003b | Deterministic macro pressure snapshot | COMPLETE | [PRD-060](prd_history/PRD-060.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
