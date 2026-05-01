@@ -1,8 +1,8 @@
 {
   "artifacts": {
-    "log_path": "/tmp/pytest-of-dustin/pytest-228/test_sunday_mode_does_not_call0/logs/latest_run.json",
+    "log_path": "/tmp/pytest-of-dustin/pytest-234/test_sunday_mode_does_not_call0/logs/latest_run.json",
     "notification_sent": true,
-    "report_path": "/tmp/pytest-of-dustin/pytest-228/test_sunday_mode_does_not_call0/reports/2026-04-26.md"
+    "report_path": "/tmp/pytest-of-dustin/pytest-234/test_sunday_mode_does_not_call0/reports/2026-04-26.md"
   },
   "audit_summary": {
     "continuation_accepted_count": null,
@@ -19,7 +19,7 @@
     "score": 0,
     "state": "NEUTRAL"
   },
-  "generated_at": "2026-04-30T06:13:59Z",
+  "generated_at": "2026-04-30T16:43:28Z",
   "macro_drivers": {},
   "market_context": {
     "continuation_enabled": false,
