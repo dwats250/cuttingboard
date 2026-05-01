@@ -400,3 +400,16 @@ def test_lifecycle_alerts_reuse_hourly_timestamp_convention():
     assert title == "STAY FLAT 11:20"
     assert "11:20 META LONG - NEW (A)" in body
     assert "15:20" not in body
+
+
+def test_hourly_watchlist_title_and_reason_are_explicit():
+    title, body = format_hourly_notification(
+        asof_utc=datetime(2026, 4, 15, 14, 30, tzinfo=timezone.utc),
+        regime=_regime(),
+        validation_summary=_validation_summary(),
+        qualification_summary=_qualification_summary([], ["AAPL"]),
+    )
+
+    assert title == "WATCHLIST 10:30"
+    assert "WATCHLIST" in body
+    assert "- AAPL LONG: developing" in body

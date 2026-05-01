@@ -149,6 +149,10 @@ SUMMARY_STATUS_FAIL = "FAIL"
 REPORTS_DIR = Path("reports")
 LOGS_DIR = Path("logs")
 LATEST_RUN_PATH = LOGS_DIR / "latest_run.json"
+LATEST_HOURLY_RUN_PATH = LOGS_DIR / "latest_hourly_run.json"
+LATEST_HOURLY_CONTRACT_PATH = LOGS_DIR / "latest_hourly_contract.json"
+LATEST_HOURLY_PAYLOAD_PATH = LOGS_DIR / "latest_hourly_payload.json"
+HOURLY_REPORT_PATH = REPORTS_DIR / "output" / "hourly_report.html"
 MARKET_MAP_PATH = LOGS_DIR / "market_map.json"
 DEFAULT_FIXTURE_DIR = Path("tests/fixtures")
 
@@ -524,8 +528,45 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
                 outcome=OUTCOME_NO_TRADE,
             )
 
+        alert_sent = False
         if mode == MODE_LIVE:
-            send_notification(alert_title, alert_body)
+            alert_sent = send_notification(alert_title, alert_body)
+
+        if notify_mode in _HOURLY_MODES:
+            run_at_utc = regime.computed_at_utc if regime is not None else datetime.now(timezone.utc)
+            contract = _build_hourly_contract(
+                mode=mode,
+                run_at_utc=run_at_utc,
+                run_date=run_date,
+                raw_quotes=raw_quotes,
+                normalized_quotes=normalized_quotes,
+                validation_summary=validation_summary,
+                regime=regime,
+                router_state=router_state,
+                qualification_summary=qualification_summary,
+                errors=[],
+                alert_sent=alert_sent,
+            )
+            summary = _build_hourly_run_summary(
+                mode=mode,
+                run_at_utc=run_at_utc,
+                run_date=run_date,
+                notify_mode=notify_mode,
+                validation_summary=validation_summary,
+                regime=regime,
+                router_state=router_state,
+                qualification_summary=qualification_summary,
+                candidate_lines=candidate_lines,
+                alert_title=alert_title,
+                alert_body=alert_body,
+                alert_sent=alert_sent,
+                errors=[],
+                status=SUMMARY_STATUS_SUCCESS,
+                outcome=OUTCOME_NO_TRADE,
+                raw_quotes=raw_quotes,
+                normalized_quotes=normalized_quotes,
+            )
+            _write_hourly_artifacts(summary, contract)
 
         return {"status": SUMMARY_STATUS_SUCCESS, "suppressed": False}
 
@@ -535,10 +576,43 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
         if notify_mode in _HOURLY_MODES:
             Path("traceback.txt").write_text(_tb.format_exc(), encoding="utf-8")
         alert_title, alert_body = format_failure_notification(notify_mode, date_str, str(exc)[:120])
+        alert_sent = False
         try:
-            send_notification(alert_title, alert_body)
+            alert_sent = send_notification(alert_title, alert_body)
         except Exception as _notify_exc:
             logger.warning("Failed to send failure notification: %s", _notify_exc)
+        if notify_mode in _HOURLY_MODES:
+            failure_at = datetime.now(timezone.utc)
+            error_contract = build_error_contract(
+                generated_at=failure_at,
+                artifacts={
+                    "report_path": str(HOURLY_REPORT_PATH),
+                    "log_path": str(LATEST_HOURLY_RUN_PATH),
+                    "notification_sent": alert_sent,
+                },
+                error_detail=str(exc)[:200],
+            )
+            error_contract["outcome"] = OUTCOME_HALT
+            failure_summary = _build_hourly_run_summary(
+                mode=mode,
+                run_at_utc=failure_at,
+                run_date=run_date,
+                notify_mode=notify_mode,
+                validation_summary=None,
+                regime=None,
+                router_state=None,
+                qualification_summary=None,
+                candidate_lines=(),
+                alert_title=alert_title,
+                alert_body=alert_body,
+                alert_sent=alert_sent,
+                errors=[str(exc)],
+                status=SUMMARY_STATUS_FAIL,
+                outcome=OUTCOME_HALT,
+                raw_quotes={},
+                normalized_quotes={},
+            )
+            _write_hourly_artifacts(failure_summary, error_contract)
         return {"status": SUMMARY_STATUS_FAIL, "suppressed": False}
 
 
@@ -1474,6 +1548,138 @@ def _load_run_history(path: Path, limit: int = 5) -> list[dict]:
 def _write_contract_file(contract: dict[str, Any]) -> None:
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     safe_write_latest(LATEST_CONTRACT_PATH, contract, "generated_at")
+
+
+def _build_hourly_contract(
+    *,
+    mode: str,
+    run_at_utc: datetime,
+    run_date: date,
+    raw_quotes: dict[str, RawQuote],
+    normalized_quotes: dict[str, NormalizedQuote],
+    validation_summary: Optional[ValidationSummary],
+    regime: Optional[RegimeState],
+    router_state: Optional[SectorRouterState],
+    qualification_summary: Optional[QualificationSummary],
+    errors: list[str],
+    alert_sent: bool,
+) -> dict[str, Any]:
+    contract_status = derive_run_status(
+        OUTCOME_NO_TRADE,
+        regime,
+        bool(validation_summary.system_halted) if validation_summary is not None else False,
+    )
+    data_quality = _data_status(mode, raw_quotes, normalized_quotes, fixture_file=None)
+    contract = build_pipeline_output_contract(
+        _PartialPipelineResult(
+            mode=mode,
+            run_at_utc=run_at_utc,
+            date_str=run_date.isoformat(),
+            raw_quotes=raw_quotes,
+            normalized_quotes=normalized_quotes,
+            validation_summary=validation_summary,
+            regime=regime,
+            router_mode=router_state.mode if router_state is not None else "MIXED",
+            qualification_summary=qualification_summary,
+            watch_summary=None,
+            option_setups=[],
+            chain_results={},
+            alert_sent=alert_sent,
+            report_path=str(HOURLY_REPORT_PATH),
+            errors=errors,
+            correlation=None,
+            trade_decisions=[],
+        ),
+        generated_at=run_at_utc,
+        status=contract_status,
+        artifacts={
+            "report_path": str(HOURLY_REPORT_PATH),
+            "log_path": str(LATEST_HOURLY_RUN_PATH),
+            "notification_sent": alert_sent,
+        },
+        data_quality=data_quality,
+    )
+    contract["outcome"] = OUTCOME_NO_TRADE
+    return contract
+
+
+def _build_hourly_run_summary(
+    *,
+    mode: str,
+    run_at_utc: datetime,
+    run_date: date,
+    notify_mode: str,
+    validation_summary: Optional[ValidationSummary],
+    regime: Optional[RegimeState],
+    router_state: Optional[SectorRouterState],
+    qualification_summary: Optional[QualificationSummary],
+    candidate_lines: tuple[str, ...],
+    alert_title: str,
+    alert_body: str,
+    alert_sent: bool,
+    errors: list[str],
+    status: str,
+    outcome: str,
+    raw_quotes: dict[str, RawQuote],
+    normalized_quotes: dict[str, NormalizedQuote],
+) -> dict[str, Any]:
+    regime_name, posture, confidence, net_score = _summary_regime_fields(regime)
+    return {
+        "run_id": f"hourly-{run_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
+        "timestamp": _iso_z(run_at_utc),
+        "run_at_utc": _iso_z(run_at_utc),
+        "generated_at": _iso_z(run_at_utc),
+        "mode": {
+            MODE_LIVE: SUMMARY_MODE_LIVE,
+            MODE_FIXTURE: SUMMARY_MODE_FIXTURE,
+            MODE_SUNDAY: SUMMARY_MODE_SUNDAY,
+        }.get(mode, SUMMARY_MODE_LIVE),
+        "session_date": run_date.isoformat(),
+        "notify_mode": notify_mode,
+        "outcome": outcome,
+        "status": status,
+        "regime": regime_name,
+        "posture": posture,
+        "confidence": confidence,
+        "net_score": net_score,
+        "router_mode": router_state.mode if router_state is not None else "MIXED",
+        "energy_score": float(router_state.energy_score) if router_state is not None else 0.0,
+        "index_score": float(router_state.index_score) if router_state is not None else 0.0,
+        "kill_switch": False,
+        "permission": None,
+        "data_status": _data_status(mode, raw_quotes, normalized_quotes, fixture_file=None),
+        "system_halted": bool(validation_summary.system_halted) if validation_summary is not None else True,
+        "halt_reason": getattr(validation_summary, "halt_reason", None) if validation_summary is not None else "; ".join(errors) if errors else None,
+        "candidates_qualified": len(qualification_summary.qualified_trades) if qualification_summary is not None else 0,
+        "candidates_watchlist": len(qualification_summary.watchlist) if qualification_summary is not None else 0,
+        "candidate_lines": list(candidate_lines),
+        "alert_title": alert_title,
+        "alert_body": alert_body,
+        "notification_sent": alert_sent,
+        "warnings": [],
+        "errors": errors,
+        "artifacts": {
+            "contract_path": str(LATEST_HOURLY_CONTRACT_PATH),
+            "payload_path": str(LATEST_HOURLY_PAYLOAD_PATH),
+            "report_path": str(HOURLY_REPORT_PATH),
+        },
+    }
+
+
+def _write_hourly_artifacts(summary: dict[str, Any], contract: dict[str, Any]) -> None:
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    safe_write_latest(LATEST_HOURLY_RUN_PATH, summary, "run_at_utc")
+    safe_write_latest(LATEST_HOURLY_CONTRACT_PATH, contract, "generated_at")
+    try:
+        from cuttingboard.delivery.payload import build_report_payload, assert_valid_payload
+        from cuttingboard.delivery.transport import deliver_html, deliver_json
+
+        payload = build_report_payload(contract)
+        assert_valid_payload(payload)
+        deliver_json(payload, output_path=str(LATEST_HOURLY_PAYLOAD_PATH))
+        deliver_html(payload, output_path=str(HOURLY_REPORT_PATH))
+    except Exception:
+        logger.exception("Hourly payload artifact generation failed — summary/contract preserved")
 
 
 def _load_previous_market_map() -> dict[str, Any] | None:

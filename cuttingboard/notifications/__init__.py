@@ -117,7 +117,11 @@ def _watch_lines_from_qualification(qualification_summary: Optional[Qualificatio
     for item in ranked:
         if not is_tradable_symbol(item.symbol):
             continue
-        lines.append(f"- {item.symbol.upper()} {item.direction.upper()}")
+        line = f"- {item.symbol.upper()} {item.direction.upper()}"
+        reason = _as_clean_string(getattr(item, "watchlist_reason", None))
+        if reason:
+            line = f"{line}: {reason[:60]}"
+        lines.append(line)
         if len(lines) >= 2:
             break
     return tuple(lines)
@@ -414,11 +418,11 @@ def format_hourly_notification(
         body = "\n".join(lines)
         return title, _append_lifecycle_alerts(body, market_map, asof_utc)
 
-    title = f"ACTIVE - NO SETUP {hhmm}"
     has_candidates = bool(
         qualification_summary is not None
         and (qualification_summary.symbols_qualified or qualification_summary.symbols_watchlist)
     )
+    title = f"WATCHLIST {hhmm}" if has_candidates else f"ACTIVE - NO SETUP {hhmm}"
     reason = _hourly_reason(
         regime,
         validation_summary,

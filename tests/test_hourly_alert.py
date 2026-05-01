@@ -1,6 +1,7 @@
 """PRD-012A acceptance tests: hourly alert filtering, R:R format, and alert contract."""
 
 import inspect
+import json
 from datetime import date, datetime, timezone
 from unittest.mock import MagicMock, patch
 
@@ -320,6 +321,44 @@ def test_format_hourly_notification_wrapper_filters_macro_candidates():
     assert "- NVDA LONG RR 2.4" in body
 
 
+def test_format_hourly_notification_wrapper_explicit_watchlist_title_and_reason():
+    qual = QualificationSummary(
+        regime_passed=True,
+        regime_short_circuited=False,
+        regime_failure_reason=None,
+        qualified_trades=[],
+        watchlist=[
+            QualificationResult(
+                symbol="AAPL",
+                qualified=False,
+                watchlist=True,
+                direction="LONG",
+                gates_passed=[],
+                gates_failed=[],
+                hard_failure=None,
+                watchlist_reason="developing above trigger",
+                max_contracts=None,
+                dollar_risk=None,
+            )
+        ],
+        excluded={},
+        symbols_evaluated=1,
+        symbols_qualified=0,
+        symbols_watchlist=1,
+        symbols_excluded=0,
+    )
+    title, body = format_hourly_notification(
+        asof_utc=datetime(2026, 4, 23, 14, 0, tzinfo=timezone.utc),
+        regime=_regime(regime="EXPANSION", posture="RISK_ON", confidence=0.81),
+        validation_summary=_validation(),
+        qualification_summary=qual,
+    )
+
+    assert title == "WATCHLIST 10:00"
+    assert "WATCHLIST" in body
+    assert "- AAPL LONG: developing above trigger" in body
+
+
 # ---------------------------------------------------------------------------
 # Alert contract: no file writes on normal execution
 # ---------------------------------------------------------------------------
@@ -333,6 +372,72 @@ def test_execute_notify_run_does_not_write_latest_run():
     src = inspect.getsource(_execute_notify_run)
     assert "_write_summary_files" not in src
     assert "LATEST_RUN_PATH" not in src
+
+
+def test_hourly_run_writes_hourly_specific_artifacts(tmp_path, monkeypatch):
+    import cuttingboard.runtime as runtime
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(runtime, "LOGS_DIR", tmp_path / "logs")
+    monkeypatch.setattr(runtime, "REPORTS_DIR", tmp_path / "reports")
+    monkeypatch.setattr(runtime, "LATEST_HOURLY_RUN_PATH", tmp_path / "logs" / "latest_hourly_run.json")
+    monkeypatch.setattr(runtime, "LATEST_HOURLY_CONTRACT_PATH", tmp_path / "logs" / "latest_hourly_contract.json")
+    monkeypatch.setattr(runtime, "LATEST_HOURLY_PAYLOAD_PATH", tmp_path / "logs" / "latest_hourly_payload.json")
+    monkeypatch.setattr(runtime, "HOURLY_REPORT_PATH", tmp_path / "reports" / "output" / "hourly_report.html")
+
+    patches = _patch_pipeline_stay_flat()
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7]:
+        result = _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    assert result["status"] == SUMMARY_STATUS_SUCCESS
+    assert (tmp_path / "logs" / "latest_hourly_run.json").exists()
+    assert (tmp_path / "logs" / "latest_hourly_contract.json").exists()
+    assert (tmp_path / "logs" / "latest_hourly_payload.json").exists()
+    assert (tmp_path / "reports" / "output" / "hourly_report.html").exists()
+    assert not (tmp_path / "logs" / "latest_run.json").exists()
+
+    hourly_run = json.loads((tmp_path / "logs" / "latest_hourly_run.json").read_text(encoding="utf-8"))
+    hourly_contract = json.loads((tmp_path / "logs" / "latest_hourly_contract.json").read_text(encoding="utf-8"))
+    hourly_payload = json.loads((tmp_path / "logs" / "latest_hourly_payload.json").read_text(encoding="utf-8"))
+
+    assert hourly_run["notify_mode"] == NOTIFY_HOURLY
+    assert hourly_run["status"] == SUMMARY_STATUS_SUCCESS
+    assert hourly_run["notification_sent"] is True
+    assert hourly_contract["artifacts"]["log_path"].endswith("latest_hourly_run.json")
+    assert hourly_contract["outcome"] == "NO_TRADE"
+    assert hourly_payload["meta"]["timestamp"] == hourly_contract["generated_at"]
+
+
+def test_hourly_run_failure_writes_hourly_failure_artifacts(tmp_path, monkeypatch):
+    import cuttingboard.runtime as runtime
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(runtime, "LOGS_DIR", tmp_path / "logs")
+    monkeypatch.setattr(runtime, "REPORTS_DIR", tmp_path / "reports")
+    monkeypatch.setattr(runtime, "LATEST_HOURLY_RUN_PATH", tmp_path / "logs" / "latest_hourly_run.json")
+    monkeypatch.setattr(runtime, "LATEST_HOURLY_CONTRACT_PATH", tmp_path / "logs" / "latest_hourly_contract.json")
+    monkeypatch.setattr(runtime, "LATEST_HOURLY_PAYLOAD_PATH", tmp_path / "logs" / "latest_hourly_payload.json")
+    monkeypatch.setattr(runtime, "HOURLY_REPORT_PATH", tmp_path / "reports" / "output" / "hourly_report.html")
+
+    with (
+        patch("cuttingboard.runtime.fetch_all", side_effect=RuntimeError("data fetch failed")),
+        patch("cuttingboard.runtime.send_notification", return_value=True),
+    ):
+        result = _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    assert result["status"] == SUMMARY_STATUS_FAIL
+    assert (tmp_path / "logs" / "latest_hourly_run.json").exists()
+    assert (tmp_path / "logs" / "latest_hourly_contract.json").exists()
+    assert (tmp_path / "logs" / "latest_hourly_payload.json").exists()
+
+    hourly_run = json.loads((tmp_path / "logs" / "latest_hourly_run.json").read_text(encoding="utf-8"))
+    hourly_contract = json.loads((tmp_path / "logs" / "latest_hourly_contract.json").read_text(encoding="utf-8"))
+
+    assert hourly_run["status"] == SUMMARY_STATUS_FAIL
+    assert hourly_run["notification_sent"] is True
+    assert hourly_run["errors"] == ["data fetch failed"]
+    assert hourly_contract["status"] == "ERROR"
+    assert hourly_contract["outcome"] == "HALT"
 
 
 # ---------------------------------------------------------------------------

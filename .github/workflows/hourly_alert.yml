@@ -16,6 +16,9 @@ concurrency:
   group: hourly-alert
   cancel-in-progress: false
 
+permissions:
+  contents: write
+
 jobs:
   alert:
     runs-on: ubuntu-latest
@@ -40,6 +43,39 @@ jobs:
       - name: Run hourly alert
         run: python -m cuttingboard.alert_runner
 
+      - name: Publish hourly artifacts
+        if: ${{ success() }}
+        run: |
+          set -eo pipefail
+          PRE_SHA=$(git rev-parse HEAD)
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          cp logs/latest_hourly_contract.json ui/contract.json
+          python3 -m cuttingboard.delivery.dashboard_renderer \
+            --payload logs/latest_hourly_payload.json \
+            --run logs/latest_hourly_run.json \
+            --output ui/dashboard.html
+          git add logs/latest_hourly_run.json logs/latest_hourly_contract.json logs/latest_hourly_payload.json
+          git add ui/contract.json ui/dashboard.html
+          git diff --staged --quiet || git commit -m "CB hourly: $(date -u +%Y-%m-%dT%H:%MZ)"
+          POST_SHA=$(git rev-parse HEAD)
+          echo "PRE_SHA=$PRE_SHA" >> "$GITHUB_ENV"
+          echo "POST_SHA=$POST_SHA" >> "$GITHUB_ENV"
+
+      - name: Push hourly artifacts
+        if: ${{ success() }}
+        run: |
+          set -eo pipefail
+          if [ -z "${PRE_SHA:-}" ] || [ -z "${POST_SHA:-}" ]; then
+            echo "Missing SHA state - skipping push"
+            exit 0
+          fi
+          if [ "$PRE_SHA" = "$POST_SHA" ]; then
+            echo "No new commit - skipping push"
+            exit 0
+          fi
+          git push
+
       - name: Upload failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4
@@ -48,5 +84,8 @@ jobs:
           path: |
             traceback.txt
             logs/latest_contract.json
+            logs/latest_hourly_run.json
+            logs/latest_hourly_contract.json
+            logs/latest_hourly_payload.json
           if-no-files-found: ignore
           retention-days: 7
