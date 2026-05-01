@@ -70,7 +70,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-055 | 395d07e, a360e23 | Signal Forge: Dashboard upgrade — macro tape, system state, candidate visibility board | COMPLETE | [PRD-055](prd_history/PRD-055.md) |
 | PRD-056 | — | Candidate lifecycle tracking — deterministic grade/setup_state transition metadata in market_map | IN PROGRESS | [PRD-056](prd_history/PRD-056.md) |
 | PRD-057 | — | Lifecycle visibility on Signal Forge dashboard — badge, detail row, removed symbols section | IN PROGRESS | [PRD-057](prd_history/PRD-057.md) |
-| PRD-058 | — | Overnight Exit Guidance Layer | PROPOSED | [PRD-058](prd_history/PRD-058.md) |
+| PRD-058 | 8f942c7 | Overnight Exit Guidance Layer | COMPLETE | [PRD-058](prd_history/PRD-058.md) |
 | PRD-062 | — | Macro Tape value row hardening | COMPLETE | [PRD-062](prd_history/PRD-062.md) |
 | PRD-063 | — | Deterministic macro pressure snapshot | COMPLETE | [PRD-063](prd_history/PRD-063.md) |
 
