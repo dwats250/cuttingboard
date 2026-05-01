@@ -1,5 +1,9 @@
-# Secrets — never commit
+# Secrets and local config — never commit
 .env
+.env.*
+.mcp.json
+.codex
+*.bak.*
 
 # Python
 __pycache__/
@@ -38,6 +42,10 @@ AGENTS.md
 .vscode/
 .idea/
 *.swp
+
+# Runtime and published artifacts
+# `logs/latest_*`, `reports/*.md`, and dashboard outputs may still be force-added
+# by CI when intentionally published from scheduled runs.
 logs/
 _site/
 reports/output/
