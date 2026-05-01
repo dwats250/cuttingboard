@@ -245,6 +245,7 @@ def write_notification_audit(
     alert_title: str,
     attempted: bool,
     success: bool,
+    status: Optional[str] = None,
     http_status: Optional[int] = None,
     error: Optional[str] = None,
     reason: Optional[str] = None,
@@ -265,14 +266,18 @@ def write_notification_audit(
     http_status — Set when an HTTP response was received (success or failure).
     error       — Exception message or HTTP error body excerpt.
     reason      — Human-readable explanation for skip/failure.
+    status      — success/failed/skipped transport outcome.
     retry_count — Number of retries made (0 = first attempt succeeded/failed, 1 = one retry).
     priority    — NotificationPriority tier string (CRITICAL/HIGH/MEDIUM/LOW).
     state_key   — notification_state_key() value for this run.
     """
+    if status is None:
+        status = "success" if success else ("failed" if attempted else "skipped")
     record: dict = {
         "event": "notification",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "transport": transport,
+        "status": status,
         "alert_title": alert_title,
         "attempted": attempted,
         "success": success,

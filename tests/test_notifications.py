@@ -1,5 +1,9 @@
+import json
 from datetime import datetime, timezone
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
+from cuttingboard import config
 from cuttingboard.notifications import (
     NOTIFY_POST_ORB,
     NOTIFY_POWER_HOUR,
@@ -9,6 +13,12 @@ from cuttingboard.notifications import (
     format_notification,
     format_run_alert,
 )
+from cuttingboard.output import (
+    TELEGRAM_MIN_INTERVAL_SEC,
+    TELEGRAM_RETRY_BACKOFF_SEC,
+    send_notification,
+    send_telegram,
+)
 from cuttingboard.qualification import QualificationResult, QualificationSummary
 from cuttingboard.regime import (
     RegimeState,
@@ -17,6 +27,14 @@ from cuttingboard.regime import (
     STAY_FLAT,
 )
 from cuttingboard.validation import ValidationSummary
+
+
+def _notification_records(audit_path: Path) -> list[dict]:
+    return [
+        json.loads(line)
+        for line in audit_path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and json.loads(line).get("event") == "notification"
+    ]
 
 
 def _regime(
@@ -400,3 +418,108 @@ def test_lifecycle_alerts_reuse_hourly_timestamp_convention():
     assert title == "STAY FLAT 11:20"
     assert "11:20 META LONG - NEW (A)" in body
     assert "15:20" not in body
+
+
+def test_prd061_identical_telegram_messages_send_once_then_skip_duplicates(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "logs").mkdir()
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+
+    with patch.object(config, "TELEGRAM_BOT_TOKEN", "tok"):
+        with patch.object(config, "TELEGRAM_CHAT_ID", "1"):
+            with patch("requests.post", return_value=mock_resp) as mock_post:
+                assert send_telegram("TITLE", "body") is True
+                assert send_telegram("TITLE", "body") is False
+                assert send_telegram("TITLE", "body") is False
+
+    records = _notification_records(tmp_path / "logs" / "audit.jsonl")
+    assert mock_post.call_count == 1
+    assert [record["status"] for record in records] == ["success", "skipped", "skipped"]
+    assert [record["reason"] for record in records[1:]] == ["duplicate", "duplicate"]
+
+
+def test_prd061_rapid_unique_messages_sleep_between_sends(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "logs").mkdir()
+
+    sleep_calls: list[float] = []
+    monotonic_values = iter([100.0, 100.0, 100.2, 100.2, 100.4, 100.4])
+    monkeypatch.setattr("cuttingboard.output.time.monotonic", lambda: next(monotonic_values))
+    monkeypatch.setattr("cuttingboard.output.time.sleep", lambda seconds: sleep_calls.append(seconds))
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+
+    with patch.object(config, "TELEGRAM_BOT_TOKEN", "tok"):
+        with patch.object(config, "TELEGRAM_CHAT_ID", "1"):
+            with patch("requests.post", return_value=mock_resp) as mock_post:
+                send_telegram("ONE", "body")
+                send_telegram("TWO", "body")
+                send_telegram("THREE", "body")
+
+    assert mock_post.call_count == 3
+    assert len(sleep_calls) == 2
+    assert all(seconds >= TELEGRAM_MIN_INTERVAL_SEC - 0.21 for seconds in sleep_calls)
+
+
+def test_prd061_http_429_waits_five_seconds_and_retries_once(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "logs").mkdir()
+
+    sleep_calls: list[float] = []
+    monkeypatch.setattr("cuttingboard.output.time.sleep", lambda seconds: sleep_calls.append(seconds))
+
+    resp_429 = MagicMock()
+    resp_429.status_code = 429
+    resp_429.text = "Too Many Requests"
+    resp_200 = MagicMock()
+    resp_200.status_code = 200
+
+    with patch.object(config, "TELEGRAM_BOT_TOKEN", "tok"):
+        with patch.object(config, "TELEGRAM_CHAT_ID", "1"):
+            with patch("requests.post", side_effect=[resp_429, resp_200]) as mock_post:
+                assert send_telegram("RATE", "body") is True
+
+    record = _notification_records(tmp_path / "logs" / "audit.jsonl")[-1]
+    assert mock_post.call_count == 2
+    assert TELEGRAM_RETRY_BACKOFF_SEC in sleep_calls
+    assert record["status"] == "success"
+    assert record["retry_count"] == 1
+
+
+def test_prd061_repeated_retryable_failure_logs_failed_and_stops(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "logs").mkdir()
+
+    monkeypatch.setattr("cuttingboard.output.time.sleep", lambda seconds: None)
+
+    resp_500 = MagicMock()
+    resp_500.status_code = 500
+    resp_500.text = "server error"
+
+    with patch.object(config, "TELEGRAM_BOT_TOKEN", "tok"):
+        with patch.object(config, "TELEGRAM_CHAT_ID", "1"):
+            with patch("requests.post", return_value=resp_500) as mock_post:
+                assert send_telegram("FAIL", "body") is False
+
+    record = _notification_records(tmp_path / "logs" / "audit.jsonl")[-1]
+    assert mock_post.call_count == 2
+    assert record["status"] == "failed"
+    assert record["retry_count"] == 1
+    assert record["error"] == "server error"
+
+
+def test_prd061_duplicate_logical_send_path_skips_second_dispatch(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "logs").mkdir()
+
+    with patch("cuttingboard.output.send_telegram", return_value=True) as mock_send:
+        assert send_notification("ALERT", "body") is True
+        assert send_notification("ALERT", "body") is False
+
+    records = _notification_records(tmp_path / "logs" / "audit.jsonl")
+    assert mock_send.call_count == 1
+    assert records[-1]["status"] == "skipped"
+    assert records[-1]["reason"] == "duplicate_path"
