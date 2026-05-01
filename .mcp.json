@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "memory": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ]
+    },
+    "gitnexus": {
+      "type": "stdio",
+      "command": "/home/dustin/.npm-global/bin/gitnexus",
+      "args": [
+        "mcp"
+      ],
+      "env": {}
+    }
+  }
+}
