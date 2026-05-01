@@ -72,6 +72,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-057 | — | Lifecycle visibility on Signal Forge dashboard — badge, detail row, removed symbols section | IN PROGRESS | [PRD-057](prd_history/PRD-057.md) |
 | PRD-058 | — | Overnight Exit Guidance Layer | PROPOSED | [PRD-058](prd_history/PRD-058.md) |
 | PRD-062 | — | Macro Tape value row hardening | COMPLETE | [PRD-062](prd_history/PRD-062.md) |
+| PRD-063 | — | Deterministic macro pressure snapshot | COMPLETE | [PRD-063](prd_history/PRD-063.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
