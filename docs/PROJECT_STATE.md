@@ -2,16 +2,17 @@
 
 Project: Cutting Board
 
-Latest completed PRD: PRD-049
+Latest completed PRD: PRD-061
 Current active PRD: none
 
 Status:
-- PRD-049 COMPLETE (Development process hardening)
-- PRD-048 COMPLETE (Trade Decision Visibility in Payload and Dashboard)
+- PRD-061 COMPLETE (PRD Registry Numbering Guard)
+- PRD-060 COMPLETE (Deterministic macro pressure snapshot)
+- PRD-059 COMPLETE (Macro Tape value row hardening)
 - PRD-032 DEPRECATED (R2–R6 implemented across subsequent PRDs; R1 superseded by design)
 
 Test baseline:
-- 1441 passing
+- 1661 passing
 
 Architecture:
 - audit.jsonl → trade decisions (exists: logs/audit.jsonl)

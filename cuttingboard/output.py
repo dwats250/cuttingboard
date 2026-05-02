@@ -20,6 +20,7 @@ Consumed by runtime.py — pure render and delivery layer, no pipeline logic.
 import logging
 import os
 import time
+from hashlib import sha256
 from datetime import datetime
 from typing import Optional
 
@@ -50,17 +51,67 @@ logger = logging.getLogger(__name__)
 # Rate limiting
 # ---------------------------------------------------------------------------
 
+TELEGRAM_MIN_INTERVAL_SEC: float = 1.1
+TELEGRAM_MAX_RETRIES: int = 1
+TELEGRAM_RETRY_BACKOFF_SEC: float = 5.0
+
 _LAST_SEND_TS: float = 0.0
-_MIN_SEND_INTERVAL: float = 1.1  # seconds between Telegram sends
+_MIN_SEND_INTERVAL: float = TELEGRAM_MIN_INTERVAL_SEC  # backward-compatible test import
+_NOTIFICATION_RUN_SCOPE: Optional[str] = None
+sent_message_hashes: set[str] = set()
+_logical_alert_hashes: set[str] = set()
+
+
+def _notification_run_scope() -> str:
+    """Return the process-local notification run scope."""
+    return f"{os.getcwd()}|{os.environ.get('PYTEST_CURRENT_TEST', '')}"
+
+
+def _ensure_notification_run_scope() -> None:
+    global _NOTIFICATION_RUN_SCOPE, _LAST_SEND_TS
+    scope = _notification_run_scope()
+    if _NOTIFICATION_RUN_SCOPE == scope:
+        return
+    _NOTIFICATION_RUN_SCOPE = scope
+    sent_message_hashes.clear()
+    _logical_alert_hashes.clear()
+    _LAST_SEND_TS = 0.0
+
+
+def _message_hash(title: str, body: str) -> str:
+    return sha256(f"{title}{body}".encode("utf-8")).hexdigest()
 
 
 def _rate_limit_send() -> None:
-    """Block until at least _MIN_SEND_INTERVAL has elapsed since last send."""
+    """Block until at least TELEGRAM_MIN_INTERVAL_SEC has elapsed since last send."""
     global _LAST_SEND_TS
     elapsed = time.monotonic() - _LAST_SEND_TS
-    if elapsed < _MIN_SEND_INTERVAL:
-        time.sleep(_MIN_SEND_INTERVAL - elapsed)
+    if elapsed < TELEGRAM_MIN_INTERVAL_SEC:
+        time.sleep(TELEGRAM_MIN_INTERVAL_SEC - elapsed)
     _LAST_SEND_TS = time.monotonic()
+
+
+def _write_skipped_notification(
+    *,
+    title: str,
+    body: str,
+    reason: str,
+    notification_priority: str = "",
+    notification_state_key: str = "",
+) -> None:
+    logger.info("Telegram skipped: status=skipped reason=%s title=%r", reason, title)
+    write_notification_audit(
+        transport="telegram",
+        status="skipped",
+        alert_title=title,
+        attempted=False,
+        success=False,
+        reason=reason,
+        retry_count=0,
+        priority=notification_priority or None,
+        state_key=notification_state_key or None,
+        message_preview=body[:120] if body else None,
+    )
 
 
 _BORDER = "=" * 54
@@ -461,8 +512,8 @@ def send_telegram(
 ) -> bool:
     """Send Telegram notification. Returns True on success, False otherwise.
 
-    Enforces a global minimum send interval (rate limit). Retries once on
-    HTTP 429 (after 2s) or timeout/5xx (after 1s). Max 2 attempts total.
+    Enforces a global minimum send interval (rate limit), in-run hash dedup,
+    and one bounded retry on HTTP 429, timeout, or HTTP 5xx.
 
     Writes exactly one structured audit record to audit.jsonl per call:
     skip (not configured), success, HTTP failure, or exception.
@@ -476,11 +527,13 @@ def send_telegram(
 
     _priority = notification_priority or None
     _state_key = notification_state_key or None
+    _ensure_notification_run_scope()
 
     if not token or not chat_id:
         logger.debug("Telegram not configured — notification skipped")
         write_notification_audit(
             transport="telegram",
+            status="skipped",
             alert_title=title,
             attempted=False,
             success=False,
@@ -491,11 +544,23 @@ def send_telegram(
         )
         return False
 
-    _rate_limit_send()
-
     text = f"{title}\n\n{body}" if body else title
     safe_text = _ascii_safe(text)
     preview = safe_text[:120]
+    message_hash = _message_hash(title, body)
+    if message_hash in sent_message_hashes:
+        _write_skipped_notification(
+            title=title,
+            body=safe_text,
+            reason="duplicate",
+            notification_priority=notification_priority,
+            notification_state_key=notification_state_key,
+        )
+        return False
+    sent_message_hashes.add(message_hash)
+
+    _rate_limit_send()
+
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {"chat_id": chat_id, "text": safe_text}
 
@@ -504,7 +569,7 @@ def send_telegram(
     error_detail: Optional[str] = None
     attempts_made = 0
 
-    for attempt in range(2):
+    for attempt in range(TELEGRAM_MAX_RETRIES + 1):
         attempts_made = attempt + 1
         try:
             resp = requests.post(url, json=payload, timeout=10)
@@ -514,17 +579,17 @@ def send_telegram(
                 break
             if attempt == 0:
                 if resp.status_code == 429:
-                    time.sleep(2)
+                    time.sleep(TELEGRAM_RETRY_BACKOFF_SEC)
                     continue
                 if resp.status_code >= 500:
-                    time.sleep(1)
+                    time.sleep(TELEGRAM_RETRY_BACKOFF_SEC)
                     continue
             error_detail = resp.text[:200]
             break
         except requests.exceptions.Timeout as exc:
             error_detail = str(exc)
             if attempt == 0:
-                time.sleep(1)
+                time.sleep(TELEGRAM_RETRY_BACKOFF_SEC)
                 continue
             break
         except Exception as exc:
@@ -537,6 +602,7 @@ def send_telegram(
         logger.info(f"Telegram delivered: {title!r} ({len(safe_text)} bytes)")
         write_notification_audit(
             transport="telegram",
+            status="success",
             alert_title=title,
             attempted=True,
             success=True,
@@ -555,6 +621,7 @@ def send_telegram(
     )
     write_notification_audit(
         transport="telegram",
+        status="failed",
         alert_title=title,
         attempted=True,
         success=False,
@@ -580,6 +647,18 @@ def send_notification(
     """Single notification dispatch point. Sends via Telegram."""
     if body and DASHBOARD_URL not in body:
         body = f"{body}\n\n{DASHBOARD_FOOTER}"
+    _ensure_notification_run_scope()
+    logical_hash = _message_hash(title, body)
+    if logical_hash in _logical_alert_hashes:
+        _write_skipped_notification(
+            title=title,
+            body=body,
+            reason="duplicate_path",
+            notification_priority=notification_priority,
+            notification_state_key=notification_state_key,
+        )
+        return False
+    _logical_alert_hashes.add(logical_hash)
     kwargs = {
         "notification_priority": notification_priority,
         "notification_state_key": notification_state_key,

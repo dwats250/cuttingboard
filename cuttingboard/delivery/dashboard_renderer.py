@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import html as _html
 import json
+import math
 from pathlib import Path
 
 _PAYLOAD_PATH = Path("logs/latest_payload.json")
@@ -116,6 +117,14 @@ _DASH = "—"
 
 _ARROW_CSS: dict[str, str] = {_UP: "up", _DOWN: "down", _FLAT: "flat", _DASH: "na"}
 
+_TAPE_DRIVER_DEFS = [
+    ("VIX", "volatility"),
+    ("DXY", "dollar"),
+    ("10Y", "rates"),
+    ("BTC", "bitcoin"),
+]
+_TAPE_MM_SYMBOLS = ["SPY", "QQQ", "GLD", "SLV", "XLE"]
+
 
 def _load_json(path: Path) -> dict:
     if not path.exists():
@@ -174,28 +183,25 @@ def _direction_arrow(direction: str) -> str:
     return _FLAT
 
 
+def _is_finite_number(value: object) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
 def _build_tape_slots(
     macro_drivers: dict,
     market_map: dict | None,
 ) -> list[tuple[str, str]]:
     slots: list[tuple[str, str]] = []
 
-    driver_defs = [
-        ("VIX", "volatility"),
-        ("DXY", "dollar"),
-        ("10Y", "rates"),
-        ("BTC", "bitcoin"),
-    ]
-    for label, key in driver_defs:
+    for label, key in _TAPE_DRIVER_DEFS:
         block = macro_drivers.get(key) if macro_drivers else None
         if block and isinstance(block.get("change_pct"), float):
             slots.append((label, _pct_arrow(block["change_pct"])))
         else:
             slots.append((label, _DASH))
 
-    mm_syms = ["SPY", "QQQ", "GLD", "SLV", "XLE"]
     symbols: dict = (market_map or {}).get("symbols") or {}
-    for sym in mm_syms:
+    for sym in _TAPE_MM_SYMBOLS:
         entry = symbols.get(sym)
         if entry:
             tf = entry.get("trade_framing") or {}
@@ -206,6 +212,44 @@ def _build_tape_slots(
                 slots.append((sym, _DASH))
         else:
             slots.append((sym, _DASH))
+
+    return slots
+
+
+def _format_tape_value(symbol: str, value: object) -> str:
+    if not _is_finite_number(value):
+        return "--"
+
+    numeric = float(value)
+    if symbol == "VIX":
+        return f"{numeric:.1f}"
+    if symbol == "DXY":
+        return f"{numeric:.1f}"
+    if symbol == "10Y":
+        return f"{numeric:.2f}"
+    if symbol == "BTC":
+        if abs(numeric) >= 10000:
+            return f"{numeric / 1000:.1f}K"
+        return f"{numeric:.0f}"
+    return f"{numeric:.2f}"
+
+
+def _build_tape_value_slots(
+    macro_drivers: dict,
+    market_map: dict | None,
+) -> list[tuple[str, str]]:
+    slots: list[tuple[str, str]] = []
+
+    for label, key in _TAPE_DRIVER_DEFS:
+        block = macro_drivers.get(key) if macro_drivers else None
+        value = block.get("level") if isinstance(block, dict) else None
+        slots.append((label, _format_tape_value(label, value)))
+
+    symbols: dict = (market_map or {}).get("symbols") or {}
+    for sym in _TAPE_MM_SYMBOLS:
+        entry = symbols.get(sym)
+        value = entry.get("current_price") if isinstance(entry, dict) else None
+        slots.append((sym, _format_tape_value(sym, value)))
 
     return slots
 
@@ -320,6 +364,7 @@ def render_dashboard_html(
 
     # R1 — tape slots
     tape_slots = _build_tape_slots(macro_drivers, market_map)
+    tape_value_slots = _build_tape_value_slots(macro_drivers, market_map)
 
     # R1.1 — macro bias from arrow counts
     up_count   = sum(1 for _, arrow in tape_slots if arrow == _UP)
@@ -372,6 +417,11 @@ def render_dashboard_html(
         for label, arrow in tape_slots
     ]
     w("  <div>" + " | ".join(tape_parts) + "</div>")
+    value_parts = [
+        f'<span class="macro-tape-value" data-symbol="{_esc(label)}">{_esc(value)}</span>'
+        for label, value in tape_value_slots
+    ]
+    w('  <div class="macro-tape-values">' + " | ".join(value_parts) + "</div>")
     w(f'  <div class="{_esc(macro_bias_css)}">{_esc(macro_bias)}</div>')
     w("</div>")
 

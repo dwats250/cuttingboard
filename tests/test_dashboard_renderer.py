@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -138,6 +139,20 @@ def _market_map(symbols: dict | None = None) -> dict:
         "primary_symbols":  list(s.keys()),
         "symbols":          s,
     }
+
+
+def _macro_tape_block(html: str) -> str:
+    return html.split('id="macro-tape"', 1)[1].split('id="system-state"', 1)[0]
+
+
+def _macro_tape_value_slots(html: str) -> list[tuple[str, str]]:
+    block = _macro_tape_block(html)
+    value_row = re.search(r'<div class="macro-tape-values">(.*?)</div>', block, re.DOTALL)
+    assert value_row is not None
+    return re.findall(
+        r'<span class="macro-tape-value" data-symbol="([^"]+)">([^<]+)</span>',
+        value_row.group(1),
+    )
 
 
 def _trade(symbol: str = "SPY", direction: str = "LONG") -> dict:
@@ -340,7 +355,7 @@ def test_macro_tape_section_order() -> None:
 def test_macro_tape_empty_macro_drivers() -> None:
     # macro_drivers={} → slots 1-4 render with em dash, no crash
     html = render_dashboard_html(_payload(), _run())
-    tape = html.split('id="macro-tape"', 1)[1]
+    tape = _macro_tape_block(html)
     for label in ("VIX", "DXY", "10Y", "BTC", "SPY", "QQQ", "GLD", "SLV", "XLE"):
         assert label in tape
 
@@ -348,7 +363,7 @@ def test_macro_tape_empty_macro_drivers() -> None:
 def test_macro_tape_arrows() -> None:
     p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=-0.01, tnx=0.0, btc=0.03))
     html = render_dashboard_html(p, _run())
-    tape = html.split('id="macro-tape"', 1)[1]
+    tape = _macro_tape_block(html)
     assert "VIX ↑" in tape
     assert "DXY ↓" in tape
     assert "10Y →" in tape
@@ -358,6 +373,116 @@ def test_macro_tape_arrows() -> None:
 def test_macro_tape_no_crash_when_market_map_none() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=None)
     assert 'id="macro-tape"' in html
+
+
+def test_macro_tape_value_row_present() -> None:
+    html = render_dashboard_html(_payload(), _run())
+    assert 'class="macro-tape-values"' in _macro_tape_block(html)
+
+
+def test_macro_tape_value_row_slot_order() -> None:
+    html = render_dashboard_html(_payload(), _run())
+    slots = _macro_tape_value_slots(html)
+    assert [symbol for symbol, _ in slots] == ["VIX", "DXY", "10Y", "BTC", "SPY", "QQQ", "GLD", "SLV", "XLE"]
+
+
+def test_macro_tape_value_row_has_nine_fixed_slots() -> None:
+    html = render_dashboard_html(_payload(), _run())
+    assert len(_macro_tape_value_slots(html)) == 9
+
+
+def test_macro_tape_value_row_vix_format() -> None:
+    p = _payload(macro_drivers=_macro_drivers())
+    p["macro_drivers"]["volatility"]["level"] = 18.234
+    html = render_dashboard_html(p, _run())
+    assert dict(_macro_tape_value_slots(html))["VIX"] == "18.2"
+
+
+def test_macro_tape_value_row_dxy_format() -> None:
+    p = _payload(macro_drivers=_macro_drivers())
+    p["macro_drivers"]["dollar"]["level"] = 99.87
+    html = render_dashboard_html(p, _run())
+    assert dict(_macro_tape_value_slots(html))["DXY"] == "99.9"
+
+
+def test_macro_tape_value_row_10y_format() -> None:
+    p = _payload(macro_drivers=_macro_drivers())
+    p["macro_drivers"]["rates"]["level"] = 4.321
+    html = render_dashboard_html(p, _run())
+    assert dict(_macro_tape_value_slots(html))["10Y"] == "4.32"
+
+
+def test_macro_tape_value_row_btc_compact_format() -> None:
+    p = _payload(macro_drivers=_macro_drivers())
+    p["macro_drivers"]["bitcoin"]["level"] = 94200
+    html = render_dashboard_html(p, _run())
+    assert dict(_macro_tape_value_slots(html))["BTC"] == "94.2K"
+
+
+def test_macro_tape_value_row_btc_plain_format_below_threshold() -> None:
+    p = _payload(macro_drivers=_macro_drivers())
+    p["macro_drivers"]["bitcoin"]["level"] = 9800
+    html = render_dashboard_html(p, _run())
+    assert dict(_macro_tape_value_slots(html))["BTC"] == "9800"
+
+
+def test_macro_tape_value_row_current_price_format() -> None:
+    mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": 512.345}})
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=mm)
+    assert dict(_macro_tape_value_slots(html))["SPY"] == "512.35"
+
+
+def test_macro_tape_value_row_etf_fallback_when_market_map_none() -> None:
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=None)
+    slots = dict(_macro_tape_value_slots(html))
+    for symbol in ("SPY", "QQQ", "GLD", "SLV", "XLE"):
+        assert slots[symbol] == "--"
+
+
+def test_macro_tape_value_row_missing_macro_driver_level_uses_fallback() -> None:
+    p = _payload(macro_drivers=_macro_drivers())
+    del p["macro_drivers"]["volatility"]["level"]
+    html = render_dashboard_html(p, _run())
+    assert dict(_macro_tape_value_slots(html))["VIX"] == "--"
+
+
+def test_macro_tape_value_row_non_finite_macro_driver_level_uses_fallback() -> None:
+    p = _payload(macro_drivers=_macro_drivers())
+    p["macro_drivers"]["volatility"]["level"] = float("inf")
+    html = render_dashboard_html(p, _run())
+    assert dict(_macro_tape_value_slots(html))["VIX"] == "--"
+
+
+def test_macro_tape_value_row_boolean_macro_driver_level_uses_fallback() -> None:
+    p = _payload(macro_drivers=_macro_drivers())
+    p["macro_drivers"]["volatility"]["level"] = True
+    html = render_dashboard_html(p, _run())
+    assert dict(_macro_tape_value_slots(html))["VIX"] == "--"
+
+
+def test_macro_tape_value_row_boolean_current_price_uses_fallback() -> None:
+    mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": False}})
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=mm)
+    assert dict(_macro_tape_value_slots(html))["SPY"] == "--"
+
+
+def test_macro_tape_row1_fallback_marker_distinct_from_value_row_fallback() -> None:
+    html = render_dashboard_html(_payload(), _run(), market_map=None)
+    tape = _macro_tape_block(html)
+    assert "SPY —" in tape
+    assert dict(_macro_tape_value_slots(html))["SPY"] == "--"
+
+
+def test_macro_tape_macro_bias_text_unchanged_with_value_row() -> None:
+    p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.01, tnx=0.02, btc=-0.01))
+    html = render_dashboard_html(p, _run(), market_map=None)
+    assert "MACRO BIAS: LONG" in html
+
+
+def test_macro_tape_macro_bias_class_unchanged_with_value_row() -> None:
+    p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.01, tnx=0.02, btc=-0.01))
+    html = render_dashboard_html(p, _run(), market_map=None)
+    assert 'class="macro-bias long"' in html
 
 
 # ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 60,
-  "next_prd": 61,
+  "latest_complete": 61,
+  "next_prd": 62,
   "entries": [
     {
       "number": 56,
@@ -36,8 +36,8 @@
     {
       "number": 61,
       "title": "PRD Registry Numbering Guard",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "c7d5e23"
     }
   ]
 }
