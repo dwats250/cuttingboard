@@ -74,7 +74,7 @@ _CSS = (
     "h2{font-size:0.8rem;color:#888;text-transform:uppercase;"
     "letter-spacing:0.08em;margin-bottom:0.75rem}"
     ".sep{border-top:1px solid #1a1a1a;margin:0.5rem 0}"
-    ".tape-slot{display:inline;margin-right:0.5rem}"
+    ".tape-slot{display:inline;margin-right:0.5rem;white-space:nowrap}"
     ".candidate-card{border-left:3px solid #2a2a2a;padding:0.75rem;margin-bottom:0.5rem}"
     ".grade-aplus{border-left-color:#4caf50}"
     ".grade-a{border-left-color:#8bc34a}"
