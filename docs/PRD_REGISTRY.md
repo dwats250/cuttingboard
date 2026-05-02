@@ -84,7 +84,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-069 | — | Entry Quality and Chase Filter | IN PROGRESS | [PRD-069](prd_history/PRD-069.md) |
 | PRD-070 | — | Manual Trade Journal and Mistake Taxonomy | IN PROGRESS | [PRD-070](prd_history/PRD-070.md) |
 | PRD-071 | — | Trading Process Review Scorecard | IN PROGRESS | [PRD-071](prd_history/PRD-071.md) |
-| PRD-072 | — | Macro Drivers Snapshot Fallback | IN PROGRESS | [PRD-072](prd_history/PRD-072.md) |
+| PRD-072 | 7e14a4e | Macro Drivers Snapshot Fallback | COMPLETE | [PRD-072](prd_history/PRD-072.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
