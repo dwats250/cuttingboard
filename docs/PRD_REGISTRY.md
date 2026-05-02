@@ -78,7 +78,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-063 | d47ad79 | Macro Pressure Execution Policy Integration | COMPLETE | [PRD-063](prd_history/PRD-063.md) |
 | PRD-064 | 663c652 | Trade Visibility Layer (Near-Miss Engine) | COMPLETE | [PRD-064](prd_history/PRD-064.md) |
 | PRD-065 | 5a85df7 | Signal Forge Interactive Dashboard Controls | COMPLETE | [PRD-065](prd_history/PRD-065.md) |
-| PRD-066 | — | Trade Drilldown Panel (Deterministic Explanation Layer) | IN PROGRESS | [PRD-066](prd_history/PRD-066.md) |
+| PRD-066 | b988f89 | Trade Drilldown Panel (Deterministic Explanation Layer) | COMPLETE | [PRD-066](prd_history/PRD-066.md) |
 | PRD-067 | — | Trade Thesis Gate | IN PROGRESS | [PRD-067](prd_history/PRD-067.md) |
 | PRD-068 | — | Invalidation and Exit Guidance Layer | IN PROGRESS | [PRD-068](prd_history/PRD-068.md) |
 | PRD-069 | — | Entry Quality and Chase Filter | IN PROGRESS | [PRD-069](prd_history/PRD-069.md) |

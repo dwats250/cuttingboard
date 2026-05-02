@@ -2,10 +2,11 @@
 
 Project: Cutting Board
 
-Latest completed PRD: PRD-065
+Latest completed PRD: PRD-066
 Current active PRD: none
 
 Status:
+- PRD-066 COMPLETE (Trade Drilldown Panel — Deterministic Explanation Layer)
 - PRD-065 COMPLETE (Signal Forge Interactive Dashboard Controls)
 - PRD-064 COMPLETE (Trade Visibility Layer — Near-Miss Engine)
 - PRD-063 COMPLETE (Macro Pressure Execution Policy Integration)
@@ -15,7 +16,7 @@ Status:
 - PRD-032 DEPRECATED (R2–R6 implemented across subsequent PRDs; R1 superseded by design)
 
 Test baseline:
-- 1710 passing
+- 1734 passing
 
 Architecture:
 - audit.jsonl → trade decisions (exists: logs/audit.jsonl)
