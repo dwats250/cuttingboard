@@ -2,10 +2,11 @@
 
 Project: Cutting Board
 
-Latest completed PRD: PRD-070
+Latest completed PRD: PRD-071
 Current active PRD: none
 
 Status:
+- PRD-071 COMPLETE (Trading Process Review Scorecard)
 - PRD-070 COMPLETE (Manual Trade Journal and Mistake Taxonomy)
 - PRD-069 COMPLETE (Entry Quality and Chase Filter)
 - PRD-068 COMPLETE (Invalidation and Exit Guidance Layer)
@@ -22,7 +23,7 @@ Status:
 - PRD-032 DEPRECATED (R2–R6 implemented across subsequent PRDs; R1 superseded by design)
 
 Test baseline:
-- 1834 passing
+- 1850 passing
 
 Architecture:
 - audit.jsonl → trade decisions (exists: logs/audit.jsonl)
