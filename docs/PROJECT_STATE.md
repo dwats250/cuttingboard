@@ -2,10 +2,11 @@
 
 Project: Cutting Board
 
-Latest completed PRD: PRD-072
+Latest completed PRD: PRD-075
 Current active PRD: none
 
 Status:
+- PRD-075 COMPLETE (Signal Performance Engine)
 - PRD-072 COMPLETE (Macro Drivers Snapshot Fallback)
 - PRD-066 COMPLETE (Trade Drilldown Panel — Deterministic Explanation Layer)
 - PRD-065 COMPLETE (Signal Forge Interactive Dashboard Controls)
@@ -17,7 +18,7 @@ Status:
 - PRD-032 DEPRECATED (R2–R6 implemented across subsequent PRDs; R1 superseded by design)
 
 Test baseline:
-- 1747 passing
+- 1758 passing
 
 Architecture:
 - audit.jsonl → trade decisions (exists: logs/audit.jsonl)
