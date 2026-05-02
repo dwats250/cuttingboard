@@ -49,6 +49,7 @@ from cuttingboard.trade_visibility import build_visibility_map
 from cuttingboard.trade_explanation import build_explanation_map
 from cuttingboard.market_map_lifecycle import inject_lifecycle
 from cuttingboard.evaluation import run_post_trade_evaluation
+from cuttingboard.performance_engine import run_performance_engine
 from cuttingboard.contract import _build_macro_drivers
 from cuttingboard.execution_policy import (
     ExecutionSessionState,
@@ -928,6 +929,10 @@ def _run_pipeline(
         intraday_state_context=intraday_state_context,
     )
     run_post_trade_evaluation(current_run_at_utc=run_at_utc)
+    run_performance_engine(
+        evaluation_log_path=LOGS_DIR / "evaluation.jsonl",
+        output_path=LOGS_DIR / "performance_summary.json",
+    )
 
     summary = _build_run_summary(
         mode=mode,

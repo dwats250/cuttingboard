@@ -85,6 +85,9 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-070 | — | Manual Trade Journal and Mistake Taxonomy | IN PROGRESS | [PRD-070](prd_history/PRD-070.md) |
 | PRD-071 | — | Trading Process Review Scorecard | IN PROGRESS | [PRD-071](prd_history/PRD-071.md) |
 | PRD-072 | 7e14a4e | Macro Drivers Snapshot Fallback | COMPLETE | [PRD-072](prd_history/PRD-072.md) |
+| PRD-073 | — | Human-Readable Dashboard Trader View | IN PROGRESS | [PRD-073](prd_history/PRD-073.md) |
+| PRD-074 | — | Chart Context Layer (Level Diagram) | IN PROGRESS | [PRD-074](prd_history/PRD-074.md) |
+| PRD-075 | — | Signal Performance Engine | IN PROGRESS | [PRD-075](prd_history/PRD-075.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
