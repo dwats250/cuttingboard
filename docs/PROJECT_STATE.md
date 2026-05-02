@@ -12,7 +12,7 @@ Status:
 - PRD-032 DEPRECATED (R2–R6 implemented across subsequent PRDs; R1 superseded by design)
 
 Test baseline:
-- 1661 passing
+- 1660 passing
 
 Architecture:
 - audit.jsonl → trade decisions (exists: logs/audit.jsonl)
