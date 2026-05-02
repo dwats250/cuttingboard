@@ -74,7 +74,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-059 | 64d6aac | Macro Tape value row hardening | COMPLETE | [PRD-059](prd_history/PRD-059.md) |
 | PRD-060 | 0ed003b | Deterministic macro pressure snapshot | COMPLETE | [PRD-060](prd_history/PRD-060.md) |
 | PRD-061 | c7d5e23 | PRD Registry Numbering Guard | COMPLETE | [PRD-061](prd_history/PRD-061.md) |
-| PRD-062 | — | Macro Pressure Block in Signal Forge Dashboard | IN PROGRESS | [PRD-062](prd_history/PRD-062.md) |
+| PRD-062 | 79c4185 | Macro Pressure Block in Signal Forge Dashboard | COMPLETE | [PRD-062](prd_history/PRD-062.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
