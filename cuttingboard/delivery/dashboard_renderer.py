@@ -20,6 +20,7 @@ from cuttingboard.macro_pressure import build_macro_pressure
 _PAYLOAD_PATH = Path("logs/latest_payload.json")
 _RUN_PATH = Path("logs/latest_run.json")
 _OUTPUT_PATH = Path("reports/output/dashboard.html")
+_MACRO_SNAPSHOT_PATH = Path("logs/macro_drivers_snapshot.json")
 HISTORY_LIMIT = 5
 _DASHBOARD_REFRESH_SECONDS = 30
 
@@ -157,6 +158,15 @@ def _req(obj: dict, *keys: str) -> object:
             raise RuntimeError(f"Required field missing: {'.'.join(keys)}")
         current = current[key]
     return current
+
+
+def _load_macro_snapshot(path: Path) -> dict:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        drivers = data.get("macro_drivers")
+        return drivers if isinstance(drivers, dict) else {}
+    except Exception:
+        return {}
 
 
 def _esc(value: object) -> str:
@@ -346,6 +356,7 @@ def render_dashboard_html(
     previous_run: dict | None = None,
     history_runs: list[dict] | None = None,
     market_map: dict | None = None,
+    macro_snapshot_path: Path | None = None,
 ) -> str:
     """Return deterministic Signal Forge dashboard HTML.
 
@@ -365,6 +376,9 @@ def render_dashboard_html(
     )
 
     macro_drivers: dict = payload.get("macro_drivers") or {}
+    if not macro_drivers:
+        _snap = macro_snapshot_path if macro_snapshot_path is not None else _MACRO_SNAPSHOT_PATH
+        macro_drivers = _load_macro_snapshot(_snap)
 
     system_halted = _req(run, "system_halted")
     kill_switch   = _req(run, "kill_switch")
@@ -609,6 +623,7 @@ def write_dashboard(
     history_runs: list[dict] | None = None,
     market_map: dict | None = None,
     output_path: Path = _OUTPUT_PATH,
+    macro_snapshot_path: Path | None = None,
 ) -> None:
     html = render_dashboard_html(
         payload,
@@ -616,6 +631,7 @@ def write_dashboard(
         previous_run=previous_run,
         history_runs=history_runs,
         market_map=market_map,
+        macro_snapshot_path=macro_snapshot_path,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")
@@ -626,6 +642,7 @@ def main(
     run_path: Path = _RUN_PATH,
     output_path: Path = _OUTPUT_PATH,
     logs_dir: Path = Path("logs"),
+    macro_snapshot_path: Path | None = None,
 ) -> None:
     payload    = _load_json(payload_path)
     run        = _load_json(run_path)
@@ -640,7 +657,10 @@ def main(
     )
     history_runs = history_runs[:HISTORY_LIMIT]
 
-    write_dashboard(payload, run, previous_run, history_runs, market_map, output_path)
+    write_dashboard(
+        payload, run, previous_run, history_runs, market_map, output_path,
+        macro_snapshot_path=macro_snapshot_path,
+    )
     print(f"Dashboard written: {output_path}")
 
 
@@ -648,14 +668,16 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Render Signal Forge dashboard")
-    parser.add_argument("--output",   type=Path, default=_OUTPUT_PATH)
-    parser.add_argument("--payload",  type=Path, default=_PAYLOAD_PATH)
-    parser.add_argument("--run",      type=Path, default=_RUN_PATH)
-    parser.add_argument("--logs-dir", type=Path, default=Path("logs"))
+    parser.add_argument("--output",         type=Path, default=_OUTPUT_PATH)
+    parser.add_argument("--payload",         type=Path, default=_PAYLOAD_PATH)
+    parser.add_argument("--run",             type=Path, default=_RUN_PATH)
+    parser.add_argument("--logs-dir",        type=Path, default=Path("logs"))
+    parser.add_argument("--macro-snapshot",  type=Path, default=None)
     args = parser.parse_args()
     main(
         payload_path=args.payload,
         run_path=args.run,
         output_path=args.output,
         logs_dir=args.logs_dir,
+        macro_snapshot_path=args.macro_snapshot,
     )

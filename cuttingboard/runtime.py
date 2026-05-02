@@ -341,6 +341,7 @@ def execute_run(
         _enhanced_market_map = inject_lifecycle(pipeline.market_map, _previous_market_map)
         _write_market_map_file(_enhanced_market_map)
         _write_payload_artifacts(pipeline.contract)
+        _write_macro_snapshot(pipeline.contract)
         return pipeline.summary
     except Exception as exc:
         logger.exception("Run failed")
@@ -1719,6 +1720,26 @@ def _load_previous_market_map() -> dict[str, Any] | None:
 def _write_market_map_file(market_map: dict[str, Any]) -> None:
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     MARKET_MAP_PATH.write_text(json.dumps(market_map, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _write_macro_snapshot(contract: dict[str, Any]) -> None:
+    macro_drivers = contract.get("macro_drivers")
+    if not macro_drivers:
+        return
+    path = LOGS_DIR / "macro_drivers_snapshot.json"
+    tmp = path.with_suffix(".tmp")
+    try:
+        import json as _json
+        tmp.write_text(
+            _json.dumps({
+                "macro_drivers": macro_drivers,
+                "generated_at": contract.get("generated_at", ""),
+            }),
+            encoding="utf-8",
+        )
+        tmp.replace(path)
+    except Exception:
+        logger.exception("Failed to write macro_drivers snapshot")
 
 
 def _write_payload_artifacts(contract: dict[str, Any]) -> None:
