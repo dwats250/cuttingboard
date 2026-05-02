@@ -2,10 +2,11 @@
 
 Project: Cutting Board
 
-Latest completed PRD: PRD-064
+Latest completed PRD: PRD-065
 Current active PRD: none
 
 Status:
+- PRD-065 COMPLETE (Signal Forge Interactive Dashboard Controls)
 - PRD-064 COMPLETE (Trade Visibility Layer — Near-Miss Engine)
 - PRD-063 COMPLETE (Macro Pressure Execution Policy Integration)
 - PRD-062 COMPLETE (Macro Pressure Block in Signal Forge Dashboard)
