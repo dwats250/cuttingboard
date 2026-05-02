@@ -414,16 +414,34 @@ function renderDetailPanel(c) {
   const conditions = Array.isArray(c.enable_conditions) && c.enable_conditions.length > 0
     ? c.enable_conditions.map(function (s) { return '<li>' + _esc(s) + '</li>'; }).join('')
     : '<li>—</li>';
-  const macroLine = (c.macro_alignment != null)
-    ? '<div class="detail-row"><span class="detail-label">macro_alignment</span><span class="detail-val">' + _esc(String(c.macro_alignment)) + '</span></div>'
+  const expl = (c.explanation && typeof c.explanation === 'object') ? c.explanation : {};
+  const blockReasons = Array.isArray(expl.block_reasons) ? expl.block_reasons : [];
+  const requiredChanges = Array.isArray(expl.required_changes) ? expl.required_changes : [];
+  const macroAlignment = expl.macro_alignment != null ? expl.macro_alignment : null;
+
+  const blockReasonsHtml = blockReasons.length > 0
+    ? '<div class="detail-row"><span class="detail-label">block_reasons</span><ul class="detail-conditions">' +
+      blockReasons.map(function (s) { return '<li>' + _esc(s) + '</li>'; }).join('') +
+      '</ul></div>'
     : '';
+  const macroAlignmentHtml = macroAlignment != null
+    ? '<div class="detail-row"><span class="detail-label">macro_alignment</span><span class="detail-val">' + _esc(String(macroAlignment)) + '</span></div>'
+    : '';
+  const requiredChangesHtml = requiredChanges.length > 0
+    ? '<div class="detail-row"><span class="detail-label">required_changes</span><ul class="detail-conditions">' +
+      requiredChanges.map(function (s) { return '<li>' + _esc(s) + '</li>'; }).join('') +
+      '</ul></div>'
+    : '';
+
   return (
     '<div class="candidate-detail">' +
     '<div class="detail-row"><span class="detail-label">grade</span><span class="detail-val">' + _esc(_dashVal(c.grade)) + '</span></div>' +
     '<div class="detail-row"><span class="detail-label">visibility_status</span><span class="detail-val">' + _esc(_dashVal(c.visibility_status)) + '</span></div>' +
     '<div class="detail-row"><span class="detail-label">visibility_reason</span><span class="detail-val">' + _esc(_dashVal(c.visibility_reason)) + '</span></div>' +
     '<div class="detail-row"><span class="detail-label">enable_conditions</span><ul class="detail-conditions">' + conditions + '</ul></div>' +
-    macroLine +
+    blockReasonsHtml +
+    macroAlignmentHtml +
+    requiredChangesHtml +
     '</div>'
   );
 }

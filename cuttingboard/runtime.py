@@ -46,6 +46,7 @@ from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all, fetch
 from cuttingboard.intraday_state_engine import Bar as IntradayStateBar, compute_intraday_state
 from cuttingboard.market_map import build_market_map
 from cuttingboard.trade_visibility import build_visibility_map
+from cuttingboard.trade_explanation import build_explanation_map
 from cuttingboard.market_map_lifecycle import inject_lifecycle
 from cuttingboard.evaluation import run_post_trade_evaluation
 from cuttingboard.contract import _build_macro_drivers
@@ -223,6 +224,7 @@ class PipelineResult:
     postmarket_report: dict[str, Any] = field(default_factory=dict)
     market_map: dict[str, Any] = field(default_factory=dict)
     visibility_map: dict[str, dict] = field(default_factory=dict)
+    explanation_map: dict[str, dict] = field(default_factory=dict)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -678,6 +680,7 @@ def _run_pipeline(
     intraday_metrics: dict[str, Any] = {}
     ohlcv: dict[str, pd.DataFrame] = {}
     outcome = OUTCOME_NO_TRADE
+    overall_pressure = "UNKNOWN"
 
     if validation_summary.system_halted:
         errors.append(validation_summary.halt_reason or "system halted")
@@ -813,6 +816,7 @@ def _run_pipeline(
     )
 
     visibility_map = build_visibility_map(trade_decisions, market_map)
+    explanation_map = build_explanation_map(trade_decisions, visibility_map, overall_pressure)
 
     report = render_report(
         date_str=date_str,
@@ -978,6 +982,7 @@ def _run_pipeline(
         postmarket_report=postmarket_report,
         market_map=market_map,
         visibility_map=visibility_map,
+        explanation_map=explanation_map,
     )
 
 
