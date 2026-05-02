@@ -82,7 +82,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-067 | 88623b1 | Trade Thesis Gate | COMPLETE | [PRD-067](prd_history/PRD-067.md) |
 | PRD-068 | 097c8e5 | Invalidation and Exit Guidance Layer | COMPLETE | [PRD-068](prd_history/PRD-068.md) |
 | PRD-069 | d6a8660 | Entry Quality and Chase Filter | COMPLETE | [PRD-069](prd_history/PRD-069.md) |
-| PRD-070 | — | Manual Trade Journal and Mistake Taxonomy | IN PROGRESS | [PRD-070](prd_history/PRD-070.md) |
+| PRD-070 | 093d544 | Manual Trade Journal and Mistake Taxonomy | COMPLETE | [PRD-070](prd_history/PRD-070.md) |
 | PRD-071 | — | Trading Process Review Scorecard | IN PROGRESS | [PRD-071](prd_history/PRD-071.md) |
 | PRD-072 | 7e14a4e | Macro Drivers Snapshot Fallback | COMPLETE | [PRD-072](prd_history/PRD-072.md) |
 | PRD-073 | — | Human-Readable Dashboard Trader View | IN PROGRESS | [PRD-073](prd_history/PRD-073.md) |

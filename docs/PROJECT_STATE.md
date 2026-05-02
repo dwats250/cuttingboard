@@ -2,10 +2,11 @@
 
 Project: Cutting Board
 
-Latest completed PRD: PRD-069
+Latest completed PRD: PRD-070
 Current active PRD: none
 
 Status:
+- PRD-070 COMPLETE (Manual Trade Journal and Mistake Taxonomy)
 - PRD-069 COMPLETE (Entry Quality and Chase Filter)
 - PRD-068 COMPLETE (Invalidation and Exit Guidance Layer)
 - PRD-067 COMPLETE (Trade Thesis Gate)
@@ -21,7 +22,7 @@ Status:
 - PRD-032 DEPRECATED (R2–R6 implemented across subsequent PRDs; R1 superseded by design)
 
 Test baseline:
-- 1816 passing
+- 1834 passing
 
 Architecture:
 - audit.jsonl → trade decisions (exists: logs/audit.jsonl)
