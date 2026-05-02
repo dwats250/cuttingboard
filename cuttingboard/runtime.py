@@ -45,6 +45,7 @@ from cuttingboard.ingestion import fetch_ohlcv
 from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all, fetch_intraday_bars
 from cuttingboard.intraday_state_engine import Bar as IntradayStateBar, compute_intraday_state
 from cuttingboard.market_map import build_market_map
+from cuttingboard.trade_visibility import build_visibility_map
 from cuttingboard.market_map_lifecycle import inject_lifecycle
 from cuttingboard.evaluation import run_post_trade_evaluation
 from cuttingboard.contract import _build_macro_drivers
@@ -221,6 +222,7 @@ class PipelineResult:
     premarket_report: dict[str, Any] = field(default_factory=dict)
     postmarket_report: dict[str, Any] = field(default_factory=dict)
     market_map: dict[str, Any] = field(default_factory=dict)
+    visibility_map: dict[str, dict] = field(default_factory=dict)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -810,6 +812,8 @@ def _run_pipeline(
         bar_windows=_market_map_bar_windows(ohlcv),
     )
 
+    visibility_map = build_visibility_map(trade_decisions, market_map)
+
     report = render_report(
         date_str=date_str,
         run_at_utc=run_at_utc,
@@ -973,6 +977,7 @@ def _run_pipeline(
         premarket_report=premarket_report,
         postmarket_report=postmarket_report,
         market_map=market_map,
+        visibility_map=visibility_map,
     )
 
 

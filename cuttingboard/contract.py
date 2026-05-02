@@ -97,7 +97,10 @@ def build_pipeline_output_contract(
         "market_context": _build_market_context(
             regime, qual, normalized_quotes, raw_quotes, generated_at, dq
         ),
-        "trade_candidates": _build_trade_candidates(qual, option_setups, chain_results, trade_decisions),
+        "trade_candidates": _build_trade_candidates(
+            qual, option_setups, chain_results, trade_decisions,
+            getattr(pr, "visibility_map", {}),
+        ),
         "rejections": _build_rejections(qual),
         "audit_summary": _build_audit_summary(qual, errors),
         "artifacts": _build_artifacts(artifacts, pr),
@@ -265,6 +268,7 @@ def _build_trade_candidates(
     option_setups: list,
     chain_results: dict,
     trade_decisions: list[TradeDecision],
+    visibility_map: Optional[dict] = None,
 ) -> list[dict[str, Any]]:
     if qual is None:
         return []
@@ -283,6 +287,7 @@ def _build_trade_candidates(
             raise ValueError(f"Missing OptionSetup for decision {decision.ticker}")
         chain = chain_by_symbol.get(result.symbol)
 
+        vis = (visibility_map or {}).get(result.symbol, {})
         candidates.append({
             "symbol": result.symbol,
             "direction": _safe_str(result.direction),
@@ -302,6 +307,9 @@ def _build_trade_candidates(
             "policy_allowed": decision.policy_allowed,
             "policy_reason": decision.policy_reason,
             "size_multiplier": float(decision.size_multiplier),
+            "visibility_status": vis.get("visibility_status"),
+            "visibility_reason": vis.get("visibility_reason"),
+            "enable_conditions": vis.get("enable_conditions", []),
         })
 
     return candidates
