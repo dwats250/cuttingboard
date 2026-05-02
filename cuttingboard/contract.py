@@ -103,6 +103,7 @@ def build_pipeline_output_contract(
             getattr(pr, "explanation_map", {}),
             getattr(pr, "thesis_map", None),
             getattr(pr, "invalidation_guidance_map", None),
+            getattr(pr, "entry_quality_map", None),
         ),
         "rejections": _build_rejections(qual),
         "audit_summary": _build_audit_summary(qual, errors),
@@ -275,6 +276,7 @@ def _build_trade_candidates(
     explanation_map: Optional[dict] = None,
     thesis_map: Optional[dict] = None,
     invalidation_guidance_map: Optional[dict] = None,
+    entry_quality_map: Optional[dict] = None,
 ) -> list[dict[str, Any]]:
     if qual is None:
         return []
@@ -320,6 +322,7 @@ def _build_trade_candidates(
             "explanation": expl,
             "thesis": (thesis_map or {}).get(result.symbol),
             "invalidation_guidance": (invalidation_guidance_map or {}).get(result.symbol, None),
+            "entry_quality": (entry_quality_map or {}).get(result.symbol, None),
         })
 
     return candidates
