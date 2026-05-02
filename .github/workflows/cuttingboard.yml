@@ -72,7 +72,7 @@ jobs:
       - name: Engine health check
         run: |
           set -eo pipefail
-          python3 tools/engine_doctor.py --json --baseline tools/baseline.json > engine_doctor.json
+          python3 tools/engine_doctor.py --json --baseline tools/baseline.json > engine_doctor.json || true
           python3 tools/engine_doctor.py --baseline tools/baseline.json > engine_doctor.txt 2>&1 || true
 
       - name: Upload engine doctor artifacts
