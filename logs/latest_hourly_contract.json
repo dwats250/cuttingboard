@@ -1,0 +1,42 @@
+{
+  "artifacts": {
+    "log_path": "logs/latest_hourly_run.json",
+    "notification_sent": true,
+    "report_path": "reports/output/hourly_report.html"
+  },
+  "audit_summary": {
+    "continuation_accepted_count": null,
+    "continuation_audit_present": false,
+    "continuation_rejected_count": null,
+    "error_count": 0,
+    "qualified_count": 0,
+    "rejected_count": 0
+  },
+  "correlation": null,
+  "generated_at": "2026-05-02T09:28:57Z",
+  "macro_drivers": {},
+  "market_context": {
+    "continuation_enabled": null,
+    "data_quality": "ok",
+    "expansion_regime": null,
+    "imbalance_enabled": null,
+    "stale_data_detected": null
+  },
+  "mode": "live",
+  "outcome": "NO_TRADE",
+  "regime": null,
+  "rejections": [],
+  "schema_version": "v2",
+  "session_date": "2026-04-23",
+  "status": "STAY_FLAT",
+  "system_state": {
+    "intraday_state": null,
+    "market_regime": null,
+    "router_mode": "MIXED",
+    "stay_flat_reason": "test halt",
+    "time_gate_open": true,
+    "tradable": false
+  },
+  "timezone": "America/New_York",
+  "trade_candidates": []
+}
