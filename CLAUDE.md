@@ -35,6 +35,11 @@ Operate REPO-FIRST. Memory hierarchy (strict):
 2. Read the active PRD — defines exact scope, files, and requirements
 3. Use GitNexus to locate affected modules and consumers before touching any code
 
+Full bootstrap checklist: `docs/AGENT_SESSION_BOOTSTRAP.md`
+
+**Auto-approval policy:**
+LOW_COST read-only actions (grep, find, git status/diff/log, targeted reads, pytest, lint) execute without approval prompts. All mutations outside PRD-scoped files, and all changes to runtime/contract/execution_policy/payload/notification/dashboard/trading logic, must stop for explicit approval. Full policy and protected file list: `docs/AGENT_WORKFLOW.md § Auto-Approval Policy`.
+
 **Constraints:**
 - Do not rely on chat history for system understanding
 - Do not ask for project summaries — query the repo

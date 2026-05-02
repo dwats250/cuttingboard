@@ -14,9 +14,12 @@ These rules reduce unnecessary compute while preserving correctness.
 - File discovery and path resolution
 - Enum / constant / status validation
 - Targeted `pytest -k <pattern>` runs
+- Full `pytest` suite run
 - Lint / format checks
 - Mechanical edits with exact instructions (rename, move, delete line)
 - PRD registry and state file reads
+- Read targeted snippets of files already in scope
+- Create or update documentation files
 
 **Rule:** Collect evidence first. Do not reason before running these.
 
@@ -35,6 +38,60 @@ These rules reduce unnecessary compute while preserving correctness.
 
 **Rule:** Run `gitnexus_impact` before touching any symbol in this tier.
 Report blast radius to the user before writing a single line.
+
+---
+
+## Auto-Approval Policy
+
+LOW_COST actions execute without prompting the user for approval. All other actions stop for explicit approval before proceeding.
+
+### Auto-approved (LOW_COST only)
+
+| Action | Notes |
+|---|---|
+| `grep` / `find` / `ls` | Any read-only search or listing |
+| `git status`, `git diff`, `git log` | Read-only git inspection |
+| Read targeted file snippets | Files already in PRD scope; must use `offset+limit` |
+| Inspect exact symbols | Via `gitnexus_context`, `gitnexus_query`, `grep` |
+| Run targeted `pytest -k <pattern>` | Named test scope only |
+| Run full `pytest` suite | Pre-commit validation only |
+| Run lint / format checks | `ruff`, `black --check`, `mypy` |
+| Create or update documentation files | `docs/`, `CLAUDE.md`, `*.md` — no logic files |
+| Mechanical edits to in-scope files | Files listed in active PRD `FILES` section |
+
+### Never auto-approve
+
+| Category | Files / patterns |
+|---|---|
+| Runtime core | `runtime.py` |
+| Output contract | `contract.py` |
+| Execution policy | `execution_policy.py` |
+| Payload / notification | `*payload*.py`, `*notification*.py`, `*notify*.py` |
+| Dashboard / UI | `*dashboard*.py`, `*panel*.py`, `*ui*.py` |
+| Trading logic | `*regime*.py`, `*gate*.py`, `*qualify*.py`, `*signal*.py` |
+| Environment / secrets | `.env`, `config.py`, `secrets.*` |
+| CI workflows | `.github/`, `*.yml` CI files |
+| Dependency files | `pyproject.toml`, `requirements*.txt`, `setup.cfg` |
+| Destructive commands | `rm`, `git reset --hard`, `git clean`, file deletion |
+| Git push | Any `git push` in any form |
+| Test expectation changes | Modifying expected counts, thresholds, or assertion values |
+
+### Auto-approval rules
+
+1. Auto-approved actions must still appear in the final build report under `AUTO_APPROVED_ACTIONS`.
+2. Any action outside the LOW_COST list must stop and request approval.
+3. Any command that mutates repo state outside explicitly PRD-scoped files must stop for approval.
+4. A failed command must stop, report the failure summary, and not continue until the agent receives direction.
+5. Auto-approval does not override PRD `FILES` scope — a LOW_COST action on an out-of-scope file still requires approval.
+
+### Auto-approval failure conditions
+
+| ID | FAIL when |
+|---|---|
+| F9 | Agent requests approval for a LOW_COST read-only command |
+| F10 | Agent auto-approves a mutation outside explicitly scoped files |
+| F11 | Agent auto-approves changes to trading / runtime / contract / payload / notification / dashboard logic |
+| F12 | Agent pushes commits without explicit user approval |
 
 ---
 
@@ -125,6 +182,10 @@ Any violation is a FAILURE — stop, revert, rerun from the correct step.
 | F6 | Evidence-Free Claims | Any statement not backed by a file path, symbol, or command output |
 | F7 | Scope Violation | Agent proposes changes outside explicitly requested scope or PRD FILES |
 | F8 | PRD Shortcutting | PRD critique begins before FILES validation, symbol validation, and enum validation |
+| F9 | Approval Nag | Agent requests approval for a LOW_COST read-only command |
+| F10 | Unauthorized Mutation | Agent auto-approves a mutation outside explicitly scoped files |
+| F11 | Protected File Bypass | Agent auto-approves changes to trading/runtime/contract/payload/notification/dashboard logic |
+| F12 | Unauthorized Push | Agent pushes commits without explicit user approval |
 
 ### Recovery Protocol
 
@@ -141,9 +202,10 @@ Do not proceed until evidence is collected.
 
 | Item | State |
 |---|---|
-| Latest completed PRD | PRD-068 (Invalidation & Exit Guidance) |
+| Latest completed PRD | PRD-070 (Manual Trade Journal and Mistake Taxonomy) |
 | Active PRD | none |
-| Test baseline | 1806 passing |
-| Next PRD slot | PRD-069 |
+| Test baseline | 1834 passing |
+| Next PRD slot | PRD-071 |
 | Evaluation layer | planned, not built |
 | Hooks | git_gate, protect_files, test_gate, stop_snapshot — all active |
+| Auto-approval policy | active — LOW_COST actions exempt from approval prompts |
