@@ -29,6 +29,9 @@ POLICY_SESSION_TRADE_LIMIT = "session_trade_limit"
 POLICY_LOSS_LOCKOUT = "loss_lockout"
 POLICY_COOLDOWN = "cooldown"
 POLICY_ORB_INSIDE_RANGE = "orb_inside_range"
+POLICY_MACRO_PRESSURE_CONFLICT = "macro_pressure_conflict"
+
+_VALID_PRESSURE_VALUES = frozenset({"RISK_ON", "RISK_OFF", "MIXED", "NEUTRAL", "UNKNOWN"})
 
 
 @dataclass(frozen=True)
@@ -120,6 +123,7 @@ def apply_execution_policy_to_decisions(
     timestamp: datetime,
     session_state: ExecutionSessionState,
     orb_states: Optional[dict[str, OrbPolicyState]] = None,
+    overall_pressure: str = "UNKNOWN",
 ) -> list[TradeDecision]:
     """Apply policy sequentially so in-run trade count and cooldown are deterministic."""
     materialized: list[TradeDecision] = []
@@ -140,6 +144,7 @@ def apply_execution_policy_to_decisions(
             timestamp=timestamp,
             session_state=effective_state,
             orb_state=(orb_states or {}).get(decision.ticker),
+            overall_pressure=overall_pressure,
         )
         materialized.append(materialized_decision)
         if materialized_decision.status == ALLOW_TRADE:
@@ -158,6 +163,7 @@ def apply_execution_policy(
     timestamp: datetime,
     session_state: ExecutionSessionState,
     orb_state: Optional[OrbPolicyState] = None,
+    overall_pressure: str = "UNKNOWN",
 ) -> TradeDecision:
     """Return a decision with PRD-051 policy fields materialized."""
     result = evaluate_execution_policy(
@@ -168,6 +174,7 @@ def apply_execution_policy(
         timestamp=timestamp,
         session_state=session_state,
         orb_state=orb_state,
+        overall_pressure=overall_pressure,
     )
     if result.allowed:
         return replace(
@@ -201,7 +208,10 @@ def evaluate_execution_policy(
     timestamp: datetime,
     session_state: ExecutionSessionState,
     orb_state: Optional[OrbPolicyState] = None,
+    overall_pressure: str = "UNKNOWN",
 ) -> PolicyDecision:
+    if overall_pressure not in _VALID_PRESSURE_VALUES:
+        raise ValueError(f"Invalid overall_pressure: {overall_pressure!r}")
     size = size_multiplier_for_confidence(confidence)
     if decision.status != ALLOW_TRADE:
         return PolicyDecision(False, decision.block_reason or POLICY_PRE_POLICY_BLOCK, 0.0)
@@ -219,11 +229,26 @@ def evaluate_execution_policy(
         return PolicyDecision(False, POLICY_COOLDOWN, 0.0)
 
     orb_reason = _evaluate_orb_constraint(decision, orb_state)
-    if orb_reason is None:
-        return PolicyDecision(True, POLICY_ALLOWED, size)
-    if orb_reason == POLICY_ORB_UNAVAILABLE:
-        return PolicyDecision(True, POLICY_ORB_UNAVAILABLE, size)
-    return PolicyDecision(False, orb_reason, 0.0)
+    if orb_reason is not None and orb_reason != POLICY_ORB_UNAVAILABLE:
+        return PolicyDecision(False, orb_reason, 0.0)
+
+    base_reason = POLICY_ALLOWED if orb_reason is None else POLICY_ORB_UNAVAILABLE
+    return _apply_macro_pressure(decision.direction, overall_pressure, size, base_reason)
+
+
+def _apply_macro_pressure(direction: str, pressure: str, size: float, reason: str) -> PolicyDecision:
+    if pressure in ("UNKNOWN", "NEUTRAL"):
+        return PolicyDecision(True, reason, size)
+    if pressure == "MIXED":
+        return PolicyDecision(True, reason, size * 0.75)
+    if pressure == "RISK_OFF":
+        if direction == "LONG":
+            return PolicyDecision(False, POLICY_MACRO_PRESSURE_CONFLICT, 0.0)
+        return PolicyDecision(True, reason, size * 0.5)
+    # RISK_ON
+    if direction == "SHORT":
+        return PolicyDecision(False, POLICY_MACRO_PRESSURE_CONFLICT, 0.0)
+    return PolicyDecision(True, reason, size * 0.5)
 
 
 def _evaluate_orb_constraint(

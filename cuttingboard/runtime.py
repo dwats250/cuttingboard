@@ -47,12 +47,14 @@ from cuttingboard.intraday_state_engine import Bar as IntradayStateBar, compute_
 from cuttingboard.market_map import build_market_map
 from cuttingboard.market_map_lifecycle import inject_lifecycle
 from cuttingboard.evaluation import run_post_trade_evaluation
+from cuttingboard.contract import _build_macro_drivers
 from cuttingboard.execution_policy import (
     ExecutionSessionState,
     OrbPolicyState,
     apply_execution_policy_to_decisions,
     load_execution_session_state,
 )
+from cuttingboard.macro_pressure import build_macro_pressure
 from cuttingboard.normalization import NormalizedQuote, normalize_all
 from cuttingboard.notifications import (
     NOTIFY_MODES,
@@ -772,6 +774,7 @@ def _run_pipeline(
                     )
                     for symbol, setup in setup_by_symbol.items()
                 ]
+                overall_pressure = _compute_overall_pressure(normalized_quotes)
                 trade_decisions = apply_execution_policy_to_decisions(
                     trade_decisions,
                     market_regime=regime.regime if regime is not None else None,
@@ -784,6 +787,7 @@ def _run_pipeline(
                         qualified_by_symbol,
                         intraday_metrics,
                     ),
+                    overall_pressure=overall_pressure,
                 )
 
             outcome = (
@@ -1100,6 +1104,16 @@ def _apply_intraday_short_permission(
             logger.info("SUPPRESSED %s: SHORT blocked pending downside permission", symbol)
 
     return filtered, context
+
+
+def _compute_overall_pressure(normalized_quotes: dict) -> str:
+    try:
+        macro_drivers = _build_macro_drivers(normalized_quotes)
+        snapshot = build_macro_pressure(macro_drivers)
+        return snapshot["overall_pressure"]
+    except Exception as exc:
+        logger.warning("build_macro_pressure failed, defaulting to UNKNOWN: %s", exc)
+        return "UNKNOWN"
 
 
 def _load_execution_policy_session_state(run_at_utc: datetime, date_str: str) -> ExecutionSessionState:

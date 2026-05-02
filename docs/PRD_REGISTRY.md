@@ -75,6 +75,10 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-060 | 0ed003b | Deterministic macro pressure snapshot | COMPLETE | [PRD-060](prd_history/PRD-060.md) |
 | PRD-061 | c7d5e23 | PRD Registry Numbering Guard | COMPLETE | [PRD-061](prd_history/PRD-061.md) |
 | PRD-062 | 79c4185 | Macro Pressure Block in Signal Forge Dashboard | COMPLETE | [PRD-062](prd_history/PRD-062.md) |
+| PRD-063 | — | Macro Pressure Execution Policy Integration | IN PROGRESS | [PRD-063](prd_history/PRD-063.md) |
+| PRD-064 | — | Trade Visibility Layer (Near-Miss Engine) | IN PROGRESS | [PRD-064](prd_history/PRD-064.md) |
+| PRD-065 | — | Signal Forge Interactive Dashboard Controls | IN PROGRESS | [PRD-065](prd_history/PRD-065.md) |
+| PRD-066 | — | Trade Drilldown Panel (Deterministic Explanation Layer) | IN PROGRESS | [PRD-066](prd_history/PRD-066.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

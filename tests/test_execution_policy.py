@@ -3,11 +3,15 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from cuttingboard.execution_policy import (
     ExecutionSessionState,
     OrbPolicyState,
+    PolicyDecision,
     apply_execution_policy,
     apply_execution_policy_to_decisions,
+    evaluate_execution_policy,
     load_execution_session_state,
     size_multiplier_for_confidence,
 )
@@ -209,3 +213,117 @@ def test_load_session_state_counts_consecutive_evaluated_losses(tmp_path) -> Non
     )
 
     assert state.consecutive_losses == 2
+
+
+# --- PRD-063: macro pressure tests ---
+
+def _eval_pressure(direction: str, pressure: str, confidence: float = 0.80) -> PolicyDecision:
+    return evaluate_execution_policy(
+        _decision(direction=direction),
+        market_regime="RISK_ON",
+        posture="AGGRESSIVE_LONG",
+        confidence=confidence,
+        timestamp=RUN_AT,
+        session_state=ExecutionSessionState(),
+        orb_state=None,
+        overall_pressure=pressure,
+    )
+
+
+def test_pressure_unknown_no_change_long() -> None:
+    result = _eval_pressure("LONG", "UNKNOWN")
+    assert result.allowed is True
+    assert result.size_multiplier == 1.0
+
+
+def test_pressure_neutral_no_change_short() -> None:
+    result = _eval_pressure("SHORT", "NEUTRAL")
+    assert result.allowed is True
+    assert result.size_multiplier == 1.0
+
+
+def test_pressure_mixed_reduces_size_long() -> None:
+    result = _eval_pressure("LONG", "MIXED")
+    assert result.allowed is True
+    assert result.size_multiplier == pytest.approx(0.75)
+
+
+def test_pressure_mixed_reduces_size_short() -> None:
+    result = _eval_pressure("SHORT", "MIXED")
+    assert result.allowed is True
+    assert result.size_multiplier == pytest.approx(0.75)
+
+
+def test_pressure_risk_off_blocks_long() -> None:
+    result = _eval_pressure("LONG", "RISK_OFF")
+    assert result.allowed is False
+    assert result.reason == "macro_pressure_conflict"
+
+
+def test_pressure_risk_off_reduces_short() -> None:
+    result = _eval_pressure("SHORT", "RISK_OFF")
+    assert result.allowed is True
+    assert result.size_multiplier == pytest.approx(0.5)
+
+
+def test_pressure_risk_on_blocks_short() -> None:
+    result = _eval_pressure("SHORT", "RISK_ON")
+    assert result.allowed is False
+    assert result.reason == "macro_pressure_conflict"
+
+
+def test_pressure_risk_on_reduces_long() -> None:
+    result = _eval_pressure("LONG", "RISK_ON")
+    assert result.allowed is True
+    assert result.size_multiplier == pytest.approx(0.5)
+
+
+def test_pressure_invalid_raises_value_error() -> None:
+    with pytest.raises(ValueError):
+        _eval_pressure("LONG", "GARBAGE")
+
+
+def test_pressure_multiplies_existing_size_not_replaces() -> None:
+    # confidence 0.70 → size 0.75; MIXED → 0.75 × 0.75 = 0.5625
+    result = _eval_pressure("LONG", "MIXED", confidence=0.70)
+    assert result.size_multiplier == pytest.approx(0.75 * 0.75)
+
+
+def test_pressure_does_not_run_on_pre_blocked_decision() -> None:
+    blocked = TradeDecision(
+        ticker="SPY",
+        direction="LONG",
+        status=BLOCK_TRADE,
+        entry=100.0,
+        stop=97.0,
+        target=106.0,
+        r_r=2.0,
+        contracts=2,
+        dollar_risk=150.0,
+        block_reason="prior_block",
+    )
+    result = evaluate_execution_policy(
+        blocked,
+        market_regime="RISK_ON",
+        posture="AGGRESSIVE_LONG",
+        confidence=0.80,
+        timestamp=RUN_AT,
+        session_state=ExecutionSessionState(),
+        overall_pressure="RISK_OFF",
+    )
+    assert result.allowed is False
+    assert result.reason == "prior_block"
+
+
+def test_pressure_default_unknown_preserves_existing_behavior() -> None:
+    # Calling without overall_pressure should behave identically to before
+    result = evaluate_execution_policy(
+        _decision(),
+        market_regime="RISK_ON",
+        posture="AGGRESSIVE_LONG",
+        confidence=0.80,
+        timestamp=RUN_AT,
+        session_state=ExecutionSessionState(),
+    )
+    assert result.allowed is True
+    assert result.size_multiplier == 1.0
