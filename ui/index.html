@@ -3,10 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Signal Forge</title>
-  <meta http-equiv="refresh" content="0; url=./dashboard.html">
+  <meta http-equiv="refresh" content="30">
+  <title>Signal Forge — Candidates</title>
+  <link rel="stylesheet" href="styles.css">
+  <link id="theme-link" rel="stylesheet" href="themes/default.css">
 </head>
 <body>
-  <p>Redirecting to <a href="./dashboard.html">dashboard.html</a>...</p>
+
+  <div id="candidate-filters">
+    <label class="filter-label" for="filter-grade">Grade</label>
+    <select id="filter-grade">
+      <option value="ALL">ALL</option>
+      <option value="A+">A+</option>
+      <option value="A">A</option>
+      <option value="B">B</option>
+    </select>
+    <label class="filter-label" for="filter-visibility">Visibility</label>
+    <select id="filter-visibility">
+      <option value="DEFAULT" selected>DEFAULT</option>
+      <option value="ALL">ALL</option>
+      <option value="ACTIVE">ACTIVE</option>
+      <option value="NEAR_MISS">NEAR_MISS</option>
+      <option value="BLOCKED">BLOCKED</option>
+    </select>
+    <label class="filter-label" for="filter-direction">Direction</label>
+    <select id="filter-direction">
+      <option value="ALL">ALL</option>
+      <option value="LONG">LONG</option>
+      <option value="SHORT">SHORT</option>
+    </select>
+  </div>
+
+  <div id="candidate-table-container"></div>
+
+  <footer>
+    <span>Signal Forge — Candidates</span>
+    <div id="theme-switcher"></div>
+  </footer>
+
+  <script src="app.js"></script>
 </body>
 </html>

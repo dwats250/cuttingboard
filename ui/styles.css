@@ -426,6 +426,123 @@ details[open] > summary {
   letter-spacing: 0.06em;
 }
 
+/* ── Candidate filter controls ── */
+
+#candidate-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.filter-label {
+  color: var(--cb-text-2);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+#candidate-filters select {
+  background: var(--cb-bg-card);
+  border: 1px solid var(--cb-border);
+  color: var(--cb-text);
+  font-size: 11px;
+  padding: 3px 6px;
+  cursor: pointer;
+}
+
+#candidate-filters select:hover,
+#candidate-filters select:focus {
+  border-color: var(--cb-accent);
+  outline: none;
+}
+
+/* ── Candidate table ── */
+
+#candidate-table-container {
+  margin-bottom: 12px;
+}
+
+.candidate-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.candidate-table th {
+  color: var(--cb-text-2);
+  font-size: 10px;
+  font-weight: normal;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+  padding: 4px 6px 6px 0;
+  border-bottom: 1px solid var(--cb-border);
+}
+
+.candidate-table td {
+  padding: 6px 6px 6px 0;
+  border-bottom: 1px solid var(--cb-border);
+  vertical-align: top;
+}
+
+.candidate-row {
+  cursor: pointer;
+}
+
+.candidate-row:hover td {
+  background: var(--cb-bg-elevated, var(--cb-bg-card));
+}
+
+/* Visibility status classes */
+.vis-active    { color: var(--cb-green); }
+.vis-near-miss { color: var(--cb-amber); }
+.vis-blocked   { color: var(--cb-red); }
+
+.cb-no-results {
+  color: var(--cb-text-2);
+  font-size: 12px;
+  padding: 8px 0;
+}
+
+/* ── Candidate detail panel ── */
+
+.candidate-detail {
+  padding: 8px 0;
+}
+
+.detail-row {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+  font-size: 12px;
+}
+
+.detail-label {
+  color: var(--cb-text-2);
+  min-width: 140px;
+  flex-shrink: 0;
+}
+
+.detail-val {
+  color: var(--cb-text);
+}
+
+.detail-conditions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.detail-conditions li {
+  padding: 1px 0;
+}
+
+.detail-conditions li::before {
+  content: '· ';
+  color: var(--cb-text-2);
+}
+
 /* ── Footer + theme switcher ── */
 
 footer {

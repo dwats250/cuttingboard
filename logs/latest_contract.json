@@ -1,8 +1,8 @@
 {
   "artifacts": {
-    "log_path": "/tmp/pytest-of-dustin/pytest-264/test_sunday_mode_does_not_call0/logs/latest_run.json",
+    "log_path": "/tmp/pytest-of-dustin/pytest-297/test_sunday_mode_does_not_call0/logs/latest_run.json",
     "notification_sent": true,
-    "report_path": "/tmp/pytest-of-dustin/pytest-264/test_sunday_mode_does_not_call0/reports/2026-04-26.md"
+    "report_path": "/tmp/pytest-of-dustin/pytest-297/test_sunday_mode_does_not_call0/reports/2026-04-26.md"
   },
   "audit_summary": {
     "continuation_accepted_count": null,
@@ -19,7 +19,7 @@
     "score": 0,
     "state": "NEUTRAL"
   },
-  "generated_at": "2026-05-02T01:43:50Z",
+  "generated_at": "2026-05-02T08:02:28Z",
   "macro_drivers": {},
   "market_context": {
     "continuation_enabled": false,
@@ -52,7 +52,7 @@
     "market_regime": "NEUTRAL",
     "router_mode": "MIXED",
     "stay_flat_reason": "STAY_FLAT posture",
-    "time_gate_open": false,
+    "time_gate_open": true,
     "tradable": false
   },
   "timezone": "America/New_York",

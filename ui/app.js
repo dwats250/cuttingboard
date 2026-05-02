@@ -349,27 +349,171 @@ function autoFetch() {
 document.addEventListener('DOMContentLoaded', function () {
   initTheme();
   renderThemeSwitcher();
-  showStatus('NO CONTRACT LOADED', false);
 
-  document.getElementById('file-input').addEventListener('change', function (e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function (ev) { loadJSON(ev.target.result); };
-    reader.onerror = function () { showStatus('FILE READ ERROR', true); };
-    reader.readAsText(file);
-    e.target.value = '';
-  });
+  if (document.getElementById('status-msg')) {
+    showStatus('NO CONTRACT LOADED', false);
 
-  document.getElementById('paste-toggle').addEventListener('click', function () {
-    document.getElementById('paste-area').classList.toggle('visible');
-  });
+    document.getElementById('file-input').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (ev) { loadJSON(ev.target.result); };
+      reader.onerror = function () { showStatus('FILE READ ERROR', true); };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
 
-  document.getElementById('paste-btn').addEventListener('click', function () {
-    const text = document.getElementById('paste-input').value.trim();
-    if (!text) { showStatus('NO CONTRACT LOADED', false); return; }
-    loadJSON(text);
-  });
+    document.getElementById('paste-toggle').addEventListener('click', function () {
+      document.getElementById('paste-area').classList.toggle('visible');
+    });
 
-  autoFetch();
+    document.getElementById('paste-btn').addEventListener('click', function () {
+      const text = document.getElementById('paste-input').value.trim();
+      if (!text) { showStatus('NO CONTRACT LOADED', false); return; }
+      loadJSON(text);
+    });
+
+    autoFetch();
+  }
+
+  initPayloadDashboard();
 });
+
+// ---------------------------------------------------------------------------
+// Payload dashboard — Signal Forge candidate viewer (index.html)
+// ---------------------------------------------------------------------------
+
+function _dashVal(val) {
+  if (val === null || val === undefined || val === '') return '—';
+  return String(val);
+}
+
+function _esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function filter(candidates, grade, vis, dir) {
+  return candidates.filter(function (c) {
+    if (grade !== 'ALL' && (c.grade || null) !== grade) return false;
+    const status = c.visibility_status || null;
+    if (vis === 'DEFAULT') {
+      if (status !== 'ACTIVE' && status !== 'NEAR_MISS') return false;
+    } else if (vis !== 'ALL') {
+      if (status !== vis) return false;
+    }
+    if (dir !== 'ALL' && (c.direction || null) !== dir) return false;
+    return true;
+  });
+}
+
+function renderDetailPanel(c) {
+  const conditions = Array.isArray(c.enable_conditions) && c.enable_conditions.length > 0
+    ? c.enable_conditions.map(function (s) { return '<li>' + _esc(s) + '</li>'; }).join('')
+    : '<li>—</li>';
+  const macroLine = (c.macro_alignment != null)
+    ? '<div class="detail-row"><span class="detail-label">macro_alignment</span><span class="detail-val">' + _esc(String(c.macro_alignment)) + '</span></div>'
+    : '';
+  return (
+    '<div class="candidate-detail">' +
+    '<div class="detail-row"><span class="detail-label">grade</span><span class="detail-val">' + _esc(_dashVal(c.grade)) + '</span></div>' +
+    '<div class="detail-row"><span class="detail-label">visibility_status</span><span class="detail-val">' + _esc(_dashVal(c.visibility_status)) + '</span></div>' +
+    '<div class="detail-row"><span class="detail-label">visibility_reason</span><span class="detail-val">' + _esc(_dashVal(c.visibility_reason)) + '</span></div>' +
+    '<div class="detail-row"><span class="detail-label">enable_conditions</span><ul class="detail-conditions">' + conditions + '</ul></div>' +
+    macroLine +
+    '</div>'
+  );
+}
+
+function renderRow(c) {
+  const sym = _esc(c.symbol || '?');
+  const grade = _esc(_dashVal(c.grade));
+  const vis = _esc(_dashVal(c.visibility_status));
+  const dir = _esc(_dashVal(c.direction));
+  const visClass = 'vis-' + (c.visibility_status || 'unknown').toLowerCase().replace(/_/g, '-');
+  return (
+    '<tr class="candidate-row ' + visClass + '" data-symbol="' + sym + '">' +
+    '<td>' + sym + '</td>' +
+    '<td>' + grade + '</td>' +
+    '<td class="' + visClass + '">' + vis + '</td>' +
+    '<td>' + dir + '</td>' +
+    '</tr>' +
+    '<tr class="candidate-detail-row" data-detail-for="' + sym + '" style="display:none">' +
+    '<td colspan="4">' + renderDetailPanel(c) + '</td>' +
+    '</tr>'
+  );
+}
+
+const _expandedRows = new Set();
+
+function expandRow(symbol, tbody) {
+  const detailRow = tbody.querySelector('[data-detail-for="' + symbol + '"]');
+  if (!detailRow) return;
+  if (_expandedRows.has(symbol)) {
+    _expandedRows.delete(symbol);
+    detailRow.style.display = 'none';
+  } else {
+    _expandedRows.add(symbol);
+    detailRow.style.display = '';
+  }
+}
+
+function _renderCandidateTable(candidates) {
+  const container = document.getElementById('candidate-table-container');
+  if (!container) return;
+
+  const gradeEl = document.getElementById('filter-grade');
+  const visEl   = document.getElementById('filter-visibility');
+  const dirEl   = document.getElementById('filter-direction');
+  if (!gradeEl || !visEl || !dirEl) return;
+
+  _expandedRows.clear();
+  const filtered = filter(candidates, gradeEl.value, visEl.value, dirEl.value);
+
+  const rows = filtered.length > 0
+    ? filtered.map(renderRow).join('')
+    : '<tr><td colspan="4" class="cb-no-results">No matching candidates</td></tr>';
+
+  container.innerHTML =
+    '<table class="candidate-table">' +
+    '<thead><tr><th>Symbol</th><th>Grade</th><th>Visibility</th><th>Direction</th></tr></thead>' +
+    '<tbody id="candidate-tbody">' + rows + '</tbody>' +
+    '</table>';
+
+  const tbody = document.getElementById('candidate-tbody');
+  tbody.addEventListener('click', function (e) {
+    const row = e.target.closest('tr.candidate-row');
+    if (!row) return;
+    const sym = row.dataset.symbol;
+    if (sym) expandRow(sym, tbody);
+  });
+}
+
+function initPayloadDashboard() {
+  const container = document.getElementById('candidate-table-container');
+  if (!container) return;
+
+  let candidateCache = [];
+
+  function rerender() {
+    _renderCandidateTable(candidateCache);
+  }
+
+  ['filter-grade', 'filter-visibility', 'filter-direction'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', rerender);
+  });
+
+  fetch('./latest_payload.json')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (payload) {
+      if (!payload) return;
+      const sections = payload.sections;
+      candidateCache = (sections && Array.isArray(sections.top_trades)) ? sections.top_trades : [];
+      rerender();
+    })
+    .catch(function () {});
+}
