@@ -15,6 +15,8 @@ import json
 import math
 from pathlib import Path
 
+from cuttingboard.macro_pressure import build_macro_pressure
+
 _PAYLOAD_PATH = Path("logs/latest_payload.json")
 _RUN_PATH = Path("logs/latest_run.json")
 _OUTPUT_PATH = Path("reports/output/dashboard.html")
@@ -108,6 +110,10 @@ _CSS = (
     ".lifecycle-detail{color:#888;font-size:0.8rem;margin-bottom:4px}"
     ".removed-symbols{margin-top:12px}"
     ".removed-row{color:#888;font-size:0.8rem;padding:2px 0}"
+    ".MIXED{background:#2a1a3a;color:#ba68c8}"
+    ".UNKNOWN{background:#1a1a1a;color:#555}"
+    ".pressure-component{margin-right:0.75rem;display:inline-block}"
+    ".pressure-no-data{color:#888;font-style:italic;font-size:0.8rem}"
 )
 
 _UP   = "↑"
@@ -254,6 +260,23 @@ def _build_tape_value_slots(
     return slots
 
 
+_PRESSURE_COMPONENT_LABELS = [
+    ("volatility_pressure", "VOL"),
+    ("dollar_pressure",     "DXY"),
+    ("rates_pressure",      "RATES"),
+    ("bitcoin_pressure",    "BTC"),
+]
+
+
+def _build_pressure_snapshot(macro_drivers: dict, market_map: dict | None) -> dict | None:
+    if not macro_drivers:
+        return None
+    try:
+        return build_macro_pressure(macro_drivers, market_map)
+    except Exception:
+        return None
+
+
 def _resolve_previous_run(logs_dir: Path) -> dict | None:
     run_files = sorted(logs_dir.glob("run_*.json"))
     if len(run_files) < 2:
@@ -365,6 +388,7 @@ def render_dashboard_html(
     # R1 — tape slots
     tape_slots = _build_tape_slots(macro_drivers, market_map)
     tape_value_slots = _build_tape_value_slots(macro_drivers, market_map)
+    pressure = _build_pressure_snapshot(macro_drivers, market_map)
 
     # R1.1 — macro bias from arrow counts
     up_count   = sum(1 for _, arrow in tape_slots if arrow == _UP)
@@ -423,6 +447,25 @@ def render_dashboard_html(
     ]
     w('  <div class="macro-tape-values">' + " | ".join(value_parts) + "</div>")
     w(f'  <div class="{_esc(macro_bias_css)}">{_esc(macro_bias)}</div>')
+    w("</div>")
+
+    # --- macro-pressure ---
+    w('<div class="block" id="macro-pressure">')
+    w("  <h2>Macro Pressure</h2>")
+    if pressure is None:
+        w('  <div class="pressure-no-data">NO PRESSURE DATA</div>')
+    else:
+        component_parts = [
+            f'<span class="pressure-component">'
+            f'<span class="label">{_esc(label)}</span> '
+            f'<span class="badge {_esc(pressure[key])}">{_esc(pressure[key])}</span>'
+            f'</span>'
+            for key, label in _PRESSURE_COMPONENT_LABELS
+        ]
+        w("  <div>" + "".join(component_parts) + "</div>")
+        overall = pressure.get("overall_pressure", "UNKNOWN")
+        w(f'  <div style="margin-top:6px"><span class="label">OVERALL</span> '
+          f'<span class="badge {_esc(overall)}">{_esc(overall)}</span></div>')
     w("</div>")
 
     # --- run-delta ---

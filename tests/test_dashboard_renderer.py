@@ -1399,3 +1399,81 @@ def test_removed_symbols_values_escaped() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
     assert "<XSS>" not in html
     assert "&lt;XSS&gt;" in html
+
+
+# ---------------------------------------------------------------------------
+# PRD-062 — Macro Pressure block
+# ---------------------------------------------------------------------------
+
+def _macro_pressure_block(html: str) -> str:
+    parts = html.split('id="macro-pressure"', 1)
+    assert len(parts) == 2, 'id="macro-pressure" not found'
+    return parts[1].split('<div class="block"', 1)[0]
+
+
+def test_macro_pressure_block_present() -> None:
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
+    assert 'id="macro-pressure"' in html
+
+
+def test_macro_pressure_block_no_data_when_empty_drivers() -> None:
+    html = render_dashboard_html(_payload(), _run())
+    block = _macro_pressure_block(html)
+    assert "NO PRESSURE DATA" in block
+
+
+def test_macro_pressure_block_no_data_does_not_raise() -> None:
+    html = render_dashboard_html(_payload(), _run())
+    assert 'id="macro-pressure"' in html
+
+
+def test_macro_pressure_block_component_labels_present() -> None:
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
+    block = _macro_pressure_block(html)
+    for label in ("VOL", "DXY", "RATES", "BTC"):
+        assert label in block
+
+
+def test_macro_pressure_block_overall_present() -> None:
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
+    block = _macro_pressure_block(html)
+    assert "OVERALL" in block
+
+
+def test_macro_pressure_block_overall_value_is_valid() -> None:
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
+    block = _macro_pressure_block(html)
+    valid = {"RISK_ON", "RISK_OFF", "NEUTRAL", "MIXED", "UNKNOWN"}
+    assert any(v in block for v in valid)
+
+
+def test_macro_pressure_block_risk_on_drivers_produce_risk_on() -> None:
+    # vix falling, dxy falling, rates falling, btc rising → all RISK_ON
+    drivers = _macro_drivers(vix=-0.05, dxy=-0.01, tnx=-0.01, btc=0.05)
+    drivers["rates"]["change_bps"] = -5.0
+    html = render_dashboard_html(_payload(macro_drivers=drivers), _run())
+    block = _macro_pressure_block(html)
+    assert "RISK_ON" in block
+
+
+def test_macro_pressure_block_risk_off_drivers_produce_risk_off() -> None:
+    # vix rising, dxy rising, rates rising, btc falling → all RISK_OFF
+    drivers = _macro_drivers(vix=0.05, dxy=0.01, tnx=0.05, btc=-0.05)
+    drivers["rates"]["change_bps"] = 5.0
+    html = render_dashboard_html(_payload(macro_drivers=drivers), _run())
+    block = _macro_pressure_block(html)
+    assert "RISK_OFF" in block
+
+
+def test_macro_pressure_block_position_after_macro_tape() -> None:
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
+    tape_pos = html.find('id="macro-tape"')
+    pressure_pos = html.find('id="macro-pressure"')
+    assert tape_pos < pressure_pos
+
+
+def test_macro_pressure_block_position_before_system_state() -> None:
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
+    pressure_pos = html.find('id="macro-pressure"')
+    system_pos = html.find('id="system-state"')
+    assert pressure_pos < system_pos
