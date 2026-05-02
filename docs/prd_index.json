@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 61,
-  "next_prd": 62,
+  "latest_complete": 62,
+  "next_prd": 63,
   "entries": [
     {
       "number": 56,
@@ -38,6 +38,12 @@
       "title": "PRD Registry Numbering Guard",
       "status": "COMPLETE",
       "commit": "c7d5e23"
+    },
+    {
+      "number": 62,
+      "title": "Macro Pressure Block in Signal Forge Dashboard",
+      "status": "COMPLETE",
+      "commit": "79c4185"
     }
   ]
 }
