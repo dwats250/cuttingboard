@@ -101,6 +101,7 @@ def build_pipeline_output_contract(
             qual, option_setups, chain_results, trade_decisions,
             getattr(pr, "visibility_map", {}),
             getattr(pr, "explanation_map", {}),
+            getattr(pr, "thesis_map", None),
         ),
         "rejections": _build_rejections(qual),
         "audit_summary": _build_audit_summary(qual, errors),
@@ -271,6 +272,7 @@ def _build_trade_candidates(
     trade_decisions: list[TradeDecision],
     visibility_map: Optional[dict] = None,
     explanation_map: Optional[dict] = None,
+    thesis_map: Optional[dict] = None,
 ) -> list[dict[str, Any]]:
     if qual is None:
         return []
@@ -314,6 +316,7 @@ def _build_trade_candidates(
             "visibility_reason": vis.get("visibility_reason"),
             "enable_conditions": vis.get("enable_conditions", []),
             "explanation": expl,
+            "thesis": (thesis_map or {}).get(result.symbol),
         })
 
     return candidates

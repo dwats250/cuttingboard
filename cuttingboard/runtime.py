@@ -85,6 +85,7 @@ from cuttingboard.correlation import CorrelationResult, compute_correlation
 from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
 from cuttingboard.trade_policy import PolicyContext, evaluate_policy
 from cuttingboard.trade_decision import TradeDecision, create_trade_decision, ALLOW_TRADE
+from cuttingboard.trade_thesis import apply_thesis_gate
 from cuttingboard.output import (
     OUTCOME_HALT,
     OUTCOME_NO_TRADE,
@@ -131,6 +132,7 @@ class _PartialPipelineResult:
     errors: list
     correlation: Optional[CorrelationResult] = None
     trade_decisions: list[TradeDecision] = field(default_factory=list)
+    thesis_map: Optional[dict] = None
 
 
 MODE_LIVE = "live"
@@ -683,6 +685,7 @@ def _run_pipeline(
     ohlcv: dict[str, pd.DataFrame] = {}
     outcome = OUTCOME_NO_TRADE
     overall_pressure = "UNKNOWN"
+    thesis_map: dict = {}
 
     if validation_summary.system_halted:
         errors.append(validation_summary.halt_reason or "system halted")
@@ -796,6 +799,13 @@ def _run_pipeline(
                     ),
                     overall_pressure=overall_pressure,
                 )
+                trade_decisions, thesis_map = apply_thesis_gate(
+                    trade_decisions,
+                    candidates,
+                    qualified_by_symbol,
+                    execution_structure,
+                    overall_pressure,
+                )
 
             outcome = (
                 OUTCOME_TRADE
@@ -861,6 +871,7 @@ def _run_pipeline(
             errors=errors,
             correlation=correlation_result,
             trade_decisions=trade_decisions,
+            thesis_map=thesis_map,
         ),
         generated_at=run_at_utc,
         status=contract_status,
