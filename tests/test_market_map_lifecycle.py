@@ -2,7 +2,6 @@
 
 import copy
 
-import pytest
 
 from cuttingboard.market_map_lifecycle import GRADE_ORDER, inject_lifecycle
 

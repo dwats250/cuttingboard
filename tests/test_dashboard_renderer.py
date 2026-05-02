@@ -1003,9 +1003,12 @@ def test_run_history_sorted_descending(tmp_path: Path) -> None:
     payload_file.write_text(json.dumps(_payload()), encoding="utf-8")
     run_file.write_text(json.dumps(_run()), encoding="utf-8")
 
-    older                  = _run(regime="OLDER");  older["timestamp"]  = "2026-04-28T10:00:00Z"
-    newest                 = _run(regime="NEWEST"); newest["timestamp"] = "2026-04-28T12:00:00Z"
-    middle                 = _run(regime="MIDDLE"); middle["timestamp"] = "2026-04-28T11:00:00Z"
+    older                  = _run(regime="OLDER")
+older["timestamp"]  = "2026-04-28T10:00:00Z"
+    newest                 = _run(regime="NEWEST")
+newest["timestamp"] = "2026-04-28T12:00:00Z"
+    middle                 = _run(regime="MIDDLE")
+middle["timestamp"] = "2026-04-28T11:00:00Z"
 
     (logs_dir / "run_older.json").write_text(json.dumps(older),   encoding="utf-8")
     (logs_dir / "run_newest.json").write_text(json.dumps(newest), encoding="utf-8")
