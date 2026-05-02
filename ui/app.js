@@ -336,7 +336,7 @@ function loadJSON(text) {
 
 function autoFetch() {
   if (location.protocol === 'file:') return;
-  fetch('./contract.json')
+  fetch('./contract.json?v=' + Date.now())
     .then(function (r) { return r.ok ? r.text() : null; })
     .then(function (text) { if (text) loadJSON(text); })
     .catch(function () {});
@@ -525,7 +525,7 @@ function initPayloadDashboard() {
     if (el) el.addEventListener('change', rerender);
   });
 
-  fetch('./latest_payload.json')
+  fetch('./latest_payload.json?v=' + Date.now())
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (payload) {
       if (!payload) return;
