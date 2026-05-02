@@ -79,6 +79,11 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-064 | — | Trade Visibility Layer (Near-Miss Engine) | IN PROGRESS | [PRD-064](prd_history/PRD-064.md) |
 | PRD-065 | — | Signal Forge Interactive Dashboard Controls | IN PROGRESS | [PRD-065](prd_history/PRD-065.md) |
 | PRD-066 | — | Trade Drilldown Panel (Deterministic Explanation Layer) | IN PROGRESS | [PRD-066](prd_history/PRD-066.md) |
+| PRD-067 | — | Trade Thesis Gate | IN PROGRESS | [PRD-067](prd_history/PRD-067.md) |
+| PRD-068 | — | Invalidation and Exit Guidance Layer | IN PROGRESS | [PRD-068](prd_history/PRD-068.md) |
+| PRD-069 | — | Entry Quality and Chase Filter | IN PROGRESS | [PRD-069](prd_history/PRD-069.md) |
+| PRD-070 | — | Manual Trade Journal and Mistake Taxonomy | IN PROGRESS | [PRD-070](prd_history/PRD-070.md) |
+| PRD-071 | — | Trading Process Review Scorecard | IN PROGRESS | [PRD-071](prd_history/PRD-071.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
