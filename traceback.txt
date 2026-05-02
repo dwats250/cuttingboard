@@ -1,11 +1,11 @@
 Traceback (most recent call last):
-  File "/home/dustin/cuttingboard/cuttingboard/runtime.py", line 543, in _execute_notify_run
+  File "/home/dustin/cuttingboard/cuttingboard/runtime.py", line 549, in _execute_notify_run
     contract = _build_hourly_contract(
         mode=mode,
     ...<9 lines>...
         alert_sent=alert_sent,
     )
-  File "/home/dustin/cuttingboard/cuttingboard/runtime.py", line 1597, in _build_hourly_contract
+  File "/home/dustin/cuttingboard/cuttingboard/runtime.py", line 1623, in _build_hourly_contract
     contract = build_pipeline_output_contract(
         _PartialPipelineResult(
     ...<25 lines>...
@@ -16,10 +16,9 @@ Traceback (most recent call last):
                         ~~~~~~~~~~~~~~~~~~~~~~~^
         qual, option_setups, chain_results, trade_decisions,
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        getattr(pr, "visibility_map", {}),
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        getattr(pr, "explanation_map", {}),
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        getattr(pr, "invalidation_guidance_map", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ),
     ^
-TypeError: _build_trade_candidates() takes from 4 to 5 positional arguments but 6 were given
+TypeError: _build_trade_candidates() takes from 4 to 7 positional arguments but 8 were given
