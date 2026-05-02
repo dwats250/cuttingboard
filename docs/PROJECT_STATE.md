@@ -2,10 +2,11 @@
 
 Project: Cutting Board
 
-Latest completed PRD: PRD-075
+Latest completed PRD: PRD-067
 Current active PRD: none
 
 Status:
+- PRD-067 COMPLETE (Trade Thesis Gate)
 - PRD-075 COMPLETE (Signal Performance Engine)
 - PRD-072 COMPLETE (Macro Drivers Snapshot Fallback)
 - PRD-066 COMPLETE (Trade Drilldown Panel — Deterministic Explanation Layer)
@@ -18,7 +19,7 @@ Status:
 - PRD-032 DEPRECATED (R2–R6 implemented across subsequent PRDs; R1 superseded by design)
 
 Test baseline:
-- 1758 passing
+- 1783 passing
 
 Architecture:
 - audit.jsonl → trade decisions (exists: logs/audit.jsonl)
