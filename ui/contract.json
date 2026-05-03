@@ -13,16 +13,16 @@
     "rejected_count": 0
   },
   "correlation": null,
-  "generated_at": "2026-05-03T15:06:33Z",
+  "generated_at": "2026-05-03T15:13:31Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.11631028892293933,
-      "level": 78773.828125,
+      "change_pct": 0.06037927837975022,
+      "level": 78729.8203125,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.06316714739207158,
-      "level": 98.211,
+      "change_pct": -0.7909612252903869,
+      "level": 98.21,
       "symbol": "DX-Y.NYB"
     },
     "rates": {
@@ -48,18 +48,18 @@
   "outcome": "NO_TRADE",
   "regime": {
     "classification": "RISK_ON",
-    "confidence": 0.25,
-    "net_score": 2,
-    "neutral_votes": 6,
+    "confidence": 0.375,
+    "net_score": 3,
+    "neutral_votes": 5,
     "posture": "STAY_FLAT",
     "risk_off_votes": 0,
-    "risk_on_votes": 2,
+    "risk_on_votes": 3,
     "total_votes": 8,
     "vix_level": 16.989999771118164,
     "vix_pct_change": 0.0059206859137611876,
     "vote_breakdown": {
       "BTC pct_change": "NEUTRAL",
-      "DXY pct_change": "NEUTRAL",
+      "DXY pct_change": "RISK_ON",
       "IWM pct_change": "NEUTRAL",
       "QQQ pct_change": "RISK_ON",
       "SPY pct_change": "NEUTRAL",
