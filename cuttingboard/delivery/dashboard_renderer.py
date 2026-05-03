@@ -548,7 +548,9 @@ def render_dashboard_html(
     regime_cls = _esc(market_regime)
     posture_cls = _esc(posture)
     outcome_val = run.get("outcome") if "outcome" in run else run.get("status")
-    w('')
+    w('<div class="block" id="system-state">')
+    w("  <h2>System State</h2>")
+    w(f'  <div class="action-line">{_esc(action_text)}</div>')
     w('  <div class="row">')
     w(f'    <div class="field"><div class="label">Regime</div>'
       f'<div class="value"><span class="badge {regime_cls}">{_esc(market_regime)}</span></div></div>')
