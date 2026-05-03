@@ -8,8 +8,8 @@ on:
     - cron: '0 13 * * 1-5'
     # ORB trajectory: 06:50 PT / 13:50 UTC, Monday–Friday
     - cron: '50 13 * * 1-5'
-    # Sunday regime-only report: 10:00 UTC
-    - cron: '0 10 * * 0'
+    # Sunday regime-only report: 23:30 UTC (7:30 PM ET, 30 min after futures open)
+    - cron: '30 23 * * 0'
     # Intraday monitor + post-ORB/mid-morning/power-hour: every 30 min 14:00–21:30 UTC Mon–Fri
     # Time-based routing below maps 14:30→post_orb, 16:30→midmorning, 19:00→power_hour
     - cron: '*/30 14-21 * * 1-5'

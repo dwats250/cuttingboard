@@ -1799,6 +1799,8 @@ def _data_status(
 ) -> str:
     if _is_fixture_backed(mode, fixture_file):
         return "ok"
+    if mode == MODE_SUNDAY:
+        return "stale"
     if any(_quote_age_seconds(quote) > config.FRESHNESS_SECONDS for quote in normalized_quotes.values()):
         return "stale"
     if mode != MODE_FIXTURE and any(raw.source == "polygon" for raw in raw_quotes.values()):
