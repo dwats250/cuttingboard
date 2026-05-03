@@ -1,8 +1,8 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.021029980530884878,
-      "level": 78698.859375,
+      "change_pct": 0.11631028892293933,
+      "level": 78773.828125,
       "symbol": "BTC-USD"
     },
     "dollar": {
@@ -24,7 +24,7 @@
   },
   "meta": {
     "symbols_scanned": 0,
-    "timestamp": "2026-05-03T14:50:56Z"
+    "timestamp": "2026-05-03T15:06:33Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
