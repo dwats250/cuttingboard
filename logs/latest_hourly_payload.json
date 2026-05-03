@@ -1,13 +1,13 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.0758489241149337,
-      "level": 78741.9921875,
+      "change_pct": 0.05474943939910256,
+      "level": 78725.390625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.7909612252903869,
-      "level": 98.21,
+      "change_pct": 0.06316714739207158,
+      "level": 98.211,
       "symbol": "DX-Y.NYB"
     },
     "rates": {
@@ -24,7 +24,7 @@
   },
   "meta": {
     "symbols_scanned": 0,
-    "timestamp": "2026-05-03T15:15:09Z"
+    "timestamp": "2026-05-03T15:31:36Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
