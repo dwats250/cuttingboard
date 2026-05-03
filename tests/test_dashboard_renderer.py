@@ -145,7 +145,7 @@ def _market_map(symbols: dict | None = None) -> dict:
 
 
 def _macro_tape_block(html: str) -> str:
-    return html.split('id="macro-tape"', 1)[1].split('id="system-state"', 1)[0]
+    return html.split('id="macro-tape"', 1)[1].split('id="macro-pressure"', 1)[0]
 
 
 def _macro_tape_value_slots(html: str) -> list[tuple[str, str]]:
@@ -350,9 +350,9 @@ def test_macro_tape_present() -> None:
 def test_macro_tape_section_order() -> None:
     html = render_dashboard_html(_payload(), _run())
     header_pos = html.index('id="dashboard-header"')
-    macro_pos  = html.index('id="macro-tape"')
     system_pos = html.index('id="system-state"')
-    assert header_pos < macro_pos < system_pos
+    macro_pos  = html.index('id="macro-tape"')
+    assert header_pos < system_pos < macro_pos
 
 
 def test_macro_tape_empty_macro_drivers() -> None:
@@ -1478,11 +1478,11 @@ def test_macro_pressure_block_position_after_macro_tape() -> None:
     assert tape_pos < pressure_pos
 
 
-def test_macro_pressure_block_position_before_system_state() -> None:
+def test_macro_pressure_block_position_after_system_state() -> None:
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
-    pressure_pos = html.find('id="macro-pressure"')
     system_pos = html.find('id="system-state"')
-    assert pressure_pos < system_pos
+    pressure_pos = html.find('id="macro-pressure"')
+    assert system_pos < pressure_pos
 
 
 # ---------------------------------------------------------------------------
@@ -1629,10 +1629,10 @@ def test_macro_pressure_overall_label_human_readable() -> None:
 # PRD-073 — R5: Section order
 # ---------------------------------------------------------------------------
 
-def test_section_order_candidates_before_system_state() -> None:
+def test_section_order_system_state_before_candidates() -> None:
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
-    assert html.index('id="candidate-board"') < html.index('id="system-state"')
+    assert html.index('id="system-state"') < html.index('id="candidate-board"')
 
 
 def test_section_order_system_state_before_run_delta() -> None:
@@ -1643,13 +1643,14 @@ def test_section_order_system_state_before_run_delta() -> None:
 def test_section_order_full_r5_sequence() -> None:
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="B")})
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), previous_run=_run(), market_map=mm)
-    header_pos    = html.index('id="dashboard-header"')
-    tape_pos      = html.index('id="macro-tape"')
-    pressure_pos  = html.index('id="macro-pressure"')
+    header_pos     = html.index('id="dashboard-header"')
+    system_pos     = html.index('id="system-state"')
+    health_pos     = html.index('id="run-health"')
+    tape_pos       = html.index('id="macro-tape"')
+    pressure_pos   = html.index('id="macro-pressure"')
     candidates_pos = html.index('id="candidate-board"')
-    system_pos    = html.index('id="system-state"')
-    delta_pos     = html.index('id="run-delta"')
-    assert header_pos < tape_pos < pressure_pos < candidates_pos < system_pos < delta_pos
+    delta_pos      = html.index('id="run-delta"')
+    assert header_pos < system_pos < health_pos < tape_pos < pressure_pos < candidates_pos < delta_pos
 
 
 # ---------------------------------------------------------------------------
