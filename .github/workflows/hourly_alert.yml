@@ -55,7 +55,7 @@ jobs:
             --payload logs/latest_hourly_payload.json \
             --run logs/latest_hourly_run.json \
             --output ui/dashboard.html
-          git add logs/latest_hourly_run.json logs/latest_hourly_contract.json logs/latest_hourly_payload.json
+          git add -f logs/latest_hourly_run.json logs/latest_hourly_contract.json logs/latest_hourly_payload.json
           git add ui/contract.json ui/dashboard.html
           git diff --staged --quiet || git commit -m "CB hourly: $(date -u +%Y-%m-%dT%H:%MZ)"
           POST_SHA=$(git rev-parse HEAD)
