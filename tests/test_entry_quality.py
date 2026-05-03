@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
 
 from cuttingboard.entry_quality import (
     ACTION_ALLOW,
-    ACTION_AVOID,
-    ACTION_UNKNOWN,
-    ACTION_WAIT,
     ENTRY_QUALITY_CHASE_RISK,
     ENTRY_QUALITY_CLEAN,
     ENTRY_QUALITY_EXTENDED,

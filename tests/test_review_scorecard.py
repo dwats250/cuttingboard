@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import json
-import tempfile
 from pathlib import Path
 
-import pytest
 
 from cuttingboard.review_scorecard import generate_scorecard
 
@@ -202,7 +200,6 @@ def test_mistake_counts_excludes_none(tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_review_scorecard_not_imported_by_runtime():
-    import importlib
     import ast
     from pathlib import Path
 

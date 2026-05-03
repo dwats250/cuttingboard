@@ -129,7 +129,6 @@ class TestValidationErrors:
 
 class TestRuntimeIsolation:
     def test_manual_journal_not_imported_by_runtime(self):
-        import importlib
         import cuttingboard.runtime as rt
         source = Path(rt.__file__).read_text()
         assert "manual_journal" not in source

@@ -4,7 +4,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 
 from cuttingboard.delivery.dashboard_renderer import _load_macro_snapshot
 

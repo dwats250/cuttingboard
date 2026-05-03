@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pytest
 
 from cuttingboard.qualification import (
     ENTRY_MODE_CONTINUATION,

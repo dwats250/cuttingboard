@@ -7,7 +7,6 @@ from cuttingboard.invalidation import (
     ACTION_AVOID_ENTRY,
     ACTION_HOLD_OK,
     ACTION_NO_ACTION,
-    ACTION_REDUCE_OR_EXIT,
     ACTION_UNKNOWN,
     STATUS_NOT_TRIGGERED,
     STATUS_TRIGGERED,
