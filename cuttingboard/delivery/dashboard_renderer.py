@@ -20,6 +20,7 @@ from cuttingboard.macro_pressure import build_macro_pressure
 _PAYLOAD_PATH = Path("logs/latest_payload.json")
 _RUN_PATH = Path("logs/latest_run.json")
 _OUTPUT_PATH = Path("reports/output/dashboard.html")
+_UI_INDEX_PATH = Path("ui/index.html")
 _MACRO_SNAPSHOT_PATH = Path("logs/macro_drivers_snapshot.json")
 HISTORY_LIMIT = 5
 _DASHBOARD_REFRESH_SECONDS = 30
@@ -661,6 +662,8 @@ def write_dashboard(
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")
+    _UI_INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _UI_INDEX_PATH.write_text(html, encoding="utf-8")
 
 
 def main(
