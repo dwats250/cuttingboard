@@ -1,0 +1,1 @@
+{"decision_run_at_utc": "2026-04-28T13:00:00+00:00", "direction": "LONG", "entry": 100.0, "evaluated_at_utc": "2026-04-28T19:45:00+00:00", "evaluation": {"R_multiple": 0.0, "result": "NO_HIT", "time_to_resolution": 0}, "stop": 97.0, "symbol": "SPY", "target": 106.0}

@@ -53,3 +53,8 @@ reports/output/
 !ui/*.json
 .gitnexus
 logs/latest_payload.json
+logs/*
+!logs/latest_payload.json
+!logs/latest_contract.json
+!logs/market_map.json
+!logs/evaluation.jsonl
