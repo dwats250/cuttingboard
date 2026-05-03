@@ -451,26 +451,9 @@ def render_dashboard_html(
     w('  <meta name="viewport" content="width=device-width, initial-scale=1.0">')
     w(f'  <meta http-equiv="refresh" content="{_DASHBOARD_REFRESH_SECONDS}">')
     w("  <title>Signal Forge</title>")
-    w(f"  <style>{_CSS}</style>")
+    w(f"  {_CSS}")
     w("</head>")
-    w("<body>
-<style>
-
-.container{
-  display:flex;
-  flex-direction:column;
-}
-
-#dashboard-header{order:0}
-#system-state{order:1}
-#macro-tape{order:2}
-#macro-pressure{order:3}
-#candidate-board{order:4}
-#history{order:5}
-#run-health{order:6}
-
-</style>
-<div class="container">")
+    w("<body>")
     w('<div class="wrap">')
 
     # --- dashboard-header ---
@@ -652,8 +635,8 @@ def render_dashboard_html(
     w("</div>")
 
     w("</div>")  # .wrap
-    w("</div>
-</body>")
+    w("</div>")
+    w("</body>")
     w("</html>")
 
     return "\n".join(lines)
