@@ -13,11 +13,11 @@
     "rejected_count": 0
   },
   "correlation": null,
-  "generated_at": "2026-05-03T15:13:31Z",
+  "generated_at": "2026-05-03T15:15:09Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.06037927837975022,
-      "level": 78729.8203125,
+      "change_pct": 0.0758489241149337,
+      "level": 78741.9921875,
       "symbol": "BTC-USD"
     },
     "dollar": {
