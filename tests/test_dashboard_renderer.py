@@ -349,10 +349,10 @@ def test_macro_tape_present() -> None:
 
 def test_macro_tape_section_order() -> None:
     html = render_dashboard_html(_payload(), _run())
-    header_pos = html.index('id="dashboard-header"')
     system_pos = html.index('id="system-state"')
+    header_pos = html.index('id="dashboard-header"')
     macro_pos  = html.index('id="macro-tape"')
-    assert header_pos < system_pos < macro_pos
+    assert system_pos < header_pos < macro_pos
 
 
 def test_macro_tape_empty_macro_drivers() -> None:
@@ -526,7 +526,6 @@ def test_system_state_block_fields() -> None:
     html = render_dashboard_html(_payload(market_regime="RISK_ON"), _run(posture="CONTROLLED_LONG", confidence=0.75))
     state = html.split('id="system-state"', 1)[1]
     assert "RISK_ON" in state
-    assert "CONTROLLED_LONG" in state
     assert "0.75" in state
     assert 'class="action-line"' in state
 
@@ -536,9 +535,9 @@ def test_system_state_regime_badge_class() -> None:
     assert 'class="badge RISK_OFF"' in html
 
 
-def test_system_state_posture_badge_class() -> None:
-    html = render_dashboard_html(_payload(), _run(posture="STAY_FLAT"))
-    assert 'class="badge STAY_FLAT"' in html
+def test_system_state_regime_badge_risk_on_class() -> None:
+    html = render_dashboard_html(_payload(market_regime="RISK_ON"), _run())
+    assert 'class="badge RISK_ON"' in html
 
 
 def test_system_state_permission_omitted_when_none() -> None:
@@ -1534,36 +1533,37 @@ def test_decision_title_halt_takes_priority_over_trade_outcome() -> None:
 # PRD-073 — R2: Posture label mapping
 # ---------------------------------------------------------------------------
 
-def test_posture_label_controlled_long_displayed() -> None:
-    html = render_dashboard_html(_payload(), _run(posture="CONTROLLED_LONG"))
-    state = html.split('id="system-state"', 1)[1]
-    assert "Controlled Long" in state
+def test_posture_label_controlled_long_in_delta() -> None:
+    html = render_dashboard_html(_payload(), _run(posture="CONTROLLED_LONG"), previous_run=_run(posture="STAY_FLAT"))
+    delta = html.split('id="run-delta"', 1)[1]
+    assert "Controlled Long" in delta
 
 
-def test_posture_label_css_class_unchanged() -> None:
-    html = render_dashboard_html(_payload(), _run(posture="CONTROLLED_LONG"))
-    assert 'class="badge CONTROLLED_LONG"' in html
+def test_posture_label_stay_flat_in_delta() -> None:
+    html = render_dashboard_html(_payload(), _run(posture="STAY_FLAT"), previous_run=_run(posture="CONTROLLED_LONG"))
+    delta = html.split('id="run-delta"', 1)[1]
+    assert "Stay Flat" in delta
 
 
-def test_posture_label_stay_flat_displayed() -> None:
-    html = render_dashboard_html(_payload(), _run(posture="STAY_FLAT"))
-    state = html.split('id="system-state"', 1)[1]
-    assert "Stay Flat" in state
+def test_posture_label_aggressive_long_in_history() -> None:
+    hr = _run(posture="AGGRESSIVE_LONG")
+    hr["timestamp"] = "2026-04-28T12:00:00Z"
+    html = render_dashboard_html(_payload(), _run(), history_runs=[hr])
+    assert "Aggressive Long" in html.split('id="run-history"', 1)[1]
 
 
-def test_posture_label_aggressive_long_displayed() -> None:
-    html = render_dashboard_html(_payload(), _run(posture="AGGRESSIVE_LONG"))
-    assert "Aggressive Long" in html
-
-
-def test_posture_label_defensive_short_displayed() -> None:
-    html = render_dashboard_html(_payload(), _run(posture="DEFENSIVE_SHORT"))
-    assert "Defensive Short" in html
+def test_posture_label_defensive_short_in_history() -> None:
+    hr = _run(posture="DEFENSIVE_SHORT")
+    hr["timestamp"] = "2026-04-28T12:00:00Z"
+    html = render_dashboard_html(_payload(), _run(), history_runs=[hr])
+    assert "Defensive Short" in html.split('id="run-history"', 1)[1]
 
 
 def test_posture_label_unknown_passthrough() -> None:
-    html = render_dashboard_html(_payload(), _run(posture="UNKNOWN_POSTURE_XYZ"))
-    assert "UNKNOWN_POSTURE_XYZ" in html
+    hr = _run(posture="UNKNOWN_POSTURE_XYZ")
+    hr["timestamp"] = "2026-04-28T12:00:00Z"
+    html = render_dashboard_html(_payload(), _run(), history_runs=[hr])
+    assert "UNKNOWN_POSTURE_XYZ" in html.split('id="run-history"', 1)[1]
 
 
 def test_posture_label_in_run_delta() -> None:
@@ -1643,14 +1643,14 @@ def test_section_order_system_state_before_run_delta() -> None:
 def test_section_order_full_r5_sequence() -> None:
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="B")})
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), previous_run=_run(), market_map=mm)
-    header_pos     = html.index('id="dashboard-header"')
     system_pos     = html.index('id="system-state"')
     health_pos     = html.index('id="run-health"')
+    header_pos     = html.index('id="dashboard-header"')
     tape_pos       = html.index('id="macro-tape"')
     pressure_pos   = html.index('id="macro-pressure"')
     candidates_pos = html.index('id="candidate-board"')
     delta_pos      = html.index('id="run-delta"')
-    assert header_pos < system_pos < health_pos < tape_pos < pressure_pos < candidates_pos < delta_pos
+    assert system_pos < health_pos < header_pos < tape_pos < pressure_pos < candidates_pos < delta_pos
 
 
 # ---------------------------------------------------------------------------

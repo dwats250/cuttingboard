@@ -386,7 +386,6 @@ def render_dashboard_html(
     timestamp     = _req(payload, "meta", "timestamp")
     status        = _req(run, "status")
     market_regime = _req(payload, "summary", "market_regime")
-    posture       = _req(run, "posture")
     confidence    = _req(run, "confidence")
 
     validation_halt_detail = _req(payload, "sections", "validation_halt_detail")
@@ -412,7 +411,6 @@ def render_dashboard_html(
     outcome    = run.get("outcome")
     permission = run.get("permission")
     title = _decision_title(outcome, bool(system_halted), status)
-    posture_label = _POSTURE_LABELS.get(str(posture), str(posture))
     if outcome == "STAY_FLAT":
         action_text = "ACTION: WAIT — NO VALID SETUPS"
     elif permission is False:
@@ -457,29 +455,18 @@ def render_dashboard_html(
     w("<body>")
     w('<div class="wrap">')
 
-    # --- dashboard-header ---
-    w('<div class="block" id="dashboard-header">')
-    w(f'  <h2>{_esc(title)}</h2>')
-    w('  <div class="row">')
-    w(f'    <div class="field"><div class="label">Timestamp</div>'
-      f'<div class="value">{_esc(timestamp)}</div></div>')
-    w(f'    <div class="field"><div class="label">Status</div>'
-      f'<div class="value">{_esc(status)}</div></div>')
-    w("  </div>")
-    w("</div>")
-
-    # --- system-state ---
+    # --- system-state (with run-health folded in) ---
     regime_cls = _esc(market_regime)
-    posture_cls = _esc(posture)
     outcome_val = run.get("outcome") if "outcome" in run else run.get("status")
+    halted_cls = " halted" if system_halted else ""
+    ks_cls     = " halted" if kill_switch else ""
+    stale_cls  = " warn" if stale_data else ""
     w('<div class="block" id="system-state">')
     w("  <h2>System State</h2>")
     w(f'  <div class="action-line">{_esc(action_text)}</div>')
     w('  <div class="row">')
     w(f'    <div class="field"><div class="label">Regime</div>'
       f'<div class="value"><span class="badge {regime_cls}">{_esc(market_regime)}</span></div></div>')
-    w(f'    <div class="field"><div class="label">Posture</div>'
-      f'<div class="value"><span class="badge {posture_cls}">{_esc(posture_label)}</span></div></div>')
     w(f'    <div class="field"><div class="label">Confidence</div>'
       f'<div class="value">{_esc(confidence)}</div></div>')
     w(f'    <div class="field"><div class="label">Outcome</div>'
@@ -491,16 +478,9 @@ def render_dashboard_html(
     if stay_flat_reason is not None:
         w(f'  <div class="field warn"><div class="label">Stay Flat</div>'
           f'<div class="value">{_esc(stay_flat_reason)}</div></div>')
-    w("</div>")
-
-    # --- run-health ---
-    halted_cls = " halted" if system_halted else ""
-    ks_cls     = " halted" if kill_switch else ""
-    stale_cls  = " warn" if stale_data else ""
-    w('<div class="block" id="run-health">')
-    w("  <h2>Run Health</h2>")
-    w('  <div class="row">')
-    w(f'    <div class="field"><div class="label">System Halted</div>'
+    w('  <div class="sep"></div>')
+    w('  <div id="run-health" class="row">')
+    w(f'    <div class="field"><div class="label">Halted</div>'
       f'<div class="value{halted_cls}">{_bool_str(system_halted)}</div></div>')
     w(f'    <div class="field"><div class="label">Kill Switch</div>'
       f'<div class="value{ks_cls}">{_bool_str(kill_switch)}</div></div>')
@@ -509,6 +489,17 @@ def render_dashboard_html(
     if first_error is not None:
         w(f'    <div class="field"><div class="label">Error</div>'
           f'<div class="value halted">{_esc(first_error)}</div></div>')
+    w("  </div>")
+    w("</div>")
+
+    # --- dashboard-header ---
+    w('<div class="block" id="dashboard-header">')
+    w(f'  <h2>{_esc(title)}</h2>')
+    w('  <div class="row">')
+    w(f'    <div class="field"><div class="label">Timestamp</div>'
+      f'<div class="value">{_esc(timestamp)}</div></div>')
+    w(f'    <div class="field"><div class="label">Status</div>'
+      f'<div class="value">{_esc(status)}</div></div>')
     w("  </div>")
     w("</div>")
 
