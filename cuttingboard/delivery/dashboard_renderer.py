@@ -453,7 +453,24 @@ def render_dashboard_html(
     w("  <title>Signal Forge</title>")
     w(f"  <style>{_CSS}</style>")
     w("</head>")
-    w("<body>")
+    w("<body>
+<style>
+
+.container{
+  display:flex;
+  flex-direction:column;
+}
+
+#dashboard-header{order:0}
+#system-state{order:1}
+#macro-tape{order:2}
+#macro-pressure{order:3}
+#candidate-board{order:4}
+#history{order:5}
+#run-health{order:6}
+
+</style>
+<div class="container">")
     w('<div class="wrap">')
 
     # --- dashboard-header ---
@@ -635,7 +652,8 @@ def render_dashboard_html(
     w("</div>")
 
     w("</div>")  # .wrap
-    w("</body>")
+    w("</div>
+</body>")
     w("</html>")
 
     return "\n".join(lines)
