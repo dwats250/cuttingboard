@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import builtins as _builtins
+import cuttingboard.delivery.dashboard_renderer as _renderer_module
+
 import copy
 import json
 import re
@@ -1685,8 +1688,6 @@ def test_empty_candidates_no_error() -> None:
 # PRD-073-PATCH — R4-PATCH: Renderer boundary isolation
 # ---------------------------------------------------------------------------
 
-import builtins as _builtins
-import cuttingboard.delivery.dashboard_renderer as _renderer_module
 
 
 def test_contract_module_not_in_renderer_namespace() -> None:
