@@ -836,7 +836,7 @@ def _run_pipeline(
         session_date=date_str,
         mode=mode,
         run_at_utc=run_at_utc,
-        normalized_quotes=validation_summary.valid_quotes,
+        normalized_quotes=normalized_quotes,
         derived_metrics=derived,
         structure_results=structure,
         intraday_metrics=intraday_metrics,
