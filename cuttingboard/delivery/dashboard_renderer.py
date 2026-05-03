@@ -452,6 +452,7 @@ def render_dashboard_html(
     w(f'  <meta http-equiv="refresh" content="{_DASHBOARD_REFRESH_SECONDS}">')
     w("  <title>Signal Forge</title>")
     w(f"  {_CSS}")
+    w(f"<style>{_CSS}")
     w(f"<style>{_CSS}</style>")
     w("</head>")
     w("<body>")
