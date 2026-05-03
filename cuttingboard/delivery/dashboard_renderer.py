@@ -271,11 +271,31 @@ def _build_tape_value_slots(
 
 
 _PRESSURE_COMPONENT_LABELS = [
-    ("volatility_pressure", "VOL"),
-    ("dollar_pressure",     "DXY"),
-    ("rates_pressure",      "RATES"),
-    ("bitcoin_pressure",    "BTC"),
+    ("volatility_pressure", "Volatility"),
+    ("dollar_pressure",     "Dollar"),
+    ("rates_pressure",      "Rates"),
+    ("bitcoin_pressure",    "Bitcoin"),
 ]
+
+_POSTURE_LABELS: dict[str, str] = {
+    "AGGRESSIVE_LONG": "Aggressive Long",
+    "CONTROLLED_LONG": "Controlled Long",
+    "EXPANSION_LONG":  "Expansion Long",
+    "NEUTRAL_PREMIUM": "Neutral Premium",
+    "DEFENSIVE_SHORT": "Defensive Short",
+    "STAY_FLAT":       "Stay Flat",
+    "CHAOTIC":         "Chaotic",
+}
+
+
+def _decision_title(outcome: object, system_halted: bool, status: object) -> str:
+    if str(status) in {"FAIL", "ERROR"} or system_halted:
+        return "SYSTEM HALT"
+    if outcome == "TRADE":
+        return "TRADE SETUP ACTIVE"
+    if outcome == "NO_TRADE":
+        return "NO TRADE"
+    return "MONITOR"
 
 
 def _build_pressure_snapshot(macro_drivers: dict, market_map: dict | None) -> dict | None:
@@ -390,6 +410,8 @@ def render_dashboard_html(
     # R2.1 — action line
     outcome    = run.get("outcome")
     permission = run.get("permission")
+    title = _decision_title(outcome, bool(system_halted), status)
+    posture_label = _POSTURE_LABELS.get(str(posture), str(posture))
     if outcome == "STAY_FLAT":
         action_text = "ACTION: WAIT — NO VALID SETUPS"
     elif permission is False:
@@ -436,7 +458,7 @@ def render_dashboard_html(
 
     # --- dashboard-header ---
     w('<div class="block" id="dashboard-header">')
-    w("  <h2>Dashboard</h2>")
+    w(f'  <h2>{_esc(title)}</h2>')
     w('  <div class="row">')
     w(f'    <div class="field"><div class="label">Timestamp</div>'
       f'<div class="value">{_esc(timestamp)}</div></div>')
@@ -478,59 +500,8 @@ def render_dashboard_html(
         ]
         w("  <div>" + "".join(component_parts) + "</div>")
         overall = pressure.get("overall_pressure", "UNKNOWN")
-        w(f'  <div style="margin-top:6px"><span class="label">OVERALL</span> '
+        w(f'  <div style="margin-top:6px"><span class="label">Overall</span> '
           f'<span class="badge {_esc(overall)}">{_esc(overall)}</span></div>')
-    w("</div>")
-
-    # --- run-delta ---
-    if previous_run is not None:
-        delta_fields = (
-            ("Regime",        _req(run, "regime"),        _req(previous_run, "regime")),
-            ("Posture",       _req(run, "posture"),       _req(previous_run, "posture")),
-            ("Confidence",    _req(run, "confidence"),    _req(previous_run, "confidence")),
-            ("System Halted", _bool_str(_req(run, "system_halted")),
-                              _bool_str(_req(previous_run, "system_halted"))),
-        )
-        changed_fields = [
-            (label, previous_value, current_value)
-            for label, current_value, previous_value in delta_fields
-            if current_value != previous_value
-        ]
-        w('<div class="block" id="run-delta">')
-        w("  <h2>Delta</h2>")
-        if changed_fields:
-            for label, previous_value, current_value in changed_fields:
-                w(
-                    f'  <div class="value">{_esc(label)}: '
-                    f'{_esc(previous_value)} -&gt; {_esc(current_value)}</div>'
-                )
-        else:
-            w('  <div class="value">No changes since last run</div>')
-        w("</div>")
-
-    # --- system-state ---
-    regime_cls = _esc(market_regime)
-    posture_cls = _esc(posture)
-    outcome_val = run.get("outcome") if "outcome" in run else run.get("status")
-    w('<div class="block" id="system-state">')
-    w("  <h2>System State</h2>")
-    w(f'  <div class="action-line">{_esc(action_text)}</div>')
-    w('  <div class="row">')
-    w(f'    <div class="field"><div class="label">Regime</div>'
-      f'<div class="value"><span class="badge {regime_cls}">{_esc(market_regime)}</span></div></div>')
-    w(f'    <div class="field"><div class="label">Posture</div>'
-      f'<div class="value"><span class="badge {posture_cls}">{_esc(posture)}</span></div></div>')
-    w(f'    <div class="field"><div class="label">Confidence</div>'
-      f'<div class="value">{_esc(confidence)}</div></div>')
-    w(f'    <div class="field"><div class="label">Outcome</div>'
-      f'<div class="value">{_esc(outcome_val)}</div></div>')
-    w("  </div>")
-    if "permission" in run and run["permission"] is not None:
-        w(f'  <div class="field"><div class="label">Permission</div>'
-          f'<div class="value">{_esc(run["permission"])}</div></div>')
-    if stay_flat_reason is not None:
-        w(f'  <div class="field warn"><div class="label">Stay Flat</div>'
-          f'<div class="value">{_esc(stay_flat_reason)}</div></div>')
     w("</div>")
 
     # --- candidate-board ---
@@ -541,7 +512,7 @@ def render_dashboard_html(
     else:
         symbols: dict = market_map.get("symbols") or {}
         if not symbols:
-            w('  <div class="unavailable">NO SYMBOL DATA</div>')
+            w('  <div class="unavailable">No candidates evaluated this run.</div>')
         else:
             sorted_syms = sorted(
                 symbols.keys(),
@@ -573,19 +544,73 @@ def render_dashboard_html(
             w("  </div>")
     w("</div>")
 
+    # --- system-state ---
+    regime_cls = _esc(market_regime)
+    posture_cls = _esc(posture)
+    outcome_val = run.get("outcome") if "outcome" in run else run.get("status")
+    w('<div class="block" id="system-state">')
+    w("  <h2>System State</h2>")
+    w(f'  <div class="action-line">{_esc(action_text)}</div>')
+    w('  <div class="row">')
+    w(f'    <div class="field"><div class="label">Regime</div>'
+      f'<div class="value"><span class="badge {regime_cls}">{_esc(market_regime)}</span></div></div>')
+    w(f'    <div class="field"><div class="label">Posture</div>'
+      f'<div class="value"><span class="badge {posture_cls}">{_esc(posture_label)}</span></div></div>')
+    w(f'    <div class="field"><div class="label">Confidence</div>'
+      f'<div class="value">{_esc(confidence)}</div></div>')
+    w(f'    <div class="field"><div class="label">Outcome</div>'
+      f'<div class="value">{_esc(outcome_val)}</div></div>')
+    w("  </div>")
+    if "permission" in run and run["permission"] is not None:
+        w(f'  <div class="field"><div class="label">Permission</div>'
+          f'<div class="value">{_esc(run["permission"])}</div></div>')
+    if stay_flat_reason is not None:
+        w(f'  <div class="field warn"><div class="label">Stay Flat</div>'
+          f'<div class="value">{_esc(stay_flat_reason)}</div></div>')
+    w("</div>")
+
+    # --- run-delta ---
+    if previous_run is not None:
+        delta_fields = (
+            ("Regime",        _req(run, "regime"),        _req(previous_run, "regime")),
+            ("Posture",
+             _POSTURE_LABELS.get(str(_req(run, "posture")),        str(_req(run, "posture"))),
+             _POSTURE_LABELS.get(str(_req(previous_run, "posture")), str(_req(previous_run, "posture")))),
+            ("Confidence",    _req(run, "confidence"),    _req(previous_run, "confidence")),
+            ("System Halted", _bool_str(_req(run, "system_halted")),
+                              _bool_str(_req(previous_run, "system_halted"))),
+        )
+        changed_fields = [
+            (label, previous_value, current_value)
+            for label, current_value, previous_value in delta_fields
+            if current_value != previous_value
+        ]
+        w('<div class="block" id="run-delta">')
+        w("  <h2>Changes Since Last Run</h2>")
+        if changed_fields:
+            for label, previous_value, current_value in changed_fields:
+                w(
+                    f'  <div class="value">{_esc(label)}: '
+                    f'{_esc(previous_value)} -&gt; {_esc(current_value)}</div>'
+                )
+        else:
+            w('  <div class="value">No changes since last run</div>')
+        w("</div>")
+
     # --- run-history ---
     if history_runs:
         w('<div class="block" id="run-history">')
         w("  <h2>History</h2>")
         w('  <div class="value">timestamp | regime | posture | confidence</div>')
         for history_run in history_runs:
-            ht   = str(_req(history_run, "timestamp"))[11:16]
-            hreg = _req(history_run, "regime")
-            hpos = _req(history_run, "posture")
-            hcon = _req(history_run, "confidence")
+            ht        = str(_req(history_run, "timestamp"))[11:16]
+            hreg      = _req(history_run, "regime")
+            hpos      = _req(history_run, "posture")
+            hpos_label = _POSTURE_LABELS.get(str(hpos), str(hpos))
+            hcon      = _req(history_run, "confidence")
             w(
                 f'  <div class="value">'
-                f'{_esc(ht)} | {_esc(hreg)} | {_esc(hpos)} | {_esc(hcon)}'
+                f'{_esc(ht)} | {_esc(hreg)} | {_esc(hpos_label)} | {_esc(hcon)}'
                 f'</div>'
             )
         w("</div>")

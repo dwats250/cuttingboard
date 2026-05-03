@@ -613,7 +613,7 @@ def test_candidate_board_empty_symbols() -> None:
     mm   = _market_map({})
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
     assert 'id="candidate-board"' in html
-    assert "NO SYMBOL DATA" in html
+    assert "No candidates evaluated this run." in html
 
 
 def test_candidate_board_sort_order() -> None:
@@ -902,8 +902,8 @@ def test_run_delta_detects_changes() -> None:
     delta    = html.split('id="run-delta"', 1)[1]
     delta    = delta.split('id="system-state"', 1)[0]
 
-    assert "Regime: RISK_OFF -&gt; NEUTRAL"            in delta
-    assert "Posture: STAY_FLAT -&gt; CONTROLLED_LONG"  in delta
+    assert "Regime: RISK_OFF -&gt; NEUTRAL"              in delta
+    assert "Posture: Stay Flat -&gt; Controlled Long"   in delta
     assert "Confidence: 0.25 -&gt; 0.75"               in delta
     assert "System Halted: YES -&gt; NO"               in delta
 
@@ -1024,7 +1024,7 @@ def test_run_history_field_mapping_exact() -> None:
     history_run["timestamp"] = "2026-04-28T12:50:00Z"
     html    = render_dashboard_html(_payload(), _run(), history_runs=[history_run])
     history = html.split('id="run-history"', 1)[1]
-    assert "12:50 | RISK_OFF | STAY_FLAT | 0.25" in history
+    assert "12:50 | RISK_OFF | Stay Flat | 0.25" in history
 
 
 def test_run_history_timestamp_format() -> None:
@@ -1433,14 +1433,14 @@ def test_macro_pressure_block_no_data_does_not_raise() -> None:
 def test_macro_pressure_block_component_labels_present() -> None:
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
     block = _macro_pressure_block(html)
-    for label in ("VOL", "DXY", "RATES", "BTC"):
+    for label in ("Volatility", "Dollar", "Rates", "Bitcoin"):
         assert label in block
 
 
 def test_macro_pressure_block_overall_present() -> None:
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
     block = _macro_pressure_block(html)
-    assert "OVERALL" in block
+    assert "Overall" in block
 
 
 def test_macro_pressure_block_overall_value_is_valid() -> None:
@@ -1480,3 +1480,240 @@ def test_macro_pressure_block_position_before_system_state() -> None:
     pressure_pos = html.find('id="macro-pressure"')
     system_pos = html.find('id="system-state"')
     assert pressure_pos < system_pos
+
+
+# ---------------------------------------------------------------------------
+# PRD-073 — R1: Decision-first header
+# ---------------------------------------------------------------------------
+
+def _header_block(html: str) -> str:
+    return html.split('id="dashboard-header"', 1)[1].split('id="macro-tape"', 1)[0]
+
+
+def test_decision_title_system_halt_status_fail() -> None:
+    html = render_dashboard_html(_payload(), _run(status="FAIL"))
+    assert "SYSTEM HALT" in _header_block(html)
+
+
+def test_decision_title_system_halt_status_error() -> None:
+    html = render_dashboard_html(_payload(), _run(status="ERROR"))
+    assert "SYSTEM HALT" in _header_block(html)
+
+
+def test_decision_title_system_halt_system_halted_true() -> None:
+    html = render_dashboard_html(_payload(), _run(system_halted=True))
+    assert "SYSTEM HALT" in _header_block(html)
+
+
+def test_decision_title_trade() -> None:
+    html = render_dashboard_html(_payload(), _run(outcome="TRADE"))
+    assert "TRADE SETUP ACTIVE" in _header_block(html)
+
+
+def test_decision_title_no_trade() -> None:
+    html = render_dashboard_html(_payload(), _run(outcome="NO_TRADE"))
+    assert "NO TRADE" in _header_block(html)
+
+
+def test_decision_title_monitor_fallback() -> None:
+    # Any outcome not matching a specific case falls through to MONITOR
+    html = render_dashboard_html(_payload(), _run(outcome="STAY_FLAT", status="SUCCESS", system_halted=False))
+    assert "MONITOR" in _header_block(html)
+
+
+def test_decision_title_halt_takes_priority_over_trade_outcome() -> None:
+    html = render_dashboard_html(_payload(), _run(outcome="TRADE", system_halted=True))
+    assert "SYSTEM HALT" in _header_block(html)
+    assert "TRADE SETUP ACTIVE" not in _header_block(html)
+
+
+# ---------------------------------------------------------------------------
+# PRD-073 — R2: Posture label mapping
+# ---------------------------------------------------------------------------
+
+def test_posture_label_controlled_long_displayed() -> None:
+    html = render_dashboard_html(_payload(), _run(posture="CONTROLLED_LONG"))
+    state = html.split('id="system-state"', 1)[1]
+    assert "Controlled Long" in state
+
+
+def test_posture_label_css_class_unchanged() -> None:
+    html = render_dashboard_html(_payload(), _run(posture="CONTROLLED_LONG"))
+    assert 'class="badge CONTROLLED_LONG"' in html
+
+
+def test_posture_label_stay_flat_displayed() -> None:
+    html = render_dashboard_html(_payload(), _run(posture="STAY_FLAT"))
+    state = html.split('id="system-state"', 1)[1]
+    assert "Stay Flat" in state
+
+
+def test_posture_label_aggressive_long_displayed() -> None:
+    html = render_dashboard_html(_payload(), _run(posture="AGGRESSIVE_LONG"))
+    assert "Aggressive Long" in html
+
+
+def test_posture_label_defensive_short_displayed() -> None:
+    html = render_dashboard_html(_payload(), _run(posture="DEFENSIVE_SHORT"))
+    assert "Defensive Short" in html
+
+
+def test_posture_label_unknown_passthrough() -> None:
+    html = render_dashboard_html(_payload(), _run(posture="UNKNOWN_POSTURE_XYZ"))
+    assert "UNKNOWN_POSTURE_XYZ" in html
+
+
+def test_posture_label_in_run_delta() -> None:
+    current  = _run(posture="AGGRESSIVE_LONG")
+    previous = _run(posture="STAY_FLAT")
+    html = render_dashboard_html(_payload(), current, previous_run=previous)
+    delta = html.split('id="run-delta"', 1)[1]
+    assert "Aggressive Long" in delta
+    assert "Stay Flat" in delta
+    assert "AGGRESSIVE_LONG" not in delta
+    assert "STAY_FLAT" not in delta
+
+
+def test_posture_label_in_run_history() -> None:
+    hr = _run(posture="NEUTRAL_PREMIUM")
+    hr["timestamp"] = "2026-04-28T12:00:00Z"
+    html = render_dashboard_html(_payload(), _run(), history_runs=[hr])
+    history = html.split('id="run-history"', 1)[1]
+    assert "Neutral Premium" in history
+    assert "NEUTRAL_PREMIUM" not in history
+
+
+# ---------------------------------------------------------------------------
+# PRD-073 — R3: Macro pressure driver labels
+# ---------------------------------------------------------------------------
+
+def test_macro_pressure_volatility_label() -> None:
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
+    block = _macro_pressure_block(html)
+    assert "Volatility" in block
+    assert "volatility_pressure" not in block
+
+
+def test_macro_pressure_dollar_label() -> None:
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
+    block = _macro_pressure_block(html)
+    assert "Dollar" in block
+    assert "dollar_pressure" not in block
+
+
+def test_macro_pressure_rates_label() -> None:
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
+    block = _macro_pressure_block(html)
+    assert "Rates" in block
+    assert "rates_pressure" not in block
+
+
+def test_macro_pressure_bitcoin_label() -> None:
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
+    block = _macro_pressure_block(html)
+    assert "Bitcoin" in block
+    assert "bitcoin_pressure" not in block
+
+
+def test_macro_pressure_overall_label_human_readable() -> None:
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
+    block = _macro_pressure_block(html)
+    assert "Overall" in block
+    assert "OVERALL" not in block
+
+
+# ---------------------------------------------------------------------------
+# PRD-073 — R5: Section order
+# ---------------------------------------------------------------------------
+
+def test_section_order_candidates_before_system_state() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    assert html.index('id="candidate-board"') < html.index('id="system-state"')
+
+
+def test_section_order_system_state_before_run_delta() -> None:
+    html = render_dashboard_html(_payload(), _run(), previous_run=_run())
+    assert html.index('id="system-state"') < html.index('id="run-delta"')
+
+
+def test_section_order_full_r5_sequence() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="B")})
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), previous_run=_run(), market_map=mm)
+    header_pos    = html.index('id="dashboard-header"')
+    tape_pos      = html.index('id="macro-tape"')
+    pressure_pos  = html.index('id="macro-pressure"')
+    candidates_pos = html.index('id="candidate-board"')
+    system_pos    = html.index('id="system-state"')
+    delta_pos     = html.index('id="run-delta"')
+    assert header_pos < tape_pos < pressure_pos < candidates_pos < system_pos < delta_pos
+
+
+# ---------------------------------------------------------------------------
+# PRD-073 — R6: Section labels
+# ---------------------------------------------------------------------------
+
+def test_run_delta_section_label_changes_since_last_run() -> None:
+    html = render_dashboard_html(_payload(), _run(), previous_run=_run())
+    delta = html.split('id="run-delta"', 1)[1]
+    assert "Changes Since Last Run" in delta
+
+
+def test_run_delta_section_label_old_delta_absent() -> None:
+    html = render_dashboard_html(_payload(), _run(), previous_run=_run())
+    delta = html.split('id="run-delta"', 1)[1]
+    assert "<h2>Delta</h2>" not in delta
+
+
+# ---------------------------------------------------------------------------
+# PRD-073 — R8: Empty candidate state
+# ---------------------------------------------------------------------------
+
+def test_empty_candidates_message() -> None:
+    mm = _market_map({})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    assert "No candidates evaluated this run." in html
+
+
+def test_empty_candidates_no_error() -> None:
+    mm = _market_map({})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    assert 'id="candidate-board"' in html
+
+
+# ---------------------------------------------------------------------------
+# PRD-073-PATCH — R4-PATCH: Renderer boundary isolation
+# ---------------------------------------------------------------------------
+
+import builtins as _builtins
+import cuttingboard.delivery.dashboard_renderer as _renderer_module
+
+
+def test_contract_module_not_in_renderer_namespace() -> None:
+    assert 'contract' not in vars(_renderer_module)
+
+
+def test_contract_import_absent_from_renderer_source() -> None:
+    import inspect
+    import re
+    source = inspect.getsource(_renderer_module)
+    import_lines = [
+        line for line in source.splitlines()
+        if re.match(r'\s*(import|from)\s+.*\bcontract\b', line)
+    ]
+    assert not import_lines, f"dashboard_renderer imports contract: {import_lines}"
+
+
+def test_render_does_not_open_contract_file(monkeypatch: pytest.MonkeyPatch) -> None:
+    opened_paths: list[str] = []
+    real_open = _builtins.open
+
+    def tracking_open(file, *args, **kwargs):
+        opened_paths.append(str(file))
+        return real_open(file, *args, **kwargs)
+
+    monkeypatch.setattr(_builtins, 'open', tracking_open)
+    render_dashboard_html(_payload(), _run())
+
+    contract_paths = [p for p in opened_paths if 'contract' in p.lower()]
+    assert not contract_paths, f"render accessed contract paths: {contract_paths}"

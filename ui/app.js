@@ -510,6 +510,20 @@ function _renderCandidateTable(candidates) {
   });
 }
 
+function _outcomeBadgeClass(outcome) {
+  if (outcome === 'TRADE')    return 'badge-trade';
+  if (outcome === 'NO_TRADE') return 'badge-no-trade';
+  if (outcome === 'HALT')     return 'badge-halt';
+  return 'badge-unknown';
+}
+
+function _renderOutcomeBadge(outcome) {
+  const badge = document.getElementById('outcome-badge');
+  if (!badge) return;
+  badge.className = 'outcome-badge ' + _outcomeBadgeClass(outcome);
+  badge.textContent = outcome !== null ? String(outcome) : '';
+}
+
 function initPayloadDashboard() {
   const container = document.getElementById('candidate-table-container');
   if (!container) return;
@@ -532,6 +546,14 @@ function initPayloadDashboard() {
       const sections = payload.sections;
       candidateCache = (sections && Array.isArray(sections.top_trades)) ? sections.top_trades : [];
       rerender();
+    })
+    .catch(function () {});
+
+  fetch('./contract.json?v=' + Date.now())
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (contract) {
+      if (!contract) return;
+      _renderOutcomeBadge(safeGet(contract, 'outcome'));
     })
     .catch(function () {});
 }

@@ -426,6 +426,24 @@ details[open] > summary {
   letter-spacing: 0.06em;
 }
 
+/* ── Outcome badge ── */
+
+.outcome-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  border: 1px solid transparent;
+}
+
+.badge-trade    { background: var(--cb-green-dim);  color: var(--cb-green);  border-color: var(--cb-green-dim); }
+.badge-no-trade { background: var(--cb-bg-card);    color: var(--cb-text-2); border-color: var(--cb-border); }
+.badge-halt     { background: var(--cb-red-dim);    color: var(--cb-red);    border-color: var(--cb-red-dim); }
+.badge-unknown  { display: none; }
+
 /* ── Candidate filter controls ── */
 
 #candidate-filters {
