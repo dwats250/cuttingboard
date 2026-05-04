@@ -90,6 +90,8 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-074 | 6483a16 | Chart Context Layer (Level Diagram) | COMPLETE | [PRD-074](prd_history/PRD-074.md) |
 | PRD-075 | 43a1052 | Signal Performance Engine | COMPLETE | [PRD-075](prd_history/PRD-075.md) |
 | PRD-076 | 3c6bb76 | Dashboard Live Publishing and Layout Finalization | COMPLETE | [PRD-076](prd_history/PRD-076.md) |
+| PRD-077 | — | Sunday Futures Pre-Report | PROPOSED | [PRD-077](prd_history/PRD-077.md) |
+| PRD-078 | — | Dashboard Demo Candidate Fixture Mode | PROPOSED | [PRD-078](prd_history/PRD-078.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
