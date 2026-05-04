@@ -58,3 +58,4 @@ logs/*
 !logs/latest_contract.json
 !logs/market_map.json
 !logs/evaluation.jsonl
+.worktrees/
