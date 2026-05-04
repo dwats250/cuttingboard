@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import html as _html
 
+from cuttingboard.delivery.dashboard_renderer import format_dashboard_timestamp
+
 
 def render_html(payload: dict) -> str:
     """Return a deterministic HTML page from a validated payload dict.
@@ -21,6 +23,7 @@ def render_html(payload: dict) -> str:
     text = render_report_from_payload(payload)
     meta = payload.get("meta", {})
     timestamp = meta.get("timestamp", "")
+    _, ts_display = format_dashboard_timestamp(timestamp)
 
     escaped = _html.escape(text)
     return (
@@ -38,7 +41,7 @@ def render_html(payload: dict) -> str:
         "</head>\n"
         "<body>\n"
         f"<pre>{escaped}</pre>\n"
-        f"<footer>Generated at {_html.escape(timestamp)}</footer>\n"
+        f"<footer>Generated at {_html.escape(ts_display)}</footer>\n"
         "</body>\n"
         "</html>\n"
     )

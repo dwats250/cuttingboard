@@ -13,7 +13,9 @@ from __future__ import annotations
 import html as _html
 import json
 import math
+from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from cuttingboard.macro_pressure import build_macro_pressure
 
@@ -45,6 +47,33 @@ _LIFECYCLE_BADGE_CSS: dict[str, str] = {
     "DOWNGRADED": "lifecycle-downgraded",
     "UNKNOWN":    "lifecycle-unknown",
 }
+
+_PT = ZoneInfo("America/Los_Angeles")
+
+
+def format_dashboard_timestamp(value: str) -> tuple[str, str]:
+    """Return (pacific_line, original_line) for display only. Input is never mutated.
+
+    pacific_line: "YYYY-MM-DD HH:MM:SS PT" or "" on parse failure.
+    original_line: readable original, e.g. "YYYY-MM-DD HH:MM:SS UTC".
+    """
+    raw = str(value) if value else ""
+    cleaned = raw.replace("T", " ").rstrip("Z").strip()
+    if raw.endswith("Z"):
+        cleaned = cleaned + " UTC"
+    try:
+        if raw.endswith("Z"):
+            dt_utc = datetime.fromisoformat(raw[:-1] + "+00:00")
+        else:
+            dt_utc = datetime.fromisoformat(raw)
+            if dt_utc.tzinfo is None:
+                dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+        dt_pt = dt_utc.astimezone(_PT)
+        pacific_line = dt_pt.strftime("%Y-%m-%d %H:%M:%S") + " PT"
+        return pacific_line, cleaned
+    except Exception:
+        return "", cleaned
+
 
 _TIER_DEFS = [
     ("aplus", "A+ — ACTIONABLE", frozenset({"A+"})),
@@ -722,8 +751,11 @@ def render_dashboard_html(
     w('<div class="block" id="dashboard-header">')
     w(f'  <h2>{_esc(title)}</h2>')
     w('  <div class="row">')
-    w(f'    <div class="field"><div class="label">Timestamp</div>'
-      f'<div class="value">{_esc(timestamp)}</div></div>')
+    _ts_pacific, _ts_original = format_dashboard_timestamp(str(timestamp))
+    w('    <div class="field"><div class="label">Timestamp</div>')
+    if _ts_pacific:
+        w(f'<div class="value">Pacific: {_esc(_ts_pacific)}</div>')
+    w(f'<div class="value">Original: {_esc(_ts_original)}</div></div>')
     w(f'    <div class="field"><div class="label">Status</div>'
       f'<div class="value">{_esc(status)}</div></div>')
     w("  </div>")

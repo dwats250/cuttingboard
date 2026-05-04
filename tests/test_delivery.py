@@ -225,7 +225,7 @@ class TestRenderHtml:
 
     def test_contains_generated_at(self):
         result = render_html(_payload())
-        assert "2026-04-23T14:00:00Z" in result
+        assert "2026-04-23 14:00:00 UTC" in result
 
     def test_deterministic(self):
         p = _payload()
