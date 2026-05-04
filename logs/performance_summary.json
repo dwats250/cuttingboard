@@ -1,0 +1,12 @@
+{
+  "buckets": {
+    "SPY": {
+      "flats": 1,
+      "insufficient_data": true,
+      "losses": 0,
+      "total_trades": 1,
+      "wins": 0
+    }
+  },
+  "generated_at": "2026-05-04T19:05:38.354115+00:00"
+}
