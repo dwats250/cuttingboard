@@ -1,13 +1,13 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 1.2959029438209018,
-      "level": 79576.9296875,
+      "change_pct": 1.8412542264028264,
+      "level": 80005.3515625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.4040364096713102,
-      "level": 98.40599822998047,
+      "change_pct": 0.39995743543680484,
+      "level": 98.4020004272461,
       "symbol": "DX-Y.NYB"
     },
     "rates": {
@@ -17,14 +17,14 @@
       "symbol": "^TNX"
     },
     "volatility": {
-      "change_pct": 8.598357074095667,
-      "level": 18.440000534057617,
+      "change_pct": 8.480568744867963,
+      "level": 18.420000076293945,
       "symbol": "^VIX"
     }
   },
   "meta": {
     "symbols_scanned": 20,
-    "timestamp": "2026-05-04T15:52:22Z"
+    "timestamp": "2026-05-04T16:04:00Z"
   },
   "run_status": "OK",
   "schema_version": "1.0",
@@ -65,12 +65,6 @@
       },
       {
         "detail": null,
-        "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "QUALIFICATION",
-        "symbol": "SPY"
-      },
-      {
-        "detail": null,
         "reason": "CHOP",
         "stage": "QUALIFICATION",
         "symbol": "TSLA"
@@ -89,9 +83,15 @@
       },
       {
         "detail": null,
-        "reason": "price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "price 1.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "WATCHLIST",
         "symbol": "BTC-USD"
+      },
+      {
+        "detail": null,
+        "reason": "price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "WATCHLIST",
+        "symbol": "SPY"
       },
       {
         "detail": null,
@@ -113,13 +113,13 @@
       },
       {
         "detail": null,
-        "reason": "price 1.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "price 1.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "WATCHLIST",
         "symbol": "GDX"
       },
       {
         "detail": null,
-        "reason": "price 2.2\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "price 2.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "WATCHLIST",
         "symbol": "USO"
       },
@@ -137,7 +137,7 @@
       },
       {
         "detail": null,
-        "reason": "price 2.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "price 2.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "WATCHLIST",
         "symbol": "MSTR"
       }

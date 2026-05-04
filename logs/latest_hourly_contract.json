@@ -10,19 +10,19 @@
     "continuation_rejected_count": null,
     "error_count": 0,
     "qualified_count": 3,
-    "rejected_count": 7
+    "rejected_count": 6
   },
   "correlation": null,
-  "generated_at": "2026-05-04T15:52:22Z",
+  "generated_at": "2026-05-04T16:04:00Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 1.2959029438209018,
-      "level": 79576.9296875,
+      "change_pct": 1.8412542264028264,
+      "level": 80005.3515625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.4040364096713102,
-      "level": 98.40599822998047,
+      "change_pct": 0.39995743543680484,
+      "level": 98.4020004272461,
       "symbol": "DX-Y.NYB"
     },
     "rates": {
@@ -32,8 +32,8 @@
       "symbol": "^TNX"
     },
     "volatility": {
-      "change_pct": 8.598357074095667,
-      "level": 18.440000534057617,
+      "change_pct": 8.480568744867963,
+      "level": 18.420000076293945,
       "symbol": "^VIX"
     }
   },
@@ -48,17 +48,17 @@
   "outcome": "NO_TRADE",
   "regime": {
     "classification": "RISK_OFF",
-    "confidence": 0.75,
-    "net_score": -6,
-    "neutral_votes": 2,
+    "confidence": 0.625,
+    "net_score": -5,
+    "neutral_votes": 1,
     "posture": "DEFENSIVE_SHORT",
     "risk_off_votes": 6,
-    "risk_on_votes": 0,
+    "risk_on_votes": 1,
     "total_votes": 8,
-    "vix_level": 18.440000534057617,
-    "vix_pct_change": 0.08598357074095667,
+    "vix_level": 18.420000076293945,
+    "vix_pct_change": 0.08480568744867963,
     "vote_breakdown": {
-      "BTC pct_change": "NEUTRAL",
+      "BTC pct_change": "RISK_ON",
       "DXY pct_change": "RISK_OFF",
       "IWM pct_change": "RISK_OFF",
       "QQQ pct_change": "RISK_OFF",
@@ -101,12 +101,6 @@
     },
     {
       "detail": null,
-      "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "QUALIFICATION",
-      "symbol": "SPY"
-    },
-    {
-      "detail": null,
       "reason": "CHOP",
       "stage": "QUALIFICATION",
       "symbol": "TSLA"
@@ -119,9 +113,15 @@
     },
     {
       "detail": null,
-      "reason": "price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 1.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "BTC-USD"
+    },
+    {
+      "detail": null,
+      "reason": "price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "stage": "WATCHLIST",
+      "symbol": "SPY"
     },
     {
       "detail": null,
@@ -143,13 +143,13 @@
     },
     {
       "detail": null,
-      "reason": "price 1.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 1.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "GDX"
     },
     {
       "detail": null,
-      "reason": "price 2.2\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 2.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "USO"
     },
@@ -167,7 +167,7 @@
     },
     {
       "detail": null,
-      "reason": "price 2.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 2.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "MSTR"
     }
