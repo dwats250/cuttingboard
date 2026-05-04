@@ -221,3 +221,28 @@ def test_previous_grade_set_when_snapshot_exists() -> None:
     lc = result["symbols"]["SPY"]["lifecycle"]
     assert lc["previous_grade"] == "C"
     assert lc["previous_setup_state"] == "DEVELOPING"
+
+
+# ---------------------------------------------------------------------------
+# PRD-085: current_price preservation
+# ---------------------------------------------------------------------------
+
+def test_inject_lifecycle_preserves_current_price() -> None:
+    # T1: inject_lifecycle must not drop current_price added by PRD-084
+    symbols = {
+        sym: {**_sym("B", "DEVELOPING"), "current_price": 100.0 + i}
+        for i, sym in enumerate(("SPY", "QQQ", "GDX", "GLD", "SLV", "XLE"))
+    }
+    current = {"symbols": symbols, "schema_version": "market_map.v1"}
+    result = inject_lifecycle(current, previous_map=None)
+    for i, sym in enumerate(("SPY", "QQQ", "GDX", "GLD", "SLV", "XLE")):
+        assert "current_price" in result["symbols"][sym], f"{sym} missing current_price"
+        assert result["symbols"][sym]["current_price"] == 100.0 + i
+
+
+def test_inject_lifecycle_preserves_current_price_none() -> None:
+    # inject_lifecycle must preserve current_price: None when quote was unavailable
+    current = {"symbols": {"SPY": {**_sym(), "current_price": None}}, "schema_version": "market_map.v1"}
+    result = inject_lifecycle(current, previous_map=None)
+    assert "current_price" in result["symbols"]["SPY"]
+    assert result["symbols"]["SPY"]["current_price"] is None

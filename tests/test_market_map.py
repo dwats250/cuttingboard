@@ -20,6 +20,7 @@ from cuttingboard.market_map import (
     VALID_TRADE_TYPES,
     build_market_map,
 )
+from cuttingboard.market_map_lifecycle import inject_lifecycle
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.regime import AGGRESSIVE_LONG, RegimeState, RISK_ON
 from cuttingboard.structure import NORMAL_IV, TREND, StructureResult
@@ -511,3 +512,18 @@ def test_build_market_map_includes_current_price_for_all_primary_symbols():
     result = _build()
     for sym in PRIMARY_SYMBOLS:
         assert "current_price" in result["symbols"][sym]
+
+
+# PRD-085 T2 — full in-memory chain: build → lifecycle → write-ready dict preserves current_price
+def test_inject_lifecycle_preserves_current_price_from_build_market_map():
+    quotes, derived, structure, intraday = _full_inputs()
+    mm = _build(
+        normalized_quotes=quotes,
+        derived_metrics=derived,
+        structure_results=structure,
+        intraday_metrics=intraday,
+    )
+    result = inject_lifecycle(mm, previous_map=None)
+    for sym in PRIMARY_SYMBOLS:
+        assert "current_price" in result["symbols"][sym], f"{sym} missing current_price after inject_lifecycle"
+        assert result["symbols"][sym]["current_price"] == 100.0
