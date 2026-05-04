@@ -1,0 +1,58 @@
+{
+  "macro_drivers": {
+    "bitcoin": {
+      "change_pct": 2.306245953093023,
+      "level": 80370.5,
+      "symbol": "BTC-USD"
+    },
+    "dollar": {
+      "change_pct": 0.4417902742464076,
+      "level": 98.44300079345703,
+      "symbol": "DX-Y.NYB"
+    },
+    "rates": {
+      "change_bps": 6.699495920493526,
+      "change_pct": 1.5075374147822358,
+      "level": 4.443999767303467,
+      "symbol": "^TNX"
+    },
+    "volatility": {
+      "change_pct": 6.7726716698062654,
+      "level": 18.1299991607666,
+      "symbol": "^VIX"
+    }
+  },
+  "meta": {
+    "symbols_scanned": 0,
+    "timestamp": "2026-05-04T18:09:55Z"
+  },
+  "run_status": "STAY_FLAT",
+  "schema_version": "1.0",
+  "sections": {
+    "chain_results_detail": [],
+    "continuation_audit": null,
+    "option_setups_detail": [],
+    "rejected": [
+      {
+        "detail": null,
+        "reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.25)",
+        "stage": "REGIME",
+        "symbol": "REGIME"
+      }
+    ],
+    "top_trades": [],
+    "trade_decision_detail": [],
+    "validation_halt_detail": {
+      "reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.25)"
+    },
+    "watch_summary_detail": {
+      "session": "POWER_HOUR"
+    },
+    "watchlist": []
+  },
+  "summary": {
+    "market_regime": "RISK_OFF",
+    "router_mode": "MIXED",
+    "tradable": false
+  }
+}
