@@ -95,6 +95,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-079 | 9e0aca7 | PRD Review Token Efficiency Guardrails | COMPLETE | [PRD-079](prd_history/PRD-079.md) |
 | PRD-080 | 0cd7e45 | Sunday Report Expansion Layer | COMPLETE | [PRD-080](prd_history/PRD-080.md) |
 | PRD-081 | c8462de | Dashboard Timestamp Display Hardening | COMPLETE | [PRD-081](prd_history/PRD-081.md) |
+| PRD-082 | — | Remove Redundant Dashboard Permission Copy | IN PROGRESS | [PRD-082](prd_history/PRD-082.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

@@ -727,12 +727,12 @@ def render_dashboard_html(
     w(f'    <div class="field"><div class="label">Outcome</div>'
       f'<div class="value">{_esc(outcome_val)}</div></div>')
     w("  </div>")
-    if "permission" in run and run["permission"] is not None:
-        w(f'  <div class="field"><div class="label">Permission</div>'
-          f'<div class="value">{_esc(run["permission"])}</div></div>')
     if stay_flat_reason is not None:
-        w(f'  <div class="field warn"><div class="label">Stay Flat</div>'
+        w(f'  <div class="field warn"><div class="label">Trade Permission</div>'
           f'<div class="value">{_esc(stay_flat_reason)}</div></div>')
+    elif run.get("permission") is not None:
+        w(f'  <div class="field"><div class="label">Trade Permission</div>'
+          f'<div class="value">{_esc(run["permission"])}</div></div>')
     w('  <div class="sep"></div>')
     w('  <div id="run-health" class="row">')
     w(f'    <div class="field"><div class="label">Halted</div>'

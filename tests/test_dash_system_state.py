@@ -49,6 +49,35 @@ def test_system_state_stay_flat_present_when_set() -> None:
     assert "STAY_FLAT posture" in html
 
 
+def test_system_state_no_redundant_permission_copy() -> None:
+    """PRD-082: single Trade Permission field; no duplicate Permission/Stay Flat labels."""
+    html = render_dashboard_html(
+        _payload(validation_halt_detail={"reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.25)"}),
+        _run(permission="No new trades permitted."),
+    )
+    state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    # single consolidated label
+    assert "Trade Permission" in state
+    assert state.count("Trade Permission") == 1
+    # redundant strings must not appear as separate field labels
+    assert ">Permission<" not in state
+    assert ">Stay Flat<" not in state
+    assert "No new trades permitted." not in state
+    # gold warn class present
+    assert 'class="field warn"' in state
+
+
+def test_system_state_permission_fallback_when_no_reason() -> None:
+    """PRD-082: shows permission text when stay_flat_reason is absent."""
+    html = render_dashboard_html(
+        _payload(validation_halt_detail=None),
+        _run(permission="No new trades permitted."),
+    )
+    state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    assert "Trade Permission" in state
+    assert "No new trades permitted." in state
+
+
 def test_action_line_stay_flat() -> None:
     r = _run(outcome="STAY_FLAT")
     html = render_dashboard_html(_payload(), r)
