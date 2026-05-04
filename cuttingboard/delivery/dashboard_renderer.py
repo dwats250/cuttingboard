@@ -303,7 +303,7 @@ def _decision_title(outcome: object, system_halted: bool, status: object) -> str
 
 
 def _build_pressure_snapshot(macro_drivers: dict, market_map: dict | None) -> dict | None:
-    if not macro_drivers:
+    if (not macro_drivers) or all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values()):
         return None
     try:
         return build_macro_pressure(macro_drivers, market_map)
@@ -610,7 +610,7 @@ def render_dashboard_html(
     )
 
     macro_drivers: dict = payload.get("macro_drivers") or {}
-    if not macro_drivers:
+    if (not macro_drivers) or all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values()):
         _snap = macro_snapshot_path if macro_snapshot_path is not None else _MACRO_SNAPSHOT_PATH
         macro_drivers = _load_macro_snapshot(_snap)
 
@@ -756,8 +756,11 @@ def render_dashboard_html(
 
     # --- macro-tape ---
     w('<div class="block" id="macro-tape">')
+    raw_macro_drivers = payload.get("macro_drivers")
+    if raw_macro_drivers == {}:
+        w('  <div class="tape-no-data">NO LIVE MACRO DATA</div>')
     w("  <h2>Macro Tape</h2>")
-    if not macro_drivers:
+    if (not macro_drivers) or all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values()):
         w('  <div class="tape-no-data">NO LIVE MACRO DATA</div>')
     tape_parts = [
         f'<span class="tape-slot {_ARROW_CSS.get(arrow, "na")}">{_esc(label)} {_esc(arrow)}</span>'
@@ -775,7 +778,10 @@ def render_dashboard_html(
     # --- macro-pressure ---
     w('<div class="block" id="macro-pressure">')
     w("  <h2>Macro Pressure</h2>")
-    if pressure is None:
+    raw_macro_drivers = payload.get("macro_drivers")
+    if raw_macro_drivers == {}:
+        w('  <div class="pressure-no-data">NO PRESSURE DATA</div>')
+    if (not macro_drivers) or all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values()):
         w('  <div class="pressure-no-data">NO PRESSURE DATA</div>')
     else:
         component_parts = [

@@ -265,7 +265,7 @@ class TestContractIsolation:
     def test_payload_schema_unchanged(self):
         from cuttingboard.delivery.payload import assert_valid_payload
         contract = _minimal_contract(session_type="SUNDAY_PREMARKET", macro_drivers=_MACRO_DRIVERS)
-        payload = build_report_payload(contract)
+        build_report_payload(contract)
         # assert_valid_payload must not raise — schema is unchanged
         # macro_drivers is empty in minimal contract for this call
         contract2 = _minimal_contract(session_type="SUNDAY_PREMARKET")

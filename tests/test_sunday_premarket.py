@@ -2,7 +2,6 @@
 
 from datetime import date, datetime, timezone, timedelta
 
-import pytest
 
 from cuttingboard.runtime import MODE_LIVE, MODE_SUNDAY, _resolve_effective_mode
 from cuttingboard.delivery.payload import build_report_payload
