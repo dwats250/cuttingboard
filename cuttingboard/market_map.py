@@ -212,6 +212,7 @@ def _build_symbol_record(
     record = {
         "symbol": symbol,
         "asset_group": ASSET_GROUPS[symbol],
+        "current_price": price,
         "grade": grade,
         "bias": bias,
         "structure": structure,

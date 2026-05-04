@@ -30,6 +30,7 @@ RUN_AT = datetime(2026, 4, 12, 13, 0, tzinfo=timezone.utc)
 SYMBOL_FIELDS = {
     "symbol",
     "asset_group",
+    "current_price",
     "grade",
     "bias",
     "structure",
@@ -315,6 +316,7 @@ def test_existing_prd_053_fields_remain_unchanged_except_trade_framing():
     assert prd_053_fields == {
         "symbol",
         "asset_group",
+        "current_price",
         "grade",
         "bias",
         "structure",
@@ -476,3 +478,36 @@ def test_runtime_filters_already_available_bar_windows_to_primary_symbols():
     result = runtime._market_map_bar_windows({"SPY": bars, "USO": bars, "AAPL": bars})
 
     assert result == {"SPY": bars}
+
+
+# T1 — valid normalized quote.price propagates to current_price in symbol record
+def test_current_price_populated_when_valid_quote_exists():
+    quotes, derived, structure, intraday = _full_inputs()
+    result = _build(
+        normalized_quotes=quotes,
+        derived_metrics=derived,
+        structure_results=structure,
+        intraday_metrics=intraday,
+    )
+    for sym in PRIMARY_SYMBOLS:
+        assert result["symbols"][sym]["current_price"] == 100.0
+
+
+# T2 — missing quote produces current_price: None, not a fake value
+def test_current_price_none_when_quote_missing():
+    quotes, derived, structure, intraday = _full_inputs()
+    del quotes["SPY"]
+    result = _build(
+        normalized_quotes=quotes,
+        derived_metrics=derived,
+        structure_results=structure,
+        intraday_metrics=intraday,
+    )
+    assert result["symbols"]["SPY"]["current_price"] is None
+
+
+# T3 — build_market_map output includes current_price for all configured primary symbols
+def test_build_market_map_includes_current_price_for_all_primary_symbols():
+    result = _build()
+    for sym in PRIMARY_SYMBOLS:
+        assert "current_price" in result["symbols"][sym]
