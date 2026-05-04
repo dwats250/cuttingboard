@@ -5,7 +5,6 @@ from __future__ import annotations
 import copy
 
 from cuttingboard.delivery.dashboard_renderer import (
-    HISTORY_LIMIT,
     _DASHBOARD_REFRESH_SECONDS,
     render_dashboard_html,
 )

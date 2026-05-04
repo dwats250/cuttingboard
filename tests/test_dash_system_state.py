@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from cuttingboard.delivery.dashboard_renderer import render_dashboard_html
 
-from tests.dash_helpers import _market_map, _mm_symbol, _payload, _run
+from tests.dash_helpers import _payload, _run
 
 
 # ---------------------------------------------------------------------------

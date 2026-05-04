@@ -9,9 +9,7 @@ import pytest
 
 from cuttingboard.delivery.dashboard_renderer import (
     _load_json_optional,
-    _resolve_previous_run,
     main,
-    render_dashboard_html,
 )
 
 from tests.dash_helpers import _payload, _run

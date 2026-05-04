@@ -1,6 +1,5 @@
 """Tests for PRD-078 — Dashboard Demo Candidate Fixture Mode."""
 
-import pytest
 
 from cuttingboard.delivery.fixtures import FIXTURE_SYMBOLS
 from cuttingboard.delivery.payload import build_report_payload
