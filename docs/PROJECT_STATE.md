@@ -7,8 +7,8 @@ Project: Cutting Board — constraint-driven options trading decision engine
 ## Current State
 
 **Last updated:** 2026-05-04
-**Last completed PRD:** PRD-081 — Dashboard Timestamp Display Hardening
-**Last work completed:** 2026-05-04 (commit c8462de)
+**Last completed PRD:** PRD-082 — Remove Redundant Dashboard Permission Copy
+**Last work completed:** 2026-05-04 (commit fbe5e11)
 **Active PRD:** none
 **Deferred PRD:** none
 
@@ -16,7 +16,7 @@ Project: Cutting Board — constraint-driven options trading decision engine
 
 ## Test Baseline
 
-- **1955 passing** (as of 2026-05-04)
+- **1957 passing** (as of 2026-05-04)
 - 0 failures, 0 skipped
 
 ---
