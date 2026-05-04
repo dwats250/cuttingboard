@@ -25,6 +25,22 @@ These rules reduce unnecessary compute while preserving correctness.
 
 ---
 
+### LEAF_FILE — skip gitnexus_impact, edit directly
+
+A file is a leaf if it contains **no `from cuttingboard.` or `import cuttingboard` statements**. These files have no downstream consumers in the Python call graph.
+
+Qualifying leaf files:
+- Pure CSS files (`ui/styles.css`, `ui/themes/*.css`)
+- Pure documentation (`docs/**/*.md`, `CLAUDE.md`, `*.md`)
+- Pure data / config files with no internal imports (`pyproject.toml`, `.github/workflows/*.yml` — but see Never Auto-Approve list)
+- Static UI assets (`ui/index.html`, `ui/app.js`, `ui/dashboard.html`) — only when the edit does not touch rendering logic already covered by HIGH_REASONING
+
+**Rule:** Run a quick `grep -n "from cuttingboard\|import cuttingboard"` on the file before skipping. If any line matches, treat the file as HIGH_REASONING, not LEAF_FILE.
+
+**Exception:** Even if a file is a leaf, it remains in the Never Auto-Approve list if it matches a protected pattern (dashboard logic, CI workflows, etc.).
+
+---
+
 ### HIGH_REASONING — stop, collect full context, then reason
 
 - Architecture or data-flow changes
@@ -160,7 +176,7 @@ MUST NOT produce filler prose — every sentence must carry an action or finding
 
 | Checkpoint | Trigger | Required action |
 |---|---|---|
-| Before any Edit/Write | Always | `gitnexus_impact` if symbol is HIGH_REASONING tier |
+| Before any Edit/Write | Always | `gitnexus_impact` if HIGH_REASONING tier; skip if LEAF_FILE (grep confirms no internal imports) |
 | Before commit | Always | Full `pytest`, clean git status, PRD scope check |
 | Before full file read | Always | Attempt grep + snippet first |
 | Before architecture response | Always | Collect evidence; output SUMMARY/EVIDENCE/RISKS/ACTION |

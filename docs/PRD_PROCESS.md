@@ -29,6 +29,19 @@ All PRDs MUST be created from `docs/PRD_TEMPLATE.md`.
 Section names and order MUST NOT deviate:
 `GOAL → SCOPE → OUT OF SCOPE → FILES → REQUIREMENTS → DATA FLOW → FAIL CONDITIONS → VALIDATION`
 
+### Scope Compression
+
+Keep PRDs under 100 lines total. To stay within that limit:
+
+- Write one `FAIL:` line per requirement, not multiple. If a requirement needs more than one FAIL line, split the requirement.
+- `OUT OF SCOPE` and `FAIL CONDITIONS` sections must not repeat each other. OUT OF SCOPE states what won't be built; FAIL CONDITIONS state what breaks the build. Do not copy the same point into both.
+- `VALIDATION` steps are acceptance criteria, not a third restatement of requirements. Write steps only, not explanations.
+- `DATA FLOW` should be one short paragraph or a numbered list under 6 items. Not prose.
+
+If a draft exceeds 100 lines, identify which FAIL lines restate the requirement body and remove the duplicates before implementation starts.
+
+---
+
 ### Per-Requirement Fail Conditions
 Every requirement (R1, R2, ...) MUST include an inline `FAIL:` line.
 FAIL lines MUST be:
