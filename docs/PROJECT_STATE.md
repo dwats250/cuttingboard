@@ -4,6 +4,12 @@ Project: Cutting Board — constraint-driven options trading decision engine
 
 ---
 
+## Git Hygiene
+
+See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-commit sanity checks and artifact cleanup helpers.
+
+---
+
 ## Current State
 
 **Last updated:** 2026-05-04

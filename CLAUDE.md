@@ -250,6 +250,42 @@ A PRD is not complete until the registry reflects it.
 
 ---
 
+## git hygiene and artifact discipline
+
+### Before starting work
+
+- Check current branch: `git branch --show-current`
+- Check status: `git status --short`
+- Do not start with unresolved conflicts.
+- Default to `main` unless the user explicitly names another branch.
+
+### Generated artifacts
+
+- Do not commit `logs/*` or `reports/*` unless the user explicitly requests it.
+- Never use `git add .` during PRD work — stage explicit files only.
+- If in doubt, run `scripts/clean_generated_artifacts.sh` to restore tracked log files to HEAD.
+
+### Before committing
+
+- Show staged files: `git diff --cached --name-only`
+- Warn if `logs/*` or `reports/*` appear in staged set.
+- Confirm recent commits: `git log --oneline -5`
+- Run `scripts/pre_commit_sanity.sh` for a compact checklist.
+
+### Workflow reruns
+
+Do not rerun all workflows blindly. Match issue to workflow:
+
+| Issue | Workflow |
+|-------|----------|
+| Source / test failures | Cuttingboard Pipeline |
+| Dashboard publish | Deploy to GitHub Pages |
+| Notification | Hourly Alert |
+
+Always use `--ref main` unless another branch is explicitly required.
+
+---
+
 ## final rule
 
 When uncertain: simplify → reduce → constrain.
