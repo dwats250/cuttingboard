@@ -22,6 +22,7 @@ _RUN_PATH = Path("logs/latest_run.json")
 _OUTPUT_PATH = Path("reports/output/dashboard.html")
 _UI_INDEX_PATH = Path("ui/index.html")
 _MACRO_SNAPSHOT_PATH = Path("logs/macro_drivers_snapshot.json")
+_HOURLY_CONTRACT_PATH = Path("logs/latest_hourly_contract.json")
 HISTORY_LIMIT = 5
 _DASHBOARD_REFRESH_SECONDS = 30
 
@@ -116,6 +117,8 @@ _CSS = (
     ".UNKNOWN{background:#1a1a1a;color:#555}"
     ".pressure-component{margin-right:0.75rem;display:inline-block}"
     ".pressure-no-data{color:#888;font-style:italic;font-size:0.8rem}"
+    ".lvl-diagram{margin-top:8px;padding-top:6px;border-top:1px solid #1a1a1a}"
+    ".lvl-unavail{color:#555;font-size:0.75rem;font-style:italic;margin-top:6px}"
 )
 
 _UP   = "↑"
@@ -317,7 +320,135 @@ def _resolve_previous_run(logs_dir: Path) -> dict | None:
     return runs[1]
 
 
-def _render_candidate_card(w: object, sym: str, entry: dict) -> None:
+def _render_level_diagram(
+    w: object,
+    contract_entry: float | None,
+    fib_levels: dict | None,
+    watch_zones: list | None,
+) -> None:
+    """Render a deterministic SVG level diagram for a candidate card (PRD-074)."""
+    if contract_entry is None or contract_entry <= 0:
+        w('  <div class="lvl-unavail">Chart unavailable — no price data</div>')
+        return
+
+    vwap_level: float | None = None
+    zone_lines: list[tuple[float, str]] = []
+    for zone in (watch_zones or []):
+        lv = zone.get("level")
+        zt = zone.get("type", "")
+        if lv is None:
+            continue
+        try:
+            lv_f = float(lv)
+        except (TypeError, ValueError):
+            continue
+        if zt == "VWAP":
+            if lv_f > 0:
+                vwap_level = lv_f
+        else:
+            zone_lines.append((lv_f, zt))
+
+    fib_items: list[tuple[float, str]] = []
+    if fib_levels and isinstance(fib_levels, dict):
+        retracements = fib_levels.get("retracements") or {}
+        for label, val in retracements.items():
+            if val is None:
+                continue
+            try:
+                fib_items.append((float(val), str(label)))
+            except (TypeError, ValueError):
+                pass
+
+    all_prices = [contract_entry]
+    if vwap_level is not None:
+        all_prices.append(vwap_level)
+    for lv_f, _ in zone_lines:
+        all_prices.append(lv_f)
+    for lv_f, _ in fib_items:
+        all_prices.append(lv_f)
+
+    p_min = min(all_prices)
+    p_max = max(all_prices)
+    p_span = p_max - p_min
+
+    if p_span < 0.01:
+        p_min = contract_entry * 0.995
+        p_max = contract_entry * 1.005
+        p_span = p_max - p_min
+    else:
+        pad = p_span * 0.12
+        p_min -= pad
+        p_max += pad
+        p_span = p_max - p_min
+
+    SVG_H = 110
+    LINE_W = 160
+    LABEL_X = LINE_W + 4
+    SVG_W = 280
+
+    def _to_y(price: float) -> int:
+        return round(SVG_H * (1.0 - (price - p_min) / p_span))
+
+    w('  <div class="lvl-diagram">')
+    w(
+        f'    <svg width="{SVG_W}" height="{SVG_H}" '
+        f'xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">'
+    )
+    w(f'    <rect width="{LINE_W}" height="{SVG_H}" fill="#0a0a0a"/>')
+
+    for lv_f, label in sorted(fib_items, key=lambda x: x[0], reverse=True):
+        y = _to_y(lv_f)
+        safe = _esc(label[:8])
+        w(
+            f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
+            f'stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>'
+        )
+        w(
+            f'    <text x="{LABEL_X}" y="{y + 4}" font-size="9" '
+            f'fill="#555" font-family="monospace">{safe}</text>'
+        )
+
+    for lv_f, zt in sorted(zone_lines, key=lambda x: x[0], reverse=True):
+        y = _to_y(lv_f)
+        safe = _esc(zt[:10])
+        w(
+            f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
+            f'stroke="#1a4a5a" stroke-width="1"/>'
+        )
+        w(
+            f'    <text x="{LABEL_X}" y="{y + 4}" font-size="9" '
+            f'fill="#3a7a8a" font-family="monospace">{safe}</text>'
+        )
+
+    if vwap_level is not None:
+        y = _to_y(vwap_level)
+        w(
+            f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
+            f'stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>'
+        )
+        w(
+            f'    <text x="{LABEL_X}" y="{y + 4}" font-size="9" '
+            f'fill="#29b6f6" font-family="monospace">VWAP</text>'
+        )
+
+    y = _to_y(contract_entry)
+    w(
+        f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
+        f'stroke="#f5c518" stroke-width="2"/>'
+    )
+    w(f'    <circle cx="3" cy="{y}" r="3" fill="#f5c518"/>')
+    w(
+        f'    <text x="{LABEL_X}" y="{y + 4}" font-size="9" '
+        f'fill="#f5c518" font-family="monospace">ENTRY</text>'
+    )
+
+    w('    </svg>')
+    w('  </div>')
+
+
+def _render_candidate_card(
+    w: object, sym: str, entry: dict, contract_entry: float | None = None
+) -> None:
     grade = entry.get("grade") or ""
     css_class = _GRADE_CSS.get(grade, "unknown")
     is_high = grade in _HIGH_GRADES
@@ -367,6 +498,13 @@ def _render_candidate_card(w: object, sym: str, entry: dict) -> None:
         if reason is not None:
             w(f'  <div class="label">REASON</div><div class="value">{_esc(reason)}</div>')
 
+    _render_level_diagram(
+        w,
+        contract_entry,
+        entry.get("fib_levels"),
+        entry.get("watch_zones"),
+    )
+
     w("</div>")
 
 
@@ -378,6 +516,7 @@ def render_dashboard_html(
     history_runs: list[dict] | None = None,
     market_map: dict | None = None,
     macro_snapshot_path: Path | None = None,
+    contract_entry_map: dict | None = None,
 ) -> str:
     """Return deterministic Signal Forge dashboard HTML.
 
@@ -567,7 +706,10 @@ def render_dashboard_html(
                 w(f'  <div class="tier-group" id="tier-{tier_id}">')
                 w(f'    <div class="tier-header">{_esc(tier_label)} ({len(tier_syms)})</div>')
                 for sym in tier_syms:
-                    _render_candidate_card(w, sym, symbols[sym])
+                    _render_candidate_card(
+                        w, sym, symbols[sym],
+                        contract_entry=(contract_entry_map or {}).get(sym),
+                    )
                 w("  </div>")
         removed_syms: list = market_map.get("removed_symbols") or []
         if removed_syms:
@@ -642,6 +784,7 @@ def write_dashboard(
     market_map: dict | None = None,
     output_path: Path = _OUTPUT_PATH,
     macro_snapshot_path: Path | None = None,
+    contract_entry_map: dict | None = None,
 ) -> None:
     html = render_dashboard_html(
         payload,
@@ -650,11 +793,30 @@ def write_dashboard(
         history_runs=history_runs,
         market_map=market_map,
         macro_snapshot_path=macro_snapshot_path,
+        contract_entry_map=contract_entry_map,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")
     _UI_INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
     _UI_INDEX_PATH.write_text(html, encoding="utf-8")
+
+
+def _build_contract_entry_map(logs_dir: Path) -> dict[str, float]:
+    """Load contract entry prices from latest_hourly_contract.json (best-effort)."""
+    path = logs_dir / _HOURLY_CONTRACT_PATH.name
+    contract = _load_json_optional(path)
+    if not contract:
+        return {}
+    result: dict[str, float] = {}
+    for cand in (contract.get("trade_candidates") or []):
+        sym = cand.get("symbol")
+        val = cand.get("entry")
+        if sym and val is not None:
+            try:
+                result[sym] = float(val)
+            except (TypeError, ValueError):
+                pass
+    return result
 
 
 def main(
@@ -677,9 +839,12 @@ def main(
     )
     history_runs = history_runs[:HISTORY_LIMIT]
 
+    contract_entry_map = _build_contract_entry_map(logs_dir) or None
+
     write_dashboard(
         payload, run, previous_run, history_runs, market_map, output_path,
         macro_snapshot_path=macro_snapshot_path,
+        contract_entry_map=contract_entry_map,
     )
     print(f"Dashboard written: {output_path}")
 

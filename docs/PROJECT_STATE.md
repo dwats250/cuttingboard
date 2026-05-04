@@ -7,16 +7,16 @@ Project: Cutting Board — constraint-driven options trading decision engine
 ## Current State
 
 **Last updated:** 2026-05-03
-**Last completed PRD:** PRD-076 — Dashboard Live Publishing and Layout Finalization
-**Last work completed:** 2026-05-03 (commit 3c6bb76)
+**Last completed PRD:** PRD-074 — Chart Context Layer (Level Diagram)
+**Last work completed:** 2026-05-03
 **Active PRD:** none
-**Deferred PRD:** PRD-074 — Chart Context Layer (Level Diagram) — IN PROGRESS, no commit (deferred)
+**Deferred PRD:** none
 
 ---
 
 ## Test Baseline
 
-- **1879 passing** (as of 2026-05-03)
+- **1890 passing** (as of 2026-05-03)
 - 0 failures, 0 skipped
 
 ---
@@ -25,6 +25,7 @@ Project: Cutting Board — constraint-driven options trading decision engine
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-074 | Chart Context Layer (Level Diagram) | COMPLETE | 2026-05-03 |
 | PRD-076 | Dashboard Live Publishing and Layout Finalization | COMPLETE | 2026-05-03 |
 | PRD-075 | Signal Performance Engine | COMPLETE | — |
 | PRD-073 | Human-Readable Dashboard Trader View | COMPLETE | — |
