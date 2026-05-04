@@ -9,7 +9,7 @@ Project: Cutting Board — constraint-driven options trading decision engine
 **Last updated:** 2026-05-04
 **Last completed PRD:** PRD-080 — Sunday Report Expansion Layer
 **Last work completed:** 2026-05-04 (commit 0cd7e45)
-**Active PRD:** none
+**Active PRD:** PRD-081 — Dashboard Timestamp Display Hardening
 **Deferred PRD:** none
 
 ---

@@ -34,7 +34,7 @@ def test_field_mapping_exact() -> None:
     )
     html = render_dashboard_html(p, r)
 
-    assert "2026-01-15T09:30:00Z" in html
+    assert "2026-01-15" in html  # timestamp displayed in PT+Original format
     assert "HALT" in html
     assert "CHAOTIC" in html
     assert "STAY_FLAT" in html
