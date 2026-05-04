@@ -111,6 +111,56 @@ LOW_COST actions execute without prompting the user for approval. All other acti
 
 ---
 
+## Spot-Read First Policy
+
+Before reading any file, identify the exact function or symbol to verify.
+
+1. Check `docs/CALL_SITE_MAP.md` — if the function is listed, use its line
+   number with `offset+limit` to read directly.
+2. Check `docs/SCHEMA_MAP.md` — if the field is listed, no read needed.
+3. If not found in either map, use `grep` to locate the symbol.
+4. Only after location is known: read the targeted lines.
+5. Full-file reads are only permitted when:
+   - function location is unknown after grep
+   - module structure is unknown
+   - multiple consumers require broad audit
+
+**FAILURE (F2 applies):** Full-file read performed before function target was
+identified via grep, CALL_SITE_MAP.md, or snippet.
+
+---
+
+## [UNVERIFIED] Annotation Standard
+
+When a PRD or review proposes a field path, function name, or module behavior
+that cannot be confirmed from `docs/SCHEMA_MAP.md` or `docs/CALL_SITE_MAP.md`:
+
+- Mark it `[UNVERIFIED]` in the PRD.
+- Do not guess or invent. Do not proceed to implementation on an unverified
+  field.
+- During review: verify the specific symbol only — not the whole file.
+- After verification: update `docs/SCHEMA_MAP.md` or `docs/CALL_SITE_MAP.md`
+  with the confirmed path.
+
+**FAILURE:** PRD accepted for implementation with an `[UNVERIFIED]` field that
+was never resolved.
+
+---
+
+## PRD Review Read Budget
+
+Before beginning any PRD review or implementation:
+
+1. State the target functions and fields to verify.
+2. State the file and line for each (from CALL_SITE_MAP.md if available).
+3. State why each read is needed.
+4. If a full-file read is required, explain why targeted reads were insufficient.
+
+Review output must contain only: Strengths, Blockers, Exact fixes, Registry
+readiness verdict. No broad summaries of unrelated modules.
+
+---
+
 ## Command-First Workflow
 
 Execute in this order. Do not skip ahead.

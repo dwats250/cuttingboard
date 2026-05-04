@@ -48,6 +48,12 @@ LOW_COST read-only actions (grep, find, git status/diff/log, targeted reads, pyt
 - Raise errors instead of silently handling invalid states
 - All changes must preserve contract integrity, notification behavior, and decision logic
 
+**Spot-Read First Policy:**
+Before reading any file, identify the exact function or symbol to verify. Use `offset+limit` reads or grep to go directly to it. Do not read a full file unless the function location is unknown, symbol lookup fails, or a broad consumer audit is required. Check `docs/CALL_SITE_MAP.md` for known function line numbers before scanning.
+
+**[UNVERIFIED] annotation:**
+If a field path, function signature, or module behavior in a PRD cannot be immediately confirmed from `docs/SCHEMA_MAP.md` or `docs/CALL_SITE_MAP.md`, mark it `[UNVERIFIED]` in the PRD. Do not guess. Verify the specific symbol before implementing — not the whole file.
+
 ---
 
 ## instrument universe
