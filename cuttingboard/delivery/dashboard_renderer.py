@@ -311,6 +311,80 @@ def _build_pressure_snapshot(macro_drivers: dict, market_map: dict | None) -> di
         return None
 
 
+def _pct_label(change_pct: float | None, high_label: str, low_label: str) -> str:
+    if change_pct is None:
+        return "unavailable"
+    if change_pct > 0.3:
+        return high_label
+    if change_pct < -0.3:
+        return low_label
+    return "flat"
+
+
+def _metal_label(sym: str, entry: dict | None) -> str:
+    if entry is None:
+        return f"{sym}: unavailable"
+    grade = entry.get("grade") or ""
+    change_pct = entry.get("change_pct")
+    direction = "up" if (change_pct or 0) > 0 else "down" if (change_pct or 0) < 0 else "flat"
+    return f"{sym}: {grade} ({direction})" if grade else f"{sym}: {direction}"
+
+
+def _build_sunday_context(
+    macro_drivers: dict,
+    market_regime: str | None,
+    market_map: dict | None,
+) -> dict:
+    drivers = macro_drivers or {}
+    dollar_pct = (drivers.get("dollar") or {}).get("change_pct")
+    rates_pct = (drivers.get("rates") or {}).get("change_pct")
+    vix_level = (drivers.get("volatility") or {}).get("level")
+    vix_pct = (drivers.get("volatility") or {}).get("change_pct")
+    btc_pct = (drivers.get("bitcoin") or {}).get("change_pct")
+
+    dollar_context = _pct_label(dollar_pct, "dollar strengthening", "dollar weakening")
+    rates_context = _pct_label(rates_pct, "rates rising", "rates falling")
+
+    if vix_level is None:
+        volatility_context = "volatility unavailable"
+    elif vix_level > 25:
+        volatility_context = f"elevated volatility (VIX {vix_level:.1f})"
+    elif vix_level < 18:
+        volatility_context = f"low volatility (VIX {vix_level:.1f})"
+    else:
+        volatility_context = f"moderate volatility (VIX {vix_level:.1f})"
+    if vix_pct is not None and vix_pct > 15:
+        volatility_context += " — chaotic spike"
+
+    symbols: dict = (market_map or {}).get("symbols") or {}
+    metals_parts = [_metal_label(sym, symbols.get(sym)) for sym in ("GLD", "SLV", "GDX")]
+    metals_context = " | ".join(metals_parts)
+
+    risk_context = _pct_label(btc_pct, "risk appetite present", "risk-off signal")
+
+    posture = market_regime or "UNKNOWN"
+    if posture in ("RISK_ON", "AGGRESSIVE_LONG", "CONTROLLED_LONG"):
+        monday_watch = "Watch for confirmation of risk-on bias before Monday open"
+    elif posture in ("RISK_OFF", "DEFENSIVE_SHORT"):
+        monday_watch = "Monitor risk pressure — watch for rejection at resistance"
+    elif posture == "CHAOTIC":
+        monday_watch = "No trade decision before cash session — chaotic conditions"
+    else:
+        monday_watch = "Watch for confirmation before Monday cash session"
+
+    return {
+        "session_type": "SUNDAY_PREMARKET",
+        "headline": "Sunday Macro Context — No Cash Session",
+        "macro_posture": posture,
+        "dollar_context": dollar_context,
+        "rates_context": rates_context,
+        "volatility_context": volatility_context,
+        "metals_context": metals_context,
+        "risk_context": risk_context,
+        "monday_watch": monday_watch,
+    }
+
+
 def _resolve_previous_run(logs_dir: Path) -> dict | None:
     run_files = sorted(logs_dir.glob("run_*.json"))
     if len(run_files) < 2:
@@ -654,6 +728,31 @@ def render_dashboard_html(
       f'<div class="value">{_esc(status)}</div></div>')
     w("  </div>")
     w("</div>")
+
+    # --- sunday-macro-context (SUNDAY_PREMARKET only) ---
+    if session_type == "SUNDAY_PREMARKET":
+        ctx = _build_sunday_context(macro_drivers, market_regime, market_map)
+        w('<div class="block" id="sunday-macro-context" style="border-color:#29b6f6">')
+        w(f'  <h2>{_esc(ctx["headline"])}</h2>')
+        w('  <div class="row">')
+        w(f'    <div class="field"><div class="label">Posture</div>'
+          f'<div class="value">{_esc(ctx["macro_posture"])}</div></div>')
+        w(f'    <div class="field"><div class="label">Dollar</div>'
+          f'<div class="value">{_esc(ctx["dollar_context"])}</div></div>')
+        w(f'    <div class="field"><div class="label">Rates</div>'
+          f'<div class="value">{_esc(ctx["rates_context"])}</div></div>')
+        w('  </div>')
+        w('  <div class="row">')
+        w(f'    <div class="field"><div class="label">Volatility</div>'
+          f'<div class="value">{_esc(ctx["volatility_context"])}</div></div>')
+        w(f'    <div class="field"><div class="label">Risk Sentiment</div>'
+          f'<div class="value">{_esc(ctx["risk_context"])}</div></div>')
+        w('  </div>')
+        w(f'  <div class="field"><div class="label">Metals</div>'
+          f'<div class="value">{_esc(ctx["metals_context"])}</div></div>')
+        w(f'  <div class="field" style="margin-top:8px"><div class="label">Monday Watch</div>'
+          f'<div class="value">{_esc(ctx["monday_watch"])}</div></div>')
+        w("</div>")
 
     # --- macro-tape ---
     w('<div class="block" id="macro-tape">')
