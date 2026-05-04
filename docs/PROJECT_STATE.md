@@ -6,9 +6,9 @@ Project: Cutting Board — constraint-driven options trading decision engine
 
 ## Current State
 
-**Last updated:** 2026-05-03
-**Last completed PRD:** PRD-079 — PRD Review Token Efficiency Guardrails
-**Last work completed:** 2026-05-03 (commit 9e0aca7)
+**Last updated:** 2026-05-04
+**Last completed PRD:** PRD-080 — Sunday Report Expansion Layer
+**Last work completed:** 2026-05-04 (commit 0cd7e45)
 **Active PRD:** none
 **Deferred PRD:** none
 
@@ -16,7 +16,7 @@ Project: Cutting Board — constraint-driven options trading decision engine
 
 ## Test Baseline
 
-- **1890 passing** (as of 2026-05-03)
+- **1951 passing** (as of 2026-05-04)
 - 0 failures, 0 skipped
 
 ---
