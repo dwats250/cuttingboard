@@ -2,10 +2,11 @@
 
 Project: Cutting Board
 
-Latest completed PRD: PRD-073
+Latest completed PRD: PRD-076
 Current active PRD: none
 
 Status:
+- PRD-076 COMPLETE (Dashboard Live Publishing and Layout Finalization)
 - PRD-071 COMPLETE (Trading Process Review Scorecard)
 - PRD-070 COMPLETE (Manual Trade Journal and Mistake Taxonomy)
 - PRD-069 COMPLETE (Entry Quality and Chase Filter)
