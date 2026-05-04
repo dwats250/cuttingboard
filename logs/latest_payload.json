@@ -1,13 +1,13 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 1.8408067117648714,
-      "level": 80005.0,
+      "change_pct": 1.7032437609635065,
+      "level": 79896.7890625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.3744482778671978,
-      "level": 98.37699890136719,
+      "change_pct": 0.47647712384365165,
+      "level": 98.47699737548828,
       "symbol": "DX-Y.NYB"
     },
     "rates": {
@@ -17,14 +17,14 @@
       "symbol": "^TNX"
     },
     "volatility": {
-      "change_pct": 8.480568744867963,
-      "level": 18.420000076293945,
+      "change_pct": 7.714967070714559,
+      "level": 18.290000915527344,
       "symbol": "^VIX"
     }
   },
   "meta": {
     "symbols_scanned": 0,
-    "timestamp": "2026-05-04T19:18:43Z"
+    "timestamp": "2026-05-04T20:43:05Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -45,9 +45,7 @@
     "validation_halt_detail": {
       "reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.25)"
     },
-    "watch_summary_detail": {
-      "session": "POWER_HOUR"
-    },
+    "watch_summary_detail": null,
     "watchlist": []
   },
   "summary": {

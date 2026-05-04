@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.01937050227267806,
-      "price": 147.35000610351562,
+      "pct_change_decimal": 0.021169149846776553,
+      "price": 147.61000061035156,
       "structure": "TRENDING_UP",
       "symbol": "USO"
     }
@@ -12,7 +12,7 @@
     "fib_deferred_symbols": [],
     "unavailable_symbols": []
   },
-  "generated_at": "2026-05-04T19:18:43Z",
+  "generated_at": "2026-05-04T20:43:05Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -26,13 +26,14 @@
   "session_date": "2026-05-04",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-05-04T19:18:43Z"
+    "run_at_utc": "2026-05-04T20:43:05Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
+      "current_price": 85.6500015258789,
       "fib_levels": {
         "retracements": {
           "0.382": 96.1023,
@@ -75,17 +76,17 @@
       "watch_zones": [
         {
           "context": "session vwap",
-          "level": 85.7614,
+          "level": 85.7062,
           "type": "VWAP"
         },
         {
           "context": "opening range low",
-          "level": 85.97,
+          "level": 86.01,
           "type": "ORB_LOW"
         },
         {
           "context": "opening range high",
-          "level": 86.08,
+          "level": 86.12,
           "type": "ORB_HIGH"
         },
         {
@@ -108,6 +109,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
+      "current_price": 414.7099914550781,
       "fib_levels": {
         "retracements": {
           "0.382": 435.5057,
@@ -150,17 +152,17 @@
       "watch_zones": [
         {
           "context": "session vwap",
-          "level": 414.9382,
+          "level": 414.9212,
           "type": "VWAP"
         },
         {
           "context": "opening range low",
-          "level": 415.7,
+          "level": 415.32,
           "type": "ORB_LOW"
         },
         {
           "context": "opening range high",
-          "level": 416.04,
+          "level": 415.75,
           "type": "ORB_HIGH"
         },
         {
@@ -182,11 +184,6 @@
           "context": "primary trend reference",
           "level": 431.1699,
           "type": "EMA21"
-        },
-        {
-          "context": "trend base reference",
-          "level": 435.7784,
-          "type": "EMA50"
         }
       ],
       "what_to_look_for": [
@@ -198,6 +195,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
+      "current_price": 672.8800048828125,
       "fib_levels": {
         "retracements": {
           "0.382": 638.6983,
@@ -210,7 +208,7 @@
       },
       "grade": "D",
       "invalidation": [
-        "loses ORB_LOW with weak recovery",
+        "loses VWAP with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
@@ -231,7 +229,7 @@
       "trade_framing": {
         "direction": "NEUTRAL",
         "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for reset toward ORB_LOW before defining risk",
+        "entry": "wait for reset toward VWAP before defining risk",
         "if_now": "WAIT",
         "setup": "index extended bullish structure",
         "trade_type": "none",
@@ -239,19 +237,19 @@
       },
       "watch_zones": [
         {
-          "context": "opening range low",
-          "level": 672.96,
-          "type": "ORB_LOW"
-        },
-        {
           "context": "session vwap",
-          "level": 672.3608,
+          "level": 672.6317,
           "type": "VWAP"
         },
         {
           "context": "opening range high",
-          "level": 673.4,
+          "level": 673.3199,
           "type": "ORB_HIGH"
+        },
+        {
+          "context": "opening range low",
+          "level": 672.36,
+          "type": "ORB_LOW"
         },
         {
           "context": "prior session high",
@@ -275,7 +273,7 @@
         }
       ],
       "what_to_look_for": [
-        "look for reset toward ORB_LOW",
+        "look for reset toward VWAP",
         "watch for cleaner compression"
       ]
     },
@@ -283,6 +281,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
+      "current_price": 65.94000244140625,
       "fib_levels": {
         "retracements": {
           "0.382": 70.5913,
@@ -325,17 +324,17 @@
       "watch_zones": [
         {
           "context": "session vwap",
-          "level": 65.8163,
+          "level": 65.8803,
           "type": "VWAP"
         },
         {
           "context": "opening range low",
-          "level": 66.15,
+          "level": 65.875,
           "type": "ORB_LOW"
         },
         {
           "context": "opening range high",
-          "level": 66.29,
+          "level": 66.09,
           "type": "ORB_HIGH"
         },
         {
@@ -363,6 +362,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
+      "current_price": 718.010009765625,
       "fib_levels": {
         "retracements": {
           "0.382": 696.6746,
@@ -405,17 +405,17 @@
       "watch_zones": [
         {
           "context": "session vwap",
-          "level": 718.2144,
+          "level": 717.8764,
           "type": "VWAP"
         },
         {
           "context": "opening range low",
-          "level": 717.91,
+          "level": 717.78,
           "type": "ORB_LOW"
         },
         {
           "context": "opening range high",
-          "level": 718.52,
+          "level": 718.61,
           "type": "ORB_HIGH"
         },
         {
@@ -453,6 +453,7 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "LOW",
+      "current_price": 59.38999938964844,
       "fib_levels": {
         "retracements": {
           "0.382": 57.9585,
@@ -495,17 +496,17 @@
       "watch_zones": [
         {
           "context": "session vwap",
-          "level": 59.2961,
+          "level": 59.3235,
           "type": "VWAP"
         },
         {
           "context": "opening range high",
-          "level": 59.24,
+          "level": 59.265,
           "type": "ORB_HIGH"
         },
         {
           "context": "opening range low",
-          "level": 59.145,
+          "level": 59.204,
           "type": "ORB_LOW"
         },
         {

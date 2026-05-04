@@ -19,16 +19,16 @@
     "score": 1,
     "state": "ALIGNED"
   },
-  "generated_at": "2026-05-04T19:18:43Z",
+  "generated_at": "2026-05-04T20:43:05Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 1.8408067117648714,
-      "level": 80005.0,
+      "change_pct": 1.7032437609635065,
+      "level": 79896.7890625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.3744482778671978,
-      "level": 98.37699890136719,
+      "change_pct": 0.47647712384365165,
+      "level": 98.47699737548828,
       "symbol": "DX-Y.NYB"
     },
     "rates": {
@@ -38,8 +38,8 @@
       "symbol": "^TNX"
     },
     "volatility": {
-      "change_pct": 8.480568744867963,
-      "level": 18.420000076293945,
+      "change_pct": 7.714967070714559,
+      "level": 18.290000915527344,
       "symbol": "^VIX"
     }
   },
@@ -61,8 +61,8 @@
     "risk_off_votes": 3,
     "risk_on_votes": 1,
     "total_votes": 8,
-    "vix_level": 18.420000076293945,
-    "vix_pct_change": 0.08480568744867963,
+    "vix_level": 18.290000915527344,
+    "vix_pct_change": 0.0771496707071456,
     "vote_breakdown": {
       "BTC pct_change": "RISK_ON",
       "DXY pct_change": "RISK_OFF",
@@ -86,11 +86,11 @@
   "session_date": "2026-05-04",
   "status": "STAY_FLAT",
   "system_state": {
-    "intraday_state": "POWER_HOUR",
+    "intraday_state": null,
     "market_regime": "RISK_OFF",
     "router_mode": "MIXED",
     "stay_flat_reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.25)",
-    "time_gate_open": true,
+    "time_gate_open": false,
     "tradable": false
   },
   "timezone": "America/New_York",
