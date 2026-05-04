@@ -189,7 +189,7 @@ jobs:
         run: |
           set -eo pipefail
           echo "=== START power_hour ==="
-          python -m cuttingboard --mode power_hour --notify-mode power_hour
+          python -m cuttingboard --mode live --notify-mode power_hour
           echo "=== END power_hour ==="
 
       # --- Generate commit message from latest_run.json (live and sunday only) ---
