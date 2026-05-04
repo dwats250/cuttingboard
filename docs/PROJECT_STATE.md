@@ -13,8 +13,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-04
-**Last completed PRD:** PRD-083 — Dashboard Data Freshness and Source Visibility
-**Last work completed:** 2026-05-04 (commit b67ac8a)
+**Last completed PRD:** PRD-084 — Populate market_map current_price
+**Last work completed:** 2026-05-04 (commit b995d93)
 **Active PRD:** none
 **Deferred PRD:** none
 
@@ -22,7 +22,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 ## Test Baseline
 
-- **1966 passing** (as of 2026-05-04)
+- **1969 passing** (as of 2026-05-04)
 - 0 failures, 0 skipped
 
 ---
@@ -31,6 +31,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-084 | Populate market_map current_price | COMPLETE | 2026-05-04 |
 | PRD-083 | Dashboard Data Freshness and Source Visibility | COMPLETE | 2026-05-04 |
 | PRD-074 | Chart Context Layer (Level Diagram) | COMPLETE | 2026-05-03 |
 | PRD-076 | Dashboard Live Publishing and Layout Finalization | COMPLETE | 2026-05-03 |
