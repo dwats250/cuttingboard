@@ -1,8 +1,8 @@
 {
   "artifacts": {
-    "log_path": "logs/latest_run.json",
+    "log_path": "logs/latest_hourly_run.json",
     "notification_sent": false,
-    "report_path": "reports/2026-05-04.md"
+    "report_path": "reports/output/hourly_report.html"
   },
   "audit_summary": {
     "continuation_accepted_count": null,
@@ -12,23 +12,17 @@
     "qualified_count": 0,
     "rejected_count": 0
   },
-  "correlation": {
-    "dollar_symbol": "DX-Y.NYB",
-    "gold_symbol": "GLD",
-    "risk_modifier": 1.0,
-    "score": 1,
-    "state": "ALIGNED"
-  },
-  "generated_at": "2026-05-04T19:18:43Z",
+  "correlation": null,
+  "generated_at": "2026-05-04T20:03:05Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 1.8408067117648714,
-      "level": 80005.0,
+      "change_pct": 1.784748044783685,
+      "level": 79960.9609375,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.3744482778671978,
-      "level": 98.37699890136719,
+      "change_pct": 0.41220214244229514,
+      "level": 98.41400146484375,
       "symbol": "DX-Y.NYB"
     },
     "rates": {
@@ -38,8 +32,8 @@
       "symbol": "^TNX"
     },
     "volatility": {
-      "change_pct": 8.480568744867963,
-      "level": 18.420000076293945,
+      "change_pct": 7.479390412259153,
+      "level": 18.25,
       "symbol": "^VIX"
     }
   },
@@ -47,7 +41,7 @@
     "continuation_enabled": false,
     "data_quality": "ok",
     "expansion_regime": null,
-    "imbalance_enabled": false,
+    "imbalance_enabled": null,
     "stale_data_detected": false
   },
   "mode": "live",
@@ -61,8 +55,8 @@
     "risk_off_votes": 3,
     "risk_on_votes": 1,
     "total_votes": 8,
-    "vix_level": 18.420000076293945,
-    "vix_pct_change": 0.08480568744867963,
+    "vix_level": 18.25,
+    "vix_pct_change": 0.07479390412259153,
     "vote_breakdown": {
       "BTC pct_change": "RISK_ON",
       "DXY pct_change": "RISK_OFF",
@@ -74,23 +68,16 @@
       "VIX pct_change": "RISK_OFF"
     }
   },
-  "rejections": [
-    {
-      "detail": null,
-      "reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.25)",
-      "stage": "REGIME",
-      "symbol": "REGIME"
-    }
-  ],
+  "rejections": [],
   "schema_version": "v2",
   "session_date": "2026-05-04",
   "status": "STAY_FLAT",
   "system_state": {
-    "intraday_state": "POWER_HOUR",
+    "intraday_state": null,
     "market_regime": "RISK_OFF",
     "router_mode": "MIXED",
-    "stay_flat_reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.25)",
-    "time_gate_open": true,
+    "stay_flat_reason": "STAY_FLAT posture",
+    "time_gate_open": false,
     "tradable": false
   },
   "timezone": "America/New_York",
