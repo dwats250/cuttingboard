@@ -57,7 +57,7 @@ def test_macro_tape_no_crash_when_market_map_none() -> None:
 
 def test_macro_tape_value_row_present() -> None:
     html = render_dashboard_html(_payload(), _run())
-    assert 'class="macro-tape-values"' in _macro_tape_block(html)
+    assert 'class="macro-tape-grid"' in _macro_tape_block(html)
 
 
 def test_macro_tape_value_row_slot_order() -> None:
@@ -218,25 +218,25 @@ def test_macro_no_data_banner_absent_when_data_present() -> None:
 def test_tape_slot_up_class() -> None:
     p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.0, tnx=0.0, btc=0.0))
     html = render_dashboard_html(p, _run())
-    assert 'class="tape-slot up"' in html
+    assert 'tape-slot up' in html
 
 
 def test_tape_slot_down_class() -> None:
     p = _payload(macro_drivers=_macro_drivers(vix=-0.05, dxy=0.0, tnx=0.0, btc=0.0))
     html = render_dashboard_html(p, _run())
-    assert 'class="tape-slot down"' in html
+    assert 'tape-slot down' in html
 
 
 def test_tape_slot_flat_class() -> None:
     p = _payload(macro_drivers=_macro_drivers(vix=0.0, dxy=0.0, tnx=0.0, btc=0.0))
     html = render_dashboard_html(p, _run())
-    assert 'class="tape-slot flat"' in html
+    assert 'tape-slot flat' in html
 
 
 def test_tape_slot_na_class() -> None:
     # macro_drivers={} → all slots are dashes → class "na"
     html = render_dashboard_html(_payload(), _run())
-    assert 'class="tape-slot na"' in html
+    assert 'tape-slot na' in html
 
 
 # ---------------------------------------------------------------------------
