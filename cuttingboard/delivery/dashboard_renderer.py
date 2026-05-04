@@ -155,7 +155,12 @@ _CSS = (
     "h2{font-size:0.8rem;color:#888;text-transform:uppercase;"
     "letter-spacing:0.08em;margin-bottom:0.75rem}"
     ".sep{border-top:1px solid #1a1a1a;margin:0.5rem 0}"
-    ".tape-slot{display:inline;margin-right:0.5rem;white-space:nowrap}"
+    ".tape-slot{white-space:nowrap}"
+    ".macro-tape-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));"
+    "gap:6px 12px;margin-top:6px}"
+    ".macro-tape-slot{white-space:nowrap}"
+    ".macro-tape-label{margin-right:0.25rem}"
+    ".macro-tape-value{opacity:0.85}"
     ".candidate-card{border-left:3px solid #2a2a2a;padding:0.75rem;margin-bottom:0.5rem}"
     ".grade-aplus{border-left-color:#4caf50}"
     ".grade-a{border-left-color:#8bc34a}"
@@ -858,16 +863,16 @@ def render_dashboard_html(
     w("  <h2>Macro Tape</h2>")
     if (not macro_drivers) or all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values()):
         w('  <div class="tape-no-data">NO LIVE MACRO DATA</div>')
-    tape_parts = [
-        f'<span class="tape-slot {_ARROW_CSS.get(arrow, "na")}">{_esc(label)} {_esc(arrow)}</span>'
+    tape_value_map = dict(tape_value_slots)
+    combined_slots = [
+        f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(arrow, "na")}">'
+        f'<span class="macro-tape-label">{_esc(label)} {_esc(arrow)}</span>'
+        f'<span class="macro-tape-value" data-symbol="{_esc(label)}">'
+        f'{_esc(tape_value_map.get(label, ""))}</span>'
+        f'</span>'
         for label, arrow in tape_slots
     ]
-    w("  <div>" + " | ".join(tape_parts) + "</div>")
-    value_parts = [
-        f'<span class="macro-tape-value" data-symbol="{_esc(label)}">{_esc(value)}</span>'
-        for label, value in tape_value_slots
-    ]
-    w('  <div class="macro-tape-values">' + " | ".join(value_parts) + "</div>")
+    w('  <div class="macro-tape-grid">' + "".join(combined_slots) + "</div>")
     w(f'  <div class="{_esc(macro_bias_css)}">{_esc(macro_bias)}</div>')
     w("</div>")
 

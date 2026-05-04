@@ -128,11 +128,9 @@ def _macro_tape_block(html: str) -> str:
 
 def _macro_tape_value_slots(html: str) -> list[tuple[str, str]]:
     block = _macro_tape_block(html)
-    value_row = re.search(r'<div class="macro-tape-values">(.*?)</div>', block, re.DOTALL)
-    assert value_row is not None
     return re.findall(
         r'<span class="macro-tape-value" data-symbol="([^"]+)">([^<]+)</span>',
-        value_row.group(1),
+        block,
     )
 
 
