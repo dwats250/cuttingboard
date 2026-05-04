@@ -116,7 +116,7 @@ def test_macro_tape_value_row_etf_fallback_when_market_map_none() -> None:
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=None)
     slots = dict(_macro_tape_value_slots(html))
     for symbol in ("SPY", "QQQ", "GLD", "SLV", "XLE"):
-        assert slots[symbol] == "--"
+        assert slots[symbol] == "DATA_UNAVAILABLE"
 
 
 def test_macro_tape_value_row_missing_macro_driver_level_uses_fallback() -> None:
@@ -143,14 +143,14 @@ def test_macro_tape_value_row_boolean_macro_driver_level_uses_fallback() -> None
 def test_macro_tape_value_row_boolean_current_price_uses_fallback() -> None:
     mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": False}})
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=mm)
-    assert dict(_macro_tape_value_slots(html))["SPY"] == "--"
+    assert dict(_macro_tape_value_slots(html))["SPY"] == "DATA_UNAVAILABLE"
 
 
 def test_macro_tape_row1_fallback_marker_distinct_from_value_row_fallback() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=None)
     tape = _macro_tape_block(html)
     assert "SPY —" in tape
-    assert dict(_macro_tape_value_slots(html))["SPY"] == "--"
+    assert dict(_macro_tape_value_slots(html))["SPY"] == "DATA_UNAVAILABLE"
 
 
 def test_macro_tape_macro_bias_text_unchanged_with_value_row() -> None:

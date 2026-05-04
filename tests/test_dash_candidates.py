@@ -22,14 +22,14 @@ def test_candidate_board_present() -> None:
 def test_candidate_board_market_map_absent() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=None)
     assert 'id="candidate-board"' in html
-    assert "MARKET MAP UNAVAILABLE" in html
+    assert "SOURCE_MISSING" in html
 
 
 def test_candidate_board_empty_symbols() -> None:
     mm   = _market_map({})
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
     assert 'id="candidate-board"' in html
-    assert "No candidates evaluated this run." in html
+    assert "NO_CANDIDATES" in html
 
 
 def test_candidate_board_sort_order() -> None:
@@ -288,7 +288,7 @@ def test_sort_deterministic() -> None:
 
 def test_render_accepts_market_map_none() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=None)
-    assert "MARKET MAP UNAVAILABLE" in html
+    assert "SOURCE_MISSING" in html
 
 
 def test_render_accepts_market_map_dict() -> None:

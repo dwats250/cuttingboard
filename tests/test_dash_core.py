@@ -123,9 +123,10 @@ def test_run_delta_present_with_previous_run() -> None:
     assert 'id="run-delta"' in html
 
 
-def test_run_delta_hidden_without_previous_run() -> None:
+def test_run_delta_source_missing_without_previous_run() -> None:
     html = render_dashboard_html(_payload(), _run(), previous_run=None)
-    assert 'id="run-delta"' not in html
+    assert 'id="run-delta"' in html
+    assert "SOURCE_MISSING" in html.split('id="run-delta"', 1)[1]
 
 
 # ---------------------------------------------------------------------------
@@ -179,7 +180,7 @@ def test_run_delta_section_label_old_delta_absent() -> None:
 def test_empty_candidates_message() -> None:
     mm = _market_map({})
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
-    assert "No candidates evaluated this run." in html
+    assert "NO_CANDIDATES" in html
 
 
 def test_empty_candidates_no_error() -> None:

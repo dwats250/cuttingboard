@@ -13,6 +13,8 @@ from __future__ import annotations
 import html as _html
 import json
 import math
+import os
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -27,6 +29,7 @@ _MACRO_SNAPSHOT_PATH = Path("logs/macro_drivers_snapshot.json")
 _HOURLY_CONTRACT_PATH = Path("logs/latest_hourly_contract.json")
 HISTORY_LIMIT = 5
 _DASHBOARD_REFRESH_SECONDS = 30
+DASHBOARD_STALE_AFTER_SECONDS = 300
 
 _GRADE_ORDER: dict[str, int] = {"A+": 0, "A": 1, "B": 2, "C": 3, "D": 4, "F": 5}
 
@@ -73,6 +76,37 @@ def format_dashboard_timestamp(value: str) -> tuple[str, str]:
         return pacific_line, cleaned
     except Exception:
         return "", cleaned
+
+
+def _compute_timestamp_freshness(value: str) -> str:
+    """Return FRESH, STALE, or PARSE_ERROR based on age of a timestamp string."""
+    try:
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        age = (datetime.now(tz=timezone.utc) - dt).total_seconds()
+        return "STALE" if age > DASHBOARD_STALE_AFTER_SECONDS else "FRESH"
+    except (ValueError, TypeError):
+        return "PARSE_ERROR"
+
+
+def _resolve_market_map(path: Path) -> tuple[str, dict | None]:
+    """Load market_map from path and return (status, data).
+
+    status: SOURCE_MISSING | PARSE_ERROR | STALE | FRESH
+    data: loaded dict, or None on error/missing
+    """
+    if not path.exists():
+        return "SOURCE_MISSING", None
+    try:
+        mtime_age = time.time() - os.path.getmtime(path)
+    except OSError:
+        return "SOURCE_MISSING", None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return "PARSE_ERROR", None
+    if mtime_age > DASHBOARD_STALE_AFTER_SECONDS:
+        return "STALE", data
+    return "FRESH", data
 
 
 def _is_sunday_pt(value: str) -> bool:
@@ -313,7 +347,10 @@ def _build_tape_value_slots(
     for sym in _TAPE_MM_SYMBOLS:
         entry = symbols.get(sym)
         value = entry.get("current_price") if isinstance(entry, dict) else None
-        slots.append((sym, _format_tape_value(sym, value)))
+        if _is_finite_number(value):
+            slots.append((sym, _format_tape_value(sym, value)))
+        else:
+            slots.append((sym, "DATA_UNAVAILABLE"))
 
     return slots
 
@@ -633,6 +670,7 @@ def render_dashboard_html(
     previous_run: dict | None = None,
     history_runs: list[dict] | None = None,
     market_map: dict | None = None,
+    market_map_path: Path | None = None,
     macro_snapshot_path: Path | None = None,
     contract_entry_map: dict | None = None,
     fixture_mode: bool = False,
@@ -641,6 +679,14 @@ def render_dashboard_html(
 
     No payload or run mutation. No engine calls.
     """
+    # Resolve market_map from path if not provided directly; compute status for candidate board.
+    if market_map is not None:
+        _mm_status = "FRESH"
+    elif market_map_path is not None:
+        _mm_status, market_map = _resolve_market_map(market_map_path)
+    else:
+        _mm_status = "SOURCE_MISSING"
+
     timestamp     = _req(payload, "meta", "timestamp")
     status        = _req(run, "status")
     market_regime = _req(payload, "summary", "market_regime")
@@ -724,6 +770,7 @@ def render_dashboard_html(
         from cuttingboard.delivery.fixtures import FIXTURE_SYMBOLS
         market_map = dict(market_map) if market_map is not None else {}
         market_map = {**market_map, "symbols": FIXTURE_SYMBOLS}
+        _mm_status = "FRESH"
 
     # --- system-state (with run-health folded in) ---
     regime_cls = _esc(market_regime)
@@ -767,10 +814,12 @@ def render_dashboard_html(
     w(f'  <h2>{_esc(title)}</h2>')
     w('  <div class="row">')
     _ts_pacific, _ts_original = format_dashboard_timestamp(str(timestamp))
+    _ts_freshness = _compute_timestamp_freshness(str(timestamp))
     w('    <div class="field"><div class="label">Timestamp</div>')
     if _ts_pacific:
         w(f'<div class="value">Pacific: {_esc(_ts_pacific)}</div>')
-    w(f'<div class="value">Original: {_esc(_ts_original)}</div></div>')
+    w(f'<div class="value">Original: {_esc(_ts_original)}</div>')
+    w(f'<div class="value">{_esc(_ts_freshness)}</div></div>')
     w(f'    <div class="field"><div class="label">Status</div>'
       f'<div class="value">{_esc(status)}</div></div>')
     w("  </div>")
@@ -830,16 +879,19 @@ def render_dashboard_html(
         w('  <div class="pressure-no-data">NO PRESSURE DATA</div>')
     if (not macro_drivers) or all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values()):
         w('  <div class="pressure-no-data">NO PRESSURE DATA</div>')
+    elif not isinstance(pressure, dict):
+        w('  <div class="pressure-no-data">FIELD_MISSING</div>')
     else:
         component_parts = [
             f'<span class="pressure-component">'
             f'<span class="label">{_esc(label)}</span> '
-            f'<span class="badge {_esc(pressure[key])}">{_esc(pressure[key])}</span>'
+            f'<span class="badge {_esc(pressure.get(key, "FIELD_MISSING"))}">'
+            f'{_esc(pressure.get(key, "FIELD_MISSING"))}</span>'
             f'</span>'
             for key, label in _PRESSURE_COMPONENT_LABELS
         ]
         w("  <div>" + "".join(component_parts) + "</div>")
-        overall = pressure.get("overall_pressure", "UNKNOWN")
+        overall = pressure.get("overall_pressure", "FIELD_MISSING")
         w(f'  <div style="margin-top:6px"><span class="label">Overall</span> '
           f'<span class="badge {_esc(overall)}">{_esc(overall)}</span></div>')
     w("</div>")
@@ -850,48 +902,57 @@ def render_dashboard_html(
         w('  <h2>Candidate Board &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h2>')
     else:
         w("  <h2>Candidate Board</h2>")
-    if market_map is None:
-        w('  <div class="unavailable">MARKET MAP UNAVAILABLE</div>')
+    if _mm_status in ("SOURCE_MISSING", "PARSE_ERROR"):
+        w(f'  <div class="unavailable">{_esc(_mm_status)}</div>')
     else:
-        symbols: dict = market_map.get("symbols") or {}
-        if not symbols:
-            w('  <div class="unavailable">No candidates evaluated this run.</div>')
+        if _mm_status == "STALE":
+            w('  <div class="unavailable">STALE</div>')
+        if market_map is None:
+            w('  <div class="unavailable">DATA_UNAVAILABLE</div>')
         else:
-            sorted_syms = sorted(
-                symbols.keys(),
-                key=lambda sym: (_GRADE_ORDER.get(symbols[sym].get("grade", ""), 6), sym),
-            )
-            has_actionable = any(symbols[s].get("grade", "") in _HIGH_GRADES for s in sorted_syms)
-            if not has_actionable:
-                w('  <div class="idle-summary">'
-                  '<div>NO ACTIONABLE SETUPS</div>'
-                  '<div>Market is not offering structure</div>'
-                  '</div>')
-            for tier_id, tier_label, tier_grades in _TIER_DEFS:
-                tier_syms = [s for s in sorted_syms if symbols[s].get("grade", "") in tier_grades]
-                if not tier_syms:
-                    continue
-                w(f'  <div class="tier-group" id="tier-{tier_id}">')
-                w(f'    <div class="tier-header">{_esc(tier_label)} ({len(tier_syms)})</div>')
-                for sym in tier_syms:
-                    _render_candidate_card(
-                        w, sym, symbols[sym],
-                        contract_entry=(contract_entry_map or {}).get(sym),
-                    )
+            symbols: dict = market_map.get("symbols") or {}
+            if not symbols:
+                w('  <div class="unavailable">NO_CANDIDATES</div>')
+            else:
+                sorted_syms = sorted(
+                    symbols.keys(),
+                    key=lambda sym: (_GRADE_ORDER.get(symbols[sym].get("grade", ""), 6), sym),
+                )
+                has_actionable = any(symbols[s].get("grade", "") in _HIGH_GRADES for s in sorted_syms)
+                if not has_actionable:
+                    w('  <div class="idle-summary">'
+                      '<div>NO ACTIONABLE SETUPS</div>'
+                      '<div>Market is not offering structure</div>'
+                      '</div>')
+                for tier_id, tier_label, tier_grades in _TIER_DEFS:
+                    tier_syms = [s for s in sorted_syms if symbols[s].get("grade", "") in tier_grades]
+                    if not tier_syms:
+                        continue
+                    w(f'  <div class="tier-group" id="tier-{tier_id}">')
+                    w(f'    <div class="tier-header">{_esc(tier_label)} ({len(tier_syms)})</div>')
+                    for sym in tier_syms:
+                        _render_candidate_card(
+                            w, sym, symbols[sym],
+                            contract_entry=(contract_entry_map or {}).get(sym),
+                        )
+                    w("  </div>")
+            removed_syms: list = market_map.get("removed_symbols") or []
+            if removed_syms:
+                w('  <div class="removed-symbols">')
+                w('    <div class="tier-header">REMOVED</div>')
+                for removed_entry in removed_syms:
+                    rsym  = _esc(removed_entry.get("symbol"))
+                    rprev = _esc(removed_entry.get("previous_grade")) or _DASH
+                    w(f'    <div class="removed-row">{rsym} — removed (prev: {rprev})</div>')
                 w("  </div>")
-        removed_syms: list = market_map.get("removed_symbols") or []
-        if removed_syms:
-            w('  <div class="removed-symbols">')
-            w('    <div class="tier-header">REMOVED</div>')
-            for removed_entry in removed_syms:
-                rsym  = _esc(removed_entry.get("symbol"))
-                rprev = _esc(removed_entry.get("previous_grade")) or _DASH
-                w(f'    <div class="removed-row">{rsym} — removed (prev: {rprev})</div>')
-            w("  </div>")
     w("</div>")
 
     # --- run-delta ---
-    if previous_run is not None:
+    w('<div class="block" id="run-delta">')
+    w("  <h2>Changes Since Last Run</h2>")
+    if previous_run is None:
+        w('  <div class="value">SOURCE_MISSING</div>')
+    else:
         delta_fields = (
             ("Regime",        _req(run, "regime"),        _req(previous_run, "regime")),
             ("Posture",
@@ -906,8 +967,6 @@ def render_dashboard_html(
             for label, current_value, previous_value in delta_fields
             if current_value != previous_value
         ]
-        w('<div class="block" id="run-delta">')
-        w("  <h2>Changes Since Last Run</h2>")
         if changed_fields:
             for label, previous_value, current_value in changed_fields:
                 w(
@@ -916,12 +975,14 @@ def render_dashboard_html(
                 )
         else:
             w('  <div class="value">No changes since last run</div>')
-        w("</div>")
+    w("</div>")
 
     # --- run-history ---
-    if history_runs:
-        w('<div class="block" id="run-history">')
-        w("  <h2>History</h2>")
+    w('<div class="block" id="run-history">')
+    w("  <h2>History</h2>")
+    if not history_runs:
+        w('  <div class="value">NO_HISTORY</div>')
+    else:
         w('  <div class="value">timestamp | regime | posture | confidence</div>')
         for history_run in history_runs:
             ht        = str(_req(history_run, "timestamp"))[11:16]
@@ -934,7 +995,7 @@ def render_dashboard_html(
                 f'{_esc(ht)} | {_esc(hreg)} | {_esc(hpos_label)} | {_esc(hcon)}'
                 f'</div>'
             )
-        w("</div>")
+    w("</div>")
 
     w("</div>")  # .wrap
     w("</div>")
@@ -952,6 +1013,7 @@ def write_dashboard(
     market_map: dict | None = None,
     output_path: Path = _OUTPUT_PATH,
     macro_snapshot_path: Path | None = None,
+    market_map_path: Path | None = None,
     contract_entry_map: dict | None = None,
     fixture_mode: bool = False,
 ) -> None:
@@ -961,6 +1023,7 @@ def write_dashboard(
         previous_run=previous_run,
         history_runs=history_runs,
         market_map=market_map,
+        market_map_path=market_map_path,
         macro_snapshot_path=macro_snapshot_path,
         contract_entry_map=contract_entry_map,
         fixture_mode=fixture_mode,
@@ -1002,7 +1065,6 @@ def main(
 
     payload    = _load_json(payload_path)
     run        = _load_json(run_path)
-    market_map = _load_json_optional(logs_dir / "market_map.json")
 
     previous_run = _resolve_previous_run(logs_dir)
     history_run_files = sorted(logs_dir.glob("run_*.json"))
@@ -1016,7 +1078,8 @@ def main(
     contract_entry_map = _build_contract_entry_map(logs_dir) or None
 
     write_dashboard(
-        payload, run, previous_run, history_runs, market_map, output_path,
+        payload, run, previous_run, history_runs, output_path=output_path,
+        market_map_path=logs_dir / "market_map.json",
         macro_snapshot_path=macro_snapshot_path,
         contract_entry_map=contract_entry_map,
         fixture_mode=_fixture_mode,
