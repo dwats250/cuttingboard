@@ -1,30 +1,30 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 2.306245953093023,
-      "level": 80370.5,
+      "change_pct": 1.8408067117648714,
+      "level": 80005.0,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.4417902742464076,
-      "level": 98.44300079345703,
+      "change_pct": 0.3744482778671978,
+      "level": 98.37699890136719,
       "symbol": "DX-Y.NYB"
     },
     "rates": {
-      "change_bps": 6.699495920493526,
-      "change_pct": 1.5075374147822358,
-      "level": 4.443999767303467,
+      "change_bps": 6.905651654907833,
+      "change_pct": 1.5532279579071924,
+      "level": 4.446000099182129,
       "symbol": "^TNX"
     },
     "volatility": {
-      "change_pct": 6.7726716698062654,
-      "level": 18.1299991607666,
+      "change_pct": 8.480568744867963,
+      "level": 18.420000076293945,
       "symbol": "^VIX"
     }
   },
   "meta": {
     "symbols_scanned": 0,
-    "timestamp": "2026-05-04T18:09:55Z"
+    "timestamp": "2026-05-04T19:18:43Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
