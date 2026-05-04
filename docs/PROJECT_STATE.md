@@ -7,8 +7,8 @@ Project: Cutting Board — constraint-driven options trading decision engine
 ## Current State
 
 **Last updated:** 2026-05-04
-**Last completed PRD:** PRD-082 — Remove Redundant Dashboard Permission Copy
-**Last work completed:** 2026-05-04 (commit fbe5e11)
+**Last completed PRD:** PRD-083 — Dashboard Data Freshness and Source Visibility
+**Last work completed:** 2026-05-04 (commit b67ac8a)
 **Active PRD:** none
 **Deferred PRD:** none
 
@@ -16,7 +16,7 @@ Project: Cutting Board — constraint-driven options trading decision engine
 
 ## Test Baseline
 
-- **1957 passing** (as of 2026-05-04)
+- **1966 passing** (as of 2026-05-04)
 - 0 failures, 0 skipped
 
 ---
@@ -25,6 +25,7 @@ Project: Cutting Board — constraint-driven options trading decision engine
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-083 | Dashboard Data Freshness and Source Visibility | COMPLETE | 2026-05-04 |
 | PRD-074 | Chart Context Layer (Level Diagram) | COMPLETE | 2026-05-03 |
 | PRD-076 | Dashboard Live Publishing and Layout Finalization | COMPLETE | 2026-05-03 |
 | PRD-075 | Signal Performance Engine | COMPLETE | — |
