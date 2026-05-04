@@ -185,6 +185,8 @@ def test_cli_main_invalid_mode_fails_cleanly():
 
 
 def test_cli_main_auto_switches_live_to_sunday(monkeypatch):
+    from datetime import datetime, timezone
+
     captured = {}
 
     def _fake_execute_run(mode, run_date, fixture_file=None, notify_mode=None):
@@ -194,6 +196,16 @@ def test_cli_main_auto_switches_live_to_sunday(monkeypatch):
         return {"status": "SUCCESS"}
 
     monkeypatch.setattr(runtime, "execute_run", _fake_execute_run)
+
+    # Freeze wall clock to 20:00 UTC = 15:00 ET on a Sunday (pre-gate) + 1h = 21:00 UTC = 16:00 ET (post-gate)
+    _frozen_utc = datetime(2026, 4, 12, 21, 0, 0, tzinfo=timezone.utc)
+
+    class _FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return _frozen_utc if tz is not None else _frozen_utc.replace(tzinfo=None)
+
+    monkeypatch.setattr(runtime, "datetime", _FrozenDatetime)
 
     rc = runtime.cli_main(["--mode", "live", "--date", "2026-04-12"])
 

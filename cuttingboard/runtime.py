@@ -277,7 +277,8 @@ def cli_main(argv: Optional[list[str]] = None) -> int:
 
     requested_mode = args.mode
     requested_run_date = _resolve_run_date(args.date)
-    effective_mode = _resolve_effective_mode(requested_mode, requested_run_date)
+    _now_et = time_utils.convert_utc_to_et(datetime.now(timezone.utc))
+    effective_mode = _resolve_effective_mode(requested_mode, requested_run_date, _now_et)
     fixture_path = _resolve_cli_fixture_path(
         effective_mode=effective_mode,
         fixture_file=args.fixture_file,
@@ -904,6 +905,10 @@ def _run_pipeline(
         market_map=market_map,
         timestamp=run_at_utc,
     )
+
+    if mode == MODE_SUNDAY:
+        contract["system_state"]["stay_flat_reason"] = "PREMARKET_CONTEXT"
+        contract["system_state"]["session_type"] = "SUNDAY_PREMARKET"
 
     # Exactly one notification send per run. PRD-018 suppression gate applied
     # before send; state persisted only on confirmed success (R7).
@@ -1728,6 +1733,8 @@ def _build_hourly_run_summary(
 
 
 def _write_hourly_artifacts(summary: dict[str, Any], contract: dict[str, Any]) -> None:
+    import os
+    _fixture_mode = os.environ.get("FIXTURE_MODE", "0") == "1"
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     safe_write_latest(LATEST_HOURLY_RUN_PATH, summary, "run_at_utc")
     safe_write_latest(LATEST_HOURLY_CONTRACT_PATH, contract, "generated_at")
@@ -1735,7 +1742,7 @@ def _write_hourly_artifacts(summary: dict[str, Any], contract: dict[str, Any]) -
         from cuttingboard.delivery.payload import build_report_payload, assert_valid_payload
         from cuttingboard.delivery.transport import deliver_html, deliver_json
 
-        payload = build_report_payload(contract)
+        payload = build_report_payload(contract, fixture_mode=_fixture_mode)
         assert_valid_payload(payload)
         deliver_json(payload, output_path=str(LATEST_HOURLY_PAYLOAD_PATH))
         deliver_html(payload, output_path=str(HOURLY_REPORT_PATH))
@@ -1779,11 +1786,13 @@ def _write_macro_snapshot(contract: dict[str, Any]) -> None:
 
 
 def _write_payload_artifacts(contract: dict[str, Any]) -> None:
+    import os
+    _fixture_mode = os.environ.get("FIXTURE_MODE", "0") == "1"
     try:
         from cuttingboard.delivery.payload import build_report_payload, assert_valid_payload
         from cuttingboard.delivery.transport import deliver_json, deliver_html
 
-        payload = build_report_payload(contract)
+        payload = build_report_payload(contract, fixture_mode=_fixture_mode)
         assert_valid_payload(payload)
         deliver_json(payload)
         deliver_html(payload)
@@ -1867,9 +1876,10 @@ def _resolve_run_date(date_arg: Optional[str]) -> date:
     return date.fromisoformat(date_arg) if date_arg else datetime.now(timezone.utc).date()
 
 
-def _resolve_effective_mode(requested_mode: str, run_date: date) -> str:
+def _resolve_effective_mode(requested_mode: str, run_date: date, now_et: Optional[datetime] = None) -> str:
     if requested_mode == MODE_LIVE and run_date.weekday() == 6:
-        return MODE_SUNDAY
+        if now_et is None or now_et.hour * 60 + now_et.minute >= 15 * 60 + 30:
+            return MODE_SUNDAY
     return requested_mode
 
 

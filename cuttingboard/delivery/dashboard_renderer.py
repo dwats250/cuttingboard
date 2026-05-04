@@ -517,6 +517,7 @@ def render_dashboard_html(
     market_map: dict | None = None,
     macro_snapshot_path: Path | None = None,
     contract_entry_map: dict | None = None,
+    fixture_mode: bool = False,
 ) -> str:
     """Return deterministic Signal Forge dashboard HTML.
 
@@ -582,6 +583,8 @@ def render_dashboard_html(
     def w(line: str) -> None:
         lines.append(line)
 
+    session_type = (payload.get("meta") or {}).get("session_type")
+
     w("<!doctype html>")
     w('<html lang="en">')
     w("<head>")
@@ -593,6 +596,16 @@ def render_dashboard_html(
     w("</head>")
     w("<body>")
     w('<div class="wrap">')
+
+    if session_type == "SUNDAY_PREMARKET":
+        w('<div class="block" id="premarket-banner" style="border-color:#29b6f6;color:#29b6f6;text-align:center">')
+        w('  <h2>SUNDAY PRE-MARKET CONTEXT &#8212; NO CASH SESSION</h2>')
+        w("</div>")
+
+    if fixture_mode:
+        from cuttingboard.delivery.fixtures import FIXTURE_SYMBOLS
+        market_map = dict(market_map) if market_map is not None else {}
+        market_map = {**market_map, "symbols": FIXTURE_SYMBOLS}
 
     # --- system-state (with run-health folded in) ---
     regime_cls = _esc(market_regime)
@@ -681,7 +694,10 @@ def render_dashboard_html(
 
     # --- candidate-board ---
     w('<div class="block" id="candidate-board">')
-    w("  <h2>Candidate Board</h2>")
+    if fixture_mode:
+        w('  <h2>Candidate Board &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h2>')
+    else:
+        w("  <h2>Candidate Board</h2>")
     if market_map is None:
         w('  <div class="unavailable">MARKET MAP UNAVAILABLE</div>')
     else:
@@ -785,6 +801,7 @@ def write_dashboard(
     output_path: Path = _OUTPUT_PATH,
     macro_snapshot_path: Path | None = None,
     contract_entry_map: dict | None = None,
+    fixture_mode: bool = False,
 ) -> None:
     html = render_dashboard_html(
         payload,
@@ -794,6 +811,7 @@ def write_dashboard(
         market_map=market_map,
         macro_snapshot_path=macro_snapshot_path,
         contract_entry_map=contract_entry_map,
+        fixture_mode=fixture_mode,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")
@@ -825,7 +843,11 @@ def main(
     output_path: Path = _OUTPUT_PATH,
     logs_dir: Path = Path("logs"),
     macro_snapshot_path: Path | None = None,
+    fixture_mode: bool = False,
 ) -> None:
+    import os
+    _fixture_mode = fixture_mode or os.environ.get("FIXTURE_MODE", "0") == "1"
+
     payload    = _load_json(payload_path)
     run        = _load_json(run_path)
     market_map = _load_json_optional(logs_dir / "market_map.json")
@@ -845,6 +867,7 @@ def main(
         payload, run, previous_run, history_runs, market_map, output_path,
         macro_snapshot_path=macro_snapshot_path,
         contract_entry_map=contract_entry_map,
+        fixture_mode=_fixture_mode,
     )
     print(f"Dashboard written: {output_path}")
 

@@ -825,6 +825,7 @@ def build_notification_message(contract: dict) -> tuple[str, str]:
         else:
             outcome = OUTCOME_NO_TRADE
 
+    session_type = (contract.get("system_state") or {}).get("session_type")
     regime_label = _alert_regime_label(contract)
     lines = [_alert_context_line(contract)]
     primary = allowed[0] if allowed else None
@@ -854,6 +855,8 @@ def build_notification_message(contract: dict) -> tuple[str, str]:
             invalidation = _invalidation_line(primary)
             if invalidation is not None:
                 lines.extend(["", "INVALIDATION:", f"- {invalidation}"])
+            if session_type == "SUNDAY_PREMARKET":
+                title = f"[PREMARKET] {title}"
             return title, "\n".join(lines)
 
     if candidates:
@@ -866,4 +869,6 @@ def build_notification_message(contract: dict) -> tuple[str, str]:
         lines.extend(["No trade.", f"Reason: {_alert_reason(contract, has_candidates=False)}"])
         _append_trigger_block(lines, regime_label)
 
+    if session_type == "SUNDAY_PREMARKET":
+        title = f"[PREMARKET] {title}"
     return title, "\n".join(lines)

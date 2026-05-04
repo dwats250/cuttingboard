@@ -18,7 +18,7 @@ _DECISION_DETAIL_KEYS = frozenset({"symbol", "direction", "strategy_tag", "entry
 _DECISION_TRACE_KEYS = frozenset({"stage", "source", "reason"})
 
 
-def build_report_payload(contract: dict) -> dict:
+def build_report_payload(contract: dict, fixture_mode: bool = False) -> dict:
     """Build a ReportPayload dict from a canonical PRD-011 contract dict.
 
     Deterministic: identical contract produces identical payload.
@@ -96,6 +96,16 @@ def build_report_payload(contract: dict) -> dict:
     watchlist_count = len(watchlist)
     symbols_scanned = qualified_count + rejected_count + watchlist_count
 
+    meta: dict = {
+        "timestamp": timestamp,
+        "symbols_scanned": symbols_scanned,
+    }
+    session_type = ss.get("session_type")
+    if session_type is not None:
+        meta["session_type"] = session_type
+    if fixture_mode:
+        meta["fixture_mode"] = True
+
     return {
         "schema_version": PAYLOAD_SCHEMA_VERSION,
         "run_status": contract.get("status", "ERROR"),
@@ -116,10 +126,7 @@ def build_report_payload(contract: dict) -> dict:
             "validation_halt_detail": validation_halt_detail,
             "trade_decision_detail": trade_decision_detail,
         },
-        "meta": {
-            "timestamp": timestamp,
-            "symbols_scanned": symbols_scanned,
-        },
+        "meta": meta,
     }
 
 
