@@ -74,7 +74,6 @@ def test_null_safe_secondary_sections_no_crash() -> None:
         previous_run=None,
         history_runs=None,
     )
-    pressure_block = html.split('id="macro-pressure"', 1)[1]
     delta_block = html.split('id="run-delta"', 1)[1]
     history_block = html.split('id="run-history"', 1)[1]
     assert "SOURCE_MISSING" in delta_block

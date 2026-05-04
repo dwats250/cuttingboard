@@ -3,8 +3,6 @@ from __future__ import annotations
 
 import copy
 
-import pytest
-
 from cuttingboard.delivery.dashboard_renderer import (
     format_dashboard_timestamp,
     render_dashboard_html,
