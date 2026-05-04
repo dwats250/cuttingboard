@@ -75,6 +75,21 @@ def format_dashboard_timestamp(value: str) -> tuple[str, str]:
         return "", cleaned
 
 
+def _is_sunday_pt(value: str) -> bool:
+    """Return True only if value parses to a Sunday in America/Los_Angeles. Fails closed."""
+    try:
+        raw = str(value) if value else ""
+        if raw.endswith("Z"):
+            dt_utc = datetime.fromisoformat(raw[:-1] + "+00:00")
+        else:
+            dt_utc = datetime.fromisoformat(raw)
+            if dt_utc.tzinfo is None:
+                dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+        return dt_utc.astimezone(_PT).weekday() == 6  # 6 = Sunday
+    except Exception:
+        return False
+
+
 _TIER_DEFS = [
     ("aplus", "A+ — ACTIONABLE", frozenset({"A+"})),
     ("a",     "A — HIGH QUALITY", frozenset({"A"})),
@@ -700,7 +715,7 @@ def render_dashboard_html(
     w("<body>")
     w('<div class="wrap">')
 
-    if session_type == "SUNDAY_PREMARKET":
+    if session_type == "SUNDAY_PREMARKET" and _is_sunday_pt(str(timestamp)):
         w('<div class="block" id="premarket-banner" style="border-color:#29b6f6;color:#29b6f6;text-align:center">')
         w('  <h2>SUNDAY PRE-MARKET CONTEXT &#8212; NO CASH SESSION</h2>')
         w("</div>")
@@ -762,7 +777,7 @@ def render_dashboard_html(
     w("</div>")
 
     # --- sunday-macro-context (SUNDAY_PREMARKET only) ---
-    if session_type == "SUNDAY_PREMARKET":
+    if session_type == "SUNDAY_PREMARKET" and _is_sunday_pt(str(timestamp)):
         ctx = _build_sunday_context(macro_drivers, market_regime, market_map)
         w('<div class="block" id="sunday-macro-context" style="border-color:#29b6f6">')
         w(f'  <h2>{_esc(ctx["headline"])}</h2>')
