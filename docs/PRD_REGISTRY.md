@@ -87,7 +87,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-072 | 7e14a4e | Macro Drivers Snapshot Fallback | COMPLETE | [PRD-072](prd_history/PRD-072.md) |
 | PRD-073 | dcc7446 | Human-Readable Dashboard Trader View | COMPLETE | [PRD-073](prd_history/PRD-073.md) |
 | PRD-073-PATCH | dcc7446 | Renderer Boundary Test — explicit contract isolation requirement for R4 | COMPLETE | [PRD-073-PATCH](prd_history/PRD-073-PATCH.md) |
-| PRD-074 | — | Chart Context Layer (Level Diagram) | COMPLETE | [PRD-074](prd_history/PRD-074.md) |
+| PRD-074 | 6483a16 | Chart Context Layer (Level Diagram) | COMPLETE | [PRD-074](prd_history/PRD-074.md) |
 | PRD-075 | 43a1052 | Signal Performance Engine | COMPLETE | [PRD-075](prd_history/PRD-075.md) |
 | PRD-076 | 3c6bb76 | Dashboard Live Publishing and Layout Finalization | COMPLETE | [PRD-076](prd_history/PRD-076.md) |
 
