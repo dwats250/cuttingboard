@@ -13,10 +13,11 @@
   <h2>System State</h2>
   <div class="action-line">ACTION: MONITOR — SYSTEM ACTIVE</div>
   <div class="row">
-    <div class="field"><div class="label">Regime</div><div class="value"><span class="badge RISK_ON">RISK_ON</span></div></div>
-    <div class="field"><div class="label">Confidence</div><div class="value">0.75</div></div>
-    <div class="field"><div class="label">Outcome</div><div class="value">NO_TRADE</div></div>
+    <div class="field"><div class="label">Regime</div><div class="value"><span class="badge NEUTRAL">NEUTRAL</span></div></div>
+    <div class="field"><div class="label">Confidence</div><div class="value">0.875</div></div>
+    <div class="field"><div class="label">Outcome</div><div class="value">TRADE</div></div>
   </div>
+  <div class="field warn"><div class="label">Trade Permission</div><div class="value">PREMARKET_CONTEXT</div></div>
   <div class="sep"></div>
   <div id="run-health" class="row">
     <div class="field"><div class="label">Halted</div><div class="value">NO</div></div>
@@ -25,14 +26,14 @@
   </div>
 </div>
 <div class="block" id="dashboard-header">
-  <h2>NO TRADE</h2>
+  <h2>TRADE SETUP ACTIVE</h2>
   <div class="row">
     <div class="field">
       <div class="label">Timestamp</div>
       <div class="kv-grid">
-        <span class="label">Pacific</span><span>2026-05-05 12:15:12 PT</span>
-        <span class="label">Original</span><span>2026-05-05 19:15:12 UTC</span>
-        <span class="label">Status</span><span>FRESH</span>
+        <span class="label">Pacific</span><span>2026-05-05 11:51:04 PT</span>
+        <span class="label">Original</span><span>2026-05-05 18:51:04 UTC</span>
+        <span class="label">Status</span><span>STALE</span>
       </div>
     </div>
     <div class="field"><div class="label">Status</div><div class="value">SUCCESS</div></div>
@@ -41,7 +42,7 @@
 <div class="block" id="macro-tape">
   <h2>Macro Tape</h2>
   <div class="macro-bias short">MACRO BIAS: SHORT ↓</div>
-  <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">VIX ↓</span><span class="macro-tape-value" data-symbol="VIX">17.2</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">DXY ↓</span><span class="macro-tape-value" data-symbol="DXY">98.5</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">10Y ↓</span><span class="macro-tape-value" data-symbol="10Y">4.42</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">BTC ↑</span><span class="macro-tape-value" data-symbol="BTC">80.9K</span></span></div>
+  <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">VIX ↓</span><span class="macro-tape-value" data-symbol="VIX">17.2</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">DXY ↓</span><span class="macro-tape-value" data-symbol="DXY">98.4</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">10Y ↓</span><span class="macro-tape-value" data-symbol="10Y">4.42</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">BTC ↑</span><span class="macro-tape-value" data-symbol="BTC">81.5K</span></span></div>
   <div class="sep"></div>
   <div class="macro-tradables-grid">
     <span class="tradable-cell"><span class="macro-tape-label">SPY</span> <span class="macro-tape-value" data-symbol="SPY">724.59</span></span>
@@ -69,6 +70,7 @@
 </div>
 <div class="block" id="candidate-board">
   <h2>Candidate Board</h2>
+  <div class="unavailable">STALE</div>
   <div class="idle-summary"><div>NO ACTIONABLE SETUPS</div><div>Market is not offering structure</div></div>
   <div class="tier-group" id="tier-df">
     <div class="tier-header">D/F — FAILING (6)</div>
@@ -79,14 +81,7 @@
     <div><div class="label">BIAS</div><div class="value">NEUTRAL</div></div>
     <div><div class="label">STRUCTURE</div><div class="value">UNKNOWN</div></div>
   </div>
-  <div class="lvl-diagram">
-    <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
-    <rect width="160" height="110" fill="#0a0a0a"/>
-    <line x1="0" y1="55" x2="160" y2="55" stroke="#f5c518" stroke-width="2"/>
-    <circle cx="3" cy="55" r="3" fill="#f5c518"/>
-    <text x="164" y="59" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
-    </svg>
-  </div>
+  <div class="lvl-unavail">Level context unavailable</div>
 </div>
 <div class="candidate-card grade-f" id="card-GLD">
   <div class="failed-card-fields">
@@ -95,14 +90,7 @@
     <div><div class="label">BIAS</div><div class="value">NEUTRAL</div></div>
     <div><div class="label">STRUCTURE</div><div class="value">UNKNOWN</div></div>
   </div>
-  <div class="lvl-diagram">
-    <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
-    <rect width="160" height="110" fill="#0a0a0a"/>
-    <line x1="0" y1="55" x2="160" y2="55" stroke="#f5c518" stroke-width="2"/>
-    <circle cx="3" cy="55" r="3" fill="#f5c518"/>
-    <text x="164" y="59" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
-    </svg>
-  </div>
+  <div class="lvl-unavail">Level context unavailable</div>
 </div>
 <div class="candidate-card grade-f" id="card-QQQ">
   <div class="failed-card-fields">
@@ -111,14 +99,7 @@
     <div><div class="label">BIAS</div><div class="value">NEUTRAL</div></div>
     <div><div class="label">STRUCTURE</div><div class="value">UNKNOWN</div></div>
   </div>
-  <div class="lvl-diagram">
-    <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
-    <rect width="160" height="110" fill="#0a0a0a"/>
-    <line x1="0" y1="55" x2="160" y2="55" stroke="#f5c518" stroke-width="2"/>
-    <circle cx="3" cy="55" r="3" fill="#f5c518"/>
-    <text x="164" y="59" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
-    </svg>
-  </div>
+  <div class="lvl-unavail">Level context unavailable</div>
 </div>
 <div class="candidate-card grade-f" id="card-SLV">
   <div class="failed-card-fields">
@@ -127,14 +108,7 @@
     <div><div class="label">BIAS</div><div class="value">NEUTRAL</div></div>
     <div><div class="label">STRUCTURE</div><div class="value">UNKNOWN</div></div>
   </div>
-  <div class="lvl-diagram">
-    <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
-    <rect width="160" height="110" fill="#0a0a0a"/>
-    <line x1="0" y1="55" x2="160" y2="55" stroke="#f5c518" stroke-width="2"/>
-    <circle cx="3" cy="55" r="3" fill="#f5c518"/>
-    <text x="164" y="59" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
-    </svg>
-  </div>
+  <div class="lvl-unavail">Level context unavailable</div>
 </div>
 <div class="candidate-card grade-f" id="card-SPY">
   <div class="failed-card-fields">
@@ -143,14 +117,7 @@
     <div><div class="label">BIAS</div><div class="value">NEUTRAL</div></div>
     <div><div class="label">STRUCTURE</div><div class="value">UNKNOWN</div></div>
   </div>
-  <div class="lvl-diagram">
-    <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
-    <rect width="160" height="110" fill="#0a0a0a"/>
-    <line x1="0" y1="55" x2="160" y2="55" stroke="#f5c518" stroke-width="2"/>
-    <circle cx="3" cy="55" r="3" fill="#f5c518"/>
-    <text x="164" y="59" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
-    </svg>
-  </div>
+  <div class="lvl-unavail">Level context unavailable</div>
 </div>
 <div class="candidate-card grade-f" id="card-XLE">
   <div class="failed-card-fields">
@@ -159,22 +126,14 @@
     <div><div class="label">BIAS</div><div class="value">NEUTRAL</div></div>
     <div><div class="label">STRUCTURE</div><div class="value">UNKNOWN</div></div>
   </div>
-  <div class="lvl-diagram">
-    <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
-    <rect width="160" height="110" fill="#0a0a0a"/>
-    <line x1="0" y1="55" x2="160" y2="55" stroke="#f5c518" stroke-width="2"/>
-    <circle cx="3" cy="55" r="3" fill="#f5c518"/>
-    <text x="164" y="59" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
-    </svg>
-  </div>
+  <div class="lvl-unavail">Level context unavailable</div>
 </div>
   </div>
 </div>
 <div class="block" id="run-delta">
   <h2>Changes Since Last Run</h2>
-  <div class="value">Regime: RISK_OFF -&gt; RISK_ON</div>
   <div class="value">Posture: Stay Flat -&gt; Aggressive Long</div>
-  <div class="value">Confidence: 0.375 -&gt; 0.75</div>
+  <div class="value">Confidence: 0.375 -&gt; 0.875</div>
 </div>
 <div class="block" id="run-history">
   <h2>History</h2>
@@ -187,19 +146,19 @@
     <span class="history-cell">RISK_ON</span>
     <span class="history-cell">Aggressive Long</span>
     <span class="history-cell">0.875</span>
+    <span class="history-cell">13:00</span>
+    <span class="history-cell">RISK_ON</span>
+    <span class="history-cell">Stay Flat</span>
+    <span class="history-cell">0.375</span>
+    <span class="history-cell">12:50</span>
+    <span class="history-cell">RISK_ON</span>
+    <span class="history-cell">Stay Flat</span>
+    <span class="history-cell">0.375</span>
     <span class="history-cell">03:13</span>
     <span class="history-cell">RISK_OFF</span>
     <span class="history-cell">Stay Flat</span>
     <span class="history-cell">0.375</span>
     <span class="history-cell">01:57</span>
-    <span class="history-cell">RISK_OFF</span>
-    <span class="history-cell">Stay Flat</span>
-    <span class="history-cell">0.375</span>
-    <span class="history-cell">00:57</span>
-    <span class="history-cell">RISK_OFF</span>
-    <span class="history-cell">Stay Flat</span>
-    <span class="history-cell">0.375</span>
-    <span class="history-cell">00:31</span>
     <span class="history-cell">RISK_OFF</span>
     <span class="history-cell">Stay Flat</span>
     <span class="history-cell">0.375</span>
