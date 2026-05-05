@@ -206,6 +206,9 @@ _CSS = (
     ".pressure-no-data{color:#888;font-style:italic;font-size:0.8rem}"
     ".lvl-diagram{margin-top:8px;padding-top:6px;border-top:1px solid #1a1a1a}"
     ".lvl-unavail{color:#555;font-size:0.75rem;font-style:italic;margin-top:6px}"
+    ".failed-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-top:4px}"
+    ".failed-card-fields .label{font-size:0.7rem}"
+    ".failed-card-fields .value{margin-top:1px}"
 )
 
 _UP   = "↑"
@@ -623,10 +626,19 @@ def _render_candidate_card(
     badge_html = f'<span class="lifecycle-badge {badge_css}">{_esc(lc_tr)}</span>' if badge_css else ""
 
     w(f'<div class="candidate-card grade-{css_class}" id="card-{_esc(sym)}">')
-    w(f'  <div class="label">SYMBOL</div><div class="value">{_esc(entry.get("symbol"))}</div>')
-    w(f'  <div class="label">GRADE</div><div class="value">{_esc(grade)}{badge_html}</div>')
-    w(f'  <div class="label">BIAS</div><div class="value">{_esc(entry.get("bias"))}</div>')
-    w(f'  <div class="label">STRUCTURE</div><div class="value">{_esc(entry.get("structure"))}</div>')
+
+    if not is_high:
+        w('  <div class="failed-card-fields">')
+        w(f'    <div><div class="label">SYMBOL</div><div class="value">{_esc(entry.get("symbol"))}</div></div>')
+        w(f'    <div><div class="label">GRADE</div><div class="value">{_esc(grade)}{badge_html}</div></div>')
+        w(f'    <div><div class="label">BIAS</div><div class="value">{_esc(entry.get("bias"))}</div></div>')
+        w(f'    <div><div class="label">STRUCTURE</div><div class="value">{_esc(entry.get("structure"))}</div></div>')
+        w('  </div>')
+    else:
+        w(f'  <div class="label">SYMBOL</div><div class="value">{_esc(entry.get("symbol"))}</div>')
+        w(f'  <div class="label">GRADE</div><div class="value">{_esc(grade)}{badge_html}</div>')
+        w(f'  <div class="label">BIAS</div><div class="value">{_esc(entry.get("bias"))}</div>')
+        w(f'  <div class="label">STRUCTURE</div><div class="value">{_esc(entry.get("structure"))}</div>')
 
     if is_high:
         if lifecycle:
@@ -888,7 +900,7 @@ def render_dashboard_html(
     w('  <div class="macro-tradables-grid">')
     for i, sym in enumerate(_TAPE_MM_SYMBOLS):
         val = tape_value_map.get(sym, "N/A")
-        sep = "| " if i % 2 == 1 else ""
+        sep = "│ " if i % 2 == 1 else ""
         w(
             f'    <span class="tradable-cell">{_esc(sep)}'
             f'<span class="macro-tape-label">{_esc(sym)}</span> '
