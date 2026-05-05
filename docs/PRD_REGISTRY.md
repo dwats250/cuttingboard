@@ -102,7 +102,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-086 | 049e75f | Carry Forward current_price Through Sunday Market Map | COMPLETE | [PRD-086](prd_history/PRD-086.md) |
 | PRD-087 | a976d01 | Pipeline Command Timeout Hardening | COMPLETE | [PRD-087](prd_history/PRD-087.md) |
 | PRD-088 | 0be66f5 | Candidate Board Level Diagram Price Fallback | COMPLETE | [PRD-088](prd_history/PRD-088.md) |
-| PRD-089 | — | Dashboard Artifact Coherence Guard | IN PROGRESS | [PRD-089](prd_history/PRD-089.md) |
+| PRD-089 | fc3bf77 | Dashboard Artifact Coherence Guard | COMPLETE | [PRD-089](prd_history/PRD-089.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

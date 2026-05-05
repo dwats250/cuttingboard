@@ -13,17 +13,17 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-05
-**Last completed PRD:** PRD-088 - Candidate Board Level Diagram Price Fallback (commit 0be66f5)
-**Last work completed:** 2026-05-05 (commit a976d01)
-**Active PRD:** PRD-089 - Dashboard Artifact Coherence Guard (IN PROGRESS - Codex will implement)
-**Next step:** Codex will implement
+**Last completed PRD:** PRD-089 - Dashboard Artifact Coherence Guard (commit fc3bf77)
+**Last work completed:** 2026-05-05 (commit fc3bf77)
+**Active PRD:** none
+**Next step:** none
 **Deferred PRD:** none
 
 ---
 
 ## Test Baseline
 
-- **1972 passing** (as of 2026-05-04)
+- **1997 passing** (as of 2026-05-05)
 - 0 failures, 0 skipped
 
 ---
@@ -32,7 +32,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
-| PRD-089 | Dashboard Artifact Coherence Guard | IN PROGRESS | — |
+| PRD-089 | Dashboard Artifact Coherence Guard | COMPLETE | 2026-05-05 |
 | PRD-088 | Candidate Board Level Diagram Price Fallback | COMPLETE | 2026-05-05 |
 | PRD-087 | Pipeline Command Timeout Hardening | COMPLETE | 2026-05-05 |
 | PRD-086 | Carry Forward current_price Through Sunday Market Map | COMPLETE | 2026-05-04 |
