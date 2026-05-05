@@ -152,6 +152,37 @@ REGIME_RISK_MULTIPLIER  = RISK_ON:1.0 / RISK_OFF:1.0 / NEUTRAL:0.6 / CHAOTIC:0.0
 
 ---
 
+## GITNEXUS — IMPACT ANALYSIS POLICY
+
+This project is indexed by GitNexus. Use MCP tools to navigate safely.
+
+> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` first.
+
+**Skip `gitnexus_impact` for low-risk edits:**
+- Constants, config thresholds, or numeric values (e.g. in `config.py`)
+- String literals, log messages, or error text
+- Comments or docstrings
+- PRD bookkeeping files (`PRD_REGISTRY.md`, `PROJECT_STATE.md`, `prd_history/`)
+- Test assertions or test data fixtures
+
+**Always run `gitnexus_impact({target, direction: "upstream"})` before editing:**
+- Any function or method signature or return type
+- Any validation, qualification, regime, or derived metric logic
+- Any module in the execution pipeline (layers 1–11 above)
+- Any symbol flagged HIGH or CRITICAL in a prior impact report
+- Any rename or structural refactor
+
+**Always run `gitnexus_detect_changes()` before every commit** — no exceptions.
+
+**Warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding.
+
+**Never:**
+- Ignore HIGH or CRITICAL risk warnings
+- Rename symbols with find-and-replace — use `gitnexus_rename`
+- Commit without running `gitnexus_detect_changes()`
+
+---
+
 ## VALIDATION
 
 Always report:

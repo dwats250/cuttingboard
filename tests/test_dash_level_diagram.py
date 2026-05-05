@@ -30,7 +30,8 @@ def _mm_with_levels(
 # ---------------------------------------------------------------------------
 
 def test_level_diagram_entry_line_present_when_entry_provided() -> None:
-    mm = _mm_with_levels("SPY", grade="A+")
+    wz = [{"type": "SUPPORT", "level": 495.0}]
+    mm = _mm_with_levels("SPY", grade="A+", watch_zones=wz)
     html = render_dashboard_html(
         _payload(), _run(), market_map=mm,
         contract_entry_map={"SPY": 500.0},

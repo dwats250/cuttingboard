@@ -1,7 +1,7 @@
 {
   "artifacts": {
     "log_path": "logs/latest_hourly_run.json",
-    "notification_sent": false,
+    "notification_sent": true,
     "report_path": "reports/output/hourly_report.html"
   },
   "audit_summary": {
@@ -10,196 +10,32 @@
     "continuation_rejected_count": null,
     "error_count": 0,
     "qualified_count": 0,
-    "rejected_count": 16
+    "rejected_count": 0
   },
   "correlation": null,
-  "generated_at": "2026-05-05T20:11:31Z",
-  "macro_drivers": {
-    "bitcoin": {
-      "change_pct": 2.3158982835343984,
-      "level": 81690.15625,
-      "symbol": "BTC-USD"
-    },
-    "dollar": {
-      "change_pct": -0.04262988524545986,
-      "level": 98.4800033569336,
-      "symbol": "DX-Y.NYB"
-    },
-    "rates": {
-      "change_bps": -2.9797777831636303,
-      "change_pct": -0.674768536641921,
-      "level": 4.415999889373779,
-      "symbol": "^TNX"
-    },
-    "volatility": {
-      "change_pct": -4.376373710935483,
-      "level": 17.479999542236328,
-      "symbol": "^VIX"
-    }
-  },
+  "generated_at": "2026-05-05T20:29:00Z",
+  "macro_drivers": {},
   "market_context": {
-    "continuation_enabled": false,
+    "continuation_enabled": null,
     "data_quality": "ok",
     "expansion_regime": null,
-    "imbalance_enabled": false,
-    "stale_data_detected": false
+    "imbalance_enabled": null,
+    "stale_data_detected": null
   },
   "mode": "live",
   "outcome": "NO_TRADE",
-  "regime": {
-    "classification": "RISK_ON",
-    "confidence": 0.875,
-    "net_score": 7,
-    "neutral_votes": 1,
-    "posture": "AGGRESSIVE_LONG",
-    "risk_off_votes": 0,
-    "risk_on_votes": 7,
-    "total_votes": 8,
-    "vix_level": 17.479999542236328,
-    "vix_pct_change": -0.04376373710935483,
-    "vote_breakdown": {
-      "BTC pct_change": "RISK_ON",
-      "DXY pct_change": "NEUTRAL",
-      "IWM pct_change": "RISK_ON",
-      "QQQ pct_change": "RISK_ON",
-      "SPY pct_change": "RISK_ON",
-      "TNX pct_change": "RISK_ON",
-      "VIX level": "RISK_ON",
-      "VIX pct_change": "RISK_ON"
-    }
-  },
-  "rejections": [
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: price 2.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "AAPL"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: price 3.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "AMZN"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: price 2.4\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "BTC-USD"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "COIN"
-    },
-    {
-      "detail": null,
-      "reason": "3 soft gates failed: stop distance 0.6% below 1.0% minimum; R:R 2.00 below 2.0 minimum; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "DX-Y.NYB"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: price 1.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "GDX"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: price 2.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "IWM"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "META"
-    },
-    {
-      "detail": null,
-      "reason": "3 soft gates failed: R:R 2.00 below 2.0 minimum; price 2.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "MSTR"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "NVDA"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "PAAS"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: price 3.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "QQQ"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: price 2.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "SPY"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "TSLA"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "USO"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "^TNX"
-    },
-    {
-      "detail": null,
-      "reason": "entry blocked after 3:30 PM ET",
-      "stage": "WATCHLIST",
-      "symbol": "^VIX"
-    },
-    {
-      "detail": null,
-      "reason": "entry blocked after 3:30 PM ET",
-      "stage": "WATCHLIST",
-      "symbol": "GLD"
-    },
-    {
-      "detail": null,
-      "reason": "entry blocked after 3:30 PM ET",
-      "stage": "WATCHLIST",
-      "symbol": "SLV"
-    },
-    {
-      "detail": null,
-      "reason": "entry blocked after 3:30 PM ET",
-      "stage": "WATCHLIST",
-      "symbol": "XLE"
-    }
-  ],
+  "regime": null,
+  "rejections": [],
   "schema_version": "v2",
-  "session_date": "2026-05-05",
-  "status": "OK",
+  "session_date": "2026-04-23",
+  "status": "STAY_FLAT",
   "system_state": {
     "intraday_state": null,
-    "market_regime": "RISK_ON",
+    "market_regime": null,
     "router_mode": "MIXED",
-    "stay_flat_reason": null,
+    "stay_flat_reason": "test halt",
     "time_gate_open": false,
-    "tradable": true
+    "tradable": false
   },
   "timezone": "America/New_York",
   "trade_candidates": []
