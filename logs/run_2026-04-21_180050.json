@@ -1,0 +1,30 @@
+{
+  "candidates_generated": 0,
+  "candidates_qualified": 0,
+  "candidates_watchlist": 0,
+  "chain_validation": {},
+  "confidence": 0.0,
+  "data_status": "ok",
+  "energy_score": 0.0,
+  "errors": [
+    "Failed: ^VIX ('NoneType' object is not subscriptable); DX-Y.NYB ('NoneType' object is not subscriptable); ^TNX ('NoneType' object is not subscriptable); SPY (HTTPSConnectionPool(host='api.polygon.io', port=443): Max retries exceeded with url: /v2/aggs/ticker/SPY/prev?apiKey=kUpzYOnHY98wKPqzGBhm6a7nHahwlIM2 (Caused by NameResolutionError(\"HTTPSConnection(host='api.polygon.io', port=443): Failed to resolve 'api.polygon.io' ([Errno -2] Name or service not known)\"))); QQQ (HTTPSConnectionPool(host='api.polygon.io', port=443): Max retries exceeded with url: /v2/aggs/ticker/QQQ/prev?apiKey=kUpzYOnHY98wKPqzGBhm6a7nHahwlIM2 (Caused by NameResolutionError(\"HTTPSConnection(host='api.polygon.io', port=443): Failed to resolve 'api.polygon.io' ([Errno -2] Name or service not known)\")))",
+    "NEUTRAL runs must apply min_rr_applied == 3.0"
+  ],
+  "fallback_used": false,
+  "halt_reason": "Failed: ^VIX ('NoneType' object is not subscriptable); DX-Y.NYB ('NoneType' object is not subscriptable); ^TNX ('NoneType' object is not subscriptable); SPY (HTTPSConnectionPool(host='api.polygon.io', port=443): Max retries exceeded with url: /v2/aggs/ticker/SPY/prev?apiKey=kUpzYOnHY98wKPqzGBhm6a7nHahwlIM2 (Caused by NameResolutionError(\"HTTPSConnection(host='api.polygon.io', port=443): Failed to resolve 'api.polygon.io' ([Errno -2] Name or service not known)\"))); QQQ (HTTPSConnectionPool(host='api.polygon.io', port=443): Max retries exceeded with url: /v2/aggs/ticker/QQQ/prev?apiKey=kUpzYOnHY98wKPqzGBhm6a7nHahwlIM2 (Caused by NameResolutionError(\"HTTPSConnection(host='api.polygon.io', port=443): Failed to resolve 'api.polygon.io' ([Errno -2] Name or service not known)\")))",
+  "index_score": 0.0,
+  "kill_switch": false,
+  "min_rr_applied": 2.0,
+  "mode": "LIVE",
+  "net_score": 0,
+  "permission": "No trades permitted. System halted.",
+  "posture": "STAY_FLAT",
+  "regime": "NEUTRAL",
+  "router_mode": "MIXED",
+  "run_id": "live-20260421T180050Z",
+  "status": "FAIL",
+  "system_halted": true,
+  "timestamp": "2026-04-21T18:00:50Z",
+  "warnings": [],
+  "watch_candidates": 0
+}

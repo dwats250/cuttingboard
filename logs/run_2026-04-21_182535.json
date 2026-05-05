@@ -1,0 +1,53 @@
+{
+  "candidates_generated": 11,
+  "candidates_qualified": 0,
+  "candidates_watchlist": 5,
+  "chain_validation": {
+    "AAPL": {
+      "classification": "DISQUALIFIED_OPTIONS_INVALID",
+      "reason": "liquidity fail: OI=83 vol=68 bid=7.75 ask=8.75"
+    },
+    "BTC-USD": {
+      "classification": "NEEDS_MANUAL_CHECK",
+      "reason": "chain data unavailable from all sources"
+    },
+    "USO": {
+      "classification": "WATCHLIST_OPTIONS_WEAK",
+      "reason": "spread 10.5% (8\u201315% range)"
+    },
+    "^TNX": {
+      "classification": "NEEDS_MANUAL_CHECK",
+      "reason": "chain data unavailable from all sources"
+    },
+    "^VIX": {
+      "classification": "DISQUALIFIED_OPTIONS_INVALID",
+      "reason": "spread too wide: 75.9%"
+    }
+  },
+  "confidence": 0.625,
+  "data_status": "ok",
+  "energy_score": 0.0,
+  "errors": [],
+  "fallback_used": false,
+  "halt_reason": null,
+  "index_score": 0.0,
+  "kill_switch": false,
+  "min_rr_applied": 2.0,
+  "mode": "LIVE",
+  "net_score": -5,
+  "permission": "Short bias \u2014 breakdown trades allowed.",
+  "posture": "DEFENSIVE_SHORT",
+  "regime": "RISK_OFF",
+  "router_mode": "MIXED",
+  "run_id": "live-20260421T182535Z",
+  "status": "SUCCESS",
+  "system_halted": false,
+  "timestamp": "2026-04-21T18:25:35Z",
+  "warnings": [
+    "AAPL: options invalid",
+    "BTC-USD: needs manual chain check",
+    "^TNX: needs manual chain check",
+    "^VIX: options invalid"
+  ],
+  "watch_candidates": 0
+}

@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/home/dustin/cuttingboard/cuttingboard/run_intraday.py", line 31, in <module>
+    from cuttingboard import config
+ModuleNotFoundError: No module named 'cuttingboard'

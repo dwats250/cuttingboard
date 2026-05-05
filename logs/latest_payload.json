@@ -1,30 +1,9 @@
 {
-  "macro_drivers": {
-    "bitcoin": {
-      "change_pct": 0.01788747200083956,
-      "level": 80115.78125,
-      "symbol": "BTC-USD"
-    },
-    "dollar": {
-      "change_pct": 0.4948480765028743,
-      "level": 98.49500274658203,
-      "symbol": "DX-Y.NYB"
-    },
-    "rates": {
-      "change_bps": 6.905651654907833,
-      "change_pct": 1.5532279579071924,
-      "level": 4.446000099182129,
-      "symbol": "^TNX"
-    },
-    "volatility": {
-      "change_pct": 7.714967070714559,
-      "level": 18.290000915527344,
-      "symbol": "^VIX"
-    }
-  },
+  "macro_drivers": {},
   "meta": {
+    "session_type": "SUNDAY_PREMARKET",
     "symbols_scanned": 0,
-    "timestamp": "2026-05-05T00:57:04Z"
+    "timestamp": "2026-05-05T00:49:58Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -32,24 +11,17 @@
     "chain_results_detail": [],
     "continuation_audit": null,
     "option_setups_detail": [],
-    "rejected": [
-      {
-        "detail": null,
-        "reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.38)",
-        "stage": "REGIME",
-        "symbol": "REGIME"
-      }
-    ],
+    "rejected": [],
     "top_trades": [],
     "trade_decision_detail": [],
     "validation_halt_detail": {
-      "reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.38)"
+      "reason": "PREMARKET_CONTEXT"
     },
     "watch_summary_detail": null,
     "watchlist": []
   },
   "summary": {
-    "market_regime": "RISK_OFF",
+    "market_regime": "NEUTRAL",
     "router_mode": "MIXED",
     "tradable": false
   }

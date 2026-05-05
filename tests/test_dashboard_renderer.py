@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import time
+from pathlib import Path
 
 import pytest
 
@@ -12,6 +13,52 @@ from cuttingboard.delivery.dashboard_renderer import (
     render_dashboard_html,
 )
 from tests.dash_helpers import _macro_drivers, _market_map, _mm_symbol, _payload, _run
+
+_UI_INDEX = Path("ui/index.html")
+
+
+# PA1 — published artifact must not contain raw DATA_UNAVAILABLE in macro tape slots
+def test_published_artifact_no_data_unavailable_in_tape() -> None:
+    if not _UI_INDEX.exists():
+        pytest.skip("ui/index.html not present")
+    html = _UI_INDEX.read_text(encoding="utf-8")
+    tape = html.split('id="macro-tape"', 1)
+    assert len(tape) == 2, "macro-tape block not found in ui/index.html"
+    tape_block = tape[1].split('id="macro-pressure"', 1)[0]
+    assert "DATA_UNAVAILABLE" not in tape_block, (
+        "ui/index.html macro tape contains DATA_UNAVAILABLE — regenerate with updated renderer"
+    )
+
+
+# PA2 — published artifact must not show NO LIVE MACRO DATA when tape has real values
+def test_published_artifact_no_false_no_live_macro_data() -> None:
+    if not _UI_INDEX.exists():
+        pytest.skip("ui/index.html not present")
+    html = _UI_INDEX.read_text(encoding="utf-8")
+    tape = html.split('id="macro-tape"', 1)
+    assert len(tape) == 2, "macro-tape block not found in ui/index.html"
+    tape_block = tape[1].split('id="macro-pressure"', 1)[0]
+    has_real_values = any(
+        f'data-symbol="{sym}"' in tape_block and "--" not in tape_block.split(f'data-symbol="{sym}"', 1)[1][:30]
+        for sym in ("VIX", "DXY", "10Y", "BTC")
+    )
+    if has_real_values:
+        assert "NO LIVE MACRO DATA" not in tape_block, (
+            "ui/index.html shows NO LIVE MACRO DATA despite having real macro values"
+        )
+
+
+# PA3 — published artifact must use mobile-friendly grid (minmax ≤ 100px)
+def test_published_artifact_mobile_grid_width() -> None:
+    if not _UI_INDEX.exists():
+        pytest.skip("ui/index.html not present")
+    html = _UI_INDEX.read_text(encoding="utf-8")
+    import re
+    m = re.search(r"macro-tape-grid\{[^}]*minmax\((\d+)px", html)
+    assert m is not None, "macro-tape-grid minmax not found in ui/index.html"
+    assert int(m.group(1)) <= 100, (
+        f"macro-tape-grid minmax is {m.group(1)}px — must be ≤100px for mobile"
+    )
 
 
 def _candidate_board_section(html: str) -> str:
@@ -23,7 +70,7 @@ def test_missing_market_map_renders_source_missing() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=None)
     board = html.split('id="candidate-board"', 1)[1]
     assert "MARKET MAP UNAVAILABLE" not in board
-    assert "SOURCE_MISSING" in board or "DATA_UNAVAILABLE" in board
+    assert "SOURCE_MISSING" in board or "N/A" in board
 
 
 # T2 — stale market_map file renders STALE in candidate board
