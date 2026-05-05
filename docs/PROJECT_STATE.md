@@ -12,9 +12,9 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 ## Current State
 
-**Last updated:** 2026-05-04
-**Last completed PRD:** PRD-085 — Regression Coverage: current_price Survives Full Runtime Processing Chain
-**Last work completed:** 2026-05-04 (commit 9f4fe5f)
+**Last updated:** 2026-05-05
+**Last completed PRD:** PRD-087 — Pipeline Command Timeout Hardening (commit a976d01)
+**Last work completed:** 2026-05-05 (commit a976d01)
 **Active PRD:** none
 **Deferred PRD:** none
 
@@ -31,6 +31,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-087 | Pipeline Command Timeout Hardening | COMPLETE | 2026-05-05 |
+| PRD-086 | Carry Forward current_price Through Sunday Market Map | COMPLETE | 2026-05-04 |
 | PRD-085 | Regression Coverage: current_price Survives Full Runtime Processing Chain | COMPLETE | 2026-05-04 |
 | PRD-084 | Populate market_map current_price | COMPLETE | 2026-05-04 |
 | PRD-083 | Dashboard Data Freshness and Source Visibility | COMPLETE | 2026-05-04 |
