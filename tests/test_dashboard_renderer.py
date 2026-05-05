@@ -190,6 +190,18 @@ def test_stale_market_map_suppresses_candidate_cards() -> None:
     assert 'id="card-SPY"' not in board
 
 
+def test_market_map_without_generated_at_does_not_trigger_stale() -> None:
+    payload = _payload(timestamp="2026-04-28T12:10:01Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:10:01Z")
+    mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": 512.34}})
+    mm.pop("generated_at", None)
+
+    html = render_dashboard_html(payload, run, market_map=mm)
+    board = html.split('id="candidate-board"', 1)[1]
+
+    assert "STALE_MARKET_MAP" not in board
+
+
 def test_candidate_level_diagram_uses_current_price_when_contract_entry_missing() -> None:
     entry = {
         **_mm_symbol("SPY"),

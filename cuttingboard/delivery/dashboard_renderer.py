@@ -1252,7 +1252,16 @@ def _load_contract_entry_context(logs_dir: Path) -> tuple[dict[str, float], obje
     contract = _load_json_optional(path)
     if not contract:
         return {}, None, path
-    return _build_contract_entry_map(logs_dir), contract.get("generated_at"), path
+    result: dict[str, float] = {}
+    for cand in (contract.get("trade_candidates") or []):
+        sym = cand.get("symbol")
+        val = cand.get("entry")
+        if sym and val is not None:
+            try:
+                result[sym] = float(val)
+            except (TypeError, ValueError):
+                pass
+    return result, contract.get("generated_at"), path
 
 
 def main(
