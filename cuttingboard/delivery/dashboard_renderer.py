@@ -261,6 +261,8 @@ _CSS = (
     ".artifact-warning{border-color:#ff9800;color:#ff9800}"
     ".artifact-diagnostics{color:#888;font-size:0.72rem;line-height:1.45}"
     ".artifact-diagnostics span{display:block}"
+    "#artifact-diagnostics summary{cursor:pointer;color:#555;font-size:0.72rem;list-style:none}"
+    "#artifact-diagnostics summary::-webkit-details-marker{display:none}"
     ".failed-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-top:4px}"
     ".failed-card-fields .label{font-size:0.7rem}"
     ".failed-card-fields .value{margin-top:1px}"
@@ -898,8 +900,8 @@ def render_dashboard_html(
         w("  <div class=\"value\">Dashboard inputs are from different artifact timestamps.</div>")
         w("</div>")
 
-    w('<div class="block" id="artifact-diagnostics">')
-    w("  <h2>Artifact Sources</h2>")
+    w('<details class="block" id="artifact-diagnostics">')
+    w("  <summary>Artifact diagnostics</summary>")
     w('  <div class="artifact-diagnostics">')
     w(
         f'    <span>payload={_esc(payload_source)} @ '
@@ -918,7 +920,7 @@ def render_dashboard_html(
         f'{_esc(_timestamp_label(contract_generated_at, contract_timestamp))}</span>'
     )
     w("  </div>")
-    w("</div>")
+    w("</details>")
 
     if session_type == "SUNDAY_PREMARKET" and _is_sunday_pt(str(timestamp)):
         w('<div class="block" id="premarket-banner" style="border-color:#29b6f6;color:#29b6f6;text-align:center">')
