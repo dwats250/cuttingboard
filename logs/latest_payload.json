@@ -1,8 +1,8 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 1.5195309807919757,
-      "level": 79752.609375,
+      "change_pct": -0.2583735118725413,
+      "level": 79894.4921875,
       "symbol": "BTC-USD"
     },
     "dollar": {
@@ -24,7 +24,7 @@
   },
   "meta": {
     "symbols_scanned": 0,
-    "timestamp": "2026-05-04T23:38:21Z"
+    "timestamp": "2026-05-05T00:31:20Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -35,7 +35,7 @@
     "rejected": [
       {
         "detail": null,
-        "reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.25)",
+        "reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.38)",
         "stage": "REGIME",
         "symbol": "REGIME"
       }
@@ -43,7 +43,7 @@
     "top_trades": [],
     "trade_decision_detail": [],
     "validation_halt_detail": {
-      "reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.25)"
+      "reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.38)"
     },
     "watch_summary_detail": null,
     "watchlist": []

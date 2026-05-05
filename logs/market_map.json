@@ -12,7 +12,7 @@
     "fib_deferred_symbols": [],
     "unavailable_symbols": []
   },
-  "generated_at": "2026-05-04T23:38:21Z",
+  "generated_at": "2026-05-05T00:31:20Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -23,10 +23,10 @@
   ],
   "removed_symbols": [],
   "schema_version": "market_map.v1",
-  "session_date": "2026-05-04",
+  "session_date": "2026-05-05",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-05-04T23:38:21Z"
+    "run_at_utc": "2026-05-05T00:31:20Z"
   },
   "symbols": {
     "GDX": {
@@ -36,13 +36,13 @@
       "current_price": 85.6500015258789,
       "fib_levels": {
         "retracements": {
-          "0.382": 96.1023,
-          "0.5": 94.16,
-          "0.618": 92.2177
+          "0.382": 95.9227,
+          "0.5": 93.925,
+          "0.618": 91.9273
         },
         "source": "last_20_bars_high_low",
         "swing_high": 102.39,
-        "swing_low": 85.93
+        "swing_low": 85.46
       },
       "grade": "D",
       "invalidation": [
@@ -80,6 +80,11 @@
           "type": "VWAP"
         },
         {
+          "context": "prior session low",
+          "level": 85.46,
+          "type": "PRIOR_LOW"
+        },
+        {
           "context": "opening range low",
           "level": 86.01,
           "type": "ORB_LOW"
@@ -90,14 +95,14 @@
           "type": "ORB_HIGH"
         },
         {
-          "context": "prior session low",
-          "level": 87.0,
-          "type": "PRIOR_LOW"
+          "context": "prior session high",
+          "level": 87.35,
+          "type": "PRIOR_HIGH"
         },
         {
-          "context": "prior session high",
-          "level": 89.07,
-          "type": "PRIOR_HIGH"
+          "context": "fast trend reference",
+          "level": 89.5283,
+          "type": "EMA9"
         }
       ],
       "what_to_look_for": [
@@ -112,13 +117,13 @@
       "current_price": 414.7099914550781,
       "fib_levels": {
         "retracements": {
-          "0.382": 435.5057,
-          "0.5": 431.43,
-          "0.618": 427.3543
+          "0.382": 435.1696,
+          "0.5": 430.9901,
+          "0.618": 426.8105
         },
         "source": "last_20_bars_high_low",
         "swing_high": 448.7,
-        "swing_low": 414.16
+        "swing_low": 413.2801
       },
       "grade": "D",
       "invalidation": [
@@ -167,23 +172,28 @@
         },
         {
           "context": "prior session low",
-          "level": 421.08,
+          "level": 413.2801,
           "type": "PRIOR_LOW"
         },
         {
-          "context": "fast trend reference",
-          "level": 426.9115,
-          "type": "EMA9"
-        },
-        {
           "context": "prior session high",
-          "level": 427.93,
+          "level": 420.86,
           "type": "PRIOR_HIGH"
         },
         {
+          "context": "fast trend reference",
+          "level": 424.4712,
+          "type": "EMA9"
+        },
+        {
           "context": "primary trend reference",
-          "level": 431.1699,
+          "level": 429.6735,
           "type": "EMA21"
+        },
+        {
+          "context": "trend base reference",
+          "level": 434.9392,
+          "type": "EMA50"
         }
       ],
       "what_to_look_for": [
@@ -198,12 +208,12 @@
       "current_price": 672.8800048828125,
       "fib_levels": {
         "retracements": {
-          "0.382": 638.6983,
-          "0.5": 627.185,
-          "0.618": 615.6717
+          "0.382": 639.1679,
+          "0.5": 627.565,
+          "0.618": 615.9621
         },
         "source": "last_20_bars_high_low",
-        "swing_high": 675.97,
+        "swing_high": 676.73,
         "swing_low": 578.4
       },
       "grade": "D",
@@ -253,22 +263,22 @@
         },
         {
           "context": "prior session high",
-          "level": 675.97,
+          "level": 676.73,
           "type": "PRIOR_HIGH"
         },
         {
           "context": "prior session low",
-          "level": 668.8,
+          "level": 668.9,
           "type": "PRIOR_LOW"
         },
         {
           "context": "fast trend reference",
-          "level": 659.2268,
+          "level": 661.9574,
           "type": "EMA9"
         },
         {
           "context": "primary trend reference",
-          "level": 640.9557,
+          "level": 643.8579,
           "type": "EMA21"
         }
       ],
@@ -280,7 +290,7 @@
     "SLV": {
       "asset_group": "METALS",
       "bias": "BEARISH",
-      "confidence": "LOW",
+      "confidence": "MEDIUM",
       "current_price": 65.94000244140625,
       "fib_levels": {
         "retracements": {
@@ -339,17 +349,22 @@
         },
         {
           "context": "prior session low",
-          "level": 67.51,
+          "level": 65.61,
           "type": "PRIOR_LOW"
         },
         {
           "context": "fast trend reference",
-          "level": 67.8287,
+          "level": 67.4509,
           "type": "EMA9"
         },
         {
+          "context": "prior session high",
+          "level": 67.58,
+          "type": "PRIOR_HIGH"
+        },
+        {
           "context": "primary trend reference",
-          "level": 68.4884,
+          "level": 68.2567,
           "type": "EMA21"
         }
       ],
@@ -420,27 +435,27 @@
         },
         {
           "context": "prior session low",
-          "level": 720.47,
+          "level": 714.99,
           "type": "PRIOR_LOW"
         },
         {
-          "context": "fast trend reference",
-          "level": 712.1015,
-          "type": "EMA9"
-        },
-        {
           "context": "prior session high",
-          "level": 724.87,
+          "level": 722.12,
           "type": "PRIOR_HIGH"
         },
         {
+          "context": "fast trend reference",
+          "level": 713.2832,
+          "type": "EMA9"
+        },
+        {
           "context": "primary trend reference",
-          "level": 699.4295,
+          "level": 701.1187,
           "type": "EMA21"
         },
         {
           "context": "trend base reference",
-          "level": 687.1436,
+          "level": 688.3684,
           "type": "EMA50"
         }
       ],
@@ -511,27 +526,27 @@
         },
         {
           "context": "prior session high",
-          "level": 59.6,
+          "level": 59.63,
           "type": "PRIOR_HIGH"
         },
         {
-          "context": "prior session low",
-          "level": 58.26,
-          "type": "PRIOR_LOW"
-        },
-        {
           "context": "fast trend reference",
-          "level": 57.9729,
+          "level": 58.2563,
           "type": "EMA9"
         },
         {
+          "context": "prior session low",
+          "level": 58.22,
+          "type": "PRIOR_LOW"
+        },
+        {
           "context": "primary trend reference",
-          "level": 57.6664,
+          "level": 57.8231,
           "type": "EMA21"
         },
         {
           "context": "trend base reference",
-          "level": 56.5522,
+          "level": 56.6656,
           "type": "EMA50"
         }
       ],
