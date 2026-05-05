@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from pathlib import Path
 
@@ -60,6 +61,10 @@ def _candidate_board_section(html: str) -> str:
     return html.split('id="candidate-board"', 1)[1].split('</div>\n\n', 1)[0]
 
 
+def _candidate_card(html: str, symbol: str = "SPY") -> str:
+    return html.split(f'id="card-{symbol}"', 1)[1].split('</div>\n</div>', 1)[0]
+
+
 # T1 — missing market map renders SOURCE_MISSING, not generic MARKET MAP UNAVAILABLE
 def test_missing_market_map_renders_source_missing() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=None)
@@ -106,6 +111,50 @@ def test_available_tradable_quote_renders_value() -> None:
     slots = dict(_macro_tape_value_slots(html))
     assert slots["SPY"] == "512.34"
     assert "N/A" not in slots.get("SPY", "")
+
+
+def test_candidate_level_diagram_uses_current_price_when_contract_entry_missing() -> None:
+    mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": 512.34}})
+
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=mm)
+    card = _candidate_card(html)
+
+    assert "Chart unavailable" not in card
+    assert 'class="lvl-diagram"' in card
+
+
+def test_candidate_level_diagram_preserves_unavailable_without_valid_anchor() -> None:
+    mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": 0}})
+
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=mm)
+    card = _candidate_card(html)
+
+    assert "Chart unavailable" in card
+    assert 'class="lvl-diagram"' not in card
+
+
+def test_candidate_level_diagram_prefers_contract_entry_over_current_price() -> None:
+    entry = {
+        **_mm_symbol("SPY"),
+        "current_price": 120.0,
+        "watch_zones": [
+            {"type": "SUPPORT", "level": 100.0},
+            {"type": "RESISTANCE", "level": 130.0},
+        ],
+    }
+    mm = _market_map({"SPY": entry})
+
+    html = render_dashboard_html(
+        _payload(macro_drivers=_macro_drivers()),
+        _run(),
+        market_map=mm,
+        contract_entry_map={"SPY": 110.0},
+    )
+    card = _candidate_card(html)
+    entry_line = re.search(r'<line x1="0" y1="(?P<y>\d+)" x2="160" y2="\d+" stroke="#f5c518"', card)
+
+    assert entry_line is not None
+    assert entry_line.group("y") == "70"
 
 
 # T5b — GDX must appear in tradables section of macro tape

@@ -680,9 +680,10 @@ def _render_candidate_card(
         if reason is not None:
             w(f'  <div class="label">REASON</div><div class="value">{_esc(reason)}</div>')
 
+    level_anchor = contract_entry if contract_entry is not None else entry.get("current_price")
     _render_level_diagram(
         w,
-        contract_entry,
+        level_anchor,
         entry.get("fib_levels"),
         entry.get("watch_zones"),
     )
