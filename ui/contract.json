@@ -13,16 +13,16 @@
     "rejected_count": 16
   },
   "correlation": null,
-  "generated_at": "2026-05-05T20:11:31Z",
+  "generated_at": "2026-05-05T21:36:31Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 2.3158982835343984,
-      "level": 81690.15625,
+      "change_pct": 1.8734962199829877,
+      "level": 81336.9375,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.04262988524545986,
-      "level": 98.4800033569336,
+      "change_pct": -0.03654322043112172,
+      "level": 98.48600006103516,
       "symbol": "DX-Y.NYB"
     },
     "rates": {
@@ -32,8 +32,8 @@
       "symbol": "^TNX"
     },
     "volatility": {
-      "change_pct": -4.376373710935483,
-      "level": 17.479999542236328,
+      "change_pct": -4.9234217290615545,
+      "level": 17.3799991607666,
       "symbol": "^VIX"
     }
   },
@@ -55,8 +55,8 @@
     "risk_off_votes": 0,
     "risk_on_votes": 7,
     "total_votes": 8,
-    "vix_level": 17.479999542236328,
-    "vix_pct_change": -0.04376373710935483,
+    "vix_level": 17.3799991607666,
+    "vix_pct_change": -0.04923421729061554,
     "vote_breakdown": {
       "BTC pct_change": "RISK_ON",
       "DXY pct_change": "NEUTRAL",
@@ -83,7 +83,7 @@
     },
     {
       "detail": null,
-      "reason": "2 soft gates failed: price 2.4\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
+      "reason": "2 soft gates failed: price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
       "stage": "QUALIFICATION",
       "symbol": "BTC-USD"
     },
