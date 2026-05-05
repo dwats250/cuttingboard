@@ -13,11 +13,10 @@
   <h2>System State</h2>
   <div class="action-line">ACTION: MONITOR — SYSTEM ACTIVE</div>
   <div class="row">
-    <div class="field"><div class="label">Regime</div><div class="value"><span class="badge NEUTRAL">NEUTRAL</span></div></div>
-    <div class="field"><div class="label">Confidence</div><div class="value">0.375</div></div>
+    <div class="field"><div class="label">Regime</div><div class="value"><span class="badge RISK_ON">RISK_ON</span></div></div>
+    <div class="field"><div class="label">Confidence</div><div class="value">0.75</div></div>
     <div class="field"><div class="label">Outcome</div><div class="value">NO_TRADE</div></div>
   </div>
-  <div class="field warn"><div class="label">Trade Permission</div><div class="value">PREMARKET_CONTEXT</div></div>
   <div class="sep"></div>
   <div id="run-health" class="row">
     <div class="field"><div class="label">Halted</div><div class="value">NO</div></div>
@@ -31,8 +30,8 @@
     <div class="field">
       <div class="label">Timestamp</div>
       <div class="kv-grid">
-        <span class="label">Pacific</span><span>2026-05-04 20:55:21 PT</span>
-        <span class="label">Original</span><span>2026-05-05 03:55:21 UTC</span>
+        <span class="label">Pacific</span><span>2026-05-05 07:36:31 PT</span>
+        <span class="label">Original</span><span>2026-05-05 14:36:31 UTC</span>
         <span class="label">Status</span><span>FRESH</span>
       </div>
     </div>
@@ -41,8 +40,8 @@
 </div>
 <div class="block" id="macro-tape">
   <h2>Macro Tape</h2>
-  <div class="macro-bias long">MACRO BIAS: LONG ↑</div>
-  <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">VIX ↑</span><span class="macro-tape-value" data-symbol="VIX">18.3</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">DXY ↑</span><span class="macro-tape-value" data-symbol="DXY">98.5</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">10Y ↑</span><span class="macro-tape-value" data-symbol="10Y">4.45</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">BTC ↑</span><span class="macro-tape-value" data-symbol="BTC">80.7K</span></span></div>
+  <div class="macro-bias short">MACRO BIAS: SHORT ↓</div>
+  <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">VIX ↓</span><span class="macro-tape-value" data-symbol="VIX">17.5</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">DXY ↓</span><span class="macro-tape-value" data-symbol="DXY">98.4</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">10Y ↓</span><span class="macro-tape-value" data-symbol="10Y">4.42</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">BTC ↑</span><span class="macro-tape-value" data-symbol="BTC">81.5K</span></span></div>
   <div class="sep"></div>
   <div class="macro-tradables-grid">
     <span class="tradable-cell"><span class="macro-tape-label">SPY</span> <span class="macro-tape-value" data-symbol="SPY">718.01</span></span>
@@ -57,15 +56,15 @@
   <h2>Macro Pressure</h2>
   <div class="pressure-grid">
     <span class="label">Volatility</span>
-    <span class="badge RISK_OFF">RISK_OFF</span>
+    <span class="badge RISK_ON">RISK_ON</span>
     <span class="label">Dollar</span>
-    <span class="badge RISK_OFF">RISK_OFF</span>
+    <span class="badge RISK_ON">RISK_ON</span>
     <span class="label">Rates</span>
-    <span class="badge RISK_OFF">RISK_OFF</span>
+    <span class="badge NEUTRAL">NEUTRAL</span>
     <span class="label">Bitcoin</span>
     <span class="badge RISK_ON">RISK_ON</span>
   </div>
-  <div class="pressure-overall"><span class="label">Overall</span><span class="badge MIXED">MIXED</span></div>
+  <div class="pressure-overall"><span class="label">Overall</span><span class="badge RISK_ON">RISK_ON</span></div>
 </div>
 <div class="block" id="candidate-board">
   <h2>Candidate Board</h2>
@@ -130,7 +129,9 @@
 </div>
 <div class="block" id="run-delta">
   <h2>Changes Since Last Run</h2>
-  <div class="value">No changes since last run</div>
+  <div class="value">Regime: RISK_OFF -&gt; RISK_ON</div>
+  <div class="value">Posture: Stay Flat -&gt; Aggressive Long</div>
+  <div class="value">Confidence: 0.375 -&gt; 0.75</div>
 </div>
 <div class="block" id="run-history">
   <h2>History</h2>
