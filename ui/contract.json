@@ -19,16 +19,16 @@
     "score": 1,
     "state": "ALIGNED"
   },
-  "generated_at": "2026-05-05T01:57:02Z",
+  "generated_at": "2026-05-05T03:13:53Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.2754709701154376,
-      "level": 80322.109375,
+      "change_pct": 1.0663660957051315,
+      "level": 80692.5,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.514230988418749,
-      "level": 98.51399993896484,
+      "change_pct": 0.5101520141842437,
+      "level": 98.51000213623047,
       "symbol": "DX-Y.NYB"
     },
     "rates": {
