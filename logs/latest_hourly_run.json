@@ -1,6 +1,6 @@
 {
   "alert_body": "RISK ON | AGGRESSIVE LONG | 0.75\n- GLD LONG RR 2.0\n- SLV LONG RR 2.0\n- XLE LONG RR 2.0",
-  "alert_title": "LONG GLD 14:55",
+  "alert_title": "LONG GLD 15:15",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
     "payload_path": "logs/latest_hourly_payload.json",
@@ -17,7 +17,7 @@
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-05-05T18:55:53Z",
+  "generated_at": "2026-05-05T19:15:12Z",
   "halt_reason": null,
   "index_score": 0.0,
   "kill_switch": false,
@@ -30,11 +30,11 @@
   "posture": "AGGRESSIVE_LONG",
   "regime": "RISK_ON",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-05-05T18:55:53Z",
-  "run_id": "hourly-20260505T185553Z",
+  "run_at_utc": "2026-05-05T19:15:12Z",
+  "run_id": "hourly-20260505T191512Z",
   "session_date": "2026-05-05",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-05-05T18:55:53Z",
+  "timestamp": "2026-05-05T19:15:12Z",
   "warnings": []
 }
