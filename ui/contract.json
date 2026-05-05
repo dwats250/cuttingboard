@@ -1,39 +1,45 @@
 {
   "artifacts": {
-    "log_path": "logs/latest_hourly_run.json",
+    "log_path": "logs/latest_run.json",
     "notification_sent": false,
-    "report_path": "reports/output/hourly_report.html"
+    "report_path": "reports/2026-05-05.md"
   },
   "audit_summary": {
     "continuation_accepted_count": null,
     "continuation_audit_present": false,
     "continuation_rejected_count": null,
     "error_count": 0,
-    "qualified_count": 4,
+    "qualified_count": 3,
     "rejected_count": 5
   },
-  "correlation": null,
-  "generated_at": "2026-05-05T17:28:14Z",
+  "correlation": {
+    "dollar_symbol": "DX-Y.NYB",
+    "gold_symbol": "GLD",
+    "risk_modifier": 1.0,
+    "score": 1,
+    "state": "ALIGNED"
+  },
+  "generated_at": "2026-05-05T18:28:38Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 1.9705248597727734,
-      "level": 81414.40625,
+      "change_pct": 2.0170723829151704,
+      "level": 81451.5703125,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.07207199672652043,
-      "level": 98.45099639892578,
+      "change_pct": -0.07511532913368948,
+      "level": 98.447998046875,
       "symbol": "DX-Y.NYB"
     },
     "rates": {
-      "change_bps": -2.7823541189564254,
-      "change_pct": -0.6297768174777653,
-      "level": 4.418000221252441,
+      "change_bps": -2.9797777831636303,
+      "change_pct": -0.674768536641921,
+      "level": 4.415999889373779,
       "symbol": "^TNX"
     },
     "volatility": {
-      "change_pct": -4.8140100386217215,
-      "level": 17.399999618530273,
+      "change_pct": -5.908095640800774,
+      "level": 17.200000762939453,
       "symbol": "^VIX"
     }
   },
@@ -45,7 +51,7 @@
     "stale_data_detected": false
   },
   "mode": "live",
-  "outcome": "NO_TRADE",
+  "outcome": "TRADE",
   "regime": {
     "classification": "RISK_ON",
     "confidence": 0.875,
@@ -55,8 +61,8 @@
     "risk_off_votes": 0,
     "risk_on_votes": 7,
     "total_votes": 8,
-    "vix_level": 17.399999618530273,
-    "vix_pct_change": -0.048140100386217216,
+    "vix_level": 17.200000762939453,
+    "vix_pct_change": -0.059080956408007736,
     "vote_breakdown": {
       "BTC pct_change": "RISK_ON",
       "DXY pct_change": "NEUTRAL",
@@ -83,7 +89,7 @@
     },
     {
       "detail": null,
-      "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 2.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 2.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "QUALIFICATION",
       "symbol": "MSTR"
     },
@@ -113,13 +119,13 @@
     },
     {
       "detail": null,
-      "reason": "price 2.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 3.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "SPY"
     },
     {
       "detail": null,
-      "reason": "price 3.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 4.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "QQQ"
     },
@@ -137,7 +143,7 @@
     },
     {
       "detail": null,
-      "reason": "price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "PAAS"
     },
@@ -149,19 +155,25 @@
     },
     {
       "detail": null,
-      "reason": "price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "R:R 2.00 below 2.0 minimum",
+      "stage": "WATCHLIST",
+      "symbol": "XLE"
+    },
+    {
+      "detail": null,
+      "reason": "price 2.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "AAPL"
     },
     {
       "detail": null,
-      "reason": "price 1.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 1.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "META"
     },
     {
       "detail": null,
-      "reason": "price 3.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 3.2\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "AMZN"
     }
@@ -170,7 +182,7 @@
   "session_date": "2026-05-05",
   "status": "OK",
   "system_state": {
-    "intraday_state": null,
+    "intraday_state": "POWER_HOUR",
     "market_regime": "RISK_ON",
     "router_mode": "MIXED",
     "stay_flat_reason": null,
@@ -178,5 +190,131 @@
     "tradable": true
   },
   "timezone": "America/New_York",
-  "trade_candidates": []
+  "trade_candidates": [
+    {
+      "block_reason": "spread too wide: 19.1%",
+      "decision_status": "BLOCK_TRADE",
+      "decision_trace": {
+        "reason": "spread too wide: 19.1%",
+        "source": "execution_policy",
+        "stage": "EXECUTION_POLICY"
+      },
+      "direction": "LONG",
+      "enable_conditions": [],
+      "entry": 17.200000762939453,
+      "entry_mode": "DIRECT",
+      "entry_quality": {
+        "action": "UNKNOWN",
+        "blocking": false,
+        "reason": "INSUFFICIENT_DETERMINISTIC_INPUTS",
+        "source": "entry_quality_gate",
+        "status": "UNKNOWN"
+      },
+      "explanation": {},
+      "invalidation_guidance": null,
+      "notes": "spread too wide: 19.1%",
+      "policy_allowed": false,
+      "policy_reason": "spread too wide: 19.1%",
+      "risk_reward": 2.0,
+      "setup_quality": "DISQUALIFIED_OPTIONS_INVALID",
+      "size_multiplier": 0.0,
+      "stop": 14.98836617222209,
+      "strategy_tag": "BULL_CALL_SPREAD",
+      "symbol": "^VIX",
+      "target": 21.62326994437418,
+      "thesis": null,
+      "timeframe": "21",
+      "trigger": null,
+      "visibility_reason": null,
+      "visibility_status": null
+    },
+    {
+      "block_reason": null,
+      "decision_status": "ALLOW_TRADE",
+      "decision_trace": {
+        "reason": "TOP_TRADE_VALIDATED",
+        "source": "chain_validation",
+        "stage": "CHAIN_VALIDATION"
+      },
+      "direction": "LONG",
+      "enable_conditions": [],
+      "entry": 418.94000244140625,
+      "entry_mode": "DIRECT",
+      "entry_quality": {
+        "action": "ALLOW",
+        "blocking": false,
+        "reason": null,
+        "source": "entry_quality_gate",
+        "status": "CLEAN"
+      },
+      "explanation": {},
+      "invalidation_guidance": {
+        "action": "HOLD_OK",
+        "reason": null,
+        "status": "NOT_TRIGGERED",
+        "thesis_status": "VALID",
+        "triggered_by": null
+      },
+      "notes": null,
+      "policy_allowed": true,
+      "policy_reason": "policy_allowed",
+      "risk_reward": 2.0,
+      "setup_quality": "TOP_TRADE_VALIDATED",
+      "size_multiplier": 0.5,
+      "stop": 410.08219931632493,
+      "strategy_tag": "BULL_CALL_SPREAD",
+      "symbol": "GLD",
+      "target": 436.65560869156894,
+      "thesis": {
+        "block_reason": null,
+        "catalyst": "macro:RISK_ON",
+        "confirmation": "MACRO_CONFIRMED",
+        "direction": "LONG",
+        "invalidation": "stop at 410.08",
+        "status": "VALID",
+        "symbol": "GLD"
+      },
+      "timeframe": "14",
+      "trigger": null,
+      "visibility_reason": null,
+      "visibility_status": null
+    },
+    {
+      "block_reason": "cooldown",
+      "decision_status": "BLOCK_TRADE",
+      "decision_trace": {
+        "reason": "cooldown",
+        "source": "execution_policy",
+        "stage": "EXECUTION_POLICY"
+      },
+      "direction": "LONG",
+      "enable_conditions": [],
+      "entry": 66.27989959716797,
+      "entry_mode": "DIRECT",
+      "entry_quality": {
+        "action": "UNKNOWN",
+        "blocking": false,
+        "reason": "INSUFFICIENT_DETERMINISTIC_INPUTS",
+        "source": "entry_quality_gate",
+        "status": "UNKNOWN"
+      },
+      "explanation": {},
+      "invalidation_guidance": null,
+      "notes": null,
+      "policy_allowed": false,
+      "policy_reason": "cooldown",
+      "risk_reward": 2.0,
+      "setup_quality": "TOP_TRADE_VALIDATED",
+      "size_multiplier": 0.0,
+      "stop": 63.522969585725065,
+      "strategy_tag": "BULL_CALL_SPREAD",
+      "symbol": "SLV",
+      "target": 71.79375962005378,
+      "thesis": null,
+      "timeframe": "14",
+      "trigger": null,
+      "visibility_reason": null,
+      "visibility_status": null
+    }
+  ]
 }

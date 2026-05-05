@@ -1,145 +1,27 @@
 {
-  "macro_drivers": {
-    "bitcoin": {
-      "change_pct": 1.9705248597727734,
-      "level": 81414.40625,
-      "symbol": "BTC-USD"
-    },
-    "dollar": {
-      "change_pct": -0.07207199672652043,
-      "level": 98.45099639892578,
-      "symbol": "DX-Y.NYB"
-    },
-    "rates": {
-      "change_bps": -2.7823541189564254,
-      "change_pct": -0.6297768174777653,
-      "level": 4.418000221252441,
-      "symbol": "^TNX"
-    },
-    "volatility": {
-      "change_pct": -4.8140100386217215,
-      "level": 17.399999618530273,
-      "symbol": "^VIX"
-    }
-  },
+  "macro_drivers": {},
   "meta": {
-    "symbols_scanned": 20,
-    "timestamp": "2026-05-05T17:28:14Z"
+    "symbols_scanned": 0,
+    "timestamp": "2026-05-05T18:28:33Z"
   },
-  "run_status": "OK",
+  "run_status": "STAY_FLAT",
   "schema_version": "1.0",
   "sections": {
     "chain_results_detail": [],
     "continuation_audit": null,
     "option_setups_detail": [],
-    "rejected": [
-      {
-        "detail": null,
-        "reason": "CHOP",
-        "stage": "QUALIFICATION",
-        "symbol": "COIN"
-      },
-      {
-        "detail": null,
-        "reason": "2 soft gates failed: stop distance 0.6% below 1.0% minimum; R:R 2.00 below 2.0 minimum",
-        "stage": "QUALIFICATION",
-        "symbol": "DX-Y.NYB"
-      },
-      {
-        "detail": null,
-        "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 2.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "QUALIFICATION",
-        "symbol": "MSTR"
-      },
-      {
-        "detail": null,
-        "reason": "CHOP",
-        "stage": "QUALIFICATION",
-        "symbol": "NVDA"
-      },
-      {
-        "detail": null,
-        "reason": "CHOP",
-        "stage": "QUALIFICATION",
-        "symbol": "TSLA"
-      }
-    ],
+    "rejected": [],
     "top_trades": [],
     "trade_decision_detail": [],
-    "validation_halt_detail": null,
+    "validation_halt_detail": {
+      "reason": "test halt"
+    },
     "watch_summary_detail": null,
-    "watchlist": [
-      {
-        "detail": null,
-        "reason": "R:R 2.00 below 2.0 minimum",
-        "stage": "WATCHLIST",
-        "symbol": "^TNX"
-      },
-      {
-        "detail": null,
-        "reason": "price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "WATCHLIST",
-        "symbol": "BTC-USD"
-      },
-      {
-        "detail": null,
-        "reason": "price 2.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "WATCHLIST",
-        "symbol": "SPY"
-      },
-      {
-        "detail": null,
-        "reason": "price 3.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "WATCHLIST",
-        "symbol": "QQQ"
-      },
-      {
-        "detail": null,
-        "reason": "price 2.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "WATCHLIST",
-        "symbol": "IWM"
-      },
-      {
-        "detail": null,
-        "reason": "price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "WATCHLIST",
-        "symbol": "GDX"
-      },
-      {
-        "detail": null,
-        "reason": "price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "WATCHLIST",
-        "symbol": "PAAS"
-      },
-      {
-        "detail": null,
-        "reason": "R:R 2.00 below 2.0 minimum",
-        "stage": "WATCHLIST",
-        "symbol": "USO"
-      },
-      {
-        "detail": null,
-        "reason": "price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "WATCHLIST",
-        "symbol": "AAPL"
-      },
-      {
-        "detail": null,
-        "reason": "price 1.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "WATCHLIST",
-        "symbol": "META"
-      },
-      {
-        "detail": null,
-        "reason": "price 3.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "WATCHLIST",
-        "symbol": "AMZN"
-      }
-    ]
+    "watchlist": []
   },
   "summary": {
-    "market_regime": "RISK_ON",
+    "market_regime": "",
     "router_mode": "MIXED",
-    "tradable": true
+    "tradable": false
   }
 }
