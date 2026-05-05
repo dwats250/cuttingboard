@@ -40,6 +40,7 @@ permissions:
 
 jobs:
   pipeline:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
 
     env:
@@ -123,7 +124,9 @@ jobs:
         run: |
           set -eo pipefail
           echo "=== START prefetch ==="
-          python -m cuttingboard --mode prefetch --notify-mode premarket
+          date -u +"%Y-%m-%dT%H:%M:%SZ"
+          timeout 8m python -m cuttingboard --mode prefetch --notify-mode premarket
+          date -u +"%Y-%m-%dT%H:%M:%SZ"
           echo "=== END prefetch ==="
 
       # --- Premarket full pipeline ---
@@ -132,7 +135,9 @@ jobs:
         run: |
           set -eo pipefail
           echo "=== START live ==="
-          python -m cuttingboard --mode live --notify-mode premarket
+          date -u +"%Y-%m-%dT%H:%M:%SZ"
+          timeout 8m python -m cuttingboard --mode live --notify-mode premarket
+          date -u +"%Y-%m-%dT%H:%M:%SZ"
           echo "=== END live ==="
 
       # --- Sunday regime-only report ---
@@ -141,7 +146,9 @@ jobs:
         run: |
           set -eo pipefail
           echo "=== START sunday ==="
-          python -m cuttingboard --mode sunday --notify-mode premarket
+          date -u +"%Y-%m-%dT%H:%M:%SZ"
+          timeout 8m python -m cuttingboard --mode sunday --notify-mode premarket
+          date -u +"%Y-%m-%dT%H:%M:%SZ"
           echo "=== END sunday ==="
 
       # --- Verify: runs after live or sunday, or standalone via workflow_dispatch ---
@@ -153,7 +160,9 @@ jobs:
         run: |
           set -eo pipefail
           echo "=== START verify ==="
-          python -m cuttingboard --mode verify --notify-mode premarket
+          date -u +"%Y-%m-%dT%H:%M:%SZ"
+          timeout 8m python -m cuttingboard --mode verify --notify-mode premarket
+          date -u +"%Y-%m-%dT%H:%M:%SZ"
           echo "=== END verify ==="
 
       # --- ORB trajectory: 06:50 PT ---
@@ -162,7 +171,9 @@ jobs:
         run: |
           set -eo pipefail
           echo "=== START orb_trajectory ==="
-          python -m cuttingboard --mode orb_trajectory --notify-mode orb_trajectory
+          date -u +"%Y-%m-%dT%H:%M:%SZ"
+          timeout 8m python -m cuttingboard --mode orb_trajectory --notify-mode orb_trajectory
+          date -u +"%Y-%m-%dT%H:%M:%SZ"
           echo "=== END orb_trajectory ==="
 
       # --- Post-ORB: 07:30 PT ---
@@ -171,7 +182,9 @@ jobs:
         run: |
           set -eo pipefail
           echo "=== START post_orb ==="
-          python -m cuttingboard --mode post_orb --notify-mode post_orb
+          date -u +"%Y-%m-%dT%H:%M:%SZ"
+          timeout 8m python -m cuttingboard --mode post_orb --notify-mode post_orb
+          date -u +"%Y-%m-%dT%H:%M:%SZ"
           echo "=== END post_orb ==="
 
       # --- Mid-morning: 09:30 PT ---
@@ -180,7 +193,9 @@ jobs:
         run: |
           set -eo pipefail
           echo "=== START midmorning ==="
-          python -m cuttingboard --mode midmorning --notify-mode midmorning
+          date -u +"%Y-%m-%dT%H:%M:%SZ"
+          timeout 8m python -m cuttingboard --mode midmorning --notify-mode midmorning
+          date -u +"%Y-%m-%dT%H:%M:%SZ"
           echo "=== END midmorning ==="
 
       # --- Power hour: 12:00 PT (3:00 PM ET) ---
@@ -189,7 +204,9 @@ jobs:
         run: |
           set -eo pipefail
           echo "=== START power_hour ==="
-          python -m cuttingboard --mode power_hour --notify-mode power_hour
+          date -u +"%Y-%m-%dT%H:%M:%SZ"
+          timeout 8m python -m cuttingboard --mode power_hour --notify-mode power_hour
+          date -u +"%Y-%m-%dT%H:%M:%SZ"
           echo "=== END power_hour ==="
 
       # --- Generate commit message from latest_run.json (live and sunday only) ---
