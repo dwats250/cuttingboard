@@ -88,6 +88,52 @@ def _compute_timestamp_freshness(value: str) -> str:
         return "PARSE_ERROR"
 
 
+def _parse_utc_timestamp(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _first_timestamp(obj: dict | None, paths: tuple[tuple[str, ...], ...]) -> tuple[object, datetime | None]:
+    if not isinstance(obj, dict):
+        return None, None
+    for path in paths:
+        current: object = obj
+        for key in path:
+            if not isinstance(current, dict) or key not in current:
+                current = None
+                break
+            current = current[key]
+        parsed = _parse_utc_timestamp(current)
+        if parsed is not None:
+            return current, parsed
+    return None, None
+
+
+def _timestamp_label(value: object, parsed: datetime | None) -> str:
+    if parsed is None:
+        return "unavailable"
+    return str(value)
+
+
+def _timestamp_delta_exceeds(left: datetime | None, right: datetime | None) -> bool:
+    if left is None or right is None:
+        return False
+    return abs((left - right).total_seconds()) > DASHBOARD_STALE_AFTER_SECONDS
+
+
+def _timestamp_older_than_baseline(value: datetime | None, baseline: datetime | None) -> bool:
+    if value is None or baseline is None:
+        return False
+    return (baseline - value).total_seconds() > DASHBOARD_STALE_AFTER_SECONDS
+
+
 def _resolve_market_map(path: Path) -> tuple[str, dict | None]:
     """Load market_map from path and return (status, data).
 
@@ -212,6 +258,9 @@ _CSS = (
     ".history-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:0.8rem}"
     ".lvl-diagram{margin-top:8px;padding-top:6px;border-top:1px solid #1a1a1a}"
     ".lvl-unavail{color:#555;font-size:0.75rem;font-style:italic;margin-top:6px}"
+    ".artifact-warning{border-color:#ff9800;color:#ff9800}"
+    ".artifact-diagnostics{color:#888;font-size:0.72rem;line-height:1.45}"
+    ".artifact-diagnostics span{display:block}"
     ".failed-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-top:4px}"
     ".failed-card-fields .label{font-size:0.7rem}"
     ".failed-card-fields .value{margin-top:1px}"
@@ -707,6 +756,11 @@ def render_dashboard_html(
     market_map_path: Path | None = None,
     macro_snapshot_path: Path | None = None,
     contract_entry_map: dict | None = None,
+    contract_generated_at: object | None = None,
+    payload_source: str | Path = _PAYLOAD_PATH,
+    run_source: str | Path = _RUN_PATH,
+    market_map_source: str | Path | None = None,
+    contract_source: str | Path = _HOURLY_CONTRACT_PATH,
     fixture_mode: bool = False,
 ) -> str:
     """Return deterministic Signal Forge dashboard HTML.
@@ -721,10 +775,50 @@ def render_dashboard_html(
     else:
         _mm_status = "SOURCE_MISSING"
 
+    resolved_market_map_source = market_map_source
+    if resolved_market_map_source is None:
+        if market_map_path is not None:
+            resolved_market_map_source = market_map_path
+        elif market_map is not None:
+            resolved_market_map_source = "provided"
+        else:
+            resolved_market_map_source = "none"
+
     timestamp     = _req(payload, "meta", "timestamp")
     status        = _req(run, "status")
     market_regime = _req(payload, "summary", "market_regime")
     confidence    = _req(run, "confidence")
+
+    payload_timestamp_value, payload_timestamp = _first_timestamp(
+        payload,
+        (("meta", "timestamp"), ("timestamp",), ("generated_at",)),
+    )
+    run_timestamp_value, run_timestamp = _first_timestamp(
+        run,
+        (("run_at_utc",), ("timestamp",), ("generated_at",)),
+    )
+    market_map_timestamp_value, market_map_timestamp = _first_timestamp(
+        market_map,
+        (("generated_at",),),
+    )
+    contract_timestamp = _parse_utc_timestamp(contract_generated_at)
+
+    payload_run_mixed = _timestamp_delta_exceeds(payload_timestamp, run_timestamp)
+    baseline_timestamp: datetime | None = None
+    if not payload_run_mixed:
+        present_timestamps = [ts for ts in (payload_timestamp, run_timestamp) if ts is not None]
+        if present_timestamps:
+            baseline_timestamp = max(present_timestamps)
+    market_map_stale_for_run = (
+        not payload_run_mixed
+        and _timestamp_older_than_baseline(market_map_timestamp, baseline_timestamp)
+    )
+    contract_stale_for_run = (
+        not payload_run_mixed
+        and _timestamp_older_than_baseline(contract_timestamp, baseline_timestamp)
+    )
+    if contract_stale_for_run:
+        contract_entry_map = None
 
     validation_halt_detail = _req(payload, "sections", "validation_halt_detail")
     stay_flat_reason = (
@@ -748,8 +842,10 @@ def render_dashboard_html(
     # R2.1 — action line
     outcome    = run.get("outcome")
     permission = run.get("permission")
-    title = _decision_title(outcome, bool(system_halted), status)
-    if outcome == "STAY_FLAT":
+    title = "MIXED_ARTIFACTS" if payload_run_mixed else _decision_title(outcome, bool(system_halted), status)
+    if payload_run_mixed:
+        action_text = "ACTION: HOLD — MIXED_ARTIFACTS"
+    elif outcome == "STAY_FLAT":
         action_text = "ACTION: WAIT — NO VALID SETUPS"
     elif permission is False:
         action_text = "ACTION: WATCH — SETUPS PRESENT BUT BLOCKED"
@@ -795,6 +891,34 @@ def render_dashboard_html(
     w("</head>")
     w("<body>")
     w('<div class="wrap">')
+
+    if payload_run_mixed:
+        w('<div class="block artifact-warning" id="artifact-coherence">')
+        w("  <h2>MIXED_ARTIFACTS</h2>")
+        w("  <div class=\"value\">Dashboard inputs are from different artifact timestamps.</div>")
+        w("</div>")
+
+    w('<div class="block" id="artifact-diagnostics">')
+    w("  <h2>Artifact Sources</h2>")
+    w('  <div class="artifact-diagnostics">')
+    w(
+        f'    <span>payload={_esc(payload_source)} @ '
+        f'{_esc(_timestamp_label(payload_timestamp_value, payload_timestamp))}</span>'
+    )
+    w(
+        f'    <span>run={_esc(run_source)} @ '
+        f'{_esc(_timestamp_label(run_timestamp_value, run_timestamp))}</span>'
+    )
+    w(
+        f'    <span>market_map={_esc(resolved_market_map_source)} @ '
+        f'{_esc(_timestamp_label(market_map_timestamp_value, market_map_timestamp))}</span>'
+    )
+    w(
+        f'    <span>contract={_esc(contract_source)} @ '
+        f'{_esc(_timestamp_label(contract_generated_at, contract_timestamp))}</span>'
+    )
+    w("  </div>")
+    w("</div>")
 
     if session_type == "SUNDAY_PREMARKET" and _is_sunday_pt(str(timestamp)):
         w('<div class="block" id="premarket-banner" style="border-color:#29b6f6;color:#29b6f6;text-align:center">')
@@ -952,7 +1076,13 @@ def render_dashboard_html(
         w('  <h2>Candidate Board &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h2>')
     else:
         w("  <h2>Candidate Board</h2>")
-    if _mm_status in ("SOURCE_MISSING", "PARSE_ERROR"):
+    if market_map_stale_for_run:
+        w('  <div class="unavailable">STALE_MARKET_MAP</div>')
+        w('  <div class="idle-summary">'
+          '<div>Candidate Board suppressed</div>'
+          '<div>market_map artifact is stale relative to selected payload/run</div>'
+          '</div>')
+    elif _mm_status in ("SOURCE_MISSING", "PARSE_ERROR"):
         w(f'  <div class="unavailable">{_esc(_mm_status)}</div>')
     else:
         if _mm_status == "STALE":
@@ -1069,6 +1199,11 @@ def write_dashboard(
     macro_snapshot_path: Path | None = None,
     market_map_path: Path | None = None,
     contract_entry_map: dict | None = None,
+    contract_generated_at: object | None = None,
+    payload_source: str | Path = _PAYLOAD_PATH,
+    run_source: str | Path = _RUN_PATH,
+    market_map_source: str | Path | None = None,
+    contract_source: str | Path = _HOURLY_CONTRACT_PATH,
     fixture_mode: bool = False,
 ) -> None:
     html = render_dashboard_html(
@@ -1080,6 +1215,11 @@ def write_dashboard(
         market_map_path=market_map_path,
         macro_snapshot_path=macro_snapshot_path,
         contract_entry_map=contract_entry_map,
+        contract_generated_at=contract_generated_at,
+        payload_source=payload_source,
+        run_source=run_source,
+        market_map_source=market_map_source,
+        contract_source=contract_source,
         fixture_mode=fixture_mode,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1106,6 +1246,15 @@ def _build_contract_entry_map(logs_dir: Path) -> dict[str, float]:
     return result
 
 
+def _load_contract_entry_context(logs_dir: Path) -> tuple[dict[str, float], object | None, Path]:
+    """Load latest_hourly_contract entry prices and generated_at timestamp."""
+    path = logs_dir / _HOURLY_CONTRACT_PATH.name
+    contract = _load_json_optional(path)
+    if not contract:
+        return {}, None, path
+    return _build_contract_entry_map(logs_dir), contract.get("generated_at"), path
+
+
 def main(
     payload_path: Path = _PAYLOAD_PATH,
     run_path: Path = _RUN_PATH,
@@ -1129,13 +1278,20 @@ def main(
     )
     history_runs = history_runs[:HISTORY_LIMIT]
 
-    contract_entry_map = _build_contract_entry_map(logs_dir) or None
+    contract_entry_map_raw, contract_generated_at, contract_source = _load_contract_entry_context(logs_dir)
+    contract_entry_map = contract_entry_map_raw or None
+    market_map_path = logs_dir / "market_map.json"
 
     write_dashboard(
         payload, run, previous_run, history_runs, output_path=output_path,
-        market_map_path=logs_dir / "market_map.json",
+        market_map_path=market_map_path,
         macro_snapshot_path=macro_snapshot_path,
         contract_entry_map=contract_entry_map,
+        contract_generated_at=contract_generated_at,
+        payload_source=payload_path,
+        run_source=run_path,
+        market_map_source=market_map_path,
+        contract_source=contract_source,
         fixture_mode=_fixture_mode,
     )
     print(f"Dashboard written: {output_path}")

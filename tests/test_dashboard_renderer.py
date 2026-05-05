@@ -65,6 +65,14 @@ def _candidate_card(html: str, symbol: str = "SPY") -> str:
     return html.split(f'id="card-{symbol}"', 1)[1].split('</div>\n</div>', 1)[0]
 
 
+def _run_with_timestamp(timestamp: str, **kwargs: object) -> dict:
+    run = _run(**kwargs)
+    run["timestamp"] = timestamp
+    run["run_at_utc"] = timestamp
+    run["generated_at"] = timestamp
+    return run
+
+
 # T1 — missing market map renders SOURCE_MISSING, not generic MARKET MAP UNAVAILABLE
 def test_missing_market_map_renders_source_missing() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=None)
@@ -111,6 +119,75 @@ def test_available_tradable_quote_renders_value() -> None:
     slots = dict(_macro_tape_value_slots(html))
     assert slots["SPY"] == "512.34"
     assert "N/A" not in slots.get("SPY", "")
+
+
+def test_mixed_payload_run_renders_warning_and_suppresses_active_setup() -> None:
+    payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp(
+        "2026-04-28T12:10:01Z",
+        outcome="TRADE",
+        permission=True,
+    )
+
+    html = render_dashboard_html(payload, run, market_map=_market_map())
+
+    assert "MIXED_ARTIFACTS" in html
+    assert "TRADE SETUP ACTIVE" not in html
+    assert "ACTION: ACTIVE" not in html
+
+
+def test_coherent_payload_run_preserves_active_setup_behavior() -> None:
+    payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp(
+        "2026-04-28T12:00:00Z",
+        outcome="TRADE",
+        permission=True,
+    )
+
+    html = render_dashboard_html(payload, run, market_map=_market_map())
+
+    assert "MIXED_ARTIFACTS" not in html
+    assert "TRADE SETUP ACTIVE" in html
+    assert "ACTION: ACTIVE" in html
+
+
+def test_artifact_diagnostics_show_sources_and_timestamps() -> None:
+    html = render_dashboard_html(
+        _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers()),
+        _run_with_timestamp("2026-04-28T12:00:00Z"),
+        market_map=_market_map(),
+        contract_generated_at="2026-04-28T12:00:00Z",
+        payload_source="logs/latest_hourly_payload.json",
+        run_source="logs/latest_hourly_run.json",
+        market_map_source="logs/market_map.json",
+        contract_source="logs/latest_hourly_contract.json",
+    )
+
+    assert 'id="artifact-diagnostics"' in html
+    assert "payload=logs/latest_hourly_payload.json @ 2026-04-28T12:00:00Z" in html
+    assert "run=logs/latest_hourly_run.json @ 2026-04-28T12:00:00Z" in html
+    assert "market_map=logs/market_map.json @" in html
+    assert "contract=logs/latest_hourly_contract.json @ 2026-04-28T12:00:00Z" in html
+
+
+def test_stale_market_map_suppresses_candidate_cards() -> None:
+    payload = _payload(timestamp="2026-04-28T12:10:01Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:10:01Z")
+    mm = _market_map({
+        "SPY": {
+            **_mm_symbol("SPY"),
+            "current_price": 512.34,
+            "watch_zones": [{"type": "SUPPORT", "level": 510.0}],
+        }
+    })
+    mm["generated_at"] = "2026-04-28T12:00:00Z"
+
+    html = render_dashboard_html(payload, run, market_map=mm)
+    board = html.split('id="candidate-board"', 1)[1]
+
+    assert "STALE_MARKET_MAP" in board
+    assert "Candidate Board suppressed" in board
+    assert 'id="card-SPY"' not in board
 
 
 def test_candidate_level_diagram_uses_current_price_when_contract_entry_missing() -> None:
@@ -172,6 +249,34 @@ def test_candidate_level_diagram_prefers_contract_entry_over_current_price() -> 
 
     assert entry_line is not None
     assert entry_line.group("y") == "70"
+
+
+def test_stale_contract_entries_are_ignored_for_level_anchors() -> None:
+    payload = _payload(timestamp="2026-04-28T12:10:01Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:10:01Z")
+    entry = {
+        **_mm_symbol("SPY"),
+        "current_price": 120.0,
+        "watch_zones": [
+            {"type": "SUPPORT", "level": 100.0},
+            {"type": "RESISTANCE", "level": 130.0},
+        ],
+    }
+    mm = _market_map({"SPY": entry})
+    mm["generated_at"] = "2026-04-28T12:10:01Z"
+
+    html = render_dashboard_html(
+        payload,
+        run,
+        market_map=mm,
+        contract_entry_map={"SPY": 110.0},
+        contract_generated_at="2026-04-28T12:00:00Z",
+    )
+    card = _candidate_card(html)
+    entry_line = re.search(r'<line x1="0" y1="(?P<y>\d+)" x2="160" y2="\d+" stroke="#f5c518"', card)
+
+    assert entry_line is not None
+    assert entry_line.group("y") == "40"
 
 
 def test_failed_candidate_with_only_current_price_does_not_render_entry_only_diagram() -> None:
