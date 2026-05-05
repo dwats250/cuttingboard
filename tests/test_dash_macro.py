@@ -333,6 +333,13 @@ def test_macro_pressure_block_overall_present() -> None:
     assert "Overall" in block
 
 
+def test_macro_pressure_block_overall_uses_pressure_grid() -> None:
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
+    block = _macro_pressure_block(html)
+    assert 'class="pressure-overall"' not in block
+    assert block.index("Overall") < block.index("</div>")
+
+
 def test_macro_pressure_block_overall_value_is_valid() -> None:
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
     block = _macro_pressure_block(html)

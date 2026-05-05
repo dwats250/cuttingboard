@@ -933,14 +933,10 @@ def render_dashboard_html(
             val = _esc(pressure.get(key, "FIELD_MISSING"))
             w(f'    <span class="label">{_esc(label)}</span>')
             w(f'    <span class="badge {val}">{val}</span>')
-        w('  </div>')
         overall = pressure.get("overall_pressure", "FIELD_MISSING")
-        w(
-            f'  <div class="pressure-overall">'
-            f'<span class="label">Overall</span>'
-            f'<span class="badge {_esc(overall)}">{_esc(overall)}</span>'
-            f'</div>'
-        )
+        w('    <span class="label">Overall</span>')
+        w(f'    <span class="badge {_esc(overall)}">{_esc(overall)}</span>')
+        w('  </div>')
     w("</div>")
 
     # --- candidate-board ---
