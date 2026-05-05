@@ -261,8 +261,10 @@ _CSS = (
     ".artifact-warning{border-color:#ff9800;color:#ff9800}"
     ".artifact-diagnostics{color:#888;font-size:0.72rem;line-height:1.45}"
     ".artifact-diagnostics span{display:block}"
-    "#artifact-diagnostics summary{cursor:pointer;color:#555;font-size:0.72rem;list-style:none}"
-    "#artifact-diagnostics summary::-webkit-details-marker{display:none}"
+    "#artifact-diagnostics summary,#run-history summary{cursor:pointer;list-style:none}"
+    "#artifact-diagnostics summary::-webkit-details-marker,#run-history summary::-webkit-details-marker{display:none}"
+    "#artifact-diagnostics summary{color:#555;font-size:0.72rem}"
+    "#run-history summary{color:#aaa;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em}"
     ".failed-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-top:4px}"
     ".failed-card-fields .label{font-size:0.7rem}"
     ".failed-card-fields .value{margin-top:1px}"
@@ -1138,8 +1140,8 @@ def render_dashboard_html(
     w("</div>")
 
     # --- run-history ---
-    w('<div class="block" id="run-history">')
-    w("  <h2>History</h2>")
+    w('<details class="block" id="run-history">')
+    w("  <summary>History</summary>")
     if not history_runs:
         w('  <div class="value">NO_HISTORY</div>')
     else:
@@ -1159,7 +1161,7 @@ def render_dashboard_html(
             w(f'    <span class="history-cell">{_esc(hpos_label)}</span>')
             w(f'    <span class="history-cell">{_esc(hcon)}</span>')
         w('  </div>')
-    w("</div>")
+    w("</details>")
 
     w('<details class="block" id="artifact-diagnostics">')
     w("  <summary>Artifact diagnostics</summary>")
