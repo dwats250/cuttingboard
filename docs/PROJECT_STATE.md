@@ -13,9 +13,9 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-05
-**Last completed PRD:** PRD-087 — Pipeline Command Timeout Hardening (commit a976d01)
+**Last completed PRD:** PRD-088 - Candidate Board Level Diagram Price Fallback (commit 0be66f5)
 **Last work completed:** 2026-05-05 (commit a976d01)
-**Active PRD:** PRD-088 — Candidate Board Level Diagram Price Fallback (IN PROGRESS — Codex to implement)
+**Active PRD:** none
 **Deferred PRD:** none
 
 ---
@@ -31,7 +31,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
-| PRD-088 | Candidate Board Level Diagram Price Fallback | IN PROGRESS | — |
+| PRD-088 | Candidate Board Level Diagram Price Fallback | COMPLETE | 2026-05-05 |
 | PRD-087 | Pipeline Command Timeout Hardening | COMPLETE | 2026-05-05 |
 | PRD-086 | Carry Forward current_price Through Sunday Market Map | COMPLETE | 2026-05-04 |
 | PRD-085 | Regression Coverage: current_price Survives Full Runtime Processing Chain | COMPLETE | 2026-05-04 |
