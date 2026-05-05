@@ -202,7 +202,9 @@ _CSS = (
     ".removed-row{color:#888;font-size:0.8rem;padding:2px 0}"
     ".MIXED{background:#2a1a3a;color:#ba68c8}"
     ".UNKNOWN{background:#1a1a1a;color:#555}"
-    ".pressure-component{margin-right:0.75rem;display:inline-block}"
+    ".pressure-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:4px}"
+    ".pressure-cell{display:flex;align-items:baseline;gap:0.4rem}"
+    ".pressure-overall{margin-top:10px;display:flex;align-items:baseline;gap:0.4rem}"
     ".pressure-no-data{color:#888;font-style:italic;font-size:0.8rem}"
     ".lvl-diagram{margin-top:8px;padding-top:6px;border-top:1px solid #1a1a1a}"
     ".lvl-unavail{color:#555;font-size:0.75rem;font-style:italic;margin-top:6px}"
@@ -921,18 +923,23 @@ def render_dashboard_html(
     elif not isinstance(pressure, dict):
         w('  <div class="pressure-no-data">FIELD_MISSING</div>')
     else:
-        component_parts = [
-            f'<span class="pressure-component">'
-            f'<span class="label">{_esc(label)}</span> '
-            f'<span class="badge {_esc(pressure.get(key, "FIELD_MISSING"))}">'
-            f'{_esc(pressure.get(key, "FIELD_MISSING"))}</span>'
-            f'</span>'
-            for key, label in _PRESSURE_COMPONENT_LABELS
-        ]
-        w("  <div>" + "".join(component_parts) + "</div>")
+        w('  <div class="pressure-grid">')
+        for key, label in _PRESSURE_COMPONENT_LABELS:
+            val = _esc(pressure.get(key, "FIELD_MISSING"))
+            w(
+                f'    <div class="pressure-cell">'
+                f'<span class="label">{_esc(label)}</span>'
+                f'<span class="badge {val}">{val}</span>'
+                f'</div>'
+            )
+        w('  </div>')
         overall = pressure.get("overall_pressure", "FIELD_MISSING")
-        w(f'  <div style="margin-top:6px"><span class="label">Overall</span> '
-          f'<span class="badge {_esc(overall)}">{_esc(overall)}</span></div>')
+        w(
+            f'  <div class="pressure-overall">'
+            f'<span class="label">Overall</span>'
+            f'<span class="badge {_esc(overall)}">{_esc(overall)}</span>'
+            f'</div>'
+        )
     w("</div>")
 
     # --- candidate-board ---
