@@ -116,8 +116,9 @@ def test_run_history_limit_enforced(tmp_path: Path) -> None:
 
     main(payload_path=payload_file, run_path=run_file, output_path=out_file, logs_dir=logs_dir)
     history = out_file.read_text(encoding="utf-8").split('id="run-history"', 1)[1]
-    rows = [line for line in history.splitlines() if " | " in line][1:]
-    assert len(rows) == HISTORY_LIMIT
+    import re as _re
+    data_cells = _re.findall(r'class="history-cell"', history)
+    assert len(data_cells) // 4 == HISTORY_LIMIT
 
 
 def test_run_history_sorted_descending(tmp_path: Path) -> None:
@@ -142,7 +143,7 @@ def test_run_history_sorted_descending(tmp_path: Path) -> None:
 
     main(payload_path=payload_file, run_path=run_file, output_path=out_file, logs_dir=logs_dir)
     history = out_file.read_text(encoding="utf-8").split('id="run-history"', 1)[1]
-    assert history.index("12:00 | NEWEST") < history.index("11:00 | MIDDLE") < history.index("10:00 | OLDER")
+    assert history.index("NEWEST") < history.index("MIDDLE") < history.index("OLDER")
 
 
 def test_run_history_field_mapping_exact() -> None:
@@ -150,7 +151,10 @@ def test_run_history_field_mapping_exact() -> None:
     history_run["timestamp"] = "2026-04-28T12:50:00Z"
     html    = render_dashboard_html(_payload(), _run(), history_runs=[history_run])
     history = html.split('id="run-history"', 1)[1]
-    assert "12:50 | RISK_OFF | Stay Flat | 0.25" in history
+    assert "12:50" in history
+    assert "RISK_OFF" in history
+    assert "Stay Flat" in history
+    assert "0.25" in history
 
 
 def test_run_history_timestamp_format() -> None:
@@ -158,7 +162,7 @@ def test_run_history_timestamp_format() -> None:
     history_run["timestamp"] = "2026-04-28T09:30:45Z"
     html    = render_dashboard_html(_payload(), _run(), history_runs=[history_run])
     history = html.split('id="run-history"', 1)[1]
-    assert "09:30 |" in history
+    assert "09:30" in history
     assert "2026-04-28T09:30:45Z" not in history
 
 

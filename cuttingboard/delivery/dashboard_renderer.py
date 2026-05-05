@@ -202,10 +202,14 @@ _CSS = (
     ".removed-row{color:#888;font-size:0.8rem;padding:2px 0}"
     ".MIXED{background:#2a1a3a;color:#ba68c8}"
     ".UNKNOWN{background:#1a1a1a;color:#555}"
-    ".pressure-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:4px}"
-    ".pressure-cell{display:flex;align-items:baseline;gap:0.4rem}"
+    ".pressure-grid{display:grid;grid-template-columns:max-content max-content max-content max-content;"
+    "gap:4px 8px;margin-top:4px;align-items:baseline}"
     ".pressure-overall{margin-top:10px;display:flex;align-items:baseline;gap:0.4rem}"
     ".pressure-no-data{color:#888;font-style:italic;font-size:0.8rem}"
+    ".kv-grid{display:grid;grid-template-columns:max-content 1fr;gap:2px 0.75rem;margin-top:0.25rem}"
+    ".history-table{display:grid;grid-template-columns:5ch max-content max-content max-content;"
+    "column-gap:0.75rem;row-gap:2px;margin-top:4px;align-items:baseline}"
+    ".history-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:0.8rem}"
     ".lvl-diagram{margin-top:8px;padding-top:6px;border-top:1px solid #1a1a1a}"
     ".lvl-unavail{color:#555;font-size:0.75rem;font-style:italic;margin-top:6px}"
     ".failed-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-top:4px}"
@@ -839,11 +843,15 @@ def render_dashboard_html(
     w('  <div class="row">')
     _ts_pacific, _ts_original = format_dashboard_timestamp(str(timestamp))
     _ts_freshness = _compute_timestamp_freshness(str(timestamp))
-    w('    <div class="field"><div class="label">Timestamp</div>')
+    w('    <div class="field">')
+    w('      <div class="label">Timestamp</div>')
+    w('      <div class="kv-grid">')
     if _ts_pacific:
-        w(f'<div class="value">Pacific: {_esc(_ts_pacific)}</div>')
-    w(f'<div class="value">Original: {_esc(_ts_original)}</div>')
-    w(f'<div class="value">{_esc(_ts_freshness)}</div></div>')
+        w(f'        <span class="label">Pacific</span><span>{_esc(_ts_pacific)}</span>')
+    w(f'        <span class="label">Original</span><span>{_esc(_ts_original)}</span>')
+    w(f'        <span class="label">Status</span><span>{_esc(_ts_freshness)}</span>')
+    w('      </div>')
+    w('    </div>')
     w(f'    <div class="field"><div class="label">Status</div>'
       f'<div class="value">{_esc(status)}</div></div>')
     w("  </div>")
@@ -923,12 +931,8 @@ def render_dashboard_html(
         w('  <div class="pressure-grid">')
         for key, label in _PRESSURE_COMPONENT_LABELS:
             val = _esc(pressure.get(key, "FIELD_MISSING"))
-            w(
-                f'    <div class="pressure-cell">'
-                f'<span class="label">{_esc(label)}</span>'
-                f'<span class="badge {val}">{val}</span>'
-                f'</div>'
-            )
+            w(f'    <span class="label">{_esc(label)}</span>')
+            w(f'    <span class="badge {val}">{val}</span>')
         w('  </div>')
         overall = pressure.get("overall_pressure", "FIELD_MISSING")
         w(
@@ -1026,18 +1030,22 @@ def render_dashboard_html(
     if not history_runs:
         w('  <div class="value">NO_HISTORY</div>')
     else:
-        w('  <div class="value">timestamp | regime | posture | confidence</div>')
+        w('  <div class="history-table">')
+        w('    <span class="label">Time</span>')
+        w('    <span class="label">Regime</span>')
+        w('    <span class="label">Posture</span>')
+        w('    <span class="label">Conf</span>')
         for history_run in history_runs:
-            ht        = str(_req(history_run, "timestamp"))[11:16]
-            hreg      = _req(history_run, "regime")
-            hpos      = _req(history_run, "posture")
+            ht         = str(_req(history_run, "timestamp"))[11:16]
+            hreg       = _req(history_run, "regime")
+            hpos       = _req(history_run, "posture")
             hpos_label = _POSTURE_LABELS.get(str(hpos), str(hpos))
-            hcon      = _req(history_run, "confidence")
-            w(
-                f'  <div class="value">'
-                f'{_esc(ht)} | {_esc(hreg)} | {_esc(hpos_label)} | {_esc(hcon)}'
-                f'</div>'
-            )
+            hcon       = _req(history_run, "confidence")
+            w(f'    <span class="history-cell">{_esc(ht)}</span>')
+            w(f'    <span class="history-cell">{_esc(hreg)}</span>')
+            w(f'    <span class="history-cell">{_esc(hpos_label)}</span>')
+            w(f'    <span class="history-cell">{_esc(hcon)}</span>')
+        w('  </div>')
     w("</div>")
 
     w("</div>")  # .wrap
