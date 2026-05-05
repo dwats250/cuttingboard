@@ -1,8 +1,8 @@
 {
   "artifacts": {
-    "log_path": "logs/latest_hourly_run.json",
+    "log_path": "logs/latest_run.json",
     "notification_sent": false,
-    "report_path": "reports/output/hourly_report.html"
+    "report_path": "reports/2026-05-05.md"
   },
   "audit_summary": {
     "continuation_accepted_count": null,
@@ -12,17 +12,23 @@
     "qualified_count": 0,
     "rejected_count": 0
   },
-  "correlation": null,
-  "generated_at": "2026-05-05T01:56:07Z",
+  "correlation": {
+    "dollar_symbol": "DX-Y.NYB",
+    "gold_symbol": "GLD",
+    "risk_modifier": 1.0,
+    "score": 1,
+    "state": "ALIGNED"
+  },
+  "generated_at": "2026-05-05T01:57:02Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.26159208644193993,
-      "level": 80310.9921875,
+      "change_pct": 0.2754709701154376,
+      "level": 80322.109375,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.517290219094628,
-      "level": 98.51699829101562,
+      "change_pct": 0.514230988418749,
+      "level": 98.51399993896484,
       "symbol": "DX-Y.NYB"
     },
     "rates": {
@@ -41,7 +47,7 @@
     "continuation_enabled": false,
     "data_quality": "ok",
     "expansion_regime": null,
-    "imbalance_enabled": null,
+    "imbalance_enabled": false,
     "stale_data_detected": false
   },
   "mode": "live",
@@ -68,7 +74,14 @@
       "VIX pct_change": "RISK_OFF"
     }
   },
-  "rejections": [],
+  "rejections": [
+    {
+      "detail": null,
+      "reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.38)",
+      "stage": "REGIME",
+      "symbol": "REGIME"
+    }
+  ],
   "schema_version": "v2",
   "session_date": "2026-05-05",
   "status": "STAY_FLAT",
@@ -76,7 +89,7 @@
     "intraday_state": null,
     "market_regime": "RISK_OFF",
     "router_mode": "MIXED",
-    "stay_flat_reason": "STAY_FLAT posture",
+    "stay_flat_reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.38)",
     "time_gate_open": false,
     "tradable": false
   },
