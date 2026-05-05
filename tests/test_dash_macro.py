@@ -37,10 +37,10 @@ def test_macro_tape_section_order() -> None:
 
 
 def test_macro_tape_empty_macro_drivers() -> None:
-    # macro_drivers={} → slots 1-4 render with em dash, no crash
+    # macro_drivers={} → slots render with em dash / N/A, no crash
     html = render_dashboard_html(_payload(), _run())
     tape = _macro_tape_block(html)
-    for label in ("VIX", "DXY", "10Y", "BTC", "SPY", "QQQ", "GLD", "SLV", "XLE"):
+    for label in ("VIX", "DXY", "10Y", "BTC", "SPY", "QQQ", "GLD", "SLV", "XLE", "GDX"):
         assert label in tape
 
 
@@ -61,18 +61,20 @@ def test_macro_tape_no_crash_when_market_map_none() -> None:
 
 def test_macro_tape_value_row_present() -> None:
     html = render_dashboard_html(_payload(), _run())
-    assert 'class="macro-tape-grid"' in _macro_tape_block(html)
+    block = _macro_tape_block(html)
+    assert 'class="macro-drivers-row"' in block
+    assert 'class="macro-tradables-grid"' in block
 
 
 def test_macro_tape_value_row_slot_order() -> None:
     html = render_dashboard_html(_payload(), _run())
     slots = _macro_tape_value_slots(html)
-    assert [symbol for symbol, _ in slots] == ["VIX", "DXY", "10Y", "BTC", "SPY", "QQQ", "GLD", "SLV", "XLE"]
+    assert [symbol for symbol, _ in slots] == ["VIX", "DXY", "10Y", "BTC", "SPY", "QQQ", "GLD", "SLV", "XLE", "GDX"]
 
 
-def test_macro_tape_value_row_has_nine_fixed_slots() -> None:
+def test_macro_tape_value_row_has_ten_fixed_slots() -> None:
     html = render_dashboard_html(_payload(), _run())
-    assert len(_macro_tape_value_slots(html)) == 9
+    assert len(_macro_tape_value_slots(html)) == 10
 
 
 def test_macro_tape_value_row_vix_format() -> None:
@@ -119,7 +121,7 @@ def test_macro_tape_value_row_current_price_format() -> None:
 def test_macro_tape_value_row_etf_fallback_when_market_map_none() -> None:
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=None)
     slots = dict(_macro_tape_value_slots(html))
-    for symbol in ("SPY", "QQQ", "GLD", "SLV", "XLE"):
+    for symbol in ("SPY", "QQQ", "GLD", "SLV", "XLE", "GDX"):
         assert slots[symbol] == "N/A"
 
 
@@ -150,11 +152,14 @@ def test_macro_tape_value_row_boolean_current_price_uses_fallback() -> None:
     assert dict(_macro_tape_value_slots(html))["SPY"] == "N/A"
 
 
-def test_macro_tape_row1_fallback_marker_distinct_from_value_row_fallback() -> None:
-    html = render_dashboard_html(_payload(), _run(), market_map=None)
+def test_macro_tape_tradable_no_arrow_with_na_value() -> None:
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=None)
     tape = _macro_tape_block(html)
-    assert "SPY —" in tape
+    assert "SPY" in tape
     assert dict(_macro_tape_value_slots(html))["SPY"] == "N/A"
+    assert "SPY ↑" not in tape
+    assert "SPY ↓" not in tape
+    assert "SPY →" not in tape
 
 
 def test_macro_tape_macro_bias_text_unchanged_with_value_row() -> None:
@@ -256,8 +261,10 @@ def test_tape_slot_flat_class() -> None:
 
 
 def test_tape_slot_na_class() -> None:
-    # macro_drivers={} → all slots are dashes → class "na"
-    html = render_dashboard_html(_payload(), _run())
+    # macro_drivers={} with no snapshot → driver slots get em dash → class "na"
+    html = render_dashboard_html(
+        _payload(), _run(), macro_snapshot_path=Path("/nonexistent/no_snap.json")
+    )
     assert 'tape-slot na' in html
 
 

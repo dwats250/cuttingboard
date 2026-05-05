@@ -158,6 +158,10 @@ _CSS = (
     ".tape-slot{white-space:nowrap}"
     ".macro-tape-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));"
     "gap:6px 12px;margin-top:6px;overflow-x:hidden}"
+    ".macro-drivers-row{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:6px;overflow-x:hidden}"
+    ".macro-tradables-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 0;"
+    "margin-top:6px;overflow-x:hidden}"
+    ".tradable-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
     ".macro-tape-slot{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}"
     ".macro-tape-label{margin-right:0.25rem}"
     ".macro-tape-value{opacity:0.85}"
@@ -217,7 +221,7 @@ _TAPE_DRIVER_DEFS = [
     ("10Y", "rates"),
     ("BTC", "bitcoin"),
 ]
-_TAPE_MM_SYMBOLS = ["SPY", "QQQ", "GLD", "SLV", "XLE"]
+_TAPE_MM_SYMBOLS = ["SPY", "QQQ", "GLD", "SLV", "XLE", "GDX"]
 
 
 def _load_json(path: Path) -> dict:
@@ -734,14 +738,15 @@ def render_dashboard_html(
     tape_value_slots = _build_tape_value_slots(macro_drivers, market_map)
     pressure = _build_pressure_snapshot(macro_drivers, market_map)
 
-    # R1.1 — macro bias from arrow counts
-    up_count   = sum(1 for _, arrow in tape_slots if arrow == _UP)
-    down_count = sum(1 for _, arrow in tape_slots if arrow == _DOWN)
+    # R1.1 — macro bias from driver arrow counts only (first 4 slots)
+    _driver_slots = tape_slots[:4]
+    up_count   = sum(1 for _, arrow in _driver_slots if arrow == _UP)
+    down_count = sum(1 for _, arrow in _driver_slots if arrow == _DOWN)
     if up_count > down_count:
-        macro_bias = "MACRO BIAS: LONG"
+        macro_bias = f"MACRO BIAS: LONG {_UP}"
         macro_bias_css = "macro-bias long"
     elif down_count > up_count:
-        macro_bias = "MACRO BIAS: SHORT"
+        macro_bias = f"MACRO BIAS: SHORT {_DOWN}"
         macro_bias_css = "macro-bias short"
     else:
         macro_bias = "MACRO BIAS: MIXED"
@@ -861,16 +866,36 @@ def render_dashboard_html(
     if (not macro_drivers) or all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values()):
         w('  <div class="tape-no-data">NO LIVE MACRO DATA</div>')
     tape_value_map = dict(tape_value_slots)
-    combined_slots = [
+
+    # Macro bias first
+    w(f'  <div class="{_esc(macro_bias_css)}">{_esc(macro_bias)}</div>')
+
+    # Macro drivers row (VIX, DXY, 10Y, BTC) with directional arrows
+    driver_html = [
         f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(arrow, "na")}">'
         f'<span class="macro-tape-label">{_esc(label)} {_esc(arrow)}</span>'
         f'<span class="macro-tape-value" data-symbol="{_esc(label)}">'
         f'{_esc(tape_value_map.get(label, ""))}</span>'
         f'</span>'
-        for label, arrow in tape_slots
+        for label, arrow in tape_slots[:4]
     ]
-    w('  <div class="macro-tape-grid">' + "".join(combined_slots) + "</div>")
-    w(f'  <div class="{_esc(macro_bias_css)}">{_esc(macro_bias)}</div>')
+    w('  <div class="macro-drivers-row">' + "".join(driver_html) + "</div>")
+
+    # Divider
+    w('  <div class="sep"></div>')
+
+    # Tradables grid (no arrows, 2 per row)
+    w('  <div class="macro-tradables-grid">')
+    for i, sym in enumerate(_TAPE_MM_SYMBOLS):
+        val = tape_value_map.get(sym, "N/A")
+        sep = "| " if i % 2 == 1 else ""
+        w(
+            f'    <span class="tradable-cell">{_esc(sep)}'
+            f'<span class="macro-tape-label">{_esc(sym)}</span> '
+            f'<span class="macro-tape-value" data-symbol="{_esc(sym)}">{_esc(val)}</span>'
+            f'</span>'
+        )
+    w('  </div>')
     w("</div>")
 
     # --- macro-pressure ---

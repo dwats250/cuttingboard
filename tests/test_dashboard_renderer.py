@@ -48,17 +48,12 @@ def test_published_artifact_no_false_no_live_macro_data() -> None:
         )
 
 
-# PA3 — published artifact must use mobile-friendly grid (minmax ≤ 100px)
+# PA3 — published artifact must use mobile-friendly 2-column tradables grid
 def test_published_artifact_mobile_grid_width() -> None:
     if not _UI_INDEX.exists():
         pytest.skip("ui/index.html not present")
     html = _UI_INDEX.read_text(encoding="utf-8")
-    import re
-    m = re.search(r"macro-tape-grid\{[^}]*minmax\((\d+)px", html)
-    assert m is not None, "macro-tape-grid minmax not found in ui/index.html"
-    assert int(m.group(1)) <= 100, (
-        f"macro-tape-grid minmax is {m.group(1)}px — must be ≤100px for mobile"
-    )
+    assert "macro-tradables-grid" in html, "macro-tradables-grid not found in ui/index.html"
 
 
 def _candidate_board_section(html: str) -> str:
@@ -111,6 +106,15 @@ def test_available_tradable_quote_renders_value() -> None:
     slots = dict(_macro_tape_value_slots(html))
     assert slots["SPY"] == "512.34"
     assert "N/A" not in slots.get("SPY", "")
+
+
+# T5b — GDX must appear in tradables section of macro tape
+def test_gdx_present_in_tradables() -> None:
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=None)
+    from tests.dash_helpers import _macro_tape_value_slots
+    slots = dict(_macro_tape_value_slots(html))
+    assert "GDX" in slots
+    assert slots["GDX"] == "N/A"
 
 
 # T6 — null-safe secondary sections: FIELD_MISSING, SOURCE_MISSING, NO_HISTORY
