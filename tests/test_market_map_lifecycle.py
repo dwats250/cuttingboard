@@ -303,7 +303,6 @@ def test_no_carry_when_previous_price_is_none() -> None:
 
 def test_no_carry_when_previous_price_is_nan() -> None:
     # R4: non-finite previous value → not carried
-    import math
     current = {"symbols": {"SPY": {**_sym(), "current_price": None}}, "schema_version": "market_map.v1"}
     previous = {"symbols": {"SPY": {**_sym(), "current_price": float("nan")}}, "schema_version": "market_map.v1"}
     result = inject_lifecycle(current, previous_map=previous)
