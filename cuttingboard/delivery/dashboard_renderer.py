@@ -915,9 +915,6 @@ def render_dashboard_html(
     # --- macro-pressure ---
     w('<div class="block" id="macro-pressure">')
     w("  <h2>Macro Pressure</h2>")
-    raw_macro_drivers = payload.get("macro_drivers")
-    if raw_macro_drivers == {}:
-        w('  <div class="pressure-no-data">NO PRESSURE DATA</div>')
     if (not macro_drivers) or all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values()):
         w('  <div class="pressure-no-data">NO PRESSURE DATA</div>')
     elif not isinstance(pressure, dict):
