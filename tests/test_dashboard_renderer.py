@@ -114,13 +114,30 @@ def test_available_tradable_quote_renders_value() -> None:
 
 
 def test_candidate_level_diagram_uses_current_price_when_contract_entry_missing() -> None:
-    mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": 512.34}})
+    entry = {
+        **_mm_symbol("SPY"),
+        "current_price": 512.34,
+        "watch_zones": [{"type": "SUPPORT", "level": 510.0}],
+    }
+    mm = _market_map({"SPY": entry})
 
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=mm)
     card = _candidate_card(html)
 
     assert "Chart unavailable" not in card
+    assert "Level context unavailable" not in card
     assert 'class="lvl-diagram"' in card
+
+
+def test_candidate_level_diagram_suppresses_current_price_without_level_context() -> None:
+    mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": 512.34}})
+
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=mm)
+    card = _candidate_card(html)
+
+    assert "Level context unavailable" in card
+    assert "Chart unavailable" not in card
+    assert 'class="lvl-diagram"' not in card
 
 
 def test_candidate_level_diagram_preserves_unavailable_without_valid_anchor() -> None:
@@ -155,6 +172,17 @@ def test_candidate_level_diagram_prefers_contract_entry_over_current_price() -> 
 
     assert entry_line is not None
     assert entry_line.group("y") == "70"
+
+
+def test_failed_candidate_with_only_current_price_does_not_render_entry_only_diagram() -> None:
+    mm = _market_map({"SPY": {**_mm_symbol("SPY", grade="D"), "current_price": 512.34}})
+
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=mm)
+    card = _candidate_card(html)
+
+    assert "Level context unavailable" in card
+    assert 'class="lvl-diagram"' not in card
+    assert ">ENTRY</text>" not in card
 
 
 # T5b — GDX must appear in tradables section of macro tape

@@ -681,12 +681,18 @@ def _render_candidate_card(
             w(f'  <div class="label">REASON</div><div class="value">{_esc(reason)}</div>')
 
     level_anchor = contract_entry if contract_entry is not None else entry.get("current_price")
-    _render_level_diagram(
-        w,
-        level_anchor,
-        entry.get("fib_levels"),
-        entry.get("watch_zones"),
-    )
+    fib_levels = entry.get("fib_levels")
+    watch_zones = entry.get("watch_zones")
+    has_level_context = bool(fib_levels) or bool(watch_zones)
+    if level_anchor is not None and level_anchor > 0 and not has_level_context:
+        w('  <div class="lvl-unavail">Level context unavailable</div>')
+    else:
+        _render_level_diagram(
+            w,
+            level_anchor,
+            fib_levels,
+            watch_zones,
+        )
 
     w("</div>")
 
