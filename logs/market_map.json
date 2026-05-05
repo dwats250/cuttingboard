@@ -12,7 +12,7 @@
     "fib_deferred_symbols": [],
     "unavailable_symbols": []
   },
-  "generated_at": "2026-05-05T00:31:20Z",
+  "generated_at": "2026-05-05T00:57:04Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -26,7 +26,7 @@
   "session_date": "2026-05-05",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-05-05T00:31:20Z"
+    "run_at_utc": "2026-05-05T00:57:04Z"
   },
   "symbols": {
     "GDX": {
@@ -218,7 +218,7 @@
       },
       "grade": "D",
       "invalidation": [
-        "loses ORB_HIGH with weak recovery",
+        "loses VWAP with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
@@ -239,13 +239,18 @@
       "trade_framing": {
         "direction": "NEUTRAL",
         "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for reset toward ORB_HIGH before defining risk",
+        "entry": "wait for reset toward VWAP before defining risk",
         "if_now": "WAIT",
         "setup": "index extended bullish structure",
         "trade_type": "none",
         "upgrade": "improves with cleaner directional structure near a key level"
       },
       "watch_zones": [
+        {
+          "context": "session vwap",
+          "level": 672.6317,
+          "type": "VWAP"
+        },
         {
           "context": "opening range high",
           "level": 673.3199,
@@ -255,11 +260,6 @@
           "context": "opening range low",
           "level": 672.36,
           "type": "ORB_LOW"
-        },
-        {
-          "context": "session vwap",
-          "level": 672.3588,
-          "type": "VWAP"
         },
         {
           "context": "prior session high",
@@ -283,7 +283,7 @@
         }
       ],
       "what_to_look_for": [
-        "look for reset toward ORB_HIGH",
+        "look for reset toward VWAP",
         "watch for cleaner compression"
       ]
     },
