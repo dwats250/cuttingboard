@@ -13,10 +13,11 @@
   <h2>System State</h2>
   <div class="action-line">ACTION: MONITOR — SYSTEM ACTIVE</div>
   <div class="row">
-    <div class="field"><div class="label">Regime</div><div class="value"><span class="badge RISK_ON">RISK_ON</span></div></div>
-    <div class="field"><div class="label">Confidence</div><div class="value">0.75</div></div>
+    <div class="field"><div class="label">Regime</div><div class="value"><span class="badge RISK_OFF">RISK_OFF</span></div></div>
+    <div class="field"><div class="label">Confidence</div><div class="value">0.375</div></div>
     <div class="field"><div class="label">Outcome</div><div class="value">NO_TRADE</div></div>
   </div>
+  <div class="field warn"><div class="label">Trade Permission</div><div class="value">STAY_FLAT posture</div></div>
   <div class="sep"></div>
   <div id="run-health" class="row">
     <div class="field"><div class="label">Halted</div><div class="value">NO</div></div>
@@ -28,46 +29,92 @@
   <h2>NO TRADE</h2>
   <div class="row">
     <div class="field"><div class="label">Timestamp</div>
-<div class="value">Pacific: 2026-04-28 05:00:00 PT</div>
-<div class="value">Original: 2026-04-28 12:00:00 UTC</div>
-<div class="value">STALE</div></div>
+<div class="value">Pacific: 2026-05-04 18:56:07 PT</div>
+<div class="value">Original: 2026-05-05 01:56:07 UTC</div>
+<div class="value">FRESH</div></div>
     <div class="field"><div class="label">Status</div><div class="value">SUCCESS</div></div>
   </div>
 </div>
 <div class="block" id="macro-tape">
   <h2>Macro Tape</h2>
   <div class="macro-bias long">MACRO BIAS: LONG ↑</div>
-  <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">VIX ↑</span><span class="macro-tape-value" data-symbol="VIX">18.3</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">DXY ↑</span><span class="macro-tape-value" data-symbol="DXY">98.5</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">10Y ↑</span><span class="macro-tape-value" data-symbol="10Y">4.45</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">BTC ↑</span><span class="macro-tape-value" data-symbol="BTC">80.1K</span></span></div>
+  <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">VIX ↑</span><span class="macro-tape-value" data-symbol="VIX">18.3</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">DXY ↑</span><span class="macro-tape-value" data-symbol="DXY">98.5</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">10Y ↑</span><span class="macro-tape-value" data-symbol="10Y">4.45</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">BTC ↑</span><span class="macro-tape-value" data-symbol="BTC">80.3K</span></span></div>
   <div class="sep"></div>
   <div class="macro-tradables-grid">
-    <span class="tradable-cell"><span class="macro-tape-label">SPY</span> <span class="macro-tape-value" data-symbol="SPY">N/A</span></span>
-    <span class="tradable-cell">| <span class="macro-tape-label">QQQ</span> <span class="macro-tape-value" data-symbol="QQQ">N/A</span></span>
-    <span class="tradable-cell"><span class="macro-tape-label">GLD</span> <span class="macro-tape-value" data-symbol="GLD">N/A</span></span>
-    <span class="tradable-cell">| <span class="macro-tape-label">SLV</span> <span class="macro-tape-value" data-symbol="SLV">N/A</span></span>
-    <span class="tradable-cell"><span class="macro-tape-label">XLE</span> <span class="macro-tape-value" data-symbol="XLE">N/A</span></span>
-    <span class="tradable-cell">| <span class="macro-tape-label">GDX</span> <span class="macro-tape-value" data-symbol="GDX">N/A</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">SPY</span> <span class="macro-tape-value" data-symbol="SPY">718.01</span></span>
+    <span class="tradable-cell">| <span class="macro-tape-label">QQQ</span> <span class="macro-tape-value" data-symbol="QQQ">672.88</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">GLD</span> <span class="macro-tape-value" data-symbol="GLD">414.71</span></span>
+    <span class="tradable-cell">| <span class="macro-tape-label">SLV</span> <span class="macro-tape-value" data-symbol="SLV">65.94</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">XLE</span> <span class="macro-tape-value" data-symbol="XLE">59.39</span></span>
+    <span class="tradable-cell">| <span class="macro-tape-label">GDX</span> <span class="macro-tape-value" data-symbol="GDX">85.65</span></span>
   </div>
 </div>
 <div class="block" id="macro-pressure">
   <h2>Macro Pressure</h2>
-  <div class="pressure-no-data">NO PRESSURE DATA</div>
   <div><span class="pressure-component"><span class="label">Volatility</span> <span class="badge RISK_OFF">RISK_OFF</span></span><span class="pressure-component"><span class="label">Dollar</span> <span class="badge RISK_OFF">RISK_OFF</span></span><span class="pressure-component"><span class="label">Rates</span> <span class="badge RISK_OFF">RISK_OFF</span></span><span class="pressure-component"><span class="label">Bitcoin</span> <span class="badge RISK_ON">RISK_ON</span></span></div>
   <div style="margin-top:6px"><span class="label">Overall</span> <span class="badge MIXED">MIXED</span></div>
 </div>
 <div class="block" id="candidate-board">
   <h2>Candidate Board</h2>
-  <div class="unavailable">SOURCE_MISSING</div>
+  <div class="idle-summary"><div>NO ACTIONABLE SETUPS</div><div>Market is not offering structure</div></div>
+  <div class="tier-group" id="tier-df">
+    <div class="tier-header">D/F — FAILING (6)</div>
+<div class="candidate-card grade-f" id="card-GDX">
+  <div class="label">SYMBOL</div><div class="value">GDX</div>
+  <div class="label">GRADE</div><div class="value">F</div>
+  <div class="label">BIAS</div><div class="value">NEUTRAL</div>
+  <div class="label">STRUCTURE</div><div class="value">UNKNOWN</div>
+  <div class="lvl-unavail">Chart unavailable — no price data</div>
+</div>
+<div class="candidate-card grade-f" id="card-GLD">
+  <div class="label">SYMBOL</div><div class="value">GLD</div>
+  <div class="label">GRADE</div><div class="value">F</div>
+  <div class="label">BIAS</div><div class="value">NEUTRAL</div>
+  <div class="label">STRUCTURE</div><div class="value">UNKNOWN</div>
+  <div class="lvl-unavail">Chart unavailable — no price data</div>
+</div>
+<div class="candidate-card grade-f" id="card-QQQ">
+  <div class="label">SYMBOL</div><div class="value">QQQ</div>
+  <div class="label">GRADE</div><div class="value">F</div>
+  <div class="label">BIAS</div><div class="value">NEUTRAL</div>
+  <div class="label">STRUCTURE</div><div class="value">UNKNOWN</div>
+  <div class="lvl-unavail">Chart unavailable — no price data</div>
+</div>
+<div class="candidate-card grade-f" id="card-SLV">
+  <div class="label">SYMBOL</div><div class="value">SLV</div>
+  <div class="label">GRADE</div><div class="value">F</div>
+  <div class="label">BIAS</div><div class="value">NEUTRAL</div>
+  <div class="label">STRUCTURE</div><div class="value">UNKNOWN</div>
+  <div class="lvl-unavail">Chart unavailable — no price data</div>
+</div>
+<div class="candidate-card grade-f" id="card-SPY">
+  <div class="label">SYMBOL</div><div class="value">SPY</div>
+  <div class="label">GRADE</div><div class="value">F</div>
+  <div class="label">BIAS</div><div class="value">NEUTRAL</div>
+  <div class="label">STRUCTURE</div><div class="value">UNKNOWN</div>
+  <div class="lvl-unavail">Chart unavailable — no price data</div>
+</div>
+<div class="candidate-card grade-f" id="card-XLE">
+  <div class="label">SYMBOL</div><div class="value">XLE</div>
+  <div class="label">GRADE</div><div class="value">F</div>
+  <div class="label">BIAS</div><div class="value">NEUTRAL</div>
+  <div class="label">STRUCTURE</div><div class="value">UNKNOWN</div>
+  <div class="lvl-unavail">Chart unavailable — no price data</div>
+</div>
+  </div>
 </div>
 <div class="block" id="run-delta">
   <h2>Changes Since Last Run</h2>
-  <div class="value">Regime: MIDDLE -&gt; RISK_ON</div>
+  <div class="value">No changes since last run</div>
 </div>
 <div class="block" id="run-history">
   <h2>History</h2>
   <div class="value">timestamp | regime | posture | confidence</div>
-  <div class="value">12:00 | NEWEST | Controlled Long | 0.75</div>
-  <div class="value">11:00 | MIDDLE | Controlled Long | 0.75</div>
-  <div class="value">10:00 | OLDER | Controlled Long | 0.75</div>
+  <div class="value">00:57 | RISK_OFF | Stay Flat | 0.375</div>
+  <div class="value">00:31 | RISK_OFF | Stay Flat | 0.375</div>
+  <div class="value">23:38 | RISK_OFF | Stay Flat | 0.25</div>
+  <div class="value">21:32 | RISK_OFF | Stay Flat | 0.25</div>
+  <div class="value">20:43 | RISK_OFF | Stay Flat | 0.25</div>
 </div>
 </div>
 </div>
