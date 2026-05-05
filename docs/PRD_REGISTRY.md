@@ -99,6 +99,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-083 | b67ac8a | Dashboard Data Freshness and Source Visibility | COMPLETE | [PRD-083](prd_history/PRD-083.md) |
 | PRD-084 | b995d93 | Populate market_map current_price | COMPLETE | [PRD-084](prd_history/PRD-084.md) |
 | PRD-085 | 9f4fe5f | Regression Coverage: current_price Survives Full Runtime Processing Chain | COMPLETE | [PRD-085](prd_history/PRD-085.md) |
+| PRD-086 | 049e75f | Carry Forward current_price Through Sunday Market Map | COMPLETE | [PRD-086](prd_history/PRD-086.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

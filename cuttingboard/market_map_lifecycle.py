@@ -10,6 +10,7 @@ Pure functions only — no file I/O.
 from __future__ import annotations
 
 import copy
+import math
 from typing import Any
 
 GRADE_ORDER: dict[str, int] = {"A+": 0, "A": 1, "B": 2, "C": 3, "D": 4, "F": 5}
@@ -77,6 +78,11 @@ def inject_lifecycle(
             "is_new": is_new,
             "is_removed": False,
         }
+
+        if sym.get("current_price") is None and prev_sym is not None:
+            prev_price = prev_sym.get("current_price")
+            if isinstance(prev_price, (int, float)) and math.isfinite(prev_price):
+                sym["current_price"] = float(prev_price)
 
     removed: list[dict[str, Any]] = []
     if previous_map is not None:

@@ -246,3 +246,73 @@ def test_inject_lifecycle_preserves_current_price_none() -> None:
     result = inject_lifecycle(current, previous_map=None)
     assert "current_price" in result["symbols"]["SPY"]
     assert result["symbols"]["SPY"]["current_price"] is None
+
+
+# ---------------------------------------------------------------------------
+# PRD-086: carry forward current_price from previous_map on Sunday runs
+# ---------------------------------------------------------------------------
+
+def test_carry_forward_price_when_current_none_and_previous_has_price() -> None:
+    # R1: current=None + previous has real price → carry forward
+    current = {"symbols": {"SPY": {**_sym(), "current_price": None}}, "schema_version": "market_map.v1"}
+    previous = {"symbols": {"SPY": {**_sym(), "current_price": 512.34}}, "schema_version": "market_map.v1"}
+    result = inject_lifecycle(current, previous_map=previous)
+    assert result["symbols"]["SPY"]["current_price"] == 512.34
+
+
+def test_carry_forward_all_primary_symbols() -> None:
+    # R1: all tradable symbols carried forward when Sunday zeroes them all
+    prices = {"SPY": 512.0, "QQQ": 432.0, "GDX": 45.0, "GLD": 310.0, "SLV": 28.0, "XLE": 88.0}
+    current = {"symbols": {sym: {**_sym(), "current_price": None} for sym in prices}, "schema_version": "market_map.v1"}
+    previous = {"symbols": {sym: {**_sym(), "current_price": p} for sym, p in prices.items()}, "schema_version": "market_map.v1"}
+    result = inject_lifecycle(current, previous_map=previous)
+    for sym, expected in prices.items():
+        assert result["symbols"][sym]["current_price"] == expected, f"{sym} not carried"
+
+
+def test_does_not_overwrite_real_current_price() -> None:
+    # R2: current has real price → previous value must not replace it
+    current = {"symbols": {"SPY": {**_sym(), "current_price": 512.0}}, "schema_version": "market_map.v1"}
+    previous = {"symbols": {"SPY": {**_sym(), "current_price": 999.0}}, "schema_version": "market_map.v1"}
+    result = inject_lifecycle(current, previous_map=previous)
+    assert result["symbols"]["SPY"]["current_price"] == 512.0
+
+
+def test_no_carry_when_previous_map_is_none() -> None:
+    # R3: no previous_map → current_price stays None
+    current = {"symbols": {"SPY": {**_sym(), "current_price": None}}, "schema_version": "market_map.v1"}
+    result = inject_lifecycle(current, previous_map=None)
+    assert result["symbols"]["SPY"]["current_price"] is None
+
+
+def test_no_carry_when_symbol_absent_from_previous() -> None:
+    # R3: symbol not in previous → current_price stays None
+    current = {"symbols": {"SPY": {**_sym(), "current_price": None}}, "schema_version": "market_map.v1"}
+    previous = {"symbols": {"QQQ": {**_sym(), "current_price": 432.0}}, "schema_version": "market_map.v1"}
+    result = inject_lifecycle(current, previous_map=previous)
+    assert result["symbols"]["SPY"]["current_price"] is None
+
+
+def test_no_carry_when_previous_price_is_none() -> None:
+    # R4: previous current_price=None → not carried
+    current = {"symbols": {"SPY": {**_sym(), "current_price": None}}, "schema_version": "market_map.v1"}
+    previous = {"symbols": {"SPY": {**_sym(), "current_price": None}}, "schema_version": "market_map.v1"}
+    result = inject_lifecycle(current, previous_map=previous)
+    assert result["symbols"]["SPY"]["current_price"] is None
+
+
+def test_no_carry_when_previous_price_is_nan() -> None:
+    # R4: non-finite previous value → not carried
+    import math
+    current = {"symbols": {"SPY": {**_sym(), "current_price": None}}, "schema_version": "market_map.v1"}
+    previous = {"symbols": {"SPY": {**_sym(), "current_price": float("nan")}}, "schema_version": "market_map.v1"}
+    result = inject_lifecycle(current, previous_map=previous)
+    assert result["symbols"]["SPY"]["current_price"] is None
+
+
+def test_no_carry_when_previous_price_is_inf() -> None:
+    # R4: non-finite previous value → not carried
+    current = {"symbols": {"SPY": {**_sym(), "current_price": None}}, "schema_version": "market_map.v1"}
+    previous = {"symbols": {"SPY": {**_sym(), "current_price": float("inf")}}, "schema_version": "market_map.v1"}
+    result = inject_lifecycle(current, previous_map=previous)
+    assert result["symbols"]["SPY"]["current_price"] is None
