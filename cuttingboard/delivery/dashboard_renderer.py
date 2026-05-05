@@ -900,28 +900,6 @@ def render_dashboard_html(
         w("  <div class=\"value\">Dashboard inputs are from different artifact timestamps.</div>")
         w("</div>")
 
-    w('<details class="block" id="artifact-diagnostics">')
-    w("  <summary>Artifact diagnostics</summary>")
-    w('  <div class="artifact-diagnostics">')
-    w(
-        f'    <span>payload={_esc(payload_source)} @ '
-        f'{_esc(_timestamp_label(payload_timestamp_value, payload_timestamp))}</span>'
-    )
-    w(
-        f'    <span>run={_esc(run_source)} @ '
-        f'{_esc(_timestamp_label(run_timestamp_value, run_timestamp))}</span>'
-    )
-    w(
-        f'    <span>market_map={_esc(resolved_market_map_source)} @ '
-        f'{_esc(_timestamp_label(market_map_timestamp_value, market_map_timestamp))}</span>'
-    )
-    w(
-        f'    <span>contract={_esc(contract_source)} @ '
-        f'{_esc(_timestamp_label(contract_generated_at, contract_timestamp))}</span>'
-    )
-    w("  </div>")
-    w("</details>")
-
     if session_type == "SUNDAY_PREMARKET" and _is_sunday_pt(str(timestamp)):
         w('<div class="block" id="premarket-banner" style="border-color:#29b6f6;color:#29b6f6;text-align:center">')
         w('  <h2>SUNDAY PRE-MARKET CONTEXT &#8212; NO CASH SESSION</h2>')
@@ -1182,6 +1160,28 @@ def render_dashboard_html(
             w(f'    <span class="history-cell">{_esc(hcon)}</span>')
         w('  </div>')
     w("</div>")
+
+    w('<details class="block" id="artifact-diagnostics">')
+    w("  <summary>Artifact diagnostics</summary>")
+    w('  <div class="artifact-diagnostics">')
+    w(
+        f'    <span>payload={_esc(payload_source)} @ '
+        f'{_esc(_timestamp_label(payload_timestamp_value, payload_timestamp))}</span>'
+    )
+    w(
+        f'    <span>run={_esc(run_source)} @ '
+        f'{_esc(_timestamp_label(run_timestamp_value, run_timestamp))}</span>'
+    )
+    w(
+        f'    <span>market_map={_esc(resolved_market_map_source)} @ '
+        f'{_esc(_timestamp_label(market_map_timestamp_value, market_map_timestamp))}</span>'
+    )
+    w(
+        f'    <span>contract={_esc(contract_source)} @ '
+        f'{_esc(_timestamp_label(contract_generated_at, contract_timestamp))}</span>'
+    )
+    w("  </div>")
+    w("</details>")
 
     w("</div>")  # .wrap
     w("</div>")
