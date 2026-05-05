@@ -913,12 +913,14 @@ def render_dashboard_html(
         market_map = {**market_map, "symbols": FIXTURE_SYMBOLS}
         _mm_status = "FRESH"
 
-    # --- system-state (with run-health folded in) ---
+    # --- system-state ---
+    _ts_pacific, _ts_original = format_dashboard_timestamp(str(timestamp))
+    _ts_freshness = _compute_timestamp_freshness(str(timestamp))
+    _freshness_label = "STALE" if _ts_freshness == "STALE" else "CURRENT"
     regime_cls = _esc(market_regime)
     outcome_val = run.get("outcome") if "outcome" in run else run.get("status")
     halted_cls = " halted" if system_halted else ""
     ks_cls     = " halted" if kill_switch else ""
-    stale_cls  = " warn" if stale_data else ""
     w('<div class="block" id="system-state">')
     w("  <h2>System State</h2>")
     w(f'  <div class="action-line">{_esc(action_text)}</div>')
@@ -930,44 +932,31 @@ def render_dashboard_html(
     w(f'    <div class="field"><div class="label">Outcome</div>'
       f'<div class="value">{_esc(outcome_val)}</div></div>')
     w("  </div>")
-    if stay_flat_reason is not None:
-        w(f'  <div class="field warn"><div class="label">Trade Permission</div>'
+    w('  <div class="row">')
+    if bool(system_halted):
+        w('    <div class="field"><div class="label">Permission</div>'
+          '<div class="value halted">HALTED</div></div>')
+    elif stay_flat_reason is not None:
+        w(f'    <div class="field warn"><div class="label">Permission</div>'
           f'<div class="value">{_esc(stay_flat_reason)}</div></div>')
     elif run.get("permission") is not None:
-        w(f'  <div class="field"><div class="label">Trade Permission</div>'
+        w(f'    <div class="field"><div class="label">Permission</div>'
           f'<div class="value">{_esc(run["permission"])}</div></div>')
-    w('  <div class="sep"></div>')
-    w('  <div id="run-health" class="row">')
+    else:
+        w('    <div class="field"><div class="label">Permission</div>'
+          '<div class="value">&#8212;</div></div>')
     w(f'    <div class="field"><div class="label">Halted</div>'
       f'<div class="value{halted_cls}">{_bool_str(system_halted)}</div></div>')
     w(f'    <div class="field"><div class="label">Kill Switch</div>'
       f'<div class="value{ks_cls}">{_bool_str(kill_switch)}</div></div>')
-    w(f'    <div class="field"><div class="label">Stale Data</div>'
-      f'<div class="value{stale_cls}">{_bool_str(stale_data)}</div></div>')
-    if first_error is not None:
-        w(f'    <div class="field"><div class="label">Error</div>'
-          f'<div class="value halted">{_esc(first_error)}</div></div>')
     w("  </div>")
-    w("</div>")
-
-    # --- dashboard-header ---
-    w('<div class="block" id="dashboard-header">')
-    w(f'  <h2>{_esc(title)}</h2>')
-    w('  <div class="row">')
-    _ts_pacific, _ts_original = format_dashboard_timestamp(str(timestamp))
-    _ts_freshness = _compute_timestamp_freshness(str(timestamp))
-    w('    <div class="field">')
-    w('      <div class="label">Timestamp</div>')
-    w('      <div class="kv-grid">')
+    if bool(system_halted) and stay_flat_reason is not None:
+        w(f'  <div class="field warn"><div class="label">Reason</div>'
+          f'<div class="value">{_esc(stay_flat_reason)}</div></div>')
+    w('  <div class="sep"></div>')
+    w(f'  <div class="label">RUN SNAPSHOT - {_freshness_label}</div>')
     if _ts_pacific:
-        w(f'        <span class="label">Pacific</span><span>{_esc(_ts_pacific)}</span>')
-    w(f'        <span class="label">Original</span><span>{_esc(_ts_original)}</span>')
-    w(f'        <span class="label">Status</span><span>{_esc(_ts_freshness)}</span>')
-    w('      </div>')
-    w('    </div>')
-    w(f'    <div class="field"><div class="label">Status</div>'
-      f'<div class="value">{_esc(status)}</div></div>')
-    w("  </div>")
+        w(f'  <div class="value">{_esc(_ts_pacific)}</div>')
     w("</div>")
 
     # --- sunday-macro-context (SUNDAY_PREMARKET only) ---

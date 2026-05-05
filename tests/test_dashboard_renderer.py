@@ -147,7 +147,7 @@ def test_coherent_payload_run_preserves_active_setup_behavior() -> None:
     html = render_dashboard_html(payload, run, market_map=_market_map())
 
     assert "MIXED_ARTIFACTS" not in html
-    assert "TRADE SETUP ACTIVE" in html
+    assert "RUN SNAPSHOT" in html
     assert "ACTION: ACTIVE" in html
 
 
@@ -325,3 +325,110 @@ def test_null_safe_secondary_sections_no_crash() -> None:
     assert "NO_HISTORY" in history_block
     # No crash — rendering completed; pressure block present
     assert 'id="macro-pressure"' in html
+
+
+# PRD-089-PATCH tests
+
+def _system_state_block(html: str) -> str:
+    """Extract content of id="system-state" block."""
+    return html.split('id="system-state"', 1)[1].split('<div class="block"', 1)[0]
+
+
+def test_no_separate_dashboard_header_block() -> None:
+    html = render_dashboard_html(_payload(), _run())
+    assert 'id="dashboard-header"' not in html
+
+
+def test_system_state_contains_run_snapshot() -> None:
+    html = render_dashboard_html(_payload(), _run())
+    state = _system_state_block(html)
+    assert "RUN SNAPSHOT" in state
+
+
+def test_run_snapshot_stale_when_stale() -> None:
+    old_ts = "2020-01-01T00:00:00Z"
+    payload = _payload(timestamp=old_ts)
+    run = _run_with_timestamp(old_ts)
+    html = render_dashboard_html(payload, run)
+    state = _system_state_block(html)
+    assert "RUN SNAPSHOT - STALE" in state
+
+
+def test_run_snapshot_current_when_fresh() -> None:
+    from datetime import datetime, timezone
+    now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    payload = _payload(timestamp=now)
+    run = _run_with_timestamp(now)
+    html = render_dashboard_html(payload, run)
+    state = _system_state_block(html)
+    assert "RUN SNAPSHOT - CURRENT" in state
+
+
+def test_run_snapshot_shows_pacific_timestamp() -> None:
+    html = render_dashboard_html(
+        _payload(timestamp="2026-05-05T20:29:00Z"),
+        _run_with_timestamp("2026-05-05T20:29:00Z"),
+    )
+    state = _system_state_block(html)
+    assert "PT" in state
+
+
+def test_main_block_no_original_utc_timestamp() -> None:
+    html = render_dashboard_html(
+        _payload(timestamp="2026-05-05T20:29:00Z"),
+        _run_with_timestamp("2026-05-05T20:29:00Z"),
+    )
+    state = _system_state_block(html)
+    assert "Original" not in state
+    assert "UTC" not in state
+
+
+def test_permission_label_used_not_trade_permission() -> None:
+    html = render_dashboard_html(_payload(), _run())
+    assert "Trade Permission" not in html
+
+
+def test_halted_state_permission_shows_halted() -> None:
+    run = _run(system_halted=True)
+    html = render_dashboard_html(_payload(), run)
+    state = _system_state_block(html)
+    assert "Permission" in state
+    assert "HALTED" in state
+
+
+def test_halted_state_raw_reason_shown_as_reason_not_permission() -> None:
+    payload = _payload(validation_halt_detail={"reason": "STAY_FLAT regime"})
+    run = _run(system_halted=True)
+    html = render_dashboard_html(payload, run)
+    state = _system_state_block(html)
+    assert "Reason" in state
+    assert "STAY_FLAT regime" in state
+    perm_section = state.split("Permission", 1)[1].split("Halted", 1)[0]
+    assert "STAY_FLAT regime" not in perm_section
+    assert "HALTED" in perm_section
+
+
+def test_non_halted_permission_preserved() -> None:
+    run = _run(system_halted=False, permission=True)
+    html = render_dashboard_html(_payload(), run)
+    state = _system_state_block(html)
+    assert "Permission" in state
+    assert "True" in state
+
+
+def test_halted_and_kill_switch_visible_in_system_state() -> None:
+    run = _run(system_halted=True, kill_switch=False)
+    html = render_dashboard_html(_payload(), run)
+    state = _system_state_block(html)
+    assert "Halted" in state
+    assert "Kill Switch" in state
+
+
+def test_regime_confidence_outcome_before_permission_in_system_state() -> None:
+    html = render_dashboard_html(_payload(), _run())
+    state = _system_state_block(html)
+    regime_pos = state.find("Regime")
+    outcome_pos = state.find("Outcome")
+    permission_pos = state.find("Permission")
+    assert regime_pos < permission_pos, "Regime must appear before Permission"
+    assert outcome_pos < permission_pos, "Outcome must appear before Permission"
