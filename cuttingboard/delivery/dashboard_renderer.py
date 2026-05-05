@@ -156,9 +156,9 @@ _CSS = (
     "letter-spacing:0.08em;margin-bottom:0.75rem}"
     ".sep{border-top:1px solid #1a1a1a;margin:0.5rem 0}"
     ".tape-slot{white-space:nowrap}"
-    ".macro-tape-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));"
-    "gap:6px 12px;margin-top:6px}"
-    ".macro-tape-slot{white-space:nowrap}"
+    ".macro-tape-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));"
+    "gap:6px 12px;margin-top:6px;overflow-x:hidden}"
+    ".macro-tape-slot{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}"
     ".macro-tape-label{margin-right:0.25rem}"
     ".macro-tape-value{opacity:0.85}"
     ".candidate-card{border-left:3px solid #2a2a2a;padding:0.75rem;margin-bottom:0.5rem}"
@@ -355,7 +355,7 @@ def _build_tape_value_slots(
         if _is_finite_number(value):
             slots.append((sym, _format_tape_value(sym, value)))
         else:
-            slots.append((sym, "DATA_UNAVAILABLE"))
+            slots.append((sym, "N/A"))
 
     return slots
 
@@ -857,9 +857,6 @@ def render_dashboard_html(
 
     # --- macro-tape ---
     w('<div class="block" id="macro-tape">')
-    raw_macro_drivers = payload.get("macro_drivers")
-    if raw_macro_drivers == {}:
-        w('  <div class="tape-no-data">NO LIVE MACRO DATA</div>')
     w("  <h2>Macro Tape</h2>")
     if (not macro_drivers) or all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values()):
         w('  <div class="tape-no-data">NO LIVE MACRO DATA</div>')
@@ -913,7 +910,7 @@ def render_dashboard_html(
         if _mm_status == "STALE":
             w('  <div class="unavailable">STALE</div>')
         if market_map is None:
-            w('  <div class="unavailable">DATA_UNAVAILABLE</div>')
+            w('  <div class="unavailable">N/A</div>')
         else:
             symbols: dict = market_map.get("symbols") or {}
             if not symbols:

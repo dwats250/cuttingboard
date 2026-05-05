@@ -46,13 +46,13 @@ def test_parse_error_market_map_renders_parse_error(tmp_path: pytest.TempPathFac
     assert "PARSE_ERROR" in board
 
 
-# T4 — missing tradable quote shows DATA_UNAVAILABLE, not silent "--"
+# T4 — missing tradable quote shows N/A, not silent "--"
 def test_missing_tradable_quote_renders_data_unavailable() -> None:
     mm = _market_map({"SPY": _mm_symbol("SPY")})  # no current_price
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=mm)
     from tests.dash_helpers import _macro_tape_value_slots
     slots = dict(_macro_tape_value_slots(html))
-    assert slots["SPY"] == "DATA_UNAVAILABLE"
+    assert slots["SPY"] == "N/A"
     assert "--" not in slots.get("SPY", "")
 
 
@@ -63,7 +63,7 @@ def test_available_tradable_quote_renders_value() -> None:
     from tests.dash_helpers import _macro_tape_value_slots
     slots = dict(_macro_tape_value_slots(html))
     assert slots["SPY"] == "512.34"
-    assert "DATA_UNAVAILABLE" not in slots.get("SPY", "")
+    assert "N/A" not in slots.get("SPY", "")
 
 
 # T6 — null-safe secondary sections: FIELD_MISSING, SOURCE_MISSING, NO_HISTORY

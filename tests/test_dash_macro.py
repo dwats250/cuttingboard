@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import json
+import tempfile
+from pathlib import Path
+
 from cuttingboard.delivery.dashboard_renderer import render_dashboard_html
 
 from tests.dash_helpers import (
@@ -116,7 +120,7 @@ def test_macro_tape_value_row_etf_fallback_when_market_map_none() -> None:
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=None)
     slots = dict(_macro_tape_value_slots(html))
     for symbol in ("SPY", "QQQ", "GLD", "SLV", "XLE"):
-        assert slots[symbol] == "DATA_UNAVAILABLE"
+        assert slots[symbol] == "N/A"
 
 
 def test_macro_tape_value_row_missing_macro_driver_level_uses_fallback() -> None:
@@ -143,14 +147,14 @@ def test_macro_tape_value_row_boolean_macro_driver_level_uses_fallback() -> None
 def test_macro_tape_value_row_boolean_current_price_uses_fallback() -> None:
     mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": False}})
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=mm)
-    assert dict(_macro_tape_value_slots(html))["SPY"] == "DATA_UNAVAILABLE"
+    assert dict(_macro_tape_value_slots(html))["SPY"] == "N/A"
 
 
 def test_macro_tape_row1_fallback_marker_distinct_from_value_row_fallback() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=None)
     tape = _macro_tape_block(html)
     assert "SPY —" in tape
-    assert dict(_macro_tape_value_slots(html))["SPY"] == "DATA_UNAVAILABLE"
+    assert dict(_macro_tape_value_slots(html))["SPY"] == "N/A"
 
 
 def test_macro_tape_macro_bias_text_unchanged_with_value_row() -> None:
@@ -200,7 +204,10 @@ def test_macro_bias_element_present() -> None:
 # ---------------------------------------------------------------------------
 
 def test_macro_no_data_banner_when_empty() -> None:
-    html = render_dashboard_html(_payload(), _run())  # macro_drivers={}
+    # macro_drivers={} with no snapshot source → truly no data → banner shown
+    html = render_dashboard_html(
+        _payload(), _run(), macro_snapshot_path=Path("/nonexistent/no_snap.json")
+    )
     tape = html.split('id="macro-tape"', 1)[1]
     assert "NO LIVE MACRO DATA" in tape
 
@@ -209,6 +216,21 @@ def test_macro_no_data_banner_absent_when_data_present() -> None:
     p = _payload(macro_drivers=_macro_drivers())
     html = render_dashboard_html(p, _run())
     assert "NO LIVE MACRO DATA" not in html
+
+
+def test_macro_no_data_banner_absent_when_snapshot_has_data() -> None:
+    # Production scenario: payload.macro_drivers={} but snapshot has real values.
+    # Banner must NOT appear because resolved macro_drivers has data.
+    snapshot = {"macro_drivers": _macro_drivers()}
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(snapshot, f)
+        snap_path = Path(f.name)
+    try:
+        html = render_dashboard_html(_payload(), _run(), macro_snapshot_path=snap_path)
+        tape = html.split('id="macro-tape"', 1)[1]
+        assert "NO LIVE MACRO DATA" not in tape
+    finally:
+        snap_path.unlink(missing_ok=True)
 
 
 # ---------------------------------------------------------------------------
