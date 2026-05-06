@@ -851,7 +851,6 @@ def render_dashboard_html(
     data_status   = _req(run, "data_status")
     errors        = _req(run, "errors")
     first_error   = errors[0] if errors else None
-    stale_data    = data_status != "ok"
 
     # R2.1 — action line
     outcome    = run.get("outcome")
