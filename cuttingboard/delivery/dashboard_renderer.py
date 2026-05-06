@@ -43,6 +43,7 @@ _GRADE_CSS: dict[str, str] = {
 }
 
 _HIGH_GRADES = frozenset({"A+", "A", "B"})
+_UNAVAILABLE_WATCH = "Market data unavailable for this run; review during live market session."
 
 _LIFECYCLE_BADGE_CSS: dict[str, str] = {
     "NEW":        "lifecycle-new",
@@ -732,6 +733,13 @@ def _render_candidate_card(
         reason = entry.get("reason_for_grade")
         if reason is not None:
             w(f'  <div class="label">REASON</div><div class="value">{_esc(reason)}</div>')
+
+        pts = entry.get("preferred_trade_structure")
+        if pts is not None:
+            w(f'  <div class="label">PLAY</div><div class="value">{_esc(pts)}</div>')
+        for item in (entry.get("what_to_look_for") or []):
+            if item and item != _UNAVAILABLE_WATCH:
+                w(f'  <div class="label">WATCH</div><div class="value">{_esc(item)}</div>')
 
     level_anchor = contract_entry if contract_entry is not None else entry.get("current_price")
     fib_levels = entry.get("fib_levels")

@@ -11,6 +11,7 @@ import pytest
 
 from cuttingboard.delivery.dashboard_renderer import (
     DASHBOARD_STALE_AFTER_SECONDS,
+    _UNAVAILABLE_WATCH,
     render_dashboard_html,
 )
 from tests.dash_helpers import _macro_drivers, _market_map, _mm_symbol, _payload, _run
@@ -484,6 +485,63 @@ def test_b_grade_not_inside_details_block() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
     board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
     assert '<details' not in board, "B-grade card is incorrectly wrapped in <details>"
+
+
+def test_high_grade_candidate_renders_validation_context() -> None:
+    entry = {
+        **_mm_symbol("SPY", grade="A"),
+        "preferred_trade_structure": "bullish defined-risk continuation",
+        "what_to_look_for": ["watch hold above support", "look for higher low"],
+    }
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map({"SPY": entry}))
+    card = _candidate_card(html)
+
+    assert "PLAY" in card
+    assert "bullish defined-risk continuation" in card
+    assert card.count("WATCH") == 2
+    assert "watch hold above support" in card
+    assert "look for higher low" in card
+
+
+def test_high_grade_candidate_omits_empty_validation_context() -> None:
+    entry = {
+        **_mm_symbol("SPY", grade="A+"),
+        "preferred_trade_structure": None,
+        "what_to_look_for": [],
+    }
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map({"SPY": entry}))
+    card = _candidate_card(html)
+
+    assert "PLAY" not in card
+    assert "WATCH" not in card
+
+
+def test_high_grade_candidate_filters_unavailable_watch_sentinel() -> None:
+    entry = {
+        **_mm_symbol("SPY", grade="A"),
+        "preferred_trade_structure": None,
+        "what_to_look_for": [_UNAVAILABLE_WATCH],
+    }
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map({"SPY": entry}))
+    card = _candidate_card(html)
+
+    assert "WATCH" not in card
+    assert _UNAVAILABLE_WATCH not in card
+
+
+def test_failed_candidate_omits_validation_context() -> None:
+    entry = {
+        **_mm_symbol("SPY", grade="C"),
+        "preferred_trade_structure": "bullish defined-risk continuation",
+        "what_to_look_for": ["watch hold above support"],
+    }
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map({"SPY": entry}))
+    card = _candidate_card(html)
+
+    assert "PLAY" not in card
+    assert "WATCH" not in card
+    assert "bullish defined-risk continuation" not in card
+    assert "watch hold above support" not in card
 
 
 def test_no_actionable_message_present_when_only_c_grade() -> None:
