@@ -56,6 +56,45 @@ fi
 # declare intent inline ("batch workflow", "deferred", etc.).
 # ---------------------------------------------------------------------------
 SEQUENCE_WARNING=""
+REGISTRY_GAP=""
+
+# ---------------------------------------------------------------------------
+# Registry completeness check: flag prd_history/*.md files with no registry row
+# ---------------------------------------------------------------------------
+if [ -f "$REGISTRY" ] && [ "${HAS_PRD_NUM}" -gt 0 ]; then
+    REGISTRY_GAP=$(python3 - "$REGISTRY" <<'PYEOF'
+import sys, re, os, glob
+
+registry_path = sys.argv[1]
+prd_dir = os.path.join(os.path.dirname(registry_path), "prd_history")
+
+file_stems = set()
+for f in glob.glob(os.path.join(prd_dir, "PRD-*.md")):
+    file_stems.add(os.path.basename(f).replace(".md", ""))
+
+try:
+    text = open(registry_path, encoding="utf-8").read()
+except OSError:
+    sys.exit(0)
+
+# A file is registered if its stem appears anywhere in any registry table row
+# (catches variant ID formats like "PRD-012 (cleanup)" and "PRD-053 PATCH")
+missing = []
+for stem in sorted(file_stems):
+    if not any(stem in line for line in text.splitlines() if line.startswith("|")):
+        missing.append(stem)
+
+if not missing:
+    sys.exit(0)
+
+lines = ["REGISTRY GAP — prd_history files with no registry row:"]
+for m in missing:
+    lines.append(f"  {m}.md")
+lines.append("Add a registry row for each before saving new PRDs.")
+print("\n".join(lines))
+PYEOF
+    )
+fi
 
 if [ -f "$REGISTRY" ] && [ "${HAS_PRD_NUM}" -gt 0 ]; then
     SEQUENCE_WARNING=$(python3 - "$PROMPT" "$REGISTRY" "$IS_PRD_BODY" <<'PYEOF'
@@ -134,14 +173,18 @@ fi
 # ---------------------------------------------------------------------------
 # Emit context
 # ---------------------------------------------------------------------------
-python3 - "$IS_PRD_BODY" "$IS_IMPL_REQUEST" "$SEQUENCE_WARNING" <<'PYEOF'
+python3 - "$IS_PRD_BODY" "$IS_IMPL_REQUEST" "$SEQUENCE_WARNING" "$REGISTRY_GAP" <<'PYEOF'
 import json, sys
 
 is_prd_body     = sys.argv[1] == "1"
 is_impl_request = sys.argv[2] == "1"
 seq_warning     = sys.argv[3].strip()
+registry_gap    = sys.argv[4].strip()
 
 parts = []
+
+if registry_gap:
+    parts.append(registry_gap)
 
 if seq_warning:
     parts.append(seq_warning)
