@@ -234,8 +234,8 @@ def test_stale_market_map_suppresses_candidate_cards() -> None:
     html = render_dashboard_html(payload, run, market_map=mm)
     board = html.split('id="candidate-board"', 1)[1]
 
-    assert "STALE_MARKET_MAP" in board
-    assert "Candidate Board suppressed" in board
+    assert "STALE MARKET MAP" in board
+    assert "Candidate Board paused" in board
     assert 'id="card-SPY"' not in board
 
 
@@ -641,3 +641,41 @@ def test_a_tier_uses_div_not_summary_header() -> None:
     assert '<details' not in html.split('id="tier-a"', 1)[1].split('id="card-SPY"', 1)[0]
     board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
     assert '<div class="tier-header">' in board
+
+
+# PRD-093-PATCH tests
+
+def test_system_state_heading_prefixed_with_system_state() -> None:
+    html = render_dashboard_html(_payload(), _run())
+    state = _system_state_block(html)
+    assert "SYSTEM STATE -" in state
+
+
+def test_permission_none_shows_none_not_dash() -> None:
+    run = _run(permission=None)
+    html = render_dashboard_html(_payload(), run)
+    state = _system_state_block(html)
+    assert "NONE" in state
+    assert "&#8212;" not in state
+
+
+def test_stale_market_map_shows_updated_wording() -> None:
+    payload = _payload(timestamp="2026-04-28T12:10:01Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:10:01Z")
+    mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": 512.34}})
+    mm["generated_at"] = "2026-04-28T12:00:00Z"
+
+    html = render_dashboard_html(payload, run, market_map=mm)
+    board = html.split('id="candidate-board"', 1)[1]
+
+    assert "STALE MARKET MAP" in board
+    assert "Candidate Board paused" in board
+    assert "market map is older than the selected run" in board
+    assert "STALE_MARKET_MAP" not in board
+    assert "Candidate Board suppressed" not in board
+
+
+def test_normal_render_no_pytest_paths() -> None:
+    html = render_dashboard_html(_payload(), _run())
+    assert "pytest-of-" not in html
+    assert "/tmp/pytest" not in html

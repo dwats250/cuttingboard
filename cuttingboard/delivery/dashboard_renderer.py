@@ -206,7 +206,7 @@ _CSS = (
     ".macro-tape-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));"
     "gap:6px 12px;margin-top:6px;overflow-x:hidden}"
     ".macro-drivers-row{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:6px;overflow-x:hidden}"
-    ".macro-tradables-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 0;"
+    ".macro-tradables-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;"
     "margin-top:6px;overflow-x:hidden}"
     ".tradable-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
     ".macro-tape-slot{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}"
@@ -932,7 +932,7 @@ def render_dashboard_html(
     halted_cls = " halted" if system_halted else ""
     ks_cls     = " halted" if kill_switch else ""
     w('<div class="block" id="system-state">')
-    w(f'  <h2>{_esc(title)}</h2>')
+    w(f'  <h2>SYSTEM STATE - {_esc(title)}</h2>')
     w(f'  <div class="action-line">{_esc(action_text)}</div>')
     w('  <div class="row">')
     w(f'    <div class="field"><div class="label">Regime</div>'
@@ -954,7 +954,7 @@ def render_dashboard_html(
           f'<div class="value">{_esc(run["permission"])}</div></div>')
     else:
         w('    <div class="field"><div class="label">Permission</div>'
-          '<div class="value">&#8212;</div></div>')
+          '<div class="value">NONE</div></div>')
     if bool(system_halted):
         w(f'    <div class="field"><div class="label">Halted</div>'
           f'<div class="value{halted_cls}">{_bool_str(system_halted)}</div></div>')
@@ -1025,13 +1025,12 @@ def render_dashboard_html(
 
     # Tradables grid (no arrows, 2 per row)
     w('  <div class="macro-tradables-grid">')
-    for i, sym in enumerate(_TAPE_MM_SYMBOLS):
+    for sym in _TAPE_MM_SYMBOLS:
         val = tape_value_map.get(sym, "N/A")
-        sep = "│ " if i % 2 == 1 else ""
         w(
-            f'    <span class="tradable-cell">{_esc(sep)}'
-            f'<span class="macro-tape-label">{_esc(sym)}</span> '
-            f'<span class="macro-tape-value" data-symbol="{_esc(sym)}">{_esc(val)}</span>'
+            f'    <span class="tradable-cell">'
+            f'<span class="macro-tape-label">{_esc(sym)}</span>'
+            f'&nbsp;<span class="macro-tape-value" data-symbol="{_esc(sym)}">{_esc(val)}</span>'
             f'</span>'
         )
     w('  </div>')
@@ -1063,10 +1062,10 @@ def render_dashboard_html(
     else:
         w("  <h2>Candidate Board</h2>")
     if market_map_stale_for_run:
-        w('  <div class="unavailable">STALE_MARKET_MAP</div>')
+        w('  <div class="unavailable">STALE MARKET MAP</div>')
         w('  <div class="idle-summary">'
-          '<div>Candidate Board suppressed</div>'
-          '<div>market_map artifact is stale relative to selected payload/run</div>'
+          '<div>Candidate Board paused</div>'
+          '<div>market map is older than the selected run</div>'
           '</div>')
     elif _mm_status in ("SOURCE_MISSING", "PARSE_ERROR"):
         w(f'  <div class="unavailable">{_esc(_mm_status)}</div>')
