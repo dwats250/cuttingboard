@@ -5,19 +5,19 @@
     "report_path": "reports/output/hourly_report.html"
   },
   "audit_summary": {
-    "continuation_accepted_count": null,
-    "continuation_audit_present": false,
-    "continuation_rejected_count": null,
+    "continuation_accepted_count": 0,
+    "continuation_audit_present": true,
+    "continuation_rejected_count": 0,
     "error_count": 0,
     "qualified_count": 3,
-    "rejected_count": 12
+    "rejected_count": 9
   },
   "correlation": null,
-  "generated_at": "2026-05-06T15:54:41Z",
+  "generated_at": "2026-05-06T16:03:49Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 1.0138092304031918,
-      "level": 81727.9765625,
+      "change_pct": 2.184524516028467,
+      "level": 81585.25,
       "symbol": "BTC-USD"
     },
     "dollar": {
@@ -32,41 +32,32 @@
       "symbol": "^TNX"
     },
     "volatility": {
-      "change_pct": -0.5172422675920304,
-      "level": 17.309999465942383,
+      "change_pct": -1.2643638975727454,
+      "level": 17.18000030517578,
       "symbol": "^VIX"
     }
   },
   "market_context": {
-    "continuation_enabled": false,
+    "continuation_enabled": true,
     "data_quality": "ok",
-    "expansion_regime": null,
+    "expansion_regime": "EXPANSION",
     "imbalance_enabled": false,
     "stale_data_detected": false
   },
   "mode": "live",
   "outcome": "NO_TRADE",
   "regime": {
-    "classification": "RISK_ON",
-    "confidence": 0.75,
-    "net_score": 6,
-    "neutral_votes": 2,
-    "posture": "AGGRESSIVE_LONG",
+    "classification": "EXPANSION",
+    "confidence": 1.0,
+    "net_score": 0,
+    "neutral_votes": 0,
+    "posture": "EXPANSION_LONG",
     "risk_off_votes": 0,
-    "risk_on_votes": 6,
-    "total_votes": 8,
-    "vix_level": 17.309999465942383,
-    "vix_pct_change": -0.0051724226759203035,
-    "vote_breakdown": {
-      "BTC pct_change": "NEUTRAL",
-      "DXY pct_change": "RISK_ON",
-      "IWM pct_change": "RISK_ON",
-      "QQQ pct_change": "RISK_ON",
-      "SPY pct_change": "RISK_ON",
-      "TNX pct_change": "RISK_ON",
-      "VIX level": "RISK_ON",
-      "VIX pct_change": "NEUTRAL"
-    }
+    "risk_on_votes": 0,
+    "total_votes": 0,
+    "vix_level": 17.18000030517578,
+    "vix_pct_change": -0.012643638975727454,
+    "vote_breakdown": {}
   },
   "rejections": [
     {
@@ -89,21 +80,9 @@
     },
     {
       "detail": null,
-      "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 3.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "QUALIFICATION",
-      "symbol": "IWM"
-    },
-    {
-      "detail": null,
       "reason": "CHOP",
       "stage": "QUALIFICATION",
       "symbol": "META"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "QUALIFICATION",
-      "symbol": "MSTR"
     },
     {
       "detail": null,
@@ -116,12 +95,6 @@
       "reason": "CHOP",
       "stage": "QUALIFICATION",
       "symbol": "SLV"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 3.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "QUALIFICATION",
-      "symbol": "SPY"
     },
     {
       "detail": null,
@@ -149,9 +122,15 @@
     },
     {
       "detail": null,
-      "reason": "price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 2.2\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "BTC-USD"
+    },
+    {
+      "detail": null,
+      "reason": "price 3.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "stage": "WATCHLIST",
+      "symbol": "SPY"
     },
     {
       "detail": null,
@@ -161,15 +140,27 @@
     },
     {
       "detail": null,
+      "reason": "price 2.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "stage": "WATCHLIST",
+      "symbol": "IWM"
+    },
+    {
+      "detail": null,
       "reason": "price 2.4\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "AAPL"
     },
     {
       "detail": null,
-      "reason": "price 3.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 3.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "AMZN"
+    },
+    {
+      "detail": null,
+      "reason": "price 2.2\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "stage": "WATCHLIST",
+      "symbol": "MSTR"
     }
   ],
   "schema_version": "v2",
@@ -177,7 +168,7 @@
   "status": "OK",
   "system_state": {
     "intraday_state": null,
-    "market_regime": "RISK_ON",
+    "market_regime": "EXPANSION",
     "router_mode": "MIXED",
     "stay_flat_reason": null,
     "time_gate_open": true,
