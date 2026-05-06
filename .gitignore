@@ -43,19 +43,12 @@ AGENTS.md
 .idea/
 *.swp
 
-# Runtime and published artifacts
-# `logs/latest_*`, `reports/*.md`, and dashboard outputs may still be force-added
-# by CI when intentionally published from scheduled runs.
+# Runtime and published artifacts — generated output, never commit
 logs/
+reports/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].md
 _site/
 reports/output/
 *.json
 !ui/*.json
 .gitnexus
-logs/latest_payload.json
-logs/*
-!logs/latest_payload.json
-!logs/latest_contract.json
-!logs/market_map.json
-!logs/evaluation.jsonl
 .worktrees/

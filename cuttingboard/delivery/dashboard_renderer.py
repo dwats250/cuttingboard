@@ -848,7 +848,6 @@ def render_dashboard_html(
 
     system_halted = _req(run, "system_halted")
     kill_switch   = _req(run, "kill_switch")
-    data_status   = _req(run, "data_status")
     errors        = _req(run, "errors")
     first_error   = errors[0] if errors else None
 
