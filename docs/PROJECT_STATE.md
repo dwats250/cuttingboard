@@ -13,8 +13,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-06
-**Last completed PRD:** PRD-095 - Scheduled Pipeline Morning Readiness Guard (commit 15ff9a5)
-**Last work completed:** 2026-05-06 (commit 15ff9a5)
+**Last completed PRD:** PRD-096 - Runtime Artifact Git Hygiene and Pre-Push Safety (commit 04d66b2)
+**Last work completed:** 2026-05-06 (commit 04d66b2)
 **Active PRD:** none
 **Next step:** Monitor next scheduled run
 **Deferred PRD:** none
@@ -32,6 +32,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-096 | Runtime Artifact Git Hygiene and Pre-Push Safety | COMPLETE | 2026-05-06 |
 | PRD-093 | System State Information Economy | COMPLETE | 2026-05-06 |
 | PRD-092 | Macro Conditions Consolidation | COMPLETE | 2026-05-06 |
 | PRD-091 | Candidate Validation Context | COMPLETE | 2026-05-06 |
