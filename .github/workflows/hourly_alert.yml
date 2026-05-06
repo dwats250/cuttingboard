@@ -63,6 +63,10 @@ jobs:
           echo "PRE_SHA=$PRE_SHA" >> "$GITHUB_ENV"
           echo "POST_SHA=$POST_SHA" >> "$GITHUB_ENV"
 
+      - name: Check hourly readiness
+        if: ${{ success() }}
+        run: python3 scripts/check_readiness.py
+
       - name: Push hourly artifacts
         if: ${{ success() }}
         run: |
