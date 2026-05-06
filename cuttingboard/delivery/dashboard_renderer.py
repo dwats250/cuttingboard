@@ -21,6 +21,17 @@ from zoneinfo import ZoneInfo
 
 from cuttingboard.macro_pressure import build_macro_pressure
 
+# Dashboard sidecar dependencies (PRD-097 audit):
+#   logs/latest_payload.json        — primary payload (overridden by --payload in hourly workflow)
+#   logs/latest_run.json            — run metadata (overridden by --run in hourly workflow)
+#   logs/latest_hourly_contract.json — contract entry prices via _load_contract_entry_context
+#   logs/market_map.json            — symbol-level market context, loaded from logs_dir/market_map.json
+#   logs/macro_drivers_snapshot.json — macro driver fallback when payload has no macro_drivers
+#   logs/run_*.json                 — history runs, globbed from logs_dir
+#
+# Publish note: the hourly workflow renders dashboard HTML in CI with fresh market_map.json
+# present locally. The published artifact is the rendered HTML. No sidecar publish change needed.
+
 _PAYLOAD_PATH = Path("logs/latest_payload.json")
 _RUN_PATH = Path("logs/latest_run.json")
 _OUTPUT_PATH = Path("reports/output/dashboard.html")
@@ -952,7 +963,7 @@ def render_dashboard_html(
           f'<div class="value">{_esc(run["permission"])}</div></div>')
     else:
         w('    <div class="field"><div class="label">Permission</div>'
-          '<div class="value">NONE</div></div>')
+          '<div class="value">NO QUALIFIED SETUP</div></div>')
     if bool(system_halted):
         w(f'    <div class="field"><div class="label">Halted</div>'
           f'<div class="value{halted_cls}">{_bool_str(system_halted)}</div></div>')
@@ -966,6 +977,10 @@ def render_dashboard_html(
     if bool(system_halted) and stay_flat_reason is not None:
         w(f'  <div class="field warn"><div class="label">Reason</div>'
           f'<div class="value">{_esc(stay_flat_reason)}</div></div>')
+    elif not bool(system_halted) and stay_flat_reason is None and run.get("permission") is None:
+        _perm_reason = first_error or "No candidate passed qualification."
+        w(f'  <div class="field"><div class="label">Reason</div>'
+          f'<div class="value">{_esc(_perm_reason)}</div></div>')
     w('  <div class="sep"></div>')
     w(f'  <div class="label">RUN SNAPSHOT - {_freshness_label}</div>')
     if _ts_pacific:
@@ -1034,22 +1049,26 @@ def render_dashboard_html(
     w('  </div>')
 
     # --- macro-pressure ---
+    _pressure_data_available = (
+        bool(macro_drivers)
+        and not all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values())
+        and isinstance(pressure, dict)
+    )
     w('  <details id="macro-pressure">')
-    w("    <summary>Macro Pressure</summary>")
-    if (not macro_drivers) or all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values()):
-        w('    <div class="pressure-no-data">NO PRESSURE DATA</div>')
-    elif not isinstance(pressure, dict):
-        w('    <div class="pressure-no-data">FIELD_MISSING</div>')
-    else:
+    if _pressure_data_available:
+        w("    <summary>MACRO PRESSURE ▶</summary>")
         w('    <div class="pressure-grid">')
         for key, label in _PRESSURE_COMPONENT_LABELS:
-            val = _esc(pressure.get(key, "FIELD_MISSING"))
+            val = _esc(pressure.get(key, "FIELD_MISSING"))  # type: ignore[union-attr]
             w(f'    <span class="label">{_esc(label)}</span>')
             w(f'    <span class="badge {val}">{val}</span>')
-        overall = pressure.get("overall_pressure", "FIELD_MISSING")
+        overall = pressure.get("overall_pressure", "FIELD_MISSING")  # type: ignore[union-attr]
         w('    <span class="label">Overall</span>')
         w(f'    <span class="badge {_esc(overall)}">{_esc(overall)}</span>')
         w('    </div>')
+    else:
+        w("    <summary>MACRO PRESSURE</summary>")
+        w('    <div class="pressure-no-data">MACRO PRESSURE UNAVAILABLE</div>')
     w("  </details>")
     w("</div>")
 
@@ -1060,10 +1079,13 @@ def render_dashboard_html(
     else:
         w("  <h2>Candidate Board</h2>")
     if market_map_stale_for_run:
+        _run_ts_label = _timestamp_label(run_timestamp_value, run_timestamp)
+        _mm_ts_label  = _timestamp_label(market_map_timestamp_value, market_map_timestamp)
         w('  <div class="unavailable">STALE MARKET MAP</div>')
         w('  <div class="idle-summary">'
-          '<div>Candidate Board paused</div>'
-          '<div>market map is older than the selected run</div>'
+          '<div>Candidate Board paused because market_map timestamp is older than selected run.</div>'
+          f'<div>Run: {_esc(_run_ts_label)}</div>'
+          f'<div>Market map: {_esc(_mm_ts_label)}</div>'
           '</div>')
     elif _mm_status in ("SOURCE_MISSING", "PARSE_ERROR"):
         w(f'  <div class="unavailable">{_esc(_mm_status)}</div>')
