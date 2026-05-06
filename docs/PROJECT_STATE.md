@@ -13,10 +13,10 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-06
-**Last completed PRD:** PRD-093 - System State Information Economy (commit 5513a8c)
-**Last work completed:** 2026-05-06 (commit 5513a8c)
+**Last completed PRD:** PRD-094 - Public Dashboard Artifact Contamination Guard (commit 4aeef46)
+**Last work completed:** 2026-05-06 (commit 4aeef46)
 **Active PRD:** none
-**Next step:** Registry audit for stale PRD statuses, if approved
+**Next step:** Implement PRD-095 when approved
 **Deferred PRD:** none
 
 ---
