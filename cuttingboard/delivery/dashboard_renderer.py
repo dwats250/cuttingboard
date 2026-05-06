@@ -262,10 +262,12 @@ _CSS = (
     ".artifact-warning{border-color:#ff9800;color:#ff9800}"
     ".artifact-diagnostics{color:#888;font-size:0.72rem;line-height:1.45}"
     ".artifact-diagnostics span{display:block}"
-    "#artifact-diagnostics summary,#run-history summary,details.tier-group summary{cursor:pointer;list-style:none}"
-    "#artifact-diagnostics summary::-webkit-details-marker,#run-history summary::-webkit-details-marker{display:none}"
+    "#artifact-diagnostics summary,#run-history summary,details.tier-group summary,#macro-pressure summary{cursor:pointer;list-style:none}"
+    "#artifact-diagnostics summary::-webkit-details-marker,#run-history summary::-webkit-details-marker,#macro-pressure summary::-webkit-details-marker{display:none}"
     "#artifact-diagnostics summary{color:#555;font-size:0.72rem}"
     "#run-history summary{color:#aaa;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em}"
+    "#macro-pressure summary{color:#aaa;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em}"
+    "#macro-pressure{margin-top:8px}"
     ".failed-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-top:4px}"
     ".failed-card-fields .label{font-size:0.7rem}"
     ".failed-card-fields .value{margin-top:1px}"
@@ -1031,17 +1033,16 @@ def render_dashboard_html(
             f'</span>'
         )
     w('  </div>')
-    w("</div>")
 
     # --- macro-pressure ---
-    w('<div class="block" id="macro-pressure">')
-    w("  <h2>Macro Pressure</h2>")
+    w('  <details id="macro-pressure">')
+    w("    <summary>Macro Pressure</summary>")
     if (not macro_drivers) or all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values()):
-        w('  <div class="pressure-no-data">NO PRESSURE DATA</div>')
+        w('    <div class="pressure-no-data">NO PRESSURE DATA</div>')
     elif not isinstance(pressure, dict):
-        w('  <div class="pressure-no-data">FIELD_MISSING</div>')
+        w('    <div class="pressure-no-data">FIELD_MISSING</div>')
     else:
-        w('  <div class="pressure-grid">')
+        w('    <div class="pressure-grid">')
         for key, label in _PRESSURE_COMPONENT_LABELS:
             val = _esc(pressure.get(key, "FIELD_MISSING"))
             w(f'    <span class="label">{_esc(label)}</span>')
@@ -1049,7 +1050,8 @@ def render_dashboard_html(
         overall = pressure.get("overall_pressure", "FIELD_MISSING")
         w('    <span class="label">Overall</span>')
         w(f'    <span class="badge {_esc(overall)}">{_esc(overall)}</span>')
-        w('  </div>')
+        w('    </div>')
+    w("  </details>")
     w("</div>")
 
     # --- candidate-board ---

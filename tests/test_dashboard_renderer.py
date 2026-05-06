@@ -122,6 +122,54 @@ def test_available_tradable_quote_renders_value() -> None:
     assert "N/A" not in slots.get("SPY", "")
 
 
+def test_macro_pressure_collapsed_inside_macro_tape() -> None:
+    html = render_dashboard_html(
+        _payload(macro_drivers=_macro_drivers()),
+        _run(),
+        market_map=_market_map({"SPY": _mm_symbol("SPY")}),
+    )
+
+    assert '<div class="block" id="macro-pressure">' not in html
+    assert '<details id="macro-pressure">' in html
+    assert "<summary>Macro Pressure</summary>" in html
+
+    tape_pos = html.index('id="macro-tape"')
+    pressure_pos = html.index('id="macro-pressure"')
+    board_pos = html.index('id="candidate-board"')
+    assert tape_pos < pressure_pos < board_pos
+
+    for label in ("Volatility", "Dollar", "Rates", "Bitcoin", "Overall"):
+        assert label in html
+
+
+def test_macro_pressure_no_data_guard_stays_inside_details(tmp_path: Path) -> None:
+    html = render_dashboard_html(
+        _payload(macro_drivers={}),
+        _run(),
+        market_map=_market_map(),
+        macro_snapshot_path=tmp_path / "missing_macro_snapshot.json",
+    )
+
+    pressure = html.split('<details id="macro-pressure">', 1)[1].split("</details>", 1)[0]
+    assert "NO PRESSURE DATA" in pressure
+
+
+def test_macro_pressure_field_missing_guard_stays_inside_details(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "cuttingboard.delivery.dashboard_renderer._build_pressure_snapshot",
+        lambda _macro_drivers, _market_map: "FIELD_MISSING",
+    )
+
+    html = render_dashboard_html(
+        _payload(macro_drivers=_macro_drivers()),
+        _run(),
+        market_map=_market_map(),
+    )
+
+    pressure = html.split('<details id="macro-pressure">', 1)[1].split("</details>", 1)[0]
+    assert "FIELD_MISSING" in pressure
+
+
 def test_mixed_payload_run_renders_warning_and_suppresses_active_setup() -> None:
     payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
     run = _run_with_timestamp(
