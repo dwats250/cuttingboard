@@ -13,16 +13,16 @@
     "rejected_count": 18
   },
   "correlation": null,
-  "generated_at": "2026-05-06T20:10:14Z",
+  "generated_at": "2026-05-06T21:41:31Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.8216922267447996,
-      "level": 81572.5390625,
+      "change_pct": 1.3387571270710397,
+      "level": 80909.98,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.275679240711338,
-      "level": 98.03299713134766,
+      "change_pct": -0.2899207149577079,
+      "level": 98.01899719238281,
       "symbol": "DX-Y.NYB"
     },
     "rates": {
@@ -32,8 +32,8 @@
       "symbol": "^TNX"
     },
     "volatility": {
-      "change_pct": -0.2873519434293537,
-      "level": 17.350000381469727,
+      "change_pct": -0.05747258104066917,
+      "level": 17.389999389648438,
       "symbol": "^VIX"
     }
   },
@@ -55,8 +55,8 @@
     "risk_off_votes": 0,
     "risk_on_votes": 6,
     "total_votes": 8,
-    "vix_level": 17.350000381469727,
-    "vix_pct_change": -0.002873519434293537,
+    "vix_level": 17.389999389648438,
+    "vix_pct_change": -0.0005747258104066917,
     "vote_breakdown": {
       "BTC pct_change": "NEUTRAL",
       "DXY pct_change": "RISK_ON",
@@ -83,7 +83,7 @@
     },
     {
       "detail": null,
-      "reason": "2 soft gates failed: price 2.2\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
+      "reason": "2 soft gates failed: price 1.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
       "stage": "QUALIFICATION",
       "symbol": "BTC-USD"
     },
@@ -143,7 +143,7 @@
     },
     {
       "detail": null,
-      "reason": "2 soft gates failed: price 5.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
+      "reason": "3 soft gates failed: R:R 2.00 below 2.0 minimum; price 5.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
       "stage": "QUALIFICATION",
       "symbol": "QQQ"
     },

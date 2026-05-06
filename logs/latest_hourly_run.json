@@ -1,6 +1,6 @@
 {
   "alert_body": "RISK ON | AGGRESSIVE LONG | 0.75\nWATCHLIST\nReason: candidates gated\n\nTRIGGERS:\n- breakout above resistance\n- continuation hold above trigger",
-  "alert_title": "WATCHLIST 16:10",
+  "alert_title": "WATCHLIST 17:41",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
     "payload_path": "logs/latest_hourly_payload.json",
@@ -13,7 +13,7 @@
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-05-06T20:10:14Z",
+  "generated_at": "2026-05-06T21:41:31Z",
   "halt_reason": null,
   "index_score": 0.0,
   "kill_switch": false,
@@ -26,11 +26,11 @@
   "posture": "AGGRESSIVE_LONG",
   "regime": "RISK_ON",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-05-06T20:10:14Z",
-  "run_id": "hourly-20260506T201014Z",
+  "run_at_utc": "2026-05-06T21:41:31Z",
+  "run_id": "hourly-20260506T214131Z",
   "session_date": "2026-05-06",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-05-06T20:10:14Z",
+  "timestamp": "2026-05-06T21:41:31Z",
   "warnings": []
 }
