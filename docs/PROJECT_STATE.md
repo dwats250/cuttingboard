@@ -12,9 +12,9 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 ## Current State
 
-**Last updated:** 2026-05-05
-**Last completed PRD:** PRD-090 - Candidate Board Display Tiers (commit 15ffa7f)
-**Last work completed:** 2026-05-05 (commit 15ffa7f)
+**Last updated:** 2026-05-06
+**Last completed PRD:** PRD-091 - Candidate Validation Context (commit c6e7249)
+**Last work completed:** 2026-05-06 (commit c6e7249)
 **Active PRD:** none
 **Next step:** Draft or implement next PRD
 **Deferred PRD:** none
@@ -32,6 +32,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-091 | Candidate Validation Context | COMPLETE | 2026-05-06 |
 | PRD-090 | Candidate Board Display Tiers | COMPLETE | 2026-05-05 |
 | PRD-089 | Dashboard Artifact Coherence Guard | COMPLETE | 2026-05-05 |
 | PRD-088 | Candidate Board Level Diagram Price Fallback | COMPLETE | 2026-05-05 |

@@ -105,7 +105,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-089 | fc3bf77 | Dashboard Artifact Coherence Guard | COMPLETE | [PRD-089](prd_history/PRD-089.md) |
 | PRD-089-PATCH | 8980215 | Integrate run snapshot into system state | COMPLETE | [PRD-089-PATCH](prd_history/PRD-089-PATCH.md) |
 | PRD-090 | 15ffa7f | Candidate Board Display Tiers | COMPLETE | [PRD-090](prd_history/PRD-090.md) |
-| PRD-091 | — | Candidate Validation Context | DRAFT | [PRD-091](prd_history/PRD-091.md) |
+| PRD-091 | c6e7249 | Candidate Validation Context | COMPLETE | [PRD-091](prd_history/PRD-091.md) |
 | PRD-092 | — | Macro Conditions Consolidation | DRAFT | [PRD-092](prd_history/PRD-092.md) |
 | PRD-093 | — | System State Information Economy | DRAFT | [PRD-093](prd_history/PRD-093.md) |
 
