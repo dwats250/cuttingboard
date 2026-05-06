@@ -261,7 +261,7 @@ _CSS = (
     ".artifact-warning{border-color:#ff9800;color:#ff9800}"
     ".artifact-diagnostics{color:#888;font-size:0.72rem;line-height:1.45}"
     ".artifact-diagnostics span{display:block}"
-    "#artifact-diagnostics summary,#run-history summary{cursor:pointer;list-style:none}"
+    "#artifact-diagnostics summary,#run-history summary,details.tier-group summary{cursor:pointer;list-style:none}"
     "#artifact-diagnostics summary::-webkit-details-marker,#run-history summary::-webkit-details-marker{display:none}"
     "#artifact-diagnostics summary{color:#555;font-size:0.72rem}"
     "#run-history summary{color:#aaa;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em}"
@@ -1079,14 +1079,22 @@ def render_dashboard_html(
                     tier_syms = [s for s in sorted_syms if symbols[s].get("grade", "") in tier_grades]
                     if not tier_syms:
                         continue
-                    w(f'  <div class="tier-group" id="tier-{tier_id}">')
-                    w(f'    <div class="tier-header">{_esc(tier_label)} ({len(tier_syms)})</div>')
+                    is_low_tier = tier_grades.isdisjoint(_HIGH_GRADES)
+                    if is_low_tier:
+                        w(f'  <details class="tier-group" id="tier-{tier_id}">')
+                        w(f'    <summary class="tier-header">{_esc(tier_label)} ({len(tier_syms)})</summary>')
+                    else:
+                        w(f'  <div class="tier-group" id="tier-{tier_id}">')
+                        w(f'    <div class="tier-header">{_esc(tier_label)} ({len(tier_syms)})</div>')
                     for sym in tier_syms:
                         _render_candidate_card(
                             w, sym, symbols[sym],
                             contract_entry=(contract_entry_map or {}).get(sym),
                         )
-                    w("  </div>")
+                    if is_low_tier:
+                        w("  </details>")
+                    else:
+                        w("  </div>")
             removed_syms: list = market_map.get("removed_symbols") or []
             if removed_syms:
                 w('  <div class="removed-symbols">')

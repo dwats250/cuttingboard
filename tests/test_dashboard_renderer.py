@@ -432,3 +432,91 @@ def test_regime_confidence_outcome_before_permission_in_system_state() -> None:
     permission_pos = state.find("Permission")
     assert regime_pos < permission_pos, "Regime must appear before Permission"
     assert outcome_pos < permission_pos, "Outcome must appear before Permission"
+
+
+# ---------------------------------------------------------------------------
+# PRD-090: Candidate Board Display Tiers
+# ---------------------------------------------------------------------------
+
+def test_c_grade_renders_inside_details_block() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="C")})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    import re
+    details = re.search(r'<details[^>]*id="tier-c"[^>]*>(.*?)</details>', html, re.DOTALL)
+    assert details is not None, "tier-c <details> block not found"
+    assert 'id="card-SPY"' in details.group(1), "C-grade card not inside tier-c <details>"
+
+
+def test_d_grade_renders_inside_details_block() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="D")})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    import re
+    details = re.search(r'<details[^>]*id="tier-df"[^>]*>(.*?)</details>', html, re.DOTALL)
+    assert details is not None, "tier-df <details> block not found"
+    assert 'id="card-SPY"' in details.group(1), "D-grade card not inside tier-df <details>"
+
+
+def test_f_grade_renders_inside_details_block() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="F")})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    import re
+    details = re.search(r'<details[^>]*id="tier-df"[^>]*>(.*?)</details>', html, re.DOTALL)
+    assert details is not None, "tier-df <details> block not found for F-grade"
+    assert 'id="card-SPY"' in details.group(1), "F-grade card not inside tier-df <details>"
+
+
+def test_a_grade_not_inside_details_block() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
+    assert '<details' not in board, "A-grade card is incorrectly wrapped in <details>"
+
+
+def test_aplus_grade_not_inside_details_block() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A+")})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
+    assert '<details' not in board, "A+ grade card is incorrectly wrapped in <details>"
+
+
+def test_b_grade_not_inside_details_block() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="B")})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
+    assert '<details' not in board, "B-grade card is incorrectly wrapped in <details>"
+
+
+def test_no_actionable_message_present_when_only_c_grade() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="C")})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    assert "NO ACTIONABLE SETUPS" in html
+
+
+def test_no_actionable_message_present_when_only_d_grade() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="D")})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    assert "NO ACTIONABLE SETUPS" in html
+
+
+def test_details_tier_group_summary_css_selector_present() -> None:
+    html = render_dashboard_html(_payload(), _run())
+    assert "details.tier-group summary" in html
+
+
+def test_c_tier_uses_summary_not_div_header() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="C")})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    import re
+    details = re.search(r'<details[^>]*id="tier-c"[^>]*>(.*?)</details>', html, re.DOTALL)
+    assert details is not None
+    assert '<summary class="tier-header">' in details.group(0)
+    assert '<div class="tier-header">' not in details.group(0)
+
+
+def test_a_tier_uses_div_not_summary_header() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    assert 'id="tier-a"' in html
+    assert '<details' not in html.split('id="tier-a"', 1)[1].split('id="card-SPY"', 1)[0]
+    board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
+    assert '<div class="tier-header">' in board
