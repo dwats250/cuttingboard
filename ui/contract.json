@@ -13,27 +13,27 @@
     "rejected_count": 9
   },
   "correlation": null,
-  "generated_at": "2026-05-06T16:03:49Z",
+  "generated_at": "2026-05-06T18:01:00Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 2.184524516028467,
-      "level": 81585.25,
+      "change_pct": 1.3730502410989962,
+      "level": 80937.36,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.33467852530038644,
-      "level": 97.9749984741211,
+      "change_pct": -0.24617959841681372,
+      "level": 98.06199645996094,
       "symbol": "DX-Y.NYB"
     },
     "rates": {
-      "change_bps": -6.112933246186314,
-      "change_pct": -1.4039809640900363,
-      "level": 4.354000091552734,
+      "change_bps": -6.6952743241430595,
+      "change_pct": -1.5398514829301255,
+      "level": 4.3480000495910645,
       "symbol": "^TNX"
     },
     "volatility": {
-      "change_pct": -1.2643638975727454,
-      "level": 17.18000030517578,
+      "change_pct": -2.241375851716137,
+      "level": 17.010000228881836,
       "symbol": "^VIX"
     }
   },
@@ -55,8 +55,8 @@
     "risk_off_votes": 0,
     "risk_on_votes": 0,
     "total_votes": 0,
-    "vix_level": 17.18000030517578,
-    "vix_pct_change": -0.012643638975727454,
+    "vix_level": 17.010000228881836,
+    "vix_pct_change": -0.022413758517161368,
     "vote_breakdown": {}
   },
   "rejections": [
@@ -122,43 +122,43 @@
     },
     {
       "detail": null,
-      "reason": "price 2.2\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 1.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "BTC-USD"
     },
     {
       "detail": null,
-      "reason": "price 3.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 3.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "SPY"
     },
     {
       "detail": null,
-      "reason": "price 4.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 4.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "QQQ"
     },
     {
       "detail": null,
-      "reason": "price 2.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 3.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "IWM"
     },
     {
       "detail": null,
-      "reason": "price 2.4\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 2.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "AAPL"
     },
     {
       "detail": null,
-      "reason": "price 3.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 3.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "AMZN"
     },
     {
       "detail": null,
-      "reason": "price 2.2\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "MSTR"
     }

@@ -1,6 +1,6 @@
 {
   "alert_body": "EXPANSION | EXPANSION LONG | 1.00\n- NVDA LONG RR 2.0",
-  "alert_title": "LONG NVDA 12:03",
+  "alert_title": "LONG NVDA 14:01",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
     "payload_path": "logs/latest_hourly_payload.json",
@@ -15,7 +15,7 @@
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-05-06T16:03:49Z",
+  "generated_at": "2026-05-06T18:01:00Z",
   "halt_reason": null,
   "index_score": 0.0,
   "kill_switch": false,
@@ -28,11 +28,11 @@
   "posture": "EXPANSION_LONG",
   "regime": "EXPANSION",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-05-06T16:03:49Z",
-  "run_id": "hourly-20260506T160349Z",
+  "run_at_utc": "2026-05-06T18:01:00Z",
+  "run_id": "hourly-20260506T180100Z",
   "session_date": "2026-05-06",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-05-06T16:03:49Z",
+  "timestamp": "2026-05-06T18:01:00Z",
   "warnings": []
 }
