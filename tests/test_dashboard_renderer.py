@@ -16,7 +16,14 @@ from cuttingboard.delivery.dashboard_renderer import (
 )
 from tests.dash_helpers import _macro_drivers, _market_map, _mm_symbol, _payload, _run
 
+_UI_DASHBOARD = Path("ui/dashboard.html")
 _UI_INDEX = Path("ui/index.html")
+_FORBIDDEN_ARTIFACT_PATTERNS = ("pytest-of-", "/tmp/pytest", "/tmp/")
+
+
+def _assert_no_forbidden_artifact_patterns(path: Path | str, html: str) -> None:
+    for pattern in _FORBIDDEN_ARTIFACT_PATTERNS:
+        assert pattern not in html, f"{path}: contains forbidden pattern {pattern!r}"
 
 
 # PA1 — published artifact must not contain raw DATA_UNAVAILABLE in macro tape slots
@@ -56,6 +63,25 @@ def test_published_artifact_mobile_grid_width() -> None:
         pytest.skip("ui/index.html not present")
     html = _UI_INDEX.read_text(encoding="utf-8")
     assert "macro-tradables-grid" in html, "macro-tradables-grid not found in ui/index.html"
+
+
+# PA4 — published artifacts must not expose pytest or local temp paths
+@pytest.mark.parametrize("path", (_UI_DASHBOARD, _UI_INDEX), ids=("dashboard", "index"))
+def test_published_artifacts_no_local_artifact_paths(path: Path) -> None:
+    if not path.exists():
+        pytest.skip(f"{path} not present")
+    html = path.read_text(encoding="utf-8")
+    _assert_no_forbidden_artifact_patterns(path, html)
+
+
+def test_artifact_contamination_check_allows_clean_html() -> None:
+    _assert_no_forbidden_artifact_patterns("synthetic.html", "<html><body>clean</body></html>")
+
+
+@pytest.mark.parametrize("pattern", _FORBIDDEN_ARTIFACT_PATTERNS)
+def test_artifact_contamination_check_rejects_forbidden_patterns(pattern: str) -> None:
+    with pytest.raises(AssertionError, match=re.escape(f"synthetic.html: contains forbidden pattern {pattern!r}")):
+        _assert_no_forbidden_artifact_patterns("synthetic.html", f"<span>{pattern}</span>")
 
 
 def _candidate_board_section(html: str) -> str:
