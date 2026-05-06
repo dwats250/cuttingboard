@@ -465,11 +465,26 @@ def test_non_halted_permission_preserved() -> None:
     assert "True" in state
 
 
-def test_halted_and_kill_switch_visible_in_system_state() -> None:
+def test_normal_run_no_halted_or_kill_switch_in_system_state() -> None:
+    run = _run(system_halted=False, kill_switch=False)
+    html = render_dashboard_html(_payload(), run)
+    state = _system_state_block(html)
+    assert "Halted" not in state
+    assert "Kill Switch" not in state
+
+
+def test_halted_run_shows_halted_not_kill_switch() -> None:
     run = _run(system_halted=True, kill_switch=False)
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
     assert "Halted" in state
+    assert "Kill Switch" not in state
+
+
+def test_kill_switch_run_shows_kill_switch() -> None:
+    run = _run(system_halted=False, kill_switch=True)
+    html = render_dashboard_html(_payload(), run)
+    state = _system_state_block(html)
     assert "Kill Switch" in state
 
 

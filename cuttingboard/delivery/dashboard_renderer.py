@@ -955,10 +955,12 @@ def render_dashboard_html(
     else:
         w('    <div class="field"><div class="label">Permission</div>'
           '<div class="value">&#8212;</div></div>')
-    w(f'    <div class="field"><div class="label">Halted</div>'
-      f'<div class="value{halted_cls}">{_bool_str(system_halted)}</div></div>')
-    w(f'    <div class="field"><div class="label">Kill Switch</div>'
-      f'<div class="value{ks_cls}">{_bool_str(kill_switch)}</div></div>')
+    if bool(system_halted):
+        w(f'    <div class="field"><div class="label">Halted</div>'
+          f'<div class="value{halted_cls}">{_bool_str(system_halted)}</div></div>')
+    if bool(kill_switch):
+        w(f'    <div class="field"><div class="label">Kill Switch</div>'
+          f'<div class="value{ks_cls}">{_bool_str(kill_switch)}</div></div>')
     if first_error:
         w(f'    <div class="field"><div class="label">Error</div>'
           f'<div class="value halted">{_esc(first_error)}</div></div>')
