@@ -13,17 +13,17 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-05
-**Last completed PRD:** PRD-089 - Dashboard Artifact Coherence Guard (commit fc3bf77)
-**Last work completed:** 2026-05-05 (commit fc3bf77)
+**Last completed PRD:** PRD-090 - Candidate Board Display Tiers (commit 15ffa7f)
+**Last work completed:** 2026-05-05 (commit 15ffa7f)
 **Active PRD:** none
-**Next step:** none
+**Next step:** Draft or implement next PRD
 **Deferred PRD:** none
 
 ---
 
 ## Test Baseline
 
-- **1997 passing** (as of 2026-05-05)
+- **2002 passing** (as of 2026-05-05)
 - 0 failures, 0 skipped
 
 ---
@@ -32,6 +32,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-090 | Candidate Board Display Tiers | COMPLETE | 2026-05-05 |
 | PRD-089 | Dashboard Artifact Coherence Guard | COMPLETE | 2026-05-05 |
 | PRD-088 | Candidate Board Level Diagram Price Fallback | COMPLETE | 2026-05-05 |
 | PRD-087 | Pipeline Command Timeout Hardening | COMPLETE | 2026-05-05 |
