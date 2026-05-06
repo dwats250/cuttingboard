@@ -90,8 +90,8 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-074 | 6483a16 | Chart Context Layer (Level Diagram) | COMPLETE | [PRD-074](prd_history/PRD-074.md) |
 | PRD-075 | 43a1052 | Signal Performance Engine | COMPLETE | [PRD-075](prd_history/PRD-075.md) |
 | PRD-076 | 3c6bb76 | Dashboard Live Publishing and Layout Finalization | COMPLETE | [PRD-076](prd_history/PRD-076.md) |
-| PRD-077 | — | Sunday Futures Pre-Report | PROPOSED | [PRD-077](prd_history/PRD-077.md) |
-| PRD-078 | — | Dashboard Demo Candidate Fixture Mode | PROPOSED | [PRD-078](prd_history/PRD-078.md) |
+| PRD-077 | 7d33a7a | Sunday Futures Pre-Report | COMPLETE | [PRD-077](prd_history/PRD-077.md) |
+| PRD-078 | 7d33a7a | Dashboard Demo Candidate Fixture Mode | COMPLETE | [PRD-078](prd_history/PRD-078.md) |
 | PRD-079 | 9e0aca7 | PRD Review Token Efficiency Guardrails | COMPLETE | [PRD-079](prd_history/PRD-079.md) |
 | PRD-080 | 0cd7e45 | Sunday Report Expansion Layer | COMPLETE | [PRD-080](prd_history/PRD-080.md) |
 | PRD-081 | c8462de | Dashboard Timestamp Display Hardening | COMPLETE | [PRD-081](prd_history/PRD-081.md) |
