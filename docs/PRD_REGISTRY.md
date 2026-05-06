@@ -109,7 +109,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-092 | e189a68 | Macro Conditions Consolidation | COMPLETE | [PRD-092](prd_history/PRD-092.md) |
 | PRD-093 | 5513a8c | System State Information Economy | COMPLETE | [PRD-093](prd_history/PRD-093.md) |
 | PRD-094 | 4aeef46 | Public Dashboard Artifact Contamination Guard | COMPLETE | [PRD-094](prd_history/PRD-094.md) |
-| PRD-095 | — | Scheduled Pipeline Morning Readiness Guard | DRAFT | [PRD-095](prd_history/PRD-095.md) |
+| PRD-095 | 15ff9a5 | Scheduled Pipeline Morning Readiness Guard | COMPLETE | [PRD-095](prd_history/PRD-095.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

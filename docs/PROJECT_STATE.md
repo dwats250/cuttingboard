@@ -13,10 +13,10 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-06
-**Last completed PRD:** PRD-094 - Public Dashboard Artifact Contamination Guard (commit 4aeef46)
-**Last work completed:** 2026-05-06 (commit 4aeef46)
+**Last completed PRD:** PRD-095 - Scheduled Pipeline Morning Readiness Guard (commit 15ff9a5)
+**Last work completed:** 2026-05-06 (commit 15ff9a5)
 **Active PRD:** none
-**Next step:** Implement PRD-095 when approved
+**Next step:** Monitor next scheduled run
 **Deferred PRD:** none
 
 ---
