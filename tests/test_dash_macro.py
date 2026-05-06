@@ -31,9 +31,8 @@ def test_macro_tape_present() -> None:
 def test_macro_tape_section_order() -> None:
     html = render_dashboard_html(_payload(), _run())
     system_pos = html.index('id="system-state"')
-    header_pos = html.index('id="dashboard-header"')
     macro_pos  = html.index('id="macro-tape"')
-    assert system_pos < header_pos < macro_pos
+    assert system_pos < macro_pos
 
 
 def test_macro_tape_empty_macro_drivers() -> None:

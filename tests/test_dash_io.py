@@ -29,7 +29,7 @@ def test_reads_required_files(tmp_path: Path) -> None:
     assert out_file.exists()
     content = out_file.read_text(encoding="utf-8")
     assert "<html" in content
-    assert "dashboard-header" in content
+    assert "system-state" in content
 
 
 def test_missing_payload_fails(tmp_path: Path) -> None:

@@ -194,17 +194,19 @@ def test_run_history_deterministic_output() -> None:
 
 def test_run_health_present() -> None:
     html = render_dashboard_html(_payload(), _run())
-    assert 'id="run-health"' in html
+    state = html.split('id="system-state"', 1)[1]
+    assert "Halted"      in state
+    assert "Kill Switch" in state
 
 
 def test_run_health_fields() -> None:
     html = render_dashboard_html(_payload(), _run(system_halted=True, kill_switch=False, errors=["err_unique"]))
-    health = html.split('id="run-health"', 1)[1]
+    health = html.split('id="system-state"', 1)[1]
     assert "YES"        in health   # system_halted
     assert "err_unique" in health
 
 
 def test_run_health_no_error_when_empty() -> None:
     html = render_dashboard_html(_payload(), _run(errors=[]))
-    health = html.split('id="run-health"', 1)[1]
+    health = html.split('id="system-state"', 1)[1]
     assert ">Error<" not in health

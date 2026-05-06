@@ -922,7 +922,7 @@ def render_dashboard_html(
     halted_cls = " halted" if system_halted else ""
     ks_cls     = " halted" if kill_switch else ""
     w('<div class="block" id="system-state">')
-    w("  <h2>System State</h2>")
+    w(f'  <h2>{_esc(title)}</h2>')
     w(f'  <div class="action-line">{_esc(action_text)}</div>')
     w('  <div class="row">')
     w(f'    <div class="field"><div class="label">Regime</div>'
@@ -949,6 +949,9 @@ def render_dashboard_html(
       f'<div class="value{halted_cls}">{_bool_str(system_halted)}</div></div>')
     w(f'    <div class="field"><div class="label">Kill Switch</div>'
       f'<div class="value{ks_cls}">{_bool_str(kill_switch)}</div></div>')
+    if first_error:
+        w(f'    <div class="field"><div class="label">Error</div>'
+          f'<div class="value halted">{_esc(first_error)}</div></div>')
     w("  </div>")
     if bool(system_halted) and stay_flat_reason is not None:
         w(f'  <div class="field warn"><div class="label">Reason</div>'

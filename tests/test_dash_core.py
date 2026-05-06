@@ -94,8 +94,7 @@ def test_removed_block_ids_absent() -> None:
 
 def test_preserved_block_ids_present() -> None:
     html = render_dashboard_html(_payload(), _run(), previous_run=_run(), history_runs=[_run()])
-    assert 'id="dashboard-header"' in html
-    assert 'id="run-health"'       in html
+    assert 'id="system-state"'     in html
     assert 'id="run-delta"'        in html
     assert 'id="run-history"'      in html
 
@@ -148,13 +147,11 @@ def test_section_order_full_r5_sequence() -> None:
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="B")})
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), previous_run=_run(), market_map=mm)
     system_pos     = html.index('id="system-state"')
-    health_pos     = html.index('id="run-health"')
-    header_pos     = html.index('id="dashboard-header"')
     tape_pos       = html.index('id="macro-tape"')
     pressure_pos   = html.index('id="macro-pressure"')
     candidates_pos = html.index('id="candidate-board"')
     delta_pos      = html.index('id="run-delta"')
-    assert system_pos < health_pos < header_pos < tape_pos < pressure_pos < candidates_pos < delta_pos
+    assert system_pos < tape_pos < pressure_pos < candidates_pos < delta_pos
 
 
 # ---------------------------------------------------------------------------
