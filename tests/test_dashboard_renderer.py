@@ -157,7 +157,7 @@ def test_macro_pressure_collapsed_inside_macro_tape() -> None:
 
     assert '<div class="block" id="macro-pressure">' not in html
     assert '<details id="macro-pressure">' in html
-    assert "<summary>Macro Pressure</summary>" in html
+    assert "MACRO PRESSURE" in html
 
     tape_pos = html.index('id="macro-tape"')
     pressure_pos = html.index('id="macro-pressure"')
@@ -177,7 +177,8 @@ def test_macro_pressure_no_data_guard_stays_inside_details(tmp_path: Path) -> No
     )
 
     pressure = html.split('<details id="macro-pressure">', 1)[1].split("</details>", 1)[0]
-    assert "NO PRESSURE DATA" in pressure
+    assert "MACRO PRESSURE UNAVAILABLE" in pressure
+    assert "NO PRESSURE DATA" not in pressure
 
 
 def test_macro_pressure_field_missing_guard_stays_inside_details(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -193,7 +194,8 @@ def test_macro_pressure_field_missing_guard_stays_inside_details(monkeypatch: py
     )
 
     pressure = html.split('<details id="macro-pressure">', 1)[1].split("</details>", 1)[0]
-    assert "FIELD_MISSING" in pressure
+    assert "MACRO PRESSURE UNAVAILABLE" in pressure
+    assert "FIELD_MISSING" not in pressure
 
 
 def test_mixed_payload_run_renders_warning_and_suppresses_active_setup() -> None:
@@ -677,11 +679,11 @@ def test_system_state_heading_prefixed_with_system_state() -> None:
     assert "SYSTEM STATE -" in state
 
 
-def test_permission_none_shows_none_not_dash() -> None:
+def test_permission_none_shows_no_qualified_setup_not_dash() -> None:
     run = _run(permission=None)
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert "NONE" in state
+    assert "NO QUALIFIED SETUP" in state
     assert "&#8212;" not in state
 
 
@@ -696,7 +698,7 @@ def test_stale_market_map_shows_updated_wording() -> None:
 
     assert "STALE MARKET MAP" in board
     assert "Candidate Board paused" in board
-    assert "market map is older than the selected run" in board
+    assert "market_map timestamp is older than selected run" in board
     assert "STALE_MARKET_MAP" not in board
     assert "Candidate Board suppressed" not in board
 
@@ -705,3 +707,87 @@ def test_normal_render_no_pytest_paths() -> None:
     html = render_dashboard_html(_payload(), _run())
     assert "pytest-of-" not in html
     assert "/tmp/pytest" not in html
+
+
+# ---------------------------------------------------------------------------
+# PRD-097: Dashboard Sidecar Freshness and Permission Clarity
+# ---------------------------------------------------------------------------
+
+def test_stale_market_map_includes_run_timestamp() -> None:
+    payload = _payload(timestamp="2026-04-28T12:10:01Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:10:01Z")
+    mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": 512.34}})
+    mm["generated_at"] = "2026-04-28T12:00:00Z"
+    html = render_dashboard_html(payload, run, market_map=mm)
+    board = html.split('id="candidate-board"', 1)[1]
+    assert "STALE MARKET MAP" in board
+    assert "Run:" in board
+    assert "2026-04-28T12:10:01" in board
+
+
+def test_stale_market_map_includes_market_map_timestamp() -> None:
+    payload = _payload(timestamp="2026-04-28T12:10:01Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:10:01Z")
+    mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": 512.34}})
+    mm["generated_at"] = "2026-04-28T12:00:00Z"
+    html = render_dashboard_html(payload, run, market_map=mm)
+    board = html.split('id="candidate-board"', 1)[1]
+    assert "Market map:" in board
+    assert "2026-04-28T12:00:00Z" in board
+
+
+def test_stale_market_map_missing_run_timestamp_shows_unavailable() -> None:
+    payload = _payload(timestamp="2026-04-28T12:10:01Z", macro_drivers=_macro_drivers())
+    run = _run()
+    del run["timestamp"]
+    mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": 512.34}})
+    mm["generated_at"] = "2026-04-28T12:00:00Z"
+    html = render_dashboard_html(payload, run, market_map=mm)
+    board = html.split('id="candidate-board"', 1)[1]
+    assert "STALE MARKET MAP" in board
+    assert "Run: unavailable" in board
+
+
+def test_permission_none_renders_no_qualified_setup() -> None:
+    run = _run(permission=None)
+    html = render_dashboard_html(_payload(), run)
+    state = _system_state_block(html)
+    assert "NO QUALIFIED SETUP" in state
+    perm_section = state.split("Permission", 1)[1]
+    assert "NONE" not in perm_section.split("Reason", 1)[0]
+
+
+def test_permission_none_does_not_mutate_run_dict() -> None:
+    run = _run(permission=None)
+    render_dashboard_html(_payload(), run)
+    assert run["permission"] is None
+
+
+def test_permission_none_shows_reason_line() -> None:
+    run = _run(permission=None)
+    html = render_dashboard_html(_payload(), run)
+    state = _system_state_block(html)
+    assert "Reason" in state
+    assert "No candidate passed qualification" in state
+
+
+def test_macro_pressure_missing_shows_unavailable() -> None:
+    html = render_dashboard_html(
+        _payload(macro_drivers={}),
+        _run(),
+        market_map=_market_map(),
+        macro_snapshot_path=Path("/nonexistent/macro_snapshot.json"),
+    )
+    pressure = html.split('<details id="macro-pressure">', 1)[1].split("</details>", 1)[0]
+    assert "MACRO PRESSURE UNAVAILABLE" in pressure
+    assert "NO PRESSURE DATA" not in pressure
+
+
+def test_macro_pressure_with_data_shows_affordance() -> None:
+    html = render_dashboard_html(
+        _payload(macro_drivers=_macro_drivers()),
+        _run(),
+        market_map=_market_map({"SPY": _mm_symbol("SPY")}),
+    )
+    pressure = html.split('<details id="macro-pressure">', 1)[1].split("</details>", 1)[0]
+    assert "▶" in pressure

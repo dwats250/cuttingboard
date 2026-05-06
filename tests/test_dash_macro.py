@@ -306,12 +306,13 @@ def test_macro_pressure_block_present() -> None:
 
 
 def test_macro_pressure_block_no_data_when_empty_drivers() -> None:
-    # Empty payload drivers + no snapshot → truly no data → "NO PRESSURE DATA"
+    # Empty payload drivers + no snapshot → truly no data → "MACRO PRESSURE UNAVAILABLE"
     html = render_dashboard_html(
         _payload(), _run(), macro_snapshot_path=Path("/nonexistent/no_snap.json")
     )
     block = _macro_pressure_block(html)
-    assert "NO PRESSURE DATA" in block
+    assert "MACRO PRESSURE UNAVAILABLE" in block
+    assert "NO PRESSURE DATA" not in block
 
 
 def test_macro_pressure_block_no_data_does_not_raise() -> None:
