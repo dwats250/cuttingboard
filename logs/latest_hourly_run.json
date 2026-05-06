@@ -1,22 +1,21 @@
 {
-  "alert_body": "EXPANSION | EXPANSION LONG | 1.00\n- USO LONG RR 2.0\n- NVDA LONG RR 2.0",
-  "alert_title": "LONG USO 11:16",
+  "alert_body": "EXPANSION | EXPANSION LONG | 1.00\n- NVDA LONG RR 2.0",
+  "alert_title": "LONG NVDA 11:27",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
     "payload_path": "logs/latest_hourly_payload.json",
     "report_path": "reports/output/hourly_report.html"
   },
   "candidate_lines": [
-    "USO | LONG | PULLBACK | 2.0:1",
     "NVDA | LONG | TREND | 2.0:1"
   ],
-  "candidates_qualified": 4,
+  "candidates_qualified": 3,
   "candidates_watchlist": 8,
   "confidence": 1.0,
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-05-06T15:16:09Z",
+  "generated_at": "2026-05-06T15:27:57Z",
   "halt_reason": null,
   "index_score": 0.0,
   "kill_switch": false,
@@ -29,11 +28,11 @@
   "posture": "EXPANSION_LONG",
   "regime": "EXPANSION",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-05-06T15:16:09Z",
-  "run_id": "hourly-20260506T151609Z",
+  "run_at_utc": "2026-05-06T15:27:57Z",
+  "run_id": "hourly-20260506T152757Z",
   "session_date": "2026-05-06",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-05-06T15:16:09Z",
+  "timestamp": "2026-05-06T15:27:57Z",
   "warnings": []
 }

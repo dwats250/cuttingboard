@@ -1,30 +1,30 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 1.3730502410989962,
-      "level": 80937.36,
+      "change_pct": 0.9788349749121033,
+      "level": 81699.6796875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.333661831498602,
-      "level": 97.97599792480469,
+      "change_pct": -0.3112790458165689,
+      "level": 97.99800109863281,
       "symbol": "DX-Y.NYB"
     },
     "rates": {
-      "change_bps": -5.918472692271754,
-      "change_pct": -1.358694390457728,
-      "level": 4.355999946594238,
+      "change_bps": -6.112933246186314,
+      "change_pct": -1.4039809640900363,
+      "level": 4.354000091552734,
       "symbol": "^TNX"
     },
     "volatility": {
-      "change_pct": -2.1264306896347986,
-      "level": 17.030000686645508,
+      "change_pct": -1.6091884220427684,
+      "level": 17.1200008392334,
       "symbol": "^VIX"
     }
   },
   "meta": {
     "symbols_scanned": 20,
-    "timestamp": "2026-05-06T15:16:09Z"
+    "timestamp": "2026-05-06T15:27:57Z"
   },
   "run_status": "OK",
   "schema_version": "1.0",
@@ -82,6 +82,12 @@
         "detail": null,
         "reason": "CHOP",
         "stage": "QUALIFICATION",
+        "symbol": "USO"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
         "symbol": "XLE"
       }
     ],
@@ -98,25 +104,25 @@
       },
       {
         "detail": null,
-        "reason": "price 1.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "WATCHLIST",
         "symbol": "BTC-USD"
       },
       {
         "detail": null,
-        "reason": "price 3.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "price 3.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "WATCHLIST",
         "symbol": "SPY"
       },
       {
         "detail": null,
-        "reason": "price 4.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "price 4.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "WATCHLIST",
         "symbol": "QQQ"
       },
       {
         "detail": null,
-        "reason": "price 3.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "price 3.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "WATCHLIST",
         "symbol": "IWM"
       },
