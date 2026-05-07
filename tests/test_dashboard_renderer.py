@@ -791,3 +791,201 @@ def test_macro_pressure_with_data_shows_affordance() -> None:
     )
     pressure = html.split('<details id="macro-pressure">', 1)[1].split("</details>", 1)[0]
     assert "▶" in pressure
+
+
+# ---------------------------------------------------------------------------
+# PRD-098: Candidate Board Visibility and Validation Diagnostics
+# ---------------------------------------------------------------------------
+
+def test_b_candidate_renders_when_permission_none() -> None:
+    """R1/R3: B candidates render from fresh market_map even when permission is None."""
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="B")})
+    html = render_dashboard_html(_payload(), _run(permission=None), market_map=mm)
+    board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
+    assert 'id="card-SPY"' in board
+
+
+def test_b_candidate_not_in_details_when_permission_none() -> None:
+    """R3: B candidate renders in normal board flow (not in details) when permission is None."""
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="B")})
+    html = render_dashboard_html(_payload(), _run(permission=None), market_map=mm)
+    board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
+    assert '<details' not in board
+    assert 'id="card-SPY"' in board
+
+
+def test_b_candidate_renders_when_permission_false() -> None:
+    """R3: B candidates render from fresh market_map when permission is False (blocked)."""
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="B")})
+    html = render_dashboard_html(_payload(), _run(permission=False), market_map=mm)
+    board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
+    assert 'id="card-SPY"' in board
+
+
+def test_a_candidate_renders_when_permission_none() -> None:
+    """R2: A candidates render from fresh market_map even when permission is None."""
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    html = render_dashboard_html(_payload(), _run(permission=None), market_map=mm)
+    board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
+    assert 'id="card-SPY"' in board
+
+
+def test_lower_grade_failure_reason_from_reason_for_grade() -> None:
+    """R5: Failure reason uses reason_for_grade when no explicit failure field."""
+    entry = {**_mm_symbol("SPY", grade="C"), "reason_for_grade": "momentum fading"}
+    mm = _market_map({"SPY": entry})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    card = _candidate_card(html)
+    assert "FAILURE REASON" in card
+    assert "momentum fading" in card
+
+
+def test_lower_grade_failure_reason_fallback() -> None:
+    """R5: Failure reason falls back to 'No failure reason provided' when no fields set."""
+    entry = {**_mm_symbol("SPY", grade="C"), "reason_for_grade": None}
+    mm = _market_map({"SPY": entry})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    card = _candidate_card(html)
+    assert "No failure reason provided" in card
+
+
+def test_lower_grade_failure_reason_from_explicit_field() -> None:
+    """R5: Explicit failure_reason field takes precedence over reason_for_grade."""
+    entry = {
+        **_mm_symbol("SPY", grade="D"),
+        "failure_reason": "structure broken",
+        "reason_for_grade": "chop",
+    }
+    mm = _market_map({"SPY": entry})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    card = _candidate_card(html)
+    assert "FAILURE REASON" in card
+    assert "structure broken" in card
+
+
+def test_validation_requirements_from_explicit_field() -> None:
+    """R6: validation_requirements field is rendered as VALIDATION rows."""
+    entry = {
+        **_mm_symbol("SPY", grade="C"),
+        "validation_requirements": ["RR above minimum", "stop defined"],
+    }
+    mm = _market_map({"SPY": entry})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    card = _candidate_card(html)
+    assert "VALIDATION" in card
+    assert "RR above minimum" in card
+    assert "stop defined" in card
+
+
+def test_validation_acceptance_used_when_no_validation_requirements() -> None:
+    """R6: validation_acceptance used when validation_requirements is absent."""
+    entry = {
+        **_mm_symbol("SPY", grade="C"),
+        "validation_acceptance": "needs consolidation",
+    }
+    mm = _market_map({"SPY": entry})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    card = _candidate_card(html)
+    assert "VALIDATION" in card
+    assert "needs consolidation" in card
+
+
+def test_validation_renderer_derived_from_reason_for_grade() -> None:
+    """R6: Renderer derives VALIDATION from reason_for_grade when no explicit fields."""
+    entry = {
+        **_mm_symbol("SPY", grade="C"),
+        "reason_for_grade": "too early in development",
+    }
+    mm = _market_map({"SPY": entry})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    card = _candidate_card(html)
+    assert "VALIDATION" in card
+    assert "too early in development" in card
+
+
+def test_validation_requirements_source_precedence() -> None:
+    """R6: validation_requirements beats validation_acceptance when both present."""
+    entry = {
+        **_mm_symbol("SPY", grade="D"),
+        "validation_requirements": "use validation_requirements",
+        "validation_acceptance": "use validation_acceptance",
+    }
+    mm = _market_map({"SPY": entry})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    card = _candidate_card(html)
+    assert "use validation_requirements" in card
+    assert "use validation_acceptance" not in card
+
+
+def test_validation_acceptance_beats_renderer_derived() -> None:
+    """R6: validation_acceptance beats renderer-derived (reason_for_grade) when present."""
+    entry = {
+        **_mm_symbol("SPY", grade="C"),
+        "failure_reason": "explicit fail",
+        "reason_for_grade": "renderer derived text",
+        "validation_acceptance": "acceptance text",
+    }
+    mm = _market_map({"SPY": entry})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    card = _candidate_card(html)
+    assert "acceptance text" in card
+    assert "renderer derived text" not in card
+
+
+def test_stale_market_map_suppresses_candidates_regardless_of_permission() -> None:
+    """R7: Stale market_map suppresses candidates even when permission is True."""
+    payload = _payload(timestamp="2026-04-28T12:10:01Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:10:01Z", permission=True)
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    mm["generated_at"] = "2026-04-28T12:00:00Z"
+    html = render_dashboard_html(payload, run, market_map=mm)
+    board = html.split('id="candidate-board"', 1)[1]
+    assert "STALE MARKET MAP" in board
+    assert 'id="card-SPY"' not in board
+
+
+def test_validation_deterministic_on_identical_input() -> None:
+    """R8: Renderer-derived validation requirements are identical across calls."""
+    entry = {**_mm_symbol("SPY", grade="C"), "reason_for_grade": "structure not confirmed"}
+    mm = _market_map({"SPY": entry})
+    html1 = render_dashboard_html(_payload(), _run(), market_map=mm)
+    html2 = render_dashboard_html(_payload(), _run(), market_map=mm)
+    assert html1 == html2
+
+
+def test_failure_reason_fallback_is_ascii_only() -> None:
+    """R8: Fallback failure reason text is ASCII-only."""
+    entry = {**_mm_symbol("SPY", grade="F"), "reason_for_grade": None}
+    mm = _market_map({"SPY": entry})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    card = _candidate_card(html)
+    fallback = "No failure reason provided"
+    assert fallback in card
+    assert all(ord(c) < 128 for c in fallback)
+
+
+def test_a_candidate_with_validation_requirements_renders_validation() -> None:
+    """R6: A candidate with validation_requirements renders VALIDATION rows."""
+    entry = {
+        **_mm_symbol("SPY", grade="A"),
+        "validation_requirements": ["hold above 510", "volume confirm"],
+    }
+    mm = _market_map({"SPY": entry})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    card = _candidate_card(html)
+    assert "VALIDATION" in card
+    assert "hold above 510" in card
+    assert "volume confirm" in card
+
+
+def test_aplus_candidate_with_validation_acceptance_renders_validation() -> None:
+    """R6: A+ candidate uses validation_acceptance when validation_requirements absent."""
+    entry = {
+        **_mm_symbol("SPY", grade="A+"),
+        "validation_acceptance": "needs clean break above resistance",
+    }
+    mm = _market_map({"SPY": entry})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    card = _candidate_card(html)
+    assert "VALIDATION" in card
+    assert "needs clean break above resistance" in card

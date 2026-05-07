@@ -112,6 +112,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-095 | 15ff9a5 | Scheduled Pipeline Morning Readiness Guard | COMPLETE | [PRD-095](prd_history/PRD-095.md) |
 | PRD-096 | 04d66b2 | Runtime Artifact Git Hygiene and Pre-Push Safety | COMPLETE | [PRD-096](prd_history/PRD-096.md) |
 | PRD-097 | 03df0f4 | Dashboard Sidecar Freshness and Permission Clarity | COMPLETE | [PRD-097](prd_history/PRD-097.md) |
+| PRD-098 | — | Candidate Board Visibility and Validation Diagnostics | IN PROGRESS | [PRD-098](prd_history/PRD-098.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

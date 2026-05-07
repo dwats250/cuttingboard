@@ -707,6 +707,30 @@ def _render_candidate_card(
         w(f'    <div><div class="label">BIAS</div><div class="value">{_esc(entry.get("bias"))}</div></div>')
         w(f'    <div><div class="label">STRUCTURE</div><div class="value">{_esc(entry.get("structure"))}</div></div>')
         w('  </div>')
+        # R5: failure reason — use existing fields only; fallback if none present
+        _fail = (
+            entry.get("failure_reason")
+            or entry.get("block_reason")
+            or entry.get("reason_for_grade")
+        )
+        _fail_text = _esc(_fail) if _fail else "No failure reason provided"
+        w(f'  <div class="label">FAILURE REASON</div><div class="value">{_fail_text}</div>')
+        # R6: validation requirements — source precedence: validation_requirements →
+        #     validation_acceptance → renderer-derived from existing candidate state
+        _vreqs = entry.get("validation_requirements")
+        if not _vreqs:
+            _vreqs = entry.get("validation_acceptance")
+        if not _vreqs:
+            _rg = entry.get("reason_for_grade")
+            if _rg:
+                _vreqs = _rg
+        if _vreqs:
+            if isinstance(_vreqs, list):
+                for _req in _vreqs:
+                    if _req:
+                        w(f'  <div class="label">VALIDATION</div><div class="value">{_esc(_req)}</div>')
+            else:
+                w(f'  <div class="label">VALIDATION</div><div class="value">{_esc(_vreqs)}</div>')
     else:
         w(f'  <div class="label">SYMBOL</div><div class="value">{_esc(entry.get("symbol"))}</div>')
         w(f'  <div class="label">GRADE</div><div class="value">{_esc(grade)}{badge_html}</div>')
@@ -753,6 +777,18 @@ def _render_candidate_card(
         for item in (entry.get("what_to_look_for") or []):
             if item and item != _UNAVAILABLE_WATCH:
                 w(f'  <div class="label">WATCH</div><div class="value">{_esc(item)}</div>')
+        # R6: validation requirements for high-grade candidates (explicit fields only;
+        # reason_for_grade is already rendered as REASON above)
+        _hg_vreqs = entry.get("validation_requirements")
+        if not _hg_vreqs:
+            _hg_vreqs = entry.get("validation_acceptance")
+        if _hg_vreqs:
+            if isinstance(_hg_vreqs, list):
+                for _req in _hg_vreqs:
+                    if _req:
+                        w(f'  <div class="label">VALIDATION</div><div class="value">{_esc(_req)}</div>')
+            else:
+                w(f'  <div class="label">VALIDATION</div><div class="value">{_esc(_hg_vreqs)}</div>')
 
     level_anchor = contract_entry if contract_entry is not None else entry.get("current_price")
     fib_levels = entry.get("fib_levels")
@@ -1259,8 +1295,9 @@ def write_dashboard(
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")
-    _UI_INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
-    _UI_INDEX_PATH.write_text(html, encoding="utf-8")
+    if output_path == _OUTPUT_PATH:
+        _UI_INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _UI_INDEX_PATH.write_text(html, encoding="utf-8")
 
 
 def _build_contract_entry_map(logs_dir: Path) -> dict[str, float]:
