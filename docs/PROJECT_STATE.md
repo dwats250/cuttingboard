@@ -13,7 +13,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-07
-**Last completed PRD:** PRD-099 - Dashboard Artifact Generation Contract (commit 102063a)
+**Last completed PRD:** PRD-100 - Standardize Artifact Push Rebase Contract (commit e983bd0)
 **Last work completed:** 2026-05-07 (commit e983bd0)
 **Active PRD:** none
 **Next step:** Monitor next scheduled run
@@ -33,6 +33,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-100 | Standardize Artifact Push Rebase Contract | COMPLETE | 2026-05-07 |
 | PRD-099 | Dashboard Artifact Generation Contract | COMPLETE | 2026-05-07 |
 | PRD-098 | Candidate Board Visibility and Validation Diagnostics | COMPLETE | 2026-05-07 |
 | PRD-097 | Dashboard Sidecar Freshness and Permission Clarity | COMPLETE | 2026-05-06 |
