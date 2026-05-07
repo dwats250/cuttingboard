@@ -1,31 +1,9 @@
 {
-  "macro_drivers": {
-    "bitcoin": {
-      "change_pct": -2.047922127981007,
-      "level": 79770.3203125,
-      "symbol": "BTC-USD"
-    },
-    "dollar": {
-      "change_pct": -0.18258280937050372,
-      "level": 97.8550033569336,
-      "symbol": "DX-Y.NYB"
-    },
-    "rates": {
-      "change_bps": -0.5991777383161387,
-      "change_pct": -0.13774201182810128,
-      "level": 4.349999904632568,
-      "symbol": "^TNX"
-    },
-    "volatility": {
-      "change_pct": -0.9775737910326753,
-      "level": 17.219999313354492,
-      "symbol": "^VIX"
-    }
-  },
+  "macro_drivers": {},
   "meta": {
-    "generation_id": "hourly-20260507T152848Z",
+    "generation_id": "hourly-20260507T155608Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-05-07T15:28:48Z"
+    "timestamp": "2026-05-07T15:56:08Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -37,13 +15,13 @@
     "top_trades": [],
     "trade_decision_detail": [],
     "validation_halt_detail": {
-      "reason": "STAY_FLAT posture"
+      "reason": "test halt"
     },
     "watch_summary_detail": null,
     "watchlist": []
   },
   "summary": {
-    "market_regime": "NEUTRAL",
+    "market_regime": "",
     "router_mode": "MIXED",
     "tradable": false
   }
