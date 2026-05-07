@@ -46,7 +46,7 @@ jobs:
       - name: Publish hourly artifacts
         if: ${{ success() }}
         run: |
-          set -eo pipefail
+          set -euo pipefail
           PRE_SHA=$(git rev-parse HEAD)
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -60,6 +60,11 @@ jobs:
           git add ui/contract.json ui/dashboard.html ui/index.html
           git diff --staged --quiet || git commit -m "CB hourly: $(date -u +%Y-%m-%dT%H:%MZ)"
           POST_SHA=$(git rev-parse HEAD)
+          if [ "$PRE_SHA" = "$POST_SHA" ]; then
+            echo "artifact commit: no changes"
+          else
+            echo "artifact commit: committed changes ($PRE_SHA -> $POST_SHA)"
+          fi
           echo "PRE_SHA=$PRE_SHA" >> "$GITHUB_ENV"
           echo "POST_SHA=$POST_SHA" >> "$GITHUB_ENV"
 
@@ -70,16 +75,8 @@ jobs:
       - name: Push hourly artifacts
         if: ${{ success() }}
         run: |
-          set -eo pipefail
-          if [ -z "${PRE_SHA:-}" ] || [ -z "${POST_SHA:-}" ]; then
-            echo "Missing SHA state - skipping push"
-            exit 0
-          fi
-          if [ "$PRE_SHA" = "$POST_SHA" ]; then
-            echo "No new commit - skipping push"
-            exit 0
-          fi
-          git push
+          set -euo pipefail
+          bash tools/ci_push_artifacts.sh
 
       - name: Upload failure artifacts
         if: failure()
