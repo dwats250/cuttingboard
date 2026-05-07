@@ -195,8 +195,8 @@ def test_run_history_deterministic_output() -> None:
 def test_run_health_present() -> None:
     html = render_dashboard_html(_payload(), _run())
     state = html.split('id="system-state"', 1)[1]
-    assert "Halted"      in state
-    assert "Kill Switch" in state
+    assert 'class="action-line"' in state
+    assert "SYSTEM ACTIVE"       in state
 
 
 def test_run_health_fields() -> None:

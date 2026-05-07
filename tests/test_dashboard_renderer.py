@@ -679,12 +679,12 @@ def test_system_state_heading_prefixed_with_system_state() -> None:
     assert "SYSTEM STATE -" in state
 
 
-def test_permission_none_shows_no_qualified_setup_not_dash() -> None:
+def test_permission_none_shows_em_dash_not_no_qualified_setup() -> None:
     run = _run(permission=None)
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert "NO QUALIFIED SETUP" in state
-    assert "&#8212;" not in state
+    assert "&#8212;" in state
+    assert "NO QUALIFIED SETUP" not in state
 
 
 def test_stale_market_map_shows_updated_wording() -> None:
@@ -748,11 +748,11 @@ def test_stale_market_map_missing_run_timestamp_shows_unavailable() -> None:
     assert "Run: unavailable" in board
 
 
-def test_permission_none_renders_no_qualified_setup() -> None:
+def test_permission_none_renders_em_dash() -> None:
     run = _run(permission=None)
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert "NO QUALIFIED SETUP" in state
+    assert "&#8212;" in state
     perm_section = state.split("Permission", 1)[1]
     assert "NONE" not in perm_section.split("Reason", 1)[0]
 

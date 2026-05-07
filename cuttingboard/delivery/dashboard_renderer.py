@@ -999,7 +999,7 @@ def render_dashboard_html(
           f'<div class="value">{_esc(run["permission"])}</div></div>')
     else:
         w('    <div class="field"><div class="label">Permission</div>'
-          '<div class="value">NO QUALIFIED SETUP</div></div>')
+          '<div class="value">&#8212;</div></div>')
     if bool(system_halted):
         w(f'    <div class="field"><div class="label">Halted</div>'
           f'<div class="value{halted_cls}">{_bool_str(system_halted)}</div></div>')
