@@ -163,11 +163,14 @@ def test_low_grade_card_fields_excluded() -> None:
     mm   = _market_map(syms)
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
     card = html.split('id="card-GLD"', 1)[1]
-    assert "WAIT_UNIQUE"             not in card
-    assert "above 220_UNIQUE"        not in card
-    assert "below 200_UNIQUE"        not in card
-    assert "break below 210_UNIQUE"  not in card
-    assert "low quality setup_UNIQUE" not in card
+    # Execution/trade-framing fields stay suppressed on low-grade cards
+    assert "WAIT_UNIQUE"            not in card
+    assert "above 220_UNIQUE"       not in card
+    assert "below 200_UNIQUE"       not in card
+    assert "break below 210_UNIQUE" not in card
+    # PRD-098 R5/R6: reason_for_grade is now rendered as diagnostic/validation
+    # inside collapsed diagnostics — suppressing it would violate R6
+    assert "low quality setup_UNIQUE" in card
 
 
 def test_high_grade_card_shows_optional_fields() -> None:
