@@ -84,6 +84,19 @@ def test_artifact_contamination_check_rejects_forbidden_patterns(pattern: str) -
         _assert_no_forbidden_artifact_patterns("synthetic.html", f"<span>{pattern}</span>")
 
 
+def test_ci_workflows_publish_dashboard_with_same_render_copy_contract() -> None:
+    for path in (
+        Path(".github/workflows/cuttingboard.yml"),
+        Path(".github/workflows/hourly_alert.yml"),
+    ):
+        text = path.read_text(encoding="utf-8")
+        render = "python3 -m cuttingboard.delivery.dashboard_renderer"
+        copy = "cp ui/dashboard.html ui/index.html"
+        assert render in text
+        assert copy in text
+        assert text.index(render) < text.index(copy)
+
+
 def _candidate_board_section(html: str) -> str:
     return html.split('id="candidate-board"', 1)[1].split('</div>\n\n', 1)[0]
 
@@ -98,6 +111,12 @@ def _run_with_timestamp(timestamp: str, **kwargs: object) -> dict:
     run["run_at_utc"] = timestamp
     run["generated_at"] = timestamp
     return run
+
+
+def _set_generation_ids(payload: dict, run: dict, market_map: dict, generation_id: str) -> None:
+    payload.setdefault("meta", {})["generation_id"] = generation_id
+    run["generation_id"] = generation_id
+    market_map["generation_id"] = generation_id
 
 
 # T1 — missing market map renders SOURCE_MISSING, not generic MARKET MAP UNAVAILABLE
@@ -198,30 +217,36 @@ def test_macro_pressure_field_missing_guard_stays_inside_details(monkeypatch: py
     assert "FIELD_MISSING" not in pressure
 
 
-def test_mixed_payload_run_renders_warning_and_suppresses_active_setup() -> None:
-    payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
-    run = _run_with_timestamp(
-        "2026-04-28T12:10:01Z",
-        outcome="TRADE",
-        permission=True,
-    )
-
-    html = render_dashboard_html(payload, run, market_map=_market_map())
-
-    assert "MIXED_ARTIFACTS" in html
-    assert "TRADE SETUP ACTIVE" not in html
-    assert "ACTION: ACTIVE" not in html
-
-
-def test_coherent_payload_run_preserves_active_setup_behavior() -> None:
+def test_mixed_generation_ids_render_warning_and_suppress_active_setup() -> None:
     payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
     run = _run_with_timestamp(
         "2026-04-28T12:00:00Z",
         outcome="TRADE",
         permission=True,
     )
+    mm = _market_map()
+    payload["meta"]["generation_id"] = "gen-a"
+    run["generation_id"] = "gen-b"
+    mm["generation_id"] = "gen-a"
 
-    html = render_dashboard_html(payload, run, market_map=_market_map())
+    html = render_dashboard_html(payload, run, market_map=mm)
+
+    assert "MIXED_ARTIFACTS" in html
+    assert "TRADE SETUP ACTIVE" not in html
+    assert "ACTION: ACTIVE" not in html
+
+
+def test_coherent_generation_ids_preserve_active_setup_behavior() -> None:
+    payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp(
+        "2026-04-28T12:10:01Z",
+        outcome="TRADE",
+        permission=True,
+    )
+    mm = _market_map()
+    _set_generation_ids(payload, run, mm, "live-20260428T120000Z")
+
+    html = render_dashboard_html(payload, run, market_map=mm)
 
     assert "MIXED_ARTIFACTS" not in html
     assert "RUN SNAPSHOT" in html
@@ -245,6 +270,24 @@ def test_artifact_diagnostics_show_sources_and_timestamps() -> None:
     assert "run=logs/latest_hourly_run.json @ 2026-04-28T12:00:00Z" in html
     assert "market_map=logs/market_map.json @" in html
     assert "contract=logs/latest_hourly_contract.json @ 2026-04-28T12:00:00Z" in html
+    assert "payload_generation_id=unavailable" in html
+    assert "run_generation_id=unavailable" in html
+    assert "market_map_generation_id=unavailable" in html
+
+
+def test_artifact_diagnostics_show_generation_ids_deterministically() -> None:
+    payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:00:00Z")
+    mm = _market_map()
+    _set_generation_ids(payload, run, mm, "live-20260428T120000Z")
+
+    html1 = render_dashboard_html(payload, run, market_map=mm)
+    html2 = render_dashboard_html(payload, run, market_map=mm)
+
+    assert html1 == html2
+    assert "payload_generation_id=live-20260428T120000Z" in html1
+    assert "run_generation_id=live-20260428T120000Z" in html1
+    assert "market_map_generation_id=live-20260428T120000Z" in html1
 
 
 def test_stale_market_map_suppresses_candidate_cards() -> None:

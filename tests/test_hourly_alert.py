@@ -384,6 +384,7 @@ def test_hourly_run_writes_hourly_specific_artifacts(tmp_path, monkeypatch):
     monkeypatch.setattr(runtime, "LATEST_HOURLY_CONTRACT_PATH", tmp_path / "logs" / "latest_hourly_contract.json")
     monkeypatch.setattr(runtime, "LATEST_HOURLY_PAYLOAD_PATH", tmp_path / "logs" / "latest_hourly_payload.json")
     monkeypatch.setattr(runtime, "HOURLY_REPORT_PATH", tmp_path / "reports" / "output" / "hourly_report.html")
+    monkeypatch.setattr(runtime, "MARKET_MAP_PATH", tmp_path / "logs" / "market_map.json")
 
     patches = _patch_pipeline_stay_flat()
     with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7]:
@@ -393,12 +394,14 @@ def test_hourly_run_writes_hourly_specific_artifacts(tmp_path, monkeypatch):
     assert (tmp_path / "logs" / "latest_hourly_run.json").exists()
     assert (tmp_path / "logs" / "latest_hourly_contract.json").exists()
     assert (tmp_path / "logs" / "latest_hourly_payload.json").exists()
+    assert (tmp_path / "logs" / "market_map.json").exists()
     assert (tmp_path / "reports" / "output" / "hourly_report.html").exists()
     assert not (tmp_path / "logs" / "latest_run.json").exists()
 
     hourly_run = json.loads((tmp_path / "logs" / "latest_hourly_run.json").read_text(encoding="utf-8"))
     hourly_contract = json.loads((tmp_path / "logs" / "latest_hourly_contract.json").read_text(encoding="utf-8"))
     hourly_payload = json.loads((tmp_path / "logs" / "latest_hourly_payload.json").read_text(encoding="utf-8"))
+    market_map = json.loads((tmp_path / "logs" / "market_map.json").read_text(encoding="utf-8"))
 
     assert hourly_run["notify_mode"] == NOTIFY_HOURLY
     assert hourly_run["status"] == SUMMARY_STATUS_SUCCESS
@@ -406,6 +409,9 @@ def test_hourly_run_writes_hourly_specific_artifacts(tmp_path, monkeypatch):
     assert hourly_contract["artifacts"]["log_path"].endswith("latest_hourly_run.json")
     assert hourly_contract["outcome"] == "NO_TRADE"
     assert hourly_payload["meta"]["timestamp"] == hourly_contract["generated_at"]
+    assert hourly_run["generation_id"] == hourly_contract["generation_id"]
+    assert hourly_payload["meta"]["generation_id"] == hourly_run["generation_id"]
+    assert market_map["generation_id"] == hourly_run["generation_id"]
 
 
 def test_hourly_run_failure_writes_hourly_failure_artifacts(tmp_path, monkeypatch):
@@ -418,6 +424,7 @@ def test_hourly_run_failure_writes_hourly_failure_artifacts(tmp_path, monkeypatc
     monkeypatch.setattr(runtime, "LATEST_HOURLY_CONTRACT_PATH", tmp_path / "logs" / "latest_hourly_contract.json")
     monkeypatch.setattr(runtime, "LATEST_HOURLY_PAYLOAD_PATH", tmp_path / "logs" / "latest_hourly_payload.json")
     monkeypatch.setattr(runtime, "HOURLY_REPORT_PATH", tmp_path / "reports" / "output" / "hourly_report.html")
+    monkeypatch.setattr(runtime, "MARKET_MAP_PATH", tmp_path / "logs" / "market_map.json")
 
     with (
         patch("cuttingboard.runtime.fetch_all", side_effect=RuntimeError("data fetch failed")),
@@ -432,12 +439,15 @@ def test_hourly_run_failure_writes_hourly_failure_artifacts(tmp_path, monkeypatc
 
     hourly_run = json.loads((tmp_path / "logs" / "latest_hourly_run.json").read_text(encoding="utf-8"))
     hourly_contract = json.loads((tmp_path / "logs" / "latest_hourly_contract.json").read_text(encoding="utf-8"))
+    hourly_payload = json.loads((tmp_path / "logs" / "latest_hourly_payload.json").read_text(encoding="utf-8"))
 
     assert hourly_run["status"] == SUMMARY_STATUS_FAIL
     assert hourly_run["notification_sent"] is True
     assert hourly_run["errors"] == ["data fetch failed"]
     assert hourly_contract["status"] == "ERROR"
     assert hourly_contract["outcome"] == "HALT"
+    assert hourly_run["generation_id"] == hourly_contract["generation_id"]
+    assert hourly_payload["meta"]["generation_id"] == hourly_run["generation_id"]
 
 
 # ---------------------------------------------------------------------------

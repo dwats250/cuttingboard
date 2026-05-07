@@ -118,6 +118,7 @@ logger = logging.getLogger(__name__)
 class _PartialPipelineResult:
     """Lightweight view passed to the contract builder before PipelineResult is frozen."""
     mode: str
+    generation_id: str
     run_at_utc: datetime
     date_str: str
     raw_quotes: dict
@@ -201,6 +202,7 @@ _PERMISSION_LINES: dict[str, str] = {
 @dataclass(frozen=True)
 class PipelineResult:
     mode: str
+    generation_id: str
     run_at_utc: datetime
     date_str: str
     raw_quotes: dict[str, RawQuote]
@@ -345,17 +347,20 @@ def execute_run(
         _rewrite_summary_file(summary_path, pipeline.summary)
         _rewrite_summary_file(latest_path, pipeline.summary)
         _write_contract_file(pipeline.contract)
+        _write_payload_artifacts(pipeline.contract)
         _previous_market_map = _load_previous_market_map()
         _enhanced_market_map = inject_lifecycle(pipeline.market_map, _previous_market_map)
         _write_market_map_file(_enhanced_market_map)
-        _write_payload_artifacts(pipeline.contract)
         _write_macro_snapshot(pipeline.contract)
         return pipeline.summary
     except Exception as exc:
         logger.exception("Run failed")
         errors.append(str(exc))
+        failure_at = datetime.now(timezone.utc)
+        generation_id = _generation_id(mode, failure_at, fixture_file)
         error_contract = build_error_contract(
-            generated_at=datetime.now(timezone.utc),
+            generated_at=failure_at,
+            generation_id=generation_id,
             artifacts={"report_path": str(report_path) if report_path else None},
             error_detail=str(exc)[:200],
         )
@@ -368,8 +373,10 @@ def execute_run(
                 run_date=run_date,
                 errors=errors,
                 report_path=report_path,
+                generated_at=failure_at,
+                generation_id=generation_id,
             ),
-            datetime.now(timezone.utc),
+            failure_at,
         )
         _write_markdown_report(
             _failure_report(run_date, errors),
@@ -444,6 +451,10 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
         )
         qualification_summary: Optional[QualificationSummary] = None
         candidate_lines: tuple[str, ...] = ()
+        derived: dict[str, Any] = {}
+        structure: dict[str, Any] = {}
+        intraday_metrics: dict[str, Any] = {}
+        ohlcv: dict[str, pd.DataFrame] = {}
 
         if not validation_summary.system_halted:
             regime = compute_regime(validation_summary.valid_quotes)
@@ -582,6 +593,22 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
                 normalized_quotes=normalized_quotes,
             )
             _write_hourly_artifacts(summary, contract)
+            hourly_market_map = build_market_map(
+                generated_at=run_at_utc,
+                session_date=run_date.isoformat(),
+                mode=mode,
+                run_at_utc=run_at_utc,
+                normalized_quotes=normalized_quotes,
+                derived_metrics=derived,
+                structure_results=structure,
+                intraday_metrics=intraday_metrics,
+                regime=regime,
+                watch_summary=None,
+                bar_windows=_market_map_bar_windows(ohlcv),
+            )
+            hourly_market_map["generation_id"] = summary["generation_id"]
+            previous_market_map = _load_previous_market_map()
+            _write_market_map_file(inject_lifecycle(hourly_market_map, previous_market_map))
 
         return {"status": SUMMARY_STATUS_SUCCESS, "suppressed": False}
 
@@ -598,8 +625,10 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
             logger.warning("Failed to send failure notification: %s", _notify_exc)
         if notify_mode in _HOURLY_MODES:
             failure_at = datetime.now(timezone.utc)
+            generation_id = _generation_id("hourly", failure_at, None)
             error_contract = build_error_contract(
                 generated_at=failure_at,
+                generation_id=generation_id,
                 artifacts={
                     "report_path": str(HOURLY_REPORT_PATH),
                     "log_path": str(LATEST_HOURLY_RUN_PATH),
@@ -639,6 +668,7 @@ def _run_pipeline(
 ) -> PipelineResult:
     fixture_backed = _is_fixture_backed(mode, fixture_file)
     run_at_utc = _deterministic_run_at(mode, fixture_file) if mode == MODE_FIXTURE else datetime.now(timezone.utc)
+    generation_id = _generation_id(mode, run_at_utc, fixture_file)
     date_str = run_date.isoformat()
     warnings: list[str] = []
     errors: list[str] = []
@@ -845,6 +875,7 @@ def _run_pipeline(
         watch_summary=watch_summary,
         bar_windows=_market_map_bar_windows(ohlcv),
     )
+    market_map["generation_id"] = generation_id
 
     visibility_map = build_visibility_map(trade_decisions, market_map)
     explanation_map = build_explanation_map(trade_decisions, visibility_map, overall_pressure)
@@ -874,6 +905,7 @@ def _run_pipeline(
     contract = build_pipeline_output_contract(
         _PartialPipelineResult(
             mode=mode,
+            generation_id=generation_id,
             run_at_utc=run_at_utc,
             date_str=date_str,
             raw_quotes=raw_quotes,
@@ -972,6 +1004,7 @@ def _run_pipeline(
 
     summary = _build_run_summary(
         mode=mode,
+        generation_id=generation_id,
         run_at_utc=run_at_utc,
         raw_quotes=raw_quotes,
         normalized_quotes=normalized_quotes,
@@ -994,6 +1027,7 @@ def _run_pipeline(
 
     return PipelineResult(
         mode=mode,
+        generation_id=generation_id,
         run_at_utc=run_at_utc,
         date_str=date_str,
         raw_quotes=raw_quotes,
@@ -1036,6 +1070,7 @@ def _market_map_bar_windows(ohlcv: dict[str, pd.DataFrame]) -> dict[str, pd.Data
 
 def _build_run_summary(
     mode: str,
+    generation_id: str,
     run_at_utc: datetime,
     raw_quotes: dict[str, RawQuote],
     normalized_quotes: dict[str, NormalizedQuote],
@@ -1075,6 +1110,7 @@ def _build_run_summary(
 
     summary = {
         "run_id": _run_id(mode, run_at_utc, fixture_file),
+        "generation_id": generation_id,
         "timestamp": _iso_z(run_at_utc),
         "run_at_utc": _iso_z(run_at_utc),
         "mode": summary_mode,
@@ -1630,6 +1666,7 @@ def _build_hourly_contract(
     errors: list[str],
     alert_sent: bool,
 ) -> dict[str, Any]:
+    generation_id = _generation_id("hourly", run_at_utc, None)
     contract_status = derive_run_status(
         OUTCOME_NO_TRADE,
         regime,
@@ -1639,6 +1676,7 @@ def _build_hourly_contract(
     contract = build_pipeline_output_contract(
         _PartialPipelineResult(
             mode=mode,
+            generation_id=generation_id,
             run_at_utc=run_at_utc,
             date_str=run_date.isoformat(),
             raw_quotes=raw_quotes,
@@ -1666,6 +1704,7 @@ def _build_hourly_contract(
         data_quality=data_quality,
     )
     contract["outcome"] = OUTCOME_NO_TRADE
+    contract["generation_id"] = generation_id
     return contract
 
 
@@ -1690,8 +1729,10 @@ def _build_hourly_run_summary(
     normalized_quotes: dict[str, NormalizedQuote],
 ) -> dict[str, Any]:
     regime_name, posture, confidence, net_score = _summary_regime_fields(regime)
+    generation_id = _generation_id("hourly", run_at_utc, None)
     return {
         "run_id": f"hourly-{run_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
+        "generation_id": generation_id,
         "timestamp": _iso_z(run_at_utc),
         "run_at_utc": _iso_z(run_at_utc),
         "generated_at": _iso_z(run_at_utc),
@@ -1743,6 +1784,7 @@ def _write_hourly_artifacts(summary: dict[str, Any], contract: dict[str, Any]) -
         from cuttingboard.delivery.transport import deliver_html, deliver_json
 
         payload = build_report_payload(contract, fixture_mode=_fixture_mode)
+        _attach_generation_id_to_payload(payload, contract)
         assert_valid_payload(payload)
         deliver_json(payload, output_path=str(LATEST_HOURLY_PAYLOAD_PATH))
         deliver_html(payload, output_path=str(HOURLY_REPORT_PATH))
@@ -1793,6 +1835,7 @@ def _write_payload_artifacts(contract: dict[str, Any]) -> None:
         from cuttingboard.delivery.transport import deliver_json, deliver_html
 
         payload = build_report_payload(contract, fixture_mode=_fixture_mode)
+        _attach_generation_id_to_payload(payload, contract)
         assert_valid_payload(payload)
         deliver_json(payload)
         deliver_html(payload)
@@ -1935,6 +1978,19 @@ def _run_id(mode: str, run_at_utc: datetime, fixture_file: Optional[Path]) -> st
     return f"{mode}-{run_at_utc.strftime('%Y%m%dT%H%M%SZ')}"
 
 
+def _generation_id(mode: str, run_at_utc: datetime, fixture_file: Optional[Path]) -> str:
+    return _run_id(mode, run_at_utc, fixture_file)
+
+
+def _attach_generation_id_to_payload(payload: dict[str, Any], contract: dict[str, Any]) -> None:
+    generation_id = contract.get("generation_id")
+    if generation_id is None:
+        return
+    meta = payload.setdefault("meta", {})
+    if isinstance(meta, dict):
+        meta["generation_id"] = generation_id
+
+
 def _is_fixture_backed(mode: str, fixture_file: Optional[Path]) -> bool:
     return fixture_file is not None and mode in {MODE_FIXTURE, MODE_SUNDAY}
 
@@ -1950,8 +2006,11 @@ def _failure_summary(
     run_date: date,
     errors: list[str],
     report_path: Optional[Path],
+    generated_at: datetime | None = None,
+    generation_id: str | None = None,
 ) -> dict[str, Any]:
-    now_utc = datetime.now(timezone.utc)
+    now_utc = generated_at or datetime.now(timezone.utc)
+    resolved_generation_id = generation_id or _generation_id(mode, now_utc, None)
     summary_mode = {
         MODE_LIVE: SUMMARY_MODE_LIVE,
         MODE_FIXTURE: SUMMARY_MODE_FIXTURE,
@@ -1959,6 +2018,7 @@ def _failure_summary(
     }.get(mode, SUMMARY_MODE_LIVE)
     return {
         "run_id": f"failed-{summary_mode.lower()}-{run_date.isoformat()}",
+        "generation_id": resolved_generation_id,
         "timestamp": _iso_z(now_utc),
         "run_at_utc": _iso_z(now_utc),
         "mode": summary_mode,

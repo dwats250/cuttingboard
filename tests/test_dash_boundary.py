@@ -7,7 +7,7 @@ import cuttingboard.delivery.dashboard_renderer as _renderer_module
 
 import pytest
 
-from cuttingboard.delivery.dashboard_renderer import render_dashboard_html
+from cuttingboard.delivery.dashboard_renderer import write_dashboard, render_dashboard_html
 
 from tests.dash_helpers import _payload, _run
 
@@ -44,3 +44,12 @@ def test_render_does_not_open_contract_file(monkeypatch: pytest.MonkeyPatch) -> 
 
     contract_paths = [p for p in opened_paths if 'contract' in p.lower()]
     assert not contract_paths, f"render accessed contract paths: {contract_paths}"
+
+
+def test_default_renderer_output_does_not_publish_index(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    write_dashboard(_payload(), _run())
+
+    assert (tmp_path / "reports" / "output" / "dashboard.html").exists()
+    assert not (tmp_path / "ui" / "index.html").exists()

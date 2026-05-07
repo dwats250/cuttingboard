@@ -285,7 +285,7 @@ class TestSuccessfulRun:
             "schema_version", "generated_at", "session_date", "mode", "status",
             "timezone", "system_state", "market_context", "trade_candidates",
             "rejections", "audit_summary", "artifacts", "correlation", "regime",
-            "macro_drivers",
+            "macro_drivers", "generation_id",
         }
         assert required == set(self.contract), (
             f"Missing: {required - set(self.contract)}, "

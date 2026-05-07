@@ -80,12 +80,14 @@ def build_pipeline_output_contract(
     router_mode: Optional[str] = _safe_str(getattr(pr, "router_mode", None))
     errors = list(getattr(pr, "errors", []))
     correlation = getattr(pr, "correlation", None)
+    generation_id = getattr(pr, "generation_id", None)
 
     dq = data_quality or _compute_data_quality(normalized_quotes, raw_quotes, generated_at)
     macro_drivers = {} if not normalized_quotes else _build_macro_drivers(normalized_quotes)
 
     return {
         "schema_version": SCHEMA_VERSION,
+        "generation_id": generation_id,
         "generated_at": _iso_str(generated_at),
         "session_date": getattr(pr, "date_str", None),
         "mode": getattr(pr, "mode", None),
@@ -117,6 +119,7 @@ def build_pipeline_output_contract(
 def build_error_contract(
     *,
     generated_at: datetime,
+    generation_id: str | None = None,
     artifacts: dict[str, Any],
     timezone_name: str = "America/New_York",
     error_detail: Optional[str] = None,
@@ -124,6 +127,7 @@ def build_error_contract(
     """Build a minimal valid contract when the pipeline fails with an exception."""
     return {
         "schema_version": SCHEMA_VERSION,
+        "generation_id": generation_id or f"error-{_iso_str(generated_at).replace('-', '').replace(':', '')}",
         "generated_at": _iso_str(generated_at),
         "session_date": None,
         "mode": None,

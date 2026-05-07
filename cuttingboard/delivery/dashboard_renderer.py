@@ -35,7 +35,6 @@ from cuttingboard.macro_pressure import build_macro_pressure
 _PAYLOAD_PATH = Path("logs/latest_payload.json")
 _RUN_PATH = Path("logs/latest_run.json")
 _OUTPUT_PATH = Path("reports/output/dashboard.html")
-_UI_INDEX_PATH = Path("ui/index.html")
 _MACRO_SNAPSHOT_PATH = Path("logs/macro_drivers_snapshot.json")
 _HOURLY_CONTRACT_PATH = Path("logs/latest_hourly_contract.json")
 HISTORY_LIMIT = 5
@@ -144,6 +143,26 @@ def _timestamp_older_than_baseline(value: datetime | None, baseline: datetime | 
     if value is None or baseline is None:
         return False
     return (baseline - value).total_seconds() > DASHBOARD_STALE_AFTER_SECONDS
+
+
+def _artifact_generation_id(obj: dict | None, paths: tuple[tuple[str, ...], ...]) -> str | None:
+    if not isinstance(obj, dict):
+        return None
+    for path in paths:
+        current: object = obj
+        for key in path:
+            if not isinstance(current, dict) or key not in current:
+                current = None
+                break
+            current = current[key]
+        if isinstance(current, str) and current:
+            return current
+    return None
+
+
+def _generation_ids_mixed(*generation_ids: str | None) -> bool:
+    present = [gid for gid in generation_ids if gid]
+    return len(present) > 1 and len(set(present)) > 1
 
 
 def _resolve_market_map(path: Path) -> tuple[str, dict | None]:
@@ -863,19 +882,27 @@ def render_dashboard_html(
         (("generated_at",),),
     )
     contract_timestamp = _parse_utc_timestamp(contract_generated_at)
+    payload_generation_id = _artifact_generation_id(payload, (("meta", "generation_id"), ("generation_id",)))
+    run_generation_id = _artifact_generation_id(run, (("generation_id",), ("meta", "generation_id")))
+    market_map_generation_id = _artifact_generation_id(market_map, (("generation_id",),))
+    generation_ids_mixed = _generation_ids_mixed(
+        payload_generation_id,
+        run_generation_id,
+        market_map_generation_id,
+    )
 
-    payload_run_mixed = _timestamp_delta_exceeds(payload_timestamp, run_timestamp)
+    artifact_mixed = generation_ids_mixed
     baseline_timestamp: datetime | None = None
-    if not payload_run_mixed:
+    if not artifact_mixed:
         present_timestamps = [ts for ts in (payload_timestamp, run_timestamp) if ts is not None]
         if present_timestamps:
             baseline_timestamp = max(present_timestamps)
     market_map_stale_for_run = (
-        not payload_run_mixed
+        not artifact_mixed
         and _timestamp_older_than_baseline(market_map_timestamp, baseline_timestamp)
     )
     contract_stale_for_run = (
-        not payload_run_mixed
+        not artifact_mixed
         and _timestamp_older_than_baseline(contract_timestamp, baseline_timestamp)
     )
     if contract_stale_for_run:
@@ -901,8 +928,8 @@ def render_dashboard_html(
     # R2.1 — action line
     outcome    = run.get("outcome")
     permission = run.get("permission")
-    title = "MIXED_ARTIFACTS" if payload_run_mixed else _decision_title(outcome, bool(system_halted), status)
-    if payload_run_mixed:
+    title = "MIXED_ARTIFACTS" if artifact_mixed else _decision_title(outcome, bool(system_halted), status)
+    if artifact_mixed:
         action_text = "ACTION: HOLD — MIXED_ARTIFACTS"
     elif outcome == "STAY_FLAT":
         action_text = "ACTION: WAIT — NO VALID SETUPS"
@@ -951,10 +978,18 @@ def render_dashboard_html(
     w("<body>")
     w('<div class="wrap">')
 
-    if payload_run_mixed:
+    if artifact_mixed:
         w('<div class="block artifact-warning" id="artifact-coherence">')
         w("  <h2>MIXED_ARTIFACTS</h2>")
-        w("  <div class=\"value\">Dashboard inputs are from different artifact timestamps.</div>")
+        w("  <div class=\"value\">Dashboard inputs are from different artifact generations.</div>")
+        if generation_ids_mixed:
+            w(
+                "  <div class=\"value\">"
+                f"payload={_esc(payload_generation_id or 'unavailable')} "
+                f"run={_esc(run_generation_id or 'unavailable')} "
+                f"market_map={_esc(market_map_generation_id or 'unavailable')}"
+                "</div>"
+            )
         w("</div>")
 
     if session_type == "SUNDAY_PREMARKET" and _is_sunday_pt(str(timestamp)):
@@ -1237,14 +1272,17 @@ def render_dashboard_html(
         f'    <span>payload={_esc(payload_source)} @ '
         f'{_esc(_timestamp_label(payload_timestamp_value, payload_timestamp))}</span>'
     )
+    w(f'    <span>payload_generation_id={_esc(payload_generation_id or "unavailable")}</span>')
     w(
         f'    <span>run={_esc(run_source)} @ '
         f'{_esc(_timestamp_label(run_timestamp_value, run_timestamp))}</span>'
     )
+    w(f'    <span>run_generation_id={_esc(run_generation_id or "unavailable")}</span>')
     w(
         f'    <span>market_map={_esc(resolved_market_map_source)} @ '
         f'{_esc(_timestamp_label(market_map_timestamp_value, market_map_timestamp))}</span>'
     )
+    w(f'    <span>market_map_generation_id={_esc(market_map_generation_id or "unavailable")}</span>')
     w(
         f'    <span>contract={_esc(contract_source)} @ '
         f'{_esc(_timestamp_label(contract_generated_at, contract_timestamp))}</span>'
@@ -1295,9 +1333,6 @@ def write_dashboard(
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")
-    if output_path == _OUTPUT_PATH:
-        _UI_INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
-        _UI_INDEX_PATH.write_text(html, encoding="utf-8")
 
 
 def _build_contract_entry_map(logs_dir: Path) -> dict[str, float]:
