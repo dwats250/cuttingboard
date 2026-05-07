@@ -1,0 +1,57 @@
+{
+  "candidates_generated": 14,
+  "candidates_qualified": 0,
+  "candidates_watchlist": 6,
+  "chain_validation": {
+    "GDX": {
+      "classification": "DISQUALIFIED_OPTIONS_INVALID",
+      "reason": "liquidity fail: OI=0 vol=6027 bid=0.00 ask=0.00"
+    },
+    "PAAS": {
+      "classification": "DISQUALIFIED_OPTIONS_INVALID",
+      "reason": "liquidity fail: OI=0 vol=40 bid=0.00 ask=0.00"
+    },
+    "XLE": {
+      "classification": "DISQUALIFIED_OPTIONS_INVALID",
+      "reason": "liquidity fail: OI=0 vol=1942 bid=0.00 ask=0.00"
+    },
+    "^TNX": {
+      "classification": "NEEDS_MANUAL_CHECK",
+      "reason": "chain data unavailable from all sources"
+    },
+    "^VIX": {
+      "classification": "DISQUALIFIED_OPTIONS_INVALID",
+      "reason": "liquidity fail: OI=0 vol=262 bid=1.97 ask=2.15"
+    }
+  },
+  "confidence": 0.625,
+  "continuation_audit": null,
+  "data_status": "ok",
+  "energy_score": 0.0,
+  "errors": [],
+  "fallback_used": false,
+  "halt_reason": null,
+  "index_score": 0.0,
+  "kill_switch": false,
+  "min_rr_applied": 2.0,
+  "mode": "LIVE",
+  "net_score": 5,
+  "outcome": "NO_TRADE",
+  "permission": "Long bias \u2014 defined risk preferred.",
+  "posture": "CONTROLLED_LONG",
+  "regime": "RISK_ON",
+  "router_mode": "MIXED",
+  "run_at_utc": "2026-05-07T05:22:21Z",
+  "run_id": "live-20260507T052221Z",
+  "status": "SUCCESS",
+  "system_halted": false,
+  "timestamp": "2026-05-07T05:22:21Z",
+  "warnings": [
+    "GDX: options invalid",
+    "PAAS: options invalid",
+    "XLE: options invalid",
+    "^TNX: needs manual chain check",
+    "^VIX: options invalid"
+  ],
+  "watch_candidates": 0
+}
