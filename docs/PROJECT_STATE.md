@@ -12,9 +12,9 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 ## Current State
 
-**Last updated:** 2026-05-06
-**Last completed PRD:** PRD-097 - Dashboard Sidecar Freshness and Permission Clarity (commit 03df0f4)
-**Last work completed:** 2026-05-06 (commit 03df0f4)
+**Last updated:** 2026-05-07
+**Last completed PRD:** PRD-099 - Dashboard Artifact Generation Contract (commit 102063a)
+**Last work completed:** 2026-05-07 (commit e983bd0)
 **Active PRD:** none
 **Next step:** Monitor next scheduled run
 **Deferred PRD:** none
@@ -23,7 +23,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 ## Test Baseline
 
-- **2043 passing** (as of 2026-05-06, post PRD-097)
+- **2067 passing** (as of 2026-05-07, post PRD-099)
 - 2 pre-existing failures (test_dash_run_history::test_run_health_present, test_dash_system_state::test_system_state_permission_shows_dash_when_none — present before PRD-097)
 - 0 skipped
 
@@ -33,6 +33,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-099 | Dashboard Artifact Generation Contract | COMPLETE | 2026-05-07 |
+| PRD-098 | Candidate Board Visibility and Validation Diagnostics | COMPLETE | 2026-05-07 |
 | PRD-097 | Dashboard Sidecar Freshness and Permission Clarity | COMPLETE | 2026-05-06 |
 | PRD-096 | Runtime Artifact Git Hygiene and Pre-Push Safety | COMPLETE | 2026-05-06 |
 | PRD-093 | System State Information Economy | COMPLETE | 2026-05-06 |
