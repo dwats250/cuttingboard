@@ -1,7 +1,7 @@
 {
   "artifacts": {
     "log_path": "logs/latest_hourly_run.json",
-    "notification_sent": true,
+    "notification_sent": false,
     "report_path": "reports/output/hourly_report.html"
   },
   "audit_summary": {
@@ -13,28 +13,71 @@
     "rejected_count": 0
   },
   "correlation": null,
-  "generated_at": "2026-05-07T17:45:26Z",
-  "generation_id": "hourly-20260507T174526Z",
-  "macro_drivers": {},
+  "generated_at": "2026-05-07T18:08:36Z",
+  "generation_id": "hourly-20260507T180836Z",
+  "macro_drivers": {
+    "bitcoin": {
+      "change_pct": -1.575525432561038,
+      "level": 80155.03125,
+      "symbol": "BTC-USD"
+    },
+    "dollar": {
+      "change_pct": 0.04080310598565922,
+      "level": 98.0739974975586,
+      "symbol": "DX-Y.NYB"
+    },
+    "rates": {
+      "change_bps": 3.83316054651945,
+      "change_pct": 0.8723624260196337,
+      "level": 4.394000053405762,
+      "symbol": "^TNX"
+    },
+    "volatility": {
+      "change_pct": 0.3450337860663297,
+      "level": 17.450000762939453,
+      "symbol": "^VIX"
+    }
+  },
   "market_context": {
-    "continuation_enabled": null,
+    "continuation_enabled": false,
     "data_quality": "ok",
     "expansion_regime": null,
     "imbalance_enabled": null,
-    "stale_data_detected": null
+    "stale_data_detected": false
   },
   "mode": "live",
   "outcome": "NO_TRADE",
-  "regime": null,
+  "regime": {
+    "classification": "NEUTRAL",
+    "confidence": 0.125,
+    "net_score": -1,
+    "neutral_votes": 5,
+    "posture": "STAY_FLAT",
+    "risk_off_votes": 2,
+    "risk_on_votes": 1,
+    "total_votes": 8,
+    "vix_level": 17.450000762939453,
+    "vix_pct_change": 0.0034503378606632966,
+    "vote_breakdown": {
+      "BTC pct_change": "NEUTRAL",
+      "DXY pct_change": "NEUTRAL",
+      "IWM pct_change": "RISK_OFF",
+      "QQQ pct_change": "NEUTRAL",
+      "SPY pct_change": "NEUTRAL",
+      "TNX pct_change": "RISK_OFF",
+      "VIX level": "RISK_ON",
+      "VIX pct_change": "NEUTRAL"
+    }
+  },
   "rejections": [],
   "schema_version": "v2",
-  "session_date": "2026-04-23",
+  "session_date": "2026-05-07",
   "status": "STAY_FLAT",
   "system_state": {
     "intraday_state": null,
-    "market_regime": null,
+    "market_regime": "NEUTRAL",
     "router_mode": "MIXED",
-    "stay_flat_reason": "test halt",
+    "stay_flat_reason": "STAY_FLAT posture",
     "time_gate_open": true,
     "tradable": false
   },
