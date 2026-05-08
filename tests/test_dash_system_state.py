@@ -216,3 +216,29 @@ def test_posture_label_in_run_history() -> None:
     history = html.split('id="run-history"', 1)[1]
     assert "Neutral Premium" in history
     assert "NEUTRAL_PREMIUM" not in history
+
+
+def test_system_state_reason_no_candidates() -> None:
+    """When permission=None, stay_flat=None, no alert_candidates: reason is 'no qualified candidates'."""
+    html = render_dashboard_html(_payload(validation_halt_detail=None), _run(permission=None), alert_candidates=[])
+    if 'id="alert-watchlist"' in html:
+        state = html.split('id="system-state"', 1)[1].split('id="alert-watchlist"', 1)[0]
+    else:
+        state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    assert "Reason" in state
+    assert "no qualified candidates" in state
+    assert "candidates gated" not in state
+
+
+def test_system_state_reason_candidates_gated() -> None:
+    """When permission=None, stay_flat=None, alert_candidates non-empty: reason is 'candidates gated'."""
+    from tests.dash_helpers import _trade_decision
+    gated = [_trade_decision("META", "LONG", decision_status="BLOCK_TRADE", block_reason="LATE_SESSION")]
+    html = render_dashboard_html(_payload(validation_halt_detail=None), _run(permission=None), alert_candidates=gated)
+    if 'id="alert-watchlist"' in html:
+        state = html.split('id="system-state"', 1)[1].split('id="alert-watchlist"', 1)[0]
+    else:
+        state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    assert "Reason" in state
+    assert "candidates gated" in state
+    assert "no qualified candidates" not in state

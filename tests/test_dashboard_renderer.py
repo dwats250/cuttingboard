@@ -811,7 +811,7 @@ def test_permission_none_shows_reason_line() -> None:
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
     assert "Reason" in state
-    assert "No candidate passed qualification" in state
+    assert "no qualified candidates" in state
 
 
 def test_macro_pressure_missing_shows_unavailable() -> None:
