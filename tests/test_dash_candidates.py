@@ -541,3 +541,62 @@ def test_removed_symbols_values_escaped() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
     assert "<XSS>" not in html
     assert "&lt;XSS&gt;" in html
+
+
+# ---------------------------------------------------------------------------
+# R2 / R3 / R4 — Alert Watchlist Section
+# ---------------------------------------------------------------------------
+
+def test_alert_watchlist_absent_when_no_candidates() -> None:
+    """No alert-watchlist section when alert_candidates is not provided."""
+    html = render_dashboard_html(_payload(), _run())
+    assert 'id="alert-watchlist"' not in html
+
+
+def test_alert_watchlist_absent_when_empty_candidates() -> None:
+    """No alert-watchlist section when alert_candidates is an empty list."""
+    html = render_dashboard_html(_payload(), _run(), alert_candidates=[])
+    assert 'id="alert-watchlist"' not in html
+
+
+def test_alert_watchlist_present_when_candidates() -> None:
+    """Alert Watchlist section present when alert_candidates provided."""
+    from tests.dash_helpers import _trade_decision
+    gated = [_trade_decision("META", "LONG", decision_status="BLOCK_TRADE", block_reason="LATE_SESSION")]
+    html = render_dashboard_html(_payload(), _run(), alert_candidates=gated)
+    assert 'id="alert-watchlist"' in html
+
+
+def test_alert_watchlist_shows_symbol_and_direction() -> None:
+    """Alert Watchlist section shows symbol and direction for each candidate."""
+    from tests.dash_helpers import _trade_decision
+    gated = [
+        _trade_decision("META", "LONG", decision_status="BLOCK_TRADE", block_reason="LATE_SESSION"),
+        _trade_decision("XLE", "LONG", decision_status="BLOCK_TRADE", block_reason="LATE_SESSION"),
+    ]
+    html = render_dashboard_html(_payload(), _run(), alert_candidates=gated)
+    block = html.split('id="alert-watchlist"', 1)[1].split('id="candidate-board"', 1)[0]
+    assert "META" in block
+    assert "LONG" in block
+    assert "XLE" in block
+
+
+def test_alert_watchlist_positioned_before_candidate_board() -> None:
+    """alert-watchlist section appears before candidate-board in DOM."""
+    from tests.dash_helpers import _trade_decision
+    gated = [_trade_decision("NVDA", "LONG", decision_status="BLOCK_TRADE", block_reason="LATE_SESSION")]
+    html = render_dashboard_html(_payload(), _run(), alert_candidates=gated)
+    assert html.index('id="alert-watchlist"') < html.index('id="candidate-board"')
+
+
+# ---------------------------------------------------------------------------
+# R5 — Candidate Board Rename
+# ---------------------------------------------------------------------------
+
+def test_candidate_board_renamed_to_market_map() -> None:
+    """Candidate Board heading is renamed to Market Map / Developing Setups."""
+    html = render_dashboard_html(_payload(), _run())
+    assert "Market Map / Developing Setups" in html
+    # Old label must not appear in the board section heading
+    board = html.split('id="candidate-board"', 1)[1].split('</div>', 1)[0]
+    assert "Candidate Board" not in board
