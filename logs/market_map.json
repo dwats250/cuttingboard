@@ -16,8 +16,8 @@
       "GLD"
     ]
   },
-  "generated_at": "2026-05-08T21:02:08Z",
-  "generation_id": "hourly-20260508T210208Z",
+  "generated_at": "2026-05-08T21:06:50Z",
+  "generation_id": "hourly-20260508T210650Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -31,7 +31,7 @@
   "session_date": "2026-05-08",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-05-08T21:02:08Z"
+    "run_at_utc": "2026-05-08T21:06:50Z"
   },
   "symbols": {
     "GDX": {
@@ -57,12 +57,12 @@
       "lifecycle": {
         "current_grade": "B",
         "current_setup_state": "DEVELOPING",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "F",
-        "previous_setup_state": "DATA_UNAVAILABLE",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "B",
+        "previous_setup_state": "DEVELOPING",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bearish defined-risk continuation",
       "reason_for_grade": "B: bearish breakdown, regime mixed, away from key level",
@@ -118,8 +118,8 @@
         "is_new": false,
         "is_removed": false,
         "previous_grade": "F",
-        "previous_setup_state": "DATA_UNAVAILABLE",
-        "setup_state_transition": "CHANGED"
+        "previous_setup_state": "CHOPPY",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": null,
       "reason_for_grade": "Market data unavailable for this run.",
@@ -179,12 +179,12 @@
       "lifecycle": {
         "current_grade": "D",
         "current_setup_state": "EXTENDED",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "F",
-        "previous_setup_state": "DATA_UNAVAILABLE",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "D",
+        "previous_setup_state": "EXTENDED",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "pullback reset watch",
       "reason_for_grade": "D: bullish structure is extended from trend reference",
@@ -235,12 +235,12 @@
       "lifecycle": {
         "current_grade": "D",
         "current_setup_state": "EXTENDED",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "F",
-        "previous_setup_state": "DATA_UNAVAILABLE",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "D",
+        "previous_setup_state": "EXTENDED",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "pullback reset watch",
       "reason_for_grade": "D: bearish structure is extended from trend reference",
@@ -291,12 +291,12 @@
       "lifecycle": {
         "current_grade": "D",
         "current_setup_state": "EXTENDED",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "F",
-        "previous_setup_state": "DATA_UNAVAILABLE",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "D",
+        "previous_setup_state": "EXTENDED",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "pullback reset watch",
       "reason_for_grade": "D: bullish structure is extended from trend reference",
@@ -352,12 +352,12 @@
       "lifecycle": {
         "current_grade": "C",
         "current_setup_state": "LOW_QUALITY",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "F",
-        "previous_setup_state": "DATA_UNAVAILABLE",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "C",
+        "previous_setup_state": "LOW_QUALITY",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
       "reason_for_grade": "C: bullish range, regime aligned, away from key level",

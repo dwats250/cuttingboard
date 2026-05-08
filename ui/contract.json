@@ -13,17 +13,17 @@
     "rejected_count": 17
   },
   "correlation": null,
-  "generated_at": "2026-05-08T21:02:08Z",
-  "generation_id": "hourly-20260508T210208Z",
+  "generated_at": "2026-05-08T21:06:50Z",
+  "generation_id": "hourly-20260508T210650Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.15455994309756757,
-      "level": 80129.0234375,
+      "change_pct": 0.21309584312708285,
+      "level": 80166.75,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.3980239608109999,
-      "level": 97.84400177001953,
+      "change_pct": -0.38886728946529237,
+      "level": 97.85299682617188,
       "symbol": "DX-Y.NYB"
     },
     "rates": {
