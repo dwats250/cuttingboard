@@ -12,18 +12,18 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 ## Current State
 
-**Last updated:** 2026-05-07
-**Last completed PRD:** PRD-100 - Standardize Artifact Push Rebase Contract (commit e983bd0)
-**Last work completed:** 2026-05-07 (commit e983bd0)
+**Last updated:** 2026-05-08
+**Last completed PRD:** PRD-100-PATCH - Artifact Push Helper Dirty Tree Rebase Safety (commit 8d47ca3)
+**Last work completed:** 2026-05-08 (commit 8d47ca3)
 **Active PRD:** none
-**Next step:** Monitor next scheduled run
+**Next step:** Monitor next scheduled run; confirm dirty-tree guard fires cleanly in CI
 **Deferred PRD:** none
 
 ---
 
 ## Test Baseline
 
-- **2067 passing** (as of 2026-05-07, post PRD-099)
+- **2073 passing** (as of 2026-05-08, post PRD-101)
 - 2 pre-existing failures (test_dash_run_history::test_run_health_present, test_dash_system_state::test_system_state_permission_shows_dash_when_none — present before PRD-097)
 - 0 skipped
 
@@ -33,6 +33,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-100-PATCH | Artifact Push Helper Dirty Tree Rebase Safety | PATCH | 2026-05-08 |
+| PRD-101 | Hourly Telegram Notification Truth Contract | COMPLETE | 2026-05-08 |
 | PRD-100 | Standardize Artifact Push Rebase Contract | COMPLETE | 2026-05-07 |
 | PRD-099 | Dashboard Artifact Generation Contract | COMPLETE | 2026-05-07 |
 | PRD-098 | Candidate Board Visibility and Validation Diagnostics | COMPLETE | 2026-05-07 |
