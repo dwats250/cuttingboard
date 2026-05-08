@@ -513,3 +513,186 @@ def test_hourly_writes_traceback_on_exception(tmp_path, monkeypatch):
     content = (tmp_path / "traceback.txt").read_text()
     assert "RuntimeError" in content
     assert "data fetch failed" in content
+
+
+# ---------------------------------------------------------------------------
+# PRD-101: Notification truth contract fields in latest_hourly_run.json
+# ---------------------------------------------------------------------------
+
+_NOTIFICATION_FIELDS = (
+    "notification_status",
+    "notification_reason",
+    "notification_attempted",
+    "notification_transport",
+    "notification_http_status",
+    "notification_retry_count",
+)
+
+
+def _read_hourly_run(tmp_path) -> dict:
+    return json.loads((tmp_path / "logs" / "latest_hourly_run.json").read_text(encoding="utf-8"))
+
+
+def _setup_tmp_artifacts(monkeypatch, tmp_path):
+    import cuttingboard.runtime as runtime
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(runtime, "LOGS_DIR", tmp_path / "logs")
+    monkeypatch.setattr(runtime, "REPORTS_DIR", tmp_path / "reports")
+    monkeypatch.setattr(runtime, "LATEST_HOURLY_RUN_PATH", tmp_path / "logs" / "latest_hourly_run.json")
+    monkeypatch.setattr(runtime, "LATEST_HOURLY_CONTRACT_PATH", tmp_path / "logs" / "latest_hourly_contract.json")
+    monkeypatch.setattr(runtime, "LATEST_HOURLY_PAYLOAD_PATH", tmp_path / "logs" / "latest_hourly_payload.json")
+    monkeypatch.setattr(runtime, "HOURLY_REPORT_PATH", tmp_path / "reports" / "output" / "hourly_report.html")
+    monkeypatch.setattr(runtime, "MARKET_MAP_PATH", tmp_path / "logs" / "market_map.json")
+
+
+def test_hourly_run_has_all_notification_fields(tmp_path, monkeypatch):
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
+    patches = _patch_pipeline_stay_flat()
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7]:
+        _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    hourly_run = _read_hourly_run(tmp_path)
+    for field in _NOTIFICATION_FIELDS:
+        assert field in hourly_run, f"missing field: {field}"
+    assert hourly_run["notification_transport"] == "telegram"
+
+
+def test_notification_sent_derived_strictly_from_status():
+    """notification_sent is strictly derived from notification_status == SENT.
+
+    Tests _build_hourly_run_summary directly for all five status values, verifying
+    the derivation without going through the full pipeline.
+    """
+    from cuttingboard.output import NotificationResult
+    from cuttingboard.runtime import (
+        _build_hourly_run_summary,
+        SUMMARY_STATUS_SUCCESS,
+        OUTCOME_NO_TRADE,
+    )
+
+    run_at = datetime(2026, 4, 23, 14, 30, tzinfo=timezone.utc)
+    base = dict(
+        mode=MODE_LIVE,
+        run_at_utc=run_at,
+        run_date=date(2026, 4, 23),
+        notify_mode=NOTIFY_HOURLY,
+        validation_summary=None,
+        regime=None,
+        router_state=None,
+        qualification_summary=None,
+        candidate_lines=(),
+        alert_title="TEST",
+        alert_body="body",
+        alert_sent=False,
+        errors=[],
+        status=SUMMARY_STATUS_SUCCESS,
+        outcome=OUTCOME_NO_TRADE,
+        raw_quotes={},
+        normalized_quotes={},
+    )
+
+    cases = [
+        ("SENT",              True),
+        ("SKIPPED_NO_CONFIG", False),
+        ("FAILED_TRANSPORT",  False),
+        ("SUPPRESSED",        False),
+        ("NOT_REQUESTED",     False),
+    ]
+
+    for n_status, expected_sent in cases:
+        nr = NotificationResult(
+            notification_status=n_status,
+            notification_reason=None,
+            notification_attempted=(n_status == "SENT"),
+            notification_transport="telegram",
+            notification_http_status=200 if n_status == "SENT" else None,
+            notification_retry_count=0,
+        )
+        summary = _build_hourly_run_summary(**{**base, "notification_result": nr})
+        assert summary["notification_status"] == n_status, (
+            f"notification_status mismatch for {n_status}"
+        )
+        assert summary["notification_sent"] is expected_sent, (
+            f"notification_sent={summary['notification_sent']} for status={n_status!r}; "
+            f"expected {expected_sent}"
+        )
+
+
+def test_skipped_no_config_when_telegram_not_configured(tmp_path, monkeypatch):
+    """Missing Telegram config produces SKIPPED_NO_CONFIG."""
+    from cuttingboard import config as cfg
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
+    monkeypatch.setattr(cfg, "TELEGRAM_BOT_TOKEN", None)
+    monkeypatch.setattr(cfg, "TELEGRAM_CHAT_ID", None)
+    patches = _patch_pipeline_stay_flat()
+    # Remove the send_notification mock so the real code runs
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6]:
+        _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    hourly_run = _read_hourly_run(tmp_path)
+    assert hourly_run["notification_status"] == "SKIPPED_NO_CONFIG"
+    assert hourly_run["notification_attempted"] is False
+    assert hourly_run["notification_reason"] == "not_configured"
+    assert hourly_run["notification_transport"] == "telegram"
+    assert hourly_run["notification_sent"] is False
+
+
+def test_sent_when_telegram_succeeds(tmp_path, monkeypatch):
+    """Successful mocked send produces SENT."""
+    from cuttingboard import config as cfg
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
+    monkeypatch.setattr(cfg, "TELEGRAM_BOT_TOKEN", "test_token")
+    monkeypatch.setattr(cfg, "TELEGRAM_CHAT_ID", "test_chat")
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+
+    patches = _patch_pipeline_stay_flat()
+    # Remove the send_notification mock; mock requests.post instead
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6]:
+        with patch("requests.post", return_value=mock_resp):
+            _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    hourly_run = _read_hourly_run(tmp_path)
+    assert hourly_run["notification_status"] == "SENT"
+    assert hourly_run["notification_attempted"] is True
+    assert hourly_run["notification_transport"] == "telegram"
+    assert hourly_run["notification_http_status"] == 200
+    assert hourly_run["notification_sent"] is True
+
+
+def test_failed_transport_when_telegram_fails(tmp_path, monkeypatch):
+    """Failed mocked send produces FAILED_TRANSPORT."""
+    from cuttingboard import config as cfg
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
+    monkeypatch.setattr(cfg, "TELEGRAM_BOT_TOKEN", "test_token")
+    monkeypatch.setattr(cfg, "TELEGRAM_CHAT_ID", "test_chat")
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 500
+    mock_resp.text = "Internal Server Error"
+
+    patches = _patch_pipeline_stay_flat()
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6]:
+        with patch("requests.post", return_value=mock_resp):
+            _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    hourly_run = _read_hourly_run(tmp_path)
+    assert hourly_run["notification_status"] == "FAILED_TRANSPORT"
+    assert hourly_run["notification_attempted"] is True
+    assert hourly_run["notification_transport"] == "telegram"
+    assert hourly_run["notification_sent"] is False
+
+
+def test_not_requested_when_mode_is_not_live(tmp_path, monkeypatch):
+    """No notification call requested when mode != MODE_LIVE."""
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
+    patches = _patch_pipeline_stay_flat()
+    # mode=MODE_FIXTURE skips the send_notification call
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6]:
+        _execute_notify_run(mode="fixture", run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    hourly_run = _read_hourly_run(tmp_path)
+    assert hourly_run["notification_status"] == "NOT_REQUESTED"
+    assert hourly_run["notification_attempted"] is False
+    assert hourly_run["notification_sent"] is False

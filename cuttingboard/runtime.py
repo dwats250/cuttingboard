@@ -92,7 +92,9 @@ from cuttingboard.output import (
     OUTCOME_HALT,
     OUTCOME_NO_TRADE,
     OUTCOME_TRADE,
+    NotificationResult,
     build_notification_message,
+    get_last_notification_result,
     render_report,
     send_notification,
 )
@@ -555,8 +557,10 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
             )
 
         alert_sent = False
+        notification_result: Optional[NotificationResult] = None
         if mode == MODE_LIVE:
             alert_sent = send_notification(alert_title, alert_body)
+            notification_result = get_last_notification_result()
 
         if notify_mode in _HOURLY_MODES:
             run_at_utc = regime.computed_at_utc if regime is not None else datetime.now(timezone.utc)
@@ -586,6 +590,7 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
                 alert_title=alert_title,
                 alert_body=alert_body,
                 alert_sent=alert_sent,
+                notification_result=notification_result,
                 errors=[],
                 status=SUMMARY_STATUS_SUCCESS,
                 outcome=OUTCOME_NO_TRADE,
@@ -619,8 +624,10 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
             Path("traceback.txt").write_text(_tb.format_exc(), encoding="utf-8")
         alert_title, alert_body = format_failure_notification(notify_mode, date_str, str(exc)[:120])
         alert_sent = False
+        failure_notification_result: Optional[NotificationResult] = None
         try:
             alert_sent = send_notification(alert_title, alert_body)
+            failure_notification_result = get_last_notification_result()
         except Exception as _notify_exc:
             logger.warning("Failed to send failure notification: %s", _notify_exc)
         if notify_mode in _HOURLY_MODES:
@@ -650,6 +657,7 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
                 alert_title=alert_title,
                 alert_body=alert_body,
                 alert_sent=alert_sent,
+                notification_result=failure_notification_result,
                 errors=[str(exc)],
                 status=SUMMARY_STATUS_FAIL,
                 outcome=OUTCOME_HALT,
@@ -1722,6 +1730,7 @@ def _build_hourly_run_summary(
     alert_title: str,
     alert_body: str,
     alert_sent: bool,
+    notification_result: Optional[NotificationResult] = None,
     errors: list[str],
     status: str,
     outcome: str,
@@ -1730,6 +1739,31 @@ def _build_hourly_run_summary(
 ) -> dict[str, Any]:
     regime_name, posture, confidence, net_score = _summary_regime_fields(regime)
     generation_id = _generation_id("hourly", run_at_utc, None)
+
+    # Derive notification fields: prefer rich result, fall back to alert_sent bool.
+    # The fallback handles test scenarios where send_notification is mocked at the
+    # runtime level (bypassing module state in output.py).
+    if notification_result is not None and not (
+        notification_result.notification_status == "NOT_REQUESTED" and alert_sent
+    ):
+        n_status = notification_result.notification_status
+        n_reason = notification_result.notification_reason
+        n_attempted = notification_result.notification_attempted
+        n_http_status = notification_result.notification_http_status
+        n_retry_count = notification_result.notification_retry_count
+    elif alert_sent:
+        n_status = "SENT"
+        n_reason = None
+        n_attempted = True
+        n_http_status = None
+        n_retry_count = 0
+    else:
+        n_status = notification_result.notification_status if notification_result is not None else "NOT_REQUESTED"
+        n_reason = notification_result.notification_reason if notification_result is not None else None
+        n_attempted = False
+        n_http_status = None
+        n_retry_count = 0
+
     return {
         "run_id": f"hourly-{run_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
         "generation_id": generation_id,
@@ -1762,7 +1796,13 @@ def _build_hourly_run_summary(
         "candidate_lines": list(candidate_lines),
         "alert_title": alert_title,
         "alert_body": alert_body,
-        "notification_sent": alert_sent,
+        "notification_sent": n_status == "SENT",
+        "notification_status": n_status,
+        "notification_reason": n_reason,
+        "notification_attempted": n_attempted,
+        "notification_transport": "telegram",
+        "notification_http_status": n_http_status,
+        "notification_retry_count": n_retry_count,
         "warnings": [],
         "errors": errors,
         "artifacts": {

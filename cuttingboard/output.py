@@ -20,6 +20,7 @@ Consumed by runtime.py — pure render and delivery layer, no pipeline logic.
 import logging
 import os
 import time
+from dataclasses import dataclass
 from hashlib import sha256
 from datetime import datetime
 from typing import Optional
@@ -62,13 +63,38 @@ sent_message_hashes: set[str] = set()
 _logical_alert_hashes: set[str] = set()
 
 
+@dataclass(frozen=True)
+class NotificationResult:
+    notification_status: str          # SENT / SUPPRESSED / SKIPPED_NO_CONFIG / FAILED_TRANSPORT / NOT_REQUESTED
+    notification_reason: Optional[str]
+    notification_attempted: bool
+    notification_transport: str
+    notification_http_status: Optional[int]
+    notification_retry_count: int
+
+
+_last_notification_result: Optional[NotificationResult] = None
+
+
+def get_last_notification_result() -> NotificationResult:
+    """Return the most recent notification outcome, or NOT_REQUESTED if none recorded."""
+    return _last_notification_result if _last_notification_result is not None else NotificationResult(
+        notification_status="NOT_REQUESTED",
+        notification_reason=None,
+        notification_attempted=False,
+        notification_transport="telegram",
+        notification_http_status=None,
+        notification_retry_count=0,
+    )
+
+
 def _notification_run_scope() -> str:
     """Return the process-local notification run scope."""
     return f"{os.getcwd()}|{os.environ.get('PYTEST_CURRENT_TEST', '')}"
 
 
 def _ensure_notification_run_scope() -> None:
-    global _NOTIFICATION_RUN_SCOPE, _LAST_SEND_TS
+    global _NOTIFICATION_RUN_SCOPE, _LAST_SEND_TS, _last_notification_result
     scope = _notification_run_scope()
     if _NOTIFICATION_RUN_SCOPE == scope:
         return
@@ -76,6 +102,7 @@ def _ensure_notification_run_scope() -> None:
     sent_message_hashes.clear()
     _logical_alert_hashes.clear()
     _LAST_SEND_TS = 0.0
+    _last_notification_result = None
 
 
 def _message_hash(title: str, body: str) -> str:
@@ -99,6 +126,7 @@ def _write_skipped_notification(
     notification_priority: str = "",
     notification_state_key: str = "",
 ) -> None:
+    global _last_notification_result
     logger.info("Telegram skipped: status=skipped reason=%s title=%r", reason, title)
     write_notification_audit(
         transport="telegram",
@@ -111,6 +139,14 @@ def _write_skipped_notification(
         priority=notification_priority or None,
         state_key=notification_state_key or None,
         message_preview=body[:120] if body else None,
+    )
+    _last_notification_result = NotificationResult(
+        notification_status="SUPPRESSED",
+        notification_reason=reason,
+        notification_attempted=False,
+        notification_transport="telegram",
+        notification_http_status=None,
+        notification_retry_count=0,
     )
 
 
@@ -522,6 +558,7 @@ def send_telegram(
     notification_priority, notification_state_key, and notification_audit_reason
     are forwarded to the audit record when provided by callers.
     """
+    global _last_notification_result
     token = config.TELEGRAM_BOT_TOKEN
     chat_id = config.TELEGRAM_CHAT_ID
 
@@ -541,6 +578,14 @@ def send_telegram(
             priority=_priority,
             state_key=_state_key,
             message_preview=body[:120] if body else None,
+        )
+        _last_notification_result = NotificationResult(
+            notification_status="SKIPPED_NO_CONFIG",
+            notification_reason="not_configured",
+            notification_attempted=False,
+            notification_transport="telegram",
+            notification_http_status=None,
+            notification_retry_count=0,
         )
         return False
 
@@ -613,6 +658,14 @@ def send_telegram(
             state_key=_state_key,
             message_preview=preview,
         )
+        _last_notification_result = NotificationResult(
+            notification_status="SENT",
+            notification_reason=None,
+            notification_attempted=True,
+            notification_transport="telegram",
+            notification_http_status=200,
+            notification_retry_count=retry_count,
+        )
         return True
 
     logger.warning(
@@ -632,6 +685,14 @@ def send_telegram(
         priority=_priority,
         state_key=_state_key,
         message_preview=preview,
+    )
+    _last_notification_result = NotificationResult(
+        notification_status="FAILED_TRANSPORT",
+        notification_reason=notification_audit_reason or ("exception" if http_status is None else None),
+        notification_attempted=True,
+        notification_transport="telegram",
+        notification_http_status=http_status,
+        notification_retry_count=retry_count,
     )
     return False
 
