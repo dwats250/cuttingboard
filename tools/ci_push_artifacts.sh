@@ -16,6 +16,18 @@ fi
 
 echo "artifact push: committed changes detected ($pre_sha -> $post_sha)"
 
+dirty_files=$(git status --short)
+if [ -n "$dirty_files" ]; then
+  echo "artifact push: dirty tree before rebase"
+  echo "--- git status --short ---"
+  git status --short
+  echo "--- unstaged ---"
+  git diff --name-only
+  echo "--- staged ---"
+  git diff --cached --name-only
+  exit 1
+fi
+
 echo "artifact push: fetching origin main"
 git fetch origin main
 
@@ -29,6 +41,17 @@ if git push origin HEAD:main; then
 fi
 
 echo "artifact push: first push failed; rebase retry"
+dirty_files=$(git status --short)
+if [ -n "$dirty_files" ]; then
+  echo "artifact push: dirty tree before rebase retry"
+  echo "--- git status --short ---"
+  git status --short
+  echo "--- unstaged ---"
+  git diff --name-only
+  echo "--- staged ---"
+  git diff --cached --name-only
+  exit 1
+fi
 git fetch origin main
 git rebase origin/main
 
