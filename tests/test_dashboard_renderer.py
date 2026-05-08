@@ -306,7 +306,7 @@ def test_stale_market_map_suppresses_candidate_cards() -> None:
     board = html.split('id="candidate-board"', 1)[1]
 
     assert "STALE MARKET MAP" in board
-    assert "Candidate Board paused" in board
+    assert "Market Map / Developing Setups paused" in board
     assert 'id="card-SPY"' not in board
 
 
@@ -740,7 +740,7 @@ def test_stale_market_map_shows_updated_wording() -> None:
     board = html.split('id="candidate-board"', 1)[1]
 
     assert "STALE MARKET MAP" in board
-    assert "Candidate Board paused" in board
+    assert "Market Map / Developing Setups paused" in board
     assert "market_map timestamp is older than selected run" in board
     assert "STALE_MARKET_MAP" not in board
     assert "Candidate Board suppressed" not in board

@@ -1175,7 +1175,7 @@ def render_dashboard_html(
         _mm_ts_label  = _timestamp_label(market_map_timestamp_value, market_map_timestamp)
         w('  <div class="unavailable">STALE MARKET MAP</div>')
         w('  <div class="idle-summary">'
-          '<div>Candidate Board paused because market_map timestamp is older than selected run.</div>'
+          '<div>Market Map / Developing Setups paused because market_map timestamp is older than selected run.</div>'
           f'<div>Run: {_esc(_run_ts_label)}</div>'
           f'<div>Market map: {_esc(_mm_ts_label)}</div>'
           '</div>')
