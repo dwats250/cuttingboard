@@ -1065,6 +1065,20 @@ def render_dashboard_html(
         w(f'  <div class="value">{_esc(_ts_pacific)}</div>')
     w("</div>")
 
+    # --- alert-watchlist ---
+    if alert_candidates:
+        w('<div class="block" id="alert-watchlist">')
+        w('  <h2>Alert Watchlist</h2>')
+        w('  <div class="label">Candidates gated by execution policy</div>')
+        for cand in alert_candidates:
+            sym = _esc(str(cand.get("symbol") or "").upper())
+            direction = _esc(str(cand.get("direction") or "").upper())
+            block_reason = _esc(str(cand.get("block_reason") or "").upper())
+            w(f'  <div class="candidate-state">{sym} {direction}'
+              + (f' — {block_reason}' if block_reason else '')
+              + '</div>')
+        w("</div>")
+
     # --- sunday-macro-context (SUNDAY_PREMARKET only) ---
     if session_type == "SUNDAY_PREMARKET" and _is_sunday_pt(str(timestamp)):
         ctx = _build_sunday_context(macro_drivers, market_regime, market_map)
