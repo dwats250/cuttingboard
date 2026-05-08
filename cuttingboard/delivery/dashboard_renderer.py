@@ -20,6 +20,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from cuttingboard.macro_pressure import build_macro_pressure
+from cuttingboard.trade_decision import ALLOW_TRADE
 
 # Dashboard sidecar dependencies (PRD-097 audit):
 #   logs/latest_payload.json        — primary payload (overridden by --payload in hourly workflow)
@@ -836,13 +837,13 @@ def render_dashboard_html(
     market_map_path: Path | None = None,
     macro_snapshot_path: Path | None = None,
     contract_entry_map: dict | None = None,
+    alert_candidates: list[dict] | None = None,
     contract_generated_at: object | None = None,
     payload_source: str | Path = _PAYLOAD_PATH,
     run_source: str | Path = _RUN_PATH,
     market_map_source: str | Path | None = None,
     contract_source: str | Path = _HOURLY_CONTRACT_PATH,
     fixture_mode: bool = False,
-    alert_candidates: list | None = None,
 ) -> str:
     """Return deterministic Signal Forge dashboard HTML.
 
@@ -1314,6 +1315,7 @@ def write_dashboard(
     macro_snapshot_path: Path | None = None,
     market_map_path: Path | None = None,
     contract_entry_map: dict | None = None,
+    alert_candidates: list[dict] | None = None,
     contract_generated_at: object | None = None,
     payload_source: str | Path = _PAYLOAD_PATH,
     run_source: str | Path = _RUN_PATH,
@@ -1330,6 +1332,7 @@ def write_dashboard(
         market_map_path=market_map_path,
         macro_snapshot_path=macro_snapshot_path,
         contract_entry_map=contract_entry_map,
+        alert_candidates=alert_candidates,
         contract_generated_at=contract_generated_at,
         payload_source=payload_source,
         run_source=run_source,
@@ -1359,22 +1362,25 @@ def _build_contract_entry_map(logs_dir: Path) -> dict[str, float]:
     return result
 
 
-def _load_contract_entry_context(logs_dir: Path) -> tuple[dict[str, float], object | None, Path]:
-    """Load latest_hourly_contract entry prices and generated_at timestamp."""
+def _load_contract_entry_context(logs_dir: Path) -> tuple[dict[str, float], list[dict], object | None, Path]:
+    """Load latest_hourly_contract entry prices, alert_candidates, and generated_at timestamp."""
     path = logs_dir / _HOURLY_CONTRACT_PATH.name
     contract = _load_json_optional(path)
     if not contract:
-        return {}, None, path
-    result: dict[str, float] = {}
+        return {}, [], None, path
+    entry_map: dict[str, float] = {}
+    alert_candidates: list[dict] = []
     for cand in (contract.get("trade_candidates") or []):
         sym = cand.get("symbol")
         val = cand.get("entry")
         if sym and val is not None:
             try:
-                result[sym] = float(val)
+                entry_map[sym] = float(val)
             except (TypeError, ValueError):
                 pass
-    return result, contract.get("generated_at"), path
+        if cand.get("decision_status") != ALLOW_TRADE:
+            alert_candidates.append(cand)
+    return entry_map, alert_candidates, contract.get("generated_at"), path
 
 
 def main(
@@ -1400,7 +1406,7 @@ def main(
     )
     history_runs = history_runs[:HISTORY_LIMIT]
 
-    contract_entry_map_raw, contract_generated_at, contract_source = _load_contract_entry_context(logs_dir)
+    contract_entry_map_raw, alert_candidates_raw, contract_generated_at, contract_source = _load_contract_entry_context(logs_dir)
     contract_entry_map = contract_entry_map_raw or None
     market_map_path = logs_dir / "market_map.json"
 
@@ -1409,6 +1415,7 @@ def main(
         market_map_path=market_map_path,
         macro_snapshot_path=macro_snapshot_path,
         contract_entry_map=contract_entry_map,
+        alert_candidates=alert_candidates_raw or None,
         contract_generated_at=contract_generated_at,
         payload_source=payload_path,
         run_source=run_path,
