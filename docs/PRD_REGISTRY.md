@@ -116,6 +116,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-099 | 102063a | Dashboard Artifact Generation Contract | COMPLETE | [PRD-099](prd_history/PRD-099.md) |
 | PRD-100 | e983bd0 | Standardize Artifact Push Rebase Contract | COMPLETE | [PRD-100](prd_history/PRD-100.md) |
 | PRD-100-PATCH | 8d47ca3 | Artifact Push Helper Dirty Tree Rebase Safety | PATCH | — |
+| PRD-100-PATCH-2 | 6100578 | Hourly Artifact Mutation Ordering | PATCH | — |
 | PRD-101 | 97aa058 | Hourly Telegram Notification Truth Contract | COMPLETE | — |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().

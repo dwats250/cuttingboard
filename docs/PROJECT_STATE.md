@@ -13,8 +13,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-08
-**Last completed PRD:** PRD-100-PATCH - Artifact Push Helper Dirty Tree Rebase Safety (commit 8d47ca3)
-**Last work completed:** 2026-05-08 (commit 8d47ca3)
+**Last completed PRD:** PRD-100-PATCH-2 - Hourly Artifact Mutation Ordering (commit 6100578)
+**Last work completed:** 2026-05-08 (commit 6100578)
 **Active PRD:** none
 **Next step:** Monitor next scheduled run; confirm dirty-tree guard fires cleanly in CI
 **Deferred PRD:** none
@@ -33,6 +33,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-100-PATCH-2 | Hourly Artifact Mutation Ordering | PATCH | 2026-05-08 |
 | PRD-100-PATCH | Artifact Push Helper Dirty Tree Rebase Safety | PATCH | 2026-05-08 |
 | PRD-101 | Hourly Telegram Notification Truth Contract | COMPLETE | 2026-05-08 |
 | PRD-100 | Standardize Artifact Push Rebase Contract | COMPLETE | 2026-05-07 |
