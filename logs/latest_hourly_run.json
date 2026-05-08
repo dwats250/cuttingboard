@@ -1,6 +1,6 @@
 {
   "alert_body": "RISK ON | AGGRESSIVE LONG | 0.75\nWATCHLIST\nReason: candidates gated\n\nWATCH:\n- META LONG: entry blocked after 3:30 PM ET\n- XLE LONG: entry blocked after 3:30 PM ET\n\nTRIGGERS:\n- breakout above resistance\n- continuation hold above trigger",
-  "alert_title": "WATCHLIST 17:06",
+  "alert_title": "WATCHLIST 18:31",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
     "payload_path": "logs/latest_hourly_payload.json",
@@ -13,8 +13,8 @@
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-05-08T21:06:50Z",
-  "generation_id": "hourly-20260508T210650Z",
+  "generated_at": "2026-05-08T22:31:10Z",
+  "generation_id": "hourly-20260508T223110Z",
   "halt_reason": null,
   "index_score": 0.0,
   "kill_switch": false,
@@ -33,11 +33,11 @@
   "posture": "AGGRESSIVE_LONG",
   "regime": "RISK_ON",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-05-08T21:06:50Z",
-  "run_id": "hourly-20260508T210650Z",
+  "run_at_utc": "2026-05-08T22:31:10Z",
+  "run_id": "hourly-20260508T223110Z",
   "session_date": "2026-05-08",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-05-08T21:06:50Z",
+  "timestamp": "2026-05-08T22:31:10Z",
   "warnings": []
 }
