@@ -1167,9 +1167,9 @@ def render_dashboard_html(
     # --- candidate-board ---
     w('<div class="block" id="candidate-board">')
     if fixture_mode:
-        w('  <h2>Candidate Board &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h2>')
+        w('  <h2>Market Map / Developing Setups &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h2>')
     else:
-        w("  <h2>Candidate Board</h2>")
+        w("  <h2>Market Map / Developing Setups</h2>")
     if market_map_stale_for_run:
         _run_ts_label = _timestamp_label(run_timestamp_value, run_timestamp)
         _mm_ts_label  = _timestamp_label(market_map_timestamp_value, market_map_timestamp)
