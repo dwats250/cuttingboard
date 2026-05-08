@@ -48,6 +48,10 @@ jobs:
       - name: Run hourly alert
         run: python -m cuttingboard.alert_runner
 
+      - name: Check hourly readiness
+        if: ${{ success() }}
+        run: python3 scripts/check_readiness.py
+
       - name: Publish hourly artifacts
         if: ${{ success() }}
         run: |
@@ -60,7 +64,16 @@ jobs:
             --payload logs/latest_hourly_payload.json \
             --run logs/latest_hourly_run.json \
             --output ui/dashboard.html
-          git add -f logs/latest_hourly_run.json logs/latest_hourly_contract.json logs/latest_hourly_payload.json
+          git add -f \
+            logs/audit.jsonl \
+            logs/market_map.json \
+            logs/macro_drivers_snapshot.json \
+            logs/latest_run.json \
+            logs/latest_contract.json \
+            logs/latest_payload.json \
+            logs/latest_hourly_run.json \
+            logs/latest_hourly_contract.json \
+            logs/latest_hourly_payload.json
           cp ui/dashboard.html ui/index.html
           git add ui/contract.json ui/dashboard.html ui/index.html
           git diff --staged --quiet || git commit -m "CB hourly: $(date -u +%Y-%m-%dT%H:%MZ)"
@@ -72,10 +85,6 @@ jobs:
           fi
           echo "PRE_SHA=$PRE_SHA" >> "$GITHUB_ENV"
           echo "POST_SHA=$POST_SHA" >> "$GITHUB_ENV"
-
-      - name: Check hourly readiness
-        if: ${{ success() }}
-        run: python3 scripts/check_readiness.py
 
       - name: Push hourly artifacts
         if: ${{ success() }}
