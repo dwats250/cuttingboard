@@ -1,6 +1,6 @@
 {
   "alert_body": "UNKNOWN | UNKNOWN | 0.00\nNo trade.\nReason: test halt\n\nTRIGGERS:\n- range break\n- confirmed direction",
-  "alert_title": "ACTIVE - NO SETUP 11:11",
+  "alert_title": "ACTIVE - NO SETUP 11:13",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
     "payload_path": "logs/latest_hourly_payload.json",
@@ -13,8 +13,8 @@
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-05-08T15:11:18Z",
-  "generation_id": "hourly-20260508T151118Z",
+  "generated_at": "2026-05-08T15:13:14Z",
+  "generation_id": "hourly-20260508T151314Z",
   "halt_reason": "test halt",
   "index_score": 0.0,
   "kill_switch": false,
@@ -27,11 +27,11 @@
   "posture": "STAY_FLAT",
   "regime": "NEUTRAL",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-05-08T15:11:18Z",
-  "run_id": "hourly-20260508T151118Z",
+  "run_at_utc": "2026-05-08T15:13:14Z",
+  "run_id": "hourly-20260508T151314Z",
   "session_date": "2026-04-23",
   "status": "SUCCESS",
   "system_halted": true,
-  "timestamp": "2026-05-08T15:11:18Z",
+  "timestamp": "2026-05-08T15:13:14Z",
   "warnings": []
 }
