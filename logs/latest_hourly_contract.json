@@ -13,8 +13,8 @@
     "rejected_count": 0
   },
   "correlation": null,
-  "generated_at": "2026-05-07T21:45:18Z",
-  "generation_id": "hourly-20260507T214518Z",
+  "generated_at": "2026-05-08T14:26:59Z",
+  "generation_id": "hourly-20260508T142659Z",
   "macro_drivers": {},
   "market_context": {
     "continuation_enabled": null,
@@ -35,7 +35,7 @@
     "market_regime": null,
     "router_mode": "MIXED",
     "stay_flat_reason": "test halt",
-    "time_gate_open": false,
+    "time_gate_open": true,
     "tradable": false
   },
   "timezone": "America/New_York",
