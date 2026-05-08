@@ -1,0 +1,50 @@
+name: Telegram Debug
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Telegram getUpdates
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          python3 <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          token = os.environ.get("TELEGRAM_BOT_TOKEN")
+
+          print("TELEGRAM_BOT_TOKEN_PRESENT=" + str(bool(token)).lower())
+
+          if not token:
+              raise SystemExit("Missing TELEGRAM_BOT_TOKEN")
+
+          url = f"https://api.telegram.org/bot{token}/getUpdates"
+
+          with urllib.request.urlopen(url, timeout=20) as r:
+              data = json.loads(r.read().decode("utf-8"))
+
+          print("ok=" + str(data.get("ok")).lower())
+          results = data.get("result", [])
+          print("result_count=" + str(len(results)))
+
+          for item in results[-10:]:
+              msg = item.get("message") or item.get("channel_post") or {}
+              chat = msg.get("chat") or {}
+              text = msg.get("text") or ""
+
+              if not chat:
+                  continue
+
+              print("---")
+              print("chat_id=" + str(chat.get("id")))
+              print("chat_type=" + str(chat.get("type")))
+              print("chat_title_or_name=" + str(chat.get("title") or chat.get("username") or chat.get("first_name") or ""))
+              print("last_text_preview=" + text[:80])
+          PY
