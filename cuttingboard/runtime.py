@@ -1795,7 +1795,11 @@ def _build_hourly_run_summary(
         "energy_score": float(router_state.energy_score) if router_state is not None else 0.0,
         "index_score": float(router_state.index_score) if router_state is not None else 0.0,
         "kill_switch": False,
-        "permission": None,
+        "permission": (
+            "No trades permitted. System halted."
+            if validation_summary is not None and validation_summary.system_halted
+            else _PERMISSION_LINES.get(posture, "No new trades permitted.")
+        ),
         "data_status": _data_status(mode, raw_quotes, normalized_quotes, fixture_file=None),
         "system_halted": bool(validation_summary.system_halted) if validation_summary is not None else True,
         "halt_reason": getattr(validation_summary, "halt_reason", None) if validation_summary is not None else "; ".join(errors) if errors else None,

@@ -80,6 +80,16 @@ def test_system_state_permission_fallback_when_no_reason() -> None:
     assert "No new trades permitted." in state
 
 
+def test_system_state_permission_shows_from_run_when_non_null() -> None:
+    """Permission shows the run value when run.permission is a non-null string."""
+    r = _run(permission="No new trades permitted.")
+    html = render_dashboard_html(_payload(), r)
+    state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    assert "Permission" in state
+    assert "No new trades permitted." in state
+    assert "&#8212;" not in state
+
+
 def test_action_line_stay_flat() -> None:
     r = _run(outcome="STAY_FLAT")
     html = render_dashboard_html(_payload(), r)
