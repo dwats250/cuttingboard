@@ -13,17 +13,17 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-08
-**Last completed PRD:** PRD-100-PATCH-2 - Hourly Artifact Mutation Ordering (commit 6100578)
-**Last work completed:** 2026-05-08 (commit 6100578)
+**Last completed PRD:** PRD-102 - Align Alert and Dashboard Candidate Semantics (commit accf10e)
+**Last work completed:** 2026-05-08 (commit accf10e)
 **Active PRD:** none
-**Next step:** Monitor next scheduled run; confirm dirty-tree guard fires cleanly in CI
+**Next step:** Monitor next scheduled run; verify alert watchlist appears in dashboard when candidates are gated
 **Deferred PRD:** none
 
 ---
 
 ## Test Baseline
 
-- **2073 passing** (as of 2026-05-08, post PRD-101)
+- **2081 passing** (as of 2026-05-08, post PRD-102)
 - 2 pre-existing failures (test_dash_run_history::test_run_health_present, test_dash_system_state::test_system_state_permission_shows_dash_when_none — present before PRD-097)
 - 0 skipped
 
@@ -33,6 +33,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-102 | Align Alert and Dashboard Candidate Semantics | COMPLETE | 2026-05-08 |
 | PRD-100-PATCH-2 | Hourly Artifact Mutation Ordering | PATCH | 2026-05-08 |
 | PRD-100-PATCH | Artifact Push Helper Dirty Tree Rebase Safety | PATCH | 2026-05-08 |
 | PRD-101 | Hourly Telegram Notification Truth Contract | COMPLETE | 2026-05-08 |

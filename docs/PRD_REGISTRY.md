@@ -118,7 +118,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-100-PATCH | 8d47ca3 | Artifact Push Helper Dirty Tree Rebase Safety | PATCH | — |
 | PRD-100-PATCH-2 | 6100578 | Hourly Artifact Mutation Ordering | PATCH | — |
 | PRD-101 | 97aa058 | Hourly Telegram Notification Truth Contract | COMPLETE | — |
-| PRD-102 | — | Align Alert and Dashboard Candidate Semantics | IN PROGRESS | [PRD-102](prd_history/PRD-102.md) |
+| PRD-102 | accf10e | Align Alert and Dashboard Candidate Semantics | COMPLETE | [PRD-102](prd_history/PRD-102.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
