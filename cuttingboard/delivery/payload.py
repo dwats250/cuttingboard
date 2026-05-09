@@ -32,6 +32,9 @@ def build_report_payload(contract: dict, fixture_mode: bool = False) -> dict:
     market_regime = ss.get("market_regime") or ""
     tradable = ss.get("tradable")         # bool | None — preserve semantics
     router_mode = ss.get("router_mode")   # str | None
+    outcome_val = ss.get("outcome")
+    confidence_val = ss.get("confidence")
+    permission_val = ss.get("permission")
 
     # --- sections ---
     top_trades = [t for t in trade_candidates]
@@ -114,6 +117,9 @@ def build_report_payload(contract: dict, fixture_mode: bool = False) -> dict:
             "market_regime": market_regime,
             "tradable": tradable,
             "router_mode": router_mode,
+            "outcome": outcome_val,
+            "confidence": confidence_val,
+            "permission": permission_val,
         },
         "sections": {
             "top_trades": top_trades,

@@ -563,3 +563,40 @@ class TestAssertValidPayload:
         p["sections"]["trade_decision_detail"] = [item]
         with pytest.raises(ValueError, match="stage"):
             assert_valid_payload(p)
+
+
+def test_summary_outcome_present():
+    """payload summary carries outcome from system_state."""
+    c = _minimal_contract()
+    c["system_state"]["outcome"] = "NO_TRADE"
+    c["system_state"]["confidence"] = 0.75
+    c["system_state"]["permission"] = "No new trades permitted."
+    p = build_report_payload(c)
+    assert p["summary"].get("outcome") == "NO_TRADE"
+
+
+def test_summary_confidence_present():
+    c = _minimal_contract()
+    c["system_state"]["outcome"] = "NO_TRADE"
+    c["system_state"]["confidence"] = 0.75
+    c["system_state"]["permission"] = "No new trades permitted."
+    p = build_report_payload(c)
+    assert p["summary"].get("confidence") == 0.75
+
+
+def test_summary_permission_present():
+    c = _minimal_contract()
+    c["system_state"]["outcome"] = "NO_TRADE"
+    c["system_state"]["confidence"] = 0.75
+    c["system_state"]["permission"] = "No new trades permitted."
+    p = build_report_payload(c)
+    assert p["summary"].get("permission") == "No new trades permitted."
+
+
+def test_assert_valid_payload_passes_with_new_summary_fields():
+    c = _minimal_contract()
+    c["system_state"]["outcome"] = "NO_TRADE"
+    c["system_state"]["confidence"] = 0.75
+    c["system_state"]["permission"] = "No new trades permitted."
+    p = build_report_payload(c)
+    assert_valid_payload(p)  # must not raise
