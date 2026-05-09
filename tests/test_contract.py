@@ -1087,3 +1087,22 @@ class TestRegimeBlock:
         assert r["total_votes"] == 0
         assert r["vote_breakdown"] == {}
         assert_valid_contract(contract)
+
+
+# ---------------------------------------------------------------------------
+# PRD-103 — system_state.confidence field
+# ---------------------------------------------------------------------------
+
+class TestSystemStateDashboardFields:
+    def setup_method(self):
+        pr = _FakePipelineResult(regime=_regime(confidence=0.75))
+        self.contract = _build(pr)
+
+    def test_system_state_confidence_float_when_regime_present(self):
+        assert isinstance(self.contract["system_state"].get("confidence"), float)
+        assert self.contract["system_state"]["confidence"] == 0.75
+
+    def test_system_state_confidence_none_when_no_regime(self):
+        pr = _FakePipelineResult(regime=None)
+        contract = _build(pr)
+        assert contract["system_state"].get("confidence") is None

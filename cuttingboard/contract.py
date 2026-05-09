@@ -229,6 +229,7 @@ def _build_system_state(
         "time_gate_open": time_gate_open,
         "tradable": bool(tradable),
         "stay_flat_reason": stay_flat_reason,
+        "confidence": float(regime.confidence) if regime is not None else None,
     }
 
 
