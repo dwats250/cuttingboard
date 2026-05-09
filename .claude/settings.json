@@ -5,7 +5,9 @@
       "Edit",
       "Write",
       "Bash(.venv/bin/pytest tests/ *)",
-      "Bash(.venv/bin/pytest tests/*)"
+      "Bash(.venv/bin/pytest tests/*)",
+      "Bash(ruff check *)",
+      "Bash(crontab -l)"
     ]
   },
   "hooks": {
