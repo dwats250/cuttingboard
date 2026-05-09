@@ -930,6 +930,8 @@ def render_dashboard_html(
     # R2.1 — action line
     outcome    = run.get("outcome")
     permission = run.get("permission")
+    if permission is None:
+        permission = payload.get("summary", {}).get("permission")
     title = "MIXED_ARTIFACTS" if artifact_mixed else _decision_title(outcome, bool(system_halted), status)
     if artifact_mixed:
         action_text = "ACTION: HOLD — MIXED_ARTIFACTS"
@@ -1031,9 +1033,9 @@ def render_dashboard_html(
     elif stay_flat_reason is not None:
         w(f'    <div class="field warn"><div class="label">Permission</div>'
           f'<div class="value">{_esc(stay_flat_reason)}</div></div>')
-    elif run.get("permission") is not None:
+    elif permission is not None:
         w(f'    <div class="field"><div class="label">Permission</div>'
-          f'<div class="value">{_esc(run["permission"])}</div></div>')
+          f'<div class="value">{_esc(permission)}</div></div>')
     else:
         w('    <div class="field"><div class="label">Permission</div>'
           '<div class="value">&#8212;</div></div>')
@@ -1050,7 +1052,7 @@ def render_dashboard_html(
     if bool(system_halted) and stay_flat_reason is not None:
         w(f'  <div class="field warn"><div class="label">Reason</div>'
           f'<div class="value">{_esc(stay_flat_reason)}</div></div>')
-    elif not bool(system_halted) and stay_flat_reason is None and run.get("permission") is None:
+    elif not bool(system_halted) and stay_flat_reason is None and permission is None:
         if first_error:
             _perm_reason = first_error
         elif alert_candidates:
@@ -1236,7 +1238,7 @@ def render_dashboard_html(
     w('<div class="block" id="run-delta">')
     w("  <h2>Changes Since Last Run</h2>")
     if previous_run is None:
-        w('  <div class="value">SOURCE_MISSING</div>')
+        w('  <div class="value">NO_PREVIOUS_RUN</div>')
     else:
         delta_fields = (
             ("Regime",        _req(run, "regime"),        _req(previous_run, "regime")),

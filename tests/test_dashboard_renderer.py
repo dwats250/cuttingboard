@@ -441,7 +441,7 @@ def test_null_safe_secondary_sections_no_crash() -> None:
     )
     delta_block = html.split('id="run-delta"', 1)[1]
     history_block = html.split('id="run-history"', 1)[1]
-    assert "SOURCE_MISSING" in delta_block
+    assert "NO_PREVIOUS_RUN" in delta_block
     assert "NO_HISTORY" in history_block
     # No crash — rendering completed; pressure block present
     assert 'id="macro-pressure"' in html

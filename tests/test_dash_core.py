@@ -125,7 +125,7 @@ def test_run_delta_present_with_previous_run() -> None:
 def test_run_delta_source_missing_without_previous_run() -> None:
     html = render_dashboard_html(_payload(), _run(), previous_run=None)
     assert 'id="run-delta"' in html
-    assert "SOURCE_MISSING" in html.split('id="run-delta"', 1)[1]
+    assert "NO_PREVIOUS_RUN" in html.split('id="run-delta"', 1)[1]
 
 
 # ---------------------------------------------------------------------------

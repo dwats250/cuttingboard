@@ -210,3 +210,11 @@ def test_run_health_no_error_when_empty() -> None:
     html = render_dashboard_html(_payload(), _run(errors=[]))
     health = html.split('id="system-state"', 1)[1]
     assert ">Error<" not in health
+
+
+def test_run_delta_no_previous_run_shows_no_previous_run() -> None:
+    """When previous_run is None, Changes Since Last Run shows NO_PREVIOUS_RUN not SOURCE_MISSING."""
+    html = render_dashboard_html(_payload(), _run(), previous_run=None)
+    delta = html.split('id="run-delta"', 1)[1].split('id="run-history"', 1)[0]
+    assert "NO_PREVIOUS_RUN" in delta
+    assert "SOURCE_MISSING" not in delta

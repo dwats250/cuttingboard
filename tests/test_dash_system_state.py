@@ -90,6 +90,17 @@ def test_system_state_permission_shows_from_run_when_non_null() -> None:
     assert "&#8212;" not in state
 
 
+def test_system_state_permission_falls_back_to_payload_when_run_none() -> None:
+    """When run.permission is None, Permission shows payload['summary']['permission'] value."""
+    payload_with_perm = _payload()
+    payload_with_perm["summary"]["permission"] = "No new trades permitted."
+    r = _run(permission=None)
+    html = render_dashboard_html(payload_with_perm, r)
+    state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    assert "Permission" in state
+    assert "No new trades permitted." in state
+
+
 def test_action_line_stay_flat() -> None:
     r = _run(outcome="STAY_FLAT")
     html = render_dashboard_html(_payload(), r)
