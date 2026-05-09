@@ -940,6 +940,14 @@ def _run_pipeline(
         data_quality=data_quality,
     )
     contract["outcome"] = outcome
+    # Inject dashboard-readable fields into system_state
+    _ss_regime_label, _ss_posture_label, _ss_conf, _ = _summary_regime_fields(regime)
+    _ss_perm = _PERMISSION_LINES.get(_ss_posture_label, "No new trades permitted.")
+    if validation_summary.system_halted:
+        _ss_perm = "No trades permitted. System halted."
+    contract["system_state"]["outcome"] = outcome
+    contract["system_state"]["permission"] = _ss_perm
+    contract["system_state"]["reason"] = contract["system_state"].get("stay_flat_reason")
     contract = apply_overnight_policy(
         contract=contract,
         market_map=market_map,

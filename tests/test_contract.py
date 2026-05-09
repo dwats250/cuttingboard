@@ -1106,3 +1106,16 @@ class TestSystemStateDashboardFields:
         pr = _FakePipelineResult(regime=None)
         contract = _build(pr)
         assert contract["system_state"].get("confidence") is None
+
+
+def test_system_state_outcome_permission_reason_injectable():
+    """assert_valid_contract accepts outcome/permission/reason injected into system_state."""
+    pr = _FakePipelineResult(regime=_regime())
+    contract = _build(pr)
+    contract["system_state"]["outcome"] = "NO_TRADE"
+    contract["system_state"]["permission"] = "No new trades permitted."
+    contract["system_state"]["reason"] = None
+    assert_valid_contract(contract)  # must not raise
+    assert contract["system_state"]["outcome"] == "NO_TRADE"
+    assert contract["system_state"]["permission"] == "No new trades permitted."
+    assert contract["system_state"]["reason"] is None
