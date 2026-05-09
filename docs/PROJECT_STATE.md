@@ -13,18 +13,18 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-08
-**Last completed PRD:** PRD-102 - Align Alert and Dashboard Candidate Semantics (commit accf10e)
-**Last work completed:** 2026-05-08 (commit accf10e)
+**Last completed PRD:** PRD-103 - Dashboard Data Contract Gap Patch (commit c8ef8cf)
+**Last work completed:** 2026-05-08 (commit c8ef8cf)
 **Active PRD:** none
-**Next step:** Monitor next scheduled run; verify alert watchlist appears in dashboard when candidates are gated
+**Next step:** Monitor next scheduled run; verify Permission shows real text and Changes Since Last Run shows NO_PREVIOUS_RUN
 **Deferred PRD:** none
 
 ---
 
 ## Test Baseline
 
-- **2081 passing** (as of 2026-05-08, post PRD-102)
-- 2 pre-existing failures (test_dash_run_history::test_run_health_present, test_dash_system_state::test_system_state_permission_shows_dash_when_none — present before PRD-097)
+- **2091 passing** (as of 2026-05-08, post PRD-103)
+- 0 pre-existing failures
 - 0 skipped
 
 ---
@@ -33,6 +33,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-103 | Dashboard Data Contract Gap Patch | COMPLETE | 2026-05-08 |
 | PRD-102 | Align Alert and Dashboard Candidate Semantics | COMPLETE | 2026-05-08 |
 | PRD-100-PATCH-2 | Hourly Artifact Mutation Ordering | PATCH | 2026-05-08 |
 | PRD-100-PATCH | Artifact Push Helper Dirty Tree Rebase Safety | PATCH | 2026-05-08 |
