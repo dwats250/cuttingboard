@@ -13,8 +13,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-10
-**Last completed PRD:** PRD-115 - Dashboard Artifact Lineage Visibility (commit e753ac0)
-**Last work completed:** 2026-05-10 — PRD-115: deterministic dashboard artifact lineage classification (COHERENT/MIXED/STALE/MISSING) with precedence MISSING > MIXED > STALE > COHERENT; observational-only renderer addition reusing existing generation_id and market_map_stale_for_run logic; +39 production LOC
+**Last completed PRD:** PRD-116 - Dashboard Mixed-Artifact Hierarchy Hardening (commit d8df30c)
+**Last work completed:** 2026-05-10 — PRD-116: renderer-only enforcement of section ordering and disabled-state rendering under unhealthy artifact lineage (MIXED/STALE/MISSING); Sunday context gated on coherent lineage; trend-structure and candidate-board emit `disabled` class and suppress per-symbol rows/cards; artifact-diagnostics preserved
 **Active PRD:** none
 **Next step:** —
 **Deferred PRD:** none
@@ -27,7 +27,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 ## Test Baseline
 
-- **2162 passing** (as of 2026-05-10; PRD-115 added 6 lineage diagnostics tests)
+- **2173 passing** (as of 2026-05-10; PRD-116 added 11 renderer hierarchy tests)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -37,6 +37,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-116 | Dashboard Mixed-Artifact Hierarchy Hardening | COMPLETE | 2026-05-10 |
 | PRD-115 | Dashboard Artifact Lineage Visibility | COMPLETE | 2026-05-10 |
 | PRD-114 | Watchlist Snapshot Sidecar | COMPLETE | 2026-05-10 |
 | PRD-113 | PRD Governance Hardening | COMPLETE | 2026-05-10 |
