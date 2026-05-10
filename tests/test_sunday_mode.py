@@ -15,6 +15,7 @@ from datetime import date
 
 import pytest
 
+import cuttingboard.delivery.transport as transport
 from cuttingboard import audit, runtime
 from cuttingboard.contract import STATUS_ERROR
 from cuttingboard.ingestion import block_live_data, fetch_all
@@ -31,8 +32,12 @@ def _isolate_artifacts(monkeypatch, tmp_path):
     monkeypatch.setattr(runtime, "LOGS_DIR", logs_dir)
     monkeypatch.setattr(runtime, "REPORTS_DIR", reports_dir)
     monkeypatch.setattr(runtime, "LATEST_RUN_PATH", logs_dir / "latest_run.json")
+    monkeypatch.setattr(runtime, "LATEST_CONTRACT_PATH", str(logs_dir / "latest_contract.json"))
+    monkeypatch.setattr(runtime, "MARKET_MAP_PATH", logs_dir / "market_map.json")
     monkeypatch.setattr(runtime, "LAST_STATE_PATH", str(tmp_path / "last_state.json"))
     monkeypatch.setattr(audit, "AUDIT_LOG_PATH", str(logs_dir / "audit.jsonl"))
+    monkeypatch.setattr(transport, "deliver_json", lambda payload, output_path=str(logs_dir / "latest_payload.json"): None)
+    monkeypatch.setattr(transport, "deliver_html", lambda payload, output_path=str(reports_dir / "output" / "report.html"): None)
     return logs_dir, reports_dir
 
 

@@ -4,6 +4,7 @@
 from cuttingboard.delivery.fixtures import FIXTURE_SYMBOLS
 from cuttingboard.delivery.payload import build_report_payload
 from cuttingboard.delivery.dashboard_renderer import render_dashboard_html
+from cuttingboard.runtime import _data_status, MODE_LIVE, MODE_FIXTURE
 
 
 # ---------------------------------------------------------------------------
@@ -172,3 +173,27 @@ class TestRendererFixtureMode:
         original = copy.deepcopy(market_map)
         render_dashboard_html(payload, _minimal_run(), market_map=market_map, fixture_mode=True)
         assert market_map == original
+
+
+# ---------------------------------------------------------------------------
+# _data_status — empty quotes in live mode must not return "ok"
+# ---------------------------------------------------------------------------
+
+class TestDataStatusEmptyQuotes:
+    def test_live_empty_quotes_returns_stale(self):
+        result = _data_status(MODE_LIVE, {}, {}, fixture_file=None)
+        assert result == "stale", f"expected 'stale', got {result!r}"
+
+    def test_fixture_empty_quotes_returns_ok(self):
+        result = _data_status(MODE_FIXTURE, {}, {}, fixture_file=None)
+        assert result == "ok"
+
+    def test_live_nonempty_fresh_quotes_returns_ok(self):
+        from unittest.mock import MagicMock
+        from datetime import datetime, timezone
+        quote = MagicMock()
+        quote.fetched_at_utc = datetime.now(timezone.utc)
+        raw = MagicMock()
+        raw.source = "yfinance"
+        result = _data_status(MODE_LIVE, {"SPY": raw}, {"SPY": quote}, fixture_file=None)
+        assert result == "ok"

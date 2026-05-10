@@ -156,9 +156,9 @@ class TestBuildReportPayload:
         payload = build_report_payload(_minimal_contract(router_mode=None))
         assert payload["summary"]["router_mode"] is None
 
-    def test_market_regime_none_becomes_empty_string(self):
+    def test_market_regime_none_preserved_as_null(self):
         payload = build_report_payload(_minimal_contract(market_regime=None))
-        assert payload["summary"]["market_regime"] == ""
+        assert payload["summary"]["market_regime"] is None
 
     def test_top_trades_populated(self):
         contract = _minimal_contract(trade_candidates=[_trade_candidate("SPY"), _trade_candidate("QQQ")])
@@ -383,11 +383,16 @@ class TestAssertValidPayload:
                 p["macro_drivers"] = {}
             assert_valid_payload(p)  # no exception
 
-    def test_market_regime_must_be_str(self):
+    def test_market_regime_must_be_str_or_none(self):
         p = self._base_payload()
         p["summary"]["market_regime"] = 42
         with pytest.raises(ValueError, match="market_regime"):
             assert_valid_payload(p)
+
+    def test_market_regime_null_is_valid(self):
+        p = self._base_payload()
+        p["summary"]["market_regime"] = None
+        assert_valid_payload(p)  # None is permitted when regime is absent
 
     def test_tradable_null_is_valid(self):
         p = self._base_payload()

@@ -29,7 +29,7 @@ def build_report_payload(contract: dict, fixture_mode: bool = False) -> dict:
     rejections: list[dict] = list(contract.get("rejections") or [])
 
     # --- summary ---
-    market_regime = ss.get("market_regime") or ""
+    market_regime = ss.get("market_regime")
     tradable = ss.get("tradable")         # bool | None — preserve semantics
     router_mode = ss.get("router_mode")   # str | None
     outcome_val = ss.get("outcome")
@@ -149,7 +149,7 @@ def assert_valid_payload(payload: dict) -> None:
 
     summary = payload["summary"]
     _require_keys(summary, {"market_regime", "tradable", "router_mode"}, "summary")
-    _require_type(summary, "market_regime", str)
+    _require_type_or_none(summary, "market_regime", str)
     _require_type_or_none(summary, "tradable", bool)
     _require_type_or_none(summary, "router_mode", str)
 

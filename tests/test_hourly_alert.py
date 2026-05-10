@@ -467,7 +467,8 @@ def _patch_pipeline_stay_flat():
     ]
 
 
-def test_hourly_sends_exactly_once_stay_flat():
+def test_hourly_sends_exactly_once_stay_flat(tmp_path, monkeypatch):
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
     patches = _patch_pipeline_stay_flat()
     with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7] as mock_send:
         result = _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
@@ -475,7 +476,8 @@ def test_hourly_sends_exactly_once_stay_flat():
     assert result["status"] == SUMMARY_STATUS_SUCCESS
 
 
-def test_hourly_sends_exactly_once_system_halted():
+def test_hourly_sends_exactly_once_system_halted(tmp_path, monkeypatch):
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
     with (
         patch("cuttingboard.runtime.fetch_all", return_value={}),
         patch("cuttingboard.runtime.normalize_all", return_value={}),

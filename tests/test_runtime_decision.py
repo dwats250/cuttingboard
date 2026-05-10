@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-from cuttingboard import runtime
+from cuttingboard import audit, runtime
 from cuttingboard.chain_validation import ChainValidationResult, MANUAL_CHECK
 from cuttingboard.options import OptionSetup
 from cuttingboard.qualification import QualificationResult, QualificationSummary, TradeCandidate
@@ -112,6 +112,7 @@ def _setup_runtime_mocks(monkeypatch, tmp_path):
     monkeypatch.setattr(runtime, "LOGS_DIR", tmp_path / "logs")
     monkeypatch.setattr(runtime, "LATEST_RUN_PATH", tmp_path / "logs" / "latest_run.json")
     monkeypatch.setattr(runtime, "LATEST_CONTRACT_PATH", str(tmp_path / "logs" / "latest_contract.json"))
+    monkeypatch.setattr(audit, "AUDIT_LOG_PATH", str(tmp_path / "logs" / "audit.jsonl"))
     monkeypatch.setattr(runtime, "_deterministic_run_at", lambda mode, fixture_file: RUN_AT)
     monkeypatch.setattr(runtime, "_load_inputs", lambda mode, fixture_file: ({}, {}))
     monkeypatch.setattr(runtime, "_fixture_validation_clock", _null_context())
