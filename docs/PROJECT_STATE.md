@@ -13,7 +13,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-09
-**Last completed PRD:** PRD-105 - Decision Quality Evidence Map (draft commit c4c6f23)
+**Last completed PRD:** PRD-105 - Decision Quality Evidence Map (commit 740b48c)
 **Last work completed:** 2026-05-09 — PRD-105: docs/decision_quality_map.md
 **Active PRD:** none
 **Next step:** Review docs/decision_quality_map.md; plan PRD-106 (Sunday Report sidecar) or threshold review framework
