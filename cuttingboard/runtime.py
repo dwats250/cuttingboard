@@ -45,6 +45,7 @@ from cuttingboard.ingestion import fetch_ohlcv
 from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all, fetch_intraday_bars
 from cuttingboard.intraday_state_engine import Bar as IntradayStateBar, compute_intraday_state
 from cuttingboard.market_map import build_market_map
+from cuttingboard.trend_structure import build_trend_structure_snapshot
 from cuttingboard.trade_visibility import build_visibility_map
 from cuttingboard.trade_explanation import build_explanation_map
 from cuttingboard.market_map_lifecycle import inject_lifecycle
@@ -168,6 +169,7 @@ LATEST_HOURLY_CONTRACT_PATH = LOGS_DIR / "latest_hourly_contract.json"
 LATEST_HOURLY_PAYLOAD_PATH = LOGS_DIR / "latest_hourly_payload.json"
 HOURLY_REPORT_PATH = REPORTS_DIR / "output" / "hourly_report.html"
 MARKET_MAP_PATH = LOGS_DIR / "market_map.json"
+TREND_STRUCTURE_PATH = LOGS_DIR / "trend_structure_snapshot.json"
 DEFAULT_FIXTURE_DIR = Path("tests/fixtures")
 
 VALID_REGIMES = {"RISK_ON", "RISK_OFF", "NEUTRAL", "CHAOTIC", "EXPANSION"}
@@ -614,6 +616,11 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
             hourly_market_map["generation_id"] = summary["generation_id"]
             previous_market_map = _load_previous_market_map()
             _write_market_map_file(inject_lifecycle(hourly_market_map, previous_market_map))
+            _write_trend_structure_snapshot(
+                normalized_quotes=normalized_quotes,
+                history_by_symbol=ohlcv,
+                generated_at=run_at_utc,
+            )
 
         return {"status": SUMMARY_STATUS_SUCCESS, "suppressed": False}
 
@@ -1857,6 +1864,30 @@ def _load_previous_market_map() -> dict[str, Any] | None:
 def _write_market_map_file(market_map: dict[str, Any]) -> None:
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     MARKET_MAP_PATH.write_text(json.dumps(market_map, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _tradable_symbols() -> list[str]:
+    return [s for s in config.ALL_SYMBOLS if s not in config.NON_TRADABLE_SYMBOLS]
+
+
+def _write_trend_structure_snapshot(
+    normalized_quotes: dict[str, NormalizedQuote],
+    history_by_symbol: dict[str, pd.DataFrame],
+    generated_at: datetime,
+) -> None:
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        snapshot = build_trend_structure_snapshot(
+            normalized_quotes=normalized_quotes,
+            history_by_symbol=history_by_symbol,
+            symbols=_tradable_symbols(),
+            generated_at=generated_at,
+        )
+        tmp = TREND_STRUCTURE_PATH.with_suffix(".tmp")
+        tmp.write_text(json.dumps(snapshot, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        tmp.replace(TREND_STRUCTURE_PATH)
+    except Exception:
+        logger.exception("Failed to write trend_structure_snapshot")
 
 
 def _write_macro_snapshot(contract: dict[str, Any]) -> None:

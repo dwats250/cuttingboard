@@ -12,18 +12,18 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 ## Current State
 
-**Last updated:** 2026-05-09
-**Last completed PRD:** PRD-105 - Decision Quality Evidence Map (commit 740b48c)
-**Last work completed:** 2026-05-09 — PRD-105: docs/decision_quality_map.md
-**Active PRD:** none
-**Next step:** Review docs/decision_quality_map.md; plan PRD-106 (Sunday Report sidecar) or threshold review framework
+**Last updated:** 2026-05-10
+**Last completed PRD:** PRD-106 - Cheap Lookup Dispatch Policy (commit 8b5e672)
+**Last work completed:** 2026-05-10 — PRD-107: trend structure snapshot sidecar (in progress, awaiting commit)
+**Active PRD:** PRD-107 — Trend Structure Snapshot Sidecar
+**Next step:** Approve commit of PRD-107
 **Deferred PRD:** none
 
 ---
 
 ## Test Baseline
 
-- **2095 passing** (as of 2026-05-09, post CodeRabbit audit)
+- **2114 passing** (as of 2026-05-10, post PRD-107 trend structure sidecar)
 - 0 pre-existing failures
 - 0 skipped
 
