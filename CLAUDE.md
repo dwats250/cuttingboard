@@ -322,6 +322,40 @@ PRD review files are not PRDs. Do not add them to `PRD_REGISTRY.md`.
 - Registry rows are added only when a PRD moves to `IN PROGRESS` (implementation begins) or `COMPLETE`. A PROPOSED draft with no registry row is correct.
 - The `Starting a PRD` rule "Add registry row immediately" applies at the point implementation starts, not when the draft is first written.
 
+### Micro-PRD eligibility
+
+A change qualifies for the micro-PRD template (`docs/PRD_MICRO_TEMPLATE.md`) if and only if ALL of the following hold:
+
+- The change is docs-only, hook-only, test-helper-only, or process-only.
+- No production runtime module behavior changes.
+- No file imported (directly or transitively) by `cuttingboard/runtime.py` is modified.
+- No contract, payload, dashboard, notification, market_map, qualification, or decision behavior changes.
+- No artifact schema or generated output shape changes.
+- No data-fetch behavior (ingestion, normalization, OHLCV) changes.
+- Diff is ≤ 20 production-code lines, excluding tests, docs, and registry/state files.
+- At least one deterministic FAIL condition is present.
+- Targeted tests are added when executable code is changed.
+- When in doubt, use the full PRD template (`docs/PRD_TEMPLATE.md`).
+
+If ANY criterion fails, the full PRD template is required. The micro template has six sections (`GOAL → SCOPE → FILES → REQUIREMENTS → VALIDATION → COMMIT PLAN`); the OUT OF SCOPE and DATA FLOW sections from the full template are omitted because no runtime impact = no data flow to specify, and no scope expansion possible = no out-of-scope to enumerate.
+
+### Test-suite discipline
+
+During iteration on a PRD:
+
+- Run targeted tests only (e.g. `python3 -m pytest tests/test_<module>.py -q`).
+- Run the full suite (`python3 -m pytest tests -q`) once before pre-commit review, UNLESS one of the following justifies an additional full-suite run:
+  - **(a)** A prior full-suite run failed and the fix is non-trivial.
+  - **(b)** The branch was rebased onto new main work.
+  - **(c)** A shared helper, fixture, or `conftest.py` was modified.
+  - **(d)** An infrastructure-level change was made (config, dependency, pytest plugin, CI script).
+
+Re-running the full suite outside these exceptions wastes time and test-output context tokens without verification value.
+
+### Task tracking discipline
+
+For linear single-PRD work, do not create task/checklist artifacts solely because a reminder or tool nudge appears. Use task tracking only when the work is genuinely multi-step, multi-file, concurrent, or benefits from explicit checklist state. The trigger is actual task complexity, not reminder presence.
+
 ---
 
 ## git hygiene and artifact discipline

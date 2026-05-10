@@ -14,9 +14,9 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 **Last updated:** 2026-05-10
 **Last completed PRD:** PRD-108 - Registry Hook Hygiene (commit 4cfdf5c)
-**Last work completed:** 2026-05-10 — PRD-108: registry hook hygiene
-**Active PRD:** none
-**Next step:** —
+**Last work completed:** 2026-05-10 — PRD-109: workflow token economy (in progress, awaiting commit)
+**Active PRD:** PRD-109 — Workflow Token Economy
+**Next step:** Approve commit of PRD-109
 **Deferred PRD:** none
 
 ---

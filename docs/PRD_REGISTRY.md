@@ -125,6 +125,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-106 | 8b5e672 | Cheap Lookup Dispatch Policy | COMPLETE | — |
 | PRD-107 | d10e179 | Trend Structure Snapshot Sidecar | COMPLETE | [PRD-107](prd_history/PRD-107.md) |
 | PRD-108 | 4cfdf5c | Registry Hook Hygiene | COMPLETE | [PRD-108](prd_history/PRD-108.md) |
+| PRD-109 | — | Workflow Token Economy | IN PROGRESS | [PRD-109](prd_history/PRD-109.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
