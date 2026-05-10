@@ -70,7 +70,12 @@ prd_dir = os.path.join(os.path.dirname(registry_path), "prd_history")
 
 file_stems = set()
 for f in glob.glob(os.path.join(prd_dir, "PRD-*.md")):
-    file_stems.add(os.path.basename(f).replace(".md", ""))
+    name = os.path.basename(f)
+    # Review and adjudication artifacts are not PRDs and must not have
+    # registry rows (CLAUDE.md § Review artifact discipline).
+    if ".review." in name or name.endswith(".adjudication.md"):
+        continue
+    file_stems.add(name.replace(".md", ""))
 
 try:
     text = open(registry_path, encoding="utf-8").read()

@@ -13,17 +13,17 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-10
-**Last completed PRD:** PRD-106 - Cheap Lookup Dispatch Policy (commit 8b5e672)
-**Last work completed:** 2026-05-10 — PRD-107: trend structure snapshot sidecar (in progress, awaiting commit)
-**Active PRD:** PRD-107 — Trend Structure Snapshot Sidecar
-**Next step:** Approve commit of PRD-107
+**Last completed PRD:** PRD-107 - Trend Structure Snapshot Sidecar (commit d10e179)
+**Last work completed:** 2026-05-10 — PRD-108: registry hook hygiene (in progress, awaiting commit)
+**Active PRD:** PRD-108 — Registry Hook Hygiene
+**Next step:** Approve commit of PRD-108
 **Deferred PRD:** none
 
 ---
 
 ## Test Baseline
 
-- **2114 passing** (as of 2026-05-10, post PRD-107 trend structure sidecar)
+- **2121 passing** (as of 2026-05-10, post PRD-108 registry hook hygiene)
 - 0 pre-existing failures
 - 0 skipped
 
