@@ -1,6 +1,9 @@
 # Cuttingboard
 
-Cuttingboard is a deterministic market interpretation and trade qualification engine.
+Cuttingboard is a deterministic, macro-aware, visibility-first trade
+qualification engine. It is discretionary-supportive (not autonomous),
+sidecar-oriented, contract-driven, and governance-heavy. Every
+behavioral change moves through a PRD before it touches the pipeline.
 
 ---
 
@@ -15,6 +18,9 @@ The system answers: Should a trade be taken right now?
 - Produces TRADE, NO TRADE, or HALT
 - Explains reasoning for every outcome
 - Defaults to no trade when uncertain
+- Macro-aware: regime context drives all per-symbol qualification
+- Visibility-first: sidecar artifacts surface context without altering decisions
+- Discretionary-supportive: provides qualified candidates and reasoning for a human operator
 
 ---
 
@@ -100,6 +106,20 @@ Baseline enforcement: `tools/baseline.json` captures the known-good state. Any d
 - Sector-aware position sizing via `sector_router.py`
 - Intraday alert threshold calibration
 - Fixture coverage for flow gate and chain validation layers
+
+---
+
+## Architecture Documentation
+
+| Topic | File |
+|---|---|
+| System logic and module boundaries | [`docs/system_logic_map.md`](docs/system_logic_map.md) |
+| Artifact writers, readers, and contracts | [`docs/artifact_flow_map.md`](docs/artifact_flow_map.md) |
+| Symbol universes and mutation rules | [`docs/universe_taxonomy.md`](docs/universe_taxonomy.md) |
+| Sidecar doctrine and observe-only rules | [`docs/sidecar_doctrine.md`](docs/sidecar_doctrine.md) |
+| Knowledge systems (GitNexus, Obsidian) | [`docs/knowledge_systems.md`](docs/knowledge_systems.md) |
+| Active state and PRD baseline | [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) |
+| PRD process and templates | [`docs/PRD_PROCESS.md`](docs/PRD_PROCESS.md) |
 
 ---
 

@@ -171,6 +171,34 @@ REGIME_RISK_MULTIPLIER  = RISK_ON:1.0 / RISK_OFF:1.0 / NEUTRAL:0.6 / CHAOTIC:0.0
 
 ---
 
+## governance principles
+
+These principles are binding on every PRD, edit, and review. They
+reinforce the core rules above and define how cuttingboard stays
+deterministic, macro-aware, and visibility-first.
+
+1. **No hidden coupling.** Every cross-module data flow is declared via
+   imports and `docs/artifact_flow_map.md`. Modules may not silently read
+   pipeline internals or mutate artifacts they do not own.
+2. **Deterministic isolation.** Decision logic is a pure function of its
+   declared inputs. Sidecars, renderers, and notifiers sit downstream of
+   the contract and cannot loop back into qualification, regime, or sizing.
+3. **Sidecar-first philosophy.** New visibility, research, or context
+   features default to sidecar artifacts under `docs/sidecar_doctrine.md`,
+   not new pipeline branches. Promote into the pipeline only via a
+   decision-affecting PRD.
+4. **Governance discipline.** PRDs are the only mechanism for changing
+   contracts, schemas, universes, gates, or artifact paths. Reviews must
+   verify that scope, file boundaries, and fail conditions are honored.
+5. **No "while-we're-here" mutations.** Edits stay strictly within the
+   PRD's `FILES` section. Adjacent cleanup, drive-by refactors, and
+   opportunistic renames are scope violations even when they look harmless.
+6. **Strict scope locking.** The `FILES` section is a hard boundary. If a
+   change requires touching a file not listed, stop and amend the PRD (or
+   open a new one) before editing.
+
+---
+
 ## technical rules
 
 1. Build in strict phase order. Do not begin Phase N+1 without passing tests and manual spot-check.

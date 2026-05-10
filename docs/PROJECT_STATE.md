@@ -13,17 +13,21 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-10
-**Last completed PRD:** PRD-110 - Narrow Trend Structure Snapshot Universe (commit cea04ac)
-**Last work completed:** 2026-05-10 — PRD-110: narrow trend_structure_snapshot universe to curated 6
+**Last completed PRD:** PRD-111 - Documentation & Knowledge-System Consolidation
+**Last work completed:** 2026-05-10 — PRD-111: consolidate documentation and knowledge-system architecture
 **Active PRD:** none
 **Next step:** —
 **Deferred PRD:** none
+
+**System direction:** deterministic, macro-aware, visibility-first, sidecar-oriented ecosystem.
+Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_flow_map.md`,
+`docs/universe_taxonomy.md`, `docs/sidecar_doctrine.md`, `docs/knowledge_systems.md`.
 
 ---
 
 ## Test Baseline
 
-- **2127 passing** (as of 2026-05-10, post PRD-110 trend_structure universe narrowing)
+- **2127 passing** (as of 2026-05-10; PRD-111 is docs-only and modifies no tests)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -33,6 +37,12 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-111 | Documentation & Knowledge-System Consolidation | COMPLETE | 2026-05-10 |
+| PRD-110 | Narrow Trend Structure Snapshot Universe | COMPLETE | 2026-05-10 |
+| PRD-109 | Workflow Token Economy | COMPLETE | 2026-05-10 |
+| PRD-108 | Registry Hook Hygiene | COMPLETE | 2026-05-10 |
+| PRD-107 | Trend Structure Snapshot Sidecar | COMPLETE | 2026-05-10 |
+| PRD-106 | Cheap Lookup Dispatch Policy | COMPLETE | 2026-05-09 |
 | PRD-105 | Decision Quality Evidence Map | COMPLETE | 2026-05-09 |
 | PRD-103 | Dashboard Data Contract Gap Patch | COMPLETE | 2026-05-08 |
 | PRD-102 | Align Alert and Dashboard Candidate Semantics | COMPLETE | 2026-05-08 |

@@ -4,6 +4,11 @@ This document audits the decision logic, module responsibilities, sidecar bounda
 mutation rules of the cuttingboard pipeline. It is documentation-only. No source behavior
 is changed here.
 
+**Companion documents:**
+- Symbol universe definitions and mutation rules: `docs/universe_taxonomy.md`
+- Sidecar observe-only doctrine: `docs/sidecar_doctrine.md`
+- Artifact contracts (producer / consumers / mutation / determinism): `docs/artifact_flow_map.md`
+
 ---
 
 ## Runtime Decision Flow

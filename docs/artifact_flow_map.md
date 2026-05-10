@@ -28,6 +28,7 @@ defaults differ.
 **Shared / mode-independent artifacts:**
 - `logs/market_map.json`
 - `logs/macro_drivers_snapshot.json`
+- `logs/trend_structure_snapshot.json`
 - `logs/audit.jsonl`
 - `logs/evaluation.jsonl`
 - `logs/performance_summary.json`
@@ -101,6 +102,15 @@ defaults differ.
   next run reads previous market_map via `runtime._load_previous_market_map` for lifecycle injection
 - **Category:** Runtime-critical (previous run read-back), dashboard display
 - **Test isolation:** monkeypatch `runtime.MARKET_MAP_PATH` and `runtime.LOGS_DIR` to `tmp_path`
+
+### logs/trend_structure_snapshot.json
+- **Writer:** `runtime.py:_write_trend_structure_snapshot` →
+  `cuttingboard.trend_structure.build_trend_structure_snapshot`
+- **Constant:** `runtime.TREND_STRUCTURE_PATH` (= `LOGS_DIR / "trend_structure_snapshot.json"`)
+- **Universe:** `config.TREND_STRUCTURE_SYMBOLS` (curated 6-symbol subset of `ALL_SYMBOLS`)
+- **Consumers:** dashboard renderer / human review (sidecar; observe-only)
+- **Category:** Sidecar; not runtime-critical for decisions
+- **Test isolation:** monkeypatch `runtime.TREND_STRUCTURE_PATH` and `runtime.LOGS_DIR` to `tmp_path`
 
 ### logs/macro_drivers_snapshot.json
 - **Writer:** `runtime.py:_write_macro_snapshot`; path constructed as `LOGS_DIR / "macro_drivers_snapshot.json"`
@@ -277,3 +287,67 @@ Monkeypatching `runtime.LOGS_DIR` alone does not intercept these delivery calls.
 under `logs/`, `reports/`, or `ui/` after full-suite execution.
 
 See `tests/test_sunday_mode.py` and `tests/test_hourly_alert.py` for canonical isolation examples.
+
+---
+
+## Canonical Artifact Contracts
+
+For each artifact below: **producer**, **consumers**, **mutation permissions**,
+and **deterministic expectations** are stated explicitly. These contracts are
+governance rules — sidecars and renderers must respect them, and any change
+requires a scoped PRD.
+
+### logs/trend_structure_snapshot.json
+- **Producer:** `runtime._write_trend_structure_snapshot` invoking
+  `trend_structure.build_trend_structure_snapshot` over
+  `config.TREND_STRUCTURE_SYMBOLS`.
+- **Consumers:** Sidecar / dashboard / human review only. No qualification,
+  regime, or contract module reads this file.
+- **Mutation permissions:** Producer-only. Consumers must treat as read-only.
+  No backfill, no in-place edits, no merge from other artifacts.
+- **Deterministic expectations:** Snapshot for a given run is a pure function
+  of normalized quotes and OHLCV history for the curated symbols at
+  `generated_at`. Same inputs ⇒ byte-identical output (sorted keys, stable
+  formatting). Failures log and skip; they never partially overwrite.
+
+### logs/market_map.json
+- **Producer:** `runtime._write_market_map_file`.
+- **Consumers:** `delivery/dashboard_renderer.py` (display tiers, candidate
+  board); `runtime._load_previous_market_map` for next-run lifecycle injection.
+- **Mutation permissions:** Producer-only on the current run. The next-run
+  read-back is read-only and feeds lifecycle injection without rewriting the
+  prior file. Sidecars must not mutate market_map grades.
+- **Deterministic expectations:** Map is a pure function of pipeline-derived
+  metrics for the run. Display tiers are not qualification gates and must not
+  be promoted into decision logic.
+
+### logs/evaluation.jsonl
+- **Producer:** `evaluation.run_post_trade_evaluation` (called by `runtime`).
+- **Consumers:** `performance_engine.run_performance_engine` (downstream
+  performance summary). No pipeline feedback.
+- **Mutation permissions:** Append-only. Producer writes one record per
+  evaluated signal; consumers must not rewrite history.
+- **Deterministic expectations:** Each record is fully determined by the
+  evaluation window inputs at write time. Records are immutable once written;
+  reruns produce new records, never mutate prior ones.
+
+### logs/latest_hourly_contract.json
+- **Producer:** `runtime._write_hourly_artifacts` → `_write_contract_file`.
+- **Consumers:** `dashboard_renderer._load_contract_entry_context` for entry
+  price display.
+- **Mutation permissions:** Producer-only, full overwrite per hourly run.
+  No sidecar, renderer, or notifier may modify this file.
+- **Deterministic expectations:** File is the contract emitted by
+  `contract.build_pipeline_output_contract`; schema and outcome are sealed
+  per the contract PRDs. Same pipeline inputs ⇒ same contract output.
+
+### logs/latest_hourly_payload.json
+- **Producer:** `runtime._write_hourly_artifacts` via
+  `transport.deliver_json(payload, output_path=str(LATEST_HOURLY_PAYLOAD_PATH))`.
+- **Consumers:** `delivery/dashboard_renderer.py` (via CI `--payload` override).
+- **Mutation permissions:** Producer-only. Renderers must consume as-is and
+  must not write back. Sidecars must not merge fields into the payload.
+- **Deterministic expectations:** Payload is built by
+  `delivery/payload.build_report_payload` from the contract; identical
+  contract input ⇒ identical payload output. No display-time recomputation
+  may diverge from this rule.
