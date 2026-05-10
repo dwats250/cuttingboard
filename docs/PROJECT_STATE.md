@@ -13,10 +13,10 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-10
-**Last completed PRD:** PRD-107 - Trend Structure Snapshot Sidecar (commit d10e179)
-**Last work completed:** 2026-05-10 — PRD-108: registry hook hygiene (in progress, awaiting commit)
-**Active PRD:** PRD-108 — Registry Hook Hygiene
-**Next step:** Approve commit of PRD-108
+**Last completed PRD:** PRD-108 - Registry Hook Hygiene (commit 4cfdf5c)
+**Last work completed:** 2026-05-10 — PRD-108: registry hook hygiene
+**Active PRD:** none
+**Next step:** —
 **Deferred PRD:** none
 
 ---
