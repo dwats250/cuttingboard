@@ -13,10 +13,10 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-09
-**Last completed PRD:** PRD-103 - Dashboard Data Contract Gap Patch (commit c8ef8cf)
-**Last work completed:** 2026-05-09 (commit a46a792) — CodeRabbit audit: test artifact isolation + payload null fix
+**Last completed PRD:** PRD-104 - Decision Logic and Artifact Flow Audit (commit —)
+**Last work completed:** 2026-05-09 — PRD-104: decision logic map and artifact flow map
 **Active PRD:** none
-**Next step:** Monitor next scheduled run; verify Permission shows real text and Changes Since Last Run shows NO_PREVIOUS_RUN
+**Next step:** Review docs/system_logic_map.md and docs/artifact_flow_map.md; plan next PRD
 **Deferred PRD:** none
 
 ---
