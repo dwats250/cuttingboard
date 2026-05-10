@@ -13,8 +13,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-10
-**Last completed PRD:** PRD-114 - Watchlist Snapshot Sidecar
-**Last work completed:** 2026-05-10 — PRD-114: observe-only watchlist snapshot sidecar over frozen 11-symbol curated universe; explicit HALT-skip guard at call site; minimal four-field schema (symbol, sector_theme, watch_reason, current_price)
+**Last completed PRD:** PRD-115 - Dashboard Artifact Lineage Visibility (commit e753ac0)
+**Last work completed:** 2026-05-10 — PRD-115: deterministic dashboard artifact lineage classification (COHERENT/MIXED/STALE/MISSING) with precedence MISSING > MIXED > STALE > COHERENT; observational-only renderer addition reusing existing generation_id and market_map_stale_for_run logic; +39 production LOC
 **Active PRD:** none
 **Next step:** —
 **Deferred PRD:** none
@@ -27,7 +27,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 ## Test Baseline
 
-- **2156 passing** (as of 2026-05-10; PRD-114 added 20 watchlist sidecar tests)
+- **2162 passing** (as of 2026-05-10; PRD-115 added 6 lineage diagnostics tests)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -37,6 +37,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-115 | Dashboard Artifact Lineage Visibility | COMPLETE | 2026-05-10 |
 | PRD-114 | Watchlist Snapshot Sidecar | COMPLETE | 2026-05-10 |
 | PRD-113 | PRD Governance Hardening | COMPLETE | 2026-05-10 |
 | PRD-112 | Trend Structure Dashboard Panel | COMPLETE | 2026-05-10 |
