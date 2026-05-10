@@ -51,6 +51,29 @@ LOW_COST read-only actions (grep, find, git status/diff/log, targeted reads, pyt
 **Spot-Read First Policy:**
 Before reading any file, identify the exact function or symbol to verify. Use `offset+limit` reads or grep to go directly to it. Do not read a full file unless the function location is unknown, symbol lookup fails, or a broad consumer audit is required. Check `docs/CALL_SITE_MAP.md` for known function line numbers before scanning.
 
+**Cheap-Lookup Dispatch Policy:**
+Read-only lookup work must be delegated to an `Explore` subagent with `model: "haiku"` whenever the exact target file is not already known. The main thread is reserved for PRD reasoning, edits, impact analysis, architecture decisions, and mutation planning.
+
+Always dispatch to Explore+haiku:
+- Any grep/find/search where the exact target file is not already known
+- "Where is X defined / declared / used?"
+- "Which files reference Y?"
+- Locating a symbol, function, class, enum, fixture, artifact writer, or consumer by name
+- Multi-file consumer audits
+- Broad codebase exploration when no precise entry point is known
+- File-discovery work before drafting or editing a PRD
+
+Stay in the main thread:
+- Reading a known file path with `Read`
+- Single targeted grep against one known file
+- GitNexus queries (`gitnexus_query`, `gitnexus_context`, `gitnexus_impact`)
+- Reading PRDs, `PROJECT_STATE.md`, `PRD_REGISTRY.md`, or known docs files
+- Any edit, write, patch, commit, test run, or mutation
+
+Dispatch shape: `Agent(subagent_type: "Explore", model: "haiku", prompt: "<exact lookup question>")`. Require the Explore result to be under 150 words and include only file paths, line numbers, and short relevance notes. No long excerpts unless explicitly requested.
+
+Rationale: Mechanical lookup work does not require main-thread reasoning. Running broad greps and file discovery in the main context wastes premium tokens, pollutes the session window, and increases drift risk during PRD work.
+
 **[UNVERIFIED] annotation:**
 If a field path, function signature, or module behavior in a PRD cannot be immediately confirmed from `docs/SCHEMA_MAP.md` or `docs/CALL_SITE_MAP.md`, mark it `[UNVERIFIED]` in the PRD. Do not guess. Verify the specific symbol before implementing — not the whole file.
 
