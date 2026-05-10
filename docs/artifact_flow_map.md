@@ -29,6 +29,7 @@ defaults differ.
 - `logs/market_map.json`
 - `logs/macro_drivers_snapshot.json`
 - `logs/trend_structure_snapshot.json`
+- `logs/watchlist_snapshot.json`
 - `logs/audit.jsonl`
 - `logs/evaluation.jsonl`
 - `logs/performance_summary.json`
@@ -113,6 +114,15 @@ defaults differ.
   human review (sidecar; observe-only)
 - **Category:** Sidecar; not runtime-critical for decisions
 - **Test isolation:** monkeypatch `runtime.TREND_STRUCTURE_PATH` and `runtime.LOGS_DIR` to `tmp_path`
+
+### logs/watchlist_snapshot.json
+- **Writer:** `runtime.py:_write_watchlist_snapshot` →
+  `cuttingboard.watchlist_sidecar.build_watchlist_snapshot`
+- **Constant:** `runtime.WATCHLIST_PATH` (= `LOGS_DIR / "watchlist_snapshot.json"`)
+- **Universe:** `cuttingboard.watchlist_sidecar.WATCHLIST_SYMBOLS` (frozen 11-tuple of `(symbol, sector_theme, watch_reason)`)
+- **Consumers:** (none) — observe-only sidecar (PRD-114); no v1 consumer
+- **Category:** Sidecar; not runtime-critical for decisions
+- **Test isolation:** monkeypatch `runtime.WATCHLIST_PATH` and `runtime.LOGS_DIR` to `tmp_path`
 
 ### logs/macro_drivers_snapshot.json
 - **Writer:** `runtime.py:_write_macro_snapshot`; path constructed as `LOGS_DIR / "macro_drivers_snapshot.json"`

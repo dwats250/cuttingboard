@@ -46,6 +46,7 @@ from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all, fetch
 from cuttingboard.intraday_state_engine import Bar as IntradayStateBar, compute_intraday_state
 from cuttingboard.market_map import build_market_map
 from cuttingboard.trend_structure import build_trend_structure_snapshot
+from cuttingboard.watchlist_sidecar import build_watchlist_snapshot
 from cuttingboard.trade_visibility import build_visibility_map
 from cuttingboard.trade_explanation import build_explanation_map
 from cuttingboard.market_map_lifecycle import inject_lifecycle
@@ -170,6 +171,7 @@ LATEST_HOURLY_PAYLOAD_PATH = LOGS_DIR / "latest_hourly_payload.json"
 HOURLY_REPORT_PATH = REPORTS_DIR / "output" / "hourly_report.html"
 MARKET_MAP_PATH = LOGS_DIR / "market_map.json"
 TREND_STRUCTURE_PATH = LOGS_DIR / "trend_structure_snapshot.json"
+WATCHLIST_PATH = LOGS_DIR / "watchlist_snapshot.json"
 DEFAULT_FIXTURE_DIR = Path("tests/fixtures")
 
 VALID_REGIMES = {"RISK_ON", "RISK_OFF", "NEUTRAL", "CHAOTIC", "EXPANSION"}
@@ -621,6 +623,11 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
                 history_by_symbol=ohlcv,
                 generated_at=run_at_utc,
             )
+            if not validation_summary.system_halted:
+                _write_watchlist_snapshot(
+                    normalized_quotes=normalized_quotes,
+                    generated_at=run_at_utc,
+                )
 
         return {"status": SUMMARY_STATUS_SUCCESS, "suppressed": False}
 
@@ -1888,6 +1895,23 @@ def _write_trend_structure_snapshot(
         tmp.replace(TREND_STRUCTURE_PATH)
     except Exception:
         logger.exception("Failed to write trend_structure_snapshot")
+
+
+def _write_watchlist_snapshot(
+    normalized_quotes: dict[str, NormalizedQuote],
+    generated_at: datetime,
+) -> None:
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        snapshot = build_watchlist_snapshot(
+            normalized_quotes=normalized_quotes,
+            generated_at=generated_at,
+        )
+        tmp = WATCHLIST_PATH.with_suffix(".tmp")
+        tmp.write_text(json.dumps(snapshot, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        tmp.replace(WATCHLIST_PATH)
+    except Exception:
+        logger.exception("Failed to write watchlist_snapshot")
 
 
 def _write_macro_snapshot(contract: dict[str, Any]) -> None:
