@@ -13,7 +13,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-09
-**Last completed PRD:** PRD-104 - Decision Logic and Artifact Flow Audit (commit —)
+**Last completed PRD:** PRD-104 - Decision Logic and Artifact Flow Audit (commit 8d72f26)
 **Last work completed:** 2026-05-09 — PRD-104: decision logic map and artifact flow map
 **Active PRD:** none
 **Next step:** Review docs/system_logic_map.md and docs/artifact_flow_map.md; plan next PRD
