@@ -1633,3 +1633,196 @@ def test_prd117_coherent_live_session_no_inactive_label() -> None:
 def test_prd117_constants_match_prd() -> None:
     assert INACTIVE_SESSION_LABEL == "SESSION INACTIVE"
     assert INACTIVE_SESSION_TYPES == frozenset({"SUNDAY_PREMARKET"})
+
+
+# ----------------------------------------------------------------------------
+# PRD-118 — Coherent dashboard publish gate
+# ----------------------------------------------------------------------------
+
+from cuttingboard.delivery.dashboard_renderer import (
+    CoherentPublishError,
+    validate_coherent_publish,
+    write_dashboard,
+)
+
+
+def _coherent_inputs(gid: str = "test-gen-001"):
+    payload = _payload()
+    payload["meta"]["generation_id"] = gid
+    run = _run()
+    run["generation_id"] = gid
+    market_map = _market_map()
+    market_map["generation_id"] = gid
+    return payload, run, market_map
+
+
+def _ui_output_path(tmp_path: Path) -> Path:
+    ui = tmp_path / "ui"
+    ui.mkdir()
+    return ui / "dashboard.html"
+
+
+def _non_ui_output_path(tmp_path: Path) -> Path:
+    rep = tmp_path / "reports" / "output"
+    rep.mkdir(parents=True)
+    return rep / "dashboard.html"
+
+
+# R11-1: coherent publish success — file written
+def test_prd118_coherent_publish_success_writes_file(tmp_path: Path) -> None:
+    payload, run, market_map = _coherent_inputs()
+    out = _ui_output_path(tmp_path)
+    write_dashboard(
+        payload, run,
+        market_map=market_map,
+        output_path=out,
+        fixture_mode=False,
+    )
+    assert out.exists()
+    assert out.read_text(encoding="utf-8").startswith("<!doctype html>") or "<html" in out.read_text(encoding="utf-8")
+
+
+# R11-2: mismatched generation_ids — exception, no file
+def test_prd118_mismatched_generation_ids_blocks(tmp_path: Path) -> None:
+    payload, run, market_map = _coherent_inputs()
+    run["generation_id"] = "different-gen"
+    out = _ui_output_path(tmp_path)
+    with pytest.raises(CoherentPublishError, match=r"generation_id mismatch"):
+        write_dashboard(
+            payload, run,
+            market_map=market_map,
+            output_path=out,
+            fixture_mode=False,
+        )
+    assert not out.exists()
+
+
+# R11-3: missing payload.meta.generation_id — exception, no file
+def test_prd118_missing_payload_generation_id_blocks(tmp_path: Path) -> None:
+    payload, run, market_map = _coherent_inputs()
+    del payload["meta"]["generation_id"]
+    out = _ui_output_path(tmp_path)
+    with pytest.raises(CoherentPublishError, match=r"missing generation_id .*payload\.meta\.generation_id"):
+        write_dashboard(
+            payload, run,
+            market_map=market_map,
+            output_path=out,
+            fixture_mode=False,
+        )
+    assert not out.exists()
+
+
+# R11-4: missing market_map entirely — exception, no file
+def test_prd118_missing_market_map_blocks(tmp_path: Path) -> None:
+    payload, run, _market_map_unused = _coherent_inputs()
+    out = _ui_output_path(tmp_path)
+    with pytest.raises(CoherentPublishError, match=r"missing artifact.*market_map"):
+        write_dashboard(
+            payload, run,
+            market_map=None,
+            market_map_path=None,
+            output_path=out,
+            fixture_mode=False,
+        )
+    assert not out.exists()
+
+
+# R11-5: fixture substring in any generation_id — exception, no file
+@pytest.mark.parametrize("target", ("payload", "run", "market_map"))
+def test_prd118_fixture_substring_blocks(tmp_path: Path, target: str) -> None:
+    payload, run, market_map = _coherent_inputs()
+    fixture_gid = "fixture-live-20260508T220000Z"
+    if target == "payload":
+        payload["meta"]["generation_id"] = fixture_gid
+    elif target == "run":
+        run["generation_id"] = fixture_gid
+    else:
+        market_map["generation_id"] = fixture_gid
+    out = _ui_output_path(tmp_path)
+    with pytest.raises(CoherentPublishError, match=r"fixture artifact detected"):
+        write_dashboard(
+            payload, run,
+            market_map=market_map,
+            output_path=out,
+            fixture_mode=False,
+        )
+    assert not out.exists()
+
+
+# R11-6: fixture_mode=True with ui/ output — exception, no file
+def test_prd118_fixture_mode_blocks_ui_output(tmp_path: Path) -> None:
+    payload, run, market_map = _coherent_inputs()
+    out = _ui_output_path(tmp_path)
+    with pytest.raises(CoherentPublishError, match=r"fixture mode active \(fixture_mode=True\)"):
+        write_dashboard(
+            payload, run,
+            market_map=market_map,
+            output_path=out,
+            fixture_mode=True,
+        )
+    assert not out.exists()
+
+
+# R11-7: fixture_mode=True with non-ui/ output — file written (gate scoped to ui/)
+def test_prd118_fixture_mode_allowed_for_non_ui_output(tmp_path: Path) -> None:
+    payload, run, market_map = _coherent_inputs()
+    out = _non_ui_output_path(tmp_path)
+    write_dashboard(
+        payload, run,
+        market_map=market_map,
+        output_path=out,
+        fixture_mode=True,
+    )
+    assert out.exists()
+
+
+# R11-8 / R12: missing artifact is not silently substituted — explicit failure
+def test_prd118_no_silent_fallback_for_missing_artifact(tmp_path: Path) -> None:
+    payload, run, _market_map_unused = _coherent_inputs()
+    out = _ui_output_path(tmp_path)
+    # Pass market_map=None and a non-existent path; renderer must NOT substitute
+    # an empty dict, default, or fixture artifact — it must raise and leave ui/
+    # untouched.
+    missing_path = tmp_path / "logs" / "no_market_map.json"
+    with pytest.raises(CoherentPublishError, match=r"missing artifact.*market_map"):
+        write_dashboard(
+            payload, run,
+            market_map=None,
+            market_map_path=missing_path,
+            output_path=out,
+            fixture_mode=False,
+        )
+    assert not out.exists()
+    assert list((tmp_path / "ui").iterdir()) == []
+
+
+# Bonus: validate FIXTURE_MODE env var trigger (R2 clause c)
+def test_prd118_fixture_env_var_blocks_ui_output(tmp_path: Path, monkeypatch) -> None:
+    payload, run, market_map = _coherent_inputs()
+    out = _ui_output_path(tmp_path)
+    monkeypatch.setenv("FIXTURE_MODE", "1")
+    with pytest.raises(CoherentPublishError, match=r"fixture mode active \(FIXTURE_MODE=1\)"):
+        write_dashboard(
+            payload, run,
+            market_map=market_map,
+            output_path=out,
+            fixture_mode=False,
+        )
+    assert not out.exists()
+
+
+# Diagnostic-line verification (R4): deterministic stderr on each failure mode
+def test_prd118_diagnostic_line_names_failure(tmp_path: Path, capsys) -> None:
+    payload, run, market_map = _coherent_inputs()
+    run["generation_id"] = "another-gen"
+    out = _ui_output_path(tmp_path)
+    with pytest.raises(CoherentPublishError):
+        validate_coherent_publish(
+            payload=payload, run=run, market_map=market_map,
+            output_path=out, fixture_mode=False,
+        )
+    err = capsys.readouterr().err
+    assert "PRD-118 publish blocked:" in err
+    assert "generation_id mismatch" in err
+    assert "payload=test-gen-001" in err
+    assert "run=another-gen" in err

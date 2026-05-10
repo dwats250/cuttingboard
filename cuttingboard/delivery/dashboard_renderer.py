@@ -14,6 +14,7 @@ import html as _html
 import json
 import math
 import os
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -160,6 +161,118 @@ def _timestamp_older_than_baseline(value: datetime | None, baseline: datetime | 
     if value is None or baseline is None:
         return False
     return (baseline - value).total_seconds() > DASHBOARD_STALE_AFTER_SECONDS
+
+
+class CoherentPublishError(RuntimeError):
+    """PRD-118: raised when dashboard publish to `ui/` would emit an incoherent artifact set."""
+
+
+def _output_under_ui(output_path: Path) -> bool:
+    """PRD-118: gate applies only when output_path resolves under the repo's `ui/` directory."""
+    try:
+        resolved = output_path.resolve()
+    except Exception:
+        resolved = output_path
+    return "ui" in resolved.parts
+
+
+def _coherent_generation_ids(
+    payload: dict | None,
+    run: dict | None,
+    market_map: dict | None,
+) -> tuple[str | None, str | None, str | None]:
+    """Extract generation_ids from the exact paths defined by PRD-118 TERMINOLOGY.
+
+    payload_generation_id := payload["meta"]["generation_id"]
+    run_generation_id     := run["generation_id"]
+    market_map_generation_id := market_map["generation_id"]
+
+    Returns (payload_gid, run_gid, market_map_gid). Each entry is the stripped string
+    if present and non-empty; otherwise None. No fallback paths, no fuzzy matching.
+    """
+    def _pick(obj: dict | None, *keys: str) -> str | None:
+        cur: object = obj
+        for k in keys:
+            if not isinstance(cur, dict) or k not in cur:
+                return None
+            cur = cur[k]
+        if not isinstance(cur, str):
+            return None
+        s = cur.strip()
+        return s or None
+
+    return (
+        _pick(payload, "meta", "generation_id"),
+        _pick(run, "generation_id"),
+        _pick(market_map, "generation_id"),
+    )
+
+
+def validate_coherent_publish(
+    *,
+    payload: dict | None,
+    run: dict | None,
+    market_map: dict | None,
+    output_path: Path,
+    fixture_mode: bool,
+) -> None:
+    """PRD-118 gate. No-op when output_path is not under `ui/`.
+
+    Order of checks (each fails closed with deterministic stderr diagnostic):
+      1. presence of payload/run/market_map dicts
+      2. presence of payload.meta.generation_id, run.generation_id, market_map.generation_id
+      3. fixture_mode kwarg OR FIXTURE_MODE=1 env var
+      4. "fixture" substring in any generation_id
+      5. exact string equality of all three generation_ids
+    """
+    if not _output_under_ui(output_path):
+        return
+
+    def _fail(msg: str) -> None:
+        print(f"PRD-118 publish blocked: {msg}", file=sys.stderr)
+        raise CoherentPublishError(msg)
+
+    missing = []
+    if not isinstance(payload, dict):
+        missing.append("payload")
+    if not isinstance(run, dict):
+        missing.append("run")
+    if not isinstance(market_map, dict):
+        missing.append("market_map")
+    if missing:
+        _fail(f"missing artifact(s): {', '.join(missing)}")
+
+    p_gid, r_gid, m_gid = _coherent_generation_ids(payload, run, market_map)
+
+    missing_ids: list[str] = []
+    if p_gid is None:
+        missing_ids.append("payload.meta.generation_id")
+    if r_gid is None:
+        missing_ids.append("run.generation_id")
+    if m_gid is None:
+        missing_ids.append("market_map.generation_id")
+    if missing_ids:
+        _fail(f"missing generation_id at: {', '.join(missing_ids)}")
+
+    if fixture_mode:
+        _fail("fixture mode active (fixture_mode=True) for ui/ output")
+    if os.environ.get("FIXTURE_MODE", "0") == "1":
+        _fail("fixture mode active (FIXTURE_MODE=1) for ui/ output")
+
+    fixture_hits: list[str] = []
+    if "fixture" in p_gid:
+        fixture_hits.append(f"payload={p_gid}")
+    if "fixture" in r_gid:
+        fixture_hits.append(f"run={r_gid}")
+    if "fixture" in m_gid:
+        fixture_hits.append(f"market_map={m_gid}")
+    if fixture_hits:
+        _fail(f"fixture artifact detected: {'; '.join(fixture_hits)}")
+
+    if not (p_gid == r_gid == m_gid):
+        _fail(
+            f"generation_id mismatch: payload={p_gid} run={r_gid} market_map={m_gid}"
+        )
 
 
 def _artifact_generation_id(obj: dict | None, paths: tuple[tuple[str, ...], ...]) -> str | None:
@@ -1556,6 +1669,22 @@ def write_dashboard(
     trend_structure_snapshot: dict | None = None,
     fixture_mode: bool = False,
 ) -> None:
+    # PRD-118 R1/R2/R3/R10: validate coherent artifact set before any byte is written
+    # to output_path. No-op when output_path is not under `ui/`.
+    market_map_for_validation: dict | None = market_map
+    if market_map_for_validation is None and market_map_path is not None and market_map_path.exists():
+        try:
+            market_map_for_validation = json.loads(market_map_path.read_text(encoding="utf-8"))
+        except Exception:
+            market_map_for_validation = None
+    validate_coherent_publish(
+        payload=payload,
+        run=run,
+        market_map=market_map_for_validation,
+        output_path=output_path,
+        fixture_mode=fixture_mode,
+    )
+
     html = render_dashboard_html(
         payload,
         run,
@@ -1645,6 +1774,22 @@ def main(
     market_map_path = logs_dir / "market_map.json"
     trend_structure_snapshot = _load_trend_structure_snapshot(
         logs_dir / _TREND_STRUCTURE_PATH.name
+    )
+
+    # PRD-118 R10: validate at the CLI entrypoint before write_dashboard runs.
+    # write_dashboard re-validates; main() validation produces an earlier, clean exit.
+    _main_market_map: dict | None = None
+    if market_map_path.exists():
+        try:
+            _main_market_map = json.loads(market_map_path.read_text(encoding="utf-8"))
+        except Exception:
+            _main_market_map = None
+    validate_coherent_publish(
+        payload=payload,
+        run=run,
+        market_map=_main_market_map,
+        output_path=output_path,
+        fixture_mode=_fixture_mode,
     )
 
     write_dashboard(
