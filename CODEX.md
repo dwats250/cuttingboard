@@ -150,6 +150,17 @@ REGIME_RISK_MULTIPLIER  = RISK_ON:1.0 / RISK_OFF:1.0 / NEUTRAL:0.6 / CHAOTIC:0.0
 - Output minimal and direct
 - Do not repeat explanations
 
+**For review tasks:**
+- Do not re-review the entire repository unless the revision exposes a new ambiguity.
+- Prefer targeted grep checks and spot reads over broad file scans.
+- When mechanically incorporating prior review findings, verify only the changed lines.
+- Stop after completing the review; do not continue into implementation unless explicitly instructed.
+- Summarize what changed instead of dumping large file contents.
+- Write one review artifact and stop. No automatic review loops.
+- PRD review files (`.review.claude.md`, `.review.codex.md`) are not PRDs; do not add them to `PRD_REGISTRY.md`.
+
+**Cross-review gate:** The policy for when Codex is invoked (versus Claude-only) is defined in `CLAUDE.md § PRD documentation rule → Cross-review gate`. Codex is not invoked automatically after every PRD revision.
+
 ---
 
 ## GITNEXUS — IMPACT ANALYSIS POLICY

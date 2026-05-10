@@ -248,6 +248,57 @@ A PATCH PRD corrects a defect in a prior implementation. Must include a `ROOT CA
 
 A PRD is not complete until the registry reflects it.
 
+### Cross-review gate
+
+Do not invoke Codex automatically after every PRD revision. Codex is invoked only when the gate below is triggered.
+
+**Claude-only is sufficient when all of the following are true:**
+- The change is documentation-only
+- The change mechanically incorporates prior review findings already accepted
+- No source code changes are made
+- No tests are changed
+- No runtime behavior changes are made
+- No artifact contract, payload schema, or artifact path/writer/reader semantics change
+- No dashboard behavior changes are made
+- No notification behavior changes are made
+- No new sidecar behavior is introduced
+- No new architecture claims are added beyond already-reviewed findings
+- No unresolved disagreement remains between Claude and Codex on this PRD
+
+**Invoke Codex when any of the following is true:**
+- Source code changes are proposed or made
+- Tests are changed in a way that affects runtime or artifact behavior
+- Runtime, contract, payload, notification, dashboard, audit, or sidecar behavior changes
+- Artifact paths, artifact contracts, schemas, or writer/reader semantics change
+- Acceptance criteria are materially redesigned rather than mechanically tightened
+- Claude identifies new risks not covered by the prior review
+- Claude disagrees with Codex, or Codex previously disagreed with Claude on the same unresolved issue
+- The review becomes messy, ambiguous, or multi-directional
+- The PRD introduces a new feature, sidecar, schedule, data source, dashboard section, or decision-affecting behavior
+
+**Token discipline for review tasks:**
+- Do not call Codex unless the review gate is triggered.
+- Do not run broad searches unless a new ambiguity is exposed.
+- Do not re-review the entire repository unless the revision introduces something not previously examined.
+- Prefer targeted file reads and targeted grep checks over full file reads.
+- Prefer mechanical edits over repeated full reviews when incorporating already-accepted findings.
+- Stop after completing the requested revision or review; do not continue into implementation unless explicitly instructed.
+- Summarize what changed; do not dump large file contents.
+- When invoking Codex, pass a narrow prompt with exact files and exact questions — do not ask Codex to re-read the whole repo.
+- If Codex is invoked, write one review artifact and stop. No automatic Claude → Codex → Claude → Codex loops.
+
+### Review artifact discipline
+
+PRD review files are not PRDs. Do not add them to `PRD_REGISTRY.md`.
+
+- Review artifacts live in `docs/prd_history/` as:
+  - `PRD-NNN.review.claude.md` — Claude's independent review
+  - `PRD-NNN.review.codex.md` — Codex review-of-review
+  - `PRD-NNN.adjudication.md` — optional; only if actual unresolved disagreement requires adjudication
+- Do not create an adjudication file for simple mechanical review incorporation.
+- Registry rows are added only when a PRD moves to `IN PROGRESS` (implementation begins) or `COMPLETE`. A PROPOSED draft with no registry row is correct.
+- The `Starting a PRD` rule "Add registry row immediately" applies at the point implementation starts, not when the draft is first written.
+
 ---
 
 ## git hygiene and artifact discipline
