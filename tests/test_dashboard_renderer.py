@@ -5,6 +5,7 @@ import json
 import os
 import re
 import time
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -117,6 +118,16 @@ def _set_generation_ids(payload: dict, run: dict, market_map: dict, generation_i
     payload.setdefault("meta", {})["generation_id"] = generation_id
     run["generation_id"] = generation_id
     market_map["generation_id"] = generation_id
+
+
+def _artifact_diagnostics(html: str) -> str:
+    return html.split('id="artifact-diagnostics"', 1)[1].split("</details>", 1)[0]
+
+
+def _assert_lineage_state(html: str, state: str) -> None:
+    diagnostics = _artifact_diagnostics(html)
+    assert f"artifact_lineage_state={state}" in diagnostics
+    assert len(re.findall(r"artifact_lineage_state=(COHERENT|MIXED|STALE|MISSING)", diagnostics)) == 1
 
 
 # T1 — missing market map renders SOURCE_MISSING, not generic MARKET MAP UNAVAILABLE
@@ -288,6 +299,121 @@ def test_artifact_diagnostics_show_generation_ids_deterministically() -> None:
     assert "payload_generation_id=live-20260428T120000Z" in html1
     assert "run_generation_id=live-20260428T120000Z" in html1
     assert "market_map_generation_id=live-20260428T120000Z" in html1
+
+
+def test_artifact_lineage_state_coherent() -> None:
+    payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:00:00Z")
+    mm = _market_map()
+    _set_generation_ids(payload, run, mm, "live-20260428T120000Z")
+
+    html = render_dashboard_html(payload, run, market_map=mm)
+
+    _assert_lineage_state(html, "COHERENT")
+
+
+def test_artifact_lineage_state_mixed() -> None:
+    payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:00:00Z")
+    mm = _market_map()
+    payload["meta"]["generation_id"] = "gen-a"
+    run["generation_id"] = "gen-b"
+    mm["generation_id"] = "gen-a"
+
+    html = render_dashboard_html(payload, run, market_map=mm)
+
+    _assert_lineage_state(html, "MIXED")
+
+
+def test_artifact_lineage_state_stale() -> None:
+    payload = _payload(timestamp="2026-04-28T12:10:01Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:10:01Z")
+    mm = _market_map()
+    _set_generation_ids(payload, run, mm, "live-20260428T120000Z")
+    mm["generated_at"] = "2026-04-28T12:00:00Z"
+
+    html = render_dashboard_html(payload, run, market_map=mm)
+
+    _assert_lineage_state(html, "STALE")
+
+
+def test_artifact_lineage_state_missing_and_unavailable_generation_ids() -> None:
+    html = render_dashboard_html(
+        _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers()),
+        _run_with_timestamp("2026-04-28T12:00:00Z"),
+        market_map=None,
+    )
+    diagnostics = _artifact_diagnostics(html)
+
+    _assert_lineage_state(html, "MISSING")
+    assert "payload_generation_id=unavailable" in diagnostics
+    assert "run_generation_id=unavailable" in diagnostics
+    assert "market_map_generation_id=unavailable" in diagnostics
+
+
+def test_artifact_lineage_state_uses_only_approved_classifications() -> None:
+    payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:00:00Z")
+    mm = _market_map()
+    _set_generation_ids(payload, run, mm, "live-20260428T120000Z")
+
+    diagnostics = _artifact_diagnostics(render_dashboard_html(payload, run, market_map=mm))
+
+    states = re.findall(r"artifact_lineage_state=([A-Z_]+)", diagnostics)
+    assert states == ["COHERENT"]
+    assert set(states) <= {"COHERENT", "MIXED", "STALE", "MISSING"}
+
+
+def test_dashboard_render_preserves_decision_fields_byte_equal() -> None:
+    payload = _payload(
+        timestamp="2026-04-28T12:00:00Z",
+        macro_drivers=_macro_drivers(),
+        top_trades=[{"symbol": "SPY", "direction": "LONG"}],
+        trade_decision_detail=[{"symbol": "SPY", "block_reason": "none"}],
+    )
+    run = _run_with_timestamp("2026-04-28T12:00:00Z", outcome="TRADE")
+    mm = _market_map()
+    _set_generation_ids(payload, run, mm, "live-20260428T120000Z")
+    contract_entry_map = {
+        "SPY": 512.34,
+        "outcome": "TRADE",
+        "trade_candidates": [{"symbol": "SPY"}],
+        "block_reasons": [],
+    }
+    before = json.dumps(
+        {
+            "run": {"outcome": run["outcome"]},
+            "payload": {
+                "trade_candidates": deepcopy(payload["sections"]["top_trades"]),
+                "block_reasons": deepcopy(payload["sections"]["trade_decision_detail"]),
+            },
+            "contract": {
+                "outcome": contract_entry_map["outcome"],
+                "trade_candidates": deepcopy(contract_entry_map["trade_candidates"]),
+                "block_reasons": deepcopy(contract_entry_map["block_reasons"]),
+            },
+        },
+        sort_keys=True,
+    )
+
+    render_dashboard_html(payload, run, market_map=mm, contract_entry_map=contract_entry_map)
+
+    after = json.dumps(
+        {
+            "run": {"outcome": run["outcome"]},
+            "payload": {
+                "trade_candidates": payload["sections"]["top_trades"],
+                "block_reasons": payload["sections"]["trade_decision_detail"],
+            },
+            "contract": {
+                "outcome": contract_entry_map["outcome"],
+                "trade_candidates": contract_entry_map["trade_candidates"],
+                "block_reasons": contract_entry_map["block_reasons"],
+            },
+        },
+        sort_keys=True,
+    )
+    assert after == before
 
 
 def test_stale_market_map_suppresses_candidate_cards() -> None:

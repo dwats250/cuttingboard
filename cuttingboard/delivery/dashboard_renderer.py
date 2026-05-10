@@ -177,6 +177,35 @@ def _generation_ids_mixed(*generation_ids: str | None) -> bool:
     return len(present) > 1 and len(set(present)) > 1
 
 
+def _artifact_lineage_state(
+    *,
+    payload_available: bool,
+    run_available: bool,
+    market_map_available: bool,
+    payload_generation_id: str | None,
+    run_generation_id: str | None,
+    market_map_generation_id: str | None,
+    market_map_stale_for_run: bool,
+) -> str:
+    generation_ids = (
+        payload_generation_id,
+        run_generation_id,
+        market_map_generation_id,
+    )
+    if (
+        not payload_available
+        or not run_available
+        or not market_map_available
+        or any(gid is None for gid in generation_ids)
+    ):
+        return "MISSING"
+    if _generation_ids_mixed(*generation_ids):
+        return "MIXED"
+    if market_map_stale_for_run:
+        return "STALE"
+    return "COHERENT"
+
+
 def _resolve_market_map(path: Path) -> tuple[str, dict | None]:
     """Load market_map from path and return (status, data).
 
@@ -968,6 +997,15 @@ def render_dashboard_html(
         not artifact_mixed
         and _timestamp_older_than_baseline(contract_timestamp, baseline_timestamp)
     )
+    artifact_lineage_state = _artifact_lineage_state(
+        payload_available=isinstance(payload, dict),
+        run_available=isinstance(run, dict),
+        market_map_available=isinstance(market_map, dict),
+        payload_generation_id=payload_generation_id,
+        run_generation_id=run_generation_id,
+        market_map_generation_id=market_map_generation_id,
+        market_map_stale_for_run=market_map_stale_for_run,
+    )
     if contract_stale_for_run:
         contract_entry_map = None
 
@@ -1424,6 +1462,7 @@ def render_dashboard_html(
     w('<details class="block" id="artifact-diagnostics">')
     w("  <summary>Artifact diagnostics</summary>")
     w('  <div class="artifact-diagnostics">')
+    w(f'    <span>artifact_lineage_state={_esc(artifact_lineage_state)}</span>')
     w(
         f'    <span>payload={_esc(payload_source)} @ '
         f'{_esc(_timestamp_label(payload_timestamp_value, payload_timestamp))}</span>'
