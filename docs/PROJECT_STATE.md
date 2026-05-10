@@ -13,8 +13,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-10
-**Last completed PRD:** PRD-116 - Dashboard Mixed-Artifact Hierarchy Hardening (commit d8df30c)
-**Last work completed:** 2026-05-10 — PRD-116: renderer-only enforcement of section ordering and disabled-state rendering under unhealthy artifact lineage (MIXED/STALE/MISSING); Sunday context gated on coherent lineage; trend-structure and candidate-board emit `disabled` class and suppress per-symbol rows/cards; artifact-diagnostics preserved
+**Last completed PRD:** PRD-117 - Session-Aware Inactive-State Labeling (commit ba10cfc)
+**Last work completed:** 2026-05-10 — PRD-117: renderer-only INACTIVE_SESSION_LABEL ("SESSION INACTIVE") rendered at id="trend-structure" and id="candidate-board" when artifact_lineage_state == COHERENT and payload.meta.session_type ∈ {"SUNDAY_PREMARKET"}; PRD-116 unhealthy-lineage precedence preserved; sunday_coherent context block unchanged
 **Active PRD:** none
 **Next step:** —
 **Deferred PRD:** none
@@ -27,7 +27,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 ## Test Baseline
 
-- **2173 passing** (as of 2026-05-10; PRD-116 added 11 renderer hierarchy tests)
+- **2177 passing** (as of 2026-05-10; PRD-117 added 4 renderer inactive-session tests)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -37,6 +37,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-117 | Session-Aware Inactive-State Labeling | COMPLETE | 2026-05-10 |
 | PRD-116 | Dashboard Mixed-Artifact Hierarchy Hardening | COMPLETE | 2026-05-10 |
 | PRD-115 | Dashboard Artifact Lineage Visibility | COMPLETE | 2026-05-10 |
 | PRD-114 | Watchlist Snapshot Sidecar | COMPLETE | 2026-05-10 |
