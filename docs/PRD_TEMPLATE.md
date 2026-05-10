@@ -3,6 +3,21 @@ PRD-NNN — [Title]
 STATUS
 IN PROGRESS
 
+CLASS
+[GOVERNANCE | SIDECAR | CONSUMER | EXECUTION | CONTRACT | INFRA]
+[Append "+ PATCH" overlay if this PRD corrects a defect in a prior PRD;
+include a ROOT CAUSE section below FILES.]
+
+WHY NOW
+[One sentence. Why this PRD exists at this point in the system's
+evolution. Sequencing rationale, not feature description.]
+
+MAX EXPECTED DELTA
+[Binding ceiling — production LOC, file count, or other measurable
+bound. Exceeding this MUST stop implementation, amend the PRD with a
+revised ceiling and reason, and re-trigger review per the CLASS matrix
+in `docs/PRD_PROCESS.md`.]
+
 GOAL
 [One sentence. What this PRD delivers and why.]
 
@@ -15,6 +30,13 @@ OUT OF SCOPE
 FILES
 A/M/D path/to/file.py
 A/M/D path/to/file.py
+
+CHANGE SURFACE
+[Optional. Mandatory iff (i) the CLASS default stability tier is T0 or
+T1, OR (ii) any FILES entry matches HIGH-RISK FILES for this CLASS in
+the matrix in `docs/PRD_PROCESS.md`. For each constrained file, state
+HOW deeply it may change, e.g. "append-only section render", "no
+signature changes", "constants only".]
 
 REQUIREMENTS
 

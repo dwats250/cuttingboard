@@ -13,8 +13,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-10
-**Last completed PRD:** PRD-112 - Trend Structure Dashboard Panel
-**Last work completed:** 2026-05-10 — PRD-112: expose trend_structure_snapshot on dashboard (read-only)
+**Last completed PRD:** PRD-113 - PRD Governance Hardening
+**Last work completed:** 2026-05-10 — PRD-113: CLASS matrix, mandatory header (CLASS / WHY NOW / MAX EXPECTED DELTA), conditional CHANGE SURFACE, binding delta, CONTRACT-only mandatory adjudication
 **Active PRD:** none
 **Next step:** —
 **Deferred PRD:** none
@@ -27,7 +27,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 ## Test Baseline
 
-- **2136 passing** (as of 2026-05-10; PRD-112 added 9 dashboard tests)
+- **2136 passing** (as of 2026-05-10; PRD-113 governance-only — no test changes)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -37,6 +37,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-113 | PRD Governance Hardening | COMPLETE | 2026-05-10 |
 | PRD-112 | Trend Structure Dashboard Panel | COMPLETE | 2026-05-10 |
 | PRD-111 | Documentation & Knowledge-System Consolidation | COMPLETE | 2026-05-10 |
 | PRD-110 | Narrow Trend Structure Snapshot Universe | COMPLETE | 2026-05-10 |

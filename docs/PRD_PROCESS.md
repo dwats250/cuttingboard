@@ -81,3 +81,157 @@ If a single PRD accumulates more than one PATCH PRD, the root causes MUST be doc
 4. Fill all sections before writing any implementation code
 5. Write FAIL lines before writing requirement bodies
 6. After merge: update status to `COMPLETE` and record commit hash
+
+---
+
+## Governance Compression Principle
+
+Governance must minimize reviewer cognitive load while maximizing drift
+resistance. Any governance field that becomes routinely repetitive,
+mechanically inferable, or cargo-culted MUST migrate from per-PRD
+declaration into process-level convention (the CLASS matrix below).
+Author assertions are reserved for decisions that cannot be inferred
+from CLASS, FILES, or existing governance docs. This rule is
+prospective only; existing template fields are not retroactively
+trimmed.
+
+**Inference-first gate:** Any future proposal to add a per-PRD
+mandatory field MUST first justify, in the proposing PRD, why the
+field cannot be inferred from CLASS, FILES, or the matrix.
+
+---
+
+## PRD Classification
+
+Every PRD declares a `CLASS` from the closed base set:
+
+| Class | Purpose |
+|-------|---------|
+| GOVERNANCE | Process, template, registry, or workflow doc changes |
+| SIDECAR | New or modified observation/research artifact downstream of finalize |
+| CONSUMER | Read-only consumers of finalized artifacts (dashboard, notifications) |
+| EXECUTION | Decision logic, qualification, regime, sizing |
+| CONTRACT | Payload schema, artifact contracts, cross-module shape definitions |
+| INFRA | CI, hooks, artifact-push plumbing, scripts, settings |
+
+**PATCH overlay:** Applies on top of any base class. Adds a `ROOT CAUSE`
+field with exactly one of: `missing fail condition`, `ambiguous
+requirement`, `hidden dependency`. PATCH is not a peer class. Reviewer
+set = the base class's reviewer set; no surfaces unlocked beyond the
+original PRD's FILES.
+
+---
+
+## Stability Tiers (Reviewer Guidance, Process-Level)
+
+Tiers are used by reviewers to confirm CLASS placement. They are NOT a
+mandatory header field.
+
+| Tier | Meaning |
+|------|---------|
+| T0 | Core contracts and runtime decision pipeline |
+| T1 | Sidecars, evaluation, ingestion-adjacent helpers |
+| T2 | Consumers (dashboard, notifications, downstream views) |
+| T3 | Docs, tests, process artifacts |
+
+Default tier per CLASS (see CLASS Matrix below) is authoritative. A
+reviewer may override the default tier ONLY in the review artifact, and
+the override MUST be tagged `factual drift` per the failure taxonomy.
+
+---
+
+## CLASS Matrix
+
+For each base class, the matrix specifies: default stability tier,
+required reviewers, validation depth, forbidden mutation surfaces, and
+HIGH-RISK FILES. Reviewers apply this matrix; authors do not repeat
+these fields in PRDs.
+
+| CLASS | Default tier | Required reviewers | Validation depth | Forbidden mutation surfaces | HIGH-RISK FILES |
+|-------|--------------|--------------------|------------------|------------------------------|-----------------|
+| GOVERNANCE | T3 | Claude; Codex iff CLAUDE.md cross-review gate triggers | Doc cross-check; throwaway skeleton draft | Production modules, tests, fixtures, payloads, dashboard, notifications | `docs/PRD_TEMPLATE.md`, `docs/PRD_PROCESS.md`, `docs/PRD_MICRO_TEMPLATE.md`, `CLAUDE.md`, `docs/PRD_REGISTRY.md`, `docs/PROJECT_STATE.md` |
+| SIDECAR | T1 | Claude + Codex required | Targeted tests on writer/reader; artifact path + schema check | `cuttingboard/runtime.py` decision logic; `cuttingboard/output.py` payload writer; decision-bearing sections of `cuttingboard/delivery/dashboard_renderer.py` | `cuttingboard/trend_structure.py`, `cuttingboard/evaluation.py`, any new `cuttingboard/<name>_sidecar.py` |
+| CONSUMER | T2 | Claude required; Codex iff dashboard/notification semantics shift | Manual UI/notification render; targeted tests on consumer path | Decision logic, regime engine, qualification, payload writers | `cuttingboard/delivery/dashboard_renderer.py`, `cuttingboard/notifications/formatter.py`, `ui/dashboard.html`, `ui/index.html`, `ui/app.js` |
+| EXECUTION | T0 | Claude + Codex required | Full pytest suite; targeted regression on regime/qualification/sizing | Sidecar mutation, renderer-derived semantics, payload schema redefinition | `cuttingboard/runtime.py`, `cuttingboard/qualification.py`, `cuttingboard/execution_policy.py`, `cuttingboard/regime.py`, `cuttingboard/trade_decision.py`, `cuttingboard/trade_policy.py` |
+| CONTRACT | T0 | Claude + Codex required; **adjudication artifact mandatory on any reviewer disagreement** | Full suite; schema-diff review; full consumer audit | Silent fallback, partial malformed recovery, threshold→label synthesis | `cuttingboard/output.py`, payload-shape definitions, `ui/contract.json`, any module defining `TradeDecision` shape |
+| INFRA | T1 (T0 if hooks/CI gate runtime) | Claude required; Codex iff CI/hooks/artifact-push semantics shift | Hook/CI dry-run; artifact-push rebase contract check | Runtime decision modules, payload writers, dashboard sections | `scripts/pre_push_check.sh`, `scripts/clean_generated_artifacts.sh`, `.github/workflows/**`, `.claude/**` hooks/settings, `cuttingboard/notifications/state.py` |
+
+---
+
+## CHANGE SURFACE Trigger
+
+The optional `CHANGE SURFACE` section in `docs/PRD_TEMPLATE.md` becomes
+**mandatory** iff at least one of the following holds:
+
+1. The PRD's CLASS default stability tier is T0 or T1.
+2. Any entry in the PRD's `FILES` section matches the HIGH-RISK FILES
+   column for the PRD's CLASS in the matrix above.
+
+For T2/T3 PRDs whose FILES do not intersect HIGH-RISK FILES, CHANGE
+SURFACE remains optional.
+
+---
+
+## Binding MAX EXPECTED DELTA
+
+`MAX EXPECTED DELTA` declared in the PRD header is binding. An
+implementation that exceeds the declared ceiling MUST:
+
+1. Stop implementation.
+2. Amend the PRD: revise the ceiling and record the reason for the revision.
+3. Re-trigger review per the CLASS matrix before resuming.
+
+Advisory interpretation is not permitted. The ceiling is the unit of
+drift visibility.
+
+---
+
+## Adjudication Trigger
+
+- **CONTRACT-class PRDs:** Any reviewer disagreement REQUIRES an
+  adjudication artifact (`PRD-NNN.adjudication.md`), regardless of
+  whether the disagreement is later resolved.
+- **All other classes:** Follow the CLAUDE.md cross-review gate —
+  adjudication artifact is required only when unresolved disagreement
+  remains after review iteration.
+
+This stricter rule for CONTRACT reflects its highest-blast-radius
+position in the matrix (T0, full consumer audit, schema-diff review).
+
+---
+
+## Forbidden Patterns Catalog
+
+PRDs MUST NOT introduce any of the following. Reviewers tag violations
+using the matching label from the Review Failure Taxonomy.
+
+| Pattern | One-line definition |
+|---------|--------------------|
+| hidden coupling | Cross-module data flow not declared in imports or `docs/artifact_flow_map.md` |
+| payload mutation | Modifying a payload after the contract has finalized it |
+| renderer-derived semantics | Computing decision-bearing values inside a presentation layer |
+| threshold→label synthesis | Producing a categorical label inside a renderer from numeric thresholds owned upstream |
+| wall-clock dependence | Decision logic whose output depends on the current wall-clock time at run |
+| partial malformed recovery | Silently repairing or partially accepting malformed inputs instead of failing loudly |
+| silent fallback | Substituting a default value when validation fails, without explicit logging |
+| sidecar mutation | A sidecar writing back into pipeline state, payloads, or upstream modules |
+| while-we're-here mutations | Edits outside the PRD's `FILES` boundary made opportunistically during implementation |
+
+---
+
+## Review Failure Taxonomy
+
+Findings in `*.review.*.md` artifacts MUST be tagged with one of the
+following labels:
+
+| Label | Meaning |
+|-------|---------|
+| hidden coupling | Undeclared cross-module dependency |
+| schema ambiguity | Payload/artifact shape admits multiple interpretations |
+| consumer contamination | Consumer logic leaking into producer or contract layer |
+| ownership violation | Module mutates state owned by another module |
+| non-determinism | Output depends on inputs not declared in the PRD |
+| derived semantics | Semantics computed in the wrong layer (e.g. renderer derivation) |
+| stale-data ambiguity | Freshness contract is unclear or unenforced |
+| scope creep | Edits or requirements expand beyond the PRD's stated boundary |
+| factual drift | A claim, reference, or default in the PRD diverges from current repo state |
