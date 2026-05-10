@@ -12,9 +12,9 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 ## Current State
 
-**Last updated:** 2026-05-08
+**Last updated:** 2026-05-09
 **Last completed PRD:** PRD-103 - Dashboard Data Contract Gap Patch (commit c8ef8cf)
-**Last work completed:** 2026-05-08 (commit c8ef8cf)
+**Last work completed:** 2026-05-09 (commit a46a792) — CodeRabbit audit: test artifact isolation + payload null fix
 **Active PRD:** none
 **Next step:** Monitor next scheduled run; verify Permission shows real text and Changes Since Last Run shows NO_PREVIOUS_RUN
 **Deferred PRD:** none
@@ -23,7 +23,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 ## Test Baseline
 
-- **2091 passing** (as of 2026-05-08, post PRD-103)
+- **2095 passing** (as of 2026-05-09, post CodeRabbit audit)
 - 0 pre-existing failures
 - 0 skipped
 
