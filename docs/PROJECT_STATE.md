@@ -13,10 +13,10 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-09
-**Last completed PRD:** PRD-104 - Decision Logic and Artifact Flow Audit (commit 8d72f26)
-**Last work completed:** 2026-05-09 — PRD-104: decision logic map and artifact flow map
+**Last completed PRD:** PRD-105 - Decision Quality Evidence Map (draft commit c4c6f23)
+**Last work completed:** 2026-05-09 — PRD-105: docs/decision_quality_map.md
 **Active PRD:** none
-**Next step:** Review docs/system_logic_map.md and docs/artifact_flow_map.md; plan next PRD
+**Next step:** Review docs/decision_quality_map.md; plan PRD-106 (Sunday Report sidecar) or threshold review framework
 **Deferred PRD:** none
 
 ---
@@ -33,6 +33,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-105 | Decision Quality Evidence Map | COMPLETE | 2026-05-09 |
 | PRD-103 | Dashboard Data Contract Gap Patch | COMPLETE | 2026-05-08 |
 | PRD-102 | Align Alert and Dashboard Candidate Semantics | COMPLETE | 2026-05-08 |
 | PRD-100-PATCH-2 | Hourly Artifact Mutation Ordering | PATCH | 2026-05-08 |
