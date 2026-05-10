@@ -13,17 +13,17 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-10
-**Last completed PRD:** PRD-109 - Workflow Token Economy (commit 6f440e9)
-**Last work completed:** 2026-05-10 — PRD-109: workflow token economy
-**Active PRD:** PRD-110 — Narrow Trend Structure Snapshot Universe
-**Next step:** Implement curated symbol constant + runtime call-site swap; add deterministic tests.
+**Last completed PRD:** PRD-110 - Narrow Trend Structure Snapshot Universe (commit cea04ac)
+**Last work completed:** 2026-05-10 — PRD-110: narrow trend_structure_snapshot universe to curated 6
+**Active PRD:** none
+**Next step:** —
 **Deferred PRD:** none
 
 ---
 
 ## Test Baseline
 
-- **2121 passing** (as of 2026-05-10, post PRD-108 registry hook hygiene)
+- **2127 passing** (as of 2026-05-10, post PRD-110 trend_structure universe narrowing)
 - 0 pre-existing failures
 - 0 skipped
 
