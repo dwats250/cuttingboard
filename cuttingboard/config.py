@@ -156,6 +156,10 @@ HIGH_BETA     = ["NVDA", "TSLA", "AAPL", "META", "AMZN", "COIN", "MSTR"]
 ALL_SYMBOLS      = MACRO_DRIVERS + INDICES + COMMODITIES + HIGH_BETA
 REQUIRED_SYMBOLS = ["^VIX", "DX-Y.NYB", "^TNX", "BTC-USD", "SPY", "QQQ"]
 
+# PRD-110: curated universe for logs/trend_structure_snapshot.json.
+# Strict subset of ALL_SYMBOLS; disjoint from NON_TRADABLE_SYMBOLS.
+TREND_STRUCTURE_SYMBOLS: tuple[str, ...] = ("SPY", "QQQ", "GDX", "GLD", "SLV", "XLE")
+
 # ---------------------------------------------------------------------------
 # Source priority per symbol
 # ---------------------------------------------------------------------------

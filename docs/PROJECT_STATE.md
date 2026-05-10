@@ -15,8 +15,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 **Last updated:** 2026-05-10
 **Last completed PRD:** PRD-109 - Workflow Token Economy (commit 6f440e9)
 **Last work completed:** 2026-05-10 — PRD-109: workflow token economy
-**Active PRD:** none
-**Next step:** —
+**Active PRD:** PRD-110 — Narrow Trend Structure Snapshot Universe
+**Next step:** Implement curated symbol constant + runtime call-site swap; add deterministic tests.
 **Deferred PRD:** none
 
 ---

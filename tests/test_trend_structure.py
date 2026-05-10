@@ -275,3 +275,150 @@ def test_deterministic_output_same_inputs():
     a = build_trend_structure_snapshot(quotes, history, ["SPY"])
     b = build_trend_structure_snapshot(quotes, history, ["SPY"])
     assert a == b
+
+
+# ---------------------------------------------------------------------------
+# PRD-110: curated trend-structure universe
+# ---------------------------------------------------------------------------
+
+_PRD110_EXPECTED = ("SPY", "QQQ", "GDX", "GLD", "SLV", "XLE")
+_PRD110_BANNED = frozenset({
+    "^VIX", "^TNX", "DX-Y.NYB", "BTC-USD",
+    "IWM", "PAAS", "USO",
+    "NVDA", "TSLA", "AAPL", "META", "AMZN", "COIN", "MSTR",
+})
+
+
+def test_prd110_constant_is_tuple_with_fixed_order():
+    from cuttingboard import config
+
+    assert isinstance(config.TREND_STRUCTURE_SYMBOLS, tuple)
+    assert config.TREND_STRUCTURE_SYMBOLS == _PRD110_EXPECTED
+
+
+def test_prd110_constant_subset_of_all_symbols():
+    from cuttingboard import config
+
+    assert set(config.TREND_STRUCTURE_SYMBOLS).issubset(set(config.ALL_SYMBOLS))
+
+
+def test_prd110_constant_disjoint_from_non_tradables():
+    from cuttingboard import config
+
+    assert set(config.TREND_STRUCTURE_SYMBOLS).isdisjoint(config.NON_TRADABLE_SYMBOLS)
+    assert set(config.TREND_STRUCTURE_SYMBOLS).isdisjoint(_PRD110_BANNED)
+
+
+def test_prd110_runtime_helper_passes_curated_list(monkeypatch, tmp_path):
+    """R2 + R5: writer passes list(config.TREND_STRUCTURE_SYMBOLS) as symbols=
+    and the artifact symbol set equals the curated universe.
+
+    Isolated fixture: monkeypatched LOGS_DIR/TREND_STRUCTURE_PATH and a builder
+    spy. No live data, no network, no wall-clock dependency.
+    """
+    from cuttingboard import config, runtime
+
+    captured: dict = {}
+
+    def _spy(*, normalized_quotes, history_by_symbol, symbols, generated_at):
+        captured["symbols"] = symbols
+        captured["generated_at"] = generated_at
+        return {
+            "schema_version": 1,
+            "generated_at": generated_at.isoformat(),
+            "source": "trend_structure",
+            "symbols": {s: {"symbol": s} for s in symbols},
+        }
+
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir()
+    artifact = logs_dir / "trend_structure_snapshot.json"
+
+    monkeypatch.setattr(runtime, "LOGS_DIR", logs_dir)
+    monkeypatch.setattr(runtime, "TREND_STRUCTURE_PATH", artifact)
+    monkeypatch.setattr(runtime, "build_trend_structure_snapshot", _spy)
+
+    runtime._write_trend_structure_snapshot(
+        normalized_quotes={},
+        history_by_symbol={},
+        generated_at=datetime(2026, 5, 10, 14, 0, tzinfo=timezone.utc),
+    )
+
+    # R2: exact list passed to builder.
+    assert captured["symbols"] == list(config.TREND_STRUCTURE_SYMBOLS)
+    assert captured["symbols"] == list(_PRD110_EXPECTED)
+    assert isinstance(captured["symbols"], list)
+
+    # R5: artifact symbol-key set equals curated universe.
+    import json
+    data = json.loads(artifact.read_text())
+    assert set(data["symbols"]) == set(_PRD110_EXPECTED)
+
+    # R6: banned symbols absent.
+    assert _PRD110_BANNED.isdisjoint(set(data["symbols"]))
+
+
+def test_prd110_runtime_helper_does_not_use_tradable_symbols(monkeypatch, tmp_path):
+    """R2 negative: _write_trend_structure_snapshot must NOT route through
+    _tradable_symbols(). If it does, this test fails by surfacing the wider
+    universe (which includes IWM, PAAS, USO, NVDA, ...).
+    """
+    from cuttingboard import runtime
+
+    captured: dict = {}
+
+    def _spy(*, normalized_quotes, history_by_symbol, symbols, generated_at):
+        captured["symbols"] = list(symbols)
+        return {
+            "schema_version": 1,
+            "generated_at": generated_at.isoformat(),
+            "source": "trend_structure",
+            "symbols": {},
+        }
+
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir()
+    monkeypatch.setattr(runtime, "LOGS_DIR", logs_dir)
+    monkeypatch.setattr(runtime, "TREND_STRUCTURE_PATH", logs_dir / "trend_structure_snapshot.json")
+    monkeypatch.setattr(runtime, "build_trend_structure_snapshot", _spy)
+
+    runtime._write_trend_structure_snapshot(
+        normalized_quotes={},
+        history_by_symbol={},
+        generated_at=datetime(2026, 5, 10, 14, 0, tzinfo=timezone.utc),
+    )
+
+    # The wider tradable universe contains symbols outside the curated 6.
+    # If the helper regressed to _tradable_symbols(), these would appear.
+    wider_only = {"IWM", "PAAS", "USO", "NVDA", "TSLA", "AAPL", "META", "AMZN", "COIN", "MSTR"}
+    assert wider_only.isdisjoint(set(captured["symbols"]))
+
+
+def test_prd110_no_leakage_into_decision_modules():
+    """R7: trend_structure tokens must not appear in
+    contract / delivery / notifications / qualification / regime / output / ui."""
+    import re
+    from pathlib import Path
+
+    targets = [
+        Path("cuttingboard/contract.py"),
+        Path("cuttingboard/qualification.py"),
+        Path("cuttingboard/regime.py"),
+        Path("cuttingboard/output.py"),
+    ]
+    for d in (Path("cuttingboard/delivery"), Path("cuttingboard/notifications"), Path("ui")):
+        if d.exists():
+            targets.extend(p for p in d.rglob("*") if p.is_file())
+
+    pattern = re.compile(r"TREND_STRUCTURE_SYMBOLS|trend_structure_snapshot|trend_structure")
+    offenders: list[str] = []
+    for path in targets:
+        if not path.exists() or not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        if pattern.search(text):
+            offenders.append(str(path))
+    assert offenders == [], f"trend_structure leakage into decision modules: {offenders}"

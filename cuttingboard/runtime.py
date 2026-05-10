@@ -1880,7 +1880,7 @@ def _write_trend_structure_snapshot(
         snapshot = build_trend_structure_snapshot(
             normalized_quotes=normalized_quotes,
             history_by_symbol=history_by_symbol,
-            symbols=_tradable_symbols(),
+            symbols=list(config.TREND_STRUCTURE_SYMBOLS),
             generated_at=generated_at,
         )
         tmp = TREND_STRUCTURE_PATH.with_suffix(".tmp")
