@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from cuttingboard import config
 from cuttingboard.macro_pressure import build_macro_pressure
 from cuttingboard.trade_decision import ALLOW_TRADE
 
@@ -38,6 +39,16 @@ _RUN_PATH = Path("logs/latest_run.json")
 _OUTPUT_PATH = Path("reports/output/dashboard.html")
 _MACRO_SNAPSHOT_PATH = Path("logs/macro_drivers_snapshot.json")
 _HOURLY_CONTRACT_PATH = Path("logs/latest_hourly_contract.json")
+_TREND_STRUCTURE_PATH = Path("logs/trend_structure_snapshot.json")
+
+# PRD-112: per-record fields the renderer requires for a non-degraded
+# trend-structure section. Missing or wrong-typed for any curated symbol →
+# whole section degrades to MISSING (R5 all-or-nothing rule).
+_TREND_STRUCTURE_REQUIRED_FIELDS: tuple[str, ...] = (
+    "symbol", "current_price", "vwap", "sma_50", "sma_200",
+    "relative_volume", "price_vs_vwap", "price_vs_sma_50",
+    "price_vs_sma_200", "trend_alignment", "entry_context", "data_status",
+)
 HISTORY_LIMIT = 5
 _DASHBOARD_REFRESH_SECONDS = 30
 DASHBOARD_STALE_AFTER_SECONDS = 300
@@ -345,6 +356,55 @@ def _req(obj: dict, *keys: str) -> object:
             raise RuntimeError(f"Required field missing: {'.'.join(keys)}")
         current = current[key]
     return current
+
+
+def _load_trend_structure_snapshot(path: Path) -> dict | None:
+    """PRD-112 R1/R5: read the sidecar; never raise. Return dict on success,
+    None on missing/malformed/IO-error. Caller renders the all-MISSING state
+    on None per R5's all-or-nothing rule."""
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    return data
+
+
+def _trend_structure_records(snapshot: dict | None) -> dict[str, dict] | None:
+    """Validate per-record shape for the curated 6 symbols. Returns the
+    per-symbol record dict on success, or None when any required field is
+    missing or wrong-typed for any curated symbol (R5 all-or-nothing)."""
+    if snapshot is None:
+        return None
+    symbols = snapshot.get("symbols")
+    if not isinstance(symbols, dict):
+        return None
+    out: dict[str, dict] = {}
+    for sym in config.TREND_STRUCTURE_SYMBOLS:
+        rec = symbols.get(sym)
+        if not isinstance(rec, dict):
+            return None
+        for field in _TREND_STRUCTURE_REQUIRED_FIELDS:
+            if field not in rec:
+                return None
+        out[sym] = rec
+    return out
+
+
+def _format_trend_number(value: object) -> str:
+    """Display formatting only — no comparisons, no derived labels."""
+    if value is None or isinstance(value, bool):
+        return _DASH
+    try:
+        f = float(value)
+    except (TypeError, ValueError):
+        return _DASH
+    if math.isnan(f) or math.isinf(f):
+        return _DASH
+    return f"{f:.2f}"
 
 
 def _load_macro_snapshot(path: Path) -> dict:
@@ -843,6 +903,7 @@ def render_dashboard_html(
     run_source: str | Path = _RUN_PATH,
     market_map_source: str | Path | None = None,
     contract_source: str | Path = _HOURLY_CONTRACT_PATH,
+    trend_structure_snapshot: dict | None = None,
     fixture_mode: bool = False,
 ) -> str:
     """Return deterministic Signal Forge dashboard HTML.
@@ -1166,6 +1227,78 @@ def render_dashboard_html(
     w("  </details>")
     w("</div>")
 
+    # --- trend-structure (PRD-112) ---
+    _ts_records = _trend_structure_records(trend_structure_snapshot)
+    _ts_generated_at_raw = (
+        trend_structure_snapshot.get("generated_at")
+        if isinstance(trend_structure_snapshot, dict)
+        else None
+    )
+    if _ts_records is None:
+        _ts_badge = "MISSING"
+        _ts_badge_class = "UNKNOWN"
+    else:
+        if isinstance(_ts_generated_at_raw, str) and _ts_generated_at_raw:
+            _ts_freshness = _compute_timestamp_freshness(_ts_generated_at_raw)
+            if _ts_freshness == "STALE":
+                _ts_badge, _ts_badge_class = "STALE", "warn"
+            elif _ts_freshness == "FRESH":
+                _ts_badge, _ts_badge_class = "FRESH", "RISK_ON"
+            else:
+                _ts_badge, _ts_badge_class = "UNKNOWN", "UNKNOWN"
+        else:
+            _ts_badge, _ts_badge_class = "UNKNOWN", "UNKNOWN"
+
+    w('<div class="block" id="trend-structure">')
+    w(
+        '  <h2>Trend Structure '
+        f'<span class="badge {_ts_badge_class}">{_esc(_ts_badge)}</span></h2>'
+    )
+    if _ts_records is None:
+        w('  <div class="tape-no-data">no trend structure data</div>')
+    w(
+        '  <table style="width:100%;border-collapse:collapse;'
+        'font-size:0.78rem;display:block;overflow-x:auto">'
+    )
+    w('    <thead><tr style="text-align:left;color:#888">')
+    for _hdr in (
+        "Symbol", "Status", "Price", "vs VWAP", "vs SMA50",
+        "vs SMA200", "Alignment", "Entry Context", "RVOL",
+    ):
+        w(f'      <th style="padding:2px 8px">{_esc(_hdr)}</th>')
+    w('    </tr></thead>')
+    w('    <tbody>')
+    _records_for_render = _ts_records or {}
+    for _sym in config.TREND_STRUCTURE_SYMBOLS:
+        _rec = _records_for_render.get(_sym)
+        if _rec is None:
+            _cells = (
+                _sym, "MISSING", _DASH, _DASH, _DASH, _DASH,
+                _DASH, _DASH, _DASH,
+            )
+        else:
+            _cells = (
+                str(_rec.get("symbol", _sym)),
+                str(_rec.get("data_status", "")),
+                _format_trend_number(_rec.get("current_price")),
+                str(_rec.get("price_vs_vwap", "")),
+                str(_rec.get("price_vs_sma_50", "")),
+                str(_rec.get("price_vs_sma_200", "")),
+                str(_rec.get("trend_alignment", "")),
+                str(_rec.get("entry_context", "")),
+                _format_trend_number(_rec.get("relative_volume")),
+            )
+        w('      <tr>')
+        for _cell in _cells:
+            w(
+                '        <td style="padding:2px 8px;white-space:nowrap">'
+                f'{_esc(_cell)}</td>'
+            )
+        w('      </tr>')
+    w('    </tbody>')
+    w('  </table>')
+    w("</div>")
+
     # --- candidate-board ---
     w('<div class="block" id="candidate-board">')
     if fixture_mode:
@@ -1337,6 +1470,7 @@ def write_dashboard(
     run_source: str | Path = _RUN_PATH,
     market_map_source: str | Path | None = None,
     contract_source: str | Path = _HOURLY_CONTRACT_PATH,
+    trend_structure_snapshot: dict | None = None,
     fixture_mode: bool = False,
 ) -> None:
     html = render_dashboard_html(
@@ -1354,6 +1488,7 @@ def write_dashboard(
         run_source=run_source,
         market_map_source=market_map_source,
         contract_source=contract_source,
+        trend_structure_snapshot=trend_structure_snapshot,
         fixture_mode=fixture_mode,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1425,6 +1560,9 @@ def main(
     contract_entry_map_raw, alert_candidates_raw, contract_generated_at, contract_source = _load_contract_entry_context(logs_dir)
     contract_entry_map = contract_entry_map_raw or None
     market_map_path = logs_dir / "market_map.json"
+    trend_structure_snapshot = _load_trend_structure_snapshot(
+        logs_dir / _TREND_STRUCTURE_PATH.name
+    )
 
     write_dashboard(
         payload, run, previous_run, history_runs, output_path=output_path,
@@ -1437,6 +1575,7 @@ def main(
         run_source=run_path,
         market_map_source=market_map_path,
         contract_source=contract_source,
+        trend_structure_snapshot=trend_structure_snapshot,
         fixture_mode=_fixture_mode,
     )
     print(f"Dashboard written: {output_path}")

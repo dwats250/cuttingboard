@@ -128,6 +128,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-109 | 6f440e9 | Workflow Token Economy | COMPLETE | [PRD-109](prd_history/PRD-109.md) |
 | PRD-110 | cea04ac | Narrow Trend Structure Snapshot Universe | COMPLETE | [PRD-110](prd_history/PRD-110.md) |
 | PRD-111 | 93ed94d | Documentation & Knowledge-System Consolidation | COMPLETE | [PRD-111](prd_history/PRD-111.md) |
+| PRD-112 | pending-commit | Trend Structure Dashboard Panel | COMPLETE | [PRD-112](prd_history/PRD-112.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

@@ -13,8 +13,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-10
-**Last completed PRD:** PRD-111 - Documentation & Knowledge-System Consolidation
-**Last work completed:** 2026-05-10 — PRD-111: consolidate documentation and knowledge-system architecture
+**Last completed PRD:** PRD-112 - Trend Structure Dashboard Panel
+**Last work completed:** 2026-05-10 — PRD-112: expose trend_structure_snapshot on dashboard (read-only)
 **Active PRD:** none
 **Next step:** —
 **Deferred PRD:** none
@@ -27,7 +27,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 ## Test Baseline
 
-- **2127 passing** (as of 2026-05-10; PRD-111 is docs-only and modifies no tests)
+- **2136 passing** (as of 2026-05-10; PRD-112 added 9 dashboard tests)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -37,6 +37,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-112 | Trend Structure Dashboard Panel | COMPLETE | 2026-05-10 |
 | PRD-111 | Documentation & Knowledge-System Consolidation | COMPLETE | 2026-05-10 |
 | PRD-110 | Narrow Trend Structure Snapshot Universe | COMPLETE | 2026-05-10 |
 | PRD-109 | Workflow Token Economy | COMPLETE | 2026-05-10 |

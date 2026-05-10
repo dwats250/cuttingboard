@@ -108,7 +108,9 @@ defaults differ.
   `cuttingboard.trend_structure.build_trend_structure_snapshot`
 - **Constant:** `runtime.TREND_STRUCTURE_PATH` (= `LOGS_DIR / "trend_structure_snapshot.json"`)
 - **Universe:** `config.TREND_STRUCTURE_SYMBOLS` (curated 6-symbol subset of `ALL_SYMBOLS`)
-- **Consumers:** dashboard renderer / human review (sidecar; observe-only)
+- **Consumers:** `delivery/dashboard_renderer.py` (renders read-only "Trend
+  Structure" section via module-level `_TREND_STRUCTURE_PATH`; PRD-112);
+  human review (sidecar; observe-only)
 - **Category:** Sidecar; not runtime-critical for decisions
 - **Test isolation:** monkeypatch `runtime.TREND_STRUCTURE_PATH` and `runtime.LOGS_DIR` to `tmp_path`
 

@@ -1032,3 +1032,205 @@ def test_aplus_candidate_with_validation_acceptance_renders_validation() -> None
     card = _candidate_card(html)
     assert "VALIDATION" in card
     assert "needs clean break above resistance" in card
+
+
+# ============================================================================
+# PRD-112 — Trend Structure Dashboard Panel (R10 tests a-h)
+# ============================================================================
+
+from datetime import datetime as _dt112, timezone as _tz112
+from cuttingboard.delivery import dashboard_renderer as _dr112
+
+_TS_CURATED = ("SPY", "QQQ", "GDX", "GLD", "SLV", "XLE")
+_TS_BANNED = (
+    "^VIX", "^TNX", "DX-Y.NYB", "BTC-USD", "IWM", "PAAS", "USO",
+    "NVDA", "TSLA", "AAPL", "META", "AMZN", "COIN", "MSTR",
+)
+_TS_FORBIDDEN_LABELS = (
+    "ELEVATED", "STRONG", "WEAK", "BULLISH+", "BEARISH+",
+    "HIGH RVOL", "LOW RVOL", "OVEREXTENDED", "COMPRESSED",
+    "MOMENTUM", "FADING", "BREAKOUT", "BREAKDOWN",
+)
+
+
+def _ts_record(symbol: str, *, current_price=580.12, rvol=1.07) -> dict:
+    return {
+        "symbol": symbol,
+        "data_status": "OK",
+        "current_price": current_price,
+        "vwap": 578.40,
+        "sma_50": 560.00,
+        "sma_200": 510.00,
+        "relative_volume": rvol,
+        "price_vs_vwap": "ABOVE",
+        "price_vs_sma_50": "ABOVE",
+        "price_vs_sma_200": "ABOVE",
+        "trend_alignment": "BULLISH",
+        "entry_context": "SUPPORTIVE",
+        "reason": "above all references",
+    }
+
+
+def _ts_healthy_snapshot(generated_at: str = "2026-05-10T12:00:00+00:00") -> dict:
+    return {
+        "schema_version": 1,
+        "generated_at": generated_at,
+        "source": "trend_structure",
+        "symbols": {sym: _ts_record(sym) for sym in _TS_CURATED},
+    }
+
+
+def _ts_section(html: str) -> str:
+    start = html.find('id="trend-structure"')
+    assert start >= 0, "trend-structure section not rendered"
+    end = html.find('id="candidate-board"', start)
+    return html[start:end if end >= 0 else len(html)]
+
+
+# (a) Healthy sidecar fixture
+def test_prd112_a_healthy_sidecar_renders_six_rows_in_order() -> None:
+    snap = _ts_healthy_snapshot()
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(),
+        trend_structure_snapshot=snap,
+    )
+    section = _ts_section(html)
+    assert "Trend Structure" in section
+    rows = re.findall(r'<tr>(.*?)</tr>', section, re.S)
+    body_rows = [r for r in rows if "<td" in r]
+    assert len(body_rows) == 6, f"expected 6 body rows, got {len(body_rows)}"
+    positions = [section.find(f">{sym}<") for sym in _TS_CURATED]
+    assert all(p > 0 for p in positions), positions
+    assert positions == sorted(positions), f"row order wrong: {positions}"
+    assert "BULLISH" in section
+    assert "SUPPORTIVE" in section
+
+
+# (b) Missing file
+def test_prd112_b_missing_file_renders_six_placeholders(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    missing = tmp_path / "trend_structure_snapshot.json"
+    snapshot = _dr112._load_trend_structure_snapshot(missing)
+    assert snapshot is None
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(),
+        trend_structure_snapshot=snapshot,
+    )
+    section = _ts_section(html)
+    assert "no trend structure data" in section
+    assert section.count("MISSING") >= 6  # 6 placeholder Status cells
+    assert "MISSING" in section.split("</h2>", 1)[0]  # header badge
+
+
+# (c) Malformed JSON
+def test_prd112_c_malformed_json_renders_six_placeholders(
+    tmp_path: Path,
+) -> None:
+    bad = tmp_path / "trend_structure_snapshot.json"
+    bad.write_text("{not json", encoding="utf-8")
+    snapshot = _dr112._load_trend_structure_snapshot(bad)
+    assert snapshot is None
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(),
+        trend_structure_snapshot=snapshot,
+    )
+    section = _ts_section(html)
+    assert "no trend structure data" in section
+
+
+# (d) Per-record key missing → all-or-nothing degradation
+def test_prd112_d_per_record_key_missing_degrades_entire_section() -> None:
+    snap = _ts_healthy_snapshot()
+    del snap["symbols"]["GDX"]["price_vs_vwap"]
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(),
+        trend_structure_snapshot=snap,
+    )
+    section = _ts_section(html)
+    assert "no trend structure data" in section
+    # No salvaged rows: SUPPORTIVE/BULLISH from other symbols must NOT appear
+    assert "SUPPORTIVE" not in section
+    assert "BULLISH" not in section
+    # All-MISSING placeholders for all 6
+    assert section.count("MISSING") >= 6
+
+
+# (e) Stale sidecar — frozen-clock test
+def test_prd112_e_stale_sidecar_uses_frozen_clock_badge(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixed_now = _dt112(2026, 5, 10, 12, 0, 0, tzinfo=_tz112.utc)
+    stale_iso = "2026-05-10T11:30:00+00:00"  # 1800s old, > 300s
+    snap = _ts_healthy_snapshot(generated_at=stale_iso)
+
+    class _FrozenDT(_dt112):  # type: ignore[misc]
+        @classmethod
+        def now(cls, tz=None):
+            return fixed_now if tz is None else fixed_now.astimezone(tz)
+
+    monkeypatch.setattr(_dr112, "datetime", _FrozenDT)
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(),
+        trend_structure_snapshot=snap,
+    )
+    section = _ts_section(html)
+    header = section.split("</h2>", 1)[0]
+    assert "STALE" in header, header
+
+
+# (f) Disallowed symbol from sidecar must NOT render
+def test_prd112_f_disallowed_symbol_in_sidecar_excluded() -> None:
+    snap = _ts_healthy_snapshot()
+    snap["symbols"]["IWM"] = _ts_record("IWM")
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(),
+        trend_structure_snapshot=snap,
+    )
+    section = _ts_section(html)
+    assert "IWM" not in section
+
+
+# (g) Banned-symbol HTML grep
+def test_prd112_g_banned_symbols_absent_from_section() -> None:
+    snap = _ts_healthy_snapshot()
+    for sym in _TS_BANNED:
+        snap["symbols"][sym] = _ts_record(sym)
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(),
+        trend_structure_snapshot=snap,
+    )
+    section = _ts_section(html)
+    hits = [s for s in _TS_BANNED if s in section]
+    assert not hits, f"banned symbols rendered: {hits}"
+
+
+# (h) Forbidden-label HTML grep
+def test_prd112_h_forbidden_labels_absent_from_section() -> None:
+    snap = _ts_healthy_snapshot()
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(),
+        trend_structure_snapshot=snap,
+    )
+    section = _ts_section(html)
+    hits = [s for s in _TS_FORBIDDEN_LABELS if s in section]
+    assert not hits, f"forbidden labels rendered: {hits}"
+
+
+# Structural guards: no <details>, no card-grid, no script in section
+def test_prd112_section_has_no_collapsible_or_card_widgets() -> None:
+    snap = _ts_healthy_snapshot()
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(),
+        trend_structure_snapshot=snap,
+    )
+    section = _ts_section(html)
+    banned_markup = (
+        "<details", "<summary", "data-toggle", "<script",
+        'class="cards"', 'class="card-grid"', 'class="grid-cards"',
+    )
+    hits = [m for m in banned_markup if m in section]
+    assert not hits, f"banned markup in section: {hits}"
+    # Flat <table> with <tr>/<td> rows
+    assert "<table" in section
+    assert section.count("<tr>") >= 6

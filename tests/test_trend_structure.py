@@ -408,12 +408,25 @@ def test_prd110_no_leakage_into_decision_modules():
     ]
     for d in (Path("cuttingboard/delivery"), Path("cuttingboard/notifications"), Path("ui")):
         if d.exists():
-            targets.extend(p for p in d.rglob("*") if p.is_file())
+            targets.extend(
+                p for p in d.rglob("*")
+                if p.is_file() and "__pycache__" not in p.parts
+            )
+
+    # PRD-112: dashboard_renderer.py is the authorized read-only consumer of
+    # logs/trend_structure_snapshot.json. Decision-module leakage coverage is
+    # preserved (contract/qualification/regime/output, notifications, ui/,
+    # and all other delivery files remain checked).
+    _PRD112_AUTHORIZED_CONSUMERS = {
+        Path("cuttingboard/delivery/dashboard_renderer.py").resolve(),
+    }
 
     pattern = re.compile(r"TREND_STRUCTURE_SYMBOLS|trend_structure_snapshot|trend_structure")
     offenders: list[str] = []
     for path in targets:
         if not path.exists() or not path.is_file():
+            continue
+        if path.resolve() in _PRD112_AUTHORIZED_CONSUMERS:
             continue
         try:
             text = path.read_text(encoding="utf-8", errors="ignore")
