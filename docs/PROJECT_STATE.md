@@ -13,8 +13,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-10
-**Last completed PRD:** PRD-117 - Session-Aware Inactive-State Labeling (commit ba10cfc)
-**Last work completed:** 2026-05-10 — PRD-117: renderer-only INACTIVE_SESSION_LABEL ("SESSION INACTIVE") rendered at id="trend-structure" and id="candidate-board" when artifact_lineage_state == COHERENT and payload.meta.session_type ∈ {"SUNDAY_PREMARKET"}; PRD-116 unhealthy-lineage precedence preserved; sunday_coherent context block unchanged
+**Last completed PRD:** PRD-118 - Coherent Dashboard Publish Artifact Set (commit 136bbfe)
+**Last work completed:** 2026-05-10 — PRD-118: renderer-owned coherent-publish gate in cuttingboard/delivery/dashboard_renderer.py rejects ui/ publication when payload.meta.generation_id / run.generation_id / market_map.generation_id are missing, mismatched, fixture-tagged, or fixture_mode/FIXTURE_MODE=1 is active; non-ui/ outputs unaffected; PRD-116 unhealthy-lineage and PRD-117 inactive-session behavior preserved; ui/dashboard.html + ui/index.html regenerated from coherent live set (hourly-20260508T223110Z)
 **Active PRD:** none
 **Next step:** —
 **Deferred PRD:** none
@@ -27,7 +27,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 ## Test Baseline
 
-- **2177 passing** (as of 2026-05-10; PRD-117 added 4 renderer inactive-session tests)
+- **2189 passing** (as of 2026-05-10; PRD-118 added 12 renderer coherent-publish gate tests)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -37,6 +37,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-118 | Coherent Dashboard Publish Artifact Set | COMPLETE | 2026-05-10 |
 | PRD-117 | Session-Aware Inactive-State Labeling | COMPLETE | 2026-05-10 |
 | PRD-116 | Dashboard Mixed-Artifact Hierarchy Hardening | COMPLETE | 2026-05-10 |
 | PRD-115 | Dashboard Artifact Lineage Visibility | COMPLETE | 2026-05-10 |
