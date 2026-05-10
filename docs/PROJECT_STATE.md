@@ -13,8 +13,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-10
-**Last completed PRD:** PRD-113 - PRD Governance Hardening
-**Last work completed:** 2026-05-10 — PRD-113: CLASS matrix, mandatory header (CLASS / WHY NOW / MAX EXPECTED DELTA), conditional CHANGE SURFACE, binding delta, CONTRACT-only mandatory adjudication
+**Last completed PRD:** PRD-114 - Watchlist Snapshot Sidecar
+**Last work completed:** 2026-05-10 — PRD-114: observe-only watchlist snapshot sidecar over frozen 11-symbol curated universe; explicit HALT-skip guard at call site; minimal four-field schema (symbol, sector_theme, watch_reason, current_price)
 **Active PRD:** none
 **Next step:** —
 **Deferred PRD:** none
@@ -27,7 +27,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 ## Test Baseline
 
-- **2136 passing** (as of 2026-05-10; PRD-113 governance-only — no test changes)
+- **2156 passing** (as of 2026-05-10; PRD-114 added 20 watchlist sidecar tests)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -37,6 +37,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-114 | Watchlist Snapshot Sidecar | COMPLETE | 2026-05-10 |
 | PRD-113 | PRD Governance Hardening | COMPLETE | 2026-05-10 |
 | PRD-112 | Trend Structure Dashboard Panel | COMPLETE | 2026-05-10 |
 | PRD-111 | Documentation & Knowledge-System Consolidation | COMPLETE | 2026-05-10 |
