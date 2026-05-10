@@ -12,6 +12,8 @@ import pytest
 
 from cuttingboard.delivery.dashboard_renderer import (
     DASHBOARD_STALE_AFTER_SECONDS,
+    INACTIVE_SESSION_LABEL,
+    INACTIVE_SESSION_TYPES,
     _UNAVAILABLE_WATCH,
     render_dashboard_html,
 )
@@ -1557,3 +1559,77 @@ def test_prd116_r7_coherent_live_preserves_sections() -> None:
         open_tag_start = head.rfind("<div")
         open_tag = html[open_tag_start: html.index(section_id) + len(section_id)]
         assert "disabled" not in open_tag, f"{section_id} should not be disabled under coherent live"
+
+
+# ----------------------------------------------------------------------
+# PRD-117 — Session-Aware Inactive-State Labeling
+# ----------------------------------------------------------------------
+
+
+def _trend_structure_section(html: str) -> str:
+    return html.split('id="trend-structure"', 1)[1].split("</div>", 1)[0]
+
+
+def _candidate_board_only(html: str) -> str:
+    return html.split('id="candidate-board"', 1)[1].split("</div>", 1)[0]
+
+
+def _inactive_payload(timestamp: str = "2026-04-28T12:00:00Z") -> dict:
+    payload = _payload(timestamp=timestamp, macro_drivers=_macro_drivers())
+    payload.setdefault("meta", {})["session_type"] = "SUNDAY_PREMARKET"
+    return payload
+
+
+# R2/R4/R5 — Coherent + inactive session renders INACTIVE_SESSION_LABEL inside
+# both targeted section IDs (proof of R2 via element-scoped assertion).
+def test_prd117_inactive_session_label_renders_in_both_sections() -> None:
+    payload = _inactive_payload()
+    run = _run_with_timestamp("2026-04-28T12:00:00Z")
+    mm = _market_map()
+    _set_generation_ids(payload, run, mm, "live-20260428T120000Z")
+
+    html = render_dashboard_html(payload, run, market_map=mm)
+
+    _assert_lineage_state(html, "COHERENT")
+    assert INACTIVE_SESSION_LABEL in _trend_structure_section(html)
+    assert INACTIVE_SESSION_LABEL in _candidate_board_only(html)
+
+
+# R3 — Unhealthy lineage precedence: MIXED + SUNDAY_PREMARKET must NOT show
+# INACTIVE_SESSION_LABEL at the targeted sections.
+def test_prd117_unhealthy_lineage_overrides_inactive_label() -> None:
+    payload = _inactive_payload()
+    run = _run_with_timestamp("2026-04-28T12:00:00Z")
+    mm = _market_map()
+    payload["meta"]["generation_id"] = "gen-a"
+    run["generation_id"] = "gen-b"
+    mm["generation_id"] = "gen-a"
+
+    html = render_dashboard_html(payload, run, market_map=mm)
+
+    _assert_lineage_state(html, "MIXED")
+    assert INACTIVE_SESSION_LABEL not in _trend_structure_section(html)
+    assert INACTIVE_SESSION_LABEL not in _candidate_board_only(html)
+
+
+# R6 — Coherent live-session regression: session_type absent must NOT show
+# INACTIVE_SESSION_LABEL.
+def test_prd117_coherent_live_session_no_inactive_label() -> None:
+    payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
+    payload.get("meta", {}).pop("session_type", None)
+    run = _run_with_timestamp("2026-04-28T12:00:00Z")
+    mm = _market_map()
+    _set_generation_ids(payload, run, mm, "live-20260428T120000Z")
+
+    html = render_dashboard_html(payload, run, market_map=mm)
+
+    _assert_lineage_state(html, "COHERENT")
+    assert INACTIVE_SESSION_LABEL not in _trend_structure_section(html)
+    assert INACTIVE_SESSION_LABEL not in _candidate_board_only(html)
+
+
+# R1 — Renderer constants are exactly as the PRD specifies. Guards against
+# accidental enum expansion or label drift.
+def test_prd117_constants_match_prd() -> None:
+    assert INACTIVE_SESSION_LABEL == "SESSION INACTIVE"
+    assert INACTIVE_SESSION_TYPES == frozenset({"SUNDAY_PREMARKET"})

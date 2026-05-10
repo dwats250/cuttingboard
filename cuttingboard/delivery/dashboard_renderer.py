@@ -67,6 +67,11 @@ _GRADE_CSS: dict[str, str] = {
 _HIGH_GRADES = frozenset({"A+", "A", "B"})
 _UNAVAILABLE_WATCH = "Market data unavailable for this run; review during live market session."
 
+# PRD-117: enumerated session_type values that map to an inactive-session
+# presentation label. Renderer-local only; runtime/contract are unchanged.
+INACTIVE_SESSION_TYPES: frozenset[str] = frozenset({"SUNDAY_PREMARKET"})
+INACTIVE_SESSION_LABEL: str = "SESSION INACTIVE"
+
 _LIFECYCLE_BADGE_CSS: dict[str, str] = {
     "NEW":        "lifecycle-new",
     "UPGRADED":   "lifecycle-upgraded",
@@ -1077,6 +1082,12 @@ def render_dashboard_html(
         and session_type == "SUNDAY_PREMARKET"
         and _is_sunday_pt(str(timestamp))
     )
+    # PRD-117: inactive-session presentation flag. Active only under coherent
+    # lineage; unhealthy lineage retains PRD-116 precedence at the section level.
+    inactive_session = (
+        artifact_lineage_state == "COHERENT"
+        and session_type in INACTIVE_SESSION_TYPES
+    )
 
     w("<!doctype html>")
     w('<html lang="en">')
@@ -1307,6 +1318,9 @@ def render_dashboard_html(
             '  <div class="tape-no-data">UNAVAILABLE '
             f'artifact_lineage_state={_esc(artifact_lineage_state)}</div>'
         )
+    elif inactive_session:
+        # PRD-117 R4: coherent inactive session — render presentation label only.
+        w(f'  <div class="tape-no-data">{_esc(INACTIVE_SESSION_LABEL)}</div>')
     else:
         if _ts_records is None:
             w('  <div class="tape-no-data">no trend structure data</div>')
@@ -1381,6 +1395,9 @@ def render_dashboard_html(
             )
     elif _mm_status in ("SOURCE_MISSING", "PARSE_ERROR"):
         w(f'  <div class="unavailable">{_esc(_mm_status)}</div>')
+    elif inactive_session:
+        # PRD-117 R5: coherent inactive session — render presentation label only.
+        w(f'  <div class="unavailable">{_esc(INACTIVE_SESSION_LABEL)}</div>')
     else:
         if _mm_status == "STALE":
             w('  <div class="unavailable">STALE</div>')
