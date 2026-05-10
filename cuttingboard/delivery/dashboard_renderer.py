@@ -1006,6 +1006,9 @@ def render_dashboard_html(
         market_map_generation_id=market_map_generation_id,
         market_map_stale_for_run=market_map_stale_for_run,
     )
+    # PRD-116: unhealthy lineage gates section ordering and disabled-state rendering.
+    unhealthy_lineage = artifact_lineage_state in ("MIXED", "STALE", "MISSING")
+    disabled_class = " disabled" if unhealthy_lineage else ""
     if contract_stale_for_run:
         contract_entry_map = None
 
@@ -1068,6 +1071,12 @@ def render_dashboard_html(
         lines.append(line)
 
     session_type = (payload.get("meta") or {}).get("session_type")
+    # PRD-116: Sunday context must only render under coherent Sunday/pre-market lineage.
+    sunday_coherent = (
+        artifact_lineage_state == "COHERENT"
+        and session_type == "SUNDAY_PREMARKET"
+        and _is_sunday_pt(str(timestamp))
+    )
 
     w("<!doctype html>")
     w('<html lang="en">')
@@ -1095,7 +1104,7 @@ def render_dashboard_html(
             )
         w("</div>")
 
-    if session_type == "SUNDAY_PREMARKET" and _is_sunday_pt(str(timestamp)):
+    if sunday_coherent:
         w('<div class="block" id="premarket-banner" style="border-color:#29b6f6;color:#29b6f6;text-align:center">')
         w('  <h2>SUNDAY PRE-MARKET CONTEXT &#8212; NO CASH SESSION</h2>')
         w("</div>")
@@ -1180,8 +1189,8 @@ def render_dashboard_html(
               + '</div>')
         w("</div>")
 
-    # --- sunday-macro-context (SUNDAY_PREMARKET only) ---
-    if session_type == "SUNDAY_PREMARKET" and _is_sunday_pt(str(timestamp)):
+    # --- sunday-macro-context (PRD-116: only under coherent Sunday lineage) ---
+    if sunday_coherent:
         ctx = _build_sunday_context(macro_drivers, market_regime, market_map)
         w('<div class="block" id="sunday-macro-context" style="border-color:#29b6f6">')
         w(f'  <h2>{_esc(ctx["headline"])}</h2>')
@@ -1287,71 +1296,89 @@ def render_dashboard_html(
         else:
             _ts_badge, _ts_badge_class = "UNKNOWN", "UNKNOWN"
 
-    w('<div class="block" id="trend-structure">')
+    w(f'<div class="block{disabled_class}" id="trend-structure">')
     w(
         '  <h2>Trend Structure '
         f'<span class="badge {_ts_badge_class}">{_esc(_ts_badge)}</span></h2>'
     )
-    if _ts_records is None:
-        w('  <div class="tape-no-data">no trend structure data</div>')
-    w(
-        '  <table style="width:100%;border-collapse:collapse;'
-        'font-size:0.78rem;display:block;overflow-x:auto">'
-    )
-    w('    <thead><tr style="text-align:left;color:#888">')
-    for _hdr in (
-        "Symbol", "Status", "Price", "vs VWAP", "vs SMA50",
-        "vs SMA200", "Alignment", "Entry Context", "RVOL",
-    ):
-        w(f'      <th style="padding:2px 8px">{_esc(_hdr)}</th>')
-    w('    </tr></thead>')
-    w('    <tbody>')
-    _records_for_render = _ts_records or {}
-    for _sym in config.TREND_STRUCTURE_SYMBOLS:
-        _rec = _records_for_render.get(_sym)
-        if _rec is None:
-            _cells = (
-                _sym, "MISSING", _DASH, _DASH, _DASH, _DASH,
-                _DASH, _DASH, _DASH,
-            )
-        else:
-            _cells = (
-                str(_rec.get("symbol", _sym)),
-                str(_rec.get("data_status", "")),
-                _format_trend_number(_rec.get("current_price")),
-                str(_rec.get("price_vs_vwap", "")),
-                str(_rec.get("price_vs_sma_50", "")),
-                str(_rec.get("price_vs_sma_200", "")),
-                str(_rec.get("trend_alignment", "")),
-                str(_rec.get("entry_context", "")),
-                _format_trend_number(_rec.get("relative_volume")),
-            )
-        w('      <tr>')
-        for _cell in _cells:
-            w(
-                '        <td style="padding:2px 8px;white-space:nowrap">'
-                f'{_esc(_cell)}</td>'
-            )
-        w('      </tr>')
-    w('    </tbody>')
-    w('  </table>')
+    if unhealthy_lineage:
+        # PRD-116 R4: disabled state under unhealthy lineage; no per-symbol data rows.
+        w(
+            '  <div class="tape-no-data">UNAVAILABLE '
+            f'artifact_lineage_state={_esc(artifact_lineage_state)}</div>'
+        )
+    else:
+        if _ts_records is None:
+            w('  <div class="tape-no-data">no trend structure data</div>')
+        w(
+            '  <table style="width:100%;border-collapse:collapse;'
+            'font-size:0.78rem;display:block;overflow-x:auto">'
+        )
+        w('    <thead><tr style="text-align:left;color:#888">')
+        for _hdr in (
+            "Symbol", "Status", "Price", "vs VWAP", "vs SMA50",
+            "vs SMA200", "Alignment", "Entry Context", "RVOL",
+        ):
+            w(f'      <th style="padding:2px 8px">{_esc(_hdr)}</th>')
+        w('    </tr></thead>')
+        w('    <tbody>')
+        _records_for_render = _ts_records or {}
+        for _sym in config.TREND_STRUCTURE_SYMBOLS:
+            _rec = _records_for_render.get(_sym)
+            if _rec is None:
+                _cells = (
+                    _sym, "MISSING", _DASH, _DASH, _DASH, _DASH,
+                    _DASH, _DASH, _DASH,
+                )
+            else:
+                _cells = (
+                    str(_rec.get("symbol", _sym)),
+                    str(_rec.get("data_status", "")),
+                    _format_trend_number(_rec.get("current_price")),
+                    str(_rec.get("price_vs_vwap", "")),
+                    str(_rec.get("price_vs_sma_50", "")),
+                    str(_rec.get("price_vs_sma_200", "")),
+                    str(_rec.get("trend_alignment", "")),
+                    str(_rec.get("entry_context", "")),
+                    _format_trend_number(_rec.get("relative_volume")),
+                )
+            w('      <tr>')
+            for _cell in _cells:
+                w(
+                    '        <td style="padding:2px 8px;white-space:nowrap">'
+                    f'{_esc(_cell)}</td>'
+                )
+            w('      </tr>')
+        w('    </tbody>')
+        w('  </table>')
     w("</div>")
 
     # --- candidate-board ---
-    w('<div class="block" id="candidate-board">')
+    w(f'<div class="block{disabled_class}" id="candidate-board">')
     if fixture_mode:
         w('  <h2>Market Map / Developing Setups &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h2>')
     else:
         w("  <h2>Market Map / Developing Setups</h2>")
-    if market_map_stale_for_run:
-        _run_ts_label = _timestamp_label(run_timestamp_value, run_timestamp)
-        _mm_ts_label  = _timestamp_label(market_map_timestamp_value, market_map_timestamp)
-        w('  <div class="unavailable">STALE MARKET MAP</div>')
-        w('  <div class="idle-summary">'
-          '<div>Market Map / Developing Setups paused because market_map timestamp is older than selected run.</div>'
-          f'<div>Run: {_esc(_run_ts_label)}</div>'
-          f'<div>Market map: {_esc(_mm_ts_label)}</div>'
-          '</div>')
+    if unhealthy_lineage:
+        # PRD-116 R5: suppress candidate cards and tier headers under unhealthy lineage.
+        # Preserve legacy diagnostic text (SOURCE_MISSING / PARSE_ERROR / STALE MARKET MAP)
+        # inside the disabled branch so operators retain the file-level reason.
+        if artifact_lineage_state == "STALE":
+            _run_ts_label = _timestamp_label(run_timestamp_value, run_timestamp)
+            _mm_ts_label  = _timestamp_label(market_map_timestamp_value, market_map_timestamp)
+            w('  <div class="unavailable">STALE MARKET MAP</div>')
+            w('  <div class="idle-summary">'
+              '<div>Market Map / Developing Setups paused because market_map timestamp is older than selected run.</div>'
+              f'<div>Run: {_esc(_run_ts_label)}</div>'
+              f'<div>Market map: {_esc(_mm_ts_label)}</div>'
+              '</div>')
+        elif _mm_status in ("SOURCE_MISSING", "PARSE_ERROR"):
+            w(f'  <div class="unavailable">{_esc(_mm_status)}</div>')
+        else:
+            w(
+                '  <div class="unavailable">UNAVAILABLE '
+                f'artifact_lineage_state={_esc(artifact_lineage_state)}</div>'
+            )
     elif _mm_status in ("SOURCE_MISSING", "PARSE_ERROR"):
         w(f'  <div class="unavailable">{_esc(_mm_status)}</div>')
     else:

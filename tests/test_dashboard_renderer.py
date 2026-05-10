@@ -281,9 +281,9 @@ def test_artifact_diagnostics_show_sources_and_timestamps() -> None:
     assert "run=logs/latest_hourly_run.json @ 2026-04-28T12:00:00Z" in html
     assert "market_map=logs/market_map.json @" in html
     assert "contract=logs/latest_hourly_contract.json @ 2026-04-28T12:00:00Z" in html
-    assert "payload_generation_id=unavailable" in html
-    assert "run_generation_id=unavailable" in html
-    assert "market_map_generation_id=unavailable" in html
+    assert "payload_generation_id=test-gen-001" in html
+    assert "run_generation_id=test-gen-001" in html
+    assert "market_map_generation_id=test-gen-001" in html
 
 
 def test_artifact_diagnostics_show_generation_ids_deterministically() -> None:
@@ -338,11 +338,12 @@ def test_artifact_lineage_state_stale() -> None:
 
 
 def test_artifact_lineage_state_missing_and_unavailable_generation_ids() -> None:
-    html = render_dashboard_html(
-        _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers()),
-        _run_with_timestamp("2026-04-28T12:00:00Z"),
-        market_map=None,
-    )
+    payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:00:00Z")
+    # Strip helper-default generation_ids to exercise the "unavailable" path.
+    payload["meta"].pop("generation_id", None)
+    run.pop("generation_id", None)
+    html = render_dashboard_html(payload, run, market_map=None)
     diagnostics = _artifact_diagnostics(html)
 
     _assert_lineage_state(html, "MISSING")
@@ -1360,3 +1361,199 @@ def test_prd112_section_has_no_collapsible_or_card_widgets() -> None:
     # Flat <table> with <tr>/<td> rows
     assert "<table" in section
     assert section.count("<tr>") >= 6
+
+
+# ============================================================================
+# PRD-116 — Dashboard Mixed-Artifact Hierarchy Hardening
+# ============================================================================
+
+def _strip_generation_ids(payload: dict, run: dict, market_map: dict | None) -> None:
+    payload.get("meta", {}).pop("generation_id", None)
+    run.pop("generation_id", None)
+    if market_map is not None:
+        market_map.pop("generation_id", None)
+
+
+def _trend_section(html: str) -> str:
+    return html.split('id="trend-structure"', 1)[1].split("</div>", 1)[0]
+
+
+def _candidate_section(html: str) -> str:
+    return html.split('id="candidate-board"', 1)[1].split("</div>\n\n", 1)[0]
+
+
+def _system_state_index(html: str) -> int:
+    return html.index('id="system-state"')
+
+
+# R1 — Under MIXED lineage, System State is the first normal block after the wrap.
+# Only the MIXED_ARTIFACTS warning banner may precede it.
+def test_prd116_r1_mixed_section_order_system_state_before_other_blocks() -> None:
+    payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:00:00Z")
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    payload["meta"]["generation_id"] = "gen-A"
+    run["generation_id"] = "gen-B"
+    mm["generation_id"] = "gen-C"
+    html = render_dashboard_html(payload, run, market_map=mm)
+    ss = _system_state_index(html)
+    coh = html.index('id="artifact-coherence"')
+    assert coh < ss
+    for later_id in (
+        'id="macro-tape"',
+        'id="trend-structure"',
+        'id="candidate-board"',
+        'id="premarket-banner"',
+        'id="sunday-macro-context"',
+    ):
+        if later_id in html:
+            assert html.index(later_id) > ss
+
+
+# R1 — Under MISSING lineage (no market_map), System State precedes all other blocks.
+def test_prd116_r1_missing_section_order() -> None:
+    html = render_dashboard_html(
+        _payload(macro_drivers=_macro_drivers()), _run(), market_map=None,
+    )
+    ss = _system_state_index(html)
+    for later_id in (
+        'id="macro-tape"', 'id="trend-structure"', 'id="candidate-board"',
+    ):
+        assert html.index(later_id) > ss
+
+
+# R2 — MIXED_ARTIFACTS warning still emits payload/run/market_map generation details.
+def test_prd116_r2_mixed_warning_emits_generation_details() -> None:
+    payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:00:00Z")
+    mm = _market_map({"SPY": _mm_symbol("SPY")})
+    payload["meta"]["generation_id"] = "gen-A"
+    run["generation_id"] = "gen-B"
+    mm["generation_id"] = "gen-C"
+    html = render_dashboard_html(payload, run, market_map=mm)
+    coh = html.split('id="artifact-coherence"', 1)[1].split('id="system-state"', 1)[0]
+    assert "payload=gen-A" in coh
+    assert "run=gen-B" in coh
+    assert "market_map=gen-C" in coh
+
+
+# R3 — Sunday banner/context suppressed when artifact lineage is not COHERENT.
+def test_prd116_r3_sunday_blocks_suppressed_under_mixed() -> None:
+    # Sunday at 2026-05-10 12:00 UTC == 05:00 PT Sunday
+    payload = _payload(timestamp="2026-05-10T12:00:00Z", macro_drivers=_macro_drivers())
+    payload["meta"]["session_type"] = "SUNDAY_PREMARKET"
+    run = _run_with_timestamp("2026-05-10T12:00:00Z")
+    mm = _market_map({"SPY": _mm_symbol("SPY")})
+    payload["meta"]["generation_id"] = "gen-A"
+    run["generation_id"] = "gen-B"
+    mm["generation_id"] = "gen-C"
+    html = render_dashboard_html(payload, run, market_map=mm)
+    assert 'id="premarket-banner"' not in html
+    assert 'id="sunday-macro-context"' not in html
+
+
+# R3/R8 — Sunday banner and context render under coherent Sunday/pre-market lineage.
+def test_prd116_r8_coherent_sunday_renders_sunday_blocks() -> None:
+    payload = _payload(timestamp="2026-05-10T12:00:00Z", macro_drivers=_macro_drivers())
+    payload["meta"]["session_type"] = "SUNDAY_PREMARKET"
+    run = _run_with_timestamp("2026-05-10T12:00:00Z")
+    mm = _market_map({"SPY": _mm_symbol("SPY")})
+    mm["generated_at"] = "2026-05-10T12:00:00Z"
+    # default coherent test-gen-001 across all three
+    html = render_dashboard_html(payload, run, market_map=mm)
+    assert 'id="premarket-banner"' in html
+    assert 'id="sunday-macro-context"' in html
+
+
+# R4 — Trend Structure is disabled and emits no data rows under unhealthy lineage.
+def test_prd116_r4_trend_structure_disabled_under_mixed() -> None:
+    payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:00:00Z")
+    mm = _market_map({"SPY": _mm_symbol("SPY")})
+    payload["meta"]["generation_id"] = "gen-A"
+    run["generation_id"] = "gen-B"
+    mm["generation_id"] = "gen-C"
+    html = render_dashboard_html(payload, run, market_map=mm)
+    head, _, _ = html.partition('id="trend-structure"')
+    # The opening div tag for the block ends right before id="trend-structure".
+    open_tag_start = head.rfind("<div")
+    open_tag = html[open_tag_start: html.index('id="trend-structure"') + len('id="trend-structure"')]
+    assert "disabled" in open_tag
+    section = _trend_section(html)
+    assert "<tr>" not in section  # no per-symbol data rows
+
+
+# R4 — Trend Structure renders normal table under coherent lineage.
+def test_prd116_r4_trend_structure_renders_under_coherent() -> None:
+    html = render_dashboard_html(
+        _payload(macro_drivers=_macro_drivers()), _run(),
+        market_map=_market_map({"SPY": _mm_symbol("SPY")}),
+    )
+    head, _, _ = html.partition('id="trend-structure"')
+    open_tag_start = head.rfind("<div")
+    open_tag = html[open_tag_start: html.index('id="trend-structure"') + len('id="trend-structure"')]
+    assert "disabled" not in open_tag
+
+
+# R5 — Candidate board is disabled and emits no cards/tier headers under unhealthy lineage.
+def test_prd116_r5_candidate_board_disabled_under_mixed() -> None:
+    payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:00:00Z")
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    payload["meta"]["generation_id"] = "gen-A"
+    run["generation_id"] = "gen-B"
+    mm["generation_id"] = "gen-C"
+    html = render_dashboard_html(payload, run, market_map=mm)
+    head, _, _ = html.partition('id="candidate-board"')
+    open_tag_start = head.rfind("<div")
+    open_tag = html[open_tag_start: html.index('id="candidate-board"') + len('id="candidate-board"')]
+    assert "disabled" in open_tag
+    section = _candidate_section(html)
+    assert 'id="card-SPY"' not in section
+    assert 'class="tier-header"' not in section
+
+
+# R5 — Under MISSING (no market_map), candidate board is disabled.
+def test_prd116_r5_candidate_board_disabled_under_missing() -> None:
+    html = render_dashboard_html(
+        _payload(macro_drivers=_macro_drivers()), _run(), market_map=None,
+    )
+    head, _, _ = html.partition('id="candidate-board"')
+    open_tag_start = head.rfind("<div")
+    open_tag = html[open_tag_start: html.index('id="candidate-board"') + len('id="candidate-board"')]
+    assert "disabled" in open_tag
+
+
+# R6 — Diagnostics block remains visible with all four required entries under unhealthy lineage.
+def test_prd116_r6_diagnostics_preserved_under_mixed() -> None:
+    payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:00:00Z")
+    mm = _market_map({"SPY": _mm_symbol("SPY")})
+    payload["meta"]["generation_id"] = "gen-A"
+    run["generation_id"] = "gen-B"
+    mm["generation_id"] = "gen-C"
+    html = render_dashboard_html(payload, run, market_map=mm)
+    diagnostics = _artifact_diagnostics(html)
+    for entry in (
+        "artifact_lineage_state=",
+        "payload_generation_id=",
+        "run_generation_id=",
+        "market_map_generation_id=",
+    ):
+        assert entry in diagnostics
+
+
+# R7 — Coherent live-session dashboard renders all sections without disabled marker.
+def test_prd116_r7_coherent_live_preserves_sections() -> None:
+    html = render_dashboard_html(
+        _payload(macro_drivers=_macro_drivers()), _run(),
+        market_map=_market_map({"SPY": _mm_symbol("SPY", grade="A")}),
+    )
+    assert 'id="macro-tape"' in html
+    assert 'id="trend-structure"' in html
+    assert 'id="candidate-board"' in html
+    for section_id in ('id="trend-structure"', 'id="candidate-board"'):
+        head, _, _ = html.partition(section_id)
+        open_tag_start = head.rfind("<div")
+        open_tag = html[open_tag_start: html.index(section_id) + len(section_id)]
+        assert "disabled" not in open_tag, f"{section_id} should not be disabled under coherent live"

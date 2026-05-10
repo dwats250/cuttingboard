@@ -72,6 +72,7 @@ def _minimal_contract(session_type: str | None = None) -> dict:
 def _minimal_run() -> dict:
     return {
         "run_id": "sunday-test",
+        "generation_id": "sun-001",
         "timestamp": "2025-01-05T20:00:00Z",
         "run_at_utc": "2025-01-05T20:00:00Z",
         "mode": "SUNDAY",
@@ -158,7 +159,15 @@ class TestDashboardBanner:
 
     def test_banner_present_on_sunday_premarket(self):
         payload = self._make_payload("SUNDAY_PREMARKET")
-        html = render_dashboard_html(payload, _minimal_run())
+        payload["meta"]["generation_id"] = "sun-001"
+        mm = {
+            "schema_version": "market_map.v1",
+            "generation_id": "sun-001",
+            "generated_at": "2025-01-05T20:00:00Z",
+            "primary_symbols": [],
+            "symbols": {},
+        }
+        html = render_dashboard_html(payload, _minimal_run(), market_map=mm)
         assert "SUNDAY PRE-MARKET CONTEXT" in html
 
     def test_banner_absent_on_weekday(self):

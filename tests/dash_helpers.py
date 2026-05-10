@@ -32,7 +32,7 @@ def _payload(
     return {
         "schema_version": "1.0",
         "run_status": "OK",
-        "meta": {"timestamp": timestamp, "symbols_scanned": 5},
+        "meta": {"timestamp": timestamp, "symbols_scanned": 5, "generation_id": "test-gen-001"},
         "macro_drivers": macro_drivers if macro_drivers is not None else {},
         "summary": {
             "market_regime": market_regime,
@@ -68,6 +68,7 @@ def _run(
 ) -> dict:
     return {
         "run_id":       "live-20260428T120000Z",
+        "generation_id": "test-gen-001",
         "status":       status,
         "regime":       regime,
         "posture":      posture,
@@ -116,6 +117,7 @@ def _market_map(symbols: dict | None = None) -> dict:
     s = symbols or {}
     return {
         "schema_version":   "market_map.v1",
+        "generation_id":    "test-gen-001",
         "generated_at":     "2026-04-28T12:00:00Z",
         "primary_symbols":  list(s.keys()),
         "symbols":          s,

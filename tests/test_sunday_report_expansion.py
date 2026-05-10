@@ -21,12 +21,24 @@ _MACRO_DRIVERS = {
 }
 
 _MARKET_MAP_WITH_METALS = {
+    "generation_id": "sun-001",
+    "generated_at": "2025-01-05T20:00:00Z",
     "symbols": {
         "GLD": {"grade": "A", "change_pct": 0.8},
         "SLV": {"grade": "B", "change_pct": 0.5},
         "GDX": {"grade": "C", "change_pct": -0.2},
-    }
+    },
 }
+
+
+def _coherent(payload: dict, run: dict, mm: dict | None) -> tuple[dict, dict, dict | None]:
+    """Inject coherent generation_ids so PRD-116 Sunday gate sees COHERENT lineage."""
+    payload.setdefault("meta", {})["generation_id"] = "sun-001"
+    run["generation_id"] = "sun-001"
+    if isinstance(mm, dict):
+        mm.setdefault("generation_id", "sun-001")
+        mm.setdefault("generated_at", "2025-01-05T20:00:00Z")
+    return payload, run, mm
 
 
 def _minimal_contract(session_type: str | None = None, macro_drivers: dict | None = None) -> dict:
@@ -79,6 +91,7 @@ def _minimal_contract(session_type: str | None = None, macro_drivers: dict | Non
 def _minimal_run() -> dict:
     return {
         "run_id": "sunday-test",
+        "generation_id": "sun-001",
         "timestamp": "2025-01-05T20:00:00Z",
         "run_at_utc": "2025-01-05T20:00:00Z",
         "mode": "SUNDAY",
@@ -115,14 +128,16 @@ class TestSundayContextBlockPresence:
     def test_sunday_context_block_present_in_sunday_premarket(self):
         contract = _minimal_contract(session_type="SUNDAY_PREMARKET", macro_drivers=_MACRO_DRIVERS)
         payload = build_report_payload(contract)
-        html = render_dashboard_html(payload, _minimal_run(), market_map=_MARKET_MAP_WITH_METALS)
+        payload, run, mm = _coherent(payload, _minimal_run(), dict(_MARKET_MAP_WITH_METALS))
+        html = render_dashboard_html(payload, run, market_map=mm)
         assert "sunday-macro-context" in html
         assert "Sunday Macro Context" in html
 
     def test_sunday_context_block_absent_on_weekday(self):
         contract = _minimal_contract(session_type=None, macro_drivers=_MACRO_DRIVERS)
         payload = build_report_payload(contract)
-        html = render_dashboard_html(payload, _minimal_run(), market_map=_MARKET_MAP_WITH_METALS)
+        payload, run, mm = _coherent(payload, _minimal_run(), dict(_MARKET_MAP_WITH_METALS))
+        html = render_dashboard_html(payload, run, market_map=mm)
         assert "sunday-macro-context" not in html
         assert "Sunday Macro Context" not in html
 
@@ -144,7 +159,9 @@ class TestSundayContextFields:
             macro_drivers=macro_drivers if macro_drivers is not None else _MACRO_DRIVERS,
         )
         payload = build_report_payload(contract)
-        return render_dashboard_html(payload, _minimal_run(), market_map=market_map)
+        mm = dict(market_map) if isinstance(market_map, dict) else market_map
+        payload, run, mm = _coherent(payload, _minimal_run(), mm)
+        return render_dashboard_html(payload, run, market_map=mm)
 
     def test_headline_rendered(self):
         html = self._html(market_map=_MARKET_MAP_WITH_METALS)
@@ -187,24 +204,29 @@ class TestSundayContextFields:
 
 class TestMissingMetals:
     def test_missing_market_map_does_not_crash(self):
+        # PRD-116 R3: market_map=None → lineage MISSING → Sunday context suppressed.
+        # Test now asserts graceful suppression (no crash, no Sunday block).
         contract = _minimal_contract(session_type="SUNDAY_PREMARKET", macro_drivers=_MACRO_DRIVERS)
         payload = build_report_payload(contract)
+        payload["meta"]["generation_id"] = "sun-001"
         html = render_dashboard_html(payload, _minimal_run(), market_map=None)
-        assert "Sunday Macro Context" in html
+        assert "Sunday Macro Context" not in html
 
     def test_empty_symbols_does_not_crash(self):
         contract = _minimal_contract(session_type="SUNDAY_PREMARKET", macro_drivers=_MACRO_DRIVERS)
         payload = build_report_payload(contract)
-        html = render_dashboard_html(payload, _minimal_run(), market_map={"symbols": {}})
+        payload, run, mm = _coherent(payload, _minimal_run(), {"symbols": {}})
+        html = render_dashboard_html(payload, run, market_map=mm)
         assert "Sunday Macro Context" in html
 
     def test_partial_metals_does_not_crash(self):
         contract = _minimal_contract(session_type="SUNDAY_PREMARKET", macro_drivers=_MACRO_DRIVERS)
         payload = build_report_payload(contract)
-        html = render_dashboard_html(
+        payload, run, mm = _coherent(
             payload, _minimal_run(),
-            market_map={"symbols": {"GLD": {"grade": "A", "change_pct": 0.5}}},
+            {"symbols": {"GLD": {"grade": "A", "change_pct": 0.5}}},
         )
+        html = render_dashboard_html(payload, run, market_map=mm)
         assert "Sunday Macro Context" in html
         assert "GLD" in html
 

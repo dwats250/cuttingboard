@@ -7,7 +7,13 @@ from cuttingboard.delivery.dashboard_renderer import (
     format_dashboard_timestamp,
     render_dashboard_html,
 )
-from tests.dash_helpers import _payload, _run
+from tests.dash_helpers import _market_map, _payload, _run
+
+
+def _coherent_mm(generated_at: str) -> dict:
+    mm = _market_map()
+    mm["generated_at"] = generated_at
+    return mm
 
 
 # R1 — Zulu timestamp -> PT + UTC label
@@ -58,9 +64,13 @@ def test_monday_pt_timestamp_no_sunday_context():
 # Sunday context gating — Sunday UTC timestamp must render Sunday banner/card
 def test_sunday_pt_timestamp_shows_sunday_context():
     # 2026-05-03T19:33:45Z = 2026-05-03 12:33:45 PT (Sunday)
-    payload = _payload(timestamp="2026-05-03T19:33:45Z")
+    ts = "2026-05-03T19:33:45Z"
+    payload = _payload(timestamp=ts)
     payload["meta"]["session_type"] = "SUNDAY_PREMARKET"
-    html = render_dashboard_html(payload, _run())
+    run = _run()
+    run["timestamp"] = ts
+    run["run_at_utc"] = ts
+    html = render_dashboard_html(payload, run, market_map=_coherent_mm(ts))
     assert "premarket-banner" in html
     assert "SUNDAY PRE-MARKET CONTEXT" in html
 
