@@ -133,6 +133,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-114 | bab82cf | Watchlist Snapshot Sidecar | COMPLETE | [PRD-114](prd_history/PRD-114.md) |
 | PRD-115 | e753ac0 | Dashboard Artifact Lineage Visibility | COMPLETE | [PRD-115](prd_history/PRD-115.md) |
 | PRD-116 | d8df30c | Dashboard Mixed-Artifact Hierarchy Hardening | COMPLETE | [PRD-116](prd_history/PRD-116.md) |
+| PRD-117 | — | Session-Aware Inactive-State Labeling | IN PROGRESS | [PRD-117](prd_history/PRD-117.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
