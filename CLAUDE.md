@@ -86,6 +86,9 @@ Before the first implementation edit of any PRD that changes a user-visible stri
 
 Rationale: a PRD that changes observable output by definition changes whatever assertions checked the old output. Discovering those assertions through suite failure mid-implementation costs an extra full-suite run, a scope-lock amendment to add the surprise test file to FILES, and a re-commit. A 30-second grep + 30-second FILES cross-check prevents this.
 
+**LANE classification (PRD-121):**
+Every PRD authored after PRD-121's merge MUST declare `LANE: MICRO | STANDARD | HIGH-RISK` in its header. Lane is a ceremony axis orthogonal to CLASS / Tier. HIGH-RISK lane requires `fresh-context` or `different-model` review independence; `same-context` is insufficient. See `docs/PRD_PROCESS.md § LANE Axis` for the eligibility filters, the lane intensity table, the Lane Downgrade Prohibition (R11), and the MICRO Eligibility Safety Net (R12).
+
 ---
 
 ## instrument universe

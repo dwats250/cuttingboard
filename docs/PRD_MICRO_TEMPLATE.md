@@ -7,6 +7,13 @@
 STATUS
 PROPOSED
 
+LANE
+MICRO
+<!-- Micro template is locked to LANE: MICRO. If your change touches
+any behavior surface enumerated in docs/PRD_PROCESS.md § MICRO
+Eligibility Safety Net, switch to docs/PRD_TEMPLATE.md and declare
+the appropriate lane. -->
+
 GOAL
 <One paragraph: what this changes and why. State the observed problem
 or process gap concretely. No speculative motivation.>

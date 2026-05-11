@@ -3,6 +3,9 @@ PRD-NNN — [Title]
 STATUS
 IN PROGRESS
 
+LANE
+<!-- MICRO | STANDARD | HIGH-RISK; see docs/PRD_PROCESS.md § LANE Axis -->
+
 CLASS
 [GOVERNANCE | SIDECAR | CONSUMER | EXECUTION | CONTRACT | INFRA]
 [Append "+ PATCH" overlay if this PRD corrects a defect in a prior PRD;

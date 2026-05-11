@@ -15,8 +15,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 **Last updated:** 2026-05-10
 **Last completed PRD:** PRD-120 - Dashboard Source-Health Diagnostics and Permission Display Correction (commit d20d906)
 **Last work completed:** 2026-05-10 — PRD-120: renderer-only source-health diagnostics in cuttingboard/delivery/dashboard_renderer.py emit deterministic SOURCE / MACRO SOURCE / MARKET MAP SOURCE / TREND SYMBOLS lines per dashboard block. Block source-health classifiers are pure functions of upstream signals (artifact_lineage_state, _compute_timestamp_freshness, _mm_status, tape_value_slots, trend snapshot) with explicit ordered precedence per block. Permission cell replaces the prior `&#8212;` fallback with MONITOR_ONLY (coherent active NO_TRADE) or UNKNOWN (unhealthy lineage / catch-all). PRD-118 validate_coherent_publish, PRD-119 freshness gate, PRD-115 lineage banner, PRD-116 MIXED_ARTIFACTS block, and PRD-117 INACTIVE_SESSION_LABEL untouched. ui/dashboard.html + ui/index.html not regenerated this commit; next live pipeline run will regenerate from a coherent fresh set.
-**Active PRD:** none
-**Next step:** —
+**Active PRD:** PRD-121 (in progress)
 **Deferred PRD:** none
 
 **System direction:** deterministic, macro-aware, visibility-first, sidecar-oriented ecosystem.

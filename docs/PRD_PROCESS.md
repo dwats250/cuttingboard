@@ -158,6 +158,80 @@ these fields in PRDs.
 
 ---
 
+## LANE Axis
+
+Per PRD-121: every PRD authored after PRD-121's merge commit MUST
+declare a `LANE:` value in its header alongside `STATUS:`. Lane is a
+coarse ceremony axis that sits on top of the existing CLASS Matrix —
+it captures *how much process is required*, not *what change surface
+is being touched*. Lane is orthogonal to CLASS and Tier and does not
+replace either.
+
+### Lane values and eligibility
+
+| LANE | Eligibility filter | Typical example |
+|------|--------------------|------------------|
+| MICRO | All micro-PRD criteria in `docs/PRD_MICRO_TEMPLATE.md` hold (docs-only / hook-only / test-helper-only / process-only, ≤ 20 production-code lines, no HIGH-RISK FILES intersect, one deterministic FAIL condition) AND the R12 safety-net behavior surfaces are NOT touched | A typo fix, a registry-gap hook exclusion, a docs cross-link |
+| STANDARD | Does NOT qualify for MICRO; `FILES` list does NOT intersect any HIGH-RISK FILES entry in the CLASS Matrix row for the PRD's CLASS | A renderer-only sidecar feature, a notification-formatter tweak, a docs/process expansion that touches several files |
+| HIGH-RISK | `FILES` intersects any HIGH-RISK FILES entry in the CLASS Matrix row for the PRD's CLASS, OR CLASS is `EXECUTION` or `CONTRACT`, OR default Tier is T0 | A regime-input change, a payload schema migration, a publish-gate hardening |
+
+### Lane intensity
+
+Required review intensity per lane. Lane intensity is **additive** to
+the existing CLASS Matrix `Required reviewers` column — it does not
+override or replace it. A `HIGH-RISK CONTRACT` PRD inherits the
+CONTRACT row's `Claude + Codex required; adjudication artifact
+mandatory on any reviewer disagreement` requirement AND the
+HIGH-RISK lane's fresh-context-or-different-model requirement.
+
+| LANE | Structured Claude review | Review Independence | Codex review |
+|------|--------------------------|---------------------|--------------|
+| MICRO | Optional | `same-context` acceptable | Not required unless CLAUDE.md cross-review gate also triggers |
+| STANDARD | Required | `same-context` acceptable | Required when CLAUDE.md cross-review gate triggers (unchanged) |
+| HIGH-RISK | Required | `same-context` INSUFFICIENT; must be `fresh-context` OR `different-model` | Required per the CLASS Matrix row; INHERITS the CLASS row's reviewer requirements in addition to the Independence rule |
+
+### Lane Downgrade Prohibition (PRD-121 R11)
+
+A PRD whose `FILES` list intersects any HIGH-RISK FILES entry for
+its CLASS, OR whose CLASS is `EXECUTION` or `CONTRACT`, OR whose
+default Tier is T0, MUST declare `LANE: HIGH-RISK`. Authors and
+reviewers cannot select MICRO or STANDARD for such changes
+regardless of diff size. Lane is a ceremony axis; it cannot be used
+to bypass the review intensity required by the existing CLASS
+Matrix.
+
+### MICRO Eligibility Safety Net (PRD-121 R12)
+
+`LANE: MICRO` is invalid if the change alters any of the following,
+even when the diff is ≤ 20 production-code lines:
+
+- Executable trading-decision behavior (regime classification,
+  qualification gates, sizing, posture, contract assembly).
+- Artifact contracts or payload / market_map / run schemas.
+- Publication gates (`validate_coherent_publish`, freshness windows,
+  coherent-generation checks, mixed-artifact gating).
+- Runtime artifact write ordering.
+- Dashboard truth semantics (renderer-derived decision-bearing
+  values, threshold-to-label synthesis, source-health classification,
+  lineage classification).
+- Notification truth semantics (block reason, decision label,
+  artifact correlation).
+
+This rule is additive to the existing
+`docs/PRD_MICRO_TEMPLATE.md` eligibility criteria. The criteria
+above enumerate the specific *behavior surfaces* that disqualify a
+change from MICRO; the line-count and file-scope criteria in the
+micro template remain in force.
+
+### Retroactive application
+
+PRD-001 through PRD-120 are NOT amended. Lane declaration is
+required for every PRD whose draft commit lands strictly after
+PRD-121's merge commit. PRD-121 itself declares `LANE: MICRO` as
+the eligibility proof-of-concept.
+
+---
+
 ## CHANGE SURFACE Trigger
 
 The optional `CHANGE SURFACE` section in `docs/PRD_TEMPLATE.md` becomes
