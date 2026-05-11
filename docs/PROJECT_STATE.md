@@ -12,10 +12,10 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 ## Current State
 
-**Last updated:** 2026-05-10
-**Last completed PRD:** PRD-120 - Dashboard Source-Health Diagnostics and Permission Display Correction (commit d20d906)
-**Last work completed:** 2026-05-10 — PRD-120: renderer-only source-health diagnostics in cuttingboard/delivery/dashboard_renderer.py emit deterministic SOURCE / MACRO SOURCE / MARKET MAP SOURCE / TREND SYMBOLS lines per dashboard block. Block source-health classifiers are pure functions of upstream signals (artifact_lineage_state, _compute_timestamp_freshness, _mm_status, tape_value_slots, trend snapshot) with explicit ordered precedence per block. Permission cell replaces the prior `&#8212;` fallback with MONITOR_ONLY (coherent active NO_TRADE) or UNKNOWN (unhealthy lineage / catch-all). PRD-118 validate_coherent_publish, PRD-119 freshness gate, PRD-115 lineage banner, PRD-116 MIXED_ARTIFACTS block, and PRD-117 INACTIVE_SESSION_LABEL untouched. ui/dashboard.html + ui/index.html not regenerated this commit; next live pipeline run will regenerate from a coherent fresh set.
-**Active PRD:** PRD-121 (in progress)
+**Last updated:** 2026-05-11
+**Last completed PRD:** PRD-121 - PRD Workflow Lane Classification and Review Discipline (commit bd14b71)
+**Last work completed:** 2026-05-11 — PRD-121: LANE axis (MICRO/STANDARD/HIGH-RISK) added orthogonal to CLASS Matrix in docs/PRD_PROCESS.md. PRD_TEMPLATE.md and PRD_MICRO_TEMPLATE.md gain LANE: header. PRD_REVIEW_TEMPLATE.md gains Review Independence attestation (fresh-context/different-model/same-context) and Mapping-Table Reachability Checklist (raw input / derivation / precedence / named reachable fixture). R11 forbids lane downgrade for HIGH-RISK FILES / EXECUTION / CONTRACT / Tier-T0 changes; R12 enumerates MICRO-disqualifying behavior surfaces. PROJECT_STATE.md slimmed (Next step removed). CLAUDE.md cross-link added. No production code, tests, runtime, contract, schema, or hook logic touched.
+**Active PRD:** none
 **Deferred PRD:** none
 
 **System direction:** deterministic, macro-aware, visibility-first, sidecar-oriented ecosystem.
@@ -26,7 +26,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 ## Test Baseline
 
-- **2226 passing** (as of 2026-05-10; PRD-120 added 25 renderer source-health and permission-display tests)
+- **2226 passing** (as of 2026-05-11; PRD-121 added 0 tests)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -36,6 +36,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-121 | PRD Workflow Lane Classification and Review Discipline | COMPLETE | 2026-05-11 |
 | PRD-120 | Dashboard Source-Health Diagnostics and Permission Display Correction | COMPLETE | 2026-05-10 |
 | PRD-119 | Dashboard Publish Freshness Gate | COMPLETE | 2026-05-10 |
 | PRD-118 | Coherent Dashboard Publish Artifact Set | COMPLETE | 2026-05-10 |
