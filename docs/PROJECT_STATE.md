@@ -13,8 +13,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-10
-**Last completed PRD:** PRD-119 - Dashboard Publish Freshness Gate (commit ccdee4b)
-**Last work completed:** 2026-05-10 — PRD-119: renderer-owned freshness gate in cuttingboard/delivery/dashboard_renderer.py rejects ui/ publication when payload.meta.timestamp age exceeds the session-keyed window (live: 180m, inactive: 72h). Authoritative age input is payload.meta.timestamp only; freshness_reference_time read exactly once per validate_coherent_publish invocation. PRD-118 coherent-generation validation runs first and short-circuits before freshness evaluation. Non-ui/ outputs unaffected. ui/dashboard.html + ui/index.html not regenerated this commit (local artifacts are fixture-tagged and PRD-118 blocks ui/ publication); next live pipeline run will regenerate from a coherent fresh set.
+**Last completed PRD:** PRD-120 - Dashboard Source-Health Diagnostics and Permission Display Correction (commit d20d906)
+**Last work completed:** 2026-05-10 — PRD-120: renderer-only source-health diagnostics in cuttingboard/delivery/dashboard_renderer.py emit deterministic SOURCE / MACRO SOURCE / MARKET MAP SOURCE / TREND SYMBOLS lines per dashboard block. Block source-health classifiers are pure functions of upstream signals (artifact_lineage_state, _compute_timestamp_freshness, _mm_status, tape_value_slots, trend snapshot) with explicit ordered precedence per block. Permission cell replaces the prior `&#8212;` fallback with MONITOR_ONLY (coherent active NO_TRADE) or UNKNOWN (unhealthy lineage / catch-all). PRD-118 validate_coherent_publish, PRD-119 freshness gate, PRD-115 lineage banner, PRD-116 MIXED_ARTIFACTS block, and PRD-117 INACTIVE_SESSION_LABEL untouched. ui/dashboard.html + ui/index.html not regenerated this commit; next live pipeline run will regenerate from a coherent fresh set.
 **Active PRD:** none
 **Next step:** —
 **Deferred PRD:** none
@@ -27,7 +27,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 ## Test Baseline
 
-- **2201 passing** (as of 2026-05-10; PRD-119 added 12 renderer freshness-gate tests)
+- **2226 passing** (as of 2026-05-10; PRD-120 added 25 renderer source-health and permission-display tests)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -37,6 +37,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-120 | Dashboard Source-Health Diagnostics and Permission Display Correction | COMPLETE | 2026-05-10 |
 | PRD-119 | Dashboard Publish Freshness Gate | COMPLETE | 2026-05-10 |
 | PRD-118 | Coherent Dashboard Publish Artifact Set | COMPLETE | 2026-05-10 |
 | PRD-117 | Session-Aware Inactive-State Labeling | COMPLETE | 2026-05-10 |
