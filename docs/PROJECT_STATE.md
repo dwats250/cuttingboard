@@ -13,9 +13,9 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-11
-**Last completed PRD:** PRD-124 - Hourly Telegram Alert Header and Body Quality (commit 5b0ae73)
-**Last work completed:** 2026-05-11 — PRD-124: rewrote `format_hourly_notification` in `cuttingboard/notifications/__init__.py` to fix Telegram hourly alert quality. Title clock converts `asof_utc` to PT via the existing `LOCAL_TZ` imported from `cuttingboard.notifications.formatter` (no new tz literal); the prior ET conversion surfaced "STAY FLAT 12:20" at 9:20 AM PT on operator phones. Body renders seven fixed-order sections — `State:` / `Confidence:` / `Action:` / `Reason:` / `Blockers:` / `Macro:` / `Focus:` — followed by an optional `Pending confirmation:` block (rendered only when a focus ticker is attached) and a labeled `Generated:` line carrying the ET artifact timestamp. Action enum (`TRADE` / `MONITOR` / `STAY FLAT` / `HALT`) is deterministic from existing `AlertEvent` state: HALT when `validation_summary.system_halted`; TRADE when `symbols_qualified > 0` and posture is tradable; STAY FLAT when regime is None or posture is `STAY_FLAT`; MONITOR otherwise. Generic regime-keyed trigger boilerplate (`TRIGGERS:` block plus seven banned phrases including "breakdown below support", "breakout above resistance", "continuation hold above trigger", etc.) is removed entirely from the hourly path; the duplicate copy in `cuttingboard/output.py` is out of scope and untouched. Missing data degrades with explicit tokens (`State: unknown / unknown`, `Macro: n/a`, `Focus: none`, `Blockers: none`). Deleted dead helpers `_hourly_context_line`, `_hourly_regime_label`, `_trigger_conditions`, `_append_trigger_block`, `_watch_lines_from_qualification`. `AlertEvent` dataclass, `formatter.py`, suppression policy, lifecycle alert block, contract/payload/dashboard renderers, and all decision-logic modules are unchanged (test-asserted via formatter.py source-hash stability). 10 new tests in `tests/test_hourly_alert.py` cover R1–R9 (PT title format, `Generated:` labeling, section presence and order, all four Action branches, banned-phrase absence at both rendered-output and source level, missing-data fallback tokens, single-LOCAL_TZ-declaration invariant, formatter.py byte-stability, and static-grep prohibition on new `sorted(`/`.sort(`/`key=`/`max(`/`min(` constructs). Two title-format assertions in `tests/test_notifications.py` updated mechanically (FILES amendment recorded in PRD-124 NOTE — visible-string pre-edit audit caught them before first edit). Net production LOC delta: +66 (ceiling 140). Lock-screen readability verified manually across STAY FLAT / MONITOR / TRADE / HALT scenarios — top four lines convey title, state, confidence, action without requiring dashboard context.
-**Active PRD:** PRD-125 - OHLCV Cache Freshness Contract
+**Last completed PRD:** PRD-125 - OHLCV Cache Freshness Contract (commit e727ae2)
+**Last work completed:** 2026-05-11 — PRD-125: changed `_is_fresh_ohlcv_cache()` in `cuttingboard/ingestion.py` to evaluate daily OHLCV cache freshness against `config.OHLCV_STALE_HOURS * 60 * 60` instead of the 5-minute quote freshness threshold. Quote freshness remains governed by `config.FRESHNESS_SECONDS`. Added `tests/test_derived.py` coverage for OHLCV cache younger than TTL being reused, OHLCV cache at TTL being rejected and falling through to live refresh, and quote freshness rejecting data older than `config.FRESHNESS_SECONDS`. Validation for implementation commit e727ae2: `python3 -m pytest tests/test_derived.py -q` -> 22 passed; `python3 -m pytest -q` -> 2259 passed; `git diff --check` passed.
+**Active PRD:** none
 **Deferred PRD:** none
 
 **System direction:** deterministic, macro-aware, visibility-first, sidecar-oriented ecosystem.
@@ -26,7 +26,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 ## Test Baseline
 
-- **2257 passing** (as of 2026-05-11; PRD-124 added 10 tests: R1–R9 coverage in `tests/test_hourly_alert.py`)
+- **2259 passing** (as of 2026-05-11; PRD-125 added OHLCV cache TTL and quote freshness regression coverage in `tests/test_derived.py`)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -36,6 +36,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-125 | OHLCV Cache Freshness Contract | COMPLETE | 2026-05-11 |
 | PRD-124 | Hourly Telegram Alert Header and Body Quality | COMPLETE | 2026-05-11 |
 | PRD-123 | Trend Structure Refresh Decoupling and Truthful Source Status | COMPLETE | 2026-05-11 |
 | PRD-122-PATCH | Payload validator must permit optional oil driver | PATCH | 2026-05-11 |
