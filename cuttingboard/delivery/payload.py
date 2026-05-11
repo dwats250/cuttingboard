@@ -236,6 +236,13 @@ def _require_type_or_none(obj: dict, key: str, expected_type: type) -> None:
         )
 
 
+# PRD-122-PATCH: optional drivers are accepted but not required. Must remain
+# aligned with cuttingboard.contract._OPTIONAL_MACRO_DRIVERS — payload-layer
+# duplication is intentional to keep this module free of cross-package
+# imports, but the semantics must not drift.
+_OPTIONAL_MACRO_DRIVERS = frozenset({"oil"})
+
+
 def _require_macro_drivers(macro_drivers: dict) -> None:
     if not isinstance(macro_drivers, dict):
         raise ValueError("macro_drivers must be dict")
@@ -244,10 +251,19 @@ def _require_macro_drivers(macro_drivers: dict) -> None:
         "dollar": {"symbol", "level", "change_pct"},
         "rates": {"symbol", "level", "change_pct", "change_bps"},
         "bitcoin": {"symbol", "level", "change_pct"},
+        "oil": {"symbol", "level", "change_pct"},
     }
-    if set(macro_drivers) != set(expected):
-        raise ValueError("macro_drivers must have exact driver keys")
+    required_keys = set(expected) - _OPTIONAL_MACRO_DRIVERS
+    actual_keys = set(macro_drivers)
+    missing_required = required_keys - actual_keys
+    if missing_required:
+        raise ValueError(f"macro_drivers missing required driver keys: {sorted(missing_required)}")
+    unknown = actual_keys - set(expected)
+    if unknown:
+        raise ValueError(f"macro_drivers has unexpected driver keys: {sorted(unknown)}")
     for driver, required_fields in expected.items():
+        if driver not in macro_drivers:
+            continue  # optional driver absent — permitted
         block = macro_drivers[driver]
         if not isinstance(block, dict):
             raise ValueError(f"macro_drivers.{driver} must be dict")

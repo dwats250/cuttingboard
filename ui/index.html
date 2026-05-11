@@ -13,22 +13,23 @@
   <h2>SYSTEM STATE - NO TRADE</h2>
   <div class="action-line">ACTION: MONITOR — SYSTEM ACTIVE</div>
   <div class="row">
-    <div class="field"><div class="label">Regime</div><div class="value"><span class="badge RISK_ON">RISK_ON</span></div></div>
-    <div class="field"><div class="label">Confidence</div><div class="value">0.75</div></div>
+    <div class="field"><div class="label">Regime</div><div class="value"><span class="badge NEUTRAL">NEUTRAL</span></div></div>
+    <div class="field"><div class="label">Confidence</div><div class="value">0.0</div></div>
     <div class="field"><div class="label">Outcome</div><div class="value">NO_TRADE</div></div>
   </div>
   <div class="row">
-    <div class="field"><div class="label">Permission</div><div class="value">&#8212;</div></div>
+    <div class="field warn"><div class="label">Permission</div><div class="value">STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)</div></div>
   </div>
-  <div class="field"><div class="label">Reason</div><div class="value">no qualified candidates</div></div>
   <div class="sep"></div>
-  <div class="label">RUN SNAPSHOT - STALE</div>
-  <div class="value">2026-05-08 15:31:10 PT</div>
+  <div class="label">SOURCE: OK</div>
+  <div class="label">RUN SNAPSHOT - CURRENT</div>
+  <div class="value">2026-05-11 01:11:00 PT</div>
 </div>
 <div class="block" id="macro-tape">
   <h2>Macro Tape</h2>
-  <div class="macro-bias mixed">MACRO BIAS: MIXED</div>
-  <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">VIX ↑</span><span class="macro-tape-value" data-symbol="VIX">17.2</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">DXY ↓</span><span class="macro-tape-value" data-symbol="DXY">97.8</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">10Y ↓</span><span class="macro-tape-value" data-symbol="10Y">4.36</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">BTC ↑</span><span class="macro-tape-value" data-symbol="BTC">80.3K</span></span></div>
+  <div class="label">MACRO SOURCE: OK</div>
+  <div class="macro-bias short">MACRO BIAS: SHORT ↓</div>
+  <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">VIX ↑</span><span class="macro-tape-value" data-symbol="VIX">18.2</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">DXY ↓</span><span class="macro-tape-value" data-symbol="DXY">98.0</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">10Y ↓</span><span class="macro-tape-value" data-symbol="10Y">4.36</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">BTC ↓</span><span class="macro-tape-value" data-symbol="BTC">80.7K</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">OIL ↓</span><span class="macro-tape-value" data-symbol="OIL">98.4</span></span></div>
   <div class="sep"></div>
   <div class="macro-tradables-grid">
     <span class="tradable-cell"><span class="macro-tape-label">SPY</span>&nbsp;<span class="macro-tape-value" data-symbol="SPY">737.62</span></span>
@@ -48,7 +49,7 @@
     <span class="label">Rates</span>
     <span class="badge NEUTRAL">NEUTRAL</span>
     <span class="label">Bitcoin</span>
-    <span class="badge RISK_ON">RISK_ON</span>
+    <span class="badge RISK_OFF">RISK_OFF</span>
     <span class="label">Overall</span>
     <span class="badge MIXED">MIXED</span>
     </div>
@@ -56,6 +57,8 @@
 </div>
 <div class="block" id="trend-structure">
   <h2>Trend Structure <span class="badge warn">STALE</span></h2>
+  <div class="label">SOURCE: STALE</div>
+  <div class="label">TREND SYMBOLS: 6/6</div>
   <table style="width:100%;border-collapse:collapse;font-size:0.78rem;display:block;overflow-x:auto">
     <thead><tr style="text-align:left;color:#888">
       <th style="padding:2px 8px">Symbol</th>
@@ -140,81 +143,10 @@
 </div>
 <div class="block" id="candidate-board">
   <h2>Market Map / Developing Setups</h2>
-  <div class="unavailable">STALE</div>
-  <div class="tier-group" id="tier-b">
-    <div class="tier-header">B — DEVELOPING (1)</div>
-<div class="candidate-card grade-b" id="card-GDX">
-  <div class="label">SYMBOL</div><div class="value">GDX</div>
-  <div class="label">GRADE</div><div class="value">B</div>
-  <div class="label">BIAS</div><div class="value">BEARISH</div>
-  <div class="label">STRUCTURE</div><div class="value">BREAKDOWN</div>
-  <div class="lifecycle-detail">LIFECYCLE: B → B | DEVELOPING → DEVELOPING</div>
-  <div class="candidate-state">STATE: DEVELOPING</div>
-  <div class="label">IF NOW</div><div class="value">WAIT</div>
-  <div class="label">ENTRY</div><div class="value">rejects near EMA50 with downside follow-through</div>
-  <div class="label">INVALIDATION</div><div class="value">reclaims EMA50 with follow-through</div>
-  <div class="candidate-risk">RISK: wait if price reclaims EMA50 or structure turns choppy</div>
-  <div class="label">REASON</div><div class="value">B: bearish breakdown, regime mixed, away from key level</div>
-  <div class="label">PLAY</div><div class="value">bearish defined-risk continuation</div>
-  <div class="label">WATCH</div><div class="value">watch rejection near EMA50</div>
-  <div class="label">WATCH</div><div class="value">look for lower high with expanding volume</div>
-  <div class="lvl-diagram">
-    <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
-    <rect width="160" height="110" fill="#0a0a0a"/>
-    <line x1="0" y1="11" x2="160" y2="11" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <text x="164" y="15" font-size="9" fill="#555" font-family="monospace">0.382</text>
-    <line x1="0" y1="40" x2="160" y2="40" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <text x="164" y="44" font-size="9" fill="#555" font-family="monospace">0.5</text>
-    <line x1="0" y1="70" x2="160" y2="70" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <text x="164" y="74" font-size="9" fill="#555" font-family="monospace">0.618</text>
-    <line x1="0" y1="46" x2="160" y2="46" stroke="#1a4a5a" stroke-width="1"/>
-    <text x="164" y="50" font-size="9" fill="#3a7a8a" font-family="monospace">EMA50</text>
-    <line x1="0" y1="75" x2="160" y2="75" stroke="#1a4a5a" stroke-width="1"/>
-    <text x="164" y="79" font-size="9" fill="#3a7a8a" font-family="monospace">EMA21</text>
-    <line x1="0" y1="99" x2="160" y2="99" stroke="#1a4a5a" stroke-width="1"/>
-    <text x="164" y="103" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9</text>
-    <line x1="0" y1="30" x2="160" y2="30" stroke="#f5c518" stroke-width="2"/>
-    <circle cx="3" cy="30" r="3" fill="#f5c518"/>
-    <text x="164" y="34" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
-    </svg>
-  </div>
-</div>
-  </div>
-  <details class="tier-group" id="tier-c">
-    <summary class="tier-header">C — EARLY (1)</summary>
-<div class="candidate-card grade-c" id="card-XLE">
-  <div class="failed-card-fields">
-    <div><div class="label">SYMBOL</div><div class="value">XLE</div></div>
-    <div><div class="label">GRADE</div><div class="value">C</div></div>
-    <div><div class="label">BIAS</div><div class="value">BULLISH</div></div>
-    <div><div class="label">STRUCTURE</div><div class="value">RANGE</div></div>
-  </div>
-  <div class="label">FAILURE REASON</div><div class="value">C: bullish range, regime aligned, away from key level</div>
-  <div class="label">VALIDATION</div><div class="value">C: bullish range, regime aligned, away from key level</div>
-  <div class="lvl-diagram">
-    <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
-    <rect width="160" height="110" fill="#0a0a0a"/>
-    <line x1="0" y1="26" x2="160" y2="26" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <text x="164" y="30" font-size="9" fill="#555" font-family="monospace">0.382</text>
-    <line x1="0" y1="59" x2="160" y2="59" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <text x="164" y="63" font-size="9" fill="#555" font-family="monospace">0.5</text>
-    <line x1="0" y1="92" x2="160" y2="92" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <text x="164" y="96" font-size="9" fill="#555" font-family="monospace">0.618</text>
-    <line x1="0" y1="11" x2="160" y2="11" stroke="#1a4a5a" stroke-width="1"/>
-    <text x="164" y="15" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9</text>
-    <line x1="0" y1="12" x2="160" y2="12" stroke="#1a4a5a" stroke-width="1"/>
-    <text x="164" y="16" font-size="9" fill="#3a7a8a" font-family="monospace">EMA21</text>
-    <line x1="0" y1="54" x2="160" y2="54" stroke="#1a4a5a" stroke-width="1"/>
-    <text x="164" y="58" font-size="9" fill="#3a7a8a" font-family="monospace">EMA50</text>
-    <line x1="0" y1="99" x2="160" y2="99" stroke="#f5c518" stroke-width="2"/>
-    <circle cx="3" cy="99" r="3" fill="#f5c518"/>
-    <text x="164" y="103" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
-    </svg>
-  </div>
-</div>
-  </details>
+  <div class="label">MARKET MAP SOURCE: OK - setups 6</div>
+  <div class="idle-summary"><div>NO ACTIONABLE SETUPS</div><div>Market is not offering structure</div></div>
   <details class="tier-group" id="tier-df">
-    <summary class="tier-header">D/F — FAILING (4)</summary>
+    <summary class="tier-header">D/F — FAILING (6)</summary>
 <div class="candidate-card grade-d" id="card-QQQ">
   <div class="failed-card-fields">
     <div><div class="label">SYMBOL</div><div class="value">QQQ</div></div>
@@ -227,40 +159,18 @@
   <div class="lvl-diagram">
     <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
     <rect width="160" height="110" fill="#0a0a0a"/>
-    <line x1="0" y1="70" x2="160" y2="70" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <text x="164" y="74" font-size="9" fill="#555" font-family="monospace">0.382</text>
-    <line x1="0" y1="85" x2="160" y2="85" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <text x="164" y="89" font-size="9" fill="#555" font-family="monospace">0.5</text>
-    <line x1="0" y1="99" x2="160" y2="99" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <text x="164" y="103" font-size="9" fill="#555" font-family="monospace">0.618</text>
-    <line x1="0" y1="56" x2="160" y2="56" stroke="#1a4a5a" stroke-width="1"/>
-    <text x="164" y="60" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9</text>
-    <line x1="0" y1="11" x2="160" y2="11" stroke="#f5c518" stroke-width="2"/>
-    <circle cx="3" cy="11" r="3" fill="#f5c518"/>
-    <text x="164" y="15" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
-    </svg>
-  </div>
-</div>
-<div class="candidate-card grade-d" id="card-SLV">
-  <div class="failed-card-fields">
-    <div><div class="label">SYMBOL</div><div class="value">SLV</div></div>
-    <div><div class="label">GRADE</div><div class="value">D</div></div>
-    <div><div class="label">BIAS</div><div class="value">BEARISH</div></div>
-    <div><div class="label">STRUCTURE</div><div class="value">BREAKDOWN</div></div>
-  </div>
-  <div class="label">FAILURE REASON</div><div class="value">D: bearish structure is extended from trend reference</div>
-  <div class="label">VALIDATION</div><div class="value">D: bearish structure is extended from trend reference</div>
-  <div class="lvl-diagram">
-    <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
-    <rect width="160" height="110" fill="#0a0a0a"/>
-    <line x1="0" y1="50" x2="160" y2="50" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <text x="164" y="54" font-size="9" fill="#555" font-family="monospace">0.382</text>
-    <line x1="0" y1="75" x2="160" y2="75" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <text x="164" y="79" font-size="9" fill="#555" font-family="monospace">0.5</text>
-    <line x1="0" y1="99" x2="160" y2="99" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <text x="164" y="103" font-size="9" fill="#555" font-family="monospace">0.618</text>
-    <line x1="0" y1="79" x2="160" y2="79" stroke="#1a4a5a" stroke-width="1"/>
-    <text x="164" y="83" font-size="9" fill="#3a7a8a" font-family="monospace">EMA50</text>
+    <line x1="0" y1="11" x2="160" y2="11" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="15" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_HIGH</text>
+    <line x1="0" y1="13" x2="160" y2="13" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="17" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_HIGH</text>
+    <line x1="0" y1="15" x2="160" y2="15" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="19" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_LOW</text>
+    <line x1="0" y1="48" x2="160" y2="48" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="52" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_LOW</text>
+    <line x1="0" y1="99" x2="160" y2="99" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="103" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9</text>
+    <line x1="0" y1="16" x2="160" y2="16" stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <text x="164" y="20" font-size="9" fill="#29b6f6" font-family="monospace">VWAP</text>
     <line x1="0" y1="11" x2="160" y2="11" stroke="#f5c518" stroke-width="2"/>
     <circle cx="3" cy="11" r="3" fill="#f5c518"/>
     <text x="164" y="15" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
@@ -279,19 +189,57 @@
   <div class="lvl-diagram">
     <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
     <rect width="160" height="110" fill="#0a0a0a"/>
-    <line x1="0" y1="67" x2="160" y2="67" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <text x="164" y="71" font-size="9" fill="#555" font-family="monospace">0.382</text>
-    <line x1="0" y1="83" x2="160" y2="83" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <text x="164" y="87" font-size="9" fill="#555" font-family="monospace">0.5</text>
-    <line x1="0" y1="99" x2="160" y2="99" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <text x="164" y="103" font-size="9" fill="#555" font-family="monospace">0.618</text>
-    <line x1="0" y1="48" x2="160" y2="48" stroke="#1a4a5a" stroke-width="1"/>
-    <text x="164" y="52" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9</text>
+    <line x1="0" y1="11" x2="160" y2="11" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="15" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_HIGH</text>
+    <line x1="0" y1="12" x2="160" y2="12" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="16" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_HIGH</text>
+    <line x1="0" y1="12" x2="160" y2="12" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="16" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_LOW</text>
+    <line x1="0" y1="22" x2="160" y2="22" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="26" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_LOW</text>
+    <line x1="0" y1="54" x2="160" y2="54" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="58" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9</text>
+    <line x1="0" y1="99" x2="160" y2="99" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="103" font-size="9" fill="#3a7a8a" font-family="monospace">EMA21</text>
+    <line x1="0" y1="13" x2="160" y2="13" stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <text x="164" y="17" font-size="9" fill="#29b6f6" font-family="monospace">VWAP</text>
+    <line x1="0" y1="12" x2="160" y2="12" stroke="#f5c518" stroke-width="2"/>
+    <circle cx="3" cy="12" r="3" fill="#f5c518"/>
+    <text x="164" y="16" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
+    </svg>
+  </div>
+</div>
+<div class="candidate-card grade-f" id="card-GDX">
+  <div class="failed-card-fields">
+    <div><div class="label">SYMBOL</div><div class="value">GDX</div></div>
+    <div><div class="label">GRADE</div><div class="value">F</div></div>
+    <div><div class="label">BIAS</div><div class="value">BEARISH</div></div>
+    <div><div class="label">STRUCTURE</div><div class="value">CHOPPY</div></div>
+  </div>
+  <div class="label">FAILURE REASON</div><div class="value">F: structurally invalid - choppy market structure</div>
+  <div class="label">VALIDATION</div><div class="value">F: structurally invalid - choppy market structure</div>
+  <div class="lvl-diagram">
+    <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
+    <rect width="160" height="110" fill="#0a0a0a"/>
+    <line x1="0" y1="11" x2="160" y2="11" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="15" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_HIGH</text>
+    <line x1="0" y1="39" x2="160" y2="39" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="43" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_HIGH</text>
+    <line x1="0" y1="42" x2="160" y2="42" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="46" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_LOW</text>
+    <line x1="0" y1="45" x2="160" y2="45" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="49" font-size="9" fill="#3a7a8a" font-family="monospace">EMA50</text>
+    <line x1="0" y1="62" x2="160" y2="62" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="66" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_LOW</text>
     <line x1="0" y1="79" x2="160" y2="79" stroke="#1a4a5a" stroke-width="1"/>
     <text x="164" y="83" font-size="9" fill="#3a7a8a" font-family="monospace">EMA21</text>
-    <line x1="0" y1="11" x2="160" y2="11" stroke="#f5c518" stroke-width="2"/>
-    <circle cx="3" cy="11" r="3" fill="#f5c518"/>
-    <text x="164" y="15" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
+    <line x1="0" y1="99" x2="160" y2="99" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="103" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9</text>
+    <line x1="0" y1="35" x2="160" y2="35" stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <text x="164" y="39" font-size="9" fill="#29b6f6" font-family="monospace">VWAP</text>
+    <line x1="0" y1="25" x2="160" y2="25" stroke="#f5c518" stroke-width="2"/>
+    <circle cx="3" cy="25" r="3" fill="#f5c518"/>
+    <text x="164" y="29" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
     </svg>
   </div>
 </div>
@@ -302,20 +250,96 @@
     <div><div class="label">BIAS</div><div class="value">BEARISH</div></div>
     <div><div class="label">STRUCTURE</div><div class="value">CHOPPY</div></div>
   </div>
-  <div class="label">FAILURE REASON</div><div class="value">Market data unavailable for this run.</div>
-  <div class="label">VALIDATION</div><div class="value">Market data unavailable for this run.</div>
+  <div class="label">FAILURE REASON</div><div class="value">F: structurally invalid - choppy market structure</div>
+  <div class="label">VALIDATION</div><div class="value">F: structurally invalid - choppy market structure</div>
   <div class="lvl-diagram">
     <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
     <rect width="160" height="110" fill="#0a0a0a"/>
     <line x1="0" y1="11" x2="160" y2="11" stroke="#1a4a5a" stroke-width="1"/>
-    <text x="164" y="15" font-size="9" fill="#3a7a8a" font-family="monospace">EMA50</text>
-    <line x1="0" y1="66" x2="160" y2="66" stroke="#1a4a5a" stroke-width="1"/>
-    <text x="164" y="70" font-size="9" fill="#3a7a8a" font-family="monospace">EMA21</text>
+    <text x="164" y="15" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_HIGH</text>
+    <line x1="0" y1="33" x2="160" y2="33" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="37" font-size="9" fill="#3a7a8a" font-family="monospace">EMA50</text>
+    <line x1="0" y1="38" x2="160" y2="38" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="42" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_HIGH</text>
+    <line x1="0" y1="40" x2="160" y2="40" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="44" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_LOW</text>
+    <line x1="0" y1="57" x2="160" y2="57" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="61" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_LOW</text>
+    <line x1="0" y1="80" x2="160" y2="80" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="84" font-size="9" fill="#3a7a8a" font-family="monospace">EMA21</text>
     <line x1="0" y1="99" x2="160" y2="99" stroke="#1a4a5a" stroke-width="1"/>
     <text x="164" y="103" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9</text>
-    <line x1="0" y1="14" x2="160" y2="14" stroke="#f5c518" stroke-width="2"/>
-    <circle cx="3" cy="14" r="3" fill="#f5c518"/>
-    <text x="164" y="18" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
+    <line x1="0" y1="35" x2="160" y2="35" stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <text x="164" y="39" font-size="9" fill="#29b6f6" font-family="monospace">VWAP</text>
+    <line x1="0" y1="36" x2="160" y2="36" stroke="#f5c518" stroke-width="2"/>
+    <circle cx="3" cy="36" r="3" fill="#f5c518"/>
+    <text x="164" y="40" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
+    </svg>
+  </div>
+</div>
+<div class="candidate-card grade-f" id="card-SLV">
+  <div class="failed-card-fields">
+    <div><div class="label">SYMBOL</div><div class="value">SLV</div></div>
+    <div><div class="label">GRADE</div><div class="value">F</div></div>
+    <div><div class="label">BIAS</div><div class="value">NEUTRAL</div></div>
+    <div><div class="label">STRUCTURE</div><div class="value">CHOPPY</div></div>
+  </div>
+  <div class="label">FAILURE REASON</div><div class="value">F: structurally invalid - choppy market structure</div>
+  <div class="label">VALIDATION</div><div class="value">F: structurally invalid - choppy market structure</div>
+  <div class="lvl-diagram">
+    <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
+    <rect width="160" height="110" fill="#0a0a0a"/>
+    <line x1="0" y1="11" x2="160" y2="11" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="15" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_HIGH</text>
+    <line x1="0" y1="31" x2="160" y2="31" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="35" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_HIGH</text>
+    <line x1="0" y1="33" x2="160" y2="33" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="37" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_LOW</text>
+    <line x1="0" y1="42" x2="160" y2="42" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="46" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_LOW</text>
+    <line x1="0" y1="96" x2="160" y2="96" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="100" font-size="9" fill="#3a7a8a" font-family="monospace">EMA50</text>
+    <line x1="0" y1="99" x2="160" y2="99" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="103" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9</text>
+    <line x1="0" y1="29" x2="160" y2="29" stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <text x="164" y="33" font-size="9" fill="#29b6f6" font-family="monospace">VWAP</text>
+    <line x1="0" y1="27" x2="160" y2="27" stroke="#f5c518" stroke-width="2"/>
+    <circle cx="3" cy="27" r="3" fill="#f5c518"/>
+    <text x="164" y="31" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
+    </svg>
+  </div>
+</div>
+<div class="candidate-card grade-f" id="card-XLE">
+  <div class="failed-card-fields">
+    <div><div class="label">SYMBOL</div><div class="value">XLE</div></div>
+    <div><div class="label">GRADE</div><div class="value">F</div></div>
+    <div><div class="label">BIAS</div><div class="value">NEUTRAL</div></div>
+    <div><div class="label">STRUCTURE</div><div class="value">CHOPPY</div></div>
+  </div>
+  <div class="label">FAILURE REASON</div><div class="value">F: structurally invalid - choppy market structure</div>
+  <div class="label">VALIDATION</div><div class="value">F: structurally invalid - choppy market structure</div>
+  <div class="lvl-diagram">
+    <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
+    <rect width="160" height="110" fill="#0a0a0a"/>
+    <line x1="0" y1="11" x2="160" y2="11" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="15" font-size="9" fill="#3a7a8a" font-family="monospace">EMA21</text>
+    <line x1="0" y1="19" x2="160" y2="19" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="23" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9</text>
+    <line x1="0" y1="46" x2="160" y2="46" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="50" font-size="9" fill="#3a7a8a" font-family="monospace">EMA50</text>
+    <line x1="0" y1="66" x2="160" y2="66" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="70" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_HIGH</text>
+    <line x1="0" y1="81" x2="160" y2="81" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="85" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_HIGH</text>
+    <line x1="0" y1="83" x2="160" y2="83" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="87" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_LOW</text>
+    <line x1="0" y1="99" x2="160" y2="99" stroke="#1a4a5a" stroke-width="1"/>
+    <text x="164" y="103" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_LOW</text>
+    <line x1="0" y1="82" x2="160" y2="82" stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <text x="164" y="86" font-size="9" fill="#29b6f6" font-family="monospace">VWAP</text>
+    <line x1="0" y1="89" x2="160" y2="89" stroke="#f5c518" stroke-width="2"/>
+    <circle cx="3" cy="89" r="3" fill="#f5c518"/>
+    <text x="164" y="93" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
     </svg>
   </div>
 </div>
@@ -323,8 +347,8 @@
 </div>
 <div class="block" id="run-delta">
   <h2>Changes Since Last Run</h2>
-  <div class="value">Posture: Stay Flat -&gt; Aggressive Long</div>
-  <div class="value">Confidence: 0.375 -&gt; 0.75</div>
+  <div class="value">Regime: RISK_ON -&gt; NEUTRAL</div>
+  <div class="value">Confidence: 0.375 -&gt; 0.0</div>
 </div>
 <details class="block" id="run-history">
   <summary>History</summary>
@@ -333,38 +357,38 @@
     <span class="label">Regime</span>
     <span class="label">Posture</span>
     <span class="label">Conf</span>
-    <span class="history-cell">13:00</span>
-    <span class="history-cell">RISK_ON</span>
-    <span class="history-cell">Stay Flat</span>
-    <span class="history-cell">0.25</span>
-    <span class="history-cell">12:50</span>
-    <span class="history-cell">RISK_ON</span>
-    <span class="history-cell">Stay Flat</span>
-    <span class="history-cell">0.375</span>
-    <span class="history-cell">13:00</span>
-    <span class="history-cell">RISK_ON</span>
-    <span class="history-cell">Stay Flat</span>
-    <span class="history-cell">0.375</span>
-    <span class="history-cell">12:50</span>
-    <span class="history-cell">RISK_ON</span>
-    <span class="history-cell">Stay Flat</span>
-    <span class="history-cell">0.25</span>
-    <span class="history-cell">06:16</span>
+    <span class="history-cell">08:11</span>
     <span class="history-cell">NEUTRAL</span>
     <span class="history-cell">Stay Flat</span>
     <span class="history-cell">0.0</span>
+    <span class="history-cell">07:51</span>
+    <span class="history-cell">RISK_ON</span>
+    <span class="history-cell">Stay Flat</span>
+    <span class="history-cell">0.375</span>
+    <span class="history-cell">13:00</span>
+    <span class="history-cell">RISK_ON</span>
+    <span class="history-cell">Stay Flat</span>
+    <span class="history-cell">0.25</span>
+    <span class="history-cell">12:50</span>
+    <span class="history-cell">RISK_ON</span>
+    <span class="history-cell">Stay Flat</span>
+    <span class="history-cell">0.375</span>
+    <span class="history-cell">13:00</span>
+    <span class="history-cell">RISK_ON</span>
+    <span class="history-cell">Stay Flat</span>
+    <span class="history-cell">0.375</span>
   </div>
 </details>
 <details class="block" id="artifact-diagnostics">
   <summary>Artifact diagnostics</summary>
   <div class="artifact-diagnostics">
     <span>artifact_lineage_state=COHERENT</span>
-    <span>payload=logs/latest_hourly_payload.json @ 2026-05-08T22:31:10Z</span>
-    <span>payload_generation_id=hourly-20260508T223110Z</span>
-    <span>run=logs/latest_hourly_run.json @ 2026-05-08T22:31:10Z</span>
-    <span>run_generation_id=hourly-20260508T223110Z</span>
-    <span>market_map=logs/market_map.json @ 2026-05-08T22:31:10Z</span>
-    <span>market_map_generation_id=hourly-20260508T223110Z</span>
+    <span>payload=logs/latest_payload.json @ 2026-05-11T08:11:00Z</span>
+    <span>payload_generation_id=live-20260511T081100Z</span>
+    <span>run=logs/latest_run.json @ 2026-05-11T08:11:00Z</span>
+    <span>run_generation_id=live-20260511T081100Z</span>
+    <span>market_map=logs/market_map.json @ 2026-05-11T08:11:00Z</span>
+    <span>market_map_generation_id=live-20260511T081100Z</span>
     <span>contract=logs/latest_hourly_contract.json @ 2026-05-08T22:31:10Z</span>
   </div>
 </details>

@@ -149,3 +149,4 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-016 | [docs/prd_history/AUDIT_PRD016.md](prd_history/AUDIT_PRD016.md) |
 | PRD-121 | bd14b71 | PRD Workflow Lane Classification and Review Discipline | COMPLETE | [PRD-121](prd_history/PRD-121.md) |
 | PRD-122 | 70a0e33 | Add WTI Crude Macro Visibility | COMPLETE | [PRD-122](prd_history/PRD-122.md) |
+| PRD-122-PATCH | PENDING | Payload validator must permit optional oil driver | PATCH | [PRD-122-PATCH](prd_history/PRD-122-PATCH.md) |

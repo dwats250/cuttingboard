@@ -128,3 +128,50 @@ def test_no_data_payload_passes_through_empty_macro_drivers() -> None:
     payload = build_report_payload(contract)
     assert payload["macro_drivers"] == {}
     assert_valid_payload(payload)
+
+
+# ---------------------------------------------------------------------------
+# PRD-122-PATCH: private-validator regression coverage.
+# These exercise cuttingboard.delivery.payload._require_macro_drivers directly,
+# isolating the payload-layer validator from the public assert_valid_payload
+# entry exercised above. Catches duplicate-validator drift between this module
+# and cuttingboard.contract._OPTIONAL_MACRO_DRIVERS.
+# ---------------------------------------------------------------------------
+
+from cuttingboard.delivery.payload import _require_macro_drivers  # noqa: E402
+
+
+def _oil_block() -> dict:
+    return {"symbol": "CL=F", "level": 78.5, "change_pct": -0.8}
+
+
+def test_require_macro_drivers_required_four_pass() -> None:
+    _require_macro_drivers(_macro_drivers())  # must not raise
+
+
+def test_require_macro_drivers_required_four_plus_oil_pass() -> None:
+    drivers = _macro_drivers()
+    drivers["oil"] = _oil_block()
+    _require_macro_drivers(drivers)  # must not raise
+
+
+def test_require_macro_drivers_missing_required_raises() -> None:
+    drivers = _macro_drivers()
+    del drivers["bitcoin"]
+    with pytest.raises(ValueError, match="missing required driver keys"):
+        _require_macro_drivers(drivers)
+
+
+def test_require_macro_drivers_unknown_extra_driver_raises() -> None:
+    drivers = _macro_drivers()
+    drivers["gold"] = {"symbol": "GLD", "level": 200.0, "change_pct": 0.5}
+    with pytest.raises(ValueError, match="unexpected driver keys"):
+        _require_macro_drivers(drivers)
+
+
+def test_require_macro_drivers_invalid_oil_field_shape_raises() -> None:
+    drivers = _macro_drivers()
+    # Missing `change_pct` — oil block has incomplete field set.
+    drivers["oil"] = {"symbol": "CL=F", "level": 78.5}
+    with pytest.raises(ValueError, match="macro_drivers.oil has unexpected keys"):
+        _require_macro_drivers(drivers)

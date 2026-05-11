@@ -13,8 +13,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-11
-**Last completed PRD:** PRD-122 - Add WTI Crude Macro Visibility (commit 70a0e33)
-**Last work completed:** 2026-05-11 — PRD-122: optional WTI crude (`CL=F`) added as a fifth, visibility-only macro driver. `MACRO_DRIVERS`/`SYMBOL_SOURCE_PRIORITY`/`PRICE_BOUNDS` extended in `config.py`; `_MACRO_DRIVER_SYMBOLS` gains `"oil": "CL=F"` and a new `_OPTIONAL_MACRO_DRIVERS = frozenset({"oil"})` in `contract.py`. `_build_macro_drivers` skips optional drivers when the quote is missing or non-finite; `assert_valid_contract` requires only non-optional driver keys and continues to enforce exact per-block field sets. `macro_pressure.py` ignores `oil` (documented inline). Renderer adds `("OIL", "oil")` to `_TAPE_DRIVER_DEFS` and a one-decimal OIL format branch; tape row now slices `len(_TAPE_DRIVER_DEFS)` while macro_bias retains `[:4]` (oil excluded from bias arithmetic). Three new renderer tests cover full render / missing-key / stale-snapshot fallback. Oil is NOT in `HALT_SYMBOLS` or `REQUIRED_SYMBOLS`; missing oil never halts the pipeline. No qualification, regime, scoring, policy, or execution semantics changed.
+**Last completed PRD:** PRD-122-PATCH - Payload validator must permit optional oil driver (commit TBD)
+**Last work completed:** 2026-05-11 — PRD-122-PATCH: fixed the payload-layer duplicate macro-driver validator (`cuttingboard/delivery/payload.py::_require_macro_drivers`) which still enforced exact-set equality on the four pre-PRD-122 driver keys. Live pipeline payload-write had been failing with `ValueError: macro_drivers must have exact driver keys` whenever the new `oil` driver was present in `contract.macro_drivers`. Patch introduces a local `_OPTIONAL_MACRO_DRIVERS = frozenset({"oil"})` aligned with `contract._OPTIONAL_MACRO_DRIVERS` (intentional duplication; payload module otherwise imports nothing from cuttingboard internals). Validator now distinguishes required vs unknown driver keys with separate raise paths; per-block field-set and finite-float checks unchanged. Five focused private-validator regression tests appended to `tests/test_payload_macro_drivers.py` (required-four pass / required-four+oil pass / missing-required raises / unknown-extra raises / invalid oil field-shape raises). Live pipeline now completes payload-write and renders OIL in `ui/dashboard.html` / `ui/index.html` (live WTI: $98.4). No qualification, regime, scoring, policy, execution, or contract-layer semantics changed.
 **Active PRD:** none
 **Deferred PRD:** none
 
@@ -26,7 +26,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 ## Test Baseline
 
-- **2230 passing** (as of 2026-05-11; PRD-122 added 3 renderer tests)
+- **2235 passing** (as of 2026-05-11; PRD-122-PATCH added 5 payload-validator tests)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -36,6 +36,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-122-PATCH | Payload validator must permit optional oil driver | PATCH | 2026-05-11 |
 | PRD-122 | Add WTI Crude Macro Visibility | COMPLETE | 2026-05-11 |
 | PRD-121 | PRD Workflow Lane Classification and Review Discipline | COMPLETE | 2026-05-11 |
 | PRD-120 | Dashboard Source-Health Diagnostics and Permission Display Correction | COMPLETE | 2026-05-10 |
