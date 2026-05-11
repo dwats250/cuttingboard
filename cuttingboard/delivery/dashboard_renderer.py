@@ -600,6 +600,141 @@ def _load_trend_structure_snapshot(path: Path) -> dict | None:
     return data
 
 
+def _trend_symbols_usable(snapshot: dict | None) -> int:
+    """PRD-120: per-symbol completeness count.
+
+    Returns the number of TREND_STRUCTURE_SYMBOLS whose record in
+    `snapshot["symbols"]` contains every field in
+    `_TREND_STRUCTURE_REQUIRED_FIELDS`. Evaluated per-symbol; does NOT
+    fall back to all-or-nothing like `_trend_structure_records`.
+    """
+    if not isinstance(snapshot, dict):
+        return 0
+    symbols = snapshot.get("symbols")
+    if not isinstance(symbols, dict):
+        return 0
+    count = 0
+    for sym in config.TREND_STRUCTURE_SYMBOLS:
+        rec = symbols.get(sym)
+        if not isinstance(rec, dict):
+            continue
+        if all(field in rec for field in _TREND_STRUCTURE_REQUIRED_FIELDS):
+            count += 1
+    return count
+
+
+def _system_state_source_health(
+    *,
+    artifact_lineage_state: str,
+    payload_timestamp_value: object,
+) -> str:
+    """PRD-120 SOURCE-HEALTH MAPPING for System State. First match wins."""
+    if artifact_lineage_state == "MIXED":
+        return "MIXED"
+    if artifact_lineage_state in ("STALE", "MISSING"):
+        return artifact_lineage_state
+    freshness = _compute_timestamp_freshness(str(payload_timestamp_value))
+    if freshness == "PARSE_ERROR":
+        return "INVALID"
+    if freshness == "STALE":
+        return "STALE"
+    if freshness == "FRESH" and artifact_lineage_state == "COHERENT":
+        return "OK"
+    return "UNKNOWN"
+
+
+def _macro_tape_source_health(
+    *,
+    macro_drivers: dict,
+    tape_value_slots: list[tuple[str, str]],
+) -> str:
+    """PRD-120 SOURCE-HEALTH MAPPING for Macro Tape. First match wins."""
+    if (not macro_drivers) or all(
+        str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values()
+    ):
+        return "MISSING"
+    for _label, value in tape_value_slots:
+        if value in ("--", "N/A"):
+            return "FALLBACK"
+    return "OK"
+
+
+def _trend_structure_source_health(
+    *,
+    artifact_lineage_state: str,
+    inactive_session: bool,
+    snapshot: dict | None,
+    ts_generated_at_raw: object,
+    usable_count: int,
+) -> str:
+    """PRD-120 SOURCE-HEALTH MAPPING for Trend Structure. First match wins.
+
+    MISSING fires when the snapshot input is absent. FALLBACK fires when
+    the snapshot exists but no per-symbol record carries the required
+    fields. These two precedence rows are intentionally distinct from
+    the all-or-nothing semantics of `_trend_structure_records`, which
+    governs row rendering but not source-health classification.
+    """
+    if artifact_lineage_state == "MIXED":
+        return "MIXED"
+    if artifact_lineage_state in ("STALE", "MISSING"):
+        return artifact_lineage_state
+    if inactive_session:
+        return "INACTIVE_SESSION"
+    if not isinstance(snapshot, dict):
+        return "MISSING"
+    if isinstance(ts_generated_at_raw, str) and ts_generated_at_raw:
+        freshness = _compute_timestamp_freshness(ts_generated_at_raw)
+        if freshness == "PARSE_ERROR":
+            return "INVALID"
+        if freshness == "STALE":
+            return "STALE"
+    if usable_count == 0:
+        return "FALLBACK"
+    return "OK"
+
+
+def _market_map_source_health(
+    *,
+    artifact_lineage_state: str,
+    inactive_session: bool,
+    mm_status: str,
+) -> str:
+    """PRD-120 SOURCE-HEALTH MAPPING for Market Map. First match wins."""
+    if artifact_lineage_state == "MIXED":
+        return "MIXED"
+    if artifact_lineage_state == "STALE":
+        return "STALE"
+    if artifact_lineage_state == "MISSING":
+        return "MISSING"
+    if inactive_session:
+        return "INACTIVE_SESSION"
+    if mm_status == "SOURCE_MISSING":
+        return "MISSING"
+    if mm_status == "PARSE_ERROR":
+        return "INVALID"
+    if mm_status == "STALE":
+        return "STALE"
+    return "OK"
+
+
+_MARKET_MAP_RENDERED_GRADES: frozenset[str] = frozenset({"A+", "A", "B", "C", "D", "F"})
+
+
+def _market_map_rendered_setup_count(market_map: dict | None) -> int:
+    """PRD-120 R7: count of candidate cards the renderer will emit under OK lineage."""
+    if not isinstance(market_map, dict):
+        return 0
+    symbols = market_map.get("symbols")
+    if not isinstance(symbols, dict):
+        return 0
+    return sum(
+        1 for entry in symbols.values()
+        if isinstance(entry, dict)
+        and (entry.get("grade") or "") in _MARKET_MAP_RENDERED_GRADES
+    )
+
+
 def _trend_structure_records(snapshot: dict | None) -> dict[str, dict] | None:
     """Validate per-record shape for the curated 6 symbols. Returns the
     per-symbol record dict on success, or None when any required field is
@@ -1319,6 +1454,41 @@ def render_dashboard_html(
         market_map = {**market_map, "symbols": FIXTURE_SYMBOLS}
         _mm_status = "FRESH"
 
+    # --- PRD-120: block source-health derivation ---
+    # Pure functions of upstream state (lineage, freshness, mm_status,
+    # tape value slots, trend snapshot). Computed once before any block
+    # emits SOURCE diagnostics so each block reads byte-stable values.
+    _ts_records = _trend_structure_records(trend_structure_snapshot)
+    _ts_generated_at_raw = (
+        trend_structure_snapshot.get("generated_at")
+        if isinstance(trend_structure_snapshot, dict)
+        else None
+    )
+    _ts_usable = _trend_symbols_usable(trend_structure_snapshot)
+    _sys_health = _system_state_source_health(
+        artifact_lineage_state=artifact_lineage_state,
+        payload_timestamp_value=timestamp,
+    )
+    _tape_health = _macro_tape_source_health(
+        macro_drivers=macro_drivers,
+        tape_value_slots=tape_value_slots,
+    )
+    _ts_health = _trend_structure_source_health(
+        artifact_lineage_state=artifact_lineage_state,
+        inactive_session=inactive_session,
+        snapshot=trend_structure_snapshot,
+        ts_generated_at_raw=_ts_generated_at_raw,
+        usable_count=_ts_usable,
+    )
+    _mm_health = _market_map_source_health(
+        artifact_lineage_state=artifact_lineage_state,
+        inactive_session=inactive_session,
+        mm_status=_mm_status,
+    )
+    _mm_setup_count = (
+        _market_map_rendered_setup_count(market_map) if _mm_health == "OK" else 0
+    )
+
     # --- system-state ---
     _ts_pacific, _ts_original = format_dashboard_timestamp(str(timestamp))
     _ts_freshness = _compute_timestamp_freshness(str(timestamp))
@@ -1348,9 +1518,18 @@ def render_dashboard_html(
     elif permission is not None:
         w(f'    <div class="field"><div class="label">Permission</div>'
           f'<div class="value">{_esc(permission)}</div></div>')
-    else:
+    elif artifact_lineage_state in ("MIXED", "STALE", "MISSING"):
+        # PRD-120 R3.5: unhealthy lineage with permission=None -> UNKNOWN
         w('    <div class="field"><div class="label">Permission</div>'
-          '<div class="value">&#8212;</div></div>')
+          '<div class="value">UNKNOWN</div></div>')
+    elif outcome in (None, "STAY_FLAT", "NO_TRADE"):
+        # PRD-120 R3.6: coherent lineage, no halt, no setup -> MONITOR_ONLY
+        w('    <div class="field"><div class="label">Permission</div>'
+          '<div class="value">MONITOR_ONLY</div></div>')
+    else:
+        # PRD-120 R3.7: deterministic catch-all
+        w('    <div class="field"><div class="label">Permission</div>'
+          '<div class="value">UNKNOWN</div></div>')
     if bool(system_halted):
         w(f'    <div class="field"><div class="label">Halted</div>'
           f'<div class="value{halted_cls}">{_bool_str(system_halted)}</div></div>')
@@ -1374,6 +1553,8 @@ def render_dashboard_html(
         w(f'  <div class="field"><div class="label">Reason</div>'
           f'<div class="value">{_esc(_perm_reason)}</div></div>')
     w('  <div class="sep"></div>')
+    # PRD-120 R2: SOURCE line directly above RUN SNAPSHOT.
+    w(f'  <div class="label">SOURCE: {_sys_health}</div>')
     w(f'  <div class="label">RUN SNAPSHOT - {_freshness_label}</div>')
     if _ts_pacific:
         w(f'  <div class="value">{_esc(_ts_pacific)}</div>')
@@ -1421,6 +1602,8 @@ def render_dashboard_html(
     # --- macro-tape ---
     w('<div class="block" id="macro-tape">')
     w("  <h2>Macro Tape</h2>")
+    # PRD-120 R4: MACRO SOURCE line, separate from MACRO BIAS.
+    w(f'  <div class="label">MACRO SOURCE: {_tape_health}</div>')
     if (not macro_drivers) or all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values()):
         w('  <div class="tape-no-data">NO LIVE MACRO DATA</div>')
     tape_value_map = dict(tape_value_slots)
@@ -1479,12 +1662,8 @@ def render_dashboard_html(
     w("</div>")
 
     # --- trend-structure (PRD-112) ---
-    _ts_records = _trend_structure_records(trend_structure_snapshot)
-    _ts_generated_at_raw = (
-        trend_structure_snapshot.get("generated_at")
-        if isinstance(trend_structure_snapshot, dict)
-        else None
-    )
+    # PRD-120: `_ts_records` and `_ts_generated_at_raw` are computed once
+    # earlier in source-health derivation; reuse here for badge classification.
     if _ts_records is None:
         _ts_badge = "MISSING"
         _ts_badge_class = "UNKNOWN"
@@ -1505,6 +1684,15 @@ def render_dashboard_html(
         '  <h2>Trend Structure '
         f'<span class="badge {_ts_badge_class}">{_esc(_ts_badge)}</span></h2>'
     )
+    # PRD-120 R5: SOURCE line above body content (table / disabled message
+    # / INACTIVE_SESSION_LABEL).
+    w(f'  <div class="label">SOURCE: {_ts_health}</div>')
+    # PRD-120 R6: TREND SYMBOLS X/Y only under OK / STALE / FALLBACK.
+    if _ts_health in ("OK", "STALE", "FALLBACK"):
+        w(
+            f'  <div class="label">TREND SYMBOLS: {_ts_usable}/'
+            f'{len(config.TREND_STRUCTURE_SYMBOLS)}</div>'
+        )
     if unhealthy_lineage:
         # PRD-116 R4: disabled state under unhealthy lineage; no per-symbol data rows.
         w(
@@ -1566,6 +1754,11 @@ def render_dashboard_html(
         w('  <h2>Market Map / Developing Setups &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h2>')
     else:
         w("  <h2>Market Map / Developing Setups</h2>")
+    # PRD-120 R7: MARKET MAP SOURCE line with rendered setup count.
+    w(
+        f'  <div class="label">MARKET MAP SOURCE: {_mm_health} - '
+        f'setups {_mm_setup_count}</div>'
+    )
     if unhealthy_lineage:
         # PRD-116 R5: suppress candidate cards and tier headers under unhealthy lineage.
         # Preserve legacy diagnostic text (SOURCE_MISSING / PARSE_ERROR / STALE MARKET MAP)

@@ -18,7 +18,14 @@ from cuttingboard.delivery.dashboard_renderer import (
     _UNAVAILABLE_WATCH,
     render_dashboard_html,
 )
-from tests.dash_helpers import _macro_drivers, _market_map, _mm_symbol, _payload, _run
+from tests.dash_helpers import (
+    _macro_drivers,
+    _macro_tape_block,
+    _market_map,
+    _mm_symbol,
+    _payload,
+    _run,
+)
 
 _UI_DASHBOARD = Path("ui/dashboard.html")
 _UI_INDEX = Path("ui/index.html")
@@ -853,10 +860,14 @@ def test_system_state_heading_prefixed_with_system_state() -> None:
 
 
 def test_permission_none_shows_em_dash_not_no_qualified_setup() -> None:
+    # PRD-120: Permission no longer renders as `&#8212;`; under default
+    # _payload/_run (no market_map -> lineage MISSING) it renders UNKNOWN.
     run = _run(permission=None)
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert "&#8212;" in state
+    perm_section = state.split("Permission", 1)[1].split("Reason", 1)[0]
+    assert ">&#8212;<" not in perm_section
+    assert "UNKNOWN" in perm_section
     assert "NO QUALIFIED SETUP" not in state
 
 
@@ -922,12 +933,16 @@ def test_stale_market_map_missing_run_timestamp_shows_unavailable() -> None:
 
 
 def test_permission_none_renders_em_dash() -> None:
+    # PRD-120: replaces former `&#8212;` Permission fallback with a
+    # deterministic UNKNOWN label under unhealthy lineage (default render
+    # has no market_map -> lineage MISSING).
     run = _run(permission=None)
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert "&#8212;" in state
-    perm_section = state.split("Permission", 1)[1]
-    assert "NONE" not in perm_section.split("Reason", 1)[0]
+    perm_section = state.split("Permission", 1)[1].split("Reason", 1)[0]
+    assert ">&#8212;<" not in perm_section
+    assert "UNKNOWN" in perm_section
+    assert "NONE" not in perm_section
 
 
 def test_permission_none_does_not_mutate_run_dict() -> None:
@@ -1568,11 +1583,19 @@ def test_prd116_r7_coherent_live_preserves_sections() -> None:
 
 
 def _trend_structure_section(html: str) -> str:
-    return html.split('id="trend-structure"', 1)[1].split("</div>", 1)[0]
+    # PRD-120: trend-structure block now contains multiple inner <div>s;
+    # extract by next-section sentinel rather than first </div>.
+    start = html.index('id="trend-structure"')
+    end = html.find('id="candidate-board"', start)
+    return html[start:end] if end >= 0 else html[start:]
 
 
 def _candidate_board_only(html: str) -> str:
-    return html.split('id="candidate-board"', 1)[1].split("</div>", 1)[0]
+    # PRD-120: candidate-board contains multiple inner <div>s after the
+    # MARKET MAP SOURCE line; extract by next-section sentinel.
+    start = html.index('id="candidate-board"')
+    end = html.find('id="run-delta"', start)
+    return html[start:end] if end >= 0 else html[start:]
 
 
 def _inactive_payload(timestamp: str = "2026-04-28T12:00:00Z") -> dict:
@@ -2025,3 +2048,543 @@ def test_prd119_freshness_failure_diagnostic_fields(
     assert "artifact_age=" in err
     assert f"window={LIVE_SESSION_MAX_AGE_MINUTES}m" in err
     assert "session_type=None" in err
+
+
+# ----------------------------------------------------------------------------
+# PRD-120 - Dashboard source-health diagnostics + Permission display
+# ----------------------------------------------------------------------------
+
+from cuttingboard.delivery.dashboard_renderer import (
+    _macro_tape_source_health,
+    _market_map_source_health,
+    _system_state_source_health,
+    _trend_structure_source_health,
+    _trend_symbols_usable,
+)
+
+
+def _prd120_coherent_render(
+    *,
+    payload_overrides: dict | None = None,
+    run_overrides: dict | None = None,
+    market_map: dict | None = None,
+    trend_structure_snapshot: dict | None = None,
+) -> str:
+    payload = _payload()
+    if payload_overrides:
+        for k, v in payload_overrides.items():
+            payload[k] = v
+    run = _run()
+    if run_overrides:
+        for k, v in run_overrides.items():
+            run[k] = v
+    if market_map is None:
+        market_map = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    # Force coherent generation_ids.
+    payload["meta"]["generation_id"] = "test-gen-001"
+    run["generation_id"] = "test-gen-001"
+    market_map["generation_id"] = "test-gen-001"
+    return render_dashboard_html(
+        payload, run, market_map=market_map,
+        trend_structure_snapshot=trend_structure_snapshot,
+    )
+
+
+def _prd120_perm_field(html: str) -> str:
+    state = _system_state_block(html)
+    after = state.split("Permission", 1)[1]
+    return after.split("</div></div>", 1)[0]
+
+
+# R14-1: Permission MONITOR_ONLY for active NO_TRADE under coherent lineage.
+def test_prd120_permission_monitor_only_active_no_trade(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    html = _prd120_coherent_render(
+        run_overrides={"permission": None, "outcome": "NO_TRADE", "system_halted": False},
+    )
+    perm = _prd120_perm_field(html)
+    assert ">&#8212;<" not in perm
+    assert "MONITOR_ONLY" in perm
+
+
+# R14-2: HALTED precedence over MONITOR_ONLY/UNKNOWN.
+def test_prd120_permission_halted_wins_over_monitor_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    html = _prd120_coherent_render(
+        run_overrides={"permission": None, "outcome": "NO_TRADE", "system_halted": True},
+    )
+    perm = _prd120_perm_field(html)
+    assert "HALTED" in perm
+    assert "MONITOR_ONLY" not in perm
+
+
+# R14-3: catch-all UNKNOWN when permission None, outcome="TRADE", not halted.
+def test_prd120_permission_unknown_catchall_outcome_trade(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    html = _prd120_coherent_render(
+        run_overrides={"permission": None, "outcome": "TRADE", "system_halted": False},
+    )
+    perm = _prd120_perm_field(html)
+    assert "UNKNOWN" in perm
+    assert "MONITOR_ONLY" not in perm
+
+
+# R14-4: Trend Structure SOURCE: MISSING when _ts_records is None.
+def test_prd120_trend_structure_source_missing_under_coherent_lineage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    html = _prd120_coherent_render(trend_structure_snapshot=None)
+    section = _ts_section(html)
+    assert "SOURCE: MISSING" in section
+    # R6: TREND SYMBOLS suppressed under MISSING.
+    assert "TREND SYMBOLS:" not in section
+
+
+# R14-5: Trend Structure SOURCE: STALE when generated_at is stale.
+def test_prd120_trend_structure_source_stale(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixed_now = _dt112(2026, 5, 10, 12, 0, 0, tzinfo=_tz112.utc)
+    stale_iso = "2026-05-10T11:30:00+00:00"  # > 300s old
+    snap = _ts_healthy_snapshot(generated_at=stale_iso)
+
+    class _FrozenDT(_dt112):  # type: ignore[misc]
+        @classmethod
+        def now(cls, tz=None):
+            return fixed_now if tz is None else fixed_now.astimezone(tz)
+
+    monkeypatch.setattr(_dr112, "datetime", _FrozenDT)
+    _freeze_renderer_now(monkeypatch, fixed_now)
+    html = _prd120_coherent_render(trend_structure_snapshot=snap)
+    section = _ts_section(html)
+    assert "SOURCE: STALE" in section
+    assert f"TREND SYMBOLS: 6/{len(_TS_CURATED)}" in section
+
+
+# R14-6: Trend Structure SOURCE: INVALID when generated_at is unparsable.
+def test_prd120_trend_structure_source_invalid(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    snap = _ts_healthy_snapshot(generated_at="not-a-date")
+    html = _prd120_coherent_render(trend_structure_snapshot=snap)
+    section = _ts_section(html)
+    assert "SOURCE: INVALID" in section
+    # R6: TREND SYMBOLS suppressed under INVALID.
+    assert "TREND SYMBOLS:" not in section
+
+
+# R14-7: TREND SYMBOLS 0/6 + FALLBACK when snapshot exists but every
+# symbol record is missing required fields.
+def test_prd120_trend_structure_source_fallback_zero_usable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    snap = {
+        "schema_version": 1,
+        "generated_at": "2026-04-28T12:00:00+00:00",
+        "symbols": {sym: {"symbol": sym} for sym in _TS_CURATED},
+    }
+
+    # Freeze renderer-side `datetime` so trend freshness reads FRESH.
+    fixed_now = _dt112(2026, 4, 28, 12, 1, 0, tzinfo=_tz112.utc)
+
+    class _FrozenDT(_dt112):  # type: ignore[misc]
+        @classmethod
+        def now(cls, tz=None):
+            return fixed_now if tz is None else fixed_now.astimezone(tz)
+
+    monkeypatch.setattr(_dr112, "datetime", _FrozenDT)
+
+    html = _prd120_coherent_render(trend_structure_snapshot=snap)
+    section = _ts_section(html)
+    assert "SOURCE: FALLBACK" in section
+    assert "TREND SYMBOLS: 0/6" in section
+
+
+# R14-8: Macro Tape FALLBACK when any tape slot is `--` or `N/A`.
+def test_prd120_macro_tape_source_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    # Default _payload() has no macro_drivers; pass _macro_drivers() so the
+    # block does not short-circuit to MISSING. Market map has no symbols
+    # for SPY/QQQ/IWM/GLD -> tradable slots render "N/A" -> FALLBACK.
+    payload = _payload(macro_drivers=_macro_drivers())
+    run = _run()
+    mm = _market_map()  # empty symbols
+    payload["meta"]["generation_id"] = "test-gen-001"
+    run["generation_id"] = "test-gen-001"
+    mm["generation_id"] = "test-gen-001"
+    html = render_dashboard_html(payload, run, market_map=mm)
+    tape = _macro_tape_block(html)
+    assert "MACRO SOURCE: FALLBACK" in tape
+
+
+# R14-9: Market Map OK with setups N matching rendered card count.
+def test_prd120_market_map_source_ok_with_setup_count(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    mm = _market_map({
+        "SPY": _mm_symbol("SPY", grade="A"),
+        "QQQ": _mm_symbol("QQQ", grade="B"),
+    })
+    html = _prd120_coherent_render(market_map=mm)
+    board = _candidate_board_only(html)
+    assert "MARKET MAP SOURCE: OK - setups 2" in board
+
+
+# R14-10: No stale precedent path emits OK.
+def test_prd120_macro_tape_missing_does_not_emit_ok(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    # No macro_drivers, no macro snapshot path -> MISSING.
+    html = _prd120_coherent_render()
+    tape = _macro_tape_block(html)
+    # OK never emitted when underlying signal is MISSING.
+    assert "MACRO SOURCE: OK" not in tape
+
+
+# R14-11 already covered by existing PRD-118 tests (regression).
+
+
+# R14-12 / R14-18: Determinism with frozen `datetime` AND `_utcnow`.
+def test_prd120_determinism_byte_identical_renders(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixed_now = _dt112(2026, 4, 28, 12, 1, 0, tzinfo=_tz112.utc)
+
+    class _FrozenDT(_dt112):  # type: ignore[misc]
+        @classmethod
+        def now(cls, tz=None):
+            return fixed_now if tz is None else fixed_now.astimezone(tz)
+
+    monkeypatch.setattr(_dr112, "datetime", _FrozenDT)
+    _freeze_renderer_now(monkeypatch, fixed_now)
+    snap = _ts_healthy_snapshot()
+    payload = _payload()
+    run = _run()
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    payload["meta"]["generation_id"] = "test-gen-001"
+    run["generation_id"] = "test-gen-001"
+    mm["generation_id"] = "test-gen-001"
+    html_a = render_dashboard_html(
+        payload, run, market_map=mm, trend_structure_snapshot=snap,
+    )
+    html_b = render_dashboard_html(
+        payload, run, market_map=mm, trend_structure_snapshot=snap,
+    )
+    assert html_a == html_b
+
+
+# R14-13: mapping table coverage - exhaustive per-block enum coverage via
+# direct unit calls against the pure helpers.
+def test_prd120_system_state_enum_coverage() -> None:
+    fresh_ts = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    stale_ts = "2020-01-01T00:00:00Z"
+    bad_ts = "not-a-date"
+    assert _system_state_source_health(
+        artifact_lineage_state="MIXED", payload_timestamp_value=fresh_ts,
+    ) == "MIXED"
+    assert _system_state_source_health(
+        artifact_lineage_state="STALE", payload_timestamp_value=fresh_ts,
+    ) == "STALE"
+    assert _system_state_source_health(
+        artifact_lineage_state="MISSING", payload_timestamp_value=fresh_ts,
+    ) == "MISSING"
+    assert _system_state_source_health(
+        artifact_lineage_state="COHERENT", payload_timestamp_value=bad_ts,
+    ) == "INVALID"
+    assert _system_state_source_health(
+        artifact_lineage_state="COHERENT", payload_timestamp_value=stale_ts,
+    ) == "STALE"
+    assert _system_state_source_health(
+        artifact_lineage_state="COHERENT", payload_timestamp_value=fresh_ts,
+    ) == "OK"
+
+
+def test_prd120_macro_tape_enum_coverage() -> None:
+    drivers = _macro_drivers()
+    assert _macro_tape_source_health(
+        macro_drivers={}, tape_value_slots=[("VIX", "18.0")],
+    ) == "MISSING"
+    assert _macro_tape_source_health(
+        macro_drivers={"x": "MARKET MAP UNAVAILABLE"},
+        tape_value_slots=[("VIX", "18.0")],
+    ) == "MISSING"
+    assert _macro_tape_source_health(
+        macro_drivers=drivers,
+        tape_value_slots=[("VIX", "--"), ("SPY", "500.0")],
+    ) == "FALLBACK"
+    assert _macro_tape_source_health(
+        macro_drivers=drivers,
+        tape_value_slots=[("VIX", "18.0"), ("SPY", "N/A")],
+    ) == "FALLBACK"
+    assert _macro_tape_source_health(
+        macro_drivers=drivers,
+        tape_value_slots=[("VIX", "18.0"), ("SPY", "500.0")],
+    ) == "OK"
+
+
+def test_prd120_trend_structure_enum_coverage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixed_now = _dt112(2026, 4, 28, 12, 0, 0, tzinfo=_tz112.utc)
+
+    class _FrozenDT(_dt112):  # type: ignore[misc]
+        @classmethod
+        def now(cls, tz=None):
+            return fixed_now if tz is None else fixed_now.astimezone(tz)
+
+    monkeypatch.setattr(_dr112, "datetime", _FrozenDT)
+    fresh = "2026-04-28T12:00:00+00:00"
+    stale = "2020-01-01T00:00:00+00:00"
+    bad = "not-a-date"
+    rec = {"a": 1}  # dummy "exists"
+    assert _trend_structure_source_health(
+        artifact_lineage_state="MIXED", inactive_session=False,
+        snapshot=None, ts_generated_at_raw=fresh, usable_count=0,
+    ) == "MIXED"
+    assert _trend_structure_source_health(
+        artifact_lineage_state="STALE", inactive_session=False,
+        snapshot=None, ts_generated_at_raw=fresh, usable_count=0,
+    ) == "STALE"
+    assert _trend_structure_source_health(
+        artifact_lineage_state="MISSING", inactive_session=False,
+        snapshot=None, ts_generated_at_raw=fresh, usable_count=0,
+    ) == "MISSING"
+    assert _trend_structure_source_health(
+        artifact_lineage_state="COHERENT", inactive_session=True,
+        snapshot=None, ts_generated_at_raw=fresh, usable_count=0,
+    ) == "INACTIVE_SESSION"
+    assert _trend_structure_source_health(
+        artifact_lineage_state="COHERENT", inactive_session=False,
+        snapshot=None, ts_generated_at_raw=fresh, usable_count=0,
+    ) == "MISSING"
+    assert _trend_structure_source_health(
+        artifact_lineage_state="COHERENT", inactive_session=False,
+        snapshot={"symbols": {"SPY": rec}}, ts_generated_at_raw=bad, usable_count=6,
+    ) == "INVALID"
+    assert _trend_structure_source_health(
+        artifact_lineage_state="COHERENT", inactive_session=False,
+        snapshot={"symbols": {"SPY": rec}}, ts_generated_at_raw=stale, usable_count=6,
+    ) == "STALE"
+    assert _trend_structure_source_health(
+        artifact_lineage_state="COHERENT", inactive_session=False,
+        snapshot={"symbols": {"SPY": rec}}, ts_generated_at_raw=fresh, usable_count=0,
+    ) == "FALLBACK"
+    assert _trend_structure_source_health(
+        artifact_lineage_state="COHERENT", inactive_session=False,
+        snapshot={"symbols": {"SPY": rec}}, ts_generated_at_raw=fresh, usable_count=6,
+    ) == "OK"
+
+
+def test_prd120_market_map_enum_coverage() -> None:
+    assert _market_map_source_health(
+        artifact_lineage_state="MIXED", inactive_session=False, mm_status="FRESH",
+    ) == "MIXED"
+    assert _market_map_source_health(
+        artifact_lineage_state="STALE", inactive_session=False, mm_status="FRESH",
+    ) == "STALE"
+    assert _market_map_source_health(
+        artifact_lineage_state="MISSING", inactive_session=False, mm_status="FRESH",
+    ) == "MISSING"
+    assert _market_map_source_health(
+        artifact_lineage_state="COHERENT", inactive_session=True, mm_status="FRESH",
+    ) == "INACTIVE_SESSION"
+    assert _market_map_source_health(
+        artifact_lineage_state="COHERENT", inactive_session=False, mm_status="SOURCE_MISSING",
+    ) == "MISSING"
+    assert _market_map_source_health(
+        artifact_lineage_state="COHERENT", inactive_session=False, mm_status="PARSE_ERROR",
+    ) == "INVALID"
+    assert _market_map_source_health(
+        artifact_lineage_state="COHERENT", inactive_session=False, mm_status="STALE",
+    ) == "STALE"
+    assert _market_map_source_health(
+        artifact_lineage_state="COHERENT", inactive_session=False, mm_status="FRESH",
+    ) == "OK"
+
+
+# R14-14: INACTIVE_SESSION_LABEL precedence over Trend Structure missing
+# symbol diagnostic under coherent inactive lineage.
+def test_prd120_trend_structure_inactive_session_label_precedence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    payload = _payload()
+    payload["meta"]["session_type"] = "SUNDAY_PREMARKET"
+    payload["meta"]["generation_id"] = "test-gen-001"
+    run = _run()
+    run["generation_id"] = "test-gen-001"
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    mm["generation_id"] = "test-gen-001"
+    html = render_dashboard_html(
+        payload, run, market_map=mm, trend_structure_snapshot=None,
+    )
+    section = _ts_section(html)
+    assert "SOURCE: INACTIVE_SESSION" in section
+    assert INACTIVE_SESSION_LABEL in section
+    assert "SOURCE: MISSING" not in section
+
+
+# R14-15: MIXED lineage drives Trend Structure and Market Map blocks to MIXED.
+def test_prd120_mixed_lineage_drives_trend_and_market_map_mixed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    payload = _payload(macro_drivers=_macro_drivers())
+    run = _run()
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    payload["meta"]["generation_id"] = "gen-A"
+    run["generation_id"] = "gen-B"  # mismatch -> MIXED lineage
+    mm["generation_id"] = "gen-A"
+    snap = _ts_healthy_snapshot()
+    html = render_dashboard_html(
+        payload, run, market_map=mm, trend_structure_snapshot=snap,
+    )
+    ts_section = _ts_section(html)
+    board = _candidate_board_only(html)
+    assert "SOURCE: MIXED" in ts_section
+    assert "MARKET MAP SOURCE: MIXED" in board
+
+
+# R14-16: no `>&#8212;<` inside Permission field for coherent active NO_TRADE.
+def test_prd120_no_em_dash_in_permission_under_coherent_lineage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    html = _prd120_coherent_render(
+        run_overrides={"permission": None, "outcome": "NO_TRADE"},
+    )
+    perm = _prd120_perm_field(html)
+    assert ">&#8212;<" not in perm
+
+
+# R14-17: HALTED + stay_flat_reason -> HALTED takes precedence.
+def test_prd120_halted_and_stay_flat_reason_renders_halted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    payload = _payload(validation_halt_detail={"reason": "STAY_FLAT regime"})
+    payload["meta"]["generation_id"] = "test-gen-001"
+    run = _run(system_halted=True, permission=None)
+    run["generation_id"] = "test-gen-001"
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    mm["generation_id"] = "test-gen-001"
+    html = render_dashboard_html(payload, run, market_map=mm)
+    perm = _prd120_perm_field(html)
+    assert "HALTED" in perm
+    assert "MONITOR_ONLY" not in perm
+    assert "UNKNOWN" not in perm
+
+
+# R14-19: Non-ui render still emits source-health diagnostics.
+def test_prd120_non_ui_render_emits_source_diagnostics(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    payload, run, market_map = _coherent_inputs()
+    out = _non_ui_output_path(tmp_path)
+    write_dashboard(
+        payload, run,
+        market_map=market_map,
+        output_path=out,
+        fixture_mode=False,
+    )
+    html = out.read_text(encoding="utf-8")
+    assert "SOURCE:" in html
+    assert "MACRO SOURCE:" in html
+    assert "MARKET MAP SOURCE:" in html
+
+
+# R14-20: malformed payload.meta.timestamp under coherent lineage renders
+# System State SOURCE: INVALID (not STALE).
+def test_prd120_system_state_invalid_when_timestamp_unparsable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    payload = _payload(timestamp="not-a-date")
+    payload["meta"]["generation_id"] = "test-gen-001"
+    run = _run()
+    run["generation_id"] = "test-gen-001"
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    mm["generation_id"] = "test-gen-001"
+    html = render_dashboard_html(payload, run, market_map=mm)
+    state = _system_state_block(html)
+    assert "SOURCE: INVALID" in state
+    assert "SOURCE: STALE" not in state
+
+
+# R14-21: permission=None under MIXED lineage -> UNKNOWN, not MONITOR_ONLY.
+def test_prd120_permission_unknown_under_mixed_lineage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    payload = _payload()
+    payload["meta"]["generation_id"] = "gen-A"
+    run = _run(permission=None, outcome="NO_TRADE")
+    run["generation_id"] = "gen-B"  # mixed lineage
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
+    mm["generation_id"] = "gen-A"
+    html = render_dashboard_html(payload, run, market_map=mm)
+    perm = _prd120_perm_field(html)
+    assert "UNKNOWN" in perm
+    assert "MONITOR_ONLY" not in perm
+
+
+# R14-22: MIXED lineage with non-empty market_map.symbols -> setups 0.
+def test_prd120_market_map_mixed_lineage_setups_zero(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    payload = _payload()
+    payload["meta"]["generation_id"] = "gen-A"
+    run = _run()
+    run["generation_id"] = "gen-B"  # mixed lineage
+    mm = _market_map({
+        "SPY": _mm_symbol("SPY", grade="A"),
+        "QQQ": _mm_symbol("QQQ", grade="B"),
+    })
+    mm["generation_id"] = "gen-A"
+    html = render_dashboard_html(payload, run, market_map=mm)
+    board = _candidate_board_only(html)
+    assert "MARKET MAP SOURCE: MIXED - setups 0" in board
+
+
+# R14 supplementary: _trend_symbols_usable per-symbol counting.
+def test_prd120_trend_symbols_usable_per_symbol_count() -> None:
+    full = _ts_healthy_snapshot()
+    assert _trend_symbols_usable(full) == 6
+    # Strip required fields from one record -> count drops by one.
+    snap = _ts_healthy_snapshot()
+    snap["symbols"]["SPY"] = {"symbol": "SPY"}
+    assert _trend_symbols_usable(snap) == 5
+    # All records empty -> 0 usable.
+    bad = _ts_healthy_snapshot()
+    for sym in list(bad["symbols"].keys()):
+        bad["symbols"][sym] = {"symbol": sym}
+    assert _trend_symbols_usable(bad) == 0
+    # None snapshot -> 0.
+    assert _trend_symbols_usable(None) == 0
+
+
+# R12/R13: ASCII-only guard for the SOURCE diagnostic strings.
+def test_prd120_source_lines_ascii_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    html = _prd120_coherent_render()
+    for line in html.splitlines():
+        if "SOURCE:" in line or "TREND SYMBOLS:" in line:
+            assert all(ord(ch) < 128 for ch in line), line
+

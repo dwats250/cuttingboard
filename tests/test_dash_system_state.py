@@ -30,11 +30,16 @@ def test_system_state_regime_badge_risk_on_class() -> None:
 
 
 def test_system_state_permission_shows_dash_when_none() -> None:
+    # PRD-120: the former `&#8212;` Permission fallback is replaced with a
+    # deterministic source-derived label. Under default _payload/_run with
+    # no market_map, lineage is MISSING -> Permission renders UNKNOWN.
     r = _run(permission=None)
     html = render_dashboard_html(_payload(), r)
     state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
     assert "Permission" in state
-    assert "&#8212;" in state
+    perm_section = state.split("Permission", 1)[1].split("</div></div>", 1)[0]
+    assert ">&#8212;<" not in perm_section
+    assert "UNKNOWN" in perm_section
 
 
 def test_system_state_stay_flat_omitted_when_none() -> None:
