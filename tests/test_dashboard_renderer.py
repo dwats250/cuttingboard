@@ -14,8 +14,15 @@ import pytest
 from cuttingboard.delivery.dashboard_renderer import (
     DASHBOARD_STALE_AFTER_SECONDS,
     INACTIVE_SESSION_LABEL,
+    INACTIVE_SESSION_MAX_AGE_HOURS,
     INACTIVE_SESSION_TYPES,
+    LIVE_SESSION_MAX_AGE_MINUTES,
     _UNAVAILABLE_WATCH,
+    _macro_tape_source_health,
+    _market_map_source_health,
+    _system_state_source_health,
+    _trend_structure_source_health,
+    _trend_symbols_usable,
     render_dashboard_html,
 )
 from tests.dash_helpers import (
@@ -1935,11 +1942,6 @@ def test_prd118_diagnostic_line_names_failure(tmp_path: Path, capsys) -> None:
 # PRD-119 — Dashboard publish freshness gate (R15 deterministic coverage)
 # ----------------------------------------------------------------------------
 
-from cuttingboard.delivery.dashboard_renderer import (
-    INACTIVE_SESSION_MAX_AGE_HOURS,
-    LIVE_SESSION_MAX_AGE_MINUTES,
-)
-
 # Payload helper default timestamp is 2026-04-28T12:00:00Z.
 _PAYLOAD_TS_DT = datetime(2026, 4, 28, 12, 0, 0, tzinfo=timezone.utc)
 
@@ -2119,15 +2121,6 @@ def test_prd119_freshness_failure_diagnostic_fields(
 # ----------------------------------------------------------------------------
 # PRD-120 - Dashboard source-health diagnostics + Permission display
 # ----------------------------------------------------------------------------
-
-from cuttingboard.delivery.dashboard_renderer import (
-    _macro_tape_source_health,
-    _market_map_source_health,
-    _system_state_source_health,
-    _trend_structure_source_health,
-    _trend_symbols_usable,
-)
-
 
 def _prd120_coherent_render(
     *,
