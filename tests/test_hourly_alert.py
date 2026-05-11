@@ -288,7 +288,8 @@ def test_format_hourly_system_halt_routes_to_halt_format():
     assert title == "SYSTEM HALT"
 
 
-def test_format_hourly_notification_wrapper_uses_watch_optimized_shape():
+def test_format_hourly_notification_wrapper_uses_new_section_shape():
+    """PRD-124: STAY-FLAT-equivalent regime renders the seven required sections."""
     title, body = format_hourly_notification(
         asof_utc=datetime(2026, 4, 23, 14, 0, tzinfo=timezone.utc),
         regime=_regime(regime="EXPANSION", posture="RISK_ON", confidence=0.72),
@@ -296,15 +297,19 @@ def test_format_hourly_notification_wrapper_uses_watch_optimized_shape():
         qualification_summary=_qual([]),
     )
 
-    assert title == "ACTIVE - NO SETUP 10:00"
-    assert body == (
-        "EXPANSION | RISK ON | 0.72\n"
-        "No trade.\n"
-        "Reason: no setups\n\n"
-        "TRIGGERS:\n"
-        "- breakout above resistance\n"
-        "- continuation hold above trigger"
-    )
+    # 14:00 UTC = 07:00 PT (DST), 10:00 ET
+    assert title == "MONITOR 7:00 AM"
+    lines = body.split("\n")
+    assert lines[0] == "State: EXPANSION / RISK ON"
+    assert lines[1] == "Confidence: 0.72"
+    assert lines[2] == "Action: MONITOR"
+    assert lines[3] == "Reason: no setups"
+    assert lines[4] == "Blockers: none"
+    assert lines[5] == "Macro: VIX 22.0 (+2.0%)"
+    assert lines[6] == "Focus: none"
+    assert "" in lines
+    assert any(line.startswith("Generated: ") and line.endswith(" ET") for line in lines)
+    assert "TRIGGERS:" not in body
 
 
 def test_format_hourly_notification_wrapper_filters_macro_candidates():
@@ -316,12 +321,13 @@ def test_format_hourly_notification_wrapper_filters_macro_candidates():
         candidate_lines=("^VIX | LONG | TREND | 9.0:1", "NVDA | LONG | TREND | 2.4:1"),
     )
 
-    assert title == "LONG NVDA 10:00"
+    assert title == "LONG NVDA 7:00 AM"
     assert "^VIX" not in body
-    assert "- NVDA LONG RR 2.4" in body
+    assert "Focus: NVDA LONG" in body
+    assert "Action: TRADE" in body
 
 
-def test_format_hourly_notification_wrapper_explicit_watchlist_title_and_reason():
+def test_format_hourly_notification_wrapper_watchlist_focus_section():
     qual = QualificationSummary(
         regime_passed=True,
         regime_short_circuited=False,
@@ -334,7 +340,7 @@ def test_format_hourly_notification_wrapper_explicit_watchlist_title_and_reason(
                 watchlist=True,
                 direction="LONG",
                 gates_passed=[],
-                gates_failed=[],
+                gates_failed=["STOP_DISTANCE", "RR_RATIO"],
                 hard_failure=None,
                 watchlist_reason="developing above trigger",
                 max_contracts=None,
@@ -354,9 +360,195 @@ def test_format_hourly_notification_wrapper_explicit_watchlist_title_and_reason(
         qualification_summary=qual,
     )
 
-    assert title == "WATCHLIST 10:00"
-    assert "WATCHLIST" in body
-    assert "- AAPL LONG: developing above trigger" in body
+    assert title == "MONITOR 7:00 AM"
+    assert "Action: MONITOR" in body
+    assert "Focus: AAPL LONG" in body
+    assert "Blockers: STOP_DISTANCE, RR_RATIO" in body
+
+
+# ---------------------------------------------------------------------------
+# PRD-124: header, body sections, action enum, banned-phrase audit
+# ---------------------------------------------------------------------------
+
+_PRD124_BANNED_PHRASES = (
+    "TRIGGERS:",
+    "breakdown below support",
+    "failed reclaim at breakdown level",
+    "breakout above resistance",
+    "continuation hold above trigger",
+    "range break",
+    "expansion confirmation",
+    "confirmed direction",
+)
+
+
+def _prd124_event_args(**overrides):
+    base = dict(
+        asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
+        regime=_regime(regime="RISK_OFF", posture="DEFENSIVE_SHORT", confidence=0.62),
+        validation_summary=_validation(),
+        qualification_summary=_qual([]),
+    )
+    base.update(overrides)
+    return base
+
+
+def test_prd124_r1_title_uses_pt_clock_not_et():
+    """R1: 16:20Z → 9:20 AM PT in the title; no ET in the title."""
+    title, _ = format_hourly_notification(**_prd124_event_args())
+    assert "9:20 AM" in title
+    assert " ET" not in title
+    assert "12:20" not in title
+    assert "16:20" not in title
+
+
+def test_prd124_r2_artifact_timestamp_labeled_generated_with_et():
+    """R2: artifact timestamp is on its own labeled line, ET-formatted."""
+    title, body = format_hourly_notification(**_prd124_event_args())
+    generated_lines = [
+        line for line in body.split("\n")
+        if line.startswith("Generated: ")
+    ]
+    assert len(generated_lines) == 1
+    assert generated_lines[0].endswith(" ET")
+    # title carries PT only, no ET clock collision
+    assert " ET" not in title
+
+
+def test_prd124_r3_body_required_section_labels_in_order():
+    """R3: State / Confidence / Action / Reason / Blockers / Macro / Focus, in order."""
+    _, body = format_hourly_notification(**_prd124_event_args())
+    required = [
+        "State:", "Confidence:", "Action:",
+        "Reason:", "Blockers:", "Macro:", "Focus:",
+    ]
+    positions = []
+    body_lines = body.split("\n")
+    for label in required:
+        match_idx = next(
+            (i for i, line in enumerate(body_lines) if line.startswith(label)),
+            -1,
+        )
+        assert match_idx >= 0, f"missing required section: {label}"
+        positions.append(match_idx)
+    assert positions == list(range(positions[0], positions[0] + len(required))) or \
+        positions == sorted(positions), f"sections out of order: {positions}"
+
+
+def test_prd124_r4_action_label_branches():
+    """R4: deterministic enum over TRADE / MONITOR / STAY FLAT / HALT."""
+    # STAY FLAT — regime posture is STAY_FLAT
+    _, body = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
+        regime=_regime(posture="STAY_FLAT", regime="NEUTRAL", confidence=0.4),
+        validation_summary=_validation(),
+        qualification_summary=None,
+    )
+    assert "Action: STAY FLAT" in body
+
+    # HALT — system halted overrides everything
+    _, body = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
+        regime=_regime(),
+        validation_summary=_validation(halted=True),
+        qualification_summary=_qual(["NVDA"]),
+    )
+    assert "Action: HALT" in body
+
+    # TRADE — qualified candidates + tradable posture
+    _, body = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
+        regime=_regime(regime="RISK_ON", posture="CONTROLLED_LONG", confidence=0.7),
+        validation_summary=_validation(),
+        qualification_summary=_qual(["NVDA"], direction="LONG"),
+    )
+    assert "Action: TRADE" in body
+
+    # MONITOR — tradable posture, no qualified, regime not STAY_FLAT
+    _, body = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
+        regime=_regime(regime="RISK_ON", posture="CONTROLLED_LONG", confidence=0.7),
+        validation_summary=_validation(),
+        qualification_summary=_qual([]),
+    )
+    assert "Action: MONITOR" in body
+
+
+def test_prd124_r5_no_generic_trigger_phrases_without_attached_symbol():
+    """R5: no banned trigger phrase appears on any line without a focus ticker."""
+    _, body = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
+        regime=_regime(posture="STAY_FLAT", regime="NEUTRAL", confidence=0.4),
+        validation_summary=_validation(),
+        qualification_summary=None,
+    )
+    assert "TRIGGERS:" not in body
+    for phrase in _PRD124_BANNED_PHRASES:
+        assert phrase not in body, f"banned phrase {phrase!r} leaked into STAY FLAT body"
+
+
+def test_prd124_r6_missing_data_renders_explicit_fallback_tokens():
+    """R6: regime=None and qualification_summary=None produce explicit labels."""
+    _, body = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
+        regime=None,
+        validation_summary=_validation(),
+        qualification_summary=None,
+    )
+    assert "State: unknown / unknown" in body
+    assert "Confidence: unknown" in body
+    assert "Macro: n/a" in body
+    assert "Focus: none" in body
+    assert "Blockers: none" in body
+    assert "None" not in body.replace("None", "", 0)  # no literal "None"
+    assert "UNKNOWN | UNKNOWN | 0.00" not in body
+
+
+def test_prd124_r7_notifier_formatter_module_unchanged_by_format_call():
+    """R7 surrogate: formatter.py source bytes are stable across a hourly format call."""
+    import hashlib
+    from cuttingboard.notifications import formatter as fmt_mod
+    src_before = hashlib.sha256(open(fmt_mod.__file__, "rb").read()).hexdigest()
+    format_hourly_notification(**_prd124_event_args())
+    src_after = hashlib.sha256(open(fmt_mod.__file__, "rb").read()).hexdigest()
+    assert src_before == src_after
+
+
+def test_prd124_r9_no_new_ranking_or_scoring_constructs_in_notifier():
+    """R9: static-grep prohibition on new sort/key/max/min in __init__.py."""
+    import cuttingboard.notifications as notif_pkg
+    src = open(notif_pkg.__file__, "r", encoding="utf-8").read()
+    # Pre-existing sorted(...) in _watch_lines_from_qualification was deleted
+    # with the function. Post-PRD the file must have zero sort/key/max/min
+    # constructs operating on artifact collections.
+    forbidden_tokens = ("sorted(", ".sort(", "key=", "max(", "min(")
+    for token in forbidden_tokens:
+        assert token not in src, (
+            f"forbidden token {token!r} found in notifications/__init__.py "
+            f"— R9 prohibits new ranking/scoring constructs in the notifier."
+        )
+
+
+def test_prd124_r5_banned_phrases_absent_from_module_source():
+    """R5 source-level: banned trigger boilerplate must not appear in the file."""
+    import cuttingboard.notifications as notif_pkg
+    src = open(notif_pkg.__file__, "r", encoding="utf-8").read()
+    for phrase in _PRD124_BANNED_PHRASES:
+        assert phrase not in src, (
+            f"banned phrase {phrase!r} still present in notifications/__init__.py"
+        )
+
+
+def test_prd124_r1_no_duplicate_local_tz_declarations():
+    """R1 source-level: exactly one ZoneInfo('America/Vancouver') declaration."""
+    import cuttingboard.notifications as pkg_init
+    from cuttingboard.notifications import formatter as fmt_mod
+    init_src = open(pkg_init.__file__, "r", encoding="utf-8").read()
+    fmt_src = open(fmt_mod.__file__, "r", encoding="utf-8").read()
+    init_count = init_src.count('ZoneInfo("America/Vancouver")')
+    fmt_count = fmt_src.count('ZoneInfo("America/Vancouver")')
+    assert init_count == 0, "notifier __init__.py must not redeclare LOCAL_TZ"
+    assert fmt_count == 1, "formatter.py must hold the single LOCAL_TZ declaration"
 
 
 # ---------------------------------------------------------------------------

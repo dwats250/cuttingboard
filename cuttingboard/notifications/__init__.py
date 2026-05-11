@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any, Optional
-from zoneinfo import ZoneInfo
 
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.qualification import QualificationSummary
@@ -23,6 +22,8 @@ from .formatter import (
     ALERT_CONTEXT_NOTIFY,
     ALERT_CONTEXT_RUN,
     AlertEvent,
+    LOCAL_TZ,
+    _ET_TZ,
     format_ntfy_alert,
     NOTIFY_HOURLY,
 )
@@ -51,7 +52,6 @@ NOTIFY_MODES = frozenset(
 )
 
 _SUPPRESS_CONFIDENCE = 0.55
-_ET_TZ = ZoneInfo("America/New_York")
 _LIFECYCLE_HIGH_GRADES = frozenset({"A+", "A", "B"})
 
 
@@ -59,33 +59,145 @@ def _hhmm(asof_utc: datetime) -> str:
     return asof_utc.astimezone(_ET_TZ).strftime("%H:%M")
 
 
+def _pt_clock(asof_utc: datetime) -> str:
+    """PT 12-hour clock with leading zero stripped (e.g. "9:20 AM")."""
+    return asof_utc.astimezone(LOCAL_TZ).strftime("%I:%M %p").lstrip("0")
+
+
+def _generated_label(asof_utc: datetime) -> str:
+    """ET-labeled generation timestamp, distinct from the PT title clock."""
+    return f"Generated: {asof_utc.astimezone(_ET_TZ).strftime('%H:%M')} ET"
+
+
 def _compact_label(value: object) -> str:
     return str(value or "UNKNOWN").replace("_", " ").upper()
 
 
-def _hourly_context_line(regime: Optional[RegimeState]) -> str:
+def _state_line(regime: Optional[RegimeState]) -> str:
     if regime is None:
-        return "UNKNOWN | UNKNOWN | 0.00"
-    return f"{_compact_label(regime.regime)} | {_compact_label(regime.posture)} | {regime.confidence:.2f}"
+        return "State: unknown / unknown"
+    return f"State: {_compact_label(regime.regime)} / {_compact_label(regime.posture)}"
 
 
-def _hourly_regime_label(regime: Optional[RegimeState]) -> str:
-    return _compact_label(regime.regime if regime is not None else None)
+def _confidence_line(regime: Optional[RegimeState]) -> str:
+    if regime is None:
+        return "Confidence: unknown"
+    return f"Confidence: {regime.confidence:.2f}"
 
 
-def _trigger_conditions(regime_label: str) -> tuple[str, str]:
-    if regime_label == "RISK OFF":
-        return ("breakdown below support", "failed reclaim at breakdown level")
-    if regime_label in {"RISK ON", "EXPANSION"}:
-        return ("breakout above resistance", "continuation hold above trigger")
-    if regime_label == "NEUTRAL":
-        return ("range break", "expansion confirmation")
-    return ("range break", "confirmed direction")
+def _action_label(
+    regime: Optional[RegimeState],
+    validation_summary: ValidationSummary,
+    qualification_summary: Optional[QualificationSummary],
+) -> str:
+    if validation_summary.system_halted:
+        return "HALT"
+    qualified = (
+        qualification_summary is not None
+        and qualification_summary.symbols_qualified > 0
+    )
+    flat = regime is None or regime.posture == STAY_FLAT
+    if qualified and not flat:
+        return "TRADE"
+    if flat:
+        return "STAY FLAT"
+    return "MONITOR"
 
 
-def _append_trigger_block(lines: list[str], regime_label: str) -> None:
-    lines.extend(["", "TRIGGERS:"])
-    lines.extend(f"- {condition}" for condition in _trigger_conditions(regime_label))
+def _macro_line(regime: Optional[RegimeState]) -> str:
+    if regime is None or regime.vix_level is None:
+        return "Macro: n/a"
+    change = regime.vix_pct_change * 100 if regime.vix_pct_change is not None else 0.0
+    return f"Macro: VIX {regime.vix_level:.1f} ({change:+.1f}%)"
+
+
+def _focus_tokens(
+    qualification_summary: Optional[QualificationSummary],
+    candidate_lines: tuple[str, ...],
+) -> list[tuple[str, str]]:
+    """Deterministic ordered focus tokens (SYMBOL, DIR), dedup-preserving order."""
+    tokens: dict[tuple[str, str], None] = {}
+    if qualification_summary is not None:
+        for trade in qualification_summary.qualified_trades:
+            if not is_tradable_symbol(trade.symbol):
+                continue
+            tokens[(trade.symbol.upper(), trade.direction.upper())] = None
+            if len(tokens) >= 3:
+                return list(tokens)
+        for watch in qualification_summary.watchlist:
+            if not is_tradable_symbol(watch.symbol):
+                continue
+            tokens[(watch.symbol.upper(), watch.direction.upper())] = None
+            if len(tokens) >= 3:
+                return list(tokens)
+    for line in candidate_lines:
+        parsed = _parse_candidate_line(line)
+        if parsed is None:
+            continue
+        symbol, direction, _ = parsed
+        tokens[(symbol, direction)] = None
+        if len(tokens) >= 3:
+            return list(tokens)
+    return list(tokens)
+
+
+def _focus_line(tokens: list[tuple[str, str]]) -> str:
+    if not tokens:
+        return "Focus: none"
+    rendered = ", ".join(f"{sym} {direction}" for sym, direction in tokens)
+    return f"Focus: {rendered}"
+
+
+def _blockers_line(
+    qualification_summary: Optional[QualificationSummary],
+) -> str:
+    if qualification_summary is None:
+        return "Blockers: none"
+    tags: dict[str, None] = {}
+    for item in qualification_summary.watchlist:
+        gates_failed = getattr(item, "gates_failed", ()) or ()
+        for tag in gates_failed:
+            text = _as_clean_string(tag)
+            if text:
+                tags[text] = None
+    if not tags:
+        return "Blockers: none"
+    return f"Blockers: {', '.join(tags)}"
+
+
+def _pending_lines(
+    focus_tokens_list: list[tuple[str, str]],
+    candidate_lines: tuple[str, str],
+) -> list[str]:
+    """Render `Pending confirmation:` block only when focus symbols exist.
+
+    Trigger conditions are attached to a concrete symbol via parsed candidate
+    lines (structure tag from `SYMBOL | DIR | STRUCTURE | RR`). No generic
+    regime-keyed boilerplate.
+    """
+    if not focus_tokens_list:
+        return []
+    focus_keys = {(sym, direction) for sym, direction in focus_tokens_list}
+    entries: list[str] = []
+    for line in candidate_lines:
+        parts = [part.strip() for part in line.split("|")]
+        if len(parts) < 4:
+            continue
+        symbol = parts[0].upper()
+        direction = parts[1].upper()
+        structure = _as_clean_string(parts[2])
+        if not is_tradable_symbol(symbol):
+            continue
+        if (symbol, direction) not in focus_keys:
+            continue
+        if not structure:
+            continue
+        entries.append(f"{symbol}: {structure.lower()} confirmation")
+        if len(entries) >= 3:
+            break
+    if not entries:
+        return []
+    return ["Pending confirmation:", *entries]
 
 
 def _hourly_reason(
@@ -104,27 +216,6 @@ def _hourly_reason(
     if regime is not None and regime.posture == STAY_FLAT:
         return "stay flat posture"
     return "no setups"
-
-
-def _watch_lines_from_qualification(qualification_summary: Optional[QualificationSummary]) -> tuple[str, ...]:
-    if qualification_summary is None:
-        return ()
-    lines = []
-    ranked = sorted(
-        qualification_summary.watchlist,
-        key=lambda item: (item.symbol, item.direction),
-    )
-    for item in ranked:
-        if not is_tradable_symbol(item.symbol):
-            continue
-        line = f"- {item.symbol.upper()} {item.direction.upper()}"
-        reason = _as_clean_string(getattr(item, "watchlist_reason", None))
-        if reason:
-            line = f"{line}: {reason[:60]}"
-        lines.append(line)
-        if len(lines) >= 2:
-            break
-    return tuple(lines)
 
 
 def _parse_candidate_line(line: str) -> Optional[tuple[str, str, str]]:
@@ -381,65 +472,52 @@ def format_hourly_notification(
     market_map: Optional[dict[str, Any]] = None,
 ) -> tuple[str, str]:
     del halt_reason
-    hhmm = _hhmm(asof_utc)
-    regime_label = _hourly_regime_label(regime)
-    lines = [_hourly_context_line(regime)]
+    pt = _pt_clock(asof_utc)
     parsed = tuple(
         parsed_line
         for line in candidate_lines
         if (parsed_line := _parse_candidate_line(line)) is not None
     )
+    action = _action_label(regime, validation_summary, qualification_summary)
 
-    if regime is not None and regime.posture == STAY_FLAT:
-        title = f"STAY FLAT {hhmm}"
-        reason = _hourly_reason(
-            regime,
-            validation_summary,
-            qualification_summary,
-            has_candidates=False,
-        )
-        lines.extend(
-            [
-                "No trade.",
-                f"Reason: {reason}",
-            ]
-        )
-        _append_trigger_block(lines, regime_label)
-        body = "\n".join(lines)
-        return title, _append_lifecycle_alerts(body, market_map, asof_utc)
-
-    if parsed:
+    if action == "TRADE" and parsed:
         first_symbol, first_direction, _ = parsed[0]
-        title = f"{first_direction} {first_symbol} {hhmm}"
-        lines.extend(
-            f"- {symbol} {direction} RR {rr}"
-            for symbol, direction, rr in parsed[:4]
-        )
-        body = "\n".join(lines)
-        return title, _append_lifecycle_alerts(body, market_map, asof_utc)
+        title = f"{first_direction} {first_symbol} {pt}"
+    elif action == "TRADE":
+        title = f"TRADE {pt}"
+    elif action == "HALT":
+        title = f"HALT {pt}"
+    elif action == "MONITOR":
+        title = f"MONITOR {pt}"
+    else:
+        title = f"STAY FLAT {pt}"
 
     has_candidates = bool(
         qualification_summary is not None
         and (qualification_summary.symbols_qualified or qualification_summary.symbols_watchlist)
     )
-    title = f"WATCHLIST {hhmm}" if has_candidates else f"ACTIVE - NO SETUP {hhmm}"
     reason = _hourly_reason(
         regime,
         validation_summary,
         qualification_summary,
         has_candidates=has_candidates,
     )
-    lines.extend(
-        [
-            "WATCHLIST" if has_candidates else "No trade.",
-            f"Reason: {reason}",
-        ]
-    )
-    if has_candidates:
-        watch_lines = _watch_lines_from_qualification(qualification_summary)
-        if watch_lines:
-            lines.extend(["", "WATCH:", *watch_lines])
-    _append_trigger_block(lines, regime_label)
+    focus = _focus_tokens(qualification_summary, candidate_lines)
+
+    lines = [
+        _state_line(regime),
+        _confidence_line(regime),
+        f"Action: {action}",
+        f"Reason: {reason}",
+        _blockers_line(qualification_summary),
+        _macro_line(regime),
+        _focus_line(focus),
+    ]
+    pending = _pending_lines(focus, candidate_lines)
+    if pending:
+        lines.extend(["", *pending])
+    lines.extend(["", _generated_label(asof_utc)])
+
     body = "\n".join(lines)
     return title, _append_lifecycle_alerts(body, market_map, asof_utc)
 
