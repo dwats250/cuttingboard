@@ -151,3 +151,4 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-122 | 70a0e33 | Add WTI Crude Macro Visibility | COMPLETE | [PRD-122](prd_history/PRD-122.md) |
 | PRD-122-PATCH | b0df0ad | Payload validator must permit optional oil driver | PATCH | [PRD-122-PATCH](prd_history/PRD-122-PATCH.md) |
 | PRD-123 | 0b1ee7b | Trend Structure Refresh Decoupling and Truthful Source Status | COMPLETE | [PRD-123](prd_history/PRD-123.md) |
+| PRD-124 | 5b0ae73 | Hourly Telegram Alert Header and Body Quality | COMPLETE | [PRD-124](prd_history/PRD-124.md) |
