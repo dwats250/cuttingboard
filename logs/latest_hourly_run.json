@@ -1,6 +1,6 @@
 {
-  "alert_body": "NEUTRAL | STAY FLAT | 0.12\nNo trade.\nReason: stay flat posture\n\nTRIGGERS:\n- range break\n- expansion confirmation",
-  "alert_title": "STAY FLAT 14:59",
+  "alert_body": "State: NEUTRAL / STAY FLAT\nConfidence: 0.12\nAction: STAY FLAT\nReason: stay flat posture\nBlockers: none\nMacro: VIX 18.4 (+7.0%)\nFocus: none\n\nGenerated: 16:51 ET",
+  "alert_title": "STAY FLAT 1:51 PM",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
     "payload_path": "logs/latest_hourly_payload.json",
@@ -13,8 +13,8 @@
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-05-11T18:59:53Z",
-  "generation_id": "hourly-20260511T185953Z",
+  "generated_at": "2026-05-11T20:51:11Z",
+  "generation_id": "hourly-20260511T205111Z",
   "halt_reason": null,
   "index_score": 0.0,
   "kill_switch": false,
@@ -33,11 +33,11 @@
   "posture": "STAY_FLAT",
   "regime": "NEUTRAL",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-05-11T18:59:53Z",
-  "run_id": "hourly-20260511T185953Z",
+  "run_at_utc": "2026-05-11T20:51:11Z",
+  "run_id": "hourly-20260511T205111Z",
   "session_date": "2026-05-11",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-05-11T18:59:53Z",
+  "timestamp": "2026-05-11T20:51:11Z",
   "warnings": []
 }
