@@ -13,8 +13,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-10
-**Last completed PRD:** PRD-118 - Coherent Dashboard Publish Artifact Set (commit 136bbfe)
-**Last work completed:** 2026-05-10 — PRD-118: renderer-owned coherent-publish gate in cuttingboard/delivery/dashboard_renderer.py rejects ui/ publication when payload.meta.generation_id / run.generation_id / market_map.generation_id are missing, mismatched, fixture-tagged, or fixture_mode/FIXTURE_MODE=1 is active; non-ui/ outputs unaffected; PRD-116 unhealthy-lineage and PRD-117 inactive-session behavior preserved; ui/dashboard.html + ui/index.html regenerated from coherent live set (hourly-20260508T223110Z)
+**Last completed PRD:** PRD-119 - Dashboard Publish Freshness Gate (commit ccdee4b)
+**Last work completed:** 2026-05-10 — PRD-119: renderer-owned freshness gate in cuttingboard/delivery/dashboard_renderer.py rejects ui/ publication when payload.meta.timestamp age exceeds the session-keyed window (live: 180m, inactive: 72h). Authoritative age input is payload.meta.timestamp only; freshness_reference_time read exactly once per validate_coherent_publish invocation. PRD-118 coherent-generation validation runs first and short-circuits before freshness evaluation. Non-ui/ outputs unaffected. ui/dashboard.html + ui/index.html not regenerated this commit (local artifacts are fixture-tagged and PRD-118 blocks ui/ publication); next live pipeline run will regenerate from a coherent fresh set.
 **Active PRD:** none
 **Next step:** —
 **Deferred PRD:** none
@@ -27,7 +27,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 ## Test Baseline
 
-- **2189 passing** (as of 2026-05-10; PRD-118 added 12 renderer coherent-publish gate tests)
+- **2201 passing** (as of 2026-05-10; PRD-119 added 12 renderer freshness-gate tests)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -37,6 +37,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-119 | Dashboard Publish Freshness Gate | COMPLETE | 2026-05-10 |
 | PRD-118 | Coherent Dashboard Publish Artifact Set | COMPLETE | 2026-05-10 |
 | PRD-117 | Session-Aware Inactive-State Labeling | COMPLETE | 2026-05-10 |
 | PRD-116 | Dashboard Mixed-Artifact Hierarchy Hardening | COMPLETE | 2026-05-10 |
