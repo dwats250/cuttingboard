@@ -77,6 +77,11 @@ Rationale: Mechanical lookup work does not require main-thread reasoning. Runnin
 **[UNVERIFIED] annotation:**
 If a field path, function signature, or module behavior in a PRD cannot be immediately confirmed from `docs/SCHEMA_MAP.md` or `docs/CALL_SITE_MAP.md`, mark it `[UNVERIFIED]` in the PRD. Do not guess. Verify the specific symbol before implementing — not the whole file.
 
+**Visible-String Pre-Edit Audit:**
+Before the first implementation edit of any PRD that changes a user-visible string — rendered HTML fragments, dashboard labels, log lines, notification copy, CLI output, exception messages, payload field labels — grep the entire `tests/` tree for every literal string the PRD is about to remove, rename, or reword. Catch regression-style assertions (`assert "STALE MARKET MAP" in board`, `assert "&#8212;" in state`) in the same commit as the renderer change rather than discovering them via a failing full-suite run after commit. If the literal-string set has ≤ 5 items in one or two known test files, run the grep main-thread. If it spans ≥ 3 files or there are > 5 strings, dispatch the audit to `Agent(subagent_type: "Explore", model: "haiku")` and stay in the main thread.
+
+Rationale: a PRD that changes observable output by definition changes whatever assertions checked the old output. Discovering those assertions through suite failure mid-implementation costs an extra full-suite run, a scope-lock amendment to add the surprise test file to FILES, and a re-commit. A 30-second grep prevents this.
+
 ---
 
 ## instrument universe
