@@ -13,9 +13,9 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-11
-**Last completed PRD:** PRD-126 - Fixture Mode No-Live-OHLCV Boundary (commit a4ce57c)
-**Last work completed:** 2026-05-11 — PRD-126: updated `_fixture_cache_only_ohlcv()` in `cuttingboard/runtime.py` so fixture-backed execution patches both `cuttingboard.derived.fetch_ohlcv` and the direct `cuttingboard.runtime.fetch_ohlcv` import. Fixture mode now resolves candidate OHLCV lookup to the existing cache-only helper instead of the live ingestion path; missing cache data degrades as unavailable OHLCV without network fallback. Added `tests/test_fixture_mode.py` coverage proving fixture mode replaces direct `runtime.fetch_ohlcv` and non-fixture mode preserves the regular runtime fetch path. Validation for implementation commit a4ce57c: `python3 -m pytest tests/test_fixture_mode.py -q` -> 18 passed; `python3 -m pytest tests/test_runtime_decision.py -q` -> 4 passed; `python3 -m pytest tests/test_derived.py -q` -> 22 passed; `python3 -m pytest -q` -> 2261 passed; `git diff --check` passed.
-**Active PRD:** PRD-127 — Hourly Alert Action Language Alignment
+**Last completed PRD:** PRD-127 - Hourly Alert Action Language Alignment (commit d55f4d5)
+**Last work completed:** 2026-05-11 — PRD-127: gated the `Action: TRADE` branch in `cuttingboard/notifications/__init__.py::_action_label` on a new `canonical_outcome` keyword parameter threaded from `format_hourly_notification`. Qualified setups under the default `canonical_outcome=None` now render `Action: MONITOR SETUP`, aligning hourly Telegram body language with the canonical `OUTCOME_NO_TRADE` value that `_execute_notify_run` hardcodes at `runtime.py:560`, `:600`, and `_build_hourly_contract:1752`. The watchlist-only `Action: MONITOR` branch is preserved. Updated two existing `tests/test_hourly_alert.py` assertions and added six PRD-127 tests (regression, R3 reachability via `canonical_outcome=OUTCOME_TRADE`, no directional title-prefix leak, watchlist-only MONITOR preservation, R8 grep gate, signature kwarg declaration). No edits to `runtime.py`, dashboard, payload/contract, market_map, readiness, workflows, OHLCV/cache/fixture, logs, reports, or UI files. Validation for implementation commit d55f4d5: `python3 -m pytest tests/test_hourly_alert.py -q` -> 48 passed; `python3 -m pytest -q` -> 2267 passed; `git diff --check` clean.
+**Active PRD:** none
 **Deferred PRD:** none
 
 **System direction:** deterministic, macro-aware, visibility-first, sidecar-oriented ecosystem.
@@ -26,7 +26,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 ## Test Baseline
 
-- **2261 passing** (as of 2026-05-11; PRD-126 added fixture OHLCV no-live regression coverage in `tests/test_fixture_mode.py`)
+- **2267 passing** (as of 2026-05-11; PRD-127 added hourly action-language alignment coverage in `tests/test_hourly_alert.py`)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -36,6 +36,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-127 | Hourly Alert Action Language Alignment | COMPLETE | 2026-05-11 |
 | PRD-126 | Fixture Mode No-Live-OHLCV Boundary | COMPLETE | 2026-05-11 |
 | PRD-125 | OHLCV Cache Freshness Contract | COMPLETE | 2026-05-11 |
 | PRD-124 | Hourly Telegram Alert Header and Body Quality | COMPLETE | 2026-05-11 |
