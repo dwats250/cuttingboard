@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.03935410731992814,
-      "price": 138.38999938964844,
+      "pct_change_decimal": 0.037551587656660675,
+      "price": 138.14999389648438,
       "structure": "UNKNOWN",
       "symbol": "USO"
     }
@@ -26,8 +26,8 @@
       "XLE"
     ]
   },
-  "generated_at": "2026-05-11T15:49:05Z",
-  "generation_id": "hourly-20260511T154905Z",
+  "generated_at": "2026-05-11T15:57:11Z",
+  "generation_id": "hourly-20260511T155711Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -41,14 +41,14 @@
   "session_date": "2026-05-11",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-05-11T15:49:05Z"
+    "run_at_utc": "2026-05-11T15:57:11Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 97.59500122070312,
+      "current_price": 97.61000061035156,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -58,12 +58,12 @@
       "lifecycle": {
         "current_grade": "F",
         "current_setup_state": "DATA_UNAVAILABLE",
-        "grade_transition": "DOWNGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "B",
-        "previous_setup_state": "DEVELOPING",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "F",
+        "previous_setup_state": "DATA_UNAVAILABLE",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": null,
       "reason_for_grade": "Market data unavailable for this run.",
@@ -94,7 +94,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 434.2200012207031,
+      "current_price": 434.4200134277344,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -108,8 +108,8 @@
         "is_new": false,
         "is_removed": false,
         "previous_grade": "F",
-        "previous_setup_state": "CHOPPY",
-        "setup_state_transition": "CHANGED"
+        "previous_setup_state": "DATA_UNAVAILABLE",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": null,
       "reason_for_grade": "Market data unavailable for this run.",
@@ -150,7 +150,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 713.52001953125,
+      "current_price": 714.219970703125,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -160,12 +160,12 @@
       "lifecycle": {
         "current_grade": "F",
         "current_setup_state": "DATA_UNAVAILABLE",
-        "grade_transition": "DOWNGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "D",
-        "previous_setup_state": "EXTENDED",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "F",
+        "previous_setup_state": "DATA_UNAVAILABLE",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": null,
       "reason_for_grade": "Market data unavailable for this run.",
@@ -196,7 +196,7 @@
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 77.54000091552734,
+      "current_price": 77.7300033569336,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -205,12 +205,12 @@
       "lifecycle": {
         "current_grade": "F",
         "current_setup_state": "DATA_UNAVAILABLE",
-        "grade_transition": "DOWNGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "D",
-        "previous_setup_state": "EXTENDED",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "F",
+        "previous_setup_state": "DATA_UNAVAILABLE",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": null,
       "reason_for_grade": "Market data unavailable for this run.",
@@ -235,7 +235,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 739.8300170898438,
+      "current_price": 740.25,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -245,12 +245,12 @@
       "lifecycle": {
         "current_grade": "F",
         "current_setup_state": "DATA_UNAVAILABLE",
-        "grade_transition": "DOWNGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "D",
-        "previous_setup_state": "EXTENDED",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "F",
+        "previous_setup_state": "DATA_UNAVAILABLE",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": null,
       "reason_for_grade": "Market data unavailable for this run.",
@@ -286,7 +286,7 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 56.810001373291016,
+      "current_price": 56.81999969482422,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -296,12 +296,12 @@
       "lifecycle": {
         "current_grade": "F",
         "current_setup_state": "DATA_UNAVAILABLE",
-        "grade_transition": "DOWNGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "C",
-        "previous_setup_state": "LOW_QUALITY",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "F",
+        "previous_setup_state": "DATA_UNAVAILABLE",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": null,
       "reason_for_grade": "Market data unavailable for this run.",
