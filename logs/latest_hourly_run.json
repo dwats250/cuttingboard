@@ -1,6 +1,6 @@
 {
   "alert_body": "RISK ON | STAY FLAT | 0.50\nNo trade.\nReason: stay flat posture\n\nTRIGGERS:\n- breakout above resistance\n- continuation hold above trigger",
-  "alert_title": "STAY FLAT 11:57",
+  "alert_title": "STAY FLAT 12:20",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
     "payload_path": "logs/latest_hourly_payload.json",
@@ -13,8 +13,8 @@
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-05-11T15:57:11Z",
-  "generation_id": "hourly-20260511T155711Z",
+  "generated_at": "2026-05-11T16:20:33Z",
+  "generation_id": "hourly-20260511T162033Z",
   "halt_reason": null,
   "index_score": 0.0,
   "kill_switch": false,
@@ -33,11 +33,11 @@
   "posture": "STAY_FLAT",
   "regime": "RISK_ON",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-05-11T15:57:11Z",
-  "run_id": "hourly-20260511T155711Z",
+  "run_at_utc": "2026-05-11T16:20:33Z",
+  "run_id": "hourly-20260511T162033Z",
   "session_date": "2026-05-11",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-05-11T15:57:11Z",
+  "timestamp": "2026-05-11T16:20:33Z",
   "warnings": []
 }
