@@ -12,9 +12,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from cuttingboard import config
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.derived import DerivedMetrics, compute_derived, compute_all_derived
 from cuttingboard.ingestion import fetch_ohlcv
+from cuttingboard.validation import validate_quotes
 
 
 # ---------------------------------------------------------------------------
@@ -246,10 +248,29 @@ class TestInsufficientHistory:
         assert dm.sufficient_history is False
         assert dm.ema9 is None
 
-    def test_stale_ohlcv_cache_rejected_after_fetch_failure(self, tmp_path, monkeypatch):
+    def test_ohlcv_cache_younger_than_ttl_is_used(self, tmp_path, monkeypatch):
+        fresh_df = _make_ohlcv(30)
+        fresh_df.index = pd.date_range(
+            end=datetime.now(timezone.utc) - timedelta(hours=config.OHLCV_STALE_HOURS) + timedelta(minutes=1),
+            periods=len(fresh_df),
+            freq="s",
+        )
+        cache_path = tmp_path / "SPY_ohlcv.parquet"
+        cache_path.write_text("placeholder", encoding="utf-8")
+
+        monkeypatch.setattr("cuttingboard.ingestion._ohlcv_cache_path", lambda _symbol: cache_path)
+        monkeypatch.setattr("cuttingboard.ingestion.pd.read_parquet", lambda _path: fresh_df)
+        monkeypatch.setattr(
+            "cuttingboard.ingestion._fetch_ohlcv_from_yfinance",
+            lambda _symbol: pytest.fail("fresh OHLCV cache should avoid live refresh"),
+        )
+
+        assert fetch_ohlcv("SPY") is fresh_df
+
+    def test_ohlcv_cache_at_ttl_rejected_after_fetch_failure(self, tmp_path, monkeypatch):
         stale_df = _make_ohlcv(30)
         stale_df.index = pd.date_range(
-            end=datetime.now(timezone.utc) - timedelta(minutes=10),
+            end=datetime.now(timezone.utc) - timedelta(hours=config.OHLCV_STALE_HOURS),
             periods=len(stale_df),
             freq="s",
         )
@@ -261,6 +282,23 @@ class TestInsufficientHistory:
         monkeypatch.setattr("cuttingboard.ingestion._fetch_ohlcv_from_yfinance", lambda _symbol: None)
 
         assert fetch_ohlcv("SPY") is None
+
+    def test_quote_freshness_still_uses_freshness_seconds(self):
+        quote = NormalizedQuote(
+            symbol="SPY",
+            price=540.0,
+            pct_change_decimal=0.005,
+            volume=2_000_000.0,
+            fetched_at_utc=datetime.now(timezone.utc) - timedelta(seconds=config.FRESHNESS_SECONDS + 1),
+            source="yfinance",
+            units="usd_price",
+            age_seconds=float(config.FRESHNESS_SECONDS + 1),
+        )
+
+        summary = validate_quotes({"SPY": quote})
+
+        assert "SPY" not in summary.valid_quotes
+        assert "freshness threshold" in summary.invalid_symbols["SPY"]
 
     def test_exactly_21_bars_is_sufficient(self):
         df = _make_ohlcv(21)

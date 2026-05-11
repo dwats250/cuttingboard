@@ -157,7 +157,8 @@ def _is_fresh_ohlcv_cache(df: pd.DataFrame) -> bool:
         last_bar = last_bar.tz_convert(timezone.utc)
 
     age_seconds = (datetime.now(timezone.utc) - last_bar.to_pydatetime()).total_seconds()
-    return 0 <= age_seconds < config.FRESHNESS_SECONDS
+    max_age_seconds = config.OHLCV_STALE_HOURS * 60 * 60
+    return 0 <= age_seconds < max_age_seconds
 
 
 def fetch_intraday_bars(symbol: str) -> Optional[pd.DataFrame]:
