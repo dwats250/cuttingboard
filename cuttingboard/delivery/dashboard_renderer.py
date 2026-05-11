@@ -602,12 +602,13 @@ def _load_trend_structure_snapshot(path: Path) -> dict | None:
 
 
 def _trend_symbols_usable(snapshot: dict | None) -> int:
-    """PRD-120: per-symbol completeness count.
+    """PRD-120 / PRD-123: per-symbol *usable data* count.
 
     Returns the number of TREND_STRUCTURE_SYMBOLS whose record in
-    `snapshot["symbols"]` contains every field in
-    `_TREND_STRUCTURE_REQUIRED_FIELDS`. Evaluated per-symbol; does NOT
-    fall back to all-or-nothing like `_trend_structure_records`.
+    `snapshot["symbols"]` (a) contains every field in
+    `_TREND_STRUCTURE_REQUIRED_FIELDS` AND (b) carries
+    `data_status != "MISSING"`. Shape-present-but-data-MISSING rows
+    do NOT count — usable means usable data, not shape presence.
     """
     if not isinstance(snapshot, dict):
         return 0
@@ -619,8 +620,11 @@ def _trend_symbols_usable(snapshot: dict | None) -> int:
         rec = symbols.get(sym)
         if not isinstance(rec, dict):
             continue
-        if all(field in rec for field in _TREND_STRUCTURE_REQUIRED_FIELDS):
-            count += 1
+        if not all(field in rec for field in _TREND_STRUCTURE_REQUIRED_FIELDS):
+            continue
+        if rec.get("data_status") == "MISSING":
+            continue
+        count += 1
     return count
 
 
@@ -668,22 +672,34 @@ def _trend_structure_source_health(
     ts_generated_at_raw: object,
     usable_count: int,
 ) -> str:
-    """PRD-120 SOURCE-HEALTH MAPPING for Trend Structure. First match wins.
+    """PRD-120 / PRD-123 SOURCE-HEALTH MAPPING for Trend Structure.
 
-    MISSING fires when the snapshot input is absent. FALLBACK fires when
-    the snapshot exists but no per-symbol record carries the required
-    fields. These two precedence rows are intentionally distinct from
-    the all-or-nothing semantics of `_trend_structure_records`, which
-    governs row rendering but not source-health classification.
+    Precedence (first match wins):
+      1. lineage MIXED            → MIXED
+      2. lineage STALE            → STALE
+      3. lineage MISSING          → MISSING
+      4. snapshot not a dict      → MISSING
+      5. freshness PARSE_ERROR    → INVALID
+      6. freshness STALE          → STALE
+      7. usable_count == 0        → MARKET_CLOSED if inactive_session else AWAITING_DATA  (PRD-123)
+      8. inactive_session         → INACTIVE_SESSION  (rare: inactive with usable rows)
+      9. otherwise                → OK
+
+    PRD-123 R5: the `usable_count == 0` branch must precede the
+    `inactive_session` branch so MARKET_CLOSED is reachable. The previous
+    PRD-120 `FALLBACK` return is removed from this function entirely.
     """
     if artifact_lineage_state == "MIXED":
         return "MIXED"
     if artifact_lineage_state in ("STALE", "MISSING"):
         return artifact_lineage_state
-    if inactive_session:
-        return "INACTIVE_SESSION"
     if not isinstance(snapshot, dict):
-        return "MISSING"
+        # PRD-123: no snapshot file at all. Preserve PRD-117 coherence:
+        # under inactive_session, return INACTIVE_SESSION so the panel
+        # body's "SESSION INACTIVE" label is not contradicted by
+        # "SOURCE: MISSING". Under active session, report MISSING
+        # truthfully so the operator sees the writer regression.
+        return "INACTIVE_SESSION" if inactive_session else "MISSING"
     if isinstance(ts_generated_at_raw, str) and ts_generated_at_raw:
         freshness = _compute_timestamp_freshness(ts_generated_at_raw)
         if freshness == "PARSE_ERROR":
@@ -691,7 +707,13 @@ def _trend_structure_source_health(
         if freshness == "STALE":
             return "STALE"
     if usable_count == 0:
-        return "FALLBACK"
+        # PRD-123: snapshot exists and is fresh but no symbol carries
+        # usable data — typically markets closed or intraday not yet
+        # streaming. This branch must precede the bare INACTIVE_SESSION
+        # below so MARKET_CLOSED is reachable.
+        return "MARKET_CLOSED" if inactive_session else "AWAITING_DATA"
+    if inactive_session:
+        return "INACTIVE_SESSION"  # rare: inactive with usable rows
     return "OK"
 
 
@@ -1695,8 +1717,16 @@ def render_dashboard_html(
     # PRD-120 R5: SOURCE line above body content (table / disabled message
     # / INACTIVE_SESSION_LABEL).
     w(f'  <div class="label">SOURCE: {_ts_health}</div>')
-    # PRD-120 R6: TREND SYMBOLS X/Y only under OK / STALE / FALLBACK.
-    if _ts_health in ("OK", "STALE", "FALLBACK"):
+    # PRD-123 R6: human-readable degraded-state label and last-snapshot
+    # line for the two new "no live data" states. STALE retains its
+    # existing rendering — the two are visually and semantically distinct.
+    if _ts_health in ("MARKET_CLOSED", "AWAITING_DATA"):
+        w('  <div class="label">MARKET CLOSED &#8212; AWAITING INTRADAY DATA</div>')
+        if isinstance(_ts_generated_at_raw, str) and _ts_generated_at_raw:
+            w(f'  <div class="label">Last snapshot: {_esc(_ts_generated_at_raw)}</div>')
+    # PRD-120 R6 / PRD-123 R6: TREND SYMBOLS X/Y under OK, STALE, and the
+    # two new PRD-123 states (FALLBACK return removed in PRD-123 R5).
+    if _ts_health in ("OK", "STALE", "MARKET_CLOSED", "AWAITING_DATA"):
         w(
             f'  <div class="label">TREND SYMBOLS: {_ts_usable}/'
             f'{len(config.TREND_STRUCTURE_SYMBOLS)}</div>'

@@ -1055,6 +1055,19 @@ def _run_pipeline(
         outcome=outcome,
     )
 
+    # PRD-123: refresh trend_structure_snapshot.json on every MODE_LIVE
+    # pipeline run. The helper gates internally on mode == MODE_LIVE; the
+    # explicit gate here is defense-in-depth so fixture/sunday paths never
+    # reach the writer call even by accident. ohlcv may be empty under
+    # halted state — the underlying writer handles that gracefully.
+    if mode == MODE_LIVE:
+        _refresh_trend_structure_sidecar(
+            mode=mode,
+            normalized_quotes=normalized_quotes,
+            history_by_symbol=ohlcv,
+            generated_at=run_at_utc,
+        )
+
     return PipelineResult(
         mode=mode,
         generation_id=generation_id,
@@ -1895,6 +1908,25 @@ def _write_trend_structure_snapshot(
         tmp.replace(TREND_STRUCTURE_PATH)
     except Exception:
         logger.exception("Failed to write trend_structure_snapshot")
+
+
+def _refresh_trend_structure_sidecar(
+    *,
+    mode: str,
+    normalized_quotes: dict[str, NormalizedQuote],
+    history_by_symbol: dict[str, pd.DataFrame],
+    generated_at: datetime,
+) -> None:
+    """PRD-123: refresh logs/trend_structure_snapshot.json from any
+    MODE_LIVE pipeline run. Fixture/Sunday modes are excluded. Best-effort —
+    write failures are swallowed and logged by the underlying writer."""
+    if mode != MODE_LIVE:
+        return
+    _write_trend_structure_snapshot(
+        normalized_quotes=normalized_quotes,
+        history_by_symbol=history_by_symbol,
+        generated_at=generated_at,
+    )
 
 
 def _write_watchlist_snapshot(

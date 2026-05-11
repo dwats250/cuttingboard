@@ -2240,8 +2240,11 @@ def test_prd120_trend_structure_source_invalid(
     assert "TREND SYMBOLS:" not in section
 
 
-# R14-7: TREND SYMBOLS 0/6 + FALLBACK when snapshot exists but every
-# symbol record is missing required fields.
+# R14-7 (updated by PRD-123): TREND SYMBOLS 0/6 + AWAITING_DATA when
+# snapshot exists, freshness is FRESH, but every symbol record is missing
+# required fields. The previous FALLBACK return is removed in PRD-123 R5.
+# Active session → AWAITING_DATA; inactive session would return
+# MARKET_CLOSED (covered by the new PRD-123 tests below).
 def test_prd120_trend_structure_source_fallback_zero_usable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -2264,8 +2267,161 @@ def test_prd120_trend_structure_source_fallback_zero_usable(
 
     html = _prd120_coherent_render(trend_structure_snapshot=snap)
     section = _ts_section(html)
-    assert "SOURCE: FALLBACK" in section
+    # PRD-123 R5: FALLBACK removed from _trend_structure_source_health.
+    # Active session + zero usable → AWAITING_DATA.
+    assert "SOURCE: AWAITING_DATA" in section
+    assert "SOURCE: FALLBACK" not in section
     assert "TREND SYMBOLS: 0/6" in section
+
+
+# ----------------------------------------------------------------------------
+# PRD-123 — Trend Structure Refresh Decoupling and Truthful Source Status
+# ----------------------------------------------------------------------------
+
+
+def _prd123_fresh_zero_usable_snapshot() -> dict:
+    """Snapshot with full required-field shape for every curated symbol but
+    data_status=MISSING — i.e. shape-present, data-unusable. Mirrors the
+    real-world "market closed, no intraday" condition that surfaced from
+    the live 2026-05-09 snapshot inspected during PRD-123 design."""
+    rec_template = {
+        "current_price": None,
+        "vwap": None,
+        "sma_50": None,
+        "sma_200": None,
+        "relative_volume": None,
+        "price_vs_vwap": "UNKNOWN",
+        "price_vs_sma_50": "UNKNOWN",
+        "price_vs_sma_200": "UNKNOWN",
+        "trend_alignment": "UNKNOWN",
+        "entry_context": "UNKNOWN",
+        "data_status": "MISSING",
+        "reason": "current_price unavailable",
+    }
+    return {
+        "schema_version": 1,
+        "generated_at": "2026-04-28T12:00:00+00:00",
+        "symbols": {sym: {"symbol": sym, **rec_template} for sym in _TS_CURATED},
+    }
+
+
+def _prd123_freeze_fresh(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pin renderer-side `datetime.now` to a moment 60s after the fixture
+    `generated_at` so freshness reads FRESH (well under the 300s threshold)."""
+    fixed_now = _dt112(2026, 4, 28, 12, 1, 0, tzinfo=_tz112.utc)
+
+    class _FrozenDT(_dt112):  # type: ignore[misc]
+        @classmethod
+        def now(cls, tz=None):
+            return fixed_now if tz is None else fixed_now.astimezone(tz)
+
+    monkeypatch.setattr(_dr112, "datetime", _FrozenDT)
+
+
+def test_prd123_zero_usable_active_session_renders_awaiting_data(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """R5/R6/R8: fresh + zero usable + active session → AWAITING_DATA, with
+    the human label and Last snapshot line both present, and 0/6 count."""
+    _freeze_renderer_now(monkeypatch)
+    _prd123_freeze_fresh(monkeypatch)
+    html = _prd120_coherent_render(
+        trend_structure_snapshot=_prd123_fresh_zero_usable_snapshot(),
+    )
+    section = _ts_section(html)
+    assert "SOURCE: AWAITING_DATA" in section
+    assert "SOURCE: MARKET_CLOSED" not in section
+    assert "SOURCE: STALE" not in section
+    assert "MARKET CLOSED &#8212; AWAITING INTRADAY DATA" in section
+    assert "Last snapshot: 2026-04-28T12:00:00+00:00" in section
+    assert "TREND SYMBOLS: 0/6" in section
+
+
+def test_prd123_zero_usable_inactive_session_renders_market_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """R5/R6/R8: fresh + zero usable + inactive session → MARKET_CLOSED.
+    Validates that the new branch precedes the INACTIVE_SESSION early-return
+    so MARKET_CLOSED is reachable (the precedence bug Codex review caught)."""
+    _freeze_renderer_now(monkeypatch)
+    _prd123_freeze_fresh(monkeypatch)
+    html = _prd120_coherent_render(
+        payload_overrides={
+            "meta": {
+                **_payload()["meta"],
+                "session_type": "SUNDAY_PREMARKET",
+                "generation_id": "test-gen-001",
+            },
+        },
+        trend_structure_snapshot=_prd123_fresh_zero_usable_snapshot(),
+    )
+    section = _ts_section(html)
+    assert "SOURCE: MARKET_CLOSED" in section
+    assert "SOURCE: AWAITING_DATA" not in section
+    assert "SOURCE: INACTIVE_SESSION" not in section
+    assert "MARKET CLOSED &#8212; AWAITING INTRADAY DATA" in section
+    assert "Last snapshot: 2026-04-28T12:00:00+00:00" in section
+    assert "TREND SYMBOLS: 0/6" in section
+
+
+def test_prd123_full_usable_renders_ok(monkeypatch: pytest.MonkeyPatch) -> None:
+    """R8: a healthy snapshot (all six symbols with full fields and
+    data_status='OK') renders SOURCE: OK and 6/6, no degraded labels."""
+    _freeze_renderer_now(monkeypatch)
+    _prd123_freeze_fresh(monkeypatch)
+    snap = _ts_healthy_snapshot(generated_at="2026-04-28T12:00:00+00:00")
+    html = _prd120_coherent_render(trend_structure_snapshot=snap)
+    section = _ts_section(html)
+    assert "SOURCE: OK" in section
+    assert "SOURCE: AWAITING_DATA" not in section
+    assert "SOURCE: MARKET_CLOSED" not in section
+    assert "SOURCE: FALLBACK" not in section
+    assert "MARKET CLOSED" not in section
+    assert "Last snapshot:" not in section
+    assert "TREND SYMBOLS: 6/6" in section
+
+
+def test_prd123_stale_wins_over_zero_usable(monkeypatch: pytest.MonkeyPatch) -> None:
+    """R5/R8: a snapshot whose `generated_at` is older than 300s renders
+    SOURCE: STALE regardless of inner row content. Confirms STALE precedes
+    the new MARKET_CLOSED / AWAITING_DATA branch and they are NOT conflated."""
+    _freeze_renderer_now(monkeypatch)
+    # Snapshot generated_at far enough in the past that freshness=STALE.
+    stale_snap = _prd123_fresh_zero_usable_snapshot()
+    stale_snap["generated_at"] = "2026-04-28T11:00:00+00:00"  # 1 hour old
+
+    fixed_now = _dt112(2026, 4, 28, 12, 0, 0, tzinfo=_tz112.utc)
+
+    class _FrozenDT(_dt112):  # type: ignore[misc]
+        @classmethod
+        def now(cls, tz=None):
+            return fixed_now if tz is None else fixed_now.astimezone(tz)
+
+    monkeypatch.setattr(_dr112, "datetime", _FrozenDT)
+
+    html = _prd120_coherent_render(trend_structure_snapshot=stale_snap)
+    section = _ts_section(html)
+    assert "SOURCE: STALE" in section
+    assert "SOURCE: AWAITING_DATA" not in section
+    assert "SOURCE: MARKET_CLOSED" not in section
+    assert "MARKET CLOSED &#8212; AWAITING INTRADAY DATA" not in section
+
+
+def test_prd123_no_fallback_string_in_trend_renders(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """R8 invariant: `SOURCE: FALLBACK` must not appear in any trend-structure
+    render after this PRD merges. Covers OK / STALE / MARKET_CLOSED /
+    AWAITING_DATA in turn."""
+    _freeze_renderer_now(monkeypatch)
+    _prd123_freeze_fresh(monkeypatch)
+    for label, snap in [
+        ("ok", _ts_healthy_snapshot(generated_at="2026-04-28T12:00:00+00:00")),
+        ("awaiting_data", _prd123_fresh_zero_usable_snapshot()),
+    ]:
+        html = _prd120_coherent_render(trend_structure_snapshot=snap)
+        section = _ts_section(html)
+        assert "SOURCE: FALLBACK" not in section, f"FALLBACK leaked into {label} render"
 
 
 # R14-8: Macro Tape FALLBACK when any tape slot is `--` or `N/A`.
@@ -2437,10 +2593,17 @@ def test_prd120_trend_structure_enum_coverage(
         artifact_lineage_state="COHERENT", inactive_session=False,
         snapshot={"symbols": {"SPY": rec}}, ts_generated_at_raw=stale, usable_count=6,
     ) == "STALE"
+    # PRD-123 R5: previous FALLBACK return replaced by AWAITING_DATA when
+    # snapshot is fresh and usable_count == 0 under active session.
     assert _trend_structure_source_health(
         artifact_lineage_state="COHERENT", inactive_session=False,
         snapshot={"symbols": {"SPY": rec}}, ts_generated_at_raw=fresh, usable_count=0,
-    ) == "FALLBACK"
+    ) == "AWAITING_DATA"
+    # PRD-123 R5: corresponding inactive-session case returns MARKET_CLOSED.
+    assert _trend_structure_source_health(
+        artifact_lineage_state="COHERENT", inactive_session=True,
+        snapshot={"symbols": {"SPY": rec}}, ts_generated_at_raw=fresh, usable_count=0,
+    ) == "MARKET_CLOSED"
     assert _trend_structure_source_health(
         artifact_lineage_state="COHERENT", inactive_session=False,
         snapshot={"symbols": {"SPY": rec}}, ts_generated_at_raw=fresh, usable_count=6,

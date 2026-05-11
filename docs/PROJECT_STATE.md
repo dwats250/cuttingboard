@@ -13,8 +13,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-11
-**Last completed PRD:** PRD-122-PATCH - Payload validator must permit optional oil driver (commit b0df0ad)
-**Last work completed:** 2026-05-11 — PRD-122-PATCH: fixed the payload-layer duplicate macro-driver validator (`cuttingboard/delivery/payload.py::_require_macro_drivers`) which still enforced exact-set equality on the four pre-PRD-122 driver keys. Live pipeline payload-write had been failing with `ValueError: macro_drivers must have exact driver keys` whenever the new `oil` driver was present in `contract.macro_drivers`. Patch introduces a local `_OPTIONAL_MACRO_DRIVERS = frozenset({"oil"})` aligned with `contract._OPTIONAL_MACRO_DRIVERS` (intentional duplication; payload module otherwise imports nothing from cuttingboard internals). Validator now distinguishes required vs unknown driver keys with separate raise paths; per-block field-set and finite-float checks unchanged. Five focused private-validator regression tests appended to `tests/test_payload_macro_drivers.py` (required-four pass / required-four+oil pass / missing-required raises / unknown-extra raises / invalid oil field-shape raises). Live pipeline now completes payload-write and renders OIL in `ui/dashboard.html` / `ui/index.html` (live WTI: $98.4). No qualification, regime, scoring, policy, execution, or contract-layer semantics changed.
+**Last completed PRD:** PRD-123 - Trend Structure Refresh Decoupling and Truthful Source Status (commit TBD)
+**Last work completed:** 2026-05-11 — PRD-123: decoupled trend-structure sidecar refresh from hourly-notify gating. A new private helper `_refresh_trend_structure_sidecar(mode, normalized_quotes, history_by_symbol, generated_at)` in `cuttingboard/runtime.py` gates on `mode == MODE_LIVE` and delegates to `_write_trend_structure_snapshot`; `_run_pipeline` now calls it just before returning `PipelineResult`, inside a defense-in-depth `if mode == MODE_LIVE:` block. `PipelineResult` shape is unchanged — DataFrames stay local to `_run_pipeline`. Renderer `_trend_symbols_usable` tightened to require `data_status != "MISSING"` in addition to required-field presence — count now reflects usable data, not shape presence. `_trend_structure_source_health` precedence extended with `MARKET_CLOSED` (inactive_session + fresh snapshot + 0 usable) and `AWAITING_DATA` (active session + fresh snapshot + 0 usable); previous `FALLBACK` return removed; PRD-117 snapshot-None coherence preserved (`INACTIVE_SESSION` still wins over `MISSING` under inactive_session). Panel renders the human label `MARKET CLOSED — AWAITING INTRADAY DATA` plus `Last snapshot: <iso>` for the two new states. PRD-120 R14-7 test updated to assert `AWAITING_DATA` instead of `FALLBACK`. Six new tests in `tests/test_runtime_trend_structure_refresh.py` cover helper mode-gating + exception-swallow + static `_run_pipeline` integration; five new renderer tests cover all four health states + degraded-label invariants. Codex cross-review (ACCEPT WITH CHANGES) findings 1-3 applied before implementation. Live verification at 2026-05-11 02:07Z produced fresh 6-symbol snapshot and `SOURCE: OK` / `TREND SYMBOLS: 6/6` (intraday available at run time). Notification policy unchanged.
 **Active PRD:** none
 **Deferred PRD:** none
 
@@ -26,7 +26,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 ## Test Baseline
 
-- **2235 passing** (as of 2026-05-11; PRD-122-PATCH added 5 payload-validator tests)
+- **2247 passing** (as of 2026-05-11; PRD-123 added 12 tests: 7 runtime, 5 renderer)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -36,6 +36,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-123 | Trend Structure Refresh Decoupling and Truthful Source Status | COMPLETE | 2026-05-11 |
 | PRD-122-PATCH | Payload validator must permit optional oil driver | PATCH | 2026-05-11 |
 | PRD-122 | Add WTI Crude Macro Visibility | COMPLETE | 2026-05-11 |
 | PRD-121 | PRD Workflow Lane Classification and Review Discipline | COMPLETE | 2026-05-11 |
