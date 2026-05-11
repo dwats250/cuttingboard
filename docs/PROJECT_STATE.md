@@ -13,9 +13,9 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-11
-**Last completed PRD:** PRD-125 - OHLCV Cache Freshness Contract (commit e727ae2)
-**Last work completed:** 2026-05-11 — PRD-125: changed `_is_fresh_ohlcv_cache()` in `cuttingboard/ingestion.py` to evaluate daily OHLCV cache freshness against `config.OHLCV_STALE_HOURS * 60 * 60` instead of the 5-minute quote freshness threshold. Quote freshness remains governed by `config.FRESHNESS_SECONDS`. Added `tests/test_derived.py` coverage for OHLCV cache younger than TTL being reused, OHLCV cache at TTL being rejected and falling through to live refresh, and quote freshness rejecting data older than `config.FRESHNESS_SECONDS`. Validation for implementation commit e727ae2: `python3 -m pytest tests/test_derived.py -q` -> 22 passed; `python3 -m pytest -q` -> 2259 passed; `git diff --check` passed.
-**Active PRD:** PRD-126 - Fixture Mode No-Live-OHLCV Boundary
+**Last completed PRD:** PRD-126 - Fixture Mode No-Live-OHLCV Boundary (commit a4ce57c)
+**Last work completed:** 2026-05-11 — PRD-126: updated `_fixture_cache_only_ohlcv()` in `cuttingboard/runtime.py` so fixture-backed execution patches both `cuttingboard.derived.fetch_ohlcv` and the direct `cuttingboard.runtime.fetch_ohlcv` import. Fixture mode now resolves candidate OHLCV lookup to the existing cache-only helper instead of the live ingestion path; missing cache data degrades as unavailable OHLCV without network fallback. Added `tests/test_fixture_mode.py` coverage proving fixture mode replaces direct `runtime.fetch_ohlcv` and non-fixture mode preserves the regular runtime fetch path. Validation for implementation commit a4ce57c: `python3 -m pytest tests/test_fixture_mode.py -q` -> 18 passed; `python3 -m pytest tests/test_runtime_decision.py -q` -> 4 passed; `python3 -m pytest tests/test_derived.py -q` -> 22 passed; `python3 -m pytest -q` -> 2261 passed; `git diff --check` passed.
+**Active PRD:** none
 **Deferred PRD:** none
 
 **System direction:** deterministic, macro-aware, visibility-first, sidecar-oriented ecosystem.
@@ -26,7 +26,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 ## Test Baseline
 
-- **2259 passing** (as of 2026-05-11; PRD-125 added OHLCV cache TTL and quote freshness regression coverage in `tests/test_derived.py`)
+- **2261 passing** (as of 2026-05-11; PRD-126 added fixture OHLCV no-live regression coverage in `tests/test_fixture_mode.py`)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -36,6 +36,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-126 | Fixture Mode No-Live-OHLCV Boundary | COMPLETE | 2026-05-11 |
 | PRD-125 | OHLCV Cache Freshness Contract | COMPLETE | 2026-05-11 |
 | PRD-124 | Hourly Telegram Alert Header and Body Quality | COMPLETE | 2026-05-11 |
 | PRD-123 | Trend Structure Refresh Decoupling and Truthful Source Status | COMPLETE | 2026-05-11 |
