@@ -23,6 +23,7 @@ from .formatter import (
     ALERT_CONTEXT_RUN,
     AlertEvent,
     LOCAL_TZ,
+    OUTCOME_TRADE,
     _ET_TZ,
     format_ntfy_alert,
     NOTIFY_HOURLY,
@@ -89,6 +90,7 @@ def _action_label(
     regime: Optional[RegimeState],
     validation_summary: ValidationSummary,
     qualification_summary: Optional[QualificationSummary],
+    canonical_outcome: Optional[str] = None,
 ) -> str:
     if validation_summary.system_halted:
         return "HALT"
@@ -97,8 +99,10 @@ def _action_label(
         and qualification_summary.symbols_qualified > 0
     )
     flat = regime is None or regime.posture == STAY_FLAT
-    if qualified and not flat:
+    if qualified and not flat and canonical_outcome == OUTCOME_TRADE:
         return "TRADE"
+    if qualified and not flat:
+        return "MONITOR SETUP"
     if flat:
         return "STAY FLAT"
     return "MONITOR"
@@ -470,6 +474,7 @@ def format_hourly_notification(
     candidate_lines: tuple[str, ...] = (),
     halt_reason: Optional[str] = None,
     market_map: Optional[dict[str, Any]] = None,
+    canonical_outcome: Optional[str] = None,
 ) -> tuple[str, str]:
     del halt_reason
     pt = _pt_clock(asof_utc)
@@ -478,7 +483,9 @@ def format_hourly_notification(
         for line in candidate_lines
         if (parsed_line := _parse_candidate_line(line)) is not None
     )
-    action = _action_label(regime, validation_summary, qualification_summary)
+    action = _action_label(
+        regime, validation_summary, qualification_summary, canonical_outcome
+    )
 
     if action == "TRADE" and parsed:
         first_symbol, first_direction, _ = parsed[0]
@@ -487,6 +494,8 @@ def format_hourly_notification(
         title = f"TRADE {pt}"
     elif action == "HALT":
         title = f"HALT {pt}"
+    elif action == "MONITOR SETUP":
+        title = f"MONITOR SETUP {pt}"
     elif action == "MONITOR":
         title = f"MONITOR {pt}"
     else:

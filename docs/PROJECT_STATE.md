@@ -15,7 +15,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 **Last updated:** 2026-05-11
 **Last completed PRD:** PRD-126 - Fixture Mode No-Live-OHLCV Boundary (commit a4ce57c)
 **Last work completed:** 2026-05-11 — PRD-126: updated `_fixture_cache_only_ohlcv()` in `cuttingboard/runtime.py` so fixture-backed execution patches both `cuttingboard.derived.fetch_ohlcv` and the direct `cuttingboard.runtime.fetch_ohlcv` import. Fixture mode now resolves candidate OHLCV lookup to the existing cache-only helper instead of the live ingestion path; missing cache data degrades as unavailable OHLCV without network fallback. Added `tests/test_fixture_mode.py` coverage proving fixture mode replaces direct `runtime.fetch_ohlcv` and non-fixture mode preserves the regular runtime fetch path. Validation for implementation commit a4ce57c: `python3 -m pytest tests/test_fixture_mode.py -q` -> 18 passed; `python3 -m pytest tests/test_runtime_decision.py -q` -> 4 passed; `python3 -m pytest tests/test_derived.py -q` -> 22 passed; `python3 -m pytest -q` -> 2261 passed; `git diff --check` passed.
-**Active PRD:** none
+**Active PRD:** PRD-127 — Hourly Alert Action Language Alignment
 **Deferred PRD:** none
 
 **System direction:** deterministic, macro-aware, visibility-first, sidecar-oriented ecosystem.

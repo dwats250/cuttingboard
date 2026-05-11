@@ -6,7 +6,12 @@ from datetime import date, datetime, timezone
 from unittest.mock import MagicMock, patch
 
 from cuttingboard.notifications import NOTIFY_HOURLY, format_hourly_notification
-from cuttingboard.notifications.formatter import ALERT_CONTEXT_NOTIFY, AlertEvent, format_ntfy_alert
+from cuttingboard.notifications.formatter import (
+    ALERT_CONTEXT_NOTIFY,
+    AlertEvent,
+    OUTCOME_TRADE,
+    format_ntfy_alert,
+)
 from cuttingboard.qualification import QualificationResult, QualificationSummary, TradeCandidate
 from cuttingboard.regime import RegimeState
 from cuttingboard.runtime import (
@@ -313,6 +318,8 @@ def test_format_hourly_notification_wrapper_uses_new_section_shape():
 
 
 def test_format_hourly_notification_wrapper_filters_macro_candidates():
+    # PRD-127: under default canonical_outcome=None the body renders
+    # MONITOR SETUP rather than TRADE even when qualified symbols exist.
     title, body = format_hourly_notification(
         asof_utc=datetime(2026, 4, 23, 14, 0, tzinfo=timezone.utc),
         regime=_regime(regime="EXPANSION", posture="RISK_ON", confidence=0.81),
@@ -321,10 +328,11 @@ def test_format_hourly_notification_wrapper_filters_macro_candidates():
         candidate_lines=("^VIX | LONG | TREND | 9.0:1", "NVDA | LONG | TREND | 2.4:1"),
     )
 
-    assert title == "LONG NVDA 7:00 AM"
+    assert title == "MONITOR SETUP 7:00 AM"
     assert "^VIX" not in body
     assert "Focus: NVDA LONG" in body
-    assert "Action: TRADE" in body
+    assert "Action: MONITOR SETUP" in body
+    assert "Action: TRADE" not in body
 
 
 def test_format_hourly_notification_wrapper_watchlist_focus_section():
@@ -455,16 +463,19 @@ def test_prd124_r4_action_label_branches():
     )
     assert "Action: HALT" in body
 
-    # TRADE — qualified candidates + tradable posture
+    # PRD-127: MONITOR SETUP — qualified candidates + tradable posture
+    # with the default canonical_outcome=None (no canonical TRADES outcome).
     _, body = format_hourly_notification(
         asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
         regime=_regime(regime="RISK_ON", posture="CONTROLLED_LONG", confidence=0.7),
         validation_summary=_validation(),
         qualification_summary=_qual(["NVDA"], direction="LONG"),
     )
-    assert "Action: TRADE" in body
+    assert "Action: MONITOR SETUP" in body
+    assert "Action: TRADE" not in body
 
-    # MONITOR — tradable posture, no qualified, regime not STAY_FLAT
+    # MONITOR — tradable posture, no qualified, regime not STAY_FLAT.
+    # Watchlist-only path: the original MONITOR label is preserved.
     _, body = format_hourly_notification(
         asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
         regime=_regime(regime="RISK_ON", posture="CONTROLLED_LONG", confidence=0.7),
@@ -472,6 +483,7 @@ def test_prd124_r4_action_label_branches():
         qualification_summary=_qual([]),
     )
     assert "Action: MONITOR" in body
+    assert "Action: MONITOR SETUP" not in body
 
 
 def test_prd124_r5_no_generic_trigger_phrases_without_attached_symbol():
@@ -537,6 +549,128 @@ def test_prd124_r5_banned_phrases_absent_from_module_source():
         assert phrase not in src, (
             f"banned phrase {phrase!r} still present in notifications/__init__.py"
         )
+
+
+# ---------------------------------------------------------------------------
+# PRD-127: hourly action language alignment with canonical outcome
+# Direct inspection of _execute_notify_run shows hourly runtime hardcodes
+# OUTCOME_NO_TRADE at cuttingboard/runtime.py:560 and :600, and
+# _build_hourly_contract sets contract["outcome"] = OUTCOME_NO_TRADE at
+# :1752 — there is no hourly TRADES path today. The reachability test
+# exercises the formatter directly with the new canonical_outcome kwarg.
+# ---------------------------------------------------------------------------
+
+
+def test_prd127_qualified_default_outcome_renders_monitor_setup_not_trade():
+    """R1+R2: qualified symbols + tradable regime + default canonical_outcome
+    must NOT emit Action: TRADE; must emit Action: MONITOR SETUP."""
+    title, body = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
+        regime=_regime(regime="RISK_ON", posture="CONTROLLED_LONG", confidence=0.7),
+        validation_summary=_validation(),
+        qualification_summary=_qual(["NVDA"], direction="LONG"),
+        candidate_lines=("NVDA | LONG | TREND | 2.4:1",),
+    )
+    assert "Action: TRADE" not in body
+    assert "Action: MONITOR SETUP" in body
+    assert not title.startswith("TRADE ")
+    assert not title.startswith("LONG ")
+    assert not title.startswith("SHORT ")
+
+
+def test_prd127_canonical_trade_outcome_reaches_trade_label():
+    """R3 reachability: passing canonical_outcome=OUTCOME_TRADE with the
+    same qualified inputs MUST render Action: TRADE, proving the future
+    canonical-TRADES path is reachable through the new kwarg."""
+    title, body = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
+        regime=_regime(regime="RISK_ON", posture="CONTROLLED_LONG", confidence=0.7),
+        validation_summary=_validation(),
+        qualification_summary=_qual(["NVDA"], direction="LONG"),
+        candidate_lines=("NVDA | LONG | TREND | 2.4:1",),
+        canonical_outcome=OUTCOME_TRADE,
+    )
+    assert "Action: TRADE" in body
+    assert "Action: MONITOR SETUP" not in body
+    assert title.startswith("LONG NVDA ")
+
+
+def test_prd127_monitor_setup_body_does_not_leak_directional_prefixes():
+    """R2: MONITOR SETUP body's Action line must not contain TRADE/LONG/SHORT
+    executable prefixes."""
+    _, body = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
+        regime=_regime(regime="RISK_ON", posture="CONTROLLED_LONG", confidence=0.7),
+        validation_summary=_validation(),
+        qualification_summary=_qual(["NVDA"], direction="LONG"),
+        candidate_lines=("NVDA | LONG | TREND | 2.4:1",),
+    )
+    action_lines = [line for line in body.split("\n") if line.startswith("Action:")]
+    assert len(action_lines) == 1
+    assert action_lines[0] == "Action: MONITOR SETUP"
+
+
+def test_prd127_watchlist_only_branch_preserves_monitor_label():
+    """R2: pre-existing MONITOR label for watchlist-only path MUST remain."""
+    qual = QualificationSummary(
+        regime_passed=True,
+        regime_short_circuited=False,
+        regime_failure_reason=None,
+        qualified_trades=[],
+        watchlist=[
+            QualificationResult(
+                symbol="AAPL",
+                qualified=False,
+                watchlist=True,
+                direction="LONG",
+                gates_passed=[],
+                gates_failed=["STOP_DISTANCE"],
+                hard_failure=None,
+                watchlist_reason="developing",
+                max_contracts=None,
+                dollar_risk=None,
+            )
+        ],
+        excluded={},
+        symbols_evaluated=1,
+        symbols_qualified=0,
+        symbols_watchlist=1,
+        symbols_excluded=0,
+    )
+    _, body = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
+        regime=_regime(regime="RISK_ON", posture="CONTROLLED_LONG", confidence=0.7),
+        validation_summary=_validation(),
+        qualification_summary=qual,
+    )
+    assert "Action: MONITOR" in body
+    assert "Action: MONITOR SETUP" not in body
+
+
+def test_prd127_action_label_trade_branch_is_gated_by_canonical_outcome():
+    """R8: every `return "TRADE"` line in notifications/__init__.py must
+    sit inside a branch that tests canonical_outcome."""
+    import cuttingboard.notifications as notif_pkg
+    text = open(notif_pkg.__file__, "r", encoding="utf-8").read()
+    lines = text.splitlines()
+    trade_lines = [i for i, line in enumerate(lines, 1) if 'return "TRADE"' in line]
+    assert trade_lines, 'no `return "TRADE"` branch found in notifier'
+    for line_no in trade_lines:
+        window = "\n".join(lines[max(0, line_no - 8):line_no])
+        assert "canonical_outcome" in window, (
+            f'return "TRADE" at line {line_no} is not gated by canonical_outcome'
+        )
+
+
+def test_prd127_format_hourly_notification_declares_canonical_outcome_kwarg():
+    """R3: format_hourly_notification's signature must expose canonical_outcome
+    with default None."""
+    import inspect as _inspect
+    sig = _inspect.signature(format_hourly_notification)
+    assert "canonical_outcome" in sig.parameters
+    param = sig.parameters["canonical_outcome"]
+    assert param.default is None
+    assert param.kind == _inspect.Parameter.KEYWORD_ONLY
 
 
 def test_prd124_r1_no_duplicate_local_tz_declarations():
