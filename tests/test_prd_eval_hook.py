@@ -75,6 +75,18 @@ def test_adjudication_artifact_does_not_trigger_gap(tmp_path: Path):
     assert "PRD-999.adjudication.md" not in ctx
 
 
+def test_codex_prompt_artifact_does_not_trigger_gap(tmp_path: Path):
+    """R2b: PRD-999.codex_prompt.md is a non-PRD sidecar; must NOT produce GAP output."""
+    ws = _make_workspace(
+        tmp_path,
+        prd_files=["PRD-999.codex_prompt.md"],
+        registry_rows=[],
+    )
+    ctx = _run_hook(ws, "PRD-999 status check")
+    assert "REGISTRY GAP" not in ctx
+    assert "PRD-999.codex_prompt.md" not in ctx
+
+
 def test_real_unregistered_prd_does_trigger_gap(tmp_path: Path):
     """R3: a real PRD-NNN.md with no registry row MUST produce GAP output naming it."""
     ws = _make_workspace(
@@ -111,13 +123,14 @@ def test_registered_prd_does_not_trigger_gap(tmp_path: Path):
 
 
 def test_mixed_review_and_real_prd(tmp_path: Path):
-    """Review artifact suppressed but real un-registered PRD still flagged."""
+    """Review/adjudication/codex_prompt sidecars suppressed; real un-registered PRD still flagged."""
     ws = _make_workspace(
         tmp_path,
         prd_files=[
             "PRD-998.review.claude.md",
             "PRD-998.review.codex.md",
             "PRD-998.adjudication.md",
+            "PRD-998.codex_prompt.md",
             "PRD-999.md",
         ],
         registry_rows=[],
@@ -128,6 +141,7 @@ def test_mixed_review_and_real_prd(tmp_path: Path):
     assert "PRD-998.review.claude.md" not in ctx
     assert "PRD-998.review.codex.md" not in ctx
     assert "PRD-998.adjudication.md" not in ctx
+    assert "PRD-998.codex_prompt.md" not in ctx
 
 
 def test_uses_tmp_directory_not_live_registry(tmp_path: Path):

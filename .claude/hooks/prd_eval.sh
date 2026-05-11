@@ -71,9 +71,13 @@ prd_dir = os.path.join(os.path.dirname(registry_path), "prd_history")
 file_stems = set()
 for f in glob.glob(os.path.join(prd_dir, "PRD-*.md")):
     name = os.path.basename(f)
-    # Review and adjudication artifacts are not PRDs and must not have
-    # registry rows (CLAUDE.md § Review artifact discipline).
-    if ".review." in name or name.endswith(".adjudication.md"):
+    # Review, adjudication, and codex-prompt sidecars are not PRDs and
+    # must not have registry rows (CLAUDE.md § Review artifact discipline).
+    if (
+        ".review." in name
+        or name.endswith(".adjudication.md")
+        or name.endswith(".codex_prompt.md")
+    ):
         continue
     file_stems.add(name.replace(".md", ""))
 
