@@ -1,7 +1,7 @@
 # PRD-122-PATCH — Payload validator must permit optional oil driver
 
 ## STATUS
-IN PROGRESS
+PATCH
 
 ## CLASS
 PATCH
