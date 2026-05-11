@@ -1,18 +1,18 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -0.4357037366658813,
-      "level": 81841.84375,
+      "change_pct": -0.43021027507320897,
+      "level": 81846.359375,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.17124958927706932,
-      "level": 97.93399810791016,
+      "change_pct": -0.1845016010903357,
+      "level": 97.9209976196289,
       "symbol": "DX-Y.NYB"
     },
     "oil": {
-      "change_pct": -1.6409839399493227,
-      "level": 98.30000305175781,
+      "change_pct": -1.4908999967631948,
+      "level": 98.44999694824219,
       "symbol": "CL=F"
     },
     "rates": {
@@ -28,9 +28,9 @@
     }
   },
   "meta": {
-    "generation_id": "hourly-20260511T205111Z",
+    "generation_id": "hourly-20260511T221024Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-05-11T20:51:11Z"
+    "timestamp": "2026-05-11T22:10:24Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
