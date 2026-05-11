@@ -11,6 +11,10 @@ NEUTRAL = "NEUTRAL"
 UNKNOWN = "UNKNOWN"
 MIXED = "MIXED"
 
+# PRD-122: `oil` is a visibility-only macro driver and is intentionally
+# excluded from macro-pressure synthesis. It must NOT be added to
+# _COMPONENT_KEYS or _COMPONENT_FIELDS — pressure semantics are part of
+# the decision pipeline; oil contributes to the dashboard tape only.
 _COMPONENT_KEYS = {
     "volatility_pressure": "volatility",
     "dollar_pressure": "dollar",

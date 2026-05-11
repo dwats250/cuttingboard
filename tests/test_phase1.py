@@ -75,7 +75,7 @@ class TestConfig:
         assert "QQQ" in config.HALT_SYMBOLS
 
     def test_all_symbols_count(self):
-        assert len(config.ALL_SYMBOLS) == 20
+        assert len(config.ALL_SYMBOLS) == 21
 
     def test_required_symbols_subset_of_halt(self):
         for s in config.HALT_SYMBOLS:

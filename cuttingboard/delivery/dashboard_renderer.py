@@ -554,6 +554,7 @@ _TAPE_DRIVER_DEFS = [
     ("DXY", "dollar"),
     ("10Y", "rates"),
     ("BTC", "bitcoin"),
+    ("OIL", "oil"),
 ]
 _TAPE_MM_SYMBOLS = ["SPY", "QQQ", "GLD", "SLV", "XLE", "GDX"]
 
@@ -856,6 +857,8 @@ def _format_tape_value(symbol: str, value: object) -> str:
         if abs(numeric) >= 10000:
             return f"{numeric / 1000:.1f}K"
         return f"{numeric:.0f}"
+    if symbol == "OIL":
+        return f"{numeric:.1f}"
     return f"{numeric:.2f}"
 
 
@@ -1384,7 +1387,10 @@ def render_dashboard_html(
     tape_value_slots = _build_tape_value_slots(macro_drivers, market_map)
     pressure = _build_pressure_snapshot(macro_drivers, market_map)
 
-    # R1.1 — macro bias from driver arrow counts only (first 4 slots)
+    # R1.1 — macro bias from driver arrow counts only (first 4 slots).
+    # PRD-122: deliberately :4 (volatility/dollar/rates/bitcoin), not
+    # len(_TAPE_DRIVER_DEFS). The OIL slot is visibility-only and does not
+    # contribute to macro_bias arithmetic.
     _driver_slots = tape_slots[:4]
     up_count   = sum(1 for _, arrow in _driver_slots if arrow == _UP)
     down_count = sum(1 for _, arrow in _driver_slots if arrow == _DOWN)
@@ -1611,14 +1617,16 @@ def render_dashboard_html(
     # Macro bias first
     w(f'  <div class="{_esc(macro_bias_css)}">{_esc(macro_bias)}</div>')
 
-    # Macro drivers row (VIX, DXY, 10Y, BTC) with directional arrows
+    # Macro drivers row (VIX, DXY, 10Y, BTC, OIL) with directional arrows.
+    # PRD-122: slice driven by len(_TAPE_DRIVER_DEFS) so additive drivers
+    # (e.g. OIL) appear in the tape row automatically.
     driver_html = [
         f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(arrow, "na")}">'
         f'<span class="macro-tape-label">{_esc(label)} {_esc(arrow)}</span>'
         f'<span class="macro-tape-value" data-symbol="{_esc(label)}">'
         f'{_esc(tape_value_map.get(label, ""))}</span>'
         f'</span>'
-        for label, arrow in tape_slots[:4]
+        for label, arrow in tape_slots[:len(_TAPE_DRIVER_DEFS)]
     ]
     w('  <div class="macro-drivers-row">' + "".join(driver_html) + "</div>")
 

@@ -147,7 +147,7 @@ EVALUATION_TIMEFRAME    = "1m"
 # Instrument universe
 # ---------------------------------------------------------------------------
 
-MACRO_DRIVERS = ["^VIX", "DX-Y.NYB", "^TNX", "BTC-USD"]
+MACRO_DRIVERS = ["^VIX", "DX-Y.NYB", "^TNX", "BTC-USD", "CL=F"]
 NON_TRADABLE_SYMBOLS: frozenset[str] = frozenset(MACRO_DRIVERS)
 INDICES       = ["SPY", "QQQ", "IWM"]
 COMMODITIES   = ["GLD", "SLV", "GDX", "PAAS", "USO", "XLE"]
@@ -169,6 +169,7 @@ SYMBOL_SOURCE_PRIORITY: dict[str, list[str]] = {
     "DX-Y.NYB": ["yfinance"],
     "^TNX":     ["yfinance"],
     "BTC-USD":  ["yfinance"],
+    "CL=F":     ["yfinance"],
     "default":  ["yfinance", "polygon"],
 }
 
@@ -197,6 +198,7 @@ PRICE_BOUNDS: dict[str, tuple[float, float]] = {
     "^TNX":     (1.0,   8.0),
     "DX-Y.NYB": (85,    125),
     "BTC-USD":  (10000, 200000),
+    "CL=F":     (5,     250),
 }
 
 # ---------------------------------------------------------------------------

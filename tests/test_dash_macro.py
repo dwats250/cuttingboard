@@ -68,12 +68,12 @@ def test_macro_tape_value_row_present() -> None:
 def test_macro_tape_value_row_slot_order() -> None:
     html = render_dashboard_html(_payload(), _run())
     slots = _macro_tape_value_slots(html)
-    assert [symbol for symbol, _ in slots] == ["VIX", "DXY", "10Y", "BTC", "SPY", "QQQ", "GLD", "SLV", "XLE", "GDX"]
+    assert [symbol for symbol, _ in slots] == ["VIX", "DXY", "10Y", "BTC", "OIL", "SPY", "QQQ", "GLD", "SLV", "XLE", "GDX"]
 
 
-def test_macro_tape_value_row_has_ten_fixed_slots() -> None:
+def test_macro_tape_value_row_has_eleven_fixed_slots() -> None:
     html = render_dashboard_html(_payload(), _run())
-    assert len(_macro_tape_value_slots(html)) == 10
+    assert len(_macro_tape_value_slots(html)) == 11
 
 
 def test_macro_tape_value_row_vix_format() -> None:

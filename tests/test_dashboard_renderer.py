@@ -188,6 +188,72 @@ def test_available_tradable_quote_renders_value() -> None:
     assert "N/A" not in slots.get("SPY", "")
 
 
+# PRD-122 R8(a) — full oil render: OIL slot shows formatted level and arrow.
+def test_prd122_oil_full_render() -> None:
+    from tests.dash_helpers import _macro_tape_block, _macro_tape_value_slots
+    drivers = _macro_drivers()
+    drivers["oil"] = {"symbol": "CL=F", "level": 78.5, "change_pct": 1.2}
+    html = render_dashboard_html(
+        _payload(macro_drivers=drivers),
+        _run(),
+        market_map=_market_map(),
+    )
+    slots = dict(_macro_tape_value_slots(html))
+    assert slots.get("OIL") == "78.5", f"expected OIL=78.5, got slots={slots}"
+    tape = _macro_tape_block(html)
+    assert 'data-symbol="OIL"' in tape, "OIL slot missing from macro-drivers-row"
+    # Arrow for positive change_pct should be the UP glyph.
+    assert "OIL ↑" in tape, "OIL slot missing UP arrow for positive change_pct"
+
+
+# PRD-122 R8(b) — oil key absent: OIL slot degrades to em-dash arrow and '--' value.
+def test_prd122_oil_missing_renders_dash() -> None:
+    from tests.dash_helpers import _macro_tape_block, _macro_tape_value_slots
+    drivers = _macro_drivers()  # no oil key
+    assert "oil" not in drivers
+    html = render_dashboard_html(
+        _payload(macro_drivers=drivers),
+        _run(),
+        market_map=_market_map(),
+    )
+    slots = dict(_macro_tape_value_slots(html))
+    assert slots.get("OIL") == "--", f"expected OIL=--, got slots={slots}"
+    tape = _macro_tape_block(html)
+    assert 'data-symbol="OIL"' in tape, "OIL slot must appear in tape even when oil data missing"
+    # Em-dash glyph for missing-arrow case.
+    assert "OIL —" in tape, "OIL slot missing em-dash arrow for absent oil data"
+
+
+# PRD-122 R8(c) — stale snapshot fallback: payload omits macro_drivers, snapshot supplies them.
+def test_prd122_oil_renders_from_stale_snapshot(tmp_path: Path) -> None:
+    from tests.dash_helpers import _macro_tape_value_slots
+    snapshot_path = tmp_path / "macro_drivers_snapshot.json"
+    snapshot_path.write_text(
+        json.dumps(
+            {
+                "macro_drivers": {
+                    "volatility": {"symbol": "^VIX",     "level": 18.0,    "change_pct": 0.05},
+                    "dollar":     {"symbol": "DX-Y.NYB", "level": 104.0,   "change_pct": -0.01},
+                    "rates":      {"symbol": "^TNX",     "level": 4.5,     "change_pct": 0.02, "change_bps": 2.0},
+                    "bitcoin":    {"symbol": "BTC-USD",  "level": 65000.0, "change_pct": 0.03},
+                    "oil":        {"symbol": "CL=F",     "level": 82.4,    "change_pct": -0.8},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    html = render_dashboard_html(
+        _payload(macro_drivers={}),
+        _run(),
+        market_map=_market_map(),
+        macro_snapshot_path=snapshot_path,
+    )
+    slots = dict(_macro_tape_value_slots(html))
+    assert slots.get("OIL") == "82.4", (
+        f"expected OIL=82.4 from snapshot fallback, got slots={slots}"
+    )
+
+
 def test_macro_pressure_collapsed_inside_macro_tape() -> None:
     html = render_dashboard_html(
         _payload(macro_drivers=_macro_drivers()),

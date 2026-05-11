@@ -46,7 +46,14 @@ _MACRO_DRIVER_SYMBOLS = {
     "dollar": "DX-Y.NYB",
     "rates": "^TNX",
     "bitcoin": "BTC-USD",
+    "oil": "CL=F",
 }
+
+# PRD-122: visibility-only drivers that may be absent without halting the
+# pipeline or failing contract validation. Quotes missing or non-finite are
+# silently skipped in _build_macro_drivers; assert_valid_contract permits
+# (but does not require) their presence in the macro_drivers payload.
+_OPTIONAL_MACRO_DRIVERS: frozenset[str] = frozenset({"oil"})
 
 
 def build_pipeline_output_contract(
@@ -485,15 +492,24 @@ def _build_macro_drivers(normalized_quotes: dict) -> dict[str, dict[str, float |
 
     macro_drivers: dict[str, dict[str, float | str]] = {}
     for driver, symbol in _MACRO_DRIVER_SYMBOLS.items():
+        optional = driver in _OPTIONAL_MACRO_DRIVERS
         quote = normalized_quotes.get(symbol)
         if quote is None:
+            if optional:
+                continue
             raise ValueError(f"Missing macro driver quote: {symbol}")
 
-        price = _required_finite_float(getattr(quote, "price", None), f"{symbol}.price")
-        pct_change_decimal = _required_finite_float(
-            getattr(quote, "pct_change_decimal", None),
-            f"{symbol}.pct_change_decimal",
-        )
+        try:
+            price = _required_finite_float(getattr(quote, "price", None), f"{symbol}.price")
+            pct_change_decimal = _required_finite_float(
+                getattr(quote, "pct_change_decimal", None),
+                f"{symbol}.pct_change_decimal",
+            )
+        except ValueError:
+            if optional:
+                continue
+            raise
+
         block: dict[str, float | str] = {
             "symbol": symbol,
             "level": price,
@@ -568,10 +584,16 @@ def assert_valid_contract(contract: dict) -> None:
         assert isinstance(regime["confidence"], float), "regime.confidence must be float"
 
     expected_macro_keys = set(_MACRO_DRIVER_SYMBOLS)
+    required_macro_keys = expected_macro_keys - _OPTIONAL_MACRO_DRIVERS
     assert isinstance(macro_drivers, dict), "macro_drivers must be a dict"
-    assert set(macro_drivers) == expected_macro_keys, "macro_drivers must have exact driver keys"
+    missing_required = required_macro_keys - set(macro_drivers)
+    assert not missing_required, f"macro_drivers missing required driver keys: {missing_required}"
+    unexpected_keys = set(macro_drivers) - expected_macro_keys
+    assert not unexpected_keys, f"macro_drivers has unexpected driver keys: {unexpected_keys}"
 
     for driver, symbol in _MACRO_DRIVER_SYMBOLS.items():
+        if driver not in macro_drivers:
+            continue  # optional driver absent — permitted by _OPTIONAL_MACRO_DRIVERS
         block = macro_drivers[driver]
         assert isinstance(block, dict), f"macro_drivers.{driver} must be a dict"
         required_fields = {"symbol", "level", "change_pct"}
