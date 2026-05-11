@@ -6,6 +6,7 @@ import os
 import re
 import time
 from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -1641,9 +1642,21 @@ def test_prd117_constants_match_prd() -> None:
 
 from cuttingboard.delivery.dashboard_renderer import (
     CoherentPublishError,
+    StalePublishError,
     validate_coherent_publish,
     write_dashboard,
 )
+
+
+# PRD-119: payload default timestamp in tests.dash_helpers is fixed at
+# "2026-04-28T12:00:00Z". Tests that need the freshness gate to PASS must
+# freeze the renderer's UTC clock close to that timestamp.
+_FROZEN_FRESH_REFERENCE = datetime(2026, 4, 28, 12, 30, 0, tzinfo=timezone.utc)
+
+
+def _freeze_renderer_now(monkeypatch: pytest.MonkeyPatch, ts: datetime = _FROZEN_FRESH_REFERENCE) -> None:
+    from cuttingboard.delivery import dashboard_renderer as _dr
+    monkeypatch.setattr(_dr, "_utcnow", lambda: ts)
 
 
 def _coherent_inputs(gid: str = "test-gen-001"):
@@ -1669,7 +1682,8 @@ def _non_ui_output_path(tmp_path: Path) -> Path:
 
 
 # R11-1: coherent publish success — file written
-def test_prd118_coherent_publish_success_writes_file(tmp_path: Path) -> None:
+def test_prd118_coherent_publish_success_writes_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _freeze_renderer_now(monkeypatch)
     payload, run, market_map = _coherent_inputs()
     out = _ui_output_path(tmp_path)
     write_dashboard(
@@ -1826,3 +1840,188 @@ def test_prd118_diagnostic_line_names_failure(tmp_path: Path, capsys) -> None:
     assert "generation_id mismatch" in err
     assert "payload=test-gen-001" in err
     assert "run=another-gen" in err
+
+
+# ----------------------------------------------------------------------------
+# PRD-119 — Dashboard publish freshness gate (R15 deterministic coverage)
+# ----------------------------------------------------------------------------
+
+from cuttingboard.delivery.dashboard_renderer import (
+    INACTIVE_SESSION_MAX_AGE_HOURS,
+    LIVE_SESSION_MAX_AGE_MINUTES,
+)
+
+# Payload helper default timestamp is 2026-04-28T12:00:00Z.
+_PAYLOAD_TS_DT = datetime(2026, 4, 28, 12, 0, 0, tzinfo=timezone.utc)
+
+
+# R15-1: coherent fresh live publish succeeds with explicit freshness assertion.
+def test_prd119_fresh_live_publish_succeeds(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # now = payload_ts + (window - 1 minute) -> inside live window.
+    fresh_now = _PAYLOAD_TS_DT + timedelta(minutes=LIVE_SESSION_MAX_AGE_MINUTES - 1)
+    _freeze_renderer_now(monkeypatch, fresh_now)
+    payload, run, market_map = _coherent_inputs()
+    out = _ui_output_path(tmp_path)
+    write_dashboard(
+        payload, run,
+        market_map=market_map,
+        output_path=out,
+        fixture_mode=False,
+    )
+    assert out.exists()
+
+
+# R15-2: coherent stale live publish raises StalePublishError.
+def test_prd119_stale_live_publish_blocks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    stale_now = _PAYLOAD_TS_DT + timedelta(minutes=LIVE_SESSION_MAX_AGE_MINUTES + 1)
+    _freeze_renderer_now(monkeypatch, stale_now)
+    payload, run, market_map = _coherent_inputs()
+    out = _ui_output_path(tmp_path)
+    with pytest.raises(StalePublishError, match=r"stale payload"):
+        write_dashboard(
+            payload, run,
+            market_map=market_map,
+            output_path=out,
+            fixture_mode=False,
+        )
+    assert not out.exists()
+
+
+# R15-3: coherent fresh inactive-session publish succeeds (72h window).
+def test_prd119_fresh_inactive_session_publish_succeeds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload, run, market_map = _coherent_inputs()
+    payload["meta"]["session_type"] = "SUNDAY_PREMARKET"
+    fresh_now = _PAYLOAD_TS_DT + timedelta(hours=INACTIVE_SESSION_MAX_AGE_HOURS - 1)
+    _freeze_renderer_now(monkeypatch, fresh_now)
+    out = _ui_output_path(tmp_path)
+    write_dashboard(
+        payload, run,
+        market_map=market_map,
+        output_path=out,
+        fixture_mode=False,
+    )
+    assert out.exists()
+
+
+# R15-4: coherent stale inactive-session publish raises StalePublishError.
+def test_prd119_stale_inactive_session_publish_blocks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload, run, market_map = _coherent_inputs()
+    payload["meta"]["session_type"] = "SUNDAY_PREMARKET"
+    stale_now = _PAYLOAD_TS_DT + timedelta(hours=INACTIVE_SESSION_MAX_AGE_HOURS + 1)
+    _freeze_renderer_now(monkeypatch, stale_now)
+    out = _ui_output_path(tmp_path)
+    with pytest.raises(StalePublishError, match=r"stale payload"):
+        write_dashboard(
+            payload, run,
+            market_map=market_map,
+            output_path=out,
+            fixture_mode=False,
+        )
+    assert not out.exists()
+
+
+# R15-5: malformed payload.meta.timestamp raises StalePublishError.
+@pytest.mark.parametrize(
+    "bad_ts",
+    ("not-a-date", "2026-04-28T12:00:00", "2026-13-28T12:00:00Z", ""),
+)
+def test_prd119_malformed_payload_timestamp_blocks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, bad_ts: str,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    payload, run, market_map = _coherent_inputs()
+    payload["meta"]["timestamp"] = bad_ts
+    out = _ui_output_path(tmp_path)
+    with pytest.raises(StalePublishError, match=r"payload\.meta\.timestamp"):
+        write_dashboard(
+            payload, run,
+            market_map=market_map,
+            output_path=out,
+            fixture_mode=False,
+        )
+    assert not out.exists()
+
+
+# R15-6: missing payload.meta.timestamp raises StalePublishError.
+def test_prd119_missing_payload_timestamp_blocks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    payload, run, market_map = _coherent_inputs()
+    del payload["meta"]["timestamp"]
+    out = _ui_output_path(tmp_path)
+    with pytest.raises(StalePublishError, match=r"payload\.meta\.timestamp missing"):
+        write_dashboard(
+            payload, run,
+            market_map=market_map,
+            output_path=out,
+            fixture_mode=False,
+        )
+    assert not out.exists()
+
+
+# R15-7: non-ui stale render succeeds (freshness gate scoped to ui/ only).
+def test_prd119_non_ui_stale_render_succeeds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Make `now` very stale relative to payload timestamp; non-ui path must
+    # bypass the freshness gate entirely.
+    stale_now = _PAYLOAD_TS_DT + timedelta(days=365)
+    _freeze_renderer_now(monkeypatch, stale_now)
+    payload, run, market_map = _coherent_inputs()
+    out = _non_ui_output_path(tmp_path)
+    assert "ui" not in out.resolve().parts
+    write_dashboard(
+        payload, run,
+        market_map=market_map,
+        output_path=out,
+        fixture_mode=False,
+    )
+    assert out.exists()
+
+
+# R15-8: PRD-118 generation_id mismatch raises CoherentPublishError BEFORE
+# freshness evaluation. Both failure modes are present; the coherent-gen gate
+# must short-circuit first (PRD-119 R9 ordering).
+def test_prd119_coherent_gen_mismatch_precedes_freshness(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stale_now = _PAYLOAD_TS_DT + timedelta(days=365)
+    _freeze_renderer_now(monkeypatch, stale_now)
+    payload, run, market_map = _coherent_inputs()
+    run["generation_id"] = "different-gen"  # PRD-118 violation
+    # Payload timestamp also far stale (PRD-119 violation).
+    out = _ui_output_path(tmp_path)
+    with pytest.raises(CoherentPublishError, match=r"generation_id mismatch"):
+        write_dashboard(
+            payload, run,
+            market_map=market_map,
+            output_path=out,
+            fixture_mode=False,
+        )
+    assert not out.exists()
+
+
+# R15-9: stderr diagnostic on freshness failure contains R7 fields.
+def test_prd119_freshness_failure_diagnostic_fields(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys,
+) -> None:
+    stale_now = _PAYLOAD_TS_DT + timedelta(minutes=LIVE_SESSION_MAX_AGE_MINUTES + 5)
+    _freeze_renderer_now(monkeypatch, stale_now)
+    payload, run, market_map = _coherent_inputs()
+    out = _ui_output_path(tmp_path)
+    with pytest.raises(StalePublishError):
+        validate_coherent_publish(
+            payload=payload, run=run, market_map=market_map,
+            output_path=out, fixture_mode=False,
+        )
+    err = capsys.readouterr().err
+    assert "PRD-119 publish blocked:" in err
+    assert "payload_timestamp=2026-04-28T12:00:00Z" in err
+    assert "artifact_age=" in err
+    assert f"window={LIVE_SESSION_MAX_AGE_MINUTES}m" in err
+    assert "session_type=None" in err

@@ -167,6 +167,51 @@ class CoherentPublishError(RuntimeError):
     """PRD-118: raised when dashboard publish to `ui/` would emit an incoherent artifact set."""
 
 
+class StalePublishError(RuntimeError):
+    """PRD-119: raised when dashboard publish to `ui/` would emit stale artifacts."""
+
+
+# PRD-119: freshness windows applied to ui/ publish.
+LIVE_SESSION_MAX_AGE_MINUTES: int = 180
+INACTIVE_SESSION_MAX_AGE_HOURS: int = 72
+
+
+def _utcnow() -> datetime:
+    """PRD-119: single indirection so tests can freeze the freshness reference time."""
+    return datetime.now(timezone.utc)
+
+
+def _parse_payload_timestamp(raw: object) -> datetime:
+    """PRD-119 R5: strict ISO-8601 UTC parser; requires trailing 'Z'."""
+    if not isinstance(raw, str) or not raw.strip():
+        raise StalePublishError(
+            f"payload.meta.timestamp missing or non-string: {raw!r}"
+        )
+    s = raw.strip()
+    if not s.endswith("Z"):
+        raise StalePublishError(
+            f"payload.meta.timestamp not Zulu-formatted: {raw!r}"
+        )
+    try:
+        parsed = datetime.fromisoformat(s[:-1] + "+00:00")
+    except ValueError as exc:
+        raise StalePublishError(
+            f"payload.meta.timestamp unparseable: {raw!r} ({exc})"
+        ) from None
+    if parsed.tzinfo is None or parsed.utcoffset() != timezone.utc.utcoffset(None):
+        raise StalePublishError(
+            f"payload.meta.timestamp not UTC: {raw!r}"
+        )
+    return parsed.astimezone(timezone.utc)
+
+
+def _allowed_freshness_window(session_type: object) -> tuple[int, str]:
+    """PRD-119: (max_age_seconds, label) keyed off payload.meta.session_type."""
+    if isinstance(session_type, str) and session_type in INACTIVE_SESSION_TYPES:
+        return INACTIVE_SESSION_MAX_AGE_HOURS * 3600, f"{INACTIVE_SESSION_MAX_AGE_HOURS}h"
+    return LIVE_SESSION_MAX_AGE_MINUTES * 60, f"{LIVE_SESSION_MAX_AGE_MINUTES}m"
+
+
 def _output_under_ui(output_path: Path) -> bool:
     """PRD-118: gate applies only when output_path resolves under the repo's `ui/` directory."""
     try:
@@ -272,6 +317,41 @@ def validate_coherent_publish(
     if not (p_gid == r_gid == m_gid):
         _fail(
             f"generation_id mismatch: payload={p_gid} run={r_gid} market_map={m_gid}"
+        )
+
+    # PRD-119 R1/R6/R14: freshness gate executes only after PRD-118 coherent
+    # checks succeed, reads `now` exactly once per invocation, and runs before
+    # any output bytes are written.
+    meta = payload.get("meta") or {}
+    session_type = meta.get("session_type")
+    session_label = session_type if isinstance(session_type, str) else "None"
+    raw_ts = meta.get("timestamp")
+
+    def _stale_fail(msg: str) -> None:
+        print(f"PRD-119 publish blocked: {msg}", file=sys.stderr)
+        raise StalePublishError(msg)
+
+    try:
+        parsed_ts = _parse_payload_timestamp(raw_ts)
+    except StalePublishError as exc:
+        # R5/R7: emit deterministic diagnostic for malformed timestamp.
+        print(
+            "PRD-119 publish blocked: "
+            f"payload_timestamp={raw_ts!r} artifact_age=unavailable "
+            f"window=unavailable session_type={session_label} ({exc})",
+            file=sys.stderr,
+        )
+        raise
+
+    now_utc = _utcnow()
+    age_seconds = int((now_utc - parsed_ts).total_seconds())
+    max_age_seconds, window_label = _allowed_freshness_window(session_type)
+
+    if age_seconds > max_age_seconds:
+        _stale_fail(
+            f"stale payload: payload_timestamp={raw_ts} "
+            f"artifact_age={age_seconds}s window={window_label} "
+            f"session_type={session_label}"
         )
 
 
