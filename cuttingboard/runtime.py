@@ -1557,7 +1557,10 @@ def _fixture_cache_only_ohlcv(mode: str, fixture_file: Optional[Path]):
             return None
         return pd.read_parquet(cache_path)
 
-    with patch("cuttingboard.derived.fetch_ohlcv", side_effect=_cache_only):
+    with (
+        patch("cuttingboard.derived.fetch_ohlcv", side_effect=_cache_only),
+        patch("cuttingboard.runtime.fetch_ohlcv", side_effect=_cache_only),
+    ):
         yield
 
 

@@ -1,6 +1,11 @@
 """Tests for PRD-078 — Dashboard Demo Candidate Fixture Mode."""
 
 
+from pathlib import Path
+
+import pytest
+
+import cuttingboard.runtime as runtime
 from cuttingboard.delivery.fixtures import FIXTURE_SYMBOLS
 from cuttingboard.delivery.payload import build_report_payload
 from cuttingboard.delivery.dashboard_renderer import render_dashboard_html
@@ -197,3 +202,29 @@ class TestDataStatusEmptyQuotes:
         raw.source = "yfinance"
         result = _data_status(MODE_LIVE, {"SPY": raw}, {"SPY": quote}, fixture_file=None)
         assert result == "ok"
+
+
+class TestFixtureOhlcvBoundary:
+    def test_fixture_cache_only_patches_runtime_fetch_ohlcv(self, monkeypatch, tmp_path):
+        def forbidden_live_fetch(symbol):
+            pytest.fail(f"fixture mode must not call live runtime.fetch_ohlcv for {symbol}")
+
+        monkeypatch.setattr(runtime, "fetch_ohlcv", forbidden_live_fetch)
+        monkeypatch.setattr(runtime, "_ohlcv_cache_path", lambda _symbol: tmp_path / "missing.parquet")
+
+        with runtime._fixture_cache_only_ohlcv(MODE_FIXTURE, Path("tests/fixtures/2026-04-12.json")):
+            assert runtime.fetch_ohlcv("SPY") is None
+
+    def test_non_fixture_cache_context_preserves_runtime_fetch_ohlcv(self, monkeypatch):
+        calls = []
+
+        def live_fetch(symbol):
+            calls.append(symbol)
+            return "live-data"
+
+        monkeypatch.setattr(runtime, "fetch_ohlcv", live_fetch)
+
+        with runtime._fixture_cache_only_ohlcv(MODE_LIVE, None):
+            assert runtime.fetch_ohlcv("SPY") == "live-data"
+
+        assert calls == ["SPY"]

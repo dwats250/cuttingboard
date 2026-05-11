@@ -15,7 +15,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 **Last updated:** 2026-05-11
 **Last completed PRD:** PRD-125 - OHLCV Cache Freshness Contract (commit e727ae2)
 **Last work completed:** 2026-05-11 — PRD-125: changed `_is_fresh_ohlcv_cache()` in `cuttingboard/ingestion.py` to evaluate daily OHLCV cache freshness against `config.OHLCV_STALE_HOURS * 60 * 60` instead of the 5-minute quote freshness threshold. Quote freshness remains governed by `config.FRESHNESS_SECONDS`. Added `tests/test_derived.py` coverage for OHLCV cache younger than TTL being reused, OHLCV cache at TTL being rejected and falling through to live refresh, and quote freshness rejecting data older than `config.FRESHNESS_SECONDS`. Validation for implementation commit e727ae2: `python3 -m pytest tests/test_derived.py -q` -> 22 passed; `python3 -m pytest -q` -> 2259 passed; `git diff --check` passed.
-**Active PRD:** none
+**Active PRD:** PRD-126 - Fixture Mode No-Live-OHLCV Boundary
 **Deferred PRD:** none
 
 **System direction:** deterministic, macro-aware, visibility-first, sidecar-oriented ecosystem.
