@@ -34,6 +34,7 @@ backtesting/output/
 # CI artifacts — generated per-run, not committed
 .cb_commit_msg
 .claude/state/
+engine_doctor.txt
 
 # Auto-updated by GitNexus on every analyze run
 AGENTS.md
