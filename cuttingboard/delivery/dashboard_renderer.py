@@ -68,6 +68,40 @@ _TREND_STRUCTURE_STATE_DISPLAY: dict[str, str] = {
 
 def _ts_display(token: str) -> str:
     return _TREND_STRUCTURE_STATE_DISPLAY.get(token, token)
+
+
+# PRD-131: deterministic composite display layer flattening the two SMA
+# comparison tokens (price_vs_sma_50, price_vs_sma_200) into one short
+# positional phrase. Pure function of the input record. No VWAP, no
+# narrative, no trajectory, no forecast vocabulary. Closed vocabulary.
+_TREND_STRUCTURE_COMPOSITE_DISPLAY: dict[tuple[str, str], str] = {
+    ("ABOVE", "ABOVE"):       "Above SMA50 and SMA200",
+    ("ABOVE", "BELOW"):       "Above SMA50, below SMA200",
+    ("BELOW", "ABOVE"):       "Below SMA50, above SMA200",
+    ("BELOW", "BELOW"):       "Below SMA50 and SMA200",
+    ("AT_LEVEL", "ABOVE"):    "At SMA50, above SMA200",
+    ("AT_LEVEL", "BELOW"):    "At SMA50, below SMA200",
+    ("ABOVE", "AT_LEVEL"):    "Above SMA50, at SMA200",
+    ("BELOW", "AT_LEVEL"):    "Below SMA50, at SMA200",
+    ("AT_LEVEL", "AT_LEVEL"): "At SMA50 and SMA200",
+}
+
+_TREND_STRUCTURE_COMPOSITE_UNAVAILABLE = "Structure unavailable"
+_TREND_STRUCTURE_COMPOSITE_INSUFFICIENT = "SMA history insufficient"
+_TREND_STRUCTURE_COMPOSITE_NOT_COMPUTED = "Structure not computed"
+
+
+def _trend_structure_composite_display(record: dict) -> str:
+    p50 = str(record.get("price_vs_sma_50", ""))
+    p200 = str(record.get("price_vs_sma_200", ""))
+    pair = (p50, p200)
+    if "DATA_UNAVAILABLE" in pair:
+        return _TREND_STRUCTURE_COMPOSITE_UNAVAILABLE
+    if "INSUFFICIENT_HISTORY" in pair:
+        return _TREND_STRUCTURE_COMPOSITE_INSUFFICIENT
+    if "NOT_COMPUTED" in pair:
+        return _TREND_STRUCTURE_COMPOSITE_NOT_COMPUTED
+    return _TREND_STRUCTURE_COMPOSITE_DISPLAY[pair]
 HISTORY_LIMIT = 5
 _DASHBOARD_REFRESH_SECONDS = 30
 DASHBOARD_STALE_AFTER_SECONDS = 300
@@ -1769,6 +1803,7 @@ def render_dashboard_html(
         for _hdr in (
             "Symbol", "Status", "Price", "vs VWAP", "vs SMA50",
             "vs SMA200", "Alignment", "Entry Context", "RVOL",
+            "SMA Composite",
         ):
             w(f'      <th style="padding:2px 8px">{_esc(_hdr)}</th>')
         w('    </tr></thead>')
@@ -1779,7 +1814,7 @@ def render_dashboard_html(
             if _rec is None:
                 _cells = (
                     _sym, "MISSING", _DASH, _DASH, _DASH, _DASH,
-                    _DASH, _DASH, _DASH,
+                    _DASH, _DASH, _DASH, _DASH,
                 )
             else:
                 _cells = (
@@ -1792,6 +1827,7 @@ def render_dashboard_html(
                     _ts_display(str(_rec.get("trend_alignment", ""))),
                     _ts_display(str(_rec.get("entry_context", ""))),
                     _format_trend_number(_rec.get("relative_volume")),
+                    _trend_structure_composite_display(_rec),
                 )
             w('      <tr>')
             for _cell in _cells:

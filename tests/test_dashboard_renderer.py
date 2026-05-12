@@ -2949,3 +2949,232 @@ def test_prd130_r4_five_states_render_distinct_display_strings(
             f"inactive-session render leaked per-cell display '{display}'"
         )
 
+
+# ----------------------------------------------------------------------------
+# PRD-131 — Trend Structure Composite Display Layer
+# ----------------------------------------------------------------------------
+
+import subprocess  # noqa: E402
+
+from cuttingboard.delivery.dashboard_renderer import (  # noqa: E402
+    _trend_structure_composite_display,
+)
+
+_PRD131_VOCAB = (
+    "Above SMA50 and SMA200",
+    "Above SMA50, below SMA200",
+    "Below SMA50, above SMA200",
+    "Below SMA50 and SMA200",
+    "At SMA50, above SMA200",
+    "At SMA50, below SMA200",
+    "Above SMA50, at SMA200",
+    "Below SMA50, at SMA200",
+    "At SMA50 and SMA200",
+    "Structure unavailable",
+    "SMA history insufficient",
+    "Structure not computed",
+)
+
+_PRD131_R1_TABLE = (
+    (("ABOVE", "ABOVE"),       "Above SMA50 and SMA200"),
+    (("ABOVE", "BELOW"),       "Above SMA50, below SMA200"),
+    (("BELOW", "ABOVE"),       "Below SMA50, above SMA200"),
+    (("BELOW", "BELOW"),       "Below SMA50 and SMA200"),
+    (("AT_LEVEL", "ABOVE"),    "At SMA50, above SMA200"),
+    (("AT_LEVEL", "BELOW"),    "At SMA50, below SMA200"),
+    (("ABOVE", "AT_LEVEL"),    "Above SMA50, at SMA200"),
+    (("BELOW", "AT_LEVEL"),    "Below SMA50, at SMA200"),
+    (("AT_LEVEL", "AT_LEVEL"), "At SMA50 and SMA200"),
+)
+
+_PRD131_FORBIDDEN = (
+    "recovery", "pullback", "inflection", "established",
+    "weakness", "weak", "strong", "firm", "soft", "confirmation",
+    "breakout", "breakdown", "rebound", "reversal", "momentum",
+    "trending", "likely", "probable", "expected", "imminent",
+    "confidence", "high-probability", "uptrend", "downtrend",
+    "bullish", "bearish",
+)
+
+
+# R1 — Per-cell deterministic mapping for all 9 comparison-token combinations.
+@pytest.mark.parametrize("pair,expected", _PRD131_R1_TABLE)
+def test_prd131_r1_composite_display_table(
+    pair: tuple[str, str], expected: str,
+) -> None:
+    p50, p200 = pair
+    rec = {"price_vs_sma_50": p50, "price_vs_sma_200": p200}
+    assert _trend_structure_composite_display(rec) == expected
+
+
+# R1 — Forbidden vocabulary must not appear in any composite display string.
+def test_prd131_r1_no_forbidden_vocabulary() -> None:
+    joined = " ".join(_PRD131_VOCAB).lower()
+    for term in _PRD131_FORBIDDEN:
+        assert term not in joined, (
+            f"PRD-131 vocabulary leaked forbidden term {term!r}: {joined!r}"
+        )
+
+
+# R2 slot 2 — DATA_UNAVAILABLE on either SMA field → "Structure unavailable".
+@pytest.mark.parametrize("p50,p200", [
+    ("DATA_UNAVAILABLE", "ABOVE"),
+    ("ABOVE", "DATA_UNAVAILABLE"),
+    ("DATA_UNAVAILABLE", "DATA_UNAVAILABLE"),
+])
+def test_prd131_r2_slot2_data_unavailable(p50: str, p200: str) -> None:
+    rec = {"price_vs_sma_50": p50, "price_vs_sma_200": p200}
+    assert _trend_structure_composite_display(rec) == "Structure unavailable"
+
+
+# R2 slot 3 — INSUFFICIENT_HISTORY (without DATA_UNAVAILABLE) → "SMA history insufficient".
+@pytest.mark.parametrize("p50,p200", [
+    ("INSUFFICIENT_HISTORY", "ABOVE"),
+    ("ABOVE", "INSUFFICIENT_HISTORY"),
+    ("INSUFFICIENT_HISTORY", "INSUFFICIENT_HISTORY"),
+])
+def test_prd131_r2_slot3_insufficient_history(p50: str, p200: str) -> None:
+    rec = {"price_vs_sma_50": p50, "price_vs_sma_200": p200}
+    assert _trend_structure_composite_display(rec) == "SMA history insufficient"
+
+
+# R2 slot 4 — NOT_COMPUTED on an SMA field (totality reserve) → "Structure not computed".
+@pytest.mark.parametrize("p50,p200", [
+    ("NOT_COMPUTED", "ABOVE"),
+    ("ABOVE", "NOT_COMPUTED"),
+])
+def test_prd131_r2_slot4_not_computed_totality_reserve(
+    p50: str, p200: str,
+) -> None:
+    rec = {"price_vs_sma_50": p50, "price_vs_sma_200": p200}
+    assert _trend_structure_composite_display(rec) == "Structure not computed"
+
+
+# R2 — precedence: DATA_UNAVAILABLE > INSUFFICIENT_HISTORY > NOT_COMPUTED.
+def test_prd131_r2_precedence_order() -> None:
+    # DATA_UNAVAILABLE wins over INSUFFICIENT_HISTORY.
+    assert _trend_structure_composite_display(
+        {"price_vs_sma_50": "DATA_UNAVAILABLE",
+         "price_vs_sma_200": "INSUFFICIENT_HISTORY"}
+    ) == "Structure unavailable"
+    # DATA_UNAVAILABLE wins over NOT_COMPUTED.
+    assert _trend_structure_composite_display(
+        {"price_vs_sma_50": "DATA_UNAVAILABLE",
+         "price_vs_sma_200": "NOT_COMPUTED"}
+    ) == "Structure unavailable"
+    # INSUFFICIENT_HISTORY wins over NOT_COMPUTED.
+    assert _trend_structure_composite_display(
+        {"price_vs_sma_50": "INSUFFICIENT_HISTORY",
+         "price_vs_sma_200": "NOT_COMPUTED"}
+    ) == "SMA history insufficient"
+
+
+# R3 — inactive-session branch emits no composite display vocabulary.
+def test_prd131_r3_inactive_session_short_circuits_composite_display() -> None:
+    inactive_payload = _inactive_payload()
+    run = _run_with_timestamp("2026-04-28T12:00:00Z")
+    mm = _market_map()
+    _set_generation_ids(inactive_payload, run, mm, "live-20260428T120000Z")
+    html = render_dashboard_html(
+        inactive_payload, run, market_map=mm,
+        trend_structure_snapshot=_ts_healthy_snapshot(),
+    )
+    section = _trend_structure_section(html)
+    assert INACTIVE_SESSION_LABEL in section
+    for phrase in _PRD131_VOCAB:
+        assert phrase not in section, (
+            f"inactive-session render leaked composite display {phrase!r}"
+        )
+
+
+# R3 — snapshot-absent branch emits no composite display vocabulary.
+def test_prd131_r3_snapshot_absent_short_circuits_composite_display(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    html = _prd120_coherent_render(trend_structure_snapshot=None)
+    section = _ts_section(html)
+    for phrase in _PRD131_VOCAB:
+        assert phrase not in section, (
+            f"snapshot-absent render leaked composite display {phrase!r}"
+        )
+
+
+# R1/R5 — composite display cell appears in trend-structure section on a
+# healthy render and matches the helper output for a known record.
+def test_prd131_r1_composite_cell_renders_in_panel(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    snap = _ts_healthy_snapshot()
+    # Force SPY into ABOVE/ABOVE.
+    spy = snap["symbols"]["SPY"]
+    spy["price_vs_sma_50"] = "ABOVE"
+    spy["price_vs_sma_200"] = "ABOVE"
+    html = _prd120_coherent_render(trend_structure_snapshot=snap)
+    section = _ts_section(html)
+    assert "Above SMA50 and SMA200" in section
+    assert "SMA Composite" in section  # header present
+
+
+# R4(a) — helper name MUST NOT appear outside dashboard_renderer.py.
+def test_prd131_r4a_helper_name_containment() -> None:
+    result = subprocess.run(
+        ["grep", "-RIln", "_trend_structure_composite_display",
+         "cuttingboard/"],
+        capture_output=True, text=True, check=False,
+    )
+    matches = [p for p in result.stdout.splitlines() if p.strip()]
+    allowed = {"cuttingboard/delivery/dashboard_renderer.py"}
+    leaked = [p for p in matches if p not in allowed]
+    assert not leaked, (
+        f"_trend_structure_composite_display leaked outside delivery: {leaked}"
+    )
+
+
+# R4(b) — every vocabulary literal under cuttingboard/ MUST live only in
+# dashboard_renderer.py.
+@pytest.mark.parametrize("phrase", _PRD131_VOCAB)
+def test_prd131_r4b_vocabulary_under_source_only_in_renderer(
+    phrase: str,
+) -> None:
+    result = subprocess.run(
+        ["grep", "-RIlFn", phrase, "cuttingboard/"],
+        capture_output=True, text=True, check=False,
+    )
+    matches = [p.split(":", 1)[0] for p in result.stdout.splitlines() if p.strip()]
+    allowed = {"cuttingboard/delivery/dashboard_renderer.py"}
+    leaked = sorted(set(matches) - allowed)
+    assert not leaked, (
+        f"vocabulary literal {phrase!r} leaked outside renderer: {leaked}"
+    )
+
+
+# R4(c) — vocabulary MUST NOT appear in machine-readable artifacts under
+# logs/ or reports/ (HTML rendered destinations are explicitly excluded).
+@pytest.mark.parametrize("phrase", _PRD131_VOCAB)
+def test_prd131_r4c_vocabulary_not_in_machine_readable_artifacts(
+    phrase: str,
+) -> None:
+    search_paths = []
+    if Path("logs").is_dir():
+        search_paths.append("logs")
+    if Path("reports").is_dir():
+        search_paths.append("reports")
+    if not search_paths:
+        pytest.skip("no logs/ or reports/ directory present")
+    # Include only machine-readable formats; exclude *.html anywhere.
+    result = subprocess.run(
+        ["grep", "-RIlFn",
+         "--include=*.json", "--include=*.jsonl",
+         "--include=*.txt", "--include=*.md", "--include=*.csv",
+         "--exclude=*.html",
+         phrase, *search_paths],
+        capture_output=True, text=True, check=False,
+    )
+    matches = [p.split(":", 1)[0] for p in result.stdout.splitlines() if p.strip()]
+    leaked = sorted(set(matches))
+    assert not leaked, (
+        f"vocabulary literal {phrase!r} leaked into machine-readable "
+        f"artifact paths: {leaked}"
+    )
