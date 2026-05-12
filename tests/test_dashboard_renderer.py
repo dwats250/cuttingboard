@@ -1296,8 +1296,8 @@ def test_aplus_candidate_with_validation_acceptance_renders_validation() -> None
 # PRD-112 — Trend Structure Dashboard Panel (R10 tests a-h)
 # ============================================================================
 
-from datetime import datetime as _dt112, timezone as _tz112
-from cuttingboard.delivery import dashboard_renderer as _dr112
+from datetime import datetime as _dt112, timezone as _tz112  # noqa: E402
+from cuttingboard.delivery import dashboard_renderer as _dr112  # noqa: E402
 
 _TS_CURATED = ("SPY", "QQQ", "GDX", "GLD", "SLV", "XLE")
 _TS_BANNED = (
@@ -1776,7 +1776,7 @@ def test_prd117_constants_match_prd() -> None:
 # PRD-118 — Coherent dashboard publish gate
 # ----------------------------------------------------------------------------
 
-from cuttingboard.delivery.dashboard_renderer import (
+from cuttingboard.delivery.dashboard_renderer import (  # noqa: E402
     CoherentPublishError,
     StalePublishError,
     validate_coherent_publish,

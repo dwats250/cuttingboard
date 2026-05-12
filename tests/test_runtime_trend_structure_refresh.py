@@ -23,8 +23,6 @@ import inspect
 from datetime import datetime, timezone
 from unittest.mock import patch
 
-import pytest
-
 from cuttingboard import runtime
 from cuttingboard.runtime import (
     MODE_FIXTURE,
