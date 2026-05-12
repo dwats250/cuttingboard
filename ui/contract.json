@@ -1,8 +1,8 @@
 {
   "artifacts": {
-    "log_path": "logs/latest_hourly_run.json",
-    "notification_sent": true,
-    "report_path": "reports/output/hourly_report.html"
+    "log_path": "logs/latest_run.json",
+    "notification_sent": false,
+    "report_path": "reports/2026-05-12.md"
   },
   "audit_summary": {
     "continuation_accepted_count": null,
@@ -12,23 +12,29 @@
     "qualified_count": 0,
     "rejected_count": 0
   },
-  "correlation": null,
-  "generated_at": "2026-05-11T22:10:24Z",
-  "generation_id": "hourly-20260511T221024Z",
+  "correlation": {
+    "dollar_symbol": "DX-Y.NYB",
+    "gold_symbol": "GLD",
+    "risk_modifier": 0.4,
+    "score": -1,
+    "state": "CONFLICT"
+  },
+  "generated_at": "2026-05-12T04:13:05Z",
+  "generation_id": "live-20260512T041305Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -0.43021027507320897,
-      "level": 81846.359375,
+      "change_pct": -0.8896226999471565,
+      "level": 81000.0,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.1845016010903357,
-      "level": 97.9209976196289,
+      "change_pct": 0.04790388986584655,
+      "level": 98.15399932861328,
       "symbol": "DX-Y.NYB"
     },
     "oil": {
-      "change_pct": -1.4908999967631948,
-      "level": 98.44999694824219,
+      "change_pct": 0.13131035698784724,
+      "level": 99.12999725341797,
       "symbol": "CL=F"
     },
     "rates": {
@@ -47,7 +53,7 @@
     "continuation_enabled": false,
     "data_quality": "ok",
     "expansion_regime": null,
-    "imbalance_enabled": null,
+    "imbalance_enabled": false,
     "stale_data_detected": false
   },
   "mode": "live",
@@ -74,17 +80,27 @@
       "VIX pct_change": "RISK_OFF"
     }
   },
-  "rejections": [],
+  "rejections": [
+    {
+      "detail": null,
+      "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)",
+      "stage": "REGIME",
+      "symbol": "REGIME"
+    }
+  ],
   "schema_version": "v2",
-  "session_date": "2026-05-11",
+  "session_date": "2026-05-12",
   "status": "STAY_FLAT",
   "system_state": {
     "confidence": 0.125,
     "intraday_state": null,
     "market_regime": "NEUTRAL",
+    "outcome": "NO_TRADE",
+    "permission": "No new trades permitted.",
+    "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)",
     "router_mode": "MIXED",
-    "stay_flat_reason": "STAY_FLAT posture",
-    "time_gate_open": false,
+    "stay_flat_reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)",
+    "time_gate_open": true,
     "tradable": false
   },
   "timezone": "America/New_York",

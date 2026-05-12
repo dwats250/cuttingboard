@@ -1,54 +1,65 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 2.0,
-      "level": 82000.0,
+      "change_pct": -0.8896226999471565,
+      "level": 81000.0,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.3,
-      "level": 102.0,
+      "change_pct": 0.04790388986584655,
+      "level": 98.15399932861328,
       "symbol": "DX-Y.NYB"
     },
+    "oil": {
+      "change_pct": 0.13131035698784724,
+      "level": 99.12999725341797,
+      "symbol": "CL=F"
+    },
     "rates": {
-      "change_bps": 0.8400000000000001,
-      "change_pct": 0.2,
-      "level": 4.2,
+      "change_bps": 4.648488017280636,
+      "change_pct": 1.0540789519547211,
+      "level": 4.409999847412109,
       "symbol": "^TNX"
     },
     "volatility": {
-      "change_pct": -4.0,
-      "level": 16.0,
+      "change_pct": 6.984859338036794,
+      "level": 18.3799991607666,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "sunday-fixture-2026-04-12",
-    "session_type": "SUNDAY_PREMARKET",
+    "generation_id": "live-20260512T041305Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-05-11T04:40:14Z"
+    "timestamp": "2026-05-12T04:13:05Z"
   },
-  "run_status": "OK",
+  "run_status": "STAY_FLAT",
   "schema_version": "1.0",
   "sections": {
     "chain_results_detail": [],
     "continuation_audit": null,
     "option_setups_detail": [],
-    "rejected": [],
+    "rejected": [
+      {
+        "detail": null,
+        "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)",
+        "stage": "REGIME",
+        "symbol": "REGIME"
+      }
+    ],
     "top_trades": [],
     "trade_decision_detail": [],
     "validation_halt_detail": {
-      "reason": "PREMARKET_CONTEXT"
+      "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)"
     },
     "watch_summary_detail": null,
     "watchlist": []
   },
   "summary": {
-    "confidence": 1.0,
-    "market_regime": "EXPANSION",
+    "confidence": 0.125,
+    "market_regime": "NEUTRAL",
     "outcome": "NO_TRADE",
-    "permission": "EXPANSION \u2014 momentum allowed. Continuation entries. R:R >= 1.5.",
+    "permission": "No new trades permitted.",
     "router_mode": "MIXED",
-    "tradable": true
+    "tradable": false
   }
 }
