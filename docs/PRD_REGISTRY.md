@@ -159,3 +159,4 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-129 | 1623687 | CI Artifact Hygiene and Push-Guard Stability | COMPLETE | [PRD-129](prd_history/PRD-129.md) |
 | PRD-130 | d01327c | Trend Structure Unknown-State Normalization | COMPLETE | [PRD-130](prd_history/PRD-130.md) |
 | PRD-131 | 82e1415 | Trend Structure Composite Display Layer | COMPLETE | [PRD-131](prd_history/PRD-131.md) |
+| PRD-132 | — | Intraday VWAP × RVOL Context Display Layer | IN PROGRESS | [PRD-132](prd_history/PRD-132.md) |

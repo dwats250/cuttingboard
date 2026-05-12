@@ -102,6 +102,58 @@ def _trend_structure_composite_display(record: dict) -> str:
     if "NOT_COMPUTED" in pair:
         return _TREND_STRUCTURE_COMPOSITE_NOT_COMPUTED
     return _TREND_STRUCTURE_COMPOSITE_DISPLAY[pair]
+
+
+# PRD-132: deterministic Intraday Context display layer flattening the
+# VWAP comparison token and the relative_volume float into one short
+# positional phrase. Pure function of the input record. Strictly
+# threshold-position vocabulary (no magnitude adjectives, no quality
+# language). VWAP unknown-state precedence over RVOL.
+_INTRADAY_RVOL_THRESHOLD: float = 1.5
+
+_TREND_STRUCTURE_INTRADAY_DISPLAY: dict[tuple[str, str], str] = {
+    ("ABOVE",    "AT_OR_ABOVE"): "Above VWAP, RVOL >= 1.5x",
+    ("ABOVE",    "BELOW"):       "Above VWAP, RVOL < 1.5x",
+    ("ABOVE",    "UNAVAILABLE"): "Above VWAP, RVOL unavailable",
+    ("BELOW",    "AT_OR_ABOVE"): "Below VWAP, RVOL >= 1.5x",
+    ("BELOW",    "BELOW"):       "Below VWAP, RVOL < 1.5x",
+    ("BELOW",    "UNAVAILABLE"): "Below VWAP, RVOL unavailable",
+    ("AT_LEVEL", "AT_OR_ABOVE"): "At VWAP, RVOL >= 1.5x",
+    ("AT_LEVEL", "BELOW"):       "At VWAP, RVOL < 1.5x",
+    ("AT_LEVEL", "UNAVAILABLE"): "At VWAP, RVOL unavailable",
+}
+
+_INTRADAY_VWAP_DATA_UNAVAILABLE = "Intraday context unavailable"
+_INTRADAY_VWAP_NOT_COMPUTED = "VWAP not applicable"
+
+
+def _intraday_rvol_band(rvol: float | None) -> str:
+    if rvol is None:
+        return "UNAVAILABLE"
+    try:
+        f = float(rvol)
+    except (TypeError, ValueError):
+        return "UNAVAILABLE"
+    if not math.isfinite(f):
+        return "UNAVAILABLE"
+    if f >= _INTRADAY_RVOL_THRESHOLD:
+        return "AT_OR_ABOVE"
+    return "BELOW"
+
+
+def _trend_structure_intraday_display(record: dict) -> str:
+    vwap_token = str(record.get("price_vs_vwap", ""))
+    if vwap_token == "NOT_COMPUTED":
+        return _INTRADAY_VWAP_NOT_COMPUTED
+    # Any vwap token outside the {ABOVE, BELOW, AT_LEVEL} comparison set
+    # (DATA_UNAVAILABLE today, plus any non-comparison sentinel a future
+    # emitter or synthetic stress test might inject into the field) routes
+    # through the data-unavailable branch — keeps the helper total over
+    # arbitrary input strings while preserving the closed R1/R2 vocabulary.
+    if vwap_token not in ("ABOVE", "BELOW", "AT_LEVEL"):
+        return _INTRADAY_VWAP_DATA_UNAVAILABLE
+    band = _intraday_rvol_band(record.get("relative_volume"))
+    return _TREND_STRUCTURE_INTRADAY_DISPLAY[(vwap_token, band)]
 HISTORY_LIMIT = 5
 _DASHBOARD_REFRESH_SECONDS = 30
 DASHBOARD_STALE_AFTER_SECONDS = 300
@@ -1803,7 +1855,7 @@ def render_dashboard_html(
         for _hdr in (
             "Symbol", "Status", "Price", "vs VWAP", "vs SMA50",
             "vs SMA200", "Alignment", "Entry Context", "RVOL",
-            "SMA Composite",
+            "SMA Composite", "Intraday Context",
         ):
             w(f'      <th style="padding:2px 8px">{_esc(_hdr)}</th>')
         w('    </tr></thead>')
@@ -1814,7 +1866,7 @@ def render_dashboard_html(
             if _rec is None:
                 _cells = (
                     _sym, "MISSING", _DASH, _DASH, _DASH, _DASH,
-                    _DASH, _DASH, _DASH, _DASH,
+                    _DASH, _DASH, _DASH, _DASH, _DASH,
                 )
             else:
                 _cells = (
@@ -1828,6 +1880,7 @@ def render_dashboard_html(
                     _ts_display(str(_rec.get("entry_context", ""))),
                     _format_trend_number(_rec.get("relative_volume")),
                     _trend_structure_composite_display(_rec),
+                    _trend_structure_intraday_display(_rec),
                 )
             w('      <tr>')
             for _cell in _cells:

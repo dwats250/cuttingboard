@@ -3178,3 +3178,342 @@ def test_prd131_r4c_vocabulary_not_in_machine_readable_artifacts(
         f"vocabulary literal {phrase!r} leaked into machine-readable "
         f"artifact paths: {leaked}"
     )
+
+
+# ----------------------------------------------------------------------------
+# PRD-132 — Intraday VWAP × RVOL Context Display Layer
+# ----------------------------------------------------------------------------
+
+from cuttingboard.delivery.dashboard_renderer import (  # noqa: E402
+    _INTRADAY_RVOL_THRESHOLD,
+    _intraday_rvol_band,
+    _trend_structure_intraday_display,
+)
+
+_PRD132_R1_TABLE = (
+    (("ABOVE",    "AT_OR_ABOVE"), "Above VWAP, RVOL >= 1.5x"),
+    (("ABOVE",    "BELOW"),       "Above VWAP, RVOL < 1.5x"),
+    (("ABOVE",    "UNAVAILABLE"), "Above VWAP, RVOL unavailable"),
+    (("BELOW",    "AT_OR_ABOVE"), "Below VWAP, RVOL >= 1.5x"),
+    (("BELOW",    "BELOW"),       "Below VWAP, RVOL < 1.5x"),
+    (("BELOW",    "UNAVAILABLE"), "Below VWAP, RVOL unavailable"),
+    (("AT_LEVEL", "AT_OR_ABOVE"), "At VWAP, RVOL >= 1.5x"),
+    (("AT_LEVEL", "BELOW"),       "At VWAP, RVOL < 1.5x"),
+    (("AT_LEVEL", "UNAVAILABLE"), "At VWAP, RVOL unavailable"),
+)
+
+_PRD132_VOCAB = tuple(s for _, s in _PRD132_R1_TABLE) + (
+    "Intraday context unavailable",
+    "VWAP not applicable",
+)
+
+_PRD132_MAGNITUDE_DENY = (
+    "elevated", "normal", "high", "low", "heavy", "light",
+)
+
+_PRD132_RVOL_FOR_BAND = {
+    "AT_OR_ABOVE": 2.0,
+    "BELOW": 0.8,
+    "UNAVAILABLE": None,
+}
+
+
+# R1 — Deterministic 9-cell mapping (3 VWAP × 3 RVOL band).
+@pytest.mark.parametrize("pair,expected", _PRD132_R1_TABLE)
+def test_prd132_r1_intraday_display_table(
+    pair: tuple[str, str], expected: str,
+) -> None:
+    vwap, band = pair
+    rec = {
+        "price_vs_vwap": vwap,
+        "relative_volume": _PRD132_RVOL_FOR_BAND[band],
+    }
+    assert _trend_structure_intraday_display(rec) == expected
+
+
+# R1 — Forbidden vocabulary check (PRD-131 list + magnitude deny-set).
+def test_prd132_r1_no_forbidden_vocabulary() -> None:
+    joined = " ".join(_PRD132_VOCAB).lower()
+    for term in _PRD131_FORBIDDEN:
+        assert term not in joined, f"PRD-132 vocab leaked PRD-131 term {term!r}"
+    for term in _PRD132_MAGNITUDE_DENY:
+        # match as whole-word boundary to avoid false positives in "normalization"
+        pattern = re.compile(rf"\b{re.escape(term)}\b", re.IGNORECASE)
+        for phrase in _PRD132_VOCAB:
+            assert not pattern.search(phrase), (
+                f"PRD-132 vocab {phrase!r} contains magnitude adjective {term!r}"
+            )
+
+
+# R2 — VWAP unknown-state precedence over RVOL.
+@pytest.mark.parametrize("rvol", [None, 0.5, 2.0, float("nan"), float("inf")])
+def test_prd132_r2_data_unavailable_precedence(rvol: float | None) -> None:
+    rec = {"price_vs_vwap": "DATA_UNAVAILABLE", "relative_volume": rvol}
+    assert _trend_structure_intraday_display(rec) == "Intraday context unavailable"
+
+
+@pytest.mark.parametrize("rvol", [None, 0.5, 2.0, float("nan"), float("inf")])
+def test_prd132_r2_not_computed_precedence(rvol: float | None) -> None:
+    rec = {"price_vs_vwap": "NOT_COMPUTED", "relative_volume": rvol}
+    assert _trend_structure_intraday_display(rec) == "VWAP not applicable"
+
+
+# R3 — Inactive-session short-circuit.
+def test_prd132_r3_inactive_session_short_circuits_intraday() -> None:
+    inactive_payload = _inactive_payload()
+    run = _run_with_timestamp("2026-04-28T12:00:00Z")
+    mm = _market_map()
+    _set_generation_ids(inactive_payload, run, mm, "live-20260428T120000Z")
+    html = render_dashboard_html(
+        inactive_payload, run, market_map=mm,
+        trend_structure_snapshot=_ts_healthy_snapshot(),
+    )
+    section = _trend_structure_section(html)
+    assert INACTIVE_SESSION_LABEL in section
+    import html as _h
+    for phrase in _PRD132_VOCAB:
+        escaped = _h.escape(phrase)
+        assert phrase not in section and escaped not in section, (
+            f"inactive-session render leaked intraday vocab {phrase!r}"
+        )
+
+
+# R3 — Snapshot-absent short-circuit.
+def test_prd132_r3_snapshot_absent_short_circuits_intraday(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    html = _prd120_coherent_render(trend_structure_snapshot=None)
+    section = _ts_section(html)
+    import html as _h
+    for phrase in _PRD132_VOCAB:
+        escaped = _h.escape(phrase)
+        assert phrase not in section and escaped not in section, (
+            f"snapshot-absent render leaked intraday vocab {phrase!r}"
+        )
+
+
+# R1/R6 — Intraday Context cell appears in rendered panel; column order
+# preserved (PRD-131 SMA Composite stays present, Intraday Context after it).
+def test_prd132_r1_r6_intraday_cell_renders_and_column_order(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    snap = _ts_healthy_snapshot()
+    spy = snap["symbols"]["SPY"]
+    spy["price_vs_vwap"] = "ABOVE"
+    spy["relative_volume"] = 2.0
+    html = _prd120_coherent_render(trend_structure_snapshot=snap)
+    section = _ts_section(html)
+    # Header presence + relative order.
+    sma_pos = section.find("SMA Composite")
+    intra_pos = section.find("Intraday Context")
+    assert sma_pos >= 0, "SMA Composite header missing"
+    assert intra_pos > sma_pos, (
+        "Intraday Context header must come after SMA Composite"
+    )
+    # Phrase present in body. HTML-escape the operators since the renderer
+    # passes cells through _esc(); browsers render entities back to glyphs.
+    assert "Above VWAP, RVOL &gt;= 1.5x" in section
+
+
+# R4(a) — helper / constant names containment under cuttingboard/.
+@pytest.mark.parametrize("symbol", [
+    "_trend_structure_intraday_display",
+    "_intraday_rvol_band",
+    "_INTRADAY_RVOL_THRESHOLD",
+])
+def test_prd132_r4a_symbol_containment(symbol: str) -> None:
+    result = subprocess.run(
+        ["grep", "-RIln", symbol, "cuttingboard/"],
+        capture_output=True, text=True, check=False,
+    )
+    matches = [p for p in result.stdout.splitlines() if p.strip()]
+    allowed = {"cuttingboard/delivery/dashboard_renderer.py"}
+    leaked = [p for p in matches if p not in allowed]
+    assert not leaked, f"{symbol!r} leaked outside delivery: {leaked}"
+
+
+# R4(b) — every vocabulary literal under cuttingboard/ MUST live only in
+# dashboard_renderer.py.
+@pytest.mark.parametrize("phrase", _PRD132_VOCAB)
+def test_prd132_r4b_vocabulary_under_source_only_in_renderer(
+    phrase: str,
+) -> None:
+    result = subprocess.run(
+        ["grep", "-RIlFn", phrase, "cuttingboard/"],
+        capture_output=True, text=True, check=False,
+    )
+    matches = [
+        p.split(":", 1)[0] for p in result.stdout.splitlines() if p.strip()
+    ]
+    allowed = {"cuttingboard/delivery/dashboard_renderer.py"}
+    leaked = sorted(set(matches) - allowed)
+    assert not leaked, (
+        f"PRD-132 vocab literal {phrase!r} leaked outside renderer: {leaked}"
+    )
+
+
+# R4(c) — vocabulary MUST NOT appear in machine-readable artifacts.
+# Rendered HTML (*.html) is the intended destination and is excluded.
+@pytest.mark.parametrize("phrase", _PRD132_VOCAB)
+def test_prd132_r4c_vocabulary_not_in_machine_readable_artifacts(
+    phrase: str,
+) -> None:
+    search_paths = []
+    if Path("logs").is_dir():
+        search_paths.append("logs")
+    if Path("reports").is_dir():
+        search_paths.append("reports")
+    if not search_paths:
+        pytest.skip("no logs/ or reports/ directory present")
+    result = subprocess.run(
+        ["grep", "-RIlFn",
+         "--include=*.json", "--include=*.jsonl",
+         "--include=*.txt", "--include=*.md", "--include=*.csv",
+         "--exclude=*.html",
+         phrase, *search_paths],
+        capture_output=True, text=True, check=False,
+    )
+    matches = [
+        p.split(":", 1)[0] for p in result.stdout.splitlines() if p.strip()
+    ]
+    leaked = sorted(set(matches))
+    assert not leaked, (
+        f"PRD-132 vocab literal {phrase!r} leaked into machine-readable "
+        f"artifacts (excluding *.html): {leaked}"
+    )
+
+
+# R5 — RVOL band classifier edge cases.
+@pytest.mark.parametrize("rvol,expected", [
+    (None, "UNAVAILABLE"),
+    (float("nan"), "UNAVAILABLE"),
+    (float("inf"), "UNAVAILABLE"),
+    (float("-inf"), "UNAVAILABLE"),
+    (0.0, "BELOW"),
+    (1.0, "BELOW"),
+    (1.49, "BELOW"),
+    (1.5, "AT_OR_ABOVE"),   # boundary — inclusive
+    (1.51, "AT_OR_ABOVE"),
+    (5.0, "AT_OR_ABOVE"),
+])
+def test_prd132_r5_rvol_band_classifier(
+    rvol: float | None, expected: str,
+) -> None:
+    assert _intraday_rvol_band(rvol) == expected
+
+
+# R5 — threshold constant matches displayed literal "1.5x".
+def test_prd132_r5_threshold_constant_matches_displayed_literal() -> None:
+    assert _INTRADAY_RVOL_THRESHOLD == 1.5, (
+        "Threshold constant drifted from displayed '1.5x' substring; if you "
+        "tune the threshold, every R1 display string must update in lock-step."
+    )
+    # Cross-check: every R1 display string referencing the threshold uses '1.5x'.
+    threshold_phrases = [
+        s for _, s in _PRD132_R1_TABLE if "RVOL >=" in s or "RVOL <" in s
+    ]
+    for phrase in threshold_phrases:
+        assert "1.5x" in phrase, (
+            f"R1 phrase {phrase!r} missing '1.5x' literal"
+        )
+
+
+# R6(b) — PRD-131 symbol literals still present unmodified.
+@pytest.mark.parametrize("symbol", [
+    "_TREND_STRUCTURE_COMPOSITE_DISPLAY",
+    "_trend_structure_composite_display",
+])
+def test_prd132_r6b_prd131_symbols_present(symbol: str) -> None:
+    result = subprocess.run(
+        ["grep", "-Fn", symbol,
+         "cuttingboard/delivery/dashboard_renderer.py"],
+        capture_output=True, text=True, check=False,
+    )
+    assert result.stdout.strip(), (
+        f"PRD-131 symbol {symbol!r} missing from dashboard_renderer.py — "
+        "PRD-132 isolation invariant R6(b) violated"
+    )
+
+
+# R6(c) — "SMA Composite" header present, "Intraday Context" appended after.
+def test_prd132_r6c_header_order_in_source() -> None:
+    src = Path("cuttingboard/delivery/dashboard_renderer.py").read_text()
+    sma_pos = src.find('"SMA Composite"')
+    intra_pos = src.find('"Intraday Context"')
+    assert sma_pos >= 0, "PRD-131 'SMA Composite' header literal missing"
+    assert intra_pos > sma_pos, (
+        "PRD-132 'Intraday Context' header must appear after 'SMA Composite'"
+    )
+
+
+# R6(d) — `_cells` tuple order: composite display call precedes intraday call.
+def test_prd132_r6d_cells_call_order_in_source() -> None:
+    src = Path("cuttingboard/delivery/dashboard_renderer.py").read_text()
+    comp_pos = src.find("_trend_structure_composite_display(_rec)")
+    intra_pos = src.find("_trend_structure_intraday_display(_rec)")
+    assert comp_pos >= 0, (
+        "PRD-131 composite display call missing from _cells tuple"
+    )
+    assert intra_pos > comp_pos, (
+        "PRD-132 intraday display call must be appended after composite call"
+    )
+
+
+# R6(e) — all 12 PRD-131 display strings present byte-identically.
+_PRD131_VOCAB_FOR_R6E = (
+    "Above SMA50 and SMA200",
+    "Above SMA50, below SMA200",
+    "Below SMA50, above SMA200",
+    "Below SMA50 and SMA200",
+    "At SMA50, above SMA200",
+    "At SMA50, below SMA200",
+    "Above SMA50, at SMA200",
+    "Below SMA50, at SMA200",
+    "At SMA50 and SMA200",
+    "Structure unavailable",
+    "SMA history insufficient",
+    "Structure not computed",
+)
+
+
+@pytest.mark.parametrize("phrase", _PRD131_VOCAB_FOR_R6E)
+def test_prd132_r6e_prd131_vocabulary_present(phrase: str) -> None:
+    result = subprocess.run(
+        ["grep", "-Fn", phrase,
+         "cuttingboard/delivery/dashboard_renderer.py"],
+        capture_output=True, text=True, check=False,
+    )
+    assert result.stdout.strip(), (
+        f"PRD-131 display string {phrase!r} missing from renderer — "
+        "PRD-132 isolation invariant R6(e) violated"
+    )
+
+
+# R6(f) — MISSING-record dash count grows by exactly one (10 → 11 cells).
+def test_prd132_r6f_missing_record_cell_count(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_renderer_now(monkeypatch)
+    # Build a trend-structure snapshot where one curated symbol has no record.
+    snap = _ts_healthy_snapshot()
+    missing_sym = next(iter(snap["symbols"].keys()))
+    snap["symbols"][missing_sym] = {"symbol": missing_sym}  # strip required fields
+    html = _prd120_coherent_render(trend_structure_snapshot=snap)
+    section = _ts_section(html)
+    # Find the MISSING row and count its <td> cells.
+    rows = re.findall(r"<tr>(.*?)</tr>", section, re.S)
+    missing_row = None
+    for row in rows:
+        if ">MISSING<" in row and f">{missing_sym}<" in row:
+            missing_row = row
+            break
+    assert missing_row is not None, (
+        f"MISSING row for {missing_sym} not found in trend-structure section"
+    )
+    cell_count = len(re.findall(r"<td[^>]*>", missing_row))
+    assert cell_count == 11, (
+        f"MISSING row has {cell_count} cells; expected 11 "
+        "(PRD-131 baseline 10 + PRD-132 +1 dash for Intraday Context)"
+    )
