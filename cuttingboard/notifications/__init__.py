@@ -85,12 +85,6 @@ _MACRO_TAPE_SYMBOLS: tuple[tuple[str, str, str], ...] = (
 _TRADABLES_ORDER: tuple[str, ...] = ("SPY", "QQQ", "GLD", "SLV", "XLE", "GDX")
 
 
-def _arrow(pct_decimal: Optional[float]) -> str:
-    if pct_decimal is None:
-        return "↑"
-    return "↓" if pct_decimal < 0 else "↑"
-
-
 def _fmt_level(price: float, fmt: str) -> str:
     if fmt == "level2":
         return f"{price:.2f}"
@@ -101,44 +95,38 @@ def _fmt_level(price: float, fmt: str) -> str:
     return f"{price:.1f}"
 
 
-def _macro_cell(label: str, symbol: str, level_fmt: str, quotes: dict) -> str:
+def _macro_row(label: str, symbol: str, level_fmt: str, quotes: dict) -> Optional[str]:
     q = quotes.get(symbol) if quotes else None
     if q is None or q.price is None:
-        return f"{label} n/a"
+        return None
     level = _fmt_level(q.price, level_fmt)
     pct = q.pct_change_decimal
     if pct is None:
-        return f"{label} {level}"
-    arrow = _arrow(pct)
-    abs_pct = abs(pct) * 100
-    return f"{label} {level} {arrow}{abs_pct:.1f}%"
+        return None
+    pct_str = f"{pct * 100:+.1f}%"
+    return f"{label}  {level:<5}  {pct_str}"
 
 
 def _macro_tape_block(normalized_quotes: dict) -> list[str]:
-    cells = [
-        _macro_cell(label, symbol, level_fmt, normalized_quotes)
+    rows = [
+        row
         for symbol, label, level_fmt in _MACRO_TAPE_SYMBOLS
+        if (row := _macro_row(label, symbol, level_fmt, normalized_quotes)) is not None
     ]
-    if all(cell.endswith(" n/a") for cell in cells):
+    if not rows:
         return []
-    row1 = f"{cells[0]} | {cells[1]}"
-    row2 = f"{cells[2]} | {cells[3]}"
-    return ["Macro Tape:", row1, row2]
+    return ["Macro Tape:", *rows]
 
 
 def _tradables_block(normalized_quotes: dict) -> list[str]:
-    available: list[str] = []
+    rows: list[str] = []
     for symbol in _TRADABLES_ORDER:
         q = normalized_quotes.get(symbol) if normalized_quotes else None
         if q is None or q.price is None:
             continue
-        available.append(f"{symbol} {q.price:.2f}")
-    if not available:
+        rows.append(f"{symbol}  {q.price:.2f}")
+    if not rows:
         return []
-    rows: list[str] = []
-    for i in range(0, len(available), 2):
-        pair = available[i : i + 2]
-        rows.append(" | ".join(pair))
     return ["Tradables:", *rows]
 
 
