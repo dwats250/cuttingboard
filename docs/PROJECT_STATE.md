@@ -13,8 +13,8 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-12
-**Last completed PRD:** PRD-129 - CI Artifact Hygiene and Push-Guard Stability (commit 1623687)
-**Last work completed:** 2026-05-12 — PRD-129 (LANE: MICRO, CLASS: INFRA + PATCH): Added `engine_doctor.txt` to `.gitignore` so the Engine health check step (PRD-020) cannot leave the working tree dirty for `tools/ci_push_artifacts.sh`'s rebase-time `git status --short` guard (PRD-100-PATCH). `engine_doctor.json` was already covered transitively by the existing `*.json` rule. Added `tests/test_ci_artifact_hygiene.py` with two assertions: (a) parametrized `git check-ignore` zero-exit for both filenames (pattern-coverage); (b) path-scoped `git status --short -- engine_doctor.json engine_doctor.txt` empty after materializing both artifacts at the repo root (the exact push-guard predicate). ROOT CAUSE: hidden dependency between PRD-100-PATCH push guard and PRD-020 engine doctor outputs, masked for weeks by a PRD-128 ruff lint regression (separately patched in commit 5d9be6d). Independent Codex cross-review returned ACCEPT WITH CHANGES; all three blocking findings applied (R2 FAIL tightened, MAX EXPECTED DELTA cleared of out-of-scope reference, SCOPE acknowledges existing `*.json` coverage). No edits to runtime, contracts, payloads, dashboard renderer, notifications, market_map, OHLCV/cache/fixture, decision logic, or workflows. Validation for implementation commit 1623687: `python3 -m pytest tests/test_ci_artifact_hygiene.py -q` -> 3 passed; `python3 -m pytest tests -q` -> 2271 passed; `ruff check cuttingboard/ tests/` clean; end-to-end CI verification: `Cuttingboard Pipeline` run 25712873055 GREEN through Push step (1m00s), with artifact-back commit 2cfdaa4 successfully pushed by CI.
+**Last completed PRD:** PRD-130 - Trend Structure Unknown-State Normalization (commit d01327c)
+**Last work completed:** 2026-05-12 — PRD-130 (LANE: HIGH-RISK, CLASS: SIDECAR): Replaced the legacy `"UNKNOWN"` emission across `cuttingboard/trend_structure.py` state fields (`price_vs_vwap`, `price_vs_sma_50`, `price_vs_sma_200`, `trend_alignment`, `entry_context`) with five deterministic, condition-specific tokens: `AT_LEVEL` (successful equality comparison), `INSUFFICIENT_HISTORY` (valid close series but too short for the SMA window), `DATA_UNAVAILABLE` (None / empty / missing-`Close` / all-NaN inputs), `NOT_COMPUTED` (intentional computation boundary — VWAP on non-intraday/daily bars), plus the renderer-only `SESSION_UNAVAILABLE` branch. Architecture: `_cmp()` is now a pure comparison primitive returning `Optional[str]` (None sentinel for missing inputs); callers (`_resolve_vwap_field`, `_resolve_sma_field`) own causality routing — the runtime/renderer semantic partition is preserved (runtime owns data-state, renderer owns session/presentation semantics). Renderer (`cuttingboard/delivery/dashboard_renderer.py`) gained a `_TREND_STRUCTURE_STATE_DISPLAY` mapping translating the four runtime tokens into compact operator-readable text ("AT LEVEL", "INSUFFICIENT HISTORY", "DATA UNAVAILABLE", "NOT COMPUTED"); `AT_LEVEL` renders affirmatively, never as an unknown-glyph fallback. No changes to artifact path, field set, field types, numeric semantics, badge CSS classes, panel skeleton, runtime decision logic, qualification, regime, sizing, payload schema, contract schema, market_map, or notifier. Independent Codex cross-review returned REJECT twice (governance LANE misclassification STANDARD→HIGH-RISK due to `cuttingboard/trend_structure.py` being a SIDECAR HIGH-RISK FILE per CLASS Matrix; `_cmp()` causality ambiguity for equality and SMA-None routing; SMA `_close_series()` cause partition inaccuracy; post-amendment cleanup gaps) and ACCEPT on the third pass after surgical amendments. Generated UI artifacts (`ui/dashboard.html`, `ui/index.html`) were intentionally NOT refreshed: they are outside PRD-130 FILES and regenerate on the next pipeline run; no schema/template skeleton/data-contract change forces a publish artifact bump in this PRD. Validation for implementation commit d01327c: `ruff check cuttingboard/ tests/` clean; `python3 -m pytest tests/test_trend_structure.py -q` → 30 passed; `python3 -m pytest tests/test_dashboard_renderer.py -q` → 179 passed; `python3 -m pytest tests -q` → 2277 passed (baseline 2271 + 6 net new R2/R4 tests); `grep '"UNKNOWN"' cuttingboard/trend_structure.py` → zero return-site matches.
 **Active PRD:** none
 **Deferred PRD:** none
 
@@ -26,7 +26,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 ## Test Baseline
 
-- **2271 passing** (as of 2026-05-12; PRD-129 added 3 CI artifact hygiene tests in `tests/test_ci_artifact_hygiene.py`)
+- **2277 passing** (as of 2026-05-12; PRD-130 added 6 net new R2/R4 trend-structure normalization tests across `tests/test_trend_structure.py` and `tests/test_dashboard_renderer.py`)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -36,6 +36,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-130 | Trend Structure Unknown-State Normalization | COMPLETE | 2026-05-12 |
 | PRD-129 | CI Artifact Hygiene and Push-Guard Stability | COMPLETE | 2026-05-12 |
 | PRD-128 | Hourly Readiness Ordering | COMPLETE | 2026-05-11 |
 | PRD-127 | Hourly Alert Action Language Alignment | COMPLETE | 2026-05-11 |
