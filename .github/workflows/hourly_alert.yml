@@ -74,6 +74,7 @@ jobs:
             logs/audit.jsonl \
             logs/market_map.json \
             logs/macro_drivers_snapshot.json \
+            logs/trend_structure_snapshot.json \
             logs/latest_run.json \
             logs/latest_contract.json \
             logs/latest_payload.json \

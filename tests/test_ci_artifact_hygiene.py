@@ -24,6 +24,21 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CI_ARTIFACT_FILENAMES = ("engine_doctor.json", "engine_doctor.txt")
+HOURLY_REQUIRED_STAGED_ARTIFACTS = (
+    "logs/audit.jsonl",
+    "logs/market_map.json",
+    "logs/macro_drivers_snapshot.json",
+    "logs/trend_structure_snapshot.json",
+    "logs/latest_run.json",
+    "logs/latest_contract.json",
+    "logs/latest_payload.json",
+    "logs/latest_hourly_run.json",
+    "logs/latest_hourly_contract.json",
+    "logs/latest_hourly_payload.json",
+    "ui/contract.json",
+    "ui/dashboard.html",
+    "ui/index.html",
+)
 
 
 def _run(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -95,3 +110,27 @@ def test_engine_doctor_artifacts_leave_porcelain_clean() -> None:
     finally:
         for path in created:
             path.unlink(missing_ok=True)
+
+
+def test_hourly_workflow_stages_all_mutated_artifacts_before_push() -> None:
+    """Hourly artifacts written before the push guard must be staged.
+
+    ``tools/ci_push_artifacts.sh`` intentionally fails on any dirty tree
+    before rebase. Keep this list aligned with files the hourly run mutates
+    and expects to publish before invoking the push helper.
+    """
+
+    workflow = REPO_ROOT / ".github" / "workflows" / "hourly_alert.yml"
+    text = workflow.read_text(encoding="utf-8")
+
+    commit_step = text[text.index("- name: Commit hourly artifacts"):]
+    push_idx = commit_step.index("- name: Push hourly artifacts")
+    commit_step = commit_step[:push_idx]
+
+    for artifact in HOURLY_REQUIRED_STAGED_ARTIFACTS:
+        assert artifact in commit_step, (
+            f"{artifact} is not staged by the hourly Commit hourly artifacts "
+            "step before tools/ci_push_artifacts.sh runs. Any mutated but "
+            "unstaged artifact leaves the tree dirty and correctly trips "
+            "the push guard."
+        )
