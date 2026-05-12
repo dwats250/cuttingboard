@@ -545,6 +545,7 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
                 qualification_summary=qualification_summary,
                 candidate_lines=candidate_lines,
                 halt_reason=validation_summary.halt_reason if validation_summary.system_halted else None,
+                normalized_quotes=normalized_quotes,
             )
         else:
             alert_title, alert_body = format_notification(

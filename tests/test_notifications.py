@@ -415,12 +415,12 @@ def test_lifecycle_alerts_reuse_hourly_timestamp_convention():
         },
     )
 
-    # PRD-124: title clock is PT (15:20Z = 08:20 PT during DST); lifecycle
-    # block continues to use the ET hhmm convention via _hhmm.
-    assert title == "STAY FLAT 8:20 AM"
+    # PRD-133: STAY-FLAT title carries PT clock with em-dash and PT suffix.
+    # Lifecycle block continues to use the ET hhmm convention via _hhmm.
+    assert title == "STAY FLAT — 8:20 AM PT"
     assert "11:20 META LONG - NEW (A)" in body
     assert "15:20" not in body
-    assert "Action: STAY FLAT" in body
+    assert not any(line.startswith("Action:") for line in body.split("\n"))
 
 
 def test_hourly_watchlist_title_and_reason_are_explicit():
@@ -431,10 +431,11 @@ def test_hourly_watchlist_title_and_reason_are_explicit():
         qualification_summary=_qualification_summary([], ["AAPL"]),
     )
 
-    # PRD-124: title reflects deterministic Action enum (MONITOR when
+    # PRD-133: title reflects deterministic Action enum (MONITOR when
     # watchlist symbols exist without qualified trades) plus PT clock.
+    # Body no longer carries an Action: line; focus token remains.
     assert title == "MONITOR 7:30 AM"
-    assert "Action: MONITOR" in body
+    assert not any(line.startswith("Action:") for line in body.split("\n"))
     assert "Focus: AAPL LONG" in body
 
 

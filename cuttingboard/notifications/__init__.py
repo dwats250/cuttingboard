@@ -65,19 +65,81 @@ def _pt_clock(asof_utc: datetime) -> str:
     return asof_utc.astimezone(LOCAL_TZ).strftime("%I:%M %p").lstrip("0")
 
 
-def _generated_label(asof_utc: datetime) -> str:
-    """ET-labeled generation timestamp, distinct from the PT title clock."""
-    return f"Generated: {asof_utc.astimezone(_ET_TZ).strftime('%H:%M')} ET"
-
-
 def _compact_label(value: object) -> str:
     return str(value or "UNKNOWN").replace("_", " ").upper()
 
 
-def _state_line(regime: Optional[RegimeState]) -> str:
+def _regime_line(regime: Optional[RegimeState]) -> str:
     if regime is None:
-        return "State: unknown / unknown"
-    return f"State: {_compact_label(regime.regime)} / {_compact_label(regime.posture)}"
+        return "Regime: unknown"
+    return f"Regime: {_compact_label(regime.regime)}"
+
+
+_MACRO_TAPE_SYMBOLS: tuple[tuple[str, str, str], ...] = (
+    ("^VIX", "VIX", "level1"),
+    ("DX-Y.NYB", "DXY", "level1"),
+    ("^TNX", "10Y", "level2"),
+    ("BTC-USD", "BTC", "btc"),
+)
+
+_TRADABLES_ORDER: tuple[str, ...] = ("SPY", "QQQ", "GLD", "SLV", "XLE", "GDX")
+
+
+def _arrow(pct_decimal: Optional[float]) -> str:
+    if pct_decimal is None:
+        return "↑"
+    return "↓" if pct_decimal < 0 else "↑"
+
+
+def _fmt_level(price: float, fmt: str) -> str:
+    if fmt == "level2":
+        return f"{price:.2f}"
+    if fmt == "btc":
+        if price >= 1000:
+            return f"{price / 1000:.1f}K"
+        return f"{price:.0f}"
+    return f"{price:.1f}"
+
+
+def _macro_cell(label: str, symbol: str, level_fmt: str, quotes: dict) -> str:
+    q = quotes.get(symbol) if quotes else None
+    if q is None or q.price is None:
+        return f"{label} n/a"
+    level = _fmt_level(q.price, level_fmt)
+    pct = q.pct_change_decimal
+    if pct is None:
+        return f"{label} {level}"
+    arrow = _arrow(pct)
+    abs_pct = abs(pct) * 100
+    return f"{label} {level} {arrow}{abs_pct:.1f}%"
+
+
+def _macro_tape_block(normalized_quotes: dict) -> list[str]:
+    cells = [
+        _macro_cell(label, symbol, level_fmt, normalized_quotes)
+        for symbol, label, level_fmt in _MACRO_TAPE_SYMBOLS
+    ]
+    if all(cell.endswith(" n/a") for cell in cells):
+        return []
+    row1 = f"{cells[0]} | {cells[1]}"
+    row2 = f"{cells[2]} | {cells[3]}"
+    return ["Macro Tape:", row1, row2]
+
+
+def _tradables_block(normalized_quotes: dict) -> list[str]:
+    available: list[str] = []
+    for symbol in _TRADABLES_ORDER:
+        q = normalized_quotes.get(symbol) if normalized_quotes else None
+        if q is None or q.price is None:
+            continue
+        available.append(f"{symbol} {q.price:.2f}")
+    if not available:
+        return []
+    rows: list[str] = []
+    for i in range(0, len(available), 2):
+        pair = available[i : i + 2]
+        rows.append(" | ".join(pair))
+    return ["Tradables:", *rows]
 
 
 def _confidence_line(regime: Optional[RegimeState]) -> str:
@@ -106,13 +168,6 @@ def _action_label(
     if flat:
         return "STAY FLAT"
     return "MONITOR"
-
-
-def _macro_line(regime: Optional[RegimeState]) -> str:
-    if regime is None or regime.vix_level is None:
-        return "Macro: n/a"
-    change = regime.vix_pct_change * 100 if regime.vix_pct_change is not None else 0.0
-    return f"Macro: VIX {regime.vix_level:.1f} ({change:+.1f}%)"
 
 
 def _focus_tokens(
@@ -147,16 +202,16 @@ def _focus_tokens(
 
 def _focus_line(tokens: list[tuple[str, str]]) -> str:
     if not tokens:
-        return "Focus: none"
+        return "Focus: no active setup"
     rendered = ", ".join(f"{sym} {direction}" for sym, direction in tokens)
     return f"Focus: {rendered}"
 
 
-def _blockers_line(
+def _blockers_line_opt(
     qualification_summary: Optional[QualificationSummary],
-) -> str:
+) -> Optional[str]:
     if qualification_summary is None:
-        return "Blockers: none"
+        return None
     tags: dict[str, None] = {}
     for item in qualification_summary.watchlist:
         gates_failed = getattr(item, "gates_failed", ()) or ()
@@ -165,7 +220,7 @@ def _blockers_line(
             if text:
                 tags[text] = None
     if not tags:
-        return "Blockers: none"
+        return None
     return f"Blockers: {', '.join(tags)}"
 
 
@@ -475,6 +530,7 @@ def format_hourly_notification(
     halt_reason: Optional[str] = None,
     market_map: Optional[dict[str, Any]] = None,
     canonical_outcome: Optional[str] = None,
+    normalized_quotes: Optional[dict[str, NormalizedQuote]] = None,
 ) -> tuple[str, str]:
     del halt_reason
     pt = _pt_clock(asof_utc)
@@ -499,7 +555,7 @@ def format_hourly_notification(
     elif action == "MONITOR":
         title = f"MONITOR {pt}"
     else:
-        title = f"STAY FLAT {pt}"
+        title = f"STAY FLAT — {pt} PT"
 
     has_candidates = bool(
         qualification_summary is not None
@@ -512,20 +568,33 @@ def format_hourly_notification(
         has_candidates=has_candidates,
     )
     focus = _focus_tokens(qualification_summary, candidate_lines)
+    quotes = normalized_quotes or {}
 
-    lines = [
-        _state_line(regime),
+    lines: list[str] = [
+        _regime_line(regime),
         _confidence_line(regime),
-        f"Action: {action}",
         f"Reason: {reason}",
-        _blockers_line(qualification_summary),
-        _macro_line(regime),
-        _focus_line(focus),
     ]
+    blockers = _blockers_line_opt(qualification_summary)
+    if blockers is not None:
+        lines.append(blockers)
+
+    macro_block = _macro_tape_block(quotes)
+    if macro_block:
+        lines.append("")
+        lines.extend(macro_block)
+
+    tradables_block = _tradables_block(quotes)
+    if tradables_block:
+        lines.append("")
+        lines.extend(tradables_block)
+
+    lines.append("")
+    lines.append(_focus_line(focus))
+
     pending = _pending_lines(focus, candidate_lines)
     if pending:
         lines.extend(["", *pending])
-    lines.extend(["", _generated_label(asof_utc)])
 
     body = "\n".join(lines)
     return title, _append_lifecycle_alerts(body, market_map, asof_utc)

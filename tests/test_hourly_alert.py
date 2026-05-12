@@ -294,7 +294,7 @@ def test_format_hourly_system_halt_routes_to_halt_format():
 
 
 def test_format_hourly_notification_wrapper_uses_new_section_shape():
-    """PRD-124: STAY-FLAT-equivalent regime renders the seven required sections."""
+    """PRD-133: hourly body renders Regime/Confidence/Reason then Macro Tape, no Action/Blockers/Generated."""
     title, body = format_hourly_notification(
         asof_utc=datetime(2026, 4, 23, 14, 0, tzinfo=timezone.utc),
         regime=_regime(regime="EXPANSION", posture="RISK_ON", confidence=0.72),
@@ -305,15 +305,16 @@ def test_format_hourly_notification_wrapper_uses_new_section_shape():
     # 14:00 UTC = 07:00 PT (DST), 10:00 ET
     assert title == "MONITOR 7:00 AM"
     lines = body.split("\n")
-    assert lines[0] == "State: EXPANSION / RISK ON"
+    assert lines[0] == "Regime: EXPANSION"
     assert lines[1] == "Confidence: 0.72"
-    assert lines[2] == "Action: MONITOR"
-    assert lines[3] == "Reason: no setups"
-    assert lines[4] == "Blockers: none"
-    assert lines[5] == "Macro: VIX 22.0 (+2.0%)"
-    assert lines[6] == "Focus: none"
+    assert lines[2] == "Reason: no setups"
     assert "" in lines
-    assert any(line.startswith("Generated: ") and line.endswith(" ET") for line in lines)
+    assert not any(line.startswith("Action:") for line in lines)
+    assert not any(line.startswith("State:") for line in lines)
+    assert not any(line.startswith("Blockers:") for line in lines)
+    assert not any(line.startswith("Generated:") for line in lines)
+    assert not any(line.startswith("Macro:") for line in lines)
+    assert "Focus: no active setup" in lines
     assert "TRIGGERS:" not in body
 
 
@@ -331,8 +332,8 @@ def test_format_hourly_notification_wrapper_filters_macro_candidates():
     assert title == "MONITOR SETUP 7:00 AM"
     assert "^VIX" not in body
     assert "Focus: NVDA LONG" in body
-    assert "Action: MONITOR SETUP" in body
-    assert "Action: TRADE" not in body
+    assert not any(line.startswith("Action:") for line in body.split("\n"))
+    assert not title.startswith("LONG ")
 
 
 def test_format_hourly_notification_wrapper_watchlist_focus_section():
@@ -369,7 +370,7 @@ def test_format_hourly_notification_wrapper_watchlist_focus_section():
     )
 
     assert title == "MONITOR 7:00 AM"
-    assert "Action: MONITOR" in body
+    assert not any(line.startswith("Action:") for line in body.split("\n"))
     assert "Focus: AAPL LONG" in body
     assert "Blockers: STOP_DISTANCE, RR_RATIO" in body
 
@@ -410,26 +411,133 @@ def test_prd124_r1_title_uses_pt_clock_not_et():
     assert "16:20" not in title
 
 
-def test_prd124_r2_artifact_timestamp_labeled_generated_with_et():
-    """R2: artifact timestamp is on its own labeled line, ET-formatted."""
+class _Q:
+    def __init__(self, price, pct):
+        self.price = price
+        self.pct_change_decimal = pct
+
+
+def _full_quotes():
+    return {
+        "^VIX": _Q(18.1, -0.015),
+        "DX-Y.NYB": _Q(98.5, -0.002),
+        "^TNX": _Q(4.42, -0.007),
+        "BTC-USD": _Q(81300.0, 0.011),
+        "SPY": _Q(724.59, 0.0),
+        "QQQ": _Q(682.62, 0.0),
+        "GLD": _Q(418.94, 0.0),
+        "SLV": _Q(66.28, 0.0),
+        "XLE": _Q(59.71, 0.0),
+        "GDX": _Q(86.22, 0.0),
+    }
+
+
+def test_prd133_macro_tape_block_renders_when_quotes_available():
+    _, body = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 12, 19, 4, tzinfo=timezone.utc),
+        regime=_regime(posture="STAY_FLAT", regime="RISK_OFF", confidence=0.50,
+                       vix_level=18.1, vix_pct_change=-0.015),
+        validation_summary=_validation(),
+        qualification_summary=None,
+        normalized_quotes=_full_quotes(),
+    )
+    assert "Macro Tape:" in body
+    assert "VIX 18.1 ↓1.5% | DXY 98.5 ↓0.2%" in body
+    assert "10Y 4.42 ↓0.7% | BTC 81.3K ↑1.1%" in body
+
+
+def test_prd133_tradables_block_full_universe():
+    _, body = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 12, 19, 4, tzinfo=timezone.utc),
+        regime=_regime(posture="STAY_FLAT", regime="RISK_OFF"),
+        validation_summary=_validation(),
+        qualification_summary=None,
+        normalized_quotes=_full_quotes(),
+    )
+    assert "Tradables:" in body
+    assert "SPY 724.59 | QQQ 682.62" in body
+    assert "GLD 418.94 | SLV 66.28" in body
+    assert "XLE 59.71 | GDX 86.22" in body
+
+
+def test_prd133_tradables_block_skips_missing_symbols_preserves_order():
+    quotes = {
+        "SPY": _Q(700.00, 0.0),
+        # QQQ missing
+        "GLD": _Q(400.00, 0.0),
+        # SLV missing
+        "XLE": _Q(60.00, 0.0),
+        "GDX": _Q(85.00, 0.0),
+    }
+    _, body = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 12, 19, 4, tzinfo=timezone.utc),
+        regime=_regime(posture="STAY_FLAT", regime="RISK_OFF"),
+        validation_summary=_validation(),
+        qualification_summary=None,
+        normalized_quotes=quotes,
+    )
+    assert "Tradables:" in body
+    # Available symbols packed two per row in fixed order: SPY, GLD, XLE, GDX
+    assert "SPY 700.00 | GLD 400.00" in body
+    assert "XLE 60.00 | GDX 85.00" in body
+    assert "QQQ" not in body
+    assert "SLV" not in body
+
+
+def test_prd133_tradables_block_omitted_when_zero_symbols():
+    quotes = {
+        "^VIX": _Q(18.1, -0.015),  # macro only
+    }
+    _, body = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 12, 19, 4, tzinfo=timezone.utc),
+        regime=_regime(posture="STAY_FLAT", regime="RISK_OFF"),
+        validation_summary=_validation(),
+        qualification_summary=None,
+        normalized_quotes=quotes,
+    )
+    assert "Tradables:" not in body
+
+
+def test_prd133_macro_tape_partial_renders_n_a_cells():
+    quotes = {
+        "^VIX": _Q(20.0, 0.005),
+        # DXY, 10Y, BTC missing
+    }
+    _, body = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 12, 19, 4, tzinfo=timezone.utc),
+        regime=_regime(posture="STAY_FLAT", regime="RISK_OFF"),
+        validation_summary=_validation(),
+        qualification_summary=None,
+        normalized_quotes=quotes,
+    )
+    assert "Macro Tape:" in body
+    assert "VIX 20.0 ↑0.5%" in body
+    assert "DXY n/a" in body
+    assert "10Y n/a" in body
+    assert "BTC n/a" in body
+
+
+def test_prd133_no_generated_trailer_in_body():
+    """PRD-133: hourly body has no Generated: line; STAY-FLAT title has ` — ` and ` PT`."""
     title, body = format_hourly_notification(**_prd124_event_args())
-    generated_lines = [
-        line for line in body.split("\n")
-        if line.startswith("Generated: ")
-    ]
-    assert len(generated_lines) == 1
-    assert generated_lines[0].endswith(" ET")
-    # title carries PT only, no ET clock collision
+    assert not any(line.startswith("Generated:") for line in body.split("\n"))
     assert " ET" not in title
 
+    # STAY-FLAT title format check (separate input)
+    sf_title, _ = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
+        regime=_regime(posture="STAY_FLAT", regime="NEUTRAL", confidence=0.4),
+        validation_summary=_validation(),
+        qualification_summary=None,
+    )
+    assert sf_title.startswith("STAY FLAT — ")
+    assert sf_title.endswith(" PT")
 
-def test_prd124_r3_body_required_section_labels_in_order():
-    """R3: State / Confidence / Action / Reason / Blockers / Macro / Focus, in order."""
+
+def test_prd133_body_required_section_labels_in_order():
+    """PRD-133: Regime / Confidence / Reason / (Macro Tape) / Focus, in that order."""
     _, body = format_hourly_notification(**_prd124_event_args())
-    required = [
-        "State:", "Confidence:", "Action:",
-        "Reason:", "Blockers:", "Macro:", "Focus:",
-    ]
+    required = ["Regime:", "Confidence:", "Reason:", "Focus:"]
     positions = []
     body_lines = body.split("\n")
     for label in required:
@@ -439,51 +547,50 @@ def test_prd124_r3_body_required_section_labels_in_order():
         )
         assert match_idx >= 0, f"missing required section: {label}"
         positions.append(match_idx)
-    assert positions == list(range(positions[0], positions[0] + len(required))) or \
-        positions == sorted(positions), f"sections out of order: {positions}"
+    assert positions == sorted(positions), f"sections out of order: {positions}"
 
 
-def test_prd124_r4_action_label_branches():
-    """R4: deterministic enum over TRADE / MONITOR / STAY FLAT / HALT."""
-    # STAY FLAT — regime posture is STAY_FLAT
-    _, body = format_hourly_notification(
+def test_prd133_action_label_branches_via_title():
+    """PRD-133: action label drives the title; body no longer carries Action: line."""
+    # STAY FLAT — regime posture is STAY_FLAT → title gets ` — ` and ` PT`
+    title, body = format_hourly_notification(
         asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
         regime=_regime(posture="STAY_FLAT", regime="NEUTRAL", confidence=0.4),
         validation_summary=_validation(),
         qualification_summary=None,
     )
-    assert "Action: STAY FLAT" in body
+    assert title.startswith("STAY FLAT — ")
+    assert title.endswith(" PT")
+    assert not any(line.startswith("Action:") for line in body.split("\n"))
 
     # HALT — system halted overrides everything
-    _, body = format_hourly_notification(
+    title, body = format_hourly_notification(
         asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
         regime=_regime(),
         validation_summary=_validation(halted=True),
         qualification_summary=_qual(["NVDA"]),
     )
-    assert "Action: HALT" in body
+    assert title.startswith("HALT ")
+    assert not any(line.startswith("Action:") for line in body.split("\n"))
 
-    # PRD-127: MONITOR SETUP — qualified candidates + tradable posture
-    # with the default canonical_outcome=None (no canonical TRADES outcome).
-    _, body = format_hourly_notification(
+    # MONITOR SETUP — qualified candidates + tradable posture
+    title, _ = format_hourly_notification(
         asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
         regime=_regime(regime="RISK_ON", posture="CONTROLLED_LONG", confidence=0.7),
         validation_summary=_validation(),
         qualification_summary=_qual(["NVDA"], direction="LONG"),
     )
-    assert "Action: MONITOR SETUP" in body
-    assert "Action: TRADE" not in body
+    assert title.startswith("MONITOR SETUP ")
 
-    # MONITOR — tradable posture, no qualified, regime not STAY_FLAT.
-    # Watchlist-only path: the original MONITOR label is preserved.
-    _, body = format_hourly_notification(
+    # MONITOR — tradable posture, no qualified
+    title, _ = format_hourly_notification(
         asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
         regime=_regime(regime="RISK_ON", posture="CONTROLLED_LONG", confidence=0.7),
         validation_summary=_validation(),
         qualification_summary=_qual([]),
     )
-    assert "Action: MONITOR" in body
-    assert "Action: MONITOR SETUP" not in body
+    assert title.startswith("MONITOR ")
+    assert not title.startswith("MONITOR SETUP ")
 
 
 def test_prd124_r5_no_generic_trigger_phrases_without_attached_symbol():
@@ -499,20 +606,25 @@ def test_prd124_r5_no_generic_trigger_phrases_without_attached_symbol():
         assert phrase not in body, f"banned phrase {phrase!r} leaked into STAY FLAT body"
 
 
-def test_prd124_r6_missing_data_renders_explicit_fallback_tokens():
-    """R6: regime=None and qualification_summary=None produce explicit labels."""
+def test_prd133_missing_data_renders_explicit_fallback_tokens():
+    """PRD-133: regime=None and no quotes produces explicit Regime/Confidence/Focus fallbacks."""
     _, body = format_hourly_notification(
         asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
         regime=None,
         validation_summary=_validation(),
         qualification_summary=None,
     )
-    assert "State: unknown / unknown" in body
+    assert "Regime: unknown" in body
     assert "Confidence: unknown" in body
-    assert "Macro: n/a" in body
-    assert "Focus: none" in body
-    assert "Blockers: none" in body
-    assert "None" not in body.replace("None", "", 0)  # no literal "None"
+    assert "Focus: no active setup" in body
+    # No banned legacy labels
+    assert "State:" not in body
+    assert "Action:" not in body
+    assert "Blockers:" not in body
+    assert "Generated:" not in body
+    # Empty normalized_quotes → no Macro Tape and no Tradables block
+    assert "Macro Tape:" not in body
+    assert "Tradables:" not in body
     assert "UNKNOWN | UNKNOWN | 0.00" not in body
 
 
@@ -571,8 +683,8 @@ def test_prd127_qualified_default_outcome_renders_monitor_setup_not_trade():
         qualification_summary=_qual(["NVDA"], direction="LONG"),
         candidate_lines=("NVDA | LONG | TREND | 2.4:1",),
     )
-    assert "Action: TRADE" not in body
-    assert "Action: MONITOR SETUP" in body
+    assert title.startswith("MONITOR SETUP ")
+    assert not any(line.startswith("Action:") for line in body.split("\n"))
     assert not title.startswith("TRADE ")
     assert not title.startswith("LONG ")
     assert not title.startswith("SHORT ")
@@ -590,14 +702,12 @@ def test_prd127_canonical_trade_outcome_reaches_trade_label():
         candidate_lines=("NVDA | LONG | TREND | 2.4:1",),
         canonical_outcome=OUTCOME_TRADE,
     )
-    assert "Action: TRADE" in body
-    assert "Action: MONITOR SETUP" not in body
     assert title.startswith("LONG NVDA ")
+    assert not any(line.startswith("Action:") for line in body.split("\n"))
 
 
 def test_prd127_monitor_setup_body_does_not_leak_directional_prefixes():
-    """R2: MONITOR SETUP body's Action line must not contain TRADE/LONG/SHORT
-    executable prefixes."""
+    """PRD-133: MONITOR SETUP body has no Action line; Regime line carries the regime label."""
     _, body = format_hourly_notification(
         asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
         regime=_regime(regime="RISK_ON", posture="CONTROLLED_LONG", confidence=0.7),
@@ -605,9 +715,10 @@ def test_prd127_monitor_setup_body_does_not_leak_directional_prefixes():
         qualification_summary=_qual(["NVDA"], direction="LONG"),
         candidate_lines=("NVDA | LONG | TREND | 2.4:1",),
     )
-    action_lines = [line for line in body.split("\n") if line.startswith("Action:")]
-    assert len(action_lines) == 1
-    assert action_lines[0] == "Action: MONITOR SETUP"
+    assert not any(line.startswith("Action:") for line in body.split("\n"))
+    regime_lines = [line for line in body.split("\n") if line.startswith("Regime:")]
+    assert len(regime_lines) == 1
+    assert regime_lines[0] == "Regime: RISK ON"
 
 
 def test_prd127_watchlist_only_branch_preserves_monitor_label():
@@ -637,14 +748,15 @@ def test_prd127_watchlist_only_branch_preserves_monitor_label():
         symbols_watchlist=1,
         symbols_excluded=0,
     )
-    _, body = format_hourly_notification(
+    title, body = format_hourly_notification(
         asof_utc=datetime(2026, 5, 11, 16, 20, tzinfo=timezone.utc),
         regime=_regime(regime="RISK_ON", posture="CONTROLLED_LONG", confidence=0.7),
         validation_summary=_validation(),
         qualification_summary=qual,
     )
-    assert "Action: MONITOR" in body
-    assert "Action: MONITOR SETUP" not in body
+    assert title.startswith("MONITOR ")
+    assert not title.startswith("MONITOR SETUP ")
+    assert not any(line.startswith("Action:") for line in body.split("\n"))
 
 
 def test_prd127_action_label_trade_branch_is_gated_by_canonical_outcome():
