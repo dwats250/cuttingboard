@@ -48,15 +48,10 @@ jobs:
       - name: Run hourly alert
         run: python -m cuttingboard.alert_runner
 
-      - name: Check hourly readiness
-        if: ${{ success() }}
-        run: python3 scripts/check_readiness.py
-
-      - name: Publish hourly artifacts
+      - name: Render and stage hourly artifacts
         if: ${{ success() }}
         run: |
           set -euo pipefail
-          PRE_SHA=$(git rev-parse HEAD)
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           cp logs/latest_hourly_contract.json ui/contract.json
@@ -64,6 +59,17 @@ jobs:
             --payload logs/latest_hourly_payload.json \
             --run logs/latest_hourly_run.json \
             --output ui/dashboard.html
+          cp ui/dashboard.html ui/index.html
+
+      - name: Check hourly readiness
+        if: ${{ success() }}
+        run: python3 scripts/check_readiness.py
+
+      - name: Commit hourly artifacts
+        if: ${{ success() }}
+        run: |
+          set -euo pipefail
+          PRE_SHA=$(git rev-parse HEAD)
           git add -f \
             logs/audit.jsonl \
             logs/market_map.json \
@@ -74,7 +80,6 @@ jobs:
             logs/latest_hourly_run.json \
             logs/latest_hourly_contract.json \
             logs/latest_hourly_payload.json
-          cp ui/dashboard.html ui/index.html
           git add ui/contract.json ui/dashboard.html ui/index.html
           git diff --staged --quiet || git commit -m "CB hourly: $(date -u +%Y-%m-%dT%H:%MZ)"
           POST_SHA=$(git rev-parse HEAD)

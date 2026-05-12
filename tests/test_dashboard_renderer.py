@@ -115,6 +115,46 @@ def test_ci_workflows_publish_dashboard_with_same_render_copy_contract() -> None
         assert text.index(render) < text.index(copy)
 
 
+def test_prd128_hourly_readiness_runs_after_render_and_copy_before_commit_and_push() -> None:
+    """PRD-128: hourly readiness must validate freshly rendered artifacts.
+
+    Asserts the full ordering chain in .github/workflows/hourly_alert.yml:
+        render < copy < check_readiness < commit < push
+    and that the readiness step body carries no `continue-on-error: true`.
+    """
+    text = Path(".github/workflows/hourly_alert.yml").read_text(encoding="utf-8")
+
+    render = "python3 -m cuttingboard.delivery.dashboard_renderer"
+    copy = "cp ui/dashboard.html ui/index.html"
+    ready = "python3 scripts/check_readiness.py"
+    commit = 'git commit -m "CB hourly:'
+    push = "bash tools/ci_push_artifacts.sh"
+
+    for anchor in (render, copy, ready, commit, push):
+        assert anchor in text, f"missing anchor in hourly_alert.yml: {anchor!r}"
+
+    render_idx = text.index(render)
+    copy_idx = text.index(copy)
+    ready_idx = text.index(ready)
+    commit_idx = text.index(commit)
+    push_idx = text.index(push)
+
+    assert render_idx < copy_idx, "render must precede copy"
+    assert copy_idx < ready_idx, "copy must precede readiness"
+    assert ready_idx < commit_idx, "readiness must precede commit"
+    assert ready_idx < push_idx, "readiness must precede push"
+
+    # The readiness step body is delimited by the preceding `- name:` line and
+    # the next `- name:` line. It MUST NOT carry `continue-on-error: true`.
+    step_name_start = text.rfind("- name:", 0, ready_idx)
+    assert step_name_start != -1, "could not locate readiness step `- name:` line"
+    next_step_start = text.find("\n      - name:", ready_idx)
+    step_body = text[step_name_start:next_step_start if next_step_start != -1 else len(text)]
+    assert "continue-on-error: true" not in step_body, (
+        "readiness step must not carry `continue-on-error: true`"
+    )
+
+
 def _candidate_board_section(html: str) -> str:
     return html.split('id="candidate-board"', 1)[1].split('</div>\n\n', 1)[0]
 

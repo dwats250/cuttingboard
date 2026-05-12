@@ -15,7 +15,7 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 **Last updated:** 2026-05-11
 **Last completed PRD:** PRD-127 - Hourly Alert Action Language Alignment (commit c814460)
 **Last work completed:** 2026-05-11 — PRD-127: gated the `Action: TRADE` branch in `cuttingboard/notifications/__init__.py::_action_label` on a new `canonical_outcome` keyword parameter threaded from `format_hourly_notification`. Qualified setups under the default `canonical_outcome=None` now render `Action: MONITOR SETUP`, aligning hourly Telegram body language with the canonical `OUTCOME_NO_TRADE` value that `_execute_notify_run` hardcodes at `runtime.py:560`, `:600`, and `_build_hourly_contract:1752`. The watchlist-only `Action: MONITOR` branch is preserved. Updated two existing `tests/test_hourly_alert.py` assertions and added six PRD-127 tests (regression, R3 reachability via `canonical_outcome=OUTCOME_TRADE`, no directional title-prefix leak, watchlist-only MONITOR preservation, R8 grep gate, signature kwarg declaration). No edits to `runtime.py`, dashboard, payload/contract, market_map, readiness, workflows, OHLCV/cache/fixture, logs, reports, or UI files. Validation for implementation commit c814460: `python3 -m pytest tests/test_hourly_alert.py -q` -> 48 passed; `python3 -m pytest -q` -> 2267 passed; `git diff --check` clean.
-**Active PRD:** none
+**Active PRD:** PRD-128 — Hourly Readiness Ordering
 **Deferred PRD:** none
 
 **System direction:** deterministic, macro-aware, visibility-first, sidecar-oriented ecosystem.
