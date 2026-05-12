@@ -156,4 +156,4 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-126 | a4ce57c | Fixture Mode No-Live-OHLCV Boundary | COMPLETE | [PRD-126](prd_history/PRD-126.md) |
 | PRD-127 | c814460 | Hourly Alert Action Language Alignment | COMPLETE | [PRD-127](prd_history/PRD-127.md) |
 | PRD-128 | c959df5 | Hourly Readiness Ordering | COMPLETE | [PRD-128](prd_history/PRD-128.md) |
-| PRD-129 | — | CI Artifact Hygiene and Push-Guard Stability | IN PROGRESS | [PRD-129](prd_history/PRD-129.md) |
+| PRD-129 | 1623687 | CI Artifact Hygiene and Push-Guard Stability | COMPLETE | [PRD-129](prd_history/PRD-129.md) |

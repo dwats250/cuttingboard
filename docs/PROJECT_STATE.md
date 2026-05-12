@@ -12,9 +12,9 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 ## Current State
 
-**Last updated:** 2026-05-11
-**Last completed PRD:** PRD-128 - Hourly Readiness Ordering (commit c959df5)
-**Last work completed:** 2026-05-11 — PRD-128: re-ordered `.github/workflows/hourly_alert.yml` so `python3 scripts/check_readiness.py` runs AFTER the dashboard renderer writes `ui/dashboard.html` and AFTER `cp ui/dashboard.html ui/index.html`, and BEFORE the artifact commit and push. Split the previous "Publish hourly artifacts" step into four sequential steps (Render and stage / Check readiness / Commit / Push). Readiness now validates the publish-bound HTML rather than the previously committed stale artifacts; no `continue-on-error: true` gate. `scripts/check_readiness.py` left untouched — its existing `REQUIRED_HTML_MARKERS` and `FORBIDDEN_HTML_PATTERNS` already cover the publish-bound HTML. Added `tests/test_dashboard_renderer.py::test_prd128_hourly_readiness_runs_after_render_and_copy_before_commit_and_push` asserting the full chain (render < copy < readiness < commit < push) plus the continue-on-error ban. The existing `test_ci_workflows_publish_dashboard_with_same_render_copy_contract` is unmodified. No edits to runtime, notifications, dashboard renderer, payload/contract, market_map, OHLCV/cache/fixture code, logs, reports, or UI artifact files. Validation for implementation commit c959df5: `python3 -m pytest tests/test_dashboard_renderer.py -q` -> 178 passed; `python3 -m pytest -q` -> 2268 passed; `git diff --check` clean.
+**Last updated:** 2026-05-12
+**Last completed PRD:** PRD-129 - CI Artifact Hygiene and Push-Guard Stability (commit 1623687)
+**Last work completed:** 2026-05-12 — PRD-129 (LANE: MICRO, CLASS: INFRA + PATCH): Added `engine_doctor.txt` to `.gitignore` so the Engine health check step (PRD-020) cannot leave the working tree dirty for `tools/ci_push_artifacts.sh`'s rebase-time `git status --short` guard (PRD-100-PATCH). `engine_doctor.json` was already covered transitively by the existing `*.json` rule. Added `tests/test_ci_artifact_hygiene.py` with two assertions: (a) parametrized `git check-ignore` zero-exit for both filenames (pattern-coverage); (b) path-scoped `git status --short -- engine_doctor.json engine_doctor.txt` empty after materializing both artifacts at the repo root (the exact push-guard predicate). ROOT CAUSE: hidden dependency between PRD-100-PATCH push guard and PRD-020 engine doctor outputs, masked for weeks by a PRD-128 ruff lint regression (separately patched in commit 5d9be6d). Independent Codex cross-review returned ACCEPT WITH CHANGES; all three blocking findings applied (R2 FAIL tightened, MAX EXPECTED DELTA cleared of out-of-scope reference, SCOPE acknowledges existing `*.json` coverage). No edits to runtime, contracts, payloads, dashboard renderer, notifications, market_map, OHLCV/cache/fixture, decision logic, or workflows. Validation for implementation commit 1623687: `python3 -m pytest tests/test_ci_artifact_hygiene.py -q` -> 3 passed; `python3 -m pytest tests -q` -> 2271 passed; `ruff check cuttingboard/ tests/` clean; end-to-end CI verification: `Cuttingboard Pipeline` run 25712873055 GREEN through Push step (1m00s), with artifact-back commit 2cfdaa4 successfully pushed by CI.
 **Active PRD:** none
 **Deferred PRD:** none
 
@@ -26,7 +26,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 ## Test Baseline
 
-- **2268 passing** (as of 2026-05-11; PRD-128 added hourly readiness ordering guard in `tests/test_dashboard_renderer.py`)
+- **2271 passing** (as of 2026-05-12; PRD-129 added 3 CI artifact hygiene tests in `tests/test_ci_artifact_hygiene.py`)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -36,6 +36,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-129 | CI Artifact Hygiene and Push-Guard Stability | COMPLETE | 2026-05-12 |
 | PRD-128 | Hourly Readiness Ordering | COMPLETE | 2026-05-11 |
 | PRD-127 | Hourly Alert Action Language Alignment | COMPLETE | 2026-05-11 |
 | PRD-126 | Fixture Mode No-Live-OHLCV Boundary | COMPLETE | 2026-05-11 |
