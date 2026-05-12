@@ -15,26 +15,26 @@
   "correlation": {
     "dollar_symbol": "DX-Y.NYB",
     "gold_symbol": "GLD",
-    "risk_modifier": 0.4,
-    "score": -1,
-    "state": "CONFLICT"
+    "risk_modifier": 1.0,
+    "score": 1,
+    "state": "ALIGNED"
   },
-  "generated_at": "2026-05-12T04:13:05Z",
-  "generation_id": "live-20260512T041305Z",
+  "generated_at": "2026-05-12T11:32:06Z",
+  "generation_id": "live-20260512T113206Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -0.8896226999471565,
-      "level": 81000.0,
+      "change_pct": -1.3360591236226067,
+      "level": 80635.140625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.04790388986584655,
-      "level": 98.15399932861328,
+      "change_pct": 0.1273470083168851,
+      "level": 98.28199768066406,
       "symbol": "DX-Y.NYB"
     },
     "oil": {
-      "change_pct": 0.13131035698784724,
-      "level": 99.12999725341797,
+      "change_pct": 2.1879392642349784,
+      "level": 101.3499984741211,
       "symbol": "CL=F"
     },
     "rates": {
@@ -44,8 +44,8 @@
       "symbol": "^TNX"
     },
     "volatility": {
-      "change_pct": 6.984859338036794,
-      "level": 18.3799991607666,
+      "change_pct": 2.885132036384776,
+      "level": 18.899999618530273,
       "symbol": "^VIX"
     }
   },
@@ -62,22 +62,22 @@
     "classification": "NEUTRAL",
     "confidence": 0.125,
     "net_score": -1,
-    "neutral_votes": 5,
+    "neutral_votes": 7,
     "posture": "STAY_FLAT",
-    "risk_off_votes": 2,
-    "risk_on_votes": 1,
+    "risk_off_votes": 1,
+    "risk_on_votes": 0,
     "total_votes": 8,
-    "vix_level": 18.3799991607666,
-    "vix_pct_change": 0.06984859338036795,
+    "vix_level": 18.899999618530273,
+    "vix_pct_change": 0.02885132036384776,
     "vote_breakdown": {
       "BTC pct_change": "NEUTRAL",
       "DXY pct_change": "NEUTRAL",
-      "IWM pct_change": "RISK_ON",
+      "IWM pct_change": "NEUTRAL",
       "QQQ pct_change": "NEUTRAL",
       "SPY pct_change": "NEUTRAL",
       "TNX pct_change": "RISK_OFF",
       "VIX level": "NEUTRAL",
-      "VIX pct_change": "RISK_OFF"
+      "VIX pct_change": "NEUTRAL"
     }
   },
   "rejections": [
