@@ -1847,6 +1847,28 @@ def test_prd118_mismatched_generation_ids_blocks(tmp_path: Path) -> None:
     assert not out.exists()
 
 
+# PRD-134 R5: regression for noop-publish observed in failed Cuttingboard
+# Pipeline runs 25759504467, 25753693370, 25747005282, 25746783255,
+# 25745013143 — live-stamped payload/run paired with an hourly-stamped
+# market_map (after hourly_alert overwrote logs/market_map.json between
+# the daily live run and a later "noop"-mode scheduled run). PRD-118 must
+# reject this exact mix.
+def test_prd134_noop_live_payload_with_hourly_market_map_blocks(tmp_path: Path) -> None:
+    payload, run, market_map = _coherent_inputs()
+    payload["meta"]["generation_id"] = "live-20260512T113206Z"
+    run["generation_id"] = "live-20260512T113206Z"
+    market_map["generation_id"] = "hourly-20260512T195802Z"
+    out = _ui_output_path(tmp_path)
+    with pytest.raises(CoherentPublishError, match=r"generation_id mismatch"):
+        validate_coherent_publish(
+            payload=payload,
+            run=run,
+            market_map=market_map,
+            output_path=out,
+            fixture_mode=False,
+        )
+
+
 # R11-3: missing payload.meta.generation_id — exception, no file
 def test_prd118_missing_payload_generation_id_blocks(tmp_path: Path) -> None:
     payload, run, market_map = _coherent_inputs()
