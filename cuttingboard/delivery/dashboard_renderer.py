@@ -50,6 +50,24 @@ _TREND_STRUCTURE_REQUIRED_FIELDS: tuple[str, ...] = (
     "relative_volume", "price_vs_vwap", "price_vs_sma_50",
     "price_vs_sma_200", "trend_alignment", "entry_context", "data_status",
 )
+
+# PRD-130: deterministic unknown-state tokens emitted by
+# cuttingboard.trend_structure are mapped here to compact operator-readable
+# display text. AT_LEVEL renders as an affirmative neutral-comparison
+# string (successful comparison, not an unavailable state). The
+# renderer-only SESSION_UNAVAILABLE branch is handled by the existing
+# INACTIVE_SESSION_LABEL / market-closed paths below, distinct from these
+# per-cell tokens.
+_TREND_STRUCTURE_STATE_DISPLAY: dict[str, str] = {
+    "AT_LEVEL": "AT LEVEL",
+    "INSUFFICIENT_HISTORY": "INSUFFICIENT HISTORY",
+    "DATA_UNAVAILABLE": "DATA UNAVAILABLE",
+    "NOT_COMPUTED": "NOT COMPUTED",
+}
+
+
+def _ts_display(token: str) -> str:
+    return _TREND_STRUCTURE_STATE_DISPLAY.get(token, token)
 HISTORY_LIMIT = 5
 _DASHBOARD_REFRESH_SECONDS = 30
 DASHBOARD_STALE_AFTER_SECONDS = 300
@@ -1768,11 +1786,11 @@ def render_dashboard_html(
                     str(_rec.get("symbol", _sym)),
                     str(_rec.get("data_status", "")),
                     _format_trend_number(_rec.get("current_price")),
-                    str(_rec.get("price_vs_vwap", "")),
-                    str(_rec.get("price_vs_sma_50", "")),
-                    str(_rec.get("price_vs_sma_200", "")),
-                    str(_rec.get("trend_alignment", "")),
-                    str(_rec.get("entry_context", "")),
+                    _ts_display(str(_rec.get("price_vs_vwap", ""))),
+                    _ts_display(str(_rec.get("price_vs_sma_50", ""))),
+                    _ts_display(str(_rec.get("price_vs_sma_200", ""))),
+                    _ts_display(str(_rec.get("trend_alignment", ""))),
+                    _ts_display(str(_rec.get("entry_context", ""))),
                     _format_trend_number(_rec.get("relative_volume")),
                 )
             w('      <tr>')

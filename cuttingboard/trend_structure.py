@@ -84,19 +84,102 @@ def _relative_volume(df: Optional[pd.DataFrame]) -> Optional[float]:
     return today / prior_20
 
 
-def _cmp(price: Optional[float], ref: Optional[float]) -> str:
+# PRD-130: deterministic unknown-state tokens replacing the legacy "UNKNOWN"
+# emission. `_cmp()` is a pure comparison primitive; callers own causality
+# routing for missing-input cases. `SESSION_UNAVAILABLE` is renderer-only and
+# is never emitted by this module.
+_UNAVAILABLE_PRIORITY: tuple[str, ...] = (
+    "DATA_UNAVAILABLE",
+    "INSUFFICIENT_HISTORY",
+    "NOT_COMPUTED",
+)
+_UNAVAILABLE_SET: frozenset[str] = frozenset(_UNAVAILABLE_PRIORITY)
+
+
+def _propagate_unavailable(*tokens: str) -> Optional[str]:
+    for priority in _UNAVAILABLE_PRIORITY:
+        if priority in tokens:
+            return priority
+    return None
+
+
+def _cmp(price: Optional[float], ref: Optional[float]) -> Optional[str]:
+    # PRD-130: pure comparison primitive. Returns None sentinel when inputs
+    # are missing — the caller routes the upstream cause to the correct
+    # unavailable token. _cmp() never emits DATA_UNAVAILABLE,
+    # INSUFFICIENT_HISTORY, or NOT_COMPUTED.
     if price is None or ref is None:
-        return "UNKNOWN"
+        return None
     if price > ref:
         return "ABOVE"
     if price < ref:
         return "BELOW"
-    return "UNKNOWN"
+    return "AT_LEVEL"
+
+
+def _classify_vwap_unavailable(
+    df: Optional[pd.DataFrame], vwap_value: Optional[float]
+) -> str:
+    # PRD-130: classify the upstream cause when _vwap() returned None.
+    # Non-intraday (daily-bar) input is an intentional computation boundary
+    # → NOT_COMPUTED. Every other None path is a true data outage →
+    # DATA_UNAVAILABLE.
+    if vwap_value is not None:
+        return "OK"
+    if df is None or getattr(df, "empty", True):
+        return "DATA_UNAVAILABLE"
+    required = {"High", "Low", "Close", "Volume"}
+    if not required.issubset(df.columns):
+        return "DATA_UNAVAILABLE"
+    if not _is_intraday(df):
+        return "NOT_COMPUTED"
+    return "DATA_UNAVAILABLE"
+
+
+def _classify_sma_unavailable(
+    closes: Optional[pd.Series], sma_value: Optional[float], window: int
+) -> str:
+    # PRD-130: classify the upstream cause when _sma() returned None.
+    # _close_series() None → DATA_UNAVAILABLE; valid-but-short closes →
+    # INSUFFICIENT_HISTORY.
+    if sma_value is not None:
+        return "OK"
+    if closes is None:
+        return "DATA_UNAVAILABLE"
+    return "INSUFFICIENT_HISTORY"
+
+
+def _resolve_vwap_field(
+    price: Optional[float],
+    vwap: Optional[float],
+    df: Optional[pd.DataFrame],
+) -> str:
+    raw = _cmp(price, vwap)
+    if raw is not None:
+        return raw
+    if price is None:
+        return "DATA_UNAVAILABLE"
+    return _classify_vwap_unavailable(df, vwap)
+
+
+def _resolve_sma_field(
+    price: Optional[float],
+    sma: Optional[float],
+    closes: Optional[pd.Series],
+    window: int,
+) -> str:
+    raw = _cmp(price, sma)
+    if raw is not None:
+        return raw
+    if price is None:
+        return "DATA_UNAVAILABLE"
+    return _classify_sma_unavailable(closes, sma, window)
 
 
 def _trend_alignment(p_sma50: str, p_sma200: str) -> str:
-    if p_sma50 == "UNKNOWN" or p_sma200 == "UNKNOWN":
-        return "UNKNOWN"
+    propagated = _propagate_unavailable(p_sma50, p_sma200)
+    if propagated is not None:
+        return propagated
     if p_sma50 == "ABOVE" and p_sma200 == "ABOVE":
         return "BULLISH"
     if p_sma50 == "BELOW" and p_sma200 == "BELOW":
@@ -106,9 +189,10 @@ def _trend_alignment(p_sma50: str, p_sma200: str) -> str:
 
 def _entry_context(data_status: str, alignment: str, p_vwap: str) -> str:
     if data_status == "MISSING":
-        return "UNKNOWN"
-    if alignment == "UNKNOWN" or p_vwap == "UNKNOWN":
-        return "UNKNOWN"
+        return "DATA_UNAVAILABLE"
+    propagated = _propagate_unavailable(alignment, p_vwap)
+    if propagated is not None:
+        return propagated
     if alignment == "BULLISH" and p_vwap == "ABOVE":
         return "SUPPORTIVE"
     if alignment == "BEARISH" and p_vwap == "BELOW":
@@ -128,10 +212,12 @@ def _reason(
         return "BULLISH alignment with price above VWAP"
     if entry_context == "AVOID":
         return "BEARISH alignment with price below VWAP"
-    if alignment == "UNKNOWN":
-        return "trend alignment unknown — sma_50 or sma_200 missing"
-    if p_vwap == "UNKNOWN":
-        return f"{alignment} alignment; VWAP unavailable"
+    if alignment in _UNAVAILABLE_SET:
+        return f"trend alignment {alignment} — sma_50 or sma_200 missing"
+    if p_vwap in _UNAVAILABLE_SET:
+        return f"{alignment} alignment; VWAP {p_vwap}"
+    if p_vwap == "AT_LEVEL":
+        return f"{alignment} alignment with price at VWAP"
     return f"{alignment} alignment with price {p_vwap.lower()} VWAP"
 
 
@@ -169,9 +255,9 @@ def _build_record(
     vwap = _vwap(df)
     rel_vol = _relative_volume(df)
 
-    p_vwap = _cmp(current_price, vwap)
-    p_sma50 = _cmp(current_price, sma_50)
-    p_sma200 = _cmp(current_price, sma_200)
+    p_vwap = _resolve_vwap_field(current_price, vwap, df)
+    p_sma50 = _resolve_sma_field(current_price, sma_50, closes, 50)
+    p_sma200 = _resolve_sma_field(current_price, sma_200, closes, 200)
 
     data_status = _data_status(current_price, vwap, sma_50, sma_200)
     alignment = _trend_alignment(p_sma50, p_sma200)

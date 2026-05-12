@@ -157,3 +157,4 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-127 | c814460 | Hourly Alert Action Language Alignment | COMPLETE | [PRD-127](prd_history/PRD-127.md) |
 | PRD-128 | c959df5 | Hourly Readiness Ordering | COMPLETE | [PRD-128](prd_history/PRD-128.md) |
 | PRD-129 | 1623687 | CI Artifact Hygiene and Push-Guard Stability | COMPLETE | [PRD-129](prd_history/PRD-129.md) |
+| PRD-130 | — | Trend Structure Unknown-State Normalization | IN PROGRESS | [PRD-130](prd_history/PRD-130.md) |

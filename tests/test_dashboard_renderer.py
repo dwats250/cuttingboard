@@ -2330,11 +2330,14 @@ def _prd123_fresh_zero_usable_snapshot() -> dict:
         "sma_50": None,
         "sma_200": None,
         "relative_volume": None,
-        "price_vs_vwap": "UNKNOWN",
-        "price_vs_sma_50": "UNKNOWN",
-        "price_vs_sma_200": "UNKNOWN",
-        "trend_alignment": "UNKNOWN",
-        "entry_context": "UNKNOWN",
+        # PRD-130: post-normalization snapshots no longer emit "UNKNOWN";
+        # missing current_price routes all comparison fields to
+        # DATA_UNAVAILABLE via the caller in trend_structure.py.
+        "price_vs_vwap": "DATA_UNAVAILABLE",
+        "price_vs_sma_50": "DATA_UNAVAILABLE",
+        "price_vs_sma_200": "DATA_UNAVAILABLE",
+        "trend_alignment": "DATA_UNAVAILABLE",
+        "entry_context": "DATA_UNAVAILABLE",
         "data_status": "MISSING",
         "reason": "current_price unavailable",
     }
@@ -2849,4 +2852,100 @@ def test_prd120_source_lines_ascii_only(
     for line in html.splitlines():
         if "SOURCE:" in line or "TREND SYMBOLS:" in line:
             assert all(ord(ch) < 128 for ch in line), line
+
+
+# ----------------------------------------------------------------------------
+# PRD-130 — Trend Structure Unknown-State Normalization (renderer mapping)
+# ----------------------------------------------------------------------------
+
+
+def _prd130_snapshot_with_token(token: str) -> dict:
+    """Build a trend-structure snapshot where SPY's comparison fields carry
+    `token` and the remaining curated symbols carry a benign healthy
+    record. Used to isolate a single state token in rendered output."""
+    snap = _ts_healthy_snapshot()
+    spy = snap["symbols"]["SPY"]
+    spy["price_vs_vwap"] = token
+    spy["price_vs_sma_50"] = token
+    spy["price_vs_sma_200"] = token
+    spy["trend_alignment"] = token
+    spy["entry_context"] = token
+    return snap
+
+
+def _prd130_spy_row(section: str) -> str:
+    """Extract SPY's single <tr> row from a rendered trend-structure
+    section so per-cell display strings can be compared in isolation."""
+    rows = re.findall(r"<tr>(.*?)</tr>", section, re.S)
+    for row in rows:
+        if ">SPY<" in row:
+            return row
+    raise AssertionError("SPY row not found in trend-structure section")
+
+
+def test_prd130_r4_five_states_render_distinct_display_strings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """PRD-130 R4: AT_LEVEL, INSUFFICIENT_HISTORY, DATA_UNAVAILABLE,
+    NOT_COMPUTED, and the renderer-only SESSION_UNAVAILABLE branch MUST
+    each produce a distinct, non-empty display string within the
+    trend-structure block. No variant may contain the literal "UNKNOWN"
+    inside that block. AT_LEVEL MUST render affirmatively, not as an
+    unavailable-glyph fallback.
+    """
+    _freeze_renderer_now(monkeypatch)
+
+    per_cell_tokens = (
+        "AT_LEVEL",
+        "INSUFFICIENT_HISTORY",
+        "DATA_UNAVAILABLE",
+        "NOT_COMPUTED",
+    )
+    per_cell_rows: dict[str, str] = {}
+    for token in per_cell_tokens:
+        html = _prd120_coherent_render(
+            trend_structure_snapshot=_prd130_snapshot_with_token(token),
+        )
+        section = _ts_section(html)
+        assert "UNKNOWN" not in section, (
+            f"trend-structure block contains literal 'UNKNOWN' for token {token}"
+        )
+        per_cell_rows[token] = _prd130_spy_row(section)
+
+    # Affirmative AT_LEVEL rendering — must not collapse to an unknown glyph.
+    assert "AT LEVEL" in per_cell_rows["AT_LEVEL"]
+    assert "INSUFFICIENT HISTORY" in per_cell_rows["INSUFFICIENT_HISTORY"]
+    assert "DATA UNAVAILABLE" in per_cell_rows["DATA_UNAVAILABLE"]
+    assert "NOT COMPUTED" in per_cell_rows["NOT_COMPUTED"]
+
+    # Pairwise distinctness across the four per-cell tokens.
+    rows = list(per_cell_rows.values())
+    for i in range(len(rows)):
+        for j in range(i + 1, len(rows)):
+            assert rows[i] != rows[j], (
+                "two PRD-130 state tokens rendered identical SPY rows: "
+                f"{per_cell_tokens[i]} vs {per_cell_tokens[j]}"
+            )
+
+    # Renderer-only SESSION_UNAVAILABLE branch: inactive session yields
+    # the INACTIVE_SESSION_LABEL ("SESSION INACTIVE") instead of the
+    # per-symbol table. That display string must be distinct from the
+    # four per-cell displays above.
+    inactive_payload = _inactive_payload()
+    run = _run_with_timestamp("2026-04-28T12:00:00Z")
+    mm = _market_map()
+    _set_generation_ids(inactive_payload, run, mm, "live-20260428T120000Z")
+    inactive_html = render_dashboard_html(
+        inactive_payload, run, market_map=mm,
+        trend_structure_snapshot=_ts_healthy_snapshot(),
+    )
+    inactive_section = _trend_structure_section(inactive_html)
+    assert INACTIVE_SESSION_LABEL in inactive_section
+    assert "UNKNOWN" not in inactive_section
+    for display in ("AT LEVEL", "INSUFFICIENT HISTORY", "DATA UNAVAILABLE", "NOT COMPUTED"):
+        # The inactive-session branch suppresses the per-symbol table, so
+        # the per-cell display strings cannot appear there.
+        assert display not in inactive_section, (
+            f"inactive-session render leaked per-cell display '{display}'"
+        )
 

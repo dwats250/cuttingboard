@@ -90,19 +90,24 @@ def test_emits_one_record_per_symbol():
 
 
 def test_missing_quote_yields_missing_record():
+    # PRD-130: current_price is None → every comparison field routes to
+    # DATA_UNAVAILABLE via the caller (not UNKNOWN).
     out = build_trend_structure_snapshot({}, {}, ["SPY"])
     rec = out["symbols"]["SPY"]
     assert rec["data_status"] == "MISSING"
     assert rec["current_price"] is None
-    assert rec["price_vs_vwap"] == "UNKNOWN"
-    assert rec["price_vs_sma_50"] == "UNKNOWN"
-    assert rec["price_vs_sma_200"] == "UNKNOWN"
-    assert rec["trend_alignment"] == "UNKNOWN"
-    assert rec["entry_context"] == "UNKNOWN"
+    assert rec["price_vs_vwap"] == "DATA_UNAVAILABLE"
+    assert rec["price_vs_sma_50"] == "DATA_UNAVAILABLE"
+    assert rec["price_vs_sma_200"] == "DATA_UNAVAILABLE"
+    assert rec["trend_alignment"] == "DATA_UNAVAILABLE"
+    assert rec["entry_context"] == "DATA_UNAVAILABLE"
     assert rec["reason"] == "current_price unavailable"
 
 
 def test_missing_history_does_not_raise():
+    # PRD-130: empty history dict → df is None → DATA_UNAVAILABLE for all
+    # comparison fields (close series and VWAP both routed via the
+    # df-missing branch of their classifiers).
     quotes = {"SPY": _quote("SPY", 500.0)}
     out = build_trend_structure_snapshot(quotes, {}, ["SPY"])
     rec = out["symbols"]["SPY"]
@@ -111,11 +116,11 @@ def test_missing_history_does_not_raise():
     assert rec["sma_50"] is None
     assert rec["sma_200"] is None
     assert rec["relative_volume"] is None
-    assert rec["price_vs_vwap"] == "UNKNOWN"
-    assert rec["price_vs_sma_50"] == "UNKNOWN"
-    assert rec["price_vs_sma_200"] == "UNKNOWN"
-    assert rec["trend_alignment"] == "UNKNOWN"
-    assert rec["entry_context"] == "UNKNOWN"
+    assert rec["price_vs_vwap"] == "DATA_UNAVAILABLE"
+    assert rec["price_vs_sma_50"] == "DATA_UNAVAILABLE"
+    assert rec["price_vs_sma_200"] == "DATA_UNAVAILABLE"
+    assert rec["trend_alignment"] == "DATA_UNAVAILABLE"
+    assert rec["entry_context"] == "DATA_UNAVAILABLE"
     assert rec["data_status"] == "PARTIAL"
 
 
@@ -235,15 +240,124 @@ def test_short_history_yields_null_smas_no_raise():
     assert rec["data_status"] == "PARTIAL"
 
 
-def test_no_at_enum_value():
-    # exact equality must produce UNKNOWN, not "AT"
+def test_prd130_equality_emits_at_level():
+    # PRD-130 R2: exact equality (price == ref) is a successful
+    # comparison resulting in a neutral state and MUST emit AT_LEVEL,
+    # not an unavailable token. Supersedes the pre-PRD-130
+    # `test_no_at_enum_value` which pinned the old "UNKNOWN" behavior.
     closes = [100.0] * 200
     quotes = {"SPY": _quote("SPY", 100.0)}
     history = {"SPY": _daily_history(closes)}
     out = build_trend_structure_snapshot(quotes, history, ["SPY"])
     rec = out["symbols"]["SPY"]
-    assert rec["price_vs_sma_50"] == "UNKNOWN"
-    assert rec["price_vs_sma_200"] == "UNKNOWN"
+    assert rec["price_vs_sma_50"] == "AT_LEVEL"
+    assert rec["price_vs_sma_200"] == "AT_LEVEL"
+    # AT_LEVEL is exclusive — must not collapse to any unavailable token.
+    for token in ("DATA_UNAVAILABLE", "INSUFFICIENT_HISTORY", "NOT_COMPUTED"):
+        assert rec["price_vs_sma_50"] != token
+        assert rec["price_vs_sma_200"] != token
+
+
+def test_prd130_insufficient_history_emits_token():
+    # PRD-130 R2: valid close series but too short for the window
+    # (len < 50) → INSUFFICIENT_HISTORY for both SMA fields.
+    closes = [100.0] * 30
+    quotes = {"SPY": _quote("SPY", 110.0)}
+    history = {"SPY": _daily_history(closes)}
+    out = build_trend_structure_snapshot(quotes, history, ["SPY"])
+    rec = out["symbols"]["SPY"]
+    assert rec["sma_50"] is None
+    assert rec["sma_200"] is None
+    assert rec["price_vs_sma_50"] == "INSUFFICIENT_HISTORY"
+    assert rec["price_vs_sma_200"] == "INSUFFICIENT_HISTORY"
+    # Closes valid → NOT DATA_UNAVAILABLE.
+    assert rec["price_vs_sma_50"] != "DATA_UNAVAILABLE"
+    assert rec["price_vs_sma_200"] != "DATA_UNAVAILABLE"
+
+
+def test_prd130_data_unavailable_subcause_no_close_column():
+    # PRD-130 R2 sub-cause: df has no Close column → _close_series()
+    # returns None → DATA_UNAVAILABLE (not INSUFFICIENT_HISTORY).
+    n = 200
+    idx = pd.date_range(end="2026-05-08", periods=n, freq="D", tz="UTC")
+    df_no_close = pd.DataFrame(
+        {"Open": [100.0] * n, "High": [101.0] * n, "Low": [99.0] * n,
+         "Volume": [1_000_000.0] * n},
+        index=idx,
+    )
+    quotes = {"SPY": _quote("SPY", 110.0)}
+    out = build_trend_structure_snapshot(quotes, {"SPY": df_no_close}, ["SPY"])
+    rec = out["symbols"]["SPY"]
+    assert rec["price_vs_sma_50"] == "DATA_UNAVAILABLE"
+    assert rec["price_vs_sma_200"] == "DATA_UNAVAILABLE"
+    assert rec["price_vs_sma_50"] != "INSUFFICIENT_HISTORY"
+
+
+def test_prd130_data_unavailable_subcause_all_nan_close():
+    # PRD-130 R2 sub-cause: df present but Close column is all-NaN →
+    # _close_series() returns None → DATA_UNAVAILABLE.
+    import math
+    n = 200
+    idx = pd.date_range(end="2026-05-08", periods=n, freq="D", tz="UTC")
+    df_nan = pd.DataFrame(
+        {"Open": [100.0] * n, "High": [101.0] * n, "Low": [99.0] * n,
+         "Close": [math.nan] * n, "Volume": [1_000_000.0] * n},
+        index=idx,
+    )
+    quotes = {"SPY": _quote("SPY", 110.0)}
+    out = build_trend_structure_snapshot(quotes, {"SPY": df_nan}, ["SPY"])
+    rec = out["symbols"]["SPY"]
+    assert rec["price_vs_sma_50"] == "DATA_UNAVAILABLE"
+    assert rec["price_vs_sma_200"] == "DATA_UNAVAILABLE"
+
+
+def test_prd130_not_computed_vwap_non_intraday():
+    # PRD-130 R2: VWAP on daily (non-intraday) bars is an intentional
+    # computation boundary, not a data outage → price_vs_vwap must emit
+    # NOT_COMPUTED, distinct from DATA_UNAVAILABLE.
+    closes = [100.0] * 200
+    quotes = {"SPY": _quote("SPY", 110.0)}
+    history = {"SPY": _daily_history(closes)}
+    out = build_trend_structure_snapshot(quotes, history, ["SPY"])
+    rec = out["symbols"]["SPY"]
+    assert rec["vwap"] is None
+    assert rec["price_vs_vwap"] == "NOT_COMPUTED"
+    assert rec["price_vs_vwap"] != "DATA_UNAVAILABLE"
+    # SMA fields with valid 200-bar history must compute, not propagate.
+    assert rec["price_vs_sma_50"] in {"ABOVE", "BELOW", "AT_LEVEL"}
+    assert rec["price_vs_sma_200"] in {"ABOVE", "BELOW", "AT_LEVEL"}
+
+
+def test_prd130_no_unknown_literal_emitted():
+    # PRD-130 R1 FAIL: trend_structure.py must never emit "UNKNOWN" in
+    # any structured state field for any constructed input. Exercise
+    # several fixture variants and verify the literal never appears.
+    variants = [
+        ({}, {}, ["SPY"]),  # missing quote
+        ({"SPY": _quote("SPY", 500.0)}, {}, ["SPY"]),  # missing history
+        (
+            {"SPY": _quote("SPY", 100.0)},
+            {"SPY": _daily_history([100.0] * 200)},
+            ["SPY"],
+        ),  # equality, daily-only
+        (
+            {"SPY": _quote("SPY", 110.0)},
+            {"SPY": _daily_history([100.0] * 30)},
+            ["SPY"],
+        ),  # short history
+    ]
+    state_fields = (
+        "price_vs_vwap", "price_vs_sma_50", "price_vs_sma_200",
+        "trend_alignment", "entry_context",
+    )
+    for quotes, history, symbols in variants:
+        out = build_trend_structure_snapshot(quotes, history, symbols)
+        for sym in symbols:
+            rec = out["symbols"][sym]
+            for field in state_fields:
+                assert rec[field] != "UNKNOWN", (
+                    f"{sym}.{field} emitted legacy 'UNKNOWN' for variant {quotes}"
+                )
 
 
 def test_relative_volume_computed():
