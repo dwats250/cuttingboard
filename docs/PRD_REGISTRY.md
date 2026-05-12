@@ -155,4 +155,4 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-125 | e727ae2 | OHLCV Cache Freshness Contract | COMPLETE | [PRD-125](prd_history/PRD-125.md) |
 | PRD-126 | a4ce57c | Fixture Mode No-Live-OHLCV Boundary | COMPLETE | [PRD-126](prd_history/PRD-126.md) |
 | PRD-127 | c814460 | Hourly Alert Action Language Alignment | COMPLETE | [PRD-127](prd_history/PRD-127.md) |
-| PRD-128 | — | Hourly Readiness Ordering | IN PROGRESS | [PRD-128](prd_history/PRD-128.md) |
+| PRD-128 | c959df5 | Hourly Readiness Ordering | COMPLETE | [PRD-128](prd_history/PRD-128.md) |

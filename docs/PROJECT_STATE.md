@@ -13,9 +13,9 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 ## Current State
 
 **Last updated:** 2026-05-11
-**Last completed PRD:** PRD-127 - Hourly Alert Action Language Alignment (commit c814460)
-**Last work completed:** 2026-05-11 — PRD-127: gated the `Action: TRADE` branch in `cuttingboard/notifications/__init__.py::_action_label` on a new `canonical_outcome` keyword parameter threaded from `format_hourly_notification`. Qualified setups under the default `canonical_outcome=None` now render `Action: MONITOR SETUP`, aligning hourly Telegram body language with the canonical `OUTCOME_NO_TRADE` value that `_execute_notify_run` hardcodes at `runtime.py:560`, `:600`, and `_build_hourly_contract:1752`. The watchlist-only `Action: MONITOR` branch is preserved. Updated two existing `tests/test_hourly_alert.py` assertions and added six PRD-127 tests (regression, R3 reachability via `canonical_outcome=OUTCOME_TRADE`, no directional title-prefix leak, watchlist-only MONITOR preservation, R8 grep gate, signature kwarg declaration). No edits to `runtime.py`, dashboard, payload/contract, market_map, readiness, workflows, OHLCV/cache/fixture, logs, reports, or UI files. Validation for implementation commit c814460: `python3 -m pytest tests/test_hourly_alert.py -q` -> 48 passed; `python3 -m pytest -q` -> 2267 passed; `git diff --check` clean.
-**Active PRD:** PRD-128 — Hourly Readiness Ordering
+**Last completed PRD:** PRD-128 - Hourly Readiness Ordering (commit c959df5)
+**Last work completed:** 2026-05-11 — PRD-128: re-ordered `.github/workflows/hourly_alert.yml` so `python3 scripts/check_readiness.py` runs AFTER the dashboard renderer writes `ui/dashboard.html` and AFTER `cp ui/dashboard.html ui/index.html`, and BEFORE the artifact commit and push. Split the previous "Publish hourly artifacts" step into four sequential steps (Render and stage / Check readiness / Commit / Push). Readiness now validates the publish-bound HTML rather than the previously committed stale artifacts; no `continue-on-error: true` gate. `scripts/check_readiness.py` left untouched — its existing `REQUIRED_HTML_MARKERS` and `FORBIDDEN_HTML_PATTERNS` already cover the publish-bound HTML. Added `tests/test_dashboard_renderer.py::test_prd128_hourly_readiness_runs_after_render_and_copy_before_commit_and_push` asserting the full chain (render < copy < readiness < commit < push) plus the continue-on-error ban. The existing `test_ci_workflows_publish_dashboard_with_same_render_copy_contract` is unmodified. No edits to runtime, notifications, dashboard renderer, payload/contract, market_map, OHLCV/cache/fixture code, logs, reports, or UI artifact files. Validation for implementation commit c959df5: `python3 -m pytest tests/test_dashboard_renderer.py -q` -> 178 passed; `python3 -m pytest -q` -> 2268 passed; `git diff --check` clean.
+**Active PRD:** none
 **Deferred PRD:** none
 
 **System direction:** deterministic, macro-aware, visibility-first, sidecar-oriented ecosystem.
@@ -26,7 +26,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 ## Test Baseline
 
-- **2267 passing** (as of 2026-05-11; PRD-127 added hourly action-language alignment coverage in `tests/test_hourly_alert.py`)
+- **2268 passing** (as of 2026-05-11; PRD-128 added hourly readiness ordering guard in `tests/test_dashboard_renderer.py`)
 - 0 pre-existing failures
 - 0 skipped
 
@@ -36,6 +36,7 @@ Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_fl
 
 | PRD | Title | Status | Completed |
 |-----|-------|--------|-----------|
+| PRD-128 | Hourly Readiness Ordering | COMPLETE | 2026-05-11 |
 | PRD-127 | Hourly Alert Action Language Alignment | COMPLETE | 2026-05-11 |
 | PRD-126 | Fixture Mode No-Live-OHLCV Boundary | COMPLETE | 2026-05-11 |
 | PRD-125 | OHLCV Cache Freshness Contract | COMPLETE | 2026-05-11 |
