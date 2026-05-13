@@ -111,6 +111,119 @@ LOW_COST actions execute without prompting the user for approval. All other acti
 
 ---
 
+## Safe Command Auto-Approval Policy
+
+During PRD implementation, review, closeout, and CI investigation, the agent may run the following command classes without repeatedly asking for approval, provided they do not modify files:
+
+### 1. Git read-only inspection
+
+- `git status -sb`
+- `git status --short`
+- `git log --oneline -N`
+- `git show --stat <commit>`
+- `git show --name-only --oneline <commit>`
+- `git diff --stat`
+- `git diff --name-only`
+- `git diff -- <scoped files>`
+- `git diff --cached --name-only`
+- `git branch --show-current`
+
+### 2. GitHub CLI read-only inspection
+
+- `gh run list`
+- `gh run view`
+- `gh run view --json ...`
+- `gh run view --log-failed`
+- `gh workflow view`
+- `gh workflow list`
+- `gh api` GET / read-only calls used only for inspection
+
+### 3. File / text read-only inspection
+
+- `grep` / `rg` searches
+- `sed -n` reads
+- `cat` reads
+- `head` / `tail` reads
+- `find` reads
+- `ls` / `tree` reads
+- `wc` / `stat` reads
+
+### 4. Validation commands
+
+- `python3 -m pytest <specific test file> -q`
+- `python3 -m pytest tests/ -q`
+- `python3 scripts/check_readiness.py`
+- Project validation scripts that are read-only and do not mutate artifacts
+- PRD functional validation snippets copied exactly from the PRD when they are read-only
+
+### 5. Workflow / status investigation
+
+- `gh run list --workflow <workflow> --limit N`
+- `gh run view <run_id> --json jobs,url,status,conclusion`
+- `gh run view <run_id> --log-failed`
+
+### Batching rule
+
+The agent should batch safe read-only checks into one shell block where practical instead of asking one command at a time.
+
+Example:
+
+```bash
+git status -sb && \
+git status --short && \
+git log --oneline -8 && \
+gh run list --workflow hourly_alert.yml --limit 5
+```
+
+### Still require explicit approval before
+
+- `git push`
+- `git pull`
+- `git rebase`
+- `git merge`
+- `git reset`
+- `git restore`
+- `git checkout`
+- `git stash`
+- `git commit`
+- `rm` / delete operations
+- `chmod` or permission changes
+- package installs
+- networked commands that mutate state
+- `gh workflow run`
+- `gh run rerun`
+- `gh api` POST / PATCH / DELETE
+- modifying generated UI / log artifacts
+- modifying files outside the PRD `FILES` scope
+- rewriting commit history
+- applying patches or editing files
+
+### Read-only vs mutating gh commands
+
+Read-only `gh` commands are safe inspection. Mutating `gh` commands are not. The agent must distinguish:
+
+- **Allowed without repeated prompts:** `gh run list`, `gh run view`, `gh workflow view`, `gh workflow list`
+- **Ask first:** `gh workflow run`, `gh run rerun`, `gh api` POST / PATCH / DELETE
+
+### Stop conditions
+
+The agent must stop and ask before continuing if:
+
+- working tree is dirty before implementation
+- branch is behind / ahead unexpectedly
+- remote diverged
+- unexpected files changed
+- generated artifacts changed unexpectedly
+- validation fails
+- a command would mutate repo, remote, workflow state, files, or history
+- the requested change requires files outside PRD `FILES`
+
+### Relationship to the broader Auto-Approval Policy
+
+This section enumerates concrete commands for the existing LOW_COST tier. It does NOT broaden the LOW_COST tier and does NOT override the Never-Auto-Approve list, the PRD `FILES` scope lock, or the F9–F12 failure conditions above. When a command in this section would touch a protected path or a file outside `FILES`, the Never-Auto-Approve and scope-lock rules win.
+
+---
+
 ## Spot-Read First Policy
 
 Before reading any file, identify the exact function or symbol to verify.
