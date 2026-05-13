@@ -660,6 +660,13 @@ _TAPE_DRIVER_DEFS = [
     ("BTC", "bitcoin"),
     ("OIL", "oil"),
 ]
+# PRD-136: observational spot-metals driver row. Display label -> macro_drivers
+# payload key (mirroring _TAPE_DRIVER_DEFS shape). Underlying ingest symbols
+# (GC=F, SI=F) are NON_TRADABLE_SYMBOLS members; mapping owned by contract.py.
+_TAPE_SPOT_METAL_DEFS = [
+    ("XAU", "gold"),
+    ("XAG", "silver"),
+]
 _TAPE_MM_SYMBOLS = ["SPY", "QQQ", "GLD", "SLV", "XLE", "GDX"]
 
 
@@ -985,6 +992,10 @@ def _format_tape_value(symbol: str, value: object) -> str:
         return f"{numeric:.0f}"
     if symbol == "OIL":
         return f"{numeric:.1f}"
+    if symbol == "XAU":
+        return f"{numeric:.1f}"
+    if symbol == "XAG":
+        return f"{numeric:.2f}"
     return f"{numeric:.2f}"
 
 
@@ -998,6 +1009,15 @@ def _build_tape_value_slots(
         block = macro_drivers.get(key) if macro_drivers else None
         value = block.get("level") if isinstance(block, dict) else None
         slots.append((label, _format_tape_value(label, value)))
+
+    # PRD-136: spot-metals slots populated from macro_drivers gold/silver keys.
+    for label, key in _TAPE_SPOT_METAL_DEFS:
+        block = macro_drivers.get(key) if macro_drivers else None
+        value = block.get("level") if isinstance(block, dict) else None
+        if _is_finite_number(value):
+            slots.append((label, _format_tape_value(label, value)))
+        else:
+            slots.append((label, "N/A"))
 
     symbols: dict = (market_map or {}).get("symbols") or {}
     for sym in _TAPE_MM_SYMBOLS:
@@ -1742,6 +1762,20 @@ def render_dashboard_html(
 
     # Macro bias first
     w(f'  <div class="{_esc(macro_bias_css)}">{_esc(macro_bias)}</div>')
+
+    # PRD-136: spot-metals row (XAU, XAG) — observational, sourced from
+    # macro_drivers gold/silver payload keys (underlying GC=F/SI=F). Renders
+    # between MACRO BIAS and the macro-drivers row. No arrows (mirrors
+    # tradables-cell pattern). Missing/invalid quotes degrade to "N/A".
+    spot_metals_html = [
+        f'<span class="macro-tape-slot tape-slot na">'
+        f'<span class="macro-tape-label">{_esc(label)}</span>'
+        f'<span class="macro-tape-value" data-symbol="{_esc(label)}">'
+        f'{_esc(tape_value_map.get(label, "N/A"))}</span>'
+        f'</span>'
+        for label, _key in _TAPE_SPOT_METAL_DEFS
+    ]
+    w('  <div class="macro-spot-metals-row">' + "".join(spot_metals_html) + "</div>")
 
     # Macro drivers row (VIX, DXY, 10Y, BTC, OIL) with directional arrows.
     # PRD-122: slice driven by len(_TAPE_DRIVER_DEFS) so additive drivers

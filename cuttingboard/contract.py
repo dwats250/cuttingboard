@@ -47,13 +47,16 @@ _MACRO_DRIVER_SYMBOLS = {
     "rates": "^TNX",
     "bitcoin": "BTC-USD",
     "oil": "CL=F",
+    "gold": "GC=F",
+    "silver": "SI=F",
 }
 
-# PRD-122: visibility-only drivers that may be absent without halting the
-# pipeline or failing contract validation. Quotes missing or non-finite are
-# silently skipped in _build_macro_drivers; assert_valid_contract permits
-# (but does not require) their presence in the macro_drivers payload.
-_OPTIONAL_MACRO_DRIVERS: frozenset[str] = frozenset({"oil"})
+# PRD-122 / PRD-136: visibility-only drivers that may be absent without
+# halting the pipeline or failing contract validation. Quotes missing or
+# non-finite are silently skipped in _build_macro_drivers;
+# assert_valid_contract permits (but does not require) their presence in
+# the macro_drivers payload.
+_OPTIONAL_MACRO_DRIVERS: frozenset[str] = frozenset({"oil", "gold", "silver"})
 
 
 def build_pipeline_output_contract(

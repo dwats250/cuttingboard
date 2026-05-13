@@ -66,14 +66,23 @@ def test_macro_tape_value_row_present() -> None:
 
 
 def test_macro_tape_value_row_slot_order() -> None:
+    # PRD-136: the new macro-spot-metals-row renders ABOVE the
+    # macro-drivers-row (between MACRO BIAS and drivers), so in the
+    # rendered HTML the XAU/XAG slots appear FIRST, then the driver row
+    # (VIX..OIL), then the tradables tail (SPY..GDX).
     html = render_dashboard_html(_payload(), _run())
     slots = _macro_tape_value_slots(html)
-    assert [symbol for symbol, _ in slots] == ["VIX", "DXY", "10Y", "BTC", "OIL", "SPY", "QQQ", "GLD", "SLV", "XLE", "GDX"]
+    assert [symbol for symbol, _ in slots] == [
+        "XAU", "XAG",
+        "VIX", "DXY", "10Y", "BTC", "OIL",
+        "SPY", "QQQ", "GLD", "SLV", "XLE", "GDX",
+    ]
 
 
-def test_macro_tape_value_row_has_eleven_fixed_slots() -> None:
+def test_macro_tape_value_row_has_thirteen_fixed_slots() -> None:
+    # PRD-136: slot count grew from 11 → 13 (added XAU, XAG).
     html = render_dashboard_html(_payload(), _run())
-    assert len(_macro_tape_value_slots(html)) == 11
+    assert len(_macro_tape_value_slots(html)) == 13
 
 
 def test_macro_tape_value_row_vix_format() -> None:

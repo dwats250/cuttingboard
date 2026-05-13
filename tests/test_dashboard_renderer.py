@@ -3539,3 +3539,190 @@ def test_prd132_r6f_missing_record_cell_count(
         f"MISSING row has {cell_count} cells; expected 11 "
         "(PRD-131 baseline 10 + PRD-132 +1 dash for Intraday Context)"
     )
+
+
+# =========================================================================
+# PRD-136 R9 — Spot-metals row tests
+# =========================================================================
+
+
+def _drivers_with_metals(
+    *, gold: float | None = 2050.5, silver: float | None = 24.75
+) -> dict:
+    """PRD-136: macro_drivers fixture extended with gold/silver entries.
+
+    Mirrors the PRD-122 oil pattern. Set gold=None or silver=None to omit
+    that key entirely from the macro_drivers dict (graceful-degradation
+    test path).
+    """
+    drivers = _macro_drivers()
+    if gold is not None:
+        drivers["gold"] = {"symbol": "GC=F", "level": gold, "change_pct": 0.4}
+    if silver is not None:
+        drivers["silver"] = {"symbol": "SI=F", "level": silver, "change_pct": -0.2}
+    return drivers
+
+
+def test_prd136_r9a_xau_xag_present_in_rendered_html() -> None:
+    """R9(a): data-symbol="XAU" and data-symbol="XAG" present in HTML."""
+    html = render_dashboard_html(
+        _payload(macro_drivers=_drivers_with_metals()),
+        _run(),
+        market_map=_market_map(),
+    )
+    tape = _macro_tape_block(html)
+    assert 'data-symbol="XAU"' in tape, "XAU missing from macro-tape block"
+    assert 'data-symbol="XAG"' in tape, "XAG missing from macro-tape block"
+    assert "macro-spot-metals-row" in tape, "macro-spot-metals-row wrapper missing"
+
+
+def test_prd136_r9b_spot_metals_row_precedes_drivers_and_tradables() -> None:
+    """R9(b): XAU byte index precedes macro-drivers-row and GLD."""
+    html = render_dashboard_html(
+        _payload(macro_drivers=_drivers_with_metals()),
+        _run(),
+        market_map=_market_map(),
+    )
+    tape = _macro_tape_block(html)
+    xau_idx = tape.index('data-symbol="XAU"')
+    drivers_idx = tape.index('class="macro-drivers-row"')
+    gld_idx = tape.index('data-symbol="GLD"')
+    assert xau_idx < drivers_idx, (
+        f"XAU must precede macro-drivers-row; xau_idx={xau_idx}, drivers_idx={drivers_idx}"
+    )
+    assert xau_idx < gld_idx, (
+        f"XAU must precede GLD; xau_idx={xau_idx}, gld_idx={gld_idx}"
+    )
+
+
+def test_prd136_r9b_spot_metals_row_follows_macro_bias() -> None:
+    """R9(b) supplement: spot-metals row sits between MACRO BIAS and drivers row."""
+    html = render_dashboard_html(
+        _payload(macro_drivers=_drivers_with_metals()),
+        _run(),
+        market_map=_market_map(),
+    )
+    tape = _macro_tape_block(html)
+    metals_idx = tape.index('class="macro-spot-metals-row"')
+    drivers_idx = tape.index('class="macro-drivers-row"')
+    assert metals_idx < drivers_idx, (
+        f"spot-metals row must precede macro-drivers-row; "
+        f"metals_idx={metals_idx}, drivers_idx={drivers_idx}"
+    )
+
+
+def test_prd136_r9c_tape_mm_symbols_unchanged() -> None:
+    """R9(c): _TAPE_MM_SYMBOLS literal matches HEAD."""
+    from cuttingboard.delivery.dashboard_renderer import _TAPE_MM_SYMBOLS
+    assert _TAPE_MM_SYMBOLS == ["SPY", "QQQ", "GLD", "SLV", "XLE", "GDX"], (
+        f"_TAPE_MM_SYMBOLS membership/order changed: {_TAPE_MM_SYMBOLS}"
+    )
+
+
+def test_prd136_r9c_tape_driver_defs_unchanged() -> None:
+    """R9(c) supplement: _TAPE_DRIVER_DEFS membership unchanged for OIL precedent."""
+    from cuttingboard.delivery.dashboard_renderer import _TAPE_DRIVER_DEFS
+    assert _TAPE_DRIVER_DEFS == [
+        ("VIX", "volatility"),
+        ("DXY", "dollar"),
+        ("10Y", "rates"),
+        ("BTC", "bitcoin"),
+        ("OIL", "oil"),
+    ], f"_TAPE_DRIVER_DEFS changed: {_TAPE_DRIVER_DEFS}"
+
+
+def test_prd136_r9c_tape_spot_metal_defs_pinned() -> None:
+    """R9(c) supplement: _TAPE_SPOT_METAL_DEFS pins display→payload-key mapping."""
+    from cuttingboard.delivery.dashboard_renderer import _TAPE_SPOT_METAL_DEFS
+    assert _TAPE_SPOT_METAL_DEFS == [
+        ("XAU", "gold"),
+        ("XAG", "silver"),
+    ], f"_TAPE_SPOT_METAL_DEFS changed: {_TAPE_SPOT_METAL_DEFS}"
+
+
+def test_prd136_r9d_no_silent_na_regression_driver_side() -> None:
+    """R9(d): driver-side cells (VIX/DXY/10Y/BTC/OIL) and the new spot-metals
+    (XAU/XAG) all render non-N/A when their macro_drivers entries are
+    present. Tradables-side cells (SPY/QQQ/GLD/SLV/XLE/GDX) depend on
+    market_map.symbols and are covered by R3 and the pre-existing
+    tradables tests; this regression assertion is intentionally scoped to
+    the cells the spot-metals insertion could plausibly perturb."""
+    drivers = _drivers_with_metals()
+    drivers["oil"] = {"symbol": "CL=F", "level": 78.5, "change_pct": 1.2}
+    html = render_dashboard_html(
+        _payload(macro_drivers=drivers),
+        _run(),
+        market_map=_market_map(),
+    )
+    from tests.dash_helpers import _macro_tape_value_slots
+    slots = dict(_macro_tape_value_slots(html))
+    for label in ("VIX", "DXY", "10Y", "BTC", "OIL", "XAU", "XAG"):
+        assert label in slots, f"{label} missing from tape value slots"
+        assert slots[label] != "N/A", f"{label} unexpectedly rendered N/A"
+        assert slots[label] != "--", f"{label} unexpectedly rendered '--'"
+
+
+def test_prd136_r9f_xau_missing_renders_na() -> None:
+    """R9(f): missing gold key → XAU cell renders N/A, dashboard still renders."""
+    drivers = _drivers_with_metals(gold=None, silver=24.75)
+    assert "gold" not in drivers
+    html = render_dashboard_html(
+        _payload(macro_drivers=drivers),
+        _run(),
+        market_map=_market_map(),
+    )
+    from tests.dash_helpers import _macro_tape_value_slots
+    slots = dict(_macro_tape_value_slots(html))
+    assert slots.get("XAU") == "N/A", f"expected XAU=N/A, got slots={slots}"
+    assert slots.get("XAG") == "24.75", f"expected XAG=24.75, got slots={slots}"
+    # Rest of dashboard still rendered
+    assert 'data-symbol="XAU"' in html
+    assert "macro-drivers-row" in html
+
+
+def test_prd136_r9f_xag_missing_renders_na() -> None:
+    """R9(f): missing silver key → XAG cell renders N/A, dashboard still renders."""
+    drivers = _drivers_with_metals(gold=2050.5, silver=None)
+    assert "silver" not in drivers
+    html = render_dashboard_html(
+        _payload(macro_drivers=drivers),
+        _run(),
+        market_map=_market_map(),
+    )
+    from tests.dash_helpers import _macro_tape_value_slots
+    slots = dict(_macro_tape_value_slots(html))
+    assert slots.get("XAU") == "2050.5", f"expected XAU=2050.5, got slots={slots}"
+    assert slots.get("XAG") == "N/A", f"expected XAG=N/A, got slots={slots}"
+
+
+def test_prd136_r9f_both_missing_renders_na() -> None:
+    """R9(f): both gold and silver absent → both cells N/A, dashboard renders."""
+    drivers = _macro_drivers()  # no gold, no silver
+    html = render_dashboard_html(
+        _payload(macro_drivers=drivers),
+        _run(),
+        market_map=_market_map(),
+    )
+    from tests.dash_helpers import _macro_tape_value_slots
+    slots = dict(_macro_tape_value_slots(html))
+    assert slots.get("XAU") == "N/A", f"expected XAU=N/A, got slots={slots}"
+    assert slots.get("XAG") == "N/A", f"expected XAG=N/A, got slots={slots}"
+
+
+def test_prd136_r3_tradables_grid_preserved() -> None:
+    """R3: GLD/SLV/XLE/GDX tradables grid still renders identically."""
+    html = render_dashboard_html(
+        _payload(macro_drivers=_drivers_with_metals()),
+        _run(),
+        market_map=_market_map(),
+    )
+    assert 'class="macro-tradables-grid"' in html
+    for sym in ("SPY", "QQQ", "GLD", "SLV", "XLE", "GDX"):
+        assert f'data-symbol="{sym}"' in html, f"{sym} missing from tradables grid"
+
+
+def test_prd136_r4a_spot_metals_in_non_tradable_symbols() -> None:
+    """R4(a): GC=F and SI=F are NON_TRADABLE_SYMBOLS members (fences qualification)."""
+    from cuttingboard import config
+    assert "GC=F" in config.NON_TRADABLE_SYMBOLS
+    assert "SI=F" in config.NON_TRADABLE_SYMBOLS
