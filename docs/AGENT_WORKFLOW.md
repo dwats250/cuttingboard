@@ -122,10 +122,18 @@ During PRD implementation, review, closeout, and CI investigation, the agent may
 - `git log --oneline -N`
 - `git show --stat <commit>`
 - `git show --name-only --oneline <commit>`
+- `git show <ref>` / `git show <ref>:<path>`
 - `git diff --stat`
 - `git diff --name-only`
 - `git diff -- <scoped files>`
 - `git diff --cached --name-only`
+- `git diff <ref>` / `git diff <refA>..<refB>` (read-only ref comparison)
+- `git fetch` (no `--prune` of local branches; remote-tracking refs only)
+- `git blame <path>`
+- `git ls-files` / `git ls-files <pattern>`
+- `git stash list`
+- `git stash show` (read-only; `git stash show -p` allowed; `pop`/`apply` not auto-approved)
+- `git rev-parse <ref>` / `git rev-parse --show-toplevel`
 - `git branch --show-current`
 
 ### 2. GitHub CLI read-only inspection
@@ -133,9 +141,16 @@ During PRD implementation, review, closeout, and CI investigation, the agent may
 - `gh run list`
 - `gh run view`
 - `gh run view --json ...`
-- `gh run view --log-failed`
+- `gh run view --log` / `gh run view --log-failed`
+- `gh run watch <run_id>` (read-only stream; ends when run completes)
 - `gh workflow view`
 - `gh workflow list`
+- `gh pr list`
+- `gh pr view <num>` / `gh pr view --json ...`
+- `gh pr diff <num>`
+- `gh pr checks <num>`
+- `gh release list`
+- `gh release view <tag>`
 - `gh api` GET / read-only calls used only for inspection
 
 ### 3. File / text read-only inspection
@@ -147,12 +162,22 @@ During PRD implementation, review, closeout, and CI investigation, the agent may
 - `find` reads
 - `ls` / `tree` reads
 - `wc` / `stat` reads
+- `diff <a> <b>` / `diff -u <a> <b>` (file comparison, no `-i` interactive)
+- `comm` (set comparisons over sorted files)
+- `sort -u` / `sort | uniq` (read-only stream transforms)
+- `jq` over local files or piped input (no `--in-place` / `-i`)
+- `python3 -m json.tool <path>` (JSON pretty-print / validate)
+- `python3 -c "<expr>"` one-liners that ONLY read or print — no file writes, no network mutations, no subprocess side effects
 
 ### 4. Validation commands
 
 - `python3 -m pytest <specific test file> -q`
 - `python3 -m pytest tests/ -q`
+- `python3 -m pytest --collect-only` (test discovery, no execution)
 - `python3 scripts/check_readiness.py`
+- `ruff check` / `ruff check <path>`
+- `ruff format --check` (verify-only; `ruff format` without `--check` mutates and is NOT auto-approved)
+- `mypy` / `mypy <path>`
 - Project validation scripts that are read-only and do not mutate artifacts
 - PRD functional validation snippets copied exactly from the PRD when they are read-only
 
@@ -161,6 +186,7 @@ During PRD implementation, review, closeout, and CI investigation, the agent may
 - `gh run list --workflow <workflow> --limit N`
 - `gh run view <run_id> --json jobs,url,status,conclusion`
 - `gh run view <run_id> --log-failed`
+- `gh run watch <run_id>` — preferred over polling loops; see Background Workflow Watching
 
 ### Batching rule
 
@@ -224,6 +250,165 @@ This section enumerates concrete commands for the existing LOW_COST tier. It doe
 
 ---
 
+## Sub-Agent Dispatch Standard
+
+Sub-agent dispatch is not optional decoration — it is the mechanism that
+keeps the main thread reserved for PRD reasoning, edits, impact analysis,
+and mutation planning. The default lookup agent is
+`Agent(subagent_type: "Explore", model: "haiku")` with a result budget of
+≤ 150 words: file paths, line numbers, short relevance notes only.
+
+### MUST dispatch to Explore+haiku
+
+The following situations require a sub-agent. Doing the work on the main
+thread is a workflow violation.
+
+- **PRD FILES existence verification** before promoting a PRD to
+  `IN PROGRESS`. Every path in the `FILES` section must be confirmed to
+  exist (or be explicitly marked as a new file) via Explore lookup.
+- **Visible-string / test-reference hunts** spanning ≥ 3 files or > 5
+  literal strings (per CLAUDE.md Visible-String Pre-Edit Audit). The
+  audit's grep step is a dispatch trigger, not a main-thread task.
+- **Regression hunts** involving lineage / coherence / renderer
+  diagnostics — anything that requires walking multiple renderers,
+  fixtures, or golden files to identify the divergence point.
+- **Broad grep / sweep operations** across `renderer/`, `tests/`, or
+  `docs/` trees when the target file is not already known.
+- **Consumer audits** when changing a symbol's signature, return type,
+  or semantics and the full caller set is not already in hand from
+  `gitnexus_impact`.
+
+### MUST stay on main thread
+
+- Reading a known file path with `Read` (`offset+limit` preferred).
+- Single targeted grep against one known file.
+- `gitnexus_query`, `gitnexus_context`, `gitnexus_impact`.
+- Reading PRDs, `PROJECT_STATE.md`, `PRD_REGISTRY.md`, `CALL_SITE_MAP.md`,
+  `SCHEMA_MAP.md`, or other known docs files.
+- Any edit, write, patch, commit, test run, or mutation.
+
+### Wasteful-cycle thresholds
+
+The main thread must leave for a sub-agent when ANY of the following
+occurs in a single task:
+
+| Threshold | Trigger |
+|---|---|
+| T1 | A second broad `grep`/`rg` sweep is about to run because the first did not narrow the target. |
+| T2 | Three or more `Read` calls have occurred on files not yet confirmed to be in PRD scope. |
+| T3 | The same symbol has been searched in two or more directory roots without a hit. |
+| T4 | A literal-string audit spans ≥ 3 files OR > 5 strings (hard rule, not a heuristic). |
+| T5 | The next planned action is "skim a few files to orient" rather than verify one named symbol. |
+
+If a threshold trips, stop the current main-thread exploration and dispatch
+Explore+haiku with the precise remaining question. Continuing to grep/read
+past these thresholds is the failure mode this section exists to prevent.
+
+### Lightweight Explore preference
+
+Prefer one well-scoped Explore dispatch over a sequence of main-thread
+grep + read cycles when the answer is "where is X / which files reference Y
+/ does Z exist." A single sub-agent call with a 150-word budget costs less
+total context than 4–6 main-thread tool calls and prevents drift into
+adjacent files.
+
+---
+
+## Session Bootstrap and Workflow Efficiency
+
+### Standard session bootstrap command block
+
+Run this block at the start of every PRD-implementation session. It
+batches the read-only checks required by CLAUDE.md's startup sequence
+into a single shell invocation.
+
+```bash
+git branch --show-current && \
+git status -sb && \
+git log --oneline -8 && \
+git diff --stat && \
+git diff --cached --name-only
+```
+
+Follow with the documentation reads required by CLAUDE.md:
+
+1. `docs/PROJECT_STATE.md` — identify active PRD and test baseline.
+2. The active PRD file in `docs/prd_history/`.
+3. `docs/PRD_REGISTRY.md` row for the active PRD.
+
+Bootstrap reads are LOW_COST and auto-approved. Do not split this block
+into one-command-at-a-time prompts.
+
+### IGNORED_DIRTY_PATHS
+
+Some paths are intentionally dirty between sessions (review scratch files,
+in-progress notes, locally regenerated artifacts that are not committed by
+policy). The agent must not treat their dirtiness as a stop condition for
+the standard "working tree is dirty before implementation" rule, provided
+the dirty file matches an entry in this list AND is not in the active
+PRD's `FILES` scope.
+
+Current `IGNORED_DIRTY_PATHS`:
+
+- `docs/prd_history/PRD-*.review.codex.md` — Codex review scratch
+- `docs/prd_history/PRD-*.review.claude.md` — Claude review scratch
+- `docs/prd_history/PRD-*.adjudication.md` — adjudication scratch
+- `logs/**` — generated logs (per CLAUDE.md git hygiene)
+- `reports/**` — generated reports (per CLAUDE.md git hygiene)
+
+Rules:
+
+1. A path matching `IGNORED_DIRTY_PATHS` does NOT relax scope lock — it
+   only relaxes the pre-implementation dirty-tree stop condition.
+2. If an ignored-dirty path appears in `git diff --cached`, that is still
+   a stop condition. Ignoring applies to unstaged dirtiness only.
+3. Adding new entries to this list is a process change and requires
+   explicit user approval.
+
+### Background workflow watching
+
+When monitoring a GitHub Actions run, a long-running test, or any external
+state the harness cannot notify on:
+
+- **Preferred:** `gh run watch <run_id>` (streams to completion; one
+  command, no polling loop).
+- **Acceptable:** a single `gh run view <run_id> --json status,conclusion`
+  check after an expected ETA.
+- **Avoid:** repeated `gh run list` / `gh run view` calls every few
+  seconds. This is the polling antipattern and burns context for no
+  signal.
+
+If a watch command is impractical (e.g., the run id is not yet known),
+batch the discovery and the watch into one shell block rather than two
+separate approval cycles:
+
+```bash
+RUN_ID=$(gh run list --workflow hourly_alert.yml --limit 1 --json databaseId --jq '.[0].databaseId') && \
+gh run watch "$RUN_ID"
+```
+
+### Batched inspection over fragmented calls
+
+Read-only inspections must be batched into a single shell block whenever
+the commands are independent and the agent already knows it will run all
+of them. Fragmented single-command shells trigger approval friction and
+inflate the transcript without adding signal.
+
+Batch when:
+
+- Two or more read-only commands from the Safe Command Auto-Approval list
+  will run back-to-back with no decision between them.
+- A bootstrap, status check, or post-commit verification spans multiple
+  commands that do not depend on each other's output.
+
+Do not batch when:
+
+- A later command depends on parsing an earlier command's output (run
+  them sequentially so the agent can react).
+- One of the commands is mutating or outside the auto-approval list.
+
+---
+
 ## Spot-Read First Policy
 
 Before reading any file, identify the exact function or symbol to verify.
@@ -271,6 +456,98 @@ Before beginning any PRD review or implementation:
 
 Review output must contain only: Strengths, Blockers, Exact fixes, Registry
 readiness verdict. No broad summaries of unrelated modules.
+
+---
+
+## Retrieval Planning Rule
+
+Before executing shell operations on any task that meets ANY of the
+following triggers, the agent MUST state a short retrieval/verification
+plan first:
+
+- The change spans more than 3 files.
+- The work will require more than 3 distinct repository inspections
+  (grep, find, read, gitnexus call).
+- The work involves broad renderer / tests / docs sweeps.
+- Initial scoping risks repeated grep or read cycles to converge on
+  the right symbol set.
+
+The plan must enumerate:
+
+1. The exact targets to locate (symbol, field, string, file).
+2. The single retrieval method per target (grep pattern, gitnexus
+   query, CALL_SITE_MAP / SCHEMA_MAP lookup, or Explore+haiku
+   dispatch).
+3. Which targets are main-thread reads vs. delegated lookups.
+
+Goal: collapse fragmented inspections into one ordered pass. No
+exploratory greps before the plan exists. No "let me just check one
+thing" cartography loops.
+
+**FAILURE:** Agent runs three or more retrieval commands on a task
+matching the triggers above without having first stated the
+retrieval plan.
+
+---
+
+## Main Thread Responsibility
+
+The main thread is a scarce reasoning context. It is reserved for
+work that requires synthesis across evidence already in hand.
+
+Main thread SHOULD prioritize:
+
+- Synthesis of retrieved evidence into a decision.
+- Architectural reasoning and cross-module impact judgment.
+- PRD interpretation, scope enforcement, FILES boundary checks.
+- Conflict resolution between competing signals (test failures,
+  reviewer disagreements, ambiguous requirements).
+- Final validation and acceptance / rejection decisions.
+- Authoring edits, patches, and commits.
+
+Main thread SHOULD avoid:
+
+- Broad search sweeps where the target file is not already known.
+- Repetitive grep loops to triangulate a symbol.
+- Repository cartography ("what's in this folder?", "how is this
+  area organized?").
+- Low-value repeated inspections of files already read this session.
+- Retrieval work that fits the Cheap-Lookup Dispatch Policy — those
+  go to `Agent(subagent_type: "Explore", model: "haiku")`.
+
+If the next action is mechanical retrieval, the main thread should
+either delegate it or batch it inside a stated retrieval plan, not
+absorb it into freeform reasoning.
+
+---
+
+## CI / Failure Triage Discipline
+
+When a test, workflow, or pipeline fails, the agent MUST follow this
+sequence before modifying any code:
+
+1. **Inspect failing logs / stage first.** Read the actual failure
+   output. Identify the failing stage, command, and error line.
+2. **Localize the failing invariant.** Name the specific assertion,
+   exception, exit code, or contract violation that fired.
+3. **Reproduce minimally.** Run the narrowest command that
+   reproduces the failure (`pytest -k <name>`, single workflow step,
+   single payload). Do not rerun the full suite or full workflow as
+   a diagnostic step.
+4. **Verify failure scope.** Confirm whether the failure is isolated
+   to one test / one path, or whether it indicates broader breakage.
+   Establish what is NOT broken before proposing a fix.
+5. **Only then modify code.** The fix MUST target the localized
+   invariant from step 2. Speculative edits "to see if it helps"
+   are prohibited.
+
+Goal: prevent speculative editing, chaotic debugging, and
+shotgun-pattern fixes that mutate unrelated code while chasing a
+single failure.
+
+**FAILURE:** Agent edits code before stating the failing invariant
+from step 2, or reruns the full suite as a diagnostic before
+reproducing minimally.
 
 ---
 
