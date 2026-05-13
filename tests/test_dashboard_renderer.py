@@ -3576,8 +3576,8 @@ def test_prd136_r9a_xau_xag_present_in_rendered_html() -> None:
     assert "macro-spot-metals-row" in tape, "macro-spot-metals-row wrapper missing"
 
 
-def test_prd136_r9b_spot_metals_row_precedes_drivers_and_tradables() -> None:
-    """R9(b): XAU byte index precedes macro-drivers-row and GLD."""
+def test_prd138_macro_rows_render_in_shared_layout_order() -> None:
+    """R3: row 1 is XAU/XAG/BTC, then row 2, then tradables."""
     html = render_dashboard_html(
         _payload(macro_drivers=_drivers_with_metals()),
         _run(),
@@ -3585,14 +3585,12 @@ def test_prd136_r9b_spot_metals_row_precedes_drivers_and_tradables() -> None:
     )
     tape = _macro_tape_block(html)
     xau_idx = tape.index('data-symbol="XAU"')
-    drivers_idx = tape.index('class="macro-drivers-row"')
+    xag_idx = tape.index('data-symbol="XAG"')
+    btc_idx = tape.index('data-symbol="BTC"')
+    vix_idx = tape.index('data-symbol="VIX"')
+    oil_idx = tape.index('data-symbol="OIL"')
     gld_idx = tape.index('data-symbol="GLD"')
-    assert xau_idx < drivers_idx, (
-        f"XAU must precede macro-drivers-row; xau_idx={xau_idx}, drivers_idx={drivers_idx}"
-    )
-    assert xau_idx < gld_idx, (
-        f"XAU must precede GLD; xau_idx={xau_idx}, gld_idx={gld_idx}"
-    )
+    assert xau_idx < xag_idx < btc_idx < vix_idx < oil_idx < gld_idx
 
 
 def test_prd136_r9b_spot_metals_row_follows_macro_bias() -> None:
@@ -3611,33 +3609,25 @@ def test_prd136_r9b_spot_metals_row_follows_macro_bias() -> None:
     )
 
 
-def test_prd136_r9c_tape_mm_symbols_unchanged() -> None:
-    """R9(c): _TAPE_MM_SYMBOLS literal matches HEAD."""
-    from cuttingboard.delivery.dashboard_renderer import _TAPE_MM_SYMBOLS
-    assert _TAPE_MM_SYMBOLS == ["SPY", "QQQ", "GLD", "SLV", "XLE", "GDX"], (
-        f"_TAPE_MM_SYMBOLS membership/order changed: {_TAPE_MM_SYMBOLS}"
+def test_prd138_renderer_uses_shared_macro_tape_layout_constants() -> None:
+    from cuttingboard.delivery.macro_tape_layout import MACRO_ROW_1, MACRO_ROW_2, TRADABLES_ROW
+
+    assert tuple(slot.label for slot in MACRO_ROW_1.slots) == ("XAU", "XAG", "BTC")
+    assert tuple(slot.label for slot in MACRO_ROW_2.slots) == ("VIX", "DXY", "10Y", "OIL")
+    assert tuple(slot.label for slot in TRADABLES_ROW.slots) == (
+        "SPY", "QQQ", "GLD", "GDX", "SLV", "XLE",
     )
 
 
-def test_prd136_r9c_tape_driver_defs_unchanged() -> None:
-    """R9(c) supplement: _TAPE_DRIVER_DEFS membership unchanged for OIL precedent."""
-    from cuttingboard.delivery.dashboard_renderer import _TAPE_DRIVER_DEFS
-    assert _TAPE_DRIVER_DEFS == [
-        ("VIX", "volatility"),
-        ("DXY", "dollar"),
-        ("10Y", "rates"),
-        ("BTC", "bitcoin"),
-        ("OIL", "oil"),
-    ], f"_TAPE_DRIVER_DEFS changed: {_TAPE_DRIVER_DEFS}"
-
-
-def test_prd136_r9c_tape_spot_metal_defs_pinned() -> None:
-    """R9(c) supplement: _TAPE_SPOT_METAL_DEFS pins display→payload-key mapping."""
-    from cuttingboard.delivery.dashboard_renderer import _TAPE_SPOT_METAL_DEFS
-    assert _TAPE_SPOT_METAL_DEFS == [
-        ("XAU", "gold"),
-        ("XAG", "silver"),
-    ], f"_TAPE_SPOT_METAL_DEFS changed: {_TAPE_SPOT_METAL_DEFS}"
+def test_prd138_xau_xag_route_through_directional_arrow_css() -> None:
+    html = render_dashboard_html(
+        _payload(macro_drivers=_drivers_with_metals()),
+        _run(),
+        market_map=_market_map(),
+    )
+    tape = _macro_tape_block(html)
+    assert 'class="macro-tape-slot tape-slot up"><span class="macro-tape-label">XAU ↑</span>' in tape
+    assert 'class="macro-tape-slot tape-slot down"><span class="macro-tape-label">XAG ↓</span>' in tape
 
 
 def test_prd136_r9d_no_silent_na_regression_driver_side() -> None:
@@ -3710,14 +3700,14 @@ def test_prd136_r9f_both_missing_renders_na() -> None:
 
 
 def test_prd136_r3_tradables_grid_preserved() -> None:
-    """R3: GLD/SLV/XLE/GDX tradables grid still renders identically."""
+    """R3: canonical PRD-138 tradables grid still renders."""
     html = render_dashboard_html(
         _payload(macro_drivers=_drivers_with_metals()),
         _run(),
         market_map=_market_map(),
     )
     assert 'class="macro-tradables-grid"' in html
-    for sym in ("SPY", "QQQ", "GLD", "SLV", "XLE", "GDX"):
+    for sym in ("SPY", "QQQ", "GLD", "GDX", "SLV", "XLE"):
         assert f'data-symbol="{sym}"' in html, f"{sym} missing from tradables grid"
 
 

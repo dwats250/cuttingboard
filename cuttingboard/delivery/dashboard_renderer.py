@@ -21,6 +21,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from cuttingboard import config
+from cuttingboard.delivery.macro_tape_layout import MACRO_ROW_1, MACRO_ROW_2, TRADABLES_ROW
 from cuttingboard.macro_pressure import build_macro_pressure
 from cuttingboard.trade_decision import ALLOW_TRADE
 
@@ -653,22 +654,6 @@ _DASH = "—"
 
 _ARROW_CSS: dict[str, str] = {_UP: "up", _DOWN: "down", _FLAT: "flat", _DASH: "na"}
 
-_TAPE_DRIVER_DEFS = [
-    ("VIX", "volatility"),
-    ("DXY", "dollar"),
-    ("10Y", "rates"),
-    ("BTC", "bitcoin"),
-    ("OIL", "oil"),
-]
-# PRD-136: observational spot-metals driver row. Display label -> macro_drivers
-# payload key (mirroring _TAPE_DRIVER_DEFS shape). Underlying ingest symbols
-# (GC=F, SI=F) are NON_TRADABLE_SYMBOLS members; mapping owned by contract.py.
-_TAPE_SPOT_METAL_DEFS = [
-    ("XAU", "gold"),
-    ("XAG", "silver"),
-]
-_TAPE_MM_SYMBOLS = ["SPY", "QQQ", "GLD", "SLV", "XLE", "GDX"]
-
 
 def _load_json(path: Path) -> dict:
     if not path.exists():
@@ -952,25 +937,27 @@ def _build_tape_slots(
 ) -> list[tuple[str, str]]:
     slots: list[tuple[str, str]] = []
 
-    for label, key in _TAPE_DRIVER_DEFS:
-        block = macro_drivers.get(key) if macro_drivers else None
-        if block and isinstance(block.get("change_pct"), float):
-            slots.append((label, _pct_arrow(block["change_pct"])))
-        else:
-            slots.append((label, _DASH))
+    for row in (MACRO_ROW_1, MACRO_ROW_2):
+        for slot in row.slots:
+            block = macro_drivers.get(slot.payload_key) if macro_drivers else None
+            change_pct = block.get("change_pct") if isinstance(block, dict) else None
+            if _is_finite_number(change_pct):
+                slots.append((slot.label, _pct_arrow(float(change_pct))))
+            else:
+                slots.append((slot.label, _DASH))
 
     symbols: dict = (market_map or {}).get("symbols") or {}
-    for sym in _TAPE_MM_SYMBOLS:
-        entry = symbols.get(sym)
+    for slot in TRADABLES_ROW.slots:
+        entry = symbols.get(slot.quote_symbol)
         if entry:
             tf = entry.get("trade_framing") or {}
             direction = tf.get("direction")
             if direction is not None:
-                slots.append((sym, _direction_arrow(direction)))
+                slots.append((slot.label, _direction_arrow(direction)))
             else:
-                slots.append((sym, _DASH))
+                slots.append((slot.label, _DASH))
         else:
-            slots.append((sym, _DASH))
+            slots.append((slot.label, _DASH))
 
     return slots
 
@@ -1005,28 +992,24 @@ def _build_tape_value_slots(
 ) -> list[tuple[str, str]]:
     slots: list[tuple[str, str]] = []
 
-    for label, key in _TAPE_DRIVER_DEFS:
-        block = macro_drivers.get(key) if macro_drivers else None
-        value = block.get("level") if isinstance(block, dict) else None
-        slots.append((label, _format_tape_value(label, value)))
-
-    # PRD-136: spot-metals slots populated from macro_drivers gold/silver keys.
-    for label, key in _TAPE_SPOT_METAL_DEFS:
-        block = macro_drivers.get(key) if macro_drivers else None
-        value = block.get("level") if isinstance(block, dict) else None
-        if _is_finite_number(value):
-            slots.append((label, _format_tape_value(label, value)))
-        else:
-            slots.append((label, "N/A"))
+    for row in (MACRO_ROW_1, MACRO_ROW_2):
+        for slot in row.slots:
+            block = macro_drivers.get(slot.payload_key) if macro_drivers else None
+            value = block.get("level") if isinstance(block, dict) else None
+            fallback = "N/A" if row is MACRO_ROW_1 and slot.label != "BTC" else "--"
+            if _is_finite_number(value):
+                slots.append((slot.label, _format_tape_value(slot.label, value)))
+            else:
+                slots.append((slot.label, fallback))
 
     symbols: dict = (market_map or {}).get("symbols") or {}
-    for sym in _TAPE_MM_SYMBOLS:
-        entry = symbols.get(sym)
+    for slot in TRADABLES_ROW.slots:
+        entry = symbols.get(slot.quote_symbol)
         value = entry.get("current_price") if isinstance(entry, dict) else None
         if _is_finite_number(value):
-            slots.append((sym, _format_tape_value(sym, value)))
+            slots.append((slot.label, _format_tape_value(slot.label, value)))
         else:
-            slots.append((sym, "N/A"))
+            slots.append((slot.label, "N/A"))
 
     return slots
 
@@ -1533,13 +1516,18 @@ def render_dashboard_html(
     tape_value_slots = _build_tape_value_slots(macro_drivers, market_map)
     pressure = _build_pressure_snapshot(macro_drivers, market_map)
 
-    # R1.1 — macro bias from driver arrow counts only (first 4 slots).
-    # PRD-122: deliberately :4 (volatility/dollar/rates/bitcoin), not
-    # len(_TAPE_DRIVER_DEFS). The OIL slot is visibility-only and does not
-    # contribute to macro_bias arithmetic.
-    _driver_slots = tape_slots[:4]
-    up_count   = sum(1 for _, arrow in _driver_slots if arrow == _UP)
-    down_count = sum(1 for _, arrow in _driver_slots if arrow == _DOWN)
+    # R1.1 — macro bias from legacy driver inputs only. OIL and spot metals
+    # are visibility-only and do not contribute to macro_bias arithmetic.
+    _bias_payload_keys = frozenset({"volatility", "dollar", "rates", "bitcoin"})
+    _arrow_by_label = dict(tape_slots)
+    _driver_arrows = [
+        _arrow_by_label.get(slot.label, _DASH)
+        for row in (MACRO_ROW_1, MACRO_ROW_2)
+        for slot in row.slots
+        if slot.payload_key in _bias_payload_keys
+    ]
+    up_count   = sum(1 for arrow in _driver_arrows if arrow == _UP)
+    down_count = sum(1 for arrow in _driver_arrows if arrow == _DOWN)
     if up_count > down_count:
         macro_bias = f"MACRO BIAS: LONG {_UP}"
         macro_bias_css = "macro-bias long"
@@ -1763,44 +1751,39 @@ def render_dashboard_html(
     # Macro bias first
     w(f'  <div class="{_esc(macro_bias_css)}">{_esc(macro_bias)}</div>')
 
-    # PRD-136: spot-metals row (XAU, XAG) — observational, sourced from
-    # macro_drivers gold/silver payload keys (underlying GC=F/SI=F). Renders
-    # between MACRO BIAS and the macro-drivers row. No arrows (mirrors
-    # tradables-cell pattern). Missing/invalid quotes degrade to "N/A".
-    spot_metals_html = [
-        f'<span class="macro-tape-slot tape-slot na">'
-        f'<span class="macro-tape-label">{_esc(label)}</span>'
-        f'<span class="macro-tape-value" data-symbol="{_esc(label)}">'
-        f'{_esc(tape_value_map.get(label, "N/A"))}</span>'
-        f'</span>'
-        for label, _key in _TAPE_SPOT_METAL_DEFS
-    ]
-    w('  <div class="macro-spot-metals-row">' + "".join(spot_metals_html) + "</div>")
+    _tape_arrow_map = dict(tape_slots)
 
-    # Macro drivers row (VIX, DXY, 10Y, BTC, OIL) with directional arrows.
-    # PRD-122: slice driven by len(_TAPE_DRIVER_DEFS) so additive drivers
-    # (e.g. OIL) appear in the tape row automatically.
-    driver_html = [
-        f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(arrow, "na")}">'
-        f'<span class="macro-tape-label">{_esc(label)} {_esc(arrow)}</span>'
-        f'<span class="macro-tape-value" data-symbol="{_esc(label)}">'
-        f'{_esc(tape_value_map.get(label, ""))}</span>'
+    row_1_html = [
+        f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(_tape_arrow_map.get(slot.label, _DASH), "na")}">'
+        f'<span class="macro-tape-label">{_esc(slot.label)} {_esc(_tape_arrow_map.get(slot.label, _DASH))}</span>'
+        f'<span class="macro-tape-value" data-symbol="{_esc(slot.label)}">'
+        f'{_esc(tape_value_map.get(slot.label, ""))}</span>'
         f'</span>'
-        for label, arrow in tape_slots[:len(_TAPE_DRIVER_DEFS)]
+        for slot in MACRO_ROW_1.slots
     ]
-    w('  <div class="macro-drivers-row">' + "".join(driver_html) + "</div>")
+    w('  <div class="macro-spot-metals-row">' + "".join(row_1_html) + "</div>")
+
+    row_2_html = [
+        f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(_tape_arrow_map.get(slot.label, _DASH), "na")}">'
+        f'<span class="macro-tape-label">{_esc(slot.label)} {_esc(_tape_arrow_map.get(slot.label, _DASH))}</span>'
+        f'<span class="macro-tape-value" data-symbol="{_esc(slot.label)}">'
+        f'{_esc(tape_value_map.get(slot.label, ""))}</span>'
+        f'</span>'
+        for slot in MACRO_ROW_2.slots
+    ]
+    w('  <div class="macro-drivers-row">' + "".join(row_2_html) + "</div>")
 
     # Divider
     w('  <div class="sep"></div>')
 
     # Tradables grid (no arrows, 2 per row)
     w('  <div class="macro-tradables-grid">')
-    for sym in _TAPE_MM_SYMBOLS:
-        val = tape_value_map.get(sym, "N/A")
+    for slot in TRADABLES_ROW.slots:
+        val = tape_value_map.get(slot.label, "N/A")
         w(
             f'    <span class="tradable-cell">'
-            f'<span class="macro-tape-label">{_esc(sym)}</span>'
-            f'&nbsp;<span class="macro-tape-value" data-symbol="{_esc(sym)}">{_esc(val)}</span>'
+            f'<span class="macro-tape-label">{_esc(slot.label)}</span>'
+            f'&nbsp;<span class="macro-tape-value" data-symbol="{_esc(slot.label)}">{_esc(val)}</span>'
             f'</span>'
         )
     w('  </div>')

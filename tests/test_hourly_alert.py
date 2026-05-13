@@ -419,6 +419,9 @@ class _Q:
 
 def _full_quotes():
     return {
+        "GC=F": _Q(4705.2, 0.036),
+        "SI=F": _Q(87.32, 0.138),
+        "CL=F": _Q(78.5, 0.012),
         "^VIX": _Q(18.1, -0.015),
         "DX-Y.NYB": _Q(98.5, -0.002),
         "^TNX": _Q(4.42, -0.007),
@@ -443,10 +446,13 @@ def test_prd133_macro_tape_block_renders_when_quotes_available():
     )
     assert "Macro Tape:" in body
     # ASCII-only, one ticker per line, signed pct (PRD-133-PATCH)
+    assert "XAU  4705.2  +3.6%" in body
+    assert "XAG  87.3   +13.8%" in body
+    assert "BTC  81.3K  +1.1%" in body
     assert "VIX  18.1   -1.5%" in body
     assert "DXY  98.5   -0.2%" in body
     assert "10Y  4.42   -0.7%" in body
-    assert "BTC  81.3K  +1.1%" in body
+    assert "OIL  78.5   +1.2%" in body
     assert body.isascii() or "—" in body  # only non-ASCII allowed is the title em-dash
 
 
@@ -465,9 +471,9 @@ def test_prd133_tradables_block_full_universe():
     assert lines[tradables_idx + 1] == "SPY  724.59"
     assert lines[tradables_idx + 2] == "QQQ  682.62"
     assert lines[tradables_idx + 3] == "GLD  418.94"
-    assert lines[tradables_idx + 4] == "SLV  66.28"
-    assert lines[tradables_idx + 5] == "XLE  59.71"
-    assert lines[tradables_idx + 6] == "GDX  86.22"
+    assert lines[tradables_idx + 4] == "GDX  86.22"
+    assert lines[tradables_idx + 5] == "SLV  66.28"
+    assert lines[tradables_idx + 6] == "XLE  59.71"
 
 
 def test_prd133_tradables_block_skips_missing_symbols_preserves_order():
@@ -475,9 +481,9 @@ def test_prd133_tradables_block_skips_missing_symbols_preserves_order():
         "SPY": _Q(700.00, 0.0),
         # QQQ missing
         "GLD": _Q(400.00, 0.0),
-        # SLV missing
+        # GDX missing
+        "SLV": _Q(55.00, 0.0),
         "XLE": _Q(60.00, 0.0),
-        "GDX": _Q(85.00, 0.0),
     }
     _, body = format_hourly_notification(
         asof_utc=datetime(2026, 5, 12, 19, 4, tzinfo=timezone.utc),
@@ -488,17 +494,17 @@ def test_prd133_tradables_block_skips_missing_symbols_preserves_order():
     )
     assert "Tradables:" in body
     # Available symbols rendered one per line in fixed order (PRD-133-PATCH):
-    # SPY, GLD, XLE, GDX (QQQ and SLV skipped)
+    # SPY, GLD, SLV, XLE (QQQ and GDX skipped)
     lines = body.split("\n")
     tradables_idx = lines.index("Tradables:")
     assert lines[tradables_idx + 1] == "SPY  700.00"
     assert lines[tradables_idx + 2] == "GLD  400.00"
-    assert lines[tradables_idx + 3] == "XLE  60.00"
-    assert lines[tradables_idx + 4] == "GDX  85.00"
+    assert lines[tradables_idx + 3] == "SLV  55.00"
+    assert lines[tradables_idx + 4] == "XLE  60.00"
     # Next non-tradable line is the focus block
     assert lines[tradables_idx + 5] == ""
     assert "QQQ" not in body
-    assert "SLV" not in body
+    assert "GDX" not in body
 
 
 def test_prd133_tradables_block_omitted_when_zero_symbols():
@@ -530,9 +536,12 @@ def test_prd133_macro_tape_partial_skips_missing_symbols():
     )
     assert "Macro Tape:" in body
     assert "VIX  20.0   +0.5%" in body
+    assert "XAU" not in body
+    assert "XAG" not in body
     assert "DXY" not in body
     assert "10Y" not in body
     assert "BTC" not in body
+    assert "OIL" not in body
     assert "n/a" not in body
 
 

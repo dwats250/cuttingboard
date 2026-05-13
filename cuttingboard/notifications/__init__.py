@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+from cuttingboard.delivery.macro_tape_layout import MACRO_ROW_1, MACRO_ROW_2, TRADABLES_ROW, TapeSlot
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.qualification import QualificationSummary
 from cuttingboard.regime import CHAOTIC, RegimeState, STAY_FLAT
@@ -75,43 +76,34 @@ def _regime_line(regime: Optional[RegimeState]) -> str:
     return f"Regime: {_compact_label(regime.regime)}"
 
 
-_MACRO_TAPE_SYMBOLS: tuple[tuple[str, str, str], ...] = (
-    ("^VIX", "VIX", "level1"),
-    ("DX-Y.NYB", "DXY", "level1"),
-    ("^TNX", "10Y", "level2"),
-    ("BTC-USD", "BTC", "btc"),
-)
-
-_TRADABLES_ORDER: tuple[str, ...] = ("SPY", "QQQ", "GLD", "SLV", "XLE", "GDX")
-
-
-def _fmt_level(price: float, fmt: str) -> str:
-    if fmt == "level2":
+def _fmt_level(label: str, price: float) -> str:
+    if label == "10Y":
         return f"{price:.2f}"
-    if fmt == "btc":
+    if label == "BTC":
         if price >= 1000:
             return f"{price / 1000:.1f}K"
         return f"{price:.0f}"
     return f"{price:.1f}"
 
 
-def _macro_row(label: str, symbol: str, level_fmt: str, quotes: dict) -> Optional[str]:
-    q = quotes.get(symbol) if quotes else None
+def _macro_row(slot: TapeSlot, quotes: dict) -> Optional[str]:
+    q = quotes.get(slot.quote_symbol) if quotes else None
     if q is None or q.price is None:
         return None
-    level = _fmt_level(q.price, level_fmt)
+    level = _fmt_level(slot.label, q.price)
     pct = q.pct_change_decimal
     if pct is None:
         return None
     pct_str = f"{pct * 100:+.1f}%"
-    return f"{label}  {level:<5}  {pct_str}"
+    return f"{slot.label}  {level:<5}  {pct_str}"
 
 
 def _macro_tape_block(normalized_quotes: dict) -> list[str]:
     rows = [
         row
-        for symbol, label, level_fmt in _MACRO_TAPE_SYMBOLS
-        if (row := _macro_row(label, symbol, level_fmt, normalized_quotes)) is not None
+        for macro_row in (MACRO_ROW_1, MACRO_ROW_2)
+        for slot in macro_row.slots
+        if (row := _macro_row(slot, normalized_quotes)) is not None
     ]
     if not rows:
         return []
@@ -120,11 +112,11 @@ def _macro_tape_block(normalized_quotes: dict) -> list[str]:
 
 def _tradables_block(normalized_quotes: dict) -> list[str]:
     rows: list[str] = []
-    for symbol in _TRADABLES_ORDER:
-        q = normalized_quotes.get(symbol) if normalized_quotes else None
+    for slot in TRADABLES_ROW.slots:
+        q = normalized_quotes.get(slot.quote_symbol) if normalized_quotes else None
         if q is None or q.price is None:
             continue
-        rows.append(f"{symbol}  {q.price:.2f}")
+        rows.append(f"{slot.label}  {q.price:.2f}")
     if not rows:
         return []
     return ["Tradables:", *rows]

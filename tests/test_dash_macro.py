@@ -39,7 +39,7 @@ def test_macro_tape_empty_macro_drivers() -> None:
     # macro_drivers={} → slots render with em dash / N/A, no crash
     html = render_dashboard_html(_payload(), _run())
     tape = _macro_tape_block(html)
-    for label in ("VIX", "DXY", "10Y", "BTC", "SPY", "QQQ", "GLD", "SLV", "XLE", "GDX"):
+    for label in ("XAU", "XAG", "BTC", "VIX", "DXY", "10Y", "OIL", "SPY", "QQQ", "GLD", "GDX", "SLV", "XLE"):
         assert label in tape
 
 
@@ -66,16 +66,14 @@ def test_macro_tape_value_row_present() -> None:
 
 
 def test_macro_tape_value_row_slot_order() -> None:
-    # PRD-136: the new macro-spot-metals-row renders ABOVE the
-    # macro-drivers-row (between MACRO BIAS and drivers), so in the
-    # rendered HTML the XAU/XAG slots appear FIRST, then the driver row
-    # (VIX..OIL), then the tradables tail (SPY..GDX).
+    # PRD-138: row 1 is spot metals plus BTC, row 2 is macro drivers,
+    # then the canonical tradables row.
     html = render_dashboard_html(_payload(), _run())
     slots = _macro_tape_value_slots(html)
     assert [symbol for symbol, _ in slots] == [
-        "XAU", "XAG",
-        "VIX", "DXY", "10Y", "BTC", "OIL",
-        "SPY", "QQQ", "GLD", "SLV", "XLE", "GDX",
+        "XAU", "XAG", "BTC",
+        "VIX", "DXY", "10Y", "OIL",
+        "SPY", "QQQ", "GLD", "GDX", "SLV", "XLE",
     ]
 
 
@@ -129,7 +127,7 @@ def test_macro_tape_value_row_current_price_format() -> None:
 def test_macro_tape_value_row_etf_fallback_when_market_map_none() -> None:
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=None)
     slots = dict(_macro_tape_value_slots(html))
-    for symbol in ("SPY", "QQQ", "GLD", "SLV", "XLE", "GDX"):
+    for symbol in ("SPY", "QQQ", "GLD", "GDX", "SLV", "XLE"):
         assert slots[symbol] == "N/A"
 
 

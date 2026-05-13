@@ -124,6 +124,58 @@ def _validation_summary() -> ValidationSummary:
     )
 
 
+class _Quote:
+    def __init__(self, price: float, pct: float | None = 0.0) -> None:
+        self.price = price
+        self.pct_change_decimal = pct
+
+
+def test_prd138_hourly_macro_tape_and_tradables_share_layout_order() -> None:
+    quotes = {
+        "GC=F": _Quote(4705.2, 0.036),
+        "SI=F": _Quote(87.32, 0.138),
+        "BTC-USD": _Quote(81300.0, 0.011),
+        "^VIX": _Quote(18.1, -0.015),
+        "DX-Y.NYB": _Quote(98.5, -0.002),
+        "^TNX": _Quote(4.42, -0.007),
+        "CL=F": _Quote(78.5, 0.012),
+        "SPY": _Quote(724.59),
+        "QQQ": _Quote(682.62),
+        "GLD": _Quote(418.94),
+        "GDX": _Quote(86.22),
+        "SLV": _Quote(66.28),
+        "XLE": _Quote(59.71),
+    }
+    _, body = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 13, 16, 20, tzinfo=timezone.utc),
+        regime=_regime(posture=STAY_FLAT),
+        validation_summary=_validation_summary(),
+        qualification_summary=_qualification_summary([], []),
+        normalized_quotes=quotes,
+    )
+
+    lines = body.split("\n")
+    macro_idx = lines.index("Macro Tape:")
+    assert lines[macro_idx + 1:macro_idx + 8] == [
+        "XAU  4705.2  +3.6%",
+        "XAG  87.3   +13.8%",
+        "BTC  81.3K  +1.1%",
+        "VIX  18.1   -1.5%",
+        "DXY  98.5   -0.2%",
+        "10Y  4.42   -0.7%",
+        "OIL  78.5   +1.2%",
+    ]
+    tradables_idx = lines.index("Tradables:")
+    assert lines[tradables_idx + 1:tradables_idx + 7] == [
+        "SPY  724.59",
+        "QQQ  682.62",
+        "GLD  418.94",
+        "GDX  86.22",
+        "SLV  66.28",
+        "XLE  59.71",
+    ]
+
+
 def test_notification_matches_structured_prd_shape():
     title, body = format_notification(
         NOTIFY_POST_ORB,
