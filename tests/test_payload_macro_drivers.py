@@ -164,7 +164,7 @@ def test_require_macro_drivers_missing_required_raises() -> None:
 
 def test_require_macro_drivers_unknown_extra_driver_raises() -> None:
     drivers = _macro_drivers()
-    drivers["gold"] = {"symbol": "GLD", "level": 200.0, "change_pct": 0.5}
+    drivers["platinum"] = {"symbol": "PL=F", "level": 950.0, "change_pct": 0.5}
     with pytest.raises(ValueError, match="unexpected driver keys"):
         _require_macro_drivers(drivers)
 
@@ -174,4 +174,53 @@ def test_require_macro_drivers_invalid_oil_field_shape_raises() -> None:
     # Missing `change_pct` — oil block has incomplete field set.
     drivers["oil"] = {"symbol": "CL=F", "level": 78.5}
     with pytest.raises(ValueError, match="macro_drivers.oil has unexpected keys"):
+        _require_macro_drivers(drivers)
+
+
+def _gold_block() -> dict:
+    return {"symbol": "GC=F", "level": 3200.0, "change_pct": 0.4}
+
+
+def _silver_block() -> dict:
+    return {"symbol": "SI=F", "level": 39.5, "change_pct": -0.7}
+
+
+def test_require_macro_drivers_required_four_plus_gold_pass() -> None:
+    drivers = _macro_drivers()
+    drivers["gold"] = _gold_block()
+    _require_macro_drivers(drivers)  # must not raise
+
+
+def test_require_macro_drivers_required_four_plus_silver_pass() -> None:
+    drivers = _macro_drivers()
+    drivers["silver"] = _silver_block()
+    _require_macro_drivers(drivers)  # must not raise
+
+
+def test_require_macro_drivers_required_four_plus_gold_and_silver_pass() -> None:
+    drivers = _macro_drivers()
+    drivers["gold"] = _gold_block()
+    drivers["silver"] = _silver_block()
+    _require_macro_drivers(drivers)  # must not raise
+
+
+def test_require_macro_drivers_required_four_plus_oil_gold_silver_pass() -> None:
+    drivers = _macro_drivers()
+    drivers["oil"] = _oil_block()
+    drivers["gold"] = _gold_block()
+    drivers["silver"] = _silver_block()
+    _require_macro_drivers(drivers)  # must not raise
+
+
+def test_require_macro_drivers_invalid_gold_field_shape_raises() -> None:
+    drivers = _macro_drivers()
+    drivers["gold"] = {"symbol": "GC=F", "level": 3200.0}
+    with pytest.raises(ValueError, match="macro_drivers.gold has unexpected keys"):
+        _require_macro_drivers(drivers)
+
+
+def test_require_macro_drivers_invalid_silver_field_shape_raises() -> None:
+    drivers = _macro_drivers()
+    drivers["silver"] = {"symbol": "SI=F", "level": 39.5}
+    with pytest.raises(ValueError, match="macro_drivers.silver has unexpected keys"):
         _require_macro_drivers(drivers)

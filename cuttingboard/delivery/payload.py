@@ -240,7 +240,7 @@ def _require_type_or_none(obj: dict, key: str, expected_type: type) -> None:
 # aligned with cuttingboard.contract._OPTIONAL_MACRO_DRIVERS — payload-layer
 # duplication is intentional to keep this module free of cross-package
 # imports, but the semantics must not drift.
-_OPTIONAL_MACRO_DRIVERS = frozenset({"oil"})
+_OPTIONAL_MACRO_DRIVERS = frozenset({"oil", "gold", "silver"})
 
 
 def _require_macro_drivers(macro_drivers: dict) -> None:
@@ -252,6 +252,8 @@ def _require_macro_drivers(macro_drivers: dict) -> None:
         "rates": {"symbol", "level", "change_pct", "change_bps"},
         "bitcoin": {"symbol", "level", "change_pct"},
         "oil": {"symbol", "level", "change_pct"},
+        "gold": {"symbol", "level", "change_pct"},
+        "silver": {"symbol", "level", "change_pct"},
     }
     required_keys = set(expected) - _OPTIONAL_MACRO_DRIVERS
     actual_keys = set(macro_drivers)
