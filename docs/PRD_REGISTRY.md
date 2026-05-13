@@ -163,3 +163,4 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-133 | 391f84c | Telegram Macro Pulse Alert Clarity | COMPLETE | [PRD-133](prd_history/PRD-133.md) |
 | PRD-134 | c0c5ae5 | Daily Pipeline Market Map Coherence Repair | COMPLETE | [PRD-134](prd_history/PRD-134.md) |
 | PRD-135 | 6fca328 | Engine Milestone Review and Consolidation Checkpoint | COMPLETE | [PRD-135](prd_history/PRD-135.md) |
+| PRD-136 | b496b51 | Add Spot Metals Row to Macro Tape | COMPLETE | [PRD-136](prd_history/PRD-136.md) |
