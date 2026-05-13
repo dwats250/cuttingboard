@@ -579,7 +579,7 @@ _CSS = (
     ".tape-slot{white-space:nowrap}"
     ".macro-tape-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));"
     "gap:6px 12px;margin-top:6px;overflow-x:hidden}"
-    ".macro-drivers-row{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:6px;overflow-x:hidden}"
+    ".macro-drivers-row,.macro-spot-metals-row{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:6px;overflow-x:hidden}"
     ".macro-tradables-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;"
     "margin-top:6px;overflow-x:hidden}"
     ".tradable-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
