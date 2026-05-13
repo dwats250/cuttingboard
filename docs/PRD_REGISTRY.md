@@ -165,3 +165,4 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-135 | 6fca328 | Engine Milestone Review and Consolidation Checkpoint | COMPLETE | [PRD-135](prd_history/PRD-135.md) |
 | PRD-136 | b496b51 | Add Spot Metals Row to Macro Tape | COMPLETE | [PRD-136](prd_history/PRD-136.md) |
 | PRD-137 | d88d8e0 | PATCH PRD-136 Payload Validator Accepts Optional Spot Metals | COMPLETE | [PRD-137](prd_history/PRD-137.md) |
+| PRD-138 | — | Shared Macro Tape Layout and Spot-Metals Color Parity | IN PROGRESS | [PRD-138](prd_history/PRD-138.md) |
