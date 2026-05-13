@@ -13,43 +13,43 @@
     "rejected_count": 0
   },
   "correlation": null,
-  "generated_at": "2026-05-13T18:24:48Z",
-  "generation_id": "hourly-20260513T182448Z",
+  "generated_at": "2026-05-13T20:18:32Z",
+  "generation_id": "hourly-20260513T201832Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -0.9193103216649411,
-      "level": 79744.1796875,
+      "change_pct": -1.0069635279182743,
+      "level": 79673.6328125,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.21562260124027033,
-      "level": 98.53099822998047,
+      "change_pct": 0.17188815777425515,
+      "level": 98.48799896240234,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -0.0637890708058686,
-      "level": 4700.0,
+      "change_pct": -0.13608127458537106,
+      "level": 4696.60009765625,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 0.0692517743927393,
-      "level": 101.1500015258789,
+      "change_pct": 0.2275383096287214,
+      "level": 101.30999755859375,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 1.60571530453749,
-      "change_pct": 0.35849860944763606,
-      "level": 4.479000091552734,
+      "change_bps": 1.8072243120055398,
+      "change_pct": 0.4033082645714182,
+      "level": 4.480999946594238,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 1.8791169991124463,
-      "level": 88.91500091552734,
+      "change_pct": 1.1286171218908414,
+      "level": 88.26000213623047,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -1.0005575734623446,
-      "level": 17.809999465942383,
+      "change_pct": -0.4446910768419777,
+      "level": 17.90999984741211,
       "symbol": "^VIX"
     }
   },
@@ -71,8 +71,8 @@
     "risk_off_votes": 0,
     "risk_on_votes": 3,
     "total_votes": 8,
-    "vix_level": 17.809999465942383,
-    "vix_pct_change": -0.010005575734623446,
+    "vix_level": 17.90999984741211,
+    "vix_pct_change": -0.004446910768419777,
     "vote_breakdown": {
       "BTC pct_change": "NEUTRAL",
       "DXY pct_change": "NEUTRAL",
@@ -94,7 +94,7 @@
     "market_regime": "RISK_ON",
     "router_mode": "MIXED",
     "stay_flat_reason": "STAY_FLAT posture",
-    "time_gate_open": true,
+    "time_gate_open": false,
     "tradable": false
   },
   "timezone": "America/New_York",
