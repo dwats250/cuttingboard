@@ -26,8 +26,8 @@
       "XLE"
     ]
   },
-  "generated_at": "2026-05-13T20:18:32Z",
-  "generation_id": "hourly-20260513T201832Z",
+  "generated_at": "2026-05-13T21:53:40Z",
+  "generation_id": "hourly-20260513T215340Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -41,7 +41,7 @@
   "session_date": "2026-05-13",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-05-13T20:18:32Z"
+    "run_at_utc": "2026-05-13T21:53:40Z"
   },
   "symbols": {
     "GDX": {

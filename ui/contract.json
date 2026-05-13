@@ -13,27 +13,27 @@
     "rejected_count": 0
   },
   "correlation": null,
-  "generated_at": "2026-05-13T20:18:32Z",
-  "generation_id": "hourly-20260513T201832Z",
+  "generated_at": "2026-05-13T21:53:40Z",
+  "generation_id": "hourly-20260513T215340Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -1.0069635279182743,
-      "level": 79673.6328125,
+      "change_pct": -1.2771353650887083,
+      "level": 79456.1875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.17188815777425515,
-      "level": 98.48799896240234,
+      "change_pct": 0.15053308530823784,
+      "level": 98.46700286865234,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -0.13608127458537106,
-      "level": 4696.60009765625,
+      "change_pct": -0.12544976278439293,
+      "level": 4697.10009765625,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 0.2275383096287214,
-      "level": 101.30999755859375,
+      "change_pct": -0.07914704155665006,
+      "level": 101.0,
       "symbol": "CL=F"
     },
     "rates": {
@@ -43,13 +43,13 @@
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 1.1286171218908414,
-      "level": 88.26000213623047,
+      "change_pct": 1.008303910664534,
+      "level": 88.15499877929688,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -0.4446910768419777,
-      "level": 17.90999984741211,
+      "change_pct": -0.667031314127177,
+      "level": 17.8700008392334,
       "symbol": "^VIX"
     }
   },
@@ -71,8 +71,8 @@
     "risk_off_votes": 0,
     "risk_on_votes": 3,
     "total_votes": 8,
-    "vix_level": 17.90999984741211,
-    "vix_pct_change": -0.004446910768419777,
+    "vix_level": 17.8700008392334,
+    "vix_pct_change": -0.00667031314127177,
     "vote_breakdown": {
       "BTC pct_change": "NEUTRAL",
       "DXY pct_change": "NEUTRAL",
