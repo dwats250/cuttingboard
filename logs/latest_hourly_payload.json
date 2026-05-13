@@ -1,46 +1,46 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -2.122828641767461,
-      "level": 78775.5390625,
+      "change_pct": -1.94700776415211,
+      "level": 78917.046875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.17392123516745886,
-      "level": 98.48999786376953,
+      "change_pct": 0.16375584820144043,
+      "level": 98.4800033569336,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 0.04252604720391239,
-      "level": 4705.0,
+      "change_pct": 0.08292371558048053,
+      "level": 4706.89990234375,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 1.2069659661683005,
-      "level": 102.30000305175781,
+      "change_pct": 0.8310212927128716,
+      "level": 101.91999816894531,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 2.412874884733278,
-      "change_pct": 0.5377479141714542,
-      "level": 4.486999988555908,
+      "change_bps": 2.716329284081613,
+      "change_pct": 0.6049730810858167,
+      "level": 4.490000247955322,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 2.6926364171122574,
-      "level": 89.625,
+      "change_pct": 2.898881392223953,
+      "level": 89.80500030517578,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 0.6670419163987561,
-      "level": 18.110000610351562,
+      "change_pct": 0.27793854944597296,
+      "level": 18.040000915527344,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260513T161216Z",
+    "generation_id": "hourly-20260513T162327Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-05-13T16:12:16Z"
+    "timestamp": "2026-05-13T16:23:27Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -58,8 +58,8 @@
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.125,
-    "market_regime": "NEUTRAL",
+    "confidence": 0.25,
+    "market_regime": "RISK_ON",
     "outcome": null,
     "permission": null,
     "router_mode": "MIXED",
