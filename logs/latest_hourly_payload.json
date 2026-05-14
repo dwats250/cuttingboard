@@ -1,46 +1,46 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 2.785476154465012,
-      "level": 81497.359375,
+      "change_pct": 2.8066999935461396,
+      "level": 81514.1875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.26398032978989244,
-      "level": 98.75299835205078,
+      "change_pct": 0.24875144019903214,
+      "level": 98.73799896240234,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 0.19441330618619657,
-      "level": 4689.89990234375,
+      "change_pct": 0.22645911165939484,
+      "level": 4691.39990234375,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": -0.48347101247825697,
-      "level": 100.86000061035156,
+      "change_pct": -0.40453481883330555,
+      "level": 100.94000244140625,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -3.1771073474604212,
-      "change_pct": -0.714117125509373,
-      "level": 4.449000358581543,
+      "change_bps": -3.571055738975431,
+      "change_pct": -0.8033870868537453,
+      "level": 4.445000171661377,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -1.786843180592609,
-      "level": 85.47000122070312,
+      "change_pct": -1.7753497751860094,
+      "level": 85.4800033569336,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -0.22384394878998642,
-      "level": 17.829999923706055,
+      "change_pct": -0.3917269103824762,
+      "level": 17.799999237060547,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260514T160113Z",
+    "generation_id": "hourly-20260514T161127Z",
     "symbols_scanned": 23,
-    "timestamp": "2026-05-14T16:01:13Z"
+    "timestamp": "2026-05-14T16:11:27Z"
   },
   "run_status": "OK",
   "schema_version": "1.0",
@@ -99,7 +99,7 @@
       },
       {
         "detail": null,
-        "reason": "price 4.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "price 4.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "WATCHLIST",
         "symbol": "QQQ"
       },
@@ -111,13 +111,13 @@
       },
       {
         "detail": null,
-        "reason": "price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "price 1.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "WATCHLIST",
         "symbol": "PAAS"
       },
       {
         "detail": null,
-        "reason": "price 4.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "price 4.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "WATCHLIST",
         "symbol": "NVDA"
       },
@@ -135,7 +135,13 @@
       },
       {
         "detail": null,
-        "reason": "price 1.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "WATCHLIST",
+        "symbol": "COIN"
+      },
+      {
+        "detail": null,
+        "reason": "price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "WATCHLIST",
         "symbol": "MSTR"
       }
