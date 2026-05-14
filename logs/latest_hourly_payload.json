@@ -1,18 +1,18 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 2.303880247887346,
-      "level": 81115.5078125,
+      "change_pct": 2.785476154465012,
+      "level": 81497.359375,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.2913938802792386,
-      "level": 98.77999877929688,
+      "change_pct": 0.26398032978989244,
+      "level": 98.75299835205078,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 0.2050952413439293,
-      "level": 4690.39990234375,
+      "change_pct": 0.19441330618619657,
+      "level": 4689.89990234375,
       "symbol": "GC=F"
     },
     "oil": {
@@ -21,26 +21,26 @@
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -2.782491850691998,
-      "change_pct": -0.6248578054764019,
-      "level": 4.453000068664551,
+      "change_bps": -3.1771073474604212,
+      "change_pct": -0.714117125509373,
+      "level": 4.449000358581543,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -1.9419734694330208,
-      "level": 85.33499908447266,
+      "change_pct": -1.786843180592609,
+      "level": 85.47000122070312,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 0.5036275378435775,
-      "level": 17.959999084472656,
+      "change_pct": -0.22384394878998642,
+      "level": 17.829999923706055,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260514T152112Z",
+    "generation_id": "hourly-20260514T160113Z",
     "symbols_scanned": 23,
-    "timestamp": "2026-05-14T15:21:12Z"
+    "timestamp": "2026-05-14T16:01:13Z"
   },
   "run_status": "OK",
   "schema_version": "1.0",
@@ -57,7 +57,7 @@
       },
       {
         "detail": null,
-        "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 1.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "QUALIFICATION",
         "symbol": "IWM"
       },
@@ -69,7 +69,7 @@
       },
       {
         "detail": null,
-        "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 4.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 4.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "QUALIFICATION",
         "symbol": "SPY"
       }
@@ -111,19 +111,19 @@
       },
       {
         "detail": null,
-        "reason": "price 1.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "WATCHLIST",
         "symbol": "PAAS"
       },
       {
         "detail": null,
-        "reason": "price 4.2\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "price 4.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "WATCHLIST",
         "symbol": "NVDA"
       },
       {
         "detail": null,
-        "reason": "price 2.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "price 2.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "WATCHLIST",
         "symbol": "TSLA"
       },
@@ -132,6 +132,12 @@
         "reason": "price 3.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "WATCHLIST",
         "symbol": "AAPL"
+      },
+      {
+        "detail": null,
+        "reason": "price 1.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "WATCHLIST",
+        "symbol": "MSTR"
       }
     ]
   },
