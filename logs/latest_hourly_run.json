@@ -1,22 +1,22 @@
 {
-  "alert_body": "Regime: RISK ON\nConfidence: 0.75\nReason: candidates gated\nBlockers: STOP_DISTANCE, RR_RATIO, EXTENSION\n\nMacro Tape:\nXAU  4685.1  +0.1%\nXAG  85.1   -2.2%\nBTC  80.8K  +2.0%\nVIX  18.0   +0.5%\nDXY  98.8   +0.3%\n10Y  4.45   -0.8%\nOIL  100.6  -0.8%\n\nTradables:\nSPY  747.88\nQQQ  720.66\nGLD  429.95\nGDX  94.05\nSLV  76.66\nXLE  57.65\n\nFocus: PAAS LONG, USO LONG, XLE LONG\n\nPending confirmation:\nPAAS: trend confirmation",
-  "alert_title": "MONITOR SETUP 8:11 AM",
+  "alert_body": "Regime: RISK ON\nConfidence: 0.75\nReason: candidates gated\nBlockers: STOP_DISTANCE, RR_RATIO, EXTENSION\n\nMacro Tape:\nXAU  4690.4  +0.2%\nXAG  85.3   -1.9%\nBTC  81.1K  +2.3%\nVIX  18.0   +0.5%\nDXY  98.8   +0.3%\n10Y  4.45   -0.6%\nOIL  100.9  -0.5%\n\nTradables:\nSPY  748.65\nQQQ  721.53\nGLD  430.10\nGDX  94.35\nSLV  76.88\nXLE  57.69\n\nFocus: USO LONG, XLE LONG, META LONG\n\nPending confirmation:\nUSO: trend confirmation",
+  "alert_title": "MONITOR SETUP 8:21 AM",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
     "payload_path": "logs/latest_hourly_payload.json",
     "report_path": "reports/output/hourly_report.html"
   },
   "candidate_lines": [
-    "PAAS | LONG | TREND | 2.0:1"
+    "USO | LONG | TREND | 2.0:1"
   ],
-  "candidates_qualified": 11,
-  "candidates_watchlist": 8,
+  "candidates_qualified": 10,
+  "candidates_watchlist": 9,
   "confidence": 0.75,
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-05-14T15:11:02Z",
-  "generation_id": "hourly-20260514T151102Z",
+  "generated_at": "2026-05-14T15:21:12Z",
+  "generation_id": "hourly-20260514T152112Z",
   "halt_reason": null,
   "index_score": 0.0,
   "kill_switch": false,
@@ -35,11 +35,11 @@
   "posture": "AGGRESSIVE_LONG",
   "regime": "RISK_ON",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-05-14T15:11:02Z",
-  "run_id": "hourly-20260514T151102Z",
+  "run_at_utc": "2026-05-14T15:21:12Z",
+  "run_id": "hourly-20260514T152112Z",
   "session_date": "2026-05-14",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-05-14T15:11:02Z",
+  "timestamp": "2026-05-14T15:21:12Z",
   "warnings": []
 }
