@@ -9,47 +9,47 @@
     "continuation_audit_present": false,
     "continuation_rejected_count": null,
     "error_count": 0,
-    "qualified_count": 7,
-    "rejected_count": 6
+    "qualified_count": 6,
+    "rejected_count": 5
   },
   "correlation": null,
-  "generated_at": "2026-05-15T15:06:55Z",
-  "generation_id": "hourly-20260515T150655Z",
+  "generated_at": "2026-05-15T15:15:45Z",
+  "generation_id": "hourly-20260515T151545Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -2.488205522326593,
-      "level": 79061.96875,
+      "change_pct": -2.3376008198754272,
+      "level": 79184.078125,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.18577786015056813,
-      "level": 99.22599792480469,
+      "change_pct": 0.19587674370397007,
+      "level": 99.23600006103516,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -1.2035068991211615,
-      "level": 4564.2001953125,
+      "change_pct": -1.3333826568090177,
+      "level": 4558.2001953125,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": -2.0709218420459745,
-      "level": 100.25,
+      "change_pct": -1.9927721605882793,
+      "level": 100.33000183105469,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 11.691308377680071,
-      "change_pct": 2.5554773475625563,
-      "level": 4.574999809265137,
+      "change_bps": 11.376200087927913,
+      "change_pct": 2.4882327256091274,
+      "level": 4.572000026702881,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -5.848198546274908,
-      "level": 77.03500366210938,
+      "change_pct": -5.909312029462779,
+      "level": 76.98500061035156,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 6.546924367218314,
-      "level": 18.389999389648438,
+      "change_pct": 6.257241653443598,
+      "level": 18.34000015258789,
       "symbol": "^VIX"
     }
   },
@@ -71,8 +71,8 @@
     "risk_off_votes": 6,
     "risk_on_votes": 0,
     "total_votes": 8,
-    "vix_level": 18.389999389648438,
-    "vix_pct_change": 0.06546924367218314,
+    "vix_level": 18.34000015258789,
+    "vix_pct_change": 0.06257241653443599,
     "vote_breakdown": {
       "BTC pct_change": "RISK_OFF",
       "DXY pct_change": "NEUTRAL",
@@ -85,12 +85,6 @@
     }
   },
   "rejections": [
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "BTC-USD"
-    },
     {
       "detail": null,
       "reason": "CHOP",
@@ -141,7 +135,13 @@
     },
     {
       "detail": null,
-      "reason": "price 2.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "stage": "WATCHLIST",
+      "symbol": "GC=F"
+    },
+    {
+      "detail": null,
+      "reason": "price 2.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "SPY"
     },
@@ -153,9 +153,15 @@
     },
     {
       "detail": null,
-      "reason": "price 1.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "GLD"
+    },
+    {
+      "detail": null,
+      "reason": "R:R 2.00 below 2.0 minimum",
+      "stage": "WATCHLIST",
+      "symbol": "XLE"
     },
     {
       "detail": null,
@@ -165,7 +171,7 @@
     },
     {
       "detail": null,
-      "reason": "price 3.2\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 3.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "AAPL"
     }
