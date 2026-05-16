@@ -166,4 +166,4 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-136 | b496b51 | Add Spot Metals Row to Macro Tape | COMPLETE | [PRD-136](prd_history/PRD-136.md) |
 | PRD-137 | d88d8e0 | PATCH PRD-136 Payload Validator Accepts Optional Spot Metals | COMPLETE | [PRD-137](prd_history/PRD-137.md) |
 | PRD-138 | b739bee | Shared Macro Tape Layout and Spot-Metals Color Parity | COMPLETE | [PRD-138](prd_history/PRD-138.md) |
-| PRD-139 | — | Upstream Macro Collector Sidecar | IN PROGRESS | [PRD-139](prd_history/PRD-139.md) |
+| PRD-139 | 6ab8433 | Upstream Macro Collector Sidecar | IN PROGRESS | [PRD-139](prd_history/PRD-139.md) |
