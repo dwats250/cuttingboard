@@ -27,12 +27,18 @@ TITLE=""
 TESTS=""
 ADDED=""
 SUMMARY=""
+DO_COMMIT=0
+DO_PUSH=0
 
 usage() {
     cat <<'USAGE'
 Usage: prd_close.sh --prd <NNN> --hash <commit> --title "<title>" \
                     --tests <total_passing> --added <new_tests_added> \
-                    --summary "<one-paragraph what + why>"
+                    --summary "<one-paragraph what + why>" \
+                    [--commit] [--push]
+
+  --commit   stage + commit the closeout edits with a canned message
+  --push     also git push (implies --commit)
 USAGE
     exit 2
 }
@@ -45,6 +51,8 @@ while [ $# -gt 0 ]; do
         --tests)   TESTS="$2"; shift 2 ;;
         --added)   ADDED="$2"; shift 2 ;;
         --summary) SUMMARY="$2"; shift 2 ;;
+        --commit)  DO_COMMIT=1; shift ;;
+        --push)    DO_COMMIT=1; DO_PUSH=1; shift ;;
         -h|--help) usage ;;
         *) echo "unknown arg: $1" >&2; usage ;;
     esac
@@ -66,19 +74,22 @@ PRD_ID="PRD-${PRD_NUM}"
 PRD_FILE="docs/prd_history/${PRD_ID}.md"
 REGISTRY="docs/PRD_REGISTRY.md"
 STATE="docs/PROJECT_STATE.md"
+INDEX="docs/prd_index.json"
 
 [ -f "$PRD_FILE" ] || { echo "$PRD_FILE does not exist" >&2; exit 1; }
 [ -f "$REGISTRY" ] || { echo "$REGISTRY does not exist" >&2; exit 1; }
 [ -f "$STATE" ]    || { echo "$STATE does not exist"    >&2; exit 1; }
+[ -f "$INDEX" ]    || { echo "$INDEX does not exist"    >&2; exit 1; }
 
 TODAY=$(date -u +%Y-%m-%d)
 
-python3 - "$PRD_FILE" "$REGISTRY" "$STATE" "$PRD_ID" "$HASH" "$TITLE" "$TESTS" "$ADDED" "$SUMMARY" "$TODAY" <<'PYEOF'
+python3 - "$PRD_FILE" "$REGISTRY" "$STATE" "$INDEX" "$PRD_ID" "$HASH" "$TITLE" "$TESTS" "$ADDED" "$SUMMARY" "$TODAY" <<'PYEOF'
+import json
 import re
 import sys
 from pathlib import Path
 
-(prd_path, registry_path, state_path,
+(prd_path, registry_path, state_path, index_path,
  prd_id, commit_hash, title, tests, added, summary, today) = sys.argv[1:]
 
 # --- 1. PRD-NNN.md STATUS line -------------------------------------------
@@ -178,13 +189,52 @@ if not inserted:
     print(f"WARN: history table separator not found in {state_path}", file=sys.stderr)
 
 state_p.write_text("".join(lines), encoding="utf-8")
+
+# --- 4. prd_index.json ---------------------------------------------------
+idx_p = Path(index_path)
+idx = json.loads(idx_p.read_text(encoding="utf-8"))
+prd_num = int(prd_id.split("-")[1])
+existing = next((e for e in idx["entries"] if e.get("number") == prd_num), None)
+new_entry = {
+    "number": prd_num,
+    "title": title,
+    "status": "COMPLETE",
+    "commit": commit_hash,
+}
+if existing:
+    existing.update(new_entry)
+    print(f"updated  {index_path}: entry {prd_id}")
+else:
+    idx["entries"].append(new_entry)
+    print(f"appended {index_path}: entry {prd_id}")
+if prd_num > idx.get("latest_complete", 0):
+    idx["latest_complete"] = prd_num
+    idx["next_prd"] = prd_num + 1
+idx_p.write_text(json.dumps(idx, indent=2) + "\n", encoding="utf-8")
 PYEOF
+
+CLOSE_FILES=("$PRD_FILE" "$REGISTRY" "$STATE" "$INDEX")
+REVIEW_FILE="docs/prd_history/${PRD_ID}.review.codex.md"
+[ -f "$REVIEW_FILE" ] && CLOSE_FILES+=("$REVIEW_FILE")
 
 echo ""
 echo "=== unstaged diff preview ==="
-git diff --stat -- "$PRD_FILE" "$REGISTRY" "$STATE"
+git diff --stat -- "${CLOSE_FILES[@]}"
 
-echo ""
-echo "Review the diff, then stage and commit:"
-echo "  git add $PRD_FILE $REGISTRY $STATE docs/prd_history/${PRD_ID}.review.codex.md"
-echo "  git commit -m \"chore: ${PRD_ID} close - registry COMPLETE @ ${HASH}, PROJECT_STATE update\""
+if [ "$DO_COMMIT" -eq 1 ]; then
+    echo ""
+    git add -- "${CLOSE_FILES[@]}"
+    git commit -m "Close ${PRD_ID} bookkeeping" \
+               -m "STATUS COMPLETE @ ${HASH}; PROJECT_STATE + prd_index updated." \
+               -m "Co-authored-by: Claude <claude@anthropic.com>"
+    if [ "$DO_PUSH" -eq 1 ]; then
+        git push
+    fi
+else
+    echo ""
+    echo "Review the diff, then stage and commit:"
+    echo "  git add ${CLOSE_FILES[*]}"
+    echo "  git commit -m \"Close ${PRD_ID} bookkeeping\""
+    echo ""
+    echo "Or rerun with --commit (or --push) to do it in one shot."
+fi
