@@ -26,8 +26,8 @@
       "XLE"
     ]
   },
-  "generated_at": "2026-05-18T20:27:46Z",
-  "generation_id": "hourly-20260518T202746Z",
+  "generated_at": "2026-05-18T21:48:50Z",
+  "generation_id": "hourly-20260518T214850Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -41,7 +41,7 @@
   "session_date": "2026-05-18",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-05-18T20:27:46Z"
+    "run_at_utc": "2026-05-18T21:48:50Z"
   },
   "symbols": {
     "GDX": {
@@ -306,7 +306,7 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 60.54999923706055,
+      "current_price": 60.58000183105469,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
