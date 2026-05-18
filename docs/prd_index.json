@@ -1,17 +1,17 @@
 {
   "tracking_start": 56,
-  "latest_complete": 139,
-  "next_prd": 140,
+  "latest_complete": 140,
+  "next_prd": 141,
   "entries": [
     {
       "number": 56,
-      "title": "Candidate lifecycle tracking — deterministic grade/setup_state transition metadata in market_map",
+      "title": "Candidate lifecycle tracking \u2014 deterministic grade/setup_state transition metadata in market_map",
       "status": "COMPLETE",
       "commit": "e7365c6"
     },
     {
       "number": 57,
-      "title": "Lifecycle visibility on Signal Forge dashboard — badge, detail row, removed symbols section",
+      "title": "Lifecycle visibility on Signal Forge dashboard \u2014 badge, detail row, removed symbols section",
       "status": "COMPLETE",
       "commit": "e7365c6"
     },
@@ -50,6 +50,12 @@
       "title": "Upstream Macro Collector Sidecar",
       "status": "COMPLETE",
       "commit": "6ab8433"
+    },
+    {
+      "number": 140,
+      "title": "Document pre_push_check.sh in CLAUDE.md git hygiene",
+      "status": "COMPLETE",
+      "commit": "1dbc886"
     }
   ]
 }
