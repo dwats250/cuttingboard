@@ -420,6 +420,10 @@ For linear single-PRD work, do not create task/checklist artifacts solely becaus
 - Confirm recent commits: `git log --oneline -5`
 - Run `scripts/pre_commit_sanity.sh` for a compact checklist.
 
+### Before pushing
+
+- Run `scripts/pre_push_check.sh` — runs `ruff` over `cuttingboard/` and `tests/`, then the targeted `tests/test_dashboard_renderer.py` pytest, then `git status --short`.
+
 ### Workflow reruns
 
 Do not rerun all workflows blindly. Match issue to workflow:
