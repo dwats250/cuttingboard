@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 146,
-  "next_prd": 147,
+  "latest_complete": 147,
+  "next_prd": 148,
   "entries": [
     {
       "number": 56,
@@ -86,6 +86,12 @@
       "title": "Reconcile prd_index.json with registry truth for 141/142/143",
       "status": "COMPLETE",
       "commit": "c0cfd53"
+    },
+    {
+      "number": 147,
+      "title": "prd_close.sh must not parse user input as re.sub template",
+      "status": "COMPLETE",
+      "commit": "320ab7f"
     }
   ]
 }

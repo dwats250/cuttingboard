@@ -174,4 +174,4 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-144 | e3447d2 | Redundant cron entries for 6 AM PT hourly alert resilience | COMPLETE | [PRD-144](prd_history/PRD-144.md) |
 | PRD-145 | 3230ceb | Sequencing-gate parser keys on row-owner cell only | COMPLETE | [PRD-145](prd_history/PRD-145.md) |
 | PRD-146 | c0cfd53 | Reconcile prd_index.json with registry truth for 141/142/143 | COMPLETE | [PRD-146](prd_history/PRD-146.md) |
-| PRD-147 | —       | prd_close.sh must not parse user input as re.sub template | IN PROGRESS | [PRD-147](prd_history/PRD-147.md) |
+| PRD-147 | 320ab7f | prd_close.sh must not parse user input as re.sub template | COMPLETE | [PRD-147](prd_history/PRD-147.md) |
