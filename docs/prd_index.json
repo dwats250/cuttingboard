@@ -58,6 +58,24 @@
       "commit": "1dbc886"
     },
     {
+      "number": 141,
+      "title": "Hourly Alert Canonical Slot + Cross-Run Idempotency",
+      "status": "COMPLETE",
+      "commit": "1ba6cc9"
+    },
+    {
+      "number": 142,
+      "title": "PATCH PRD-141 Persist hourly slot state across CI runs",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
+      "number": 143,
+      "title": "Process hygiene sweep: hook exclusion, runtime.py debt note, Skill drift clause",
+      "status": "COMPLETE",
+      "commit": "575b34f"
+    },
+    {
       "number": 144,
       "title": "Redundant cron entries for 6 AM PT hourly alert resilience",
       "status": "COMPLETE",
