@@ -77,6 +77,7 @@ for f in glob.glob(os.path.join(prd_dir, "PRD-*.md")):
         ".review." in name
         or name.endswith(".adjudication.md")
         or name.endswith(".codex_prompt.md")
+        or ".impl_notes." in name
     ):
         continue
     file_stems.add(name.replace(".md", ""))

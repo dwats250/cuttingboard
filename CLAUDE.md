@@ -89,6 +89,9 @@ Rationale: a PRD that changes observable output by definition changes whatever a
 **LANE classification (PRD-121):**
 Every PRD authored after PRD-121's merge MUST declare `LANE: MICRO | STANDARD | HIGH-RISK` in its header. Lane is a ceremony axis orthogonal to CLASS / Tier. HIGH-RISK lane requires `fresh-context` or `different-model` review independence; `same-context` is insufficient. See `docs/PRD_PROCESS.md § LANE Axis` for the eligibility filters, the lane intensity table, the Lane Downgrade Prohibition (R11), and the MICRO Eligibility Safety Net (R12).
 
+**Skill invocation discipline (PRD-143):**
+Memory-based application of established skills (`scope-lock-precommit`, `prd-closeout-verified`, `dashboard-publish-refresh`, `prd-authoring-verified`, etc.) is acceptable when the discipline is concrete and the next step is unambiguous — e.g. running the two-commit closeout pattern you've executed a dozen times, or skipping dashboard refresh on a PRD that demonstrably doesn't touch the renderer. When the agent cannot recall a skill's checklist verbatim, when the discipline's output feels uncertain, or when the skill has been revised since last use, the agent MUST invoke the skill via the `Skill` tool rather than reconstruct from memory. This protects against silent drift when skill definitions change between sessions. Explicit invocation is also required for any skill listed in CLAUDE.md as triggering on a specific condition (e.g. `prd-authoring-verified` for any new PRD draft, `scope-lock-precommit` before any PRD-scoped commit).
+
 ---
 
 ## instrument universe
@@ -498,3 +501,47 @@ This project is indexed by GitNexus as **cuttingboard**. Use the GitNexus MCP to
 | Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
 | Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+
+<!-- gitnexus:start -->
+# GitNexus — Code Intelligence
+
+This project is indexed by GitNexus as **cuttingboard** (10123 symbols, 18689 relationships, 162 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+
+> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
+
+## Always Do
+
+- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
+- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
+- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
+- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
+- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
+
+## Never Do
+
+- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
+- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
+- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
+- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
+
+## Resources
+
+| Resource | Use for |
+|----------|---------|
+| `gitnexus://repo/cuttingboard/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/cuttingboard/clusters` | All functional areas |
+| `gitnexus://repo/cuttingboard/processes` | All execution flows |
+| `gitnexus://repo/cuttingboard/process/{name}` | Step-by-step execution trace |
+
+## CLI
+
+| Task | Read this skill file |
+|------|---------------------|
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+
+<!-- gitnexus:end -->
