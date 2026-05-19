@@ -17,14 +17,6 @@ on:
     # Intraday every 30 min: 14:00–21:30 UTC (gate dedups to one alert per PT hour)
     - cron: '*/30 14-21 * * 1-5'
   workflow_dispatch:
-    inputs:
-      scheduler:
-        description: 'Source of dispatch — operator (manual force-send) or external_cron (route through PRD-141 dedup gate, used by PRD-149 Cloudflare Worker).'
-        type: choice
-        options:
-          - operator
-          - external_cron
-        default: operator
 
 concurrency:
   group: hourly-alert
@@ -61,11 +53,7 @@ jobs:
 
       - name: Run hourly alert
         run: |
-          # --force-slot bypasses the PRD-141 slot dedup gate. Only operator
-          # manual dispatch should bypass; scheduled events and external_cron
-          # dispatch (PRD-149 Cloudflare Worker) route through dedup so
-          # redundant firings collapse to one alert per PT hour.
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.scheduler }}" != "external_cron" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             python -m cuttingboard.alert_runner --force-slot
           else
             python -m cuttingboard.alert_runner
