@@ -1,8 +1,6 @@
 # cuttingboard external trigger (PRD-149)
 
-Cloudflare Worker that fires `.github/workflows/hourly_alert.yml` via the GitHub `workflow_dispatch` API on a coarse weekday UTC heartbeat (every 15 minutes, 12:00–21:45 UTC). Decoupling the trigger from GitHub's own cron service protects the hourly alert path from GH Actions scheduler outages (cf. the 2026-05-19 ~18h scheduler silence that motivated this PRD).
-
-The Worker does **not** mirror the exact cron list in `hourly_alert.yml` — Cloudflare's free plan caps a Worker at 5 cron triggers, and the PRD-141 slot dedup gate (one alert per PT hour) already collapses overlapping firings between the GH-native schedule and this Worker. A coarse heartbeat is sufficient: every dispatched run consults the dedup gate and either sends (new PT slot) or suppresses (slot already alerted).
+Cloudflare Worker that fires `.github/workflows/hourly_alert.yml` via the GitHub `workflow_dispatch` API on the same canonical UTC cadence as the in-repo schedule. Decoupling the trigger from GitHub's own cron service protects the hourly alert path from GH Actions scheduler outages (cf. the 2026-05-19 ~18h scheduler silence that motivated this PRD).
 
 ## How it works
 
