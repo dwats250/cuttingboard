@@ -1,8 +1,10 @@
-"""Canonical hourly alert entrypoint with a runner-level notification backstop."""
+"""Canonical hourly alert entrypoint with slot-based idempotency (PRD-141)."""
 
 from __future__ import annotations
 
+import argparse
 import logging
+import os
 import sys
 from datetime import datetime, timezone
 
@@ -27,14 +29,56 @@ def _backstop_body(exc: BaseException, now_utc: datetime) -> str:
     )
 
 
-def main() -> int:
+def _parse_args(argv: list[str] | None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(prog="cuttingboard.alert_runner")
+    parser.add_argument(
+        "--force-slot",
+        action="store_true",
+        help="Bypass cross-run slot idempotency (workflow_dispatch / operator override).",
+    )
+    return parser.parse_args(argv if argv is not None else [])
+
+
+def main(argv: list[str] | None = None) -> int:
     """Run the hourly alert path and convert all runtime failures to exit 0."""
+    args = _parse_args(argv)
+    force_slot = args.force_slot or os.environ.get("CUTTINGBOARD_FORCE_SLOT") == "1"
+
     try:
         from cuttingboard.notifications import NOTIFY_HOURLY
+        from cuttingboard.notifications.hourly_slot import (
+            canonical_slot_utc,
+            is_premarket_slot,
+            load_last_slot,
+        )
+        from cuttingboard.output import write_notification_audit
         from cuttingboard.runtime import MODE_LIVE, _execute_notify_run
 
-        run_date = datetime.now(timezone.utc).date()
-        _execute_notify_run(mode=MODE_LIVE, run_date=run_date, notify_mode=NOTIFY_HOURLY)
+        now_utc = datetime.now(timezone.utc)
+        slot_utc = canonical_slot_utc(now_utc)
+        premarket = is_premarket_slot(now_utc)
+
+        if not force_slot and not premarket:
+            last = load_last_slot()
+            if last is not None and last.get("slot_utc") == slot_utc.isoformat():
+                write_notification_audit(
+                    transport="telegram",
+                    status="suppressed",
+                    alert_title="hourly",
+                    attempted=False,
+                    success=False,
+                    reason="suppressed_same_slot",
+                    state_key=slot_utc.isoformat(),
+                )
+                logger.info("hourly alert suppressed: same slot %s", slot_utc.isoformat())
+                return 0
+
+        _execute_notify_run(
+            mode=MODE_LIVE,
+            run_date=now_utc.date(),
+            notify_mode=NOTIFY_HOURLY,
+            slot_utc=slot_utc,
+        )
     except Exception as exc:
         now_utc = datetime.now(timezone.utc)
         logger.exception("alert runner backstop caught exception")
@@ -51,4 +95,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))

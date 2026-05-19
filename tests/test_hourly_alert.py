@@ -1164,3 +1164,42 @@ def test_not_requested_when_mode_is_not_live(tmp_path, monkeypatch):
     assert hourly_run["notification_status"] == "NOT_REQUESTED"
     assert hourly_run["notification_attempted"] is False
     assert hourly_run["notification_sent"] is False
+
+
+# ---------------------------------------------------------------------------
+# PRD-141: canonical slot header
+# ---------------------------------------------------------------------------
+
+def test_format_hourly_notification_title_uses_canonical_pt_slot():
+    """PRD-141 R2: production title tracks slot_utc (1:00 PM PT), not wall-clock."""
+    # 2026-05-18 20:00:00Z = 1:00 PM PDT (top of PT hour)
+    title, _body = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 18, 20, 0, 0, tzinfo=timezone.utc),
+        regime=_regime(regime="EXPANSION", posture="RISK_ON", confidence=0.72),
+        validation_summary=_validation(),
+        qualification_summary=_qual([]),
+    )
+    assert "1:00 PM" in title
+
+
+def test_format_hourly_legacy_header_uses_pt_then_et():
+    """PRD-141 R2: legacy _format_hourly path stamps PT line 1, ET line 2 from asof_utc."""
+    base = _hourly_event(regime=_regime(posture="STAY_FLAT", regime="NEUTRAL"))
+    event = AlertEvent(
+        alert_context=base.alert_context,
+        notify_mode=base.notify_mode,
+        outcome=base.outcome,
+        asof_utc=datetime(2026, 5, 18, 20, 0, 0, tzinfo=timezone.utc),
+        regime=base.regime,
+        validation_summary=base.validation_summary,
+        qualification_summary=base.qualification_summary,
+        watch_summary=base.watch_summary,
+        halt_reason=base.halt_reason,
+        failure_reason=base.failure_reason,
+        intraday_alert_type=base.intraday_alert_type,
+        candidate_lines=base.candidate_lines,
+    )
+    _title, body = format_ntfy_alert(event)
+    lines = body.split("\n")
+    assert lines[0] == "1:00 PM PT"
+    assert lines[1] == "16:00 ET"

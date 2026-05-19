@@ -2,13 +2,15 @@ name: Cuttingboard Hourly Alert
 
 on:
   schedule:
-    # Pre-open warm-up: 12:50 UTC / 8:50 AM ET, Monday–Friday
+    # All times below are UTC (GitHub Actions cron is always UTC).
+    # PT equivalents shift with DST; the in-app gate normalises to top of PT hour.
+    # Pre-open warm-up: 12:50 UTC (premarket, exempt from slot gate)
     - cron: '50 12 * * 1-5'
-    # Pre-open: 13:00 UTC / 9:00 AM ET, Monday–Friday
+    # Pre-open: 13:00 UTC (premarket, exempt from slot gate)
     - cron: '0 13 * * 1-5'
-    # ORB window / market open: 13:50 UTC / 9:50 AM ET, Monday–Friday
+    # ORB window / market open: 13:50 UTC (premarket, exempt from slot gate)
     - cron: '50 13 * * 1-5'
-    # Intraday every 30 min: 14:00–21:30 UTC, Monday–Friday
+    # Intraday every 30 min: 14:00–21:30 UTC (gate dedups to one alert per PT hour)
     - cron: '*/30 14-21 * * 1-5'
   workflow_dispatch:
 
@@ -46,7 +48,12 @@ jobs:
           echo "TELEGRAM_CHAT_ID_PRESENT=${{ secrets.TELEGRAM_CHAT_ID != '' }}"
 
       - name: Run hourly alert
-        run: python -m cuttingboard.alert_runner
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            python -m cuttingboard.alert_runner --force-slot
+          else
+            python -m cuttingboard.alert_runner
+          fi
 
       - name: Render and stage hourly artifacts
         if: ${{ success() }}

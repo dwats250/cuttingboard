@@ -21,7 +21,7 @@ def test_alert_runner_calls_execute_notify_run_once(monkeypatch):
 
     calls = []
 
-    def fake_execute_notify_run(*, mode: str, run_date: date, notify_mode: str) -> dict:
+    def fake_execute_notify_run(*, mode: str, run_date: date, notify_mode: str, **kwargs) -> dict:
         calls.append((mode, run_date, notify_mode))
         return {"status": "SUCCESS", "suppressed": False}
 
@@ -41,7 +41,7 @@ def test_alert_runner_backstop_sends_one_failure_notification(tmp_path, monkeypa
     monkeypatch.chdir(tmp_path)
     (tmp_path / "logs").mkdir()
 
-    def fail_execute_notify_run(*, mode: str, run_date: date, notify_mode: str) -> dict:
+    def fail_execute_notify_run(*, mode: str, run_date: date, notify_mode: str, **kwargs) -> dict:
         raise ValueError("test failure")
 
     with (
@@ -63,7 +63,7 @@ def test_alert_runner_backstop_sends_one_failure_notification(tmp_path, monkeypa
 def test_alert_runner_backstop_never_raises_if_send_raises(monkeypatch):
     from cuttingboard import alert_runner
 
-    def fail_execute_notify_run(*, mode: str, run_date: date, notify_mode: str) -> dict:
+    def fail_execute_notify_run(*, mode: str, run_date: date, notify_mode: str, **kwargs) -> dict:
         raise RuntimeError("pipeline failure")
 
     with (

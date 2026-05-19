@@ -86,12 +86,14 @@ def _format_hourly(event: AlertEvent) -> tuple[str, str]:
     qual = event.qualification_summary
     candidate_count = qual.symbols_qualified if (qual is not None and tradable) else 0
 
-    ts = event.asof_utc.astimezone(_ET_TZ).strftime("%H:%M ET")
+    pt_ts = event.asof_utc.astimezone(LOCAL_TZ).strftime("%I:%M %p PT").lstrip("0")
+    et_ts = event.asof_utc.astimezone(_ET_TZ).strftime("%H:%M ET")
     regime_str = regime.regime if regime is not None else "UNKNOWN"
     confidence_str = f"{regime.confidence:.2f}" if regime is not None else "0.00"
 
     lines = [
-        ts,
+        pt_ts,
+        et_ts,
         "",
         f"Regime: {regime_str}",
         f"Posture: {posture}",

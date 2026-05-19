@@ -434,7 +434,12 @@ def _load_flow() -> Optional[dict]:
     return load_flow_snapshot(path).symbols
 
 
-def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str, Any]:
+def _execute_notify_run(
+    mode: str,
+    run_date: date,
+    notify_mode: str,
+    slot_utc: Optional[datetime] = None,
+) -> dict[str, Any]:
     """Lightweight path for non-premarket notify modes.
 
     Runs the appropriate pipeline depth, formats a mode-specific alert,
@@ -538,8 +543,11 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
                 )
 
         if notify_mode in _HOURLY_MODES:
+            header_asof = slot_utc if slot_utc is not None else (
+                regime.computed_at_utc if regime is not None else datetime.now(timezone.utc)
+            )
             alert_title, alert_body = format_hourly_notification(
-                asof_utc=regime.computed_at_utc if regime is not None else datetime.now(timezone.utc),
+                asof_utc=header_asof,
                 regime=regime,
                 validation_summary=validation_summary,
                 qualification_summary=qualification_summary,
@@ -601,8 +609,12 @@ def _execute_notify_run(mode: str, run_date: date, notify_mode: str) -> dict[str
                 outcome=OUTCOME_NO_TRADE,
                 raw_quotes=raw_quotes,
                 normalized_quotes=normalized_quotes,
+                slot_utc=slot_utc,
             )
             _write_hourly_artifacts(summary, contract)
+            if alert_sent and slot_utc is not None:
+                from cuttingboard.notifications.hourly_slot import save_last_slot
+                save_last_slot(slot_utc)
             hourly_market_map = build_market_map(
                 generated_at=run_at_utc,
                 session_date=run_date.isoformat(),
@@ -1775,6 +1787,7 @@ def _build_hourly_run_summary(
     outcome: str,
     raw_quotes: dict[str, RawQuote],
     normalized_quotes: dict[str, NormalizedQuote],
+    slot_utc: Optional[datetime] = None,
 ) -> dict[str, Any]:
     regime_name, posture, confidence, net_score = _summary_regime_fields(regime)
     generation_id = _generation_id("hourly", run_at_utc, None)
@@ -1809,6 +1822,7 @@ def _build_hourly_run_summary(
         "timestamp": _iso_z(run_at_utc),
         "run_at_utc": _iso_z(run_at_utc),
         "generated_at": _iso_z(run_at_utc),
+        "hourly_slot_utc": _iso_z(slot_utc) if slot_utc is not None else None,
         "mode": {
             MODE_LIVE: SUMMARY_MODE_LIVE,
             MODE_FIXTURE: SUMMARY_MODE_FIXTURE,
