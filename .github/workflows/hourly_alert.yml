@@ -6,8 +6,12 @@ on:
     # PT equivalents shift with DST; the in-app gate normalises to top of PT hour.
     # Pre-open warm-up: 12:50 UTC (premarket, exempt from slot gate)
     - cron: '50 12 * * 1-5'
-    # Pre-open: 13:00 UTC (premarket, exempt from slot gate)
+    # Pre-open warm-up backup: 12:55 UTC (PRD-144, premarket-exempt, redundancy)
+    - cron: '55 12 * * 1-5'
+    # Pre-open: 13:00 UTC (premarket, exempt from slot gate) — 6:00 AM PT
     - cron: '0 13 * * 1-5'
+    # 6:00 AM PT backup: 13:05 UTC (PRD-144, premarket-exempt, redundancy)
+    - cron: '5 13 * * 1-5'
     # ORB window / market open: 13:50 UTC (premarket, exempt from slot gate)
     - cron: '50 13 * * 1-5'
     # Intraday every 30 min: 14:00–21:30 UTC (gate dedups to one alert per PT hour)

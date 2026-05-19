@@ -171,3 +171,4 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-141 | 1ba6cc9 | Hourly Alert Canonical Slot + Cross-Run Idempotency | COMPLETE | [PRD-141](prd_history/PRD-141.md) |
 | PRD-142 | —       | PATCH PRD-141 Persist hourly slot state across CI runs | IN PROGRESS | [PRD-142](prd_history/PRD-142.md) |
 | PRD-143 | 575b34f | Process hygiene sweep: hook exclusion, runtime.py debt note, Skill drift clause | COMPLETE | [PRD-143](prd_history/PRD-143.md) |
+| PRD-144 | —       | Redundant cron entries for 6 AM PT hourly alert resilience | IN PROGRESS | [PRD-144](prd_history/PRD-144.md) |
