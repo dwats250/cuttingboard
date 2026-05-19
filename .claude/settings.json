@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/protect_files.sh"
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" && bash .claude/hooks/protect_files.sh"
           }
         ]
       },
@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/protect_files.sh"
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" && bash .claude/hooks/protect_files.sh"
           }
         ]
       }
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/test_gate.sh"
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" && bash .claude/hooks/test_gate.sh"
           }
         ]
       },
@@ -46,7 +46,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/test_gate.sh"
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" && bash .claude/hooks/test_gate.sh"
           }
         ]
       }
@@ -56,7 +56,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/stop_snapshot.sh"
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" && bash .claude/hooks/stop_snapshot.sh"
           }
         ]
       }
@@ -66,7 +66,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/prd_eval.sh",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" && bash .claude/hooks/prd_eval.sh",
             "statusMessage": "Checking for PRD..."
           }
         ]

@@ -38,7 +38,7 @@ Operate REPO-FIRST. Memory hierarchy (strict):
 Full bootstrap checklist: `docs/AGENT_SESSION_BOOTSTRAP.md`
 
 **Auto-approval policy:**
-LOW_COST read-only actions (grep, find, git status/diff/log, targeted reads, pytest, lint) execute without approval prompts. All mutations outside PRD-scoped files, and all changes to runtime/contract/execution_policy/payload/notification/dashboard/trading logic, must stop for explicit approval. Full policy and protected file list: `docs/AGENT_WORKFLOW.md § Auto-Approval Policy`.
+LOW_COST read-only actions (grep, find, git status/diff/log, targeted reads, pytest, lint) execute without approval prompts. All mutations outside PRD-scoped files, and all changes to runtime/contract/execution_policy/payload/notification/dashboard/trading logic, must stop for explicit approval. Full enumeration: `## Safe Command Auto-Approval Policy` below. Protected file list and lane-specific overrides: `docs/AGENT_WORKFLOW.md § Auto-Approval Policy`.
 
 **Constraints:**
 - Do not rely on chat history for system understanding
@@ -438,6 +438,92 @@ Do not rerun all workflows blindly. Match issue to workflow:
 | Notification | Hourly Alert |
 
 Always use `--ref main` unless another branch is explicitly required.
+
+---
+
+## Safe Command Auto-Approval Policy
+
+The agent may run the following commands during PRD work, CI investigation, and closeout **without asking for approval per command**. Batch them into one shell block where practical rather than running them one at a time.
+
+### Auto-approved (no prompt)
+
+1. **Git read-only inspection**
+   - `git status -sb`, `git status --short`
+   - `git log --oneline -N`, `git log --since=...`
+   - `git show --stat <commit>`, `git show --name-only --oneline <commit>`
+   - `git diff --stat`, `git diff --name-only`, `git diff -- <scoped path>`, `git diff --cached --name-only`
+   - `git branch --show-current`, `git branch -v`
+   - `git blame -- <file>`, `git grep <pattern>`
+   - `git rev-parse <ref>`, `git fetch origin <branch>` (read-only, no merge)
+
+2. **GitHub CLI read-only inspection**
+   - `gh run list`, `gh run list --workflow X --limit N --json ...`
+   - `gh run view <id>`, `gh run view <id> --json status,conclusion,jobs,url`
+   - `gh run view <id> --log`, `gh run view <id> --log-failed`
+   - `gh workflow view`, `gh workflow list`
+   - `gh pr list`, `gh pr view`, `gh pr diff`
+   - `gh api <read-only GET path>` (HTTP method must be GET)
+
+3. **File/text read-only inspection**
+   - `grep`, `rg`, `sed -n` (no in-place edit)
+   - `cat`, `head`, `tail`
+   - `find`, `ls`, `tree`, `wc`, `stat`, `file`
+   - `jq -e '.path'`, `jq -r '...'` (read-only queries)
+   - `python3 -c "..."` snippets that only read files or compute over stdin
+
+4. **Validation**
+   - `python3 -m pytest <specific test file or path> -q`
+   - `python3 -m pytest tests/ -q`
+   - `python3 scripts/check_readiness.py`
+   - `python3 scripts/pre_commit_sanity.sh` / `bash scripts/pre_push_check.sh`
+   - `ruff check <path>`, `bash -n <script>` (syntax check only)
+   - PRD-scoped functional validation snippets (R1..Rn reproductions)
+
+### Requires explicit approval before running
+
+- **Git mutations**: `git push`, `git pull`, `git rebase`, `git merge`, `git reset`, `git restore`, `git checkout <ref>`, `git stash` (push/pop), `git commit`, `git tag`, `git cherry-pick`
+- **History rewriting**: `git rebase -i`, `git commit --amend`, `git push --force`, `git push --force-with-lease`
+- **Filesystem mutations**: `rm`, `mv`, `cp` (when overwriting tracked files), `chmod`, `chown`, `ln`
+- **Package management**: `pip install`, `npm install -g`, `apt install`, anything that mutates global tool state
+- **GitHub CLI mutations**: `gh workflow run`, `gh run rerun`, `gh run cancel`, `gh pr create`, `gh pr merge`, `gh issue create`, `gh release create`, `gh api` with POST/PATCH/PUT/DELETE
+- **Cloudflare / external deploy**: `wrangler login`, `wrangler secret put`, `wrangler deploy`, `wrangler delete`
+- **File editing**: any `Edit`/`Write`/`NotebookEdit` tool call outside the active PRD's `FILES` allowlist, or to runtime/contract/payload/notification/dashboard/trading logic, or to generated artifacts (`ui/*`, `logs/*`, `reports/*`).
+- **PRD scope changes**: amending FILES section mid-implementation, switching LANE, changing FAIL conditions after work has started.
+
+### Special gh rule
+
+Read-only `gh` commands are inspection — auto-approved.
+Mutating `gh` commands require approval.
+
+Allowed without prompts:
+- `gh run list`, `gh run view`, `gh run view --log`, `gh run view --log-failed`
+- `gh workflow view`, `gh workflow list`
+- `gh pr view`, `gh pr diff`, `gh pr list`
+- `gh api` with **GET** HTTP method only
+
+Ask first:
+- `gh workflow run`
+- `gh run rerun`, `gh run cancel`
+- `gh api` with POST/PATCH/PUT/DELETE
+- `gh pr create`, `gh pr merge`, `gh pr close`
+- `gh release create`
+
+### Stop conditions
+
+The agent **must stop and ask the user** before proceeding when any of the following holds:
+
+- Working tree is dirty in a way that doesn't match the active PRD's expected change set, before implementation begins.
+- Branch is unexpectedly ahead/behind origin, or the remote has diverged from local.
+- Files outside the active PRD's `FILES` section have unstaged or staged changes.
+- Generated artifacts (`ui/*`, `logs/*`, `reports/*`) have changed unexpectedly outside the workflow's `Commit hourly artifacts` / `CI artifacts` provenance.
+- Validation (targeted pytest, scope-lock grep, FAIL-condition repro, JSON validity, readiness gate) fails.
+- The next intended command would mutate the repo, the working tree, the index, workflow run state, the remote, or commit history.
+- The task requires touching files outside the active PRD's `FILES` allowlist (resolve by amending the PRD or opening a follow-up PRD — do not silently expand scope).
+- An ambiguity in the user's instruction would change which files are touched, which lane the work falls into, or whether a commit/push happens.
+
+### Batching rule
+
+When several safe inspection commands are needed for the same diagnostic question, the agent should batch them into a single shell block (one `Bash` tool call) rather than prompting for each individually. This applies to read-only commands only; mutating commands must still be invoked one at a time with explicit approval.
 
 ---
 
