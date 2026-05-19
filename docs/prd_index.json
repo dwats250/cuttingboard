@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 144,
-  "next_prd": 145,
+  "latest_complete": 146,
+  "next_prd": 147,
   "entries": [
     {
       "number": 56,
@@ -80,6 +80,12 @@
       "title": "Redundant cron entries for 6 AM PT hourly alert resilience",
       "status": "COMPLETE",
       "commit": "e3447d2"
+    },
+    {
+      "number": 146,
+      "title": "Reconcile prd_index.json with registry truth for 141/142/143",
+      "status": "COMPLETE",
+      "commit": "c0cfd53"
     }
   ]
 }
