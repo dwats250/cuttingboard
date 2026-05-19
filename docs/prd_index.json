@@ -82,6 +82,12 @@
       "commit": "e3447d2"
     },
     {
+      "number": 145,
+      "title": "Sequencing-gate parser keys on row-owner cell only",
+      "status": "COMPLETE",
+      "commit": "3230ceb"
+    },
+    {
       "number": 146,
       "title": "Reconcile prd_index.json with registry truth for 141/142/143",
       "status": "COMPLETE",
