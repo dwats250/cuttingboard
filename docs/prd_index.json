@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 147,
-  "next_prd": 148,
+  "latest_complete": 148,
+  "next_prd": 149,
   "entries": [
     {
       "number": 56,
@@ -98,6 +98,12 @@
       "title": "prd_close.sh must not parse user input as re.sub template",
       "status": "COMPLETE",
       "commit": "320ab7f"
+    },
+    {
+      "number": 148,
+      "title": "Insert PRD-145 entry into prd_index.json",
+      "status": "COMPLETE",
+      "commit": "08ea12e"
     }
   ]
 }
