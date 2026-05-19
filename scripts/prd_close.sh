@@ -143,18 +143,24 @@ if n != 1:
     print("WARN: 'Last updated' marker not found in PROJECT_STATE.md", file=sys.stderr)
 
 # (b) Last completed PRD
+# callable replacement bypasses re.sub template parsing of backslash escapes
+# in user-supplied --title; otherwise a title like 'foo \d bar' raises
+# re.PatternError: bad escape \d.
 state_text, n = re.subn(
     r"^\*\*Last completed PRD:\*\*.*$",
-    f"**Last completed PRD:** {prd_id} - {title} (commit {commit_hash})",
+    lambda _m: f"**Last completed PRD:** {prd_id} - {title} (commit {commit_hash})",
     state_text, count=1, flags=re.MULTILINE,
 )
 if n != 1:
     print("WARN: 'Last completed PRD' marker not found in PROJECT_STATE.md", file=sys.stderr)
 
 # (c) Last work completed — one-line `**Last work completed:** YYYY-MM-DD — <summary>`
+# callable replacement bypasses re.sub template parsing of backslash escapes
+# in user-supplied --summary; otherwise a summary containing 'r"PRD-(\d+)"'
+# raises re.PatternError: bad escape \d (observed during PRD-145 closeout).
 state_text, n = re.subn(
     r"^\*\*Last work completed:\*\*.*$",
-    f"**Last work completed:** {today} — {summary}",
+    lambda _m: f"**Last work completed:** {today} — {summary}",
     state_text, count=1, flags=re.MULTILINE,
 )
 if n != 1:
