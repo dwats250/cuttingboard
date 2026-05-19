@@ -13,12 +13,12 @@
     "rejected_count": 0
   },
   "correlation": null,
-  "generated_at": "2026-05-19T19:04:28Z",
-  "generation_id": "hourly-20260519T190428Z",
+  "generated_at": "2026-05-19T21:01:56Z",
+  "generation_id": "hourly-20260519T210156Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -0.20877532588780534,
-      "level": 76783.6171875,
+      "change_pct": -0.024581512692071626,
+      "level": 76925.34375,
       "symbol": "BTC-USD"
     },
     "dollar": {
@@ -27,29 +27,29 @@
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -1.1079580431695637,
-      "level": 4498.5,
+      "change_pct": -1.3783487959131602,
+      "level": 4486.2001953125,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 1.7594998641660764,
-      "level": 104.68000030517578,
+      "change_pct": 1.205402771130704,
+      "level": 104.11000061035156,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 4.03460567909625,
-      "change_pct": 0.8652381699933184,
-      "level": 4.663000106811523,
+      "change_bps": 4.441844136492863,
+      "change_pct": 0.951755798321096,
+      "level": 4.666999816894531,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -2.7462535094965306,
-      "level": 74.54499816894531,
+      "change_pct": -3.3790005423688187,
+      "level": 74.05999755859375,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 0.9545203896217528,
-      "level": 17.979999542236328,
+      "change_pct": 1.4037058253598982,
+      "level": 18.059999465942383,
       "symbol": "^VIX"
     }
   },
@@ -64,15 +64,15 @@
   "outcome": "NO_TRADE",
   "regime": {
     "classification": "RISK_OFF",
-    "confidence": 0.375,
-    "net_score": -3,
-    "neutral_votes": 3,
+    "confidence": 0.5,
+    "net_score": -4,
+    "neutral_votes": 4,
     "posture": "STAY_FLAT",
     "risk_off_votes": 4,
-    "risk_on_votes": 1,
+    "risk_on_votes": 0,
     "total_votes": 8,
-    "vix_level": 17.979999542236328,
-    "vix_pct_change": 0.009545203896217528,
+    "vix_level": 18.059999465942383,
+    "vix_pct_change": 0.014037058253598982,
     "vote_breakdown": {
       "BTC pct_change": "NEUTRAL",
       "DXY pct_change": "NEUTRAL",
@@ -80,7 +80,7 @@
       "QQQ pct_change": "RISK_OFF",
       "SPY pct_change": "RISK_OFF",
       "TNX pct_change": "RISK_OFF",
-      "VIX level": "RISK_ON",
+      "VIX level": "NEUTRAL",
       "VIX pct_change": "NEUTRAL"
     }
   },
@@ -89,12 +89,12 @@
   "session_date": "2026-05-19",
   "status": "STAY_FLAT",
   "system_state": {
-    "confidence": 0.375,
+    "confidence": 0.5,
     "intraday_state": null,
     "market_regime": "RISK_OFF",
     "router_mode": "MIXED",
     "stay_flat_reason": "STAY_FLAT posture",
-    "time_gate_open": true,
+    "time_gate_open": false,
     "tradable": false
   },
   "timezone": "America/New_York",
