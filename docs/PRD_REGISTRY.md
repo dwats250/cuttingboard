@@ -176,3 +176,4 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-146 | c0cfd53 | Reconcile prd_index.json with registry truth for 141/142/143 | COMPLETE | [PRD-146](prd_history/PRD-146.md) |
 | PRD-147 | 320ab7f | prd_close.sh must not parse user input as re.sub template | COMPLETE | [PRD-147](prd_history/PRD-147.md) |
 | PRD-148 | 08ea12e | Insert PRD-145 entry into prd_index.json | COMPLETE | [PRD-148](prd_history/PRD-148.md) |
+| PRD-149 | —       | External Cloudflare Workers cron triggers hourly alert via workflow_dispatch | IN PROGRESS | [PRD-149](prd_history/PRD-149.md) |
