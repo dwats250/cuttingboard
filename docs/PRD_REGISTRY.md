@@ -172,4 +172,4 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-142 | —       | PATCH PRD-141 Persist hourly slot state across CI runs | IN PROGRESS | [PRD-142](prd_history/PRD-142.md) |
 | PRD-143 | 575b34f | Process hygiene sweep: hook exclusion, runtime.py debt note, Skill drift clause | COMPLETE | [PRD-143](prd_history/PRD-143.md) |
 | PRD-144 | e3447d2 | Redundant cron entries for 6 AM PT hourly alert resilience | COMPLETE | [PRD-144](prd_history/PRD-144.md) |
-| PRD-145 | —       | Sequencing-gate parser keys on row-owner cell only | IN PROGRESS | [PRD-145](prd_history/PRD-145.md) |
+| PRD-145 | 3230ceb | Sequencing-gate parser keys on row-owner cell only | COMPLETE | [PRD-145](prd_history/PRD-145.md) |
