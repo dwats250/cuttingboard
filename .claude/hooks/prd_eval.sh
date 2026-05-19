@@ -125,9 +125,18 @@ except OSError:
 
 in_progress = []
 for line in text.splitlines():
-    if "IN PROGRESS" in line:
-        nums = re.findall(r'PRD-(\d+)', line)
-        in_progress.extend(int(n) for n in nums)
+    # Only consider markdown table rows whose status cell is IN PROGRESS.
+    # Extract the row-owner cell (first column) and read the PRD-NNN from it
+    # ONLY — title/description cells may legitimately reference other PRDs
+    # (e.g. "PATCH PRD-141"), which must not be misclassified as IN PROGRESS.
+    if not line.startswith("|") or "IN PROGRESS" not in line:
+        continue
+    cells = line.split("|")
+    if len(cells) < 2:
+        continue
+    owner_cell = cells[1]
+    nums = re.findall(r'PRD-(\d+)', owner_cell)
+    in_progress.extend(int(n) for n in nums)
 in_progress = sorted(set(in_progress))
 
 if not in_progress:
