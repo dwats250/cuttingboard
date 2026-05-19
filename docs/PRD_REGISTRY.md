@@ -169,3 +169,4 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-139 | 6ab8433 | Upstream Macro Collector Sidecar | COMPLETE | [PRD-139](prd_history/PRD-139.md) |
 | PRD-140 | 1dbc886 | Document pre_push_check.sh in CLAUDE.md git hygiene | COMPLETE | [PRD-140](prd_history/PRD-140.md) |
 | PRD-141 | b5de140 | Hourly Alert Canonical Slot + Cross-Run Idempotency | COMPLETE | [PRD-141](prd_history/PRD-141.md) |
+| PRD-142 | —       | PATCH PRD-141 Persist hourly slot state across CI runs | IN PROGRESS | [PRD-142](prd_history/PRD-142.md) |

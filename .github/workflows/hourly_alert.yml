@@ -77,6 +77,9 @@ jobs:
         run: |
           set -euo pipefail
           PRE_SHA=$(git rev-parse HEAD)
+          if [ -f logs/last_hourly_slot.json ]; then
+            git add -f logs/last_hourly_slot.json
+          fi
           git add -f \
             logs/audit.jsonl \
             logs/market_map.json \
