@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": -0.06634859480435897,
-      "price": 141.97999572753906,
+      "pct_change_decimal": -0.051617859365464945,
+      "price": 144.2200927734375,
       "structure": "PULLBACK",
       "symbol": "USO"
     }
@@ -16,8 +16,8 @@
       "SLV"
     ]
   },
-  "generated_at": "2026-05-20T17:18:59Z",
-  "generation_id": "hourly-20260520T171859Z",
+  "generated_at": "2026-05-20T20:02:55Z",
+  "generation_id": "hourly-20260520T200255Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -31,14 +31,14 @@
   "session_date": "2026-05-20",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-05-20T17:18:59Z"
+    "run_at_utc": "2026-05-20T20:02:55Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 86.5,
+      "current_price": 86.30999755859375,
       "fib_levels": {
         "retracements": {
           "0.382": 92.861,
@@ -57,12 +57,12 @@
       "lifecycle": {
         "current_grade": "D",
         "current_setup_state": "LOW_QUALITY",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "F",
-        "previous_setup_state": "DATA_UNAVAILABLE",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "D",
+        "previous_setup_state": "LOW_QUALITY",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bearish defined-risk continuation",
       "reason_for_grade": "D: bearish trending_down, regime mixed, away from key level",
@@ -94,7 +94,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 416.3367919921875,
+      "current_price": 417.3800048828125,
       "fib_levels": {
         "retracements": {
           "0.382": 426.8997,
@@ -113,12 +113,12 @@
       "lifecycle": {
         "current_grade": "D",
         "current_setup_state": "LOW_QUALITY",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "F",
-        "previous_setup_state": "DATA_UNAVAILABLE",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "D",
+        "previous_setup_state": "LOW_QUALITY",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bearish defined-risk continuation",
       "reason_for_grade": "D: bearish trending_down, regime mixed, away from key level",
@@ -160,7 +160,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 710.4199829101562,
+      "current_price": 713.1500244140625,
       "fib_levels": {
         "retracements": {
           "0.382": 692.8032,
@@ -179,12 +179,12 @@
       "lifecycle": {
         "current_grade": "D",
         "current_setup_state": "EXTENDED",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "F",
-        "previous_setup_state": "DATA_UNAVAILABLE",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "D",
+        "previous_setup_state": "EXTENDED",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "pullback reset watch",
       "reason_for_grade": "D: bullish structure is extended from trend reference",
@@ -221,7 +221,7 @@
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 68.75800323486328,
+      "current_price": 68.7300033569336,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -235,8 +235,8 @@
         "is_new": false,
         "is_removed": false,
         "previous_grade": "F",
-        "previous_setup_state": "DATA_UNAVAILABLE",
-        "setup_state_transition": "CHANGED"
+        "previous_setup_state": "CHOPPY",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": null,
       "reason_for_grade": "Market data unavailable for this run.",
@@ -277,7 +277,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 739.8499755859375,
+      "current_price": 741.260009765625,
       "fib_levels": {
         "retracements": {
           "0.382": 731.4805,
@@ -296,12 +296,12 @@
       "lifecycle": {
         "current_grade": "D",
         "current_setup_state": "EXTENDED",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "F",
-        "previous_setup_state": "DATA_UNAVAILABLE",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "D",
+        "previous_setup_state": "EXTENDED",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "pullback reset watch",
       "reason_for_grade": "D: bullish structure is extended from trend reference",
@@ -343,7 +343,7 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "HIGH",
-      "current_price": 60.05500030517578,
+      "current_price": 59.79999923706055,
       "fib_levels": {
         "retracements": {
           "0.382": 59.0605,
@@ -362,12 +362,12 @@
       "lifecycle": {
         "current_grade": "A",
         "current_setup_state": "STRONG_WATCH",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "F",
-        "previous_setup_state": "DATA_UNAVAILABLE",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "A",
+        "previous_setup_state": "STRONG_WATCH",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
       "reason_for_grade": "A: bullish trending_up, regime aligned, away from key level",

@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-05-20T17:18:59.004255+00:00",
+  "generated_at": "2026-05-20T20:02:55.202464+00:00",
   "schema_version": 1,
   "source": "trend_structure",
   "symbols": {
     "GDX": {
-      "current_price": 86.5,
+      "current_price": 86.30999755859375,
       "data_status": "PARTIAL",
       "entry_context": "INSUFFICIENT_HISTORY",
       "price_vs_sma_200": "INSUFFICIENT_HISTORY",
       "price_vs_sma_50": "BELOW",
       "price_vs_vwap": "NOT_COMPUTED",
       "reason": "trend alignment INSUFFICIENT_HISTORY \u2014 sma_50 or sma_200 missing",
-      "relative_volume": 1.0386937024640943,
+      "relative_volume": 1.0397846078467876,
       "sma_200": null,
       "sma_50": 92.31179977416993,
       "symbol": "GDX",
@@ -19,14 +19,14 @@
       "vwap": null
     },
     "GLD": {
-      "current_price": 416.3367919921875,
+      "current_price": 417.3800048828125,
       "data_status": "PARTIAL",
       "entry_context": "INSUFFICIENT_HISTORY",
       "price_vs_sma_200": "INSUFFICIENT_HISTORY",
       "price_vs_sma_50": "BELOW",
       "price_vs_vwap": "NOT_COMPUTED",
       "reason": "trend alignment INSUFFICIENT_HISTORY \u2014 sma_50 or sma_200 missing",
-      "relative_volume": 0.8642375341872458,
+      "relative_volume": 0.869322511048195,
       "sma_200": null,
       "sma_50": 432.06119873046873,
       "symbol": "GLD",
@@ -34,14 +34,14 @@
       "vwap": null
     },
     "QQQ": {
-      "current_price": 710.4199829101562,
+      "current_price": 713.1500244140625,
       "data_status": "PARTIAL",
       "entry_context": "INSUFFICIENT_HISTORY",
       "price_vs_sma_200": "INSUFFICIENT_HISTORY",
       "price_vs_sma_50": "ABOVE",
       "price_vs_vwap": "NOT_COMPUTED",
       "reason": "trend alignment INSUFFICIENT_HISTORY \u2014 sma_50 or sma_200 missing",
-      "relative_volume": 1.1700692436042839,
+      "relative_volume": 1.1760136658928286,
       "sma_200": null,
       "sma_50": 635.3194934082031,
       "symbol": "QQQ",
@@ -49,7 +49,7 @@
       "vwap": null
     },
     "SLV": {
-      "current_price": 68.75800323486328,
+      "current_price": 68.7300033569336,
       "data_status": "PARTIAL",
       "entry_context": "DATA_UNAVAILABLE",
       "price_vs_sma_200": "DATA_UNAVAILABLE",
@@ -64,14 +64,14 @@
       "vwap": null
     },
     "SPY": {
-      "current_price": 739.8499755859375,
+      "current_price": 741.260009765625,
       "data_status": "PARTIAL",
       "entry_context": "INSUFFICIENT_HISTORY",
       "price_vs_sma_200": "INSUFFICIENT_HISTORY",
       "price_vs_sma_50": "ABOVE",
       "price_vs_vwap": "NOT_COMPUTED",
       "reason": "trend alignment INSUFFICIENT_HISTORY \u2014 sma_50 or sma_200 missing",
-      "relative_volume": 1.1180201324919683,
+      "relative_volume": 1.1206246560392055,
       "sma_200": null,
       "sma_50": 692.1833642578125,
       "symbol": "SPY",
@@ -79,14 +79,14 @@
       "vwap": null
     },
     "XLE": {
-      "current_price": 60.05500030517578,
+      "current_price": 59.79999923706055,
       "data_status": "PARTIAL",
       "entry_context": "INSUFFICIENT_HISTORY",
       "price_vs_sma_200": "INSUFFICIENT_HISTORY",
       "price_vs_sma_50": "ABOVE",
       "price_vs_vwap": "NOT_COMPUTED",
       "reason": "trend alignment INSUFFICIENT_HISTORY \u2014 sma_50 or sma_200 missing",
-      "relative_volume": 0.847312721138297,
+      "relative_volume": 0.8489691264604065,
       "sma_200": null,
       "sma_50": 58.19272171020508,
       "symbol": "XLE",
