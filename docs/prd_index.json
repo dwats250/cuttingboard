@@ -104,6 +104,12 @@
       "title": "Insert PRD-145 entry into prd_index.json",
       "status": "COMPLETE",
       "commit": "08ea12e"
+    },
+    {
+      "number": 149,
+      "title": "PT-Anchored Hourly Alert Window (6:00 AM – 1:00 PM PT)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
