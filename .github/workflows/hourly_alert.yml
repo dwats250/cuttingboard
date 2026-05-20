@@ -51,6 +51,10 @@ jobs:
           echo "TELEGRAM_BOT_TOKEN_PRESENT=${{ secrets.TELEGRAM_BOT_TOKEN != '' }}"
           echo "TELEGRAM_CHAT_ID_PRESENT=${{ secrets.TELEGRAM_CHAT_ID != '' }}"
 
+      - name: Record alert-runner start
+        id: starttime
+        run: echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+
       - name: Run hourly alert
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -59,8 +63,29 @@ jobs:
             python -m cuttingboard.alert_runner
           fi
 
-      - name: Render and stage hourly artifacts
+      - name: Detect fresh hourly artifacts
+        id: freshcheck
         if: ${{ success() }}
+        run: |
+          set -euo pipefail
+          PAYLOAD=logs/latest_hourly_payload.json
+          START_TS=${{ steps.starttime.outputs.ts }}
+          if [ ! -f "$PAYLOAD" ]; then
+            echo "fresh=false" >> "$GITHUB_OUTPUT"
+            echo "alert_runner produced no hourly payload; skipping publish"
+            exit 0
+          fi
+          payload_mtime=$(stat -c %Y "$PAYLOAD")
+          if [ "$payload_mtime" -lt "$START_TS" ]; then
+            echo "fresh=false" >> "$GITHUB_OUTPUT"
+            echo "alert_runner suppressed slot (payload mtime=$payload_mtime < start=$START_TS); skipping publish"
+          else
+            echo "fresh=true" >> "$GITHUB_OUTPUT"
+            echo "fresh hourly payload detected (mtime=$payload_mtime >= start=$START_TS)"
+          fi
+
+      - name: Render and stage hourly artifacts
+        if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -73,11 +98,11 @@ jobs:
           cp ui/dashboard.html ui/index.html
 
       - name: Check hourly readiness
-        if: ${{ success() }}
+        if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
         run: python3 scripts/check_readiness.py
 
       - name: Commit hourly artifacts
-        if: ${{ success() }}
+        if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
         run: |
           set -euo pipefail
           PRE_SHA=$(git rev-parse HEAD)
@@ -107,7 +132,7 @@ jobs:
           echo "POST_SHA=$POST_SHA" >> "$GITHUB_ENV"
 
       - name: Push hourly artifacts
-        if: ${{ success() }}
+        if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
         run: |
           set -euo pipefail
           bash tools/ci_push_artifacts.sh
