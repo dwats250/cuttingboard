@@ -2,7 +2,7 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.01688609702078979,
+      "pct_change_decimal": 0.005855257815284443,
       "price": 152.9600067138672,
       "structure": "UNKNOWN",
       "symbol": "USO"
@@ -26,8 +26,8 @@
       "XLE"
     ]
   },
-  "generated_at": "2026-05-19T22:45:32Z",
-  "generation_id": "hourly-20260519T224532Z",
+  "generated_at": "2026-05-20T13:15:07Z",
+  "generation_id": "hourly-20260520T131507Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -38,10 +38,10 @@
   ],
   "removed_symbols": [],
   "schema_version": "market_map.v1",
-  "session_date": "2026-05-19",
+  "session_date": "2026-05-20",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-05-19T22:45:32Z"
+    "run_at_utc": "2026-05-20T13:15:07Z"
   },
   "symbols": {
     "GDX": {
@@ -121,13 +121,18 @@
       "watch_zones": [
         {
           "context": "fast trend reference",
-          "level": 425.2831,
+          "level": 422.5264,
           "type": "EMA9"
         },
         {
           "context": "primary trend reference",
-          "level": 427.9012,
+          "level": 426.4101,
           "type": "EMA21"
+        },
+        {
+          "context": "trend base reference",
+          "level": 431.6038,
+          "type": "EMA50"
         }
       ],
       "what_to_look_for": [
@@ -172,12 +177,12 @@
       "watch_zones": [
         {
           "context": "fast trend reference",
-          "level": 703.7645,
+          "level": 703.3176,
           "type": "EMA9"
         },
         {
           "context": "primary trend reference",
-          "level": 682.7704,
+          "level": 684.4758,
           "type": "EMA21"
         }
       ],
@@ -262,17 +267,17 @@
       "watch_zones": [
         {
           "context": "fast trend reference",
-          "level": 736.6952,
+          "level": 736.1022,
           "type": "EMA9"
         },
         {
           "context": "primary trend reference",
-          "level": 724.0349,
+          "level": 724.9163,
           "type": "EMA21"
         },
         {
           "context": "trend base reference",
-          "level": 704.6018,
+          "level": 705.7038,
           "type": "EMA50"
         }
       ],
@@ -318,8 +323,13 @@
       "watch_zones": [
         {
           "context": "fast trend reference",
-          "level": 58.4542,
+          "level": 59.0213,
           "type": "EMA9"
+        },
+        {
+          "context": "primary trend reference",
+          "level": 58.2915,
+          "type": "EMA21"
         }
       ],
       "what_to_look_for": [
