@@ -47,18 +47,37 @@ def main(argv: list[str] | None = None) -> int:
     try:
         from cuttingboard.notifications import NOTIFY_HOURLY
         from cuttingboard.notifications.hourly_slot import (
+            _PT_TZ,
             canonical_slot_utc,
-            is_premarket_slot,
             load_last_slot,
+            routine_pt_slot,
         )
         from cuttingboard.output import write_notification_audit
         from cuttingboard.runtime import MODE_LIVE, _execute_notify_run
 
         now_utc = datetime.now(timezone.utc)
-        slot_utc = canonical_slot_utc(now_utc)
-        premarket = is_premarket_slot(now_utc)
 
-        if not force_slot and not premarket:
+        if force_slot:
+            slot_utc = canonical_slot_utc(now_utc)
+        else:
+            slot_utc = routine_pt_slot(now_utc)
+            if slot_utc is None:
+                now_pt = now_utc.astimezone(_PT_TZ)
+                state_key = f"outside:{now_pt.strftime('%Y-%m-%dT%H:%M%z')}"
+                write_notification_audit(
+                    transport="telegram",
+                    status="suppressed",
+                    alert_title="hourly",
+                    attempted=False,
+                    success=False,
+                    reason="outside_routine_window",
+                    state_key=state_key,
+                )
+                logger.info(
+                    "hourly alert suppressed: outside routine window now_pt=%s",
+                    now_pt.isoformat(),
+                )
+                return 0
             last = load_last_slot()
             if last is not None and last.get("slot_utc") == slot_utc.isoformat():
                 write_notification_audit(

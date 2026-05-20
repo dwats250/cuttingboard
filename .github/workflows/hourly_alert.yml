@@ -2,20 +2,20 @@ name: Cuttingboard Hourly Alert
 
 on:
   schedule:
-    # All times below are UTC (GitHub Actions cron is always UTC).
-    # PT equivalents shift with DST; the in-app gate normalises to top of PT hour.
-    # Pre-open warm-up: 12:50 UTC (premarket, exempt from slot gate)
-    - cron: '50 12 * * 1-5'
-    # Pre-open warm-up backup: 12:55 UTC (PRD-144, premarket-exempt, redundancy)
-    - cron: '55 12 * * 1-5'
-    # Pre-open: 13:00 UTC (premarket, exempt from slot gate) — 6:00 AM PT
-    - cron: '0 13 * * 1-5'
-    # 6:00 AM PT backup: 13:05 UTC (PRD-144, premarket-exempt, redundancy)
-    - cron: '5 13 * * 1-5'
-    # ORB window / market open: 13:50 UTC (premarket, exempt from slot gate)
-    - cron: '50 13 * * 1-5'
-    # Intraday every 30 min: 14:00–21:30 UTC (gate dedups to one alert per PT hour)
-    - cron: '*/30 14-21 * * 1-5'
+    # PRD-149: PT-anchored allowed-slot set, 6:00 AM – 1:00 PM PT.
+    # All times below are UTC (GitHub Actions cron is always UTC); the
+    # runner's routine_pt_slot() gate is authoritative — fires outside
+    # the allowed PT window are suppressed with audit reason
+    # "outside_routine_window". DST-resilient: each unique UTC minute
+    # listed once; 06:00 PT is the only slot with a +5min backup.
+    - cron: '0 13 * * 1-5'    # 06:00 PDT (PST 05:00 -> gate-suppressed)
+    - cron: '5 13 * * 1-5'    # 06:05 PDT — 06:00 PT redundancy backup
+    - cron: '30 13 * * 1-5'   # 06:30 PDT (PST 05:30 -> gate-suppressed)
+    - cron: '0 14 * * 1-5'    # 06:00 PST  /  07:00 PDT
+    - cron: '5 14 * * 1-5'    # 06:05 PST — 06:00 PT redundancy backup
+    - cron: '30 14 * * 1-5'   # 06:30 PST  /  07:30 PDT -> gate-suppressed
+    - cron: '0 15-21 * * 1-5' # 08:00-14:00 PDT (14:00 -> gate-suppressed) /
+                              # 07:00-13:00 PST (all in-window)
   workflow_dispatch:
 
 concurrency:

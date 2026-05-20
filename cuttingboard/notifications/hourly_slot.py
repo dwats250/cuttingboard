@@ -1,10 +1,15 @@
-"""Canonical PT-hour slot + cross-run idempotency store for hourly alerts (PRD-141)."""
+"""Canonical PT-hour slot + cross-run idempotency store for hourly alerts (PRD-141).
+
+PRD-149 adds ``ALLOWED_PT_SLOTS`` and ``routine_pt_slot`` to anchor routine
+hourly alerts to a fixed PT slot set (6:00 AM – 1:00 PM PT) regardless of
+GitHub Actions cron drift.
+"""
 
 from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 from zoneinfo import ZoneInfo
@@ -15,6 +20,19 @@ LAST_HOURLY_SLOT_PATH = "logs/last_hourly_slot.json"
 
 _PREMARKET_MINUTES_UTC: frozenset[tuple[int, int]] = frozenset(
     {(12, 50), (13, 0), (13, 50)}
+)
+
+# PRD-149: allowed routine PT slots, interpreted in America/Vancouver.
+ALLOWED_PT_SLOTS: tuple[tuple[int, int], ...] = (
+    (6, 0),
+    (6, 30),
+    (7, 0),
+    (8, 0),
+    (9, 0),
+    (10, 0),
+    (11, 0),
+    (12, 0),
+    (13, 0),
 )
 
 logger = logging.getLogger(__name__)
@@ -29,6 +47,33 @@ def canonical_slot_utc(now_utc: datetime) -> datetime:
         raise ValueError("canonical_slot_utc requires a tz-aware datetime")
     pt = now_utc.astimezone(_PT_TZ).replace(minute=0, second=0, microsecond=0)
     return pt.astimezone(timezone.utc)
+
+
+def routine_pt_slot(
+    now_utc: datetime, max_lag_minutes: int = 25
+) -> Optional[datetime]:
+    """Resolve ``now_utc`` to the largest allowed PT slot within ``max_lag_minutes``.
+
+    Returns a tz-aware UTC datetime corresponding to the PT slot, or ``None`` if
+    ``now_utc`` is outside the allowed window or its lag from every allowed slot
+    exceeds ``max_lag_minutes``.
+    """
+    if now_utc.tzinfo is None:
+        raise ValueError("routine_pt_slot requires a tz-aware datetime")
+    now_pt = now_utc.astimezone(_PT_TZ)
+    best_slot_pt: Optional[datetime] = None
+    best_lag = timedelta(minutes=max_lag_minutes)
+    for hour, minute in ALLOWED_PT_SLOTS:
+        slot_pt = now_pt.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        if slot_pt > now_pt:
+            continue
+        lag = now_pt - slot_pt
+        if lag <= best_lag:
+            best_slot_pt = slot_pt
+            best_lag = lag
+    if best_slot_pt is None:
+        return None
+    return best_slot_pt.astimezone(timezone.utc)
 
 
 def is_premarket_slot(now_utc: datetime, tolerance_minutes: int = 5) -> bool:

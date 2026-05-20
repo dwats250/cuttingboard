@@ -9,9 +9,11 @@ from pathlib import Path
 import pytest
 
 from cuttingboard.notifications.hourly_slot import (
+    ALLOWED_PT_SLOTS,
     canonical_slot_utc,
     is_premarket_slot,
     load_last_slot,
+    routine_pt_slot,
     save_last_slot,
 )
 
@@ -135,3 +137,99 @@ def test_save_creates_parent_dir(tmp_path):
 def test_save_requires_tzaware():
     with pytest.raises(ValueError):
         save_last_slot(datetime(2026, 5, 18, 20, 0, 0))
+
+
+# ---- PRD-149: routine_pt_slot ----------------------------------------------
+
+def test_allowed_pt_slots_exact_set():
+    assert ALLOWED_PT_SLOTS == (
+        (6, 0), (6, 30), (7, 0), (8, 0), (9, 0),
+        (10, 0), (11, 0), (12, 0), (13, 0),
+    )
+
+
+@pytest.mark.parametrize(
+    "now_utc, expected_pt_hour, expected_pt_minute",
+    [
+        # PDT day (2026-05-19, UTC-7)
+        (datetime(2026, 5, 19, 13, 0, 0, tzinfo=timezone.utc), 6, 0),
+        (datetime(2026, 5, 19, 13, 24, 0, tzinfo=timezone.utc), 6, 0),
+        (datetime(2026, 5, 19, 13, 30, 0, tzinfo=timezone.utc), 6, 30),
+        (datetime(2026, 5, 19, 14, 0, 0, tzinfo=timezone.utc), 7, 0),
+        (datetime(2026, 5, 19, 19, 0, 0, tzinfo=timezone.utc), 12, 0),
+        (datetime(2026, 5, 19, 20, 0, 0, tzinfo=timezone.utc), 13, 0),
+        (datetime(2026, 5, 19, 20, 25, 0, tzinfo=timezone.utc), 13, 0),
+    ],
+)
+def test_routine_pt_slot_pdt_in_window(now_utc, expected_pt_hour, expected_pt_minute):
+    from cuttingboard.notifications.hourly_slot import _PT_TZ
+
+    slot = routine_pt_slot(now_utc)
+    assert slot is not None
+    assert slot.tzinfo is timezone.utc
+    slot_pt = slot.astimezone(_PT_TZ)
+    assert (slot_pt.hour, slot_pt.minute) == (expected_pt_hour, expected_pt_minute)
+
+
+@pytest.mark.parametrize(
+    "now_utc",
+    [
+        # PDT (2026-05-19, UTC-7): outside lag or past 13:00 PT
+        datetime(2026, 5, 19, 13, 26, 0, tzinfo=timezone.utc),  # lag > 25 min from 06:00
+        datetime(2026, 5, 19, 20, 26, 0, tzinfo=timezone.utc),  # lag > 25 min from 13:00
+        datetime(2026, 5, 19, 21, 0, 0, tzinfo=timezone.utc),   # 14:00 PT — outside
+        datetime(2026, 5, 19, 22, 0, 0, tzinfo=timezone.utc),   # 15:00 PT — failure-mode ts
+    ],
+)
+def test_routine_pt_slot_pdt_outside(now_utc):
+    assert routine_pt_slot(now_utc) is None
+
+
+@pytest.mark.parametrize(
+    "now_utc, expected",
+    [
+        # PST day (2026-01-12, UTC-8)
+        (datetime(2026, 1, 12, 13, 0, 0, tzinfo=timezone.utc), None),  # 05:00 PT — before earliest
+        (datetime(2026, 1, 12, 14, 0, 0, tzinfo=timezone.utc), (6, 0)),
+        (datetime(2026, 1, 12, 14, 25, 0, tzinfo=timezone.utc), (6, 0)),
+        (datetime(2026, 1, 12, 14, 30, 0, tzinfo=timezone.utc), (6, 30)),
+        (datetime(2026, 1, 12, 21, 0, 0, tzinfo=timezone.utc), (13, 0)),
+        (datetime(2026, 1, 12, 21, 30, 0, tzinfo=timezone.utc), None),
+    ],
+)
+def test_routine_pt_slot_pst(now_utc, expected):
+    from cuttingboard.notifications.hourly_slot import _PT_TZ
+
+    slot = routine_pt_slot(now_utc)
+    if expected is None:
+        assert slot is None
+        return
+    assert slot is not None
+    slot_pt = slot.astimezone(_PT_TZ)
+    assert (slot_pt.hour, slot_pt.minute) == expected
+
+
+def test_routine_pt_slot_requires_tzaware():
+    with pytest.raises(ValueError):
+        routine_pt_slot(datetime(2026, 5, 19, 20, 0, 0))
+
+
+def test_routine_pt_slot_returns_utc():
+    slot = routine_pt_slot(datetime(2026, 5, 19, 20, 0, 0, tzinfo=timezone.utc))
+    assert slot is not None
+    assert slot.tzinfo is timezone.utc
+
+
+def test_routine_pt_slot_distinct_keys_for_six_and_six_thirty():
+    """PRD-149: 06:00 and 06:30 must produce distinct dedup slots."""
+    six = routine_pt_slot(datetime(2026, 5, 19, 13, 0, 0, tzinfo=timezone.utc))
+    six_thirty = routine_pt_slot(datetime(2026, 5, 19, 13, 30, 0, tzinfo=timezone.utc))
+    assert six is not None and six_thirty is not None
+    assert six.isoformat() != six_thirty.isoformat()
+
+
+def test_is_premarket_slot_remains_importable_after_prd149():
+    """PRD-149 R6: helper must remain importable with original module attribution."""
+    from cuttingboard.notifications.hourly_slot import is_premarket_slot as imported
+
+    assert imported.__module__ == "cuttingboard.notifications.hourly_slot"
