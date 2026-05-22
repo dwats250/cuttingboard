@@ -216,45 +216,13 @@ def compute_regime(valid_quotes: dict[str, NormalizedQuote]) -> RegimeState:
 
 
 def from_validation_results(results: list) -> RegimeState:
-    """Bridge from validate_all() flat ValidationResult list."""
+    """Bridge from a flat ValidationResult list to a RegimeState."""
     valid_quotes = {
         r.symbol: r.quote
         for r in results
         if r.passed and r.quote is not None
     }
     return compute_regime(valid_quotes)
-
-
-def from_validation_summary(summary) -> RegimeState:
-    """Bridge from ValidationSummary (validate_quotes() output)."""
-    return compute_regime(summary.valid_quotes)
-
-
-def print_regime_report(state: RegimeState) -> None:
-    """Print full regime state and vote breakdown to terminal."""
-    vix_str = f"{state.vix_level:.1f}" if state.vix_level is not None else "N/A"
-    vix_pct_str = (
-        f"{state.vix_pct_change:+.1%}" if state.vix_pct_change is not None else "N/A"
-    )
-
-    print(f"\n{'─' * 52}")
-    print(f"  REGIME: {state.regime:<12}  POSTURE: {state.posture}")
-    print(f"  Confidence: {state.confidence:.2f}  |  Net score: {state.net_score:+d}")
-    print(f"  Votes: {state.risk_on_votes} risk-on  "
-          f"{state.risk_off_votes} risk-off  "
-          f"{state.neutral_votes} neutral  "
-          f"({state.total_votes} cast)")
-    print(f"  VIX: {vix_str} ({vix_pct_str})")
-    print(f"{'─' * 52}")
-    print("  VOTE BREAKDOWN")
-    for key in _VOTE_KEYS:
-        if key in state.vote_breakdown:
-            vote = state.vote_breakdown[key]
-            marker = "▲" if vote == _VOTE_RISK_ON else ("▼" if vote == _VOTE_RISK_OFF else "─")
-            print(f"    {marker} {key:<20}  {vote}")
-        else:
-            print(f"    ? {key:<20}  (skipped — symbol unavailable)")
-    print(f"{'─' * 52}\n")
 
 
 # ---------------------------------------------------------------------------

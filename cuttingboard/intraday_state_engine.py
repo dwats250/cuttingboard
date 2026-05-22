@@ -534,36 +534,3 @@ def compute_intraday_state(
     )
 
 
-# ---------------------------------------------------------------------------
-# CLI output formatter
-# ---------------------------------------------------------------------------
-
-def format_intraday_state(s: IntraState) -> str:
-    et_ts = datetime.fromisoformat(s.timestamp).astimezone(ET)
-    time_str = et_ts.strftime("%H:%M ET")
-
-    lines = [
-        f"{s.symbol}  [{time_str}]  {s.time_window} WINDOW",
-        "─" * 38,
-        f"ORB        : {s.orb_low:.2f} – {s.orb_high:.2f}",
-    ]
-
-    if s.orb_break_direction and s.permission_state == STATE_FAILURE_CONFIRMED:
-        arrow = "↑" if s.orb_break_direction == "LONG" else "↓"
-        lines.append(f"BREAK      : {arrow} {s.orb_break_direction} → FAILURE CONFIRMED")
-    elif s.orb_break_direction and not s.reclaimed_orb:
-        arrow = "↑" if s.orb_break_direction == "LONG" else "↓"
-        lines.append(f"BREAK      : {arrow} {s.orb_break_direction}  (held {s.holding_bars} bars)")
-    elif s.orb_break_direction and s.reclaimed_orb:
-        arrow = "↑" if s.orb_break_direction == "LONG" else "↓"
-        lines.append(f"BREAK      : {arrow} {s.orb_break_direction} → RECLAIMED")
-    else:
-        lines.append("BREAK      : none")
-
-    lines.append(f"VWAP       : {s.vwap_position}  ({s.current_price:.2f} vs {s.vwap:.2f})")
-    lines.append(f"VOLUME     : {s.volume_trend}")
-    lines.append("")
-    lines.append(f"→ STATE      : {s.state}")
-    lines.append(f"→ CONFIDENCE : {s.confidence:.2f}")
-
-    return "\n".join(lines)

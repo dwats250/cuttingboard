@@ -256,12 +256,6 @@ def _timestamp_label(value: object, parsed: datetime | None) -> str:
     return str(value)
 
 
-def _timestamp_delta_exceeds(left: datetime | None, right: datetime | None) -> bool:
-    if left is None or right is None:
-        return False
-    return abs((left - right).total_seconds()) > DASHBOARD_STALE_AFTER_SECONDS
-
-
 def _timestamp_older_than_baseline(value: datetime | None, baseline: datetime | None) -> bool:
     if value is None or baseline is None:
         return False
@@ -2140,24 +2134,6 @@ def write_dashboard(
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")
-
-
-def _build_contract_entry_map(logs_dir: Path) -> dict[str, float]:
-    """Load contract entry prices from latest_hourly_contract.json (best-effort)."""
-    path = logs_dir / _HOURLY_CONTRACT_PATH.name
-    contract = _load_json_optional(path)
-    if not contract:
-        return {}
-    result: dict[str, float] = {}
-    for cand in (contract.get("trade_candidates") or []):
-        sym = cand.get("symbol")
-        val = cand.get("entry")
-        if sym and val is not None:
-            try:
-                result[sym] = float(val)
-            except (TypeError, ValueError):
-                pass
-    return result
 
 
 def _load_contract_entry_context(logs_dir: Path) -> tuple[dict[str, float], list[dict], object | None, Path]:

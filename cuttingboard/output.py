@@ -204,10 +204,6 @@ _PERMISSION_MATRIX = """\
   Kill switch: VIX > 35 OR SPY gaps >3% -> halt all new positions"""
 
 
-def _permission_line(regime: RegimeState) -> str:
-    return _PERMISSION_LINES.get(regime.posture, "Awaiting regime clarity.")
-
-
 def _is_sunday(date_str: str) -> bool:
     try:
         d = _date.fromisoformat(date_str)
@@ -521,21 +517,6 @@ def render_report_from_payload(payload: dict) -> str:
 # Write destinations
 # ---------------------------------------------------------------------------
 
-def write_terminal(report: str) -> None:
-    """Print report to stdout."""
-    print(report)
-
-
-def write_markdown(report: str, date_str: str) -> str:
-    """Write report to reports/YYYY-MM-DD.md. Returns the file path."""
-    os.makedirs(_REPORT_DIR, exist_ok=True)
-    path = os.path.join(_REPORT_DIR, f"{date_str}.md")
-
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write(f"```\n{report}\n```\n")
-
-    logger.info(f"Report written to {path}")
-    return path
 
 
 def send_telegram(

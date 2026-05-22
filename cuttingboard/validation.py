@@ -234,33 +234,3 @@ class ValidationResult:
     quote: Optional[NormalizedQuote]    # None when validation failed
 
 
-def validate_all(
-    normalized: dict[str, NormalizedQuote],
-    fetch_failures: Optional[dict[str, str]] = None,
-) -> list[ValidationResult]:
-    """Run validate_quotes and return a flat list sorted by symbol.
-
-    System halt is printed to stderr when triggered; the list still contains
-    every symbol so the caller can render a full status table.
-    """
-    import sys
-    summary = validate_quotes(normalized, fetch_failures)
-
-    if summary.system_halted:
-        print(
-            f"\n⚠  SYSTEM HALT — MACRO DATA INVALID\n{summary.halt_reason}\n"
-            "DO NOT TRADE — DATA UNTRUSTWORTHY\n",
-            file=sys.stderr,
-        )
-
-    results: list[ValidationResult] = []
-    for symbol in sorted(summary.results):
-        sv = summary.results[symbol]
-        results.append(ValidationResult(
-            symbol=symbol,
-            passed=sv.passed,
-            failure_reason=sv.failure_reason,
-            quote=summary.valid_quotes.get(symbol),
-        ))
-
-    return results

@@ -569,44 +569,6 @@ def direction_for_regime(regime: RegimeState) -> Optional[str]:
     return None  # CHAOTIC, TRANSITION
 
 
-def print_qualification_summary(
-    summary: QualificationSummary,
-    regime: RegimeState,
-) -> None:
-    """Print qualification summary to terminal."""
-    print(f"\n{'─' * 52}")
-    print("  QUALIFICATION SUMMARY")
-    print(f"  Regime: {regime.regime} / {regime.posture}  conf={regime.confidence:.2f}")
-    if summary.regime_short_circuited:
-        print(f"  ⚠  SHORT-CIRCUITED: {summary.regime_failure_reason}")
-        print("  Symbols evaluated: 0  (regime gate blocked per-symbol work)")
-    else:
-        print(f"  Symbols evaluated:  {summary.symbols_evaluated}")
-        print(f"  Qualified trades:   {summary.symbols_qualified}")
-        print(f"  Watchlist:          {summary.symbols_watchlist}")
-        print(f"  Excluded:           {summary.symbols_excluded}")
-
-    if summary.qualified_trades:
-        print("\n  QUALIFIED:")
-        for r in summary.qualified_trades:
-            print(
-                f"    ✓ {r.symbol:<8} {r.direction:<5} "
-                f"contracts={r.max_contracts}  risk=${r.dollar_risk:.0f}"
-            )
-
-    if summary.watchlist:
-        print("\n  WATCHLIST:")
-        for r in summary.watchlist:
-            print(f"    ~ {r.symbol:<8} missing: {r.watchlist_reason}")
-
-    if summary.excluded and not summary.regime_short_circuited:
-        print("\n  EXCLUDED:")
-        for sym, reason in sorted(summary.excluded.items()):
-            print(f"    ✗ {sym:<8} {reason}")
-
-    print(f"{'─' * 52}\n")
-
-
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
