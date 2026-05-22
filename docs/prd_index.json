@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 149,
-  "next_prd": 150,
+  "latest_complete": 151,
+  "next_prd": 152,
   "entries": [
     {
       "number": 56,
@@ -571,6 +571,12 @@
       "number": 150,
       "title": "Five-Tier Symbol Classification System (Killed 2026-05-22 per vision review. Realizable behavior insufficient to justify surface area. See audits/recon-2026-05-22/prd-150-vision-review.md)",
       "status": "DEPRECATED",
+      "commit": null
+    },
+    {
+      "number": 151,
+      "title": "Gap-Down Permission Gating (retrospective documentation of feature built prior to VISION.md)",
+      "status": "COMPLETE",
       "commit": null
     }
   ]

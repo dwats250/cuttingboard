@@ -118,8 +118,19 @@ def _validate_index_rules(data: dict[str, Any], entries: list[dict[str, Any]], e
     for entry in entries:
         number = entry["number"]
         commit = entry.get("commit")
+        title = entry.get("title") or ""
+        # Retrospective-documentation PRDs document features already
+        # implemented across many prior commits; there is no single
+        # implementing commit to record. The "(retrospective" marker
+        # in the title is the canonical exemption signal (see
+        # docs/DECISIONS.md 2026-05-22 — retrospective-documentation
+        # pattern, established with PRD-151).
+        is_retrospective = "(retrospective" in title.lower()
         if entry.get("status") == "COMPLETE":
-            if not isinstance(commit, str) or not commit.strip():
+            if is_retrospective:
+                if commit is not None and isinstance(commit, str) and commit.strip() and not COMMIT_RE.fullmatch(commit.strip()):
+                    errors.append(f"Invalid commit: {_display_prd(number)} commit contains non-hex text")
+            elif not isinstance(commit, str) or not commit.strip():
                 errors.append(f"Missing commit: {_display_prd(number)} is COMPLETE but commit is empty")
             elif not COMMIT_RE.fullmatch(commit.strip()):
                 errors.append(f"Invalid commit: {_display_prd(number)} commit contains non-hex text")

@@ -168,6 +168,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-148 | 08ea12e | Insert PRD-145 entry into prd_index.json | COMPLETE | [PRD-148](prd_history/PRD-148.md) |
 | PRD-149 | c562259 | PT-Anchored Hourly Alert Window (6:00 AM – 1:00 PM PT) | COMPLETE | [PRD-149](prd_history/PRD-149.md) |
 | PRD-150 | — | Five-Tier Symbol Classification System (Killed 2026-05-22 per vision review. Realizable behavior insufficient to justify surface area. See audits/recon-2026-05-22/prd-150-vision-review.md) | DEPRECATED | [PRD-150](prd_history/PRD-150.md) |
+| PRD-151 | — | Gap-Down Permission Gating (retrospective documentation of feature built prior to VISION.md) | COMPLETE | [PRD-151](prd_history/PRD-151.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

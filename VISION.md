@@ -20,9 +20,9 @@ The system is built by one person, for one person's trading, on a part-time sche
 
 ## Current state, honestly
 
-**Built and in use:** the 10-layer pipeline (Ingestion through Audit), 297 tests, CLI entrypoint, GitHub Actions CI committing daily markdown reports, the artifact lineage and coherence enforcement work (PRDs 115-120), the sidecar architectural pattern.
+**Built and in use:** the 10-layer pipeline (Ingestion through Audit), 297 tests, CLI entrypoint, GitHub Actions CI committing daily markdown reports, the artifact lineage and coherence enforcement work (PRDs 115-120), the sidecar architectural pattern, Gap-Down Permission Gating (built prior to VISION.md being written; retroactively documented as PRD-151 during the 2026-05-22 realignment).
 
-**In flight:** Gap-Down Permission Gating PRD — needs implementation. Intraday state classification engine PRD — drafted, needs review against this vision before building.
+**In flight:** none. Intraday state classification engine PRD (PRD-150) was killed 2026-05-22 per vision review.
 
 **Dead code to remove:** Polygon integration (never used in production), ntfy alerts (topic `cuttingboard86`, no longer relied on), any references in config, env, requirements, and docs.
 
@@ -36,7 +36,7 @@ The system is built by one person, for one person's trading, on a part-time sche
 
 1. **Inventory audit.** Codex maps the full repo: modules, dependencies, dead code, orphans, drift from PRDs. Known cleanup targets (Polygon, ntfy, PRD 142) are flagged for deletion in the inventory rather than deeply analyzed.
 2. **Consolidated cleanup.** All dead code removed in one informed pass — known targets plus anything inventory surfaced. Single coherent cleanup commit set.
-3. **Gap-Down Permission Gating implementation.** Built into the cleaned codebase.
+3. **Gap-Down Permission Gating implementation.** Already complete — the 2026-05-22 realignment discovered the feature was implemented in `cuttingboard/intraday_state_engine.py` + `cuttingboard/runtime.py` (with dedicated integration tests) prior to VISION.md being written. Retrospectively documented as PRD-151.
 4. **Architectural alignment audit.** Codex (directed by Claude) evaluates whether the resulting system matches this document. Sidecars are still read-only? No prediction logic crept in? Every module earns its keep? Dustin reviews the report and makes explicit decisions on every flagged item.
 
 **Exit criteria:** repo contains only code that's used, every PRD is either active, completed, or formally killed, and the architecture demonstrably reflects what this document declares the system to be. Until alignment audit passes, no Phase 2 work begins.

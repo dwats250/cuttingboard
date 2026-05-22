@@ -5,6 +5,80 @@ Short notes, not ceremony.
 
 ---
 
+## 2026-05-22 — Gap-Down Permission Gating governance gap closed (PRD-151 retrospective)
+
+The PRD-150 coupling recon at
+`audits/recon-2026-05-22/gap-down-prd150-coupling.md` surfaced that
+Gap-Down Permission Gating — listed as "in flight, needs
+implementation" in VISION.md and PROJECT_STATE.md — was already
+implemented in production: `cuttingboard/intraday_state_engine.py`
+defines `classify_gap`, `downside_short_permission`, and supporting
+state types; `cuttingboard/runtime.py:1205 _apply_intraday_short_permission`
+filters SHORT candidates pre-qualification at three call sites
+(`runtime.py:489, 518, 805`); test coverage exists at
+`tests/test_gap_down_permission_integration.py` (4 integration tests)
+and `tests/test_intraday_state.py` (8 gap-down unit tests). The
+feature predates VISION.md being written; the governance docs were
+never updated to reflect what shipped.
+
+Resolution:
+
+- Wrote PRD-151 at `docs/prd_history/PRD-151.md` documenting the
+  as-built behavior with STATUS = COMPLETE on first write, full
+  R1–R9 requirements derived from the existing code, an
+  invalidation-conditions section describing what would make the
+  feature wrong or unneeded, and an explicit NOTES section flagging
+  this as the first instance of the retrospective-documentation
+  pattern.
+- Updated `docs/PRD_REGISTRY.md` and `docs/prd_index.json` to
+  include PRD-151 as COMPLETE; `latest_complete` advanced to 151
+  and `next_prd` to 152.
+- Updated `VISION.md`: Gap-Down Permission Gating moved from
+  "in flight" to "built and in use"; Phase 1 step 3 marked as
+  already complete with a note that the realignment discovered it
+  was implemented prior to VISION.md being written. PRD-150's
+  PROPOSED entry in "in flight" was already gone from the cleanup;
+  the section is now "none."
+- Updated `docs/PROJECT_STATE.md`: `Last completed PRD` advanced to
+  PRD-151; `Next step` advanced to Phase 1 step 4 (architectural
+  alignment audit). Steps 1–3 of Phase 1 are complete.
+
+### Precedent for future drift
+
+This is the first instance of a feature shipping ahead of (or
+without) its PRD in cuttingboard's recorded history. The
+resolution pattern is:
+
+1. **Retrospective documentation, not silent acknowledgment.** When
+   code and governance docs diverge and the code is correct, the
+   resolution is to write the PRD that should have existed — not
+   to quietly delete the "in flight" line from VISION.md.
+2. **STATUS = COMPLETE on first write.** Retrospective PRDs do not
+   pass through PROPOSED / IN PROGRESS. The work is already
+   committed across many prior commits; the PRD is documenting it,
+   not authorizing it.
+3. **Explicit NOTES section flagging the retrospective nature.** So
+   future readers don't mistake the file for prospective work and
+   try to "implement" it.
+4. **No COMMIT PLAN section.** The work is already committed.
+5. **Invalidation conditions are mandatory.** Because the
+   retrospective PRD is the first written record of the feature's
+   intent, it must include the conditions under which the feature
+   becomes wrong or unneeded — these would normally be implicit in
+   the prospective PRD's GOAL / OUT OF SCOPE language but here
+   they're explicit because there's no prospective record.
+
+Future drift of this shape (feature implemented without a PRD,
+discovered later) should follow this pattern. Silent acknowledgment
+("just delete the in-flight line") is forbidden because it loses
+the institutional memory that comes with a PRD record.
+
+If the drift is in the other direction (PRD exists, code doesn't
+match it), the PATCH PRD path applies (`CLAUDE.md § PRD documentation
+rule`) — that's already a documented pattern.
+
+---
+
 ## 2026-05-22 — PRD-150 killed
 
 PRD-150 (Five-Tier Symbol Classification System) flipped from
