@@ -374,3 +374,96 @@ def test_gap_down_short_acceptance_sets_permission_inputs_and_preserves_trade_bl
     assert result.consecutive_closes_below_level == 2
     assert result.permission_state == "BREAK_ONLY"
     assert result.trades_allowed is False
+
+
+# ---------------------------------------------------------------------------
+# PRD-151 §TEST_COVERAGE GAP — Determinism
+# ---------------------------------------------------------------------------
+# PRD-151 §TEST_COVERAGE: "No determinism test for `downside_short_permission`
+# across the 100-call equality pattern adopted by newer PRDs (PRD-150's R3/R5
+# introduced the convention; pre-PRD-150 tests, including these, do not use
+# it)."
+#
+# The gap: downside_short_permission is a pure function and should return the
+# same value on every call with identical inputs, but this has never been
+# asserted at the 100-call scale. The PRD-150 convention asserts that calling
+# a pure function 100 times with byte-identical inputs returns exactly one
+# distinct output value.
+# ---------------------------------------------------------------------------
+
+def test_downside_short_permission_is_deterministic_across_100_calls():
+    """Determinism — identical inputs yield a single unique output across 100 calls.
+
+    Encodes PRD-151 §TEST_COVERAGE determinism gap: downside_short_permission
+    must be a pure function. Calling it 100 times with byte-identical inputs
+    must produce exactly one distinct return value. This follows the 100-call
+    equality convention introduced by PRD-150 R3/R5.
+
+    The test is parameterized over the six meaningful input combinations that
+    partition the PRD's decision tree (R2, R3, R4):
+      - gap_type != DOWN  → always True (R2 no-op)
+      - gap_type == DOWN, phase == OPEN  → always False (R3 block)
+      - gap_type == DOWN, post-OPEN, or_low_broken, failed_reclaim  → True (R4)
+      - gap_type == DOWN, post-OPEN, or_low_broken, acceptance  → True (R4)
+      - gap_type == DOWN, post-OPEN, or_low_broken, neither  → False (R4)
+      - gap_type == DOWN, post-OPEN, or_low_broken not set  → False (clean ORB)
+    """
+    test_cases = [
+        # (context, state, expected_result, description)
+        (
+            SessionContext(open_price=101.0, prev_close=100.0, gap_type="UP"),
+            DownsidePermissionState(phase="OPEN", or_low_broken=True,
+                                    failed_reclaim=False, acceptance_below_level=False),
+            True,
+            "R2: gap_type != DOWN → unconditional True",
+        ),
+        (
+            SessionContext(open_price=99.0, prev_close=100.0, gap_type="DOWN"),
+            DownsidePermissionState(phase="OPEN", or_low_broken=True,
+                                    failed_reclaim=False, acceptance_below_level=False),
+            False,
+            "R3: gap_type == DOWN, phase == OPEN → unconditional False",
+        ),
+        (
+            SessionContext(open_price=99.0, prev_close=100.0, gap_type="DOWN"),
+            DownsidePermissionState(phase="EARLY", or_low_broken=True,
+                                    failed_reclaim=True, acceptance_below_level=False),
+            True,
+            "R4 failed_reclaim path → True",
+        ),
+        (
+            SessionContext(open_price=99.0, prev_close=100.0, gap_type="DOWN"),
+            DownsidePermissionState(phase="EARLY", or_low_broken=True,
+                                    failed_reclaim=False, acceptance_below_level=True),
+            True,
+            "R4 acceptance_below_level path → True",
+        ),
+        (
+            SessionContext(open_price=99.0, prev_close=100.0, gap_type="DOWN"),
+            DownsidePermissionState(phase="EARLY", or_low_broken=True,
+                                    failed_reclaim=False, acceptance_below_level=False),
+            False,
+            "R4 clean break, no evidence → False",
+        ),
+        (
+            SessionContext(open_price=99.0, prev_close=100.0, gap_type="DOWN"),
+            DownsidePermissionState(phase="EARLY", or_low_broken=False,
+                                    failed_reclaim=False, acceptance_below_level=False),
+            False,
+            "R4 no ORB break, no evidence → False",
+        ),
+    ]
+
+    for context, state, expected, description in test_cases:
+        results = [downside_short_permission(context, state) for _ in range(100)]
+        unique_values = set(results)
+        assert len(unique_values) == 1, (
+            f"DETERMINISM VIOLATION for case '{description}': "
+            f"downside_short_permission returned {unique_values!r} across 100 calls "
+            f"with identical inputs. Expected exactly one unique value. "
+            f"(PRD-151 §TEST_COVERAGE — 100-call equality convention from PRD-150 R3/R5)"
+        )
+        assert unique_values == {expected}, (
+            f"WRONG VALUE in case '{description}': "
+            f"100-call result was {unique_values!r}, expected {{{expected!r}}}."
+        )
