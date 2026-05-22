@@ -79,7 +79,7 @@ Also detects and flags **circular dependencies**.
 ```
 regime           ← normalization
                    used by: audit, contract, notifications, options,
-                             output, qualification, run_intraday, runtime, watch
+                             output, qualification, runtime, watch
 ```
 
 ### 3. Runtime Files
@@ -105,12 +105,12 @@ BFS on the reverse dependency graph showing what would break if a module changes
 
 **Example — `--impact regime`:**
 ```
-Direct dependents (9):
+Direct dependents (8):
   audit, contract, notifications, options, output,
-  qualification, run_intraday, runtime, watch
+  qualification, runtime, watch
 
-Transitive dependents (5):
-  chain_validation, delivery, flow, notify_test, sector_router
+Transitive dependents (4):
+  chain_validation, delivery, flow, sector_router
 ```
 
 ---

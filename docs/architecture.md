@@ -282,8 +282,6 @@ cuttingboard/               Python package
   runtime.py                public CLI wrapper: live / fixture / sunday / verify
   __main__.py               python -m cuttingboard entrypoint
   audit.py                  L10: write_audit_record → logs/audit.jsonl
-  run_premarket.py          legacy orchestration helper
-  run_intraday.py           legacy intraday helper
 
 tests/
   test_phase1.py            30 tests: config, normalization, validation

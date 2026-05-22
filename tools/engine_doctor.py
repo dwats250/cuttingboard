@@ -94,7 +94,6 @@ PIPELINE = [
     ("—",  "watch",                 "cuttingboard.watch",                   ["WatchSummary", "classify_watchlist"]),
     ("—",  "intraday_state_engine", "cuttingboard.intraday_state_engine",   ["compute_intraday_state", "IntraState"]),
     ("—",  "notifications",         "cuttingboard.notifications",           ["format_notification", "format_run_alert"]),
-    ("—",  "run_intraday",          "cuttingboard.run_intraday",            ["main"]),
     ("—",  "runtime",               "cuttingboard.runtime",                 ["cli_main", "execute_run"]),
     ("—",  "time_utils",            "cuttingboard.time_utils",              ["get_now_et", "is_market_open"]),
     ("—",  "universe",              "cuttingboard.universe",                ["is_tradable_symbol"]),
