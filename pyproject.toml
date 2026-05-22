@@ -6,16 +6,15 @@ requires-python = ">=3.11"
 dependencies = [
     "yfinance>=0.2.40",
     "pandas>=2.0.0",
-    "numpy>=1.26.0",
+    "numpy>=1.26.0",          # directly imported by tests/test_derived.py
     "requests>=2.31.0",
     "python-dotenv>=1.0.0",
-    "pyarrow>=14.0.0",
+    "pyarrow>=14.0.0",        # transitive, required for parquet I/O via pandas
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
-    "pytest-mock>=3.0.0",
     "ruff>=0.4.0",
 ]
 chain = [
