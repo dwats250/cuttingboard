@@ -89,7 +89,6 @@ def _minimal_run() -> dict:
         "kill_switch": False,
         "min_rr_applied": 3.0,
         "data_status": "ok",
-        "fallback_used": False,
         "system_halted": False,
         "halt_reason": None,
         "candidates_generated": 0,

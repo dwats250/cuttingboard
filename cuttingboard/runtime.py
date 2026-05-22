@@ -1146,7 +1146,6 @@ def _build_run_summary(
     fixture_file: Optional[Path],
     outcome: str,
 ) -> dict[str, Any]:
-    fallback_used = False
     data_status = _data_status(mode, raw_quotes, normalized_quotes, fixture_file)
     kill_switch = _kill_switch(regime, normalized_quotes)
     validated_count = sum(1 for decision in trade_decisions if decision.status == ALLOW_TRADE)
@@ -1183,7 +1182,6 @@ def _build_run_summary(
         "kill_switch": kill_switch,
         "min_rr_applied": _min_rr_for_regime(regime),
         "data_status": data_status,
-        "fallback_used": fallback_used,
         "system_halted": validation_summary.system_halted,
         "halt_reason": validation_summary.halt_reason,
         "candidates_generated": 0 if mode == MODE_SUNDAY else candidates_generated,
@@ -1392,7 +1390,6 @@ def verify_run_summary(path: str) -> dict[str, Any]:
         "kill_switch",
         "min_rr_applied",
         "data_status",
-        "fallback_used",
         "system_halted",
         "halt_reason",
         "candidates_generated",
@@ -2192,7 +2189,6 @@ def _failure_summary(
         "kill_switch": False,
         "min_rr_applied": config.NEUTRAL_RR_RATIO,
         "data_status": "stale",
-        "fallback_used": False,
         "system_halted": True,
         "halt_reason": "; ".join(errors) if errors else "run failed",
         "candidates_generated": 0,
