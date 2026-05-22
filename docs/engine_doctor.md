@@ -90,7 +90,7 @@ Checks existence and size of:
 |------|---------|
 | `logs/audit.jsonl` | Append-only per-run audit log |
 | `logs/last_notification_state.json` | Notification dedup state |
-| `.env` | Secrets (Polygon, ntfy) |
+| `.env` | Secrets (Telegram bot token, chat id) |
 
 ### 4. Test Suite (`--tests`)
 

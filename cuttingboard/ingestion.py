@@ -32,7 +32,7 @@ class RawQuote:
     pct_change_raw: float       # decimal: 5.2% is stored as 0.052
     volume: Optional[float]
     fetched_at_utc: datetime    # UTC with tzinfo — never naive
-    source: str                 # "yfinance" | "polygon"
+    source: str                 # "yfinance"
     fetch_succeeded: bool
     failure_reason: Optional[str]
 
@@ -96,8 +96,6 @@ def fetch_quote(symbol: str) -> "RawQuote":
     for source in sources:
         if source == "yfinance":
             result = _try_yfinance_quote(symbol)
-        elif source == "polygon":
-            result = _try_polygon_quote(symbol)
         else:
             logger.warning(f"{symbol}: unknown source '{source}' in priority list — skipping")
             continue
@@ -353,104 +351,6 @@ def _fetch_ohlcv_from_yfinance(symbol: str) -> Optional[pd.DataFrame]:
 
     logger.error(f"{symbol}: OHLCV all attempts failed — last error: {last_error}")
     return None
-
-
-# ---------------------------------------------------------------------------
-# Polygon fallback
-# ---------------------------------------------------------------------------
-
-def _try_polygon_quote(symbol: str) -> RawQuote:
-    """Attempt Polygon.io previous-day aggregate as quote fallback."""
-    fetched_at = datetime.now(timezone.utc)
-
-    if not config.POLYGON_API_KEY:
-        return RawQuote(
-            symbol=symbol,
-            price=0.0,
-            pct_change_raw=0.0,
-            volume=None,
-            fetched_at_utc=fetched_at,
-            source="polygon",
-            fetch_succeeded=False,
-            failure_reason="POLYGON_API_KEY not set in .env",
-        )
-
-    url = config.POLYGON_PREV_URL.format(symbol=symbol)
-    last_error: Optional[str] = None
-
-    for attempt in range(config.FETCH_RETRIES):
-        try:
-            price, pct_change, volume = _run_with_timeout(
-                lambda: _polygon_quote_raw(url),
-                config.FETCH_TIMEOUT_SECONDS,
-            )
-            logger.warning(
-                f"polygon fallback used for {symbol}: "
-                f"price={price:.4f} pct={pct_change:+.4f} (prev-day close, 15-min delayed)"
-            )
-            return RawQuote(
-                symbol=symbol,
-                price=price,
-                pct_change_raw=pct_change,
-                volume=volume,
-                fetched_at_utc=fetched_at,
-                source="polygon",
-                fetch_succeeded=True,
-                failure_reason=None,
-            )
-        except Exception as exc:
-            last_error = str(exc)
-            logger.warning(
-                f"polygon {symbol} attempt {attempt + 1}/{config.FETCH_RETRIES} failed: {exc}"
-            )
-            if attempt < config.FETCH_RETRIES - 1:
-                time.sleep(config.FETCH_BACKOFF_SECONDS)
-
-    return RawQuote(
-        symbol=symbol,
-        price=0.0,
-        pct_change_raw=0.0,
-        volume=None,
-        fetched_at_utc=fetched_at,
-        source="polygon",
-        fetch_succeeded=False,
-        failure_reason=last_error,
-    )
-
-
-def _polygon_quote_raw(url: str) -> tuple[float, float, Optional[float]]:
-    """Inner Polygon fetch — returns (price, pct_change_decimal, volume).
-
-    Uses the /v2/aggs/ticker/{symbol}/prev endpoint (previous trading day).
-    price   = previous day close
-    pct_change = (close - open) / open for that session
-    """
-    resp = requests.get(
-        url,
-        params={"apiKey": config.POLYGON_API_KEY},
-        timeout=config.FETCH_TIMEOUT_SECONDS,
-    )
-    resp.raise_for_status()
-    data = resp.json()
-
-    results = data.get("results") or []
-    if not results:
-        raise ValueError(f"polygon response has no results: {data}")
-
-    r = results[0]
-    close = float(r["c"])
-    open_ = float(r["o"])
-    raw_vol = r.get("v")
-
-    if close <= 0:
-        raise ValueError(f"polygon close price invalid: {close}")
-    if open_ <= 0:
-        raise ValueError(f"polygon open price invalid: {open_}")
-
-    pct_change = (close - open_) / open_
-    volume: Optional[float] = float(raw_vol) if raw_vol is not None else None
-
-    return close, pct_change, volume
 
 
 # ---------------------------------------------------------------------------

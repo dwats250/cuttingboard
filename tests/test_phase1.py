@@ -105,11 +105,6 @@ class TestConfig:
     def test_max_clock_skew_seconds(self):
         assert config.MAX_CLOCK_SKEW_SECONDS == 5
 
-    def test_polygon_url_template(self):
-        url = config.POLYGON_PREV_URL.format(symbol="SPY")
-        assert "SPY" in url
-        assert "api.polygon.io" in url
-
 
 # ---------------------------------------------------------------------------
 # normalization tests

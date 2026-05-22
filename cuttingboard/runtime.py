@@ -1146,7 +1146,7 @@ def _build_run_summary(
     fixture_file: Optional[Path],
     outcome: str,
 ) -> dict[str, Any]:
-    fallback_used = any(raw.source == "polygon" for raw in raw_quotes.values())
+    fallback_used = False
     data_status = _data_status(mode, raw_quotes, normalized_quotes, fixture_file)
     kill_switch = _kill_switch(regime, normalized_quotes)
     validated_count = sum(1 for decision in trade_decisions if decision.status == ALLOW_TRADE)
@@ -1430,7 +1430,7 @@ def verify_run_summary(path: str) -> dict[str, Any]:
         errors.append(f"net_score out of range: {net_score}")
 
     data_status = summary.get("data_status")
-    if data_status not in {"ok", "fallback", "stale"}:
+    if data_status not in {"ok", "stale"}:
         errors.append(f"invalid data_status: {data_status}")
 
     try:
@@ -2014,8 +2014,6 @@ def _data_status(
         return "stale"
     if any(_quote_age_seconds(quote) > config.FRESHNESS_SECONDS for quote in normalized_quotes.values()):
         return "stale"
-    if mode != MODE_FIXTURE and any(raw.source == "polygon" for raw in raw_quotes.values()):
-        return "fallback"
     return "ok"
 
 

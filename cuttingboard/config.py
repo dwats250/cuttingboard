@@ -51,7 +51,6 @@ def get_engine_doctor_runtime_gate(_config_path: Optional[Path] = None) -> bool:
 # Secrets — loaded from .env only, never hardcoded
 # ---------------------------------------------------------------------------
 
-POLYGON_API_KEY: str | None = os.getenv("POLYGON_API_KEY")
 TELEGRAM_BOT_TOKEN: str | None = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID: str | None = os.getenv("TELEGRAM_CHAT_ID")
 
@@ -172,7 +171,7 @@ SYMBOL_SOURCE_PRIORITY: dict[str, list[str]] = {
     "CL=F":     ["yfinance"],
     "GC=F":     ["yfinance"],
     "SI=F":     ["yfinance"],
-    "default":  ["yfinance", "polygon"],
+    "default":  ["yfinance"],
 }
 
 # ---------------------------------------------------------------------------
@@ -215,12 +214,6 @@ SYMBOL_UNITS: dict[str, str] = {
     "^TNX":     "yield_pct",
 }
 DEFAULT_UNITS = "usd_price"
-
-# ---------------------------------------------------------------------------
-# Polygon
-# ---------------------------------------------------------------------------
-
-POLYGON_PREV_URL = "https://api.polygon.io/v2/aggs/ticker/{symbol}/prev"
 
 # ---------------------------------------------------------------------------
 # Correlation policy layer (PRD-023)

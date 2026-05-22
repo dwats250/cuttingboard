@@ -472,8 +472,6 @@ def _compute_data_quality(
         for q in normalized_quotes.values()
     ):
         return "stale"
-    if any(getattr(r, "source", "") == "polygon" for r in raw_quotes.values()):
-        return "fallback"
     return "ok"
 
 
