@@ -61,6 +61,33 @@ with date and rationale.
   git pushes, file deletions, dependency changes, edits outside the active
   PRD's FILES allowlist — require explicit approval.
 
+### PRD-author disciplines
+
+Three checks every PRD author should run before submitting for review.
+Surfaced from the PRD-150 review arc (2026-05-22); see
+`docs/DECISIONS.md` and `audits/recon-2026-05-22/prd-150-vision-review.md`
+for context.
+
+- **Dead-branch enumeration.** When retiring a code path (e.g. a
+  short-circuit, a status value, a function), enumerate every
+  downstream reader of the retired surface. For each reader, either
+  remove it in the same PRD or document it as retained-with-reason
+  ("dead branch by design, kept for shape stability"). A retired
+  surface with un-enumerated readers is hidden drift.
+- **Downstream-consumer audit.** For any new emission, contract field,
+  status value, rejection stage, or artifact path: identify every
+  module that reads it and verify the change is compatible. Postmarket
+  reports, dashboard renderers, audit writers, and notification
+  formatters are common consumers. A PRD that adds an emission without
+  updating its consumers leaks under-counting or silent drift.
+- **Realizability check.** For any new output channel (rejection stage,
+  classification tier, sidecar field, status literal), verify there
+  exists at least one realistic input path under current routing that
+  produces non-trivial output. A channel whose every emission case is
+  pre-empted by an upstream channel is dead code with extra steps.
+  If a channel is defensive-against-future-routing, declare it as
+  such — don't claim it's currently active.
+
 ## Anti-patterns
 
 - Do not draft PRDs for features that violate VISION.md non-goals without

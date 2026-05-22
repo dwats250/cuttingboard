@@ -243,6 +243,9 @@ All dataclasses are `frozen=True`. All timestamps are UTC-aware `datetime` objec
 **Rule 5 — Secrets only from `.env`.**
 `config.py` loads via `python-dotenv`. No key, token, or credential appears in any source file.
 
+**Rule 6 — `block_reason == decision_trace["reason"]` for BLOCK_TRADE candidates.**
+`_assert_trade_candidates_valid` in `cuttingboard/contract.py` enforces that every `trade_candidates[]` entry with `decision_status == BLOCK_TRADE` carries a `block_reason` equal to its `decision_trace["reason"]`. Any PRD that synthesizes BLOCK_TRADE entries outside the existing `_build_trade_candidates` / `create_trade_decision` path must set both fields together; introducing a new `block_reason` literal without a matching `decision_trace.reason` breaks the validator.
+
 ---
 
 ## Halt Conditions

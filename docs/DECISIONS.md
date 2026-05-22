@@ -5,6 +5,43 @@ Short notes, not ceremony.
 
 ---
 
+## 2026-05-22 — PRD-150 killed
+
+PRD-150 (Five-Tier Symbol Classification System) flipped from
+`PROPOSED` to `DEPRECATED` in `docs/PRD_REGISTRY.md`. The proposal
+file at `docs/prd_history/PRD-150.md` is retained intact as historical
+record.
+
+Rationale: vision review at
+`audits/recon-2026-05-22/prd-150-vision-review.md` found the PRD's
+realizable behavior insufficient to justify its surface area. Across
+four Codex cross-review passes the realizable output of the main
+visibility channel (the new CLASSIFICATION rejections stage) shrank
+from "five tiers, every evaluated symbol" to one tier in practice —
+post-R5 PRIME→QUALIFIED demotions via concentration cap or
+flow-gate. The other four tiers route through pre-existing channels
+and are dedupe-guarded out of the new emission. Two new modules,
+contract value-space expansion, a new sidecar artifact, a
+notification path split, and a postmarket counter refactor —
+in service of one new realizable emission case — fails VISION.md's
+"cuts before additions" standard and the behavioral test
+("does this change what Dustin actually does, or just help him feel
+more informed?").
+
+Salvageable elements captured in the same commit:
+`docs/architecture.md` records the `block_reason == decision_trace["reason"]`
+contract invariant surfaced in Codex Pass 2. `CLAUDE.md` workflow
+patterns gain three PRD-author disciplines surfaced across the
+review arc: dead-branch enumeration, downstream-consumer audit, and
+realizability check.
+
+If a narrower follow-up captures the PRIME-only notification gating
+(the one substantive behavior nudge in PRD-150, implementable as
+~10 LOC standalone), it should be drafted as a new PRD against
+VISION.md from scratch — not a revision of PRD-150.
+
+---
+
 ## 2026-05-22 — Phase 1 realignment
 
 Executed VISION.md-anchored cleanup. See `audits/inventory-2026-05-22/`

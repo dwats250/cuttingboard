@@ -569,8 +569,8 @@
     },
     {
       "number": 150,
-      "title": "Five-Tier Symbol Classification System",
-      "status": "PROPOSED",
+      "title": "Five-Tier Symbol Classification System (Killed 2026-05-22 per vision review. Realizable behavior insufficient to justify surface area. See audits/recon-2026-05-22/prd-150-vision-review.md)",
+      "status": "DEPRECATED",
       "commit": null
     }
   ]
