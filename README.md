@@ -42,7 +42,7 @@ ingestion → normalization → validation → derived → regime → structure 
 | flow | `flow.py` | Options flow alignment gate. Downgrades PASS → WATCHLIST on direction conflict. |
 | options | `options.py` | Select strategy, DTE, and strike distance from direction × IV matrix. |
 | chain_validation | `chain_validation.py` | Live chain liquidity gate. Validates OI, spread %, bid/ask. |
-| output | `output.py` | Render terminal output, markdown report, and ntfy alert. |
+| output | `output.py` | Render terminal output, markdown report, and Telegram alert. |
 
 ---
 
@@ -94,7 +94,7 @@ Baseline enforcement: `tools/baseline.json` captures the known-good state. Any d
 - 802 tests passing (1 known pre-existing fixture failure)
 - Engine doctor with CI integration and baseline enforcement (PRD-019, PRD-020)
 - Append-only audit log on every run
-- ntfy alert delivery on TRADE and HALT outcomes
+- Telegram alert delivery on TRADE and HALT outcomes
 - Intraday regime monitor with deduplication state
 
 ---

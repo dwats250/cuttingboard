@@ -10,7 +10,7 @@ from cuttingboard.notifications.formatter import (
     ALERT_CONTEXT_NOTIFY,
     AlertEvent,
     OUTCOME_TRADE,
-    format_ntfy_alert,
+    format_telegram_alert,
 )
 from cuttingboard.qualification import QualificationResult, QualificationSummary, TradeCandidate
 from cuttingboard.regime import RegimeState
@@ -246,14 +246,14 @@ def test_candidate_lines_respects_limit():
 
 def test_format_hourly_stay_flat_title_and_body():
     event = _hourly_event(regime=_regime(posture="STAY_FLAT", regime="NEUTRAL"))
-    title, body = format_ntfy_alert(event)
+    title, body = format_telegram_alert(event)
     assert title == "STAY FLAT"
     assert "STAY_FLAT — no entries" in body
 
 
 def test_format_hourly_no_setup_title_and_body():
     event = _hourly_event(qual=_qual([]))
-    title, body = format_ntfy_alert(event)
+    title, body = format_telegram_alert(event)
     assert title == "NO SETUP"
     assert "No A+ setups" in body
 
@@ -263,14 +263,14 @@ def test_format_hourly_setup_ready_title():
         qual=_qual(["META"]),
         candidate_lines=("META | SHORT | PULLBACK | 2.5:1",),
     )
-    title, body = format_ntfy_alert(event)
+    title, body = format_telegram_alert(event)
     assert title == "META SHORT READY"
     assert "META | SHORT | PULLBACK | 2.5:1" in body
 
 
 def test_format_hourly_required_fields_present():
     event = _hourly_event()
-    _, body = format_ntfy_alert(event)
+    _, body = format_telegram_alert(event)
     assert "ET" in body
     assert "Regime:" in body
     assert "Posture:" in body
@@ -289,7 +289,7 @@ def test_format_hourly_system_halt_routes_to_halt_format():
         validation_summary=_validation(halted=True),
         halt_reason="^VIX fetch failed",
     )
-    title, body = format_ntfy_alert(event)
+    title, body = format_telegram_alert(event)
     assert title == "SYSTEM HALT"
 
 
@@ -1199,7 +1199,7 @@ def test_format_hourly_legacy_header_uses_pt_then_et():
         intraday_alert_type=base.intraday_alert_type,
         candidate_lines=base.candidate_lines,
     )
-    _title, body = format_ntfy_alert(event)
+    _title, body = format_telegram_alert(event)
     lines = body.split("\n")
     assert lines[0] == "1:00 PM PT"
     assert lines[1] == "16:00 ET"

@@ -20,7 +20,7 @@ ingestion → normalization → validation → derived → regime → structure 
 | `flow.py` | flow | FlowPrint, apply_flow_gate — directional alignment soft gate |
 | `options.py` | options | OptionSetup, strategy selection, DTE, strike distance |
 | `chain_validation.py` | chain_validation | ChainValidationResult, live OI/spread/bid-ask check |
-| `output.py` | output | render_report, markdown, ntfy alert |
+| `output.py` | output | render_report, markdown, Telegram alert |
 
 ## Support Modules
 
@@ -38,11 +38,11 @@ These modules are not pipeline stages. They are imported by pipeline stages or o
 | `time_utils.py` | ET timezone helpers, market hours. |
 | `watch.py` | Intraday watchlist classification and session phase tracking. |
 | `intraday_state_engine.py` | ORB classification engine. |
-| `notifications/` | ntfy alert formatting. |
+| `notifications/` | Telegram alert formatting (hourly + run summaries). |
 
 ## Delivery Clarification
 
-Delivery (ntfy transport, Telegram, terminal output) is NOT part of the decision pipeline. It is a post-pipeline transport layer handled inside `output.py`. It has no influence on qualification, options selection, or any upstream stage.
+Delivery (Telegram, terminal output) is NOT part of the decision pipeline. It is a post-pipeline transport layer handled inside `output.py`. It has no influence on qualification, options selection, or any upstream stage.
 
 ---
 
@@ -187,17 +187,17 @@ L11 CHAIN VALIDATION    chain_validation.py
 L12 OUTPUT ENGINE       output.py
     In:  All above results
     Out: reports/YYYY-MM-DD.md, logs/run_*.json,
-         logs/latest_run.json, optional ntfy alert
+         logs/latest_run.json, optional Telegram alert
     ─────────────────────────────────────────────────────────
     `logs/latest_run.json` is the machine-readable source
     of truth. `reports/YYYY-MM-DD.md` is human-readable only.
     HTML is not generated or served.
-    Report written even on NO TRADE days. ntfy skipped
-    silently if not configured in .env.
+    Report written even on NO TRADE days. Telegram alert
+    skipped silently if not configured in .env.
          │
          ▼
  —  AUDIT               audit.py
-    In:  All above results + ntfy_sent status
+    In:  All above results + telegram_sent status
     Out: One JSON record appended to logs/audit.jsonl
     ─────────────────────────────────────────────────────────
     Append-only. sort_keys=True. Never overwritten.
@@ -256,7 +256,7 @@ The system halts when any **HALT_SYMBOL** fails validation. HALT_SYMBOLS are:
 These five symbols are required for regime computation. If any of them fails validation (bad data, fetch failure, stale quote, price out of bounds), `ValidationSummary.system_halted = True` and the pipeline:
 
 1. Renders a HALT report (terminal + markdown)
-2. Sends an ntfy HALT alert
+2. Sends a Telegram HALT alert
 3. Writes an audit record with `outcome = "HALT"`
 4. Exits with code `1`
 
@@ -320,7 +320,7 @@ docs/                       you are here
   trade_qualification.md    (optional — full gate reference)
   prd_history/              archived PRDs and audit reports
 
-.env                        POLYGON_API_KEY, NTFY_TOPIC, NTFY_URL
+.env                        TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
                             (gitignored — never committed)
 pyproject.toml              package metadata + dependencies
 ```
@@ -362,5 +362,5 @@ ingestion → normalization → validation [system_halted=True] → output (HALT
 
 **Intraday run:**
 ```
-ingestion → normalization → validation → derived + regime → compare to last state → ntfy if trigger → update state
+ingestion → normalization → validation → derived + regime → compare to last state → Telegram alert if trigger → update state
 ```

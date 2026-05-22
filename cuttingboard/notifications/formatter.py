@@ -56,7 +56,7 @@ class AlertEvent:
     candidate_lines: tuple[str, ...] = ()
 
 
-def format_ntfy_alert(event: AlertEvent) -> tuple[str, str]:
+def format_telegram_alert(event: AlertEvent) -> tuple[str, str]:
     if event.failure_reason:
         return _format_failure(event)
     if event.intraday_alert_type:

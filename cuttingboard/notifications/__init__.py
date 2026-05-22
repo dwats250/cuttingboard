@@ -26,7 +26,7 @@ from .formatter import (
     LOCAL_TZ,
     OUTCOME_TRADE,
     _ET_TZ,
-    format_ntfy_alert,
+    format_telegram_alert,
     NOTIFY_HOURLY,
 )
 
@@ -449,7 +449,7 @@ def format_notification(
         watch_summary=watch_summary,
         halt_reason=halt_reason,
     )
-    title, body = format_ntfy_alert(event)
+    title, body = format_telegram_alert(event)
     return title, _append_lifecycle_alerts(body, market_map, asof_utc)
 
 
@@ -478,7 +478,7 @@ def format_run_alert(
         watch_summary=watch_summary,
         halt_reason=halt_reason,
     )
-    title, body = format_ntfy_alert(event)
+    title, body = format_telegram_alert(event)
     return title, _append_lifecycle_alerts(body, market_map, run_at_utc)
 
 
@@ -497,7 +497,7 @@ def format_intraday_alert(
         regime=regime,
         intraday_alert_type=alert_type,
     )
-    return format_ntfy_alert(event)
+    return format_telegram_alert(event)
 
 
 def format_hourly_notification(
