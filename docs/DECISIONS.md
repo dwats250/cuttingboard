@@ -5,6 +5,80 @@ Short notes, not ceremony.
 
 ---
 
+## 2026-05-22 — Architectural alignment audit Part B doctrine updates
+
+Phase 1 step 4 — the architectural alignment audit at
+`audits/alignment-2026-05-22/` — completed with headline verdict
+**ALIGNED**: zero violations, four tension points surfaced, sidecar
+discipline verified across all five sidecars, prediction-vs-description
+scan clean, all seven VISION.md non-goals clean, 8/8 sampled PRDs match
+code. Part B addresses the surfaced tensions via doctrine and doc
+updates (no code under `cuttingboard/` touched except the
+`watchlist_sidecar.py` docstring).
+
+Outcomes:
+
+- **Watchlist sidecar retained with clarified purpose.** Updated
+  `cuttingboard/watchlist_sidecar.py` docstring to declare it an
+  observation sidecar serving the human reader for tickers researched
+  outside the primary trading universe. The "no v1 consumer" tension
+  surfaced in the audit was a category error — the human reader is the
+  consumer, and that is a valid sidecar role.
+- **Sidecar doctrine updated to distinguish categories.** Added a
+  two-category section at the top of `docs/sidecar_doctrine.md`:
+  decision-feeding sidecars (must have a documented downstream module
+  consumer; examples `market_map.py`, `macro_pressure.py`) versus
+  observation sidecars (consumed by renderer/notifications for human
+  reading; examples `watchlist_sidecar.py`, `trend_structure.py`,
+  `market_map_lifecycle.py`). New sidecar PRDs must declare category.
+- **Market map current_price backfill documented.** Added a doctrine
+  note that `market_map_lifecycle.inject_lifecycle` performs an
+  intentional cross-run `current_price` backfill when current data is
+  `None`, propagating prior-run pricing into the renderer-facing
+  lifecycle annotation. Description-side accommodation, not forecast;
+  no decision module reads the lifecycle block.
+- **VISION.md Phase 2 re-framed.** Replaced "Trade evaluation sidecar"
+  with "Trade evaluation extension" wording that acknowledges
+  `evaluation.py` and `performance_engine.py` already implement
+  same-session evaluation. Phase 2's remaining work is the Moomoo
+  statement consumer joined to L10 audit output.
+- **Alignment cadence pattern added to CLAUDE.md.** New
+  § Alignment cadence section codifies a 4-6 week or phase-boundary
+  scoped check against VISION.md (three questions: new prediction
+  logic? new sidecar without category? new module not serving any of
+  VISION.md's four questions?). Cadence is now active per
+  `docs/PROJECT_STATE.md`; next scheduled check by 2026-07-03.
+- **Acknowledged-debt operating principle added to VISION.md.** New
+  bullet under § Operating principles: acknowledged debt requires a
+  re-evaluation date in `PROJECT_STATE.md`. Open-ended deferral is
+  drift dressed as discipline.
+- **runtime.py re-evaluation date set: 2026-08-15.** 12 weeks from the
+  alignment audit, intended to land before Phase 2 PRD drafting if
+  possible, otherwise immediately after Phase 2 ships. Recorded in the
+  `docs/PROJECT_STATE.md § Known technical debt` entry alongside the
+  existing scoping reference (PRD-135 milestone).
+
+### Deferred follow-ups (not in this commit)
+
+- **Batch B — compatibility shim removal.** `cuttingboard/sector_router.py`
+  (three stub pass-throughs) and the no-op helpers in
+  `cuttingboard/universe.py` (`filter_execution_dict`,
+  `filter_execution_items`, `log_universe_configuration`) are
+  kill candidates flagged in `audits/alignment-2026-05-22/`
+  Flag 2. Scoped as a separate PRD because removing them requires
+  call-site updates in `runtime.py` and import surface review.
+- **Batch C — runtime Group 6 refactor.** First natural cut from
+  `audits/alignment-2026-05-22/06-runtime-monolith.md`: extract the
+  sidecar wiring + write helpers (`_load_previous_market_map`,
+  `_write_market_map_file`, `_tradable_symbols`,
+  `_write_trend_structure_snapshot`, `_refresh_trend_structure_sidecar`,
+  `_write_watchlist_snapshot`, `_write_macro_snapshot`,
+  `_write_payload_artifacts`) into `cuttingboard/runtime/sidecars.py`.
+  Scoped as a HIGH-RISK lane PRD per PRD-121 R11; bounded by the
+  2026-08-15 re-evaluation date.
+
+---
+
 ## 2026-05-22 — Gap-Down Permission Gating governance gap closed (PRD-151 retrospective)
 
 The PRD-150 coupling recon at

@@ -1,8 +1,15 @@
 """Watchlist Snapshot Sidecar (PRD-114).
 
-Observe-only producer for `logs/watchlist_snapshot.json`. Pure builder
-over a frozen curated tuple plus existing `NormalizedQuote.price`
-pass-through. No I/O, no wall-clock reads, no derived semantics.
+Observe-only producer of tickers tracked outside the primary trading
+universe. Provides visibility into names being researched or monitored —
+for example, names where fundamental or technical analysis is being
+developed outside the Cuttingboard pipeline. Consumer is the dashboard
+renderer and the human reader, not a decision module. Outputs do not
+feed qualification, regime, or any decision surface.
+
+Pure builder over a frozen curated tuple plus existing
+`NormalizedQuote.price` pass-through. No I/O, no wall-clock reads, no
+derived semantics.
 
 WATCHLIST_SYMBOLS insertion order is serialization-only. It MUST NOT
 imply rank, priority, conviction, trade preference, alert order, or

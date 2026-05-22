@@ -41,7 +41,7 @@ The system is built by one person, for one person's trading, on a part-time sche
 
 **Exit criteria:** repo contains only code that's used, every PRD is either active, completed, or formally killed, and the architecture demonstrably reflects what this document declares the system to be. Until alignment audit passes, no Phase 2 work begins.
 
-**Phase 2 — Trade evaluation sidecar.** PRD, then build. Read-only consumer of the existing L10 audit output, joined to imported Moomoo trade statements. Produces post-hoc evaluation of trades against the market state Cuttingboard observed at the time. Descriptive, not predictive. Closes the loop between the system's market observations and Dustin's actual trading behavior — the loop whose absence is the project's central weakness. Exit criteria: every trade Dustin takes can be evaluated against the market state at entry, exit, and key intermediate points.
+**Phase 2 — Trade evaluation extension.** Build on the existing same-session evaluation infrastructure (`evaluation.py`, `performance_engine.py`) to consume Moomoo trade statements and produce post-hoc evaluation of actual executed trades against the market state Cuttingboard observed at the time. Read-only consumer of L10 audit output joined to imported trade records. Descriptive, not predictive. Closes the loop between the system's market observations and Dustin's actual trading behavior — the loop whose absence is the project's central weakness. Exit criteria: every trade Dustin takes can be evaluated against the market state at entry, exit, and key intermediate points.
 
 **Phase 3 — Presentation pass.** README, repo hygiene, documentation that reflects the actual system rather than aspirational framing. The goal is a repo that a thoughtful outsider can read and understand in 15 minutes without being misled about what it does. No marketing language. Constraints stated plainly.
 
@@ -55,6 +55,7 @@ The ordering reflects a judgment: cleanup and audit first because debt compounds
 - **Cuts before additions.** Before adding a feature, the system should justify the features it already has. Anything not earning its keep gets removed.
 - **The system serves the trader, not the other way around.** If a feature exists but Dustin doesn't actually use it to make decisions, it shouldn't exist.
 - **The system must match its documentation.** When code and documented intent diverge, one of them is wrong and the divergence gets resolved explicitly — by changing the code, changing the documentation, or formally acknowledging the gap. Silent drift is the failure mode that allowed sprawl, and the audit gate exists to catch it before it compounds.
+- **Acknowledged debt requires a re-evaluation date.** When VISION.md or `docs/PROJECT_STATE.md` acknowledges technical debt with deferred remediation, `PROJECT_STATE.md` must name the date by which the debt is to be re-evaluated. Open-ended deferral is drift dressed as discipline.
 
 ## How we work
 

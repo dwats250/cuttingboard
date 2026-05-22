@@ -61,6 +61,23 @@ with date and rationale.
   git pushes, file deletions, dependency changes, edits outside the active
   PRD's FILES allowlist — require explicit approval.
 
+### Alignment cadence
+
+Every 4-6 weeks, or after any phase boundary, run a scoped alignment
+check against VISION.md. Three questions:
+
+1. Has any new prediction logic entered the codebase?
+2. Has any new sidecar been added without a documented consumer
+   (decision-feeding) or without observational purpose (observation)?
+3. Has any new module been added that doesn't serve at least one of
+   VISION.md's four questions (what environment, what matters today, is
+   this tradable, what invalidates)?
+
+If all three answers are "no," document the check in
+`docs/DECISIONS.md` and move on. If any answer is "yes," scope a full
+alignment audit. Drift is a function of time, not a bug — these checks
+make it visible early.
+
 ### PRD-author disciplines
 
 Three checks every PRD author should run before submitting for review.

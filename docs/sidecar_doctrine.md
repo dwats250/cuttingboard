@@ -9,6 +9,37 @@ visibility layers without weakening the deterministic decision engine.
 
 ---
 
+## Two sidecar categories
+
+Sidecars in cuttingboard fall into one of two categories. Every new
+sidecar PRD must declare its category in the PRD header.
+
+**Decision-feeding sidecars.** Outputs are consumed by `qualification.py`,
+`execution_policy.py`, `trade_visibility.py`, or `overnight_policy.py`.
+These must have a documented downstream module consumer and travel
+through the standard contract / artifact discipline. Examples:
+`market_map.py` (consumed by `trade_visibility.build_visibility_map` and
+`overnight_policy.apply_overnight_policy`); `macro_pressure.py` (consumed
+by `execution_policy` via `POLICY_MACRO_PRESSURE_CONFLICT`).
+
+**Observation sidecars.** Outputs are consumed by the dashboard renderer
+and/or notifications for human reading. **The human reader is a valid
+consumer** — an observation sidecar earns its keep by giving the trader
+visibility into something the decision pipeline does not surface.
+Examples: `watchlist_sidecar.py` (curated personal-research watchlist
+rendered to the dashboard), `trend_structure.py` (renderer-only
+higher-timeframe context), `market_map_lifecycle.py` (annotate-only
+enrichment of the market_map artifact for renderer + notification
+lifecycle alerts).
+
+Note: `market_map_lifecycle.inject_lifecycle` performs an intentional
+cross-run `current_price` backfill when current data is `None`,
+propagating the prior-run pricing into the renderer-facing lifecycle
+annotation. This is description-side accommodation so the renderer does
+not display `N/A` for transient missing data — it is not forecast or
+fabrication, and downstream decision modules never read the lifecycle
+block.
+
 ## Observe-only philosophy
 
 Sidecars exist to **observe**, not to decide. They read existing artifacts
