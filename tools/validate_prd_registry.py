@@ -161,11 +161,23 @@ def _parse_registry(root: Path, errors: list[str]) -> dict[int, dict[str, str | 
             errors.append(f"Duplicate registry row: {_display_prd(number)} appears more than once")
             continue
 
+        status = cells[3]
+        is_skip_placeholder = (
+            status == "—"
+            and _normalize_registry_commit(cells[1]) is None
+            and "intentionally skipped" in cells[2]
+        )
+        if status not in ALLOWED_STATUSES and not is_skip_placeholder:
+            errors.append(
+                f"Invalid registry status: {_display_prd(number)} has status "
+                f"{status!r} in docs/PRD_REGISTRY.md; allowed: {sorted(ALLOWED_STATUSES)}"
+            )
+
         rows[number] = {
             "number": number,
             "commit": _normalize_registry_commit(cells[1]),
             "title": cells[2],
-            "status": cells[3],
+            "status": status,
         }
 
     return rows

@@ -64,9 +64,9 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-050 | — | Alert runner fail-visible backstop | COMPLETE | — |
 | PRD-051 | — | Execution policy materialization | COMPLETE | — |
 | PRD-052 | — | Runtime artifact self-healing — legacy tolerance for missing timestamp keys | COMPLETE | [PRD-052](prd_history/PRD-052.md) |
-| PRD-053 | — | Graded market map sidecar | READY | [PRD-053](prd_history/PRD-053.md) |
-| PRD-053 PATCH | — | Market map input plumbing + usefulness calibration | READY | [PRD-053-PATCH](prd_history/PRD-053-PATCH.md) |
-| PRD-054 | 23db81e | Add trade framing to market map sidecar | COMPLETE (unregistered — no PRD file; see PRD-055 continuity note) | — |
+| PRD-053 | 23db81e | Graded market map sidecar (landed alongside PRD-054 per 2026-05-22 reconciliation) | COMPLETE | [PRD-053](prd_history/PRD-053.md) |
+| PRD-053 PATCH | 23db81e | Market map input plumbing + usefulness calibration (landed alongside PRD-054 per 2026-05-22 reconciliation) | COMPLETE | [PRD-053-PATCH](prd_history/PRD-053-PATCH.md) |
+| PRD-054 | 23db81e | Add trade framing to market map sidecar (no PRD file; continuity note in PRD-055) | COMPLETE | — |
 | PRD-055 | 395d07e, a360e23 | Signal Forge: Dashboard upgrade — macro tape, system state, candidate visibility board | COMPLETE | [PRD-055](prd_history/PRD-055.md) |
 | PRD-056 | e7365c6 | Candidate lifecycle tracking — deterministic grade/setup_state transition metadata in market_map | COMPLETE | [PRD-056](prd_history/PRD-056.md) |
 | PRD-057 | e7365c6 | Lifecycle visibility on Signal Forge dashboard — badge, detail row, removed symbols section | COMPLETE | [PRD-057](prd_history/PRD-057.md) |
@@ -169,7 +169,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-139 | 6ab8433 | Upstream Macro Collector Sidecar | COMPLETE | [PRD-139](prd_history/PRD-139.md) |
 | PRD-140 | 1dbc886 | Document pre_push_check.sh in CLAUDE.md git hygiene | COMPLETE | [PRD-140](prd_history/PRD-140.md) |
 | PRD-141 | 1ba6cc9 | Hourly Alert Canonical Slot + Cross-Run Idempotency | COMPLETE | [PRD-141](prd_history/PRD-141.md) |
-| PRD-142 | —       | PATCH PRD-141 Persist hourly slot state across CI runs | IN PROGRESS | [PRD-142](prd_history/PRD-142.md) |
+| PRD-142 | —       | PATCH PRD-141 Persist hourly slot state across CI runs (scheduled for kill per VISION.md 2026-05-22 — workflow change never landed) | DEPRECATED | [PRD-142](prd_history/PRD-142.md) |
 | PRD-143 | 575b34f | Process hygiene sweep: hook exclusion, runtime.py debt note, Skill drift clause | COMPLETE | [PRD-143](prd_history/PRD-143.md) |
 | PRD-144 | e3447d2 | Redundant cron entries for 6 AM PT hourly alert resilience | COMPLETE | [PRD-144](prd_history/PRD-144.md) |
 | PRD-145 | 3230ceb | Sequencing-gate parser keys on row-owner cell only | COMPLETE | [PRD-145](prd_history/PRD-145.md) |
@@ -177,3 +177,4 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-147 | 320ab7f | prd_close.sh must not parse user input as re.sub template | COMPLETE | [PRD-147](prd_history/PRD-147.md) |
 | PRD-148 | 08ea12e | Insert PRD-145 entry into prd_index.json | COMPLETE | [PRD-148](prd_history/PRD-148.md) |
 | PRD-149 | c562259 | PT-Anchored Hourly Alert Window (6:00 AM – 1:00 PM PT) | COMPLETE | [PRD-149](prd_history/PRD-149.md) |
+| PRD-150 | —       | Five-Tier Symbol Classification System | PROPOSED | [PRD-150](prd_history/PRD-150.md) |
