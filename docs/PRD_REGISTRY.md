@@ -110,7 +110,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-093 | 5513a8c | System State Information Economy | COMPLETE | [PRD-093](prd_history/PRD-093.md) |
 | PRD-094 | 4aeef46 | Public Dashboard Artifact Contamination Guard | COMPLETE | [PRD-094](prd_history/PRD-094.md) |
 | PRD-095 | 15ff9a5 | Scheduled Pipeline Morning Readiness Guard | COMPLETE | [PRD-095](prd_history/PRD-095.md) |
-| PRD-096 | 04d66b2 | Runtime Artifact Git Hygiene and Pre-Push Safety | COMPLETE | [PRD-096](prd_history/PRD-096.md) |
+| PRD-096 | 04d66b2 | Runtime Artifact Git Hygiene and Pre-Push Safety | COMPLETE | — |
 | PRD-097 | 03df0f4 | Dashboard Sidecar Freshness and Permission Clarity | COMPLETE | [PRD-097](prd_history/PRD-097.md) |
 | PRD-098 | 729cde0 | Candidate Board Visibility and Validation Diagnostics | COMPLETE | [PRD-098](prd_history/PRD-098.md) |
 | PRD-099 | 102063a | Dashboard Artifact Generation Contract | COMPLETE | [PRD-099](prd_history/PRD-099.md) |
@@ -137,16 +137,6 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-118 | 136bbfe | Coherent Dashboard Publish Artifact Set | COMPLETE | [PRD-118](prd_history/PRD-118.md) |
 | PRD-119 | ccdee4b | Dashboard Publish Freshness Gate | COMPLETE | [PRD-119](prd_history/PRD-119.md) |
 | PRD-120 | d20d906 | Dashboard Source-Health Diagnostics and Permission Display Correction | COMPLETE | [PRD-120](prd_history/PRD-120.md) |
-
-> **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
-
----
-
-## Audit Reports
-
-| PRD | File |
-|-----|------|
-| PRD-016 | [docs/prd_history/AUDIT_PRD016.md](prd_history/AUDIT_PRD016.md) |
 | PRD-121 | bd14b71 | PRD Workflow Lane Classification and Review Discipline | COMPLETE | [PRD-121](prd_history/PRD-121.md) |
 | PRD-122 | 70a0e33 | Add WTI Crude Macro Visibility | COMPLETE | [PRD-122](prd_history/PRD-122.md) |
 | PRD-122-PATCH | b0df0ad | Payload validator must permit optional oil driver | PATCH | [PRD-122-PATCH](prd_history/PRD-122-PATCH.md) |
@@ -169,7 +159,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-139 | 6ab8433 | Upstream Macro Collector Sidecar | COMPLETE | [PRD-139](prd_history/PRD-139.md) |
 | PRD-140 | 1dbc886 | Document pre_push_check.sh in CLAUDE.md git hygiene | COMPLETE | [PRD-140](prd_history/PRD-140.md) |
 | PRD-141 | 1ba6cc9 | Hourly Alert Canonical Slot + Cross-Run Idempotency | COMPLETE | [PRD-141](prd_history/PRD-141.md) |
-| PRD-142 | —       | PATCH PRD-141 Persist hourly slot state across CI runs (scheduled for kill per VISION.md 2026-05-22 — workflow change never landed) | DEPRECATED | [PRD-142](prd_history/PRD-142.md) |
+| PRD-142 | — | PATCH PRD-141 Persist hourly slot state across CI runs (scheduled for kill per VISION.md 2026-05-22 — workflow change never landed) | DEPRECATED | [PRD-142](prd_history/PRD-142.md) |
 | PRD-143 | 575b34f | Process hygiene sweep: hook exclusion, runtime.py debt note, Skill drift clause | COMPLETE | [PRD-143](prd_history/PRD-143.md) |
 | PRD-144 | e3447d2 | Redundant cron entries for 6 AM PT hourly alert resilience | COMPLETE | [PRD-144](prd_history/PRD-144.md) |
 | PRD-145 | 3230ceb | Sequencing-gate parser keys on row-owner cell only | COMPLETE | [PRD-145](prd_history/PRD-145.md) |
@@ -177,4 +167,14 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-147 | 320ab7f | prd_close.sh must not parse user input as re.sub template | COMPLETE | [PRD-147](prd_history/PRD-147.md) |
 | PRD-148 | 08ea12e | Insert PRD-145 entry into prd_index.json | COMPLETE | [PRD-148](prd_history/PRD-148.md) |
 | PRD-149 | c562259 | PT-Anchored Hourly Alert Window (6:00 AM – 1:00 PM PT) | COMPLETE | [PRD-149](prd_history/PRD-149.md) |
-| PRD-150 | —       | Five-Tier Symbol Classification System | PROPOSED | [PRD-150](prd_history/PRD-150.md) |
+| PRD-150 | — | Five-Tier Symbol Classification System | PROPOSED | [PRD-150](prd_history/PRD-150.md) |
+
+> **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
+
+---
+
+## Audit Reports
+
+| PRD | File |
+|-----|------|
+| PRD-016 | [docs/prd_history/AUDIT_PRD016.md](prd_history/AUDIT_PRD016.md) |

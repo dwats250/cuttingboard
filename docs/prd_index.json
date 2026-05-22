@@ -5,13 +5,13 @@
   "entries": [
     {
       "number": 56,
-      "title": "Candidate lifecycle tracking \u2014 deterministic grade/setup_state transition metadata in market_map",
+      "title": "Candidate lifecycle tracking — deterministic grade/setup_state transition metadata in market_map",
       "status": "COMPLETE",
       "commit": "e7365c6"
     },
     {
       "number": 57,
-      "title": "Lifecycle visibility on Signal Forge dashboard \u2014 badge, detail row, removed symbols section",
+      "title": "Lifecycle visibility on Signal Forge dashboard — badge, detail row, removed symbols section",
       "status": "COMPLETE",
       "commit": "e7365c6"
     },
@@ -46,6 +46,462 @@
       "commit": "79c4185"
     },
     {
+      "number": 63,
+      "title": "Macro Pressure Execution Policy Integration",
+      "status": "COMPLETE",
+      "commit": "d47ad79"
+    },
+    {
+      "number": 64,
+      "title": "Trade Visibility Layer (Near-Miss Engine)",
+      "status": "COMPLETE",
+      "commit": "663c652"
+    },
+    {
+      "number": 65,
+      "title": "Signal Forge Interactive Dashboard Controls",
+      "status": "COMPLETE",
+      "commit": "5a85df7"
+    },
+    {
+      "number": 66,
+      "title": "Trade Drilldown Panel (Deterministic Explanation Layer)",
+      "status": "COMPLETE",
+      "commit": "b988f89"
+    },
+    {
+      "number": 67,
+      "title": "Trade Thesis Gate",
+      "status": "COMPLETE",
+      "commit": "88623b1"
+    },
+    {
+      "number": 68,
+      "title": "Invalidation and Exit Guidance Layer",
+      "status": "COMPLETE",
+      "commit": "097c8e5"
+    },
+    {
+      "number": 69,
+      "title": "Entry Quality and Chase Filter",
+      "status": "COMPLETE",
+      "commit": "d6a8660"
+    },
+    {
+      "number": 70,
+      "title": "Manual Trade Journal and Mistake Taxonomy",
+      "status": "COMPLETE",
+      "commit": "093d544"
+    },
+    {
+      "number": 71,
+      "title": "Trading Process Review Scorecard",
+      "status": "COMPLETE",
+      "commit": "cb48eba"
+    },
+    {
+      "number": 72,
+      "title": "Macro Drivers Snapshot Fallback",
+      "status": "COMPLETE",
+      "commit": "7e14a4e"
+    },
+    {
+      "number": 73,
+      "title": "Human-Readable Dashboard Trader View",
+      "status": "COMPLETE",
+      "commit": "dcc7446"
+    },
+    {
+      "number": 74,
+      "title": "Chart Context Layer (Level Diagram)",
+      "status": "COMPLETE",
+      "commit": "6483a16"
+    },
+    {
+      "number": 75,
+      "title": "Signal Performance Engine",
+      "status": "COMPLETE",
+      "commit": "43a1052"
+    },
+    {
+      "number": 76,
+      "title": "Dashboard Live Publishing and Layout Finalization",
+      "status": "COMPLETE",
+      "commit": "3c6bb76"
+    },
+    {
+      "number": 77,
+      "title": "Sunday Futures Pre-Report",
+      "status": "COMPLETE",
+      "commit": "7d33a7a"
+    },
+    {
+      "number": 78,
+      "title": "Dashboard Demo Candidate Fixture Mode",
+      "status": "COMPLETE",
+      "commit": "7d33a7a"
+    },
+    {
+      "number": 79,
+      "title": "PRD Review Token Efficiency Guardrails",
+      "status": "COMPLETE",
+      "commit": "9e0aca7"
+    },
+    {
+      "number": 80,
+      "title": "Sunday Report Expansion Layer",
+      "status": "COMPLETE",
+      "commit": "0cd7e45"
+    },
+    {
+      "number": 81,
+      "title": "Dashboard Timestamp Display Hardening",
+      "status": "COMPLETE",
+      "commit": "c8462de"
+    },
+    {
+      "number": 82,
+      "title": "Remove Redundant Dashboard Permission Copy",
+      "status": "COMPLETE",
+      "commit": "fbe5e11"
+    },
+    {
+      "number": 83,
+      "title": "Dashboard Data Freshness and Source Visibility",
+      "status": "COMPLETE",
+      "commit": "b67ac8a"
+    },
+    {
+      "number": 84,
+      "title": "Populate market_map current_price",
+      "status": "COMPLETE",
+      "commit": "b995d93"
+    },
+    {
+      "number": 85,
+      "title": "Regression Coverage: current_price Survives Full Runtime Processing Chain",
+      "status": "COMPLETE",
+      "commit": "9f4fe5f"
+    },
+    {
+      "number": 86,
+      "title": "Carry Forward current_price Through Sunday Market Map",
+      "status": "COMPLETE",
+      "commit": "049e75f"
+    },
+    {
+      "number": 87,
+      "title": "Pipeline Command Timeout Hardening",
+      "status": "COMPLETE",
+      "commit": "a976d01"
+    },
+    {
+      "number": 88,
+      "title": "Candidate Board Level Diagram Price Fallback",
+      "status": "COMPLETE",
+      "commit": "0be66f5"
+    },
+    {
+      "number": 89,
+      "title": "Dashboard Artifact Coherence Guard",
+      "status": "COMPLETE",
+      "commit": "fc3bf77"
+    },
+    {
+      "number": 90,
+      "title": "Candidate Board Display Tiers",
+      "status": "COMPLETE",
+      "commit": "15ffa7f"
+    },
+    {
+      "number": 91,
+      "title": "Candidate Validation Context",
+      "status": "COMPLETE",
+      "commit": "c6e7249"
+    },
+    {
+      "number": 92,
+      "title": "Macro Conditions Consolidation",
+      "status": "COMPLETE",
+      "commit": "e189a68"
+    },
+    {
+      "number": 93,
+      "title": "System State Information Economy",
+      "status": "COMPLETE",
+      "commit": "5513a8c"
+    },
+    {
+      "number": 94,
+      "title": "Public Dashboard Artifact Contamination Guard",
+      "status": "COMPLETE",
+      "commit": "4aeef46"
+    },
+    {
+      "number": 95,
+      "title": "Scheduled Pipeline Morning Readiness Guard",
+      "status": "COMPLETE",
+      "commit": "15ff9a5"
+    },
+    {
+      "number": 96,
+      "title": "Runtime Artifact Git Hygiene and Pre-Push Safety",
+      "status": "COMPLETE",
+      "commit": "04d66b2"
+    },
+    {
+      "number": 97,
+      "title": "Dashboard Sidecar Freshness and Permission Clarity",
+      "status": "COMPLETE",
+      "commit": "03df0f4"
+    },
+    {
+      "number": 98,
+      "title": "Candidate Board Visibility and Validation Diagnostics",
+      "status": "COMPLETE",
+      "commit": "729cde0"
+    },
+    {
+      "number": 99,
+      "title": "Dashboard Artifact Generation Contract",
+      "status": "COMPLETE",
+      "commit": "102063a"
+    },
+    {
+      "number": 100,
+      "title": "Standardize Artifact Push Rebase Contract",
+      "status": "COMPLETE",
+      "commit": "e983bd0"
+    },
+    {
+      "number": 101,
+      "title": "Hourly Telegram Notification Truth Contract",
+      "status": "COMPLETE",
+      "commit": "97aa058"
+    },
+    {
+      "number": 102,
+      "title": "Align Alert and Dashboard Candidate Semantics",
+      "status": "COMPLETE",
+      "commit": "accf10e"
+    },
+    {
+      "number": 103,
+      "title": "Dashboard Data Contract Gap Patch",
+      "status": "COMPLETE",
+      "commit": "c8ef8cf"
+    },
+    {
+      "number": 104,
+      "title": "Decision Logic and Artifact Flow Audit",
+      "status": "COMPLETE",
+      "commit": "8d72f26"
+    },
+    {
+      "number": 105,
+      "title": "Decision Quality Evidence Map",
+      "status": "COMPLETE",
+      "commit": "740b48c"
+    },
+    {
+      "number": 106,
+      "title": "Cheap Lookup Dispatch Policy",
+      "status": "COMPLETE",
+      "commit": "8b5e672"
+    },
+    {
+      "number": 107,
+      "title": "Trend Structure Snapshot Sidecar",
+      "status": "COMPLETE",
+      "commit": "d10e179"
+    },
+    {
+      "number": 108,
+      "title": "Registry Hook Hygiene",
+      "status": "COMPLETE",
+      "commit": "4cfdf5c"
+    },
+    {
+      "number": 109,
+      "title": "Workflow Token Economy",
+      "status": "COMPLETE",
+      "commit": "6f440e9"
+    },
+    {
+      "number": 110,
+      "title": "Narrow Trend Structure Snapshot Universe",
+      "status": "COMPLETE",
+      "commit": "cea04ac"
+    },
+    {
+      "number": 111,
+      "title": "Documentation & Knowledge-System Consolidation",
+      "status": "COMPLETE",
+      "commit": "93ed94d"
+    },
+    {
+      "number": 112,
+      "title": "Trend Structure Dashboard Panel",
+      "status": "COMPLETE",
+      "commit": "339c3ea"
+    },
+    {
+      "number": 113,
+      "title": "PRD Governance Hardening",
+      "status": "COMPLETE",
+      "commit": "5d38186"
+    },
+    {
+      "number": 114,
+      "title": "Watchlist Snapshot Sidecar",
+      "status": "COMPLETE",
+      "commit": "bab82cf"
+    },
+    {
+      "number": 115,
+      "title": "Dashboard Artifact Lineage Visibility",
+      "status": "COMPLETE",
+      "commit": "e753ac0"
+    },
+    {
+      "number": 116,
+      "title": "Dashboard Mixed-Artifact Hierarchy Hardening",
+      "status": "COMPLETE",
+      "commit": "d8df30c"
+    },
+    {
+      "number": 117,
+      "title": "Session-Aware Inactive-State Labeling",
+      "status": "COMPLETE",
+      "commit": "ba10cfc"
+    },
+    {
+      "number": 118,
+      "title": "Coherent Dashboard Publish Artifact Set",
+      "status": "COMPLETE",
+      "commit": "136bbfe"
+    },
+    {
+      "number": 119,
+      "title": "Dashboard Publish Freshness Gate",
+      "status": "COMPLETE",
+      "commit": "ccdee4b"
+    },
+    {
+      "number": 120,
+      "title": "Dashboard Source-Health Diagnostics and Permission Display Correction",
+      "status": "COMPLETE",
+      "commit": "d20d906"
+    },
+    {
+      "number": 121,
+      "title": "PRD Workflow Lane Classification and Review Discipline",
+      "status": "COMPLETE",
+      "commit": "bd14b71"
+    },
+    {
+      "number": 122,
+      "title": "Add WTI Crude Macro Visibility",
+      "status": "COMPLETE",
+      "commit": "70a0e33"
+    },
+    {
+      "number": 123,
+      "title": "Trend Structure Refresh Decoupling and Truthful Source Status",
+      "status": "COMPLETE",
+      "commit": "0b1ee7b"
+    },
+    {
+      "number": 124,
+      "title": "Hourly Telegram Alert Header and Body Quality",
+      "status": "COMPLETE",
+      "commit": "5b0ae73"
+    },
+    {
+      "number": 125,
+      "title": "OHLCV Cache Freshness Contract",
+      "status": "COMPLETE",
+      "commit": "e727ae2"
+    },
+    {
+      "number": 126,
+      "title": "Fixture Mode No-Live-OHLCV Boundary",
+      "status": "COMPLETE",
+      "commit": "a4ce57c"
+    },
+    {
+      "number": 127,
+      "title": "Hourly Alert Action Language Alignment",
+      "status": "COMPLETE",
+      "commit": "c814460"
+    },
+    {
+      "number": 128,
+      "title": "Hourly Readiness Ordering",
+      "status": "COMPLETE",
+      "commit": "c959df5"
+    },
+    {
+      "number": 129,
+      "title": "CI Artifact Hygiene and Push-Guard Stability",
+      "status": "COMPLETE",
+      "commit": "1623687"
+    },
+    {
+      "number": 130,
+      "title": "Trend Structure Unknown-State Normalization",
+      "status": "COMPLETE",
+      "commit": "d01327c"
+    },
+    {
+      "number": 131,
+      "title": "Trend Structure Composite Display Layer",
+      "status": "COMPLETE",
+      "commit": "82e1415"
+    },
+    {
+      "number": 132,
+      "title": "Intraday VWAP × RVOL Context Display Layer",
+      "status": "COMPLETE",
+      "commit": "e5e512c"
+    },
+    {
+      "number": 133,
+      "title": "Telegram Macro Pulse Alert Clarity",
+      "status": "COMPLETE",
+      "commit": "391f84c"
+    },
+    {
+      "number": 134,
+      "title": "Daily Pipeline Market Map Coherence Repair",
+      "status": "COMPLETE",
+      "commit": "c0c5ae5"
+    },
+    {
+      "number": 135,
+      "title": "Engine Milestone Review and Consolidation Checkpoint",
+      "status": "COMPLETE",
+      "commit": "6fca328"
+    },
+    {
+      "number": 136,
+      "title": "Add Spot Metals Row to Macro Tape",
+      "status": "COMPLETE",
+      "commit": "b496b51"
+    },
+    {
+      "number": 137,
+      "title": "PATCH PRD-136 Payload Validator Accepts Optional Spot Metals",
+      "status": "COMPLETE",
+      "commit": "d88d8e0"
+    },
+    {
+      "number": 138,
+      "title": "Shared Macro Tape Layout and Spot-Metals Color Parity",
+      "status": "COMPLETE",
+      "commit": "b739bee"
+    },
+    {
       "number": 139,
       "title": "Upstream Macro Collector Sidecar",
       "status": "COMPLETE",
@@ -65,8 +521,8 @@
     },
     {
       "number": 142,
-      "title": "PATCH PRD-141 Persist hourly slot state across CI runs",
-      "status": "IN PROGRESS",
+      "title": "PATCH PRD-141 Persist hourly slot state across CI runs (scheduled for kill per VISION.md 2026-05-22 — workflow change never landed)",
+      "status": "DEPRECATED",
       "commit": null
     },
     {
@@ -110,6 +566,12 @@
       "title": "PT-Anchored Hourly Alert Window (6:00 AM – 1:00 PM PT)",
       "status": "COMPLETE",
       "commit": "c562259"
+    },
+    {
+      "number": 150,
+      "title": "Five-Tier Symbol Classification System",
+      "status": "PROPOSED",
+      "commit": null
     }
   ]
 }

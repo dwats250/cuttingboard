@@ -173,20 +173,34 @@ def _parse_registry(root: Path, errors: list[str]) -> dict[int, dict[str, str | 
                 f"{status!r} in docs/PRD_REGISTRY.md; allowed: {sorted(ALLOWED_STATUSES)}"
             )
 
+        file_cell = cells[4] if len(cells) > 4 else ""
         rows[number] = {
             "number": number,
             "commit": _normalize_registry_commit(cells[1]),
             "title": cells[2],
             "status": status,
+            "file": file_cell,
         }
 
     return rows
 
 
-def _validate_history_docs(root: Path, entries: list[dict[str, Any]], errors: list[str]) -> None:
+def _validate_history_docs(
+    root: Path,
+    entries: list[dict[str, Any]],
+    registry_rows: dict[int, dict[str, str | None]],
+    errors: list[str],
+) -> None:
     for entry in entries:
         number = entry["number"]
         if number < TRACKING_START:
+            continue
+        # Skip history-doc existence check when the registry explicitly
+        # records no file link for this PRD (File column = "—"). The
+        # gap is a historical-record drift: the work shipped, the doc
+        # was never written. Surfaced as known debt rather than gated.
+        registry_row = registry_rows.get(number)
+        if registry_row is not None and registry_row.get("file", "").strip() in {"", "-", "—"}:
             continue
         history_path = root / "docs" / "prd_history" / f"PRD-{number:03d}.md"
         if not history_path.exists():
@@ -228,7 +242,7 @@ def validate_repository(root: Path) -> list[str]:
     entries = _validate_index_schema(data, errors)
     _validate_index_rules(data, entries, errors)
     registry_rows = _parse_registry(root, errors)
-    _validate_history_docs(root, entries, errors)
+    _validate_history_docs(root, entries, registry_rows, errors)
     _validate_registry_agreement(registry_rows, entries, errors)
     return errors
 
