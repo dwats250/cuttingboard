@@ -16,6 +16,58 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-05-23 — PRD-153 follow-up recon: three deferred items
+
+PRD-153's real-data validation against the three local Moomoo
+statements (602 trades, Feb/Mar/Apr 2026) produced zero joins. A
+follow-up recon traced the cause through three layers:
+
+1. **Audit-log sparsity** — `logs/audit.jsonl` has only 4 dates with
+   pipeline records (4/28, 5/7, 5/12, 5/13). Zero overlap with the
+   statement window (2/18 → 5/1).
+2. **Test contamination** — 72 of 77 "pipeline records" had
+   `report_path` pointing to pytest tmpdirs. Historical residue from
+   runs predating the test-isolation guards landed by `a46a792`
+   (2026-05-09, per-test patch) and `8b4e654` (2026-05-10, autouse
+   fixture). Both guards are in place at HEAD; the residue is the
+   only remaining defect. **PRD-154** scrubs the residue.
+3. **Audit-write coverage gap** — only `_run_pipeline` (used by
+   `live`/`sunday`/`fixture` modes) writes pipeline records.
+   `_execute_notify_run` (used by `hourly`/`post_orb`/
+   `orb_trajectory`/`midmorning`/`power_hour`/`market_close`) writes
+   none. Healthy production therefore yields ≤1 pipeline record per
+   trading day — a structural cap on `moomoo_review`'s join density.
+
+PRD-154 closes layer 2. Three items from layers 1 + 3 are
+**explicitly deferred** here and not folded into PRD-154's scope:
+
+- **Audit-write coverage doctrine.** What is `logs/audit.jsonl`
+  supposed to record — one row per pipeline invocation, per
+  decision, or per mode? Until this is settled, density-driven
+  changes to `moomoo_review` are premature. Needs its own scoping
+  PRD before any consumer-side join changes.
+- **2026-04-29 / 2026-04-30 anomaly.** Eight successful
+  `Cuttingboard Pipeline` scheduled runs each day per `gh run list`,
+  zero records retained. Likely the `live` slot was in the failed
+  cohort while the notify-only slots (which write nothing
+  pipeline-shaped by design) succeeded; confirmation requires
+  per-run workflow log inspection. Cheap to investigate; not on the
+  critical path.
+- **Tag-precedence in `cuttingboard/moomoo_join.py:183-189`.** Empty
+  `date_records` causes out-of-universe trades to be tagged
+  `no_audit_for_date` rather than `underlier_not_in_audit_universe`.
+  Technically correct per PRD-153 but collapses the tag
+  distribution when audit coverage is patchy. Wait until the
+  coverage doctrine settles — tag distributions are only meaningful
+  when audit density is non-degenerate.
+
+Recon trail and analytic outputs live in this session's transcript
+(2026-05-22 → 2026-05-23). No `audits/` artifact committed; the
+findings worth preserving are captured above and in PRD-154's GOAL
+and NOTES sections.
+
+---
+
 ## 2026-05-22 — Phase 1 formally exited; Phase 2 ratified
 
 Phase 1 (per VISION.md: inventory, cleanup, Gap-Down Permission
