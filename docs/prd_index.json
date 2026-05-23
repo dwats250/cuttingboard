@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 154,
-  "next_prd": 155,
+  "latest_complete": 155,
+  "next_prd": 156,
   "entries": [
     {
       "number": 56,
@@ -600,8 +600,8 @@
     {
       "number": 155,
       "title": "Audit-write coverage doctrine",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "cfae5d2"
     }
   ]
 }
