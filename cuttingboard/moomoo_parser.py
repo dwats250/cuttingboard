@@ -103,21 +103,33 @@ _DATE_RE = re.compile(r"^([A-Z][a-z]{2} \d{1,2}, \d{4})\s+(.+)$")
 _PERIOD_RE = re.compile(r"Period Ending:\s*([A-Z][a-z]{2} \d{1,2}, \d{4})")
 _NUM_RE = re.compile(r"^\(?-?\d[\d,]*(?:\.\d+)?\)?$")
 _OPTION_RE = re.compile(
-    r"^(CALL|PUT)\s+100\s+(\S+)\s+(\d{2}/\d{2}/\d{2})\s+(\d+(?:\.\d+)?)(?:\s+\*\s+\d+)?$"
+    r"^(CALL|PUT)\s+100\s+(\S+)\s+(\d{2}/\d{2}/\d{2})\s+(\d+(?:\.\d+)?)$"
 )
+_TICKER_RE = re.compile(r"^[A-Z][A-Z0-9.]{0,5}$")
 
 # Recognised Type-cell prefixes, ordered longest-first so e.g.
-# "FX Buy Trade" wins over "Buy".
+# "FX Buy Trade" wins over "Buy". The bare "E-transfer" alias absorbs
+# the real-PDF case where the Type cell wraps as "E-transfer\nDeposit"
+# and only the first token survives on the trade row; the orphan
+# "Deposit" continuation line is filtered upstream.
 _TYPE_PREFIXES = [
     ("FX Buy Trade", SIDE_FX_BUY, CLASS_FX),
     ("FX Sell Trade", SIDE_FX_SELL, CLASS_FX),
     ("E-transfer Deposit", SIDE_DEPOSIT, CLASS_CASH),
+    ("E-transfer", SIDE_DEPOSIT, CLASS_CASH),
+    ("Cash Rebate", SIDE_DEPOSIT, CLASS_CASH),
     ("Expired Option", SIDE_EXPIRED, CLASS_OPTION),
     ("Buy", SIDE_BUY, None),
     ("Sell", SIDE_SELL, None),
 ]
 
 _SKIP_DESCRIPTIONS = {"Opening Balance", "Closing Balance"}
+
+# Known type-cell continuation tokens that appear as orphan lines in
+# the real Moomoo PDFs (e.g. "E-transfer\nDeposit" wraps the Type
+# cell). The continuation is redundant with the alias entries in
+# ``_TYPE_PREFIXES`` and is dropped during pre-processing.
+_TYPE_CONTINUATIONS = {"Deposit"}
 
 
 def _parse_number(token: str) -> float:
@@ -199,12 +211,23 @@ def _parse_trade_line(
             next_period=next_period,
         )
 
-    # Buy / Sell / Expired Option — three trailing numerics: qty, price, amount.
-    desc_tokens, nums = _split_trailing_numbers(tokens, 3)
-    quantity, price, amount = nums
-    description = " ".join(desc_tokens)
+    if side == SIDE_EXPIRED:
+        # Expired Option rows have no Price column — only quantity + amount.
+        desc_tokens, nums = _split_trailing_numbers(tokens, 2)
+        quantity, amount = nums
+        price = None
+    else:
+        # Buy / Sell — three trailing numerics: qty, price, amount.
+        desc_tokens, nums = _split_trailing_numbers(tokens, 3)
+        quantity, price, amount = nums
 
-    parsed_opt = _parse_option_desc(description)
+    description = " ".join(desc_tokens)
+    # Real PDFs render a bare "*" between the option strike and the
+    # quantity cell (e.g. "CALL 100 GLD 02/25/26 480 *  1 ..."); after
+    # stripping trailing numerics the "*" lands at the description tail.
+    option_desc = description[:-2].rstrip() if description.endswith(" *") else description
+
+    parsed_opt = _parse_option_desc(option_desc)
     if parsed_opt is not None:
         leg, underlier = parsed_opt
         # Rebuild leg with contracts derived from |quantity|.
@@ -223,8 +246,15 @@ def _parse_trade_line(
             next_period=next_period,
         )
 
-    # Equity row — description is the underlier symbol.
-    underlier = description.split()[0] if description else None
+    # Equity row. A resolvable ticker is a single-token, uppercase
+    # description; multi-word company names (e.g. "ETF OPPORTUNITIES TR
+    # T REX 2X") yield underlier=None rather than mis-attributing the
+    # first description token to a Cuttingboard universe symbol.
+    desc_split = description.split() if description else []
+    if len(desc_split) == 1 and _TICKER_RE.match(desc_split[0]):
+        underlier = desc_split[0]
+    else:
+        underlier = None
     return NormalizedTrade(
         date=trade_date,
         account=account,
@@ -281,6 +311,12 @@ def parse_statement(path: Path) -> list[NormalizedTrade]:
                     continue
                 # Skip Date/Type/Description header row.
                 if line.startswith("Date") and "Description" in line:
+                    continue
+                # Orphan Type-cell continuation (e.g. "Deposit" from a
+                # wrapped "E-transfer\nDeposit" Type cell). The trade row
+                # itself was parsed via the single-token type alias on the
+                # previous line.
+                if line in _TYPE_CONTINUATIONS:
                     continue
                 if account is None:
                     continue

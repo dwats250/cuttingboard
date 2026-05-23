@@ -29,7 +29,7 @@ def test_cli_single_file_smoke(chdir_tmp, tmp_path):
     jsonl_path = tmp_path / "logs" / "moomoo_review.jsonl"
     assert jsonl_path.exists()
     lines = [ln for ln in jsonl_path.read_text(encoding="utf-8").splitlines() if ln.strip()]
-    assert len(lines) == 9  # matches parser fixture count
+    assert len(lines) == 11  # matches parser fixture count
 
     for ln in lines:
         rec = json.loads(ln)
@@ -63,7 +63,7 @@ def test_cli_directory_input(chdir_tmp, tmp_path):
     assert rc == 0
     jsonl_path = tmp_path / "logs" / "moomoo_review.jsonl"
     assert jsonl_path.exists()
-    assert len(jsonl_path.read_text(encoding="utf-8").splitlines()) == 9
+    assert len(jsonl_path.read_text(encoding="utf-8").splitlines()) == 11
 
 
 def test_cli_missing_path_exits_1(chdir_tmp, tmp_path):
@@ -85,7 +85,7 @@ def test_cli_jsonl_is_append_only(chdir_tmp, tmp_path):
     assert main([str(FIXTURE), "--audit-log", str(audit_path)]) == 0
     assert main([str(FIXTURE), "--audit-log", str(audit_path)]) == 0
     jsonl_path = tmp_path / "logs" / "moomoo_review.jsonl"
-    assert len(jsonl_path.read_text(encoding="utf-8").splitlines()) == 18
+    assert len(jsonl_path.read_text(encoding="utf-8").splitlines()) == 22
 
 
 def test_cli_markdown_is_overwritten(chdir_tmp, tmp_path):

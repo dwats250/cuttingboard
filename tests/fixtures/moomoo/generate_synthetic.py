@@ -7,6 +7,24 @@ without regeneration.
 
 All timestamps and randomness sources are pinned so that running this
 script produces a byte-identical output every time.
+
+Row inventory (covers every defect surfaced during 2026-05-22
+real-statement validation):
+
+* equity Buy/Sell with a resolvable single-token ticker (SPY)
+* equity Buy with a multi-word company description and no ticker
+  (ETF OPPORTUNITIES TR T REX 2X) → defect E
+* option Buy/Sell with the bare ``*`` strike-to-quantity separator
+  (CALL 100 GLD 02/25/26 480 *) → defect B
+* Expired Option with two trailing numerics only (qty, amount; no
+  Price column) → defect A
+* FX Buy/Sell Trade rows
+* E-transfer Deposit row with the Type cell wrapped across two
+  physical lines (``E-transfer`` on the trade row, bare ``Deposit``
+  on the next line) → defect C
+* Cash Rebate row → defect D
+* Opening/Closing Balance rows (skipped by the parser)
+* "Transactions to settle after current period" section
 """
 
 from __future__ import annotations
@@ -34,32 +52,47 @@ PINNED_TIMESTAMP_EPOCH = 1_700_000_000
 
 ACTIVITY_HEADERS = ["Date", "Type", "Description", "Quantity", "Price ($)", "Amount ($)"]
 
-CAD_ROWS = [
-    ["", "", "Opening Balance", "", "", "0.00"],
-    ["Feb 17, 2026", "E-transfer Deposit", "INTERAC DEPOSIT", "", "", "200.00"],
-    ["Feb 23, 2026", "FX Sell Trade", "USD/CAD@1.36799", "", "", "(300.00)"],
-    ["", "", "Closing Balance", "", "", "600.00"],
-]
 
-USD_ROWS = [
-    ["", "", "Opening Balance", "", "", "0.00"],
-    ["Feb 18, 2026", "Buy", "CALL 100 GLD 02/25/26 480", "1", "5.000", "(501.00)"],
-    ["Feb 19, 2026", "Sell", "CALL 100 GLD 02/25/26 480", "(1)", "4.900", "489.00"],
-    ["Feb 20, 2026", "Expired Option", "PUT 100 SLV 02/20/26 67", "(1)", "0.000", "0.00"],
-    ["Feb 23, 2026", "FX Buy Trade", "USD/CAD@1.36799", "", "", "438.59"],
-    ["Feb 25, 2026", "Buy", "SPY", "10", "580.000", "(5800.00)"],
-    ["Feb 25, 2026", "Sell", "SPY", "(10)", "585.000", "5850.00"],
-    ["", "", "Closing Balance", "", "", "50.00"],
-]
-
-NEXT_PERIOD_ROWS = [
-    ["Feb 27, 2026", "Buy", "QQQ", "5", "510.000", "(2550.00)"],
-]
+def _wrapped_etransfer(styles) -> Paragraph:
+    """Render the Type cell as 'E-transfer<br/>Deposit' to simulate the
+    real-PDF column wrap. pdfplumber extracts this as two text lines
+    ('E-transfer' on the trade row, bare 'Deposit' below)."""
+    return Paragraph("E-transfer<br/>Deposit", styles["BodyText"])
 
 
-def _table(rows: list[list[str]]) -> Table:
+def _build_rows(styles) -> tuple[list[list], list[list], list[list]]:
+    cad_rows = [
+        ["", "", "Opening Balance", "", "", "0.00"],
+        ["Feb 17, 2026", _wrapped_etransfer(styles), "INTERAC DEPOSIT", "", "", "200.00"],
+        ["Feb 18, 2026", "Cash Rebate", "REBATE", "", "", "1.37"],
+        ["Feb 23, 2026", "FX Sell Trade", "USD/CAD@1.36799", "", "", "(300.00)"],
+        ["", "", "Closing Balance", "", "", "600.00"],
+    ]
+    usd_rows = [
+        ["", "", "Opening Balance", "", "", "0.00"],
+        ["Feb 18, 2026", "Buy", "CALL 100 GLD 02/25/26 480 *", "1", "5.000", "(501.00)"],
+        ["Feb 19, 2026", "Sell", "CALL 100 GLD 02/25/26 480 *", "(1)", "4.900", "489.00"],
+        ["Feb 20, 2026", "Expired Option", "PUT 100 SLV 02/20/26 67 *", "(1)", "", "0.00"],
+        ["Feb 23, 2026", "FX Buy Trade", "USD/CAD@1.36799", "", "", "438.59"],
+        ["Feb 25, 2026", "Buy", "SPY", "10", "580.000", "(5800.00)"],
+        ["Feb 25, 2026", "Sell", "SPY", "(10)", "585.000", "5850.00"],
+        ["Feb 26, 2026", "Buy", "ETF OPPORTUNITIES TR T REX 2X", "10", "15.110", "(153.09)"],
+        ["", "", "Closing Balance", "", "", "50.00"],
+    ]
+    next_period_rows = [
+        ["Feb 27, 2026", "Buy", "QQQ", "5", "510.000", "(2550.00)"],
+    ]
+    return cad_rows, usd_rows, next_period_rows
+
+
+def _table(rows: list[list]) -> Table:
     data = [ACTIVITY_HEADERS] + rows
-    table = Table(data, repeatRows=1, hAlign="LEFT")
+    table = Table(
+        data,
+        colWidths=[70, 80, 200, 50, 55, 60],
+        repeatRows=1,
+        hAlign="LEFT",
+    )
     table.setStyle(
         TableStyle(
             [
@@ -68,6 +101,7 @@ def _table(rows: list[list[str]]) -> Table:
                 ("LINEBELOW", (0, 0), (-1, 0), 0.5, colors.black),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
                 ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
             ]
         )
     )
@@ -89,18 +123,20 @@ def build_pdf(output_path: Path = OUTPUT_PATH) -> Path:
         producer="cuttingboard",
     )
 
+    cad_rows, usd_rows, next_period_rows = _build_rows(styles)
+
     story = [
         Paragraph("Client Statement", styles["Title"]),
         Paragraph("Period Ending: Feb 28, 2026", styles["Normal"]),
         Spacer(1, 12),
         Paragraph("Account Activity - Margin Account (CAD) - 7R5-MF8E-1", styles["Heading3"]),
-        _table(CAD_ROWS),
+        _table(cad_rows),
         Spacer(1, 12),
         Paragraph("Account Activity - Margin Account (USD) - 7R5-MF8F-1", styles["Heading3"]),
-        _table(USD_ROWS),
+        _table(usd_rows),
         Spacer(1, 12),
         Paragraph("Transactions to settle after current period", styles["Heading3"]),
-        _table(NEXT_PERIOD_ROWS),
+        _table(next_period_rows),
     ]
 
     doc.build(story)
