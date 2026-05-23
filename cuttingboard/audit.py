@@ -5,6 +5,12 @@ Every pipeline run writes exactly one record to logs/audit.jsonl.
 Records are never overwritten or deleted. sort_keys=True ensures
 deterministic field ordering across runs.
 
+Two record families share this file: pipeline records (written by
+write_audit_record, one per runtime._run_pipeline invocation) and
+notification-event records (written by write_notification_audit,
+event == "notification"). See docs/audit_doctrine.md for the
+binding rules.
+
 Entry point: write_audit_record(...)
 """
 

@@ -596,6 +596,12 @@
       "title": "Scrub historical pytest contamination from logs/audit.jsonl",
       "status": "COMPLETE",
       "commit": "33844d7"
+    },
+    {
+      "number": 155,
+      "title": "Audit-write coverage doctrine",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

@@ -76,7 +76,12 @@ def load_most_recent_prior_run(
     current_run_at_utc: datetime,
     audit_log_path: str = AUDIT_LOG_PATH,
 ) -> Optional[dict[str, Any]]:
-    """Return the most recent same-day prior pipeline run from audit.jsonl."""
+    """Return the most recent same-day prior pipeline run from audit.jsonl.
+
+    Per docs/audit_doctrine.md, only _run_pipeline writes pipeline
+    records, so on a typical trading day the "most recent prior run"
+    is the premarket live-mode run.
+    """
     path = Path(audit_log_path)
     if not path.exists():
         return None

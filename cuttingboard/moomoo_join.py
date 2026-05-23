@@ -84,6 +84,8 @@ def load_audit_records(audit_log_path: str) -> list[dict]:
 
     Notification-event records are filtered out. Malformed JSON lines are
     silently skipped (the audit log is append-only and read-only here).
+    Sparse-by-design per docs/audit_doctrine.md: ~1 record per trading
+    day; intraday trades have no same-day pipeline record by design.
     """
     path = Path(audit_log_path)
     if not path.exists():

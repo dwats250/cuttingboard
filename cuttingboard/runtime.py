@@ -1659,6 +1659,9 @@ def _load_run_history(path: Path, limit: int = 5) -> list[dict]:
     """Return up to `limit` pipeline run records from audit.jsonl (most recent first).
 
     Filters out notification-event entries. Returns [] on missing file or parse error.
+    Per docs/audit_doctrine.md, pipeline records are written once per
+    _run_pipeline invocation — typically once per trading day — so this
+    spans across days at ~1 record per day.
     """
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
