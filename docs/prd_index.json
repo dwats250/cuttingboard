@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 153,
-  "next_prd": 154,
+  "latest_complete": 154,
+  "next_prd": 155,
   "entries": [
     {
       "number": 56,
@@ -590,6 +590,12 @@
       "title": "Moomoo Statement Consumer (Phase 2)",
       "status": "COMPLETE",
       "commit": "5ec073e, a1993b9"
+    },
+    {
+      "number": 154,
+      "title": "Scrub historical pytest contamination from logs/audit.jsonl",
+      "status": "COMPLETE",
+      "commit": "33844d7"
     }
   ]
 }
