@@ -3,6 +3,89 @@
 Meaningful decisions and rationale. Date-ordered, newest first.
 Short notes, not ceremony.
 
+**Compression rule.** At each calendar year-end (or when this file
+exceeds 1500 lines, whichever comes first), move entries from
+completed years into `docs/DECISIONS-YYYY.md`. Replace each archived
+entry's body with a one-line summary + a link to the archive
+section, keeping the headline visible in the main file. Do not
+condense entries within the active year — they're load-bearing for
+ongoing work and the cost of search is cheap.
+
+Phase-boundary archives are optional and only worth doing when a
+phase produced ≥20 entries and the next phase has clearly begun.
+
+---
+
+## 2026-05-22 — Phase 1 formally exited; Phase 2 ratified
+
+Phase 1 (per VISION.md: inventory, cleanup, Gap-Down Permission
+Gating, alignment audit) is **complete**. Step-by-step:
+
+1. Inventory audit — `audits/inventory-2026-05-22/`
+2. Consolidated cleanup — 10 commits between `c5355e0` and
+   `2d929bf` (Polygon, ntfy, orphan modules, dead functions,
+   unused deps, root cruft)
+3. Gap-Down Permission Gating — pre-existing, retroactively
+   documented as PRD-151 (`5bf9680`)
+4. Architectural alignment audit — `audits/alignment-2026-05-22/`,
+   headline verdict **ALIGNED**, Part B doctrine updates in
+   `d9b430b`
+
+The Phase 1 → Phase 2 gate was therefore satisfied before PRD-153
+(Moomoo Statement Consumer, `5ec073e` + `a1993b9`) shipped. PRD-153
+is on-vision Phase 2 work, not a gate-jump.
+
+This entry is recorded in DECISIONS.md because the Phase-1
+completion status currently lives in `docs/PROJECT_STATE.md § Next
+step`, which rotates when the next PRD ships. DECISIONS.md is the
+durable record.
+
+---
+
+## 2026-05-22 — Pre-L7 audit recon findings accepted as descriptive-only design (no new debt)
+
+The 2026-05-22 pre-L7 audit visibility recon
+(`audits/recon-2026-05-22/l4-l5-audit-visibility.md`) surfaced
+three findings that were originally deferred "to Phase 2 scoping."
+Phase 2 has now shipped (PRD-153), so the deferral wording is
+stale and the findings need an explicit decision per VISION.md
+("acknowledged debt requires a re-evaluation date").
+
+**Decision: accept all three as descriptive-only design.** PRD-153
+emits a closed-set blind-spot tag system (`gap_down_short_suppressed`,
+`notify_mode_only`, `expansion_data_incomplete_ambiguous`,
+`no_audit_for_date`, `underlier_not_in_audit_universe`) at the
+post-hoc evaluation surface in `logs/moomoo_review.jsonl` and
+`reports/moomoo/<YYYY-MM>.md`. The visibility need that motivated
+the recon — "can a Moomoo trade be evaluated against an audit
+record without false attribution?" — is met at the descriptive
+surface, not at the audit-record surface.
+
+Specifically:
+
+- **Gap-down suppression invisibility.** Covered by the
+  `gap_down_short_suppressed` tag; PRD-153 join logic correctly
+  attributes a suppressed SHORT to the gate rather than to data
+  quality.
+- **Notify-path context discard.** Covered by the
+  `notify_mode_only` tag; trades from notify-mode runs are
+  attributable as such without requiring the audit record to
+  carry the discarded context dict.
+- **Reject-stage misattribution.** Same `gap_down_short_suppressed`
+  tag prevents downstream "data quality" misattribution at the
+  evaluation layer.
+
+The underlying `logs/audit.jsonl` invisibility remains by design.
+This is a "description, not prediction" application: rather than
+expanding the audit log to make the gate visible (predictive of
+what an analyst might want), the descriptive evaluation surface
+names the blind spots where they actually matter.
+
+No re-evaluation date because this is accepted-as-design, not
+deferred. Reopen if a real-data usage pattern shows the
+descriptive tags are insufficient — that would be a new finding,
+not a continuation of this one.
+
 ---
 
 ## 2026-05-22 — Alignment cadence check #1 (post-VISION baseline) — PASS with Q3 question refinement

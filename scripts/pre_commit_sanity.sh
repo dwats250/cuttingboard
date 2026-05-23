@@ -18,6 +18,25 @@ else
 fi
 
 echo ""
+echo "=== active PRD / scope reminder ==="
+# Non-blocking: if PROJECT_STATE.md names an active PRD, remind the
+# human (or Claude) to invoke the scope-lock-precommit skill before
+# committing PRD-scoped work. Cheap nudge, no enforcement — the skill
+# itself is the actual gate.
+if [ -f docs/PROJECT_STATE.md ]; then
+  ACTIVE_PRD=$(awk -F': ' '/^\*\*Active PRD:/ {print $2; exit}' docs/PROJECT_STATE.md | tr -d '[:space:]')
+  if [ -n "${ACTIVE_PRD:-}" ] && [ "$ACTIVE_PRD" != "none" ]; then
+    echo "Active PRD: $ACTIVE_PRD"
+    echo "REMINDER: run the scope-lock-precommit skill before committing"
+    echo "          (verifies staged files match the PRD's FILES section)"
+  else
+    echo "no active PRD — scope-lock check not required"
+  fi
+else
+  echo "PROJECT_STATE.md not found — skipping scope reminder"
+fi
+
+echo ""
 echo "=== unresolved conflicts ==="
 CONFLICTS=$(git diff --name-only --diff-filter=U)
 if [ -n "$CONFLICTS" ]; then
