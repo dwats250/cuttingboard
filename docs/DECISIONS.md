@@ -5,6 +5,108 @@ Short notes, not ceremony.
 
 ---
 
+## 2026-05-22 — Pre-L7 audit visibility recon completed; fixes deferred to Phase 2 scoping
+
+Codex completed the pre-L7 audit visibility recon at
+`audits/recon-2026-05-22/l4-l5-audit-visibility.md`. The recon answered
+a narrow factual question: across the boundary from
+`generate_candidates(...)` to `qualify_all(...)` in current
+production code, what is captured by `logs/audit.jsonl` and what is
+not.
+
+Verdict: **BOUNDED-TO-GAP-DOWN**. `_apply_intraday_short_permission`
+(PRD-151) is the only production operation that removes generated
+candidates before `qualify_all(...)`. Its removals are invisible in
+`logs/audit.jsonl` — no pre-filter candidate list, post-filter
+candidate list, removed-symbol list, or gap-down reason field is
+written. The existing `suppressed_candidates` audit field is fed by
+`apply_sector_router(...)` post-qualification, not by the gap-down
+gate (`cuttingboard/runtime.py:821-825, 1036`;
+`cuttingboard/audit.py:227`).
+
+The recon surfaced three observability findings of different stakes:
+
+- **Gap-down suppression invisibility (primary).** Suppressed SHORT
+  candidates leave no audit trace and are absent from
+  `qualified_trades`, `trade_decisions`, `near_a_plus`,
+  `excluded_symbols`, and `suppressed_candidates`. Directly affects
+  Phase 2 join completeness: the Moomoo statement consumer joining
+  executed trades against `logs/audit.jsonl` cannot count a
+  gap-down-suppressed SHORT as a decision surface from the audit
+  record alone.
+- **Notify-path context discard (secondary).** The helper's returned
+  `context` dict is preserved by the daily/live call site at
+  `runtime.py:805` (bound to `intraday_state_context`, propagated to
+  the audit) but discarded by the notify-mode call sites at
+  `runtime.py:489` and `runtime.py:518` (bound to `_`). Surviving
+  SHORT candidates in notify mode therefore lack the intraday context
+  fields that daily-mode records carry. Asymmetry in audit
+  propagation, not in gate behavior; PRD-151's description of the gate
+  remains accurate.
+- **EXPANSION continuation misattribution (tertiary).** In EXPANSION
+  regime, `qualify_all(...)` iterates `structure_results` rather than
+  the candidate dict (`cuttingboard/qualification.py:216-228`). A
+  gap-down-suppressed symbol can still be considered by continuation
+  logic, but because `ohlcv` is built only for the filtered candidate
+  dict, the suppressed symbol has no `df` and continuation rejects it
+  as `DATA_INCOMPLETE` (`qualification.py:595-605`). The audit's
+  reason chain therefore misattributes a suppression-downstream
+  rejection to a data-quality cause.
+
+### Decision
+
+All three findings are observability concerns. Per VISION.md
+("description, not prediction" and "cuts before additions"), no
+visibility PRDs are opened to remediate them in advance of Phase 2.
+The findings are named here as known blind spots, made explicit
+inputs to Phase 2 scoping, and the Phase 2 PRD will decide which
+(if any) require pre-Moomoo-join remediation versus which the
+extension can ship descriptively-with-known-blind-spots.
+
+No PATCH PRD for PRD-151. The gate's behavior matches PRD-151's
+description; the notify-path asymmetry is a caller-side audit
+propagation concern, not a gate-behavior concern. Folding it into
+PRD-151 would muddle the PRD's scope.
+
+### Out-of-scope finding to capture separately
+
+The recon's §8 honest limits notes that `continuation_audit` is
+populated in run-summary structures in `cuttingboard/runtime.py` but
+is not written to `logs/audit.jsonl`. This is a standalone audit
+completeness gap independent of gap-down suppression. To be added to
+`docs/PROJECT_STATE.md § Known technical debt` with a re-evaluation
+date, per VISION.md's acknowledged-debt principle.
+
+### Layer-numbering correction
+
+The recon brief used "L4→L5" to describe the
+`generate_candidates → qualify_all` code boundary. `docs/architecture.md`
+labels derived metrics as L4, regime as L5, and qualification as L7
+(`architecture.md:102-149`). Codex correctly interpreted the brief's
+intent as the code boundary and surfaced the mismatch in §8.
+Subsequent references to this boundary in DECISIONS.md, PRD drafts,
+and recon outputs should use "pre-L7" or "pre-qualification" rather
+than "pre-L5".
+
+### Phase 2 scoping inputs
+
+When Phase 2 scoping opens, the scope statement must explicitly name:
+
+1. Gap-down-suppressed SHORT candidates are invisible to the audit
+   record and therefore to any Moomoo statement join.
+2. Notify-mode audit records lack the intraday context fields present
+   in daily-mode records for surviving candidates.
+3. EXPANSION-regime `DATA_INCOMPLETE` rejections can be caused by
+   upstream gap-down suppression rather than by genuine data quality
+   issues; reason attribution in the audit is not a reliable signal
+   for that distinction.
+
+Phase 2 then decides, per finding, whether the extension requires
+remediation as a precondition or can ship descriptively with the
+blind spot named.
+
+---
+
 ## 2026-05-22 — Architectural alignment audit Part B doctrine updates
 
 Phase 1 step 4 — the architectural alignment audit at
