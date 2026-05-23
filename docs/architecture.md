@@ -39,6 +39,9 @@ These modules are not pipeline stages. They are imported by pipeline stages or o
 | `watch.py` | Intraday watchlist classification and session phase tracking. |
 | `intraday_state_engine.py` | ORB classification engine. |
 | `notifications/` | Telegram alert formatting (hourly + run summaries). |
+| `moomoo_parser.py` | PRD-153 read-only consumer: parses Moomoo client-statement PDFs into NormalizedTrade rows. |
+| `moomoo_join.py` | PRD-153 read-only consumer: joins NormalizedTrade rows to same-day audit records and attaches blind-spot tags. |
+| `moomoo_review.py` | PRD-153 CLI (`python -m cuttingboard.moomoo_review`): orchestrates parse + join + JSONL/Markdown emission. |
 
 ## Delivery Clarification
 

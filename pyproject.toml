@@ -10,12 +10,14 @@ dependencies = [
     "requests>=2.31.0",
     "python-dotenv>=1.0.0",
     "pyarrow>=14.0.0",        # transitive, required for parquet I/O via pandas
+    "pdfplumber>=0.10.0",     # PRD-153: Moomoo client-statement PDF parsing
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
     "ruff>=0.4.0",
+    "reportlab>=4.0.0",       # PRD-153: regenerates the synthetic Moomoo PDF fixture
 ]
 chain = [
     "yahooquery>=2.3.0",
