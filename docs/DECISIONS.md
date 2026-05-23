@@ -5,6 +5,88 @@ Short notes, not ceremony.
 
 ---
 
+## 2026-05-22 — Post-VISION workflow tightening (Explore-vs-Codex, parallel reviews, real-data validation skill, memory init)
+
+Six small workflow improvements landed in one pass after a
+retrospective on the post-VISION.md PRD cycle (PRDs 151-153).
+Triggered by the observation that VISION.md itself is enforced
+(PRD-150 kill, [[project_vision_is_active]]) but the surrounding
+workflow still carried pre-VISION habits.
+
+### Explore subagent supersedes Codex for codebase recon
+
+`CLAUDE.md` "Workflow patterns" rewritten. The built-in `Explore`
+subagent (and `general-purpose`) is the default for codebase recon
+— cross-file consistency checks, scoped reads, "where is X used"
+sweeps — because it runs locally without an external model call.
+Codex is reserved for what only Codex offers: a genuinely
+independent second model for PRD cross-review and structured code
+review. The pre-L7 audit recon at
+`audits/recon-2026-05-22/l4-l5-audit-visibility.md` is the
+canonical shape of a task that should now be `Explore`, not Codex.
+
+### Parallel PRD review is the default, not the exception
+
+`docs/PRD_PROCESS.md` gained a "Review Dispatch" section. Claude
+vision review and Codex cross-review are independent and dispatched
+in parallel from a single message, not serially. The PRD-150 arc
+ran serially and the second review's findings did not depend on
+the first — pure wall-clock waste. The rule is doc-level rather
+than skill-enforced because skills are invoked deliberately anyway;
+discipline failure would not be fixed by mechanical enforcement
+(see [[feedback_cuts_before_additions]] applied to workflow tooling
+itself).
+
+### Real-data validation codified as a skill + thin harness
+
+The validate-then-fix pattern from PRD-153 closeout
+([[feedback_validate_then_fix]]) is now a reusable skill:
+`.claude/skills/real-data-validation/SKILL.md` plus
+`scripts/validate_consumer_prd.py`. The harness runs a
+single-argument consumer callable against a real-data fixture and
+scaffolds `docs/prd_history/PRD-NNN.validation.md` with the captured
+output and an amend-vs-spawn defects template. The skill walks
+Claude through preconditions, defect classification, resolution,
+and re-run. Smoke-tested against PRD-153's real fixture (Feb 2026
+Moomoo statement, 41 normalized trades captured cleanly).
+
+The harness is intentionally minimal — single-arg callable,
+repr-based capture, no golden-file diffing. Extending it is
+deferred until a second CONSUMER PRD with a different signature
+forces the question.
+
+### Codex/subagent artifact links in DECISIONS.md
+
+New convention: when a Codex or subagent artifact materially
+drives a decision (KILL, REVISE, scope cut), link the artifact
+path in the `docs/DECISIONS.md` entry. Recorded in CLAUDE.md
+"Workflow patterns". Thickens the audit trail without ceremony —
+the artifact is already written, this just makes the link durable.
+
+### Full test suite runs backgrounded
+
+CLAUDE.md updated: the full suite (297 tests, long enough to
+justify it) runs via `run_in_background` once before pre-commit,
+freeing foreground work in parallel. Habit, not enforcement.
+
+### Memory system seeded
+
+`~/.claude/projects/-home-dustin-Projects-cuttingboard/memory/`
+initialized with `MEMORY.md` + five entries: user profile, three
+feedback memories (cuts-before-additions, validate-then-fix,
+amend-vs-spawn), one project memory (vision-is-active). Future
+sessions read condensed lessons rather than re-deriving them from
+CLAUDE.md every time.
+
+**Scope of this entry:** these are workflow/governance changes,
+not PRD-scoped. No PRD-NNN bookkeeping needed; this DECISIONS
+entry is the artifact. n=1 for the parallel-review rule and the
+real-data-validation skill — both will need a second data point
+(next PRD with two reviews, next CONSUMER PRD) to confirm the
+shape is right.
+
+---
+
 ## 2026-05-22 — PRD-153 closeout decisions (validate-then-fix pattern, scope-fold call, ticker-less equity tradeoff)
 
 PRD-153 (Moomoo Statement Consumer) shipped via two commits — `5ec073e`

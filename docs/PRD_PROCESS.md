@@ -86,6 +86,40 @@ If a single PRD accumulates more than one PATCH PRD, the root causes MUST be doc
 
 ---
 
+## Review Dispatch
+
+Most PRDs receive two independent reviews before implementation: a
+Claude vision/architecture review and a Codex cross-review. **These
+reviews are independent and MUST be dispatched in parallel**, not
+serially. The author submits the draft once and the two reviewers
+work simultaneously against the same artifact.
+
+**Why parallel:** the reviews answer different questions (vision
+alignment vs. structural soundness) from non-overlapping models.
+Serial dispatch wastes wall-clock time without improving either
+review's quality. The PRD-150 review arc (2026-05-22) ran serially
+and the second review's findings did not depend on the first.
+
+**Mechanics:**
+
+- Claude Code dispatches both reviews as parallel subagent calls
+  (single message, multiple tool invocations) once the PRD draft is
+  ready for review.
+- Reviewer artifacts land at
+  `docs/prd_history/PRD-NNN.review.claude.md` and
+  `docs/prd_history/PRD-NNN.review.codex.md` respectively (the
+  slots enforced by the `prd-review-claude` skill).
+- If a review materially drives a decision (KILL, REVISE, scope
+  cut), link the artifact path in the `docs/DECISIONS.md` entry so
+  the audit trail survives — see CLAUDE.md "Workflow patterns".
+- Cross-review-of-review (one reviewer reviewing the other's
+  output) is by definition serial and exempt from this rule.
+
+The parallel-dispatch rule does not change *what* either review
+does, only *when* they fire relative to each other.
+
+---
+
 ## Governance Compression Principle
 
 Governance must minimize reviewer cognitive load while maximizing drift

@@ -51,11 +51,22 @@ with date and rationale.
   prior decisions in `docs/DECISIONS.md`.
 - When drift is discovered mid-task (code doesn't match docs, undocumented
   dependencies surface), pause and surface the drift before proceeding.
-- Invoke Codex for: scoped reads of long PRDs, cross-file consistency checks,
-  structured code review.
-- Do not invoke Codex for: simple greps, git operations, mechanical edits.
+- Use the built-in `Explore` subagent (or `general-purpose`) for codebase
+  recon: cross-file consistency checks, scoped reads of long PRDs, "where is
+  X used" sweeps. These run locally without an external model call.
+- Invoke Codex when the value is a *genuinely independent second model* —
+  PRD cross-review, vision review of a proposed PRD, structured code review
+  before merge. Not for tasks `Explore` can do.
+- Do not invoke Codex or subagents for: simple greps, git operations,
+  mechanical edits.
+- When two reviews are independent (e.g. Claude vision review + Codex
+  cross-review on the same PRD draft), dispatch them in parallel rather than
+  serially.
+- When a Codex (or subagent) artifact materially drives a decision, link the
+  artifact path in the `docs/DECISIONS.md` entry so the audit trail survives.
 - Run targeted tests during iteration. Run the full suite once before
-  pre-commit review.
+  pre-commit review — backgrounded (`run_in_background`) when the suite
+  takes long enough to be worth doing other work in parallel.
 - Read-only inspection commands (git status/diff/log, grep, find, targeted
   reads, pytest) may execute without per-command approval. Mutating commands —
   git pushes, file deletions, dependency changes, edits outside the active
