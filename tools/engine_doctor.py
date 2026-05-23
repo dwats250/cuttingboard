@@ -97,7 +97,7 @@ PIPELINE = [
     ("—",  "runtime",               "cuttingboard.runtime",                 ["cli_main", "execute_run"]),
     ("—",  "time_utils",            "cuttingboard.time_utils",              ["get_now_et", "is_market_open"]),
     ("—",  "universe",              "cuttingboard.universe",                ["is_tradable_symbol"]),
-    ("—",  "sector_router",         "cuttingboard.sector_router",           ["apply_sector_router"]),
+    ("—",  "sector_router",         "cuttingboard.sector_router",           ["resolve_sector_router"]),
     ("—",  "confirmation",          "cuttingboard.confirmation",            ["evaluate_level_confirmation"]),
 ]
 

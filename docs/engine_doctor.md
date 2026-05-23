@@ -109,8 +109,8 @@ Direct dependents (8):
   audit, contract, notifications, options, output,
   qualification, runtime, watch
 
-Transitive dependents (4):
-  chain_validation, delivery, flow, sector_router
+Transitive dependents (3):
+  chain_validation, delivery, flow
 ```
 
 ---

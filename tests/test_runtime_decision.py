@@ -144,9 +144,6 @@ def _setup_runtime_mocks(monkeypatch, tmp_path):
             disqualification_reason=None,
         )
     })
-    monkeypatch.setattr(runtime, "log_universe_configuration", lambda logger: None)
-    monkeypatch.setattr(runtime, "filter_execution_dict", lambda payload, log=None: payload)
-    monkeypatch.setattr(runtime, "filter_execution_items", lambda items, symbol_getter=None, log=None: items)
     monkeypatch.setattr(runtime, "classify_watchlist", lambda *args, **kwargs: WatchSummary(
         session="PREMARKET",
         threshold=0.0,
@@ -157,7 +154,6 @@ def _setup_runtime_mocks(monkeypatch, tmp_path):
     monkeypatch.setattr(runtime, "generate_candidates", lambda *args, **kwargs: {"SPY": _candidate()})
     monkeypatch.setattr(runtime, "fetch_ohlcv", lambda symbol: None)
     monkeypatch.setattr(runtime, "qualify_all", lambda *args, **kwargs: _qualification_summary())
-    monkeypatch.setattr(runtime, "apply_sector_router", lambda qual, router_state, run_at_utc: (qual, []))
     monkeypatch.setattr(runtime, "_log_continuation_audit", lambda regime, summary: None)
     monkeypatch.setattr(runtime, "build_option_setups", lambda *args, **kwargs: [_option_setup()])
     monkeypatch.setattr(runtime, "render_report", lambda **kwargs: "report")

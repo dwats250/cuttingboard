@@ -1,13 +1,10 @@
-"""Minimal compatibility layer for runtime sector routing imports."""
+"""Minimal sector router state compatibility layer."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
-
-from cuttingboard.qualification import QualificationSummary
-
 
 @dataclass(frozen=True)
 class SectorRouterState:
@@ -40,12 +37,3 @@ def resolve_sector_router(
         computed_at_utc=computed_at_utc,
         session_date=computed_at_utc.date().isoformat(),
     )
-
-
-def apply_sector_router(
-    qualification_summary: QualificationSummary,
-    router_state: SectorRouterState,
-    asof: datetime,
-) -> tuple[QualificationSummary, list[SuppressedCandidate]]:
-    del router_state, asof
-    return qualification_summary, []

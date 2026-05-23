@@ -15,14 +15,12 @@ Coverage-gap tests (PRD-151 §TEST_COVERAGE):
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from unittest.mock import patch
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 import pytz
-
-from pathlib import Path
-from unittest.mock import MagicMock, call
 
 from cuttingboard.notifications import NOTIFY_POST_ORB
 from cuttingboard.normalization import NormalizedQuote
@@ -32,7 +30,6 @@ from cuttingboard.runtime import (
     _apply_intraday_short_permission,
     _execute_notify_run,
     MODE_FIXTURE,
-    MODE_LIVE,
 )
 
 ET = pytz.timezone("US/Eastern")
@@ -401,9 +398,7 @@ def test_case7_fixture_mode_skips_gate_at_execute_notify_run_call_site(
         patch("cuttingboard.runtime.compute_all_derived", return_value={}),
         patch("cuttingboard.runtime.resolve_sector_router",
               return_value=MagicMock()),
-        patch("cuttingboard.runtime.log_universe_configuration"),
         patch("cuttingboard.runtime.classify_all_structure", return_value={}),
-        patch("cuttingboard.runtime.filter_execution_dict", return_value={}),
         patch("cuttingboard.runtime.generate_candidates", return_value={}),
         patch("cuttingboard.runtime.send_notification", return_value=True),
     ):

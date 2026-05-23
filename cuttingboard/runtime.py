@@ -107,11 +107,10 @@ from cuttingboard.regime import CHAOTIC, NEUTRAL, EXPANSION, RegimeState, comput
 from cuttingboard.sector_router import (
     SectorRouterState,
     SuppressedCandidate,
-    apply_sector_router,
     resolve_sector_router,
 )
 from cuttingboard.structure import classify_all_structure
-from cuttingboard.universe import filter_execution_dict, filter_execution_items, is_tradable_symbol, log_universe_configuration
+from cuttingboard.universe import is_tradable_symbol
 from cuttingboard.validation import ValidationSummary, extract_fetch_failures, validate_quotes
 from cuttingboard.watch import WatchSummary, classify_watchlist, compute_all_intraday_metrics
 
@@ -480,11 +479,10 @@ def _execute_notify_run(
             flow_snapshot = _load_flow()
 
             if notify_mode in _QUALIFY_ONLY_MODES:
-                log_universe_configuration(logger)
                 structure = classify_all_structure(validation_summary.valid_quotes, derived, regime.vix_level)
-                execution_quotes = filter_execution_dict(validation_summary.valid_quotes, log=logger)
-                execution_derived = filter_execution_dict(derived, log=logger)
-                execution_structure = filter_execution_dict(structure, log=logger)
+                execution_quotes = dict(validation_summary.valid_quotes)
+                execution_derived = dict(derived)
+                execution_structure = dict(structure)
                 candidates = generate_candidates(execution_structure, execution_derived, execution_quotes, regime)
                 candidates, _ = _apply_intraday_short_permission(candidates, execution_quotes)
                 ohlcv = {
@@ -500,20 +498,14 @@ def _execute_notify_run(
                     ohlcv=ohlcv,
                     now_et=time_utils.convert_utc_to_et(datetime.now(timezone.utc)),
                     flow_snapshot=flow_snapshot,
-                )
-                qualification_summary, _ = apply_sector_router(
-                    qualification_summary,
-                    router_state,
-                    datetime.now(timezone.utc),
                 )
                 _log_continuation_audit(regime, qualification_summary)
 
             elif notify_mode in _HOURLY_MODES and regime.posture != "STAY_FLAT":
-                log_universe_configuration(logger)
                 structure = classify_all_structure(validation_summary.valid_quotes, derived, regime.vix_level)
-                execution_quotes = filter_execution_dict(validation_summary.valid_quotes, log=logger)
-                execution_derived = filter_execution_dict(derived, log=logger)
-                execution_structure = filter_execution_dict(structure, log=logger)
+                execution_quotes = dict(validation_summary.valid_quotes)
+                execution_derived = dict(derived)
+                execution_structure = dict(structure)
                 candidates = generate_candidates(execution_structure, execution_derived, execution_quotes, regime)
                 candidates, _ = _apply_intraday_short_permission(candidates, execution_quotes)
                 ohlcv = {
@@ -529,11 +521,6 @@ def _execute_notify_run(
                     ohlcv=ohlcv,
                     now_et=time_utils.convert_utc_to_et(datetime.now(timezone.utc)),
                     flow_snapshot=flow_snapshot,
-                )
-                qualification_summary, _ = apply_sector_router(
-                    qualification_summary,
-                    router_state,
-                    datetime.now(timezone.utc),
                 )
                 _log_continuation_audit(regime, qualification_summary)
                 candidate_lines = _build_hourly_candidate_lines(
@@ -777,10 +764,9 @@ def _run_pipeline(
                 state_path=_sector_router_state_path(mode),
             )
             structure = classify_all_structure(validation_summary.valid_quotes, derived, regime.vix_level)
-            log_universe_configuration(logger)
-            execution_quotes = filter_execution_dict(validation_summary.valid_quotes, log=logger)
-            execution_derived = filter_execution_dict(derived, log=logger)
-            execution_structure = filter_execution_dict(structure, log=logger)
+            execution_quotes = dict(validation_summary.valid_quotes)
+            execution_derived = dict(derived)
+            execution_structure = dict(structure)
             if mode == MODE_FIXTURE:
                 intraday_metrics, ignored_watch_symbols = ({}, sorted(execution_quotes))
             else:
@@ -796,7 +782,7 @@ def _run_pipeline(
             watch_summary = WatchSummary(
                 session=watch_summary.session,
                 threshold=watch_summary.threshold,
-                watchlist=filter_execution_items(watch_summary.watchlist, symbol_getter=lambda item: item.symbol, log=logger),
+                watchlist=list(watch_summary.watchlist),
                 ignored_symbols=watch_summary.ignored_symbols,
                 execution_posture=watch_summary.execution_posture,
             )
@@ -817,11 +803,6 @@ def _run_pipeline(
                 ohlcv=ohlcv,
                 now_et=now_et,
                 flow_snapshot=_load_flow(),
-            )
-            qualification_summary, suppressed_candidates = apply_sector_router(
-                qualification_summary,
-                router_state,
-                run_at_utc,
             )
             _log_continuation_audit(regime, qualification_summary)
 

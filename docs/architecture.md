@@ -34,7 +34,7 @@ These modules are not pipeline stages. They are imported by pipeline stages or o
 | `contract.py` | Cross-layer output contract dataclasses. Frozen. |
 | `confirmation.py` | Level confirmation evaluation for entry candidates. |
 | `universe.py` | Symbol tradability check. |
-| `sector_router.py` | Sector-aware routing for position sizing. |
+| `sector_router.py` | Sector router state model and resolver; no routing application surface. |
 | `time_utils.py` | ET timezone helpers, market hours. |
 | `watch.py` | Intraday watchlist classification and session phase tracking. |
 | `intraday_state_engine.py` | ORB classification engine. |
