@@ -47,6 +47,7 @@ AGENTS.md
 # Runtime and published artifacts — generated output, never commit
 logs/
 reports/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].md
+reports/moomoo/
 _site/
 reports/output/
 *.json
