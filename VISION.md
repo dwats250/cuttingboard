@@ -20,7 +20,7 @@ The system is built by one person, for one person's trading, on a part-time sche
 
 ## Current state, honestly
 
-**Built and in use:** the 10-layer pipeline (Ingestion through Audit), 297 tests, CLI entrypoint, GitHub Actions CI committing daily markdown reports, the artifact lineage and coherence enforcement work (PRDs 115-120), the sidecar architectural pattern, Gap-Down Permission Gating (built prior to VISION.md being written; retroactively documented as PRD-151 during the 2026-05-22 realignment).
+**Built and in use:** the 10-layer pipeline (Ingestion through Audit), 2499 tests (1 xfailed), CLI entrypoint, GitHub Actions CI committing daily markdown reports, the artifact lineage and coherence enforcement work (PRDs 115-120), the sidecar architectural pattern, Gap-Down Permission Gating (built prior to VISION.md being written; retroactively documented as PRD-151 during the 2026-05-22 realignment).
 
 **In flight:** none. Intraday state classification engine PRD (PRD-150) was killed 2026-05-22 per vision review.
 
