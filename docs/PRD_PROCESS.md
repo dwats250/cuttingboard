@@ -54,6 +54,8 @@ The `FILES` section defines a hard boundary.
 Any file modified during implementation that does not appear in `FILES` is a scope violation.
 Scope violations require either a PRD amendment (add the file to FILES before touching it) or a separate PRD.
 
+Registry and index bookkeeping (`docs/PRD_REGISTRY.md`, `docs/prd_index.json`) is implicit in every PRD lifecycle and is not enumerated in PRD `FILES` sections. Cross-reviewers should treat edits to these two files as authorized by the registry-maintenance step below, not as scope violations.
+
 ### Registry Maintenance
 1. Add a row to `PRD_REGISTRY.md` with status `IN PROGRESS` before implementation begins.
 2. After merge: set status to `COMPLETE` and record the commit hash.

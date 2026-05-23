@@ -5,6 +5,81 @@ Short notes, not ceremony.
 
 ---
 
+## 2026-05-22 — PRD-153 closeout decisions (validate-then-fix pattern, scope-fold call, ticker-less equity tradeoff)
+
+PRD-153 (Moomoo Statement Consumer) shipped via two commits — `5ec073e`
+(initial implementation against the synthetic fixture) + `a1993b9`
+(parser fidelity fixes after real-statement validation surfaced six
+defects). Three decisions from that arc worth recording, beyond what
+the PRD doc captures inline.
+
+### Validate-then-fix as the implementation pattern for CONSUMER-class PRDs touching external data formats
+
+The synthetic fixture established structural confidence — every R1
+row type rendered, parser tests green, CLI smoke clean. The
+real-PDF validation step surfaced six defects the synthetic could
+not have caught: Expired-Option layout (no Price column), bare `*`
+description-tail token, wrapped `E-transfer\nDeposit` Type cell,
+unrecognized Cash Rebate row type, multi-word equity descriptions
+without a ticker, plus the column-width text-extraction quirk that
+collapsed `Feb 17, 2026E-transfer` into a single token in the
+first synthetic regeneration.
+
+Codifying this: for any future CONSUMER-class PRD whose contract
+includes "consumes an external data format we don't control," the
+implementation cycle is **synthetic fixture → real-data validation
+→ defect fix in same cycle**, not **synthetic fixture → ship → wait
+for production drift to surface the gap**. The real-data validation
+step is not "QA," it's part of the implementation. The PRD itself
+should call out which validation samples exist and where.
+
+### Cash Rebate folded into PRD-153 scope rather than spawned as a follow-up PRD
+
+Cash Rebate was discovered as an unrecognized row type during the
+real-statement validation pass. Options were:
+
+1. Add to PRD-153 R1 via amendment, implement in same closeout cycle.
+2. Defer to a follow-up PRD (PRD-154 or PATCH PRD-153) so the
+   PRD-153 scope statement stays "as originally written."
+
+Chose (1) because: same domain (CASH row type), same shape (one
+trailing numeric, no underlier/option), trivial implementation
+(one entry in `_TYPE_PREFIXES`), and the user would have to
+re-context the same code to do (2). The PRD-153 R1 amendment is
+explicit about the addition and the provenance is recorded in the
+PRD NOTES section. The bar for amend-vs-spawn: amend if the new
+scope item is the same domain, fits inside the existing requirement
+shape, and adds < ~10 LOC; spawn a follow-up if any of those fail.
+
+### Ticker-less equity fallback: correctness over coverage
+
+Real Moomoo PDFs render some equity rows with multi-word company
+descriptions and no ticker symbol (e.g.
+`ETF OPPORTUNITIES TR T REX 2X`, `ISHARES SVR TR`,
+`HYCROFT MINING HLDG CORP CL A`). PRD-153's join logic uses
+`underlier` as the join key against `logs/audit.jsonl`. Two options:
+
+1. Guess `underlier` from the first description token. Cheap.
+   Wrong: would mis-attribute `ETF` rows to a nonexistent universe
+   symbol and fire `underlier_not_in_audit_universe` for the wrong
+   reason.
+2. Yield `underlier=None`, `instrument_class="EQUITY"`. Costs
+   join coverage on those rows. Correct: a row with no resolvable
+   ticker emits no blind-spot attribution and contributes nothing
+   to the join, which is the honest behavior given the input.
+
+Chose (2). The principle: false-negative blind-spot attribution
+poisons the descriptive surface PRD-153 exists to provide. Coverage
+loss on un-tickerable rows is bounded and honest. Generalises: when
+a descriptive-only consumer faces ambiguous input, drop the row
+from the descriptive surface rather than fabricate a description.
+
+Single-commit-shape note (parser + fixture + tests bundled into
+`a1993b9` to keep `git bisect` green) skipped — that's a generic
+workflow principle that doesn't need codifying.
+
+---
+
 ## 2026-05-22 — Pre-L7 audit visibility recon completed; fixes deferred to Phase 2 scoping
 
 Codex completed the pre-L7 audit visibility recon at

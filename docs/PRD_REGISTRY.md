@@ -170,7 +170,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-150 | — | Five-Tier Symbol Classification System (Killed 2026-05-22 per vision review. Realizable behavior insufficient to justify surface area. See audits/recon-2026-05-22/prd-150-vision-review.md) | DEPRECATED | [PRD-150](prd_history/PRD-150.md) |
 | PRD-151 | — | Gap-Down Permission Gating (retrospective documentation of feature built prior to VISION.md) | COMPLETE | [PRD-151](prd_history/PRD-151.md) |
 | PRD-152 | c2adf7f | Batch B: Compatibility Shim Removal | COMPLETE | [PRD-152](prd_history/PRD-152.md) |
-| PRD-153 | — | Moomoo Statement Consumer (Phase 2) | IN PROGRESS | [PRD-153](prd_history/PRD-153.md) |
+| PRD-153 | 5ec073e, a1993b9 | Moomoo Statement Consumer (Phase 2) | COMPLETE | [PRD-153](prd_history/PRD-153.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

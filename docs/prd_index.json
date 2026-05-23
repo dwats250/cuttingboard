@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 152,
-  "next_prd": 153,
+  "latest_complete": 153,
+  "next_prd": 154,
   "entries": [
     {
       "number": 56,
@@ -588,8 +588,8 @@
     {
       "number": 153,
       "title": "Moomoo Statement Consumer (Phase 2)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "5ec073e, a1993b9"
     }
   ]
 }
