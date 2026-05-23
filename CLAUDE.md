@@ -82,7 +82,8 @@ check against VISION.md. Three questions:
    (decision-feeding) or without observational purpose (observation)?
 3. Has any new module been added that doesn't serve at least one of
    VISION.md's four questions (what environment, what matters today, is
-   this tradable, what invalidates)?
+   this tradable, what invalidates) AND isn't an explicitly-named
+   VISION.md phase deliverable (e.g. Phase 2 trade evaluation)?
 
 If all three answers are "no," document the check in
 `docs/DECISIONS.md` and move on. If any answer is "yes," scope a full

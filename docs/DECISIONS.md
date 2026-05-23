@@ -5,6 +5,36 @@ Short notes, not ceremony.
 
 ---
 
+## 2026-05-22 — Alignment cadence check #1 (post-VISION baseline) — PASS with Q3 question refinement
+
+First alignment cadence check since VISION.md was introduced (same
+day — so this establishes the post-VISION baseline rather than
+measuring drift). Scope: all production code added since VISION.md.
+Only PRD-153 landed new modules (`cuttingboard/moomoo_parser.py`,
+`moomoo_join.py`, `moomoo_review.py`); everything else was cuts,
+docs, audits, tests, or governance.
+
+- **Q1 (new prediction logic?):** No. PRD-153 modules declare
+  read-only/descriptive in their docstrings; blind-spot tags are
+  observational labels on already-executed trades, not forecasts.
+- **Q2 (new sidecar without consumer or observational purpose?):**
+  No. PRD-153 is the canonical-shape sidecar — read-only against
+  `logs/audit.jsonl`, output channels `reports/moomoo/<YYYY-MM>.md`
+  and `logs/moomoo_review.jsonl`, consumed by Dustin.
+- **Q3 (new module not serving the four questions?):** Surfaced a
+  definitional gap, now fixed. The Moomoo consumer is
+  backward-looking (post-hoc trade evaluation) while the four
+  questions are forward-looking. VISION.md Phase 2 explicitly
+  endorses the consumer, but Q3 as originally written didn't
+  accommodate phase-named work. Amended Q3 in `CLAUDE.md` to read
+  "...AND isn't an explicitly-named VISION.md phase deliverable."
+  With that amendment, Q3 answers No.
+
+**Verdict:** PASS. No drift, no surprise additions. Next cadence
+check due 2026-06-19 to 2026-07-03 (4-6 weeks).
+
+---
+
 ## 2026-05-22 — Post-VISION workflow tightening (Explore-vs-Codex, parallel reviews, real-data validation skill, memory init)
 
 Six small workflow improvements landed in one pass after a
