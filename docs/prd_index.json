@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 151,
-  "next_prd": 152,
+  "latest_complete": 152,
+  "next_prd": 153,
   "entries": [
     {
       "number": 56,
@@ -578,6 +578,12 @@
       "title": "Gap-Down Permission Gating (retrospective documentation of feature built prior to VISION.md)",
       "status": "COMPLETE",
       "commit": null
+    },
+    {
+      "number": 152,
+      "title": "Batch B: Compatibility Shim Removal",
+      "status": "COMPLETE",
+      "commit": "c2adf7f"
     }
   ]
 }
