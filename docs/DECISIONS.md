@@ -16,6 +16,46 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-05-24 — Retire hourly Telegram cadence; replace with three prescriptive PT-anchored reports
+
+The PRD-141/144/148/149 hourly cadence + the daily/Sunday/intraday-mode
+alert stack will be retired in favor of three PT-anchored Telegram
+reports — 06:00 (pre-market: one fully-specified trade or NO TRADE),
+09:30 (binary kill/hold against open positions), 13:30 (post-session
+seed for tomorrow). Anchor: "will I actually use this when trading."
+The hourly cadence produced more pulses than were read, and the
+intraday-mode triggers layered on top without changing trading
+behavior.
+
+The prescriptive pre-market shape (strikes + calendar expiry + dollar
+risk + account-equity-driven position size + debit-or-credit, all
+ready to type into Moomoo) exposes real pipeline gaps. The current
+contract emits symbol/direction/entry/stop/target but drops absolute
+strikes, calendar expiry date, per-candidate dollar risk, and any
+sizing tied to account equity (the current `max_contracts` formula in
+`qualification.py:643` hardcodes a $150 base). These gaps become B1–B11
+prereq PRDs that land before their consuming report unit.
+
+Plan staged but not started — see
+`audits/recon-2026-05-24/next-batch-staging.md`. PRDs are not drafted
+yet; each work unit becomes its own PRD when picked up. The hourly
+cadence stays alive until the pre-market report has earned trust in
+production. Entry point on resumption: **B4 (account-equity sizing)**
+— foundational pipeline work before user-facing reports, per the
+dependency-respecting sequence in the plan.
+
+Per VISION.md non-prediction binding, the kill list explicitly
+excludes: probability-of-profit / EV / scenario-tree pre-market output,
+multi-trade pre-market ranking, mid-session status interpretation,
+auto-detection of open positions from broker statements or audit-log
+ALLOW_TRADE rows (the latter assumes Dustin took every ALLOW_TRADE,
+which is false; PRD-153/156 just established broker-statement
+detection produces no joinable signal).
+
+PRD-PRD link will be added here when W1 is drafted.
+
+---
+
 ## 2026-05-23 — PRD-153 follow-up recon: three deferred items
 
 PRD-153's real-data validation against the three local Moomoo
