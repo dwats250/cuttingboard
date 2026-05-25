@@ -215,7 +215,13 @@ def build_option_setups(
 
         # Apply correlation risk_modifier: reduce effective risk budget and
         # recompute max contracts. Never go below 1 contract (AC4: no removal).
-        effective_risk = config.TARGET_DOLLAR_RISK * risk_modifier
+        # PRD-157: equity-driven sizing. effective_risk = account equity ×
+        # per-trade risk pct × correlation modifier. (Note: risk_modifier here
+        # is the correlation modifier, distinct from qualification.py's
+        # risk_multiplier which is regime-based.)
+        effective_risk = (
+            config.ACCOUNT_EQUITY * config.MAX_RISK_PCT_PER_TRADE * risk_modifier
+        )
         risk_per_contract = spread_width * 100
         if risk_per_contract > 0:
             raw_adjusted = int(effective_risk // risk_per_contract)
