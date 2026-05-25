@@ -343,6 +343,21 @@ class TestSuccessfulRun:
         }
         assert "overnight_policy" not in candidate
 
+    def test_prd157_sizing_passthrough_present(self):
+        """PRD-157 R6: position_size, dollar_risk, estimated_debit pass through
+        from QualificationResult / OptionSetup into the per-candidate dict.
+
+        Fixture has QualificationResult(max_contracts=2, dollar_risk=150.0)
+        and OptionSetup(spread_width=0.75). Expected:
+        - position_size == 2 (from max_contracts)
+        - dollar_risk == 150.0 (from QualificationResult.dollar_risk)
+        - estimated_debit == 75.0 (from spread_width × 100)
+        """
+        candidate = self.contract["trade_candidates"][0]
+        assert candidate["position_size"] == 2
+        assert candidate["dollar_risk"] == 150.0
+        assert candidate["estimated_debit"] == 75.0
+
     def test_optional_overnight_policy_is_validated(self):
         candidate = self.contract["trade_candidates"][0]
         candidate["overnight_policy"] = {

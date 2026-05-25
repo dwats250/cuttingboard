@@ -312,6 +312,10 @@ def _build_trade_candidates(
 
         vis = (visibility_map or {}).get(result.symbol, {})
         expl = (explanation_map or {}).get(result.symbol, {})
+        # PRD-157: sizing passthrough. position_size aliases result.max_contracts;
+        # dollar_risk forwards result.dollar_risk; estimated_debit = setup.spread_width
+        # × 100 (per-contract dollar debit, since OptionSetup.spread_width is
+        # documented as estimated net debit per share at options.py:100).
         candidates.append({
             "symbol": result.symbol,
             "direction": _safe_str(result.direction),
@@ -331,6 +335,13 @@ def _build_trade_candidates(
             "policy_allowed": decision.policy_allowed,
             "policy_reason": decision.policy_reason,
             "size_multiplier": float(decision.size_multiplier),
+            "position_size": (
+                int(result.max_contracts) if result.max_contracts is not None else None
+            ),
+            "dollar_risk": (
+                float(result.dollar_risk) if result.dollar_risk is not None else None
+            ),
+            "estimated_debit": float(setup.spread_width * 100),
             "visibility_status": vis.get("visibility_status"),
             "visibility_reason": vis.get("visibility_reason"),
             "enable_conditions": vis.get("enable_conditions", []),
@@ -634,6 +645,41 @@ def _assert_trade_candidates_valid(trade_candidates: list[Any]) -> None:
         )
         assert math.isfinite(size_multiplier) and size_multiplier >= 0.0, (
             f"trade_candidates[{index}].size_multiplier must be finite and non-negative"
+        )
+        # PRD-157: sizing passthrough schema pin.
+        assert "position_size" in candidate, (
+            f"trade_candidates[{index}].position_size missing"
+        )
+        position_size = candidate["position_size"]
+        assert position_size is None or (
+            isinstance(position_size, int) and position_size >= 0
+        ), (
+            f"trade_candidates[{index}].position_size must be int>=0 or None, "
+            f"got {position_size!r}"
+        )
+        assert "dollar_risk" in candidate, (
+            f"trade_candidates[{index}].dollar_risk missing"
+        )
+        dollar_risk = candidate["dollar_risk"]
+        assert dollar_risk is None or (
+            isinstance(dollar_risk, float)
+            and math.isfinite(dollar_risk)
+            and dollar_risk >= 0.0
+        ), (
+            f"trade_candidates[{index}].dollar_risk must be finite float>=0 or None, "
+            f"got {dollar_risk!r}"
+        )
+        assert "estimated_debit" in candidate, (
+            f"trade_candidates[{index}].estimated_debit missing"
+        )
+        estimated_debit = candidate["estimated_debit"]
+        assert (
+            isinstance(estimated_debit, float)
+            and math.isfinite(estimated_debit)
+            and estimated_debit > 0.0
+        ), (
+            f"trade_candidates[{index}].estimated_debit must be finite positive float, "
+            f"got {estimated_debit!r}"
         )
         if policy_allowed is False:
             assert decision_status != ALLOW_TRADE, (
