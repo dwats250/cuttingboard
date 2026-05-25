@@ -60,11 +60,10 @@ TELEGRAM_CHAT_ID: str | None = os.getenv("TELEGRAM_CHAT_ID")
 
 MIN_RR_RATIO            = 2.0
 MIN_REGIME_CONFIDENCE   = 0.50
-TARGET_DOLLAR_RISK      = 150
-MAX_DOLLAR_RISK         = 200
-# PRD-157: equity-driven sizing knobs. Defaults preserve TARGET_DOLLAR_RISK=150
-# exactly (15000 × 0.01 = 150.0). ACCOUNT_EQUITY is a static manually-maintained
-# value; no broker integration.
+# PRD-157 (2026-05-24): retired TARGET_DOLLAR_RISK / MAX_DOLLAR_RISK in
+# favor of equity-driven sizing. Defaults preserve the prior 150-dollar
+# target exactly (15000 × 0.01 = 150.0). ACCOUNT_EQUITY is a static
+# manually-maintained value; no broker integration.
 ACCOUNT_EQUITY          = 15000.0
 MAX_RISK_PCT_PER_TRADE  = 0.01
 
