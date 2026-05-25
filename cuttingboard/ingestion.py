@@ -17,7 +17,6 @@ from pathlib import Path
 from typing import Optional
 
 import pandas as pd
-import requests
 import yfinance as yf
 
 from cuttingboard import config
