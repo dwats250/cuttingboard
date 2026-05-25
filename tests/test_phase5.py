@@ -270,16 +270,19 @@ class TestEstimatedDebit:
         assert debit == pytest.approx(_MAX_STRIKE_DIST_STK * 0.30, rel=1e-3)
 
     def test_etf_debit_fits_gate8(self):
-        # spread_cost = debit × 100; max_c = floor(150 / spread_cost) must be ≥ 1
+        # PRD-157: budget = ACCOUNT_EQUITY × MAX_RISK_PCT_PER_TRADE.
+        # spread_cost = debit × 100; max_c = floor(budget / spread_cost) must be ≥ 1.
         debit = _estimated_debit(_MAX_STRIKE_DIST_ETF)
         spread_cost = debit * 100
-        max_c = math.floor(config.TARGET_DOLLAR_RISK / spread_cost)
+        budget = config.ACCOUNT_EQUITY * config.MAX_RISK_PCT_PER_TRADE
+        max_c = math.floor(budget / spread_cost)
         assert max_c >= 1, f"ETF debit ${debit} fails gate 8 (max_c={max_c})"
 
     def test_stock_debit_fits_gate8(self):
         debit = _estimated_debit(_MAX_STRIKE_DIST_STK)
         spread_cost = debit * 100
-        max_c = math.floor(config.TARGET_DOLLAR_RISK / spread_cost)
+        budget = config.ACCOUNT_EQUITY * config.MAX_RISK_PCT_PER_TRADE
+        max_c = math.floor(budget / spread_cost)
         assert max_c >= 1, f"Stock debit ${debit} fails gate 8 (max_c={max_c})"
 
 
