@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 155,
-  "next_prd": 156,
+  "latest_complete": 157,
+  "next_prd": 158,
   "entries": [
     {
       "number": 56,
@@ -606,8 +606,8 @@
     {
       "number": 157,
       "title": "Account-Equity-Driven Position Sizing",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "8417768"
     }
   ]
 }
