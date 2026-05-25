@@ -62,6 +62,35 @@ MIN_RR_RATIO            = 2.0
 MIN_REGIME_CONFIDENCE   = 0.50
 TARGET_DOLLAR_RISK      = 150
 MAX_DOLLAR_RISK         = 200
+# PRD-157: equity-driven sizing knobs. Defaults preserve TARGET_DOLLAR_RISK=150
+# exactly (15000 × 0.01 = 150.0). ACCOUNT_EQUITY is a static manually-maintained
+# value; no broker integration.
+ACCOUNT_EQUITY          = 15000.0
+MAX_RISK_PCT_PER_TRADE  = 0.01
+
+
+def _validate_sizing_config(account_equity: float, max_risk_pct: float) -> None:
+    """Validate PRD-157 sizing knobs. Raises ValueError on invalid values.
+
+    Called once at module import time with the configured constants below.
+    Tests call this directly with monkeypatched values.
+    """
+    if not isinstance(account_equity, (int, float)) or account_equity <= 0:
+        raise ValueError(
+            f"ACCOUNT_EQUITY must be > 0, got {account_equity!r}"
+        )
+    if (
+        not isinstance(max_risk_pct, (int, float))
+        or max_risk_pct <= 0
+        or max_risk_pct > 1
+    ):
+        raise ValueError(
+            f"MAX_RISK_PCT_PER_TRADE must be in (0, 1], got {max_risk_pct!r}"
+        )
+
+
+_validate_sizing_config(ACCOUNT_EQUITY, MAX_RISK_PCT_PER_TRADE)
+
 FRESHNESS_SECONDS       = 300        # 5 minutes — max quote age for valid data
 MAX_CLOCK_SKEW_SECONDS  = 5          # max tolerated quote timestamp skew into the future
 HALT_SYMBOLS            = ["^VIX", "DX-Y.NYB", "^TNX", "SPY", "QQQ"]
