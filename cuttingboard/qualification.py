@@ -97,7 +97,7 @@ class QualificationResult:
     gates_failed: list[str]
     hard_failure: Optional[str]      # set when any hard gate (1–4) fails
     watchlist_reason: Optional[str]  # the one missed soft gate description
-    max_contracts: Optional[int]     # floor(150 / spread_width×100)
+    max_contracts: Optional[int]     # floor(effective_target / spread_width×100); PRD-157
     dollar_risk: Optional[float]     # max_contracts × spread_width × 100
     entry_mode: str = ENTRY_MODE_DIRECT
     imbalance_zone: Optional["FVGZone"] = None
@@ -663,7 +663,14 @@ def _qualify_continuation_candidate(
 
     spread_width = max(0.50, dm.atr14 * 0.05)
     spread_cost = spread_width * 100
-    max_contracts = math.floor(config.TARGET_DOLLAR_RISK / spread_cost) if spread_cost > 0 else None
+    # PRD-157: continuation path sizes against equity × per-trade pct. No
+    # regime multiplier here — continuation entries are EXPANSION-only by
+    # construction (REGIME_RISK_MULTIPLIER[EXPANSION]=1.0), so applying it
+    # would be a no-op.
+    continuation_budget = config.ACCOUNT_EQUITY * config.MAX_RISK_PCT_PER_TRADE
+    max_contracts = (
+        math.floor(continuation_budget / spread_cost) if spread_cost > 0 else None
+    )
     dollar_risk = (max_contracts * spread_cost) if max_contracts and max_contracts > 0 else None
 
     if max_contracts is None or max_contracts < 1 or dollar_risk is None:
