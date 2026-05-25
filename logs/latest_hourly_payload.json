@@ -1,13 +1,13 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.7202939524522954,
-      "level": 77516.203125,
+      "change_pct": 0.9721029605069151,
+      "level": 77710.0,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.3544109129401426,
-      "level": 98.96700286865234,
+      "change_pct": -0.3232001376561883,
+      "level": 98.99800109863281,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
@@ -38,9 +38,9 @@
     }
   },
   "meta": {
-    "generation_id": "hourly-20260525T160614Z",
+    "generation_id": "hourly-20260525T170013Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-05-25T16:06:14Z"
+    "timestamp": "2026-05-25T17:00:13Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
