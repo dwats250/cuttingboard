@@ -602,6 +602,12 @@
       "title": "Audit-write coverage doctrine",
       "status": "COMPLETE",
       "commit": "cfae5d2"
+    },
+    {
+      "number": 157,
+      "title": "Account-Equity-Driven Position Sizing",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

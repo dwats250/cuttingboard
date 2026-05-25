@@ -174,6 +174,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-154 | 33844d7 | Scrub historical pytest contamination from logs/audit.jsonl | COMPLETE | [PRD-154](prd_history/PRD-154.md) |
 | PRD-155 | cfae5d2 | Audit-write coverage doctrine | COMPLETE | [PRD-155](prd_history/PRD-155.md) |
 | PRD-156 | — | Surgical removal of Moomoo Statement Consumer (PRD-153) | IN PROGRESS | [PRD-156](prd_history/PRD-156.md) |
+| PRD-157 | — | Account-Equity-Driven Position Sizing | IN PROGRESS | [PRD-157](prd_history/PRD-157.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
