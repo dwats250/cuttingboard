@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-05-22T19:23:51.476278+00:00",
+  "generated_at": "2026-05-25T16:06:14.910897+00:00",
   "schema_version": 1,
   "source": "trend_structure",
   "symbols": {
     "GDX": {
-      "current_price": 85.33999633789062,
+      "current_price": 85.0199966430664,
       "data_status": "PARTIAL",
       "entry_context": "DATA_UNAVAILABLE",
       "price_vs_sma_200": "DATA_UNAVAILABLE",
@@ -19,7 +19,7 @@
       "vwap": null
     },
     "GLD": {
-      "current_price": 413.79998779296875,
+      "current_price": 413.82000732421875,
       "data_status": "PARTIAL",
       "entry_context": "DATA_UNAVAILABLE",
       "price_vs_sma_200": "DATA_UNAVAILABLE",
@@ -34,7 +34,7 @@
       "vwap": null
     },
     "QQQ": {
-      "current_price": 718.14501953125,
+      "current_price": 717.5399780273438,
       "data_status": "PARTIAL",
       "entry_context": "DATA_UNAVAILABLE",
       "price_vs_sma_200": "DATA_UNAVAILABLE",
@@ -49,7 +49,7 @@
       "vwap": null
     },
     "SLV": {
-      "current_price": 68.33999633789062,
+      "current_price": 68.36000061035156,
       "data_status": "PARTIAL",
       "entry_context": "DATA_UNAVAILABLE",
       "price_vs_sma_200": "DATA_UNAVAILABLE",
@@ -64,7 +64,7 @@
       "vwap": null
     },
     "SPY": {
-      "current_price": 746.1799926757812,
+      "current_price": 745.6400146484375,
       "data_status": "PARTIAL",
       "entry_context": "DATA_UNAVAILABLE",
       "price_vs_sma_200": "DATA_UNAVAILABLE",
@@ -79,7 +79,7 @@
       "vwap": null
     },
     "XLE": {
-      "current_price": 59.57500076293945,
+      "current_price": 59.4900016784668,
       "data_status": "PARTIAL",
       "entry_context": "DATA_UNAVAILABLE",
       "price_vs_sma_200": "DATA_UNAVAILABLE",
