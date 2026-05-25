@@ -157,7 +157,7 @@ if max_contracts < 1:
     → soft failure
 ```
 
-`spread_width` is the estimated net debit per share (not the strike distance). `× 100` converts to per-contract cost. The target dollar risk is $150 (`config.TARGET_DOLLAR_RISK`).
+`spread_width` is the estimated net debit per share (not the strike distance). `× 100` converts to per-contract cost. The per-trade risk budget is `config.ACCOUNT_EQUITY × config.MAX_RISK_PCT_PER_TRADE × REGIME_RISK_MULTIPLIER[regime]` (PRD-157, 2026-05-24). At default settings (`ACCOUNT_EQUITY=15000`, `MAX_RISK_PCT_PER_TRADE=0.01`) under RISK_ON, the budget is $150.
 
 | spread_width | spread_cost | max_contracts | dollar_risk |
 |-------------|-------------|---------------|-------------|
@@ -217,12 +217,18 @@ Exactly 1 soft gate fails:
 ## Position Sizing Formula
 
 ```
-spread_cost   = spread_width × 100
-max_contracts = floor(TARGET_DOLLAR_RISK / spread_cost)
-dollar_risk   = max_contracts × spread_cost
+spread_cost      = spread_width × 100
+effective_target = ACCOUNT_EQUITY × MAX_RISK_PCT_PER_TRADE × REGIME_RISK_MULTIPLIER[regime]
+max_contracts    = floor(effective_target / spread_cost)
+dollar_risk      = max_contracts × spread_cost
 ```
 
-Where `TARGET_DOLLAR_RISK = 150` (configured in `config.py`).
+`ACCOUNT_EQUITY` and `MAX_RISK_PCT_PER_TRADE` are manually-maintained static
+constants in `config.py` (no broker integration). Defaults are
+`ACCOUNT_EQUITY=15000`, `MAX_RISK_PCT_PER_TRADE=0.01`, giving an effective
+per-trade risk budget of $150 under RISK_ON. The regime multiplier applies
+on top (CHAOTIC=0.0 zeros sizing; NEUTRAL=0.6 halves it). See PRD-157
+(2026-05-24) for the migration rationale.
 
 This is the maximum number of contracts and maximum dollar risk. You can trade fewer contracts if you want to reduce risk, but never more. The `max_contracts` field on `QualificationResult` and `OptionSetup` is the ceiling, not a recommendation.
 
