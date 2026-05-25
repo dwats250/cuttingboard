@@ -392,9 +392,14 @@ def qualify_candidate(
     else:
         soft_failures.append((GATE_RR, "risk is zero — cannot compute R:R"))
 
-    # Gate 8: Fits within risk budget — scaled by regime multiplier
+    # Gate 8: Fits within risk budget — scaled by regime multiplier.
+    # PRD-157: equity-driven sizing. effective_target = account equity ×
+    # per-trade risk pct × regime multiplier. CHAOTIC regime still produces
+    # effective_target=0 via REGIME_RISK_MULTIPLIER[CHAOTIC]=0.0.
     risk_multiplier = config.REGIME_RISK_MULTIPLIER.get(regime.regime, 1.0)
-    effective_target = config.TARGET_DOLLAR_RISK * risk_multiplier
+    effective_target = (
+        config.ACCOUNT_EQUITY * config.MAX_RISK_PCT_PER_TRADE * risk_multiplier
+    )
     spread_cost = candidate.spread_width * 100  # 1 contract = 100 multiplier
     max_contracts: Optional[int] = None
     dollar_risk: Optional[float] = None
