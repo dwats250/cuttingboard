@@ -1106,6 +1106,14 @@ def _regime_to_permission_key(regime: object) -> str:
 
 
 def _macro_bias_direction_key(up_count: int, down_count: int) -> str:
+    """PRD-158 § 4.2 translation 10: the integrator uses the same arrow-
+    count arithmetic the renderer uses to produce the visible
+    "MACRO BIAS: …" label. When that visible label conflicts with
+    regime/setup direction the integrator suppresses it and emits the
+    Mixed-tape verdict — matching the on-screen contradiction the trader
+    actually sees. The arrow-count vs. semantic-pressure mismatch for
+    VIX/DXY/Rates is pre-existing renderer tech debt outside PRD-158
+    scope; the integrator must not invent a second source of truth."""
     if up_count > down_count:
         return "long"
     if down_count > up_count:
@@ -1453,7 +1461,7 @@ def _render_candidate_card(
     else:
         w(f'  <div class="label">SYMBOL</div><div class="value">{_esc(entry.get("symbol"))}</div>')
         if grade_action is not None:
-            w(f'  <div class="label">ACTION</div>'
+            w(f'  <div class="label">GRADE</div>'
               f'<div class="value">{_esc(grade_action)}{badge_html}</div>')
         w(f'  <div class="label">BIAS</div><div class="value">{_esc(entry.get("bias"))}</div>')
         w(f'  <div class="label">STRUCTURE</div><div class="value">{_esc(entry.get("structure"))}</div>')
