@@ -21,6 +21,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from cuttingboard import config
+from cuttingboard.delivery.dashboard_integrator import dashboard_integrator
 from cuttingboard.delivery.macro_tape_layout import MACRO_ROW_1, MACRO_ROW_2, TRADABLES_ROW
 from cuttingboard.macro_pressure import build_macro_pressure
 from cuttingboard.trade_decision import ALLOW_TRADE
@@ -1092,6 +1093,94 @@ def _regime_flip_phrase(previous_regime: object, current_regime: object) -> str 
         return "Permission flipped to shorts"
     return None
 
+
+# PRD-158 § 4.3: build the dashboard_integrator input from existing
+# render-time state. No new computation — only field selection.
+
+def _regime_to_permission_key(regime: object) -> str:
+    if regime == "RISK_ON":
+        return "longs"
+    if regime == "RISK_OFF":
+        return "shorts"
+    return "stand_down"
+
+
+def _macro_bias_direction_key(up_count: int, down_count: int) -> str:
+    if up_count > down_count:
+        return "long"
+    if down_count > up_count:
+        return "short"
+    return "mixed"
+
+
+_BIAS_TO_SETUP_DIRECTION: dict[str, str] = {
+    "BULL": "long", "BULLISH": "long", "LONG": "long",
+    "BEAR": "short", "BEARISH": "short", "SHORT": "short",
+}
+
+
+def _setup_direction_from_entry(entry: dict) -> str | None:
+    """Derive long/short from an existing market_map symbol entry."""
+    tf = entry.get("trade_framing") or {}
+    direction = tf.get("direction") or entry.get("bias")
+    if isinstance(direction, str):
+        return _BIAS_TO_SETUP_DIRECTION.get(direction.upper())
+    return None
+
+
+def _build_integrator_input(
+    market_regime: object,
+    up_count: int,
+    down_count: int,
+    market_map: dict | None,
+) -> dict:
+    """Construct dashboard_integrator input from existing render-time values.
+
+    Only high-grade symbols (A+/A/B) are fed to the integrator — these are
+    the symbols the dashboard claims as tradable setups. Lower grades
+    (C/D/F) are observational and already carry FAILURE REASON in the
+    rendered card; Rule 1's required-data check is not meant for them.
+    """
+    symbols_payload: dict[str, dict] = {}
+    mm_symbols = (market_map or {}).get("symbols") or {}
+    for sym, entry in mm_symbols.items():
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("grade") not in _HIGH_GRADES:
+            continue
+        invalidation = entry.get("invalidation")
+        invalidation_value = (
+            invalidation[0] if isinstance(invalidation, list) and invalidation else None
+        )
+        tf = entry.get("trade_framing") or {}
+        trigger_value = tf.get("entry") or tf.get("if_now")
+        symbols_payload[sym] = {
+            "current_price": entry.get("current_price"),
+            "setup_direction": _setup_direction_from_entry(entry),
+            "setup_type": entry.get("setup_state") or entry.get("structure"),
+            "trigger": trigger_value,
+            "invalidation": invalidation_value,
+            "grade": entry.get("grade"),
+        }
+
+    tiers: list[tuple[str, str, list[str]]] = []
+    for tier_id, tier_label, tier_grades in _TIER_DEFS:
+        if tier_grades.isdisjoint(_HIGH_GRADES):
+            continue
+        tier_syms = [
+            sym for sym in symbols_payload
+            if mm_symbols[sym].get("grade") in tier_grades
+        ]
+        if tier_syms:
+            tiers.append((tier_id, tier_label, tier_syms))
+
+    return {
+        "regime_permission": _regime_to_permission_key(market_regime),
+        "macro_bias_direction": _macro_bias_direction_key(up_count, down_count),
+        "symbols": symbols_payload,
+        "tiers": tiers,
+    }
+
 _POSTURE_LABELS: dict[str, str] = {
     "AGGRESSIVE_LONG": "Aggressive Long",
     "CONTROLLED_LONG": "Controlled Long",
@@ -1572,6 +1661,28 @@ def render_dashboard_html(
         macro_bias = "MACRO BIAS: MIXED"
         macro_bias_css = "macro-bias mixed"
 
+    # PRD-158 § 4.3: renderer-bound translation pass. The integrator collapses
+    # contradictory raw state into trader-facing verdicts/skips and emits
+    # suppression flags for raw Outcome / Permission / Macro Bias labels.
+    # Skip the integrator entirely when there is no market_map data — the
+    # existing renderer already emits "N/A" / "SOURCE_MISSING" / "STALE" in
+    # that case; emitting an availability verdict on top adds no value.
+    _mm_symbols_for_integrator = (market_map or {}).get("symbols") or {}
+    if _mm_symbols_for_integrator:
+        integrator_result = dashboard_integrator(
+            _build_integrator_input(market_regime, up_count, down_count, market_map)
+        )
+    else:
+        integrator_result = {
+            "symbol_skips": {},
+            "screen_verdicts": [],
+            "rendered_tiers": [],
+            "suppress": {"permission": False, "outcome": False, "macro_bias": False},
+        }
+    integrator_suppress = integrator_result["suppress"]
+    integrator_verdicts: list[str] = integrator_result["screen_verdicts"]
+    integrator_skips: dict[str, str] = integrator_result["symbol_skips"]
+
     lines: list[str] = []
 
     def w(line: str) -> None:
@@ -1675,13 +1786,21 @@ def render_dashboard_html(
     w(f'    <div class="field"><div class="label">Regime</div>'
       f'<div class="value"><span class="badge {regime_cls}">'
       f'{_esc(regime_permission_text)}</span></div></div>')
-    w(f'    <div class="field"><div class="label">Outcome</div>'
-      f'<div class="value">{_esc(outcome_val)}</div></div>')
+    if not integrator_suppress["outcome"]:
+        w(f'    <div class="field"><div class="label">Outcome</div>'
+          f'<div class="value">{_esc(outcome_val)}</div></div>')
     w("  </div>")
     w('  <div class="row">')
+    # PRD-158 § 4.2 translation 9: when integrator flags raw posture-as-
+    # permission as contradicted by setup availability or directional conflict,
+    # the raw Permission field is suppressed in favor of the integrator's
+    # screen-level verdict. HALTED retains precedence — operational halts
+    # are not collapsible.
     if bool(system_halted):
         w('    <div class="field"><div class="label">Permission</div>'
           '<div class="value halted">HALTED</div></div>')
+    elif integrator_suppress["permission"]:
+        pass  # integrator emits the trader-facing replacement elsewhere
     elif stay_flat_reason is not None:
         w(f'    <div class="field warn"><div class="label">Permission</div>'
           f'<div class="value">{_esc(stay_flat_reason)}</div></div>')
@@ -1774,8 +1893,11 @@ def render_dashboard_html(
         w('  <div class="tape-no-data">NO LIVE MACRO DATA</div>')
     tape_value_map = dict(tape_value_slots)
 
-    # Macro bias first
-    w(f'  <div class="{_esc(macro_bias_css)}">{_esc(macro_bias)}</div>')
+    # PRD-158 § 4.2 translation 10: suppress raw MACRO BIAS label when the
+    # integrator detects regime/macro/setup directional conflict. The
+    # integrator emits "Mixed tape — …" in the candidate-board verdict line.
+    if not integrator_suppress["macro_bias"]:
+        w(f'  <div class="{_esc(macro_bias_css)}">{_esc(macro_bias)}</div>')
 
     _tape_arrow_map = dict(tape_slots)
 
@@ -1909,6 +2031,12 @@ def render_dashboard_html(
         w('  <h2>Market Map / Developing Setups &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h2>')
     else:
         w("  <h2>Market Map / Developing Setups</h2>")
+    # PRD-158 § 4.3: integrator screen verdicts (Rules 2/3) render here as
+    # decision-language banner lines. Suppressed under unhealthy lineage so
+    # operators see the lineage diagnostic first.
+    if not unhealthy_lineage:
+        for _verdict in integrator_verdicts:
+            w(f'  <div class="idle-summary">{_esc(_verdict)}</div>')
     if unhealthy_lineage:
         # PRD-116 R5: suppress candidate cards and tier headers under unhealthy lineage.
         # Preserve legacy diagnostic text (SOURCE_MISSING / PARSE_ERROR / STALE MARKET MAP)
@@ -1944,16 +2072,23 @@ def render_dashboard_html(
             if not symbols:
                 w('  <div class="unavailable">NO_CANDIDATES</div>')
             else:
+                # PRD-158 § 4.3 Rule 1: emit one skip line per symbol the
+                # integrator flagged for missing required market data; those
+                # symbols are then filtered out of tier rendering.
+                for skip_sym, skip_line in integrator_skips.items():
+                    w(f'  <div class="idle-summary">{_esc(skip_line)}</div>')
                 sorted_syms = sorted(
-                    symbols.keys(),
+                    [s for s in symbols.keys() if s not in integrator_skips],
                     key=lambda sym: (_GRADE_ORDER.get(symbols[sym].get("grade", ""), 6), sym),
                 )
                 has_actionable = any(symbols[s].get("grade", "") in _HIGH_GRADES for s in sorted_syms)
-                if not has_actionable:
+                if sorted_syms and not has_actionable:
                     w('  <div class="idle-summary">'
                       '<div>NO ACTIONABLE SETUPS</div>'
                       '<div>Market is not offering structure</div>'
                       '</div>')
+                # PRD-158 § 4.3 Rule 4: empty tiers (post-Rule-1 filter) are
+                # suppressed by the existing `if not tier_syms: continue` below.
                 for tier_id, tier_label, tier_grades in _TIER_DEFS:
                     tier_syms = [s for s in sorted_syms if symbols[s].get("grade", "") in tier_grades]
                     if not tier_syms:

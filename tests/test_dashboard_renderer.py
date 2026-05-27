@@ -207,7 +207,9 @@ def test_parse_error_market_map_renders_parse_error(tmp_path: pytest.TempPathFac
 
 # T4 — missing tradable quote shows N/A, not silent "--"
 def test_missing_tradable_quote_renders_data_unavailable() -> None:
-    mm = _market_map({"SPY": _mm_symbol("SPY")})  # no current_price
+    # Explicitly null current_price; the default _mm_symbol shape mirrors the
+    # L8 producer which always supplies a price for high-grade symbols.
+    mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": None}})
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=mm)
     from tests.dash_helpers import _macro_tape_value_slots
     slots = dict(_macro_tape_value_slots(html))

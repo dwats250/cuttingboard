@@ -85,6 +85,9 @@ def _run(
     }
 
 
+_HIGH_GRADES_DEFAULTS = frozenset({"A+", "A", "B"})
+
+
 def _mm_symbol(
     symbol: str = "SPY",
     grade: str = "A",
@@ -95,6 +98,30 @@ def _mm_symbol(
     invalidation: list | None = None,
     reason_for_grade: str | None = None,
 ) -> dict:
+    # PRD-158 § 4.3: defaults mirror the L8 _build_symbol_record contract.
+    # In production, high-grade symbols (A+/A/B) always carry current_price,
+    # setup_state, trade_framing.entry, and a non-empty invalidation list.
+    # Test fixtures inherit that shape so the dashboard integrator's Rule 1
+    # (required-data collapse) does not fire on minimal high-grade fixtures.
+    is_high_grade = grade in _HIGH_GRADES_DEFAULTS
+    if setup_state is None and is_high_grade:
+        setup_state = "DEVELOPING"
+    if trade_framing is None:
+        if is_high_grade:
+            direction = "SHORT" if bias in ("BEAR", "BEARISH") else "LONG"
+            trade_framing = {
+                "direction": direction,
+                "entry": "hold above reference with constructive follow-through",
+                "if_now": "WAIT",
+            }
+        else:
+            trade_framing = {}
+    if invalidation is None:
+        invalidation = (
+            ["loses reference with weak recovery", "momentum fades below trend"]
+            if is_high_grade
+            else []
+        )
     return {
         "symbol":               symbol,
         "grade":                grade,
@@ -102,13 +129,14 @@ def _mm_symbol(
         "structure":            structure,
         "setup_state":          setup_state,
         "confidence":           "MEDIUM",
+        "current_price":        100.0 if is_high_grade else None,
         "watch_zones":          [],
         "fib_levels":           None,
         "what_to_look_for":     [],
-        "invalidation":         invalidation if invalidation is not None else [],
+        "invalidation":         invalidation,
         "preferred_trade_structure": None,
         "reason_for_grade":     reason_for_grade,
-        "trade_framing":        trade_framing if trade_framing is not None else {},
+        "trade_framing":        trade_framing,
         "asset_group":          "EQUITY",
     }
 

@@ -207,7 +207,11 @@ def test_candidate_risk_label() -> None:
         "SPY": _mm_symbol(
             "SPY",
             grade="A",
-            trade_framing={"direction": "LONG", "downgrade": "break below 500_UNIQUE"},
+            trade_framing={
+                "direction": "LONG",
+                "entry": "hold above reference",
+                "downgrade": "break below 500_UNIQUE",
+            },
         ),
     }
     mm   = _market_map(syms)
@@ -236,7 +240,11 @@ def test_candidate_state_before_risk() -> None:
             "SPY",
             grade="A+",
             setup_state="BREAKOUT",
-            trade_framing={"direction": "LONG", "downgrade": "break below 500"},
+            trade_framing={
+                "direction": "LONG",
+                "entry": "hold above reference",
+                "downgrade": "break below 500",
+            },
         ),
     }
     mm   = _market_map(syms)
