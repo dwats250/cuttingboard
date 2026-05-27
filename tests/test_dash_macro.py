@@ -330,7 +330,7 @@ def test_macro_pressure_block_no_data_does_not_raise() -> None:
 def test_macro_pressure_block_component_labels_present() -> None:
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
     block = _macro_pressure_block(html)
-    for label in ("Volatility", "Dollar", "Rates", "Bitcoin"):
+    for label in ("Volatility", "Dollar", "Bitcoin"):
         assert label in block
 
 
@@ -402,13 +402,6 @@ def test_macro_pressure_dollar_label() -> None:
     block = _macro_pressure_block(html)
     assert "Dollar" in block
     assert "dollar_pressure" not in block
-
-
-def test_macro_pressure_rates_label() -> None:
-    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
-    block = _macro_pressure_block(html)
-    assert "Rates" in block
-    assert "rates_pressure" not in block
 
 
 def test_macro_pressure_bitcoin_label() -> None:

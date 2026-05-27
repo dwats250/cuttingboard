@@ -544,7 +544,6 @@ _TIER_DEFS = [
     ("a",     "A — HIGH QUALITY", frozenset({"A"})),
     ("b",     "B — DEVELOPING",   frozenset({"B"})),
     ("c",     "C — EARLY",        frozenset({"C"})),
-    ("df",    "D/F — FAILING",    frozenset({"D", "F"})),
 ]
 
 _CSS = (
@@ -1011,7 +1010,6 @@ def _build_tape_value_slots(
 _PRESSURE_COMPONENT_LABELS = [
     ("volatility_pressure", "Volatility"),
     ("dollar_pressure",     "Dollar"),
-    ("rates_pressure",      "Rates"),
     ("bitcoin_pressure",    "Bitcoin"),
 ]
 
@@ -1283,22 +1281,6 @@ def _render_candidate_card(
         )
         _fail_text = _esc(_fail) if _fail else "No failure reason provided"
         w(f'  <div class="label">FAILURE REASON</div><div class="value">{_fail_text}</div>')
-        # R6: validation requirements — source precedence: validation_requirements →
-        #     validation_acceptance → renderer-derived from existing candidate state
-        _vreqs = entry.get("validation_requirements")
-        if not _vreqs:
-            _vreqs = entry.get("validation_acceptance")
-        if not _vreqs:
-            _rg = entry.get("reason_for_grade")
-            if _rg:
-                _vreqs = _rg
-        if _vreqs:
-            if isinstance(_vreqs, list):
-                for _req in _vreqs:
-                    if _req:
-                        w(f'  <div class="label">VALIDATION</div><div class="value">{_esc(_req)}</div>')
-            else:
-                w(f'  <div class="label">VALIDATION</div><div class="value">{_esc(_vreqs)}</div>')
     else:
         w(f'  <div class="label">SYMBOL</div><div class="value">{_esc(entry.get("symbol"))}</div>')
         w(f'  <div class="label">GRADE</div><div class="value">{_esc(grade)}{badge_html}</div>')
@@ -1345,18 +1327,6 @@ def _render_candidate_card(
         for item in (entry.get("what_to_look_for") or []):
             if item and item != _UNAVAILABLE_WATCH:
                 w(f'  <div class="label">WATCH</div><div class="value">{_esc(item)}</div>')
-        # R6: validation requirements for high-grade candidates (explicit fields only;
-        # reason_for_grade is already rendered as REASON above)
-        _hg_vreqs = entry.get("validation_requirements")
-        if not _hg_vreqs:
-            _hg_vreqs = entry.get("validation_acceptance")
-        if _hg_vreqs:
-            if isinstance(_hg_vreqs, list):
-                for _req in _hg_vreqs:
-                    if _req:
-                        w(f'  <div class="label">VALIDATION</div><div class="value">{_esc(_req)}</div>')
-            else:
-                w(f'  <div class="label">VALIDATION</div><div class="value">{_esc(_hg_vreqs)}</div>')
 
     level_anchor = contract_entry if contract_entry is not None else entry.get("current_price")
     fib_levels = entry.get("fib_levels")
@@ -1488,22 +1458,11 @@ def render_dashboard_html(
     errors        = _req(run, "errors")
     first_error   = errors[0] if errors else None
 
-    # R2.1 — action line
     outcome    = run.get("outcome")
     permission = run.get("permission")
     if permission is None:
         permission = payload.get("summary", {}).get("permission")
     title = "MIXED_ARTIFACTS" if artifact_mixed else _decision_title(outcome, bool(system_halted), status)
-    if artifact_mixed:
-        action_text = "ACTION: HOLD — MIXED_ARTIFACTS"
-    elif outcome == "STAY_FLAT":
-        action_text = "ACTION: WAIT — NO VALID SETUPS"
-    elif permission is False:
-        action_text = "ACTION: WATCH — SETUPS PRESENT BUT BLOCKED"
-    elif permission is True:
-        action_text = "ACTION: ACTIVE — TRADE CONDITIONS MET"
-    else:
-        action_text = "ACTION: MONITOR — SYSTEM ACTIVE"
 
     # R1 — tape slots
     tape_slots = _build_tape_slots(macro_drivers, market_map)
@@ -1633,7 +1592,6 @@ def render_dashboard_html(
     ks_cls     = " halted" if kill_switch else ""
     w('<div class="block" id="system-state">')
     w(f'  <h2>SYSTEM STATE - {_esc(title)}</h2>')
-    w(f'  <div class="action-line">{_esc(action_text)}</div>')
     w('  <div class="row">')
     w(f'    <div class="field"><div class="label">Regime</div>'
       f'<div class="value"><span class="badge {regime_cls}">{_esc(market_regime)}</span></div></div>')
@@ -1687,8 +1645,6 @@ def render_dashboard_html(
         w(f'  <div class="field"><div class="label">Reason</div>'
           f'<div class="value">{_esc(_perm_reason)}</div></div>')
     w('  <div class="sep"></div>')
-    # PRD-120 R2: SOURCE line directly above RUN SNAPSHOT.
-    w(f'  <div class="label">SOURCE: {_sys_health}</div>')
     w(f'  <div class="label">RUN SNAPSHOT - {_freshness_label}</div>')
     if _ts_pacific:
         w(f'  <div class="value">{_esc(_ts_pacific)}</div>')
@@ -1736,8 +1692,6 @@ def render_dashboard_html(
     # --- macro-tape ---
     w('<div class="block" id="macro-tape">')
     w("  <h2>Macro Tape</h2>")
-    # PRD-120 R4: MACRO SOURCE line, separate from MACRO BIAS.
-    w(f'  <div class="label">MACRO SOURCE: {_tape_health}</div>')
     if (not macro_drivers) or all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values()):
         w('  <div class="tape-no-data">NO LIVE MACRO DATA</div>')
     tape_value_map = dict(tape_value_slots)
@@ -1807,31 +1761,8 @@ def render_dashboard_html(
     w("</div>")
 
     # --- trend-structure (PRD-112) ---
-    # PRD-120: `_ts_records` and `_ts_generated_at_raw` are computed once
-    # earlier in source-health derivation; reuse here for badge classification.
-    if _ts_records is None:
-        _ts_badge = "MISSING"
-        _ts_badge_class = "UNKNOWN"
-    else:
-        if isinstance(_ts_generated_at_raw, str) and _ts_generated_at_raw:
-            _ts_freshness = _compute_timestamp_freshness(_ts_generated_at_raw)
-            if _ts_freshness == "STALE":
-                _ts_badge, _ts_badge_class = "STALE", "warn"
-            elif _ts_freshness == "FRESH":
-                _ts_badge, _ts_badge_class = "FRESH", "RISK_ON"
-            else:
-                _ts_badge, _ts_badge_class = "UNKNOWN", "UNKNOWN"
-        else:
-            _ts_badge, _ts_badge_class = "UNKNOWN", "UNKNOWN"
-
     w(f'<div class="block{disabled_class}" id="trend-structure">')
-    w(
-        '  <h2>Trend Structure '
-        f'<span class="badge {_ts_badge_class}">{_esc(_ts_badge)}</span></h2>'
-    )
-    # PRD-120 R5: SOURCE line above body content (table / disabled message
-    # / INACTIVE_SESSION_LABEL).
-    w(f'  <div class="label">SOURCE: {_ts_health}</div>')
+    w('  <h2>Trend Structure</h2>')
     # PRD-123 R6: human-readable degraded-state label and last-snapshot
     # line for the two new "no live data" states. STALE retains its
     # existing rendering — the two are visually and semantically distinct.
@@ -1839,13 +1770,6 @@ def render_dashboard_html(
         w('  <div class="label">MARKET CLOSED &#8212; AWAITING INTRADAY DATA</div>')
         if isinstance(_ts_generated_at_raw, str) and _ts_generated_at_raw:
             w(f'  <div class="label">Last snapshot: {_esc(_ts_generated_at_raw)}</div>')
-    # PRD-120 R6 / PRD-123 R6: TREND SYMBOLS X/Y under OK, STALE, and the
-    # two new PRD-123 states (FALLBACK return removed in PRD-123 R5).
-    if _ts_health in ("OK", "STALE", "MARKET_CLOSED", "AWAITING_DATA"):
-        w(
-            f'  <div class="label">TREND SYMBOLS: {_ts_usable}/'
-            f'{len(config.TREND_STRUCTURE_SYMBOLS)}</div>'
-        )
     if unhealthy_lineage:
         # PRD-116 R4: disabled state under unhealthy lineage; no per-symbol data rows.
         w(
@@ -1864,7 +1788,7 @@ def render_dashboard_html(
         )
         w('    <thead><tr style="text-align:left;color:#888">')
         for _hdr in (
-            "Symbol", "Status", "Price", "vs VWAP", "vs SMA50",
+            "Symbol", "Price", "vs VWAP", "vs SMA50",
             "vs SMA200", "Alignment", "Entry Context", "RVOL",
             "SMA Composite", "Intraday Context",
         ):
@@ -1876,13 +1800,12 @@ def render_dashboard_html(
             _rec = _records_for_render.get(_sym)
             if _rec is None:
                 _cells = (
-                    _sym, "MISSING", _DASH, _DASH, _DASH, _DASH,
+                    _sym, _DASH, _DASH, _DASH, _DASH,
                     _DASH, _DASH, _DASH, _DASH, _DASH,
                 )
             else:
                 _cells = (
                     str(_rec.get("symbol", _sym)),
-                    str(_rec.get("data_status", "")),
                     _format_trend_number(_rec.get("current_price")),
                     _ts_display(str(_rec.get("price_vs_vwap", ""))),
                     _ts_display(str(_rec.get("price_vs_sma_50", ""))),
@@ -1910,11 +1833,6 @@ def render_dashboard_html(
         w('  <h2>Market Map / Developing Setups &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h2>')
     else:
         w("  <h2>Market Map / Developing Setups</h2>")
-    # PRD-120 R7: MARKET MAP SOURCE line with rendered setup count.
-    w(
-        f'  <div class="label">MARKET MAP SOURCE: {_mm_health} - '
-        f'setups {_mm_setup_count}</div>'
-    )
     if unhealthy_lineage:
         # PRD-116 R5: suppress candidate cards and tier headers under unhealthy lineage.
         # Preserve legacy diagnostic text (SOURCE_MISSING / PARSE_ERROR / STALE MARKET MAP)
@@ -2002,7 +1920,6 @@ def render_dashboard_html(
             ("Posture",
              _POSTURE_LABELS.get(str(_req(run, "posture")),        str(_req(run, "posture"))),
              _POSTURE_LABELS.get(str(_req(previous_run, "posture")), str(_req(previous_run, "posture")))),
-            ("Confidence",    _req(run, "confidence"),    _req(previous_run, "confidence")),
             ("System Halted", _bool_str(_req(run, "system_halted")),
                               _bool_str(_req(previous_run, "system_halted"))),
         )
@@ -2026,49 +1943,10 @@ def render_dashboard_html(
     w("  <summary>History</summary>")
     if not history_runs:
         w('  <div class="value">NO_HISTORY</div>')
-    else:
-        w('  <div class="history-table">')
-        w('    <span class="label">Time</span>')
-        w('    <span class="label">Regime</span>')
-        w('    <span class="label">Posture</span>')
-        w('    <span class="label">Conf</span>')
-        for history_run in history_runs:
-            ht         = str(_req(history_run, "timestamp"))[11:16]
-            hreg       = _req(history_run, "regime")
-            hpos       = _req(history_run, "posture")
-            hpos_label = _POSTURE_LABELS.get(str(hpos), str(hpos))
-            hcon       = _req(history_run, "confidence")
-            w(f'    <span class="history-cell">{_esc(ht)}</span>')
-            w(f'    <span class="history-cell">{_esc(hreg)}</span>')
-            w(f'    <span class="history-cell">{_esc(hpos_label)}</span>')
-            w(f'    <span class="history-cell">{_esc(hcon)}</span>')
-        w('  </div>')
     w("</details>")
 
     w('<details class="block" id="artifact-diagnostics">')
     w("  <summary>Artifact diagnostics</summary>")
-    w('  <div class="artifact-diagnostics">')
-    w(f'    <span>artifact_lineage_state={_esc(artifact_lineage_state)}</span>')
-    w(
-        f'    <span>payload={_esc(payload_source)} @ '
-        f'{_esc(_timestamp_label(payload_timestamp_value, payload_timestamp))}</span>'
-    )
-    w(f'    <span>payload_generation_id={_esc(payload_generation_id or "unavailable")}</span>')
-    w(
-        f'    <span>run={_esc(run_source)} @ '
-        f'{_esc(_timestamp_label(run_timestamp_value, run_timestamp))}</span>'
-    )
-    w(f'    <span>run_generation_id={_esc(run_generation_id or "unavailable")}</span>')
-    w(
-        f'    <span>market_map={_esc(resolved_market_map_source)} @ '
-        f'{_esc(_timestamp_label(market_map_timestamp_value, market_map_timestamp))}</span>'
-    )
-    w(f'    <span>market_map_generation_id={_esc(market_map_generation_id or "unavailable")}</span>')
-    w(
-        f'    <span>contract={_esc(contract_source)} @ '
-        f'{_esc(_timestamp_label(contract_generated_at, contract_timestamp))}</span>'
-    )
-    w("  </div>")
     w("</details>")
 
     w("</div>")  # .wrap

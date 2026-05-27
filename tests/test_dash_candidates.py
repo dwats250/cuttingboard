@@ -65,11 +65,11 @@ def test_tier_grouping_order() -> None:
     syms = {
         "QQQ": _mm_symbol("QQQ", grade="A+"),
         "SPY": _mm_symbol("SPY", grade="B"),
-        "GLD": _mm_symbol("GLD", grade="D"),
+        "GLD": _mm_symbol("GLD", grade="C"),
     }
     mm   = _market_map(syms)
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
-    assert html.index('id="tier-aplus"') < html.index('id="tier-b"') < html.index('id="tier-df"')
+    assert html.index('id="tier-aplus"') < html.index('id="tier-b"') < html.index('id="tier-c"')
 
 
 def test_tier_empty_group_absent() -> None:
@@ -80,20 +80,6 @@ def test_tier_empty_group_absent() -> None:
     assert 'id="tier-a"'     not in html
     assert 'id="tier-b"'     not in html
     assert 'id="tier-c"'     not in html
-    assert 'id="tier-df"'    not in html
-
-
-def test_tier_df_contains_d_and_f() -> None:
-    syms = {
-        "GLD": _mm_symbol("GLD", grade="D"),
-        "SLV": _mm_symbol("SLV", grade="F"),
-    }
-    mm   = _market_map(syms)
-    html = render_dashboard_html(_payload(), _run(), market_map=mm)
-    assert 'id="tier-df"' in html
-    tier = html.split('id="tier-df"', 1)[1]
-    assert 'id="card-GLD"' in tier
-    assert 'id="card-SLV"' in tier
 
 
 def test_tier_header_labels() -> None:
@@ -102,7 +88,6 @@ def test_tier_header_labels() -> None:
         "QQQ": _mm_symbol("QQQ", grade="A"),
         "GLD": _mm_symbol("GLD", grade="B"),
         "SLV": _mm_symbol("SLV", grade="C"),
-        "XLE": _mm_symbol("XLE", grade="D"),
     }
     mm   = _market_map(syms)
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
@@ -110,7 +95,6 @@ def test_tier_header_labels() -> None:
     assert "A — HIGH QUALITY" in html
     assert "B — DEVELOPING"   in html
     assert "C — EARLY"        in html
-    assert "D/F — FAILING"    in html
 
 
 # ---------------------------------------------------------------------------
@@ -457,20 +441,6 @@ def test_lifecycle_detail_rendered_for_b_grade() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
     card = html.split('id="card-GLD"', 1)[1]
     assert 'class="lifecycle-detail"' in card
-
-
-def test_lifecycle_detail_not_rendered_for_f_grade() -> None:
-    syms = {"XLE": _sym_with_lc("XLE", grade="F", grade_transition="DOWNGRADED")}
-    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
-    card = html.split('id="card-XLE"', 1)[1]
-    assert 'class="lifecycle-detail"' not in card
-
-
-def test_lifecycle_detail_not_rendered_for_d_grade() -> None:
-    syms = {"XLE": _sym_with_lc("XLE", grade="D", grade_transition="UPGRADED")}
-    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
-    card = html.split('id="card-XLE"', 1)[1]
-    assert 'class="lifecycle-detail"' not in card
 
 
 def test_lifecycle_detail_not_rendered_when_absent() -> None:

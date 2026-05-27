@@ -16,7 +16,6 @@ def test_system_state_block_fields() -> None:
     state = html.split('id="system-state"', 1)[1]
     assert "RISK_ON" in state
     assert "0.75" in state
-    assert 'class="action-line"' in state
 
 
 def test_system_state_regime_badge_class() -> None:
@@ -106,42 +105,6 @@ def test_system_state_permission_falls_back_to_payload_when_run_none() -> None:
     assert "No new trades permitted." in state
 
 
-def test_action_line_stay_flat() -> None:
-    r = _run(outcome="STAY_FLAT")
-    html = render_dashboard_html(_payload(), r)
-    assert "ACTION: WAIT" in html
-    assert "NO VALID SETUPS" in html
-
-
-def test_action_line_blocked() -> None:
-    r = _run(permission=False)
-    html = render_dashboard_html(_payload(), r)
-    assert "ACTION: WATCH" in html
-    assert "SETUPS PRESENT BUT BLOCKED" in html
-
-
-def test_action_line_active() -> None:
-    r = _run(permission=True)
-    html = render_dashboard_html(_payload(), r)
-    assert "ACTION: ACTIVE" in html
-    assert "TRADE CONDITIONS MET" in html
-
-
-def test_action_line_monitor_default() -> None:
-    r = _run(outcome="NO_TRADE", permission=None)
-    html = render_dashboard_html(_payload(), r)
-    assert "ACTION: MONITOR" in html
-    assert "SYSTEM ACTIVE" in html
-
-
-def test_action_line_is_first_in_system_state() -> None:
-    html = render_dashboard_html(_payload(), _run())
-    state_start = html.index('id="system-state"')
-    action_pos  = html.index('class="action-line"')
-    regime_pos  = html.index('class="badge ')
-    assert state_start < action_pos < regime_pos
-
-
 # ---------------------------------------------------------------------------
 # PRD-073 — R1: Decision-first header
 # ---------------------------------------------------------------------------
@@ -203,27 +166,6 @@ def test_posture_label_stay_flat_in_delta() -> None:
     assert "Stay Flat" in delta
 
 
-def test_posture_label_aggressive_long_in_history() -> None:
-    hr = _run(posture="AGGRESSIVE_LONG")
-    hr["timestamp"] = "2026-04-28T12:00:00Z"
-    html = render_dashboard_html(_payload(), _run(), history_runs=[hr])
-    assert "Aggressive Long" in html.split('id="run-history"', 1)[1]
-
-
-def test_posture_label_defensive_short_in_history() -> None:
-    hr = _run(posture="DEFENSIVE_SHORT")
-    hr["timestamp"] = "2026-04-28T12:00:00Z"
-    html = render_dashboard_html(_payload(), _run(), history_runs=[hr])
-    assert "Defensive Short" in html.split('id="run-history"', 1)[1]
-
-
-def test_posture_label_unknown_passthrough() -> None:
-    hr = _run(posture="UNKNOWN_POSTURE_XYZ")
-    hr["timestamp"] = "2026-04-28T12:00:00Z"
-    html = render_dashboard_html(_payload(), _run(), history_runs=[hr])
-    assert "UNKNOWN_POSTURE_XYZ" in html.split('id="run-history"', 1)[1]
-
-
 def test_posture_label_in_run_delta() -> None:
     current  = _run(posture="AGGRESSIVE_LONG")
     previous = _run(posture="STAY_FLAT")
@@ -233,15 +175,6 @@ def test_posture_label_in_run_delta() -> None:
     assert "Stay Flat" in delta
     assert "AGGRESSIVE_LONG" not in delta
     assert "STAY_FLAT" not in delta
-
-
-def test_posture_label_in_run_history() -> None:
-    hr = _run(posture="NEUTRAL_PREMIUM")
-    hr["timestamp"] = "2026-04-28T12:00:00Z"
-    html = render_dashboard_html(_payload(), _run(), history_runs=[hr])
-    history = html.split('id="run-history"', 1)[1]
-    assert "Neutral Premium" in history
-    assert "NEUTRAL_PREMIUM" not in history
 
 
 def test_system_state_reason_no_candidates() -> None:

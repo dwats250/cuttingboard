@@ -8,9 +8,7 @@ from pathlib import Path
 import pytest
 
 from cuttingboard.delivery.dashboard_renderer import (
-    HISTORY_LIMIT,
     _resolve_previous_run,
-    main,
     render_dashboard_html,
 )
 
@@ -30,7 +28,6 @@ def test_run_delta_detects_changes() -> None:
 
     assert "Regime: RISK_OFF -&gt; NEUTRAL"              in delta
     assert "Posture: Stay Flat -&gt; Controlled Long"   in delta
-    assert "Confidence: 0.25 -&gt; 0.75"               in delta
     assert "System Halted: YES -&gt; NO"               in delta
 
 
@@ -100,72 +97,6 @@ def test_run_history_present() -> None:
     assert 'id="run-history"' in html
 
 
-def test_run_history_limit_enforced(tmp_path: Path) -> None:
-    logs_dir     = tmp_path / "logs"
-    logs_dir.mkdir()
-    payload_file = tmp_path / "latest_payload.json"
-    run_file     = tmp_path / "latest_run.json"
-    out_file     = tmp_path / "dashboard.html"
-    payload_file.write_text(json.dumps(_payload()), encoding="utf-8")
-    run_file.write_text(json.dumps(_run()), encoding="utf-8")
-
-    for i in range(HISTORY_LIMIT + 2):
-        history_run = _run(regime=f"RISK_{i}", posture=f"POSTURE_{i}", confidence=float(i))
-        history_run["timestamp"] = f"2026-04-28T12:{i:02d}:00Z"
-        (logs_dir / f"run_{i}.json").write_text(json.dumps(history_run), encoding="utf-8")
-
-    main(payload_path=payload_file, run_path=run_file, output_path=out_file, logs_dir=logs_dir)
-    history = out_file.read_text(encoding="utf-8").split('id="run-history"', 1)[1]
-    import re as _re
-    data_cells = _re.findall(r'class="history-cell"', history)
-    assert len(data_cells) // 4 == HISTORY_LIMIT
-
-
-def test_run_history_sorted_descending(tmp_path: Path) -> None:
-    logs_dir     = tmp_path / "logs"
-    logs_dir.mkdir()
-    payload_file = tmp_path / "latest_payload.json"
-    run_file     = tmp_path / "latest_run.json"
-    out_file     = tmp_path / "dashboard.html"
-    payload_file.write_text(json.dumps(_payload()), encoding="utf-8")
-    run_file.write_text(json.dumps(_run()), encoding="utf-8")
-
-    older                  = _run(regime="OLDER")
-    older["timestamp"]  = "2026-04-28T10:00:00Z"
-    newest                 = _run(regime="NEWEST")
-    newest["timestamp"] = "2026-04-28T12:00:00Z"
-    middle                 = _run(regime="MIDDLE")
-    middle["timestamp"] = "2026-04-28T11:00:00Z"
-
-    (logs_dir / "run_older.json").write_text(json.dumps(older),   encoding="utf-8")
-    (logs_dir / "run_newest.json").write_text(json.dumps(newest), encoding="utf-8")
-    (logs_dir / "run_middle.json").write_text(json.dumps(middle), encoding="utf-8")
-
-    main(payload_path=payload_file, run_path=run_file, output_path=out_file, logs_dir=logs_dir)
-    history = out_file.read_text(encoding="utf-8").split('id="run-history"', 1)[1]
-    assert history.index("NEWEST") < history.index("MIDDLE") < history.index("OLDER")
-
-
-def test_run_history_field_mapping_exact() -> None:
-    history_run = _run(regime="RISK_OFF", posture="STAY_FLAT", confidence=0.25)
-    history_run["timestamp"] = "2026-04-28T12:50:00Z"
-    html    = render_dashboard_html(_payload(), _run(), history_runs=[history_run])
-    history = html.split('id="run-history"', 1)[1]
-    assert "12:50" in history
-    assert "RISK_OFF" in history
-    assert "Stay Flat" in history
-    assert "0.25" in history
-
-
-def test_run_history_timestamp_format() -> None:
-    history_run = _run()
-    history_run["timestamp"] = "2026-04-28T09:30:45Z"
-    html    = render_dashboard_html(_payload(), _run(), history_runs=[history_run])
-    history = html.split('id="run-history"', 1)[1]
-    assert "09:30" in history
-    assert "2026-04-28T09:30:45Z" not in history
-
-
 def test_run_history_no_extra_fields() -> None:
     history_run = _run(status="FAIL", system_halted=True, kill_switch=True, data_status="stale")
     html    = render_dashboard_html(_payload(), _run(), history_runs=[history_run])
@@ -191,13 +122,6 @@ def test_run_history_deterministic_output() -> None:
 # ---------------------------------------------------------------------------
 # Run health (preserved)
 # ---------------------------------------------------------------------------
-
-def test_run_health_present() -> None:
-    html = render_dashboard_html(_payload(), _run())
-    state = html.split('id="system-state"', 1)[1]
-    assert 'class="action-line"' in state
-    assert "SYSTEM ACTIVE"       in state
-
 
 def test_run_health_fields() -> None:
     html = render_dashboard_html(_payload(), _run(system_halted=True, kill_switch=False, errors=["err_unique"]))
