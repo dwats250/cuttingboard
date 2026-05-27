@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 157,
-  "next_prd": 158,
+  "latest_complete": 158,
+  "next_prd": 159,
   "entries": [
     {
       "number": 56,
@@ -587,8 +587,8 @@
     },
     {
       "number": 153,
-      "title": "Moomoo Statement Consumer (Phase 2)",
-      "status": "COMPLETE",
+      "title": "Moomoo Statement Consumer (Phase 2) \u2014 superseded by PRD-156",
+      "status": "DEPRECATED",
       "commit": "5ec073e, a1993b9"
     },
     {
@@ -604,10 +604,22 @@
       "commit": "cfae5d2"
     },
     {
+      "number": 156,
+      "title": "Surgical removal of Moomoo Statement Consumer (PRD-153)",
+      "status": "COMPLETE",
+      "commit": "3c6fcb4"
+    },
+    {
       "number": 157,
       "title": "Account-Equity-Driven Position Sizing",
       "status": "COMPLETE",
       "commit": "8417768"
+    },
+    {
+      "number": 158,
+      "title": "Dashboard Output Surface Realignment (Pass 1)",
+      "status": "COMPLETE",
+      "commit": "c7a3863, ee2f055, d10b134, 85ee9a4, fd74b3f, 70d07d9, 599c17b"
     }
   ]
 }

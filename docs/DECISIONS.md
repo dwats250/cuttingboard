@@ -724,3 +724,32 @@ requires a new PRD with audit evidence of a rendered contradiction.
 If this function grows scoring, recomputation, upstream reconciliation,
 or discretionary decision logic, it has drifted into a decision layer
 and must be cut back or removed.
+
+### 2026-05-24 — PRD-156 closeout: a consumer without a named producer is dead code
+
+PRD-153 (Moomoo Statement Consumer Phase 2) shipped a join layer
+between `logs/audit.jsonl` and parsed Moomoo PDF statements on the
+assumption that intraday audit-write coverage existed. The PRD-155
+audit doctrine (`docs/audit_doctrine.md`, 2026-05-23) codified that
+`logs/audit.jsonl` is structurally a ~1-record-per-pipeline-invocation
+stream — and that future audit-write expansion requires a *named
+consumer* per Rule 1. The Moomoo consumer was that named consumer
+turned out to be the only one, and the join data it produced was not
+actionable. The subsystem was kept alive only by its own existence.
+
+PRD-156 (commit `3c6fcb4`, 2026-05-24) deleted the entire Moomoo
+subsystem — 3 production modules, 3 test modules, fixtures, generated
+artifacts, `pdfplumber` + `reportlab` dependencies — ~1,376 LOC net
+deletion. PRD-153 is flipped to DEPRECATED with a pointer to PRD-156.
+
+**Lesson:** a consumer that was built to produce data which no other
+consumer reads is itself dead code. The audit doctrine's "named
+consumer or no write" rule applies inductively: if the only justification
+for a subsystem is its own output, and that output has no downstream
+reader, the subsystem is the wrong thing to keep alive when the
+underlying assumption turns out to be wrong.
+
+**Applied as a process discipline:** before shipping any new consumer
+of `logs/audit.jsonl` (or any other sidecar), name the downstream
+reader explicitly in the PRD. If the named reader is the consumer
+itself, that is the signal to stop, not to ship.
