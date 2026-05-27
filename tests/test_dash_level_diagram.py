@@ -40,16 +40,6 @@ def test_level_diagram_entry_line_present_when_entry_provided() -> None:
     assert "ENTRY" in html
 
 
-def test_level_diagram_unavailable_when_no_entry() -> None:
-    mm = _mm_with_levels("SPY", grade="A+")
-    html = render_dashboard_html(
-        _payload(), _run(), market_map=mm,
-        contract_entry_map={},
-    )
-    assert "lvl-unavail" in html
-    assert "Chart unavailable" in html
-
-
 def test_level_diagram_no_diagram_when_no_candidates() -> None:
     mm = _market_map({})
     html = render_dashboard_html(

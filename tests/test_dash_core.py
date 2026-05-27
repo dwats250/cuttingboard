@@ -34,11 +34,11 @@ def test_field_mapping_exact() -> None:
     )
     html = render_dashboard_html(p, r)
 
-    assert "2026-01-15" in html  # timestamp displayed in PT+Original format
+    # PRD-158 § 4.2: timestamp now renders as relative freshness; raw
+    # CHAOTIC regime translates to "Stand down"; confidence is suppressed.
     assert "HALT" in html
-    assert "CHAOTIC" in html
+    assert "Stand down" in html
     assert "STAY_FLAT" in html
-    assert "0.625" in html
     assert "VIX_SPIKE_HALT" in html
     assert "YES" in html                    # system_halted=True
     assert "quota_exceeded_unique" in html  # errors[0]

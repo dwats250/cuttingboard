@@ -1013,6 +1013,85 @@ _PRESSURE_COMPONENT_LABELS = [
     ("bitcoin_pressure",    "Bitcoin"),
 ]
 
+
+# PRD-158 § 4.2 translation tables. Each maps an existing payload value
+# to decision-language output. Returning None means cut from render.
+
+def _regime_to_permission_verb(regime: object) -> str:
+    """Translation 1: regime → trader-facing permission."""
+    if regime == "RISK_ON":
+        return "Longs allowed"
+    if regime == "RISK_OFF":
+        return "Shorts allowed"
+    return "Stand down"
+
+
+_PRESSURE_DECISION_PHRASES: dict[str, dict[str, str]] = {
+    "volatility_pressure": {
+        "RISK_ON":  "VIX permits longs",
+        "RISK_OFF": "VIX blocks longs",
+    },
+    "dollar_pressure": {
+        "RISK_OFF": "DXY pressures longs",
+        "RISK_ON":  "DXY supports risk-on",
+    },
+    "bitcoin_pressure": {
+        "RISK_ON":  "BTC supports risk-on",
+        "RISK_OFF": "BTC pressures risk-on",
+    },
+}
+
+
+def _pressure_decision_phrase(component_key: str, pressure_value: object) -> str | None:
+    """Translations 4-6: per-component pressure → decision phrase, or None to cut."""
+    table = _PRESSURE_DECISION_PHRASES.get(component_key)
+    if table is None:
+        return None
+    return table.get(str(pressure_value))
+
+
+def _relative_freshness_label(timestamp_value: object) -> str:
+    """Translation 3: timestamp → 'N minutes old' or 'STALE (>5 min)'."""
+    dt: datetime | None = None
+    if isinstance(timestamp_value, datetime):
+        dt = timestamp_value if timestamp_value.tzinfo is not None else timestamp_value.replace(tzinfo=timezone.utc)
+    else:
+        try:
+            dt = datetime.fromisoformat(str(timestamp_value).replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            return "—"
+    age_seconds = (_utcnow() - dt).total_seconds()
+    if age_seconds < 0:
+        age_seconds = 0
+    if age_seconds > DASHBOARD_STALE_AFTER_SECONDS:
+        return f"STALE (>{DASHBOARD_STALE_AFTER_SECONDS // 60} min)"
+    minutes = int(age_seconds // 60)
+    if minutes <= 0:
+        return "<1 minute old"
+    if minutes == 1:
+        return "1 minute old"
+    return f"{minutes} minutes old"
+
+
+def _grade_to_action(grade: object) -> str | None:
+    """Translation 11: card grade → action verb, or None to cut."""
+    if grade in ("A+", "A"):
+        return "Tradeable"
+    if grade == "B":
+        return "Developing"
+    return None
+
+
+def _regime_flip_phrase(previous_regime: object, current_regime: object) -> str | None:
+    """Translation 13: regime transition → 'Permission flipped to …' or None."""
+    if previous_regime == current_regime:
+        return None
+    if current_regime == "RISK_ON":
+        return "Permission flipped to longs"
+    if current_regime == "RISK_OFF":
+        return "Permission flipped to shorts"
+    return None
+
 _POSTURE_LABELS: dict[str, str] = {
     "AGGRESSIVE_LONG": "Aggressive Long",
     "CONTROLLED_LONG": "Controlled Long",
@@ -1266,14 +1345,15 @@ def _render_candidate_card(
 
     w(f'<div class="candidate-card grade-{css_class}" id="card-{_esc(sym)}">')
 
+    grade_action = _grade_to_action(grade)
     if not is_high:
+        # PRD-158 § 4.2 translation 11: low-grade GRADE label suppressed —
+        # FAILURE REASON below carries the trader action.
         w('  <div class="failed-card-fields">')
-        w(f'    <div><div class="label">SYMBOL</div><div class="value">{_esc(entry.get("symbol"))}</div></div>')
-        w(f'    <div><div class="label">GRADE</div><div class="value">{_esc(grade)}{badge_html}</div></div>')
+        w(f'    <div><div class="label">SYMBOL</div><div class="value">{_esc(entry.get("symbol"))}{badge_html}</div></div>')
         w(f'    <div><div class="label">BIAS</div><div class="value">{_esc(entry.get("bias"))}</div></div>')
         w(f'    <div><div class="label">STRUCTURE</div><div class="value">{_esc(entry.get("structure"))}</div></div>')
         w('  </div>')
-        # R5: failure reason — use existing fields only; fallback if none present
         _fail = (
             entry.get("failure_reason")
             or entry.get("block_reason")
@@ -1283,7 +1363,9 @@ def _render_candidate_card(
         w(f'  <div class="label">FAILURE REASON</div><div class="value">{_fail_text}</div>')
     else:
         w(f'  <div class="label">SYMBOL</div><div class="value">{_esc(entry.get("symbol"))}</div>')
-        w(f'  <div class="label">GRADE</div><div class="value">{_esc(grade)}{badge_html}</div>')
+        if grade_action is not None:
+            w(f'  <div class="label">ACTION</div>'
+              f'<div class="value">{_esc(grade_action)}{badge_html}</div>')
         w(f'  <div class="label">BIAS</div><div class="value">{_esc(entry.get("bias"))}</div>')
         w(f'  <div class="label">STRUCTURE</div><div class="value">{_esc(entry.get("structure"))}</div>')
 
@@ -1328,19 +1410,19 @@ def _render_candidate_card(
             if item and item != _UNAVAILABLE_WATCH:
                 w(f'  <div class="label">WATCH</div><div class="value">{_esc(item)}</div>')
 
+    # PRD-158 § 4.2 translation 12: render the level diagram only when both
+    # an anchor and level context exist. No placeholder for partial data.
     level_anchor = contract_entry if contract_entry is not None else entry.get("current_price")
     fib_levels = entry.get("fib_levels")
     watch_zones = entry.get("watch_zones")
     has_level_context = bool(fib_levels) or bool(watch_zones)
-    if level_anchor is not None and level_anchor > 0 and not has_level_context:
-        w('  <div class="lvl-unavail">Level context unavailable</div>')
-    else:
-        _render_level_diagram(
-            w,
-            level_anchor,
-            fib_levels,
-            watch_zones,
-        )
+    anchor_valid = (
+        isinstance(level_anchor, (int, float))
+        and not isinstance(level_anchor, bool)
+        and level_anchor > 0
+    )
+    if anchor_valid and has_level_context:
+        _render_level_diagram(w, level_anchor, fib_levels, watch_zones)
 
     w("</div>")
 
@@ -1388,7 +1470,6 @@ def render_dashboard_html(
     timestamp     = _req(payload, "meta", "timestamp")
     status        = _req(run, "status")
     market_regime = _req(payload, "summary", "market_regime")
-    confidence    = _req(run, "confidence")
 
     payload_timestamp_value, payload_timestamp = _first_timestamp(
         payload,
@@ -1583,10 +1664,8 @@ def render_dashboard_html(
     )
 
     # --- system-state ---
-    _ts_pacific, _ts_original = format_dashboard_timestamp(str(timestamp))
-    _ts_freshness = _compute_timestamp_freshness(str(timestamp))
-    _freshness_label = "STALE" if _ts_freshness == "STALE" else "CURRENT"
     regime_cls = _esc(market_regime)
+    regime_permission_text = _regime_to_permission_verb(market_regime)
     outcome_val = run.get("outcome") if "outcome" in run else run.get("status")
     halted_cls = " halted" if system_halted else ""
     ks_cls     = " halted" if kill_switch else ""
@@ -1594,9 +1673,8 @@ def render_dashboard_html(
     w(f'  <h2>SYSTEM STATE - {_esc(title)}</h2>')
     w('  <div class="row">')
     w(f'    <div class="field"><div class="label">Regime</div>'
-      f'<div class="value"><span class="badge {regime_cls}">{_esc(market_regime)}</span></div></div>')
-    w(f'    <div class="field"><div class="label">Confidence</div>'
-      f'<div class="value">{_esc(confidence)}</div></div>')
+      f'<div class="value"><span class="badge {regime_cls}">'
+      f'{_esc(regime_permission_text)}</span></div></div>')
     w(f'    <div class="field"><div class="label">Outcome</div>'
       f'<div class="value">{_esc(outcome_val)}</div></div>')
     w("  </div>")
@@ -1645,9 +1723,9 @@ def render_dashboard_html(
         w(f'  <div class="field"><div class="label">Reason</div>'
           f'<div class="value">{_esc(_perm_reason)}</div></div>')
     w('  <div class="sep"></div>')
-    w(f'  <div class="label">RUN SNAPSHOT - {_freshness_label}</div>')
-    if _ts_pacific:
-        w(f'  <div class="value">{_esc(_ts_pacific)}</div>')
+    _freshness_text = _relative_freshness_label(payload_timestamp_value or timestamp)
+    w('  <div class="label">RUN SNAPSHOT</div>')
+    w(f'  <div class="value">{_esc(_freshness_text)}</div>')
     w("</div>")
 
     # --- alert-watchlist ---
@@ -1746,13 +1824,11 @@ def render_dashboard_html(
     if _pressure_data_available:
         w("    <summary>MACRO PRESSURE ▶</summary>")
         w('    <div class="pressure-grid">')
-        for key, label in _PRESSURE_COMPONENT_LABELS:
-            val = _esc(pressure.get(key, "FIELD_MISSING"))  # type: ignore[union-attr]
-            w(f'    <span class="label">{_esc(label)}</span>')
-            w(f'    <span class="badge {val}">{val}</span>')
-        overall = pressure.get("overall_pressure", "FIELD_MISSING")  # type: ignore[union-attr]
-        w('    <span class="label">Overall</span>')
-        w(f'    <span class="badge {_esc(overall)}">{_esc(overall)}</span>')
+        for key, _ in _PRESSURE_COMPONENT_LABELS:
+            phrase = _pressure_decision_phrase(key, pressure.get(key))  # type: ignore[union-attr]
+            if phrase is None:
+                continue
+            w(f'    <span class="value">{_esc(phrase)}</span>')
         w('    </div>')
     else:
         w("    <summary>MACRO PRESSURE</summary>")
@@ -1915,26 +1991,31 @@ def render_dashboard_html(
     if previous_run is None:
         w('  <div class="value">NO_PREVIOUS_RUN</div>')
     else:
+        any_emitted = False
+        # PRD-158 § 4.2 translation 13: regime transitions render as
+        # "Permission flipped to …" or are suppressed entirely.
+        regime_flip = _regime_flip_phrase(
+            _req(previous_run, "regime"),
+            _req(run, "regime"),
+        )
+        if regime_flip is not None:
+            w(f'  <div class="value">{_esc(regime_flip)}</div>')
+            any_emitted = True
         delta_fields = (
-            ("Regime",        _req(run, "regime"),        _req(previous_run, "regime")),
             ("Posture",
              _POSTURE_LABELS.get(str(_req(run, "posture")),        str(_req(run, "posture"))),
              _POSTURE_LABELS.get(str(_req(previous_run, "posture")), str(_req(previous_run, "posture")))),
             ("System Halted", _bool_str(_req(run, "system_halted")),
                               _bool_str(_req(previous_run, "system_halted"))),
         )
-        changed_fields = [
-            (label, previous_value, current_value)
-            for label, current_value, previous_value in delta_fields
-            if current_value != previous_value
-        ]
-        if changed_fields:
-            for label, previous_value, current_value in changed_fields:
+        for label, current_value, previous_value in delta_fields:
+            if current_value != previous_value:
                 w(
                     f'  <div class="value">{_esc(label)}: '
                     f'{_esc(previous_value)} -&gt; {_esc(current_value)}</div>'
                 )
-        else:
+                any_emitted = True
+        if not any_emitted:
             w('  <div class="value">No changes since last run</div>')
     w("</div>")
 

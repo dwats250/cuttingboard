@@ -307,8 +307,20 @@ def test_macro_pressure_collapsed_inside_macro_tape() -> None:
     board_pos = html.index('id="candidate-board"')
     assert tape_pos < pressure_pos < board_pos
 
-    for label in ("Volatility", "Dollar", "Bitcoin", "Overall"):
-        assert label in html
+    # PRD-158 § 4.2 translations 4-7: pressure block emits decision-language
+    # phrases instead of raw RISK_ON/RISK_OFF/MIXED labels. Overall is
+    # suppressed (handled by the integrator).
+    pressure = html.split('id="macro-pressure"', 1)[1].split("</details>", 1)[0]
+    has_decision_phrase = any(
+        phrase in pressure
+        for phrase in (
+            "VIX permits longs", "VIX blocks longs",
+            "DXY pressures longs", "DXY supports risk-on",
+            "BTC supports risk-on", "BTC pressures risk-on",
+        )
+    )
+    assert has_decision_phrase, pressure
+    assert "Overall" not in pressure
 
 
 def test_macro_pressure_no_data_guard_stays_inside_details(tmp_path: Path) -> None:
@@ -475,24 +487,29 @@ def test_candidate_level_diagram_uses_current_price_when_contract_entry_missing(
     assert 'class="lvl-diagram"' in card
 
 
-def test_candidate_level_diagram_suppresses_current_price_without_level_context() -> None:
+def test_candidate_level_diagram_hidden_when_no_level_context() -> None:
+    # PRD-158 § 4.2 translation 12: anchor without fib_levels/watch_zones
+    # hides the diagram entirely — no placeholder.
     mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": 512.34}})
 
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=mm)
     card = _candidate_card(html)
 
-    assert "Level context unavailable" in card
+    assert "Level context unavailable" not in card
     assert "Chart unavailable" not in card
     assert 'class="lvl-diagram"' not in card
 
 
-def test_candidate_level_diagram_preserves_unavailable_without_valid_anchor() -> None:
+def test_candidate_level_diagram_hidden_when_anchor_invalid() -> None:
+    # PRD-158 § 4.2 translation 12: invalid anchor (zero/negative) hides the
+    # diagram entirely — no placeholder.
     mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": 0}})
 
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=mm)
     card = _candidate_card(html)
 
-    assert "Chart unavailable" in card
+    assert "Chart unavailable" not in card
+    assert "Level context unavailable" not in card
     assert 'class="lvl-diagram"' not in card
 
 
@@ -554,7 +571,9 @@ def test_failed_candidate_with_only_current_price_does_not_render_entry_only_dia
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=mm)
     card = _candidate_card(html)
 
-    assert "Level context unavailable" in card
+    # PRD-158 translation 12: no diagram and no placeholder when level
+    # context is absent.
+    assert "Level context unavailable" not in card
     assert 'class="lvl-diagram"' not in card
     assert ">ENTRY</text>" not in card
 
@@ -602,32 +621,29 @@ def test_system_state_contains_run_snapshot() -> None:
     assert "RUN SNAPSHOT" in state
 
 
-def test_run_snapshot_stale_when_stale() -> None:
+def test_run_snapshot_stale_renders_stale_label() -> None:
+    # PRD-158 § 4.2 translation 3: stale snapshot renders the explicit
+    # "STALE (>N min)" label.
     old_ts = "2020-01-01T00:00:00Z"
     payload = _payload(timestamp=old_ts)
     run = _run_with_timestamp(old_ts)
     html = render_dashboard_html(payload, run)
     state = _system_state_block(html)
-    assert "RUN SNAPSHOT - STALE" in state
+    assert "RUN SNAPSHOT" in state
+    assert "STALE" in state
 
 
-def test_run_snapshot_current_when_fresh() -> None:
+def test_run_snapshot_fresh_renders_relative_minutes() -> None:
+    # PRD-158 § 4.2 translation 3: fresh snapshot renders "<1 minute old"
+    # or "N minute(s) old".
     from datetime import datetime, timezone
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     payload = _payload(timestamp=now)
     run = _run_with_timestamp(now)
     html = render_dashboard_html(payload, run)
     state = _system_state_block(html)
-    assert "RUN SNAPSHOT - CURRENT" in state
-
-
-def test_run_snapshot_shows_pacific_timestamp() -> None:
-    html = render_dashboard_html(
-        _payload(timestamp="2026-05-05T20:29:00Z"),
-        _run_with_timestamp("2026-05-05T20:29:00Z"),
-    )
-    state = _system_state_block(html)
-    assert "PT" in state
+    assert "minute" in state
+    assert "STALE" not in state
 
 
 def test_main_block_no_original_utc_timestamp() -> None:

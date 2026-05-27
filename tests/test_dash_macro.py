@@ -327,49 +327,26 @@ def test_macro_pressure_block_no_data_does_not_raise() -> None:
     assert 'id="macro-pressure"' in html
 
 
-def test_macro_pressure_block_component_labels_present() -> None:
-    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
-    block = _macro_pressure_block(html)
-    for label in ("Volatility", "Dollar", "Bitcoin"):
-        assert label in block
-
-
-def test_macro_pressure_block_overall_present() -> None:
-    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
-    block = _macro_pressure_block(html)
-    assert "Overall" in block
-
-
-def test_macro_pressure_block_overall_uses_pressure_grid() -> None:
-    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
-    block = _macro_pressure_block(html)
-    assert 'class="pressure-overall"' not in block
-    assert block.index("Overall") < block.index("</div>")
-
-
-def test_macro_pressure_block_overall_value_is_valid() -> None:
-    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
-    block = _macro_pressure_block(html)
-    valid = {"RISK_ON", "RISK_OFF", "NEUTRAL", "MIXED", "UNKNOWN"}
-    assert any(v in block for v in valid)
-
-
-def test_macro_pressure_block_risk_on_drivers_produce_risk_on() -> None:
-    # vix falling, dxy falling, rates falling, btc rising → all RISK_ON
+def test_macro_pressure_block_risk_on_drivers_produce_decision_phrase() -> None:
+    # vix falling, dxy falling, btc rising → translated to long-permitting phrases.
     drivers = _macro_drivers(vix=-0.05, dxy=-0.01, tnx=-0.01, btc=0.05)
     drivers["rates"]["change_bps"] = -5.0
     html = render_dashboard_html(_payload(macro_drivers=drivers), _run())
     block = _macro_pressure_block(html)
-    assert "RISK_ON" in block
+    assert "VIX permits longs" in block
+    assert "DXY supports risk-on" in block
+    assert "BTC supports risk-on" in block
 
 
-def test_macro_pressure_block_risk_off_drivers_produce_risk_off() -> None:
-    # vix rising, dxy rising, rates rising, btc falling → all RISK_OFF
+def test_macro_pressure_block_risk_off_drivers_produce_decision_phrase() -> None:
+    # vix rising, dxy rising, btc falling → translated to long-blocking phrases.
     drivers = _macro_drivers(vix=0.05, dxy=0.01, tnx=0.05, btc=-0.05)
     drivers["rates"]["change_bps"] = 5.0
     html = render_dashboard_html(_payload(macro_drivers=drivers), _run())
     block = _macro_pressure_block(html)
-    assert "RISK_OFF" in block
+    assert "VIX blocks longs" in block
+    assert "DXY pressures longs" in block
+    assert "BTC pressures risk-on" in block
 
 
 def test_macro_pressure_block_position_after_macro_tape() -> None:
@@ -390,29 +367,3 @@ def test_macro_pressure_block_position_after_system_state() -> None:
 # PRD-073 — R3: Macro pressure driver labels
 # ---------------------------------------------------------------------------
 
-def test_macro_pressure_volatility_label() -> None:
-    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
-    block = _macro_pressure_block(html)
-    assert "Volatility" in block
-    assert "volatility_pressure" not in block
-
-
-def test_macro_pressure_dollar_label() -> None:
-    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
-    block = _macro_pressure_block(html)
-    assert "Dollar" in block
-    assert "dollar_pressure" not in block
-
-
-def test_macro_pressure_bitcoin_label() -> None:
-    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
-    block = _macro_pressure_block(html)
-    assert "Bitcoin" in block
-    assert "bitcoin_pressure" not in block
-
-
-def test_macro_pressure_overall_label_human_readable() -> None:
-    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
-    block = _macro_pressure_block(html)
-    assert "Overall" in block
-    assert "OVERALL" not in block

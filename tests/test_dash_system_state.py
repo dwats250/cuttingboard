@@ -12,10 +12,12 @@ from tests.dash_helpers import _payload, _run
 # ---------------------------------------------------------------------------
 
 def test_system_state_block_fields() -> None:
+    # PRD-158 § 4.2 translation 1: RISK_ON renders as "Longs allowed".
+    # Translation 2 suppresses raw confidence.
     html = render_dashboard_html(_payload(market_regime="RISK_ON"), _run(posture="CONTROLLED_LONG", confidence=0.75))
     state = html.split('id="system-state"', 1)[1]
-    assert "RISK_ON" in state
-    assert "0.75" in state
+    assert "Longs allowed" in state
+    assert "0.75" not in state
 
 
 def test_system_state_regime_badge_class() -> None:

@@ -26,9 +26,12 @@ def test_run_delta_detects_changes() -> None:
     delta    = html.split('id="run-delta"', 1)[1]
     delta    = delta.split('id="system-state"', 1)[0]
 
-    assert "Regime: RISK_OFF -&gt; NEUTRAL"              in delta
-    assert "Posture: Stay Flat -&gt; Controlled Long"   in delta
-    assert "System Halted: YES -&gt; NO"               in delta
+    # PRD-158 § 4.2 translation 13: regime transition to NEUTRAL has no
+    # "Permission flipped to …" phrase and is suppressed.
+    assert "Permission flipped to" not in delta
+    assert "Regime:" not in delta
+    assert "Posture: Stay Flat -&gt; Controlled Long" in delta
+    assert "System Halted: YES -&gt; NO" in delta
 
 
 def test_run_delta_ignores_unchanged_fields() -> None:
