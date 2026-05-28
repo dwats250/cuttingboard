@@ -623,29 +623,28 @@ def test_system_state_contains_run_snapshot() -> None:
     assert "RUN SNAPSHOT" in state
 
 
-def test_run_snapshot_stale_renders_stale_label() -> None:
-    # PRD-158 § 4.2 translation 3: stale snapshot renders the explicit
-    # "STALE (>N min)" label.
+def test_run_snapshot_renders_absolute_pt_timestamp() -> None:
+    # RUN SNAPSHOT shows the absolute snapshot timestamp (PT); data currency
+    # is judged from the visible timestamp, not a relative-age/STALE badge.
+    ts = "2026-05-05T20:29:00Z"
+    payload = _payload(timestamp=ts)
+    run = _run_with_timestamp(ts)
+    html = render_dashboard_html(payload, run)
+    snapshot = _system_state_block(html).split("RUN SNAPSHOT", 1)[1]
+    assert " PT" in snapshot
+    assert "STALE" not in snapshot
+    assert "minute" not in snapshot
+
+
+def test_run_snapshot_old_timestamp_not_marked_stale() -> None:
+    # No staleness badge: an old snapshot still renders its plain PT timestamp.
     old_ts = "2020-01-01T00:00:00Z"
     payload = _payload(timestamp=old_ts)
     run = _run_with_timestamp(old_ts)
     html = render_dashboard_html(payload, run)
-    state = _system_state_block(html)
-    assert "RUN SNAPSHOT" in state
-    assert "STALE" in state
-
-
-def test_run_snapshot_fresh_renders_relative_minutes() -> None:
-    # PRD-158 § 4.2 translation 3: fresh snapshot renders "<1 minute old"
-    # or "N minute(s) old".
-    from datetime import datetime, timezone
-    now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    payload = _payload(timestamp=now)
-    run = _run_with_timestamp(now)
-    html = render_dashboard_html(payload, run)
-    state = _system_state_block(html)
-    assert "minute" in state
-    assert "STALE" not in state
+    snapshot = _system_state_block(html).split("RUN SNAPSHOT", 1)[1]
+    assert " PT" in snapshot
+    assert "STALE" not in snapshot
 
 
 def test_main_block_no_original_utc_timestamp() -> None:

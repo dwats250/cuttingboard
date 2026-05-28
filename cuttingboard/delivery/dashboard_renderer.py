@@ -1051,29 +1051,6 @@ def _pressure_decision_phrase(component_key: str, pressure_value: object) -> str
     return table.get(str(pressure_value))
 
 
-def _relative_freshness_label(timestamp_value: object) -> str:
-    """Translation 3: timestamp → 'N minutes old' or 'STALE (>5 min)'."""
-    dt: datetime | None = None
-    if isinstance(timestamp_value, datetime):
-        dt = timestamp_value if timestamp_value.tzinfo is not None else timestamp_value.replace(tzinfo=timezone.utc)
-    else:
-        try:
-            dt = datetime.fromisoformat(str(timestamp_value).replace("Z", "+00:00"))
-        except (ValueError, TypeError):
-            return "—"
-    age_seconds = (_utcnow() - dt).total_seconds()
-    if age_seconds < 0:
-        age_seconds = 0
-    if age_seconds > DASHBOARD_STALE_AFTER_SECONDS:
-        return f"STALE (>{DASHBOARD_STALE_AFTER_SECONDS // 60} min)"
-    minutes = int(age_seconds // 60)
-    if minutes <= 0:
-        return "<1 minute old"
-    if minutes == 1:
-        return "1 minute old"
-    return f"{minutes} minutes old"
-
-
 def _grade_to_action(grade: object) -> str | None:
     """Translation 11: card grade → action verb, or None to cut."""
     if grade in ("A+", "A"):
@@ -1850,9 +1827,12 @@ def render_dashboard_html(
         w(f'  <div class="field"><div class="label">Reason</div>'
           f'<div class="value">{_esc(_perm_reason)}</div></div>')
     w('  <div class="sep"></div>')
-    _freshness_text = _relative_freshness_label(payload_timestamp_value or timestamp)
+    _snapshot_pt, _snapshot_orig = format_dashboard_timestamp(
+        str(payload_timestamp_value or timestamp)
+    )
+    _snapshot_text = _snapshot_pt or _snapshot_orig or "unavailable"
     w('  <div class="label">RUN SNAPSHOT</div>')
-    w(f'  <div class="value">{_esc(_freshness_text)}</div>')
+    w(f'  <div class="value">{_esc(_snapshot_text)}</div>')
     w("</div>")
 
     # --- alert-watchlist ---
