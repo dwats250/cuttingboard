@@ -44,6 +44,18 @@ with date and rationale.
 - **Strict scope locking.** A PRD's `FILES` section is a hard boundary. If a
   change requires touching a file not listed, stop and amend the PRD (or open
   a new one) before editing.
+- **Pre-implementation grep sweep.** Before declaring a PRD's FILES set for any
+  change that deletes, renames, or translates a rendered field / contract key /
+  enum value, grep all of `tests/` for the affected token. Add every test file
+  that asserts on the token to FILES in the initial PRD, not as reactive
+  amendments after the test suite breaks. PRD-158 hit this loop three times
+  before adopting the rule.
+- **PRD file lands at Stage 0.** For any PRD, the first commit is the
+  PRD-NNN.md scaffold plus the IN PROGRESS registry row plus the prd_index.json
+  entry — *before* any implementation commit. Authoring a PRD in chat and only
+  filing it at closeout is what produces sequencing-gate noise and forces
+  reconstruction of the spec from chat history. (See `scripts/prd_open.sh` once
+  it exists; until then, do the three edits by hand.)
 
 ## Workflow patterns
 
@@ -51,9 +63,23 @@ with date and rationale.
   prior decisions in `docs/DECISIONS.md`.
 - When drift is discovered mid-task (code doesn't match docs, undocumented
   dependencies surface), pause and surface the drift before proceeding.
-- Use the built-in `Explore` subagent (or `general-purpose`) for codebase
-  recon: cross-file consistency checks, scoped reads of long PRDs, "where is
-  X used" sweeps. These run locally without an external model call.
+- **Reach for `Explore` (or `general-purpose`) reflexively for code-recon
+  questions.** If the question is "where is X computed/called/asserted, and
+  what depends on it?" — dispatch a subagent before reading files inline.
+  Cost is small; the gain is preserved main-context window and parallelism
+  while the recon runs. Going inline for this class of question burns context
+  on detail the user does not need to see. PRD-158 had at least six missed
+  opportunities of this shape.
+- **Use `TaskCreate` upfront for any work with ≥3 distinct stages.** Update
+  status as each stage starts/completes. Tracks progress visibly and reduces
+  the size of per-step reports to a delta-against-tasks rather than a full
+  re-statement.
+- **Sequencing-gate fires are actionable, not boilerplate.** If the
+  `UserPromptSubmit` sequencing-gate hook fires repeatedly for the same
+  out-of-order PRD, the right response is to close the underlying registry
+  inconsistency (typically a 10-minute bookkeeping commit), not to re-state
+  the skip reason on every prompt. Repeating the skip reason is a signal that
+  closeout is overdue.
 - Invoke Codex when the value is a *genuinely independent second model* —
   PRD cross-review, vision review of a proposed PRD, structured code review
   before merge. Not for tasks `Explore` can do.
