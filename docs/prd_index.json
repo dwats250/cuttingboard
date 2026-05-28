@@ -620,6 +620,12 @@
       "title": "Dashboard Output Surface Realignment (Pass 1)",
       "status": "COMPLETE",
       "commit": "c7a3863, ee2f055, d10b134, 85ee9a4, fd74b3f, 70d07d9, 599c17b"
+    },
+    {
+      "number": 160,
+      "title": "Fix macro_bias arrow-counting inversion",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
