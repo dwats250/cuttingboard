@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 158,
-  "next_prd": 159,
+  "latest_complete": 160,
+  "next_prd": 161,
   "entries": [
     {
       "number": 56,
@@ -622,10 +622,16 @@
       "commit": "c7a3863, ee2f055, d10b134, 85ee9a4, fd74b3f, 70d07d9, 599c17b"
     },
     {
+      "number": 159,
+      "title": "scripts/prd_open.sh — Stage 0 scaffolder (reserved candidate)",
+      "status": "PROPOSED",
+      "commit": null
+    },
+    {
       "number": 160,
       "title": "Fix macro_bias arrow-counting inversion",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "a1c0fc1"
     }
   ]
 }
