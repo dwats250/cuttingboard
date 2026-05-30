@@ -623,9 +623,9 @@
     },
     {
       "number": 159,
-      "title": "scripts/prd_open.sh — Stage 0 scaffolder (reserved candidate)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "title": "scripts/prd_open.sh — Stage 0 PRD scaffolder",
+      "status": "COMPLETE",
+      "commit": "0481eb5"
     },
     {
       "number": 160,
