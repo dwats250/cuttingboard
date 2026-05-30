@@ -16,6 +16,51 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-05-29 — Alignment cadence check #2 — PASS (no drift)
+
+Second cadence check (first since #1 established the post-VISION
+baseline on 2026-05-22). Run slightly early at Dustin's request,
+coinciding with the PRD-158 output-surface realignment and PRD-160
+macro_bias correction — a natural surface-level boundary. Scope: all
+production code landed since check #1 (PRDs 154–158, 160; PRD-156 was a
+net removal).
+
+Net code surface since #1: exactly one new module —
+`cuttingboard/delivery/dashboard_integrator.py` (PRD-158). PRD-157 added
+config knobs (`ACCOUNT_EQUITY`, `MAX_RISK_PCT_PER_TRADE`), not a module;
+PRD-160 added per-driver cyclicality *data* to the existing
+`macro_tape_layout.py`; PRD-156 deleted the Moomoo subsystem
+(`moomoo_parser/join/review.py`) that check #1 had evaluated — so the
+one sidecar #1 reviewed is now gone. Everything else was tests, docs,
+audits, or governance.
+
+- **Q1 (new prediction logic?):** No. `dashboard_integrator` is a
+  renderer-bound translation pass — it consumes existing regime / macro
+  / setup values and re-expresses them in decision language; it
+  recomputes nothing (PRD-158 § 4.3, module docstring). PRD-157 sizing
+  is deterministic equity × risk-% arithmetic, not a market forecast.
+  PRD-160 made the macro_bias *label* more descriptively accurate
+  (per-driver cyclicality) — description, not prediction, and if
+  anything a reinforcement of the non-goal.
+- **Q2 (new sidecar without consumer or observational purpose?):** No.
+  No new sidecar landed. `dashboard_integrator` is not a sidecar — it is
+  a delivery-layer pass whose immediate in-process consumer is the
+  renderer (`render_dashboard_html`), pinned as translation-only (no
+  second source of truth) by the PRD-158 guardrail entry in this file.
+- **Q3 (new module not serving the four questions?):** No.
+  `dashboard_integrator` serves "what matters today / is this actually
+  tradable / what invalidates" by collapsing contradictory dashboard
+  state into trader-facing conclusions — squarely the
+  cognitive-compression core value. It earns its keep.
+
+**Verdict:** PASS. No prediction logic, no orphan sidecar, no module
+that fails the four-questions test; the period was net-subtractive on
+module count (one added, three removed). Next cadence check due
+2026-07-03 (or the next phase boundary — e.g. the W4 pre-market-report
+spine crossing into live trade specification — whichever comes first).
+
+---
+
 ## 2026-05-24 — Retire hourly Telegram cadence; replace with three prescriptive PT-anchored reports
 
 The PRD-141/144/148/149 hourly cadence + the daily/Sunday/intraday-mode
