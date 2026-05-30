@@ -631,7 +631,7 @@
       "number": 160,
       "title": "Fix macro_bias arrow-counting inversion",
       "status": "COMPLETE",
-      "commit": "a1c0fc1"
+      "commit": "40353f6"
     }
   ]
 }
