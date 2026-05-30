@@ -176,7 +176,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-156 | 3c6fcb4 | Surgical removal of Moomoo Statement Consumer (PRD-153) | COMPLETE | [PRD-156](prd_history/PRD-156.md) |
 | PRD-157 | 8417768 | Account-Equity-Driven Position Sizing | COMPLETE | [PRD-157](prd_history/PRD-157.md) |
 | PRD-158 | c7a3863, ee2f055, d10b134, 85ee9a4, fd74b3f, 70d07d9, 599c17b | Dashboard Output Surface Realignment (Pass 1) | COMPLETE | [PRD-158](prd_history/PRD-158.md) |
-| PRD-159 | — | scripts/prd_open.sh — Stage 0 scaffolder (reserved candidate) | PROPOSED | — |
+| PRD-159 | — | scripts/prd_open.sh — Stage 0 scaffolder (reserved candidate) | IN PROGRESS | [PRD-159](prd_history/PRD-159.md) |
 | PRD-160 | 40353f6 | Fix macro_bias arrow-counting inversion | COMPLETE | [PRD-160](prd_history/PRD-160.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
