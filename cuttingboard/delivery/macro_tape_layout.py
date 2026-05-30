@@ -67,3 +67,14 @@ MACRO_PAYLOAD_KEY_TO_QUOTE_SYMBOL = _types.MappingProxyType(
         if slot.payload_key is not None
     }
 )
+
+# PRD-160: per-driver cyclicality for the macro_bias tally, keyed by
+# payload_key. Contra-cyclical drivers move inversely to risk appetite — a
+# falling VIX/DXY/10Y is risk-ON (long), a rising one is risk-OFF (short).
+# Pro-cyclical drivers move with risk appetite — a rising BTC is risk-ON.
+# OIL and the spot metals (XAU/XAG) are visibility-only and deliberately
+# excluded from the bias arithmetic. Keep this list here (not in the bias
+# function) so adding a driver to the tally is a data edit, not a logic edit.
+MACRO_BIAS_CONTRA_CYCLICAL = frozenset({"volatility", "dollar", "rates"})
+MACRO_BIAS_PRO_CYCLICAL = frozenset({"bitcoin"})
+MACRO_BIAS_DRIVERS = MACRO_BIAS_CONTRA_CYCLICAL | MACRO_BIAS_PRO_CYCLICAL

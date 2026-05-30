@@ -44,6 +44,10 @@ def test_macro_tape_layout_has_only_pure_semantic_exports() -> None:
         layout.TRADABLES_ROW,
         layout.MACRO_LABEL_TO_PAYLOAD_KEY,
         layout.MACRO_PAYLOAD_KEY_TO_QUOTE_SYMBOL,
+        # PRD-160: per-driver cyclicality data for the macro_bias tally.
+        layout.MACRO_BIAS_CONTRA_CYCLICAL,
+        layout.MACRO_BIAS_PRO_CYCLICAL,
+        layout.MACRO_BIAS_DRIVERS,
     )
     for name, member in inspect.getmembers(layout):
         if name.startswith("_") or name == "annotations":

@@ -22,7 +22,13 @@ from zoneinfo import ZoneInfo
 
 from cuttingboard import config
 from cuttingboard.delivery.dashboard_integrator import dashboard_integrator
-from cuttingboard.delivery.macro_tape_layout import MACRO_ROW_1, MACRO_ROW_2, TRADABLES_ROW
+from cuttingboard.delivery.macro_tape_layout import (
+    MACRO_BIAS_CONTRA_CYCLICAL,
+    MACRO_BIAS_DRIVERS,
+    MACRO_ROW_1,
+    MACRO_ROW_2,
+    TRADABLES_ROW,
+)
 from cuttingboard.macro_pressure import build_macro_pressure
 from cuttingboard.trade_decision import ALLOW_TRADE
 
@@ -1082,18 +1088,21 @@ def _regime_to_permission_key(regime: object) -> str:
     return "stand_down"
 
 
-def _macro_bias_direction_key(up_count: int, down_count: int) -> str:
-    """PRD-158 § 4.2 translation 10: the integrator uses the same arrow-
-    count arithmetic the renderer uses to produce the visible
-    "MACRO BIAS: …" label. When that visible label conflicts with
-    regime/setup direction the integrator suppresses it and emits the
-    Mixed-tape verdict — matching the on-screen contradiction the trader
-    actually sees. The arrow-count vs. semantic-pressure mismatch for
-    VIX/DXY/Rates is pre-existing renderer tech debt outside PRD-158
-    scope; the integrator must not invent a second source of truth."""
-    if up_count > down_count:
+def _macro_bias_direction_key(long_votes: int, short_votes: int) -> str:
+    """Map the macro_bias vote tally to the integrator's direction key.
+
+    PRD-160 unwound the PRD-158 § 4.2 workaround. The renderer's macro_bias
+    tally now applies per-driver cyclicality (contra-cyclical VIX/DXY/10Y
+    invert; pro-cyclical BTC keeps sign), so the votes passed here already
+    carry the same semantics as the visible "MACRO BIAS: …" label and the
+    Macro Pressure sub-signals. The integrator therefore receives a single,
+    correct source of truth: Rule 3 fires only on genuine regime/macro/setup
+    divergence, no longer on the old arrow-count vs. semantic-pressure
+    mismatch that PRD-158 deliberately mirrored to keep the two surfaces in
+    sync."""
+    if long_votes > short_votes:
         return "long"
-    if down_count > up_count:
+    if short_votes > long_votes:
         return "short"
     return "mixed"
 
@@ -1115,8 +1124,8 @@ def _setup_direction_from_entry(entry: dict) -> str | None:
 
 def _build_integrator_input(
     market_regime: object,
-    up_count: int,
-    down_count: int,
+    long_votes: int,
+    short_votes: int,
     market_map: dict | None,
 ) -> dict:
     """Construct dashboard_integrator input from existing render-time values.
@@ -1161,7 +1170,7 @@ def _build_integrator_input(
 
     return {
         "regime_permission": _regime_to_permission_key(market_regime),
-        "macro_bias_direction": _macro_bias_direction_key(up_count, down_count),
+        "macro_bias_direction": _macro_bias_direction_key(long_votes, short_votes),
         "symbols": symbols_payload,
         "tiers": tiers,
     }
@@ -1624,22 +1633,34 @@ def render_dashboard_html(
     tape_value_slots = _build_tape_value_slots(macro_drivers, market_map)
     pressure = _build_pressure_snapshot(macro_drivers, market_map)
 
-    # R1.1 — macro bias from legacy driver inputs only. OIL and spot metals
-    # are visibility-only and do not contribute to macro_bias arithmetic.
-    _bias_payload_keys = frozenset({"volatility", "dollar", "rates", "bitcoin"})
+    # R1.1 — macro bias from legacy driver inputs only, with per-driver
+    # cyclicality semantics (PRD-160). Contra-cyclical drivers (VIX/DXY/10Y)
+    # invert: a falling reading is risk-ON (long), a rising one risk-OFF
+    # (short). Pro-cyclical drivers (BTC) keep their sign. OIL and spot metals
+    # are visibility-only and do not contribute. The vote counts (not raw
+    # arrow counts) are what flow to the integrator, so its directional view
+    # matches the visible label — see _macro_bias_direction_key.
     _arrow_by_label = dict(tape_slots)
-    _driver_arrows = [
-        _arrow_by_label.get(slot.label, _DASH)
-        for row in (MACRO_ROW_1, MACRO_ROW_2)
-        for slot in row.slots
-        if slot.payload_key in _bias_payload_keys
-    ]
-    up_count   = sum(1 for arrow in _driver_arrows if arrow == _UP)
-    down_count = sum(1 for arrow in _driver_arrows if arrow == _DOWN)
-    if up_count > down_count:
+    long_votes = 0
+    short_votes = 0
+    for row in (MACRO_ROW_1, MACRO_ROW_2):
+        for slot in row.slots:
+            if slot.payload_key not in MACRO_BIAS_DRIVERS:
+                continue
+            arrow = _arrow_by_label.get(slot.label, _DASH)
+            if arrow not in (_UP, _DOWN):
+                continue  # flat / missing drivers cast no vote
+            risk_on = arrow == _UP
+            if slot.payload_key in MACRO_BIAS_CONTRA_CYCLICAL:
+                risk_on = not risk_on
+            if risk_on:
+                long_votes += 1
+            else:
+                short_votes += 1
+    if long_votes > short_votes:
         macro_bias = f"MACRO BIAS: LONG {_UP}"
         macro_bias_css = "macro-bias long"
-    elif down_count > up_count:
+    elif short_votes > long_votes:
         macro_bias = f"MACRO BIAS: SHORT {_DOWN}"
         macro_bias_css = "macro-bias short"
     else:
@@ -1655,7 +1676,7 @@ def render_dashboard_html(
     _mm_symbols_for_integrator = (market_map or {}).get("symbols") or {}
     if _mm_symbols_for_integrator:
         integrator_result = dashboard_integrator(
-            _build_integrator_input(market_regime, up_count, down_count, market_map)
+            _build_integrator_input(market_regime, long_votes, short_votes, market_map)
         )
     else:
         integrator_result = {
@@ -1881,9 +1902,11 @@ def render_dashboard_html(
         w('  <div class="tape-no-data">NO LIVE MACRO DATA</div>')
     tape_value_map = dict(tape_value_slots)
 
-    # PRD-158 § 4.2 translation 10: suppress raw MACRO BIAS label when the
-    # integrator detects regime/macro/setup directional conflict. The
-    # integrator emits "Mixed tape — …" in the candidate-board verdict line.
+    # Suppress the raw MACRO BIAS label when the integrator detects a genuine
+    # regime/macro/setup directional conflict (Rule 3); it emits "Mixed tape —
+    # …" in the candidate-board verdict line instead. Post-PRD-160 the macro
+    # bias fed to the integrator is the cyclicality-correct one, so this fires
+    # only on real divergence.
     if not integrator_suppress["macro_bias"]:
         w(f'  <div class="{_esc(macro_bias_css)}">{_esc(macro_bias)}</div>')
 

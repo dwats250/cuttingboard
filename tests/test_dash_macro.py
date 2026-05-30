@@ -4,8 +4,13 @@ from __future__ import annotations
 
 import json
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
+import pytest
+
+from cuttingboard.delivery import dashboard_renderer as _dr
+from cuttingboard.delivery.dashboard_integrator import RULE3_MIXED_VERDICT
 from cuttingboard.delivery.dashboard_renderer import render_dashboard_html
 
 from tests.dash_helpers import (
@@ -17,6 +22,13 @@ from tests.dash_helpers import (
     _payload,
     _run,
 )
+
+
+# PRD-160: freeze the renderer clock close to the fixture timestamp so the
+# integrator screen-verdict gate (healthy lineage) renders Rule 2/3 banners.
+def _freeze_fresh(monkeypatch: pytest.MonkeyPatch) -> None:
+    ts = datetime(2026, 4, 28, 12, 1, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(_dr, "_utcnow", lambda: ts)
 
 
 # ---------------------------------------------------------------------------
@@ -169,13 +181,15 @@ def test_macro_tape_tradable_no_arrow_with_na_value() -> None:
 
 
 def test_macro_tape_macro_bias_text_unchanged_with_value_row() -> None:
-    p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.01, tnx=0.02, btc=-0.01))
+    # PRD-160: VIX↓ DXY↓ 10Y↓ (risk-on) + BTC↑ → LONG.
+    p = _payload(macro_drivers=_macro_drivers(vix=-0.05, dxy=-0.01, tnx=-0.02, btc=0.03))
     html = render_dashboard_html(p, _run(), market_map=None)
     assert "MACRO BIAS: LONG" in html
 
 
 def test_macro_tape_macro_bias_class_unchanged_with_value_row() -> None:
-    p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.01, tnx=0.02, btc=-0.01))
+    # PRD-160: VIX↓ DXY↓ 10Y↓ (risk-on) + BTC↑ → LONG.
+    p = _payload(macro_drivers=_macro_drivers(vix=-0.05, dxy=-0.01, tnx=-0.02, btc=0.03))
     html = render_dashboard_html(p, _run(), market_map=None)
     assert 'class="macro-bias long"' in html
 
@@ -185,22 +199,24 @@ def test_macro_tape_macro_bias_class_unchanged_with_value_row() -> None:
 # ---------------------------------------------------------------------------
 
 def test_macro_bias_long() -> None:
-    # 3 ↑, 1 ↓ → LONG
-    p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.01, tnx=0.02, btc=-0.01))
+    # PRD-160 per-driver semantics: VIX↓ DXY↓ 10Y↓ (contra-cyclical falling =
+    # risk-on) + BTC↑ (pro-cyclical rising = risk-on) → 4 long votes → LONG.
+    p = _payload(macro_drivers=_macro_drivers(vix=-0.05, dxy=-0.01, tnx=-0.02, btc=0.03))
     html = render_dashboard_html(p, _run())
     assert "MACRO BIAS: LONG" in html
 
 
 def test_macro_bias_short() -> None:
-    # 1 ↑, 3 ↓ → SHORT
-    p = _payload(macro_drivers=_macro_drivers(vix=-0.05, dxy=-0.01, tnx=-0.02, btc=0.01))
+    # PRD-160: VIX↑ DXY↑ 10Y↑ (contra-cyclical rising = risk-off) + BTC↓
+    # (pro-cyclical falling = risk-off) → 4 short votes → SHORT.
+    p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.01, tnx=0.02, btc=-0.01))
     html = render_dashboard_html(p, _run())
     assert "MACRO BIAS: SHORT" in html
 
 
 def test_macro_bias_mixed() -> None:
-    # 2 ↑, 2 ↓ (market_map absent so slots 5-9 are all —)
-    p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=-0.01, tnx=0.02, btc=-0.01))
+    # PRD-160: DXY↓ + 10Y↓ → 2 long; VIX↑ + BTC↓ → 2 short → tie → MIXED.
+    p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=-0.01, tnx=-0.02, btc=-0.01))
     html = render_dashboard_html(p, _run(), market_map=None)
     assert "MACRO BIAS: MIXED" in html
 
@@ -208,6 +224,68 @@ def test_macro_bias_mixed() -> None:
 def test_macro_bias_element_present() -> None:
     html = render_dashboard_html(_payload(), _run())
     assert 'class="macro-bias' in html  # matches macro-bias long/short/mixed
+
+
+# ---------------------------------------------------------------------------
+# PRD-160 — per-driver cyclicality in macro_bias arithmetic
+# ---------------------------------------------------------------------------
+
+def test_prd160_contra_cyclical_falling_is_long() -> None:
+    # Headline failing case: VIX↓ DXY↓ 10Y↓ are all risk-ON (falling
+    # contra-cyclical drivers). The old arrow-count arithmetic read three
+    # falling arrows as SHORT while the sub-signals said "VIX permits longs".
+    p = _payload(macro_drivers=_macro_drivers(vix=-0.05, dxy=-0.01, tnx=-0.02, btc=0.0))
+    html = render_dashboard_html(p, _run(), market_map=None)
+    assert "MACRO BIAS: LONG" in html
+    assert "MACRO BIAS: SHORT" not in html
+
+
+def test_prd160_contra_cyclical_rising_is_short() -> None:
+    # VIX↑ DXY↑ 10Y↑ are all risk-OFF (rising contra-cyclical drivers).
+    p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.01, tnx=0.02, btc=0.0))
+    html = render_dashboard_html(p, _run(), market_map=None)
+    assert "MACRO BIAS: SHORT" in html
+    assert "MACRO BIAS: LONG" not in html
+
+
+def test_prd160_pro_cyclical_btc_keeps_sign() -> None:
+    # BTC is pro-cyclical: rising = risk-on. Contra drivers flat → one long
+    # vote → LONG. Confirms the per-driver flip does not invert BTC.
+    p = _payload(macro_drivers=_macro_drivers(vix=0.0, dxy=0.0, tnx=0.0, btc=0.05))
+    html = render_dashboard_html(p, _run(), market_map=None)
+    assert "MACRO BIAS: LONG" in html
+
+
+# ---------------------------------------------------------------------------
+# PRD-160 — unwind of the PRD-158 integrator workaround. With the corrected
+# arithmetic the integrator receives the semantic direction, so Rule 3 fires
+# only on genuine regime/macro/setup divergence — not on the old false
+# positive where risk-on drivers were mislabeled SHORT.
+# ---------------------------------------------------------------------------
+
+def test_prd160_unwind_no_false_conflict_when_macro_agrees(monkeypatch) -> None:
+    _freeze_fresh(monkeypatch)
+    # Risk-on macro (VIX↓ DXY↓ 10Y↓ → LONG), RISK_ON regime (longs), and a
+    # qualifying long setup all agree → no directional conflict. Pre-fix the
+    # old arithmetic produced "short" here and Rule 3 fired spuriously,
+    # suppressing the MACRO BIAS label.
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A", bias="BULL")})
+    p = _payload(macro_drivers=_macro_drivers(vix=-0.05, dxy=-0.01, tnx=-0.02, btc=0.0))
+    html = render_dashboard_html(p, _run(), market_map=mm)
+    assert RULE3_MIXED_VERDICT not in html
+    assert "MACRO BIAS: LONG" in html
+
+
+def test_prd160_rule3_still_fires_on_genuine_divergence(monkeypatch) -> None:
+    _freeze_fresh(monkeypatch)
+    # Genuinely risk-off macro (VIX↑ DXY↑ 10Y↑ → SHORT) against a RISK_ON
+    # regime (longs) and a long setup → real conflict → Rule 3 fires and the
+    # raw MACRO BIAS label is suppressed.
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A", bias="BULL")})
+    p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.01, tnx=0.02, btc=0.0))
+    html = render_dashboard_html(p, _run(), market_map=mm)
+    assert RULE3_MIXED_VERDICT in html
+    assert "MACRO BIAS: SHORT" not in html
 
 
 # ---------------------------------------------------------------------------
@@ -279,20 +357,22 @@ def test_tape_slot_na_class() -> None:
 # ---------------------------------------------------------------------------
 
 def test_macro_bias_long_class() -> None:
-    p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.01, tnx=0.02, btc=0.03))
+    # PRD-160: VIX↓ DXY↓ 10Y↓ (risk-on) + BTC↑ → LONG.
+    p = _payload(macro_drivers=_macro_drivers(vix=-0.05, dxy=-0.01, tnx=-0.02, btc=0.03))
     html = render_dashboard_html(p, _run(), market_map=None)
     assert 'class="macro-bias long"' in html
 
 
 def test_macro_bias_short_class() -> None:
-    p = _payload(macro_drivers=_macro_drivers(vix=-0.05, dxy=-0.01, tnx=-0.02, btc=-0.01))
+    # PRD-160: VIX↑ DXY↑ 10Y↑ (risk-off) + BTC↓ → SHORT.
+    p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.01, tnx=0.02, btc=-0.01))
     html = render_dashboard_html(p, _run(), market_map=None)
     assert 'class="macro-bias short"' in html
 
 
 def test_macro_bias_mixed_class() -> None:
-    # 2 up, 2 down, no market_map
-    p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=-0.01, tnx=0.02, btc=-0.01))
+    # PRD-160: DXY↓ + 10Y↓ → 2 long; VIX↑ + BTC↓ → 2 short → MIXED.
+    p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=-0.01, tnx=-0.02, btc=-0.01))
     html = render_dashboard_html(p, _run(), market_map=None)
     assert 'class="macro-bias mixed"' in html
 
