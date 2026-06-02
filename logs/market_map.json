@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.05074486474973089,
-      "price": 135.4199981689453,
+      "pct_change_decimal": 0.01564117499507733,
+      "price": 137.00999450683594,
       "structure": "UNKNOWN",
       "symbol": "USO"
     }
@@ -26,8 +26,8 @@
       "XLE"
     ]
   },
-  "generated_at": "2026-06-01T19:05:31Z",
-  "generation_id": "hourly-20260601T190531Z",
+  "generated_at": "2026-06-02T17:24:46Z",
+  "generation_id": "hourly-20260602T172446Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -38,17 +38,17 @@
   ],
   "removed_symbols": [],
   "schema_version": "market_map.v1",
-  "session_date": "2026-06-01",
+  "session_date": "2026-06-02",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-06-01T19:05:31Z"
+    "run_at_utc": "2026-06-02T17:24:46Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 87.2300033569336,
+      "current_price": 87.30500030517578,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -82,13 +82,18 @@
       "watch_zones": [
         {
           "context": "fast trend reference",
-          "level": 87.8323,
+          "level": 87.6019,
           "type": "EMA9"
         },
         {
           "context": "primary trend reference",
-          "level": 89.2806,
+          "level": 89.0442,
           "type": "EMA21"
+        },
+        {
+          "context": "trend base reference",
+          "level": 91.4417,
+          "type": "EMA50"
         }
       ],
       "what_to_look_for": [
@@ -99,7 +104,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 411.8399963378906,
+      "current_price": 411.8999938964844,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -133,17 +138,17 @@
       "watch_zones": [
         {
           "context": "fast trend reference",
-          "level": 415.8695,
+          "level": 414.9476,
           "type": "EMA9"
         },
         {
           "context": "primary trend reference",
-          "level": 420.4685,
+          "level": 419.6314,
           "type": "EMA21"
         },
         {
           "context": "trend base reference",
-          "level": 427.475,
+          "level": 426.8391,
           "type": "EMA50"
         }
       ],
@@ -155,7 +160,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 744.2100219726562,
+      "current_price": 744.6300048828125,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -189,8 +194,13 @@
       "watch_zones": [
         {
           "context": "fast trend reference",
-          "level": 724.0013,
+          "level": 727.749,
           "type": "EMA9"
+        },
+        {
+          "context": "primary trend reference",
+          "level": 708.7239,
+          "type": "EMA21"
         }
       ],
       "what_to_look_for": [
@@ -201,7 +211,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 67.9749984741211,
+      "current_price": 68.05500030517578,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -235,17 +245,17 @@
       "watch_zones": [
         {
           "context": "fast trend reference",
-          "level": 69.1187,
+          "level": 68.829,
           "type": "EMA9"
         },
         {
           "context": "primary trend reference",
-          "level": 69.7952,
+          "level": 69.602,
           "type": "EMA21"
         },
         {
           "context": "trend base reference",
-          "level": 70.118,
+          "level": 70.022,
           "type": "EMA50"
         }
       ],
@@ -257,7 +267,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 759.530029296875,
+      "current_price": 759.1799926757812,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -291,12 +301,12 @@
       "watch_zones": [
         {
           "context": "fast trend reference",
-          "level": 747.9437,
+          "level": 750.0629,
           "type": "EMA9"
         },
         {
           "context": "primary trend reference",
-          "level": 737.0416,
+          "level": 738.996,
           "type": "EMA21"
         }
       ],
@@ -308,11 +318,11 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 57.29499816894531,
+      "current_price": 58.085601806640625,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
-        "loses EMA50 with weak recovery",
+        "loses EMA21 with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
@@ -341,19 +351,19 @@
       },
       "watch_zones": [
         {
-          "context": "trend base reference",
-          "level": 57.4345,
-          "type": "EMA50"
+          "context": "primary trend reference",
+          "level": 57.9999,
+          "type": "EMA21"
         },
         {
           "context": "fast trend reference",
-          "level": 57.85,
+          "level": 57.74,
           "type": "EMA9"
         },
         {
-          "context": "primary trend reference",
-          "level": 58.0699,
-          "type": "EMA21"
+          "context": "trend base reference",
+          "level": 57.4292,
+          "type": "EMA50"
         }
       ],
       "what_to_look_for": [
