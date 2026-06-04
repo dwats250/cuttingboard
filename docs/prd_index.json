@@ -638,6 +638,12 @@
       "title": "Add tradable qualified fixture for PRD-157 sizing gate",
       "status": "COMPLETE",
       "commit": "91d4afe"
+    },
+    {
+      "number": 162,
+      "title": "outcome / regime / market_map reconciliation",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
