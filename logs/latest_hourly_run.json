@@ -1,25 +1,25 @@
 {
-  "alert_body": "Regime: EXPANSION\nConfidence: 1.00\nReason: candidates gated\nBlockers: STOP_DISTANCE, EXTENSION\n\nMacro Tape:\nXAU  4511.0  +0.5%\nXAG  74.2   +0.7%\nBTC  63.6K  -0.6%\nVIX  15.6   -3.1%\nDXY  99.3   -0.2%\n10Y  4.47   -0.6%\nOIL  92.8   -2.4%\n\nTradables:\nSPY  756.34\nQQQ  739.98\nGLD  411.21\nGDX  86.52\nSLV  66.77\nXLE  58.97\n\nFocus: IWM LONG, GLD LONG, SLV LONG\n\nPending confirmation:\nIWM: trend confirmation\nGLD: trend confirmation",
-  "alert_title": "MONITOR SETUP 9:00 AM",
+  "alert_body": "Regime: EXPANSION\nConfidence: 1.00\nReason: candidates gated\nBlockers: STOP_DISTANCE, EXTENSION\n\nMacro Tape:\nXAU  4509.1  +0.4%\nXAG  74.1   +0.7%\nBTC  63.3K  -1.2%\nVIX  15.4   -4.1%\nDXY  99.4   -0.1%\n10Y  4.47   -0.5%\nOIL  92.4   -2.8%\n\nTradables:\nSPY  756.81\nQQQ  740.76\nGLD  410.62\nGDX  86.67\nSLV  66.64\nXLE  58.94\n\nFocus: GLD LONG, SLV LONG, GDX LONG\n\nPending confirmation:\nGLD: trend confirmation\nSLV: trend confirmation",
+  "alert_title": "MONITOR SETUP 10:00 AM",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
     "payload_path": "logs/latest_hourly_payload.json",
     "report_path": "reports/output/hourly_report.html"
   },
   "candidate_lines": [
-    "IWM | LONG | TREND | 2.0:1",
-    "GLD | LONG | TREND | 2.0:1"
+    "GLD | LONG | TREND | 2.0:1",
+    "SLV | LONG | TREND | 2.0:1"
   ],
-  "candidates_qualified": 12,
-  "candidates_watchlist": 6,
+  "candidates_qualified": 10,
+  "candidates_watchlist": 7,
   "confidence": 1.0,
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-06-04T16:20:30Z",
-  "generation_id": "hourly-20260604T162030Z",
+  "generated_at": "2026-06-04T17:16:35Z",
+  "generation_id": "hourly-20260604T171635Z",
   "halt_reason": null,
-  "hourly_slot_utc": "2026-06-04T16:00:00Z",
+  "hourly_slot_utc": "2026-06-04T17:00:00Z",
   "index_score": 0.0,
   "kill_switch": false,
   "mode": "LIVE",
@@ -37,11 +37,11 @@
   "posture": "EXPANSION_LONG",
   "regime": "EXPANSION",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-06-04T16:20:30Z",
-  "run_id": "hourly-20260604T162030Z",
+  "run_at_utc": "2026-06-04T17:16:35Z",
+  "run_id": "hourly-20260604T171635Z",
   "session_date": "2026-06-04",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-06-04T16:20:30Z",
+  "timestamp": "2026-06-04T17:16:35Z",
   "warnings": []
 }
