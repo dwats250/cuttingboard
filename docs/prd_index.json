@@ -623,7 +623,7 @@
     },
     {
       "number": 159,
-      "title": "scripts/prd_open.sh — Stage 0 PRD scaffolder",
+      "title": "scripts/prd_open.sh \u2014 Stage 0 PRD scaffolder",
       "status": "COMPLETE",
       "commit": "0481eb5"
     },
@@ -632,6 +632,12 @@
       "title": "Fix macro_bias arrow-counting inversion",
       "status": "COMPLETE",
       "commit": "40353f6"
+    },
+    {
+      "number": 161,
+      "title": "Add tradable qualified fixture for PRD-157 sizing gate",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

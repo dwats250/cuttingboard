@@ -178,6 +178,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-158 | c7a3863, ee2f055, d10b134, 85ee9a4, fd74b3f, 70d07d9, 599c17b | Dashboard Output Surface Realignment (Pass 1) | COMPLETE | [PRD-158](prd_history/PRD-158.md) |
 | PRD-159 | 0481eb5 | scripts/prd_open.sh — Stage 0 PRD scaffolder | COMPLETE | [PRD-159](prd_history/PRD-159.md) |
 | PRD-160 | 40353f6 | Fix macro_bias arrow-counting inversion | COMPLETE | [PRD-160](prd_history/PRD-160.md) |
+| PRD-161 | — | Add tradable qualified fixture for PRD-157 sizing gate | IN PROGRESS | [PRD-161](prd_history/PRD-161.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
