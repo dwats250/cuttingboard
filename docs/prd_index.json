@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 163,
-  "next_prd": 164,
+  "latest_complete": 164,
+  "next_prd": 165,
   "entries": [
     {
       "number": 56,
@@ -654,8 +654,8 @@
     {
       "number": 164,
       "title": "Harden PRD lifecycle tooling (single-commit closeout, correct-table Stage-0, hash-drift detection)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "2bc7e0a"
     }
   ]
 }
