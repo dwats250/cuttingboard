@@ -184,6 +184,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-164 | 2bc7e0a | Harden PRD lifecycle tooling (single-commit closeout, correct-table Stage-0, hash-drift detection) | COMPLETE | [PRD-164](prd_history/PRD-164.md) |
 | PRD-165 | dac5712 | Candidate-card visual hierarchy and trend-structure dead-column pruning | COMPLETE | [PRD-165](prd_history/PRD-165.md) |
 | PRD-166 | 5cac382 | Hourly market_map artifact isolation (PRD-118 R3 coherence) | COMPLETE | [PRD-166](prd_history/PRD-166.md) |
+| PRD-167 | — | RUN SNAPSHOT relative-freshness token | IN PROGRESS | [PRD-167](prd_history/PRD-167.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
