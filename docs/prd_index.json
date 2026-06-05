@@ -644,6 +644,12 @@
       "title": "outcome / regime / market_map reconciliation",
       "status": "COMPLETE",
       "commit": "7aa4102"
+    },
+    {
+      "number": 163,
+      "title": "Fix regime permission wording for EXPANSION posture",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

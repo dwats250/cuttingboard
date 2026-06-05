@@ -180,6 +180,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-160 | 40353f6 | Fix macro_bias arrow-counting inversion | COMPLETE | [PRD-160](prd_history/PRD-160.md) |
 | PRD-161 | 91d4afe | Add tradable qualified fixture for PRD-157 sizing gate | COMPLETE | [PRD-161](prd_history/PRD-161.md) |
 | PRD-162 | 7aa4102 | outcome / regime / market_map reconciliation | COMPLETE | [PRD-162](prd_history/PRD-162.md) |
+| PRD-163 | — | Fix regime permission wording for EXPANSION posture | IN PROGRESS | [PRD-163](prd_history/PRD-163.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
