@@ -49,9 +49,12 @@ Default is **DRAFT_ONLY**.
   PROJECT_STATE deltas, PRD-NNN.md STATUS line, prd_index.json entry)
   and the Verification Report. Do not write or commit.
 - **WRITE_MODE** — invoke `scripts/prd_close.sh --commit` with the
-  args, then patch the gaps the script leaves (in-place registry flip,
-  Active PRD reset, Next step reset), then commit the patches in a
-  third "registry/state fixup" commit if needed.
+  args (plus optional `--next`). As of PRD-164 the script produces a
+  **complete single-commit closeout**: it flips the existing registry
+  row in place to `COMPLETE @ <hash>`, sets both PRD-doc status markers
+  (`Status: COMPLETE` header + `STATUS: COMPLETE @ <hash>` trailing),
+  and resets `**Active PRD:**` to `none`. No separate "registry/state
+  fixup" commit is required. Phase 2 then verifies the script's output.
 
 Push to `origin` is intentionally out of scope. If the user wants the
 closeout pushed, they perform `git push` themselves after the skill
@@ -70,8 +73,11 @@ The skill needs these arguments before Phase 1:
 - `added` — net new tests added (0 for docs-only PRDs)
 - `summary` — one-paragraph what + why, suitable for the
   PROJECT_STATE "Last work completed" line
+- `next` — *optional*; the new `**Next step` text. Passed through to
+  `prd_close.sh --next`. When omitted, the `**Next step` line is left
+  unchanged (the script never clobbers it with a canned string).
 
-If any are missing, ask. Do NOT invent or guess any of these.
+If any of the required args are missing, ask. Do NOT invent or guess.
 
 ## Hard rule: no invented references
 
@@ -114,21 +120,17 @@ to intercept the missing-row case.
    e. PRD-NNN registry row exists in `docs/PRD_REGISTRY.md`
       (status is typically `IN PROGRESS`; any non-`COMPLETE` value is
       acceptable to proceed)
-2. **Invoke `scripts/prd_close.sh --commit`** with the six args.
-3. **Capture script output.** Note which artifacts it updated vs
-   skipped. The script SKIPs the registry row when one is already
-   present; in that case the row will still say `IN PROGRESS`.
-4. **Patch the gaps:**
-   - If registry row is still `IN PROGRESS`, replace with
-     `| PRD-NNN | <hash> | <title> | COMPLETE | [PRD-NNN](prd_history/PRD-NNN.md) |`
-   - Reset `PROJECT_STATE.md` `**Active PRD:** PRD-NNN` →
-     `**Active PRD:** none`
-   - Reset `PROJECT_STATE.md` `**Next step:**` to the standard idle
-     line (look up the prior idle value via
-     `git show HEAD~N:docs/PROJECT_STATE.md` for the value most
-     recently used; do not invent text)
-5. **Stage and commit the fixup** (only if any of step 4 changed
-   anything): `PRD-NNN: registry status COMPLETE + reset active pointer`
+2. **Invoke `scripts/prd_close.sh --commit`** with the six args (plus
+   `--next "<text>"` if the next step should change).
+3. **Capture script output.** As of PRD-164 the script flips the
+   existing registry row in place to `COMPLETE`, sets both PRD-doc
+   status markers, and resets `**Active PRD:**` to `none` — all in the
+   single `Close PRD-NNN bookkeeping` commit. There is no second
+   "fixup" commit.
+4. **Do not hand-patch the registry row, status markers, or Active PRD
+   pointer.** The script owns those. If Phase 2 finds any of them
+   wrong, that is a `prd_close.sh` regression — stop and investigate
+   the script, do not silently paper over it with a manual edit.
 
 ### Phase 2 — Verify (MANDATORY before returning)
 
@@ -139,13 +141,13 @@ of the response. Do not skip any item.
 |---|---|---|
 | V1 | `git rev-parse <hash>^{commit}` succeeds | Stop; bad hash |
 | V2 | Implementation commit subject contains `PRD-<NNN>` | Stop; hash points to wrong commit |
-| V3 | Registry row exists, status `COMPLETE`, hash column matches `<hash>` | Patch row in place (do not create) |
-| V4 | PRD-NNN.md last non-blank line is `STATUS: COMPLETE @ <hash>` | Append STATUS line |
-| V5 | `prd_index.json` contains entry for PRD-NNN with matching hash | Re-run prd_close.sh or hand-patch |
-| V6 | `PROJECT_STATE.md` "Last completed PRD" line names PRD-NNN with `(commit <hash>)` | Patch line |
-| V7 | `PROJECT_STATE.md` "Last work completed" has a fresh dated entry for PRD-NNN | Patch (prd_close.sh prepends it; verify presence) |
-| V8 | `PROJECT_STATE.md` `**Active PRD:**` line == `none` (or matches a user-named next PRD) | Patch to `none` |
-| V9 | `PROJECT_STATE.md` `**Next step:**` is not stale (does not still reference PRD-NNN as in-flight) | Reset to standard idle line |
+| V3 | Registry row exists, status `COMPLETE`, hash column matches `<hash>` | Script owns this (R2); failure = `prd_close.sh` regression — investigate |
+| V4 | PRD-NNN.md header is `Status: COMPLETE` and last non-blank line is `STATUS: COMPLETE @ <hash>` | Script owns this (R3); failure = `prd_close.sh` regression — investigate |
+| V5 | `prd_index.json` contains entry for PRD-NNN with matching hash | Re-run prd_close.sh |
+| V6 | `PROJECT_STATE.md` "Last completed PRD" line names PRD-NNN with `(commit <hash>)` | Re-run prd_close.sh |
+| V7 | `PROJECT_STATE.md` "Last work completed" has a fresh dated entry for PRD-NNN | Re-run prd_close.sh (it prepends the entry) |
+| V8 | `PROJECT_STATE.md` `**Active PRD:**` line == `none` (or matches a user-named next PRD) | Script owns this (R4); failure = `prd_close.sh` regression — investigate |
+| V9 | `PROJECT_STATE.md` `**Next step:**` is not stale (does not still reference PRD-NNN as in-flight) | Re-run with `--next "<text>"` |
 | V10 | All four artifacts agree on the hash: `grep -h <hash> docs/PRD_REGISTRY.md docs/PROJECT_STATE.md docs/prd_history/PRD-NNN.md docs/prd_index.json` returns ≥ 4 matches | Identify divergent file; re-patch |
 | V11 | Working tree clean after final commit | Investigate untracked / unstaged remainder |
 | V12 | No file outside the bookkeeping allowlist is staged or committed in any closeout commit | Stop; treat as scope violation |
