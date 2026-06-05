@@ -22,9 +22,19 @@ REGISTRY_HEADER = (
 )
 
 
-def _make_tree(tmp_path: Path, extra_entries: list[dict] | None = None) -> Path:
+def _make_tree(
+    tmp_path: Path,
+    extra_entries: list[dict] | None = None,
+    audit_reports: bool = False,
+) -> Path:
     """Create a validator-valid docs/ tree: complete PRDs 056-058, plus any
-    extra entries. Returns the tree root (the dir to run the script from)."""
+    extra entries. Returns the tree root (the dir to run the script from).
+
+    When ``audit_reports`` is set, a trailing ``## Audit Reports`` table with a
+    ``| PRD-016 |`` row is appended after the main table — reproducing the real
+    registry shape that PRD-164 R1 fixes (the row must land in the MAIN table,
+    not after the Audit Reports heading).
+    """
     docs = tmp_path / "docs"
     (docs / "prd_history").mkdir(parents=True)
 
@@ -51,9 +61,15 @@ def _make_tree(tmp_path: Path, extra_entries: list[dict] | None = None) -> Path:
         rows.append(
             f"| PRD-{e['number']:03d} | {commit_cell} | {e['title']} | {e['status']} | — |"
         )
-    (docs / "PRD_REGISTRY.md").write_text(
-        "# PRD Registry\n\n" + REGISTRY_HEADER + "\n".join(rows) + "\n"
-    )
+    registry = "# PRD Registry\n\n" + REGISTRY_HEADER + "\n".join(rows) + "\n"
+    if audit_reports:
+        registry += (
+            "\n## Audit Reports\n\n"
+            "| PRD | File |\n"
+            "|-----|------|\n"
+            "| PRD-016 | [docs/prd_history/AUDIT_PRD016.md](prd_history/AUDIT_PRD016.md) |\n"
+        )
+    (docs / "PRD_REGISTRY.md").write_text(registry)
     return tmp_path
 
 
@@ -167,6 +183,41 @@ def test_resulting_tree_passes_validator(tmp_path: Path) -> None:
         capture_output=True, text=True,
     )
     assert val.returncode == 0, val.stdout + val.stderr
+
+
+def test_inserts_row_into_main_table_not_audit_reports(tmp_path: Path) -> None:
+    # PRD-164 R1: with a trailing "## Audit Reports" table present, the new
+    # IN PROGRESS row must land in the MAIN table (contiguous after PRD-058),
+    # NOT after the Audit Reports heading. The pre-fix scan picked the last
+    # "| PRD-016 |" row inside Audit Reports and inserted there.
+    tree = _make_tree(tmp_path, audit_reports=True)
+    res = _open_200(tree)
+    assert res.returncode == 0, res.stderr
+    registry = (tree / "docs" / "PRD_REGISTRY.md").read_text()
+
+    row_idx = registry.index("| PRD-200 |")
+    audit_idx = registry.index("## Audit Reports")
+    main_last_idx = registry.index("| PRD-058 |")
+    audit016_idx = registry.index("| PRD-016 |")
+
+    # The new row is inside the main table: after PRD-058, before the heading.
+    assert main_last_idx < row_idx < audit_idx, registry
+    # And specifically not after the Audit Reports PRD-016 row.
+    assert row_idx < audit016_idx, registry
+
+
+def test_main_table_insertion_with_no_audit_table_unchanged(tmp_path: Path) -> None:
+    # PRD-164 R1 regression guard: when there is NO Audit Reports table, the row
+    # still appends after the last main-table row exactly as before.
+    tree = _make_tree(tmp_path)
+    res = _open_200(tree)
+    assert res.returncode == 0, res.stderr
+    registry = (tree / "docs" / "PRD_REGISTRY.md").read_text()
+    assert (
+        "| PRD-200 | — | Test PRD | IN PROGRESS | [PRD-200](prd_history/PRD-200.md) |"
+        in registry
+    )
+    assert registry.index("| PRD-058 |") < registry.index("| PRD-200 |")
 
 
 def test_commit_flag_creates_stage0_commit(tmp_path: Path) -> None:

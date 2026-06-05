@@ -126,9 +126,17 @@ else:
         f"[{prd_id}](prd_history/{prd_id}.md) |"
     )
     lines = reg_text.splitlines(keepends=True)
-    last_idx = -1
+    # Restrict the scan to the MAIN PRD table. A trailing "## Audit Reports"
+    # table also contains "| PRD-NNN |" rows (e.g. PRD-016); scanning the whole
+    # file would land the new row there instead of the main table (PRD-164 R1).
+    boundary = len(lines)
     for i, line in enumerate(lines):
-        if re.match(r"^\|\s*PRD-\d{3}\s*\|", line):
+        if re.match(r"^##\s+Audit Reports", line):
+            boundary = i
+            break
+    last_idx = -1
+    for i in range(boundary):
+        if re.match(r"^\|\s*PRD-\d{3}\s*\|", lines[i]):
             last_idx = i
     if last_idx < 0:
         print(f"ERROR: no existing PRD rows found in {registry_path}", file=sys.stderr)
