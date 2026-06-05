@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 164,
-  "next_prd": 165,
+  "latest_complete": 165,
+  "next_prd": 166,
   "entries": [
     {
       "number": 56,
@@ -660,8 +660,8 @@
     {
       "number": 165,
       "title": "Candidate-card visual hierarchy and trend-structure dead-column pruning",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "dac5712"
     },
     {
       "number": 166,
