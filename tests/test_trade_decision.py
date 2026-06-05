@@ -4,6 +4,7 @@ import math
 
 import pytest
 
+from cuttingboard import config
 from cuttingboard.chain_validation import ChainValidationResult, MANUAL_CHECK, VALIDATED
 from cuttingboard.options import OptionSetup
 from cuttingboard.qualification import QualificationResult, TradeCandidate
@@ -11,7 +12,10 @@ from cuttingboard.trade_decision import (
     ALLOW_TRADE,
     BLOCK_TRADE,
     TradeDecision,
+    candidate_is_actionable,
     create_trade_decision,
+    decision_is_actionable,
+    is_actionable_trade,
 )
 
 
@@ -187,3 +191,116 @@ def test_trade_decision_rejects_policy_block_with_allow_status():
             policy_reason="low_confidence",
             size_multiplier=0.0,
         )
+
+
+# ---------------------------------------------------------------------------
+# PRD-162 — shared actionable-trade rule + representation adapters
+# ---------------------------------------------------------------------------
+#
+# One semantic rule (symbol ∉ NON_TRADABLE_SYMBOLS AND status == ALLOW_TRADE,
+# with size_multiplier > 0 as a defensive invariant) applied through an object
+# adapter over TradeDecision and a dict adapter over a candidate dict.
+
+
+def _allow_decision(ticker: str = "SPY", size_multiplier: float = 1.0) -> TradeDecision:
+    return TradeDecision(
+        ticker=ticker,
+        direction="LONG",
+        status=ALLOW_TRADE,
+        entry=100.0,
+        stop=97.0,
+        target=106.0,
+        r_r=2.0,
+        contracts=2,
+        dollar_risk=150.0,
+        block_reason=None,
+        size_multiplier=size_multiplier,
+    )
+
+
+def _block_decision(ticker: str = "SPY") -> TradeDecision:
+    return TradeDecision(
+        ticker=ticker,
+        direction="LONG",
+        status=BLOCK_TRADE,
+        entry=100.0,
+        stop=97.0,
+        target=106.0,
+        r_r=2.0,
+        contracts=2,
+        dollar_risk=150.0,
+        block_reason="needs broker review",
+    )
+
+
+# --- the bare semantic rule ----------------------------------------------------
+
+def test_is_actionable_trade_true_for_tradable_allow():
+    assert is_actionable_trade(symbol="SPY", status=ALLOW_TRADE, size_multiplier=1.0) is True
+
+
+def test_is_actionable_trade_false_for_non_tradable_symbol():
+    # ^VIX is a member of config.NON_TRADABLE_SYMBOLS even with an allow + size.
+    assert "^VIX" in config.NON_TRADABLE_SYMBOLS
+    assert is_actionable_trade(symbol="^VIX", status=ALLOW_TRADE, size_multiplier=1.0) is False
+
+
+def test_is_actionable_trade_false_for_block_status():
+    assert is_actionable_trade(symbol="SPY", status=BLOCK_TRADE, size_multiplier=1.0) is False
+
+
+def test_is_actionable_trade_false_for_zero_size_multiplier():
+    # Defensive invariant: a zero-sized allow is not actionable.
+    assert is_actionable_trade(symbol="SPY", status=ALLOW_TRADE, size_multiplier=0.0) is False
+
+
+def test_is_actionable_trade_excludes_every_non_tradable_symbol():
+    for symbol in config.NON_TRADABLE_SYMBOLS:
+        assert is_actionable_trade(symbol=symbol, status=ALLOW_TRADE, size_multiplier=1.0) is False
+
+
+# --- object adapter over TradeDecision -----------------------------------------
+
+def test_decision_is_actionable_true_for_tradable_allow():
+    assert decision_is_actionable(_allow_decision("SPY")) is True
+
+
+def test_decision_is_actionable_false_for_non_tradable_allow():
+    # The PRD-157 ^VIX case: an allowed non-tradable decision is NOT actionable.
+    assert decision_is_actionable(_allow_decision("^VIX")) is False
+
+
+def test_decision_is_actionable_false_for_block():
+    assert decision_is_actionable(_block_decision("SPY")) is False
+
+
+# --- dict adapter over a candidate dict ----------------------------------------
+
+def _candidate_dict(symbol="SPY", decision_status=ALLOW_TRADE, size_multiplier=1.0) -> dict:
+    return {
+        "symbol": symbol,
+        "decision_status": decision_status,
+        "size_multiplier": size_multiplier,
+    }
+
+
+def test_candidate_is_actionable_true_for_tradable_allow():
+    assert candidate_is_actionable(_candidate_dict()) is True
+
+
+def test_candidate_is_actionable_false_for_non_tradable():
+    assert candidate_is_actionable(_candidate_dict(symbol="^VIX")) is False
+
+
+def test_candidate_is_actionable_false_for_block():
+    assert candidate_is_actionable(_candidate_dict(decision_status=BLOCK_TRADE)) is False
+
+
+def test_candidate_is_actionable_false_for_zero_size_multiplier():
+    assert candidate_is_actionable(_candidate_dict(size_multiplier=0.0)) is False
+
+
+def test_candidate_is_actionable_absent_size_multiplier_defaults_actionable():
+    # Defensive-invariant only: a dict lacking size_multiplier (pre-field
+    # synthetic fixtures) is treated as sized, preserving pre-PRD-162 behavior.
+    assert candidate_is_actionable({"symbol": "SPY", "decision_status": ALLOW_TRADE}) is True

@@ -9,8 +9,8 @@ This module drives `runtime._run_pipeline` in fixture mode with a qualified
 TRADABLE candidate (SPY) injected at the qualification/option stages (the
 sanctioned pattern from `tests/test_runtime_decision.py`), and lets the REAL
 contract assembly compute `position_size` / `dollar_risk` / `estimated_debit`.
-It verifies that a tradable candidate surfaces in the payload `top_trades` with
-present, positive, coherent sizing, deterministically.
+It verifies that a tradable candidate surfaces in `contract.trade_candidates`
+with present, positive, coherent sizing, deterministically.
 
 Realizability note (see PRD-161): fixture mode forces every candidate to
 `BLOCK_TRADE` at the chain stage (`_fixture_chain_results` → MANUAL_CHECK →
@@ -19,6 +19,12 @@ Realizability note (see PRD-161): fixture mode forces every candidate to
 sizing fields are populated regardless of block status. The chain + decision
 stages are left REAL so this reproduces the exact gate scenario with a tradable
 symbol substituted for `^VIX`.
+
+PRD-162 re-point: PRD-162 gates the payload `sections.top_trades` to the
+*actionable* projection (tradable, ALLOW_TRADE, sized), so a `BLOCK_TRADE`
+candidate is suppressed there. The retained sizing surface is now
+`contract.trade_candidates` (unchanged by PRD-162), so these assertions read the
+SPY candidate from there; the pinned 2 / 150.0 / 75.0 values are identical.
 """
 
 from __future__ import annotations
@@ -27,7 +33,6 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 from cuttingboard import audit, config, runtime
-from cuttingboard.delivery.payload import build_report_payload
 from cuttingboard.options import OptionSetup
 from cuttingboard.qualification import (
     QualificationResult,
@@ -212,29 +217,33 @@ def _inject_pipeline_stages(monkeypatch, tmp_path):
     monkeypatch.setattr(runtime, "build_market_map", lambda **k: {"symbols": {GATE_SYMBOL: {"watch_zones": []}}})
 
 
-def _run_gate_top_trades(monkeypatch, tmp_path) -> list[dict]:
-    """Drive the fixture pipeline and return payload `sections.top_trades`."""
+def _run_gate_candidates(monkeypatch, tmp_path) -> list[dict]:
+    """Drive the fixture pipeline and return `contract.trade_candidates`.
+
+    PRD-162 re-point: sizing is verified on the retained contract surface, not
+    the payload `top_trades` actionable projection (which suppresses the
+    fixture-blocked SPY candidate).
+    """
     _inject_pipeline_stages(monkeypatch, tmp_path)
     result = runtime._run_pipeline(
         mode=runtime.MODE_FIXTURE,
         run_date=date.fromisoformat("2026-04-28"),
         fixture_file=Path("tests/fixtures/2026-04-12.json"),
     )
-    payload = build_report_payload(result.contract, fixture_mode=True)
-    return payload["sections"]["top_trades"]
+    return list(result.contract.get("trade_candidates") or [])
 
 
-def _gate_candidate(top_trades: list[dict]) -> dict:
-    matches = [t for t in top_trades if t.get("symbol") == GATE_SYMBOL]
-    assert matches, f"expected a {GATE_SYMBOL} candidate in top_trades, got {[t.get('symbol') for t in top_trades]}"
+def _gate_candidate(candidates: list[dict]) -> dict:
+    matches = [t for t in candidates if t.get("symbol") == GATE_SYMBOL]
+    assert matches, f"expected a {GATE_SYMBOL} candidate in trade_candidates, got {[t.get('symbol') for t in candidates]}"
     return matches[0]
 
 
-# --- AC1: a tradable candidate surfaces in top_trades --------------------------
+# --- AC1: a tradable candidate surfaces in contract.trade_candidates -----------
 
 def test_gate_candidate_is_tradable(monkeypatch, tmp_path):
-    top_trades = _run_gate_top_trades(monkeypatch, tmp_path)
-    candidate = _gate_candidate(top_trades)
+    candidates = _run_gate_candidates(monkeypatch, tmp_path)
+    candidate = _gate_candidate(candidates)
     assert candidate["symbol"] == GATE_SYMBOL
     assert GATE_SYMBOL not in config.NON_TRADABLE_SYMBOLS
 
@@ -242,9 +251,9 @@ def test_gate_candidate_is_tradable(monkeypatch, tmp_path):
 # --- AC2/AC3/AC4: sizing fields present, numeric, positive ---------------------
 
 def test_sizing_fields_present_positive_numeric(monkeypatch, tmp_path):
-    candidate = _gate_candidate(_run_gate_top_trades(monkeypatch, tmp_path))
+    candidate = _gate_candidate(_run_gate_candidates(monkeypatch, tmp_path))
     for field in ("position_size", "dollar_risk", "estimated_debit"):
-        assert field in candidate, f"{field} missing from top_trades candidate"
+        assert field in candidate, f"{field} missing from trade_candidates candidate"
         value = candidate[field]
         assert isinstance(value, (int, float)) and not isinstance(value, bool), f"{field} not numeric: {value!r}"
         assert value > 0, f"{field} not positive: {value!r}"
@@ -253,7 +262,7 @@ def test_sizing_fields_present_positive_numeric(monkeypatch, tmp_path):
 # --- AC5: sizing coherence within the dollar-risk cap, pinned values -----------
 
 def test_sizing_coherence_within_risk_cap(monkeypatch, tmp_path):
-    candidate = _gate_candidate(_run_gate_top_trades(monkeypatch, tmp_path))
+    candidate = _gate_candidate(_run_gate_candidates(monkeypatch, tmp_path))
     ps = candidate["position_size"]
     dr = candidate["dollar_risk"]
     ed = candidate["estimated_debit"]
@@ -268,7 +277,7 @@ def test_sizing_coherence_within_risk_cap(monkeypatch, tmp_path):
 # --- AC6: deterministic across repeated runs -----------------------------------
 
 def test_fixture_deterministic_across_runs(monkeypatch, tmp_path):
-    first = _gate_candidate(_run_gate_top_trades(monkeypatch, tmp_path))
-    second = _gate_candidate(_run_gate_top_trades(monkeypatch, tmp_path))
+    first = _gate_candidate(_run_gate_candidates(monkeypatch, tmp_path))
+    second = _gate_candidate(_run_gate_candidates(monkeypatch, tmp_path))
     keys = ("symbol", "position_size", "dollar_risk", "estimated_debit")
     assert {k: first[k] for k in keys} == {k: second[k] for k in keys}

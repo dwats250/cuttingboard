@@ -86,7 +86,12 @@ from cuttingboard.overnight_policy import apply_overnight_policy
 from cuttingboard.correlation import CorrelationResult, compute_correlation
 from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
 from cuttingboard.trade_policy import PolicyContext, evaluate_policy
-from cuttingboard.trade_decision import TradeDecision, create_trade_decision, ALLOW_TRADE
+from cuttingboard.trade_decision import (
+    TradeDecision,
+    create_trade_decision,
+    decision_is_actionable,
+    ALLOW_TRADE,
+)
 from cuttingboard.trade_thesis import apply_thesis_gate
 from cuttingboard.invalidation import apply_invalidation_gate
 from cuttingboard.entry_quality import apply_entry_quality_gate
@@ -872,9 +877,13 @@ def _run_pipeline(
                     thesis_map,
                 )
 
+            # PRD-162: outcome is TRADE iff an *actionable* decision exists
+            # (tradable symbol, ALLOW_TRADE, positively sized) — the same rule the
+            # payload top_trades gate applies, so the two outcome derivations agree.
+            # A NON_TRADABLE-symbol allow (e.g. ^VIX) is excluded here.
             outcome = (
                 OUTCOME_TRADE
-                if any(decision.status == ALLOW_TRADE for decision in trade_decisions)
+                if any(decision_is_actionable(decision) for decision in trade_decisions)
                 else OUTCOME_NO_TRADE
             )
 

@@ -11,6 +11,8 @@ import json
 import math
 from typing import Any, Optional
 
+from cuttingboard.trade_decision import candidate_is_actionable
+
 PAYLOAD_SCHEMA_VERSION = "1.0"
 
 _VALID_RUN_STATUSES = frozenset({"OK", "STAY_FLAT", "ERROR"})
@@ -37,7 +39,12 @@ def build_report_payload(contract: dict, fixture_mode: bool = False) -> dict:
     permission_val = ss.get("permission")
 
     # --- sections ---
-    top_trades = [t for t in trade_candidates]
+    # PRD-162: top_trades is the *actionable* projection — tradable, ALLOW_TRADE,
+    # positively sized. Non-tradable (D1), blocked / zero-size (D2) candidates are
+    # filtered here; an empty result is the idle/no-setup state (D3). The full
+    # candidate set is retained on contract.trade_candidates (unchanged) and still
+    # mirrored into the detail sections below.
+    top_trades = [t for t in trade_candidates if candidate_is_actionable(t)]
 
     watchlist = [r for r in rejections if r.get("stage") == "WATCHLIST"]
     rejected = [r for r in rejections if r.get("stage") != "WATCHLIST"]

@@ -790,6 +790,34 @@ def test_assert_fails_missing_trade_candidate_policy_fields():
         assert_valid_contract(contract)
 
 
+# ---------------------------------------------------------------------------
+# PRD-162 — no-regression: contract.trade_candidates retains the full set
+# (blocked candidates with sizing) unchanged. PRD-162 gates only the payload
+# `top_trades` actionable projection; the contract surface is untouched.
+# ---------------------------------------------------------------------------
+
+def test_prd162_contract_retains_blocked_candidate_with_sizing():
+    pr = _FakePipelineResult(
+        regime=_regime(),
+        qualification_summary=_qual_summary(qualified=1),
+        option_setups=[_option_setup()],
+        chain_results={"SPY": _chain_result(classification="NEEDS_MANUAL_CHECK", reason="needs broker review")},
+        trade_decisions=[_trade_decision(status=BLOCK_TRADE, block_reason="needs broker review")],
+    )
+    contract = _build(pr)
+    # The blocked candidate is RETAINED on the contract surface (not gated here)...
+    candidates = contract["trade_candidates"]
+    assert [c["symbol"] for c in candidates] == ["SPY"]
+    blocked = candidates[0]
+    assert blocked["decision_status"] == BLOCK_TRADE
+    assert blocked["block_reason"] == "needs broker review"
+    # ...with its sizing fields intact (the surface PRD-161 now reads).
+    assert blocked["position_size"] == 2
+    assert blocked["dollar_risk"] == 150.0
+    assert blocked["size_multiplier"] == 1.0
+    assert_valid_contract(contract)  # contract shape unchanged by PRD-162
+
+
 def test_assert_fails_policy_block_with_allow_trade():
     contract = build_pipeline_output_contract(
         _FakePipelineResult(

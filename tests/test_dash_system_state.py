@@ -152,6 +152,19 @@ def test_decision_title_halt_takes_priority_over_trade_outcome() -> None:
     assert "TRADE SETUP ACTIVE" not in _header_block(html)
 
 
+def test_prd162_decision_title_actionable_consistency() -> None:
+    # PRD-162: the decision title follows the (now actionable-gated) outcome.
+    # NO_TRADE must render the idle "NO TRADE" state, never a populated
+    # "TRADE SETUP ACTIVE" card; TRADE renders the active title. This pins the
+    # actionable / no-actionable consistency at the decision-title layer.
+    no_trade = _header_block(render_dashboard_html(_payload(top_trades=[]), _run(outcome="NO_TRADE")))
+    assert "NO TRADE" in no_trade
+    assert "TRADE SETUP ACTIVE" not in no_trade
+
+    trade = _header_block(render_dashboard_html(_payload(), _run(outcome="TRADE")))
+    assert "TRADE SETUP ACTIVE" in trade
+
+
 # ---------------------------------------------------------------------------
 # PRD-073 — R2: Posture label mapping
 # ---------------------------------------------------------------------------

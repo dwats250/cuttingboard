@@ -4,6 +4,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Optional
 
+from cuttingboard import config
 from cuttingboard.chain_validation import ChainValidationResult, VALIDATED
 from cuttingboard.options import OptionSetup
 from cuttingboard.qualification import QualificationResult, TradeCandidate
@@ -85,6 +86,59 @@ class TradeDecision:
             value = self.decision_trace.get(key)
             if not isinstance(value, str) or not value.strip():
                 raise ValueError(f"decision_trace.{key} must be non-empty string")
+
+
+# ---------------------------------------------------------------------------
+# PRD-162 — shared actionable-trade rule + representation adapters
+# ---------------------------------------------------------------------------
+
+
+def is_actionable_trade(*, symbol: str, status: str, size_multiplier: float) -> bool:
+    """Single actionable-trade semantic rule (PRD-162).
+
+    A candidate is *actionable* — i.e. a tradable setup the trader can act on —
+    iff it is a tradable symbol with an ALLOW_TRADE decision and positive size.
+
+    The ``size_multiplier > 0`` term is a **defensive invariant**: under current
+    ``execution_policy`` routing ``status == ALLOW_TRADE`` implies
+    ``size_multiplier > 0`` (a zero-size branch always blocks), so it never
+    changes today's behavior. It guards against future routing that could emit a
+    zero-size allow.
+
+    Applied through two adapters so the runtime outcome site (TradeDecision
+    objects) and the payload ``top_trades`` projection (candidate dicts) gate on
+    the same definition, keeping the two outcome derivations in agreement.
+    """
+    return (
+        symbol not in config.NON_TRADABLE_SYMBOLS
+        and status == ALLOW_TRADE
+        and float(size_multiplier) > 0.0
+    )
+
+
+def decision_is_actionable(decision: "TradeDecision") -> bool:
+    """Object adapter over :class:`TradeDecision` for the runtime outcome site."""
+    return is_actionable_trade(
+        symbol=decision.ticker,
+        status=decision.status,
+        size_multiplier=decision.size_multiplier,
+    )
+
+
+def candidate_is_actionable(candidate: dict) -> bool:
+    """Dict adapter over a contract trade-candidate dict for the payload gate.
+
+    A candidate dict that lacks ``size_multiplier`` (pre-PRD-162 synthetic
+    fixtures) defaults to a positive size so the defensive invariant never
+    suppresses a candidate that real contract construction would size; real
+    candidates always carry an explicit ``size_multiplier`` (see
+    ``contract._build_trade_candidates``).
+    """
+    return is_actionable_trade(
+        symbol=candidate.get("symbol"),
+        status=candidate.get("decision_status"),
+        size_multiplier=candidate.get("size_multiplier", 1.0),
+    )
 
 
 def create_trade_decision(

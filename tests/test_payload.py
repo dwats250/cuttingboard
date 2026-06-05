@@ -570,6 +570,83 @@ class TestAssertValidPayload:
             assert_valid_payload(p)
 
 
+# ---------------------------------------------------------------------------
+# C. PRD-162 — top_trades actionable gating (dict adapter)
+# ---------------------------------------------------------------------------
+
+def _sized_candidate(
+    symbol: str = "SPY",
+    decision_status: str = "ALLOW_TRADE",
+    size_multiplier: float = 1.0,
+) -> dict:
+    c = _trade_candidate(symbol)
+    c["decision_status"] = decision_status
+    c["size_multiplier"] = size_multiplier
+    return c
+
+
+class TestTopTradesActionableGating:
+    """PRD-162: sections.top_trades is the actionable-only projection.
+
+    Only candidate dicts that are tradable (symbol ∉ NON_TRADABLE_SYMBOLS),
+    ALLOW_TRADE, and positively sized survive into top_trades.
+    contract.trade_candidates itself is unaffected (asserted in test_contract.py).
+    """
+
+    def test_actionable_candidate_survives(self):
+        contract = _minimal_contract(trade_candidates=[_sized_candidate("SPY")])
+        payload = build_report_payload(contract)
+        assert [t["symbol"] for t in payload["sections"]["top_trades"]] == ["SPY"]
+
+    def test_non_tradable_symbol_excluded_d1(self):
+        # D1: ^VIX (∈ NON_TRADABLE_SYMBOLS) is filtered from top_trades even when
+        # ALLOW_TRADE and sized.
+        contract = _minimal_contract(
+            trade_candidates=[_sized_candidate("^VIX"), _sized_candidate("SPY")]
+        )
+        payload = build_report_payload(contract)
+        symbols = [t["symbol"] for t in payload["sections"]["top_trades"]]
+        assert symbols == ["SPY"]
+
+    def test_blocked_candidate_excluded_d2(self):
+        # D2: a BLOCK_TRADE candidate is suppressed from the actionable projection.
+        contract = _minimal_contract(
+            trade_candidates=[_sized_candidate("SPY", decision_status="BLOCK_TRADE")]
+        )
+        payload = build_report_payload(contract)
+        assert payload["sections"]["top_trades"] == []
+
+    def test_zero_size_candidate_excluded_d2(self):
+        # D2: a zero-sized allow is suppressed (defensive invariant).
+        contract = _minimal_contract(
+            trade_candidates=[_sized_candidate("SPY", size_multiplier=0.0)]
+        )
+        payload = build_report_payload(contract)
+        assert payload["sections"]["top_trades"] == []
+
+    def test_no_actionable_candidate_yields_empty_top_trades_d3(self):
+        # D3: a mix of non-actionable candidates yields an empty top_trades.
+        contract = _minimal_contract(trade_candidates=[
+            _sized_candidate("^VIX"),
+            _sized_candidate("SPY", decision_status="BLOCK_TRADE"),
+            _sized_candidate("QQQ", size_multiplier=0.0),
+        ])
+        payload = build_report_payload(contract)
+        assert payload["sections"]["top_trades"] == []
+
+    def test_gating_does_not_touch_detail_sections(self):
+        # The detail sections still mirror ALL trade_candidates (contract surface),
+        # only top_trades is the actionable projection.
+        contract = _minimal_contract(trade_candidates=[
+            _sized_candidate("^VIX"),
+            _sized_candidate("SPY"),
+        ])
+        payload = build_report_payload(contract)
+        assert [t["symbol"] for t in payload["sections"]["top_trades"]] == ["SPY"]
+        assert [t["symbol"] for t in payload["sections"]["trade_decision_detail"]] == ["^VIX", "SPY"]
+        assert [t["symbol"] for t in payload["sections"]["option_setups_detail"]] == ["^VIX", "SPY"]
+
+
 def test_summary_outcome_present():
     """payload summary carries outcome from system_state."""
     c = _minimal_contract()

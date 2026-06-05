@@ -49,14 +49,14 @@ def _validation_summary() -> ValidationSummary:
     )
 
 
-def _qualification_summary() -> QualificationSummary:
+def _qualification_summary(symbol: str = "SPY") -> QualificationSummary:
     return QualificationSummary(
         regime_passed=True,
         regime_short_circuited=False,
         regime_failure_reason=None,
         qualified_trades=[
             QualificationResult(
-                symbol="SPY",
+                symbol=symbol,
                 qualified=True,
                 watchlist=False,
                 direction="LONG",
@@ -77,9 +77,9 @@ def _qualification_summary() -> QualificationSummary:
     )
 
 
-def _option_setup() -> OptionSetup:
+def _option_setup(symbol: str = "SPY") -> OptionSetup:
     return OptionSetup(
-        symbol="SPY",
+        symbol=symbol,
         strategy="BULL_CALL_SPREAD",
         direction="LONG",
         structure="TREND",
@@ -96,9 +96,9 @@ def _option_setup() -> OptionSetup:
     )
 
 
-def _candidate() -> TradeCandidate:
+def _candidate(symbol: str = "SPY") -> TradeCandidate:
     return TradeCandidate(
-        symbol="SPY",
+        symbol=symbol,
         direction="LONG",
         entry_price=100.0,
         stop_price=97.0,
@@ -107,7 +107,7 @@ def _candidate() -> TradeCandidate:
     )
 
 
-def _setup_runtime_mocks(monkeypatch, tmp_path):
+def _setup_runtime_mocks(monkeypatch, tmp_path, symbol: str = "SPY"):
     monkeypatch.setattr(runtime, "REPORTS_DIR", tmp_path / "reports")
     monkeypatch.setattr(runtime, "LOGS_DIR", tmp_path / "logs")
     monkeypatch.setattr(runtime, "LATEST_RUN_PATH", tmp_path / "logs" / "latest_run.json")
@@ -127,7 +127,7 @@ def _setup_runtime_mocks(monkeypatch, tmp_path):
     })())
     monkeypatch.setattr(runtime, "evaluate_policy", lambda corr: type("Policy", (), {"risk_modifier": 1.0})())
     monkeypatch.setattr(runtime, "_fixture_cache_only_ohlcv", _null_context())
-    monkeypatch.setattr(runtime, "compute_all_derived", lambda quotes: {"SPY": object()})
+    monkeypatch.setattr(runtime, "compute_all_derived", lambda quotes: {symbol: object()})
     monkeypatch.setattr(runtime, "resolve_sector_router", lambda *args, **kwargs: runtime.SectorRouterState(
         mode="MIXED",
         energy_score=0.0,
@@ -136,8 +136,8 @@ def _setup_runtime_mocks(monkeypatch, tmp_path):
         session_date="2026-04-28",
     ))
     monkeypatch.setattr(runtime, "classify_all_structure", lambda *args, **kwargs: {
-        "SPY": StructureResult(
-            symbol="SPY",
+        symbol: StructureResult(
+            symbol=symbol,
             structure="TREND",
             iv_environment="NORMAL_IV",
             is_tradeable=True,
@@ -151,11 +151,11 @@ def _setup_runtime_mocks(monkeypatch, tmp_path):
         ignored_symbols=[],
         execution_posture="ACTIVE",
     ))
-    monkeypatch.setattr(runtime, "generate_candidates", lambda *args, **kwargs: {"SPY": _candidate()})
+    monkeypatch.setattr(runtime, "generate_candidates", lambda *args, **kwargs: {symbol: _candidate(symbol)})
     monkeypatch.setattr(runtime, "fetch_ohlcv", lambda symbol: None)
-    monkeypatch.setattr(runtime, "qualify_all", lambda *args, **kwargs: _qualification_summary())
+    monkeypatch.setattr(runtime, "qualify_all", lambda *args, **kwargs: _qualification_summary(symbol))
     monkeypatch.setattr(runtime, "_log_continuation_audit", lambda regime, summary: None)
-    monkeypatch.setattr(runtime, "build_option_setups", lambda *args, **kwargs: [_option_setup()])
+    monkeypatch.setattr(runtime, "build_option_setups", lambda *args, **kwargs: [_option_setup(symbol)])
     monkeypatch.setattr(runtime, "render_report", lambda **kwargs: "report")
     monkeypatch.setattr(runtime, "_write_markdown_report", lambda report, date_str, sha: None)
     monkeypatch.setattr(runtime, "_load_run_history", lambda path: [])
@@ -164,7 +164,7 @@ def _setup_runtime_mocks(monkeypatch, tmp_path):
     monkeypatch.setattr(runtime, "run_post_trade_evaluation", lambda **kwargs: None)
     monkeypatch.setattr(runtime, "build_market_map", lambda **kwargs: {
         "symbols": {
-            "SPY": {
+            symbol: {
                 "watch_zones": [
                     {"type": "VWAP", "level": 120.0, "context": "session vwap"},
                 ]
@@ -219,6 +219,51 @@ def test_runtime_outcome_uses_trade_decision_status(monkeypatch, tmp_path):
 
     assert result.outcome == runtime.OUTCOME_TRADE
     assert result.contract["trade_candidates"][0]["decision_status"] == ALLOW_TRADE
+
+
+def test_runtime_outcome_excludes_non_tradable_allow(monkeypatch, tmp_path):
+    # PRD-162 AC1: a NON_TRADABLE symbol (^VIX) that reaches an ALLOW_TRADE
+    # decision is NOT actionable, so the runtime outcome is NO_TRADE — agreeing
+    # with the gated (empty) payload top_trades. The candidate is still retained
+    # on contract.trade_candidates.
+    symbol = "^VIX"
+    assert symbol in runtime.config.NON_TRADABLE_SYMBOLS
+    _setup_runtime_mocks(monkeypatch, tmp_path, symbol=symbol)
+    monkeypatch.setattr(runtime, "_fixture_chain_results", lambda setups: {
+        symbol: ChainValidationResult(
+            symbol=symbol,
+            classification=MANUAL_CHECK,
+            reason="fixture mode skips live chain validation",
+            spread_pct=None,
+            open_interest=None,
+            volume=None,
+            expiry_used=None,
+            data_source=None,
+        )
+    })
+    monkeypatch.setattr(runtime, "create_trade_decision", lambda *args, **kwargs: runtime.TradeDecision(
+        ticker=symbol,
+        direction="LONG",
+        status=ALLOW_TRADE,
+        entry=100.0,
+        stop=97.0,
+        target=106.0,
+        r_r=2.0,
+        contracts=2,
+        dollar_risk=150.0,
+        block_reason=None,
+    ))
+
+    result = runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+
+    assert result.outcome == runtime.OUTCOME_NO_TRADE
+    candidate = result.contract["trade_candidates"][0]
+    assert candidate["symbol"] == symbol
+    assert candidate["decision_status"] == ALLOW_TRADE
 
 
 def test_runtime_materializes_blocked_decision(monkeypatch, tmp_path):
