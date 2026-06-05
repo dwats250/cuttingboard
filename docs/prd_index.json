@@ -650,6 +650,12 @@
       "title": "Fix regime permission wording for EXPANSION posture",
       "status": "COMPLETE",
       "commit": "b57e1a4"
+    },
+    {
+      "number": 164,
+      "title": "Harden PRD lifecycle tooling (single-commit closeout, correct-table Stage-0, hash-drift detection)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
