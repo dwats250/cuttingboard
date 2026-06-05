@@ -1030,6 +1030,13 @@ def _regime_to_permission_verb(regime: object) -> str:
         return "Longs allowed"
     if regime == "RISK_OFF":
         return "Shorts allowed"
+    if regime == "EXPANSION":
+        # PRD-163: EXPANSION is a long-momentum regime (posture EXPANSION_LONG,
+        # Permission "momentum allowed. Continuation entries."). Without this
+        # branch it fell through to "Stand down", contradicting the Permission
+        # field. Distinct from RISK_ON's "Longs allowed" to preserve that
+        # EXPANSION is a breadth/leadership-confirmed advance.
+        return "Momentum longs allowed"
     return "Stand down"
 
 

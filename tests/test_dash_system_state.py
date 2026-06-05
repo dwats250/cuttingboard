@@ -20,6 +20,23 @@ def test_system_state_block_fields() -> None:
     assert "0.75" not in state
 
 
+def test_system_state_expansion_renders_momentum_longs() -> None:
+    # PRD-163: EXPANSION is a first-class regime (regime.py) that previously
+    # fell through _regime_to_permission_verb to the catch-all "Stand down",
+    # contradicting the EXPANSION_LONG Permission line ("momentum allowed").
+    # Reproduce the real pairing: regime=EXPANSION, posture=EXPANSION_LONG,
+    # and the EXPANSION_LONG permission text in the Permission field. The
+    # Regime field must render the long-directional verb, not "Stand down".
+    expansion_permission = "EXPANSION — momentum allowed. Continuation entries. R:R >= 1.5."
+    html = render_dashboard_html(
+        _payload(market_regime="EXPANSION"),
+        _run(posture="EXPANSION_LONG", permission=expansion_permission),
+    )
+    state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    assert "Momentum longs allowed" in state
+    assert "Stand down" not in state
+
+
 def test_system_state_regime_badge_class() -> None:
     html = render_dashboard_html(_payload(market_regime="RISK_OFF"), _run())
     assert 'class="badge RISK_OFF"' in html
