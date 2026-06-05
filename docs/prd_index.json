@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 162,
-  "next_prd": 163,
+  "latest_complete": 163,
+  "next_prd": 164,
   "entries": [
     {
       "number": 56,
@@ -648,8 +648,8 @@
     {
       "number": 163,
       "title": "Fix regime permission wording for EXPANSION posture",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "b57e1a4"
     }
   ]
 }
