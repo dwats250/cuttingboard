@@ -662,6 +662,12 @@
       "title": "Candidate-card visual hierarchy, dead-column pruning, RUN SNAPSHOT freshness",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 166,
+      "title": "Hourly market_map artifact isolation (PRD-118 R3 coherence)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
