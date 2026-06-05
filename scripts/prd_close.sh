@@ -27,6 +27,7 @@ TITLE=""
 TESTS=""
 ADDED=""
 SUMMARY=""
+NEXT=""
 DO_COMMIT=0
 DO_PUSH=0
 
@@ -35,8 +36,10 @@ usage() {
 Usage: prd_close.sh --prd <NNN> --hash <commit> --title "<title>" \
                     --tests <total_passing> --added <new_tests_added> \
                     --summary "<one-paragraph what + why>" \
-                    [--commit] [--push]
+                    [--next "<next-step text>"] [--commit] [--push]
 
+  --next     set the PROJECT_STATE "**Next step" line; when omitted, that
+             line is left unchanged
   --commit   stage + commit the closeout edits with a canned message
   --push     also git push (implies --commit)
 USAGE
@@ -51,6 +54,7 @@ while [ $# -gt 0 ]; do
         --tests)   TESTS="$2"; shift 2 ;;
         --added)   ADDED="$2"; shift 2 ;;
         --summary) SUMMARY="$2"; shift 2 ;;
+        --next)    NEXT="$2"; shift 2 ;;
         --commit)  DO_COMMIT=1; shift ;;
         --push)    DO_COMMIT=1; DO_PUSH=1; shift ;;
         -h|--help) usage ;;
@@ -83,49 +87,72 @@ INDEX="docs/prd_index.json"
 
 TODAY=$(date -u +%Y-%m-%d)
 
-python3 - "$PRD_FILE" "$REGISTRY" "$STATE" "$INDEX" "$PRD_ID" "$HASH" "$TITLE" "$TESTS" "$ADDED" "$SUMMARY" "$TODAY" <<'PYEOF'
+python3 - "$PRD_FILE" "$REGISTRY" "$STATE" "$INDEX" "$PRD_ID" "$HASH" "$TITLE" "$TESTS" "$ADDED" "$SUMMARY" "$TODAY" "$NEXT" <<'PYEOF'
 import json
 import re
 import sys
 from pathlib import Path
 
 (prd_path, registry_path, state_path, index_path,
- prd_id, commit_hash, title, tests, added, summary, today) = sys.argv[1:]
+ prd_id, commit_hash, title, tests, added, summary, today, next_step) = sys.argv[1:]
 
-# --- 1. PRD-NNN.md STATUS line -------------------------------------------
+# --- 1. PRD-NNN.md status markers ----------------------------------------
+# Two distinct markers, two distinct completed forms (PRD-164 R3):
+#   - the capital-S "Status:" header line -> "Status: COMPLETE" (no hash)
+#   - the trailing all-caps "STATUS:" line -> "STATUS: COMPLETE @ <hash>"
+# The pre-PRD-164 script flipped only the trailing marker, leaving the header
+# at IN PROGRESS. Case-sensitive anchors keep the two lines from colliding.
 prd_p = Path(prd_path)
 prd_text = prd_p.read_text(encoding="utf-8")
-new_status = f"STATUS: COMPLETE @ {commit_hash}"
-prd_text_new, n = re.subn(
-    r"^STATUS:.*$", new_status, prd_text, count=1, flags=re.MULTILINE,
+new_trailing = f"STATUS: COMPLETE @ {commit_hash}"
+prd_text, n_header = re.subn(
+    r"^Status:.*$", "Status: COMPLETE", prd_text, count=1, flags=re.MULTILINE,
 )
-if n != 1:
-    print(f"WARN: {prd_path} STATUS line not found; appending", file=sys.stderr)
-    prd_text_new = prd_text + f"\n{new_status}\n"
-prd_p.write_text(prd_text_new, encoding="utf-8")
-print(f"updated  {prd_path}: {new_status}")
+prd_text, n_trailing = re.subn(
+    r"^STATUS:.*$", lambda _m: new_trailing, prd_text, flags=re.MULTILINE,
+)
+if n_trailing == 0:
+    print(f"WARN: {prd_path} trailing STATUS line not found; appending", file=sys.stderr)
+    prd_text = prd_text + f"\n{new_trailing}\n"
+if n_header == 0:
+    print(f"WARN: {prd_path} 'Status:' header line not found", file=sys.stderr)
+prd_p.write_text(prd_text, encoding="utf-8")
+print(f"updated  {prd_path}: Status: COMPLETE / {new_trailing}")
 
 # --- 2. PRD_REGISTRY.md row ----------------------------------------------
+# PRD-164 R2: the Stage-0 row already exists (prd_open.sh created it), so flip
+# it in place to COMPLETE instead of skipping. The missing-row case keeps the
+# prior append-when-absent fallback (defensive only; the closeout-skill
+# preflight refuses a missing row before this script runs).
 reg_p = Path(registry_path)
 reg_text = reg_p.read_text(encoding="utf-8")
-if f"| {prd_id} " in reg_text:
-    print(f"skip     {registry_path}: row for {prd_id} already present")
+row = (
+    f"| {prd_id} | {commit_hash} | {title} | COMPLETE | "
+    f"[{prd_id}](prd_history/{prd_id}.md) |"
+)
+row_re = re.compile(rf"^\|\s*{re.escape(prd_id)}\s*\|.*$", re.MULTILINE)
+# callable replacement: title may contain regex-template metacharacters.
+reg_text_new, n_row = row_re.subn(lambda _m: row, reg_text)
+if n_row >= 1:
+    reg_p.write_text(reg_text_new, encoding="utf-8")
+    print(f"updated  {registry_path}: row for {prd_id} -> COMPLETE @ {commit_hash}")
 else:
-    row = (
-        f"| {prd_id} | {commit_hash} | {title} | COMPLETE | "
-        f"[{prd_id}](prd_history/{prd_id}.md) |"
-    )
-    # Find the last `| PRD-NNN |` row and insert after it.
+    # No existing row — append after the last MAIN-table row (stop at the
+    # trailing '## Audit Reports' table, which also carries | PRD-NNN | rows).
     lines = reg_text.splitlines(keepends=True)
-    last_idx = -1
+    boundary = len(lines)
     for i, line in enumerate(lines):
-        if re.match(r"^\| PRD-\d+", line):
+        if re.match(r"^##\s+Audit Reports", line):
+            boundary = i
+            break
+    last_idx = -1
+    for i in range(boundary):
+        if re.match(r"^\|\s*PRD-\d{3}\s*\|", lines[i]):
             last_idx = i
     if last_idx < 0:
         print(f"ERROR: no existing PRD rows found in {registry_path}", file=sys.stderr)
         sys.exit(1)
-    insertion = row + "\n"
-    lines.insert(last_idx + 1, insertion)
+    lines.insert(last_idx + 1, row + "\n")
     reg_p.write_text("".join(lines), encoding="utf-8")
     print(f"appended {registry_path}: row for {prd_id}")
 
@@ -174,6 +201,28 @@ state_text, n = re.subn(
 )
 if n != 1:
     print("WARN: test baseline bullet not found in PROJECT_STATE.md", file=sys.stderr)
+
+# (f) Active PRD pointer reset (PRD-164 R4) — always reset to `none`; the
+# just-closed PRD is recorded on the "Last completed PRD" line above.
+state_text, n = re.subn(
+    r"^\*\*Active PRD:\*\*.*$",
+    "**Active PRD:** none",
+    state_text, count=1, flags=re.MULTILINE,
+)
+if n != 1:
+    print("WARN: 'Active PRD' marker not found in PROJECT_STATE.md", file=sys.stderr)
+
+# (g) Next-step line (PRD-164 R5) — rewritten only when --next is supplied;
+# omitted leaves it byte-for-byte unchanged. Callable replacement so the text
+# may contain regex-template metacharacters.
+if next_step:
+    state_text, n = re.subn(
+        r"^\*\*Next step.*$",
+        lambda _m: f"**Next step:** {next_step}",
+        state_text, count=1, flags=re.MULTILINE,
+    )
+    if n != 1:
+        print("WARN: 'Next step' marker not found in PROJECT_STATE.md", file=sys.stderr)
 
 # (e) Recent PRD history table — prepend a row after the header separator.
 new_row = f"| {prd_id} | {title} | COMPLETE | {today} |"
@@ -225,7 +274,7 @@ REVIEW_FILE="docs/prd_history/${PRD_ID}.review.codex.md"
 
 echo ""
 echo "=== unstaged diff preview ==="
-git diff --stat -- "${CLOSE_FILES[@]}"
+git diff --stat -- "${CLOSE_FILES[@]}" 2>/dev/null || true
 
 if [ "$DO_COMMIT" -eq 1 ]; then
     echo ""
