@@ -1175,6 +1175,57 @@ def test_prd112_a_healthy_sidecar_renders_six_rows_in_order() -> None:
     assert "SUPPORTIVE" in section
 
 
+# ----------------------------------------------------------------------------
+# PRD-165 R2 — conditional collapse of uniformly-unavailable trend columns
+# ----------------------------------------------------------------------------
+
+def test_prd165_r2_uniformly_unavailable_columns_collapse() -> None:
+    # PRD-165 R2: vs VWAP / vs SMA200 / Alignment / Entry Context collapse when
+    # every rendered symbol is unavailable for them; kept columns still render.
+    snap = _ts_healthy_snapshot()
+    for rec in snap["symbols"].values():
+        rec["price_vs_vwap"] = "NOT_COMPUTED"
+        rec["price_vs_sma_200"] = "INSUFFICIENT_HISTORY"
+        rec["trend_alignment"] = "NOT_COMPUTED"
+        rec["entry_context"] = "NOT_COMPUTED"
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap,
+    )
+    section = _ts_section(html)
+    for hdr in (">vs VWAP</th>", ">vs SMA200</th>", ">Alignment</th>", ">Entry Context</th>"):
+        assert hdr not in section, f"expected {hdr} collapsed"
+    for hdr in (">Symbol</th>", ">Price</th>", ">vs SMA50</th>", ">RVOL</th>",
+                ">SMA Composite</th>", ">Intraday Context</th>"):
+        assert hdr in section, f"expected {hdr} retained"
+
+
+def test_prd165_r2_column_with_one_healthy_value_not_collapsed() -> None:
+    # PRD-165 R2 FAIL(a): a column with at least one healthy value across symbols
+    # must NOT collapse.
+    snap = _ts_healthy_snapshot()
+    for rec in snap["symbols"].values():
+        rec["trend_alignment"] = "NOT_COMPUTED"
+    snap["symbols"]["SPY"]["trend_alignment"] = "BULLISH"
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap,
+    )
+    section = _ts_section(html)
+    assert ">Alignment</th>" in section
+    assert "BULLISH" in section
+
+
+def test_prd165_r2_healthy_snapshot_renders_all_columns() -> None:
+    # PRD-165 R2 FAIL(a): a fully healthy snapshot collapses nothing.
+    snap = _ts_healthy_snapshot()
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap,
+    )
+    section = _ts_section(html)
+    for hdr in (">vs VWAP</th>", ">vs SMA200</th>", ">Alignment</th>", ">Entry Context</th>",
+                ">SMA Composite</th>", ">Intraday Context</th>"):
+        assert hdr in section, f"expected {hdr} retained in healthy snapshot"
+
+
 # (b) Missing file
 def test_prd112_b_missing_file_renders_six_placeholders(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,

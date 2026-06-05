@@ -2006,16 +2006,22 @@ def render_dashboard_html(
             '  <table style="width:100%;border-collapse:collapse;'
             'font-size:0.78rem;display:block;overflow-x:auto">'
         )
-        w('    <thead><tr style="text-align:left;color:#888">')
-        for _hdr in (
+        _ts_headers = (
             "Symbol", "Price", "vs VWAP", "vs SMA50",
             "vs SMA200", "Alignment", "Entry Context", "RVOL",
             "SMA Composite", "Intraday Context",
-        ):
-            w(f'      <th style="padding:2px 8px">{_esc(_hdr)}</th>')
-        w('    </tr></thead>')
-        w('    <tbody>')
+        )
+        # PRD-165 R2: these four granular columns are frequently NOT COMPUTED /
+        # INSUFFICIENT HISTORY for every symbol; collapse such a column when it
+        # is uniformly unavailable. Indices into _ts_headers. The composite
+        # reserve columns (SMA Composite, Intraday Context) are never collapsed.
+        _ts_collapsible_cols = (2, 4, 5, 6)
+        _ts_unavailable_cells = {
+            "NOT COMPUTED", "INSUFFICIENT HISTORY", "DATA UNAVAILABLE", _DASH,
+        }
+
         _records_for_render = _ts_records or {}
+        _ts_rows: list[tuple[str, ...]] = []
         for _sym in config.TREND_STRUCTURE_SYMBOLS:
             _rec = _records_for_render.get(_sym)
             if _rec is None:
@@ -2036,8 +2042,30 @@ def render_dashboard_html(
                     _trend_structure_composite_display(_rec),
                     _trend_structure_intraday_display(_rec),
                 )
+            _ts_rows.append(_cells)
+
+        # PRD-165 R2: collapse only in the healthy-records path. When
+        # `_ts_records` is None the PRD-112 all-or-nothing gate has already
+        # degraded the whole section to placeholders — leave that untouched so
+        # collapse never salvages a partial row.
+        _ts_collapsed: set[int] = set()
+        if _ts_records:
+            for _ci in _ts_collapsible_cols:
+                if all(_row[_ci] in _ts_unavailable_cells for _row in _ts_rows):
+                    _ts_collapsed.add(_ci)
+
+        w('    <thead><tr style="text-align:left;color:#888">')
+        for _i, _hdr in enumerate(_ts_headers):
+            if _i in _ts_collapsed:
+                continue
+            w(f'      <th style="padding:2px 8px">{_esc(_hdr)}</th>')
+        w('    </tr></thead>')
+        w('    <tbody>')
+        for _cells in _ts_rows:
             w('      <tr>')
-            for _cell in _cells:
+            for _i, _cell in enumerate(_cells):
+                if _i in _ts_collapsed:
+                    continue
                 w(
                     '        <td style="padding:2px 8px;white-space:nowrap">'
                     f'{_esc(_cell)}</td>'
