@@ -656,6 +656,12 @@
       "title": "Harden PRD lifecycle tooling (single-commit closeout, correct-table Stage-0, hash-drift detection)",
       "status": "COMPLETE",
       "commit": "2bc7e0a"
+    },
+    {
+      "number": 165,
+      "title": "Candidate-card visual hierarchy, dead-column pruning, RUN SNAPSHOT freshness",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
