@@ -799,6 +799,27 @@ def test_high_grade_candidate_filters_unavailable_watch_sentinel() -> None:
     assert _UNAVAILABLE_WATCH not in card
 
 
+def test_high_grade_candidate_entry_invalidation_bold() -> None:
+    # PRD-165 R1: ENTRY and INVALIDATION value rows use a dedicated bold class
+    # (.value-key), distinct from the generic .value shared by REASON/PLAY/WATCH.
+    entry = _mm_symbol(
+        "SPY", grade="A",
+        trade_framing={"entry": "above 580.50"},
+        invalidation=["below 578.20"],
+        reason_for_grade="breadth thrust",
+    )
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map({"SPY": entry}))
+    card = _candidate_card(html)
+
+    assert '<div class="label">ENTRY</div><div class="value-key">above 580.50</div>' in card
+    assert '<div class="label">INVALIDATION</div><div class="value-key">below 578.20</div>' in card
+    # REASON stays on the generic .value class — NOT the bold .value-key.
+    assert '<div class="label">REASON</div><div class="value">breadth thrust' in card
+    assert 'REASON</div><div class="value-key">' not in card
+    # The dedicated class is defined bold in CSS.
+    assert ".value-key{margin-top:0.25rem;font-weight:bold}" in html
+
+
 def test_failed_candidate_omits_validation_context() -> None:
     entry = {
         **_mm_symbol("SPY", grade="C"),

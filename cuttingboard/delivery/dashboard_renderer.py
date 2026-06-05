@@ -560,6 +560,7 @@ _CSS = (
     ".block{border:1px solid #2a2a2a;border-radius:4px;margin-bottom:1rem;padding:1rem}"
     ".label{color:#888;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em}"
     ".value{margin-top:0.25rem}"
+    ".value-key{margin-top:0.25rem;font-weight:bold}"
     ".row{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.5rem}"
     ".field{flex:1;min-width:120px}"
     ".badge{display:inline-block;padding:0.2rem 0.5rem;border-radius:3px;font-size:0.8rem}"
@@ -1477,13 +1478,16 @@ def _render_candidate_card(
         if if_now is not None:
             w(f'  <div class="label">IF NOW</div><div class="value">{_esc(if_now)}</div>')
 
+        # PRD-165 R1: ENTRY/INVALIDATION are the falsifiable, actionable fields;
+        # render their values bold (.value-key) so they stand out from the
+        # muted .value rows (REASON/PLAY/WATCH).
         entry_val = tf.get("entry")
         if entry_val is not None:
-            w(f'  <div class="label">ENTRY</div><div class="value">{_esc(entry_val)}</div>')
+            w(f'  <div class="label">ENTRY</div><div class="value-key">{_esc(entry_val)}</div>')
 
         invalidation = entry.get("invalidation")
         if invalidation and len(invalidation) > 0 and invalidation[0] is not None:
-            w(f'  <div class="label">INVALIDATION</div><div class="value">{_esc(invalidation[0])}</div>')
+            w(f'  <div class="label">INVALIDATION</div><div class="value-key">{_esc(invalidation[0])}</div>')
 
         downgrade = tf.get("downgrade")
         if downgrade is not None:
