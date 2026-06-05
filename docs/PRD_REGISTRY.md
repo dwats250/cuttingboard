@@ -182,7 +182,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-162 | 7aa4102 | outcome / regime / market_map reconciliation | COMPLETE | [PRD-162](prd_history/PRD-162.md) |
 | PRD-163 | b57e1a4 | Fix regime permission wording for EXPANSION posture | COMPLETE | [PRD-163](prd_history/PRD-163.md) |
 | PRD-164 | 2bc7e0a | Harden PRD lifecycle tooling (single-commit closeout, correct-table Stage-0, hash-drift detection) | COMPLETE | [PRD-164](prd_history/PRD-164.md) |
-| PRD-165 | — | Candidate-card visual hierarchy, dead-column pruning, RUN SNAPSHOT freshness | IN PROGRESS | [PRD-165](prd_history/PRD-165.md) |
+| PRD-165 | — | Candidate-card visual hierarchy and trend-structure dead-column pruning | IN PROGRESS | [PRD-165](prd_history/PRD-165.md) |
 | PRD-166 | — | Hourly market_map artifact isolation (PRD-118 R3 coherence) | IN PROGRESS | [PRD-166](prd_history/PRD-166.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().

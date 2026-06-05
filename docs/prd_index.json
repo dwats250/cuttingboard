@@ -659,7 +659,7 @@
     },
     {
       "number": 165,
-      "title": "Candidate-card visual hierarchy, dead-column pruning, RUN SNAPSHOT freshness",
+      "title": "Candidate-card visual hierarchy and trend-structure dead-column pruning",
       "status": "IN PROGRESS",
       "commit": null
     },
