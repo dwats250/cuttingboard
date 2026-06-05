@@ -37,6 +37,8 @@ from cuttingboard.trade_decision import ALLOW_TRADE
 #   logs/latest_run.json            — run metadata (overridden by --run in hourly workflow)
 #   logs/latest_hourly_contract.json — contract entry prices via _load_contract_entry_context
 #   logs/market_map.json            — symbol-level market context, loaded from logs_dir/market_map.json
+#                                     (PRD-166: overridden by --market-map-path; the hourly workflow
+#                                      passes logs/latest_hourly_market_map.json for lineage isolation)
 #   logs/macro_drivers_snapshot.json — macro driver fallback when payload has no macro_drivers
 #   logs/run_*.json                 — history runs, globbed from logs_dir
 #
@@ -2307,6 +2309,7 @@ def main(
     output_path: Path = _OUTPUT_PATH,
     logs_dir: Path = Path("logs"),
     macro_snapshot_path: Path | None = None,
+    market_map_path: Path | None = None,
     fixture_mode: bool = False,
 ) -> None:
     import os
@@ -2326,7 +2329,9 @@ def main(
 
     contract_entry_map_raw, alert_candidates_raw, contract_generated_at, contract_source = _load_contract_entry_context(logs_dir)
     contract_entry_map = contract_entry_map_raw or None
-    market_map_path = logs_dir / "market_map.json"
+    # PRD-166 R2: an explicit --market-map-path overrides the default; when
+    # omitted the default is <logs-dir>/market_map.json (current behavior).
+    market_map_path = market_map_path if market_map_path is not None else logs_dir / "market_map.json"
     trend_structure_snapshot = _load_trend_structure_snapshot(
         logs_dir / _TREND_STRUCTURE_PATH.name
     )
@@ -2373,6 +2378,7 @@ if __name__ == "__main__":
     parser.add_argument("--run",             type=Path, default=_RUN_PATH)
     parser.add_argument("--logs-dir",        type=Path, default=Path("logs"))
     parser.add_argument("--macro-snapshot",  type=Path, default=None)
+    parser.add_argument("--market-map-path", type=Path, default=None)
     args = parser.parse_args()
     main(
         payload_path=args.payload,
@@ -2380,4 +2386,5 @@ if __name__ == "__main__":
         output_path=args.output,
         logs_dir=args.logs_dir,
         macro_snapshot_path=args.macro_snapshot,
+        market_map_path=args.market_map_path,
     )

@@ -1693,6 +1693,117 @@ def test_prd134_noop_live_payload_with_hourly_market_map_blocks(tmp_path: Path) 
         )
 
 
+# ----------------------------------------------------------------------------
+# PRD-166 — hourly market_map artifact isolation (R2 renderer flag + R4 hazard)
+# ----------------------------------------------------------------------------
+
+def _prd166_write_inputs(tmp_path: Path, *, gid: str, shared_gid: str) -> tuple[Path, Path, Path]:
+    """Write payload/run (gid), a poisoned shared logs/market_map.json
+    (shared_gid), and a matching hourly market_map (gid). Return the
+    (payload_file, run_file, hourly_market_map_file) paths."""
+    payload = _payload()
+    payload["meta"]["generation_id"] = gid
+    run = _run()
+    run["generation_id"] = gid
+    payload_file = tmp_path / "latest_payload.json"
+    run_file = tmp_path / "latest_run.json"
+    payload_file.write_text(json.dumps(payload), encoding="utf-8")
+    run_file.write_text(json.dumps(run), encoding="utf-8")
+
+    shared_mm = _market_map()
+    shared_mm["generation_id"] = shared_gid
+    (tmp_path / "market_map.json").write_text(json.dumps(shared_mm), encoding="utf-8")
+
+    hourly_mm = _market_map()
+    hourly_mm["generation_id"] = gid
+    hourly_file = tmp_path / "latest_hourly_market_map.json"
+    hourly_file.write_text(json.dumps(hourly_mm), encoding="utf-8")
+    return payload_file, run_file, hourly_file
+
+
+def test_prd166_r4_explicit_path_bypasses_poisoned_shared_market_map(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """R4: a mismatched shared logs/market_map.json plus a matching hourly
+    market_map renders ui/dashboard.html when --market-map-path points at the
+    hourly file — the explicit path flows through both the CLI pre-validation
+    read and the write_dashboard() validation read, and the poisoned shared
+    file is never consulted."""
+    from cuttingboard.delivery.dashboard_renderer import main
+
+    _freeze_renderer_now(monkeypatch)
+    payload_file, run_file, hourly_file = _prd166_write_inputs(
+        tmp_path, gid="hourly-20260428T120000Z", shared_gid="poisoned-20260101T000000Z"
+    )
+    out = tmp_path / "ui" / "dashboard.html"
+    out.parent.mkdir()
+    main(
+        payload_path=payload_file,
+        run_path=run_file,
+        output_path=out,
+        logs_dir=tmp_path,
+        market_map_path=hourly_file,
+    )
+    assert out.exists()
+
+
+def test_prd166_r4_default_path_reads_poisoned_shared_and_blocks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """R4 converse: omitting --market-map-path falls back to
+    <logs-dir>/market_map.json (the poisoned shared file), so the coherence
+    gate raises. Proves the hazard is real and that the default path is the
+    shared file — i.e. the override is what closes it."""
+    from cuttingboard.delivery.dashboard_renderer import main
+
+    _freeze_renderer_now(monkeypatch)
+    payload_file, run_file, _hourly = _prd166_write_inputs(
+        tmp_path, gid="hourly-20260428T120000Z", shared_gid="poisoned-20260101T000000Z"
+    )
+    out = tmp_path / "ui" / "dashboard.html"
+    out.parent.mkdir()
+    with pytest.raises(CoherentPublishError, match=r"generation_id mismatch"):
+        main(
+            payload_path=payload_file,
+            run_path=run_file,
+            output_path=out,
+            logs_dir=tmp_path,
+        )
+    assert not out.exists()
+
+
+def test_prd166_r2_default_market_map_path_preserved(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """R2: when --market-map-path is omitted the renderer loads market_map from
+    <logs-dir>/market_map.json (current behavior); a coherent shared file
+    renders to ui/ successfully."""
+    from cuttingboard.delivery.dashboard_renderer import main
+
+    _freeze_renderer_now(monkeypatch)
+    gid = "hourly-20260428T120000Z"
+    payload = _payload()
+    payload["meta"]["generation_id"] = gid
+    run = _run()
+    run["generation_id"] = gid
+    payload_file = tmp_path / "latest_payload.json"
+    run_file = tmp_path / "latest_run.json"
+    payload_file.write_text(json.dumps(payload), encoding="utf-8")
+    run_file.write_text(json.dumps(run), encoding="utf-8")
+    shared_mm = _market_map()
+    shared_mm["generation_id"] = gid
+    (tmp_path / "market_map.json").write_text(json.dumps(shared_mm), encoding="utf-8")
+    out = tmp_path / "ui" / "dashboard.html"
+    out.parent.mkdir()
+    main(
+        payload_path=payload_file,
+        run_path=run_file,
+        output_path=out,
+        logs_dir=tmp_path,
+    )
+    assert out.exists()
+
+
 # R11-3: missing payload.meta.generation_id — exception, no file
 def test_prd118_missing_payload_generation_id_blocks(tmp_path: Path) -> None:
     payload, run, market_map = _coherent_inputs()
