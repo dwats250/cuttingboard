@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import importlib.util
 import json
+import subprocess
 from pathlib import Path
 
 
@@ -265,3 +266,116 @@ def test_main_exits_nonzero_on_invalid_state(tmp_path: Path, capsys) -> None:
     assert validate_prd_registry.main([str(root)]) == 1
     captured = capsys.readouterr()
     assert "Bad next_prd: next_prd is 62 but expected 61" in captured.err
+
+
+# ---------------------------------------------------------------------------
+# PRD-164 R6: commit-hash drift detection
+# ---------------------------------------------------------------------------
+
+def _init_git_repo(root: Path) -> str:
+    """Init a git repo at `root` with one commit; return its short hash."""
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=root, check=True)
+    (root / "seed.txt").write_text("seed\n")
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True)
+    subprocess.run(["git", "commit", "-qm", "seed"], cwd=root, check=True)
+    return subprocess.run(
+        ["git", "rev-parse", "--short", "HEAD"], cwd=root, capture_output=True, text=True
+    ).stdout.strip()
+
+
+def _rows(commit: str, file_cell: str = "x") -> dict[int, dict[str, str | None]]:
+    return {56: {"number": 56, "status": "COMPLETE", "commit": commit, "file": file_cell}}
+
+
+def test_r6_commit_tokens_splits_multi_hash() -> None:
+    assert validate_prd_registry._commit_tokens("a1b2c3d, e4f5a6b") == ["a1b2c3d", "e4f5a6b"]
+    assert validate_prd_registry._commit_tokens(None) == []
+    assert validate_prd_registry._commit_tokens("—") == ["—"]  # caller strips dashes upstream
+
+
+def test_r6_unresolvable_commit_flagged_in_git_tree(tmp_path: Path) -> None:
+    _init_git_repo(tmp_path)
+    errors: list[str] = []
+    validate_prd_registry._validate_commit_resolvable(tmp_path, _rows("deadbee"), errors)
+    assert any("Unresolvable commit: PRD-056 hash deadbee" in e for e in errors)
+
+
+def test_r6_real_commit_passes_in_git_tree(tmp_path: Path) -> None:
+    real = _init_git_repo(tmp_path)
+    errors: list[str] = []
+    validate_prd_registry._validate_commit_resolvable(tmp_path, _rows(real), errors)
+    assert errors == []
+
+
+def test_r6_multi_hash_each_checked(tmp_path: Path) -> None:
+    real = _init_git_repo(tmp_path)
+    errors: list[str] = []
+    validate_prd_registry._validate_commit_resolvable(
+        tmp_path, _rows(f"{real}, deadbee"), errors
+    )
+    assert any("deadbee" in e for e in errors)
+    assert not any(real in e for e in errors)
+
+
+def test_r6_non_hex_token_skipped(tmp_path: Path) -> None:
+    _init_git_repo(tmp_path)
+    errors: list[str] = []
+    validate_prd_registry._validate_commit_resolvable(
+        tmp_path, _rows("feature/ui-decision-layer"), errors
+    )
+    assert errors == []
+
+
+def test_r6_non_git_tree_skips_resolvability(tmp_path: Path) -> None:
+    # No .git -> synthetic hashes must not be flagged.
+    errors: list[str] = []
+    validate_prd_registry._validate_commit_resolvable(tmp_path, _rows("deadbee"), errors)
+    assert errors == []
+
+
+def test_r6_doc_status_hash_mismatch_flagged(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text(
+        "# PRD-056\n\nStatus: COMPLETE\n\nSTATUS: COMPLETE @ deadbee\n"
+    )
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](prd_history/PRD-056.md)"), errors
+    )
+    assert any("Doc/registry hash mismatch: PRD-056" in e for e in errors)
+
+
+def test_r6_doc_status_membership_passes_multi_hash(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text(
+        "# PRD-056\n\nSTATUS: COMPLETE @ e4f5a6b\n"
+    )
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_agreement(
+        tmp_path, _rows("a1b2c3d, e4f5a6b", file_cell="[PRD-056](x)"), errors
+    )
+    assert errors == []
+
+
+def test_r6_doc_check_skipped_when_file_dash(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text(
+        "STATUS: COMPLETE @ deadbee\n"
+    )
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_agreement(
+        tmp_path, _rows("e7365c6", file_cell="—"), errors
+    )
+    assert errors == []
+
+
+def test_r6_doc_without_status_line_skipped(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text("PRD-056 fixture, no status line\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert errors == []

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -13,8 +14,17 @@ from typing import Any
 TRACKING_START = 56
 ALLOWED_STATUSES = {"PROPOSED", "IN PROGRESS", "COMPLETE", "PATCH", "DEPRECATED"}
 COMMIT_RE = re.compile(r"^[0-9a-fA-F]{7,40}(,\s*[0-9a-fA-F]{7,40})*$")
+HEX_HASH_RE = re.compile(r"^[0-9a-fA-F]{7,40}$")
+DOC_STATUS_RE = re.compile(r"^STATUS:\s*COMPLETE\s*@\s*(.+?)\s*$", re.MULTILINE)
 REGISTRY_ROW_RE = re.compile(r"^\|\s*PRD-(\d{3})\s*\|")
 MAIN_TABLE_HEADER = "| PRD | Commit(s) | Title | Status | File |"
+
+
+def _commit_tokens(commit: str | None) -> list[str]:
+    """Split a registry commit cell (possibly comma-separated) into hashes."""
+    if not commit:
+        return []
+    return [tok.strip() for tok in commit.split(",") if tok.strip()]
 
 
 def _display_prd(number: int) -> str:
@@ -244,6 +254,77 @@ def _validate_registry_agreement(
                 )
 
 
+def _is_git_worktree(root: Path) -> bool:
+    return (root / ".git").exists()
+
+
+def _commit_exists(root: Path, sha: str) -> bool:
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(root), "cat-file", "-e", f"{sha}^{{commit}}"],
+            capture_output=True,
+        )
+    except (FileNotFoundError, OSError):
+        # git binary unavailable — do not flag (treat as resolvable).
+        return True
+    return proc.returncode == 0
+
+
+def _validate_commit_resolvable(
+    root: Path,
+    registry_rows: dict[int, dict[str, str | None]],
+    errors: list[str],
+) -> None:
+    # PRD-164 R6(a): every COMPLETE commit hash must resolve to a real commit,
+    # catching post-rebase drift. Git-conditional (skipped when `root` is not a
+    # git work tree, so non-git fixture trees pass) and limited to hex-shaped
+    # tokens — legacy non-hash cells (e.g. an old branch name) are out of scope.
+    if not _is_git_worktree(root):
+        return
+    for number in sorted(registry_rows):
+        row = registry_rows[number]
+        if number < TRACKING_START or row.get("status") != "COMPLETE":
+            continue
+        for tok in _commit_tokens(row.get("commit")):
+            if not HEX_HASH_RE.match(tok):
+                continue
+            if not _commit_exists(root, tok):
+                errors.append(
+                    f"Unresolvable commit: {_display_prd(number)} hash {tok} does "
+                    f"not resolve to a git commit (possible post-rebase drift)"
+                )
+
+
+def _validate_doc_status_agreement(
+    root: Path,
+    registry_rows: dict[int, dict[str, str | None]],
+    errors: list[str],
+) -> None:
+    # PRD-164 R6(b): a PRD doc's trailing 'STATUS: COMPLETE @ <hash>' hash must
+    # be a member of that PRD's registry commit set. Skipped when File='—' or
+    # the doc has no such line (older PRDs predate the convention).
+    for number in sorted(registry_rows):
+        row = registry_rows[number]
+        if number < TRACKING_START or row.get("status") != "COMPLETE":
+            continue
+        if (row.get("file") or "").strip() in {"", "-", "—"}:
+            continue
+        doc = root / "docs" / "prd_history" / f"PRD-{number:03d}.md"
+        if not doc.exists():
+            continue
+        found = DOC_STATUS_RE.findall(doc.read_text(encoding="utf-8"))
+        if not found:
+            continue
+        doc_hashes = {h.strip() for h in re.split(r"[,\s]+", found[-1]) if h.strip()}
+        reg_hashes = set(_commit_tokens(row.get("commit")))
+        if reg_hashes and not (doc_hashes & reg_hashes):
+            errors.append(
+                f"Doc/registry hash mismatch: {_display_prd(number)} doc STATUS "
+                f"hash {sorted(doc_hashes)} not in registry commit set "
+                f"{sorted(reg_hashes)}"
+            )
+
+
 def validate_repository(root: Path) -> list[str]:
     errors: list[str] = []
     data = _load_index(root, errors)
@@ -255,6 +336,8 @@ def validate_repository(root: Path) -> list[str]:
     registry_rows = _parse_registry(root, errors)
     _validate_history_docs(root, entries, registry_rows, errors)
     _validate_registry_agreement(registry_rows, entries, errors)
+    _validate_commit_resolvable(root, registry_rows, errors)
+    _validate_doc_status_agreement(root, registry_rows, errors)
     return errors
 
 
