@@ -27,6 +27,7 @@ CI_ARTIFACT_FILENAMES = ("engine_doctor.json", "engine_doctor.txt")
 HOURLY_REQUIRED_STAGED_ARTIFACTS = (
     "logs/audit.jsonl",
     "logs/market_map.json",
+    "logs/latest_hourly_market_map.json",
     "logs/macro_drivers_snapshot.json",
     "logs/trend_structure_snapshot.json",
     "logs/latest_run.json",
@@ -134,3 +135,22 @@ def test_hourly_workflow_stages_all_mutated_artifacts_before_push() -> None:
             "unstaged artifact leaves the tree dirty and correctly trips "
             "the push guard."
         )
+
+
+def test_hourly_workflow_renders_with_isolated_market_map_path() -> None:
+    """PRD-166 R3: the hourly render step points the renderer at the isolated
+    hourly market_map so the shared logs/market_map.json can never be the
+    source of an hourly render's PRD-118 R3 lineage mismatch.
+    """
+
+    workflow = REPO_ROOT / ".github" / "workflows" / "hourly_alert.yml"
+    text = workflow.read_text(encoding="utf-8")
+
+    render_step = text[text.index("- name: Render and stage hourly artifacts"):]
+    render_step = render_step[: render_step.index("- name: Check hourly readiness")]
+
+    assert "--market-map-path logs/latest_hourly_market_map.json" in render_step, (
+        "the hourly render step does not pass "
+        "--market-map-path logs/latest_hourly_market_map.json; without it the "
+        "renderer falls back to the shared logs/market_map.json (PRD-166 R3)."
+    )

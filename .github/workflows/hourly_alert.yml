@@ -94,6 +94,7 @@ jobs:
           python3 -m cuttingboard.delivery.dashboard_renderer \
             --payload logs/latest_hourly_payload.json \
             --run logs/latest_hourly_run.json \
+            --market-map-path logs/latest_hourly_market_map.json \
             --output ui/dashboard.html
           cp ui/dashboard.html ui/index.html
 
@@ -112,6 +113,7 @@ jobs:
           git add -f \
             logs/audit.jsonl \
             logs/market_map.json \
+            logs/latest_hourly_market_map.json \
             logs/macro_drivers_snapshot.json \
             logs/trend_structure_snapshot.json \
             logs/latest_run.json \
