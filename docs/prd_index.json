@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 165,
-  "next_prd": 166,
+  "latest_complete": 166,
+  "next_prd": 167,
   "entries": [
     {
       "number": 56,
@@ -666,8 +666,8 @@
     {
       "number": 166,
       "title": "Hourly market_map artifact isolation (PRD-118 R3 coherence)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "5cac382"
     }
   ]
 }
