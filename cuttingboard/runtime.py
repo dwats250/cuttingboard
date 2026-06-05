@@ -174,6 +174,10 @@ LATEST_HOURLY_CONTRACT_PATH = LOGS_DIR / "latest_hourly_contract.json"
 LATEST_HOURLY_PAYLOAD_PATH = LOGS_DIR / "latest_hourly_payload.json"
 HOURLY_REPORT_PATH = REPORTS_DIR / "output" / "hourly_report.html"
 MARKET_MAP_PATH = LOGS_DIR / "market_map.json"
+# PRD-166 D1/D2: hourly pipeline writes/reads an isolated market_map artifact so
+# the shared MARKET_MAP_PATH can never be the source of an hourly render's
+# PRD-118 R3 lineage mismatch. Default/fixture writes stay on MARKET_MAP_PATH.
+LATEST_HOURLY_MARKET_MAP_PATH = LOGS_DIR / "latest_hourly_market_map.json"
 TREND_STRUCTURE_PATH = LOGS_DIR / "trend_structure_snapshot.json"
 WATCHLIST_PATH = LOGS_DIR / "watchlist_snapshot.json"
 DEFAULT_FIXTURE_DIR = Path("tests/fixtures")
@@ -621,8 +625,13 @@ def _execute_notify_run(
                 bar_windows=_market_map_bar_windows(ohlcv),
             )
             hourly_market_map["generation_id"] = summary["generation_id"]
-            previous_market_map = _load_previous_market_map()
-            _write_market_map_file(inject_lifecycle(hourly_market_map, previous_market_map))
+            # PRD-166 D1/D3: isolate the hourly market_map read+write so the
+            # shared logs/market_map.json can never poison an hourly render.
+            previous_market_map = _load_previous_market_map(LATEST_HOURLY_MARKET_MAP_PATH)
+            _write_market_map_file(
+                inject_lifecycle(hourly_market_map, previous_market_map),
+                LATEST_HOURLY_MARKET_MAP_PATH,
+            )
             _write_trend_structure_snapshot(
                 normalized_quotes=normalized_quotes,
                 history_by_symbol=ohlcv,
@@ -1879,19 +1888,27 @@ def _write_hourly_artifacts(summary: dict[str, Any], contract: dict[str, Any]) -
         logger.exception("Hourly payload artifact generation failed — summary/contract preserved")
 
 
-def _load_previous_market_map() -> dict[str, Any] | None:
-    if not MARKET_MAP_PATH.exists():
+def _load_previous_market_map(path: Path | None = None) -> dict[str, Any] | None:
+    # PRD-166 D3: path resolves at call time (None -> shared MARKET_MAP_PATH) so
+    # monkeypatching either global is honored; the hourly path passes the
+    # isolated LATEST_HOURLY_MARKET_MAP_PATH for symmetric lifecycle isolation.
+    target = path if path is not None else MARKET_MAP_PATH
+    if not target.exists():
         return None
-    text = MARKET_MAP_PATH.read_text(encoding="utf-8")
+    text = target.read_text(encoding="utf-8")
     try:
         return json.loads(text)
     except json.JSONDecodeError as exc:
-        raise RuntimeError(f"Previous market_map.json is malformed: {MARKET_MAP_PATH}") from exc
+        raise RuntimeError(f"Previous market_map.json is malformed: {target}") from exc
 
 
-def _write_market_map_file(market_map: dict[str, Any]) -> None:
+def _write_market_map_file(market_map: dict[str, Any], path: Path | None = None) -> None:
+    # PRD-166 D1/D2: default (None) writes the shared MARKET_MAP_PATH unchanged;
+    # the hourly path passes LATEST_HOURLY_MARKET_MAP_PATH so the shared file is
+    # never touched by an hourly run.
+    target = path if path is not None else MARKET_MAP_PATH
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
-    MARKET_MAP_PATH.write_text(json.dumps(market_map, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    target.write_text(json.dumps(market_map, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def _tradable_symbols() -> list[str]:

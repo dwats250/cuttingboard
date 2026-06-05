@@ -851,6 +851,9 @@ def test_hourly_run_writes_hourly_specific_artifacts(tmp_path, monkeypatch):
     monkeypatch.setattr(runtime, "LATEST_HOURLY_PAYLOAD_PATH", tmp_path / "logs" / "latest_hourly_payload.json")
     monkeypatch.setattr(runtime, "HOURLY_REPORT_PATH", tmp_path / "reports" / "output" / "hourly_report.html")
     monkeypatch.setattr(runtime, "MARKET_MAP_PATH", tmp_path / "logs" / "market_map.json")
+    monkeypatch.setattr(
+        runtime, "LATEST_HOURLY_MARKET_MAP_PATH", tmp_path / "logs" / "latest_hourly_market_map.json"
+    )
 
     patches = _patch_pipeline_stay_flat()
     with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7]:
@@ -860,14 +863,19 @@ def test_hourly_run_writes_hourly_specific_artifacts(tmp_path, monkeypatch):
     assert (tmp_path / "logs" / "latest_hourly_run.json").exists()
     assert (tmp_path / "logs" / "latest_hourly_contract.json").exists()
     assert (tmp_path / "logs" / "latest_hourly_payload.json").exists()
-    assert (tmp_path / "logs" / "market_map.json").exists()
+    # PRD-166 R1: the hourly run writes its isolated market_map and leaves the
+    # shared logs/market_map.json untouched.
+    assert (tmp_path / "logs" / "latest_hourly_market_map.json").exists()
+    assert not (tmp_path / "logs" / "market_map.json").exists()
     assert (tmp_path / "reports" / "output" / "hourly_report.html").exists()
     assert not (tmp_path / "logs" / "latest_run.json").exists()
 
     hourly_run = json.loads((tmp_path / "logs" / "latest_hourly_run.json").read_text(encoding="utf-8"))
     hourly_contract = json.loads((tmp_path / "logs" / "latest_hourly_contract.json").read_text(encoding="utf-8"))
     hourly_payload = json.loads((tmp_path / "logs" / "latest_hourly_payload.json").read_text(encoding="utf-8"))
-    market_map = json.loads((tmp_path / "logs" / "market_map.json").read_text(encoding="utf-8"))
+    market_map = json.loads(
+        (tmp_path / "logs" / "latest_hourly_market_map.json").read_text(encoding="utf-8")
+    )
 
     assert hourly_run["notify_mode"] == NOTIFY_HOURLY
     assert hourly_run["status"] == SUMMARY_STATUS_SUCCESS
@@ -878,6 +886,49 @@ def test_hourly_run_writes_hourly_specific_artifacts(tmp_path, monkeypatch):
     assert hourly_run["generation_id"] == hourly_contract["generation_id"]
     assert hourly_payload["meta"]["generation_id"] == hourly_run["generation_id"]
     assert market_map["generation_id"] == hourly_run["generation_id"]
+
+
+def test_prd166_hourly_run_leaves_shared_market_map_untouched(tmp_path, monkeypatch):
+    """PRD-166 R1: a pre-existing shared logs/market_map.json is byte-identical
+    and mtime-unchanged after an hourly run — the hourly write is isolated."""
+    import os
+
+    import cuttingboard.runtime as runtime
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(runtime, "LOGS_DIR", tmp_path / "logs")
+    monkeypatch.setattr(runtime, "REPORTS_DIR", tmp_path / "reports")
+    monkeypatch.setattr(runtime, "LATEST_HOURLY_RUN_PATH", tmp_path / "logs" / "latest_hourly_run.json")
+    monkeypatch.setattr(runtime, "LATEST_HOURLY_CONTRACT_PATH", tmp_path / "logs" / "latest_hourly_contract.json")
+    monkeypatch.setattr(runtime, "LATEST_HOURLY_PAYLOAD_PATH", tmp_path / "logs" / "latest_hourly_payload.json")
+    monkeypatch.setattr(runtime, "HOURLY_REPORT_PATH", tmp_path / "reports" / "output" / "hourly_report.html")
+    monkeypatch.setattr(runtime, "MARKET_MAP_PATH", tmp_path / "logs" / "market_map.json")
+    monkeypatch.setattr(
+        runtime, "LATEST_HOURLY_MARKET_MAP_PATH", tmp_path / "logs" / "latest_hourly_market_map.json"
+    )
+
+    # Seed a poisoned shared market_map with a deliberately mismatched lineage.
+    shared = tmp_path / "logs" / "market_map.json"
+    shared.parent.mkdir(parents=True, exist_ok=True)
+    sentinel = '{\n  "generation_id": "poisoned-shared-DO-NOT-READ"\n}\n'
+    shared.write_text(sentinel, encoding="utf-8")
+    old_mtime = 1_600_000_000  # fixed epoch well in the past
+    os.utime(shared, (old_mtime, old_mtime))
+
+    patches = _patch_pipeline_stay_flat()
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7]:
+        result = _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    assert result["status"] == SUMMARY_STATUS_SUCCESS
+    # The isolated hourly artifact exists and carries the hourly lineage.
+    hourly_mm = tmp_path / "logs" / "latest_hourly_market_map.json"
+    assert hourly_mm.exists()
+    hourly_run = json.loads((tmp_path / "logs" / "latest_hourly_run.json").read_text(encoding="utf-8"))
+    hourly_market_map = json.loads(hourly_mm.read_text(encoding="utf-8"))
+    assert hourly_market_map["generation_id"] == hourly_run["generation_id"]
+    # The shared file is byte-identical and its mtime is unchanged.
+    assert shared.read_text(encoding="utf-8") == sentinel
+    assert os.path.getmtime(shared) == old_mtime
 
 
 def test_hourly_run_failure_writes_hourly_failure_artifacts(tmp_path, monkeypatch):
