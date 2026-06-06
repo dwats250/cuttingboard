@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 167,
-  "next_prd": 168,
+  "latest_complete": 168,
+  "next_prd": 169,
   "entries": [
     {
       "number": 56,
@@ -678,8 +678,8 @@
     {
       "number": 168,
       "title": "Suppress idle screen-verdict above populated candidate cards",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "0442647"
     }
   ]
 }

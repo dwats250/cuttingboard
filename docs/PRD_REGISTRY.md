@@ -185,7 +185,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-165 | dac5712 | Candidate-card visual hierarchy and trend-structure dead-column pruning | COMPLETE | [PRD-165](prd_history/PRD-165.md) |
 | PRD-166 | 5cac382 | Hourly market_map artifact isolation (PRD-118 R3 coherence) | COMPLETE | [PRD-166](prd_history/PRD-166.md) |
 | PRD-167 | 3a4ee24 | RUN SNAPSHOT relative-freshness token | COMPLETE | [PRD-167](prd_history/PRD-167.md) |
-| PRD-168 | — | Suppress idle screen-verdict above populated candidate cards | IN PROGRESS | [PRD-168](prd_history/PRD-168.md) |
+| PRD-168 | 0442647 | Suppress idle screen-verdict above populated candidate cards | COMPLETE | [PRD-168](prd_history/PRD-168.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
