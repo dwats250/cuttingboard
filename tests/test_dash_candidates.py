@@ -323,6 +323,48 @@ def test_candidate_idle_summary_absent_when_map_none() -> None:
 
 
 # ---------------------------------------------------------------------------
+# PRD-168 — suppress the RULE2 idle verdict above populated high-grade cards
+# ---------------------------------------------------------------------------
+
+def test_prd168_rule2_verdict_suppressed_above_high_grade_card() -> None:
+    # regime permits longs (RISK_ON); the only high-grade card is a SHORT setup,
+    # so the integrator emits "No qualifying long setups" AND a high-grade card
+    # renders. PRD-168 D1: suppress the RULE2 verdict when a high-grade card shows.
+    from cuttingboard.delivery.dashboard_integrator import RULE2_LONG_VERDICT
+    syms = {"SPY": _mm_symbol("SPY", grade="A", bias="BEAR")}
+    mm = _market_map(syms)
+    html = render_dashboard_html(_payload(market_regime="RISK_ON"), _run(), market_map=mm)
+    assert 'id="card-SPY"' in html
+    assert RULE2_LONG_VERDICT not in html
+
+
+def test_prd168_rule2_verdict_present_when_no_high_grade_card() -> None:
+    # No high-grade card (only C grade reaches the board); the RULE2 idle verdict
+    # must still render — the gate only fires when a high-grade card is present.
+    from cuttingboard.delivery.dashboard_integrator import RULE2_LONG_VERDICT
+    syms = {"GLD": _mm_symbol("GLD", grade="C", bias="BEAR")}
+    mm = _market_map(syms)
+    html = render_dashboard_html(_payload(market_regime="RISK_ON"), _run(), market_map=mm)
+    assert RULE2_LONG_VERDICT in html
+
+
+def test_prd168_gate_targets_only_rule2_verdicts() -> None:
+    # D2: the suppression set is exactly the two RULE2 idle verdicts; RULE3_MIXED
+    # (a real conflict signal) is never in the gated set. Guards against a future
+    # edit widening the gate. RULE3 render behavior itself is covered by
+    # tests/test_dash_macro.py.
+    import inspect
+
+    from cuttingboard.delivery import dashboard_renderer as _dr
+    from cuttingboard.delivery.dashboard_integrator import RULE3_MIXED_VERDICT
+    src = inspect.getsource(_dr.render_dashboard_html)
+    assert "_PRD168_GATED_VERDICTS" in src
+    assert RULE3_MIXED_VERDICT not in _dr._PRD168_GATED_VERDICTS
+    assert _dr.RULE2_LONG_VERDICT in _dr._PRD168_GATED_VERDICTS
+    assert _dr.RULE2_SHORT_VERDICT in _dr._PRD168_GATED_VERDICTS
+
+
+# ---------------------------------------------------------------------------
 # PRD-055 PATCH — tier counts
 # ---------------------------------------------------------------------------
 

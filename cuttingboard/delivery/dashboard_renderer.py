@@ -21,7 +21,11 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from cuttingboard import config
-from cuttingboard.delivery.dashboard_integrator import dashboard_integrator
+from cuttingboard.delivery.dashboard_integrator import (
+    RULE2_LONG_VERDICT,
+    RULE2_SHORT_VERDICT,
+    dashboard_integrator,
+)
 from cuttingboard.delivery.macro_tape_layout import (
     MACRO_BIAS_CONTRA_CYCLICAL,
     MACRO_BIAS_DRIVERS,
@@ -180,6 +184,10 @@ _GRADE_CSS: dict[str, str] = {
 }
 
 _HIGH_GRADES = frozenset({"A+", "A", "B"})
+# PRD-168 D1/D2: the RULE2 "no qualifying setups" idle verdicts are suppressed
+# when a high-grade card renders below them (UX preference). RULE3_MIXED is a
+# real conflict signal and is deliberately NOT in this set.
+_PRD168_GATED_VERDICTS = frozenset({RULE2_LONG_VERDICT, RULE2_SHORT_VERDICT})
 _UNAVAILABLE_WATCH = "Market data unavailable for this run; review during live market session."
 
 # PRD-117: enumerated session_type values that map to an inactive-session
@@ -2107,8 +2115,26 @@ def render_dashboard_html(
     # PRD-158 § 4.3: integrator screen verdicts (Rules 2/3) render here as
     # decision-language banner lines. Suppressed under unhealthy lineage so
     # operators see the lineage diagnostic first.
+    # PRD-168 D1: when a high-grade card renders below, suppress the RULE2
+    # "no qualifying setups" idle verdicts (UX preference). RULE3 conflict
+    # signals are not gated (D2). The predicate mirrors the healthy-path card
+    # render conditions: not unhealthy, market_map present/usable, not inactive,
+    # and at least one non-skipped high-grade symbol.
+    _prd168_high_grade_card = (
+        not unhealthy_lineage
+        and _mm_status not in ("SOURCE_MISSING", "PARSE_ERROR")
+        and not inactive_session
+        and isinstance(market_map, dict)
+        and any(
+            entry.get("grade", "") in _HIGH_GRADES
+            for sym, entry in ((market_map.get("symbols") or {}).items())
+            if sym not in integrator_skips and isinstance(entry, dict)
+        )
+    )
     if not unhealthy_lineage:
         for _verdict in integrator_verdicts:
+            if _prd168_high_grade_card and _verdict in _PRD168_GATED_VERDICTS:
+                continue
             w(f'  <div class="idle-summary">{_esc(_verdict)}</div>')
     if unhealthy_lineage:
         # PRD-116 R5: suppress candidate cards and tier headers under unhealthy lineage.
