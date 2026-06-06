@@ -243,6 +243,26 @@ def _parse_utc_timestamp(value: object) -> datetime | None:
     return dt.astimezone(timezone.utc)
 
 
+def _run_snapshot_freshness_token(value: object, now: datetime) -> str:
+    """PRD-167: relative-freshness token for the RUN SNAPSHOT field.
+
+    future-dated or age < 60s -> "<1 min old"; 60s <= age <= 300s ->
+    "N minute(s) old" (floored); age > 300s -> "STALE (>5 min)"; an
+    absent/None/empty/unparseable source -> "unavailable". `now` is passed in
+    (from `_utcnow()`) so the token is deterministic under a frozen clock.
+    """
+    parsed = _parse_utc_timestamp(value)
+    if parsed is None:
+        return "unavailable"
+    age_seconds = (now - parsed).total_seconds()
+    if age_seconds < 60:  # includes future-dated (negative age)
+        return "<1 min old"
+    if age_seconds <= DASHBOARD_STALE_AFTER_SECONDS:
+        minutes = int(age_seconds // 60)
+        return f"{minutes} minute{'s' if minutes != 1 else ''} old"
+    return "STALE (>5 min)"
+
+
 def _first_timestamp(obj: dict | None, paths: tuple[tuple[str, ...], ...]) -> tuple[object, datetime | None]:
     if not isinstance(obj, dict):
         return None, None
@@ -1861,10 +1881,11 @@ def render_dashboard_html(
         w(f'  <div class="field"><div class="label">Reason</div>'
           f'<div class="value">{_esc(_perm_reason)}</div></div>')
     w('  <div class="sep"></div>')
-    _snapshot_pt, _snapshot_orig = format_dashboard_timestamp(
-        str(payload_timestamp_value or timestamp)
+    # PRD-167: RUN SNAPSHOT renders relative freshness, not an absolute PT
+    # timestamp (PRD-158 §4.2). `_utcnow()` is the frozen-in-tests reference.
+    _snapshot_text = _run_snapshot_freshness_token(
+        payload_timestamp_value or timestamp, _utcnow()
     )
-    _snapshot_text = _snapshot_pt or _snapshot_orig or "unavailable"
     w('  <div class="label">RUN SNAPSHOT</div>')
     w(f'  <div class="value">{_esc(_snapshot_text)}</div>')
     w("</div>")

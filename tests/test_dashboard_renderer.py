@@ -623,28 +623,60 @@ def test_system_state_contains_run_snapshot() -> None:
     assert "RUN SNAPSHOT" in state
 
 
-def test_run_snapshot_renders_absolute_pt_timestamp() -> None:
-    # RUN SNAPSHOT shows the absolute snapshot timestamp (PT); data currency
-    # is judged from the visible timestamp, not a relative-age/STALE badge.
-    ts = "2026-05-05T20:29:00Z"
+def test_run_snapshot_renders_relative_freshness_not_absolute(monkeypatch: pytest.MonkeyPatch) -> None:
+    # PRD-167: RUN SNAPSHOT renders relative freshness (N minutes old), never an
+    # absolute PT timestamp. _utcnow is frozen so the token is deterministic.
+    from cuttingboard.delivery import dashboard_renderer as _dr
+    ts = "2026-04-28T12:00:00Z"
+    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 4, 28, 12, 3, 0, tzinfo=timezone.utc))
     payload = _payload(timestamp=ts)
     run = _run_with_timestamp(ts)
     html = render_dashboard_html(payload, run)
     snapshot = _system_state_block(html).split("RUN SNAPSHOT", 1)[1]
-    assert " PT" in snapshot
+    assert "3 minutes old" in snapshot
+    assert " PT" not in snapshot
     assert "STALE" not in snapshot
-    assert "minute" not in snapshot
 
 
-def test_run_snapshot_old_timestamp_not_marked_stale() -> None:
-    # No staleness badge: an old snapshot still renders its plain PT timestamp.
-    old_ts = "2020-01-01T00:00:00Z"
-    payload = _payload(timestamp=old_ts)
-    run = _run_with_timestamp(old_ts)
+def test_run_snapshot_old_timestamp_marked_stale(monkeypatch: pytest.MonkeyPatch) -> None:
+    # PRD-167: a snapshot older than DASHBOARD_STALE_AFTER_SECONDS renders STALE,
+    # not a plain PT timestamp.
+    from cuttingboard.delivery import dashboard_renderer as _dr
+    ts = "2026-04-28T12:00:00Z"
+    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 4, 28, 12, 10, 0, tzinfo=timezone.utc))
+    payload = _payload(timestamp=ts)
+    run = _run_with_timestamp(ts)
     html = render_dashboard_html(payload, run)
     snapshot = _system_state_block(html).split("RUN SNAPSHOT", 1)[1]
-    assert " PT" in snapshot
-    assert "STALE" not in snapshot
+    assert "STALE" in snapshot
+    assert " PT" not in snapshot
+
+
+@pytest.mark.parametrize(
+    "age_seconds,expected",
+    [
+        (30, "<1 min old"),          # sub-minute
+        (59, "<1 min old"),
+        (60, "1 minute old"),
+        (180, "3 minutes old"),
+        (300, "5 minutes old"),      # exactly at threshold
+        (301, "STALE (>5 min)"),     # just past threshold
+        (-60, "<1 min old"),         # future-dated -> no negative token
+    ],
+)
+def test_prd167_run_snapshot_freshness_token_boundaries(age_seconds: int, expected: str) -> None:
+    from cuttingboard.delivery.dashboard_renderer import _run_snapshot_freshness_token
+    base = datetime(2026, 4, 28, 12, 0, 0, tzinfo=timezone.utc)
+    ts = "2026-04-28T12:00:00Z"
+    now = base + timedelta(seconds=age_seconds)
+    assert _run_snapshot_freshness_token(ts, now) == expected
+
+
+@pytest.mark.parametrize("bad", [None, "", "not-a-date", 12345])
+def test_prd167_run_snapshot_freshness_token_unavailable(bad: object) -> None:
+    from cuttingboard.delivery.dashboard_renderer import _run_snapshot_freshness_token
+    now = datetime(2026, 4, 28, 12, 0, 0, tzinfo=timezone.utc)
+    assert _run_snapshot_freshness_token(bad, now) == "unavailable"
 
 
 def test_main_block_no_original_utc_timestamp() -> None:
