@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 166,
-  "next_prd": 167,
+  "latest_complete": 167,
+  "next_prd": 168,
   "entries": [
     {
       "number": 56,
@@ -672,8 +672,8 @@
     {
       "number": 167,
       "title": "RUN SNAPSHOT relative-freshness token",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "3a4ee24"
     },
     {
       "number": 168,
