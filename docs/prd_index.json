@@ -680,6 +680,12 @@
       "title": "Suppress idle screen-verdict above populated candidate cards",
       "status": "COMPLETE",
       "commit": "0442647"
+    },
+    {
+      "number": 169,
+      "title": "Persist continuation_audit to logs/audit.jsonl",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
