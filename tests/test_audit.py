@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from cuttingboard.audit import _build_record
+from cuttingboard.qualification import QualificationSummary
 from cuttingboard.trade_decision import ALLOW_TRADE, TradeDecision
 from cuttingboard.validation import ValidationSummary
 
@@ -59,3 +60,62 @@ def test_audit_trade_decisions_include_execution_policy_fields() -> None:
     assert decision["policy_allowed"] is True
     assert decision["policy_reason"] == "policy_allowed"
     assert decision["size_multiplier"] == 1.0
+
+
+def _qualification_summary(
+    continuation_audit: dict | None,
+) -> QualificationSummary:
+    return QualificationSummary(
+        regime_passed=True,
+        regime_short_circuited=False,
+        regime_failure_reason=None,
+        qualified_trades=[],
+        watchlist=[],
+        excluded={},
+        symbols_evaluated=0,
+        symbols_qualified=0,
+        symbols_watchlist=0,
+        symbols_excluded=0,
+        continuation_audit=continuation_audit,
+    )
+
+
+def test_audit_record_persists_continuation_audit() -> None:
+    # PRD-169 R1: the EXPANSION continuation-rejection tally is persisted
+    # verbatim onto the canonical pipeline record.
+    continuation_audit = {"total_candidates": 3, "accepted": 1, "NO_BREAKOUT": 2}
+    record = _build_record(
+        run_at_utc=RUN_AT,
+        date_str="2026-04-29",
+        outcome="TRADE",
+        regime=None,
+        validation_summary=_validation_summary(),
+        qualification_summary=_qualification_summary(continuation_audit),
+        option_setups=[],
+        trade_decisions=[],
+        halt_reason=None,
+        alert_sent=False,
+        report_path="reports/2026-04-29.md",
+    )
+
+    assert record["continuation_audit"] == continuation_audit
+
+
+def test_audit_record_continuation_audit_none_when_no_summary() -> None:
+    # PRD-169 R1: a None qualification summary yields a None field, not a
+    # missing key.
+    record = _build_record(
+        run_at_utc=RUN_AT,
+        date_str="2026-04-29",
+        outcome="NO_TRADE",
+        regime=None,
+        validation_summary=_validation_summary(),
+        qualification_summary=None,
+        option_setups=[],
+        trade_decisions=[],
+        halt_reason=None,
+        alert_sent=False,
+        report_path="reports/2026-04-29.md",
+    )
+
+    assert record["continuation_audit"] is None

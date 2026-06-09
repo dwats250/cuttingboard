@@ -223,6 +223,7 @@ def _build_record(
         "symbols_excluded":       qual.symbols_excluded if qual else 0,
         "regime_short_circuited": qual.regime_short_circuited if qual else None,
         "regime_failure_reason":  qual.regime_failure_reason if qual else None,
+        "continuation_audit":     qual.continuation_audit if qual else None,
 
         # Trades
         "qualified_trades":       qualified_list,
