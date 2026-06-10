@@ -191,6 +191,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-171 | d98ee31 | Sync PRD templates' status markers to the prd_close.sh flip convention | COMPLETE | [PRD-171](prd_history/PRD-171.md) |
 | PRD-172 | 91b9dd2 | prd_close.sh baseline-bullet regex tolerates the N-xfailed suffix | COMPLETE | [PRD-172](prd_history/PRD-172.md) |
 | PRD-173 | a5e47f2 | runtime/ package skeleton (Stage A of the runtime.py split) | COMPLETE | [PRD-173](prd_history/PRD-173.md) |
+| PRD-174 | — | Populate trend-structure OHLCV on STAY_FLAT hourly runs | IN PROGRESS | [PRD-174](prd_history/PRD-174.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

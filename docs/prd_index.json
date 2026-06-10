@@ -710,6 +710,12 @@
       "title": "runtime/ package skeleton (Stage A of the runtime.py split)",
       "status": "COMPLETE",
       "commit": "a5e47f2"
+    },
+    {
+      "number": 174,
+      "title": "Populate trend-structure OHLCV on STAY_FLAT hourly runs",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
