@@ -41,11 +41,26 @@ Codex CLI's sandbox is governed by its own config, not this repo's
 
 **Trust level recorded:** Codex output is trusted as an independent
 second-model review opinion; Codex *runs* are not trusted as
-read-only. Accepted as-is for now — backstops are the in-sandbox
-network-off no-push guarantee and a `git status` check after review
-runs. If tighter containment is wanted later, invoke reviews as
-`codex exec -s read-only` (flag verified present in codex-cli
-0.139.0).
+read-only by default.
+
+**Same-day update — review path flipped to read-only by invocation,
+not just no-push-by-no-network.** Verified first that the artifact
+flow tolerates it: session logs for the PRD-170 review runs show
+Codex executed only read commands (`rg`/`sed`/`nl`/read-only Python
+AST analysis) and emitted the verdict on stdout; the
+`.review.codex.md` artifact is written by a shell stdout redirect on
+the Claude Code side, outside the Codex sandbox, so the sandbox mode
+cannot affect it. Smoke-tested `codex exec -s read-only` end-to-end
+(2026-06-10 session log records `sandbox_policy: {"type":
+"read-only"}`). CLAUDE.md workflow patterns now route all Codex
+*review* invocations (PRD cross-review, vision review, pre-merge
+review) through `codex exec -s read-only - < prompt`.
+
+**Follow-up (logged, not applied):** `~/.codex/config.toml` marks
+`"/"` as `trust_level = "trusted"` — whole-filesystem trust, broader
+than anything needs. Tighten to this repo's path (and the other
+project paths actually used) only. User-level config change, outside
+this repo; flagged for Dustin.
 
 Same audit also added the fourth PRD-author discipline to CLAUDE.md
 (sub-agent sweep re-verification: the main agent re-runs the single

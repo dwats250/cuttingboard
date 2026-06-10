@@ -83,6 +83,12 @@ with date and rationale.
 - Invoke Codex when the value is a *genuinely independent second model* —
   PRD cross-review, vision review of a proposed PRD, structured code review
   before merge. Not for tasks `Explore` can do.
+- All Codex *review* invocations run sandboxed read-only:
+  `codex exec -s read-only - < prompt` (prompt via stdin, verdict
+  captured from stdout). The review artifact
+  (`docs/prd_history/PRD-NNN.review.codex.md`) is written by Claude
+  Code from captured stdout — Codex never writes into the repo tree.
+  (Verified 2026-06-10; see `docs/DECISIONS.md`.)
 - Do not invoke Codex or subagents for: simple greps, git operations,
   mechanical edits.
 - When two reviews are independent (e.g. Claude vision review + Codex
