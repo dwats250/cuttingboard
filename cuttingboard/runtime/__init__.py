@@ -18,7 +18,6 @@ import logging
 import subprocess
 import sys
 from contextlib import contextmanager
-from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -63,12 +62,6 @@ from cuttingboard.macro_pressure import build_macro_pressure
 from cuttingboard.normalization import NormalizedQuote, normalize_all
 from cuttingboard.notifications import (
     NOTIFY_MODES,
-    NOTIFY_ORB_TRAJECTORY,
-    NOTIFY_POST_ORB,
-    NOTIFY_MIDMORNING,
-    NOTIFY_POWER_HOUR,
-    NOTIFY_MARKET_CLOSE,
-    NOTIFY_HOURLY,
     format_failure_notification,
     format_hourly_notification,
     format_notification,
@@ -119,135 +112,46 @@ from cuttingboard.universe import is_tradable_symbol
 from cuttingboard.validation import ValidationSummary, extract_fetch_failures, validate_quotes
 from cuttingboard.watch import WatchSummary, classify_watchlist, compute_all_intraday_metrics
 
+# PRD-173: constants + pipeline dataclasses live in L0 leaf modules and are
+# re-exported here so the cuttingboard.runtime.<name> surface (including
+# setattr-patched path constants) is preserved unchanged.
+from cuttingboard.runtime._constants import (
+    MODE_LIVE as MODE_LIVE,
+    MODE_FIXTURE as MODE_FIXTURE,
+    MODE_SUNDAY as MODE_SUNDAY,
+    MODE_VERIFY as MODE_VERIFY,
+    MODE_PREFETCH as MODE_PREFETCH,
+    _REGIME_ONLY_MODES as _REGIME_ONLY_MODES,
+    _QUALIFY_ONLY_MODES as _QUALIFY_ONLY_MODES,
+    _HOURLY_MODES as _HOURLY_MODES,
+    SUMMARY_MODE_LIVE as SUMMARY_MODE_LIVE,
+    SUMMARY_MODE_FIXTURE as SUMMARY_MODE_FIXTURE,
+    SUMMARY_MODE_SUNDAY as SUMMARY_MODE_SUNDAY,
+    SUMMARY_STATUS_SUCCESS as SUMMARY_STATUS_SUCCESS,
+    SUMMARY_STATUS_FAIL as SUMMARY_STATUS_FAIL,
+    REPORTS_DIR as REPORTS_DIR,
+    LOGS_DIR as LOGS_DIR,
+    LATEST_RUN_PATH as LATEST_RUN_PATH,
+    LATEST_HOURLY_RUN_PATH as LATEST_HOURLY_RUN_PATH,
+    LATEST_HOURLY_CONTRACT_PATH as LATEST_HOURLY_CONTRACT_PATH,
+    LATEST_HOURLY_PAYLOAD_PATH as LATEST_HOURLY_PAYLOAD_PATH,
+    HOURLY_REPORT_PATH as HOURLY_REPORT_PATH,
+    MARKET_MAP_PATH as MARKET_MAP_PATH,
+    LATEST_HOURLY_MARKET_MAP_PATH as LATEST_HOURLY_MARKET_MAP_PATH,
+    TREND_STRUCTURE_PATH as TREND_STRUCTURE_PATH,
+    WATCHLIST_PATH as WATCHLIST_PATH,
+    DEFAULT_FIXTURE_DIR as DEFAULT_FIXTURE_DIR,
+    VALID_REGIMES as VALID_REGIMES,
+    VALID_POSTURES as VALID_POSTURES,
+    _FIXTURE_QUOTE_FIELDS as _FIXTURE_QUOTE_FIELDS,
+    _PERMISSION_LINES as _PERMISSION_LINES,
+)
+from cuttingboard.runtime._types import (
+    PipelineResult as PipelineResult,
+    _PartialPipelineResult as _PartialPipelineResult,
+)
+
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class _PartialPipelineResult:
-    """Lightweight view passed to the contract builder before PipelineResult is frozen."""
-    mode: str
-    generation_id: str
-    run_at_utc: datetime
-    date_str: str
-    raw_quotes: dict
-    normalized_quotes: dict
-    validation_summary: Any
-    regime: Any
-    router_mode: str
-    qualification_summary: Any
-    watch_summary: Any
-    option_setups: list
-    chain_results: dict
-    alert_sent: bool
-    report_path: str
-    errors: list
-    correlation: Optional[CorrelationResult] = None
-    trade_decisions: list[TradeDecision] = field(default_factory=list)
-    thesis_map: Optional[dict] = None
-    invalidation_guidance_map: Optional[dict] = None
-    entry_quality_map: Optional[dict] = None
-
-
-MODE_LIVE = "live"
-MODE_FIXTURE = "fixture"
-MODE_SUNDAY = "sunday"
-MODE_VERIFY = "verify"
-MODE_PREFETCH = "prefetch"
-
-# Notify modes that skip the full pipeline (not premarket)
-_REGIME_ONLY_MODES = frozenset({NOTIFY_ORB_TRAJECTORY, NOTIFY_MIDMORNING})
-_QUALIFY_ONLY_MODES = frozenset({NOTIFY_POST_ORB, NOTIFY_POWER_HOUR, NOTIFY_MARKET_CLOSE})
-_HOURLY_MODES = frozenset({NOTIFY_HOURLY})
-
-SUMMARY_MODE_LIVE = "LIVE"
-SUMMARY_MODE_FIXTURE = "FIXTURE"
-SUMMARY_MODE_SUNDAY = "SUNDAY"
-
-SUMMARY_STATUS_SUCCESS = "SUCCESS"
-SUMMARY_STATUS_FAIL = "FAIL"
-
-REPORTS_DIR = Path("reports")
-LOGS_DIR = Path("logs")
-LATEST_RUN_PATH = LOGS_DIR / "latest_run.json"
-LATEST_HOURLY_RUN_PATH = LOGS_DIR / "latest_hourly_run.json"
-LATEST_HOURLY_CONTRACT_PATH = LOGS_DIR / "latest_hourly_contract.json"
-LATEST_HOURLY_PAYLOAD_PATH = LOGS_DIR / "latest_hourly_payload.json"
-HOURLY_REPORT_PATH = REPORTS_DIR / "output" / "hourly_report.html"
-MARKET_MAP_PATH = LOGS_DIR / "market_map.json"
-# PRD-166 D1/D2: hourly pipeline writes/reads an isolated market_map artifact so
-# the shared MARKET_MAP_PATH can never be the source of an hourly render's
-# PRD-118 R3 lineage mismatch. Default/fixture writes stay on MARKET_MAP_PATH.
-LATEST_HOURLY_MARKET_MAP_PATH = LOGS_DIR / "latest_hourly_market_map.json"
-TREND_STRUCTURE_PATH = LOGS_DIR / "trend_structure_snapshot.json"
-WATCHLIST_PATH = LOGS_DIR / "watchlist_snapshot.json"
-DEFAULT_FIXTURE_DIR = Path("tests/fixtures")
-
-VALID_REGIMES = {"RISK_ON", "RISK_OFF", "NEUTRAL", "CHAOTIC", "EXPANSION"}
-VALID_POSTURES = {
-    "AGGRESSIVE_LONG",
-    "CONTROLLED_LONG",
-    "DEFENSIVE_SHORT",
-    "NEUTRAL_PREMIUM",
-    "STAY_FLAT",
-    "EXPANSION_LONG",
-}
-
-_FIXTURE_QUOTE_FIELDS = {
-    "symbol",
-    "price",
-    "pct_change_decimal",
-    "volume",
-    "fetched_at_utc",
-    "source",
-    "units",
-    "age_seconds",
-}
-
-_PERMISSION_LINES: dict[str, str] = {
-    "AGGRESSIVE_LONG": "Long bias — trend continuation allowed.",
-    "CONTROLLED_LONG": "Long bias — defined risk preferred.",
-    "DEFENSIVE_SHORT": "Short bias — breakdown trades allowed.",
-    "NEUTRAL_PREMIUM": "Selective only — defined risk, R:R >= 3:1.",
-    "STAY_FLAT":       "No new trades permitted.",
-    "EXPANSION_LONG":  "EXPANSION — momentum allowed. Continuation entries. R:R >= 1.5.",
-}
-
-
-@dataclass(frozen=True)
-class PipelineResult:
-    mode: str
-    generation_id: str
-    run_at_utc: datetime
-    date_str: str
-    raw_quotes: dict[str, RawQuote]
-    normalized_quotes: dict[str, NormalizedQuote]
-    validation_summary: ValidationSummary
-    regime: Optional[RegimeState]
-    router_mode: str
-    energy_score: float
-    index_score: float
-    qualification_summary: Optional[QualificationSummary]
-    watch_summary: Optional[WatchSummary]
-    candidates_generated: int
-    option_setups: list[OptionSetup]
-    trade_decisions: list[TradeDecision]
-    suppressed_candidates: list[SuppressedCandidate]
-    chain_results: dict[str, ChainValidationResult]
-    outcome: str
-    alert_sent: bool
-    report: str
-    report_path: str
-    audit_record: dict[str, Any]
-    warnings: list[str]
-    errors: list[str]
-    summary: dict[str, Any]
-    contract: dict[str, Any]
-    correlation: Optional[CorrelationResult] = None
-    premarket_report: dict[str, Any] = field(default_factory=dict)
-    postmarket_report: dict[str, Any] = field(default_factory=dict)
-    market_map: dict[str, Any] = field(default_factory=dict)
-    visibility_map: dict[str, dict] = field(default_factory=dict)
-    explanation_map: dict[str, dict] = field(default_factory=dict)
 
 
 def build_parser() -> argparse.ArgumentParser:

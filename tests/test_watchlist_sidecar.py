@@ -171,7 +171,7 @@ def test_runtime_call_site_has_explicit_halt_guard() -> None:
     `if not validation_summary.system_halted:` guard. Branch inheritance
     is unavailable — the hourly artifact block is a sibling of the HALT
     branch, not nested inside it."""
-    src = Path(__file__).resolve().parent.parent / "cuttingboard" / "runtime.py"
+    src = Path(__file__).resolve().parent.parent / "cuttingboard" / "runtime" / "__init__.py"
     lines = src.read_text(encoding="utf-8").splitlines()
 
     trend_close_idx = next(

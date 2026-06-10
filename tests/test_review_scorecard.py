@@ -203,7 +203,7 @@ def test_review_scorecard_not_imported_by_runtime():
     import ast
     from pathlib import Path
 
-    guarded = ["runtime.py", "contract.py"]
+    guarded = ["runtime/__init__.py", "contract.py"]
     for fname in guarded:
         fpath = Path("cuttingboard") / fname
         if not fpath.exists():
