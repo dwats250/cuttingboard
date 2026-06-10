@@ -728,6 +728,12 @@
       "title": "Red-folder economic calendar static schedule and loader",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 177,
+      "title": "Dashboard realignment pass 2: section cuts, four-questions reorder, macro evidence, new sidecar sections",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

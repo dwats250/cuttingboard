@@ -194,6 +194,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-174 | — | Populate trend-structure OHLCV on STAY_FLAT hourly runs | IN PROGRESS | [PRD-174](prd_history/PRD-174.md) |
 | PRD-175 | — | Historical regime scoreboard aggregation sidecar | IN PROGRESS | [PRD-175](prd_history/PRD-175.md) |
 | PRD-176 | — | Red-folder economic calendar static schedule and loader | IN PROGRESS | [PRD-176](prd_history/PRD-176.md) |
+| PRD-177 | — | Dashboard realignment pass 2: section cuts, four-questions reorder, macro evidence, new sidecar sections | IN PROGRESS | [PRD-177](prd_history/PRD-177.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

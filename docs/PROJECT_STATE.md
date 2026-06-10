@@ -40,7 +40,9 @@ See `CLAUDE.md § git hygiene and artifact discipline` and `scripts/` for pre-co
 
 **Active PRD:** none
 **Deferred PRD:** none. PRD-150 was DEPRECATED on 2026-05-22 per vision review. PRD-153 was DEPRECATED on 2026-05-27 by the PRD-156 closeout (Moomoo subsystem deleted; named-consumer rule per `docs/audit_doctrine.md` made the join layer dead code). PRD-156 promoted to COMPLETE @ `3c6fcb4` on 2026-05-27.
-**Next step:** No active PRD. runtime.py-split roadmap (PRD-170): PRD-A skeleton COMPLETE as PRD-173; next is PRD-B — extract the L0 leaf functions (_iso_z -> runtime/_timeutil, _is_fixture_backed -> runtime/_constants) — then PRD-C ids_and_time, PRD-D intraday_permission, PRD-E fixtures, PRD-F artifacts, PRD-G summary, PRD-H failure_handling, PRD-I hourly. Startable at PRD-174.
+**Next step:** Two queued tracks, no implementation begun.
+(1) **Dashboard Value Recovery batch — PRD-174..177 scoped at Stage 0 on 2026-06-10** (docs only; no feature code). Recommended start order: PRD-174 (trend-structure flat-run data; EXECUTION/HIGH-RISK) first, then PRD-175 (regime-scoreboard sidecar; SIDECAR/STANDARD) and PRD-176 (red-folder calendar loader; SIDECAR/STANDARD) in either order, then PRD-177 (dashboard realignment pass 2; CONSUMER/HIGH-RISK) last. PRD-177 absorbs the SCOREBOARD + RED FOLDER render blocks from 175/176 (one HIGH-RISK renderer review instead of three) and hard-depends on PRD-174.
+(2) **runtime.py-split roadmap (PRD-170):** PRD-A skeleton COMPLETE as PRD-173; next is PRD-B — extract the L0 leaf functions (_iso_z -> runtime/_timeutil, _is_fixture_backed -> runtime/_constants) — then PRD-C ids_and_time, PRD-D intraday_permission, PRD-E fixtures, PRD-F artifacts, PRD-G summary, PRD-H failure_handling, PRD-I hourly. **Startable at PRD-178** (174-177 now consumed by the dashboard batch). PRD-174 edits _execute_notify_run, which stays in runtime/__init__.py across every split extraction, so the two tracks do not collide and PRD-B has no rebase dependency on PRD-174.
 
 **2026-06-04 real-run inspection (read-only; no PRD opened, no code/artifact change):** Inspected the latest real `CB hourly:` artifacts on `origin/main` to test whether the live ALLOW_TRADE sizing gate could close and to run the PRD-158 publish-verification hook. Findings:
 - **Live ALLOW_TRADE sizing confirmation — remains PENDING.** All six recent real hourly commits (2026-06-01 → 2026-06-04, latest `hourly-20260604T171635Z` @ `799d1af`) had `outcome=NO_TRADE` and `trade_candidates=0` / `ALLOW_TRADE=0`. **Structural note:** the hourly artifacts show `candidates_qualified > 0` (e.g. 10) but `option_setups_detail=0`, `chain_results_detail=0`, `trade_candidates=0` — i.e. the hourly path reports qualification counts but does **not** build the options/contract layer, so it likely **cannot** clear this gate. The gate therefore likely requires a **daily/full** real run (qualified → option setup → chain `VALIDATED` → execution-policy allowed). Latest daily artifact (`logs/latest_run.json`) is stale (`live-20260513`, NO_TRADE / 0 qualified). No PROJECT_STATE gate-status change: still PENDING.
@@ -92,6 +94,39 @@ All candidates surfaced by the 2026-05-28 surface-audit and 2026-05-27 verificat
   are inverted, with the renderer "now" frozen in tests. Expected ~40 LOC.
   *(The earlier `scripts/prd_open.sh` two-table bug once tracked under PRD-167
   was fixed in PRD-164 R1 `5764303`; the number is reassigned to this R3 split.)*
+
+### Dashboard Value Recovery batch (scoped 2026-06-10)
+
+Four PRDs opened at Stage 0 (registry IN PROGRESS rows + prd_index entries +
+docs/prd_history/PRD-174..177.md), scope-locked, no implementation begun.
+Origin: dashboard-redesign drafts reviewed against repo reality 2026-06-10.
+
+- **PRD-174 (EXECUTION, HIGH-RISK): trend-structure OHLCV on STAY_FLAT runs.**
+  Start first; hard prerequisite for PRD-177.
+- **PRD-175 (SIDECAR, STANDARD): regime-scoreboard aggregation sidecar.**
+  Render block deferred into PRD-177.
+- **PRD-176 (SIDECAR, STANDARD): red-folder economic-calendar loader.**
+  Render block deferred into PRD-177.
+- **PRD-177 (CONSUMER, HIGH-RISK): dashboard realignment pass 2.** Start last;
+  cuts Run History + Artifact Diagnostics, four-questions reorder, macro evidence
+  rows, and absorbs the SCOREBOARD + RED FOLDER render blocks from 175/176.
+
+### Deliberately parked (do not re-litigate from scratch)
+
+Surfaced and deferred during the 2026-06-10 dashboard-batch scoping. Each is
+parked with a named reason; reopen only under its stated condition.
+
+- **near-miss-surface** — "closest setup that failed qualification and which gate
+  killed it." High learning value but needs qualification.py introspection and
+  flirts with signal-engine creep. Earn it after PRD-175's scoreboard proves the
+  learning-layer concept. Cuts before additions.
+- **red-folder-entry-gate** — fail-closed entry/qualification gating on
+  red-folder event windows. Explicitly out of PRD-176 (which is render-only,
+  fail-open-visible). Needs its own fail-closed semantics design before opening.
+- **section-registry-refactor** — replace the renderer's inline section sequence
+  with a data-driven `[(section_id, render_fn)]` registry. Itself HIGH-RISK
+  renderer work; "cuts before additions" says prove the section churn first.
+  Reopen only if a renderer PRD after PRD-177 shows continued churn.
 
 **System direction:** deterministic, macro-aware, visibility-first, sidecar-oriented ecosystem.
 Canonical architecture references: `docs/system_logic_map.md`, `docs/artifact_flow_map.md`,
