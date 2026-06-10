@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 170,
-  "next_prd": 171,
+  "latest_complete": 171,
+  "next_prd": 172,
   "entries": [
     {
       "number": 56,
@@ -696,8 +696,8 @@
     {
       "number": 171,
       "title": "Sync PRD templates' status markers to the prd_close.sh flip convention",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "d98ee31"
     }
   ]
 }
