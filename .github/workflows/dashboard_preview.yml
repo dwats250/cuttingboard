@@ -1,0 +1,98 @@
+name: Dashboard Preview
+
+# PRD-178 — fresh-data preview of the dashboard for any ref, BEFORE merge to
+# main. Fetches fresh data with no notification credentials (sends degrade to
+# audited skip rows), renders through the real PRD-118/119 publish gates in
+# the ephemeral runner workspace, and uploads ui/ as a downloadable artifact.
+# This workflow can never send, commit, or deploy:
+#   - dispatch-only trigger (no schedule, no event triggers)
+#   - no notification secrets in env
+#   - permissions are read-only and there is no commit or deploy step
+#   - pages.yml triggers only on its own dispatch, the hourly workflow's
+#     completion, and main-branch pushes — none of which this workflow causes
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install package
+        run: pip install -e .
+
+      - name: Record preview start
+        id: starttime
+        run: echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Record checked-in dashboard size
+        id: oldsize
+        run: echo "bytes=$(stat -c %s ui/dashboard.html)" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch fresh data (no notification credentials)
+        run: python -m cuttingboard.alert_runner --force-slot
+
+      - name: Require fresh payload
+        # Inverts the hourly workflow's freshcheck semantics: a preview that
+        # cannot prove a fresh fetch FAILS instead of silently rendering
+        # whatever is checked in at the ref (PRD-178 R5).
+        run: |
+          set -euo pipefail
+          PAYLOAD=logs/latest_hourly_payload.json
+          START_TS=${{ steps.starttime.outputs.ts }}
+          if [ ! -f "$PAYLOAD" ]; then
+            echo "FAIL: alert_runner produced no hourly payload" >&2
+            exit 1
+          fi
+          payload_mtime=$(stat -c %Y "$PAYLOAD")
+          if [ "$payload_mtime" -lt "$START_TS" ]; then
+            echo "FAIL: payload not refreshed (mtime=$payload_mtime < start=$START_TS)" >&2
+            exit 1
+          fi
+          echo "fresh hourly payload detected (mtime=$payload_mtime >= start=$START_TS)"
+
+      - name: Render through the publish gates
+        # Targets ui/dashboard.html in the runner workspace so the PRD-118
+        # coherence and PRD-119 freshness gates execute on the real publish
+        # path against the fresh artifacts (PRD-178 R4). The write is
+        # ephemeral: nothing in this workflow commits or deploys it.
+        run: |
+          set -euo pipefail
+          python3 -m cuttingboard.delivery.dashboard_renderer \
+            --payload logs/latest_hourly_payload.json \
+            --run logs/latest_hourly_run.json \
+            --market-map-path logs/latest_hourly_market_map.json \
+            --output ui/dashboard.html
+          cp ui/dashboard.html ui/index.html
+          cmp ui/dashboard.html ui/index.html
+
+      - name: Report size delta
+        # The dashboard-publish-refresh skill's size_delta_override requires
+        # byte-delta evidence; these three lines are that evidence (R6).
+        run: |
+          set -euo pipefail
+          OLD=${{ steps.oldsize.outputs.bytes }}
+          NEW=$(stat -c %s ui/dashboard.html)
+          DELTA=$(awk -v o="$OLD" -v n="$NEW" 'BEGIN { printf "%+.2f", (n - o) / o * 100 }')
+          echo "checked-in size bytes: $OLD"
+          echo "rendered size bytes: $NEW"
+          echo "size delta percent: $DELTA"
+
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-preview-${{ github.run_number }}
+          path: ui/
+          retention-days: 7

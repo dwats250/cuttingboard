@@ -154,3 +154,134 @@ def test_hourly_workflow_renders_with_isolated_market_map_path() -> None:
         "--market-map-path logs/latest_hourly_market_map.json; without it the "
         "renderer falls back to the shared logs/market_map.json (PRD-166 R3)."
     )
+
+
+# --- PRD-178 R8 — Dashboard Preview workflow safety anchors ----------------
+#
+# The preview workflow's entire safety claim is structural: it cannot send,
+# commit, or deploy. These tests pin each anchor so a regression FAILS the
+# suite rather than smoke-passing.
+
+PREVIEW_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "dashboard_preview.yml"
+
+
+def _preview_workflow_text() -> str:
+    return PREVIEW_WORKFLOW.read_text(encoding="utf-8")
+
+
+def test_preview_workflow_is_dispatch_only() -> None:
+    """PRD-178 R1/R8(a) — the only trigger is workflow_dispatch.
+
+    Any schedule, push, pull_request, or workflow_run trigger would let the
+    preview run without an operator asking for it, and a push trigger on the
+    wrong ref could race the hourly publish path.
+    """
+
+    text = _preview_workflow_text()
+    assert "workflow_dispatch:" in text, (
+        "dashboard_preview.yml lost its workflow_dispatch trigger; the "
+        "preview must remain operator-dispatched."
+    )
+    for forbidden in ("schedule:", "push:", "pull_request:", "workflow_run:"):
+        assert forbidden not in text, (
+            f"dashboard_preview.yml contains forbidden trigger key "
+            f"{forbidden!r}; PRD-178 R1 requires workflow_dispatch as the "
+            "sole trigger."
+        )
+
+
+def test_preview_workflow_has_zero_telegram_capability() -> None:
+    """PRD-178 R2/R8(b) — no Telegram credential reaches any step.
+
+    send_telegram degrades to an audited skipped/not_configured no-op when
+    the env vars are absent (cuttingboard/output.py). Keeping the literal
+    out of the workflow file entirely is what guarantees absence.
+    """
+
+    text = _preview_workflow_text()
+    assert "TELEGRAM" not in text.upper(), (
+        "dashboard_preview.yml references TELEGRAM; the preview workflow "
+        "must not have send capability (PRD-178 R2)."
+    )
+
+
+def test_preview_workflow_cannot_commit_push_or_deploy() -> None:
+    """PRD-178 R3/R8(c) — no commit, push, or deploy step exists."""
+
+    text = _preview_workflow_text()
+    for forbidden in ("git commit", "git push", "deploy-pages", "ci_push_artifacts"):
+        assert forbidden not in text, (
+            f"dashboard_preview.yml contains {forbidden!r}; the preview "
+            "workflow must not be able to publish (PRD-178 R3)."
+        )
+
+
+def test_preview_workflow_permissions_exactly_contents_read() -> None:
+    """PRD-178 R3/R8(e) — permissions grant exactly contents: read.
+
+    Parses the single permissions block and requires it to contain exactly
+    one grant: ``contents: read``. Any additional key (pages, id-token,
+    contents: write) widens the blast radius beyond a read-only preview.
+    """
+
+    text = _preview_workflow_text()
+    lines = text.splitlines()
+    assert lines.count("permissions:") == 1, (
+        "dashboard_preview.yml must declare exactly one top-level "
+        "permissions block (found "
+        f"{lines.count('permissions:')})."
+    )
+    start = lines.index("permissions:")
+    block: list[str] = []
+    for line in lines[start + 1:]:
+        if not line.startswith(" ") or not line.strip():
+            break
+        block.append(line.strip())
+    assert block == ["contents: read"], (
+        "dashboard_preview.yml permissions block must be exactly "
+        f"['contents: read']; found {block!r} (PRD-178 R3)."
+    )
+
+
+def test_preview_workflow_renders_through_publish_gates_with_hourly_trio() -> None:
+    """PRD-178 R4/R8(d) — render parity with the hourly publish path.
+
+    The render step must consume the exact hourly artifact trio and target
+    ui/dashboard.html (runner workspace) so validate_coherent_publish runs
+    its PRD-118 coherence and PRD-119 freshness checks against fresh data,
+    then mirror the publish copy contract (cp + cmp to ui/index.html).
+    """
+
+    text = _preview_workflow_text()
+    render_step = text[text.index("- name: Render through the publish gates"):]
+    render_step = render_step[: render_step.index("- name: Report size delta")]
+
+    for anchor in (
+        "--payload logs/latest_hourly_payload.json",
+        "--run logs/latest_hourly_run.json",
+        "--market-map-path logs/latest_hourly_market_map.json",
+        "--output ui/dashboard.html",
+        "cp ui/dashboard.html ui/index.html",
+        "cmp ui/dashboard.html ui/index.html",
+    ):
+        assert anchor in render_step, (
+            f"missing anchor in dashboard_preview.yml render step: "
+            f"{anchor!r} (PRD-178 R4 render parity with hourly_alert.yml)."
+        )
+
+
+def test_preview_workflow_freshness_check_precedes_render() -> None:
+    """PRD-178 R5 — the fail-hard freshness check runs before the render.
+
+    A preview that renders without proving a fresh fetch silently shows
+    whatever data is checked in at the ref — the exact failure mode this
+    workflow exists to eliminate.
+    """
+
+    text = _preview_workflow_text()
+    assert text.index("- name: Require fresh payload") < text.index(
+        "- name: Render through the publish gates"
+    ), (
+        "dashboard_preview.yml renders before the Require fresh payload "
+        "step; the freshness check must gate the render (PRD-178 R5)."
+    )
