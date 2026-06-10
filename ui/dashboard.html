@@ -12,11 +12,9 @@
 <div class="block" id="system-state">
   <h2>SYSTEM STATE - NO TRADE</h2>
   <div class="row">
-    <div class="field"><div class="label">Regime</div><div class="value"><span class="badge NEUTRAL">Stand down</span></div></div>
-    <div class="field"><div class="label">Outcome</div><div class="value">NO_TRADE</div></div>
+    <div class="field"><div class="label">Regime</div><div class="value"><span class="badge RISK_OFF">Shorts allowed</span></div></div>
   </div>
   <div class="row">
-    <div class="field warn"><div class="label">Permission</div><div class="value">STAY_FLAT posture</div></div>
   </div>
   <div class="sep"></div>
   <div class="label">RUN SNAPSHOT</div>
@@ -24,24 +22,24 @@
 </div>
 <div class="block" id="macro-tape">
   <h2>Macro Tape</h2>
-  <div class="macro-bias mixed">MACRO BIAS: MIXED</div>
-  <div class="macro-spot-metals-row"><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">XAU ↓</span><span class="macro-tape-value" data-symbol="XAU">4198.2</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">XAG ↑</span><span class="macro-tape-value" data-symbol="XAG">64.52</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">BTC ↓</span><span class="macro-tape-value" data-symbol="BTC">61.3K</span></span></div>
-  <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">VIX ↑</span><span class="macro-tape-value" data-symbol="VIX">20.8</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">DXY ↓</span><span class="macro-tape-value" data-symbol="DXY">99.9</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">10Y ↓</span><span class="macro-tape-value" data-symbol="10Y">4.53</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">OIL ↓</span><span class="macro-tape-value" data-symbol="OIL">88.0</span></span></div>
+  <div class="macro-bias short">MACRO BIAS: SHORT ↓</div>
+  <div class="macro-spot-metals-row"><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">XAU ↓</span><span class="macro-tape-value" data-symbol="XAU">4101.4</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">XAG ↓</span><span class="macro-tape-value" data-symbol="XAG">63.70</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">BTC ↑</span><span class="macro-tape-value" data-symbol="BTC">61.7K</span></span></div>
+  <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">VIX ↑</span><span class="macro-tape-value" data-symbol="VIX">22.0</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">DXY ↑</span><span class="macro-tape-value" data-symbol="DXY">100.0</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">10Y ↑</span><span class="macro-tape-value" data-symbol="10Y">4.54</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">OIL ↑</span><span class="macro-tape-value" data-symbol="OIL">90.3</span></span></div>
   <div class="sep"></div>
   <div class="macro-tradables-grid">
-    <span class="tradable-cell"><span class="macro-tape-label">SPY</span>&nbsp;<span class="macro-tape-value" data-symbol="SPY">737.05</span></span>
-    <span class="tradable-cell"><span class="macro-tape-label">QQQ</span>&nbsp;<span class="macro-tape-value" data-symbol="QQQ">707.83</span></span>
-    <span class="tradable-cell"><span class="macro-tape-label">GLD</span>&nbsp;<span class="macro-tape-value" data-symbol="GLD">390.78</span></span>
-    <span class="tradable-cell"><span class="macro-tape-label">GDX</span>&nbsp;<span class="macro-tape-value" data-symbol="GDX">77.59</span></span>
-    <span class="tradable-cell"><span class="macro-tape-label">SLV</span>&nbsp;<span class="macro-tape-value" data-symbol="SLV">59.01</span></span>
-    <span class="tradable-cell"><span class="macro-tape-label">XLE</span>&nbsp;<span class="macro-tape-value" data-symbol="XLE">57.39</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">SPY</span>&nbsp;<span class="macro-tape-value" data-symbol="SPY">725.49</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">QQQ</span>&nbsp;<span class="macro-tape-value" data-symbol="QQQ">693.69</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">GLD</span>&nbsp;<span class="macro-tape-value" data-symbol="GLD">374.66</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">GDX</span>&nbsp;<span class="macro-tape-value" data-symbol="GDX">73.84</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">SLV</span>&nbsp;<span class="macro-tape-value" data-symbol="SLV">57.65</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">XLE</span>&nbsp;<span class="macro-tape-value" data-symbol="XLE">58.25</span></span>
   </div>
   <details id="macro-pressure">
     <summary>MACRO PRESSURE ▶</summary>
     <div class="pressure-grid">
     <span class="value">VIX blocks longs</span>
-    <span class="value">DXY supports risk-on</span>
-    <span class="value">BTC pressures risk-on</span>
+    <span class="value">DXY pressures longs</span>
+    <span class="value">BTC supports risk-on</span>
     </div>
   </details>
 </div>
@@ -59,39 +57,39 @@
     <tbody>
       <tr>
         <td style="padding:2px 8px;white-space:nowrap">SPY</td>
-        <td style="padding:2px 8px;white-space:nowrap">737.05</td>
+        <td style="padding:2px 8px;white-space:nowrap">725.49</td>
         <td style="padding:2px 8px;white-space:nowrap">ABOVE</td>
-        <td style="padding:2px 8px;white-space:nowrap">1.77</td>
+        <td style="padding:2px 8px;white-space:nowrap">1.78</td>
         <td style="padding:2px 8px;white-space:nowrap">SMA history insufficient</td>
         <td style="padding:2px 8px;white-space:nowrap">VWAP not applicable</td>
       </tr>
       <tr>
         <td style="padding:2px 8px;white-space:nowrap">QQQ</td>
-        <td style="padding:2px 8px;white-space:nowrap">707.83</td>
+        <td style="padding:2px 8px;white-space:nowrap">693.69</td>
         <td style="padding:2px 8px;white-space:nowrap">ABOVE</td>
-        <td style="padding:2px 8px;white-space:nowrap">2.08</td>
+        <td style="padding:2px 8px;white-space:nowrap">2.17</td>
         <td style="padding:2px 8px;white-space:nowrap">SMA history insufficient</td>
         <td style="padding:2px 8px;white-space:nowrap">VWAP not applicable</td>
       </tr>
       <tr>
         <td style="padding:2px 8px;white-space:nowrap">GDX</td>
-        <td style="padding:2px 8px;white-space:nowrap">77.59</td>
+        <td style="padding:2px 8px;white-space:nowrap">73.84</td>
         <td style="padding:2px 8px;white-space:nowrap">BELOW</td>
-        <td style="padding:2px 8px;white-space:nowrap">1.15</td>
+        <td style="padding:2px 8px;white-space:nowrap">1.16</td>
         <td style="padding:2px 8px;white-space:nowrap">SMA history insufficient</td>
         <td style="padding:2px 8px;white-space:nowrap">VWAP not applicable</td>
       </tr>
       <tr>
         <td style="padding:2px 8px;white-space:nowrap">GLD</td>
-        <td style="padding:2px 8px;white-space:nowrap">390.78</td>
+        <td style="padding:2px 8px;white-space:nowrap">374.66</td>
         <td style="padding:2px 8px;white-space:nowrap">BELOW</td>
-        <td style="padding:2px 8px;white-space:nowrap">1.54</td>
+        <td style="padding:2px 8px;white-space:nowrap">1.55</td>
         <td style="padding:2px 8px;white-space:nowrap">SMA history insufficient</td>
         <td style="padding:2px 8px;white-space:nowrap">VWAP not applicable</td>
       </tr>
       <tr>
         <td style="padding:2px 8px;white-space:nowrap">SLV</td>
-        <td style="padding:2px 8px;white-space:nowrap">59.01</td>
+        <td style="padding:2px 8px;white-space:nowrap">57.65</td>
         <td style="padding:2px 8px;white-space:nowrap">BELOW</td>
         <td style="padding:2px 8px;white-space:nowrap">1.49</td>
         <td style="padding:2px 8px;white-space:nowrap">SMA history insufficient</td>
@@ -99,8 +97,8 @@
       </tr>
       <tr>
         <td style="padding:2px 8px;white-space:nowrap">XLE</td>
-        <td style="padding:2px 8px;white-space:nowrap">57.39</td>
-        <td style="padding:2px 8px;white-space:nowrap">BELOW</td>
+        <td style="padding:2px 8px;white-space:nowrap">58.25</td>
+        <td style="padding:2px 8px;white-space:nowrap">ABOVE</td>
         <td style="padding:2px 8px;white-space:nowrap">1.24</td>
         <td style="padding:2px 8px;white-space:nowrap">SMA history insufficient</td>
         <td style="padding:2px 8px;white-space:nowrap">VWAP not applicable</td>
@@ -110,6 +108,7 @@
 </div>
 <div class="block" id="candidate-board">
   <h2>Market Map / Developing Setups</h2>
+  <div class="idle-summary">No qualifying short setups currently available.</div>
   <div class="idle-summary"><div>NO ACTIONABLE SETUPS</div><div>Market is not offering structure</div></div>
 </div>
 <div class="block" id="run-delta">
