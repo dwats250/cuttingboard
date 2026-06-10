@@ -195,7 +195,7 @@ if n != 1:
 
 # (d) Test baseline bullet
 state_text, n = re.subn(
-    r"^- \*\*\d[\d,]* passing\*\*[^\n]*$",
+    r"^- \*\*\d[\d,]* passing[^\n]*?\*\*[^\n]*$",
     f"- **{tests} passing** (as of {today}; {prd_id} added {added} tests)",
     state_text, count=1, flags=re.MULTILINE,
 )

@@ -698,6 +698,12 @@
       "title": "Sync PRD templates' status markers to the prd_close.sh flip convention",
       "status": "COMPLETE",
       "commit": "d98ee31"
+    },
+    {
+      "number": 172,
+      "title": "prd_close.sh baseline-bullet regex tolerates the N-xfailed suffix",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

@@ -188,3 +188,29 @@ def test_index_entry_completed(tmp_path: Path) -> None:
     entry = next(e for e in index["entries"] if e["number"] == 200)
     assert entry["status"] == "COMPLETE"
     assert entry["commit"] == "1234abc"
+
+
+# --- PRD-172: baseline bullet in the "N passing, M xfailed" form updates ---
+
+def test_baseline_bullet_with_xfailed_suffix_is_updated(tmp_path: Path) -> None:
+    # The default fixture bullet is already normalized ("- **2400 passing**");
+    # rewrite it to the real-world "- **2400 passing, 1 xfailed**" form, which
+    # the pre-PRD-172 regex (passing\*\*) failed to match.
+    tree = _make_tree(tmp_path)
+    state_path = tree / "docs" / "PROJECT_STATE.md"
+    state_path.write_text(
+        state_path.read_text().replace(
+            "- **2400 passing** (as of 2026-01-01; PRD-199 added 5 tests)",
+            "- **2400 passing, 1 xfailed** (as of 2026-01-01; PRD-199 added 5 tests)",
+        )
+    )
+    res = _run(tree)
+    assert res.returncode == 0, res.stderr
+    assert "WARN: test baseline bullet not found" not in res.stderr
+    state = _state(tree)
+    # --tests 2401 from _run(); bullet normalized to the new count, suffix gone.
+    # (Scope the negative check to the bullet form — the separate inline
+    # "**Test baseline:** 2400 passing, 1 xfailed." line is intentionally
+    # left untouched by the script.)
+    assert "- **2401 passing** (as of" in state
+    assert "- **2400 passing, 1 xfailed**" not in state
