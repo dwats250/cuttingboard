@@ -102,6 +102,12 @@ jobs:
         if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
         run: python3 scripts/check_readiness.py
 
+      - name: Aggregate regime history
+        if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
+        # PRD-175: fold logs/audit.jsonl (just written by the run) into the daily
+        # logs/regime_history.jsonl scoreboard before the artifact commit stages it.
+        run: python3 -m cuttingboard.delivery.regime_history
+
       - name: Commit hourly artifacts
         if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
         run: |
@@ -112,6 +118,7 @@ jobs:
           fi
           git add -f \
             logs/audit.jsonl \
+            logs/regime_history.jsonl \
             logs/market_map.json \
             logs/latest_hourly_market_map.json \
             logs/macro_drivers_snapshot.json \
