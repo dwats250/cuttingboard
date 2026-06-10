@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 174,
-  "next_prd": 175,
+  "latest_complete": 175,
+  "next_prd": 176,
   "entries": [
     {
       "number": 56,
@@ -720,8 +720,8 @@
     {
       "number": 175,
       "title": "Historical regime scoreboard aggregation sidecar",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "3de3809"
     },
     {
       "number": 176,
