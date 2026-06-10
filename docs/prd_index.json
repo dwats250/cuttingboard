@@ -692,6 +692,12 @@
       "title": "runtime.py Monolith Split: Cut-Line Doctrine and Extraction Roadmap (Design-Only Scoping)",
       "status": "COMPLETE",
       "commit": "c4e9537"
+    },
+    {
+      "number": 171,
+      "title": "Sync PRD templates' status markers to the prd_close.sh flip convention",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

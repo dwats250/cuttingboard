@@ -1,7 +1,6 @@
 PRD-NNN — [Title]
 
-STATUS
-IN PROGRESS
+Status: IN PROGRESS
 
 LANE
 <!-- MICRO | STANDARD | HIGH-RISK; see docs/PRD_PROCESS.md § LANE Axis -->
@@ -65,3 +64,5 @@ VALIDATION
 Manual:
 - [Step-by-step verification procedure]
 - [Each step has a binary expected result]
+
+STATUS: IN PROGRESS

@@ -4,8 +4,7 @@
 > CLAUDE.md § Micro-PRD eligibility. When in doubt, use the full
 > template at `docs/PRD_TEMPLATE.md`.**
 
-STATUS
-PROPOSED
+Status: PROPOSED
 
 LANE
 MICRO
@@ -74,3 +73,5 @@ COMMIT PLAN
 7. Commit: `PRD-NNN: <short imperative summary>`
 8. Bookkeeping commit: promote PRD-NNN to COMPLETE with the merge
    commit hash; set PROJECT_STATE active PRD → none.
+
+STATUS: PROPOSED

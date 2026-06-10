@@ -188,6 +188,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-168 | 0442647 | Suppress idle screen-verdict above populated candidate cards | COMPLETE | [PRD-168](prd_history/PRD-168.md) |
 | PRD-169 | 7b1d7ad | Persist continuation_audit to logs/audit.jsonl | COMPLETE | [PRD-169](prd_history/PRD-169.md) |
 | PRD-170 | c4e9537 | runtime.py Monolith Split: Cut-Line Doctrine and Extraction Roadmap (Design-Only Scoping) | COMPLETE | [PRD-170](prd_history/PRD-170.md) |
+| PRD-171 | — | Sync PRD templates' status markers to the prd_close.sh flip convention | IN PROGRESS | [PRD-171](prd_history/PRD-171.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
