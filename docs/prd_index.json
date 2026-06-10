@@ -734,6 +734,18 @@
       "title": "Dashboard realignment pass 2: section cuts, four-questions reorder, macro evidence, new sidecar sections",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 178,
+      "title": "Dashboard fresh-data preview loop (CI preview workflow + local preview script)",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
+      "number": 179,
+      "title": "Preview fixture/all-section-state coverage (fast-follow to PRD-178)",
+      "status": "PROPOSED",
+      "commit": null
     }
   ]
 }

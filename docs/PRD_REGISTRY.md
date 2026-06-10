@@ -195,6 +195,8 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-175 | 3de3809 | Historical regime scoreboard aggregation sidecar | COMPLETE | [PRD-175](prd_history/PRD-175.md) |
 | PRD-176 | 1555bc8 | Red-folder economic calendar static schedule and loader | COMPLETE | [PRD-176](prd_history/PRD-176.md) |
 | PRD-177 | — | Dashboard realignment pass 2: section cuts, four-questions reorder, macro evidence, new sidecar sections | IN PROGRESS | [PRD-177](prd_history/PRD-177.md) |
+| PRD-178 | — | Dashboard fresh-data preview loop (CI preview workflow + local preview script) | IN PROGRESS | [PRD-178](prd_history/PRD-178.md) |
+| PRD-179 | — | Preview fixture/all-section-state coverage (fast-follow to PRD-178) | PROPOSED | [PRD-179](prd_history/PRD-179.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
