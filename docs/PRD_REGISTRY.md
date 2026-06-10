@@ -193,7 +193,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-173 | a5e47f2 | runtime/ package skeleton (Stage A of the runtime.py split) | COMPLETE | [PRD-173](prd_history/PRD-173.md) |
 | PRD-174 | a62a218 | Populate trend-structure OHLCV on STAY_FLAT hourly runs | COMPLETE | [PRD-174](prd_history/PRD-174.md) |
 | PRD-175 | 3de3809 | Historical regime scoreboard aggregation sidecar | COMPLETE | [PRD-175](prd_history/PRD-175.md) |
-| PRD-176 | — | Red-folder economic calendar static schedule and loader | IN PROGRESS | [PRD-176](prd_history/PRD-176.md) |
+| PRD-176 | 1555bc8 | Red-folder economic calendar static schedule and loader | COMPLETE | [PRD-176](prd_history/PRD-176.md) |
 | PRD-177 | — | Dashboard realignment pass 2: section cuts, four-questions reorder, macro evidence, new sidecar sections | IN PROGRESS | [PRD-177](prd_history/PRD-177.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().

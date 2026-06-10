@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 175,
-  "next_prd": 176,
+  "latest_complete": 176,
+  "next_prd": 177,
   "entries": [
     {
       "number": 56,
@@ -726,8 +726,8 @@
     {
       "number": 176,
       "title": "Red-folder economic calendar static schedule and loader",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "1555bc8"
     },
     {
       "number": 177,
