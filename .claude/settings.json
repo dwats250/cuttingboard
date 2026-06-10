@@ -11,7 +11,11 @@
       "Bash(systemctl is-active *)",
       "Bash(systemctl is-enabled *)",
       "Bash(dpkg -l openssh-server)",
-      "Bash(ip -4 addr show)"
+      "Bash(ip -4 addr show)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python -m pytest *)",
+      "Bash(python3 tools/validate_prd_registry.py)",
+      "Bash(python tools/validate_prd_registry.py)"
     ]
   },
   "hooks": {
