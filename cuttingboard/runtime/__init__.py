@@ -538,7 +538,7 @@ def _execute_notify_run(
             )
             _write_trend_structure_snapshot(
                 normalized_quotes=normalized_quotes,
-                history_by_symbol=ohlcv,
+                history_by_symbol=_collect_trend_structure_history(ohlcv),
                 generated_at=run_at_utc,
             )
             if not validation_summary.system_halted:
@@ -1817,6 +1817,26 @@ def _write_market_map_file(market_map: dict[str, Any], path: Path | None = None)
 
 def _tradable_symbols() -> list[str]:
     return [s for s in config.ALL_SYMBOLS if s not in config.NON_TRADABLE_SYMBOLS]
+
+
+def _collect_trend_structure_history(
+    candidate_ohlcv: dict[str, pd.DataFrame],
+) -> dict[str, pd.DataFrame]:
+    """PRD-174: trend structure must render for every TREND_STRUCTURE_SYMBOL on
+    each hourly run, independent of regime.posture and of the trade-candidate set.
+
+    Reuse any frame already fetched for a candidate; fetch the remainder (cached
+    parquet with a 12h TTL keeps this cheap). A symbol whose fetch returns None is
+    omitted, so the builder resolves it to its existing unavailable sentinel.
+    """
+    history: dict[str, pd.DataFrame] = {}
+    for symbol in config.TREND_STRUCTURE_SYMBOLS:
+        df = candidate_ohlcv.get(symbol)
+        if df is None:
+            df = fetch_ohlcv(symbol)
+        if df is not None:
+            history[symbol] = df
+    return history
 
 
 def _write_trend_structure_snapshot(

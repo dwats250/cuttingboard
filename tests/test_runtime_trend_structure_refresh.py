@@ -21,13 +21,17 @@ from __future__ import annotations
 
 import inspect
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-from cuttingboard import runtime
+import pandas as pd
+
+from cuttingboard import config, runtime
 from cuttingboard.runtime import (
     MODE_FIXTURE,
     MODE_LIVE,
     MODE_SUNDAY,
+    _collect_trend_structure_history,
+    _execute_notify_run,
     _refresh_trend_structure_sidecar,
     _run_pipeline,
 )
@@ -162,3 +166,57 @@ def test_prd123_helper_signature_is_keyword_only() -> None:
         assert p.kind == inspect.Parameter.KEYWORD_ONLY, (
             f"parameter {p.name!r} must be keyword-only"
         )
+
+
+# --- PRD-174 — trend OHLCV populated regardless of posture --------------
+
+def test_prd174_collect_trend_history_covers_all_symbols_on_flat_run() -> None:
+    """R1: on a STAY_FLAT hourly run the candidate ohlcv dict is empty, but the
+    history handed to the writer must still cover every TREND_STRUCTURE_SYMBOL
+    whose fetch returns a frame. Posture is irrelevant to the helper."""
+    def _fake_fetch(symbol):
+        return pd.DataFrame({"Close": [1.0, 2.0]})
+
+    with patch.object(runtime, "fetch_ohlcv", side_effect=_fake_fetch):
+        history = _collect_trend_structure_history({})
+
+    assert set(history.keys()) == set(config.TREND_STRUCTURE_SYMBOLS), (
+        "every trend-structure symbol must be present on a flat run, "
+        f"got {sorted(history.keys())}"
+    )
+
+
+def test_prd174_collect_trend_history_reuses_candidates_and_omits_none() -> None:
+    """R1/R2: an already-fetched candidate frame is reused (not re-fetched), and
+    a symbol whose fetch returns None is omitted (so the builder resolves it to
+    its existing unavailable sentinel) without raising."""
+    spy = config.TREND_STRUCTURE_SYMBOLS[0]
+    missing = config.TREND_STRUCTURE_SYMBOLS[1]
+    candidate_frame = pd.DataFrame({"Close": [10.0]})
+
+    def _fake_fetch(symbol):
+        if symbol == missing:
+            return None
+        return pd.DataFrame({"Close": [3.0]})
+
+    fetch_mock = MagicMock(side_effect=_fake_fetch)
+    with patch.object(runtime, "fetch_ohlcv", fetch_mock):
+        history = _collect_trend_structure_history({spy: candidate_frame})
+
+    assert history[spy] is candidate_frame, "pre-fetched candidate frame must be reused"
+    assert spy not in [c.args[0] for c in fetch_mock.call_args_list], (
+        "a reused candidate frame must not be re-fetched"
+    )
+    assert missing not in history, "a None-fetch symbol must be omitted"
+
+
+def test_prd174_execute_notify_run_wires_trend_history_helper() -> None:
+    """R1 wiring: _execute_notify_run must feed the writer through the
+    posture-agnostic helper, inside the unconditional hourly-artifact block
+    (so STAY_FLAT runs are covered). Static-source regression, mirroring the
+    PRD-123 R7.6 pattern."""
+    src = inspect.getsource(_execute_notify_run)
+    assert "history_by_symbol=_collect_trend_structure_history(ohlcv)" in src, (
+        "the hourly trend-structure writer call must pass "
+        "_collect_trend_structure_history(ohlcv) as history_by_symbol"
+    )
