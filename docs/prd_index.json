@@ -722,6 +722,12 @@
       "title": "Historical regime scoreboard aggregation sidecar",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 176,
+      "title": "Red-folder economic calendar static schedule and loader",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
