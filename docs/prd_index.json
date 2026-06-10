@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 171,
-  "next_prd": 172,
+  "latest_complete": 172,
+  "next_prd": 173,
   "entries": [
     {
       "number": 56,
@@ -702,8 +702,8 @@
     {
       "number": 172,
       "title": "prd_close.sh baseline-bullet regex tolerates the N-xfailed suffix",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "91b9dd2"
     }
   ]
 }
