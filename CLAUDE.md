@@ -118,10 +118,11 @@ make it visible early.
 
 ### PRD-author disciplines
 
-Three checks every PRD author should run before submitting for review.
-Surfaced from the PRD-150 review arc (2026-05-22); see
+Four checks every PRD author should run before submitting for review.
+The first three surfaced from the PRD-150 review arc (2026-05-22); see
 `docs/DECISIONS.md` and `audits/recon-2026-05-22/prd-150-vision-review.md`
-for context.
+for context. The fourth surfaced from the sub-agent flow audit
+(2026-06-10).
 
 - **Dead-branch enumeration.** When retiring a code path (e.g. a
   short-circuit, a status value, a function), enumerate every
@@ -142,6 +143,12 @@ for context.
   pre-empted by an upstream channel is dead code with extra steps.
   If a channel is defensive-against-future-routing, declare it as
   such — don't claim it's currently active.
+- **Sub-agent sweep re-verification.** Any sub-agent grep/recon sweep
+  whose output feeds a PRD FILES boundary or a "nothing else
+  reads/calls this" claim must be re-verified before the claim counts:
+  the main agent re-runs the single decisive `rg` itself. One command;
+  it closes the false-all-clear path where an incomplete delegated
+  sweep manufactures a clean result.
 
 ## Anti-patterns
 

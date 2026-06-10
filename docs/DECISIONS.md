@@ -16,6 +16,42 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-10 — Codex exec sandbox verified: workspace-write + network off, not read-only
+
+The sub-agent flow audit (report-only, this date) flagged that the
+Codex CLI's sandbox is governed by its own config, not this repo's
+`.claude/settings.json` deny list. Verified empirically against
+`~/.codex/config.toml` and Codex session logs (the 7 most recent
+`codex_exec` runs from this repo, 2026-06-04 through 2026-06-09):
+
+- Effective policy on every run: `sandbox_policy` type
+  `workspace-write` with `network_access: false`;
+  `approval_policy: never`.
+- Driver: `~/.codex/config.toml` sets no explicit sandbox mode, but
+  marks this repo — and `"/"`, which is overly broad — as
+  `trust_level = "trusted"`, promoting `codex exec` from its
+  read-only default to workspace-write.
+- What holds: **no-push** holds transitively — network access is off
+  inside the sandbox, so `git push` cannot reach a remote.
+- What does NOT hold: **workspace-read**. Codex runs can write inside
+  the workspace and `/tmp` (`exclude_slash_tmp: false`). A review
+  invocation could in principle mutate the repo, and this repo's own
+  settings do not constrain it (`Bash(codex exec *)` is allowlisted
+  in `settings.local.json`).
+
+**Trust level recorded:** Codex output is trusted as an independent
+second-model review opinion; Codex *runs* are not trusted as
+read-only. Accepted as-is for now — backstops are the in-sandbox
+network-off no-push guarantee and a `git status` check after review
+runs. If tighter containment is wanted later, invoke reviews as
+`codex exec -s read-only` (flag verified present in codex-cli
+0.139.0).
+
+Same audit also added the fourth PRD-author discipline to CLAUDE.md
+(sub-agent sweep re-verification: the main agent re-runs the single
+decisive `rg` before a delegated sweep counts as evidence for a
+FILES boundary or a "nothing else reads this" claim).
+
 ## 2026-05-29 — Alignment cadence check #2 — PASS (no drift)
 
 Second cadence check (first since #1 established the post-VISION
