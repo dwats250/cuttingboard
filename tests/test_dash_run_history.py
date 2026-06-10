@@ -92,23 +92,19 @@ def test_run_delta_deterministic_output() -> None:
 
 
 # ---------------------------------------------------------------------------
-# PRD-042 — run history (preserved)
+# PRD-042 run history — CUT by PRD-177 R1 (debugging surface of no trader value)
 # ---------------------------------------------------------------------------
 
-def test_run_history_present() -> None:
+def test_run_history_section_cut() -> None:
+    # PRD-177 R1: the run-history section is gone regardless of history_runs.
     html = render_dashboard_html(_payload(), _run(), history_runs=[_run()])
-    assert 'id="run-history"' in html
+    assert 'id="run-history"' not in html
+    assert "NO_HISTORY" not in html
 
 
-def test_run_history_no_extra_fields() -> None:
-    history_run = _run(status="FAIL", system_halted=True, kill_switch=True, data_status="stale")
-    html    = render_dashboard_html(_payload(), _run(), history_runs=[history_run])
-    history = html.split('id="run-history"', 1)[1].lower()
-    for field in ("status", "system_halted", "kill_switch", "data_status", "outcome", "run_id"):
-        assert field not in history
-
-
-def test_run_history_deterministic_output() -> None:
+def test_run_history_argument_still_accepted_and_deterministic() -> None:
+    # history_runs remains a tolerated argument (loaded by main()); it renders
+    # nothing now, but passing it must not crash and stays deterministic.
     payload      = _payload()
     run          = _run()
     history_runs = [
@@ -142,6 +138,8 @@ def test_run_health_no_error_when_empty() -> None:
 def test_run_delta_no_previous_run_shows_no_previous_run() -> None:
     """When previous_run is None, Changes Since Last Run shows NO_PREVIOUS_RUN not SOURCE_MISSING."""
     html = render_dashboard_html(_payload(), _run(), previous_run=None)
-    delta = html.split('id="run-delta"', 1)[1].split('id="run-history"', 1)[0]
+    # PRD-177 R1/R2: run-history is cut; the run-delta block now ends at the
+    # scoreboard section that follows it.
+    delta = html.split('id="run-delta"', 1)[1].split('id="scoreboard"', 1)[0]
     assert "NO_PREVIOUS_RUN" in delta
     assert "SOURCE_MISSING" not in delta

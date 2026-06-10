@@ -29,6 +29,7 @@ from cuttingboard.delivery.dashboard_integrator import (
 from cuttingboard.delivery.macro_tape_layout import (
     MACRO_BIAS_CONTRA_CYCLICAL,
     MACRO_BIAS_DRIVERS,
+    MACRO_BIAS_INTERPRETATION,
     MACRO_ROW_1,
     MACRO_ROW_2,
     TRADABLES_ROW,
@@ -169,6 +170,7 @@ def _trend_structure_intraday_display(record: dict) -> str:
     band = _intraday_rvol_band(record.get("relative_volume"))
     return _TREND_STRUCTURE_INTRADAY_DISPLAY[(vwap_token, band)]
 HISTORY_LIMIT = 5
+SCOREBOARD_LIMIT = 10  # PRD-177 R4: render at most the 10 most-recent regime-history rows
 _DASHBOARD_REFRESH_SECONDS = 30
 DASHBOARD_STALE_AFTER_SECONDS = 300
 
@@ -676,6 +678,18 @@ _CSS = (
     ".failed-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-top:4px}"
     ".failed-card-fields .label{font-size:0.7rem}"
     ".failed-card-fields .value{margin-top:1px}"
+    ".macro-evidence{margin-top:8px;display:flex;flex-direction:column;gap:3px}"
+    ".macro-evidence-row{font-size:0.72rem;color:#aaa;display:flex;flex-wrap:wrap;gap:8px}"
+    ".macro-evidence-label{color:#ddd;min-width:46px}"
+    ".macro-evidence-vote{color:#888}"
+    ".macro-evidence-interp{color:#666;font-style:italic}"
+    "#red-folder .red-folder-event{font-size:0.78rem;margin-top:4px}"
+    ".red-folder-when{color:#ddd}"
+    ".red-folder-type{color:#888}"
+    ".red-folder-expiry{color:#ff9800;font-size:0.72rem;margin-top:6px}"
+    "#scoreboard .scoreboard-row{font-size:0.74rem;color:#bbb;display:flex;flex-wrap:wrap;gap:10px;margin-top:3px}"
+    ".scoreboard-date{color:#ddd;min-width:80px}"
+    ".scoreboard-spy{color:#888}"
 )
 
 _UP   = "↑"
@@ -948,6 +962,14 @@ def _pct_arrow(change_pct: float) -> str:
     if change_pct < 0:
         return _DOWN
     return _FLAT
+
+
+def _fmt_pct_signed(fraction: object) -> str:
+    """Format a fractional change (0.02 -> '+2.00%') with explicit sign for the
+    scoreboard. Returns 'n/a' for non-finite / non-numeric input."""
+    if not _is_finite_number(fraction):
+        return "n/a"
+    return f"{float(fraction) * 100:+.2f}%"
 
 
 def _direction_arrow(direction: str) -> str:
@@ -1568,6 +1590,8 @@ def render_dashboard_html(
     market_map_source: str | Path | None = None,
     contract_source: str | Path = _HOURLY_CONTRACT_PATH,
     trend_structure_snapshot: dict | None = None,
+    regime_history: list[dict] | None = None,
+    red_folder: dict | None = None,
     fixture_mode: bool = False,
 ) -> str:
     """Return deterministic Signal Forge dashboard HTML.
@@ -1974,6 +1998,41 @@ def render_dashboard_html(
     ]
     w('  <div class="macro-drivers-row">' + "".join(row_2_html) + "</div>")
 
+    # PRD-177: per-driver macro evidence. Surfaces the cyclicality-aware vote
+    # that already feeds the headline MACRO BIAS tally (same arrow map, same
+    # contra/pro-cyclical flip) plus a fixed interpretation string. Distinct
+    # classes (macro-evidence-*) keep this clear of the macro-tape-value /
+    # data-symbol slot contract asserted by the PRD-138 row-order tests.
+    w('  <div class="macro-evidence">')
+    for _row in (MACRO_ROW_1, MACRO_ROW_2):
+        for _slot in _row.slots:
+            if _slot.payload_key not in MACRO_BIAS_DRIVERS:
+                continue
+            _arrow = _tape_arrow_map.get(_slot.label, _DASH)
+            _cyc = (
+                "contra-cyclical"
+                if _slot.payload_key in MACRO_BIAS_CONTRA_CYCLICAL
+                else "pro-cyclical"
+            )
+            if _arrow in (_UP, _DOWN):
+                _risk_on = _arrow == _UP
+                if _slot.payload_key in MACRO_BIAS_CONTRA_CYCLICAL:
+                    _risk_on = not _risk_on
+                _vote = "risk-ON vote" if _risk_on else "risk-OFF vote"
+            else:
+                _vote = "no vote"
+            _interp = MACRO_BIAS_INTERPRETATION.get(_slot.payload_key, "")
+            _ev_value = tape_value_map.get(_slot.label, "")
+            w(
+                f'    <div class="macro-evidence-row">'
+                f'<span class="macro-evidence-label">{_esc(_slot.label)} {_esc(_arrow)}</span>'
+                f'<span class="macro-evidence-value">{_esc(_ev_value)}</span>'
+                f'<span class="macro-evidence-vote">{_esc(_vote)} ({_esc(_cyc)})</span>'
+                f'<span class="macro-evidence-interp">{_esc(_interp)}</span>'
+                f"</div>"
+            )
+    w("  </div>")
+
     # Divider
     w('  <div class="sep"></div>')
 
@@ -2009,6 +2068,36 @@ def render_dashboard_html(
         w("    <summary>MACRO PRESSURE</summary>")
         w('    <div class="pressure-no-data">MACRO PRESSURE UNAVAILABLE</div>')
     w("  </details>")
+    w("</div>")
+
+    # --- red-folder (PRD-176 loader / PRD-177 render): Q2 "what matters today".
+    # Presentation only: the caller resolves the loader window (events,
+    # expiring, error) and passes a plain view dict; the renderer computes no
+    # dates and casts no votes here.
+    w('<div class="block" id="red-folder">')
+    w("  <h2>Red Folder</h2>")
+    if red_folder is not None and not red_folder.get("ok", True):
+        _rf_error = red_folder.get("error") or "schedule unavailable"
+        w(f'  <div class="value">RED FOLDER UNAVAILABLE: {_esc(str(_rf_error))}</div>')
+    else:
+        _rf_events = (red_folder or {}).get("events") or []
+        if _rf_events:
+            for _ev in _rf_events:
+                _ev_date = _esc(str(_ev.get("date", "")))
+                _ev_time = _esc(str(_ev.get("time_et", "")))
+                _ev_name = _esc(str(_ev.get("name", "")))
+                _ev_type = _esc(str(_ev.get("type", "")))
+                w(
+                    f'  <div class="red-folder-event">'
+                    f'<span class="red-folder-when">{_ev_date} {_ev_time} ET</span> '
+                    f'<span class="red-folder-name">{_ev_name}</span>'
+                    f'<span class="red-folder-type"> ({_ev_type})</span>'
+                    f"</div>"
+                )
+        else:
+            w('  <div class="value">No red-folder events in the next 48 hours.</div>')
+        if (red_folder or {}).get("expiring"):
+            w('  <div class="red-folder-expiry">Red-folder schedule nearing expiry -- refresh the calendar.</div>')
     w("</div>")
 
     # --- trend-structure (PRD-112) ---
@@ -2253,16 +2342,34 @@ def render_dashboard_html(
             w('  <div class="value">No changes since last run</div>')
     w("</div>")
 
-    # --- run-history ---
-    w('<details class="block" id="run-history">')
-    w("  <summary>History</summary>")
-    if not history_runs:
-        w('  <div class="value">NO_HISTORY</div>')
-    w("</details>")
-
-    w('<details class="block" id="artifact-diagnostics">')
-    w("  <summary>Artifact diagnostics</summary>")
-    w("</details>")
+    # --- scoreboard (PRD-175 aggregation / PRD-177 render): Q4 calibration.
+    # Reads the finalized logs/regime_history.jsonl rows (already aggregated by
+    # the PRD-175 sidecar); the renderer only formats up to the 10 most-recent
+    # dated rows. Empty/absent history renders a single empty-state line, never
+    # a dead table.
+    w('<div class="block" id="scoreboard">')
+    w("  <h2>Scoreboard</h2>")
+    if regime_history:
+        _board_rows = list(regime_history)[-SCOREBOARD_LIMIT:][::-1]
+        for _row in _board_rows:
+            _sb_date = _esc(str(_row.get("date", "")))
+            _sb_regime = _esc(str(_row.get("regime", "")))
+            _sb_posture = _POSTURE_LABELS.get(
+                str(_row.get("posture")), str(_row.get("posture", ""))
+            )
+            _sb_spy = _row.get("spy_close_change_pct")
+            _sb_spy_txt = _fmt_pct_signed(_sb_spy) if _sb_spy is not None else "n/a"
+            w(
+                f'  <div class="scoreboard-row">'
+                f'<span class="scoreboard-date">{_sb_date}</span>'
+                f'<span class="scoreboard-regime">{_sb_regime}</span>'
+                f'<span class="scoreboard-posture">{_esc(_sb_posture)}</span>'
+                f'<span class="scoreboard-spy">SPY next {_esc(_sb_spy_txt)}</span>'
+                f"</div>"
+            )
+    else:
+        w('  <div class="value">No regime history yet.</div>')
+    w("</div>")
 
     w("</div>")  # .wrap
     w("</div>")
@@ -2289,6 +2396,8 @@ def write_dashboard(
     market_map_source: str | Path | None = None,
     contract_source: str | Path = _HOURLY_CONTRACT_PATH,
     trend_structure_snapshot: dict | None = None,
+    regime_history: list[dict] | None = None,
+    red_folder: dict | None = None,
     fixture_mode: bool = False,
 ) -> None:
     # PRD-118 R1/R2/R3/R10: validate coherent artifact set before any byte is written
@@ -2323,6 +2432,8 @@ def write_dashboard(
         market_map_source=market_map_source,
         contract_source=contract_source,
         trend_structure_snapshot=trend_structure_snapshot,
+        regime_history=regime_history,
+        red_folder=red_folder,
         fixture_mode=fixture_mode,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2348,6 +2459,51 @@ def _load_contract_entry_context(logs_dir: Path) -> tuple[dict[str, float], list
         if cand.get("decision_status") != ALLOW_TRADE:
             alert_candidates.append(cand)
     return entry_map, alert_candidates, contract.get("generated_at"), path
+
+
+def _load_regime_history(history_path: Path) -> list[dict]:
+    """Load logs/regime_history.jsonl (one JSON object per line) for the
+    scoreboard. Returns an empty list when the file is missing or unreadable --
+    the section renders its empty-state line. Read-only; never writes."""
+    if not history_path.exists():
+        return []
+    rows: list[dict] = []
+    try:
+        for line in history_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(record, dict):
+                rows.append(record)
+    except OSError:
+        return []
+    rows.sort(key=lambda r: str(r.get("date", "")))
+    return rows
+
+
+def _resolve_red_folder_view(now_utc: datetime) -> dict:
+    """Resolve the PRD-176 red-folder loader into a plain view dict for the
+    renderer: loader error, events inside the 48h window, and the expiry flag.
+    The renderer stays date-free; all window math happens here."""
+    from cuttingboard import red_folder
+
+    result = red_folder.load_schedule()
+    if not result.ok:
+        return {"ok": False, "error": result.error, "events": [], "expiring": False}
+    events = [
+        {"date": e.date, "time_et": e.time_et, "type": e.type, "name": e.name}
+        for e in result.events_in_window(now_utc)
+    ]
+    return {
+        "ok": True,
+        "error": None,
+        "events": events,
+        "expiring": result.is_expiring(now_utc),
+    }
 
 
 def main(
@@ -2382,6 +2538,10 @@ def main(
     trend_structure_snapshot = _load_trend_structure_snapshot(
         logs_dir / _TREND_STRUCTURE_PATH.name
     )
+    # PRD-177: Q4 scoreboard + Q2 red-folder sidecars. Both degrade to their
+    # empty-state forms when the artifact is absent and never block publish.
+    regime_history = _load_regime_history(logs_dir / "regime_history.jsonl")
+    red_folder_view = _resolve_red_folder_view(datetime.now(timezone.utc))
 
     # PRD-118 R10: validate at the CLI entrypoint before write_dashboard runs.
     # write_dashboard re-validates; main() validation produces an earlier, clean exit.
@@ -2411,6 +2571,8 @@ def main(
         market_map_source=market_map_path,
         contract_source=contract_source,
         trend_structure_snapshot=trend_structure_snapshot,
+        regime_history=regime_history,
+        red_folder=red_folder_view,
         fixture_mode=_fixture_mode,
     )
     print(f"Dashboard written: {output_path}")

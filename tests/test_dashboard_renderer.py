@@ -598,11 +598,15 @@ def test_null_safe_secondary_sections_no_crash() -> None:
         history_runs=None,
     )
     delta_block = html.split('id="run-delta"', 1)[1]
-    history_block = html.split('id="run-history"', 1)[1]
     assert "NO_PREVIOUS_RUN" in delta_block
-    assert "NO_HISTORY" in history_block
-    # No crash — rendering completed; pressure block present
+    # PRD-177 R1: run-history cut; its empty-state token is gone.
+    assert 'id="run-history"' not in html
+    assert "NO_HISTORY" not in html
+    # No crash — rendering completed; pressure block present, scoreboard
+    # falls back to its empty-state line with no regime_history supplied.
     assert 'id="macro-pressure"' in html
+    scoreboard = html.split('id="scoreboard"', 1)[1]
+    assert "No regime history yet." in scoreboard
 
 
 # PRD-089-PATCH tests
@@ -3372,3 +3376,133 @@ def test_prd136_r4a_spot_metals_in_non_tradable_symbols() -> None:
     from cuttingboard import config
     assert "GC=F" in config.NON_TRADABLE_SYMBOLS
     assert "SI=F" in config.NON_TRADABLE_SYMBOLS
+
+
+# ---------------------------------------------------------------------------
+# PRD-177 — macro evidence rows (R3), scoreboard (R4), red folder (R5)
+# ---------------------------------------------------------------------------
+
+def _evidence_votes(html: str) -> list[str]:
+    tape = _macro_tape_block(html)
+    return re.findall(r'class="macro-evidence-vote">([^<]+)</span>', tape)
+
+
+def test_prd177_r3_macro_evidence_rows_present() -> None:
+    html = render_dashboard_html(
+        _payload(macro_drivers=_macro_drivers()), _run(), market_map=_market_map(),
+    )
+    tape = _macro_tape_block(html)
+    # One evidence row per MACRO_BIAS_DRIVERS member (BTC, VIX, DXY, 10Y).
+    labels = re.findall(r'class="macro-evidence-label">([A-Z0-9]+)', tape)
+    assert labels == ["BTC", "VIX", "DXY", "10Y"]
+    # Every row carries a vote token and an interpretation string.
+    votes = _evidence_votes(html)
+    assert len(votes) == 4
+    assert all(("risk-ON vote" in v) or ("risk-OFF vote" in v) or ("no vote" in v) for v in votes)
+    interps = re.findall(r'class="macro-evidence-interp">([^<]+)</span>', tape)
+    assert all(interp.strip() for interp in interps)
+    assert len(interps) == 4
+
+
+def test_prd177_r3_contra_cyclical_vote_wording() -> None:
+    # DXY rising is risk-OFF under contra-cyclical treatment.
+    drivers = _macro_drivers(dxy=0.30)
+    html = render_dashboard_html(_payload(macro_drivers=drivers), _run(), market_map=_market_map())
+    tape = _macro_tape_block(html)
+    assert "DXY" in tape
+    assert "risk-OFF vote (contra-cyclical)" in tape
+
+
+def test_prd177_r3_headline_agrees_with_evidence_tally() -> None:
+    # Cyclicality-correct drivers: VIX down, DXY down, 10Y down, BTC up -> all
+    # four cast a risk-ON (long) vote; headline must read LONG.
+    drivers = _macro_drivers(vix=-0.5, dxy=-0.3, tnx=-0.4, btc=0.6)
+    html = render_dashboard_html(_payload(macro_drivers=drivers), _run(), market_map=_market_map())
+    votes = _evidence_votes(html)
+    on = sum("risk-ON vote" in v for v in votes)
+    off = sum("risk-OFF vote" in v for v in votes)
+    assert on == 4 and off == 0
+    tape = _macro_tape_block(html)
+    assert "MACRO BIAS: LONG" in tape
+
+
+def test_prd177_r4_scoreboard_renders_rows() -> None:
+    hist = [
+        {"date": "2026-06-08", "regime": "RISK_ON", "posture": "CONTROLLED_LONG",
+         "spy_close_change_pct": 0.0123},
+        {"date": "2026-06-09", "regime": "RISK_OFF", "posture": "STAY_FLAT",
+         "spy_close_change_pct": -0.004},
+    ]
+    html = render_dashboard_html(_payload(), _run(), regime_history=hist)
+    board = html.split('id="scoreboard"', 1)[1]
+    assert "2026-06-09" in board and "2026-06-08" in board
+    # Most-recent row first.
+    assert board.index("2026-06-09") < board.index("2026-06-08")
+    # Raw posture enum mapped to a display label, not the literal.
+    assert "Stay Flat" in board
+    assert "STAY_FLAT" not in board
+    assert "SPY next +1.23%" in board
+    assert "No regime history yet." not in board
+
+
+def test_prd177_r4_scoreboard_caps_at_ten_rows() -> None:
+    hist = [
+        {"date": f"2026-05-{day:02d}", "regime": "RISK_ON", "posture": "CONTROLLED_LONG",
+         "spy_close_change_pct": 0.001 * day}
+        for day in range(1, 16)
+    ]
+    html = render_dashboard_html(_payload(), _run(), regime_history=hist)
+    board = html.split('id="scoreboard"', 1)[1]
+    assert board.count('class="scoreboard-row"') == 10
+    # Oldest five (days 1-5) are dropped; the newest (day 15) is shown.
+    assert "2026-05-15" in board
+    assert "2026-05-01" not in board
+
+
+def test_prd177_r4_scoreboard_empty_state() -> None:
+    for hist in (None, []):
+        html = render_dashboard_html(_payload(), _run(), regime_history=hist)
+        board = html.split('id="scoreboard"', 1)[1]
+        assert "No regime history yet." in board
+        assert 'class="scoreboard-row"' not in board
+
+
+def test_prd177_r5_red_folder_lists_events() -> None:
+    rf = {"ok": True, "error": None, "expiring": False,
+          "events": [{"date": "2026-06-11", "time_et": "08:30", "type": "CPI", "name": "CPI (May)"}]}
+    html = render_dashboard_html(_payload(), _run(), red_folder=rf)
+    block = html.split('id="red-folder"', 1)[1].split('id="trend-structure"', 1)[0]
+    assert "CPI (May)" in block
+    assert "2026-06-11 08:30 ET" in block
+    assert "No red-folder events" not in block
+
+
+def test_prd177_r5_red_folder_empty_state() -> None:
+    rf = {"ok": True, "error": None, "expiring": False, "events": []}
+    html = render_dashboard_html(_payload(), _run(), red_folder=rf)
+    block = html.split('id="red-folder"', 1)[1].split('id="trend-structure"', 1)[0]
+    assert "No red-folder events in the next 48 hours." in block
+
+
+def test_prd177_r5_red_folder_loader_error_warns() -> None:
+    rf = {"ok": False, "error": "schedule file not found", "expiring": False, "events": []}
+    html = render_dashboard_html(_payload(), _run(), red_folder=rf)
+    block = html.split('id="red-folder"', 1)[1].split('id="trend-structure"', 1)[0]
+    assert "RED FOLDER UNAVAILABLE" in block
+    assert "schedule file not found" in block
+    assert "No red-folder events" not in block
+
+
+def test_prd177_r5_red_folder_expiry_warning() -> None:
+    rf = {"ok": True, "error": None, "expiring": True, "events": []}
+    html = render_dashboard_html(_payload(), _run(), red_folder=rf)
+    block = html.split('id="red-folder"', 1)[1].split('id="trend-structure"', 1)[0]
+    assert "nearing expiry" in block
+
+
+def test_prd177_r5_red_folder_default_empty_state() -> None:
+    # No red_folder argument -> empty-state line (never silent absence).
+    html = render_dashboard_html(_payload(), _run())
+    assert 'id="red-folder"' in html
+    block = html.split('id="red-folder"', 1)[1].split('id="trend-structure"', 1)[0]
+    assert "No red-folder events in the next 48 hours." in block

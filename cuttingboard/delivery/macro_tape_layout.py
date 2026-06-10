@@ -78,3 +78,17 @@ MACRO_PAYLOAD_KEY_TO_QUOTE_SYMBOL = _types.MappingProxyType(
 MACRO_BIAS_CONTRA_CYCLICAL = frozenset({"volatility", "dollar", "rates"})
 MACRO_BIAS_PRO_CYCLICAL = frozenset({"bitcoin"})
 MACRO_BIAS_DRIVERS = MACRO_BIAS_CONTRA_CYCLICAL | MACRO_BIAS_PRO_CYCLICAL
+
+# PRD-177: fixed, presentation-only interpretation strings for the per-driver
+# macro-evidence rows, keyed by payload_key. These restate the cyclicality
+# already encoded above in plain language; they introduce no new decision
+# logic (a falling contra-cyclical driver is risk-ON; a rising pro-cyclical
+# driver is risk-ON). Strings only -- keep them here so wording is a data edit.
+MACRO_BIAS_INTERPRETATION = _types.MappingProxyType(
+    {
+        "volatility": "falling vol favors risk",
+        "dollar": "soft dollar favors risk",
+        "rates": "easing yields favor risk",
+        "bitcoin": "crypto bid favors risk",
+    }
+)
