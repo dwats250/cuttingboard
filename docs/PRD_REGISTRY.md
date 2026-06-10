@@ -191,7 +191,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-171 | d98ee31 | Sync PRD templates' status markers to the prd_close.sh flip convention | COMPLETE | [PRD-171](prd_history/PRD-171.md) |
 | PRD-172 | 91b9dd2 | prd_close.sh baseline-bullet regex tolerates the N-xfailed suffix | COMPLETE | [PRD-172](prd_history/PRD-172.md) |
 | PRD-173 | a5e47f2 | runtime/ package skeleton (Stage A of the runtime.py split) | COMPLETE | [PRD-173](prd_history/PRD-173.md) |
-| PRD-174 | — | Populate trend-structure OHLCV on STAY_FLAT hourly runs | IN PROGRESS | [PRD-174](prd_history/PRD-174.md) |
+| PRD-174 | a62a218 | Populate trend-structure OHLCV on STAY_FLAT hourly runs | COMPLETE | [PRD-174](prd_history/PRD-174.md) |
 | PRD-175 | — | Historical regime scoreboard aggregation sidecar | IN PROGRESS | [PRD-175](prd_history/PRD-175.md) |
 | PRD-176 | — | Red-folder economic calendar static schedule and loader | IN PROGRESS | [PRD-176](prd_history/PRD-176.md) |
 | PRD-177 | — | Dashboard realignment pass 2: section cuts, four-questions reorder, macro evidence, new sidecar sections | IN PROGRESS | [PRD-177](prd_history/PRD-177.md) |

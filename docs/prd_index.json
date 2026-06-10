@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 173,
-  "next_prd": 174,
+  "latest_complete": 174,
+  "next_prd": 175,
   "entries": [
     {
       "number": 56,
@@ -714,8 +714,8 @@
     {
       "number": 174,
       "title": "Populate trend-structure OHLCV on STAY_FLAT hourly runs",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "a62a218"
     },
     {
       "number": 175,
