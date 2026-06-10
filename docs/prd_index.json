@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 176,
-  "next_prd": 177,
+  "latest_complete": 177,
+  "next_prd": 178,
   "entries": [
     {
       "number": 56,
@@ -731,9 +731,9 @@
     },
     {
       "number": 177,
-      "title": "Dashboard realignment pass 2: section cuts, four-questions reorder, macro evidence, new sidecar sections",
-      "status": "IN PROGRESS",
-      "commit": null
+      "title": "Dashboard realignment pass 2: cuts, four-questions reorder, macro evidence, new sidecar sections",
+      "status": "COMPLETE",
+      "commit": "635680f"
     },
     {
       "number": 178,
