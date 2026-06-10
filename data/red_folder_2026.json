@@ -1,19 +1,198 @@
 {
   "year": 2026,
-  "source_note": "Remaining-2026 US red-folder macro events. Retrieved 2026-06-10. FOMC meeting/decision days from the Federal Reserve FOMC calendar (https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm), direct fetch -- VERIFIED; rate decision 14:00 ET with press conference, SEP as noted. CPI 2026-06-10 and Employment Situation/NFP 2026-07-02 from BLS news-release statements surfaced via bls.gov search of https://www.bls.gov/schedule/news_release/cpi.htm and https://www.bls.gov/schedule/news_release/empsit.htm -- VERIFIED; 08:30 ET. PPI entries are from a bls.gov search snippet of https://www.bls.gov/schedule/news_release/ppi.htm and are UNVERIFIED (verified=false): the BLS schedule pages return HTTP 403 to automated fetch and could not be confirmed directly. CPI releases after 2026-06-10 and Employment Situation releases after 2026-07-02 could NOT be retrieved (bls.gov 403) and are intentionally omitted -- add them manually from the official BLS schedule. BLS warns that 2025/2026 appropriation lapses revised some release dates (https://www.bls.gov/bls/2025-lapse-revised-release-dates.htm); confirm every BLS entry before relying on it. Each event carries per-event 'source' and 'verified'.",
+  "source_note": "Remaining-2026 US red-folder macro events (dates >= 2026-06-10). Retrieved 2026-06-10. CPI, PPI, and Employment Situation (Nonfarm Payrolls) release DATES are from the FRED API (api.stlouisfed.org/fred/release/dates) for release_id 10 (Consumer Price Index), 46 (Producer Price Index), and 50 (Employment Situation); FRED sources these from BLS, so they are treated as verified. FRED returns dates without times, so the standard BLS release time 08:30 ET is applied to every BLS entry (dates FRED-verified, times standard-schedule). FOMC decision days are from the Federal Reserve FOMC calendar (federalreserve.gov/monetarypolicy/fomccalendars.htm); rate decision 14:00 ET with press conference, SEP as noted in the name. All entries verified=true. The FRED API key is NOT stored in this file.",
   "events": [
-    {"date": "2026-06-10", "time_et": "08:30", "type": "CPI", "name": "CPI (May 2026)", "source": "https://www.bls.gov/schedule/news_release/cpi.htm", "verified": true},
-    {"date": "2026-06-11", "time_et": "08:30", "type": "PPI", "name": "PPI (UNVERIFIED - confirm vs bls.gov)", "source": "https://www.bls.gov/schedule/news_release/ppi.htm", "verified": false},
-    {"date": "2026-06-17", "time_et": "14:00", "type": "FOMC", "name": "FOMC rate decision + SEP + press conference", "source": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm", "verified": true},
-    {"date": "2026-07-02", "time_et": "08:30", "type": "NFP", "name": "Employment Situation (June 2026)", "source": "https://www.bls.gov/schedule/news_release/empsit.htm", "verified": true},
-    {"date": "2026-07-15", "time_et": "08:30", "type": "PPI", "name": "PPI (UNVERIFIED - confirm vs bls.gov)", "source": "https://www.bls.gov/schedule/news_release/ppi.htm", "verified": false},
-    {"date": "2026-08-13", "time_et": "08:30", "type": "PPI", "name": "PPI (UNVERIFIED - confirm vs bls.gov)", "source": "https://www.bls.gov/schedule/news_release/ppi.htm", "verified": false},
-    {"date": "2026-09-10", "time_et": "08:30", "type": "PPI", "name": "PPI (UNVERIFIED - confirm vs bls.gov)", "source": "https://www.bls.gov/schedule/news_release/ppi.htm", "verified": false},
-    {"date": "2026-09-16", "time_et": "14:00", "type": "FOMC", "name": "FOMC rate decision + SEP + press conference", "source": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm", "verified": true},
-    {"date": "2026-10-15", "time_et": "08:30", "type": "PPI", "name": "PPI (UNVERIFIED - confirm vs bls.gov)", "source": "https://www.bls.gov/schedule/news_release/ppi.htm", "verified": false},
-    {"date": "2026-10-28", "time_et": "14:00", "type": "FOMC", "name": "FOMC rate decision + press conference", "source": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm", "verified": true},
-    {"date": "2026-11-13", "time_et": "08:30", "type": "PPI", "name": "PPI (UNVERIFIED - confirm vs bls.gov)", "source": "https://www.bls.gov/schedule/news_release/ppi.htm", "verified": false},
-    {"date": "2026-12-09", "time_et": "14:00", "type": "FOMC", "name": "FOMC rate decision + SEP + press conference", "source": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm", "verified": true},
-    {"date": "2026-12-15", "time_et": "08:30", "type": "PPI", "name": "PPI (UNVERIFIED - confirm vs bls.gov)", "source": "https://www.bls.gov/schedule/news_release/ppi.htm", "verified": false}
+    {
+      "date": "2026-06-10",
+      "time_et": "08:30",
+      "type": "CPI",
+      "name": "Consumer Price Index",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=10",
+      "verified": true
+    },
+    {
+      "date": "2026-06-11",
+      "time_et": "08:30",
+      "type": "PPI",
+      "name": "Producer Price Index",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=46",
+      "verified": true
+    },
+    {
+      "date": "2026-06-17",
+      "time_et": "14:00",
+      "type": "FOMC",
+      "name": "FOMC rate decision + press conference + SEP",
+      "source": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "verified": true
+    },
+    {
+      "date": "2026-07-02",
+      "time_et": "08:30",
+      "type": "NFP",
+      "name": "Employment Situation (Nonfarm Payrolls)",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=50",
+      "verified": true
+    },
+    {
+      "date": "2026-07-14",
+      "time_et": "08:30",
+      "type": "CPI",
+      "name": "Consumer Price Index",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=10",
+      "verified": true
+    },
+    {
+      "date": "2026-07-15",
+      "time_et": "08:30",
+      "type": "PPI",
+      "name": "Producer Price Index",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=46",
+      "verified": true
+    },
+    {
+      "date": "2026-08-07",
+      "time_et": "08:30",
+      "type": "NFP",
+      "name": "Employment Situation (Nonfarm Payrolls)",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=50",
+      "verified": true
+    },
+    {
+      "date": "2026-08-12",
+      "time_et": "08:30",
+      "type": "CPI",
+      "name": "Consumer Price Index",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=10",
+      "verified": true
+    },
+    {
+      "date": "2026-08-13",
+      "time_et": "08:30",
+      "type": "PPI",
+      "name": "Producer Price Index",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=46",
+      "verified": true
+    },
+    {
+      "date": "2026-09-04",
+      "time_et": "08:30",
+      "type": "NFP",
+      "name": "Employment Situation (Nonfarm Payrolls)",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=50",
+      "verified": true
+    },
+    {
+      "date": "2026-09-10",
+      "time_et": "08:30",
+      "type": "PPI",
+      "name": "Producer Price Index",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=46",
+      "verified": true
+    },
+    {
+      "date": "2026-09-11",
+      "time_et": "08:30",
+      "type": "CPI",
+      "name": "Consumer Price Index",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=10",
+      "verified": true
+    },
+    {
+      "date": "2026-09-16",
+      "time_et": "14:00",
+      "type": "FOMC",
+      "name": "FOMC rate decision + press conference + SEP",
+      "source": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "verified": true
+    },
+    {
+      "date": "2026-10-02",
+      "time_et": "08:30",
+      "type": "NFP",
+      "name": "Employment Situation (Nonfarm Payrolls)",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=50",
+      "verified": true
+    },
+    {
+      "date": "2026-10-14",
+      "time_et": "08:30",
+      "type": "CPI",
+      "name": "Consumer Price Index",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=10",
+      "verified": true
+    },
+    {
+      "date": "2026-10-15",
+      "time_et": "08:30",
+      "type": "PPI",
+      "name": "Producer Price Index",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=46",
+      "verified": true
+    },
+    {
+      "date": "2026-10-28",
+      "time_et": "14:00",
+      "type": "FOMC",
+      "name": "FOMC rate decision + press conference",
+      "source": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "verified": true
+    },
+    {
+      "date": "2026-11-06",
+      "time_et": "08:30",
+      "type": "NFP",
+      "name": "Employment Situation (Nonfarm Payrolls)",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=50",
+      "verified": true
+    },
+    {
+      "date": "2026-11-10",
+      "time_et": "08:30",
+      "type": "CPI",
+      "name": "Consumer Price Index",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=10",
+      "verified": true
+    },
+    {
+      "date": "2026-11-13",
+      "time_et": "08:30",
+      "type": "PPI",
+      "name": "Producer Price Index",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=46",
+      "verified": true
+    },
+    {
+      "date": "2026-12-04",
+      "time_et": "08:30",
+      "type": "NFP",
+      "name": "Employment Situation (Nonfarm Payrolls)",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=50",
+      "verified": true
+    },
+    {
+      "date": "2026-12-09",
+      "time_et": "14:00",
+      "type": "FOMC",
+      "name": "FOMC rate decision + press conference + SEP",
+      "source": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "verified": true
+    },
+    {
+      "date": "2026-12-10",
+      "time_et": "08:30",
+      "type": "CPI",
+      "name": "Consumer Price Index",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=10",
+      "verified": true
+    },
+    {
+      "date": "2026-12-15",
+      "time_et": "08:30",
+      "type": "PPI",
+      "name": "Producer Price Index",
+      "source": "https://api.stlouisfed.org/fred/release/dates?release_id=46",
+      "verified": true
+    }
   ]
 }
