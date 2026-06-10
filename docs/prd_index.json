@@ -686,6 +686,12 @@
       "title": "Persist continuation_audit to logs/audit.jsonl",
       "status": "COMPLETE",
       "commit": "7b1d7ad"
+    },
+    {
+      "number": 170,
+      "title": "runtime.py monolith split — cut-line doctrine and extraction roadmap (design-only scoping)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
