@@ -716,6 +716,12 @@
       "title": "Populate trend-structure OHLCV on STAY_FLAT hourly runs",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 175,
+      "title": "Historical regime scoreboard aggregation sidecar",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
