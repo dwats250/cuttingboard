@@ -56,11 +56,37 @@ cannot affect it. Smoke-tested `codex exec -s read-only` end-to-end
 *review* invocations (PRD cross-review, vision review, pre-merge
 review) through `codex exec -s read-only - < prompt`.
 
-**Follow-up (logged, not applied):** `~/.codex/config.toml` marks
-`"/"` as `trust_level = "trusted"` — whole-filesystem trust, broader
-than anything needs. Tighten to this repo's path (and the other
-project paths actually used) only. User-level config change, outside
-this repo; flagged for Dustin.
+**Follow-up — APPLIED (same day):** trust tightening done in
+`~/.codex/config.toml` (backup at `~/.codex/config.toml.bak`).
+Removed three entries: `[projects."/"]`,
+`[projects."/home/dustin/cuttingboard"]` (stale old repo path), and
+`[projects."/home/dustin/Projects/cuttingboard"]`. Cuttingboard now
+defaults to read-only for `codex exec`.
+
+Evidence: trust matching is exact-path, not ancestor-prefix —
+verified across 152 Codex sessions (all 33 distillery exec runs were
+read-only with no trust entry, despite sitting under both `"/"` and
+`"/home/dustin"`), so removing `"/"` stranded no project. Smoke
+tests from this repo, policies read from session logs: default
+invocation records `read-only`; `-s workspace-write` records
+`workspace-write`; the review path (`-s read-only`) records
+`read-only`.
+
+**Gotcha, explicit:** `codex exec -s workspace-write` silently
+re-persists `trust_level = "trusted"` for the cwd back into
+config.toml, so the read-only default is NON-DURABLE — it reverts
+after any write opt-in from this repo (observed live during
+verification; the re-added entry was removed again). Decision: drift
+ACCEPTED, because review invocations carry explicit `-s read-only`
+and are immune regardless of trust state. Durable alternatives
+rejected: per-project `sandbox_mode` key is ignored by codex-cli
+0.139.0 (tested); global `sandbox_mode = "read-only"` would strip
+the write default from the other trusted projects. Optional untested
+path noted for the record: immutable config (`chattr +i`).
+
+**Residual:** `[projects."/home/dustin"]` remains trusted (matches
+only cwd exactly equal to `/home/dustin`, per the exact-path
+evidence above) — flagged for optional future removal, not done now.
 
 Same audit also added the fourth PRD-author discipline to CLAUDE.md
 (sub-agent sweep re-verification: the main agent re-runs the single
