@@ -37,7 +37,8 @@ class SymbolValidation:
 class HaltCause(str, Enum):
     """Why a run is system-halted. Distinguishes a data/validation halt from a
     market-stress (kill-switch) halt so consumers can label them correctly
-    (PRD-180). str-based for trivial comparison and serialization."""
+    (PRD-180). str-based for trivial comparison (and JSON-safety if it is ever
+    surfaced; today it is an in-memory render-time discriminator only)."""
 
     VALIDATION = "VALIDATION"
     MARKET_STRESS = "MARKET_STRESS"
