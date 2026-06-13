@@ -16,6 +16,36 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-13 — Two gate-recon behavioral decisions ratified and drafted as PRD-180 / PRD-181
+
+Both decisions resolve open questions from the 2026-06-12 gate recon
+(`docs/audit/gate_recon_2026-06-12.md`). Ratified by Dustin; drafted to disk
+as PROPOSED PRDs this pass. No source code changed — drafting only.
+
+**D-Q2 (recon C1/O1, open question 2) — kill switch forces real HALT.**
+Decision: when any `_kill_switch` threshold trips, the run must resolve to the
+existing terminal HALT outcome (`OUTCOME_HALT`), not merely zero the qualified
+count with a verify-step backstop; the three thresholds (VIX > 35, VIX
+pct_change > 0.15, |SPY| pct_change > 0.03) become named, documented constants
+with values unchanged. Rationale: align behavior with the long-standing
+doc claim (`system_logic_map.md:63`) and make market-stress invalidation a
+real, auditable system stop rather than a silent count-zeroing. Drafted as
+PRD-180 (LANE HIGH-RISK, CLASS EXECUTION).
+
+**D-Q7 (recon O5, open question 7) — short-gate fail-closed, open-window-bounded.**
+Decision: when intraday state is unavailable AND the clock is within the open
+window [09:30 ET, 09:45 ET) (before `_NOISE_END` emission), SHORT candidates
+fail CLOSED instead of the current fail-open; LONG side, post-09:45 gating, and
+the outside-window fail-open default are all unchanged. Rationale: PRD-151's
+OPEN-phase SHORT block is currently inert in exactly the window it was written
+for, because no intraday state exists before 09:45; this closes that gap on the
+filter side only, without touching `intraday_state_engine.py`. Drafted as
+PRD-181 (LANE HIGH-RISK, CLASS EXECUTION).
+
+Both PRDs are PROPOSED and behavioral. They remain pending external review and
+are NOT implemented: no change to `runtime/__init__.py`,
+`intraday_state_engine.py`, kill-switch logic, or short-gate logic this pass.
+
 ## 2026-06-12 — PRD-019 killed: notification-decision layer never built, obsolete under three-report cadence
 
 The 2026-06-12 gate recon (`docs/audit/gate_recon_2026-06-12.md`,
