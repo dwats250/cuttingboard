@@ -749,13 +749,13 @@
     },
     {
       "number": 180,
-      "title": "Kill switch forces real HALT (ratified D-Q2, 2026-06-12 gate recon; behavioral, pending external review)",
+      "title": "Kill switch forces real HALT (ratified D-Q2, 2026-06-12 gate recon; APPROVED 2026-06-13, pending HIGH-RISK implementation review; machine-status PROPOSED per validator)",
       "status": "PROPOSED",
       "commit": null
     },
     {
       "number": 181,
-      "title": "Short-gate fail-closed during the open window (ratified D-Q7, 2026-06-12 gate recon; behavioral, pending external review)",
+      "title": "Short-gate fail-closed during the open window (ratified D-Q7, 2026-06-12 gate recon; APPROVED 2026-06-13, pending HIGH-RISK implementation review; machine-status PROPOSED per validator)",
       "status": "PROPOSED",
       "commit": null
     }
