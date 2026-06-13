@@ -16,6 +16,41 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-13 — PRD-180 implementation GO: mechanism (b)/tight path; VISION R4 pointer deferred
+
+PRD-180 (kill switch forces real HALT) moved from APPROVED to implementation on
+branch `PRD-180-killswitch-halt`.
+
+**Mechanism ratified: (b), tight path.** On a `_kill_switch` trip the run
+computes regime early, evaluates the kill switch, sets `outcome = OUTCOME_HALT`,
+escalates to a system halt (`system_halted = validation OR kill-switch tripped`),
+and skips the qualification/options/decision block exactly as the validation
+`system_halted` branch does. Implementation reuses the validation HALT carrier
+(`validation_summary` rebuilt as halted with a market-stress `halt_reason`) so
+every downstream consumer — report banner, contract `derive_run_status` /
+`system_state`, notification, audit record, run summary — treats the market-stress
+halt identically to a validation halt with no per-consumer wiring. Rejected
+mechanism (a) (late trip routed to HALT inside `_build_run_summary`): it leaves
+the pipeline already executed and still needs the same `system_halted`/status
+escalation to satisfy `verify_run_summary` and light up the dashboard/notification
+surfaces, so it does strictly more work for the same end state. R2 preserved: the
+validation `system_halted` branch itself is untouched.
+
+**Tradeoff accepted:** the `system_halted` field's meaning broadens from
+"validation halt" to "any system halt"; a kill-switch run will show both the
+"Halted" and "Kill Switch" indicators. `halt_reason` is load-bearing and must
+read as a market-stress HALT, not a data/validation failure.
+
+**FILES amended at GO:** added `cuttingboard/output.py` (R4 docstring fix) and
+`tests/test_operationalization.py` (verify-coherence test home); removed
+`VISION.md`.
+
+**Deferred: VISION.md "what invalidates" pointer (R4).** The one-line
+market-stress-HALT pointer into VISION.md is deferred to the declaration
+workstream rather than landed in this PRD. Tracked here so it is not lost.
+PRD-180's R4 is satisfied by `system_logic_map.md` (canonical thresholds + C1
+conflict resolution) plus the `output.py:204` docstring correction.
+
 ## 2026-06-13 — Two gate-recon behavioral decisions ratified and drafted as PRD-180 / PRD-181
 
 Both decisions resolve open questions from the 2026-06-12 gate recon
