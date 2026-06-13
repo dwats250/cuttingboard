@@ -110,7 +110,7 @@ from cuttingboard.sector_router import (
 )
 from cuttingboard.structure import classify_all_structure
 from cuttingboard.universe import is_tradable_symbol
-from cuttingboard.validation import ValidationSummary, extract_fetch_failures, validate_quotes
+from cuttingboard.validation import HaltCause, ValidationSummary, extract_fetch_failures, validate_quotes
 from cuttingboard.watch import WatchSummary, classify_watchlist, compute_all_intraday_metrics
 
 # PRD-173: constants + pipeline dataclasses live in L0 leaf modules and are
@@ -688,6 +688,7 @@ def _run_pipeline(
             validation_summary,
             system_halted=True,
             halt_reason=KILL_SWITCH_HALT_REASON,
+            halt_cause=HaltCause.MARKET_STRESS,
         )
         outcome = OUTCOME_HALT
     else:

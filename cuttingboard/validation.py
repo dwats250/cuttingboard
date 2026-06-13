@@ -14,6 +14,7 @@ import logging
 import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Optional
 
 from cuttingboard import config
@@ -33,6 +34,15 @@ class SymbolValidation:
     failure_reason: Optional[str]
 
 
+class HaltCause(str, Enum):
+    """Why a run is system-halted. Distinguishes a data/validation halt from a
+    market-stress (kill-switch) halt so consumers can label them correctly
+    (PRD-180). str-based for trivial comparison and serialization."""
+
+    VALIDATION = "VALIDATION"
+    MARKET_STRESS = "MARKET_STRESS"
+
+
 @dataclass(frozen=True)
 class ValidationSummary:
     system_halted: bool
@@ -44,6 +54,9 @@ class ValidationSummary:
     symbols_attempted: int
     symbols_validated: int
     symbols_failed: int
+    # PRD-180: structured halt cause. Optional/default None so every existing
+    # construction site stays valid and non-halt summaries leave it unset.
+    halt_cause: Optional[HaltCause] = None
 
 
 # ---------------------------------------------------------------------------
@@ -105,6 +118,7 @@ def validate_quotes(
         return ValidationSummary(
             system_halted=True,
             halt_reason=halt_reason,
+            halt_cause=HaltCause.VALIDATION,
             failed_halt_symbols=failed_halt_symbols,
             results=results,
             valid_quotes=valid_quotes,

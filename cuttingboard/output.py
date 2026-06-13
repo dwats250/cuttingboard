@@ -39,7 +39,7 @@ from cuttingboard.options import OptionSetup
 from cuttingboard.qualification import QualificationSummary
 from cuttingboard.regime import RegimeState, EXPANSION
 from cuttingboard.universe import is_tradable_symbol
-from cuttingboard.validation import ValidationSummary
+from cuttingboard.validation import HaltCause, ValidationSummary
 from cuttingboard.watch import (
     WatchSummary,
     get_session_phase,
@@ -276,7 +276,13 @@ def render_report(
 
     # ---- Body ----
     if outcome == OUTCOME_HALT:
-        lines.append("  HALT — MACRO DATA INVALID")
+        # PRD-180: label the halt by its cause. A market-stress (kill-switch)
+        # halt must not read as a data/validation failure. Only the market-stress
+        # arm is new; the validation/default wording is unchanged.
+        if validation_summary.halt_cause == HaltCause.MARKET_STRESS:
+            lines.append("  HALT — MARKET STRESS")
+        else:
+            lines.append("  HALT — MACRO DATA INVALID")
         lines.append(f"  {halt_reason or 'unknown halt reason'}")
 
     elif outcome == OUTCOME_NO_TRADE:

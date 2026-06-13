@@ -7,7 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from cuttingboard import audit, runtime
+from cuttingboard import audit, output, runtime
+from cuttingboard import validation as validation_mod
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.chain_validation import ChainValidationResult, MANUAL_CHECK
 from cuttingboard.options import OptionSetup
@@ -15,7 +16,7 @@ from cuttingboard.qualification import QualificationResult, QualificationSummary
 from cuttingboard.regime import AGGRESSIVE_LONG, RISK_ON, RegimeState
 from cuttingboard.structure import StructureResult
 from cuttingboard.trade_decision import ALLOW_TRADE, BLOCK_TRADE
-from cuttingboard.validation import ValidationSummary
+from cuttingboard.validation import HaltCause, ValidationSummary
 from cuttingboard.watch import WatchSummary
 
 
@@ -523,6 +524,7 @@ def test_validation_halt_unchanged_when_kill_switch_not_tripped(monkeypatch, tmp
         _validation_summary(),
         system_halted=True,
         halt_reason="HALT_SYMBOL ^VIX failed validation",
+        halt_cause=HaltCause.VALIDATION,
     )
     monkeypatch.setattr(runtime, "validate_quotes", lambda *args, **kwargs: halted)
     # benign inputs so the kill switch cannot trip independently
@@ -541,10 +543,18 @@ def test_validation_halt_unchanged_when_kill_switch_not_tripped(monkeypatch, tmp
     # the validation halt_reason is preserved, NOT overwritten by the kill switch.
     assert summary["halt_reason"] == "HALT_SYMBOL ^VIX failed validation"
     assert summary["halt_reason"] != runtime.KILL_SWITCH_HALT_REASON
+    # cause stays VALIDATION; the market-stress arm is not engaged.
+    assert result.validation_summary.halt_cause == HaltCause.VALIDATION
 
     summary_path = tmp_path / "validation_halt_summary.json"
     summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     assert runtime.verify_run_summary(str(summary_path))["pass"] is True
+
+    # Notification regression: a validation HALT still produces a STAY FLAT alert
+    # with no trade content (unchanged by PRD-180).
+    title, body = runtime.build_notification_message(result.contract)
+    assert "STAY FLAT" in title
+    assert "No trade." in body
 
 
 @pytest.mark.parametrize(
@@ -567,3 +577,89 @@ def test_kill_switch_predicate_strict_greater_than(kwargs, expect_trip):
     )
     quotes = {"SPY": _nq("SPY", kwargs.get("spy_pct_change", 0.0))}
     assert runtime._kill_switch(regime, quotes) is expect_trip
+
+
+# ---------------------------------------------------------------------------
+# PRD-180 (round 2): explicit halt cause + cause-labeled report banner
+# ---------------------------------------------------------------------------
+
+
+def _render_halt_report(halt_cause, halt_reason):
+    vs = _dc_replace(
+        _validation_summary(),
+        system_halted=True,
+        halt_reason=halt_reason,
+        halt_cause=halt_cause,
+    )
+    return output.render_report(
+        date_str="2026-04-28",
+        run_at_utc=RUN_AT,
+        regime=None,
+        validation_summary=vs,
+        qualification_summary=None,
+        option_setups=[],
+        outcome=runtime.OUTCOME_HALT,
+        halt_reason=halt_reason,
+        chain_results={},
+    )
+
+
+def test_render_report_market_stress_banner():
+    # The defect this PRD round fixes: a market-stress HALT must NOT render as a
+    # data/validation failure.
+    report = _render_halt_report(HaltCause.MARKET_STRESS, runtime.KILL_SWITCH_HALT_REASON)
+    assert "MARKET STRESS" in report
+    assert "MACRO DATA INVALID" not in report
+    assert runtime.KILL_SWITCH_HALT_REASON in report
+
+
+def test_render_report_validation_halt_banner_unchanged():
+    # Regression on the untouched path: a validation HALT still reads as before.
+    report = _render_halt_report(HaltCause.VALIDATION, "Failed: ^VIX (stale)")
+    assert "MACRO DATA INVALID" in report
+    assert "MARKET STRESS" not in report
+
+
+def test_kill_switch_trip_sets_market_stress_cause(monkeypatch, tmp_path):
+    # Positive-ID: the real kill-switch trip stamps the structured cause.
+    result = _run_kill_switch_case(monkeypatch, tmp_path, vix_level=42.0)
+    assert result.validation_summary.halt_cause == HaltCause.MARKET_STRESS
+
+
+def test_validation_path_sets_validation_cause():
+    # Positive-ID: the real validation halt path stamps VALIDATION (empty quote
+    # set fails every HALT_SYMBOL).
+    vs = validation_mod.validate_quotes({}, None)
+    assert vs.system_halted is True
+    assert vs.halt_cause == HaltCause.VALIDATION
+
+
+def test_kill_switch_trip_skips_pipeline(monkeypatch, tmp_path):
+    # Mechanism (b): a trip must SKIP qualification/options/decision, not just
+    # suppress their output.
+    _setup_full_trade_mocks(monkeypatch, tmp_path)
+    calls: list[str] = []
+    monkeypatch.setattr(runtime, "generate_candidates", lambda *a, **k: (calls.append("generate"), {})[1])
+    monkeypatch.setattr(runtime, "qualify_all", lambda *a, **k: calls.append("qualify"))
+    monkeypatch.setattr(runtime, "build_option_setups", lambda *a, **k: (calls.append("options"), [])[1])
+    monkeypatch.setattr(runtime, "create_trade_decision", lambda *a, **k: calls.append("decision"))
+    monkeypatch.setattr(
+        runtime, "compute_regime", lambda quotes: _dc_replace(_regime(), vix_level=42.0)
+    )
+    monkeypatch.setattr(runtime, "_load_inputs", lambda mode, ff: ({}, _market_quotes(0.0)))
+
+    result = runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+
+    assert result.outcome == runtime.OUTCOME_HALT
+    assert calls == []
+
+
+def test_kill_switch_audit_record_carries_halt(monkeypatch, tmp_path):
+    # The audit record reflects the HALT outcome and the market-stress reason.
+    result = _run_kill_switch_case(monkeypatch, tmp_path, vix_level=42.0)
+    assert result.audit_record["outcome"] == runtime.OUTCOME_HALT
+    assert result.audit_record["halt_reason"] == runtime.KILL_SWITCH_HALT_REASON
