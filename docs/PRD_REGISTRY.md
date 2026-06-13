@@ -30,7 +30,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-016 / 016.1 | 3d707356 | Pre-UI audit: legacy cleanup, interface lock, output contract verification | COMPLETE | [PRD-016](prd_history/PRD-016.md) |
 | PRD-017 | fc7f5e9 | Notification delivery stabilization: rate limit, retry, aggregation, audit | COMPLETE | [PRD-017](prd_history/PRD-017.md) |
 | PRD-018 | 0f7c341 | Notification signal hierarchy and suppression: state key, priority, dedup | COMPLETE | [PRD-018](prd_history/PRD-018.md) |
-| PRD-019 | c7c64c9, 0aea646 | Engine doctor — canonical pipeline health authority | COMPLETE | [PRD-019](prd_history/PRD-019.md) |
+| PRD-019 | c7c64c9, 0aea646 | Notification Decision Audit / Delivery Safety Layer (Killed 2026-06-12 — never built; obsolete under the three-report cadence. Row title previously mislabeled with PRD-020's "Engine doctor" subject; corrected. See docs/DECISIONS.md and docs/audit/gate_recon_2026-06-12.md flags G1/D8) | DEPRECATED | [PRD-019](prd_history/PRD-019.md) |
 | PRD-020 | 0472cfd | Engine doctor gate system (CI + runtime guardrails) | COMPLETE | [PRD-020](prd_history/PRD-020.md) |
 | PRD-021 | e6b017c | Documentation canonicalization (README + docs system) | COMPLETE | [PRD-021](prd_history/PRD-021.md) |
 | PRD-022 | 2b6009a | Sunday mode isolation — no live data, forced STAY_FLAT, non-live execution path | COMPLETE | [PRD-022](prd_history/PRD-022.md) |

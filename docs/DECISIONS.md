@@ -16,6 +16,42 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-12 — PRD-019 killed: notification-decision layer never built, obsolete under three-report cadence
+
+The 2026-06-12 gate recon (`docs/audit/gate_recon_2026-06-12.md`,
+flags G1/D8) found PRD-019's deliverable — a deterministic
+notification-decision layer (`build_notification_decision`, the
+SENT / SUPPRESSED / RATE_LIMITED / ERROR / DISABLED decision enum plus
+a strict reason enum, written into the notification audit record) —
+does not exist in the codebase. A grep for `build_notification_decision`
+and `RATE_LIMITED` across `cuttingboard/` returns nothing; the
+notification audit rows that do exist use a different vocabulary
+(sent / suppressed_unchanged_state / suppressed_same_slot /
+outside_routine_window). The PRD-019 registry row compounded the
+confusion by carrying PRD-020's "Engine doctor — canonical pipeline
+health authority" title (PRD_REGISTRY.md:33) instead of its own subject.
+
+**Decision (Dustin, 2026-06-12): PRD-019 is KILLED, not resurrected.**
+The explain-why-a-notification-fired need it was scoped to serve is now
+met by the three-report cadence (premarket / hourly / postmarket context
+reports, PRD-027) layered over the existing notification audit rows, so a
+separate decision layer is redundant surface area. Retired under
+cuts-before-additions.
+
+**Applied this pass (docs-only, zero behavioral risk):** PRD-019 status
+flipped to DEPRECATED in the registry with a "Killed 2026-06-12" note and
+its real subject restored; a KILLED banner added at the head of
+`docs/prd_history/PRD-019.md` with the original spec retained for
+historical record. No code changed — there was no PRD-019 code to remove.
+`prd_index.json` is unaffected (it tracks PRD-56+).
+
+**Not actioned (behavioral, pending external review):** the same recon
+raised two behavioral questions that remain UNDECIDED and were
+deliberately left untouched this pass — kill-switch HALT semantics
+(recon C1/O1, open question 2) and the 09:45 noise-window / SHORT
+gap-down fail-open interaction (recon O5, open question 7). No
+runtime/__init__.py or intraday_state_engine.py change was made.
+
 ## 2026-06-10 — Codex exec sandbox verified: workspace-write + network off, not read-only
 
 The sub-agent flow audit (report-only, this date) flagged that the
