@@ -201,7 +201,8 @@ _PERMISSION_MATRIX = """\
   NEUTRAL   | Defined risk only / R:R >= 3:1
   CHAOTIC   | FLAT - no new positions
   -----------------------------------------------------
-  Kill switch: VIX > 35 OR SPY gaps >3% -> halt all new positions"""
+  Kill switch (canonical thresholds in docs/system_logic_map.md): VIX level > 35,
+  VIX pct_change > 0.15, or |SPY| pct_change > 0.03 -> HALT (no new positions)"""
 
 
 def _is_sunday(date_str: str) -> bool:
