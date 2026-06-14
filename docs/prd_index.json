@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 182,
-  "next_prd": 183,
+  "latest_complete": 183,
+  "next_prd": 184,
   "entries": [
     {
       "number": 56,
@@ -768,8 +768,8 @@
     {
       "number": 183,
       "title": "Realign closeout tooling to the new PROJECT_STATE format",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "84ca562"
     }
   ]
 }
