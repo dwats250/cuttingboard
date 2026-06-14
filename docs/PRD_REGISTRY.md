@@ -199,7 +199,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-179 | — | Preview fixture/all-section-state coverage (fast-follow to PRD-178) | PROPOSED | [PRD-179](prd_history/PRD-179.md) |
 | PRD-180 | 6f74a76 | Kill switch forces real HALT (HaltCause primitive; cause-labeled HALT banner) | COMPLETE | [PRD-180](prd_history/PRD-180.md) |
 | PRD-181 | b90aebf | Short-gate fail-closed during the open window (open-window fail-closed for SHORT when intraday state unavailable) | COMPLETE | [PRD-181](prd_history/PRD-181.md) |
-| PRD-182 | — | CI merge gate + pre-push full-suite + workflow env-default lint fix | IN PROGRESS | [PRD-182](prd_history/PRD-182.md) |
+| PRD-182 | 6733c61 | CI merge gate + pre-push full-suite + workflow env-default lint fix | COMPLETE | [PRD-182](prd_history/PRD-182.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

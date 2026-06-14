@@ -5,16 +5,14 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-06-13 (commit `4f3257b`)
+**Last updated:** 2026-06-14 (commit `6733c61`)
 
 ## Current state
 
-- **Active PRD:** PRD-182 (CI merge gate + pre-push full-suite + cuttingboard.yml
-  env-default lint fix; LANE: HIGH-RISK by the `.github/` protected-file rule).
-  PRD-179 (preview fixture / all-section-state coverage, a fast-follow to
-  PRD-178) remains PROPOSED and unstarted.
+- **Active PRD:** none in progress. PRD-179 (preview fixture / all-section-state
+  coverage, a fast-follow to PRD-178) remains PROPOSED and unstarted.
 - **Test baseline:** 2607 passing, 1 xfailed (`python -m pytest tests -q` at
-  `4f3257b`).
+  `6733c61`; PRD-182 added 0 tests).
 - **Recently landed and live:**
   - The market-stress kill switch forces a terminal HALT (PRD-180). The
     thresholds and conflict resolution are canonical in
@@ -27,6 +25,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 | PRD | Title | Completed |
 |-----|-------|-----------|
+| PRD-182 | CI merge gate + pre-push full-suite + cuttingboard.yml env-default lint fix | 2026-06-14 |
 | PRD-181 | Short-gate fail-closed during the open window | 2026-06-13 |
 | PRD-180 | Kill switch forces real HALT (HaltCause primitive; cause-labeled banner) | 2026-06-13 |
 | PRD-178 | Dashboard fresh-data preview loop (CI preview workflow + local script) | 2026-06-13 |
