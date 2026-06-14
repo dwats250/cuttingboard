@@ -782,6 +782,12 @@
       "title": "Bump GitHub Actions to Node 24 majors (checkout v6, setup-python v6, upload-artifact v7)",
       "status": "COMPLETE",
       "commit": "f77effe"
+    },
+    {
+      "number": 186,
+      "title": "Drift-review gate: per-PRD drift check + post-merge audit teeth + governance auto-merge carve-out",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

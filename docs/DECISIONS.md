@@ -16,6 +16,43 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-14 - PRD-186: governance carve-out enforcement - (a) landed, (c) deferred (corrected: label-gated check, not CODEOWNERS)
+
+Refines the (c) enforcement recommendation in the PRD-186 entry below; the
+CODEOWNERS approach is withdrawn for the reason stated here (CLAUDE.md R4 and
+PRD-186 R4 still name CODEOWNERS - superseded by this entry, fix on a follow-up).
+
+PRD-186: governance carve-out landed as (a) policy-only (agent-honored CLAUDE.md
+rule; this PR dogfoods it). (c) mechanical enforcement deferred. Known soft-edge:
+the carve-out boundary is prose-defined, so until (c) lands it depends on correct
+section classification by the agent. When pursued, build (c) as a required-check
+guardrail workflow gated on a human approval label - NOT CODEOWNERS: CODEOWNERS +
+single owner forces admin-override merge, which bypasses the `test` gate on
+guardrail merges. Trigger: a real guardrail PR appears, or a decision to move from
+judgment-based to structural enforcement.
+
+## 2026-06-14 - PRD-186: drift-review gate (closes the PRD-184 audit gaps)
+
+The PRD-184 audit confirmed auto-merge removed the pre-merge human checkpoint
+while the per-PRD review checked only correctness. PRD-186 closes four gaps:
+(1) the `prd-review-claude` skill + the CLAUDE.md HIGH-RISK review gate now
+record a per-PRD DRIFT CHECK (VISION non-goal/principle conflict + PROJECT_STATE
+staleness), not just correctness; (2) CLAUDE.md frames drift-review as a
+post-merge audit under auto-merge (no pre-merge human read); (3) the Alignment
+cadence gains teeth - each run audits PRDs merged since the last audit against
+VISION/PROJECT_STATE, defines drift, and remediates by opening a corrective PRD;
+(4) a governance carve-out makes PRs that change the review skill or the
+governance/auto-merge policy manual-merge-only (excluded from auto-merge).
+
+Enforcement of (4): landed as policy (agent-honored - this PRD itself is
+manual-merge). Recommended mechanical hardening is option (c): relocate the
+governance/auto-merge policy into a dedicated CODEOWNERS-protected file +
+branch-protection "require Code Owner review", which auto-merge cannot satisfy
+(forcing a human merge) WITHOUT taxing routine CLAUDE.md/PROJECT_STATE edits.
+Rejected: (a) policy-only has no mechanical backstop; (b) CODEOWNERS on all of
+CLAUDE.md would gate every routine edit. (c) needs repo-admin; tracked as a
+follow-up, not landed here. PRD-186 is MANUAL-MERGE and dogfoods the carve-out.
+
 ## 2026-06-14 - PRD-184: auto-merge-via-PR landing flow (Claude push enablement)
 
 PRD-182 and PRD-183 each stalled at "PR-ready" waiting on a manual human push
