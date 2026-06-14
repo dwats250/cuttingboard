@@ -9,7 +9,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 ## Current state
 
-- **Active PRD:** none in progress.
+- **Active PRD:** PRD-185 (bump GitHub Actions to Node 24 majors; LANE: HIGH-RISK).
 - **Proposed / next:** PRD-179 (preview fixture / all-section-state coverage, a fast-follow to PRD-178) — unstarted.
 - **Test baseline:** 2610 passing, 1 xfailed (`python -m pytest tests -q` at `75a4121`).
 - **Recently landed and live:**
