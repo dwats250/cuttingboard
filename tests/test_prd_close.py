@@ -1,10 +1,13 @@
-"""PRD-164: tests for scripts/prd_close.sh — the single-commit closeout helper.
+"""Tests for scripts/prd_close.sh — the single-commit closeout helper.
 
 Each test builds a minimal docs/ fixture tree (PRD doc + registry + PROJECT_STATE
 + prd_index) with an IN PROGRESS PRD-200, runs the script (no --commit, so it
-only edits files), and asserts on the four closeout artifacts. Covers PRD-164
-R2 (registry row flipped in place), R3 (both status markers, distinct forms),
-R4 (Active PRD reset), R5 (optional metacharacter-safe --next).
+only edits files), and asserts on the four closeout artifacts.
+
+Covers PRD-164 R2 (registry row flipped in place), R3 (both status markers,
+distinct forms), R5 (optional metacharacter-safe --next), and PRD-183 (the
+"Current state / Recent ships" format: bulleted Active PRD reset, Test baseline
+update in place, Recent ships row prepend, and zero WARN-skips).
 """
 
 from __future__ import annotations
@@ -37,26 +40,28 @@ Do the thing.
 STATUS: IN PROGRESS
 """
 
+# Mirrors the live PROJECT_STATE.md layout (PRD-183): top-level "Last updated",
+# a "## Current state" bullet block (single-line Active PRD, a Proposed/next
+# bullet, a "Test baseline:" bullet with the pytest cmd + commit ref), and a
+# 3-column "## Recent ships" table.
 PROJECT_STATE = """\
-# PROJECT_STATE.md
+# Project state
 
-## Current State
+**Last updated:** 2026-01-01 (commit abc0001)
 
-**Last updated:** 2026-01-01
-**Last completed PRD:** PRD-199 - Prev (commit zzzzzzz)
-**Test baseline:** 2400 passing, 1 xfailed.
-- **2400 passing** (as of 2026-01-01; PRD-199 added 5 tests)
-**Last work completed:** 2026-01-01 — PRD-199: did the prior thing.
+## Current state
 
-**Active PRD:** PRD-200. Running completion log that should be reset.
+- **Active PRD:** PRD-200 (test PRD; LANE: STANDARD).
+- **Proposed / next:** PRD-201 (later thing) — unstarted.
+- **Test baseline:** 2400 passing, 1 xfailed (`python -m pytest tests -q` at `abc0001`).
 
-**Next step (some label):** finish PRD-200 implementation.
+**Next step:** finish PRD-200 implementation.
 
-## Recent PRD history
+## Recent ships
 
-| PRD | Title | Status | Completed |
-|-----|-------|--------|-----------|
-| PRD-199 | Prev | COMPLETE | 2026-01-01 |
+| PRD | Title | Completed |
+|-----|-------|-----------|
+| PRD-199 | Prev | 2026-01-01 |
 """
 
 
@@ -66,7 +71,7 @@ def _make_tree(tmp_path: Path) -> Path:
     (docs / "prd_history" / "PRD-200.md").write_text(PRD_DOC)
 
     rows = [
-        "| PRD-199 | zzzzzzz | Prev | COMPLETE | — |",
+        "| PRD-199 | abc0001 | Prev | COMPLETE | — |",
         "| PRD-200 | — | Test PRD | IN PROGRESS | [PRD-200](prd_history/PRD-200.md) |",
     ]
     (docs / "PRD_REGISTRY.md").write_text(
@@ -79,7 +84,7 @@ def _make_tree(tmp_path: Path) -> Path:
         "latest_complete": 199,
         "next_prd": 200,
         "entries": [
-            {"number": 199, "title": "Prev", "status": "COMPLETE", "commit": "zzzzzzz"},
+            {"number": 199, "title": "Prev", "status": "COMPLETE", "commit": "abc0001"},
             {"number": 200, "title": "Test PRD", "status": "IN PROGRESS", "commit": None},
         ],
     }
@@ -111,6 +116,15 @@ def _state(tree: Path) -> str:
     return (tree / "docs" / "PROJECT_STATE.md").read_text()
 
 
+# --- PRD-183: a complete closeout emits no WARN against the new format ----
+
+def test_no_warn_skips_against_new_format(tmp_path: Path) -> None:
+    tree = _make_tree(tmp_path)
+    res = _run(tree)
+    assert res.returncode == 0, res.stderr
+    assert "WARN:" not in res.stderr, res.stderr
+
+
 # --- R2: registry row flipped in place -----------------------------------
 
 def test_r2_registry_row_flipped_in_place(tmp_path: Path) -> None:
@@ -119,7 +133,6 @@ def test_r2_registry_row_flipped_in_place(tmp_path: Path) -> None:
     assert res.returncode == 0, res.stderr
     reg = _registry(tree)
     assert "| PRD-200 | 1234abc | Test PRD | COMPLETE | [PRD-200](prd_history/PRD-200.md) |" in reg
-    # No IN PROGRESS remains for PRD-200, and exactly one PRD-200 row exists.
     assert "PRD-200 | — | Test PRD | IN PROGRESS" not in reg
     assert reg.count("| PRD-200 |") == 1
 
@@ -131,26 +144,69 @@ def test_r3_both_status_markers_flipped_distinct_forms(tmp_path: Path) -> None:
     assert _run(tree).returncode == 0
     doc = _doc(tree)
     lines = doc.splitlines()
-    # Header is exactly "Status: COMPLETE" (no hash).
     assert "Status: COMPLETE" in lines
-    # Trailing marker is exactly "STATUS: COMPLETE @ <hash>".
     assert "STATUS: COMPLETE @ 1234abc" in lines
-    # No status-anchored line still says IN PROGRESS.
     assert not [ln for ln in lines if re.match(r"^[Ss]tatus:", ln) and "IN PROGRESS" in ln]
-    # Exactly one trailing all-caps marker.
     assert sum(1 for ln in lines if ln.startswith("STATUS: COMPLETE @")) == 1
-    # Header not corrupted into the trailing form.
     assert "Status: COMPLETE @" not in doc
 
 
-# --- R4: Active PRD reset -------------------------------------------------
+# --- R4 (PRD-183): bulleted Active PRD reset; proposed note preserved -----
 
-def test_r4_active_prd_reset_to_none(tmp_path: Path) -> None:
+def test_r4_active_prd_reset_to_none_bulleted(tmp_path: Path) -> None:
     tree = _make_tree(tmp_path)
     assert _run(tree).returncode == 0
     state = _state(tree)
-    assert re.search(r"^\*\*Active PRD:\*\* none\s*$", state, re.MULTILINE)
-    assert "**Active PRD:** PRD-200" not in state
+    assert re.search(r"^- \*\*Active PRD:\*\* none in progress\.\s*$", state, re.MULTILINE)
+    # The just-closed PRD must not remain on the Active PRD line.
+    assert not [ln for ln in state.splitlines()
+                if ln.startswith("- **Active PRD:**") and "PRD-200" in ln]
+    # The separate proposed-next bullet is untouched.
+    assert "- **Proposed / next:** PRD-201" in state
+
+
+# --- PRD-183: Test baseline updated in place, xfailed preserved -----------
+
+def test_baseline_updated_in_place_xfailed_preserved(tmp_path: Path) -> None:
+    tree = _make_tree(tmp_path)
+    res = _run(tree)
+    assert res.returncode == 0, res.stderr
+    assert "WARN: test baseline bullet not found" not in res.stderr
+    state = _state(tree)
+    # Count -> 2401 (from --tests), commit ref -> 1234abc, "1 xfailed" preserved.
+    assert "- **Test baseline:** 2401 passing, 1 xfailed (`python -m pytest tests -q` at `1234abc`)." in state
+    assert "2400 passing" not in state
+    assert "abc0001" not in state.splitlines()[2]  # Last updated line refreshed too
+
+
+# --- PRD-183: soft-wrapped baseline bullet (commit ref on next line) ------
+
+def test_baseline_wrapped_across_two_lines_is_updated(tmp_path: Path) -> None:
+    tree = _make_tree(tmp_path)
+    sp = tree / "docs" / "PROJECT_STATE.md"
+    sp.write_text(sp.read_text().replace(
+        "- **Test baseline:** 2400 passing, 1 xfailed (`python -m pytest tests -q` at `abc0001`).",
+        "- **Test baseline:** 2400 passing, 1 xfailed (`python -m pytest tests -q` at\n  `abc0001`).",
+    ))
+    res = _run(tree)
+    assert res.returncode == 0, res.stderr
+    assert "WARN: test baseline bullet not found" not in res.stderr
+    state = _state(tree)
+    assert "2401 passing" in state and "1234abc" in state
+    assert "2400 passing" not in state
+
+
+# --- PRD-183: Recent ships row prepended (3-column) -----------------------
+
+def test_recent_ships_row_prepended(tmp_path: Path) -> None:
+    tree = _make_tree(tmp_path)
+    assert _run(tree).returncode == 0
+    state = _state(tree)
+    assert re.search(r"^\| PRD-200 \| Test PRD \| \d{4}-\d{2}-\d{2} \|$", state, re.MULTILINE)
+    # Prepended above the prior row.
+    pos_200 = state.index("| PRD-200 | Test PRD |")
+    pos_199 = state.index("| PRD-199 | Prev |")
+    assert pos_200 < pos_199
 
 
 # --- R5: optional, metacharacter-safe --next -----------------------------
@@ -159,16 +215,16 @@ def test_r5_next_unchanged_when_omitted(tmp_path: Path) -> None:
     tree = _make_tree(tmp_path)
     assert _run(tree).returncode == 0
     state = _state(tree)
-    assert "**Next step (some label):** finish PRD-200 implementation." in state
+    assert "**Next step:** finish PRD-200 implementation." in state
 
 
 def test_r5_next_set_when_supplied(tmp_path: Path) -> None:
     tree = _make_tree(tmp_path)
-    assert _run(tree, "--next", "ship PRD-201").returncode == 0
+    assert _run(tree, "--next", "ship PRD-202").returncode == 0
     state = _state(tree)
     next_line = [ln for ln in state.splitlines() if ln.startswith("**Next step")]
     assert len(next_line) == 1
-    assert "ship PRD-201" in next_line[0]
+    assert "ship PRD-202" in next_line[0]
 
 
 def test_r5_next_metacharacter_safe(tmp_path: Path) -> None:
@@ -188,29 +244,5 @@ def test_index_entry_completed(tmp_path: Path) -> None:
     entry = next(e for e in index["entries"] if e["number"] == 200)
     assert entry["status"] == "COMPLETE"
     assert entry["commit"] == "1234abc"
-
-
-# --- PRD-172: baseline bullet in the "N passing, M xfailed" form updates ---
-
-def test_baseline_bullet_with_xfailed_suffix_is_updated(tmp_path: Path) -> None:
-    # The default fixture bullet is already normalized ("- **2400 passing**");
-    # rewrite it to the real-world "- **2400 passing, 1 xfailed**" form, which
-    # the pre-PRD-172 regex (passing\*\*) failed to match.
-    tree = _make_tree(tmp_path)
-    state_path = tree / "docs" / "PROJECT_STATE.md"
-    state_path.write_text(
-        state_path.read_text().replace(
-            "- **2400 passing** (as of 2026-01-01; PRD-199 added 5 tests)",
-            "- **2400 passing, 1 xfailed** (as of 2026-01-01; PRD-199 added 5 tests)",
-        )
-    )
-    res = _run(tree)
-    assert res.returncode == 0, res.stderr
-    assert "WARN: test baseline bullet not found" not in res.stderr
-    state = _state(tree)
-    # --tests 2401 from _run(); bullet normalized to the new count, suffix gone.
-    # (Scope the negative check to the bullet form — the separate inline
-    # "**Test baseline:** 2400 passing, 1 xfailed." line is intentionally
-    # left untouched by the script.)
-    assert "- **2401 passing** (as of" in state
-    assert "- **2400 passing, 1 xfailed**" not in state
+    assert index["latest_complete"] == 200
+    assert index["next_prd"] == 201

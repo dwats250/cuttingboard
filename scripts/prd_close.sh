@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
 # prd_close.sh — apply the mechanical closeout edits for a completed PRD.
 #
-# Updates (does NOT commit):
-#   - docs/prd_history/PRD-NNN.md       : STATUS line -> "COMPLETE @ <hash>"
-#   - docs/PRD_REGISTRY.md              : append a row for PRD-NNN
-#   - docs/PROJECT_STATE.md             : "Last completed PRD", "Last work completed",
-#                                         test baseline count, prepend history table row
+# Targets the current "Current state / Recent ships" PROJECT_STATE.md format
+# (PRD-183). Updates (does NOT commit unless --commit):
+#   - docs/prd_history/PRD-NNN.md  : STATUS markers -> "COMPLETE @ <hash>"
+#   - docs/PRD_REGISTRY.md         : flip the PRD-NNN row to COMPLETE @ <hash>
+#   - docs/PROJECT_STATE.md        : Last updated, Test baseline (count + commit,
+#                                    xfailed preserved), Active PRD reset to none,
+#                                    prepend a "Recent ships" row; --next optional
+#   - docs/prd_index.json          : entry -> COMPLETE @ <hash>; counters bumped
+#
+# The pre-PRD-183 "Last completed PRD" / "Last work completed" prose lines were
+# removed by the doc realignment; the --summary is now recorded in the closeout
+# commit body instead.
 #
 # Usage:
 #   scripts/prd_close.sh \
@@ -16,8 +23,8 @@
 #       --added 25 \
 #       --summary "PRD-120: renderer-only source-health diagnostics ..."
 #
-# After running, review the diff (`git diff`) and stage / commit explicitly.
-# This script does NOT stage or commit — that is your decision.
+# After running, review the diff (`git diff`) and stage / commit explicitly,
+# or pass --commit (or --push) to do it in one shot.
 
 set -euo pipefail
 
@@ -40,7 +47,7 @@ Usage: prd_close.sh --prd <NNN> --hash <commit> --title "<title>" \
 
   --next     set the PROJECT_STATE "**Next step" line; when omitted, that
              line is left unchanged
-  --commit   stage + commit the closeout edits with a canned message
+  --commit   stage + commit the closeout edits (summary goes in the commit body)
   --push     also git push (implies --commit)
 USAGE
     exit 2
@@ -87,21 +94,19 @@ INDEX="docs/prd_index.json"
 
 TODAY=$(date -u +%Y-%m-%d)
 
-python3 - "$PRD_FILE" "$REGISTRY" "$STATE" "$INDEX" "$PRD_ID" "$HASH" "$TITLE" "$TESTS" "$ADDED" "$SUMMARY" "$TODAY" "$NEXT" <<'PYEOF'
+python3 - "$PRD_FILE" "$REGISTRY" "$STATE" "$INDEX" "$PRD_ID" "$HASH" "$TITLE" "$TESTS" "$ADDED" "$TODAY" "$NEXT" <<'PYEOF'
 import json
 import re
 import sys
 from pathlib import Path
 
 (prd_path, registry_path, state_path, index_path,
- prd_id, commit_hash, title, tests, added, summary, today, next_step) = sys.argv[1:]
+ prd_id, commit_hash, title, tests, added, today, next_step) = sys.argv[1:]
 
 # --- 1. PRD-NNN.md status markers ----------------------------------------
 # Two distinct markers, two distinct completed forms (PRD-164 R3):
 #   - the capital-S "Status:" header line -> "Status: COMPLETE" (no hash)
 #   - the trailing all-caps "STATUS:" line -> "STATUS: COMPLETE @ <hash>"
-# The pre-PRD-164 script flipped only the trailing marker, leaving the header
-# at IN PROGRESS. Case-sensitive anchors keep the two lines from colliding.
 prd_p = Path(prd_path)
 prd_text = prd_p.read_text(encoding="utf-8")
 new_trailing = f"STATUS: COMPLETE @ {commit_hash}"
@@ -120,10 +125,8 @@ prd_p.write_text(prd_text, encoding="utf-8")
 print(f"updated  {prd_path}: Status: COMPLETE / {new_trailing}")
 
 # --- 2. PRD_REGISTRY.md row ----------------------------------------------
-# PRD-164 R2: the Stage-0 row already exists (prd_open.sh created it), so flip
-# it in place to COMPLETE instead of skipping. The missing-row case keeps the
-# prior append-when-absent fallback (defensive only; the closeout-skill
-# preflight refuses a missing row before this script runs).
+# Flip the existing Stage-0 row in place (PRD-164 R2); append-when-absent is a
+# defensive fallback only (the closeout-skill preflight refuses a missing row).
 reg_p = Path(registry_path)
 reg_text = reg_p.read_text(encoding="utf-8")
 row = (
@@ -131,14 +134,11 @@ row = (
     f"[{prd_id}](prd_history/{prd_id}.md) |"
 )
 row_re = re.compile(rf"^\|\s*{re.escape(prd_id)}\s*\|.*$", re.MULTILINE)
-# callable replacement: title may contain regex-template metacharacters.
 reg_text_new, n_row = row_re.subn(lambda _m: row, reg_text)
 if n_row >= 1:
     reg_p.write_text(reg_text_new, encoding="utf-8")
     print(f"updated  {registry_path}: row for {prd_id} -> COMPLETE @ {commit_hash}")
 else:
-    # No existing row — append after the last MAIN-table row (stop at the
-    # trailing '## Audit Reports' table, which also carries | PRD-NNN | rows).
     lines = reg_text.splitlines(keepends=True)
     boundary = len(lines)
     for i, line in enumerate(lines):
@@ -156,65 +156,42 @@ else:
     reg_p.write_text("".join(lines), encoding="utf-8")
     print(f"appended {registry_path}: row for {prd_id}")
 
-# --- 3. PROJECT_STATE.md -------------------------------------------------
+# --- 3. PROJECT_STATE.md (new "Current state / Recent ships" format) ------
 state_p = Path(state_path)
 state_text = state_p.read_text(encoding="utf-8")
 
-# (a) Last updated
+# (a) Last updated -> today + commit ref
 state_text, n = re.subn(
     r"^\*\*Last updated:\*\*.*$",
-    f"**Last updated:** {today}",
+    f"**Last updated:** {today} (commit {commit_hash})",
     state_text, count=1, flags=re.MULTILINE,
 )
 if n != 1:
     print("WARN: 'Last updated' marker not found in PROJECT_STATE.md", file=sys.stderr)
 
-# (b) Last completed PRD
-# callable replacement bypasses re.sub template parsing of backslash escapes
-# in user-supplied --title; otherwise a title like 'foo \d bar' raises
-# re.PatternError: bad escape \d.
+# (b) Test baseline bullet — update passing count + commit ref in place; any
+# "M xfailed" text and the pytest command between them are preserved. The middle
+# uses [\s\S]*? so a soft-wrapped bullet (commit ref on the continuation line)
+# still matches. Callable replacement avoids re.sub template parsing.
 state_text, n = re.subn(
-    r"^\*\*Last completed PRD:\*\*.*$",
-    lambda _m: f"**Last completed PRD:** {prd_id} - {title} (commit {commit_hash})",
-    state_text, count=1, flags=re.MULTILINE,
-)
-if n != 1:
-    print("WARN: 'Last completed PRD' marker not found in PROJECT_STATE.md", file=sys.stderr)
-
-# (c) Last work completed — one-line `**Last work completed:** YYYY-MM-DD — <summary>`
-# callable replacement bypasses re.sub template parsing of backslash escapes
-# in user-supplied --summary; otherwise a summary containing 'r"PRD-(\d+)"'
-# raises re.PatternError: bad escape \d (observed during PRD-145 closeout).
-state_text, n = re.subn(
-    r"^\*\*Last work completed:\*\*.*$",
-    lambda _m: f"**Last work completed:** {today} — {summary}",
-    state_text, count=1, flags=re.MULTILINE,
-)
-if n != 1:
-    print("WARN: 'Last work completed' marker not found in PROJECT_STATE.md", file=sys.stderr)
-
-# (d) Test baseline bullet
-state_text, n = re.subn(
-    r"^- \*\*\d[\d,]* passing[^\n]*?\*\*[^\n]*$",
-    f"- **{tests} passing** (as of {today}; {prd_id} added {added} tests)",
-    state_text, count=1, flags=re.MULTILINE,
+    r"(- \*\*Test baseline:\*\* )\d[\d,]*( passing[\s\S]*? at\s+`)[0-9a-f]+(`[^\n]*)",
+    lambda m: f"{m.group(1)}{tests}{m.group(2)}{commit_hash}{m.group(3)}",
+    state_text, count=1,
 )
 if n != 1:
     print("WARN: test baseline bullet not found in PROJECT_STATE.md", file=sys.stderr)
 
-# (f) Active PRD pointer reset (PRD-164 R4) — always reset to `none`; the
-# just-closed PRD is recorded on the "Last completed PRD" line above.
+# (c) Active PRD pointer reset (PRD-164 R4) — the bulleted, single-line form
+# (PRD-183). The just-closed PRD is recorded in the Recent ships table below.
 state_text, n = re.subn(
-    r"^\*\*Active PRD:\*\*.*$",
-    "**Active PRD:** none",
+    r"^- \*\*Active PRD:\*\*.*$",
+    "- **Active PRD:** none in progress.",
     state_text, count=1, flags=re.MULTILINE,
 )
 if n != 1:
     print("WARN: 'Active PRD' marker not found in PROJECT_STATE.md", file=sys.stderr)
 
-# (g) Next-step line (PRD-164 R5) — rewritten only when --next is supplied;
-# omitted leaves it byte-for-byte unchanged. Callable replacement so the text
-# may contain regex-template metacharacters.
+# (d) Next-step line (PRD-164 R5) — rewritten only when --next is supplied.
 if next_step:
     state_text, n = re.subn(
         r"^\*\*Next step.*$",
@@ -224,24 +201,27 @@ if next_step:
     if n != 1:
         print("WARN: 'Next step' marker not found in PROJECT_STATE.md", file=sys.stderr)
 
-# (e) Recent PRD history table — prepend a row after the header separator.
-new_row = f"| {prd_id} | {title} | COMPLETE | {today} |"
-header_marker = "| PRD | Title | Status | Completed |"
-sep_marker    = "|-----|-------|--------|-----------|"
+# (e) Recent ships table — prepend a 3-column row under the "## Recent ships"
+# header's separator row (| PRD | Title | Completed |).
+new_row = f"| {prd_id} | {title} | {today} |"
 lines = state_text.splitlines(keepends=True)
 inserted = False
+in_recent = False
 for i, line in enumerate(lines):
-    if line.strip() == sep_marker:
+    if line.strip().lower().startswith("## recent ships"):
+        in_recent = True
+        continue
+    if in_recent and re.match(r"^\|[-\s|:]+\|\s*$", line):
         if i + 1 < len(lines) and prd_id in lines[i + 1]:
-            print(f"skip     {state_path}: history row for {prd_id} already present")
+            print(f"skip     {state_path}: Recent ships row for {prd_id} already present")
             inserted = True
             break
         lines.insert(i + 1, new_row + "\n")
         inserted = True
-        print(f"prepended {state_path}: history row for {prd_id}")
+        print(f"prepended {state_path}: Recent ships row for {prd_id}")
         break
 if not inserted:
-    print(f"WARN: history table separator not found in {state_path}", file=sys.stderr)
+    print(f"WARN: '## Recent ships' table not found in {state_path}", file=sys.stderr)
 
 state_p.write_text("".join(lines), encoding="utf-8")
 
@@ -280,7 +260,8 @@ if [ "$DO_COMMIT" -eq 1 ]; then
     echo ""
     git add -- "${CLOSE_FILES[@]}"
     git commit -m "Close ${PRD_ID} bookkeeping" \
-               -m "STATUS COMPLETE @ ${HASH}; PROJECT_STATE + prd_index updated." \
+               -m "STATUS COMPLETE @ ${HASH}." \
+               -m "${SUMMARY}" \
                -m "Co-authored-by: Claude <claude@anthropic.com>"
     if [ "$DO_PUSH" -eq 1 ]; then
         git push

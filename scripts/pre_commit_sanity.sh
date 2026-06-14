@@ -24,7 +24,9 @@ echo "=== active PRD / scope reminder ==="
 # committing PRD-scoped work. Cheap nudge, no enforcement — the skill
 # itself is the actual gate.
 if [ -f docs/PROJECT_STATE.md ]; then
-  ACTIVE_PRD=$(awk -F': ' '/^\*\*Active PRD:/ {print $2; exit}' docs/PROJECT_STATE.md | tr -d '[:space:]')
+  # New "Current state" format: bulleted, single-line `- **Active PRD:** <id> ...`.
+  # Capture the first token after the marker ("PRD-NNN" or "none").
+  ACTIVE_PRD=$(sed -n 's/^- \*\*Active PRD:\*\* *\([^ .]*\).*/\1/p' docs/PROJECT_STATE.md | head -1)
   if [ -n "${ACTIVE_PRD:-}" ] && [ "$ACTIVE_PRD" != "none" ]; then
     echo "Active PRD: $ACTIVE_PRD"
     echo "REMINDER: run the scope-lock-precommit skill before committing"

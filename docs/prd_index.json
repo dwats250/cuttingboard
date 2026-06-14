@@ -764,6 +764,12 @@
       "title": "CI merge gate + pre-push full-suite + workflow env-default lint fix",
       "status": "COMPLETE",
       "commit": "6733c61"
+    },
+    {
+      "number": 183,
+      "title": "Realign closeout tooling to the new PROJECT_STATE format",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
