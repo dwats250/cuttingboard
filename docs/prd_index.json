@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 180,
-  "next_prd": 181,
+  "latest_complete": 181,
+  "next_prd": 182,
   "entries": [
     {
       "number": 56,
@@ -755,9 +755,9 @@
     },
     {
       "number": 181,
-      "title": "Short-gate fail-closed during the open window (ratified D-Q7, 2026-06-12 gate recon; APPROVED 2026-06-13, pending HIGH-RISK implementation review; machine-status PROPOSED per validator)",
-      "status": "PROPOSED",
-      "commit": null
+      "title": "Short-gate fail-closed during the open window (open-window fail-closed for SHORT when intraday state unavailable)",
+      "status": "COMPLETE",
+      "commit": "b90aebf"
     }
   ]
 }
