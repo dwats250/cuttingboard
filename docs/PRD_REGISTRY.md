@@ -195,7 +195,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-175 | 3de3809 | Historical regime scoreboard aggregation sidecar | COMPLETE | [PRD-175](prd_history/PRD-175.md) |
 | PRD-176 | 1555bc8 | Red-folder economic calendar static schedule and loader | COMPLETE | [PRD-176](prd_history/PRD-176.md) |
 | PRD-177 | 635680f | Dashboard realignment pass 2: cuts, four-questions reorder, macro evidence, new sidecar sections | COMPLETE | [PRD-177](prd_history/PRD-177.md) |
-| PRD-178 | — | Dashboard fresh-data preview loop (CI preview workflow + local preview script) | IN PROGRESS | [PRD-178](prd_history/PRD-178.md) |
+| PRD-178 | a3d34c5 | Dashboard fresh-data preview loop (CI preview workflow + local preview script) | COMPLETE | [PRD-178](prd_history/PRD-178.md) |
 | PRD-179 | — | Preview fixture/all-section-state coverage (fast-follow to PRD-178) | PROPOSED | [PRD-179](prd_history/PRD-179.md) |
 | PRD-180 | 6f74a76 | Kill switch forces real HALT (HaltCause primitive; cause-labeled HALT banner) | COMPLETE | [PRD-180](prd_history/PRD-180.md) |
 | PRD-181 | b90aebf | Short-gate fail-closed during the open window (open-window fail-closed for SHORT when intraday state unavailable) | COMPLETE | [PRD-181](prd_history/PRD-181.md) |

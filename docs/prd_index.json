@@ -738,8 +738,8 @@
     {
       "number": 178,
       "title": "Dashboard fresh-data preview loop (CI preview workflow + local preview script)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "a3d34c5"
     },
     {
       "number": 179,
