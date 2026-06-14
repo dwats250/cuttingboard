@@ -16,6 +16,52 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-13 - Documentation realignment: tier-1 docs made canonical, sprawl cut
+
+Re-aligned the docs to describe the system as it is now, not as it was during the
+exploration phase. Branch `docs-realignment` (no push).
+
+**Tier-1 rewrites.** `VISION.md` rewritten evergreen: a new objective-declaration
+opening, the four questions promoted to the spine, hard non-goals, operating
+principles, and the trap-to-watch-for. All current-state (test counts, phase
+plans, dead-code-to-remove, in-flight lists) removed and left to
+`PROJECT_STATE.md`. `CLAUDE.md` tightened to the operating model with roles, the
+no-push rule, the HIGH-RISK review gate, and scope-lock discipline explicit;
+`runtime.py` reference corrected to the `runtime/` package; the `prd_open.sh`
+"once it exists" note resolved (shipped as PRD-159). `PROJECT_STATE.md` cut from
+an accreted changelog to a tight current snapshot - it had duplicated the PRD
+registry, architecture.md, and VISION, and carried a self-contradictory test
+baseline. Baseline re-verified at 2607 passing / 1 xfailed (commit `4f3257b`).
+
+**Market-stress invalidation in VISION (PRD-180 R4 pointer; decision A1).** The
+deferred "what invalidates" pointer (see the GO entry below) is placed in VISION
+as an evergreen invalidation *principle* - extreme market stress is a hard stop -
+with the concrete kill-switch thresholds and terminal HALT left in
+`docs/system_logic_map.md`, where PRD-180 made them canonical. VISION carries the
+principle, not the mechanism.
+
+**Cuts.** Removed two stale planning artifacts
+(`docs/superpowers/plans/2026-05-08-prd-102*`, `-prd-103*`; superseded by the
+shipped PRDs) and an orphaned agent-doc pair (`docs/AGENT_SESSION_BOOTSTRAP.md`,
+`docs/AGENT_BUILD_REPORT_TEMPLATE.md`; referenced by nothing live).
+`docs/AGENT_WORKFLOW.md` was KEPT - the `scope-lock-precommit` skill reads it at
+runtime as the single source of truth for the protected-file set and fails closed
+without it.
+
+**Drift fixes in kept reference docs.** `trade_qualification.md` cited a
+nonexistent `config.LATE_SESSION_CUTOFF` (real key `config.ENTRY_CUTOFF_ET`);
+`runbook.md` referenced the removed ntfy notifier (delivery is Telegram-only);
+`architecture.md` documented deleted Moomoo modules, called the orchestrator
+`runtime.py` (now the `runtime/` package), and claimed no HTML is rendered while
+`delivery/dashboard_renderer.py` ships the dashboard. All corrected.
+
+**Flagged, not touched.** `system_logic_map.md`, `docs/audit/gate_recon_2026-06-12.md`,
+and the merged PRD-180/181 code surfaces were left alone. Two follow-ups:
+`AGENT_WORKFLOW.md`'s protected-file list still names the literal `runtime.py`
+(now a package) and the `scope-lock-precommit` skill parses that file; and
+`CLAUDE_HOOKS.md` documents `git_gate.sh` as a wired commit gate while
+`settings.json` does not wire it.
+
 ## 2026-06-13 — PRD-180 implementation GO: mechanism (b)/tight path; VISION R4 pointer deferred
 
 PRD-180 (kill switch forces real HALT) moved from APPROVED to implementation on
