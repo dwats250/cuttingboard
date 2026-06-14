@@ -16,6 +16,36 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-13 - Workflow + hooks audit: cut net-negative machinery, slim AGENT_WORKFLOW
+
+Audited the agent-workflow scaffolding for net value (branch `lean-workflow-hooks`,
+off `docs-realignment`, no push). Root finding: the machinery was built for a
+flatter package and a heavier pre-harness agent setup, and the code has outgrown
+it - two pieces assumed `cuttingboard/*.py` was the whole package and silently
+ignored the `runtime/`, `delivery/`, and `notifications/` subpackages.
+
+**Cut (net-negative or dead):**
+- `test_gate.sh` - ran the full ~70s suite after every top-level `.py` edit, but
+  its scope regex ignored every subdirectory, adding latency on flat edits and
+  giving false "all passed" on the subdir code it never ran. The agent already
+  runs targeted tests during iteration and the full suite before commit.
+- `git_gate.sh` - dormant (never wired in `settings.json`) and redundant with the
+  harness's native commit/push gating (push is already denied in settings).
+- `stop_snapshot.sh` - a redundant breadcrumb; the harness handles context.
+
+**Slimmed:** `AGENT_WORKFLOW.md` from 667 lines to just the `## Auto-Approval
+Policy` section the PRD skills parse, and fixed its protected-file list
+(`runtime.py` -> `runtime/`) so `scope-lock-precommit` stops missing edits to the
+runtime package. The skill contract (the parsed section) is preserved.
+
+**Kept:** `protect_files.sh` (the real backstop - `settings.json` auto-approves
+Write/Edit, so this is the only guard on secrets/.env/CI), `prd_eval.sh` (PRD
+review + sequencing), and the non-blocking git `pre-commit` sanity.
+
+**Reconciled:** `CLAUDE_HOOKS.md` rewritten to match reality - it had documented
+git_gate as wired (it was not) and protect_files as blocking all writes (it only
+guards protected paths), and never documented the live prd_eval hook.
+
 ## 2026-06-13 - Documentation realignment: tier-1 docs made canonical, sprawl cut
 
 Re-aligned the docs to describe the system as it is now, not as it was during the
