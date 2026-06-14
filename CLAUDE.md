@@ -58,12 +58,13 @@ with date and rationale - short notes, not ceremony.
   drift-review is a post-merge audit - carried by the per-PRD review artifact's
   drift check (above) and the Alignment cadence (below) - not a pre-merge gate.
 - **Governance changes are manual-merge-only (PRD-186).** A PR that changes the
-  review-gate skill (`prd-review-claude`) or the governance/auto-merge policy in
-  this section is excluded from auto-merge: open it and hold for a human merge -
-  do NOT queue `gh pr merge --auto`. Auto-merge must not land changes to its own
-  guardrails without a human read. Enforcement today is this policy (agent-honored);
-  the recommended mechanical hardening is CODEOWNERS over a dedicated governance
-  file + branch-protection "require Code Owner review" (PRD-186 R4).
+  review-gate skill (`prd-review-claude`) or any governance guardrail in this file
+  - the auto-merge / review-gate / drift-check policy above, OR the Alignment-cadence
+  post-merge audit below - is excluded from auto-merge: open it and hold for a human
+  merge - do NOT queue `gh pr merge --auto`. Auto-merge must not land changes to its
+  own guardrails without a human read. Enforcement today is this policy
+  (agent-honored); the recommended mechanical hardening is CODEOWNERS over a dedicated
+  governance file + branch-protection "require Code Owner review" (PRD-186 R4).
 - **Surgical edits, scope-locked.** Touch only what the active PRD's `FILES`
   section authorizes (see Operational rules).
 - Read-only inspection (git status/diff/log, grep, find, targeted reads, pytest)
