@@ -197,7 +197,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-177 | 635680f | Dashboard realignment pass 2: cuts, four-questions reorder, macro evidence, new sidecar sections | COMPLETE | [PRD-177](prd_history/PRD-177.md) |
 | PRD-178 | — | Dashboard fresh-data preview loop (CI preview workflow + local preview script) | IN PROGRESS | [PRD-178](prd_history/PRD-178.md) |
 | PRD-179 | — | Preview fixture/all-section-state coverage (fast-follow to PRD-178) | PROPOSED | [PRD-179](prd_history/PRD-179.md) |
-| PRD-180 | — | Kill switch forces real HALT (ratified D-Q2, 2026-06-12 gate recon; APPROVED 2026-06-13, pending HIGH-RISK implementation review; machine-status PROPOSED per validator) | PROPOSED | [PRD-180](prd_history/PRD-180.md) |
+| PRD-180 | 6f74a76 | Kill switch forces real HALT (HaltCause primitive; cause-labeled HALT banner) | COMPLETE | [PRD-180](prd_history/PRD-180.md) |
 | PRD-181 | — | Short-gate fail-closed during the open window (ratified D-Q7, 2026-06-12 gate recon; APPROVED 2026-06-13, pending HIGH-RISK implementation review; machine-status PROPOSED per validator) | PROPOSED | [PRD-181](prd_history/PRD-181.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().

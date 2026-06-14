@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 177,
-  "next_prd": 178,
+  "latest_complete": 180,
+  "next_prd": 181,
   "entries": [
     {
       "number": 56,
@@ -749,9 +749,9 @@
     },
     {
       "number": 180,
-      "title": "Kill switch forces real HALT (ratified D-Q2, 2026-06-12 gate recon; APPROVED 2026-06-13, pending HIGH-RISK implementation review; machine-status PROPOSED per validator)",
-      "status": "PROPOSED",
-      "commit": null
+      "title": "Kill switch forces real HALT (HaltCause primitive; cause-labeled HALT banner)",
+      "status": "COMPLETE",
+      "commit": "6f74a76"
     },
     {
       "number": 181,
