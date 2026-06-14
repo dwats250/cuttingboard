@@ -43,7 +43,12 @@ from cuttingboard.chain_validation import (
 from cuttingboard.derived import compute_all_derived
 from cuttingboard.ingestion import fetch_ohlcv
 from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all, fetch_intraday_bars
-from cuttingboard.intraday_state_engine import Bar as IntradayStateBar, compute_intraday_state
+from cuttingboard.intraday_state_engine import (
+    Bar as IntradayStateBar,
+    _NOISE_END,
+    _ORB_START,
+    compute_intraday_state,
+)
 from cuttingboard.market_map import build_market_map
 from cuttingboard.trend_structure import build_trend_structure_snapshot
 from cuttingboard.watchlist_sidecar import build_watchlist_snapshot
@@ -359,6 +364,8 @@ def _execute_notify_run(
     and returns a minimal status dict. Does not write markdown or summary JSON.
     """
     date_str = run_date.isoformat()
+    # PRD-181: wall-clock ET drives the SHORT gate's open-window decision.
+    now_et = time_utils.convert_utc_to_et(datetime.now(timezone.utc))
     try:
         raw_quotes = fetch_all()
         normalized_quotes = normalize_all(raw_quotes)
@@ -398,7 +405,7 @@ def _execute_notify_run(
                 execution_derived = dict(derived)
                 execution_structure = dict(structure)
                 candidates = generate_candidates(execution_structure, execution_derived, execution_quotes, regime)
-                candidates, _ = _apply_intraday_short_permission(candidates, execution_quotes)
+                candidates, _ = _apply_intraday_short_permission(candidates, execution_quotes, now_et)
                 ohlcv = {
                     symbol: df
                     for symbol in candidates
@@ -421,7 +428,7 @@ def _execute_notify_run(
                 execution_derived = dict(derived)
                 execution_structure = dict(structure)
                 candidates = generate_candidates(execution_structure, execution_derived, execution_quotes, regime)
-                candidates, _ = _apply_intraday_short_permission(candidates, execution_quotes)
+                candidates, _ = _apply_intraday_short_permission(candidates, execution_quotes, now_et)
                 ohlcv = {
                     symbol: df
                     for symbol in candidates
@@ -729,7 +736,7 @@ def _run_pipeline(
             )
             candidates = generate_candidates(execution_structure, execution_derived, execution_quotes, regime)
             if mode != MODE_FIXTURE:
-                candidates, intraday_state_context = _apply_intraday_short_permission(candidates, execution_quotes)
+                candidates, intraday_state_context = _apply_intraday_short_permission(candidates, execution_quotes, now_et)
             candidates_generated = len(candidates)
             ohlcv = {
                 symbol: df
@@ -1131,9 +1138,35 @@ def _build_run_summary(
 def _apply_intraday_short_permission(
     candidates: dict[str, Any],
     execution_quotes: dict[str, NormalizedQuote],
+    now_et: datetime,
 ) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
     filtered = dict(candidates)
     context: dict[str, dict[str, Any]] = {}
+
+    # PRD-181: the intraday state engine emits no state before _NOISE_END
+    # (09:45 ET), so this SHORT gate would otherwise be inert from the 09:30
+    # open through 09:45 — exactly the window PRD-151 was written to cover.
+    # Inside the opening window [_ORB_START 09:30, _NOISE_END 09:45) ET we fail
+    # CLOSED for SHORT when state is unavailable; outside it the historical
+    # fail-open default holds (R4). Bounds are read from intraday_state_engine,
+    # not redefined. The window is a property of the run clock, identical for
+    # every candidate this pass.
+    in_open_window = _ORB_START <= now_et.time() < _NOISE_END
+
+    def _resolve_unavailable(sym: str) -> None:
+        if in_open_window:
+            filtered.pop(sym, None)
+            context[sym] = {
+                "intraday_state_available": False,
+                "open_window_fail_closed": True,
+            }
+            logger.info(
+                "SUPPRESSED %s: SHORT blocked — open-window fail-closed "
+                "(intraday state unavailable in [09:30, 09:45) ET)", sym,
+            )
+        else:
+            context[sym] = {"intraday_state_available": False}
+            logger.debug("[INTRA] state unavailable — fail-open applied")
 
     for symbol, candidate in candidates.items():
         if candidate.direction != "SHORT":
@@ -1141,10 +1174,12 @@ def _apply_intraday_short_permission(
 
         intraday_df = fetch_intraday_bars(symbol)
         if intraday_df is None or intraday_df.empty:
+            _resolve_unavailable(symbol)
             continue
 
         symbol_bars = _intraday_state_bars_from_df(intraday_df)
         if not symbol_bars:
+            _resolve_unavailable(symbol)
             continue
 
         previous_close = _reconstruct_previous_close(execution_quotes.get(symbol))
@@ -1157,8 +1192,7 @@ def _apply_intraday_short_permission(
             intraday_state_available = False
 
         if not intraday_state_available:
-            logger.debug("[INTRA] state unavailable — fail-open applied")
-            context[symbol] = {"intraday_state_available": False}
+            _resolve_unavailable(symbol)
             continue
 
         downside_permission = _downside_permission_from_state(intra_state)

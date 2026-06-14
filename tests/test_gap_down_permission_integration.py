@@ -95,6 +95,21 @@ _SHORT_CANDIDATE = TradeCandidate(
     spread_width=3.0,
 )
 
+_LONG_CANDIDATE = TradeCandidate(
+    symbol="TSLA",
+    direction="LONG",
+    entry_price=455.0,
+    stop_price=452.0,
+    target_price=465.0,
+    spread_width=3.0,
+)
+
+# PRD-181: run-clock ET values for the open-window fail-closed gate.
+# Window is [_ORB_START 09:30, _NOISE_END 09:45) ET.
+_NOW_IN_WINDOW = _et_ts(9, 35)   # inside the opening window
+_NOW_POST = _et_ts(10, 0)        # after the window (state-driven path / fail-open)
+_NOW_BOUNDARY = _et_ts(9, 45)    # exactly _NOISE_END — half-open, so post-window
+
 
 # ---------------------------------------------------------------------------
 # CASE 1 — Gap-down, no permission
@@ -109,7 +124,7 @@ def test_case1_gap_down_no_permission_blocks_short():
 
     with patch("cuttingboard.runtime.fetch_intraday_bars", return_value=df):
         filtered, context = _apply_intraday_short_permission(
-            {"TSLA": _SHORT_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}
+            {"TSLA": _SHORT_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}, _NOW_POST
         )
 
     assert "TSLA" not in filtered, (
@@ -134,7 +149,7 @@ def test_case2_gap_down_acceptance_allows_short():
 
     with patch("cuttingboard.runtime.fetch_intraday_bars", return_value=df):
         filtered, context = _apply_intraday_short_permission(
-            {"TSLA": _SHORT_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}
+            {"TSLA": _SHORT_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}, _NOW_POST
         )
 
     assert "TSLA" in filtered
@@ -157,7 +172,7 @@ def test_case3_state_unavailable_fails_open():
          patch("cuttingboard.runtime.compute_intraday_state",
                side_effect=Exception("simulated failure")):
         filtered, context = _apply_intraday_short_permission(
-            {"TSLA": _SHORT_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}
+            {"TSLA": _SHORT_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}, _NOW_POST
         )
 
     assert "TSLA" in filtered
@@ -179,7 +194,7 @@ def test_case4_sparse_bars_blocks_short():
 
     with patch("cuttingboard.runtime.fetch_intraday_bars", return_value=df):
         filtered, context = _apply_intraday_short_permission(
-            {"TSLA": _SHORT_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}
+            {"TSLA": _SHORT_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}, _NOW_POST
         )
 
     assert "TSLA" not in filtered
@@ -281,7 +296,7 @@ def test_case6_gate_behavior_is_identical_across_all_three_call_sites():
     for _call_site_index in range(3):  # simulates call sites 489, 518, 805
         with patch("cuttingboard.runtime.fetch_intraday_bars", return_value=df):
             filtered, context = _apply_intraday_short_permission(
-                {"TSLA": _SHORT_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}
+                {"TSLA": _SHORT_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}, _NOW_POST
             )
         results.append((filtered, context))
 
@@ -448,3 +463,85 @@ def _setup_notify_run_artifacts(monkeypatch, tmp_path, rt_module) -> None:
         _audit, "AUDIT_LOG_PATH",
         str(tmp_path / "logs" / "audit.jsonl")
     )
+
+
+# ---------------------------------------------------------------------------
+# PRD-181 — open-window fail-closed for SHORT when intraday state is unavailable
+# ---------------------------------------------------------------------------
+# Window is [_ORB_START 09:30, _NOISE_END 09:45) ET. Inside it, a SHORT with no
+# intraday state fails CLOSED; outside it the historical fail-open holds; LONG is
+# never affected; state-present runs use the existing PRD-151 gating unchanged.
+
+
+def test_prd181_open_window_no_state_short_blocked():
+    """R1: inside [09:30,09:45) with no state (pre-09:45 bars -> None), SHORT is blocked."""
+    df = _make_bar_df(_ORB_ROWS)  # last bar 09:34 -> compute_intraday_state returns None
+    with patch("cuttingboard.runtime.fetch_intraday_bars", return_value=df):
+        filtered, context = _apply_intraday_short_permission(
+            {"TSLA": _SHORT_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}, _NOW_IN_WINDOW
+        )
+    assert "TSLA" not in filtered
+    assert context["TSLA"]["intraday_state_available"] is False
+    assert context["TSLA"]["open_window_fail_closed"] is True
+
+
+def test_prd181_open_window_no_bars_short_blocked():
+    """R1: inside the window with no bars at all also fails closed for SHORT."""
+    with patch("cuttingboard.runtime.fetch_intraday_bars", return_value=None):
+        filtered, context = _apply_intraday_short_permission(
+            {"TSLA": _SHORT_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}, _NOW_IN_WINDOW
+        )
+    assert "TSLA" not in filtered
+    assert context["TSLA"]["open_window_fail_closed"] is True
+
+
+def test_prd181_open_window_no_state_long_unaffected():
+    """R2: a LONG candidate in the same condition is never blocked by this gate."""
+    df = _make_bar_df(_ORB_ROWS)
+    with patch("cuttingboard.runtime.fetch_intraday_bars", return_value=df):
+        filtered, context = _apply_intraday_short_permission(
+            {"TSLA": _LONG_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}, _NOW_IN_WINDOW
+        )
+    assert "TSLA" in filtered          # LONG preserved
+    assert "TSLA" not in context       # LONG skipped before any gate logic
+
+
+def test_prd181_state_present_unaffected_by_now_et():
+    """R3: when state is available, the SHORT outcome is identical regardless of
+    now_et (the open-window branch is never reached)."""
+    rows = _ORB_ROWS + _NOISE_ROWS + [
+        (9, 45, 452.9, 452.9, 452.5, 452.8, 2_500_000),  # 1 close below -> no acceptance
+    ]
+    df = _make_bar_df(rows)
+    with patch("cuttingboard.runtime.fetch_intraday_bars", return_value=df):
+        f_in, c_in = _apply_intraday_short_permission(
+            {"TSLA": _SHORT_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}, _NOW_IN_WINDOW
+        )
+    with patch("cuttingboard.runtime.fetch_intraday_bars", return_value=df):
+        f_post, c_post = _apply_intraday_short_permission(
+            {"TSLA": _SHORT_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}, _NOW_POST
+        )
+    assert ("TSLA" in f_in) == ("TSLA" in f_post)        # same outcome
+    assert c_in["TSLA"]["intraday_state_available"] is True
+    assert c_in["TSLA"]["downside_permission"] == c_post["TSLA"]["downside_permission"]
+
+
+def test_prd181_outside_window_no_state_short_fail_open():
+    """R4: outside the window with no state, the historical fail-open is preserved."""
+    with patch("cuttingboard.runtime.fetch_intraday_bars", return_value=None):
+        filtered, context = _apply_intraday_short_permission(
+            {"TSLA": _SHORT_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}, _NOW_POST
+        )
+    assert "TSLA" in filtered
+    assert context["TSLA"]["intraday_state_available"] is False
+    assert context["TSLA"].get("open_window_fail_closed") is None
+
+
+def test_prd181_boundary_0945_is_post_window():
+    """Boundary: exactly 09:45 ET is NOT in [09:30,09:45); no-state -> fail-open."""
+    with patch("cuttingboard.runtime.fetch_intraday_bars", return_value=None):
+        filtered, context = _apply_intraday_short_permission(
+            {"TSLA": _SHORT_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}, _NOW_BOUNDARY
+        )
+    assert "TSLA" in filtered
+    assert context["TSLA"].get("open_window_fail_closed") is None
