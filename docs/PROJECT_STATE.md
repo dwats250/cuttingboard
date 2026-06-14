@@ -9,8 +9,10 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 ## Current state
 
-- **Active PRD:** none in progress. PRD-179 (preview fixture / all-section-state
-  coverage, a fast-follow to PRD-178) is PROPOSED and unstarted.
+- **Active PRD:** PRD-182 (CI merge gate + pre-push full-suite + cuttingboard.yml
+  env-default lint fix; LANE: HIGH-RISK by the `.github/` protected-file rule).
+  PRD-179 (preview fixture / all-section-state coverage, a fast-follow to
+  PRD-178) remains PROPOSED and unstarted.
 - **Test baseline:** 2607 passing, 1 xfailed (`python -m pytest tests -q` at
   `4f3257b`).
 - **Recently landed and live:**
