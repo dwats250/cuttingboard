@@ -120,6 +120,13 @@ RATIONALE
 <bullets explaining why each REQUIRED edit is required, anchored to
 CLAUDE.md, PRD process docs, or existing repo invariants>
 
+DRIFT CHECK
+<two lines, always recorded (even when "none"):
+- VISION: does the change conflict with a VISION non-goal or principle?
+  (no / yes + which non-goal or principle)
+- PROJECT_STATE: does the change leave any PROJECT_STATE claim stale?
+  (no / yes + which claim)>
+
 CROSS-REVIEW NOTES (cross-review mode only)
 <For each Codex REQUIRED finding: AGREE / DISAGREE / EXTEND, with
 one-line justification. No silent omissions of REQUIRED findings.
@@ -143,6 +150,13 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
    - State an observable, binary FAIL criterion
    - Map to a CLAUDE.md rule, PRD-process rule, or existing repo
      invariant (cite it)
+6. DRIFT CHECK (lightweight, always recorded): read `VISION.md` non-goals /
+   principles and the `docs/PROJECT_STATE.md` current-state claims; record
+   (i) whether the change conflicts with a VISION non-goal/principle and
+   (ii) whether it leaves any PROJECT_STATE claim stale. This is drift, not
+   correctness — keep it to the two recorded lines. Per `CLAUDE.md § Review
+   and commit discipline`, under auto-merge drift-review is a post-merge
+   audit, so this recorded check is the standing pre-merge drift signal.
 
 ### Phase 2 — Verify (MANDATORY before returning)
 
@@ -157,6 +171,7 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
 | V7 | WRITE_MODE target path does not exist (no silent overwrite) | Refuse; ask user for explicit versioned path |
 | V8 | No "TODO", "FIXME", "PLACEHOLDER", or "TBD" tokens in the review body | Rewrite |
 | V9 | If implementation diff was consulted, the review does not assert "implementation passes/fails" — implementation review is a separate concern | Rephrase to PRD-doc focus |
+| V10 | DRIFT CHECK present: the review records a VISION-conflict line and a PROJECT_STATE-staleness line (each "none" or with specifics) | Add the DRIFT CHECK section |
 
 ### Verification Report shape
 
@@ -171,6 +186,7 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
 - V7 target path free: [pass | refused — exists]
 - V8 placeholder tokens: [none | <list>]
 - V9 PRD-doc focus preserved: [pass | rephrased item N]
+- V10 drift check: [VISION: none | <conflict>; PROJECT_STATE: none | <stale claim>]
 - Mode: [DRAFT_ONLY | WRITE_MODE]
 - File written: [path | none]
 ```

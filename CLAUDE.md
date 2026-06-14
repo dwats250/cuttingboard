@@ -42,6 +42,10 @@ with date and rationale - short notes, not ceremony.
   requires independent review before merge: a Claude review artifact, plus a
   Codex cross-review for contract / decision-surface changes. The lane is
   declared in the PRD header; STANDARD and MICRO lanes are lighter.
+- **Drift check in every review (PRD-186).** Every review artifact records a
+  drift check, not just correctness: does the change conflict with a `VISION.md`
+  non-goal/principle, and does it leave any `docs/PROJECT_STATE.md` claim stale?
+  The `prd-review-claude` skill carries this as a recorded DRIFT CHECK section.
 - **Auto-merge via PR after CI (PRD-184).** ALL work - implementation and
   bookkeeping/closeout alike - lands through a pull request: Claude pushes the
   feature branch, opens the PR, and queues `gh pr merge --auto`; `main` branch
@@ -49,6 +53,17 @@ with date and rationale - short notes, not ceremony.
   blocks direct-to-main pushes (verified during PRD-184 closeout), so there is no
   direct-push path - bookkeeping PRs auto-merge the same way. Force-push is denied
   by repo settings.
+- **Drift-review is a post-merge audit under auto-merge (PRD-186).** Because
+  auto-merge lands a green PR with no pre-merge human read, VISION/PROJECT_STATE
+  drift-review is a post-merge audit - carried by the per-PRD review artifact's
+  drift check (above) and the Alignment cadence (below) - not a pre-merge gate.
+- **Governance changes are manual-merge-only (PRD-186).** A PR that changes the
+  review-gate skill (`prd-review-claude`) or the governance/auto-merge policy in
+  this section is excluded from auto-merge: open it and hold for a human merge -
+  do NOT queue `gh pr merge --auto`. Auto-merge must not land changes to its own
+  guardrails without a human read. Enforcement today is this policy (agent-honored);
+  the recommended mechanical hardening is CODEOWNERS over a dedicated governance
+  file + branch-protection "require Code Owner review" (PRD-186 R4).
 - **Surgical edits, scope-locked.** Touch only what the active PRD's `FILES`
   section authorizes (see Operational rules).
 - Read-only inspection (git status/diff/log, grep, find, targeted reads, pytest)
@@ -133,6 +148,20 @@ against `VISION.md`. Three questions:
 If all three answers are "no," document the check in `docs/DECISIONS.md` and move
 on. If any answer is "yes," scope a full alignment audit. Drift is a function of
 time, not a bug - these checks make it visible early.
+
+**Post-merge drift audit (PRD-186).** Because auto-merge lands PRDs with no
+pre-merge human read, each cadence run is also the post-merge drift audit, with a
+defined action - not a label:
+
+- **Trigger:** review every PRD merged since the last audit (the registry rows
+  newer than the last audit's DECISIONS entry) against `VISION.md` and
+  `docs/PROJECT_STATE.md`.
+- **What counts as drift:** a merged change that conflicts with a VISION
+  non-goal/principle, leaves a PROJECT_STATE claim stale, or whose review
+  artifact skipped the DRIFT CHECK.
+- **Remediation:** when drift is found, open a corrective PRD (don't just log
+  it). Record each audit in `docs/DECISIONS.md` - PRDs reviewed, drift found (or
+  "none"), and the corrective PRD number when applicable.
 
 ### PRD-author disciplines
 
