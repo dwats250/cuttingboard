@@ -45,6 +45,13 @@ jobs:
 
     env:
       POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+      # Static-analysis default so the VS Code GitHub Actions extension can
+      # resolve env.PUBLISH_READY in the commit/push `if:` gates below. At
+      # runtime each per-mode step exports PUBLISH_READY through the GITHUB_ENV
+      # file; a step's GITHUB_ENV write takes precedence over a job-level env
+      # default for all subsequent steps, so the runtime value still wins.
+      # Safe fallback: 'false' matches today's behavior when no run step sets it.
+      PUBLISH_READY: 'false'
 
     steps:
       - name: Checkout

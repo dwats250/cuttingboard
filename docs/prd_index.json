@@ -758,6 +758,12 @@
       "title": "Short-gate fail-closed during the open window (open-window fail-closed for SHORT when intraday state unavailable)",
       "status": "COMPLETE",
       "commit": "b90aebf"
+    },
+    {
+      "number": 182,
+      "title": "CI merge gate + pre-push full-suite + workflow env-default lint fix",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
