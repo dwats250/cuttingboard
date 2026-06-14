@@ -662,6 +662,28 @@ def test_verify_rejects_invalid_summaries(tmp_path, label, mutate, expected_erro
     assert any(expected_error in error for error in result["errors"])
 
 
+def test_verify_accepts_kill_switch_halt_summary(tmp_path):
+    # PRD-180: a kill-switch HALT is internally consistent and must pass verify.
+    # kill_switch True with candidates_qualified 0, system_halted True, status
+    # FAIL, outcome HALT — all the verify invariants hold together.
+    summary = _valid_summary(
+        kill_switch=True,
+        system_halted=True,
+        outcome="HALT",
+        status="FAIL",
+        candidates_generated=0,
+        candidates_qualified=0,
+        halt_reason=runtime.KILL_SWITCH_HALT_REASON,
+    )
+    summary_path = tmp_path / "kill_switch_halt.json"
+    _write_summary(summary_path, summary)
+
+    result = runtime.verify_run_summary(str(summary_path))
+
+    assert result["pass"] is True
+    assert result["errors"] == []
+
+
 def test_failure_summary_no_longer_triggers_spurious_neutral_min_rr_error(tmp_path):
     summary_path = tmp_path / "failure.json"
     failure_summary = runtime._failure_summary(

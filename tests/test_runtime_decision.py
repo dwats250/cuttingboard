@@ -1,16 +1,22 @@
 from __future__ import annotations
 
+import json
+from dataclasses import replace as _dc_replace
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-from cuttingboard import audit, runtime
+import pytest
+
+from cuttingboard import audit, output, runtime
+from cuttingboard import validation as validation_mod
+from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.chain_validation import ChainValidationResult, MANUAL_CHECK
 from cuttingboard.options import OptionSetup
 from cuttingboard.qualification import QualificationResult, QualificationSummary, TradeCandidate
 from cuttingboard.regime import AGGRESSIVE_LONG, RISK_ON, RegimeState
 from cuttingboard.structure import StructureResult
 from cuttingboard.trade_decision import ALLOW_TRADE, BLOCK_TRADE
-from cuttingboard.validation import ValidationSummary
+from cuttingboard.validation import HaltCause, ValidationSummary
 from cuttingboard.watch import WatchSummary
 
 
@@ -367,3 +373,293 @@ def test_runtime_non_eod_does_not_attach_overnight_policy(monkeypatch, tmp_path)
     )
 
     assert "overnight_policy" not in result.contract["trade_candidates"][0]
+
+
+# ---------------------------------------------------------------------------
+# PRD-180: kill switch forces a real terminal HALT
+# ---------------------------------------------------------------------------
+
+
+def _nq(symbol: str, pct_change_decimal: float, price: float = 100.0) -> NormalizedQuote:
+    return NormalizedQuote(
+        symbol=symbol,
+        price=price,
+        pct_change_decimal=pct_change_decimal,
+        volume=1_000_000.0,
+        fetched_at_utc=datetime.now(timezone.utc),
+        source="test",
+        units="usd_price",
+        age_seconds=0.0,
+    )
+
+
+def _market_quotes(spy_pct_change: float) -> dict[str, NormalizedQuote]:
+    # SPY drives the kill switch; the four required macro-driver symbols keep the
+    # contract's macro section buildable for a non-empty quote set.
+    quotes = {
+        "SPY": _nq("SPY", spy_pct_change),
+        "^VIX": _nq("^VIX", 0.0, price=16.0),
+        "DX-Y.NYB": _nq("DX-Y.NYB", 0.0),
+        "^TNX": _nq("^TNX", 0.0, price=4.2),
+        "BTC-USD": _nq("BTC-USD", 0.0, price=60000.0),
+    }
+    return quotes
+
+
+def _setup_full_trade_mocks(monkeypatch, tmp_path, symbol: str = "SPY"):
+    """Runtime mocks plus a full fixture trade path (chain + ALLOW_TRADE)."""
+    _setup_runtime_mocks(monkeypatch, tmp_path, symbol=symbol)
+    monkeypatch.setattr(runtime, "_fixture_chain_results", lambda setups: {
+        symbol: ChainValidationResult(
+            symbol=symbol,
+            classification=MANUAL_CHECK,
+            reason="fixture mode skips live chain validation",
+            spread_pct=None,
+            open_interest=None,
+            volume=None,
+            expiry_used=None,
+            data_source=None,
+        )
+    })
+    monkeypatch.setattr(runtime, "create_trade_decision", lambda *args, **kwargs: runtime.TradeDecision(
+        ticker=symbol,
+        direction="LONG",
+        status=ALLOW_TRADE,
+        entry=100.0,
+        stop=97.0,
+        target=106.0,
+        r_r=2.0,
+        contracts=2,
+        dollar_risk=150.0,
+        block_reason=None,
+    ))
+
+
+def _run_kill_switch_case(
+    monkeypatch,
+    tmp_path,
+    *,
+    vix_level: float = 16.0,
+    vix_pct_change: float = -0.03,
+    spy_pct_change: float = 0.0,
+):
+    _setup_full_trade_mocks(monkeypatch, tmp_path)
+    monkeypatch.setattr(
+        runtime,
+        "compute_regime",
+        lambda quotes: _dc_replace(_regime(), vix_level=vix_level, vix_pct_change=vix_pct_change),
+    )
+    monkeypatch.setattr(
+        runtime,
+        "_load_inputs",
+        lambda mode, fixture_file: ({}, _market_quotes(spy_pct_change)),
+    )
+    return runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+
+
+# Boundary coverage: comparisons are strict ">", so the exact threshold must NOT
+# halt, and anything just above must halt. One parametrization per threshold.
+@pytest.mark.parametrize(
+    ("kwargs", "expect_halt"),
+    [
+        ({"vix_level": 35.0}, False),
+        ({"vix_level": 35.01}, True),
+        ({"vix_pct_change": 0.15}, False),
+        ({"vix_pct_change": 0.16}, True),
+        ({"spy_pct_change": 0.03}, False),
+        ({"spy_pct_change": 0.0301}, True),
+        ({"spy_pct_change": -0.03}, False),
+        ({"spy_pct_change": -0.0301}, True),
+    ],
+)
+def test_kill_switch_threshold_boundaries(monkeypatch, tmp_path, kwargs, expect_halt):
+    result = _run_kill_switch_case(monkeypatch, tmp_path, **kwargs)
+    assert (result.outcome == runtime.OUTCOME_HALT) is expect_halt
+    assert result.summary["system_halted"] is expect_halt
+    assert result.summary["kill_switch"] is expect_halt
+    if not expect_halt:
+        # exact-threshold run is a normal trade run, not a halt
+        assert result.outcome == runtime.OUTCOME_TRADE
+
+
+def test_kill_switch_trip_forces_full_halt_escalation(monkeypatch, tmp_path):
+    # VIX well above the level threshold -> kill switch trips.
+    result = _run_kill_switch_case(monkeypatch, tmp_path, vix_level=42.0)
+    summary = result.summary
+
+    # R1: recorded outcome is a terminal HALT, not a zeroed NO_TRADE.
+    assert result.outcome == runtime.OUTCOME_HALT
+    assert summary["outcome"] == runtime.OUTCOME_HALT
+    assert summary["system_halted"] is True
+    assert summary["status"] == "FAIL"
+    assert summary["kill_switch"] is True
+    assert summary["candidates_qualified"] == 0
+
+    # halt_reason reads as a market-stress halt, not a data/validation failure.
+    assert summary["halt_reason"] == runtime.KILL_SWITCH_HALT_REASON
+    assert "kill switch" in summary["halt_reason"].lower()
+    assert "valid" not in summary["halt_reason"].lower()
+
+    # R5: trade content suppressed; the alert is a STAY FLAT, not a trade alert.
+    assert result.contract["outcome"] == runtime.OUTCOME_HALT
+    assert result.contract["trade_candidates"] == []
+    title, body = runtime.build_notification_message(result.contract)
+    assert "STAY FLAT" in title
+    assert "No trade." in body
+
+    # The produced summary satisfies verify_run_summary's HALT invariants.
+    summary_path = tmp_path / "kill_switch_summary.json"
+    summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    assert runtime.verify_run_summary(str(summary_path))["pass"] is True
+
+
+def test_validation_halt_unchanged_when_kill_switch_not_tripped(monkeypatch, tmp_path):
+    # R2: a validation-driven HALT with the kill switch NOT tripped is unchanged.
+    _setup_full_trade_mocks(monkeypatch, tmp_path)
+    halted = _dc_replace(
+        _validation_summary(),
+        system_halted=True,
+        halt_reason="HALT_SYMBOL ^VIX failed validation",
+        halt_cause=HaltCause.VALIDATION,
+    )
+    monkeypatch.setattr(runtime, "validate_quotes", lambda *args, **kwargs: halted)
+    # benign inputs so the kill switch cannot trip independently
+    monkeypatch.setattr(runtime, "_load_inputs", lambda mode, fixture_file: ({}, {}))
+
+    result = runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+    summary = result.summary
+
+    assert result.outcome == runtime.OUTCOME_HALT
+    assert summary["system_halted"] is True
+    assert summary["kill_switch"] is False
+    # the validation halt_reason is preserved, NOT overwritten by the kill switch.
+    assert summary["halt_reason"] == "HALT_SYMBOL ^VIX failed validation"
+    assert summary["halt_reason"] != runtime.KILL_SWITCH_HALT_REASON
+    # cause stays VALIDATION; the market-stress arm is not engaged.
+    assert result.validation_summary.halt_cause == HaltCause.VALIDATION
+
+    summary_path = tmp_path / "validation_halt_summary.json"
+    summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    assert runtime.verify_run_summary(str(summary_path))["pass"] is True
+
+    # Notification regression: a validation HALT still produces a STAY FLAT alert
+    # with no trade content (unchanged by PRD-180).
+    title, body = runtime.build_notification_message(result.contract)
+    assert "STAY FLAT" in title
+    assert "No trade." in body
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "expect_trip"),
+    [
+        ({"vix_level": 35.0}, False),
+        ({"vix_level": 35.01}, True),
+        ({"vix_pct_change": 0.15}, False),
+        ({"vix_pct_change": 0.16}, True),
+        ({"spy_pct_change": 0.03}, False),
+        ({"spy_pct_change": -0.0301}, True),
+    ],
+)
+def test_kill_switch_predicate_strict_greater_than(kwargs, expect_trip):
+    # Unit-level boundary on the pure predicate (independent of the pipeline).
+    regime = _dc_replace(
+        _regime(),
+        vix_level=kwargs.get("vix_level", 16.0),
+        vix_pct_change=kwargs.get("vix_pct_change", -0.03),
+    )
+    quotes = {"SPY": _nq("SPY", kwargs.get("spy_pct_change", 0.0))}
+    assert runtime._kill_switch(regime, quotes) is expect_trip
+
+
+# ---------------------------------------------------------------------------
+# PRD-180 (round 2): explicit halt cause + cause-labeled report banner
+# ---------------------------------------------------------------------------
+
+
+def _render_halt_report(halt_cause, halt_reason):
+    vs = _dc_replace(
+        _validation_summary(),
+        system_halted=True,
+        halt_reason=halt_reason,
+        halt_cause=halt_cause,
+    )
+    return output.render_report(
+        date_str="2026-04-28",
+        run_at_utc=RUN_AT,
+        regime=None,
+        validation_summary=vs,
+        qualification_summary=None,
+        option_setups=[],
+        outcome=runtime.OUTCOME_HALT,
+        halt_reason=halt_reason,
+        chain_results={},
+    )
+
+
+def test_render_report_market_stress_banner():
+    # The defect this PRD round fixes: a market-stress HALT must NOT render as a
+    # data/validation failure.
+    report = _render_halt_report(HaltCause.MARKET_STRESS, runtime.KILL_SWITCH_HALT_REASON)
+    assert "MARKET STRESS" in report
+    assert "MACRO DATA INVALID" not in report
+    assert runtime.KILL_SWITCH_HALT_REASON in report
+
+
+def test_render_report_validation_halt_banner_unchanged():
+    # Regression on the untouched path: a validation HALT still reads as before.
+    report = _render_halt_report(HaltCause.VALIDATION, "Failed: ^VIX (stale)")
+    assert "MACRO DATA INVALID" in report
+    assert "MARKET STRESS" not in report
+
+
+def test_kill_switch_trip_sets_market_stress_cause(monkeypatch, tmp_path):
+    # Positive-ID: the real kill-switch trip stamps the structured cause.
+    result = _run_kill_switch_case(monkeypatch, tmp_path, vix_level=42.0)
+    assert result.validation_summary.halt_cause == HaltCause.MARKET_STRESS
+
+
+def test_validation_path_sets_validation_cause():
+    # Positive-ID: the real validation halt path stamps VALIDATION (empty quote
+    # set fails every HALT_SYMBOL).
+    vs = validation_mod.validate_quotes({}, None)
+    assert vs.system_halted is True
+    assert vs.halt_cause == HaltCause.VALIDATION
+
+
+def test_kill_switch_trip_skips_pipeline(monkeypatch, tmp_path):
+    # Mechanism (b): a trip must SKIP qualification/options/decision, not just
+    # suppress their output.
+    _setup_full_trade_mocks(monkeypatch, tmp_path)
+    calls: list[str] = []
+    monkeypatch.setattr(runtime, "generate_candidates", lambda *a, **k: (calls.append("generate"), {})[1])
+    monkeypatch.setattr(runtime, "qualify_all", lambda *a, **k: calls.append("qualify"))
+    monkeypatch.setattr(runtime, "build_option_setups", lambda *a, **k: (calls.append("options"), [])[1])
+    monkeypatch.setattr(runtime, "create_trade_decision", lambda *a, **k: calls.append("decision"))
+    monkeypatch.setattr(
+        runtime, "compute_regime", lambda quotes: _dc_replace(_regime(), vix_level=42.0)
+    )
+    monkeypatch.setattr(runtime, "_load_inputs", lambda mode, ff: ({}, _market_quotes(0.0)))
+
+    result = runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+
+    assert result.outcome == runtime.OUTCOME_HALT
+    assert calls == []
+
+
+def test_kill_switch_audit_record_carries_halt(monkeypatch, tmp_path):
+    # The audit record reflects the HALT outcome and the market-stress reason.
+    result = _run_kill_switch_case(monkeypatch, tmp_path, vix_level=42.0)
+    assert result.audit_record["outcome"] == runtime.OUTCOME_HALT
+    assert result.audit_record["halt_reason"] == runtime.KILL_SWITCH_HALT_REASON

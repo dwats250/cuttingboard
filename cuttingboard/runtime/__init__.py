@@ -18,6 +18,7 @@ import logging
 import subprocess
 import sys
 from contextlib import contextmanager
+from dataclasses import replace
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -109,7 +110,7 @@ from cuttingboard.sector_router import (
 )
 from cuttingboard.structure import classify_all_structure
 from cuttingboard.universe import is_tradable_symbol
-from cuttingboard.validation import ValidationSummary, extract_fetch_failures, validate_quotes
+from cuttingboard.validation import HaltCause, ValidationSummary, extract_fetch_failures, validate_quotes
 from cuttingboard.watch import WatchSummary, classify_watchlist, compute_all_intraday_metrics
 
 # PRD-173: constants + pipeline dataclasses live in L0 leaf modules and are
@@ -664,11 +665,33 @@ def _run_pipeline(
     invalidation_guidance_map: dict = {}
     entry_quality_map: dict = {}
 
+    # Regime is needed both to evaluate the kill switch and (on a halt) for
+    # display. It is a pure function of the validated quotes; compute it whenever
+    # validation did not already halt the run (matching the prior behaviour where
+    # it was computed inside the non-halt branch).
+    if not validation_summary.system_halted:
+        regime = compute_regime(validation_summary.valid_quotes)
+
     if validation_summary.system_halted:
         errors.append(validation_summary.halt_reason or "system halted")
         outcome = OUTCOME_HALT
+    elif _kill_switch(regime, normalized_quotes):
+        # PRD-180: a market-stress kill-switch trip escalates the run to a real
+        # system halt (mechanism (b), tight path). Rebuilding the validation HALT
+        # carrier as halted means every downstream consumer (report banner,
+        # contract status / system_state, notification, audit record, run summary)
+        # treats it identically to a validation halt with no per-consumer wiring,
+        # and the qualification/options/decision block below is skipped exactly as
+        # it is for a validation halt. R2: the validation system_halted branch
+        # above is untouched; this is a parallel halt cause.
+        validation_summary = replace(
+            validation_summary,
+            system_halted=True,
+            halt_reason=KILL_SWITCH_HALT_REASON,
+            halt_cause=HaltCause.MARKET_STRESS,
+        )
+        outcome = OUTCOME_HALT
     else:
-        regime = compute_regime(validation_summary.valid_quotes)
         correlation_result = compute_correlation(validation_summary.valid_quotes)
         policy_context: PolicyContext = evaluate_policy(correlation_result)
 
@@ -1948,15 +1971,28 @@ def _data_status(
     return "ok"
 
 
+# PRD-180: market-stress kill-switch thresholds. Values are unchanged from the
+# prior inline literals; they are named here and documented canonically in
+# docs/system_logic_map.md. Comparisons are strict ">", so an exact-threshold
+# reading does NOT trip the switch.
+KILL_SWITCH_VIX_LEVEL = 35
+KILL_SWITCH_VIX_PCT_CHANGE = 0.15
+KILL_SWITCH_SPY_PCT_CHANGE = 0.03
+
+# Human-facing reason for a kill-switch HALT. Must read as a market-stress halt,
+# not a data/validation failure, even though the run status is FAIL.
+KILL_SWITCH_HALT_REASON = "Market-stress kill switch tripped; new positions halted."
+
+
 def _kill_switch(regime: Optional[RegimeState], normalized_quotes: dict[str, NormalizedQuote]) -> bool:
     spy = normalized_quotes.get("SPY")
     spy_pct_change = spy.pct_change_decimal if spy is not None else 0.0
     vix_level = regime.vix_level if regime is not None and regime.vix_level is not None else 0.0
     vix_pct_change = regime.vix_pct_change if regime is not None and regime.vix_pct_change is not None else 0.0
     return (
-        vix_level > 35
-        or vix_pct_change > 0.15
-        or abs(spy_pct_change) > 0.03
+        vix_level > KILL_SWITCH_VIX_LEVEL
+        or vix_pct_change > KILL_SWITCH_VIX_PCT_CHANGE
+        or abs(spy_pct_change) > KILL_SWITCH_SPY_PCT_CHANGE
     )
 
 

@@ -39,7 +39,7 @@ from cuttingboard.options import OptionSetup
 from cuttingboard.qualification import QualificationSummary
 from cuttingboard.regime import RegimeState, EXPANSION
 from cuttingboard.universe import is_tradable_symbol
-from cuttingboard.validation import ValidationSummary
+from cuttingboard.validation import HaltCause, ValidationSummary
 from cuttingboard.watch import (
     WatchSummary,
     get_session_phase,
@@ -201,7 +201,8 @@ _PERMISSION_MATRIX = """\
   NEUTRAL   | Defined risk only / R:R >= 3:1
   CHAOTIC   | FLAT - no new positions
   -----------------------------------------------------
-  Kill switch: VIX > 35 OR SPY gaps >3% -> halt all new positions"""
+  Kill switch (canonical thresholds in docs/system_logic_map.md): VIX level > 35,
+  VIX pct_change > 0.15, or |SPY| pct_change > 0.03 -> HALT (no new positions)"""
 
 
 def _is_sunday(date_str: str) -> bool:
@@ -275,7 +276,13 @@ def render_report(
 
     # ---- Body ----
     if outcome == OUTCOME_HALT:
-        lines.append("  HALT — MACRO DATA INVALID")
+        # PRD-180: label the halt by its cause. A market-stress (kill-switch)
+        # halt must not read as a data/validation failure. Only the market-stress
+        # arm is new; the validation/default wording is unchanged.
+        if validation_summary.halt_cause == HaltCause.MARKET_STRESS:
+            lines.append("  HALT — MARKET STRESS")
+        else:
+            lines.append("  HALT — MACRO DATA INVALID")
         lines.append(f"  {halt_reason or 'unknown halt reason'}")
 
     elif outcome == OUTCOME_NO_TRADE:

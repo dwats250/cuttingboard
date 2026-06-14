@@ -60,7 +60,28 @@ or which candidates qualify and at what position size.
 | `entry_quality.py` | entry quality gate; rejects chase or low-quality entries |
 | `overnight_policy.py` | applies overnight carry rules |
 | `contract.py` | assembles `build_pipeline_output_contract`; the final decision record |
-| `runtime.py` | orchestrates all layers; computes `_kill_switch` which can force HALT |
+| `runtime.py` | orchestrates all layers; computes `_kill_switch`, which forces a terminal HALT on market stress (see Kill switch below) |
+
+### Kill switch (market-stress HALT)
+
+`runtime._kill_switch` (`cuttingboard/runtime/__init__.py`) trips when any of the
+following market-stress thresholds is exceeded. Comparisons are strict `>`, so an
+exact-threshold reading does **not** trip the switch:
+
+| Threshold | Constant | Value |
+|-----------|----------|-------|
+| VIX level | `KILL_SWITCH_VIX_LEVEL` | 35 |
+| VIX pct_change (1d) | `KILL_SWITCH_VIX_PCT_CHANGE` | 0.15 |
+| abs(SPY pct_change) (1d) | `KILL_SWITCH_SPY_PCT_CHANGE` | 0.03 |
+
+On a trip the run escalates to a terminal `HALT` (PRD-180): `outcome = HALT`,
+`system_halted = true`, the qualification/options/decision block is skipped,
+trade content is suppressed, and the publish/notification path is suppressed on
+the same terms as a validation HALT. This is a real system stop, not merely a
+zeroed qualified-trade count. The escalation reuses the validation HALT carrier
+so every downstream consumer treats it identically; the distinct `kill_switch`
+summary flag stays set, so a market-stress halt is still distinguishable from a
+validation halt.
 
 **Fields that are decision-affecting** (changing them changes the outcome):
 - `regime.posture`, `regime.confidence`, `regime.classification`
