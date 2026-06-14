@@ -10,7 +10,7 @@ ingestion → normalization → validation → derived → regime → structure 
 
 | Module | Layer | Role |
 |---|---|---|
-| `ingestion.py` | ingestion | RawQuote per symbol, fetch_all, yfinance + Polygon fallback |
+| `ingestion.py` | ingestion | RawQuote per symbol, fetch_all, yfinance |
 | `normalization.py` | normalization | NormalizedQuote, decimal pct_change, UTC enforcement |
 | `validation.py` | validation | ValidationSummary, 7 hard rules, HALT_SYMBOL gate |
 | `derived.py` | derived | DerivedMetrics, EMA9/21/50, ATR14, momentum_5d, volume_ratio |
@@ -30,7 +30,7 @@ These modules are not pipeline stages. They are imported by pipeline stages or o
 |---|---|
 | `config.py` | All constants and secrets (via dotenv). Never hardcode. |
 | `audit.py` | Append-only JSONL record to `logs/audit.jsonl` on every run. |
-| `runtime.py` | Sole production orchestrator. All modes routed through `cli_main()`. |
+| `runtime/` | Sole production orchestrator (package; split out of the former `runtime.py` monolith, PRD-173). All modes routed through `cli_main()`. |
 | `contract.py` | Cross-layer output contract dataclasses. Frozen. |
 | `confirmation.py` | Level confirmation evaluation for entry candidates. |
 | `universe.py` | Symbol tradability check. |
@@ -39,13 +39,11 @@ These modules are not pipeline stages. They are imported by pipeline stages or o
 | `watch.py` | Intraday watchlist classification and session phase tracking. |
 | `intraday_state_engine.py` | ORB classification engine. |
 | `notifications/` | Telegram alert formatting (hourly + run summaries). |
-| `moomoo_parser.py` | PRD-153 read-only consumer: parses Moomoo client-statement PDFs into NormalizedTrade rows. |
-| `moomoo_join.py` | PRD-153 read-only consumer: joins NormalizedTrade rows to same-day audit records and attaches blind-spot tags. |
-| `moomoo_review.py` | PRD-153 CLI (`python -m cuttingboard.moomoo_review`): orchestrates parse + join + JSONL/Markdown emission. |
+| `delivery/` | Dashboard renderer and payload assembly: renders `ui/dashboard.html` from the run payload. Read-only consumer of pipeline output; no influence on decisions. |
 
 ## Delivery Clarification
 
-Delivery (Telegram, terminal output) is NOT part of the decision pipeline. It is a post-pipeline transport layer handled inside `output.py`. It has no influence on qualification, options selection, or any upstream stage.
+Delivery is NOT part of the decision pipeline. Telegram and terminal output are handled in `output.py`; the HTML dashboard (`ui/dashboard.html`) is rendered separately by `delivery/dashboard_renderer.py` from the run payload. None of it influences qualification, options selection, or any upstream stage.
 
 ---
 
@@ -73,7 +71,7 @@ L1  INGESTION          ingestion.py
     In:  20 symbol tickers
     Out: dict[str, RawQuote]
     ─────────────────────────────────────────────────────────
-    yfinance primary, Polygon.io fallback (free tier).
+    yfinance fetch.
     ThreadPoolExecutor(1) per fetch with 10s timeout.
     3 retries, 2s exponential backoff.
     OHLCV cached to data/cache/{SYMBOL}_ohlcv.parquet (12h TTL).
@@ -161,7 +159,7 @@ L8  FLOW GATE           flow.py
     No effect on REJECT or existing WATCHLIST results.
          │
          ▼
-L10 OPTIONS EXPRESSION  options.py
+L9  OPTIONS EXPRESSION  options.py
     In:  list[QualificationResult], dict[str, StructureResult],
          dict[str, DerivedMetrics]
     Out: list[OptionSetup]
@@ -178,7 +176,7 @@ L10 OPTIONS EXPRESSION  options.py
     not by itself force verify mode to FAIL.
          │
          ▼
-L11 CHAIN VALIDATION    chain_validation.py
+L10 CHAIN VALIDATION    chain_validation.py
     In:  list[OptionSetup]
     Out: dict[str, ChainValidationResult]
     ─────────────────────────────────────────────────────────
@@ -187,14 +185,14 @@ L11 CHAIN VALIDATION    chain_validation.py
     NEEDS_MANUAL_CHECK / DISQUALIFIED_OPTIONS_INVALID.
          │
          ▼
-L12 OUTPUT ENGINE       output.py
+L11 OUTPUT ENGINE       output.py
     In:  All above results
     Out: reports/YYYY-MM-DD.md, logs/run_*.json,
          logs/latest_run.json, optional Telegram alert
     ─────────────────────────────────────────────────────────
     `logs/latest_run.json` is the machine-readable source
     of truth. `reports/YYYY-MM-DD.md` is human-readable only.
-    HTML is not generated or served.
+    The HTML dashboard is rendered separately (delivery/).
     Report written even on NO TRADE days. Telegram alert
     skipped silently if not configured in .env.
          │
@@ -283,21 +281,23 @@ cuttingboard/               Python package
   regime.py                 L5: RegimeState, compute_regime
   structure.py              L6: StructureResult, classify_all_structure
   qualification.py          L7: TradeCandidate, QualificationSummary, qualify_all
-  options.py                L8: OptionSetup, generate_candidates, build_option_setups
-  output.py                 L9: render_report, write_markdown
-  runtime.py                public CLI wrapper: live / fixture / sunday / verify
+  flow.py                   L8: FlowPrint, apply_flow_gate (directional soft gate)
+  options.py                L9: OptionSetup, generate_candidates, build_option_setups
+  chain_validation.py       L10: ChainValidationResult, OI/spread/bid-ask check
+  output.py                 L11: render_report, write_markdown
+  runtime/                  public CLI package: live / fixture / sunday / verify
   __main__.py               python -m cuttingboard entrypoint
-  audit.py                  L10: write_audit_record → logs/audit.jsonl
+  audit.py                  audit: write_audit_record -> logs/audit.jsonl
 
-tests/
-  test_phase1.py            30 tests: config, normalization, validation
-  test_derived.py           19 tests: EMA, ATR, momentum, volume
-  test_regime.py            35 tests: votes, posture, CHAOTIC override
-  test_structure.py         45 tests: classification, CHOP, IV environment
+tests/                      pytest suite; current baseline in docs/PROJECT_STATE.md
+  test_phase1.py            config, normalization, validation
+  test_derived.py           EMA, ATR, momentum, volume
+  test_regime.py            votes, posture, CHAOTIC override
+  test_structure.py         classification, CHOP, IV environment
   test_qualification.py     qualification gates, sizing, watchlist
   test_operationalization.py public CLI, fixture, verify, artifact checks
-  test_phase5.py            72 tests: options, audit, output rendering
-  test_phase6.py            39 tests: intraday triggers, dedup, commit msg
+  test_phase5.py            options, audit, output rendering
+  test_phase6.py            intraday triggers, dedup, commit msg
 
 data/
   cache/                    OHLCV parquet files (gitignored, 12h TTL)
@@ -344,7 +344,7 @@ pyproject.toml              package metadata + dependencies
 - `logs/latest_run.json` is the canonical machine-readable run summary.
 - `logs/run_YYYY-MM-DD_HHMMSS.json` is the timestamped per-run snapshot.
 - `reports/YYYY-MM-DD.md` is the human-readable report.
-- HTML output is not used.
+- The HTML dashboard (`ui/dashboard.html`, `ui/index.html`) is rendered from the run payload by `delivery/dashboard_renderer.py` and published to GitHub Pages.
 
 **Normal premarket run (TRADE day):**
 ```

@@ -131,7 +131,7 @@ The regime is computed fresh on every run from current market data. It is not a 
 CHAOTIC overrides everything. It fires when VIX pct_change (single interval) exceeds 15%. This detects flash crashes and gap events. During CHAOTIC:
 - Posture is always STAY_FLAT
 - No trades evaluated
-- Intraday monitor sends an immediate ntfy alert
+- Intraday monitor sends an immediate Telegram alert
 
 If you see CHAOTIC on a morning report: do not trade. Wait for the next day's premarket run to confirm conditions have stabilized.
 
@@ -372,10 +372,10 @@ for line in sys.stdin:
 "
 ```
 
-### Check for ntfy delivery gaps
+### Check for notification delivery gaps
 
 ```bash
-grep '"ntfy_sent": false' logs/audit.jsonl | wc -l
+grep '"transport": "telegram"' logs/audit.jsonl | grep '"status": "failed"' | wc -l
 ```
 
 ### With `jq` (if installed)
@@ -409,10 +409,10 @@ Key fields:
 | `last_regime` | Regime at the most recent intraday run |
 | `last_posture` | Posture at the most recent intraday run |
 | `last_run_at_utc` | Timestamp of the most recent intraday run |
-| `last_alert_at_utc` | Timestamp of the most recent ntfy alert |
+| `last_alert_at_utc` | Timestamp of the most recent Telegram alert |
 | `last_alert_type` | What triggered the most recent alert (CHAOTIC / REGIME_SHIFT / VIX_SPIKE) |
 
-If `last_alert_at_utc` is recent and no alert was received, check `ntfy_sent` in the audit log — ntfy may not be configured.
+If `last_alert_at_utc` is recent and no alert was received, check the notification `status` in the audit log - Telegram may not be configured.
 
 ---
 
@@ -428,20 +428,18 @@ The premarket run did not commit. Check:
 
 `audit.jsonl` is written before the git commit. If the commit failed but the run succeeded, the record exists locally on the runner but wasn't pushed. Check the workflow logs.
 
-### "ntfy not delivering"
+### "Telegram not delivering"
 
-1. Verify ntfy settings in `.env` (local) or GitHub Secrets (CI):
+1. Verify Telegram settings in `.env` (local) or GitHub Secrets (CI):
    ```bash
-   python3 -c "from cuttingboard import config; print(bool(config.NTFY_TOPIC), bool(config.NTFY_URL))"
+   python3 -c "from cuttingboard import config; print(bool(config.TELEGRAM_BOT_TOKEN), bool(config.TELEGRAM_CHAT_ID))"
    ```
-2. Test ntfy delivery manually:
+2. Inspect the most recent Telegram notification record in the audit log:
    ```bash
-   python3 -c "
-   from cuttingboard.output import send_ntfy
-   ok = send_ntfy('Test message from Cuttingboard', '2026-01-01', 'NO_TRADE')
-   print('Delivered:', ok)
-   "
+   grep '"transport": "telegram"' logs/audit.jsonl | tail -1
    ```
+   `status` reads `success`, `skipped` (not configured), or `failed`
+   (`http_status` carries the HTTP error).
 
 ### "Price bounds validation failure after a large market move"
 

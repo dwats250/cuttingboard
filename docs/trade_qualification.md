@@ -267,7 +267,7 @@ This gate prevents chasing entries after the move is already stretched. If EMA21
 **Rule:** New entries must not be opened after the late-session cutoff.
 
 ```python
-if current_time_et >= 15:30:   # config.LATE_SESSION_CUTOFF
+if current_time_et >= 15:30:   # config.ENTRY_CUTOFF_ET
     → soft failure
 ```
 
