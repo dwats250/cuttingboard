@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 183,
-  "next_prd": 184,
+  "latest_complete": 184,
+  "next_prd": 185,
   "entries": [
     {
       "number": 56,
@@ -770,6 +770,12 @@
       "title": "Realign closeout tooling to the new PROJECT_STATE format",
       "status": "COMPLETE",
       "commit": "84ca562"
+    },
+    {
+      "number": 184,
+      "title": "Auto-merge-via-PR landing flow (Claude push enablement)",
+      "status": "COMPLETE",
+      "commit": "75a4121"
     }
   ]
 }

@@ -42,12 +42,17 @@ with date and rationale - short notes, not ceremony.
   requires independent review before merge: a Claude review artifact, plus a
   Codex cross-review for contract / decision-surface changes. The lane is
   declared in the PRD header; STANDARD and MICRO lanes are lighter.
-- **No push without approval.** Work is committed on a branch; pushing is never
-  done without explicit approval, and is denied by this repo's settings.
+- **Auto-merge via PR after CI (PRD-184).** ALL work - implementation and
+  bookkeeping/closeout alike - lands through a pull request: Claude pushes the
+  feature branch, opens the PR, and queues `gh pr merge --auto`; `main` branch
+  protection holds the merge until the CI `test` check is green. The harness
+  blocks direct-to-main pushes (verified during PRD-184 closeout), so there is no
+  direct-push path - bookkeeping PRs auto-merge the same way. Force-push is denied
+  by repo settings.
 - **Surgical edits, scope-locked.** Touch only what the active PRD's `FILES`
   section authorizes (see Operational rules).
 - Read-only inspection (git status/diff/log, grep, find, targeted reads, pytest)
-  may run without per-command approval. Mutating commands - pushes, file
+  may run without per-command approval. Mutating commands - force-pushes, file
   deletions, dependency changes, edits outside the active PRD's FILES allowlist -
   require explicit approval.
 
