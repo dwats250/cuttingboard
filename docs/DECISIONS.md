@@ -16,6 +16,34 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-14 - PRD-184: auto-merge-via-PR landing flow (Claude push enablement)
+
+PRD-182 and PRD-183 each stalled at "PR-ready" waiting on a manual human push
+because `.claude/settings.json` denied `git push`. Decision (Dustin): adopt
+"auto-merge via PR after CI" so Claude lands PRD work autonomously.
+
+The harness safety classifier reserves permission changes for the human, so it
+blocked Claude from editing `.claude/settings.json` to self-grant push -
+correctly, since that is self-modifying a guardrail. Dustin applied the change
+via a setup one-shot: the settings allowlist now permits `git push` + `gh pr`
+(force-push still denied), the repo has "Allow auto-merge" enabled, and `main`
+branch protection requires the CI `test` check. PRD work now lands branch ->
+push -> PR -> `gh pr merge --auto` -> green CI -> auto-merge to main; docs-only
+bookkeeping/closeout commits may push to main directly. CLAUDE.md's no-push rule
+was replaced accordingly. PRD-184 itself dogfoods the flow as the first
+auto-merged PR. See PRD-184.
+
+Residual risk (independent review, recorded not fixed): `main` branch protection
+has `enforce_admins=false`, so a direct non-force push to `main` by the admin
+identity (the token Claude uses) bypasses the PR+CI gate. The "bookkeeping may
+push to main directly" carve-out is therefore policy-gated, not mechanically
+enforced; CI is the only automated gate, and only on the PR path. Accepted as a
+reasonable solo-builder tradeoff (Claude is the author and the HIGH-RISK review
+gate is a process control). Tighten with `enforce_admins=true` if `main` should
+be reachable only through CI-gated PRs. Force-push and branch deletion ARE
+mechanically blocked at the protected branch (`allow_force_pushes=false`,
+`allow_deletions=false`).
+
 ## 2026-06-14 - PRD-183: realign closeout tooling to the new PROJECT_STATE format
 
 The PRD-182 closeout surfaced that `scripts/prd_close.sh`,

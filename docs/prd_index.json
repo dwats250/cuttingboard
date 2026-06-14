@@ -770,6 +770,12 @@
       "title": "Realign closeout tooling to the new PROJECT_STATE format",
       "status": "COMPLETE",
       "commit": "84ca562"
+    },
+    {
+      "number": 184,
+      "title": "Auto-merge-via-PR landing flow (Claude push enablement)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

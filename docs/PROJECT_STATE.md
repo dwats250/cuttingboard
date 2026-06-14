@@ -9,7 +9,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 ## Current state
 
-- **Active PRD:** none in progress.
+- **Active PRD:** PRD-184 (auto-merge-via-PR landing flow; LANE: HIGH-RISK).
 - **Proposed / next:** PRD-179 (preview fixture / all-section-state coverage, a fast-follow to PRD-178) — unstarted.
 - **Test baseline:** 2610 passing, 1 xfailed (`python -m pytest tests -q` at `84ca562`).
 - **Recently landed and live:**
