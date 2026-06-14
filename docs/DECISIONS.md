@@ -16,6 +16,27 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-14 - PRD-183: realign closeout tooling to the new PROJECT_STATE format
+
+The PRD-182 closeout surfaced that `scripts/prd_close.sh`,
+`scripts/pre_commit_sanity.sh`, and `tests/test_prd_close.py` still targeted the
+pre-realignment PROJECT_STATE markers (non-bulleted Active PRD, `Last completed
+PRD` / `Last work completed` prose lines, `- **N passing**` bullet, 4-col history
+table). The doc was restructured to "Current state / Recent ships" without
+updating the tooling, so each closeout silently skipped five edits and the
+scope-lock nudge in `pre_commit_sanity.sh` always read "no active PRD."
+
+Decision (Dustin, 2026-06-14): adapt the tooling TO the canonical new format
+rather than restore the removed markers. `prd_close.sh` now resets the bulleted
+single-line `- **Active PRD:**`, updates the `Test baseline` line in place
+(wrap-tolerant), prepends a 3-column Recent ships row, and routes `--summary`
+into the bookkeeping commit body (the new format has no prose summary line). The
+Active PRD and Test baseline lines were normalized to single lines so they are
+machine-resettable; the proposed-next note moved to its own bullet.
+`pre_commit_sanity.sh` parses the bulleted Active PRD line; the
+`prd-closeout-verified` skill's V6/V7/V8 were realigned. Validated against a copy
+of the real PROJECT_STATE.md with zero WARN-skips. See PRD-183.
+
 ## 2026-06-13 - Workflow + hooks audit: cut net-negative machinery, slim AGENT_WORKFLOW
 
 Audited the agent-workflow scaffolding for net value (branch `lean-workflow-hooks`,
