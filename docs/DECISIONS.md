@@ -16,6 +16,21 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-14 - PRD-186: governance carve-out enforcement - (a) landed, (c) deferred (corrected: label-gated check, not CODEOWNERS)
+
+Refines the (c) enforcement recommendation in the PRD-186 entry below; the
+CODEOWNERS approach is withdrawn for the reason stated here (CLAUDE.md R4 and
+PRD-186 R4 still name CODEOWNERS - superseded by this entry, fix on a follow-up).
+
+PRD-186: governance carve-out landed as (a) policy-only (agent-honored CLAUDE.md
+rule; this PR dogfoods it). (c) mechanical enforcement deferred. Known soft-edge:
+the carve-out boundary is prose-defined, so until (c) lands it depends on correct
+section classification by the agent. When pursued, build (c) as a required-check
+guardrail workflow gated on a human approval label - NOT CODEOWNERS: CODEOWNERS +
+single owner forces admin-override merge, which bypasses the `test` gate on
+guardrail merges. Trigger: a real guardrail PR appears, or a decision to move from
+judgment-based to structural enforcement.
+
 ## 2026-06-14 - PRD-186: drift-review gate (closes the PRD-184 audit gaps)
 
 The PRD-184 audit confirmed auto-merge removed the pre-merge human checkpoint
