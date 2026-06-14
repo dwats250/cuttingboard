@@ -5,13 +5,13 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-06-14 (commit 75a4121)
+**Last updated:** 2026-06-14 (commit f77effe)
 
 ## Current state
 
-- **Active PRD:** PRD-185 (bump GitHub Actions to Node 24 majors; LANE: HIGH-RISK).
+- **Active PRD:** none in progress.
 - **Proposed / next:** PRD-179 (preview fixture / all-section-state coverage, a fast-follow to PRD-178) — unstarted.
-- **Test baseline:** 2610 passing, 1 xfailed (`python -m pytest tests -q` at `75a4121`).
+- **Test baseline:** 2610 passing, 1 xfailed (`python -m pytest tests -q` at `f77effe`).
 - **Recently landed and live:**
   - The market-stress kill switch forces a terminal HALT (PRD-180). The
     thresholds and conflict resolution are canonical in
@@ -24,6 +24,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 | PRD | Title | Completed |
 |-----|-------|-----------|
+| PRD-185 | Bump GitHub Actions to Node 24 majors (checkout v6, setup-python v6, upload-artifact v7) | 2026-06-14 |
 | PRD-184 | Auto-merge-via-PR landing flow (Claude push enablement) | 2026-06-14 |
 | PRD-183 | Realign closeout tooling to the new PROJECT_STATE format | 2026-06-14 |
 | PRD-182 | CI merge gate + pre-push full-suite + cuttingboard.yml env-default lint fix | 2026-06-14 |

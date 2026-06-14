@@ -202,7 +202,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-182 | 6733c61 | CI merge gate + pre-push full-suite + workflow env-default lint fix | COMPLETE | [PRD-182](prd_history/PRD-182.md) |
 | PRD-183 | 84ca562 | Realign closeout tooling to the new PROJECT_STATE format | COMPLETE | [PRD-183](prd_history/PRD-183.md) |
 | PRD-184 | 75a4121 | Auto-merge-via-PR landing flow (Claude push enablement) | COMPLETE | [PRD-184](prd_history/PRD-184.md) |
-| PRD-185 | — | Bump GitHub Actions to Node 24 majors (checkout v6, setup-python v6, upload-artifact v7) | IN PROGRESS | [PRD-185](prd_history/PRD-185.md) |
+| PRD-185 | f77effe | Bump GitHub Actions to Node 24 majors (checkout v6, setup-python v6, upload-artifact v7) | COMPLETE | [PRD-185](prd_history/PRD-185.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
