@@ -44,6 +44,15 @@ be reachable only through CI-gated PRs. Force-push and branch deletion ARE
 mechanically blocked at the protected branch (`allow_force_pushes=false`,
 `allow_deletions=false`).
 
+Update (PRD-184 closeout, same day): the residual risk is moot in practice - the
+harness auto-mode classifier blocks Claude from ANY direct-to-main push (it
+denied `git push origin main` for the closeout itself), independent of
+branch protection. So the binding gate is the harness, and the
+"bookkeeping may push to main directly" carve-out was retracted: ALL work,
+including closeout bookkeeping, lands via PR + CI + auto-merge. CLAUDE.md was
+corrected to match. `enforce_admins=true` would add belt-and-suspenders for
+non-agent pushes but is not required to gate Claude.
+
 ## 2026-06-14 - PRD-183: realign closeout tooling to the new PROJECT_STATE format
 
 The PRD-182 closeout surfaced that `scripts/prd_close.sh`,
