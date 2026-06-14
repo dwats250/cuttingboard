@@ -776,6 +776,12 @@
       "title": "Auto-merge-via-PR landing flow (Claude push enablement)",
       "status": "COMPLETE",
       "commit": "75a4121"
+    },
+    {
+      "number": 185,
+      "title": "Bump GitHub Actions to Node 24 majors (checkout v6, setup-python v6, upload-artifact v7)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
