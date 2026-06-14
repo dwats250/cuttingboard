@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 185,
-  "next_prd": 186,
+  "latest_complete": 186,
+  "next_prd": 187,
   "entries": [
     {
       "number": 56,
@@ -786,8 +786,8 @@
     {
       "number": 186,
       "title": "Drift-review gate: per-PRD drift check + post-merge audit teeth + governance auto-merge carve-out",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "f775a48"
     }
   ]
 }

@@ -5,13 +5,13 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-06-14 (commit f77effe)
+**Last updated:** 2026-06-14 (commit f775a48)
 
 ## Current state
 
-- **Active PRD:** PRD-186 (drift-review gate: per-PRD drift check + post-merge audit teeth + governance auto-merge carve-out; LANE: HIGH-RISK, MANUAL-MERGE).
+- **Active PRD:** none in progress.
 - **Proposed / next:** PRD-179 (preview fixture / all-section-state coverage, a fast-follow to PRD-178) — unstarted.
-- **Test baseline:** 2610 passing, 1 xfailed (`python -m pytest tests -q` at `f77effe`).
+- **Test baseline:** 2610 passing, 1 xfailed (`python -m pytest tests -q` at `f775a48`).
 - **Recently landed and live:**
   - The market-stress kill switch forces a terminal HALT (PRD-180). The
     thresholds and conflict resolution are canonical in
@@ -24,6 +24,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 | PRD | Title | Completed |
 |-----|-------|-----------|
+| PRD-186 | Drift-review gate: per-PRD drift check + post-merge audit teeth + governance auto-merge carve-out | 2026-06-14 |
 | PRD-185 | Bump GitHub Actions to Node 24 majors (checkout v6, setup-python v6, upload-artifact v7) | 2026-06-14 |
 | PRD-184 | Auto-merge-via-PR landing flow (Claude push enablement) | 2026-06-14 |
 | PRD-183 | Realign closeout tooling to the new PROJECT_STATE format | 2026-06-14 |
