@@ -231,35 +231,57 @@ class Entry:
     published_at: str  # ISO-8601 UTC with tz
 
 
-def fetch_entries(now: datetime, *, timeout: float = 10.0, retries: int = 3) -> list[Entry]:
+def fetch_entries(
+    now: datetime,
+    *,
+    timeout: float = 10.0,
+    retries: int = 3,
+    _get: Optional[Callable[[str, float], Optional[bytes]]] = None,
+) -> list[Entry]:
     """Fetch + parse the FEED_SOURCES allowlist into recent Entry rows.
 
-    Lazy-imports requests + feedparser so the offline test suite (which injects a
-    fetch function) never needs them installed (R1/R7)."""
+    All allowlisted feeds are REQUIRED (PRD-187 R4, all-or-preserve): if ANY feed
+    is unreachable after retries, raise so the caller preserves the prior
+    generation - the run never classifies or commits from an incomplete source set.
+    An empty-but-fully-read result (all feeds reachable, nothing recent) is the
+    genuine-QUIET path and returns [] without raising.
+
+    Lazy-imports requests + feedparser so the offline test suite never needs them
+    installed (R1/R7). `_get(url, timeout)` returns the feed bytes or None and is a
+    test injection seam; feedparser is imported only once a body must be parsed."""
     import time
 
-    import feedparser  # lazy (not in base test env)
-    import requests  # lazy
+    if _get is None:
+        import requests  # lazy (not needed when _get is injected)
+
+        def _get(url: str, _timeout: float) -> Optional[bytes]:  # type: ignore[misc]
+            try:
+                resp = requests.get(url, timeout=_timeout)
+            except requests.RequestException:
+                return None
+            return resp.content if resp.status_code == 200 else None
 
     cutoff = now - timedelta(hours=RECENCY_HOURS)
     entries: list[Entry] = []
-    any_ok = False
+    feedparser = None  # imported only once we have a body to parse
 
     for src in FEED_SOURCES:
         body: Optional[bytes] = None
         for attempt in range(retries):
             try:
-                resp = requests.get(src.feed_url, timeout=timeout)
-                if resp.status_code == 200:
-                    body = resp.content
-                    break
-            except requests.RequestException:
-                pass
-            time.sleep(2 ** attempt)
+                body = _get(src.feed_url, timeout)
+            except Exception:
+                body = None
+            if body is not None:
+                break
+            if attempt < retries - 1:
+                time.sleep(2 ** attempt)
         if body is None:
-            _log(f"feed unreachable: {src.entity}")
-            continue
-        any_ok = True
+            # all-or-preserve: a required feed failed -> preserve prior, no write.
+            raise RuntimeError(f"required feed unreachable: {src.entity}")
+        if feedparser is None:
+            import feedparser as _feedparser  # lazy (not in base test env)
+            feedparser = _feedparser
         parsed = feedparser.parse(body)
         for item in parsed.entries:
             pub = item.get("published_parsed") or item.get("updated_parsed")
@@ -278,8 +300,6 @@ def fetch_entries(now: datetime, *, timeout: float = 10.0, retries: int = 3) -> 
                 published_at=_iso(published),
             ))
 
-    if not any_ok:
-        raise RuntimeError("all feeds unreachable")
     return entries
 
 
@@ -348,6 +368,19 @@ def _quiet(now: datetime) -> dict:
     }
 
 
+def _capped_excerpt(raw: str) -> str:
+    """HTML-escape and cap to EXCERPT_MAX without severing an entity (R3).
+
+    Cap AFTER escaping (so the length bound holds for the stored, escaped string),
+    then drop a trailing partial entity left by the cut so the result stays valid,
+    fully-escaped HTML that round-trips through validate_snapshot."""
+    capped = html.escape(raw)[:EXCERPT_MAX]
+    amp = capped.rfind("&")
+    if amp != -1 and ";" not in capped[amp:]:
+        capped = capped[:amp]
+    return capped
+
+
 def build_snapshot(entries: list[Entry], classification: dict, now: datetime) -> dict:
     """Turn a classification + the selected feed entry into a snapshot (pre-novelty).
 
@@ -369,7 +402,7 @@ def build_snapshot(entries: list[Entry], classification: dict, now: datetime) ->
         return _quiet(now)
 
     excerpt_raw = entry.title if not entry.summary else f"{entry.title} - {entry.summary}"
-    excerpt = html.escape(excerpt_raw)[:EXCERPT_MAX]
+    excerpt = _capped_excerpt(excerpt_raw)
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": _iso(now),

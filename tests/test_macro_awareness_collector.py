@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import html
 import json
 import os
 import subprocess
@@ -1044,3 +1045,69 @@ class TestTransactionalWrite:
         )
         assert rc == 1
         assert snapshot_path.read_bytes() == prior
+
+
+class TestSourceFailureContract:
+    """R4 all-or-preserve: any required feed unreachable -> preserve prior, no
+    write; distinct from genuine QUIET (all feeds read, nothing material)."""
+
+    @staticmethod
+    def _fed_fails(url: str, timeout: float) -> Optional[bytes]:
+        # One required feed (Fed, first in FEED_SOURCES) unreachable.
+        return None if "federalreserve.gov" in url else b"<rss></rss>"
+
+    def test_required_feed_unreachable_raises(self) -> None:
+        with pytest.raises(RuntimeError):
+            mac.fetch_entries(_NOW, retries=1, _get=self._fed_fails)
+
+    def test_source_failure_preserves_prior_no_write(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+        snap = tmp_path / "s.json"
+        st = tmp_path / "st.json"
+        snap.write_bytes(b'{"prior": 1}\n')
+        st.write_bytes(b'{"prior_state": 1}\n')
+        rc = mac.run(
+            now=_NOW, snapshot_path=snap, state_path=st,
+            fetch_fn=lambda n: mac.fetch_entries(n, retries=1, _get=self._fed_fails),
+            classify_fn=lambda e: _quiet_classification(),
+        )
+        assert rc == 1
+        # nothing overwritten: both prior generations are byte-identical
+        assert snap.read_bytes() == b'{"prior": 1}\n'
+        assert st.read_bytes() == b'{"prior_state": 1}\n'
+
+    def test_genuine_quiet_writes_when_all_feeds_read(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+        snap = tmp_path / "s.json"
+        st = tmp_path / "st.json"
+        rc = mac.run(
+            now=_NOW, snapshot_path=snap, state_path=st,
+            fetch_fn=lambda n: [],  # all feeds reachable, nothing recent in window
+            classify_fn=lambda e: _quiet_classification(),
+        )
+        assert rc == 0
+        assert json.loads(snap.read_text())["status"] == "QUIET"
+
+
+class TestExcerptCap:
+    """R3: excerpt capped to EXCERPT_MAX AND fully HTML-escaped (no severed entity)."""
+
+    def test_cap_does_not_sever_entity(self) -> None:
+        raw = "A" * 278 + "<>"  # escaped exceeds the cap; a naive cut severs "&lt;"
+        out = mac._capped_excerpt(raw)
+        assert len(out) <= mac.EXCERPT_MAX
+        assert html.escape(html.unescape(out)) == out  # fully escaped, no dangling entity
+        assert "<" not in out and ">" not in out
+
+    def test_build_snapshot_special_chars_near_cap_validates(self) -> None:
+        entry = _boj_entry(title="<script>&\"'" + "Q" * 400, summary="R" * 400)
+        snap = mac.build_snapshot([entry], _shock_classification(0), _NOW)
+        assert snap["status"] == "SHOCK"
+        assert mac.validate_snapshot(snap) == []
+        ex = snap["shock"]["source_excerpt"]
+        assert len(ex) <= mac.EXCERPT_MAX
+        assert "<script>" not in ex
