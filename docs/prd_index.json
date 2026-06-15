@@ -788,6 +788,18 @@
       "title": "Drift-review gate: per-PRD drift check + post-merge audit teeth + governance auto-merge carve-out",
       "status": "COMPLETE",
       "commit": "f775a48"
+    },
+    {
+      "number": 187,
+      "title": "Macro-Awareness Producer + Materiality Eval",
+      "status": "PROPOSED",
+      "commit": null
+    },
+    {
+      "number": 188,
+      "title": "Macro-Awareness SHOCK Banner + Scheduled Activation (GATED)",
+      "status": "PROPOSED",
+      "commit": null
     }
   ]
 }
