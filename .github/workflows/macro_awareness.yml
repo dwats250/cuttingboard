@@ -1,0 +1,83 @@
+name: Cuttingboard Macro-Awareness Producer
+
+# PRD-187: workflow_dispatch ONLY. The live cron (scheduled activation) belongs to
+# PRD-188 and ships with the consumer (anti-orphan) - do not add a `schedule:` here.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: macro-awareness
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+    steps:
+      # Pin to main: workflow_dispatch can be triggered from any branch, and
+      # ci_push_artifacts.sh rebases+pushes HEAD:main - checking out the dispatch
+      # ref could otherwise land unrelated branch history on main (Codex push-path
+      # review, PRD-187).
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      # Ad-hoc install of the producer's network clients only. The cuttingboard
+      # package is intentionally NOT installed: the tool is import-isolated and
+      # these clients must not enter the runtime import tree (PRD-139 doctrine).
+      - name: Install producer deps (ad hoc)
+        run: pip install anthropic feedparser requests
+
+      - name: Run producer
+        run: python3 tools/macro_awareness_collector.py
+
+      # Pre-commit validation gate (PRD-187 R7): a malformed snapshot must never
+      # reach main. Re-validate the on-disk artifact against the full R3 contract;
+      # a non-zero exit (set -e) aborts before anything is staged.
+      - name: Validate snapshot before commit
+        run: |
+          set -euo pipefail
+          python3 tools/macro_awareness_collector.py --validate-only logs/macro_awareness_snapshot.json
+
+      - name: Commit macro-awareness artifacts
+        if: ${{ success() }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          PRE_SHA=$(git rev-parse HEAD)
+          # Only the two generated artifacts are staged (PRD-187 R7).
+          git add -f logs/macro_awareness_snapshot.json logs/macro_awareness_state.json
+          git diff --staged --quiet || git commit -m "CB macro-awareness: $(date -u +%Y-%m-%dT%H:%MZ)"
+          POST_SHA=$(git rev-parse HEAD)
+          echo "PRE_SHA=$PRE_SHA" >> "$GITHUB_ENV"
+          echo "POST_SHA=$POST_SHA" >> "$GITHUB_ENV"
+
+      - name: Push macro-awareness artifacts
+        if: ${{ success() }}
+        run: |
+          set -euo pipefail
+          bash tools/ci_push_artifacts.sh
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: macro-awareness-failure-${{ github.run_number }}
+          path: |
+            logs/macro_awareness_snapshot.json
+            logs/macro_awareness_state.json
+          if-no-files-found: ignore
+          retention-days: 7

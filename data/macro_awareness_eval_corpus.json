@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "instructions": "PRD-187 materiality eval corpus. Dustin fills this in. Add one case per historical pre-market morning. For each case: list the central-bank feed items as they appeared that morning (verbatim title/summary/link/published_at), then set `label` to the GROUND TRUTH: 'SHOCK' if that morning carried a genuine unscheduled structural regime shock (BoJ-class), 'QUIET' otherwise (ordinary/scheduled/noisy news). Include realistic true-negatives (noisy-but-not-structural mornings) - false-positive discipline is the whole point. The harness REFUSES to run until every case has a 'QUIET' or 'SHOCK' label. The false-positive threshold T is passed on the command line, not stored here; set it strict.",
+  "label_values": ["QUIET", "SHOCK"],
+  "entry_schema": {
+    "source_name": "Federal Reserve | European Central Bank | Bank of Japan | Bank of England | People's Bank of China",
+    "entity": "Fed | ECB | BoJ | BoE | PBoC",
+    "domain": "federalreserve.gov | ecb.europa.eu | boj.or.jp | bankofengland.co.uk | pbc.gov.cn",
+    "title": "verbatim feed item title",
+    "summary": "verbatim feed item summary",
+    "link": "source_url (domain must be in the allowlist)",
+    "published_at": "ISO-8601 UTC with tz suffix"
+  },
+  "cases": [
+    {
+      "id": "EXAMPLE-positive-boj-zirp-exit",
+      "date": "YYYY-MM-DD",
+      "entries": [
+        {
+          "source_name": "Bank of Japan",
+          "entity": "BoJ",
+          "domain": "boj.or.jp",
+          "title": "<verbatim BoJ headline here>",
+          "summary": "<verbatim summary here>",
+          "link": "https://www.boj.or.jp/en/...",
+          "published_at": "YYYY-MM-DDTHH:MM:SS+00:00"
+        }
+      ],
+      "label": ""
+    },
+    {
+      "id": "EXAMPLE-negative-ordinary-morning",
+      "date": "YYYY-MM-DD",
+      "entries": [
+        {
+          "source_name": "Federal Reserve",
+          "entity": "Fed",
+          "domain": "federalreserve.gov",
+          "title": "<verbatim ordinary headline, e.g. a routine speech or scheduled release>",
+          "summary": "<verbatim summary here>",
+          "link": "https://www.federalreserve.gov/...",
+          "published_at": "YYYY-MM-DDTHH:MM:SS+00:00"
+        }
+      ],
+      "label": ""
+    }
+  ]
+}
