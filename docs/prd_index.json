@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 186,
-  "next_prd": 187,
+  "latest_complete": 187,
+  "next_prd": 188,
   "entries": [
     {
       "number": 56,
@@ -792,8 +792,8 @@
     {
       "number": 187,
       "title": "Macro-Awareness Producer + Materiality Eval",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "a7b0d58"
     },
     {
       "number": 188,
