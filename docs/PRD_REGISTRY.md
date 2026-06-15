@@ -204,7 +204,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-184 | 75a4121 | Auto-merge-via-PR landing flow (Claude push enablement) | COMPLETE | [PRD-184](prd_history/PRD-184.md) |
 | PRD-185 | f77effe | Bump GitHub Actions to Node 24 majors (checkout v6, setup-python v6, upload-artifact v7) | COMPLETE | [PRD-185](prd_history/PRD-185.md) |
 | PRD-186 | f775a48 | Drift-review gate: per-PRD drift check + post-merge audit teeth + governance auto-merge carve-out | COMPLETE | [PRD-186](prd_history/PRD-186.md) |
-| PRD-187 | — | Macro-Awareness Producer + Materiality Eval | PROPOSED | [PRD-187](prd_history/PRD-187.md) |
+| PRD-187 | — | Macro-Awareness Producer + Materiality Eval | IN PROGRESS | [PRD-187](prd_history/PRD-187.md) |
 | PRD-188 | — | Macro-Awareness SHOCK Banner + Scheduled Activation (GATED) | PROPOSED | [PRD-188](prd_history/PRD-188.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().

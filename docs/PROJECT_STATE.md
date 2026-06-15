@@ -9,8 +9,8 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 ## Current state
 
-- **Active PRD:** none in progress.
-- **Proposed / next:** PRD-179 (preview fixture / all-section-state coverage, a fast-follow to PRD-178) — unstarted.
+- **Active PRD:** PRD-187 (macro-awareness producer + materiality eval harness; PRD-188 banner remains PROPOSED/gated).
+- **Proposed / next:** PRD-179 (preview fixture / all-section-state coverage, a fast-follow to PRD-178) — unstarted; intentionally deferred while PRD-187 is built.
 - **Test baseline:** 2610 passing, 1 xfailed (`python -m pytest tests -q` at `f775a48`).
 - **Recently landed and live:**
   - The market-stress kill switch forces a terminal HALT (PRD-180). The

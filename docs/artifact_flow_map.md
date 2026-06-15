@@ -131,6 +131,30 @@ defaults differ.
 - **Category:** Dashboard display, fallback only; not runtime-critical for decisions
 - **Test isolation:** monkeypatch `runtime.LOGS_DIR` to `tmp_path`
 
+### logs/macro_awareness_snapshot.json
+- **Writer:** `tools/macro_awareness_collector.py:run` — isolated, observe-only producer
+  (PRD-187). Imports no `cuttingboard` module, and no `cuttingboard` module imports it (R1).
+- **Constant:** `tools.macro_awareness_collector.SNAPSHOT_PATH` (= `logs/macro_awareness_snapshot.json`)
+- **Sources:** central-bank official feed allowlist (`FEED_SOURCES`: Fed/ECB/BoJ/BoE/PBoC);
+  Anthropic classify+select (default `claude-opus-4-8`) — model assigns `event_type` + selects
+  one item only; text fields are verbatim from the feed
+- **Consumers:** (none in PRD-187) — the gated PRD-188 dashboard banner will read it renderer-side
+  via a `_MACRO_AWARENESS_PATH` constant; human review. Observe-only.
+- **Category:** Sidecar; observe-only; never read for decision logic
+- **Persistence:** force-added + pushed to `main` by `.github/workflows/macro_awareness.yml`
+  (workflow_dispatch only; the cron/live cadence is deferred to PRD-188) via `tools/ci_push_artifacts.sh`,
+  behind a full-R3 pre-commit validation gate
+- **Test isolation:** pass `snapshot_path=tmp_path/...` to `run()`; inject `fetch_fn` / `classify_fn`
+
+### logs/macro_awareness_state.json
+- **Writer:** `tools/macro_awareness_collector.py:run` — novelty-dedup state (PRD-187 R5)
+- **Constant:** `tools.macro_awareness_collector.STATE_PATH` (= `logs/macro_awareness_state.json`)
+- **Consumers:** the producer only (read + write). Identity = `(event_type, source_entity,
+  normalized_event_date)`; suppressed for 5 trading days unless `event_type` changes
+- **Category:** Sidecar producer-internal state; never read by any consumer
+- **Test isolation:** pass `state_path=tmp_path/...` to `run()`; written as one coherent
+  generation with the snapshot (both-or-neither)
+
 ### logs/audit.jsonl
 - **Writer:** `audit.py:write_audit_record` (one record per pipeline run);
   `audit.py:write_notification_audit` (notification events);
