@@ -34,6 +34,19 @@ if str(_TOOLS_DIR) not in sys.path:
 
 import macro_awareness_collector as mac  # noqa: E402 (must follow sys.path setup)
 
+
+def _cuttingboard_files_containing(token: str) -> list[str]:
+    """Pure-Python scan of cuttingboard/ for a literal token. Avoids ripgrep,
+    which is not installed on the CI runner."""
+    hits: list[str] = []
+    for path in (_REPO_ROOT / "cuttingboard").rglob("*.py"):
+        try:
+            if token in path.read_text(encoding="utf-8"):
+                hits.append(str(path))
+        except (OSError, UnicodeDecodeError):
+            continue
+    return hits
+
 # ---------------------------------------------------------------------------
 # Shared fixtures / helpers
 # ---------------------------------------------------------------------------
@@ -168,16 +181,8 @@ class TestR1Isolation:
 
     def test_no_cuttingboard_module_imports_collector(self) -> None:
         """No file under cuttingboard/ imports macro_awareness_collector."""
-        result = subprocess.run(
-            ["rg", "--fixed-strings", "macro_awareness_collector",
-             str(_REPO_ROOT / "cuttingboard")],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        assert result.returncode != 0 or result.stdout.strip() == "", (
-            f"cuttingboard/ imports macro_awareness_collector:\n{result.stdout}"
-        )
+        hits = _cuttingboard_files_containing("macro_awareness_collector")
+        assert hits == [], f"cuttingboard/ references the collector: {hits}"
 
 
 # ---------------------------------------------------------------------------
@@ -188,29 +193,13 @@ class TestR1Isolation:
 class TestR2ArtifactPathIsolation:
     def test_snapshot_path_not_in_cuttingboard(self) -> None:
         """logs/macro_awareness_snapshot.json must not appear in cuttingboard/."""
-        result = subprocess.run(
-            ["rg", "--fixed-strings", "macro_awareness_snapshot",
-             str(_REPO_ROOT / "cuttingboard")],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        assert result.returncode != 0 or result.stdout.strip() == "", (
-            f"macro_awareness_snapshot found in cuttingboard/:\n{result.stdout}"
-        )
+        hits = _cuttingboard_files_containing("macro_awareness_snapshot")
+        assert hits == [], f"macro_awareness_snapshot found in cuttingboard/: {hits}"
 
     def test_state_path_not_in_cuttingboard(self) -> None:
         """logs/macro_awareness_state.json must not appear in cuttingboard/."""
-        result = subprocess.run(
-            ["rg", "--fixed-strings", "macro_awareness_state",
-             str(_REPO_ROOT / "cuttingboard")],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        assert result.returncode != 0 or result.stdout.strip() == "", (
-            f"macro_awareness_state found in cuttingboard/:\n{result.stdout}"
-        )
+        hits = _cuttingboard_files_containing("macro_awareness_state")
+        assert hits == [], f"macro_awareness_state found in cuttingboard/: {hits}"
 
 
 # ---------------------------------------------------------------------------
