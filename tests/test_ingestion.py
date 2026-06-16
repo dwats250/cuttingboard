@@ -31,33 +31,38 @@ def _recent_daily(n_bars: int) -> pd.DataFrame:
     )
 
 
-def test_min_fresh_bars_scales_with_window(monkeypatch):
-    monkeypatch.setattr(config, "OHLCV_FETCH_MONTHS", 12)
-    assert ingestion._ohlcv_min_fresh_bars() == 12 * 19
+def test_min_fresh_bars_is_the_sma200_consumer_window():
+    # The floor is the longest consumer window (SMA-200), NOT the fetch target.
+    assert ingestion._ohlcv_min_fresh_bars() == 200
+
+
+def test_min_fresh_bars_is_config_independent(monkeypatch):
+    # Tied to the analytic requirement, not OHLCV_FETCH_MONTHS — so a slightly
+    # short (holiday-dense) full-window fetch can never spin a re-fetch loop.
     monkeypatch.setattr(config, "OHLCV_FETCH_MONTHS", 6)
-    assert ingestion._ohlcv_min_fresh_bars() == 6 * 19
+    assert ingestion._ohlcv_min_fresh_bars() == 200
+    monkeypatch.setattr(config, "OHLCV_FETCH_MONTHS", 24)
+    assert ingestion._ohlcv_min_fresh_bars() == 200
 
 
-def test_fresh_cache_rejects_short_frame_under_wide_window(monkeypatch):
-    # 126 bars (~6-month fetch) is age-fresh but below the 12-month floor (228).
-    monkeypatch.setattr(config, "OHLCV_FETCH_MONTHS", 12)
+def test_fresh_cache_rejects_pre_bump_short_frame():
+    # 126 bars (~6-month fetch) is age-fresh but below the 200-bar SMA-200 floor.
     assert ingestion._is_fresh_ohlcv_cache(_recent_daily(126)) is False
 
 
-def test_fresh_cache_accepts_full_window_frame(monkeypatch):
-    # ~252 bars (~12-month fetch), age-fresh, clears the 228 floor.
-    monkeypatch.setattr(config, "OHLCV_FETCH_MONTHS", 12)
+def test_fresh_cache_accepts_full_window_frame():
+    # ~252 bars (~12-month fetch), age-fresh, clears the 200 floor.
     assert ingestion._is_fresh_ohlcv_cache(_recent_daily(252)) is True
 
 
-def test_window_bump_flips_a_126_bar_cache_from_fresh_to_stale(monkeypatch):
-    # The same on-disk 126-bar frame: fresh under 6mo, stale under 12mo. This is
-    # exactly the stale-by-shape transition the PRD-190 bump must trigger.
-    frame = _recent_daily(126)
-    monkeypatch.setattr(config, "OHLCV_FETCH_MONTHS", 6)
-    assert ingestion._is_fresh_ohlcv_cache(frame) is True
-    monkeypatch.setattr(config, "OHLCV_FETCH_MONTHS", 12)
-    assert ingestion._is_fresh_ohlcv_cache(frame) is False
+def test_holiday_shortened_full_window_frame_is_fresh_no_refetch_loop():
+    # The anti-loop guarantee: a 12-month fetch trimmed by a holiday-dense year
+    # (~248 bars) still clears the 200-bar consumer floor, so it is NOT marked
+    # stale — there is no fetch -> short -> stale -> fetch loop. Boundary: 200
+    # bars exactly is fresh (sma_200 needs len >= 200), 199 is stale.
+    assert ingestion._is_fresh_ohlcv_cache(_recent_daily(248)) is True
+    assert ingestion._is_fresh_ohlcv_cache(_recent_daily(200)) is True
+    assert ingestion._is_fresh_ohlcv_cache(_recent_daily(199)) is False
 
 
 def test_fetch_ohlcv_refetches_when_cached_frame_is_short(monkeypatch, tmp_path):

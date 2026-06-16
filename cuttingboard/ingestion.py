@@ -143,31 +143,36 @@ def fetch_ohlcv(symbol: str) -> Optional[pd.DataFrame]:
     return None
 
 
-# PRD-190 R5: a cached frame must be both recent AND deep enough for the
-# configured fetch window. Conservative trading-days-per-month floor (holiday-
-# dense months run ~19) — derives the minimum bar count from OHLCV_FETCH_MONTHS
-# so a window bump (e.g. 6→12) treats a pre-bump short frame (~126 bars) as stale
-# and forces a live refresh, while a legitimately full current-window cache
-# (~252 bars at 12mo) still passes (252 >= 12*19 = 228).
-_OHLCV_MIN_TRADING_DAYS_PER_MONTH = 19
+# PRD-190 R5: a cached frame must be both recent AND deep enough for the longest
+# analytic window any fetch_ohlcv consumer needs — the SMA-200 (200 bars). The
+# floor is the CONSUMER requirement, NOT the fetch target (~252 bars at 12mo):
+# pinning it near the fetch target would mark a holiday-shortened ~248-bar frame
+# as permanently stale and spin a re-fetch loop. A pre-bump 6-month cache
+# (~126 bars) is below 200 and is correctly forced to refresh; a legitimately
+# full 12-month frame (~243-252 bars, even holiday-dense) clears 200 with margin.
+_OHLCV_MIN_FRESH_BARS = 200  # SMA-200 — the longest consumer window
 
 
 def _ohlcv_min_fresh_bars() -> int:
-    """Minimum bar count a cache must hold to be served for the current window."""
-    return config.OHLCV_FETCH_MONTHS * _OHLCV_MIN_TRADING_DAYS_PER_MONTH
+    """Minimum bars a served cache must hold (longest consumer window = SMA-200).
+
+    Config-independent: tied to the analytic requirement, not OHLCV_FETCH_MONTHS,
+    so a slightly short (holiday-dense) full-window fetch never loops.
+    """
+    return _OHLCV_MIN_FRESH_BARS
 
 
 def _is_fresh_ohlcv_cache(df: pd.DataFrame) -> bool:
     if df is None or df.empty or df.index.empty:
         return False
 
-    # Stale-by-shape guard: a frame shorter than the configured window was
-    # fetched under a narrower OHLCV_FETCH_MONTHS and cannot satisfy SMA-200.
+    # Stale-by-shape guard: a frame shallower than the longest consumer window
+    # (SMA-200) cannot satisfy sma_200 — force a live refresh regardless of age.
     min_bars = _ohlcv_min_fresh_bars()
     if len(df) < min_bars:
         logger.info(
-            f"OHLCV cache stale-by-shape: {len(df)} bars < {min_bars} required "
-            f"for {config.OHLCV_FETCH_MONTHS}-month window — forcing live refresh"
+            f"OHLCV cache stale-by-shape: {len(df)} bars < {min_bars} "
+            f"(SMA-200 consumer floor) — forcing live refresh"
         )
         return False
 
