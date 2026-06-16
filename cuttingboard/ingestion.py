@@ -116,7 +116,7 @@ def fetch_quote(symbol: str) -> "RawQuote":
 
 
 def fetch_ohlcv(symbol: str) -> Optional[pd.DataFrame]:
-    """Fetch 6-month daily OHLCV, using a local parquet cache when fresh.
+    """Fetch ~12-month daily OHLCV, using a local parquet cache when fresh.
 
     Returns a DataFrame with columns [Open, High, Low, Close, Volume] indexed
     by date, or None when data is unavailable and the cache is stale/absent.
@@ -143,8 +143,32 @@ def fetch_ohlcv(symbol: str) -> Optional[pd.DataFrame]:
     return None
 
 
+# PRD-190 R5: a cached frame must be both recent AND deep enough for the
+# configured fetch window. Conservative trading-days-per-month floor (holiday-
+# dense months run ~19) — derives the minimum bar count from OHLCV_FETCH_MONTHS
+# so a window bump (e.g. 6→12) treats a pre-bump short frame (~126 bars) as stale
+# and forces a live refresh, while a legitimately full current-window cache
+# (~252 bars at 12mo) still passes (252 >= 12*19 = 228).
+_OHLCV_MIN_TRADING_DAYS_PER_MONTH = 19
+
+
+def _ohlcv_min_fresh_bars() -> int:
+    """Minimum bar count a cache must hold to be served for the current window."""
+    return config.OHLCV_FETCH_MONTHS * _OHLCV_MIN_TRADING_DAYS_PER_MONTH
+
+
 def _is_fresh_ohlcv_cache(df: pd.DataFrame) -> bool:
     if df is None or df.empty or df.index.empty:
+        return False
+
+    # Stale-by-shape guard: a frame shorter than the configured window was
+    # fetched under a narrower OHLCV_FETCH_MONTHS and cannot satisfy SMA-200.
+    min_bars = _ohlcv_min_fresh_bars()
+    if len(df) < min_bars:
+        logger.info(
+            f"OHLCV cache stale-by-shape: {len(df)} bars < {min_bars} required "
+            f"for {config.OHLCV_FETCH_MONTHS}-month window — forcing live refresh"
+        )
         return False
 
     last_bar = pd.Timestamp(df.index.max())
@@ -314,7 +338,7 @@ def _yfinance_quote_raw(symbol: str) -> tuple[float, float, Optional[float]]:
 
 
 def _fetch_ohlcv_from_yfinance(symbol: str) -> Optional[pd.DataFrame]:
-    """Download 6 months of daily OHLCV from yfinance with retries."""
+    """Download ~12 months of daily OHLCV from yfinance with retries (PRD-190)."""
     end_date = datetime.now(timezone.utc)
     start_date = end_date - timedelta(days=config.OHLCV_FETCH_MONTHS * 31)
 
