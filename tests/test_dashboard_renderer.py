@@ -683,6 +683,157 @@ def test_prd167_run_snapshot_freshness_token_unavailable(bad: object) -> None:
     assert _run_snapshot_freshness_token(bad, now) == "unavailable"
 
 
+# --- PRD-189: per-surface freshness (live-state + scoreboard age) -----------
+
+def _surface_value(state: str, label: str) -> str:
+    """Extract the value rendered for a system-state freshness label."""
+    after = state.split(f">{label}</div>", 1)[1]
+    return after.split('class="value">', 1)[1].split("</div>", 1)[0]
+
+
+@pytest.mark.parametrize(
+    "age_seconds,expected",
+    [
+        (30, "<1 min old"),
+        (59, "<1 min old"),
+        (60, "1 min old"),
+        (3599, "59 min old"),
+        (3600, "1 hr old"),
+        (86399, "23 hr old"),
+        (86400, "1 day old"),
+        (2 * 86400, "2 days old"),
+        (33 * 86400, "33 days old"),
+        (-60, "<1 min old"),  # future-dated -> no negative/0-min token
+    ],
+)
+def test_prd189_surface_age_token_boundaries(age_seconds: int, expected: str) -> None:
+    from cuttingboard.delivery.dashboard_renderer import _surface_age_token
+    base = datetime(2026, 6, 16, 12, 0, 0, tzinfo=timezone.utc)
+    parsed = base - timedelta(seconds=age_seconds)
+    assert _surface_age_token(parsed, base, "absent") == expected
+
+
+def test_prd189_surface_age_token_absent_is_explicit() -> None:
+    from cuttingboard.delivery.dashboard_renderer import _surface_age_token
+    now = datetime(2026, 6, 16, 12, 0, 0, tzinfo=timezone.utc)
+    assert _surface_age_token(None, now, "no live run recorded") == "no live run recorded"
+
+
+@pytest.mark.parametrize(
+    "newest_date,expected",
+    [
+        ("2026-06-16", "today"),
+        ("2026-06-15", "1 day old"),
+        ("2026-05-14", "33 days old"),
+    ],
+)
+def test_prd189_scoreboard_age_token(newest_date: str, expected: str) -> None:
+    from cuttingboard.delivery.dashboard_renderer import _scoreboard_age_token
+    now = datetime(2026, 6, 16, 12, 0, 0, tzinfo=timezone.utc)
+    history = [{"date": "2026-05-01"}, {"date": newest_date}]
+    assert _scoreboard_age_token(history, now, "absent") == expected
+
+
+@pytest.mark.parametrize("history", [None, [], [{"date": "garbage"}], [{}]])
+def test_prd189_scoreboard_age_token_absent_or_unparseable(history) -> None:
+    from cuttingboard.delivery.dashboard_renderer import _scoreboard_age_token
+    now = datetime(2026, 6, 16, 12, 0, 0, tzinfo=timezone.utc)
+    assert _scoreboard_age_token(history, now, "no scoreboard history") == "no scoreboard history"
+
+
+def test_prd189_live_state_and_scoreboard_render(monkeypatch: pytest.MonkeyPatch) -> None:
+    from cuttingboard.delivery import dashboard_renderer as _dr
+    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 6, 16, 12, 0, 30, tzinfo=timezone.utc))
+    run = _run_with_timestamp("2026-06-16T12:00:00Z")
+    history = [{"date": "2026-06-16", "regime": "NEUTRAL", "posture": "STAY_FLAT"}]
+    html = render_dashboard_html(_payload(timestamp="2026-06-16T12:00:00Z"), run, regime_history=history)
+    state = _system_state_block(html)
+    assert "LIVE STATE" in state and "SCOREBOARD" in state
+    # "<" is HTML-escaped in the rendered value.
+    assert _surface_value(state, "LIVE STATE") == "&lt;1 min old"
+    assert _surface_value(state, "SCOREBOARD") == "today"
+
+
+def test_prd189_frozen_pipeline_reads_stale_per_surface(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The bug PRD-189 fixes: a frozen pipeline must read loudly stale on the
+    # live-state/scoreboard surfaces even while the payload (RUN SNAPSHOT) is
+    # current because the hourly quote workflow keeps it fresh.
+    from cuttingboard.delivery import dashboard_renderer as _dr
+    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 6, 16, 12, 0, 0, tzinfo=timezone.utc))
+    run = _run_with_timestamp("2026-05-14T12:00:00Z")  # 33 days stale
+    history = [{"date": "2026-05-14", "regime": "NEUTRAL", "posture": "STAY_FLAT"}]
+    html = render_dashboard_html(
+        _payload(timestamp="2026-06-16T11:58:00Z"),  # payload fresh (2 min)
+        run,
+        regime_history=history,
+    )
+    state = _system_state_block(html)
+    assert _surface_value(state, "LIVE STATE") == "33 days old"
+    assert _surface_value(state, "SCOREBOARD") == "33 days old"
+    # RUN SNAPSHOT (payload) still reads fresh — proving per-surface freshness.
+    assert _surface_value(state, "RUN SNAPSHOT") == "2 minutes old"
+    # No false-fresh label leaks onto the frozen pipeline surfaces.
+    assert "<1 min" not in state.split(">LIVE STATE", 1)[1]
+
+
+def test_prd189_null_live_run_is_explicit(monkeypatch: pytest.MonkeyPatch) -> None:
+    # latest_run.json present but without any run timestamp -> explicit empty
+    # state, never a misleading "0 min"/"<1 min" or a crash.
+    from cuttingboard.delivery import dashboard_renderer as _dr
+    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 6, 16, 12, 0, 0, tzinfo=timezone.utc))
+    run = _run()
+    for key in ("run_at_utc", "timestamp", "generated_at"):
+        run.pop(key, None)
+    html = render_dashboard_html(_payload(timestamp="2026-06-16T11:59:00Z"), run)
+    state = _system_state_block(html)
+    assert _surface_value(state, "LIVE STATE") == "no live run recorded"
+    assert _surface_value(state, "SCOREBOARD") == "no scoreboard history"
+
+
+def test_prd189_empty_scoreboard_history_is_explicit(monkeypatch: pytest.MonkeyPatch) -> None:
+    from cuttingboard.delivery import dashboard_renderer as _dr
+    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 6, 16, 12, 0, 0, tzinfo=timezone.utc))
+    html = render_dashboard_html(
+        _payload(timestamp="2026-06-16T11:59:00Z"),
+        _run_with_timestamp("2026-06-16T11:59:00Z"),
+    )
+    state = _system_state_block(html)
+    assert _surface_value(state, "SCOREBOARD") == "no scoreboard history"
+
+
+def test_prd189_live_state_reads_pipeline_run_not_run_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Codex P2: the hourly publish path overrides --run with latest_hourly_run.json.
+    # LIVE STATE must read the PIPELINE run (pipeline_run / latest_run.json), so a
+    # frozen cuttingboard.yml pipeline reads stale even while the hourly run that
+    # publishes the dashboard is fresh.
+    from cuttingboard.delivery import dashboard_renderer as _dr
+    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 6, 16, 12, 0, 0, tzinfo=timezone.utc))
+    fresh_hourly_run = _run_with_timestamp("2026-06-16T11:59:30Z")    # the --run override (fresh)
+    stale_pipeline_run = _run_with_timestamp("2026-05-14T12:00:00Z")  # latest_run.json (33d stale)
+    html = render_dashboard_html(
+        _payload(timestamp="2026-06-16T11:59:30Z"),
+        fresh_hourly_run,
+        pipeline_run=stale_pipeline_run,
+    )
+    state = _system_state_block(html)
+    assert _surface_value(state, "LIVE STATE") == "33 days old"
+    # RUN SNAPSHOT (payload) is fresh — only LIVE STATE exposes the frozen pipeline.
+    assert _surface_value(state, "RUN SNAPSHOT") == "<1 min old".replace("<", "&lt;")
+
+
+def test_prd189_live_state_falls_back_to_run_when_no_pipeline_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    # When pipeline_run is not supplied (e.g. cuttingboard.yml's default --run is
+    # latest_run.json), LIVE STATE falls back to `run`.
+    from cuttingboard.delivery import dashboard_renderer as _dr
+    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 6, 16, 12, 0, 30, tzinfo=timezone.utc))
+    html = render_dashboard_html(
+        _payload(timestamp="2026-06-16T12:00:00Z"),
+        _run_with_timestamp("2026-06-16T12:00:00Z"),
+    )
+    state = _system_state_block(html)
+    assert _surface_value(state, "LIVE STATE") == "&lt;1 min old"
+
+
 def test_main_block_no_original_utc_timestamp() -> None:
     html = render_dashboard_html(
         _payload(timestamp="2026-05-05T20:29:00Z"),

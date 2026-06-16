@@ -818,6 +818,18 @@
       "title": "Direction-aware macro-evidence rationale",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 192,
+      "title": "Intraday slot wiring + per-slot audit dedup marker (deferred from PRD-189)",
+      "status": "PROPOSED",
+      "commit": null
+    },
+    {
+      "number": 193,
+      "title": "Publish-safe prefetch with OHLCV cache persistence (deferred from PRD-189)",
+      "status": "PROPOSED",
+      "commit": null
     }
   ]
 }

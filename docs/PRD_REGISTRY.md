@@ -209,6 +209,8 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-189 | — | Live-pipeline mode resolution + per-surface freshness observability | IN PROGRESS | [PRD-189](prd_history/PRD-189.md) |
 | PRD-190 | — | OHLCV fetch window sized for SMA-200 | IN PROGRESS | [PRD-190](prd_history/PRD-190.md) |
 | PRD-191 | — | Direction-aware macro-evidence rationale | IN PROGRESS | [PRD-191](prd_history/PRD-191.md) |
+| PRD-192 | — | Intraday slot wiring + per-slot audit dedup marker (deferred from PRD-189) | PROPOSED | [PRD-192](prd_history/PRD-192.md) |
+| PRD-193 | — | Publish-safe prefetch with OHLCV cache persistence (deferred from PRD-189) | PROPOSED | [PRD-193](prd_history/PRD-193.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

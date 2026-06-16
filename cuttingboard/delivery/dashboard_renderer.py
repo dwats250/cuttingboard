@@ -273,6 +273,54 @@ def _run_snapshot_freshness_token(value: object, now: datetime) -> str:
     return "STALE (>5 min)"
 
 
+def _surface_age_token(parsed: datetime | None, now: datetime, absent_label: str) -> str:
+    """PRD-189: coarse relative-age token for a pipeline-state surface (the live
+    run, the scoreboard). Unlike the RUN SNAPSHOT token this expresses long ages
+    in hours/days, so a frozen pipeline reads loudly stale instead of saturating
+    at "STALE (>5 min)". ``parsed`` None -- an absent or unparseable source --
+    renders ``absent_label``, never a misleading "0 min"/"<1 min" reading."""
+    if parsed is None:
+        return absent_label
+    age = (now - parsed).total_seconds()
+    if age < 60:  # includes future-dated (negative age)
+        return "<1 min old"
+    if age < 3600:
+        minutes = int(age // 60)
+        return f"{minutes} min old"
+    if age < 86400:
+        hours = int(age // 3600)
+        return f"{hours} hr old"
+    days = int(age // 86400)
+    return f"{days} day{'s' if days != 1 else ''} old"
+
+
+def _scoreboard_age_token(
+    regime_history: list[dict] | None, now: datetime, absent_label: str
+) -> str:
+    """PRD-189: day-granular age of the newest logs/regime_history.jsonl record
+    (the scoreboard's last dated row), computed from the rows the renderer
+    already holds. Empty/absent history or an unparseable date renders
+    ``absent_label``."""
+    if not regime_history:
+        return absent_label
+    newest = None
+    for row in regime_history:
+        if not isinstance(row, dict):
+            continue
+        try:
+            parsed = datetime.strptime(str(row.get("date")), "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            continue
+        if newest is None or parsed > newest:
+            newest = parsed
+    if newest is None:
+        return absent_label
+    days = (now.astimezone(timezone.utc).date() - newest).days
+    if days <= 0:
+        return "today"
+    return f"{days} day{'s' if days != 1 else ''} old"
+
+
 def _first_timestamp(obj: dict | None, paths: tuple[tuple[str, ...], ...]) -> tuple[object, datetime | None]:
     if not isinstance(obj, dict):
         return None, None
@@ -1592,6 +1640,7 @@ def render_dashboard_html(
     trend_structure_snapshot: dict | None = None,
     regime_history: list[dict] | None = None,
     red_folder: dict | None = None,
+    pipeline_run: dict | None = None,
     fixture_mode: bool = False,
 ) -> str:
     """Return deterministic Signal Forge dashboard HTML.
@@ -1915,11 +1964,32 @@ def render_dashboard_html(
     w('  <div class="sep"></div>')
     # PRD-167: RUN SNAPSHOT renders relative freshness, not an absolute PT
     # timestamp (PRD-158 §4.2). `_utcnow()` is the frozen-in-tests reference.
+    _now = _utcnow()
     _snapshot_text = _run_snapshot_freshness_token(
-        payload_timestamp_value or timestamp, _utcnow()
+        payload_timestamp_value or timestamp, _now
     )
     w('  <div class="label">RUN SNAPSHOT</div>')
     w(f'  <div class="value">{_esc(_snapshot_text)}</div>')
+    # PRD-189: per-surface freshness. RUN SNAPSHOT above tracks the payload,
+    # which the hourly quote workflow keeps current; LIVE STATE and SCOREBOARD
+    # track the pipeline-state surfaces that freeze when scheduled runs stop --
+    # so a frozen pipeline reads loudly stale here even while RUN SNAPSHOT is
+    # fresh. LIVE STATE reads the PIPELINE run (logs/latest_run.json via
+    # `pipeline_run`), NOT the `run` source: the hourly publish path overrides
+    # --run with latest_hourly_run.json, which would otherwise keep LIVE STATE
+    # fresh and mask a frozen cuttingboard.yml pipeline. SCOREBOARD reads
+    # `regime_history` (newest dated row, pipeline-only). No payload/contract
+    # plumbing is added.
+    _pipeline_run = pipeline_run if pipeline_run is not None else run
+    _, _pipeline_run_ts = _first_timestamp(
+        _pipeline_run, (("run_at_utc",), ("timestamp",), ("generated_at",))
+    )
+    _live_state_text = _surface_age_token(_pipeline_run_ts, _now, "no live run recorded")
+    w('  <div class="label">LIVE STATE</div>')
+    w(f'  <div class="value">{_esc(_live_state_text)}</div>')
+    _scoreboard_text = _scoreboard_age_token(regime_history, _now, "no scoreboard history")
+    w('  <div class="label">SCOREBOARD</div>')
+    w(f'  <div class="value">{_esc(_scoreboard_text)}</div>')
     w("</div>")
 
     # --- alert-watchlist ---
@@ -2398,6 +2468,7 @@ def write_dashboard(
     trend_structure_snapshot: dict | None = None,
     regime_history: list[dict] | None = None,
     red_folder: dict | None = None,
+    pipeline_run: dict | None = None,
     fixture_mode: bool = False,
 ) -> None:
     # PRD-118 R1/R2/R3/R10: validate coherent artifact set before any byte is written
@@ -2434,6 +2505,7 @@ def write_dashboard(
         trend_structure_snapshot=trend_structure_snapshot,
         regime_history=regime_history,
         red_folder=red_folder,
+        pipeline_run=pipeline_run,
         fixture_mode=fixture_mode,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2520,6 +2592,14 @@ def main(
 
     payload    = _load_json(payload_path)
     run        = _load_json(run_path)
+    # PRD-189: LIVE STATE must reflect the PIPELINE run (latest_run.json) even
+    # when --run overrides `run` with latest_hourly_run.json on the hourly
+    # publish path; load it explicitly (optional — absent => "no live run
+    # recorded"). When --run is the default this is the same file as `run`.
+    # Assumption: the pipeline run lives in --logs-dir (latest_run.json's basename
+    # under logs_dir), so a --logs-dir override moves this read with it; pass a
+    # logs-dir that contains latest_run.json if you also override --run.
+    pipeline_run = _load_json_optional(logs_dir / _RUN_PATH.name)
 
     previous_run = _resolve_previous_run(logs_dir)
     history_run_files = sorted(logs_dir.glob("run_*.json"))
@@ -2573,6 +2653,7 @@ def main(
         trend_structure_snapshot=trend_structure_snapshot,
         regime_history=regime_history,
         red_folder=red_folder_view,
+        pipeline_run=pipeline_run,
         fixture_mode=_fixture_mode,
     )
     print(f"Dashboard written: {output_path}")

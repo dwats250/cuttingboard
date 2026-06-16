@@ -6,13 +6,13 @@ on:
     - cron: '50 12 * * 1-5'
     # Premarket: 06:00 PT / 13:00 UTC, Monday–Friday
     - cron: '0 13 * * 1-5'
-    # ORB trajectory: 06:50 PT / 13:50 UTC, Monday–Friday
-    - cron: '50 13 * * 1-5'
     # Sunday regime-only report: 23:30 UTC (7:30 PM ET, 30 min after futures open)
     - cron: '30 23 * * 0'
-    # Intraday monitor + post-ORB/mid-morning/power-hour: every 30 min 14:00–21:30 UTC Mon–Fri
-    # Time-based routing below maps 14:30→post_orb, 16:30→midmorning, 19:00→power_hour
-    - cron: '*/30 14-21 * * 1-5'
+    # PRD-189: the ORB (50 13) and intraday (*/30 14-21) crons were removed.
+    # Those slots ran the full live pipeline via cli_main, which is NOT their
+    # intended notify path (_execute_notify_run); the intraday window is already
+    # covered by hourly_alert.yml. Correctly homing orb_trajectory / post_orb /
+    # midmorning / power_hour is deferred to a follow-up PRD (see PROJECT_STATE).
   workflow_dispatch:
     inputs:
       mode:
@@ -25,10 +25,6 @@ on:
           - sunday
           - verify
           - prefetch
-          - orb_trajectory
-          - post_orb
-          - midmorning
-          - power_hour
 
 # Never cancel a mid-run pipeline — queue instead.
 concurrency:
@@ -62,6 +58,24 @@ jobs:
         with:
           python-version: '3.11'
 
+      # PRD-189: resolve the slot in scripts/resolve_run_mode.py (stdlib-only,
+      # unit-tested). It keys on github.event.schedule (the cron string), not
+      # wall-clock minutes, so a queue-delayed run still resolves to its slot
+      # (the old exact-minute match resolved every late run to noop). Scope is
+      # the dedicated premarket crons (prefetch/live/sunday); intraday/orb are
+      # deferred to a follow-up PRD (see PROJECT_STATE).
+      - name: Determine run mode
+        id: mode
+        env:
+          CB_EVENT_NAME: ${{ github.event_name }}
+          CB_DISPATCH_MODE: ${{ github.event.inputs.mode }}
+          CB_SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          set -eo pipefail
+          job_mode="$(python3 scripts/resolve_run_mode.py)"
+          echo "job_mode=$job_mode" >> "$GITHUB_OUTPUT"
+          echo "Resolved mode: $job_mode"
+
       - name: Install dev dependencies
         run: |
           set -eo pipefail
@@ -92,40 +106,13 @@ jobs:
             engine_doctor.json
             engine_doctor.txt
 
-      - name: Determine run mode
-        id: mode
-        run: |
-          set -eo pipefail
-          TIME=$(date -u +%H%M)
-          EVENT="${{ github.event_name }}"
-          DISPATCH_MODE="${{ github.event.inputs.mode }}"
-
-          if [[ "$EVENT" == "workflow_dispatch" ]]; then
-            job_mode="$DISPATCH_MODE"
-          elif [[ "$(date -u +%u)" == "7" ]]; then
-            job_mode="sunday"
-          elif [[ "$TIME" == "1250" ]]; then
-            job_mode="prefetch"
-          elif [[ "$TIME" == "1300" ]]; then
-            job_mode="live"
-          elif [[ "$TIME" == "1350" ]]; then
-            job_mode="orb_trajectory"
-          elif [[ "$TIME" == "1430" ]]; then
-            job_mode="post_orb"
-          elif [[ "$TIME" == "1630" ]]; then
-            job_mode="midmorning"
-          elif [[ "$TIME" == "1900" ]]; then
-            job_mode="power_hour"
-          elif [[ "$TIME" == "2000" ]]; then
-            job_mode="power_hour"
-          else
-            job_mode="noop"
-          fi
-
-          echo "job_mode=$job_mode" >> "$GITHUB_OUTPUT"
-          echo "Resolved mode: $job_mode"
-
-      # --- Prefetch warm-up ---
+      # --- Prefetch warm-up (PARKED, PRD-189) ---
+      # The 50 12 prefetch cron now resolves to noop (resolve_run_mode.py), so this
+      # step is unreachable on schedule. It is still reachable via manual
+      # `workflow_dispatch --mode prefetch`, but note: PUBLISH_READY=true below would
+      # publish a stale dashboard and trip the PRD-119 freshness gate, because
+      # execute_prefetch writes no fresh payload/run. Re-enabling prefetch
+      # (cache-persistent + publish-safe) is tracked in PRD-193.
       - name: Run prefetch
         if: steps.mode.outputs.job_mode == 'prefetch'
         run: |
@@ -176,53 +163,10 @@ jobs:
           echo "=== END verify ==="
           echo "PUBLISH_READY=true" >> "$GITHUB_ENV"
 
-      # --- ORB trajectory: 06:50 PT ---
-      - name: Run ORB trajectory scan
-        if: steps.mode.outputs.job_mode == 'orb_trajectory'
-        run: |
-          set -eo pipefail
-          echo "=== START orb_trajectory ==="
-          date -u +"%Y-%m-%dT%H:%M:%SZ"
-          timeout 8m python -m cuttingboard --mode orb_trajectory --notify-mode orb_trajectory
-          date -u +"%Y-%m-%dT%H:%M:%SZ"
-          echo "=== END orb_trajectory ==="
-          echo "PUBLISH_READY=true" >> "$GITHUB_ENV"
-
-      # --- Post-ORB: 07:30 PT ---
-      - name: Run post-ORB scan
-        if: steps.mode.outputs.job_mode == 'post_orb'
-        run: |
-          set -eo pipefail
-          echo "=== START post_orb ==="
-          date -u +"%Y-%m-%dT%H:%M:%SZ"
-          timeout 8m python -m cuttingboard --mode post_orb --notify-mode post_orb
-          date -u +"%Y-%m-%dT%H:%M:%SZ"
-          echo "=== END post_orb ==="
-          echo "PUBLISH_READY=true" >> "$GITHUB_ENV"
-
-      # --- Mid-morning: 09:30 PT ---
-      - name: Run mid-morning scan
-        if: steps.mode.outputs.job_mode == 'midmorning'
-        run: |
-          set -eo pipefail
-          echo "=== START midmorning ==="
-          date -u +"%Y-%m-%dT%H:%M:%SZ"
-          timeout 8m python -m cuttingboard --mode midmorning --notify-mode midmorning
-          date -u +"%Y-%m-%dT%H:%M:%SZ"
-          echo "=== END midmorning ==="
-          echo "PUBLISH_READY=true" >> "$GITHUB_ENV"
-
-      # --- Power hour: 12:00 PT (3:00 PM ET) ---
-      - name: Run power-hour scan
-        if: steps.mode.outputs.job_mode == 'power_hour'
-        run: |
-          set -eo pipefail
-          echo "=== START power_hour ==="
-          date -u +"%Y-%m-%dT%H:%M:%SZ"
-          timeout 8m python -m cuttingboard --mode power_hour --notify-mode power_hour
-          date -u +"%Y-%m-%dT%H:%M:%SZ"
-          echo "=== END power_hour ==="
-          echo "PUBLISH_READY=true" >> "$GITHUB_ENV"
+      # PRD-189: orb_trajectory / post_orb / midmorning / power_hour dispatch
+      # steps were removed — they invoked the full live pipeline via cli_main
+      # (not their intended _execute_notify_run path) and the intraday window is
+      # already covered by hourly_alert.yml. Re-homing them is a follow-up PRD.
 
       # --- Generate commit message from latest_run.json (live and sunday only) ---
       - name: Generate commit message
@@ -255,7 +199,7 @@ jobs:
           print(msg)
           PY
 
-      # --- Commit artifacts (live and sunday write reports/logs; intraday writes logs) ---
+      # --- Commit artifacts (live and sunday write reports/logs) ---
       - name: Commit artifacts
         if: ${{ success() && env.PUBLISH_READY == 'true' }}
         run: |
@@ -263,6 +207,12 @@ jobs:
           PRE_SHA=$(git rev-parse HEAD)
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # PRD-189: refresh the scoreboard from this run's just-written audit
+          # row BEFORE staging logs/ and rendering, so SCOREBOARD age reflects the
+          # scheduled run immediately (not only on a later hourly publish). Same
+          # read-only aggregator hourly_alert.yml uses; writes only
+          # logs/regime_history.jsonl, no runtime/notify coupling (PRD-175 R5).
+          python3 -m cuttingboard.delivery.regime_history
           git add reports/ || true
           git add -f logs/ || true
           cp logs/latest_contract.json ui/contract.json 2>/dev/null || true
