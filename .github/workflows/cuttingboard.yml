@@ -106,7 +106,13 @@ jobs:
             engine_doctor.json
             engine_doctor.txt
 
-      # --- Prefetch warm-up ---
+      # --- Prefetch warm-up (PARKED, PRD-189) ---
+      # The 50 12 prefetch cron now resolves to noop (resolve_run_mode.py), so this
+      # step is unreachable on schedule. It is still reachable via manual
+      # `workflow_dispatch --mode prefetch`, but note: PUBLISH_READY=true below would
+      # publish a stale dashboard and trip the PRD-119 freshness gate, because
+      # execute_prefetch writes no fresh payload/run. Re-enabling prefetch
+      # (cache-persistent + publish-safe) is tracked in PRD-193.
       - name: Run prefetch
         if: steps.mode.outputs.job_mode == 'prefetch'
         run: |
