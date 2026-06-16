@@ -206,11 +206,12 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-186 | f775a48 | Drift-review gate: per-PRD drift check + post-merge audit teeth + governance auto-merge carve-out | COMPLETE | [PRD-186](prd_history/PRD-186.md) |
 | PRD-187 | a7b0d58 | Macro-Awareness Producer + Materiality Eval | COMPLETE | [PRD-187](prd_history/PRD-187.md) |
 | PRD-188 | — | Macro-Awareness SHOCK Banner + Scheduled Activation (GATED) | PROPOSED | [PRD-188](prd_history/PRD-188.md) |
-| PRD-189 | — | Live-pipeline mode resolution + per-surface freshness observability | IN PROGRESS | [PRD-189](prd_history/PRD-189.md) |
+| PRD-189 | b6e036e (PR #15) | Live-pipeline mode resolution + per-surface freshness observability (merged 2026-06-16; closeout BLOCKED pending PRD-194 — live verification exposed the publish-push branch-protection blocker) | IN PROGRESS | [PRD-189](prd_history/PRD-189.md) |
 | PRD-190 | — | OHLCV fetch window sized for SMA-200 | IN PROGRESS | [PRD-190](prd_history/PRD-190.md) |
 | PRD-191 | — | Direction-aware macro-evidence rationale | IN PROGRESS | [PRD-191](prd_history/PRD-191.md) |
 | PRD-192 | — | Intraday slot wiring + per-slot audit dedup marker (deferred from PRD-189) | PROPOSED | [PRD-192](prd_history/PRD-192.md) |
 | PRD-193 | — | Publish-safe prefetch with OHLCV cache persistence (deferred from PRD-189) | PROPOSED | [PRD-193](prd_history/PRD-193.md) |
+| PRD-194 | — | Production publish decoupling: dedicated unprotected publish branch (finishes PRD-178; unblocks the post-PRD-189 push rejection) | IN PROGRESS | [PRD-194](prd_history/PRD-194.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

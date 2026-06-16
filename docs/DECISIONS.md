@@ -16,6 +16,40 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-16 - PRD-194: production publish decoupling onto an unprotected `publish` branch (option b / state-home b1)
+
+Staleness audit (2026-06-16) found the published dashboard frozen by two
+compounding causes. The first (scheduled runs resolving to noop on a wall-clock
+match) was fixed by PRD-189; fixing it un-masked the second: the artifact-publish
+path direct-pushes to `main`, and `main` branch protection (PRD-182/184, 2026-06-14)
+now rejects every such push (GH006, "Required status check 'test' is expected").
+Verified live: run 27637384167 (2026-06-16 17:56 UTC) ran the full pipeline,
+committed the 2026-06-16 scoreboard row in the runner, and failed only at the push.
+`tools/ci_push_artifacts.sh` (`git push origin HEAD:main`) is invoked by three
+workflows — cuttingboard.yml, hourly_alert.yml, macro_awareness.yml — so the
+dashboard, scoreboard, and macro sidecar are all frozen behind the same wall.
+
+Decision: option (b) — publish to a dedicated UNPROTECTED branch (`publish`) that
+Pages deploys from. Rejected: (a) bot bypass of main protection (erodes the
+PRD-182/184/186 guardrail); (c) PR + auto-merge per artifact (a full test run + PR
+per hourly publish; minutes of latency on a "fresh" surface). State-log home: b1 —
+the publish branch carries both `ui/` and the read-back `logs/audit.jsonl`; the
+pipeline checks out `main` for code and restores state from `publish` at run start,
+so the scoreboard accumulates without `main` ever taking a bot push. A shared
+`cb-publish` concurrency group serializes the three state-writers to eliminate the
+append-mode JSONL race.
+
+Lineage: this finishes the decoupling PRD-178 began. PRD-178 decoupled PREVIEW (an
+on-demand, never-deploy render loop) and explicitly held production publish out of
+scope (its R3 forbade touching pages.yml/hourly_alert.yml/cuttingboard.yml).
+Production publish was never decoupled — PRD-194 does that half. After PRD-194 lands,
+CLAUDE.md:52-54 ("no direct-push path") becomes true; this PRD's scope corrects that
+wording. PRD-186 governance-adjacent (branch-protection config + guardrail prose) →
+the implementing PR is manual-merge-only. PRD-194 authored at Stage 0 and HELD for
+Dustin's review before any publish-path code. See docs/prd_history/PRD-194.md.
+
+---
+
 ## 2026-06-14 - PRD-186: governance carve-out enforcement - (a) landed, (c) deferred (corrected: label-gated check, not CODEOWNERS)
 
 Refines the (c) enforcement recommendation in the PRD-186 entry below; the
