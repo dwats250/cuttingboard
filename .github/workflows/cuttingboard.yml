@@ -92,36 +92,20 @@ jobs:
             engine_doctor.json
             engine_doctor.txt
 
+      # PRD-189: the slot resolver lives in scripts/resolve_run_mode.py (unit-
+      # tested). github.event.schedule disambiguates the four dedicated crons
+      # 1:1 (delay-immune); the */30 intraday cron is mapped to the nearest
+      # active slot by start time, with an audit.jsonl fired-today dedup. The
+      # old exact-minute match resolved every queue-delayed run to noop.
       - name: Determine run mode
         id: mode
+        env:
+          CB_EVENT_NAME: ${{ github.event_name }}
+          CB_DISPATCH_MODE: ${{ github.event.inputs.mode }}
+          CB_SCHEDULE: ${{ github.event.schedule }}
         run: |
           set -eo pipefail
-          TIME=$(date -u +%H%M)
-          EVENT="${{ github.event_name }}"
-          DISPATCH_MODE="${{ github.event.inputs.mode }}"
-
-          if [[ "$EVENT" == "workflow_dispatch" ]]; then
-            job_mode="$DISPATCH_MODE"
-          elif [[ "$(date -u +%u)" == "7" ]]; then
-            job_mode="sunday"
-          elif [[ "$TIME" == "1250" ]]; then
-            job_mode="prefetch"
-          elif [[ "$TIME" == "1300" ]]; then
-            job_mode="live"
-          elif [[ "$TIME" == "1350" ]]; then
-            job_mode="orb_trajectory"
-          elif [[ "$TIME" == "1430" ]]; then
-            job_mode="post_orb"
-          elif [[ "$TIME" == "1630" ]]; then
-            job_mode="midmorning"
-          elif [[ "$TIME" == "1900" ]]; then
-            job_mode="power_hour"
-          elif [[ "$TIME" == "2000" ]]; then
-            job_mode="power_hour"
-          else
-            job_mode="noop"
-          fi
-
+          job_mode="$(python3 scripts/resolve_run_mode.py)"
           echo "job_mode=$job_mode" >> "$GITHUB_OUTPUT"
           echo "Resolved mode: $job_mode"
 

@@ -5,11 +5,11 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-06-15 (commit a7b0d58)
+**Last updated:** 2026-06-16
 
 ## Current state
 
-- **Active PRD:** none in progress.
+- **Active PRD:** PRD-189 (live-pipeline mode resolution + per-surface freshness observability) — IMPLEMENTING. Mode resolver (scripts/resolve_run_mode.py) + renderer live-state/scoreboard age tokens landed on the feature branch with tests; HIGH-RISK review (Claude + Codex) pending before merge. PRD-190 and PRD-191 remain Stage-0 IN PROGRESS, not yet started.
 - **Proposed / next:** PRD-188 (macro-awareness SHOCK banner + scheduled activation) — PROPOSED, gated on the PRD-187 materiality eval (label the corpus, set threshold T, run); PRD-179 (preview fixture / all-section-state coverage) still unstarted.
 - **Test baseline:** 2682 passing, 1 xfailed (`python -m pytest tests -q` at `a7b0d58`).
 - **Recently landed and live:**
