@@ -10,12 +10,16 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
 
+from cuttingboard.runtime import build_parser
+
 _REPO = Path(__file__).resolve().parents[1]
+_WORKFLOW = _REPO / ".github" / "workflows" / "cuttingboard.yml"
 _SPEC = importlib.util.spec_from_file_location(
     "resolve_run_mode", _REPO / "scripts" / "resolve_run_mode.py"
 )
@@ -231,3 +235,49 @@ def test_prefetch_record_does_not_suppress_live(tmp_path) -> None:
 def test_missing_audit_log_means_not_fired(tmp_path) -> None:
     missing = tmp_path / "does_not_exist.jsonl"
     assert _resolve("*/30 14-21 * * 1-5", _utc(_TUE, 14, 30), audit_path=missing) == "post_orb"
+
+
+# --- Resolver outputs must map to CLI invocations the parser accepts ---------
+# Guards the Codex P1: a resolved slot (e.g. orb_trajectory) is a --notify-mode,
+# not a --mode, so the dispatch step must invoke `--mode live --notify-mode
+# <slot>`; `--mode orb_trajectory` exits argparse with code 2 and writes no
+# record. These tests fail in CI on any invalid mode/notify-mode combo.
+
+_INVOCATION_RE = re.compile(
+    r"python -m cuttingboard --mode (\S+) --notify-mode (\S+)"
+)
+
+
+def _scheduled_modes() -> set[str]:
+    """Every job_mode the scheduled resolver can emit (excluding noop)."""
+    return {mode for mode, _ in rrm._DEDICATED.values()} | set(
+        rrm._INTRADAY_SLOTS.values()
+    )
+
+
+def test_every_workflow_invocation_is_parser_valid() -> None:
+    text = _WORKFLOW.read_text(encoding="utf-8")
+    invocations = _INVOCATION_RE.findall(text)
+    assert invocations, "no `python -m cuttingboard --mode ... --notify-mode ...` lines found"
+    parser = build_parser()
+    for mode, notify in invocations:
+        # argparse exits (SystemExit) on an invalid choice; a valid combo parses.
+        parser.parse_args(["--mode", mode, "--notify-mode", notify])
+
+
+def test_every_scheduled_slot_is_wired_to_a_valid_dispatch_step() -> None:
+    text = _WORKFLOW.read_text(encoding="utf-8")
+    invocations = _INVOCATION_RE.findall(text)
+    notify_modes_used = {notify for _, notify in invocations}
+    parser = build_parser()
+    for mode in _scheduled_modes():
+        if mode in {"prefetch", "live", "sunday"}:
+            # Dedicated pipeline modes: dispatched as `--mode <mode>` directly.
+            assert f"--mode {mode} " in text, f"{mode} has no dispatch invocation"
+            parser.parse_args(["--mode", mode, "--notify-mode", "premarket"])
+        else:
+            # Intraday/orb slots are notify-modes run on the live base.
+            assert mode in notify_modes_used, f"slot {mode} not wired to a --notify-mode invocation"
+            parser.parse_args(["--mode", "live", "--notify-mode", mode])
+        # The resolver's job_mode must gate a dispatch step.
+        assert f"job_mode == '{mode}'" in text, f"{mode} has no dispatch `if:` guard"
