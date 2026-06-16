@@ -131,6 +131,41 @@ def test_intraday_beyond_tolerance_is_noop(h, mi) -> None:
     assert _resolve("*/30 14-21 * * 1-5", _utc(_TUE, h, mi)) == "noop"
 
 
+# --- P2: an early/inactive */30 fire must NOT claim a later active slot ------
+@pytest.mark.parametrize(
+    "h,mi",
+    [
+        (14, 15),  # 14:00 cron delayed to 14:15 — would hit post_orb under symmetric ±15
+        (14, 20),  # still before post_orb's nominal
+        (14, 29),  # one minute before nominal
+        (19, 45),  # 19:30 cron delayed to 19:45 — would hit 20:00 power_hour
+        (16, 20),  # before midmorning
+    ],
+)
+def test_early_fire_does_not_claim_future_slot(h, mi) -> None:
+    assert _resolve("*/30 14-21 * * 1-5", _utc(_TUE, h, mi)) == "noop"
+
+
+@pytest.mark.parametrize(
+    "h,mi,expected",
+    [
+        (14, 30, "post_orb"),  # exactly nominal (delay 0)
+        (14, 45, "post_orb"),  # nominal + tolerance (inclusive)
+        (14, 46, "noop"),      # one minute past tolerance
+    ],
+)
+def test_late_only_tolerance_boundary(h, mi, expected) -> None:
+    assert _resolve("*/30 14-21 * * 1-5", _utc(_TUE, h, mi)) == expected
+
+
+def test_late_other_slot_record_does_not_suppress(tmp_path) -> None:
+    # A severely-late orb_trajectory run (nominal 13:50) records run_at_utc at
+    # 14:16; that record attributes to no intraday slot under the late-only rule,
+    # so it must not suppress a genuine post_orb fire.
+    audit = _write_audit(tmp_path, [_pipeline_rec(_utc(_TUE, 14, 16))])
+    assert _resolve("*/30 14-21 * * 1-5", _utc(_TUE, 14, 35), audit_path=audit) == "post_orb"
+
+
 def test_unknown_schedule_is_noop() -> None:
     assert _resolve("0 0 * * *", _utc(_TUE, 0, 0)) == "noop"
     assert _resolve("", _utc(_TUE, 13, 0)) == "noop"

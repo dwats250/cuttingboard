@@ -62,6 +62,26 @@ jobs:
         with:
           python-version: '3.11'
 
+      # PRD-189: resolve the slot in scripts/resolve_run_mode.py (stdlib-only,
+      # unit-tested). github.event.schedule disambiguates the four dedicated
+      # crons 1:1 (delay-immune); the */30 intraday cron is attributed to the
+      # active slot whose nominal time the start falls at-or-after within
+      # tolerance, with an audit.jsonl fired-today dedup. This step runs BEFORE
+      # install/lint/test so the sampled time is the run start (queue delay
+      # only), not execution time minutes later (Codex P1). The old exact-minute
+      # match resolved every queue-delayed run to noop.
+      - name: Determine run mode
+        id: mode
+        env:
+          CB_EVENT_NAME: ${{ github.event_name }}
+          CB_DISPATCH_MODE: ${{ github.event.inputs.mode }}
+          CB_SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          set -eo pipefail
+          job_mode="$(python3 scripts/resolve_run_mode.py)"
+          echo "job_mode=$job_mode" >> "$GITHUB_OUTPUT"
+          echo "Resolved mode: $job_mode"
+
       - name: Install dev dependencies
         run: |
           set -eo pipefail
@@ -91,23 +111,6 @@ jobs:
           path: |
             engine_doctor.json
             engine_doctor.txt
-
-      # PRD-189: the slot resolver lives in scripts/resolve_run_mode.py (unit-
-      # tested). github.event.schedule disambiguates the four dedicated crons
-      # 1:1 (delay-immune); the */30 intraday cron is mapped to the nearest
-      # active slot by start time, with an audit.jsonl fired-today dedup. The
-      # old exact-minute match resolved every queue-delayed run to noop.
-      - name: Determine run mode
-        id: mode
-        env:
-          CB_EVENT_NAME: ${{ github.event_name }}
-          CB_DISPATCH_MODE: ${{ github.event.inputs.mode }}
-          CB_SCHEDULE: ${{ github.event.schedule }}
-        run: |
-          set -eo pipefail
-          job_mode="$(python3 scripts/resolve_run_mode.py)"
-          echo "job_mode=$job_mode" >> "$GITHUB_OUTPUT"
-          echo "Resolved mode: $job_mode"
 
       # --- Prefetch warm-up ---
       - name: Run prefetch

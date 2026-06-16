@@ -14,18 +14,30 @@ Resolution (schedule events):
         50 13 * * 1-5  -> orb_trajectory   30 23 * * 0    -> sunday
 
   * The intraday ``*/30 14-21`` cron shares one cron string across every fire,
-    so the actual UTC start time is mapped to the nearest ACTIVE slot within
-    ``TOLERANCE_MINUTES``; fires that land on no active slot resolve to ``noop``.
+    so the UTC start time is attributed to the active slot it belongs to. The
+    attribution is LATE-ONLY -- a run is attributed to a slot only when it starts
+    at or after that slot's nominal time, within ``TOLERANCE_MINUTES`` -- because
+    queue delay only ever makes a run late, never early. A symmetric window would
+    let an inactive earlier fire (14:00 delayed to 14:15) claim a later active
+    slot (14:30) and run before its market-data window (Codex P2). Fires that
+    attribute to no active slot resolve to ``noop``.
+
+For the intraday start time to mean "run start" rather than "resolver execution
+time", the ``Determine run mode`` workflow step runs right after Python setup,
+BEFORE install/lint/test/engine-doctor -- otherwise those multi-minute pre-steps
+would push the sampled time past the tolerance window and silently noop a valid
+late run (Codex P1).
 
 Dedup (intraday only): an intraday slot already represented by a committed
 pipeline record for today (``logs/audit.jsonl``) resolves to ``noop`` so a late
-or duplicate ``*/30`` invocation never double-fires post_orb / power_hour. The
-dedicated crons need no dedup -- their unique cron string fires once per UTC day
--- and time-window dedup would be unsafe for them anyway because the prefetch
-(12:50) and live (13:00) windows overlap. The active intraday windows are
-disjoint, so a time-window match identifies exactly one intraday slot. Source of
-truth is the committed ``audit.jsonl`` -- the same record the regime scoreboard
-reads -- never a marker file.
+or duplicate ``*/30`` invocation never double-fires post_orb / power_hour. A
+record counts as a given slot firing only when the record's OWN ``run_at_utc``
+attributes to that slot under the same late-only rule, so an earlier inactive
+fire or a late different-slot run never suppresses the slot. The dedicated crons
+need no dedup -- their unique cron string fires once per UTC day -- and dedup
+would be unsafe for them anyway because the prefetch (12:50) and live (13:00)
+windows overlap. Source of truth is the committed ``audit.jsonl`` -- the same
+record the regime scoreboard reads -- never a marker file.
 
 The module exposes a pure ``resolve(...)`` for unit tests; ``main()`` reads the
 GitHub context from the environment and prints the resolved mode for the
@@ -66,15 +78,23 @@ def _minute_of_day(dt: datetime) -> int:
     return dt.hour * 60 + dt.minute
 
 
-def _nearest_intraday_slot(minute: int, tolerance: int) -> tuple[str, int] | None:
-    """The active intraday ``(mode, nominal)`` whose nominal minute is within
-    ``tolerance`` of ``minute`` (the closest one), or None when none is in range.
+def _intraday_slot_for_start(minute: int, tolerance: int) -> tuple[str, int] | None:
+    """The active intraday ``(mode, nominal)`` that a run STARTING at ``minute``
+    (minute-of-day UTC) belongs to, or None.
+
+    Attribution is LATE-ONLY: a run is attributed to a slot only when it starts
+    at or after the slot's nominal time, within ``tolerance`` minutes -- queue
+    delay only ever makes a run late, never early. A symmetric window would let
+    an inactive earlier ``*/30`` fire (14:00 delayed to 14:15) claim a later
+    active slot (14:30) and run before its market-data window, then suppress the
+    correctly-timed fire via dedup (Codex P2). The active slots are >=60 min
+    apart, so at most one is ever in range.
     """
-    best: tuple[int, int, str] | None = None  # (distance, nominal, mode)
+    best: tuple[int, int, str] | None = None  # (delay, nominal, mode)
     for nominal, mode in _INTRADAY_SLOTS.items():
-        distance = abs(minute - nominal)
-        if distance <= tolerance and (best is None or distance < best[0]):
-            best = (distance, nominal, mode)
+        delay = minute - nominal
+        if 0 <= delay <= tolerance and (best is None or delay < best[0]):
+            best = (delay, nominal, mode)
     if best is None:
         return None
     return best[2], best[1]
@@ -95,11 +115,14 @@ def _parse_run_at(value: object) -> datetime | None:
 def _slot_already_fired(
     audit_path: str | Path, now: datetime, nominal_minute: int, tolerance: int
 ) -> bool:
-    """True when a committed pipeline-shaped record for *today* (UTC) sits within
-    ``tolerance`` minutes of ``nominal_minute``.
+    """True when a committed pipeline-shaped record for *today* (UTC) attributes
+    to the slot at ``nominal_minute``.
 
-    Pipeline records carry ``outcome`` + ``run_at_utc`` + ``date`` and no
-    ``event`` key (notification records are skipped) -- the same shape the
+    A record counts only when its OWN ``run_at_utc`` attributes to this slot
+    under the same late-only rule as resolution (``_intraday_slot_for_start``),
+    so an earlier inactive fire or a late different-slot run never suppresses
+    this slot. Pipeline records carry ``outcome`` + ``run_at_utc`` + ``date`` and
+    no ``event`` key (notification records are skipped) -- the same shape the
     regime-history aggregation reads. A missing/unreadable audit log means
     "not fired".
     """
@@ -126,7 +149,8 @@ def _slot_already_fired(
         run_at = _parse_run_at(rec.get("run_at_utc"))
         if run_at is None or run_at.date() != today:
             continue
-        if abs(_minute_of_day(run_at) - nominal_minute) <= tolerance:
+        attributed = _intraday_slot_for_start(_minute_of_day(run_at), tolerance)
+        if attributed is not None and attributed[1] == nominal_minute:
             return True
     return False
 
@@ -152,7 +176,7 @@ def resolve(
         # Delay-immune: the unique cron string fixes the slot.
         return _DEDICATED[schedule][0]
     if schedule == _INTRADAY_CRON:
-        slot = _nearest_intraday_slot(_minute_of_day(now), tolerance)
+        slot = _intraday_slot_for_start(_minute_of_day(now), tolerance)
         if slot is None:
             return NOOP
         mode, nominal = slot
