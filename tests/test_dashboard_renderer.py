@@ -801,6 +801,39 @@ def test_prd189_empty_scoreboard_history_is_explicit(monkeypatch: pytest.MonkeyP
     assert _surface_value(state, "SCOREBOARD") == "no scoreboard history"
 
 
+def test_prd189_live_state_reads_pipeline_run_not_run_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Codex P2: the hourly publish path overrides --run with latest_hourly_run.json.
+    # LIVE STATE must read the PIPELINE run (pipeline_run / latest_run.json), so a
+    # frozen cuttingboard.yml pipeline reads stale even while the hourly run that
+    # publishes the dashboard is fresh.
+    from cuttingboard.delivery import dashboard_renderer as _dr
+    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 6, 16, 12, 0, 0, tzinfo=timezone.utc))
+    fresh_hourly_run = _run_with_timestamp("2026-06-16T11:59:30Z")    # the --run override (fresh)
+    stale_pipeline_run = _run_with_timestamp("2026-05-14T12:00:00Z")  # latest_run.json (33d stale)
+    html = render_dashboard_html(
+        _payload(timestamp="2026-06-16T11:59:30Z"),
+        fresh_hourly_run,
+        pipeline_run=stale_pipeline_run,
+    )
+    state = _system_state_block(html)
+    assert _surface_value(state, "LIVE STATE") == "33 days old"
+    # RUN SNAPSHOT (payload) is fresh — only LIVE STATE exposes the frozen pipeline.
+    assert _surface_value(state, "RUN SNAPSHOT") == "<1 min old".replace("<", "&lt;")
+
+
+def test_prd189_live_state_falls_back_to_run_when_no_pipeline_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    # When pipeline_run is not supplied (e.g. cuttingboard.yml's default --run is
+    # latest_run.json), LIVE STATE falls back to `run`.
+    from cuttingboard.delivery import dashboard_renderer as _dr
+    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 6, 16, 12, 0, 30, tzinfo=timezone.utc))
+    html = render_dashboard_html(
+        _payload(timestamp="2026-06-16T12:00:00Z"),
+        _run_with_timestamp("2026-06-16T12:00:00Z"),
+    )
+    state = _system_state_block(html)
+    assert _surface_value(state, "LIVE STATE") == "&lt;1 min old"
+
+
 def test_main_block_no_original_utc_timestamp() -> None:
     html = render_dashboard_html(
         _payload(timestamp="2026-05-05T20:29:00Z"),

@@ -1640,6 +1640,7 @@ def render_dashboard_html(
     trend_structure_snapshot: dict | None = None,
     regime_history: list[dict] | None = None,
     red_folder: dict | None = None,
+    pipeline_run: dict | None = None,
     fixture_mode: bool = False,
 ) -> str:
     """Return deterministic Signal Forge dashboard HTML.
@@ -1973,10 +1974,17 @@ def render_dashboard_html(
     # which the hourly quote workflow keeps current; LIVE STATE and SCOREBOARD
     # track the pipeline-state surfaces that freeze when scheduled runs stop --
     # so a frozen pipeline reads loudly stale here even while RUN SNAPSHOT is
-    # fresh. Both are computed renderer-side from `run` (latest_run.json
-    # run_at_utc) and `regime_history` (newest dated row); no payload/contract
+    # fresh. LIVE STATE reads the PIPELINE run (logs/latest_run.json via
+    # `pipeline_run`), NOT the `run` source: the hourly publish path overrides
+    # --run with latest_hourly_run.json, which would otherwise keep LIVE STATE
+    # fresh and mask a frozen cuttingboard.yml pipeline. SCOREBOARD reads
+    # `regime_history` (newest dated row, pipeline-only). No payload/contract
     # plumbing is added.
-    _live_state_text = _surface_age_token(run_timestamp, _now, "no live run recorded")
+    _pipeline_run = pipeline_run if pipeline_run is not None else run
+    _, _pipeline_run_ts = _first_timestamp(
+        _pipeline_run, (("run_at_utc",), ("timestamp",), ("generated_at",))
+    )
+    _live_state_text = _surface_age_token(_pipeline_run_ts, _now, "no live run recorded")
     w('  <div class="label">LIVE STATE</div>')
     w(f'  <div class="value">{_esc(_live_state_text)}</div>')
     _scoreboard_text = _scoreboard_age_token(regime_history, _now, "no scoreboard history")
@@ -2460,6 +2468,7 @@ def write_dashboard(
     trend_structure_snapshot: dict | None = None,
     regime_history: list[dict] | None = None,
     red_folder: dict | None = None,
+    pipeline_run: dict | None = None,
     fixture_mode: bool = False,
 ) -> None:
     # PRD-118 R1/R2/R3/R10: validate coherent artifact set before any byte is written
@@ -2496,6 +2505,7 @@ def write_dashboard(
         trend_structure_snapshot=trend_structure_snapshot,
         regime_history=regime_history,
         red_folder=red_folder,
+        pipeline_run=pipeline_run,
         fixture_mode=fixture_mode,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2582,6 +2592,11 @@ def main(
 
     payload    = _load_json(payload_path)
     run        = _load_json(run_path)
+    # PRD-189: LIVE STATE must reflect the PIPELINE run (latest_run.json) even
+    # when --run overrides `run` with latest_hourly_run.json on the hourly
+    # publish path; load it explicitly (optional — absent => "no live run
+    # recorded"). When --run is the default this is the same file as `run`.
+    pipeline_run = _load_json_optional(logs_dir / _RUN_PATH.name)
 
     previous_run = _resolve_previous_run(logs_dir)
     history_run_files = sorted(logs_dir.glob("run_*.json"))
@@ -2635,6 +2650,7 @@ def main(
         trend_structure_snapshot=trend_structure_snapshot,
         regime_history=regime_history,
         red_folder=red_folder_view,
+        pipeline_run=pipeline_run,
         fixture_mode=_fixture_mode,
     )
     print(f"Dashboard written: {output_path}")

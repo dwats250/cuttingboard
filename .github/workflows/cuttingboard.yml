@@ -201,6 +201,12 @@ jobs:
           PRE_SHA=$(git rev-parse HEAD)
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # PRD-189: refresh the scoreboard from this run's just-written audit
+          # row BEFORE staging logs/ and rendering, so SCOREBOARD age reflects the
+          # scheduled run immediately (not only on a later hourly publish). Same
+          # read-only aggregator hourly_alert.yml uses; writes only
+          # logs/regime_history.jsonl, no runtime/notify coupling (PRD-175 R5).
+          python3 -m cuttingboard.delivery.regime_history
           git add reports/ || true
           git add -f logs/ || true
           cp logs/latest_contract.json ui/contract.json 2>/dev/null || true
