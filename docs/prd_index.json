@@ -800,6 +800,24 @@
       "title": "Macro-Awareness SHOCK Banner + Scheduled Activation (GATED)",
       "status": "PROPOSED",
       "commit": null
+    },
+    {
+      "number": 189,
+      "title": "Live-pipeline mode resolution + per-surface freshness observability",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
+      "number": 190,
+      "title": "OHLCV fetch window sized for SMA-200",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
+      "number": 191,
+      "title": "Direction-aware macro-evidence rationale",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
