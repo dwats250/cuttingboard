@@ -27,8 +27,13 @@ on:
           - prefetch
 
 # Never cancel a mid-run pipeline — queue instead.
+# PRD-194: shared repo-wide group across all three state-writers (cuttingboard,
+# hourly_alert, macro_awareness) so publishes to the `publish` branch serialize
+# and append-only logs/audit.jsonl is never written concurrently. cancel-in-
+# progress: false queues rather than cancels the running job (a superseded PENDING
+# run can be dropped — accepted residual, recovered by the next run's R3 restore).
 concurrency:
-  group: cuttingboard-pipeline
+  group: cb-publish
   cancel-in-progress: false
 
 permissions:
@@ -41,6 +46,8 @@ jobs:
 
     env:
       POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+      # PRD-194: artifacts publish to this unprotected branch, not main.
+      PUBLISH_BRANCH: publish
       # Static-analysis default so the VS Code GitHub Actions extension can
       # resolve env.PUBLISH_READY in the commit/push `if:` gates below. At
       # runtime each per-mode step exports PUBLISH_READY through the GITHUB_ENV
@@ -75,6 +82,17 @@ jobs:
           job_mode="$(python3 scripts/resolve_run_mode.py)"
           echo "job_mode=$job_mode" >> "$GITHUB_OUTPUT"
           echo "Resolved mode: $job_mode"
+
+      # PRD-194 R3: restore the accumulating scoreboard state (logs/audit.jsonl)
+      # from the publish branch before the pipeline appends to it, so the
+      # scoreboard keeps growing without main ever taking a bot push. Only the
+      # publishing modes need it. Records CB_PUBLISH_BASE_SHA for the delta-append.
+      - name: Restore publish state
+        if: >-
+          steps.mode.outputs.job_mode == 'live' ||
+          steps.mode.outputs.job_mode == 'sunday' ||
+          steps.mode.outputs.job_mode == 'verify'
+        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl
 
       - name: Install dev dependencies
         run: |

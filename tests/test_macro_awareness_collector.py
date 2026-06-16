@@ -705,8 +705,10 @@ class TestR7WorkflowContract:
     def test_concurrency_group_named(self) -> None:
         text = self._text()
         assert "concurrency:" in text, "macro_awareness.yml must have a concurrency block"
-        assert "group: macro-awareness" in text, (
-            "concurrency group must be named 'macro-awareness'"
+        # PRD-194: the macro producer joins the shared repo-wide publish group so all
+        # three state-writers serialize their pushes to the publish branch.
+        assert "group: cb-publish" in text, (
+            "concurrency group must be the shared 'cb-publish' group (PRD-194 R5)"
         )
 
     def test_concurrency_cancel_in_progress_false(self) -> None:
@@ -818,6 +820,7 @@ class TestR7CiPushArtifacts:
         cwd: Path,
         pre_sha: Optional[str] = None,
         post_sha: Optional[str] = None,
+        extra_env: Optional[dict] = None,
     ) -> subprocess.CompletedProcess:
         env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
         if pre_sha is not None:
@@ -828,6 +831,11 @@ class TestR7CiPushArtifacts:
             env["POST_SHA"] = post_sha
         else:
             env.pop("POST_SHA", None)
+        # Default the publish branch + delta base off unless a test sets them, so
+        # the SHA-guard / dirty-tree tests below run against a clean env.
+        env.pop("CB_PUBLISH_BASE_SHA", None)
+        if extra_env:
+            env.update(extra_env)
         return subprocess.run(
             ["bash", str(_SCRIPT)],
             cwd=cwd,
@@ -869,87 +877,101 @@ class TestR7CiPushArtifacts:
             f"stdout={result.stdout!r}"
         )
 
-    def test_happy_rebase_and_push(self, tmp_path: Path) -> None:
-        """Happy path: local commit, upstream advance on unrelated file -> rebase + push succeeds."""
-        bare, work = _setup_bare_repo_and_clone(tmp_path)
+    def _seed_publish(self, work: Path, audit: str, ui: Optional[str] = None) -> str:
+        """Create origin/publish from a base audit.jsonl (+ optional ui). Returns its SHA."""
+        (work / "logs").mkdir(exist_ok=True)
+        (work / "logs" / "audit.jsonl").write_text(audit)
+        adds = ["logs/audit.jsonl"]
+        if ui is not None:
+            (work / "ui").mkdir(exist_ok=True)
+            (work / "ui" / "dashboard.html").write_text(ui)
+            adds.append("ui/dashboard.html")
+        _git_check(["checkout", "-b", "publish"], work)
+        _git_check(["add", *adds], work)
+        _git_check(["commit", "-m", "seed publish"], work)
+        _git_check(["push", "origin", "publish"], work)
+        sha = _git_check(["rev-parse", "HEAD"], work).stdout.strip()
+        _git_check(["checkout", "main"], work)
+        return sha
 
-        # Record origin HEAD before any local work
+    def _make_artifact_commit(self, work: Path, audit: str, ui: Optional[str] = None) -> tuple[str, str]:
+        """On main, write artifacts + commit. Returns (pre_sha, post_sha)."""
         pre_sha = _git_check(["rev-parse", "HEAD"], work).stdout.strip()
-
-        # Make a local commit in work dir
-        artifact = work / "logs"
-        artifact.mkdir(exist_ok=True)
-        snap_file = artifact / "macro_awareness_snapshot.json"
-        snap_file.write_text('{"status":"QUIET"}\n')
-        _git_check(["add", str(snap_file)], work)
-        _git_check(["commit", "-m", "macro-awareness: 2026-06-14T12:00Z"], work)
+        (work / "logs").mkdir(exist_ok=True)
+        (work / "logs" / "audit.jsonl").write_text(audit)
+        adds = ["-f", "logs/audit.jsonl"]
+        if ui is not None:
+            (work / "ui").mkdir(exist_ok=True)
+            (work / "ui" / "dashboard.html").write_text(ui)
+            adds.append("ui/dashboard.html")
+        _git_check(["add", *adds], work)
+        _git_check(["commit", "-m", "CB run: 2026-06-16"], work)
         post_sha = _git_check(["rev-parse", "HEAD"], work).stdout.strip()
+        return pre_sha, post_sha
 
-        # Advance origin/main with an UNRELATED file from a second clone
-        work2 = tmp_path / "work2"
-        _git_check(["clone", str(bare), str(work2)], tmp_path)
-        _git_check(["config", "user.email", "test2@test.com"], work2)
-        _git_check(["config", "user.name", "Test2"], work2)
-        # The clone already has main tracked from origin; no need to create it
-        _git_check(["checkout", "main"], work2)
-        unrelated = work2 / "unrelated.txt"
-        unrelated.write_text("upstream advance\n")
-        _git_check(["add", "unrelated.txt"], work2)
-        _git_check(["commit", "-m", "upstream unrelated commit"], work2)
-        _git_check(["push", "origin", "main"], work2)
+    def test_worktree_publish_delta_appends_and_leaves_main_unchanged(self, tmp_path: Path) -> None:
+        """PRD-194: publishes the run's artifacts onto the publish branch — audit.jsonl
+        delta-appended, ui/ overwritten — and never touches origin/main."""
+        bare, work = _setup_bare_repo_and_clone(tmp_path)
+        main_before = _git_check(["rev-parse", "origin/main"], work).stdout.strip()
 
-        result = self._run_script(work, pre_sha=pre_sha, post_sha=post_sha)
+        base_sha = self._seed_publish(work, '{"r":1}\n{"r":2}\n', ui="v0\n")
+        # Run on main: restored base (2 rows) + this run's row3; ui regenerated.
+        pre_sha, post_sha = self._make_artifact_commit(
+            work, '{"r":1}\n{"r":2}\n{"r":3}\n', ui="v1\n"
+        )
+
+        result = self._run_script(
+            work, pre_sha=pre_sha, post_sha=post_sha,
+            extra_env={"PUBLISH_BRANCH": "publish", "CB_PUBLISH_BASE_SHA": base_sha},
+        )
         assert result.returncode == 0, (
-            f"expected exit 0 for happy rebase, got {result.returncode};\n"
-            f"stdout={result.stdout}\nstderr={result.stderr}"
+            f"expected exit 0; stdout={result.stdout}\nstderr={result.stderr}"
         )
 
-        # origin/main must contain both the upstream commit and our local commit
-        _git_check(["fetch", "origin", "main"], work)
-        log = _git_check(["log", "--oneline", "origin/main"], work).stdout
-        assert "upstream unrelated commit" in log, (
-            "origin/main must contain the upstream commit after rebase+push"
+        # origin/main untouched by the publish step.
+        assert _git_check(["rev-parse", "origin/main"], work).stdout.strip() == main_before, (
+            "publish step must never modify origin/main (PRD-194 R1)"
         )
-        assert "macro-awareness" in log, (
-            "origin/main must contain the local commit after rebase+push"
-        )
+        _git_check(["fetch", "origin", "publish"], work)
+        audit = _git_check(["show", "origin/publish:logs/audit.jsonl"], work).stdout
+        assert audit == '{"r":1}\n{"r":2}\n{"r":3}\n', f"audit not delta-appended: {audit!r}"
+        ui = _git_check(["show", "origin/publish:ui/dashboard.html"], work).stdout
+        assert ui == "v1\n", f"ui/ not overwritten: {ui!r}"
 
-    def test_conflict_leaves_origin_unchanged(self, tmp_path: Path) -> None:
-        """Conflicting upstream commit -> exit non-zero; origin/main HEAD unchanged."""
+    def test_publish_delta_append_never_clobbers_concurrent_row(self, tmp_path: Path) -> None:
+        """Hard requirement: a row another writer landed on publish AFTER this run's
+        restore is preserved — the delta-append never wholesale-clobbers."""
         bare, work = _setup_bare_repo_and_clone(tmp_path)
+        base_sha = self._seed_publish(work, '{"r":1}\n{"r":2}\n')
 
-        pre_sha = _git_check(["rev-parse", "HEAD"], work).stdout.strip()
-
-        # Local commit touching README.md
-        readme = work / "README.md"
-        readme.write_text("local change\n")
-        _git_check(["add", "README.md"], work)
-        _git_check(["commit", "-m", "local readme change"], work)
-        post_sha = _git_check(["rev-parse", "HEAD"], work).stdout.strip()
-
-        # Upstream conflict: also change README.md
+        # Another writer advances origin/publish with rowX after our restore point.
         work2 = tmp_path / "work2"
         _git_check(["clone", str(bare), str(work2)], tmp_path)
-        _git_check(["config", "user.email", "test2@test.com"], work2)
-        _git_check(["config", "user.name", "Test2"], work2)
-        _git_check(["checkout", "main"], work2)
-        readme2 = work2 / "README.md"
-        readme2.write_text("upstream conflicting change\n")
-        _git_check(["add", "README.md"], work2)
-        _git_check(["commit", "-m", "upstream conflict commit"], work2)
-        _git_check(["push", "origin", "main"], work2)
-        upstream_sha = _git_check(["rev-parse", "HEAD"], work2).stdout.strip()
+        _git_check(["config", "user.email", "t2@t.com"], work2)
+        _git_check(["config", "user.name", "T2"], work2)
+        _git_check(["checkout", "publish"], work2)
+        (work2 / "logs").mkdir(exist_ok=True)
+        (work2 / "logs" / "audit.jsonl").write_text('{"r":1}\n{"r":2}\n{"rX":1}\n')
+        _git_check(["add", "logs/audit.jsonl"], work2)
+        _git_check(["commit", "-m", "other writer rowX"], work2)
+        _git_check(["push", "origin", "publish"], work2)
 
-        result = self._run_script(work, pre_sha=pre_sha, post_sha=post_sha)
-        assert result.returncode != 0, (
-            f"expected non-zero exit for conflict, got {result.returncode}"
+        # Our run still bases on the OLD publish tip (base_sha): restored 2 rows + row3.
+        pre_sha, post_sha = self._make_artifact_commit(work, '{"r":1}\n{"r":2}\n{"r":3}\n')
+
+        result = self._run_script(
+            work, pre_sha=pre_sha, post_sha=post_sha,
+            extra_env={"PUBLISH_BRANCH": "publish", "CB_PUBLISH_BASE_SHA": base_sha},
+        )
+        assert result.returncode == 0, (
+            f"expected exit 0; stdout={result.stdout}\nstderr={result.stderr}"
         )
 
-        # origin/main must still be the upstream commit, not our local commit
-        _git_check(["fetch", "origin", "main"], work2)
-        origin_head = _git_check(["rev-parse", "origin/main"], work2).stdout.strip()
-        assert origin_head == upstream_sha, (
-            "origin/main must be unchanged after a conflicting push attempt"
+        _git_check(["fetch", "origin", "publish"], work)
+        audit = _git_check(["show", "origin/publish:logs/audit.jsonl"], work).stdout
+        assert audit == '{"r":1}\n{"r":2}\n{"rX":1}\n{"r":3}\n', (
+            f"delta-append clobbered the concurrent row or dropped ours: {audit!r}"
         )
 
 

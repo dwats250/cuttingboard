@@ -4,8 +4,11 @@ These tests guard the interaction between two prior PRDs:
 
 * PRD-020 — Engine health check step writes ``engine_doctor.json`` and
   ``engine_doctor.txt`` to the repo root for artifact upload.
-* PRD-100-PATCH — ``tools/ci_push_artifacts.sh`` aborts the push step if
-  ``git status --short`` is non-empty before rebasing onto ``origin/main``.
+* PRD-100-PATCH — ``tools/ci_push_artifacts.sh`` aborts the publish step if
+  ``git status --short`` is non-empty (it publishes committed blobs, so an
+  unstaged artifact would be silently dropped). PRD-194 retargeted that helper
+  from a direct push to ``main`` to a worktree publish onto the ``publish``
+  branch, but the dirty-tree guard is unchanged.
 
 If either filename is not gitignored, the workflow's Engine health check
 step leaves the working tree dirty by the push guard's definition and the
@@ -75,9 +78,9 @@ def test_engine_doctor_artifacts_leave_porcelain_clean() -> None:
 
     Creating both engine doctor outputs at the exact repo-root paths CI
     uses MUST NOT add lines to ``git status --short`` for those paths.
-    This is the predicate ``tools/ci_push_artifacts.sh`` evaluates
-    immediately before ``git rebase origin/main``; any non-empty output
-    aborts the push step.
+    This is the predicate ``tools/ci_push_artifacts.sh`` evaluates before it
+    publishes to the ``publish`` branch (PRD-194); any non-empty output
+    aborts the publish step.
 
     The test path-scopes the ``git status`` invocation so unrelated
     in-progress work in the developer's tree cannot mask the assertion.
@@ -284,4 +287,79 @@ def test_preview_workflow_freshness_check_precedes_render() -> None:
     ), (
         "dashboard_preview.yml renders before the Require fresh payload "
         "step; the freshness check must gate the render (PRD-178 R5)."
+    )
+
+
+# --- PRD-194 R7 — production publish decoupling (publish branch) -------------
+#
+# Pin the invariants that keep `main` protected and the scoreboard accumulating:
+# the push helper targets the publish branch (never main) and delta-appends the
+# audit log; all three state-writers share the cb-publish concurrency group and
+# restore state before running; Pages deploys the publish branch via workflow_run
+# on all three writers (a GITHUB_TOKEN push cannot fire on:push).
+
+PUBLISH_STATE_WRITERS = ("cuttingboard.yml", "hourly_alert.yml", "macro_awareness.yml")
+PUBLISH_WRITER_WORKFLOW_NAMES = (
+    "Cuttingboard Pipeline",
+    "Cuttingboard Hourly Alert",
+    "Cuttingboard Macro-Awareness Producer",
+)
+
+
+def _workflow_text(name: str) -> str:
+    return (REPO_ROOT / ".github" / "workflows" / name).read_text(encoding="utf-8")
+
+
+def test_push_helper_targets_publish_branch_not_main() -> None:
+    text = (REPO_ROOT / "tools" / "ci_push_artifacts.sh").read_text(encoding="utf-8")
+    assert "PUBLISH_BRANCH" in text
+    assert "refs/heads/$PUBLISH_BRANCH" in text
+    assert "HEAD:main" not in text, "publish helper still pushes to main (PRD-194 R1)"
+    assert "origin main" not in text, "publish helper still references origin main"
+
+
+def test_push_helper_delta_appends_audit_never_clobbers() -> None:
+    text = (REPO_ROOT / "tools" / "ci_push_artifacts.sh").read_text(encoding="utf-8")
+    assert 'AUDIT_PATH="logs/audit.jsonl"' in text
+    # The audit log is delta-appended from the restore-time base, not overwritten.
+    assert "CB_PUBLISH_BASE_SHA" in text
+    assert "tail -n +" in text, "audit.jsonl must be delta-appended (PRD-194 hard req)"
+
+
+def test_state_writers_share_cb_publish_concurrency_group() -> None:
+    for wf in PUBLISH_STATE_WRITERS:
+        assert "group: cb-publish" in _workflow_text(wf), (
+            f"{wf} is not in the shared cb-publish concurrency group (PRD-194 R5); "
+            "concurrent appends to logs/audit.jsonl would not be serialized."
+        )
+
+
+def test_state_writers_restore_publish_state_before_running() -> None:
+    for wf in PUBLISH_STATE_WRITERS:
+        assert "tools/ci_restore_publish_state.sh" in _workflow_text(wf), (
+            f"{wf} does not restore state from the publish branch (PRD-194 R3); "
+            "it would append onto main's frozen copy and re-freeze the scoreboard."
+        )
+
+
+def test_no_state_writer_pushes_to_main() -> None:
+    for wf in PUBLISH_STATE_WRITERS:
+        assert "HEAD:main" not in _workflow_text(wf), (
+            f"{wf} pushes to main; PRD-194 R1 requires all artifact publishing to "
+            "target the unprotected publish branch."
+        )
+
+
+def test_pages_deploys_publish_branch_via_workflow_run_for_all_writers() -> None:
+    text = _workflow_text("pages.yml")
+    assert "ref: publish" in text, "pages.yml must deploy the publish branch (PRD-194 R2)"
+    for name in PUBLISH_WRITER_WORKFLOW_NAMES:
+        assert name in text, (
+            f"pages.yml workflow_run is missing {name!r}; a GITHUB_TOKEN push to "
+            "publish cannot fire on:push, so all three writers must be listed "
+            "(PRD-194 Amendment 2)."
+        )
+    assert "branches: [main]" not in text, (
+        "pages.yml still triggers on push to main; main no longer carries "
+        "published artifacts (PRD-194 Amendment 2)."
     )

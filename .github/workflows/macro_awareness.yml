@@ -5,8 +5,12 @@ name: Cuttingboard Macro-Awareness Producer
 on:
   workflow_dispatch:
 
+# PRD-194: shared repo-wide group across all three state-writers so publishes to
+# the `publish` branch serialize. cancel-in-progress: false queues rather than
+# cancels the running job (a superseded PENDING run can be dropped — accepted
+# residual, recovered by the next run's R3 restore).
 concurrency:
-  group: macro-awareness
+  group: cb-publish
   cancel-in-progress: false
 
 permissions:
@@ -18,12 +22,14 @@ jobs:
 
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # PRD-194: artifacts publish to this unprotected branch, not main.
+      PUBLISH_BRANCH: publish
 
     steps:
-      # Pin to main: workflow_dispatch can be triggered from any branch, and
-      # ci_push_artifacts.sh rebases+pushes HEAD:main - checking out the dispatch
-      # ref could otherwise land unrelated branch history on main (Codex push-path
-      # review, PRD-187).
+      # Pin to main: workflow_dispatch can be triggered from any branch. The run
+      # must use reviewed main CODE; artifacts publish to the `publish` branch via
+      # tools/ci_push_artifacts.sh (PRD-194). Checking out the dispatch ref could
+      # otherwise run unreviewed branch code (Codex push-path review, PRD-187).
       - name: Checkout main
         uses: actions/checkout@v6
         with:
@@ -33,6 +39,12 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+
+      # PRD-194 R3: restore the producer's read-back continuity state from the
+      # publish branch before the run (full-overwrite artifact — macro does not
+      # touch logs/audit.jsonl, so no delta-append here).
+      - name: Restore publish state
+        run: bash tools/ci_restore_publish_state.sh logs/macro_awareness_state.json
 
       # Ad-hoc install of the producer's network clients only. The cuttingboard
       # package is intentionally NOT installed: the tool is import-isolated and
