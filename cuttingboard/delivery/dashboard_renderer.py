@@ -2596,6 +2596,9 @@ def main(
     # when --run overrides `run` with latest_hourly_run.json on the hourly
     # publish path; load it explicitly (optional — absent => "no live run
     # recorded"). When --run is the default this is the same file as `run`.
+    # Assumption: the pipeline run lives in --logs-dir (latest_run.json's basename
+    # under logs_dir), so a --logs-dir override moves this read with it; pass a
+    # logs-dir that contains latest_run.json if you also override --run.
     pipeline_run = _load_json_optional(logs_dir / _RUN_PATH.name)
 
     previous_run = _resolve_previous_run(logs_dir)

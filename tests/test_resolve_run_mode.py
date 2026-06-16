@@ -1,10 +1,11 @@
 """PRD-189: tests for scripts/resolve_run_mode.py.
 
-Scope is the dedicated premarket crons (prefetch/live/sunday); resolution is a
-pure cron-string lookup keyed on github.event.schedule, so a queue-delayed run
-still resolves to its slot. The intraday/orb slots are intentionally NOT
-resolved here (deferred to a follow-up PRD); the tests assert they resolve to
-noop and are not wired to any dispatch step. CLI-mapping guards ensure every
+Scope is the dedicated premarket crons that write fresh, publish-safe artifacts:
+live and sunday. Resolution is a pure cron-string lookup keyed on
+github.event.schedule, so a queue-delayed run still resolves to its slot. The
+12:50 prefetch cron and the intraday/orb slots are intentionally NOT resolved
+here (prefetch deferred to a cache-persistence rework PRD; intraday to PRD-192);
+the tests assert they resolve to noop. CLI-mapping guards ensure every
 resolver-emittable slot maps to a `python -m cuttingboard` invocation the parser
 accepts (the Codex-found `--mode <slot>` crash must never recur).
 """
@@ -39,7 +40,6 @@ def _resolve(schedule: str = "", *, event: str = "schedule", dispatch: str = "")
 @pytest.mark.parametrize(
     "schedule,expected",
     [
-        ("50 12 * * 1-5", "prefetch"),
         ("0 13 * * 1-5", "live"),
         ("30 23 * * 0", "sunday"),
     ],
@@ -55,8 +55,13 @@ def test_resolution_is_time_independent() -> None:
     assert _resolve("0 13 * * 1-5") == "live"
 
 
-# --- Intraday/orb crons are deferred: resolve to noop -----------------------
-@pytest.mark.parametrize("schedule", ["50 13 * * 1-5", "*/30 14-21 * * 1-5"])
+# --- Deferred crons resolve to noop -----------------------------------------
+# 50 12 = prefetch (deferred to the prefetch cache-persistence rework PRD; its
+# publish path trips the PRD-119 freshness gate and its cache does not persist).
+# 50 13 / */30 = intraday/orb (deferred to PRD-192).
+@pytest.mark.parametrize(
+    "schedule", ["50 12 * * 1-5", "50 13 * * 1-5", "*/30 14-21 * * 1-5"]
+)
 def test_dropped_crons_resolve_to_noop(schedule) -> None:
     assert _resolve(schedule) == "noop"
 

@@ -824,6 +824,12 @@
       "title": "Intraday slot wiring + per-slot audit dedup marker (deferred from PRD-189)",
       "status": "PROPOSED",
       "commit": null
+    },
+    {
+      "number": 193,
+      "title": "Publish-safe prefetch with OHLCV cache persistence (deferred from PRD-189)",
+      "status": "PROPOSED",
+      "commit": null
     }
   ]
 }
