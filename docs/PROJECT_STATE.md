@@ -9,9 +9,10 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 ## Current state
 
-- **Active PRD:** PRD-189 (live-pipeline mode resolution + per-surface freshness observability) — IMPLEMENTING. Mode resolver (scripts/resolve_run_mode.py) + renderer live-state/scoreboard age tokens landed on the feature branch with tests; HIGH-RISK review (Claude + Codex) pending before merge. PRD-190 and PRD-191 remain Stage-0 IN PROGRESS, not yet started.
-- **Proposed / next:** PRD-188 (macro-awareness SHOCK banner + scheduled activation) — PROPOSED, gated on the PRD-187 materiality eval (label the corpus, set threshold T, run); PRD-179 (preview fixture / all-section-state coverage) still unstarted.
-- **Test baseline:** 2682 passing, 1 xfailed (`python -m pytest tests -q` at `a7b0d58`).
+- **Active PRD:** PRD-189 (live-pipeline mode resolution + per-surface freshness observability) — IMPLEMENTING (reduced scope). The run-mode resolver (scripts/resolve_run_mode.py) is scoped to the dedicated premarket crons (prefetch/live/sunday) via a cron-string lookup; the intraday/orb slots (orb_trajectory/post_orb/midmorning/power_hour) and their crons were removed after Codex review (their notify path is runtime `_execute_notify_run`, not cli_main, and hourly_alert.yml already covers the window). Renderer live-state/scoreboard age tokens landed too. On the feature branch with tests; HIGH-RISK review (Claude + Codex) done, holding for human merge. PRD-190 and PRD-191 remain Stage-0 IN PROGRESS, not yet started.
+- **Deferred dependency (PRD-189 → PRD-192):** correctly homing the intraday/orb slots (route through alert_runner/`_execute_notify_run` or hourly_alert.yml) + a per-slot audit dedup marker (runtime/audit.py). Allocated PROPOSED; HIGH-RISK; not opened at Stage 0.
+- **Proposed / next:** PRD-192 (intraday slot wiring + audit dedup marker) — PROPOSED, deferred from PRD-189; PRD-188 (macro-awareness SHOCK banner + scheduled activation) — PROPOSED, gated on the PRD-187 materiality eval; PRD-179 (preview fixture / all-section-state coverage) still unstarted.
+- **Test baseline:** 2717 passing, 1 xfailed (`python -m pytest tests -q` on the PRD-189 branch; in this sandbox 5 git-commit-signing tests in test_prd_open/test_prd_registry fail environmentally and pass in CI).
 - **Recently landed and live:**
   - The market-stress kill switch forces a terminal HALT (PRD-180). The
     thresholds and conflict resolution are canonical in
