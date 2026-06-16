@@ -193,7 +193,7 @@ jobs:
           print(msg)
           PY
 
-      # --- Commit artifacts (live and sunday write reports/logs; intraday writes logs) ---
+      # --- Commit artifacts (live and sunday write reports/logs) ---
       - name: Commit artifacts
         if: ${{ success() && env.PUBLISH_READY == 'true' }}
         run: |
