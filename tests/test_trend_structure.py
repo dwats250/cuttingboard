@@ -137,6 +137,31 @@ def test_bullish_aligned_fixture():
     assert rec["trend_alignment"] == "BULLISH"
 
 
+def test_sma200_boundary_is_200_bars():
+    # PRD-190 R3: the SMA composite degrades to "insufficient" whenever sma_200
+    # is null, which happens for any frame shorter than 200 bars. A 6-month
+    # fetch window (~126 bars) lands below this boundary for the whole universe;
+    # the ~12-month window (~252 bars) clears it. Pin the boundary so a future
+    # window regression that drops below 200 bars fails loudly here.
+    quotes = {"SPY": _quote("SPY", 150.0)}
+
+    short = build_trend_structure_snapshot(
+        quotes, {"SPY": _daily_history([100.0] * 199)}, ["SPY"]
+    )["symbols"]["SPY"]
+    assert short["sma_200"] is None
+    assert short["price_vs_sma_200"] == "INSUFFICIENT_HISTORY"
+    # sma_50 still resolves at 199 bars — this is the asymmetry that produced
+    # the "SMA history insufficient" composite while "vs SMA50" read ABOVE.
+    assert short["price_vs_sma_50"] == "ABOVE"
+
+    full = build_trend_structure_snapshot(
+        quotes, {"SPY": _daily_history([100.0] * 252)}, ["SPY"]
+    )["symbols"]["SPY"]
+    assert full["sma_200"] == 100.0
+    assert full["price_vs_sma_200"] == "ABOVE"
+    assert full["price_vs_sma_50"] == "ABOVE"
+
+
 def test_bearish_aligned_fixture():
     closes = [100.0] * 200
     quotes = {"SPY": _quote("SPY", 80.0)}

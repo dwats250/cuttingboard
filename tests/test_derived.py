@@ -249,7 +249,10 @@ class TestInsufficientHistory:
         assert dm.ema9 is None
 
     def test_ohlcv_cache_younger_than_ttl_is_used(self, tmp_path, monkeypatch):
-        fresh_df = _make_ohlcv(30)
+        # PRD-190 R5: cache must clear the window depth floor as well as the age
+        # TTL, so use a full-window frame (12mo => >= 12*19 bars) to isolate the
+        # age-served path being asserted here.
+        fresh_df = _make_ohlcv(config.OHLCV_FETCH_MONTHS * 19 + 12)
         fresh_df.index = pd.date_range(
             end=datetime.now(timezone.utc) - timedelta(hours=config.OHLCV_STALE_HOURS) + timedelta(minutes=1),
             periods=len(fresh_df),
