@@ -377,6 +377,18 @@ def test_hourly_restores_dedup_slot_and_aggregates_before_render() -> None:
     )
 
 
+def test_pipeline_restores_notification_dedup_state() -> None:
+    # PRD-194 (Codex P2): _run_pipeline reads logs/last_notification_state.json
+    # (load_last_state -> should_send) before sending. With main frozen post-
+    # decoupling it must be restored from publish, else the next scheduled run
+    # re-sends an unchanged LOW/MEDIUM alert.
+    text = _workflow_text("cuttingboard.yml")
+    assert "logs/last_notification_state.json" in text, (
+        "the pipeline must restore logs/last_notification_state.json from publish "
+        "(Codex P2) or notification dedup breaks against main's frozen copy."
+    )
+
+
 def test_state_writers_restore_publish_state_before_running() -> None:
     for wf in PUBLISH_STATE_WRITERS:
         assert "tools/ci_restore_publish_state.sh" in _workflow_text(wf), (

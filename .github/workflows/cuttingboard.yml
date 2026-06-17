@@ -88,16 +88,21 @@ jobs:
           echo "job_mode=$job_mode" >> "$GITHUB_OUTPUT"
           echo "Resolved mode: $job_mode"
 
-      # PRD-194 R3: restore the accumulating scoreboard state (logs/audit.jsonl)
-      # from the publish branch before the pipeline appends to it, so the
-      # scoreboard keeps growing without main ever taking a bot push. Only the
-      # publishing modes need it. Records CB_PUBLISH_BASE_SHA for the delta-append.
+      # PRD-194 R3: restore the read-back state the pipeline reads at startup from
+      # the publish branch (main's copies are frozen post-decoupling):
+      #   - logs/audit.jsonl: the accumulating scoreboard source (delta-appended).
+      #   - logs/last_notification_state.json: _run_pipeline's notification dedup key
+      #     (load_last_state -> should_send). Without it the next scheduled run
+      #     re-sends an unchanged LOW/MEDIUM Telegram alert (Codex P2).
+      # logs/regime_history.jsonl is rebuilt from audit by the Commit step's Aggregate
+      # (which already runs before the render here). Records CB_PUBLISH_BASE_SHA for
+      # the delta-append. Only the publishing modes need it.
       - name: Restore publish state
         if: >-
           steps.mode.outputs.job_mode == 'live' ||
           steps.mode.outputs.job_mode == 'sunday' ||
           steps.mode.outputs.job_mode == 'verify'
-        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl
+        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/last_notification_state.json
 
       - name: Install dev dependencies
         run: |
