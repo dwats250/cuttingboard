@@ -836,6 +836,12 @@
       "title": "Production publish decoupling: dedicated unprotected publish branch (finishes PRD-178; unblocks the post-PRD-189 push rejection)",
       "status": "COMPLETE",
       "commit": "365f0fe"
+    },
+    {
+      "number": 196,
+      "title": "Robust PROJECT_STATE bullet matching in prd_close.sh",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
