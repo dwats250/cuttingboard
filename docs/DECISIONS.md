@@ -16,6 +16,33 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-17 - PRD-194 verified end-to-end; PRD-194 + PRD-189 closed out
+
+Rollout executed: seeded the unprotected `publish` branch from `main` (`git push
+origin main:publish`), then dispatched the live pipeline (`workflow_dispatch`,
+mode=live, ref=main; run 27665400742). Verified end-to-end:
+- Pipeline run: completed / **success**.
+- `publish` advanced `365f0fe -> 1c2a0ff` ("CB report: 2026-06-17 | NEUTRAL | 0 trades
+  | SUCCESS"). `main` **byte-unchanged** (still `365f0fe`) — no bot push to main, no
+  GH006.
+- Artifacts: `audit.jsonl` **+2** (delta-append — this run's rows, not clobbered); a
+  brand-new gitignored `logs/run_2026-06-17_041722.json` reached publish (validates the
+  force-add fix); `ui/dashboard.html`+`index.html` regenerated; `market_map` /
+  `regime_history` / `latest_*` updated.
+- Pages deploy 27665453156 (`workflow_run` on the pipeline): **success** — dashboard
+  displayed from `publish`.
+
+This is the live validation the R7 content guards could not provide (they pin content,
+not runtime). Every PRD-194 mechanism exercised: worktree delta-append, force-add of
+ignored artifacts, lifecycle/dedup read-back restore, ui render, main-protection
+intact, Pages-from-publish via workflow_run.
+
+Closeout: **PRD-194 COMPLETE** (PR #16 / `365f0fe`). **PRD-189 COMPLETE** — its closeout
+was held pending PRD-194 + a fresh published scoreboard row; both now satisfied. The
+parked PRD-189-review hourly render-before-aggregate nit was fixed inside PRD-194.
+Still open: PRD-190 (R4 live-diff gate), PRD-191 (not started), PRD-192/193 (PROPOSED).
+Tracked follow-up (not yet opened): `run_*.json` storage cap/prune on publish.
+
 ## 2026-06-16 - PRD-194: production publish decoupling onto an unprotected `publish` branch (option b / state-home b1)
 
 Staleness audit (2026-06-16) found the published dashboard frozen by two

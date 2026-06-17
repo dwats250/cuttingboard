@@ -1,17 +1,17 @@
 {
   "tracking_start": 56,
-  "latest_complete": 187,
+  "latest_complete": 194,
   "next_prd": 195,
   "entries": [
     {
       "number": 56,
-      "title": "Candidate lifecycle tracking — deterministic grade/setup_state transition metadata in market_map",
+      "title": "Candidate lifecycle tracking \u2014 deterministic grade/setup_state transition metadata in market_map",
       "status": "COMPLETE",
       "commit": "e7365c6"
     },
     {
       "number": 57,
-      "title": "Lifecycle visibility on Signal Forge dashboard — badge, detail row, removed symbols section",
+      "title": "Lifecycle visibility on Signal Forge dashboard \u2014 badge, detail row, removed symbols section",
       "status": "COMPLETE",
       "commit": "e7365c6"
     },
@@ -461,7 +461,7 @@
     },
     {
       "number": 132,
-      "title": "Intraday VWAP × RVOL Context Display Layer",
+      "title": "Intraday VWAP \u00d7 RVOL Context Display Layer",
       "status": "COMPLETE",
       "commit": "e5e512c"
     },
@@ -521,7 +521,7 @@
     },
     {
       "number": 142,
-      "title": "PATCH PRD-141 Persist hourly slot state across CI runs (scheduled for kill per VISION.md 2026-05-22 — workflow change never landed)",
+      "title": "PATCH PRD-141 Persist hourly slot state across CI runs (scheduled for kill per VISION.md 2026-05-22 \u2014 workflow change never landed)",
       "status": "DEPRECATED",
       "commit": null
     },
@@ -563,7 +563,7 @@
     },
     {
       "number": 149,
-      "title": "PT-Anchored Hourly Alert Window (6:00 AM – 1:00 PM PT)",
+      "title": "PT-Anchored Hourly Alert Window (6:00 AM \u2013 1:00 PM PT)",
       "status": "COMPLETE",
       "commit": "c562259"
     },
@@ -587,7 +587,7 @@
     },
     {
       "number": 153,
-      "title": "Moomoo Statement Consumer (Phase 2) — superseded by PRD-156",
+      "title": "Moomoo Statement Consumer (Phase 2) \u2014 superseded by PRD-156",
       "status": "DEPRECATED",
       "commit": "5ec073e, a1993b9"
     },
@@ -623,7 +623,7 @@
     },
     {
       "number": 159,
-      "title": "scripts/prd_open.sh — Stage 0 PRD scaffolder",
+      "title": "scripts/prd_open.sh \u2014 Stage 0 PRD scaffolder",
       "status": "COMPLETE",
       "commit": "0481eb5"
     },
@@ -804,8 +804,8 @@
     {
       "number": 189,
       "title": "Live-pipeline mode resolution + per-surface freshness observability",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "b6e036e"
     },
     {
       "number": 190,
@@ -834,8 +834,8 @@
     {
       "number": 194,
       "title": "Production publish decoupling: dedicated unprotected publish branch (finishes PRD-178; unblocks the post-PRD-189 push rejection)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "365f0fe"
     }
   ]
 }
