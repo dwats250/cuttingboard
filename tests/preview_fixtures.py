@@ -203,10 +203,15 @@ def section_state_cases() -> list[SectionStateCase]:
     )
 
     # 12. Healthy baseline (positive control) — coherent high-grade card, no DEMO MODE.
+    #     Marker is the card-specific element id, not the board heading: the heading
+    #     renders for every board state (cards / no-candidates / unavailable), so it
+    #     would not catch the A+ card being filtered out or ceasing to render. The
+    #     card-SPY id is present iff the card actually rendered (absent in the
+    #     no-candidates case), giving the positive control real teeth (PR #20 review).
     cases.append(
         _coherent(
             "healthy_baseline",
-            "Market Map / Developing Setups",
+            "card-SPY",
             market_map=_market_map({"SPY": _mm_symbol("SPY", grade="A+")}),
         )
     )
