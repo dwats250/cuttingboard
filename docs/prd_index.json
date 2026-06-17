@@ -836,6 +836,12 @@
       "title": "Production publish decoupling: dedicated unprotected publish branch (finishes PRD-178; unblocks the post-PRD-189 push rejection)",
       "status": "COMPLETE",
       "commit": "365f0fe"
+    },
+    {
+      "number": 197,
+      "title": "Codex cross-review via GitHub Actions (host-independent gate satisfier)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
