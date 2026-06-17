@@ -839,7 +839,7 @@
     },
     {
       "number": 196,
-      "title": "Robust PROJECT_STATE bullet matching in prd_close.sh",
+      "title": "prd_close.sh baseline hygiene (robust bullet matching + CI-sourced baseline)",
       "status": "IN PROGRESS",
       "commit": null
     }
