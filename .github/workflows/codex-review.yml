@@ -11,8 +11,9 @@ name: Codex cross-review
 #   * Two-job split: `review` holds the key (proxied) with contents:read ONLY and
 #     cannot write; `commit` has contents:write but NEVER sees the key.
 #
-# NOTE before merge: pin `openai/codex-action` to a reviewed release commit SHA
-# (supply-chain hardening) and confirm the `codex-version` tag exists.
+# Supply-chain: `openai/codex-action` is pinned to a commit SHA (v1.8) at the
+# review step below. `codex-version` is intentionally left unpinned there so the
+# action installs a current sandbox-capable Codex CLI.
 
 on:
   workflow_dispatch:
@@ -60,7 +61,7 @@ jobs:
           persist-credentials: false
 
       - name: Codex cross-review (read-only; key proxied by the action)
-        uses: openai/codex-action@v1 # TODO(pin): replace with a reviewed release commit SHA
+        uses: openai/codex-action@e0fdf01220eb9a88167c4898839d273e3f2609d1 # v1.8 (pinned)
         with:
           # Secret consumed only here, as the action input it proxies — never an env: var.
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
