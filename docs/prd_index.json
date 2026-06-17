@@ -744,8 +744,8 @@
     {
       "number": 179,
       "title": "Preview fixture/all-section-state coverage (fast-follow to PRD-178)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "fce0ab2"
     },
     {
       "number": 180,
