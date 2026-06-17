@@ -83,6 +83,7 @@ attempt_publish() {
   local path dest
   for path in "${changed[@]}"; do
     [ -z "$path" ] && continue
+    case "$path" in ui/*) continue ;; esac   # ui/ is full-synced from POST_SHA below
     dest="$wt/$path"
     mkdir -p "$(dirname "$dest")"
     if [ "$path" = "$AUDIT_PATH" ]; then
@@ -96,6 +97,17 @@ attempt_publish() {
       rm -f "$dest"
     fi
   done
+
+  # Sync the FULL ui/ tree from POST_SHA, not just the per-run-changed ui/ files.
+  # The run checked out main, so POST_SHA's ui/ carries reviewed STATIC assets
+  # (app.js, styles.css, themes/*, contract_viewer.html) plus this run's generated
+  # dashboard. Without this, static-UI changes that land on main via PR never reach
+  # publish and Pages serves stale JS/CSS alongside fresh data (Codex P2). The
+  # rm + checkout also propagates deletions. Guarded for commits with no ui/ tree.
+  if git cat-file -e "$post_sha:ui" 2>/dev/null; then
+    git -C "$wt" rm -r --quiet --ignore-unmatch -- ui >/dev/null 2>&1 || true
+    git -C "$wt" checkout "$post_sha" -- ui
+  fi
 
   git -C "$wt" add -A
   if git -C "$wt" diff --staged --quiet; then

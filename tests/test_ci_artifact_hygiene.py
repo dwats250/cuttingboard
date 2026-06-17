@@ -328,6 +328,17 @@ def test_push_helper_delta_appends_audit_never_clobbers() -> None:
     assert "tail -n +" in text, "audit.jsonl must be delta-appended (PRD-194 hard req)"
 
 
+def test_push_helper_full_syncs_ui_tree_from_post_sha() -> None:
+    # PRD-194 (Codex P2): static ui/ assets (app.js, styles.css, themes/*) change on
+    # main via PR and are NOT in the per-run artifact diff, so the helper must sync
+    # the WHOLE ui/ tree from POST_SHA — otherwise publish keeps the seed-era assets
+    # and Pages serves stale JS/CSS.
+    text = (REPO_ROOT / "tools" / "ci_push_artifacts.sh").read_text(encoding="utf-8")
+    assert 'checkout "$post_sha" -- ui' in text, (
+        "push helper must full-sync the ui/ tree from POST_SHA (Codex P2)."
+    )
+
+
 def test_push_helper_retries_on_non_fast_forward() -> None:
     # PRD-194 R5 (Codex P2): cross-workflow publish races are handled by a bounded
     # retry in the push helper, NOT a shared concurrency lock that over-serialized

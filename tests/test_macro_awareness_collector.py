@@ -975,6 +975,49 @@ class TestR7CiPushArtifacts:
             f"delta-append clobbered the concurrent row or dropped ours: {audit!r}"
         )
 
+    def test_publish_syncs_static_ui_assets_not_in_the_diff(self, tmp_path: Path) -> None:
+        """PRD-194 (Codex P2): a static ui/ asset changed on main (in PRE_SHA, NOT in
+        the per-run artifact diff) still reaches publish — the full ui/ tree is synced
+        from POST_SHA, else Pages serves stale JS/CSS."""
+        bare, work = _setup_bare_repo_and_clone(tmp_path)
+
+        # Seed publish with an OLD static asset + audit.
+        (work / "ui").mkdir(exist_ok=True)
+        (work / "logs").mkdir(exist_ok=True)
+        (work / "ui" / "app.js").write_text("v0\n")
+        (work / "logs" / "audit.jsonl").write_text('{"r":1}\n')
+        _git_check(["checkout", "-b", "publish"], work)
+        _git_check(["add", "ui/app.js", "logs/audit.jsonl"], work)
+        _git_check(["commit", "-m", "seed publish"], work)
+        _git_check(["push", "origin", "publish"], work)
+        base_sha = _git_check(["rev-parse", "HEAD"], work).stdout.strip()
+        _git_check(["checkout", "main"], work)
+
+        # A reviewed static-UI change lands on main (lives in PRE_SHA, not the diff).
+        (work / "ui").mkdir(exist_ok=True)
+        (work / "ui" / "app.js").write_text("v1\n")
+        _git_check(["add", "ui/app.js"], work)
+        _git_check(["commit", "-m", "static ui change on main"], work)
+
+        # The artifact commit only touches audit (+ the generated dashboard).
+        pre_sha, post_sha = self._make_artifact_commit(
+            work, '{"r":1}\n{"r":2}\n', ui="dash\n"
+        )
+
+        result = self._run_script(
+            work, pre_sha=pre_sha, post_sha=post_sha,
+            extra_env={"PUBLISH_BRANCH": "publish", "CB_PUBLISH_BASE_SHA": base_sha},
+        )
+        assert result.returncode == 0, (
+            f"expected exit 0; stdout={result.stdout}\nstderr={result.stderr}"
+        )
+
+        _git_check(["fetch", "origin", "publish"], work)
+        app_js = _git_check(["show", "origin/publish:ui/app.js"], work).stdout
+        assert app_js == "v1\n", (
+            f"static ui asset not synced to publish (Codex P2): {app_js!r}"
+        )
+
 
 # ---------------------------------------------------------------------------
 # R7 -- _validate_only / main(["--validate-only", ...]) entrypoint
