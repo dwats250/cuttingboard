@@ -100,7 +100,19 @@ def section_state_cases() -> list[SectionStateCase]:
     p["meta"]["generation_id"] = "fixture-mixed-payload"
     r["generation_id"] = "fixture-mixed-run"
     mm["generation_id"] = "fixture-mixed-mm"
-    cases.append(SectionStateCase("coherence_mixed", "MIXED_ARTIFACTS", p, r, mm))
+    cases.append(
+        SectionStateCase(
+            "coherence_mixed",
+            "MIXED_ARTIFACTS",
+            p,
+            r,
+            mm,
+            # MIXED_ARTIFACTS is also the System State title under mixed artifacts,
+            # so it alone would still pass if the coherence-warning banner stopped
+            # rendering. Pin the warning block by its id (PR #20 review).
+            extra_markers=('id="artifact-coherence"',),
+        )
+    )
 
     # 2. Sunday pre-market banner — coherent + SUNDAY_PREMARKET + Sunday-PT timestamp.
     sun = _payload(macro_drivers=_macro_drivers())
@@ -119,7 +131,16 @@ def section_state_cases() -> list[SectionStateCase]:
     ina = _payload(macro_drivers=_macro_drivers())
     ina["meta"]["session_type"] = "SUNDAY_PREMARKET"
     cases.append(
-        _coherent("session_inactive", "SESSION INACTIVE", payload=ina)
+        _coherent(
+            "session_inactive",
+            "SESSION INACTIVE",
+            payload=ina,
+            # SESSION INACTIVE renders in BOTH the trend-structure and candidate-
+            # board branches, so the bare label could be satisfied by one section
+            # if the other regressed. Pin each branch's inactive render with its
+            # section-specific wrapper class (PR #20 review).
+            extra_markers=('tape-no-data">SESSION INACTIVE', 'unavailable">SESSION INACTIVE'),
+        )
     )
 
     # 4. Macro tape no live data — empty macro_drivers + missing snapshot fallback.
