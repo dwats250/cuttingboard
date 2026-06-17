@@ -213,6 +213,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-193 | — | Publish-safe prefetch with OHLCV cache persistence (deferred from PRD-189) | PROPOSED | [PRD-193](prd_history/PRD-193.md) |
 | PRD-194 | 365f0fe (PR #16) | Production publish decoupling: dedicated unprotected publish branch (finishes PRD-178; unblocks the post-PRD-189 push rejection) — verified end-to-end 2026-06-17 (run 27665400742: publish advanced, `main` byte-unchanged, Pages deployed) | COMPLETE | [PRD-194](prd_history/PRD-194.md) |
 | PRD-197 | — | Codex cross-review via GitHub Actions (host-independent gate satisfier) | IN PROGRESS | [PRD-197](prd_history/PRD-197.md) |
+| PRD-198 | — | Semantic-failure hardening doctrine | IN PROGRESS | [PRD-198](prd_history/PRD-198.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

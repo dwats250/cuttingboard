@@ -842,6 +842,12 @@
       "title": "Codex cross-review via GitHub Actions (host-independent gate satisfier)",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 198,
+      "title": "Semantic-failure hardening doctrine",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
