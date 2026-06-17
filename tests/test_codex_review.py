@@ -41,7 +41,7 @@ def test_trigger_is_workflow_dispatch_only(wf):
     assert "pull_request_target" not in trig, "pull_request_target is equally unsafe"
     # dispatch carries the target identifiers
     inputs = trig["workflow_dispatch"]["inputs"]
-    for key in ("prd", "sha", "branch"):
+    for key in ("prd", "sha"):
         assert key in inputs, f"dispatch must take `{key}` as input"
 
 
@@ -73,10 +73,10 @@ def test_secret_only_as_action_input(raw):
     assert "echo $OPENAI_API_KEY" not in raw and "echo ${OPENAI_API_KEY" not in raw
 
 
-def test_commit_job_never_references_the_secret(raw, wf):
-    # Re-serialize just the commit job and assert the secret is absent from it.
-    commit = wf["jobs"]["commit"]
-    assert "OPENAI_API_KEY" not in yaml.safe_dump(commit)
+def test_land_job_never_references_the_secret(wf):
+    # Re-serialize just the land (commit) job and assert the secret is absent from it.
+    land = wf["jobs"]["land"]
+    assert "OPENAI_API_KEY" not in yaml.safe_dump(land)
 
 
 # --- two-job least-privilege split -----------------------------------------
@@ -84,22 +84,33 @@ def test_commit_job_never_references_the_secret(raw, wf):
 def test_two_job_permission_split(wf):
     jobs = wf["jobs"]
     assert jobs["review"]["permissions"]["contents"] == "read", "key-holding job must be read-only"
-    assert jobs["commit"]["permissions"]["contents"] == "write", "commit job writes the artifact"
-    assert "review" in jobs["commit"]["needs"] or jobs["commit"]["needs"] == "review"
+    # the land job has no read of the secret but needs to push a branch + open a PR
+    land_perms = jobs["land"]["permissions"]
+    assert land_perms["contents"] == "write", "land job pushes the codex-review/* branch"
+    assert land_perms["pull-requests"] == "write", "land job opens the artifact PR"
+    needs = jobs["land"]["needs"]
+    assert "review" in needs or needs == "review"
     # top-level default is no permissions
     assert wf.get("permissions") == {}, "top-level permissions must default to none"
 
 
-# --- gate integrity: refuse to commit a review for a superseded SHA --------
+# --- gate integrity: land via CI-gated PR, NEVER a direct push to a protected branch
 
-def test_commit_job_guards_against_stale_sha(wf):
-    commit = wf["jobs"]["commit"]
-    run_blocks = "\n".join(s.get("run", "") for s in commit["steps"])
-    assert "rev-parse HEAD" in run_blocks, "commit job must read the current HEAD"
-    # the guard compares HEAD to the reviewed SHA input before writing/pushing
-    assert "SHA" in run_blocks and "exit 1" in run_blocks, (
-        "commit job must fail if the branch tip no longer equals the reviewed SHA"
+def test_land_via_pr_no_direct_push_to_protected(raw, wf):
+    land = wf["jobs"]["land"]
+    run_blocks = "\n".join(s.get("run", "") for s in land["steps"])
+    # Lands on a dedicated codex-review/* branch and opens an auto-merge PR.
+    assert "codex-review/" in run_blocks, "artifact must land on a codex-review/* branch"
+    assert "gh pr create" in run_blocks, "artifact must be landed via a PR"
+    assert "gh pr merge" in run_blocks and "--auto" in run_blocks, "PR must use CI-gated auto-merge"
+    # Fail-closed guard present.
+    assert "exit 1" in run_blocks, "must fail closed if the work branch is not under codex-review/"
+    # The ONLY git push targets the codex-review/* work branch — never the base / a protected branch.
+    assert 'git push origin "HEAD:${work}"' in run_blocks, "push must target the codex-review/* work branch"
+    assert "HEAD:${base}" not in run_blocks and "HEAD:main" not in run_blocks, (
+        "must never push directly to the base / a protected branch"
     )
+    assert "push origin main" not in run_blocks
 
 
 # --- provenance: real Codex model/version recorded -------------------------

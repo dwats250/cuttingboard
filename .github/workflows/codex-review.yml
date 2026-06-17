@@ -9,7 +9,10 @@ name: Codex cross-review
 #     official openai/codex-action, which proxies it. It is NEVER a job/step
 #     `env:` and is NEVER echoed.
 #   * Two-job split: `review` holds the key (proxied) with contents:read ONLY and
-#     cannot write; `commit` has contents:write but NEVER sees the key.
+#     cannot write; `land` never sees the key.
+#   * `land` NEVER pushes to a protected branch (e.g. main). It pushes a dedicated
+#     codex-review/* branch and opens a CI-gated auto-merge PR, so the artifact
+#     reaches main only via the same gate as all other work (PRD-184/PRD-194).
 #
 # Supply-chain: `openai/codex-action` is pinned to a commit SHA (v1.8) at the
 # review step below. `codex-version` is intentionally left unpinned there so the
@@ -26,9 +29,10 @@ on:
         description: "Head SHA of the target branch to review (pinned; the artifact is tied to this)"
         required: true
         type: string
-      branch:
-        description: "Target PRD branch to commit the .review.codex.md back to"
-        required: true
+      base:
+        description: "Base branch the artifact PR targets (default main). The artifact ALWAYS lands via a CI-gated PR, never a direct push."
+        required: false
+        default: main
         type: string
       pr:
         description: "Target PR number (provenance/context; optional)"
@@ -121,17 +125,20 @@ jobs:
           path: artifact/PRD-${{ inputs.prd }}.review.codex.md
           if-no-files-found: error
 
-  # --- commit: writes the artifact to the PRD branch; NEVER sees the key ---
-  commit:
+  # --- land: opens a CI-gated PR for the artifact; NEVER pushes to a protected
+  #     branch and NEVER sees the key. The artifact reaches `main` only through
+  #     the same auto-merge-after-CI path as all other work (PRD-184/PRD-194).
+  land:
     needs: review
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write          # push the codex-review/* working branch (NOT the base)
+      pull-requests: write      # open the artifact PR
     steps:
-      - name: Checkout target PRD branch
+      - name: Checkout at the reviewed SHA
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ inputs.sha }}
 
       - name: Download review artifact
         uses: actions/download-artifact@v7
@@ -139,29 +146,36 @@ jobs:
           name: codex-review-${{ inputs.prd }}
           path: incoming
 
-      - name: Commit the .review.codex.md to the PRD branch (SHA-tied)
+      - name: Land the artifact via a CI-gated PR (never a direct push to a protected branch)
         env:
+          GH_TOKEN: ${{ github.token }}
           PRD: ${{ inputs.prd }}
           SHA: ${{ inputs.sha }}
-          BRANCH: ${{ inputs.branch }}
+          BASE: ${{ inputs.base }}
         run: |
           set -euo pipefail
-          # Gate integrity: the artifact is SHA-pinned, so refuse to commit it if
-          # the branch tip has moved past the reviewed SHA (a later commit would
-          # otherwise carry a review of superseded code).
-          head="$(git rev-parse HEAD)"
-          if [ "${head}" != "${SHA}" ]; then
-            echo "::error::target branch ${BRANCH} tip (${head}) != reviewed SHA ${SHA}; refusing to commit a stale Codex review"
-            exit 1
-          fi
+          base="${BASE:-main}"
+          short="$(printf '%s' "${SHA}" | cut -c1-12)"
+          work="codex-review/PRD-${PRD}-${short}"
+          # Fail-closed: this writer must only ever push a dedicated codex-review/*
+          # branch. It must NEVER push directly to the base (which may be a
+          # protected branch like main — forbidden by CLAUDE.md / PRD-184 / PRD-194).
+          case "${work}" in
+            codex-review/*) : ;;
+            *) echo "::error::work branch '${work}' is not under codex-review/; refusing"; exit 1 ;;
+          esac
           dest="docs/prd_history/PRD-${PRD}.review.codex.md"
           mv "incoming/PRD-${PRD}.review.codex.md" "${dest}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "${work}"
           git add "${dest}"
-          if git diff --cached --quiet; then
-            echo "No change to ${dest}; nothing to commit."
-            exit 0
-          fi
           git commit -m "PRD-${PRD}: Codex cross-review artifact (reviewed ${SHA})"
-          git push origin "HEAD:${BRANCH}"
+          # Push ONLY the codex-review/* work branch — never the base branch directly.
+          git push origin "HEAD:${work}"
+          # Land it through the gate: open a PR to base and let branch protection
+          # hold the merge until CI is green (auto-merge), then delete the branch.
+          gh pr create --base "${base}" --head "${work}" \
+            --title "PRD-${PRD}: Codex cross-review artifact (reviewed ${SHA})" \
+            --body "Automated Codex cross-review artifact for PRD-${PRD}, reviewed at \`${SHA}\`. Lands via CI-gated PR — never a direct push to \`${base}\` (PRD-184/PRD-194)."
+          gh pr merge "${work}" --auto --squash --delete-branch
