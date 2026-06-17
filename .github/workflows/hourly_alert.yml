@@ -73,10 +73,14 @@ jobs:
       #   - logs/latest_run.json: renderer's LIVE STATE (pipeline_run), not --run-
       #     overridable — frozen => stale LIVE STATE on the hourly dashboard (Codex P2).
       #   - logs/macro_drivers_snapshot.json: renderer's macro-driver fallback.
+      #   - 'logs/run_*.json': pipeline-owned per-run archive the renderer globs for
+      #     "Changes Since Last Run" + history. Immutable per file, so restoring +
+      #     republishing is idempotent and never clobbers the pipeline's newer runs;
+      #     no revert needed. Quoted so the glob reaches the restore helper.
       # logs/regime_history.jsonl is NOT restored — rebuilt from audit by the Aggregate
       # step (which runs BEFORE the render). Records CB_PUBLISH_BASE_SHA for the delta.
       - name: Restore publish state
-        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/last_hourly_slot.json logs/latest_hourly_market_map.json logs/latest_run.json logs/macro_drivers_snapshot.json
+        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/last_hourly_slot.json logs/latest_hourly_market_map.json logs/latest_run.json logs/macro_drivers_snapshot.json 'logs/run_*.json'
 
       - name: Check Telegram config presence
         run: |

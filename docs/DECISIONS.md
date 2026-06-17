@@ -52,8 +52,14 @@ Final mechanism (implemented PR #16, 2026-06-17 — supersedes the originally-sk
   file). Read-back set per writer is enumerated in PRD-194.md (R3), swept from every
   logs/ read + write-site.
 - TWO-TREE SYNC INVARIANT: logs/ accumulators flow publish→run (publish authority);
-  ui/ static assets flow main→publish via POST_SHA full-sync (main authority);
-  generated ui pages are published only by a run that regenerated them.
+  ui/ static assets flow main→publish via full-sync from CURRENT origin/main (NOT the
+  run's POST_SHA — a run based on an older main must not roll publish back to stale
+  JS/CSS; Codex P2) (main authority); generated ui pages are published only by a run
+  that regenerated them.
+- Read-back sweep correction: the literal-path + *_PATH sweep missed glob reads; a
+  follow-up glob sweep found logs/run_*.json (renderer globs it for "Changes Since Last
+  Run") — pipeline-owned, accumulating, immutable per file, now restored by both writers
+  (idempotent). It is the only glob-based read-back class; the set is now complete.
 - Dispatch publishers pinned to `ref: main`, AND the publish/push step of all three
   writers is ref-guarded `if: github.ref == 'refs/heads/main'` (Codex P1): a non-main
   workflow_dispatch runs the pipeline (test/lint/render) but never pushes to the

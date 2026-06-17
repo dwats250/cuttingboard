@@ -101,6 +101,10 @@ jobs:
       #     via _load_previous_market_map() -> inject_lifecycle(). Pipeline OWNS and
       #     republishes it; without restore, lifecycle badges/removed_symbols are
       #     computed against main's frozen snapshot -> bogus NEW/REMOVED (Codex P2).
+      #   - 'logs/run_*.json': the accumulating per-run archive (immutable per file)
+      #     the renderer globs for "Changes Since Last Run" + history. Frozen on main
+      #     => deltas computed against a pre-decoupling run (Codex P2). Quoted so the
+      #     glob reaches the restore helper, not the workflow shell. Pipeline-owned.
       # logs/regime_history.jsonl is rebuilt from audit by the Commit step's Aggregate
       # (which already runs before the render here). Records CB_PUBLISH_BASE_SHA for
       # the audit delta-append. Only the publishing modes need it.
@@ -109,7 +113,7 @@ jobs:
           steps.mode.outputs.job_mode == 'live' ||
           steps.mode.outputs.job_mode == 'sunday' ||
           steps.mode.outputs.job_mode == 'verify'
-        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/evaluation.jsonl logs/last_notification_state.json logs/market_map.json
+        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/evaluation.jsonl logs/last_notification_state.json logs/market_map.json 'logs/run_*.json'
 
       - name: Install dev dependencies
         run: |

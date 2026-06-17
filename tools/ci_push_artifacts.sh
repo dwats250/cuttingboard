@@ -78,6 +78,7 @@ attempt_publish() {
   git worktree remove --force "$wt" 2>/dev/null || true
   rm -rf "$wt"
   git fetch origin "$PUBLISH_BRANCH"
+  git fetch origin main   # for the static ui/ sync below (latest reviewed assets)
   git worktree add --force "$wt" "origin/$PUBLISH_BRANCH"
 
   local path dest
@@ -85,7 +86,7 @@ attempt_publish() {
     [ -z "$path" ] && continue
     case "$path" in
       ui/dashboard.html|ui/index.html|ui/contract.json) ;;  # generated: overwrite below
-      ui/*) continue ;;                                      # static: synced from POST
+      ui/*) continue ;;                                      # static: synced from main
     esac
     dest="$wt/$path"
     mkdir -p "$(dirname "$dest")"
@@ -105,12 +106,15 @@ attempt_publish() {
   # mock_contract.json) from POST_SHA so reviewed main-side UI changes reach publish
   # even though they are not in the per-run artifact diff. The GENERATED pages
   # (dashboard.html / index.html / contract.json) are EXCLUDED from this sync — they
-  # are published only by a run that actually regenerated them (the changed-set loop
-  # above). A macro-only publish checks out main's FROZEN generated pages and renders
-  # nothing, so excluding them here stops it from clobbering publish's fresh dashboard
-  # (Codex P2). rm-then-repopulate propagates static deletions while leaving publish's
-  # generated pages intact. Guarded for commits with no ui/ tree.
-  if git cat-file -e "$post_sha:ui" 2>/dev/null; then
+  # Sync STATIC ui/ assets from CURRENT origin/main (the latest REVIEWED main), NOT
+  # the run's POST_SHA. A run based on an older main must not roll publish's static
+  # assets back to stale JS/CSS when a reviewed ui/* change landed mid-run (Codex P2);
+  # sourcing from origin/main is what the old rebase-onto-main path did implicitly.
+  # Generated pages (dashboard/index/contract) are EXCLUDED — published only by a run
+  # that regenerated them (the changed-set loop above), so a macro-only publish can't
+  # clobber publish's fresh dashboard. rm-then-repopulate propagates main-side static
+  # deletions while leaving publish's generated pages intact. Guarded for no ui/ tree.
+  if git cat-file -e "origin/main:ui" 2>/dev/null; then
     while IFS= read -r uipath; do
       case "$uipath" in
         ui/dashboard.html|ui/index.html|ui/contract.json) continue ;;
@@ -124,8 +128,8 @@ attempt_publish() {
       esac
       dest="$wt/$uipath"
       mkdir -p "$(dirname "$dest")"
-      git show "$post_sha:$uipath" > "$dest"
-    done < <(git ls-tree -r --name-only "$post_sha" -- ui)
+      git show "origin/main:$uipath" > "$dest"
+    done < <(git ls-tree -r --name-only origin/main -- ui)
   fi
 
   git -C "$wt" add -A

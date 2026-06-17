@@ -975,10 +975,11 @@ class TestR7CiPushArtifacts:
             f"delta-append clobbered the concurrent row or dropped ours: {audit!r}"
         )
 
-    def test_publish_syncs_static_ui_assets_not_in_the_diff(self, tmp_path: Path) -> None:
-        """PRD-194 (Codex P2): a static ui/ asset changed on main (in PRE_SHA, NOT in
-        the per-run artifact diff) still reaches publish — the full ui/ tree is synced
-        from POST_SHA, else Pages serves stale JS/CSS."""
+    def test_publish_syncs_static_ui_assets_from_current_main(self, tmp_path: Path) -> None:
+        """PRD-194 (Codex P2): static ui/ assets are synced from CURRENT origin/main
+        (latest reviewed), NOT the run's POST_SHA — so a reviewed ui/* change on main
+        that is not in the per-run artifact diff still reaches publish, and a run based
+        on an older main never rolls publish's static assets back to stale JS/CSS."""
         bare, work = _setup_bare_repo_and_clone(tmp_path)
 
         # Seed publish with an OLD static asset + audit.
@@ -993,11 +994,13 @@ class TestR7CiPushArtifacts:
         base_sha = _git_check(["rev-parse", "HEAD"], work).stdout.strip()
         _git_check(["checkout", "main"], work)
 
-        # A reviewed static-UI change lands on main (lives in PRE_SHA, not the diff).
+        # A reviewed static-UI change lands on main AND is pushed to origin/main
+        # (the source the publish helper syncs static assets from).
         (work / "ui").mkdir(exist_ok=True)
         (work / "ui" / "app.js").write_text("v1\n")
         _git_check(["add", "ui/app.js"], work)
         _git_check(["commit", "-m", "static ui change on main"], work)
+        _git_check(["push", "origin", "main"], work)
 
         # The artifact commit only touches audit (+ the generated dashboard).
         pre_sha, post_sha = self._make_artifact_commit(

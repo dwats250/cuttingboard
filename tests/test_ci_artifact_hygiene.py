@@ -325,8 +325,11 @@ def test_push_helper_targets_publish_branch_not_main() -> None:
     text = (REPO_ROOT / "tools" / "ci_push_artifacts.sh").read_text(encoding="utf-8")
     assert "PUBLISH_BRANCH" in text
     assert "refs/heads/$PUBLISH_BRANCH" in text
+    # Forbid PUSHING to main (any form). `git fetch origin main` is allowed — it only
+    # SOURCES the latest reviewed static ui/ assets (Codex P2), never writes main.
     assert "HEAD:main" not in text, "publish helper still pushes to main (PRD-194 R1)"
-    assert "origin main" not in text, "publish helper still references origin main"
+    assert "push origin main" not in text, "publish helper pushes to main"
+    assert "refs/heads/main" not in text, "publish helper targets refs/heads/main"
 
 
 def test_push_helper_delta_appends_audit_never_clobbers() -> None:
@@ -344,8 +347,10 @@ def test_push_helper_syncs_static_ui_but_not_generated_pages() -> None:
     # EXCLUDED from that sync, else a macro-only publish (which renders nothing and
     # checks out main's FROZEN pages) would clobber publish's fresh dashboard.
     text = (REPO_ROOT / "tools" / "ci_push_artifacts.sh").read_text(encoding="utf-8")
-    assert 'git ls-tree -r --name-only "$post_sha" -- ui' in text, (
-        "push helper must sync static ui/ assets from POST_SHA (Codex P2)."
+    assert "git ls-tree -r --name-only origin/main -- ui" in text, (
+        "push helper must sync static ui/ assets from CURRENT origin/main, not the "
+        "run's POST_SHA, or a run based on an older main rolls publish back to stale "
+        "JS/CSS (Codex P2)."
     )
     assert "ui/dashboard.html|ui/index.html|ui/contract.json" in text, (
         "push helper must EXCLUDE the generated pages from the static ui/ sync so a "
@@ -397,6 +402,7 @@ def test_hourly_restores_dedup_slot_and_aggregates_before_render() -> None:
         "logs/latest_hourly_market_map.json",  # hourly lifecycle baseline (owned) — Codex P2
         "logs/latest_run.json",              # LIVE STATE render input (read-only) — Codex P2
         "logs/macro_drivers_snapshot.json",  # macro fallback render input (read-only)
+        "logs/run_*.json",                   # run-history archive the renderer globs — Codex P2
     ):
         assert path in restore_line, (
             f"hourly must restore {path} from publish (PRD-194 R3); main's copy is frozen."
@@ -449,6 +455,7 @@ def test_pipeline_restores_dedup_and_evaluation_state() -> None:
         "logs/last_notification_state.json",
         "logs/evaluation.jsonl",
         "logs/market_map.json",
+        "logs/run_*.json",  # accumulating run-history archive (renderer globs it)
     ):
         assert path in restore_line, (
             f"the pipeline must restore {path} from publish, or its accumulated "

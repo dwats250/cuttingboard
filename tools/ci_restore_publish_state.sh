@@ -31,12 +31,28 @@ if git ls-remote --exit-code --heads origin "$PUBLISH_BRANCH" >/dev/null 2>&1; t
   fi
   echo "publish-state restore: '$PUBLISH_BRANCH' present @ $base_sha"
   for path in "$@"; do
-    if git cat-file -e "origin/$PUBLISH_BRANCH:$path" 2>/dev/null; then
-      echo "publish-state restore: $path"
-      git checkout "origin/$PUBLISH_BRANCH" -- "$path"
-    else
-      echo "publish-state restore: $path absent on '$PUBLISH_BRANCH' — keeping main's copy"
-    fi
+    case "$path" in
+      *'*'*)
+        # Glob pathspec (e.g. logs/run_*.json — the accumulating run-history archive).
+        # ls-tree resolves the wildcard against the branch; if it matches anything we
+        # checkout (set -e fails the job on a genuine checkout error — Amendment 1);
+        # no-match is the legitimate early/bootstrap state, logged + skipped.
+        if git ls-tree -r --name-only "origin/$PUBLISH_BRANCH" -- "$path" | grep -q .; then
+          echo "publish-state restore: $path (glob)"
+          git checkout "origin/$PUBLISH_BRANCH" -- "$path"
+        else
+          echo "publish-state restore: $path — no match on '$PUBLISH_BRANCH', skipping"
+        fi
+        ;;
+      *)
+        if git cat-file -e "origin/$PUBLISH_BRANCH:$path" 2>/dev/null; then
+          echo "publish-state restore: $path"
+          git checkout "origin/$PUBLISH_BRANCH" -- "$path"
+        else
+          echo "publish-state restore: $path absent on '$PUBLISH_BRANCH' — keeping main's copy"
+        fi
+        ;;
+    esac
   done
 else
   echo "publish-state restore: '$PUBLISH_BRANCH' absent — bootstrapping from main's checked-in state"
