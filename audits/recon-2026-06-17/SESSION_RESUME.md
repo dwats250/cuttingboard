@@ -24,15 +24,21 @@ instance of the recon's stale-bookkeeping signature.
    does not touch the Active-PRD pointer, and both PRDs were authored scoped/held,
    so the pointer was never set. Correction (if wanted) is a PROJECT_STATE edit —
    protected; report-only here.
-2. **`prd_index.json` `next_prd: 195`** is stale — 195/196/197/198 are all already
-   used; it should be 199. (`latest_complete: 194` is correct — nothing past 194 is
-   COMPLETE.) `prd_open.sh` deliberately leaves `next_prd` alone, so it drifted.
+2. ~~**`prd_index.json` `next_prd: 195`** is stale — should be 199.~~
+   **RETRACTED (false positive; corrected after #26 review).** `next_prd` is
+   *defined* as `latest_complete + 1` by `tools/validate_prd_registry.py:118-122`,
+   and `latest_complete` is 194, so `next_prd: 195` is **correct** — not drift.
+   Recommending 199 was itself the "assert the assumed vs verify the resolved"
+   error this PRD warns against (199 would *fail* the validator). `next_prd`
+   advances to 195→…→199 only as PRDs are *marked COMPLETE*; `prd_open.sh` rightly
+   leaves it untouched when opening in-progress PRDs. No action.
 3. **Test baseline `2773`** (PRD-179 era) trails current CI (~2782 after #23/#24) —
-   same as recon finding #6. Updates at the next closeout.
+   same as recon finding #6. Updates at the next closeout. (Not enforced by
+   `validate_prd_registry.py`, so a real-but-quiet staleness, unlike #2.)
 
-None block the parked work; all are bookkeeping. Recommend folding the
-PROJECT_STATE pointer + `next_prd` correction into whichever PRD closes next
-(197), rather than a standalone bookkeeping PR.
+None block the parked work. The one real recorded≠reality item is #1 (the
+PROJECT_STATE Active-PRD pointer); fold its correction into whichever PRD closes
+next (197), rather than a standalone bookkeeping PR. **Do NOT touch `next_prd`.**
 
 ## Parked items — priority order
 
