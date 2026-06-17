@@ -125,3 +125,19 @@ def test_harness_refuses_ui_out_dir(tmp_path):
     with pytest.raises(SystemExit):
         render_all(out_dir=ui_dir)
     assert not ui_dir.exists()
+
+
+def test_harness_refuses_symlink_into_ui(tmp_path):
+    # The per-file guard must resolve symlinks: a planted fixture_*.html symlink
+    # into ui/ would otherwise let write_text follow it into the publish tree even
+    # though out_dir itself resolves outside ui/ (PR #20 review).
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    target = tmp_path / "ui" / "dashboard.html"
+    target.parent.mkdir()
+    target.write_text("PUBLISH", encoding="utf-8")
+    link = out_dir / f"fixture_{SECTION_STATE_CASES[0].name}.html"
+    link.symlink_to(target)
+    with pytest.raises(SystemExit):
+        render_all(out_dir=out_dir)
+    assert target.read_text(encoding="utf-8") == "PUBLISH"  # publish tree untouched

@@ -32,11 +32,15 @@ OUT_DIR = ROOT / "reports" / "output"
 def render_all(out_dir: Path = OUT_DIR) -> list[Path]:
     """Render each case to out_dir/fixture_<name>.html; fail if a marker is missing.
 
-    Refuses any out_dir resolving under the repo's ``ui/`` directory: this writer
-    bypasses ``validate_coherent_publish`` (it writes HTML directly), so without
-    this guard an override like ``Path("ui")`` would emit fixture HTML into the
-    publish tree, contradicting the module's "structurally barred from ui/" claim.
-    The check reuses the same ``_output_under_ui`` helper the publish guard uses.
+    Refuses any output path resolving under the repo's ``ui/`` directory: this
+    writer bypasses ``validate_coherent_publish`` (it writes HTML directly), so
+    without this guard an override like ``Path("ui")`` would emit fixture HTML
+    into the publish tree, contradicting the module's "structurally barred from
+    ui/" claim. The directory is checked once up front (fail before mkdir), and
+    each composed file path is re-checked before writing — ``_output_under_ui``
+    resolves symlinks, so a planted ``reports/output/fixture_*.html`` symlink into
+    the publish tree is refused rather than followed by ``write_text``. Both
+    checks reuse the same helper ``validate_coherent_publish`` uses.
     """
     if _output_under_ui(out_dir):
         raise SystemExit(
@@ -56,6 +60,12 @@ def render_all(out_dir: Path = OUT_DIR) -> list[Path]:
         if case.marker not in html:
             raise SystemExit(f"FAIL: case {case.name!r} missing marker {case.marker!r}")
         out = out_dir / f"fixture_{case.name}.html"
+        if _output_under_ui(out):
+            raise SystemExit(
+                f"FAIL: render_all refuses to write {out} — it resolves under ui/ "
+                "(e.g. a symlink into the publish tree); fixture output is "
+                "structurally barred from the publish tree (PRD-118 R5)."
+            )
         out.write_text(html, encoding="utf-8")
         written.append(out)
         print(f"  {case.name:24s} -> {out}  [{case.marker}]")
