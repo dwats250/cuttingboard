@@ -59,6 +59,9 @@ def render_all(out_dir: Path = OUT_DIR) -> list[Path]:
         )
         if case.marker not in html:
             raise SystemExit(f"FAIL: case {case.name!r} missing marker {case.marker!r}")
+        for extra in case.extra_markers:
+            if extra not in html:
+                raise SystemExit(f"FAIL: case {case.name!r} missing extra marker {extra!r}")
         out = out_dir / f"fixture_{case.name}.html"
         if _output_under_ui(out):
             raise SystemExit(

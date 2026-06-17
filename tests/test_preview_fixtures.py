@@ -67,6 +67,8 @@ def test_case_names_unique():
 def test_case_render_contains_marker(case):
     html = _render(case)
     assert case.marker in html, f"{case.name}: marker {case.marker!r} absent"
+    for extra in case.extra_markers:
+        assert extra in html, f"{case.name}: extra marker {extra!r} absent"
 
 
 def test_trend_awaiting_case_is_time_independent():

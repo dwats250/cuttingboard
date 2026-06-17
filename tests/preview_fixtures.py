@@ -41,6 +41,9 @@ class SectionStateCase:
     market_map     optional market_map artifact (None exercises MISSING lineage)
     render_kwargs  extra keyword args forwarded to render_dashboard_html
     fixture_mode   whether the render runs in demo/fixture mode
+    extra_markers  additional substrings that MUST also appear — used when the
+                   primary marker alone does not prove the case's intended branch
+                   (e.g. a populated list whose heading renders even when empty)
     """
 
     name: str
@@ -50,6 +53,7 @@ class SectionStateCase:
     market_map: dict | None = None
     render_kwargs: dict = field(default_factory=dict)
     fixture_mode: bool = False
+    extra_markers: tuple[str, ...] = ()
 
 
 def _stamp(*, payload: dict, run: dict, market_map: dict | None, gid: str, ts: str) -> None:
@@ -82,6 +86,7 @@ def _coherent(name: str, marker: str, *, ts: str = _WEEKDAY_TS, **kw) -> Section
         market_map=market_map,
         render_kwargs=kw.pop("render_kwargs", {}),
         fixture_mode=kw.pop("fixture_mode", False),
+        extra_markers=kw.pop("extra_markers", ()),
     )
 
 
@@ -146,6 +151,10 @@ def section_state_cases() -> list[SectionStateCase]:
         _coherent(
             "red_folder_expiring",
             "Red-folder schedule nearing expiry",
+            # extra_markers pin the *populated* branch: the expiry banner renders
+            # off the `expiring` flag alone, so without these the case would still
+            # pass if the supplied CPI event stopped rendering (PR #20 review).
+            extra_markers=("red-folder-event", "CPI"),
             render_kwargs={
                 "red_folder": {
                     "ok": True,
@@ -190,6 +199,11 @@ def section_state_cases() -> list[SectionStateCase]:
             miss_p,
             miss_r,
             market_map=None,
+            # The lineage marker is emitted by the trend-structure block, so it
+            # alone would still pass if the candidate-board missing-lineage render
+            # broke. SOURCE_MISSING is the candidate-board-specific output, pinning
+            # that this case actually covers the candidate board (PR #20 review).
+            extra_markers=("SOURCE_MISSING",),
         )
     )
 
