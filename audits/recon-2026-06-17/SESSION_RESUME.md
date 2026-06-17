@@ -73,8 +73,17 @@ Manual-merge-only (governance guardrail). Two paths:
   baseline check, engine_doctor; LOW: vacuous skips, soft-dep, version provenance)
   spun into follow-up PRDs.
 
-### 3. PRD-197 — IN PROGRESS; closeout blocked on #25
-Closeout (incl. the PROJECT_STATE Active-PRD pointer correction above — **not**
+### 3. PRD-197 — IN PROGRESS; closeout blocked on #25 **and** a 195/196 index gap
+**Precondition (verified via #26 review):** the index jumps 194 → 197 → 198 — PRD-195
+and PRD-196 are absent from both `docs/prd_index.json` and `docs/PRD_REGISTRY.md`
+(they were drafted — see `PRD-195.runway.md`/`.review` here and the
+`claude/prd-196-prd-close-parser` branch — but never filed). `prd_close.sh:245-247`
+sets `latest_complete = 197` on close, and `validate_prd_registry.py:124-126` then
+requires every number `TRACKING_START..197` to exist, so **closing PRD-197 will fail
+validation until 195/196 are backfilled or given deprecation/retrospective entries.**
+Resolve that gap first.
+
+Then closeout (incl. the PROJECT_STATE Active-PRD pointer correction above — **not**
 `next_prd`, which is already correct at `latest_complete + 1`) runs once #25's
 truthful artifact discharges the waiver. The closeout itself advances
 `latest_complete`/`next_prd` via `prd_close.sh`; do not hand-edit `next_prd`.
