@@ -40,13 +40,22 @@ on:
         required: false
         type: string
       model:
-        description: "Codex model id — a real Codex model; do not route to a substitute"
+        description: "REQUESTED Codex model id. This is only the request — the artifact's provenance records the RESOLVED model from runtime response metadata, which must pass the ALLOWED_CODEX_MODELS allowlist below."
         required: false
         default: gpt-5-codex
         type: string
 
 # No permissions by default; each job opts in to least privilege.
 permissions: {}
+
+# Property-#3 (PRD-#21 "verified-real Codex") allowlist — HUMAN-CONFIGURABLE.
+# The RESOLVED model (parsed from runtime response metadata, never the requested
+# string and never the model's prose self-report) must match one of these
+# space-separated shell globs, or the review is marked INVALID and NO artifact is
+# emitted (fail-closed). EMPTY by default ⇒ every model is rejected until a human
+# authorizes genuine Codex model id(s) here (e.g. "gpt-5-codex gpt-5-codex-*").
+env:
+  ALLOWED_CODEX_MODELS: ""
 
 concurrency:
   group: codex-review-${{ inputs.prd }}-${{ inputs.sha }}
@@ -66,12 +75,16 @@ jobs:
           persist-credentials: false
 
       - name: Codex cross-review (read-only; key proxied by the action)
+        id: codex
         uses: openai/codex-action@e0fdf01220eb9a88167c4898839d273e3f2609d1 # v1.8 (pinned)
         with:
           # Secret consumed only here, as the action input it proxies — never an env: var.
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           sandbox: read-only
           model: ${{ inputs.model }}
+          # Emit the JSONL event stream so the RESOLVED model (response metadata) can
+          # be parsed for truthful provenance — the request string is NOT authoritative.
+          codex-args: --json
           # codex-version intentionally unpinned: the action installs a current
           # sandbox-capable CLI (0.2.x predates the --sandbox flag, which would
           # make `sandbox: read-only` unenforceable). The actual version is
@@ -94,16 +107,50 @@ jobs:
                 and does it leave any docs/PROJECT_STATE.md claim stale?
             State explicitly which Codex model you are running as.
 
-      - name: Assemble gate-satisfying artifact (with provenance)
+      - name: Resolve + verify the served model, then assemble the artifact (truthful provenance, fail-closed)
         env:
           PRD: ${{ inputs.prd }}
           SHA: ${{ inputs.sha }}
           PR: ${{ inputs.pr }}
           MODEL: ${{ inputs.model }}
+          # Raw codex stdout (JSONL, because codex-args: --json) — the authoritative
+          # source for the RESOLVED model. Passed via env to avoid heredoc injection.
+          CODEX_EVENTS: ${{ steps.codex.outputs.final-message }}
         run: |
           set -euo pipefail
           # Provenance: query the installed Codex CLI version (no secret involved).
           codex_ver="$(codex --version 2>/dev/null || echo 'unknown')"
+
+          # --- Resolve the SERVED model from runtime response metadata ------------
+          # Authoritative source only: the JSONL event stream (and, as a fallback,
+          # the codex session rollout). NEVER the requested input string, NEVER the
+          # model's prose self-report — those are exactly what property #3 distrusts.
+          printf '%s\n' "${CODEX_EVENTS}" > codex-events.jsonl
+          extract_model() { grep -oE '"model"[[:space:]]*:[[:space:]]*"[^"]+"' "$1" 2>/dev/null \
+            | sed -E 's/.*:[[:space:]]*"([^"]+)"/\1/' | tail -n1; }
+          resolved="$(extract_model codex-events.jsonl || true)"
+          if [ -z "${resolved}" ]; then
+            rollout="$(find "${CODEX_HOME:-$HOME/.codex}" -name 'rollout-*.jsonl' 2>/dev/null | sort | tail -n1 || true)"
+            [ -n "${rollout}" ] && resolved="$(extract_model "${rollout}" || true)"
+          fi
+          if [ -z "${resolved}" ]; then
+            echo "::error::could not determine the RESOLVED model from runtime response metadata; refusing to emit a review artifact (fail-closed)."
+            exit 1
+          fi
+
+          # --- Fail-closed allowlist (property #3): reject any non-allowlisted model
+          allowed=0
+          for pat in ${ALLOWED_CODEX_MODELS:-}; do
+            # shellcheck disable=SC2254
+            case "${resolved}" in ${pat}) allowed=1; break ;; esac
+          done
+          if [ "${allowed}" -ne 1 ]; then
+            echo "::error::resolved model '${resolved}' is not on the human-configured allowlist (ALLOWED_CODEX_MODELS='${ALLOWED_CODEX_MODELS:-}'); marking review INVALID (fail-closed). A genuine Codex model must be authorized in the workflow env before a review artifact can be emitted."
+            exit 1
+          fi
+          echo "Resolved model '${resolved}' verified against allowlist '${ALLOWED_CODEX_MODELS:-}'."
+
+          # --- Assemble the artifact with TRUTHFUL provenance ---------------------
           mkdir -p artifact
           out="artifact/PRD-${PRD}.review.codex.md"
           {
@@ -111,7 +158,7 @@ jobs:
             echo
             echo "- Reviewed commit (SHA-pinned): \`${SHA}\`"
             echo "- Target PR: ${PR:-n/a}"
-            echo "- Provenance: model=\`${MODEL}\`, codex-cli=\`${codex_ver}\`, via openai/codex-action (read-only)"
+            echo "- Provenance: resolved-model=\`${resolved}\` (requested=\`${MODEL}\`; allowlist-verified), codex-cli=\`${codex_ver}\`, via openai/codex-action (read-only)"
             echo "- Mechanism: GitHub Actions (host-independent, PRD-197); fresh-context"
             echo
             echo "---"
