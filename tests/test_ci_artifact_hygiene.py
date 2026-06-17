@@ -350,6 +350,19 @@ def test_no_state_writer_pushes_to_main() -> None:
         )
 
 
+def test_state_writers_pin_checkout_to_main() -> None:
+    # PRD-194 (Codex P1): with publishing now targeting the UNPROTECTED publish
+    # branch, a workflow_dispatch from a feature branch must NOT be able to run
+    # that branch's code and publish it to production. All three state-writers pin
+    # the checkout to main (scheduled runs already run on main).
+    for wf in PUBLISH_STATE_WRITERS:
+        assert "ref: main" in _workflow_text(wf), (
+            f"{wf} does not pin its checkout to `ref: main`; an unpinned dispatch "
+            "on a feature branch would publish that branch's output to the "
+            "unprotected publish branch (PRD-194 P1)."
+        )
+
+
 def test_pages_deploys_publish_branch_via_workflow_run_for_all_writers() -> None:
     text = _workflow_text("pages.yml")
     assert "ref: publish" in text, "pages.yml must deploy the publish branch (PRD-194 R2)"

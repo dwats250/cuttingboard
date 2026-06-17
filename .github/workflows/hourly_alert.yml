@@ -42,8 +42,14 @@ jobs:
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
     steps:
+      # PRD-194: pin to main. workflow_dispatch can be triggered from any branch;
+      # publishing now targets the UNPROTECTED `publish` branch, so an unpinned
+      # checkout would let a dispatch on a feature branch publish that branch's
+      # rendered ui/logs to production. Scheduled runs already run on main.
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: main
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v6
