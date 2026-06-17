@@ -121,13 +121,53 @@ def test_land_branch_only_no_pr_no_protected_push(raw, wf):
     assert "gh pr merge" not in raw and "--auto" not in raw, "land must not auto-merge"
 
 
-# --- provenance: real Codex model/version recorded -------------------------
+# --- provenance: RESOLVED Codex model/version recorded ---------------------
 
 def test_provenance_recorded(raw, wf):
     review = wf["jobs"]["review"]
     run_blocks = "\n".join(s.get("run", "") for s in review["steps"])
     assert "codex --version" in run_blocks, "must query the real Codex CLI version"
     assert "model=" in run_blocks, "must record the model id in the artifact provenance"
+
+
+# --- property #3 (PRD-#21 "verified-real Codex"): provenance records the
+#     RESOLVED model from runtime metadata, and a fail-closed allowlist rejects
+#     any non-allowlisted / unresolvable model so no false artifact is emitted.
+
+def test_resolved_model_provenance_and_failclosed_allowlist(raw, wf):
+    review = wf["jobs"]["review"]
+    # The codex step must emit the JSONL event stream so the resolved model is
+    # parseable, and expose it via a step id we can reference.
+    codex_step = next(
+        s for s in review["steps"] if str(s.get("uses", "")).startswith("openai/codex-action")
+    )
+    assert codex_step.get("id") == "codex", "codex step needs an id so its output stream is referenceable"
+    assert "--json" in str(codex_step["with"].get("codex-args", "")), (
+        "codex-args must request --json so the resolved model can be parsed from response metadata"
+    )
+
+    # The assemble step resolves the model from the runtime stream — NOT the request
+    # string, NOT the prose self-report — and records it as resolved-model=.
+    assemble = next(
+        s for s in review["steps"] if "resolved-model=" in s.get("run", "")
+    )
+    run = assemble["run"]
+    assert "steps.codex.outputs.final-message" in str(assemble.get("env", {})), (
+        "must source the resolved model from the codex step's runtime output stream"
+    )
+    # Provenance must NOT blindly echo the requested input string as the model.
+    assert "model=`${MODEL}`" not in run, "provenance must record the RESOLVED model, not the requested input"
+    assert "resolved-model=" in run and "requested=" in run, "provenance must record resolved + requested distinctly"
+
+    # Fail-closed: unresolvable model OR non-allowlisted model => INVALID, exit 1.
+    assert run.count("exit 1") >= 2, "must fail closed both when the model is unresolvable and when it is not allowlisted"
+    assert "ALLOWED_CODEX_MODELS" in run, "must check the resolved model against the allowlist"
+
+    # The allowlist is a human-configurable workflow env, EMPTY by default
+    # (empty => every model rejected => fail-closed until a human authorizes one).
+    env = wf.get("env") or {}
+    assert "ALLOWED_CODEX_MODELS" in env, "allowlist must be a human-configurable workflow env"
+    assert env["ALLOWED_CODEX_MODELS"] in ("", None), "allowlist must default EMPTY (fail-closed)"
 
 
 # --- artifact identity: the gate artifact is what gets committed -----------
