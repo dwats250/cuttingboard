@@ -10,9 +10,10 @@ name: Codex cross-review
 #     `env:` and is NEVER echoed.
 #   * Two-job split: `review` holds the key (proxied) with contents:read ONLY and
 #     cannot write; `land` never sees the key.
-#   * `land` NEVER pushes to a protected branch (e.g. main). It pushes a dedicated
-#     codex-review/* branch and opens a CI-gated auto-merge PR, so the artifact
-#     reaches main only via the same gate as all other work (PRD-184/PRD-194).
+#   * `land` NEVER pushes to a protected branch (e.g. main) and NEVER opens or
+#     auto-merges a PR. It pushes the artifact to a durable codex-review/* branch
+#     (rooted at the base, so artifact-only) and stops; a human opens the PR at the
+#     seam so ci.yml runs and the merge stays a human decision (PRD-184/PRD-194).
 #
 # Supply-chain: `openai/codex-action` is pinned to a commit SHA (v1.8) at the
 # review step below. `codex-version` is intentionally left unpinned there so the
@@ -125,20 +126,24 @@ jobs:
           path: artifact/PRD-${{ inputs.prd }}.review.codex.md
           if-no-files-found: error
 
-  # --- land: opens a CI-gated PR for the artifact; NEVER pushes to a protected
-  #     branch and NEVER sees the key. The artifact reaches `main` only through
-  #     the same auto-merge-after-CI path as all other work (PRD-184/PRD-194).
+  # --- land: pushes the artifact to a durable codex-review/* branch and STOPS.
+  #     It NEVER pushes to a protected branch, NEVER opens/auto-merges a PR, and
+  #     NEVER sees the key. A human opens the PR from that branch at the seam, so
+  #     ci.yml runs normally (a workflow-opened PR under GITHUB_TOKEN would not
+  #     trigger CI) and the merge stays a human decision (PRD-184/PRD-194).
   land:
     needs: review
     runs-on: ubuntu-latest
     permissions:
-      contents: write          # push the codex-review/* working branch (NOT the base)
-      pull-requests: write      # open the artifact PR
+      contents: write          # push the codex-review/* working branch only
     steps:
-      - name: Checkout at the reviewed SHA
+      - name: Checkout the base branch (artifact lands as an artifact-only commit)
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.sha }}
+          # Root the artifact branch at the BASE, never at inputs.sha: rooting at an
+          # unmerged PRD tip would carry that PRD's implementation into the artifact
+          # branch, so the later human PR could land implementation, not just the doc.
+          ref: ${{ inputs.base }}
 
       - name: Download review artifact
         uses: actions/download-artifact@v7
@@ -146,9 +151,8 @@ jobs:
           name: codex-review-${{ inputs.prd }}
           path: incoming
 
-      - name: Land the artifact via a CI-gated PR (never a direct push to a protected branch)
+      - name: Push the artifact to a durable codex-review/* branch (no PR, no auto-merge)
         env:
-          GH_TOKEN: ${{ github.token }}
           PRD: ${{ inputs.prd }}
           SHA: ${{ inputs.sha }}
           BASE: ${{ inputs.base }}
@@ -173,9 +177,10 @@ jobs:
           git commit -m "PRD-${PRD}: Codex cross-review artifact (reviewed ${SHA})"
           # Push ONLY the codex-review/* work branch — never the base branch directly.
           git push origin "HEAD:${work}"
-          # Land it through the gate: open a PR to base and let branch protection
-          # hold the merge until CI is green (auto-merge), then delete the branch.
-          gh pr create --base "${base}" --head "${work}" \
-            --title "PRD-${PRD}: Codex cross-review artifact (reviewed ${SHA})" \
-            --body "Automated Codex cross-review artifact for PRD-${PRD}, reviewed at \`${SHA}\`. Lands via CI-gated PR — never a direct push to \`${base}\` (PRD-184/PRD-194)."
-          gh pr merge "${work}" --auto --squash --delete-branch
+          {
+            echo "### Codex review artifact landed on a branch";
+            echo "";
+            echo "Branch: \`${work}\` (artifact-only, rooted at \`${base}\`, reviewed \`${SHA}\`).";
+            echo "";
+            echo "Open a PR \`${work}\` → \`${base}\` to land it. CI runs on the human-opened PR; merge at the seam.";
+          } >> "${GITHUB_STEP_SUMMARY}"

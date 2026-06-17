@@ -84,25 +84,30 @@ def test_land_job_never_references_the_secret(wf):
 def test_two_job_permission_split(wf):
     jobs = wf["jobs"]
     assert jobs["review"]["permissions"]["contents"] == "read", "key-holding job must be read-only"
-    # the land job has no read of the secret but needs to push a branch + open a PR
+    # land pushes only the codex-review/* branch — contents:write, nothing more.
     land_perms = jobs["land"]["permissions"]
     assert land_perms["contents"] == "write", "land job pushes the codex-review/* branch"
-    assert land_perms["pull-requests"] == "write", "land job opens the artifact PR"
+    # It must NOT open/auto-merge PRs, so it has no pull-requests scope.
+    assert "pull-requests" not in land_perms, "land job must not hold pull-requests scope (no PR)"
     needs = jobs["land"]["needs"]
     assert "review" in needs or needs == "review"
     # top-level default is no permissions
     assert wf.get("permissions") == {}, "top-level permissions must default to none"
 
 
-# --- gate integrity: land via CI-gated PR, NEVER a direct push to a protected branch
+# --- gate integrity: branch-only landing, NEVER a protected-branch push, NEVER a workflow PR/auto-merge
 
-def test_land_via_pr_no_direct_push_to_protected(raw, wf):
+def test_land_branch_only_no_pr_no_protected_push(raw, wf):
     land = wf["jobs"]["land"]
+    # Rooted at the BASE (not inputs.sha), so the artifact branch is artifact-only —
+    # an unmerged-tip root would let a later PR carry that PRD's implementation.
+    checkout = next(
+        s for s in land["steps"] if str(s.get("uses", "")).startswith("actions/checkout")
+    )
+    assert checkout["with"]["ref"] == "${{ inputs.base }}", "artifact branch must be rooted at the base"
     run_blocks = "\n".join(s.get("run", "") for s in land["steps"])
-    # Lands on a dedicated codex-review/* branch and opens an auto-merge PR.
+    # Lands on a dedicated codex-review/* branch.
     assert "codex-review/" in run_blocks, "artifact must land on a codex-review/* branch"
-    assert "gh pr create" in run_blocks, "artifact must be landed via a PR"
-    assert "gh pr merge" in run_blocks and "--auto" in run_blocks, "PR must use CI-gated auto-merge"
     # Fail-closed guard present.
     assert "exit 1" in run_blocks, "must fail closed if the work branch is not under codex-review/"
     # The ONLY git push targets the codex-review/* work branch — never the base / a protected branch.
@@ -111,6 +116,9 @@ def test_land_via_pr_no_direct_push_to_protected(raw, wf):
         "must never push directly to the base / a protected branch"
     )
     assert "push origin main" not in run_blocks
+    # The workflow must NOT open or auto-merge a PR — that is the human seam.
+    assert "gh pr create" not in raw, "land must not open a PR (human opens it at the seam)"
+    assert "gh pr merge" not in raw and "--auto" not in raw, "land must not auto-merge"
 
 
 # --- provenance: real Codex model/version recorded -------------------------
