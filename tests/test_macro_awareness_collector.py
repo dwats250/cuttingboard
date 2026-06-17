@@ -987,7 +987,6 @@ class TestR7CiPushArtifacts:
         _git_check(["add", "-f", ".gitignore", "logs/audit.jsonl"], work)
         _git_check(["commit", "-m", "gitignore + seed"], work)
         _git_check(["push", "origin", "main"], work)
-        base_sha_main = _git_check(["rev-parse", "HEAD"], work).stdout.strip()
         _git_check(["checkout", "-b", "publish"], work)
         _git_check(["push", "origin", "publish"], work)
         base_sha = _git_check(["rev-parse", "HEAD"], work).stdout.strip()

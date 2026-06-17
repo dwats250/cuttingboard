@@ -369,6 +369,20 @@ def test_push_helper_force_adds_ignored_artifacts() -> None:
     )
 
 
+def test_verify_mode_does_not_publish() -> None:
+    # PRD-194 (Codex P2): verify validates only — it does NOT regenerate the
+    # latest_run/payload/contract snapshots, so it must not enable publish (else a
+    # verify-only dispatch publishes a dashboard rendered from main's frozen snapshots).
+    text = _workflow_text("cuttingboard.yml")
+    verify_step = text[
+        text.index("- name: Verify run"):text.index("- name: Generate commit message")
+    ]
+    assert "PUBLISH_READY=true" not in verify_step, (
+        "the Verify run step sets PUBLISH_READY=true; a verify-only dispatch would "
+        "publish a dashboard rendered from main's frozen snapshots (Codex P2)."
+    )
+
+
 def test_push_helper_retries_on_non_fast_forward() -> None:
     # PRD-194 R5 (Codex P2): cross-workflow publish races are handled by a bounded
     # retry in the push helper, NOT a shared concurrency lock that over-serialized

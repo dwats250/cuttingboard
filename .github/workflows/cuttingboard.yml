@@ -205,7 +205,11 @@ jobs:
           timeout 8m python -m cuttingboard --mode verify --notify-mode premarket
           date -u +"%Y-%m-%dT%H:%M:%SZ"
           echo "=== END verify ==="
-          echo "PUBLISH_READY=true" >> "$GITHUB_ENV"
+          # PRD-194 (Codex P2): verify mode VALIDATES only — it does NOT regenerate the
+          # latest_run/payload/contract snapshots, so it must NOT publish (it would push a
+          # dashboard rendered from main's frozen snapshots). PUBLISH_READY stays 'false'
+          # for a verify-only dispatch; live/sunday set it true in their own Run steps
+          # above (publish is still gated on this verify step succeeding via `if: success()`).
 
       # PRD-189: orb_trajectory / post_orb / midmorning / power_hour dispatch
       # steps were removed — they invoked the full live pipeline via cli_main

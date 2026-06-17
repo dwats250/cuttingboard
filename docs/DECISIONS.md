@@ -68,6 +68,13 @@ Final mechanism (implemented PR #16, 2026-06-17 — supersedes the originally-sk
   NOT expand the wildcard, so the gate uses a shell `case` match; fixed + behaviorally
   tested. DEFERRED to a tracked follow-up PRD (not folded here): run_*.json unbounded
   accumulation on publish needs a storage cap/prune (delete-propagation).
+- Publish-write hardening (Codex): (a) the worktree overlay force-adds the gitignored
+  artifact dirs (`git add -f -- logs`/reports) after `add -A`, else NEW untracked
+  ignored artifacts (a fresh run_<ts>.json each run; macro_*.json on a bootstrapped
+  publish) are silently skipped and never published. (b) verify mode must NOT publish:
+  it validates only and does not regenerate latest_run/payload/contract, so it would
+  publish a dashboard rendered from main's frozen snapshots; PUBLISH_READY stays false
+  for a verify-only dispatch (live/sunday set it in their own Run steps).
 - Dispatch publishers pinned to `ref: main`, AND the publish/push step of all three
   writers is ref-guarded `if: github.ref == 'refs/heads/main'` (Codex P1): a non-main
   workflow_dispatch runs the pipeline (test/lint/render) but never pushes to the
