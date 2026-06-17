@@ -74,7 +74,12 @@ Final mechanism (implemented PR #16, 2026-06-17 — supersedes the originally-sk
   publish) are silently skipped and never published. (b) verify mode must NOT publish:
   it validates only and does not regenerate latest_run/payload/contract, so it would
   publish a dashboard rendered from main's frozen snapshots; PUBLISH_READY stays false
-  for a verify-only dispatch (live/sunday set it in their own Run steps).
+  for a verify-only dispatch (live/sunday set it in their own Run steps). (c) bootstrap
+  race: if two writers race to CREATE an absent publish branch, the loser's push is a
+  non-fast-forward — it now falls through to the delta-append/retry path (not a set -e
+  exit), with the audit delta anchored on PRE_SHA (= main) so it appends only its own
+  rows rather than re-appending main's frozen base the winner already published. (Mostly
+  defensive — the rollout seeds publish, so the bootstrap path is rarely hit.)
 - Dispatch publishers pinned to `ref: main`, AND the publish/push step of all three
   writers is ref-guarded `if: github.ref == 'refs/heads/main'` (Codex P1): a non-main
   workflow_dispatch runs the pipeline (test/lint/render) but never pushes to the

@@ -369,6 +369,22 @@ def test_push_helper_force_adds_ignored_artifacts() -> None:
     )
 
 
+def test_bootstrap_race_falls_through_to_retry() -> None:
+    # PRD-194 (Codex P2): if two writers race to CREATE an absent publish branch, the
+    # loser's bootstrap push is rejected; it must fall through to the delta-append/retry
+    # path (not exit under set -e), anchoring the audit delta on PRE_SHA (= main) so it
+    # appends only its rows.
+    text = (REPO_ROOT / "tools" / "ci_push_artifacts.sh").read_text(encoding="utf-8")
+    assert "if git push origin \"$post_sha:refs/heads/$PUBLISH_BRANCH\"" in text, (
+        "bootstrap push must be conditional (fall through on a race), not a bare push "
+        "that exits under set -e (Codex P2)."
+    )
+    assert 'audit_base="${base_sha:-$pre_sha}"' in text, (
+        "the audit delta base must fall back to PRE_SHA (main) when no publish tip was "
+        "restored, so a bootstrap fall-through appends only this run's rows (Codex P2)."
+    )
+
+
 def test_verify_mode_does_not_publish() -> None:
     # PRD-194 (Codex P2): verify validates only — it does NOT regenerate the
     # latest_run/payload/contract snapshots, so it must not enable publish (else a

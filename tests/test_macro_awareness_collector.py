@@ -975,6 +975,46 @@ class TestR7CiPushArtifacts:
             f"delta-append clobbered the concurrent row or dropped ours: {audit!r}"
         )
 
+    def test_bootstrap_race_delta_anchors_on_main_no_duplication(self, tmp_path: Path) -> None:
+        """PRD-194 (Codex P2): a writer that restored while publish was ABSENT (empty
+        CB_PUBLISH_BASE_SHA) but publishes after a concurrent writer created the branch
+        must append only ITS rows — anchored on main (PRE_SHA) — not re-append main's
+        frozen base the other writer already published."""
+        bare, work = _setup_bare_repo_and_clone(tmp_path)
+        # main carries the frozen base audit (2 rows).
+        (work / "logs").mkdir(exist_ok=True)
+        (work / "logs" / "audit.jsonl").write_text('{"r":1}\n{"r":2}\n')
+        _git_check(["add", "-f", "logs/audit.jsonl"], work)
+        _git_check(["commit", "-m", "main base audit"], work)
+        _git_check(["push", "origin", "main"], work)
+
+        # Writer A already bootstrapped publish = main base + A's row.
+        work2 = tmp_path / "work2"
+        _git_check(["clone", str(bare), str(work2)], tmp_path)
+        _git_check(["config", "user.email", "a@a.com"], work2)
+        _git_check(["config", "user.name", "A"], work2)
+        _git_check(["checkout", "-b", "publish"], work2)
+        (work2 / "logs").mkdir(exist_ok=True)
+        (work2 / "logs" / "audit.jsonl").write_text('{"r":1}\n{"r":2}\n{"A":1}\n')
+        _git_check(["add", "-f", "logs/audit.jsonl"], work2)
+        _git_check(["commit", "-m", "A bootstrap"], work2)
+        _git_check(["push", "origin", "publish"], work2)
+
+        # Writer B restored while absent (NO CB_PUBLISH_BASE_SHA) and appends its row.
+        pre_sha, post_sha = self._make_artifact_commit(work, '{"r":1}\n{"r":2}\n{"B":1}\n')
+        result = self._run_script(
+            work, pre_sha=pre_sha, post_sha=post_sha,
+            extra_env={"PUBLISH_BRANCH": "publish"},  # base SHA intentionally absent
+        )
+        assert result.returncode == 0, (
+            f"expected exit 0; stdout={result.stdout}\nstderr={result.stderr}"
+        )
+        _git_check(["fetch", "origin", "publish"], work)
+        audit = _git_check(["show", "origin/publish:logs/audit.jsonl"], work).stdout
+        assert audit == '{"r":1}\n{"r":2}\n{"A":1}\n{"B":1}\n', (
+            f"bootstrap-race delta re-appended main's base or dropped a row: {audit!r}"
+        )
+
     def test_force_adds_new_gitignored_logs_artifact(self, tmp_path: Path) -> None:
         """PRD-194 (Codex P1): logs/ is gitignored, so a NEW untracked artifact (a
         fresh run_<ts>.json each run; macro_*.json on a bootstrapped publish) is skipped

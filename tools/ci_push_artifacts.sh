@@ -52,18 +52,29 @@ msg="$(git show -s --format=%s "$post_sha")"
 mapfile -t changed < <(git diff --name-only "$pre_sha" "$post_sha")
 echo "artifact publish: ${#changed[@]} file(s) -> $PUBLISH_BRANCH"
 
-# Bootstrap: publish branch absent -> seed it from the artifact commit itself.
+# Bootstrap: publish branch absent -> seed it from the artifact commit itself. If two
+# state-writers race to CREATE the ref (e.g. the first pipeline + hourly after this PR
+# lands on an un-seeded repo), the loser's push is a non-fast-forward — DON'T exit under
+# set -e (that drops its run); fall through to the delta-append/retry path below, which
+# fetches the now-existing branch and appends THIS run's rows (Codex P2).
 if ! git ls-remote --exit-code --heads origin "$PUBLISH_BRANCH" >/dev/null 2>&1; then
-  echo "artifact publish: '$PUBLISH_BRANCH' absent - bootstrapping from $post_sha"
-  git push origin "$post_sha:refs/heads/$PUBLISH_BRANCH"
-  echo "artifact publish: created '$PUBLISH_BRANCH'"
-  exit 0
+  echo "artifact publish: '$PUBLISH_BRANCH' absent - attempting bootstrap from $post_sha"
+  if git push origin "$post_sha:refs/heads/$PUBLISH_BRANCH" 2>/dev/null; then
+    echo "artifact publish: created '$PUBLISH_BRANCH'"
+    exit 0
+  fi
+  echo "artifact publish: bootstrap race ('$PUBLISH_BRANCH' created concurrently) - falling through to delta-append/retry"
 fi
 
-# THIS run's new audit rows are fixed across retries: the count beyond the restore
-# base (append-only => base is a prefix of POST_SHA's file).
-if [ -n "$base_sha" ] && git cat-file -e "$base_sha:$AUDIT_PATH" 2>/dev/null; then
-  base_count="$(git show "$base_sha:$AUDIT_PATH" | wc -l)"
+# THIS run's new audit rows are fixed across retries: the count beyond the delta base
+# (append-only => the base is a prefix of POST_SHA's file). The base is the publish tip
+# we restored from (CB_PUBLISH_BASE_SHA); on a bootstrap fall-through we never restored a
+# tip, so the base is the run's parent (PRE_SHA = main) whose audit the concurrent
+# bootstrap writer already published — anchoring on main appends only THIS run's rows
+# rather than re-appending main's frozen base.
+audit_base="${base_sha:-$pre_sha}"
+if [ -n "$audit_base" ] && git cat-file -e "$audit_base:$AUDIT_PATH" 2>/dev/null; then
+  base_count="$(git show "$audit_base:$AUDIT_PATH" | wc -l)"
 else
   base_count=0
 fi
