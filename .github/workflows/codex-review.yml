@@ -1,0 +1,155 @@
+name: Codex cross-review
+
+# PRD-197 — host-independent Codex cross-review (the PRD-#21 gate artifact in CI).
+#
+# SECURITY (HIGH-RISK, public repo):
+#   * Dispatch-only. NEVER add `pull_request` / `pull_request_target`: a fork run
+#     would expose OPENAI_API_KEY to untrusted code.
+#   * OPENAI_API_KEY is consumed ONLY as the `openai-api-key` input of the
+#     official openai/codex-action, which proxies it. It is NEVER a job/step
+#     `env:` and is NEVER echoed.
+#   * Two-job split: `review` holds the key (proxied) with contents:read ONLY and
+#     cannot write; `commit` has contents:write but NEVER sees the key.
+#
+# NOTE before merge: pin `openai/codex-action` to a reviewed release commit SHA
+# (supply-chain hardening) and confirm the `codex-version` tag exists.
+
+on:
+  workflow_dispatch:
+    inputs:
+      prd:
+        description: "Target PRD number (e.g. 197)"
+        required: true
+        type: string
+      sha:
+        description: "Head SHA of the target branch to review (pinned; the artifact is tied to this)"
+        required: true
+        type: string
+      branch:
+        description: "Target PRD branch to commit the .review.codex.md back to"
+        required: true
+        type: string
+      pr:
+        description: "Target PR number (provenance/context; optional)"
+        required: false
+        type: string
+      model:
+        description: "Codex model id — a real Codex model; do not route to a substitute"
+        required: false
+        default: gpt-5-codex
+        type: string
+
+# No permissions by default; each job opts in to least privilege.
+permissions: {}
+
+concurrency:
+  group: codex-review-${{ inputs.prd }}-${{ inputs.sha }}
+  cancel-in-progress: false
+
+jobs:
+  # --- review: holds the key (via the action proxy), READ-ONLY, cannot write ---
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout target branch at the pinned SHA (fresh context)
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.sha }}
+          persist-credentials: false
+
+      - name: Codex cross-review (read-only; key proxied by the action)
+        uses: openai/codex-action@v1 # TODO(pin): replace with a reviewed release commit SHA
+        with:
+          # Secret consumed only here, as the action input it proxies — never an env: var.
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          sandbox: read-only
+          model: ${{ inputs.model }}
+          codex-version: "0.2.0"
+          working-directory: ${{ github.workspace }}
+          output-file: codex-final-message.md
+          allow-users: dwats250
+          prompt: |
+            You are performing an INDEPENDENT Codex cross-review of PRD-${{ inputs.prd }}
+            for the Cuttingboard repository, reviewing the checked-out target branch at
+            commit ${{ inputs.sha }} with fresh context (no prior authoring conversation).
+
+            Read docs/prd_history/PRD-${{ inputs.prd }}.md, VISION.md, CLAUDE.md, and the
+            files the PRD touches. Produce a structured review:
+              - VERDICT: APPROVE / APPROVE WITH EDITS / REQUEST CHANGES
+              - REQUIRED EDITS (blocking)
+              - RECOMMENDED EDITS (non-blocking)
+              - RATIONALE
+              - DRIFT CHECK: does the change conflict with a VISION.md non-goal/principle,
+                and does it leave any docs/PROJECT_STATE.md claim stale?
+            State explicitly which Codex model you are running as.
+
+      - name: Assemble gate-satisfying artifact (with provenance)
+        env:
+          PRD: ${{ inputs.prd }}
+          SHA: ${{ inputs.sha }}
+          PR: ${{ inputs.pr }}
+          MODEL: ${{ inputs.model }}
+        run: |
+          set -euo pipefail
+          # Provenance: query the installed Codex CLI version (no secret involved).
+          codex_ver="$(codex --version 2>/dev/null || echo 'unknown')"
+          mkdir -p artifact
+          out="artifact/PRD-${PRD}.review.codex.md"
+          {
+            echo "# PRD-${PRD} — Codex cross-review"
+            echo
+            echo "- Reviewed commit (SHA-pinned): \`${SHA}\`"
+            echo "- Target PR: ${PR:-n/a}"
+            echo "- Provenance: model=\`${MODEL}\`, codex-cli=\`${codex_ver}\`, via openai/codex-action (read-only)"
+            echo "- Mechanism: GitHub Actions (host-independent, PRD-197); fresh-context"
+            echo
+            echo "---"
+            echo
+            cat codex-final-message.md
+          } > "${out}"
+
+      - name: Upload review artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: codex-review-${{ inputs.prd }}
+          path: artifact/PRD-${{ inputs.prd }}.review.codex.md
+          if-no-files-found: error
+
+  # --- commit: writes the artifact to the PRD branch; NEVER sees the key ---
+  commit:
+    needs: review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout target PRD branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Download review artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: codex-review-${{ inputs.prd }}
+          path: incoming
+
+      - name: Commit the .review.codex.md to the PRD branch (SHA-tied)
+        env:
+          PRD: ${{ inputs.prd }}
+          SHA: ${{ inputs.sha }}
+          BRANCH: ${{ inputs.branch }}
+        run: |
+          set -euo pipefail
+          dest="docs/prd_history/PRD-${PRD}.review.codex.md"
+          mv "incoming/PRD-${PRD}.review.codex.md" "${dest}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${dest}"
+          if git diff --cached --quiet; then
+            echo "No change to ${dest}; nothing to commit."
+            exit 0
+          fi
+          git commit -m "PRD-${PRD}: Codex cross-review artifact (reviewed ${SHA})"
+          git push origin "HEAD:${BRANCH}"
