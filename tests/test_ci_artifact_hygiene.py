@@ -456,11 +456,19 @@ def test_pipeline_restores_dedup_and_evaluation_state() -> None:
         "logs/evaluation.jsonl",
         "logs/market_map.json",
         "logs/run_*.json",  # accumulating run-history archive (renderer globs it)
+        "logs/latest_hourly_contract.json",  # hourly-owned, read for entry prices (read-only)
     ):
         assert path in restore_line, (
             f"the pipeline must restore {path} from publish, or its accumulated "
             "state is lost/stale against main's frozen copy."
         )
+    # latest_hourly_contract.json is HOURLY-owned: the pipeline reads it read-only for
+    # the render and MUST revert it before commit so it never republishes the hourly's
+    # mutable contract (closure-sweep finding).
+    assert "git checkout HEAD -- logs/latest_hourly_contract.json" in text, (
+        "pipeline must revert the read-only latest_hourly_contract.json to HEAD before "
+        "commit so it doesn't republish the hourly-owned contract (PRD-194)."
+    )
 
 
 def test_state_writers_restore_publish_state_before_running() -> None:

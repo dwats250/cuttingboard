@@ -1070,6 +1070,60 @@ class TestR7CiPushArtifacts:
 
 
 # ---------------------------------------------------------------------------
+# PRD-194 -- ci_restore_publish_state.sh glob handling (run_*.json history)
+# ---------------------------------------------------------------------------
+
+_RESTORE_SCRIPT = _REPO_ROOT / "tools" / "ci_restore_publish_state.sh"
+
+
+class TestRestorePublishStateGlob:
+    """Behavioral coverage of the glob-pathspec restore (Codex: ls-tree does NOT
+    expand `logs/run_*.json`, so a literal gate silently skipped the restore)."""
+
+    def _run_restore(self, cwd: Path, *paths: str, publish_branch: str = "publish"):
+        env = {**os.environ, "GIT_TERMINAL_PROMPT": "0", "PUBLISH_BRANCH": publish_branch}
+        env.pop("GITHUB_ENV", None)
+        return subprocess.run(
+            ["bash", str(_RESTORE_SCRIPT), *paths],
+            cwd=cwd, capture_output=True, text=True, check=False, env=env,
+        )
+
+    def test_glob_restore_pulls_run_history_from_publish(self, tmp_path: Path) -> None:
+        bare, work = _setup_bare_repo_and_clone(tmp_path)
+        # publish carries two run archives + audit; main does NOT (frozen).
+        (work / "logs").mkdir(exist_ok=True)
+        (work / "logs" / "run_2026-01-01_000000.json").write_text('{"run":"a"}\n')
+        (work / "logs" / "run_2026-01-02_000000.json").write_text('{"run":"b"}\n')
+        (work / "logs" / "audit.jsonl").write_text('{"r":1}\n')
+        _git_check(["checkout", "-b", "publish"], work)
+        _git_check(["add", "-A"], work)
+        _git_check(["commit", "-m", "seed publish"], work)
+        _git_check(["push", "origin", "publish"], work)
+        _git_check(["checkout", "main"], work)
+        assert not (work / "logs" / "run_2026-01-02_000000.json").exists()
+
+        res = self._run_restore(work, "logs/audit.jsonl", "logs/run_*.json")
+        assert res.returncode == 0, f"stdout={res.stdout}\nstderr={res.stderr}"
+        # The glob restore must actually pull BOTH archives (the bug skipped them).
+        assert (work / "logs" / "run_2026-01-01_000000.json").read_text() == '{"run":"a"}\n'
+        assert (work / "logs" / "run_2026-01-02_000000.json").read_text() == '{"run":"b"}\n'
+
+    def test_glob_no_match_is_clean_skip(self, tmp_path: Path) -> None:
+        bare, work = _setup_bare_repo_and_clone(tmp_path)
+        (work / "logs").mkdir(exist_ok=True)
+        (work / "logs" / "audit.jsonl").write_text('{"r":1}\n')
+        _git_check(["checkout", "-b", "publish"], work)
+        _git_check(["add", "-A"], work)
+        _git_check(["commit", "-m", "seed (no run archives)"], work)
+        _git_check(["push", "origin", "publish"], work)
+        _git_check(["checkout", "main"], work)
+
+        res = self._run_restore(work, "logs/audit.jsonl", "logs/run_*.json")
+        assert res.returncode == 0, f"stdout={res.stdout}\nstderr={res.stderr}"
+        assert "no match" in res.stdout, f"expected clean no-match skip, got: {res.stdout!r}"
+
+
+# ---------------------------------------------------------------------------
 # R7 -- _validate_only / main(["--validate-only", ...]) entrypoint
 # ---------------------------------------------------------------------------
 

@@ -56,10 +56,18 @@ Final mechanism (implemented PR #16, 2026-06-17 — supersedes the originally-sk
   run's POST_SHA — a run based on an older main must not roll publish back to stale
   JS/CSS; Codex P2) (main authority); generated ui pages are published only by a run
   that regenerated them.
-- Read-back sweep correction: the literal-path + *_PATH sweep missed glob reads; a
-  follow-up glob sweep found logs/run_*.json (renderer globs it for "Changes Since Last
+- Read-back sweep correction + closure: the literal-path + *_PATH sweep missed glob
+  reads; a glob sweep found logs/run_*.json (renderer globs it for "Changes Since Last
   Run") — pipeline-owned, accumulating, immutable per file, now restored by both writers
-  (idempotent). It is the only glob-based read-back class; the set is now complete.
+  (idempotent). The exhaustive closure sweep (named + *_PATH + .glob() + write-sites)
+  then found one more symmetric cross-read: the renderer's _load_contract_entry_context
+  reads HOURLY-owned latest_hourly_contract.json for entry prices on the PIPELINE render
+  too — now restored read-only + reverted before commit. Cross-workflow render reads are
+  now all covered (hourly→{latest_run,macro_drivers,run_*}; pipeline→{latest_hourly_contract});
+  ZERO remaining read-back gaps. Glob-gate bug (Codex): `git ls-tree -- '<glob>'` does
+  NOT expand the wildcard, so the gate uses a shell `case` match; fixed + behaviorally
+  tested. DEFERRED to a tracked follow-up PRD (not folded here): run_*.json unbounded
+  accumulation on publish needs a storage cap/prune (delete-propagation).
 - Dispatch publishers pinned to `ref: main`, AND the publish/push step of all three
   writers is ref-guarded `if: github.ref == 'refs/heads/main'` (Codex P1): a non-main
   workflow_dispatch runs the pipeline (test/lint/render) but never pushes to the

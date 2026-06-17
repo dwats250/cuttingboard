@@ -105,6 +105,11 @@ jobs:
       #     the renderer globs for "Changes Since Last Run" + history. Frozen on main
       #     => deltas computed against a pre-decoupling run (Codex P2). Quoted so the
       #     glob reaches the restore helper, not the workflow shell. Pipeline-owned.
+      #   - logs/latest_hourly_contract.json: HOURLY-owned, but the renderer's
+      #     _load_contract_entry_context reads it for the dashboard's contract entry
+      #     prices on the PIPELINE render too. READ-ONLY — reverted to HEAD after the
+      #     render so the pipeline never republishes the hourly's mutable contract
+      #     (closure-sweep finding, same class as hourly's latest_run read-only).
       # logs/regime_history.jsonl is rebuilt from audit by the Commit step's Aggregate
       # (which already runs before the render here). Records CB_PUBLISH_BASE_SHA for
       # the audit delta-append. Only the publishing modes need it.
@@ -113,7 +118,7 @@ jobs:
           steps.mode.outputs.job_mode == 'live' ||
           steps.mode.outputs.job_mode == 'sunday' ||
           steps.mode.outputs.job_mode == 'verify'
-        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/evaluation.jsonl logs/last_notification_state.json logs/market_map.json 'logs/run_*.json'
+        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/evaluation.jsonl logs/last_notification_state.json logs/market_map.json logs/latest_hourly_contract.json 'logs/run_*.json'
 
       - name: Install dev dependencies
         run: |
@@ -259,6 +264,11 @@ jobs:
           python3 -m cuttingboard.delivery.dashboard_renderer --output ui/dashboard.html
           cp ui/dashboard.html ui/index.html
           git add ui/dashboard.html ui/index.html
+          # PRD-194 (closure sweep): the render consumed HOURLY-owned
+          # latest_hourly_contract.json (entry prices) restored read-only. Revert it to
+          # HEAD so the pipeline never republishes the hourly's mutable contract (the
+          # hourly owns + publishes it); tracked on main, so checkout cleanly unstages.
+          git checkout HEAD -- logs/latest_hourly_contract.json
           if [ -f .cb_commit_msg ]; then
             git diff --staged --quiet || git commit -F .cb_commit_msg
           else

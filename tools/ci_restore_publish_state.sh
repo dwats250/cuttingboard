@@ -34,10 +34,22 @@ if git ls-remote --exit-code --heads origin "$PUBLISH_BRANCH" >/dev/null 2>&1; t
     case "$path" in
       *'*'*)
         # Glob pathspec (e.g. logs/run_*.json — the accumulating run-history archive).
-        # ls-tree resolves the wildcard against the branch; if it matches anything we
-        # checkout (set -e fails the job on a genuine checkout error — Amendment 1);
-        # no-match is the legitimate early/bootstrap state, logged + skipped.
-        if git ls-tree -r --name-only "origin/$PUBLISH_BRANCH" -- "$path" | grep -q .; then
+        # NOTE: `git ls-tree -- '<glob>'` does NOT expand the wildcard (it treats the
+        # arg literally), so we list the parent dir and glob-match each entry with a
+        # shell `case` (which DOES glob). `git checkout -- '<glob>'` DOES expand the
+        # wildcard, so once we know a match exists we let it restore every matching
+        # file (incl. newer ones on the branch). set -e fails the job on a genuine
+        # checkout error (Amendment 1); a no-match is the legitimate early/bootstrap
+        # state, logged + skipped.
+        glob_dir="${path%/*}"
+        glob_matched=0
+        while IFS= read -r tracked; do
+          # shellcheck disable=SC2254  # intentional glob match of $path
+          case "$tracked" in
+            $path) glob_matched=1; break ;;
+          esac
+        done < <(git ls-tree -r --name-only "origin/$PUBLISH_BRANCH" -- "$glob_dir/")
+        if [ "$glob_matched" = 1 ]; then
           echo "publish-state restore: $path (glob)"
           git checkout "origin/$PUBLISH_BRANCH" -- "$path"
         else
