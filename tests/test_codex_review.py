@@ -8,8 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
-yaml = pytest.importorskip("yaml")
+import yaml  # hard dep (PyYAML in the dev extra) — must not silently skip in CI
 
 WORKFLOW = Path(__file__).resolve().parent.parent / ".github" / "workflows" / "codex-review.yml"
 
@@ -89,6 +88,18 @@ def test_two_job_permission_split(wf):
     assert "review" in jobs["commit"]["needs"] or jobs["commit"]["needs"] == "review"
     # top-level default is no permissions
     assert wf.get("permissions") == {}, "top-level permissions must default to none"
+
+
+# --- gate integrity: refuse to commit a review for a superseded SHA --------
+
+def test_commit_job_guards_against_stale_sha(wf):
+    commit = wf["jobs"]["commit"]
+    run_blocks = "\n".join(s.get("run", "") for s in commit["steps"])
+    assert "rev-parse HEAD" in run_blocks, "commit job must read the current HEAD"
+    # the guard compares HEAD to the reviewed SHA input before writing/pushing
+    assert "SHA" in run_blocks and "exit 1" in run_blocks, (
+        "commit job must fail if the branch tip no longer equals the reviewed SHA"
+    )
 
 
 # --- provenance: real Codex model/version recorded -------------------------

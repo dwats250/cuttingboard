@@ -66,7 +66,10 @@ jobs:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           sandbox: read-only
           model: ${{ inputs.model }}
-          codex-version: "0.2.0"
+          # codex-version intentionally unpinned: the action installs a current
+          # sandbox-capable CLI (0.2.x predates the --sandbox flag, which would
+          # make `sandbox: read-only` unenforceable). The actual version is
+          # captured at runtime via `codex --version` for provenance below.
           working-directory: ${{ github.workspace }}
           output-file: codex-final-message.md
           allow-users: dwats250
@@ -142,6 +145,14 @@ jobs:
           BRANCH: ${{ inputs.branch }}
         run: |
           set -euo pipefail
+          # Gate integrity: the artifact is SHA-pinned, so refuse to commit it if
+          # the branch tip has moved past the reviewed SHA (a later commit would
+          # otherwise carry a review of superseded code).
+          head="$(git rev-parse HEAD)"
+          if [ "${head}" != "${SHA}" ]; then
+            echo "::error::target branch ${BRANCH} tip (${head}) != reviewed SHA ${SHA}; refusing to commit a stale Codex review"
+            exit 1
+          fi
           dest="docs/prd_history/PRD-${PRD}.review.codex.md"
           mv "incoming/PRD-${PRD}.review.codex.md" "${dest}"
           git config user.name "github-actions[bot]"
