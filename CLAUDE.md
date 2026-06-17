@@ -42,6 +42,27 @@ with date and rationale - short notes, not ceremony.
   requires independent review before merge: a Claude review artifact, plus a
   Codex cross-review for contract / decision-surface changes. The lane is
   declared in the PRD header; STANDARD and MICRO lanes are lighter.
+- **What satisfies the Codex cross-review gate (artifact + properties, not
+  mechanism).** The Codex cross-review above is satisfied only by a durable
+  artifact that has ALL of the following properties — independent of how Codex
+  was invoked:
+  1. **In-tree + durable:** a committed `docs/prd_history/PRD-NNN.review.codex.md`
+     (or the batch's review folder), not an ephemeral comment or external link.
+  2. **SHA-pinned:** the artifact names the exact commit it reviewed; a review of
+     a superseded commit does not satisfy the gate for later commits.
+  3. **Verified-real Codex:** produced by a genuine Codex model, not a routed or
+     cheaper substitute model presented under the Codex label.
+  4. **Read-only:** the review ran with no repo write access (`codex exec -s
+     read-only`; never `-s workspace-write`, which silently re-persists
+     `trust_level=trusted` for the cwd and breaks read-only durability).
+  5. **Fresh-context:** reviewed from a clean context, not the authoring
+     conversation.
+  A connector-only, ephemeral PR comment (e.g. a GitHub-app Codex reviewer that
+  posts inline comments) does NOT satisfy the gate, however useful: it is not
+  in-tree, not durable, and not SHA-pinned. It may inform a review, but the gate
+  still requires the artifact above. Defining satisfaction by properties rather
+  than by invocation mechanism keeps the gate stable as the available Codex
+  surfaces change (CLI egress, GitHub connector, future channels).
 - **Drift check in every review (PRD-186).** Every review artifact records a
   drift check, not just correctness: does the change conflict with a `VISION.md`
   non-goal/principle, and does it leave any `docs/PROJECT_STATE.md` claim stale?
