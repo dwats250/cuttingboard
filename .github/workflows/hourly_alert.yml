@@ -182,8 +182,11 @@ jobs:
           echo "PRE_SHA=$PRE_SHA" >> "$GITHUB_ENV"
           echo "POST_SHA=$POST_SHA" >> "$GITHUB_ENV"
 
+      # PRD-194 (Codex P1): ref guard — a non-main workflow_dispatch runs the alert
+      # but does NOT publish to the unprotected branch. Residual (workflow-edit
+      # attacker) is closed only by out-of-tree governance; see DECISIONS.
       - name: Push hourly artifacts
-        if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
+        if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' && github.ref == 'refs/heads/main' }}
         run: |
           set -euo pipefail
           bash tools/ci_push_artifacts.sh

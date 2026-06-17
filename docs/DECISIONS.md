@@ -54,8 +54,15 @@ Final mechanism (implemented PR #16, 2026-06-17 — supersedes the originally-sk
 - TWO-TREE SYNC INVARIANT: logs/ accumulators flow publish→run (publish authority);
   ui/ static assets flow main→publish via POST_SHA full-sync (main authority);
   generated ui pages are published only by a run that regenerated them.
-- Dispatch publishers pinned to `ref: main`; Pages deploys via workflow_run on all
-  three writers (a GITHUB_TOKEN push can't fire on:push).
+- Dispatch publishers pinned to `ref: main`, AND the publish/push step of all three
+  writers is ref-guarded `if: github.ref == 'refs/heads/main'` (Codex P1): a non-main
+  workflow_dispatch runs the pipeline (test/lint/render) but never pushes to the
+  unprotected branch. Residual: an attacker who EDITS a workflow on their own branch and
+  dispatches it can drop the guard (the dispatched ref supplies the YAML); that is closed
+  only by OUT-OF-TREE governance — branch protection / CODEOWNERS on `.github/workflows/**`
+  plus restricted workflow_dispatch — PRD-186-adjacent and largely moot in a solo-write
+  repo (the threat actor needs write access). Pages deploys via workflow_run on all three
+  writers (a GITHUB_TOKEN push can't fire on:push).
 
 Lineage: this finishes the decoupling PRD-178 began. PRD-178 decoupled PREVIEW (an
 on-demand, never-deploy render loop) and explicitly held production publish out of

@@ -269,8 +269,13 @@ jobs:
           echo "PRE_SHA=$PRE_SHA" >> "$GITHUB_ENV"
           echo "POST_SHA=$POST_SHA" >> "$GITHUB_ENV"
 
+      # PRD-194 (Codex P1): the ref guard blocks a non-main workflow_dispatch from
+      # PUBLISHING to the unprotected branch (a branch dispatch can still run the
+      # pipeline for testing — it just won't push). Residual: an attacker who edits
+      # this workflow on their branch can drop the guard; that is closed only by
+      # out-of-tree governance (branch protection / CODEOWNERS on .github/workflows).
       - name: Push
-        if: ${{ success() && env.PUBLISH_READY == 'true' }}
+        if: ${{ success() && env.PUBLISH_READY == 'true' && github.ref == 'refs/heads/main' }}
         run: |
           set -euo pipefail
           bash tools/ci_push_artifacts.sh

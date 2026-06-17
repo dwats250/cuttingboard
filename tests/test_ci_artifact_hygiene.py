@@ -485,6 +485,26 @@ def test_state_writers_pin_checkout_to_main() -> None:
         )
 
 
+def test_publish_step_is_ref_guarded_to_main() -> None:
+    # PRD-194 (Codex P1): the `ref: main` checkout pin alone doesn't stop a
+    # workflow_dispatch from a branch (the dispatched ref supplies the YAML). The
+    # publish/push step must additionally be gated to refs/heads/main so a non-main
+    # dispatch runs the pipeline but never pushes to the unprotected publish branch.
+    push_steps = {
+        "cuttingboard.yml": "- name: Push",
+        "hourly_alert.yml": "- name: Push hourly artifacts",
+        "macro_awareness.yml": "- name: Push macro-awareness artifacts",
+    }
+    for wf, step in push_steps.items():
+        text = _workflow_text(wf)
+        block = text[text.index(step):]
+        block = block[: block.index("ci_push_artifacts.sh")]
+        assert "github.ref == 'refs/heads/main'" in block, (
+            f"{wf} publish step is not ref-guarded to main; a non-main dispatch could "
+            "push to the unprotected publish branch (PRD-194 Codex P1)."
+        )
+
+
 def test_pages_deploys_publish_branch_via_workflow_run_for_all_writers() -> None:
     text = _workflow_text("pages.yml")
     assert "ref: publish" in text, "pages.yml must deploy the publish branch (PRD-194 R2)"
