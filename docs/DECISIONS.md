@@ -35,9 +35,27 @@ PRD-182/184/186 guardrail); (c) PR + auto-merge per artifact (a full test run + 
 per hourly publish; minutes of latency on a "fresh" surface). State-log home: b1 —
 the publish branch carries both `ui/` and the read-back `logs/audit.jsonl`; the
 pipeline checks out `main` for code and restores state from `publish` at run start,
-so the scoreboard accumulates without `main` ever taking a bot push. A shared
-`cb-publish` concurrency group serializes the three state-writers to eliminate the
-append-mode JSONL race.
+so the scoreboard accumulates without `main` ever taking a bot push.
+
+Final mechanism (implemented PR #16, 2026-06-17 — supersedes the originally-sketched
+"rebase onto publish + shared cb-publish lock"):
+- WORKTREE publish on the publish tip. logs/audit.jsonl is DELTA-APPENDED (this run's
+  rows beyond the restore base); other artifacts overwrite from the committed blob.
+  No rebase (it would 3-way-conflict on the append-only audit log).
+- NO shared concurrency lock. The shared `cb-publish` group over-serialized the
+  time-sensitive hourly alert (Codex P2), so each writer keeps its OWN per-workflow
+  group and cross-workflow publish races are absorbed by a bounded
+  retry-on-non-fast-forward in ci_push_artifacts.sh (re-fetch tip, re-apply this run's
+  delta, re-push). Delta-append makes the retry idempotent.
+- PER-FILE OWNERSHIP: every published artifact has exactly one owner-publisher;
+  consumers restore read-only and revert before commit (never republish a non-owned
+  file). Read-back set per writer is enumerated in PRD-194.md (R3), swept from every
+  logs/ read + write-site.
+- TWO-TREE SYNC INVARIANT: logs/ accumulators flow publish→run (publish authority);
+  ui/ static assets flow main→publish via POST_SHA full-sync (main authority);
+  generated ui pages are published only by a run that regenerated them.
+- Dispatch publishers pinned to `ref: main`; Pages deploys via workflow_run on all
+  three writers (a GITHUB_TOKEN push can't fire on:push).
 
 Lineage: this finishes the decoupling PRD-178 began. PRD-178 decoupled PREVIEW (an
 on-demand, never-deploy render loop) and explicitly held production publish out of
@@ -45,8 +63,9 @@ scope (its R3 forbade touching pages.yml/hourly_alert.yml/cuttingboard.yml).
 Production publish was never decoupled — PRD-194 does that half. After PRD-194 lands,
 CLAUDE.md:52-54 ("no direct-push path") becomes true; this PRD's scope corrects that
 wording. PRD-186 governance-adjacent (branch-protection config + guardrail prose) →
-the implementing PR is manual-merge-only. PRD-194 authored at Stage 0 and HELD for
-Dustin's review before any publish-path code. See docs/prd_history/PRD-194.md.
+the implementing PR is MANUAL-MERGE-ONLY (PR #16). Validated by CI green + behavioral
+temp-git tests; the live multi-branch flow is proven at the manual rollout (seed
+publish unprotected; live dispatch). See docs/prd_history/PRD-194.{md,review.claude.md}.
 
 ---
 

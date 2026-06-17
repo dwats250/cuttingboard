@@ -59,17 +59,24 @@ jobs:
       - name: Install package
         run: pip install -e .
 
-      # PRD-194 R3: restore the read-back state the alert run reads at startup
-      # from the publish branch (main's copies are frozen post-decoupling):
-      #   - logs/audit.jsonl: the accumulating scoreboard source (delta-appended).
-      #   - logs/last_hourly_slot.json: the alert dedup slot (Codex P1). Without it
-      #     the 06:05 backup cron reads main's frozen slot and re-sends the 06:00
-      #     alert. Restored from publish so load_last_slot() sees the prior run.
-      # logs/regime_history.jsonl is NOT restored — it is fully rebuilt from
-      # audit.jsonl by the Aggregate step below, which now runs BEFORE the render.
-      # Records CB_PUBLISH_BASE_SHA so the publish step delta-appends audit rows.
+      # PRD-194 R3: restore the read-back state the alert run reads at startup from
+      # the publish branch (main's copies are frozen post-decoupling). Two kinds:
+      #  OWNED (hourly regenerates + republishes):
+      #   - logs/audit.jsonl: accumulating scoreboard source (delta-appended).
+      #   - logs/last_hourly_slot.json: alert dedup slot (Codex P1) — without it the
+      #     06:05 backup reads main's frozen slot and re-sends the 06:00 alert.
+      #   - logs/latest_hourly_market_map.json: hourly's isolated lifecycle baseline
+      #     (_load_previous_market_map at _execute_notify_run) — frozen => bogus
+      #     hourly NEW/REMOVED transitions (Codex P2).
+      #  READ-ONLY (pipeline OWNS+publishes; hourly only reads to render, then reverts
+      #  to HEAD before commit so it never republishes a copy it doesn't own):
+      #   - logs/latest_run.json: renderer's LIVE STATE (pipeline_run), not --run-
+      #     overridable — frozen => stale LIVE STATE on the hourly dashboard (Codex P2).
+      #   - logs/macro_drivers_snapshot.json: renderer's macro-driver fallback.
+      # logs/regime_history.jsonl is NOT restored — rebuilt from audit by the Aggregate
+      # step (which runs BEFORE the render). Records CB_PUBLISH_BASE_SHA for the delta.
       - name: Restore publish state
-        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/last_hourly_slot.json
+        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/last_hourly_slot.json logs/latest_hourly_market_map.json logs/latest_run.json logs/macro_drivers_snapshot.json
 
       - name: Check Telegram config presence
         run: |
@@ -131,6 +138,13 @@ jobs:
             --market-map-path logs/latest_hourly_market_map.json \
             --output ui/dashboard.html
           cp ui/dashboard.html ui/index.html
+          # PRD-194: the render consumed pipeline-OWNED inputs restored read-only
+          # (latest_run.json = LIVE STATE; macro_drivers_snapshot.json = macro
+          # fallback). Revert them to HEAD so this hourly run never republishes a file
+          # the pipeline owns and can't clobber a newer pipeline copy. Both are tracked
+          # on main, so the checkout cleanly un-stages the restored copy; the render
+          # has already read it.
+          git checkout HEAD -- logs/latest_run.json logs/macro_drivers_snapshot.json
 
       - name: Check hourly readiness
         if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
@@ -144,16 +158,16 @@ jobs:
           if [ -f logs/last_hourly_slot.json ]; then
             git add -f logs/last_hourly_slot.json
           fi
+          # PRD-194 per-file ownership: hourly stages only what it OWNS/regenerates.
+          # The pipeline-owned snapshots (market_map.json, latest_run.json,
+          # latest_contract.json, latest_payload.json, macro_drivers_snapshot.json) are
+          # NOT staged here — the pipeline is their sole publisher. trend_structure is
+          # co-produced (hourly writes it too), so it stays.
           git add -f \
             logs/audit.jsonl \
             logs/regime_history.jsonl \
-            logs/market_map.json \
             logs/latest_hourly_market_map.json \
-            logs/macro_drivers_snapshot.json \
             logs/trend_structure_snapshot.json \
-            logs/latest_run.json \
-            logs/latest_contract.json \
-            logs/latest_payload.json \
             logs/latest_hourly_run.json \
             logs/latest_hourly_contract.json \
             logs/latest_hourly_payload.json

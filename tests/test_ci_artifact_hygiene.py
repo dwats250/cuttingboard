@@ -27,21 +27,30 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CI_ARTIFACT_FILENAMES = ("engine_doctor.json", "engine_doctor.txt")
+# PRD-194 per-file ownership: hourly stages only what it OWNS/regenerates. The
+# pipeline-owned snapshots (market_map/latest_run/latest_contract/latest_payload/
+# macro_drivers_snapshot) are deliberately NOT staged by hourly — see
+# HOURLY_PIPELINE_OWNED_NOT_STAGED below.
 HOURLY_REQUIRED_STAGED_ARTIFACTS = (
     "logs/audit.jsonl",
-    "logs/market_map.json",
     "logs/latest_hourly_market_map.json",
-    "logs/macro_drivers_snapshot.json",
     "logs/trend_structure_snapshot.json",
-    "logs/latest_run.json",
-    "logs/latest_contract.json",
-    "logs/latest_payload.json",
     "logs/latest_hourly_run.json",
     "logs/latest_hourly_contract.json",
     "logs/latest_hourly_payload.json",
     "ui/contract.json",
     "ui/dashboard.html",
     "ui/index.html",
+)
+
+# Pipeline-owned snapshots the hourly job must NOT republish (it restores the two it
+# renders from read-only and reverts them to HEAD before commit).
+HOURLY_PIPELINE_OWNED_NOT_STAGED = (
+    "logs/market_map.json",
+    "logs/latest_run.json",
+    "logs/latest_contract.json",
+    "logs/latest_payload.json",
+    "logs/macro_drivers_snapshot.json",
 )
 
 
@@ -379,17 +388,47 @@ def test_hourly_restores_dedup_slot_and_aggregates_before_render() -> None:
     # aggregate (a full rebuild from audit) must run BEFORE the render so the
     # scoreboard is current rather than main's frozen copy.
     text = _workflow_text("hourly_alert.yml")
-    assert (
-        "ci_restore_publish_state.sh logs/audit.jsonl logs/last_hourly_slot.json" in text
-    ), (
-        "hourly must restore logs/last_hourly_slot.json from publish, or the 06:05 "
-        "backup cron re-sends the 06:00 alert (Codex P1)."
+    restore_line = next(
+        ln for ln in text.splitlines() if "ci_restore_publish_state.sh" in ln
     )
+    for path in (
+        "logs/audit.jsonl",                  # scoreboard (delta-append, owned)
+        "logs/last_hourly_slot.json",        # alert dedup (owned) — Codex P1
+        "logs/latest_hourly_market_map.json",  # hourly lifecycle baseline (owned) — Codex P2
+        "logs/latest_run.json",              # LIVE STATE render input (read-only) — Codex P2
+        "logs/macro_drivers_snapshot.json",  # macro fallback render input (read-only)
+    ):
+        assert path in restore_line, (
+            f"hourly must restore {path} from publish (PRD-194 R3); main's copy is frozen."
+        )
     assert text.index("- name: Aggregate regime history") < text.index(
         "- name: Render and stage hourly artifacts"
     ), (
         "hourly must aggregate regime_history BEFORE rendering so the dashboard "
         "scoreboard reflects this run, not main's frozen history (Codex P1)."
+    )
+
+
+def test_hourly_does_not_republish_pipeline_owned_snapshots() -> None:
+    # PRD-194 per-file ownership: the pipeline is the sole publisher of its snapshots.
+    # Hourly restores the two it renders from (latest_run.json LIVE STATE,
+    # macro_drivers_snapshot.json fallback) READ-ONLY, then reverts them to HEAD before
+    # commit; it never stages any pipeline-owned snapshot.
+    text = _workflow_text("hourly_alert.yml")
+    commit_step = text[
+        text.index("- name: Commit hourly artifacts"):text.index("- name: Push hourly artifacts")
+    ]
+    add_block = commit_step[commit_step.index("git add"):]
+    for path in HOURLY_PIPELINE_OWNED_NOT_STAGED:
+        assert path not in add_block, (
+            f"{path} is pipeline-owned but hourly stages it; republishing a non-owned "
+            "file can clobber the pipeline's fresher copy (PRD-194 per-file ownership)."
+        )
+    assert (
+        "git checkout HEAD -- logs/latest_run.json logs/macro_drivers_snapshot.json" in text
+    ), (
+        "hourly must revert the read-only-restored pipeline-owned render inputs to HEAD "
+        "before commit so it never republishes them (PRD-194)."
     )
 
 
@@ -400,9 +439,18 @@ def test_pipeline_restores_dedup_and_evaluation_state() -> None:
     #     should_send); without it the next run re-sends an unchanged LOW/MEDIUM alert.
     #   - evaluation.jsonl: append-only post-trade evaluation log; without restore it
     #     resets to this run's records each pipeline run (data loss).
+    #   - market_map.json: prior-run lifecycle baseline (_load_previous_market_map ->
+    #     inject_lifecycle); frozen => bogus NEW/REMOVED badges (Codex P2). Pipeline-owned.
     text = _workflow_text("cuttingboard.yml")
-    for path in ("logs/last_notification_state.json", "logs/evaluation.jsonl"):
-        assert path in text, (
+    restore_line = next(
+        ln for ln in text.splitlines() if "ci_restore_publish_state.sh" in ln
+    )
+    for path in (
+        "logs/last_notification_state.json",
+        "logs/evaluation.jsonl",
+        "logs/market_map.json",
+    ):
+        assert path in restore_line, (
             f"the pipeline must restore {path} from publish, or its accumulated "
             "state is lost/stale against main's frozen copy."
         )

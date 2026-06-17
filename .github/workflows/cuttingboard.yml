@@ -97,6 +97,10 @@ jobs:
       #   - logs/last_notification_state.json: _run_pipeline's notification dedup key
       #     (load_last_state -> should_send). Without it the next scheduled run
       #     re-sends an unchanged LOW/MEDIUM Telegram alert (Codex P2).
+      #   - logs/market_map.json: the prior-run lifecycle baseline _run_pipeline reads
+      #     via _load_previous_market_map() -> inject_lifecycle(). Pipeline OWNS and
+      #     republishes it; without restore, lifecycle badges/removed_symbols are
+      #     computed against main's frozen snapshot -> bogus NEW/REMOVED (Codex P2).
       # logs/regime_history.jsonl is rebuilt from audit by the Commit step's Aggregate
       # (which already runs before the render here). Records CB_PUBLISH_BASE_SHA for
       # the audit delta-append. Only the publishing modes need it.
@@ -105,7 +109,7 @@ jobs:
           steps.mode.outputs.job_mode == 'live' ||
           steps.mode.outputs.job_mode == 'sunday' ||
           steps.mode.outputs.job_mode == 'verify'
-        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/evaluation.jsonl logs/last_notification_state.json
+        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/evaluation.jsonl logs/last_notification_state.json logs/market_map.json
 
       - name: Install dev dependencies
         run: |
