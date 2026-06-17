@@ -4,8 +4,11 @@ These tests guard the interaction between two prior PRDs:
 
 * PRD-020 — Engine health check step writes ``engine_doctor.json`` and
   ``engine_doctor.txt`` to the repo root for artifact upload.
-* PRD-100-PATCH — ``tools/ci_push_artifacts.sh`` aborts the push step if
-  ``git status --short`` is non-empty before rebasing onto ``origin/main``.
+* PRD-100-PATCH — ``tools/ci_push_artifacts.sh`` aborts the publish step if
+  ``git status --short`` is non-empty (it publishes committed blobs, so an
+  unstaged artifact would be silently dropped). PRD-194 retargeted that helper
+  from a direct push to ``main`` to a worktree publish onto the ``publish``
+  branch, but the dirty-tree guard is unchanged.
 
 If either filename is not gitignored, the workflow's Engine health check
 step leaves the working tree dirty by the push guard's definition and the
@@ -24,21 +27,30 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CI_ARTIFACT_FILENAMES = ("engine_doctor.json", "engine_doctor.txt")
+# PRD-194 per-file ownership: hourly stages only what it OWNS/regenerates. The
+# pipeline-owned snapshots (market_map/latest_run/latest_contract/latest_payload/
+# macro_drivers_snapshot) are deliberately NOT staged by hourly — see
+# HOURLY_PIPELINE_OWNED_NOT_STAGED below.
 HOURLY_REQUIRED_STAGED_ARTIFACTS = (
     "logs/audit.jsonl",
-    "logs/market_map.json",
     "logs/latest_hourly_market_map.json",
-    "logs/macro_drivers_snapshot.json",
     "logs/trend_structure_snapshot.json",
-    "logs/latest_run.json",
-    "logs/latest_contract.json",
-    "logs/latest_payload.json",
     "logs/latest_hourly_run.json",
     "logs/latest_hourly_contract.json",
     "logs/latest_hourly_payload.json",
     "ui/contract.json",
     "ui/dashboard.html",
     "ui/index.html",
+)
+
+# Pipeline-owned snapshots the hourly job must NOT republish (it restores the two it
+# renders from read-only and reverts them to HEAD before commit).
+HOURLY_PIPELINE_OWNED_NOT_STAGED = (
+    "logs/market_map.json",
+    "logs/latest_run.json",
+    "logs/latest_contract.json",
+    "logs/latest_payload.json",
+    "logs/macro_drivers_snapshot.json",
 )
 
 
@@ -75,9 +87,9 @@ def test_engine_doctor_artifacts_leave_porcelain_clean() -> None:
 
     Creating both engine doctor outputs at the exact repo-root paths CI
     uses MUST NOT add lines to ``git status --short`` for those paths.
-    This is the predicate ``tools/ci_push_artifacts.sh`` evaluates
-    immediately before ``git rebase origin/main``; any non-empty output
-    aborts the push step.
+    This is the predicate ``tools/ci_push_artifacts.sh`` evaluates before it
+    publishes to the ``publish`` branch (PRD-194); any non-empty output
+    aborts the publish step.
 
     The test path-scopes the ``git status`` invocation so unrelated
     in-progress work in the developer's tree cannot mask the assertion.
@@ -284,4 +296,281 @@ def test_preview_workflow_freshness_check_precedes_render() -> None:
     ), (
         "dashboard_preview.yml renders before the Require fresh payload "
         "step; the freshness check must gate the render (PRD-178 R5)."
+    )
+
+
+# --- PRD-194 R7 — production publish decoupling (publish branch) -------------
+#
+# Pin the invariants that keep `main` protected and the scoreboard accumulating:
+# the push helper targets the publish branch (never main), delta-appends the audit
+# log, and retries on a non-fast-forward (the cross-workflow publish-race mechanism
+# that replaced the shared concurrency lock — Codex P2); the state-writers do NOT
+# share one concurrency group; each restores its read-back state before running;
+# Pages deploys the publish branch via workflow_run on all three writers (a
+# GITHUB_TOKEN push cannot fire on:push).
+
+PUBLISH_STATE_WRITERS = ("cuttingboard.yml", "hourly_alert.yml", "macro_awareness.yml")
+PUBLISH_WRITER_WORKFLOW_NAMES = (
+    "Cuttingboard Pipeline",
+    "Cuttingboard Hourly Alert",
+    "Cuttingboard Macro-Awareness Producer",
+)
+
+
+def _workflow_text(name: str) -> str:
+    return (REPO_ROOT / ".github" / "workflows" / name).read_text(encoding="utf-8")
+
+
+def test_push_helper_targets_publish_branch_not_main() -> None:
+    text = (REPO_ROOT / "tools" / "ci_push_artifacts.sh").read_text(encoding="utf-8")
+    assert "PUBLISH_BRANCH" in text
+    assert "refs/heads/$PUBLISH_BRANCH" in text
+    # Forbid PUSHING to main (any form). `git fetch origin main` is allowed — it only
+    # SOURCES the latest reviewed static ui/ assets (Codex P2), never writes main.
+    assert "HEAD:main" not in text, "publish helper still pushes to main (PRD-194 R1)"
+    assert "push origin main" not in text, "publish helper pushes to main"
+    assert "refs/heads/main" not in text, "publish helper targets refs/heads/main"
+
+
+def test_push_helper_delta_appends_audit_never_clobbers() -> None:
+    text = (REPO_ROOT / "tools" / "ci_push_artifacts.sh").read_text(encoding="utf-8")
+    assert 'AUDIT_PATH="logs/audit.jsonl"' in text
+    # The audit log is delta-appended from the restore-time base, not overwritten.
+    assert "CB_PUBLISH_BASE_SHA" in text
+    assert "tail -n +" in text, "audit.jsonl must be delta-appended (PRD-194 hard req)"
+
+
+def test_push_helper_syncs_static_ui_but_not_generated_pages() -> None:
+    # PRD-194 (Codex P2): static ui/ assets (app.js, styles.css, themes/*) change on
+    # main via PR and are NOT in the per-run artifact diff, so the helper syncs them
+    # from POST_SHA. BUT the generated pages (dashboard/index/contract) must be
+    # EXCLUDED from that sync, else a macro-only publish (which renders nothing and
+    # checks out main's FROZEN pages) would clobber publish's fresh dashboard.
+    text = (REPO_ROOT / "tools" / "ci_push_artifacts.sh").read_text(encoding="utf-8")
+    assert "git ls-tree -r --name-only origin/main -- ui" in text, (
+        "push helper must sync static ui/ assets from CURRENT origin/main, not the "
+        "run's POST_SHA, or a run based on an older main rolls publish back to stale "
+        "JS/CSS (Codex P2)."
+    )
+    assert "ui/dashboard.html|ui/index.html|ui/contract.json" in text, (
+        "push helper must EXCLUDE the generated pages from the static ui/ sync so a "
+        "macro-only publish can't overwrite publish's fresh dashboard (Codex P2)."
+    )
+
+
+def test_push_helper_force_adds_ignored_artifacts() -> None:
+    # PRD-194 (Codex P1): logs/ and dated reports/ are gitignored, so the worktree
+    # publish must force-add them or NEW untracked artifacts (a fresh run_<ts>.json
+    # each run) are skipped by `git add -A` and never reach publish.
+    text = (REPO_ROOT / "tools" / "ci_push_artifacts.sh").read_text(encoding="utf-8")
+    assert "add -f -- logs" in text, (
+        "publish helper must force-add logs/ in the worktree (Codex P1); plain add -A "
+        "skips new gitignored artifacts."
+    )
+
+
+def test_bootstrap_race_falls_through_to_retry() -> None:
+    # PRD-194 (Codex P2): if two writers race to CREATE an absent publish branch, the
+    # loser's bootstrap push is rejected; it must fall through to the delta-append/retry
+    # path (not exit under set -e), anchoring the audit delta on PRE_SHA (= main) so it
+    # appends only its rows.
+    text = (REPO_ROOT / "tools" / "ci_push_artifacts.sh").read_text(encoding="utf-8")
+    assert "if git push origin \"$post_sha:refs/heads/$PUBLISH_BRANCH\"" in text, (
+        "bootstrap push must be conditional (fall through on a race), not a bare push "
+        "that exits under set -e (Codex P2)."
+    )
+    assert 'audit_base="${base_sha:-$pre_sha}"' in text, (
+        "the audit delta base must fall back to PRE_SHA (main) when no publish tip was "
+        "restored, so a bootstrap fall-through appends only this run's rows (Codex P2)."
+    )
+
+
+def test_verify_mode_does_not_publish() -> None:
+    # PRD-194 (Codex P2): verify validates only — it does NOT regenerate the
+    # latest_run/payload/contract snapshots, so it must not enable publish (else a
+    # verify-only dispatch publishes a dashboard rendered from main's frozen snapshots).
+    text = _workflow_text("cuttingboard.yml")
+    verify_step = text[
+        text.index("- name: Verify run"):text.index("- name: Generate commit message")
+    ]
+    assert "PUBLISH_READY=true" not in verify_step, (
+        "the Verify run step sets PUBLISH_READY=true; a verify-only dispatch would "
+        "publish a dashboard rendered from main's frozen snapshots (Codex P2)."
+    )
+
+
+def test_push_helper_retries_on_non_fast_forward() -> None:
+    # PRD-194 R5 (Codex P2): cross-workflow publish races are handled by a bounded
+    # retry in the push helper, NOT a shared concurrency lock that over-serialized
+    # the hourly alert. On a non-fast-forward the helper re-applies this run's delta
+    # onto the moved tip and re-pushes.
+    text = (REPO_ROOT / "tools" / "ci_push_artifacts.sh").read_text(encoding="utf-8")
+    assert "non-fast-forward" in text, "push helper must detect a non-fast-forward"
+    assert "MAX_ATTEMPTS" in text, "push helper must bound its retry attempts"
+
+
+def test_state_writers_do_not_share_one_concurrency_lock() -> None:
+    # PRD-194 R5 (Codex P2): a shared cb-publish group serialized the entire hourly
+    # alert job behind the pipeline/macro producer and could drop a time-sensitive
+    # alert. Each writer keeps its OWN per-workflow group instead.
+    expected = {
+        "cuttingboard.yml": "group: cuttingboard-pipeline",
+        "hourly_alert.yml": "group: hourly-alert",
+        "macro_awareness.yml": "group: macro-awareness",
+    }
+    for wf, group in expected.items():
+        text = _workflow_text(wf)
+        assert "group: cb-publish" not in text, (
+            f"{wf} still shares the cb-publish lock; that over-serializes the hourly "
+            "alert (Codex P2). Publish races are handled by the push-helper retry."
+        )
+        assert group in text, f"{wf} should keep its own per-workflow group ({group})"
+
+
+def test_hourly_restores_dedup_slot_and_aggregates_before_render() -> None:
+    # PRD-194 (Codex P1): the hourly alert reads last_hourly_slot.json (dedup) and
+    # renders the scoreboard from regime_history.jsonl. With main frozen post-
+    # decoupling, the dedup slot must be restored from publish, and the regime
+    # aggregate (a full rebuild from audit) must run BEFORE the render so the
+    # scoreboard is current rather than main's frozen copy.
+    text = _workflow_text("hourly_alert.yml")
+    restore_line = next(
+        ln for ln in text.splitlines() if "ci_restore_publish_state.sh" in ln
+    )
+    for path in (
+        "logs/audit.jsonl",                  # scoreboard (delta-append, owned)
+        "logs/last_hourly_slot.json",        # alert dedup (owned) — Codex P1
+        "logs/latest_hourly_market_map.json",  # hourly lifecycle baseline (owned) — Codex P2
+        "logs/latest_run.json",              # LIVE STATE render input (read-only) — Codex P2
+        "logs/macro_drivers_snapshot.json",  # macro fallback render input (read-only)
+        "logs/run_*.json",                   # run-history archive the renderer globs — Codex P2
+    ):
+        assert path in restore_line, (
+            f"hourly must restore {path} from publish (PRD-194 R3); main's copy is frozen."
+        )
+    assert text.index("- name: Aggregate regime history") < text.index(
+        "- name: Render and stage hourly artifacts"
+    ), (
+        "hourly must aggregate regime_history BEFORE rendering so the dashboard "
+        "scoreboard reflects this run, not main's frozen history (Codex P1)."
+    )
+
+
+def test_hourly_does_not_republish_pipeline_owned_snapshots() -> None:
+    # PRD-194 per-file ownership: the pipeline is the sole publisher of its snapshots.
+    # Hourly restores the two it renders from (latest_run.json LIVE STATE,
+    # macro_drivers_snapshot.json fallback) READ-ONLY, then reverts them to HEAD before
+    # commit; it never stages any pipeline-owned snapshot.
+    text = _workflow_text("hourly_alert.yml")
+    commit_step = text[
+        text.index("- name: Commit hourly artifacts"):text.index("- name: Push hourly artifacts")
+    ]
+    add_block = commit_step[commit_step.index("git add"):]
+    for path in HOURLY_PIPELINE_OWNED_NOT_STAGED:
+        assert path not in add_block, (
+            f"{path} is pipeline-owned but hourly stages it; republishing a non-owned "
+            "file can clobber the pipeline's fresher copy (PRD-194 per-file ownership)."
+        )
+    assert (
+        "git checkout HEAD -- logs/latest_run.json logs/macro_drivers_snapshot.json" in text
+    ), (
+        "hourly must revert the read-only-restored pipeline-owned render inputs to HEAD "
+        "before commit so it never republishes them (PRD-194)."
+    )
+
+
+def test_pipeline_restores_dedup_and_evaluation_state() -> None:
+    # PRD-194: the pipeline's complete accumulated/read-back set on publish, beyond
+    # audit.jsonl (verified by sweeping every logs/ read, not just *_PATH names):
+    #   - last_notification_state.json: notification dedup (load_last_state ->
+    #     should_send); without it the next run re-sends an unchanged LOW/MEDIUM alert.
+    #   - evaluation.jsonl: append-only post-trade evaluation log; without restore it
+    #     resets to this run's records each pipeline run (data loss).
+    #   - market_map.json: prior-run lifecycle baseline (_load_previous_market_map ->
+    #     inject_lifecycle); frozen => bogus NEW/REMOVED badges (Codex P2). Pipeline-owned.
+    text = _workflow_text("cuttingboard.yml")
+    restore_line = next(
+        ln for ln in text.splitlines() if "ci_restore_publish_state.sh" in ln
+    )
+    for path in (
+        "logs/last_notification_state.json",
+        "logs/evaluation.jsonl",
+        "logs/market_map.json",
+        "logs/run_*.json",  # accumulating run-history archive (renderer globs it)
+        "logs/latest_hourly_contract.json",  # hourly-owned, read for entry prices (read-only)
+    ):
+        assert path in restore_line, (
+            f"the pipeline must restore {path} from publish, or its accumulated "
+            "state is lost/stale against main's frozen copy."
+        )
+    # latest_hourly_contract.json is HOURLY-owned: the pipeline reads it read-only for
+    # the render and MUST revert it before commit so it never republishes the hourly's
+    # mutable contract (closure-sweep finding).
+    assert "git checkout HEAD -- logs/latest_hourly_contract.json" in text, (
+        "pipeline must revert the read-only latest_hourly_contract.json to HEAD before "
+        "commit so it doesn't republish the hourly-owned contract (PRD-194)."
+    )
+
+
+def test_state_writers_restore_publish_state_before_running() -> None:
+    for wf in PUBLISH_STATE_WRITERS:
+        assert "tools/ci_restore_publish_state.sh" in _workflow_text(wf), (
+            f"{wf} does not restore state from the publish branch (PRD-194 R3); "
+            "it would append onto main's frozen copy and re-freeze the scoreboard."
+        )
+
+
+def test_no_state_writer_pushes_to_main() -> None:
+    for wf in PUBLISH_STATE_WRITERS:
+        assert "HEAD:main" not in _workflow_text(wf), (
+            f"{wf} pushes to main; PRD-194 R1 requires all artifact publishing to "
+            "target the unprotected publish branch."
+        )
+
+
+def test_state_writers_pin_checkout_to_main() -> None:
+    # PRD-194 (Codex P1): with publishing now targeting the UNPROTECTED publish
+    # branch, a workflow_dispatch from a feature branch must NOT be able to run
+    # that branch's code and publish it to production. All three state-writers pin
+    # the checkout to main (scheduled runs already run on main).
+    for wf in PUBLISH_STATE_WRITERS:
+        assert "ref: main" in _workflow_text(wf), (
+            f"{wf} does not pin its checkout to `ref: main`; an unpinned dispatch "
+            "on a feature branch would publish that branch's output to the "
+            "unprotected publish branch (PRD-194 P1)."
+        )
+
+
+def test_publish_step_is_ref_guarded_to_main() -> None:
+    # PRD-194 (Codex P1): the `ref: main` checkout pin alone doesn't stop a
+    # workflow_dispatch from a branch (the dispatched ref supplies the YAML). The
+    # publish/push step must additionally be gated to refs/heads/main so a non-main
+    # dispatch runs the pipeline but never pushes to the unprotected publish branch.
+    push_steps = {
+        "cuttingboard.yml": "- name: Push",
+        "hourly_alert.yml": "- name: Push hourly artifacts",
+        "macro_awareness.yml": "- name: Push macro-awareness artifacts",
+    }
+    for wf, step in push_steps.items():
+        text = _workflow_text(wf)
+        block = text[text.index(step):]
+        block = block[: block.index("ci_push_artifacts.sh")]
+        assert "github.ref == 'refs/heads/main'" in block, (
+            f"{wf} publish step is not ref-guarded to main; a non-main dispatch could "
+            "push to the unprotected publish branch (PRD-194 Codex P1)."
+        )
+
+
+def test_pages_deploys_publish_branch_via_workflow_run_for_all_writers() -> None:
+    text = _workflow_text("pages.yml")
+    assert "ref: publish" in text, "pages.yml must deploy the publish branch (PRD-194 R2)"
+    for name in PUBLISH_WRITER_WORKFLOW_NAMES:
+        assert name in text, (
+            f"pages.yml workflow_run is missing {name!r}; a GITHUB_TOKEN push to "
+            "publish cannot fire on:push, so all three writers must be listed "
+            "(PRD-194 Amendment 2)."
+        )
+    assert "branches: [main]" not in text, (
+        "pages.yml still triggers on push to main; main no longer carries "
+        "published artifacts (PRD-194 Amendment 2)."
     )

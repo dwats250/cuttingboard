@@ -2,12 +2,18 @@ name: Deploy to GitHub Pages
 
 on:
   workflow_dispatch:
+  # PRD-194 Amendment 2: artifacts publish to the `publish` branch via
+  # ci_push_artifacts.sh using the default GITHUB_TOKEN, and a GITHUB_TOKEN push
+  # does NOT trigger on:push (GitHub loop-prevention). So the deploy path is
+  # workflow_run on ALL THREE state-writers; the old push:[main] trigger is
+  # dropped because main no longer carries published artifacts.
   workflow_run:
-    workflows: ["Cuttingboard Hourly Alert"]
+    workflows:
+      - "Cuttingboard Pipeline"
+      - "Cuttingboard Hourly Alert"
+      - "Cuttingboard Macro-Awareness Producer"
     types:
       - completed
-  push:
-    branches: [main]
 
 permissions:
   pages: write
@@ -21,7 +27,10 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # PRD-194: deploy the published artifacts from the `publish` branch, not main.
       - uses: actions/checkout@v6
+        with:
+          ref: publish
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ui/

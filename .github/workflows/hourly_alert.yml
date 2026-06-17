@@ -18,6 +18,11 @@ on:
                               # 07:00-13:00 PST (all in-window)
   workflow_dispatch:
 
+# Per-workflow self-serialization: the 06:00 / 06:05-backup crons must not run
+# concurrently or both could alert before either persists last_hourly_slot (dedup
+# depends on the prior run's saved slot). PRD-194: cross-workflow publish races go
+# through ci_push_artifacts.sh's delta-append + push-retry, not a shared lock that
+# would over-serialize this alert behind the pipeline/macro producer (Codex P2).
 concurrency:
   group: hourly-alert
   cancel-in-progress: false
@@ -30,13 +35,21 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      # PRD-194: artifacts publish to this unprotected branch, not main.
+      PUBLISH_BRANCH: publish
       POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
     steps:
+      # PRD-194: pin to main. workflow_dispatch can be triggered from any branch;
+      # publishing now targets the UNPROTECTED `publish` branch, so an unpinned
+      # checkout would let a dispatch on a feature branch publish that branch's
+      # rendered ui/logs to production. Scheduled runs already run on main.
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: main
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v6
@@ -45,6 +58,29 @@ jobs:
 
       - name: Install package
         run: pip install -e .
+
+      # PRD-194 R3: restore the read-back state the alert run reads at startup from
+      # the publish branch (main's copies are frozen post-decoupling). Two kinds:
+      #  OWNED (hourly regenerates + republishes):
+      #   - logs/audit.jsonl: accumulating scoreboard source (delta-appended).
+      #   - logs/last_hourly_slot.json: alert dedup slot (Codex P1) — without it the
+      #     06:05 backup reads main's frozen slot and re-sends the 06:00 alert.
+      #   - logs/latest_hourly_market_map.json: hourly's isolated lifecycle baseline
+      #     (_load_previous_market_map at _execute_notify_run) — frozen => bogus
+      #     hourly NEW/REMOVED transitions (Codex P2).
+      #  READ-ONLY (pipeline OWNS+publishes; hourly only reads to render, then reverts
+      #  to HEAD before commit so it never republishes a copy it doesn't own):
+      #   - logs/latest_run.json: renderer's LIVE STATE (pipeline_run), not --run-
+      #     overridable — frozen => stale LIVE STATE on the hourly dashboard (Codex P2).
+      #   - logs/macro_drivers_snapshot.json: renderer's macro-driver fallback.
+      #   - 'logs/run_*.json': pipeline-owned per-run archive the renderer globs for
+      #     "Changes Since Last Run" + history. Immutable per file, so restoring +
+      #     republishing is idempotent and never clobbers the pipeline's newer runs;
+      #     no revert needed. Quoted so the glob reaches the restore helper.
+      # logs/regime_history.jsonl is NOT restored — rebuilt from audit by the Aggregate
+      # step (which runs BEFORE the render). Records CB_PUBLISH_BASE_SHA for the delta.
+      - name: Restore publish state
+        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/last_hourly_slot.json logs/latest_hourly_market_map.json logs/latest_run.json logs/macro_drivers_snapshot.json 'logs/run_*.json'
 
       - name: Check Telegram config presence
         run: |
@@ -84,6 +120,15 @@ jobs:
             echo "fresh hourly payload detected (mtime=$payload_mtime >= start=$START_TS)"
           fi
 
+      # PRD-194 (Codex P1): aggregate BEFORE render so the dashboard scoreboard
+      # reflects THIS run. regime_history.jsonl is fully rebuilt from the restored+
+      # appended audit.jsonl; the renderer then reads the current file instead of
+      # main's frozen copy. Resolves the parked PRD-189 render-before-aggregate
+      # ordering nit, which decoupling promoted from cosmetic to a correctness bug.
+      - name: Aggregate regime history
+        if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
+        run: python3 -m cuttingboard.delivery.regime_history
+
       - name: Render and stage hourly artifacts
         if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
         run: |
@@ -97,16 +142,17 @@ jobs:
             --market-map-path logs/latest_hourly_market_map.json \
             --output ui/dashboard.html
           cp ui/dashboard.html ui/index.html
+          # PRD-194: the render consumed pipeline-OWNED inputs restored read-only
+          # (latest_run.json = LIVE STATE; macro_drivers_snapshot.json = macro
+          # fallback). Revert them to HEAD so this hourly run never republishes a file
+          # the pipeline owns and can't clobber a newer pipeline copy. Both are tracked
+          # on main, so the checkout cleanly un-stages the restored copy; the render
+          # has already read it.
+          git checkout HEAD -- logs/latest_run.json logs/macro_drivers_snapshot.json
 
       - name: Check hourly readiness
         if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
         run: python3 scripts/check_readiness.py
-
-      - name: Aggregate regime history
-        if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
-        # PRD-175: fold logs/audit.jsonl (just written by the run) into the daily
-        # logs/regime_history.jsonl scoreboard before the artifact commit stages it.
-        run: python3 -m cuttingboard.delivery.regime_history
 
       - name: Commit hourly artifacts
         if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
@@ -116,16 +162,16 @@ jobs:
           if [ -f logs/last_hourly_slot.json ]; then
             git add -f logs/last_hourly_slot.json
           fi
+          # PRD-194 per-file ownership: hourly stages only what it OWNS/regenerates.
+          # The pipeline-owned snapshots (market_map.json, latest_run.json,
+          # latest_contract.json, latest_payload.json, macro_drivers_snapshot.json) are
+          # NOT staged here — the pipeline is their sole publisher. trend_structure is
+          # co-produced (hourly writes it too), so it stays.
           git add -f \
             logs/audit.jsonl \
             logs/regime_history.jsonl \
-            logs/market_map.json \
             logs/latest_hourly_market_map.json \
-            logs/macro_drivers_snapshot.json \
             logs/trend_structure_snapshot.json \
-            logs/latest_run.json \
-            logs/latest_contract.json \
-            logs/latest_payload.json \
             logs/latest_hourly_run.json \
             logs/latest_hourly_contract.json \
             logs/latest_hourly_payload.json
@@ -140,8 +186,11 @@ jobs:
           echo "PRE_SHA=$PRE_SHA" >> "$GITHUB_ENV"
           echo "POST_SHA=$POST_SHA" >> "$GITHUB_ENV"
 
+      # PRD-194 (Codex P1): ref guard — a non-main workflow_dispatch runs the alert
+      # but does NOT publish to the unprotected branch. Residual (workflow-edit
+      # attacker) is closed only by out-of-tree governance; see DECISIONS.
       - name: Push hourly artifacts
-        if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
+        if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' && github.ref == 'refs/heads/main' }}
         run: |
           set -euo pipefail
           bash tools/ci_push_artifacts.sh

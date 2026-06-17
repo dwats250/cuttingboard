@@ -16,6 +16,92 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-16 - PRD-194: production publish decoupling onto an unprotected `publish` branch (option b / state-home b1)
+
+Staleness audit (2026-06-16) found the published dashboard frozen by two
+compounding causes. The first (scheduled runs resolving to noop on a wall-clock
+match) was fixed by PRD-189; fixing it un-masked the second: the artifact-publish
+path direct-pushes to `main`, and `main` branch protection (PRD-182/184, 2026-06-14)
+now rejects every such push (GH006, "Required status check 'test' is expected").
+Verified live: run 27637384167 (2026-06-16 17:56 UTC) ran the full pipeline,
+committed the 2026-06-16 scoreboard row in the runner, and failed only at the push.
+`tools/ci_push_artifacts.sh` (`git push origin HEAD:main`) is invoked by three
+workflows — cuttingboard.yml, hourly_alert.yml, macro_awareness.yml — so the
+dashboard, scoreboard, and macro sidecar are all frozen behind the same wall.
+
+Decision: option (b) — publish to a dedicated UNPROTECTED branch (`publish`) that
+Pages deploys from. Rejected: (a) bot bypass of main protection (erodes the
+PRD-182/184/186 guardrail); (c) PR + auto-merge per artifact (a full test run + PR
+per hourly publish; minutes of latency on a "fresh" surface). State-log home: b1 —
+the publish branch carries both `ui/` and the read-back `logs/audit.jsonl`; the
+pipeline checks out `main` for code and restores state from `publish` at run start,
+so the scoreboard accumulates without `main` ever taking a bot push.
+
+Final mechanism (implemented PR #16, 2026-06-17 — supersedes the originally-sketched
+"rebase onto publish + shared cb-publish lock"):
+- WORKTREE publish on the publish tip. logs/audit.jsonl is DELTA-APPENDED (this run's
+  rows beyond the restore base); other artifacts overwrite from the committed blob.
+  No rebase (it would 3-way-conflict on the append-only audit log).
+- NO shared concurrency lock. The shared `cb-publish` group over-serialized the
+  time-sensitive hourly alert (Codex P2), so each writer keeps its OWN per-workflow
+  group and cross-workflow publish races are absorbed by a bounded
+  retry-on-non-fast-forward in ci_push_artifacts.sh (re-fetch tip, re-apply this run's
+  delta, re-push). Delta-append makes the retry idempotent.
+- PER-FILE OWNERSHIP: every published artifact has exactly one owner-publisher;
+  consumers restore read-only and revert before commit (never republish a non-owned
+  file). Read-back set per writer is enumerated in PRD-194.md (R3), swept from every
+  logs/ read + write-site.
+- TWO-TREE SYNC INVARIANT: logs/ accumulators flow publish→run (publish authority);
+  ui/ static assets flow main→publish via full-sync from CURRENT origin/main (NOT the
+  run's POST_SHA — a run based on an older main must not roll publish back to stale
+  JS/CSS; Codex P2) (main authority); generated ui pages are published only by a run
+  that regenerated them.
+- Read-back sweep correction + closure: the literal-path + *_PATH sweep missed glob
+  reads; a glob sweep found logs/run_*.json (renderer globs it for "Changes Since Last
+  Run") — pipeline-owned, accumulating, immutable per file, now restored by both writers
+  (idempotent). The exhaustive closure sweep (named + *_PATH + .glob() + write-sites)
+  then found one more symmetric cross-read: the renderer's _load_contract_entry_context
+  reads HOURLY-owned latest_hourly_contract.json for entry prices on the PIPELINE render
+  too — now restored read-only + reverted before commit. Cross-workflow render reads are
+  now all covered (hourly→{latest_run,macro_drivers,run_*}; pipeline→{latest_hourly_contract});
+  ZERO remaining read-back gaps. Glob-gate bug (Codex): `git ls-tree -- '<glob>'` does
+  NOT expand the wildcard, so the gate uses a shell `case` match; fixed + behaviorally
+  tested. DEFERRED to a tracked follow-up PRD (not folded here): run_*.json unbounded
+  accumulation on publish needs a storage cap/prune (delete-propagation).
+- Publish-write hardening (Codex): (a) the worktree overlay force-adds the gitignored
+  artifact dirs (`git add -f -- logs`/reports) after `add -A`, else NEW untracked
+  ignored artifacts (a fresh run_<ts>.json each run; macro_*.json on a bootstrapped
+  publish) are silently skipped and never published. (b) verify mode must NOT publish:
+  it validates only and does not regenerate latest_run/payload/contract, so it would
+  publish a dashboard rendered from main's frozen snapshots; PUBLISH_READY stays false
+  for a verify-only dispatch (live/sunday set it in their own Run steps). (c) bootstrap
+  race: if two writers race to CREATE an absent publish branch, the loser's push is a
+  non-fast-forward — it now falls through to the delta-append/retry path (not a set -e
+  exit), with the audit delta anchored on PRE_SHA (= main) so it appends only its own
+  rows rather than re-appending main's frozen base the winner already published. (Mostly
+  defensive — the rollout seeds publish, so the bootstrap path is rarely hit.)
+- Dispatch publishers pinned to `ref: main`, AND the publish/push step of all three
+  writers is ref-guarded `if: github.ref == 'refs/heads/main'` (Codex P1): a non-main
+  workflow_dispatch runs the pipeline (test/lint/render) but never pushes to the
+  unprotected branch. Residual: an attacker who EDITS a workflow on their own branch and
+  dispatches it can drop the guard (the dispatched ref supplies the YAML); that is closed
+  only by OUT-OF-TREE governance — branch protection / CODEOWNERS on `.github/workflows/**`
+  plus restricted workflow_dispatch — PRD-186-adjacent and largely moot in a solo-write
+  repo (the threat actor needs write access). Pages deploys via workflow_run on all three
+  writers (a GITHUB_TOKEN push can't fire on:push).
+
+Lineage: this finishes the decoupling PRD-178 began. PRD-178 decoupled PREVIEW (an
+on-demand, never-deploy render loop) and explicitly held production publish out of
+scope (its R3 forbade touching pages.yml/hourly_alert.yml/cuttingboard.yml).
+Production publish was never decoupled — PRD-194 does that half. After PRD-194 lands,
+CLAUDE.md:52-54 ("no direct-push path") becomes true; this PRD's scope corrects that
+wording. PRD-186 governance-adjacent (branch-protection config + guardrail prose) →
+the implementing PR is MANUAL-MERGE-ONLY (PR #16). Validated by CI green + behavioral
+temp-git tests; the live multi-branch flow is proven at the manual rollout (seed
+publish unprotected; live dispatch). See docs/prd_history/PRD-194.{md,review.claude.md}.
+
+---
+
 ## 2026-06-14 - PRD-186: governance carve-out enforcement - (a) landed, (c) deferred (corrected: label-gated check, not CODEOWNERS)
 
 Refines the (c) enforcement recommendation in the PRD-186 entry below; the

@@ -5,6 +5,9 @@ name: Cuttingboard Macro-Awareness Producer
 on:
   workflow_dispatch:
 
+# Per-workflow self-serialization. PRD-194: publish races to the `publish` branch
+# are handled by ci_push_artifacts.sh's delta-append + bounded push-retry, not a
+# shared lock that would over-serialize the hourly alert (Codex P2).
 concurrency:
   group: macro-awareness
   cancel-in-progress: false
@@ -18,12 +21,14 @@ jobs:
 
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # PRD-194: artifacts publish to this unprotected branch, not main.
+      PUBLISH_BRANCH: publish
 
     steps:
-      # Pin to main: workflow_dispatch can be triggered from any branch, and
-      # ci_push_artifacts.sh rebases+pushes HEAD:main - checking out the dispatch
-      # ref could otherwise land unrelated branch history on main (Codex push-path
-      # review, PRD-187).
+      # Pin to main: workflow_dispatch can be triggered from any branch. The run
+      # must use reviewed main CODE; artifacts publish to the `publish` branch via
+      # tools/ci_push_artifacts.sh (PRD-194). Checking out the dispatch ref could
+      # otherwise run unreviewed branch code (Codex push-path review, PRD-187).
       - name: Checkout main
         uses: actions/checkout@v6
         with:
@@ -33,6 +38,12 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+
+      # PRD-194 R3: restore the producer's read-back continuity state from the
+      # publish branch before the run (full-overwrite artifact — macro does not
+      # touch logs/audit.jsonl, so no delta-append here).
+      - name: Restore publish state
+        run: bash tools/ci_restore_publish_state.sh logs/macro_awareness_state.json
 
       # Ad-hoc install of the producer's network clients only. The cuttingboard
       # package is intentionally NOT installed: the tool is import-isolated and
@@ -65,8 +76,11 @@ jobs:
           echo "PRE_SHA=$PRE_SHA" >> "$GITHUB_ENV"
           echo "POST_SHA=$POST_SHA" >> "$GITHUB_ENV"
 
+      # PRD-194 (Codex P1): ref guard — a non-main workflow_dispatch runs the producer
+      # but does NOT publish to the unprotected branch. Residual (workflow-edit
+      # attacker) is closed only by out-of-tree governance; see DECISIONS.
       - name: Push macro-awareness artifacts
-        if: ${{ success() }}
+        if: ${{ success() && github.ref == 'refs/heads/main' }}
         run: |
           set -euo pipefail
           bash tools/ci_push_artifacts.sh

@@ -27,6 +27,10 @@ on:
           - prefetch
 
 # Never cancel a mid-run pipeline — queue instead.
+# Per-workflow self-serialization (prevents two pipeline runs overlapping).
+# PRD-194: cross-workflow publish races to the `publish` branch are handled by
+# ci_push_artifacts.sh's delta-append + bounded push-retry, NOT a shared lock — a
+# shared group over-serialized the time-sensitive hourly alert (Codex P2).
 concurrency:
   group: cuttingboard-pipeline
   cancel-in-progress: false
@@ -41,6 +45,8 @@ jobs:
 
     env:
       POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+      # PRD-194: artifacts publish to this unprotected branch, not main.
+      PUBLISH_BRANCH: publish
       # Static-analysis default so the VS Code GitHub Actions extension can
       # resolve env.PUBLISH_READY in the commit/push `if:` gates below. At
       # runtime each per-mode step exports PUBLISH_READY through the GITHUB_ENV
@@ -50,8 +56,14 @@ jobs:
       PUBLISH_READY: 'false'
 
     steps:
+      # PRD-194: pin to main. workflow_dispatch can be triggered from any branch;
+      # publishing now targets the UNPROTECTED `publish` branch, so an unpinned
+      # checkout would let a dispatch on a feature branch publish that branch's
+      # rendered ui/logs to production. Scheduled runs already run on main.
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: main
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v6
@@ -75,6 +87,38 @@ jobs:
           job_mode="$(python3 scripts/resolve_run_mode.py)"
           echo "job_mode=$job_mode" >> "$GITHUB_OUTPUT"
           echo "Resolved mode: $job_mode"
+
+      # PRD-194 R3: restore the accumulated/read-back state the pipeline carries on
+      # the publish branch (main's copies are frozen post-decoupling):
+      #   - logs/audit.jsonl: the accumulating scoreboard source (delta-appended).
+      #   - logs/evaluation.jsonl: the append-only post-trade evaluation log
+      #     (run_post_trade_evaluation, force-published via `git add -f logs/`).
+      #     Single-writer + serialized, so restore + overwrite is enough (no delta).
+      #   - logs/last_notification_state.json: _run_pipeline's notification dedup key
+      #     (load_last_state -> should_send). Without it the next scheduled run
+      #     re-sends an unchanged LOW/MEDIUM Telegram alert (Codex P2).
+      #   - logs/market_map.json: the prior-run lifecycle baseline _run_pipeline reads
+      #     via _load_previous_market_map() -> inject_lifecycle(). Pipeline OWNS and
+      #     republishes it; without restore, lifecycle badges/removed_symbols are
+      #     computed against main's frozen snapshot -> bogus NEW/REMOVED (Codex P2).
+      #   - 'logs/run_*.json': the accumulating per-run archive (immutable per file)
+      #     the renderer globs for "Changes Since Last Run" + history. Frozen on main
+      #     => deltas computed against a pre-decoupling run (Codex P2). Quoted so the
+      #     glob reaches the restore helper, not the workflow shell. Pipeline-owned.
+      #   - logs/latest_hourly_contract.json: HOURLY-owned, but the renderer's
+      #     _load_contract_entry_context reads it for the dashboard's contract entry
+      #     prices on the PIPELINE render too. READ-ONLY — reverted to HEAD after the
+      #     render so the pipeline never republishes the hourly's mutable contract
+      #     (closure-sweep finding, same class as hourly's latest_run read-only).
+      # logs/regime_history.jsonl is rebuilt from audit by the Commit step's Aggregate
+      # (which already runs before the render here). Records CB_PUBLISH_BASE_SHA for
+      # the audit delta-append. Only the publishing modes need it.
+      - name: Restore publish state
+        if: >-
+          steps.mode.outputs.job_mode == 'live' ||
+          steps.mode.outputs.job_mode == 'sunday' ||
+          steps.mode.outputs.job_mode == 'verify'
+        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/evaluation.jsonl logs/last_notification_state.json logs/market_map.json logs/latest_hourly_contract.json 'logs/run_*.json'
 
       - name: Install dev dependencies
         run: |
@@ -161,7 +205,11 @@ jobs:
           timeout 8m python -m cuttingboard --mode verify --notify-mode premarket
           date -u +"%Y-%m-%dT%H:%M:%SZ"
           echo "=== END verify ==="
-          echo "PUBLISH_READY=true" >> "$GITHUB_ENV"
+          # PRD-194 (Codex P2): verify mode VALIDATES only — it does NOT regenerate the
+          # latest_run/payload/contract snapshots, so it must NOT publish (it would push a
+          # dashboard rendered from main's frozen snapshots). PUBLISH_READY stays 'false'
+          # for a verify-only dispatch; live/sunday set it true in their own Run steps
+          # above (publish is still gated on this verify step succeeding via `if: success()`).
 
       # PRD-189: orb_trajectory / post_orb / midmorning / power_hour dispatch
       # steps were removed — they invoked the full live pipeline via cli_main
@@ -220,6 +268,11 @@ jobs:
           python3 -m cuttingboard.delivery.dashboard_renderer --output ui/dashboard.html
           cp ui/dashboard.html ui/index.html
           git add ui/dashboard.html ui/index.html
+          # PRD-194 (closure sweep): the render consumed HOURLY-owned
+          # latest_hourly_contract.json (entry prices) restored read-only. Revert it to
+          # HEAD so the pipeline never republishes the hourly's mutable contract (the
+          # hourly owns + publishes it); tracked on main, so checkout cleanly unstages.
+          git checkout HEAD -- logs/latest_hourly_contract.json
           if [ -f .cb_commit_msg ]; then
             git diff --staged --quiet || git commit -F .cb_commit_msg
           else
@@ -234,8 +287,13 @@ jobs:
           echo "PRE_SHA=$PRE_SHA" >> "$GITHUB_ENV"
           echo "POST_SHA=$POST_SHA" >> "$GITHUB_ENV"
 
+      # PRD-194 (Codex P1): the ref guard blocks a non-main workflow_dispatch from
+      # PUBLISHING to the unprotected branch (a branch dispatch can still run the
+      # pipeline for testing — it just won't push). Residual: an attacker who edits
+      # this workflow on their branch can drop the guard; that is closed only by
+      # out-of-tree governance (branch protection / CODEOWNERS on .github/workflows).
       - name: Push
-        if: ${{ success() && env.PUBLISH_READY == 'true' }}
+        if: ${{ success() && env.PUBLISH_READY == 'true' && github.ref == 'refs/heads/main' }}
         run: |
           set -euo pipefail
           bash tools/ci_push_artifacts.sh

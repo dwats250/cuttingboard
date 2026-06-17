@@ -51,8 +51,12 @@ with date and rationale - short notes, not ceremony.
   feature branch, opens the PR, and queues `gh pr merge --auto`; `main` branch
   protection holds the merge until the CI `test` check is green. The harness
   blocks direct-to-main pushes (verified during PRD-184 closeout), so there is no
-  direct-push path - bookkeeping PRs auto-merge the same way. Force-push is denied
-  by repo settings.
+  direct-push path for PRD work - bookkeeping PRs auto-merge the same way. The
+  scheduled artifact-publish workflows (cuttingboard / hourly_alert /
+  macro_awareness) likewise do NOT push to `main`: they publish the rendered
+  dashboard and the accumulating scoreboard state to a dedicated UNPROTECTED
+  `publish` branch that GitHub Pages deploys from (PRD-194), so `main` receives
+  only CI-gated PR merges. Force-push is denied by repo settings.
 - **Drift-review is a post-merge audit under auto-merge (PRD-186).** Because
   auto-merge lands a green PR with no pre-merge human read, VISION/PROJECT_STATE
   drift-review is a post-merge audit - carried by the per-PRD review artifact's
