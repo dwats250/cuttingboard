@@ -88,21 +88,24 @@ jobs:
           echo "job_mode=$job_mode" >> "$GITHUB_OUTPUT"
           echo "Resolved mode: $job_mode"
 
-      # PRD-194 R3: restore the read-back state the pipeline reads at startup from
+      # PRD-194 R3: restore the accumulated/read-back state the pipeline carries on
       # the publish branch (main's copies are frozen post-decoupling):
       #   - logs/audit.jsonl: the accumulating scoreboard source (delta-appended).
+      #   - logs/evaluation.jsonl: the append-only post-trade evaluation log
+      #     (run_post_trade_evaluation, force-published via `git add -f logs/`).
+      #     Single-writer + serialized, so restore + overwrite is enough (no delta).
       #   - logs/last_notification_state.json: _run_pipeline's notification dedup key
       #     (load_last_state -> should_send). Without it the next scheduled run
       #     re-sends an unchanged LOW/MEDIUM Telegram alert (Codex P2).
       # logs/regime_history.jsonl is rebuilt from audit by the Commit step's Aggregate
       # (which already runs before the render here). Records CB_PUBLISH_BASE_SHA for
-      # the delta-append. Only the publishing modes need it.
+      # the audit delta-append. Only the publishing modes need it.
       - name: Restore publish state
         if: >-
           steps.mode.outputs.job_mode == 'live' ||
           steps.mode.outputs.job_mode == 'sunday' ||
           steps.mode.outputs.job_mode == 'verify'
-        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/last_notification_state.json
+        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/evaluation.jsonl logs/last_notification_state.json
 
       - name: Install dev dependencies
         run: |

@@ -1018,6 +1018,53 @@ class TestR7CiPushArtifacts:
             f"static ui asset not synced to publish (Codex P2): {app_js!r}"
         )
 
+    def test_macro_only_publish_does_not_clobber_generated_pages(self, tmp_path: Path) -> None:
+        """PRD-194 (Codex P2): a macro-only publish renders no UI and checks out main's
+        FROZEN dashboard. The static ui/ sync must EXCLUDE the generated pages, so
+        publish's fresh dashboard/index/contract survive the macro run."""
+        bare, work = _setup_bare_repo_and_clone(tmp_path)
+
+        # Seed publish with a FRESH generated dashboard + a static asset.
+        (work / "ui").mkdir(exist_ok=True)
+        (work / "logs").mkdir(exist_ok=True)
+        (work / "ui" / "dashboard.html").write_text("fresh\n")
+        (work / "ui" / "app.js").write_text("v1\n")
+        (work / "logs" / "macro_awareness_snapshot.json").write_text('{"s":1}\n')
+        _git_check(["checkout", "-b", "publish"], work)
+        _git_check(["add", "ui/dashboard.html", "ui/app.js", "logs/macro_awareness_snapshot.json"], work)
+        _git_check(["commit", "-m", "seed publish (fresh dashboard)"], work)
+        _git_check(["push", "origin", "publish"], work)
+        _git_check(["checkout", "main"], work)
+
+        # main carries a FROZEN/stale generated dashboard + the static asset.
+        (work / "ui").mkdir(exist_ok=True)
+        (work / "ui" / "dashboard.html").write_text("frozen\n")
+        (work / "ui" / "app.js").write_text("v1\n")
+        _git_check(["add", "ui/dashboard.html", "ui/app.js"], work)
+        _git_check(["commit", "-m", "main state"], work)
+
+        # Macro-only artifact commit: stages only the macro snapshot (no UI render).
+        pre_sha = _git_check(["rev-parse", "HEAD"], work).stdout.strip()
+        (work / "logs").mkdir(exist_ok=True)
+        (work / "logs" / "macro_awareness_snapshot.json").write_text('{"s":2}\n')
+        _git_check(["add", "-f", "logs/macro_awareness_snapshot.json"], work)
+        _git_check(["commit", "-m", "macro: snapshot"], work)
+        post_sha = _git_check(["rev-parse", "HEAD"], work).stdout.strip()
+
+        result = self._run_script(
+            work, pre_sha=pre_sha, post_sha=post_sha,
+            extra_env={"PUBLISH_BRANCH": "publish"},
+        )
+        assert result.returncode == 0, (
+            f"expected exit 0; stdout={result.stdout}\nstderr={result.stderr}"
+        )
+
+        _git_check(["fetch", "origin", "publish"], work)
+        dash = _git_check(["show", "origin/publish:ui/dashboard.html"], work).stdout
+        assert dash == "fresh\n", (
+            f"macro-only publish clobbered publish's fresh dashboard (Codex P2): {dash!r}"
+        )
+
 
 # ---------------------------------------------------------------------------
 # R7 -- _validate_only / main(["--validate-only", ...]) entrypoint

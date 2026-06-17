@@ -83,7 +83,10 @@ attempt_publish() {
   local path dest
   for path in "${changed[@]}"; do
     [ -z "$path" ] && continue
-    case "$path" in ui/*) continue ;; esac   # ui/ is full-synced from POST_SHA below
+    case "$path" in
+      ui/dashboard.html|ui/index.html|ui/contract.json) ;;  # generated: overwrite below
+      ui/*) continue ;;                                      # static: synced from POST
+    esac
     dest="$wt/$path"
     mkdir -p "$(dirname "$dest")"
     if [ "$path" = "$AUDIT_PATH" ]; then
@@ -98,15 +101,31 @@ attempt_publish() {
     fi
   done
 
-  # Sync the FULL ui/ tree from POST_SHA, not just the per-run-changed ui/ files.
-  # The run checked out main, so POST_SHA's ui/ carries reviewed STATIC assets
-  # (app.js, styles.css, themes/*, contract_viewer.html) plus this run's generated
-  # dashboard. Without this, static-UI changes that land on main via PR never reach
-  # publish and Pages serves stale JS/CSS alongside fresh data (Codex P2). The
-  # rm + checkout also propagates deletions. Guarded for commits with no ui/ tree.
+  # Sync STATIC ui/ assets (app.js, styles.css, themes/*, contract_viewer.html,
+  # mock_contract.json) from POST_SHA so reviewed main-side UI changes reach publish
+  # even though they are not in the per-run artifact diff. The GENERATED pages
+  # (dashboard.html / index.html / contract.json) are EXCLUDED from this sync — they
+  # are published only by a run that actually regenerated them (the changed-set loop
+  # above). A macro-only publish checks out main's FROZEN generated pages and renders
+  # nothing, so excluding them here stops it from clobbering publish's fresh dashboard
+  # (Codex P2). rm-then-repopulate propagates static deletions while leaving publish's
+  # generated pages intact. Guarded for commits with no ui/ tree.
   if git cat-file -e "$post_sha:ui" 2>/dev/null; then
-    git -C "$wt" rm -r --quiet --ignore-unmatch -- ui >/dev/null 2>&1 || true
-    git -C "$wt" checkout "$post_sha" -- ui
+    while IFS= read -r uipath; do
+      case "$uipath" in
+        ui/dashboard.html|ui/index.html|ui/contract.json) continue ;;
+      esac
+      rm -f "$wt/$uipath"
+    done < <(git -C "$wt" ls-files -- ui)
+    while IFS= read -r uipath; do
+      [ -z "$uipath" ] && continue
+      case "$uipath" in
+        ui/dashboard.html|ui/index.html|ui/contract.json) continue ;;
+      esac
+      dest="$wt/$uipath"
+      mkdir -p "$(dirname "$dest")"
+      git show "$post_sha:$uipath" > "$dest"
+    done < <(git ls-tree -r --name-only "$post_sha" -- ui)
   fi
 
   git -C "$wt" add -A

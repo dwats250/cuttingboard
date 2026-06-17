@@ -328,14 +328,19 @@ def test_push_helper_delta_appends_audit_never_clobbers() -> None:
     assert "tail -n +" in text, "audit.jsonl must be delta-appended (PRD-194 hard req)"
 
 
-def test_push_helper_full_syncs_ui_tree_from_post_sha() -> None:
+def test_push_helper_syncs_static_ui_but_not_generated_pages() -> None:
     # PRD-194 (Codex P2): static ui/ assets (app.js, styles.css, themes/*) change on
-    # main via PR and are NOT in the per-run artifact diff, so the helper must sync
-    # the WHOLE ui/ tree from POST_SHA — otherwise publish keeps the seed-era assets
-    # and Pages serves stale JS/CSS.
+    # main via PR and are NOT in the per-run artifact diff, so the helper syncs them
+    # from POST_SHA. BUT the generated pages (dashboard/index/contract) must be
+    # EXCLUDED from that sync, else a macro-only publish (which renders nothing and
+    # checks out main's FROZEN pages) would clobber publish's fresh dashboard.
     text = (REPO_ROOT / "tools" / "ci_push_artifacts.sh").read_text(encoding="utf-8")
-    assert 'checkout "$post_sha" -- ui' in text, (
-        "push helper must full-sync the ui/ tree from POST_SHA (Codex P2)."
+    assert 'git ls-tree -r --name-only "$post_sha" -- ui' in text, (
+        "push helper must sync static ui/ assets from POST_SHA (Codex P2)."
+    )
+    assert "ui/dashboard.html|ui/index.html|ui/contract.json" in text, (
+        "push helper must EXCLUDE the generated pages from the static ui/ sync so a "
+        "macro-only publish can't overwrite publish's fresh dashboard (Codex P2)."
     )
 
 
@@ -388,16 +393,19 @@ def test_hourly_restores_dedup_slot_and_aggregates_before_render() -> None:
     )
 
 
-def test_pipeline_restores_notification_dedup_state() -> None:
-    # PRD-194 (Codex P2): _run_pipeline reads logs/last_notification_state.json
-    # (load_last_state -> should_send) before sending. With main frozen post-
-    # decoupling it must be restored from publish, else the next scheduled run
-    # re-sends an unchanged LOW/MEDIUM alert.
+def test_pipeline_restores_dedup_and_evaluation_state() -> None:
+    # PRD-194: the pipeline's complete accumulated/read-back set on publish, beyond
+    # audit.jsonl (verified by sweeping every logs/ read, not just *_PATH names):
+    #   - last_notification_state.json: notification dedup (load_last_state ->
+    #     should_send); without it the next run re-sends an unchanged LOW/MEDIUM alert.
+    #   - evaluation.jsonl: append-only post-trade evaluation log; without restore it
+    #     resets to this run's records each pipeline run (data loss).
     text = _workflow_text("cuttingboard.yml")
-    assert "logs/last_notification_state.json" in text, (
-        "the pipeline must restore logs/last_notification_state.json from publish "
-        "(Codex P2) or notification dedup breaks against main's frozen copy."
-    )
+    for path in ("logs/last_notification_state.json", "logs/evaluation.jsonl"):
+        assert path in text, (
+            f"the pipeline must restore {path} from publish, or its accumulated "
+            "state is lost/stale against main's frozen copy."
+        )
 
 
 def test_state_writers_restore_publish_state_before_running() -> None:
