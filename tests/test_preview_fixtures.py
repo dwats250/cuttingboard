@@ -114,3 +114,14 @@ def test_harness_renders_all_to_non_ui(tmp_path):
         assert path.exists()
         assert not _output_under_ui(path)
         assert path.read_text(encoding="utf-8").lstrip().startswith("<!doctype html>")
+
+
+def test_harness_refuses_ui_out_dir(tmp_path):
+    # render_all writes HTML directly, bypassing validate_coherent_publish, so it
+    # must structurally refuse a ui/ out_dir or fixture HTML could reach the publish
+    # tree (PR #20 review). The guard reuses the publish path's _output_under_ui
+    # helper and must reject before creating the directory.
+    ui_dir = tmp_path / "ui"
+    with pytest.raises(SystemExit):
+        render_all(out_dir=ui_dir)
+    assert not ui_dir.exists()

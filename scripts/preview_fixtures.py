@@ -20,14 +20,29 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from cuttingboard.delivery.dashboard_renderer import render_dashboard_html  # noqa: E402
+from cuttingboard.delivery.dashboard_renderer import (  # noqa: E402
+    _output_under_ui,
+    render_dashboard_html,
+)
 from tests.preview_fixtures import SECTION_STATE_CASES  # noqa: E402
 
 OUT_DIR = ROOT / "reports" / "output"
 
 
 def render_all(out_dir: Path = OUT_DIR) -> list[Path]:
-    """Render each case to out_dir/fixture_<name>.html; fail if a marker is missing."""
+    """Render each case to out_dir/fixture_<name>.html; fail if a marker is missing.
+
+    Refuses any out_dir resolving under the repo's ``ui/`` directory: this writer
+    bypasses ``validate_coherent_publish`` (it writes HTML directly), so without
+    this guard an override like ``Path("ui")`` would emit fixture HTML into the
+    publish tree, contradicting the module's "structurally barred from ui/" claim.
+    The check reuses the same ``_output_under_ui`` helper the publish guard uses.
+    """
+    if _output_under_ui(out_dir):
+        raise SystemExit(
+            f"FAIL: render_all refuses to write fixture HTML under ui/ (got {out_dir}); "
+            "fixture output is structurally barred from the publish tree (PRD-118 R5)."
+        )
     out_dir.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
     for case in SECTION_STATE_CASES:
