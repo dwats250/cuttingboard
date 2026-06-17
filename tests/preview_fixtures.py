@@ -19,7 +19,6 @@ Coverage and the pre-empted (dead-by-routing) states are enumerated in
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from pathlib import Path
 
 from tests.dash_helpers import _macro_drivers, _market_map, _mm_symbol, _payload, _run
@@ -30,11 +29,6 @@ _MISSING_SNAPSHOT = Path("/nonexistent/cuttingboard/preview_macro_snapshot.json"
 
 _SUNDAY_PT_TS = "2026-04-12T17:00:00Z"  # Sunday in America/Los_Angeles
 _WEEKDAY_TS = "2026-04-28T12:00:00Z"    # Tuesday — the dash_helpers default
-
-
-def _fresh_now_iso() -> str:
-    """A current UTC timestamp so the trend-structure freshness gate reads FRESH."""
-    return datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 @dataclass(frozen=True)
@@ -164,14 +158,17 @@ def section_state_cases() -> list[SectionStateCase]:
         )
     )
 
-    # 8. Trend structure awaiting/closed — coherent, fresh snapshot, zero usable rows.
+    # 8. Trend structure awaiting/closed — coherent, zero usable rows. The
+    #    snapshot carries NO generated_at on purpose: _trend_structure_source_health
+    #    runs its 300s freshness gate only when generated_at is a non-empty string,
+    #    so omitting it skips straight to the usable_count==0 -> AWAITING_DATA
+    #    branch. This makes the case time-independent (no render-vs-import clock
+    #    dependency); a stamped "now" would flip to STALE in a long-lived process.
     cases.append(
         _coherent(
             "trend_awaiting_data",
             "MARKET CLOSED &#8212; AWAITING INTRADAY DATA",
-            render_kwargs={
-                "trend_structure_snapshot": {"generated_at": _fresh_now_iso(), "symbols": {}}
-            },
+            render_kwargs={"trend_structure_snapshot": {"symbols": {}}},
         )
     )
 

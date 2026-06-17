@@ -69,6 +69,16 @@ def test_case_render_contains_marker(case):
     assert case.marker in html, f"{case.name}: marker {case.marker!r} absent"
 
 
+def test_trend_awaiting_case_is_time_independent():
+    # Regression guard (PR #20 Codex review): the AWAITING_DATA fixture must not
+    # carry a wall-clock `generated_at`, or a render >300s after import flips the
+    # snapshot to STALE and the marker disappears. Omitting generated_at skips the
+    # freshness gate entirely.
+    case = next(c for c in SECTION_STATE_CASES if c.name == "trend_awaiting_data")
+    snap = case.render_kwargs["trend_structure_snapshot"]
+    assert "generated_at" not in snap
+
+
 def test_healthy_baseline_has_no_demo_banner():
     case = next(c for c in SECTION_STATE_CASES if c.name == "healthy_baseline")
     html = _render(case)
