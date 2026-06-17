@@ -975,6 +975,45 @@ class TestR7CiPushArtifacts:
             f"delta-append clobbered the concurrent row or dropped ours: {audit!r}"
         )
 
+    def test_force_adds_new_gitignored_logs_artifact(self, tmp_path: Path) -> None:
+        """PRD-194 (Codex P1): logs/ is gitignored, so a NEW untracked artifact (a
+        fresh run_<ts>.json each run; macro_*.json on a bootstrapped publish) is skipped
+        by `git add -A` and would never reach publish. The helper must force-add it."""
+        bare, work = _setup_bare_repo_and_clone(tmp_path)
+        # logs/ is gitignored, exactly as in the real repo.
+        (work / ".gitignore").write_text("logs/\n")
+        (work / "logs").mkdir(exist_ok=True)
+        (work / "logs" / "audit.jsonl").write_text('{"r":1}\n')
+        _git_check(["add", "-f", ".gitignore", "logs/audit.jsonl"], work)
+        _git_check(["commit", "-m", "gitignore + seed"], work)
+        _git_check(["push", "origin", "main"], work)
+        base_sha_main = _git_check(["rev-parse", "HEAD"], work).stdout.strip()
+        _git_check(["checkout", "-b", "publish"], work)
+        _git_check(["push", "origin", "publish"], work)
+        base_sha = _git_check(["rev-parse", "HEAD"], work).stdout.strip()
+        _git_check(["checkout", "main"], work)
+
+        # Artifact commit creates a BRAND-NEW gitignored logs file (force-added).
+        pre_sha = _git_check(["rev-parse", "HEAD"], work).stdout.strip()
+        (work / "logs").mkdir(exist_ok=True)
+        (work / "logs" / "run_2026-09-09_000000.json").write_text('{"run":"new"}\n')
+        _git_check(["add", "-f", "logs/run_2026-09-09_000000.json"], work)
+        _git_check(["commit", "-m", "new run archive"], work)
+        post_sha = _git_check(["rev-parse", "HEAD"], work).stdout.strip()
+
+        result = self._run_script(
+            work, pre_sha=pre_sha, post_sha=post_sha,
+            extra_env={"PUBLISH_BRANCH": "publish", "CB_PUBLISH_BASE_SHA": base_sha},
+        )
+        assert result.returncode == 0, (
+            f"expected exit 0; stdout={result.stdout}\nstderr={result.stderr}"
+        )
+        _git_check(["fetch", "origin", "publish"], work)
+        out = _git_check(["show", "origin/publish:logs/run_2026-09-09_000000.json"], work).stdout
+        assert out == '{"run":"new"}\n', (
+            f"new gitignored logs artifact was not force-added to publish (Codex P1): {out!r}"
+        )
+
     def test_publish_syncs_static_ui_assets_from_current_main(self, tmp_path: Path) -> None:
         """PRD-194 (Codex P2): static ui/ assets are synced from CURRENT origin/main
         (latest reviewed), NOT the run's POST_SHA — so a reviewed ui/* change on main

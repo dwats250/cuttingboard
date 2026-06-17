@@ -358,6 +358,17 @@ def test_push_helper_syncs_static_ui_but_not_generated_pages() -> None:
     )
 
 
+def test_push_helper_force_adds_ignored_artifacts() -> None:
+    # PRD-194 (Codex P1): logs/ and dated reports/ are gitignored, so the worktree
+    # publish must force-add them or NEW untracked artifacts (a fresh run_<ts>.json
+    # each run) are skipped by `git add -A` and never reach publish.
+    text = (REPO_ROOT / "tools" / "ci_push_artifacts.sh").read_text(encoding="utf-8")
+    assert "add -f -- logs" in text, (
+        "publish helper must force-add logs/ in the worktree (Codex P1); plain add -A "
+        "skips new gitignored artifacts."
+    )
+
+
 def test_push_helper_retries_on_non_fast_forward() -> None:
     # PRD-194 R5 (Codex P2): cross-workflow publish races are handled by a bounded
     # retry in the push helper, NOT a shared concurrency lock that over-serialized

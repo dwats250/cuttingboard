@@ -132,7 +132,16 @@ attempt_publish() {
     done < <(git ls-tree -r --name-only origin/main -- ui)
   fi
 
+  # add -A handles ui/ (not ignored), deletions, and tracked-file modifications. But
+  # logs/ and dated reports/ are gitignored, so NEW untracked artifacts there (a fresh
+  # logs/run_<ts>.json every run; macro_awareness_*.json on a freshly bootstrapped
+  # publish) are skipped by add -A and would never reach publish (Codex P1). Force-add
+  # the artifact dirs so ignored-but-new files are staged too (the workflows' own
+  # commits use `git add -f logs/` for the same reason). Unchanged files are no-ops, so
+  # this never republishes a file we didn't overlay.
   git -C "$wt" add -A
+  git -C "$wt" add -f -- logs 2>/dev/null || true
+  [ -e "$wt/reports" ] && git -C "$wt" add -f -- reports 2>/dev/null || true
   if git -C "$wt" diff --staged --quiet; then
     echo "artifact publish: no net change vs $PUBLISH_BRANCH - skipping"
     return 0
