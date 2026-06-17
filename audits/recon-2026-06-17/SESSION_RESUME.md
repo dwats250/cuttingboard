@@ -74,8 +74,10 @@ Manual-merge-only (governance guardrail). Two paths:
   spun into follow-up PRDs.
 
 ### 3. PRD-197 — IN PROGRESS; closeout blocked on #25
-Closeout (incl. the PROJECT_STATE + `next_prd` corrections above) runs once #25's
-truthful artifact discharges the waiver.
+Closeout (incl. the PROJECT_STATE Active-PRD pointer correction above — **not**
+`next_prd`, which is already correct at `latest_complete + 1`) runs once #25's
+truthful artifact discharges the waiver. The closeout itself advances
+`latest_complete`/`next_prd` via `prd_close.sh`; do not hand-edit `next_prd`.
 
 ## Subscriptions
 Subscribed to PR activity for #26 (and #25). `send_later` unavailable → no
