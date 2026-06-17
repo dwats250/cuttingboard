@@ -27,13 +27,12 @@ on:
           - prefetch
 
 # Never cancel a mid-run pipeline — queue instead.
-# PRD-194: shared repo-wide group across all three state-writers (cuttingboard,
-# hourly_alert, macro_awareness) so publishes to the `publish` branch serialize
-# and append-only logs/audit.jsonl is never written concurrently. cancel-in-
-# progress: false queues rather than cancels the running job (a superseded PENDING
-# run can be dropped — accepted residual, recovered by the next run's R3 restore).
+# Per-workflow self-serialization (prevents two pipeline runs overlapping).
+# PRD-194: cross-workflow publish races to the `publish` branch are handled by
+# ci_push_artifacts.sh's delta-append + bounded push-retry, NOT a shared lock — a
+# shared group over-serialized the time-sensitive hourly alert (Codex P2).
 concurrency:
-  group: cb-publish
+  group: cuttingboard-pipeline
   cancel-in-progress: false
 
 permissions:

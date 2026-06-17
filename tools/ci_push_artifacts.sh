@@ -2,24 +2,26 @@
 # PRD-194 — publish this run's artifacts onto the dedicated UNPROTECTED publish
 # branch (NOT main). main keeps full branch protection and never takes a bot push.
 #
-# Mechanism (review-amended 2026-06-16; supersedes the rebase-onto-main spec):
-# rebasing the main-based artifact commit onto origin/publish would 3-way-merge the
-# divergent histories and CONFLICT on append-only logs/audit.jsonl (publish and the
-# run both add lines at EOF). Instead we build the publish commit in a WORKTREE on
-# the publish tip and overlay artifacts there:
-#   - logs/audit.jsonl: DELTA-APPEND only THIS run's new rows onto the publish tip's
-#     CURRENT file (never wholesale-copy/clobber — preserves any rows another writer
-#     landed since this run's restore). Base = the publish tip we restored from
-#     (CB_PUBLISH_BASE_SHA); append-only => the base is a prefix of POST_SHA's file.
-#   - everything else (ui/, logs/regime_history.jsonl, logs/latest_*.json, macro
-#     snapshots): full-regen OVERWRITE from the run's committed blob.
-# Parent = publish tip => clean fast-forward; the cb-publish concurrency group
-# serializes all writers so the tip does not move under us. A rejected push (the
-# accepted cancel-residual edge) fails the job; the next run's restore recovers.
+# Mechanism (review-amended; see PRD-194.md R5): build the publish commit in a
+# WORKTREE on the publish tip and overlay artifacts there —
+#   - logs/audit.jsonl: DELTA-APPEND only THIS run's new rows (beyond the restore
+#     base CB_PUBLISH_BASE_SHA) onto the tip's CURRENT file. Never clobbers a row
+#     another writer landed since this run's restore.
+#   - everything else (ui/, regime_history, latest_*, macro snapshots): full-regen
+#     OVERWRITE from the run's committed blob.
+# Concurrency is NOT serialized by a shared lock (that over-serialized the hourly
+# alert — Codex P2). Instead, if the publish tip moved under us the push is a
+# non-fast-forward and we RETRY (bounded, with jitter): re-fetch the tip, re-apply
+# THIS run's delta onto the new tip, re-commit, re-push. Delta-append makes the
+# retry idempotent against the moving tip.
+# Accepted residual: on a tip-moved retry we overwrite ui/ + regime_history with
+# THIS run's versions, so regime_history can be briefly one row stale vs the other
+# writer's just-landed audit row — regenerated correctly on the next run.
 set -euo pipefail
 
 PUBLISH_BRANCH="${PUBLISH_BRANCH:-publish}"
 AUDIT_PATH="logs/audit.jsonl"
+MAX_ATTEMPTS="${CB_PUBLISH_MAX_ATTEMPTS:-5}"
 
 pre_sha="${PRE_SHA:-}"
 post_sha="${POST_SHA:-}"
@@ -58,50 +60,77 @@ if ! git ls-remote --exit-code --heads origin "$PUBLISH_BRANCH" >/dev/null 2>&1;
   exit 0
 fi
 
-git fetch origin "$PUBLISH_BRANCH"
+# THIS run's new audit rows are fixed across retries: the count beyond the restore
+# base (append-only => base is a prefix of POST_SHA's file).
+if [ -n "$base_sha" ] && git cat-file -e "$base_sha:$AUDIT_PATH" 2>/dev/null; then
+  base_count="$(git show "$base_sha:$AUDIT_PATH" | wc -l)"
+else
+  base_count=0
+fi
 
 wt="$(mktemp -d)"
-cleanup() { git worktree remove --force "$wt" 2>/dev/null || true; }
+cleanup() { git worktree remove --force "$wt" 2>/dev/null || true; rm -rf "$wt" 2>/dev/null || true; }
 trap cleanup EXIT
-git worktree add --force "$wt" "origin/$PUBLISH_BRANCH"
 
-for path in "${changed[@]}"; do
-  [ -z "$path" ] && continue
-  dest="$wt/$path"
-  mkdir -p "$(dirname "$dest")"
-  if [ "$path" = "$AUDIT_PATH" ]; then
-    # HARD REQUIREMENT: delta-append THIS run's new rows onto the publish tip's
-    # current audit.jsonl — never clobber. New rows = POST_SHA file beyond the
-    # restore-time base (append-only => base is a prefix).
-    if [ -n "$base_sha" ] && git cat-file -e "$base_sha:$AUDIT_PATH" 2>/dev/null; then
-      base_count="$(git show "$base_sha:$AUDIT_PATH" | wc -l)"
+# Build the publish commit on the CURRENT publish tip and push it. Returns 0 on a
+# successful push (or no-op), 2 on a non-fast-forward (retryable), 1 on hard error.
+attempt_publish() {
+  git worktree remove --force "$wt" 2>/dev/null || true
+  rm -rf "$wt"
+  git fetch origin "$PUBLISH_BRANCH"
+  git worktree add --force "$wt" "origin/$PUBLISH_BRANCH"
+
+  local path dest
+  for path in "${changed[@]}"; do
+    [ -z "$path" ] && continue
+    dest="$wt/$path"
+    mkdir -p "$(dirname "$dest")"
+    if [ "$path" = "$AUDIT_PATH" ]; then
+      if [ -f "$dest" ] && [ -s "$dest" ] && [ -n "$(tail -c1 "$dest")" ]; then
+        printf '\n' >> "$dest"
+      fi
+      git show "$post_sha:$AUDIT_PATH" | tail -n +"$((base_count + 1))" >> "$dest"
+    elif git cat-file -e "$post_sha:$path" 2>/dev/null; then
+      git show "$post_sha:$path" > "$dest"
     else
-      base_count=0
+      rm -f "$dest"
     fi
-    if [ -f "$dest" ] && [ -s "$dest" ] && [ -n "$(tail -c1 "$dest")" ]; then
-      printf '\n' >> "$dest"   # ensure newline-terminated before appending
-    fi
-    git show "$post_sha:$AUDIT_PATH" | tail -n +"$((base_count + 1))" >> "$dest"
-    echo "artifact publish: delta-appended $AUDIT_PATH (base rows=$base_count)"
-  elif git cat-file -e "$post_sha:$path" 2>/dev/null; then
-    git show "$post_sha:$path" > "$dest"   # full-regen overwrite
-  else
-    rm -f "$dest"   # path deleted in the artifact commit
+  done
+
+  git -C "$wt" add -A
+  if git -C "$wt" diff --staged --quiet; then
+    echo "artifact publish: no net change vs $PUBLISH_BRANCH - skipping"
+    return 0
   fi
+  git -C "$wt" -c user.name="github-actions[bot]" \
+               -c user.email="github-actions[bot]@users.noreply.github.com" \
+               commit -m "$msg"
+  if git -C "$wt" push origin "HEAD:refs/heads/$PUBLISH_BRANCH" 2>"$wt/.push_err"; then
+    return 0
+  fi
+  cat "$wt/.push_err" >&2 || true
+  if grep -qiE 'non-fast-forward|fetch first|rejected|stale info|cannot lock ref' "$wt/.push_err" 2>/dev/null; then
+    return 2
+  fi
+  return 1
+}
+
+for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
+  set +e
+  attempt_publish
+  rc=$?
+  set -e
+  if [ "$rc" -eq 0 ]; then
+    echo "artifact publish: pushed -> $PUBLISH_BRANCH (attempt $attempt)"
+    exit 0
+  fi
+  if [ "$rc" -eq 1 ]; then
+    echo "artifact publish: hard error on attempt $attempt - aborting"
+    exit 1
+  fi
+  echo "artifact publish: $PUBLISH_BRANCH tip moved (attempt $attempt/$MAX_ATTEMPTS) - re-applying delta onto new tip"
+  sleep "$(( (RANDOM % 3) + 1 ))"   # 1-3s jitter
 done
 
-git -C "$wt" add -A
-if git -C "$wt" diff --staged --quiet; then
-  echo "artifact publish: no net change vs $PUBLISH_BRANCH - skipping"
-  exit 0
-fi
-git -C "$wt" -c user.name="github-actions[bot]" \
-             -c user.email="github-actions[bot]@users.noreply.github.com" \
-             commit -m "$msg"
-
-if git -C "$wt" push origin "HEAD:refs/heads/$PUBLISH_BRANCH"; then
-  echo "artifact publish: pushed -> $PUBLISH_BRANCH"
-  exit 0
-fi
-echo "artifact publish: push rejected ($PUBLISH_BRANCH tip moved) - failing; next run recovers via restore"
+echo "artifact publish: still non-fast-forward after $MAX_ATTEMPTS attempts - failing; next run recovers via restore"
 exit 1

@@ -293,10 +293,12 @@ def test_preview_workflow_freshness_check_precedes_render() -> None:
 # --- PRD-194 R7 — production publish decoupling (publish branch) -------------
 #
 # Pin the invariants that keep `main` protected and the scoreboard accumulating:
-# the push helper targets the publish branch (never main) and delta-appends the
-# audit log; all three state-writers share the cb-publish concurrency group and
-# restore state before running; Pages deploys the publish branch via workflow_run
-# on all three writers (a GITHUB_TOKEN push cannot fire on:push).
+# the push helper targets the publish branch (never main), delta-appends the audit
+# log, and retries on a non-fast-forward (the cross-workflow publish-race mechanism
+# that replaced the shared concurrency lock — Codex P2); the state-writers do NOT
+# share one concurrency group; each restores its read-back state before running;
+# Pages deploys the publish branch via workflow_run on all three writers (a
+# GITHUB_TOKEN push cannot fire on:push).
 
 PUBLISH_STATE_WRITERS = ("cuttingboard.yml", "hourly_alert.yml", "macro_awareness.yml")
 PUBLISH_WRITER_WORKFLOW_NAMES = (
@@ -326,12 +328,53 @@ def test_push_helper_delta_appends_audit_never_clobbers() -> None:
     assert "tail -n +" in text, "audit.jsonl must be delta-appended (PRD-194 hard req)"
 
 
-def test_state_writers_share_cb_publish_concurrency_group() -> None:
-    for wf in PUBLISH_STATE_WRITERS:
-        assert "group: cb-publish" in _workflow_text(wf), (
-            f"{wf} is not in the shared cb-publish concurrency group (PRD-194 R5); "
-            "concurrent appends to logs/audit.jsonl would not be serialized."
+def test_push_helper_retries_on_non_fast_forward() -> None:
+    # PRD-194 R5 (Codex P2): cross-workflow publish races are handled by a bounded
+    # retry in the push helper, NOT a shared concurrency lock that over-serialized
+    # the hourly alert. On a non-fast-forward the helper re-applies this run's delta
+    # onto the moved tip and re-pushes.
+    text = (REPO_ROOT / "tools" / "ci_push_artifacts.sh").read_text(encoding="utf-8")
+    assert "non-fast-forward" in text, "push helper must detect a non-fast-forward"
+    assert "MAX_ATTEMPTS" in text, "push helper must bound its retry attempts"
+
+
+def test_state_writers_do_not_share_one_concurrency_lock() -> None:
+    # PRD-194 R5 (Codex P2): a shared cb-publish group serialized the entire hourly
+    # alert job behind the pipeline/macro producer and could drop a time-sensitive
+    # alert. Each writer keeps its OWN per-workflow group instead.
+    expected = {
+        "cuttingboard.yml": "group: cuttingboard-pipeline",
+        "hourly_alert.yml": "group: hourly-alert",
+        "macro_awareness.yml": "group: macro-awareness",
+    }
+    for wf, group in expected.items():
+        text = _workflow_text(wf)
+        assert "group: cb-publish" not in text, (
+            f"{wf} still shares the cb-publish lock; that over-serializes the hourly "
+            "alert (Codex P2). Publish races are handled by the push-helper retry."
         )
+        assert group in text, f"{wf} should keep its own per-workflow group ({group})"
+
+
+def test_hourly_restores_dedup_slot_and_aggregates_before_render() -> None:
+    # PRD-194 (Codex P1): the hourly alert reads last_hourly_slot.json (dedup) and
+    # renders the scoreboard from regime_history.jsonl. With main frozen post-
+    # decoupling, the dedup slot must be restored from publish, and the regime
+    # aggregate (a full rebuild from audit) must run BEFORE the render so the
+    # scoreboard is current rather than main's frozen copy.
+    text = _workflow_text("hourly_alert.yml")
+    assert (
+        "ci_restore_publish_state.sh logs/audit.jsonl logs/last_hourly_slot.json" in text
+    ), (
+        "hourly must restore logs/last_hourly_slot.json from publish, or the 06:05 "
+        "backup cron re-sends the 06:00 alert (Codex P1)."
+    )
+    assert text.index("- name: Aggregate regime history") < text.index(
+        "- name: Render and stage hourly artifacts"
+    ), (
+        "hourly must aggregate regime_history BEFORE rendering so the dashboard "
+        "scoreboard reflects this run, not main's frozen history (Codex P1)."
+    )
 
 
 def test_state_writers_restore_publish_state_before_running() -> None:

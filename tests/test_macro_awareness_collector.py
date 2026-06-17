@@ -705,10 +705,11 @@ class TestR7WorkflowContract:
     def test_concurrency_group_named(self) -> None:
         text = self._text()
         assert "concurrency:" in text, "macro_awareness.yml must have a concurrency block"
-        # PRD-194: the macro producer joins the shared repo-wide publish group so all
-        # three state-writers serialize their pushes to the publish branch.
-        assert "group: cb-publish" in text, (
-            "concurrency group must be the shared 'cb-publish' group (PRD-194 R5)"
+        # PRD-194 (Codex P2): the macro producer keeps its OWN per-workflow group.
+        # The earlier shared 'cb-publish' group over-serialized the hourly alert;
+        # cross-workflow publish races are handled by the push-helper retry instead.
+        assert "group: macro-awareness" in text, (
+            "concurrency group must be the per-workflow 'macro-awareness' group"
         )
 
     def test_concurrency_cancel_in_progress_false(self) -> None:

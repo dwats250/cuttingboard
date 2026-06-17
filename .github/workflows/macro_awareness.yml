@@ -5,12 +5,11 @@ name: Cuttingboard Macro-Awareness Producer
 on:
   workflow_dispatch:
 
-# PRD-194: shared repo-wide group across all three state-writers so publishes to
-# the `publish` branch serialize. cancel-in-progress: false queues rather than
-# cancels the running job (a superseded PENDING run can be dropped — accepted
-# residual, recovered by the next run's R3 restore).
+# Per-workflow self-serialization. PRD-194: publish races to the `publish` branch
+# are handled by ci_push_artifacts.sh's delta-append + bounded push-retry, not a
+# shared lock that would over-serialize the hourly alert (Codex P2).
 concurrency:
-  group: cb-publish
+  group: macro-awareness
   cancel-in-progress: false
 
 permissions:

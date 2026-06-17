@@ -18,13 +18,13 @@ on:
                               # 07:00-13:00 PST (all in-window)
   workflow_dispatch:
 
-# PRD-194: shared repo-wide group across all three state-writers so publishes to
-# the `publish` branch serialize and append-only logs/audit.jsonl is never written
-# concurrently. cancel-in-progress: false queues rather than cancels the running
-# job (a superseded PENDING run can be dropped — accepted residual, recovered by
-# the next run's R3 restore).
+# Per-workflow self-serialization: the 06:00 / 06:05-backup crons must not run
+# concurrently or both could alert before either persists last_hourly_slot (dedup
+# depends on the prior run's saved slot). PRD-194: cross-workflow publish races go
+# through ci_push_artifacts.sh's delta-append + push-retry, not a shared lock that
+# would over-serialize this alert behind the pipeline/macro producer (Codex P2).
 concurrency:
-  group: cb-publish
+  group: hourly-alert
   cancel-in-progress: false
 
 permissions:
@@ -59,11 +59,17 @@ jobs:
       - name: Install package
         run: pip install -e .
 
-      # PRD-194 R3: restore the accumulating scoreboard state (logs/audit.jsonl)
-      # from the publish branch before the alert run appends to it. Records
-      # CB_PUBLISH_BASE_SHA so the publish step delta-appends this run's new rows.
+      # PRD-194 R3: restore the read-back state the alert run reads at startup
+      # from the publish branch (main's copies are frozen post-decoupling):
+      #   - logs/audit.jsonl: the accumulating scoreboard source (delta-appended).
+      #   - logs/last_hourly_slot.json: the alert dedup slot (Codex P1). Without it
+      #     the 06:05 backup cron reads main's frozen slot and re-sends the 06:00
+      #     alert. Restored from publish so load_last_slot() sees the prior run.
+      # logs/regime_history.jsonl is NOT restored — it is fully rebuilt from
+      # audit.jsonl by the Aggregate step below, which now runs BEFORE the render.
+      # Records CB_PUBLISH_BASE_SHA so the publish step delta-appends audit rows.
       - name: Restore publish state
-        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl
+        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/last_hourly_slot.json
 
       - name: Check Telegram config presence
         run: |
@@ -103,6 +109,15 @@ jobs:
             echo "fresh hourly payload detected (mtime=$payload_mtime >= start=$START_TS)"
           fi
 
+      # PRD-194 (Codex P1): aggregate BEFORE render so the dashboard scoreboard
+      # reflects THIS run. regime_history.jsonl is fully rebuilt from the restored+
+      # appended audit.jsonl; the renderer then reads the current file instead of
+      # main's frozen copy. Resolves the parked PRD-189 render-before-aggregate
+      # ordering nit, which decoupling promoted from cosmetic to a correctness bug.
+      - name: Aggregate regime history
+        if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
+        run: python3 -m cuttingboard.delivery.regime_history
+
       - name: Render and stage hourly artifacts
         if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
         run: |
@@ -120,12 +135,6 @@ jobs:
       - name: Check hourly readiness
         if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
         run: python3 scripts/check_readiness.py
-
-      - name: Aggregate regime history
-        if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
-        # PRD-175: fold logs/audit.jsonl (just written by the run) into the daily
-        # logs/regime_history.jsonl scoreboard before the artifact commit stages it.
-        run: python3 -m cuttingboard.delivery.regime_history
 
       - name: Commit hourly artifacts
         if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
