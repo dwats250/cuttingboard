@@ -838,6 +838,12 @@
       "commit": "365f0fe"
     },
     {
+      "number": 196,
+      "title": "prd_close.sh baseline hygiene (robust bullet matching + CI-sourced baseline)",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
       "number": 197,
       "title": "Codex cross-review via GitHub Actions (host-independent gate satisfier)",
       "status": "IN PROGRESS",

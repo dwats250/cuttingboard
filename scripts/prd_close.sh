@@ -35,36 +35,46 @@ TESTS=""
 ADDED=""
 SUMMARY=""
 NEXT=""
+CI_SUMMARY=""
 DO_COMMIT=0
 DO_PUSH=0
 
 usage() {
     cat <<'USAGE'
 Usage: prd_close.sh --prd <NNN> --hash <commit> --title "<title>" \
-                    --tests <total_passing> --added <new_tests_added> \
+                    (--ci-summary <file> | --tests <total_passing>) \
+                    --added <new_tests_added> \
                     --summary "<one-paragraph what + why>" \
                     [--next "<next-step text>"] [--commit] [--push]
 
-  --next     set the PROJECT_STATE "**Next step" line; when omitted, that
-             line is left unchanged
-  --commit   stage + commit the closeout edits (summary goes in the commit body)
-  --push     also git push (implies --commit)
+  --ci-summary  path to a captured CI pytest summary (the `test`-job log/step
+                summary for the merge commit on `main`). The recorded baseline
+                is the passing count parsed from it ("N passed[, M xfailed]"),
+                so a sandbox-local count can never become the anchor (PRD-196).
+                Overrides --tests; fails loud if the file is missing or carries
+                no parseable pytest summary.
+  --tests       fallback baseline count when --ci-summary is not supplied.
+  --next        set the PROJECT_STATE "**Next step" line; when omitted, that
+                line is left unchanged
+  --commit      stage + commit the closeout edits (summary goes in the commit body)
+  --push        also git push (implies --commit)
 USAGE
     exit 2
 }
 
 while [ $# -gt 0 ]; do
     case "$1" in
-        --prd)     PRD="$2"; shift 2 ;;
-        --hash)    HASH="$2"; shift 2 ;;
-        --title)   TITLE="$2"; shift 2 ;;
-        --tests)   TESTS="$2"; shift 2 ;;
-        --added)   ADDED="$2"; shift 2 ;;
-        --summary) SUMMARY="$2"; shift 2 ;;
-        --next)    NEXT="$2"; shift 2 ;;
-        --commit)  DO_COMMIT=1; shift ;;
-        --push)    DO_COMMIT=1; DO_PUSH=1; shift ;;
-        -h|--help) usage ;;
+        --prd)        PRD="$2"; shift 2 ;;
+        --hash)       HASH="$2"; shift 2 ;;
+        --title)      TITLE="$2"; shift 2 ;;
+        --tests)      TESTS="$2"; shift 2 ;;
+        --ci-summary) CI_SUMMARY="$2"; shift 2 ;;
+        --added)      ADDED="$2"; shift 2 ;;
+        --summary)    SUMMARY="$2"; shift 2 ;;
+        --next)       NEXT="$2"; shift 2 ;;
+        --commit)     DO_COMMIT=1; shift ;;
+        --push)       DO_COMMIT=1; DO_PUSH=1; shift ;;
+        -h|--help)    usage ;;
         *) echo "unknown arg: $1" >&2; usage ;;
     esac
 done
@@ -72,9 +82,11 @@ done
 [ -n "$PRD" ]     || { echo "missing --prd"     >&2; exit 2; }
 [ -n "$HASH" ]    || { echo "missing --hash"    >&2; exit 2; }
 [ -n "$TITLE" ]   || { echo "missing --title"   >&2; exit 2; }
-[ -n "$TESTS" ]   || { echo "missing --tests"   >&2; exit 2; }
 [ -n "$ADDED" ]   || { echo "missing --added"   >&2; exit 2; }
 [ -n "$SUMMARY" ] || { echo "missing --summary" >&2; exit 2; }
+if [ -z "$TESTS" ] && [ -z "$CI_SUMMARY" ]; then
+    echo "missing --tests or --ci-summary" >&2; exit 2
+fi
 
 # Normalize PRD identifier.
 case "$PRD" in
@@ -94,19 +106,48 @@ INDEX="docs/prd_index.json"
 
 TODAY=$(date -u +%Y-%m-%d)
 
-python3 - "$PRD_FILE" "$REGISTRY" "$STATE" "$INDEX" "$PRD_ID" "$HASH" "$TITLE" "$TESTS" "$ADDED" "$TODAY" "$NEXT" <<'PYEOF'
+python3 - "$PRD_FILE" "$REGISTRY" "$STATE" "$INDEX" "$PRD_ID" "$HASH" "$TITLE" "$TESTS" "$ADDED" "$TODAY" "$NEXT" "$CI_SUMMARY" <<'PYEOF'
 import json
 import re
 import sys
 from pathlib import Path
 
 (prd_path, registry_path, state_path, index_path,
- prd_id, commit_hash, title, tests, added, today, next_step) = sys.argv[1:]
+ prd_id, commit_hash, title, tests, added, today, next_step, ci_summary) = sys.argv[1:]
+
+# --- 0. CI-sourced baseline (PRD-196 defect b) ---------------------------
+# When a CI pytest summary file is supplied, the recorded baseline is the
+# passing count parsed from it — the authoritative `test`-job count for the
+# merge commit on `main` — rather than a hand-supplied (possibly sandbox-local)
+# --tests value. Fail loud if the file is absent or carries no parseable
+# pytest summary; never silently fall back to a local number.
+if ci_summary:
+    ci_p = Path(ci_summary)
+    if not ci_p.exists():
+        sys.exit(f"ERROR: --ci-summary file not found: {ci_summary}")
+    ci_text = ci_p.read_text(encoding="utf-8")
+    m = re.search(r"(\d[\d,]*)\s+passed\b", ci_text)
+    if not m:
+        sys.exit(
+            f"ERROR: no pytest pass count ('N passed') found in CI summary "
+            f"{ci_summary}; refusing to record a baseline"
+        )
+    tests = m.group(1).replace(",", "")
+
+# Contracted PROJECT_STATE edits accumulate failures here; if any contracted
+# bullet cannot be located, the script writes NOTHING and exits non-zero
+# (PRD-196 defect a — no soft WARN-and-continue path survives).
+errors: list[str] = []
+
+# All edits are computed in memory below; nothing is written until the
+# contracted-bullet error gate at the end passes (PRD-196 atomicity).
 
 # --- 1. PRD-NNN.md status markers ----------------------------------------
 # Two distinct markers, two distinct completed forms (PRD-164 R3):
 #   - the capital-S "Status:" header line -> "Status: COMPLETE" (no hash)
 #   - the trailing all-caps "STATUS:" line -> "STATUS: COMPLETE @ <hash>"
+# This path is unchanged by PRD-196 (defect a is PROJECT_STATE hygiene); its
+# defensive WARN/append fallbacks are retained.
 prd_p = Path(prd_path)
 prd_text = prd_p.read_text(encoding="utf-8")
 new_trailing = f"STATUS: COMPLETE @ {commit_hash}"
@@ -121,8 +162,6 @@ if n_trailing == 0:
     prd_text = prd_text + f"\n{new_trailing}\n"
 if n_header == 0:
     print(f"WARN: {prd_path} 'Status:' header line not found", file=sys.stderr)
-prd_p.write_text(prd_text, encoding="utf-8")
-print(f"updated  {prd_path}: Status: COMPLETE / {new_trailing}")
 
 # --- 2. PRD_REGISTRY.md row ----------------------------------------------
 # Flip the existing Stage-0 row in place (PRD-164 R2); append-when-absent is a
@@ -134,9 +173,8 @@ row = (
     f"[{prd_id}](prd_history/{prd_id}.md) |"
 )
 row_re = re.compile(rf"^\|\s*{re.escape(prd_id)}\s*\|.*$", re.MULTILINE)
-reg_text_new, n_row = row_re.subn(lambda _m: row, reg_text)
+reg_out, n_row = row_re.subn(lambda _m: row, reg_text)
 if n_row >= 1:
-    reg_p.write_text(reg_text_new, encoding="utf-8")
     print(f"updated  {registry_path}: row for {prd_id} -> COMPLETE @ {commit_hash}")
 else:
     lines = reg_text.splitlines(keepends=True)
@@ -150,13 +188,14 @@ else:
         if re.match(r"^\|\s*PRD-\d{3}\s*\|", lines[i]):
             last_idx = i
     if last_idx < 0:
-        print(f"ERROR: no existing PRD rows found in {registry_path}", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(f"ERROR: no existing PRD rows found in {registry_path}")
     lines.insert(last_idx + 1, row + "\n")
-    reg_p.write_text("".join(lines), encoding="utf-8")
+    reg_out = "".join(lines)
     print(f"appended {registry_path}: row for {prd_id}")
 
 # --- 3. PROJECT_STATE.md (new "Current state / Recent ships" format) ------
+# Every contracted bullet is anchored on its bold label and fails LOUD (records
+# an error, writes nothing) when absent — no soft WARN-and-continue (PRD-196 a).
 state_p = Path(state_path)
 state_text = state_p.read_text(encoding="utf-8")
 
@@ -167,19 +206,31 @@ state_text, n = re.subn(
     state_text, count=1, flags=re.MULTILINE,
 )
 if n != 1:
-    print("WARN: 'Last updated' marker not found in PROJECT_STATE.md", file=sys.stderr)
+    errors.append("'**Last updated:**' line not found in PROJECT_STATE.md")
 
-# (b) Test baseline bullet — update passing count + commit ref in place; any
-# "M xfailed" text and the pytest command between them are preserved. The middle
-# uses [\s\S]*? so a soft-wrapped bullet (commit ref on the continuation line)
-# still matches. Callable replacement avoids re.sub template parsing.
+# (b) Test baseline bullet — robust, label-anchored. The passing count is
+# updated by anchoring on the bold label alone (independent of trailing prose),
+# so the bullet still updates when the commit-ref prose has drifted (PRD-179:
+# the live bullet read "on `main`", not "at `<hash>`", and the old prose-coupled
+# regex silently self-skipped). The commit ref is refreshed best-effort only
+# when the bullet uses the ``at `<hex>` `` form; a drifted ref is left intact
+# rather than silently mis-edited. Any "M xfailed" text is preserved.
 state_text, n = re.subn(
-    r"(- \*\*Test baseline:\*\* )\d[\d,]*( passing[\s\S]*? at\s+`)[0-9a-f]+(`[^\n]*)",
-    lambda m: f"{m.group(1)}{tests}{m.group(2)}{commit_hash}{m.group(3)}",
+    r"(- \*\*Test baseline:\*\* )\d[\d,]*",
+    lambda m: f"{m.group(1)}{tests}",
     state_text, count=1,
 )
 if n != 1:
-    print("WARN: test baseline bullet not found in PROJECT_STATE.md", file=sys.stderr)
+    errors.append(
+        "'- **Test baseline:**' bullet (with a leading passing count) not found "
+        "in PROJECT_STATE.md"
+    )
+else:
+    state_text = re.sub(
+        r"(- \*\*Test baseline:\*\*[\s\S]*?\bat\s+`)[0-9a-f]+(`)",
+        lambda m: f"{m.group(1)}{commit_hash}{m.group(2)}",
+        state_text, count=1,
+    )
 
 # (c) Active PRD pointer reset (PRD-164 R4) — the bulleted, single-line form
 # (PRD-183). The just-closed PRD is recorded in the Recent ships table below.
@@ -189,9 +240,10 @@ state_text, n = re.subn(
     state_text, count=1, flags=re.MULTILINE,
 )
 if n != 1:
-    print("WARN: 'Active PRD' marker not found in PROJECT_STATE.md", file=sys.stderr)
+    errors.append("'- **Active PRD:**' bullet not found in PROJECT_STATE.md")
 
-# (d) Next-step line (PRD-164 R5) — rewritten only when --next is supplied.
+# (d) Next-step line (PRD-164 R5) — rewritten only when --next is supplied;
+# fails loud when supplied but the line is absent.
 if next_step:
     state_text, n = re.subn(
         r"^\*\*Next step.*$",
@@ -199,7 +251,7 @@ if next_step:
         state_text, count=1, flags=re.MULTILINE,
     )
     if n != 1:
-        print("WARN: 'Next step' marker not found in PROJECT_STATE.md", file=sys.stderr)
+        errors.append("'**Next step**' line not found in PROJECT_STATE.md (--next supplied)")
 
 # (e) Recent ships table — prepend a 3-column row under the "## Recent ships"
 # header's separator row (| PRD | Title | Completed |).
@@ -221,9 +273,8 @@ for i, line in enumerate(lines):
         print(f"prepended {state_path}: Recent ships row for {prd_id}")
         break
 if not inserted:
-    print(f"WARN: '## Recent ships' table not found in {state_path}", file=sys.stderr)
-
-state_p.write_text("".join(lines), encoding="utf-8")
+    errors.append(f"'## Recent ships' table not found in {state_path}")
+state_out = "".join(lines)
 
 # --- 4. prd_index.json ---------------------------------------------------
 idx_p = Path(index_path)
@@ -238,14 +289,30 @@ new_entry = {
 }
 if existing:
     existing.update(new_entry)
-    print(f"updated  {index_path}: entry {prd_id}")
+    idx_msg = f"updated  {index_path}: entry {prd_id}"
 else:
     idx["entries"].append(new_entry)
-    print(f"appended {index_path}: entry {prd_id}")
+    idx_msg = f"appended {index_path}: entry {prd_id}"
 if prd_num > idx.get("latest_complete", 0):
     idx["latest_complete"] = prd_num
     idx["next_prd"] = prd_num + 1
+
+# --- error gate: a missing contracted PROJECT_STATE bullet aborts the whole
+# closeout before ANY file is written (PRD-196 fail-loud + atomicity) ---------
+if errors:
+    print("ERROR: prd_close.sh aborted — contracted PROJECT_STATE bullet(s) "
+          "could not be located; no files were modified:", file=sys.stderr)
+    for e in errors:
+        print(f"  - {e}", file=sys.stderr)
+    sys.exit(1)
+
+# --- commit all edits to disk -------------------------------------------------
+prd_p.write_text(prd_text, encoding="utf-8")
+print(f"updated  {prd_path}: Status: COMPLETE / {new_trailing}")
+reg_p.write_text(reg_out, encoding="utf-8")
+state_p.write_text(state_out, encoding="utf-8")
 idx_p.write_text(json.dumps(idx, indent=2) + "\n", encoding="utf-8")
+print(idx_msg)
 PYEOF
 
 CLOSE_FILES=("$PRD_FILE" "$REGISTRY" "$STATE" "$INDEX")
