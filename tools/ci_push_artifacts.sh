@@ -19,6 +19,8 @@
 # writer's just-landed audit row — regenerated correctly on the next run.
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 PUBLISH_BRANCH="${PUBLISH_BRANCH:-publish}"
 AUDIT_PATH="logs/audit.jsonl"
 MAX_ATTEMPTS="${CB_PUBLISH_MAX_ATTEMPTS:-5}"
@@ -153,6 +155,11 @@ attempt_publish() {
   git -C "$wt" add -A
   git -C "$wt" add -f -- logs 2>/dev/null || true
   [ -e "$wt/reports" ] && git -C "$wt" add -f -- reports 2>/dev/null || true
+  # PRD-195: cap run_*.json history so publish STORAGE stays bounded (display is
+  # already capped at HISTORY_LIMIT; storage was not). Prune AFTER staging so the
+  # deletions join this publish commit, and BEFORE the no-net-change check so a
+  # prune-only delta still lands. Runs every attempt against the rebuilt worktree.
+  bash "$SCRIPT_DIR/prune_run_history.sh" "$wt"
   if git -C "$wt" diff --staged --quiet; then
     echo "artifact publish: no net change vs $PUBLISH_BRANCH - skipping"
     return 0
