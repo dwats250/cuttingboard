@@ -163,11 +163,18 @@ def test_resolved_model_provenance_and_failclosed_allowlist(raw, wf):
     assert run.count("exit 1") >= 2, "must fail closed both when the model is unresolvable and when it is not allowlisted"
     assert "ALLOWED_CODEX_MODELS" in run, "must check the resolved model against the allowlist"
 
-    # The allowlist is a human-configurable workflow env, EMPTY by default
-    # (empty => every model rejected => fail-closed until a human authorizes one).
+    # The allowlist is sourced from a human-set repository variable
+    # (vars.ALLOWED_CODEX_MODELS), EMPTY when the variable is unset => every model
+    # rejected => fail-closed until a human authorizes one in repo Settings. The
+    # committed value must be that variable indirection (or empty), NEVER a
+    # hardcoded model id — a committed literal would re-open the fail-closed default.
     env = wf.get("env") or {}
     assert "ALLOWED_CODEX_MODELS" in env, "allowlist must be a human-configurable workflow env"
-    assert env["ALLOWED_CODEX_MODELS"] in ("", None), "allowlist must default EMPTY (fail-closed)"
+    assert env["ALLOWED_CODEX_MODELS"] in ("", None, "${{ vars.ALLOWED_CODEX_MODELS }}"), (
+        "allowlist must stay fail-closed: empty, or sourced from the "
+        "vars.ALLOWED_CODEX_MODELS repository variable (unset => empty); "
+        "never a hardcoded model id committed in-tree"
+    )
 
 
 # --- artifact identity: the gate artifact is what gets committed -----------
