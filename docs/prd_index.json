@@ -1,6 +1,6 @@
 {
   "tracking_start": 56,
-  "latest_complete": 196,
+  "latest_complete": 198,
   "next_prd": 199,
   "entries": [
     {
@@ -858,8 +858,8 @@
     {
       "number": 198,
       "title": "Semantic-failure hardening doctrine",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "ba8eb20"
     }
   ]
 }
