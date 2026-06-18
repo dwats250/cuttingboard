@@ -55,7 +55,7 @@ permissions: {}
 # emitted (fail-closed). EMPTY by default ⇒ every model is rejected until a human
 # authorizes genuine Codex model id(s) here (e.g. "gpt-5-codex gpt-5-codex-*").
 env:
-  ALLOWED_CODEX_MODELS: ""
+  ALLOWED_CODEX_MODELS: "gpt-5-codex gpt-5-codex-*"
 
 concurrency:
   group: codex-review-${{ inputs.prd }}-${{ inputs.sha }}
