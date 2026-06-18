@@ -246,3 +246,99 @@ def test_index_entry_completed(tmp_path: Path) -> None:
     assert entry["commit"] == "1234abc"
     assert index["latest_complete"] == 200
     assert index["next_prd"] == 201
+
+
+# --- PRD-196 (a): fail-loud + atomic when a contracted bullet is absent ----
+
+def test_missing_contracted_bullet_fails_loud_and_writes_nothing(tmp_path: Path) -> None:
+    tree = _make_tree(tmp_path)
+    sp = tree / "docs" / "PROJECT_STATE.md"
+    # Drift the Active PRD bullet so its bold label can no longer be matched.
+    sp.write_text(sp.read_text().replace("- **Active PRD:**", "- **Current PRD:**"))
+
+    # Snapshot every closeout artifact before the run.
+    before = {p: p.read_text() for p in (
+        sp,
+        tree / "docs" / "PRD_REGISTRY.md",
+        tree / "docs" / "prd_history" / "PRD-200.md",
+        tree / "docs" / "prd_index.json",
+    )}
+
+    res = _run(tree)
+    assert res.returncode != 0, "missing contracted bullet must exit non-zero"
+    assert "Active PRD" in res.stderr, res.stderr
+    # Atomicity: a contracted-bullet failure leaves ALL four artifacts untouched.
+    for p, original in before.items():
+        assert p.read_text() == original, f"{p.name} was modified despite abort"
+
+
+# --- PRD-196 (a): count still updates when the commit-ref prose drifts ------
+
+def test_baseline_count_updates_when_commit_ref_prose_drifts(tmp_path: Path) -> None:
+    tree = _make_tree(tmp_path)
+    sp = tree / "docs" / "PROJECT_STATE.md"
+    # The live PRD-179 shape: "on `main`" instead of "at `<hash>`". The old
+    # prose-coupled regex silently self-skipped this; the count must now update.
+    sp.write_text(sp.read_text().replace(
+        "- **Test baseline:** 2400 passing, 1 xfailed (`python -m pytest tests -q` at `abc0001`).",
+        "- **Test baseline:** 2400 passing, 1 xfailed (`python -m pytest tests -q` on `main`).",
+    ))
+    res = _run(tree)
+    assert res.returncode == 0, res.stderr
+    state = _state(tree)
+    assert "2401 passing" in state
+    assert "2400 passing" not in state
+    assert "on `main`" in state  # drifted ref left intact, not mis-edited
+
+
+# --- PRD-196 (b): baseline sourced from an injected CI summary -------------
+
+def test_ci_summary_overrides_passed_in_tests(tmp_path: Path) -> None:
+    tree = _make_tree(tmp_path)
+    summary = tree / "ci_summary.txt"
+    # A realistic pytest -q tail: the CI `test`-job count is the source of truth.
+    summary.write_text("=== short test summary info ===\n2773 passed, 1 xfailed in 41.2s\n")
+    # _run still passes --tests 2401 (the sandbox-local count); --ci-summary wins.
+    res = _run(tree, "--ci-summary", str(summary))
+    assert res.returncode == 0, res.stderr
+    state = _state(tree)
+    assert "2773 passing" in state, "baseline must come from the CI summary count"
+    assert "2401 passing" not in state, "sandbox --tests count must not be recorded"
+
+
+def test_ci_summary_thousands_separator_parsed(tmp_path: Path) -> None:
+    tree = _make_tree(tmp_path)
+    summary = tree / "ci_summary.txt"
+    summary.write_text("12,773 passed, 1 xfailed in 99.9s\n")
+    assert _run(tree, "--ci-summary", str(summary)).returncode == 0
+    assert "12773 passing" in _state(tree)
+
+
+def test_ci_summary_missing_file_fails_loud(tmp_path: Path) -> None:
+    tree = _make_tree(tmp_path)
+    res = _run(tree, "--ci-summary", str(tree / "nope.txt"))
+    assert res.returncode != 0
+    assert "not found" in res.stderr
+
+
+def test_ci_summary_unparseable_fails_loud(tmp_path: Path) -> None:
+    tree = _make_tree(tmp_path)
+    summary = tree / "ci_summary.txt"
+    summary.write_text("the test job crashed before pytest produced a summary\n")
+    res = _run(tree, "--ci-summary", str(summary))
+    assert res.returncode != 0
+    assert "no pytest pass count" in res.stderr
+
+
+def test_tests_or_ci_summary_required(tmp_path: Path) -> None:
+    tree = _make_tree(tmp_path)
+    res = subprocess.run(
+        [
+            "bash", str(SCRIPT),
+            "--prd", "200", "--hash", "1234abc", "--title", "Test PRD",
+            "--added", "1", "--summary", "did the new thing",
+        ],
+        cwd=tree, capture_output=True, text=True,
+    )
+    assert res.returncode != 0
+    assert "missing --tests or --ci-summary" in res.stderr
