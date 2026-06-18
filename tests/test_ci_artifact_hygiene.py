@@ -369,6 +369,25 @@ def test_push_helper_force_adds_ignored_artifacts() -> None:
     )
 
 
+def test_push_helper_prunes_run_history_after_staging_before_netchange() -> None:
+    # PRD-195: run_*.json accumulated unbounded on publish (display is capped at
+    # HISTORY_LIMIT, storage was not). The publish helper must invoke the prune
+    # AFTER staging (so deletions join this commit) and BEFORE the no-net-change
+    # check (so a prune-only delta still lands).
+    text = (REPO_ROOT / "tools" / "ci_push_artifacts.sh").read_text(encoding="utf-8")
+    assert 'prune_run_history.sh" "$wt"' in text, (
+        "publish helper must call tools/prune_run_history.sh against the worktree "
+        "to cap run_*.json storage (PRD-195)."
+    )
+    add_pos = text.index('git -C "$wt" add -f -- logs')
+    prune_pos = text.index("prune_run_history.sh")
+    netchange_pos = text.index('git -C "$wt" diff --staged --quiet')
+    assert add_pos < prune_pos < netchange_pos, (
+        "prune must run after the force-add staging and before the no-net-change "
+        "check so its deletions are staged into this publish commit (PRD-195)."
+    )
+
+
 def test_bootstrap_race_falls_through_to_retry() -> None:
     # PRD-194 (Codex P2): if two writers race to CREATE an absent publish branch, the
     # loser's bootstrap push is rejected; it must fall through to the delta-append/retry
