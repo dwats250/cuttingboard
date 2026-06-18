@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 194,
-  "next_prd": 195,
+  "latest_complete": 196,
+  "next_prd": 199,
   "entries": [
     {
       "number": 56,
@@ -840,14 +840,14 @@
     {
       "number": 195,
       "title": "Publish-branch run_*.json storage cap/prune",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "470aa2b"
     },
     {
       "number": 196,
       "title": "prd_close.sh baseline hygiene (robust bullet matching + CI-sourced baseline)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "8a5fd6a"
     },
     {
       "number": 197,
