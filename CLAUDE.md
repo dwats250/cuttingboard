@@ -123,6 +123,52 @@ with date and rationale - short notes, not ceremony.
   three. Authoring a PRD in chat and filing it only at closeout produces
   sequencing-gate noise and forces reconstruction from chat history.
 
+## Semantic-failure hardening (PRD-198)
+
+A check is only worth its green if it verifies *correspondence to reality*, not
+the *presence of the right words*. Six invariants close the "passes-on-the-letter,
+fails-on-the-meaning" failure class. Each names the incident it generalizes.
+
+1. **Fail-loud, never silent-fallback.** A missing dependency, an unresolvable id,
+   or an unreachable source must exit non-zero - never substitute-and-continue.
+   *Why:* a step that degrades silently reports a success it never verified.
+   *Incident:* `codex --version || echo 'unknown'` and `engine_doctor` WARN->exit 0
+   record/emit a non-result as if it were a result.
+
+2. **Assert the resolved, not the requested.** Verify the actual effect - the
+   resolved model, the executed test, the CI count - never the declared intent.
+   *Why:* intent and effect diverge precisely where it matters.
+   *Incident:* provenance recorded the requested `gpt-5-codex` while the served
+   model self-reported `gpt-4.1`.
+
+3. **Authoritative source, not proxy.** Every check names and reads its source of
+   truth; never a proxy that can diverge from it.
+   *Why:* a convenient nearby value is not the value you mean to check.
+   *Incident:* parsing the assistant's prose `final-message` as if it were the
+   `--json` response-metadata stream.
+
+4. **Every guard ships a red test.** A guard merges only with a negative test
+   proving it fails when violated. Banned: `importorskip` on a required dep,
+   `WARN`-and-`exit 0`, and any test that cannot fail.
+   *Why:* a guard with no failing-case test rots to always-green unnoticed.
+   *Incident:* hermetic YAML tests asserted the parser's *logic existed* but never
+   that it *worked* against real output - which was, in fact, broken.
+
+5. **Verify where truth is determined.** Achieve environment parity with the gate
+   (CI); local/sandbox green is unverified until reproduced where the decision is
+   made.
+   *Why:* the environment that decides is the only one whose result counts.
+   *Incident:* the sandbox suite (2768) differs from CI (2773+); a baseline read
+   from the sandbox is wrong.
+
+6. **Pin identities that matter.** Model -> dated snapshot, action -> commit SHA,
+   dependency -> declared *and* locked. A movable identity changes behavior with no
+   diff.
+   *Why:* an alias or floating tag can be re-pointed under you, silently.
+   *Incident:* `gpt-5-codex` (an alias, not a snapshot) appears to resolve to a
+   fallback; `actions/*` are pinned to movable `@vN` tags; deps are floor-pinned
+   (`>=`) with no lockfile.
+
 ## Workflow patterns
 
 - Start work on a PRD by reading the PRD file, the related modules, and any prior
