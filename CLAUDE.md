@@ -171,6 +171,14 @@ fails-on-the-meaning" failure class. Each names the incident it generalizes.
 
 ## Workflow patterns
 
+- **Dashboard regeneration = publish from live data, never hand-overwrite the
+  snapshot.** "Regenerate the dashboard" means dispatch the `cuttingboard.yml`
+  pipeline (`workflow_dispatch`, `mode: live`), which renders from live data and
+  publishes to the `publish` branch (the live Pages site). NEVER overwrite
+  `main`'s `ui/dashboard.html` / `ui/index.html` from a sandbox render - the
+  in-repo `logs/*` are minimal fallbacks, so a local render degrades the
+  committed snapshot and does not touch the live site. The local renderer
+  (`dashboard-publish-refresh`) stays a read-only DRY_RUN health check at most.
 - Start work on a PRD by reading the PRD file, the related modules, and any prior
   decisions in `docs/DECISIONS.md`.
 - When drift is discovered mid-task (code doesn't match docs, undocumented
