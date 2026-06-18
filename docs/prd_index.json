@@ -744,8 +744,8 @@
     {
       "number": 179,
       "title": "Preview fixture/all-section-state coverage (fast-follow to PRD-178)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "fce0ab2"
     },
     {
       "number": 180,
@@ -840,6 +840,18 @@
     {
       "number": 196,
       "title": "prd_close.sh baseline hygiene (robust bullet matching + CI-sourced baseline)",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
+      "number": 197,
+      "title": "Codex cross-review via GitHub Actions (host-independent gate satisfier)",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
+      "number": 198,
+      "title": "Semantic-failure hardening doctrine",
       "status": "IN PROGRESS",
       "commit": null
     }
