@@ -94,7 +94,7 @@ FRESHNESS_SECONDS       = 300        # 5 minutes — max quote age for valid dat
 MAX_CLOCK_SKEW_SECONDS  = 5          # max tolerated quote timestamp skew into the future
 HALT_SYMBOLS            = ["^VIX", "DX-Y.NYB", "^TNX", "SPY", "QQQ"]
 OHLCV_MIN_BARS          = 21
-OHLCV_FETCH_MONTHS      = 6
+OHLCV_FETCH_MONTHS      = 12         # PRD-190: >=200 trading bars so sma_200 resolves
 EMA_FAST                = 9
 EMA_SLOW                = 21
 EMA_TREND               = 50

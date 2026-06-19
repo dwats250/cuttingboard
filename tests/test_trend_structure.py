@@ -240,6 +240,22 @@ def test_short_history_yields_null_smas_no_raise():
     assert rec["data_status"] == "PARTIAL"
 
 
+def test_prd190_fetch_window_sized_for_sma_200():
+    # PRD-190 R1: OHLCV_FETCH_MONTHS must size the daily fetch to >=200 trading
+    # bars (the sma_200 window) with holiday headroom, so the SMA Composite
+    # resolves instead of "SMA history insufficient". This guard fails red on a
+    # silent revert to the pre-PRD-190 6-month (~126-bar) window.
+    from cuttingboard import config
+
+    calendar_days = config.OHLCV_FETCH_MONTHS * 31  # mirrors ingestion.py fetch span
+    # ~5 trading days per 7 calendar; subtract ~9 holidays/yr of headroom.
+    est_trading_bars = calendar_days * 5 / 7 - 9
+    assert est_trading_bars >= 200, (
+        f"OHLCV_FETCH_MONTHS={config.OHLCV_FETCH_MONTHS} estimates "
+        f"~{est_trading_bars:.0f} trading bars; need >=200 for sma_200"
+    )
+
+
 def test_prd130_equality_emits_at_level():
     # PRD-130 R2: exact equality (price == ref) is a successful
     # comparison resulting in a neutral state and MUST emit AT_LEVEL,
