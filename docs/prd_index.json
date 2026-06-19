@@ -810,8 +810,8 @@
     {
       "number": 190,
       "title": "OHLCV fetch window sized for SMA-200",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "0573152"
     },
     {
       "number": 191,
