@@ -3657,3 +3657,75 @@ def test_prd177_r5_red_folder_default_empty_state() -> None:
     assert 'id="red-folder"' in html
     block = html.split('id="red-folder"', 1)[1].split('id="trend-structure"', 1)[0]
     assert "No red-folder events in the next 48 hours." in block
+
+
+# ---------------------------------------------------------------------------
+# PRD-199 — macro-tape tradables daily %-change arrow
+# ---------------------------------------------------------------------------
+
+def _ts_snapshot_with_changes(changes: dict) -> dict:
+    snap = _ts_healthy_snapshot()
+    for sym, rec in snap["symbols"].items():
+        rec["daily_change_pct"] = changes.get(sym)
+    return snap
+
+
+def _tradable_cell(html: str, symbol: str) -> str:
+    grid = html.split('class="macro-tradables-grid"', 1)[1].split("</div>", 1)[0]
+    for cell in grid.split('class="tradable-cell"')[1:]:
+        if f'data-symbol="{symbol}"' in cell:
+            return cell
+    raise AssertionError(f"tradable cell for {symbol} not found")
+
+
+def test_prd199_r2_tradable_arrow_follows_pct_not_direction() -> None:
+    # Red test: SPY trade_framing.direction = LONG (high-grade BULL) but
+    # daily_change_pct < 0 -> arrow must be DOWN (driven by %-change sign, not direction).
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A", bias="BULL")})
+    snap = _ts_snapshot_with_changes({"SPY": -0.42})
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=mm, trend_structure_snapshot=snap,
+    )
+    cell = _tradable_cell(html, "SPY")
+    assert '<span class="tradable-arrow">↓</span>' in cell
+    assert '<span class="tradable-arrow">↑</span>' not in cell
+
+
+def test_prd199_r3_tradable_arrow_renders_for_nonzero_change() -> None:
+    snap = _ts_snapshot_with_changes({"QQQ": 0.85})
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap,
+    )
+    assert '<span class="tradable-arrow">↑</span>' in _tradable_cell(html, "QQQ")
+
+
+def test_prd199_r3_tradable_arrow_dash_when_change_missing() -> None:
+    # _ts_healthy_snapshot records omit daily_change_pct -> flat/dash sentinel; price unchanged.
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(),
+        trend_structure_snapshot=_ts_healthy_snapshot(),
+    )
+    assert '<span class="tradable-arrow">—</span>' in _tradable_cell(html, "SPY")
+
+
+def test_prd199_arrow_is_monochrome_no_color_class() -> None:
+    # Approval edit: the tradable arrow carries no _ARROW_CSS color class; color
+    # stays reserved for the macro-driver rows (tape-slot up/down).
+    snap = _ts_snapshot_with_changes({"SPY": -0.42, "QQQ": 0.85})
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap,
+    )
+    grid = html.split('class="macro-tradables-grid"', 1)[1].split("</div>", 1)[0]
+    assert "tradable-arrow" in grid
+    assert "tape-slot up" not in grid
+    assert "tape-slot down" not in grid
+
+
+def test_prd199_r4_tradable_price_unchanged_with_arrow() -> None:
+    from tests.dash_helpers import _macro_tape_value_slots
+    mm = _market_map({"SPY": {**_mm_symbol("SPY", grade="A"), "current_price": 512.345}})
+    snap = _ts_snapshot_with_changes({"SPY": 0.5})
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=mm, trend_structure_snapshot=snap,
+    )
+    assert dict(_macro_tape_value_slots(html))["SPY"] == "512.35"
