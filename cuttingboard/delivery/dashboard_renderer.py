@@ -2108,11 +2108,16 @@ def render_dashboard_html(
 
     # Tradables grid (PRD-199: monochrome daily %-change arrow + price, 2 per row).
     # The arrow span carries NO _ARROW_CSS color class — color stays reserved
-    # for the macro-driver rows.
+    # for the macro-driver rows. PRD-199 freshness gate: the arrow reads the
+    # trend-structure snapshot, so it degrades to the dash sentinel unless that
+    # snapshot is health-usable for the current run (_ts_health == "OK" — the same
+    # gate the trend section uses). The price (current_price) is independently fresh
+    # from market_map and is NOT gated: degradation is fresh price + dash arrow.
+    _ts_arrow_ok = _ts_health == "OK"
     w('  <div class="macro-tradables-grid">')
     for slot in TRADABLES_ROW.slots:
         val = tape_value_map.get(slot.label, "N/A")
-        arrow = _tape_arrow_map.get(slot.label, _DASH)
+        arrow = _tape_arrow_map.get(slot.label, _DASH) if _ts_arrow_ok else _DASH
         w(
             f'    <span class="tradable-cell">'
             f'<span class="macro-tape-label">{_esc(slot.label)}</span>'
