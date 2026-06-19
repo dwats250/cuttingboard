@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
   "latest_complete": 198,
-  "next_prd": 199,
+  "next_prd": 200,
   "entries": [
     {
       "number": 56,
@@ -860,6 +860,12 @@
       "title": "Semantic-failure hardening doctrine",
       "status": "COMPLETE",
       "commit": "ba8eb20"
+    },
+    {
+      "number": 199,
+      "title": "Macro-tape tradables daily %-change arrow",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
