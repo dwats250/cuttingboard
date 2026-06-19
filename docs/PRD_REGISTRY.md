@@ -215,7 +215,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-196 | 8a5fd6a | prd_close.sh baseline hygiene (robust bullet matching + CI-sourced baseline) | COMPLETE | [PRD-196](prd_history/PRD-196.md) |
 | PRD-197 | — | Codex cross-review via GitHub Actions (host-independent gate satisfier) | IN PROGRESS | [PRD-197](prd_history/PRD-197.md) |
 | PRD-198 | ba8eb20 | Semantic-failure hardening doctrine | COMPLETE | [PRD-198](prd_history/PRD-198.md) |
-| PRD-199 | — | Macro-tape tradables daily %-change arrow | IN PROGRESS | [PRD-199](prd_history/PRD-199.md) |
+| PRD-199 | fd27d79 (PR #37) | Macro-tape tradables daily %-change arrow (additive daily_change_pct; freshness-gated monochrome arrow; Claude ACCEPT + Codex APPROVE) | COMPLETE | [PRD-199](prd_history/PRD-199.md) |
 | PRD-195 | 470aa2b | Publish-branch run_*.json storage cap/prune | COMPLETE | [PRD-195](prd_history/PRD-195.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
