@@ -1,8 +1,8 @@
 {
   "artifacts": {
-    "log_path": "logs/latest_hourly_run.json",
-    "notification_sent": true,
-    "report_path": "reports/output/hourly_report.html"
+    "log_path": "logs/latest_run.json",
+    "notification_sent": false,
+    "report_path": "reports/2026-06-19.md"
   },
   "audit_summary": {
     "continuation_accepted_count": null,
@@ -12,44 +12,50 @@
     "qualified_count": 0,
     "rejected_count": 0
   },
-  "correlation": null,
-  "generated_at": "2026-06-18T20:12:36Z",
-  "generation_id": "hourly-20260618T201236Z",
+  "correlation": {
+    "dollar_symbol": "DX-Y.NYB",
+    "gold_symbol": "GLD",
+    "risk_modifier": 1.0,
+    "score": 1,
+    "state": "ALIGNED"
+  },
+  "generated_at": "2026-06-19T06:58:14Z",
+  "generation_id": "live-20260619T065814Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -2.1705247449966456,
-      "level": 63053.69921875,
+      "change_pct": -0.04185866122980349,
+      "level": 62852.69140625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.6006159386670689,
-      "level": 100.83200073242188,
+      "change_pct": 0.7333063517314417,
+      "level": 100.96499633789062,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -2.4149758182868277,
-      "level": 4234.7998046875,
+      "change_pct": -4.223898258914401,
+      "level": 4156.2998046875,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 1.5964615331234346,
-      "level": 75.7300033569336,
+      "change_pct": 2.428223150473173,
+      "level": 76.3499984741211,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -1.1968292454657785,
-      "change_pct": -0.2688899834287613,
-      "level": 4.450999736785889,
+      "change_bps": -1.1968329042719341,
+      "change_pct": -0.26889080767000145,
+      "level": 4.4509997,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -4.922049787526644,
-      "level": 65.87000274658203,
+      "change_pct": -7.260390975641879,
+      "level": 64.25,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -11.068914171175791,
-      "level": 16.389999389648438,
+      "change_pct": -11.014653570436533,
+      "level": 16.399999618530273,
       "symbol": "^VIX"
     }
   },
@@ -57,24 +63,24 @@
     "continuation_enabled": false,
     "data_quality": "ok",
     "expansion_regime": null,
-    "imbalance_enabled": null,
+    "imbalance_enabled": false,
     "stale_data_detected": false
   },
   "mode": "live",
   "outcome": "NO_TRADE",
   "regime": {
     "classification": "RISK_ON",
-    "confidence": 0.25,
-    "net_score": 2,
-    "neutral_votes": 2,
+    "confidence": 0.375,
+    "net_score": 3,
+    "neutral_votes": 3,
     "posture": "STAY_FLAT",
-    "risk_off_votes": 2,
+    "risk_off_votes": 1,
     "risk_on_votes": 4,
     "total_votes": 8,
-    "vix_level": 16.389999389648438,
-    "vix_pct_change": -0.11068914171175792,
+    "vix_level": 16.399999618530273,
+    "vix_pct_change": -0.11014653570436532,
     "vote_breakdown": {
-      "BTC pct_change": "RISK_OFF",
+      "BTC pct_change": "NEUTRAL",
       "DXY pct_change": "RISK_OFF",
       "IWM pct_change": "RISK_ON",
       "QQQ pct_change": "RISK_ON",
@@ -84,17 +90,27 @@
       "VIX pct_change": "RISK_ON"
     }
   },
-  "rejections": [],
+  "rejections": [
+    {
+      "detail": null,
+      "reason": "STAY_FLAT posture (regime=RISK_ON, confidence=0.38)",
+      "stage": "REGIME",
+      "symbol": "REGIME"
+    }
+  ],
   "schema_version": "v2",
-  "session_date": "2026-06-18",
+  "session_date": "2026-06-19",
   "status": "STAY_FLAT",
   "system_state": {
-    "confidence": 0.25,
+    "confidence": 0.375,
     "intraday_state": null,
     "market_regime": "RISK_ON",
+    "outcome": "NO_TRADE",
+    "permission": "No new trades permitted.",
+    "reason": "STAY_FLAT posture (regime=RISK_ON, confidence=0.38)",
     "router_mode": "MIXED",
-    "stay_flat_reason": "STAY_FLAT posture",
-    "time_gate_open": false,
+    "stay_flat_reason": "STAY_FLAT posture (regime=RISK_ON, confidence=0.38)",
+    "time_gate_open": true,
     "tradable": false
   },
   "timezone": "America/New_York",
