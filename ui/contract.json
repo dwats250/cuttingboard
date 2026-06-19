@@ -13,27 +13,27 @@
     "rejected_count": 0
   },
   "correlation": null,
-  "generated_at": "2026-06-19T16:00:26Z",
-  "generation_id": "hourly-20260619T160026Z",
+  "generated_at": "2026-06-19T17:12:10Z",
+  "generation_id": "hourly-20260619T171210Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.43358938268538655,
-      "level": 63151.6484375,
+      "change_pct": 0.10510636529341723,
+      "level": 62945.1015625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.576668942367131,
-      "level": 100.80799865722656,
+      "change_pct": 0.5347655047857075,
+      "level": 100.76599884033203,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -3.919718265010603,
-      "level": 4169.5,
+      "change_pct": -3.841372282264722,
+      "level": 4172.89990234375,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 2.4818868411574204,
-      "level": 76.38999938964844,
+      "change_pct": 2.6831231223977383,
+      "level": 76.54000091552734,
       "symbol": "CL=F"
     },
     "rates": {
@@ -43,8 +43,8 @@
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -6.632507652520718,
-      "level": 64.68499755859375,
+      "change_pct": -6.307729783755997,
+      "level": 64.91000366210938,
       "symbol": "SI=F"
     },
     "volatility": {
