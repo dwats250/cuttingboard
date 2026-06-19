@@ -565,3 +565,22 @@ def test_prd110_no_leakage_into_decision_modules():
         if pattern.search(text):
             offenders.append(str(path))
     assert offenders == [], f"trend_structure leakage into decision modules: {offenders}"
+
+
+def test_prd199_record_carries_daily_change_pct():
+    # PRD-199 R1: _build_record emits an additive daily_change_pct from
+    # quote.pct_change_decimal (sign-preserving); None when the quote is absent.
+    def _q(sym: str, price: float, pct: float) -> NormalizedQuote:
+        return NormalizedQuote(
+            symbol=sym, price=price, pct_change_decimal=pct, volume=1_000_000.0,
+            fetched_at_utc=datetime(2026, 5, 9, 14, 0, tzinfo=timezone.utc),
+            source="yfinance", units="usd_price", age_seconds=10.0,
+        )
+
+    quotes = {"SPY": _q("SPY", 100.0, 0.012), "QQQ": _q("QQQ", 100.0, -0.008)}
+    out = build_trend_structure_snapshot(quotes, {}, ["SPY", "QQQ"])
+    assert out["symbols"]["SPY"]["daily_change_pct"] > 0
+    assert out["symbols"]["QQQ"]["daily_change_pct"] < 0
+    # Absent quote -> None (present key, null value).
+    out2 = build_trend_structure_snapshot({}, {}, ["SPY"])
+    assert out2["symbols"]["SPY"]["daily_change_pct"] is None

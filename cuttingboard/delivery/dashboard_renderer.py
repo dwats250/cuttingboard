@@ -1034,7 +1034,7 @@ def _is_finite_number(value: object) -> bool:
 
 def _build_tape_slots(
     macro_drivers: dict,
-    market_map: dict | None,
+    trend_records: dict[str, dict] | None,
 ) -> list[tuple[str, str]]:
     slots: list[tuple[str, str]] = []
 
@@ -1047,16 +1047,16 @@ def _build_tape_slots(
             else:
                 slots.append((slot.label, _DASH))
 
-    symbols: dict = (market_map or {}).get("symbols") or {}
+    # PRD-199: the tradables arrow is the SIGN of the symbol's daily %-change
+    # (trend-structure record daily_change_pct), via the same _pct_arrow path as
+    # the macro-driver rows. Replaces the dead trade_framing.direction branch,
+    # whose arrow was computed but never rendered.
+    records = trend_records or {}
     for slot in TRADABLES_ROW.slots:
-        entry = symbols.get(slot.quote_symbol)
-        if entry:
-            tf = entry.get("trade_framing") or {}
-            direction = tf.get("direction")
-            if direction is not None:
-                slots.append((slot.label, _direction_arrow(direction)))
-            else:
-                slots.append((slot.label, _DASH))
+        rec = records.get(slot.quote_symbol)
+        change_pct = rec.get("daily_change_pct") if isinstance(rec, dict) else None
+        if _is_finite_number(change_pct):
+            slots.append((slot.label, _pct_arrow(float(change_pct))))
         else:
             slots.append((slot.label, _DASH))
 
@@ -1743,7 +1743,7 @@ def render_dashboard_html(
     title = "MIXED_ARTIFACTS" if artifact_mixed else _decision_title(outcome, bool(system_halted), status)
 
     # R1 — tape slots
-    tape_slots = _build_tape_slots(macro_drivers, market_map)
+    tape_slots = _build_tape_slots(macro_drivers, _trend_structure_records(trend_structure_snapshot))
     tape_value_slots = _build_tape_value_slots(macro_drivers, market_map)
     pressure = _build_pressure_snapshot(macro_drivers, market_map)
 
@@ -2106,14 +2106,23 @@ def render_dashboard_html(
     # Divider
     w('  <div class="sep"></div>')
 
-    # Tradables grid (no arrows, 2 per row)
+    # Tradables grid (PRD-199: monochrome daily %-change arrow + price, 2 per row).
+    # The arrow span carries NO _ARROW_CSS color class — color stays reserved
+    # for the macro-driver rows. PRD-199 freshness gate: the arrow reads the
+    # trend-structure snapshot, so it degrades to the dash sentinel unless that
+    # snapshot is health-usable for the current run (_ts_health == "OK" — the same
+    # gate the trend section uses). The price (current_price) is independently fresh
+    # from market_map and is NOT gated: degradation is fresh price + dash arrow.
+    _ts_arrow_ok = _ts_health == "OK"
     w('  <div class="macro-tradables-grid">')
     for slot in TRADABLES_ROW.slots:
         val = tape_value_map.get(slot.label, "N/A")
+        arrow = _tape_arrow_map.get(slot.label, _DASH) if _ts_arrow_ok else _DASH
         w(
             f'    <span class="tradable-cell">'
             f'<span class="macro-tape-label">{_esc(slot.label)}</span>'
             f'&nbsp;<span class="macro-tape-value" data-symbol="{_esc(slot.label)}">{_esc(val)}</span>'
+            f'&nbsp;<span class="tradable-arrow">{_esc(arrow)}</span>'
             f'</span>'
         )
     w('  </div>')

@@ -3657,3 +3657,107 @@ def test_prd177_r5_red_folder_default_empty_state() -> None:
     assert 'id="red-folder"' in html
     block = html.split('id="red-folder"', 1)[1].split('id="trend-structure"', 1)[0]
     assert "No red-folder events in the next 48 hours." in block
+
+
+# ---------------------------------------------------------------------------
+# PRD-199 — macro-tape tradables daily %-change arrow
+# ---------------------------------------------------------------------------
+
+def _ts_snapshot_with_changes(changes: dict, *, generated_at: str | None = None) -> dict:
+    snap = _ts_healthy_snapshot()
+    if generated_at is not None:
+        snap["generated_at"] = generated_at
+    for sym, rec in snap["symbols"].items():
+        rec["daily_change_pct"] = changes.get(sym)
+    return snap
+
+
+def _fresh_ts_iso() -> str:
+    # Trend-snapshot freshness (_compute_timestamp_freshness) is measured against the
+    # real wall clock, so a wall-clock-fresh snapshot needs a near-now generated_at.
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _tradable_cell(html: str, symbol: str) -> str:
+    grid = html.split('class="macro-tradables-grid"', 1)[1].split("</div>", 1)[0]
+    for cell in grid.split('class="tradable-cell"')[1:]:
+        if f'data-symbol="{symbol}"' in cell:
+            return cell
+    raise AssertionError(f"tradable cell for {symbol} not found")
+
+
+def _render_tradables(monkeypatch, changes, *, generated_at, mm_symbols=None) -> str:
+    # _ts_health == "OK" needs BOTH fresh+coherent lineage (frozen _utcnow + coherent
+    # generation_ids) and a wall-clock-fresh snapshot generated_at.
+    _freeze_renderer_now(monkeypatch)
+    payload, run, market_map = _coherent_inputs()
+    if mm_symbols is not None:
+        market_map["symbols"] = mm_symbols
+        market_map["primary_symbols"] = list(mm_symbols.keys())
+    snap = _ts_snapshot_with_changes(changes, generated_at=generated_at)
+    return render_dashboard_html(payload, run, market_map=market_map, trend_structure_snapshot=snap)
+
+
+def test_prd199_r2_tradable_arrow_follows_pct_not_direction(monkeypatch) -> None:
+    # Red test: SPY trade_framing.direction = LONG (high-grade BULL) but
+    # daily_change_pct < 0 -> arrow must be DOWN (driven by %-change sign, not direction).
+    html = _render_tradables(
+        monkeypatch, {"SPY": -0.42}, generated_at=_fresh_ts_iso(),
+        mm_symbols={"SPY": _mm_symbol("SPY", grade="A", bias="BULL")},
+    )
+    cell = _tradable_cell(html, "SPY")
+    assert '<span class="tradable-arrow">↓</span>' in cell
+    assert '<span class="tradable-arrow">↑</span>' not in cell
+
+
+def test_prd199_r3_tradable_arrow_renders_for_nonzero_change(monkeypatch) -> None:
+    html = _render_tradables(
+        monkeypatch, {"QQQ": 0.85}, generated_at=_fresh_ts_iso(),
+        mm_symbols={"QQQ": _mm_symbol("QQQ", grade="A", bias="BULL")},
+    )
+    assert '<span class="tradable-arrow">↑</span>' in _tradable_cell(html, "QQQ")
+
+
+def test_prd199_r3_tradable_arrow_dash_when_change_missing(monkeypatch) -> None:
+    # Fresh+healthy snapshot but daily_change_pct absent -> dash sentinel (missing-field path).
+    html = _render_tradables(
+        monkeypatch, {}, generated_at=_fresh_ts_iso(),
+        mm_symbols={"SPY": _mm_symbol("SPY", grade="A")},
+    )
+    assert '<span class="tradable-arrow">—</span>' in _tradable_cell(html, "SPY")
+
+
+def test_prd199_arrow_is_monochrome_no_color_class(monkeypatch) -> None:
+    # Approval edit: the tradable arrow carries no _ARROW_CSS color class; color
+    # stays reserved for the macro-driver rows (tape-slot up/down).
+    html = _render_tradables(
+        monkeypatch, {"SPY": -0.42, "QQQ": 0.85}, generated_at=_fresh_ts_iso(),
+        mm_symbols={"SPY": _mm_symbol("SPY", grade="A")},
+    )
+    grid = html.split('class="macro-tradables-grid"', 1)[1].split("</div>", 1)[0]
+    assert "tradable-arrow" in grid
+    assert "tape-slot up" not in grid
+    assert "tape-slot down" not in grid
+
+
+def test_prd199_r4_tradable_price_unchanged_with_arrow(monkeypatch) -> None:
+    from tests.dash_helpers import _macro_tape_value_slots
+    html = _render_tradables(
+        monkeypatch, {"SPY": 0.5}, generated_at=_fresh_ts_iso(),
+        mm_symbols={"SPY": {**_mm_symbol("SPY", grade="A"), "current_price": 512.345}},
+    )
+    assert dict(_macro_tape_value_slots(html))["SPY"] == "512.35"
+
+
+def test_prd199_r5_tradable_arrow_dashes_when_trend_snapshot_stale(monkeypatch) -> None:
+    # PRD-199 R5 (freshness gate): lineage fresh+coherent but the trend snapshot is
+    # wall-clock STALE -> _ts_health == STALE -> the tradables ARROW degrades to the dash
+    # sentinel, while the price (independently fresh from market_map) is retained.
+    html = _render_tradables(
+        monkeypatch, {"SPY": -0.42}, generated_at="2020-01-01T00:00:00+00:00",
+        mm_symbols={"SPY": _mm_symbol("SPY", grade="A")},
+    )
+    cell = _tradable_cell(html, "SPY")
+    assert '<span class="tradable-arrow">—</span>' in cell       # arrow degraded to dash
+    assert '<span class="tradable-arrow">↓</span>' not in cell    # not the stale directional arrow
+    assert 'data-symbol="SPY">100.00</span>' in cell             # price retained (market_map fresh)
