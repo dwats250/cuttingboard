@@ -239,9 +239,16 @@ defined action - not a label:
 - **What counts as drift:** a merged change that conflicts with a VISION
   non-goal/principle, leaves a PROJECT_STATE claim stale, or whose review
   artifact skipped the DRIFT CHECK.
-- **Remediation:** when drift is found, open a corrective PRD (don't just log
-  it). Record each audit in `docs/DECISIONS.md` - PRDs reviewed, drift found (or
-  "none"), and the corrective PRD number when applicable.
+- **Remediation (scaled to severity).** *Substantive drift* - a merged change
+  that conflicts with a VISION non-goal/principle or leaves a PROJECT_STATE claim
+  stale - is remediated by opening a corrective PRD (don't just log it), with its
+  number recorded. A *review-artifact process miss* - a merged review that skipped
+  the DRIFT CHECK - is remediated in place: append the missing DRIFT CHECK to that
+  review and confirm no substantive drift; no corrective PRD is required (forcing
+  PRD ceremony for retroactive paperwork is the sprawl this file's PRD-process and
+  "cuts before additions" rules guard against). Record each audit in
+  `docs/DECISIONS.md` - PRDs reviewed, drift found (or "none"), the remediation
+  taken, and the corrective PRD number when applicable.
 
 ### PRD-author disciplines
 
