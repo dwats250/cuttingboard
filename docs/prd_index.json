@@ -884,6 +884,12 @@
       "title": "Agent-efficiency guidance: consult recon maps + delegate bookkeeping recon",
       "status": "COMPLETE",
       "commit": "7e5b52d"
+    },
+    {
+      "number": 203,
+      "title": "prd_close.sh rebuilds the PROJECT_STATE baseline line (canonical, no stale provenance)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
