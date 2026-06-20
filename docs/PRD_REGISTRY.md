@@ -219,6 +219,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-195 | 470aa2b | Publish-branch run_*.json storage cap/prune | COMPLETE | [PRD-195](prd_history/PRD-195.md) |
 | PRD-200 | a794807 | Enforce registry/index/state consistency on the CI merge path | COMPLETE | [PRD-200](prd_history/PRD-200.md) |
 | PRD-201 | b1f2598 | Canonical read-guard hook (warn on redundant re-read of injected docs) | COMPLETE | [PRD-201](prd_history/PRD-201.md) |
+| PRD-202 | — | Agent-efficiency guidance: consult recon maps + delegate bookkeeping recon | IN PROGRESS | [PRD-202](prd_history/PRD-202.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
