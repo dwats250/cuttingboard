@@ -16,6 +16,54 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-20 — Alignment cadence check #4 — PASS (no drift; 1 stale annotation remediated in place)
+
+Fourth cadence check (since #3 on 2026-06-19), run at Dustin's request after the
+PRD-200/201/202 batch. Scope: PRDs merged since check #3 — PRDs 200, 201, 202 —
+plus the PRD-186 post-merge drift audit.
+
+Net new production modules since #3: none. The batch is governance/process/harness
+tooling: PRD-200 wired the pre-existing `tools/validate_prd_registry.py` into the CI
+`test` job (+ a `--skip-commit-resolvability` flag) and reconciled registry/index
+data; PRD-201 added a Claude Code harness hook
+(`.claude/hooks/canonical_read_guard.sh`); PRD-202 added CLAUDE.md Workflow-pattern
+guidance. No trading-pipeline module added.
+
+- **Q1 (new prediction logic?):** No. A CI consistency gate, a non-blocking Read
+  reminder hook, and docs guidance — no ML/forecast/backtest surface.
+- **Q2 (new sidecar without consumer or observational purpose?):** No sidecars added.
+- **Q3 (new module not serving the four questions?):** No. The only new file,
+  `canonical_read_guard.sh`, is agent-context-discipline harness tooling (same class
+  as `protect_files.sh` / `prd_eval.sh`), not a pipeline module touching the four
+  questions; `validate_prd_registry.py` pre-existed.
+
+**Verdict: PASS.** No prediction logic, no orphan sidecar, no non-serving module; the
+batch is process/governance tooling, observational/descriptive character intact.
+
+**Post-merge drift audit (PRD-186) — PRDs 200/201/202:**
+- PRD-200 (HIGH-RISK): Claude + Codex review artifacts both carried a DRIFT CHECK
+  (no VISION conflict; PROJECT_STATE updated). No finding.
+- PRD-201 (STANDARD): Claude review artifact carried a DRIFT CHECK (no VISION
+  conflict). No finding.
+- PRD-202 (MICRO): no review artifact required; drift self-checked inline (no VISION
+  conflict). Confirmed here. No finding.
+
+**One finding, remediated in place:** the PROJECT_STATE test-baseline line had drifted —
+`prd_close.sh` advanced the count to 2819 but left the prior provenance anchor ("after
+the PRD-195 merge — run 27732171939 for 470aa2b") and an obsolete sandbox-2796 /
+5-signing-tests note (this sandbox now matches CI at 2819). Corrected in this update to
+the PRD-201 merge run (27865518359 / `b1f2598`). Per the refined CLAUDE.md:242-244 rule,
+a doc-accuracy staleness fixed in place does not require a corrective PRD.
+
+**Tooling follow-up (noted, not opened):** `prd_close.sh` rewrites only the baseline
+*count*, not the surrounding provenance text, so the line goes stale every closeout. A
+future tweak should rebuild the whole baseline line from `--ci-summary` (run id +
+commit), not just the number.
+
+Next cadence check by 2026-07-31 (or the next phase boundary, whichever comes first).
+
+---
+
 ## 2026-06-19 — Drift-remediation scaled to severity (CLAUDE.md:242-244 refined)
 
 The post-merge drift-audit remediation rule mandated a corrective PRD for ANY drift,
