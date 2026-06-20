@@ -866,6 +866,12 @@
       "title": "Macro-tape tradables daily %-change arrow",
       "status": "COMPLETE",
       "commit": "fd27d79"
+    },
+    {
+      "number": 200,
+      "title": "Enforce registry/index/state consistency on the CI merge path",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
