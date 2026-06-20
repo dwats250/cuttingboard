@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 200,
-  "next_prd": 201,
+  "latest_complete": 201,
+  "next_prd": 202,
   "entries": [
     {
       "number": 56,
@@ -876,8 +876,8 @@
     {
       "number": 201,
       "title": "Canonical read-guard hook (warn on redundant re-read of injected docs)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "b1f2598"
     }
   ]
 }

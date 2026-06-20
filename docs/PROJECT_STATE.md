@@ -5,7 +5,7 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-06-20 (commit a794807)
+**Last updated:** 2026-06-20 (commit b1f2598)
 
 ## Current state
 
@@ -16,7 +16,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 - **Deferred dependency (PRD-189 → PRD-192):** correctly homing the intraday/orb slots (route through alert_runner/`_execute_notify_run` or hourly_alert.yml) + a per-slot audit dedup marker (runtime/audit.py). Allocated PROPOSED; HIGH-RISK; not opened at Stage 0.
 - **Deferred dependency (PRD-189 → PRD-193):** publish-safe prefetch with real OHLCV cache persistence — make the warm-up cache (`data/cache`) persist to the live run (commit or actions/cache) and the prefetch slot publish-safe, then re-add the 12:50 cron to the resolver. Allocated PROPOSED; distinct from PRD-192 (notify routing). Not opened at Stage 0.
 - **Proposed / next:** PRD-192 (intraday slot wiring + audit dedup marker) and PRD-193 (publish-safe prefetch + OHLCV cache persistence) — both PROPOSED, deferred from PRD-189; PRD-188 (macro-awareness SHOCK banner + scheduled activation) — PROPOSED, gated on the PRD-187 materiality eval (go/no-go by 2026-07-15); PRD-179 (preview fixture / all-section-state coverage) still unstarted.
-- **Test baseline:** 2812 passing, 1 xfailed (CI truth on `main` after the PRD-195 merge — `test` job of run 27732171939 for `470aa2b`. In this sandbox the same suite reports 2796 passing because 5 git-commit-signing tests — 1 in test_prd_open (test_commit_flag_creates_stage0_commit), 4 in test_prd_registry (R6) — fail environmentally and pass in CI; the recorded baseline is the CI count.).
+- **Test baseline:** 2819 passing, 1 xfailed (CI truth on `main` after the PRD-195 merge — `test` job of run 27732171939 for `470aa2b`. In this sandbox the same suite reports 2796 passing because 5 git-commit-signing tests — 1 in test_prd_open (test_commit_flag_creates_stage0_commit), 4 in test_prd_registry (R6) — fail environmentally and pass in CI; the recorded baseline is the CI count.).
 - **Fixed (PRD-194):** the `hourly_alert.yml` render-before-aggregate nit (hourly published a 1-cycle-stale scoreboard) is resolved — PRD-194 reordered the hourly Aggregate step to run before the render, so the hourly dashboard reflects the current run.
 - **Recently landed and live:**
   - The market-stress kill switch forces a terminal HALT (PRD-180). The
@@ -30,6 +30,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 | PRD | Title | Completed |
 |-----|-------|-----------|
+| PRD-201 | Canonical read-guard hook (warn on redundant re-read of injected docs) | 2026-06-20 |
 | PRD-200 | Enforce registry/index/state consistency on the CI merge path | 2026-06-20 |
 | PRD-198 | Semantic-failure hardening doctrine | 2026-06-18 |
 | PRD-195 | Publish-branch run_*.json storage cap/prune | 2026-06-18 |
