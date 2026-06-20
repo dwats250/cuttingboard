@@ -335,6 +335,24 @@ def test_baseline_no_run_clause_when_ci_run_omitted(tmp_path: Path) -> None:
     assert ", run " not in baseline_line
 
 
+def test_baseline_bullet_absent_fails_loud_and_writes_nothing(tmp_path: Path) -> None:
+    # PRD-203 R3: a missing Test-baseline bullet aborts with no writes (atomicity).
+    tree = _make_tree(tmp_path)
+    sp = tree / "docs" / "PROJECT_STATE.md"
+    sp.write_text(sp.read_text().replace("- **Test baseline:**", "- **Coverage note:**"))
+    before = {p: p.read_text() for p in (
+        sp,
+        tree / "docs" / "PRD_REGISTRY.md",
+        tree / "docs" / "prd_history" / "PRD-200.md",
+        tree / "docs" / "prd_index.json",
+    )}
+    res = _run(tree)
+    assert res.returncode != 0, "missing Test-baseline bullet must exit non-zero"
+    assert "Test baseline" in res.stderr, res.stderr
+    for p, original in before.items():
+        assert p.read_text() == original, f"{p.name} modified despite abort"
+
+
 # --- PRD-196 (b): baseline sourced from an injected CI summary -------------
 
 def test_ci_summary_overrides_passed_in_tests(tmp_path: Path) -> None:
