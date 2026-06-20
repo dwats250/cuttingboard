@@ -58,6 +58,15 @@ Full history: `docs/PRD_REGISTRY.md`.
   yet scheduled, so every notification-path change still edits one large
   `runtime/__init__.py`. **Re-evaluate by 2026-08-15** (per the VISION principle
   that acknowledged debt carries a re-evaluation date).
+- **19 historical registry commit hashes are unreachable from `main`.** PRD-076,
+  081, 083, 085, 086, 088, 090, 096, 100, 102, 125, 126, 133, 139, 158, 161, 167,
+  168, 169 record COMPLETE commits that were squash-merged/rebased away, so the
+  validator's commit-resolvability check cannot pass in a clean CI checkout.
+  PRD-200 CI-skips that check (`--skip-commit-resolvability`) and enforces
+  consistency only; resolvability is unaffected relative to before (the validator
+  ran nowhere automatically). Follow-up: triage/fix the 19 hashes to their on-main
+  commits, then re-enable resolvability in CI (drop the flag, re-add
+  `fetch-depth: 0`). **Re-evaluate by 2026-07-31** (next alignment cadence).
 
 ## Parked (reopen only under the stated condition)
 
