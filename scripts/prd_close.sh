@@ -36,6 +36,7 @@ ADDED=""
 SUMMARY=""
 NEXT=""
 CI_SUMMARY=""
+CI_RUN=""
 DO_COMMIT=0
 DO_PUSH=0
 
@@ -45,7 +46,7 @@ Usage: prd_close.sh --prd <NNN> --hash <commit> --title "<title>" \
                     (--ci-summary <file> | --tests <total_passing>) \
                     --added <new_tests_added> \
                     --summary "<one-paragraph what + why>" \
-                    [--next "<next-step text>"] [--commit] [--push]
+                    [--next "<next-step text>"] [--ci-run <id>] [--commit] [--push]
 
   --ci-summary  path to a captured CI pytest summary (the `test`-job log/step
                 summary for the merge commit on `main`). The recorded baseline
@@ -56,6 +57,8 @@ Usage: prd_close.sh --prd <NNN> --hash <commit> --title "<title>" \
   --tests       fallback baseline count when --ci-summary is not supplied.
   --next        set the PROJECT_STATE "**Next step" line; when omitted, that
                 line is left unchanged
+  --ci-run      optional CI run id; recorded in the Test baseline line as
+                ", run <id>" when supplied
   --commit      stage + commit the closeout edits (summary goes in the commit body)
   --push        also git push (implies --commit)
 USAGE
@@ -69,6 +72,7 @@ while [ $# -gt 0 ]; do
         --title)      TITLE="$2"; shift 2 ;;
         --tests)      TESTS="$2"; shift 2 ;;
         --ci-summary) CI_SUMMARY="$2"; shift 2 ;;
+        --ci-run)     CI_RUN="$2"; shift 2 ;;
         --added)      ADDED="$2"; shift 2 ;;
         --summary)    SUMMARY="$2"; shift 2 ;;
         --next)       NEXT="$2"; shift 2 ;;
@@ -106,14 +110,14 @@ INDEX="docs/prd_index.json"
 
 TODAY=$(date -u +%Y-%m-%d)
 
-python3 - "$PRD_FILE" "$REGISTRY" "$STATE" "$INDEX" "$PRD_ID" "$HASH" "$TITLE" "$TESTS" "$ADDED" "$TODAY" "$NEXT" "$CI_SUMMARY" <<'PYEOF'
+python3 - "$PRD_FILE" "$REGISTRY" "$STATE" "$INDEX" "$PRD_ID" "$HASH" "$TITLE" "$TESTS" "$ADDED" "$TODAY" "$NEXT" "$CI_SUMMARY" "$CI_RUN" <<'PYEOF'
 import json
 import re
 import sys
 from pathlib import Path
 
 (prd_path, registry_path, state_path, index_path,
- prd_id, commit_hash, title, tests, added, today, next_step, ci_summary) = sys.argv[1:]
+ prd_id, commit_hash, title, tests, added, today, next_step, ci_summary, ci_run) = sys.argv[1:]
 
 # --- 0. CI-sourced baseline (PRD-196 defect b) ---------------------------
 # When a CI pytest summary file is supplied, the recorded baseline is the
@@ -208,29 +212,40 @@ state_text, n = re.subn(
 if n != 1:
     errors.append("'**Last updated:**' line not found in PROJECT_STATE.md")
 
-# (b) Test baseline bullet — robust, label-anchored. The passing count is
-# updated by anchoring on the bold label alone (independent of trailing prose),
-# so the bullet still updates when the commit-ref prose has drifted (PRD-179:
-# the live bullet read "on `main`", not "at `<hash>`", and the old prose-coupled
-# regex silently self-skipped). The commit ref is refreshed best-effort only
-# when the bullet uses the ``at `<hex>` `` form; a drifted ref is left intact
-# rather than silently mis-edited. Any "M xfailed" text is preserved.
-state_text, n = re.subn(
-    r"(- \*\*Test baseline:\*\* )\d[\d,]*",
-    lambda m: f"{m.group(1)}{tests}",
-    state_text, count=1,
+# (b) Test baseline bullet — canonical whole-bullet REBUILD (PRD-203).
+# Earlier logic patched the count in place and refreshed the commit ref only for
+# the ``at `<hex>` `` form, so a bullet in the ``for `<hash>` `` / "CI truth ...
+# run <id>" form kept a stale commit + provenance while the count advanced
+# (caught by alignment cadence #4). Regenerate the ENTIRE bullet from the closeout
+# inputs so count and provenance can never diverge. Fails loud (records an error,
+# writes nothing) when the labelled bullet is absent (PRD-196 atomicity).
+xfailed = ""
+if ci_summary:
+    mxf = re.search(r"(\d[\d,]*)\s+xfailed\b", ci_text)
+    if mxf:
+        xfailed = mxf.group(1).replace(",", "")
+# Match the whole bullet item: the label line plus any continuation lines that
+# are not a new bullet ("- "), a heading ("#"), or blank.
+bullet_re = re.compile(
+    r"^- \*\*Test baseline:\*\*.*(?:\n(?!\s*-\s|\s*#|\s*$).*)*",
+    re.MULTILINE,
 )
-if n != 1:
-    errors.append(
-        "'- **Test baseline:**' bullet (with a leading passing count) not found "
-        "in PROJECT_STATE.md"
-    )
+mb = bullet_re.search(state_text)
+if mb is None:
+    errors.append("'- **Test baseline:**' bullet not found in PROJECT_STATE.md")
 else:
-    state_text = re.sub(
-        r"(- \*\*Test baseline:\*\*[\s\S]*?\bat\s+`)[0-9a-f]+(`)",
-        lambda m: f"{m.group(1)}{commit_hash}{m.group(2)}",
-        state_text, count=1,
+    if not xfailed:
+        # Preserve a prior "M xfailed" from the bullet being replaced.
+        mxf_prev = re.search(r"(\d[\d,]*)\s+xfailed\b", mb.group(0))
+        if mxf_prev:
+            xfailed = mxf_prev.group(1).replace(",", "")
+    xf = f", {xfailed} xfailed" if xfailed else ""
+    run = f", run {ci_run}" if ci_run else ""
+    new_bullet = (
+        f"- **Test baseline:** {tests} passing{xf} "
+        f"(CI truth on `main`; `test` job for `{commit_hash}`{run})."
     )
+    state_text = state_text[: mb.start()] + new_bullet + state_text[mb.end():]
 
 # (c) Active PRD pointer reset (PRD-164 R4) — the bulleted, single-line form
 # (PRD-183). The just-closed PRD is recorded in the Recent ships table below.

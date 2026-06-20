@@ -173,9 +173,11 @@ def test_baseline_updated_in_place_xfailed_preserved(tmp_path: Path) -> None:
     assert res.returncode == 0, res.stderr
     assert "WARN: test baseline bullet not found" not in res.stderr
     state = _state(tree)
-    # Count -> 2401 (from --tests), commit ref -> 1234abc, "1 xfailed" preserved.
-    assert "- **Test baseline:** 2401 passing, 1 xfailed (`python -m pytest tests -q` at `1234abc`)." in state
+    # Whole bullet REBUILT (PRD-203): count -> 2401, commit -> 1234abc, "1 xfailed"
+    # preserved, canonical "CI truth ... for `<hash>`" provenance.
+    assert "- **Test baseline:** 2401 passing, 1 xfailed (CI truth on `main`; `test` job for `1234abc`)." in state
     assert "2400 passing" not in state
+    assert "python -m pytest tests -q" not in state  # old prose rebuilt away
     assert "abc0001" not in state.splitlines()[2]  # Last updated line refreshed too
 
 
@@ -192,8 +194,10 @@ def test_baseline_wrapped_across_two_lines_is_updated(tmp_path: Path) -> None:
     assert res.returncode == 0, res.stderr
     assert "WARN: test baseline bullet not found" not in res.stderr
     state = _state(tree)
-    assert "2401 passing" in state and "1234abc" in state
-    assert "2400 passing" not in state
+    # Soft-wrapped bullet is matched whole and collapsed to the canonical line.
+    assert "- **Test baseline:** 2401 passing, 1 xfailed (CI truth on `main`; `test` job for `1234abc`)." in state
+    assert "2400 passing" not in state and "abc0001" not in state
+    assert "python -m pytest tests -q" not in state
 
 
 # --- PRD-183: Recent ships row prepended (3-column) -----------------------
@@ -274,11 +278,11 @@ def test_missing_contracted_bullet_fails_loud_and_writes_nothing(tmp_path: Path)
 
 # --- PRD-196 (a): count still updates when the commit-ref prose drifts ------
 
-def test_baseline_count_updates_when_commit_ref_prose_drifts(tmp_path: Path) -> None:
+def test_baseline_rebuilt_when_commit_ref_prose_drifts(tmp_path: Path) -> None:
     tree = _make_tree(tmp_path)
     sp = tree / "docs" / "PROJECT_STATE.md"
-    # The live PRD-179 shape: "on `main`" instead of "at `<hash>`". The old
-    # prose-coupled regex silently self-skipped this; the count must now update.
+    # A drifted bullet ("on `main`", no "at `<hash>`"). PRD-203: the whole bullet
+    # is rebuilt, so the count AND commit refresh and the old prose is gone.
     sp.write_text(sp.read_text().replace(
         "- **Test baseline:** 2400 passing, 1 xfailed (`python -m pytest tests -q` at `abc0001`).",
         "- **Test baseline:** 2400 passing, 1 xfailed (`python -m pytest tests -q` on `main`).",
@@ -286,9 +290,49 @@ def test_baseline_count_updates_when_commit_ref_prose_drifts(tmp_path: Path) -> 
     res = _run(tree)
     assert res.returncode == 0, res.stderr
     state = _state(tree)
-    assert "2401 passing" in state
+    assert "- **Test baseline:** 2401 passing, 1 xfailed (CI truth on `main`; `test` job for `1234abc`)." in state
     assert "2400 passing" not in state
-    assert "on `main`" in state  # drifted ref left intact, not mis-edited
+    assert "python -m pytest tests -q" not in state  # drifted prose rebuilt away
+
+
+# --- PRD-203: stale multi-sentence provenance is fully rebuilt away --------
+
+def test_baseline_rebuild_drops_stale_run_and_commit_provenance(tmp_path: Path) -> None:
+    # The exact alignment-cadence-#4 drift: a multi-sentence "CI truth ... run <id>
+    # for `<hash>`" bullet whose count had been bumped but provenance left stale.
+    # The whole bullet must be rebuilt: new count + new commit, and the old run id,
+    # old commit, and trailing sentences must NOT survive (PRD-198 invariant 4).
+    tree = _make_tree(tmp_path)
+    sp = tree / "docs" / "PROJECT_STATE.md"
+    sp.write_text(sp.read_text().replace(
+        "- **Test baseline:** 2400 passing, 1 xfailed (`python -m pytest tests -q` at `abc0001`).",
+        "- **Test baseline:** 2400 passing, 1 xfailed (CI truth on `main` -- `test` job "
+        "of run 27732171939 for `470aa2b`. In this sandbox the same suite reports 2390 "
+        "passing because signing tests fail; the recorded baseline is the CI count.).",
+    ))
+    res = _run(tree)
+    assert res.returncode == 0, res.stderr
+    state = _state(tree)
+    assert "- **Test baseline:** 2401 passing, 1 xfailed (CI truth on `main`; `test` job for `1234abc`)." in state
+    for stale in ("470aa2b", "27732171939", "In this sandbox", "2400 passing", "2390"):
+        assert stale not in state, f"stale token survived rebuild: {stale}"
+
+
+# --- PRD-203: optional --ci-run is recorded; absent -> no run clause -------
+
+def test_baseline_ci_run_recorded_when_supplied(tmp_path: Path) -> None:
+    tree = _make_tree(tmp_path)
+    res = _run(tree, "--ci-run", "27865518359")
+    assert res.returncode == 0, res.stderr
+    assert ("- **Test baseline:** 2401 passing, 1 xfailed "
+            "(CI truth on `main`; `test` job for `1234abc`, run 27865518359).") in _state(tree)
+
+
+def test_baseline_no_run_clause_when_ci_run_omitted(tmp_path: Path) -> None:
+    tree = _make_tree(tmp_path)
+    assert _run(tree).returncode == 0
+    baseline_line = next(ln for ln in _state(tree).splitlines() if "**Test baseline:**" in ln)
+    assert ", run " not in baseline_line
 
 
 # --- PRD-196 (b): baseline sourced from an injected CI summary -------------
