@@ -816,7 +816,7 @@
     {
       "number": 191,
       "title": "Direction-aware macro-evidence rationale",
-      "status": "IN PROGRESS",
+      "status": "PROPOSED",
       "commit": null
     },
     {
@@ -852,8 +852,8 @@
     {
       "number": 197,
       "title": "Codex cross-review via GitHub Actions (host-independent gate satisfier)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "761eac4"
     },
     {
       "number": 198,

@@ -208,12 +208,12 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-188 | — | Macro-Awareness SHOCK Banner + Scheduled Activation (GATED) | PROPOSED | [PRD-188](prd_history/PRD-188.md) |
 | PRD-189 | b6e036e (PR #15) | Live-pipeline mode resolution + per-surface freshness observability (merged 2026-06-16; closeout unblocked + COMPLETE 2026-06-17 — PRD-194 landed and live run 27665400742 published a fresh scoreboard row to `publish`) | COMPLETE | [PRD-189](prd_history/PRD-189.md) |
 | PRD-190 | 0573152 (PR #35) | OHLCV fetch window sized for SMA-200 (config-only bump 6→12; sma_200 resolves; R4 gate CLEAN; real Codex cross-review CONCERNS dispositioned, cache HIGH accepted via OHLCV_STALE_HOURS TTL self-heal) | COMPLETE | [PRD-190](prd_history/PRD-190.md) |
-| PRD-191 | — | Direction-aware macro-evidence rationale | IN PROGRESS | [PRD-191](prd_history/PRD-191.md) |
+| PRD-191 | — | Direction-aware macro-evidence rationale | PROPOSED | [PRD-191](prd_history/PRD-191.md) |
 | PRD-192 | — | Intraday slot wiring + per-slot audit dedup marker (deferred from PRD-189) | PROPOSED | [PRD-192](prd_history/PRD-192.md) |
 | PRD-193 | — | Publish-safe prefetch with OHLCV cache persistence (deferred from PRD-189) | PROPOSED | [PRD-193](prd_history/PRD-193.md) |
 | PRD-194 | 365f0fe (PR #16) | Production publish decoupling: dedicated unprotected publish branch (finishes PRD-178; unblocks the post-PRD-189 push rejection) — verified end-to-end 2026-06-17 (run 27665400742: publish advanced, `main` byte-unchanged, Pages deployed) | COMPLETE | [PRD-194](prd_history/PRD-194.md) |
 | PRD-196 | 8a5fd6a | prd_close.sh baseline hygiene (robust bullet matching + CI-sourced baseline) | COMPLETE | [PRD-196](prd_history/PRD-196.md) |
-| PRD-197 | — | Codex cross-review via GitHub Actions (host-independent gate satisfier) | IN PROGRESS | [PRD-197](prd_history/PRD-197.md) |
+| PRD-197 | 761eac4 (PR #29) | Codex cross-review via GitHub Actions (host-independent gate satisfier) | COMPLETE | [PRD-197](prd_history/PRD-197.md) |
 | PRD-198 | ba8eb20 | Semantic-failure hardening doctrine | COMPLETE | [PRD-198](prd_history/PRD-198.md) |
 | PRD-199 | fd27d79 (PR #37) | Macro-tape tradables daily %-change arrow (additive daily_change_pct; freshness-gated monochrome arrow; Claude ACCEPT + Codex APPROVE) | COMPLETE | [PRD-199](prd_history/PRD-199.md) |
 | PRD-195 | 470aa2b | Publish-branch run_*.json storage cap/prune | COMPLETE | [PRD-195](prd_history/PRD-195.md) |
