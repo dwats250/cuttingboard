@@ -379,3 +379,47 @@ def test_r6_doc_without_status_line_skipped(tmp_path: Path) -> None:
         tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
     )
     assert errors == []
+
+
+# ---------------------------------------------------------------------------
+# PRD-200: --skip-commit-resolvability is a NARROW, CI-scoped opt-out.
+# In a clean CI checkout the synthetic/historical COMPLETE hashes do not
+# resolve; the flag must skip ONLY that git check, never a consistency check.
+# ---------------------------------------------------------------------------
+
+def test_skip_commit_resolvability_flag_skips_only_git_check(tmp_path: Path) -> None:
+    # A git tree whose registry COMPLETE rows carry synthetic (unresolvable) hashes.
+    root = _write_fixture(tmp_path)
+    _init_git_repo(root)
+
+    full = validate_prd_registry.validate_repository(root)
+    assert any("Unresolvable commit" in e for e in full)
+
+    skipped = validate_prd_registry.validate_repository(
+        root, skip_commit_resolvability=True
+    )
+    assert not any("Unresolvable commit" in e for e in skipped)
+    # The fixture is otherwise consistent: skipping resolvability leaves no errors.
+    assert skipped == []
+
+
+def test_skip_commit_resolvability_still_catches_consistency_drift(tmp_path: Path) -> None:
+    # PRD-056 title diverges between index and registry; the flag must NOT hide it.
+    index = copy.deepcopy(VALID_INDEX)
+    index["entries"][0]["title"] = "DRIFTED INDEX TITLE"
+    root = _write_fixture(tmp_path, index=index)
+    _init_git_repo(root)
+
+    errors = validate_prd_registry.validate_repository(
+        root, skip_commit_resolvability=True
+    )
+    assert any("Registry mismatch: PRD-056 title differs" in e for e in errors)
+
+
+def test_main_skip_commit_resolvability_flag(tmp_path: Path) -> None:
+    root = _write_fixture(tmp_path)
+    _init_git_repo(root)
+    # Without the flag the historical hashes are unresolvable -> exit 1.
+    assert validate_prd_registry.main([str(root)]) == 1
+    # With the flag the consistency-clean fixture passes -> exit 0.
+    assert validate_prd_registry.main([str(root), "--skip-commit-resolvability"]) == 0

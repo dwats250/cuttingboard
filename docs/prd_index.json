@@ -1,6 +1,6 @@
 {
   "tracking_start": 56,
-  "latest_complete": 198,
+  "latest_complete": 199,
   "next_prd": 200,
   "entries": [
     {
@@ -866,6 +866,12 @@
       "title": "Macro-tape tradables daily %-change arrow",
       "status": "COMPLETE",
       "commit": "fd27d79"
+    },
+    {
+      "number": 200,
+      "title": "Enforce registry/index/state consistency on the CI merge path",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

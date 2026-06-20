@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import subprocess
@@ -325,7 +326,7 @@ def _validate_doc_status_agreement(
             )
 
 
-def validate_repository(root: Path) -> list[str]:
+def validate_repository(root: Path, *, skip_commit_resolvability: bool = False) -> list[str]:
     errors: list[str] = []
     data = _load_index(root, errors)
     if data is None:
@@ -336,15 +337,38 @@ def validate_repository(root: Path) -> list[str]:
     registry_rows = _parse_registry(root, errors)
     _validate_history_docs(root, entries, registry_rows, errors)
     _validate_registry_agreement(registry_rows, entries, errors)
-    _validate_commit_resolvable(root, registry_rows, errors)
+    # Commit-resolvability needs a full local object store; a clean CI checkout
+    # lacks squash-merged history, so CI opts out via --skip-commit-resolvability.
+    # The consistency checks above always run. (PRD-200)
+    if not skip_commit_resolvability:
+        _validate_commit_resolvable(root, registry_rows, errors)
     _validate_doc_status_agreement(root, registry_rows, errors)
     return errors
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = list(sys.argv[1:] if argv is None else argv)
-    root = Path(args[0]).resolve() if args else Path.cwd()
-    errors = validate_repository(root)
+    parser = argparse.ArgumentParser(
+        description="Validate PRD registry/index/state consistency."
+    )
+    parser.add_argument(
+        "root",
+        nargs="?",
+        default=None,
+        help="Repository root to validate (default: current directory).",
+    )
+    parser.add_argument(
+        "--skip-commit-resolvability",
+        action="store_true",
+        help=(
+            "Skip the git commit-resolvability check; all consistency checks "
+            "still run. For CI, whose clean checkout lacks squash-merged history."
+        ),
+    )
+    ns = parser.parse_args(sys.argv[1:] if argv is None else argv)
+    root = Path(ns.root).resolve() if ns.root else Path.cwd()
+    errors = validate_repository(
+        root, skip_commit_resolvability=ns.skip_commit_resolvability
+    )
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
