@@ -62,6 +62,15 @@
             "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" && bash .claude/hooks/protect_files.sh"
           }
         ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" && bash .claude/hooks/canonical_read_guard.sh"
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [

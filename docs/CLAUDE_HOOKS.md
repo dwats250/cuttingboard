@@ -10,6 +10,7 @@ hooks that are live, not every script that has ever existed.
 |---|---|---|---|
 | `protect_files.sh` | PreToolUse / Write + Edit | Write or Edit to a protected path | Yes |
 | `prd_eval.sh` | UserPromptSubmit | Every prompt; acts when it references a PRD | No (injects context) |
+| `canonical_read_guard.sh` | PreToolUse / Read | Read of repo-root CLAUDE.md or auto-memory MEMORY.md | No (warns; allows) |
 
 There is also a git-level `.git/hooks/pre-commit` (installed by
 `scripts/install_hooks.sh`) that runs `scripts/pre_commit_sanity.sh` -
@@ -39,6 +40,16 @@ Fires on every prompt; injects context only, never blocks a tool call. When the
 prompt contains a PRD body it injects the PRD-review structure; when it is an
 implementation request for a non-sequential PRD it injects a sequencing gate;
 and it flags any `prd_history/*.md` file missing a registry row.
+
+## canonical_read_guard.sh - redundant canonical-doc re-read reminder
+
+Fires on every `Read`. When the target is the repo-root `CLAUDE.md` or the
+auto-memory `MEMORY.md` - both injected into the system prompt at session start -
+it returns a non-blocking `permissionDecision: allow` plus an `additionalContext`
+reminder that re-reading is redundant. The Read still proceeds; the hook never
+blocks. All other paths pass through with no output. `PROJECT_STATE.md`,
+`DECISIONS.md`, and the registry/index are deliberately NOT guarded: they change
+mid-session, so re-reads can be legitimate (PRD-201).
 
 ## State files
 
