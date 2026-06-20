@@ -872,6 +872,12 @@
       "title": "Enforce registry/index/state consistency on the CI merge path",
       "status": "COMPLETE",
       "commit": "a794807"
+    },
+    {
+      "number": 201,
+      "title": "Canonical read-guard hook (warn on redundant re-read of injected docs)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
