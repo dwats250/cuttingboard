@@ -878,6 +878,12 @@
       "title": "Canonical read-guard hook (warn on redundant re-read of injected docs)",
       "status": "COMPLETE",
       "commit": "b1f2598"
+    },
+    {
+      "number": 202,
+      "title": "Agent-efficiency guidance: consult recon maps + delegate bookkeeping recon",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
