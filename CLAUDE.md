@@ -188,6 +188,14 @@ fails-on-the-meaning" failure class. Each names the incident it generalizes.
   what depends on it?" dispatch a subagent before reading files inline. Cost is
   small; the gain is preserved main-context window and parallelism while the
   recon runs. PRD-158 had at least six missed opportunities of this shape.
+- **Consult `docs/SCHEMA_MAP.md` and `docs/CALL_SITE_MAP.md` before grepping for
+  where a field or symbol is defined or called.** They are the recon cache;
+  re-deriving a location they already record is wasted recon. If a map is stale,
+  fix it as part of the change rather than working around it.
+- **Bookkeeping recon is recon.** Locating a token across `docs/PRD_REGISTRY.md`,
+  `docs/prd_index.json`, and `docs/PROJECT_STATE.md` (e.g. during reconciliation
+  or closeout) is a recon sweep - dispatch `Explore` rather than running many
+  inline greps/reads in the main context.
 - **Use the task list upfront for any work with >=3 distinct stages.** Update
   status as each stage starts and completes; it keeps progress visible and turns
   each report into a delta rather than a full re-statement.
