@@ -16,6 +16,28 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-19 — Drift-remediation scaled to severity (CLAUDE.md:242-244 refined)
+
+The post-merge drift-audit remediation rule mandated a corrective PRD for ANY drift,
+including a review-artifact DRIFT-CHECK omission. Alignment cadence #3 (below) hit that
+case on PRD-190's review, and a Codex-connector review comment on PR #41 correctly noted
+the in-place fix did not satisfy the rule as written. Rather than silently deviate
+(VISION: resolve a code/doc divergence by changing one or the other, never leave it to
+drift), the rule was refined to scale remediation to severity:
+
+- Substantive drift (a VISION non-goal/principle conflict, or a stale PROJECT_STATE
+  claim) → corrective PRD, number recorded. Teeth unchanged.
+- Review-artifact process miss (a merged review that skipped the DRIFT CHECK) →
+  remediated in place (append the section, confirm no substantive drift); no PRD.
+
+Rationale: forcing a full corrective PRD for a one-line retroactive doc append conflicts
+with CLAUDE.md's own "bug fixes within established patterns don't need PRDs" and "cuts
+before additions". The refinement is principled independent of the triggering instance,
+and fully retains the corrective-PRD requirement for real drift. Carried by governance
+PR #42 (CLAUDE.md, manual-merge); recommend merging #42 before this cadence record.
+
+---
+
 ## 2026-06-19 — Alignment cadence check #3 — PASS (no drift; 2 process findings remediated)
 
 Third cadence check (since #2 on 2026-05-29), run at Dustin's request. Scope: all
@@ -45,8 +67,10 @@ period remains observational/descriptive in character.
 **Post-merge drift audit (PRD-186) — 2 process findings, both remediated here:**
 1. PRD-190's HIGH-RISK review artifact omitted the PRD-186-mandated DRIFT CHECK section
    (merged 2026-06-19, after PRD-186). Substance verified non-drift in this audit
-   (config-only OHLCV_FETCH_MONTHS bump, zero contract change). Remediated: retroactive
-   DRIFT CHECK appended to docs/prd_history/PRD-190.review.claude.md.
+   (config-only OHLCV_FETCH_MONTHS bump, zero contract change). Remediated in place per
+   the refined CLAUDE.md:242-244 rule (governance entry above; PR #42): the missing DRIFT
+   CHECK was appended to docs/prd_history/PRD-190.review.claude.md. A review-artifact
+   process miss of this class no longer requires a corrective PRD.
 2. The macro_awareness materiality eval (PRD-187) had no re-evaluation date for the
    PRD-188 banner go/no-go — borderline against VISION's "acknowledged debt carries a
    re-evaluation date." Remediated: go/no-go date 2026-07-15 recorded in PROJECT_STATE.
