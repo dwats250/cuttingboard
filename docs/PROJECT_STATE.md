@@ -5,7 +5,7 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-06-20 (commit b1f2598)
+**Last updated:** 2026-06-20 (commit 7e5b52d)
 
 ## Current state
 
@@ -30,6 +30,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 | PRD | Title | Completed |
 |-----|-------|-----------|
+| PRD-202 | Agent-efficiency guidance: consult recon maps + delegate bookkeeping recon | 2026-06-20 |
 | PRD-201 | Canonical read-guard hook (warn on redundant re-read of injected docs) | 2026-06-20 |
 | PRD-200 | Enforce registry/index/state consistency on the CI merge path | 2026-06-20 |
 | PRD-198 | Semantic-failure hardening doctrine | 2026-06-18 |

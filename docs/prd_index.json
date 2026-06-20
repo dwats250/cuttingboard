@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 201,
-  "next_prd": 202,
+  "latest_complete": 202,
+  "next_prd": 203,
   "entries": [
     {
       "number": 56,
@@ -882,8 +882,8 @@
     {
       "number": 202,
       "title": "Agent-efficiency guidance: consult recon maps + delegate bookkeeping recon",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "7e5b52d"
     }
   ]
 }
