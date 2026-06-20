@@ -34,7 +34,7 @@ if resolved == claude_md:
     )
 elif (
     os.path.basename(resolved) == "MEMORY.md"
-    and f"{os.sep}.claude{os.sep}" in resolved
+    and f"{os.sep}.claude{os.sep}projects{os.sep}" in resolved
     and resolved.endswith(f"{os.sep}memory{os.sep}MEMORY.md")
 ):
     reason = (

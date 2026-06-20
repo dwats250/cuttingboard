@@ -80,6 +80,17 @@ def test_silent_on_unrelated_memory_md(tmp_path: Path) -> None:
     assert out.strip() == ""
 
 
+def test_silent_on_dot_claude_memory_without_projects(tmp_path: Path) -> None:
+    # The real auto-memory lives under .claude/projects/<slug>/memory/; a
+    # .claude/memory/MEMORY.md (no projects/) is not the injected file -> silent.
+    mem = tmp_path / ".claude" / "memory" / "MEMORY.md"
+    mem.parent.mkdir(parents=True)
+    mem.write_text("# x\n", encoding="utf-8")
+    rc, out = _run_hook(str(mem))
+    assert rc == 0
+    assert out.strip() == ""
+
+
 def test_never_blocks_on_empty_or_missing_path() -> None:
     for rc, out in (_run_hook(""), ):
         assert rc == 0
