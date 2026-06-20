@@ -5,11 +5,11 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-06-19 (PRD-199 merged, PR #37 / `fd27d79`)
+**Last updated:** 2026-06-20 (PRD-200 opened: registry/index/state validator wired into the CI merge gate)
 
 ## Current state
 
-- **Active PRD:** none in progress.
+- **Active PRD:** PRD-200 (IN PROGRESS) -- wire `tools/validate_prd_registry.py` into the CI `test` job so registry/index/state consistency is enforced on the merge path; HIGH-RISK / GOVERNANCE.
 - **PRD-189 — COMPLETE (2026-06-17):** PR #15 (`b6e036e`) merged 2026-06-16; closeout was held pending PRD-194's publish decoupling. Closed once live run 27665400742 (2026-06-17) published a fresh scoreboard row to the `publish` branch, confirming the queue-delay-tolerant resolver + per-surface freshness work reaches the live site. (Earlier run 27637384167 verified the resolver but hit the GH006 push blocker that PRD-194 resolved.)
 - **PRD-190 — COMPLETE (2026-06-19):** OHLCV fetch window 6→12 (`config.py`) so `sma_200` resolves and the Trend Structure SMA Composite renders real 50/200 alignment; merged via PR #35 (`0573152`). R4 gate CLEAN; real Codex (gpt-5.5, `codex exec -s read-only`) cross-review CONCERNS dispositioned (HIGH stale-cache accepted via the code-enforced OHLCV_STALE_HOURS TTL self-heal — `sma_200` populates within ≤1 session; manual cache `rm` optional). _Registry + index reconciled to COMPLETE @ `0573152`._
 - **PRD-199 — COMPLETE (2026-06-19):** MACRO TAPE tradables (SPY/QQQ/GLD/SLV/GDX/XLE) now show a monochrome daily %-change ↑/↓ arrow — additive `daily_change_pct` in `trend_structure._build_record` → `_pct_arrow`, freshness-gated on `_ts_health == "OK"` (dash when the trend snapshot isn't usable; price stays fresh from market_map); dead `_direction_arrow` tradables branch retired. Merged via PR #37 (`fd27d79`). HIGH-RISK gate satisfied: Claude review ACCEPT + durable Codex (`gpt-5-codex`, read-only, via the PRD-197 CI workflow) APPROVE.
