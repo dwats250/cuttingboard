@@ -13,9 +13,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+      - run: python tools/validate_prd_registry.py
       - run: pip install -e ".[dev]"
       - run: ruff check cuttingboard/ tests/
       - run: pytest tests/ -q
