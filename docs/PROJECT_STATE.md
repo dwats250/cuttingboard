@@ -5,7 +5,7 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-06-20 (alignment cadence #4; PRD-200/201/202 reflected)
+**Last updated:** 2026-06-22 (PRD-206 PROPOSED — narrow the *regime*.py protected glob)
 
 ## Current state
 
@@ -16,7 +16,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 - **Process/tooling -- COMPLETE (2026-06-20):** registry/index/state consistency is now a blocking CI check -- PRD-200 wired `tools/validate_prd_registry.py --skip-commit-resolvability` into the required `test` job (19 historical unresolvable hashes deferred; see Known technical debt). PRD-201 added a non-blocking `PreToolUse(Read)` hook (`.claude/hooks/canonical_read_guard.sh`) that reminds against re-reading the injected canonical docs (CLAUDE.md, MEMORY.md). PRD-202 added recon-efficiency Workflow-pattern guidance to CLAUDE.md (consult SCHEMA_MAP/CALL_SITE_MAP before location-greps; delegate bookkeeping recon).
 - **Deferred dependency (PRD-189 → PRD-192):** correctly homing the intraday/orb slots (route through alert_runner/`_execute_notify_run` or hourly_alert.yml) + a per-slot audit dedup marker (runtime/audit.py). Allocated PROPOSED; HIGH-RISK; not opened at Stage 0.
 - **Deferred dependency (PRD-189 → PRD-193):** publish-safe prefetch with real OHLCV cache persistence — make the warm-up cache (`data/cache`) persist to the live run (commit or actions/cache) and the prefetch slot publish-safe, then re-add the 12:50 cron to the resolver. Allocated PROPOSED; distinct from PRD-192 (notify routing). Not opened at Stage 0.
-- **Proposed / next:** PRD-192 (intraday slot wiring + audit dedup marker) and PRD-193 (publish-safe prefetch + OHLCV cache persistence) — both PROPOSED, deferred from PRD-189; PRD-188 (macro-awareness SHOCK banner + scheduled activation) — PROPOSED, gated on the PRD-187 materiality eval (go/no-go by 2026-07-15); PRD-179 (preview fixture / all-section-state coverage) still unstarted.
+- **Proposed / next:** PRD-206 (narrow AGENT_WORKFLOW.md's `*regime*.py` protected glob to `regime.py` so the PRD-175 read-only sidecar stops false-positiving the scope gate — governance, manual-merge; queued after PRD-204); PRD-192 (intraday slot wiring + audit dedup marker) and PRD-193 (publish-safe prefetch + OHLCV cache persistence) — both PROPOSED, deferred from PRD-189; PRD-188 (macro-awareness SHOCK banner + scheduled activation) — PROPOSED, gated on the PRD-187 materiality eval (go/no-go by 2026-07-15); PRD-179 (preview fixture / all-section-state coverage) still unstarted.
 - **Test baseline:** 2819 passing, 1 xfailed (CI truth on `main` -- `test` job of run 27865518359 for `b1f2598`, the PRD-201 merge; PRD-202 added no tests. This sandbox now matches CI at 2819.).
 - **Fixed (PRD-194):** the `hourly_alert.yml` render-before-aggregate nit (hourly published a 1-cycle-stale scoreboard) is resolved — PRD-194 reordered the hourly Aggregate step to run before the render, so the hourly dashboard reflects the current run.
 - **Recently landed and live:**

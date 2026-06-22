@@ -890,6 +890,12 @@
       "title": "prd_close.sh rebuilds the PROJECT_STATE baseline line (canonical, no stale provenance)",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 206,
+      "title": "Narrow the *regime*.py protected glob to the decision engine (governance, manual-merge)",
+      "status": "PROPOSED",
+      "commit": null
     }
   ]
 }
