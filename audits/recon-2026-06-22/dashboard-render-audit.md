@@ -251,17 +251,33 @@ correctness fix with a CSS fix").
    `auto-fit`/`minmax`) and add a scroll affordance to the Trend Structure table.
    Keep standalone — pure CSS, no correctness coupling.
 
-### Spec gaps — decisions for Dustin (no PRD until decided)
-- **Lead 3:** Keep the title-only Sunday pre-market banner above the populated
-  Macro Context card, or collapse/merge them? (Code is correct either way.)
-- **Lead 7 (arrow label):** Add a labeled reference period ("vs prior close") to
-  the ETF/macro-tape arrows, or accept the unlabeled glyphs? (XAU/XAG/OIL
-  decorative status needs no change.)
+### Spec gaps — decisions resolved by Dustin (2026-06-22)
+- **Lead 1 homing:** **Standalone correctness PRD** for the non-destructive /
+  fail-loud `aggregate()` fix (independent of PRD-193's cache work). PRD-193 keeps
+  the cache-persistence half as defense-in-depth on its own cadence.
+- **Lead 3:** **Collapse/merge** — fold the title-only Sunday pre-market banner
+  into the Macro Context card header (one Sunday card, not banner + card). This
+  promotes Lead 3 from "no-op spec gap" to a **presentation PRD** touching
+  `dashboard_renderer.py:1851-1854` (+ `:2009-2032`) and the PRD-116 R8 test that
+  currently asserts `#premarket-banner` renders — that assertion changes, so the
+  test is in FILES.
+- **Lead 7:** **Add a label/tooltip** surfacing "vs prior close" on the
+  ETF/macro-tape arrows. Small presentation change at the tradables-row render
+  (`dashboard_renderer.py` `_build_tape_slots` / tradables grid). XAU/XAG/OIL
+  decorative status unchanged.
+
+### Resulting PRD slate
+- **Correctness:** PRD-191 (Lead 2, already drafted); new standalone
+  "non-destructive scoreboard aggregate" PRD (Lead 1b); System State freshness
+  PRD (Lead 5, optionally + Lead 4).
+- **Presentation:** Sunday-card collapse PRD (Lead 3); arrow-label PRD (Lead 7);
+  mobile-overflow CSS PRD (Lead 6).
+- **Deferred:** PRD-193 cache persistence (Lead 1a), on its own cadence.
 
 ### Suggested sequence
-PRD-191 → Lead 1(b) standalone correctness PRD → Lead 5 (+maybe Lead 4) →
-Lead 6 CSS → (PRD-193 cache work + Lead 1(a) on its own cadence). Spec-gap
-decisions (3, 7) gate their own small PRDs.
+PRD-191 → Lead 1b standalone correctness PRD → Lead 5 (+ maybe Lead 4) →
+presentation lane (Lead 3 collapse, Lead 7 arrow label, Lead 6 CSS) →
+PRD-193 cache work (Lead 1a) on its own cadence.
 
 ---
 
