@@ -1,10 +1,46 @@
 {
-  "macro_drivers": {},
+  "macro_drivers": {
+    "bitcoin": {
+      "change_pct": 2.0114525490518806,
+      "level": 64496.609375,
+      "symbol": "BTC-USD"
+    },
+    "dollar": {
+      "change_pct": 0.09018722468625763,
+      "level": 100.99600219726562,
+      "symbol": "DX-Y.NYB"
+    },
+    "gold": {
+      "change_pct": 0.4320244709363925,
+      "level": 4207.7001953125,
+      "symbol": "GC=F"
+    },
+    "oil": {
+      "change_pct": -2.827321073618766,
+      "level": 73.55000305175781,
+      "symbol": "CL=F"
+    },
+    "rates": {
+      "change_bps": 5.875587528612831,
+      "change_pct": 1.3030800082661778,
+      "level": 4.508999824523926,
+      "symbol": "^TNX"
+    },
+    "silver": {
+      "change_pct": 0.05335924226154332,
+      "level": 65.63500213623047,
+      "symbol": "SI=F"
+    },
+    "volatility": {
+      "change_pct": 3.2777068805382585,
+      "level": 17.329999923706055,
+      "symbol": "^VIX"
+    }
+  },
   "meta": {
-    "generation_id": "sunday-20260622T020258Z",
-    "session_type": "SUNDAY_PREMARKET",
+    "generation_id": "live-20260622T172701Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-06-22T02:02:58Z"
+    "timestamp": "2026-06-22T17:27:01Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -12,17 +48,26 @@
     "chain_results_detail": [],
     "continuation_audit": null,
     "option_setups_detail": [],
-    "rejected": [],
+    "rejected": [
+      {
+        "detail": null,
+        "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)",
+        "stage": "REGIME",
+        "symbol": "REGIME"
+      }
+    ],
     "top_trades": [],
     "trade_decision_detail": [],
     "validation_halt_detail": {
-      "reason": "PREMARKET_CONTEXT"
+      "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)"
     },
-    "watch_summary_detail": null,
+    "watch_summary_detail": {
+      "session": "MIDDAY"
+    },
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.0,
+    "confidence": 0.125,
     "market_regime": "NEUTRAL",
     "outcome": "NO_TRADE",
     "permission": "No new trades permitted.",
