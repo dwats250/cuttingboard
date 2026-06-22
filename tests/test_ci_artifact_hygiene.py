@@ -593,3 +593,40 @@ def test_pages_deploys_publish_branch_via_workflow_run_for_all_writers() -> None
         "pages.yml still triggers on push to main; main no longer carries "
         "published artifacts (PRD-194 Amendment 2)."
     )
+
+
+# --- PRD-204 — preserve-prior depends on restoring the published scoreboard -----
+#
+# regime_history.aggregate() preserves an already-published spy_close_change_pct it
+# cannot recompute this run (SPY parquet absent) by reading the PRIOR
+# logs/regime_history.jsonl. That prior must be the LIVE published scoreboard, not
+# main's frozen 3-row fallback, or the production wipe PRD-204 targets still happens
+# for every date that exists only on the publish branch (Codex P1 on PR #52). The
+# fix is workflow wiring: both publishing workflows must restore
+# logs/regime_history.jsonl from the publish branch BEFORE the Aggregate step. These
+# guards fail red if that restore arg is ever dropped (PRD-198 invariants #4, #5).
+
+@pytest.mark.parametrize("workflow", ("cuttingboard.yml", "hourly_alert.yml"))
+def test_publish_workflow_restores_regime_history_before_aggregate(workflow: str) -> None:
+    text = _workflow_text(workflow)
+    restore_idx = text.find("ci_restore_publish_state.sh")
+    assert restore_idx != -1, (
+        f"{workflow} has no ci_restore_publish_state.sh step; PRD-204 preserve-prior "
+        "requires one that restores the published scoreboard."
+    )
+    restore_line_end = text.index("\n", restore_idx)
+    restore_args = text[restore_idx:restore_line_end]
+    assert "logs/regime_history.jsonl" in restore_args, (
+        f"{workflow} no longer restores logs/regime_history.jsonl before aggregating. "
+        "Without the published prior, regime_history.aggregate()'s preserve-prior "
+        "reads main's frozen fallback and re-introduces the PRD-204 scoreboard wipe "
+        "for every publish-only date (Codex P1, PR #52)."
+    )
+    # The restore must precede the Aggregate step, or the prior is read after the
+    # rebuild has already started from a stale file.
+    aggregate_idx = text.find("cuttingboard.delivery.regime_history")
+    assert aggregate_idx != -1, f"{workflow} has no regime_history aggregate step"
+    assert restore_idx < aggregate_idx, (
+        f"{workflow} restores regime_history.jsonl AFTER the aggregate step; "
+        "preserve-prior needs the published prior restored first (PRD-204)."
+    )
