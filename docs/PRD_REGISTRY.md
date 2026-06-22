@@ -221,7 +221,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-201 | b1f2598 | Canonical read-guard hook (warn on redundant re-read of injected docs) | COMPLETE | [PRD-201](prd_history/PRD-201.md) |
 | PRD-202 | 7e5b52d | Agent-efficiency guidance: consult recon maps + delegate bookkeeping recon | COMPLETE | [PRD-202](prd_history/PRD-202.md) |
 | PRD-203 | — | prd_close.sh rebuilds the PROJECT_STATE baseline line (canonical, no stale provenance) | IN PROGRESS | [PRD-203](prd_history/PRD-203.md) |
-| PRD-204 | — | Non-destructive scoreboard aggregate (fail-loud on absent SPY series) | PROPOSED | [PRD-204](prd_history/PRD-204.md) |
+| PRD-204 | — | Non-destructive scoreboard aggregate (preserve-prior + staleness marker) | IN PROGRESS | [PRD-204](prd_history/PRD-204.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

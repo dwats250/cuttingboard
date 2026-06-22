@@ -195,3 +195,89 @@ def test_prd175_writes_empty_history_when_no_pipeline_records(tmp_path) -> None:
     aggregate(audit_path=str(audit), history_path=str(history), spy_closes=[])
     assert history.exists(), "history file must be created even with zero pipeline records"
     assert _read_history(history) == []
+
+
+# --- PRD-204 — non-destructive rebuild: preserve last-known-good + mark stale ---
+
+def _seed_history(path: Path, rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "".join(json.dumps(r, sort_keys=True) + "\n" for r in rows),
+        encoding="utf-8",
+    )
+
+
+def test_prd204_empty_series_preserves_prior_return_and_marks_stale(tmp_path) -> None:
+    """RED against the pre-fix destructive rebuild: a populated
+    spy_close_change_pct must survive an aggregate() run whose SPY series is
+    empty (the absent-parquet case), carrying an observable stale marker."""
+    audit = tmp_path / "audit.jsonl"
+    history = tmp_path / "regime_history.jsonl"
+    # Prior committed history: two dates already carry realized returns.
+    _seed_history(history, [
+        {"date": "2026-05-13", "regime": "RANGE", "posture": "STAY_FLAT",
+         "confidence": 0.5, "net_score": 0, "vix_level": 15.0,
+         "first_run_at_utc": "2026-05-13T13:00:00+00:00",
+         "last_run_at_utc": "2026-05-13T20:00:00+00:00", "run_count": 1,
+         "spy_close_change_pct": 0.0079},
+        {"date": "2026-06-17", "regime": "TREND", "posture": "LONG",
+         "confidence": 0.7, "net_score": 2, "vix_level": 14.0,
+         "first_run_at_utc": "2026-06-17T13:00:00+00:00",
+         "last_run_at_utc": "2026-06-17T20:00:00+00:00", "run_count": 1,
+         "spy_close_change_pct": 0.0104},
+    ])
+    # Same dates re-appear in audit; the SPY series is absent this run.
+    _write_audit(audit, [
+        _pipeline_record(date="2026-05-13", run_at_utc="2026-05-13T20:00:00+00:00",
+                         regime="RANGE", posture="STAY_FLAT", confidence=0.5,
+                         net_score=0, vix_level=15.0),
+        _pipeline_record(date="2026-06-17", run_at_utc="2026-06-17T20:00:00+00:00",
+                         regime="TREND", posture="LONG", confidence=0.7,
+                         net_score=2, vix_level=14.0),
+    ])
+    aggregate(audit_path=str(audit), history_path=str(history), spy_closes=[])
+    rows = {r["date"]: r for r in _read_history(history)}
+    # Preserved, NOT nulled:
+    assert rows["2026-05-13"]["spy_close_change_pct"] == 0.0079
+    assert rows["2026-06-17"]["spy_close_change_pct"] == 0.0104
+    # Observable staleness marker set on the preserved values:
+    assert rows["2026-05-13"]["spy_close_change_pct_stale"] is True
+    assert rows["2026-06-17"]["spy_close_change_pct_stale"] is True
+
+
+def test_prd204_present_series_computes_fresh_and_marker_false(tmp_path) -> None:
+    """Inverse guard: with the SPY series present, the rebuild computes the real
+    return and does NOT flag it stale (the marker must not fire on healthy runs)."""
+    audit = tmp_path / "audit.jsonl"
+    history = tmp_path / "regime_history.jsonl"
+    _write_audit(audit, [
+        _pipeline_record(date="2026-06-08", run_at_utc="2026-06-08T20:00:00+00:00",
+                         regime="RANGE", posture="STAY_FLAT", confidence=0.5,
+                         net_score=0, vix_level=15.0),
+        _pipeline_record(date="2026-06-09", run_at_utc="2026-06-09T20:00:00+00:00",
+                         regime="RANGE", posture="STAY_FLAT", confidence=0.5,
+                         net_score=0, vix_level=15.0),
+    ])
+    spy = [("2026-06-08", 500.0), ("2026-06-09", 510.0)]
+    aggregate(audit_path=str(audit), history_path=str(history), spy_closes=spy)
+    rows = {r["date"]: r for r in _read_history(history)}
+    assert rows["2026-06-08"]["spy_close_change_pct"] == 0.02
+    assert rows["2026-06-08"]["spy_close_change_pct_stale"] is False
+
+
+def test_prd204_genuinely_uncomputed_date_is_null_not_stale(tmp_path) -> None:
+    """A date whose next-session close does not exist yet (and had no prior
+    value) stays null and is NOT marked stale — only carried-forward values are."""
+    audit = tmp_path / "audit.jsonl"
+    history = tmp_path / "regime_history.jsonl"
+    _write_audit(audit, [
+        _pipeline_record(date="2026-06-09", run_at_utc="2026-06-09T20:00:00+00:00",
+                         regime="RANGE", posture="STAY_FLAT", confidence=0.5,
+                         net_score=0, vix_level=15.0),
+    ])
+    # Series knows 06-09 but not its next session, so the change can't resolve.
+    aggregate(audit_path=str(audit), history_path=str(history),
+              spy_closes=[("2026-06-09", 500.0)])
+    rows = {r["date"]: r for r in _read_history(history)}
+    assert rows["2026-06-09"]["spy_close_change_pct"] is None
+    assert rows["2026-06-09"]["spy_close_change_pct_stale"] is False

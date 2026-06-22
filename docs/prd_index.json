@@ -893,8 +893,8 @@
     },
     {
       "number": 204,
-      "title": "Non-destructive scoreboard aggregate (fail-loud on absent SPY series)",
-      "status": "PROPOSED",
+      "title": "Non-destructive scoreboard aggregate (preserve-prior + staleness marker)",
+      "status": "IN PROGRESS",
       "commit": null
     }
   ]
