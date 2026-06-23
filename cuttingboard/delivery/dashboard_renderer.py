@@ -2071,9 +2071,10 @@ def render_dashboard_html(
 
     # PRD-177: per-driver macro evidence. Surfaces the cyclicality-aware vote
     # that already feeds the headline MACRO BIAS tally (same arrow map, same
-    # contra/pro-cyclical flip) plus a fixed interpretation string. Distinct
-    # classes (macro-evidence-*) keep this clear of the macro-tape-value /
-    # data-symbol slot contract asserted by the PRD-138 row-order tests.
+    # contra/pro-cyclical flip) plus an interpretation string that is itself
+    # direction-keyed (PRD-191) so it agrees with the vote. Distinct classes
+    # (macro-evidence-*) keep this clear of the macro-tape-value / data-symbol
+    # slot contract asserted by the PRD-138 row-order tests.
     w('  <div class="macro-evidence">')
     for _row in (MACRO_ROW_1, MACRO_ROW_2):
         for _slot in _row.slots:

@@ -3590,6 +3590,10 @@ def test_prd177_r3_headline_agrees_with_evidence_tally() -> None:
 # ---------------------------------------------------------------------------
 
 def _assert_vote_interp_agree(html: str, *, case: str) -> None:
+    # Agreement contract (PRD-191): every directional rationale form contains the
+    # token "risk" XOR "caution" -- risk-ON prose favors risk, risk-OFF prose
+    # favors caution -- and the two token-sets are disjoint, so a substring check
+    # proves the rendered subtitle agrees with the vote sign.
     votes = _evidence_votes(html)
     interps = _evidence_interps(html)
     assert len(votes) == len(interps) == 4, (case, votes, interps)
@@ -3642,6 +3646,17 @@ def test_prd191_flat_renders_shared_neutral_rationale() -> None:
     neutral = interps[0]
     assert neutral.strip()
     assert "risk" not in neutral and "caution" not in neutral, neutral
+    # The neutral string is distinct from every directional form, so a mis-keyed
+    # flat case can never accidentally render a directional rationale.
+    from cuttingboard.delivery.macro_tape_layout import (
+        _MACRO_BIAS_NEUTRAL_INTERP,
+        MACRO_BIAS_INTERPRETATION,
+    )
+    directional = {
+        form for pair in MACRO_BIAS_INTERPRETATION.values() for form in pair.values()
+    }
+    assert neutral == _MACRO_BIAS_NEUTRAL_INTERP
+    assert neutral not in directional, neutral
 
 
 def test_prd177_r4_scoreboard_renders_rows() -> None:
