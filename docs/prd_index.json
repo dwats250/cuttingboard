@@ -890,6 +890,12 @@
       "title": "prd_close.sh rebuilds the PROJECT_STATE baseline line (canonical, no stale provenance)",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 204,
+      "title": "Non-destructive scoreboard aggregate (preserve-prior + staleness marker)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

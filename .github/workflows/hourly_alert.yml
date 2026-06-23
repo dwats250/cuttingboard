@@ -77,10 +77,14 @@ jobs:
       #     "Changes Since Last Run" + history. Immutable per file, so restoring +
       #     republishing is idempotent and never clobbers the pipeline's newer runs;
       #     no revert needed. Quoted so the glob reaches the restore helper.
-      # logs/regime_history.jsonl is NOT restored — rebuilt from audit by the Aggregate
-      # step (which runs BEFORE the render). Records CB_PUBLISH_BASE_SHA for the delta.
+      #   - logs/regime_history.jsonl: the published scoreboard (PRD-204). RESTORED so
+      #     the Aggregate step (which runs BEFORE the render) can PRESERVE an already-
+      #     published spy_close_change_pct it cannot recompute this run (SPY parquet
+      #     absent) instead of wiping it to null; without the restore, preserve-prior
+      #     reads only main's frozen 3-row fallback and the wipe still happens.
+      # The restore step also records CB_PUBLISH_BASE_SHA for the audit delta-append.
       - name: Restore publish state
-        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/last_hourly_slot.json logs/latest_hourly_market_map.json logs/latest_run.json logs/macro_drivers_snapshot.json 'logs/run_*.json'
+        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/last_hourly_slot.json logs/latest_hourly_market_map.json logs/latest_run.json logs/macro_drivers_snapshot.json logs/regime_history.jsonl 'logs/run_*.json'
 
       - name: Check Telegram config presence
         run: |
@@ -121,10 +125,12 @@ jobs:
           fi
 
       # PRD-194 (Codex P1): aggregate BEFORE render so the dashboard scoreboard
-      # reflects THIS run. regime_history.jsonl is fully rebuilt from the restored+
-      # appended audit.jsonl; the renderer then reads the current file instead of
-      # main's frozen copy. Resolves the parked PRD-189 render-before-aggregate
-      # ordering nit, which decoupling promoted from cosmetic to a correctness bug.
+      # reflects THIS run. regime_history.jsonl is rebuilt from the restored+appended
+      # audit.jsonl, and PRESERVES already-published spy_close_change_pct values it
+      # cannot recompute this run (PRD-204, reading the restored prior); the renderer
+      # then reads the current file instead of main's frozen copy. Resolves the parked
+      # PRD-189 render-before-aggregate ordering nit, which decoupling promoted from
+      # cosmetic to a correctness bug.
       - name: Aggregate regime history
         if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
         run: python3 -m cuttingboard.delivery.regime_history

@@ -16,13 +16,25 @@ decision state, the contract, or payloads.
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Optional
 
 from cuttingboard import config
 
+logger = logging.getLogger(__name__)
+
 AUDIT_LOG_PATH = "logs/audit.jsonl"
 REGIME_HISTORY_PATH = "logs/regime_history.jsonl"
+
+# PRD-204: a preserved (carried-forward) spy_close_change_pct carries this
+# observable marker so a value that the current rebuild could not recompute
+# cannot masquerade as freshly-computed. Always present on every record:
+# True only when the value was preserved from the prior history because the
+# SPY series could not resolve it this run; False when freshly computed or
+# genuinely absent (never yet computed). Downstream staleness styling (the
+# Lead-5 follow-up) reads this key; the renderer ignores it until then.
+STALE_MARKER_KEY = "spy_close_change_pct_stale"
 
 # Representative summary fields, drawn only from fields cuttingboard.audit
 # actually writes to a pipeline record (PRD-175 R1).
@@ -104,6 +116,31 @@ def _next_session_change(spy_closes: list[tuple[str, float]], date_str: str) -> 
     return round(following / current - 1.0, 6)
 
 
+def _load_prior_history(history_path: str) -> dict[str, dict]:
+    """Prior ``logs/regime_history.jsonl`` records keyed by date. Empty when the
+    file is missing or unreadable. Used to preserve an already-computed
+    spy_close_change_pct that the current rebuild cannot recompute (PRD-204)."""
+    path = Path(history_path)
+    if not path.exists():
+        return {}
+    prior: dict[str, dict] = {}
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            date = rec.get("date")
+            if isinstance(date, str):
+                prior[date] = rec
+    except OSError:
+        return {}
+    return prior
+
+
 def _write_history(history_path: str, summaries: list[dict]) -> None:
     path = Path(history_path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -123,23 +160,106 @@ def aggregate(
 ) -> list[dict]:
     """Rebuild logs/regime_history.jsonl from logs/audit.jsonl.
 
-    Full rebuild is idempotent by construction: one record per date, sorted, with
-    spy_close_change_pct recomputed each run (so a prior day gains its reference
-    move once the next session's close exists). Always writes the file, even with
-    zero pipeline records, so the workflow can stage it unconditionally.
+    Idempotent and GAIN-ONLY by construction: one record per date, sorted. A
+    date's spy_close_change_pct is recomputed each run so a prior day GAINS its
+    reference move once the next session's close exists — and a value that the
+    current run cannot recompute (the SPY series is absent/empty, or that date's
+    next-session close is missing) is NEVER overwritten with null. Instead the
+    already-computed value is PRESERVED from the prior history and flagged with
+    ``spy_close_change_pct_stale = True`` (PRD-204). This is mode-agnostic: it
+    holds for every caller and every absent-source path, not a calendar special
+    case. The empty/partial-series case is logged loudly (R3), never a silent
+    substitute. Always writes the file, even with zero pipeline records, so the
+    workflow can stage it unconditionally.
     """
     if spy_closes is None:
         spy_closes = _load_spy_close_series()
+    prior = _load_prior_history(history_path)
 
     by_date: dict[str, list[dict]] = {}
     for rec in _load_pipeline_records(audit_path):
         by_date.setdefault(rec["date"], []).append(rec)
 
     summaries: list[dict] = []
+    preserved_dates: list[str] = []
     for date_str in sorted(by_date):
         summary = _summarize_day(by_date[date_str])
-        summary["spy_close_change_pct"] = _next_session_change(spy_closes, date_str)
+        computed = _next_session_change(spy_closes, date_str)
+        if computed is not None:
+            # Authoritative when computable: fresh value, not stale.
+            summary["spy_close_change_pct"] = computed
+            summary[STALE_MARKER_KEY] = False
+        else:
+            prior_value = prior.get(date_str, {}).get("spy_close_change_pct")
+            if prior_value is not None:
+                # PRD-204: do NOT wipe an already-computed return with null
+                # because the source could not resolve it this run. Preserve
+                # last-known-good and mark it stale.
+                summary["spy_close_change_pct"] = prior_value
+                summary[STALE_MARKER_KEY] = True
+                preserved_dates.append(date_str)
+            else:
+                # Genuinely not yet computed (e.g. the next close does not exist
+                # yet) — null is correct here, and it is not "stale".
+                summary["spy_close_change_pct"] = None
+                summary[STALE_MARKER_KEY] = False
         summaries.append(summary)
+
+    null_dates = [s["date"] for s in summaries if s["spy_close_change_pct"] is None]
+    null_count = len(null_dates)
+    # A null is legitimately PENDING only for a date at/after the latest SPY close
+    # (its next session has not happened/been cached yet). A null on a date the
+    # series already extends BEYOND is a source GAP — the cache is truncated/holey
+    # and skipped a date it should cover — and must be logged loudly, not left
+    # indistinguishable from a pending latest row (R3, Codex P2 on 6937d2c).
+    spy_max_date = max((d for d, _ in spy_closes), default=None)
+    gap_dates = [d for d in null_dates if spy_max_date is not None and d < spy_max_date]
+
+    if not spy_closes and summaries:
+        # R3: the SPY source itself did not resolve this run (absent/empty/
+        # unreadable parquet), so NO date could compute a fresh return. Log loudly
+        # whether or not anything was preservable — a bootstrap publish branch,
+        # newly-added dates, or an all-null prior writes null(s) here, and a
+        # degraded source must never be silent. Gating on preserved_dates left this
+        # unfulfilled.
+        logger.warning(
+            "regime_history: SPY close series is empty/absent this run — no "
+            "next-session return could be computed for any of %d date(s). Preserved "
+            "%d last-known-good value(s) (marked %s=True); wrote %d null(s) where no "
+            "prior existed. A missing/unreadable SPY parquet is the usual cause (R3).",
+            len(summaries),
+            len(preserved_dates),
+            STALE_MARKER_KEY,
+            null_count,
+        )
+    else:
+        if gap_dates:
+            # R3: a PARTIAL/truncated SPY series that skipped historical dates it
+            # should cover. Distinct from the empty-source case above and from a
+            # legitimately-pending latest row (date >= spy_max_date), which stays
+            # silent.
+            logger.warning(
+                "regime_history: SPY series resolved no next-session return for %d "
+                "date(s) (%s%s) that fall before the latest SPY close %s and had no "
+                "prior value — a partial/truncated SPY cache wrote new null(s) where a "
+                "value was expected (R3). Only dates at/after the latest close are "
+                "legitimately pending.",
+                len(gap_dates),
+                ", ".join(gap_dates[:5]),
+                "" if len(gap_dates) <= 5 else ", …",
+                spy_max_date,
+            )
+        if preserved_dates:
+            logger.warning(
+                "regime_history: SPY series could not resolve %d date(s) this run "
+                "(%s%s); preserved last-known-good spy_close_change_pct and marked "
+                "%s=True. SPY close series had %d row(s).",
+                len(preserved_dates),
+                ", ".join(preserved_dates[:5]),
+                "" if len(preserved_dates) <= 5 else ", …",
+                STALE_MARKER_KEY,
+                len(spy_closes),
+            )
 
     _write_history(history_path, summaries)
     return summaries
@@ -147,7 +267,12 @@ def aggregate(
 
 def main() -> int:
     summaries = aggregate()
-    print(f"regime_history: {len(summaries)} dated record(s) -> {REGIME_HISTORY_PATH}")
+    preserved = sum(1 for s in summaries if s.get(STALE_MARKER_KEY))
+    note = f"; {preserved} preserved stale return(s)" if preserved else ""
+    print(
+        f"regime_history: {len(summaries)} dated record(s) -> "
+        f"{REGIME_HISTORY_PATH}{note}"
+    )
     return 0
 
 

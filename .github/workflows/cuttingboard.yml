@@ -110,15 +110,20 @@ jobs:
       #     prices on the PIPELINE render too. READ-ONLY — reverted to HEAD after the
       #     render so the pipeline never republishes the hourly's mutable contract
       #     (closure-sweep finding, same class as hourly's latest_run read-only).
-      # logs/regime_history.jsonl is rebuilt from audit by the Commit step's Aggregate
-      # (which already runs before the render here). Records CB_PUBLISH_BASE_SHA for
-      # the audit delta-append. Only the publishing modes need it.
+      #   - logs/regime_history.jsonl: the published scoreboard (PRD-204). RESTORED so
+      #     the Commit step's Aggregate can PRESERVE an already-published
+      #     spy_close_change_pct it cannot recompute this run (SPY parquet absent)
+      #     instead of wiping it to null. Aggregate still rebuilds rows from audit;
+      #     restore only supplies the prior values it would otherwise lose. Without it
+      #     preserve-prior reads main's frozen 3-row fallback and the wipe still happens.
+      # The restore step also records CB_PUBLISH_BASE_SHA for the audit delta-append.
+      # Only the publishing modes need it.
       - name: Restore publish state
         if: >-
           steps.mode.outputs.job_mode == 'live' ||
           steps.mode.outputs.job_mode == 'sunday' ||
           steps.mode.outputs.job_mode == 'verify'
-        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/evaluation.jsonl logs/last_notification_state.json logs/market_map.json logs/latest_hourly_contract.json 'logs/run_*.json'
+        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/evaluation.jsonl logs/last_notification_state.json logs/market_map.json logs/latest_hourly_contract.json logs/regime_history.jsonl 'logs/run_*.json'
 
       - name: Install dev dependencies
         run: |

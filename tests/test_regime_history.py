@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import logging
 from pathlib import Path
 
 from cuttingboard.delivery import regime_history
@@ -195,3 +196,157 @@ def test_prd175_writes_empty_history_when_no_pipeline_records(tmp_path) -> None:
     aggregate(audit_path=str(audit), history_path=str(history), spy_closes=[])
     assert history.exists(), "history file must be created even with zero pipeline records"
     assert _read_history(history) == []
+
+
+# --- PRD-204 — non-destructive rebuild: preserve last-known-good + mark stale ---
+
+def _seed_history(path: Path, rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "".join(json.dumps(r, sort_keys=True) + "\n" for r in rows),
+        encoding="utf-8",
+    )
+
+
+def test_prd204_empty_series_preserves_prior_return_and_marks_stale(tmp_path) -> None:
+    """RED against the pre-fix destructive rebuild: a populated
+    spy_close_change_pct must survive an aggregate() run whose SPY series is
+    empty (the absent-parquet case), carrying an observable stale marker."""
+    audit = tmp_path / "audit.jsonl"
+    history = tmp_path / "regime_history.jsonl"
+    # Prior committed history: two dates already carry realized returns.
+    _seed_history(history, [
+        {"date": "2026-05-13", "regime": "RANGE", "posture": "STAY_FLAT",
+         "confidence": 0.5, "net_score": 0, "vix_level": 15.0,
+         "first_run_at_utc": "2026-05-13T13:00:00+00:00",
+         "last_run_at_utc": "2026-05-13T20:00:00+00:00", "run_count": 1,
+         "spy_close_change_pct": 0.0079},
+        {"date": "2026-06-17", "regime": "TREND", "posture": "LONG",
+         "confidence": 0.7, "net_score": 2, "vix_level": 14.0,
+         "first_run_at_utc": "2026-06-17T13:00:00+00:00",
+         "last_run_at_utc": "2026-06-17T20:00:00+00:00", "run_count": 1,
+         "spy_close_change_pct": 0.0104},
+    ])
+    # Same dates re-appear in audit; the SPY series is absent this run.
+    _write_audit(audit, [
+        _pipeline_record(date="2026-05-13", run_at_utc="2026-05-13T20:00:00+00:00",
+                         regime="RANGE", posture="STAY_FLAT", confidence=0.5,
+                         net_score=0, vix_level=15.0),
+        _pipeline_record(date="2026-06-17", run_at_utc="2026-06-17T20:00:00+00:00",
+                         regime="TREND", posture="LONG", confidence=0.7,
+                         net_score=2, vix_level=14.0),
+    ])
+    aggregate(audit_path=str(audit), history_path=str(history), spy_closes=[])
+    rows = {r["date"]: r for r in _read_history(history)}
+    # Preserved, NOT nulled:
+    assert rows["2026-05-13"]["spy_close_change_pct"] == 0.0079
+    assert rows["2026-06-17"]["spy_close_change_pct"] == 0.0104
+    # Observable staleness marker set on the preserved values:
+    assert rows["2026-05-13"]["spy_close_change_pct_stale"] is True
+    assert rows["2026-06-17"]["spy_close_change_pct_stale"] is True
+
+
+def test_prd204_present_series_computes_fresh_and_marker_false(tmp_path) -> None:
+    """Inverse guard: with the SPY series present, the rebuild computes the real
+    return and does NOT flag it stale (the marker must not fire on healthy runs)."""
+    audit = tmp_path / "audit.jsonl"
+    history = tmp_path / "regime_history.jsonl"
+    _write_audit(audit, [
+        _pipeline_record(date="2026-06-08", run_at_utc="2026-06-08T20:00:00+00:00",
+                         regime="RANGE", posture="STAY_FLAT", confidence=0.5,
+                         net_score=0, vix_level=15.0),
+        _pipeline_record(date="2026-06-09", run_at_utc="2026-06-09T20:00:00+00:00",
+                         regime="RANGE", posture="STAY_FLAT", confidence=0.5,
+                         net_score=0, vix_level=15.0),
+    ])
+    spy = [("2026-06-08", 500.0), ("2026-06-09", 510.0)]
+    aggregate(audit_path=str(audit), history_path=str(history), spy_closes=spy)
+    rows = {r["date"]: r for r in _read_history(history)}
+    assert rows["2026-06-08"]["spy_close_change_pct"] == 0.02
+    assert rows["2026-06-08"]["spy_close_change_pct_stale"] is False
+
+
+def test_prd204_genuinely_uncomputed_date_is_null_not_stale(tmp_path) -> None:
+    """A date whose next-session close does not exist yet (and had no prior
+    value) stays null and is NOT marked stale — only carried-forward values are."""
+    audit = tmp_path / "audit.jsonl"
+    history = tmp_path / "regime_history.jsonl"
+    _write_audit(audit, [
+        _pipeline_record(date="2026-06-09", run_at_utc="2026-06-09T20:00:00+00:00",
+                         regime="RANGE", posture="STAY_FLAT", confidence=0.5,
+                         net_score=0, vix_level=15.0),
+    ])
+    # Series knows 06-09 but not its next session, so the change can't resolve.
+    aggregate(audit_path=str(audit), history_path=str(history),
+              spy_closes=[("2026-06-09", 500.0)])
+    rows = {r["date"]: r for r in _read_history(history)}
+    assert rows["2026-06-09"]["spy_close_change_pct"] is None
+    assert rows["2026-06-09"]["spy_close_change_pct_stale"] is False
+
+
+def test_prd204_empty_series_with_no_preservable_rows_warns_loudly(tmp_path, caplog) -> None:
+    """R3 (Codex P2): when the SPY series is absent AND no date has a prior value to
+    preserve (bootstrap / newly-added dates / all-null prior), the run still writes
+    nulls — and that degraded source must be logged loudly, not silently. RED before
+    the fix: the warning was gated on preserved_dates, so this all-null case emitted
+    nothing."""
+    audit = tmp_path / "audit.jsonl"
+    history = tmp_path / "regime_history.jsonl"
+    # No prior history file at all → nothing is preservable.
+    _write_audit(audit, [
+        _pipeline_record(date="2026-06-08", run_at_utc="2026-06-08T20:00:00+00:00",
+                         regime="RANGE", posture="STAY_FLAT", confidence=0.5,
+                         net_score=0, vix_level=15.0),
+        _pipeline_record(date="2026-06-09", run_at_utc="2026-06-09T20:00:00+00:00",
+                         regime="RANGE", posture="STAY_FLAT", confidence=0.5,
+                         net_score=0, vix_level=15.0),
+    ])
+    with caplog.at_level(logging.WARNING, logger="cuttingboard.delivery.regime_history"):
+        aggregate(audit_path=str(audit), history_path=str(history), spy_closes=[])
+    rows = {r["date"]: r for r in _read_history(history)}
+    # Nulls are written (nothing to preserve) ...
+    assert rows["2026-06-08"]["spy_close_change_pct"] is None
+    assert rows["2026-06-09"]["spy_close_change_pct"] is None
+    # ... and the degraded SPY source is logged loudly (R3), not silent.
+    assert any(
+        rec.levelno >= logging.WARNING and "empty/absent" in rec.getMessage()
+        for rec in caplog.records
+    ), "absent SPY series with no preservable rows must emit an R3 warning"
+
+
+def test_prd204_partial_series_gap_with_no_prior_warns_loudly(tmp_path, caplog) -> None:
+    """R3 (Codex P2 on 6937d2c): a non-empty but truncated/holey SPY series that
+    skips a historical audit date with no prior value writes a new null — and that
+    degraded partial source must be logged loudly, distinct from a legitimately
+    pending latest row. RED before the fix: the series is non-empty and nothing is
+    preserved, so neither prior branch fired."""
+    audit = tmp_path / "audit.jsonl"
+    history = tmp_path / "regime_history.jsonl"
+    # 2026-06-08 has aged out of the cache (a hole); 06-10 is the latest close.
+    _write_audit(audit, [
+        _pipeline_record(date="2026-06-08", run_at_utc="2026-06-08T20:00:00+00:00",
+                         regime="RANGE", posture="STAY_FLAT", confidence=0.5,
+                         net_score=0, vix_level=15.0),
+        _pipeline_record(date="2026-06-10", run_at_utc="2026-06-10T20:00:00+00:00",
+                         regime="RANGE", posture="STAY_FLAT", confidence=0.5,
+                         net_score=0, vix_level=15.0),
+    ])
+    # Series covers 06-09 and 06-10 only — 06-08 is missing (before the latest close).
+    spy = [("2026-06-09", 500.0), ("2026-06-10", 505.0)]
+    with caplog.at_level(logging.WARNING, logger="cuttingboard.delivery.regime_history"):
+        aggregate(audit_path=str(audit), history_path=str(history), spy_closes=spy)
+    rows = {r["date"]: r for r in _read_history(history)}
+    assert rows["2026-06-08"]["spy_close_change_pct"] is None  # the source gap
+    assert rows["2026-06-10"]["spy_close_change_pct"] is None  # legitimately pending
+    gap_msgs = [
+        r.getMessage() for r in caplog.records
+        if r.levelno >= logging.WARNING and "partial/truncated" in r.getMessage()
+    ]
+    assert gap_msgs, "a truncated SPY series that skipped a covered date must warn (R3)"
+    msg = gap_msgs[0]
+    assert "2026-06-08" in msg, "the skipped date 2026-06-08 must be named as the gap"
+    # Exactly one date is the gap (06-08); the pending latest row (06-10) is not a
+    # gap — it appears only as the 'latest SPY close' anchor, never as a flagged date.
+    assert "for 1 date(s)" in msg, (
+        "only the skipped historical date is a gap; the pending latest row is not"
+    )
