@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import logging
 from pathlib import Path
 
 from cuttingboard.delivery import regime_history
@@ -281,3 +282,33 @@ def test_prd204_genuinely_uncomputed_date_is_null_not_stale(tmp_path) -> None:
     rows = {r["date"]: r for r in _read_history(history)}
     assert rows["2026-06-09"]["spy_close_change_pct"] is None
     assert rows["2026-06-09"]["spy_close_change_pct_stale"] is False
+
+
+def test_prd204_empty_series_with_no_preservable_rows_warns_loudly(tmp_path, caplog) -> None:
+    """R3 (Codex P2): when the SPY series is absent AND no date has a prior value to
+    preserve (bootstrap / newly-added dates / all-null prior), the run still writes
+    nulls — and that degraded source must be logged loudly, not silently. RED before
+    the fix: the warning was gated on preserved_dates, so this all-null case emitted
+    nothing."""
+    audit = tmp_path / "audit.jsonl"
+    history = tmp_path / "regime_history.jsonl"
+    # No prior history file at all → nothing is preservable.
+    _write_audit(audit, [
+        _pipeline_record(date="2026-06-08", run_at_utc="2026-06-08T20:00:00+00:00",
+                         regime="RANGE", posture="STAY_FLAT", confidence=0.5,
+                         net_score=0, vix_level=15.0),
+        _pipeline_record(date="2026-06-09", run_at_utc="2026-06-09T20:00:00+00:00",
+                         regime="RANGE", posture="STAY_FLAT", confidence=0.5,
+                         net_score=0, vix_level=15.0),
+    ])
+    with caplog.at_level(logging.WARNING, logger="cuttingboard.delivery.regime_history"):
+        aggregate(audit_path=str(audit), history_path=str(history), spy_closes=[])
+    rows = {r["date"]: r for r in _read_history(history)}
+    # Nulls are written (nothing to preserve) ...
+    assert rows["2026-06-08"]["spy_close_change_pct"] is None
+    assert rows["2026-06-09"]["spy_close_change_pct"] is None
+    # ... and the degraded SPY source is logged loudly (R3), not silent.
+    assert any(
+        rec.levelno >= logging.WARNING and "empty/absent" in rec.getMessage()
+        for rec in caplog.records
+    ), "absent SPY series with no preservable rows must emit an R3 warning"

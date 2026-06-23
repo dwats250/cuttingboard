@@ -205,7 +205,26 @@ def aggregate(
                 summary[STALE_MARKER_KEY] = False
         summaries.append(summary)
 
-    if preserved_dates:
+    null_count = sum(1 for s in summaries if s["spy_close_change_pct"] is None)
+
+    if not spy_closes and summaries:
+        # R3 (Codex P2): the SPY source itself did not resolve this run
+        # (absent/empty/unreadable parquet), so NO date could compute a fresh
+        # return. Log loudly whether or not anything was preservable — a bootstrap
+        # publish branch, newly-added dates, or an all-null prior writes null(s)
+        # here, and a degraded source must never be silent. This is the condition
+        # R3 guards; gating the warning on preserved_dates left it unfulfilled.
+        logger.warning(
+            "regime_history: SPY close series is empty/absent this run — no "
+            "next-session return could be computed for any of %d date(s). Preserved "
+            "%d last-known-good value(s) (marked %s=True); wrote %d null(s) where no "
+            "prior existed. A missing/unreadable SPY parquet is the usual cause (R3).",
+            len(summaries),
+            len(preserved_dates),
+            STALE_MARKER_KEY,
+            null_count,
+        )
+    elif preserved_dates:
         logger.warning(
             "regime_history: SPY series could not resolve %d date(s) this run "
             "(%s%s); preserved last-known-good spy_close_change_pct and marked "
