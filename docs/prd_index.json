@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 202,
-  "next_prd": 203,
+  "latest_complete": 204,
+  "next_prd": 205,
   "entries": [
     {
       "number": 56,
@@ -888,14 +888,14 @@
     {
       "number": 203,
       "title": "prd_close.sh rebuilds the PROJECT_STATE baseline line (canonical, no stale provenance)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "35e0641"
     },
     {
       "number": 204,
       "title": "Non-destructive scoreboard aggregate (preserve-prior + staleness marker)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "9c1fb37"
     }
   ]
 }
