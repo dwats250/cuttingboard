@@ -3538,6 +3538,11 @@ def _evidence_votes(html: str) -> list[str]:
     return re.findall(r'class="macro-evidence-vote">([^<]+)</span>', tape)
 
 
+def _evidence_interps(html: str) -> list[str]:
+    tape = _macro_tape_block(html)
+    return re.findall(r'class="macro-evidence-interp">([^<]+)</span>', tape)
+
+
 def test_prd177_r3_macro_evidence_rows_present() -> None:
     html = render_dashboard_html(
         _payload(macro_drivers=_macro_drivers()), _run(), market_map=_market_map(),
@@ -3575,6 +3580,68 @@ def test_prd177_r3_headline_agrees_with_evidence_tally() -> None:
     assert on == 4 and off == 0
     tape = _macro_tape_block(html)
     assert "MACRO BIAS: LONG" in tape
+
+
+# ---------------------------------------------------------------------------
+# PRD-191 — the macro-evidence rationale subtitle must agree, in direction, with
+# the cyclicality-aware vote (a risk-OFF vote never renders risk-ON prose). The
+# pre-fix rationale was a fixed per-driver string with no direction term, so a
+# rising 10Y voted risk-OFF while still reading "easing yields favor risk".
+# ---------------------------------------------------------------------------
+
+def _assert_vote_interp_agree(html: str, *, case: str) -> None:
+    votes = _evidence_votes(html)
+    interps = _evidence_interps(html)
+    assert len(votes) == len(interps) == 4, (case, votes, interps)
+    for vote, interp in zip(votes, interps):
+        if "risk-ON vote" in vote:
+            # risk-ON prose must read as favoring risk, never caution.
+            assert "risk" in interp and "caution" not in interp, (case, vote, interp)
+        elif "risk-OFF vote" in vote:
+            # risk-OFF prose must read as favoring caution, never risk.
+            assert "caution" in interp and "risk" not in interp, (case, vote, interp)
+        else:
+            raise AssertionError(f"{case}: unexpected vote token {vote!r}")
+
+
+def test_prd191_rationale_agrees_with_vote_rising() -> None:
+    # Rising readings: VIX/DXY/10Y (contra-cyclical) vote risk-OFF; BTC
+    # (pro-cyclical) votes risk-ON. The rationale must follow each vote's sign.
+    rising = _macro_drivers(vix=0.5, dxy=0.3, tnx=0.4, btc=0.6)
+    html = render_dashboard_html(_payload(macro_drivers=rising), _run(), market_map=_market_map())
+    _assert_vote_interp_agree(html, case="rising")
+
+
+def test_prd191_rationale_agrees_with_vote_falling() -> None:
+    # Falling readings flip every sign: VIX/DXY/10Y vote risk-ON; BTC risk-OFF.
+    falling = _macro_drivers(vix=-0.5, dxy=-0.3, tnx=-0.4, btc=-0.6)
+    html = render_dashboard_html(_payload(macro_drivers=falling), _run(), market_map=_market_map())
+    _assert_vote_interp_agree(html, case="falling")
+
+
+def test_prd191_rising_10y_rationale_is_not_risk_on() -> None:
+    # The canonical bug: a rising 10Y votes risk-OFF but the pre-fix static string
+    # read "easing yields favor risk". The 10Y row is the 4th evidence row.
+    rising = _macro_drivers(vix=0.5, dxy=0.3, tnx=0.4, btc=0.6)
+    html = render_dashboard_html(_payload(macro_drivers=rising), _run(), market_map=_market_map())
+    votes = _evidence_votes(html)
+    interps = _evidence_interps(html)
+    assert "risk-OFF vote" in votes[3], votes
+    assert "caution" in interps[3] and "risk" not in interps[3], interps
+
+
+def test_prd191_flat_renders_shared_neutral_rationale() -> None:
+    # Flat readings (change_pct == 0) produce "no vote"; every such row renders
+    # ONE shared neutral string that is directional in neither sense.
+    flat = _macro_drivers(vix=0.0, dxy=0.0, tnx=0.0, btc=0.0)
+    html = render_dashboard_html(_payload(macro_drivers=flat), _run(), market_map=_market_map())
+    votes = _evidence_votes(html)
+    interps = _evidence_interps(html)
+    assert all("no vote" in v for v in votes), votes
+    assert len(set(interps)) == 1, interps
+    neutral = interps[0]
+    assert neutral.strip()
+    assert "risk" not in neutral and "caution" not in neutral, neutral
 
 
 def test_prd177_r4_scoreboard_renders_rows() -> None:
