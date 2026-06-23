@@ -16,6 +16,29 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-23 — Codex invocation is environment-dependent (host `codex exec` vs CI workflow)
+
+The two Codex surfaces are not interchangeable, and which one is reachable
+depends on where the agent runs:
+
+- **Host `codex exec` (Dustin's machine):** the only surface that can carry a
+  custom, adversarial LOGIC review prompt. Requires `~/.codex` credentials and
+  network egress. Read-only reviews run `codex exec -s read-only - < prompt`.
+- **CI Codex (the PRD-197 GitHub Actions workflow):** a FIXED consistency pass.
+  It cannot carry a custom review focus — it runs its own prompt. Containers
+  (including this remote-execution environment) reach Codex only through this
+  workflow; there is no local `codex exec` because the egress wall is by design.
+
+**Rule:** do NOT prompt for or assume local `codex exec` from inside a container —
+it will fail at the egress wall. A genuinely adversarial cross-review (vs a
+consistency pass) must be run host-side with a real prompt; from a container, the
+only Codex channel is the PRD-197 CI workflow. This keeps the review-gate
+expectations stable as the available Codex surfaces change (CLI egress, GitHub
+connector, future channels) — see the Codex cross-review gate's "properties, not
+mechanism" framing in `CLAUDE.md`.
+
+---
+
 ## 2026-06-20 — Alignment cadence check #4 — PASS (no drift; 1 stale annotation remediated in place)
 
 Fourth cadence check (since #3 on 2026-06-19), run at Dustin's request after the
