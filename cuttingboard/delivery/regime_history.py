@@ -205,15 +205,23 @@ def aggregate(
                 summary[STALE_MARKER_KEY] = False
         summaries.append(summary)
 
-    null_count = sum(1 for s in summaries if s["spy_close_change_pct"] is None)
+    null_dates = [s["date"] for s in summaries if s["spy_close_change_pct"] is None]
+    null_count = len(null_dates)
+    # A null is legitimately PENDING only for a date at/after the latest SPY close
+    # (its next session has not happened/been cached yet). A null on a date the
+    # series already extends BEYOND is a source GAP — the cache is truncated/holey
+    # and skipped a date it should cover — and must be logged loudly, not left
+    # indistinguishable from a pending latest row (R3, Codex P2 on 6937d2c).
+    spy_max_date = max((d for d, _ in spy_closes), default=None)
+    gap_dates = [d for d in null_dates if spy_max_date is not None and d < spy_max_date]
 
     if not spy_closes and summaries:
-        # R3 (Codex P2): the SPY source itself did not resolve this run
-        # (absent/empty/unreadable parquet), so NO date could compute a fresh
-        # return. Log loudly whether or not anything was preservable — a bootstrap
-        # publish branch, newly-added dates, or an all-null prior writes null(s)
-        # here, and a degraded source must never be silent. This is the condition
-        # R3 guards; gating the warning on preserved_dates left it unfulfilled.
+        # R3: the SPY source itself did not resolve this run (absent/empty/
+        # unreadable parquet), so NO date could compute a fresh return. Log loudly
+        # whether or not anything was preservable — a bootstrap publish branch,
+        # newly-added dates, or an all-null prior writes null(s) here, and a
+        # degraded source must never be silent. Gating on preserved_dates left this
+        # unfulfilled.
         logger.warning(
             "regime_history: SPY close series is empty/absent this run — no "
             "next-session return could be computed for any of %d date(s). Preserved "
@@ -224,17 +232,34 @@ def aggregate(
             STALE_MARKER_KEY,
             null_count,
         )
-    elif preserved_dates:
-        logger.warning(
-            "regime_history: SPY series could not resolve %d date(s) this run "
-            "(%s%s); preserved last-known-good spy_close_change_pct and marked "
-            "%s=True. SPY close series had %d row(s).",
-            len(preserved_dates),
-            ", ".join(preserved_dates[:5]),
-            "" if len(preserved_dates) <= 5 else ", …",
-            STALE_MARKER_KEY,
-            len(spy_closes),
-        )
+    else:
+        if gap_dates:
+            # R3: a PARTIAL/truncated SPY series that skipped historical dates it
+            # should cover. Distinct from the empty-source case above and from a
+            # legitimately-pending latest row (date >= spy_max_date), which stays
+            # silent.
+            logger.warning(
+                "regime_history: SPY series resolved no next-session return for %d "
+                "date(s) (%s%s) that fall before the latest SPY close %s and had no "
+                "prior value — a partial/truncated SPY cache wrote new null(s) where a "
+                "value was expected (R3). Only dates at/after the latest close are "
+                "legitimately pending.",
+                len(gap_dates),
+                ", ".join(gap_dates[:5]),
+                "" if len(gap_dates) <= 5 else ", …",
+                spy_max_date,
+            )
+        if preserved_dates:
+            logger.warning(
+                "regime_history: SPY series could not resolve %d date(s) this run "
+                "(%s%s); preserved last-known-good spy_close_change_pct and marked "
+                "%s=True. SPY close series had %d row(s).",
+                len(preserved_dates),
+                ", ".join(preserved_dates[:5]),
+                "" if len(preserved_dates) <= 5 else ", …",
+                STALE_MARKER_KEY,
+                len(spy_closes),
+            )
 
     _write_history(history_path, summaries)
     return summaries

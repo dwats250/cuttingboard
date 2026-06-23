@@ -312,3 +312,41 @@ def test_prd204_empty_series_with_no_preservable_rows_warns_loudly(tmp_path, cap
         rec.levelno >= logging.WARNING and "empty/absent" in rec.getMessage()
         for rec in caplog.records
     ), "absent SPY series with no preservable rows must emit an R3 warning"
+
+
+def test_prd204_partial_series_gap_with_no_prior_warns_loudly(tmp_path, caplog) -> None:
+    """R3 (Codex P2 on 6937d2c): a non-empty but truncated/holey SPY series that
+    skips a historical audit date with no prior value writes a new null — and that
+    degraded partial source must be logged loudly, distinct from a legitimately
+    pending latest row. RED before the fix: the series is non-empty and nothing is
+    preserved, so neither prior branch fired."""
+    audit = tmp_path / "audit.jsonl"
+    history = tmp_path / "regime_history.jsonl"
+    # 2026-06-08 has aged out of the cache (a hole); 06-10 is the latest close.
+    _write_audit(audit, [
+        _pipeline_record(date="2026-06-08", run_at_utc="2026-06-08T20:00:00+00:00",
+                         regime="RANGE", posture="STAY_FLAT", confidence=0.5,
+                         net_score=0, vix_level=15.0),
+        _pipeline_record(date="2026-06-10", run_at_utc="2026-06-10T20:00:00+00:00",
+                         regime="RANGE", posture="STAY_FLAT", confidence=0.5,
+                         net_score=0, vix_level=15.0),
+    ])
+    # Series covers 06-09 and 06-10 only — 06-08 is missing (before the latest close).
+    spy = [("2026-06-09", 500.0), ("2026-06-10", 505.0)]
+    with caplog.at_level(logging.WARNING, logger="cuttingboard.delivery.regime_history"):
+        aggregate(audit_path=str(audit), history_path=str(history), spy_closes=spy)
+    rows = {r["date"]: r for r in _read_history(history)}
+    assert rows["2026-06-08"]["spy_close_change_pct"] is None  # the source gap
+    assert rows["2026-06-10"]["spy_close_change_pct"] is None  # legitimately pending
+    gap_msgs = [
+        r.getMessage() for r in caplog.records
+        if r.levelno >= logging.WARNING and "partial/truncated" in r.getMessage()
+    ]
+    assert gap_msgs, "a truncated SPY series that skipped a covered date must warn (R3)"
+    msg = gap_msgs[0]
+    assert "2026-06-08" in msg, "the skipped date 2026-06-08 must be named as the gap"
+    # Exactly one date is the gap (06-08); the pending latest row (06-10) is not a
+    # gap — it appears only as the 'latest SPY close' anchor, never as a flagged date.
+    assert "for 1 date(s)" in msg, (
+        "only the skipped historical date is a gap; the pending latest row is not"
+    )
