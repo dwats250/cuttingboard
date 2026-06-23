@@ -287,3 +287,56 @@ class TestAuditRecordStructure:
         record = _last_notification_record(tmp_path / "logs" / "audit.jsonl")
         missing = self._REQUIRED_FIELDS - set(record)
         assert not missing, f"Missing audit fields: {missing}"
+
+
+# ---------------------------------------------------------------------------
+# 8. PRD-192 — notification audit records carry the notify_mode that produced
+# them, so hourly/intraday audit rows are self-describing (which slot/mode fired)
+# instead of a hardcoded alert_title. The field is additive and optional: it is
+# present-but-null when no notify_mode is threaded.
+# ---------------------------------------------------------------------------
+
+class TestNotifyModeTag:
+    def _send_ok(self, tmp_path, monkeypatch, **kwargs):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "logs").mkdir()
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        with patch.object(config, "TELEGRAM_BOT_TOKEN", "tok"):
+            with patch.object(config, "TELEGRAM_CHAT_ID", "1"):
+                with patch("requests.post", return_value=mock_resp):
+                    send_telegram("T", "B", **kwargs)
+        return _last_notification_record(tmp_path / "logs" / "audit.jsonl")
+
+    def test_default_record_has_notify_mode_field_none(self, tmp_path, monkeypatch):
+        # Additive + present-but-null: callers that pass no notify_mode still
+        # produce a record, now carrying notify_mode=None.
+        record = self._send_ok(tmp_path, monkeypatch)
+        assert "notify_mode" in record
+        assert record["notify_mode"] is None
+
+    def test_send_telegram_threads_notify_mode(self, tmp_path, monkeypatch):
+        record = self._send_ok(tmp_path, monkeypatch, notify_mode="hourly")
+        assert record["notify_mode"] == "hourly"
+
+    def test_send_notification_threads_notify_mode(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "logs").mkdir()
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        with patch.object(config, "TELEGRAM_BOT_TOKEN", "tok"):
+            with patch.object(config, "TELEGRAM_CHAT_ID", "1"):
+                with patch("requests.post", return_value=mock_resp):
+                    send_notification("T", "B", notify_mode="orb_trajectory")
+        record = _last_notification_record(tmp_path / "logs" / "audit.jsonl")
+        assert record["notify_mode"] == "orb_trajectory"
+
+    def test_skipped_send_also_carries_notify_mode(self, tmp_path, monkeypatch):
+        # The not-configured skip path still tags the record.
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "logs").mkdir()
+        with patch.object(config, "TELEGRAM_BOT_TOKEN", None):
+            with patch.object(config, "TELEGRAM_CHAT_ID", None):
+                send_telegram("T", "B", notify_mode="hourly")
+        record = _last_notification_record(tmp_path / "logs" / "audit.jsonl")
+        assert record["notify_mode"] == "hourly"

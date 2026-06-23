@@ -72,6 +72,7 @@ def main(argv: list[str] | None = None) -> int:
                     success=False,
                     reason="outside_routine_window",
                     state_key=state_key,
+                    notify_mode=NOTIFY_HOURLY,
                 )
                 logger.info(
                     "hourly alert suppressed: outside routine window now_pt=%s",
@@ -88,6 +89,7 @@ def main(argv: list[str] | None = None) -> int:
                     success=False,
                     reason="suppressed_same_slot",
                     state_key=slot_utc.isoformat(),
+                    notify_mode=NOTIFY_HOURLY,
                 )
                 logger.info("hourly alert suppressed: same slot %s", slot_utc.isoformat())
                 return 0

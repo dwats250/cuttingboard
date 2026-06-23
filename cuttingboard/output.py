@@ -125,6 +125,7 @@ def _write_skipped_notification(
     reason: str,
     notification_priority: str = "",
     notification_state_key: str = "",
+    notify_mode: Optional[str] = None,
 ) -> None:
     global _last_notification_result
     logger.info("Telegram skipped: status=skipped reason=%s title=%r", reason, title)
@@ -138,6 +139,7 @@ def _write_skipped_notification(
         retry_count=0,
         priority=notification_priority or None,
         state_key=notification_state_key or None,
+        notify_mode=notify_mode,
         message_preview=body[:120] if body else None,
     )
     _last_notification_result = NotificationResult(
@@ -533,6 +535,7 @@ def send_telegram(
     notification_priority: str = "",
     notification_state_key: str = "",
     notification_audit_reason: Optional[str] = None,
+    notify_mode: Optional[str] = None,
 ) -> bool:
     """Send Telegram notification. Returns True on success, False otherwise.
 
@@ -565,6 +568,7 @@ def send_telegram(
             reason=notification_audit_reason or "not_configured",
             priority=_priority,
             state_key=_state_key,
+            notify_mode=notify_mode,
             message_preview=body[:120] if body else None,
         )
         _last_notification_result = NotificationResult(
@@ -588,6 +592,7 @@ def send_telegram(
             reason="duplicate",
             notification_priority=notification_priority,
             notification_state_key=notification_state_key,
+            notify_mode=notify_mode,
         )
         return False
     sent_message_hashes.add(message_hash)
@@ -644,6 +649,7 @@ def send_telegram(
             reason=notification_audit_reason,
             priority=_priority,
             state_key=_state_key,
+            notify_mode=notify_mode,
             message_preview=preview,
         )
         _last_notification_result = NotificationResult(
@@ -672,6 +678,7 @@ def send_telegram(
         reason=notification_audit_reason or ("exception" if http_status is None else None),
         priority=_priority,
         state_key=_state_key,
+        notify_mode=notify_mode,
         message_preview=preview,
     )
     _last_notification_result = NotificationResult(
@@ -692,6 +699,7 @@ def send_notification(
     notification_priority: str = "",
     notification_state_key: str = "",
     notification_audit_reason: Optional[str] = None,
+    notify_mode: Optional[str] = None,
 ) -> bool:
     """Single notification dispatch point. Sends via Telegram."""
     if body and DASHBOARD_URL not in body:
@@ -705,12 +713,14 @@ def send_notification(
             reason="duplicate_path",
             notification_priority=notification_priority,
             notification_state_key=notification_state_key,
+            notify_mode=notify_mode,
         )
         return False
     _logical_alert_hashes.add(logical_hash)
     kwargs = {
         "notification_priority": notification_priority,
         "notification_state_key": notification_state_key,
+        "notify_mode": notify_mode,
     }
     if notification_audit_reason is not None:
         kwargs["notification_audit_reason"] = notification_audit_reason

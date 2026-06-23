@@ -480,7 +480,7 @@ def _execute_notify_run(
         alert_sent = False
         notification_result: Optional[NotificationResult] = None
         if mode == MODE_LIVE:
-            alert_sent = send_notification(alert_title, alert_body)
+            alert_sent = send_notification(alert_title, alert_body, notify_mode=notify_mode)
             notification_result = get_last_notification_result()
 
         if notify_mode in _HOURLY_MODES:
@@ -566,7 +566,7 @@ def _execute_notify_run(
         alert_sent = False
         failure_notification_result: Optional[NotificationResult] = None
         try:
-            alert_sent = send_notification(alert_title, alert_body)
+            alert_sent = send_notification(alert_title, alert_body, notify_mode=notify_mode)
             failure_notification_result = get_last_notification_result()
         except Exception as _notify_exc:
             logger.warning("Failed to send failure notification: %s", _notify_exc)
@@ -933,6 +933,7 @@ def _run_pipeline(
                 body,
                 notification_priority=priority.value,
                 notification_state_key=current_key,
+                notify_mode=notify_mode,
             )
             if alert_sent:
                 save_last_state(current_key, LAST_STATE_PATH)
@@ -945,6 +946,7 @@ def _run_pipeline(
                 reason="suppressed_unchanged_state",
                 priority=priority.value,
                 state_key=current_key,
+                notify_mode=notify_mode,
             )
 
     contract["artifacts"]["notification_sent"] = alert_sent
