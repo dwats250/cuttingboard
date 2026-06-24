@@ -828,8 +828,8 @@
     {
       "number": 193,
       "title": "OHLCV cache trading-day freshness + publish-safe prefetch persistence",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "3ce4179"
     },
     {
       "number": 194,
