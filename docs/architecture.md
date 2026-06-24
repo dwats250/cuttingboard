@@ -74,7 +74,7 @@ L1  INGESTION          ingestion.py
     yfinance fetch.
     ThreadPoolExecutor(1) per fetch with 10s timeout.
     3 retries, 2s exponential backoff.
-    OHLCV cached to data/cache/{SYMBOL}_ohlcv.parquet (12h TTL).
+    OHLCV cached to data/cache/{SYMBOL}_ohlcv.parquet (trading-day freshness, PRD-193).
          │
          ▼
 L2  NORMALIZATION       normalization.py
@@ -300,7 +300,7 @@ tests/                      pytest suite; current baseline in docs/PROJECT_STATE
   test_phase6.py            intraday triggers, dedup, commit msg
 
 data/
-  cache/                    OHLCV parquet files (gitignored, 12h TTL)
+  cache/                    OHLCV parquet files (gitignored, trading-day freshness)
 
 logs/
   audit.jsonl               append-only run record (committed by CI)

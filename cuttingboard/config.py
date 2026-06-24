@@ -162,7 +162,11 @@ FLOW_RATIO_THRESHOLD = 1.50     # dominant direction premium must exceed opposit
 # Data fetch settings
 # ---------------------------------------------------------------------------
 
-OHLCV_STALE_HOURS       = 12
+# OHLCV cache freshness is trading-day-keyed (PRD-193): a cache is fresh iff its
+# last bar is the most recent completed session (ingestion._is_fresh_ohlcv_cache
+# + time_utils.most_recent_completed_session_date). The old fixed-hours TTL
+# (OHLCV_STALE_HOURS) was retired -- it rejected every daily cache because daily
+# bars are always >= 1 day old.
 OHLCV_CACHE_DIR         = "data/cache"
 FETCH_RETRIES           = 3
 FETCH_BACKOFF_SECONDS   = 2

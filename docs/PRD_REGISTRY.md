@@ -210,7 +210,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-190 | 0573152 | OHLCV fetch window sized for SMA-200 | COMPLETE | [PRD-190](prd_history/PRD-190.md) |
 | PRD-191 | 6f38429 | Direction-aware macro-evidence rationale | COMPLETE | [PRD-191](prd_history/PRD-191.md) |
 | PRD-192 | a26a70c | Notify-mode tag on hourly notification audit + INTERFACE_LOCK reconciliation (folded from PRD-189 intraday-slot deferral) | COMPLETE | [PRD-192](prd_history/PRD-192.md) |
-| PRD-193 | — | Publish-safe prefetch with OHLCV cache persistence (deferred from PRD-189) | PROPOSED | [PRD-193](prd_history/PRD-193.md) |
+| PRD-193 | — | OHLCV cache trading-day freshness + publish-safe prefetch persistence | IN PROGRESS | [PRD-193](prd_history/PRD-193.md) |
 | PRD-194 | 365f0fe | Production publish decoupling: dedicated unprotected publish branch (finishes PRD-178; unblocks the post-PRD-189 push rejection) | COMPLETE | [PRD-194](prd_history/PRD-194.md) |
 | PRD-196 | 8a5fd6a | prd_close.sh baseline hygiene (robust bullet matching + CI-sourced baseline) | COMPLETE | [PRD-196](prd_history/PRD-196.md) |
 | PRD-197 | 761eac4 | Codex cross-review via GitHub Actions (host-independent gate satisfier) | COMPLETE | [PRD-197](prd_history/PRD-197.md) |

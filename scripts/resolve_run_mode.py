@@ -13,15 +13,14 @@ correctly::
     0 13 * * 1-5   -> live
     30 23 * * 0    -> sunday
 
-Scope (PRD-189): only the dedicated premarket crons that write fresh,
-publish-safe artifacts via ``cli_main`` (``python -m cuttingboard --mode ...``):
-live and sunday. The 12:50 ``prefetch`` cron is intentionally NOT resolved here
-(it resolves to ``noop``): ``execute_prefetch`` writes no fresh payload/run, so
-publishing on that slot would trip the PRD-119 freshness gate, and its OHLCV
-warm-up cache (``data/cache``) is not persisted across runs anyway. Re-enabling
-prefetch with real cache persistence + a publish-safe path is deferred to a
-follow-up PRD (cache persistence -- distinct from PRD-192's notify routing). The
-intraday/orb slots (orb_trajectory / post_orb / midmorning / power_hour) are
+Scope: the dedicated premarket crons that write fresh, publish-safe artifacts via
+``cli_main`` (``python -m cuttingboard --mode ...``): live, sunday, and (PRD-193)
+the 12:50 ``prefetch`` cache-warm slot. PRD-193 made prefetch publish-safe
+(cache-warm only -- it sets no PUBLISH_READY, so it cannot trip the PRD-119
+freshness gate) and persists its OHLCV warm-up cache (``data/cache``) via
+``actions/cache`` so the 13:00 live run reads it warm; the trading-day freshness
+fix is what makes that reuse real. The intraday/orb slots (orb_trajectory /
+post_orb / midmorning / power_hour) are
 likewise NOT resolved here: their real behavior lives in ``_execute_notify_run``
 (the ``alert_runner`` / ``hourly_alert.yml`` path), not ``cli_main``, and the
 intraday window is already covered by ``hourly_alert.yml``; correctly homing
@@ -46,10 +45,10 @@ NOOP = "noop"
 _DEDICATED: dict[str, str] = {
     "0 13 * * 1-5": "live",
     "30 23 * * 0": "sunday",
+    "50 12 * * 1-5": "prefetch",  # PRD-193: publish-safe cache-warm slot
 }
 # Parked dead-noop crons -- present in cuttingboard.yml `on.schedule` but resolved
-# to NOOP, pending a future cron tidy-up: "50 12 * * 1-5" (prefetch, deferred to
-# the prefetch-rework PRD) and the intraday crons "50 13 * * 1-5" /
+# to NOOP, pending a future cron tidy-up: the intraday crons "50 13 * * 1-5" /
 # "*/30 14-21 * * 1-5" (deferred to PRD-192).
 
 

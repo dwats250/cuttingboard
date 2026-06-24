@@ -4,7 +4,7 @@ Tests for cuttingboard/time_utils.py.
 All 8 PRD-009 validation scenarios, plus function contract checks.
 """
 
-from datetime import datetime, time, timezone
+from datetime import date, datetime, time, timezone
 from zoneinfo import ZoneInfo
 
 from cuttingboard import time_utils
@@ -159,3 +159,58 @@ def test_convert_utc_to_et_result_has_eastern_zone():
     offset = result.utcoffset().total_seconds()
     # EDT (-4h) or EST (-5h)
     assert offset in (-4 * 3600, -5 * 3600)
+
+
+# ---------------------------------------------------------------------------
+# PRD-193 — most_recent_completed_session_date
+# The latest weekday strictly before today's UTC date. This is the calendar key
+# the OHLCV cache freshness check compares against: the daily fetch uses
+# end=<today UTC> (exclusive), so the newest bar it can return is exactly this
+# date. Holiday-unaware by design (post-holiday => safe redundant re-fetch).
+# Anchor dates (June 2026): 06-19 Fri, 06-20 Sat, 06-21 Sun, 06-22 Mon,
+# 06-23 Tue, 06-24 Wed.
+# ---------------------------------------------------------------------------
+
+def test_session_date_weekday_is_prior_weekday():
+    # Tue -> Mon (both weekdays, simple step back)
+    assert time_utils.most_recent_completed_session_date(
+        _utc(2026, 6, 23, 13, 0)
+    ) == date(2026, 6, 22)
+
+
+def test_session_date_monday_skips_back_to_friday():
+    # Mon -> Fri (skip Sun + Sat)
+    assert time_utils.most_recent_completed_session_date(
+        _utc(2026, 6, 22, 13, 0)
+    ) == date(2026, 6, 19)
+
+
+def test_session_date_saturday_is_friday():
+    assert time_utils.most_recent_completed_session_date(
+        _utc(2026, 6, 20, 13, 0)
+    ) == date(2026, 6, 19)
+
+
+def test_session_date_sunday_is_friday():
+    assert time_utils.most_recent_completed_session_date(
+        _utc(2026, 6, 21, 13, 0)
+    ) == date(2026, 6, 19)
+
+
+def test_session_date_is_strictly_before_today_regardless_of_clock():
+    # Date-keyed, not clock-keyed: any UTC time on Tue resolves to Mon.
+    early = time_utils.most_recent_completed_session_date(_utc(2026, 6, 23, 0, 1))
+    late = time_utils.most_recent_completed_session_date(_utc(2026, 6, 23, 23, 59))
+    assert early == late == date(2026, 6, 22)
+
+
+def test_session_date_returns_a_date():
+    result = time_utils.most_recent_completed_session_date(_utc(2026, 6, 24, 13, 0))
+    assert isinstance(result, date)
+    assert result == date(2026, 6, 23)  # Wed -> Tue
+
+
+def test_session_date_handles_naive_datetime_as_utc():
+    # Defensive: a naive datetime is treated as UTC, not local.
+    naive = datetime(2026, 6, 23, 13, 0)
+    assert time_utils.most_recent_completed_session_date(naive) == date(2026, 6, 22)

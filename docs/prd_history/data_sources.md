@@ -118,9 +118,10 @@ OHLCV data for derived metrics is cached to avoid redundant network calls on rep
 - `DX-Y.NYB` → `DX_Y_NYB_ohlcv.parquet`
 - Standard tickers → unchanged
 
-**Staleness rule:** Cache is considered fresh for **12 hours** (`OHLCV_STALE_HOURS = 12`). After 12 hours, a new fetch is triggered and the cache is overwritten. This means:
-- First premarket run of the day always fetches fresh OHLCV data.
-- A second manual run within the same 12-hour window uses cached data.
+**Staleness rule (PRD-193):** A cache is fresh iff its last bar is the most recent completed trading session — `ingestion._is_fresh_ohlcv_cache` compares the last bar's date against `time_utils.most_recent_completed_session_date` (the latest weekday before today, UTC). Daily bars are stable for the whole UTC day (the fetch uses `end=<today>`, exclusive, so the newest bar is the prior session), so a cache fetched today serves every run today and is re-fetched on the next weekday when a new session is available. The earlier fixed 12-hour TTL (`OHLCV_STALE_HOURS`) was retired: a daily bar is always >= 1 day old, so an age-vs-TTL check rejected every cache. This means:
+- The first run on a new trading day fetches fresh OHLCV; later runs that day reuse it.
+- The 12:50 prefetch persists `data/cache` via `actions/cache` so the 13:00 live run reads it warm (PRD-193).
+- A post-holiday day falls through to a safe redundant re-fetch (the heuristic is holiday-unaware).
 
 **Cache is gitignored.** It is never committed. On a fresh CI checkout, the cache is empty and all OHLCV data is fetched from yfinance on first run.
 

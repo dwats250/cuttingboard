@@ -827,8 +827,8 @@
     },
     {
       "number": 193,
-      "title": "Publish-safe prefetch with OHLCV cache persistence (deferred from PRD-189)",
-      "status": "PROPOSED",
+      "title": "OHLCV cache trading-day freshness + publish-safe prefetch persistence",
+      "status": "IN PROGRESS",
       "commit": null
     },
     {
