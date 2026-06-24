@@ -199,11 +199,29 @@ jobs:
           date -u +"%Y-%m-%dT%H:%M:%SZ"
           echo "=== END prefetch ==="
 
+      # PRD-193 (Codex P2-1): execute_prefetch returns 0 even when a market-stress
+      # halt skips compute_all_derived (so no OHLCV is warmed). Gating the save on
+      # job_mode alone would persist a cold/prior-day cache under the immutable day
+      # key and defeat the live reuse (PRD-198 #2: assert the RESOLVED effect, not
+      # the requested action). Prove the cache actually holds a fresh bar -- with
+      # the same _is_fresh_ohlcv_cache the engine uses -- before saving. Failure to
+      # prove freshness resolves to `false` (do not poison the key), which is an
+      # honest non-result, not a silent success (PRD-198 #1).
+      - name: Check OHLCV cache warmed
+        id: warmed
+        if: steps.mode.outputs.job_mode == 'prefetch'
+        run: |
+          set -eo pipefail
+          warmed=$(python3 -c "import glob,pandas as pd;from cuttingboard.ingestion import _is_fresh_ohlcv_cache as F;print('true' if any(F(pd.read_parquet(f)) for f in glob.glob('data/cache/*_ohlcv.parquet')) else 'false')" 2>/dev/null || echo false)
+          echo "ohlcv_warmed=$warmed" >> "$GITHUB_OUTPUT"
+          echo "OHLCV cache warmed (fresh bar present): $warmed"
+
       # PRD-193: persist the just-warmed OHLCV cache under the trading-day key so
       # the 13:00 live run (a fresh runner) restores it. Only the prefetch run
-      # saves -- the producer -- which keeps the day key owned by the warm cache.
+      # saves -- the producer -- and only when it actually warmed a fresh cache,
+      # so the immutable day key is never owned by a cold/halted run.
       - name: Save OHLCV cache
-        if: steps.mode.outputs.job_mode == 'prefetch'
+        if: steps.mode.outputs.job_mode == 'prefetch' && steps.warmed.outputs.ohlcv_warmed == 'true'
         uses: actions/cache/save@v4
         with:
           path: data/cache

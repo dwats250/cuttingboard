@@ -434,23 +434,43 @@ def test_prefetch_mode_does_not_publish() -> None:
 
 
 def test_prefetch_warm_cache_is_persisted_via_actions_cache() -> None:
-    # PRD-193 R3: the OHLCV warm-up cache must survive the ephemeral runner so the
-    # 13:00 live run reads it warm. Restore at job start (warming modes) + save on
-    # the prefetch run, keyed on the trading day, path data/cache.
-    text = _workflow_text("cuttingboard.yml")
-    assert "actions/cache/restore@" in text, (
-        "cuttingboard.yml has no actions/cache/restore step; the prefetch warm "
-        "cache is discarded and the live run re-fetches (PRD-193 R3)."
+    # PRD-193 R3 + Codex P2: STRUCTURAL guard (not substring) for the OHLCV cache
+    # persistence wiring. The 12:50 prefetch run must SAVE data/cache under the
+    # trading-day key and the 13:00 live run must RESTORE the same key, or the warm
+    # cache is discarded and the live run re-fetches. A substring check would pass
+    # even with restore/save in the wrong mode or the key mismatched (PRD-198 #4).
+    import yaml
+
+    wf = yaml.safe_load(_workflow_text("cuttingboard.yml"))
+    steps = wf["jobs"]["pipeline"]["steps"]
+    by_name = {s.get("name"): s for s in steps if isinstance(s, dict)}
+
+    restore = by_name.get("Restore OHLCV cache")
+    save = by_name.get("Save OHLCV cache")
+    assert restore is not None, "no 'Restore OHLCV cache' step (PRD-193 R3)"
+    assert save is not None, "no 'Save OHLCV cache' step (PRD-193 R3)"
+
+    # Right actions, right path.
+    assert restore["uses"].startswith("actions/cache/restore@")
+    assert save["uses"].startswith("actions/cache/save@")
+    assert restore["with"]["path"] == "data/cache"
+    assert save["with"]["path"] == "data/cache"
+
+    # Producer and consumer must agree on the day key, with a prefix fallback.
+    assert restore["with"]["key"] == save["with"]["key"], (
+        "restore and save must use the same trading-day cache key, or the live "
+        "run cannot read what the prefetch run wrote."
     )
-    assert "actions/cache/save@" in text, (
-        "cuttingboard.yml has no actions/cache/save step; the prefetch run never "
-        "persists data/cache for the live run (PRD-193 R3)."
-    )
-    assert "data/cache" in text, (
-        "the actions/cache step must target the OHLCV cache dir data/cache."
-    )
-    assert "ohlcv-" in text, (
-        "the actions/cache key must be the OHLCV trading-day key (ohlcv-...)."
+    assert "ohlcv-" in save["with"]["key"], "cache key must be the ohlcv- day key"
+    assert "restore-keys" in restore["with"], "restore needs a prefix fallback"
+
+    # Restore runs for the cache-warming modes; save runs only on a prefetch that
+    # actually warmed a fresh cache -- not job_mode alone (Codex P2-1).
+    assert "prefetch" in restore["if"] and "live" in restore["if"]
+    assert "prefetch" in save["if"]
+    assert "ohlcv_warmed" in save["if"], (
+        "save must be gated on the freshness proof (ohlcv_warmed), so a halted "
+        "prefetch that warmed nothing cannot poison the day key (Codex P2-1)."
     )
 
 
