@@ -1,46 +1,46 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -2.4292489882939448,
-      "level": 62397.08984375,
+      "change_pct": -3.6458444079470214,
+      "level": 60360.80859375,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.4029600256342583,
-      "level": 101.40899658203125,
+      "change_pct": 0.15868942074789544,
+      "level": 101.61900329589844,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -0.31233480827377536,
-      "level": 4149.2001953125,
+      "change_pct": -1.5000356047146626,
+      "level": 4018.699951171875,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": -0.7197158931147096,
-      "level": 73.11000061035156,
+      "change_pct": -2.885938125840555,
+      "level": 70.33000183105469,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -2.980013571828226,
-      "change_pct": -0.6653300984405975,
-      "level": 4.479000091552734,
+      "change_bps": -8.723679360474147,
+      "change_pct": -1.9808534971171146,
+      "level": 4.404000282287598,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -1.9212525622079448,
-      "level": 62.025001525878906,
+      "change_pct": -4.348177220134594,
+      "level": 58.73500061035156,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 9.259250061011974,
-      "level": 18.8799991607666,
+      "change_pct": -5.9548248186403185,
+      "level": 18.31999969482422,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260623T171050Z",
+    "generation_id": "hourly-20260624T161709Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-06-23T17:10:50Z"
+    "timestamp": "2026-06-24T16:17:09Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -58,8 +58,8 @@
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.5,
-    "market_regime": "RISK_OFF",
+    "confidence": 0.375,
+    "market_regime": "RISK_ON",
     "outcome": null,
     "permission": null,
     "router_mode": "MIXED",
