@@ -816,8 +816,8 @@
     {
       "number": 191,
       "title": "Direction-aware macro-evidence rationale",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "6f38429"
     },
     {
       "number": 192,

@@ -5,11 +5,11 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-06-23 (PRD-192 implementation — 190s backfill)
+**Last updated:** 2026-06-24 (commit 6f38429)
 
 ## Current state
 
-- **Active PRD:** PRD-192 — notify-mode tag on notification audit + INTERFACE_LOCK reconciliation (folded from PRD-189 deferral). IN PROGRESS (PR #57). PRD-191 merged (`6f38429`, PR #56); closeout pending.
+- **Active PRD:** none in progress.
 - **PRD-204 — COMPLETE (2026-06-23):** non-destructive scoreboard aggregate. `regime_history.aggregate()` now PRESERVES last-known-good `spy_close_change_pct` (with an always-present observable `spy_close_change_pct_stale` marker) instead of overwriting it with `null` when `data/cache/SPY_ohlcv.parquet` is absent — the prior wipe blanked the published scoreboard's "SPY next" column for all historical rows (PRD-198 invariant #1; restored the gain-only docstring). The publish workflows now restore `logs/regime_history.jsonl` before aggregating so the preserve reads the live scoreboard, not main's frozen fallback (Amendment 1, env-parity-guarded), and absent/partial-source gaps are logged loudly (Amendments 2–3). The stale-tail-cache warning P2 was declined as already covered by the PRD-190 `OHLCV_STALE_HOURS` TTL (home: PRD-193 if it ever resurfaces). Merged via PR #52 (`9c1fb37`); Claude review ACCEPT; Codex P1 + two R3 P2s dispositioned. Distinct from PRD-193 (cache persistence, defense-in-depth); follow-up PRD-206 narrows the `*regime*.py` protected glob.
 - **PRD-189 — COMPLETE (2026-06-17):** PR #15 (`b6e036e`) merged 2026-06-16; closeout was held pending PRD-194's publish decoupling. Closed once live run 27665400742 (2026-06-17) published a fresh scoreboard row to the `publish` branch, confirming the queue-delay-tolerant resolver + per-surface freshness work reaches the live site. (Earlier run 27637384167 verified the resolver but hit the GH006 push blocker that PRD-194 resolved.)
 - **PRD-190 — COMPLETE (2026-06-19):** OHLCV fetch window 6→12 (`config.py`) so `sma_200` resolves and the Trend Structure SMA Composite renders real 50/200 alignment; merged via PR #35 (`0573152`). R4 gate CLEAN; real Codex (gpt-5.5, `codex exec -s read-only`) cross-review CONCERNS dispositioned (HIGH stale-cache accepted via the code-enforced OHLCV_STALE_HOURS TTL self-heal — `sma_200` populates within ≤1 session; manual cache `rm` optional). _Registry + index reconciled to COMPLETE @ `0573152`._
@@ -18,7 +18,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 - **PRD-192 — IN PROGRESS (reframed 2026-06-23):** folded from the PRD-189 intraday-slot deferral. Recon found `hourly_alert.yml` already covers the intraday window, PRD-141 already dedups on the canonical PT-hour slot, and the hourly path writes no pipeline audit record — so the realizable deliverable is a `notify_mode` tag on the notification audit record (observability) plus the `INTERFACE_LOCK.md` reconciliation. The original "slot wiring + per-slot dedup marker" framing was cut. HIGH-RISK.
 - **Deferred dependency (PRD-189 → PRD-193):** publish-safe prefetch with real OHLCV cache persistence — make the warm-up cache (`data/cache`) persist to the live run (commit or actions/cache) and the prefetch slot publish-safe, then re-add the 12:50 cron to the resolver. Allocated PROPOSED; distinct from PRD-192 (notify routing). Not opened at Stage 0.
 - **Proposed / next:** PRD-205 (codex-review-router) and PRD-206 (narrow the `*regime*.py` protected glob — governance follow-up to PRD-204) — both scaffolded on branches, not yet opened at Stage 0 on `main` (so `prd_index.json` still reads `next_prd: 205`); PRD-193 (publish-safe prefetch via `actions/cache` + OHLCV cache persistence) — PROPOSED, deferred from PRD-189, the last of the three-PRD 190s backfill; PRD-188 (macro-awareness SHOCK banner + scheduled activation) — PROPOSED, gated on the PRD-187 materiality eval (go/no-go by 2026-07-15). (PRD-191 merged `6f38429` / PR #56, closeout pending; PRD-192 IN PROGRESS PR #57, see the reframed bullet above.)
-- **Test baseline:** 2830 passing, 1 xfailed (CI truth on `main`; `test` job for `9c1fb37`, run 27993908742).
+- **Test baseline:** 2834 passing, 1 xfailed (CI truth on `main`; `test` job for `6f38429`, run 28068056221).
 - **Fixed (PRD-194):** the `hourly_alert.yml` render-before-aggregate nit (hourly published a 1-cycle-stale scoreboard) is resolved — PRD-194 reordered the hourly Aggregate step to run before the render, so the hourly dashboard reflects the current run.
 - **Recently landed and live:**
   - The market-stress kill switch forces a terminal HALT (PRD-180). The
@@ -32,6 +32,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 | PRD | Title | Completed |
 |-----|-------|-----------|
+| PRD-191 | Direction-aware macro-evidence rationale | 2026-06-24 |
 | PRD-204 | Non-destructive scoreboard aggregate (preserve-prior + staleness marker) | 2026-06-23 |
 | PRD-203 | prd_close.sh rebuilds the PROJECT_STATE baseline line (canonical, no stale provenance) | 2026-06-20 |
 | PRD-202 | Agent-efficiency guidance: consult recon maps + delegate bookkeeping recon | 2026-06-20 |
