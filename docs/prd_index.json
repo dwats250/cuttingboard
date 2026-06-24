@@ -816,14 +816,14 @@
     {
       "number": 191,
       "title": "Direction-aware macro-evidence rationale",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "6f38429"
     },
     {
       "number": 192,
-      "title": "Notify-mode tag on notification audit + INTERFACE_LOCK reconciliation (folded from PRD-189 deferral)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "title": "Notify-mode tag on hourly notification audit + INTERFACE_LOCK reconciliation (folded from PRD-189 intraday-slot deferral)",
+      "status": "COMPLETE",
+      "commit": "a26a70c"
     },
     {
       "number": 193,
