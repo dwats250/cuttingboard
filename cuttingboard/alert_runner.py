@@ -105,6 +105,13 @@ def main(argv: list[str] | None = None) -> int:
         logger.exception("alert runner backstop caught exception")
         body = _backstop_body(exc, now_utc)
         try:
+            # PRD-192: retained UNTAGGED by design (notify_mode defaults None).
+            # This is the catastrophic runner-level backstop, distinct from a
+            # normal hourly notify run; its audit reason "runner_level_exception"
+            # already identifies it. NOTIFY_HOURLY is a lazy import inside the
+            # try above, so it can be unbound here if the failure was that import
+            # itself -- referencing it in the last-resort error path would risk a
+            # NameError. The audit record stays self-describing via the reason.
             send_notification(
                 "HALT - SYSTEM ERROR",
                 body,
