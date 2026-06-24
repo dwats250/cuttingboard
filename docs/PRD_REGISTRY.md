@@ -208,7 +208,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-188 | — | Macro-Awareness SHOCK Banner + Scheduled Activation (GATED) | PROPOSED | [PRD-188](prd_history/PRD-188.md) |
 | PRD-189 | b6e036e | Live-pipeline mode resolution + per-surface freshness observability | COMPLETE | [PRD-189](prd_history/PRD-189.md) |
 | PRD-190 | 0573152 | OHLCV fetch window sized for SMA-200 | COMPLETE | [PRD-190](prd_history/PRD-190.md) |
-| PRD-191 | — | Direction-aware macro-evidence rationale | PROPOSED | [PRD-191](prd_history/PRD-191.md) |
+| PRD-191 | — | Direction-aware macro-evidence rationale | IN PROGRESS | [PRD-191](prd_history/PRD-191.md) |
 | PRD-192 | — | Intraday slot wiring + per-slot audit dedup marker (deferred from PRD-189) | PROPOSED | [PRD-192](prd_history/PRD-192.md) |
 | PRD-193 | — | Publish-safe prefetch with OHLCV cache persistence (deferred from PRD-189) | PROPOSED | [PRD-193](prd_history/PRD-193.md) |
 | PRD-194 | 365f0fe | Production publish decoupling: dedicated unprotected publish branch (finishes PRD-178; unblocks the post-PRD-189 push rejection) | COMPLETE | [PRD-194](prd_history/PRD-194.md) |
