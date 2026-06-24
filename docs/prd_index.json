@@ -896,6 +896,12 @@
       "title": "Non-destructive scoreboard aggregate (preserve-prior + staleness marker)",
       "status": "COMPLETE",
       "commit": "9c1fb37"
+    },
+    {
+      "number": 208,
+      "title": "Trend-structure SMA alignment presentation: compression + unavailable-token consistency",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
