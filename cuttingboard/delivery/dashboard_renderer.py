@@ -27,6 +27,7 @@ from cuttingboard.delivery.dashboard_integrator import (
     dashboard_integrator,
 )
 from cuttingboard.delivery.macro_tape_layout import (
+    _MACRO_BIAS_NEUTRAL_INTERP,
     MACRO_BIAS_CONTRA_CYCLICAL,
     MACRO_BIAS_DRIVERS,
     MACRO_BIAS_INTERPRETATION,
@@ -2070,9 +2071,10 @@ def render_dashboard_html(
 
     # PRD-177: per-driver macro evidence. Surfaces the cyclicality-aware vote
     # that already feeds the headline MACRO BIAS tally (same arrow map, same
-    # contra/pro-cyclical flip) plus a fixed interpretation string. Distinct
-    # classes (macro-evidence-*) keep this clear of the macro-tape-value /
-    # data-symbol slot contract asserted by the PRD-138 row-order tests.
+    # contra/pro-cyclical flip) plus an interpretation string that is itself
+    # direction-keyed (PRD-191) so it agrees with the vote. Distinct classes
+    # (macro-evidence-*) keep this clear of the macro-tape-value / data-symbol
+    # slot contract asserted by the PRD-138 row-order tests.
     w('  <div class="macro-evidence">')
     for _row in (MACRO_ROW_1, MACRO_ROW_2):
         for _slot in _row.slots:
@@ -2089,9 +2091,16 @@ def render_dashboard_html(
                 if _slot.payload_key in MACRO_BIAS_CONTRA_CYCLICAL:
                     _risk_on = not _risk_on
                 _vote = "risk-ON vote" if _risk_on else "risk-OFF vote"
+                # PRD-191: select the rationale by the SAME arrow that drives the
+                # vote. Each driver's rising/falling form bakes in its cyclicality,
+                # so the subtitle never contradicts the vote sign.
+                _forms = MACRO_BIAS_INTERPRETATION.get(_slot.payload_key, {})
+                _interp = _forms.get(
+                    "rising" if _arrow == _UP else "falling", _MACRO_BIAS_NEUTRAL_INTERP
+                )
             else:
                 _vote = "no vote"
-            _interp = MACRO_BIAS_INTERPRETATION.get(_slot.payload_key, "")
+                _interp = _MACRO_BIAS_NEUTRAL_INTERP
             _ev_value = tape_value_map.get(_slot.label, "")
             w(
                 f'    <div class="macro-evidence-row">'
