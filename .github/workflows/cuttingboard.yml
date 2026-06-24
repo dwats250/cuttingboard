@@ -88,6 +88,33 @@ jobs:
           echo "job_mode=$job_mode" >> "$GITHUB_OUTPUT"
           echo "Resolved mode: $job_mode"
 
+      # PRD-193: persist the OHLCV warm-up cache (data/cache) across the ephemeral
+      # runners so the 12:50 prefetch run warms it and the 13:00 live run reads it
+      # warm instead of re-fetching ~12 months of daily bars per symbol. Keyed on
+      # the UTC trading day; restore-keys prefix-falls back to the most recent
+      # prior-day cache (safe -- the trading-day freshness check re-validates and
+      # re-fetches anything that is not the most recent completed session). Only
+      # the cache-warming modes touch the key.
+      - name: OHLCV cache day key
+        id: ohlcvcache
+        if: >-
+          steps.mode.outputs.job_mode == 'prefetch' ||
+          steps.mode.outputs.job_mode == 'live' ||
+          steps.mode.outputs.job_mode == 'sunday'
+        run: echo "day=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore OHLCV cache
+        if: >-
+          steps.mode.outputs.job_mode == 'prefetch' ||
+          steps.mode.outputs.job_mode == 'live' ||
+          steps.mode.outputs.job_mode == 'sunday'
+        uses: actions/cache/restore@v4
+        with:
+          path: data/cache
+          key: ohlcv-${{ runner.os }}-${{ steps.ohlcvcache.outputs.day }}
+          restore-keys: |
+            ohlcv-${{ runner.os }}-
+
       # PRD-194 R3: restore the accumulated/read-back state the pipeline carries on
       # the publish branch (main's copies are frozen post-decoupling):
       #   - logs/audit.jsonl: the accumulating scoreboard source (delta-appended).
@@ -155,13 +182,13 @@ jobs:
             engine_doctor.json
             engine_doctor.txt
 
-      # --- Prefetch warm-up (PARKED, PRD-189) ---
-      # The 50 12 prefetch cron now resolves to noop (resolve_run_mode.py), so this
-      # step is unreachable on schedule. It is still reachable via manual
-      # `workflow_dispatch --mode prefetch`, but note: PUBLISH_READY=true below would
-      # publish a stale dashboard and trip the PRD-119 freshness gate, because
-      # execute_prefetch writes no fresh payload/run. Re-enabling prefetch
-      # (cache-persistent + publish-safe) is tracked in PRD-193.
+      # --- Prefetch warm-up (PRD-193: cache-warm only, publish-safe) ---
+      # The 50 12 prefetch cron resolves to `prefetch` (resolve_run_mode.py). This
+      # step warms the OHLCV cache (data/cache) and nothing else: it sets NO
+      # PUBLISH_READY, so Commit-artifacts/Push are skipped and it cannot trip the
+      # PRD-119 freshness gate (execute_prefetch writes no fresh payload/run and
+      # sends no notification). "Save OHLCV cache" below persists the warmed cache
+      # so the 13:00 live run reads it warm.
       - name: Run prefetch
         if: steps.mode.outputs.job_mode == 'prefetch'
         run: |
@@ -171,7 +198,16 @@ jobs:
           timeout 8m python -m cuttingboard --mode prefetch --notify-mode premarket
           date -u +"%Y-%m-%dT%H:%M:%SZ"
           echo "=== END prefetch ==="
-          echo "PUBLISH_READY=true" >> "$GITHUB_ENV"
+
+      # PRD-193: persist the just-warmed OHLCV cache under the trading-day key so
+      # the 13:00 live run (a fresh runner) restores it. Only the prefetch run
+      # saves -- the producer -- which keeps the day key owned by the warm cache.
+      - name: Save OHLCV cache
+        if: steps.mode.outputs.job_mode == 'prefetch'
+        uses: actions/cache/save@v4
+        with:
+          path: data/cache
+          key: ohlcv-${{ runner.os }}-${{ steps.ohlcvcache.outputs.day }}
 
       # --- Premarket full pipeline ---
       - name: Run live pipeline

@@ -1,11 +1,11 @@
 """PRD-189: tests for scripts/resolve_run_mode.py.
 
 Scope is the dedicated premarket crons that write fresh, publish-safe artifacts:
-live and sunday. Resolution is a pure cron-string lookup keyed on
-github.event.schedule, so a queue-delayed run still resolves to its slot. The
-12:50 prefetch cron and the intraday/orb slots are intentionally NOT resolved
-here (prefetch deferred to a cache-persistence rework PRD; intraday to PRD-192);
-the tests assert they resolve to noop. CLI-mapping guards ensure every
+live, sunday, and (PRD-193) the publish-safe cache-warm prefetch slot.
+Resolution is a pure cron-string lookup keyed on github.event.schedule, so a
+queue-delayed run still resolves to its slot. The intraday/orb slots are
+intentionally NOT resolved here (deferred to PRD-192); the tests assert they
+resolve to noop. CLI-mapping guards ensure every
 resolver-emittable slot maps to a `python -m cuttingboard` invocation the parser
 accepts (the Codex-found `--mode <slot>` crash must never recur).
 """
@@ -42,6 +42,7 @@ def _resolve(schedule: str = "", *, event: str = "schedule", dispatch: str = "")
     [
         ("0 13 * * 1-5", "live"),
         ("30 23 * * 0", "sunday"),
+        ("50 12 * * 1-5", "prefetch"),  # PRD-193: re-enabled cache-warm slot
     ],
 )
 def test_dedicated_cron_resolves(schedule, expected) -> None:
@@ -56,11 +57,11 @@ def test_resolution_is_time_independent() -> None:
 
 
 # --- Deferred crons resolve to noop -----------------------------------------
-# 50 12 = prefetch (deferred to the prefetch cache-persistence rework PRD; its
-# publish path trips the PRD-119 freshness gate and its cache does not persist).
-# 50 13 / */30 = intraday/orb (deferred to PRD-192).
+# 50 13 / */30 = intraday/orb (deferred to PRD-192). The 50 12 prefetch cron is
+# no longer here: PRD-193 re-enabled it as a publish-safe cache-warm slot (see
+# test_dedicated_cron_resolves).
 @pytest.mark.parametrize(
-    "schedule", ["50 12 * * 1-5", "50 13 * * 1-5", "*/30 14-21 * * 1-5"]
+    "schedule", ["50 13 * * 1-5", "*/30 14-21 * * 1-5"]
 )
 def test_dropped_crons_resolve_to_noop(schedule) -> None:
     assert _resolve(schedule) == "noop"

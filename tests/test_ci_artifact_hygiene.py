@@ -418,6 +418,42 @@ def test_verify_mode_does_not_publish() -> None:
     )
 
 
+def test_prefetch_mode_does_not_publish() -> None:
+    # PRD-193 R4: prefetch is cache-warm-only. execute_prefetch writes no fresh
+    # payload/run, so enabling publish would render a stale dashboard and trip the
+    # PRD-119 freshness gate (the reason PRD-189 parked the slot). The prefetch
+    # step must NOT set PUBLISH_READY=true.
+    text = _workflow_text("cuttingboard.yml")
+    prefetch_step = text[
+        text.index("- name: Run prefetch"):text.index("- name: Run live pipeline")
+    ]
+    assert "PUBLISH_READY=true" not in prefetch_step, (
+        "the Run prefetch step sets PUBLISH_READY=true; prefetch warms the OHLCV "
+        "cache only and must not publish (it would trip the PRD-119 gate)."
+    )
+
+
+def test_prefetch_warm_cache_is_persisted_via_actions_cache() -> None:
+    # PRD-193 R3: the OHLCV warm-up cache must survive the ephemeral runner so the
+    # 13:00 live run reads it warm. Restore at job start (warming modes) + save on
+    # the prefetch run, keyed on the trading day, path data/cache.
+    text = _workflow_text("cuttingboard.yml")
+    assert "actions/cache/restore@" in text, (
+        "cuttingboard.yml has no actions/cache/restore step; the prefetch warm "
+        "cache is discarded and the live run re-fetches (PRD-193 R3)."
+    )
+    assert "actions/cache/save@" in text, (
+        "cuttingboard.yml has no actions/cache/save step; the prefetch run never "
+        "persists data/cache for the live run (PRD-193 R3)."
+    )
+    assert "data/cache" in text, (
+        "the actions/cache step must target the OHLCV cache dir data/cache."
+    )
+    assert "ohlcv-" in text, (
+        "the actions/cache key must be the OHLCV trading-day key (ohlcv-...)."
+    )
+
+
 def test_push_helper_retries_on_non_fast_forward() -> None:
     # PRD-194 R5 (Codex P2): cross-workflow publish races are handled by a bounded
     # retry in the push helper, NOT a shared concurrency lock that over-serialized

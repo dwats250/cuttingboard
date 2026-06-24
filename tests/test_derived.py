@@ -16,6 +16,7 @@ from cuttingboard import config
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.derived import DerivedMetrics, compute_derived, compute_all_derived
 from cuttingboard.ingestion import fetch_ohlcv
+from cuttingboard.time_utils import most_recent_completed_session_date
 from cuttingboard.validation import validate_quotes
 
 
@@ -248,12 +249,16 @@ class TestInsufficientHistory:
         assert dm.sufficient_history is False
         assert dm.ema9 is None
 
-    def test_ohlcv_cache_younger_than_ttl_is_used(self, tmp_path, monkeypatch):
+    def test_ohlcv_cache_with_latest_session_is_used(self, tmp_path, monkeypatch):
+        # PRD-193: a cache whose last bar IS the most recent completed trading
+        # session holds exactly what a same-slot re-fetch would return, so it is
+        # reused without a live fetch (trading-day freshness, not age-vs-TTL).
+        session = most_recent_completed_session_date(datetime.now(timezone.utc))
         fresh_df = _make_ohlcv(30)
         fresh_df.index = pd.date_range(
-            end=datetime.now(timezone.utc) - timedelta(hours=config.OHLCV_STALE_HOURS) + timedelta(minutes=1),
+            end=datetime(session.year, session.month, session.day, 12, 0, tzinfo=timezone.utc),
             periods=len(fresh_df),
-            freq="s",
+            freq="D",
         )
         cache_path = tmp_path / "SPY_ohlcv.parquet"
         cache_path.write_text("placeholder", encoding="utf-8")
@@ -262,18 +267,20 @@ class TestInsufficientHistory:
         monkeypatch.setattr("cuttingboard.ingestion.pd.read_parquet", lambda _path: fresh_df)
         monkeypatch.setattr(
             "cuttingboard.ingestion._fetch_ohlcv_from_yfinance",
-            lambda _symbol: pytest.fail("fresh OHLCV cache should avoid live refresh"),
+            lambda _symbol: pytest.fail("cache holding the latest session must avoid live refresh"),
         )
 
         assert fetch_ohlcv("SPY") is fresh_df
 
-    def test_ohlcv_cache_at_ttl_rejected_after_fetch_failure(self, tmp_path, monkeypatch):
+    def test_ohlcv_cache_missing_latest_session_is_refetched(self, tmp_path, monkeypatch):
+        # PRD-193: a cache whose last bar predates the most recent completed
+        # session is stale -> live refresh (here the refresh returns None).
+        session = most_recent_completed_session_date(datetime.now(timezone.utc))
+        old_end = datetime(
+            session.year, session.month, session.day, 12, 0, tzinfo=timezone.utc
+        ) - timedelta(days=7)
         stale_df = _make_ohlcv(30)
-        stale_df.index = pd.date_range(
-            end=datetime.now(timezone.utc) - timedelta(hours=config.OHLCV_STALE_HOURS),
-            periods=len(stale_df),
-            freq="s",
-        )
+        stale_df.index = pd.date_range(end=old_end, periods=len(stale_df), freq="D")
         cache_path = tmp_path / "SPY_ohlcv.parquet"
         cache_path.write_text("placeholder", encoding="utf-8")
 

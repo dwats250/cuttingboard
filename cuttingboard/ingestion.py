@@ -20,6 +20,7 @@ import pandas as pd
 import yfinance as yf
 
 from cuttingboard import config
+from cuttingboard.time_utils import most_recent_completed_session_date
 
 logger = logging.getLogger(__name__)
 
@@ -144,6 +145,16 @@ def fetch_ohlcv(symbol: str) -> Optional[pd.DataFrame]:
 
 
 def _is_fresh_ohlcv_cache(df: pd.DataFrame) -> bool:
+    """Fresh iff the cache already holds the most recent completed trading session.
+
+    PRD-193: keyed on the trading day, not a fixed-hours TTL. Daily bars are
+    always >= 1 day old (the fetch uses end=<today UTC>, exclusive), so an
+    age-vs-TTL test rejected every cache -- the pre-market live run re-fetched
+    even a just-warmed cache. A cache whose last bar is the most recent completed
+    session holds exactly what a same-slot re-fetch would return, so it is reused;
+    an older last bar (a new session has since completed) falls through to a
+    fetch. Self-heals every weekday; never serves stale data.
+    """
     if df is None or df.empty or df.index.empty:
         return False
 
@@ -153,9 +164,7 @@ def _is_fresh_ohlcv_cache(df: pd.DataFrame) -> bool:
     else:
         last_bar = last_bar.tz_convert(timezone.utc)
 
-    age_seconds = (datetime.now(timezone.utc) - last_bar.to_pydatetime()).total_seconds()
-    max_age_seconds = config.OHLCV_STALE_HOURS * 60 * 60
-    return 0 <= age_seconds < max_age_seconds
+    return last_bar.date() >= most_recent_completed_session_date(datetime.now(timezone.utc))
 
 
 def fetch_intraday_bars(symbol: str) -> Optional[pd.DataFrame]:
