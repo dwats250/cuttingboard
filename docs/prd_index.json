@@ -896,6 +896,12 @@
       "title": "Non-destructive scoreboard aggregate (preserve-prior + staleness marker)",
       "status": "COMPLETE",
       "commit": "9c1fb37"
+    },
+    {
+      "number": 209,
+      "title": "OHLCV bar-count floor: reject/repair truncated daily frames served as fresh",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

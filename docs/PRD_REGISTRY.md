@@ -222,6 +222,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-202 | 7e5b52d | Agent-efficiency guidance: consult recon maps + delegate bookkeeping recon | COMPLETE | [PRD-202](prd_history/PRD-202.md) |
 | PRD-203 | 35e0641 | prd_close.sh rebuilds the PROJECT_STATE baseline line (canonical, no stale provenance) | COMPLETE | [PRD-203](prd_history/PRD-203.md) |
 | PRD-204 | 9c1fb37 | Non-destructive scoreboard aggregate (preserve-prior + staleness marker) | COMPLETE | [PRD-204](prd_history/PRD-204.md) |
+| PRD-209 | — | OHLCV bar-count floor: reject/repair truncated daily frames served as fresh | IN PROGRESS | [PRD-209](prd_history/PRD-209.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
