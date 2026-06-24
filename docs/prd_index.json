@@ -900,7 +900,7 @@
     {
       "number": 209,
       "title": "OHLCV bar-count floor: reject/repair truncated daily frames served as fresh",
-      "status": "IN PROGRESS",
+      "status": "PROPOSED",
       "commit": null
     }
   ]
