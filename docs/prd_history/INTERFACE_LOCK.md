@@ -73,10 +73,7 @@ No other config sources. No ENV reads for non-secret config. No YAML config.
 | Premarket (13:00 UTC M–F) | `cuttingboard.yml` | `python -m cuttingboard --mode live --notify-mode premarket` |
 | Prefetch (12:50 UTC M–F) | `cuttingboard.yml` | `python -m cuttingboard --mode prefetch --notify-mode premarket` |
 | Sunday report (10:00 UTC) | `cuttingboard.yml` | `python -m cuttingboard --mode sunday --notify-mode premarket` |
-| ORB trajectory (13:50 UTC M–F) | `cuttingboard.yml` | `python -m cuttingboard --mode orb_trajectory --notify-mode orb_trajectory` |
-| Post-ORB (14:30 UTC M–F) | `cuttingboard.yml` | `python -m cuttingboard --mode post_orb --notify-mode post_orb` |
-| Mid-morning (16:30 UTC M–F) | `cuttingboard.yml` | `python -m cuttingboard --mode midmorning --notify-mode midmorning` |
-| Power hour (19:00/20:00 UTC M–F) | `cuttingboard.yml` | `python -m cuttingboard --mode power_hour --notify-mode power_hour` |
+| Intraday slots: ORB / post-ORB / mid-morning / power-hour | `hourly_alert.yml` | Folded into the hourly-alert window — no dedicated cron. PRD-189 dropped the `cuttingboard.yml --mode <slot>` invocations (they ran the full live pipeline, not the intended slot scan, and overlapped the hourly coverage); PRD-192 ratifies the fold-in. The hourly run within the routine PT window provides intraday coverage; per-run notify_mode is recorded on the notification audit record. |
 | Hourly alert (every 30 min) | `hourly_alert.yml` | `python -m cuttingboard --mode live --notify-mode hourly` |
 
 ---

@@ -260,6 +260,7 @@ def write_notification_audit(
     retry_count: int = 0,
     priority: Optional[str] = None,
     state_key: Optional[str] = None,
+    notify_mode: Optional[str] = None,
 ) -> dict:
     """Write one notification attempt record to audit.jsonl.
 
@@ -277,6 +278,9 @@ def write_notification_audit(
     retry_count — Number of retries made (0 = first attempt succeeded/failed, 1 = one retry).
     priority    — NotificationPriority tier string (CRITICAL/HIGH/MEDIUM/LOW).
     state_key   — notification_state_key() value for this run.
+    notify_mode — PRD-192: the notify mode/slot that produced this send
+                  (e.g. "hourly", "orb_trajectory", "premarket"); None when
+                  the caller does not tag it, so the field is always present.
     """
     if status is None:
         status = "success" if success else ("failed" if attempted else "skipped")
@@ -294,6 +298,7 @@ def write_notification_audit(
         "retry_count": retry_count,
         "priority": priority,
         "state_key": state_key,
+        "notify_mode": notify_mode,
         "message_preview": (message_preview[:120] if message_preview else None),
     }
     _append_record(record)

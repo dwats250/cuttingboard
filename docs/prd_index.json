@@ -821,8 +821,8 @@
     },
     {
       "number": 192,
-      "title": "Intraday slot wiring + per-slot audit dedup marker (deferred from PRD-189)",
-      "status": "PROPOSED",
+      "title": "Notify-mode tag on notification audit + INTERFACE_LOCK reconciliation (folded from PRD-189 deferral)",
+      "status": "IN PROGRESS",
       "commit": null
     },
     {

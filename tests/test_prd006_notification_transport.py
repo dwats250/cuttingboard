@@ -61,6 +61,7 @@ class TestTelegramDispatchOnly:
             "HALT", f"system halted\n\n---\nView Dashboard:\n{DASHBOARD_URL}",
             notification_priority="",
             notification_state_key="",
+            notify_mode=None,
         )
         assert result is True
 
