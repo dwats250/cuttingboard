@@ -95,7 +95,16 @@ with date and rationale - short notes, not ceremony.
 - Read-only inspection (git status/diff/log, grep, find, targeted reads, pytest)
   may run without per-command approval. Mutating commands - force-pushes, file
   deletions, dependency changes, edits outside the active PRD's FILES allowlist -
-  require explicit approval.
+  require explicit approval. **Recon-artifact clause: read-only scopes source,
+  contracts, and `main` - not the charge's own deliverable.** A read-only charge
+  (recon, audit, charge work) forbids mutation of source, contracts, and `main`;
+  it does NOT forbid git operations on the output it was commissioned to produce.
+  The findings/recon artifact MAY be committed and pushed to its own non-`main`
+  branch - that IS the deliverable, not a seam surrender, and it does not trip
+  the read-only clause above. The branch -> `main` merge remains human-held per
+  the auto-merge / governance rules above. A charge that wants even the
+  deliverable left uncommitted must say so explicitly; silence defaults to
+  committable-to-branch.
 
 ## Operational rules
 
