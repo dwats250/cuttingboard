@@ -900,8 +900,8 @@
     {
       "number": 210,
       "title": "Premarket trend-structure path coverage — apply the PRD-174 history fallback on _run_pipeline (F08 closes-None fix)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "b1619f6"
     }
   ]
 }
