@@ -898,6 +898,12 @@
       "commit": "9c1fb37"
     },
     {
+      "number": 207,
+      "title": "codex-review.yml resolves the REQUESTED model, not the SERVED model (verified-real-Codex gate is hollow)",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
       "number": 210,
       "title": "Premarket trend-structure path coverage — apply the PRD-174 history fallback on _run_pipeline (F08 closes-None fix)",
       "status": "IN PROGRESS",
