@@ -16,6 +16,12 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-26 — PRD-210 registry row left IN PROGRESS by design (deferred out-of-order closeout)
+
+PRD-210 merged out-of-order at `b1619f6`; registry row intentionally left IN PROGRESS, closes in-order when 205-209 land — not drift. See `recon/board-state-20260626.md` (commit `c25f9e5`).
+
+---
+
 ## 2026-06-26 — Trend-structure "VWAP not applicable" is correct-by-design, not a bug
 
 The dashboard's Intraday Context cell shows a uniform "VWAP not applicable"
