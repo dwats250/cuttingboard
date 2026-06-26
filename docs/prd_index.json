@@ -896,6 +896,12 @@
       "title": "Non-destructive scoreboard aggregate (preserve-prior + staleness marker)",
       "status": "COMPLETE",
       "commit": "9c1fb37"
+    },
+    {
+      "number": 210,
+      "title": "Premarket trend-structure path coverage — apply the PRD-174 history fallback on _run_pipeline (F08 closes-None fix)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
