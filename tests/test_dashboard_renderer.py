@@ -2794,30 +2794,32 @@ from cuttingboard.delivery.dashboard_renderer import (  # noqa: E402
 )
 
 _PRD131_VOCAB = (
-    "Above SMA50 and SMA200",
-    "Above SMA50, below SMA200",
-    "Below SMA50, above SMA200",
-    "Below SMA50 and SMA200",
-    "At SMA50, above SMA200",
-    "At SMA50, below SMA200",
-    "Above SMA50, at SMA200",
-    "Below SMA50, at SMA200",
-    "At SMA50 and SMA200",
+    "↑50 ↑200",
+    "↑50 ↓200",
+    "↓50 ↑200",
+    "↓50 ↓200",
+    "=50 ↑200",
+    "=50 ↓200",
+    "↑50 =200",
+    "↓50 =200",
+    "=50 =200",
     "Structure unavailable",
     "SMA history insufficient",
     "Structure not computed",
 )
 
+# PRD-208: compressed 3-state arrow vocabulary (ABOVE=↑, BELOW=↓, AT_LEVEL==),
+# suffixed with the SMA window. All 9 (3×3) composites asserted exactly.
 _PRD131_R1_TABLE = (
-    (("ABOVE", "ABOVE"),       "Above SMA50 and SMA200"),
-    (("ABOVE", "BELOW"),       "Above SMA50, below SMA200"),
-    (("BELOW", "ABOVE"),       "Below SMA50, above SMA200"),
-    (("BELOW", "BELOW"),       "Below SMA50 and SMA200"),
-    (("AT_LEVEL", "ABOVE"),    "At SMA50, above SMA200"),
-    (("AT_LEVEL", "BELOW"),    "At SMA50, below SMA200"),
-    (("ABOVE", "AT_LEVEL"),    "Above SMA50, at SMA200"),
-    (("BELOW", "AT_LEVEL"),    "Below SMA50, at SMA200"),
-    (("AT_LEVEL", "AT_LEVEL"), "At SMA50 and SMA200"),
+    (("ABOVE", "ABOVE"),       "↑50 ↑200"),
+    (("ABOVE", "BELOW"),       "↑50 ↓200"),
+    (("BELOW", "ABOVE"),       "↓50 ↑200"),
+    (("BELOW", "BELOW"),       "↓50 ↓200"),
+    (("AT_LEVEL", "ABOVE"),    "=50 ↑200"),
+    (("AT_LEVEL", "BELOW"),    "=50 ↓200"),
+    (("ABOVE", "AT_LEVEL"),    "↑50 =200"),
+    (("BELOW", "AT_LEVEL"),    "↓50 =200"),
+    (("AT_LEVEL", "AT_LEVEL"), "=50 =200"),
 )
 
 _PRD131_FORBIDDEN = (
@@ -2838,6 +2840,25 @@ def test_prd131_r1_composite_display_table(
     p50, p200 = pair
     rec = {"price_vs_sma_50": p50, "price_vs_sma_200": p200}
     assert _trend_structure_composite_display(rec) == expected
+
+
+# PRD-208 R1 — the AT_LEVEL glyph must be DISTINCT from ABOVE and BELOW, so the
+# three "at"-containing composites are not silently merged into ↑/↓ renderings.
+def test_prd208_arrow_three_state_glyphs_distinct() -> None:
+    g_above = _trend_structure_composite_display(
+        {"price_vs_sma_50": "ABOVE", "price_vs_sma_200": "ABOVE"})
+    g_below = _trend_structure_composite_display(
+        {"price_vs_sma_50": "BELOW", "price_vs_sma_200": "BELOW"})
+    g_at = _trend_structure_composite_display(
+        {"price_vs_sma_50": "AT_LEVEL", "price_vs_sma_200": "AT_LEVEL"})
+    assert len({g_above, g_below, g_at}) == 3, (
+        "ABOVE/BELOW/AT_LEVEL must render distinct compact glyphs; "
+        f"got {g_above!r}/{g_below!r}/{g_at!r}"
+    )
+    # AT_LEVEL must not reuse the ↑ or ↓ glyph.
+    assert "↑" not in g_at and "↓" not in g_at, (
+        f"AT_LEVEL composite {g_at!r} must use a distinct glyph, not ↑/↓"
+    )
 
 
 # R1 — Forbidden vocabulary must not appear in any composite display string.
@@ -2946,7 +2967,7 @@ def test_prd131_r1_composite_cell_renders_in_panel(
     spy["price_vs_sma_200"] = "ABOVE"
     html = _prd120_coherent_render(trend_structure_snapshot=snap)
     section = _ts_section(html)
-    assert "Above SMA50 and SMA200" in section
+    assert "↑50 ↑200" in section
     assert "SMA Composite" in section  # header present
 
 
@@ -3296,15 +3317,15 @@ def test_prd132_r6d_cells_call_order_in_source() -> None:
 
 # R6(e) — all 12 PRD-131 display strings present byte-identically.
 _PRD131_VOCAB_FOR_R6E = (
-    "Above SMA50 and SMA200",
-    "Above SMA50, below SMA200",
-    "Below SMA50, above SMA200",
-    "Below SMA50 and SMA200",
-    "At SMA50, above SMA200",
-    "At SMA50, below SMA200",
-    "Above SMA50, at SMA200",
-    "Below SMA50, at SMA200",
-    "At SMA50 and SMA200",
+    "↑50 ↑200",
+    "↑50 ↓200",
+    "↓50 ↑200",
+    "↓50 ↓200",
+    "=50 ↑200",
+    "=50 ↓200",
+    "↑50 =200",
+    "↓50 =200",
+    "=50 =200",
     "Structure unavailable",
     "SMA history insufficient",
     "Structure not computed",

@@ -86,20 +86,22 @@ def _ts_display(token: str) -> str:
     return _TREND_STRUCTURE_STATE_DISPLAY.get(token, token)
 
 
-# PRD-131: deterministic composite display layer flattening the two SMA
-# comparison tokens (price_vs_sma_50, price_vs_sma_200) into one short
-# positional phrase. Pure function of the input record. No VWAP, no
-# narrative, no trajectory, no forecast vocabulary. Closed vocabulary.
+# PRD-131 / PRD-208: deterministic composite display layer flattening the two SMA
+# comparison tokens (price_vs_sma_50, price_vs_sma_200) into one short compact cell.
+# Pure function of the input record. No VWAP, no narrative, no trajectory, no
+# forecast vocabulary. Closed vocabulary. PRD-208 compresses the prose to a 3-state
+# arrow scheme for cognitive compression: ABOVE=↑, BELOW=↓, AT_LEVEL== (a DISTINCT
+# glyph per state), each suffixed with its SMA window. All 9 (3×3) combinations map.
 _TREND_STRUCTURE_COMPOSITE_DISPLAY: dict[tuple[str, str], str] = {
-    ("ABOVE", "ABOVE"):       "Above SMA50 and SMA200",
-    ("ABOVE", "BELOW"):       "Above SMA50, below SMA200",
-    ("BELOW", "ABOVE"):       "Below SMA50, above SMA200",
-    ("BELOW", "BELOW"):       "Below SMA50 and SMA200",
-    ("AT_LEVEL", "ABOVE"):    "At SMA50, above SMA200",
-    ("AT_LEVEL", "BELOW"):    "At SMA50, below SMA200",
-    ("ABOVE", "AT_LEVEL"):    "Above SMA50, at SMA200",
-    ("BELOW", "AT_LEVEL"):    "Below SMA50, at SMA200",
-    ("AT_LEVEL", "AT_LEVEL"): "At SMA50 and SMA200",
+    ("ABOVE", "ABOVE"):       "↑50 ↑200",
+    ("ABOVE", "BELOW"):       "↑50 ↓200",
+    ("BELOW", "ABOVE"):       "↓50 ↑200",
+    ("BELOW", "BELOW"):       "↓50 ↓200",
+    ("AT_LEVEL", "ABOVE"):    "=50 ↑200",
+    ("AT_LEVEL", "BELOW"):    "=50 ↓200",
+    ("ABOVE", "AT_LEVEL"):    "↑50 =200",
+    ("BELOW", "AT_LEVEL"):    "↓50 =200",
+    ("AT_LEVEL", "AT_LEVEL"): "=50 =200",
 }
 
 _TREND_STRUCTURE_COMPOSITE_UNAVAILABLE = "Structure unavailable"
