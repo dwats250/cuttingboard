@@ -16,6 +16,28 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-26 — Trend-structure "VWAP not applicable" is correct-by-design, not a bug
+
+The dashboard's Intraday Context cell shows a uniform "VWAP not applicable"
+across all rows. Recon (`recon/board-state-20260626.md`, commit `c25f9e5`)
+classified this as a *population gap that is correct by construction*, not a
+defect: the trend-structure VWAP frame (`history_by_symbol`) is built from
+`_collect_trend_structure_history(ohlcv)` (`runtime/__init__.py:549`), where
+`ohlcv` is the **daily** `fetch_ohlcv()` (`ingestion.py:119`). The intraday
+source `fetch_intraday_bars()` (1-minute, `ingestion.py:170`) feeds only
+entry-trigger evaluation (`evaluation.py:160`) and `runtime/__init__.py:1177`,
+**never** the trend-structure VWAP path. So `_is_intraday(df)` is structurally
+always false there and `_vwap()` returns `None` → `NOT_COMPUTED`
+(`trend_structure.py:55,134-135`), matching PRD-107's documented boundary
+("daily bars → vwap=null"). Confirmed by `logs/trend_structure_snapshot.json`
+(every row `"vwap": null`). PRD-210 does not change this — it wires the PRD-174
+history fallback for missing *daily* trend-structure history, not an intraday
+source.
+
+**Decision:** no fix. The string is honest under the current daily-only design.
+Routing intraday bars into the trend-structure frame would be a deliberate
+feature (description-of-reality, scope a PRD) — not a bug patch.
+
 ## 2026-06-23 — Codex invocation is environment-dependent (host `codex exec` vs CI workflow)
 
 The two Codex surfaces are not interchangeable, and which one is reachable
