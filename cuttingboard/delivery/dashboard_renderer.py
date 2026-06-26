@@ -2217,15 +2217,16 @@ def render_dashboard_html(
             'font-size:0.78rem;display:block;overflow-x:auto">'
         )
         _ts_headers = (
-            "Symbol", "Price", "vs VWAP", "vs SMA50",
-            "vs SMA200", "Alignment", "Entry Context", "RVOL",
-            "SMA Composite", "Intraday Context",
+            "Symbol", "Price", "vs VWAP", "Alignment",
+            "Entry Context", "RVOL", "SMA 50/200", "Intraday Context",
         )
-        # PRD-165 R2: these four granular columns are frequently NOT COMPUTED /
-        # INSUFFICIENT HISTORY for every symbol; collapse such a column when it
-        # is uniformly unavailable. Indices into _ts_headers. The composite
-        # reserve columns (SMA Composite, Intraday Context) are never collapsed.
-        _ts_collapsible_cols = (2, 4, 5, 6)
+        # PRD-165 R2 / PRD-208: collapse a granular column when it is uniformly
+        # unavailable. Indices into _ts_headers. PRD-208 cut the redundant
+        # "vs SMA50"/"vs SMA200" columns (the "SMA 50/200" arrow composite now
+        # carries that position), re-indexing the collapsible set to vs VWAP (2),
+        # Alignment (3), Entry Context (4). The composite reserve columns
+        # ("SMA 50/200", Intraday Context) are never collapsed.
+        _ts_collapsible_cols = (2, 3, 4)
         _ts_unavailable_cells = {
             "NOT COMPUTED", "INSUFFICIENT HISTORY", "DATA UNAVAILABLE", _DASH,
         }
@@ -2236,16 +2237,16 @@ def render_dashboard_html(
             _rec = _records_for_render.get(_sym)
             if _rec is None:
                 _cells = (
-                    _sym, _DASH, _DASH, _DASH, _DASH,
-                    _DASH, _DASH, _DASH, _DASH, _DASH,
+                    _sym, _DASH, _DASH, _DASH,
+                    _DASH, _DASH, _DASH, _DASH,
                 )
             else:
+                # PRD-208: "vs SMA50"/"vs SMA200" columns cut; the "SMA 50/200"
+                # arrow composite below carries the price-vs-SMA position.
                 _cells = (
                     str(_rec.get("symbol", _sym)),
                     _format_trend_number(_rec.get("current_price")),
                     _ts_display(str(_rec.get("price_vs_vwap", ""))),
-                    _ts_display(str(_rec.get("price_vs_sma_50", ""))),
-                    _ts_display(str(_rec.get("price_vs_sma_200", ""))),
                     _ts_display(str(_rec.get("trend_alignment", ""))),
                     _ts_display(str(_rec.get("entry_context", ""))),
                     _format_trend_number(_rec.get("relative_volume")),
