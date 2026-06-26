@@ -220,3 +220,38 @@ def test_prd174_execute_notify_run_wires_trend_history_helper() -> None:
         "the hourly trend-structure writer call must pass "
         "_collect_trend_structure_history(ohlcv) as history_by_symbol"
     )
+
+
+# --- PRD-210 R1 — premarket call-site applies the trend-history fallback (F08) ---
+
+def test_prd210_run_pipeline_wraps_premarket_history_with_collector() -> None:
+    """PRD-210 R1 (call-site wiring; RED before the fix).
+
+    The F08 fix wraps the premarket sidecar's history argument with
+    ``_collect_trend_structure_history`` so a non-candidate TREND_STRUCTURE_SYMBOL
+    (e.g. QQQ) resolves on the premarket path, instead of passing the raw
+    candidate-scoped ``ohlcv`` (which omits non-candidates -> DATA_UNAVAILABLE).
+    Static-source lock, mirroring PRD-123 R7.6 (:143) and PRD-174 (:219). Fails on
+    pre-fix code (``history_by_symbol=ohlcv``)."""
+    src = inspect.getsource(_run_pipeline)
+    assert "history_by_symbol=_collect_trend_structure_history(ohlcv)" in src, (
+        "_run_pipeline must wrap the premarket sidecar's history_by_symbol with "
+        "_collect_trend_structure_history(ohlcv) so non-candidate trend symbols "
+        "resolve on the premarket path (PRD-210 F08 fix); found raw passthrough"
+    )
+
+
+def test_prd210_premarket_collector_reuses_present_candidate_frame() -> None:
+    """PRD-210 R3: when a TREND_STRUCTURE_SYMBOL (QQQ) is already present in the
+    candidate-scoped ``ohlcv``, the premarket fallback reuses that frame and does
+    NOT re-fetch it — no behavior change for symbols already present."""
+    qqq = "QQQ"
+    assert qqq in config.TREND_STRUCTURE_SYMBOLS, "QQQ must be a trend symbol"
+    present_frame = pd.DataFrame({"Close": [100.0]})
+    fetch_mock = MagicMock(side_effect=lambda s: pd.DataFrame({"Close": [1.0]}))
+    with patch.object(runtime, "fetch_ohlcv", fetch_mock):
+        history = _collect_trend_structure_history({qqq: present_frame})
+    assert history[qqq] is present_frame, "present QQQ frame must be reused, not refetched"
+    assert qqq not in [c.args[0] for c in fetch_mock.call_args_list], (
+        "fetch_ohlcv must not be called for a symbol already present in ohlcv"
+    )

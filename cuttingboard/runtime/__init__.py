@@ -1009,10 +1009,15 @@ def _run_pipeline(
     # reach the writer call even by accident. ohlcv may be empty under
     # halted state — the underlying writer handles that gracefully.
     if mode == MODE_LIVE:
+        # PRD-210 (F08): apply the PRD-174 history fallback at this call site so a
+        # TREND_STRUCTURE_SYMBOL that is not a current trade candidate (absent from
+        # the candidate-scoped `ohlcv`) still resolves on the premarket path —
+        # mirroring the hourly application. The sidecar stays a pure relay
+        # (PRD-123 R7.1/R7.2/R7.5).
         _refresh_trend_structure_sidecar(
             mode=mode,
             normalized_quotes=normalized_quotes,
-            history_by_symbol=ohlcv,
+            history_by_symbol=_collect_trend_structure_history(ohlcv),
             generated_at=run_at_utc,
         )
 

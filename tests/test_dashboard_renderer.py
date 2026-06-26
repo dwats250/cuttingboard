@@ -3678,7 +3678,7 @@ def test_prd177_r4_scoreboard_renders_rows() -> None:
     assert "No regime history yet." not in board
 
 
-def test_prd177_r4_scoreboard_caps_at_ten_rows() -> None:
+def test_prd177_r4_scoreboard_caps_at_five_rows() -> None:
     hist = [
         {"date": f"2026-05-{day:02d}", "regime": "RISK_ON", "posture": "CONTROLLED_LONG",
          "spy_close_change_pct": 0.001 * day}
@@ -3686,9 +3686,11 @@ def test_prd177_r4_scoreboard_caps_at_ten_rows() -> None:
     ]
     html = render_dashboard_html(_payload(), _run(), regime_history=hist)
     board = html.split('id="scoreboard"', 1)[1]
-    assert board.count('class="scoreboard-row"') == 10
-    # Oldest five (days 1-5) are dropped; the newest (day 15) is shown.
+    assert board.count('class="scoreboard-row"') == 5
+    # Oldest ten (days 1-10) are dropped; the newest five (days 11-15) are shown.
     assert "2026-05-15" in board
+    assert "2026-05-11" in board
+    assert "2026-05-10" not in board
     assert "2026-05-01" not in board
 
 

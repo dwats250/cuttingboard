@@ -223,6 +223,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-203 | 35e0641 | prd_close.sh rebuilds the PROJECT_STATE baseline line (canonical, no stale provenance) | COMPLETE | [PRD-203](prd_history/PRD-203.md) |
 | PRD-204 | 9c1fb37 | Non-destructive scoreboard aggregate (preserve-prior + staleness marker) | COMPLETE | [PRD-204](prd_history/PRD-204.md) |
 | PRD-208 | — | Trend-structure SMA alignment presentation: compression + unavailable-token consistency | IN PROGRESS | [PRD-208](prd_history/PRD-208.md) |
+| PRD-210 | — | Premarket trend-structure path coverage — apply the PRD-174 history fallback on _run_pipeline (F08 closes-None fix) | IN PROGRESS | [PRD-210](prd_history/PRD-210.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

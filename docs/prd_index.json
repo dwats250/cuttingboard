@@ -902,6 +902,12 @@
       "title": "Trend-structure SMA alignment presentation: compression + unavailable-token consistency",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 210,
+      "title": "Premarket trend-structure path coverage — apply the PRD-174 history fallback on _run_pipeline (F08 closes-None fix)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
