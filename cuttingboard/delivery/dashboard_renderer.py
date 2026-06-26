@@ -171,7 +171,7 @@ def _trend_structure_intraday_display(record: dict) -> str:
     band = _intraday_rvol_band(record.get("relative_volume"))
     return _TREND_STRUCTURE_INTRADAY_DISPLAY[(vwap_token, band)]
 HISTORY_LIMIT = 5
-SCOREBOARD_LIMIT = 10  # PRD-177 R4: render at most the 10 most-recent regime-history rows
+SCOREBOARD_LIMIT = 5  # render at most the 5 most-recent regime-history rows (was 10, PRD-177 R4)
 _DASHBOARD_REFRESH_SECONDS = 30
 DASHBOARD_STALE_AFTER_SECONDS = 300
 
