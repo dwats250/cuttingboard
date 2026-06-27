@@ -216,8 +216,8 @@ def test_artifact_is_the_gate_review_file(raw):
 
 def _extract_resolver(raw: str) -> str:
     lines = raw.splitlines()
-    begins = [i for i, l in enumerate(lines) if l.strip().startswith("# === RESOLVER BEGIN")]
-    ends = [i for i, l in enumerate(lines) if l.strip().startswith("# === RESOLVER END")]
+    begins = [i for i, ln in enumerate(lines) if ln.strip().startswith("# === RESOLVER BEGIN")]
+    ends = [i for i, ln in enumerate(lines) if ln.strip().startswith("# === RESOLVER END")]
     assert begins and ends, "codex-review.yml must embed an extractable RESOLVER block (PRD-207 R3)"
     return textwrap.dedent("\n".join(lines[begins[0]:ends[0] + 1]))
 
