@@ -16,6 +16,19 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-26 — Repaired Codex gate fail-closed on its first live run (PRD-207 bootstrap validation)
+
+The repaired `codex-review.yml` fail-closed on its FIRST live run — run 28277644046,
+reviewing PRD-208 @ `ceceedb`. Requested `gpt-5-codex` was again served the fallback
+model; the fixed gate detected codex's structured `item.error`, exited
+FAIL-CLOSED(4), emitted no artifact, skipped `land`. The pre-fix hollow gate would
+have laundered the same substitution into `resolved-model=gpt-5-codex` and certified
+it. This is the PRD-207 bootstrap-note validation: the gate's first act was to refuse
+a substituted model. PRD-208's HIGH-RISK Codex leg remains UNSATISFIED — held pending
+a genuine allowlisted Codex review, not because the diff is bad.
+
+---
+
 ## 2026-06-26 — PRD-210 registry row left IN PROGRESS by design (deferred out-of-order closeout)
 
 PRD-210 merged out-of-order at `b1619f6`; registry row intentionally left IN PROGRESS, closes in-order when 205-209 land — not drift. See `recon/board-state-20260626.md` (commit `c25f9e5`).
