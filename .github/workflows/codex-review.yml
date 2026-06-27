@@ -1,15 +1,25 @@
 name: Codex cross-review
 
 # PRD-197 — host-independent Codex cross-review (the PRD-#21 gate artifact in CI).
+# PRD-207 — the gate certifies the REQUESTED model was HONORED (no silent codex
+#   fallback), read from the COMPLETED review job's --json JSONL log. There is no
+#   structured served-model field on this toolchain (codex CLI emits none; the
+#   action surfaces only the prose final-message), so the gate keys on codex's
+#   STRUCTURED item.error fallback event — never the prose self-report, never the
+#   requested input as a proxy, never the session rollout (PRD-198 #2/#3). See
+#   docs/prd_history/PRD-207.md (AMENDMENT: verdict CONFIRMED-PROSE-ONLY).
 #
 # SECURITY (HIGH-RISK, public repo):
 #   * Dispatch-only. NEVER add `pull_request` / `pull_request_target`: a fork run
 #     would expose OPENAI_API_KEY to untrusted code.
 #   * OPENAI_API_KEY is consumed ONLY as the `openai-api-key` input of the
 #     official openai/codex-action, which proxies it. It is NEVER a job/step
-#     `env:` and is NEVER echoed.
-#   * Two-job split: `review` holds the key (proxied) with contents:read ONLY and
-#     cannot write; `land` never sees the key.
+#     `env:` and is NEVER echoed. The honor gate reads the GitHub job-log API, it
+#     does NOT run codex in a `run:` step, so the secret-proxy model is preserved.
+#   * Three-job split: `review` holds the key (proxied) with contents:read ONLY and
+#     cannot write; `resolve` never sees the key (actions:read, reads the completed
+#     review job log + assembles the artifact, fail-closed); `land` never sees the
+#     key and only pushes the artifact to a durable codex-review/* branch.
 #   * `land` NEVER pushes to a protected branch (e.g. main) and NEVER opens or
 #     auto-merges a PR. It pushes the artifact to a durable codex-review/* branch
 #     (rooted at the base, so artifact-only) and stops; a human opens the PR at the
@@ -40,7 +50,7 @@ on:
         required: false
         type: string
       model:
-        description: "REQUESTED Codex model id. This is only the request — the artifact's provenance records the RESOLVED model from runtime response metadata, which must pass the ALLOWED_CODEX_MODELS allowlist below."
+        description: "REQUESTED Codex model id. The gate certifies this model was HONORED (no codex fallback) and records it as resolved-model only when honored and allowlisted; a silent fallback fails the gate closed (PRD-207)."
         required: false
         default: gpt-5-codex
         type: string
@@ -49,10 +59,9 @@ on:
 permissions: {}
 
 # Property-#3 (PRD-#21 "verified-real Codex") allowlist — HUMAN-CONFIGURABLE.
-# The RESOLVED model (parsed from runtime response metadata, never the requested
-# string and never the model's prose self-report) must match one of these
-# space-separated shell globs, or the review is marked INVALID and NO artifact is
-# emitted (fail-closed). Sourced from the repository variable
+# When the requested model is HONORED, it is recorded as resolved-model and must
+# match one of these space-separated shell globs, or the review is marked INVALID
+# and NO artifact is emitted (fail-closed). Sourced from the repository variable
 # vars.ALLOWED_CODEX_MODELS (Settings → Secrets and variables → Actions →
 # Variables), NOT a committed literal — a hardcoded model id would re-open the
 # fail-closed default and is rejected by the gate contract test. UNSET ⇒ empty ⇒
@@ -66,11 +75,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # --- review: holds the key (via the action proxy), READ-ONLY, cannot write ---
+  # --- review: holds the key (via the action proxy), READ-ONLY, cannot write.
+  #     Emits the --json JSONL to its job log (read post-hoc by `resolve`) and
+  #     uploads the prose final-message for downstream assembly. ---
   review:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    outputs:
+      codex-version: ${{ steps.codexver.outputs.version }}
     steps:
       - name: Checkout target branch at the pinned SHA (fresh context)
         uses: actions/checkout@v6
@@ -86,8 +99,8 @@ jobs:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           sandbox: read-only
           model: ${{ inputs.model }}
-          # Emit the JSONL event stream so the RESOLVED model (response metadata) can
-          # be parsed for truthful provenance — the request string is NOT authoritative.
+          # Emit the JSONL event stream so codex's STRUCTURED fallback item.error
+          # (the honor signal) lands in this job's log for `resolve` to read.
           codex-args: --json
           # codex-version intentionally unpinned: the action installs a current
           # sandbox-capable CLI (0.2.x predates the --sandbox flag, which would
@@ -111,63 +124,150 @@ jobs:
                 and does it leave any docs/PROJECT_STATE.md claim stale?
             State explicitly which Codex model you are running as.
 
-      - name: Resolve + verify the served model, then assemble the artifact (truthful provenance, fail-closed)
+      - name: Capture codex CLI version (provenance; no secret involved)
+        id: codexver
+        run: |
+          set -euo pipefail
+          echo "version=$(codex --version 2>/dev/null || echo 'unknown')" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload codex prose final-message for downstream assembly
+        uses: actions/upload-artifact@v7
+        with:
+          name: codex-final-message-${{ inputs.prd }}
+          path: codex-final-message.md
+          if-no-files-found: error
+
+  # --- resolve: NEVER sees the key. Reads the COMPLETED review job's --json log
+  #     via the GitHub API (own-log flush-safe: review has finished), classifies
+  #     model honor (fail-closed), and assembles the artifact with a single model
+  #     identity. No artifact is produced unless the requested model was honored
+  #     and allowlisted. ---
+  resolve:
+    needs: review
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    steps:
+      - name: Fetch the completed review job log + classify model honor (fail-closed)
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODEL: ${{ inputs.model }}
+        run: |
+          set -euo pipefail
+          # The review job has completed (needs: review), so its log is flush-safe
+          # via the API — unlike a job's own still-running log.
+          job_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs" --paginate -q '.jobs[] | select(.name=="review") | .id' | head -n1)"
+          if [ -z "${job_id}" ]; then echo "::error::could not find the review job id (fail-closed)"; exit 1; fi
+          gh api -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/actions/jobs/${job_id}/logs" > job.log || true
+          if [ ! -s job.log ]; then
+            curl -sL -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/jobs/${job_id}/logs" -o job.log || true
+          fi
+          if [ ! -s job.log ]; then echo "::error::review job log unreadable (fail-closed)"; exit 1; fi
+          cat > resolve_model.py <<'PY'
+          # === RESOLVER BEGIN (extractable; tests/test_codex_review.py runs this against real fixtures) ===
+          # PRD-207 honor gate. Certify the REQUESTED model was HONORED (no silent
+          # codex fallback) from the --json JSONL. There is NO structured served-model
+          # field on this toolchain, so we DO NOT read a served model id. We FAIL
+          # CLOSED on: codex's structured item.error fallback event, any unrecognized
+          # item.error, an unparseable/unrecognized stream, and a stream with no
+          # turn.completed (PRD-198 #1 fail-loud, #3 authoritative-source). Resolution
+          # NEVER reads the prose final-message, the requested input as a proxy, or the
+          # session rollout. A reworded fallback message still trips on item.type==error,
+          # so a reword can never pass as honored.
+          import json, re, sys, fnmatch
+          KNOWN_EVENT_TYPES = {
+              "thread.started", "turn.started", "turn.completed",
+              "item.started", "item.completed", "item.updated", "error",
+          }
+          # Pinned to the captured item_0 message at job 83746430244 (diagnostic only;
+          # ANY item.error fails closed regardless of this pattern).
+          FALLBACK_RE = re.compile(r"model metadata for .* not found", re.IGNORECASE)
+          def parse_events(text):
+              events = []
+              for raw in text.splitlines():
+                  s = raw.strip()
+                  i = s.find("{")
+                  if i < 0:
+                      continue
+                  try:
+                      obj = json.loads(s[i:])
+                  except Exception:
+                      continue
+                  if isinstance(obj, dict) and "type" in obj:
+                      events.append(obj)
+              return events
+          def classify(text, requested, allowlist):
+              events = parse_events(text)
+              codex = [e for e in events if e.get("type") in KNOWN_EVENT_TYPES]
+              if not codex:
+                  return (2, None, "no recognized codex JSONL events (unparseable/unrecognized stream)")
+              if not any(e.get("type") == "turn.completed" for e in codex):
+                  return (3, None, "no turn.completed event (incomplete/unrecognized stream)")
+              for e in codex:
+                  if e.get("type") == "item.completed":
+                      item = e.get("item") or {}
+                      if item.get("type") == "error":
+                          msg = str(item.get("message", ""))
+                          if FALLBACK_RE.search(msg):
+                              return (4, None, "codex model-metadata fallback: requested %r not served: %s" % (requested, msg))
+                          return (5, None, "unrecognized codex item.error; refusing to certify: %s" % msg)
+              resolved = requested  # honored: no fallback, recognized schema, turn completed
+              if not any(fnmatch.fnmatch(resolved, p) for p in allowlist.split()):
+                  return (6, None, "resolved model %r not on allowlist %r" % (resolved, allowlist))
+              return (0, resolved, "honored")
+          def main(argv):
+              if len(argv) != 4:
+                  sys.stderr.write("usage: resolve_model.py <job_log> <requested_model> <allowlist>\n")
+                  return 64
+              text = open(argv[1], encoding="utf-8", errors="replace").read()
+              code, resolved, reason = classify(text, argv[2], argv[3])
+              if code == 0:
+                  print(resolved)
+              else:
+                  sys.stderr.write("FAIL-CLOSED(%d): %s\n" % (code, reason))
+              return code
+          if __name__ == "__main__":
+              sys.exit(main(sys.argv))
+          # === RESOLVER END ===
+          PY
+          resolved="$(python3 resolve_model.py job.log "${MODEL}" "${ALLOWED_CODEX_MODELS:-}")"
+          if [ -z "${resolved}" ]; then echo "::error::resolver produced no model (fail-closed)"; exit 1; fi
+          echo "resolved=${resolved}" >> "${GITHUB_ENV}"
+          echo "Requested model '${MODEL}' honored (no codex fallback); resolved-model='${resolved}'; allowlist-verified."
+
+      - name: Download codex prose final-message
+        uses: actions/download-artifact@v7
+        with:
+          name: codex-final-message-${{ inputs.prd }}
+          path: incoming
+
+      - name: Assemble the artifact with a single model identity (R4)
         env:
           PRD: ${{ inputs.prd }}
           SHA: ${{ inputs.sha }}
           PR: ${{ inputs.pr }}
           MODEL: ${{ inputs.model }}
-          # Raw codex stdout (JSONL, because codex-args: --json) — the authoritative
-          # source for the RESOLVED model. Passed via env to avoid heredoc injection.
-          CODEX_EVENTS: ${{ steps.codex.outputs.final-message }}
+          CODEX_VER: ${{ needs.review.outputs.codex-version }}
         run: |
           set -euo pipefail
-          # Provenance: query the installed Codex CLI version (no secret involved).
-          codex_ver="$(codex --version 2>/dev/null || echo 'unknown')"
-
-          # --- Resolve the SERVED model from runtime response metadata ------------
-          # Authoritative source only: the JSONL event stream (and, as a fallback,
-          # the codex session rollout). NEVER the requested input string, NEVER the
-          # model's prose self-report — those are exactly what property #3 distrusts.
-          printf '%s\n' "${CODEX_EVENTS}" > codex-events.jsonl
-          extract_model() { grep -oE '"model"[[:space:]]*:[[:space:]]*"[^"]+"' "$1" 2>/dev/null \
-            | sed -E 's/.*:[[:space:]]*"([^"]+)"/\1/' | tail -n1; }
-          resolved="$(extract_model codex-events.jsonl || true)"
-          if [ -z "${resolved}" ]; then
-            rollout="$(find "${CODEX_HOME:-$HOME/.codex}" -name 'rollout-*.jsonl' 2>/dev/null | sort | tail -n1 || true)"
-            [ -n "${rollout}" ] && resolved="$(extract_model "${rollout}" || true)"
-          fi
-          if [ -z "${resolved}" ]; then
-            echo "::error::could not determine the RESOLVED model from runtime response metadata; refusing to emit a review artifact (fail-closed)."
-            exit 1
-          fi
-
-          # --- Fail-closed allowlist (property #3): reject any non-allowlisted model
-          allowed=0
-          for pat in ${ALLOWED_CODEX_MODELS:-}; do
-            # shellcheck disable=SC2254
-            case "${resolved}" in ${pat}) allowed=1; break ;; esac
-          done
-          if [ "${allowed}" -ne 1 ]; then
-            echo "::error::resolved model '${resolved}' is not on the human-configured allowlist (ALLOWED_CODEX_MODELS='${ALLOWED_CODEX_MODELS:-}'); marking review INVALID (fail-closed). A genuine Codex model must be authorized in the workflow env before a review artifact can be emitted."
-            exit 1
-          fi
-          echo "Resolved model '${resolved}' verified against allowlist '${ALLOWED_CODEX_MODELS:-}'."
-
-          # --- Assemble the artifact with TRUTHFUL provenance ---------------------
           mkdir -p artifact
           out="artifact/PRD-${PRD}.review.codex.md"
+          # R4: drop a leading prose self-report `Model:` line so the body cannot
+          # contradict the machine provenance line (single identity source).
+          body="$(awk 'NR==1 && /^Model:[[:space:]]/ {next} 1' incoming/codex-final-message.md)"
           {
             echo "# PRD-${PRD} — Codex cross-review"
             echo
             echo "- Reviewed commit (SHA-pinned): \`${SHA}\`"
             echo "- Target PR: ${PR:-n/a}"
-            echo "- Provenance: resolved-model=\`${resolved}\` (requested=\`${MODEL}\`; allowlist-verified), codex-cli=\`${codex_ver}\`, via openai/codex-action (read-only)"
-            echo "- Mechanism: GitHub Actions (host-independent, PRD-197); fresh-context"
+            echo "- Provenance: resolved-model=\`${resolved}\` (requested=\`${MODEL}\` honored — no codex fallback event; allowlist-verified), codex-cli=\`${CODEX_VER:-unknown}\`, via openai/codex-action (read-only)"
+            echo "- Mechanism: GitHub Actions (host-independent, PRD-197); fresh-context; honor verified from the completed review job log (PRD-207)"
             echo
             echo "---"
             echo
-            cat codex-final-message.md
+            printf '%s\n' "${body}"
           } > "${out}"
 
       - name: Upload review artifact
@@ -183,7 +283,7 @@ jobs:
   #     ci.yml runs normally (a workflow-opened PR under GITHUB_TOKEN would not
   #     trigger CI) and the merge stays a human decision (PRD-184/PRD-194).
   land:
-    needs: review
+    needs: resolve
     runs-on: ubuntu-latest
     permissions:
       contents: write          # push the codex-review/* working branch only

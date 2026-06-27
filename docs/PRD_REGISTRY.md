@@ -224,6 +224,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-204 | 9c1fb37 | Non-destructive scoreboard aggregate (preserve-prior + staleness marker) | COMPLETE | [PRD-204](prd_history/PRD-204.md) |
 | PRD-208 | — | Trend-structure SMA alignment presentation: compression + unavailable-token consistency | IN PROGRESS | [PRD-208](prd_history/PRD-208.md) |
 | PRD-210 | — | Premarket trend-structure path coverage — apply the PRD-174 history fallback on _run_pipeline (F08 closes-None fix) | IN PROGRESS | [PRD-210](prd_history/PRD-210.md) |
+| PRD-207 | — | codex-review.yml resolves the REQUESTED model, not the SERVED model (verified-real-Codex gate is hollow) | IN PROGRESS | [PRD-207](prd_history/PRD-207.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

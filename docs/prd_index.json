@@ -898,6 +898,12 @@
       "commit": "9c1fb37"
     },
     {
+      "number": 207,
+      "title": "codex-review.yml resolves the REQUESTED model, not the SERVED model (verified-real-Codex gate is hollow)",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
       "number": 208,
       "title": "Trend-structure SMA alignment presentation: compression + unavailable-token consistency",
       "status": "IN PROGRESS",
