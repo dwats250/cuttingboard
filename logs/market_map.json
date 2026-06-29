@@ -1,24 +1,27 @@
 {
   "context": {
-    "energy": {
-      "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": -0.039783613031241394,
-      "price": 104.2698974609375,
-      "structure": "TRENDING_DOWN",
-      "symbol": "USO"
-    }
+    "energy": null
   },
   "data_quality": {
     "fib_deferred_symbols": [
       "SPY",
-      "QQQ"
+      "QQQ",
+      "GDX",
+      "GLD",
+      "SLV",
+      "XLE"
     ],
     "unavailable_symbols": [
-      "QQQ"
+      "SPY",
+      "QQQ",
+      "GDX",
+      "GLD",
+      "SLV",
+      "XLE"
     ]
   },
-  "generated_at": "2026-06-26T15:21:15Z",
-  "generation_id": "live-20260626T152115Z",
+  "generated_at": "2026-06-29T01:37:25Z",
+  "generation_id": "sunday-20260629T013725Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -29,513 +32,244 @@
   ],
   "removed_symbols": [],
   "schema_version": "market_map.v1",
-  "session_date": "2026-06-26",
+  "session_date": "2026-06-29",
   "source": {
-    "mode": "live",
-    "run_at_utc": "2026-06-26T15:21:15Z"
+    "mode": "sunday",
+    "run_at_utc": "2026-06-29T01:37:25Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
-      "bias": "BEARISH",
+      "bias": "NEUTRAL",
       "confidence": "LOW",
       "current_price": 77.97000122070312,
-      "fib_levels": {
-        "retracements": {
-          "0.382": 83.9691,
-          "0.5": 81.995,
-          "0.618": 80.0209
-        },
-        "source": "last_20_bars_high_low",
-        "swing_high": 90.36,
-        "swing_low": 73.63
-      },
-      "grade": "A+",
+      "fib_levels": null,
+      "grade": "F",
       "invalidation": [
-        "reclaims VWAP with follow-through",
-        "momentum improves above primary trend reference"
+        "No trade structure available until price, structure, and level data are present."
       ],
       "lifecycle": {
-        "current_grade": "A+",
-        "current_setup_state": "ACTIONABLE",
-        "grade_transition": "UPGRADED",
+        "current_grade": "F",
+        "current_setup_state": "DATA_UNAVAILABLE",
+        "grade_transition": "DOWNGRADED",
+        "is_new": false,
+        "is_removed": false,
+        "previous_grade": "A+",
+        "previous_setup_state": "ACTIONABLE",
+        "setup_state_transition": "CHANGED"
+      },
+      "preferred_trade_structure": null,
+      "reason_for_grade": "Market data unavailable for this run.",
+      "setup_state": "DATA_UNAVAILABLE",
+      "structure": "UNKNOWN",
+      "symbol": "GDX",
+      "trade_framing": {
+        "direction": "NEUTRAL",
+        "downgrade": "remains unavailable while primary market data is absent",
+        "entry": "wait for price, structure, and level data to populate",
+        "if_now": "WAIT",
+        "setup": "market data unavailable for this run",
+        "trade_type": "none",
+        "upgrade": "reassess when market data is available"
+      },
+      "watch_zones": [],
+      "what_to_look_for": [
+        "Market data unavailable for this run; review during live market session."
+      ]
+    },
+    "GLD": {
+      "asset_group": "METALS",
+      "bias": "NEUTRAL",
+      "confidence": "LOW",
+      "current_price": 374.489990234375,
+      "fib_levels": null,
+      "grade": "F",
+      "invalidation": [
+        "No trade structure available until price, structure, and level data are present."
+      ],
+      "lifecycle": {
+        "current_grade": "F",
+        "current_setup_state": "DATA_UNAVAILABLE",
+        "grade_transition": "DOWNGRADED",
         "is_new": false,
         "is_removed": false,
         "previous_grade": "D",
         "previous_setup_state": "EXTENDED",
         "setup_state_transition": "CHANGED"
       },
-      "preferred_trade_structure": "bearish defined-risk continuation",
-      "reason_for_grade": "A+: bearish trending_down, regime aligned, near key level",
-      "setup_state": "ACTIONABLE",
-      "structure": "TRENDING_DOWN",
-      "symbol": "GDX",
-      "trade_framing": {
-        "direction": "SHORT",
-        "downgrade": "wait if price reclaims VWAP or structure turns choppy",
-        "entry": "rejects near VWAP with downside follow-through",
-        "if_now": "TAKE",
-        "setup": "metals bearish trending_down",
-        "trade_type": "put_spread",
-        "upgrade": "improves on clean rejection near key level with expanding participation"
-      },
-      "watch_zones": [
-        {
-          "context": "session vwap",
-          "level": 77.4145,
-          "type": "VWAP"
-        },
-        {
-          "context": "opening range high",
-          "level": 77.02,
-          "type": "ORB_HIGH"
-        },
-        {
-          "context": "prior session high",
-          "level": 76.93,
-          "type": "PRIOR_HIGH"
-        },
-        {
-          "context": "fast trend reference",
-          "level": 79.2507,
-          "type": "EMA9"
-        },
-        {
-          "context": "opening range low",
-          "level": 76.19,
-          "type": "ORB_LOW"
-        },
-        {
-          "context": "prior session low",
-          "level": 74.53,
-          "type": "PRIOR_LOW"
-        },
-        {
-          "context": "primary trend reference",
-          "level": 81.8623,
-          "type": "EMA21"
-        }
-      ],
-      "what_to_look_for": [
-        "watch rejection near VWAP",
-        "look for lower high with expanding volume"
-      ]
-    },
-    "GLD": {
-      "asset_group": "METALS",
-      "bias": "BEARISH",
-      "confidence": "LOW",
-      "current_price": 374.489990234375,
-      "fib_levels": {
-        "retracements": {
-          "0.382": 399.473,
-          "0.5": 392.57,
-          "0.618": 385.667
-        },
-        "source": "last_20_bars_high_low",
-        "swing_high": 421.82,
-        "swing_low": 363.32
-      },
-      "grade": "D",
-      "invalidation": [
-        "reclaims VWAP with follow-through",
-        "momentum improves above primary trend reference"
-      ],
-      "lifecycle": {
-        "current_grade": "D",
-        "current_setup_state": "EXTENDED",
-        "grade_transition": "UNCHANGED",
-        "is_new": false,
-        "is_removed": false,
-        "previous_grade": "D",
-        "previous_setup_state": "EXTENDED",
-        "setup_state_transition": "UNCHANGED"
-      },
-      "preferred_trade_structure": "pullback reset watch",
-      "reason_for_grade": "D: bearish structure is extended from trend reference",
-      "setup_state": "EXTENDED",
-      "structure": "TRENDING_DOWN",
+      "preferred_trade_structure": null,
+      "reason_for_grade": "Market data unavailable for this run.",
+      "setup_state": "DATA_UNAVAILABLE",
+      "structure": "UNKNOWN",
       "symbol": "GLD",
       "trade_framing": {
         "direction": "NEUTRAL",
-        "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for reset toward VWAP before defining risk",
+        "downgrade": "remains unavailable while primary market data is absent",
+        "entry": "wait for price, structure, and level data to populate",
         "if_now": "WAIT",
-        "setup": "metals extended bearish structure",
+        "setup": "market data unavailable for this run",
         "trade_type": "none",
-        "upgrade": "improves with cleaner directional structure near a key level"
+        "upgrade": "reassess when market data is available"
       },
-      "watch_zones": [
-        {
-          "context": "session vwap",
-          "level": 373.8077,
-          "type": "VWAP"
-        },
-        {
-          "context": "opening range high",
-          "level": 372.34,
-          "type": "ORB_HIGH"
-        },
-        {
-          "context": "opening range low",
-          "level": 371.47,
-          "type": "ORB_LOW"
-        },
-        {
-          "context": "prior session high",
-          "level": 371.04,
-          "type": "PRIOR_HIGH"
-        },
-        {
-          "context": "fast trend reference",
-          "level": 380.8433,
-          "type": "EMA9"
-        },
-        {
-          "context": "prior session low",
-          "level": 366.8,
-          "type": "PRIOR_LOW"
-        },
-        {
-          "context": "primary trend reference",
-          "level": 392.0252,
-          "type": "EMA21"
-        }
-      ],
+      "watch_zones": [],
       "what_to_look_for": [
-        "look for reset toward VWAP",
-        "watch for cleaner compression"
+        "Market data unavailable for this run; review during live market session."
       ]
     },
     "QQQ": {
       "asset_group": "INDEX",
-      "bias": "BULLISH",
+      "bias": "NEUTRAL",
       "confidence": "LOW",
       "current_price": 710.2161254882812,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
-        "loses VWAP with weak recovery",
-        "momentum fades below primary trend reference"
+        "No trade structure available until price, structure, and level data are present."
       ],
       "lifecycle": {
         "current_grade": "F",
-        "current_setup_state": "CHOPPY",
+        "current_setup_state": "DATA_UNAVAILABLE",
         "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
         "previous_grade": "F",
         "previous_setup_state": "CHOPPY",
-        "setup_state_transition": "UNCHANGED"
+        "setup_state_transition": "CHANGED"
       },
       "preferred_trade_structure": null,
-      "reason_for_grade": "F: structurally invalid - choppy market structure",
-      "setup_state": "CHOPPY",
-      "structure": "CHOPPY",
+      "reason_for_grade": "Market data unavailable for this run.",
+      "setup_state": "DATA_UNAVAILABLE",
+      "structure": "UNKNOWN",
       "symbol": "QQQ",
       "trade_framing": {
         "direction": "NEUTRAL",
-        "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for cleaner structure around VWAP",
+        "downgrade": "remains unavailable while primary market data is absent",
+        "entry": "wait for price, structure, and level data to populate",
         "if_now": "WAIT",
-        "setup": "index choppy structure",
+        "setup": "market data unavailable for this run",
         "trade_type": "none",
-        "upgrade": "improves with cleaner directional structure near a key level"
+        "upgrade": "reassess when market data is available"
       },
-      "watch_zones": [
-        {
-          "context": "session vwap",
-          "level": 708.9568,
-          "type": "VWAP"
-        },
-        {
-          "context": "opening range high",
-          "level": 707.38,
-          "type": "ORB_HIGH"
-        },
-        {
-          "context": "prior session low",
-          "level": 705.3,
-          "type": "PRIOR_LOW"
-        },
-        {
-          "context": "opening range low",
-          "level": 702.81,
-          "type": "ORB_LOW"
-        },
-        {
-          "context": "primary trend reference",
-          "level": 719.5874,
-          "type": "EMA21"
-        },
-        {
-          "context": "fast trend reference",
-          "level": 721.4994,
-          "type": "EMA9"
-        },
-        {
-          "context": "trend base reference",
-          "level": 697.8834,
-          "type": "EMA50"
-        },
-        {
-          "context": "prior session high",
-          "level": 726.83,
-          "type": "PRIOR_HIGH"
-        }
-      ],
+      "watch_zones": [],
       "what_to_look_for": [
-        "watch hold above VWAP",
-        "look for higher low with expanding volume"
+        "Market data unavailable for this run; review during live market session."
       ]
     },
     "SLV": {
       "asset_group": "METALS",
-      "bias": "BEARISH",
+      "bias": "NEUTRAL",
       "confidence": "LOW",
       "current_price": 53.45500183105469,
-      "fib_levels": {
-        "retracements": {
-          "0.382": 62.0767,
-          "0.5": 59.83,
-          "0.618": 57.5833
-        },
-        "source": "last_20_bars_high_low",
-        "swing_high": 69.35,
-        "swing_low": 50.31
-      },
-      "grade": "D",
+      "fib_levels": null,
+      "grade": "F",
       "invalidation": [
-        "reclaims PRIOR_HIGH with follow-through",
-        "momentum improves above primary trend reference"
+        "No trade structure available until price, structure, and level data are present."
       ],
       "lifecycle": {
-        "current_grade": "D",
-        "current_setup_state": "EXTENDED",
-        "grade_transition": "UNCHANGED",
+        "current_grade": "F",
+        "current_setup_state": "DATA_UNAVAILABLE",
+        "grade_transition": "DOWNGRADED",
         "is_new": false,
         "is_removed": false,
         "previous_grade": "D",
         "previous_setup_state": "EXTENDED",
-        "setup_state_transition": "UNCHANGED"
+        "setup_state_transition": "CHANGED"
       },
-      "preferred_trade_structure": "pullback reset watch",
-      "reason_for_grade": "D: bearish structure is extended from trend reference",
-      "setup_state": "EXTENDED",
-      "structure": "TRENDING_DOWN",
+      "preferred_trade_structure": null,
+      "reason_for_grade": "Market data unavailable for this run.",
+      "setup_state": "DATA_UNAVAILABLE",
+      "structure": "UNKNOWN",
       "symbol": "SLV",
       "trade_framing": {
         "direction": "NEUTRAL",
-        "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for reset toward PRIOR_HIGH before defining risk",
+        "downgrade": "remains unavailable while primary market data is absent",
+        "entry": "wait for price, structure, and level data to populate",
         "if_now": "WAIT",
-        "setup": "metals extended bearish structure",
+        "setup": "market data unavailable for this run",
         "trade_type": "none",
-        "upgrade": "improves with cleaner directional structure near a key level"
+        "upgrade": "reassess when market data is available"
       },
-      "watch_zones": [
-        {
-          "context": "prior session high",
-          "level": 53.2,
-          "type": "PRIOR_HIGH"
-        },
-        {
-          "context": "session vwap",
-          "level": 53.1908,
-          "type": "VWAP"
-        },
-        {
-          "context": "opening range high",
-          "level": 52.88,
-          "type": "ORB_HIGH"
-        },
-        {
-          "context": "opening range low",
-          "level": 52.62,
-          "type": "ORB_LOW"
-        },
-        {
-          "context": "prior session low",
-          "level": 51.5,
-          "type": "PRIOR_LOW"
-        }
-      ],
+      "watch_zones": [],
       "what_to_look_for": [
-        "look for reset toward PRIOR_HIGH",
-        "watch for cleaner compression"
+        "Market data unavailable for this run; review during live market session."
       ]
     },
     "SPY": {
       "asset_group": "INDEX",
       "bias": "NEUTRAL",
-      "confidence": "MEDIUM",
+      "confidence": "LOW",
       "current_price": 733.0,
       "fib_levels": null,
-      "grade": "C",
+      "grade": "F",
       "invalidation": [
-        "range fails to define around VWAP",
-        "mixed structure persists"
+        "No trade structure available until price, structure, and level data are present."
       ],
       "lifecycle": {
-        "current_grade": "C",
-        "current_setup_state": "LOW_QUALITY",
-        "grade_transition": "UNCHANGED",
+        "current_grade": "F",
+        "current_setup_state": "DATA_UNAVAILABLE",
+        "grade_transition": "DOWNGRADED",
         "is_new": false,
         "is_removed": false,
         "previous_grade": "C",
         "previous_setup_state": "LOW_QUALITY",
-        "setup_state_transition": "UNCHANGED"
+        "setup_state_transition": "CHANGED"
       },
-      "preferred_trade_structure": "range-resolution watch",
-      "reason_for_grade": "C: neutral range, regime aligned, near key level",
-      "setup_state": "LOW_QUALITY",
-      "structure": "RANGE",
+      "preferred_trade_structure": null,
+      "reason_for_grade": "Market data unavailable for this run.",
+      "setup_state": "DATA_UNAVAILABLE",
+      "structure": "UNKNOWN",
       "symbol": "SPY",
       "trade_framing": {
         "direction": "NEUTRAL",
-        "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for clearer reaction around VWAP",
+        "downgrade": "remains unavailable while primary market data is absent",
+        "entry": "wait for price, structure, and level data to populate",
         "if_now": "WAIT",
-        "setup": "index low-quality range",
+        "setup": "market data unavailable for this run",
         "trade_type": "none",
-        "upgrade": "improves with cleaner directional structure near a key level"
+        "upgrade": "reassess when market data is available"
       },
-      "watch_zones": [
-        {
-          "context": "session vwap",
-          "level": 731.0351,
-          "type": "VWAP"
-        },
-        {
-          "context": "opening range high",
-          "level": 729.66,
-          "type": "ORB_HIGH"
-        },
-        {
-          "context": "prior session low",
-          "level": 729.6,
-          "type": "PRIOR_LOW"
-        },
-        {
-          "context": "trend base reference",
-          "level": 728.3279,
-          "type": "EMA50"
-        },
-        {
-          "context": "fast trend reference",
-          "level": 738.7428,
-          "type": "EMA9"
-        },
-        {
-          "context": "opening range low",
-          "level": 726.86,
-          "type": "ORB_LOW"
-        },
-        {
-          "context": "prior session high",
-          "level": 739.37,
-          "type": "PRIOR_HIGH"
-        },
-        {
-          "context": "primary trend reference",
-          "level": 739.4544,
-          "type": "EMA21"
-        }
-      ],
+      "watch_zones": [],
       "what_to_look_for": [
-        "watch reaction around VWAP",
-        "look for clearer directional structure"
+        "Market data unavailable for this run; review during live market session."
       ]
     },
     "XLE": {
       "asset_group": "ENERGY",
-      "bias": "BEARISH",
+      "bias": "NEUTRAL",
       "confidence": "LOW",
       "current_price": 53.939998626708984,
-      "fib_levels": {
-        "retracements": {
-          "0.382": 56.6299,
-          "0.5": 55.9118,
-          "0.618": 55.1936
-        },
-        "source": "last_20_bars_high_low",
-        "swing_high": 58.9548,
-        "swing_low": 52.8687
-      },
-      "grade": "A+",
+      "fib_levels": null,
+      "grade": "F",
       "invalidation": [
-        "reclaims ORB_LOW with follow-through",
-        "momentum improves above primary trend reference"
+        "No trade structure available until price, structure, and level data are present."
       ],
       "lifecycle": {
-        "current_grade": "A+",
-        "current_setup_state": "ACTIONABLE",
-        "grade_transition": "UNCHANGED",
+        "current_grade": "F",
+        "current_setup_state": "DATA_UNAVAILABLE",
+        "grade_transition": "DOWNGRADED",
         "is_new": false,
         "is_removed": false,
         "previous_grade": "A+",
         "previous_setup_state": "ACTIONABLE",
-        "setup_state_transition": "UNCHANGED"
+        "setup_state_transition": "CHANGED"
       },
-      "preferred_trade_structure": "bearish defined-risk continuation",
-      "reason_for_grade": "A+: bearish trending_down, regime aligned, near key level",
-      "setup_state": "ACTIONABLE",
-      "structure": "TRENDING_DOWN",
+      "preferred_trade_structure": null,
+      "reason_for_grade": "Market data unavailable for this run.",
+      "setup_state": "DATA_UNAVAILABLE",
+      "structure": "UNKNOWN",
       "symbol": "XLE",
       "trade_framing": {
-        "direction": "SHORT",
-        "downgrade": "wait if price reclaims ORB_LOW or structure turns choppy",
-        "entry": "rejects near ORB_LOW with downside follow-through",
-        "if_now": "TAKE",
-        "setup": "energy bearish trending_down",
-        "trade_type": "put_spread",
-        "upgrade": "improves on clean rejection near key level with expanding participation"
+        "direction": "NEUTRAL",
+        "downgrade": "remains unavailable while primary market data is absent",
+        "entry": "wait for price, structure, and level data to populate",
+        "if_now": "WAIT",
+        "setup": "market data unavailable for this run",
+        "trade_type": "none",
+        "upgrade": "reassess when market data is available"
       },
-      "watch_zones": [
-        {
-          "context": "opening range low",
-          "level": 53.89,
-          "type": "ORB_LOW"
-        },
-        {
-          "context": "session vwap",
-          "level": 53.9956,
-          "type": "VWAP"
-        },
-        {
-          "context": "opening range high",
-          "level": 54.14,
-          "type": "ORB_HIGH"
-        },
-        {
-          "context": "prior session high",
-          "level": 54.32,
-          "type": "PRIOR_HIGH"
-        },
-        {
-          "context": "fast trend reference",
-          "level": 54.6452,
-          "type": "EMA9"
-        },
-        {
-          "context": "prior session low",
-          "level": 53.0,
-          "type": "PRIOR_LOW"
-        },
-        {
-          "context": "primary trend reference",
-          "level": 55.7343,
-          "type": "EMA21"
-        },
-        {
-          "context": "trend base reference",
-          "level": 56.3573,
-          "type": "EMA50"
-        }
-      ],
+      "watch_zones": [],
       "what_to_look_for": [
-        "watch rejection near ORB_LOW",
-        "look for lower high with expanding volume"
+        "Market data unavailable for this run; review during live market session."
       ]
     }
   }
