@@ -16,6 +16,17 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-29 — Numbering-gap convention: void-fill skipped numbers at closeout
+
+PRD-205/206 were never authored; 207 and 210 were filed out-of-order into the
+gap. On closing 207 the registry contiguity check (`validate_prd_registry.py`
+line 125) required 205/206 to exist. Recorded as DEPRECATED void placeholders
+(File column present, no history doc owed per validator line 225) rather than
+backfilled as phantom work. Future out-of-order filings into a gap should
+void-fill the skipped numbers at closeout.
+
+---
+
 ## 2026-06-29 — PRD-207 closeout: Codex cross-review waived (bootstrap)
 
 PRD-207 repaired the codex-review gate itself; the gate that would supply the
