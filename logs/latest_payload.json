@@ -1,10 +1,46 @@
 {
-  "macro_drivers": {},
+  "macro_drivers": {
+    "bitcoin": {
+      "change_pct": 0.1342471078152257,
+      "level": 59552.140625,
+      "symbol": "BTC-USD"
+    },
+    "dollar": {
+      "change_pct": -0.2476171925508921,
+      "level": 101.11799621582031,
+      "symbol": "DX-Y.NYB"
+    },
+    "gold": {
+      "change_pct": -1.0555410959792793,
+      "level": 4040.10009765625,
+      "symbol": "GC=F"
+    },
+    "oil": {
+      "change_pct": 1.0419688586529925,
+      "level": 70.79000091552734,
+      "symbol": "CL=F"
+    },
+    "rates": {
+      "change_bps": 0.6007798148275004,
+      "change_pct": 0.13722700883184827,
+      "level": 4.377999782562256,
+      "symbol": "^TNX"
+    },
+    "silver": {
+      "change_pct": -0.8213388935103826,
+      "level": 58.564998626708984,
+      "symbol": "SI=F"
+    },
+    "volatility": {
+      "change_pct": -2.774746163328616,
+      "level": 17.8700008392334,
+      "symbol": "^VIX"
+    }
+  },
   "meta": {
-    "generation_id": "sunday-20260629T013725Z",
-    "session_type": "SUNDAY_PREMARKET",
+    "generation_id": "live-20260629T163421Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-06-29T01:37:25Z"
+    "timestamp": "2026-06-29T16:34:21Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -12,18 +48,27 @@
     "chain_results_detail": [],
     "continuation_audit": null,
     "option_setups_detail": [],
-    "rejected": [],
+    "rejected": [
+      {
+        "detail": null,
+        "reason": "STAY_FLAT posture (regime=RISK_ON, confidence=0.38)",
+        "stage": "REGIME",
+        "symbol": "REGIME"
+      }
+    ],
     "top_trades": [],
     "trade_decision_detail": [],
     "validation_halt_detail": {
-      "reason": "PREMARKET_CONTEXT"
+      "reason": "STAY_FLAT posture (regime=RISK_ON, confidence=0.38)"
     },
-    "watch_summary_detail": null,
+    "watch_summary_detail": {
+      "session": "MIDDAY"
+    },
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.0,
-    "market_regime": "NEUTRAL",
+    "confidence": 0.375,
+    "market_regime": "RISK_ON",
     "outcome": "NO_TRADE",
     "permission": "No new trades permitted.",
     "router_mode": "MIXED",
