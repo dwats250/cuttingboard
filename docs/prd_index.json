@@ -900,8 +900,8 @@
     {
       "number": 207,
       "title": "codex-review.yml resolves the REQUESTED model, not the SERVED model (verified-real-Codex gate is hollow)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "1968b50, 55f9cd2, 13c5d4a"
     },
     {
       "number": 210,
