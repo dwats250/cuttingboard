@@ -222,8 +222,10 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-202 | 7e5b52d | Agent-efficiency guidance: consult recon maps + delegate bookkeeping recon | COMPLETE | [PRD-202](prd_history/PRD-202.md) |
 | PRD-203 | 35e0641 | prd_close.sh rebuilds the PROJECT_STATE baseline line (canonical, no stale provenance) | COMPLETE | [PRD-203](prd_history/PRD-203.md) |
 | PRD-204 | 9c1fb37 | Non-destructive scoreboard aggregate (preserve-prior + staleness marker) | COMPLETE | [PRD-204](prd_history/PRD-204.md) |
+| PRD-205 | — | (void — number skipped; 207/210 filed out of order) | DEPRECATED | — |
+| PRD-206 | — | (void — number skipped; 207/210 filed out of order) | DEPRECATED | — |
 | PRD-210 | — | Premarket trend-structure path coverage — apply the PRD-174 history fallback on _run_pipeline (F08 closes-None fix) | IN PROGRESS | [PRD-210](prd_history/PRD-210.md) |
-| PRD-207 | — | codex-review.yml resolves the REQUESTED model, not the SERVED model (verified-real-Codex gate is hollow) | IN PROGRESS | [PRD-207](prd_history/PRD-207.md) |
+| PRD-207 | 1968b50, 55f9cd2, 13c5d4a | codex-review.yml resolves the REQUESTED model, not the SERVED model (verified-real-Codex gate is hollow) | COMPLETE | [PRD-207](prd_history/PRD-207.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
