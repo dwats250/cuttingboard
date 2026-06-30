@@ -86,20 +86,22 @@ def _ts_display(token: str) -> str:
     return _TREND_STRUCTURE_STATE_DISPLAY.get(token, token)
 
 
-# PRD-131: deterministic composite display layer flattening the two SMA
-# comparison tokens (price_vs_sma_50, price_vs_sma_200) into one short
-# positional phrase. Pure function of the input record. No VWAP, no
-# narrative, no trajectory, no forecast vocabulary. Closed vocabulary.
+# PRD-131 / PRD-208: deterministic composite display layer flattening the two SMA
+# comparison tokens (price_vs_sma_50, price_vs_sma_200) into one short compact cell.
+# Pure function of the input record. No VWAP, no narrative, no trajectory, no
+# forecast vocabulary. Closed vocabulary. PRD-208 compresses the prose to a 3-state
+# arrow scheme for cognitive compression: ABOVE=↑, BELOW=↓, AT_LEVEL== (a DISTINCT
+# glyph per state), each suffixed with its SMA window. All 9 (3×3) combinations map.
 _TREND_STRUCTURE_COMPOSITE_DISPLAY: dict[tuple[str, str], str] = {
-    ("ABOVE", "ABOVE"):       "Above SMA50 and SMA200",
-    ("ABOVE", "BELOW"):       "Above SMA50, below SMA200",
-    ("BELOW", "ABOVE"):       "Below SMA50, above SMA200",
-    ("BELOW", "BELOW"):       "Below SMA50 and SMA200",
-    ("AT_LEVEL", "ABOVE"):    "At SMA50, above SMA200",
-    ("AT_LEVEL", "BELOW"):    "At SMA50, below SMA200",
-    ("ABOVE", "AT_LEVEL"):    "Above SMA50, at SMA200",
-    ("BELOW", "AT_LEVEL"):    "Below SMA50, at SMA200",
-    ("AT_LEVEL", "AT_LEVEL"): "At SMA50 and SMA200",
+    ("ABOVE", "ABOVE"):       "↑50 ↑200",
+    ("ABOVE", "BELOW"):       "↑50 ↓200",
+    ("BELOW", "ABOVE"):       "↓50 ↑200",
+    ("BELOW", "BELOW"):       "↓50 ↓200",
+    ("AT_LEVEL", "ABOVE"):    "=50 ↑200",
+    ("AT_LEVEL", "BELOW"):    "=50 ↓200",
+    ("ABOVE", "AT_LEVEL"):    "↑50 =200",
+    ("BELOW", "AT_LEVEL"):    "↓50 =200",
+    ("AT_LEVEL", "AT_LEVEL"): "=50 =200",
 }
 
 _TREND_STRUCTURE_COMPOSITE_UNAVAILABLE = "Structure unavailable"
@@ -2215,15 +2217,16 @@ def render_dashboard_html(
             'font-size:0.78rem;display:block;overflow-x:auto">'
         )
         _ts_headers = (
-            "Symbol", "Price", "vs VWAP", "vs SMA50",
-            "vs SMA200", "Alignment", "Entry Context", "RVOL",
-            "SMA Composite", "Intraday Context",
+            "Symbol", "Price", "vs VWAP", "Alignment",
+            "Entry Context", "RVOL", "SMA 50/200", "Intraday Context",
         )
-        # PRD-165 R2: these four granular columns are frequently NOT COMPUTED /
-        # INSUFFICIENT HISTORY for every symbol; collapse such a column when it
-        # is uniformly unavailable. Indices into _ts_headers. The composite
-        # reserve columns (SMA Composite, Intraday Context) are never collapsed.
-        _ts_collapsible_cols = (2, 4, 5, 6)
+        # PRD-165 R2 / PRD-208: collapse a granular column when it is uniformly
+        # unavailable. Indices into _ts_headers. PRD-208 cut the redundant
+        # "vs SMA50"/"vs SMA200" columns (the "SMA 50/200" arrow composite now
+        # carries that position), re-indexing the collapsible set to vs VWAP (2),
+        # Alignment (3), Entry Context (4). The composite reserve columns
+        # ("SMA 50/200", Intraday Context) are never collapsed.
+        _ts_collapsible_cols = (2, 3, 4)
         _ts_unavailable_cells = {
             "NOT COMPUTED", "INSUFFICIENT HISTORY", "DATA UNAVAILABLE", _DASH,
         }
@@ -2234,16 +2237,16 @@ def render_dashboard_html(
             _rec = _records_for_render.get(_sym)
             if _rec is None:
                 _cells = (
-                    _sym, _DASH, _DASH, _DASH, _DASH,
-                    _DASH, _DASH, _DASH, _DASH, _DASH,
+                    _sym, _DASH, _DASH, _DASH,
+                    _DASH, _DASH, _DASH, _DASH,
                 )
             else:
+                # PRD-208: "vs SMA50"/"vs SMA200" columns cut; the "SMA 50/200"
+                # arrow composite below carries the price-vs-SMA position.
                 _cells = (
                     str(_rec.get("symbol", _sym)),
                     _format_trend_number(_rec.get("current_price")),
                     _ts_display(str(_rec.get("price_vs_vwap", ""))),
-                    _ts_display(str(_rec.get("price_vs_sma_50", ""))),
-                    _ts_display(str(_rec.get("price_vs_sma_200", ""))),
                     _ts_display(str(_rec.get("trend_alignment", ""))),
                     _ts_display(str(_rec.get("entry_context", ""))),
                     _format_trend_number(_rec.get("relative_volume")),

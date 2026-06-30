@@ -916,6 +916,12 @@
       "commit": "1968b50, 55f9cd2, 13c5d4a"
     },
     {
+      "number": 208,
+      "title": "Trend-structure SMA alignment presentation: compression + unavailable-token consistency",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
       "number": 209,
       "title": "OHLCV bar-count floor: reject/repair truncated daily frames served as fresh",
       "status": "PROPOSED",
