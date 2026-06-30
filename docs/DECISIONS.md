@@ -16,6 +16,42 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-30 — Alignment cadence check #5 — PASS (no drift)
+
+Fifth cadence check (since #4 on 2026-06-20), run at Dustin's request after the
+PRD-211 merge (main @ `3317456`, PR #71). Scope: PRDs merged since check #4's
+boundary — PRDs 203, 204, 207, 210 (impl), 211 — plus the PRD-186 post-merge
+drift audit. The window is display / governance / path-coverage tooling only; no
+trading-pipeline module added.
+
+- **Q1 (new prediction logic?):** No. The window is display correctness
+  (PRD-211 macro-tape metals label, PRD-208-class presentation), governance/harness
+  tooling (PRD-203 `prd_close.sh` baseline rebuild, PRD-207 codex-review gate
+  repair), and path coverage (PRD-210 premarket trend-structure history fallback —
+  the F08 closes-None fix). No ML/forecast/backtest surface.
+- **Q2 (new sidecar without consumer or observational purpose?):** No new sidecar
+  added. The proposed AI Pathways "Options Monitor" sidecar was correctly *never*
+  scaffolded — no orphan observational surface entered the tree.
+- **Q3 (new module not serving the four questions?):** No. No new module outside
+  VISION's four questions; the window is presentation fixes plus process/governance
+  tooling, observational/descriptive character intact.
+
+**Verdict: PASS.** No prediction logic, no orphan sidecar, no non-serving module.
+
+**Post-merge drift audit (PRD-186) — PRDs 203/204/207/210/211:** all carry a Claude
+review artifact with a DRIFT CHECK; PRD-210 also carries an in-tree Codex
+cross-review; PRD-207's Codex cross-review was waived under the recorded bootstrap
+exception (the gate under repair); PRD-211 is MICRO (no review artifact owed, drift
+self-checked). No substantive drift found, no stale PROJECT_STATE claim, no
+DRIFT-CHECK omission. No corrective PRD required.
+
+**Gating cleanup, scheduled next, NOT bundled here:** the 205–210 registry reconcile
+(void-vs-real rows, parked stage-0 branches, the PRD-210/211 closeouts) is a separate
+recon + bookkeeping pass held for Dustin's merge seam — explicitly out of scope for
+this cadence entry.
+
+---
+
 ## 2026-06-29 — Numbering-gap convention: void-fill skipped numbers at closeout
 
 PRD-205/206 were never authored; 207 and 210 were filed out-of-order into the
