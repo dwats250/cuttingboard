@@ -9,47 +9,47 @@
     "continuation_audit_present": false,
     "continuation_rejected_count": null,
     "error_count": 0,
-    "qualified_count": 5,
-    "rejected_count": 7
+    "qualified_count": 0,
+    "rejected_count": 0
   },
   "correlation": null,
-  "generated_at": "2026-06-29T17:16:21Z",
-  "generation_id": "hourly-20260629T171621Z",
+  "generated_at": "2026-06-30T16:22:40Z",
+  "generation_id": "hourly-20260630T162240Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 1.6481170625792643,
-      "level": 60450.46875,
+      "change_pct": -3.1673708688210143,
+      "level": 58256.0,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.2653718721018816,
-      "level": 101.0999984741211,
+      "change_pct": -0.09179339903802927,
+      "level": 101.2239990234375,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -0.9722754615649216,
-      "level": 4043.5,
+      "change_pct": 1.4734662998245152,
+      "level": 4042.5,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 0.9848736303896894,
-      "level": 70.75,
+      "change_pct": -0.5827946575800774,
+      "level": 69.94000244140625,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 0.6007798148275004,
-      "change_pct": 0.13722700883184827,
-      "level": 4.377999782562256,
+      "change_bps": 3.020597399985198,
+      "change_pct": 0.6858758415919515,
+      "level": 4.404000282287598,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -0.5249747038086183,
-      "level": 58.7400016784668,
+      "change_pct": 4.194474385030069,
+      "level": 60.1150016784668,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -2.992379010737709,
-      "level": 17.829999923706055,
+      "change_pct": -5.212465134152532,
+      "level": 16.729999542236328,
       "symbol": "^VIX"
     }
   },
@@ -57,148 +57,45 @@
     "continuation_enabled": false,
     "data_quality": "ok",
     "expansion_regime": null,
-    "imbalance_enabled": false,
+    "imbalance_enabled": null,
     "stale_data_detected": false
   },
   "mode": "live",
   "outcome": "NO_TRADE",
   "regime": {
     "classification": "RISK_ON",
-    "confidence": 0.625,
-    "net_score": 5,
-    "neutral_votes": 3,
-    "posture": "CONTROLLED_LONG",
-    "risk_off_votes": 0,
+    "confidence": 0.5,
+    "net_score": 4,
+    "neutral_votes": 2,
+    "posture": "STAY_FLAT",
+    "risk_off_votes": 1,
     "risk_on_votes": 5,
     "total_votes": 8,
-    "vix_level": 17.829999923706055,
-    "vix_pct_change": -0.029923790107377092,
+    "vix_level": 16.729999542236328,
+    "vix_pct_change": -0.052124651341525316,
     "vote_breakdown": {
-      "BTC pct_change": "RISK_ON",
-      "DXY pct_change": "RISK_ON",
-      "IWM pct_change": "NEUTRAL",
+      "BTC pct_change": "RISK_OFF",
+      "DXY pct_change": "NEUTRAL",
+      "IWM pct_change": "RISK_ON",
       "QQQ pct_change": "RISK_ON",
       "SPY pct_change": "RISK_ON",
       "TNX pct_change": "NEUTRAL",
       "VIX level": "RISK_ON",
-      "VIX pct_change": "NEUTRAL"
+      "VIX pct_change": "RISK_ON"
     }
   },
-  "rejections": [
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: stop distance 0.5% below 1.0% minimum; price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "QUALIFICATION",
-      "symbol": "DX-Y.NYB"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 1.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "QUALIFICATION",
-      "symbol": "GDX"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "NVDA"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "SPY"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "TSLA"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "^TNX"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "^VIX"
-    },
-    {
-      "detail": null,
-      "reason": "price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "WATCHLIST",
-      "symbol": "CL=F"
-    },
-    {
-      "detail": null,
-      "reason": "price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "WATCHLIST",
-      "symbol": "GC=F"
-    },
-    {
-      "detail": null,
-      "reason": "price 3.4\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "WATCHLIST",
-      "symbol": "SI=F"
-    },
-    {
-      "detail": null,
-      "reason": "R:R 2.00 below 2.0 minimum",
-      "stage": "WATCHLIST",
-      "symbol": "QQQ"
-    },
-    {
-      "detail": null,
-      "reason": "price 2.4\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "WATCHLIST",
-      "symbol": "GLD"
-    },
-    {
-      "detail": null,
-      "reason": "price 2.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "WATCHLIST",
-      "symbol": "SLV"
-    },
-    {
-      "detail": null,
-      "reason": "price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "WATCHLIST",
-      "symbol": "PAAS"
-    },
-    {
-      "detail": null,
-      "reason": "price 2.4\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "WATCHLIST",
-      "symbol": "USO"
-    },
-    {
-      "detail": null,
-      "reason": "R:R 2.00 below 2.0 minimum",
-      "stage": "WATCHLIST",
-      "symbol": "XLE"
-    },
-    {
-      "detail": null,
-      "reason": "price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "WATCHLIST",
-      "symbol": "AAPL"
-    }
-  ],
+  "rejections": [],
   "schema_version": "v2",
-  "session_date": "2026-06-29",
-  "status": "OK",
+  "session_date": "2026-06-30",
+  "status": "STAY_FLAT",
   "system_state": {
-    "confidence": 0.625,
+    "confidence": 0.5,
     "intraday_state": null,
     "market_regime": "RISK_ON",
     "router_mode": "MIXED",
-    "stay_flat_reason": null,
+    "stay_flat_reason": "STAY_FLAT posture",
     "time_gate_open": true,
-    "tradable": true
+    "tradable": false
   },
   "timezone": "America/New_York",
   "trade_candidates": []
