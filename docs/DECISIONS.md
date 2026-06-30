@@ -16,6 +16,52 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-06-30 — PRD-212: Codex gate alias-drift incident + CLI-identity pin
+
+**Incident.** `codex-review.yml` left `codex-version` unpinned, so each dispatch
+installed a floating "current" Codex CLI. The current CLI dropped local metadata for
+the `gpt-5-codex` model id — it emitted `Model metadata for ``gpt-5-codex`` not found.
+Defaulting to fallback metadata` and ran a fallback model. The PRD-207 honor gate
+correctly fail-closed (exit 4, no artifact). This blocked **every** Codex cross-review,
+not just PRD-208 — the HIGH-RISK review lane had no working gate. Reproduced live:
+run `28467193644`. Diagnostic confirmed the OpenAI key is present/valid/scoped (a
+1.55M-token review completed); the cause is CLI/alias drift, not key or access — the
+movable-identity failure class (CLAUDE.md #6; same family as PRD-207/198).
+
+**Pinned identity = the CLI version, not a model snapshot.** This toolchain surfaces
+**no** dated `gpt-5-codex-YYYY-MM-DD` snapshot id (PRD-207: no structured served-model
+field); the only model identity it records is the alias `gpt-5-codex`. The fix pins
+**`codex-version: 0.142.1`** — the last CLI with landed proof of honoring the alias:
+two certified artifacts (`codex-review/PRD-210-7e836b9765cd`,
+`codex-review/PRD-208-b42ec9aa7ebe`) record `resolved-model=gpt-5-codex … codex-cli=codex-cli 0.142.1`.
+`0.142.1` is >0.2.x, so `sandbox: read-only` stays enforceable. **The alias is stable
+ONLY downstream of the CLI pin** — under the pinned 0.142.1 it resolves to real
+metadata; unpinned, it drifts. `model` stays `gpt-5-codex` (deterministic under the
+pin). `ALLOWED_CODEX_MODELS` (the `vars` repo variable, Dustin-set) = **`gpt-5-codex`**
+exactly — the one proven-served id, no widening.
+
+**Test honesty — tripwire, not behavioral proof.** The new
+`test_prd212_codex_version_pinned_tripwire` is a PRESENCE/STRUCTURE check (pin == 0.142.1):
+it proved RED against the unpinned workflow and GREEN after the pin, and any change away
+from 0.142.1 goes red. It **cannot** prove 0.142.1 actually honors `gpt-5-codex` — that
+is a live-only fact (Phase-4 acceptance: a real dispatch certifying `resolved-model=gpt-5-codex`
+HONORED, artifact lands). The BEHAVIORAL honor guard already exists and is unchanged:
+the PRD-207 R3 resolver tests run the workflow's own resolver against the real captured
+fallback/honored streams (fallback → fail-closed; honored → certify). The tripwire is
+labelled as such in-test and here so it never stands in as the behavioral guard
+(anti-hollow-gate, PRD-198 #4).
+
+**Bootstrap waiver (second this arc — FLAG for next alignment audit).** PRD-212 repairs
+the Codex gate itself, so the gate that would supply its Codex cross-review is the subject
+under repair; the Codex leg is waived under the PRD-207 bootstrap precedent (Claude review
++ the recorded Phase-4 live validation stand in). This is the **second** bootstrap
+Codex-waiver this arc (PRD-207 first). Gate repairs are necessarily un-cross-reviewed —
+**flagged for the next alignment-cadence audit** to confirm the pattern is not masking
+drift. HIGH-RISK/INFRA, manual-merge (Dustin holds the seam). Live confirmation is Phase 4,
+a separate greenlight; PRD-208 stays parked until then.
+
+---
+
 ## 2026-06-30 — Alignment cadence check #5 — PASS (no drift)
 
 Fifth cadence check (since #4 on 2026-06-20), run at Dustin's request after the

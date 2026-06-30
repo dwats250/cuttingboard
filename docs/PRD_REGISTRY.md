@@ -228,6 +228,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-207 | 1968b50, 55f9cd2, 13c5d4a | codex-review.yml resolves the REQUESTED model, not the SERVED model (verified-real-Codex gate is hollow) | COMPLETE | [PRD-207](prd_history/PRD-207.md) |
 | PRD-209 | — | OHLCV bar-count floor: reject/repair truncated daily frames served as fresh | PROPOSED | [PRD-209](prd_history/PRD-209.md) |
 | PRD-211 | — | Macro-tape metals display correctness | IN PROGRESS | [PRD-211](prd_history/PRD-211.md) |
+| PRD-212 | — | Pin the Codex cross-review identity (CLI version 0.142.1) — end the alias-drift gate outage | IN PROGRESS | [PRD-212](prd_history/PRD-212.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

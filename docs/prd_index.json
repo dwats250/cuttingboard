@@ -932,6 +932,12 @@
       "title": "Macro-tape metals display correctness",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 212,
+      "title": "Pin the Codex cross-review identity (CLI version 0.142.1) \u2014 end the alias-drift gate outage",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
