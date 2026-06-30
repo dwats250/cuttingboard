@@ -24,6 +24,21 @@ def test_macro_tape_layout_ordering_is_canonical() -> None:
     assert _labels(layout.TRADABLES_ROW) == ("SPY", "QQQ", "GLD", "GDX", "SLV", "XLE")
 
 
+def test_macro_tape_layout_metals_display_is_futures_ticker() -> None:
+    # PRD-211: the metals slots show the honest CME front-month futures ticker
+    # (GC/SI) as visible text; the slot id / data-symbol stays XAU/XAG.
+    by_label = {
+        slot.label: slot
+        for row in (layout.MACRO_ROW_1, layout.MACRO_ROW_2)
+        for slot in row.slots
+    }
+    assert by_label["XAU"].display == "GC"
+    assert by_label["XAG"].display == "SI"
+    # Non-metals slots default the display to their label (id == visible text).
+    for label in ("BTC", "VIX", "DXY", "10Y", "OIL"):
+        assert by_label[label].display == label
+
+
 def test_macro_tape_layout_macro_mappings_are_exhaustive() -> None:
     macro_slots = (*layout.MACRO_ROW_1.slots, *layout.MACRO_ROW_2.slots)
 

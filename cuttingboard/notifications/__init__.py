@@ -95,7 +95,10 @@ def _macro_row(slot: TapeSlot, quotes: dict) -> Optional[str]:
     if pct is None:
         return None
     pct_str = f"{pct * 100:+.1f}%"
-    return f"{slot.label}  {level:<5}  {pct_str}"
+    # PRD-211: show the honest display text (GC/SI for the metals futures, else
+    # the slot label); left-pad to 3 so the value column stays aligned -- a no-op
+    # for the existing 3-char labels. Level format stays keyed on slot.label.
+    return f"{slot.display:<3}  {level:<5}  {pct_str}"
 
 
 def _macro_tape_block(normalized_quotes: dict) -> list[str]:

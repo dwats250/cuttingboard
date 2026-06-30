@@ -2051,7 +2051,7 @@ def render_dashboard_html(
 
     row_1_html = [
         f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(_tape_arrow_map.get(slot.label, _DASH), "na")}">'
-        f'<span class="macro-tape-label">{_esc(slot.label)} {_esc(_tape_arrow_map.get(slot.label, _DASH))}</span>'
+        f'<span class="macro-tape-label">{_esc(slot.display)} {_esc(_tape_arrow_map.get(slot.label, _DASH))}</span>'
         f'<span class="macro-tape-value" data-symbol="{_esc(slot.label)}">'
         f'{_esc(tape_value_map.get(slot.label, ""))}</span>'
         f'</span>'
@@ -2061,7 +2061,7 @@ def render_dashboard_html(
 
     row_2_html = [
         f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(_tape_arrow_map.get(slot.label, _DASH), "na")}">'
-        f'<span class="macro-tape-label">{_esc(slot.label)} {_esc(_tape_arrow_map.get(slot.label, _DASH))}</span>'
+        f'<span class="macro-tape-label">{_esc(slot.display)} {_esc(_tape_arrow_map.get(slot.label, _DASH))}</span>'
         f'<span class="macro-tape-value" data-symbol="{_esc(slot.label)}">'
         f'{_esc(tape_value_map.get(slot.label, ""))}</span>'
         f'</span>'

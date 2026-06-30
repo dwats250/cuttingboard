@@ -50,6 +50,24 @@ candidates.
 
 ---
 
+## Macro-tape metals (gold/silver) surface — PRD-211
+
+The `gold`/`silver` macro_drivers are **display-only** (front-month futures
+`GC=F`/`SI=F`), fenced from every decision path. Producer → display call graph:
+
+| Function / symbol | File:Line | Purpose |
+|---|---|---|
+| `_build_macro_drivers` | contract.py:502 | Producer; builds `macro_drivers` per driver. Optional drivers (`oil`/`gold`/`silver`, set at contract.py:59) **silently skip** on fetch failure (`continue`, contract.py:510-511 / 521-522) → key absent (write is FRESH, so absence renders `N/A`, not a stale value) |
+| `_write_macro_snapshot` | runtime/__init__.py:1962 | Writes `logs/macro_drivers_snapshot.json` (FRESH, atomic). Renderer fallback fires only when the **whole** macro_drivers dict is empty (all-or-nothing), never per-key |
+| `_build_tape_slots` / `_build_tape_value_slots` | dashboard_renderer.py:1036 / 1091 | Render the tape arrow/value per slot; absent driver key → `N/A` (per-key `.get`) |
+| `_format_tape_value` | dashboard_renderer.py:1067 | Value formatting dispatch, keyed on slot **label** (`XAU`→.1f, `XAG`→.2f) |
+| `_macro_row` | notifications/__init__.py:89 | Notification tape line per slot; visible text is `slot.display` (`GC`/`SI`), level keyed on slot label |
+| **FENCE** `_COMPONENT_FIELDS` | macro_pressure.py:25 | macro_pressure components — excludes gold/silver (no decision read) |
+| **FENCE** `MACRO_BIAS_DRIVERS` | macro_tape_layout.py:93 | bias-vote drivers — excludes gold/silver (no decision read) |
+| `TapeSlot.display` | macro_tape_layout.py:17 | Visible label (`GC`/`SI` for metals); `label`/`data-symbol` stay `XAU`/`XAG` (PRD-211) |
+
+---
+
 ## Usage rules
 
 - Before broad file scan, check this map for the target function's line number.

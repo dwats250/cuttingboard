@@ -3437,8 +3437,10 @@ def test_prd138_xau_xag_route_through_directional_arrow_css() -> None:
         market_map=_market_map(),
     )
     tape = _macro_tape_block(html)
-    assert 'class="macro-tape-slot tape-slot up"><span class="macro-tape-label">XAU ↑</span>' in tape
-    assert 'class="macro-tape-slot tape-slot down"><span class="macro-tape-label">XAG ↓</span>' in tape
+    # PRD-211: visible label is the honest CME futures ticker (GC/SI); the slot
+    # id / data-symbol stays XAU/XAG (asserted by the R9(a)/order tests above).
+    assert 'class="macro-tape-slot tape-slot up"><span class="macro-tape-label">GC ↑</span>' in tape
+    assert 'class="macro-tape-slot tape-slot down"><span class="macro-tape-label">SI ↓</span>' in tape
 
 
 def test_prd136_r9d_no_silent_na_regression_driver_side() -> None:

@@ -11,6 +11,18 @@ class TapeSlot:
     label: str
     payload_key: str | None
     quote_symbol: str
+    display_label: str | None = None
+
+    @property
+    def display(self) -> str:
+        """Human-facing tape text. Defaults to ``label`` -- which is also the
+        historic ``data-symbol`` key and the value-format dispatch key -- and is
+        overridden only where ``label`` would misstate what the data IS. PRD-211:
+        the metals slots carry the CME front-month *futures* (GC=F/SI=F), so the
+        visible text reads GC/SI, not the spot codes XAU/XAG. ``label`` /
+        ``data-symbol`` stay XAU/XAG for slot-id shape stability (PRD-136/137/138
+        contract + the publish-refresh marker)."""
+        return self.display_label or self.label
 
 
 @_dataclass(frozen=True)
@@ -22,8 +34,8 @@ class TapeRow:
 MACRO_ROW_1 = TapeRow(
     name="macro_row_1",
     slots=(
-        TapeSlot(label="XAU", payload_key="gold", quote_symbol="GC=F"),
-        TapeSlot(label="XAG", payload_key="silver", quote_symbol="SI=F"),
+        TapeSlot(label="XAU", payload_key="gold", quote_symbol="GC=F", display_label="GC"),
+        TapeSlot(label="XAG", payload_key="silver", quote_symbol="SI=F", display_label="SI"),
         TapeSlot(label="BTC", payload_key="bitcoin", quote_symbol="BTC-USD"),
     ),
 )
@@ -72,9 +84,10 @@ MACRO_PAYLOAD_KEY_TO_QUOTE_SYMBOL = _types.MappingProxyType(
 # payload_key. Contra-cyclical drivers move inversely to risk appetite — a
 # falling VIX/DXY/10Y is risk-ON (long), a rising one is risk-OFF (short).
 # Pro-cyclical drivers move with risk appetite — a rising BTC is risk-ON.
-# OIL and the spot metals (XAU/XAG) are visibility-only and deliberately
-# excluded from the bias arithmetic. Keep this list here (not in the bias
-# function) so adding a driver to the tally is a data edit, not a logic edit.
+# OIL and the metals (XAU/XAG slots; GC/SI front-month futures) are
+# visibility-only and deliberately excluded from the bias arithmetic. Keep this
+# list here (not in the bias function) so adding a driver to the tally is a data
+# edit, not a logic edit.
 MACRO_BIAS_CONTRA_CYCLICAL = frozenset({"volatility", "dollar", "rates"})
 MACRO_BIAS_PRO_CYCLICAL = frozenset({"bitcoin"})
 MACRO_BIAS_DRIVERS = MACRO_BIAS_CONTRA_CYCLICAL | MACRO_BIAS_PRO_CYCLICAL

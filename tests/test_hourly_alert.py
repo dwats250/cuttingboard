@@ -446,8 +446,9 @@ def test_prd133_macro_tape_block_renders_when_quotes_available():
     )
     assert "Macro Tape:" in body
     # ASCII-only, one ticker per line, signed pct (PRD-133-PATCH)
-    assert "XAU  4705.2  +3.6%" in body
-    assert "XAG  87.3   +13.8%" in body
+    # PRD-211: metals show the honest CME futures ticker (GC/SI), not spot XAU/XAG.
+    assert "GC   4705.2  +3.6%" in body
+    assert "SI   87.3   +13.8%" in body
     assert "BTC  81.3K  +1.1%" in body
     assert "VIX  18.1   -1.5%" in body
     assert "DXY  98.5   -0.2%" in body
