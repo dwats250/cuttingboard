@@ -2,22 +2,18 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.009005605615326038,
-      "price": 107.55999755859375,
-      "structure": "BREAKDOWN",
+      "pct_change_decimal": -0.0015855369206407464,
+      "price": 106.4209976196289,
+      "structure": "TRENDING_DOWN",
       "symbol": "USO"
     }
   },
   "data_quality": {
-    "fib_deferred_symbols": [
-      "SPY"
-    ],
-    "unavailable_symbols": [
-      "SPY"
-    ]
+    "fib_deferred_symbols": [],
+    "unavailable_symbols": []
   },
-  "generated_at": "2026-06-29T16:34:21Z",
-  "generation_id": "live-20260629T163421Z",
+  "generated_at": "2026-06-30T15:24:16Z",
+  "generation_id": "live-20260630T152416Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -28,41 +24,41 @@
   ],
   "removed_symbols": [],
   "schema_version": "market_map.v1",
-  "session_date": "2026-06-29",
+  "session_date": "2026-06-30",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-06-29T16:34:21Z"
+    "run_at_utc": "2026-06-30T15:24:16Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 75.41500091552734,
+      "current_price": 74.44999694824219,
       "fib_levels": {
         "retracements": {
-          "0.382": 83.9691,
-          "0.5": 81.995,
-          "0.618": 80.0209
+          "0.382": 83.7405,
+          "0.5": 81.81,
+          "0.618": 79.8795
         },
         "source": "last_20_bars_high_low",
-        "swing_high": 90.36,
+        "swing_high": 89.99,
         "swing_low": 73.63
       },
       "grade": "D",
       "invalidation": [
-        "reclaims ORB_LOW with follow-through",
+        "reclaims PRIOR_LOW with follow-through",
         "momentum improves above primary trend reference"
       ],
       "lifecycle": {
         "current_grade": "D",
         "current_setup_state": "EXTENDED",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "F",
-        "previous_setup_state": "DATA_UNAVAILABLE",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "D",
+        "previous_setup_state": "EXTENDED",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "pullback reset watch",
       "reason_for_grade": "D: bearish structure is extended from trend reference",
@@ -72,7 +68,7 @@
       "trade_framing": {
         "direction": "NEUTRAL",
         "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for reset toward ORB_LOW before defining risk",
+        "entry": "wait for reset toward PRIOR_LOW before defining risk",
         "if_now": "WAIT",
         "setup": "metals extended bearish structure",
         "trade_type": "none",
@@ -80,38 +76,33 @@
       },
       "watch_zones": [
         {
-          "context": "opening range low",
-          "level": 75.44,
-          "type": "ORB_LOW"
-        },
-        {
-          "context": "session vwap",
-          "level": 75.3732,
-          "type": "VWAP"
-        },
-        {
-          "context": "opening range high",
-          "level": 75.82,
-          "type": "ORB_HIGH"
-        },
-        {
           "context": "prior session low",
-          "level": 76.19,
+          "level": 74.59,
           "type": "PRIOR_LOW"
         },
         {
-          "context": "prior session high",
-          "level": 78.49,
-          "type": "PRIOR_HIGH"
+          "context": "session vwap",
+          "level": 74.7224,
+          "type": "VWAP"
         },
         {
-          "context": "fast trend reference",
-          "level": 78.8006,
-          "type": "EMA9"
+          "context": "opening range low",
+          "level": 74.73,
+          "type": "ORB_LOW"
+        },
+        {
+          "context": "opening range high",
+          "level": 75.93,
+          "type": "ORB_HIGH"
+        },
+        {
+          "context": "prior session high",
+          "level": 76.2,
+          "type": "PRIOR_HIGH"
         }
       ],
       "what_to_look_for": [
-        "look for reset toward ORB_LOW",
+        "look for reset toward PRIOR_LOW",
         "watch for cleaner compression"
       ]
     },
@@ -119,31 +110,31 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 368.739990234375,
+      "current_price": 369.5,
       "fib_levels": {
         "retracements": {
-          "0.382": 399.473,
-          "0.5": 392.57,
-          "0.618": 385.667
+          "0.382": 394.8874,
+          "0.5": 388.86,
+          "0.618": 382.8326
         },
         "source": "last_20_bars_high_low",
-        "swing_high": 421.82,
+        "swing_high": 414.4,
         "swing_low": 363.32
       },
       "grade": "D",
       "invalidation": [
-        "reclaims ORB_LOW with follow-through",
+        "reclaims ORB_HIGH with follow-through",
         "momentum improves above primary trend reference"
       ],
       "lifecycle": {
         "current_grade": "D",
         "current_setup_state": "EXTENDED",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "F",
-        "previous_setup_state": "DATA_UNAVAILABLE",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "D",
+        "previous_setup_state": "EXTENDED",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "pullback reset watch",
       "reason_for_grade": "D: bearish structure is extended from trend reference",
@@ -153,7 +144,7 @@
       "trade_framing": {
         "direction": "NEUTRAL",
         "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for reset toward ORB_LOW before defining risk",
+        "entry": "wait for reset toward ORB_HIGH before defining risk",
         "if_now": "WAIT",
         "setup": "metals extended bearish structure",
         "trade_type": "none",
@@ -161,38 +152,38 @@
       },
       "watch_zones": [
         {
+          "context": "opening range high",
+          "level": 369.61,
+          "type": "ORB_HIGH"
+        },
+        {
           "context": "opening range low",
-          "level": 368.97,
+          "level": 368.825,
           "type": "ORB_LOW"
         },
         {
           "context": "session vwap",
-          "level": 369.2368,
+          "level": 370.4681,
           "type": "VWAP"
         },
         {
-          "context": "opening range high",
-          "level": 369.59,
-          "type": "ORB_HIGH"
-        },
-        {
-          "context": "prior session low",
-          "level": 371.18,
-          "type": "PRIOR_LOW"
-        },
-        {
           "context": "prior session high",
-          "level": 375.85,
+          "level": 371.19,
           "type": "PRIOR_HIGH"
         },
         {
+          "context": "prior session low",
+          "level": 366.97,
+          "type": "PRIOR_LOW"
+        },
+        {
           "context": "fast trend reference",
-          "level": 379.4007,
+          "level": 377.2365,
           "type": "EMA9"
         }
       ],
       "what_to_look_for": [
-        "look for reset toward ORB_LOW",
+        "look for reset toward ORB_HIGH",
         "watch for cleaner compression"
       ]
     },
@@ -200,7 +191,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 719.3200073242188,
+      "current_price": 732.4500122070312,
       "fib_levels": {
         "retracements": {
           "0.382": 724.0633,
@@ -213,18 +204,18 @@
       },
       "grade": "C",
       "invalidation": [
-        "loses EMA9 with weak recovery",
+        "loses VWAP with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
         "current_grade": "C",
         "current_setup_state": "LOW_QUALITY",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "F",
-        "previous_setup_state": "DATA_UNAVAILABLE",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "C",
+        "previous_setup_state": "LOW_QUALITY",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
       "reason_for_grade": "C: bullish range, regime aligned, near key level",
@@ -234,7 +225,7 @@
       "trade_framing": {
         "direction": "NEUTRAL",
         "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for clearer reaction around EMA9",
+        "entry": "wait for clearer reaction around VWAP",
         "if_now": "WAIT",
         "setup": "index low-quality range",
         "trade_type": "none",
@@ -242,48 +233,48 @@
       },
       "watch_zones": [
         {
+          "context": "session vwap",
+          "level": 729.9759,
+          "type": "VWAP"
+        },
+        {
+          "context": "opening range high",
+          "level": 727.58,
+          "type": "ORB_HIGH"
+        },
+        {
+          "context": "prior session high",
+          "level": 724.58,
+          "type": "PRIOR_HIGH"
+        },
+        {
+          "context": "opening range low",
+          "level": 723.92,
+          "type": "ORB_LOW"
+        },
+        {
           "context": "fast trend reference",
-          "level": 718.5035,
+          "level": 719.6188,
           "type": "EMA9"
         },
         {
           "context": "primary trend reference",
-          "level": 718.3995,
+          "level": 718.9159,
           "type": "EMA21"
         },
         {
-          "context": "session vwap",
-          "level": 716.7642,
-          "type": "VWAP"
-        },
-        {
-          "context": "prior session high",
-          "level": 715.56,
-          "type": "PRIOR_HIGH"
-        },
-        {
-          "context": "opening range high",
-          "level": 714.15,
-          "type": "ORB_HIGH"
-        },
-        {
-          "context": "opening range low",
-          "level": 712.19,
-          "type": "ORB_LOW"
-        },
-        {
           "context": "prior session low",
-          "level": 702.81,
+          "level": 705.17,
           "type": "PRIOR_LOW"
         },
         {
           "context": "trend base reference",
-          "level": 698.2223,
+          "level": 699.2363,
           "type": "EMA50"
         }
       ],
       "what_to_look_for": [
-        "watch hold above EMA9",
+        "watch hold above VWAP",
         "look for higher low with expanding volume"
       ]
     },
@@ -291,15 +282,15 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 52.42499923706055,
+      "current_price": 53.9296989440918,
       "fib_levels": {
         "retracements": {
-          "0.382": 62.0767,
-          "0.5": 59.83,
-          "0.618": 57.5833
+          "0.382": 61.879,
+          "0.5": 59.67,
+          "0.618": 57.461
         },
         "source": "last_20_bars_high_low",
-        "swing_high": 69.35,
+        "swing_high": 69.03,
         "swing_low": 50.31
       },
       "grade": "D",
@@ -310,12 +301,12 @@
       "lifecycle": {
         "current_grade": "D",
         "current_setup_state": "EXTENDED",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "F",
-        "previous_setup_state": "DATA_UNAVAILABLE",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "D",
+        "previous_setup_state": "EXTENDED",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "pullback reset watch",
       "reason_for_grade": "D: bearish structure is extended from trend reference",
@@ -334,28 +325,33 @@
       "watch_zones": [
         {
           "context": "session vwap",
-          "level": 52.4272,
+          "level": 53.8744,
           "type": "VWAP"
         },
         {
-          "context": "prior session low",
-          "level": 52.46,
-          "type": "PRIOR_LOW"
-        },
-        {
-          "context": "opening range low",
-          "level": 52.4831,
-          "type": "ORB_LOW"
-        },
-        {
           "context": "opening range high",
-          "level": 52.67,
+          "level": 53.547,
           "type": "ORB_HIGH"
         },
         {
+          "context": "opening range low",
+          "level": 53.281,
+          "type": "ORB_LOW"
+        },
+        {
           "context": "prior session high",
-          "level": 53.87,
+          "level": 52.93,
           "type": "PRIOR_HIGH"
+        },
+        {
+          "context": "fast trend reference",
+          "level": 55.6737,
+          "type": "EMA9"
+        },
+        {
+          "context": "prior session low",
+          "level": 51.93,
+          "type": "PRIOR_LOW"
         }
       ],
       "what_to_look_for": [
@@ -366,82 +362,91 @@
     "SPY": {
       "asset_group": "INDEX",
       "bias": "BULLISH",
-      "confidence": "LOW",
-      "current_price": 738.1749877929688,
-      "fib_levels": null,
-      "grade": "F",
+      "confidence": "MEDIUM",
+      "current_price": 745.02001953125,
+      "fib_levels": {
+        "retracements": {
+          "0.382": 742.4533,
+          "0.5": 737.5131,
+          "0.618": 732.5729
+        },
+        "source": "last_20_bars_high_low",
+        "swing_high": 758.4461,
+        "swing_low": 716.58
+      },
+      "grade": "C",
       "invalidation": [
-        "loses EMA21 with weak recovery",
+        "loses VWAP with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
-        "current_grade": "F",
-        "current_setup_state": "CHOPPY",
-        "grade_transition": "UNCHANGED",
+        "current_grade": "C",
+        "current_setup_state": "LOW_QUALITY",
+        "grade_transition": "UPGRADED",
         "is_new": false,
         "is_removed": false,
         "previous_grade": "F",
-        "previous_setup_state": "DATA_UNAVAILABLE",
+        "previous_setup_state": "CHOPPY",
         "setup_state_transition": "CHANGED"
       },
-      "preferred_trade_structure": null,
-      "reason_for_grade": "F: structurally invalid - choppy market structure",
-      "setup_state": "CHOPPY",
-      "structure": "CHOPPY",
+      "preferred_trade_structure": "bullish defined-risk continuation",
+      "reason_for_grade": "C: bullish range, regime aligned, near key level",
+      "setup_state": "LOW_QUALITY",
+      "structure": "RANGE",
       "symbol": "SPY",
       "trade_framing": {
         "direction": "NEUTRAL",
         "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for cleaner structure around EMA21",
+        "entry": "wait for clearer reaction around VWAP",
         "if_now": "WAIT",
-        "setup": "index choppy structure",
+        "setup": "index low-quality range",
         "trade_type": "none",
         "upgrade": "improves with cleaner directional structure near a key level"
       },
       "watch_zones": [
         {
-          "context": "primary trend reference",
-          "level": 738.5031,
-          "type": "EMA21"
-        },
-        {
           "context": "session vwap",
-          "level": 737.8221,
+          "level": 743.3513,
           "type": "VWAP"
         },
         {
           "context": "opening range high",
-          "level": 737.72,
+          "level": 741.97,
           "type": "ORB_HIGH"
         },
         {
-          "context": "opening range low",
-          "level": 736.87,
-          "type": "ORB_LOW"
-        },
-        {
-          "context": "fast trend reference",
-          "level": 736.7922,
-          "type": "EMA9"
-        },
-        {
           "context": "prior session high",
-          "level": 736.53,
+          "level": 741.56,
           "type": "PRIOR_HIGH"
         },
         {
-          "context": "trend base reference",
-          "level": 728.3541,
-          "type": "EMA50"
+          "context": "opening range low",
+          "level": 740.89,
+          "type": "ORB_LOW"
+        },
+        {
+          "context": "primary trend reference",
+          "level": 738.7301,
+          "type": "EMA21"
+        },
+        {
+          "context": "fast trend reference",
+          "level": 737.6338,
+          "type": "EMA9"
         },
         {
           "context": "prior session low",
-          "level": 716.58,
+          "level": 732.09,
           "type": "PRIOR_LOW"
+        },
+        {
+          "context": "trend base reference",
+          "level": 728.85,
+          "type": "EMA50"
         }
       ],
       "what_to_look_for": [
-        "watch hold above EMA21",
+        "watch hold above VWAP",
         "look for higher low with expanding volume"
       ]
     },
@@ -449,7 +454,7 @@
       "asset_group": "ENERGY",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 54.029998779296875,
+      "current_price": 53.654998779296875,
       "fib_levels": {
         "retracements": {
           "0.382": 56.6299,
@@ -462,18 +467,18 @@
       },
       "grade": "D",
       "invalidation": [
-        "reclaims ORB_HIGH with follow-through",
+        "reclaims ORB_LOW with follow-through",
         "momentum improves above primary trend reference"
       ],
       "lifecycle": {
         "current_grade": "D",
         "current_setup_state": "LOW_QUALITY",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "F",
-        "previous_setup_state": "DATA_UNAVAILABLE",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "D",
+        "previous_setup_state": "LOW_QUALITY",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bearish defined-risk continuation",
       "reason_for_grade": "D: bearish trending_down, regime mixed, near key level",
@@ -483,7 +488,7 @@
       "trade_framing": {
         "direction": "NEUTRAL",
         "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for clearer reaction around ORB_HIGH",
+        "entry": "wait for clearer reaction around ORB_LOW",
         "if_now": "WAIT",
         "setup": "energy low-quality trending_down",
         "trade_type": "none",
@@ -491,48 +496,48 @@
       },
       "watch_zones": [
         {
-          "context": "opening range high",
-          "level": 53.93,
-          "type": "ORB_HIGH"
-        },
-        {
-          "context": "prior session high",
-          "level": 54.15,
-          "type": "PRIOR_HIGH"
-        },
-        {
           "context": "opening range low",
-          "level": 53.86,
+          "level": 53.62,
           "type": "ORB_LOW"
         },
         {
           "context": "session vwap",
-          "level": 53.824,
+          "level": 53.6161,
           "type": "VWAP"
         },
         {
           "context": "prior session low",
-          "level": 53.68,
+          "level": 53.47,
           "type": "PRIOR_LOW"
         },
         {
+          "context": "opening range high",
+          "level": 54.115,
+          "type": "ORB_HIGH"
+        },
+        {
+          "context": "prior session high",
+          "level": 54.28,
+          "type": "PRIOR_HIGH"
+        },
+        {
           "context": "fast trend reference",
-          "level": 54.4842,
+          "level": 54.3033,
           "type": "EMA9"
         },
         {
           "context": "primary trend reference",
-          "level": 55.5621,
+          "level": 55.3819,
           "type": "EMA21"
         },
         {
           "context": "trend base reference",
-          "level": 56.2585,
+          "level": 56.1535,
           "type": "EMA50"
         }
       ],
       "what_to_look_for": [
-        "watch rejection near ORB_HIGH",
+        "watch rejection near ORB_LOW",
         "look for lower high with expanding volume"
       ]
     }
