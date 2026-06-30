@@ -13,43 +13,43 @@
     "rejected_count": 0
   },
   "correlation": null,
-  "generated_at": "2026-06-30T16:22:40Z",
-  "generation_id": "hourly-20260630T162240Z",
+  "generated_at": "2026-06-30T17:03:58Z",
+  "generation_id": "hourly-20260630T170358Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -3.1673708688210143,
-      "level": 58256.0,
+      "change_pct": -2.8193983713850246,
+      "level": 58430.671875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.09179339903802927,
-      "level": 101.2239990234375,
+      "change_pct": -0.0868611040117857,
+      "level": 101.22899627685547,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 1.4734662998245152,
-      "level": 4042.5,
+      "change_pct": 1.5537903907089534,
+      "level": 4045.699951171875,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": -0.5827946575800774,
-      "level": 69.94000244140625,
+      "change_pct": -0.6538722024874972,
+      "level": 69.88999938964844,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 3.020597399985198,
-      "change_pct": 0.6858758415919515,
-      "level": 4.404000282287598,
+      "change_bps": 2.8179117333228025,
+      "change_pct": 0.6401435177347118,
+      "level": 4.4019999504089355,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 4.194474385030069,
-      "level": 60.1150016784668,
+      "change_pct": 4.341799257067951,
+      "level": 60.20000076293945,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -5.212465134152532,
-      "level": 16.729999542236328,
+      "change_pct": -5.722381023858284,
+      "level": 16.639999389648438,
       "symbol": "^VIX"
     }
   },
@@ -71,8 +71,8 @@
     "risk_off_votes": 1,
     "risk_on_votes": 5,
     "total_votes": 8,
-    "vix_level": 16.729999542236328,
-    "vix_pct_change": -0.052124651341525316,
+    "vix_level": 16.639999389648438,
+    "vix_pct_change": -0.05722381023858284,
     "vote_breakdown": {
       "BTC pct_change": "RISK_OFF",
       "DXY pct_change": "NEUTRAL",

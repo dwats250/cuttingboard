@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": -0.0022516326660935327,
-      "price": 106.3499984741211,
+      "pct_change_decimal": -0.005629065918289447,
+      "price": 105.98999786376953,
       "structure": "UNKNOWN",
       "symbol": "USO"
     }
@@ -26,8 +26,8 @@
       "XLE"
     ]
   },
-  "generated_at": "2026-06-30T16:22:40Z",
-  "generation_id": "hourly-20260630T162240Z",
+  "generated_at": "2026-06-30T17:03:58Z",
+  "generation_id": "hourly-20260630T170358Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -41,7 +41,7 @@
   "session_date": "2026-06-30",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-06-30T16:22:40Z"
+    "run_at_utc": "2026-06-30T17:03:58Z"
   },
   "symbols": {
     "GDX": {
@@ -58,12 +58,12 @@
       "lifecycle": {
         "current_grade": "F",
         "current_setup_state": "DATA_UNAVAILABLE",
-        "grade_transition": "DOWNGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "D",
-        "previous_setup_state": "EXTENDED",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "F",
+        "previous_setup_state": "DATA_UNAVAILABLE",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": null,
       "reason_for_grade": "Market data unavailable for this run.",
@@ -94,7 +94,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 369.8648986816406,
+      "current_price": 369.5150146484375,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -104,12 +104,12 @@
       "lifecycle": {
         "current_grade": "F",
         "current_setup_state": "DATA_UNAVAILABLE",
-        "grade_transition": "DOWNGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "D",
-        "previous_setup_state": "EXTENDED",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "F",
+        "previous_setup_state": "DATA_UNAVAILABLE",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": null,
       "reason_for_grade": "Market data unavailable for this run.",
@@ -140,7 +140,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 735.1099853515625,
+      "current_price": 736.510009765625,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -150,12 +150,12 @@
       "lifecycle": {
         "current_grade": "F",
         "current_setup_state": "DATA_UNAVAILABLE",
-        "grade_transition": "DOWNGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "C",
-        "previous_setup_state": "LOW_QUALITY",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "F",
+        "previous_setup_state": "DATA_UNAVAILABLE",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": null,
       "reason_for_grade": "Market data unavailable for this run.",
@@ -181,11 +181,6 @@
           "context": "primary trend reference",
           "level": 718.9159,
           "type": "EMA21"
-        },
-        {
-          "context": "trend base reference",
-          "level": 699.2363,
-          "type": "EMA50"
         }
       ],
       "what_to_look_for": [
@@ -196,7 +191,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 54.064998626708984,
+      "current_price": 53.79499816894531,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -206,12 +201,12 @@
       "lifecycle": {
         "current_grade": "F",
         "current_setup_state": "DATA_UNAVAILABLE",
-        "grade_transition": "DOWNGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "D",
-        "previous_setup_state": "EXTENDED",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "F",
+        "previous_setup_state": "DATA_UNAVAILABLE",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": null,
       "reason_for_grade": "Market data unavailable for this run.",
@@ -242,7 +237,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 746.364990234375,
+      "current_price": 747.0800170898438,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -256,8 +251,8 @@
         "is_new": false,
         "is_removed": false,
         "previous_grade": "F",
-        "previous_setup_state": "CHOPPY",
-        "setup_state_transition": "CHANGED"
+        "previous_setup_state": "DATA_UNAVAILABLE",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": null,
       "reason_for_grade": "Market data unavailable for this run.",
@@ -298,7 +293,7 @@
       "asset_group": "ENERGY",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 53.814998626708984,
+      "current_price": 53.45500183105469,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -308,12 +303,12 @@
       "lifecycle": {
         "current_grade": "F",
         "current_setup_state": "DATA_UNAVAILABLE",
-        "grade_transition": "DOWNGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "D",
-        "previous_setup_state": "LOW_QUALITY",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "F",
+        "previous_setup_state": "DATA_UNAVAILABLE",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": null,
       "reason_for_grade": "Market data unavailable for this run.",
@@ -339,11 +334,6 @@
           "context": "primary trend reference",
           "level": 55.3819,
           "type": "EMA21"
-        },
-        {
-          "context": "trend base reference",
-          "level": 56.1535,
-          "type": "EMA50"
         }
       ],
       "what_to_look_for": [
