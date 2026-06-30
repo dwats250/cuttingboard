@@ -157,8 +157,8 @@ def test_prd138_hourly_macro_tape_and_tradables_share_layout_order() -> None:
     lines = body.split("\n")
     macro_idx = lines.index("Macro Tape:")
     assert lines[macro_idx + 1:macro_idx + 8] == [
-        "XAU  4705.2  +3.6%",
-        "XAG  87.3   +13.8%",
+        "GC   4705.2  +3.6%",
+        "SI   87.3   +13.8%",
         "BTC  81.3K  +1.1%",
         "VIX  18.1   -1.5%",
         "DXY  98.5   -0.2%",

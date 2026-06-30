@@ -22,7 +22,12 @@ proposing new fields. Update when new canonical fields are introduced.
 | `contract["regime"]` | dict | |
 | `contract["trade_candidates"]` | list | |
 | `contract["rejections"]` | list | |
-| `contract["macro_drivers"]` | dict | |
+| `contract["macro_drivers"]` | dict | per-driver blocks keyed by driver name (`volatility`, `dollar`, `rates`, `bitcoin`, `oil`, `gold`, `silver`); built by `_build_macro_drivers` (contract.py:502) |
+| `contract["macro_drivers"][driver]["symbol"]` | string | source quote symbol (e.g. `gold`→`GC=F`, `silver`→`SI=F`; map at contract.py:50) |
+| `contract["macro_drivers"][driver]["level"]` | float | latest price |
+| `contract["macro_drivers"][driver]["change_pct"]` | float | percent change (×100) |
+| `contract["macro_drivers"][driver]["change_bps"]` | float \| absent | rates only |
+| `contract["macro_drivers"]["gold" \| "silver"]` | dict \| absent | OPTIONAL drivers (contract.py:59); the key is **absent** when the `GC=F`/`SI=F` fetch fails (silent skip, contract.py:510/521) → renderer shows `N/A` per-key (dashboard_renderer.py `_build_tape_value_slots`). DISPLAY-ONLY: front-month **futures**, fenced from the decision path (excluded from `_COMPONENT_FIELDS` macro_pressure + `MACRO_BIAS_DRIVERS` vote). Visible tape label is `GC`/`SI` (PRD-211); the slot id / `data-symbol` stays `XAU`/`XAG` |
 | `contract["market_context"]` | dict | |
 
 ---

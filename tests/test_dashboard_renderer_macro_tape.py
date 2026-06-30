@@ -29,5 +29,7 @@ def test_prd138_dashboard_macro_tape_row_order() -> None:
 def test_prd138_dashboard_xau_xag_directional_css() -> None:
     html = render_dashboard_html(_payload(macro_drivers=_drivers()), _run(), market_map=_market_map())
     tape = _macro_tape_block(html)
-    assert 'class="macro-tape-slot tape-slot up"><span class="macro-tape-label">XAU ↑</span>' in tape
-    assert 'class="macro-tape-slot tape-slot down"><span class="macro-tape-label">XAG ↓</span>' in tape
+    # PRD-211: visible label is the honest CME futures ticker (GC/SI); the slot
+    # id / data-symbol stays XAU/XAG (asserted elsewhere).
+    assert 'class="macro-tape-slot tape-slot up"><span class="macro-tape-label">GC ↑</span>' in tape
+    assert 'class="macro-tape-slot tape-slot down"><span class="macro-tape-label">SI ↓</span>' in tape
