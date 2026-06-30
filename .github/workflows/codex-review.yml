@@ -102,10 +102,13 @@ jobs:
           # Emit the JSONL event stream so codex's STRUCTURED fallback item.error
           # (the honor signal) lands in this job's log for `resolve` to read.
           codex-args: --json
-          # codex-version intentionally unpinned: the action installs a current
-          # sandbox-capable CLI (0.2.x predates the --sandbox flag, which would
-          # make `sandbox: read-only` unenforceable). The actual version is
-          # captured at runtime via `codex --version` for provenance below.
+          # codex-version PINNED (PRD-212): the floating "current" CLI dropped
+          # `gpt-5-codex` metadata and fell back, fail-closing every dispatch.
+          # 0.142.1 is the last CLI with landed proof (PRD-210/PRD-208 certified
+          # artifacts) of honoring the alias, and is >0.2.x so `sandbox: read-only`
+          # stays enforceable. The runtime `codex --version` capture below stays
+          # for provenance. Any change here needs a fresh Phase-4 live re-validation.
+          codex-version: 0.142.1
           working-directory: ${{ github.workspace }}
           output-file: codex-final-message.md
           allow-users: dwats250

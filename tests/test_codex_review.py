@@ -307,3 +307,39 @@ def test_prd207_reworded_fallback_still_fails_closed(resolver, tmp_path):
     r = _run_resolver(resolver, tmp_path, FIX_REWORDED_ERROR, "gpt-5-codex", _ALLOW)
     assert r.returncode != 0, "a reworded item.error must STILL fail closed (not regex-only)"
     assert r.stdout.strip() == ""
+
+
+# ===========================================================================
+# PRD-212 — CLI-identity pin. TRIPWIRE, NOT a behavioral proof.
+#
+# The unpinned `codex-version` let the action install a floating "current" CLI;
+# the current CLI dropped `gpt-5-codex` metadata and fell back, so every dispatch
+# fail-closed (no artifact). The fix pins the CLI to codex-cli 0.142.1 — the last
+# version with LANDED PROOF of honoring the alias (PRD-210/PRD-208 certified
+# artifacts).
+#
+# HONEST LABEL (PRD-198 #4, anti-hollow-gate): this is a PRESENCE/STRUCTURE check.
+# It CANNOT prove 0.142.1 actually honors gpt-5-codex — that needs a live Codex
+# dispatch (PRD-212 Phase-4 acceptance: resolved-model=gpt-5-codex HONORED, artifact
+# lands). The BEHAVIORAL honor guard is test_prd207_fallback_present_fails_closed /
+# test_prd207_honored_allowlisted_passes above (the workflow's own resolver run
+# against the real captured fallback/honored streams). This tripwire only locks the
+# proven-good version string: any change away from 0.142.1 goes RED and forces a
+# fresh Phase-4 re-validation.
+# ===========================================================================
+
+def test_prd212_codex_version_pinned_tripwire(wf):
+    review = wf["jobs"]["review"]
+    codex_step = next(
+        s for s in review["steps"]
+        if isinstance(s.get("uses"), str) and s["uses"].startswith("openai/codex-action")
+    )
+    pinned = (codex_step.get("with") or {}).get("codex-version")
+    assert pinned is not None, (
+        "codex-version must be PINNED in the codex-action step — an unpinned/floating "
+        "CLI is the PRD-212 drift (install a 'current' CLI that dropped gpt-5-codex)"
+    )
+    assert str(pinned).strip() == "0.142.1", (
+        f"codex-version must pin the proven-good CLI 0.142.1 (got {pinned!r}); any other "
+        "version requires a fresh Phase-4 live re-validation that it honors gpt-5-codex"
+    )
