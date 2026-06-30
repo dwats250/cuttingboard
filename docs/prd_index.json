@@ -916,6 +916,12 @@
       "commit": "1968b50, 55f9cd2, 13c5d4a"
     },
     {
+      "number": 209,
+      "title": "OHLCV bar-count floor: reject/repair truncated daily frames served as fresh",
+      "status": "PROPOSED",
+      "commit": null
+    },
+    {
       "number": 210,
       "title": "Premarket trend-structure path coverage \u2014 apply the PRD-174 history fallback on _run_pipeline (F08 closes-None fix)",
       "status": "IN PROGRESS",
