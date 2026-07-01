@@ -224,11 +224,12 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-204 | 9c1fb37 | Non-destructive scoreboard aggregate (preserve-prior + staleness marker) | COMPLETE | [PRD-204](prd_history/PRD-204.md) |
 | PRD-205 | — | (void — number skipped; 207/210 filed out of order) | DEPRECATED | — |
 | PRD-206 | — | (void — number skipped; 207/210 filed out of order) | DEPRECATED | — |
-| PRD-210 | — | Premarket trend-structure path coverage — apply the PRD-174 history fallback on _run_pipeline (F08 closes-None fix) | IN PROGRESS | [PRD-210](prd_history/PRD-210.md) |
+| PRD-210 | 55b2f67 | Premarket trend-structure path coverage — apply the PRD-174 history fallback on _run_pipeline (F08 closes-None fix) | COMPLETE | [PRD-210](prd_history/PRD-210.md) |
 | PRD-207 | 1968b50, 55f9cd2, 13c5d4a | codex-review.yml resolves the REQUESTED model, not the SERVED model (verified-real-Codex gate is hollow) | COMPLETE | [PRD-207](prd_history/PRD-207.md) |
+| PRD-208 | — | Parked presentation PRD — HIGH-RISK Codex cross-review leg UNSATISFIED (diff reviewed @ ceceedb; held pending an allowlisted Codex review — see DECISIONS 2026-06-26) | PROPOSED | — |
 | PRD-209 | — | OHLCV bar-count floor: reject/repair truncated daily frames served as fresh | PROPOSED | [PRD-209](prd_history/PRD-209.md) |
-| PRD-211 | — | Macro-tape metals display correctness | IN PROGRESS | [PRD-211](prd_history/PRD-211.md) |
-| PRD-212 | — | Pin the Codex cross-review identity (CLI version 0.142.1) — end the alias-drift gate outage | IN PROGRESS | [PRD-212](prd_history/PRD-212.md) |
+| PRD-211 | 57dfd12 | Macro-tape metals display correctness | COMPLETE | [PRD-211](prd_history/PRD-211.md) |
+| PRD-212 | daedf10 | Pin the Codex cross-review identity (CLI version 0.142.1) — end the alias-drift gate outage | COMPLETE | [PRD-212](prd_history/PRD-212.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

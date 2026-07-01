@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 207,
-  "next_prd": 208,
+  "latest_complete": 212,
+  "next_prd": 213,
   "entries": [
     {
       "number": 56,
@@ -916,6 +916,12 @@
       "commit": "1968b50, 55f9cd2, 13c5d4a"
     },
     {
+      "number": 208,
+      "title": "Parked presentation PRD — HIGH-RISK Codex cross-review leg UNSATISFIED (diff reviewed @ ceceedb; held pending an allowlisted Codex review — see DECISIONS 2026-06-26)",
+      "status": "PROPOSED",
+      "commit": null
+    },
+    {
       "number": 209,
       "title": "OHLCV bar-count floor: reject/repair truncated daily frames served as fresh",
       "status": "PROPOSED",
@@ -924,20 +930,20 @@
     {
       "number": 210,
       "title": "Premarket trend-structure path coverage \u2014 apply the PRD-174 history fallback on _run_pipeline (F08 closes-None fix)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "55b2f67"
     },
     {
       "number": 211,
       "title": "Macro-tape metals display correctness",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "57dfd12"
     },
     {
       "number": 212,
       "title": "Pin the Codex cross-review identity (CLI version 0.142.1) \u2014 end the alias-drift gate outage",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "daedf10"
     }
   ]
 }
