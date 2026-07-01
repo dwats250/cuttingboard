@@ -16,6 +16,58 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-01 — Staged queued-item decisions (PR #51 / PRD-188 / PRD-209)
+
+Recon-and-stage pass over three parked/queued items; durable findings at
+`audits/recon-2026-07-01/staged-queued-items.md`. Dustin's decisions, executed this
+session as doc mutations behind the human merge seam (PR #51 close is the only direct
+action).
+
+**1. PR #51 (PRD-205 codex-review-router) — CLOSED; router idea dropped.** The
+`PRD-205` number was void-filled at the PRD-207 closeout (see 2026-06-29
+"Numbering-gap convention"; `PRD_REGISTRY.md:225` and `prd_index.json` both record
+`DEPRECATED`), orphaning the PR's identity; its pre-void base is now
+`mergeable_state: dirty`. The router *capability* was never built — Codex-review runs
+via `codex-review.yml` (PRD-197/-207/-212) with host-vs-CI routing chosen by CLAUDE.md
+doctrine, not a tool. Closed as orphaned; the auto-routing wrapper is dropped for now
+(refile under a live number if the in-container `host_not_allowed` hazard resurfaces).
+
+**2. PRD-188 SHOCK-banner go/no-go (2026-07-15) — ADVISORY; PRD-188 stays parked.**
+The date was only a PROJECT_STATE note (origin: 2026-06-19 cadence #3 remediation) with
+nothing behind it: `macro_awareness.yml` is `workflow_dispatch`-only by design, and the
+PRD-188 gate is unstarted (corpus = 2 cases / 0 labeled; threshold T = TBD; no
+eval-result artifact under `audits/`; no explicit go). Decision: treat 2026-07-15 as
+**soft/advisory, not a scheduled gate** — PRD-188 remains parked, no eval work
+commissioned this session. Making it a live go/no-go later is separately-approved work:
+label/expand the corpus, set T, run `tools/macro_awareness_eval.py` to an `audits/`
+artifact, then decide.
+
+**3. PRD-209 OHLCV bar-count floor — SHELVED (reopen-on-incident).** The count-blind
+ingestion gates (`_is_fresh_ohlcv_cache` date-only; `_fetch_ohlcv_from_yfinance`
+empty-only accept) are a *verified latent* fail-silent hole (PRD-198 #1), but the
+incident that motivated urgency (F08) was root-caused to a path divergence and fixed by
+PRD-210 — not a truncation. No real short-frame-served-as-fresh event has been observed.
+Per VISION "cuts before additions," the guard is **documented, not built**: PRD-209 is
+retained as a reopen-on-incident spec. **Reopen trigger:** an observed
+short-frame-served-as-fresh occurrence, or a deliberate election to enforce PRD-198 #1
+proactively. Registry row left PROPOSED (no `SHELVED` status enum exists; the shelve
+lives here and in the PRD's own STATUS marker, not as a registry flip).
+
+**Open diagnostic question (resolved; does NOT flip the shelve).** PRD-209 flagged an
+unresolved question — was QQQ's 2026-06-24 15:30 failing-slot frame *short*
+(INSUFFICIENT_HISTORY, floor-relevant) or *closes-None* (DATA_UNAVAILABLE, not
+floor-covered)? The render token was **DATA_UNAVAILABLE** (per
+`trend_structure._classify_sma_unavailable`, `_close_series` returned None); derived
+computed QQQ EMAs the same run (≥21 bars, no "OHLCV failed" log); diag2-2026-06-24
+root-caused it to path-divergence (fixed by PRD-210). Evidence → closes-None, not a
+short frame served as fresh → no observed floor-incident → shelve stands. The definitive
+confirm-check (row-count of the restored `QQQ_ohlcv.parquet` vs `SPY` at a failing slot)
+needs live/publish cache state unavailable in-sandbox; it is belt-and-suspenders and does
+not change the math. If a future live confirm ever shows QQQ *was* short at a failing
+slot, that IS the reopen trigger.
+
+---
+
 ## 2026-06-30 — PRD-212: Codex gate alias-drift incident + CLI-identity pin
 
 **Incident.** `codex-review.yml` left `codex-version` unpinned, so each dispatch
