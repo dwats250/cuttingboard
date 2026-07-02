@@ -1446,9 +1446,10 @@ def test_prd208_r3_columns_cut_renamed_and_counts_match() -> None:
 
 
 def test_prd213_mobile_reflow_data_labels_and_media_query() -> None:
-    # PRD-213: the trend table carries a class hook + a narrow-viewport media
-    # query, and every body <td> carries a data-label equal to its column header
-    # so the stacked mobile layout can render the header inline.
+    # PRD-213 + PRD-218: the trend table carries a class hook + a narrow-viewport
+    # media query. PRD-218 reflows each symbol to one compact inline row (per-cell
+    # labels hidden via content:none) rather than a stacked card; the data-label
+    # attributes remain on every <td>.
     import re as _re213
     snap = _ts_healthy_snapshot()
     html = render_dashboard_html(
@@ -1456,7 +1457,7 @@ def test_prd213_mobile_reflow_data_labels_and_media_query() -> None:
     )
     # Media query + class hook are defined in the rendered CSS.
     assert "@media(max-width:640px)" in html
-    assert ".ts-table td::before{content:attr(data-label)" in html
+    assert ".ts-table td::before{content:none}" in html
     assert 'class="ts-table"' in html
     # Every rendered body <td> has a non-empty data-label.
     section = _ts_section(html)
@@ -1465,6 +1466,29 @@ def test_prd213_mobile_reflow_data_labels_and_media_query() -> None:
     all_tds = body.count("<td")
     assert len(tds) == all_tds, f"{all_tds - len(tds)} <td> without data-label"
     assert all(lbl.strip() for lbl in tds), "empty data-label on a trend-structure cell"
+
+
+def test_prd218_price_color_and_sma_arrow_spacing() -> None:
+    import re as _r218
+    # Healthy fixture is BULLISH across the board -> price cells coloured green.
+    snap = _ts_healthy_snapshot()
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap,
+    )
+    section = _ts_section(html)
+    assert ".ts-px-up{color:#4caf50}" in html and ".ts-px-down{color:#f44336}" in html
+    assert 'class="ts-px-up"' in section, "bullish price cell not coloured"
+    # SMA arrows carry a trailing space (PRD-218); no unspaced arrow-digit.
+    assert _r218.search(r"[\u2191\u2193=] 50 [\u2191\u2193=] 200", section), "spaced SMA composite missing"
+    assert not _r218.search(r"[\u2191\u2193=](50|200)", section), "unspaced SMA arrow present"
+    # A bearish symbol colours its price red.
+    snap2 = _ts_healthy_snapshot()
+    first = next(iter(snap2["symbols"]))
+    snap2["symbols"][first]["trend_alignment"] = "BEARISH"
+    html2 = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap2,
+    )
+    assert 'class="ts-px-down"' in _ts_section(html2), "bearish price cell not coloured"
 
 
 # (b) Missing file
@@ -2848,15 +2872,15 @@ from cuttingboard.delivery.dashboard_renderer import (  # noqa: E402
 )
 
 _PRD131_VOCAB = (
-    "↑50 ↑200",
-    "↑50 ↓200",
-    "↓50 ↑200",
-    "↓50 ↓200",
-    "=50 ↑200",
-    "=50 ↓200",
-    "↑50 =200",
-    "↓50 =200",
-    "=50 =200",
+    "↑ 50 ↑ 200",
+    "↑ 50 ↓ 200",
+    "↓ 50 ↑ 200",
+    "↓ 50 ↓ 200",
+    "= 50 ↑ 200",
+    "= 50 ↓ 200",
+    "↑ 50 = 200",
+    "↓ 50 = 200",
+    "= 50 = 200",
     "Structure unavailable",
     "SMA history insufficient",
     "Structure not computed",
@@ -2865,15 +2889,15 @@ _PRD131_VOCAB = (
 # PRD-208: compressed 3-state arrow vocabulary (ABOVE=↑, BELOW=↓, AT_LEVEL==),
 # suffixed with the SMA window. All 9 (3×3) composites asserted exactly.
 _PRD131_R1_TABLE = (
-    (("ABOVE", "ABOVE"),       "↑50 ↑200"),
-    (("ABOVE", "BELOW"),       "↑50 ↓200"),
-    (("BELOW", "ABOVE"),       "↓50 ↑200"),
-    (("BELOW", "BELOW"),       "↓50 ↓200"),
-    (("AT_LEVEL", "ABOVE"),    "=50 ↑200"),
-    (("AT_LEVEL", "BELOW"),    "=50 ↓200"),
-    (("ABOVE", "AT_LEVEL"),    "↑50 =200"),
-    (("BELOW", "AT_LEVEL"),    "↓50 =200"),
-    (("AT_LEVEL", "AT_LEVEL"), "=50 =200"),
+    (("ABOVE", "ABOVE"),       "↑ 50 ↑ 200"),
+    (("ABOVE", "BELOW"),       "↑ 50 ↓ 200"),
+    (("BELOW", "ABOVE"),       "↓ 50 ↑ 200"),
+    (("BELOW", "BELOW"),       "↓ 50 ↓ 200"),
+    (("AT_LEVEL", "ABOVE"),    "= 50 ↑ 200"),
+    (("AT_LEVEL", "BELOW"),    "= 50 ↓ 200"),
+    (("ABOVE", "AT_LEVEL"),    "↑ 50 = 200"),
+    (("BELOW", "AT_LEVEL"),    "↓ 50 = 200"),
+    (("AT_LEVEL", "AT_LEVEL"), "= 50 = 200"),
 )
 
 _PRD131_FORBIDDEN = (
@@ -3021,7 +3045,7 @@ def test_prd131_r1_composite_cell_renders_in_panel(
     spy["price_vs_sma_200"] = "ABOVE"
     html = _prd120_coherent_render(trend_structure_snapshot=snap)
     section = _ts_section(html)
-    assert "↑50 ↑200" in section
+    assert "↑ 50 ↑ 200" in section
     assert "SMA 50/200" in section  # header present (PRD-208 rename)
 
 
@@ -3371,15 +3395,15 @@ def test_prd132_r6d_cells_call_order_in_source() -> None:
 
 # R6(e) — all 12 PRD-131 display strings present byte-identically.
 _PRD131_VOCAB_FOR_R6E = (
-    "↑50 ↑200",
-    "↑50 ↓200",
-    "↓50 ↑200",
-    "↓50 ↓200",
-    "=50 ↑200",
-    "=50 ↓200",
-    "↑50 =200",
-    "↓50 =200",
-    "=50 =200",
+    "↑ 50 ↑ 200",
+    "↑ 50 ↓ 200",
+    "↓ 50 ↑ 200",
+    "↓ 50 ↓ 200",
+    "= 50 ↑ 200",
+    "= 50 ↓ 200",
+    "↑ 50 = 200",
+    "↓ 50 = 200",
+    "= 50 = 200",
     "Structure unavailable",
     "SMA history insufficient",
     "Structure not computed",
