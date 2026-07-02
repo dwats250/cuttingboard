@@ -239,6 +239,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-219 | 02d2e8f | System-state distillation: verdict + one context line + single timestamp | COMPLETE | [PRD-219](prd_history/PRD-219.md) |
 | PRD-220 | 2006db5 | Dashboard refinement round 2: system-state/market-map coherence + macro-tape & trend polish | COMPLETE | [PRD-220](prd_history/PRD-220.md) |
 | PRD-221 | 6b3fef1 | Level diagram: NOW marker, % distance, entry-gap band | COMPLETE | [PRD-221](prd_history/PRD-221.md) |
+| PRD-222 | — | Level diagram: label anchor NOW, drop redundant marker + empty band (PRD-221 patch) | IN PROGRESS | [PRD-222](prd_history/PRD-222.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

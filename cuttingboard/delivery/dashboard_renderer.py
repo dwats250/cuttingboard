@@ -1441,25 +1441,18 @@ def _render_level_diagram(
     contract_entry: float | None,
     fib_levels: dict | None,
     watch_zones: list | None,
-    now_price: float | None = None,
 ) -> None:
     """Render a deterministic SVG level diagram for a candidate card (PRD-074).
 
-    PRD-221: when ``now_price`` (current price) is supplied it renders a distinct
-    NOW marker, a % distance from NOW on every level label, and a faint band
-    shading the gap between NOW and the ENTRY trigger.
+    PRD-216: each level label carries its dollar value. PRD-221/PRD-222: the
+    anchor (the current-price reference) is labelled NOW and every other level
+    carries its signed % distance from it. (PRD-221's separate NOW marker and
+    NOW→ENTRY band were removed in PRD-222: the anchor already *is* current price,
+    so the marker was redundant and the band always empty.)
     """
     if contract_entry is None or contract_entry <= 0:
         w('  <div class="lvl-unavail">Chart unavailable — no price data</div>')
         return
-
-    _now: float | None = None
-    if (
-        isinstance(now_price, (int, float))
-        and not isinstance(now_price, bool)
-        and now_price > 0
-    ):
-        _now = float(now_price)
 
     vwap_level: float | None = None
     zone_lines: list[tuple[float, str]] = []
@@ -1490,8 +1483,6 @@ def _render_level_diagram(
                 pass
 
     all_prices = [contract_entry]
-    if _now is not None:
-        all_prices.append(_now)
     if vwap_level is not None:
         all_prices.append(vwap_level)
     for lv_f, _ in zone_lines:
@@ -1522,10 +1513,8 @@ def _render_level_diagram(
         return round(SVG_H * (1.0 - (price - p_min) / p_span))
 
     def _pct(level: float) -> str:
-        # PRD-221: signed % distance of a level from price NOW ("" when no NOW).
-        if _now is None or _now <= 0:
-            return ""
-        return f" {((level - _now) / _now * 100.0):+.1f}%"
+        # PRD-222: signed % distance of a level from NOW (the current-price anchor).
+        return f" {((level - contract_entry) / contract_entry * 100.0):+.1f}%"
 
     w('  <div class="lvl-diagram">')
     w(
@@ -1533,15 +1522,6 @@ def _render_level_diagram(
         f'xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">'
     )
     w(f'    <rect width="{LINE_W}" height="{SVG_H}" fill="#0a0a0a"/>')
-    # PRD-221: faint band shading the gap between price NOW and the ENTRY trigger.
-    if _now is not None:
-        _y_now, _y_entry = _to_y(_now), _to_y(contract_entry)
-        _band_top, _band_bot = min(_y_now, _y_entry), max(_y_now, _y_entry)
-        if _band_bot - _band_top >= 1:
-            w(
-                f'    <rect x="0" y="{_band_top}" width="{LINE_W}" '
-                f'height="{_band_bot - _band_top}" fill="#f5c518" opacity="0.06"/>'
-            )
 
     # Draw every level LINE at its true price-mapped y, and collect the label
     # for a second pass. Lines are never moved (the ENTRY line y is a pinned
@@ -1576,25 +1556,16 @@ def _render_level_diagram(
         )
         labels.append((y, f"VWAP {vwap_level:,.2f}{_pct(vwap_level)}", "#29b6f6"))
 
+    # PRD-222: the anchor IS current price — label it NOW (the 0% reference, no
+    # % suffix). Kept yellow/bold so it stays the visual focal point and the
+    # pinned anchor-line-y contract holds.
     y = _to_y(contract_entry)
     w(
         f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
         f'stroke="#f5c518" stroke-width="2"/>'
     )
     w(f'    <circle cx="3" cy="{y}" r="3" fill="#f5c518"/>')
-    labels.append((y, f"ENTRY {contract_entry:,.2f}{_pct(contract_entry)}", "#f5c518"))
-
-    # PRD-221: the NOW marker — where price sits in the level stack right now.
-    # Bright/distinct so it reads as "you are here"; it is the 0% reference so no
-    # % suffix. Drawn last (on top) but the ENTRY line y stays a pinned contract.
-    if _now is not None:
-        y = _to_y(_now)
-        w(
-            f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
-            f'stroke="#ffffff" stroke-width="1.5"/>'
-        )
-        w(f'    <circle cx="3" cy="{y}" r="3.5" fill="#ffffff"/>')
-        labels.append((y, f"NOW {_now:,.2f}", "#ffffff"))
+    labels.append((y, f"NOW {contract_entry:,.2f}", "#f5c518"))
 
     # Label-declutter pass. Spread baselines so no two labels sit closer than
     # LABEL_MIN_GAP px; a thin leader connects any label pushed off its line.
@@ -1745,12 +1716,7 @@ def _render_candidate_card(
         and level_anchor > 0
     )
     if anchor_valid and has_level_context:
-        # PRD-221: pass current price as the NOW marker (distinct from the ENTRY
-        # anchor so the diagram shows where price sits relative to the levels).
-        _render_level_diagram(
-            w, level_anchor, fib_levels, watch_zones,
-            now_price=entry.get("current_price"),
-        )
+        _render_level_diagram(w, level_anchor, fib_levels, watch_zones)
 
     w("</div>")
 
