@@ -992,6 +992,12 @@
       "title": "Dashboard refinement round 2: system-state/market-map coherence + macro-tape & trend polish",
       "status": "COMPLETE",
       "commit": "2006db5"
+    },
+    {
+      "number": 221,
+      "title": "Level diagram: NOW marker, % distance, entry-gap band",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
