@@ -3745,4 +3745,4 @@ def test_prd220_trend_alignment_abbreviated() -> None:
     section = _ts_section(html)
     assert "BULL" in section
     assert "BULLISH" not in section
-    assert 'class="ts-intraday"' in section  # Intraday on its own line
+    assert 'class="ts-intraday"' in section  # Intraday cell hook (muted, flows inline)
