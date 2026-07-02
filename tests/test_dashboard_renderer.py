@@ -51,7 +51,7 @@ def test_published_artifact_no_data_unavailable_in_tape() -> None:
     html = _UI_INDEX.read_text(encoding="utf-8")
     tape = html.split('id="macro-tape"', 1)
     assert len(tape) == 2, "macro-tape block not found in ui/index.html"
-    tape_block = tape[1].split('id="macro-pressure"', 1)[0]
+    tape_block = tape[1].split('id="red-folder"', 1)[0]
     assert "DATA_UNAVAILABLE" not in tape_block, (
         "ui/index.html macro tape contains DATA_UNAVAILABLE — regenerate with updated renderer"
     )
@@ -64,7 +64,7 @@ def test_published_artifact_no_false_no_live_macro_data() -> None:
     html = _UI_INDEX.read_text(encoding="utf-8")
     tape = html.split('id="macro-tape"', 1)
     assert len(tape) == 2, "macro-tape block not found in ui/index.html"
-    tape_block = tape[1].split('id="macro-pressure"', 1)[0]
+    tape_block = tape[1].split('id="red-folder"', 1)[0]
     has_real_values = any(
         f'data-symbol="{sym}"' in tape_block and "--" not in tape_block.split(f'data-symbol="{sym}"', 1)[1][:30]
         for sym in ("VIX", "DXY", "10Y", "BTC")
@@ -293,26 +293,25 @@ def test_prd122_oil_renders_from_stale_snapshot(tmp_path: Path) -> None:
     )
 
 
-def test_macro_pressure_collapsed_inside_macro_tape() -> None:
+def test_macro_pressure_inline_beside_tally() -> None:
+    # PRD-217: no standalone macro-pressure disclosure; the per-component phrases
+    # render as one inline line inside the macro tape.
     html = render_dashboard_html(
         _payload(macro_drivers=_macro_drivers()),
         _run(),
         market_map=_market_map({"SPY": _mm_symbol("SPY")}),
     )
 
-    assert '<div class="block" id="macro-pressure">' not in html
-    assert '<details id="macro-pressure">' in html
-    assert "MACRO PRESSURE" in html
+    assert 'id="macro-pressure"' not in html
+    assert '<details id="macro-pressure">' not in html
+    assert 'class="macro-pressure-line' in html
 
     tape_pos = html.index('id="macro-tape"')
-    pressure_pos = html.index('id="macro-pressure"')
+    line_pos = html.index('class="macro-pressure-line')
     board_pos = html.index('id="candidate-board"')
-    assert tape_pos < pressure_pos < board_pos
+    assert tape_pos < line_pos < board_pos
 
-    # PRD-158 § 4.2 translations 4-7: pressure block emits decision-language
-    # phrases instead of raw RISK_ON/RISK_OFF/MIXED labels. Overall is
-    # suppressed (handled by the integrator).
-    pressure = html.split('id="macro-pressure"', 1)[1].split("</details>", 1)[0]
+    pressure = html.split('class="macro-pressure-line', 1)[1].split("</div>", 1)[0]
     has_decision_phrase = any(
         phrase in pressure
         for phrase in (
@@ -325,7 +324,7 @@ def test_macro_pressure_collapsed_inside_macro_tape() -> None:
     assert "Overall" not in pressure
 
 
-def test_macro_pressure_no_data_guard_stays_inside_details(tmp_path: Path) -> None:
+def test_macro_pressure_no_data_renders_unavailable_line(tmp_path: Path) -> None:
     html = render_dashboard_html(
         _payload(macro_drivers={}),
         _run(),
@@ -333,12 +332,12 @@ def test_macro_pressure_no_data_guard_stays_inside_details(tmp_path: Path) -> No
         macro_snapshot_path=tmp_path / "missing_macro_snapshot.json",
     )
 
-    pressure = html.split('<details id="macro-pressure">', 1)[1].split("</details>", 1)[0]
-    assert "MACRO PRESSURE UNAVAILABLE" in pressure
+    pressure = html.split('class="macro-pressure-line', 1)[1].split("</div>", 1)[0]
+    assert "Macro pressure unavailable" in pressure
     assert "NO PRESSURE DATA" not in pressure
 
 
-def test_macro_pressure_field_missing_guard_stays_inside_details(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_macro_pressure_field_missing_renders_unavailable_line(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         "cuttingboard.delivery.dashboard_renderer._build_pressure_snapshot",
         lambda _macro_drivers, _market_map: "FIELD_MISSING",
@@ -350,8 +349,8 @@ def test_macro_pressure_field_missing_guard_stays_inside_details(monkeypatch: py
         market_map=_market_map(),
     )
 
-    pressure = html.split('<details id="macro-pressure">', 1)[1].split("</details>", 1)[0]
-    assert "MACRO PRESSURE UNAVAILABLE" in pressure
+    pressure = html.split('class="macro-pressure-line', 1)[1].split("</div>", 1)[0]
+    assert "Macro pressure unavailable" in pressure
     assert "FIELD_MISSING" not in pressure
 
 
@@ -604,7 +603,7 @@ def test_null_safe_secondary_sections_no_crash() -> None:
     assert "NO_HISTORY" not in html
     # No crash — rendering completed; pressure block present, scoreboard
     # falls back to its empty-state line with no regime_history supplied.
-    assert 'id="macro-pressure"' in html
+    assert 'id="macro-tape"' in html
     scoreboard = html.split('id="scoreboard"', 1)[1]
     assert "No regime history yet." in scoreboard
 
@@ -1175,19 +1174,19 @@ def test_macro_pressure_missing_shows_unavailable() -> None:
         market_map=_market_map(),
         macro_snapshot_path=Path("/nonexistent/macro_snapshot.json"),
     )
-    pressure = html.split('<details id="macro-pressure">', 1)[1].split("</details>", 1)[0]
-    assert "MACRO PRESSURE UNAVAILABLE" in pressure
+    pressure = html.split('class="macro-pressure-line', 1)[1].split("</div>", 1)[0]
+    assert "Macro pressure unavailable" in pressure
     assert "NO PRESSURE DATA" not in pressure
 
 
-def test_macro_pressure_with_data_shows_affordance() -> None:
+def test_macro_pressure_with_data_renders_inline_phrases() -> None:
     html = render_dashboard_html(
         _payload(macro_drivers=_macro_drivers()),
         _run(),
         market_map=_market_map({"SPY": _mm_symbol("SPY")}),
     )
-    pressure = html.split('<details id="macro-pressure">', 1)[1].split("</details>", 1)[0]
-    assert "▶" in pressure
+    assert 'class="macro-pressure-line' in html
+    assert '<details id="macro-pressure">' not in html
 
 
 # ---------------------------------------------------------------------------

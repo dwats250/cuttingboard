@@ -705,10 +705,9 @@ _CSS = (
     ".removed-row{color:#888;font-size:0.8rem;padding:2px 0}"
     ".MIXED{background:#2a1a3a;color:#ba68c8}"
     ".UNKNOWN{background:#1a1a1a;color:#555}"
-    ".pressure-grid{display:grid;grid-template-columns:max-content max-content max-content max-content;"
-    "gap:4px 8px;margin-top:4px;align-items:baseline}"
-    ".pressure-overall{margin-top:10px;display:flex;align-items:baseline;gap:0.4rem}"
-    ".pressure-no-data{color:#888;font-style:italic;font-size:0.8rem}"
+    # PRD-217: pressure phrases fold into one wrapping line beside the tally.
+    ".macro-pressure-line{color:#aaa;font-size:0.72rem;margin-top:3px}"
+    ".macro-pressure-line.pressure-na{color:#888;font-style:italic}"
     ".kv-grid{display:grid;grid-template-columns:max-content 1fr;gap:2px 0.75rem;margin-top:0.25rem}"
     ".history-table{display:grid;grid-template-columns:5ch max-content max-content max-content;"
     "column-gap:0.75rem;row-gap:2px;margin-top:4px;align-items:baseline}"
@@ -718,12 +717,10 @@ _CSS = (
     ".artifact-warning{border-color:#ff9800;color:#ff9800}"
     ".artifact-diagnostics{color:#888;font-size:0.72rem;line-height:1.45}"
     ".artifact-diagnostics span{display:block}"
-    "#artifact-diagnostics summary,#run-history summary,details.tier-group summary,#macro-pressure summary{cursor:pointer;list-style:none}"
-    "#artifact-diagnostics summary::-webkit-details-marker,#run-history summary::-webkit-details-marker,#macro-pressure summary::-webkit-details-marker{display:none}"
+    "#artifact-diagnostics summary,#run-history summary,details.tier-group summary{cursor:pointer;list-style:none}"
+    "#artifact-diagnostics summary::-webkit-details-marker,#run-history summary::-webkit-details-marker{display:none}"
     "#artifact-diagnostics summary{color:#555;font-size:0.72rem}"
     "#run-history summary{color:#aaa;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em}"
-    "#macro-pressure summary{color:#aaa;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em}"
-    "#macro-pressure{margin-top:8px}"
     ".failed-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-top:4px}"
     ".failed-card-fields .label{font-size:0.7rem}"
     ".failed-card-fields .value{margin-top:1px}"
@@ -2123,6 +2120,28 @@ def render_dashboard_html(
                 f'{long_votes} on {_FLAT} {_tally_bias}</div>'
             )
 
+    # PRD-217: fold the per-component pressure phrases into one wrapping line
+    # beside the tally (replaces the removed MACRO PRESSURE disclosure).
+    _pressure_available = (
+        bool(macro_drivers)
+        and not all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values())
+        and isinstance(pressure, dict)
+    )
+    if _pressure_available:
+        _pressure_phrases = [
+            _pressure_decision_phrase(_pk, pressure.get(_pk))
+            for _pk, _ in _PRESSURE_COMPONENT_LABELS
+        ]
+        _pressure_phrases = [_p for _p in _pressure_phrases if _p]
+        if _pressure_phrases:
+            w(
+                '  <div class="macro-pressure-line">'
+                + " · ".join(_esc(_p) for _p in _pressure_phrases)
+                + "</div>"
+            )
+    else:
+        w('  <div class="macro-pressure-line pressure-na">Macro pressure unavailable</div>')
+
     _tape_arrow_map = dict(tape_slots)
 
     row_1_html = [
@@ -2175,26 +2194,8 @@ def render_dashboard_html(
         )
     w('  </div>')
 
-    # --- macro-pressure ---
-    _pressure_data_available = (
-        bool(macro_drivers)
-        and not all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values())
-        and isinstance(pressure, dict)
-    )
-    w('  <details id="macro-pressure">')
-    if _pressure_data_available:
-        w("    <summary>MACRO PRESSURE ▶</summary>")
-        w('    <div class="pressure-grid">')
-        for key, _ in _PRESSURE_COMPONENT_LABELS:
-            phrase = _pressure_decision_phrase(key, pressure.get(key))  # type: ignore[union-attr]
-            if phrase is None:
-                continue
-            w(f'    <span class="value">{_esc(phrase)}</span>')
-        w('    </div>')
-    else:
-        w("    <summary>MACRO PRESSURE</summary>")
-        w('    <div class="pressure-no-data">MACRO PRESSURE UNAVAILABLE</div>')
-    w("  </details>")
+    # PRD-217: the standalone MACRO PRESSURE disclosure is removed; its
+    # per-component phrases now render inline beside the tally above.
     w("</div>")
 
     # --- red-folder (PRD-176 loader / PRD-177 render): Q2 "what matters today".

@@ -153,7 +153,7 @@ def _market_map(symbols: dict | None = None) -> dict:
 
 
 def _macro_tape_block(html: str) -> str:
-    return html.split('id="macro-tape"', 1)[1].split('id="macro-pressure"', 1)[0]
+    return html.split('id="macro-tape"', 1)[1].split('id="red-folder"', 1)[0]
 
 
 def _macro_tape_value_slots(html: str) -> list[tuple[str, str]]:

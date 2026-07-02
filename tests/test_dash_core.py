@@ -153,7 +153,7 @@ def test_section_order_full_r5_sequence() -> None:
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), previous_run=_run(), market_map=mm)
     system_pos     = html.index('id="system-state"')
     tape_pos       = html.index('id="macro-tape"')
-    pressure_pos   = html.index('id="macro-pressure"')
+    pressure_pos   = html.index('class="macro-pressure-line')
     candidates_pos = html.index('id="candidate-board"')
     delta_pos      = html.index('id="run-delta"')
     assert system_pos < tape_pos < pressure_pos < candidates_pos < delta_pos
