@@ -16,6 +16,65 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-01 — PRD-212 SUPERSEDED: the Codex-gate outage was a deprecated model, not a CLI-alias problem
+
+**What we believed (PRD-212's premise):** the gate's persistent model-metadata
+fallback was a CLI/alias-resolution instability, freezable by pinning codex-cli to
+0.142.1. Acceptance was written as "keep model=gpt-5-codex, it is proven served
+under the pin."
+
+**What was actually true:** `gpt-5-codex` was deprecated by OpenAI on 2026-04-01
+(the entire GPT-5.0/5.1 Codex family retired in one sweep) — before PRD-212 was
+authored. A retired model cannot be served; the "metadata not found → fallback"
+error is the documented consequence of requesting it. No CLI version pin can
+resurrect a retired model. PRD-212 targeted the wrong layer of a misdiagnosed cause.
+
+**How the premise was falsified:** the Phase-4 live dispatches (2026-07-01, on main
+under the 0.142.1 pin) returned FAIL-CLOSED(4) model-metadata fallback every run.
+Note: the prior DECISIONS crediting "Phase-4 live validation" as a review stand-in
+was authored 2026-06-30 22:11 (commit daedf108) — before any Phase-4 run existed —
+and the runs, once they occurred, refuted rather than supported the premise. There
+is also no PRD-212 Claude-review artifact; the review claim was self-asserted in the
+implementation commit, and the implementation was a direct manual merge (39811bf)
+with no review PR. Both waiver legs are void.
+
+**What actually fixed it (PR #76):** the model *target*, not the pin. Set the
+`model` input to `gpt-5.5` and `ALLOWED_CODEX_MODELS` to `gpt-5.5 gpt-5.5-*`.
+Validated end-to-end by run 28560459040 (dd843fe): review/resolve/land all green,
+resolved-model=gpt-5.5, exit 0, artifact landed. This account is served gpt-5.5
+under its existing API key (auth is API-key, not ChatGPT sign-in). gpt-5.5 is the
+accepted target; gpt-5-codex is retired and must not be restored.
+
+**Amended acceptance (supersedes PRD-212:45,65):** the gate's certified model is
+`gpt-5.5` (family glob `gpt-5.5-*`), evidenced by run 28560459040. Acceptance is
+"requested model is served without fallback and matches the allowlist glob," not a
+fixed `gpt-5-codex` string.
+
+**What worked and is NOT superseded:** PRD-207. The gate it built to fail-closed on
+silent fallback detected this real, permanent fallback with perfect accuracy — it is
+what surfaced the problem. The detection infrastructure held; only PRD-212's
+diagnosis failed.
+
+**Residual seam (tracked, not fixed here):** the honor-gate infers "served == 
+requested" negatively — this toolchain exposes no served-model id, so honor is
+inferred from absence-of-fallback plus turn.completed. The guarantee therefore rests
+on the fallback *detector*; if OpenAI changes the fallback wording, that detector
+must still catch it. Durability follow-up owns this.
+
+**Lesson:** "model not served" is not always a repo or CLI fact. Sometimes the model
+no longer exists — and that fact lives in the vendor's changelog, not this repo. The
+doctrine "artifacts overrule recollection" has a dual: for facts that live *outside*
+the repo, the artifacts are the thing that goes stale. First check on any future
+"model not served" is "does this model still exist."
+
+**Registry note.** PRD-212's row stays `COMPLETE` (its code merged at `daedf10` and
+PR #76 *retains* the `0.142.1` pin — the change was not reverted, only its diagnosis
+corrected); `SUPERSEDED` is not an allowed registry status and demoting the highest
+PRD would regress `next_prd`. The supersession is carried as a title/PROJECT_STATE
+annotation plus this entry, not a status flip.
+
+---
+
 ## 2026-07-01 — Staged queued-item decisions (PR #51 / PRD-188 / PRD-209)
 
 Recon-and-stage pass over three parked/queued items; durable findings at
