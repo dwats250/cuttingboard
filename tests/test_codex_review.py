@@ -250,7 +250,7 @@ FIX_REWORDED_ERROR = "\n".join([_THREAD, _TURN_STARTED, _ITEM_ERROR_REWORDED, _T
 # Not codex output at all (no recognizable events).
 FIX_MALFORMED = "2026-06-26T20:41:00Z Setup job\n2026-06-26T20:41:01Z Run actions/checkout@v6\n"
 
-_ALLOW = "gpt-5-codex gpt-5-codex-*"
+_ALLOW = "gpt-5.5 gpt-5.5-*"
 
 
 @pytest.fixture(scope="module")
@@ -279,9 +279,9 @@ def test_prd207_fallback_present_fails_closed(resolver, tmp_path):
 
 
 def test_prd207_honored_allowlisted_passes(resolver, tmp_path):
-    r = _run_resolver(resolver, tmp_path, FIX_HONORED, "gpt-5-codex", _ALLOW)
+    r = _run_resolver(resolver, tmp_path, FIX_HONORED, "gpt-5.5", _ALLOW)
     assert r.returncode == 0, "an honored, allowlisted stream must PASS"
-    assert r.stdout.strip() == "gpt-5-codex", "honored run resolves to the (served==requested) model"
+    assert r.stdout.strip() == "gpt-5.5", "honored run resolves to the (served==requested) model"
 
 
 def test_prd207_honored_off_allowlist_fails_closed(resolver, tmp_path):
