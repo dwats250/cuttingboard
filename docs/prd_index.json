@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 224,
-  "next_prd": 225,
+  "latest_complete": 225,
+  "next_prd": 226,
   "entries": [
     {
       "number": 56,
@@ -1020,8 +1020,8 @@
     {
       "number": 225,
       "title": "Trend-structure mobile rows: uniform wrap (alignment-cell min-width + tighter gap)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "9cc751c"
     }
   ]
 }
