@@ -141,8 +141,8 @@ _TREND_STRUCTURE_INTRADAY_DISPLAY: dict[tuple[str, str], str] = {
     ("AT_LEVEL", "UNAVAILABLE"): "At VWAP, RVOL unavailable",
 }
 
-_INTRADAY_VWAP_DATA_UNAVAILABLE = "Intraday context unavailable"
-_INTRADAY_VWAP_NOT_COMPUTED = "VWAP not applicable"
+_INTRADAY_VWAP_DATA_UNAVAILABLE = "Intraday N/A"
+_INTRADAY_VWAP_NOT_COMPUTED = "VWAP N/A"
 
 
 def _intraday_rvol_band(rvol: float | None) -> str:
@@ -2218,14 +2218,14 @@ def render_dashboard_html(
         )
         _ts_headers = (
             "Symbol", "Price", "vs VWAP", "Alignment",
-            "Entry Context", "RVOL", "SMA 50/200", "Intraday Context",
+            "Entry Context", "RVOL", "SMA 50/200", "Intraday",
         )
         # PRD-165 R2 / PRD-208: collapse a granular column when it is uniformly
         # unavailable. Indices into _ts_headers. PRD-208 cut the redundant
         # "vs SMA50"/"vs SMA200" columns (the "SMA 50/200" arrow composite now
         # carries that position), re-indexing the collapsible set to vs VWAP (2),
         # Alignment (3), Entry Context (4). The composite reserve columns
-        # ("SMA 50/200", Intraday Context) are never collapsed.
+        # ("SMA 50/200", Intraday) are never collapsed.
         _ts_collapsible_cols = (2, 3, 4)
         _ts_unavailable_cells = {
             "NOT COMPUTED", "INSUFFICIENT HISTORY", "DATA UNAVAILABLE", _DASH,

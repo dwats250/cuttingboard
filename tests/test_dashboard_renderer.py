@@ -1385,7 +1385,7 @@ def test_prd165_r2_uniformly_unavailable_columns_collapse() -> None:
     for hdr in (">vs SMA50</th>", ">vs SMA200</th>"):
         assert hdr not in section, f"expected {hdr} cut (PRD-208)"
     for hdr in (">Symbol</th>", ">Price</th>", ">RVOL</th>",
-                ">SMA 50/200</th>", ">Intraday Context</th>"):
+                ">SMA 50/200</th>", ">Intraday</th>"):
         assert hdr in section, f"expected {hdr} retained"
 
 
@@ -1413,7 +1413,7 @@ def test_prd165_r2_healthy_snapshot_renders_all_columns() -> None:
     )
     section = _ts_section(html)
     for hdr in (">vs VWAP</th>", ">Alignment</th>", ">Entry Context</th>",
-                ">SMA 50/200</th>", ">Intraday Context</th>"):
+                ">SMA 50/200</th>", ">Intraday</th>"):
         assert hdr in section, f"expected {hdr} retained in healthy snapshot"
     for hdr in (">vs SMA50</th>", ">vs SMA200</th>"):
         assert hdr not in section, f"expected {hdr} cut (PRD-208)"
@@ -1432,7 +1432,7 @@ def test_prd208_r3_columns_cut_renamed_and_counts_match() -> None:
     headers = _re208.findall(r"<th[^>]*>([^<]*)</th>", section)
     assert headers == [
         "Symbol", "Price", "vs VWAP", "Alignment",
-        "Entry Context", "RVOL", "SMA 50/200", "Intraday Context",
+        "Entry Context", "RVOL", "SMA 50/200", "Intraday",
     ], f"unexpected trend-structure header identity/order: {headers}"
     assert "SMA Composite" not in section, "old 'SMA Composite' header must be gone"
     body_rows = _re208.findall(r"<tr>\s*(<td.*?)</tr>", section, _re208.S)
@@ -3087,8 +3087,8 @@ _PRD132_R1_TABLE = (
 )
 
 _PRD132_VOCAB = tuple(s for _, s in _PRD132_R1_TABLE) + (
-    "Intraday context unavailable",
-    "VWAP not applicable",
+    "Intraday N/A",
+    "VWAP N/A",
 )
 
 _PRD132_MAGNITUDE_DENY = (
@@ -3133,13 +3133,13 @@ def test_prd132_r1_no_forbidden_vocabulary() -> None:
 @pytest.mark.parametrize("rvol", [None, 0.5, 2.0, float("nan"), float("inf")])
 def test_prd132_r2_data_unavailable_precedence(rvol: float | None) -> None:
     rec = {"price_vs_vwap": "DATA_UNAVAILABLE", "relative_volume": rvol}
-    assert _trend_structure_intraday_display(rec) == "Intraday context unavailable"
+    assert _trend_structure_intraday_display(rec) == "Intraday N/A"
 
 
 @pytest.mark.parametrize("rvol", [None, 0.5, 2.0, float("nan"), float("inf")])
 def test_prd132_r2_not_computed_precedence(rvol: float | None) -> None:
     rec = {"price_vs_vwap": "NOT_COMPUTED", "relative_volume": rvol}
-    assert _trend_structure_intraday_display(rec) == "VWAP not applicable"
+    assert _trend_structure_intraday_display(rec) == "VWAP N/A"
 
 
 # R3 — Inactive-session short-circuit.
@@ -3191,10 +3191,10 @@ def test_prd132_r1_r6_intraday_cell_renders_and_column_order(
     section = _ts_section(html)
     # Header presence + relative order.
     sma_pos = section.find("SMA 50/200")
-    intra_pos = section.find("Intraday Context")
+    intra_pos = section.find(">Intraday</th>")
     assert sma_pos >= 0, "SMA 50/200 header missing"
     assert intra_pos > sma_pos, (
-        "Intraday Context header must come after SMA 50/200"
+        "Intraday header must come after SMA 50/200"
     )
     # Phrase present in body. HTML-escape the operators since the renderer
     # passes cells through _esc(); browsers render entities back to glyphs.
@@ -3325,10 +3325,10 @@ def test_prd132_r6b_prd131_symbols_present(symbol: str) -> None:
 def test_prd132_r6c_header_order_in_source() -> None:
     src = Path("cuttingboard/delivery/dashboard_renderer.py").read_text()
     sma_pos = src.find('"SMA 50/200"')
-    intra_pos = src.find('"Intraday Context"')
+    intra_pos = src.find('"Intraday"')
     assert sma_pos >= 0, "PRD-131/PRD-208 'SMA 50/200' header literal missing"
     assert intra_pos > sma_pos, (
-        "PRD-132 'Intraday Context' header must appear after 'SMA 50/200'"
+        "PRD-132 'Intraday' header must appear after 'SMA 50/200'"
     )
 
 
@@ -3400,7 +3400,7 @@ def test_prd132_r6f_missing_record_cell_count(
     assert cell_count == 8, (
         f"missing-record row has {cell_count} cells; expected 8 "
         "(Symbol, Price, vs VWAP, Alignment, Entry Context, RVOL, SMA 50/200, "
-        "Intraday Context — PRD-208 cut vs SMA50/vs SMA200)"
+        "Intraday — PRD-208 cut vs SMA50/vs SMA200)"
     )
 
 
