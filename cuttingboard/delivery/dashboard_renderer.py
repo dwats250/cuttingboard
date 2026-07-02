@@ -2213,9 +2213,16 @@ def render_dashboard_html(
 
     _tape_arrow_map = dict(tape_slots)
 
+    def _tape_label_padded(display: str) -> str:
+        # PRD-224: pad 2-char labels (GC/SI, PRD-211) to the 3-char column with
+        # &nbsp; so the arrow glyphs align. Plain spaces cannot do this — HTML
+        # collapses consecutive regular spaces even under white-space:nowrap.
+        # Applied after _esc; the notification path pads via f"{display:<3}".
+        return _esc(display) + "&nbsp;" * max(0, 3 - len(display))
+
     row_1_html = [
         f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(_tape_arrow_map.get(slot.label, _DASH), "na")}">'
-        f'<span class="macro-tape-label">{_esc(slot.display)} {_esc(_tape_arrow_map.get(slot.label, _DASH))}</span>'
+        f'<span class="macro-tape-label">{_tape_label_padded(slot.display)} {_esc(_tape_arrow_map.get(slot.label, _DASH))}</span>'
         f'<span class="macro-tape-value" data-symbol="{_esc(slot.label)}">'
         f'{_esc(tape_value_map.get(slot.label, ""))}</span>'
         f'</span>'
@@ -2225,7 +2232,7 @@ def render_dashboard_html(
 
     row_2_html = [
         f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(_tape_arrow_map.get(slot.label, _DASH), "na")}">'
-        f'<span class="macro-tape-label">{_esc(slot.display)} {_esc(_tape_arrow_map.get(slot.label, _DASH))}</span>'
+        f'<span class="macro-tape-label">{_tape_label_padded(slot.display)} {_esc(_tape_arrow_map.get(slot.label, _DASH))}</span>'
         f'<span class="macro-tape-value" data-symbol="{_esc(slot.label)}">'
         f'{_esc(tape_value_map.get(slot.label, ""))}</span>'
         f'</span>'
@@ -2679,12 +2686,19 @@ def _load_contract_entry_context(
     alert_candidates: list[dict] = []
     for cand in (contract.get("trade_candidates") or []):
         sym = cand.get("symbol")
+        # PRD-224: the entry path carries the same guards as the PRD-223 stop
+        # path below — bool rejected BEFORE coercion (float(True) is 1.0, a
+        # masquerading anchor), then finite and positive. Unreachable from
+        # valid contracts (finite-float-asserted for ALLOW_TRADE); symmetry
+        # defense for malformed artifacts.
         val = cand.get("entry")
-        if sym and val is not None:
+        if sym and val is not None and not isinstance(val, bool):
             try:
-                entry_map[sym] = float(val)
+                entry_f = float(val)
             except (TypeError, ValueError):
-                pass
+                entry_f = None
+            if entry_f is not None and math.isfinite(entry_f) and entry_f > 0:
+                entry_map[sym] = entry_f
         # PRD-223: the numeric stop feeds the level ladder's risk band; only a
         # finite positive price is drawable. Booleans are rejected BEFORE
         # coercion — float(True) is 1.0, which would masquerade as a real
