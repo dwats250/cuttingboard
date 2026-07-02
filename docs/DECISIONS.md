@@ -16,6 +16,43 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-02 — PRD-208 COMPLETE: presentation revive lands once the Codex gate is genuinely working
+
+**What landed.** PRD-208 (trend-structure SMA alignment presentation) revived onto
+current main and closed. The SMA composite cell now renders a compressed 3-state
+arrow vocabulary (↑/↓/= vs SMA50 and SMA200) under the pinned "SMA 50/200" header;
+the redundant granular "vs SMA50"/"vs SMA200" columns are cut (trend table 10→8
+columns); unavailable states keep "Structure unavailable"/"SMA history insufficient"
+and are guarded against ever rendering "NULL"/"None"/prose. Pure presentation change
+in `dashboard_renderer.py` (CLASS CONSUMER; no data/schema/gate/count/regime touched).
+Impl `0f72e32`; +2 net tests.
+
+**Why it was parked, and what unblocked it.** PRD-208's only blocker was its
+HIGH-RISK Codex cross-review leg. The stage-0 artifact (branch
+`claude/prd-208-stage-0` @ `ceceedb`) was INVALID: its provenance claimed
+`resolved-model=gpt-5-codex` while the body self-reported `Model: gpt-4.1` — the exact
+hollow-gate substitution PRD-207 was built to fail-close on, and (per 2026-07-01) the
+consequence of `gpt-5-codex` being retired 2026-04-01. The gate only became usable once
+PR #76 retargeted it to `gpt-5.5`. PRD-208 was held for exactly this greenlight.
+
+**The gate, run for real.** `codex-review.yml` dispatched against `0f72e32` (run
+28563373849) produced a genuine artifact: resolved-model=`gpt-5.5` (requested honored,
+no fallback event, allowlist-verified), codex-cli 0.142.1, openai/codex-action
+read-only, fresh context, SHA-pinned. This is the first PRD-208 Codex leg that
+actually satisfies the CLAUDE.md gate properties (in-tree + durable, SHA-pinned,
+verified-real Codex, read-only, fresh-context). Verdict: **APPROVE WITH EDITS** — no
+required edits on the implementation; one non-blocking recommended edit (the PRD-190
+PROJECT_STATE row still said "SMA Composite", stale after this rename), applied at
+closeout.
+
+**Human at the seam.** The implementation, the Codex dispatch, and the dashboard-
+publish scope call were Dustin's decisions this session (dispatch: yes; live publish:
+out of scope — the published snapshot refreshes on the next scheduled `cuttingboard.yml`
+run, never a hand-overwrite). The PR is opened for a human merge and NOT auto-merged;
+the merge stays Dustin's.
+
+---
+
 ## 2026-07-01 — PRD-212 SUPERSEDED: the Codex-gate outage was a deprecated model, not a CLI-alias problem
 
 **What we believed (PRD-212's premise):** the gate's persistent model-metadata

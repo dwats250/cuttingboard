@@ -918,8 +918,8 @@
     {
       "number": 208,
       "title": "Trend-structure SMA alignment presentation: compression + unavailable-token consistency",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "0f72e32"
     },
     {
       "number": 209,
