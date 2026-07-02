@@ -230,6 +230,9 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-209 | — | OHLCV bar-count floor: reject/repair truncated daily frames served as fresh | PROPOSED | [PRD-209](prd_history/PRD-209.md) |
 | PRD-211 | 57dfd12 | Macro-tape metals display correctness | COMPLETE | [PRD-211](prd_history/PRD-211.md) |
 | PRD-212 | daedf10 | Pin the Codex cross-review identity (CLI version 0.142.1) — end the alias-drift gate outage. PREMISE SUPERSEDED (2026-07-01): the outage was a deprecated model (gpt-5-codex retired 2026-04-01), not CLI-alias drift; fixed by retargeting the model to gpt-5.5 (PR #76, validated run 28560459040). The 0.142.1 pin is retained. See DECISIONS 2026-07-01. | COMPLETE | [PRD-212](prd_history/PRD-212.md) |
+| PRD-213 | — | Mobile-responsive trend-structure table (stacked card reflow) | PROPOSED | [PRD-213](prd_history/PRD-213.md) |
+| PRD-214 | — | Macro-tape condensation (tally line + collapsed per-driver evidence) | PROPOSED | [PRD-214](prd_history/PRD-214.md) |
+| PRD-215 | — | Candidate-card condense + "actionable now" cyan accent | PROPOSED | [PRD-215](prd_history/PRD-215.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

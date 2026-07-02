@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
   "latest_complete": 212,
-  "next_prd": 213,
+  "next_prd": 216,
   "entries": [
     {
       "number": 56,
@@ -944,6 +944,24 @@
       "title": "Pin the Codex cross-review identity (CLI version 0.142.1) \u2014 end the alias-drift gate outage. PREMISE SUPERSEDED (2026-07-01): the outage was a deprecated model (gpt-5-codex retired 2026-04-01), not CLI-alias drift; fixed by retargeting the model to gpt-5.5 (PR #76, validated run 28560459040). The 0.142.1 pin is retained. See DECISIONS 2026-07-01.",
       "status": "COMPLETE",
       "commit": "daedf10"
+    },
+    {
+      "number": 213,
+      "title": "Mobile-responsive trend-structure table (stacked card reflow)",
+      "status": "PROPOSED",
+      "commit": null
+    },
+    {
+      "number": 214,
+      "title": "Macro-tape condensation (tally line + collapsed per-driver evidence)",
+      "status": "PROPOSED",
+      "commit": null
+    },
+    {
+      "number": 215,
+      "title": "Candidate-card condense + \"actionable now\" cyan accent",
+      "status": "PROPOSED",
+      "commit": null
     }
   ]
 }
