@@ -760,7 +760,7 @@ _CSS = (
     ".ts-table td::before{content:none}"
     ".ts-table td:first-child{font-weight:bold;min-width:3.2em}"
     ".ts-table td:nth-child(2){min-width:5em}"          # price column aligns
-    ".ts-table td.ts-intraday{flex-basis:100%;color:#888}"  # PRD-220: VWAP on its own line
+    ".ts-table td.ts-intraday{color:#888}"  # muted; flows inline now that BULL/BEAR/MIX reclaimed the room
     "}"
 )
 
