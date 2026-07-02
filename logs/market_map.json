@@ -12,8 +12,8 @@
     "fib_deferred_symbols": [],
     "unavailable_symbols": []
   },
-  "generated_at": "2026-07-02T05:23:15Z",
-  "generation_id": "live-20260702T052315Z",
+  "generated_at": "2026-07-02T05:33:53Z",
+  "generation_id": "live-20260702T053353Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -27,7 +27,7 @@
   "session_date": "2026-07-02",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-07-02T05:23:15Z"
+    "run_at_utc": "2026-07-02T05:33:53Z"
   },
   "symbols": {
     "GDX": {
