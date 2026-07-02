@@ -35,10 +35,15 @@ without full-file reads. Update when new high-value boundaries are identified.
 
 | Function | Line | Purpose |
 |---|---|---|
-| `render_dashboard_html` | 511 | Renders full dashboard HTML from payload + run artifacts |
+| `render_dashboard_html` | 1774 | Renders full dashboard HTML from payload + run artifacts; carries `contract_entry_map` / `contract_stop_map` (PRD-223) |
+| `_render_level_diagram` | 1439 | Candidate-card SVG level ladder. Pinned geometry: SVG_H=110, LINE_W=160, yellow `#f5c518` anchor line. PRD-223: optional `contract_stop` draws the entry→stop risk zone (`#e05252`, `opacity="0.08"`, dashed STOP edge) |
+| `_render_candidate_card` | 1661 | Renders one candidate card; pair-gates the risk band (stop only draws when the contract entry is the anchor) |
+| `_load_contract_entry_context` | 2669 | Reads `logs/latest_hourly_contract.json` → entry map + stop map (finite, > 0) + alert candidates + generated_at |
 
 Note: the candidate board reads `market_map["symbols"]` directly, not payload
-candidates.
+candidates. The level diagram's anchor/stop come from the contract overlay
+(`trade_candidates[i]["entry"/"stop"]`), with current_price as the
+anchor-only fallback.
 
 ---
 

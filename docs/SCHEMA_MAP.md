@@ -21,6 +21,9 @@ proposing new fields. Update when new canonical fields are introduced.
 | `contract["system_state"]["session_type"]` | string \| absent | conditional; only injected for SUNDAY_PREMARKET runs (runtime.py:911) |
 | `contract["regime"]` | dict | |
 | `contract["trade_candidates"]` | list | |
+| `contract["trade_candidates"][i]["entry"]` | float | numeric entry from `TradeDecision` (contract.py `_build_trade_candidates`); finite-float-asserted for ALLOW_TRADE (`_assert_trade_candidates_valid`). Renderer consumer: level-diagram anchor via `_load_contract_entry_context` |
+| `contract["trade_candidates"][i]["stop"]` | float | numeric stop from `TradeDecision`; finite-float-asserted for ALLOW_TRADE. Renderer consumer (PRD-223): level-diagram entry→stop risk band via `_load_contract_entry_context` stop map |
+| `contract["trade_candidates"][i]["target"]` | float | numeric target; NOT rendered on the level diagram by design (description-not-prediction) |
 | `contract["rejections"]` | list | |
 | `contract["macro_drivers"]` | dict | per-driver blocks keyed by driver name (`volatility`, `dollar`, `rates`, `bitcoin`, `oil`, `gold`, `silver`); built by `_build_macro_drivers` (contract.py:502) |
 | `contract["macro_drivers"][driver]["symbol"]` | string | source quote symbol (e.g. `gold`→`GC=F`, `silver`→`SI=F`; map at contract.py:50) |

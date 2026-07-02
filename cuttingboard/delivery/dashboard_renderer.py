@@ -1441,6 +1441,7 @@ def _render_level_diagram(
     contract_entry: float | None,
     fib_levels: dict | None,
     watch_zones: list | None,
+    contract_stop: float | None = None,
 ) -> None:
     """Render a deterministic SVG level diagram for a candidate card (PRD-074).
 
@@ -1448,11 +1449,31 @@ def _render_level_diagram(
     anchor (the current-price reference) is labelled NOW and every other level
     carries its signed % distance from it. (PRD-221's separate NOW marker and
     NOW→ENTRY band were removed in PRD-222: the anchor already *is* current price,
-    so the marker was redundant and the band always empty.)
+    so the marker was redundant and the band always empty.) PRD-223: when the
+    contract carries a numeric stop, the anchor→stop span shades as a soft risk
+    zone with a dashed STOP edge — zone shading, not a crisp hairline, because
+    the invalidation the engine describes is a zone, not a tick.
     """
     if contract_entry is None or contract_entry <= 0:
         w('  <div class="lvl-unavail">Chart unavailable — no price data</div>')
         return
+
+    # PRD-223: the risk zone draws only from an honest numeric pair — a
+    # finite positive stop distinct from the anchor. Anything else renders
+    # exactly the pre-PRD-223 diagram.
+    stop_price: float | None = None
+    if contract_stop is not None and not isinstance(contract_stop, bool):
+        try:
+            stop_candidate = float(contract_stop)
+        except (TypeError, ValueError):
+            stop_candidate = None
+        if (
+            stop_candidate is not None
+            and math.isfinite(stop_candidate)
+            and stop_candidate > 0
+            and stop_candidate != contract_entry
+        ):
+            stop_price = stop_candidate
 
     vwap_level: float | None = None
     zone_lines: list[tuple[float, str]] = []
@@ -1483,6 +1504,8 @@ def _render_level_diagram(
                 pass
 
     all_prices = [contract_entry]
+    if stop_price is not None:
+        all_prices.append(stop_price)
     if vwap_level is not None:
         all_prices.append(vwap_level)
     for lv_f, _ in zone_lines:
@@ -1523,6 +1546,16 @@ def _render_level_diagram(
     )
     w(f'    <rect width="{LINE_W}" height="{SVG_H}" fill="#0a0a0a"/>')
 
+    # PRD-223: risk zone — the anchor→stop span, shaded behind every level
+    # line so the levels stay legible on top of it.
+    if stop_price is not None:
+        band_top = min(_to_y(contract_entry), _to_y(stop_price))
+        band_h = abs(_to_y(contract_entry) - _to_y(stop_price))
+        w(
+            f'    <rect x="0" y="{band_top}" width="{LINE_W}" height="{band_h}" '
+            f'fill="#e05252" opacity="0.08"/>'
+        )
+
     # Draw every level LINE at its true price-mapped y, and collect the label
     # for a second pass. Lines are never moved (the ENTRY line y is a pinned
     # contract for downstream tests); only the text labels are decluttered so
@@ -1555,6 +1588,17 @@ def _render_level_diagram(
             f'stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>'
         )
         labels.append((y, f"VWAP {vwap_level:,.2f}{_pct(vwap_level)}", "#29b6f6"))
+
+    # PRD-223: dashed STOP edge on the risk zone's far side. Dashed, not
+    # solid — the stop is where the thesis is wrong, rendered as a zone edge
+    # per the DECISIONS 2026-07-02 second-order caution.
+    if stop_price is not None:
+        y = _to_y(stop_price)
+        w(
+            f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
+            f'stroke="#e05252" stroke-width="1.5" stroke-dasharray="5,3"/>'
+        )
+        labels.append((y, f"STOP {stop_price:,.2f}{_pct(stop_price)}", "#e05252"))
 
     # PRD-222: the anchor IS current price — label it NOW (the 0% reference, no
     # % suffix). Kept yellow/bold so it stays the visual focal point and the
@@ -1615,7 +1659,8 @@ def _render_level_diagram(
 
 
 def _render_candidate_card(
-    w: object, sym: str, entry: dict, contract_entry: float | None = None
+    w: object, sym: str, entry: dict, contract_entry: float | None = None,
+    contract_stop: float | None = None,
 ) -> None:
     grade = entry.get("grade") or ""
     css_class = _GRADE_CSS.get(grade, "unknown")
@@ -1716,7 +1761,12 @@ def _render_candidate_card(
         and level_anchor > 0
     )
     if anchor_valid and has_level_context:
-        _render_level_diagram(w, level_anchor, fib_levels, watch_zones)
+        # PRD-223: the risk band needs the contract pair — a stop only draws
+        # against its own entry, never against the current-price fallback.
+        # This gate also carries contract staleness: a stale contract nulls
+        # the entry map, so its stop can never pair up and draw.
+        band_stop = contract_stop if contract_entry is not None else None
+        _render_level_diagram(w, level_anchor, fib_levels, watch_zones, contract_stop=band_stop)
 
     w("</div>")
 
@@ -1731,6 +1781,7 @@ def render_dashboard_html(
     market_map_path: Path | None = None,
     macro_snapshot_path: Path | None = None,
     contract_entry_map: dict | None = None,
+    contract_stop_map: dict | None = None,
     alert_candidates: list[dict] | None = None,
     contract_generated_at: object | None = None,
     payload_source: str | Path = _PAYLOAD_PATH,
@@ -2462,6 +2513,7 @@ def render_dashboard_html(
                         _render_candidate_card(
                             w, sym, symbols[sym],
                             contract_entry=(contract_entry_map or {}).get(sym),
+                            contract_stop=(contract_stop_map or {}).get(sym),
                         )
                     if is_low_tier:
                         w("  </details>")
@@ -2559,6 +2611,7 @@ def write_dashboard(
     macro_snapshot_path: Path | None = None,
     market_map_path: Path | None = None,
     contract_entry_map: dict | None = None,
+    contract_stop_map: dict | None = None,
     alert_candidates: list[dict] | None = None,
     contract_generated_at: object | None = None,
     payload_source: str | Path = _PAYLOAD_PATH,
@@ -2596,6 +2649,7 @@ def write_dashboard(
         market_map_path=market_map_path,
         macro_snapshot_path=macro_snapshot_path,
         contract_entry_map=contract_entry_map,
+        contract_stop_map=contract_stop_map,
         alert_candidates=alert_candidates,
         contract_generated_at=contract_generated_at,
         payload_source=payload_source,
@@ -2612,13 +2666,16 @@ def write_dashboard(
     output_path.write_text(html, encoding="utf-8")
 
 
-def _load_contract_entry_context(logs_dir: Path) -> tuple[dict[str, float], list[dict], object | None, Path]:
-    """Load latest_hourly_contract entry prices, alert_candidates, and generated_at timestamp."""
+def _load_contract_entry_context(
+    logs_dir: Path,
+) -> tuple[dict[str, float], dict[str, float], list[dict], object | None, Path]:
+    """Load latest_hourly_contract entry/stop prices, alert_candidates, and generated_at timestamp."""
     path = logs_dir / _HOURLY_CONTRACT_PATH.name
     contract = _load_json_optional(path)
     if not contract:
-        return {}, [], None, path
+        return {}, {}, [], None, path
     entry_map: dict[str, float] = {}
+    stop_map: dict[str, float] = {}
     alert_candidates: list[dict] = []
     for cand in (contract.get("trade_candidates") or []):
         sym = cand.get("symbol")
@@ -2628,9 +2685,19 @@ def _load_contract_entry_context(logs_dir: Path) -> tuple[dict[str, float], list
                 entry_map[sym] = float(val)
             except (TypeError, ValueError):
                 pass
+        # PRD-223: the numeric stop feeds the level ladder's risk band; only a
+        # finite positive price is drawable.
+        stop_val = cand.get("stop")
+        if sym and stop_val is not None:
+            try:
+                stop_f = float(stop_val)
+            except (TypeError, ValueError):
+                stop_f = None
+            if stop_f is not None and math.isfinite(stop_f) and stop_f > 0:
+                stop_map[sym] = stop_f
         if cand.get("decision_status") != ALLOW_TRADE:
             alert_candidates.append(cand)
-    return entry_map, alert_candidates, contract.get("generated_at"), path
+    return entry_map, stop_map, alert_candidates, contract.get("generated_at"), path
 
 
 def _load_regime_history(history_path: Path) -> list[dict]:
@@ -2710,8 +2777,9 @@ def main(
     )
     history_runs = history_runs[:HISTORY_LIMIT]
 
-    contract_entry_map_raw, alert_candidates_raw, contract_generated_at, contract_source = _load_contract_entry_context(logs_dir)
+    contract_entry_map_raw, contract_stop_map_raw, alert_candidates_raw, contract_generated_at, contract_source = _load_contract_entry_context(logs_dir)
     contract_entry_map = contract_entry_map_raw or None
+    contract_stop_map = contract_stop_map_raw or None
     # PRD-166 R2: an explicit --market-map-path overrides the default; when
     # omitted the default is <logs-dir>/market_map.json (current behavior).
     market_map_path = market_map_path if market_map_path is not None else logs_dir / "market_map.json"
@@ -2744,6 +2812,7 @@ def main(
         market_map_path=market_map_path,
         macro_snapshot_path=macro_snapshot_path,
         contract_entry_map=contract_entry_map,
+        contract_stop_map=contract_stop_map,
         alert_candidates=alert_candidates_raw or None,
         contract_generated_at=contract_generated_at,
         payload_source=payload_path,

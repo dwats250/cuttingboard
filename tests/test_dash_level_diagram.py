@@ -198,3 +198,127 @@ def test_prd222_now_anchor_and_pct_distance() -> None:
     assert ">PRIOR_LOW 99.00 -1.0%</text>" in diagram  # % distance from NOW
     assert 'stroke="#ffffff"' not in diagram         # no separate white NOW marker
     assert 'opacity="0.06"' not in diagram           # no band
+
+
+# ---------------------------------------------------------------------------
+# PRD-223 — Numeric entry→stop risk band (from contract trade_candidates)
+# ---------------------------------------------------------------------------
+
+import re as _re
+
+_BAND_RECT = _re.compile(
+    r'<rect x="0" y="(?P<y>\d+)" width="160" height="(?P<h>\d+)" '
+    r'fill="#e05252" opacity="0.08"/>'
+)
+_STOP_LINE = _re.compile(
+    r'<line x1="0" y1="(?P<y>\d+)" x2="160" y2="\d+" '
+    r'stroke="#e05252" stroke-width="1.5" stroke-dasharray="5,3"/>'
+)
+_ANCHOR_LINE = _re.compile(
+    r'<line x1="0" y1="(?P<y>\d+)" x2="160" y2="\d+" stroke="#f5c518"'
+)
+
+
+def _diagram(html: str) -> str:
+    return html.split('class="lvl-diagram"', 1)[1].split("</svg>", 1)[0]
+
+
+def _assert_no_band(html_or_diagram: str) -> None:
+    assert 'opacity="0.08"' not in html_or_diagram
+    assert 'stroke="#e05252"' not in html_or_diagram
+    assert ">STOP " not in html_or_diagram
+
+
+def test_prd223_risk_band_renders_between_entry_and_stop() -> None:
+    # Contract entry 510 (the anchor) / stop 505: a soft risk zone spans
+    # exactly the mapped anchor→stop y-range, behind the level lines, with a
+    # dashed STOP edge labelled with price and % distance.
+    wz = [{"type": "PRIOR_LOW", "level": 508.0}]
+    mm = _mm_with_levels("SPY", grade="A+", watch_zones=wz)
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=mm,
+        contract_entry_map={"SPY": 510.0},
+        contract_stop_map={"SPY": 505.0},
+    )
+    diagram = _diagram(html)
+    rect = _BAND_RECT.search(diagram)
+    stop_line = _STOP_LINE.search(diagram)
+    anchor_line = _ANCHOR_LINE.search(diagram)
+    assert rect is not None, "risk-zone rect missing"
+    assert stop_line is not None, "dashed STOP edge missing"
+    assert anchor_line is not None, "anchor line missing"
+    y_anchor = int(anchor_line.group("y"))
+    y_stop = int(stop_line.group("y"))
+    assert int(rect.group("y")) == min(y_anchor, y_stop)
+    assert int(rect.group("h")) == abs(y_anchor - y_stop)
+    # The rect renders BEFORE (behind) every level line.
+    assert diagram.index(rect.group(0)) < diagram.index("<line")
+    assert ">STOP 505.00 -1.0%</text>" in diagram
+    assert ">NOW 510.00</text>" in diagram
+
+
+def test_prd223_stop_joins_the_y_scale() -> None:
+    # A stop below every other level widens the scale instead of mapping
+    # off-canvas: the stop edge and all labels stay within 0..110.
+    wz = [{"type": "PRIOR_LOW", "level": 509.0}]
+    mm = _mm_with_levels("SPY", grade="A+", watch_zones=wz)
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=mm,
+        contract_entry_map={"SPY": 510.0},
+        contract_stop_map={"SPY": 495.0},
+    )
+    diagram = _diagram(html)
+    stop_line = _STOP_LINE.search(diagram)
+    assert stop_line is not None
+    assert 0 <= int(stop_line.group("y")) <= 110
+    ys = [int(m) for m in _re.findall(r'<text x="\d+" y="(-?\d+)"', diagram)]
+    assert ys and all(0 <= y <= 110 for y in ys)
+
+
+def test_prd223_no_band_when_stop_absent() -> None:
+    wz = [{"type": "PRIOR_LOW", "level": 508.0}]
+    mm = _mm_with_levels("SPY", grade="A+", watch_zones=wz)
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=mm,
+        contract_entry_map={"SPY": 510.0},
+    )
+    _assert_no_band(_diagram(html))
+
+
+def test_prd223_no_band_when_stop_equals_entry() -> None:
+    wz = [{"type": "PRIOR_LOW", "level": 508.0}]
+    mm = _mm_with_levels("SPY", grade="A+", watch_zones=wz)
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=mm,
+        contract_entry_map={"SPY": 510.0},
+        contract_stop_map={"SPY": 510.0},
+    )
+    _assert_no_band(_diagram(html))
+
+
+def test_prd223_no_band_on_invalid_stop_values() -> None:
+    # Non-finite, non-positive, and non-coercible stops must not draw —
+    # deleting any input guard makes one of these variants render a band.
+    wz = [{"type": "PRIOR_LOW", "level": 508.0}]
+    for bad_stop in (float("nan"), float("inf"), 0.0, -5.0, "not-a-price", True):
+        mm = _mm_with_levels("SPY", grade="A+", watch_zones=wz)
+        html = render_dashboard_html(
+            _payload(), _run(), market_map=mm,
+            contract_entry_map={"SPY": 510.0},
+            contract_stop_map={"SPY": bad_stop},
+        )
+        _assert_no_band(_diagram(html))
+
+
+def test_prd223_no_band_without_contract_entry() -> None:
+    # A stop never draws against the current_price fallback anchor — the risk
+    # zone is the contract's entry→stop pair, not current-price→stop.
+    s = _mm_symbol("SPY", grade="A+")
+    s["current_price"] = 510.0
+    s["watch_zones"] = [{"type": "PRIOR_LOW", "level": 508.0}]
+    mm = _market_map({"SPY": s})
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=mm,
+        contract_stop_map={"SPY": 505.0},
+    )
+    _assert_no_band(_diagram(html))
