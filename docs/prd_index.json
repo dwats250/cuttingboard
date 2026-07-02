@@ -966,8 +966,8 @@
     {
       "number": 216,
       "title": "Level-diagram dollar-value annotation",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "51fbb36"
     },
     {
       "number": 217,
@@ -978,8 +978,8 @@
     {
       "number": 218,
       "title": "Trend-structure density: compact mobile rows + alignment-colored price + SMA arrow spacing",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "51fbb36"
     },
     {
       "number": 219,
