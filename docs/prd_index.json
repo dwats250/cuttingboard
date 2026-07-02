@@ -1016,6 +1016,12 @@
       "title": "Macro-tape glyph alignment (GC/SI pad) + PRD-223 review fast-follows",
       "status": "COMPLETE",
       "commit": "204a5b8"
+    },
+    {
+      "number": 225,
+      "title": "Trend-structure mobile rows: uniform wrap (alignment-cell min-width + tighter gap)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

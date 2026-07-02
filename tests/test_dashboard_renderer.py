@@ -3814,3 +3814,28 @@ def test_prd220_trend_alignment_abbreviated() -> None:
     assert "BULL" in section
     assert "BULLISH" not in section
     assert 'class="ts-intraday"' in section  # Intraday cell hook (muted, flows inline)
+
+
+def test_prd225_trend_rows_wrap_uniformly() -> None:
+    # PRD-225: the mobile trend row must wrap identically for every alignment
+    # token. Mechanism pins (each fails if the change is reverted):
+    #  - the Alignment cell carries the uniform-width hook (MIX 3ch vs
+    #    BULL/BEAR 4ch was the only per-row width variance);
+    #  - the mobile CSS equalizes it at 4ch;
+    #  - the PRD-213 padding:0 override actually defeats the inline
+    #    "padding:2px 8px" (it silently never applied without !important);
+    #  - gap tightened and legacy min-widths right-sized in ch units.
+    # Layout truth (one line at phone widths, uniform wrap below) was verified
+    # at implementation time in headless Chromium over the published dashboard;
+    # CI has no browser, so these tokens pin the mechanism.
+    snap = _ts_healthy_snapshot()
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap,
+    )
+    section = _ts_section(html)
+    assert 'class="ts-align"' in section
+    assert ".ts-table td.ts-align{min-width:4ch}" in html
+    assert ".ts-table td{white-space:nowrap!important;padding:0!important}" in html
+    assert "gap:2px 8px" in html and "gap:2px 10px" not in html
+    assert ".ts-table td:first-child{font-weight:bold;min-width:4ch}" in html
+    assert ".ts-table td:nth-child(2){min-width:7ch}" in html
