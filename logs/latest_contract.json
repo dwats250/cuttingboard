@@ -19,43 +19,43 @@
     "score": 1,
     "state": "ALIGNED"
   },
-  "generated_at": "2026-07-02T15:08:45Z",
-  "generation_id": "live-20260702T150845Z",
+  "generated_at": "2026-07-02T18:36:52Z",
+  "generation_id": "live-20260702T183652Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 2.5142598279772157,
-      "level": 61471.078125,
+      "change_pct": 2.9605343516274014,
+      "level": 61738.6796875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.5948767709562609,
-      "level": 100.76200103759766,
+      "change_pct": -0.5031268362688169,
+      "level": 100.8550033569336,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 1.4599576905850877,
-      "level": 4141.89990234375,
+      "change_pct": 1.2174497361148646,
+      "level": 4132.0,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": -0.04430479944247165,
-      "level": 67.68000030517578,
+      "change_pct": 1.3882771438728503,
+      "level": 68.6500015258789,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -0.997740678365292,
-      "change_pct": -0.22345815101193373,
-      "level": 4.465000152587891,
+      "change_bps": 1.0022097305702549,
+      "change_pct": 0.22345815101193373,
+      "level": 4.484999656677246,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 1.6947737613108673,
-      "level": 61.80500030517578,
+      "change_pct": 0.6334813852193242,
+      "level": 61.15999984741211,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -1.086302404893863,
-      "level": 16.389999389648438,
+      "change_pct": 1.8105078451080936,
+      "level": 16.8700008392334,
       "symbol": "^VIX"
     }
   },
@@ -77,8 +77,8 @@
     "risk_off_votes": 2,
     "risk_on_votes": 3,
     "total_votes": 8,
-    "vix_level": 16.389999389648438,
-    "vix_pct_change": -0.01086302404893863,
+    "vix_level": 16.8700008392334,
+    "vix_pct_change": 0.018105078451080937,
     "vote_breakdown": {
       "BTC pct_change": "RISK_ON",
       "DXY pct_change": "RISK_ON",
@@ -103,7 +103,7 @@
   "status": "STAY_FLAT",
   "system_state": {
     "confidence": 0.125,
-    "intraday_state": "MIDDAY",
+    "intraday_state": "POWER_HOUR",
     "market_regime": "NEUTRAL",
     "outcome": "NO_TRADE",
     "permission": "No new trades permitted.",

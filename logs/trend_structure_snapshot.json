@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-07-02T15:08:45.855175+00:00",
+  "generated_at": "2026-07-02T18:36:52.608693+00:00",
   "schema_version": 1,
   "source": "trend_structure",
   "symbols": {
     "GDX": {
-      "current_price": 77.83999633789062,
-      "daily_change_pct": 3.7036988247943285,
+      "current_price": 77.88999938964844,
+      "daily_change_pct": 3.7703162665180328,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "BELOW",
@@ -20,8 +20,8 @@
       "vwap": null
     },
     "GLD": {
-      "current_price": 378.04998779296875,
-      "daily_change_pct": 2.0988498905063797,
+      "current_price": 378.52410888671875,
+      "daily_change_pct": 2.2268943818269644,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "BELOW",
@@ -36,8 +36,8 @@
       "vwap": null
     },
     "QQQ": {
-      "current_price": 716.0,
-      "daily_change_pct": -1.1541222596498997,
+      "current_price": 711.1300048828125,
+      "daily_change_pct": -1.8264392176800919,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
@@ -52,8 +52,8 @@
       "vwap": null
     },
     "SLV": {
-      "current_price": 55.095001220703125,
-      "daily_change_pct": 3.135532049238344,
+      "current_price": 55.05500030517578,
+      "daily_change_pct": 3.0606520126839754,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "BELOW",
@@ -68,8 +68,8 @@
       "vwap": null
     },
     "SPY": {
-      "current_price": 744.97998046875,
-      "daily_change_pct": 0.0013397141831178053,
+      "current_price": 742.9400024414062,
+      "daily_change_pct": -0.27249386667835984,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
@@ -84,8 +84,8 @@
       "vwap": null
     },
     "XLE": {
-      "current_price": 53.220001220703125,
-      "daily_change_pct": 0.7954568573922877,
+      "current_price": 53.10499954223633,
+      "daily_change_pct": 0.5776506481748693,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
