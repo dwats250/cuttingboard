@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import re
 
 from cuttingboard.delivery.dashboard_renderer import render_dashboard_html
 
@@ -204,17 +205,15 @@ def test_prd222_now_anchor_and_pct_distance() -> None:
 # PRD-223 — Numeric entry→stop risk band (from contract trade_candidates)
 # ---------------------------------------------------------------------------
 
-import re as _re
-
-_BAND_RECT = _re.compile(
+_BAND_RECT = re.compile(
     r'<rect x="0" y="(?P<y>\d+)" width="160" height="(?P<h>\d+)" '
     r'fill="#e05252" opacity="0.08"/>'
 )
-_STOP_LINE = _re.compile(
+_STOP_LINE = re.compile(
     r'<line x1="0" y1="(?P<y>\d+)" x2="160" y2="\d+" '
     r'stroke="#e05252" stroke-width="1.5" stroke-dasharray="5,3"/>'
 )
-_ANCHOR_LINE = _re.compile(
+_ANCHOR_LINE = re.compile(
     r'<line x1="0" y1="(?P<y>\d+)" x2="160" y2="\d+" stroke="#f5c518"'
 )
 
@@ -271,7 +270,7 @@ def test_prd223_stop_joins_the_y_scale() -> None:
     stop_line = _STOP_LINE.search(diagram)
     assert stop_line is not None
     assert 0 <= int(stop_line.group("y")) <= 110
-    ys = [int(m) for m in _re.findall(r'<text x="\d+" y="(-?\d+)"', diagram)]
+    ys = [int(m) for m in re.findall(r'<text x="\d+" y="(-?\d+)"', diagram)]
     assert ys and all(0 <= y <= 110 for y in ys)
 
 
