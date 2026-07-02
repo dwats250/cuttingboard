@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 221,
-  "next_prd": 222,
+  "latest_complete": 222,
+  "next_prd": 223,
   "entries": [
     {
       "number": 56,
@@ -998,6 +998,12 @@
       "title": "Level diagram: NOW marker, % distance, entry-gap band",
       "status": "COMPLETE",
       "commit": "6b3fef1"
+    },
+    {
+      "number": 222,
+      "title": "Level diagram: label anchor NOW, drop redundant marker + empty band (PRD-221 patch)",
+      "status": "COMPLETE",
+      "commit": "b4a315c"
     }
   ]
 }
