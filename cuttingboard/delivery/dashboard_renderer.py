@@ -754,13 +754,24 @@ _CSS = (
     "@media(max-width:640px){"
     ".ts-table thead{position:absolute;left:-9999px}"
     ".ts-table,.ts-table tbody{display:block;width:100%}"
-    ".ts-table tr{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;"
+    ".ts-table tr{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;"
     "border:1px solid #2a2a2a;border-radius:4px;margin-bottom:5px;padding:5px 8px}"
-    ".ts-table td{white-space:nowrap!important;padding:0}"
+    # PRD-225: padding needs !important too — each td carries inline
+    # "padding:2px 8px", which silently defeated the PRD-213 padding:0 half of
+    # this rule (16px dead padding per cell, ~96px per row on a phone). The
+    # flex gap, not padding, is the mobile cell separator.
+    ".ts-table td{white-space:nowrap!important;padding:0!important}"
     ".ts-table td::before{content:none}"
-    ".ts-table td:first-child{font-weight:bold;min-width:3.2em}"
-    ".ts-table td:nth-child(2){min-width:5em}"          # price column aligns
+    # PRD-225: min-widths right-sized in ch (text-width) units — the em values
+    # carried ~34px/row of dead width that pushed the Intraday cell off-line.
+    # Cross-card column alignment is preserved: 4ch covers every symbol, 7ch
+    # every price in the traded universe.
+    ".ts-table td:first-child{font-weight:bold;min-width:4ch}"
+    ".ts-table td:nth-child(2){min-width:7ch}"          # price column aligns
     ".ts-table td.ts-intraday{color:#888}"  # muted; flows inline now that BULL/BEAR/MIX reclaimed the room
+    # PRD-225: the Alignment token is the row's only variable-width cell
+    # (MIX 3ch vs BULL/BEAR 4ch); equalize it so every row wraps identically.
+    ".ts-table td.ts-align{min-width:4ch}"
     "}"
 )
 
@@ -2410,6 +2421,10 @@ def render_dashboard_html(
                 _classes = []
                 if _i == 1 and _px_cls:
                     _classes.append(_px_cls)
+                # PRD-225: uniform-width hook — BULL/BEAR/MIX all occupy 4ch so
+                # row width (and therefore wrap behavior) is token-independent.
+                if _i == 3:
+                    _classes.append("ts-align")
                 if _i == 7:
                     _classes.append("ts-intraday")
                 _cls = f' class="{" ".join(_classes)}"' if _classes else ""
