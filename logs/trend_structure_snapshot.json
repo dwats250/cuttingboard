@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-02T04:10:13.075126+00:00",
+  "generated_at": "2026-07-02T05:23:15.872413+00:00",
   "schema_version": 1,
   "source": "trend_structure",
   "symbols": {
@@ -45,7 +45,7 @@
       "price_vs_vwap": "NOT_COMPUTED",
       "reason": "BULLISH alignment; VWAP NOT_COMPUTED",
       "relative_volume": 0.7557160671603281,
-      "sma_200": 632.8733523559571,
+      "sma_200": 632.8733563232422,
       "sma_50": 707.1339331054687,
       "symbol": "QQQ",
       "trend_alignment": "BULLISH",
@@ -77,7 +77,7 @@
       "price_vs_vwap": "NOT_COMPUTED",
       "reason": "BULLISH alignment; VWAP NOT_COMPUTED",
       "relative_volume": 0.7376252580951353,
-      "sma_200": 688.280180053711,
+      "sma_200": 688.2801803588867,
       "sma_50": 735.0607983398437,
       "symbol": "SPY",
       "trend_alignment": "BULLISH",
@@ -93,7 +93,7 @@
       "price_vs_vwap": "NOT_COMPUTED",
       "reason": "MIXED alignment; VWAP NOT_COMPUTED",
       "relative_volume": 0.9869170558992915,
-      "sma_200": 50.59988426208496,
+      "sma_200": 50.599884357452396,
       "sma_50": 56.69130767822266,
       "symbol": "XLE",
       "trend_alignment": "MIXED",
