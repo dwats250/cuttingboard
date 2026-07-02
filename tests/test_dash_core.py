@@ -39,9 +39,10 @@ def test_field_mapping_exact() -> None:
     assert "HALT" in html
     assert "Stand down" in html
     assert "STAY_FLAT" in html
-    assert "VIX_SPIKE_HALT" in html
-    assert "YES" in html                    # system_halted=True
-    assert "quota_exceeded_unique" in html  # errors[0]
+    # PRD-219: distilled system-state — on a halt the operational error is the
+    # context reason; the raw "YES" halted-bool field is gone.
+    assert "quota_exceeded_unique" in html  # errors[0] surfaced as halt context
+    assert ">YES<" not in html
 
 
 def test_no_unapproved_fields() -> None:

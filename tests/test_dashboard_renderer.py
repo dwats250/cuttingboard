@@ -385,7 +385,7 @@ def test_coherent_generation_ids_preserve_active_setup_behavior() -> None:
     html = render_dashboard_html(payload, run, market_map=mm)
 
     assert "MIXED_ARTIFACTS" not in html
-    assert "RUN SNAPSHOT" in html
+    assert ">UPDATED</div>" in html
 
 
 def test_dashboard_render_preserves_decision_fields_byte_equal() -> None:
@@ -615,44 +615,22 @@ def _system_state_block(html: str) -> str:
     return html.split('id="system-state"', 1)[1].split('<div class="block"', 1)[0]
 
 
+def _updated_value(state: str) -> str:
+    """PRD-219: the single absolute UPDATED timestamp value."""
+    after = state.split(">UPDATED</div>", 1)[1]
+    return after.split('class="value">', 1)[1].split("</div>", 1)[0]
+
+
 def test_no_separate_dashboard_header_block() -> None:
     html = render_dashboard_html(_payload(), _run())
     assert 'id="dashboard-header"' not in html
 
 
-def test_system_state_contains_run_snapshot() -> None:
+def test_system_state_contains_updated_timestamp() -> None:
+    # PRD-219: one absolute UPDATED line replaces RUN SNAPSHOT/LIVE STATE/SCOREBOARD.
     html = render_dashboard_html(_payload(), _run())
     state = _system_state_block(html)
-    assert "RUN SNAPSHOT" in state
-
-
-def test_run_snapshot_renders_relative_freshness_not_absolute(monkeypatch: pytest.MonkeyPatch) -> None:
-    # PRD-167: RUN SNAPSHOT renders relative freshness (N minutes old), never an
-    # absolute PT timestamp. _utcnow is frozen so the token is deterministic.
-    from cuttingboard.delivery import dashboard_renderer as _dr
-    ts = "2026-04-28T12:00:00Z"
-    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 4, 28, 12, 3, 0, tzinfo=timezone.utc))
-    payload = _payload(timestamp=ts)
-    run = _run_with_timestamp(ts)
-    html = render_dashboard_html(payload, run)
-    snapshot = _system_state_block(html).split("RUN SNAPSHOT", 1)[1]
-    assert "3 minutes old" in snapshot
-    assert " PT" not in snapshot
-    assert "STALE" not in snapshot
-
-
-def test_run_snapshot_old_timestamp_marked_stale(monkeypatch: pytest.MonkeyPatch) -> None:
-    # PRD-167: a snapshot older than DASHBOARD_STALE_AFTER_SECONDS renders STALE,
-    # not a plain PT timestamp.
-    from cuttingboard.delivery import dashboard_renderer as _dr
-    ts = "2026-04-28T12:00:00Z"
-    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 4, 28, 12, 10, 0, tzinfo=timezone.utc))
-    payload = _payload(timestamp=ts)
-    run = _run_with_timestamp(ts)
-    html = render_dashboard_html(payload, run)
-    snapshot = _system_state_block(html).split("RUN SNAPSHOT", 1)[1]
-    assert "STALE" in snapshot
-    assert " PT" not in snapshot
+    assert ">UPDATED</div>" in state
 
 
 @pytest.mark.parametrize(
@@ -740,97 +718,43 @@ def test_prd189_scoreboard_age_token_absent_or_unparseable(history) -> None:
     assert _scoreboard_age_token(history, now, "no scoreboard history") == "no scoreboard history"
 
 
-def test_prd189_live_state_and_scoreboard_render(monkeypatch: pytest.MonkeyPatch) -> None:
-    from cuttingboard.delivery import dashboard_renderer as _dr
-    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 6, 16, 12, 0, 30, tzinfo=timezone.utc))
-    run = _run_with_timestamp("2026-06-16T12:00:00Z")
-    history = [{"date": "2026-06-16", "regime": "NEUTRAL", "posture": "STAY_FLAT"}]
-    html = render_dashboard_html(_payload(timestamp="2026-06-16T12:00:00Z"), run, regime_history=history)
-    state = _system_state_block(html)
-    assert "LIVE STATE" in state and "SCOREBOARD" in state
-    # "<" is HTML-escaped in the rendered value.
-    assert _surface_value(state, "LIVE STATE") == "&lt;1 min old"
-    assert _surface_value(state, "SCOREBOARD") == "today"
-
-
-def test_prd189_frozen_pipeline_reads_stale_per_surface(monkeypatch: pytest.MonkeyPatch) -> None:
-    # The bug PRD-189 fixes: a frozen pipeline must read loudly stale on the
-    # live-state/scoreboard surfaces even while the payload (RUN SNAPSHOT) is
-    # current because the hourly quote workflow keeps it fresh.
-    from cuttingboard.delivery import dashboard_renderer as _dr
-    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 6, 16, 12, 0, 0, tzinfo=timezone.utc))
-    run = _run_with_timestamp("2026-05-14T12:00:00Z")  # 33 days stale
-    history = [{"date": "2026-05-14", "regime": "NEUTRAL", "posture": "STAY_FLAT"}]
+def test_prd219_updated_reads_pipeline_time_not_fresh_payload() -> None:
+    # PRD-219 preserves the PRD-189 frozen-pipeline signal in the single UPDATED
+    # line: it reads the PIPELINE run time, so a stale pipeline shows an old
+    # absolute timestamp even when the payload is fresh.
+    run = _run_with_timestamp("2026-05-14T12:00:00Z")  # 33 days stale pipeline run
     html = render_dashboard_html(
-        _payload(timestamp="2026-06-16T11:58:00Z"),  # payload fresh (2 min)
+        _payload(timestamp="2026-06-16T11:58:00Z"),  # payload fresh
         run,
-        regime_history=history,
     )
-    state = _system_state_block(html)
-    assert _surface_value(state, "LIVE STATE") == "33 days old"
-    assert _surface_value(state, "SCOREBOARD") == "33 days old"
-    # RUN SNAPSHOT (payload) still reads fresh — proving per-surface freshness.
-    assert _surface_value(state, "RUN SNAPSHOT") == "2 minutes old"
-    # No false-fresh label leaks onto the frozen pipeline surfaces.
-    assert "<1 min" not in state.split(">LIVE STATE", 1)[1]
+    updated = _updated_value(_system_state_block(html))
+    assert "2026-05-14" in updated
+    assert "2026-06-16" not in updated
 
 
-def test_prd189_null_live_run_is_explicit(monkeypatch: pytest.MonkeyPatch) -> None:
-    # latest_run.json present but without any run timestamp -> explicit empty
-    # state, never a misleading "0 min"/"<1 min" or a crash.
-    from cuttingboard.delivery import dashboard_renderer as _dr
-    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 6, 16, 12, 0, 0, tzinfo=timezone.utc))
-    run = _run()
-    for key in ("run_at_utc", "timestamp", "generated_at"):
-        run.pop(key, None)
-    html = render_dashboard_html(_payload(timestamp="2026-06-16T11:59:00Z"), run)
-    state = _system_state_block(html)
-    assert _surface_value(state, "LIVE STATE") == "no live run recorded"
-    assert _surface_value(state, "SCOREBOARD") == "no scoreboard history"
-
-
-def test_prd189_empty_scoreboard_history_is_explicit(monkeypatch: pytest.MonkeyPatch) -> None:
-    from cuttingboard.delivery import dashboard_renderer as _dr
-    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 6, 16, 12, 0, 0, tzinfo=timezone.utc))
-    html = render_dashboard_html(
-        _payload(timestamp="2026-06-16T11:59:00Z"),
-        _run_with_timestamp("2026-06-16T11:59:00Z"),
-    )
-    state = _system_state_block(html)
-    assert _surface_value(state, "SCOREBOARD") == "no scoreboard history"
-
-
-def test_prd189_live_state_reads_pipeline_run_not_run_override(monkeypatch: pytest.MonkeyPatch) -> None:
-    # Codex P2: the hourly publish path overrides --run with latest_hourly_run.json.
-    # LIVE STATE must read the PIPELINE run (pipeline_run / latest_run.json), so a
-    # frozen cuttingboard.yml pipeline reads stale even while the hourly run that
-    # publishes the dashboard is fresh.
-    from cuttingboard.delivery import dashboard_renderer as _dr
-    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 6, 16, 12, 0, 0, tzinfo=timezone.utc))
-    fresh_hourly_run = _run_with_timestamp("2026-06-16T11:59:30Z")    # the --run override (fresh)
-    stale_pipeline_run = _run_with_timestamp("2026-05-14T12:00:00Z")  # latest_run.json (33d stale)
+def test_prd219_updated_reads_pipeline_run_not_hourly_override() -> None:
+    # PRD-219/PRD-189: UPDATED reads the PIPELINE run (latest_run.json), not the
+    # hourly --run override, so a frozen cuttingboard.yml pipeline reads stale
+    # even while the hourly publish run is fresh.
+    fresh_hourly_run = _run_with_timestamp("2026-06-16T11:59:30Z")
+    stale_pipeline_run = _run_with_timestamp("2026-05-14T12:00:00Z")
     html = render_dashboard_html(
         _payload(timestamp="2026-06-16T11:59:30Z"),
         fresh_hourly_run,
         pipeline_run=stale_pipeline_run,
     )
-    state = _system_state_block(html)
-    assert _surface_value(state, "LIVE STATE") == "33 days old"
-    # RUN SNAPSHOT (payload) is fresh — only LIVE STATE exposes the frozen pipeline.
-    assert _surface_value(state, "RUN SNAPSHOT") == "<1 min old".replace("<", "&lt;")
+    updated = _updated_value(_system_state_block(html))
+    assert "2026-05-14" in updated and "2026-06-16" not in updated
 
 
-def test_prd189_live_state_falls_back_to_run_when_no_pipeline_run(monkeypatch: pytest.MonkeyPatch) -> None:
-    # When pipeline_run is not supplied (e.g. cuttingboard.yml's default --run is
-    # latest_run.json), LIVE STATE falls back to `run`.
-    from cuttingboard.delivery import dashboard_renderer as _dr
-    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 6, 16, 12, 0, 30, tzinfo=timezone.utc))
+def test_prd219_updated_falls_back_to_run_when_no_pipeline_run() -> None:
+    # When pipeline_run is absent, UPDATED falls back to `run`.
     html = render_dashboard_html(
         _payload(timestamp="2026-06-16T12:00:00Z"),
         _run_with_timestamp("2026-06-16T12:00:00Z"),
     )
-    state = _system_state_block(html)
-    assert _surface_value(state, "LIVE STATE") == "&lt;1 min old"
+    updated = _updated_value(_system_state_block(html))
+    assert "2026-06-16" in updated
 
 
 def test_main_block_no_original_utc_timestamp() -> None:
@@ -848,32 +772,33 @@ def test_permission_label_used_not_trade_permission() -> None:
     assert "Trade Permission" not in html
 
 
-def test_halted_state_permission_shows_halted() -> None:
+def test_halted_state_verdict_shows_halt() -> None:
+    # PRD-219: halt is unmistakable in the distilled verdict (red, SYSTEM HALT).
     run = _run(system_halted=True)
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert "Permission" in state
-    assert "HALTED" in state
+    assert 'class="sys-verdict sys-halt"' in state
+    assert "SYSTEM HALT" in state
 
 
-def test_halted_state_raw_reason_shown_as_reason_not_permission() -> None:
+def test_halted_state_reason_in_context_line() -> None:
+    # PRD-219: the halt reason folds into the context line under the verdict.
     payload = _payload(validation_halt_detail={"reason": "STAY_FLAT regime"})
     run = _run(system_halted=True)
     html = render_dashboard_html(payload, run)
     state = _system_state_block(html)
-    assert "Reason" in state
-    assert "STAY_FLAT regime" in state
-    perm_section = state.split("Permission", 1)[1].split("Halted", 1)[0]
-    assert "STAY_FLAT regime" not in perm_section
-    assert "HALTED" in perm_section
+    assert "SYSTEM HALT" in state
+    context = state.split('class="sys-context', 1)[1].split("</div>", 1)[0]
+    assert "STAY_FLAT regime" in context
 
 
-def test_non_halted_permission_preserved() -> None:
+def test_non_halted_renders_verdict_no_permission_field() -> None:
+    # PRD-219: no Permission field; the verdict conveys the state.
     run = _run(system_halted=False, permission=True)
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert "Permission" in state
-    assert "True" in state
+    assert 'class="sys-verdict' in state
+    assert ">Permission<" not in state
 
 
 def test_normal_run_no_halted_or_kill_switch_in_system_state() -> None:
@@ -885,28 +810,20 @@ def test_normal_run_no_halted_or_kill_switch_in_system_state() -> None:
 
 
 def test_halted_run_shows_halted_not_kill_switch() -> None:
+    # PRD-219: halt shows in the verdict; kill-switch line absent when off.
     run = _run(system_halted=True, kill_switch=False)
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert "Halted" in state
-    assert "Kill Switch" not in state
+    assert "SYSTEM HALT" in state
+    assert "Kill switch active" not in state
 
 
 def test_kill_switch_run_shows_kill_switch() -> None:
+    # PRD-219: kill switch renders an explicit context line.
     run = _run(system_halted=False, kill_switch=True)
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert "Kill Switch" in state
-
-
-def test_regime_confidence_outcome_before_permission_in_system_state() -> None:
-    html = render_dashboard_html(_payload(), _run())
-    state = _system_state_block(html)
-    regime_pos = state.find("Regime")
-    outcome_pos = state.find("Outcome")
-    permission_pos = state.find("Permission")
-    assert regime_pos < permission_pos, "Regime must appear before Permission"
-    assert outcome_pos < permission_pos, "Outcome must appear before Permission"
+    assert "Kill switch active" in state
 
 
 # ---------------------------------------------------------------------------
@@ -1061,22 +978,11 @@ def test_a_tier_uses_div_not_summary_header() -> None:
 
 # PRD-093-PATCH tests
 
-def test_system_state_heading_prefixed_with_system_state() -> None:
+def test_system_state_heading_is_system_state() -> None:
+    # PRD-219: the decision title moved into the verdict; the h2 is just the label.
     html = render_dashboard_html(_payload(), _run())
     state = _system_state_block(html)
-    assert "SYSTEM STATE -" in state
-
-
-def test_permission_none_shows_em_dash_not_no_qualified_setup() -> None:
-    # PRD-120: Permission no longer renders as `&#8212;`; under default
-    # _payload/_run (no market_map -> lineage MISSING) it renders UNKNOWN.
-    run = _run(permission=None)
-    html = render_dashboard_html(_payload(), run)
-    state = _system_state_block(html)
-    perm_section = state.split("Permission", 1)[1].split("Reason", 1)[0]
-    assert ">&#8212;<" not in perm_section
-    assert "UNKNOWN" in perm_section
-    assert "NO QUALIFIED SETUP" not in state
+    assert "<h2>SYSTEM STATE</h2>" in state
 
 
 def test_stale_market_map_shows_updated_wording() -> None:
@@ -1140,31 +1046,19 @@ def test_stale_market_map_missing_run_timestamp_shows_unavailable() -> None:
     assert "Run: unavailable" in board
 
 
-def test_permission_none_renders_em_dash() -> None:
-    # PRD-120: replaces former `&#8212;` Permission fallback with a
-    # deterministic UNKNOWN label under unhealthy lineage (default render
-    # has no market_map -> lineage MISSING).
-    run = _run(permission=None)
-    html = render_dashboard_html(_payload(), run)
-    state = _system_state_block(html)
-    perm_section = state.split("Permission", 1)[1].split("Reason", 1)[0]
-    assert ">&#8212;<" not in perm_section
-    assert "UNKNOWN" in perm_section
-    assert "NONE" not in perm_section
-
-
 def test_permission_none_does_not_mutate_run_dict() -> None:
     run = _run(permission=None)
     render_dashboard_html(_payload(), run)
     assert run["permission"] is None
 
 
-def test_permission_none_shows_reason_line() -> None:
+def test_permission_none_reason_in_context_line() -> None:
+    # PRD-219: the reason folds into the context line (no separate Reason field).
     run = _run(permission=None)
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert "Reason" in state
-    assert "no qualified candidates" in state
+    context = state.split('class="sys-context', 1)[1].split("</div>", 1)[0]
+    assert "no qualified candidates" in context
 
 
 def test_macro_pressure_missing_shows_unavailable() -> None:
@@ -2417,18 +2311,6 @@ def _prd120_perm_field(html: str) -> str:
 
 
 # R14-1: Permission MONITOR_ONLY for active NO_TRADE under coherent lineage.
-def test_prd120_permission_monitor_only_active_no_trade(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _freeze_renderer_now(monkeypatch)
-    html = _prd120_coherent_render(
-        run_overrides={"permission": None, "outcome": "NO_TRADE", "system_halted": False},
-    )
-    perm = _prd120_perm_field(html)
-    assert ">&#8212;<" not in perm
-    assert "MONITOR_ONLY" in perm
-
-
 # R14-2: HALTED precedence over MONITOR_ONLY/UNKNOWN.
 def test_prd120_permission_halted_wins_over_monitor_only(
     monkeypatch: pytest.MonkeyPatch,
@@ -2437,24 +2319,12 @@ def test_prd120_permission_halted_wins_over_monitor_only(
     html = _prd120_coherent_render(
         run_overrides={"permission": None, "outcome": "NO_TRADE", "system_halted": True},
     )
-    perm = _prd120_perm_field(html)
-    assert "HALTED" in perm
-    assert "MONITOR_ONLY" not in perm
+    state = _system_state_block(html)
+    assert "SYSTEM HALT" in state
+    assert "MONITOR_ONLY" not in state
 
 
 # R14-3: catch-all UNKNOWN when permission None, outcome="TRADE", not halted.
-def test_prd120_permission_unknown_catchall_outcome_trade(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _freeze_renderer_now(monkeypatch)
-    html = _prd120_coherent_render(
-        run_overrides={"permission": None, "outcome": "TRADE", "system_halted": False},
-    )
-    perm = _prd120_perm_field(html)
-    assert "UNKNOWN" in perm
-    assert "MONITOR_ONLY" not in perm
-
-
 # ----------------------------------------------------------------------------
 # PRD-123 — Trend Structure Refresh Decoupling and Truthful Source Status
 # ----------------------------------------------------------------------------
@@ -2697,8 +2567,8 @@ def test_prd120_no_em_dash_in_permission_under_coherent_lineage(
     html = _prd120_coherent_render(
         run_overrides={"permission": None, "outcome": "NO_TRADE"},
     )
-    perm = _prd120_perm_field(html)
-    assert ">&#8212;<" not in perm
+    state = _system_state_block(html)
+    assert ">&#8212;<" not in state
 
 
 # R14-17: HALTED + stay_flat_reason -> HALTED takes precedence.
@@ -2713,29 +2583,12 @@ def test_prd120_halted_and_stay_flat_reason_renders_halted(
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
     mm["generation_id"] = "test-gen-001"
     html = render_dashboard_html(payload, run, market_map=mm)
-    perm = _prd120_perm_field(html)
-    assert "HALTED" in perm
-    assert "MONITOR_ONLY" not in perm
-    assert "UNKNOWN" not in perm
+    state = _system_state_block(html)
+    assert "SYSTEM HALT" in state
+    assert "MONITOR_ONLY" not in state
 
 
 # R14-21: permission=None under MIXED lineage -> UNKNOWN, not MONITOR_ONLY.
-def test_prd120_permission_unknown_under_mixed_lineage(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _freeze_renderer_now(monkeypatch)
-    payload = _payload()
-    payload["meta"]["generation_id"] = "gen-A"
-    run = _run(permission=None, outcome="NO_TRADE")
-    run["generation_id"] = "gen-B"  # mixed lineage
-    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
-    mm["generation_id"] = "gen-A"
-    html = render_dashboard_html(payload, run, market_map=mm)
-    perm = _prd120_perm_field(html)
-    assert "UNKNOWN" in perm
-    assert "MONITOR_ONLY" not in perm
-
-
 # R14 supplementary: _trend_symbols_usable per-symbol counting.
 def test_prd120_trend_symbols_usable_per_symbol_count() -> None:
     full = _ts_healthy_snapshot()

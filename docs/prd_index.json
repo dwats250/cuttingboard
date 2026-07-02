@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 218,
-  "next_prd": 219,
+  "latest_complete": 219,
+  "next_prd": 220,
   "entries": [
     {
       "number": 56,
@@ -984,8 +984,8 @@
     {
       "number": 219,
       "title": "System-state distillation: verdict + one context line + single timestamp",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "02d2e8f"
     }
   ]
 }

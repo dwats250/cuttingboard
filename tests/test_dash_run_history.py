@@ -123,10 +123,12 @@ def test_run_history_argument_still_accepted_and_deterministic() -> None:
 # ---------------------------------------------------------------------------
 
 def test_run_health_fields() -> None:
+    # PRD-219: halt shows in the distilled verdict; the operational error is the
+    # context reason (no raw "YES" halted-bool field).
     html = render_dashboard_html(_payload(), _run(system_halted=True, kill_switch=False, errors=["err_unique"]))
     health = html.split('id="system-state"', 1)[1]
-    assert "YES"        in health   # system_halted
-    assert "err_unique" in health
+    assert "SYSTEM HALT" in health
+    assert "err_unique"  in health
 
 
 def test_run_health_no_error_when_empty() -> None:

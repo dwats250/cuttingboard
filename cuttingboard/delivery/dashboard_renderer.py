@@ -655,6 +655,14 @@ _CSS = (
     ".NEUTRAL_PREMIUM{background:#2a2a1a;color:#ff9800}"
     ".halted{color:#f44336;font-weight:bold}"
     ".warn{color:#ff9800}"
+    # PRD-219: distilled system-state verdict + context.
+    ".sys-verdict{font-weight:bold;font-size:0.95rem;letter-spacing:0.02em}"
+    ".sys-verdict.sys-up{color:#4caf50}"
+    ".sys-verdict.sys-down{color:#f44336}"
+    ".sys-verdict.sys-flat{color:#ff9800}"
+    ".sys-verdict.sys-halt{color:#f44336}"
+    ".sys-context{color:#888;font-size:0.8rem;margin-top:2px}"
+    ".sys-context.halted{color:#f44336}"
     "h2{font-size:0.8rem;color:#888;text-transform:uppercase;"
     "letter-spacing:0.08em;margin-bottom:0.75rem}"
     ".sep{border-top:1px solid #1a1a1a;margin:0.5rem 0}"
@@ -1153,6 +1161,17 @@ def _regime_to_permission_verb(regime: object) -> str:
         # EXPANSION is a breadth/leadership-confirmed advance.
         return "Momentum longs allowed"
     return "Stand down"
+
+
+# PRD-219: system-state distillation — regime → verdict colour + plain-English name.
+_SYS_VERDICT_CLS: dict[str, str] = {
+    "RISK_ON": "sys-up", "EXPANSION": "sys-up",
+    "RISK_OFF": "sys-down", "NEUTRAL": "sys-flat",
+}
+_SYS_REGIME_PLAIN: dict[str, str] = {
+    "RISK_ON": "Risk-on", "RISK_OFF": "Risk-off",
+    "NEUTRAL": "Neutral", "EXPANSION": "Expansion",
+}
 
 
 _PRESSURE_DECISION_PHRASES: dict[str, dict[str, str]] = {
@@ -1954,101 +1973,62 @@ def render_dashboard_html(
     )
 
     # --- system-state ---
-    regime_cls = _esc(market_regime)
     regime_permission_text = _regime_to_permission_verb(market_regime)
-    outcome_val = run.get("outcome") if "outcome" in run else run.get("status")
-    halted_cls = " halted" if system_halted else ""
-    ks_cls     = " halted" if kill_switch else ""
+    # PRD-219: distilled system-state — a plain-English verdict (posture verb +
+    # decision title, coloured by regime), one context line (regime + the
+    # trader-facing reason), and one absolute timestamp. Replaces the
+    # REGIME/OUTCOME/PERMISSION grep and the three relative freshness lines. The
+    # decision title stays inside the verdict, so the decision-title contract is
+    # unchanged. Halt is unmistakable (red verdict, title carries SYSTEM HALT).
     w('<div class="block" id="system-state">')
-    w(f'  <h2>SYSTEM STATE - {_esc(title)}</h2>')
-    w('  <div class="row">')
-    w(f'    <div class="field"><div class="label">Regime</div>'
-      f'<div class="value"><span class="badge {regime_cls}">'
-      f'{_esc(regime_permission_text)}</span></div></div>')
-    if not integrator_suppress["outcome"]:
-        w(f'    <div class="field"><div class="label">Outcome</div>'
-          f'<div class="value">{_esc(outcome_val)}</div></div>')
-    w("  </div>")
-    w('  <div class="row">')
-    # PRD-158 § 4.2 translation 9: when integrator flags raw posture-as-
-    # permission as contradicted by setup availability or directional conflict,
-    # the raw Permission field is suppressed in favor of the integrator's
-    # screen-level verdict. HALTED retains precedence — operational halts
-    # are not collapsible.
-    if bool(system_halted):
-        w('    <div class="field"><div class="label">Permission</div>'
-          '<div class="value halted">HALTED</div></div>')
-    elif integrator_suppress["permission"]:
-        pass  # integrator emits the trader-facing replacement elsewhere
-    elif stay_flat_reason is not None:
-        w(f'    <div class="field warn"><div class="label">Permission</div>'
-          f'<div class="value">{_esc(stay_flat_reason)}</div></div>')
-    elif permission is not None:
-        w(f'    <div class="field"><div class="label">Permission</div>'
-          f'<div class="value">{_esc(permission)}</div></div>')
-    elif artifact_lineage_state in ("MIXED", "STALE", "MISSING"):
-        # PRD-120 R3.5: unhealthy lineage with permission=None -> UNKNOWN
-        w('    <div class="field"><div class="label">Permission</div>'
-          '<div class="value">UNKNOWN</div></div>')
-    elif outcome in (None, "STAY_FLAT", "NO_TRADE"):
-        # PRD-120 R3.6: coherent lineage, no halt, no setup -> MONITOR_ONLY
-        w('    <div class="field"><div class="label">Permission</div>'
-          '<div class="value">MONITOR_ONLY</div></div>')
-    else:
-        # PRD-120 R3.7: deterministic catch-all
-        w('    <div class="field"><div class="label">Permission</div>'
-          '<div class="value">UNKNOWN</div></div>')
-    if bool(system_halted):
-        w(f'    <div class="field"><div class="label">Halted</div>'
-          f'<div class="value{halted_cls}">{_bool_str(system_halted)}</div></div>')
-    if bool(kill_switch):
-        w(f'    <div class="field"><div class="label">Kill Switch</div>'
-          f'<div class="value{ks_cls}">{_bool_str(kill_switch)}</div></div>')
-    if first_error:
-        w(f'    <div class="field"><div class="label">Error</div>'
-          f'<div class="value halted">{_esc(first_error)}</div></div>')
-    w("  </div>")
-    if bool(system_halted) and stay_flat_reason is not None:
-        w(f'  <div class="field warn"><div class="label">Reason</div>'
-          f'<div class="value">{_esc(stay_flat_reason)}</div></div>')
-    elif not bool(system_halted) and stay_flat_reason is None and permission is None:
-        if first_error:
-            _perm_reason = first_error
-        elif alert_candidates:
-            _perm_reason = "candidates gated"
-        else:
-            _perm_reason = "no qualified candidates"
-        w(f'  <div class="field"><div class="label">Reason</div>'
-          f'<div class="value">{_esc(_perm_reason)}</div></div>')
-    w('  <div class="sep"></div>')
-    # PRD-167: RUN SNAPSHOT renders relative freshness, not an absolute PT
-    # timestamp (PRD-158 §4.2). `_utcnow()` is the frozen-in-tests reference.
-    _now = _utcnow()
-    _snapshot_text = _run_snapshot_freshness_token(
-        payload_timestamp_value or timestamp, _now
+    w('  <h2>SYSTEM STATE</h2>')
+    _verdict_cls = "sys-halt" if bool(system_halted) else _SYS_VERDICT_CLS.get(
+        str(market_regime), "sys-flat"
     )
-    w('  <div class="label">RUN SNAPSHOT</div>')
-    w(f'  <div class="value">{_esc(_snapshot_text)}</div>')
-    # PRD-189: per-surface freshness. RUN SNAPSHOT above tracks the payload,
-    # which the hourly quote workflow keeps current; LIVE STATE and SCOREBOARD
-    # track the pipeline-state surfaces that freeze when scheduled runs stop --
-    # so a frozen pipeline reads loudly stale here even while RUN SNAPSHOT is
-    # fresh. LIVE STATE reads the PIPELINE run (logs/latest_run.json via
-    # `pipeline_run`), NOT the `run` source: the hourly publish path overrides
-    # --run with latest_hourly_run.json, which would otherwise keep LIVE STATE
-    # fresh and mask a frozen cuttingboard.yml pipeline. SCOREBOARD reads
-    # `regime_history` (newest dated row, pipeline-only). No payload/contract
-    # plumbing is added.
+    w(f'  <div class="sys-verdict {_verdict_cls}">'
+      f'{_esc(regime_permission_text)} · {_esc(title)}</div>')
+    # Context line: regime in plain words + the trader-facing reason (why).
+    _regime_plain = _SYS_REGIME_PLAIN.get(
+        str(market_regime), str(market_regime).replace("_", " ").title()
+    )
+    if bool(system_halted):
+        # On a halt the operational error is the most actionable context;
+        # fall back to the posture reason, then a generic label.
+        _ctx_reason: object = first_error or stay_flat_reason or "operational halt"
+    elif first_error:
+        _ctx_reason = first_error
+    elif alert_candidates:
+        _ctx_reason = "candidates gated"
+    elif outcome in (None, "STAY_FLAT", "NO_TRADE"):
+        _ctx_reason = "no qualified candidates"
+    else:
+        _ctx_reason = None
+    # R2: never surface the raw engine internals (regime=…, confidence=…).
+    if _ctx_reason and "confidence=" in str(_ctx_reason):
+        _ctx_reason = str(_ctx_reason).split(" (regime=")[0].strip()
+    _ctx = _esc(_regime_plain) + " regime"
+    if _ctx_reason:
+        _ctx += " · " + _esc(str(_ctx_reason))
+    _ctx_cls = " halted" if bool(system_halted) else ""
+    w(f'  <div class="sys-context{_ctx_cls}">{_ctx}</div>')
+    if bool(kill_switch):
+        w('  <div class="sys-context halted">Kill switch active</div>')
+    w('  <div class="sep"></div>')
+    # PRD-219: one absolute Pacific timestamp replaces the three relative
+    # RUN SNAPSHOT / LIVE STATE / SCOREBOARD freshness lines. It reads the
+    # PIPELINE run timestamp (PRD-189 source), not the payload's — so a frozen
+    # pipeline still shows an old UPDATED time even when the hourly quote path
+    # keeps the payload fresh. Falls back to the payload timestamp when no
+    # pipeline run is present.
     _pipeline_run = pipeline_run if pipeline_run is not None else run
     _, _pipeline_run_ts = _first_timestamp(
         _pipeline_run, (("run_at_utc",), ("timestamp",), ("generated_at",))
     )
-    _live_state_text = _surface_age_token(_pipeline_run_ts, _now, "no live run recorded")
-    w('  <div class="label">LIVE STATE</div>')
-    w(f'  <div class="value">{_esc(_live_state_text)}</div>')
-    _scoreboard_text = _scoreboard_age_token(regime_history, _now, "no scoreboard history")
-    w('  <div class="label">SCOREBOARD</div>')
-    w(f'  <div class="value">{_esc(_scoreboard_text)}</div>')
+    _updated_pt, _ = format_dashboard_timestamp(
+        str(_pipeline_run_ts or payload_timestamp_value or timestamp or "")
+    )
+    w('  <div class="label">UPDATED</div>')
+    w(f'  <div class="value">{_esc(_updated_pt) if _updated_pt else "unknown"}</div>')
     w("</div>")
 
     # --- alert-watchlist ---
