@@ -19,12 +19,12 @@
     "score": 1,
     "state": "ALIGNED"
   },
-  "generated_at": "2026-07-02T23:07:15Z",
-  "generation_id": "live-20260702T230715Z",
+  "generated_at": "2026-07-02T23:34:19Z",
+  "generation_id": "live-20260702T233419Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 2.2085348978454973,
-      "level": 61285.71875,
+      "change_pct": 2.5453334489419692,
+      "level": 61489.7109375,
       "symbol": "BTC-USD"
     },
     "dollar": {
@@ -33,13 +33,13 @@
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 1.3497257148318165,
-      "level": 4137.39990234375,
+      "change_pct": 1.3962657124073348,
+      "level": 4139.2998046875,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 1.1372091018644186,
-      "level": 68.4800033569336,
+      "change_pct": 1.0633602576258734,
+      "level": 68.43000030517578,
       "symbol": "CL=F"
     },
     "rates": {
@@ -49,8 +49,8 @@
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 1.192922181684156,
-      "level": 61.5,
+      "change_pct": 1.2422825741871508,
+      "level": 61.529998779296875,
       "symbol": "SI=F"
     },
     "volatility": {

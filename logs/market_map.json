@@ -16,8 +16,8 @@
       "QQQ"
     ]
   },
-  "generated_at": "2026-07-02T23:07:15Z",
-  "generation_id": "live-20260702T230715Z",
+  "generated_at": "2026-07-02T23:34:19Z",
+  "generation_id": "live-20260702T233419Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -31,7 +31,7 @@
   "session_date": "2026-07-02",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-07-02T23:07:15Z"
+    "run_at_utc": "2026-07-02T23:34:19Z"
   },
   "symbols": {
     "GDX": {
@@ -311,12 +311,12 @@
       "lifecycle": {
         "current_grade": "B",
         "current_setup_state": "DEVELOPING",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "D",
-        "previous_setup_state": "EXTENDED",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "B",
+        "previous_setup_state": "DEVELOPING",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bearish defined-risk continuation",
       "reason_for_grade": "B: bearish pullback, regime mixed, near key level",
@@ -487,8 +487,8 @@
         "is_new": false,
         "is_removed": false,
         "previous_grade": "D",
-        "previous_setup_state": "EXTENDED",
-        "setup_state_transition": "CHANGED"
+        "previous_setup_state": "LOW_QUALITY",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bearish defined-risk continuation",
       "reason_for_grade": "D: bearish trending_down, regime mixed, near key level",
