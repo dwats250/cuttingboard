@@ -987,8 +987,9 @@ def test_high_grade_candidate_filters_unavailable_watch_sentinel() -> None:
 
 
 def test_high_grade_candidate_entry_invalidation_bold() -> None:
-    # PRD-165 R1: ENTRY and INVALIDATION value rows use a dedicated bold class
-    # (.value-key), distinct from the generic .value shared by REASON/PLAY/WATCH.
+    # PRD-165 R1 / PRD-215: ENTRY and INVALIDATION value rows use the bold
+    # .value-key class AND the cyan .value-actionable accent, distinct from the
+    # generic .value shared by the (now collapsed) REASON/PLAY/WATCH.
     entry = _mm_symbol(
         "SPY", grade="A",
         trade_framing={"entry": "above 580.50"},
@@ -998,13 +999,14 @@ def test_high_grade_candidate_entry_invalidation_bold() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=_market_map({"SPY": entry}))
     card = _candidate_card(html)
 
-    assert '<div class="label">ENTRY</div><div class="value-key">above 580.50</div>' in card
-    assert '<div class="label">INVALIDATION</div><div class="value-key">below 578.20</div>' in card
+    assert '<div class="label">ENTRY</div><div class="value-key value-actionable">above 580.50</div>' in card
+    assert '<div class="label">INVALIDATION</div><div class="value-key value-actionable">below 578.20</div>' in card
     # REASON stays on the generic .value class — NOT the bold .value-key.
     assert '<div class="label">REASON</div><div class="value">breadth thrust' in card
     assert 'REASON</div><div class="value-key">' not in card
-    # The dedicated class is defined bold in CSS.
+    # The dedicated classes are defined in CSS (bold key + cyan accent).
     assert ".value-key{margin-top:0.25rem;font-weight:bold}" in html
+    assert ".value-actionable{color:#29b6f6}" in html
 
 
 def test_failed_candidate_omits_validation_context() -> None:
@@ -1441,6 +1443,28 @@ def test_prd208_r3_columns_cut_renamed_and_counts_match() -> None:
         assert row.count("<td") == len(headers), (
             f"row cell count {row.count('<td')} != header count {len(headers)}"
         )
+
+
+def test_prd213_mobile_reflow_data_labels_and_media_query() -> None:
+    # PRD-213: the trend table carries a class hook + a narrow-viewport media
+    # query, and every body <td> carries a data-label equal to its column header
+    # so the stacked mobile layout can render the header inline.
+    import re as _re213
+    snap = _ts_healthy_snapshot()
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap,
+    )
+    # Media query + class hook are defined in the rendered CSS.
+    assert "@media(max-width:640px)" in html
+    assert ".ts-table td::before{content:attr(data-label)" in html
+    assert 'class="ts-table"' in html
+    # Every rendered body <td> has a non-empty data-label.
+    section = _ts_section(html)
+    body = section.split("<tbody>", 1)[1]
+    tds = _re213.findall(r"<td\s+data-label=\"([^\"]*)\"", body)
+    all_tds = body.count("<td")
+    assert len(tds) == all_tds, f"{all_tds - len(tds)} <td> without data-label"
+    assert all(lbl.strip() for lbl in tds), "empty data-label on a trend-structure cell"
 
 
 # (b) Missing file
@@ -3584,133 +3608,33 @@ def test_prd136_r4a_spot_metals_in_non_tradable_symbols() -> None:
 
 
 # ---------------------------------------------------------------------------
-# PRD-177 — macro evidence rows (R3), scoreboard (R4), red folder (R5)
+# PRD-177 — scoreboard (R4), red folder (R5). (R3 macro-evidence rows removed
+# by PRD-214; replaced with the single MACRO BIAS risk-vote tally.)
 # ---------------------------------------------------------------------------
 
-def _evidence_votes(html: str) -> list[str]:
+def test_prd214_macro_tally_present_and_agrees_with_headline() -> None:
+    # PRD-214: the per-driver macro-evidence rows (PRD-177 R3 / PRD-191) are
+    # superseded by a single risk-vote tally under the MACRO BIAS headline.
+    # Cyclicality-correct bullish drivers: VIX/DXY/10Y down, BTC up -> all four
+    # vote risk-ON (long); headline reads LONG and the tally must agree.
+    drivers = _macro_drivers(vix=-0.5, dxy=-0.3, tnx=-0.4, btc=0.6)
+    html = render_dashboard_html(_payload(macro_drivers=drivers), _run(), market_map=_market_map())
     tape = _macro_tape_block(html)
-    return re.findall(r'class="macro-evidence-vote">([^<]+)</span>', tape)
+    assert "MACRO BIAS: LONG" in tape
+    m = re.search(r'class="macro-tally">Risk votes: (\d+) off / (\d+) on \S+ (\w+)</div>', tape)
+    assert m is not None, "PRD-214 macro-tally line missing"
+    off, on, bias_word = int(m.group(1)), int(m.group(2)), m.group(3)
+    assert (on, off, bias_word) == (4, 0, "LONG"), (on, off, bias_word)
 
 
-def _evidence_interps(html: str) -> list[str]:
-    tape = _macro_tape_block(html)
-    return re.findall(r'class="macro-evidence-interp">([^<]+)</span>', tape)
-
-
-def test_prd177_r3_macro_evidence_rows_present() -> None:
+def test_prd214_macro_evidence_rows_removed() -> None:
+    # PRD-214 supersession: the per-driver evidence rows and their classes are
+    # gone from the rendered tape and the CSS.
     html = render_dashboard_html(
         _payload(macro_drivers=_macro_drivers()), _run(), market_map=_market_map(),
     )
-    tape = _macro_tape_block(html)
-    # One evidence row per MACRO_BIAS_DRIVERS member (BTC, VIX, DXY, 10Y).
-    labels = re.findall(r'class="macro-evidence-label">([A-Z0-9]+)', tape)
-    assert labels == ["BTC", "VIX", "DXY", "10Y"]
-    # Every row carries a vote token and an interpretation string.
-    votes = _evidence_votes(html)
-    assert len(votes) == 4
-    assert all(("risk-ON vote" in v) or ("risk-OFF vote" in v) or ("no vote" in v) for v in votes)
-    interps = re.findall(r'class="macro-evidence-interp">([^<]+)</span>', tape)
-    assert all(interp.strip() for interp in interps)
-    assert len(interps) == 4
-
-
-def test_prd177_r3_contra_cyclical_vote_wording() -> None:
-    # DXY rising is risk-OFF under contra-cyclical treatment.
-    drivers = _macro_drivers(dxy=0.30)
-    html = render_dashboard_html(_payload(macro_drivers=drivers), _run(), market_map=_market_map())
-    tape = _macro_tape_block(html)
-    assert "DXY" in tape
-    assert "risk-OFF vote (contra-cyclical)" in tape
-
-
-def test_prd177_r3_headline_agrees_with_evidence_tally() -> None:
-    # Cyclicality-correct drivers: VIX down, DXY down, 10Y down, BTC up -> all
-    # four cast a risk-ON (long) vote; headline must read LONG.
-    drivers = _macro_drivers(vix=-0.5, dxy=-0.3, tnx=-0.4, btc=0.6)
-    html = render_dashboard_html(_payload(macro_drivers=drivers), _run(), market_map=_market_map())
-    votes = _evidence_votes(html)
-    on = sum("risk-ON vote" in v for v in votes)
-    off = sum("risk-OFF vote" in v for v in votes)
-    assert on == 4 and off == 0
-    tape = _macro_tape_block(html)
-    assert "MACRO BIAS: LONG" in tape
-
-
-# ---------------------------------------------------------------------------
-# PRD-191 — the macro-evidence rationale subtitle must agree, in direction, with
-# the cyclicality-aware vote (a risk-OFF vote never renders risk-ON prose). The
-# pre-fix rationale was a fixed per-driver string with no direction term, so a
-# rising 10Y voted risk-OFF while still reading "easing yields favor risk".
-# ---------------------------------------------------------------------------
-
-def _assert_vote_interp_agree(html: str, *, case: str) -> None:
-    # Agreement contract (PRD-191): every directional rationale form contains the
-    # token "risk" XOR "caution" -- risk-ON prose favors risk, risk-OFF prose
-    # favors caution -- and the two token-sets are disjoint, so a substring check
-    # proves the rendered subtitle agrees with the vote sign.
-    votes = _evidence_votes(html)
-    interps = _evidence_interps(html)
-    assert len(votes) == len(interps) == 4, (case, votes, interps)
-    for vote, interp in zip(votes, interps):
-        if "risk-ON vote" in vote:
-            # risk-ON prose must read as favoring risk, never caution.
-            assert "risk" in interp and "caution" not in interp, (case, vote, interp)
-        elif "risk-OFF vote" in vote:
-            # risk-OFF prose must read as favoring caution, never risk.
-            assert "caution" in interp and "risk" not in interp, (case, vote, interp)
-        else:
-            raise AssertionError(f"{case}: unexpected vote token {vote!r}")
-
-
-def test_prd191_rationale_agrees_with_vote_rising() -> None:
-    # Rising readings: VIX/DXY/10Y (contra-cyclical) vote risk-OFF; BTC
-    # (pro-cyclical) votes risk-ON. The rationale must follow each vote's sign.
-    rising = _macro_drivers(vix=0.5, dxy=0.3, tnx=0.4, btc=0.6)
-    html = render_dashboard_html(_payload(macro_drivers=rising), _run(), market_map=_market_map())
-    _assert_vote_interp_agree(html, case="rising")
-
-
-def test_prd191_rationale_agrees_with_vote_falling() -> None:
-    # Falling readings flip every sign: VIX/DXY/10Y vote risk-ON; BTC risk-OFF.
-    falling = _macro_drivers(vix=-0.5, dxy=-0.3, tnx=-0.4, btc=-0.6)
-    html = render_dashboard_html(_payload(macro_drivers=falling), _run(), market_map=_market_map())
-    _assert_vote_interp_agree(html, case="falling")
-
-
-def test_prd191_rising_10y_rationale_is_not_risk_on() -> None:
-    # The canonical bug: a rising 10Y votes risk-OFF but the pre-fix static string
-    # read "easing yields favor risk". The 10Y row is the 4th evidence row.
-    rising = _macro_drivers(vix=0.5, dxy=0.3, tnx=0.4, btc=0.6)
-    html = render_dashboard_html(_payload(macro_drivers=rising), _run(), market_map=_market_map())
-    votes = _evidence_votes(html)
-    interps = _evidence_interps(html)
-    assert "risk-OFF vote" in votes[3], votes
-    assert "caution" in interps[3] and "risk" not in interps[3], interps
-
-
-def test_prd191_flat_renders_shared_neutral_rationale() -> None:
-    # Flat readings (change_pct == 0) produce "no vote"; every such row renders
-    # ONE shared neutral string that is directional in neither sense.
-    flat = _macro_drivers(vix=0.0, dxy=0.0, tnx=0.0, btc=0.0)
-    html = render_dashboard_html(_payload(macro_drivers=flat), _run(), market_map=_market_map())
-    votes = _evidence_votes(html)
-    interps = _evidence_interps(html)
-    assert all("no vote" in v for v in votes), votes
-    assert len(set(interps)) == 1, interps
-    neutral = interps[0]
-    assert neutral.strip()
-    assert "risk" not in neutral and "caution" not in neutral, neutral
-    # The neutral string is distinct from every directional form, so a mis-keyed
-    # flat case can never accidentally render a directional rationale.
-    from cuttingboard.delivery.macro_tape_layout import (
-        _MACRO_BIAS_NEUTRAL_INTERP,
-        MACRO_BIAS_INTERPRETATION,
-    )
-    directional = {
-        form for pair in MACRO_BIAS_INTERPRETATION.values() for form in pair.values()
-    }
-    assert neutral == _MACRO_BIAS_NEUTRAL_INTERP
-    assert neutral not in directional, neutral
+    assert "macro-evidence" not in html
+    assert "risk-ON vote" not in html and "risk-OFF vote" not in html
 
 
 def test_prd177_r4_scoreboard_renders_rows() -> None:
