@@ -1010,6 +1010,12 @@
       "title": "Numeric entry\u2192stop risk band on the level ladder (from contract trade_candidates)",
       "status": "COMPLETE",
       "commit": "e654ca0"
+    },
+    {
+      "number": 224,
+      "title": "Macro-tape glyph alignment (GC/SI pad) + PRD-223 review fast-follows",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
