@@ -63,9 +63,8 @@ def test_macro_tape_layout_has_only_pure_semantic_exports() -> None:
         layout.MACRO_BIAS_CONTRA_CYCLICAL,
         layout.MACRO_BIAS_PRO_CYCLICAL,
         layout.MACRO_BIAS_DRIVERS,
-        # PRD-177: fixed presentation-only interpretation strings for the
-        # per-driver macro-evidence rows (data/strings, no logic).
-        layout.MACRO_BIAS_INTERPRETATION,
+        # PRD-177 MACRO_BIAS_INTERPRETATION removed by PRD-214 (per-driver
+        # evidence rows retired); the allowlist no longer expects it.
     )
     for name, member in inspect.getmembers(layout):
         if name.startswith("_") or name == "annotations":

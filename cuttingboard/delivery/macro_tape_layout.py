@@ -92,25 +92,9 @@ MACRO_BIAS_CONTRA_CYCLICAL = frozenset({"volatility", "dollar", "rates"})
 MACRO_BIAS_PRO_CYCLICAL = frozenset({"bitcoin"})
 MACRO_BIAS_DRIVERS = MACRO_BIAS_CONTRA_CYCLICAL | MACRO_BIAS_PRO_CYCLICAL
 
-# PRD-177 / PRD-191: presentation-only interpretation strings for the per-driver
-# macro-evidence rows, keyed by payload_key and then by the driver's reading
-# direction. PRD-191 made these direction-aware so the rationale subtitle agrees
-# with the cyclicality-aware vote rendered alongside it: each form bakes in the
-# driver's cyclicality (a rising contra-cyclical driver -- vol/dollar/yields --
-# favors caution, a falling one favors risk; a rising pro-cyclical driver -- BTC
-# -- favors risk). The renderer selects the form by the SAME arrow it computes
-# for the vote, so prose and vote can never disagree. Strings only -- keep them
-# here so wording stays a data edit, not a logic edit.
-MACRO_BIAS_INTERPRETATION = _types.MappingProxyType(
-    {
-        "volatility": {"rising": "rising vol favors caution", "falling": "falling vol favors risk"},
-        "dollar": {"rising": "firm dollar favors caution", "falling": "soft dollar favors risk"},
-        "rates": {"rising": "rising yields favor caution", "falling": "easing yields favor risk"},
-        "bitcoin": {"rising": "crypto bid favors risk", "falling": "crypto offered favors caution"},
-    }
-)
-
-# PRD-191: the single shared neutral rationale for the flat / no-vote case (the
-# driver's arrow is neither up nor down). Private (`_`-prefixed) so it stays off
-# the module's public export surface (tests/test_macro_tape_layout.py allowlist).
-_MACRO_BIAS_NEUTRAL_INTERP = "flat reading, no directional bias"
+# PRD-214 retired the per-driver macro-evidence rows in favour of a single
+# risk-vote tally, orphaning the PRD-177/PRD-191 interpretation strings
+# (MACRO_BIAS_INTERPRETATION / _MACRO_BIAS_NEUTRAL_INTERP). They had no remaining
+# consumer and were removed here as the dead-branch completion of that
+# supersession. The cyclicality data above (CONTRA/PRO/DRIVERS) still feeds the
+# tally and stays.

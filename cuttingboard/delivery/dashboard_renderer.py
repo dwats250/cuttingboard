@@ -27,10 +27,8 @@ from cuttingboard.delivery.dashboard_integrator import (
     dashboard_integrator,
 )
 from cuttingboard.delivery.macro_tape_layout import (
-    _MACRO_BIAS_NEUTRAL_INTERP,
     MACRO_BIAS_CONTRA_CYCLICAL,
     MACRO_BIAS_DRIVERS,
-    MACRO_BIAS_INTERPRETATION,
     MACRO_ROW_1,
     MACRO_ROW_2,
     TRADABLES_ROW,
@@ -141,8 +139,8 @@ _TREND_STRUCTURE_INTRADAY_DISPLAY: dict[tuple[str, str], str] = {
     ("AT_LEVEL", "UNAVAILABLE"): "At VWAP, RVOL unavailable",
 }
 
-_INTRADAY_VWAP_DATA_UNAVAILABLE = "Intraday context unavailable"
-_INTRADAY_VWAP_NOT_COMPUTED = "VWAP not applicable"
+_INTRADAY_VWAP_DATA_UNAVAILABLE = "Intraday N/A"
+_INTRADAY_VWAP_NOT_COMPUTED = "VWAP N/A"
 
 
 def _intraday_rvol_band(rvol: float | None) -> str:
@@ -729,11 +727,7 @@ _CSS = (
     ".failed-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-top:4px}"
     ".failed-card-fields .label{font-size:0.7rem}"
     ".failed-card-fields .value{margin-top:1px}"
-    ".macro-evidence{margin-top:8px;display:flex;flex-direction:column;gap:3px}"
-    ".macro-evidence-row{font-size:0.72rem;color:#aaa;display:flex;flex-wrap:wrap;gap:8px}"
-    ".macro-evidence-label{color:#ddd;min-width:46px}"
-    ".macro-evidence-vote{color:#888}"
-    ".macro-evidence-interp{color:#666;font-style:italic}"
+    ".macro-tally{color:#aaa;font-size:0.78rem;margin-top:2px}"
     "#red-folder .red-folder-event{font-size:0.78rem;margin-top:4px}"
     ".red-folder-when{color:#ddd}"
     ".red-folder-type{color:#888}"
@@ -741,6 +735,23 @@ _CSS = (
     "#scoreboard .scoreboard-row{font-size:0.74rem;color:#bbb;display:flex;flex-wrap:wrap;gap:10px;margin-top:3px}"
     ".scoreboard-date{color:#ddd;min-width:80px}"
     ".scoreboard-spy{color:#888}"
+    # PRD-215: "actionable now" accent (cyan #29b6f6 — the level/VWAP colour) on
+    # the falsifiable trade fields, plus the collapsed REASON/PLAY/WATCH detail.
+    ".value-actionable{color:#29b6f6}"
+    ".card-detail summary{cursor:pointer;list-style:none;color:#888;font-size:0.72rem;"
+    "text-transform:uppercase;letter-spacing:.05em;margin-top:4px}"
+    ".card-detail summary::-webkit-details-marker{display:none}"
+    # PRD-213: below the mobile breakpoint the trend-structure table reflows to
+    # one labeled card per symbol so no column clips off-screen.
+    "@media(max-width:640px){"
+    ".ts-table thead{position:absolute;left:-9999px}"
+    ".ts-table,.ts-table tbody,.ts-table tr,.ts-table td{display:block;width:100%}"
+    ".ts-table tr{border:1px solid #2a2a2a;border-radius:4px;margin-bottom:6px;padding:4px 8px}"
+    ".ts-table td{white-space:normal!important;display:flex;justify-content:space-between;"
+    "gap:1rem;padding:2px 0}"
+    ".ts-table td::before{content:attr(data-label);color:#888;font-size:0.7rem;"
+    "text-transform:uppercase;letter-spacing:.05em}"
+    "}"
 )
 
 _UP   = "↑"
@@ -1475,29 +1486,28 @@ def _render_level_diagram(
     )
     w(f'    <rect width="{LINE_W}" height="{SVG_H}" fill="#0a0a0a"/>')
 
+    # Draw every level LINE at its true price-mapped y, and collect the label
+    # for a second pass. Lines are never moved (the ENTRY line y is a pinned
+    # contract for downstream tests); only the text labels are decluttered so
+    # that clustered levels — which is exactly when they matter — stay legible
+    # instead of overprinting into an unreadable stack.
+    labels: list[tuple[int, str, str]] = []  # (true_y, text, fill)
+
     for lv_f, label in sorted(fib_items, key=lambda x: x[0], reverse=True):
         y = _to_y(lv_f)
-        safe = _esc(label[:8])
         w(
             f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
             f'stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>'
         )
-        w(
-            f'    <text x="{LABEL_X}" y="{y + 4}" font-size="9" '
-            f'fill="#555" font-family="monospace">{safe}</text>'
-        )
+        labels.append((y, _esc(label[:8]), "#555"))
 
     for lv_f, zt in sorted(zone_lines, key=lambda x: x[0], reverse=True):
         y = _to_y(lv_f)
-        safe = _esc(zt[:10])
         w(
             f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
             f'stroke="#1a4a5a" stroke-width="1"/>'
         )
-        w(
-            f'    <text x="{LABEL_X}" y="{y + 4}" font-size="9" '
-            f'fill="#3a7a8a" font-family="monospace">{safe}</text>'
-        )
+        labels.append((y, _esc(zt[:10]), "#3a7a8a"))
 
     if vwap_level is not None:
         y = _to_y(vwap_level)
@@ -1505,10 +1515,7 @@ def _render_level_diagram(
             f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
             f'stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>'
         )
-        w(
-            f'    <text x="{LABEL_X}" y="{y + 4}" font-size="9" '
-            f'fill="#29b6f6" font-family="monospace">VWAP</text>'
-        )
+        labels.append((y, "VWAP", "#29b6f6"))
 
     y = _to_y(contract_entry)
     w(
@@ -1516,10 +1523,41 @@ def _render_level_diagram(
         f'stroke="#f5c518" stroke-width="2"/>'
     )
     w(f'    <circle cx="3" cy="{y}" r="3" fill="#f5c518"/>')
-    w(
-        f'    <text x="{LABEL_X}" y="{y + 4}" font-size="9" '
-        f'fill="#f5c518" font-family="monospace">ENTRY</text>'
-    )
+    labels.append((y, "ENTRY", "#f5c518"))
+
+    # Label-declutter pass. Spread baselines so no two labels sit closer than
+    # LABEL_MIN_GAP px; a thin leader connects any label pushed off its line.
+    # Deterministic: stable sort by (true_y, insertion index).
+    LABEL_MIN_GAP = 11
+    BASE_OFF = 4          # baseline offset that centers text on its line
+    TOP_CLAMP = 9         # keep the topmost label inside the canvas
+    order = sorted(range(len(labels)), key=lambda i: (labels[i][0], i))
+    pos: dict[int, int] = {}
+    prev: int | None = None
+    for idx in order:
+        base = labels[idx][0] + BASE_OFF
+        p = max(base, TOP_CLAMP) if prev is None else max(base, prev + LABEL_MIN_GAP)
+        pos[idx] = p
+        prev = p
+    # If the stack overran the bottom edge, compress upward from the last label.
+    if order and pos[order[-1]] > SVG_H:
+        cap = SVG_H
+        for idx in reversed(order):
+            pos[idx] = min(pos[idx], cap)
+            cap = pos[idx] - LABEL_MIN_GAP
+
+    for idx, (true_y, text, fill) in enumerate(labels):
+        by = pos[idx]
+        if abs(by - (true_y + BASE_OFF)) > 3:
+            w(
+                f'    <line x1="{LINE_W}" y1="{true_y}" '
+                f'x2="{LABEL_X - 1}" y2="{by - 3}" '
+                f'stroke="#444" stroke-width="0.75"/>'
+            )
+        w(
+            f'    <text x="{LABEL_X}" y="{by}" font-size="9" '
+            f'fill="{fill}" font-family="monospace">{text}</text>'
+        )
 
     w('    </svg>')
     w('  </div>')
@@ -1581,31 +1619,39 @@ def _render_candidate_card(
         if if_now is not None:
             w(f'  <div class="label">IF NOW</div><div class="value">{_esc(if_now)}</div>')
 
-        # PRD-165 R1: ENTRY/INVALIDATION are the falsifiable, actionable fields;
-        # render their values bold (.value-key) so they stand out from the
-        # muted .value rows (REASON/PLAY/WATCH).
+        # PRD-165 R1 / PRD-215: ENTRY/INVALIDATION are the falsifiable, actionable
+        # fields; render them bold (.value-key) AND in the cyan "actionable" accent
+        # (.value-actionable) so they are the visual focus of the card.
         entry_val = tf.get("entry")
         if entry_val is not None:
-            w(f'  <div class="label">ENTRY</div><div class="value-key">{_esc(entry_val)}</div>')
+            w(f'  <div class="label">ENTRY</div><div class="value-key value-actionable">{_esc(entry_val)}</div>')
 
         invalidation = entry.get("invalidation")
         if invalidation and len(invalidation) > 0 and invalidation[0] is not None:
-            w(f'  <div class="label">INVALIDATION</div><div class="value-key">{_esc(invalidation[0])}</div>')
+            w(f'  <div class="label">INVALIDATION</div><div class="value-key value-actionable">{_esc(invalidation[0])}</div>')
 
         downgrade = tf.get("downgrade")
         if downgrade is not None:
             w(f'  <div class="candidate-risk">RISK: {_esc(downgrade)}</div>')
 
+        # PRD-215: REASON/PLAY/WATCH are supporting context — tuck them behind a
+        # default-collapsed disclosure so the accented ENTRY/INVALIDATION stay the
+        # focal point. Rendered only when at least one of the three has content.
         reason = entry.get("reason_for_grade")
-        if reason is not None:
-            w(f'  <div class="label">REASON</div><div class="value">{_esc(reason)}</div>')
-
         pts = entry.get("preferred_trade_structure")
-        if pts is not None:
-            w(f'  <div class="label">PLAY</div><div class="value">{_esc(pts)}</div>')
-        for item in (entry.get("what_to_look_for") or []):
-            if item and item != _UNAVAILABLE_WATCH:
+        _watch_items = [
+            item for item in (entry.get("what_to_look_for") or [])
+            if item and item != _UNAVAILABLE_WATCH
+        ]
+        if reason is not None or pts is not None or _watch_items:
+            w('  <details class="card-detail"><summary>DETAIL ▶</summary>')
+            if reason is not None:
+                w(f'  <div class="label">REASON</div><div class="value">{_esc(reason)}</div>')
+            if pts is not None:
+                w(f'  <div class="label">PLAY</div><div class="value">{_esc(pts)}</div>')
+            for item in _watch_items:
                 w(f'  <div class="label">WATCH</div><div class="value">{_esc(item)}</div>')
+            w('  </details>')
 
     # PRD-158 § 4.2 translation 12: render the level diagram only when both
     # an anchor and level context exist. No placeholder for partial data.
@@ -2048,6 +2094,21 @@ def render_dashboard_html(
     # only on real divergence.
     if not integrator_suppress["macro_bias"]:
         w(f'  <div class="{_esc(macro_bias_css)}">{_esc(macro_bias)}</div>')
+        # PRD-214: single risk-vote tally replaces the per-driver evidence rows.
+        # long_votes/short_votes are the cyclicality-aware counts (risk-ON =
+        # long, risk-OFF = short) computed above; the tally's bias word is
+        # derived from the same counts so it always agrees with the headline.
+        _total_votes = long_votes + short_votes
+        if _total_votes:
+            _tally_bias = (
+                "LONG" if long_votes > short_votes
+                else "SHORT" if short_votes > long_votes
+                else "MIXED"
+            )
+            w(
+                f'  <div class="macro-tally">Risk votes: {short_votes} off / '
+                f'{long_votes} on {_FLAT} {_tally_bias}</div>'
+            )
 
     _tape_arrow_map = dict(tape_slots)
 
@@ -2071,48 +2132,11 @@ def render_dashboard_html(
     ]
     w('  <div class="macro-drivers-row">' + "".join(row_2_html) + "</div>")
 
-    # PRD-177: per-driver macro evidence. Surfaces the cyclicality-aware vote
-    # that already feeds the headline MACRO BIAS tally (same arrow map, same
-    # contra/pro-cyclical flip) plus an interpretation string that is itself
-    # direction-keyed (PRD-191) so it agrees with the vote. Distinct classes
-    # (macro-evidence-*) keep this clear of the macro-tape-value / data-symbol
-    # slot contract asserted by the PRD-138 row-order tests.
-    w('  <div class="macro-evidence">')
-    for _row in (MACRO_ROW_1, MACRO_ROW_2):
-        for _slot in _row.slots:
-            if _slot.payload_key not in MACRO_BIAS_DRIVERS:
-                continue
-            _arrow = _tape_arrow_map.get(_slot.label, _DASH)
-            _cyc = (
-                "contra-cyclical"
-                if _slot.payload_key in MACRO_BIAS_CONTRA_CYCLICAL
-                else "pro-cyclical"
-            )
-            if _arrow in (_UP, _DOWN):
-                _risk_on = _arrow == _UP
-                if _slot.payload_key in MACRO_BIAS_CONTRA_CYCLICAL:
-                    _risk_on = not _risk_on
-                _vote = "risk-ON vote" if _risk_on else "risk-OFF vote"
-                # PRD-191: select the rationale by the SAME arrow that drives the
-                # vote. Each driver's rising/falling form bakes in its cyclicality,
-                # so the subtitle never contradicts the vote sign.
-                _forms = MACRO_BIAS_INTERPRETATION.get(_slot.payload_key, {})
-                _interp = _forms.get(
-                    "rising" if _arrow == _UP else "falling", _MACRO_BIAS_NEUTRAL_INTERP
-                )
-            else:
-                _vote = "no vote"
-                _interp = _MACRO_BIAS_NEUTRAL_INTERP
-            _ev_value = tape_value_map.get(_slot.label, "")
-            w(
-                f'    <div class="macro-evidence-row">'
-                f'<span class="macro-evidence-label">{_esc(_slot.label)} {_esc(_arrow)}</span>'
-                f'<span class="macro-evidence-value">{_esc(_ev_value)}</span>'
-                f'<span class="macro-evidence-vote">{_esc(_vote)} ({_esc(_cyc)})</span>'
-                f'<span class="macro-evidence-interp">{_esc(_interp)}</span>'
-                f"</div>"
-            )
-    w("  </div>")
+    # PRD-214: the per-driver macro-evidence rows (PRD-177/PRD-191) are
+    # superseded by the one-line risk-vote tally rendered under the MACRO BIAS
+    # headline above. The cyclicality-aware vote logic they surfaced is retained
+    # in the headline tally computation; only the redundant per-driver
+    # presentation is removed.
 
     # Divider
     w('  <div class="sep"></div>')
@@ -2213,19 +2237,19 @@ def render_dashboard_html(
         if _ts_records is None:
             w('  <div class="tape-no-data">no trend structure data</div>')
         w(
-            '  <table style="width:100%;border-collapse:collapse;'
+            '  <table class="ts-table" style="width:100%;border-collapse:collapse;'
             'font-size:0.78rem;display:block;overflow-x:auto">'
         )
         _ts_headers = (
             "Symbol", "Price", "vs VWAP", "Alignment",
-            "Entry Context", "RVOL", "SMA 50/200", "Intraday Context",
+            "Entry Context", "RVOL", "SMA 50/200", "Intraday",
         )
         # PRD-165 R2 / PRD-208: collapse a granular column when it is uniformly
         # unavailable. Indices into _ts_headers. PRD-208 cut the redundant
         # "vs SMA50"/"vs SMA200" columns (the "SMA 50/200" arrow composite now
         # carries that position), re-indexing the collapsible set to vs VWAP (2),
         # Alignment (3), Entry Context (4). The composite reserve columns
-        # ("SMA 50/200", Intraday Context) are never collapsed.
+        # ("SMA 50/200", Intraday) are never collapsed.
         _ts_collapsible_cols = (2, 3, 4)
         _ts_unavailable_cells = {
             "NOT COMPUTED", "INSUFFICIENT HISTORY", "DATA UNAVAILABLE", _DASH,
@@ -2277,8 +2301,11 @@ def render_dashboard_html(
             for _i, _cell in enumerate(_cells):
                 if _i in _ts_collapsed:
                     continue
+                # PRD-213: data-label mirrors the column header so the mobile
+                # stacked-card reflow can render the header inline via CSS.
                 w(
-                    '        <td style="padding:2px 8px;white-space:nowrap">'
+                    f'        <td data-label="{_esc(_ts_headers[_i])}" '
+                    'style="padding:2px 8px;white-space:nowrap">'
                     f'{_esc(_cell)}</td>'
                 )
             w('      </tr>')
