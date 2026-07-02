@@ -59,7 +59,7 @@ def test_level_diagram_vwap_rendered_when_present() -> None:
     )
     assert 'stroke-dasharray="4,2"' in html
     # PRD-216: the VWAP label now carries its dollar level.
-    assert ">VWAP 499.50</text>" in html
+    assert ">VWAP 499.50" in html  # may carry a % suffix (PRD-221)
 
 
 def test_level_diagram_vwap_absent_when_no_vwap_zone() -> None:
@@ -177,7 +177,29 @@ def test_prd216_level_labels_carry_dollar_values() -> None:
         _payload(), _run(), market_map=mm, contract_entry_map={"GDX": 75.00},
     )
     diagram = html.split('class="lvl-diagram"', 1)[1].split("</svg>", 1)[0]
-    assert ">ENTRY 75.00</text>" in diagram
-    assert ">PRIOR_LOW 74.95</text>" in diagram
-    assert ">VWAP 75.05</text>" in diagram
-    assert ">0.618 74.62</text>" in diagram
+    assert ">ENTRY 75.00" in diagram
+    assert ">PRIOR_LOW 74.95" in diagram
+    assert ">VWAP 75.05" in diagram
+    assert ">0.618 74.62" in diagram
+
+
+def test_prd221_now_marker_pct_distance_and_band() -> None:
+    # PRD-221: NOW marker (current price), % distance on labels, NOW→ENTRY band.
+    fib = {"retracements": {"0.618": 99.40}}
+    zones = [{"type": "PRIOR_LOW", "level": 99.00}]
+    s = _mm_symbol("GDX", grade="A+")
+    s["current_price"] = 100.00          # NOW
+    s["fib_levels"] = fib
+    s["watch_zones"] = zones
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map({"GDX": s}),
+        contract_entry_map={"GDX": 99.50},   # ENTRY anchor distinct from NOW
+    )
+    diagram = html.split('class="lvl-diagram"', 1)[1].split("</svg>", 1)[0]
+    # NOW marker present (white line + label, 0% reference so no suffix)
+    assert 'stroke="#ffffff"' in diagram
+    assert ">NOW 100.00</text>" in diagram
+    # % distance appears on a level label (ENTRY 99.50 is -0.5% from NOW 100)
+    assert "-0.5%" in diagram
+    # NOW→ENTRY band shaded
+    assert 'fill="#f5c518" opacity="0.06"' in diagram
