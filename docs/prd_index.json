@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 222,
-  "next_prd": 223,
+  "latest_complete": 223,
+  "next_prd": 224,
   "entries": [
     {
       "number": 56,
@@ -1008,8 +1008,8 @@
     {
       "number": 223,
       "title": "Numeric entry\u2192stop risk band on the level ladder (from contract trade_candidates)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "e654ca0"
     }
   ]
 }

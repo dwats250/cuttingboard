@@ -16,7 +16,55 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-02 — PRD-223 SHIPPED: the risk band landed renderer-only; the deferral's premise was already met
+
+**What landed.** PRD-223 (merged via PR #89, `e654ca0`): the level ladder shades
+the contract entry→stop span as a soft risk zone (`#e05252`, `opacity 0.08`)
+with a dashed `STOP <price> <±%>` edge. Descriptive only — no targets, no R:R
+(`target`/`risk_reward` documented in SCHEMA_MAP as deliberately not rendered).
+
+**The scope pivot (supersedes the deferral below).** Dustin commissioned the
+band as an engine-contract change (emit numeric entry/stop next to the setup
+card's prose). Recon falsified that prescription on two facts:
+1. `trade_candidates[].stop` ALREADY existed — `TradeDecision.stop`,
+   sizing-grade, finite-asserted for ALLOW_TRADE (`contract.py`), in the same
+   artifact whose `entry` the diagram's anchor already read. The deferral's
+   reopen condition ("engine needs a numeric stop for an independent reason")
+   was met all along; the deferral's author reasoned from the market_map card
+   and missed the contract overlay.
+2. The prescribed market_map numeric emission is degenerate: `_trade_framing`
+   entry prose and `_invalidation` prose both reference `watch_zones[0]`, so
+   numeric companions are equal on every directional card — a zero-height band
+   (the PRD-222 "always-empty band" channel again). Excluded on realizability;
+   reopen only if the engine ever distinguishes the two referent zones.
+So the band shipped as the "near-free renderer addition" the deferral
+predicted: renderer-only, CLASS CONSUMER, LANE HIGH-RISK, no contract change,
+no prose parsing.
+
+**Gate.** Claude fresh-context review ACCEPT + genuine Codex cross-review
+(gpt-5.5 honored, read-only, SHA-pinned @ `5b5dd70`) REQUEST CHANGES — both
+REQUIRED edits were PROJECT_STATE currency drift, remediated pre-merge
+(docs-only; production code stayed byte-identical to the pinned SHA). Reviewer
+disagreement on whether stale canonical docs block merge was dispositioned in
+Codex's favor. Artifacts: `docs/prd_history/PRD-223.review.claude.md`,
+`docs/prd_history/PRD-223.review.codex.md`.
+
+**Recorded follow-ups (PRD-224 fast-follow + noted debt).** (a) macro-tape
+glyph alignment: pad GC/SI to 3 chars with `&nbsp;` at the two dashboard tape
+emission sites (HTML collapses plain spaces; the notification path already pads
+via `:<3`) — Dustin-requested; (b) entry-path guard symmetry in
+`_load_contract_entry_context` (bool/non-finite entry bare-coerces; unreachable
+from real contracts but asymmetric with the stop path); (c) misleading
+staleness comment in `tests/test_dashboard_renderer.py` ("nulls the stop map"
+— the mechanism is the pair gate). Sub-$2 y-scale degenerate-span edge: noted
+only, out of the traded universe.
+
 ## 2026-07-02 — Deferred: numeric entry/stop risk band on the level ladder (future PRD-223+)
+
+> **SUPERSEDED same day — see the PRD-223 SHIPPED entry above.** The reopen
+> condition was discovered to have been already met (`trade_candidates[].stop`);
+> the band landed renderer-only with no contract change and no prose parsing.
+> The banned-shortcut and zone-not-hairline guidance below was honored.
 
 **The idea (approved in principle by Dustin).** Add a shaded *risk band* to the
 level diagram (`_render_level_diagram`, `cuttingboard/delivery/dashboard_renderer.py`)
