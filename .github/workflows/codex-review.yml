@@ -26,8 +26,12 @@ name: Codex cross-review
 #     seam so ci.yml runs and the merge stays a human decision (PRD-184/PRD-194).
 #
 # Supply-chain: `openai/codex-action` is pinned to a commit SHA (v1.8) at the
-# review step below. `codex-version` is intentionally left unpinned there so the
-# action installs a current sandbox-capable Codex CLI.
+# review step below. `codex-version` is PINNED to `0.142.1` there (PRD-212), the
+# last CLI with landed proof of serving the requested model on this account; the
+# runtime `codex --version` capture records the resolved CLI for provenance.
+# Requested model is the `model` input default (`gpt-5.5`) — the deprecated
+# `gpt-5-codex` target was retired after it fail-closed every dispatch (exit 4,
+# model-metadata fallback); `gpt-5.5` is the served model on this API key.
 
 on:
   workflow_dispatch:
@@ -52,7 +56,7 @@ on:
       model:
         description: "REQUESTED Codex model id. The gate certifies this model was HONORED (no codex fallback) and records it as resolved-model only when honored and allowlisted; a silent fallback fails the gate closed (PRD-207)."
         required: false
-        default: gpt-5-codex
+        default: gpt-5.5
         type: string
 
 # No permissions by default; each job opts in to least privilege.
@@ -66,7 +70,7 @@ permissions: {}
 # Variables), NOT a committed literal — a hardcoded model id would re-open the
 # fail-closed default and is rejected by the gate contract test. UNSET ⇒ empty ⇒
 # every model rejected until a human authorizes genuine Codex model id(s) in the
-# repo variable (e.g. "gpt-5-codex gpt-5-codex-*").
+# repo variable (current target: "gpt-5.5 gpt-5.5-*").
 env:
   ALLOWED_CODEX_MODELS: ${{ vars.ALLOWED_CODEX_MODELS }}
 
