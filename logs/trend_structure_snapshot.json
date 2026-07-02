@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-07-02T19:06:45.234148+00:00",
+  "generated_at": "2026-07-02T23:07:15.411986+00:00",
   "schema_version": 1,
   "source": "trend_structure",
   "symbols": {
     "GDX": {
-      "current_price": 77.66999816894531,
-      "daily_change_pct": 3.477215785964975,
+      "current_price": 78.43000030517578,
+      "daily_change_pct": 4.4897419466770305,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "BELOW",
@@ -20,8 +20,8 @@
       "vwap": null
     },
     "GLD": {
-      "current_price": 378.0,
-      "daily_change_pct": 2.085349834070803,
+      "current_price": 378.1300048828125,
+      "daily_change_pct": 2.120459870954537,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "BELOW",
@@ -36,8 +36,8 @@
       "vwap": null
     },
     "QQQ": {
-      "current_price": 709.7899780273438,
-      "daily_change_pct": -2.0114338136639605,
+      "current_price": 712.5999755859375,
+      "daily_change_pct": -1.6235054964468654,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
@@ -52,8 +52,8 @@
       "vwap": null
     },
     "SLV": {
-      "current_price": 54.77000045776367,
-      "daily_change_pct": 2.527144248902415,
+      "current_price": 55.02000045776367,
+      "daily_change_pct": 2.9951337659372337,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "BELOW",
@@ -68,8 +68,8 @@
       "vwap": null
     },
     "SPY": {
-      "current_price": 741.9000244140625,
-      "daily_change_pct": -0.4120938542407785,
+      "current_price": 744.780029296875,
+      "daily_change_pct": -0.025500450102021194,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
@@ -84,8 +84,8 @@
       "vwap": null
     },
     "XLE": {
-      "current_price": 53.0,
-      "daily_change_pct": 0.37878787878788417,
+      "current_price": 53.220001220703125,
+      "daily_change_pct": 0.7954568573922877,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",

@@ -1,18 +1,18 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 2.776100086702843,
-      "level": 61626.0390625,
+      "change_pct": 2.2085348978454973,
+      "level": 61285.71875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.5001688605237664,
-      "level": 100.85800170898438,
+      "change_pct": -0.5100363063297746,
+      "level": 100.8479995727539,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 1.2639897336903831,
-      "level": 4133.89990234375,
+      "change_pct": 1.3497257148318165,
+      "level": 4137.39990234375,
       "symbol": "GC=F"
     },
     "oil": {
@@ -27,20 +27,20 @@
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 0.69929942639257,
-      "level": 61.20000076293945,
+      "change_pct": 1.192922181684156,
+      "level": 61.5,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -0.24139413950143265,
-      "level": 16.530000686645508,
+      "change_pct": -2.5347017744673583,
+      "level": 16.149999618530273,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "live-20260702T190645Z",
+    "generation_id": "live-20260702T230715Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-07-02T19:06:45Z"
+    "timestamp": "2026-07-02T23:07:15Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -51,7 +51,7 @@
     "rejected": [
       {
         "detail": null,
-        "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
+        "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)",
         "stage": "REGIME",
         "symbol": "REGIME"
       }
@@ -59,15 +59,13 @@
     "top_trades": [],
     "trade_decision_detail": [],
     "validation_halt_detail": {
-      "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)"
+      "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)"
     },
-    "watch_summary_detail": {
-      "session": "POWER_HOUR"
-    },
+    "watch_summary_detail": null,
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.0,
+    "confidence": 0.125,
     "market_regime": "NEUTRAL",
     "outcome": "NO_TRADE",
     "permission": "No new trades permitted.",
