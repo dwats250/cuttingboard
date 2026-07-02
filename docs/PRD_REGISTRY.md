@@ -229,7 +229,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-208 | — | Parked presentation PRD — HIGH-RISK Codex cross-review leg UNSATISFIED (diff reviewed @ ceceedb; held pending an allowlisted Codex review — see DECISIONS 2026-06-26) | PROPOSED | — |
 | PRD-209 | — | OHLCV bar-count floor: reject/repair truncated daily frames served as fresh | PROPOSED | [PRD-209](prd_history/PRD-209.md) |
 | PRD-211 | 57dfd12 | Macro-tape metals display correctness | COMPLETE | [PRD-211](prd_history/PRD-211.md) |
-| PRD-212 | daedf10 | Pin the Codex cross-review identity (CLI version 0.142.1) — end the alias-drift gate outage | COMPLETE | [PRD-212](prd_history/PRD-212.md) |
+| PRD-212 | daedf10 | Pin the Codex cross-review identity (CLI version 0.142.1) — end the alias-drift gate outage. PREMISE SUPERSEDED (2026-07-01): the outage was a deprecated model (gpt-5-codex retired 2026-04-01), not CLI-alias drift; fixed by retargeting the model to gpt-5.5 (PR #76, validated run 28560459040). The 0.142.1 pin is retained. See DECISIONS 2026-07-01. | COMPLETE | [PRD-212](prd_history/PRD-212.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
