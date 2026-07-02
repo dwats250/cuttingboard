@@ -566,6 +566,65 @@ def test_stale_contract_entries_are_ignored_for_level_anchors() -> None:
     assert entry_line.group("y") == "40"
 
 
+def test_prd223_loader_extracts_valid_stops_and_rejects_invalid(tmp_path: Path) -> None:
+    # PRD-223: _load_contract_entry_context captures trade_candidates[].stop
+    # into a stop map — finite positive floats only. Deleting any guard lets an
+    # undrawable stop through and this test fails.
+    from cuttingboard.delivery.dashboard_renderer import _load_contract_entry_context
+
+    contract = {
+        "generated_at": "2026-04-28T12:00:00Z",
+        "trade_candidates": [
+            {"symbol": "SPY", "decision_status": "ALLOW_TRADE", "entry": 510.0, "stop": 505.0},
+            {"symbol": "QQQ", "decision_status": "ALLOW_TRADE", "entry": 430.0, "stop": float("nan")},
+            {"symbol": "GLD", "decision_status": "ALLOW_TRADE", "entry": 220.0, "stop": -1.0},
+            {"symbol": "SLV", "decision_status": "ALLOW_TRADE", "entry": 29.0, "stop": "not-a-price"},
+            # bool must be rejected BEFORE coercion: float(True) == 1.0 would
+            # masquerade as a real price (Codex P2 on PR #89).
+            {"symbol": "XLE", "decision_status": "ALLOW_TRADE", "entry": 90.0, "stop": True},
+            {"symbol": "GDX", "decision_status": "ALLOW_TRADE", "entry": 41.0},
+        ],
+    }
+    (tmp_path / "latest_hourly_contract.json").write_text(json.dumps(contract), encoding="utf-8")
+
+    entry_map, stop_map, _alerts, generated_at, _path = _load_contract_entry_context(tmp_path)
+
+    assert stop_map == {"SPY": 505.0}
+    assert entry_map == {"SPY": 510.0, "QQQ": 430.0, "GLD": 220.0, "SLV": 29.0, "XLE": 90.0, "GDX": 41.0}
+    assert generated_at == "2026-04-28T12:00:00Z"
+
+
+def test_prd223_stale_contract_stops_are_ignored_for_risk_band() -> None:
+    # PRD-223: contract staleness nulls the stop map together with the entry
+    # map — a stale stop must not shade a risk zone on a fresh card.
+    payload = _payload(timestamp="2026-04-28T12:10:01Z", macro_drivers=_macro_drivers())
+    run = _run_with_timestamp("2026-04-28T12:10:01Z")
+    entry = {
+        **_mm_symbol("SPY"),
+        "current_price": 120.0,
+        "watch_zones": [
+            {"type": "SUPPORT", "level": 100.0},
+            {"type": "RESISTANCE", "level": 130.0},
+        ],
+    }
+    mm = _market_map({"SPY": entry})
+    mm["generated_at"] = "2026-04-28T12:10:01Z"
+
+    html = render_dashboard_html(
+        payload,
+        run,
+        market_map=mm,
+        contract_entry_map={"SPY": 110.0},
+        contract_stop_map={"SPY": 105.0},
+        contract_generated_at="2026-04-28T12:00:00Z",
+    )
+    card = _candidate_card(html)
+
+    assert 'opacity="0.08"' not in card
+    assert 'stroke="#e05252"' not in card
+    assert ">STOP " not in card
+
+
 def test_failed_candidate_with_only_current_price_does_not_render_entry_only_diagram() -> None:
     mm = _market_map({"SPY": {**_mm_symbol("SPY", grade="C"), "current_price": 512.34}})
 
