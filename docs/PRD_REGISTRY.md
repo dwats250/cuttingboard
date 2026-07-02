@@ -240,7 +240,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-220 | 2006db5 | Dashboard refinement round 2: system-state/market-map coherence + macro-tape & trend polish | COMPLETE | [PRD-220](prd_history/PRD-220.md) |
 | PRD-221 | 6b3fef1 | Level diagram: NOW marker, % distance, entry-gap band | COMPLETE | [PRD-221](prd_history/PRD-221.md) |
 | PRD-222 | b4a315c | Level diagram: label anchor NOW, drop redundant marker + empty band (PRD-221 patch) | COMPLETE | [PRD-222](prd_history/PRD-222.md) |
-| PRD-223 | — | Numeric entry→stop risk band on the level ladder (from contract trade_candidates) | IN PROGRESS | [PRD-223](prd_history/PRD-223.md) |
+| PRD-223 | e654ca0 | Numeric entry→stop risk band on the level ladder (from contract trade_candidates) | COMPLETE | [PRD-223](prd_history/PRD-223.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
