@@ -579,6 +579,9 @@ def test_prd223_loader_extracts_valid_stops_and_rejects_invalid(tmp_path: Path) 
             {"symbol": "QQQ", "decision_status": "ALLOW_TRADE", "entry": 430.0, "stop": float("nan")},
             {"symbol": "GLD", "decision_status": "ALLOW_TRADE", "entry": 220.0, "stop": -1.0},
             {"symbol": "SLV", "decision_status": "ALLOW_TRADE", "entry": 29.0, "stop": "not-a-price"},
+            # bool must be rejected BEFORE coercion: float(True) == 1.0 would
+            # masquerade as a real price (Codex P2 on PR #89).
+            {"symbol": "XLE", "decision_status": "ALLOW_TRADE", "entry": 90.0, "stop": True},
             {"symbol": "GDX", "decision_status": "ALLOW_TRADE", "entry": 41.0},
         ],
     }
@@ -587,7 +590,7 @@ def test_prd223_loader_extracts_valid_stops_and_rejects_invalid(tmp_path: Path) 
     entry_map, stop_map, _alerts, generated_at, _path = _load_contract_entry_context(tmp_path)
 
     assert stop_map == {"SPY": 505.0}
-    assert entry_map == {"SPY": 510.0, "QQQ": 430.0, "GLD": 220.0, "SLV": 29.0, "GDX": 41.0}
+    assert entry_map == {"SPY": 510.0, "QQQ": 430.0, "GLD": 220.0, "SLV": 29.0, "XLE": 90.0, "GDX": 41.0}
     assert generated_at == "2026-04-28T12:00:00Z"
 
 

@@ -2686,9 +2686,11 @@ def _load_contract_entry_context(
             except (TypeError, ValueError):
                 pass
         # PRD-223: the numeric stop feeds the level ladder's risk band; only a
-        # finite positive price is drawable.
+        # finite positive price is drawable. Booleans are rejected BEFORE
+        # coercion — float(True) is 1.0, which would masquerade as a real
+        # price past every downstream guard.
         stop_val = cand.get("stop")
-        if sym and stop_val is not None:
+        if sym and stop_val is not None and not isinstance(stop_val, bool):
             try:
                 stop_f = float(stop_val)
             except (TypeError, ValueError):
