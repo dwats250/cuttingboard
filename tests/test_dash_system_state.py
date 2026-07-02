@@ -38,13 +38,14 @@ def test_system_state_expansion_renders_momentum_longs() -> None:
 
 
 def test_system_state_regime_badge_class() -> None:
+    # PRD-219: regime colour now rides the verdict line (no separate badge).
     html = render_dashboard_html(_payload(market_regime="RISK_OFF"), _run())
-    assert 'class="badge RISK_OFF"' in html
+    assert 'class="sys-verdict sys-down"' in html
 
 
 def test_system_state_regime_badge_risk_on_class() -> None:
     html = render_dashboard_html(_payload(market_regime="RISK_ON"), _run())
-    assert 'class="badge RISK_ON"' in html
+    assert 'class="sys-verdict sys-up"' in html
 
 
 def test_system_state_permission_shows_dash_when_none() -> None:
@@ -54,10 +55,10 @@ def test_system_state_permission_shows_dash_when_none() -> None:
     r = _run(permission=None)
     html = render_dashboard_html(_payload(), r)
     state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
-    assert "Permission" in state
-    perm_section = state.split("Permission", 1)[1].split("</div></div>", 1)[0]
-    assert ">&#8212;<" not in perm_section
-    assert "UNKNOWN" in perm_section
+    # PRD-219: no Permission field / no dash placeholder; a distilled verdict.
+    assert 'class="sys-verdict' in state
+    assert ">&#8212;<" not in state
+    assert ">Permission<" not in state
 
 
 def test_system_state_stay_flat_omitted_when_none() -> None:
@@ -67,10 +68,13 @@ def test_system_state_stay_flat_omitted_when_none() -> None:
 
 
 def test_system_state_stay_flat_present_when_set() -> None:
+    # PRD-219: the non-halt STAY_FLAT posture string is no longer surfaced in the
+    # distilled panel (the verdict + context convey the no-trade state instead).
     html = render_dashboard_html(
         _payload(validation_halt_detail={"reason": "STAY_FLAT posture"}), _run()
     )
-    assert "STAY_FLAT posture" in html
+    state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    assert "STAY_FLAT posture" not in state
 
 
 def test_system_state_no_redundant_permission_copy() -> None:
@@ -80,16 +84,12 @@ def test_system_state_no_redundant_permission_copy() -> None:
         _run(permission="No new trades permitted."),
     )
     state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
-    # single consolidated label
-    assert "Permission" in state
-    assert state.count(">Permission<") == 1
-    # stay_flat_reason is the displayed value
-    assert "STAY_FLAT posture" in state
-    # permission text not shown separately; Stay Flat not a field label
-    assert ">Stay Flat<" not in state
+    # PRD-219: no Permission field; the distilled verdict replaces it, and the
+    # confidence-laden posture string never appears.
+    assert ">Permission<" not in state
+    assert "confidence=" not in state
     assert "No new trades permitted." not in state
-    # gold warn class present
-    assert 'class="field warn"' in state
+    assert 'class="sys-verdict' in state
 
 
 def test_system_state_permission_fallback_when_no_reason() -> None:
@@ -99,8 +99,9 @@ def test_system_state_permission_fallback_when_no_reason() -> None:
         _run(permission="No new trades permitted."),
     )
     state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
-    assert "Permission" in state
-    assert "No new trades permitted." in state
+    # PRD-219: the raw permission text is no longer echoed; the verdict conveys it.
+    assert 'class="sys-verdict' in state
+    assert "No new trades permitted." not in state
 
 
 def test_system_state_permission_shows_from_run_when_non_null() -> None:
@@ -108,8 +109,8 @@ def test_system_state_permission_shows_from_run_when_non_null() -> None:
     r = _run(permission="No new trades permitted.")
     html = render_dashboard_html(_payload(), r)
     state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
-    assert "Permission" in state
-    assert "No new trades permitted." in state
+    assert 'class="sys-verdict' in state
+    assert "No new trades permitted." not in state
     assert "&#8212;" not in state
 
 
@@ -120,8 +121,8 @@ def test_system_state_permission_falls_back_to_payload_when_run_none() -> None:
     r = _run(permission=None)
     html = render_dashboard_html(payload_with_perm, r)
     state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
-    assert "Permission" in state
-    assert "No new trades permitted." in state
+    assert 'class="sys-verdict' in state
+    assert "No new trades permitted." not in state
 
 
 # ---------------------------------------------------------------------------
@@ -216,7 +217,7 @@ def test_system_state_reason_no_candidates() -> None:
         state = html.split('id="system-state"', 1)[1].split('id="alert-watchlist"', 1)[0]
     else:
         state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
-    assert "Reason" in state
+    # PRD-219: the reason folds into the context line (no separate Reason field).
     assert "no qualified candidates" in state
     assert "candidates gated" not in state
 
@@ -230,6 +231,5 @@ def test_system_state_reason_candidates_gated() -> None:
         state = html.split('id="system-state"', 1)[1].split('id="alert-watchlist"', 1)[0]
     else:
         state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
-    assert "Reason" in state
     assert "candidates gated" in state
     assert "no qualified candidates" not in state
