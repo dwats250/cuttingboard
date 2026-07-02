@@ -1,75 +1,537 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.7215203586612442,
-      "level": 60396.08984375,
+      "change_pct": 3.052908344348617,
+      "level": 61794.0703125,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.07004305924539404,
-      "level": 101.29399871826172,
+      "change_pct": -0.5859953170652696,
+      "level": 100.77100372314453,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 0.11512997858215197,
-      "level": 4087.0,
+      "change_pct": 1.1905017498548691,
+      "level": 4130.89990234375,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 0.07384884423854507,
-      "level": 67.76000213623047,
+      "change_pct": 0.05907682184050836,
+      "level": 67.75,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 5.77351736354176,
-      "change_pct": 1.290171477886427,
-      "level": 4.475,
+      "change_bps": 0.6008086767102103,
+      "change_pct": 0.13407915283883276,
+      "level": 4.480999946594238,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -0.40313079462072143,
-      "level": 60.529998779296875,
+      "change_pct": 1.2751915947737738,
+      "level": 61.54999923706055,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 0.85106007997182,
-      "level": 16.59000015258789,
+      "change_pct": -2.595053187056458,
+      "level": 16.139999389648438,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "live-20260702T064613Z",
-    "symbols_scanned": 0,
-    "timestamp": "2026-07-02T06:46:13Z"
+    "generation_id": "live-20260702T134211Z",
+    "symbols_scanned": 23,
+    "timestamp": "2026-07-02T13:42:11Z"
   },
-  "run_status": "STAY_FLAT",
+  "run_status": "OK",
   "schema_version": "1.0",
   "sections": {
-    "chain_results_detail": [],
-    "continuation_audit": null,
-    "option_setups_detail": [],
+    "chain_results_detail": [
+      {
+        "classification": "DISQUALIFIED_OPTIONS_INVALID",
+        "notes": "spread too wide: 70.1%",
+        "symbol": "^VIX"
+      },
+      {
+        "classification": "NEEDS_MANUAL_CHECK",
+        "notes": "chain data unavailable from all sources",
+        "symbol": "BTC-USD"
+      },
+      {
+        "classification": "NEEDS_MANUAL_CHECK",
+        "notes": "chain data unavailable from all sources",
+        "symbol": "GC=F"
+      },
+      {
+        "classification": "NEEDS_MANUAL_CHECK",
+        "notes": "chain data unavailable from all sources",
+        "symbol": "SI=F"
+      },
+      {
+        "classification": "DISQUALIFIED_OPTIONS_INVALID",
+        "notes": "liquidity fail: OI=1127 vol=1973 bid=0.00 ask=0.00",
+        "symbol": "SPY"
+      },
+      {
+        "classification": "DISQUALIFIED_OPTIONS_INVALID",
+        "notes": "liquidity fail: OI=1138 vol=257 bid=0.00 ask=0.00",
+        "symbol": "QQQ"
+      },
+      {
+        "classification": "DISQUALIFIED_OPTIONS_INVALID",
+        "notes": "liquidity fail: OI=6731 vol=6745 bid=0.00 ask=0.00",
+        "symbol": "IWM"
+      },
+      {
+        "classification": "DISQUALIFIED_OPTIONS_INVALID",
+        "notes": "liquidity fail: OI=6878 vol=1392 bid=0.00 ask=0.00",
+        "symbol": "GLD"
+      },
+      {
+        "classification": "DISQUALIFIED_OPTIONS_INVALID",
+        "notes": "liquidity fail: OI=2620 vol=2513 bid=0.00 ask=0.00",
+        "symbol": "SLV"
+      },
+      {
+        "classification": "DISQUALIFIED_OPTIONS_INVALID",
+        "notes": "liquidity fail: OI=12413 vol=6412 bid=0.00 ask=0.00",
+        "symbol": "GDX"
+      },
+      {
+        "classification": "DISQUALIFIED_OPTIONS_INVALID",
+        "notes": "liquidity fail: OI=1020 vol=10 bid=0.00 ask=0.00",
+        "symbol": "PAAS"
+      },
+      {
+        "classification": "DISQUALIFIED_OPTIONS_INVALID",
+        "notes": "liquidity fail: OI=339 vol=44 bid=0.00 ask=0.00",
+        "symbol": "XLE"
+      },
+      {
+        "classification": "DISQUALIFIED_OPTIONS_INVALID",
+        "notes": "liquidity fail: OI=8566 vol=33 bid=0.00 ask=0.00",
+        "symbol": "NVDA"
+      },
+      {
+        "classification": "DISQUALIFIED_OPTIONS_INVALID",
+        "notes": "liquidity fail: OI=1239 vol=712 bid=0.00 ask=0.00",
+        "symbol": "TSLA"
+      },
+      {
+        "classification": "DISQUALIFIED_OPTIONS_INVALID",
+        "notes": "liquidity fail: OI=336 vol=406 bid=0.00 ask=0.00",
+        "symbol": "META"
+      },
+      {
+        "classification": "DISQUALIFIED_OPTIONS_INVALID",
+        "notes": "liquidity fail: OI=6349 vol=5472 bid=0.00 ask=0.00",
+        "symbol": "COIN"
+      },
+      {
+        "classification": "DISQUALIFIED_OPTIONS_INVALID",
+        "notes": "liquidity fail: OI=13659 vol=2574 bid=0.00 ask=0.00",
+        "symbol": "MSTR"
+      }
+    ],
+    "continuation_audit": {
+      "accepted_count": 0,
+      "rejected_count": 0
+    },
+    "option_setups_detail": [
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "^VIX",
+        "timeframe": "14"
+      },
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "BTC-USD",
+        "timeframe": "14"
+      },
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "GC=F",
+        "timeframe": "14"
+      },
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "SI=F",
+        "timeframe": "7"
+      },
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "SPY",
+        "timeframe": "7"
+      },
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "QQQ",
+        "timeframe": "21"
+      },
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "IWM",
+        "timeframe": "21"
+      },
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "GLD",
+        "timeframe": "14"
+      },
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "SLV",
+        "timeframe": "7"
+      },
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "GDX",
+        "timeframe": "14"
+      },
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "PAAS",
+        "timeframe": "14"
+      },
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "XLE",
+        "timeframe": "21"
+      },
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "NVDA",
+        "timeframe": "21"
+      },
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "TSLA",
+        "timeframe": "7"
+      },
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "META",
+        "timeframe": "7"
+      },
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "COIN",
+        "timeframe": "7"
+      },
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "MSTR",
+        "timeframe": "14"
+      }
+    ],
     "rejected": [
       {
         "detail": null,
-        "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)",
-        "stage": "REGIME",
-        "symbol": "REGIME"
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "AAPL"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "AMZN"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "^TNX"
       }
     ],
     "top_trades": [],
-    "trade_decision_detail": [],
-    "validation_halt_detail": {
-      "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)"
+    "trade_decision_detail": [
+      {
+        "block_reason": "spread too wide: 70.1%",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "spread too wide: 70.1%",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "^VIX"
+      },
+      {
+        "block_reason": "chain data unavailable from all sources",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "chain data unavailable from all sources",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "BTC-USD"
+      },
+      {
+        "block_reason": "chain data unavailable from all sources",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "chain data unavailable from all sources",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "GC=F"
+      },
+      {
+        "block_reason": "chain data unavailable from all sources",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "chain data unavailable from all sources",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "SI=F"
+      },
+      {
+        "block_reason": "liquidity fail: OI=1127 vol=1973 bid=0.00 ask=0.00",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "liquidity fail: OI=1127 vol=1973 bid=0.00 ask=0.00",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "SPY"
+      },
+      {
+        "block_reason": "liquidity fail: OI=1138 vol=257 bid=0.00 ask=0.00",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "liquidity fail: OI=1138 vol=257 bid=0.00 ask=0.00",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "QQQ"
+      },
+      {
+        "block_reason": "liquidity fail: OI=6731 vol=6745 bid=0.00 ask=0.00",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "liquidity fail: OI=6731 vol=6745 bid=0.00 ask=0.00",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "IWM"
+      },
+      {
+        "block_reason": "liquidity fail: OI=6878 vol=1392 bid=0.00 ask=0.00",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "liquidity fail: OI=6878 vol=1392 bid=0.00 ask=0.00",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "GLD"
+      },
+      {
+        "block_reason": "liquidity fail: OI=2620 vol=2513 bid=0.00 ask=0.00",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "liquidity fail: OI=2620 vol=2513 bid=0.00 ask=0.00",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "SLV"
+      },
+      {
+        "block_reason": "liquidity fail: OI=12413 vol=6412 bid=0.00 ask=0.00",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "liquidity fail: OI=12413 vol=6412 bid=0.00 ask=0.00",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "GDX"
+      },
+      {
+        "block_reason": "liquidity fail: OI=1020 vol=10 bid=0.00 ask=0.00",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "liquidity fail: OI=1020 vol=10 bid=0.00 ask=0.00",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "PAAS"
+      },
+      {
+        "block_reason": "liquidity fail: OI=339 vol=44 bid=0.00 ask=0.00",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "liquidity fail: OI=339 vol=44 bid=0.00 ask=0.00",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "XLE"
+      },
+      {
+        "block_reason": "liquidity fail: OI=8566 vol=33 bid=0.00 ask=0.00",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "liquidity fail: OI=8566 vol=33 bid=0.00 ask=0.00",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "NVDA"
+      },
+      {
+        "block_reason": "liquidity fail: OI=1239 vol=712 bid=0.00 ask=0.00",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "liquidity fail: OI=1239 vol=712 bid=0.00 ask=0.00",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "TSLA"
+      },
+      {
+        "block_reason": "liquidity fail: OI=336 vol=406 bid=0.00 ask=0.00",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "liquidity fail: OI=336 vol=406 bid=0.00 ask=0.00",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "META"
+      },
+      {
+        "block_reason": "liquidity fail: OI=6349 vol=5472 bid=0.00 ask=0.00",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "liquidity fail: OI=6349 vol=5472 bid=0.00 ask=0.00",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "COIN"
+      },
+      {
+        "block_reason": "liquidity fail: OI=13659 vol=2574 bid=0.00 ask=0.00",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "liquidity fail: OI=13659 vol=2574 bid=0.00 ask=0.00",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "MSTR"
+      }
+    ],
+    "validation_halt_detail": null,
+    "watch_summary_detail": {
+      "session": "MORNING"
     },
-    "watch_summary_detail": null,
-    "watchlist": []
+    "watchlist": [
+      {
+        "detail": null,
+        "reason": "stop distance 0.5% below 1.0% minimum",
+        "stage": "WATCHLIST",
+        "symbol": "DX-Y.NYB"
+      },
+      {
+        "detail": null,
+        "reason": "price 2.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "WATCHLIST",
+        "symbol": "CL=F"
+      },
+      {
+        "detail": null,
+        "reason": "price 2.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "WATCHLIST",
+        "symbol": "USO"
+      }
+    ]
   },
   "summary": {
-    "confidence": 0.125,
-    "market_regime": "NEUTRAL",
+    "confidence": 1.0,
+    "market_regime": "EXPANSION",
     "outcome": "NO_TRADE",
-    "permission": "No new trades permitted.",
+    "permission": "EXPANSION \u2014 momentum allowed. Continuation entries. R:R >= 1.5.",
     "router_mode": "MIXED",
-    "tradable": false
+    "tradable": true
   }
 }
