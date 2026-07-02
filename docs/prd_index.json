@@ -1,6 +1,6 @@
 {
   "tracking_start": 56,
-  "latest_complete": 212,
+  "latest_complete": 215,
   "next_prd": 216,
   "entries": [
     {
@@ -948,20 +948,20 @@
     {
       "number": 213,
       "title": "Mobile-responsive trend-structure table (stacked card reflow)",
-      "status": "PROPOSED",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "0cf7c25"
     },
     {
       "number": 214,
-      "title": "Macro-tape condensation (tally line + collapsed per-driver evidence)",
-      "status": "PROPOSED",
-      "commit": null
+      "title": "Macro-tape condensation (risk-vote tally supersedes per-driver evidence, PRD-177 R3/PRD-191)",
+      "status": "COMPLETE",
+      "commit": "0cf7c25"
     },
     {
       "number": 215,
       "title": "Candidate-card condense + \"actionable now\" cyan accent",
-      "status": "PROPOSED",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "0cf7c25"
     }
   ]
 }
