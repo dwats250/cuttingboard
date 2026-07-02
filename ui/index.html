@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="refresh" content="30">
   <title>Signal Forge</title>
-  <style>*{box-sizing:border-box;margin:0;padding:0}body{background:#0d0d0d;color:#e0e0e0;font-family:monospace;padding:1rem}.wrap{max-width:640px;margin:0 auto}.block{border:1px solid #2a2a2a;border-radius:4px;margin-bottom:1rem;padding:1rem}.label{color:#888;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em}.value{margin-top:0.25rem}.value-key{margin-top:0.25rem;font-weight:bold}.row{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.5rem}.field{flex:1;min-width:120px}.badge{display:inline-block;padding:0.2rem 0.5rem;border-radius:3px;font-size:0.8rem}.RISK_ON{background:#1a3a1a;color:#4caf50}.RISK_OFF{background:#3a1a1a;color:#f44336}.NEUTRAL{background:#2a2a1a;color:#ff9800}.CHAOTIC{background:#3a1a3a;color:#e040fb}.STAY_FLAT{background:#1a1a2a;color:#90caf9}.AGGRESSIVE_LONG,.CONTROLLED_LONG{background:#1a3a1a;color:#4caf50}.DEFENSIVE_SHORT{background:#3a1a1a;color:#f44336}.NEUTRAL_PREMIUM{background:#2a2a1a;color:#ff9800}.halted{color:#f44336;font-weight:bold}.warn{color:#ff9800}h2{font-size:0.8rem;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem}.sep{border-top:1px solid #1a1a1a;margin:0.5rem 0}.tape-slot{white-space:nowrap}.macro-tape-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px 12px;margin-top:6px;overflow-x:hidden}.macro-drivers-row,.macro-spot-metals-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 16px;margin-top:6px;overflow-x:hidden}.macro-tradables-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:6px;overflow-x:hidden}.tradable-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.macro-tape-slot{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.macro-tape-label{margin-right:0.25rem}.macro-tape-value{opacity:0.85}.candidate-card{border-left:3px solid #2a2a2a;padding:0.75rem;margin-bottom:0.5rem}.grade-aplus{border-left-color:#4caf50}.grade-a{border-left-color:#8bc34a}.grade-b{border-left-color:#ff9800}.grade-c{border-left-color:#607d8b;opacity:0.8}.grade-d{border-left-color:#f44336;opacity:0.7}.grade-f{border-left-color:#424242;opacity:0.5}.unavailable{color:#888}.macro-bias{margin-top:6px;font-weight:bold}.action-line{font-weight:bold;margin-bottom:8px;padding:8px 10px;border-left:3px solid #4a6fa5;background:#111827;font-size:0.9rem;letter-spacing:0.03em}.tier-group{margin-bottom:16px}.tier-header{font-weight:bold;margin-bottom:6px;opacity:0.9}.candidate-state{font-weight:bold;margin-bottom:4px}.candidate-risk{color:#ff9800}.tape-slot.up{color:#4caf50}.tape-slot.down{color:#f44336}.tape-slot.flat{color:#888}.tape-slot.na{color:#444;opacity:0.7}.macro-bias.long{color:#4caf50}.macro-bias.short{color:#f44336}.macro-bias.mixed{color:#ff9800}.tape-no-data{color:#888;font-style:italic;margin-top:4px;font-size:0.8rem}.idle-summary{color:#888;margin-bottom:12px;padding:8px;border-left:3px solid #2a2a2a}.lifecycle-badge{display:inline-block;padding:0.15rem 0.4rem;border-radius:3px;font-size:0.75rem;margin-left:0.5rem}.lifecycle-new{background:#0d2a3a;color:#29b6f6}.lifecycle-upgraded{background:#1a3a1a;color:#4caf50}.lifecycle-downgraded{background:#3a1a1a;color:#f44336}.lifecycle-unknown{background:#222;color:#555}.lifecycle-detail{color:#888;font-size:0.8rem;margin-bottom:4px}.removed-symbols{margin-top:12px}.removed-row{color:#888;font-size:0.8rem;padding:2px 0}.MIXED{background:#2a1a3a;color:#ba68c8}.UNKNOWN{background:#1a1a1a;color:#555}.pressure-grid{display:grid;grid-template-columns:max-content max-content max-content max-content;gap:4px 8px;margin-top:4px;align-items:baseline}.pressure-overall{margin-top:10px;display:flex;align-items:baseline;gap:0.4rem}.pressure-no-data{color:#888;font-style:italic;font-size:0.8rem}.kv-grid{display:grid;grid-template-columns:max-content 1fr;gap:2px 0.75rem;margin-top:0.25rem}.history-table{display:grid;grid-template-columns:5ch max-content max-content max-content;column-gap:0.75rem;row-gap:2px;margin-top:4px;align-items:baseline}.history-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:0.8rem}.lvl-diagram{margin-top:8px;padding-top:6px;border-top:1px solid #1a1a1a}.lvl-unavail{color:#555;font-size:0.75rem;font-style:italic;margin-top:6px}.artifact-warning{border-color:#ff9800;color:#ff9800}.artifact-diagnostics{color:#888;font-size:0.72rem;line-height:1.45}.artifact-diagnostics span{display:block}#artifact-diagnostics summary,#run-history summary,details.tier-group summary,#macro-pressure summary{cursor:pointer;list-style:none}#artifact-diagnostics summary::-webkit-details-marker,#run-history summary::-webkit-details-marker,#macro-pressure summary::-webkit-details-marker{display:none}#artifact-diagnostics summary{color:#555;font-size:0.72rem}#run-history summary{color:#aaa;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em}#macro-pressure summary{color:#aaa;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em}#macro-pressure{margin-top:8px}.failed-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-top:4px}.failed-card-fields .label{font-size:0.7rem}.failed-card-fields .value{margin-top:1px}.macro-tally{color:#aaa;font-size:0.78rem;margin-top:2px}#red-folder .red-folder-event{font-size:0.78rem;margin-top:4px}.red-folder-when{color:#ddd}.red-folder-type{color:#888}.red-folder-expiry{color:#ff9800;font-size:0.72rem;margin-top:6px}#scoreboard .scoreboard-row{font-size:0.74rem;color:#bbb;display:flex;flex-wrap:wrap;gap:10px;margin-top:3px}.scoreboard-date{color:#ddd;min-width:80px}.scoreboard-spy{color:#888}.value-actionable{color:#29b6f6}.card-detail summary{cursor:pointer;list-style:none;color:#888;font-size:0.72rem;text-transform:uppercase;letter-spacing:.05em;margin-top:4px}.card-detail summary::-webkit-details-marker{display:none}@media(max-width:640px){.ts-table thead{position:absolute;left:-9999px}.ts-table,.ts-table tbody,.ts-table tr,.ts-table td{display:block;width:100%}.ts-table tr{border:1px solid #2a2a2a;border-radius:4px;margin-bottom:6px;padding:4px 8px}.ts-table td{white-space:normal!important;display:flex;justify-content:space-between;gap:1rem;padding:2px 0}.ts-table td::before{content:attr(data-label);color:#888;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em}}</style>
+  <style>*{box-sizing:border-box;margin:0;padding:0}body{background:#0d0d0d;color:#e0e0e0;font-family:monospace;padding:1rem}.wrap{max-width:640px;margin:0 auto}.block{border:1px solid #2a2a2a;border-radius:4px;margin-bottom:1rem;padding:1rem}.label{color:#888;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em}.value{margin-top:0.25rem}.value-key{margin-top:0.25rem;font-weight:bold}.row{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.5rem}.field{flex:1;min-width:120px}.badge{display:inline-block;padding:0.2rem 0.5rem;border-radius:3px;font-size:0.8rem}.RISK_ON{background:#1a3a1a;color:#4caf50}.RISK_OFF{background:#3a1a1a;color:#f44336}.NEUTRAL{background:#2a2a1a;color:#ff9800}.CHAOTIC{background:#3a1a3a;color:#e040fb}.STAY_FLAT{background:#1a1a2a;color:#90caf9}.AGGRESSIVE_LONG,.CONTROLLED_LONG{background:#1a3a1a;color:#4caf50}.DEFENSIVE_SHORT{background:#3a1a1a;color:#f44336}.NEUTRAL_PREMIUM{background:#2a2a1a;color:#ff9800}.halted{color:#f44336;font-weight:bold}.warn{color:#ff9800}h2{font-size:0.8rem;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem}.sep{border-top:1px solid #1a1a1a;margin:0.5rem 0}.tape-slot{white-space:nowrap}.macro-tape-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px 12px;margin-top:6px;overflow-x:hidden}.macro-drivers-row,.macro-spot-metals-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 16px;margin-top:6px;overflow-x:hidden}.macro-tradables-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:6px;overflow-x:hidden}.tradable-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.macro-tape-slot{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.macro-tape-label{margin-right:0.25rem}.macro-tape-value{opacity:0.85}.candidate-card{border-left:3px solid #2a2a2a;padding:0.75rem;margin-bottom:0.5rem}.grade-aplus{border-left-color:#4caf50}.grade-a{border-left-color:#8bc34a}.grade-b{border-left-color:#ff9800}.grade-c{border-left-color:#607d8b;opacity:0.8}.grade-d{border-left-color:#f44336;opacity:0.7}.grade-f{border-left-color:#424242;opacity:0.5}.unavailable{color:#888}.macro-bias{margin-top:6px;font-weight:bold}.action-line{font-weight:bold;margin-bottom:8px;padding:8px 10px;border-left:3px solid #4a6fa5;background:#111827;font-size:0.9rem;letter-spacing:0.03em}.tier-group{margin-bottom:16px}.tier-header{font-weight:bold;margin-bottom:6px;opacity:0.9}.candidate-state{font-weight:bold;margin-bottom:4px}.candidate-risk{color:#ff9800}.tape-slot.up{color:#4caf50}.tape-slot.down{color:#f44336}.tape-slot.flat{color:#888}.tape-slot.na{color:#444;opacity:0.7}.macro-bias.long{color:#4caf50}.macro-bias.short{color:#f44336}.macro-bias.mixed{color:#ff9800}.tape-no-data{color:#888;font-style:italic;margin-top:4px;font-size:0.8rem}.idle-summary{color:#888;margin-bottom:12px;padding:8px;border-left:3px solid #2a2a2a}.lifecycle-badge{display:inline-block;padding:0.15rem 0.4rem;border-radius:3px;font-size:0.75rem;margin-left:0.5rem}.lifecycle-new{background:#0d2a3a;color:#29b6f6}.lifecycle-upgraded{background:#1a3a1a;color:#4caf50}.lifecycle-downgraded{background:#3a1a1a;color:#f44336}.lifecycle-unknown{background:#222;color:#555}.lifecycle-detail{color:#888;font-size:0.8rem;margin-bottom:4px}.removed-symbols{margin-top:12px}.removed-row{color:#888;font-size:0.8rem;padding:2px 0}.MIXED{background:#2a1a3a;color:#ba68c8}.UNKNOWN{background:#1a1a1a;color:#555}.pressure-grid{display:grid;grid-template-columns:max-content max-content max-content max-content;gap:4px 8px;margin-top:4px;align-items:baseline}.pressure-overall{margin-top:10px;display:flex;align-items:baseline;gap:0.4rem}.pressure-no-data{color:#888;font-style:italic;font-size:0.8rem}.kv-grid{display:grid;grid-template-columns:max-content 1fr;gap:2px 0.75rem;margin-top:0.25rem}.history-table{display:grid;grid-template-columns:5ch max-content max-content max-content;column-gap:0.75rem;row-gap:2px;margin-top:4px;align-items:baseline}.history-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:0.8rem}.lvl-diagram{margin-top:8px;padding-top:6px;border-top:1px solid #1a1a1a}.lvl-unavail{color:#555;font-size:0.75rem;font-style:italic;margin-top:6px}.artifact-warning{border-color:#ff9800;color:#ff9800}.artifact-diagnostics{color:#888;font-size:0.72rem;line-height:1.45}.artifact-diagnostics span{display:block}#artifact-diagnostics summary,#run-history summary,details.tier-group summary,#macro-pressure summary{cursor:pointer;list-style:none}#artifact-diagnostics summary::-webkit-details-marker,#run-history summary::-webkit-details-marker,#macro-pressure summary::-webkit-details-marker{display:none}#artifact-diagnostics summary{color:#555;font-size:0.72rem}#run-history summary{color:#aaa;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em}#macro-pressure summary{color:#aaa;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em}#macro-pressure{margin-top:8px}.failed-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-top:4px}.failed-card-fields .label{font-size:0.7rem}.failed-card-fields .value{margin-top:1px}.macro-tally{color:#aaa;font-size:0.78rem;margin-top:2px}#red-folder .red-folder-event{font-size:0.78rem;margin-top:4px}.red-folder-when{color:#ddd}.red-folder-type{color:#888}.red-folder-expiry{color:#ff9800;font-size:0.72rem;margin-top:6px}#scoreboard .scoreboard-row{font-size:0.74rem;color:#bbb;display:flex;flex-wrap:wrap;gap:10px;margin-top:3px}.scoreboard-date{color:#ddd;min-width:80px}.scoreboard-spy{color:#888}.value-actionable{color:#29b6f6}.card-detail summary{cursor:pointer;list-style:none;color:#888;font-size:0.72rem;text-transform:uppercase;letter-spacing:.05em;margin-top:4px}.card-detail summary::-webkit-details-marker{display:none}.ts-px-up{color:#4caf50}.ts-px-down{color:#f44336}@media(max-width:640px){.ts-table thead{position:absolute;left:-9999px}.ts-table,.ts-table tbody{display:block;width:100%}.ts-table tr{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;border:1px solid #2a2a2a;border-radius:4px;margin-bottom:5px;padding:5px 8px}.ts-table td{white-space:nowrap!important;padding:0}.ts-table td::before{content:none}.ts-table td:first-child{font-weight:bold;min-width:3.2em}}</style>
 </head>
 <body>
 <div class="wrap">
@@ -30,8 +30,8 @@
   <h2>Macro Tape</h2>
   <div class="macro-bias mixed">MACRO BIAS: MIXED</div>
   <div class="macro-tally">Risk votes: 2 off / 2 on → MIXED</div>
-  <div class="macro-spot-metals-row"><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">GC ↓</span><span class="macro-tape-value" data-symbol="XAU">4072.0</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">SI ↓</span><span class="macro-tape-value" data-symbol="XAG">60.36</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">BTC ↑</span><span class="macro-tape-value" data-symbol="BTC">60.7K</span></span></div>
-  <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">VIX ↑</span><span class="macro-tape-value" data-symbol="VIX">16.6</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">DXY ↓</span><span class="macro-tape-value" data-symbol="DXY">101.3</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">10Y ↑</span><span class="macro-tape-value" data-symbol="10Y">4.47</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">OIL ↑</span><span class="macro-tape-value" data-symbol="OIL">67.9</span></span></div>
+  <div class="macro-spot-metals-row"><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">GC ↑</span><span class="macro-tape-value" data-symbol="XAU">4083.1</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">SI ↓</span><span class="macro-tape-value" data-symbol="XAG">60.50</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">BTC ↑</span><span class="macro-tape-value" data-symbol="BTC">60.3K</span></span></div>
+  <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">VIX ↑</span><span class="macro-tape-value" data-symbol="VIX">16.6</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">DXY ↓</span><span class="macro-tape-value" data-symbol="DXY">101.3</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">10Y ↑</span><span class="macro-tape-value" data-symbol="10Y">4.47</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">OIL ↑</span><span class="macro-tape-value" data-symbol="OIL">67.8</span></span></div>
   <div class="sep"></div>
   <div class="macro-tradables-grid">
     <span class="tradable-cell"><span class="macro-tape-label">SPY</span>&nbsp;<span class="macro-tape-value" data-symbol="SPY">745.76</span>&nbsp;<span class="tradable-arrow">↓</span></span>
@@ -68,42 +68,42 @@
     <tbody>
       <tr>
         <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">SPY</td>
-        <td data-label="Price" style="padding:2px 8px;white-space:nowrap">745.76</td>
+        <td data-label="Price" class="ts-px-up" style="padding:2px 8px;white-space:nowrap">745.76</td>
         <td data-label="Alignment" style="padding:2px 8px;white-space:nowrap">BULLISH</td>
         <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.74</td>
-        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↑50 ↑200</td>
+        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↑ 50 ↑ 200</td>
         <td data-label="Intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
       </tr>
       <tr>
         <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">QQQ</td>
-        <td data-label="Price" style="padding:2px 8px;white-space:nowrap">725.17</td>
+        <td data-label="Price" class="ts-px-up" style="padding:2px 8px;white-space:nowrap">725.17</td>
         <td data-label="Alignment" style="padding:2px 8px;white-space:nowrap">BULLISH</td>
         <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.76</td>
-        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↑50 ↑200</td>
+        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↑ 50 ↑ 200</td>
         <td data-label="Intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
       </tr>
       <tr>
         <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">GDX</td>
-        <td data-label="Price" style="padding:2px 8px;white-space:nowrap">75.07</td>
+        <td data-label="Price" class="ts-px-down" style="padding:2px 8px;white-space:nowrap">75.07</td>
         <td data-label="Alignment" style="padding:2px 8px;white-space:nowrap">BEARISH</td>
         <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.84</td>
-        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↓50 ↓200</td>
+        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↓ 50 ↓ 200</td>
         <td data-label="Intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
       </tr>
       <tr>
         <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">GLD</td>
-        <td data-label="Price" style="padding:2px 8px;white-space:nowrap">370.60</td>
+        <td data-label="Price" class="ts-px-down" style="padding:2px 8px;white-space:nowrap">370.60</td>
         <td data-label="Alignment" style="padding:2px 8px;white-space:nowrap">BEARISH</td>
         <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">1.08</td>
-        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↓50 ↓200</td>
+        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↓ 50 ↓ 200</td>
         <td data-label="Intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
       </tr>
       <tr>
         <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">SLV</td>
-        <td data-label="Price" style="padding:2px 8px;white-space:nowrap">53.58</td>
+        <td data-label="Price" class="ts-px-down" style="padding:2px 8px;white-space:nowrap">53.58</td>
         <td data-label="Alignment" style="padding:2px 8px;white-space:nowrap">BEARISH</td>
         <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.69</td>
-        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↓50 ↓200</td>
+        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↓ 50 ↓ 200</td>
         <td data-label="Intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
       </tr>
       <tr>
@@ -111,7 +111,7 @@
         <td data-label="Price" style="padding:2px 8px;white-space:nowrap">52.81</td>
         <td data-label="Alignment" style="padding:2px 8px;white-space:nowrap">MIXED</td>
         <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.99</td>
-        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↓50 ↑200</td>
+        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↓ 50 ↑ 200</td>
         <td data-label="Intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
       </tr>
     </tbody>
@@ -153,24 +153,24 @@
     <line x1="0" y1="98" x2="160" y2="98" stroke="#f5c518" stroke-width="2"/>
     <circle cx="3" cy="98" r="3" fill="#f5c518"/>
     <line x1="160" y1="11" x2="163" y2="8" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="11" font-size="9" fill="#555" font-family="monospace">0.382</text>
+    <text x="164" y="11" font-size="9" fill="#555" font-family="monospace">0.382 83.74</text>
     <line x1="160" y1="30" x2="163" y2="19" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="22" font-size="9" fill="#555" font-family="monospace">0.5</text>
+    <text x="164" y="22" font-size="9" fill="#555" font-family="monospace">0.5 81.81</text>
     <line x1="160" y1="50" x2="163" y2="30" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="33" font-size="9" fill="#555" font-family="monospace">0.618</text>
+    <text x="164" y="33" font-size="9" fill="#555" font-family="monospace">0.618 79.88</text>
     <line x1="160" y1="67" x2="163" y2="41" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="44" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_HIGH</text>
+    <text x="164" y="44" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_HIGH 78.16</text>
     <line x1="160" y1="78" x2="163" y2="52" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="55" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9</text>
+    <text x="164" y="55" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9 77.12</text>
     <line x1="160" y1="85" x2="163" y2="63" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="66" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_HIGH</text>
+    <text x="164" y="66" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_HIGH 76.42</text>
     <line x1="160" y1="87" x2="163" y2="74" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="77" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_LOW</text>
+    <text x="164" y="77" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_LOW 76.22</text>
     <line x1="160" y1="99" x2="163" y2="107" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="110" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_LOW</text>
+    <text x="164" y="110" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_LOW 74.98</text>
     <line x1="160" y1="89" x2="163" y2="85" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="88" font-size="9" fill="#29b6f6" font-family="monospace">VWAP</text>
-    <text x="164" y="99" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
+    <text x="164" y="88" font-size="9" fill="#29b6f6" font-family="monospace">VWAP 76.01</text>
+    <text x="164" y="99" font-size="9" fill="#f5c518" font-family="monospace">ENTRY 75.07</text>
     </svg>
   </div>
 </div>
@@ -201,28 +201,28 @@
     <line x1="0" y1="28" x2="160" y2="28" stroke="#f5c518" stroke-width="2"/>
     <circle cx="3" cy="28" r="3" fill="#f5c518"/>
     <line x1="160" y1="47" x2="163" y2="61" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="64" font-size="9" fill="#555" font-family="monospace">0.382</text>
+    <text x="164" y="64" font-size="9" fill="#555" font-family="monospace">0.382 741.47</text>
     <line x1="160" y1="69" x2="163" y2="89" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="92" font-size="9" fill="#555" font-family="monospace">0.5</text>
+    <text x="164" y="92" font-size="9" fill="#555" font-family="monospace">0.5 736.72</text>
     <line x1="160" y1="91" x2="163" y2="98" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="101" font-size="9" fill="#555" font-family="monospace">0.618</text>
+    <text x="164" y="101" font-size="9" fill="#555" font-family="monospace">0.618 731.96</text>
     <line x1="160" y1="11" x2="163" y2="6" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="9" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_HIGH</text>
-    <text x="164" y="18" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_HIGH</text>
+    <text x="164" y="9" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_HIGH 749.44</text>
+    <text x="164" y="18" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_HIGH 748.17</text>
     <line x1="160" y1="19" x2="163" y2="24" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="27" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_LOW</text>
+    <text x="164" y="27" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_LOW 747.65</text>
     <line x1="160" y1="43" x2="163" y2="52" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="55" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_LOW</text>
+    <text x="164" y="55" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_LOW 742.38</text>
     <line x1="160" y1="51" x2="163" y2="70" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="73" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9</text>
+    <text x="164" y="73" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9 740.72</text>
     <line x1="160" y1="54" x2="163" y2="79" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="82" font-size="9" fill="#3a7a8a" font-family="monospace">EMA21</text>
+    <text x="164" y="82" font-size="9" fill="#3a7a8a" font-family="monospace">EMA21 740.03</text>
     <line x1="160" y1="99" x2="163" y2="107" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="110" font-size="9" fill="#3a7a8a" font-family="monospace">EMA50</text>
+    <text x="164" y="110" font-size="9" fill="#3a7a8a" font-family="monospace">EMA50 730.19</text>
     <line x1="160" y1="21" x2="163" y2="34" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="37" font-size="9" fill="#29b6f6" font-family="monospace">VWAP</text>
+    <text x="164" y="37" font-size="9" fill="#29b6f6" font-family="monospace">VWAP 747.25</text>
     <line x1="160" y1="28" x2="163" y2="43" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="46" font-size="9" fill="#f5c518" font-family="monospace">ENTRY</text>
+    <text x="164" y="46" font-size="9" fill="#f5c518" font-family="monospace">ENTRY 745.76</text>
     </svg>
   </div>
 </div>
