@@ -273,7 +273,11 @@ def _run_resolver(resolver: Path, tmp_path: Path, stream: str, requested: str, a
 
 def test_prd207_fallback_present_fails_closed(resolver, tmp_path):
     r = _run_resolver(resolver, tmp_path, FIX_FALLBACK, "gpt-5-codex", _ALLOW)
-    assert r.returncode != 0, "a captured stream WITH the model-metadata fallback must FAIL CLOSED"
+    # Pin the SPECIFIC fallback exit (4), not just non-zero: with a requested model
+    # off the allowlist, a resolver that stopped detecting item.type=="error" would
+    # still fail non-zero at the allowlist (exit 6), masking the PRD-207 regression
+    # this test guards. Asserting exit 4 keeps the guard un-maskable (PRD-198 #4).
+    assert r.returncode == 4, "a captured stream WITH the model-metadata fallback must FAIL CLOSED at the fallback path (exit 4)"
     assert r.stdout.strip() == "", "no resolved-model may be emitted when the fallback fired"
     assert "FAIL-CLOSED" in r.stderr
 
@@ -292,12 +296,16 @@ def test_prd207_honored_off_allowlist_fails_closed(resolver, tmp_path):
 
 def test_prd207_no_completion_fails_closed(resolver, tmp_path):
     r = _run_resolver(resolver, tmp_path, FIX_NO_COMPLETION, "gpt-5-codex", _ALLOW)
-    assert r.returncode != 0, "a stream with no turn.completed must FAIL CLOSED (incomplete)"
+    # Pin exit 3 (not just non-zero): guards against the allowlist (exit 6) masking
+    # a broken no-turn.completed check when the requested model is off the allowlist.
+    assert r.returncode == 3, "a stream with no turn.completed must FAIL CLOSED at the incomplete path (exit 3)"
 
 
 def test_prd207_malformed_stream_fails_closed(resolver, tmp_path):
     r = _run_resolver(resolver, tmp_path, FIX_MALFORMED, "gpt-5-codex", _ALLOW)
-    assert r.returncode != 0, "an unrecognized/non-codex stream must FAIL CLOSED, never silently pass"
+    # Pin exit 2 (not just non-zero): guards against the allowlist (exit 6) masking
+    # a broken unrecognized-stream check when the requested model is off the allowlist.
+    assert r.returncode == 2, "an unrecognized/non-codex stream must FAIL CLOSED at the unparseable path (exit 2)"
     assert r.stdout.strip() == ""
 
 
@@ -305,7 +313,9 @@ def test_prd207_reworded_fallback_still_fails_closed(resolver, tmp_path):
     # STEP 1b hardening: a message-regex-only match would let a reworded fallback
     # pass as honored. ANY item.error must fail closed.
     r = _run_resolver(resolver, tmp_path, FIX_REWORDED_ERROR, "gpt-5-codex", _ALLOW)
-    assert r.returncode != 0, "a reworded item.error must STILL fail closed (not regex-only)"
+    # Pin exit 5 (not just non-zero): guards against the allowlist (exit 6) masking
+    # a broken any-item.error check when the requested model is off the allowlist.
+    assert r.returncode == 5, "a reworded item.error must STILL fail closed at the unrecognized-error path (exit 5), not regex-only"
     assert r.stdout.strip() == ""
 
 
