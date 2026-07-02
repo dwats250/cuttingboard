@@ -583,20 +583,28 @@ def test_prd223_loader_extracts_valid_stops_and_rejects_invalid(tmp_path: Path) 
             # masquerade as a real price (Codex P2 on PR #89).
             {"symbol": "XLE", "decision_status": "ALLOW_TRADE", "entry": 90.0, "stop": True},
             {"symbol": "GDX", "decision_status": "ALLOW_TRADE", "entry": 41.0},
+            # PRD-224: the entry path mirrors the stop guards — bool, non-finite,
+            # and non-positive entries never become anchors.
+            {"symbol": "IWM", "decision_status": "ALLOW_TRADE", "entry": True, "stop": 200.0},
+            {"symbol": "TLT", "decision_status": "ALLOW_TRADE", "entry": float("inf"), "stop": 90.0},
+            {"symbol": "UUP", "decision_status": "ALLOW_TRADE", "entry": -1.0, "stop": 27.0},
         ],
     }
     (tmp_path / "latest_hourly_contract.json").write_text(json.dumps(contract), encoding="utf-8")
 
     entry_map, stop_map, _alerts, generated_at, _path = _load_contract_entry_context(tmp_path)
 
-    assert stop_map == {"SPY": 505.0}
+    assert stop_map == {"SPY": 505.0, "IWM": 200.0, "TLT": 90.0, "UUP": 27.0}
     assert entry_map == {"SPY": 510.0, "QQQ": 430.0, "GLD": 220.0, "SLV": 29.0, "XLE": 90.0, "GDX": 41.0}
     assert generated_at == "2026-04-28T12:00:00Z"
 
 
 def test_prd223_stale_contract_stops_are_ignored_for_risk_band() -> None:
-    # PRD-223: contract staleness nulls the stop map together with the entry
-    # map — a stale stop must not shade a risk zone on a fresh card.
+    # PRD-223: contract staleness nulls ONLY the entry map; the card-level
+    # pair gate (a stop draws only against its own contract entry) then
+    # blocks the orphaned stop. There is deliberately NO stop-map nulling —
+    # it proved unobservable (no red test could fail on it) and was cut per
+    # semantic-hardening invariant 4. A stale stop must not shade a fresh card.
     payload = _payload(timestamp="2026-04-28T12:10:01Z", macro_drivers=_macro_drivers())
     run = _run_with_timestamp("2026-04-28T12:10:01Z")
     entry = {
@@ -3450,8 +3458,9 @@ def test_prd138_xau_xag_route_through_directional_arrow_css() -> None:
     tape = _macro_tape_block(html)
     # PRD-211: visible label is the honest CME futures ticker (GC/SI); the slot
     # id / data-symbol stays XAU/XAG (asserted by the R9(a)/order tests above).
-    assert 'class="macro-tape-slot tape-slot up"><span class="macro-tape-label">GC ↑</span>' in tape
-    assert 'class="macro-tape-slot tape-slot down"><span class="macro-tape-label">SI ↓</span>' in tape
+    # PRD-224: 2-char labels pad to the 3-char column with &nbsp;.
+    assert 'class="macro-tape-slot tape-slot up"><span class="macro-tape-label">GC&nbsp; ↑</span>' in tape
+    assert 'class="macro-tape-slot tape-slot down"><span class="macro-tape-label">SI&nbsp; ↓</span>' in tape
 
 
 def test_prd136_r9d_no_silent_na_regression_driver_side() -> None:
