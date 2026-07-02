@@ -58,7 +58,8 @@ def test_level_diagram_vwap_rendered_when_present() -> None:
         contract_entry_map={"SPY": 500.0},
     )
     assert 'stroke-dasharray="4,2"' in html
-    assert ">VWAP</text>" in html
+    # PRD-216: the VWAP label now carries its dollar level.
+    assert ">VWAP 499.50</text>" in html
 
 
 def test_level_diagram_vwap_absent_when_no_vwap_zone() -> None:
@@ -165,3 +166,18 @@ def test_level_diagram_many_clustered_labels_stay_on_canvas() -> None:
     ys = [int(m) for m in re.findall(r'<text x="\d+" y="(-?\d+)"', diagram)]
     assert ys, "no level labels rendered"
     assert all(0 <= y <= 110 for y in ys), f"label off-canvas: {sorted(ys)}"
+
+
+def test_prd216_level_labels_carry_dollar_values() -> None:
+    # PRD-216: every level label prints its dollar value.
+    fib = {"retracements": {"0.618": 74.62}}
+    zones = [{"type": "PRIOR_LOW", "level": 74.95}, {"type": "VWAP", "level": 75.05}]
+    mm = _mm_with_levels("GDX", grade="A+", fib_levels=fib, watch_zones=zones)
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=mm, contract_entry_map={"GDX": 75.00},
+    )
+    diagram = html.split('class="lvl-diagram"', 1)[1].split("</svg>", 1)[0]
+    assert ">ENTRY 75.00</text>" in diagram
+    assert ">PRIOR_LOW 74.95</text>" in diagram
+    assert ">VWAP 75.05</text>" in diagram
+    assert ">0.618 74.62</text>" in diagram

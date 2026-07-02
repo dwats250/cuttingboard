@@ -91,15 +91,15 @@ def _ts_display(token: str) -> str:
 # arrow scheme for cognitive compression: ABOVE=↑, BELOW=↓, AT_LEVEL== (a DISTINCT
 # glyph per state), each suffixed with its SMA window. All 9 (3×3) combinations map.
 _TREND_STRUCTURE_COMPOSITE_DISPLAY: dict[tuple[str, str], str] = {
-    ("ABOVE", "ABOVE"):       "↑50 ↑200",
-    ("ABOVE", "BELOW"):       "↑50 ↓200",
-    ("BELOW", "ABOVE"):       "↓50 ↑200",
-    ("BELOW", "BELOW"):       "↓50 ↓200",
-    ("AT_LEVEL", "ABOVE"):    "=50 ↑200",
-    ("AT_LEVEL", "BELOW"):    "=50 ↓200",
-    ("ABOVE", "AT_LEVEL"):    "↑50 =200",
-    ("BELOW", "AT_LEVEL"):    "↓50 =200",
-    ("AT_LEVEL", "AT_LEVEL"): "=50 =200",
+    ("ABOVE", "ABOVE"):       "↑ 50 ↑ 200",
+    ("ABOVE", "BELOW"):       "↑ 50 ↓ 200",
+    ("BELOW", "ABOVE"):       "↓ 50 ↑ 200",
+    ("BELOW", "BELOW"):       "↓ 50 ↓ 200",
+    ("AT_LEVEL", "ABOVE"):    "= 50 ↑ 200",
+    ("AT_LEVEL", "BELOW"):    "= 50 ↓ 200",
+    ("ABOVE", "AT_LEVEL"):    "↑ 50 = 200",
+    ("BELOW", "AT_LEVEL"):    "↓ 50 = 200",
+    ("AT_LEVEL", "AT_LEVEL"): "= 50 = 200",
 }
 
 _TREND_STRUCTURE_COMPOSITE_UNAVAILABLE = "Structure unavailable"
@@ -741,16 +741,19 @@ _CSS = (
     ".card-detail summary{cursor:pointer;list-style:none;color:#888;font-size:0.72rem;"
     "text-transform:uppercase;letter-spacing:.05em;margin-top:4px}"
     ".card-detail summary::-webkit-details-marker{display:none}"
-    # PRD-213: below the mobile breakpoint the trend-structure table reflows to
-    # one labeled card per symbol so no column clips off-screen.
+    # PRD-218: alignment-coloured price (bullish green / bearish red).
+    ".ts-px-up{color:#4caf50}"
+    ".ts-px-down{color:#f44336}"
+    # PRD-213/PRD-218: below the mobile breakpoint each symbol reflows to one
+    # compact inline row (per-cell labels hidden) rather than a tall stacked card.
     "@media(max-width:640px){"
     ".ts-table thead{position:absolute;left:-9999px}"
-    ".ts-table,.ts-table tbody,.ts-table tr,.ts-table td{display:block;width:100%}"
-    ".ts-table tr{border:1px solid #2a2a2a;border-radius:4px;margin-bottom:6px;padding:4px 8px}"
-    ".ts-table td{white-space:normal!important;display:flex;justify-content:space-between;"
-    "gap:1rem;padding:2px 0}"
-    ".ts-table td::before{content:attr(data-label);color:#888;font-size:0.7rem;"
-    "text-transform:uppercase;letter-spacing:.05em}"
+    ".ts-table,.ts-table tbody{display:block;width:100%}"
+    ".ts-table tr{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;"
+    "border:1px solid #2a2a2a;border-radius:4px;margin-bottom:5px;padding:5px 8px}"
+    ".ts-table td{white-space:nowrap!important;padding:0}"
+    ".ts-table td::before{content:none}"
+    ".ts-table td:first-child{font-weight:bold;min-width:3.2em}"
     "}"
 )
 
@@ -1499,7 +1502,8 @@ def _render_level_diagram(
             f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
             f'stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>'
         )
-        labels.append((y, _esc(label[:8]), "#555"))
+        # PRD-216: annotate with the dollar level (facts, not forecasts).
+        labels.append((y, f"{_esc(label[:5])} {lv_f:,.2f}", "#555"))
 
     for lv_f, zt in sorted(zone_lines, key=lambda x: x[0], reverse=True):
         y = _to_y(lv_f)
@@ -1507,7 +1511,7 @@ def _render_level_diagram(
             f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
             f'stroke="#1a4a5a" stroke-width="1"/>'
         )
-        labels.append((y, _esc(zt[:10]), "#3a7a8a"))
+        labels.append((y, f"{_esc(zt[:10])} {lv_f:,.2f}", "#3a7a8a"))
 
     if vwap_level is not None:
         y = _to_y(vwap_level)
@@ -1515,7 +1519,7 @@ def _render_level_diagram(
             f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
             f'stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>'
         )
-        labels.append((y, "VWAP", "#29b6f6"))
+        labels.append((y, f"VWAP {vwap_level:,.2f}", "#29b6f6"))
 
     y = _to_y(contract_entry)
     w(
@@ -1523,7 +1527,7 @@ def _render_level_diagram(
         f'stroke="#f5c518" stroke-width="2"/>'
     )
     w(f'    <circle cx="3" cy="{y}" r="3" fill="#f5c518"/>')
-    labels.append((y, "ENTRY", "#f5c518"))
+    labels.append((y, f"ENTRY {contract_entry:,.2f}", "#f5c518"))
 
     # Label-declutter pass. Spread baselines so no two labels sit closer than
     # LABEL_MIN_GAP px; a thin leader connects any label pushed off its line.
@@ -2265,7 +2269,9 @@ def render_dashboard_html(
         }
 
         _records_for_render = _ts_records or {}
-        _ts_rows: list[tuple[str, ...]] = []
+        # PRD-218: each row carries a price-colour class keyed to trend_alignment
+        # (bullish green / bearish red) applied to the Price cell.
+        _ts_rows: list[tuple[tuple[str, ...], str]] = []
         for _sym in config.TREND_STRUCTURE_SYMBOLS:
             _rec = _records_for_render.get(_sym)
             if _rec is None:
@@ -2273,6 +2279,7 @@ def render_dashboard_html(
                     _sym, _DASH, _DASH, _DASH,
                     _DASH, _DASH, _DASH, _DASH,
                 )
+                _px_cls = ""
             else:
                 # PRD-208: "vs SMA50"/"vs SMA200" columns cut; the "SMA 50/200"
                 # arrow composite below carries the price-vs-SMA position.
@@ -2286,7 +2293,13 @@ def render_dashboard_html(
                     _trend_structure_composite_display(_rec),
                     _trend_structure_intraday_display(_rec),
                 )
-            _ts_rows.append(_cells)
+                _align = str(_rec.get("trend_alignment", "")).upper()
+                _px_cls = (
+                    "ts-px-up" if _align == "BULLISH"
+                    else "ts-px-down" if _align == "BEARISH"
+                    else ""
+                )
+            _ts_rows.append((_cells, _px_cls))
 
         # PRD-165 R2: collapse only in the healthy-records path. When
         # `_ts_records` is None the PRD-112 all-or-nothing gate has already
@@ -2295,7 +2308,7 @@ def render_dashboard_html(
         _ts_collapsed: set[int] = set()
         if _ts_records:
             for _ci in _ts_collapsible_cols:
-                if all(_row[_ci] in _ts_unavailable_cells for _row in _ts_rows):
+                if all(_row[0][_ci] in _ts_unavailable_cells for _row in _ts_rows):
                     _ts_collapsed.add(_ci)
 
         w('    <thead><tr style="text-align:left;color:#888">')
@@ -2305,15 +2318,17 @@ def render_dashboard_html(
             w(f'      <th style="padding:2px 8px">{_esc(_hdr)}</th>')
         w('    </tr></thead>')
         w('    <tbody>')
-        for _cells in _ts_rows:
+        for _cells, _px_cls in _ts_rows:
             w('      <tr>')
             for _i, _cell in enumerate(_cells):
                 if _i in _ts_collapsed:
                     continue
                 # PRD-213: data-label mirrors the column header so the mobile
-                # stacked-card reflow can render the header inline via CSS.
+                # reflow can render the header inline. PRD-218: the Price cell
+                # (index 1) carries the alignment colour class.
+                _cls = f' class="{_px_cls}"' if (_i == 1 and _px_cls) else ""
                 w(
-                    f'        <td data-label="{_esc(_ts_headers[_i])}" '
+                    f'        <td data-label="{_esc(_ts_headers[_i])}"{_cls} '
                     'style="padding:2px 8px;white-space:nowrap">'
                     f'{_esc(_cell)}</td>'
                 )
