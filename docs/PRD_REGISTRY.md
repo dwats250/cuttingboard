@@ -226,7 +226,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-206 | — | (void — number skipped; 207/210 filed out of order) | DEPRECATED | — |
 | PRD-210 | 55b2f67 | Premarket trend-structure path coverage — apply the PRD-174 history fallback on _run_pipeline (F08 closes-None fix) | COMPLETE | [PRD-210](prd_history/PRD-210.md) |
 | PRD-207 | 1968b50, 55f9cd2, 13c5d4a | codex-review.yml resolves the REQUESTED model, not the SERVED model (verified-real-Codex gate is hollow) | COMPLETE | [PRD-207](prd_history/PRD-207.md) |
-| PRD-208 | — | Parked presentation PRD — HIGH-RISK Codex cross-review leg UNSATISFIED (diff reviewed @ ceceedb; held pending an allowlisted Codex review — see DECISIONS 2026-06-26) | PROPOSED | — |
+| PRD-208 | — | Trend-structure SMA alignment presentation: compression + unavailable-token consistency | IN PROGRESS | [PRD-208](prd_history/PRD-208.md) |
 | PRD-209 | — | OHLCV bar-count floor: reject/repair truncated daily frames served as fresh | PROPOSED | [PRD-209](prd_history/PRD-209.md) |
 | PRD-211 | 57dfd12 | Macro-tape metals display correctness | COMPLETE | [PRD-211](prd_history/PRD-211.md) |
 | PRD-212 | daedf10 | Pin the Codex cross-review identity (CLI version 0.142.1) — end the alias-drift gate outage. PREMISE SUPERSEDED (2026-07-01): the outage was a deprecated model (gpt-5-codex retired 2026-04-01), not CLI-alias drift; fixed by retargeting the model to gpt-5.5 (PR #76, validated run 28560459040). The 0.142.1 pin is retained. See DECISIONS 2026-07-01. | COMPLETE | [PRD-212](prd_history/PRD-212.md) |
