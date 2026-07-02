@@ -16,6 +16,43 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-02 — Deferred: numeric entry/stop risk band on the level ladder (future PRD-223+)
+
+**The idea (approved in principle by Dustin).** Add a shaded *risk band* to the
+level diagram (`_render_level_diagram`, `cuttingboard/delivery/dashboard_renderer.py`)
+between the entry price and the stop/invalidation price, so a trader reads
+*how much room there is before the thesis is wrong* as a to-scale shape rather
+than decoding prose. Descriptive, not predictive — band = entry→stop only; no
+profit targets or R:R ratios (those cross VISION's description-not-prediction line).
+
+**Why it is NOT a UI change, and is deferred.** The card's `entry` and
+`invalidation` fields are **prose**, not numbers (e.g. `"reclaims ORB_LOW with
+follow-through"`). There is no numeric stop to draw to. The band is gated on the
+setup engine **emitting a numeric stop/invalidation price** (ideally a numeric
+entry too) into the payload alongside the existing prose — a payload *contract*
+change, i.e. a real HIGH-RISK-lane PRD (decision-surface contract + CONSUMER
+renderer), not a micro.
+
+**Banned shortcut (recorded so a future session doesn't take it).** Do NOT
+regex-parse the prose to recover a level name and look it up in `watch_zones`.
+That is the "authoritative source, not proxy" / "assert the resolved, not the
+requested" failure class (CLAUDE.md Semantic-failure hardening §2–3): it works
+until the phrasing shifts one word, then silently draws the band to the wrong
+level. The correct source is a numeric field the engine emits, not narrative
+parsed downstream.
+
+**Second-order caution.** Prose invalidation is deliberately soft ("with
+follow-through"); a crisp numeric line invites over-trusting a level the engine
+meant as a zone. Prefer rendering the stop as a band/zone, not a hairline.
+
+**Recommendation.** Hold until the engine needs a numeric stop for an
+independent reason (position sizing, backtest scoring); then the band is a
+near-free renderer addition. Building it now means either the banned prose-parse
+or opening the engine contract for a purely visual payoff — hard to justify
+against "cuts before additions." The SVG geometry in `_render_level_diagram`
+(SVG_H=110, LINE_W=160, the yellow anchor line + its y) is a pinned test
+contract; extend, don't disturb.
+
 ## 2026-07-02 — PRD-208 COMPLETE: presentation revive lands once the Codex gate is genuinely working
 
 **What landed.** PRD-208 (trend-structure SMA alignment presentation) revived onto
