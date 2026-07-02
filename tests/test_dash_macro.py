@@ -382,14 +382,16 @@ def test_macro_bias_mixed_class() -> None:
 # ---------------------------------------------------------------------------
 
 def _macro_pressure_block(html: str) -> str:
-    parts = html.split('id="macro-pressure"', 1)
-    assert len(parts) == 2, 'id="macro-pressure" not found'
-    return parts[1].split('<div class="block"', 1)[0]
+    parts = html.split('class="macro-pressure-line', 1)
+    assert len(parts) == 2, 'macro-pressure-line not found'
+    return parts[1].split("</div>", 1)[0]
 
 
 def test_macro_pressure_block_present() -> None:
+    # PRD-217: pressure renders as one inline line (no standalone disclosure).
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
-    assert 'id="macro-pressure"' in html
+    assert 'class="macro-pressure-line' in html
+    assert '<details id="macro-pressure">' not in html
 
 
 def test_macro_pressure_block_no_data_when_empty_drivers() -> None:
@@ -398,13 +400,13 @@ def test_macro_pressure_block_no_data_when_empty_drivers() -> None:
         _payload(), _run(), macro_snapshot_path=Path("/nonexistent/no_snap.json")
     )
     block = _macro_pressure_block(html)
-    assert "MACRO PRESSURE UNAVAILABLE" in block
+    assert "Macro pressure unavailable" in block
     assert "NO PRESSURE DATA" not in block
 
 
 def test_macro_pressure_block_no_data_does_not_raise() -> None:
     html = render_dashboard_html(_payload(), _run())
-    assert 'id="macro-pressure"' in html
+    assert 'class="macro-pressure-line' in html
 
 
 def test_macro_pressure_block_risk_on_drivers_produce_decision_phrase() -> None:
@@ -432,14 +434,14 @@ def test_macro_pressure_block_risk_off_drivers_produce_decision_phrase() -> None
 def test_macro_pressure_block_position_after_macro_tape() -> None:
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
     tape_pos = html.find('id="macro-tape"')
-    pressure_pos = html.find('id="macro-pressure"')
+    pressure_pos = html.find('class="macro-pressure-line')
     assert tape_pos < pressure_pos
 
 
 def test_macro_pressure_block_position_after_system_state() -> None:
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
     system_pos = html.find('id="system-state"')
-    pressure_pos = html.find('id="macro-pressure"')
+    pressure_pos = html.find('class="macro-pressure-line')
     assert system_pos < pressure_pos
 
 

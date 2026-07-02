@@ -234,7 +234,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-214 | 0cf7c25 | Macro-tape condensation (risk-vote tally supersedes per-driver evidence, PRD-177 R3/PRD-191) | COMPLETE | [PRD-214](prd_history/PRD-214.md) |
 | PRD-215 | 0cf7c25 | Candidate-card condense + "actionable now" cyan accent | COMPLETE | [PRD-215](prd_history/PRD-215.md) |
 | PRD-216 | 51fbb36 | Level-diagram dollar-value annotation | COMPLETE | [PRD-216](prd_history/PRD-216.md) |
-| PRD-217 | — | Macro-pressure: fold signals into the tally, remove the section | IN PROGRESS | [PRD-217](prd_history/PRD-217.md) |
+| PRD-217 | f6113a9 | Macro-pressure: fold signals into the tally, remove the section | COMPLETE | [PRD-217](prd_history/PRD-217.md) |
 | PRD-218 | 51fbb36 | Trend-structure density: compact mobile rows + alignment-colored price + SMA arrow spacing | COMPLETE | [PRD-218](prd_history/PRD-218.md) |
 | PRD-219 | — | System-state distillation: verdict + one context line + single timestamp | IN PROGRESS | [PRD-219](prd_history/PRD-219.md) |
 

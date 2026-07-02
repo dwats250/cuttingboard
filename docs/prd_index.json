@@ -972,8 +972,8 @@
     {
       "number": 217,
       "title": "Macro-pressure: fold signals into the tally, remove the section",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "f6113a9"
     },
     {
       "number": 218,
