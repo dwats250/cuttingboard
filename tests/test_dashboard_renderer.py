@@ -1058,7 +1058,7 @@ def test_permission_none_reason_in_context_line() -> None:
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
     context = state.split('class="sys-context', 1)[1].split("</div>", 1)[0]
-    assert "no qualified candidates" in context
+    assert "no qualified setups" in context
 
 
 def test_macro_pressure_missing_shows_unavailable() -> None:
@@ -1253,7 +1253,7 @@ def test_prd112_a_healthy_sidecar_renders_six_rows_in_order() -> None:
     positions = [section.find(f">{sym}<") for sym in _TS_CURATED]
     assert all(p > 0 for p in positions), positions
     assert positions == sorted(positions), f"row order wrong: {positions}"
-    assert "BULLISH" in section
+    assert "BULL" in section
     assert "SUPPORTIVE" in section
 
 
@@ -1296,7 +1296,7 @@ def test_prd165_r2_column_with_one_healthy_value_not_collapsed() -> None:
     )
     section = _ts_section(html)
     assert ">Alignment</th>" in section
-    assert "BULLISH" in section
+    assert "BULL" in section
 
 
 def test_prd165_r2_healthy_snapshot_renders_all_columns() -> None:
@@ -3699,3 +3699,50 @@ def test_prd199_r5_tradable_arrow_dashes_when_trend_snapshot_stale(monkeypatch) 
     assert '<span class="tradable-arrow">—</span>' in cell       # arrow degraded to dash
     assert '<span class="tradable-arrow">↓</span>' not in cell    # not the stale directional arrow
     assert 'data-symbol="SPY">100.00</span>' in cell             # price retained (market_map fresh)
+
+
+# ---------------------------------------------------------------------------
+# PRD-220 — round-2 refinements
+# ---------------------------------------------------------------------------
+
+def test_prd220_context_reports_gated_setups_not_no_qualified() -> None:
+    # R1: with an A+ setup present and NO_TRADE, the context reports the gated
+    # count — never the contradictory "no qualified".
+    mm = _market_map({"GDX": _mm_symbol("GDX", grade="A+")})
+    html = render_dashboard_html(_payload(), _run(outcome="NO_TRADE", permission=None), market_map=mm)
+    state = html.split('id="system-state"', 1)[1].split('id="macro-tape"', 1)[0]
+    assert "1 setup gated" in state
+    assert "no qualified" not in state
+
+
+def test_prd220_context_no_qualified_when_truly_empty() -> None:
+    html = render_dashboard_html(_payload(), _run(outcome="NO_TRADE", permission=None), alert_candidates=[])
+    state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    assert "no qualified setups" in state
+
+
+def test_prd220_macro_pressure_one_bullet_per_line() -> None:
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
+    line = html.split('class="macro-pressure-line', 1)[1].split("</div>", 1)[0]
+    assert "• " in line
+    assert "<br>" in line  # phrases on separate lines
+
+
+def test_prd220_tradables_arrow_before_price() -> None:
+    import re as _r220
+    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=_market_map())
+    # arrow span precedes the value span within a tradable cell
+    assert _r220.search(
+        r'class="tradable-arrow">[^<]*</span>&nbsp;<span class="macro-tape-value"', html
+    )
+
+
+def test_prd220_trend_alignment_abbreviated() -> None:
+    snap = _ts_healthy_snapshot()
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap,
+    )
+    section = _ts_section(html)
+    assert "BULL" in section
+    assert "BULLISH" not in section
+    assert 'class="ts-intraday"' in section  # Intraday on its own line

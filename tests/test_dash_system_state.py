@@ -218,7 +218,7 @@ def test_system_state_reason_no_candidates() -> None:
     else:
         state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
     # PRD-219: the reason folds into the context line (no separate Reason field).
-    assert "no qualified candidates" in state
+    assert "no qualified setups" in state
     assert "candidates gated" not in state
 
 

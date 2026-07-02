@@ -759,6 +759,8 @@ _CSS = (
     ".ts-table td{white-space:nowrap!important;padding:0}"
     ".ts-table td::before{content:none}"
     ".ts-table td:first-child{font-weight:bold;min-width:3.2em}"
+    ".ts-table td:nth-child(2){min-width:5em}"          # price column aligns
+    ".ts-table td.ts-intraday{flex-basis:100%;color:#888}"  # PRD-220: VWAP on its own line
     "}"
 )
 
@@ -1172,6 +1174,11 @@ _SYS_REGIME_PLAIN: dict[str, str] = {
     "RISK_ON": "Risk-on", "RISK_OFF": "Risk-off",
     "NEUTRAL": "Neutral", "EXPANSION": "Expansion",
 }
+
+# PRD-220: abbreviate the trend-structure alignment token so a symbol's row fits
+# on one compact mobile line (BULLISH→BULL etc.). Display-only; the raw
+# trend_alignment still drives the price colour class.
+_TS_ALIGN_ABBR: dict[str, str] = {"BULLISH": "BULL", "BEARISH": "BEAR", "MIXED": "MIX"}
 
 
 _PRESSURE_DECISION_PHRASES: dict[str, dict[str, str]] = {
@@ -1991,16 +1998,30 @@ def render_dashboard_html(
     _regime_plain = _SYS_REGIME_PLAIN.get(
         str(market_regime), str(market_regime).replace("_", " ").title()
     )
+    # PRD-220: count the high-grade setups actually present in the market map so
+    # the context never contradicts it (an A+ ACTIONABLE card with a "no qualified
+    # candidates" verdict was the reported contradiction).
+    _hg_count = 0
+    if isinstance(market_map, dict):
+        _hg_count = sum(
+            1 for _sym, _e in (market_map.get("symbols") or {}).items()
+            if isinstance(_e, dict) and _e.get("grade", "") in _HIGH_GRADES
+        )
     if bool(system_halted):
         # On a halt the operational error is the most actionable context;
         # fall back to the posture reason, then a generic label.
         _ctx_reason: object = first_error or stay_flat_reason or "operational halt"
     elif first_error:
         _ctx_reason = first_error
-    elif alert_candidates:
-        _ctx_reason = "candidates gated"
     elif outcome in (None, "STAY_FLAT", "NO_TRADE"):
-        _ctx_reason = "no qualified candidates"
+        # No trade taken. If the map holds actionable setups, say they're gated
+        # (regime/posture standing down) rather than falsely claiming none exist.
+        if _hg_count > 0:
+            _ctx_reason = f"{_hg_count} setup{'s' if _hg_count != 1 else ''} gated"
+        elif alert_candidates:
+            _ctx_reason = "candidates gated"
+        else:
+            _ctx_reason = "no qualified setups"
     else:
         _ctx_reason = None
     # R2: never surface the raw engine internals (regime=…, confidence=…).
@@ -2114,9 +2135,11 @@ def render_dashboard_html(
         ]
         _pressure_phrases = [_p for _p in _pressure_phrases if _p]
         if _pressure_phrases:
+            # PRD-220: one bullet per phrase on its own line (was a single
+            # middot-joined line).
             w(
                 '  <div class="macro-pressure-line">'
-                + " · ".join(_esc(_p) for _p in _pressure_phrases)
+                + "<br>".join("• " + _esc(_p) for _p in _pressure_phrases)
                 + "</div>"
             )
     else:
@@ -2168,8 +2191,8 @@ def render_dashboard_html(
         w(
             f'    <span class="tradable-cell">'
             f'<span class="macro-tape-label">{_esc(slot.label)}</span>'
-            f'&nbsp;<span class="macro-tape-value" data-symbol="{_esc(slot.label)}">{_esc(val)}</span>'
             f'&nbsp;<span class="tradable-arrow">{_esc(arrow)}</span>'
+            f'&nbsp;<span class="macro-tape-value" data-symbol="{_esc(slot.label)}">{_esc(val)}</span>'
             f'</span>'
         )
     w('  </div>')
@@ -2268,7 +2291,10 @@ def render_dashboard_html(
                     str(_rec.get("symbol", _sym)),
                     _format_trend_number(_rec.get("current_price")),
                     _ts_display(str(_rec.get("price_vs_vwap", ""))),
-                    _ts_display(str(_rec.get("trend_alignment", ""))),
+                    _TS_ALIGN_ABBR.get(
+                        str(_rec.get("trend_alignment", "")),
+                        _ts_display(str(_rec.get("trend_alignment", ""))),
+                    ),
                     _ts_display(str(_rec.get("entry_context", ""))),
                     _format_trend_number(_rec.get("relative_volume")),
                     _trend_structure_composite_display(_rec),
@@ -2306,8 +2332,14 @@ def render_dashboard_html(
                     continue
                 # PRD-213: data-label mirrors the column header so the mobile
                 # reflow can render the header inline. PRD-218: the Price cell
-                # (index 1) carries the alignment colour class.
-                _cls = f' class="{_px_cls}"' if (_i == 1 and _px_cls) else ""
+                # (index 1) carries the alignment colour class. PRD-220: the
+                # Intraday cell (index 7) gets a class so it wraps to its own line.
+                _classes = []
+                if _i == 1 and _px_cls:
+                    _classes.append(_px_cls)
+                if _i == 7:
+                    _classes.append("ts-intraday")
+                _cls = f' class="{" ".join(_classes)}"' if _classes else ""
                 w(
                     f'        <td data-label="{_esc(_ts_headers[_i])}"{_cls} '
                     'style="padding:2px 8px;white-space:nowrap">'
