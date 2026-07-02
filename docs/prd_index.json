@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 219,
-  "next_prd": 220,
+  "latest_complete": 220,
+  "next_prd": 221,
   "entries": [
     {
       "number": 56,
@@ -990,8 +990,8 @@
     {
       "number": 220,
       "title": "Dashboard refinement round 2: system-state/market-map coherence + macro-tape & trend polish",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "2006db5"
     }
   ]
 }
