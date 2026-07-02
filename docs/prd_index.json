@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
   "latest_complete": 215,
-  "next_prd": 216,
+  "next_prd": 220,
   "entries": [
     {
       "number": 56,
@@ -962,6 +962,30 @@
       "title": "Candidate-card condense + \"actionable now\" cyan accent",
       "status": "COMPLETE",
       "commit": "0cf7c25"
+    },
+    {
+      "number": 216,
+      "title": "Level-diagram dollar-value annotation",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
+      "number": 217,
+      "title": "Macro-pressure: fold signals into the tally, remove the section",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
+      "number": 218,
+      "title": "Trend-structure density: compact mobile rows + alignment-colored price + SMA arrow spacing",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
+      "number": 219,
+      "title": "System-state distillation: verdict + one context line + single timestamp",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
