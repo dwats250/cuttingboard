@@ -1475,29 +1475,28 @@ def _render_level_diagram(
     )
     w(f'    <rect width="{LINE_W}" height="{SVG_H}" fill="#0a0a0a"/>')
 
+    # Draw every level LINE at its true price-mapped y, and collect the label
+    # for a second pass. Lines are never moved (the ENTRY line y is a pinned
+    # contract for downstream tests); only the text labels are decluttered so
+    # that clustered levels — which is exactly when they matter — stay legible
+    # instead of overprinting into an unreadable stack.
+    labels: list[tuple[int, str, str]] = []  # (true_y, text, fill)
+
     for lv_f, label in sorted(fib_items, key=lambda x: x[0], reverse=True):
         y = _to_y(lv_f)
-        safe = _esc(label[:8])
         w(
             f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
             f'stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>'
         )
-        w(
-            f'    <text x="{LABEL_X}" y="{y + 4}" font-size="9" '
-            f'fill="#555" font-family="monospace">{safe}</text>'
-        )
+        labels.append((y, _esc(label[:8]), "#555"))
 
     for lv_f, zt in sorted(zone_lines, key=lambda x: x[0], reverse=True):
         y = _to_y(lv_f)
-        safe = _esc(zt[:10])
         w(
             f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
             f'stroke="#1a4a5a" stroke-width="1"/>'
         )
-        w(
-            f'    <text x="{LABEL_X}" y="{y + 4}" font-size="9" '
-            f'fill="#3a7a8a" font-family="monospace">{safe}</text>'
-        )
+        labels.append((y, _esc(zt[:10]), "#3a7a8a"))
 
     if vwap_level is not None:
         y = _to_y(vwap_level)
@@ -1505,10 +1504,7 @@ def _render_level_diagram(
             f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
             f'stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>'
         )
-        w(
-            f'    <text x="{LABEL_X}" y="{y + 4}" font-size="9" '
-            f'fill="#29b6f6" font-family="monospace">VWAP</text>'
-        )
+        labels.append((y, "VWAP", "#29b6f6"))
 
     y = _to_y(contract_entry)
     w(
@@ -1516,10 +1512,41 @@ def _render_level_diagram(
         f'stroke="#f5c518" stroke-width="2"/>'
     )
     w(f'    <circle cx="3" cy="{y}" r="3" fill="#f5c518"/>')
-    w(
-        f'    <text x="{LABEL_X}" y="{y + 4}" font-size="9" '
-        f'fill="#f5c518" font-family="monospace">ENTRY</text>'
-    )
+    labels.append((y, "ENTRY", "#f5c518"))
+
+    # Label-declutter pass. Spread baselines so no two labels sit closer than
+    # LABEL_MIN_GAP px; a thin leader connects any label pushed off its line.
+    # Deterministic: stable sort by (true_y, insertion index).
+    LABEL_MIN_GAP = 11
+    BASE_OFF = 4          # baseline offset that centers text on its line
+    TOP_CLAMP = 9         # keep the topmost label inside the canvas
+    order = sorted(range(len(labels)), key=lambda i: (labels[i][0], i))
+    pos: dict[int, int] = {}
+    prev: int | None = None
+    for idx in order:
+        base = labels[idx][0] + BASE_OFF
+        p = max(base, TOP_CLAMP) if prev is None else max(base, prev + LABEL_MIN_GAP)
+        pos[idx] = p
+        prev = p
+    # If the stack overran the bottom edge, compress upward from the last label.
+    if order and pos[order[-1]] > SVG_H:
+        cap = SVG_H
+        for idx in reversed(order):
+            pos[idx] = min(pos[idx], cap)
+            cap = pos[idx] - LABEL_MIN_GAP
+
+    for idx, (true_y, text, fill) in enumerate(labels):
+        by = pos[idx]
+        if abs(by - (true_y + BASE_OFF)) > 3:
+            w(
+                f'    <line x1="{LINE_W}" y1="{true_y}" '
+                f'x2="{LABEL_X - 1}" y2="{by - 3}" '
+                f'stroke="#444" stroke-width="0.75"/>'
+            )
+        w(
+            f'    <text x="{LABEL_X}" y="{by}" font-size="9" '
+            f'fill="{fill}" font-family="monospace">{text}</text>'
+        )
 
     w('    </svg>')
     w('  </div>')
