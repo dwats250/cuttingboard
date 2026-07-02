@@ -1367,22 +1367,25 @@ def test_prd112_a_healthy_sidecar_renders_six_rows_in_order() -> None:
 # ----------------------------------------------------------------------------
 
 def test_prd165_r2_uniformly_unavailable_columns_collapse() -> None:
-    # PRD-165 R2: vs VWAP / vs SMA200 / Alignment / Entry Context collapse when
-    # every rendered symbol is unavailable for them; kept columns still render.
+    # PRD-165 R2: vs VWAP / Alignment / Entry Context collapse when every rendered
+    # symbol is unavailable for them; kept columns still render. (PRD-208 cut the
+    # vs SMA50 / vs SMA200 columns — they are always absent now, never rendered.)
     snap = _ts_healthy_snapshot()
     for rec in snap["symbols"].values():
         rec["price_vs_vwap"] = "NOT_COMPUTED"
-        rec["price_vs_sma_200"] = "INSUFFICIENT_HISTORY"
         rec["trend_alignment"] = "NOT_COMPUTED"
         rec["entry_context"] = "NOT_COMPUTED"
     html = render_dashboard_html(
         _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap,
     )
     section = _ts_section(html)
-    for hdr in (">vs VWAP</th>", ">vs SMA200</th>", ">Alignment</th>", ">Entry Context</th>"):
+    for hdr in (">vs VWAP</th>", ">Alignment</th>", ">Entry Context</th>"):
         assert hdr not in section, f"expected {hdr} collapsed"
-    for hdr in (">Symbol</th>", ">Price</th>", ">vs SMA50</th>", ">RVOL</th>",
-                ">SMA Composite</th>", ">Intraday Context</th>"):
+    # PRD-208: the granular SMA columns are cut entirely (not merely collapsed).
+    for hdr in (">vs SMA50</th>", ">vs SMA200</th>"):
+        assert hdr not in section, f"expected {hdr} cut (PRD-208)"
+    for hdr in (">Symbol</th>", ">Price</th>", ">RVOL</th>",
+                ">SMA 50/200</th>", ">Intraday Context</th>"):
         assert hdr in section, f"expected {hdr} retained"
 
 
@@ -1403,14 +1406,41 @@ def test_prd165_r2_column_with_one_healthy_value_not_collapsed() -> None:
 
 def test_prd165_r2_healthy_snapshot_renders_all_columns() -> None:
     # PRD-165 R2 FAIL(a): a fully healthy snapshot collapses nothing.
+    # PRD-208: vs SMA50/vs SMA200 are cut; the composite header is "SMA 50/200".
     snap = _ts_healthy_snapshot()
     html = render_dashboard_html(
         _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap,
     )
     section = _ts_section(html)
-    for hdr in (">vs VWAP</th>", ">vs SMA200</th>", ">Alignment</th>", ">Entry Context</th>",
-                ">SMA Composite</th>", ">Intraday Context</th>"):
+    for hdr in (">vs VWAP</th>", ">Alignment</th>", ">Entry Context</th>",
+                ">SMA 50/200</th>", ">Intraday Context</th>"):
         assert hdr in section, f"expected {hdr} retained in healthy snapshot"
+    for hdr in (">vs SMA50</th>", ">vs SMA200</th>"):
+        assert hdr not in section, f"expected {hdr} cut (PRD-208)"
+
+
+def test_prd208_r3_columns_cut_renamed_and_counts_match() -> None:
+    # PRD-208 R3: vs SMA50 / vs SMA200 columns cut; composite header renamed to
+    # "SMA 50/200". Assert the header set by IDENTITY/ORDER (the cut re-indexes
+    # every column to its right) and that each body row has one cell per header.
+    import re as _re208
+    snap = _ts_healthy_snapshot()
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap,
+    )
+    section = _ts_section(html)
+    headers = _re208.findall(r"<th[^>]*>([^<]*)</th>", section)
+    assert headers == [
+        "Symbol", "Price", "vs VWAP", "Alignment",
+        "Entry Context", "RVOL", "SMA 50/200", "Intraday Context",
+    ], f"unexpected trend-structure header identity/order: {headers}"
+    assert "SMA Composite" not in section, "old 'SMA Composite' header must be gone"
+    body_rows = _re208.findall(r"<tr>\s*(<td.*?)</tr>", section, _re208.S)
+    assert body_rows, "expected rendered trend-structure body rows"
+    for row in body_rows:
+        assert row.count("<td") == len(headers), (
+            f"row cell count {row.count('<td')} != header count {len(headers)}"
+        )
 
 
 # (b) Missing file
@@ -2794,30 +2824,32 @@ from cuttingboard.delivery.dashboard_renderer import (  # noqa: E402
 )
 
 _PRD131_VOCAB = (
-    "Above SMA50 and SMA200",
-    "Above SMA50, below SMA200",
-    "Below SMA50, above SMA200",
-    "Below SMA50 and SMA200",
-    "At SMA50, above SMA200",
-    "At SMA50, below SMA200",
-    "Above SMA50, at SMA200",
-    "Below SMA50, at SMA200",
-    "At SMA50 and SMA200",
+    "↑50 ↑200",
+    "↑50 ↓200",
+    "↓50 ↑200",
+    "↓50 ↓200",
+    "=50 ↑200",
+    "=50 ↓200",
+    "↑50 =200",
+    "↓50 =200",
+    "=50 =200",
     "Structure unavailable",
     "SMA history insufficient",
     "Structure not computed",
 )
 
+# PRD-208: compressed 3-state arrow vocabulary (ABOVE=↑, BELOW=↓, AT_LEVEL==),
+# suffixed with the SMA window. All 9 (3×3) composites asserted exactly.
 _PRD131_R1_TABLE = (
-    (("ABOVE", "ABOVE"),       "Above SMA50 and SMA200"),
-    (("ABOVE", "BELOW"),       "Above SMA50, below SMA200"),
-    (("BELOW", "ABOVE"),       "Below SMA50, above SMA200"),
-    (("BELOW", "BELOW"),       "Below SMA50 and SMA200"),
-    (("AT_LEVEL", "ABOVE"),    "At SMA50, above SMA200"),
-    (("AT_LEVEL", "BELOW"),    "At SMA50, below SMA200"),
-    (("ABOVE", "AT_LEVEL"),    "Above SMA50, at SMA200"),
-    (("BELOW", "AT_LEVEL"),    "Below SMA50, at SMA200"),
-    (("AT_LEVEL", "AT_LEVEL"), "At SMA50 and SMA200"),
+    (("ABOVE", "ABOVE"),       "↑50 ↑200"),
+    (("ABOVE", "BELOW"),       "↑50 ↓200"),
+    (("BELOW", "ABOVE"),       "↓50 ↑200"),
+    (("BELOW", "BELOW"),       "↓50 ↓200"),
+    (("AT_LEVEL", "ABOVE"),    "=50 ↑200"),
+    (("AT_LEVEL", "BELOW"),    "=50 ↓200"),
+    (("ABOVE", "AT_LEVEL"),    "↑50 =200"),
+    (("BELOW", "AT_LEVEL"),    "↓50 =200"),
+    (("AT_LEVEL", "AT_LEVEL"), "=50 =200"),
 )
 
 _PRD131_FORBIDDEN = (
@@ -2838,6 +2870,25 @@ def test_prd131_r1_composite_display_table(
     p50, p200 = pair
     rec = {"price_vs_sma_50": p50, "price_vs_sma_200": p200}
     assert _trend_structure_composite_display(rec) == expected
+
+
+# PRD-208 R1 — the AT_LEVEL glyph must be DISTINCT from ABOVE and BELOW, so the
+# three "at"-containing composites are not silently merged into ↑/↓ renderings.
+def test_prd208_arrow_three_state_glyphs_distinct() -> None:
+    g_above = _trend_structure_composite_display(
+        {"price_vs_sma_50": "ABOVE", "price_vs_sma_200": "ABOVE"})
+    g_below = _trend_structure_composite_display(
+        {"price_vs_sma_50": "BELOW", "price_vs_sma_200": "BELOW"})
+    g_at = _trend_structure_composite_display(
+        {"price_vs_sma_50": "AT_LEVEL", "price_vs_sma_200": "AT_LEVEL"})
+    assert len({g_above, g_below, g_at}) == 3, (
+        "ABOVE/BELOW/AT_LEVEL must render distinct compact glyphs; "
+        f"got {g_above!r}/{g_below!r}/{g_at!r}"
+    )
+    # AT_LEVEL must not reuse the ↑ or ↓ glyph.
+    assert "↑" not in g_at and "↓" not in g_at, (
+        f"AT_LEVEL composite {g_at!r} must use a distinct glyph, not ↑/↓"
+    )
 
 
 # R1 — Forbidden vocabulary must not appear in any composite display string.
@@ -2946,8 +2997,8 @@ def test_prd131_r1_composite_cell_renders_in_panel(
     spy["price_vs_sma_200"] = "ABOVE"
     html = _prd120_coherent_render(trend_structure_snapshot=snap)
     section = _ts_section(html)
-    assert "Above SMA50 and SMA200" in section
-    assert "SMA Composite" in section  # header present
+    assert "↑50 ↑200" in section
+    assert "SMA 50/200" in section  # header present (PRD-208 rename)
 
 
 # R4(a) — helper name MUST NOT appear outside dashboard_renderer.py.
@@ -3127,7 +3178,7 @@ def test_prd132_r3_snapshot_absent_short_circuits_intraday(
 
 
 # R1/R6 — Intraday Context cell appears in rendered panel; column order
-# preserved (PRD-131 SMA Composite stays present, Intraday Context after it).
+# preserved (PRD-131/PRD-208 "SMA 50/200" stays present, Intraday Context after it).
 def test_prd132_r1_r6_intraday_cell_renders_and_column_order(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -3139,11 +3190,11 @@ def test_prd132_r1_r6_intraday_cell_renders_and_column_order(
     html = _prd120_coherent_render(trend_structure_snapshot=snap)
     section = _ts_section(html)
     # Header presence + relative order.
-    sma_pos = section.find("SMA Composite")
+    sma_pos = section.find("SMA 50/200")
     intra_pos = section.find("Intraday Context")
-    assert sma_pos >= 0, "SMA Composite header missing"
+    assert sma_pos >= 0, "SMA 50/200 header missing"
     assert intra_pos > sma_pos, (
-        "Intraday Context header must come after SMA Composite"
+        "Intraday Context header must come after SMA 50/200"
     )
     # Phrase present in body. HTML-escape the operators since the renderer
     # passes cells through _esc(); browsers render entities back to glyphs.
@@ -3270,14 +3321,14 @@ def test_prd132_r6b_prd131_symbols_present(symbol: str) -> None:
     )
 
 
-# R6(c) — "SMA Composite" header present, "Intraday Context" appended after.
+# R6(c) — "SMA 50/200" header present, "Intraday Context" appended after.
 def test_prd132_r6c_header_order_in_source() -> None:
     src = Path("cuttingboard/delivery/dashboard_renderer.py").read_text()
-    sma_pos = src.find('"SMA Composite"')
+    sma_pos = src.find('"SMA 50/200"')
     intra_pos = src.find('"Intraday Context"')
-    assert sma_pos >= 0, "PRD-131 'SMA Composite' header literal missing"
+    assert sma_pos >= 0, "PRD-131/PRD-208 'SMA 50/200' header literal missing"
     assert intra_pos > sma_pos, (
-        "PRD-132 'Intraday Context' header must appear after 'SMA Composite'"
+        "PRD-132 'Intraday Context' header must appear after 'SMA 50/200'"
     )
 
 
@@ -3296,15 +3347,15 @@ def test_prd132_r6d_cells_call_order_in_source() -> None:
 
 # R6(e) — all 12 PRD-131 display strings present byte-identically.
 _PRD131_VOCAB_FOR_R6E = (
-    "Above SMA50 and SMA200",
-    "Above SMA50, below SMA200",
-    "Below SMA50, above SMA200",
-    "Below SMA50 and SMA200",
-    "At SMA50, above SMA200",
-    "At SMA50, below SMA200",
-    "Above SMA50, at SMA200",
-    "Below SMA50, at SMA200",
-    "At SMA50 and SMA200",
+    "↑50 ↑200",
+    "↑50 ↓200",
+    "↓50 ↑200",
+    "↓50 ↓200",
+    "=50 ↑200",
+    "=50 ↓200",
+    "↑50 =200",
+    "↓50 =200",
+    "=50 =200",
     "Structure unavailable",
     "SMA history insufficient",
     "Structure not computed",
@@ -3346,9 +3397,10 @@ def test_prd132_r6f_missing_record_cell_count(
         f"row for {missing_sym} not found in trend-structure section"
     )
     cell_count = len(re.findall(r"<td[^>]*>", missing_row))
-    assert cell_count == 10, (
-        f"missing-record row has {cell_count} cells; expected 10 "
-        "(symbol + price + 8 derived columns)"
+    assert cell_count == 8, (
+        f"missing-record row has {cell_count} cells; expected 8 "
+        "(Symbol, Price, vs VWAP, Alignment, Entry Context, RVOL, SMA 50/200, "
+        "Intraday Context — PRD-208 cut vs SMA50/vs SMA200)"
     )
 
 
