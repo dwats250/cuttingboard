@@ -1532,22 +1532,31 @@ def _render_level_diagram(
     BASE_OFF = 4          # baseline offset that centers text on its line
     TOP_CLAMP = 9         # keep the topmost label inside the canvas
     order = sorted(range(len(labels)), key=lambda i: (labels[i][0], i))
-    pos: dict[int, int] = {}
-    prev: int | None = None
+    # When more labels are present than fit at LABEL_MIN_GAP within the canvas
+    # (SVG_H - TOP_CLAMP), shrink the gap so they still fit instead of spilling
+    # off the top/bottom edge. n-1 gaps must span at most (SVG_H - TOP_CLAMP).
+    n = len(order)
+    gap = LABEL_MIN_GAP
+    if n > 1:
+        gap = min(float(LABEL_MIN_GAP), (SVG_H - TOP_CLAMP) / (n - 1))
+    pos: dict[int, float] = {}
+    prev: float | None = None
     for idx in order:
         base = labels[idx][0] + BASE_OFF
-        p = max(base, TOP_CLAMP) if prev is None else max(base, prev + LABEL_MIN_GAP)
+        p = max(base, TOP_CLAMP) if prev is None else max(base, prev + gap)
         pos[idx] = p
         prev = p
     # If the stack overran the bottom edge, compress upward from the last label.
+    # With the fitted gap above, this can never push the top label past TOP_CLAMP
+    # (SVG_H - (n-1)*gap >= TOP_CLAMP), so every label stays on-canvas.
     if order and pos[order[-1]] > SVG_H:
-        cap = SVG_H
+        cap = float(SVG_H)
         for idx in reversed(order):
             pos[idx] = min(pos[idx], cap)
-            cap = pos[idx] - LABEL_MIN_GAP
+            cap = pos[idx] - gap
 
     for idx, (true_y, text, fill) in enumerate(labels):
-        by = pos[idx]
+        by = round(pos[idx])
         if abs(by - (true_y + BASE_OFF)) > 3:
             w(
                 f'    <line x1="{LINE_W}" y1="{true_y}" '

@@ -142,3 +142,26 @@ def test_level_diagram_no_decision_field_changes() -> None:
     render_dashboard_html(p, r, market_map=mm, contract_entry_map={"SPY": 500.0})
     assert p == p_before
     assert r == r_before
+
+
+def test_level_diagram_many_clustered_labels_stay_on_canvas() -> None:
+    # Regression: with more level labels than fit at the nominal 11px gap in the
+    # 110px canvas, the declutter pass must shrink the gap so every label stays
+    # on-canvas (0 <= y <= SVG_H), never spilling to negative y off the top.
+    import re
+    fib = {"retracements": {"0.382": 100.47, "0.5": 100.69, "0.618": 100.91}}
+    zones = [
+        {"level": 100.11, "type": "PRIOR_HIGH"}, {"level": 100.16, "type": "ORB_HIGH"},
+        {"level": 100.19, "type": "ORB_LOW"}, {"level": 100.99, "type": "PRIOR_LOW"},
+        {"level": 100.51, "type": "EMA9"}, {"level": 100.54, "type": "EMA21"},
+        {"level": 100.43, "type": "EMA50"}, {"level": 100.21, "type": "VWAP"},
+    ]
+    s = _mm_symbol("SPY", grade="A+")
+    s["current_price"] = 100.28
+    s["fib_levels"] = fib
+    s["watch_zones"] = zones
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map({"SPY": s}))
+    diagram = html.split('class="lvl-diagram"', 1)[1].split("</svg>", 1)[0]
+    ys = [int(m) for m in re.findall(r'<text x="\d+" y="(-?\d+)"', diagram)]
+    assert ys, "no level labels rendered"
+    assert all(0 <= y <= 110 for y in ys), f"label off-canvas: {sorted(ys)}"
