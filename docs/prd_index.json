@@ -986,6 +986,12 @@
       "title": "System-state distillation: verdict + one context line + single timestamp",
       "status": "COMPLETE",
       "commit": "02d2e8f"
+    },
+    {
+      "number": 220,
+      "title": "Dashboard refinement round 2: system-state/market-map coherence + macro-tape & trend polish",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

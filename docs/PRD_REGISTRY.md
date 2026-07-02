@@ -237,6 +237,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-217 | f6113a9 | Macro-pressure: fold signals into the tally, remove the section | COMPLETE | [PRD-217](prd_history/PRD-217.md) |
 | PRD-218 | 51fbb36 | Trend-structure density: compact mobile rows + alignment-colored price + SMA arrow spacing | COMPLETE | [PRD-218](prd_history/PRD-218.md) |
 | PRD-219 | 02d2e8f | System-state distillation: verdict + one context line + single timestamp | COMPLETE | [PRD-219](prd_history/PRD-219.md) |
+| PRD-220 | — | Dashboard refinement round 2: system-state/market-map coherence + macro-tape & trend polish | IN PROGRESS | [PRD-220](prd_history/PRD-220.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
