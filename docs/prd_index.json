@@ -1022,6 +1022,12 @@
       "title": "Trend-structure mobile rows: uniform wrap (alignment-cell min-width + tighter gap)",
       "status": "COMPLETE",
       "commit": "9cc751c"
+    },
+    {
+      "number": 228,
+      "title": "Bot-review-thread disposition clause (governance guardrail)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
