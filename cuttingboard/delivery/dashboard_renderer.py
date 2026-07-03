@@ -1449,6 +1449,7 @@ def _resolve_previous_run(logs_dir: Path) -> dict | None:
 
 def _render_level_diagram(
     w: object,
+    now_price: float | None,
     contract_entry: float | None,
     fib_levels: dict | None,
     watch_zones: list | None,
@@ -1457,23 +1458,39 @@ def _render_level_diagram(
     """Render a deterministic SVG level diagram for a candidate card (PRD-074).
 
     PRD-216: each level label carries its dollar value. PRD-221/PRD-222: the
-    anchor (the current-price reference) is labelled NOW and every other level
-    carries its signed % distance from it. (PRD-221's separate NOW marker and
-    NOW→ENTRY band were removed in PRD-222: the anchor already *is* current price,
-    so the marker was redundant and the band always empty.) PRD-223: when the
-    contract carries a numeric stop, the anchor→stop span shades as a soft risk
-    zone with a dashed STOP edge — zone shading, not a crisp hairline, because
-    the invalidation the engine describes is a zone, not a tick.
+    anchor is labelled NOW and every other level carries its signed % distance
+    from that anchor. PRD-223: a numeric stop shades the entry→stop span as a
+    soft risk zone with a dashed STOP edge — zone shading, not a crisp hairline,
+    because the invalidation the engine describes is a zone, not a tick.
+
+    PRD-226: NOW is the *live current price* (``now_price``) — the 0% reference
+    and the yellow focal line. The contract's planned entry (``contract_entry``,
+    from ``trade_candidates[].entry``) is a SEPARATE level: it is the risk-band
+    top edge and, when it differs from NOW beyond display resolution, its own
+    amber ENTRY marker. It is never relabelled NOW. The current price is the
+    required anchor: absent it, the diagram is suppressed (the caller gates on a
+    valid current price) — the entry is never promoted to a NOW label.
     """
-    if contract_entry is None or contract_entry <= 0:
+    # PRD-226: everything scales around and reports % distance from the 0%
+    # reference — the live current price. The caller only reaches here with a
+    # valid current price; the guard is belt-and-suspenders.
+    if now_price is None or now_price <= 0:
         w('  <div class="lvl-unavail">Chart unavailable — no price data</div>')
         return
+    anchor_base = now_price
 
     # PRD-223: the risk zone draws only from an honest numeric pair — a
     # finite positive stop distinct from the anchor. Anything else renders
     # exactly the pre-PRD-223 diagram.
+    # PRD-226: the band draws entry→stop, so a stop needs a valid contract entry
+    # to pair against — never against the NOW/current-price anchor.
     stop_price: float | None = None
-    if contract_stop is not None and not isinstance(contract_stop, bool):
+    if (
+        contract_entry is not None
+        and contract_entry > 0
+        and contract_stop is not None
+        and not isinstance(contract_stop, bool)
+    ):
         try:
             stop_candidate = float(contract_stop)
         except (TypeError, ValueError):
@@ -1514,7 +1531,9 @@ def _render_level_diagram(
             except (TypeError, ValueError):
                 pass
 
-    all_prices = [contract_entry]
+    all_prices = [anchor_base]
+    if contract_entry is not None and contract_entry != anchor_base:
+        all_prices.append(contract_entry)
     if stop_price is not None:
         all_prices.append(stop_price)
     if vwap_level is not None:
@@ -1529,8 +1548,8 @@ def _render_level_diagram(
     p_span = p_max - p_min
 
     if p_span < 0.01:
-        p_min = contract_entry * 0.995
-        p_max = contract_entry * 1.005
+        p_min = anchor_base * 0.995
+        p_max = anchor_base * 1.005
         p_span = p_max - p_min
     else:
         pad = p_span * 0.12
@@ -1547,8 +1566,9 @@ def _render_level_diagram(
         return round(SVG_H * (1.0 - (price - p_min) / p_span))
 
     def _pct(level: float) -> str:
-        # PRD-222: signed % distance of a level from NOW (the current-price anchor).
-        return f" {((level - contract_entry) / contract_entry * 100.0):+.1f}%"
+        # PRD-226: signed % distance from the 0% reference — the current price
+        # when available, else the contract entry (current-price-absent fallback).
+        return f" {((level - anchor_base) / anchor_base * 100.0):+.1f}%"
 
     w('  <div class="lvl-diagram">')
     w(
@@ -1557,8 +1577,9 @@ def _render_level_diagram(
     )
     w(f'    <rect width="{LINE_W}" height="{SVG_H}" fill="#0a0a0a"/>')
 
-    # PRD-223: risk zone — the anchor→stop span, shaded behind every level
-    # line so the levels stay legible on top of it.
+    # PRD-223/PRD-226: risk zone — the contract entry→stop span (its top edge is
+    # the entry, not the NOW anchor), shaded behind every level line so the
+    # levels stay legible on top of it.
     if stop_price is not None:
         band_top = min(_to_y(contract_entry), _to_y(stop_price))
         band_h = abs(_to_y(contract_entry) - _to_y(stop_price))
@@ -1611,16 +1632,32 @@ def _render_level_diagram(
         )
         labels.append((y, f"STOP {stop_price:,.2f}{_pct(stop_price)}", "#e05252"))
 
-    # PRD-222: the anchor IS current price — label it NOW (the 0% reference, no
-    # % suffix). Kept yellow/bold so it stays the visual focal point and the
-    # pinned anchor-line-y contract holds.
-    y = _to_y(contract_entry)
+    # PRD-226: NOW is the live current price — the 0% reference — drawn as the
+    # yellow focal line (no % suffix). The contract entry is never relabelled NOW.
+    y = _to_y(now_price)
     w(
         f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
         f'stroke="#f5c518" stroke-width="2"/>'
     )
     w(f'    <circle cx="3" cy="{y}" r="3" fill="#f5c518"/>')
-    labels.append((y, f"NOW {contract_entry:,.2f}", "#f5c518"))
+    labels.append((y, f"NOW {now_price:,.2f}", "#f5c518"))
+
+    # PRD-226: the contract's planned entry is a SEPARATE amber level carrying
+    # its signed % distance from NOW — the risk-band top edge made explicit. It
+    # is drawn when it differs from NOW beyond display resolution (< 0.005 rounds
+    # to the same 2dp price, so the two lines would overprint an identical
+    # label); when it equals NOW they coincide and only NOW shows.
+    if (
+        contract_entry is not None
+        and contract_entry > 0
+        and abs(contract_entry - now_price) >= 0.005
+    ):
+        y = _to_y(contract_entry)
+        w(
+            f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
+            f'stroke="#e0a552" stroke-width="1.5"/>'
+        )
+        labels.append((y, f"ENTRY {contract_entry:,.2f}{_pct(contract_entry)}", "#e0a552"))
 
     # Label-declutter pass. Spread baselines so no two labels sit closer than
     # LABEL_MIN_GAP px; a thin leader connects any label pushed off its line.
@@ -1762,22 +1799,38 @@ def _render_candidate_card(
 
     # PRD-158 § 4.2 translation 12: render the level diagram only when both
     # an anchor and level context exist. No placeholder for partial data.
-    level_anchor = contract_entry if contract_entry is not None else entry.get("current_price")
+    # PRD-226: the NOW anchor / 0% reference is the live current price; the
+    # contract's planned entry is passed separately (risk-band edge + ENTRY
+    # marker), never as the NOW anchor. The diagram renders on either honest
+    # anchor — current price, or (as a fallback) the contract entry.
+    now_price = entry.get("current_price")
     fib_levels = entry.get("fib_levels")
     watch_zones = entry.get("watch_zones")
     has_level_context = bool(fib_levels) or bool(watch_zones)
-    anchor_valid = (
-        isinstance(level_anchor, (int, float))
-        and not isinstance(level_anchor, bool)
-        and level_anchor > 0
-    )
-    if anchor_valid and has_level_context:
+
+    def _valid_price(v: object) -> bool:
+        return isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0
+
+    now_valid = _valid_price(now_price)
+    entry_valid = _valid_price(contract_entry)
+    # PRD-226: the current price is the required NOW anchor — the diagram renders
+    # only against it (every rendered high-grade card carries current_price; the
+    # integrator's Rule 1 collapses a card that lacks it). The contract entry is
+    # never an anchor.
+    if now_valid and has_level_context:
         # PRD-223: the risk band needs the contract pair — a stop only draws
-        # against its own entry, never against the current-price fallback.
+        # against its own entry, never against the NOW/current-price anchor.
         # This gate also carries contract staleness: a stale contract nulls
         # the entry map, so its stop can never pair up and draw.
-        band_stop = contract_stop if contract_entry is not None else None
-        _render_level_diagram(w, level_anchor, fib_levels, watch_zones, contract_stop=band_stop)
+        band_stop = contract_stop if entry_valid else None
+        _render_level_diagram(
+            w,
+            now_price,
+            contract_entry if entry_valid else None,
+            fib_levels,
+            watch_zones,
+            contract_stop=band_stop,
+        )
 
     w("</div>")
 

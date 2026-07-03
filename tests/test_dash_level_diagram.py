@@ -178,7 +178,10 @@ def test_prd216_level_labels_carry_dollar_values() -> None:
         _payload(), _run(), market_map=mm, contract_entry_map={"GDX": 75.00},
     )
     diagram = html.split('class="lvl-diagram"', 1)[1].split("</svg>", 1)[0]
-    assert ">NOW 75.00" in diagram  # PRD-222: anchor labelled NOW
+    # PRD-226: NOW is the live current price (_mm_symbol default 100.00), not the
+    # contract entry (75.00) — the entry gets its own ENTRY marker.
+    assert ">NOW 100.00" in diagram
+    assert ">ENTRY 75.00" in diagram
     assert ">PRIOR_LOW 74.95" in diagram
     assert ">VWAP 75.05" in diagram
     assert ">0.618 74.62" in diagram
@@ -216,6 +219,10 @@ _STOP_LINE = re.compile(
 _ANCHOR_LINE = re.compile(
     r'<line x1="0" y1="(?P<y>\d+)" x2="160" y2="\d+" stroke="#f5c518"'
 )
+# PRD-226: the amber ENTRY line — the contract entry (risk-band top edge).
+_ENTRY_LINE = re.compile(
+    r'<line x1="0" y1="(?P<y>\d+)" x2="160" y2="\d+" stroke="#e0a552"'
+)
 
 
 def _diagram(html: str) -> str:
@@ -229,11 +236,14 @@ def _assert_no_band(html_or_diagram: str) -> None:
 
 
 def test_prd223_risk_band_renders_between_entry_and_stop() -> None:
-    # Contract entry 510 (the anchor) / stop 505: a soft risk zone spans
-    # exactly the mapped anchor→stop y-range, behind the level lines, with a
-    # dashed STOP edge labelled with price and % distance.
-    wz = [{"type": "PRIOR_LOW", "level": 508.0}]
-    mm = _mm_with_levels("SPY", grade="A+", watch_zones=wz)
+    # PRD-223/PRD-226: current price 508 (NOW anchor) / contract entry 510 /
+    # stop 505. The soft risk zone spans the ENTRY(510)→STOP(505) y-range —
+    # NOT the NOW anchor — behind the level lines, with a dashed STOP edge. Every
+    # %-distance is measured from NOW (current price), not the entry.
+    s = _mm_symbol("SPY", grade="A+")
+    s["current_price"] = 508.0
+    s["watch_zones"] = [{"type": "PRIOR_LOW", "level": 506.0}]
+    mm = _market_map({"SPY": s})
     html = render_dashboard_html(
         _payload(), _run(), market_map=mm,
         contract_entry_map={"SPY": 510.0},
@@ -242,18 +252,25 @@ def test_prd223_risk_band_renders_between_entry_and_stop() -> None:
     diagram = _diagram(html)
     rect = _BAND_RECT.search(diagram)
     stop_line = _STOP_LINE.search(diagram)
-    anchor_line = _ANCHOR_LINE.search(diagram)
+    now_line = _ANCHOR_LINE.search(diagram)
+    entry_line = _ENTRY_LINE.search(diagram)
     assert rect is not None, "risk-zone rect missing"
     assert stop_line is not None, "dashed STOP edge missing"
-    assert anchor_line is not None, "anchor line missing"
-    y_anchor = int(anchor_line.group("y"))
+    assert now_line is not None, "yellow NOW line missing"
+    assert entry_line is not None, "amber ENTRY line missing"
+    # The band spans ENTRY→STOP, not NOW→STOP.
+    y_entry = int(entry_line.group("y"))
     y_stop = int(stop_line.group("y"))
-    assert int(rect.group("y")) == min(y_anchor, y_stop)
-    assert int(rect.group("h")) == abs(y_anchor - y_stop)
+    y_now = int(now_line.group("y"))
+    assert int(rect.group("y")) == min(y_entry, y_stop)
+    assert int(rect.group("h")) == abs(y_entry - y_stop)
+    assert y_now not in (y_entry, y_stop)  # NOW is a distinct line
     # The rect renders BEFORE (behind) every level line.
     assert diagram.index(rect.group(0)) < diagram.index("<line")
-    assert ">STOP 505.00 -1.0%</text>" in diagram
-    assert ">NOW 510.00</text>" in diagram
+    # %-distances measured from NOW=508: entry +0.4%, stop -0.6%.
+    assert ">NOW 508.00</text>" in diagram
+    assert ">ENTRY 510.00 +0.4%</text>" in diagram
+    assert ">STOP 505.00 -0.6%</text>" in diagram
 
 
 def test_prd223_stop_joins_the_y_scale() -> None:
@@ -321,3 +338,63 @@ def test_prd223_no_band_without_contract_entry() -> None:
         contract_stop_map={"SPY": 505.0},
     )
     _assert_no_band(_diagram(html))
+
+
+# ---------------------------------------------------------------------------
+# PRD-226 — NOW anchor = current price; contract entry is a separate ENTRY level
+# ---------------------------------------------------------------------------
+
+def test_prd226_now_anchor_is_current_price_not_contract_entry() -> None:
+    # PRD-226 (PR #86 catch): the NOW anchor and the 0% reference are the live
+    # current price, never the contract's planned entry. current_price=120,
+    # contract_entry=110 -> NOW 120.00, a separate ENTRY 110.00, and every level
+    # % measured from 120. Reverting the anchor to contract_entry would relabel
+    # NOW 110.00 and recompute the zone % off 110 — either flip fails this test.
+    s = _mm_symbol("SPY", grade="A+")
+    s["current_price"] = 120.0
+    s["watch_zones"] = [{"type": "SUPPORT", "level": 108.0}]
+    mm = _market_map({"SPY": s})
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=mm,
+        contract_entry_map={"SPY": 110.0},
+    )
+    diagram = _diagram(html)
+    assert ">NOW 120.00</text>" in diagram          # NOW is current price
+    assert ">NOW 110.00</text>" not in diagram        # entry is never NOW
+    assert ">ENTRY 110.00 -8.3%</text>" in diagram     # entry as its own level
+    assert ">SUPPORT 108.00 -10.0%</text>" in diagram  # % from NOW=120, not 110
+
+
+def test_prd226_no_entry_marker_when_entry_equals_now() -> None:
+    # PRD-226 R2: when the contract entry equals current price (proven equal),
+    # NOW and ENTRY coincide — only NOW draws, no spurious ENTRY marker.
+    s = _mm_symbol("SPY", grade="A+")
+    s["current_price"] = 100.0
+    s["watch_zones"] = [{"type": "SUPPORT", "level": 99.0}]
+    mm = _market_map({"SPY": s})
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=mm,
+        contract_entry_map={"SPY": 100.0},
+    )
+    diagram = _diagram(html)
+    assert ">NOW 100.00</text>" in diagram
+    assert ">ENTRY " not in diagram
+    assert _ENTRY_LINE.search(diagram) is None
+
+
+def test_prd226_no_diagram_and_no_now_when_current_price_invalid() -> None:
+    # PRD-226 R4: the current price is the required anchor. When it is invalid
+    # (0 — passes the integrator's required-field check but is not a drawable
+    # price) the diagram is suppressed even though a valid contract entry exists;
+    # the entry is never promoted to a NOW label.
+    s = _mm_symbol("SPY", grade="A+")
+    s["current_price"] = 0
+    s["watch_zones"] = [{"type": "SUPPORT", "level": 108.0}]
+    mm = _market_map({"SPY": s})
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=mm,
+        contract_entry_map={"SPY": 110.0},
+    )
+    assert 'class="lvl-diagram"' not in html   # no diagram without a valid NOW
+    assert ">NOW 110.00" not in html            # entry never promoted to NOW
+    assert ">ENTRY 110.00" not in html
