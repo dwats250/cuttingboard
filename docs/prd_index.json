@@ -1022,6 +1022,12 @@
       "title": "Trend-structure mobile rows: uniform wrap (alignment-cell min-width + tighter gap)",
       "status": "COMPLETE",
       "commit": "9cc751c"
+    },
+    {
+      "number": 226,
+      "title": "Level diagram NOW anchor = current price (contract entry is a separate ENTRY level, never NOW)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
