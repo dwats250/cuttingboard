@@ -63,6 +63,26 @@ with date and rationale - short notes, not ceremony.
   still requires the artifact above. Defining satisfaction by properties rather
   than by invocation mechanism keeps the gate stable as the available Codex
   surfaces change (CLI egress, GitHub connector, future channels).
+- **Bot-review-thread disposition (PRD-228).** Automated PR reviewers - the
+  `chatgpt-codex-connector` app and any future connector bot - post inline review
+  threads that are advisory INPUT, never gate-satisfying (per the clause above, a
+  connector-only ephemeral comment does not satisfy the Codex cross-review gate).
+  Disposition of every substantive bot thread is nonetheless mandatory, not
+  optional:
+  1. **Triage, don't ignore.** Each substantive bot catch is either (a) ACTIONED -
+     the fix lands (a bug fix or a lane-appropriate PRD) and the thread is resolved
+     in-thread citing the fixing commit SHA / PRD number; or (b) DISMISSED with a
+     one-line in-thread reason (out-of-scope, false positive, or already-covered
+     with the covering SHA). No substantive thread is left dangling.
+  2. **A real defect gets the normal treatment** - PRD before build when
+     non-trivial, a mutation-verified red test per the semantic-hardening
+     invariants - not patched silently just to clear the thread.
+  3. **The thread is not the artifact.** Resolving a bot thread records
+     disposition; it never stands in for the Claude review + durable Codex
+     cross-review a HIGH-RISK PRD still requires.
+  This clause is itself a governance guardrail: a PR that changes it is
+  MANUAL-MERGE-ONLY (open and hold for a human merge; do NOT queue `gh pr merge
+  --auto`), per the governance carve-out below.
 - **Drift check in every review (PRD-186).** Every review artifact records a
   drift check, not just correctness: does the change conflict with a `VISION.md`
   non-goal/principle, and does it leave any `docs/PROJECT_STATE.md` claim stale?

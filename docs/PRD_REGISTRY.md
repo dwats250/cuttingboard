@@ -243,6 +243,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-223 | e654ca0 | Numeric entry→stop risk band on the level ladder (from contract trade_candidates) | COMPLETE | [PRD-223](prd_history/PRD-223.md) |
 | PRD-224 | 204a5b8 | Macro-tape glyph alignment (GC/SI pad) + PRD-223 review fast-follows | COMPLETE | [PRD-224](prd_history/PRD-224.md) |
 | PRD-225 | 9cc751c | Trend-structure mobile rows: uniform wrap (alignment-cell min-width + tighter gap) | COMPLETE | [PRD-225](prd_history/PRD-225.md) |
+| PRD-228 | — | Bot-review-thread disposition clause (governance guardrail) | IN PROGRESS | [PRD-228](prd_history/PRD-228.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
