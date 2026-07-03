@@ -1473,8 +1473,10 @@ def _render_level_diagram(
     """
     # PRD-226: everything scales around and reports % distance from the 0%
     # reference — the live current price. The caller only reaches here with a
-    # valid current price; the guard is belt-and-suspenders.
-    if now_price is None or now_price <= 0:
+    # valid current price; the guard is belt-and-suspenders. A non-finite anchor
+    # (inf/NaN) must fail here too: the y-scale math would otherwise produce NaN
+    # and round() would raise, aborting the whole render.
+    if now_price is None or not math.isfinite(now_price) or now_price <= 0:
         w('  <div class="lvl-unavail">Chart unavailable — no price data</div>')
         return
     anchor_base = now_price
@@ -1809,7 +1811,15 @@ def _render_candidate_card(
     has_level_context = bool(fib_levels) or bool(watch_zones)
 
     def _valid_price(v: object) -> bool:
-        return isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0
+        # PRD-226: a drawable price must be a finite positive number. inf/NaN are
+        # floats > 0 (inf) or pass isinstance (NaN) but crash the y-scale math —
+        # exclude them so a malformed price suppresses the diagram, not the render.
+        return (
+            isinstance(v, (int, float))
+            and not isinstance(v, bool)
+            and math.isfinite(v)
+            and v > 0
+        )
 
     now_valid = _valid_price(now_price)
     entry_valid = _valid_price(contract_entry)

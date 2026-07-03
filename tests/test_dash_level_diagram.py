@@ -398,3 +398,41 @@ def test_prd226_no_diagram_and_no_now_when_current_price_invalid() -> None:
     assert 'class="lvl-diagram"' not in html   # no diagram without a valid NOW
     assert ">NOW 110.00" not in html            # entry never promoted to NOW
     assert ">ENTRY 110.00" not in html
+
+
+def test_prd226_non_finite_current_price_suppresses_diagram_not_render() -> None:
+    # PRD-226 R4 hardening (codex-connector PR #95 catch): a malformed market_map
+    # current_price of inf/-inf/NaN is not a drawable NOW anchor. Without a
+    # finiteness guard it passes the `> 0`/isinstance check, reaches the y-scale
+    # math, and round() raises — aborting the ENTIRE dashboard render. It must
+    # instead suppress just the diagram. Deleting the isfinite guard makes
+    # render_dashboard_html raise on the inf case, failing this test.
+    for bad_price in (float("inf"), float("-inf"), float("nan")):
+        s = _mm_symbol("SPY", grade="A+")
+        s["current_price"] = bad_price
+        s["watch_zones"] = [{"type": "SUPPORT", "level": 108.0}]
+        mm = _market_map({"SPY": s})
+        html = render_dashboard_html(   # must not raise
+            _payload(), _run(), market_map=mm,
+            contract_entry_map={"SPY": 110.0},
+        )
+        assert 'class="lvl-diagram"' not in html
+
+
+def test_prd226_non_finite_contract_entry_drops_entry_marker_and_band() -> None:
+    # PRD-226: a non-finite contract entry (inf) must not become an ENTRY marker
+    # or pair a stop into a band — the renderer's entry gate rejects it just as
+    # the loader does. NOW (a valid current price) still renders.
+    s = _mm_symbol("SPY", grade="A+")
+    s["current_price"] = 120.0
+    s["watch_zones"] = [{"type": "SUPPORT", "level": 108.0}]
+    mm = _market_map({"SPY": s})
+    html = render_dashboard_html(   # must not raise
+        _payload(), _run(), market_map=mm,
+        contract_entry_map={"SPY": float("inf")},
+        contract_stop_map={"SPY": 105.0},
+    )
+    diagram = _diagram(html)
+    assert ">NOW 120.00</text>" in diagram
+    assert _ENTRY_LINE.search(diagram) is None
+    _assert_no_band(diagram)
