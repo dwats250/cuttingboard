@@ -1568,8 +1568,8 @@ def _render_level_diagram(
         return round(SVG_H * (1.0 - (price - p_min) / p_span))
 
     def _pct(level: float) -> str:
-        # PRD-226: signed % distance from the 0% reference — the current price
-        # when available, else the contract entry (current-price-absent fallback).
+        # PRD-226: signed % distance from the 0% reference — the live current
+        # price (`anchor_base` is `now_price`, guaranteed valid past the guard).
         return f" {((level - anchor_base) / anchor_base * 100.0):+.1f}%"
 
     w('  <div class="lvl-diagram">')
@@ -1803,8 +1803,9 @@ def _render_candidate_card(
     # an anchor and level context exist. No placeholder for partial data.
     # PRD-226: the NOW anchor / 0% reference is the live current price; the
     # contract's planned entry is passed separately (risk-band edge + ENTRY
-    # marker), never as the NOW anchor. The diagram renders on either honest
-    # anchor — current price, or (as a fallback) the contract entry.
+    # marker), never as the NOW anchor. The diagram renders only against a valid
+    # current price — an absent/invalid one suppresses it (the entry is never an
+    # anchor).
     now_price = entry.get("current_price")
     fib_levels = entry.get("fib_levels")
     watch_zones = entry.get("watch_zones")
