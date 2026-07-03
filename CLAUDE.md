@@ -78,8 +78,9 @@ with date and rationale - short notes, not ceremony.
      non-trivial, a mutation-verified red test per the semantic-hardening
      invariants - not patched silently just to clear the thread.
   3. **The thread is not the artifact.** Resolving a bot thread records
-     disposition; it never stands in for the Claude review + durable Codex
-     cross-review a HIGH-RISK PRD still requires.
+     disposition; it never stands in for the Claude review and any durable Codex
+     cross-review that PRD's lane / CLASS actually requires (the Codex trigger is
+     unchanged - it stays scoped per the gate above, not imposed on every PRD).
   This clause is itself a governance guardrail: a PR that changes it is
   MANUAL-MERGE-ONLY (open and hold for a human merge; do NOT queue `gh pr merge
   --auto`), per the governance carve-out below.
