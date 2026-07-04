@@ -45,6 +45,19 @@ def test_neutral_no_direction_symbol_lands_in_excluded():
     assert summary.excluded.get("SPY") == "NEUTRAL_NO_DIRECTION"
 
 
+def test_neutral_exclusion_fires_on_production_call_shape():
+    # PR #102 P2: the runtime call sites pass `candidates or None`, and
+    # generate_candidates returns {} precisely in the no-direction case —
+    # so production reaches qualify_all with candidates=None. The
+    # exclusion must fire on that shape, not only on a supplied dict.
+    regime = _regime(regime=NEUTRAL, posture=NEUTRAL_PREMIUM, net_score=0)
+    structure_results = {"SPY": _structure("SPY")}
+
+    summary = qualify_all(regime, structure_results, None)
+
+    assert summary.excluded.get("SPY") == "NEUTRAL_NO_DIRECTION"
+
+
 # ---------------------------------------------------------------------------
 # R2 — missing-data passes are marked, outcomes unchanged
 # ---------------------------------------------------------------------------

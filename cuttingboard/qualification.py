@@ -185,7 +185,10 @@ def qualify_all(
 
         # PRD-235: no regime direction (e.g. NEUTRAL with net_score 0) —
         # the symbol must land in excluded, not vanish from all output.
-        if expected_direction is None and candidates is not None:
+        # No candidates guard: generate_candidates returns {} exactly in
+        # this case and the runtime call sites pass `candidates or None`,
+        # so the production shape here is candidates=None (PR #102 P2).
+        if expected_direction is None:
             excluded[symbol] = "NEUTRAL_NO_DIRECTION"
             logger.info(f"REJECTED {symbol}: NEUTRAL_NO_DIRECTION — no regime direction")
             continue
