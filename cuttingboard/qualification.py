@@ -73,7 +73,7 @@ CONTINUATION_REJECTION_REASONS = (
 
 @dataclass(frozen=True)
 class TradeCandidate:
-    """Trade parameters needed to run all 9 qualification gates.
+    """Trade parameters needed to run all 11 qualification gates.
 
     Supplied by the options layer (Phase 5). For Phase 4 testing, pass
     candidates=None to qualify_all — gates 1–4 still execute.
@@ -144,7 +144,7 @@ def qualify_all(
     Regime gates (1–2) are checked first. On failure the function returns
     immediately — no per-symbol work runs. This is the STAY_FLAT short-circuit.
 
-    When candidates is None (Phase 4), gates 5–9 are skipped. CHOP symbols
+    When candidates is None (Phase 4), gates 5–11 are skipped. CHOP symbols
     are still detected and logged (gate 4).
     """
     # --- Gates 1–2: Regime check (system-level, before any per-symbol work) ---
@@ -340,7 +340,7 @@ def qualify_candidate(
     gates_passed.append(GATE_STRUCTURE)
 
     # -----------------------------------------------------------------------
-    # Soft gates 5–9
+    # Soft gates 5–11
     # -----------------------------------------------------------------------
 
     risk   = abs(candidate.entry_price - candidate.stop_price)
