@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 232,
-  "next_prd": 233,
+  "latest_complete": 235,
+  "next_prd": 236,
   "entries": [
     {
       "number": 56,
@@ -1064,6 +1064,24 @@
       "title": "Guardrail tightening: skills learn PRD-229 rules, prd_open scaffold aligned to template, CLAUDE.md/CODEX.md dedup",
       "status": "COMPLETE",
       "commit": "#99"
+    },
+    {
+      "number": 233,
+      "title": "Wire assert_valid_contract into _run_pipeline + system_state key guard",
+      "status": "COMPLETE",
+      "commit": "#100"
+    },
+    {
+      "number": 234,
+      "title": "Kill the VALIDATED fail-open default: missing chain evidence renders MANUAL CHECK, never validated",
+      "status": "COMPLETE",
+      "commit": "#101"
+    },
+    {
+      "number": 235,
+      "title": "Qualification loudness: NEUTRAL symbols excluded visibly, missing-data gate passes emit skip markers",
+      "status": "COMPLETE",
+      "commit": "#102"
     }
   ]
 }
