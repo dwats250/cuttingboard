@@ -315,10 +315,18 @@ def render_report(
         unverified_setups = [s for s in option_setups if s.symbol not in cr]
 
         entry_mode_for: dict[str, str] = {}
+        gates_skipped_for: dict[str, tuple] = {}
         if qualification_summary is not None:
             entry_mode_for = {
                 r.symbol: r.entry_mode
                 for r in qualification_summary.qualified_trades
+            }
+            # PRD-235: surface fail-open passes (gates that passed only
+            # because their data was missing) on the setup detail.
+            gates_skipped_for = {
+                r.symbol: r.gates_skipped
+                for r in qualification_summary.qualified_trades
+                if getattr(r, "gates_skipped", ())
             }
 
         def _setup_detail(setup: OptionSetup) -> None:
@@ -349,6 +357,12 @@ def render_report(
                 if cv.expiry_used:
                     chain_line += f"  exp={cv.expiry_used}"
                 lines.append(chain_line)
+            skipped = gates_skipped_for.get(setup.symbol, ())
+            if skipped:
+                names = ", ".join(g for g, _ in skipped)
+                lines.append(
+                    f"             Gate skipped (missing data): {names}"
+                )
             lines.append("             Exit: +50% profit or full debit loss")
             lines.append("")
 

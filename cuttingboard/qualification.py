@@ -103,6 +103,10 @@ class QualificationResult:
     imbalance_zone: Optional["FVGZone"] = None
     rejection_reason: Optional[str] = None
     flow_alignment: Optional[str] = None  # "SUPPORTS" | "OPPOSES" | "NEUTRAL" | "NO_DATA"
+    # PRD-235: (gate_name, reason) markers for gates that PASSED only
+    # because their input data was missing (fail-open by documented
+    # decision). Never affects the outcome — visibility only.
+    gates_skipped: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -177,6 +181,13 @@ def qualify_all(
         if sr.structure == CHOP:
             excluded[symbol] = "CHOP"
             logger.info(f"REJECTED {symbol}: CHOP — never qualifies")
+            continue
+
+        # PRD-235: no regime direction (e.g. NEUTRAL with net_score 0) —
+        # the symbol must land in excluded, not vanish from all output.
+        if expected_direction is None and candidates is not None:
+            excluded[symbol] = "NEUTRAL_NO_DIRECTION"
+            logger.info(f"REJECTED {symbol}: NEUTRAL_NO_DIRECTION — no regime direction")
             continue
 
         # Gate 3: direction alignment — check without a candidate
@@ -293,6 +304,7 @@ def qualify_candidate(
     """
     gates_passed: list[str] = []
     soft_failures: list[tuple[str, str]] = []  # (gate_name, reason)
+    gates_skipped: list[tuple[str, str]] = []  # PRD-235: fail-open passes on missing data
 
     # -----------------------------------------------------------------------
     # Hard gates 1–4
@@ -426,8 +438,11 @@ def qualify_candidate(
     # Gate 9: No earnings within 5 calendar days (fail-open when unknown)
     if candidate.has_earnings_soon is True:
         soft_failures.append((GATE_EARNINGS, "earnings within 5 calendar days"))
+    elif candidate.has_earnings_soon is None:
+        # unknown → pass (fail-open per PRD) — but say so (PRD-235)
+        gates_passed.append(GATE_EARNINGS)
+        gates_skipped.append((GATE_EARNINGS, "no earnings data"))
     else:
-        # None = unknown → pass (fail-open per PRD)
         gates_passed.append(GATE_EARNINGS)
 
     # Gate 10: Not extended — price within EXTENSION_ATR_MULTIPLIER × ATR14 of EMA21
@@ -442,7 +457,9 @@ def qualify_candidate(
         else:
             gates_passed.append(GATE_EXTENSION)
     else:
-        gates_passed.append(GATE_EXTENSION)  # fail-open when metrics unavailable
+        # fail-open when metrics unavailable — but say so (PRD-235)
+        gates_passed.append(GATE_EXTENSION)
+        gates_skipped.append((GATE_EXTENSION, "no ATR/EMA metrics"))
 
     # Gate 11: Not late session — no new entries after 3:30 PM ET
     if _is_late_session(now_et):
@@ -468,6 +485,7 @@ def qualify_candidate(
             watchlist_reason=None,
             max_contracts=max_contracts,
             dollar_risk=dollar_risk,
+            gates_skipped=tuple(gates_skipped),
         )
 
     if len(soft_failures) == 1:
@@ -483,6 +501,7 @@ def qualify_candidate(
             watchlist_reason=reason,
             max_contracts=max_contracts,
             dollar_risk=dollar_risk,
+            gates_skipped=tuple(gates_skipped),
         )
 
     # Two or more soft gate failures → REJECT
@@ -498,6 +517,7 @@ def qualify_candidate(
         watchlist_reason=None,
         max_contracts=max_contracts,
         dollar_risk=dollar_risk,
+        gates_skipped=tuple(gates_skipped),
     )
 
 
