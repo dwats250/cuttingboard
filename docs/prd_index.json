@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 233,
-  "next_prd": 234,
+  "latest_complete": 234,
+  "next_prd": 235,
   "entries": [
     {
       "number": 56,
@@ -1074,8 +1074,8 @@
     {
       "number": 234,
       "title": "Kill the VALIDATED fail-open default: missing chain evidence renders MANUAL CHECK, never validated",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#101"
     }
   ]
 }
