@@ -919,6 +919,15 @@ def _run_pipeline(
         contract["system_state"]["stay_flat_reason"] = "PREMARKET_CONTEXT"
         contract["system_state"]["session_type"] = "SUNDAY_PREMARKET"
 
+    # PRD-233 (PR #100 P1): finalize and validate the contract shape BEFORE
+    # the notification branch — a corrupt contract must fail loud before any
+    # user-visible side effect (send, dedup-state save, notification audit),
+    # not merely before artifact writes. notification_sent starts False here
+    # and is flipped to the real result below: a declared-bool value update,
+    # not a shape change, so the pre-notification validation stays truthful.
+    contract["artifacts"]["notification_sent"] = False
+    assert_valid_contract(contract, finalized=True)
+
     # Exactly one notification send per run. PRD-018 suppression gate applied
     # before send; state persisted only on confirmed success (R7).
     alert_sent = False
@@ -952,11 +961,11 @@ def _run_pipeline(
 
     contract["artifacts"]["notification_sent"] = alert_sent
 
-    # PRD-233: the contract is finalized — every post-build injection above
-    # must be declared in the validator's system_state schema. Fail loud
-    # BEFORE any artifact write; execute_run's handler converts the raise
-    # into the minimal ERROR contract, so a corrupt contract never reaches
-    # latest_contract.json or the audit log.
+    # PRD-233: re-assert after the notification_sent flip and BEFORE any
+    # artifact write (belt-and-braces with the pre-notification pass above).
+    # execute_run's handler converts a raise into the minimal ERROR
+    # contract, so a corrupt contract never reaches latest_contract.json
+    # or the audit log.
     assert_valid_contract(contract, finalized=True)
 
     run_history = _load_run_history(LOGS_DIR / "audit.jsonl")

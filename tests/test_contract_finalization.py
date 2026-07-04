@@ -194,3 +194,40 @@ def test_pipeline_validates_clean_contract(monkeypatch, tmp_path):
     # completes, proving the corruption (not the mocks) is what raises above.
     result = _run_mocked_pipeline(monkeypatch, tmp_path)
     assert result.outcome == runtime.OUTCOME_TRADE
+
+
+def test_pipeline_validates_before_notification_side_effects(monkeypatch, tmp_path):
+    # PR #100 P1: a corrupt contract must fail BEFORE the notification
+    # branch — no send, no dedup-state save, no notification audit.
+    calls = {"send": 0, "save": 0, "audit": 0}
+    monkeypatch.setattr(runtime, "send_notification", lambda *a, **k: calls.__setitem__("send", calls["send"] + 1) or True)
+    monkeypatch.setattr(runtime, "save_last_state", lambda *a, **k: calls.__setitem__("save", calls["save"] + 1))
+    monkeypatch.setattr(runtime, "write_notification_audit", lambda *a, **k: calls.__setitem__("audit", calls["audit"] + 1))
+    monkeypatch.setattr(runtime, "load_last_state", lambda *a, **k: None)
+    monkeypatch.setattr(runtime, "should_send", lambda *a, **k: True)
+
+    def _corrupting_overnight_policy(*, contract, market_map, timestamp):
+        contract["system_state"]["smuggled_key"] = "oops"
+        return contract
+
+    monkeypatch.setattr(runtime, "apply_overnight_policy", _corrupting_overnight_policy)
+
+    _setup_runtime_mocks(monkeypatch, tmp_path)
+    monkeypatch.setattr(runtime, "_fixture_chain_results", lambda setups: {})
+    monkeypatch.setattr(runtime, "validate_chains", lambda *a, **k: {}, raising=False)
+    monkeypatch.setattr(runtime, "create_trade_decision", lambda *args, **kwargs: runtime.TradeDecision(
+        ticker="SPY", direction="LONG", status=ALLOW_TRADE, entry=100.0,
+        stop=97.0, target=106.0, r_r=2.0, contracts=2, dollar_risk=150.0,
+        block_reason=None,
+    ))
+
+    with pytest.raises(AssertionError, match="smuggled_key"):
+        runtime._run_pipeline(
+            mode=runtime.MODE_LIVE,
+            run_date=date.fromisoformat("2026-04-28"),
+            fixture_file=None,
+        )
+
+    assert calls == {"send": 0, "save": 0, "audit": 0}, (
+        f"notification side effects fired on a corrupt contract: {calls}"
+    )
