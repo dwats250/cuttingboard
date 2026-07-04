@@ -250,8 +250,8 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-230 | #99 | Process drop-list: Codex-authenticity teardown, cadence right-sizing, sediment stop, map de-line-numbering, process-doc dedup | COMPLETE | [PRD-230](prd_history/PRD-230.md) |
 | PRD-231 | #99 | Doc-truth micro-fixes: qualification gate count (9→11), output.py dead runtime.py reference | COMPLETE | [PRD-231](prd_history/PRD-231.md) |
 | PRD-232 | #99 | Guardrail tightening: skills learn PRD-229 rules, prd_open scaffold aligned to template, CLAUDE.md/CODEX.md dedup | COMPLETE | [PRD-232](prd_history/PRD-232.md) |
-| PRD-233 | #100 | Wire assert_valid_contract into _run_pipeline + system_state key guard | COMPLETE | [PRD-233](prd_history/PRD-233.md) |
-| PRD-234 | #101 | Kill the VALIDATED fail-open default: missing chain evidence renders MANUAL CHECK, never validated | COMPLETE | [PRD-234](prd_history/PRD-234.md) |
+| PRD-233 | #102 | Wire assert_valid_contract into _run_pipeline + system_state key guard | COMPLETE | [PRD-233](prd_history/PRD-233.md) |
+| PRD-234 | #102 | Kill the VALIDATED fail-open default: missing chain evidence renders MANUAL CHECK, never validated | COMPLETE | [PRD-234](prd_history/PRD-234.md) |
 | PRD-235 | #102 | Qualification loudness: NEUTRAL symbols excluded visibly, missing-data gate passes emit skip markers | COMPLETE | [PRD-235](prd_history/PRD-235.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
