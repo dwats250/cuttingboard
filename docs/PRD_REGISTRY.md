@@ -248,6 +248,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-228 | a11481b | Bot-review-thread disposition clause (governance guardrail) | COMPLETE | [PRD-228](prd_history/PRD-228.md) |
 | PRD-229 | #99 | Ceremony tiering: cosmetic MICRO carve-out + same-PR closeout | COMPLETE | [PRD-229](prd_history/PRD-229.md) |
 | PRD-230 | — | Process drop-list: Codex-authenticity teardown, cadence right-sizing, sediment stop, map de-line-numbering, process-doc dedup | IN PROGRESS | [PRD-230](prd_history/PRD-230.md) |
+| PRD-231 | — | Doc-truth micro-fixes: qualification gate count (9→11), output.py dead runtime.py reference | IN PROGRESS | [PRD-231](prd_history/PRD-231.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

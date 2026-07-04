@@ -1,11 +1,11 @@
 """
 Layer 7 — Trade Qualification.
 
-All 9 gates must pass for a trade to qualify. No partial credit. No exceptions.
+All 11 gates must pass for a trade to qualify. No partial credit. No exceptions.
 
 Gates 1–4 are HARD stops: failure → REJECT with no watchlist eligibility.
-Gates 5–9 are SOFT stops: exactly one miss → WATCHLIST with reason stated.
-                           Two or more misses → REJECT.
+Gates 5–11 are SOFT stops: exactly one miss → WATCHLIST with reason stated.
+                            Two or more misses → REJECT.
 
 Earnings gate (9) is fail-open: None = unknown → gate passes.
 
@@ -286,7 +286,7 @@ def qualify_candidate(
     dm: Optional[DerivedMetrics] = None,
     now_et: Optional[datetime] = None,
 ) -> QualificationResult:
-    """Run all 9 gates for a single trade candidate.
+    """Run all 11 gates for a single trade candidate.
 
     Returns a QualificationResult indicating qualified / watchlist / rejected.
     Gates 1–4 short-circuit on first failure (no watchlist).

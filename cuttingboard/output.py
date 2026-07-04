@@ -14,7 +14,8 @@ Outcomes
   NO_TRADE    — regime short-circuit or zero qualified (non-halt)
   HALT        — a HALT_SYMBOL failed validation
 
-Consumed by runtime.py — pure render and delivery layer, no pipeline logic.
+Consumed by the runtime package (cuttingboard/runtime) — pure render and
+delivery layer, no pipeline logic.
 """
 
 import logging
