@@ -1,4 +1,4 @@
-# Fable window — state of play (2026-07-04, end of session 1)
+# Fable window — state of play (2026-07-04, updated after Blocks 1-2 merged)
 
 Companion: `audits/codebase-review-2026-07-03/FABLE_WINDOW_PLAN.md` (committed
 on PR #99). Blocks 1 and 2 are fully staged; Block 3 is gated on Dustin.
@@ -66,3 +66,27 @@ line), J2, M-map design only. Fresh work orders at start time; numbers float
   C at #102 — noting D–E split out).
 - This note is session scratch under the PRD-230 sediment rule: delete it
   once the next session confirms nothing was lost.
+
+
+## UPDATE (2026-07-04, late): Blocks 1+2 MERGED; Block 3 open; item I staged
+
+- Dustin merged #99 (Deviation-1 sign-off) and #102 (carried the whole
+  Block-2 stack: PRD-233/234/235 → main @ c31bff6). #100/#101 closed as
+  contained; provenance trued to #102 (PR #103, auto-merged). PR #102 also
+  caught+fixed a realizability P2 (NEUTRAL exclusion fired only on a
+  non-production call shape).
+- Deviation 2 SIGNED in-session → Block-3 gate PASSED (recorded in
+  MASTER_PLAN Parking Lot + DECISIONS).
+- PRD-236 (item I) staged on PR #104, HOLD: _run_decision_gates +
+  _build_and_finalize_contract extracted; byte-identical fixture proof
+  (reviewer reproduced before-vs-after independently); closeout @ #104.
+- NEXT (fresh session): J1 — TypedDicts for contract/candidate/system_state,
+  adopt in contract.py + payload.py; generate the work order fresh; Dustin
+  reads the schema diff line by line at the PR. Then J2, then M-map design.
+  The PRD-233 whitelist (SYSTEM_STATE_ALLOWED_KEYS) is J1's seed schema.
+- Byte-identical harness gotcha for J-work: run the fixture TWICE before
+  snapshotting (first run after `git checkout -- logs/` trips a staleness
+  error against the committed fallback logs); artifacts are deterministic
+  at steady state. Always `git checkout -- logs/ reports/` before commits.
+- Dustin declined scheduled self check-ins (send_later) — rely on PR
+  webhooks only.
