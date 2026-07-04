@@ -72,16 +72,25 @@ missing, ambiguous), stop and report. Do not guess at coverage.
 
 ## FILES parsing rule
 
-Parse the `FILES` section of `docs/prd_history/PRD-NNN.md` literally:
+Parse the `FILES` section of `docs/prd_history/PRD-NNN.md` literally.
+Two formats are canonical (PRD-232 aligned the `prd_open.sh` scaffold to
+the full template's A/M/D form; the micro template keeps the
+backtick-list form) — accept BOTH:
 
-- Collect every line matching `` ^- `<path>` `` under both
-  `Modified:` and `New:` subheadings (paths in backticks).
-- Strip backticks. Reject any line whose path contains a glob
-  wildcard (`*`, `?`, `[`) — the FILES section is a literal list.
-- Treat the parenthetical `(PRD-NNN row)` / `(active PRD pointer)`
-  annotations as comments; the path before them is the entry.
-
-If `New:` is empty or absent, only `Modified:` entries apply.
+- **A/M/D form** (`docs/PRD_TEMPLATE.md`, the `prd_open.sh` scaffold):
+  collect every line matching `^[AMD] <path>` in the FILES section;
+  the path is everything after the marker and a space. `D` entries
+  authorize deletions.
+- **Backtick-list form** (`docs/PRD_MICRO_TEMPLATE.md`): collect every
+  line matching `` ^- `<path>` `` under the `Modified:` and `New:`
+  subheadings; strip backticks. If `New:` is empty or absent, only
+  `Modified:` entries apply.
+- Either way: reject any line whose path contains a glob wildcard
+  (`*`, `?`, `[`) — the FILES section is a literal list. Treat the
+  parenthetical `(PRD-NNN row)` / `(active PRD pointer)` annotations
+  as comments; the path before them is the entry.
+- If the section matches NEITHER format (zero entries parsed), stop
+  and report — do not guess coverage.
 
 ## Bookkeeping allowlist (always permitted)
 
