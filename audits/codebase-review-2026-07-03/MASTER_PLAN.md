@@ -329,7 +329,7 @@ cheaper because of H. Update tracker.
 > in production, because it is the regression net for everything below) AND
 > you have done at least 3 weekly module reads (see below). If either is
 > false, you are not ready — go do those.
-- [ ] Gate passed on date: ________
+- [x] Gate passed on date: 2026-07-04 (PRD-A live on main via #102; Deviation 2 signed in-session; suite green at 2874/1 xfailed on main CI)
 
 Order is mandatory. Each item gets its own work order generated fresh at start
 time — do NOT write detailed instructions now; the repo will have moved.
@@ -403,9 +403,11 @@ promote to a box, or delete. Nothing in here is a commitment.)
   hand-merged by Dustin (spirit kept: your rules, your merge). Deviation 2 —
   Wave-3 gate's 3-module-reads clause deferred to the post-window learning
   stint, replaced in-window by byte-identical fixture checks + your
-  line-by-line J1 schema-diff read. **Merging the PRD-229 PR by hand records
-  your OK for Deviation 1. Deviation 2 is NOT yet signed — it must be
-  re-confirmed with you at the Block-3 gate check before any structural cut.**
+  line-by-line J1 schema-diff read. **Deviation 1: SIGNED 2026-07-04 (Dustin's
+  hand-merge of PR #99). Deviation 2: SIGNED 2026-07-04 — Dustin's explicit
+  in-session confirmation ("Signed — open Block 3") after PRD-233 (PRD-A)
+  reached main via PR #102. Block 3 opened; the J1 line-by-line schema-diff
+  read remains Dustin's non-negotiable seam.**
 - 2026-07-04 (Fable): the drop-list's "audits/ sediment that nothing reads"
   premise is wrong — every dated recon folder except `inventory-audit-brief.md`
   has inbound refs (DECISIONS.md, PRD history, CLAUDE.md:295, one test
