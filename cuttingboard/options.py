@@ -119,7 +119,7 @@ def generate_candidates(
 
     Candidates are built from price + ATR14 for stop/target. Spread width
     is set to the estimated net debit (not strike distance). The qualification
-    layer screens these candidates through all 9 gates.
+    layer screens these candidates through all 11 gates.
 
     Returns an empty dict when direction_for_regime is None (no candidates
     for NEUTRAL_PREMIUM / TRANSITION regimes where direction is ambiguous).

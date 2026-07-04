@@ -398,6 +398,19 @@ sentences in the log below: what it does / what's ugliest / what you'd change.
 (One line per item. Ideas, stuck-points, surprises. Review at each Wave exit —
 promote to a box, or delete. Nothing in here is a commitment.)
 
+- **[FABLE WINDOW sign-off — Dustin]** Two deviations per
+  `FABLE_WINDOW_PLAN.md` (this folder): Deviation 1 — PRD-H drafted by Fable,
+  hand-merged by Dustin (spirit kept: your rules, your merge). Deviation 2 —
+  Wave-3 gate's 3-module-reads clause deferred to the post-window learning
+  stint, replaced in-window by byte-identical fixture checks + your
+  line-by-line J1 schema-diff read. **Merging the PRD-229 PR by hand records
+  your OK for Deviation 1. Deviation 2 is NOT yet signed — it must be
+  re-confirmed with you at the Block-3 gate check before any structural cut.**
+- 2026-07-04 (Fable): the drop-list's "audits/ sediment that nothing reads"
+  premise is wrong — every dated recon folder except `inventory-audit-brief.md`
+  has inbound refs (DECISIONS.md, PRD history, CLAUDE.md:295, one test
+  docstring). Purge re-scoped: delete only the unreferenced item + stop new
+  sediment; disposition of the referenced folders is yours at Block-1 review.
 - Step 0.3 sentences go here first:
   1.
   2.

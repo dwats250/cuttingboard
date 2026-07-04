@@ -163,7 +163,7 @@ def test_complete_prd_with_non_hex_commit_fails(tmp_path: Path) -> None:
     index["entries"][4]["commit"] = "feature/macro-pressure"
     root = _write_fixture(tmp_path, index=index)
 
-    assert any("Invalid commit: PRD-060 commit contains non-hex text" in error for error in _errors(root))
+    assert any("Invalid commit: PRD-060 commit is neither a hex SHA nor a PR reference (#NNN)" in error for error in _errors(root))
 
 
 def test_invalid_status_enum_fails(tmp_path: Path) -> None:
@@ -423,3 +423,44 @@ def test_main_skip_commit_resolvability_flag(tmp_path: Path) -> None:
     assert validate_prd_registry.main([str(root)]) == 1
     # With the flag the consistency-clean fixture passes -> exit 0.
     assert validate_prd_registry.main([str(root), "--skip-commit-resolvability"]) == 0
+
+
+# ---------------------------------------------------------------------------
+# PRD-229 R3: same-PR closeout — COMPLETE commit cells may record a PR
+# reference (#NNN) because the squash SHA does not exist until merge.
+# ---------------------------------------------------------------------------
+
+def _fixture_with_prd060_commit(tmp_path: Path, commit: str) -> Path:
+    index = copy.deepcopy(VALID_INDEX)
+    index["entries"][4]["commit"] = commit
+    rows = [
+        row.replace("| 0ed003b |", f"| {commit} |") if "PRD-060" in row else row
+        for row in MAIN_REGISTRY_ROWS
+    ]
+    return _write_fixture(tmp_path, index=index, rows=rows)
+
+
+def test_complete_prd_with_pr_reference_commit_passes(tmp_path: Path) -> None:
+    root = _fixture_with_prd060_commit(tmp_path, "#98")
+
+    assert _errors(root) == []
+
+
+def test_complete_prd_with_mixed_hex_and_pr_reference_passes(tmp_path: Path) -> None:
+    root = _fixture_with_prd060_commit(tmp_path, "0ed003b, #98")
+
+    assert _errors(root) == []
+
+
+def test_complete_prd_with_malformed_pr_reference_fails(tmp_path: Path) -> None:
+    root = _fixture_with_prd060_commit(tmp_path, "#abc")
+
+    assert any("Invalid commit: PRD-060" in error for error in _errors(root))
+
+
+def test_r6_pr_reference_token_skipped_by_resolvability(tmp_path: Path) -> None:
+    # A PR reference is not a git object; resolvability must never flag it.
+    _init_git_repo(tmp_path)
+    errors: list[str] = []
+    validate_prd_registry._validate_commit_resolvable(tmp_path, _rows("#98"), errors)
+    assert errors == []

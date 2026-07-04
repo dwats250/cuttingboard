@@ -6,40 +6,13 @@ Specialist agent invoked by Claude Code for cross-referencing, structured
 analysis, and code review. Not a primary implementation agent. Should not
 drive architectural direction.
 
-## Canonical sources
+## Canonical sources, roles, operational rules
 
-This repo's state lives in source-of-truth documents. Reference these,
-do not duplicate them.
-
-- `VISION.md` — what Cuttingboard is, is not, is becoming
-- `docs/PROJECT_STATE.md` — current state: test counts, milestones, known debt
-- `docs/PRD_REGISTRY.md` — work in flight and completed
-- `docs/DECISIONS.md` — meaningful decisions and rationale
-- `README.md` — outsider's entry point
-- `docs/architecture.md`, `docs/PRD_PROCESS.md`, `docs/sidecar_doctrine.md` —
-  structural references
-
-## Working agreement
-
-Dustin makes final decisions. Claude (project lead, in chat) drafts PRDs and
-reviews against VISION principles. Claude Code implements. Codex is invoked by
-Claude Code for specialist tasks. Architectural direction stays with Claude
-and Dustin.
-
-Decisions that meaningfully change direction are recorded in `docs/DECISIONS.md`
-with date and rationale.
-
-## Operational rules
-
-- **PRD before build for anything non-trivial** (new module, new external
-  dependency, new architectural pattern, change touching multiple pipeline
-  layers). Bug fixes and additions within established patterns don't need PRDs.
-- **Read-only sidecars by default.** New observational features extend through
-  sidecars rather than mutating core contracts.
-- **Description, not prediction.** Features that explain or contextualize are
-  welcome. Features that forecast are not.
-- **Cuts before additions.** Before adding a feature, the system should justify
-  the features it already has.
+Owned by `CLAUDE.md` (§ Roles, § Canonical sources, § Operational rules) —
+read them there; this file does not restate them (PRD-232 dedup). The short
+version that matters to Codex: Dustin decides; architectural direction stays
+with Claude and Dustin; reference the source-of-truth docs, never duplicate
+them.
 
 ## Workflow patterns
 

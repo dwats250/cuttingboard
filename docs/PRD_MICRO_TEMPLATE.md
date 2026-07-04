@@ -1,8 +1,10 @@
 # PRD-NNN — <Title>
 
 > **Use only if the change meets all micro-PRD eligibility criteria in
-> CLAUDE.md § Micro-PRD eligibility. When in doubt, use the full
-> template at `docs/PRD_TEMPLATE.md`.**
+> `docs/PRD_PROCESS.md § LANE Axis` (MICRO row + R12 safety net). When
+> in doubt, use the full template at `docs/PRD_TEMPLATE.md`. A
+> cosmetic-only change (PRD-229 Cosmetic Carve-Out) needs no template
+> at all — a ≤10-line note (GOAL + FILES + one FAIL line) suffices.**
 
 Status: PROPOSED
 
@@ -70,8 +72,10 @@ COMMIT PLAN
 4. Update `docs/PROJECT_STATE.md` (active PRD → PRD-NNN).
 5. Add `docs/prd_history/PRD-NNN.md`.
 6. Run validation.
-7. Commit: `PRD-NNN: <short imperative summary>`
-8. Bookkeeping commit: promote PRD-NNN to COMPLETE with the merge
-   commit hash; set PROJECT_STATE active PRD → none.
+7. Commit: `PRD-NNN: <short imperative summary>`; push and open the PR.
+8. Closeout in the SAME PR (PRD-229): once the PR number exists, push a
+   closeout commit into the open PR — PRD-NNN → COMPLETE with `#NNN` in
+   the commit cell; PROJECT_STATE active PRD → none. No separate
+   post-merge bookkeeping commit.
 
 STATUS: PROPOSED

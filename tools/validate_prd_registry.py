@@ -14,7 +14,11 @@ from typing import Any
 
 TRACKING_START = 56
 ALLOWED_STATUSES = {"PROPOSED", "IN PROGRESS", "COMPLETE", "PATCH", "DEPRECATED"}
-COMMIT_RE = re.compile(r"^[0-9a-fA-F]{7,40}(,\s*[0-9a-fA-F]{7,40})*$")
+# A commit cell token is a hex SHA (historical / post-merge closeout) or a
+# PR reference "#NNN" (PRD-229 same-PR closeout: the squash SHA does not
+# exist until merge, and PR numbers survive squash-merges).
+_COMMIT_TOKEN = r"(?:[0-9a-fA-F]{7,40}|#\d+)"
+COMMIT_RE = re.compile(rf"^{_COMMIT_TOKEN}(,\s*{_COMMIT_TOKEN})*$")
 HEX_HASH_RE = re.compile(r"^[0-9a-fA-F]{7,40}$")
 DOC_STATUS_RE = re.compile(r"^STATUS:\s*COMPLETE\s*@\s*(.+?)\s*$", re.MULTILINE)
 REGISTRY_ROW_RE = re.compile(r"^\|\s*PRD-(\d{3})\s*\|")
@@ -140,13 +144,13 @@ def _validate_index_rules(data: dict[str, Any], entries: list[dict[str, Any]], e
         if entry.get("status") == "COMPLETE":
             if is_retrospective:
                 if commit is not None and isinstance(commit, str) and commit.strip() and not COMMIT_RE.fullmatch(commit.strip()):
-                    errors.append(f"Invalid commit: {_display_prd(number)} commit contains non-hex text")
+                    errors.append(f"Invalid commit: {_display_prd(number)} commit is neither a hex SHA nor a PR reference (#NNN)")
             elif not isinstance(commit, str) or not commit.strip():
                 errors.append(f"Missing commit: {_display_prd(number)} is COMPLETE but commit is empty")
             elif not COMMIT_RE.fullmatch(commit.strip()):
-                errors.append(f"Invalid commit: {_display_prd(number)} commit contains non-hex text")
+                errors.append(f"Invalid commit: {_display_prd(number)} commit is neither a hex SHA nor a PR reference (#NNN)")
         elif commit is not None and isinstance(commit, str) and commit.strip() and not COMMIT_RE.fullmatch(commit.strip()):
-            errors.append(f"Invalid commit: {_display_prd(number)} commit contains non-hex text")
+            errors.append(f"Invalid commit: {_display_prd(number)} commit is neither a hex SHA nor a PR reference (#NNN)")
 
 
 def _parse_registry(root: Path, errors: list[str]) -> dict[int, dict[str, str | None]]:

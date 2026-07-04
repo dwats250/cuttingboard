@@ -122,7 +122,15 @@ The single source of truth is `docs/AGENT_WORKFLOW.md`.
 
 V7 applies the parsed set against the staged file set. If
 `LANE: HIGH-RISK` is declared in the active PRD header, staged files
-in the protected set are permitted; otherwise they are a violation.
+in the protected set are permitted; otherwise they are a violation —
+with ONE exception (PRD-229 Cosmetic Carve-Out,
+`docs/PRD_PROCESS.md`): a `LANE: MICRO` PRD/note that declares itself
+cosmetic-only admits protected-set files IFF the staged diff for each
+such file is provably cosmetic — ui copy/CSS/layout hunks in
+presentation code, or comment/docstring-only hunks (zero
+executable-line delta; verify with `git diff --cached` on the file,
+not the PRD's claim). Any staged hunk outside those forms voids the
+exception for the whole commit: escalate the lane or split.
 
 ## Two-phase contract
 

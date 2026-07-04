@@ -10,7 +10,7 @@ Rules and lifecycle for all PRDs in the cuttingboard decision engine.
 |-------|---------|
 | PROPOSED | Drafted. Not approved for implementation. |
 | IN PROGRESS | File exists in prd_history/. Implementation has begun. |
-| COMPLETE | Implementation merged. Commit hash recorded in registry. |
+| COMPLETE | Implementation merged, or closeout is folded into the implementation PR (PRD-229) and becomes true at merge. Commit cell records the squash SHA (historical / post-merge closeouts) or the PR number `#NNN` (same-PR closeouts). |
 | PATCH | Corrective PRD targeting a specific defect in a prior PRD. |
 | DEPRECATED | Requirement superseded or withdrawn before completion. |
 
@@ -58,8 +58,29 @@ Registry and index bookkeeping (`docs/PRD_REGISTRY.md`, `docs/prd_index.json`) i
 
 ### Registry Maintenance
 1. Add a row to `PRD_REGISTRY.md` with status `IN PROGRESS` before implementation begins.
-2. After merge: set status to `COMPLETE` and record the commit hash.
+2. Before merge, in the implementation PR: once the PR is open (its number now exists), push the closeout commit into it — status `COMPLETE`, PR number (`#NNN`) in the commit cell (see Same-PR Closeout below). Work merged by hand outside a normal PR flow may record the merge SHA post-merge instead.
 3. The `File` column MUST link to the prd_history file. Rows without a file show `—`.
+
+### Same-PR Closeout (PRD-229)
+
+Closeout bookkeeping — the registry `COMPLETE` flip, `prd_index.json`
+counters, `PROJECT_STATE.md` refresh, and the PRD doc's trailing `STATUS`
+marker — lands **in the same PR as the implementation**. The separate
+post-merge closeout commit/PR is retired: it doubled commit volume (~19%
+of visible commits) and generated the sequencing-gate noise CLAUDE.md
+warns about.
+
+Because a squash-merge SHA does not exist until merge, the commit cell
+records the **PR number** (`#NNN`). PR numbers are stable, survive
+squash-merges, and resolve on GitHub — recording them also ends the
+phantom-SHA class (19 historical COMPLETE hashes are unreachable from
+`main`; see PROJECT_STATE known debt). `tools/validate_prd_registry.py`
+accepts `#NNN` tokens in commit cells and exempts them from
+git-resolvability; hex SHAs remain valid for historical rows and for
+hand-merged work closed out after merge.
+
+Trigger: every PRD closed after PRD-229 merges. Historical rows are not
+rewritten.
 
 ---
 
@@ -82,7 +103,7 @@ If a single PRD accumulates more than one PATCH PRD, the root causes MUST be doc
 3. Add registry row with `IN PROGRESS` and file link
 4. Fill all sections before writing any implementation code
 5. Write FAIL lines before writing requirement bodies
-6. After merge: update status to `COMPLETE` and record commit hash
+6. Before merge, in the implementation PR: push the closeout commit (status `COMPLETE`, PR number `#NNN`) into the open PR (Same-PR Closeout above)
 
 ---
 
@@ -185,7 +206,7 @@ these fields in PRDs.
 
 | CLASS | Default tier | Required reviewers | Validation depth | Forbidden mutation surfaces | HIGH-RISK FILES |
 |-------|--------------|--------------------|------------------|------------------------------|-----------------|
-| GOVERNANCE | T3 | Claude; Codex iff CLAUDE.md cross-review gate triggers | Doc cross-check; throwaway skeleton draft | Production modules, tests, fixtures, payloads, dashboard, notifications | `docs/PRD_TEMPLATE.md`, `docs/PRD_PROCESS.md`, `docs/PRD_MICRO_TEMPLATE.md`, `CLAUDE.md`, `docs/PRD_REGISTRY.md`, `docs/PROJECT_STATE.md` |
+| GOVERNANCE | T3 | Claude; Codex iff CLAUDE.md cross-review gate triggers | Doc cross-check; throwaway skeleton draft | Production modules, tests, fixtures, payloads, dashboard, notifications — EXCEPT the red test that must accompany a governance enforcement-tooling change (PRD-198 invariant 4; declare it in CHANGE SURFACE) | `docs/PRD_TEMPLATE.md`, `docs/PRD_PROCESS.md`, `docs/PRD_MICRO_TEMPLATE.md`, `CLAUDE.md`, `docs/PRD_REGISTRY.md`, `docs/PROJECT_STATE.md` |
 | SIDECAR | T1 | Claude + Codex required | Targeted tests on writer/reader; artifact path + schema check | `cuttingboard/runtime.py` decision logic; `cuttingboard/output.py` payload writer; decision-bearing sections of `cuttingboard/delivery/dashboard_renderer.py` | `cuttingboard/trend_structure.py`, `cuttingboard/evaluation.py`, any new `cuttingboard/<name>_sidecar.py` |
 | CONSUMER | T2 | Claude required; Codex iff dashboard/notification semantics shift | Manual UI/notification render; targeted tests on consumer path | Decision logic, regime engine, qualification, payload writers | `cuttingboard/delivery/dashboard_renderer.py`, `cuttingboard/notifications/formatter.py`, `ui/dashboard.html`, `ui/index.html`, `ui/app.js` |
 | EXECUTION | T0 | Claude + Codex required | Full pytest suite; targeted regression on regime/qualification/sizing | Sidecar mutation, renderer-derived semantics, payload schema redefinition | `cuttingboard/runtime.py`, `cuttingboard/qualification.py`, `cuttingboard/execution_policy.py`, `cuttingboard/regime.py`, `cuttingboard/trade_decision.py`, `cuttingboard/trade_policy.py` |
@@ -258,6 +279,36 @@ This rule is additive to the existing
 above enumerate the specific *behavior surfaces* that disqualify a
 change from MICRO; the line-count and file-scope criteria in the
 micro template remain in force.
+
+### Cosmetic Carve-Out (PRD-229)
+
+A change is **cosmetic** iff it touches ONLY:
+
+- ui-rendering copy (label/heading/help text strings), CSS, or
+  layout/markup structure in presentation code, and/or
+- comments or docstrings (zero executable-line delta) in any module,
+
+AND alters none of the R12 behavior surfaces above. Decision-bearing
+values, threshold→label synthesis, source-health/lineage classification,
+and every other R12 surface disqualify a change from "cosmetic" no matter
+how small the diff — R12 is the hard filter and is unchanged by this
+carve-out.
+
+For cosmetic changes only:
+
+- **The Lane Downgrade Prohibition (R11) does not apply** — neither its
+  HIGH-RISK-FILES-intersection trigger nor its CLASS trigger. A pure CSS
+  tweak in `dashboard_renderer.py`, or a docstring fix in
+  `qualification.py`, is MICRO-eligible. (Trigger for this rule: twelve
+  cosmetic PRDs paid full HIGH-RISK ceremony in two days, 2026-07-01/02.)
+- **Ceremony is at most a 10-line MICRO note** — GOAL, FILES, one FAIL
+  line. The full template is not used; review intensity is the MICRO row.
+- **Cosmetics batch.** Nits accumulate in a running list and land as at
+  most **one polish PRD per week**, one description line each. A lone
+  urgent cosmetic fix may land alone and counts as that week's polish PRD.
+
+If any file in the diff carries a non-cosmetic hunk, the whole change is
+non-cosmetic: classify by the full R11/R12 rules.
 
 ### Retroactive application
 
