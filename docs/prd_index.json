@@ -1076,6 +1076,12 @@
       "title": "Kill the VALIDATED fail-open default: missing chain evidence renders MANUAL CHECK, never validated",
       "status": "COMPLETE",
       "commit": "#101"
+    },
+    {
+      "number": 235,
+      "title": "Qualification loudness: NEUTRAL symbols excluded visibly, missing-data gate passes emit skip markers",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
