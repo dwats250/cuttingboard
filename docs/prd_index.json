@@ -1040,6 +1040,12 @@
       "title": "Bot-review-thread disposition clause (governance guardrail)",
       "status": "COMPLETE",
       "commit": "a11481b"
+    },
+    {
+      "number": 229,
+      "title": "Ceremony tiering: cosmetic MICRO carve-out + same-PR closeout",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
