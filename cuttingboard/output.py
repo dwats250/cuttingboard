@@ -302,15 +302,17 @@ def render_report(
         lines.append("")
 
     else:
-        # TRADE — show only chain-validated setups
+        # TRADE — PRD-234: only setups with a PRESENT chain result classified
+        # VALIDATED render as A+ trades. Missing evidence is NOT validation:
+        # setups absent from chain_results (or with chain_results entirely
+        # empty) render in an explicit CHAIN UNVERIFIED block instead of
+        # being silently upgraded (the old code synthesized a VALIDATED
+        # result for them — a fail-open safety gate).
         trade_setups = [
             s for s in option_setups
-            if not cr or cr.get(s.symbol, ChainValidationResult(
-                symbol=s.symbol, classification=VALIDATED, reason=None,
-                spread_pct=None, open_interest=None, volume=None,
-                expiry_used=None, data_source=None,
-            )).classification == VALIDATED
+            if s.symbol in cr and cr[s.symbol].classification == VALIDATED
         ]
+        unverified_setups = [s for s in option_setups if s.symbol not in cr]
 
         entry_mode_for: dict[str, str] = {}
         if qualification_summary is not None:
@@ -319,9 +321,7 @@ def render_report(
                 for r in qualification_summary.qualified_trades
             }
 
-        lines.append(f"  A+ TRADES  ({len(trade_setups)})")
-        lines.append("  " + "─" * 50)
-        for setup in trade_setups:
+        def _setup_detail(setup: OptionSetup) -> None:
             mode = entry_mode_for.get(setup.symbol, "")
             mode_tag = f"  [{mode}]" if mode and mode != "DIRECT" else ""
             lines.append(
@@ -339,7 +339,7 @@ def render_report(
                 f"             {contracts} contract{'s' if contracts != 1 else ''}"
                 f"  ·  max risk ${risk:.0f}"
             )
-            if cr and setup.symbol in cr:
+            if setup.symbol in cr:
                 cv = cr[setup.symbol]
                 chain_line = f"             Chain: {cv.classification}"
                 if cv.open_interest is not None:
@@ -351,6 +351,27 @@ def render_report(
                 lines.append(chain_line)
             lines.append("             Exit: +50% profit or full debit loss")
             lines.append("")
+
+        lines.append(f"  A+ TRADES  ({len(trade_setups)})")
+        lines.append("  " + "─" * 50)
+        for setup in trade_setups:
+            _setup_detail(setup)
+
+        if unverified_setups:
+            lines.append(f"  ⚠ CHAIN UNVERIFIED  ({len(unverified_setups)})")
+            lines.append("  " + "─" * 50)
+            lines.append(
+                "  No chain-validation result was produced for these setups —"
+            )
+            lines.append(
+                "  the option chain was NOT checked. Verify spread/OI by hand"
+            )
+            lines.append(
+                "  before entry. Treated as MANUAL CHECK, not validated."
+            )
+            lines.append("")
+            for setup in unverified_setups:
+                _setup_detail(setup)
 
     if (
         regime is not None
