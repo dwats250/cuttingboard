@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 234,
-  "next_prd": 235,
+  "latest_complete": 235,
+  "next_prd": 236,
   "entries": [
     {
       "number": 56,
@@ -1080,8 +1080,8 @@
     {
       "number": 235,
       "title": "Qualification loudness: NEUTRAL symbols excluded visibly, missing-data gate passes emit skip markers",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#102"
     }
   ]
 }
