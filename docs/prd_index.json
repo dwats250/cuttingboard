@@ -1082,6 +1082,12 @@
       "title": "Qualification loudness: NEUTRAL symbols excluded visibly, missing-data gate passes emit skip markers",
       "status": "COMPLETE",
       "commit": "#102"
+    },
+    {
+      "number": 236,
+      "title": "Extract the decision-gate chain + contract finalization from _run_pipeline into named functions",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
