@@ -2,6 +2,11 @@
 
 Standard flow for validating and pushing a source-only fix.
 
+Owner note (PRD-230): this file is the OPS RUNBOOK - recovery flow, common
+failures, artifact-tracking checks. Process policy lives in `CLAUDE.md` /
+`docs/PRD_PROCESS.md`; the protected-file policy in `docs/AGENT_WORKFLOW.md`;
+hook mechanics in `docs/CLAUDE_HOOKS.md`. Don't restate those here.
+
 ## Standard Recovery Flow
 
 ```bash

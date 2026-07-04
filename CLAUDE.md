@@ -28,8 +28,8 @@ them.
 - `README.md` - outsider's entry point
 - `docs/architecture.md`, `docs/PRD_PROCESS.md`, `docs/sidecar_doctrine.md` -
   structural references
-- `docs/CLAUDE_HOOKS.md` - the repo's Claude Code hooks (file protection, test
-  gate, session snapshot) and their state files
+- `docs/CLAUDE_HOOKS.md` - the repo's Claude Code hooks (file protection,
+  PRD sequencing gate, canonical-read guard) and their state files
 
 Decisions that meaningfully change direction are recorded in `docs/DECISIONS.md`
 with date and rationale - short notes, not ceremony.
@@ -42,27 +42,24 @@ with date and rationale - short notes, not ceremony.
   requires independent review before merge: a Claude review artifact, plus a
   Codex cross-review for contract / decision-surface changes. The lane is
   declared in the PRD header; STANDARD and MICRO lanes are lighter.
-- **What satisfies the Codex cross-review gate (artifact + properties, not
-  mechanism).** The Codex cross-review above is satisfied only by a durable
-  artifact that has ALL of the following properties — independent of how Codex
-  was invoked:
+- **What satisfies the Codex cross-review gate (PRD-230: plain read-only
+  `codex exec`, HIGH-RISK lanes only).** The Codex cross-review above is
+  satisfied only by a durable artifact with ALL of these properties:
   1. **In-tree + durable:** a committed `docs/prd_history/PRD-NNN.review.codex.md`
      (or the batch's review folder), not an ephemeral comment or external link.
   2. **SHA-pinned:** the artifact names the exact commit it reviewed; a review of
      a superseded commit does not satisfy the gate for later commits.
-  3. **Verified-real Codex:** produced by a genuine Codex model, not a routed or
-     cheaper substitute model presented under the Codex label.
-  4. **Read-only:** the review ran with no repo write access (`codex exec -s
+  3. **Read-only:** the review ran with no repo write access (`codex exec -s
      read-only`; never `-s workspace-write`, which silently re-persists
      `trust_level=trusted` for the cwd and breaks read-only durability).
-  5. **Fresh-context:** reviewed from a clean context, not the authoring
+  4. **Fresh-context:** reviewed from a clean context, not the authoring
      conversation.
-  A connector-only, ephemeral PR comment (e.g. a GitHub-app Codex reviewer that
-  posts inline comments) does NOT satisfy the gate, however useful: it is not
-  in-tree, not durable, and not SHA-pinned. It may inform a review, but the gate
-  still requires the artifact above. Defining satisfaction by properties rather
-  than by invocation mechanism keeps the gate stable as the available Codex
-  surfaces change (CLI egress, GitHub connector, future channels).
+  A connector-only, ephemeral PR comment does NOT satisfy the gate: not
+  in-tree, not durable, not SHA-pinned. (PRD-230 retired the model-identity
+  "verified-real" verification apparatus — the CI honor-gate workflow and its
+  tests; it caught one real incident, model laundering, and its marginal
+  return went negative for a solo repo where Dustin performs every merge.
+  History: PRD-197/207/212, DECISIONS 2026-06-26..07-01.)
 - **Bot-review-thread disposition (PRD-228).** Automated PR reviewers - the
   `chatgpt-codex-connector` app and any future connector bot - post inline review
   threads that are advisory INPUT, never gate-satisfying (per the clause above, a
@@ -104,10 +101,10 @@ with date and rationale - short notes, not ceremony.
 - **Drift-review is a post-merge audit under auto-merge (PRD-186).** Because
   auto-merge lands a green PR with no pre-merge human read, VISION/PROJECT_STATE
   drift-review is a post-merge audit - carried by the per-PRD review artifact's
-  drift check (above) and the Alignment cadence (below) - not a pre-merge gate.
+  drift check (above) and the Alignment check (below) - not a pre-merge gate.
 - **Governance changes are manual-merge-only (PRD-186).** A PR that changes the
   review-gate skill (`prd-review-claude`) or any governance guardrail in this file
-  - the auto-merge / review-gate / drift-check policy above, OR the Alignment-cadence
+  - the auto-merge / review-gate / drift-check policy above, OR the Alignment-check
   post-merge audit below - is excluded from auto-merge: open it and hold for a human
   merge - do NOT queue `gh pr merge --auto`. Auto-merge must not land changes to its
   own guardrails without a human read. Enforcement today is this policy
@@ -259,42 +256,28 @@ fails-on-the-meaning" failure class. Each names the incident it generalizes.
 - Run targeted tests during iteration. Run the full suite once before pre-commit
   review - backgrounded when it is long enough to do other work in parallel.
 
-### Alignment cadence
+### Alignment check (PRD-230: phase-boundary diff-read)
 
-Every 4-6 weeks, or after any phase boundary, run a scoped alignment check
-against `VISION.md`. Three questions:
+Trigger: a phase boundary (a wave/batch of related PRDs closes, or a
+direction change lands) - not the calendar. Five scheduled cadence runs
+found zero drift; the ceremony detected nothing, so the ceremony is retired
+and the read remains.
 
-1. Has any new prediction logic entered the codebase?
-2. Has any new sidecar been added without a documented consumer
-   (decision-feeding) or without observational purpose?
-3. Has any new module been added that doesn't serve at least one of VISION's four
-   questions (what environment, what matters today, is this tradable, what
-   invalidates)?
+The check is a 15-minute read of the diff since the last check
+(`git log --oneline <last-audit-sha>..main` + the registry rows it maps
+to), answering four questions:
 
-If all three answers are "no," document the check in `docs/DECISIONS.md` and move
-on. If any answer is "yes," scope a full alignment audit. Drift is a function of
-time, not a bug - these checks make it visible early.
+1. Any new prediction logic? (VISION non-goal)
+2. Any new sidecar without a documented consumer or observational purpose?
+3. Any new module serving none of VISION's four questions?
+4. Post-merge drift audit (PRD-186, folded in): does any merged PRD
+   conflict with a VISION principle, leave a PROJECT_STATE claim stale, or
+   carry a review artifact that skipped its DRIFT CHECK?
 
-**Post-merge drift audit (PRD-186).** Because auto-merge lands PRDs with no
-pre-merge human read, each cadence run is also the post-merge drift audit, with a
-defined action - not a label:
-
-- **Trigger:** review every PRD merged since the last audit (the registry rows
-  newer than the last audit's DECISIONS entry) against `VISION.md` and
-  `docs/PROJECT_STATE.md`.
-- **What counts as drift:** a merged change that conflicts with a VISION
-  non-goal/principle, leaves a PROJECT_STATE claim stale, or whose review
-  artifact skipped the DRIFT CHECK.
-- **Remediation (scaled to severity).** *Substantive drift* - a merged change
-  that conflicts with a VISION non-goal/principle or leaves a PROJECT_STATE claim
-  stale - is remediated by opening a corrective PRD (don't just log it), with its
-  number recorded. A *review-artifact process miss* - a merged review that skipped
-  the DRIFT CHECK - is remediated in place: append the missing DRIFT CHECK to that
-  review and confirm no substantive drift; no corrective PRD is required (forcing
-  PRD ceremony for retroactive paperwork is the sprawl this file's PRD-process and
-  "cuts before additions" rules guard against). Record each audit in
-  `docs/DECISIONS.md` - PRDs reviewed, drift found (or "none"), the remediation
-  taken, and the corrective PRD number when applicable.
+Record one DECISIONS.md line per run (PRDs covered; findings or "none").
+Remediation unchanged: substantive drift -> corrective PRD (number
+recorded); a review-artifact DRIFT-CHECK miss -> append the missing check
+in place, no PRD ceremony for retroactive paperwork.
 
 ### PRD-author disciplines
 
@@ -339,3 +322,6 @@ surfaced from the sub-agent flow audit (2026-06-10).
   first.
 - Do not commit generated artifacts (`logs/*`, `reports/*`) outside the
   workflow-driven force-add allowlist.
+- Do not let session recon notes accumulate in `audits/` (PRD-230): a session
+  note is working scratch - delete it once the next session confirms nothing
+  was lost. Durable findings belong in `docs/DECISIONS.md` or a PRD.

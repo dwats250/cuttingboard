@@ -6,6 +6,12 @@ one purpose: it defines the **protected-file set** that the PRD skills
 require a `LANE: HIGH-RISK` PRD. Keep the `## Auto-Approval Policy` heading and
 the "Never auto-approve" table stable - the skills parse them verbatim.
 
+Scope note (PRD-230): this broad POLICY set is deliberately distinct from the
+narrow hard-block subset inside `.claude/hooks/protect_files.sh` (secrets/env,
+`.git/*`, lockfiles, workflows) - the hook is the mechanical last line for
+catastrophic writes; this table is the review-policy boundary. The two lists
+differ by design; see `docs/CLAUDE_HOOKS.md`.
+
 ## Auto-Approval Policy
 
 Read-only inspection and in-scope mechanical edits proceed without a stop;
