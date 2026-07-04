@@ -16,6 +16,21 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-04 — Fable-window Blocks 1+2 merged; Block-3 gate opened (Deviation 2 signed)
+
+Dustin hand-merged PR #99 (Block-1 governance batch, = Deviation-1 sign-off)
+and PR #102, which carried the whole Block-2 stack — PRD-233 (validator live
+in _run_pipeline, pre-notification), PRD-234 (CHAIN UNVERIFIED fail-open
+kill), PRD-235 (qualification loudness) — to `main` in one squash
+(`c31bff6`); the authoring PRs #100/#101 were closed as contained and the
+registry provenance trued up to #102 (PR #103). He then signed Deviation 2
+in-session ("Signed — open Block 3"), so the Wave-3/Block-3 gate is PASSED:
+the module-reads clause moves whole to the post-window learning stint,
+replaced in-window by byte-identical fixture checks + his line-by-line J1
+schema-diff read. First structural cut (PRD-236, master-plan item I)
+follows. The connector bot's six in-window catches are dispositioned
+in-thread on their PRs.
+
 ## 2026-07-04 — Fable-window Block 1: ceremony tiering + process drop-list (PRD-229..232, batch PR #99, manual-merge)
 
 **What changed (mentor-review "What I Should Drop" + leverage item #1,
