@@ -93,7 +93,6 @@ problem = summary.strip() or "TODO: state the problem this PRD solves."
 prd_body = f"""{prd_id} — {title}
 
 Status: IN PROGRESS
-Filed: {today}
 
 LANE
 {lane}
@@ -118,6 +117,11 @@ OUT OF SCOPE
 
 FILES
 M TODO/replace/with/every/file.py
+
+CHANGE SURFACE
+TODO — MANDATORY iff CLASS default tier is T0/T1 or FILES intersects the
+CLASS's HIGH-RISK FILES (docs/PRD_PROCESS.md § CHANGE SURFACE Trigger);
+delete this section otherwise.
 
 REQUIREMENTS
 
