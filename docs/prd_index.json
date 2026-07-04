@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 232,
-  "next_prd": 233,
+  "latest_complete": 233,
+  "next_prd": 234,
   "entries": [
     {
       "number": 56,
@@ -1068,8 +1068,8 @@
     {
       "number": 233,
       "title": "Wire assert_valid_contract into _run_pipeline + system_state key guard",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#100"
     }
   ]
 }
