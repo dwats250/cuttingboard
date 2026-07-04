@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 225,
-  "next_prd": 226,
+  "latest_complete": 228,
+  "next_prd": 229,
   "entries": [
     {
       "number": 56,
@@ -1024,10 +1024,22 @@
       "commit": "9cc751c"
     },
     {
-      "number": 228,
-      "title": "Bot-review-thread disposition clause (governance guardrail)",
+      "number": 226,
+      "title": "Level diagram NOW anchor = current price (contract entry is a separate ENTRY level, never NOW)",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 227,
+      "title": "Correct PRD-221 registry provenance (phantom 6b3fef1 \u2192 merged 8faa675)",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
+      "number": 228,
+      "title": "Bot-review-thread disposition clause (governance guardrail)",
+      "status": "COMPLETE",
+      "commit": "a11481b"
     }
   ]
 }
