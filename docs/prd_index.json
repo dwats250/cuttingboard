@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 235,
-  "next_prd": 236,
+  "latest_complete": 236,
+  "next_prd": 237,
   "entries": [
     {
       "number": 56,
@@ -1086,8 +1086,8 @@
     {
       "number": 236,
       "title": "Extract the decision-gate chain + contract finalization from _run_pipeline into named functions",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#104"
     }
   ]
 }
