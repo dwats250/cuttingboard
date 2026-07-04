@@ -30,6 +30,7 @@ from cuttingboard import config, time_utils
 from cuttingboard.audit import write_audit_record, write_notification_audit
 from cuttingboard.contract import (
     LATEST_CONTRACT_PATH,
+    assert_valid_contract,
     build_error_contract,
     build_pipeline_output_contract,
     derive_run_status,
@@ -950,6 +951,13 @@ def _run_pipeline(
             )
 
     contract["artifacts"]["notification_sent"] = alert_sent
+
+    # PRD-233: the contract is finalized — every post-build injection above
+    # must be declared in the validator's system_state schema. Fail loud
+    # BEFORE any artifact write; execute_run's handler converts the raise
+    # into the minimal ERROR contract, so a corrupt contract never reaches
+    # latest_contract.json or the audit log.
+    assert_valid_contract(contract, finalized=True)
 
     run_history = _load_run_history(LOGS_DIR / "audit.jsonl")
     premarket_report = build_premarket_report(contract)
