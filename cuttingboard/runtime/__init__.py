@@ -896,6 +896,8 @@ def _run_pipeline(
     intraday_metrics: dict[str, Any] = {}
     ohlcv: dict[str, pd.DataFrame] = {}
     outcome = OUTCOME_NO_TRADE
+    # Mirrored by _run_decision_gates' own defaults (PRD-236) — keep in
+    # sync: halt / kill-switch paths never reach that call and read these.
     overall_pressure = "UNKNOWN"
     thesis_map: dict = {}
     invalidation_guidance_map: dict = {}
