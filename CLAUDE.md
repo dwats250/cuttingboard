@@ -88,12 +88,14 @@ with date and rationale - short notes, not ceremony.
   drift check, not just correctness: does the change conflict with a `VISION.md`
   non-goal/principle, and does it leave any `docs/PROJECT_STATE.md` claim stale?
   The `prd-review-claude` skill carries this as a recorded DRIFT CHECK section.
-- **Auto-merge via PR after CI (PRD-184).** ALL work - implementation and
-  bookkeeping/closeout alike - lands through a pull request: Claude pushes the
-  feature branch, opens the PR, and queues `gh pr merge --auto`; `main` branch
-  protection holds the merge until the CI `test` check is green. The harness
-  blocks direct-to-main pushes (verified during PRD-184 closeout), so there is no
-  direct-push path for PRD work - bookkeeping PRs auto-merge the same way. The
+- **Auto-merge via PR after CI (PRD-184).** ALL work lands through a pull
+  request: Claude pushes the feature branch, opens the PR, and queues
+  `gh pr merge --auto`; `main` branch protection holds the merge until the CI
+  `test` check is green. The harness blocks direct-to-main pushes (verified
+  during PRD-184 closeout), so there is no direct-push path for PRD work.
+  Closeout bookkeeping folds into the implementation PR (PRD-229 same-PR
+  closeout; the separate closeout PR is retired - residual bookkeeping fixes
+  auto-merge as their own PR). The
   scheduled artifact-publish workflows (cuttingboard / hourly_alert /
   macro_awareness) likewise do NOT push to `main`: they publish the rendered
   dashboard and the accumulating scoreboard state to a dedicated UNPROTECTED
@@ -132,6 +134,12 @@ with date and rationale - short notes, not ceremony.
 - **PRD before build for anything non-trivial** (new module, new external
   dependency, new architectural pattern, change touching multiple pipeline
   layers). Bug fixes and additions within established patterns don't need PRDs.
+- **Ceremony tiering (PRD-229).** Cosmetic-only changes (ui copy / CSS /
+  layout; comment- or docstring-only edits) ride MICRO with a <=10-line note
+  and batch into at most one weekly polish PRD; closeout bookkeeping lands in
+  the same PR as the implementation. Owner:
+  `docs/PRD_PROCESS.md` (Cosmetic Carve-Out; Same-PR Closeout) - reference,
+  don't restate.
 - **Read-only sidecars by default.** New observational features extend through
   sidecars rather than mutating core contracts.
 - **Description, not prediction.** Features that explain or contextualize are

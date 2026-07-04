@@ -70,8 +70,9 @@ COMMIT PLAN
 4. Update `docs/PROJECT_STATE.md` (active PRD → PRD-NNN).
 5. Add `docs/prd_history/PRD-NNN.md`.
 6. Run validation.
-7. Commit: `PRD-NNN: <short imperative summary>`
-8. Bookkeeping commit: promote PRD-NNN to COMPLETE with the merge
-   commit hash; set PROJECT_STATE active PRD → none.
+7. Closeout in the SAME PR (PRD-229): promote PRD-NNN to COMPLETE with
+   the PR number (`#NNN`) in the commit cell; set PROJECT_STATE active
+   PRD → none. No separate bookkeeping commit.
+8. Commit: `PRD-NNN: <short imperative summary>`
 
 STATUS: PROPOSED
