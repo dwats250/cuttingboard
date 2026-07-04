@@ -58,7 +58,7 @@ Registry and index bookkeeping (`docs/PRD_REGISTRY.md`, `docs/prd_index.json`) i
 
 ### Registry Maintenance
 1. Add a row to `PRD_REGISTRY.md` with status `IN PROGRESS` before implementation begins.
-2. Before opening the implementation PR: set status to `COMPLETE` and record the PR number (`#NNN`) in the commit cell (see Same-PR Closeout below). Work merged by hand outside a normal PR flow may record the merge SHA post-merge instead.
+2. Before merge, in the implementation PR: once the PR is open (its number now exists), push the closeout commit into it — status `COMPLETE`, PR number (`#NNN`) in the commit cell (see Same-PR Closeout below). Work merged by hand outside a normal PR flow may record the merge SHA post-merge instead.
 3. The `File` column MUST link to the prd_history file. Rows without a file show `—`.
 
 ### Same-PR Closeout (PRD-229)
@@ -103,7 +103,7 @@ If a single PRD accumulates more than one PATCH PRD, the root causes MUST be doc
 3. Add registry row with `IN PROGRESS` and file link
 4. Fill all sections before writing any implementation code
 5. Write FAIL lines before writing requirement bodies
-6. Before opening the implementation PR: update status to `COMPLETE` and record the PR number `#NNN` (Same-PR Closeout above)
+6. Before merge, in the implementation PR: push the closeout commit (status `COMPLETE`, PR number `#NNN`) into the open PR (Same-PR Closeout above)
 
 ---
 
@@ -206,7 +206,7 @@ these fields in PRDs.
 
 | CLASS | Default tier | Required reviewers | Validation depth | Forbidden mutation surfaces | HIGH-RISK FILES |
 |-------|--------------|--------------------|------------------|------------------------------|-----------------|
-| GOVERNANCE | T3 | Claude; Codex iff CLAUDE.md cross-review gate triggers | Doc cross-check; throwaway skeleton draft | Production modules, tests, fixtures, payloads, dashboard, notifications | `docs/PRD_TEMPLATE.md`, `docs/PRD_PROCESS.md`, `docs/PRD_MICRO_TEMPLATE.md`, `CLAUDE.md`, `docs/PRD_REGISTRY.md`, `docs/PROJECT_STATE.md` |
+| GOVERNANCE | T3 | Claude; Codex iff CLAUDE.md cross-review gate triggers | Doc cross-check; throwaway skeleton draft | Production modules, tests, fixtures, payloads, dashboard, notifications — EXCEPT the red test that must accompany a governance enforcement-tooling change (PRD-198 invariant 4; declare it in CHANGE SURFACE) | `docs/PRD_TEMPLATE.md`, `docs/PRD_PROCESS.md`, `docs/PRD_MICRO_TEMPLATE.md`, `CLAUDE.md`, `docs/PRD_REGISTRY.md`, `docs/PROJECT_STATE.md` |
 | SIDECAR | T1 | Claude + Codex required | Targeted tests on writer/reader; artifact path + schema check | `cuttingboard/runtime.py` decision logic; `cuttingboard/output.py` payload writer; decision-bearing sections of `cuttingboard/delivery/dashboard_renderer.py` | `cuttingboard/trend_structure.py`, `cuttingboard/evaluation.py`, any new `cuttingboard/<name>_sidecar.py` |
 | CONSUMER | T2 | Claude required; Codex iff dashboard/notification semantics shift | Manual UI/notification render; targeted tests on consumer path | Decision logic, regime engine, qualification, payload writers | `cuttingboard/delivery/dashboard_renderer.py`, `cuttingboard/notifications/formatter.py`, `ui/dashboard.html`, `ui/index.html`, `ui/app.js` |
 | EXECUTION | T0 | Claude + Codex required | Full pytest suite; targeted regression on regime/qualification/sizing | Sidecar mutation, renderer-derived semantics, payload schema redefinition | `cuttingboard/runtime.py`, `cuttingboard/qualification.py`, `cuttingboard/execution_policy.py`, `cuttingboard/regime.py`, `cuttingboard/trade_decision.py`, `cuttingboard/trade_policy.py` |
