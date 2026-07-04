@@ -1046,6 +1046,12 @@
       "title": "Ceremony tiering: cosmetic MICRO carve-out + same-PR closeout",
       "status": "COMPLETE",
       "commit": "#99"
+    },
+    {
+      "number": 230,
+      "title": "Process drop-list: Codex-authenticity teardown, cadence right-sizing, sediment stop, map de-line-numbering, process-doc dedup",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
