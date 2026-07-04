@@ -1069,13 +1069,13 @@
       "number": 233,
       "title": "Wire assert_valid_contract into _run_pipeline + system_state key guard",
       "status": "COMPLETE",
-      "commit": "#100"
+      "commit": "#102"
     },
     {
       "number": 234,
       "title": "Kill the VALIDATED fail-open default: missing chain evidence renders MANUAL CHECK, never validated",
       "status": "COMPLETE",
-      "commit": "#101"
+      "commit": "#102"
     },
     {
       "number": 235,
