@@ -1,6 +1,6 @@
 ---
 name: prd-closeout-verified
-description: Use when closing out a completed PRD — flips registry status to COMPLETE, writes the bookkeeping commit, resets PROJECT_STATE, and verifies four-way consistency across PRD_REGISTRY.md, PROJECT_STATE.md, prd_history/PRD-NNN.md, and prd_index.json. Wraps scripts/prd_close.sh and patches the gaps it leaves (an existing IN PROGRESS registry row is updated in place; the Active PRD pointer is reset; the Next step line is reset). Triggers on "close PRD-NNN", "run bookkeeping for PRD-NNN", "complete PRD-NNN", "finish closeout".
+description: Use when closing out a completed PRD — flips registry status to COMPLETE, writes the closeout commit INTO the implementation PR (PRD-229 same-PR closeout; commit cell records the PR number #NNN), resets PROJECT_STATE, and verifies four-way consistency across PRD_REGISTRY.md, PROJECT_STATE.md, prd_history/PRD-NNN.md, and prd_index.json. Wraps scripts/prd_close.sh and patches the gaps it leaves (an existing IN PROGRESS registry row is updated in place; the Active PRD pointer is reset; the Next step line is reset). Hex-hash mode remains for hand-merged work closed out post-merge. Triggers on "close PRD-NNN", "run bookkeeping for PRD-NNN", "complete PRD-NNN", "finish closeout".
 ---
 
 # PRD Closeout with Built-in Verification
@@ -21,8 +21,13 @@ It is NOT a substitute for:
 - Pushing to `origin` — push is a separate, explicit human/agent action
   outside this skill
 
-Closeout is the *last* step. If the implementation commit has not
-landed yet, refuse and direct the user to land it first.
+Closeout is the *last* step of the implementation PR (PRD-229 Same-PR
+Closeout, `docs/PRD_PROCESS.md`): implementation commits are on the
+branch, the PR is open (so its number exists), and the closeout commit
+is pushed into that same PR before merge. If the implementation commits
+have not landed on the branch yet, refuse and direct the user to land
+them first. Hex-hash mode (closing out after a hand-merge, recording
+the merge SHA) remains supported for that flow only.
 
 Dashboard/UI artifact refresh, if required by the PRD, must be
 completed before closeout. This skill does not detect or perform UI
@@ -70,7 +75,9 @@ If unclear, ask once, then default to DRAFT_ONLY.
 The skill needs these arguments before Phase 1:
 
 - `prd` — three-digit PRD number (e.g. `140`)
-- `hash` — short implementation commit hash (e.g. `1dbc886`)
+- `hash` — the PR reference `#NNN` of the open implementation PR
+  (same-PR mode, the default since PRD-229), or a short merge-commit
+  hash (e.g. `1dbc886`) when closing out hand-merged work post-merge
 - `title` — PRD title, exact match to the PRD header
 - `tests` — total passing test count after PRD lands
 - `added` — net new tests added (0 for docs-only PRDs)
@@ -87,7 +94,10 @@ If any of the required args are missing, ask. Do NOT invent or guess.
 Verified repo reality wins over drafting intent. The skill must never
 invent:
 
-- Commit hashes (must resolve via `git rev-parse <hash>^{commit}`)
+- Commit hashes (hex hashes must resolve via
+  `git rev-parse <hash>^{commit}`; a `#NNN` PR reference is not a git
+  object — it must instead be the number of the OPEN PR carrying the
+  current branch, confirmed from the PR itself, never guessed)
 - PRD titles (must match the PRD-NNN.md `# PRD-NNN — <title>` header
   byte-for-byte after `— `)
 - Test counts (must be supplied; never inferred from a sample)
@@ -116,8 +126,12 @@ to intercept the missing-row case.
 ### Phase 1 — Apply
 
 1. **Preflight (every check must pass; otherwise stop):**
-   a. `git rev-parse <hash>^{commit}` succeeds (commit exists)
-   b. The implementation commit's subject contains `PRD-<NNN>`
+   a. Hex mode: `git rev-parse <hash>^{commit}` succeeds (commit
+      exists). Same-PR mode (`#NNN`): the current branch has an OPEN
+      PR numbered NNN targeting `main`.
+   b. Hex mode: the implementation commit's subject contains
+      `PRD-<NNN>`. Same-PR mode: at least one commit on the branch
+      (ahead of `origin/main`) has a subject containing `PRD-<NNN>`.
    c. Working tree clean (`git status --short` empty)
    d. `docs/prd_history/PRD-NNN.md` exists
    e. PRD-NNN registry row exists in `docs/PRD_REGISTRY.md`
@@ -143,8 +157,8 @@ of the response. Do not skip any item.
 
 | # | Check | Action on failure |
 |---|---|---|
-| V1 | `git rev-parse <hash>^{commit}` succeeds | Stop; bad hash |
-| V2 | Implementation commit subject contains `PRD-<NNN>` | Stop; hash points to wrong commit |
+| V1 | Hex: `git rev-parse <hash>^{commit}` succeeds. `#NNN`: the branch's open PR is numbered NNN | Stop; bad hash / wrong PR |
+| V2 | Hex: implementation commit subject contains `PRD-<NNN>`. `#NNN`: a branch commit ahead of `origin/main` names `PRD-<NNN>` | Stop; reference points at wrong work |
 | V3 | Registry row exists, status `COMPLETE`, hash column matches `<hash>` | Script owns this (R2); failure = `prd_close.sh` regression — investigate |
 | V4 | PRD-NNN.md header is `Status: COMPLETE` and last non-blank line is `STATUS: COMPLETE @ <hash>` | Script owns this (R3); failure = `prd_close.sh` regression — investigate |
 | V5 | `prd_index.json` contains entry for PRD-NNN with matching hash | Re-run prd_close.sh |

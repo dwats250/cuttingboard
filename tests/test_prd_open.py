@@ -8,6 +8,7 @@ artifacts (PRD-NNN.md, PRD_REGISTRY.md, prd_index.json).
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -98,8 +99,21 @@ def test_scaffolds_prd_file(tmp_path: Path) -> None:
     res = _open_200(tree)
     assert res.returncode == 0, res.stderr
     prd = (tree / "docs" / "prd_history" / "PRD-200.md").read_text()
-    assert "# PRD-200" in prd
-    assert "Lane: MICRO / GOVERNANCE" in prd
+    # PRD-232: the scaffold must match docs/PRD_TEMPLATE.md, not a third
+    # divergent skeleton — template header shape, section order, and the
+    # A/M/D FILES format that .claude/hooks/protect_files.sh parses.
+    assert prd.startswith("PRD-200 — Test PRD")
+    assert "\nLANE\nMICRO\n" in prd
+    assert "\nCLASS\nGOVERNANCE\n" in prd
+    sections = ["GOAL", "SCOPE", "OUT OF SCOPE", "FILES", "REQUIREMENTS",
+                "DATA FLOW", "FAIL CONDITIONS", "VALIDATION"]
+    positions = [prd.find(f"\n{s}\n") for s in sections]
+    assert all(p >= 0 for p in positions), f"missing sections: {[s for s, p in zip(sections, positions) if p < 0]}"
+    assert positions == sorted(positions), "template section order violated"
+    files_body = prd.split("\nFILES\n", 1)[1].split("\n\n", 1)[0]
+    assert re.search(r"^[AMD] \S", files_body, flags=re.MULTILINE), (
+        "FILES stub must use the template's A/M/D format"
+    )
     assert "STATUS: IN PROGRESS" in prd
 
 

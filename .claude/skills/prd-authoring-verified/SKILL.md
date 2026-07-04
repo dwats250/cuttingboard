@@ -79,8 +79,14 @@ Guessing is forbidden.
 1. Read `docs/PROJECT_STATE.md` to confirm active PRD and next number.
 2. Read `docs/PRD_REGISTRY.md` to pick the next free `PRD-NNN`.
 3. Decide template:
-   - Micro (`docs/PRD_MICRO_TEMPLATE.md`) only if ALL micro criteria
-     in `CLAUDE.md § Micro-PRD eligibility` hold.
+   - Cosmetic (PRD-229 Cosmetic Carve-Out, `docs/PRD_PROCESS.md`):
+     ui copy / CSS / layout, or comment/docstring-only edits, touching
+     no R12 behavior surface → a ≤10-line MICRO note (GOAL + FILES +
+     one FAIL line), no template; batch into the weekly polish PRD
+     when one is running.
+   - Micro (`docs/PRD_MICRO_TEMPLATE.md`) only if ALL eligibility
+     criteria in `docs/PRD_PROCESS.md § LANE Axis` (MICRO row + R12
+     safety net) and the micro template's own criteria hold.
    - Otherwise full (`docs/PRD_TEMPLATE.md`).
 4. Draft section order verbatim from the template.
    Full: `GOAL → SCOPE → OUT OF SCOPE → FILES → REQUIREMENTS → DATA FLOW → FAIL CONDITIONS → VALIDATION`.
@@ -100,9 +106,9 @@ genuinely does not apply.
 | V2 | Every line number cited matches current source | `Read` at exact `offset+limit` | `Grep -n` against the named file | Correct the number, or remove the citation |
 | V3 | Every file in `FILES` exists; every file the PRD will edit is listed | `Bash: ls` + `gitnexus_impact upstream` | `Bash: ls` + manual consumer grep | Amend FILES before returning |
 | V4 | Visible-String Pre-Edit Audit: grep `tests/` for every literal string being renamed/removed | `Agent(Explore, haiku)` if ≥3 files or >5 strings | `Grep`/`rg` main-thread | Add missing test files to FILES |
-| V5 | No file in FILES is in the protected pipeline set unless `LANE: HIGH-RISK` | `Read` `docs/AGENT_WORKFLOW.md § Auto-Approval Policy` | Same | Escalate lane or split PRD |
+| V5 | No file in FILES is in the protected pipeline set unless `LANE: HIGH-RISK` — EXCEPT a cosmetic-only change (PRD-229 carve-out: zero executable-line delta, no R12 surface), which stays MICRO regardless of file | `Read` `docs/AGENT_WORKFLOW.md § Auto-Approval Policy` + carve-out check | Same | Escalate lane or split PRD |
 | V6 | Each `FAIL:` line is binary + observable (no "should", "appropriate", "reasonable", "as needed") | Regex scan of own output | Same | Rewrite the FAIL line |
-| V7 | If micro template used, ALL micro-PRD criteria in CLAUDE.md hold | Manual checklist against diff scope | Same | Switch to full template |
+| V7 | If micro template used, ALL eligibility criteria in `docs/PRD_PROCESS.md § LANE Axis` (+ R12) hold; if the cosmetic note is used, the diff is provably comment/copy/CSS-only | Manual checklist against diff scope | Same | Switch to full template |
 | V8 | LANE header present and matches the risk surface implied by FILES | Header presence check | Same | Add or correct LANE |
 | V9 | Registry row exists ONLY if the PRD is moving to IN PROGRESS now | `Read` `PRD_REGISTRY.md` | Same | Defer registry write |
 | V10 | Impact analysis run for signature-bearing or protected pipeline files in FILES | `gitnexus_impact({direction:"upstream"})` | Skip with note (see rule below) | Surface HIGH/CRITICAL hits before returning |
@@ -152,7 +158,9 @@ pipeline file. Otherwise the report line must read exactly:
 **Fallback chain when GitNexus is unavailable:**
 
 1. `docs/SCHEMA_MAP.md` for field paths
-2. `docs/CALL_SITE_MAP.md` for function line numbers
+2. `docs/CALL_SITE_MAP.md` for the owning file+function, then
+   `grep -n "def <name>" <file>` for the current line (the map carries
+   no line numbers since PRD-230)
 3. `Grep`/`rg` over the repo for symbol existence
 4. `Read` at known offsets for signature confirmation
 

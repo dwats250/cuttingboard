@@ -250,7 +250,8 @@ fails-on-the-meaning" failure class. Each names the incident it generalizes.
 - Do not invoke Codex or subagents for simple greps, git operations, or
   mechanical edits.
 - When two reviews are independent (e.g. Claude vision review + Codex cross-review
-  on the same draft), dispatch them in parallel.
+  on the same draft), dispatch them in parallel (owner:
+  `docs/PRD_PROCESS.md` § Review Dispatch).
 - When a Codex or subagent artifact materially drives a decision, link the
   artifact path in the `docs/DECISIONS.md` entry so the audit trail survives.
 - Run targeted tests during iteration. Run the full suite once before pre-commit

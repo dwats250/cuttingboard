@@ -1,8 +1,10 @@
 # PRD-NNN — <Title>
 
 > **Use only if the change meets all micro-PRD eligibility criteria in
-> CLAUDE.md § Micro-PRD eligibility. When in doubt, use the full
-> template at `docs/PRD_TEMPLATE.md`.**
+> `docs/PRD_PROCESS.md § LANE Axis` (MICRO row + R12 safety net). When
+> in doubt, use the full template at `docs/PRD_TEMPLATE.md`. A
+> cosmetic-only change (PRD-229 Cosmetic Carve-Out) needs no template
+> at all — a ≤10-line note (GOAL + FILES + one FAIL line) suffices.**
 
 Status: PROPOSED
 
