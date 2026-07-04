@@ -72,16 +72,25 @@ missing, ambiguous), stop and report. Do not guess at coverage.
 
 ## FILES parsing rule
 
-Parse the `FILES` section of `docs/prd_history/PRD-NNN.md` literally:
+Parse the `FILES` section of `docs/prd_history/PRD-NNN.md` literally.
+Two formats are canonical (PRD-232 aligned the `prd_open.sh` scaffold to
+the full template's A/M/D form; the micro template keeps the
+backtick-list form) — accept BOTH:
 
-- Collect every line matching `` ^- `<path>` `` under both
-  `Modified:` and `New:` subheadings (paths in backticks).
-- Strip backticks. Reject any line whose path contains a glob
-  wildcard (`*`, `?`, `[`) — the FILES section is a literal list.
-- Treat the parenthetical `(PRD-NNN row)` / `(active PRD pointer)`
-  annotations as comments; the path before them is the entry.
-
-If `New:` is empty or absent, only `Modified:` entries apply.
+- **A/M/D form** (`docs/PRD_TEMPLATE.md`, the `prd_open.sh` scaffold):
+  collect every line matching `^[AMD] <path>` in the FILES section;
+  the path is everything after the marker and a space. `D` entries
+  authorize deletions.
+- **Backtick-list form** (`docs/PRD_MICRO_TEMPLATE.md`): collect every
+  line matching `` ^- `<path>` `` under the `Modified:` and `New:`
+  subheadings; strip backticks. If `New:` is empty or absent, only
+  `Modified:` entries apply.
+- Either way: reject any line whose path contains a glob wildcard
+  (`*`, `?`, `[`) — the FILES section is a literal list. Treat the
+  parenthetical `(PRD-NNN row)` / `(active PRD pointer)` annotations
+  as comments; the path before them is the entry.
+- If the section matches NEITHER format (zero entries parsed), stop
+  and report — do not guess coverage.
 
 ## Bookkeeping allowlist (always permitted)
 
@@ -122,7 +131,15 @@ The single source of truth is `docs/AGENT_WORKFLOW.md`.
 
 V7 applies the parsed set against the staged file set. If
 `LANE: HIGH-RISK` is declared in the active PRD header, staged files
-in the protected set are permitted; otherwise they are a violation.
+in the protected set are permitted; otherwise they are a violation —
+with ONE exception (PRD-229 Cosmetic Carve-Out,
+`docs/PRD_PROCESS.md`): a `LANE: MICRO` PRD/note that declares itself
+cosmetic-only admits protected-set files IFF the staged diff for each
+such file is provably cosmetic — ui copy/CSS/layout hunks in
+presentation code, or comment/docstring-only hunks (zero
+executable-line delta; verify with `git diff --cached` on the file,
+not the PRD's claim). Any staged hunk outside those forms voids the
+exception for the whole commit: escalate the lane or split.
 
 ## Two-phase contract
 

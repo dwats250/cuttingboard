@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 228,
-  "next_prd": 229,
+  "latest_complete": 232,
+  "next_prd": 233,
   "entries": [
     {
       "number": 56,
@@ -1040,6 +1040,30 @@
       "title": "Bot-review-thread disposition clause (governance guardrail)",
       "status": "COMPLETE",
       "commit": "a11481b"
+    },
+    {
+      "number": 229,
+      "title": "Ceremony tiering: cosmetic MICRO carve-out + same-PR closeout",
+      "status": "COMPLETE",
+      "commit": "#99"
+    },
+    {
+      "number": 230,
+      "title": "Process drop-list: Codex-authenticity teardown, cadence right-sizing, sediment stop, map de-line-numbering, process-doc dedup",
+      "status": "COMPLETE",
+      "commit": "#99"
+    },
+    {
+      "number": 231,
+      "title": "Doc-truth micro-fixes: qualification gate count (9\u219211), output.py dead runtime.py reference",
+      "status": "COMPLETE",
+      "commit": "#99"
+    },
+    {
+      "number": 232,
+      "title": "Guardrail tightening: skills learn PRD-229 rules, prd_open scaffold aligned to template, CLAUDE.md/CODEX.md dedup",
+      "status": "COMPLETE",
+      "commit": "#99"
     }
   ]
 }

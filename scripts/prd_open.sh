@@ -86,29 +86,59 @@ from pathlib import Path
 prd_num = int(prd_num)
 
 # --- 1. PRD-NNN.md scaffold ----------------------------------------------
+# PRD-232: emit the docs/PRD_TEMPLATE.md shape (header fields, section
+# order, A/M/D FILES format) — not a divergent third skeleton. The A/M/D
+# FILES lines are what .claude/hooks/protect_files.sh parses.
 problem = summary.strip() or "TODO: state the problem this PRD solves."
-prd_body = f"""# {prd_id}: {title}
+prd_body = f"""{prd_id} — {title}
 
-Lane: {lane} / {klass}
 Status: IN PROGRESS
-Author: Dustin
-Filed: {today}
 
-## Problem
+LANE
+{lane}
 
+CLASS
+{klass}
+
+WHY NOW
 {problem}
 
-## FILES
+MAX EXPECTED DELTA
+TODO: binding ceiling (production LOC / file count / other measurable bound).
 
-- TODO: enumerate every file this PRD will touch (hard scope boundary).
+GOAL
+TODO: one sentence — what this PRD delivers and why.
 
-## Acceptance criteria
+SCOPE
+- TODO
 
-- TODO.
+OUT OF SCOPE
+- TODO
 
-## Non-goals
+FILES
+M TODO/replace/with/every/file.py
 
-- TODO.
+CHANGE SURFACE
+TODO — MANDATORY iff CLASS default tier is T0/T1 or FILES intersects the
+CLASS's HIGH-RISK FILES (docs/PRD_PROCESS.md § CHANGE SURFACE Trigger);
+delete this section otherwise.
+
+REQUIREMENTS
+
+R1 — TODO
+TODO: deterministic description of what must be true.
+
+FAIL: TODO — observable, binary failure condition.
+
+DATA FLOW
+TODO ([source] -> [transform] -> [output], or "n/a" for docs-only)
+
+FAIL CONDITIONS
+- TODO: list all binary failure conditions across all requirements.
+
+VALIDATION
+Manual:
+- TODO: step-by-step verification with binary expected results.
 
 STATUS: IN PROGRESS
 """

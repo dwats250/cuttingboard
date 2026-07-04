@@ -246,6 +246,10 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-226 | — | Level diagram NOW anchor = current price (contract entry is a separate ENTRY level, never NOW) | IN PROGRESS | [PRD-226](prd_history/PRD-226.md) |
 | PRD-227 | — | Correct PRD-221 registry provenance (phantom 6b3fef1 → merged 8faa675) | IN PROGRESS | [PRD-227](prd_history/PRD-227.md) |
 | PRD-228 | a11481b | Bot-review-thread disposition clause (governance guardrail) | COMPLETE | [PRD-228](prd_history/PRD-228.md) |
+| PRD-229 | #99 | Ceremony tiering: cosmetic MICRO carve-out + same-PR closeout | COMPLETE | [PRD-229](prd_history/PRD-229.md) |
+| PRD-230 | #99 | Process drop-list: Codex-authenticity teardown, cadence right-sizing, sediment stop, map de-line-numbering, process-doc dedup | COMPLETE | [PRD-230](prd_history/PRD-230.md) |
+| PRD-231 | #99 | Doc-truth micro-fixes: qualification gate count (9→11), output.py dead runtime.py reference | COMPLETE | [PRD-231](prd_history/PRD-231.md) |
+| PRD-232 | #99 | Guardrail tightening: skills learn PRD-229 rules, prd_open scaffold aligned to template, CLAUDE.md/CODEX.md dedup | COMPLETE | [PRD-232](prd_history/PRD-232.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

@@ -1,11 +1,11 @@
 """
 Layer 7 — Trade Qualification.
 
-All 9 gates must pass for a trade to qualify. No partial credit. No exceptions.
+All 11 gates must pass for a trade to qualify. No partial credit. No exceptions.
 
 Gates 1–4 are HARD stops: failure → REJECT with no watchlist eligibility.
-Gates 5–9 are SOFT stops: exactly one miss → WATCHLIST with reason stated.
-                           Two or more misses → REJECT.
+Gates 5–11 are SOFT stops: exactly one miss → WATCHLIST with reason stated.
+                            Two or more misses → REJECT.
 
 Earnings gate (9) is fail-open: None = unknown → gate passes.
 
@@ -73,7 +73,7 @@ CONTINUATION_REJECTION_REASONS = (
 
 @dataclass(frozen=True)
 class TradeCandidate:
-    """Trade parameters needed to run all 9 qualification gates.
+    """Trade parameters needed to run all 11 qualification gates.
 
     Supplied by the options layer (Phase 5). For Phase 4 testing, pass
     candidates=None to qualify_all — gates 1–4 still execute.
@@ -144,7 +144,7 @@ def qualify_all(
     Regime gates (1–2) are checked first. On failure the function returns
     immediately — no per-symbol work runs. This is the STAY_FLAT short-circuit.
 
-    When candidates is None (Phase 4), gates 5–9 are skipped. CHOP symbols
+    When candidates is None (Phase 4), gates 5–11 are skipped. CHOP symbols
     are still detected and logged (gate 4).
     """
     # --- Gates 1–2: Regime check (system-level, before any per-symbol work) ---
@@ -286,7 +286,7 @@ def qualify_candidate(
     dm: Optional[DerivedMetrics] = None,
     now_et: Optional[datetime] = None,
 ) -> QualificationResult:
-    """Run all 9 gates for a single trade candidate.
+    """Run all 11 gates for a single trade candidate.
 
     Returns a QualificationResult indicating qualified / watchlist / rejected.
     Gates 1–4 short-circuit on first failure (no watchlist).
@@ -340,7 +340,7 @@ def qualify_candidate(
     gates_passed.append(GATE_STRUCTURE)
 
     # -----------------------------------------------------------------------
-    # Soft gates 5–9
+    # Soft gates 5–11
     # -----------------------------------------------------------------------
 
     risk   = abs(candidate.entry_price - candidate.stop_price)

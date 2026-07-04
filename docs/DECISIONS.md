@@ -16,6 +16,41 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-04 — Fable-window Block 1: ceremony tiering + process drop-list (PRD-229..232, batch PR #99, manual-merge)
+
+**What changed (mentor-review "What I Should Drop" + leverage item #1,
+executed per `audits/codebase-review-2026-07-03/FABLE_WINDOW_PLAN.md`):**
+PRD-229 — Cosmetic Carve-Out (cosmetic-only diffs exempt from the R11 lane
+floor, ≤10-line MICRO note, ≤1 weekly polish PRD; R12 unchanged) + Same-PR
+Closeout (COMPLETE cells record the PR number `#NNN`; validator accepts it;
+separate closeout commits retired). PRD-230 — Codex-authenticity apparatus
+deleted (codex-review.yml + its 19 tests; plain read-only `codex exec`
+review and artifact conventions kept); alignment cadence → phase-boundary
+15-min diff-read with the PRD-186 post-merge audit folded in; CALL_SITE_MAP
+de-line-numbered; process docs deduped to one owner per domain. PRD-231 —
+first carve-out MICRO (gate-count 9→11 ×3 sites, dead runtime.py ref).
+PRD-232 — skills/scaffold aligned to the new rules (closeout skill same-PR
+mode; authoring skill carve-out; prd_open.sh emits the canonical template).
+
+**Why.** Process output was ~3× product output; 12 cosmetic PRDs paid full
+HIGH-RISK freight in two days while a dead validator and a duplicated risk
+constant sat unnoticed. The authenticity apparatus (5 PRDs / 344-line
+workflow / 16 artifacts) had negative marginal return for a solo repo where
+Dustin performs every merge.
+
+**Deviations recorded.** The drop-list's audits-purge premise was falsified
+by recon (inbound refs everywhere except one file — only that file deleted;
+Dustin dispositions the rest at the batch review). Fable-window Deviation 1
+(H drafted by Fable, hand-merged by Dustin) is recorded in the MASTER_PLAN
+Parking Lot; Deviation 2 stays unsigned until the Block-3 gate.
+
+**Artifacts.** Reviews: `docs/prd_history/PRD-229.review.claude.md`,
+`PRD-230.review.claude.md`, `PRD-232.review.claude.md` (all fresh-context,
+ACCEPT WITH CHANGES, all REQUIRED edits remediated in-batch). Registry
+reconciliation that unblocked the numbering: PR #98 (`c4927d5`).
+
+---
+
 ## 2026-07-02 — PRD-223 SHIPPED: the risk band landed renderer-only; the deferral's premise was already met
 
 **What landed.** PRD-223 (merged via PR #89, `e654ca0`): the level ladder shades
