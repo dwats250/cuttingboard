@@ -7,31 +7,39 @@ proposing new fields. Update when new canonical fields are introduced.
 
 ## contract (latest_hourly_contract.json)
 
+**The authoritative contract schema is `cuttingboard/contract_types.py`
+(PRD-237/238).** Top level = `PipelineContract`; `system_state` =
+`SystemState`; `trade_candidates[i]` = `ContractCandidate` (with
+`DecisionTrace` / `OvernightPolicyDecision` sub-blocks). Field names,
+types, and required-vs-conditional presence (`NotRequired`) live there,
+kept honest by the sync guards in `tests/test_contract_types.py` — do not
+re-derive or restate them here. For presence semantics (which keys are
+runtime-injected, Sunday-only, EOD-only), read the module docstring and
+per-key comments in `contract_types.py`.
+
+What the TypedDicts intentionally do NOT capture (typed `dict[str, Any]`),
+recorded here because this map is the only home for it:
+
 | Field path | Type | Notes |
 |---|---|---|
-| `contract["outcome"]` | string | `TRADES \| NO TRADE \| HALT` |
-| `contract["status"]` | string | run status derived from outcome + regime |
-| `contract["generated_at"]` | string | ISO timestamp (UTC) |
-| `contract["session_date"]` | string | YYYY-MM-DD |
-| `contract["mode"]` | string | runtime mode |
-| `contract["schema_version"]` | string | |
-| `contract["system_state"]` | dict | always present |
-| `contract["system_state"]["tradable"]` | bool | |
-| `contract["system_state"]["stay_flat_reason"]` | string \| null | present when posture is STAY_FLAT or HALT |
-| `contract["system_state"]["session_type"]` | string \| absent | conditional; only injected for SUNDAY_PREMARKET runs (runtime.py:911) |
-| `contract["regime"]` | dict | |
-| `contract["trade_candidates"]` | list | |
-| `contract["trade_candidates"][i]["entry"]` | float | numeric entry from `TradeDecision` (contract.py `_build_trade_candidates`); finite-float-asserted for ALLOW_TRADE (`_assert_trade_candidates_valid`). Renderer consumer: level-diagram anchor via `_load_contract_entry_context` |
-| `contract["trade_candidates"][i]["stop"]` | float | numeric stop from `TradeDecision`; finite-float-asserted for ALLOW_TRADE. Renderer consumer (PRD-223): level-diagram entry→stop risk band via `_load_contract_entry_context` stop map |
-| `contract["trade_candidates"][i]["target"]` | float | numeric target; NOT rendered on the level diagram by design (description-not-prediction) |
-| `contract["rejections"]` | list | |
 | `contract["macro_drivers"]` | dict | per-driver blocks keyed by driver name (`volatility`, `dollar`, `rates`, `bitcoin`, `oil`, `gold`, `silver`); built by `_build_macro_drivers` (contract.py:502) |
 | `contract["macro_drivers"][driver]["symbol"]` | string | source quote symbol (e.g. `gold`→`GC=F`, `silver`→`SI=F`; map at contract.py:50) |
 | `contract["macro_drivers"][driver]["level"]` | float | latest price |
 | `contract["macro_drivers"][driver]["change_pct"]` | float | percent change (×100) |
 | `contract["macro_drivers"][driver]["change_bps"]` | float \| absent | rates only |
 | `contract["macro_drivers"]["gold" \| "silver"]` | dict \| absent | OPTIONAL drivers (contract.py:59); the key is **absent** when the `GC=F`/`SI=F` fetch fails (silent skip, contract.py:510/521) → renderer shows `N/A` per-key (dashboard_renderer.py `_build_tape_value_slots`). DISPLAY-ONLY: front-month **futures**, fenced from the decision path (excluded from `_COMPONENT_FIELDS` macro_pressure + `MACRO_BIAS_DRIVERS` vote). Visible tape label is `GC`/`SI` (PRD-211); the slot id / `data-symbol` stays `XAU`/`XAG` |
-| `contract["market_context"]` | dict | |
+
+Consumer notes that outlive the retired field table (semantics, not shape):
+
+- `trade_candidates[i]["entry"]` / `["stop"]` — finite-float-asserted for
+  ALLOW_TRADE (`_assert_trade_candidates_valid`). Renderer consumer:
+  level-diagram anchor + entry→stop risk band (PRD-223/224) via
+  `_load_contract_entry_context`.
+- `trade_candidates[i]["target"]` — NOT rendered on the level diagram by
+  design (description-not-prediction).
+- `system_state["stay_flat_reason"]` — non-null when posture is STAY_FLAT
+  or HALT.
+- `outcome` — `TRADES | NO TRADE | HALT`.
 
 ---
 
@@ -73,6 +81,10 @@ proposing new fields. Update when new canonical fields are introduced.
 
 ## Usage rules
 
+- For **contract** fields, verify against `cuttingboard/contract_types.py`
+  (the typed schema) — not this map. This map only carries the untyped
+  artifacts (payload, market_map, run) and the `dict[str, Any]` interiors
+  above.
 - Before adding a field to a PRD, verify it appears in this map or confirm it
   in source.
 - If a field path is not in this map and cannot be confirmed, mark it

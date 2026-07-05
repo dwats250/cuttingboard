@@ -1,4 +1,5 @@
 from __future__ import annotations
+from cuttingboard.contract_types import PipelineContract
 
 _VOLATILITY_STATE: dict[str, str] = {
     "CHAOTIC": "ELEVATED",
@@ -319,7 +320,7 @@ def _generate_invalidation(regime: str | None, gap_direction: str | None, scenar
 # ── Public builder ───────────────────────────────────────────────────────────
 
 
-def build_premarket_report(contract: dict, levels: dict | None = None) -> dict:
+def build_premarket_report(contract: PipelineContract, levels: dict | None = None) -> dict:
     ss = contract.get("system_state") or {}
     mc = contract.get("market_context") or {}
     correlation = contract.get("correlation")
