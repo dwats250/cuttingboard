@@ -257,7 +257,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-237 | #105 | Typed contract boundary (J1): TypedDicts for contract / trade candidate / system_state, adopted in contract.py + payload.py | COMPLETE | [PRD-237](prd_history/PRD-237.md) |
 | PRD-238 | #106 | J2: adopt the typed contract in notifications/renderer consumers; retire SCHEMA_MAP's contract field-lookup role + M-map design doc | COMPLETE | [PRD-238](prd_history/PRD-238.md) |
 | PRD-239 | #108 | Make architecture.md true: real _run_pipeline stage order, decision layer, typed-dict contract | COMPLETE | [PRD-239](prd_history/PRD-239.md) |
-| PRD-240 | — | Qualification tuning from the 2026-07-05 audit: EXPANSION R:R discount removal, Gate-6 ATR stop floor, entry-mode wiring honesty | PROPOSED | [PRD-240](prd_history/PRD-240.md) |
+| PRD-240 | — | Qualification tuning from the 2026-07-05 audit: EXPANSION R:R discount removal, Gate-6 ATR stop floor, entry-mode wiring honesty | IN PROGRESS | [PRD-240](prd_history/PRD-240.md) |
 | PRD-241 | — | Qualification doc truth: gate count in system_logic_map + entry modes and regime-tiered R:R in trade_qualification | PROPOSED | [PRD-241](prd_history/PRD-241.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
