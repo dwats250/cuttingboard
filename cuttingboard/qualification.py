@@ -293,6 +293,15 @@ def qualify_all(
     )
 
 
+def _min_rr_for_regime(regime: RegimeState) -> float:
+    """Minimum R:R for the given regime — stricter in NEUTRAL (PRD-240)."""
+    if regime.regime == NEUTRAL:
+        return config.NEUTRAL_RR_RATIO
+    if regime.regime == EXPANSION:
+        return config.EXPANSION_RR_RATIO
+    return config.MIN_RR_RATIO
+
+
 def qualify_candidate(
     candidate: TradeCandidate,
     regime: RegimeState,
@@ -367,33 +376,31 @@ def qualify_candidate(
     else:
         gates_passed.append(GATE_STOP_DEF)
 
-    # Gate 6: Stop distance ≥ 1% of price AND ≥ 0.5 × ATR14
+    # Gate 6: Stop distance ≥ MIN_STOP_PCT of price AND ≥ STOP_ATR_FLOOR_K × ATR14
     if risk > 0 and candidate.entry_price > 0:
         stop_pct = risk / candidate.entry_price
-        atr_half = (dm.atr14 * 0.5) if (dm is not None and dm.atr14 is not None) else None
+        atr_floor = (
+            (dm.atr14 * config.STOP_ATR_FLOOR_K)
+            if (dm is not None and dm.atr14 is not None) else None
+        )
 
-        if stop_pct < 0.01:
+        if stop_pct < config.MIN_STOP_PCT:
             soft_failures.append((
                 GATE_STOP_DIST,
-                f"stop distance {stop_pct:.1%} below 1.0% minimum",
+                f"stop distance {stop_pct:.1%} below {config.MIN_STOP_PCT:.1%} minimum",
             ))
-        elif atr_half is not None and risk < atr_half:
+        elif atr_floor is not None and risk < atr_floor:
             soft_failures.append((
                 GATE_STOP_DIST,
-                f"stop distance {risk:.2f} below 0.5× ATR14 ({atr_half:.2f})",
+                f"stop distance {risk:.2f} below {config.STOP_ATR_FLOOR_K:g}× ATR14 ({atr_floor:.2f})",
             ))
         else:
             gates_passed.append(GATE_STOP_DIST)
     else:
         soft_failures.append((GATE_STOP_DIST, "entry or stop undefined — cannot compute"))
 
-    # Gate 7: R:R minimum — stricter in NEUTRAL, relaxed in EXPANSION
-    if regime.regime == NEUTRAL:
-        min_rr = config.NEUTRAL_RR_RATIO
-    elif regime.regime == EXPANSION:
-        min_rr = config.EXPANSION_RR_RATIO
-    else:
-        min_rr = config.MIN_RR_RATIO
+    # Gate 7: R:R minimum — regime-tiered
+    min_rr = _min_rr_for_regime(regime)
     if risk > 0:
         rr = reward / risk
         if rr < min_rr:
@@ -653,8 +660,16 @@ def _qualify_continuation_candidate(
         return _continuation_reject(symbol, "NO_HOLD_CONFIRMATION", gates_passed)
     gates_passed.append("HOLD")
 
-    candle_range = float(df.iloc[-1]["High"]) - float(df.iloc[-1]["Low"])
+    last_high = float(df.iloc[-1]["High"])
+    last_low = float(df.iloc[-1]["Low"])
+    candle_range = last_high - last_low
     if candle_range < config.CONTINUATION_MOMENTUM_K * dm.atr14:
+        return _continuation_reject(symbol, "INSUFFICIENT_MOMENTUM", gates_passed)
+    last_close = float(df.iloc[-1]["Close"])
+    close_location = (
+        (last_close - last_low) / candle_range if last_high != last_low else 0.0
+    )
+    if close_location < 0.75:
         return _continuation_reject(symbol, "INSUFFICIENT_MOMENTUM", gates_passed)
     gates_passed.append("MOMENTUM")
 
@@ -664,17 +679,22 @@ def _qualify_continuation_candidate(
             return _continuation_reject(symbol, "EXTENDED_FROM_MEAN", gates_passed)
     gates_passed.append("EXTENSION")
 
+    # Stop anchors to the structural breakout level, not a chosen distance —
+    # the STOP_ATR_FLOOR_K convention doesn't map here, so no ATR floor is
+    # applied (PRD-240 R6). Adding one would combine with the R:R ceiling
+    # below (risk <= CONTINUATION_REWARD_ATR_MULTIPLE / EXPANSION_RR_RATIO ×
+    # ATR14 = 1.5× ATR14) into a ~0.5×ATR-wide qualifying band — a de facto
+    # path shutdown deliberately not enacted.
     stop_price = breakout_level
     risk = entry_price - stop_price
-    min_risk = entry_price * 0.01
+    min_risk = entry_price * config.MIN_STOP_PCT
     if stop_price <= 0 or stop_price >= entry_price or risk < min_risk:
         return _continuation_reject(symbol, "STOP_TOO_TIGHT", gates_passed)
     gates_passed.append("STOP")
 
-    reward = dm.atr14 * (
-        (config.CONTINUATION_BREAKOUT_BARS + max(1, config.CONTINUATION_HOLD_CANDLES))
-        / 2.0
-    )
+    # Fixed ATR multiple functioning as a stop-width ceiling, not a
+    # calibrated target estimate (PRD-240 R3).
+    reward = dm.atr14 * config.CONTINUATION_REWARD_ATR_MULTIPLE
     rr = reward / risk
     if rr < config.EXPANSION_RR_RATIO:
         return _continuation_reject(symbol, "RR_BELOW_THRESHOLD", gates_passed)
@@ -755,7 +775,7 @@ def _resolve_entry_mode(
     risk = abs(midpoint - stop_price)
     reward = abs(candidate.target_price - midpoint)
     imbalance_rr = (reward / risk) if risk > 0 else 0.0
-    min_rr = config.NEUTRAL_RR_RATIO if regime.regime == NEUTRAL else config.MIN_RR_RATIO
+    min_rr = _min_rr_for_regime(regime)
     if imbalance_rr < min_rr:
         return result
 

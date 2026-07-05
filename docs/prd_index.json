@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 239,
-  "next_prd": 240,
+  "latest_complete": 240,
+  "next_prd": 241,
   "entries": [
     {
       "number": 56,
@@ -1110,8 +1110,8 @@
     {
       "number": 240,
       "title": "Qualification tuning from the 2026-07-05 audit: EXPANSION R:R discount removal, Gate-6 ATR stop floor, entry-mode wiring honesty",
-      "status": "PROPOSED",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#111"
     },
     {
       "number": 241,

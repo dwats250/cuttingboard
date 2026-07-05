@@ -140,28 +140,34 @@ class TestDetectContinuationBreakout:
 
 class TestQualifyContinuationCandidate:
     def _tight_stop_df(self) -> pd.DataFrame:
+        # Last bar: close=100.7, range=2.0 (>= 0.75×ATR14=0.75), close_location
+        # = (100.7-99.2)/(101.2-99.2) = 0.75 — clears the R5 momentum-conviction
+        # floor while the breakout level (100.55) still leaves the stop too tight.
         return _ohlcv(
             closes=[100, 100.2, 100.4, 100.2, 100.1, 100.2, 100.3, 100.4, 100.6, 100.7],
-            highs=[100.3, 100.5, 100.6, 100.4, 100.3, 100.4, 100.5, 100.5, 100.55, 101.6],
-            lows=[99.8, 100.0, 100.2, 100.0, 99.9, 100.0, 100.1, 100.2, 100.55, 99.6],
+            highs=[100.3, 100.5, 100.6, 100.4, 100.3, 100.4, 100.5, 100.5, 100.55, 101.2],
+            lows=[99.8, 100.0, 100.2, 100.0, 99.9, 100.0, 100.1, 100.2, 100.55, 99.2],
         )
 
     def _breakout_df(self, entry: float = 100.0, atr: float = 2.0) -> pd.DataFrame:
         """Build OHLCV satisfying all continuation conditions.
 
         Lookback window (N=5) max high = entry - 2.  Current and prev close
-        are both above that level.  Last bar range = 2*atr >= 0.75*atr.
+        are both above that level.  Last bar range = 2*atr >= 0.75*atr, and
+        close sits at the top of that range (close_location = 0.75) to clear
+        the R5 momentum-conviction floor.
         """
         base = entry - 3.0   # consolidation level
         # 10 bars: indices 0-3 are history, 4-8 are the lookback, 9 is current
         closes = [base] * 8 + [entry, entry + 1.0]
         # Lookback highs (indices 4-8): all at base+1 < entry
-        highs = [base + 0.5] * 8 + [entry + atr, entry + 1.0 + atr]
+        highs = [base + 0.5] * 8 + [entry + atr, entry + 1.0 + 0.25 * (2 * atr)]
         # Override indices 4-8 to be clearly below entry
         for i in range(4, 9):
             highs[i] = base + 1.0
-        lows = [base - 0.5] * 8 + [entry - atr, entry + 1.0 - atr]
-        # At current bar (index 9): range = 2*atr >= 0.75*atr ✓
+        lows = [base - 0.5] * 8 + [entry - atr, entry + 1.0 - 0.75 * (2 * atr)]
+        # At current bar (index 9): range = 2*atr >= 0.75*atr; close_location
+        # = (close-low)/(high-low) = 0.75.
         return _ohlcv(closes, highs, lows)
 
     def test_continuation_candidate_qualifies(self):
@@ -204,6 +210,22 @@ class TestQualifyContinuationCandidate:
         dm = _dm(1.0, ema21=100.5, entry=100.0)
         result = _qualify_continuation_candidate("TEST", df, _sr(), _expansion_regime(), dm)
         assert result.rejection_reason == "STOP_TOO_TIGHT"
+
+    def test_wick_dominated_candle_fails_momentum_r5(self):
+        # PRD-240 R5 red test: last candle range clears 0.75×ATR14, but the
+        # close sits at the bottom half of that range (close_location < 0.75)
+        # — a wick-dominated candle is not momentum.
+        entry = 100.0
+        atr = 2.0
+        df = self._breakout_df(entry, atr)
+        last = df.index[-1]
+        # range stays 4.0 (>= 0.75×2.0=1.5); close=101 → close_location
+        # = (101-99)/(103-99) = 0.5.
+        df.loc[last, "High"] = 103.0
+        df.loc[last, "Low"] = 99.0
+        dm = _dm(atr, entry=entry)
+        result = _qualify_continuation_candidate("TEST", df, _sr(), _expansion_regime(), dm)
+        assert result.rejection_reason == "INSUFFICIENT_MOMENTUM"
 
 
 # ---------------------------------------------------------------------------

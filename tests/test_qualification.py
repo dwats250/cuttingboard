@@ -5,6 +5,7 @@ All tests are offline — synthetic RegimeState, StructureResult, TradeCandidate
 
 import pytest
 import pandas as pd
+from dataclasses import replace
 from datetime import datetime, timezone
 
 from cuttingboard import config
@@ -26,7 +27,7 @@ from cuttingboard.qualification import (
 )
 from cuttingboard.regime import (
     RegimeState,
-    RISK_ON, RISK_OFF, TRANSITION, NEUTRAL, CHAOTIC,
+    RISK_ON, RISK_OFF, TRANSITION, NEUTRAL, CHAOTIC, EXPANSION,
     AGGRESSIVE_LONG, CONTROLLED_LONG, NEUTRAL_PREMIUM,
     DEFENSIVE_SHORT, STAY_FLAT,
 )
@@ -220,12 +221,14 @@ def _qualify_with_ohlcv(
     dm: DerivedMetrics | None = None,
 ) -> QualificationSummary:
     regime = regime or _regime()
+    # entry=100, stop=98 (risk=2.0, at the 1.0×ATR14=2.0 floor), target=104
+    # (RR=2.0, at MIN_RR_RATIO) — PRD-240 R2 tightened the ATR floor 0.5×→1.0×.
     candidate = candidate or _candidate(
         symbol="TEST",
         direction="LONG",
         entry_price=100.0,
-        stop_price=99.0,
-        target_price=102.0,
+        stop_price=98.0,
+        target_price=104.0,
         spread_width=0.5,
     )
     dm = dm or _dm(symbol="TEST", atr14=2.0)
@@ -527,19 +530,27 @@ class TestGateStopDistance:
         r = qualify_candidate(c, _regime(), _structure(), dm=None)
         assert GATE_STOP_DIST in r.gates_passed
 
-    def test_stop_below_half_atr_fails_gate6(self):
-        # stop = $1.0, ATR14 = 3.0 → 0.5×ATR = $1.5 → stop < half_atr
+    def test_stop_below_atr_floor_fails_gate6(self):
+        # stop = $1.0, ATR14 = 3.0 → 1.0×ATR = $3.0 → stop < atr_floor
         c = _candidate(entry_price=100.0, stop_price=99.0, target_price=106.0, spread_width=0.5)
         dm = _dm(atr14=3.0)
         r = qualify_candidate(c, _regime(), _structure(), dm=dm)
         assert GATE_STOP_DIST in r.gates_failed
 
-    def test_stop_above_half_atr_passes_gate6(self):
-        # stop = $3.0, ATR14 = 4.0 → 0.5×ATR = $2.0 → stop > half_atr
-        c = _candidate(entry_price=100.0, stop_price=97.0, target_price=106.0, spread_width=0.5)
-        dm = _dm(atr14=4.0)
+    def test_stop_above_atr_floor_passes_gate6(self):
+        # stop = $6.0, ATR14 = 5.0 → 1.0×ATR = $5.0 → stop > atr_floor
+        c = _candidate(entry_price=100.0, stop_price=94.0, target_price=106.0, spread_width=0.5)
+        dm = _dm(atr14=5.0)
         r = qualify_candidate(c, _regime(), _structure(), dm=dm)
         assert GATE_STOP_DIST in r.gates_passed
+
+    def test_stop_at_075_atr_fails_gate6_r2(self):
+        # PRD-240 R2 red test: stop >= 1% of price but risk 0.75×ATR14
+        # (below the new 1.0× floor) fails Gate 6.
+        c = _candidate(entry_price=100.0, stop_price=97.0, target_price=112.0, spread_width=0.5)
+        dm = _dm(atr14=4.0)  # risk=3.0, 0.75×ATR14=3.0, 1.0×ATR14=4.0 → below floor
+        r = qualify_candidate(c, _regime(), _structure(), dm=dm)
+        assert GATE_STOP_DIST in r.gates_failed
 
 
 # ---------------------------------------------------------------------------
@@ -568,6 +579,13 @@ class TestGateRrRatio:
     def test_zero_risk_fails_gate7(self):
         c = _candidate(entry_price=100.0, stop_price=100.0, target_price=106.0, spread_width=0.5)
         r = qualify_candidate(c, _regime(), _structure(), dm=None)
+        assert GATE_RR in r.gates_failed
+
+    def test_expansion_rr_1_8_fails_gate7_r1(self):
+        # PRD-240 R1 red test: risk=2, reward=3.6 → RR=1.8 — passed under the
+        # old EXPANSION_RR_RATIO=1.5 discount; must fail under the new 2.0 minimum.
+        c = _candidate(entry_price=100.0, stop_price=98.0, target_price=103.6, spread_width=0.5)
+        r = qualify_candidate(c, _regime(regime=EXPANSION), _structure(), dm=None)
         assert GATE_RR in r.gates_failed
 
 
@@ -775,8 +793,8 @@ class TestImbalancePullbackEntryMode:
                 symbol="TEST",
                 direction="LONG",
                 entry_price=100.0,
-                stop_price=99.0,
-                target_price=102.0,
+                stop_price=98.0,
+                target_price=104.0,
                 spread_width=0.5,
                 has_earnings_soon=True,
             ),
@@ -798,14 +816,18 @@ class TestImbalancePullbackEntryMode:
         assert result.imbalance_zone is None
 
     def test_low_imbalance_rr_stays_direct(self):
+        # entry=97.5, stop=93.5 (risk=4.0, at the 1.0×ATR14=4.0 floor),
+        # target=106.0 (RR=2.125, clears MIN_RR_RATIO) — the FVG zone RR
+        # (reward vs. the zone's own risk) stays low regardless, so entry
+        # mode stays DIRECT.
         summary = _qualify_with_ohlcv(
             _low_rr_long_fvg_df(),
             candidate=_candidate(
                 symbol="TEST",
                 direction="LONG",
-                entry_price=101.5,
-                stop_price=99.5,
-                target_price=105.5,
+                entry_price=97.5,
+                stop_price=93.5,
+                target_price=106.0,
                 spread_width=0.5,
             ),
             dm=_dm(symbol="TEST", atr14=4.0),
@@ -823,3 +845,30 @@ class TestImbalancePullbackEntryMode:
     def test_high_equals_low_displacement_is_invalid(self):
         zone = detect_fvg(_flat_displacement_df(), "LONG", atr14=2.0)
         assert zone is None
+
+    def test_expansion_regime_upgrade_uses_expansion_rr_r4(self, monkeypatch):
+        # PRD-240 R4 red test: with EXPANSION_RR_RATIO monkeypatched away from
+        # MIN_RR_RATIO (1.5 vs 2.0), _resolve_entry_mode's FVG upgrade for an
+        # EXPANSION-regime candidate must use the EXPANSION value, not
+        # MIN_RR_RATIO. Zone: upper=101.2, lower=100.0 (midpoint=100.6,
+        # zone risk=0.6). target=101.68 → imbalance RR=1.8: passes 1.5,
+        # fails 2.0 — the bug this test would catch is _resolve_entry_mode
+        # silently applying MIN_RR_RATIO instead.
+        monkeypatch.setattr(config, "EXPANSION_RR_RATIO", 1.5)
+        dm = replace(_dm(symbol="TEST", atr14=1.0), ema21=100.0)
+        summary = _qualify_with_ohlcv(
+            _valid_long_fvg_df(),
+            candidate=_candidate(
+                symbol="TEST",
+                direction="LONG",
+                entry_price=100.0,
+                stop_price=99.0,
+                target_price=101.68,
+                spread_width=0.5,
+            ),
+            regime=_regime(regime=EXPANSION),
+            dm=dm,
+        )
+        result = summary.qualified_trades[0]
+        assert result.entry_mode == ENTRY_MODE_PULLBACK_IMBALANCE
+        assert result.imbalance_zone == FVGZone(upper_bound=101.2, lower_bound=100.0)

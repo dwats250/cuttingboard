@@ -109,7 +109,9 @@ EXECUTION_POLICY_COOLDOWN_MINUTES   = 15
 
 EXTENSION_ATR_MULTIPLIER            = 1.5   # reject if |price − ema21| > multiplier × ATR14
 NEUTRAL_RR_RATIO                    = 3.0   # minimum R:R for NEUTRAL regime trades
-EXPANSION_RR_RATIO                  = 1.5   # reduced R:R for EXPANSION continuation entries
+EXPANSION_RR_RATIO                  = 2.0   # minimum R:R for EXPANSION continuation entries
+STOP_ATR_FLOOR_K                    = 1.0   # Gate 6 DIRECT-path stop distance floor vs ATR14
+MIN_STOP_PCT                        = 0.01  # minimum stop distance as pct of entry price
 FVG_DISPLACEMENT_K                  = 1.2   # displacement candle body vs ATR14
 FVG_GAP_K                           = 0.3   # minimum gap size vs ATR14
 FVG_PROXIMITY_K                     = 1.5   # max distance from current price to zone midpoint vs ATR14
@@ -138,6 +140,10 @@ CONTINUATION_HOLD_CANDLES     = 1      # completed candles that must hold above 
 CONTINUATION_MOMENTUM_K       = 0.75   # last candle range >= K * ATR14
 CONTINUATION_VIX_SPIKE_BLOCK  = 0.01   # block continuation if VIX pct > +1%
 CONTINUATION_MAX_EXTENSION_ATR = 2.5   # reject if continuation entry is too far from EMA21
+# Fixed ATR multiple, not derived from breakout-window structure — functions
+# as a stop-width ceiling (risk <= this / EXPANSION_RR_RATIO) rather than a
+# calibrated target estimate.
+CONTINUATION_REWARD_ATR_MULTIPLE = 3.0
 ENTRY_CUTOFF_ET                     = time(15, 30)  # no new entries at or after 3:30 PM ET
 
 # ---------------------------------------------------------------------------
