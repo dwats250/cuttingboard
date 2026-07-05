@@ -27,9 +27,10 @@ Separate hourly entrypoint: `python -m cuttingboard.alert_runner` (PRD-141)
 runs the slot-idempotent hourly alert path (`runtime._execute_notify_run`),
 which builds its own hourly contract/summary/payload artifacts.
 
-Before a live run, `cli_main` calls `_run_engine_health_gate` — an opt-in
-(`runtime_gate_enabled` in config) engine_doctor check that aborts the run
-on failure.
+Before any pipeline-running mode (live, fixture, sunday), `cli_main` calls
+`_run_engine_health_gate` — an opt-in (`runtime_gate_enabled` in config)
+engine_doctor check that aborts the run on failure. Verify and prefetch
+return before the gate.
 
 ---
 
