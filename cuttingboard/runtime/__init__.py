@@ -30,6 +30,7 @@ from cuttingboard import config, time_utils
 from cuttingboard.audit import write_audit_record, write_notification_audit
 from cuttingboard.contract import (
     LATEST_CONTRACT_PATH,
+    assert_valid_contract,
     build_error_contract,
     build_pipeline_output_contract,
     derive_run_status,
@@ -608,6 +609,234 @@ def _execute_notify_run(
         return {"status": SUMMARY_STATUS_FAIL, "suppressed": False}
 
 
+def _run_decision_gates(
+    *,
+    option_setups: list[OptionSetup],
+    candidates: dict,
+    qualification_summary: QualificationSummary,
+    chain_results: dict[str, ChainValidationResult],
+    execution_structure: dict[str, Any],
+    regime: Optional[RegimeState],
+    run_at_utc: datetime,
+    date_str: str,
+    intraday_metrics: dict[str, Any],
+    normalized_quotes: dict,
+) -> tuple[list[TradeDecision], dict, dict, dict, str, str]:
+    """PRD-236: the five-gate decision chain, extracted verbatim from
+    _run_pipeline. Materializes trade decisions from setups, threads them
+    through execution policy -> thesis -> invalidation -> entry quality,
+    and derives the PRD-162 actionable-outcome. With no setups the chain
+    is skipped and the defaults below flow through unchanged.
+    """
+    trade_decisions: list[TradeDecision] = []
+    overall_pressure = "UNKNOWN"
+    thesis_map: dict = {}
+    invalidation_guidance_map: dict = {}
+    entry_quality_map: dict = {}
+    if option_setups:
+        setup_by_symbol = {setup.symbol: setup for setup in option_setups}
+        qualified_by_symbol = {
+            result.symbol: result for result in qualification_summary.qualified_trades
+        }
+        trade_decisions = [
+            create_trade_decision(
+                candidates[symbol],
+                qualified_by_symbol[symbol],
+                setup,
+                chain_results.get(symbol, _validated_chain_result(symbol)),
+            )
+            for symbol, setup in setup_by_symbol.items()
+        ]
+        overall_pressure = _compute_overall_pressure(normalized_quotes)
+        trade_decisions = apply_execution_policy_to_decisions(
+            trade_decisions,
+            market_regime=regime.regime if regime is not None else None,
+            posture=regime.posture if regime is not None else None,
+            confidence=regime.confidence if regime is not None else 0.0,
+            timestamp=run_at_utc,
+            session_state=_load_execution_policy_session_state(run_at_utc, date_str),
+            orb_states=_build_execution_policy_orb_states(
+                trade_decisions,
+                qualified_by_symbol,
+                intraday_metrics,
+            ),
+            overall_pressure=overall_pressure,
+        )
+        trade_decisions, thesis_map = apply_thesis_gate(
+            trade_decisions,
+            candidates,
+            qualified_by_symbol,
+            execution_structure,
+            overall_pressure,
+        )
+        trade_decisions, invalidation_guidance_map = apply_invalidation_gate(
+            trade_decisions,
+            thesis_map,
+            overall_pressure,
+        )
+        trade_decisions, entry_quality_map = apply_entry_quality_gate(
+            trade_decisions,
+            candidates,
+            qualified_by_symbol,
+            execution_structure,
+            thesis_map,
+        )
+
+    # PRD-162: outcome is TRADE iff an *actionable* decision exists
+    # (tradable symbol, ALLOW_TRADE, positively sized) — the same rule the
+    # payload top_trades gate applies, so the two outcome derivations agree.
+    # A NON_TRADABLE-symbol allow (e.g. ^VIX) is excluded here.
+    outcome = (
+        OUTCOME_TRADE
+        if any(decision_is_actionable(decision) for decision in trade_decisions)
+        else OUTCOME_NO_TRADE
+    )
+    return (
+        trade_decisions,
+        thesis_map,
+        invalidation_guidance_map,
+        entry_quality_map,
+        overall_pressure,
+        outcome,
+    )
+
+
+def _build_and_finalize_contract(
+    *,
+    mode: str,
+    generation_id: str,
+    run_at_utc: datetime,
+    date_str: str,
+    raw_quotes: dict,
+    normalized_quotes: dict,
+    validation_summary: ValidationSummary,
+    regime: Optional[RegimeState],
+    router_state: SectorRouterState,
+    qualification_summary: Optional[QualificationSummary],
+    watch_summary: Optional[WatchSummary],
+    option_setups: list[OptionSetup],
+    chain_results: dict[str, ChainValidationResult],
+    report_path: str,
+    errors: list[str],
+    correlation_result: Any,
+    trade_decisions: list[TradeDecision],
+    thesis_map: dict,
+    invalidation_guidance_map: dict,
+    entry_quality_map: dict,
+    outcome: str,
+    market_map: dict,
+    fixture_file: Optional[Path],
+    fixture_backed: bool,
+    notify_mode: str,
+) -> tuple[dict[str, Any], bool]:
+    """PRD-236: contract build + every post-build runtime mutation,
+    extracted verbatim from _run_pipeline — the injection cluster the
+    PRD-233 validator guards (outcome / system_state / overnight policy /
+    Sunday keys / notification_sent), the pre-notification validation,
+    the single notification send, and the final pre-artifact validation.
+    Returns the finalized contract and whether an alert was sent.
+    """
+    contract_status = derive_run_status(outcome, regime, validation_summary.system_halted)
+    data_quality = _data_status(mode, raw_quotes, normalized_quotes, fixture_file)
+    contract = build_pipeline_output_contract(
+        _PartialPipelineResult(
+            mode=mode,
+            generation_id=generation_id,
+            run_at_utc=run_at_utc,
+            date_str=date_str,
+            raw_quotes=raw_quotes,
+            normalized_quotes=normalized_quotes,
+            validation_summary=validation_summary,
+            regime=regime,
+            router_mode=router_state.mode,
+            qualification_summary=qualification_summary,
+            watch_summary=watch_summary,
+            option_setups=option_setups,
+            chain_results=chain_results,
+            alert_sent=False,
+            report_path=report_path,
+            errors=errors,
+            correlation=correlation_result,
+            trade_decisions=trade_decisions,
+            thesis_map=thesis_map,
+            invalidation_guidance_map=invalidation_guidance_map,
+            entry_quality_map=entry_quality_map,
+        ),
+        generated_at=run_at_utc,
+        status=contract_status,
+        artifacts={"report_path": report_path, "log_path": str(LATEST_RUN_PATH)},
+        data_quality=data_quality,
+    )
+    contract["outcome"] = outcome
+    # Inject dashboard-readable fields into system_state
+    _ss_regime_label, _ss_posture_label, _ss_conf, _ = _summary_regime_fields(regime)
+    _ss_perm = _PERMISSION_LINES.get(_ss_posture_label, "No new trades permitted.")
+    if validation_summary.system_halted:
+        _ss_perm = "No trades permitted. System halted."
+    contract["system_state"]["outcome"] = outcome
+    contract["system_state"]["permission"] = _ss_perm
+    contract["system_state"]["reason"] = contract["system_state"].get("stay_flat_reason")
+    contract = apply_overnight_policy(
+        contract=contract,
+        market_map=market_map,
+        timestamp=run_at_utc,
+    )
+
+    if mode == MODE_SUNDAY:
+        contract["system_state"]["stay_flat_reason"] = "PREMARKET_CONTEXT"
+        contract["system_state"]["session_type"] = "SUNDAY_PREMARKET"
+
+    # PRD-233 (PR #100 P1): finalize and validate the contract shape BEFORE
+    # the notification branch — a corrupt contract must fail loud before any
+    # user-visible side effect (send, dedup-state save, notification audit),
+    # not merely before artifact writes. notification_sent starts False here
+    # and is flipped to the real result below: a declared-bool value update,
+    # not a shape change, so the pre-notification validation stays truthful.
+    contract["artifacts"]["notification_sent"] = False
+    assert_valid_contract(contract, finalized=True)
+
+    # Exactly one notification send per run. PRD-018 suppression gate applied
+    # before send; state persisted only on confirmed success (R7).
+    alert_sent = False
+    if mode in {MODE_LIVE, MODE_SUNDAY} and not fixture_backed:
+        current_key = notification_state_key(contract)
+        priority = classify_notification_priority(contract)
+        last_key = load_last_state(LAST_STATE_PATH)
+
+        if should_send(current_key, priority, last_key):
+            title, body = build_notification_message(contract)
+            alert_sent = send_notification(
+                title,
+                body,
+                notification_priority=priority.value,
+                notification_state_key=current_key,
+                notify_mode=notify_mode,
+            )
+            if alert_sent:
+                save_last_state(current_key, LAST_STATE_PATH)
+        else:
+            write_notification_audit(
+                transport="telegram",
+                alert_title="suppressed",
+                attempted=False,
+                success=False,
+                reason="suppressed_unchanged_state",
+                priority=priority.value,
+                state_key=current_key,
+                notify_mode=notify_mode,
+            )
+
+    contract["artifacts"]["notification_sent"] = alert_sent
+
+    # PRD-233: re-assert after the notification_sent flip and BEFORE any
+    # artifact write (belt-and-braces with the pre-notification pass above).
+    # execute_run's handler converts a raise into the minimal ERROR
+    # contract, so a corrupt contract never reaches latest_contract.json
+    # or the audit log.
+    assert_valid_contract(contract, finalized=True)
+    return contract, alert_sent
+
+
 def _run_pipeline(
     mode: str,
     run_date: date,
@@ -667,6 +896,8 @@ def _run_pipeline(
     intraday_metrics: dict[str, Any] = {}
     ohlcv: dict[str, pd.DataFrame] = {}
     outcome = OUTCOME_NO_TRADE
+    # Mirrored by _run_decision_gates' own defaults (PRD-236) — keep in
+    # sync: halt / kill-switch paths never reach that call and read these.
     overall_pressure = "UNKNOWN"
     thesis_map: dict = {}
     invalidation_guidance_map: dict = {}
@@ -771,63 +1002,24 @@ def _run_pipeline(
                     chain_results = validate_option_chains(option_setups, validation_summary.valid_quotes)
                     warnings.extend(_chain_warning_lines(chain_results))
 
-            if option_setups:
-                setup_by_symbol = {setup.symbol: setup for setup in option_setups}
-                qualified_by_symbol = {
-                    result.symbol: result for result in qualification_summary.qualified_trades
-                }
-                trade_decisions = [
-                    create_trade_decision(
-                        candidates[symbol],
-                        qualified_by_symbol[symbol],
-                        setup,
-                        chain_results.get(symbol, _validated_chain_result(symbol)),
-                    )
-                    for symbol, setup in setup_by_symbol.items()
-                ]
-                overall_pressure = _compute_overall_pressure(normalized_quotes)
-                trade_decisions = apply_execution_policy_to_decisions(
-                    trade_decisions,
-                    market_regime=regime.regime if regime is not None else None,
-                    posture=regime.posture if regime is not None else None,
-                    confidence=regime.confidence if regime is not None else 0.0,
-                    timestamp=run_at_utc,
-                    session_state=_load_execution_policy_session_state(run_at_utc, date_str),
-                    orb_states=_build_execution_policy_orb_states(
-                        trade_decisions,
-                        qualified_by_symbol,
-                        intraday_metrics,
-                    ),
-                    overall_pressure=overall_pressure,
-                )
-                trade_decisions, thesis_map = apply_thesis_gate(
-                    trade_decisions,
-                    candidates,
-                    qualified_by_symbol,
-                    execution_structure,
-                    overall_pressure,
-                )
-                trade_decisions, invalidation_guidance_map = apply_invalidation_gate(
-                    trade_decisions,
-                    thesis_map,
-                    overall_pressure,
-                )
-                trade_decisions, entry_quality_map = apply_entry_quality_gate(
-                    trade_decisions,
-                    candidates,
-                    qualified_by_symbol,
-                    execution_structure,
-                    thesis_map,
-                )
-
-            # PRD-162: outcome is TRADE iff an *actionable* decision exists
-            # (tradable symbol, ALLOW_TRADE, positively sized) — the same rule the
-            # payload top_trades gate applies, so the two outcome derivations agree.
-            # A NON_TRADABLE-symbol allow (e.g. ^VIX) is excluded here.
-            outcome = (
-                OUTCOME_TRADE
-                if any(decision_is_actionable(decision) for decision in trade_decisions)
-                else OUTCOME_NO_TRADE
+            (
+                trade_decisions,
+                thesis_map,
+                invalidation_guidance_map,
+                entry_quality_map,
+                overall_pressure,
+                outcome,
+            ) = _run_decision_gates(
+                option_setups=option_setups,
+                candidates=candidates,
+                qualification_summary=qualification_summary,
+                chain_results=chain_results,
+                execution_structure=execution_structure,
+                regime=regime,
+                run_at_utc=run_at_utc,
+                date_str=date_str,
+                intraday_metrics=intraday_metrics,
+                normalized_quotes=normalized_quotes,
             )
 
     market_map = build_market_map(
@@ -868,88 +1060,33 @@ def _run_pipeline(
 
     # Build contract before sending notification so build_notification_message
     # can derive message content from the canonical contract.
-    contract_status = derive_run_status(outcome, regime, validation_summary.system_halted)
-    data_quality = _data_status(mode, raw_quotes, normalized_quotes, fixture_file)
-    contract = build_pipeline_output_contract(
-        _PartialPipelineResult(
-            mode=mode,
-            generation_id=generation_id,
-            run_at_utc=run_at_utc,
-            date_str=date_str,
-            raw_quotes=raw_quotes,
-            normalized_quotes=normalized_quotes,
-            validation_summary=validation_summary,
-            regime=regime,
-            router_mode=router_state.mode,
-            qualification_summary=qualification_summary,
-            watch_summary=watch_summary,
-            option_setups=option_setups,
-            chain_results=chain_results,
-            alert_sent=False,
-            report_path=report_path,
-            errors=errors,
-            correlation=correlation_result,
-            trade_decisions=trade_decisions,
-            thesis_map=thesis_map,
-            invalidation_guidance_map=invalidation_guidance_map,
-            entry_quality_map=entry_quality_map,
-        ),
-        generated_at=run_at_utc,
-        status=contract_status,
-        artifacts={"report_path": report_path, "log_path": str(LATEST_RUN_PATH)},
-        data_quality=data_quality,
-    )
-    contract["outcome"] = outcome
-    # Inject dashboard-readable fields into system_state
-    _ss_regime_label, _ss_posture_label, _ss_conf, _ = _summary_regime_fields(regime)
-    _ss_perm = _PERMISSION_LINES.get(_ss_posture_label, "No new trades permitted.")
-    if validation_summary.system_halted:
-        _ss_perm = "No trades permitted. System halted."
-    contract["system_state"]["outcome"] = outcome
-    contract["system_state"]["permission"] = _ss_perm
-    contract["system_state"]["reason"] = contract["system_state"].get("stay_flat_reason")
-    contract = apply_overnight_policy(
-        contract=contract,
+    contract, alert_sent = _build_and_finalize_contract(
+        mode=mode,
+        generation_id=generation_id,
+        run_at_utc=run_at_utc,
+        date_str=date_str,
+        raw_quotes=raw_quotes,
+        normalized_quotes=normalized_quotes,
+        validation_summary=validation_summary,
+        regime=regime,
+        router_state=router_state,
+        qualification_summary=qualification_summary,
+        watch_summary=watch_summary,
+        option_setups=option_setups,
+        chain_results=chain_results,
+        report_path=report_path,
+        errors=errors,
+        correlation_result=correlation_result,
+        trade_decisions=trade_decisions,
+        thesis_map=thesis_map,
+        invalidation_guidance_map=invalidation_guidance_map,
+        entry_quality_map=entry_quality_map,
+        outcome=outcome,
         market_map=market_map,
-        timestamp=run_at_utc,
+        fixture_file=fixture_file,
+        fixture_backed=fixture_backed,
+        notify_mode=notify_mode,
     )
-
-    if mode == MODE_SUNDAY:
-        contract["system_state"]["stay_flat_reason"] = "PREMARKET_CONTEXT"
-        contract["system_state"]["session_type"] = "SUNDAY_PREMARKET"
-
-    # Exactly one notification send per run. PRD-018 suppression gate applied
-    # before send; state persisted only on confirmed success (R7).
-    alert_sent = False
-    if mode in {MODE_LIVE, MODE_SUNDAY} and not fixture_backed:
-        current_key = notification_state_key(contract)
-        priority = classify_notification_priority(contract)
-        last_key = load_last_state(LAST_STATE_PATH)
-
-        if should_send(current_key, priority, last_key):
-            title, body = build_notification_message(contract)
-            alert_sent = send_notification(
-                title,
-                body,
-                notification_priority=priority.value,
-                notification_state_key=current_key,
-                notify_mode=notify_mode,
-            )
-            if alert_sent:
-                save_last_state(current_key, LAST_STATE_PATH)
-        else:
-            write_notification_audit(
-                transport="telegram",
-                alert_title="suppressed",
-                attempted=False,
-                success=False,
-                reason="suppressed_unchanged_state",
-                priority=priority.value,
-                state_key=current_key,
-                notify_mode=notify_mode,
-            )
-
-    contract["artifacts"]["notification_sent"] = alert_sent
 
     run_history = _load_run_history(LOGS_DIR / "audit.jsonl")
     premarket_report = build_premarket_report(contract)

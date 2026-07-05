@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 225,
-  "next_prd": 226,
+  "latest_complete": 239,
+  "next_prd": 240,
   "entries": [
     {
       "number": 56,
@@ -1038,8 +1038,74 @@
     {
       "number": 228,
       "title": "Bot-review-thread disposition clause (governance guardrail)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "a11481b"
+    },
+    {
+      "number": 229,
+      "title": "Ceremony tiering: cosmetic MICRO carve-out + same-PR closeout",
+      "status": "COMPLETE",
+      "commit": "#99"
+    },
+    {
+      "number": 230,
+      "title": "Process drop-list: Codex-authenticity teardown, cadence right-sizing, sediment stop, map de-line-numbering, process-doc dedup",
+      "status": "COMPLETE",
+      "commit": "#99"
+    },
+    {
+      "number": 231,
+      "title": "Doc-truth micro-fixes: qualification gate count (9\u219211), output.py dead runtime.py reference",
+      "status": "COMPLETE",
+      "commit": "#99"
+    },
+    {
+      "number": 232,
+      "title": "Guardrail tightening: skills learn PRD-229 rules, prd_open scaffold aligned to template, CLAUDE.md/CODEX.md dedup",
+      "status": "COMPLETE",
+      "commit": "#99"
+    },
+    {
+      "number": 233,
+      "title": "Wire assert_valid_contract into _run_pipeline + system_state key guard",
+      "status": "COMPLETE",
+      "commit": "#102"
+    },
+    {
+      "number": 234,
+      "title": "Kill the VALIDATED fail-open default: missing chain evidence renders MANUAL CHECK, never validated",
+      "status": "COMPLETE",
+      "commit": "#102"
+    },
+    {
+      "number": 235,
+      "title": "Qualification loudness: NEUTRAL symbols excluded visibly, missing-data gate passes emit skip markers",
+      "status": "COMPLETE",
+      "commit": "#102"
+    },
+    {
+      "number": 236,
+      "title": "Extract the decision-gate chain + contract finalization from _run_pipeline into named functions",
+      "status": "COMPLETE",
+      "commit": "#104"
+    },
+    {
+      "number": 237,
+      "title": "Typed contract boundary (J1): TypedDicts for contract / trade candidate / system_state, adopted in contract.py + payload.py",
+      "status": "COMPLETE",
+      "commit": "#105"
+    },
+    {
+      "number": 238,
+      "title": "J2: adopt the typed contract in notifications/renderer consumers; retire SCHEMA_MAP's contract field-lookup role + M-map design doc",
+      "status": "COMPLETE",
+      "commit": "#106"
+    },
+    {
+      "number": 239,
+      "title": "Make architecture.md true: real _run_pipeline stage order, decision layer, typed-dict contract",
+      "status": "COMPLETE",
+      "commit": "#108"
     }
   ]
 }

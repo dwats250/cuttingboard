@@ -1,4 +1,5 @@
 from __future__ import annotations
+from cuttingboard.contract_types import PipelineContract
 
 
 def _is_run_record(record: dict) -> bool:
@@ -99,7 +100,7 @@ def _classify_evr_legacy(
 
 
 def build_postmarket_report(
-    contract: dict,
+    contract: PipelineContract,
     run_history: list[dict],
     levels: dict | None = None,
 ) -> dict:

@@ -245,7 +245,18 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-225 | 9cc751c | Trend-structure mobile rows: uniform wrap (alignment-cell min-width + tighter gap) | COMPLETE | [PRD-225](prd_history/PRD-225.md) |
 | PRD-226 | — | Level diagram NOW anchor = current price (contract entry is a separate ENTRY level, never NOW) | IN PROGRESS | [PRD-226](prd_history/PRD-226.md) |
 | PRD-227 | — | Correct PRD-221 registry provenance (phantom 6b3fef1 → merged 8faa675) | IN PROGRESS | [PRD-227](prd_history/PRD-227.md) |
-| PRD-228 | — | Bot-review-thread disposition clause (governance guardrail) | IN PROGRESS | [PRD-228](prd_history/PRD-228.md) |
+| PRD-228 | a11481b | Bot-review-thread disposition clause (governance guardrail) | COMPLETE | [PRD-228](prd_history/PRD-228.md) |
+| PRD-229 | #99 | Ceremony tiering: cosmetic MICRO carve-out + same-PR closeout | COMPLETE | [PRD-229](prd_history/PRD-229.md) |
+| PRD-230 | #99 | Process drop-list: Codex-authenticity teardown, cadence right-sizing, sediment stop, map de-line-numbering, process-doc dedup | COMPLETE | [PRD-230](prd_history/PRD-230.md) |
+| PRD-231 | #99 | Doc-truth micro-fixes: qualification gate count (9→11), output.py dead runtime.py reference | COMPLETE | [PRD-231](prd_history/PRD-231.md) |
+| PRD-232 | #99 | Guardrail tightening: skills learn PRD-229 rules, prd_open scaffold aligned to template, CLAUDE.md/CODEX.md dedup | COMPLETE | [PRD-232](prd_history/PRD-232.md) |
+| PRD-233 | #102 | Wire assert_valid_contract into _run_pipeline + system_state key guard | COMPLETE | [PRD-233](prd_history/PRD-233.md) |
+| PRD-234 | #102 | Kill the VALIDATED fail-open default: missing chain evidence renders MANUAL CHECK, never validated | COMPLETE | [PRD-234](prd_history/PRD-234.md) |
+| PRD-235 | #102 | Qualification loudness: NEUTRAL symbols excluded visibly, missing-data gate passes emit skip markers | COMPLETE | [PRD-235](prd_history/PRD-235.md) |
+| PRD-236 | #104 | Extract the decision-gate chain + contract finalization from _run_pipeline into named functions | COMPLETE | [PRD-236](prd_history/PRD-236.md) |
+| PRD-237 | #105 | Typed contract boundary (J1): TypedDicts for contract / trade candidate / system_state, adopted in contract.py + payload.py | COMPLETE | [PRD-237](prd_history/PRD-237.md) |
+| PRD-238 | #106 | J2: adopt the typed contract in notifications/renderer consumers; retire SCHEMA_MAP's contract field-lookup role + M-map design doc | COMPLETE | [PRD-238](prd_history/PRD-238.md) |
+| PRD-239 | #108 | Make architecture.md true: real _run_pipeline stage order, decision layer, typed-dict contract | COMPLETE | [PRD-239](prd_history/PRD-239.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

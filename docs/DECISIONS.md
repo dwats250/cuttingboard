@@ -16,6 +16,106 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-05 — Fable window closed: Blocks 3–4 complete; post-window queue fixed
+
+The 2026-07-04→07-07 Fable window closed early with all four blocks done.
+Landed since the Block-3 gate: item I (PRD-236 @ #104), J1 (PRD-237 @ #105,
+Dustin's line-by-line schema read), J2 + M-map design (PRD-238 @ #106,
+`docs/renderer_decomposition_map.md`), ledger tick reconciliation (#107),
+and item G (PRD-239 @ #108, `docs/architecture.md` rewritten against the
+real `_run_pipeline`). Every HIGH-RISK PRD carried a fresh-context Claude
+review artifact; the Codex leg ran on the window's artifact-or-waiver
+pattern (Dustin's merges record the waivers — no `codex` CLI in the
+remote container, connector bot out of credits).
+
+`FABLE_WINDOW_PLAN.md` deleted per its own instruction; the
+`docs/session_resume/2026-07-04-fable-window.md` scratch note deleted per
+the PRD-230 sediment rule after confirming durable homes for its contents.
+
+**Post-window queue (Opus, after July 7)** — the master plan's open boxes
+plus review-surfaced follow-ups, consolidated here so nothing lives only
+in scratch: master-plan D (single-source constants), E (lockfile +
+SHA-pinning), F (confirmation/ingestion test blind spots), K (injected
+fetch provider), L (notification dedup state injection), M execution per
+`docs/renderer_decomposition_map.md` (re-verify its line numbers first);
+hourly-path finalize-validation + retire the `_validated_chain_result`
+sibling fail-open (enumerated in PRD-234 OUT OF SCOPE); qualification
+missing-candidate fall-through (PRD-235 doc); output.py always-None dead
+reads (PRD-237 OUT OF SCOPE); `reports/levels.py::derive_key_levels`
+typing MICRO (PRD-238 review); optional mypy gate (PRD-237 follow-up).
+
+**Operational note worth keeping:** the byte-identical fixture harness
+must warm TWICE after restoring committed `logs/` (first run trips the
+staleness guard against the committed fallback); artifacts are
+deterministic only at steady state. Always `git checkout -- logs/
+reports/` before commits.
+
+## 2026-07-05 — Alignment check #5 (phase boundary: Fable-window close) — PASS, no drift
+
+Phase-boundary diff-read per CLAUDE.md (the PRD-230 model — first run
+under it). Covered `main` merges since check #4 (2026-06-20): PRDs
+191–193, 204, 207–208, 210–212, 223–225, and the window's 228–239
+(PRs #96–#108). Q1 new prediction logic: none (validation, typing,
+docs, process, presentation only). Q2 new sidecar without a documented
+consumer: none (`renderer_decomposition_map.md` is a design doc;
+PRD-223/224's risk band consumes existing contract fields). Q3 new
+module serving none of VISION's four questions: none
+(`contract_types.py` types the existing contract). Q4 post-merge drift:
+none found — every window review artifact carries its DRIFT CHECK;
+PROJECT_STATE refreshed at each same-PR closeout. Findings: none.
+Next check: next phase boundary (likely the post-window Opus wave
+closing D/E or K/L/M).
+
+## 2026-07-04 — Fable-window Blocks 1+2 merged; Block-3 gate opened (Deviation 2 signed)
+
+Dustin hand-merged PR #99 (Block-1 governance batch, = Deviation-1 sign-off)
+and PR #102, which carried the whole Block-2 stack — PRD-233 (validator live
+in _run_pipeline, pre-notification), PRD-234 (CHAIN UNVERIFIED fail-open
+kill), PRD-235 (qualification loudness) — to `main` in one squash
+(`c31bff6`); the authoring PRs #100/#101 were closed as contained and the
+registry provenance trued up to #102 (PR #103). He then signed Deviation 2
+in-session ("Signed — open Block 3"), so the Wave-3/Block-3 gate is PASSED:
+the module-reads clause moves whole to the post-window learning stint,
+replaced in-window by byte-identical fixture checks + his line-by-line J1
+schema-diff read. First structural cut (PRD-236, master-plan item I)
+follows. The connector bot's six in-window catches are dispositioned
+in-thread on their PRs.
+
+## 2026-07-04 — Fable-window Block 1: ceremony tiering + process drop-list (PRD-229..232, batch PR #99, manual-merge)
+
+**What changed (mentor-review "What I Should Drop" + leverage item #1,
+executed per `audits/codebase-review-2026-07-03/FABLE_WINDOW_PLAN.md`):**
+PRD-229 — Cosmetic Carve-Out (cosmetic-only diffs exempt from the R11 lane
+floor, ≤10-line MICRO note, ≤1 weekly polish PRD; R12 unchanged) + Same-PR
+Closeout (COMPLETE cells record the PR number `#NNN`; validator accepts it;
+separate closeout commits retired). PRD-230 — Codex-authenticity apparatus
+deleted (codex-review.yml + its 19 tests; plain read-only `codex exec`
+review and artifact conventions kept); alignment cadence → phase-boundary
+15-min diff-read with the PRD-186 post-merge audit folded in; CALL_SITE_MAP
+de-line-numbered; process docs deduped to one owner per domain. PRD-231 —
+first carve-out MICRO (gate-count 9→11 ×3 sites, dead runtime.py ref).
+PRD-232 — skills/scaffold aligned to the new rules (closeout skill same-PR
+mode; authoring skill carve-out; prd_open.sh emits the canonical template).
+
+**Why.** Process output was ~3× product output; 12 cosmetic PRDs paid full
+HIGH-RISK freight in two days while a dead validator and a duplicated risk
+constant sat unnoticed. The authenticity apparatus (5 PRDs / 344-line
+workflow / 16 artifacts) had negative marginal return for a solo repo where
+Dustin performs every merge.
+
+**Deviations recorded.** The drop-list's audits-purge premise was falsified
+by recon (inbound refs everywhere except one file — only that file deleted;
+Dustin dispositions the rest at the batch review). Fable-window Deviation 1
+(H drafted by Fable, hand-merged by Dustin) is recorded in the MASTER_PLAN
+Parking Lot; Deviation 2 stays unsigned until the Block-3 gate.
+
+**Artifacts.** Reviews: `docs/prd_history/PRD-229.review.claude.md`,
+`PRD-230.review.claude.md`, `PRD-232.review.claude.md` (all fresh-context,
+ACCEPT WITH CHANGES, all REQUIRED edits remediated in-batch). Registry
+reconciliation that unblocked the numbering: PR #98 (`c4927d5`).
+
+---
+
 ## 2026-07-02 — PRD-223 SHIPPED: the risk band landed renderer-only; the deferral's premise was already met
 
 **What landed.** PRD-223 (merged via PR #89, `e654ca0`): the level ladder shades

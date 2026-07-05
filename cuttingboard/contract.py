@@ -15,6 +15,11 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from cuttingboard import config, time_utils
+from cuttingboard.contract_types import (
+    ContractCandidate,
+    PipelineContract,
+    SystemState,
+)
 from cuttingboard.trade_decision import (
     ALLOW_TRADE,
     BLOCK_TRADE,
@@ -58,6 +63,22 @@ _MACRO_DRIVER_SYMBOLS = {
 # the macro_drivers payload.
 _OPTIONAL_MACRO_DRIVERS: frozenset[str] = frozenset({"oil", "gold", "silver"})
 
+# PRD-233: the declared system_state schema. Built keys come from
+# _build_system_state / build_error_contract; runtime keys are the
+# post-build injections _run_pipeline performs (outcome/permission/reason
+# always; session_type on the Sunday path). A new injection anywhere must
+# be declared here or assert_valid_contract fails the run.
+_SYSTEM_STATE_BUILT_KEYS: frozenset[str] = frozenset({
+    "router_mode", "market_regime", "intraday_state", "time_gate_open",
+    "tradable", "stay_flat_reason", "confidence",
+})
+_SYSTEM_STATE_RUNTIME_KEYS: frozenset[str] = frozenset({
+    "outcome", "permission", "reason", "session_type",
+})
+SYSTEM_STATE_ALLOWED_KEYS: frozenset[str] = (
+    _SYSTEM_STATE_BUILT_KEYS | _SYSTEM_STATE_RUNTIME_KEYS
+)
+
 
 def build_pipeline_output_contract(
     pipeline_result: Any,
@@ -67,7 +88,7 @@ def build_pipeline_output_contract(
     artifacts: dict[str, Any],
     timezone_name: str = "America/New_York",
     data_quality: Optional[str] = None,
-) -> dict[str, Any]:
+) -> PipelineContract:
     """Build a PipelineOutputContract dict from a completed PipelineResult.
 
     All fields are JSON-native. No datetime objects, enums, or custom
@@ -133,7 +154,7 @@ def build_error_contract(
     artifacts: dict[str, Any],
     timezone_name: str = "America/New_York",
     error_detail: Optional[str] = None,
-) -> dict[str, Any]:
+) -> PipelineContract:
     """Build a minimal valid contract when the pipeline fails with an exception."""
     return {
         "schema_version": SCHEMA_VERSION,
@@ -201,7 +222,7 @@ def _build_system_state(
     validation_summary: Any,
     run_at_utc: Optional[datetime],
     router_mode: Optional[str],
-) -> dict[str, Any]:
+) -> SystemState:
     system_halted = getattr(validation_summary, "system_halted", False)
     halt_reason = getattr(validation_summary, "halt_reason", None)
     regime_failure_reason = qual.regime_failure_reason if qual else None
@@ -292,7 +313,7 @@ def _build_trade_candidates(
     thesis_map: Optional[dict] = None,
     invalidation_guidance_map: Optional[dict] = None,
     entry_quality_map: Optional[dict] = None,
-) -> list[dict[str, Any]]:
+) -> list[ContractCandidate]:
     if qual is None:
         return []
 
@@ -534,8 +555,15 @@ def _build_macro_drivers(normalized_quotes: dict) -> dict[str, dict[str, float |
     return macro_drivers
 
 
-def assert_valid_contract(contract: dict) -> None:
-    """Raise AssertionError if the contract violates any hard invariants."""
+def assert_valid_contract(contract: dict, *, finalized: bool = False) -> None:
+    """Raise AssertionError if the contract violates any hard invariants.
+
+    finalized=True (PRD-233) additionally requires the runtime post-build
+    injections — top-level ``outcome``, ``system_state`` outcome /
+    permission / reason, and ``artifacts.notification_sent`` — so
+    _run_pipeline validates the contract it actually persists, not just
+    the builder's output. The default keeps builder-level semantics.
+    """
     required_top = {
         "schema_version", "generated_at", "session_date", "mode", "status",
         "timezone", "system_state", "market_context", "trade_candidates",
@@ -549,6 +577,27 @@ def assert_valid_contract(contract: dict) -> None:
         f"schema_version must be {SCHEMA_VERSION!r}, got {contract['schema_version']!r}"
     assert contract["status"] in _VALID_STATUSES, \
         f"Invalid status: {contract['status']!r}"
+
+    # PRD-233: system_state key discipline runs for EVERY contract —
+    # including ERROR and empty-macro_drivers contracts, which return
+    # early below and would otherwise skip it.
+    system_state = contract["system_state"]
+    assert isinstance(system_state, dict), "system_state must be a dict"
+    undeclared = set(system_state) - SYSTEM_STATE_ALLOWED_KEYS
+    assert not undeclared, (
+        f"system_state has undeclared keys: {sorted(undeclared)} — new "
+        "runtime injections must be declared in SYSTEM_STATE_ALLOWED_KEYS"
+    )
+    if finalized:
+        assert "outcome" in contract, "finalized contract missing top-level 'outcome'"
+        missing_ss = {"outcome", "permission", "reason"} - set(system_state)
+        assert not missing_ss, \
+            f"finalized system_state missing keys: {sorted(missing_ss)}"
+        artifacts = contract["artifacts"]
+        assert isinstance(artifacts, dict), "artifacts must be a dict"
+        assert "notification_sent" in artifacts, \
+            "finalized artifacts missing 'notification_sent'"
+
     _assert_macro_driver_mapping_sync()
 
     macro_drivers = contract["macro_drivers"]

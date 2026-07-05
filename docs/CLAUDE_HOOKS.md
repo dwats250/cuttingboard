@@ -27,8 +27,15 @@ pattern, the write is blocked unless that exact path is listed in the active
 PRD's `FILES` section. **Non-protected paths pass through untouched** - ordinary
 `docs/` and source edits are not gated by this hook.
 
-**Protected patterns:** `.env` / `.env.*`, `.git/*`, `*.lock`,
-`.github/workflows/*`, `secrets*`.
+**Protected patterns:** the hook's own hardcoded hard-block subset - see the
+script header in `.claude/hooks/protect_files.sh` for the literal list
+(secrets/env, `.git/*`, lockfiles, workflow files). This is deliberately
+NARROWER than the "Never auto-approve" policy table in
+`docs/AGENT_WORKFLOW.md`, which is the broad review-policy surface (runtime,
+contract, dashboard, trading logic, CI, push) that PRD lanes and skills
+enforce. Two scopes by design (PRD-230): the hook is the mechanical last line
+for catastrophic writes; AGENT_WORKFLOW.md is the policy boundary. Do not
+"sync" one list to the other.
 
 **Fail-closed:** for a protected path, if `.claude/state/active_prd.txt` is
 missing or empty the write is blocked. This applies only to protected paths - it

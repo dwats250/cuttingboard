@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from cuttingboard import config, time_utils
+from cuttingboard.contract_types import PipelineContract
 
 ALLOW_HOLD = "ALLOW_HOLD"
 REDUCE_POSITION = "REDUCE_POSITION"
@@ -54,10 +55,10 @@ _DECISION_BY_SEVERITY = {value: key for key, value in _SEVERITY.items()}
 
 def apply_overnight_policy(
     *,
-    contract: dict[str, Any] | None,
+    contract: PipelineContract | None,
     market_map: dict[str, Any] | None,
     timestamp: datetime,
-) -> dict[str, Any] | None:
+) -> PipelineContract | None:
     """Return contract annotated with EOD overnight policy, or unchanged outside EOD."""
     if not _is_eod_window(timestamp):
         return contract
