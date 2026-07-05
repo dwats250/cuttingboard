@@ -1094,6 +1094,12 @@
       "title": "Typed contract boundary (J1): TypedDicts for contract / trade candidate / system_state, adopted in contract.py + payload.py",
       "status": "COMPLETE",
       "commit": "#105"
+    },
+    {
+      "number": 238,
+      "title": "J2: adopt the typed contract in notifications/renderer consumers; retire SCHEMA_MAP's contract field-lookup role + M-map design doc",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
