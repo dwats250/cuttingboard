@@ -24,7 +24,7 @@ The pipeline executes in strict layer order:
 5. derived.py            — EMA9/21/50, ATR14 (Wilder RMA), momentum_5d, volume_ratio
 6. structure.py          — classify each symbol: TREND/PULLBACK/BREAKOUT/REVERSAL/CHOP
 7. regime.py             — 8-vote model → RISK_ON/RISK_OFF/NEUTRAL/CHAOTIC + posture
-8. qualification.py      — 9–11 gates per candidate (4 hard, 5–7 soft)
+8. qualification.py      — 11 gates per candidate (4 hard, 7 soft)
 9. options.py            — spread selection, DTE, strike distance
 10. chain_validation.py  — live chain liquidity gate (OI, spread %, bid/ask sanity)
 11. contract.py          — assemble pipeline output contract (build_pipeline_output_contract)

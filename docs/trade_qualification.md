@@ -12,6 +12,14 @@ Gates 5–11 (SOFT):  1 miss → WATCHLIST
                    2+ misses → REJECT
 ```
 
+The 11 gates above describe the **DIRECT** entry mode — the default path
+through `qualify_candidate()`. Two further entry-mode systems exist and are
+documented in [Entry Modes](#entry-modes) below: **CONTINUATION** (an
+EXPANSION-only breakout path with its own gate sequence in
+`_qualify_continuation_candidate()`) and **PULLBACK_IMBALANCE** (an FVG-based
+upgrade applied post-hoc to an already-qualified DIRECT result in
+`_resolve_entry_mode()`).
+
 ---
 
 ## The 11 Gates
@@ -102,46 +110,58 @@ This checks that a meaningful stop exists. A stop at zero or at the entry price 
 
 ### Gate 6 — STOP_DISTANCE (Soft)
 
-**Rule:** Stop must be ≥ 1% from entry price AND ≥ 0.5× ATR14 (if ATR is available).
+**Rule:** Stop must be ≥ 1% from entry price (`config.MIN_STOP_PCT = 0.01`) AND ≥ 1.0× ATR14 (`config.STOP_ATR_FLOOR_K = 1.0`, if ATR is available).
 
 ```python
 stop_pct = risk / entry_price
-if stop_pct < 0.01:
+if stop_pct < config.MIN_STOP_PCT:
     → soft failure: "stop distance {X}% below 1.0% minimum"
 
-if atr14 is available and risk < 0.5 × atr14:
-    → soft failure: "stop distance {X} below 0.5× ATR14 ({Y})"
+if atr14 is available and risk < config.STOP_ATR_FLOOR_K × atr14:
+    → soft failure: "stop distance {X} below 1× ATR14 ({Y})"
 ```
 
 **Why both conditions?**
 - The 1% floor prevents entering trades where the stop is so tight that normal intraday volatility will trigger it. A 0.5% stop on a $100 stock means a $0.50 move takes you out — not a trade, just noise.
-- The 0.5× ATR condition is stronger: it ensures the stop is placed at a level that reflects actual recent price movement. A stop tighter than half the typical daily range has a very high probability of being hit by random fluctuation before the trade has a chance to develop.
+- The ATR condition is stronger: it ensures the stop sits outside the typical daily range. A stop tighter than one full ATR has a high probability of being hit by random fluctuation before the trade has a chance to develop. (PRD-240 raised this floor from 0.5× to 1.0×; every practitioner convention surveyed by the 2026-07-05 tuning audit starts at ≥ 1×.)
 
 When ATR is unavailable (insufficient history), only the 1% check runs. The ATR check is skipped — it does not cause a failure by itself.
 
+`MIN_STOP_PCT` is also the continuation path's stop floor (see [CONTINUATION](#continuation)) — one shared constant, per PRD-240 R3.
+
 **Failure message:** `STOP_DISTANCE: stop distance 0.6% below 1.0% minimum`
-or: `STOP_DISTANCE: stop distance 1.20 below 0.5× ATR14 (1.50)`
+or: `STOP_DISTANCE: stop distance 5.00 below 1× ATR14 (7.20)`
 
 ---
 
 ### Gate 7 — RR_RATIO (Soft)
 
-**Rule:** Reward-to-risk ratio must be ≥ 2.0.
+**Rule:** Reward-to-risk ratio must meet the regime-tiered minimum, selected by `_min_rr_for_regime()`:
+
+| Regime | Minimum R:R | Constant |
+|--------|-------------|----------|
+| NEUTRAL | 3.0 | `config.NEUTRAL_RR_RATIO` |
+| EXPANSION | 2.0 | `config.EXPANSION_RR_RATIO` |
+| all others (RISK_ON / RISK_OFF / CHAOTIC) | 2.0 | `config.MIN_RR_RATIO` |
 
 ```python
 risk   = abs(entry_price - stop_price)
 reward = abs(target_price - entry_price)
 rr     = reward / risk
 
-if rr < 2.0:   # config.MIN_RR_RATIO
+if rr < _min_rr_for_regime(regime):
     → soft failure
 ```
 
 An R:R below 2.0 means you need to be right more than 50% of the time just to break even accounting for bid/ask spread and commissions. With options spreads (which have transaction costs on both entry and exit), 2.0 is the minimum viable ratio.
 
+**Why the tiers:** NEUTRAL is the low-information regime — a directional trade taken there carries the weakest environmental backing, so it must pay more when right (3.0). EXPANSION previously carried a *discount* (1.5); PRD-240 removed it — the momentum/breakout literature surveyed by the 2026-07-05 tuning audit associates continuation setups with lower win rates needing *higher* R:R, so an unsupported discount was the wrong direction. EXPANSION now matches the default.
+
+The same tier selection is reused by the PULLBACK_IMBALANCE upgrade's R:R re-check (see [Entry Modes](#entry-modes)) and, against a synthetic reward, by the CONTINUATION path — one helper, no silent divergence (PRD-240 R4).
+
 Gate 7 and Gate 6 are the most commonly failing soft gates. A tight stop + distant target will fail Gate 6; a close target + distant stop will fail Gate 7.
 
-**Failure message:** `RR_RATIO: R:R 1.8 below 2.0 minimum`
+**Failure message:** `RR_RATIO: R:R 1.80 below 2.0 minimum` (NEUTRAL appends `(NEUTRAL stricter gate)`)
 
 ---
 
@@ -244,8 +264,6 @@ This is the maximum number of contracts and maximum dollar risk. You can trade f
 
 ---
 
-## Worked Examples
-
 ### Gate 10 — EXTENSION (Soft)
 
 **Rule:** Price must not be excessively extended relative to EMA21 and ATR14.
@@ -277,11 +295,82 @@ This gate preserves execution discipline without changing the underlying signal 
 
 ---
 
+## Entry Modes
+
+`QualificationResult.entry_mode` names which of three entry systems produced
+the setup. DIRECT is the default; the other two exist for specific structures.
+
+### DIRECT
+
+The 11-gate sequence above, run by `qualify_candidate()` on a candidate with a
+real `target_price` from level analysis. Everything in this document up to
+here describes DIRECT.
+
+### CONTINUATION
+
+An **EXPANSION-regime-only** breakout path (`_qualify_continuation_candidate()`),
+run inside `qualify_all()` after the DIRECT pass — only when the regime is
+EXPANSION, and only for non-CHOP symbols that did not already qualify or
+watchlist via DIRECT. It is LONG-only by construction and uses its own gate
+sequence — first failure wins, one deterministic rejection reason per candidate:
+
+| # | Check | Constant(s) | Rejection reason |
+|---|-------|-------------|------------------|
+| 1 | Daily OHLCV + ATR14 present | — | `DATA_INCOMPLETE` |
+| 2 | VIX not spiking: `vix_pct_change ≤ +1%` | `CONTINUATION_VIX_SPIKE_BLOCK = 0.01` | `VIX_BLOCKED` |
+| 3 | Close clears the prior 5-bar high | `CONTINUATION_BREAKOUT_BARS = 5` | `NO_BREAKOUT` |
+| 4 | Close 1 completed bar ago also held above the breakout level | `CONTINUATION_HOLD_CANDLES = 1` | `NO_HOLD_CONFIRMATION` |
+| 5 | Last candle range ≥ 0.75× ATR14 AND close in the top quartile of its range (`close_location ≥ 0.75`, PRD-240 R5 — a wick-dominated candle is not momentum) | `CONTINUATION_MOMENTUM_K = 0.75` | `INSUFFICIENT_MOMENTUM` |
+| 6 | Entry ≤ 2.5× ATR14 from EMA21 | `CONTINUATION_MAX_EXTENSION_ATR = 2.5` | `EXTENDED_FROM_MEAN` |
+| 7 | Stop = the breakout level; risk ≥ 1% of entry | `MIN_STOP_PCT = 0.01` | `STOP_TOO_TIGHT` |
+| 8 | Synthetic R:R ≥ 2.0 (see below) | `EXPANSION_RR_RATIO = 2.0` | `RR_BELOW_THRESHOLD` |
+| 9 | Before the 3:30 PM ET cutoff | `ENTRY_CUTOFF_ET` | `TIME_BLOCKED` |
+| 10 | Sizing fits the equity budget (spread_width = max($0.50, 0.05× ATR14); no regime multiplier — EXPANSION is 1.0) | `ACCOUNT_EQUITY`, `MAX_RISK_PCT_PER_TRADE` | `STOP_TOO_TIGHT` |
+
+**The synthetic reward is a fixed ATR multiple, not a target estimate:**
+`reward = CONTINUATION_REWARD_ATR_MULTIPLE × ATR14 = 3.0× ATR14` (PRD-240 R3).
+The R:R check therefore functions as a **stop-width ceiling**: with
+`EXPANSION_RR_RATIO = 2.0`, a candidate qualifies only when
+`risk = entry − breakout_level ≤ 1.5× ATR14`. Combined with check 7, the
+qualifying band is `1% of entry ≤ risk ≤ 1.5× ATR14`.
+
+**Deliberate asymmetry vs. Gate 6:** the continuation stop has **no ATR
+floor**. The stop anchors to the structural breakout level rather than being
+chosen, so the chosen-stop ATR convention does not map — and adding a 1.0×ATR
+floor would shrink the band above to ~0.5×ATR wide, a de facto path shutdown.
+Retained and documented in-code per PRD-240 R6.
+
+### PULLBACK_IMBALANCE
+
+A Fair Value Gap (FVG) **upgrade applied post-hoc** by `_resolve_entry_mode()`
+to a result that has already fully qualified through the DIRECT gates. It
+never rescues a failed candidate and never demotes a qualified one — if any
+condition below fails, the result simply stays DIRECT.
+
+1. **FVG detection** (`detect_fvg`, last `FVG_LOOKBACK_CANDLES = 6` completed
+   daily bars): a displacement candle with body ≥ 1.2× ATR14
+   (`FVG_DISPLACEMENT_K`) closing in the outer quartile of its range
+   (`close_location ≥ 0.75` LONG / `≤ 0.25` SHORT), leaving a gap
+   ≥ 0.3× ATR14 (`FVG_GAP_K`).
+2. **Proximity:** current close within 1.5× ATR14 of the zone midpoint
+   (`FVG_PROXIMITY_K`); farther and the zone is stale.
+3. **Zone R:R re-check:** risk is re-measured from the zone midpoint to the
+   zone's far bound (lower bound for LONG, upper bound for SHORT), reward from
+   the midpoint to the candidate's real target; the ratio must clear the
+   **same regime-tiered minimum as Gate 7** (`_min_rr_for_regime()`, PRD-240 R4).
+
+On upgrade, `entry_mode = PULLBACK_IMBALANCE` and `imbalance_zone` carries the
+zone bounds; sizing and all gate results are unchanged from the DIRECT pass.
+
+---
+
+## Worked Examples
+
 ### Example A — Fully Qualified Setup (all 11 gates pass)
 
 **Conditions:** RISK_ON regime, AGGRESSIVE_LONG posture, confidence=0.75.
 **Symbol:** QQQ, structure=TREND, iv_environment=NORMAL_IV.
-**Candidate:** direction=LONG, entry=$480, stop=$475.20 (1% below), target=$489.60 (2× risk), spread_width=$1.50.
+**Candidate:** direction=LONG, entry=$480, stop=$472.80 (1.5% below), target=$494.40 (2× risk), spread_width=$1.50.
 
 | Gate | Check | Result |
 |------|-------|--------|
@@ -289,9 +378,9 @@ This gate preserves execution discipline without changing the underlying signal 
 | 2 CONFIDENCE | 0.75 ≥ 0.50 | ✓ PASS |
 | 3 DIRECTION | LONG = RISK_ON expected LONG | ✓ PASS |
 | 4 STRUCTURE | TREND ≠ CHOP | ✓ PASS |
-| 5 STOP_DEFINED | stop=475.20 > 0, risk=4.80 > 0 | ✓ PASS |
-| 6 STOP_DISTANCE | 4.80/480 = 1.0% ≥ 1%; 4.80 ≥ 0.5×ATR (ATR=7.2, half=3.6) | ✓ PASS |
-| 7 RR_RATIO | reward=9.60, risk=4.80, RR=2.0 ≥ 2.0 | ✓ PASS |
+| 5 STOP_DEFINED | stop=472.80 > 0, risk=7.20 > 0 | ✓ PASS |
+| 6 STOP_DISTANCE | 7.20/480 = 1.5% ≥ 1%; 7.20 ≥ 1×ATR (ATR=7.2) | ✓ PASS |
+| 7 RR_RATIO | reward=14.40, risk=7.20, RR=2.0 ≥ 2.0 | ✓ PASS |
 | 8 MAX_RISK | spread_cost=$150, max_c=floor(150/150)=1 | ✓ PASS |
 | 9 EARNINGS | has_earnings_soon=None → fail-open | ✓ PASS |
 | 10 EXTENSION | entry close enough to EMA21 relative to ATR14 | ✓ PASS |
@@ -304,19 +393,19 @@ This gate preserves execution discipline without changing the underlying signal 
 ### Example B — Watchlist (one soft gate fails)
 
 Same conditions as Example A, but the R:R is marginal:
-**Candidate:** entry=$480, stop=$475.20, target=$487.20 (1.5× risk).
+**Candidate:** entry=$480, stop=$472.80, target=$490.80 (1.5× risk).
 
 | Gate | Check | Result |
 |------|-------|--------|
 | 1–5 | (same as above) | ✓ PASS |
-| 6 STOP_DISTANCE | stop_pct=1.0% ≥ 1%; risk=4.80 ≥ half-ATR 3.6 | ✓ PASS |
-| 7 RR_RATIO | reward=7.20, risk=4.80, RR=1.5 < 2.0 | ✗ FAIL |
+| 6 STOP_DISTANCE | stop_pct=1.5% ≥ 1%; risk=7.20 ≥ 1×ATR 7.2 | ✓ PASS |
+| 7 RR_RATIO | reward=10.80, risk=7.20, RR=1.5 < 2.0 | ✗ FAIL |
 | 8 MAX_RISK | (computed, max_c=1) | ✓ PASS |
 | 9 EARNINGS | None → pass | ✓ PASS |
 | 10 EXTENSION | entry close enough to EMA21 relative to ATR14 | ✓ PASS |
 | 11 TIME | run occurs before 3:30 PM ET | ✓ PASS |
 
-**Outcome:** `watchlist=True`, `watchlist_reason="R:R 1.5 below 2.0 minimum"`.
+**Outcome:** `watchlist=True`, `watchlist_reason="R:R 1.50 below 2.0 minimum"`.
 
 This setup will appear in the WATCHLIST section. The target is too close. Wait for QQQ to move further from the entry, or find a higher target level.
 
@@ -351,7 +440,7 @@ A watchlist symbol is not a failed trade — it is a **conditional trade**. The 
 |-----------------|-----------|
 | R:R below minimum | Check back after more price movement; target may be closer to a resistance level |
 | Stop distance below 1% | Wait for a wider ATR day or a pullback that gives a cleaner entry |
-| Stop below 0.5× ATR14 | Same as above — the current ATR is too large relative to the stop distance |
+| Stop below 1× ATR14 | Same as above — the current ATR is too large relative to the stop distance |
 | Earnings within 5 days | Wait until after the earnings announcement |
 | Spread width exceeds budget | Consider a narrower spread if available |
 
