@@ -11,6 +11,7 @@ import json
 import math
 from typing import Any, Optional
 
+from cuttingboard.contract_types import PipelineContract
 from cuttingboard.trade_decision import candidate_is_actionable
 
 PAYLOAD_SCHEMA_VERSION = "1.0"
@@ -20,7 +21,7 @@ _DECISION_DETAIL_KEYS = frozenset({"symbol", "direction", "strategy_tag", "entry
 _DECISION_TRACE_KEYS = frozenset({"stage", "source", "reason"})
 
 
-def build_report_payload(contract: dict, fixture_mode: bool = False) -> dict:
+def build_report_payload(contract: PipelineContract, fixture_mode: bool = False) -> dict:
     """Build a ReportPayload dict from a canonical PRD-011 contract dict.
 
     Deterministic: identical contract produces identical payload.
