@@ -1088,6 +1088,12 @@
       "title": "Extract the decision-gate chain + contract finalization from _run_pipeline into named functions",
       "status": "COMPLETE",
       "commit": "#104"
+    },
+    {
+      "number": 237,
+      "title": "Typed contract boundary (J1): TypedDicts for contract / trade candidate / system_state, adopted in contract.py + payload.py",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
