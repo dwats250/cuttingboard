@@ -1106,6 +1106,18 @@
       "title": "Make architecture.md true: real _run_pipeline stage order, decision layer, typed-dict contract",
       "status": "COMPLETE",
       "commit": "#108"
+    },
+    {
+      "number": 240,
+      "title": "Qualification tuning from the 2026-07-05 audit: EXPANSION R:R discount removal, Gate-6 ATR stop floor, entry-mode wiring honesty",
+      "status": "PROPOSED",
+      "commit": null
+    },
+    {
+      "number": 241,
+      "title": "Qualification doc truth: gate count in system_logic_map + entry modes and regime-tiered R:R in trade_qualification",
+      "status": "PROPOSED",
+      "commit": null
     }
   ]
 }

@@ -16,6 +16,43 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-05 — Qualification tuning audit dispositioned: PRD-240/241 drafted PROPOSED, six findings left as-is
+
+The read-only trade-qualification tuning audit
+(`audits/qualification-tuning-2026-07-05/findings.md`, branch
+`claude/qualification-system-audit-sp0wat` @ d507130) is dispositioned:
+
+- **Acted on → PRD-240 (PROPOSED, HIGH-RISK/EXECUTION, held for Dustin):**
+  EXPANSION R:R discount removal (1.5→2.0; the audit's one
+  literature-confluent directional finding), Gate-6 ATR stop floor 0.5→1.0×
+  (below every convention found), plus wiring honesty — shared `MIN_STOP_PCT`,
+  named continuation reward constant (the formula is a constant 3.0×ATR14 in
+  disguise), regime-tiered R:R in `_resolve_entry_mode` (missing EXPANSION
+  branch), continuation momentum close-location conviction.
+- **Explicit calls on the audit's three "human decision" flags:** FVG R:R
+  branch → fix via shared tier helper (behavior-neutral at 2.0); synthetic
+  reward → rename honestly, redesign declined; continuation stop-floor
+  asymmetry → retained and documented, because a 1.0×ATR floor there would
+  meet the post-R1 R:R ceiling (risk ≤ 1.5×ATR14) in a 0.5×ATR-wide
+  qualifying band — a de facto continuation shutdown nobody has decided on
+  (interaction the audit did not surface; found while drafting).
+- **Not adopted:** the audit's NEUTRAL-vs-EXPANSION R:R "reversal" framing —
+  NEUTRAL trades here are directional setups in a low-information regime, not
+  a mean-reversion strategy; NEUTRAL 3.0 and default 2.0 stand.
+- **Left as-is (audit-concurring):** `MIN_REGIME_CONFIDENCE` (only NEUTRAL
+  binds on it in production; splitting would duplicate `regime.py` posture
+  tiers), extension multipliers, continuation K-values, NEUTRAL ±1 tiebreak.
+  Flagged-not-actioned: min-votes confidence guard (degraded-data edge),
+  WATCHLIST `gates_skipped` render gap (PRD-235 RECOMMENDED-1, stays deferred).
+- **Doc drift → PRD-241 (PROPOSED, MICRO, sequenced after the 240 decision):**
+  `system_logic_map.md` "9–11 gates" + `trade_qualification.md` missing two of
+  three entry modes and the regime R:R tiers.
+
+SSRN citations are search-snippet confidence only (SSRN full text
+bot-blocked) — verify before leaning further on them.
+
+---
+
 ## 2026-07-05 — Fable window closed: Blocks 3–4 complete; post-window queue fixed
 
 The 2026-07-04→07-07 Fable window closed early with all four blocks done.
