@@ -16,6 +16,27 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-05 — PRD-242: second-model review becomes a commissioned instrument (closes the 197→230 Codex arc)
+
+The lifecycle audit (`audits/prd-lifecycle-audit-2026-07-05/`, PR #114) found
+the mandatory Codex cross-review gate had been fiction since PRD-230: the CI
+leg was deleted, no codex-capable host exists in the operating loop, all 8
+HIGH-RISK closes since ran on waiver-by-merge, and PRD-240 merged while its
+own review artifact said the second leg was still owed — a silent gate-skip.
+Dustin confirmed Option A after the connector-bot post-merge net was verified
+empirically live (substantive ACTIONED P2 threads on #99/#102, an open P2 on
+#108; the earlier "out of credits" note was wrong — corrected in the Step 5
+sync batch). Decision: the HIGH-RISK second leg is the fresh-context Claude
+review + Dustin's manual merge; second-model review is an instrument Dustin
+may commission, never a requirement owed; every HIGH-RISK close ≥ 242 records
+its disposition explicitly (artifact or the verbatim SECOND-MODEL sentence),
+enforced by the registry validator at CI. The waiver is a positive act, never
+a silence. The PRD-228 bot-thread disposition net is untouched. This closes
+the PRD-197→207→212→230 arc: five PRDs, ~8 PRs, 699 peak LOC, one real catch,
+ending as one sentence the merger has to write.
+
+---
+
 ## 2026-07-05 — Two testing rules from the PRD-240 implementation arc
 
 Both surfaced during PRD-240 (merged PR #111); recorded as standing rules,
