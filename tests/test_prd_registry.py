@@ -563,3 +563,15 @@ def test_242_non_complete_high_risk_not_checked(tmp_path: Path) -> None:
     errors: list[str] = []
     validate_prd_registry._validate_second_model_disposition(tmp_path, rows, errors)
     assert errors == []
+
+
+def test_242_misnamed_claude_variant_does_not_satisfy(tmp_path: Path) -> None:
+    # Review RECOMMENDED EDIT 1: any claude-* model token is the first leg,
+    # never the second model — claude-fresh/claude2 must not satisfy R2.
+    _write_prd_doc(tmp_path, 243, "PRD-243 — x\n\nLANE\nHIGH-RISK\n")
+    (tmp_path / "docs" / "prd_history" / "PRD-243.review.claude-fresh.md").write_text(
+        "VERDICT: ACCEPT\n", encoding="utf-8"
+    )
+    errors: list[str] = []
+    validate_prd_registry._validate_second_model_disposition(tmp_path, _hr_rows(243), errors)
+    assert any("Second-model disposition missing: PRD-243" in e for e in errors)

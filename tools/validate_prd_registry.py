@@ -360,9 +360,13 @@ def _validate_second_model_disposition(
             continue
         if not _LANE_HIGH_RISK_RE.search(doc.read_text(encoding="utf-8")):
             continue
+        # Exclude ANY claude-model artifact (claude, claude-fresh, claude2...):
+        # the Claude review is the first leg and must never double-count as
+        # the second model (PRD-242 R3; review RECOMMENDED EDIT 1).
+        review_prefix = f"PRD-{number:03d}.review."
         has_artifact = any(
-            p.name != f"PRD-{number:03d}.review.claude.md"
-            for p in history.glob(f"PRD-{number:03d}.review.*.md")
+            not p.name[len(review_prefix):].lower().startswith("claude")
+            for p in history.glob(f"{review_prefix}*.md")
         )
         has_sentence = SECOND_MODEL_SENTENCE in doc.read_text(encoding="utf-8")
         if not has_artifact and not has_sentence:
