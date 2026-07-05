@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 236,
-  "next_prd": 237,
+  "latest_complete": 237,
+  "next_prd": 238,
   "entries": [
     {
       "number": 56,
@@ -1092,8 +1092,8 @@
     {
       "number": 237,
       "title": "Typed contract boundary (J1): TypedDicts for contract / trade candidate / system_state, adopted in contract.py + payload.py",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#105"
     }
   ]
 }
