@@ -1,370 +1,370 @@
 # Cuttingboard — System Architecture
 
-## Pipeline
-
-```
-ingestion → normalization → validation → derived → regime → structure → qualification → flow → options → chain_validation → output
-```
-
-## Module Mapping
-
-| Module | Layer | Role |
-|---|---|---|
-| `ingestion.py` | ingestion | RawQuote per symbol, fetch_all, yfinance |
-| `normalization.py` | normalization | NormalizedQuote, decimal pct_change, UTC enforcement |
-| `validation.py` | validation | ValidationSummary, 7 hard rules, HALT_SYMBOL gate |
-| `derived.py` | derived | DerivedMetrics, EMA9/21/50, ATR14, momentum_5d, volume_ratio |
-| `regime.py` | regime | RegimeState, 8-input vote model, posture |
-| `structure.py` | structure | StructureResult, TREND/PULLBACK/BREAKOUT/REVERSAL/CHOP |
-| `qualification.py` | qualification | TradeCandidate, QualificationSummary, 11 gates |
-| `flow.py` | flow | FlowPrint, apply_flow_gate — directional alignment soft gate |
-| `options.py` | options | OptionSetup, strategy selection, DTE, strike distance |
-| `chain_validation.py` | chain_validation | ChainValidationResult, live OI/spread/bid-ask check |
-| `output.py` | output | render_report, markdown, Telegram alert |
-
-## Support Modules
-
-These modules are not pipeline stages. They are imported by pipeline stages or operate alongside the pipeline.
-
-| Module | Role |
-|---|---|
-| `config.py` | All constants and secrets (via dotenv). Never hardcode. |
-| `audit.py` | Append-only JSONL record to `logs/audit.jsonl` on every run. |
-| `runtime/` | Sole production orchestrator (package; split out of the former `runtime.py` monolith, PRD-173). All modes routed through `cli_main()`. |
-| `contract.py` | Cross-layer output contract dataclasses. Frozen. |
-| `confirmation.py` | Level confirmation evaluation for entry candidates. |
-| `universe.py` | Symbol tradability check. |
-| `sector_router.py` | Sector router state model and resolver; no routing application surface. |
-| `time_utils.py` | ET timezone helpers, market hours. |
-| `watch.py` | Intraday watchlist classification and session phase tracking. |
-| `intraday_state_engine.py` | ORB classification engine. |
-| `notifications/` | Telegram alert formatting (hourly + run summaries). |
-| `delivery/` | Dashboard renderer and payload assembly: renders `ui/dashboard.html` from the run payload. Read-only consumer of pipeline output; no influence on decisions. |
-
-## Delivery Clarification
-
-Delivery is NOT part of the decision pipeline. Telegram and terminal output are handled in `output.py`; the HTML dashboard (`ui/dashboard.html`) is rendered separately by `delivery/dashboard_renderer.py` from the run payload. None of it influences qualification, options selection, or any upstream stage.
+This document describes the system as the code executes it. The source of
+truth for stage order is `cuttingboard/runtime/__init__.py::_run_pipeline`;
+if this document and that function disagree, the function wins and this
+document is the bug.
 
 ---
 
 ## What This System Does
 
-Cuttingboard is a deterministic market interpretation and trade qualification engine. It produces one of three terminal states: **TRADE**, **NO TRADE**, or **HALT**.
+Cuttingboard is a deterministic market interpretation and trade qualification
+engine. Every run produces one of three terminal states: **TRADE**,
+**NO TRADE**, or **HALT**. It describes and qualifies; it never predicts
+(see `VISION.md` non-goals).
 
-CLI entrypoint:
+CLI entrypoints (`python -m cuttingboard` → `runtime.cli_main`):
 
-- `python -m cuttingboard` → live mode
-- `python -m cuttingboard --mode fixture --fixture-file PATH` → deterministic fixture mode
-- `python -m cuttingboard --mode sunday` → regime-only Sunday mode
-- `python -m cuttingboard --mode verify --file PATH` → summary verification only
+- `python -m cuttingboard` — live mode (default)
+- `python -m cuttingboard --mode fixture --fixture-file PATH` — deterministic fixture mode
+- `python -m cuttingboard --mode sunday` — Sunday premarket context (no fetch, forced STAY_FLAT framing)
+- `python -m cuttingboard --mode verify --file PATH` — run-summary verification only (no pipeline)
+- `python -m cuttingboard --mode prefetch` — L1–L4 warm-up (fetch/normalize/validate/derive; no report, no notification)
+- `--notify-mode` and `--date` modify any pipeline-running mode
 
----
+Separate hourly entrypoint: `python -m cuttingboard.alert_runner` (PRD-141)
+runs the slot-idempotent hourly alert path (`runtime._execute_notify_run`),
+which builds its own hourly contract/summary/payload artifacts.
 
-## Layer Diagram
-
-```
-CLI / automation entrypoint
-  python -m cuttingboard [--mode live|fixture|sunday|verify]
-         │
-         ▼
-L1  INGESTION          ingestion.py
-    In:  20 symbol tickers
-    Out: dict[str, RawQuote]
-    ─────────────────────────────────────────────────────────
-    yfinance fetch.
-    ThreadPoolExecutor(1) per fetch with 10s timeout.
-    3 retries, 2s exponential backoff.
-    OHLCV cached to data/cache/{SYMBOL}_ohlcv.parquet (trading-day freshness, PRD-193).
-         │
-         ▼
-L2  NORMALIZATION       normalization.py
-    In:  dict[str, RawQuote]
-    Out: dict[str, NormalizedQuote]
-    ─────────────────────────────────────────────────────────
-    Converts pct_change to decimal (detects and corrects
-    percentage-format values where |v| > 2.0).
-    Adds UTC tzinfo to naive datetimes.
-    Attaches units (usd_price / index_level / yield_pct).
-         │
-         ▼
-L3  VALIDATION          validation.py
-    In:  dict[str, NormalizedQuote]
-    Out: ValidationSummary
-    ─────────────────────────────────────────────────────────
-    7 hard rules per symbol (type, NaN/Inf, positive price,
-    freshness ≤300s, timestamp age ≤900s, price bounds,
-    pct_change bounds ±25%).
-    If any HALT_SYMBOL fails → system_halted=True → pipeline
-    stops immediately. No derived metrics, no regime, no trades.
-         │
-         ├── system_halted=True ──► HALT report + audit + exit(1)
-         │
-         ▼
-L4  DERIVED METRICS     derived.py
-    In:  dict[str, NormalizedQuote]  (valid_quotes only)
-    Out: dict[str, DerivedMetrics]
-    ─────────────────────────────────────────────────────────
-    Loads 6-month OHLCV from cache. Computes per-symbol:
-      EMA9, EMA21, EMA50 (adjust=False)
-      ATR14 (Wilder's RMA: ewm alpha=1/14)
-      momentum_5d = (close[-1] - close[-6]) / close[-6]
-      volume_ratio = today_vol / 20d_avg_vol
-    Symbols with < 21 bars: sufficient_history=False,
-    all metrics None. Never raises — returns sentinel.
-         │
-L5  REGIME ENGINE       regime.py
-    In:  dict[str, NormalizedQuote]  (valid_quotes only)
-    Out: RegimeState
-    ─────────────────────────────────────────────────────────
-    8-input vote model. Each input votes RISK_ON / RISK_OFF /
-    NEUTRAL. confidence = abs(net_score) / total_votes.
-    CHAOTIC override fires if VIX pct_change > 15%.
-    See regime_model.md for full threshold table.
-         │
-         ├── posture == STAY_FLAT ──► NO TRADE (regime
-         │                            short-circuits qualify_all)
-         ▼
-L6  STRUCTURE ENGINE    structure.py
-    In:  dict[str, NormalizedQuote], dict[str, DerivedMetrics],
-         vix_level (from RegimeState)
-    Out: dict[str, StructureResult]
-    ─────────────────────────────────────────────────────────
-    Classifies each symbol: TREND | PULLBACK | BREAKOUT |
-    REVERSAL | CHOP.
-    Also classifies IV environment from VIX level:
-    LOW_IV (<15) | NORMAL_IV (15-20) | ELEVATED_IV (20-28) |
-    HIGH_IV (>28).
-    CHOP = automatic disqualification at Layer 7.
-         │
-         ▼
-L7  TRADE QUALIFICATION qualification.py
-    In:  RegimeState, dict[str, StructureResult],
-         dict[str, TradeCandidate], dict[str, DerivedMetrics]
-    Out: QualificationSummary
-    ─────────────────────────────────────────────────────────
-    11 gates (4 hard stops, 7 soft stops).
-    Hard stop failure → REJECT, no watchlist eligibility.
-    Exactly 1 soft stop failure → WATCHLIST.
-    2+ soft stop failures → REJECT.
-    See trade_qualification.md for full gate table.
-         │
-         ▼
-L8  FLOW GATE           flow.py
-    In:  QualificationSummary, flow snapshot data
-    Out: QualificationSummary (PASS candidates may be downgraded)
-    ─────────────────────────────────────────────────────────
-    Soft gate only. Applies after qualification.
-    When dominant speculative options flow opposes the
-    candidate direction, PASS → WATCHLIST.
-    No effect on REJECT or existing WATCHLIST results.
-         │
-         ▼
-L9  OPTIONS EXPRESSION  options.py
-    In:  list[QualificationResult], dict[str, StructureResult],
-         dict[str, DerivedMetrics]
-    Out: list[OptionSetup]
-    ─────────────────────────────────────────────────────────
-    Maps each qualified trade to a spread strategy using
-    direction × IV environment matrix.
-    Selects DTE from structure + momentum_5d.
-    Strike labels are relative (ATM, 1_ITM) — never absolute.
-    Downstream chain validation classifies each setup as:
-      TOP_TRADE_VALIDATED
-      NEEDS_MANUAL_CHECK
-      DISQUALIFIED_OPTIONS_INVALID
-    NEEDS_MANUAL_CHECK is surfaced as a warning and does
-    not by itself force verify mode to FAIL.
-         │
-         ▼
-L10 CHAIN VALIDATION    chain_validation.py
-    In:  list[OptionSetup]
-    Out: dict[str, ChainValidationResult]
-    ─────────────────────────────────────────────────────────
-    Live liquidity gate. Checks OI, spread %, bid/ask sanity.
-    Classifies each setup: TOP_TRADE_VALIDATED /
-    NEEDS_MANUAL_CHECK / DISQUALIFIED_OPTIONS_INVALID.
-         │
-         ▼
-L11 OUTPUT ENGINE       output.py
-    In:  All above results
-    Out: reports/YYYY-MM-DD.md, logs/run_*.json,
-         logs/latest_run.json, optional Telegram alert
-    ─────────────────────────────────────────────────────────
-    `logs/latest_run.json` is the machine-readable source
-    of truth. `reports/YYYY-MM-DD.md` is human-readable only.
-    The HTML dashboard is rendered separately (delivery/).
-    Report written even on NO TRADE days. Telegram alert
-    skipped silently if not configured in .env.
-         │
-         ▼
- —  AUDIT               audit.py
-    In:  All above results + telegram_sent status
-    Out: One JSON record appended to logs/audit.jsonl
-    ─────────────────────────────────────────────────────────
-    Append-only. sort_keys=True. Never overwritten.
-    Every run writes exactly one record regardless of outcome.
-```
+Before a live run, `cli_main` calls `_run_engine_health_gate` — an opt-in
+(`runtime_gate_enabled` in config) engine_doctor check that aborts the run
+on failure.
 
 ---
 
-## Data Contracts
+## The Pipeline, In Execution Order
 
-Key frozen dataclasses and their layer of origin:
+`runtime.execute_run` wraps `_run_pipeline` and owns artifact persistence and
+the error path. `_run_pipeline` runs these stages in this order:
 
-| Dataclass | Module | Key Fields |
-|-----------|--------|------------|
-| `RawQuote` | ingestion | symbol, price, pct_change_raw (decimal), source, fetch_succeeded |
-| `NormalizedQuote` | normalization | symbol, price, pct_change_decimal, fetched_at_utc (UTC), units |
-| `ValidationSummary` | validation | system_halted, halt_reason, valid_quotes, invalid_symbols |
-| `DerivedMetrics` | derived | ema9/21/50, ema_aligned_bull/bear, atr14, momentum_5d, volume_ratio, sufficient_history |
-| `RegimeState` | regime | regime, posture, confidence, net_score, vote_breakdown, vix_level |
-| `StructureResult` | structure | symbol, structure, iv_environment, is_tradeable |
-| `TradeCandidate` | qualification | symbol, direction, entry/stop/target price, spread_width, has_earnings_soon |
-| `QualificationResult` | qualification | qualified, watchlist, gates_passed/failed, max_contracts, dollar_risk |
-| `OptionSetup` | options | strategy, long/short_strike, strike_distance, dte, max_contracts, dollar_risk |
+### 1. Ingest → normalize → validate
 
-All dataclasses are `frozen=True`. All timestamps are UTC-aware `datetime` objects.
+| Stage | Call | Module |
+|---|---|---|
+| Ingestion | `fetch_all` (via `_load_inputs`) | `ingestion.py` |
+| Normalization | `normalize_all` (via `_load_inputs`) | `normalization.py` |
+| Validation | `validate_quotes` | `validation.py` |
+
+Sunday non-fixture runs skip the fetch entirely (empty quotes, non-halted
+`ValidationSummary`). Fixture mode substitutes fixture quotes and a fixture
+validation clock.
+
+### 2. Regime, halt gates
+
+- `compute_regime` (`regime.py`) runs whenever validation did not halt —
+  it is needed for the kill switch and for HALT display.
+- **Validation HALT:** any `config.HALT_SYMBOLS` failure sets
+  `system_halted=True`; outcome becomes `HALT` and everything from
+  correlation through the decision gates is skipped.
+- **Kill switch (PRD-180):** `_kill_switch` in `runtime/__init__.py` trips on
+  market stress (VIX level > 35, VIX pct_change > 0.15, or |SPY pct_change|
+  > 0.03 — strict `>`). A trip rebuilds the `ValidationSummary` as halted
+  (`HaltCause.MARKET_STRESS`), so downstream consumers treat it exactly like
+  a validation halt.
+
+### 3. Analysis stages (non-halt; skipped in Sunday mode except correlation/policy)
+
+In order, inside `_run_pipeline`:
+
+1. `compute_correlation` (`correlation.py`) → `evaluate_policy`
+   (`trade_policy.py`) — GLD–DXY correlation state → `PolicyContext`
+   (risk modifier for sizing).
+2. `compute_all_derived` (`derived.py`) — EMAs, ATR14, momentum_5d,
+   volume_ratio from cached OHLCV.
+3. `resolve_sector_router` (`sector_router.py`) — router state
+   (ENERGY/INDEX/MIXED); state model only, no routing application surface.
+4. `classify_all_structure` (`structure.py`) — TREND / PULLBACK / BREAKOUT /
+   REVERSAL / CHOP plus IV environment from VIX level.
+5. `compute_all_intraday_metrics` + `classify_watchlist` (`watch.py`) —
+   intraday WATCH layer (fixture mode passes empty metrics).
+6. `generate_candidates` (`options.py`) — one `TradeCandidate` per non-CHOP
+   symbol; returns `{}` when `direction_for_regime` is `None`.
+7. `_apply_intraday_short_permission` (live only) — ORB-state gate on SHORT
+   candidates via `intraday_state_engine.py`.
+8. `fetch_ohlcv` per surviving candidate (`ingestion.py`).
+9. `qualify_all` (`qualification.py`) — the 11 gates (1–4 hard, 5–11 soft;
+   see `docs/trade_qualification.md`). **The flow gate runs INSIDE
+   `qualify_all`,** not as a pipeline stage: when a flow snapshot is loaded
+   (`runtime._load_flow` from config's flow_data_path), `qualify_all` calls
+   `flow.apply_flow_gate` on each PASS result after the per-symbol and
+   continuation passes; opposing speculative flow downgrades PASS →
+   WATCHLIST. EXPANSION regime adds a continuation-candidate pass first.
+10. `build_option_setups` (`options.py`) — only if qualified trades exist;
+    strategy × IV matrix, DTE, relative strikes, sizing with the
+    `PolicyContext.risk_modifier`.
+11. `validate_option_chains` (`chain_validation.py`) — live OI / spread /
+    bid-ask liquidity check per setup (fixture mode synthesizes VALIDATED
+    results). Classifies TOP_TRADE_VALIDATED / NEEDS_MANUAL_CHECK /
+    DISQUALIFIED_OPTIONS_INVALID.
+
+### 4. The decision layer — `_run_decision_gates` (PRD-236)
+
+Extracted from `_run_pipeline`; skipped entirely when there are no option
+setups (defaults flow through). For each setup, in order:
+
+1. `create_trade_decision` (`trade_decision.py`) — materializes a
+   `TradeDecision` from candidate + qualification + setup + chain result.
+2. `apply_execution_policy_to_decisions` (`execution_policy.py`) — the final
+   deterministic ALLOW/BLOCK + sizing pass (regime, posture, session state,
+   ORB states, overall macro pressure). Does not execute orders.
+3. `apply_thesis_gate` (`trade_thesis.py`) — builds a thesis per candidate;
+   INCOMPLETE/CONFLICTED thesis converts ALLOW_TRADE → BLOCK_TRADE.
+4. `apply_invalidation_gate` (`invalidation.py`) — invalidation/exit
+   guidance; TRIGGERED invalidation converts ALLOW_TRADE → BLOCK_TRADE.
+5. `apply_entry_quality_gate` (`entry_quality.py`) — chase filter; extended /
+   stale / chased entries convert ALLOW_TRADE → BLOCK_TRADE.
+
+Outcome derivation (PRD-162): `outcome = TRADE` iff any decision satisfies
+`decision_is_actionable` (tradable symbol, ALLOW_TRADE, positively sized);
+otherwise NO_TRADE. This is the same rule the payload's top_trades gate
+applies, so the two derivations agree.
+
+### 5. Observational builds and report render
+
+Run on every path, including halts:
+
+1. `build_market_map` (`market_map.py`) — read-only graded market map sidecar.
+2. `build_visibility_map` (`trade_visibility.py`) — ACTIVE / NEAR_MISS /
+   BLOCKED per decision.
+3. `build_explanation_map` (`trade_explanation.py`) — fixed-template
+   explanation per candidate.
+4. `render_report` (`output.py`) + `_write_markdown_report` —
+   `reports/YYYY-MM-DD.md` (written even on NO TRADE and HALT days;
+   verification stamp rewritten later by `execute_run`).
+
+### 6. Contract build, finalize, validate, notify — `_build_and_finalize_contract` (PRD-236)
+
+1. `derive_run_status` + `build_pipeline_output_contract` (`contract.py`).
+2. Runtime injections: top-level `outcome`; `system_state.outcome` /
+   `.permission` / `.reason`; `apply_overnight_policy`
+   (`overnight_policy.py`, attaches per-candidate `overnight_policy` in the
+   EOD window); Sunday-only `system_state.stay_flat_reason` /
+   `.session_type`.
+3. `artifacts["notification_sent"] = False`, then
+   **`assert_valid_contract(contract, finalized=True)`** (PRD-233) — a
+   corrupt contract fails loud BEFORE any user-visible side effect.
+4. Exactly one notification send per run (live/sunday, non-fixture-backed):
+   `notifications.state` dedup/suppression (`should_send`, priority,
+   state key) around `output.send_notification`; suppressions are recorded
+   via `write_notification_audit`; dedup state persists only on confirmed
+   send.
+5. `notification_sent` flipped to the real result, then
+   `assert_valid_contract(finalized=True)` **again** before any artifact
+   write.
+
+### 7. Post-contract bookkeeping (still inside `_run_pipeline`)
+
+1. `build_premarket_report` / `build_postmarket_report` (`reports/`).
+2. `write_audit_record` (`audit.py`) — one append-only JSONL record per run,
+   every outcome.
+3. `run_post_trade_evaluation` (`evaluation.py`) →
+   `run_performance_engine` (`performance_engine.py`).
+4. `_build_run_summary` — the JSON run summary.
+5. `_refresh_trend_structure_sidecar` (live mode only) —
+   `logs/trend_structure_snapshot.json`.
+
+### 8. Artifact persistence — `execute_run`
+
+After `_run_pipeline` returns: write timestamped + `logs/latest_run.json`
+summaries; `verify_run_summary` and fold its verdict into the summary status
+and the markdown report's verification stamp; `_write_contract_file`
+(`logs/latest_contract.json`); `_write_payload_artifacts` (delivery payload
+JSON + rendered HTML via `delivery/payload.py` and `delivery/transport.py` —
+failures here never corrupt contract artifacts); market-map lifecycle
+injection (`market_map_lifecycle.inject_lifecycle`) + `logs/market_map.json`;
+`logs/macro_drivers_snapshot.json`.
+
+On any pipeline exception, `execute_run` writes `build_error_contract`
+output (status ERROR, outcome HALT), a failure summary, and a failure
+report — so `logs/latest_contract.json` never holds a half-built contract.
+
+---
+
+## Analysis-Stage Module Mapping
+
+| Module | Role |
+|---|---|
+| `ingestion.py` | RawQuote per symbol, `fetch_all`, `fetch_ohlcv`, yfinance + parquet cache |
+| `normalization.py` | NormalizedQuote; decimal pct_change (|v| > 2.0 auto-corrected /100), UTC enforcement |
+| `validation.py` | ValidationSummary, hard per-symbol rules, HALT_SYMBOL gate, HaltCause |
+| `derived.py` | DerivedMetrics: EMA9/21/50, ATR14, momentum_5d, volume_ratio |
+| `regime.py` | RegimeState: vote model, posture, confidence, CHAOTIC override |
+| `structure.py` | StructureResult: TREND/PULLBACK/BREAKOUT/REVERSAL/CHOP + IV environment |
+| `qualification.py` | TradeCandidate, QualificationSummary, `qualify_all` (11 gates, continuation path, flow gate applied internally) |
+| `flow.py` | FlowPrint/FlowSnapshot, `apply_flow_gate`, `load_flow_snapshot` — called from inside `qualify_all` |
+| `options.py` | `generate_candidates`, `build_option_setups`: strategy, DTE, relative strikes |
+| `chain_validation.py` | ChainValidationResult: live OI/spread/bid-ask check |
+| `output.py` | `render_report`, `send_notification`, outcome constants |
+
+## Decision-Layer Module Mapping
+
+Each module contributes one call in `_run_decision_gates`, in this order:
+
+| Module | Call | Effect |
+|---|---|---|
+| `trade_decision.py` | `create_trade_decision` | TradeDecision from candidate + qual + setup + chain |
+| `execution_policy.py` | `apply_execution_policy_to_decisions` | final ALLOW/BLOCK + sizing pass |
+| `trade_thesis.py` | `apply_thesis_gate` | thesis map; INCOMPLETE/CONFLICTED → BLOCK |
+| `invalidation.py` | `apply_invalidation_gate` | invalidation guidance; TRIGGERED → BLOCK |
+| `entry_quality.py` | `apply_entry_quality_gate` | chase filter; extended/stale/chased → BLOCK |
+
+---
+
+## The Output Contract
+
+The contract is a **validated plain dict**, not frozen dataclasses.
+
+- **Schema:** the TypedDicts in `cuttingboard/contract_types.py` (PRD-237) —
+  `PipelineContract`, `SystemState`, `ContractCandidate`, `DecisionTrace`,
+  `OvernightPolicyDecision`. A leaf module; derived from the producers, not
+  from prose. `NotRequired` placement encodes which keys are
+  runtime-injected vs built.
+- **Producers:** `contract.build_pipeline_output_contract` (normal runs),
+  `contract.build_error_contract` (exception path), plus the runtime
+  injections in `runtime._build_and_finalize_contract`.
+- **Runtime enforcement:** `contract.assert_valid_contract` (PRD-233),
+  called twice per run with `finalized=True` (pre-notification and
+  pre-artifact-write). It checks required keys, per-candidate invariants
+  (`_assert_trade_candidates_valid`), and rejects any `system_state` key
+  outside **`contract.SYSTEM_STATE_ALLOWED_KEYS`** — the enforced whitelist
+  (built keys ∪ declared runtime injections). A new injection anywhere must
+  be declared there or the run fails.
+- **Test enforcement:** the sync guards in `tests/test_contract_types.py`
+  fail the suite if a producer key and a TypedDict key drift apart (the repo
+  runs no static type checker; the guards make the types load-bearing).
+- **Consumers:** `delivery/payload.py` (dashboard payload),
+  `notifications` (message building from the canonical contract),
+  `reports/premarket.py` / `reports/postmarket.py`, the hourly path, and
+  `logs/latest_contract.json` readers. Field-level layout: see
+  `docs/SCHEMA_MAP.md`.
+
+The intermediate stage objects (`RawQuote`, `NormalizedQuote`,
+`ValidationSummary`, `DerivedMetrics`, `RegimeState`, `StructureResult`,
+`TradeCandidate`, `QualificationResult`, `OptionSetup`, `TradeDecision`, …)
+ARE frozen dataclasses with UTC-aware timestamps; only the cross-layer
+output contract is a dict.
+
+---
+
+## Support and Sidecar Modules
+
+Not pipeline stages; imported by stages or run alongside them.
+
+| Module | Role |
+|---|---|
+| `config.py` | All constants; secrets via dotenv `.env`. Never hardcode. |
+| `contract.py` | Contract builders + `assert_valid_contract` + `SYSTEM_STATE_ALLOWED_KEYS`. |
+| `contract_types.py` | The contract's TypedDict schema (PRD-237). Leaf module. |
+| `audit.py` | Append-only JSONL to `logs/audit.jsonl`; one record per run. |
+| `runtime/` | Sole production orchestrator (package, PRD-173): `cli_main`, `execute_run`, `_run_pipeline`, hourly path, verify. Constants/dataclasses in `runtime/_constants.py` / `runtime/_types.py`. |
+| `correlation.py` + `trade_policy.py` | GLD–DXY correlation → PolicyContext risk modifier. |
+| `confirmation.py` | Confirmation primitives for the intraday engine. |
+| `universe.py` | Symbol tradability check (`is_tradable_symbol`). |
+| `sector_router.py` | Router state model and resolver; no routing application surface. |
+| `time_utils.py` | ET timezone helpers, market hours. |
+| `watch.py` | Intraday watchlist classification, session phase, intraday metrics. |
+| `intraday_state_engine.py` | ORB classification engine (feeds short permission + execution policy). |
+| `overnight_policy.py` | EOD overnight exit guidance injected into the contract. |
+| `market_map.py` / `market_map_lifecycle.py` | Read-only graded market map sidecar + lifecycle transitions. |
+| `trade_visibility.py` / `trade_explanation.py` | Per-decision visibility status and templated explanations. |
+| `trend_structure.py` / `watchlist_sidecar.py` / `macro_pressure.py` | Pure snapshot builders (sidecars; see `docs/sidecar_doctrine.md`). |
+| `evaluation.py` / `performance_engine.py` | Post-trade evaluation of prior runs → `logs/evaluation.jsonl` → performance summary. |
+| `reports/` | Premarket/postmarket report builders (consume the contract). |
+| `red_folder.py` | Static macro-event calendar loader (read-only). |
+| `manual_journal.py` / `review_scorecard.py` | Manual trade journal writer + process-quality scorecard. |
+| `alert_runner.py` | Hourly alert entrypoint with slot idempotency (PRD-141). |
+| `notifications/` | Telegram formatting, priority classification, dedup/suppression state. |
+| `delivery/` | Dashboard payload + HTML renderer + transport. Read-only consumer of the contract; no influence on decisions. |
+
+## Delivery Clarification
+
+Delivery is NOT part of the decision pipeline. Telegram send + terminal
+output live in `output.py` (invoked from `_build_and_finalize_contract`);
+the HTML dashboard is rendered from the contract-derived payload by
+`delivery/` and published to the `publish` branch by the scheduled workflows
+(never hand-overwritten on `main` — see CLAUDE.md Workflow patterns). None
+of it influences qualification, options selection, decisions, or any
+upstream stage. Sidecar rules: `docs/sidecar_doctrine.md`.
 
 ---
 
 ## Trust Boundary Rules
 
 **Rule 1 — No derived metric computed on unvalidated input.**
-`compute_all_derived()` receives only `valid_quotes` from `ValidationSummary`. Symbols that failed validation are never passed downstream.
+`compute_all_derived` receives only `validation_summary.valid_quotes`.
 
 **Rule 2 — No candidate generated for CHOP symbols.**
-`generate_candidates()` skips any symbol where `StructureResult.structure == CHOP` before creating a `TradeCandidate`. The qualification layer would also reject CHOP (Gate 4), but the options engine never creates the candidate in the first place.
+`generate_candidates` skips CHOP before creating a `TradeCandidate`;
+qualification's Gate 4 would also reject it.
 
 **Rule 3 — No trade when regime direction is ambiguous.**
-`generate_candidates()` returns an empty dict when `direction_for_regime()` returns `None` (`NEUTRAL` with `net_score=0`, or `CHAOTIC`). NEUTRAL is active: positive `net_score` breaks LONG, negative `net_score` breaks SHORT.
+`generate_candidates` returns `{}` when `direction_for_regime` is `None`
+(NEUTRAL with net_score 0, or CHAOTIC). `qualify_all` records such symbols
+as excluded `NEUTRAL_NO_DIRECTION` (PRD-235) rather than dropping them.
 
 **Rule 4 — pct_change is always decimal.**
-`0.052` means 5.2%. The normalization layer detects and corrects percentage-format values (`|v| > 2.0` triggers `/100`). All downstream code assumes decimal.
+`0.052` means 5.2%. Normalization corrects percentage-format values
+(|v| > 2.0 → /100). All downstream code assumes decimal.
 
 **Rule 5 — Secrets only from `.env`.**
-`config.py` loads via `python-dotenv`. No key, token, or credential appears in any source file.
+`config.py` loads via python-dotenv; no credential in source.
 
-**Rule 6 — `block_reason == decision_trace["reason"]` for BLOCK_TRADE candidates.**
-`_assert_trade_candidates_valid` in `cuttingboard/contract.py` enforces that every `trade_candidates[]` entry with `decision_status == BLOCK_TRADE` carries a `block_reason` equal to its `decision_trace["reason"]`. Any PRD that synthesizes BLOCK_TRADE entries outside the existing `_build_trade_candidates` / `create_trade_decision` path must set both fields together; introducing a new `block_reason` literal without a matching `decision_trace.reason` breaks the validator.
+**Rule 6 — `block_reason == decision_trace["reason"]` for BLOCK_TRADE
+candidates.** `contract._assert_trade_candidates_valid` enforces it; any
+code synthesizing BLOCK_TRADE entries must set both together.
+
+**Rule 7 — The contract fails loud, not late (PRD-233).**
+`assert_valid_contract(finalized=True)` runs before the notification send
+and again before artifact writes; `execute_run` converts a raise into the
+minimal error contract, so a corrupt contract never reaches
+`logs/latest_contract.json` or the audit log.
 
 ---
 
 ## Halt Conditions
 
-The system halts when any **HALT_SYMBOL** fails validation. HALT_SYMBOLS are:
+Two halt causes, one downstream shape:
 
-```python
-["^VIX", "DX-Y.NYB", "^TNX", "SPY", "QQQ"]
-```
+1. **Validation halt:** any `config.HALT_SYMBOLS`
+   (`["^VIX", "DX-Y.NYB", "^TNX", "SPY", "QQQ"]`) fails validation.
+2. **Kill switch (PRD-180):** market stress per `runtime._kill_switch`
+   (thresholds above), escalated into the same halted `ValidationSummary`
+   with `HaltCause.MARKET_STRESS`.
 
-These five symbols are required for regime computation. If any of them fails validation (bad data, fetch failure, stale quote, price out of bounds), `ValidationSummary.system_halted = True` and the pipeline:
-
-1. Renders a HALT report (terminal + markdown)
-2. Sends a Telegram HALT alert
-3. Writes an audit record with `outcome = "HALT"`
-4. Exits with code `1`
-
-**No trades are ever evaluated during a HALT.** The audit record preserves the halt reason for forensic review.
+On either: outcome HALT, no candidates/qualification/decisions, HALT report
++ contract (status STAY_FLAT via `derive_run_status`) + audit record still
+written, non-zero exit from `cli_main`. No trades are ever evaluated during
+a halt.
 
 ---
 
-## File Map
+## Key Artifacts
 
-```
-cuttingboard/               Python package
-  __init__.py               version string only
-  config.py                 all constants + secrets (dotenv)
-  ingestion.py              L1: RawQuote, fetch_all, fetch_ohlcv
-  normalization.py          L2: NormalizedQuote, normalize_all
-  validation.py             L3: ValidationSummary, validate_quotes
-  derived.py                L4: DerivedMetrics, compute_all_derived
-  regime.py                 L5: RegimeState, compute_regime
-  structure.py              L6: StructureResult, classify_all_structure
-  qualification.py          L7: TradeCandidate, QualificationSummary, qualify_all
-  flow.py                   L8: FlowPrint, apply_flow_gate (directional soft gate)
-  options.py                L9: OptionSetup, generate_candidates, build_option_setups
-  chain_validation.py       L10: ChainValidationResult, OI/spread/bid-ask check
-  output.py                 L11: render_report, write_markdown
-  runtime/                  public CLI package: live / fixture / sunday / verify
-  __main__.py               python -m cuttingboard entrypoint
-  audit.py                  audit: write_audit_record -> logs/audit.jsonl
-
-tests/                      pytest suite; current baseline in docs/PROJECT_STATE.md
-  test_phase1.py            config, normalization, validation
-  test_derived.py           EMA, ATR, momentum, volume
-  test_regime.py            votes, posture, CHAOTIC override
-  test_structure.py         classification, CHOP, IV environment
-  test_qualification.py     qualification gates, sizing, watchlist
-  test_operationalization.py public CLI, fixture, verify, artifact checks
-  test_phase5.py            options, audit, output rendering
-  test_phase6.py            intraday triggers, dedup, commit msg
-
-data/
-  cache/                    OHLCV parquet files (gitignored, trading-day freshness)
-
-logs/
-  audit.jsonl               append-only run record (committed by CI)
-  latest_run.json           latest structured run summary (source of truth)
-  run_*.json                per-run structured summaries
-  intraday_state.json       regime shift dedup state (committed by CI)
-
-reports/
-  YYYY-MM-DD.md             one markdown report per premarket run
-
-.github/
-  workflows/
-    cuttingboard.yml        GHA: premarket + intraday schedules
-
-docs/                       you are here
-  architecture.md           this file
-  runbook.md
-  engine_doctor.md
-  PRD_REGISTRY.md
-  regime_model.md           (optional — regime vote model details)
-  trade_qualification.md    (optional — full gate reference)
-  prd_history/              archived PRDs and audit reports
-
-.env                        TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
-                            (gitignored — never committed)
-pyproject.toml              package metadata + dependencies
-```
+- `logs/latest_run.json` — canonical machine-readable run summary
+  (+ timestamped `logs/run_*.json`).
+- `logs/latest_contract.json` — the validated output contract.
+- `logs/audit.jsonl` — append-only per-run audit record.
+- `reports/YYYY-MM-DD.md` — human-readable report.
+- Sidecar snapshots: `logs/market_map.json`,
+  `logs/trend_structure_snapshot.json`, `logs/watchlist_snapshot.json`
+  (hourly path), `logs/macro_drivers_snapshot.json`,
+  `logs/evaluation.jsonl`, `logs/performance_summary.json`.
+- Hourly path artifacts: `logs/latest_hourly_*.json`,
+  `reports/output/hourly_report.html`.
+- Dashboard payload/HTML via `delivery/transport.py`, published to the
+  `publish` branch by the scheduled workflows.
 
 ---
 
-## Execution Paths
+## What Is Deliberately NOT Here
 
-## Regime Notes
+- **No prediction.** No forecasting, no price targets beyond deterministic
+  R:R framing, no ML. Every gate is a deterministic function of observed
+  inputs. See `VISION.md` non-goals — they are enforced by review, not
+  restated here.
+- **No order execution.** `execution_policy.py` materializes permissions;
+  nothing places orders.
+- **No decision-influencing delivery.** Dashboard, notifications, and
+  sidecars are read-only consumers.
 
-`NEUTRAL` is an active regime, not a pass-through state. It permits selective defined-risk trades only when posture resolves to `NEUTRAL_PREMIUM`, which requires VIX in the 18-25 band and enforces `R:R >= 3.0`. Positive `net_score` biases long candidates, negative `net_score` biases short candidates, and `net_score == 0` stays flat.
-
-`TRANSITION` remains as a legacy constant in code for compatibility, but the engine does not return it.
-
-## Output Contract
-
-- `logs/latest_run.json` is the canonical machine-readable run summary.
-- `logs/run_YYYY-MM-DD_HHMMSS.json` is the timestamped per-run snapshot.
-- `reports/YYYY-MM-DD.md` is the human-readable report.
-- The HTML dashboard (`ui/dashboard.html`, `ui/index.html`) is rendered from the run payload by `delivery/dashboard_renderer.py` and published to GitHub Pages.
-
-**Normal premarket run (TRADE day):**
-```
-ingestion → normalization → validation → derived + regime → structure
-→ [generate_candidates] → qualification → flow → options → chain_validation
-→ output → audit
-```
-
-**Normal premarket run (NO TRADE day — STAY_FLAT):**
-```
-ingestion → normalization → validation → derived + regime [posture=STAY_FLAT]
-→ structure → qualify_all short-circuits → output → audit
-```
-
-**HALT (required symbol failed validation):**
-```
-ingestion → normalization → validation [system_halted=True] → output (HALT report) → audit → exit(1)
-```
-
-**Intraday run:**
-```
-ingestion → normalization → validation → derived + regime → compare to last state → Telegram alert if trigger → update state
-```
