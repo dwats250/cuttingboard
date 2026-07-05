@@ -59,7 +59,7 @@ are next — the letters are stable, the numbers aren't.
   no auto-merge queue for this one; the point is that you read it.
 - **DONE WHEN:** `git log main --oneline -3` on a fresh pull shows the audit
   commit, and `audits/codebase-review-2026-07-03/` exists on `main`.
-- [ ] done
+- [x] done (audit folder on `main`; verified 2026-07-05)
 
 ### Step 0.2 `[YOU]` — Set the attention anchor
 - **Why:** you asked for this to be brought back to your attention. Your
@@ -71,7 +71,7 @@ are next — the letters are stable, the numbers aren't.
   PR per your normal flow.
 - **DONE WHEN:** the line is on `main`. Every future session that reads
   PROJECT_STATE (yours and your agents') now gets routed to this file.
-- [ ] done
+- [x] done (Next-step line pointed here through the window; now points at Block 4 → this file, #106)
 
 ### Step 0.3 `[YOU]` — Read one section of the review, out loud pace
 - **Why:** codifying the knowledge is a stated goal. One section, properly,
@@ -115,7 +115,7 @@ Every PRD in this wave follows the same 5-step ritual. The ritual IS the rails:
   artifact is written.*
 - **DONE WHEN:** Stage-0 commit exists; FILES list includes every file the
   grep sweep surfaced.
-- [ ] done
+- [x] done (PRD-233 stage 0, merged via #102, 2026-07-04)
 
 #### Step A.2 `[AGENT]` — Red test, then implementation
 - **Prompt to paste:**
@@ -134,7 +134,7 @@ Every PRD in this wave follows the same 5-step ritual. The ritual IS the rails:
      output, and the exact whitelist you derived with line references.
   ```
 - **DONE WHEN:** you have seen the red test fail, then pass; full suite green.
-- [ ] done
+- [x] done (PRD-233 red-then-green recorded in its review artifact; #102)
 
 #### Step A.3 `[YOU]` — Review + close (~20 min)
 - **Do:** read the diff yourself, end to end (it should be small). Check one
@@ -144,7 +144,7 @@ Every PRD in this wave follows the same 5-step ritual. The ritual IS the rails:
   cross-review per the CONTRACT matrix row), open the PR, close out with
   `scripts/prd_close.sh`.
 - **DONE WHEN:** PR merged, closeout row on `main`.
-- [ ] done
+- [x] done (PRD-233 COMPLETE @ #102; review-leg compression per signed Deviation 2)
 
 ### PRD-B (≈227) — Kill the VALIDATED fail-open default
 `CLASS: CONTRACT · LANE: HIGH-RISK`
@@ -159,7 +159,7 @@ Every PRD in this wave follows the same 5-step ritual. The ritual IS the rails:
   render path. FAIL condition: *a TRADE-outcome contract whose setup symbol is
   absent from chain_results must render that setup as MANUAL_CHECK with a
   visible warning line — never as validated.*
-- [ ] done
+- [x] done (PRD-234 stage 0; #102)
 
 #### Step B.2 `[AGENT]` — Red test + implement
 - **Prompt to paste:**
@@ -171,13 +171,13 @@ Every PRD in this wave follows the same 5-step ritual. The ritual IS the rails:
   output.py:305-312 from a synthesized VALIDATED result to MANUAL_CHECK +
   warning line. Full suite. Report red-then-green.
   ```
-- [ ] done
+- [x] done (PRD-234 red-then-green; #102)
 
 #### Step B.3 `[YOU]` — Review + close
 - **Do:** same as A.3. Personal check: read the rendered report from the new
   test — does the warning line actually tell future-you what happened and what
   to do about it? If you'd have to look up what it means, reword it now.
-- [ ] done
+- [x] done (PRD-234 COMPLETE @ #102; Deviation 2)
 
 ### PRD-C (≈228) — Qualification: no silent loosening, no vanishing symbols
 `CLASS: EXECUTION · LANE: HIGH-RISK`
@@ -192,17 +192,17 @@ Every PRD in this wave follows the same 5-step ritual. The ritual IS the rails:
   `gate skipped: missing data` marker in the qualification summary; NEUTRAL
   symbols appear in `excluded` with reason `NEUTRAL_NO_DIRECTION`; both are
   visible in the rendered report.
-- [ ] done
+- [x] done (PRD-235 stage 0; #102)
 
 #### Step C.2 `[AGENT]` — Red tests (three) + implement. Prompt as before:
   red-first, scope-locked, full suite, report red-then-green per fail
   condition.
-- [ ] done
+- [x] done (PRD-235 three red tests; #102)
 
 #### Step C.3 `[YOU]` — Review + close. Personal check: qualify a symbol with
   `metrics=None` in a REPL or test and read the summary yourself — is the
   degradation obvious at a glance?
-- [ ] done
+- [x] done (PRD-235 COMPLETE @ #102; Deviation 2)
 
 ### PRD-D (≈229) — Single-source the duplicated constants
 `CLASS: EXECUTION (touches qualification-adjacent tuning) · LANE: STANDARD`
@@ -315,7 +315,7 @@ CI green. Update the Progress tracker. Take a real break before Wave 2.
      separate closeout commit is retired.*
 - **Per your own CLAUDE.md governance rule: open the PR and merge it BY HAND.
   No auto-merge. Read your own diff.**
-- [ ] H done
+- [x] H done (PRD-229, Dustin's hand-merge of #99, 2026-07-04 — Deviation 1 signed)
 
 **WAVE 2 EXIT CHECK:** F, G, H closed. From here on, every PRD you do is
 cheaper because of H. Update tracker.
@@ -347,15 +347,15 @@ rendered report.
 
 - **I (≈234)** — Extract the decision-gate chain + contract finalization from
   `_run_pipeline` into named functions. EXECUTION/HIGH-RISK.
-  Behavior-preserving; byte-identical check applies. — [ ] done
+  Behavior-preserving; byte-identical check applies. — [x] done (PRD-236 @ #104; byte-identical proof)
 - **J1 (≈235)** — Typed contract: define TypedDicts for contract / candidate /
   system_state; adopt in `contract.py` + `payload.py`. CONTRACT/T0, full
   consumer audit per your matrix. **`[YOU]`: read the J1 schema diff yourself,
   line by line. This is the one diff in the plan worth your personal hour.**
-  — [ ] done
+  — [x] done (PRD-237 @ #105; Dustin's line-by-line read at the PR, his merge)
 - **J2 (≈236)** — Adopt the types in renderer + notifications; retire
   SCHEMA_MAP's field-lookup role (keep it as prose overview or delete).
-  — [ ] done
+  — [x] done (PRD-238 @ #106; M's design map also landed there — docs/renderer_decomposition_map.md — M execution stays open below)
 - **K (≈237)** — Fixture mode via injected fetch provider; delete
   `unittest.mock.patch` from `runtime/__init__.py`. INFRA. Byte-identical
   fixture-run check. — [ ] done
