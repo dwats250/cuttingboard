@@ -157,8 +157,8 @@ def _setup_main_path_fixture(monkeypatch, *, equity, risk_pct):
         symbol="TEST",
         direction="LONG",
         entry_price=100.0,
-        stop_price=99.0,
-        target_price=102.0,
+        stop_price=98.0,
+        target_price=104.0,
         spread_width=0.5,
         has_earnings_soon=False,
     )

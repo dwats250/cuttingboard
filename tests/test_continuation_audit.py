@@ -79,10 +79,14 @@ def _frame(
 
 
 def _qualified_df() -> pd.DataFrame:
+    # Last bar: close=104, range=4.0 (>= 0.75×ATR14=1.5), close_location =
+    # (104-101)/(105-101) = 0.75 (clears R5). Lookback high raised to 101
+    # (index 8) so risk=104-101=3.0 and reward=ATR14×3.0=6.0 gives RR=2.0,
+    # clearing the post-R1 EXPANSION_RR_RATIO=2.0 minimum.
     return _frame(
         closes=[95, 96, 97, 96, 95, 96, 97, 96, 102, 104],
-        highs=[96, 97, 98, 97, 96, 97, 98, 97, 100, 106],
-        lows=[94, 95, 96, 95, 94, 95, 96, 95, 100, 102],
+        highs=[96, 97, 98, 97, 96, 97, 98, 97, 101, 105],
+        lows=[94, 95, 96, 95, 94, 95, 96, 95, 100, 101],
     )
 
 
@@ -111,18 +115,22 @@ def _low_momentum_df() -> pd.DataFrame:
 
 
 def _rr_fail_df() -> pd.DataFrame:
+    # Last bar close_location = (105-102)/(106-102) = 0.75 (clears R5);
+    # risk=105-100=5.0, reward=ATR14×3.0=6.0 → RR=1.2, below the 2.0 minimum.
     return _frame(
         closes=[96, 97, 98, 97, 96, 97, 98, 97, 104, 105],
         highs=[97, 98, 99, 98, 97, 98, 99, 98, 100, 106],
-        lows=[95, 96, 97, 96, 95, 96, 97, 96, 103, 103],
+        lows=[95, 96, 97, 96, 95, 96, 97, 96, 103, 102],
     )
 
 
 def _tight_stop_df() -> pd.DataFrame:
+    # Last bar close_location = (100.7-99.2)/(101.2-99.2) = 0.75 (clears R5);
+    # breakout level (100.55) still leaves the stop too tight.
     return _frame(
         closes=[100, 100.2, 100.4, 100.2, 100.1, 100.2, 100.3, 100.4, 100.6, 100.7],
-        highs=[100.3, 100.5, 100.6, 100.4, 100.3, 100.4, 100.5, 100.5, 100.55, 101.6],
-        lows=[99.8, 100.0, 100.2, 100.0, 99.9, 100.0, 100.1, 100.2, 100.55, 99.6],
+        highs=[100.3, 100.5, 100.6, 100.4, 100.3, 100.4, 100.5, 100.5, 100.55, 101.2],
+        lows=[99.8, 100.0, 100.2, 100.0, 99.9, 100.0, 100.1, 100.2, 100.55, 99.2],
     )
 
 
