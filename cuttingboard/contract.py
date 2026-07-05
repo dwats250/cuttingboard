@@ -15,6 +15,11 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from cuttingboard import config, time_utils
+from cuttingboard.contract_types import (
+    ContractCandidate,
+    PipelineContract,
+    SystemState,
+)
 from cuttingboard.trade_decision import (
     ALLOW_TRADE,
     BLOCK_TRADE,
@@ -83,7 +88,7 @@ def build_pipeline_output_contract(
     artifacts: dict[str, Any],
     timezone_name: str = "America/New_York",
     data_quality: Optional[str] = None,
-) -> dict[str, Any]:
+) -> PipelineContract:
     """Build a PipelineOutputContract dict from a completed PipelineResult.
 
     All fields are JSON-native. No datetime objects, enums, or custom
@@ -149,7 +154,7 @@ def build_error_contract(
     artifacts: dict[str, Any],
     timezone_name: str = "America/New_York",
     error_detail: Optional[str] = None,
-) -> dict[str, Any]:
+) -> PipelineContract:
     """Build a minimal valid contract when the pipeline fails with an exception."""
     return {
         "schema_version": SCHEMA_VERSION,
@@ -217,7 +222,7 @@ def _build_system_state(
     validation_summary: Any,
     run_at_utc: Optional[datetime],
     router_mode: Optional[str],
-) -> dict[str, Any]:
+) -> SystemState:
     system_halted = getattr(validation_summary, "system_halted", False)
     halt_reason = getattr(validation_summary, "halt_reason", None)
     regime_failure_reason = qual.regime_failure_reason if qual else None
@@ -308,7 +313,7 @@ def _build_trade_candidates(
     thesis_map: Optional[dict] = None,
     invalidation_guidance_map: Optional[dict] = None,
     entry_quality_map: Optional[dict] = None,
-) -> list[dict[str, Any]]:
+) -> list[ContractCandidate]:
     if qual is None:
         return []
 

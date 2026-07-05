@@ -254,6 +254,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-234 | #102 | Kill the VALIDATED fail-open default: missing chain evidence renders MANUAL CHECK, never validated | COMPLETE | [PRD-234](prd_history/PRD-234.md) |
 | PRD-235 | #102 | Qualification loudness: NEUTRAL symbols excluded visibly, missing-data gate passes emit skip markers | COMPLETE | [PRD-235](prd_history/PRD-235.md) |
 | PRD-236 | #104 | Extract the decision-gate chain + contract finalization from _run_pipeline into named functions | COMPLETE | [PRD-236](prd_history/PRD-236.md) |
+| PRD-237 | #105 | Typed contract boundary (J1): TypedDicts for contract / trade candidate / system_state, adopted in contract.py + payload.py | COMPLETE | [PRD-237](prd_history/PRD-237.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
