@@ -16,6 +16,56 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-05 — Fable window closed: Blocks 3–4 complete; post-window queue fixed
+
+The 2026-07-04→07-07 Fable window closed early with all four blocks done.
+Landed since the Block-3 gate: item I (PRD-236 @ #104), J1 (PRD-237 @ #105,
+Dustin's line-by-line schema read), J2 + M-map design (PRD-238 @ #106,
+`docs/renderer_decomposition_map.md`), ledger tick reconciliation (#107),
+and item G (PRD-239 @ #108, `docs/architecture.md` rewritten against the
+real `_run_pipeline`). Every HIGH-RISK PRD carried a fresh-context Claude
+review artifact; the Codex leg ran on the window's artifact-or-waiver
+pattern (Dustin's merges record the waivers — no `codex` CLI in the
+remote container, connector bot out of credits).
+
+`FABLE_WINDOW_PLAN.md` deleted per its own instruction; the
+`docs/session_resume/2026-07-04-fable-window.md` scratch note deleted per
+the PRD-230 sediment rule after confirming durable homes for its contents.
+
+**Post-window queue (Opus, after July 7)** — the master plan's open boxes
+plus review-surfaced follow-ups, consolidated here so nothing lives only
+in scratch: master-plan D (single-source constants), E (lockfile +
+SHA-pinning), F (confirmation/ingestion test blind spots), K (injected
+fetch provider), L (notification dedup state injection), M execution per
+`docs/renderer_decomposition_map.md` (re-verify its line numbers first);
+hourly-path finalize-validation + retire the `_validated_chain_result`
+sibling fail-open (enumerated in PRD-234 OUT OF SCOPE); qualification
+missing-candidate fall-through (PRD-235 doc); output.py always-None dead
+reads (PRD-237 OUT OF SCOPE); `reports/levels.py::derive_key_levels`
+typing MICRO (PRD-238 review); optional mypy gate (PRD-237 follow-up).
+
+**Operational note worth keeping:** the byte-identical fixture harness
+must warm TWICE after restoring committed `logs/` (first run trips the
+staleness guard against the committed fallback); artifacts are
+deterministic only at steady state. Always `git checkout -- logs/
+reports/` before commits.
+
+## 2026-07-05 — Alignment check #5 (phase boundary: Fable-window close) — PASS, no drift
+
+Phase-boundary diff-read per CLAUDE.md (the PRD-230 model — first run
+under it). Covered `main` merges since check #4 (2026-06-20): PRDs
+191–193, 204, 207–208, 210–212, 223–225, and the window's 228–239
+(PRs #96–#108). Q1 new prediction logic: none (validation, typing,
+docs, process, presentation only). Q2 new sidecar without a documented
+consumer: none (`renderer_decomposition_map.md` is a design doc;
+PRD-223/224's risk band consumes existing contract fields). Q3 new
+module serving none of VISION's four questions: none
+(`contract_types.py` types the existing contract). Q4 post-merge drift:
+none found — every window review artifact carries its DRIFT CHECK;
+PROJECT_STATE refreshed at each same-PR closeout. Findings: none.
+Next check: next phase boundary (likely the post-window Opus wave
+closing D/E or K/L/M).
+
 ## 2026-07-04 — Fable-window Blocks 1+2 merged; Block-3 gate opened (Deviation 2 signed)
 
 Dustin hand-merged PR #99 (Block-1 governance batch, = Deviation-1 sign-off)
