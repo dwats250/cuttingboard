@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 240,
-  "next_prd": 241,
+  "latest_complete": 241,
+  "next_prd": 242,
   "entries": [
     {
       "number": 56,
@@ -1116,8 +1116,8 @@
     {
       "number": 241,
       "title": "Qualification doc truth: gate count in system_logic_map + entry modes and regime-tiered R:R in trade_qualification",
-      "status": "PROPOSED",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#113"
     }
   ]
 }
