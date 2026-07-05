@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 238,
-  "next_prd": 239,
+  "latest_complete": 239,
+  "next_prd": 240,
   "entries": [
     {
       "number": 56,
@@ -1104,8 +1104,8 @@
     {
       "number": 239,
       "title": "Make architecture.md true: real _run_pipeline stage order, decision layer, typed-dict contract",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#108"
     }
   ]
 }
