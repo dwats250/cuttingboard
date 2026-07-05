@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 238,
-  "next_prd": 239,
+  "latest_complete": 239,
+  "next_prd": 240,
   "entries": [
     {
       "number": 56,
@@ -1100,6 +1100,12 @@
       "title": "J2: adopt the typed contract in notifications/renderer consumers; retire SCHEMA_MAP's contract field-lookup role + M-map design doc",
       "status": "COMPLETE",
       "commit": "#106"
+    },
+    {
+      "number": 239,
+      "title": "Make architecture.md true: real _run_pipeline stage order, decision layer, typed-dict contract",
+      "status": "COMPLETE",
+      "commit": "#108"
     }
   ]
 }
