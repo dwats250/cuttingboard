@@ -238,13 +238,13 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-218 | 51fbb36 | Trend-structure density: compact mobile rows + alignment-colored price + SMA arrow spacing | COMPLETE | [PRD-218](prd_history/PRD-218.md) |
 | PRD-219 | 02d2e8f | System-state distillation: verdict + one context line + single timestamp | COMPLETE | [PRD-219](prd_history/PRD-219.md) |
 | PRD-220 | 2006db5 | Dashboard refinement round 2: system-state/market-map coherence + macro-tape & trend polish | COMPLETE | [PRD-220](prd_history/PRD-220.md) |
-| PRD-221 | 6b3fef1 | Level diagram: NOW marker, % distance, entry-gap band | COMPLETE | [PRD-221](prd_history/PRD-221.md) |
+| PRD-221 | 8faa675 | Level diagram: NOW marker, % distance, entry-gap band | COMPLETE | [PRD-221](prd_history/PRD-221.md) |
 | PRD-222 | b4a315c | Level diagram: label anchor NOW, drop redundant marker + empty band (PRD-221 patch) | COMPLETE | [PRD-222](prd_history/PRD-222.md) |
 | PRD-223 | e654ca0 | Numeric entry→stop risk band on the level ladder (from contract trade_candidates) | COMPLETE | [PRD-223](prd_history/PRD-223.md) |
 | PRD-224 | 204a5b8 | Macro-tape glyph alignment (GC/SI pad) + PRD-223 review fast-follows | COMPLETE | [PRD-224](prd_history/PRD-224.md) |
 | PRD-225 | 9cc751c | Trend-structure mobile rows: uniform wrap (alignment-cell min-width + tighter gap) | COMPLETE | [PRD-225](prd_history/PRD-225.md) |
-| PRD-226 | — | Level diagram NOW anchor = current price (contract entry is a separate ENTRY level, never NOW) | IN PROGRESS | [PRD-226](prd_history/PRD-226.md) |
-| PRD-227 | — | Correct PRD-221 registry provenance (phantom 6b3fef1 → merged 8faa675) | IN PROGRESS | [PRD-227](prd_history/PRD-227.md) |
+| PRD-226 | #95 | Level diagram NOW anchor = current price (contract entry is a separate ENTRY level, never NOW) | COMPLETE | [PRD-226](prd_history/PRD-226.md) |
+| PRD-227 | #95 | Correct PRD-221 registry provenance (phantom 6b3fef1 → merged 8faa675) | COMPLETE | [PRD-227](prd_history/PRD-227.md) |
 | PRD-228 | a11481b | Bot-review-thread disposition clause (governance guardrail) | COMPLETE | [PRD-228](prd_history/PRD-228.md) |
 | PRD-229 | #99 | Ceremony tiering: cosmetic MICRO carve-out + same-PR closeout | COMPLETE | [PRD-229](prd_history/PRD-229.md) |
 | PRD-230 | #99 | Process drop-list: Codex-authenticity teardown, cadence right-sizing, sediment stop, map de-line-numbering, process-doc dedup | COMPLETE | [PRD-230](prd_history/PRD-230.md) |

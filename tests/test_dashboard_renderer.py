@@ -514,7 +514,11 @@ def test_candidate_level_diagram_hidden_when_anchor_invalid() -> None:
     assert 'class="lvl-diagram"' not in card
 
 
-def test_candidate_level_diagram_prefers_contract_entry_over_current_price() -> None:
+def test_candidate_level_diagram_now_anchor_is_current_price_entry_marked_separately() -> None:
+    # PRD-226: the yellow NOW line is the current price (120), NOT the contract
+    # entry (110). The entry gets its own amber ENTRY line. Pre-PRD-226 the
+    # yellow anchor sat on the contract entry (y=70); now it sits on current
+    # price (y=40) and the amber ENTRY line sits on the entry (y=70).
     entry = {
         **_mm_symbol("SPY"),
         "current_price": 120.0,
@@ -532,10 +536,13 @@ def test_candidate_level_diagram_prefers_contract_entry_over_current_price() -> 
         contract_entry_map={"SPY": 110.0},
     )
     card = _candidate_card(html)
-    entry_line = re.search(r'<line x1="0" y1="(?P<y>\d+)" x2="160" y2="\d+" stroke="#f5c518"', card)
+    now_line = re.search(r'<line x1="0" y1="(?P<y>\d+)" x2="160" y2="\d+" stroke="#f5c518"', card)
+    entry_line = re.search(r'<line x1="0" y1="(?P<y>\d+)" x2="160" y2="\d+" stroke="#e0a552"', card)
 
-    assert entry_line is not None
-    assert entry_line.group("y") == "70"
+    assert now_line is not None and now_line.group("y") == "40"    # NOW = current price
+    assert entry_line is not None and entry_line.group("y") == "70"  # ENTRY = contract entry
+    assert ">NOW 120.00</text>" in card
+    assert ">ENTRY 110.00 -8.3%</text>" in card
 
 
 def test_stale_contract_entries_are_ignored_for_level_anchors() -> None:
