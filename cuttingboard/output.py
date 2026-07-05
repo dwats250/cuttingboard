@@ -27,6 +27,7 @@ from datetime import datetime
 from typing import Optional
 
 import requests
+from cuttingboard.contract_types import PipelineContract
 
 from datetime import date as _date
 
@@ -903,7 +904,7 @@ def _invalidation_line(candidate: dict) -> Optional[str]:
     return f"close below stop {stop}"
 
 
-def build_notification_message(contract: dict) -> tuple[str, str]:
+def build_notification_message(contract: PipelineContract) -> tuple[str, str]:
     """Return a compact execution alert derived from the canonical contract."""
     status = contract.get("status") or ""
     outcome = contract.get("outcome")

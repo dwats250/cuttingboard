@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 from enum import Enum
+from cuttingboard.contract_types import PipelineContract
 from pathlib import Path
 from typing import Optional
 
@@ -35,7 +36,7 @@ class NotificationPriority(str, Enum):
     LOW = "LOW"
 
 
-def notification_state_key(contract: dict) -> str:
+def notification_state_key(contract: PipelineContract) -> str:
     """Return a deterministic string key from decision-relevant contract fields.
 
     Key structure (pipe-delimited):
@@ -63,7 +64,7 @@ def notification_state_key(contract: dict) -> str:
     return f"{market_regime}|{execution_posture}|{tradable}|{symbols}|{primary_reason}"
 
 
-def classify_notification_priority(contract: dict) -> NotificationPriority:
+def classify_notification_priority(contract: PipelineContract) -> NotificationPriority:
     """Classify notification priority from the current contract.
 
     CRITICAL — pipeline error or stale/missing data

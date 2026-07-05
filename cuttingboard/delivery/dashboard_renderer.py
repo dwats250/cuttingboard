@@ -21,6 +21,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from cuttingboard import config
+from cuttingboard.contract_types import PipelineContract
 from cuttingboard.delivery.dashboard_integrator import (
     RULE2_LONG_VERDICT,
     RULE2_SHORT_VERDICT,
@@ -2693,7 +2694,10 @@ def _load_contract_entry_context(
 ) -> tuple[dict[str, float], dict[str, float], list[dict], object | None, Path]:
     """Load latest_hourly_contract entry/stop prices, alert_candidates, and generated_at timestamp."""
     path = logs_dir / _HOURLY_CONTRACT_PATH.name
-    contract = _load_json_optional(path)
+    # The persisted hourly contract IS a PipelineContract (PRD-237/J1); this
+    # is the renderer's only direct contract read — everything else consumes
+    # the (untyped) payload.
+    contract: PipelineContract | None = _load_json_optional(path)
     if not contract:
         return {}, {}, [], None, path
     entry_map: dict[str, float] = {}
