@@ -10,7 +10,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 ## Current state
 
 - **Active PRD:** none in progress.
-- **Next step:** Fable-window close — state-of-play refresh + next-components scoping, then delete `FABLE_WINDOW_PLAN.md`; after the window, the master plan's next unchecked box (`audits/codebase-review-2026-07-03/MASTER_PLAN.md` — D/E/F, K/L/M execution).
+- **Next step:** Work the master plan: `audits/codebase-review-2026-07-03/MASTER_PLAN.md` (find the first unchecked box — the post-window queue is consolidated in DECISIONS 2026-07-05: D/E/F, K/L/M execution per `docs/renderer_decomposition_map.md`, plus the review-surfaced follow-ups).
 - **PRD-228 — COMPLETE (2026-07-04):** bot-review-thread disposition clause in CLAUDE.md — connector-bot review threads are advisory input, never gate-satisfying; every substantive thread is ACTIONED (fix + cite SHA/PRD + resolve) or DISMISSED with an in-thread reason. Merged by hand per the governance carve-out as PR #96 (`a11481b`); registry row reconciled to COMPLETE in this closeout.
 - **PRD-204 — COMPLETE (2026-06-23):** non-destructive scoreboard aggregate. `regime_history.aggregate()` now PRESERVES last-known-good `spy_close_change_pct` (with an always-present observable `spy_close_change_pct_stale` marker) instead of overwriting it with `null` when `data/cache/SPY_ohlcv.parquet` is absent — the prior wipe blanked the published scoreboard's "SPY next" column for all historical rows (PRD-198 invariant #1; restored the gain-only docstring). The publish workflows now restore `logs/regime_history.jsonl` before aggregating so the preserve reads the live scoreboard, not main's frozen fallback (Amendment 1, env-parity-guarded), and absent/partial-source gaps are logged loudly (Amendments 2–3). The stale-tail-cache warning P2 was declined as already covered by the OHLCV cache freshness self-heal (then the PRD-190 `OHLCV_STALE_HOURS` TTL; retired by PRD-193, which replaced it with a trading-day freshness model that re-fetches every new weekday). Merged via PR #52 (`9c1fb37`); Claude review ACCEPT; Codex P1 + two R3 P2s dispositioned. Distinct from PRD-193 (cache persistence, defense-in-depth). (The originally-planned PRD-206 protected-glob follow-up was voided; PRD-206 is now a skipped number.)
 - **PRD-189 — COMPLETE (2026-06-17):** PR #15 (`b6e036e`) merged 2026-06-16; closeout was held pending PRD-194's publish decoupling. Closed once live run 27665400742 (2026-06-17) published a fresh scoreboard row to the `publish` branch, confirming the queue-delay-tolerant resolver + per-surface freshness work reaches the live site. (Earlier run 27637384167 verified the resolver but hit the GH006 push blocker that PRD-194 resolved.)
@@ -128,6 +128,7 @@ Deliberately deferred during the 2026-06-10 dashboard-batch scoping:
 ## Alignment check
 
 Phase-boundary diff-read per `CLAUDE.md` (PRD-230 retired the scheduled
-4-6-week ceremony; five runs found zero drift). Last scheduled-era check ran
-2026-06-20 (#4, PASS, no drift; see `docs/DECISIONS.md`). Next check: at the
-next phase boundary - the Fable-window close (2026-07-07) qualifies.
+4-6-week ceremony). Last check: 2026-07-05 (#5, PASS, no drift — the
+Fable-window close boundary; PRDs 191–239 covered; see `docs/DECISIONS.md`).
+Next check: the next phase boundary (likely the post-window Opus wave
+closing D/E or K/L/M).
