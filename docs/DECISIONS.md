@@ -16,6 +16,32 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-05 — Two testing rules from the PRD-240 implementation arc
+
+Both surfaced during PRD-240 (merged PR #111); recorded as standing rules,
+not dated observations:
+
+1. **Threshold-tightening PRDs run the full suite at FILES-scoping time.**
+   The token grep sweep (CLAUDE.md pre-implementation sweep) catches name
+   references only; PRD-240's sweep covered every constant token and still
+   missed `tests/test_account_equity_sizing.py`, whose fixture *geometry*
+   (stop=99 vs. the new 1.0×ATR floor) failed the tightened gate before
+   reaching its assertions — forcing a mid-implementation FILES amendment.
+   When a PRD tightens a numeric gate, run the full suite against a
+   prototype of the new value while declaring FILES, and add every failing
+   test file up front.
+
+2. **Clear `__pycache__` before trusting a post-mutation-check run.** An
+   in-place sed revert+restore that lands same-size/same-second can leave
+   stale bytecode, producing a phantom pass/fail against the OLD constant.
+   The PRD-240 fresh-context reviewer hit exactly this (one spurious
+   full-suite failure; disclosed in `PRD-240.review.claude.md`). After any
+   source-mutation verification, invalidate caches (`find . -name __pycache__
+   -exec rm -rf {} +` or `PYTHONDONTWRITEBYTECODE=1`) before reading the
+   next result as truth.
+
+---
+
 ## 2026-07-05 — Qualification tuning audit dispositioned: PRD-240/241 drafted PROPOSED, six findings left as-is
 
 The read-only trade-qualification tuning audit
