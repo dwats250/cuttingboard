@@ -263,7 +263,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-243 | #115 | Subtraction block: prd_eval detector retirement, GitNexus surface removal, phantom-SHA debt closed WONTFIX-historical | COMPLETE | [PRD-243](prd_history/PRD-243.md) |
 | PRD-244 | #119 | CLAUDE.md governance refactor (compression + reference-out) | COMPLETE | [PRD-244](prd_history/PRD-244.md) |
 | PRD-245 | 6017ce9 | FVG upgrade path: Gate 6 stop-distance floor on the swapped stop — decision PRD (hole vs deliberate) | COMPLETE | [PRD-245](prd_history/PRD-245.md) |
-| PRD-246 | — | Denominator-discriminating test for the FVG floor percent leg (PRD-245 review REC-1) | IN PROGRESS | [PRD-246](prd_history/PRD-246.md) |
+| PRD-246 | #123 | Denominator-discriminating test for the FVG floor percent leg (PRD-245 review REC-1) | COMPLETE | [PRD-246](prd_history/PRD-246.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
