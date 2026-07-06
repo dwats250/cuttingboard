@@ -261,6 +261,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-241 | #113 | Qualification doc truth: gate count in system_logic_map + entry modes and regime-tiered R:R in trade_qualification | COMPLETE | [PRD-241](prd_history/PRD-241.md) |
 | PRD-242 | #115 | HIGH-RISK gate Option A: second-model review is a commissioned instrument + write-the-sentence disposition validator | COMPLETE | [PRD-242](prd_history/PRD-242.md) |
 | PRD-243 | #115 | Subtraction block: prd_eval detector retirement, GitNexus surface removal, phantom-SHA debt closed WONTFIX-historical | COMPLETE | [PRD-243](prd_history/PRD-243.md) |
+| PRD-244 | — | CLAUDE.md governance refactor (compression + reference-out) | IN PROGRESS | [PRD-244](prd_history/PRD-244.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

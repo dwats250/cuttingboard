@@ -1130,6 +1130,12 @@
       "title": "Subtraction block: prd_eval detector retirement, GitNexus surface removal, phantom-SHA debt closed WONTFIX-historical",
       "status": "COMPLETE",
       "commit": "#115"
+    },
+    {
+      "number": 244,
+      "title": "CLAUDE.md governance refactor (compression + reference-out)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
