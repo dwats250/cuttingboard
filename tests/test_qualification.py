@@ -3,6 +3,8 @@ Tests for Layer 7 — Trade Qualification (cuttingboard/qualification.py).
 All tests are offline — synthetic RegimeState, StructureResult, TradeCandidate.
 """
 
+import logging
+
 import pytest
 import pandas as pd
 from dataclasses import replace
@@ -144,6 +146,24 @@ def _valid_long_fvg_df() -> pd.DataFrame:
         (99.4, 100.0, 99.1, 99.8, 1200),
         (99.8, 104.2, 99.8, 103.4, 1800),
         (101.4, 102.2, 101.2, 101.6, 1500),
+    ])
+
+
+def _wide_gap_long_fvg_df() -> pd.DataFrame:
+    # PRD-245: floor-clearing FVG geometry — zone upper=102.4, lower=100.0
+    # (gap 2.4), midpoint 101.2 → post-swap risk 1.2. With atr14=1.0 that
+    # clears both Gate 6 legs (1.2 ≥ 1.0×ATR; 1.186% of midpoint ≥ 1%).
+    # This is the canonical VALID-upgrade fixture; _valid_long_fvg_df stays
+    # the sub-floor fixture pinning the fallback.
+    return _ohlcv_frame([
+        (98.0, 99.0, 97.5, 98.6, 1000),
+        (98.6, 99.2, 98.0, 98.9, 1000),
+        (98.9, 99.4, 98.4, 99.1, 1000),
+        (99.1, 99.6, 98.7, 99.3, 1000),
+        (99.3, 99.8, 98.9, 99.5, 1000),
+        (99.4, 100.0, 99.1, 99.8, 1200),
+        (99.8, 104.2, 99.8, 103.4, 1800),
+        (102.6, 102.9, 102.4, 102.5, 1500),
     ])
 
 
@@ -803,11 +823,47 @@ class TestImbalancePullbackEntryMode:
         assert result.entry_mode == ENTRY_MODE_DIRECT
         assert result.imbalance_zone is None
 
+    def test_sub_floor_swapped_stop_falls_back_to_direct(self, caplog):
+        # PRD-245 (Branch A) red test: _valid_long_fvg_df's zone
+        # (upper=101.2, lower=100.0) yields post-swap risk 0.6 — with the
+        # default atr14=2.0 that is 0.3×ATR14 and 0.60% of the midpoint,
+        # under BOTH Gate 6 floor legs. The upgrade must fall back to the
+        # already-qualified DIRECT result (bare return: no zone retained,
+        # sizing intact), refusing only the noise-width stop — and the
+        # fallback log must name each tripped leg independently.
+        with caplog.at_level(logging.INFO, logger="cuttingboard.qualification"):
+            summary = _qualify_with_ohlcv(_valid_long_fvg_df())
+        result = summary.qualified_trades[0]
+        assert result.qualified is True
+        assert result.entry_mode == ENTRY_MODE_DIRECT
+        assert result.imbalance_zone is None
+        assert result.max_contracts is not None
+        assert result.dollar_risk is not None
+        fallback_lines = [r.message for r in caplog.records if "FVG FALLBACK" in r.message]
+        assert len(fallback_lines) == 1
+        assert "of midpoint below" in fallback_lines[0]  # percent leg named
+        assert "ATR14" in fallback_lines[0]              # ATR leg named
+
     def test_valid_imbalance_enables_pullback_mode(self):
-        summary = _qualify_with_ohlcv(_valid_long_fvg_df())
+        # PRD-245: canonical valid upgrade on floor-clearing geometry.
+        # Zone midpoint=101.2, post-swap risk=1.2 (≥ 1.0×ATR14=1.0, and
+        # 1.186% of midpoint ≥ 1%); imbalance RR = (103.8−101.2)/1.2 ≈ 2.17
+        # ≥ MIN_RR_RATIO. DIRECT pass: risk=1.1, RR = 2.3/1.1 ≈ 2.09.
+        summary = _qualify_with_ohlcv(
+            _wide_gap_long_fvg_df(),
+            candidate=_candidate(
+                symbol="TEST",
+                direction="LONG",
+                entry_price=101.5,
+                stop_price=100.4,
+                target_price=103.8,
+                spread_width=0.5,
+            ),
+            dm=_dm(symbol="TEST", atr14=1.0),
+        )
         result = summary.qualified_trades[0]
         assert result.entry_mode == ENTRY_MODE_PULLBACK_IMBALANCE
-        assert result.imbalance_zone == FVGZone(upper_bound=101.2, lower_bound=100.0)
+        assert result.imbalance_zone == FVGZone(upper_bound=102.4, lower_bound=100.0)
 
     def test_invalidated_imbalance_stays_direct(self):
         summary = _qualify_with_ohlcv(_invalidated_long_fvg_df())
@@ -850,20 +906,23 @@ class TestImbalancePullbackEntryMode:
         # PRD-240 R4 red test: with EXPANSION_RR_RATIO monkeypatched away from
         # MIN_RR_RATIO (1.5 vs 2.0), _resolve_entry_mode's FVG upgrade for an
         # EXPANSION-regime candidate must use the EXPANSION value, not
-        # MIN_RR_RATIO. Zone: upper=101.2, lower=100.0 (midpoint=100.6,
-        # zone risk=0.6). target=101.68 → imbalance RR=1.8: passes 1.5,
-        # fails 2.0 — the bug this test would catch is _resolve_entry_mode
-        # silently applying MIN_RR_RATIO instead.
+        # MIN_RR_RATIO. Geometry re-tuned by PRD-245 to clear the swapped-stop
+        # floor while preserving the tier discrimination: zone upper=102.4,
+        # lower=100.0 (midpoint=101.2, post-swap risk=1.2 ≥ 1.0×ATR14 and
+        # 1.186% of midpoint). target=103.36 → imbalance RR = 2.16/1.2 = 1.80
+        # exactly: passes 1.5, fails 2.0 — the bug this test catches is
+        # _resolve_entry_mode silently applying MIN_RR_RATIO instead.
+        # DIRECT pass: risk=1.1 ≥ max(1.015, 1.0); RR = 1.86/1.1 ≈ 1.69 ≥ 1.5.
         monkeypatch.setattr(config, "EXPANSION_RR_RATIO", 1.5)
-        dm = replace(_dm(symbol="TEST", atr14=1.0), ema21=100.0)
+        dm = replace(_dm(symbol="TEST", atr14=1.0), ema21=101.5)
         summary = _qualify_with_ohlcv(
-            _valid_long_fvg_df(),
+            _wide_gap_long_fvg_df(),
             candidate=_candidate(
                 symbol="TEST",
                 direction="LONG",
-                entry_price=100.0,
-                stop_price=99.0,
-                target_price=101.68,
+                entry_price=101.5,
+                stop_price=100.4,
+                target_price=103.36,
                 spread_width=0.5,
             ),
             regime=_regime(regime=EXPANSION),
@@ -871,4 +930,4 @@ class TestImbalancePullbackEntryMode:
         )
         result = summary.qualified_trades[0]
         assert result.entry_mode == ENTRY_MODE_PULLBACK_IMBALANCE
-        assert result.imbalance_zone == FVGZone(upper_bound=101.2, lower_bound=100.0)
+        assert result.imbalance_zone == FVGZone(upper_bound=102.4, lower_bound=100.0)
