@@ -30,7 +30,7 @@ them.
 - `docs/architecture.md`, `docs/PRD_PROCESS.md`, `docs/sidecar_doctrine.md` -
   structural references
 - `docs/CLAUDE_HOOKS.md` - the repo's Claude Code hooks (file protection,
-  PRD sequencing gate, canonical-read guard) and their state files
+  PRD registry-gap check, canonical-read guard) and their state files
 
 Decisions that meaningfully change direction are recorded in `docs/DECISIONS.md`
 with date and rationale - short notes, not ceremony.
