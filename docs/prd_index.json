@@ -1148,6 +1148,12 @@
       "title": "Denominator-discriminating test for the FVG floor percent leg (PRD-245 review REC-1)",
       "status": "COMPLETE",
       "commit": "#123"
+    },
+    {
+      "number": 247,
+      "title": "Qualification doc truth: Gate 8 failure message, EXPANSION regime, continuation fail-open, FVGZone shape",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
