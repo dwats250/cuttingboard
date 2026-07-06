@@ -155,8 +155,8 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
    (i) whether the change conflicts with a VISION non-goal/principle and
    (ii) whether it leaves any PROJECT_STATE claim stale. This is drift, not
    correctness — keep it to the two recorded lines. Per `CLAUDE.md § Review
-   and commit discipline`, under auto-merge drift-review is a post-merge
-   audit, so this recorded check is the standing pre-merge drift signal.
+   gates`, under auto-merge drift-review is a post-merge audit, so this
+   recorded check is the standing pre-merge drift signal.
 
 ### Phase 2 — Verify (MANDATORY before returning)
 
