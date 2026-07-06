@@ -85,6 +85,21 @@ def test_codex_prompt_artifact_does_not_trigger_gap(tmp_path: Path):
     assert "PRD-999.codex_prompt.md" not in ctx
 
 
+def test_proposal_artifact_does_not_trigger_gap(tmp_path: Path):
+    """PRD-248 R1: PRD-999.proposal.md with no registry row must NOT produce GAP output.
+
+    Reverting the `.proposal.md` allowlist clause in prd_eval.sh turns this red.
+    """
+    ws = _make_workspace(
+        tmp_path,
+        prd_files=["PRD-999.proposal.md"],
+        registry_rows=[],
+    )
+    ctx = _run_hook(ws, "PRD-999 status check")
+    assert "REGISTRY GAP" not in ctx
+    assert "PRD-999.proposal.md" not in ctx
+
+
 def test_real_unregistered_prd_does_trigger_gap(tmp_path: Path):
     """R3: a real PRD-NNN.md with no registry row MUST produce GAP output naming it."""
     ws = _make_workspace(
@@ -129,6 +144,7 @@ def test_mixed_review_and_real_prd(tmp_path: Path):
             "PRD-998.review.codex.md",
             "PRD-998.adjudication.md",
             "PRD-998.codex_prompt.md",
+            "PRD-998.proposal.md",
             "PRD-999.md",
         ],
         registry_rows=[],
@@ -140,6 +156,7 @@ def test_mixed_review_and_real_prd(tmp_path: Path):
     assert "PRD-998.review.codex.md" not in ctx
     assert "PRD-998.adjudication.md" not in ctx
     assert "PRD-998.codex_prompt.md" not in ctx
+    assert "PRD-998.proposal.md" not in ctx
 
 
 def test_uses_tmp_directory_not_live_registry(tmp_path: Path):
