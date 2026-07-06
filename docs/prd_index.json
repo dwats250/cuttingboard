@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 247,
-  "next_prd": 248,
+  "latest_complete": 248,
+  "next_prd": 249,
   "entries": [
     {
       "number": 56,
@@ -1158,8 +1158,8 @@
     {
       "number": 248,
       "title": "Allowlist .proposal.md in the prd_eval.sh registry-gap hook",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#125"
     }
   ]
 }
