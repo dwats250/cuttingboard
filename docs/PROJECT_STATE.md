@@ -5,12 +5,13 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-07-05 (PR #114)
+**Last updated:** 2026-07-05 (PR #115)
 
 ## Current state
 
 - **Active PRD:** none in progress.
-- **PRD-242 — COMPLETE (2026-07-05, PR #114):** HIGH-RISK gate Option A from the lifecycle audit (`audits/prd-lifecycle-audit-2026-07-05/`). The second review leg is now the fresh-context Claude review + Dustin's manual merge; a second-model review (Codex or other) is an instrument Dustin may commission, never a requirement owed. Every COMPLETE HIGH-RISK PRD ≥ 242 must carry either a commissioned `PRD-NNN.review.<model>.md` artifact or the verbatim `SECOND-MODEL: instrument not commissioned, merging on Claude-review + human judgment.` line in its PRD doc — enforced by `tools/validate_prd_registry.py` on the CI `test` check (+8 tests, mutation-verified). The connector-bot post-merge net (PRD-228 disposition clause) is unchanged. Governance change: MANUAL-MERGE-ONLY, rides PR #114.
+- **PRD-243 — COMPLETE (2026-07-05, PR #115):** lifecycle-audit subtraction block (P3/P4/P7), nothing added. `prd_eval.sh` keyword detectors retired — the hook now carries ONLY the registry-gap check (behavior-proven: the six-misfire notification shapes emit 0 bytes post-edit; the gap check still fires; +3 red tests). Entire GitNexus surface deleted (12 stale skills, `gitnexus-analyze.sh`, the `pre_commit_sanity.sh` detect-changes step with its fabricated "CLAUDE.md § GitNexus" citation) with all live inbound references reconciled (authoring/review skills' recon chains, `knowledge_systems.md` retirement record); commit path behavior-proven (script exit 0 on a real staged diff). Phantom-SHA debt closed WONTFIX-HISTORICAL (29 PRDs / 35 tokens; see Known technical debt). Rides PR #115 with PRD-242.
+- **PRD-242 — COMPLETE (2026-07-05, PR #115):** HIGH-RISK gate Option A from the lifecycle audit (`audits/prd-lifecycle-audit-2026-07-05/`). The second review leg is now the fresh-context Claude review + Dustin's manual merge; a second-model review (Codex or other) is an instrument Dustin may commission, never a requirement owed. Every COMPLETE HIGH-RISK PRD ≥ 242 must carry either a commissioned `PRD-NNN.review.<model>.md` artifact or the verbatim `SECOND-MODEL: instrument not commissioned, merging on Claude-review + human judgment.` line in its PRD doc — enforced by `tools/validate_prd_registry.py` on the CI `test` check (+8 tests, mutation-verified). The connector-bot post-merge net (PRD-228 disposition clause) is unchanged. Governance change: MANUAL-MERGE-ONLY, rides PR #115.
 - **PRD-241 — COMPLETE (2026-07-05, PR #113):** qualification doc truth. `system_logic_map.md` gate count fixed (11 = 4 hard + 7 soft); `trade_qualification.md` now documents the post-PRD-240 Gate 6 floors, all three Gate 7 regime R:R tiers, and — for the first time — the CONTINUATION and FVG PULLBACK_IMBALANCE entry modes (gate tables, rejection taxonomy, the synthetic-reward stop-width-ceiling arithmetic, the deliberate continuation no-ATR-floor asymmetry). All 16 documented values verified against config.py.
 - **PRD-240 — COMPLETE (2026-07-05, PR #111):** qualification tuning from the 2026-07-05 audit, approved by Dustin same day. EXPANSION_RR_RATIO 1.5→2.0 (discount removal); Gate-6 ATR stop floor 0.5→1.0× as `STOP_ATR_FLOOR_K`; shared `MIN_STOP_PCT`; `CONTINUATION_REWARD_ATR_MULTIPLE=3.0` replaces the disguised-constant reward expression; `_min_rr_for_regime()` shared by Gate 7 and `_resolve_entry_mode`; continuation momentum now requires close_location ≥ 0.75; continuation stop-floor asymmetry retained + documented in-code (R6). Amendment 1 added `tests/test_account_equity_sizing.py` (Gate-8 fixture geometry hit by the new floor). +4 mutation-verified red tests; mutation checks run independently three times (implementer / lead / reviewer). HIGH-RISK gate: fresh-context Claude review ACCEPT (`PRD-240.review.claude.md` @ `da214f7`); Codex leg = Dustin's manual merge records the waiver (no codex CLI in the remote container, Fable-window pattern) — **PR #111 merged manually by Dustin 2026-07-05.** Deferred non-blocking review recommendations: (1) `runtime/__init__.py` carries a third min-RR tier duplicate feeding `min_rr_applied` — not converted to the shared helper (runtime refactors require their own PRD); (2) name the 0.75 close-location literal (next polish batch).
 - **Next step:** Work the master plan: `audits/codebase-review-2026-07-03/MASTER_PLAN.md` (find the first unchecked box — the post-window queue is consolidated in DECISIONS 2026-07-05: D/E/F, K/L/M execution per `docs/renderer_decomposition_map.md`, plus the review-surfaced follow-ups).
@@ -103,15 +104,20 @@ Full history: `docs/PRD_REGISTRY.md`.
   yet scheduled, so every notification-path change still edits one large
   `runtime/__init__.py`. **Re-evaluate by 2026-08-15** (per the VISION principle
   that acknowledged debt carries a re-evaluation date).
-- **19 historical registry commit hashes are unreachable from `main`.** PRD-076,
-  081, 083, 085, 086, 088, 090, 096, 100, 102, 125, 126, 133, 139, 158, 161, 167,
-  168, 169 record COMPLETE commits that were squash-merged/rebased away, so the
-  validator's commit-resolvability check cannot pass in a clean CI checkout.
-  PRD-200 CI-skips that check (`--skip-commit-resolvability`) and enforces
-  consistency only; resolvability is unaffected relative to before (the validator
-  ran nowhere automatically). Follow-up: triage/fix the 19 hashes to their on-main
-  commits, then re-enable resolvability in CI (drop the flag, re-add
-  `fetch-depth: 0`). **Re-evaluate by 2026-07-31** (next alignment cadence).
+- **Phantom-SHA debt — CLOSED WONTFIX-HISTORICAL (PRD-243, 2026-07-05).**
+  29 PRDs' recorded COMPLETE hashes (35 hash tokens; the "19" first counted at
+  PRD-200 had grown through the PRD-208..222 era) are unreachable from a clean
+  checkout — squash-merged/rebased away under the pre-#NNN provenance
+  convention. Disposition: the class is dead, not the item open. The `#NNN`
+  commit-cell convention (PRD-229) ended new instances; these rows closed
+  under a convention that no longer exists, and rewriting their cells now
+  would fabricate history against a rule that was not in force — the same
+  logic as the PRD-242 validator's >=242 floor. CI keeps
+  `--skip-commit-resolvability` permanently for historical rows; full-mode
+  resolvability failures on rows <= PRD-222 are expected and are NOT a work
+  item. (Supersedes the prior "triage/fix the 19 hashes, re-enable
+  resolvability by 2026-07-31" follow-up, whose date anchored to the retired
+  alignment cadence.)
 
 ## Parked (reopen only under the stated condition)
 

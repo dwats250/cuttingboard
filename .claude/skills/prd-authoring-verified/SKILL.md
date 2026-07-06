@@ -102,26 +102,16 @@ genuinely does not apply.
 
 | # | Check | Primary tool | Fallback | Action on failure |
 |---|---|---|---|---|
-| V1 | Every symbol/field path/function in REQUIREMENTS exists in the repo | `gitnexus_context` | `Grep`/`rg` over repo + `docs/SCHEMA_MAP.md` + `docs/CALL_SITE_MAP.md` + `Read` | Tag `[UNVERIFIED]` inline AND list in report; OR generalize / remove |
+| V1 | Every symbol/field path/function in REQUIREMENTS exists in the repo | `Grep`/`rg` over repo + `docs/SCHEMA_MAP.md` + `docs/CALL_SITE_MAP.md` + `Read` | Same | Tag `[UNVERIFIED]` inline AND list in report; OR generalize / remove |
 | V2 | Every line number cited matches current source | `Read` at exact `offset+limit` | `Grep -n` against the named file | Correct the number, or remove the citation |
-| V3 | Every file in `FILES` exists; every file the PRD will edit is listed | `Bash: ls` + `gitnexus_impact upstream` | `Bash: ls` + manual consumer grep | Amend FILES before returning |
+| V3 | Every file in `FILES` exists; every file the PRD will edit is listed | `Bash: ls` + manual consumer grep | Same | Amend FILES before returning |
 | V4 | Visible-String Pre-Edit Audit: grep `tests/` for every literal string being renamed/removed | `Agent(Explore, haiku)` if ≥3 files or >5 strings | `Grep`/`rg` main-thread | Add missing test files to FILES |
 | V5 | No file in FILES is in the protected pipeline set unless `LANE: HIGH-RISK` — EXCEPT a cosmetic-only change (PRD-229 carve-out: ui copy/CSS/layout in presentation code, or comment/docstring-only i.e. zero executable-line delta; no R12 surface either way), which stays MICRO regardless of file | `Read` `docs/AGENT_WORKFLOW.md § Auto-Approval Policy` + carve-out check | Same | Escalate lane or split PRD |
 | V6 | Each `FAIL:` line is binary + observable (no "should", "appropriate", "reasonable", "as needed") | Regex scan of own output | Same | Rewrite the FAIL line |
 | V7 | If micro template used, ALL eligibility criteria in `docs/PRD_PROCESS.md § LANE Axis` (+ R12) hold; if the cosmetic note is used, the diff is provably comment/copy/CSS-only | Manual checklist against diff scope | Same | Switch to full template |
 | V8 | LANE header present and matches the risk surface implied by FILES | Header presence check | Same | Add or correct LANE |
 | V9 | Registry row exists ONLY if the PRD is moving to IN PROGRESS now | `Read` `PRD_REGISTRY.md` | Same | Defer registry write |
-| V10 | Impact analysis run for signature-bearing or protected pipeline files in FILES | `gitnexus_impact({direction:"upstream"})` | Skip with note (see rule below) | Surface HIGH/CRITICAL hits before returning |
-
-**V10 conditional rule:** Run V10 only when (a) GitNexus is available
-AND (b) `FILES` contains at least one signature-bearing or protected
-pipeline file. Otherwise the report line must read exactly:
-
-```
-- V10 impact analysis: skipped — GitNexus unavailable / no signature or protected pipeline files
-```
-
-(Pick the applicable clause; do not invent additional reasons.)
+| V10 | RETIRED (PRD-243: GitNexus removed) — blast-radius coverage lives in V3's manual consumer grep + the CLAUDE.md pre-implementation grep sweep | — | — | — |
 
 ### Verification Report shape (must appear at end of every response)
 
@@ -136,7 +126,7 @@ pipeline file. Otherwise the report line must read exactly:
 - V7 micro eligibility: [pass | switched to full because …]
 - V8 LANE: [MICRO | STANDARD | HIGH-RISK]
 - V9 registry: [deferred | row added because implementation starting now]
-- V10 impact analysis: [pass | HIGH on funcX | skipped — <one of the two allowed reasons>]
+- V10: retired (PRD-243)
 - Mode: [DRAFT_ONLY | WRITE_MODE]
 - File written: [path | none]
 ```
@@ -149,13 +139,7 @@ pipeline file. Otherwise the report line must read exactly:
 - `Grep` (or `rg` via `Bash`)
 - `Bash` (for `ls`, file existence, optional script invocation)
 
-**Preferred (use when available):**
-
-- `gitnexus_query` — concept-level exploration during Phase 1
-- `gitnexus_context` — V1 symbol verification
-- `gitnexus_impact` — V3 consumer audit and V10 blast radius
-
-**Fallback chain when GitNexus is unavailable:**
+**Recon chain (PRD-243: the GitNexus layer is retired; this IS the method):**
 
 1. `docs/SCHEMA_MAP.md` for field paths
 2. `docs/CALL_SITE_MAP.md` for the owning file+function, then

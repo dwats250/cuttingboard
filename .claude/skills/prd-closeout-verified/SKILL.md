@@ -206,7 +206,7 @@ Bookkeeping allowlist (V12):
 - `Grep` (or `rg` via `Bash`)
 - `Bash` (for `git`, `scripts/prd_close.sh`, file ops)
 
-**Preferred:** none — closeout is mechanical; no GitNexus dependency.
+**Preferred:** none — closeout is mechanical.
 
 **Optional:**
 

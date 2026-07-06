@@ -9,7 +9,7 @@ hooks that are live, not every script that has ever existed.
 | Script | Event | Trigger | Blocks? |
 |---|---|---|---|
 | `protect_files.sh` | PreToolUse / Write + Edit | Write or Edit to a protected path | Yes |
-| `prd_eval.sh` | UserPromptSubmit | Every prompt; acts when it references a PRD | No (injects context) |
+| `prd_eval.sh` | UserPromptSubmit | Prompt references a PRD AND an unregistered prd_history file exists | No (injects context) |
 | `canonical_read_guard.sh` | PreToolUse / Read | Read of repo-root CLAUDE.md or auto-memory MEMORY.md | No (warns; allows) |
 
 There is also a git-level `.git/hooks/pre-commit` (installed by
@@ -41,12 +41,21 @@ for catastrophic writes; AGENT_WORKFLOW.md is the policy boundary. Do not
 missing or empty the write is blocked. This applies only to protected paths - it
 does not block all writes.
 
-## prd_eval.sh - PRD review + sequencing gate
+## prd_eval.sh - registry-gap check
 
-Fires on every prompt; injects context only, never blocks a tool call. When the
-prompt contains a PRD body it injects the PRD-review structure; when it is an
-implementation request for a non-sequential PRD it injects a sequencing gate;
-and it flags any `prd_history/*.md` file missing a registry row.
+Fires on every prompt; injects context only, never blocks a tool call. Its
+single remaining job: when the prompt mentions a PRD, flag any
+`prd_history/*.md` file missing a registry row (review/adjudication/
+codex-prompt/impl-notes sidecars excluded). Output is empty unless a real
+gap exists.
+
+The former keyword detectors (PRD-body review-mode injection, non-sequential
+implementation gate) were retired by PRD-243: they had no channel
+discrimination and misfired on subagent task notifications (six times in one
+audited session), and their sequencing concern is enforced where truth is
+determined — `tools/validate_prd_registry.py` on the CI merge path (PRD-200)
+with same-PR closeout (PRD-229). The 108→143→145 exclusion-list repair chain
+was this detector's false-positive class regenerating.
 
 ## canonical_read_guard.sh - redundant canonical-doc re-read reminder
 

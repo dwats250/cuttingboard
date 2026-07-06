@@ -246,11 +246,10 @@ fails-on-the-meaning" failure class. Each names the incident it generalizes.
 - **Use the task list upfront for any work with >=3 distinct stages.** Update
   status as each stage starts and completes; it keeps progress visible and turns
   each report into a delta rather than a full re-statement.
-- **Sequencing-gate fires are actionable, not boilerplate.** If the
-  `UserPromptSubmit` PRD gate (`.claude/hooks/prd_eval.sh`) fires repeatedly for
-  the same out-of-order PRD, close the underlying registry inconsistency
-  (typically a 10-minute bookkeeping commit) rather than re-stating the skip
-  reason on every prompt. Repetition is a signal that closeout is overdue.
+- **A registry-gap fire is actionable, not boilerplate.** If the
+  `UserPromptSubmit` hook (`.claude/hooks/prd_eval.sh`, registry-gap check
+  only since PRD-243) flags an unregistered prd_history file, add the row —
+  a 10-minute bookkeeping commit — rather than working past the warning.
 - Invoke Codex only when Dustin commissions a second-model review (PRD-242),
   and the value is a genuinely independent second model - PRD cross-review,
   vision review of a proposed PRD, structured code review before merge. Not

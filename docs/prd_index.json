@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 242,
-  "next_prd": 243,
+  "latest_complete": 243,
+  "next_prd": 244,
   "entries": [
     {
       "number": 56,
@@ -1123,7 +1123,13 @@
       "number": 242,
       "title": "HIGH-RISK gate Option A: second-model review is a commissioned instrument + write-the-sentence disposition validator",
       "status": "COMPLETE",
-      "commit": "#114"
+      "commit": "#115"
+    },
+    {
+      "number": 243,
+      "title": "Subtraction block: prd_eval detector retirement, GitNexus surface removal, phantom-SHA debt closed WONTFIX-historical",
+      "status": "COMPLETE",
+      "commit": "#115"
     }
   ]
 }

@@ -154,3 +154,44 @@ def test_uses_tmp_directory_not_live_registry(tmp_path: Path):
     assert "PRD-104" not in ctx
     assert "PRD-105" not in ctx
     assert "PRD-997.md" in ctx
+
+
+def test_prd243_review_mode_detector_retired(tmp_path: Path):
+    """PRD-243: a PRD-token + section-keyword payload (the subagent-notification
+    misfire shape) must produce NO review-mode injection."""
+    ws = _make_workspace(tmp_path, prd_files=["PRD-999.md"],
+                         registry_rows=["PRD-999 | abc1234 | Title | COMPLETE | link"])
+    prompt = (
+        "Agent finished reconstructing the PRD-230 arc.\n"
+        "STATUS markers verified across docs.\n"
+        "The FILES section defines the boundary.\n"
+        "GOAL statements checked for PRD-232.\n"
+        "VALIDATION steps re-run.\n"
+        "REQUIREMENTS cross-checked against PRD-240."
+    )
+    ctx = _run_hook(ws, prompt)
+    assert "PRD REVIEW MODE" not in ctx
+    assert ctx == ""
+
+
+def test_prd243_impl_request_detector_retired(tmp_path: Path):
+    """PRD-243: an impl-verb-near-PRD-NNN payload must produce NO sequencing
+    injection, even with a lower-numbered IN PROGRESS row present."""
+    ws = _make_workspace(tmp_path, prd_files=["PRD-998.md", "PRD-999.md"],
+                         registry_rows=[
+                             "PRD-998 | — | Earlier | IN PROGRESS | link",
+                             "PRD-999 | abc1234 | Title | COMPLETE | link",
+                         ])
+    ctx = _run_hook(ws, "please build PRD-999 now and start PRD-999 implementation")
+    assert "IMPLEMENTATION REQUEST" not in ctx
+    assert "SEQUENCING GATE" not in ctx
+    assert ctx == ""
+
+
+def test_prd243_registry_gap_survives_retirement(tmp_path: Path):
+    """PRD-243: the kept registry-gap path still fires after the detector cut
+    (red test for the retained guard)."""
+    ws = _make_workspace(tmp_path, prd_files=["PRD-999.md"], registry_rows=[])
+    ctx = _run_hook(ws, "please build PRD-999 now")
+    assert "REGISTRY GAP" in ctx
+    assert "PRD-999.md" in ctx

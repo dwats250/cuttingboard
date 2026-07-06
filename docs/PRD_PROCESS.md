@@ -67,14 +67,15 @@ Closeout bookkeeping — the registry `COMPLETE` flip, `prd_index.json`
 counters, `PROJECT_STATE.md` refresh, and the PRD doc's trailing `STATUS`
 marker — lands **in the same PR as the implementation**. The separate
 post-merge closeout commit/PR is retired: it doubled commit volume (~19%
-of visible commits) and generated the sequencing-gate noise CLAUDE.md
-warns about.
+of visible commits) and generated the sequencing-gate noise of the
+prd_eval detectors since retired by PRD-243.
 
 Because a squash-merge SHA does not exist until merge, the commit cell
 records the **PR number** (`#NNN`). PR numbers are stable, survive
 squash-merges, and resolve on GitHub — recording them also ends the
-phantom-SHA class (19 historical COMPLETE hashes are unreachable from
-`main`; see PROJECT_STATE known debt). `tools/validate_prd_registry.py`
+phantom-SHA class (29 PRDs' historical COMPLETE hashes are unreachable from
+`main`; closed WONTFIX-historical by PRD-243 — see PROJECT_STATE known
+debt). `tools/validate_prd_registry.py`
 accepts `#NNN` tokens in commit cells and exempts them from
 git-resolvability; hex SHAs remain valid for historical rows and for
 hand-merged work closed out after merge.
