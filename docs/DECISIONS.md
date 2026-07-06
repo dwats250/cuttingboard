@@ -16,6 +16,34 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-06 — Fable qualification investigation: two audit candidates resolved without PRDs, one new finding promoted to PRD-244 (PROPOSED)
+
+Verification pass over `qualification.py` at `331f950`, citation-integrity
+protocol (every claim from a same-session read). Three outcomes:
+
+1. **"FVG pullback missing its EXPANSION R:R branch" — refuted as stale.**
+   The prior recon described pre-PRD-240 code; PRD-240 R4 added the branch
+   via the shared `_min_rr_for_regime()` and R1 removed the 1.5 discount it
+   would have reached. No PRD.
+2. **"Continuation stop lacks Gate 6's ATR floor" — confirmed as behavior,
+   deliberate by record.** PRD-240 R6 documents the asymmetry in three
+   places; the in-code comment's arithmetic verifies against current config.
+   No PRD.
+3. **New finding, promoted to PRD-244 (PROPOSED, decision-PRD):** the FVG
+   PULLBACK_IMBALANCE upgrade swaps the traded stop to the zone bound and
+   re-checks only R:R — a ratio a tighter stop *improves* — so Gate 6's two
+   stop-distance floors are never revalidated on the stop that trades
+   (post-swap risk floors at 0.15×ATR14 vs the 1.0×ATR14 the DIRECT pass
+   enforced; path verified live via `runtime/__init__.py:415-423`). The
+   escape is specified nowhere (trade_qualification.md, PRD-007/240/241,
+   the audit, in-code — all silent). Hole-vs-deliberate held for Dustin's
+   R1 ruling; artifact: `docs/prd_history/PRD-244.md`.
+
+**Supersede stamp:** the 2026-07-05 qualification-tuning audit's
+`_resolve_entry_mode` finding (findings.md:280-297) is superseded — its R:R
+half by PRD-240 R4, its stop half by PRD-244. Do not resurface it from the
+audit artifact.
+
 ## 2026-07-06 — PRD-228 Codex-review branches superseded, not contradicting (branch-cleanup, cont'd)
 
 Two never-merged branches held sole copies of Codex cross-reviews from

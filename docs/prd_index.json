@@ -1130,6 +1130,12 @@
       "title": "Subtraction block: prd_eval detector retirement, GitNexus surface removal, phantom-SHA debt closed WONTFIX-historical",
       "status": "COMPLETE",
       "commit": "#115"
+    },
+    {
+      "number": 244,
+      "title": "FVG upgrade path: Gate 6 stop-distance floor on the swapped stop — decision PRD (hole vs deliberate)",
+      "status": "PROPOSED",
+      "commit": null
     }
   ]
 }
