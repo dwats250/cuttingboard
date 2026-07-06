@@ -773,6 +773,34 @@ def _resolve_entry_mode(
 
     stop_price = zone.lower_bound if result.direction == "LONG" else zone.upper_bound
     risk = abs(midpoint - stop_price)
+
+    # PRD-244 (Branch A): the zone-bound stop is the stop that trades —
+    # options.py overrides the candidate with this geometry — so Gate 6's
+    # two distance floors re-fire here on the post-swap values. The percent
+    # leg divides by the midpoint (the post-swap entry), never by
+    # candidate.entry_price. The legs are evaluated independently (no
+    # elif) so the fallback log names every tripped leg. This check must
+    # run before the R:R re-check: R:R is a ratio a tighter stop improves,
+    # so it can never refuse a sub-floor stop. On violation the candidate
+    # falls back to the DIRECT result that already passed Gate 6 — bare
+    # return, no zone retained — refusing only the noise-width stop.
+    atr_floor = dm.atr14 * config.STOP_ATR_FLOOR_K
+    floor_breaches = []
+    if midpoint > 0 and (risk / midpoint) < config.MIN_STOP_PCT:
+        floor_breaches.append(
+            f"stop {risk / midpoint:.2%} of midpoint below {config.MIN_STOP_PCT:.1%} minimum"
+        )
+    if risk < atr_floor:
+        floor_breaches.append(
+            f"stop {risk:.2f} below {config.STOP_ATR_FLOOR_K:g}× ATR14 ({atr_floor:.2f})"
+        )
+    if floor_breaches:
+        logger.info(
+            f"FVG FALLBACK {result.symbol}: swapped stop under Gate 6 floor "
+            f"({'; '.join(floor_breaches)}) — staying DIRECT"
+        )
+        return result
+
     reward = abs(candidate.target_price - midpoint)
     imbalance_rr = (reward / risk) if risk > 0 else 0.0
     min_rr = _min_rr_for_regime(regime)
