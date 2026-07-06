@@ -14,6 +14,16 @@ from typing import Any
 
 TRACKING_START = 56
 ALLOWED_STATUSES = {"PROPOSED", "IN PROGRESS", "COMPLETE", "PATCH", "DEPRECATED"}
+# PRD-242 second-model disposition: a COMPLETE HIGH-RISK PRD from this number
+# onward must carry EITHER a commissioned second-model review artifact
+# (PRD-NNN.review.<model>.md, model != claude) OR the explicit disposition
+# sentence below in its PRD doc. The waiver is a positive act, never a
+# silence. Historical rows (< 242) are exempt and are not rewritten.
+SECOND_MODEL_DISPOSITION_START = 242
+SECOND_MODEL_SENTENCE = (
+    "instrument not commissioned, merging on Claude-review + human judgment"
+)
+_LANE_HIGH_RISK_RE = re.compile(r"^LANE\b[:\s]*\n?\s*HIGH-RISK", re.MULTILINE)
 # A commit cell token is a hex SHA (historical / post-merge closeout) or a
 # PR reference "#NNN" (PRD-229 same-PR closeout: the squash SHA does not
 # exist until merge, and PR numbers survive squash-merges).
@@ -330,6 +340,45 @@ def _validate_doc_status_agreement(
             )
 
 
+def _validate_second_model_disposition(
+    root: Path,
+    registry_rows: dict[int, dict[str, str | None]],
+    errors: list[str],
+) -> None:
+    # PRD-242: every COMPLETE HIGH-RISK PRD >= SECOND_MODEL_DISPOSITION_START
+    # carries either a commissioned second-model artifact or the verbatim
+    # disposition sentence in its PRD doc. Closes the gate-skip class (a
+    # HIGH-RISK merge whose second leg was neither satisfied nor waived in
+    # writing). Missing docs are covered by _validate_history_docs.
+    history = root / "docs" / "prd_history"
+    for number in sorted(registry_rows):
+        row = registry_rows[number]
+        if number < SECOND_MODEL_DISPOSITION_START or row.get("status") != "COMPLETE":
+            continue
+        doc = history / f"PRD-{number:03d}.md"
+        if not doc.exists():
+            continue
+        if not _LANE_HIGH_RISK_RE.search(doc.read_text(encoding="utf-8")):
+            continue
+        # Exclude ANY claude-model artifact (claude, claude-fresh, claude2...):
+        # the Claude review is the first leg and must never double-count as
+        # the second model (PRD-242 R3; review RECOMMENDED EDIT 1).
+        review_prefix = f"PRD-{number:03d}.review."
+        has_artifact = any(
+            not p.name[len(review_prefix):].lower().startswith("claude")
+            for p in history.glob(f"{review_prefix}*.md")
+        )
+        has_sentence = SECOND_MODEL_SENTENCE in doc.read_text(encoding="utf-8")
+        if not has_artifact and not has_sentence:
+            errors.append(
+                f"Second-model disposition missing: {_display_prd(number)} is a "
+                f"COMPLETE HIGH-RISK PRD (>= {SECOND_MODEL_DISPOSITION_START}) with "
+                f"neither a second-model review artifact "
+                f"(docs/prd_history/PRD-{number:03d}.review.<model>.md) nor the "
+                f"disposition sentence in its PRD doc (PRD-242)"
+            )
+
+
 def validate_repository(root: Path, *, skip_commit_resolvability: bool = False) -> list[str]:
     errors: list[str] = []
     data = _load_index(root, errors)
@@ -347,6 +396,7 @@ def validate_repository(root: Path, *, skip_commit_resolvability: bool = False) 
     if not skip_commit_resolvability:
         _validate_commit_resolvable(root, registry_rows, errors)
     _validate_doc_status_agreement(root, registry_rows, errors)
+    _validate_second_model_disposition(root, registry_rows, errors)
     return errors
 
 

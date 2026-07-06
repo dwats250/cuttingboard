@@ -67,14 +67,15 @@ Closeout bookkeeping — the registry `COMPLETE` flip, `prd_index.json`
 counters, `PROJECT_STATE.md` refresh, and the PRD doc's trailing `STATUS`
 marker — lands **in the same PR as the implementation**. The separate
 post-merge closeout commit/PR is retired: it doubled commit volume (~19%
-of visible commits) and generated the sequencing-gate noise CLAUDE.md
-warns about.
+of visible commits) and generated the sequencing-gate noise of the
+prd_eval detectors since retired by PRD-243.
 
 Because a squash-merge SHA does not exist until merge, the commit cell
 records the **PR number** (`#NNN`). PR numbers are stable, survive
 squash-merges, and resolve on GitHub — recording them also ends the
-phantom-SHA class (19 historical COMPLETE hashes are unreachable from
-`main`; see PROJECT_STATE known debt). `tools/validate_prd_registry.py`
+phantom-SHA class (29 PRDs' historical COMPLETE hashes are unreachable from
+`main`; closed WONTFIX-historical by PRD-243 — see PROJECT_STATE known
+debt). `tools/validate_prd_registry.py`
 accepts `#NNN` tokens in commit cells and exempts them from
 git-resolvability; hex SHAs remain valid for historical rows and for
 hand-merged work closed out after merge.
@@ -109,11 +110,15 @@ If a single PRD accumulates more than one PATCH PRD, the root causes MUST be doc
 
 ## Review Dispatch
 
-Most PRDs receive two independent reviews before implementation: a
-Claude vision/architecture review and a Codex cross-review. **These
-reviews are independent and MUST be dispatched in parallel**, not
-serially. The author submits the draft once and the two reviewers
-work simultaneously against the same artifact.
+Every PRD receives the structured Claude review its LANE requires
+(LANE matrix below). A second-model review (Codex or another
+independent model) runs only when Dustin commissions one — it is an
+instrument, never a standing requirement (PRD-242; see Second-Model
+Disposition below and the CLAUDE.md gate text). When a commissioned
+second-model review runs alongside the Claude review, **the two are
+independent and MUST be dispatched in parallel**, not serially. The
+author submits the draft once and the two reviewers work
+simultaneously against the same artifact.
 
 **Why parallel:** the reviews answer different questions (vision
 alignment vs. structural soundness) from non-overlapping models.
@@ -128,8 +133,8 @@ and the second review's findings did not depend on the first.
   ready for review.
 - Reviewer artifacts land at
   `docs/prd_history/PRD-NNN.review.claude.md` and
-  `docs/prd_history/PRD-NNN.review.codex.md` respectively (the
-  slots enforced by the `prd-review-claude` skill).
+  `docs/prd_history/PRD-NNN.review.<model>.md` respectively (the
+  Claude slot enforced by the `prd-review-claude` skill).
 - If a review materially drives a decision (KILL, REVISE, scope
   cut), link the artifact path in the `docs/DECISIONS.md` entry so
   the audit trail survives — see CLAUDE.md "Workflow patterns".
@@ -138,6 +143,31 @@ and the second review's findings did not depend on the first.
 
 The parallel-dispatch rule does not change *what* either review
 does, only *when* they fire relative to each other.
+
+---
+
+## Second-Model Disposition (PRD-242)
+
+A COMPLETE HIGH-RISK PRD numbered >= 242 MUST carry exactly one of:
+
+1. A commissioned second-model artifact
+   `docs/prd_history/PRD-NNN.review.<model>.md` meeting the four
+   artifact properties in the CLAUDE.md gate text (in-tree +
+   durable, SHA-pinned, read-only, fresh-context); or
+2. The disposition line, verbatim, in the PRD doc:
+   `SECOND-MODEL: instrument not commissioned, merging on Claude-review + human judgment.`
+
+`tools/validate_prd_registry.py` enforces this on the CI merge path:
+a HIGH-RISK close carrying neither fails the required `test` check.
+The waiver is a positive act written into the PRD by the merger,
+never a silence — this closes the gate-skip class (PRD-240 merged
+while its own review artifact said the second leg was still owed).
+Historical rows (< 242) are exempt and are not rewritten.
+
+Good reasons to commission a second-model review (the old automatic
+triggers, now advisory): contract or decision-surface changes,
+dashboard/notification semantics shifts, CI/hooks/artifact-push
+semantics shifts, and any reviewer disagreement worth arbitrating.
 
 ---
 
@@ -206,12 +236,12 @@ these fields in PRDs.
 
 | CLASS | Default tier | Required reviewers | Validation depth | Forbidden mutation surfaces | HIGH-RISK FILES |
 |-------|--------------|--------------------|------------------|------------------------------|-----------------|
-| GOVERNANCE | T3 | Claude; Codex iff CLAUDE.md cross-review gate triggers | Doc cross-check; throwaway skeleton draft | Production modules, tests, fixtures, payloads, dashboard, notifications — EXCEPT the red test that must accompany a governance enforcement-tooling change (PRD-198 invariant 4; declare it in CHANGE SURFACE) | `docs/PRD_TEMPLATE.md`, `docs/PRD_PROCESS.md`, `docs/PRD_MICRO_TEMPLATE.md`, `CLAUDE.md`, `docs/PRD_REGISTRY.md`, `docs/PROJECT_STATE.md` |
-| SIDECAR | T1 | Claude + Codex required | Targeted tests on writer/reader; artifact path + schema check | `cuttingboard/runtime.py` decision logic; `cuttingboard/output.py` payload writer; decision-bearing sections of `cuttingboard/delivery/dashboard_renderer.py` | `cuttingboard/trend_structure.py`, `cuttingboard/evaluation.py`, any new `cuttingboard/<name>_sidecar.py` |
-| CONSUMER | T2 | Claude required; Codex iff dashboard/notification semantics shift | Manual UI/notification render; targeted tests on consumer path | Decision logic, regime engine, qualification, payload writers | `cuttingboard/delivery/dashboard_renderer.py`, `cuttingboard/notifications/formatter.py`, `ui/dashboard.html`, `ui/index.html`, `ui/app.js` |
-| EXECUTION | T0 | Claude + Codex required | Full pytest suite; targeted regression on regime/qualification/sizing | Sidecar mutation, renderer-derived semantics, payload schema redefinition | `cuttingboard/runtime.py`, `cuttingboard/qualification.py`, `cuttingboard/execution_policy.py`, `cuttingboard/regime.py`, `cuttingboard/trade_decision.py`, `cuttingboard/trade_policy.py` |
-| CONTRACT | T0 | Claude + Codex required; **adjudication artifact mandatory on any reviewer disagreement** | Full suite; schema-diff review; full consumer audit | Silent fallback, partial malformed recovery, threshold→label synthesis | `cuttingboard/output.py`, payload-shape definitions, `ui/contract.json`, any module defining `TradeDecision` shape |
-| INFRA | T1 (T0 if hooks/CI gate runtime) | Claude required; Codex iff CI/hooks/artifact-push semantics shift | Hook/CI dry-run; artifact-push rebase contract check | Runtime decision modules, payload writers, dashboard sections | `scripts/pre_push_check.sh`, `scripts/clean_generated_artifacts.sh`, `.github/workflows/**`, `.claude/**` hooks/settings, `cuttingboard/notifications/state.py` |
+| GOVERNANCE | T3 | Claude; second-model iff commissioned (PRD-242) | Doc cross-check; throwaway skeleton draft | Production modules, tests, fixtures, payloads, dashboard, notifications — EXCEPT the red test that must accompany a governance enforcement-tooling change (PRD-198 invariant 4; declare it in CHANGE SURFACE) | `docs/PRD_TEMPLATE.md`, `docs/PRD_PROCESS.md`, `docs/PRD_MICRO_TEMPLATE.md`, `CLAUDE.md`, `docs/PRD_REGISTRY.md`, `docs/PROJECT_STATE.md` |
+| SIDECAR | T1 | Claude required; second-model iff commissioned | Targeted tests on writer/reader; artifact path + schema check | `cuttingboard/runtime.py` decision logic; `cuttingboard/output.py` payload writer; decision-bearing sections of `cuttingboard/delivery/dashboard_renderer.py` | `cuttingboard/trend_structure.py`, `cuttingboard/evaluation.py`, any new `cuttingboard/<name>_sidecar.py` |
+| CONSUMER | T2 | Claude required; second-model iff commissioned | Manual UI/notification render; targeted tests on consumer path | Decision logic, regime engine, qualification, payload writers | `cuttingboard/delivery/dashboard_renderer.py`, `cuttingboard/notifications/formatter.py`, `ui/dashboard.html`, `ui/index.html`, `ui/app.js` |
+| EXECUTION | T0 | Claude required; second-model iff commissioned | Full pytest suite; targeted regression on regime/qualification/sizing | Sidecar mutation, renderer-derived semantics, payload schema redefinition | `cuttingboard/runtime.py`, `cuttingboard/qualification.py`, `cuttingboard/execution_policy.py`, `cuttingboard/regime.py`, `cuttingboard/trade_decision.py`, `cuttingboard/trade_policy.py` |
+| CONTRACT | T0 | Claude required; **adjudication artifact mandatory on any reviewer disagreement**; second-model iff commissioned | Full suite; schema-diff review; full consumer audit | Silent fallback, partial malformed recovery, threshold→label synthesis | `cuttingboard/output.py`, payload-shape definitions, `ui/contract.json`, any module defining `TradeDecision` shape |
+| INFRA | T1 (T0 if hooks/CI gate runtime) | Claude required; second-model iff commissioned | Hook/CI dry-run; artifact-push rebase contract check | Runtime decision modules, payload writers, dashboard sections | `scripts/pre_push_check.sh`, `scripts/clean_generated_artifacts.sh`, `.github/workflows/**`, `.claude/**` hooks/settings, `cuttingboard/notifications/state.py` |
 
 ---
 
@@ -237,15 +267,15 @@ replace either.
 Required review intensity per lane. Lane intensity is **additive** to
 the existing CLASS Matrix `Required reviewers` column — it does not
 override or replace it. A `HIGH-RISK CONTRACT` PRD inherits the
-CONTRACT row's `Claude + Codex required; adjudication artifact
-mandatory on any reviewer disagreement` requirement AND the
-HIGH-RISK lane's fresh-context-or-different-model requirement.
+CONTRACT row's `adjudication artifact mandatory on any reviewer
+disagreement` requirement AND the HIGH-RISK lane's
+fresh-context-or-different-model requirement.
 
-| LANE | Structured Claude review | Review Independence | Codex review |
-|------|--------------------------|---------------------|--------------|
-| MICRO | Optional | `same-context` acceptable | Not required unless CLAUDE.md cross-review gate also triggers |
-| STANDARD | Required | `same-context` acceptable | Required when CLAUDE.md cross-review gate triggers (unchanged) |
-| HIGH-RISK | Required | `same-context` INSUFFICIENT; must be `fresh-context` OR `different-model` | Required per the CLASS Matrix row; INHERITS the CLASS row's reviewer requirements in addition to the Independence rule |
+| LANE | Structured Claude review | Review Independence | Second-model review (PRD-242) |
+|------|--------------------------|---------------------|-------------------------------|
+| MICRO | Optional | `same-context` acceptable | Only if commissioned |
+| STANDARD | Required | `same-context` acceptable | Only if commissioned |
+| HIGH-RISK | Required | `same-context` INSUFFICIENT; must be `fresh-context` OR `different-model` | If commissioned: artifact per the CLAUDE.md properties. If not: the `SECOND-MODEL:` disposition line is mandatory (Second-Model Disposition above) |
 
 ### Lane Downgrade Prohibition (PRD-121 R11)
 
@@ -352,9 +382,8 @@ drift visibility.
 - **CONTRACT-class PRDs:** Any reviewer disagreement REQUIRES an
   adjudication artifact (`PRD-NNN.adjudication.md`), regardless of
   whether the disagreement is later resolved.
-- **All other classes:** Follow the CLAUDE.md cross-review gate —
-  adjudication artifact is required only when unresolved disagreement
-  remains after review iteration.
+- **All other classes:** adjudication artifact is required only when
+  unresolved disagreement remains after review iteration.
 
 This stricter rule for CONTRACT reflects its highest-blast-radius
 position in the matrix (T0, full consumer audit, schema-diff review).

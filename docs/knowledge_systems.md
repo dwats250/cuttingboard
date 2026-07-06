@@ -1,42 +1,34 @@
 # Knowledge Systems — cuttingboard
 
-This document defines the role boundaries between the two persistent
-knowledge systems that surround the cuttingboard repository: GitNexus and
-Obsidian. Neither system is part of the runtime pipeline. Both exist to
-support strategic and architectural cognition without becoming a backdoor
-into decision logic.
+This document defines the role of the persistent knowledge system that
+surrounds the cuttingboard repository: Obsidian. It is not part of the
+runtime pipeline; it exists to support strategic and architectural
+cognition without becoming a backdoor into decision logic.
 
 ---
 
 ## Epistemic hierarchy
 
 Obsidian is the human strategic cognition layer.
-GitNexus is the machine architectural memory layer.
-Neither system is authoritative over runtime behavior;
+It is not authoritative over runtime behavior;
 the repository, canonical docs, and PRD registry remain
 the source of truth.
 
 ---
 
-## GitNexus — machine architectural memory
+## GitNexus — RETIRED (PRD-243, 2026-07-05)
 
-GitNexus indexes the cuttingboard repository as a queryable knowledge
-graph. Its role is mechanical, structural, and code-grounded.
-
-- **Architectural retrieval:** locating modules, symbols, and execution
-  flows without grepping the tree by hand.
-- **PRD lineage tracing:** following how a requirement propagated from a
-  PRD into specific files, functions, and tests.
-- **Semantic codebase memory:** answering "where is X used?" and
-  "what does X depend on?" against the current indexed state of the repo.
-- **Implementation provenance:** mapping observed behavior back to the
-  commits, modules, and PRDs that introduced it.
-- **Dependency / context recall:** producing impact analyses, caller and
-  callee maps, and process flow listings for safe edits.
-
-GitNexus is not authoritative. When the index is stale, the repository is
-correct and GitNexus is wrong; reindex before trusting query results that
-disagree with the source.
+A "machine architectural memory" layer (repo knowledge-graph indexer)
+formerly described here. The lifecycle audit found the entire surface dead:
+its 12 skill files were generated once (2026-06-26 / 2026-04-28) and never
+regenerated, their symbol indexes had drifted measurably stale, the CLI/MCP
+was not installed in any operating environment, and four of its skills
+trigger-matched ordinary requests toward the absent tool. Deleted: the
+`generated/*` and `gitnexus/*` skill packs, `scripts/gitnexus-analyze.sh`,
+and the `pre_commit_sanity.sh` detect-changes step. The architectural-recon
+role it claimed is served by `docs/SCHEMA_MAP.md`, `docs/CALL_SITE_MAP.md`,
+`grep`-at-use, and `Explore` subagents (CLAUDE.md workflow patterns).
+History: DECISIONS 2026-05-22 (AGENTS.md auto-generation), PRD-243.
 
 ---
 
@@ -63,20 +55,17 @@ behavior; only a merged PRD plus committed code does that.
 
 ---
 
-## Boundaries between the two systems
+## Boundary
 
-GitNexus and Obsidian are **complementary and non-overlapping**:
-
-- GitNexus answers questions about what the code *is*; Obsidian answers
-  questions about what the system *should become*.
-- GitNexus is queried by agents performing implementation work; Obsidian
-  is authored by the human performing strategic work.
-- Neither system writes into the other. Promotion from Obsidian to the
-  repository happens only through PRDs.
-- Neither system is a substitute for reading the repository or the PRD
+- Obsidian answers questions about what the system *should become*; the
+  repository answers what the code *is* (via SCHEMA_MAP / CALL_SITE_MAP /
+  grep, not a parallel index).
+- Obsidian never writes into the repository. Promotion happens only
+  through PRDs.
+- Obsidian is not a substitute for reading the repository or the PRD
   registry when correctness is at stake.
 
-When the two systems disagree, the repository wins. When the repository
-and a PRD disagree, the PRD registry and the merged code together define
-the truth — and the discrepancy is itself a signal to open a corrective
-PRD.
+When Obsidian and the repository disagree, the repository wins. When the
+repository and a PRD disagree, the PRD registry and the merged code
+together define the truth — and the discrepancy is itself a signal to open
+a corrective PRD.

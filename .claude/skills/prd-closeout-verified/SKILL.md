@@ -17,7 +17,9 @@ This skill does two things and only two things:
 It is NOT a substitute for:
 
 - Implementation review or test-pass verification
-- The cross-review gate (Codex / Claude review artifacts)
+- The review gate (fresh-context Claude review artifact; second-model
+  disposition per PRD-242 — the registry validator enforces artifact-or-sentence
+  for HIGH-RISK closes at CI)
 - Pushing to `origin` — push is a separate, explicit human/agent action
   outside this skill
 
@@ -204,7 +206,7 @@ Bookkeeping allowlist (V12):
 - `Grep` (or `rg` via `Bash`)
 - `Bash` (for `git`, `scripts/prd_close.sh`, file ops)
 
-**Preferred:** none — closeout is mechanical; no GitNexus dependency.
+**Preferred:** none — closeout is mechanical.
 
 **Optional:**
 

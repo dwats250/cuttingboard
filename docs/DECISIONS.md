@@ -16,6 +16,48 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-05 — PRD-243: subtraction block — prd_eval detectors retired, GitNexus surface deleted, phantom-SHA debt WONTFIX
+
+Lifecycle-audit Step 4 (prescriptions P3/P4/P7), all cuts grep-proven clear
+before removal and the two execution-path targets behavior-proven after.
+(1) `prd_eval.sh` keyword detectors retired: no channel discrimination, six
+misfires on subagent notifications in one audited session; the 108→143→145
+exclusion-repair chain was this false-positive class regenerating; the
+registry-gap check is the hook's one remaining job, and sequencing truth
+lives at the CI validator (PRD-200) + same-PR closeout (PRD-229).
+(2) GitNexus deleted wholesale — 12 single-commit never-regenerated skills
+with measurably stale indexes pointing at a tool installed nowhere, four of
+them trigger-matching ordinary requests; `knowledge_systems.md` now carries
+the retirement record. (3) Phantom-SHA debt closed WONTFIX-HISTORICAL at
+its true size (29 PRDs / 35 tokens, validator-pinned; the recorded "19" had
+silently grown): the #NNN convention killed the class, and rewriting
+pre-convention rows would fabricate history against a rule not in force —
+the same floor logic as PRD-242's >=242 cutoff. Nothing added anywhere in
+this pass (audit P7 do-nothing list honored).
+
+---
+
+## 2026-07-05 — PRD-242: second-model review becomes a commissioned instrument (closes the 197→230 Codex arc)
+
+The lifecycle audit (`audits/prd-lifecycle-audit-2026-07-05/`, PR #114) found
+the mandatory Codex cross-review gate had been fiction since PRD-230: the CI
+leg was deleted, no codex-capable host exists in the operating loop, all 8
+HIGH-RISK closes since ran on waiver-by-merge, and PRD-240 merged while its
+own review artifact said the second leg was still owed — a silent gate-skip.
+Dustin confirmed Option A after the connector-bot post-merge net was verified
+empirically live (substantive ACTIONED P2 threads on #99/#102, an open P2 on
+#108; the earlier "out of credits" note was wrong — corrected in the Step 5
+sync batch). Decision: the HIGH-RISK second leg is the fresh-context Claude
+review + Dustin's manual merge; second-model review is an instrument Dustin
+may commission, never a requirement owed; every HIGH-RISK close ≥ 242 records
+its disposition explicitly (artifact or the verbatim SECOND-MODEL sentence),
+enforced by the registry validator at CI. The waiver is a positive act, never
+a silence. The PRD-228 bot-thread disposition net is untouched. This closes
+the PRD-197→207→212→230 arc: five PRDs, ~8 PRs, 699 peak LOC, one real catch,
+ending as one sentence the merger has to write.
+
+---
+
 ## 2026-07-05 — Two testing rules from the PRD-240 implementation arc
 
 Both surfaced during PRD-240 (merged PR #111); recorded as standing rules,

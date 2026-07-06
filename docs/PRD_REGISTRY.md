@@ -259,6 +259,8 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-239 | #108 | Make architecture.md true: real _run_pipeline stage order, decision layer, typed-dict contract | COMPLETE | [PRD-239](prd_history/PRD-239.md) |
 | PRD-240 | #111 | Qualification tuning from the 2026-07-05 audit: EXPANSION R:R discount removal, Gate-6 ATR stop floor, entry-mode wiring honesty | COMPLETE | [PRD-240](prd_history/PRD-240.md) |
 | PRD-241 | #113 | Qualification doc truth: gate count in system_logic_map + entry modes and regime-tiered R:R in trade_qualification | COMPLETE | [PRD-241](prd_history/PRD-241.md) |
+| PRD-242 | #115 | HIGH-RISK gate Option A: second-model review is a commissioned instrument + write-the-sentence disposition validator | COMPLETE | [PRD-242](prd_history/PRD-242.md) |
+| PRD-243 | #115 | Subtraction block: prd_eval detector retirement, GitNexus surface removal, phantom-SHA debt closed WONTFIX-historical | COMPLETE | [PRD-243](prd_history/PRD-243.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

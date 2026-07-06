@@ -12,9 +12,10 @@ committed, and the disciplines that keep the codebase aligned with `VISION.md`.
 - **Claude Code (this agent)** is the primary implementation agent: PRD
   construction, code implementation, test maintenance, and architectural
   decisions within PRD scope. Invokes Codex for specialist tasks.
-- **Codex** is a specialist invoked by Claude Code for a genuinely independent
-  second opinion - cross-referencing, structured analysis, code review. It does
-  not drive architectural direction.
+- **Codex** (or any second model) is an instrument Dustin may commission for a
+  genuinely independent second opinion - cross-referencing, structured
+  analysis, code review (PRD-242). It is never a standing gate requirement and
+  does not drive architectural direction.
 
 ## Canonical sources
 
@@ -29,7 +30,7 @@ them.
 - `docs/architecture.md`, `docs/PRD_PROCESS.md`, `docs/sidecar_doctrine.md` -
   structural references
 - `docs/CLAUDE_HOOKS.md` - the repo's Claude Code hooks (file protection,
-  PRD sequencing gate, canonical-read guard) and their state files
+  PRD registry-gap check, canonical-read guard) and their state files
 
 Decisions that meaningfully change direction are recorded in `docs/DECISIONS.md`
 with date and rationale - short notes, not ceremony.
@@ -38,32 +39,43 @@ with date and rationale - short notes, not ceremony.
 
 - **Nothing lands without review.** Implementations are reviewed against the PRD
   before they are considered done.
-- **HIGH-RISK review gate.** A HIGH-RISK lane PRD (per `docs/PRD_PROCESS.md`)
-  requires independent review before merge: a Claude review artifact, plus a
-  Codex cross-review for contract / decision-surface changes. The lane is
-  declared in the PRD header; STANDARD and MICRO lanes are lighter.
-- **What satisfies the Codex cross-review gate (PRD-230: plain read-only
-  `codex exec`, HIGH-RISK lanes only).** The Codex cross-review above is
-  satisfied only by a durable artifact with ALL of these properties:
-  1. **In-tree + durable:** a committed `docs/prd_history/PRD-NNN.review.codex.md`
+- **HIGH-RISK review gate (PRD-242).** A HIGH-RISK lane PRD (per
+  `docs/PRD_PROCESS.md`) requires before merge: a fresh-context Claude review
+  artifact, plus Dustin's manual merge as the human gate. A second-model
+  review (Codex or any other independent model) is an INSTRUMENT Dustin may
+  commission for any PRD — never a standing requirement owed by a lane. The
+  lane is declared in the PRD header; STANDARD and MICRO lanes are lighter.
+- **Second-model disposition (PRD-242: write the sentence).** Every COMPLETE
+  HIGH-RISK PRD from PRD-242 onward carries, in-tree, EITHER a commissioned
+  second-model artifact OR this exact disposition line in its PRD doc:
+  `SECOND-MODEL: instrument not commissioned, merging on Claude-review + human judgment.`
+  The waiver is a positive act written by the merger, never a silence —
+  `tools/validate_prd_registry.py` fails the CI `test` check when a HIGH-RISK
+  close carries neither (this closes the gate-skip class: PRD-240 merged
+  while its own review said the second leg was still owed). When a
+  second-model review IS commissioned, the artifact must have ALL of these
+  properties:
+  1. **In-tree + durable:** a committed `docs/prd_history/PRD-NNN.review.<model>.md`
      (or the batch's review folder), not an ephemeral comment or external link.
   2. **SHA-pinned:** the artifact names the exact commit it reviewed; a review of
-     a superseded commit does not satisfy the gate for later commits.
-  3. **Read-only:** the review ran with no repo write access (`codex exec -s
-     read-only`; never `-s workspace-write`, which silently re-persists
-     `trust_level=trusted` for the cwd and breaks read-only durability).
+     a superseded commit does not count for later commits.
+  3. **Read-only:** the review ran with no repo write access (for Codex:
+     `codex exec -s read-only`; never `-s workspace-write`, which silently
+     re-persists `trust_level=trusted` for the cwd and breaks read-only
+     durability).
   4. **Fresh-context:** reviewed from a clean context, not the authoring
      conversation.
-  A connector-only, ephemeral PR comment does NOT satisfy the gate: not
-  in-tree, not durable, not SHA-pinned. (PRD-230 retired the model-identity
-  "verified-real" verification apparatus — the CI honor-gate workflow and its
-  tests; it caught one real incident, model laundering, and its marginal
-  return went negative for a solo repo where Dustin performs every merge.
-  History: PRD-197/207/212, DECISIONS 2026-06-26..07-01.)
+  A connector-only, ephemeral PR comment is NOT a second-model artifact: not
+  in-tree, not durable, not SHA-pinned. (History: PRD-197/207/212 built and
+  repaired a mandatory-Codex apparatus that caught one real incident; PRD-230
+  retired its CI leg; every HIGH-RISK close 2026-07-03..05 then ran on
+  waiver-by-merge, so the mandatory framing was fiction. PRD-242 made the
+  instrument framing official and the waiver explicit. DECISIONS
+  2026-06-26..07-05.)
 - **Bot-review-thread disposition (PRD-228).** Automated PR reviewers - the
   `chatgpt-codex-connector` app and any future connector bot - post inline review
   threads that are advisory INPUT, never gate-satisfying (per the clause above, a
-  connector-only ephemeral comment does not satisfy the Codex cross-review gate).
+  connector-only ephemeral comment is not a second-model artifact).
   Disposition of every substantive bot thread is nonetheless mandatory, not
   optional:
   1. **Triage, don't ignore.** Each substantive bot catch is either (a) ACTIONED -
@@ -75,9 +87,9 @@ with date and rationale - short notes, not ceremony.
      non-trivial, a mutation-verified red test per the semantic-hardening
      invariants - not patched silently just to clear the thread.
   3. **The thread is not the artifact.** Resolving a bot thread records
-     disposition; it never stands in for the Claude review and any durable Codex
-     cross-review that PRD's lane / CLASS actually requires (the Codex trigger is
-     unchanged - it stays scoped per the gate above, not imposed on every PRD).
+     disposition; it never stands in for the fresh-context Claude review the
+     lane requires, nor for the second-model disposition (artifact-or-sentence,
+     PRD-242) above.
   This clause is itself a governance guardrail: a PR that changes it is
   MANUAL-MERGE-ONLY (open and hold for a human merge; do NOT queue `gh pr merge
   --auto`), per the governance carve-out below.
@@ -234,14 +246,14 @@ fails-on-the-meaning" failure class. Each names the incident it generalizes.
 - **Use the task list upfront for any work with >=3 distinct stages.** Update
   status as each stage starts and completes; it keeps progress visible and turns
   each report into a delta rather than a full re-statement.
-- **Sequencing-gate fires are actionable, not boilerplate.** If the
-  `UserPromptSubmit` PRD gate (`.claude/hooks/prd_eval.sh`) fires repeatedly for
-  the same out-of-order PRD, close the underlying registry inconsistency
-  (typically a 10-minute bookkeeping commit) rather than re-stating the skip
-  reason on every prompt. Repetition is a signal that closeout is overdue.
-- Invoke Codex when the value is a genuinely independent second model - PRD
-  cross-review, vision review of a proposed PRD, structured code review before
-  merge. Not for tasks `Explore` can do.
+- **A registry-gap fire is actionable, not boilerplate.** If the
+  `UserPromptSubmit` hook (`.claude/hooks/prd_eval.sh`, registry-gap check
+  only since PRD-243) flags an unregistered prd_history file, add the row —
+  a 10-minute bookkeeping commit — rather than working past the warning.
+- Invoke Codex only when Dustin commissions a second-model review (PRD-242),
+  and the value is a genuinely independent second model - PRD cross-review,
+  vision review of a proposed PRD, structured code review before merge. Not
+  for tasks `Explore` can do.
 - All Codex review invocations run sandboxed read-only:
   `codex exec -s read-only - < prompt` (prompt via stdin, verdict from stdout).
   The review artifact (`docs/prd_history/PRD-NNN.review.codex.md`) is written by

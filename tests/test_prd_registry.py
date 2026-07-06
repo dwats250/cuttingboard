@@ -464,3 +464,114 @@ def test_r6_pr_reference_token_skipped_by_resolvability(tmp_path: Path) -> None:
     errors: list[str] = []
     validate_prd_registry._validate_commit_resolvable(tmp_path, _rows("#98"), errors)
     assert errors == []
+
+
+# ---------------------------------------------------------------------------
+# PRD-242 second-model disposition (write-the-sentence)
+# ---------------------------------------------------------------------------
+
+SENTENCE = validate_prd_registry.SECOND_MODEL_SENTENCE
+
+
+def _hr_rows(number: int) -> dict[int, dict[str, str | None]]:
+    return {
+        number: {
+            "number": number,
+            "status": "COMPLETE",
+            "commit": "#114",
+            "file": f"[PRD-{number:03d}](prd_history/PRD-{number:03d}.md)",
+        }
+    }
+
+
+def _write_prd_doc(tmp_path: Path, number: int, body: str) -> Path:
+    history = tmp_path / "docs" / "prd_history"
+    history.mkdir(parents=True, exist_ok=True)
+    doc = history / f"PRD-{number:03d}.md"
+    doc.write_text(body, encoding="utf-8")
+    return doc
+
+
+def test_242_high_risk_without_artifact_or_sentence_fails(tmp_path: Path) -> None:
+    # RED case: the guard must fail when violated (PRD-198 invariant 4).
+    _write_prd_doc(tmp_path, 243, "PRD-243 — x\n\nLANE\nHIGH-RISK\n\nGOAL\nx\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_second_model_disposition(tmp_path, _hr_rows(243), errors)
+    assert any("Second-model disposition missing: PRD-243" in e for e in errors)
+
+
+def test_242_claude_review_artifact_alone_does_not_satisfy(tmp_path: Path) -> None:
+    # The Claude review is the FIRST leg; it must never count as the second model.
+    _write_prd_doc(tmp_path, 243, "PRD-243 — x\n\nLANE\nHIGH-RISK\n")
+    (tmp_path / "docs" / "prd_history" / "PRD-243.review.claude.md").write_text(
+        "VERDICT: ACCEPT\n", encoding="utf-8"
+    )
+    errors: list[str] = []
+    validate_prd_registry._validate_second_model_disposition(tmp_path, _hr_rows(243), errors)
+    assert any("Second-model disposition missing: PRD-243" in e for e in errors)
+
+
+def test_242_sentence_in_prd_doc_satisfies(tmp_path: Path) -> None:
+    _write_prd_doc(
+        tmp_path,
+        243,
+        f"PRD-243 — x\n\nLANE\nHIGH-RISK\n\nSECOND-MODEL: {SENTENCE}.\n",
+    )
+    errors: list[str] = []
+    validate_prd_registry._validate_second_model_disposition(tmp_path, _hr_rows(243), errors)
+    assert errors == []
+
+
+def test_242_second_model_artifact_satisfies(tmp_path: Path) -> None:
+    _write_prd_doc(tmp_path, 243, "PRD-243 — x\n\nLANE\nHIGH-RISK\n")
+    (tmp_path / "docs" / "prd_history" / "PRD-243.review.gpt5.md").write_text(
+        "Mechanism: commissioned second-model review\n", encoding="utf-8"
+    )
+    errors: list[str] = []
+    validate_prd_registry._validate_second_model_disposition(tmp_path, _hr_rows(243), errors)
+    assert errors == []
+
+
+def test_242_inline_lane_form_detected(tmp_path: Path) -> None:
+    # "LANE: HIGH-RISK" single-line form must also trip the check.
+    _write_prd_doc(tmp_path, 243, "PRD-243 — x\n\nLANE: HIGH-RISK\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_second_model_disposition(tmp_path, _hr_rows(243), errors)
+    assert any("Second-model disposition missing: PRD-243" in e for e in errors)
+
+
+def test_242_pre_cutoff_high_risk_exempt(tmp_path: Path) -> None:
+    # Historical rows (< 242) are exempt; they are not rewritten.
+    _write_prd_doc(tmp_path, 240, "PRD-240 — x\n\nLANE\nHIGH-RISK\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_second_model_disposition(tmp_path, _hr_rows(240), errors)
+    assert errors == []
+
+
+def test_242_standard_lane_exempt(tmp_path: Path) -> None:
+    _write_prd_doc(tmp_path, 243, "PRD-243 — x\n\nLANE\nSTANDARD\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_second_model_disposition(tmp_path, _hr_rows(243), errors)
+    assert errors == []
+
+
+def test_242_non_complete_high_risk_not_checked(tmp_path: Path) -> None:
+    _write_prd_doc(tmp_path, 243, "PRD-243 — x\n\nLANE\nHIGH-RISK\n")
+    rows = _hr_rows(243)
+    rows[243]["status"] = "IN PROGRESS"
+    rows[243]["commit"] = None
+    errors: list[str] = []
+    validate_prd_registry._validate_second_model_disposition(tmp_path, rows, errors)
+    assert errors == []
+
+
+def test_242_misnamed_claude_variant_does_not_satisfy(tmp_path: Path) -> None:
+    # Review RECOMMENDED EDIT 1: any claude-* model token is the first leg,
+    # never the second model — claude-fresh/claude2 must not satisfy R2.
+    _write_prd_doc(tmp_path, 243, "PRD-243 — x\n\nLANE\nHIGH-RISK\n")
+    (tmp_path / "docs" / "prd_history" / "PRD-243.review.claude-fresh.md").write_text(
+        "VERDICT: ACCEPT\n", encoding="utf-8"
+    )
+    errors: list[str] = []
+    validate_prd_registry._validate_second_model_disposition(tmp_path, _hr_rows(243), errors)
+    assert any("Second-model disposition missing: PRD-243" in e for e in errors)

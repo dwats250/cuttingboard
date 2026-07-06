@@ -198,8 +198,8 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
 - `Write` (WRITE_MODE only)
 
 **Preferred:**
-- `gitnexus_context` for V2 symbol verification
-- `docs/SCHEMA_MAP.md`, `docs/CALL_SITE_MAP.md` for fast fallback
+- `docs/SCHEMA_MAP.md`, `docs/CALL_SITE_MAP.md` for V2 symbol lookup
+  (then `grep -n` for current locations)
 
 **Optional:**
 - `Agent(subagent_type: "Explore", model: "haiku")` for V2 when the

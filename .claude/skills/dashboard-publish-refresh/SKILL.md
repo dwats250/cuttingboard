@@ -142,7 +142,7 @@ a partial artifact.
 **Optional:**
 - `Edit` — never used; this skill does not edit source files
 
-No GitNexus dependency. No subagent dispatch.
+No subagent dispatch.
 
 ## What this skill does NOT do
 

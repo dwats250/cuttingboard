@@ -199,7 +199,7 @@ exception for the whole commit: escalate the lane or split.
 - `Edit` only in CHECK_AND_COMMIT mode (to invoke commit — actually
   done via `Bash: git commit`, no file edits)
 
-No GitNexus dependency. No subagent dispatch — single PRD, small diff.
+No subagent dispatch — single PRD, small diff.
 
 ## What this skill does NOT do
 
