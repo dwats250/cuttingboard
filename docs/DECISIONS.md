@@ -16,6 +16,27 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-06 — Branch-cleanup backfills: qualification-tuning audit artifact in-tree + alignment check #6 record
+
+Post-#115 remote-branch cleanup surfaced two sole-copy artifacts stranded on
+never-merged branches. (1) `audits/qualification-tuning-2026-07-05/findings.md`
+— the ten-finding audit that drove PRD-240/241, already cited at that exact
+path by this log and both PRD docs — is now committed in-tree from
+`claude/qualification-system-audit-sp0wat` @ `d507130`, so the citations
+resolve; the branch is deletable. (2) Alignment check #6 (2026-07-01, `main` @
+`c38edf7`, post PR #74/#75) ran as a read-only audit-and-scope pass but its
+DECISIONS line was never written (the record was left to a bookkeeping seam
+that never executed — this is that line, backfilled). Result: **PASS on all
+three cadence questions** (no new prediction logic, no undocumented sidecar,
+no off-VISION module; window = PRD-212 + bookkeeping). 13 findings scoped,
+none executed: mostly doc-truth staleness and process misses since absorbed or
+mooted by the 2026-07-03 codebase review and the Fable window (PRD-230 retired
+the codex-review workflow F-2/F-3 described and the cadence itself; PRD-231/232
+fixed the doc-truth class; PRD-243 closed the F-13 hash-debt thread). The
+artifact (`alignment-check-6.md`, branch `claude/audit-alignment-check-6-6rhltr`)
+is working scratch per the PRD-230 sediment rule — superseded, deletable with
+its branch; this entry is the durable record.
+
 ## 2026-07-05 — PRD-243: subtraction block — prd_eval detectors retired, GitNexus surface deleted, phantom-SHA debt WONTFIX
 
 Lifecycle-audit Step 4 (prescriptions P3/P4/P7), all cuts grep-proven clear
