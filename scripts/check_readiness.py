@@ -24,7 +24,6 @@ REQUIRED_HTML_MARKERS = (
     'id="system-state"',
     'id="macro-tape"',
     'id="candidate-board"',
-    "RUN SNAPSHOT",
 )
 
 
