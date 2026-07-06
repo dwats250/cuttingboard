@@ -8,7 +8,8 @@ drive architectural direction.
 
 ## Canonical sources, roles, operational rules
 
-Owned by `CLAUDE.md` (§ Roles, § Canonical sources, § Operational rules) —
+Owned by `CLAUDE.md` (§ Roles, § Canonical sources, § PRD rules and
+§ Scope and approvals) —
 read them there; this file does not restate them (PRD-232 dedup). The short
 version that matters to Codex: Dustin decides; architectural direction stays
 with Claude and Dustin; reference the source-of-truth docs, never duplicate

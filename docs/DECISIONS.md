@@ -16,7 +16,27 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
-## 2026-07-06 — PRD-244 RULED Branch A and closed: Gate 6 floors re-fire on the FVG swapped stop, fallback-to-DIRECT
+## 2026-07-06 — PRD-244 number collision: FVG floor PRD renumbered to PRD-245 (reconciliation)
+
+Two sessions raced the number: this branch filed the FVG floor decision-PRD
+as PRD-244 (Stage 0 at `04a09df`), while a parallel session's CLAUDE.md
+governance refactor claimed PRD-244 at its own branch-side Stage 0 and
+reached main first (PR #119, `1e38b18`, merged by Dustin). The filing-time
+number-availability check ran against main (registry, `prd_history/`,
+`next_prd`) — an open PR's branch-side claim was invisible to it.
+Resolution (Dustin ruled): the governance PRD keeps 244 (merged history is
+immutable); the FVG PRD is renumbered **245** everywhere on this branch
+(doc + review-artifact filenames, registry/index rows, code/test/doc
+references); the queued denominator-test fast-follow becomes **PRD-246**.
+Branch commit messages saying "PRD-244" (`04a09df`/`8f7ecce`/`6017ce9`/
+`b30e137`/`102ea24`) are immutable and denote the FVG PRD-245. The review
+artifact body is preserved verbatim under a renumber note — its "PRD-244"
+citations were true at its pinned SHA (`b30e137`).
+**Process rule surfaced: number reservation must check open PRs, not just
+main** — `next_prd` and the registry are both blind to a branch-side
+Stage 0 in flight.
+
+## 2026-07-06 — PRD-245 (filed as PRD-244) RULED Branch A and closed: Gate 6 floors re-fire on the FVG swapped stop, fallback-to-DIRECT
 
 R1 ruled by Dustin (hole, not deliberate): the sub-floor swapped stop is
 silent, thesis-violating, and trust-eroding; a missed tight setup is
@@ -34,7 +54,7 @@ closeout in the closing commit. Second-model leg: waiver sentence per the
 PRD-240 precedent (no codex host in the container), written on Dustin's
 Step-5 directive. Branch held for Dustin's manual merge; no PR opened.
 
-## 2026-07-06 — Fable qualification investigation: two audit candidates resolved without PRDs, one new finding promoted to PRD-244 (PROPOSED)
+## 2026-07-06 — Fable qualification investigation: two audit candidates resolved without PRDs, one new finding promoted to PRD-245 (PROPOSED; filed as PRD-244 pre-collision)
 
 Verification pass over `qualification.py` at `331f950`, citation-integrity
 protocol (every claim from a same-session read). Three outcomes:
@@ -47,7 +67,7 @@ protocol (every claim from a same-session read). Three outcomes:
    deliberate by record.** PRD-240 R6 documents the asymmetry in three
    places; the in-code comment's arithmetic verifies against current config.
    No PRD.
-3. **New finding, promoted to PRD-244 (PROPOSED, decision-PRD):** the FVG
+3. **New finding, promoted to PRD-245 (PROPOSED, decision-PRD):** the FVG
    PULLBACK_IMBALANCE upgrade swaps the traded stop to the zone bound and
    re-checks only R:R — a ratio a tighter stop *improves* — so Gate 6's two
    stop-distance floors are never revalidated on the stop that trades
@@ -55,12 +75,32 @@ protocol (every claim from a same-session read). Three outcomes:
    enforced; path verified live via `runtime/__init__.py:415-423`). The
    escape is specified nowhere (trade_qualification.md, PRD-007/240/241,
    the audit, in-code — all silent). Hole-vs-deliberate held for Dustin's
-   R1 ruling; artifact: `docs/prd_history/PRD-244.md`.
+   R1 ruling; artifact: `docs/prd_history/PRD-245.md`.
 
 **Supersede stamp:** the 2026-07-05 qualification-tuning audit's
 `_resolve_entry_mode` finding (findings.md:280-297) is superseded — its R:R
-half by PRD-240 R4, its stop half by PRD-244. Do not resurface it from the
+half by PRD-240 R4, its stop half by PRD-245. Do not resurface it from the
 audit artifact.
+
+## 2026-07-06 — PRD-244: CLAUDE.md governance refactor closed (compress-in-place)
+
+CLAUDE.md rebuilt as a lean steering document (2,968 → 2,112 words):
+compress-in-place with reference-out — every candidate relocation was
+verified already canonical at its destination, so every cut is
+de-duplication or narration, never a move (full move-list:
+`docs/prd_history/PRD-244.proposal.md`). Fresh-context governance review
+(`docs/prd_history/PRD-244.review.claude.md`, SHA-pinned `724991e`)
+independently re-derived the load-bearing rule set: 67/67 rules survive,
+zero weakened or lost; ACCEPT WITH CHANGES. Its two required fixes landed
+in the PRD: Stage-0 filing (this PRD-244), and repair of the four live
+inbound citations the section renames had dangled (CODEX.md,
+PRD_PROCESS.md, architecture.md, prd-review-claude skill) — CLAUDE.md
+itself frozen byte-identical to the reviewed commit. Second-model
+instrument not commissioned (waiver sentence in the PRD doc).
+Manual-merge-only per the governance carve-out (PR #119, held for
+Dustin's merge). Generalizable rule:
+**inbound cross-references to CLAUDE.md should cite by rule/topic, not
+section header — anchors break on restructure (surfaced by PRD-244).**
 
 ## 2026-07-06 — PRD-228 Codex-review branches superseded, not contradicting (branch-cleanup, cont'd)
 

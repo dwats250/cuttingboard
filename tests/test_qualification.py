@@ -150,7 +150,7 @@ def _valid_long_fvg_df() -> pd.DataFrame:
 
 
 def _wide_gap_long_fvg_df() -> pd.DataFrame:
-    # PRD-244: floor-clearing FVG geometry — zone upper=102.4, lower=100.0
+    # PRD-245: floor-clearing FVG geometry — zone upper=102.4, lower=100.0
     # (gap 2.4), midpoint 101.2 → post-swap risk 1.2. With atr14=1.0 that
     # clears both Gate 6 legs (1.2 ≥ 1.0×ATR; 1.186% of midpoint ≥ 1%).
     # This is the canonical VALID-upgrade fixture; _valid_long_fvg_df stays
@@ -824,7 +824,7 @@ class TestImbalancePullbackEntryMode:
         assert result.imbalance_zone is None
 
     def test_sub_floor_swapped_stop_falls_back_to_direct(self, caplog):
-        # PRD-244 (Branch A) red test: _valid_long_fvg_df's zone
+        # PRD-245 (Branch A) red test: _valid_long_fvg_df's zone
         # (upper=101.2, lower=100.0) yields post-swap risk 0.6 — with the
         # default atr14=2.0 that is 0.3×ATR14 and 0.60% of the midpoint,
         # under BOTH Gate 6 floor legs. The upgrade must fall back to the
@@ -845,7 +845,7 @@ class TestImbalancePullbackEntryMode:
         assert "ATR14" in fallback_lines[0]              # ATR leg named
 
     def test_valid_imbalance_enables_pullback_mode(self):
-        # PRD-244: canonical valid upgrade on floor-clearing geometry.
+        # PRD-245: canonical valid upgrade on floor-clearing geometry.
         # Zone midpoint=101.2, post-swap risk=1.2 (≥ 1.0×ATR14=1.0, and
         # 1.186% of midpoint ≥ 1%); imbalance RR = (103.8−101.2)/1.2 ≈ 2.17
         # ≥ MIN_RR_RATIO. DIRECT pass: risk=1.1, RR = 2.3/1.1 ≈ 2.09.
@@ -906,7 +906,7 @@ class TestImbalancePullbackEntryMode:
         # PRD-240 R4 red test: with EXPANSION_RR_RATIO monkeypatched away from
         # MIN_RR_RATIO (1.5 vs 2.0), _resolve_entry_mode's FVG upgrade for an
         # EXPANSION-regime candidate must use the EXPANSION value, not
-        # MIN_RR_RATIO. Geometry re-tuned by PRD-244 to clear the swapped-stop
+        # MIN_RR_RATIO. Geometry re-tuned by PRD-245 to clear the swapped-stop
         # floor while preserving the tier discrimination: zone upper=102.4,
         # lower=100.0 (midpoint=101.2, post-swap risk=1.2 ≥ 1.0×ATR14 and
         # 1.186% of midpoint). target=103.36 → imbalance RR = 2.16/1.2 = 1.80

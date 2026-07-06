@@ -774,7 +774,7 @@ def _resolve_entry_mode(
     stop_price = zone.lower_bound if result.direction == "LONG" else zone.upper_bound
     risk = abs(midpoint - stop_price)
 
-    # PRD-244 (Branch A): the zone-bound stop is the stop that trades —
+    # PRD-245 (Branch A): the zone-bound stop is the stop that trades —
     # options.py overrides the candidate with this geometry — so Gate 6's
     # two distance floors re-fire here on the post-swap values. The percent
     # leg divides by the midpoint (the post-swap entry), never by

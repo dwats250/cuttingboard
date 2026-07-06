@@ -137,7 +137,7 @@ and the second review's findings did not depend on the first.
   Claude slot enforced by the `prd-review-claude` skill).
 - If a review materially drives a decision (KILL, REVISE, scope
   cut), link the artifact path in the `docs/DECISIONS.md` entry so
-  the audit trail survives — see CLAUDE.md "Workflow patterns".
+  the audit trail survives — see CLAUDE.md "Working practices".
 - Cross-review-of-review (one reviewer reviewing the other's
   output) is by definition serial and exempt from this rule.
 

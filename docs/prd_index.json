@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 244,
-  "next_prd": 245,
+  "latest_complete": 245,
+  "next_prd": 246,
   "entries": [
     {
       "number": 56,
@@ -1133,6 +1133,12 @@
     },
     {
       "number": 244,
+      "title": "CLAUDE.md governance refactor (compression + reference-out)",
+      "status": "COMPLETE",
+      "commit": "#119"
+    },
+    {
+      "number": 245,
       "title": "FVG upgrade path: Gate 6 stop-distance floor on the swapped stop — decision PRD (hole vs deliberate)",
       "status": "COMPLETE",
       "commit": "6017ce9"

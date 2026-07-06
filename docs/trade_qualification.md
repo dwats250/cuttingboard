@@ -354,7 +354,7 @@ condition below fails, the result simply stays DIRECT.
    ≥ 0.3× ATR14 (`FVG_GAP_K`).
 2. **Proximity:** current close within 1.5× ATR14 of the zone midpoint
    (`FVG_PROXIMITY_K`); farther and the zone is stale.
-3. **Gate 6 floors on the swapped stop (PRD-244):** the zone-bound stop is
+3. **Gate 6 floors on the swapped stop (PRD-245):** the zone-bound stop is
    the stop that trades, so **both** Gate 6 distance floors re-fire on the
    post-swap geometry — the percent leg against the **zone midpoint** (the
    post-swap entry, not the DIRECT entry) and the ATR leg
@@ -379,7 +379,7 @@ zone bounds; sizing and the recorded gate results are unchanged from the
 DIRECT pass. Note the recorded Gate 6 PASS refers to the DIRECT geometry —
 the **traded** stop is covered either way, because it is EITHER the swapped
 stop that just cleared the step-3 floors OR (on fallback) the DIRECT stop
-that cleared Gate 6 itself (PRD-244).
+that cleared Gate 6 itself (PRD-245).
 
 ---
 
