@@ -1154,6 +1154,12 @@
       "title": "Qualification doc truth: Gate 8 failure message, EXPANSION regime, continuation fail-open, FVGZone shape",
       "status": "COMPLETE",
       "commit": "#124"
+    },
+    {
+      "number": 248,
+      "title": "Allowlist .proposal.md in the prd_eval.sh registry-gap hook",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
