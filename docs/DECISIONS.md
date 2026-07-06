@@ -16,6 +16,46 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-06 — PRD-228 Codex-review branches superseded, not contradicting (branch-cleanup, cont'd)
+
+Two never-merged branches held sole copies of Codex cross-reviews from
+PRD-228's own development: `codex-review/PRD-228-00bd1bfbce7b` (review @
+`00bd1bf`, REQUEST CHANGES — flagged that the draft clause read as if every
+HIGH-RISK PRD requires durable Codex review, broadening the gate) and
+`codex-review/PRD-228-225e93bbc7cf` (review @ `225e93b`, later commit,
+APPROVE WITH EDITS — confirmed the reworded "any durable Codex cross-review
+that PRD's lane/CLASS actually requires" wording fixed the broadening risk).
+Checked whether these contradict the current in-tree `CLAUDE.md` bot-thread-
+disposition sub-point 3: they don't. Per PR #96's own commit history,
+`00bd1bf`'s blocking finding was actioned mid-development, producing exactly
+the wording `225e93b` approved; that wording landed at merge (`a11481b`,
+2026-07-03). **PRD-242** (`197815e`, 2026-07-05) then deliberately rewrote
+that same sub-point again — "any durable Codex cross-review that PRD's
+lane/CLASS actually requires" → "the second-model disposition
+(artifact-or-sentence, PRD-242)" — as part of retiring the mandatory-Codex
+framing repo-wide, already recorded at "2026-07-05 — PRD-242: second-model
+review becomes a commissioned instrument" ("The PRD-228 bot-thread
+disposition net is untouched" — the triage mechanics were untouched; only
+this cross-reference's terminology was updated). **Superseded because:** the
+reviews assessed intermediate wording that no longer exists verbatim, having
+already been superseded twice (PRD-228's own merge, then PRD-242) — not an
+unresolved conflict. Both branches are deletable.
+
+## 2026-07-06 — PRD-228 CODEX-LEG WAIVER backfilled into DECISIONS (closeout gap)
+
+`docs/prd_history/PRD-228.md` (status COMPLETE) carries a `CODEX-LEG WAIVER
+(Dustin, 2026-07-03)` note stating the CLAUDE.md Codex cross-review PRD-228
+would trigger was waived — Codex API token budget exhausted, so no genuine
+`PRD-228.review.codex.md` could be produced — and that the waiver is an
+explicit, recorded exception (not a gate-satisfying substitute; Lane
+Independence was separately met by a fresh-context, different-model Fable
+review). The PRD doc states a `docs/DECISIONS.md` entry recording this waiver
+is due at closeout; none was ever written. Backfilling it now, found during
+the same branch-cleanup sweep as the two entries above/below: the Codex leg
+for PRD-228 is WAIVED (2026-07-03, Dustin, token-budget exhaustion),
+Lane Independence satisfied instead by the Fable review, per
+`docs/prd_history/PRD-228.md` CODEX-LEG WAIVER note.
+
 ## 2026-07-06 — PRD-212 Codex-review artifact backfilled in-tree (branch-cleanup, cont'd)
 
 Second sole-copy artifact found stranded on a never-merged branch during the
