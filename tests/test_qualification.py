@@ -865,6 +865,42 @@ class TestImbalancePullbackEntryMode:
         assert result.entry_mode == ENTRY_MODE_PULLBACK_IMBALANCE
         assert result.imbalance_zone == FVGZone(upper_bound=102.4, lower_bound=100.0)
 
+    def test_percent_leg_uses_midpoint_not_entry_denominator(self):
+        # PRD-246: the swapped-stop percent floor divides by the zone MIDPOINT
+        # (the post-swap entry), not candidate.entry_price. Reuses the
+        # wide-gap zone (midpoint=101.2, post-swap risk=1.2); entry_price=130
+        # is deliberately far from the zone so the two denominators straddle
+        # the 1% floor:
+        #   risk/midpoint    = 1.2/101.2 = 1.19% >= 1% -> floor passes -> upgrade
+        #   risk/entry_price = 1.2/130.0 = 0.92% <  1% -> floor breach -> fallback
+        # The ATR leg clears either way (1.2 >= 1.0x ATR14), so the outcome
+        # flips on the denominator alone. The DIRECT candidate still fully
+        # qualifies (risk 1.6: 1.23% of entry, >= 1.0x ATR14; RR 3.5/1.6 = 2.19
+        # >= 2.0; extension 0 with ema21=entry).
+        entry_price, midpoint, risk = 130.0, 101.2, 1.2
+        # Guard: prove the fixture straddles the LIVE floor (not a hardcoded
+        # 0.01) — a future MIN_STOP_PCT retune flags the fixture here rather
+        # than silently neutering the discrimination.
+        assert (risk / entry_price) < config.MIN_STOP_PCT <= (risk / midpoint)
+        summary = _qualify_with_ohlcv(
+            _wide_gap_long_fvg_df(),
+            candidate=_candidate(
+                symbol="TEST",
+                direction="LONG",
+                entry_price=entry_price,
+                stop_price=128.4,
+                target_price=133.5,
+                spread_width=0.5,
+            ),
+            dm=replace(_dm(symbol="TEST", atr14=1.0), ema21=entry_price),
+        )
+        result = summary.qualified_trades[0]
+        # Correct (midpoint) denominator → floor passes → upgrade fires.
+        # Reverting the denominator to candidate.entry_price breaches the 1%
+        # floor → DIRECT fallback → this assertion goes red (PRD-246 R2).
+        assert result.entry_mode == ENTRY_MODE_PULLBACK_IMBALANCE
+        assert result.imbalance_zone == FVGZone(upper_bound=102.4, lower_bound=100.0)
+
     def test_invalidated_imbalance_stays_direct(self):
         summary = _qualify_with_ohlcv(_invalidated_long_fvg_df())
         result = summary.qualified_trades[0]
