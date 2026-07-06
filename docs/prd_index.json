@@ -1142,6 +1142,12 @@
       "title": "FVG upgrade path: Gate 6 stop-distance floor on the swapped stop — decision PRD (hole vs deliberate)",
       "status": "COMPLETE",
       "commit": "6017ce9"
+    },
+    {
+      "number": 246,
+      "title": "Denominator-discriminating test for the FVG floor percent leg (PRD-245 review REC-1)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
