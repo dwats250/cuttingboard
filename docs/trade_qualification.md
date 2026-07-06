@@ -170,8 +170,9 @@ Gate 7 and Gate 6 are the most commonly failing soft gates. A tight stop + dista
 **Rule:** Spread must fit within the $150 target risk budget (at least 1 contract).
 
 ```python
-spread_cost = spread_width × 100    # options multiplier
-max_contracts = floor(150 / spread_cost)
+spread_cost      = spread_width × 100    # options multiplier
+effective_target = ACCOUNT_EQUITY × MAX_RISK_PCT_PER_TRADE × REGIME_RISK_MULTIPLIER[regime]  # $150 under RISK_ON
+max_contracts    = floor(effective_target / spread_cost)
 
 if max_contracts < 1:
     → soft failure
@@ -189,7 +190,7 @@ if max_contracts < 1:
 
 When the gate passes, `max_contracts` and `dollar_risk` are set on the `QualificationResult` and carried through to the `OptionSetup`. These values represent the maximum size — you should never exceed them.
 
-**Failure message:** `MAX_RISK: 1 contract at $2.00 width = $200 — exceeds $200 maximum`
+**Failure message:** `MAX_RISK: 1 contract at $2.00 width = $200 — exceeds budget ($150 after RISK_ON multiplier)` (the budget shown is the regime-scaled `effective_target`, not a fixed maximum)
 
 ---
 
@@ -247,7 +248,7 @@ dollar_risk      = max_contracts × spread_cost
 constants in `config.py` (no broker integration). Defaults are
 `ACCOUNT_EQUITY=15000`, `MAX_RISK_PCT_PER_TRADE=0.01`, giving an effective
 per-trade risk budget of $150 under RISK_ON. The regime multiplier applies
-on top (CHAOTIC=0.0 zeros sizing; NEUTRAL=0.6 halves it). See PRD-157
+on top (CHAOTIC=0.0 zeros sizing; NEUTRAL=0.6 scales it to 60%). See PRD-157
 (2026-05-24) for the migration rationale.
 
 This is the maximum number of contracts and maximum dollar risk. You can trade fewer contracts if you want to reduce risk, but never more. The `max_contracts` field on `QualificationResult` and `OptionSetup` is the ceiling, not a recommendation.
@@ -321,7 +322,7 @@ sequence — first failure wins, one deterministic rejection reason per candidat
 | 3 | Close clears the prior 5-bar high | `CONTINUATION_BREAKOUT_BARS = 5` | `NO_BREAKOUT` |
 | 4 | Close 1 completed bar ago also held above the breakout level | `CONTINUATION_HOLD_CANDLES = 1` | `NO_HOLD_CONFIRMATION` |
 | 5 | Last candle range ≥ 0.75× ATR14 AND close in the top quartile of its range (`close_location ≥ 0.75`, PRD-240 R5 — a wick-dominated candle is not momentum) | `CONTINUATION_MOMENTUM_K = 0.75` | `INSUFFICIENT_MOMENTUM` |
-| 6 | Entry ≤ 2.5× ATR14 from EMA21 | `CONTINUATION_MAX_EXTENSION_ATR = 2.5` | `EXTENDED_FROM_MEAN` |
+| 6 | Entry ≤ 2.5× ATR14 from EMA21 (fail-open: skipped when EMA21 is unavailable — mirrors DIRECT Gate 10, but records **no** `gates_skipped` marker, so this skip is invisible at runtime) | `CONTINUATION_MAX_EXTENSION_ATR = 2.5` | `EXTENDED_FROM_MEAN` |
 | 7 | Stop = the breakout level; risk ≥ 1% of entry | `MIN_STOP_PCT = 0.01` | `STOP_TOO_TIGHT` |
 | 8 | Synthetic R:R ≥ 2.0 (see below) | `EXPANSION_RR_RATIO = 2.0` | `RR_BELOW_THRESHOLD` |
 | 9 | Before the 3:30 PM ET cutoff | `ENTRY_CUTOFF_ET` | `TIME_BLOCKED` |
@@ -375,8 +376,11 @@ condition below fails, the result simply stays DIRECT.
    stop *improves*, so it can never refuse a sub-floor stop.
 
 On upgrade, `entry_mode = PULLBACK_IMBALANCE` and `imbalance_zone` carries the
-zone bounds; sizing and the recorded gate results are unchanged from the
-DIRECT pass. Note the recorded Gate 6 PASS refers to the DIRECT geometry —
+zone bounds. The `FVGZone` dataclass stores exactly `upper_bound` and
+`lower_bound` — the midpoint is derived on demand and the direction is a
+`detect_fvg` parameter, not stored fields (PRD-007 R1's stated
+`high/low/midpoint/direction` field list was superseded at implementation).
+Sizing and the recorded gate results are unchanged from the DIRECT pass. Note the recorded Gate 6 PASS refers to the DIRECT geometry —
 the **traded** stop is covered either way, because it is EITHER the swapped
 stop that just cleared the step-3 floors OR (on fallback) the DIRECT stop
 that cleared Gate 6 itself (PRD-245).

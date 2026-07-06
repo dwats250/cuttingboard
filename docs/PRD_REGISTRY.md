@@ -264,6 +264,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-244 | #119 | CLAUDE.md governance refactor (compression + reference-out) | COMPLETE | [PRD-244](prd_history/PRD-244.md) |
 | PRD-245 | 6017ce9 | FVG upgrade path: Gate 6 stop-distance floor on the swapped stop — decision PRD (hole vs deliberate) | COMPLETE | [PRD-245](prd_history/PRD-245.md) |
 | PRD-246 | #123 | Denominator-discriminating test for the FVG floor percent leg (PRD-245 review REC-1) | COMPLETE | [PRD-246](prd_history/PRD-246.md) |
+| PRD-247 | #124 | Qualification doc truth: Gate 8 failure message, EXPANSION regime, continuation fail-open, FVGZone shape | COMPLETE | [PRD-247](prd_history/PRD-247.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
