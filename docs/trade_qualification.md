@@ -354,13 +354,32 @@ condition below fails, the result simply stays DIRECT.
    ≥ 0.3× ATR14 (`FVG_GAP_K`).
 2. **Proximity:** current close within 1.5× ATR14 of the zone midpoint
    (`FVG_PROXIMITY_K`); farther and the zone is stale.
-3. **Zone R:R re-check:** risk is re-measured from the zone midpoint to the
+3. **Gate 6 floors on the swapped stop (PRD-244):** the zone-bound stop is
+   the stop that trades, so **both** Gate 6 distance floors re-fire on the
+   post-swap geometry — the percent leg against the **zone midpoint** (the
+   post-swap entry, not the DIRECT entry) and the ATR leg
+   (`risk ≥ STOP_ATR_FLOOR_K × ATR14`), evaluated independently so a breach
+   report names every tripped leg. A violation of either leg **falls back to
+   the DIRECT result** — DIRECT entry, DIRECT stop, `entry_mode = DIRECT`,
+   no zone retained — rather than rejecting the candidate: the setup stays
+   surfaced with its gate-valid wider stop; only the noise-width version is
+   refused. (Fallback observability is a `FVG FALLBACK` log line; its format
+   is test-coupled — the caplog pin in
+   `test_sub_floor_swapped_stop_falls_back_to_direct` asserts it names both
+   legs — so a future reword updates that test deliberately.)
+4. **Zone R:R re-check:** risk is re-measured from the zone midpoint to the
    zone's far bound (lower bound for LONG, upper bound for SHORT), reward from
    the midpoint to the candidate's real target; the ratio must clear the
    **same regime-tiered minimum as Gate 7** (`_min_rr_for_regime()`, PRD-240 R4).
+   The floor check deliberately precedes this one: R:R is a ratio a tighter
+   stop *improves*, so it can never refuse a sub-floor stop.
 
 On upgrade, `entry_mode = PULLBACK_IMBALANCE` and `imbalance_zone` carries the
-zone bounds; sizing and all gate results are unchanged from the DIRECT pass.
+zone bounds; sizing and the recorded gate results are unchanged from the
+DIRECT pass. Note the recorded Gate 6 PASS refers to the DIRECT geometry —
+the **traded** stop is covered either way, because it is EITHER the swapped
+stop that just cleared the step-3 floors OR (on fallback) the DIRECT stop
+that cleared Gate 6 itself (PRD-244).
 
 ---
 

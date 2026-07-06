@@ -16,6 +16,24 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-06 — PRD-244 RULED Branch A and closed: Gate 6 floors re-fire on the FVG swapped stop, fallback-to-DIRECT
+
+R1 ruled by Dustin (hole, not deliberate): the sub-floor swapped stop is
+silent, thesis-violating, and trust-eroding; a missed tight setup is
+visible and independently recoverable. Semantics: **fallback, not reject,
+not clamp** — a post-swap stop violating either Gate 6 leg returns the
+already-qualified DIRECT result (Step-2 sub-ruling: no zone retained —
+bare return, bit-identical to native DIRECT — a retained zone would be a
+reader-less channel). Floor check precedes the R:R re-check because R:R
+is a ratio a tighter stop improves. Percent leg divides by the zone
+midpoint (the post-swap entry), closing the wrong-denominator trap in the
+same stroke. Implementation `8f7ecce`, tests `6017ce9` (PRD-240 R4's red
+test re-tuned to floor-clearing geometry with its tier discrimination
+preserved at RR 1.80 exact; both mutation checks re-verified red), docs +
+closeout in the closing commit. Second-model leg: waiver sentence per the
+PRD-240 precedent (no codex host in the container), written on Dustin's
+Step-5 directive. Branch held for Dustin's manual merge; no PR opened.
+
 ## 2026-07-06 — Fable qualification investigation: two audit candidates resolved without PRDs, one new finding promoted to PRD-244 (PROPOSED)
 
 Verification pass over `qualification.py` at `331f950`, citation-integrity
