@@ -69,6 +69,14 @@ the artifact in-tree verbatim from the branch; repointed the PROJECT_STATE
 citation to the committed path. `rg --hidden` confirms zero remaining
 references to the branch name anywhere in-tree — the branch is deletable.
 
+**P6 courtesy note (2026-07-06):** this entry's own prose above contains the
+literal string `codex-review/PRD-212-dd843fe90bc3` twice — a later `rg
+--hidden` sweep for that branch name will hit these two lines. That's
+intentional: this is historical narration of a completed backfill, not a
+live citation the branch needs to exist for. A future drift/alignment check
+that finds this string here should NOT repoint or reword it — leave it
+verbatim.
+
 ## 2026-07-06 — Branch-cleanup backfills: qualification-tuning audit artifact in-tree + alignment check #6 record
 
 Post-#115 remote-branch cleanup surfaced two sole-copy artifacts stranded on
