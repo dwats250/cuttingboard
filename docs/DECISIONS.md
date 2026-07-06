@@ -16,6 +16,42 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-06 — PRD-247: qualification doc-truth pass (broad 11-gate spec-vs-code audit)
+
+Closed the last thread of the qualification investigation with a broad
+spec-vs-code pass over `qualification.py` (all 11 DIRECT gates, the
+continuation path, the FVG/PULLBACK path), verified twice — the Fable
+diagnosis plus an independent Explore cross-check that recomputed the worked
+examples A/B/C. **The code is correct everywhere.** Five doc-truth
+divergences reconciled (PRD-247, docs-only): Gate 8 failure message +
+pseudocode still showed the retired `$200 maximum` / hardcoded-150 budget
+(pre-PRD-157 equity-driven sizing); `system_logic_map.md` regime list omitted
+EXPANSION; the continuation EMA21-None fail-open was undocumented; the
+"NEUTRAL=0.6 halves it" verb was wrong (0.6 = 40% cut); and PRD-007 R1's
+`FVGZone` field list (`high/low/midpoint/direction`) was superseded at
+implementation by the live `upper_bound/lower_bound` shape (midpoint derived,
+direction a `detect_fvg` param). PRD-007 is COMPLETE, so that last one is
+historical spec drift recorded here, not an open requirement.
+
+**Two deferred, on record:**
+- **Cosmetic:** `qualification.py:13` (module docstring) and `:325` (Gate 1
+  comment) say "CHAOTIC posture" — a category error (CHAOTIC is a regime;
+  `regime.py:310` forces its STAY_FLAT posture, so behavior is correct). A
+  comment-only tightening → next cosmetic batch (PRD-229), not a canonical-doc
+  change.
+- **Observability (candidate EXECUTION PRD):** the continuation extension
+  fail-open emits no `gates_skipped` marker, unlike the DIRECT path's PRD-235
+  markers — invisible at runtime, not just in the doc. Closing it is an
+  additive code change (continuation-path skip-marker parity); needs its own
+  PRD, not folded into doc-truth.
+
+**Inherited registry-gap (separate owner):** `docs/prd_history/PRD-244.proposal.md`
+(the governance refactor's artifact, merged via #119) trips the registry-gap
+hook because `.proposal.md` isn't in `prd_eval.sh`'s allowlist (which covers
+`.review.`/`.adjudication.`/`.codex_prompt.`). The correct fix is adding the
+`.proposal.md` suffix to the hook allowlist — a protected-hook (INFRA) edit,
+its own small PRD, not this docs pass.
+
 ## 2026-07-06 — PRD-244 number collision: FVG floor PRD renumbered to PRD-245 (reconciliation)
 
 Two sessions raced the number: this branch filed the FVG floor decision-PRD
