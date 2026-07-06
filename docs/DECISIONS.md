@@ -31,7 +31,8 @@ inbound citations the section renames had dangled (CODEX.md,
 PRD_PROCESS.md, architecture.md, prd-review-claude skill) — CLAUDE.md
 itself frozen byte-identical to the reviewed commit. Second-model
 instrument not commissioned (waiver sentence in the PRD doc).
-Manual-merge-only per the governance carve-out. Generalizable rule:
+Manual-merge-only per the governance carve-out (PR #119, held for
+Dustin's merge). Generalizable rule:
 **inbound cross-references to CLAUDE.md should cite by rule/topic, not
 section header — anchors break on restructure (surfaced by PRD-244).**
 
