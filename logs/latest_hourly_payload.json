@@ -1,46 +1,46 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 2.073083619774657,
-      "level": 59737.1796875,
+      "change_pct": 0.44670576918977317,
+      "level": 63867.55078125,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.037502110952491126,
-      "level": 101.37100219726562,
+      "change_pct": -0.014856911917555778,
+      "level": 100.94400024414062,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 2.3316411613925547,
-      "level": 4086.0,
+      "change_pct": -0.337565182098396,
+      "level": 4162.89990234375,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": -2.134361718776639,
-      "level": 68.31999969482422,
+      "change_pct": -0.1607726005486652,
+      "level": 68.30999755859375,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 4.749992984946258,
-      "change_pct": 1.063828179757886,
-      "level": 4.465000152587891,
+      "change_bps": -0.39961431528020774,
+      "change_pct": -0.0891797188223429,
+      "level": 4.480999946594238,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 4.042917669075241,
-      "level": 60.60499954223633,
+      "change_pct": -0.18458726352780147,
+      "level": 62.185001373291016,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -1.2158100526660096,
-      "level": 16.25,
+      "change_pct": 0.12649907374158273,
+      "level": 15.829999923706055,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260701T170654Z",
+    "generation_id": "hourly-20260706T172815Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-07-01T17:06:54Z"
+    "timestamp": "2026-07-06T17:28:15Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -58,8 +58,8 @@
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.125,
-    "market_regime": "NEUTRAL",
+    "confidence": 0.5,
+    "market_regime": "RISK_ON",
     "outcome": null,
     "permission": null,
     "router_mode": "MIXED",
