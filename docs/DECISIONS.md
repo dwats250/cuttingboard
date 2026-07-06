@@ -16,6 +16,25 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-06 — PRD-244: CLAUDE.md governance refactor closed (compress-in-place)
+
+CLAUDE.md rebuilt as a lean steering document (2,968 → 2,112 words):
+compress-in-place with reference-out — every candidate relocation was
+verified already canonical at its destination, so every cut is
+de-duplication or narration, never a move (full move-list:
+`docs/prd_history/PRD-244.proposal.md`). Fresh-context governance review
+(`docs/prd_history/PRD-244.review.claude.md`, SHA-pinned `724991e`)
+independently re-derived the load-bearing rule set: 67/67 rules survive,
+zero weakened or lost; ACCEPT WITH CHANGES. Its two required fixes landed
+in the PRD: Stage-0 filing (this PRD-244), and repair of the four live
+inbound citations the section renames had dangled (CODEX.md,
+PRD_PROCESS.md, architecture.md, prd-review-claude skill) — CLAUDE.md
+itself frozen byte-identical to the reviewed commit. Second-model
+instrument not commissioned (waiver sentence in the PRD doc).
+Manual-merge-only per the governance carve-out. Generalizable rule:
+**inbound cross-references to CLAUDE.md should cite by rule/topic, not
+section header — anchors break on restructure (surfaced by PRD-244).**
+
 ## 2026-07-06 — PRD-228 Codex-review branches superseded, not contradicting (branch-cleanup, cont'd)
 
 Two never-merged branches held sole copies of Codex cross-reviews from

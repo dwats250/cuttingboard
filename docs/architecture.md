@@ -284,7 +284,7 @@ Delivery is NOT part of the decision pipeline. Telegram send + terminal
 output live in `output.py` (invoked from `_build_and_finalize_contract`);
 the HTML dashboard is rendered from the contract-derived payload by
 `delivery/` and published to the `publish` branch by the scheduled workflows
-(never hand-overwritten on `main` — see CLAUDE.md Workflow patterns). None
+(never hand-overwritten on `main` — see CLAUDE.md Working practices). None
 of it influences qualification, options selection, decisions, or any
 upstream stage. Sidecar rules: `docs/sidecar_doctrine.md`.
 
