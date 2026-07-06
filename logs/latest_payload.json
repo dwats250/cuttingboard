@@ -1,46 +1,46 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 1.0402410839859366,
-      "level": 62123.6015625,
+      "change_pct": 0.2611230885361718,
+      "level": 63749.55078125,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.5455545952379,
-      "level": 100.81199645996094,
+      "change_pct": 0.04457073575266733,
+      "level": 101.00399780273438,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 2.3932574774830915,
-      "level": 4180.0,
+      "change_pct": -0.5242973987012209,
+      "level": 4155.10009765625,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 1.403049166270887,
-      "level": 68.66000366210938,
+      "change_pct": 0.511544115006937,
+      "level": 68.7699966430664,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 1.0022140822073693,
-      "change_pct": 0.22345911911819508,
-      "level": 4.4849997,
+      "change_bps": 0.0,
+      "change_pct": 0.0,
+      "level": 4.484999656677246,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 3.2743690889454937,
-      "level": 62.76499938964844,
+      "change_pct": -0.28892505197448554,
+      "level": 62.119998931884766,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -1.982649980950148,
-      "level": 15.819999694824219,
+      "change_pct": 0.6325074328988194,
+      "level": 15.90999984741211,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "live-20260703T150403Z",
+    "generation_id": "live-20260706T161423Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-07-03T15:04:03Z"
+    "timestamp": "2026-07-06T16:14:23Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -51,7 +51,7 @@
     "rejected": [
       {
         "detail": null,
-        "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
+        "reason": "STAY_FLAT posture (regime=RISK_ON, confidence=0.50)",
         "stage": "REGIME",
         "symbol": "REGIME"
       }
@@ -59,7 +59,7 @@
     "top_trades": [],
     "trade_decision_detail": [],
     "validation_halt_detail": {
-      "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)"
+      "reason": "STAY_FLAT posture (regime=RISK_ON, confidence=0.50)"
     },
     "watch_summary_detail": {
       "session": "MIDDAY"
@@ -67,8 +67,8 @@
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.0,
-    "market_regime": "NEUTRAL",
+    "confidence": 0.5,
+    "market_regime": "RISK_ON",
     "outcome": "NO_TRADE",
     "permission": "No new trades permitted.",
     "router_mode": "MIXED",
