@@ -16,6 +16,19 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-06 — PRD-212 Codex-review artifact backfilled in-tree (branch-cleanup, cont'd)
+
+Second sole-copy artifact found stranded on a never-merged branch during the
+same remote-branch cleanup sweep as the entry below.
+`docs/prd_history/PRD-212.review.codex.md` (the gpt-5.5 gate-validation Codex
+cross-review, reviewed commit `dd843fe`) existed only on
+`codex-review/PRD-212-dd843fe90bc3` @ `b55ec1b`; `docs/PROJECT_STATE.md`
+cited it BY BRANCH NAME ("artifact landed on
+`codex-review/PRD-212-dd843fe90bc3`") rather than by an in-tree path. Pulled
+the artifact in-tree verbatim from the branch; repointed the PROJECT_STATE
+citation to the committed path. `rg --hidden` confirms zero remaining
+references to the branch name anywhere in-tree — the branch is deletable.
+
 ## 2026-07-06 — Branch-cleanup backfills: qualification-tuning audit artifact in-tree + alignment check #6 record
 
 Post-#115 remote-branch cleanup surfaced two sole-copy artifacts stranded on
