@@ -16,34 +16,69 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
-## 2026-07-07 — PR creation permitted on explicit per-PR human confirmation
+## 2026-07-07 — Definitions for the merge/review decisions below
 
-Claude/agents may open a pull request when the human gives explicit confirmation
-for that specific PR. Confirmation is per-PR, not standing pre-authorization —
-"open the PR for branch X" authorizes exactly that one open, not an ambient
-permission to open PRs going forward. Merge to `main` remains human-held and is
-unaffected by this change: no auto-merge, no agent merge, under any
-circumstances. A PR opens with its review artifact and disposition already
-present in the body (and, for HIGH-RISK, its in-tree review artifact — see the
-next entry), so a PR is never simultaneously openable and mergeable without its
-second leg visible. **Rationale:** removes a mechanical step (PR-open) from the
-human without moving the seam that actually protects `main` (merge). The
-invariant guarded is the merge, not the open.
+Terms used in the merge/review decisions that follow:
+- **auto-merge (mechanism):** GitHub's `gh pr merge --auto` / branch-protection
+  auto-merge, which merges a PR automatically once required checks pass. A
+  GitHub feature, not an actor.
+- **agent-initiated merge:** an agent (Claude / Codex / Claude Code) taking the
+  merge action itself, or queuing auto-merge on a PR, without a human performing
+  or explicitly authorizing that merge.
+- **human-held merge:** the merge action is performed or explicitly authorized
+  by the human for that specific PR.
+- **manual-merge-only lane:** a change class where auto-merge is disallowed and
+  the merge must be human-held (per CLAUDE.md — currently HIGH-RISK and
+  governance changes).
+- **fresh-context Claude review:** a Claude review of a change derived from a
+  clean context that has not read the implementation summary / PR body / prior
+  disposition. Its durable form is `docs/prd_history/PRD-###.review.claude.md`.
+- **second-model disposition:** the second-model leg required at every
+  PRD-242-onward HIGH-RISK close, discharged by EITHER a committed non-Claude
+  `PRD-###.review.<model>.md` artifact OR the written waiver sentence — never by
+  the Claude review. A SEPARATE leg from the fresh-context Claude review; the
+  `.review.claude.md` artifact does not satisfy it (PRD-242 R3).
+
+## 2026-07-07 — Agents may open PRs on per-PR confirmation; agents do not initiate merges
+
+Agents may open a pull request when the human gives explicit confirmation for
+that specific PR (per-PR, not standing pre-authorization). Agents do not perform
+agent-initiated merges: an agent never takes the merge action itself and never
+queues auto-merge on a human's behalf. This does not disable GitHub's auto-merge
+mechanism for ordinary work — auto-merge remains the normal landing path for
+non-manual-merge-only lanes per CLAUDE.md ("How work lands": push the feature
+branch, open the PR, queue `gh pr merge --auto`). What is prohibited is the
+AGENT initiating or queuing the merge, not the mechanism existing. For
+manual-merge-only lanes (HIGH-RISK, governance), the merge is human-held
+regardless of mechanism. A PR opens with its review artifact and disposition
+already present, so a PR is never openable-and-mergeable without its second leg
+visible. **Rationale:** removes a mechanical step (PR-open) from the human
+without moving the seam that protects `main` (the merge decision). The guarded
+invariant is who INITIATES the merge, not whether the auto-merge feature is used
+on ordinary work. An earlier draft of this entry over-broadly banned "auto-merge
+under any circumstances," which contradicted CLAUDE.md's standing landing
+policy; this wording scopes the ban to agent-initiated merge, its actual intent.
 
 ## 2026-07-07 — HIGH-RISK review artifacts land in-tree
 
-The fresh-context second-model review for a HIGH-RISK change is committed to the
-repo at `docs/prd_history/PRD-###.review.claude.md`, not left solely in a PR body
-or an ephemeral session. The artifact carries: the reviewed SHA (the commit its
-evidence was actually gathered at — never backdated to a later head), the merge
-base, a fresh-context attestation, the full findings with real command output,
-the disposition, and any advisory closure. If later commits supersede the
-reviewed SHA, the artifact re-verifies the delta in a marked follow-up rather
-than restating the header to a commit it did not review. **Rationale:** the repo
-is canonical over any external surface. A HIGH-RISK gate's second leg must be
-durable in the source of truth, and its provenance must be honest about which
-commit produced which finding — a review pinned to a superseded SHA does not
-count for later commits.
+The fresh-context Claude review for a HIGH-RISK change is committed to the repo
+at `docs/prd_history/PRD-###.review.claude.md`. This artifact is the Claude
+review leg; it is NOT the second-model disposition. Per PRD-242 the fresh-context
+Claude review and the second-model disposition are separate legs, and the
+`.review.claude.md` artifact does not satisfy the second-model requirement
+(PRD-242 R3: "The Claude review never double-counts as the second model") — the
+second-model leg is discharged by EITHER a committed non-Claude review artifact
+OR the written waiver sentence, never by the Claude review. The artifact carries:
+the reviewed SHA (the commit its evidence was actually gathered at — never
+backdated to a later head), the merge base, a fresh-context attestation, the full
+findings with real command output, the disposition, and any advisory closure. If
+later commits supersede the reviewed SHA, the artifact re-verifies the delta in a
+marked follow-up rather than restating the header to a commit it did not review.
+**Rationale:** the repo is canonical over any external surface; a HIGH-RISK
+gate's Claude leg must be durable in the source of truth with honest per-commit
+provenance. Naming it the "second-model review" (an earlier draft's error)
+conflates two separate legs — the Claude review and the second-model disposition
+are distinct, and neither substitutes for the other.
 
 ## 2026-07-07 — Concurrent-session authority on a shared PR
 
