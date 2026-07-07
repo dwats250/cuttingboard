@@ -678,6 +678,9 @@ _CSS = (
     ".macro-tape-label{margin-right:0.25rem}"
     ".macro-tape-value{opacity:0.85}"
     ".candidate-card{border-left:3px solid #2a2a2a;padding:0.75rem;margin-bottom:0.5rem}"
+    # PRD-249: one-line identity header replaces the 8-line stacked SYMBOL/GRADE/
+    # BIAS/STRUCTURE block.
+    ".card-header{font-weight:bold;margin-bottom:6px}"
     ".grade-aplus{border-left-color:#4caf50}"
     ".grade-a{border-left-color:#8bc34a}"
     ".grade-b{border-left-color:#ff9800}"
@@ -1217,15 +1220,6 @@ def _pressure_decision_phrase(component_key: str, pressure_value: object) -> str
     return table.get(str(pressure_value))
 
 
-def _grade_to_action(grade: object) -> str | None:
-    """Translation 11: card grade → action verb, or None to cut."""
-    if grade in ("A+", "A"):
-        return "Tradeable"
-    if grade == "B":
-        return "Developing"
-    return None
-
-
 def _regime_flip_phrase(previous_regime: object, current_regime: object) -> str | None:
     """Translation 13: regime transition → 'Permission flipped to …' or None."""
     if previous_regime == current_regime:
@@ -1724,7 +1718,6 @@ def _render_candidate_card(
 
     w(f'<div class="candidate-card grade-{css_class}" id="card-{_esc(sym)}">')
 
-    grade_action = _grade_to_action(grade)
     if not is_high:
         # PRD-158 § 4.2 translation 11: low-grade GRADE label suppressed —
         # FAILURE REASON below carries the trader action.
@@ -1741,49 +1734,79 @@ def _render_candidate_card(
         _fail_text = _esc(_fail) if _fail else "No failure reason provided"
         w(f'  <div class="label">FAILURE REASON</div><div class="value">{_fail_text}</div>')
     else:
-        w(f'  <div class="label">SYMBOL</div><div class="value">{_esc(entry.get("symbol"))}</div>')
-        if grade_action is not None:
-            w(f'  <div class="label">GRADE</div>'
-              f'<div class="value">{_esc(grade_action)}{badge_html}</div>')
-        w(f'  <div class="label">BIAS</div><div class="value">{_esc(entry.get("bias"))}</div>')
-        w(f'  <div class="label">STRUCTURE</div><div class="value">{_esc(entry.get("structure"))}</div>')
+        # PRD-249: collapse the 8-line stacked identity block (SYMBOL/GRADE/BIAS/
+        # STRUCTURE label-over-value pairs) into one header line:
+        #   SYMBOL · GRADE · [STATE ·] BIAS STRUCTURE
+        # GRADE is the letter grade (the tier header already carries the action
+        # word); STATE is setup_state and now lives ONLY here — the standalone
+        # STATE line below is removed, not the datum. The lifecycle badge rides
+        # the header (previously on the GRADE value).
+        setup_state = entry.get("setup_state")
+        header_bits = [_esc(entry.get("symbol")), _esc(grade)]
+        if setup_state and setup_state != "DATA_UNAVAILABLE":
+            header_bits.append(_esc(setup_state))
+        bias_structure = " ".join(
+            p for p in (_esc(entry.get("bias")), _esc(entry.get("structure"))) if p
+        )
+        if bias_structure:
+            header_bits.append(bias_structure)
+        header = " · ".join(b for b in header_bits if b)
+        w(f'  <div class="card-header">{header}{badge_html}</div>')
 
     if is_high:
-        if lifecycle:
-            pg = _esc(lifecycle.get("previous_grade")) or _DASH
-            cg = _esc(lifecycle.get("current_grade")) or _DASH
-            ps = _esc(lifecycle.get("previous_setup_state")) or _DASH
-            cs = _esc(lifecycle.get("current_setup_state")) or _DASH
-            w(f'  <div class="lifecycle-detail">LIFECYCLE: {pg} → {cg} | {ps} → {cs}</div>')
-
-        setup_state = entry.get("setup_state")
-        if setup_state and setup_state != "DATA_UNAVAILABLE":
-            w(f'  <div class="candidate-state">STATE: {_esc(setup_state)}</div>')
-
         tf: dict = entry.get("trade_framing") or {}
 
+        # PRD-249: the verdict is the card's headline answer — render it first,
+        # immediately under the header, not buried below the identity/lifecycle.
         if_now = tf.get("if_now")
         if if_now is not None:
             w(f'  <div class="label">IF NOW</div><div class="value">{_esc(if_now)}</div>')
 
-        # PRD-165 R1 / PRD-215: ENTRY/INVALIDATION are the falsifiable, actionable
-        # fields; render them bold (.value-key) AND in the cyan "actionable" accent
-        # (.value-actionable) so they are the visual focus of the card.
+        # PRD-249: render the lifecycle line only on a REAL transition. A no-op
+        # (grade AND setup_state both unchanged, e.g. "B → B | DEVELOPING →
+        # DEVELOPING") is noise and is suppressed; the badge already suppresses
+        # UNCHANGED via _LIFECYCLE_BADGE_CSS.
+        if lifecycle:
+            prev_g = lifecycle.get("previous_grade")
+            cur_g = lifecycle.get("current_grade")
+            prev_s = lifecycle.get("previous_setup_state")
+            cur_s = lifecycle.get("current_setup_state")
+            if prev_g != cur_g or prev_s != cur_s:
+                pg = _esc(prev_g) or _DASH
+                cg = _esc(cur_g) or _DASH
+                ps = _esc(prev_s) or _DASH
+                cs = _esc(cur_s) or _DASH
+                w(f'  <div class="lifecycle-detail">LIFECYCLE: {pg} → {cg} | {ps} → {cs}</div>')
+
+        # PRD-165 R1 / PRD-215 / PRD-249: the falsifiable in/out couplet is the
+        # visual focus — bold (.value-key) + cyan actionable accent
+        # (.value-actionable). PRD-249 relabels ENTRY→"IN →" and
+        # INVALIDATION→"OUT →" (one couplet) and drops the standalone RISK line.
         entry_val = tf.get("entry")
         if entry_val is not None:
-            w(f'  <div class="label">ENTRY</div><div class="value-key value-actionable">{_esc(entry_val)}</div>')
+            w(f'  <div class="label">IN →</div><div class="value-key value-actionable">{_esc(entry_val)}</div>')
 
+        # PRD-249 review advisory: trade_framing.downgrade restated the
+        # invalidation's PRICE clause but carried one extra clause the couplet
+        # does not express — the structural-invalidation path (the part after
+        # " or ", e.g. "structure turns choppy"). Fold ONLY that non-redundant
+        # clause into OUT so dropping the RISK line loses no data. This is a
+        # presentation-only compose: read both existing fields (invalidation and
+        # downgrade), join for display, verbatim — derive nothing, add no wording.
         invalidation = entry.get("invalidation")
         if invalidation and len(invalidation) > 0 and invalidation[0] is not None:
-            w(f'  <div class="label">INVALIDATION</div><div class="value-key value-actionable">{_esc(invalidation[0])}</div>')
+            out_text = _esc(invalidation[0])
+            downgrade = tf.get("downgrade")
+            if downgrade and " or " in downgrade:
+                structural = downgrade.split(" or ", 1)[1].strip()
+                if structural and structural not in invalidation[0]:
+                    out_text = f"{out_text}, or {_esc(structural)}"
+            w(f'  <div class="label">OUT →</div><div class="value-key value-actionable">{out_text}</div>')
 
-        downgrade = tf.get("downgrade")
-        if downgrade is not None:
-            w(f'  <div class="candidate-risk">RISK: {_esc(downgrade)}</div>')
-
-        # PRD-215: REASON/PLAY/WATCH are supporting context — tuck them behind a
-        # default-collapsed disclosure so the accented ENTRY/INVALIDATION stay the
-        # focal point. Rendered only when at least one of the three has content.
+        # PRD-215/PRD-249: REASON/PLAY/WATCH are supporting context — tuck them
+        # behind a default-collapsed disclosure so the accented couplet stays the
+        # focal point. WATCH is now ONE semicolon-joined line under one label
+        # instead of one label per what_to_look_for item.
         reason = entry.get("reason_for_grade")
         pts = entry.get("preferred_trade_structure")
         _watch_items = [
@@ -1796,8 +1819,9 @@ def _render_candidate_card(
                 w(f'  <div class="label">REASON</div><div class="value">{_esc(reason)}</div>')
             if pts is not None:
                 w(f'  <div class="label">PLAY</div><div class="value">{_esc(pts)}</div>')
-            for item in _watch_items:
-                w(f'  <div class="label">WATCH</div><div class="value">{_esc(item)}</div>')
+            if _watch_items:
+                _watch_joined = "; ".join(_esc(item) for item in _watch_items)
+                w(f'  <div class="label">WATCH</div><div class="value">{_watch_joined}</div>')
             w('  </details>')
 
     # PRD-158 § 4.2 translation 12: render the level diagram only when both
