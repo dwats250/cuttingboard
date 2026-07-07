@@ -16,6 +16,59 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-07 — A test may shell out to Node to exercise client-side JS (PRD-250)
+
+`tests/test_staleness_banner.py` runs the exact emitted `_STALENESS_BANNER_JS`
+in Node (a `subprocess` call against a stubbed `document`/`Date`) to assert the
+fresh/old/closed boundary. This is the first JS-in-test in the tree, recorded so
+it is not later deleted as an anomaly. Rationale: PRD-250's freshness verdict is
+load-bearingly **client-side** (viewer-clock-relative, so a frozen board can't
+freeze its own "fresh" label) — a Python-only suite can assert the server
+contract (timestamp/threshold/session-flag emitted, verdict NOT baked) but
+cannot exercise the actual age→verdict decision, which lives in the browser. Node
+is the authoritative way to run it; CI's ubuntu image ships `node`, and the test
+FAILS LOUDLY (never skips) if it is absent, per the hardening invariants. The
+boundary is mutation-verified: inverted threshold, inactive-says-OLD, an injected
+action-verb, and a server-baked verdict each flip the corresponding test red. Not
+a general license for JS test infra — scoped to verifying client-side verdict
+logic that has no server-side authoritative form.
+
+## 2026-07-07 — Hourly-alert board froze ~23h with all workflows green; no code regression (MICRO incident)
+
+**Symptom.** The published board (`dwats250.github.io/cuttingboard/`) read
+`UPDATED 2026-07-06 09:14:23 PT` for ~23h while every workflow reported success.
+Initial hypothesis (a `check_readiness.py` regression re-adding the retired
+`RUN SNAPSHOT` marker) was **wrong**: PR #121 (`1376854`, merged `331f950`) is
+present and effective on `main` — `origin/main:scripts/check_readiness.py`
+requires only `id="system-state" / id="macro-tape" / id="candidate-board"`, the
+guard test `tests/test_check_readiness.py` exists and is green, and the
+`17:28Z` `--force-slot` run on the fixed commit passed `Check hourly readiness`
+and published. The `RUN SNAPSHOT` seen was a **stale local working tree**, not
+`origin/main`. No code regression existed; no code changed this pass.
+
+**Actual cause — two stacked, both benign-looking.** The publish tail
+(Aggregate → Render → Check-readiness → Commit → Push in `hourly_alert.yml`) is
+gated on `steps.freshcheck.outputs.fresh == 'true'`; a skipped step still lets
+the run report **success**. (1) The 07-06 10:00 PT slots (`17:08`/`17:19Z`, on
+pre-#121 `ad662a3`) failed at the readiness gate — the one place the marker bug
+was ever live; resolved by #121. (2) Every later scheduled run **suppressed**:
+GitHub delivered the crons 8–46 min late (`15:43`, `17:34`, `19:42`, `21:21Z`…)
+against `routine_pt_slot`'s `max_lag_minutes=25`, so each mapped to no slot →
+`outside_routine_window` → `fresh=false` → publish skipped. The `--force-slot`
+dispatch published but re-rendered from *restored* data, so its `UPDATED` stayed
+at 09:14 PT. Net: no fresh-data hourly landed for ~23h, and because suppression
+is green, nothing flagged it. **The board self-recovered 07-07 08:41 PT when the
+Pipeline (`cuttingboard.yml`, not the hourly alert) refreshed data and pushed
+`4e76a40`; Pages deployed it at `15:47Z`.**
+
+**The durable danger.** On a quiet-Pipeline day the hourly alert can suppress
+every slot and the board coasts on stale data with all workflows green — a
+frozen read presenting as fresh, the worst failure class for a discretionary
+sizing tool (a stale board can feed a real trade). Follow-up proposed:
+`docs/prd_history/PRD-250.proposal.md` — a **client-side** staleness banner
+(freshness judged at view time, not baked at render), explicitly *not* a wider
+`max_lag_minutes`. Propose-only; no code this pass.
+
 ## 2026-07-07 — Definitions for the merge/review decisions below
 
 Terms used in the merge/review decisions that follow:

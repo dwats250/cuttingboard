@@ -176,6 +176,71 @@ SCOREBOARD_LIMIT = 5  # render at most the 5 most-recent regime-history rows (wa
 _DASHBOARD_REFRESH_SECONDS = 30
 DASHBOARD_STALE_AFTER_SECONDS = 300
 
+# PRD-250: client-side page-age banner threshold. During an ACTIVE session a
+# refresh is due roughly hourly (one slot + routine lag + render); past this the
+# published board may no longer describe today's tape, so a sizing decision
+# should not rest on it. Derived from the decision, not from false-positive
+# avoidance (see docs/prd_history/PRD-250.proposal.md §4). The freshness verdict
+# is computed in-browser against the viewer's clock — never baked here — so a
+# frozen board cannot freeze its own "fresh" label.
+BOARD_STALE_AFTER_SECONDS = 90 * 60  # 90 min
+
+# PRD-250: inline client-side staleness script. Reads the machine-readable
+# UPDATED timestamp emitted on #cb-updated, compares it to the viewer's clock at
+# VIEW time, and paints a page-age notice into #staleness-banner. Re-runs on each
+# <meta http-equiv="refresh"> reload. Server bakes NO verdict; the browser is the
+# only component that keeps running when the pipeline stops. `data-session-inactive`
+# is the server-supplied "was a refresh due" signal (payload.meta.session_type via
+# inactive_session) — no market calendar is reimplemented here. Informs the age
+# condition only; it never instructs an action.
+_STALENESS_BANNER_JS = """
+(function () {
+  function fmtAge(sec) {
+    var m = Math.floor(sec / 60);
+    if (m < 60) return m + "m";
+    var h = Math.floor(m / 60);
+    if (h < 24) return h + "h";
+    return Math.floor(h / 24) + "d";
+  }
+  function run() {
+    var banner = document.getElementById("staleness-banner");
+    if (!banner) return;
+    var el = document.getElementById("cb-updated");
+    var iso = el ? el.getAttribute("data-updated-utc") : "";
+    var updated = iso ? new Date(iso) : null;
+    if (!updated || isNaN(updated.getTime())) {
+      banner.textContent = "LAST UPDATE: UNAVAILABLE";
+      banner.style.color = "#888";
+      banner.hidden = false;
+      return;
+    }
+    var ageSec = (Date.now() - updated.getTime()) / 1000;
+    var staleAfter = parseInt(banner.getAttribute("data-board-stale-after-s"), 10);
+    if (!(staleAfter > 0)) staleAfter = 5400;
+    var inactive = banner.getAttribute("data-session-inactive") === "true";
+    if (inactive) {
+      banner.textContent = "MARKET CLOSED \\u00b7 LAST UPDATE " + fmtAge(ageSec) + " AGO";
+      banner.style.color = "#888";
+      banner.hidden = false;
+      return;
+    }
+    if (ageSec > staleAfter) {
+      banner.textContent = "BOARD " + fmtAge(ageSec) + " OLD";
+      banner.style.color = "#ff9800";
+      banner.style.borderColor = "#ff9800";
+      banner.hidden = false;
+    } else {
+      banner.hidden = true;
+    }
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", run);
+  } else {
+    run();
+  }
+})();
+"""
+
 _GRADE_ORDER: dict[str, int] = {"A+": 0, "A": 1, "B": 2, "C": 3, "D": 4, "F": 5}
 
 _GRADE_CSS: dict[str, str] = {
@@ -2145,6 +2210,19 @@ def render_dashboard_html(
         _market_map_rendered_setup_count(market_map) if _mm_health == "OK" else 0
     )
 
+    # --- staleness banner (PRD-250) ---
+    # Preceding sibling ABOVE #system-state — NOT woven into it, whose verdict/
+    # context region is decision-shaped. The server emits only inert scaffolding
+    # (an empty, hidden container carrying the threshold and the server-supplied
+    # "was a refresh due" flag); the verdict is computed client-side by
+    # _STALENESS_BANNER_JS against the viewer's clock, reading the machine-readable
+    # timestamp emitted on #cb-updated below. Nothing decision-shaped is baked.
+    w(f'<div class="block" id="staleness-banner" hidden'
+      f' style="text-align:center;font-weight:bold"'
+      f' data-session-inactive="{"true" if inactive_session else "false"}"'
+      f' data-board-stale-after-s="{BOARD_STALE_AFTER_SECONDS}"></div>')
+    w(f'<script>{_STALENESS_BANNER_JS}</script>')
+
     # --- system-state ---
     regime_permission_text = _regime_to_permission_verb(market_regime)
     # PRD-219: distilled system-state — a plain-English verdict (posture verb +
@@ -2214,8 +2292,15 @@ def render_dashboard_html(
     _updated_pt, _ = format_dashboard_timestamp(
         str(_pipeline_run_ts or payload_timestamp_value or timestamp or "")
     )
+    # PRD-250: machine-readable UTC form of the same timestamp the display uses,
+    # for the client-side staleness banner. Mirrors the display fallback
+    # (pipeline run first, then payload). Emitted into HTML output ONLY — no
+    # contract/payload write; both operands are already-parsed datetimes in hand.
+    _updated_dt = _pipeline_run_ts or payload_timestamp
+    _updated_iso = _updated_dt.isoformat() if _updated_dt is not None else ""
     w('  <div class="label">UPDATED</div>')
-    w(f'  <div class="value">{_esc(_updated_pt) if _updated_pt else "unknown"}</div>')
+    w(f'  <div class="value" id="cb-updated" data-updated-utc="{_esc(_updated_iso)}">'
+      f'{_esc(_updated_pt) if _updated_pt else "unknown"}</div>')
     w("</div>")
 
     # --- alert-watchlist ---

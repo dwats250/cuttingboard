@@ -690,9 +690,15 @@ def _system_state_block(html: str) -> str:
 
 
 def _updated_value(state: str) -> str:
-    """PRD-219: the single absolute UPDATED timestamp value."""
+    """PRD-219: the single absolute UPDATED timestamp value.
+
+    The value div may carry extra attributes (PRD-250 adds id="cb-updated" +
+    data-updated-utc for the client-side staleness banner), so parse past the
+    class token to the tag close rather than matching 'class="value">' literally.
+    """
     after = state.split(">UPDATED</div>", 1)[1]
-    return after.split('class="value">', 1)[1].split("</div>", 1)[0]
+    after_value = after.split('class="value"', 1)[1]
+    return after_value.split(">", 1)[1].split("</div>", 1)[0]
 
 
 def test_no_separate_dashboard_header_block() -> None:
