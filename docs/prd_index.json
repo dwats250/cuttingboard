@@ -1166,6 +1166,12 @@
       "title": "Output card legibility: single-line header, verdict-first order, cut duplicated state/risk lines",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 250,
+      "title": "Client-side staleness banner (presentation-only): surfaces published-board page-age at view time so a frozen board can't read as fresh",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

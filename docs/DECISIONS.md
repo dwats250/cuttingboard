@@ -16,6 +16,23 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-07 — A test may shell out to Node to exercise client-side JS (PRD-250)
+
+`tests/test_staleness_banner.py` runs the exact emitted `_STALENESS_BANNER_JS`
+in Node (a `subprocess` call against a stubbed `document`/`Date`) to assert the
+fresh/old/closed boundary. This is the first JS-in-test in the tree, recorded so
+it is not later deleted as an anomaly. Rationale: PRD-250's freshness verdict is
+load-bearingly **client-side** (viewer-clock-relative, so a frozen board can't
+freeze its own "fresh" label) — a Python-only suite can assert the server
+contract (timestamp/threshold/session-flag emitted, verdict NOT baked) but
+cannot exercise the actual age→verdict decision, which lives in the browser. Node
+is the authoritative way to run it; CI's ubuntu image ships `node`, and the test
+FAILS LOUDLY (never skips) if it is absent, per the hardening invariants. The
+boundary is mutation-verified: inverted threshold, inactive-says-OLD, an injected
+action-verb, and a server-baked verdict each flip the corresponding test red. Not
+a general license for JS test infra — scoped to verifying client-side verdict
+logic that has no server-side authoritative form.
+
 ## 2026-07-07 — Hourly-alert board froze ~23h with all workflows green; no code regression (MICRO incident)
 
 **Symptom.** The published board (`dwats250.github.io/cuttingboard/`) read
