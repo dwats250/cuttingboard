@@ -5,13 +5,13 @@
   "entries": [
     {
       "number": 56,
-      "title": "Candidate lifecycle tracking — deterministic grade/setup_state transition metadata in market_map",
+      "title": "Candidate lifecycle tracking \u2014 deterministic grade/setup_state transition metadata in market_map",
       "status": "COMPLETE",
       "commit": "e7365c6"
     },
     {
       "number": 57,
-      "title": "Lifecycle visibility on Signal Forge dashboard — badge, detail row, removed symbols section",
+      "title": "Lifecycle visibility on Signal Forge dashboard \u2014 badge, detail row, removed symbols section",
       "status": "COMPLETE",
       "commit": "e7365c6"
     },
@@ -461,7 +461,7 @@
     },
     {
       "number": 132,
-      "title": "Intraday VWAP × RVOL Context Display Layer",
+      "title": "Intraday VWAP \u00d7 RVOL Context Display Layer",
       "status": "COMPLETE",
       "commit": "e5e512c"
     },
@@ -521,7 +521,7 @@
     },
     {
       "number": 142,
-      "title": "PATCH PRD-141 Persist hourly slot state across CI runs (scheduled for kill per VISION.md 2026-05-22 — workflow change never landed)",
+      "title": "PATCH PRD-141 Persist hourly slot state across CI runs (scheduled for kill per VISION.md 2026-05-22 \u2014 workflow change never landed)",
       "status": "DEPRECATED",
       "commit": null
     },
@@ -563,7 +563,7 @@
     },
     {
       "number": 149,
-      "title": "PT-Anchored Hourly Alert Window (6:00 AM – 1:00 PM PT)",
+      "title": "PT-Anchored Hourly Alert Window (6:00 AM \u2013 1:00 PM PT)",
       "status": "COMPLETE",
       "commit": "c562259"
     },
@@ -587,7 +587,7 @@
     },
     {
       "number": 153,
-      "title": "Moomoo Statement Consumer (Phase 2) — superseded by PRD-156",
+      "title": "Moomoo Statement Consumer (Phase 2) \u2014 superseded by PRD-156",
       "status": "DEPRECATED",
       "commit": "5ec073e, a1993b9"
     },
@@ -623,7 +623,7 @@
     },
     {
       "number": 159,
-      "title": "scripts/prd_open.sh — Stage 0 PRD scaffolder",
+      "title": "scripts/prd_open.sh \u2014 Stage 0 PRD scaffolder",
       "status": "COMPLETE",
       "commit": "0481eb5"
     },
@@ -899,13 +899,13 @@
     },
     {
       "number": 205,
-      "title": "(void — number skipped; 207/210 filed out of order)",
+      "title": "(void \u2014 number skipped; 207/210 filed out of order)",
       "status": "DEPRECATED",
       "commit": null
     },
     {
       "number": 206,
-      "title": "(void — number skipped; 207/210 filed out of order)",
+      "title": "(void \u2014 number skipped; 207/210 filed out of order)",
       "status": "DEPRECATED",
       "commit": null
     },
@@ -929,7 +929,7 @@
     },
     {
       "number": 210,
-      "title": "Premarket trend-structure path coverage — apply the PRD-174 history fallback on _run_pipeline (F08 closes-None fix)",
+      "title": "Premarket trend-structure path coverage \u2014 apply the PRD-174 history fallback on _run_pipeline (F08 closes-None fix)",
       "status": "COMPLETE",
       "commit": "55b2f67"
     },
@@ -941,7 +941,7 @@
     },
     {
       "number": 212,
-      "title": "Pin the Codex cross-review identity (CLI version 0.142.1) — end the alias-drift gate outage. PREMISE SUPERSEDED (2026-07-01): the outage was a deprecated model (gpt-5-codex retired 2026-04-01), not CLI-alias drift; fixed by retargeting the model to gpt-5.5 (PR #76, validated run 28560459040). The 0.142.1 pin is retained. See DECISIONS 2026-07-01.",
+      "title": "Pin the Codex cross-review identity (CLI version 0.142.1) \u2014 end the alias-drift gate outage. PREMISE SUPERSEDED (2026-07-01): the outage was a deprecated model (gpt-5-codex retired 2026-04-01), not CLI-alias drift; fixed by retargeting the model to gpt-5.5 (PR #76, validated run 28560459040). The 0.142.1 pin is retained. See DECISIONS 2026-07-01.",
       "status": "COMPLETE",
       "commit": "daedf10"
     },
@@ -1007,7 +1007,7 @@
     },
     {
       "number": 223,
-      "title": "Numeric entry→stop risk band on the level ladder (from contract trade_candidates)",
+      "title": "Numeric entry\u2192stop risk band on the level ladder (from contract trade_candidates)",
       "status": "COMPLETE",
       "commit": "e654ca0"
     },
@@ -1031,7 +1031,7 @@
     },
     {
       "number": 227,
-      "title": "Correct PRD-221 registry provenance (phantom 6b3fef1 → merged 8faa675)",
+      "title": "Correct PRD-221 registry provenance (phantom 6b3fef1 \u2192 merged 8faa675)",
       "status": "COMPLETE",
       "commit": "#95"
     },
@@ -1055,7 +1055,7 @@
     },
     {
       "number": 231,
-      "title": "Doc-truth micro-fixes: qualification gate count (9→11), output.py dead runtime.py reference",
+      "title": "Doc-truth micro-fixes: qualification gate count (9\u219211), output.py dead runtime.py reference",
       "status": "COMPLETE",
       "commit": "#99"
     },
@@ -1139,7 +1139,7 @@
     },
     {
       "number": 245,
-      "title": "FVG upgrade path: Gate 6 stop-distance floor on the swapped stop — decision PRD (hole vs deliberate)",
+      "title": "FVG upgrade path: Gate 6 stop-distance floor on the swapped stop \u2014 decision PRD (hole vs deliberate)",
       "status": "COMPLETE",
       "commit": "6017ce9"
     },
@@ -1160,6 +1160,12 @@
       "title": "Allowlist .proposal.md in the prd_eval.sh registry-gap hook",
       "status": "COMPLETE",
       "commit": "#125"
+    },
+    {
+      "number": 249,
+      "title": "Output card legibility: single-line header, verdict-first order, cut duplicated state/risk lines",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
