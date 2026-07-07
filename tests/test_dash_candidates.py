@@ -177,81 +177,113 @@ def test_high_grade_card_shows_optional_fields() -> None:
 
 
 # ---------------------------------------------------------------------------
-# R4.1 — Candidate State Emphasis
+# R4.1 — PRD-249: single-line header, verdict-first order, cut STATE/RISK lines
 # ---------------------------------------------------------------------------
 
-def test_candidate_state_label() -> None:
+def _card(html: str, sym: str) -> str:
+    """This card's HTML, bounded at the next candidate card so 'not in' holds."""
+    after = html.split(f'id="card-{sym}"', 1)[1]
+    return after.split('class="candidate-card', 1)[0]
+
+
+def test_header_single_line_composition() -> None:
+    # R1: SYMBOL · GRADE · STATE · BIAS STRUCTURE on one header line.
+    syms = {"SPY": _mm_symbol("SPY", grade="A+", bias="BULL", structure="UPTREND",
+                              setup_state="BREAKOUT")}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = _card(html, "SPY")
+    assert 'class="card-header"' in card
+    assert "SPY · A+ · BREAKOUT · BULL UPTREND" in card
+
+
+def test_header_replaces_stacked_identity_block() -> None:
+    # R1: the old stacked GRADE/BIAS/STRUCTURE label pairs are gone on a
+    # high-grade card.
+    syms = {"SPY": _mm_symbol("SPY", grade="A+")}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = _card(html, "SPY")
+    assert '<div class="label">GRADE</div>'     not in card
+    assert '<div class="label">BIAS</div>'      not in card
+    assert '<div class="label">STRUCTURE</div>' not in card
+
+
+def test_header_omits_setup_state_when_data_unavailable() -> None:
+    # R1: a DATA_UNAVAILABLE setup_state is not surfaced in the header.
+    syms = {"SPY": _mm_symbol("SPY", grade="A", setup_state="DATA_UNAVAILABLE")}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = _card(html, "SPY")
+    assert "DATA_UNAVAILABLE" not in card
+
+
+def test_verdict_first_before_couplet() -> None:
+    # R2: the IF NOW verdict renders before the IN → couplet.
+    syms = {"SPY": _mm_symbol("SPY", grade="A+", setup_state="BREAKOUT",
+                              trade_framing={"direction": "LONG",
+                                             "if_now": "WAIT",
+                                             "entry": "hold above reference"})}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = _card(html, "SPY")
+    assert card.index("IF NOW") < card.index("IN →")
+
+
+def test_in_out_couplet_labels_and_accent() -> None:
+    # R4: entry/invalidation render as the IN →/OUT → couplet, both keeping the
+    # cyan actionable accent, in that order.
+    syms = {"SPY": _mm_symbol("SPY", grade="A",
+                              trade_framing={"direction": "LONG",
+                                             "entry": "above 510_UNIQUE"},
+                              invalidation=["below 490_UNIQUE"])}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = _card(html, "SPY")
+    assert ('<div class="label">IN →</div>'
+            '<div class="value-key value-actionable">above 510_UNIQUE</div>') in card
+    assert ('<div class="label">OUT →</div>'
+            '<div class="value-key value-actionable">below 490_UNIQUE</div>') in card
+    assert card.index("IN →") < card.index("OUT →")
+
+
+def test_risk_line_removed() -> None:
+    # R4: the standalone RISK line (trade_framing.downgrade) is gone.
+    syms = {"SPY": _mm_symbol("SPY", grade="A",
+                              trade_framing={"direction": "LONG",
+                                             "entry": "hold above reference",
+                                             "downgrade": "break below 500_UNIQUE"})}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = _card(html, "SPY")
+    assert 'class="candidate-risk"' not in card
+    assert "RISK:"                  not in card
+    assert "break below 500_UNIQUE" not in card
+
+
+def test_standalone_state_line_removed_but_state_retained() -> None:
+    # R4: the standalone STATE line is gone; setup_state lives in the header.
     syms = {"SPY": _mm_symbol("SPY", grade="A+", setup_state="BREAKOUT")}
-    mm   = _market_map(syms)
-    html = render_dashboard_html(_payload(), _run(), market_map=mm)
-    assert 'class="candidate-state"' in html
-    assert "STATE: BREAKOUT"          in html
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = _card(html, "SPY")
+    assert 'class="candidate-state"' not in card
+    assert "STATE: BREAKOUT"         not in card
+    assert "BREAKOUT"                in card  # retained in the header
 
 
-def test_candidate_state_not_in_low_grade() -> None:
-    syms = {"GLD": _mm_symbol("GLD", grade="C", setup_state="BREAKOUT")}
-    mm   = _market_map(syms)
-    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+def test_watch_single_joined_line() -> None:
+    # R5: multiple what_to_look_for items render as ONE semicolon-joined WATCH
+    # line under a single label, not one label per item.
+    sym = _mm_symbol("SPY", grade="A")
+    sym["what_to_look_for"] = ["watch A_UNIQUE", "watch B_UNIQUE"]
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map({"SPY": sym}))
+    card = _card(html, "SPY")
+    assert card.count('<div class="label">WATCH</div>') == 1
+    assert "watch A_UNIQUE; watch B_UNIQUE" in card
+
+
+def test_risk_and_state_absent_on_low_grade() -> None:
+    # Low-grade cards never carried the RISK/STATE lines; still absent.
+    syms = {"GLD": _mm_symbol("GLD", grade="D",
+                              trade_framing={"direction": "SHORT",
+                                             "downgrade": "break above 200"})}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    assert 'class="candidate-risk"'  not in html
     assert 'class="candidate-state"' not in html
-
-
-def test_candidate_state_excluded_for_data_unavailable() -> None:
-    syms = {"GLD": _mm_symbol("GLD", grade="A", setup_state="DATA_UNAVAILABLE")}
-    mm   = _market_map(syms)
-    html = render_dashboard_html(_payload(), _run(), market_map=mm)
-    assert "STATE: DATA_UNAVAILABLE" not in html
-
-
-def test_candidate_risk_label() -> None:
-    syms = {
-        "SPY": _mm_symbol(
-            "SPY",
-            grade="A",
-            trade_framing={
-                "direction": "LONG",
-                "entry": "hold above reference",
-                "downgrade": "break below 500_UNIQUE",
-            },
-        ),
-    }
-    mm   = _market_map(syms)
-    html = render_dashboard_html(_payload(), _run(), market_map=mm)
-    assert 'class="candidate-risk"'       in html
-    assert "RISK: break below 500_UNIQUE" in html
-    assert "WATCH FOR"                    not in html
-
-
-def test_candidate_risk_not_in_low_grade() -> None:
-    syms = {
-        "GLD": _mm_symbol(
-            "GLD",
-            grade="D",
-            trade_framing={"direction": "SHORT", "downgrade": "break above 200"},
-        ),
-    }
-    mm   = _market_map(syms)
-    html = render_dashboard_html(_payload(), _run(), market_map=mm)
-    assert 'class="candidate-risk"' not in html
-
-
-def test_candidate_state_before_risk() -> None:
-    syms = {
-        "SPY": _mm_symbol(
-            "SPY",
-            grade="A+",
-            setup_state="BREAKOUT",
-            trade_framing={
-                "direction": "LONG",
-                "entry": "hold above reference",
-                "downgrade": "break below 500",
-            },
-        ),
-    }
-    mm   = _market_map(syms)
-    html = render_dashboard_html(_payload(), _run(), market_map=mm)
-    state_pos = html.index('class="candidate-state"')
-    risk_pos  = html.index('class="candidate-risk"')
-    assert state_pos < risk_pos
 
 
 # ---------------------------------------------------------------------------
@@ -513,13 +545,24 @@ def test_lifecycle_detail_null_prev_renders_dash() -> None:
     assert "LIFECYCLE: — →" in card
 
 
-def test_lifecycle_detail_before_setup_state() -> None:
+def test_lifecycle_detail_after_verdict() -> None:
+    # PRD-249: a real lifecycle transition renders after the IF NOW verdict
+    # (the standalone STATE line it used to precede is gone).
     syms = {"SPY": _sym_with_lc("SPY", grade="A+", grade_transition="UPGRADED", setup_state="ACTIONABLE")}
     html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
     card = html.split('id="card-SPY"', 1)[1]
-    detail_pos = card.index('class="lifecycle-detail"')
-    state_pos  = card.index('class="candidate-state"')
-    assert detail_pos < state_pos
+    assert card.index("IF NOW") < card.index('class="lifecycle-detail"')
+
+
+def test_lifecycle_detail_suppressed_on_noop_transition() -> None:
+    # PRD-249 R3: a no-op transition (grade AND setup_state both unchanged, e.g.
+    # "B → B | DEVELOPING → DEVELOPING") is not rendered.
+    syms = {"SPY": _sym_with_lc("SPY", grade="B", grade_transition="UNCHANGED",
+                                previous_grade="B", setup_state="DEVELOPING",
+                                previous_setup_state="DEVELOPING")}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = html.split('id="card-SPY"', 1)[1]
+    assert 'class="lifecycle-detail"' not in card
 
 
 # ---------------------------------------------------------------------------

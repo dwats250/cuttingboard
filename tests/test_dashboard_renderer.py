@@ -945,9 +945,9 @@ def test_high_grade_candidate_renders_validation_context() -> None:
 
     assert "PLAY" in card
     assert "bullish defined-risk continuation" in card
-    assert card.count("WATCH") == 2
-    assert "watch hold above support" in card
-    assert "look for higher low" in card
+    # PRD-249: the two watch items now render as ONE semicolon-joined WATCH line.
+    assert card.count("WATCH") == 1
+    assert "watch hold above support; look for higher low" in card
 
 
 def test_high_grade_candidate_omits_empty_validation_context() -> None:
@@ -977,9 +977,9 @@ def test_high_grade_candidate_filters_unavailable_watch_sentinel() -> None:
 
 
 def test_high_grade_candidate_entry_invalidation_bold() -> None:
-    # PRD-165 R1 / PRD-215: ENTRY and INVALIDATION value rows use the bold
-    # .value-key class AND the cyan .value-actionable accent, distinct from the
-    # generic .value shared by the (now collapsed) REASON/PLAY/WATCH.
+    # PRD-165 R1 / PRD-215 / PRD-249: the IN →/OUT → couplet (entry/invalidation)
+    # uses the bold .value-key class AND the cyan .value-actionable accent,
+    # distinct from the generic .value shared by the (collapsed) REASON/PLAY/WATCH.
     entry = _mm_symbol(
         "SPY", grade="A",
         trade_framing={"entry": "above 580.50"},
@@ -989,8 +989,8 @@ def test_high_grade_candidate_entry_invalidation_bold() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=_market_map({"SPY": entry}))
     card = _candidate_card(html)
 
-    assert '<div class="label">ENTRY</div><div class="value-key value-actionable">above 580.50</div>' in card
-    assert '<div class="label">INVALIDATION</div><div class="value-key value-actionable">below 578.20</div>' in card
+    assert '<div class="label">IN →</div><div class="value-key value-actionable">above 580.50</div>' in card
+    assert '<div class="label">OUT →</div><div class="value-key value-actionable">below 578.20</div>' in card
     # REASON stays on the generic .value class — NOT the bold .value-key.
     assert '<div class="label">REASON</div><div class="value">breadth thrust' in card
     assert 'REASON</div><div class="value-key">' not in card
