@@ -16,6 +16,52 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-07 — PR creation permitted on explicit per-PR human confirmation
+
+Claude/agents may open a pull request when the human gives explicit confirmation
+for that specific PR. Confirmation is per-PR, not standing pre-authorization —
+"open the PR for branch X" authorizes exactly that one open, not an ambient
+permission to open PRs going forward. Merge to `main` remains human-held and is
+unaffected by this change: no auto-merge, no agent merge, under any
+circumstances. A PR opens with its review artifact and disposition already
+present in the body (and, for HIGH-RISK, its in-tree review artifact — see the
+next entry), so a PR is never simultaneously openable and mergeable without its
+second leg visible. **Rationale:** removes a mechanical step (PR-open) from the
+human without moving the seam that actually protects `main` (merge). The
+invariant guarded is the merge, not the open.
+
+## 2026-07-07 — HIGH-RISK review artifacts land in-tree
+
+The fresh-context second-model review for a HIGH-RISK change is committed to the
+repo at `docs/prd_history/PRD-###.review.claude.md`, not left solely in a PR body
+or an ephemeral session. The artifact carries: the reviewed SHA (the commit its
+evidence was actually gathered at — never backdated to a later head), the merge
+base, a fresh-context attestation, the full findings with real command output,
+the disposition, and any advisory closure. If later commits supersede the
+reviewed SHA, the artifact re-verifies the delta in a marked follow-up rather
+than restating the header to a commit it did not review. **Rationale:** the repo
+is canonical over any external surface. A HIGH-RISK gate's second leg must be
+durable in the source of truth, and its provenance must be honest about which
+commit produced which finding — a review pinned to a superseded SHA does not
+count for later commits.
+
+## 2026-07-07 — Concurrent-session authority on a shared PR
+
+When more than one agent session acts on the same PR, the session that performed
+the merge is authoritative on merge state. A session woken by a webhook/GitHub
+event without the context of the merge must verify against the tree (`git log` /
+file presence on `main`) before asserting the PR's state — it must not report
+"not merged" or "artifact missing" from its own blind context. **Rationale:**
+adopted after a single observed incident (PRD-249 / PR #126) where a
+webhook-woken session, lacking its sibling's context, confidently reported the
+review artifact as never-committed while it was in fact on `main` at `a448536`.
+Recorded as a standing rule because the failure mode (a contextless session
+narrating a gap it can't see, in a confident voice) generalizes to any
+multi-session PR, and repo-canonical-over-recollection already applies to
+Claude's recollection — this extends it to an agent session's recollection.
+Flagged as prompted by one incident; revisit if multi-session PR work proves
+rare enough that the rule is dead weight.
+
 ## 2026-07-06 — PRD-248: `.proposal.md` allowlisted in the registry-gap hook
 
 Closed the INFRA item PRD-247's DECISIONS entry named. `prd_eval.sh`'s
