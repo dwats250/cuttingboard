@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Fires on UserPromptSubmit.
 # Registry-gap check ONLY: flags docs/prd_history/PRD-*.md files that have no
-# registry row (excluding review/adjudication/codex-prompt/impl-notes
-# sidecars, PRD-108/143).
+# registry row (excluding review/adjudication/codex-prompt/impl-notes/proposal
+# sidecars, PRD-108/143/248).
 #
 # PRD-243 retired the keyword detectors that used to live here (PRD-body
 # review-mode injection, implementation-request sequencing gate): they keyed
@@ -49,13 +49,15 @@ prd_dir = os.path.join(os.path.dirname(registry_path), "prd_history")
 file_stems = set()
 for f in glob.glob(os.path.join(prd_dir, "PRD-*.md")):
     name = os.path.basename(f)
-    # Review, adjudication, and codex-prompt sidecars are not PRDs and
-    # must not have registry rows (CLAUDE.md § Review artifact discipline).
+    # Review, adjudication, codex-prompt, impl-notes, and proposal sidecars
+    # are not PRDs and must not have registry rows (CLAUDE.md § Review
+    # artifact discipline; PRD-248 added .proposal.md).
     if (
         ".review." in name
         or name.endswith(".adjudication.md")
         or name.endswith(".codex_prompt.md")
         or ".impl_notes." in name
+        or name.endswith(".proposal.md")
     ):
         continue
     file_stems.add(name.replace(".md", ""))

@@ -16,6 +16,25 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-06 — PRD-248: `.proposal.md` allowlisted in the registry-gap hook
+
+Closed the INFRA item PRD-247's DECISIONS entry named. `prd_eval.sh`'s
+registry-gap allowlist gained a `.proposal.md` clause (alongside
+review/adjudication/codex-prompt/impl-notes), so `PRD-NNN.proposal.md` — the
+artifact class the #119 governance refactor introduced — is treated as the
+non-PRD sidecar it is and no longer trips the UserPromptSubmit warning
+(`PRD-244.proposal.md` was the live offender). Guard fails-closed: a genuine
+unregistered `PRD-NNN.md` is still flagged, mutation-verified (reverting the
+clause reddens the R1 proposal test; the real-PRD-gap test stays green) — run
+by the implementer and independently re-run by the fresh-context reviewer.
+HIGH-RISK/INFRA (protected hook), not governance-manual-merge-only (the
+registry-gap hook is not an enumerated governance guardrail): fresh-context
+Claude review ACCEPT (`PRD-248.review.claude.md` @ `518e858`) + second-model
+waiver (no codex host) + Dustin's manual merge (PR #125). **Process root
+cause:** the number-reservation/registry discipline had no place for a
+proposal artifact class; the hook allowlist is the durable fix so the class
+doesn't regenerate the warning.
+
 ## 2026-07-06 — PRD-247: qualification doc-truth pass (broad 11-gate spec-vs-code audit)
 
 Closed the last thread of the qualification investigation with a broad
