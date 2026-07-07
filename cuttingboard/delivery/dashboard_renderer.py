@@ -1781,16 +1781,27 @@ def _render_candidate_card(
         # PRD-165 R1 / PRD-215 / PRD-249: the falsifiable in/out couplet is the
         # visual focus — bold (.value-key) + cyan actionable accent
         # (.value-actionable). PRD-249 relabels ENTRY→"IN →" and
-        # INVALIDATION→"OUT →" (one couplet) and drops the standalone RISK line
-        # (trade_framing.downgrade restated the invalidation — same reclaim
-        # level; the field is untouched upstream).
+        # INVALIDATION→"OUT →" (one couplet) and drops the standalone RISK line.
         entry_val = tf.get("entry")
         if entry_val is not None:
             w(f'  <div class="label">IN →</div><div class="value-key value-actionable">{_esc(entry_val)}</div>')
 
+        # PRD-249 review advisory: trade_framing.downgrade restated the
+        # invalidation's PRICE clause but carried one extra clause the couplet
+        # does not express — the structural-invalidation path (the part after
+        # " or ", e.g. "structure turns choppy"). Fold ONLY that non-redundant
+        # clause into OUT so dropping the RISK line loses no data. This is a
+        # presentation-only compose: read both existing fields (invalidation and
+        # downgrade), join for display, verbatim — derive nothing, add no wording.
         invalidation = entry.get("invalidation")
         if invalidation and len(invalidation) > 0 and invalidation[0] is not None:
-            w(f'  <div class="label">OUT →</div><div class="value-key value-actionable">{_esc(invalidation[0])}</div>')
+            out_text = _esc(invalidation[0])
+            downgrade = tf.get("downgrade")
+            if downgrade and " or " in downgrade:
+                structural = downgrade.split(" or ", 1)[1].strip()
+                if structural and structural not in invalidation[0]:
+                    out_text = f"{out_text}, or {_esc(structural)}"
+            w(f'  <div class="label">OUT →</div><div class="value-key value-actionable">{out_text}</div>')
 
         # PRD-215/PRD-249: REASON/PLAY/WATCH are supporting context — tuck them
         # behind a default-collapsed disclosure so the accented couplet stays the

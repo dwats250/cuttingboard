@@ -228,18 +228,45 @@ def test_verdict_first_before_couplet() -> None:
 
 def test_in_out_couplet_labels_and_accent() -> None:
     # R4: entry/invalidation render as the IN →/OUT → couplet, both keeping the
-    # cyan actionable accent, in that order.
+    # cyan actionable accent, in that order. PRD-249 review advisory: OUT folds
+    # downgrade's non-redundant structural clause (the part after " or ").
     syms = {"SPY": _mm_symbol("SPY", grade="A",
                               trade_framing={"direction": "LONG",
-                                             "entry": "above 510_UNIQUE"},
+                                             "entry": "above 510_UNIQUE",
+                                             "downgrade": "wait if price loses 510_UNIQUE or structure turns choppy"},
                               invalidation=["below 490_UNIQUE"])}
     html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
     card = _card(html, "SPY")
     assert ('<div class="label">IN →</div>'
             '<div class="value-key value-actionable">above 510_UNIQUE</div>') in card
     assert ('<div class="label">OUT →</div>'
-            '<div class="value-key value-actionable">below 490_UNIQUE</div>') in card
+            '<div class="value-key value-actionable">below 490_UNIQUE, or structure turns choppy</div>') in card
     assert card.index("IN →") < card.index("OUT →")
+
+
+def test_out_line_folds_downgrade_structural_clause() -> None:
+    # PRD-249 review advisory: downgrade carries a structural-invalidation clause
+    # ("structure turns choppy") distinct from the price-reclaim condition. It is
+    # folded into OUT so dropping the standalone RISK line loses NO data. Asserted
+    # on the RENDERED OUT value so a future refactor can't silently drop it.
+    syms = {"SPY": _mm_symbol(
+        "SPY", grade="A", bias="BEAR",
+        trade_framing={"direction": "SHORT",
+                       "entry": "rejects near PRIOR_HIGH with downside follow-through",
+                       "downgrade": "wait if price reclaims PRIOR_HIGH or structure turns choppy"},
+        invalidation=["reclaims PRIOR_HIGH with follow-through"])}
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map(syms))
+    card = _card(html, "SPY")
+    out_value = card.split(
+        '<div class="label">OUT →</div><div class="value-key value-actionable">', 1
+    )[1].split('</div>', 1)[0]
+    # both invalidation paths are on the single OUT line
+    assert "reclaims PRIOR_HIGH with follow-through" in out_value
+    assert "structure turns choppy" in out_value
+    # ...but the redundant price-clause of downgrade is NOT reintroduced, and no
+    # standalone RISK line comes back.
+    assert "wait if price reclaims" not in out_value
+    assert 'class="candidate-risk"' not in card
 
 
 def test_risk_line_removed() -> None:
