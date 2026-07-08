@@ -1,182 +1,68 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -2.5449992822864536,
-      "level": 61713.390625,
+      "change_pct": -1.757950967611719,
+      "level": 62211.7890625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.1523207578593474,
-      "level": 101.25599670410156,
+      "change_pct": -0.08110693611455366,
+      "level": 101.0199966430664,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -2.131264811031846,
-      "level": 4045.60009765625,
+      "change_pct": -1.2966614685078277,
+      "level": 4080.10009765625,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 5.244949907947863,
-      "level": 76.05000305175781,
+      "change_pct": 1.8959245456492972,
+      "level": 73.62999725341797,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 6.490403690123957,
-      "change_pct": 1.4131077251826225,
-      "level": 4.5929999351501465,
+      "change_bps": 4.850857740480137,
+      "change_pct": 1.0598334260194935,
+      "level": 4.577000141143799,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -4.969558063213494,
-      "level": 57.75,
+      "change_pct": -3.3322387866136705,
+      "level": 58.744998931884766,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 13.329210401376887,
-      "level": 18.280000686645508,
+      "change_pct": 5.021707473247749,
+      "level": 16.940000534057617,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260708T160116Z",
-    "symbols_scanned": 22,
-    "timestamp": "2026-07-08T16:01:16Z"
+    "generation_id": "hourly-20260708T181327Z",
+    "symbols_scanned": 0,
+    "timestamp": "2026-07-08T18:13:27Z"
   },
-  "run_status": "OK",
+  "run_status": "STAY_FLAT",
   "schema_version": "1.0",
   "sections": {
     "chain_results_detail": [],
     "continuation_audit": null,
     "option_setups_detail": [],
-    "rejected": [
-      {
-        "detail": null,
-        "reason": "2 soft gates failed: stop distance 8.39 below 1\u00d7 ATR14 (8.39); price 1.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "QUALIFICATION",
-        "symbol": "AAPL"
-      },
-      {
-        "detail": null,
-        "reason": "2 soft gates failed: stop distance 0.5% below 1.0% minimum; R:R 2.00 below 2.0 minimum",
-        "stage": "QUALIFICATION",
-        "symbol": "DX-Y.NYB"
-      },
-      {
-        "detail": null,
-        "reason": "2 soft gates failed: stop distance 90.41 below 1\u00d7 ATR14 (90.41); price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "QUALIFICATION",
-        "symbol": "GC=F"
-      },
-      {
-        "detail": null,
-        "reason": "2 soft gates failed: stop distance 3.54 below 1\u00d7 ATR14 (3.54); price 2.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "QUALIFICATION",
-        "symbol": "GDX"
-      },
-      {
-        "detail": null,
-        "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "QUALIFICATION",
-        "symbol": "GLD"
-      },
-      {
-        "detail": null,
-        "reason": "CHOP",
-        "stage": "QUALIFICATION",
-        "symbol": "IWM"
-      },
-      {
-        "detail": null,
-        "reason": "CHOP",
-        "stage": "QUALIFICATION",
-        "symbol": "META"
-      },
-      {
-        "detail": null,
-        "reason": "2 soft gates failed: stop distance 2.42 below 1\u00d7 ATR14 (2.42); price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "QUALIFICATION",
-        "symbol": "PAAS"
-      },
-      {
-        "detail": null,
-        "reason": "2 soft gates failed: stop distance 2.36 below 1\u00d7 ATR14 (2.36); price 2.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "QUALIFICATION",
-        "symbol": "SI=F"
-      },
-      {
-        "detail": null,
-        "reason": "CHOP",
-        "stage": "QUALIFICATION",
-        "symbol": "SPY"
-      },
-      {
-        "detail": null,
-        "reason": "CHOP",
-        "stage": "QUALIFICATION",
-        "symbol": "TSLA"
-      },
-      {
-        "detail": null,
-        "reason": "CHOP",
-        "stage": "QUALIFICATION",
-        "symbol": "USO"
-      },
-      {
-        "detail": null,
-        "reason": "CHOP",
-        "stage": "QUALIFICATION",
-        "symbol": "XLE"
-      },
-      {
-        "detail": null,
-        "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 2.4\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "QUALIFICATION",
-        "symbol": "^TNX"
-      },
-      {
-        "detail": null,
-        "reason": "CHOP",
-        "stage": "QUALIFICATION",
-        "symbol": "^VIX"
-      }
-    ],
+    "rejected": [],
     "top_trades": [],
     "trade_decision_detail": [],
-    "validation_halt_detail": null,
+    "validation_halt_detail": {
+      "reason": "STAY_FLAT posture"
+    },
     "watch_summary_detail": null,
-    "watchlist": [
-      {
-        "detail": null,
-        "reason": "stop distance 3.94 below 1\u00d7 ATR14 (3.94)",
-        "stage": "WATCHLIST",
-        "symbol": "CL=F"
-      },
-      {
-        "detail": null,
-        "reason": "price 2.4\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "WATCHLIST",
-        "symbol": "SLV"
-      },
-      {
-        "detail": null,
-        "reason": "R:R 2.00 below 2.0 minimum",
-        "stage": "WATCHLIST",
-        "symbol": "NVDA"
-      },
-      {
-        "detail": null,
-        "reason": "R:R 2.00 below 2.0 minimum",
-        "stage": "WATCHLIST",
-        "symbol": "COIN"
-      }
-    ]
+    "watchlist": []
   },
   "summary": {
-    "confidence": 0.75,
-    "market_regime": "RISK_OFF",
+    "confidence": 0.125,
+    "market_regime": "NEUTRAL",
     "outcome": null,
     "permission": null,
     "router_mode": "MIXED",
-    "tradable": true
+    "tradable": false
   }
 }
