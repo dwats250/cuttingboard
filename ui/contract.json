@@ -9,31 +9,31 @@
     "continuation_audit_present": false,
     "continuation_rejected_count": null,
     "error_count": 0,
-    "qualified_count": 4,
-    "rejected_count": 13
+    "qualified_count": 3,
+    "rejected_count": 15
   },
   "correlation": null,
-  "generated_at": "2026-07-08T15:22:55Z",
-  "generation_id": "hourly-20260708T152255Z",
+  "generated_at": "2026-07-08T16:01:16Z",
+  "generation_id": "hourly-20260708T160116Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -2.832779493271042,
-      "level": 61529.4609375,
+      "change_pct": -2.5449992822864536,
+      "level": 61713.390625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.05242369605394532,
-      "level": 101.15499877929688,
+      "change_pct": 0.1523207578593474,
+      "level": 101.25599670410156,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -2.0659492089246427,
-      "level": 4048.300048828125,
+      "change_pct": -2.131264811031846,
+      "level": 4045.60009765625,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 4.746748136969694,
-      "level": 75.69000244140625,
+      "change_pct": 5.244949907947863,
+      "level": 76.05000305175781,
       "symbol": "CL=F"
     },
     "rates": {
@@ -43,13 +43,13 @@
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -4.401841726033428,
-      "level": 58.095001220703125,
+      "change_pct": -4.969558063213494,
+      "level": 57.75,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 11.841301017587694,
-      "level": 18.040000915527344,
+      "change_pct": 13.329210401376887,
+      "level": 18.280000686645508,
       "symbol": "^VIX"
     }
   },
@@ -71,8 +71,8 @@
     "risk_off_votes": 6,
     "risk_on_votes": 0,
     "total_votes": 8,
-    "vix_level": 18.040000915527344,
-    "vix_pct_change": 0.11841301017587695,
+    "vix_level": 18.280000686645508,
+    "vix_pct_change": 0.13329210401376887,
     "vote_breakdown": {
       "BTC pct_change": "RISK_OFF",
       "DXY pct_change": "NEUTRAL",
@@ -87,25 +87,31 @@
   "rejections": [
     {
       "detail": null,
+      "reason": "2 soft gates failed: stop distance 8.39 below 1\u00d7 ATR14 (8.39); price 1.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "stage": "QUALIFICATION",
+      "symbol": "AAPL"
+    },
+    {
+      "detail": null,
       "reason": "2 soft gates failed: stop distance 0.5% below 1.0% minimum; R:R 2.00 below 2.0 minimum",
       "stage": "QUALIFICATION",
       "symbol": "DX-Y.NYB"
     },
     {
       "detail": null,
-      "reason": "2 soft gates failed: stop distance 90.41 below 1\u00d7 ATR14 (90.41); price 1.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "2 soft gates failed: stop distance 90.41 below 1\u00d7 ATR14 (90.41); price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "QUALIFICATION",
       "symbol": "GC=F"
     },
     {
       "detail": null,
-      "reason": "2 soft gates failed: stop distance 3.54 below 1\u00d7 ATR14 (3.54); price 2.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "2 soft gates failed: stop distance 3.54 below 1\u00d7 ATR14 (3.54); price 2.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "QUALIFICATION",
       "symbol": "GDX"
     },
     {
       "detail": null,
-      "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 1.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "QUALIFICATION",
       "symbol": "GLD"
     },
@@ -129,7 +135,7 @@
     },
     {
       "detail": null,
-      "reason": "2 soft gates failed: stop distance 2.36 below 1\u00d7 ATR14 (2.36); price 2.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "2 soft gates failed: stop distance 2.36 below 1\u00d7 ATR14 (2.36); price 2.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "QUALIFICATION",
       "symbol": "SI=F"
     },
@@ -144,6 +150,12 @@
       "reason": "CHOP",
       "stage": "QUALIFICATION",
       "symbol": "TSLA"
+    },
+    {
+      "detail": null,
+      "reason": "CHOP",
+      "stage": "QUALIFICATION",
+      "symbol": "USO"
     },
     {
       "detail": null,
@@ -177,9 +189,9 @@
     },
     {
       "detail": null,
-      "reason": "price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "R:R 2.00 below 2.0 minimum",
       "stage": "WATCHLIST",
-      "symbol": "AAPL"
+      "symbol": "NVDA"
     },
     {
       "detail": null,
