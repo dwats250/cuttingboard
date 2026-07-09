@@ -1,26 +1,25 @@
 {
-  "alert_body": "Regime: RISK ON\nConfidence: 0.75\nReason: candidates gated\nBlockers: STOP_DISTANCE\n\nMacro Tape:\nGC   4138.0  +1.6%\nSI   60.8   +4.3%\nBTC  62.9K  +1.0%\nVIX  16.1   -4.4%\nDXY  100.9  -0.1%\n10Y  4.55   -0.5%\nOIL  72.1   -3.0%\n\nTradables:\nSPY  750.47\nQQQ  722.43\nGLD  378.59\nGDX  75.81\nSLV  54.53\nXLE  54.94\n\nFocus: SPY LONG, QQQ LONG, IWM LONG\n\nPending confirmation:\nSPY: trend confirmation\nQQQ: reversal confirmation\nIWM: trend confirmation",
-  "alert_title": "MONITOR SETUP 9:00 AM",
+  "alert_body": "Regime: RISK ON\nConfidence: 0.75\nReason: candidates gated\nBlockers: STOP_DISTANCE, RR_RATIO, EXTENSION\n\nMacro Tape:\nGC   4140.6  +1.7%\nSI   60.8   +4.4%\nBTC  62.6K  +0.7%\nVIX  16.0   -4.9%\nDXY  100.9  -0.1%\n10Y  4.54   -0.6%\nOIL  72.0   -3.0%\n\nTradables:\nSPY  750.45\nQQQ  721.86\nGLD  378.76\nGDX  75.75\nSLV  54.59\nXLE  54.92\n\nFocus: PAAS LONG, AMZN LONG, SPY LONG\n\nPending confirmation:\nPAAS: breakout confirmation\nAMZN: pullback confirmation",
+  "alert_title": "MONITOR SETUP 10:00 AM",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
     "payload_path": "logs/latest_hourly_payload.json",
     "report_path": "reports/output/hourly_report.html"
   },
   "candidate_lines": [
-    "SPY | LONG | TREND | 2.0:1",
-    "QQQ | LONG | REVERSAL | 2.0:1",
-    "IWM | LONG | TREND | 2.0:1"
+    "PAAS | LONG | BREAKOUT | 2.0:1",
+    "AMZN | LONG | PULLBACK | 2.0:1"
   ],
-  "candidates_qualified": 6,
-  "candidates_watchlist": 11,
+  "candidates_qualified": 4,
+  "candidates_watchlist": 15,
   "confidence": 0.75,
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-07-09T16:06:39Z",
-  "generation_id": "hourly-20260709T160639Z",
+  "generated_at": "2026-07-09T17:00:12Z",
+  "generation_id": "hourly-20260709T170012Z",
   "halt_reason": null,
-  "hourly_slot_utc": "2026-07-09T16:00:00Z",
+  "hourly_slot_utc": "2026-07-09T17:00:00Z",
   "index_score": 0.0,
   "kill_switch": false,
   "mode": "LIVE",
@@ -38,11 +37,11 @@
   "posture": "AGGRESSIVE_LONG",
   "regime": "RISK_ON",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-07-09T16:06:39Z",
-  "run_id": "hourly-20260709T160639Z",
+  "run_at_utc": "2026-07-09T17:00:12Z",
+  "run_id": "hourly-20260709T170012Z",
   "session_date": "2026-07-09",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-07-09T16:06:39Z",
+  "timestamp": "2026-07-09T17:00:12Z",
   "warnings": []
 }

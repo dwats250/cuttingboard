@@ -9,47 +9,47 @@
     "continuation_audit_present": false,
     "continuation_rejected_count": null,
     "error_count": 0,
-    "qualified_count": 6,
-    "rejected_count": 5
+    "qualified_count": 4,
+    "rejected_count": 3
   },
   "correlation": null,
-  "generated_at": "2026-07-09T16:06:39Z",
-  "generation_id": "hourly-20260709T160639Z",
+  "generated_at": "2026-07-09T17:00:12Z",
+  "generation_id": "hourly-20260709T170012Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 1.0072836305316608,
-      "level": 62864.609375,
+      "change_pct": 0.6559089769935086,
+      "level": 62645.921875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.10596906156745808,
-      "level": 100.86799621582031,
+      "change_pct": -0.10992826215650252,
+      "level": 100.86399841308594,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 1.6183271718118997,
-      "level": 4138.0,
+      "change_pct": 1.6821786880785683,
+      "level": 4140.60009765625,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": -2.9752276801176003,
-      "level": 72.06999969482422,
+      "change_pct": -3.0425446598962123,
+      "level": 72.0199966430664,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -2.3873627276125315,
-      "change_pct": -0.5252723184900845,
-      "level": 4.545000076293945,
+      "change_bps": -2.5851597609509414,
+      "change_pct": -0.569042402608171,
+      "level": 4.543000221252441,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 4.344091185409936,
-      "level": 60.77000045776367,
+      "change_pct": 4.412774074102457,
+      "level": 60.810001373291016,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -4.443128182987059,
-      "level": 16.1299991607666,
+      "change_pct": -4.917061403860641,
+      "level": 16.049999237060547,
       "symbol": "^VIX"
     }
   },
@@ -71,8 +71,8 @@
     "risk_off_votes": 0,
     "risk_on_votes": 6,
     "total_votes": 8,
-    "vix_level": 16.1299991607666,
-    "vix_pct_change": -0.04443128182987059,
+    "vix_level": 16.049999237060547,
+    "vix_pct_change": -0.04917061403860641,
     "vote_breakdown": {
       "BTC pct_change": "NEUTRAL",
       "DXY pct_change": "NEUTRAL",
@@ -87,12 +87,6 @@
   "rejections": [
     {
       "detail": null,
-      "reason": "2 soft gates failed: stop distance 8.35 below 1\u00d7 ATR14 (8.35); price 1.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "QUALIFICATION",
-      "symbol": "AAPL"
-    },
-    {
-      "detail": null,
       "reason": "CHOP",
       "stage": "QUALIFICATION",
       "symbol": "BTC-USD"
@@ -102,12 +96,6 @@
       "reason": "CHOP",
       "stage": "QUALIFICATION",
       "symbol": "META"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "NVDA"
     },
     {
       "detail": null,
@@ -141,6 +129,24 @@
     },
     {
       "detail": null,
+      "reason": "R:R 2.00 below 2.0 minimum",
+      "stage": "WATCHLIST",
+      "symbol": "SPY"
+    },
+    {
+      "detail": null,
+      "reason": "stop distance 16.07 below 1\u00d7 ATR14 (16.07)",
+      "stage": "WATCHLIST",
+      "symbol": "QQQ"
+    },
+    {
+      "detail": null,
+      "reason": "R:R 2.00 below 2.0 minimum",
+      "stage": "WATCHLIST",
+      "symbol": "IWM"
+    },
+    {
+      "detail": null,
       "reason": "stop distance 8.06 below 1\u00d7 ATR14 (8.06)",
       "stage": "WATCHLIST",
       "symbol": "GLD"
@@ -159,21 +165,27 @@
     },
     {
       "detail": null,
-      "reason": "stop distance 2.43 below 1\u00d7 ATR14 (2.43)",
-      "stage": "WATCHLIST",
-      "symbol": "PAAS"
-    },
-    {
-      "detail": null,
       "reason": "stop distance 4.76 below 1\u00d7 ATR14 (4.76)",
       "stage": "WATCHLIST",
       "symbol": "USO"
     },
     {
       "detail": null,
+      "reason": "R:R 2.00 below 2.0 minimum",
+      "stage": "WATCHLIST",
+      "symbol": "NVDA"
+    },
+    {
+      "detail": null,
       "reason": "stop distance 19.60 below 1\u00d7 ATR14 (19.60)",
       "stage": "WATCHLIST",
       "symbol": "TSLA"
+    },
+    {
+      "detail": null,
+      "reason": "price 1.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "stage": "WATCHLIST",
+      "symbol": "AAPL"
     },
     {
       "detail": null,
