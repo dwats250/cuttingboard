@@ -16,6 +16,28 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-10 — Execution doctrine adopted; audit deliverables landed (PR #130)
+
+`audits/EXECUTION_DOCTRINE.md` is CANONICAL: the standing per-slice execution
+process for ALL future work — one driver end-to-end with per-slice (not
+per-stage) model tiering, lanes that skip stages outright (MICRO = CARD ->
+BUILD -> VERIFY -> LAND, one operator touch), an inherited-by-reference
+failure contract and commit discipline (thin per-slice charges), at most two
+operator touches (Gate A direction / Gate B merge), and ten named redundancy
+cuts. Reviewed by Dustin through three revision rounds (r1-r3), merged on his
+explicit authorization. Subordinate to CLAUDE.md and `docs/PRD_PROCESS.md` by
+its own terms; future changes to it ride MANUAL-MERGE-ONLY. Landed with it
+(same PR): `audits/BUILD_PLAN.md` (the approved, decision-complete PRD
+sequence for the reconciled findings — first application of the doctrine) and
+the findings evidence trail (`audits/RECONCILED_FINDINGS.md`,
+`CODEX_REVIEW.md`, `FABLE_REVIEW.md`, `FINDINGS.md`,
+`CUTTINGBOARD_AUDIT_PLAN.md`). Noted-not-queued inside the doctrine: a
+PRD_PROCESS "knob carve-out" (operator-decided config changes ride MICRO) —
+deferred until recurring knob-friction justifies weakening R11/R12; revisit
+with real instances. Superseded and pruned the same day: the
+architecture-audit branch/worktree (deliverables identical on main) and PRs
+#126/#128's missed same-PR closeouts (reconciled via #129).
+
 ## 2026-07-07 — A test may shell out to Node to exercise client-side JS (PRD-250)
 
 `tests/test_staleness_banner.py` runs the exact emitted `_STALENESS_BANNER_JS`
