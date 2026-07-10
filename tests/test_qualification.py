@@ -468,7 +468,7 @@ class TestHardGateFailures:
 class TestFullyQualified:
     def _make_clean_candidate(self) -> TradeCandidate:
         # entry=100, stop=97 (3% stop distance), target=106 (R:R=2.0)
-        # spread_width=0.50 → spread_cost=$50 → max_contracts=3, dollar_risk=$150
+        # spread_width=0.50 → spread_cost=$50 → max_contracts=8, dollar_risk=$400 (PRD-252)
         return _candidate(
             entry_price=100.0,
             stop_price=97.0,
@@ -504,9 +504,10 @@ class TestFullyQualified:
             _candidate(entry_price=100.0, stop_price=97.0, target_price=106.0, spread_width=0.50),
             regime, _structure(),
         )
-        # spread_cost = 0.50 × 100 = $50; max_contracts = floor(150/50) = 3
-        assert r.max_contracts == 3
-        assert r.dollar_risk == pytest.approx(150.0)
+        # PRD-252: spread_cost = 0.50 × 100 = $50;
+        # max_contracts = floor(400.005/50) = 8 (was floor(150/50)=3 pre-PRD-252)
+        assert r.max_contracts == 8
+        assert r.dollar_risk == pytest.approx(400.0)
 
     def test_direction_field_set(self):
         r = qualify_candidate(
@@ -617,47 +618,67 @@ class TestGateRrRatio:
 
 class TestGateMaxRisk:
     def test_wide_spread_exceeds_max_fails_gate8(self):
-        # spread_width=3.0 → spread_cost=$300 → max_c=0 → FAIL
-        c = _candidate(entry_price=100.0, stop_price=97.0, target_price=106.0, spread_width=3.0)
+        # PRD-252: rescaled from spread_width=3.0 ($300, which now clears
+        # the raised ~$400 budget at 1 contract) to 5.0 ($500) so this keeps
+        # exercising the zero-contract rejection path at the LIVE production
+        # budget -- kept unpinned deliberately, unlike the _prd251 arithmetic
+        # invariants below, since this test has no arithmetic invariant of
+        # its own to preserve; its only content is the gate-rejection
+        # outcome, and that must track the real cap. spread_width=5.0 ->
+        # spread_cost=$500 -> floor(400.005/500)=0 -> FAIL.
+        c = _candidate(entry_price=100.0, stop_price=97.0, target_price=106.0, spread_width=5.0)
         r = qualify_candidate(c, _regime(), _structure(), dm=None)
         assert GATE_MAX_RISK in r.gates_failed
 
     def test_narrow_spread_passes_gate8(self):
-        # spread_width=0.50 → spread_cost=$50 → max_c=3 → PASS
+        # spread_width=0.50 → spread_cost=$50 → max_c=8 at the $400.005
+        # effective budget (was 3 pre-PRD-252) → PASS either way
         c = _candidate(entry_price=100.0, stop_price=97.0, target_price=106.0, spread_width=0.50)
         r = qualify_candidate(c, _regime(), _structure(), dm=None)
         assert GATE_MAX_RISK in r.gates_passed
 
     def test_max_contracts_computed_correctly(self):
-        # spread_width=0.75 → spread_cost=$75 → floor(150/75)=2 contracts
+        # PRD-252: spread_width=0.75 → spread_cost=$75 →
+        # floor(400.005/75)=5 contracts (was floor(150/75)=2 pre-PRD-252)
         c = _candidate(entry_price=100.0, stop_price=97.0, target_price=106.0, spread_width=0.75)
         r = qualify_candidate(c, _regime(), _structure(), dm=None)
-        assert r.max_contracts == 2
-        assert r.dollar_risk == pytest.approx(150.0)
+        assert r.max_contracts == 5
+        assert r.dollar_risk == pytest.approx(375.0)
 
     def test_dollar_risk_is_max_contracts_times_spread_cost(self):
-        # spread_width=1.0 → spread_cost=$100 → floor(150/100)=1 → risk=$100
+        # PRD-252: spread_width=1.0 → spread_cost=$100 →
+        # floor(400.005/100)=4 → risk=$400 (was floor(150/100)=1 / $100
+        # pre-PRD-252)
         c = _candidate(entry_price=100.0, stop_price=97.0, target_price=106.0, spread_width=1.0)
         r = qualify_candidate(c, _regime(), _structure(), dm=None)
-        assert r.max_contracts == 1
-        assert r.dollar_risk == pytest.approx(100.0)
+        assert r.max_contracts == 4
+        assert r.dollar_risk == pytest.approx(400.0)
 
     def test_zero_spread_fails_gate8(self):
         c = _candidate(spread_width=0.0)
         r = qualify_candidate(c, _regime(), _structure(), dm=None)
         assert GATE_MAX_RISK in r.gates_failed
 
-    def test_credit_bull_put_max_loss_is_width_minus_credit_prd251(self):
+    def test_credit_bull_put_max_loss_is_width_minus_credit_prd251(self, monkeypatch):
         # PRD-251 (A1a). $5-wide BULL_PUT_SPREAD candidate: LONG direction
         # + HIGH_IV structure selects BULL_PUT_SPREAD (a credit strategy)
         # in the options layer, which resolves and carries max_loss =
         # width - credit = $5.00 - $1.50 = $3.50/share ($350/contract) on
         # the TradeCandidate. Gate 8 must size off max_loss, not
         # spread_width (the $1.50 debit-proxy, still carried unchanged for
-        # display/consumers). At the default $150 effective budget this
-        # soft-fails GATE_MAX_RISK (0 contracts fit $350/contract) --
-        # pre-fix (max_loss ignored, spread_width used instead) it passed
-        # at 1 contract / $150.
+        # display/consumers). At the $150 effective budget this soft-fails
+        # GATE_MAX_RISK (0 contracts fit $350/contract) -- pre-fix (max_loss
+        # ignored, spread_width used instead) it passed at 1 contract / $150.
+        #
+        # PRD-252: this is the arithmetic invariant PRD-251 exists to prove
+        # (Gate 8 sizes off max_loss, not spread_width) -- budget-independent
+        # by construction, so it's pinned to the pre-PRD-252 $150 budget via
+        # monkeypatch rather than left to track the live default. The
+        # budget-dependent CONSEQUENCE of this same fixture at the raised
+        # $400 budget is proven separately by
+        # test_credit_bull_put_clears_gate8_at_raised_budget_prd252 below.
+        monkeypatch.setattr(config, "ACCOUNT_EQUITY", 15000.0)
+        monkeypatch.setattr(config, "MAX_RISK_PCT_PER_TRADE", 0.01)
         structure = StructureResult(
             symbol="SPY",
             structure=TREND,
@@ -679,7 +700,7 @@ class TestGateMaxRisk:
         assert r.max_contracts is None
         assert r.dollar_risk is None
 
-    def test_debit_bull_call_max_loss_unchanged_prd251(self):
+    def test_debit_bull_call_max_loss_unchanged_prd251(self, monkeypatch):
         # PRD-251 (A1a) debit-path control test. Same $5-wide SPY/LONG
         # shape as the credit test above, but LOW_IV structure selects
         # BULL_CALL_SPREAD (a DEBIT strategy) instead. Max loss for a
@@ -687,6 +708,13 @@ class TestGateMaxRisk:
         # max_loss == spread_width -- unchanged by this PRD. Must pass
         # identically before and after the fix: 1 contract, $150 max risk,
         # GATE_MAX_RISK passes.
+        #
+        # PRD-252: pinned to the pre-PRD-252 $150 budget (same rationale as
+        # the credit test above) -- this is a control case proving the
+        # debit path's max_loss resolution is untouched, not a budget
+        # boundary check.
+        monkeypatch.setattr(config, "ACCOUNT_EQUITY", 15000.0)
+        monkeypatch.setattr(config, "MAX_RISK_PCT_PER_TRADE", 0.01)
         structure = StructureResult(
             symbol="SPY",
             structure=TREND,
@@ -708,15 +736,50 @@ class TestGateMaxRisk:
         assert r.max_contracts == 1
         assert r.dollar_risk == pytest.approx(150.0)
 
-    def test_max_loss_none_falls_back_to_spread_width_prd251(self):
+    def test_max_loss_none_falls_back_to_spread_width_prd251(self, monkeypatch):
         # PRD-251 (A1a): candidates with no resolved strategy (max_loss=None,
         # the _candidate() default -- matches every pre-existing test in this
         # file) must size exactly as before: off spread_width. Guards the
         # fallback path itself, independent of the credit/debit cases above.
+        #
+        # PRD-252: pinned to the pre-PRD-252 $150 budget -- this guards the
+        # fallback SELECTION (max_loss=None -> spread_width), a budget-
+        # independent invariant, not the resulting contract count.
+        monkeypatch.setattr(config, "ACCOUNT_EQUITY", 15000.0)
+        monkeypatch.setattr(config, "MAX_RISK_PCT_PER_TRADE", 0.01)
         c = _candidate(entry_price=100.0, stop_price=97.0, target_price=106.0, spread_width=1.0)
         r = qualify_candidate(c, _regime(), _structure(), dm=None)
         assert r.max_contracts == 1
         assert r.dollar_risk == pytest.approx(100.0)
+
+    def test_credit_bull_put_clears_gate8_at_raised_budget_prd252(self):
+        # PRD-252: the honest regression for the raised budget's intended
+        # sizing consequence. Same $5-wide SPY/LONG/HIGH_IV credit-spread
+        # fixture as test_credit_bull_put_max_loss_is_width_minus_credit_prd251
+        # (max_loss=3.50 -> spread_cost=$350), but on LIVE, unmocked config:
+        # at the raised ~$400.005 effective budget, floor(400.005/350)=1 --
+        # this now CLEARS GATE_MAX_RISK at 1 contract, the deliberate
+        # consequence of raising the cap (BUILD_PLAN.md decision 4).
+        structure = StructureResult(
+            symbol="SPY",
+            structure=TREND,
+            iv_environment=HIGH_IV,
+            is_tradeable=True,
+            disqualification_reason=None,
+        )
+        c = _candidate(
+            symbol="SPY",
+            direction="LONG",
+            entry_price=100.0,
+            stop_price=97.0,
+            target_price=106.0,
+            spread_width=1.50,
+            max_loss=3.50,
+        )
+        r = qualify_candidate(c, _regime(), structure, dm=None)
+        assert GATE_MAX_RISK in r.gates_passed
+        assert r.max_contracts == 1
+        assert r.dollar_risk == pytest.approx(350.0)
 
 
 # ---------------------------------------------------------------------------

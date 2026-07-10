@@ -220,9 +220,21 @@ def build_option_setups(
         # per-trade risk pct × correlation modifier. (Note: risk_modifier here
         # is the correlation modifier, distinct from qualification.py's
         # risk_multiplier which is regime-based.)
-        effective_risk = (
-            config.ACCOUNT_EQUITY * config.MAX_RISK_PCT_PER_TRADE * risk_modifier
+        # PRD-252: continuation-path results (entry_mode ==
+        # ENTRY_MODE_CONTINUATION) recompute against
+        # CONTINUATION_MAX_RISK_PCT_PER_TRADE, not the raised main constant.
+        # Without this branch the correlation-modifier recompute below can
+        # leak the raised budget back in through min(result.max_contracts,
+        # raw_adjusted) whenever risk_modifier is low enough to pull
+        # raw_adjusted under result.max_contracts while still exceeding a
+        # correctly-decoupled figure -- the qualification.py:725 decouple
+        # alone does not close this.
+        budget_pct = (
+            config.CONTINUATION_MAX_RISK_PCT_PER_TRADE
+            if result.entry_mode == ENTRY_MODE_CONTINUATION
+            else config.MAX_RISK_PCT_PER_TRADE
         )
+        effective_risk = config.ACCOUNT_EQUITY * budget_pct * risk_modifier
         # PRD-251: size off the strategy-aware max loss when this result came
         # from the standard Gate-8 path AND its TradeCandidate resolved one.
         # Continuation-path results (entry_mode == ENTRY_MODE_CONTINUATION)

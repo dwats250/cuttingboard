@@ -722,7 +722,11 @@ def _qualify_continuation_candidate(
     # regime multiplier here — continuation entries are EXPANSION-only by
     # construction (REGIME_RISK_MULTIPLIER[EXPANSION]=1.0), so applying it
     # would be a no-op.
-    continuation_budget = config.ACCOUNT_EQUITY * config.MAX_RISK_PCT_PER_TRADE
+    # PRD-252: uses CONTINUATION_MAX_RISK_PCT_PER_TRADE, not the raised
+    # main constant -- this path's ATR-based proxy still understates true
+    # max loss the same way PRD-251 fixed on the direct path; see
+    # docs/prd_history/PRD-251.continuation-path.proposal.md.
+    continuation_budget = config.ACCOUNT_EQUITY * config.CONTINUATION_MAX_RISK_PCT_PER_TRADE
     max_contracts = (
         math.floor(continuation_budget / spread_cost) if spread_cost > 0 else None
     )

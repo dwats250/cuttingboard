@@ -16,6 +16,56 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-10 — PRD-252: continuation path decoupled from the raised budget at both sizing sites
+
+PRD-252 raises `config.MAX_RISK_PCT_PER_TRADE` (not `ACCOUNT_EQUITY` — a
+factual account-size input, not the risk-tolerance dial) from 0.01 to
+0.026667, raising the effective per-trade budget from $150 to ~$400.005
+(BUILD_PLAN.md decision 4; a deliberate loosening, not a pure offset of
+PRD-251's corrected arithmetic, which would land near $345).
+
+Gate A asked whether the EXPANSION-regime continuation path should
+inherit the raised budget or stay decoupled at $150. Its ATR-based debit
+proxy (`qualification.py::_qualify_continuation_candidate`) was confirmed
+— from `docs/prd_history/PRD-251.continuation-path.proposal.md`'s own
+Stage-0-sweep language, not re-derived here — to carry the identical
+max-loss-understatement PRD-251 fixed on the direct path. Ruling:
+**DECOUPLE.** A new `config.CONTINUATION_MAX_RISK_PCT_PER_TRADE = 0.01`
+constant holds the continuation path at $150 until its fast-follow
+corrects the proxy.
+
+Verification during Gate A caught that decoupling only at
+`qualification.py:725` would have been incomplete: every
+`QualificationResult` (continuation or direct) also passes through
+`options.py::build_option_setups`'s correlation-modifier recompute
+(`effective_risk`, line ~224), which read the raised main constant
+unconditionally. The `min(result.max_contracts, raw_adjusted)` clamp
+there masks the leak when the correlation `risk_modifier` stays near 1.0,
+but at a low enough modifier `raw_adjusted` (computed off the wrong,
+raised budget) can undercut the correctly-decoupled qualification-layer
+value while still exceeding what a fully-consistent $150-based figure
+would allow — a partial, silent re-couple. Fixed by branching
+`effective_risk`'s constant on `result.entry_mode ==
+ENTRY_MODE_CONTINUATION`, mirroring the existing PRD-251
+`effective_max_loss` branch a few lines below it.
+
+The continuation-path proposal doc now carries a tracked requirement:
+its eventual fast-follow must VALIDATE continuation sizing at the raised
+~$400 budget when retiring `CONTINUATION_MAX_RISK_PCT_PER_TRADE`, not
+silently inherit the main constant as a side effect of deleting the
+interim knob.
+
+**Lesson:** a shared budget constant read at more than one call site
+means "decouple it" is a claim about every read site, not just the one
+that motivated the question. A single-site fix that "obviously" works
+because of a downstream `min()` clamp can still leak under a parameter
+combination (here: a low correlation modifier) that the common-case
+review never exercises — worth an explicit multi-site grep before
+declaring a decouple complete, the same discipline PRD-158's grep sweep
+already applies to FILES declarations.
+
+Full design record: `docs/prd_history/PRD-252.md`.
+
 ## 2026-07-10 — PRD-251 (A1a): Codex caught a real gap the fresh-context Claude review missed
 
 The fresh-context Claude review (`docs/prd_history/PRD-251.review.claude.md`)

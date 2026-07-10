@@ -478,7 +478,7 @@ class TestBuildOptionSetups:
     def test_empty_input(self):
         assert build_option_setups([], {}, {}) == []
 
-    def test_credit_strategy_no_candidate_fallback_stays_debit_proxy_prd251(self):
+    def test_credit_strategy_no_candidate_fallback_stays_debit_proxy_prd251(self, monkeypatch):
         # PRD-251 (A1a) R4 safety net. candidate=None in production is
         # exactly the shape of an EXPANSION-regime continuation-path result
         # (_qualify_continuation_candidate never populates the candidates
@@ -492,6 +492,14 @@ class TestBuildOptionSetups:
         # untouched ATR-based proxy) never changed -- recreating the exact
         # Gate-8-vs-final-render divergence R3 exists to eliminate, in the
         # one path this PRD must not touch.
+        #
+        # PRD-252: this is a formula-selection invariant (fallback stays
+        # spread_width-priced at $150/contract), not a budget consequence --
+        # pinned to the pre-PRD-252 $150 effective budget via monkeypatch so
+        # the raised live default doesn't change the resulting contract
+        # count and mask what this test actually guards.
+        monkeypatch.setattr(config, "ACCOUNT_EQUITY", 15000.0)
+        monkeypatch.setattr(config, "MAX_RISK_PCT_PER_TRADE", 0.01)
         results = [_qual_result("SPY", direction="LONG", max_contracts=3, dollar_risk=150.0)]
         sr = {"SPY": _structure("SPY", TREND, HIGH_IV)}
         dm = {"SPY": _dm("SPY")}
