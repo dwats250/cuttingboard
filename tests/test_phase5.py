@@ -558,6 +558,40 @@ class TestBuildOptionSetups:
             _estimated_debit(_MAX_STRIKE_DIST_ETF) * 100
         )
 
+    def test_continuation_result_recomputes_against_decoupled_budget_prd252(self):
+        # PRD-252 R6 (fresh-context review REQUIRED EDIT): build_option_setups's
+        # correlation-modifier recompute (effective_risk, ~line 232) must
+        # branch on entry_mode == ENTRY_MODE_CONTINUATION to read
+        # CONTINUATION_MAX_RISK_PCT_PER_TRADE, not the raised main constant
+        # -- the qualification.py decouple alone does not close this leak.
+        #
+        # Every other continuation-shaped test in this class uses an
+        # upstream max_contracts of 1, which is always <= any plausible
+        # raw_adjusted and so the min(result.max_contracts, raw_adjusted)
+        # clamp hides a leaked (wrong-constant) recompute. This test
+        # deliberately uses an upstream max_contracts (10) that is NOT the
+        # binding constraint, so raw_adjusted -- and therefore which
+        # constant it was computed from -- is what actually reaches
+        # final_contracts. spread_width=1.0 -> risk_per_contract=$100.
+        # Correctly decoupled: floor(150/100)=1 contract, $100 dollar_risk.
+        # If the raised main constant leaked in: floor(400.005/100)=4
+        # contracts, $400 dollar_risk -- a 4x oversizing of a trade this
+        # budget is supposed to keep frozen at $150.
+        results = [_qual_result(
+            "SPY", direction="LONG", max_contracts=10, dollar_risk=1000.0,
+            entry_mode=ENTRY_MODE_CONTINUATION,
+        )]
+        sr = {"SPY": _structure("SPY", TREND, NORMAL_IV)}
+        dm = {"SPY": _dm("SPY")}
+        candidate = TradeCandidate(
+            symbol="SPY", direction="LONG",
+            entry_price=100.0, stop_price=97.0, target_price=106.0,
+            spread_width=1.0,
+        )
+        setup = build_option_setups(results, sr, dm, candidates={"SPY": candidate})[0]
+        assert setup.max_contracts == 1
+        assert setup.dollar_risk == pytest.approx(100.0)
+
     def test_credit_strategy_final_resize_agrees_with_candidate_max_loss_prd251(self):
         # PRD-251 (A1a) R3: when a TradeCandidate IS supplied, the final
         # resize must use its carried max_loss, not recompute independently

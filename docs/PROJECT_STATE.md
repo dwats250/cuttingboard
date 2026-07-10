@@ -109,6 +109,17 @@ Full history: `docs/PRD_REGISTRY.md`.
   yet scheduled, so every notification-path change still edits one large
   `runtime/__init__.py`. **Re-evaluate by 2026-08-15** (per the VISION principle
   that acknowledged debt carries a re-evaluation date).
+- **Continuation-path budget decouple — interim constant, PRD-252 (2026-07-10).**
+  `config.CONTINUATION_MAX_RISK_PCT_PER_TRADE = 0.01` freezes the
+  EXPANSION-regime continuation path's sizing budget at the pre-PRD-252
+  $150 while the main per-trade budget is $400, because the continuation
+  path's ATR-based debit proxy still understates true max loss the same
+  way PRD-251 fixed on the direct path (unfixed;
+  `docs/prd_history/PRD-251.continuation-path.proposal.md` is the tracked
+  fast-follow). **Re-evaluate by 2026-08-15**: either the fast-follow has
+  landed and validated continuation sizing at the raised budget (retiring
+  this constant per the tracked requirement in the proposal doc), or the
+  gap is still open and this date pushes out with a recorded reason.
 - **Phantom-SHA debt — CLOSED WONTFIX-HISTORICAL (PRD-243, 2026-07-05).**
   29 PRDs' recorded COMPLETE hashes (35 hash tokens; the "19" first counted at
   PRD-200 had grown through the PRD-208..222 era) are unreachable from a clean
