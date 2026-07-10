@@ -37,6 +37,8 @@ from cuttingboard.qualification import (
     QualificationResult,
     QualificationSummary,
     TradeCandidate,
+    ENTRY_MODE_DIRECT,
+    ENTRY_MODE_CONTINUATION,
 )
 from cuttingboard.regime import (
     RegimeState,
@@ -111,6 +113,7 @@ def _dm(symbol="TEST", atr14=2.0, momentum_5d=0.01) -> DerivedMetrics:
 def _qual_result(
     symbol="TEST", direction="LONG",
     max_contracts=3, dollar_risk=150.0,
+    entry_mode=ENTRY_MODE_DIRECT,
 ) -> QualificationResult:
     return QualificationResult(
         symbol=symbol, qualified=True, watchlist=False,
@@ -120,6 +123,7 @@ def _qual_result(
                       "MAX_RISK", "EARNINGS"],
         gates_failed=[], hard_failure=None, watchlist_reason=None,
         max_contracts=max_contracts, dollar_risk=dollar_risk,
+        entry_mode=entry_mode,
     )
 
 
@@ -474,13 +478,20 @@ class TestBuildOptionSetups:
     def test_empty_input(self):
         assert build_option_setups([], {}, {}) == []
 
-    def test_credit_strategy_final_resize_uses_max_loss_no_candidate_prd251(self):
-        # PRD-251 (A1a) R3: with no candidates dict (candidate=None
-        # fallback), the final resize must still size credit strategies
-        # off width-minus-credit ($3.50/share, $350/contract) -- not the
-        # $1.50 debit proxy ($150/contract) it used pre-fix. Budget=$150
-        # floors to 1 contract (pre-existing AC4 "no removal" rule) at the
-        # CORRECT $350 max risk, not the wrong $150.
+    def test_credit_strategy_no_candidate_fallback_stays_debit_proxy_prd251(self):
+        # PRD-251 (A1a) R4 safety net. candidate=None in production is
+        # exactly the shape of an EXPANSION-regime continuation-path result
+        # (_qualify_continuation_candidate never populates the candidates
+        # dict) -- a path R4 declares untouched. The final resize must NOT
+        # apply the new strategy-aware max-loss formula here: it must stay
+        # on the old debit-proxy fallback ($1.50/share, $150/contract)
+        # verbatim, even though sr.iv_environment/direction would select
+        # BULL_PUT_SPREAD (a credit strategy) if this were the standard
+        # Gate-8 path. Applying the new formula here would silently re-price
+        # continuation-path trades whose own qualifying arithmetic (the
+        # untouched ATR-based proxy) never changed -- recreating the exact
+        # Gate-8-vs-final-render divergence R3 exists to eliminate, in the
+        # one path this PRD must not touch.
         results = [_qual_result("SPY", direction="LONG", max_contracts=3, dollar_risk=150.0)]
         sr = {"SPY": _structure("SPY", TREND, HIGH_IV)}
         dm = {"SPY": _dm("SPY")}
@@ -488,7 +499,27 @@ class TestBuildOptionSetups:
         assert setup.strategy == BULL_PUT_SPREAD
         assert setup.max_contracts == 1
         assert setup.dollar_risk == pytest.approx(
-            (_MAX_STRIKE_DIST_ETF - _estimated_debit(_MAX_STRIKE_DIST_ETF)) * 100
+            _estimated_debit(_MAX_STRIKE_DIST_ETF) * 100
+        )
+
+    def test_continuation_shaped_credit_result_unaffected_by_prd251(self):
+        # PRD-251 (A1a) R4, faithful shape: an actual
+        # ENTRY_MODE_CONTINUATION result (as qualify_all produces from
+        # _qualify_continuation_candidate for EXPANSION-regime symbols),
+        # landing on a credit strategy (LONG + HIGH_IV -> BULL_PUT_SPREAD).
+        # Its dollar_risk (150.0) already reflects the continuation path's
+        # OWN untouched ATR-based proxy, sized by qualification.py -- this
+        # PRD must not re-price it through a different formula.
+        results = [_qual_result(
+            "SPY", direction="LONG", max_contracts=1, dollar_risk=150.0,
+            entry_mode=ENTRY_MODE_CONTINUATION,
+        )]
+        sr = {"SPY": _structure("SPY", TREND, HIGH_IV)}
+        dm = {"SPY": _dm("SPY")}
+        setup = build_option_setups(results, sr, dm)[0]
+        assert setup.strategy == BULL_PUT_SPREAD
+        assert setup.dollar_risk == pytest.approx(
+            _estimated_debit(_MAX_STRIKE_DIST_ETF) * 100
         )
 
     def test_credit_strategy_final_resize_agrees_with_candidate_max_loss_prd251(self):

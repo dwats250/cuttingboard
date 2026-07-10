@@ -222,14 +222,21 @@ def build_option_setups(
         effective_risk = (
             config.ACCOUNT_EQUITY * config.MAX_RISK_PCT_PER_TRADE * risk_modifier
         )
-        # PRD-251: size off the strategy-aware max loss (candidate.max_loss
-        # when resolved; otherwise derive it from the strategy already
-        # selected above), so this resize can never disagree with Gate 8's
-        # qualify/reject decision for the same candidate.
+        # PRD-251: size off the strategy-aware max loss when a TradeCandidate
+        # carries one. When candidate is None or hasn't resolved max_loss,
+        # fall back to spread_width unchanged (pre-PRD behavior, verbatim) --
+        # NOT a fresh strategy-aware derivation. candidate=None in production
+        # is exactly the shape of an EXPANSION-regime continuation-path
+        # result (_qualify_continuation_candidate never populates the
+        # candidates dict), which R4 declares untouched by this PRD; deriving
+        # a new max-loss value here would silently re-price that path's final
+        # render while its own Gate-8-equivalent still uses the untouched
+        # ATR-based proxy -- exactly the R3 divergence this PRD exists to
+        # remove, in the one path it must not touch.
         effective_max_loss = (
             candidate.max_loss
             if candidate is not None and candidate.max_loss is not None
-            else _max_loss_for_strategy(strategy, strike_distance)
+            else spread_width
         )
         risk_per_contract = effective_max_loss * 100
         if risk_per_contract > 0:
