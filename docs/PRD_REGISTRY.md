@@ -266,8 +266,8 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-246 | #123 | Denominator-discriminating test for the FVG floor percent leg (PRD-245 review REC-1) | COMPLETE | [PRD-246](prd_history/PRD-246.md) |
 | PRD-247 | #124 | Qualification doc truth: Gate 8 failure message, EXPANSION regime, continuation fail-open, FVGZone shape | COMPLETE | [PRD-247](prd_history/PRD-247.md) |
 | PRD-248 | #125 | Allowlist .proposal.md in the prd_eval.sh registry-gap hook | COMPLETE | [PRD-248](prd_history/PRD-248.md) |
-| PRD-249 | — | Output card legibility: single-line header, verdict-first order, cut duplicated state/risk lines | IN PROGRESS | [PRD-249](prd_history/PRD-249.md) |
-| PRD-250 | — | Client-side staleness banner (presentation-only): surfaces published-board page-age at view time so a frozen board can't read as fresh | IN PROGRESS | [PRD-250](prd_history/PRD-250.md) |
+| PRD-249 | #126 | Output card legibility: single-line header, verdict-first order, cut duplicated state/risk lines | COMPLETE | [PRD-249](prd_history/PRD-249.md) |
+| PRD-250 | #128 | Client-side staleness banner (presentation-only): surfaces published-board page-age at view time so a frozen board can't read as fresh | COMPLETE | [PRD-250](prd_history/PRD-250.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

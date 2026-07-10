@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 248,
-  "next_prd": 249,
+  "latest_complete": 250,
+  "next_prd": 251,
   "entries": [
     {
       "number": 56,
@@ -1164,14 +1164,14 @@
     {
       "number": 249,
       "title": "Output card legibility: single-line header, verdict-first order, cut duplicated state/risk lines",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#126"
     },
     {
       "number": 250,
       "title": "Client-side staleness banner (presentation-only): surfaces published-board page-age at view time so a frozen board can't read as fresh",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#128"
     }
   ]
 }
