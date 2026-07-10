@@ -33,7 +33,7 @@ from cuttingboard.regime import (
     AGGRESSIVE_LONG, CONTROLLED_LONG, NEUTRAL_PREMIUM,
     DEFENSIVE_SHORT, STAY_FLAT,
 )
-from cuttingboard.structure import StructureResult, TREND, CHOP, NORMAL_IV
+from cuttingboard.structure import StructureResult, TREND, CHOP, NORMAL_IV, HIGH_IV, LOW_IV
 
 
 # ---------------------------------------------------------------------------
@@ -107,6 +107,7 @@ def _candidate(
     target_price=106.0,
     spread_width=1.0,
     has_earnings_soon=None,
+    max_loss=None,
 ) -> TradeCandidate:
     return TradeCandidate(
         symbol=symbol,
@@ -116,6 +117,7 @@ def _candidate(
         target_price=target_price,
         spread_width=spread_width,
         has_earnings_soon=has_earnings_soon,
+        max_loss=max_loss,
     )
 
 
@@ -644,6 +646,77 @@ class TestGateMaxRisk:
         c = _candidate(spread_width=0.0)
         r = qualify_candidate(c, _regime(), _structure(), dm=None)
         assert GATE_MAX_RISK in r.gates_failed
+
+    def test_credit_bull_put_max_loss_is_width_minus_credit_prd251(self):
+        # PRD-251 (A1a). $5-wide BULL_PUT_SPREAD candidate: LONG direction
+        # + HIGH_IV structure selects BULL_PUT_SPREAD (a credit strategy)
+        # in the options layer, which resolves and carries max_loss =
+        # width - credit = $5.00 - $1.50 = $3.50/share ($350/contract) on
+        # the TradeCandidate. Gate 8 must size off max_loss, not
+        # spread_width (the $1.50 debit-proxy, still carried unchanged for
+        # display/consumers). At the default $150 effective budget this
+        # soft-fails GATE_MAX_RISK (0 contracts fit $350/contract) --
+        # pre-fix (max_loss ignored, spread_width used instead) it passed
+        # at 1 contract / $150.
+        structure = StructureResult(
+            symbol="SPY",
+            structure=TREND,
+            iv_environment=HIGH_IV,
+            is_tradeable=True,
+            disqualification_reason=None,
+        )
+        c = _candidate(
+            symbol="SPY",
+            direction="LONG",
+            entry_price=100.0,
+            stop_price=97.0,
+            target_price=106.0,
+            spread_width=1.50,  # 30% of $5 width -- estimated-debit proxy, unchanged meaning
+            max_loss=3.50,      # width (5.00) - credit (1.50) -- what options.py resolves
+        )
+        r = qualify_candidate(c, _regime(), structure, dm=None)
+        assert GATE_MAX_RISK in r.gates_failed
+        assert r.max_contracts is None
+        assert r.dollar_risk is None
+
+    def test_debit_bull_call_max_loss_unchanged_prd251(self):
+        # PRD-251 (A1a) debit-path control test. Same $5-wide SPY/LONG
+        # shape as the credit test above, but LOW_IV structure selects
+        # BULL_CALL_SPREAD (a DEBIT strategy) instead. Max loss for a
+        # debit strategy IS the estimated debit, so options.py resolves
+        # max_loss == spread_width -- unchanged by this PRD. Must pass
+        # identically before and after the fix: 1 contract, $150 max risk,
+        # GATE_MAX_RISK passes.
+        structure = StructureResult(
+            symbol="SPY",
+            structure=TREND,
+            iv_environment=LOW_IV,
+            is_tradeable=True,
+            disqualification_reason=None,
+        )
+        c = _candidate(
+            symbol="SPY",
+            direction="LONG",
+            entry_price=100.0,
+            stop_price=97.0,
+            target_price=106.0,
+            spread_width=1.50,  # 30% of $5 width -- the estimated-debit proxy
+            max_loss=1.50,      # debit strategy: max loss IS the debit, same value
+        )
+        r = qualify_candidate(c, _regime(), structure, dm=None)
+        assert GATE_MAX_RISK in r.gates_passed
+        assert r.max_contracts == 1
+        assert r.dollar_risk == pytest.approx(150.0)
+
+    def test_max_loss_none_falls_back_to_spread_width_prd251(self):
+        # PRD-251 (A1a): candidates with no resolved strategy (max_loss=None,
+        # the _candidate() default -- matches every pre-existing test in this
+        # file) must size exactly as before: off spread_width. Guards the
+        # fallback path itself, independent of the credit/debit cases above.
+        c = _candidate(entry_price=100.0, stop_price=97.0, target_price=106.0, spread_width=1.0)
+        r = qualify_candidate(c, _regime(), _structure(), dm=None)
+        assert r.max_contracts == 1
+        assert r.dollar_risk == pytest.approx(100.0)
 
 
 # ---------------------------------------------------------------------------

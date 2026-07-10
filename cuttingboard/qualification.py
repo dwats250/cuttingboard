@@ -83,8 +83,13 @@ class TradeCandidate:
     entry_price: float
     stop_price: float
     target_price: float
-    spread_width: float         # spread width in dollars (for sizing)
+    spread_width: float         # estimated net debit per share (unchanged meaning)
     has_earnings_soon: Optional[bool] = None  # None = unknown → fail-open
+    # PRD-251: strategy-aware max loss per share (width - credit for credit
+    # strategies; equals spread_width for debit strategies). None when the
+    # caller hasn't resolved a strategy (e.g. Phase 4 synthetic candidates) —
+    # Gate 8 falls back to spread_width, preserving debit-only behavior.
+    max_loss: Optional[float] = None
 
 
 @dataclass(frozen=True)
@@ -422,7 +427,14 @@ def qualify_candidate(
     effective_target = (
         config.ACCOUNT_EQUITY * config.MAX_RISK_PCT_PER_TRADE * risk_multiplier
     )
-    spread_cost = candidate.spread_width * 100  # 1 contract = 100 multiplier
+    # PRD-251: size off the strategy-aware max loss per share when the
+    # candidate carries one (credit strategies: width - credit; debit
+    # strategies: the debit, same as spread_width); fall back to
+    # spread_width for candidates with no resolved strategy.
+    effective_max_loss = (
+        candidate.max_loss if candidate.max_loss is not None else candidate.spread_width
+    )
+    spread_cost = effective_max_loss * 100  # 1 contract = 100 multiplier
     max_contracts: Optional[int] = None
     dollar_risk: Optional[float] = None
 
@@ -431,8 +443,8 @@ def qualify_candidate(
         if max_c < 1:
             soft_failures.append((
                 GATE_MAX_RISK,
-                f"1 contract at ${candidate.spread_width:.2f} "
-                f"width = ${spread_cost:.0f} — exceeds budget "
+                f"1 contract at ${effective_max_loss:.2f} "
+                f"max loss = ${spread_cost:.0f} — exceeds budget "
                 f"(${effective_target:.0f} after {regime.regime} multiplier)",
             ))
         else:
@@ -443,7 +455,7 @@ def qualify_candidate(
     elif spread_cost > 0 and effective_target == 0:
         soft_failures.append((GATE_MAX_RISK, f"zero risk budget for {regime.regime} regime"))
     else:
-        soft_failures.append((GATE_MAX_RISK, "spread width undefined"))
+        soft_failures.append((GATE_MAX_RISK, "max loss undefined"))
 
     # Gate 9: No earnings within 5 calendar days (fail-open when unknown)
     if candidate.has_earnings_soon is True:
