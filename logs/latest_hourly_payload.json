@@ -1,46 +1,46 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 1.2781285986205042,
-      "level": 63982.7109375,
+      "change_pct": 1.0908395692933546,
+      "level": 63864.390625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.05461526654659237,
-      "level": 100.76000213623047,
+      "change_pct": 0.23831771948344518,
+      "level": 100.94499969482422,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -0.27848407797554187,
-      "level": 4118.0,
+      "change_pct": -0.4455721599164548,
+      "level": 4111.10009765625,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": -1.4366637992762035,
-      "level": 71.3499984741211,
+      "change_pct": -1.5886193335751748,
+      "level": 71.23999786376953,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 1.2031330058011034,
-      "change_pct": 0.26436675469086846,
-      "level": 4.550999641418457,
+      "change_bps": 3.019801099972973,
+      "change_pct": 0.6609326447296363,
+      "level": 4.568999767303467,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -0.8638445293256846,
-      "level": 60.25,
+      "change_pct": -1.332787088365773,
+      "level": 59.96500015258789,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -2.714648365110837,
-      "level": 15.40999984741211,
+      "change_pct": -2.9040406168924138,
+      "level": 15.380000114440918,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260710T162245Z",
+    "generation_id": "hourly-20260710T181658Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-07-10T16:22:45Z"
+    "timestamp": "2026-07-10T18:16:58Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -58,8 +58,8 @@
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.0,
-    "market_regime": "NEUTRAL",
+    "confidence": 0.375,
+    "market_regime": "RISK_ON",
     "outcome": null,
     "permission": null,
     "router_mode": "MIXED",
