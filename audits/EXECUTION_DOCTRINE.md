@@ -1,7 +1,8 @@
 # Execution Doctrine - one slice of work, end to end
 
 **Date:** 2026-07-10 (r3, after operator revisions)
-**Status:** DRAFT - not canonical until Dustin approves. Written against
+**Status:** CANONICAL - adopted 2026-07-10, merged to main on Dustin's
+authorization. Written against
 origin/main governance as of PRD-250 (PRD-229 same-PR closeout, PRD-242
 second-model disposition, PRD-244 CLAUDE.md refactor, 2026-07-07 merge/review
 decisions in docs/DECISIONS.md).
@@ -403,9 +404,9 @@ in the same commit as the Alignment-check DECISIONS entry - not per-slice.
 
 ## 7. Adoption
 
-This file becomes canonical only after Dustin reviews it. On approval it is
-committed (plain `git add`; `audits/` is tracked) to the build-plan branch
-alongside BUILD_PLAN.md; the branch -> main merge stays human-held. If any
-clause here conflicts with CLAUDE.md or docs/PRD_PROCESS.md, those win and
-this file gets corrected - it is doctrine ABOUT the process, not a source of
-truth OVER it.
+Adopted 2026-07-10: reviewed by Dustin through three revisions (r1-r3) and
+merged to main on his explicit authorization. Standing rules: if any clause
+here conflicts with CLAUDE.md or docs/PRD_PROCESS.md, those win and this file
+gets corrected - it is doctrine ABOUT the process, not a source of truth OVER
+it. Changes to this file are governance-adjacent and ride MANUAL-MERGE-ONLY,
+per section 3's overlay.
