@@ -145,7 +145,7 @@ def generate_candidates(
             continue
 
         dm = derived_metrics.get(symbol)
-        candidate = _build_candidate(symbol, direction, quote, dm)
+        candidate = _build_candidate(symbol, direction, quote, dm, sr.iv_environment)
         if candidate is not None:
             candidates[symbol] = candidate
             logger.debug(
@@ -222,7 +222,16 @@ def build_option_setups(
         effective_risk = (
             config.ACCOUNT_EQUITY * config.MAX_RISK_PCT_PER_TRADE * risk_modifier
         )
-        risk_per_contract = spread_width * 100
+        # PRD-251: size off the strategy-aware max loss (candidate.max_loss
+        # when resolved; otherwise derive it from the strategy already
+        # selected above), so this resize can never disagree with Gate 8's
+        # qualify/reject decision for the same candidate.
+        effective_max_loss = (
+            candidate.max_loss
+            if candidate is not None and candidate.max_loss is not None
+            else _max_loss_for_strategy(strategy, strike_distance)
+        )
+        risk_per_contract = effective_max_loss * 100
         if risk_per_contract > 0:
             raw_adjusted = int(effective_risk // risk_per_contract)
             final_contracts = max(1, min(result.max_contracts, raw_adjusted))
@@ -350,6 +359,7 @@ def _build_candidate(
     direction: str,
     quote: NormalizedQuote,
     dm: Optional[DerivedMetrics],
+    iv_environment: str,
 ) -> Optional[TradeCandidate]:
     """Build a TradeCandidate from current price and ATR-based stop/target.
 
@@ -378,6 +388,8 @@ def _build_candidate(
 
     strike_distance = _MAX_STRIKE_DIST_ETF if symbol in _INDEX_ETFS else _MAX_STRIKE_DIST_STK
     spread_width = _estimated_debit(strike_distance)
+    strategy = _select_strategy(direction, iv_environment)
+    max_loss = _max_loss_for_strategy(strategy, strike_distance)
 
     return TradeCandidate(
         symbol=symbol,
@@ -387,16 +399,32 @@ def _build_candidate(
         target_price=target,
         spread_width=spread_width,
         has_earnings_soon=None,   # unknown — fail-open per PRD
+        max_loss=max_loss,
     )
 
 
 def _estimated_debit(strike_distance: float) -> float:
     """Estimate net debit as 30% of strike distance.
 
-    This is the value passed into TradeCandidate.spread_width and used
-    by gate 8 to compute max_contracts and dollar_risk.
+    This is the value passed into TradeCandidate.spread_width, unchanged
+    in meaning by PRD-251 (still "estimated net debit per share").
 
     ETF  ($5.00 strike dist): debit ≈ $1.50  → 1 contract  → $150 risk
     Stock ($2.50 strike dist): debit ≈ $0.75  → 2 contracts → $150 risk
     """
     return round(strike_distance * _DEBIT_PCT_OF_WIDTH, 4)
+
+
+def _max_loss_for_strategy(strategy: str, strike_distance: float) -> float:
+    """Strategy-aware max loss per share, used by Gate 8 and the final resize.
+
+    PRD-251: for credit strategies (BULL_PUT_SPREAD, BEAR_CALL_SPREAD) the
+    estimated credit collected (30% of width, the same proxy as
+    _estimated_debit) is NOT the max loss — the max loss is width minus
+    that credit, i.e. 70% of width. Debit strategies (BULL_CALL_SPREAD,
+    BEAR_PUT_SPREAD) are unaffected: max loss IS the debit paid.
+    """
+    debit_proxy = _estimated_debit(strike_distance)
+    if strategy in (BULL_PUT_SPREAD, BEAR_CALL_SPREAD):
+        return round(strike_distance - debit_proxy, 4)
+    return debit_proxy
