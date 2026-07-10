@@ -13,6 +13,19 @@
 
 ---
 
+## Operator decisions recorded 2026-07-10 (plan is approved and decision-complete)
+
+The four decisions flagged for sign-off at plan presentation are settled. This section is the record; the per-PRD text below has been updated to match.
+
+1. **A1 split into A1a (risk arithmetic) / A1b (chain both-leg pricing): APPROVED as planned.** Two PRDs, A1a first, seam left for A1b's live economics.
+2. **A2 zero-contract case: APPROVED — explicit `size_rounds_to_zero` policy block** when `floor(contracts × multiplier) = 0`. Do NOT round up to 1.
+3. **A3: APPROVED — fully dormant, including the same-run in-run counter** (not just cross-run history). Brakes stay wired but starved; journal integration remains documented-future, not built.
+4. **A1a's credit-spread budget consequence: ACCEPTED, handled by a SEPARATE config change** — raise the risk budget cap from $150 to $400 (a one-line constant change, its own change/PRD, NOT bundled into A1a's arithmetic fix). Rationale: this widens the qualifying window for high-IV credit spreads now that their true ~2.3x max loss is shown; the operator holds the real position-size limit personally and will stay well below the cap. It is a preference knob, not a correctness fix — single-concern, separate from A1a. It slots immediately after A1a in the sequence (numbering assigned at `prd_open` like the rest).
+
+Not ruled on (stays a recommendation, decided when reached): the Tier-4 quorum-floor pull-forward.
+
+---
+
 ## Wave 1 — the money numbers (operator-set head of sequence)
 
 ### PRD-251 (A1a) — Credit-spread max risk: strategy-aware max-loss arithmetic — Tier 0, CRITICAL
@@ -27,7 +40,7 @@
 
 **Test that proves it (red before / green after):** a $5-wide BULL_PUT_SPREAD candidate: per-contract risk asserts **$350, not $150**; under the default $150 effective budget Gate 8 yields **0 contracts (GATE_MAX_RISK soft-fail)**, where pre-fix it yielded 1 contract at "$150 max risk". Debit-spread control case asserts unchanged sizing.
 
-**Behavioral consequence to state in the PRD (not a side effect — the point):** credit spreads are selected exactly in ELEVATED/HIGH IV, and at true max-loss many will stop fitting the current risk budget. Fewer/no credit-spread ALLOWs at current `ACCOUNT_EQUITY × MAX_RISK_PCT` is the *correct* behavior; the prior allows were understated risk. Downstream-consumer audit: evaluation records, dashboard candidate board, notification lines all shift.
+**Behavioral consequence to state in the PRD (not a side effect — the point):** credit spreads are selected exactly in ELEVATED/HIGH IV, and at true max-loss many will stop fitting the current risk budget. Fewer/no credit-spread ALLOWs at current `ACCOUNT_EQUITY × MAX_RISK_PCT` is the *correct* behavior; the prior allows were understated risk. Downstream-consumer audit: evaluation records, dashboard candidate board, notification lines all shift. **Settled 2026-07-10 (decision 4):** the consequence is accepted and offset by a separate one-line config change raising the risk budget cap $150 → $400 — its own PRD, immediately after A1a, never bundled into the arithmetic fix.
 
 ### PRD-252 (F-02) — Missing/NaN pct_change fails loud — Tier 1, HIGH (root cause)
 **Single concern:** a fabricated zero silently disarms every percentage-based stress guard (kill-switch pct legs, CHAOTIC override, regime vote coloring).
@@ -68,7 +81,7 @@
 
 **Specific change:**
 - One materialization step after execution policy: final `position_size` / `dollar_risk` derived from the **correlation-adjusted** setup × `size_multiplier` (Codex confirmed contract sizing currently predates both correlation and policy). Single function, consumed by both `contract.py` (`position_size`, `dollar_risk`) and `output.py:345-350` (report line) so the two surfaces cannot disagree.
-- **Rounding decision (put to Dustin inside the PRD, recommendation included):** `contracts_eff = floor(contracts × multiplier)`; when that is 0 (e.g., 1 contract × 0.5), recommend downgrading to a policy block with an explicit reason (`size_rounds_to_zero`) rather than silently keeping 1 contract — keeping 1 would un-apply the cut; fabricating fractional risk would lie. Fail-explicit is the doctrinal answer.
+- **Rounding rule (settled 2026-07-10, decision 2):** `contracts_eff = floor(contracts × multiplier)`; when that is 0 (e.g., 1 contract × 0.5), the decision downgrades to a policy block with the explicit reason `size_rounds_to_zero`. Never round up to 1 (that would un-apply the cut); never fabricate fractional risk.
 
 **FILES (estimate):** `cuttingboard/execution_policy.py` (or a small materialization helper), `cuttingboard/contract.py`, `cuttingboard/output.py`, `cuttingboard/runtime/__init__.py` (wiring), `tests/test_execution_policy.py`, `tests/test_contract.py`, `tests/test_contract_finalization.py`, `tests/test_prd162_reconciliation.py` + sweep.
 
@@ -81,7 +94,7 @@
 
 **Specific change:**
 - `execution_policy.py` `load_execution_session_state`: stop deriving `prior_trade_count` / `last_trade_at_utc` from ALLOW_TRADE audit records (`:94-103`) and stop deriving `consecutive_losses` from hypothetical evaluation records (`_load_consecutive_losses`). Absent a validated trade source, the function returns dormant state (0 / 0 / None). Keep `ExecutionSessionState` and the gate checks (`session_trade_limit`, `loss_lockout`, `cooldown` at `:224-229`) intact — the brakes stay wired, starved of phantom input, ready for a future validated source.
-- **In-run counting (decision point, recommendation included):** `apply_execution_policy_to_decisions:150-152` also advances `trade_count`/`last_trade_at` per same-run ALLOW — same-run recommendations are not fills either. Recommend: stop advancing the *trade* brakes in-run too (doctrinally consistent). Alternative if Dustin wants a same-run recommendation throttle: keep it but rename the reason so it never claims to be a trade limit. Default in the PRD: fully dormant.
+- **In-run counting (settled 2026-07-10, decision 3):** `apply_execution_policy_to_decisions:150-152` also advances `trade_count`/`last_trade_at` per same-run ALLOW — same-run recommendations are not fills either. Fully dormant: the in-run counter stops advancing the trade brakes too, not just the cross-run history.
 - `evaluation.jsonl` **keeps being written** — it serves the VISION trap-loop (awareness); only execution_policy stops consuming it as loss evidence.
 - Realizability discipline (author discipline 3): `POLICY_SESSION_TRADE_LIMIT` / `POLICY_LOSS_LOCKOUT` / `POLICY_COOLDOWN` become currently-unrealizable output channels — declare them defensive-against-future-routing in the PRD and in `docs/PROJECT_STATE.md`; one `docs/DECISIONS.md` entry records the actual-trades-only ruling and the deferred journal-integration option (`manual_journal.py` as the natural future source — documented, not built).
 
@@ -144,7 +157,7 @@ Worked when reached, batched per MICRO/cosmetic rules where eligible. Two need *
 
 ## Sequence (one line)
 
-**251 A1a → 252 F-02 → 253 F-01 → [Tier-4 quorum floor, recommended pull-forward] → 254 A2 → 255 A3 → 257 F-04 + 258 F-05 (fence, manual merges) → 259 F-08 → 260 F-07 → 256 A1b → C1 → F-06 → F-03 → Tier 6/7 batches.**
+**A1a → budget-cap config change ($150→$400, own PRD, decision 4) → F-02 → F-01 → [Tier-4 quorum floor, recommended pull-forward] → A2 → A3 → F-04 + F-05 (fence, manual merges) → F-08 → F-07 → A1b → C1 → F-06 → F-03 → Tier 6/7 batches.** (Numbers assigned at `prd_open`.)
 
 Hard ordering constraints (the rest is preference):
 1. **F-02 before F-01** — reconcile-mandated; the hourly kill-switch check must not be born disarmable by the fabricated zero.
@@ -162,6 +175,6 @@ Hard ordering constraints (the rest is preference):
 6. **A1b → A1a.** A1b replaces A1a's estimated economics with live chain economics through the seam A1a leaves; the "max risk" figure changes provenance (estimate → live) without changing meaning.
 7. **F-04/F-05 → the process that lands everything above.** Once the fence PRDs merge, subsequent PRDs' closeout mechanics face the hardened validator (real artifact-content checks). Any close between now and then is on the honor system — acceptable per operator decision (every merge reviewed), which is exactly why the fence rides early-not-first.
 
-## Stop point
+## Status
 
-This plan is presented for review. **No PRD is opened and no implementation begins until Dustin approves the plan** (or amends the sequence). Per-PRD open decisions flagged above for explicit sign-off during PRD authoring: A2 rounding rule (floor-to-zero → explicit block, recommended), A3 in-run counting (fully dormant, recommended), Tier-4 pull-forward (recommended).
+Plan presented 2026-07-10 and **approved the same day — the four flagged decisions are recorded above and reflected in place**. The plan is decision-complete except the Tier-4 pull-forward recommendation (decided when reached). Implementation begins with PRD authoring at Stage 0 (`prd_open.sh`) per the sequence; nothing is opened as of this commit.
