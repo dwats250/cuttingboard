@@ -16,6 +16,35 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-10 — PRD-251 (A1a): Codex caught a real gap the fresh-context Claude review missed
+
+The fresh-context Claude review (`docs/prd_history/PRD-251.review.claude.md`)
+required narrowing `build_option_setups`'s `candidate is None` fallback so
+continuation-path results never use a direct candidate's strategy-aware
+`max_loss` — fixed in commit `c1553cb`. The `chatgpt-codex-connector` bot
+review on PR #132 (submitted against the commit right after that fix
+landed) found the fix was necessary but incomplete: EXPANSION regime runs
+`generate_candidates()` alongside the continuation qualifier
+(`direction_for_regime(EXPANSION) == "LONG"`, so it doesn't early-return),
+meaning a direct `TradeCandidate` can exist in the `candidates` dict for a
+symbol whose `QualificationResult` actually came from the continuation
+path — `candidate is None` is false in that case, so `c1553cb`'s guard
+didn't fire. Actioned in commit `83a193c`: gated on
+`result.entry_mode != ENTRY_MODE_CONTINUATION` in addition to candidate
+presence. Reproduced and mutation-verified (reverting the guard reproduces
+the bot's reported $350-vs-$150 divergence exactly). Thread resolved
+in-thread citing the fixing commit, per PRD-228.
+
+**Lesson:** a single review pass — even a careful, independently-verified
+fresh-context one — is not guaranteed to find every instance of a bug
+class. The bot's review ran against a slightly later commit and looked at
+the same code with a different lens (tracing what populates `candidates`
+in EXPANSION regime specifically) and found the more common real-world
+shape of the exact defect the Claude review had already partially fixed.
+This is why PRD-228 treats bot threads as mandatory-to-triage input rather
+than optional noise, even after a HIGH-RISK slice's primary review gate has
+already passed.
+
 ## 2026-07-10 — PRD-251 (A1a): continuation path folded in at Gate A, then descoped after Stage 0 code evidence
 
 Dustin's initial Gate A ruling for PRD-251 (credit-spread max-loss
