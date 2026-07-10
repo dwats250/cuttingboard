@@ -268,7 +268,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-248 | #125 | Allowlist .proposal.md in the prd_eval.sh registry-gap hook | COMPLETE | [PRD-248](prd_history/PRD-248.md) |
 | PRD-249 | #126 | Output card legibility: single-line header, verdict-first order, cut duplicated state/risk lines | COMPLETE | [PRD-249](prd_history/PRD-249.md) |
 | PRD-250 | #128 | Client-side staleness banner (presentation-only): surfaces published-board page-age at view time so a frozen board can't read as fresh | COMPLETE | [PRD-250](prd_history/PRD-250.md) |
-| PRD-251 | — | Credit-spread max risk: strategy-aware max-loss arithmetic (Gate 8) | IN PROGRESS | [PRD-251](prd_history/PRD-251.md) |
+| PRD-251 | #132 | Credit-spread max risk: strategy-aware max-loss arithmetic (Gate 8) | COMPLETE | [PRD-251](prd_history/PRD-251.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

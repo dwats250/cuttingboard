@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 250,
-  "next_prd": 251,
+  "latest_complete": 251,
+  "next_prd": 252,
   "entries": [
     {
       "number": 56,
@@ -1176,8 +1176,8 @@
     {
       "number": 251,
       "title": "Credit-spread max risk: strategy-aware max-loss arithmetic (Gate 8)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#132"
     }
   ]
 }
