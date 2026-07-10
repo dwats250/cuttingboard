@@ -35,6 +35,7 @@ from cuttingboard.derived import DerivedMetrics
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.qualification import (
     ENTRY_MODE_PULLBACK_IMBALANCE,
+    ENTRY_MODE_CONTINUATION,
     TradeCandidate,
     QualificationResult,
     direction_for_regime,
@@ -222,20 +223,28 @@ def build_option_setups(
         effective_risk = (
             config.ACCOUNT_EQUITY * config.MAX_RISK_PCT_PER_TRADE * risk_modifier
         )
-        # PRD-251: size off the strategy-aware max loss when a TradeCandidate
-        # carries one. When candidate is None or hasn't resolved max_loss,
-        # fall back to spread_width unchanged (pre-PRD behavior, verbatim) --
-        # NOT a fresh strategy-aware derivation. candidate=None in production
-        # is exactly the shape of an EXPANSION-regime continuation-path
-        # result (_qualify_continuation_candidate never populates the
-        # candidates dict), which R4 declares untouched by this PRD; deriving
-        # a new max-loss value here would silently re-price that path's final
-        # render while its own Gate-8-equivalent still uses the untouched
-        # ATR-based proxy -- exactly the R3 divergence this PRD exists to
-        # remove, in the one path it must not touch.
+        # PRD-251: size off the strategy-aware max loss when this result came
+        # from the standard Gate-8 path AND its TradeCandidate resolved one.
+        # Continuation-path results (entry_mode == ENTRY_MODE_CONTINUATION)
+        # NEVER use a candidate's max_loss, even when `candidates` happens to
+        # hold a direct TradeCandidate for the same symbol -- EXPANSION regime
+        # runs generate_candidates() (direction_for_regime(EXPANSION)="LONG")
+        # AND the continuation qualifier side by side, so a symbol that fails
+        # direct qualification but passes continuation qualification can have
+        # a direct candidate sitting in the dict that has nothing to do with
+        # the continuation result being rendered here. Using it would re-price
+        # a path R4 declares untouched off the wrong candidate's economics --
+        # exactly the R3 divergence this PRD exists to remove, in the one path
+        # it must not touch. Fall back to spread_width unchanged (pre-PRD
+        # behavior, verbatim) for continuation results and for any result with
+        # no resolved candidate.
         effective_max_loss = (
             candidate.max_loss
-            if candidate is not None and candidate.max_loss is not None
+            if (
+                candidate is not None
+                and candidate.max_loss is not None
+                and result.entry_mode != ENTRY_MODE_CONTINUATION
+            )
             else spread_width
         )
         risk_per_contract = effective_max_loss * 100

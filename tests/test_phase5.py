@@ -522,6 +522,34 @@ class TestBuildOptionSetups:
             _estimated_debit(_MAX_STRIKE_DIST_ETF) * 100
         )
 
+    def test_continuation_result_ignores_stale_direct_candidate_prd251(self):
+        # PRD-251 (A1a) R4, Codex-caught gap: in EXPANSION regime,
+        # generate_candidates() (direction_for_regime(EXPANSION)="LONG")
+        # runs alongside the continuation qualifier, so a symbol that fails
+        # direct qualification but passes continuation qualification can
+        # have a DIRECT TradeCandidate sitting in `candidates` for the same
+        # symbol -- with its own resolved, strategy-aware max_loss. The
+        # continuation-shaped result must ignore it and stay on the
+        # untouched debit-proxy fallback, never the direct candidate's
+        # max_loss, even though `candidates` is non-empty for this symbol.
+        direct_candidate = TradeCandidate(
+            symbol="SPY", direction="LONG",
+            entry_price=560.0, stop_price=555.0, target_price=570.0,
+            spread_width=_estimated_debit(_MAX_STRIKE_DIST_ETF),
+            max_loss=_MAX_STRIKE_DIST_ETF - _estimated_debit(_MAX_STRIKE_DIST_ETF),
+        )
+        results = [_qual_result(
+            "SPY", direction="LONG", max_contracts=1, dollar_risk=150.0,
+            entry_mode=ENTRY_MODE_CONTINUATION,
+        )]
+        sr = {"SPY": _structure("SPY", TREND, HIGH_IV)}
+        dm = {"SPY": _dm("SPY")}
+        setup = build_option_setups(results, sr, dm, candidates={"SPY": direct_candidate})[0]
+        assert setup.strategy == BULL_PUT_SPREAD
+        assert setup.dollar_risk == pytest.approx(
+            _estimated_debit(_MAX_STRIKE_DIST_ETF) * 100
+        )
+
     def test_credit_strategy_final_resize_agrees_with_candidate_max_loss_prd251(self):
         # PRD-251 (A1a) R3: when a TradeCandidate IS supplied, the final
         # resize must use its carried max_loss, not recompute independently
