@@ -36,6 +36,9 @@ from cuttingboard.output import (
 from cuttingboard.qualification import (
     QualificationResult,
     QualificationSummary,
+    TradeCandidate,
+    ENTRY_MODE_DIRECT,
+    ENTRY_MODE_CONTINUATION,
 )
 from cuttingboard.regime import (
     RegimeState,
@@ -110,6 +113,7 @@ def _dm(symbol="TEST", atr14=2.0, momentum_5d=0.01) -> DerivedMetrics:
 def _qual_result(
     symbol="TEST", direction="LONG",
     max_contracts=3, dollar_risk=150.0,
+    entry_mode=ENTRY_MODE_DIRECT,
 ) -> QualificationResult:
     return QualificationResult(
         symbol=symbol, qualified=True, watchlist=False,
@@ -119,6 +123,7 @@ def _qual_result(
                       "MAX_RISK", "EARNINGS"],
         gates_failed=[], hard_failure=None, watchlist_reason=None,
         max_contracts=max_contracts, dollar_risk=dollar_risk,
+        entry_mode=entry_mode,
     )
 
 
@@ -379,6 +384,29 @@ class TestGenerateCandidates:
         # Fallback = 2% stop
         assert cand.stop_price == pytest.approx(100.0 * (1 - 0.02))
 
+    def test_credit_strategy_max_loss_is_width_minus_debit_prd251(self):
+        # PRD-251 (A1a): LONG + HIGH_IV selects BULL_PUT_SPREAD (credit).
+        # max_loss must be width - debit proxy ($5.00 - $1.50 = $3.50),
+        # not the $1.50 debit proxy itself (which stays on spread_width,
+        # unchanged).
+        sr = {"SPY": _structure("SPY", TREND, iv=HIGH_IV)}
+        dm = {"SPY": _dm("SPY")}
+        vq = {"SPY": _quote("SPY", price=560.0)}
+        cand = generate_candidates(sr, dm, vq, _regime())["SPY"]
+        assert cand.spread_width == pytest.approx(_estimated_debit(_MAX_STRIKE_DIST_ETF))
+        assert cand.max_loss == pytest.approx(
+            _MAX_STRIKE_DIST_ETF - _estimated_debit(_MAX_STRIKE_DIST_ETF)
+        )
+
+    def test_debit_strategy_max_loss_equals_spread_width_prd251(self):
+        # PRD-251 (A1a) control: LONG + LOW_IV selects BULL_CALL_SPREAD
+        # (debit). max_loss must equal spread_width, unchanged.
+        sr = {"SPY": _structure("SPY", TREND, iv=LOW_IV)}
+        dm = {"SPY": _dm("SPY")}
+        vq = {"SPY": _quote("SPY", price=560.0)}
+        cand = generate_candidates(sr, dm, vq, _regime())["SPY"]
+        assert cand.max_loss == pytest.approx(cand.spread_width)
+
 
 # ---------------------------------------------------------------------------
 # options.py — build_option_setups
@@ -449,6 +477,95 @@ class TestBuildOptionSetups:
 
     def test_empty_input(self):
         assert build_option_setups([], {}, {}) == []
+
+    def test_credit_strategy_no_candidate_fallback_stays_debit_proxy_prd251(self):
+        # PRD-251 (A1a) R4 safety net. candidate=None in production is
+        # exactly the shape of an EXPANSION-regime continuation-path result
+        # (_qualify_continuation_candidate never populates the candidates
+        # dict) -- a path R4 declares untouched. The final resize must NOT
+        # apply the new strategy-aware max-loss formula here: it must stay
+        # on the old debit-proxy fallback ($1.50/share, $150/contract)
+        # verbatim, even though sr.iv_environment/direction would select
+        # BULL_PUT_SPREAD (a credit strategy) if this were the standard
+        # Gate-8 path. Applying the new formula here would silently re-price
+        # continuation-path trades whose own qualifying arithmetic (the
+        # untouched ATR-based proxy) never changed -- recreating the exact
+        # Gate-8-vs-final-render divergence R3 exists to eliminate, in the
+        # one path this PRD must not touch.
+        results = [_qual_result("SPY", direction="LONG", max_contracts=3, dollar_risk=150.0)]
+        sr = {"SPY": _structure("SPY", TREND, HIGH_IV)}
+        dm = {"SPY": _dm("SPY")}
+        setup = build_option_setups(results, sr, dm)[0]
+        assert setup.strategy == BULL_PUT_SPREAD
+        assert setup.max_contracts == 1
+        assert setup.dollar_risk == pytest.approx(
+            _estimated_debit(_MAX_STRIKE_DIST_ETF) * 100
+        )
+
+    def test_continuation_shaped_credit_result_unaffected_by_prd251(self):
+        # PRD-251 (A1a) R4, faithful shape: an actual
+        # ENTRY_MODE_CONTINUATION result (as qualify_all produces from
+        # _qualify_continuation_candidate for EXPANSION-regime symbols),
+        # landing on a credit strategy (LONG + HIGH_IV -> BULL_PUT_SPREAD).
+        # Its dollar_risk (150.0) already reflects the continuation path's
+        # OWN untouched ATR-based proxy, sized by qualification.py -- this
+        # PRD must not re-price it through a different formula.
+        results = [_qual_result(
+            "SPY", direction="LONG", max_contracts=1, dollar_risk=150.0,
+            entry_mode=ENTRY_MODE_CONTINUATION,
+        )]
+        sr = {"SPY": _structure("SPY", TREND, HIGH_IV)}
+        dm = {"SPY": _dm("SPY")}
+        setup = build_option_setups(results, sr, dm)[0]
+        assert setup.strategy == BULL_PUT_SPREAD
+        assert setup.dollar_risk == pytest.approx(
+            _estimated_debit(_MAX_STRIKE_DIST_ETF) * 100
+        )
+
+    def test_continuation_result_ignores_stale_direct_candidate_prd251(self):
+        # PRD-251 (A1a) R4, Codex-caught gap: in EXPANSION regime,
+        # generate_candidates() (direction_for_regime(EXPANSION)="LONG")
+        # runs alongside the continuation qualifier, so a symbol that fails
+        # direct qualification but passes continuation qualification can
+        # have a DIRECT TradeCandidate sitting in `candidates` for the same
+        # symbol -- with its own resolved, strategy-aware max_loss. The
+        # continuation-shaped result must ignore it and stay on the
+        # untouched debit-proxy fallback, never the direct candidate's
+        # max_loss, even though `candidates` is non-empty for this symbol.
+        direct_candidate = TradeCandidate(
+            symbol="SPY", direction="LONG",
+            entry_price=560.0, stop_price=555.0, target_price=570.0,
+            spread_width=_estimated_debit(_MAX_STRIKE_DIST_ETF),
+            max_loss=_MAX_STRIKE_DIST_ETF - _estimated_debit(_MAX_STRIKE_DIST_ETF),
+        )
+        results = [_qual_result(
+            "SPY", direction="LONG", max_contracts=1, dollar_risk=150.0,
+            entry_mode=ENTRY_MODE_CONTINUATION,
+        )]
+        sr = {"SPY": _structure("SPY", TREND, HIGH_IV)}
+        dm = {"SPY": _dm("SPY")}
+        setup = build_option_setups(results, sr, dm, candidates={"SPY": direct_candidate})[0]
+        assert setup.strategy == BULL_PUT_SPREAD
+        assert setup.dollar_risk == pytest.approx(
+            _estimated_debit(_MAX_STRIKE_DIST_ETF) * 100
+        )
+
+    def test_credit_strategy_final_resize_agrees_with_candidate_max_loss_prd251(self):
+        # PRD-251 (A1a) R3: when a TradeCandidate IS supplied, the final
+        # resize must use its carried max_loss, not recompute independently
+        # -- Gate 8's decision and the rendered dollar_risk share one
+        # source of truth.
+        candidate = TradeCandidate(
+            symbol="SPY", direction="LONG",
+            entry_price=560.0, stop_price=555.0, target_price=570.0,
+            spread_width=_estimated_debit(_MAX_STRIKE_DIST_ETF),
+            max_loss=_MAX_STRIKE_DIST_ETF - _estimated_debit(_MAX_STRIKE_DIST_ETF),
+        )
+        results = [_qual_result("SPY", direction="LONG", max_contracts=1, dollar_risk=350.0)]
+        sr = {"SPY": _structure("SPY", TREND, HIGH_IV)}
+        dm = {"SPY": _dm("SPY")}
+        setup = build_option_setups(results, sr, dm, candidates={"SPY": candidate})[0]
+        assert setup.dollar_risk == pytest.approx(candidate.max_loss * 100)
 
 
 # ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 250,
-  "next_prd": 251,
+  "latest_complete": 251,
+  "next_prd": 252,
   "entries": [
     {
       "number": 56,
@@ -1172,6 +1172,12 @@
       "title": "Client-side staleness banner (presentation-only): surfaces published-board page-age at view time so a frozen board can't read as fresh",
       "status": "COMPLETE",
       "commit": "#128"
+    },
+    {
+      "number": 251,
+      "title": "Credit-spread max risk: strategy-aware max-loss arithmetic (Gate 8)",
+      "status": "COMPLETE",
+      "commit": "#132"
     }
   ]
 }

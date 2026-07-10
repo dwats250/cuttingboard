@@ -16,6 +16,64 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-10 — PRD-251 (A1a): Codex caught a real gap the fresh-context Claude review missed
+
+The fresh-context Claude review (`docs/prd_history/PRD-251.review.claude.md`)
+required narrowing `build_option_setups`'s `candidate is None` fallback so
+continuation-path results never use a direct candidate's strategy-aware
+`max_loss` — fixed in commit `c1553cb`. The `chatgpt-codex-connector` bot
+review on PR #132 (submitted against the commit right after that fix
+landed) found the fix was necessary but incomplete: EXPANSION regime runs
+`generate_candidates()` alongside the continuation qualifier
+(`direction_for_regime(EXPANSION) == "LONG"`, so it doesn't early-return),
+meaning a direct `TradeCandidate` can exist in the `candidates` dict for a
+symbol whose `QualificationResult` actually came from the continuation
+path — `candidate is None` is false in that case, so `c1553cb`'s guard
+didn't fire. Actioned in commit `83a193c`: gated on
+`result.entry_mode != ENTRY_MODE_CONTINUATION` in addition to candidate
+presence. Reproduced and mutation-verified (reverting the guard reproduces
+the bot's reported $350-vs-$150 divergence exactly). Thread resolved
+in-thread citing the fixing commit, per PRD-228.
+
+**Lesson:** a single review pass — even a careful, independently-verified
+fresh-context one — is not guaranteed to find every instance of a bug
+class. The bot's review ran against a slightly later commit and looked at
+the same code with a different lens (tracing what populates `candidates`
+in EXPANSION regime specifically) and found the more common real-world
+shape of the exact defect the Claude review had already partially fixed.
+This is why PRD-228 treats bot threads as mandatory-to-triage input rather
+than optional noise, even after a HIGH-RISK slice's primary review gate has
+already passed.
+
+## 2026-07-10 — PRD-251 (A1a): continuation path folded in at Gate A, then descoped after Stage 0 code evidence
+
+Dustin's initial Gate A ruling for PRD-251 (credit-spread max-loss
+arithmetic) folded the EXPANSION-regime continuation path
+(`cuttingboard/qualification.py::_qualify_continuation_candidate`) into
+the same slice, reasoning it was "the same conceptual defect, reached
+through two doors." The Stage 0 sweep then read the actual code: the
+continuation path's sizing proxy (`spread_width = max(0.50,
+dm.atr14 * 0.05)`, added independently in PRD-008/commit `30b583a`) has
+no strike-distance "width" term to subtract a credit from, unlike the
+standard Gate 8 path's 30%-of-width convention. Applying PRD-251's
+width-minus-credit correction there would require inventing a width
+convention for an ATR-based continuation trade — a design decision, not
+an arithmetic drop-in. Per `audits/EXECUTION_DOCTRINE.md`'s hard
+constraint for this slice, the driver HALTed rather than build a snap
+call; Dustin's revised ruling: descope the continuation path from
+PRD-251, track it as a fast-follow
+(`docs/prd_history/PRD-251.continuation-path.proposal.md`) needing its
+own Gate A before build.
+
+**Lesson:** a plan-level scope ruling ("same defect, two doors") can be
+right about the symptom and wrong about the mechanism. Reading the
+actual implementation — not the build-plan summary — surfaced that the
+two code paths estimate the disputed quantity through structurally
+unrelated formulas, which is exactly the kind of thing Stage 0's sweep
+exists to catch before a HIGH-RISK slice locks in a snap design call.
+The doctrine's HALT-on-materially-different-logic clause worked as
+intended.
+
 ## 2026-07-10 — Execution doctrine adopted; audit deliverables landed (PR #130)
 
 `audits/EXECUTION_DOCTRINE.md` is CANONICAL: the standing per-slice execution
