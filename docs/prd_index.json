@@ -1178,6 +1178,12 @@
       "title": "Credit-spread max risk: strategy-aware max-loss arithmetic (Gate 8)",
       "status": "COMPLETE",
       "commit": "#132"
+    },
+    {
+      "number": 252,
+      "title": "Per-trade risk budget: raise effective cap from $150 to $400",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
