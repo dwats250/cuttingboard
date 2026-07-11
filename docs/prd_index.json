@@ -1196,6 +1196,12 @@
       "title": "prd-review-claude to the 2026-07-07 review-artifact spec",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 256,
+      "title": "Continuation-path ATR proxy max-loss fix or permanent-cap ruling",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

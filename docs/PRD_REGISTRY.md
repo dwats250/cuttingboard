@@ -272,6 +272,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-252 | #133 | Per-trade risk budget: raise effective cap from $150 to $400 | COMPLETE | [PRD-252](prd_history/PRD-252.md) |
 | PRD-254 | — | Hook + settings hardening by removal | IN PROGRESS | [PRD-254](prd_history/PRD-254.md) |
 | PRD-255 | — | prd-review-claude to the 2026-07-07 review-artifact spec | IN PROGRESS | [PRD-255](prd_history/PRD-255.md) |
+| PRD-256 | — | Continuation-path ATR proxy max-loss fix or permanent-cap ruling | IN PROGRESS | [PRD-256](prd_history/PRD-256.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
