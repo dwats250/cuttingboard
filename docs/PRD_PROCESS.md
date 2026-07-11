@@ -140,6 +140,14 @@ and the second review's findings did not depend on the first.
   the audit trail survives — see CLAUDE.md "Working practices".
 - Cross-review-of-review (one reviewer reviewing the other's
   output) is by definition serial and exempt from this rule.
+- A second-model artifact saved under any name not matching
+  `PRD-NNN.review.<model>.md` exactly (e.g. `PRD-NNN.review-notes.md`,
+  `PRD-NNN.reviewed.md`) fails `tools/validate_prd_registry.py`'s
+  second-model disposition check exactly as if no artifact existed —
+  the check globs the literal `PRD-NNN.review.` prefix, nothing looser.
+  The Claude-review leg's filename carries no equivalent CI check
+  (`prd-review-claude`'s own stage-lock is process, not CI); a misnamed
+  Claude review is a discipline failure, not a build-breaking one.
 
 The parallel-dispatch rule does not change *what* either review
 does, only *when* they fire relative to each other.
@@ -258,7 +266,7 @@ replace either.
 
 | LANE | Eligibility filter | Typical example |
 |------|--------------------|------------------|
-| MICRO | All micro-PRD criteria in `docs/PRD_MICRO_TEMPLATE.md` hold (docs-only / hook-only / test-helper-only / process-only, ≤ 20 production-code lines, no HIGH-RISK FILES intersect, one deterministic FAIL condition) AND the R12 safety-net behavior surfaces are NOT touched | A typo fix, a registry-gap hook exclusion, a docs cross-link |
+| MICRO | All micro-PRD criteria in `docs/PRD_MICRO_TEMPLATE.md` hold (docs-only / test-helper-only / process-only, ≤ 20 production-code lines, no HIGH-RISK FILES intersect, one deterministic FAIL condition) AND the R12 safety-net behavior surfaces are NOT touched | A typo fix, a docs cross-link |
 | STANDARD | Does NOT qualify for MICRO; `FILES` list does NOT intersect any HIGH-RISK FILES entry in the CLASS Matrix row for the PRD's CLASS | A renderer-only sidecar feature, a notification-formatter tweak, a docs/process expansion that touches several files |
 | HIGH-RISK | `FILES` intersects any HIGH-RISK FILES entry in the CLASS Matrix row for the PRD's CLASS, OR CLASS is `EXECUTION` or `CONTRACT`, OR default Tier is T0 | A regime-input change, a payload schema migration, a publish-gate hardening |
 

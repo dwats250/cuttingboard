@@ -9,16 +9,16 @@ block below (PRD-121 R4). Reviews of PRDs that contain mapping tables
 tables) MUST also include the **Mapping-Table Reachability Checklist**
 block (PRD-121 R5).
 
-Filename convention:
-- `PRD-NNN.review.claude.md` — Claude-authored independent review.
-- `PRD-NNN.review.codex.md` — Codex-authored review-of-review, OR
-  Claude-authored review invoked through the `SYSTEM INSTRUCTION — PRD
-  REVIEW MODE ACTIVE` hook (filename stage-locked, not model-locked).
-- `PRD-NNN.adjudication.md` — only when genuine unresolved disagreement
-  requires explicit adjudication.
+Filename convention: the reviewer-slot suffixes (`.review.claude.md`,
+`.review.<model>.md`) and the full sidecar-suffix set excluded from PRD
+registry-row requirements (adjudication, codex-prompt, impl-notes,
+proposal) are enumerated in ONE place, `.claude/hooks/prd_eval.sh`'s
+exclusion list — that is the single source; this template does not
+restate it. `PRD-NNN.adjudication.md` exists only when genuine
+unresolved disagreement requires explicit adjudication.
 
-Per CLAUDE.md `Review artifact discipline`, review files are NOT PRDs and
-do NOT get rows in `PRD_REGISTRY.md`.
+Per `docs/PRD_PROCESS.md` § Registry Maintenance, review files are NOT
+PRDs and do NOT get rows in `PRD_REGISTRY.md`.
 
 ---
 
@@ -120,7 +120,7 @@ Before saving the review file:
 - Do not re-review previously-accepted findings in a revision pass.
   Mechanical incorporation of accepted findings does not require a new
   full review unless something materially changed (see CLAUDE.md
-  § Cross-review gate).
+  § Working practices, "Codex mechanics").
 
 ---
 

@@ -50,8 +50,10 @@ file_stems = set()
 for f in glob.glob(os.path.join(prd_dir, "PRD-*.md")):
     name = os.path.basename(f)
     # Review, adjudication, codex-prompt, impl-notes, and proposal sidecars
-    # are not PRDs and must not have registry rows (CLAUDE.md § Review
-    # artifact discipline; PRD-248 added .proposal.md).
+    # are not PRDs and must not have registry rows -- this list IS the
+    # single source of truth for that exclusion (PRD-254; docs/
+    # PRD_REVIEW_TEMPLATE.md points here rather than restating it;
+    # PRD-248 added .proposal.md).
     if (
         ".review." in name
         or name.endswith(".adjudication.md")

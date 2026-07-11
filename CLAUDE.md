@@ -194,9 +194,10 @@ each generalizes are canonical in `docs/prd_history/PRD-198.md` (Part A).
   and publishes to the `publish` branch (the live Pages site). NEVER overwrite
   `main`'s `ui/dashboard.html` / `ui/index.html` from a sandbox render — the
   in-repo `logs/*` are minimal fallbacks, so a local render degrades the
-  committed snapshot and does not touch the live site. The local renderer
-  (`dashboard-publish-refresh`) stays a read-only DRY_RUN health check at
-  most.
+  committed snapshot and does not touch the live site. There is no local
+  renderer skill; `.github/workflows/dashboard_preview.yml` is the
+  sanctioned pre-merge preview path (ephemeral render, never committed or
+  deployed).
 - Start work on a PRD by reading the PRD file, the related modules, and prior
   `docs/DECISIONS.md` entries.
 - When drift is discovered mid-task (code doesn't match docs, undocumented

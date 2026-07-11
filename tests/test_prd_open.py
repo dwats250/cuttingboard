@@ -101,7 +101,8 @@ def test_scaffolds_prd_file(tmp_path: Path) -> None:
     prd = (tree / "docs" / "prd_history" / "PRD-200.md").read_text()
     # PRD-232: the scaffold must match docs/PRD_TEMPLATE.md, not a third
     # divergent skeleton — template header shape, section order, and the
-    # A/M/D FILES format that .claude/hooks/protect_files.sh parses.
+    # A/M/D FILES format that the scope-lock-precommit skill parses
+    # (PRD-254: protect_files.sh no longer parses FILES at all).
     assert prd.startswith("PRD-200 — Test PRD")
     assert "\nLANE\nMICRO\n" in prd
     assert "\nCLASS\nGOVERNANCE\n" in prd

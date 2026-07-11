@@ -2036,6 +2036,15 @@ for production drift to surface the gap**. The real-data validation
 step is not "QA," it's part of the implementation. The PRD itself
 should call out which validation samples exist and where.
 
+**Skill retirement (2026-07-10):** `.claude/skills/real-data-validation/SKILL.md`
+and `scripts/validate_consumer_prd.py` — the mechanized form of this pattern
+added the same day under "Post-VISION workflow tightening" — were deleted.
+Retention price was too high: the skill drifted while dormant, citing a PRD
+CLASS outside `docs/PRD_PROCESS.md`'s closed base set and a directory
+convention `CLAUDE.md` no longer states. A checklist that misdirects on
+first use is worse than no checklist. The discipline itself is unaffected —
+it lives in this entry, not in the retired skill.
+
 ### Cash Rebate folded into PRD-153 scope rather than spawned as a follow-up PRD
 
 Cash Rebate was discovered as an unrecognized row type during the
