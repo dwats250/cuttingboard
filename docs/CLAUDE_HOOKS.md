@@ -23,9 +23,9 @@ This is the real backstop. `.claude/settings.json` auto-approves `Write` and
 secret, env file, or CI workflow.
 
 **What it does:** intercepts Write/Edit. If the target path matches a protected
-pattern, the write is blocked unless that exact path is listed in the active
-PRD's `FILES` section. **Non-protected paths pass through untouched** - ordinary
-`docs/` and source edits are not gated by this hook.
+pattern, the write is blocked **unconditionally** (PRD-254) - no PRD, FILES
+entry, or state file can allow it through. **Non-protected paths pass through
+untouched** - ordinary `docs/` and source edits are not gated by this hook.
 
 **Protected patterns:** the hook's own hardcoded hard-block subset - see the
 script header in `.claude/hooks/protect_files.sh` for the literal list
@@ -37,9 +37,20 @@ enforce. Two scopes by design (PRD-230): the hook is the mechanical last line
 for catastrophic writes; AGENT_WORKFLOW.md is the policy boundary. Do not
 "sync" one list to the other.
 
-**Fail-closed:** for a protected path, if `.claude/state/active_prd.txt` is
-missing or empty the write is blocked. This applies only to protected paths - it
-does not block all writes.
+**Why unconditional, not PRD-gated (PRD-254):** before PRD-254, a protected
+path was writable if the active PRD's `FILES` section listed it - but that
+allow-path never once fired in this repo's history, and the hook only ever
+intercepted the `Write`/`Edit` tools. A protected-file write via `Bash`
+(`sed -i`, a heredoc) was never caught either way, so the sanctioned path was
+decorative. PRD-254 removed it rather than fix it: the hook now blocks every
+protected-path match through Write/Edit, full stop.
+
+**The matcher is deliberately not extended to `Bash` (PRD-254, decided, not
+deferred).** The hook catches accidents, not intent. Nobody accidentally
+`sed -i`'s a protected file; a PRD that genuinely needs to touch one does it
+through Bash today and did before this change too. Extending the matcher to
+Bash would add a knob chasing a threat model this project doesn't have -
+recorded here so a future audit doesn't re-find it as a gap.
 
 ## prd_eval.sh - registry-gap check
 
@@ -67,17 +78,10 @@ blocks. All other paths pass through with no output. `PROJECT_STATE.md`,
 `DECISIONS.md`, and the registry/index are deliberately NOT guarded: they change
 mid-session, so re-reads can be legitimate (PRD-201).
 
-## State files
-
-Under `.claude/state/` (gitignored, not committed):
-
-| File | Written by | Read by | Purpose |
-|---|---|---|---|
-| `active_prd.txt` | you, on PRD approval | `protect_files.sh` | The active PRD id (`PRD-NNN`, or `none`) |
-
 ## Commit / push
 
 Commit and push gating is handled by the harness's native permission model, not
-a hook: `.claude/settings.json` denies `git push` outright, and mutating
-commands prompt for approval. (An older `git_gate.sh` "APPROVE COMMIT" hook was
-retired as redundant with this.)
+a hook: `.claude/settings.json` allows plain `git push` but denies the three
+force-push forms (`--force`, `--force-with-lease`, `-f`) outright, and other
+mutating commands prompt for approval. (An older `git_gate.sh` "APPROVE COMMIT"
+hook was retired as redundant with this.)
