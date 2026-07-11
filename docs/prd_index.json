@@ -1202,6 +1202,12 @@
       "title": "Continuation-path ATR proxy max-loss fix or permanent-cap ruling",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 257,
+      "title": "Fix dashboard_preview.yml comment referencing the deleted dashboard-publish-refresh skill",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

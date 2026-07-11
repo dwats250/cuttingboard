@@ -79,8 +79,9 @@ jobs:
           cmp ui/dashboard.html ui/index.html
 
       - name: Report size delta
-        # The dashboard-publish-refresh skill's size_delta_override requires
-        # byte-delta evidence; these three lines are that evidence (R6).
+        # PRD-178 R6: a green run must log three labeled size lines
+        # (checked-in bytes, rendered bytes, percent delta) as the
+        # workflow's own artifact evidence.
         run: |
           set -euo pipefail
           OLD=${{ steps.oldsize.outputs.bytes }}
