@@ -1184,6 +1184,12 @@
       "title": "Per-trade risk budget: raise effective cap from $150 to $400",
       "status": "COMPLETE",
       "commit": "#133"
+    },
+    {
+      "number": 254,
+      "title": "Hook + settings hardening by removal",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
