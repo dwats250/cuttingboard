@@ -54,6 +54,7 @@ reports/output/
 *.json
 !ui/*.json
 .worktrees/
+.claude/worktrees/
 
 # Local-only Moomoo statement samples (Phase 2 scoping; never commit)
 private/
