@@ -19,8 +19,9 @@ It is NOT a substitute for:
 - Authoring the PRD (use `prd-authoring-verified`)
 - Implementing the PRD
 - The cross-review gate's *decision* to invoke Codex — that is the
-  human's call per `CLAUDE.md § Cross-review gate`. This skill only
-  produces the Claude side of the artifact pair.
+  human's call per `CLAUDE.md § Review gates` (second-model
+  disposition). This skill only produces the Claude side of the
+  artifact pair.
 - Adjudication when Claude and Codex disagree — that is a separate
   artifact (`PRD-NNN.adjudication.md`) and out of scope here.
 
@@ -38,7 +39,7 @@ Do NOT trigger for:
   the PRD's stated FILES + REQUIREMENTS, not the code quality.
 - Writing the Codex review artifact. The Codex slot
   (`PRD-NNN.review.codex.md`) is stage-locked per
-  `project_codex_review_filename.md` memory.
+  `docs/PRD_REVIEW_TEMPLATE.md`'s Filename convention.
 
 ## Operating modes
 
@@ -88,10 +89,12 @@ Two paths are stage-locked and the skill enforces them:
 
 - `docs/prd_history/PRD-NNN.review.claude.md` — Claude review slot.
   This is the only path the skill is permitted to write.
-- `docs/prd_history/PRD-NNN.review.codex.md` — Codex slot, owned by
-  the cross-review-gate hook (per
-  `project_codex_review_filename.md` memory). The skill refuses to
-  write here even if explicitly asked.
+- `docs/prd_history/PRD-NNN.review.codex.md` — Codex slot, per
+  `docs/PRD_REVIEW_TEMPLATE.md`'s Filename convention. The
+  `prd_eval.sh` keyword detector that once enforced this hook-side was
+  retired by PRD-243 (retired, not fictional — the slot-lock rule
+  itself still stands as skill-side discipline, just not hook-enforced
+  since). The skill refuses to write here even if explicitly asked.
 
 If WRITE_MODE target resolves to anything other than a path matching
 `PRD-<NNN>\.review\.claude(\.v\d+)?\.md`, refuse.
@@ -216,7 +219,7 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
 - Does not invoke Codex. The cross-review gate is a human decision.
 - Does not run the test suite or assert implementation correctness.
 - Does not update `PRD_REGISTRY.md`. Review artifacts do not get
-  registry rows (per `CLAUDE.md § Review artifact discipline`).
+  registry rows (per `docs/PRD_PROCESS.md § Registry Maintenance`).
 - Does not force-address optional/recommended Codex notes. REQUIRED
   Codex findings are mandatory; the rest are judgment calls.
 

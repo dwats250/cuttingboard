@@ -15,7 +15,7 @@ This skill does two things and only two things:
 It is NOT a substitute for:
 
 - Independent PRD review (Claude review artifact)
-- Cross-review gate / Codex review (`CLAUDE.md § Cross-review gate`)
+- Cross-review gate / Codex review (`CLAUDE.md § Review gates`)
 - Implementation review or test-pass verification
 - Adjudication of unresolved review disagreement
 
@@ -43,8 +43,9 @@ The skill operates in one of two modes. Default is **DRAFT_ONLY**.
 - **WRITE_MODE** — write the PRD to `docs/prd_history/PRD-NNN.md`. Do
   NOT edit `docs/PRD_REGISTRY.md` unless the user has explicitly stated
   implementation is starting in this same session. Per
-  `CLAUDE.md § Review artifact discipline`: "Registry rows are added
-  only when a PRD moves to IN PROGRESS or COMPLETE."
+  `docs/PRD_PROCESS.md § Registry Maintenance`: "Add a row to
+  PRD_REGISTRY.md with status IN PROGRESS before implementation
+  begins."
 
 The user selects the mode. If unclear, ask once, then default to
 DRAFT_ONLY.
@@ -155,7 +156,7 @@ apply the hard rule above (generalize / remove / tag `[UNVERIFIED]`).
 
 - `Agent(subagent_type: "Explore", model: "haiku")` for V4 bulk
   test-tree grep when scope is ≥3 files or >5 strings (per
-  `CLAUDE.md § Cheap-Lookup Dispatch Policy`).
+  `CLAUDE.md § Working practices`, "Recon goes to subagents").
 - `scripts/pre_commit_sanity.sh` — only relevant if user is about to
   commit; this skill does not commit.
 
