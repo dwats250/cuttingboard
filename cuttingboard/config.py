@@ -61,11 +61,24 @@ TELEGRAM_CHAT_ID: str | None = os.getenv("TELEGRAM_CHAT_ID")
 MIN_RR_RATIO            = 2.0
 MIN_REGIME_CONFIDENCE   = 0.50
 # PRD-157 (2026-05-24): retired TARGET_DOLLAR_RISK / MAX_DOLLAR_RISK in
-# favor of equity-driven sizing. Defaults preserve the prior 150-dollar
-# target exactly (15000 × 0.01 = 150.0). ACCOUNT_EQUITY is a static
+# favor of equity-driven sizing. ACCOUNT_EQUITY is a static
 # manually-maintained value; no broker integration.
+# PRD-252 (2026-07-10): raised the per-trade risk-pct dial, not
+# ACCOUNT_EQUITY (equity is a factual input; this is a risk-tolerance
+# preference, deliberately not a pure offset of PRD-251's corrected
+# arithmetic -- see PRD-252 rationale). 15000 x 0.026667 ~= 400.00.
 ACCOUNT_EQUITY          = 15000.0
-MAX_RISK_PCT_PER_TRADE  = 0.01
+MAX_RISK_PCT_PER_TRADE  = 0.026667
+# PRD-252: continuation-path candidates (qualification.py's
+# _qualify_continuation_candidate and options.py's build_option_setups for
+# entry_mode == ENTRY_MODE_CONTINUATION) hold at the pre-PRD-252 budget.
+# Its ATR-based debit proxy carries the same max-loss-understatement latent
+# assumption PRD-251 fixed on the direct path (confirmed in
+# docs/prd_history/PRD-251.continuation-path.proposal.md); inheriting the
+# raised budget would size more contracts against an already-too-low risk
+# number. Retire this constant -- and validate the continuation path AT the
+# raised budget, not silently re-couple -- when that fast-follow lands.
+CONTINUATION_MAX_RISK_PCT_PER_TRADE = 0.01
 
 
 def _validate_sizing_config(account_equity: float, max_risk_pct: float) -> None:

@@ -211,6 +211,27 @@ class TestQualifyContinuationCandidate:
         result = _qualify_continuation_candidate("TEST", df, _sr(), _expansion_regime(), dm)
         assert result.rejection_reason == "STOP_TOO_TIGHT"
 
+    def test_continuation_sizes_against_decoupled_budget_prd252(self):
+        # PRD-252: continuation-path sizing must hold at the pre-PRD-252 $150
+        # budget (CONTINUATION_MAX_RISK_PCT_PER_TRADE) on LIVE, unmocked
+        # config -- proving the decouple, not just documenting intent.
+        # Companion to test_qualification.py's
+        # test_credit_bull_put_clears_gate8_at_raised_budget_prd252, which
+        # proves the direct path sizes against the raised ~$400 budget under
+        # this same live config.
+        # atr=2.0 -> spread_width=max(0.50, 2.0*0.05)=0.50 -> spread_cost=$50.
+        # $150 budget -> floor(150/50)=3 contracts, $150 dollar_risk. If the
+        # raised ~$400 budget leaked in: floor(400/50)=8 -- would fail this.
+        entry = 100.0
+        atr = 2.0
+        df = self._breakout_df(entry, atr)
+        regime = _expansion_regime()
+        dm = _dm(atr, entry=entry)
+        result = _qualify_continuation_candidate("TEST", df, _sr(TREND), regime, dm)
+        assert result.qualified is True
+        assert result.max_contracts == 3
+        assert result.dollar_risk == pytest.approx(150.0)
+
     def test_wick_dominated_candle_fails_momentum_r5(self):
         # PRD-240 R5 red test: last candle range clears 0.75×ATR14, but the
         # close sits at the bottom half of that range (close_location < 0.75)

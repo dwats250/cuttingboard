@@ -478,7 +478,7 @@ class TestBuildOptionSetups:
     def test_empty_input(self):
         assert build_option_setups([], {}, {}) == []
 
-    def test_credit_strategy_no_candidate_fallback_stays_debit_proxy_prd251(self):
+    def test_credit_strategy_no_candidate_fallback_stays_debit_proxy_prd251(self, monkeypatch):
         # PRD-251 (A1a) R4 safety net. candidate=None in production is
         # exactly the shape of an EXPANSION-regime continuation-path result
         # (_qualify_continuation_candidate never populates the candidates
@@ -492,6 +492,14 @@ class TestBuildOptionSetups:
         # untouched ATR-based proxy) never changed -- recreating the exact
         # Gate-8-vs-final-render divergence R3 exists to eliminate, in the
         # one path this PRD must not touch.
+        #
+        # PRD-252: this is a formula-selection invariant (fallback stays
+        # spread_width-priced at $150/contract), not a budget consequence --
+        # pinned to the pre-PRD-252 $150 effective budget via monkeypatch so
+        # the raised live default doesn't change the resulting contract
+        # count and mask what this test actually guards.
+        monkeypatch.setattr(config, "ACCOUNT_EQUITY", 15000.0)
+        monkeypatch.setattr(config, "MAX_RISK_PCT_PER_TRADE", 0.01)
         results = [_qual_result("SPY", direction="LONG", max_contracts=3, dollar_risk=150.0)]
         sr = {"SPY": _structure("SPY", TREND, HIGH_IV)}
         dm = {"SPY": _dm("SPY")}
@@ -549,6 +557,40 @@ class TestBuildOptionSetups:
         assert setup.dollar_risk == pytest.approx(
             _estimated_debit(_MAX_STRIKE_DIST_ETF) * 100
         )
+
+    def test_continuation_result_recomputes_against_decoupled_budget_prd252(self):
+        # PRD-252 R6 (fresh-context review REQUIRED EDIT): build_option_setups's
+        # correlation-modifier recompute (effective_risk, ~line 232) must
+        # branch on entry_mode == ENTRY_MODE_CONTINUATION to read
+        # CONTINUATION_MAX_RISK_PCT_PER_TRADE, not the raised main constant
+        # -- the qualification.py decouple alone does not close this leak.
+        #
+        # Every other continuation-shaped test in this class uses an
+        # upstream max_contracts of 1, which is always <= any plausible
+        # raw_adjusted and so the min(result.max_contracts, raw_adjusted)
+        # clamp hides a leaked (wrong-constant) recompute. This test
+        # deliberately uses an upstream max_contracts (10) that is NOT the
+        # binding constraint, so raw_adjusted -- and therefore which
+        # constant it was computed from -- is what actually reaches
+        # final_contracts. spread_width=1.0 -> risk_per_contract=$100.
+        # Correctly decoupled: floor(150/100)=1 contract, $100 dollar_risk.
+        # If the raised main constant leaked in: floor(400.005/100)=4
+        # contracts, $400 dollar_risk -- a 4x oversizing of a trade this
+        # budget is supposed to keep frozen at $150.
+        results = [_qual_result(
+            "SPY", direction="LONG", max_contracts=10, dollar_risk=1000.0,
+            entry_mode=ENTRY_MODE_CONTINUATION,
+        )]
+        sr = {"SPY": _structure("SPY", TREND, NORMAL_IV)}
+        dm = {"SPY": _dm("SPY")}
+        candidate = TradeCandidate(
+            symbol="SPY", direction="LONG",
+            entry_price=100.0, stop_price=97.0, target_price=106.0,
+            spread_width=1.0,
+        )
+        setup = build_option_setups(results, sr, dm, candidates={"SPY": candidate})[0]
+        assert setup.max_contracts == 1
+        assert setup.dollar_risk == pytest.approx(100.0)
 
     def test_credit_strategy_final_resize_agrees_with_candidate_max_loss_prd251(self):
         # PRD-251 (A1a) R3: when a TradeCandidate IS supplied, the final

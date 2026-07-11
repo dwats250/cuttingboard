@@ -42,16 +42,18 @@ def test_max_risk_pct_per_trade_constant_exists_and_in_range() -> None:
     assert 0 < config.MAX_RISK_PCT_PER_TRADE <= 1
 
 
-def test_defaults_preserve_target_dollar_risk_of_150() -> None:
-    """PRD-157 R1: defaults preserve the retired TARGET_DOLLAR_RISK=150 exactly.
+def test_defaults_yield_400_dollar_effective_budget() -> None:
+    """PRD-252: defaults yield an effective per-trade budget of $400 intent.
 
-    15000 × 0.01 = 150.0. This makes the migration behavior-preserving at
-    default values; sizing-related test churn beyond this module is unexpected.
+    15000 × 0.026667 = 400.005 -- a non-round literal (MAX_RISK_PCT_PER_TRADE
+    is the risk-tolerance dial, not a dollar constant; PRD-157 retired
+    dollar-budget constants). Asserts the $400 intent via approx rather than
+    pinning the rounding artifact.
     """
     product = config.ACCOUNT_EQUITY * config.MAX_RISK_PCT_PER_TRADE
-    assert product == 150.0, (
-        f"ACCOUNT_EQUITY × MAX_RISK_PCT_PER_TRADE must equal 150.0 (default "
-        f"behavior preservation), got {product}"
+    assert product == pytest.approx(400.0, abs=0.01), (
+        f"ACCOUNT_EQUITY × MAX_RISK_PCT_PER_TRADE must be ~= $400.00 (PRD-252 "
+        f"raised default), got {product}"
     )
 
 
