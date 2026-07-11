@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 251,
-  "next_prd": 252,
+  "latest_complete": 252,
+  "next_prd": 253,
   "entries": [
     {
       "number": 56,
@@ -1182,8 +1182,8 @@
     {
       "number": 252,
       "title": "Per-trade risk budget: raise effective cap from $150 to $400",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#133"
     }
   ]
 }
