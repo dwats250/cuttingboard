@@ -1190,6 +1190,12 @@
       "title": "Hook + settings hardening by removal",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 255,
+      "title": "prd-review-claude to the 2026-07-07 review-artifact spec",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
