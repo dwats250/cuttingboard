@@ -32,7 +32,6 @@
       "Glob",
       "Bash(git push:*)",
       "Bash(gh pr create:*)",
-      "Bash(gh pr merge:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr checks:*)",
       "Bash(gh run watch:*)"
@@ -40,7 +39,8 @@
     "deny": [
       "Bash(git push --force:*)",
       "Bash(git push --force-with-lease:*)",
-      "Bash(git push -f:*)"
+      "Bash(git push -f:*)",
+      "Bash(gh pr merge:*)"
     ]
   },
   "hooks": {
