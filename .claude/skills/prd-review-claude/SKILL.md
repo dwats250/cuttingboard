@@ -104,15 +104,17 @@ If WRITE_MODE target resolves to anything other than a path matching
 Every review the skill produces has these sections in this order:
 
 ```
-# PRD-NNN Claude Review
-
 REVIEWED STATE
 Reviewed SHA: <commit hash this review targets, verified with `git cat-file -e <sha>^{commit}`>
 Merge base: <output of `git merge-base <the same reviewed SHA> origin/main` at review time>
 Independence: <fresh-context | different-model | same-context> — <one-line justification>
 (This IS `docs/PRD_REVIEW_TEMPLATE.md`'s Review Independence
 attestation, per PRD-121 R4 — the canonical block, not a duplicate of
-one. That template no longer defines a separate checkbox form.)
+one. That template no longer defines a separate checkbox form. Placed
+before the title, as the first content in the file — the Claude slot's
+form of that template's top-of-file placement requirement.)
+
+# PRD-NNN Claude Review
 
 VERDICT
 <one of: ACCEPT | ACCEPT WITH CHANGES | REJECT>

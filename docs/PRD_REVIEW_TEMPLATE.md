@@ -143,11 +143,15 @@ Use this only when the original PRD is genuinely ready as-is.
 
 ## Review Independence (required, PRD-121 R4)
 
-Place this block at the very top of every review file — Claude-authored
-(via `prd-review-claude`) or a commissioned second-model artifact alike.
-This is the one live Review Independence contract (PRD-255, 2026-07-11):
-the standalone checkbox block this section formerly required is
-retired, not duplicated alongside this one.
+Place this block at the top of every review file, before the review
+body (VERDICT / FINDINGS / etc.) — Claude-authored (via
+`prd-review-claude`, where it is literally the first content) or a
+commissioned second-model artifact alike (where it follows that slot's
+established one-line title/status header — see
+`docs/prd_history/PRD-252.review.codex.md` for the precedent). This is
+the one live Review Independence contract (PRD-255, 2026-07-11): the
+standalone checkbox block this section formerly required is retired,
+not duplicated alongside this one.
 
 ```
 REVIEWED STATE
@@ -169,6 +173,16 @@ Rules:
 - Reviewed SHA and Merge base MUST both be computed from the same
   reviewed commit, not `HEAD` if the reviewed SHA differs from
   checked-out HEAD.
+- **Git-free second-model reviews (PRD-255 R4 delegation pattern):**
+  when the reviewing model is deliberately run against a `.git`-free
+  snapshot (so it cannot itself run `git cat-file` / `git merge-base`),
+  the REVIEWED STATE fields are computed and stamped onto the artifact
+  by the commissioning driver (the agent with real repo access that
+  built the snapshot and writes the artifact into the repo), not by the
+  sandboxed reviewing model. The driver's computation is still bound to
+  the exact commit the snapshot was taken from — bare assertion from
+  memory is still refused (V11/V12 in `prd-review-claude/SKILL.md`
+  apply to the driver's write, not to the sandboxed model's output).
 
 The Independence attestation is the load-bearing artifact for review
 honesty. Reviews that omit it are treated as if no review occurred.
