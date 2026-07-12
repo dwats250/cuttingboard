@@ -46,8 +46,15 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
   fixture, no functional effect; cosmetic-carve-out eligible follow-up, not
   fixed here). PRD-253.md's own WHY NOW citation
   (`PRD-252.disposition.codex.md` → the actual filename
-  `PRD-252.review.codex.md`) corrected at closeout. Full design record:
-  `docs/prd_history/PRD-253.md`.
+  `PRD-252.review.codex.md`) corrected at closeout. Bot-thread disposition
+  (PRD-228): checked twice (post-draft-open, post-ready-for-review) —
+  zero `chatgpt-codex-connector` threads both times, recorded explicitly
+  in the PRD doc's BOT-THREAD DISPOSITION section rather than omitted,
+  per Dustin's ruling that absence-of-section and checked-and-empty must
+  not read the same. Not treated as a clean-pass signal — a same-repo
+  sweep found the connector skips a material fraction of merged PRs for a
+  still-unconfirmed reason (see connector-gap investigation below). Full
+  design record: `docs/prd_history/PRD-253.md`.
 - **PRD-255 — COMPLETE (2026-07-11, HIGH-RISK/GOVERNANCE, merged via #140):**
   brings `prd-review-claude` to the 2026-07-07 review-artifact spec — a
   REVIEWED STATE header (reviewed SHA, merge base, independence line)
