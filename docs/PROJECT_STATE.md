@@ -5,11 +5,49 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-07-12 (commit #140)
+**Last updated:** 2026-07-12 (PR #143, held for Dustin's manual merge)
 
 ## Current state
 
-- **Active PRD:** none in progress.
+- **Active PRD:** none in progress. (PRD-256 remains registered IN PROGRESS
+  in `docs/PRD_REGISTRY.md` — pre-existing drift against this line,
+  unrelated to PRD-253; flagged for correction, not fixed here since
+  `docs/PROJECT_STATE.md` is outside PRD-256's own FILES.)
+- **PRD-253 — COMPLETE (2026-07-12, HIGH-RISK/CONTRACT, PR #143 — held for
+  Dustin's manual merge):** `contract.py::_build_trade_candidates` and
+  `audit.py::_build_record`'s `qualified_list` construction now source
+  `position_size`/`dollar_risk`/`contracts` from the correlation- and
+  strategy-adjusted `OptionSetup` (PRD-023/PRD-157/PRD-251) instead of the
+  pre-adjustment `QualificationResult` — closing the finding Sol's PRD-252
+  disposition surfaced (`docs/prd_history/PRD-252.review.codex.md`,
+  hypotheses 6/11): `audit.jsonl`'s own `qualified_trades[]` and
+  `trade_decisions[]` blocks disagreed with each other on contract size for
+  the identical candidate, same run. Two discriminating regression tests
+  added (`test_contract.py::test_prd157_sizing_passthrough_present`
+  reworked, `test_audit.py::test_audit_qualified_trades_sizing_sources_from_option_setup`
+  new), both mutation-verified red on revert. Suite 2936 passed, 1 xfailed
+  (sandbox; CI is the deciding run). HIGH-RISK gate: fresh-context Claude
+  review ACCEPT, zero REQUIRED EDITS (`PRD-253.review.claude.md`) +
+  commissioned second-model disposition (`PRD-253.review.codex.md`),
+  VERDICT ACCEPT — run under fresh orchestrator/retriever persona names
+  "Rigel"/"Vega" rather than "Sol"/"Luna" because Sol found this exact bug
+  on PRD-252 and reviewing its own discovery would be a closed loop
+  (`docs/PRD_PROCESS.md` explicitly permits fresh naming for the same
+  instrument). The git-free snapshot handed to Rigel/Vega additionally
+  excluded `PRD-252.review.codex.md` itself (Sol's own prior write-up of
+  this exact finding), beyond the standard Leg-1-artifact exclusion, to
+  preserve genuine independence. Ten non-blocking findings surfaced by the
+  disposition, none blocking: a defensible `None`-on-missing-`OptionSetup`
+  behavior change in `audit.py` (correct direction per the CONTRACT-class
+  silent-fallback prohibition), two pre-existing defensive-input gaps not
+  introduced by this PRD, and doc/comment staleness — including a
+  previously-unnamed stale sourcing comment in
+  `tests/test_prd161_sizing_gate_fixture.py:51-54` (non-discriminating
+  fixture, no functional effect; cosmetic-carve-out eligible follow-up, not
+  fixed here). PRD-253.md's own WHY NOW citation
+  (`PRD-252.disposition.codex.md` → the actual filename
+  `PRD-252.review.codex.md`) corrected at closeout. Full design record:
+  `docs/prd_history/PRD-253.md`.
 - **PRD-255 — COMPLETE (2026-07-11, HIGH-RISK/GOVERNANCE, merged via #140):**
   brings `prd-review-claude` to the 2026-07-07 review-artifact spec — a
   REVIEWED STATE header (reviewed SHA, merge base, independence line)
@@ -95,6 +133,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 | PRD | Title | Completed |
 |-----|-------|-----------|
+| PRD-253 | Contract/audit sizing sourcing: read correlation- and strategy-adjusted OptionSetup, not pre-adjustment QualificationResult | 2026-07-12 |
 | PRD-257 | Fix dashboard_preview.yml comment referencing the deleted dashboard-publish-refresh skill | 2026-07-12 |
 | PRD-254 | Hook + settings hardening by removal | 2026-07-12 |
 | PRD-252 | Per-trade risk budget: raise effective cap from $150 to $400 | 2026-07-11 |
