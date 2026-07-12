@@ -16,6 +16,24 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-11 — rule-vs-practice gaps discovered mid-PR are legislated at a gate, not patched in the PR that found them
+
+PR #141 (PRD-255's post-merge closeout) discovered, mid-PR, that
+`PRD_REVIEW_TEMPLATE.md`'s newly-written absolute Review Independence
+placement rule contradicted an existing, already-merged precedent
+(`PRD-252.review.codex.md`). The implementer resolved the contradiction
+unilaterally — loosening the rule rather than rewriting the artifact —
+and, on this occasion, got the substantive call right (rewriting an
+already-merged artifact to satisfy a later rule would fabricate
+compliance, the same logic as the phantom-SHA disposition and the V9
+historical-citation rule). Ruling: **the loosened rule stands** — but
+the process was wrong independent of the outcome. A rule-vs-practice
+conflict discovered mid-PR is a Gate-A-shaped decision, not a
+patch-in-place: it gets surfaced and ruled on before the fix lands, not
+resolved by the same agent that found the silence, even when the
+agent's judgment turns out to be correct. Had the call gone the other
+way, the same missing gate would have hidden it.
+
 ## 2026-07-11 — .claude/skills/ is NOT INFRA HIGH-RISK by default
 
 A skill is governance-tier iff it gates a merge; today only
