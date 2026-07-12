@@ -9,7 +9,42 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 ## Current state
 
-- **Active PRD:** none in progress.
+- **Active PRD:** none in progress. PRD-253 (HIGH-RISK/CONTRACT) is COMPLETE
+  pending Dustin's manual merge of PR #143; PRD-256 remains registered IN
+  PROGRESS in `docs/PRD_REGISTRY.md`.
+- **Queue (2026-07-12, per Dustin):** PRD-253 merge (#143) -> **connector-gap
+  root cause (investigation, no PRD number yet)** -> PRD-256 Phase 1 ->
+  follow-on #6 (FILES schema / R11 verification, `docs/prd_history/PRD-255.md`
+  NOTES section) -> the `prd_close.sh` slice -> the rest -> F-02. The
+  connector-gap item sits AHEAD of PRD-256 in this ordering — it is not one
+  of the parked-behind-PRD-256 follow-on items tracked in `PRD-255.md`.
+- **Connector-gap investigation (queued, ahead of PRD-256, no PRD number
+  yet):** a full sweep of all 138 merged PRs (`chatgpt-codex-connector`
+  activity via `gh api`, cross-referenced against PRD LANE) found 61 with
+  zero bot activity; 37 of those are pure bookkeeping/docs commits with no
+  code-adjacent files (nothing to review — not a gap), but **24 are
+  genuine code-bearing PRs merged with zero independent bot review, 15 of
+  them HIGH-RISK** (three EXECUTION, two CONTRACT, one INFRA — PRD-207,
+  itself a fix for a previously-hollow Codex gate). Spread across the
+  connector's entire tenure in this repo (earliest confirmed activity:
+  PR #1, reviewed 5 minutes after opening — no pre-install window is
+  observable at all) with no chronological clustering. Draft-state
+  suppression, the working theory when this was first found, is
+  FALSIFIED: only 3 of 138 PRs ever show a draft-to-ready timeline
+  transition, one of which (#9 / PRD-186, HIGH-RISK/GOVERNANCE) went
+  through that exact transition and still got zero bot review; the other
+  60 zero-bot PRs show no evidence of ever being draft (a PR cannot merge
+  while still draft, so absence of the transition event on a merged PR is
+  structural evidence, not an inference from missing data). Authorship and
+  chronological clustering are also ruled out as explanations. Root cause
+  remains OPEN — GitHub App webhook delivery evidence, diff-size/file-count
+  thresholds, and PR creation path (CLI/API/UI) are the next things to
+  check. Not yet a fix, not yet a PRD: investigation only, per Dustin's
+  explicit instruction. Matters because the connector is not noise when it
+  does run — 74 of 77 reviewed PRs (96%) drew at least one line-level
+  finding, and two of PR #140's findings were real defects surviving in
+  the FINAL MERGED state of a HIGH-RISK/GOVERNANCE PRD that had already
+  passed both review legs.
 - **PRD-255 — COMPLETE (2026-07-11, HIGH-RISK/GOVERNANCE, merged via #140):**
   brings `prd-review-claude` to the 2026-07-07 review-artifact spec — a
   REVIEWED STATE header (reviewed SHA, merge base, independence line)
