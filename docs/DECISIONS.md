@@ -16,6 +16,45 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-11 — .claude/skills/ is NOT INFRA HIGH-RISK by default
+
+A skill is governance-tier iff it gates a merge; today only
+`prd-review-claude` qualifies (the Second-Model Disposition and DRIFT
+CHECK it authors are load-bearing on HIGH-RISK closes). `prd-authoring-verified`,
+`prd-closeout-verified`, and other skills advise an agent but do not
+themselves block a merge — CI (`tools/validate_prd_registry.py`) and
+the human Gate B merge do that. Rationale: hooks execute and can
+permit or block a write or commit; skills advise an agent while a
+human still merges — the INFRA CLASS Matrix row's HIGH-RISK FILES list
+(CI workflows, `.claude/**` hooks/settings) does not extend to
+`.claude/skills/` by default absent this gating property. This
+resolves the ambiguity the Fable audit's `audits/FINDINGS.md` finding 6
+(F-04/F-05) raised — `.claude/skills/` is absent from
+`protect_files.sh`'s protected set — by recording that the absence is
+correct for non-gating skills, not a gap; only a skill that gates a
+merge needs the protection.
+
+## 2026-07-11 — PRD-252 review calibration: mutation-style review and exhaustive out-of-diff sweeps catch different things
+
+PRD-252's HIGH-RISK close used two independent review legs: the
+fresh-context Claude review (`docs/prd_history/PRD-252.review.claude.md`),
+which found the missing `options.py` branch test by mutation-style
+reasoning (ask which test would fail if a branch were removed or
+bypassed) scoped to PRD-252's own diff; and the commissioned Codex
+second-model disposition (`docs/prd_history/PRD-252.review.codex.md`),
+whose Sol/Luna orchestrator/retriever split ran an exhaustive
+out-of-diff consumer sweep and surfaced a pre-existing
+correlation-modifier passthrough gap in `contract.py`/`audit.py` — real,
+but outside PRD-252's diff and predating it, so neither Gate A nor the
+diff-scoped Claude review could have found it.
+
+Both were needed: the mutation-style review is precise inside the diff
+but stops at its boundary; the exhaustive sweep ranges wider but needs
+an orchestrator forming hypotheses to avoid drowning in raw findings.
+Neither framing alone would have found what the other did. See
+`docs/prd_history/PRD-252.review.codex.md`'s CLASS OF REVIEW section
+for Sol's own characterization of the two review styles.
+
 ## 2026-07-10 — PRD-252: continuation path decoupled from the raised budget at both sizing sites
 
 PRD-252 raises `config.MAX_RISK_PCT_PER_TRADE` (not `ACCOUNT_EQUITY` — a
