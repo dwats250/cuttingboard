@@ -55,6 +55,60 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
   it has no findings) — recorded explicitly in the PRD doc's BOT-THREAD
   DISPOSITION section, corrected from an earlier version that had checked
   only comments/reviews. Full design record: `docs/prd_history/PRD-253.md`.
+- **Queue (2026-07-12, per Dustin):** PRD-253 merged (#143, 2026-07-12) ->
+  **connector-gap root cause (investigation, no PRD number yet)** ->
+  PRD-256 Phase 1 -> follow-on #6 (FILES schema / R11 verification,
+  `docs/prd_history/PRD-255.md` NOTES section) -> the `prd_close.sh` slice
+  -> the rest -> F-02. The connector-gap item sits AHEAD of PRD-256 in
+  this ordering — it is not one of the parked-behind-PRD-256 follow-on
+  items tracked in `PRD-255.md`.
+- **Connector-gap investigation (queued, ahead of PRD-256, no PRD number
+  yet):** the first sweep pass (comments + reviews + inline comments only)
+  found 61/138 merged PRs with no `chatgpt-codex-connector` comment/review,
+  24 of them code-bearing, 15 HIGH-RISK — **that count was wrong.** The
+  connector's own documentation states it reacts with a thumbs-up rather
+  than commenting when it finds nothing ("if Codex has suggestions, it
+  will comment; otherwise it will react with :thumbsup:"); the first pass
+  never queried the reactions endpoint. A corrected sweep
+  (`issues/{n}/reactions`) found 58 of those 61 "zero-activity" PRs
+  actually carry a silent `+1` from `chatgpt-codex-connector[bot]` — the
+  bot ran and passed them clean. **Corrected count: only 3 of 138 merged
+  PRs show zero signal across all four channels (comment, review, inline
+  comment, reaction)** — #8 (pure bookkeeping, no code, not a gap), #62
+  (PRD-210, HIGH-RISK/SIDECAR, code-bearing), #128 (PRD-250, MICRO,
+  code-bearing, presentation-only). **Two code-bearing PRs, one HIGH-RISK,
+  across the connector's entire ~138-PR tenure** — not 24/15. Ruled out for
+  those 2: draft-state (neither ever went through a draft-to-ready
+  transition), diff size/file count (363 additions/7 files and 609
+  additions/8 files — both mid-range against a 168-addition/5-file median,
+  neither an outlier), rapid-succession/rate-limiting (no other PR created
+  within a day of either). PR creation path (CLI/API/UI) has no exposed
+  API field to check directly; PR-body-formatting was checked as a weak
+  proxy and showed no clean split between groups. GitHub App webhook
+  delivery logs are NOT accessible with the credentials available in this
+  session (`gh auth status` scopes: gist, read:org, repo — delivery logs
+  require JWT-as-the-App or org App-management access, neither present;
+  `repos/.../installation` returns 401, `user/installations` returns 403).
+  With n=2, no further pattern is statistically findable from this data;
+  the two real cases may simply be occasional GitHub App delivery
+  flakiness (~1.4% of merged PRs), unconfirmed without delivery-log
+  access Dustin or the App owner would need to check directly (repo/org
+  Settings -> GitHub Apps, or the connector's own
+  chatgpt.com/codex/cloud/settings dashboard). Not yet a fix, not yet a
+  PRD: investigation only, per Dustin's explicit instruction. The
+  connector remains non-noise when it does comment — 74 of 77 PRs it left
+  an actual comment on (not just a reaction) drew at least one line-level
+  finding, and two of PR #140's findings were real defects surviving in
+  the FINAL MERGED state of a HIGH-RISK/GOVERNANCE PRD that had already
+  passed both review legs — but the scale of "PRs it never engaged with
+  at all" is two, not two dozen.
+- **Known gap, current as of 2026-07-12:** PR #62 (PRD-210,
+  HIGH-RISK/SIDECAR) merged with zero connector signal across all four
+  channels — the one confirmed HIGH-RISK surface this repo has shipped
+  without any connector engagement at all. Owned, not urgent: root cause
+  unconfirmed (see connector-gap investigation above), no evidence of a
+  defect in PRD-210 itself, and n=1 for HIGH-RISK cases is not a pattern
+  to act on beyond noting it.
 - **PRD-255 — COMPLETE (2026-07-11, HIGH-RISK/GOVERNANCE, merged via #140):**
   brings `prd-review-claude` to the 2026-07-07 review-artifact spec — a
   REVIEWED STATE header (reviewed SHA, merge base, independence line)
