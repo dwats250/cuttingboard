@@ -19,32 +19,45 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
   connector-gap item sits AHEAD of PRD-256 in this ordering — it is not one
   of the parked-behind-PRD-256 follow-on items tracked in `PRD-255.md`.
 - **Connector-gap investigation (queued, ahead of PRD-256, no PRD number
-  yet):** a full sweep of all 138 merged PRs (`chatgpt-codex-connector`
-  activity via `gh api`, cross-referenced against PRD LANE) found 61 with
-  zero bot activity; 37 of those are pure bookkeeping/docs commits with no
-  code-adjacent files (nothing to review — not a gap), but **24 are
-  genuine code-bearing PRs merged with zero independent bot review, 15 of
-  them HIGH-RISK** (three EXECUTION, two CONTRACT, one INFRA — PRD-207,
-  itself a fix for a previously-hollow Codex gate). Spread across the
-  connector's entire tenure in this repo (earliest confirmed activity:
-  PR #1, reviewed 5 minutes after opening — no pre-install window is
-  observable at all) with no chronological clustering. Draft-state
-  suppression, the working theory when this was first found, is
-  FALSIFIED: only 3 of 138 PRs ever show a draft-to-ready timeline
-  transition, one of which (#9 / PRD-186, HIGH-RISK/GOVERNANCE) went
-  through that exact transition and still got zero bot review; the other
-  60 zero-bot PRs show no evidence of ever being draft (a PR cannot merge
-  while still draft, so absence of the transition event on a merged PR is
-  structural evidence, not an inference from missing data). Authorship and
-  chronological clustering are also ruled out as explanations. Root cause
-  remains OPEN — GitHub App webhook delivery evidence, diff-size/file-count
-  thresholds, and PR creation path (CLI/API/UI) are the next things to
-  check. Not yet a fix, not yet a PRD: investigation only, per Dustin's
-  explicit instruction. Matters because the connector is not noise when it
-  does run — 74 of 77 reviewed PRs (96%) drew at least one line-level
+  yet):** the first sweep pass (comments + reviews + inline comments only)
+  found 61/138 merged PRs with no `chatgpt-codex-connector` comment/review,
+  24 of them code-bearing, 15 HIGH-RISK — **that count was wrong.** The
+  connector's own documentation states it reacts with a thumbs-up rather
+  than commenting when it finds nothing ("if Codex has suggestions, it
+  will comment; otherwise it will react with :thumbsup:"); the first pass
+  never queried the reactions endpoint. A corrected sweep
+  (`issues/{n}/reactions`) found 58 of those 61 "zero-activity" PRs
+  actually carry a silent `+1` from `chatgpt-codex-connector[bot]` — the
+  bot ran and passed them clean. **Corrected count: only 3 of 138 merged
+  PRs show zero signal across all four channels (comment, review, inline
+  comment, reaction)** — #8 (pure bookkeeping, no code, not a gap), #62
+  (PRD-210, HIGH-RISK/SIDECAR, code-bearing), #128 (PRD-250, MICRO,
+  code-bearing, presentation-only). **Two code-bearing PRs, one HIGH-RISK,
+  across the connector's entire ~138-PR tenure** — not 24/15. Ruled out for
+  those 2: draft-state (neither ever went through a draft-to-ready
+  transition), diff size/file count (363 additions/7 files and 609
+  additions/8 files — both mid-range against a 168-addition/5-file median,
+  neither an outlier), rapid-succession/rate-limiting (no other PR created
+  within a day of either). PR creation path (CLI/API/UI) has no exposed
+  API field to check directly; PR-body-formatting was checked as a weak
+  proxy and showed no clean split between groups. GitHub App webhook
+  delivery logs are NOT accessible with the credentials available in this
+  session (`gh auth status` scopes: gist, read:org, repo — delivery logs
+  require JWT-as-the-App or org App-management access, neither present;
+  `repos/.../installation` returns 401, `user/installations` returns 403).
+  With n=2, no further pattern is statistically findable from this data;
+  the two real cases may simply be occasional GitHub App delivery
+  flakiness (~1.4% of merged PRs), unconfirmed without delivery-log
+  access Dustin or the App owner would need to check directly (repo/org
+  Settings -> GitHub Apps, or the connector's own
+  chatgpt.com/codex/cloud/settings dashboard). Not yet a fix, not yet a
+  PRD: investigation only, per Dustin's explicit instruction. The
+  connector remains non-noise when it does comment — 74 of 77 PRs it left
+  an actual comment on (not just a reaction) drew at least one line-level
   finding, and two of PR #140's findings were real defects surviving in
   the FINAL MERGED state of a HIGH-RISK/GOVERNANCE PRD that had already
-  passed both review legs.
+  passed both review legs — but the scale of "PRs it never engaged with
+  at all" is two, not two dozen.
 - **PRD-255 — COMPLETE (2026-07-11, HIGH-RISK/GOVERNANCE, merged via #140):**
   brings `prd-review-claude` to the 2026-07-07 review-artifact spec — a
   REVIEWED STATE header (reviewed SHA, merge base, independence line)
