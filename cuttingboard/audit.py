@@ -130,8 +130,8 @@ def _build_record(
                 "strategy":   setup.strategy if setup else None,
                 "structure":  setup.structure if setup else None,
                 "dte":        setup.dte if setup else None,
-                "contracts":  r.max_contracts,
-                "dollar_risk": r.dollar_risk,
+                "contracts":  setup.max_contracts if setup else None,
+                "dollar_risk": setup.dollar_risk if setup else None,
             }
             if decision is not None:
                 entry["entry"] = decision.entry

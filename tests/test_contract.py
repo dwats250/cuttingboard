@@ -344,18 +344,50 @@ class TestSuccessfulRun:
         assert "overnight_policy" not in candidate
 
     def test_prd157_sizing_passthrough_present(self):
-        """PRD-157 R6: position_size, dollar_risk, estimated_debit pass through
-        from QualificationResult / OptionSetup into the per-candidate dict.
+        """PRD-157 R6 / PRD-253 R1: position_size, dollar_risk, estimated_debit
+        pass through from OptionSetup (not QualificationResult) into the
+        per-candidate dict.
 
-        Fixture has QualificationResult(max_contracts=2, dollar_risk=150.0)
-        and OptionSetup(spread_width=0.75). Expected:
-        - position_size == 2 (from max_contracts)
-        - dollar_risk == 150.0 (from QualificationResult.dollar_risk)
-        - estimated_debit == 75.0 (from spread_width × 100)
+        Fixture discriminates the two source objects: QualificationResult
+        carries pre-adjustment sizing (max_contracts=2, dollar_risk=150.0,
+        from the shared _qual_summary() helper) while this test's own
+        OptionSetup carries distinct post-adjustment sizing
+        (max_contracts=1, dollar_risk=60.0), simulating a correlation
+        risk_modifier < 1.0 (PRD-023/PRD-157) or a PRD-251 strategy-aware
+        max-loss cut below spread_width. Expected:
+        - position_size == 1 (from OptionSetup.max_contracts, NOT
+          QualificationResult.max_contracts == 2)
+        - dollar_risk == 60.0 (from OptionSetup.dollar_risk, NOT
+          QualificationResult.dollar_risk == 150.0)
+        - estimated_debit == 75.0 (from spread_width × 100, unaffected)
         """
-        candidate = self.contract["trade_candidates"][0]
-        assert candidate["position_size"] == 2
-        assert candidate["dollar_risk"] == 150.0
+        setup = OptionSetup(
+            symbol="SPY",
+            strategy="BULL_CALL_SPREAD",
+            direction="LONG",
+            structure="TREND",
+            iv_environment="NORMAL_IV",
+            long_strike="1_ITM",
+            short_strike="ATM",
+            strike_distance=5.0,
+            spread_width=0.75,
+            dte=21,
+            max_contracts=1,
+            dollar_risk=60.0,
+            exit_profit_pct=0.5,
+            exit_loss="full_debit",
+        )
+        pr = _FakePipelineResult(
+            regime=_regime(),
+            qualification_summary=_qual_summary(qualified=1),
+            option_setups=[setup],
+            chain_results={"SPY": _chain_result()},
+            trade_decisions=[_trade_decision()],
+        )
+        contract = _build(pr)
+        candidate = contract["trade_candidates"][0]
+        assert candidate["position_size"] == 1
+        assert candidate["dollar_risk"] == 60.0
         assert candidate["estimated_debit"] == 75.0
 
     def test_optional_overnight_policy_is_validated(self):
