@@ -333,10 +333,14 @@ def _build_trade_candidates(
 
         vis = (visibility_map or {}).get(result.symbol, {})
         expl = (explanation_map or {}).get(result.symbol, {})
-        # PRD-157: sizing passthrough. position_size aliases result.max_contracts;
-        # dollar_risk forwards result.dollar_risk; estimated_debit = setup.spread_width
-        # × 100 (per-contract dollar debit, since OptionSetup.spread_width is
-        # documented as estimated net debit per share at options.py:100).
+        # PRD-157/PRD-253: sizing passthrough. position_size aliases
+        # setup.max_contracts; dollar_risk forwards setup.dollar_risk — both
+        # correlation- and strategy-adjusted (PRD-023/PRD-157/PRD-251), matching
+        # what render_report and audit.py's trade_decisions[] block use for the
+        # same candidate, not the pre-adjustment QualificationResult.
+        # estimated_debit = setup.spread_width × 100 (per-contract dollar debit,
+        # since OptionSetup.spread_width is documented as estimated net debit
+        # per share at options.py:100).
         candidates.append({
             "symbol": result.symbol,
             "direction": _safe_str(result.direction),
@@ -357,10 +361,10 @@ def _build_trade_candidates(
             "policy_reason": decision.policy_reason,
             "size_multiplier": float(decision.size_multiplier),
             "position_size": (
-                int(result.max_contracts) if result.max_contracts is not None else None
+                int(setup.max_contracts) if setup.max_contracts is not None else None
             ),
             "dollar_risk": (
-                float(result.dollar_risk) if result.dollar_risk is not None else None
+                float(setup.dollar_risk) if setup.dollar_risk is not None else None
             ),
             "estimated_debit": float(setup.spread_width * 100),
             "visibility_status": vis.get("visibility_status"),
