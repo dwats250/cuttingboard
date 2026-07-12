@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 252,
-  "next_prd": 253,
+  "latest_complete": 257,
+  "next_prd": 258,
   "entries": [
     {
       "number": 56,
@@ -1194,8 +1194,8 @@
     {
       "number": 254,
       "title": "Hook + settings hardening by removal",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#135"
     },
     {
       "number": 255,
@@ -1212,8 +1212,8 @@
     {
       "number": 257,
       "title": "Fix dashboard_preview.yml comment referencing the deleted dashboard-publish-refresh skill",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#135"
     }
   ]
 }
