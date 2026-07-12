@@ -272,7 +272,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-252 | #133 | Per-trade risk budget: raise effective cap from $150 to $400 | COMPLETE | [PRD-252](prd_history/PRD-252.md) |
 | PRD-253 | — | Contract/audit sizing sourcing: read correlation- and strategy-adjusted OptionSetup, not pre-adjustment QualificationResult | IN PROGRESS | [PRD-253](prd_history/PRD-253.md) |
 | PRD-254 | #135 | Hook + settings hardening by removal | COMPLETE | [PRD-254](prd_history/PRD-254.md) |
-| PRD-255 | — | prd-review-claude to the 2026-07-07 review-artifact spec | IN PROGRESS | [PRD-255](prd_history/PRD-255.md) |
+| PRD-255 | #140 | prd-review-claude to the 2026-07-07 review-artifact spec | COMPLETE | [PRD-255](prd_history/PRD-255.md) |
 | PRD-256 | — | Continuation-path ATR proxy max-loss fix or permanent-cap ruling | IN PROGRESS | [PRD-256](prd_history/PRD-256.md) |
 | PRD-257 | #135 | Fix dashboard_preview.yml comment referencing the deleted dashboard-publish-refresh skill | COMPLETE | [PRD-257](prd_history/PRD-257.md) |
 
