@@ -106,6 +106,14 @@ Every review the skill produces has these sections in this order:
 ```
 # PRD-NNN Claude Review
 
+REVIEWED STATE
+Reviewed SHA: <commit hash this review targets, verified with `git cat-file -e <sha>^{commit}`>
+Merge base: <output of `git merge-base <the same reviewed SHA> origin/main` at review time>
+Independence: <fresh-context | different-model | same-context> — <one-line justification>
+(This IS `docs/PRD_REVIEW_TEMPLATE.md`'s Review Independence
+attestation, per PRD-121 R4 — the canonical block, not a duplicate of
+one. That template no longer defines a separate checkbox form.)
+
 VERDICT
 <one of: ACCEPT | ACCEPT WITH CHANGES | REJECT>
 
@@ -122,6 +130,14 @@ RECOMMENDED EDITS
 RATIONALE
 <bullets explaining why each REQUIRED edit is required, anchored to
 CLAUDE.md, PRD process docs, or existing repo invariants>
+
+IMPLEMENTATION VERDICT
+<Only when an implementation diff was consulted (registry status `IN
+PROGRESS` or `COMPLETE`): per REQUIREMENT (R1, R2, ...), state PASS or
+FAIL against its FAIL line, each evidenced by real command/test
+output — REVIEW covers implementation-against-PRD
+(`audits/EXECUTION_DOCTRINE.md` sec 1), not the PRD document alone.
+Omit this section entirely when no implementation diff exists yet.>
 
 DRIFT CHECK
 <two lines, always recorded (even when "none"):
@@ -142,18 +158,28 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
 ### Phase 1 — Generate
 
 1. Read `docs/prd_history/PRD-NNN.md`.
-2. In cross-review mode: read `PRD-NNN.review.codex.md`. Refuse if
+2. Capture REVIEWED STATE: `git rev-parse HEAD` (or the reviewed
+   branch tip, if reviewing a ref other than the checked-out HEAD) for
+   the reviewed SHA. Then compute the merge base from THAT SAME SHA —
+   `git merge-base <reviewed SHA> origin/main` — never hardcode `HEAD`
+   once the reviewed SHA is known, or a review of a non-checked-out ref
+   silently pairs one commit's SHA with a different commit's merge
+   base. Record the independence line the dispatch specifies.
+3. In cross-review mode: read `PRD-NNN.review.codex.md`. Refuse if
    missing — there is nothing to cross-review.
-3. If implementation has started (registry status `IN PROGRESS` or
-   `COMPLETE`), read the implementation diff. The review still
-   targets the PRD document; the diff is *context*, not the subject.
-4. Compose the review in the structure above.
-5. Each REQUIRED EDIT must:
+4. If implementation has started (registry status `IN PROGRESS` or
+   `COMPLETE`), read the implementation diff and, per REQUIREMENT,
+   determine whether it satisfies the requirement's FAIL line — REVIEW
+   covers implementation-against-PRD (`audits/EXECUTION_DOCTRINE.md`
+   sec 1), not the PRD document alone. Cite the exact command/test
+   output evidencing each verdict.
+5. Compose the review in the structure above.
+6. Each REQUIRED EDIT must:
    - Quote or reference an exact PRD line (`PRD-NNN.md:LL`)
    - State an observable, binary FAIL criterion
    - Map to a CLAUDE.md rule, PRD-process rule, or existing repo
      invariant (cite it)
-6. DRIFT CHECK (lightweight, always recorded): read `VISION.md` non-goals /
+7. DRIFT CHECK (lightweight, always recorded): read `VISION.md` non-goals /
    principles and the `docs/PROJECT_STATE.md` current-state claims; record
    (i) whether the change conflicts with a VISION non-goal/principle and
    (ii) whether it leaves any PROJECT_STATE claim stale. This is drift, not
@@ -173,8 +199,11 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
 | V6 | WRITE_MODE target path matches `PRD-<NNN>\.review\.claude(\.v\d+)?\.md` | Refuse |
 | V7 | WRITE_MODE target path does not exist (no silent overwrite) | Refuse; ask user for explicit versioned path |
 | V8 | No "TODO", "FIXME", "PLACEHOLDER", or "TBD" tokens in the review body | Rewrite |
-| V9 | If implementation diff was consulted, the review does not assert "implementation passes/fails" — implementation review is a separate concern | Rephrase to PRD-doc focus |
+| V9 | RETIRED (PRD-255, 2026-07-11) — this number is never reused. Historical `*.review.claude.md` files (e.g. `PRD-254.review.claude.md:14`) cite "V9" describing the pre-PRD-255 prohibition on asserting implementation pass/fail; that citation is immutable evidence of what those reviews asserted at the time and is not reinterpreted by this table | n/a |
 | V10 | DRIFT CHECK present: the review records a VISION-conflict line and a PROJECT_STATE-staleness line (each "none" or with specifics) | Add the DRIFT CHECK section |
+| V11 | REVIEWED STATE's reviewed SHA resolves to a real commit — `git cat-file -e <sha>^{commit}` (bare `-e <sha>` also passes for blobs/trees and does not prove it is a commit) | Correct the SHA, or refuse if it does not resolve to a commit |
+| V12 | REVIEWED STATE's stated merge base equals `git merge-base <the same reviewed SHA> origin/main` computed at review time — not `HEAD` if the reviewed SHA differs from checked-out HEAD, and not asserted from memory | Recompute and correct, or refuse if they diverge |
+| V13 | If an implementation diff was consulted, IMPLEMENTATION VERDICT is present and states PASS/FAIL per REQUIREMENT, each evidenced by real command/test output — REVIEW covers implementation-against-PRD, not the PRD document alone | Add the missing verdict(s), evidenced by cited command/test output |
 
 ### Verification Report shape
 
@@ -188,8 +217,11 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
 - V6 target path matches Claude slot: [pass | refused — wrong slot]
 - V7 target path free: [pass | refused — exists]
 - V8 placeholder tokens: [none | <list>]
-- V9 PRD-doc focus preserved: [pass | rephrased item N]
+- V9: RETIRED (PRD-255) — never reused; see V13
 - V10 drift check: [VISION: none | <conflict>; PROJECT_STATE: none | <stale claim>]
+- V11 reviewed SHA resolves to a commit (`git cat-file -e <sha>^{commit}`): [pass | fail — <sha> unresolvable or not a commit]
+- V12 merge base matches `git merge-base <reviewed SHA> origin/main`: [pass | fail — stated <X>, computed <Y>]
+- V13 implementation verdict present & evidenced: [pass | missing/rewrote item N | n/a — no implementation diff]
 - Mode: [DRAFT_ONLY | WRITE_MODE]
 - File written: [path | none]
 ```
@@ -217,7 +249,10 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
   be resolved in CROSS-REVIEW NOTES escalate to a separate
   `PRD-NNN.adjudication.md` which this skill does not author.
 - Does not invoke Codex. The cross-review gate is a human decision.
-- Does not run the test suite or assert implementation correctness.
+- Does not run the test suite itself; asserts implementation-against-PRD
+  PASS/FAIL per requirement from the diff and whatever command/test
+  output the implementer already produced (IMPLEMENTATION VERDICT; see
+  Review structure and V13).
 - Does not update `PRD_REGISTRY.md`. Review artifacts do not get
   registry rows (per `docs/PRD_PROCESS.md § Registry Maintenance`).
 - Does not force-address optional/recommended Codex notes. REQUIRED
