@@ -55,6 +55,25 @@ Neither framing alone would have found what the other did. See
 `docs/prd_history/PRD-252.review.codex.md`'s CLASS OF REVIEW section
 for Sol's own characterization of the two review styles.
 
+**First live instance of the commissioned pattern on PRD-255 itself
+(2026-07-11):** PRD-255 modifies `prd-review-claude`, the skill that
+would normally structure its own Leg-1 review — so Leg 1 ran through
+the pre-fix skill, whose V9 check forbade asserting implementation
+pass/fail. Leg 1 found a PRD-document self-consistency error (the
+CHANGE SURFACE section contradicting its own SCOPE/R7/R8) and graded
+the REVIEWED-STATE/checkbox template collision RECOMMENDED. Leg 2
+(commissioned, `gpt-5.6-sol` orchestrating `gpt-5.6-luna`'s retrieval,
+run read-only against a git-free snapshot, blind to Leg 1's findings)
+found three implementation bugs Leg 1 was structurally forbidden to
+assert (a check-ID renumbering collision with 15 historical review
+artifacts; a SHA-verification check that passes for non-commit
+objects; a merge-base computation that could silently bind to the
+wrong history) and graded the same template collision BLOCKER. Each
+leg found exactly what the other's framing could not see — the same
+lesson PRD-252 taught, now confirmed on a second, structurally
+different case (a skill modifying itself, rather than a sizing-budget
+change).
+
 ## 2026-07-10 — PRD-252: continuation path decoupled from the raised budget at both sizing sites
 
 PRD-252 raises `config.MAX_RISK_PCT_PER_TRADE` (not `ACCOUNT_EQUITY` — a

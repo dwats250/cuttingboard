@@ -143,26 +143,32 @@ Use this only when the original PRD is genuinely ready as-is.
 
 ## Review Independence (required, PRD-121 R4)
 
-Place this block at the very top of every review file. Tick exactly
-one of the three checkboxes:
+Place this block at the very top of every review file — Claude-authored
+(via `prd-review-claude`) or a commissioned second-model artifact alike.
+This is the one live Review Independence contract (PRD-255, 2026-07-11):
+the standalone checkbox block this section formerly required is
+retired, not duplicated alongside this one.
 
 ```
-## Review Independence
-
-- [ ] fresh-context   (separate session; PRD draft text not in context window at review time)
-- [ ] different-model (model architecture/vendor different from the PRD draft author)
-- [ ] same-context    (same instance, same session as PRD draft — lower independence)
+REVIEWED STATE
+Reviewed SHA: <commit hash this review targets, verified with `git cat-file -e <sha>^{commit}`>
+Merge base: <output of `git merge-base <the same reviewed SHA> origin/main` at review time>
+Independence: <fresh-context | different-model | same-context> — <one-line justification>
 ```
 
 Rules:
-- Exactly one checkbox MUST be ticked.
+- Exactly one of `fresh-context` / `different-model` / `same-context`
+  MUST be stated.
 - For `LANE: HIGH-RISK` PRDs, `same-context` is INSUFFICIENT — at
-  least one of `fresh-context` or `different-model` must be ticked.
-  Selecting `same-context` for a HIGH-RISK PRD is a R2/R4 violation
-  and blocks merge.
+  least one of `fresh-context` or `different-model` is required.
+  Stating `same-context` for a HIGH-RISK PRD is a R2/R4 violation and
+  blocks merge.
 - For `LANE: MICRO` and `LANE: STANDARD` PRDs, `same-context` is
   permitted but MUST be accompanied by a one-line justification (e.g.,
   "Lane MICRO permits same-context review per PRD-121 R2.").
+- Reviewed SHA and Merge base MUST both be computed from the same
+  reviewed commit, not `HEAD` if the reviewed SHA differs from
+  checked-out HEAD.
 
 The Independence attestation is the load-bearing artifact for review
 honesty. Reviews that omit it are treated as if no review occurred.

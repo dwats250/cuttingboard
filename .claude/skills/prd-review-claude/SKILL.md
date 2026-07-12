@@ -107,12 +107,12 @@ Every review the skill produces has these sections in this order:
 # PRD-NNN Claude Review
 
 REVIEWED STATE
-Reviewed SHA: <commit hash this review targets, verified with `git cat-file -e`>
-Merge base: <output of `git merge-base HEAD origin/main` at review time>
+Reviewed SHA: <commit hash this review targets, verified with `git cat-file -e <sha>^{commit}`>
+Merge base: <output of `git merge-base <the same reviewed SHA> origin/main` at review time>
 Independence: <fresh-context | different-model | same-context> — <one-line justification>
-(This line satisfies `docs/PRD_REVIEW_TEMPLATE.md`'s Review Independence
-attestation for reviews produced by this skill — do not also emit the
-template's separate checkbox block.)
+(This IS `docs/PRD_REVIEW_TEMPLATE.md`'s Review Independence
+attestation, per PRD-121 R4 — the canonical block, not a duplicate of
+one. That template no longer defines a separate checkbox form.)
 
 VERDICT
 <one of: ACCEPT | ACCEPT WITH CHANGES | REJECT>
@@ -159,9 +159,12 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
 
 1. Read `docs/prd_history/PRD-NNN.md`.
 2. Capture REVIEWED STATE: `git rev-parse HEAD` (or the reviewed
-   branch tip) for the reviewed SHA, `git merge-base HEAD origin/main`
-   for the merge base, and record the independence line the dispatch
-   specifies.
+   branch tip, if reviewing a ref other than the checked-out HEAD) for
+   the reviewed SHA. Then compute the merge base from THAT SAME SHA —
+   `git merge-base <reviewed SHA> origin/main` — never hardcode `HEAD`
+   once the reviewed SHA is known, or a review of a non-checked-out ref
+   silently pairs one commit's SHA with a different commit's merge
+   base. Record the independence line the dispatch specifies.
 3. In cross-review mode: read `PRD-NNN.review.codex.md`. Refuse if
    missing — there is nothing to cross-review.
 4. If implementation has started (registry status `IN PROGRESS` or
@@ -196,10 +199,11 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
 | V6 | WRITE_MODE target path matches `PRD-<NNN>\.review\.claude(\.v\d+)?\.md` | Refuse |
 | V7 | WRITE_MODE target path does not exist (no silent overwrite) | Refuse; ask user for explicit versioned path |
 | V8 | No "TODO", "FIXME", "PLACEHOLDER", or "TBD" tokens in the review body | Rewrite |
-| V9 | If an implementation diff was consulted, IMPLEMENTATION VERDICT is present and states PASS/FAIL per REQUIREMENT, each evidenced by real command/test output — REVIEW covers implementation-against-PRD, not the PRD document alone | Add the missing verdict(s), evidenced by cited command/test output |
+| V9 | RETIRED (PRD-255, 2026-07-11) — this number is never reused. Historical `*.review.claude.md` files (e.g. `PRD-254.review.claude.md:14`) cite "V9" describing the pre-PRD-255 prohibition on asserting implementation pass/fail; that citation is immutable evidence of what those reviews asserted at the time and is not reinterpreted by this table | n/a |
 | V10 | DRIFT CHECK present: the review records a VISION-conflict line and a PROJECT_STATE-staleness line (each "none" or with specifics) | Add the DRIFT CHECK section |
-| V11 | REVIEWED STATE's reviewed SHA resolves to a real commit (`git cat-file -e <sha>`) | Correct the SHA, or refuse if it does not resolve |
-| V12 | REVIEWED STATE's stated merge base equals `git merge-base HEAD origin/main` computed at review time, not asserted from memory | Recompute and correct, or refuse if they diverge |
+| V11 | REVIEWED STATE's reviewed SHA resolves to a real commit — `git cat-file -e <sha>^{commit}` (bare `-e <sha>` also passes for blobs/trees and does not prove it is a commit) | Correct the SHA, or refuse if it does not resolve to a commit |
+| V12 | REVIEWED STATE's stated merge base equals `git merge-base <the same reviewed SHA> origin/main` computed at review time — not `HEAD` if the reviewed SHA differs from checked-out HEAD, and not asserted from memory | Recompute and correct, or refuse if they diverge |
+| V13 | If an implementation diff was consulted, IMPLEMENTATION VERDICT is present and states PASS/FAIL per REQUIREMENT, each evidenced by real command/test output — REVIEW covers implementation-against-PRD, not the PRD document alone | Add the missing verdict(s), evidenced by cited command/test output |
 
 ### Verification Report shape
 
@@ -213,10 +217,11 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
 - V6 target path matches Claude slot: [pass | refused — wrong slot]
 - V7 target path free: [pass | refused — exists]
 - V8 placeholder tokens: [none | <list>]
-- V9 implementation verdict present & evidenced: [pass | missing/rewrote item N | n/a — no implementation diff]
+- V9: RETIRED (PRD-255) — never reused; see V13
 - V10 drift check: [VISION: none | <conflict>; PROJECT_STATE: none | <stale claim>]
-- V11 reviewed SHA resolves: [pass | fail — <sha> unresolvable]
-- V12 merge base matches `git merge-base HEAD origin/main`: [pass | fail — stated <X>, computed <Y>]
+- V11 reviewed SHA resolves to a commit (`git cat-file -e <sha>^{commit}`): [pass | fail — <sha> unresolvable or not a commit]
+- V12 merge base matches `git merge-base <reviewed SHA> origin/main`: [pass | fail — stated <X>, computed <Y>]
+- V13 implementation verdict present & evidenced: [pass | missing/rewrote item N | n/a — no implementation diff]
 - Mode: [DRAFT_ONLY | WRITE_MODE]
 - File written: [path | none]
 ```
@@ -247,7 +252,7 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
 - Does not run the test suite itself; asserts implementation-against-PRD
   PASS/FAIL per requirement from the diff and whatever command/test
   output the implementer already produced (IMPLEMENTATION VERDICT; see
-  Review structure and V9).
+  Review structure and V13).
 - Does not update `PRD_REGISTRY.md`. Review artifacts do not get
   registry rows (per `docs/PRD_PROCESS.md § Registry Maintenance`).
 - Does not force-address optional/recommended Codex notes. REQUIRED
