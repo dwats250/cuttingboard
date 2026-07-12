@@ -83,6 +83,25 @@ hand-merged work closed out after merge.
 Trigger: every PRD closed after PRD-229 merges. Historical rows are not
 rewritten.
 
+### Allocated-but-Unlanded PRD Numbers (PRD-255)
+
+A PRD number is allocated at Stage-0 authoring time
+(`scripts/prd_open.sh`), which can happen on any branch or worktree —
+not only one that lands promptly. The registry validator requires
+every allocated number up to `latest_complete` to have a doc on
+`main`; a Stage-0 PRD drafted and left parked on an unmerged branch
+therefore blocks the closeout of any later-numbered PRD, even one
+unrelated to it in content or authorship (PRD-254's closeout was
+blocked by exactly this gap — PRD-253, allocated 2026-07-10, parked
+unmerged until PR #136 landed it — 2026-07-11). **Rule: before closing
+out PRD-N, every allocated number < N MUST already have a landed doc
+on `main`** (any status suffices — IN PROGRESS/PROPOSED is fine,
+COMPLETE is not required). If a lower number is still parked, land its
+Stage-0 scaffold first, unmodified, with its original authorship
+preserved, as its own PR — a landing-order constraint on the
+DOCUMENT, not an implementation-order constraint on the WORK; the
+parked PRD's actual build stays wherever it was queued.
+
 ---
 
 ## Patch PRD Rules
@@ -176,6 +195,40 @@ Good reasons to commission a second-model review (the old automatic
 triggers, now advisory): contract or decision-surface changes,
 dashboard/notification semantics shifts, CI/hooks/artifact-push
 semantics shifts, and any reviewer disagreement worth arbitrating.
+
+### Delegation pattern: orchestrator/retriever split (PRD-255)
+
+When a commissioned second-model review runs, structure it as two
+model invocations, not one flat prompt — the worked example is
+`docs/prd_history/PRD-252.review.codex.md`'s Sol/Luna split. Three
+binding conditions:
+
+1. **git-free pre-review snapshot.** The reviewed commit is exported
+   free of `.git` history before the second model sees it — an
+   independent search hitting the surface cold, not a `git blame`-
+   assisted read.
+2. **Reviewer never shown the Leg-1 (Claude) findings.** The
+   second-model leg forms its own hypotheses from the PRD and diff
+   alone; showing it the Claude review's findings turns an
+   independent search into a comprehension check of the first review,
+   not a second one.
+3. **Orchestrator/retriever persona split.** One invocation
+   (orchestrator — "Sol" in the worked example) reads the PRD and
+   diff, forms falsifiable hypotheses about where the change could
+   leak or diverge from its stated intent, and issues exact mechanical
+   search directives. A second invocation (retriever — "Luna" in the
+   worked example) executes those directives exhaustively — repo-wide
+   greps, full function/test bodies, call-site enumeration — with no
+   risk judgment of its own, and reports raw findings only. The
+   orchestrator then dispositions the retriever's raw findings against
+   its own hypotheses and issues a verdict.
+
+"Sol" and "Luna" are the worked example's persona names, not
+required-forever role labels — a commissioned second model may use its
+own naming, as long as the three conditions above hold. Both
+invocations run read-only (`codex exec -s read-only`; see CLAUDE.md
+"Codex mechanics") — the second-model leg never gets repo-write
+access.
 
 ---
 
@@ -294,6 +347,21 @@ reviewers cannot select MICRO or STANDARD for such changes
 regardless of diff size. Lane is a ceremony axis; it cannot be used
 to bypass the review intensity required by the existing CLASS
 Matrix.
+
+### Cross-PRD Lane Mixing (PRD-255)
+
+Multiple PRDs of different lanes MAY share one PR — existing practice
+(PR #99's Block-1 batch, 2026-07-04) permits it; R11 governs only each
+PRD's own declared lane, not a PR's aggregate ceremony, and was silent
+on the cross-PRD case until now. **The PR's merge ceremony is the
+STRICTEST lane present among its constituent PRDs** — a PR carrying
+any HIGH-RISK or governance-guardrail PRD is human-held regardless of
+what else rides along. This does not relax the separate, categorical
+2026-07-07 rule that agents never initiate or queue a merge for any
+lane — that rule already makes every PR human-held at the merge action
+itself; this subsection states the ceremony floor for what happens
+before that action (which review legs are owed, whether auto-merge
+may even be queued once a human does act).
 
 ### MICRO Eligibility Safety Net (PRD-121 R12)
 
