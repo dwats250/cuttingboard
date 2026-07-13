@@ -5,14 +5,15 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-07-12 (PR #143, held for Dustin's manual merge)
+**Last updated:** 2026-07-13 (PRD-256 R2 ruling + amendments)
 
 ## Current state
 
 - **Active PRD:** PRD-256 (Phase 1/R1 — ATR proxy max-loss characterization,
   `docs/prd_history/PRD-251.continuation-path.proposal.md` — landed on
   branch `claude/prd-256-phase1-atr-proxy-characterization`; HIGH-RISK/
-  EXECUTION; PR opening, not yet merged; R2 ruling and Phase 2 not started).
+  EXECUTION; PR opening, not yet merged; R2 has fired (RULED FIX,
+  2026-07-13); Phase 2 (R3) ruled but not yet dispatched).
   This line previously read "none in progress" while the registry showed
   PRD-256 IN PROGRESS — flagged during PRD-253's closeout (PR #143) but
   left uncorrected there on the mistaken premise that
