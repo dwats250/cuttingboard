@@ -1,46 +1,10 @@
 {
-  "macro_drivers": {
-    "bitcoin": {
-      "change_pct": 1.4871639308906572,
-      "level": 64114.76953125,
-      "symbol": "BTC-USD"
-    },
-    "dollar": {
-      "change_pct": 0.13007964025592886,
-      "level": 100.83599853515625,
-      "symbol": "DX-Y.NYB"
-    },
-    "gold": {
-      "change_pct": -0.47221213221939706,
-      "level": 4110.0,
-      "symbol": "GC=F"
-    },
-    "oil": {
-      "change_pct": -1.4504808131107125,
-      "level": 71.33999633789062,
-      "symbol": "CL=F"
-    },
-    "rates": {
-      "change_bps": 1.4043119905477557,
-      "change_pct": 0.3084366349184938,
-      "level": 4.552999973297119,
-      "symbol": "^TNX"
-    },
-    "silver": {
-      "change_pct": -1.1353392415999146,
-      "level": 60.084999084472656,
-      "symbol": "SI=F"
-    },
-    "volatility": {
-      "change_pct": -1.1363655520317235,
-      "level": 15.65999984741211,
-      "symbol": "^VIX"
-    }
-  },
+  "macro_drivers": {},
   "meta": {
-    "generation_id": "live-20260710T152745Z",
+    "generation_id": "sunday-20260713T010500Z",
+    "session_type": "SUNDAY_PREMARKET",
     "symbols_scanned": 0,
-    "timestamp": "2026-07-10T15:27:45Z"
+    "timestamp": "2026-07-13T01:05:00Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -48,22 +12,13 @@
     "chain_results_detail": [],
     "continuation_audit": null,
     "option_setups_detail": [],
-    "rejected": [
-      {
-        "detail": null,
-        "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
-        "stage": "REGIME",
-        "symbol": "REGIME"
-      }
-    ],
+    "rejected": [],
     "top_trades": [],
     "trade_decision_detail": [],
     "validation_halt_detail": {
-      "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)"
+      "reason": "PREMARKET_CONTEXT"
     },
-    "watch_summary_detail": {
-      "session": "MIDDAY"
-    },
+    "watch_summary_detail": null,
     "watchlist": []
   },
   "summary": {
