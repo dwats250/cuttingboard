@@ -16,6 +16,64 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-13 — PRD-256 R2 ruling: FIX, not PERMANENT
+
+Ruled by Dustin, reading R1's corrected characterization (below and
+`docs/prd_history/PRD-251.continuation-path.proposal.md`'s "PRD-256 R1"
+section) after both fresh-context review passes and the bot-review
+disposition landed. Recorded per PRD-256's own R2 FAIL condition
+("R3 or R4 work begins before R1's analysis is implemented AND a dated
+DECISIONS.md entry records which branch was ruled").
+
+**Grounds.** The continuation path is not sizing off an inaccurate
+estimate — `options.py::build_option_setups` DISCARDS the qualification
+layer's proxy figure and re-sizes off a fixed, ATR-independent value,
+deliberately bypassing the strategy-aware sizing PRD-251 applied
+everywhere else. This is a code path that opted out of the sizing model,
+understating CREDIT-strategy max loss by a flat 2.333x, always, every
+trade. There is no honest PERMANENT branch: ruling PERMANENT would
+require writing into this file that the continuation path ignores
+strategy-aware sizing and understates credit max loss by 2.333x BY
+DESIGN — that is not a design. The `CONTINUATION_MAX_RISK_PCT_PER_TRADE
+= 0.01` decouple has been a fence around a bypass, not a conservative
+estimate. That the factor is flat rather than regime-dependent makes the
+fix cleaner, not less urgent — every credit continuation trade this
+system has ever sized was wrong by the same factor.
+
+**What this does NOT authorize.** R2 rules the direction; it does not
+authorize Phase 2 (R3) to begin. R3 gets its own dispatch, informed by
+this ruling, once the FIX-branch scope (which of the proposal doc's
+candidate approaches, or a narrower one now that layer 2 already has a
+working width concept via `strike_distance` — see the corrected R1
+characterization) is decided separately.
+
+`docs/prd_history/PRD-256.md` amended (FILES + R1 text + this ruling
+pointer) same-PR per its own falsified-contract justification below.
+
+## 2026-07-13 — Diff-scoped review is structurally blind to consumer-side re-derivation (third instance)
+
+Pattern note, not a new finding: three separate PRDs now had their
+highest-value catch come from a sweep that went OUTSIDE the diff under
+review, never from the diff-scoped leg examining the changed lines in
+isolation. PRD-252: Sol's commissioned Codex disposition, sweeping past
+PRD-252's own diff, found the `contract.py`/`audit.py` correlation-modifier
+sourcing gap (tracked as PRD-253). PRD-253: the same class recurred one
+layer down. PRD-256: `chatgpt-codex-connector[bot]`'s review, running
+exhaustive/out-of-diff mode, found that `options.py::build_option_setups`
+— a file PRD-256's PR never touched — silently discards and re-derives
+the qualification layer's sizing figure, which both a same-context
+implementer pass and an adversarial fresh-context orchestrator/retriever
+review (itself designed to recompute every number independently) missed,
+because neither was charged with tracing a value to its actual
+downstream consumer — only with verifying the value's own internal
+arithmetic. The fix is a mandatory consumer sweep as a named step in any
+characterization or sizing-logic charge ("trace this value to whatever
+actually renders/audits/executes it, not just to the function that
+computes a plausible-looking number"), not a better or more skeptical
+reviewer — the reviewers involved across all three instances were
+already adversarial by design and still missed it until something swept
+outside the diff.
+
 ## 2026-07-13 — PRD-256 Phase 1/R1 corrected: the qualification-layer characterization measured the wrong layer
 
 `chatgpt-codex-connector[bot]`'s review of PR #145 found that the
