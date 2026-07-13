@@ -37,8 +37,12 @@ strategy-aware sizing and understates credit max loss by 2.333x BY
 DESIGN — that is not a design. The `CONTINUATION_MAX_RISK_PCT_PER_TRADE
 = 0.01` decouple has been a fence around a bypass, not a conservative
 estimate. That the factor is flat rather than regime-dependent makes the
-fix cleaner, not less urgent — every credit continuation trade this
-system has ever sized was wrong by the same factor.
+fix cleaner, not less urgent — not because any real trade has already
+been mis-sized (R1's own evidence: zero continuation candidates have
+ever been accepted, captured-run and replay data agree — see the
+proposal doc and the HOLD-confirmation-gate ticket), but because the
+first credit continuation candidate that ever clears HOLD would be sized
+wrong by this exact factor, with no additional discovery needed.
 
 **What this does NOT authorize.** R2 rules the direction; it does not
 authorize Phase 2 (R3) to begin. R3 gets its own dispatch, informed by
