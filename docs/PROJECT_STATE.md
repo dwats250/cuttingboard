@@ -9,11 +9,14 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 ## Current state
 
-- **Active PRD:** PRD-256 (Phase 1/R1 — ATR proxy max-loss characterization,
-  `docs/prd_history/PRD-251.continuation-path.proposal.md` — landed on
-  branch `claude/prd-256-phase1-atr-proxy-characterization`; HIGH-RISK/
-  EXECUTION; PR opening, not yet merged; R2 has fired (RULED FIX,
-  2026-07-13); Phase 2 (R3) ruled but not yet dispatched).
+- **Active PRD:** PRD-256 (Phase 1/R1; HIGH-RISK/EXECUTION; PR opening, not yet merged; R2 has fired RULED FIX 2026-07-13, Phase 2/R3 not yet dispatched).
+- **Active PRD note (2026-07-13):** kept as a single-line bulleted pointer,
+  not a multi-line block, matching PRD-183's convention that
+  `scripts/prd_close.sh`'s closeout regex depends on (it replaces only
+  the first matching line; a multi-line "Active PRD" bullet would leave
+  orphaned continuation text behind at close). Full detail:
+  `docs/prd_history/PRD-251.continuation-path.proposal.md` (the R1
+  analysis), branch `claude/prd-256-phase1-atr-proxy-characterization`.
   This line previously read "none in progress" while the registry showed
   PRD-256 IN PROGRESS — flagged during PRD-253's closeout (PR #143) but
   left uncorrected there on the mistaken premise that

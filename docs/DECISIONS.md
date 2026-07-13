@@ -16,6 +16,43 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-13 — PRD-256 review-coverage boundary: stopping the re-review recursion deliberately
+
+Explicit, not silent: `docs/prd_history/PRD-256.review.claude.v3.md`
+(the most recent fresh-context Claude pass) is SHA-pinned to `1e6d2b3`.
+Two further commits landed after it — `027024c` (three bot-finding
+fixes: an overstated historical-impact claim, an un-closed second-model
+required edit, a stale SCOPE bullet) and `eca91ad` (five more: two
+resolution notes, the Codex artifact's missing REVIEWED STATE fields,
+R2's direction-vs-approach split, and R3's approach-3-preserving
+rewrite) — neither has had its own fresh-context Claude pass. Bot review
+(exhaustive/out-of-diff mode) has continued auditing every push in this
+window and every finding it raised has been dispositioned the same way
+as all prior rounds (fixed + replied in-thread with the fixing SHA, this
+entry's own trigger included).
+
+**Deliberately not commissioning a v4.** The pattern across five
+dispositioned rounds: each fix landed, and each landing has itself been
+auditable by the same exhaustive bot pass, which has continued to find
+real (if progressively narrower) documentation-consistency issues —
+stale pointers, un-mirrored checklist entries, un-closed resolution
+notes. A v4 full orchestrator/retriever review of `027024c`/`eca91ad`
+would itself produce a new commit, auditable by the same bot, which
+could in principle need a v5, and so on — the same shape of recursion
+PRD-186's "no per-slice drift audit" anti-redundancy clause exists to
+cut. The load-bearing substantive claims (the flat 2.333x/1.000x
+figures, the terminal-layer confirmation, the HOLD-gate mathematical
+proof) were independently re-derived from real code and real data by
+THREE separate passes (v2, v3, and the commissioned Codex disposition)
+before `027024c`/`eca91ad` landed, and neither of those two commits
+touched a numerical or architectural claim — both are prose-consistency
+fixes only (verified: no `cuttingboard/*.py`/`tests/*.py` file appears in
+either diff). Stopping here is a judgment call, recorded rather than
+silent: Dustin reads and holds the human merge gate regardless, and any
+further bot finding on these two commits gets the same fix-and-disposition
+treatment as every round before it, without requiring a fourth full
+review pass to justify making the fix.
+
 ## 2026-07-13 — PRD-256 R2 ruling: FIX, not PERMANENT
 
 Ruled by Dustin, reading R1's corrected characterization (below and
