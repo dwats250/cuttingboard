@@ -35,7 +35,6 @@ from cuttingboard.derived import DerivedMetrics
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.qualification import (
     ENTRY_MODE_PULLBACK_IMBALANCE,
-    ENTRY_MODE_CONTINUATION,
     TradeCandidate,
     QualificationResult,
     direction_for_regime,
@@ -220,45 +219,14 @@ def build_option_setups(
         # per-trade risk pct × correlation modifier. (Note: risk_modifier here
         # is the correlation modifier, distinct from qualification.py's
         # risk_multiplier which is regime-based.)
-        # PRD-252: continuation-path results (entry_mode ==
-        # ENTRY_MODE_CONTINUATION) recompute against
-        # CONTINUATION_MAX_RISK_PCT_PER_TRADE, not the raised main constant.
-        # Without this branch the correlation-modifier recompute below can
-        # leak the raised budget back in through min(result.max_contracts,
-        # raw_adjusted) whenever risk_modifier is low enough to pull
-        # raw_adjusted under result.max_contracts while still exceeding a
-        # correctly-decoupled figure -- the qualification.py:725 decouple
-        # alone does not close this.
-        budget_pct = (
-            config.CONTINUATION_MAX_RISK_PCT_PER_TRADE
-            if result.entry_mode == ENTRY_MODE_CONTINUATION
-            else config.MAX_RISK_PCT_PER_TRADE
-        )
-        effective_risk = config.ACCOUNT_EQUITY * budget_pct * risk_modifier
-        # PRD-251: size off the strategy-aware max loss when this result came
-        # from the standard Gate-8 path AND its TradeCandidate resolved one.
-        # Continuation-path results (entry_mode == ENTRY_MODE_CONTINUATION)
-        # NEVER use a candidate's max_loss, even when `candidates` happens to
-        # hold a direct TradeCandidate for the same symbol -- EXPANSION regime
-        # runs generate_candidates() (direction_for_regime(EXPANSION)="LONG")
-        # AND the continuation qualifier side by side, so a symbol that fails
-        # direct qualification but passes continuation qualification can have
-        # a direct candidate sitting in the dict that has nothing to do with
-        # the continuation result being rendered here. Using it would re-price
-        # a path R4 declares untouched off the wrong candidate's economics --
-        # exactly the R3 divergence this PRD exists to remove, in the one path
-        # it must not touch. Fall back to spread_width unchanged (pre-PRD
-        # behavior, verbatim) for continuation results and for any result with
-        # no resolved candidate.
-        effective_max_loss = (
-            candidate.max_loss
-            if (
-                candidate is not None
-                and candidate.max_loss is not None
-                and result.entry_mode != ENTRY_MODE_CONTINUATION
-            )
-            else spread_width
-        )
+        # PRD-256 R3 (2026-07-13): every result, continuation included, reads
+        # the same budget and the same strategy-aware max-loss figure
+        # (_max_loss_for_strategy, computed fresh from this result's own
+        # strategy/strike_distance rather than a possibly-stale `candidate`)
+        # — this also closes the stale-candidate leak the old
+        # continuation-exclusion branches existed to guard against.
+        effective_risk = config.ACCOUNT_EQUITY * config.MAX_RISK_PCT_PER_TRADE * risk_modifier
+        effective_max_loss = _max_loss_for_strategy(strategy, strike_distance)
         risk_per_contract = effective_max_loss * 100
         if risk_per_contract > 0:
             raw_adjusted = int(effective_risk // risk_per_contract)

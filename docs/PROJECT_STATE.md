@@ -263,36 +263,24 @@ Full history: `docs/PRD_REGISTRY.md`.
   yet scheduled, so every notification-path change still edits one large
   `runtime/__init__.py`. **Re-evaluate by 2026-08-15** (per the VISION principle
   that acknowledged debt carries a re-evaluation date).
-- **Continuation-path budget decouple — interim constant, PRD-252 (2026-07-10).**
-  `config.CONTINUATION_MAX_RISK_PCT_PER_TRADE = 0.01` freezes the
-  EXPANSION-regime continuation path's sizing budget at the pre-PRD-252
-  $150 while the main per-trade budget is $400, because the continuation
-  path's ATR-based debit proxy still understates true max loss the same
-  way PRD-251 fixed on the direct path (unfixed;
-  `docs/prd_history/PRD-251.continuation-path.proposal.md` is the tracked
-  fast-follow). PRD-256 Phase 1/R1 (2026-07-12, corrected 2026-07-13 —
-  the original version characterized the qualification layer's ATR proxy
-  in isolation and missed that `options.py::build_option_setups` discards
-  it and re-sizes continuation results off a fixed, ATR-independent
-  figure instead; caught by `chatgpt-codex-connector[bot]`'s review of
-  PR #145) quantified this by direct execution of the real, unmodified
-  sizing code against real ATR14 readings for the 16 real tradable
-  symbols: for CREDIT-strategy resolutions, real max loss actually
-  charged/audited is a constant 2.333x the figure the system charges
-  (not ATR-dependent), the same literal unfixed arithmetic PRD-251 fixed
-  elsewhere, reached via a path that deliberately excludes continuation
-  results from that fix; DEBIT resolutions remain a confirmed 1.000x (no
-  gap), independently reproduced by a commissioned second-model
-  disposition (`docs/prd_history/PRD-256.review.codex.md`). **R2 has
-  fired: RULED FIX (2026-07-13, `docs/DECISIONS.md`)** — the continuation
-  path is not sizing off an inaccurate estimate but a deliberate bypass
-  of the strategy-aware correction, so there is no honest PERMANENT
-  branch. Phase 2 (R3) is ruled but not yet authorized to start; it gets
-  its own dispatch. **Re-evaluate by 2026-08-15**: either Phase 2 (R3)
-  has landed and validated continuation sizing at the raised budget
-  (retiring this constant per the tracked requirement in the proposal
-  doc), or the FIX is still queued and this date pushes out with a
-  recorded reason (the PERMANENT branch is closed — R2 ruled FIX).
+- **Continuation-path budget decouple — CLOSED, fixed by PRD-256 R3
+  (2026-07-13).** `config.CONTINUATION_MAX_RISK_PCT_PER_TRADE = 0.01` had
+  frozen the EXPANSION-regime continuation path's sizing budget at the
+  pre-PRD-252 $150 while the main per-trade budget was $400, because
+  `options.py::build_option_setups` excluded continuation results from
+  the strategy-aware `_max_loss_for_strategy` correction PRD-251 applies
+  to every other result — understating CREDIT-strategy max loss by a
+  flat 2.333x (confirmed by direct execution of the real sizing code
+  against real ATR14 readings for all 16 real tradable symbols; DEBIT
+  resolutions were unaffected, 1.000x). R2 ruled FIX (2026-07-13,
+  `docs/DECISIONS.md`) — this was a deliberate bypass, not an inaccurate
+  estimate, so there was no honest PERMANENT branch. R3 removed the
+  exclusion: every result, continuation included, now prices through
+  `_max_loss_for_strategy` computed fresh from its own strategy/
+  strike_distance; `CONTINUATION_MAX_RISK_PCT_PER_TRADE` is retired, and
+  both sizing sites (`qualification.py`, `options.py`) read
+  `MAX_RISK_PCT_PER_TRADE` unconditionally. No re-evaluation date — this
+  is resolved, not deferred.
 - **Phantom-SHA debt — CLOSED WONTFIX-HISTORICAL (PRD-243, 2026-07-05).**
   29 PRDs' recorded COMPLETE hashes (35 hash tokens; the "19" first counted at
   PRD-200 had grown through the PRD-208..222 era) are unreachable from a clean
