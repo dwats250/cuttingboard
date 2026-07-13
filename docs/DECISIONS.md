@@ -16,6 +16,246 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-13 — PRD-256 review-coverage boundary: stopping the re-review recursion deliberately
+
+Explicit, not silent: `docs/prd_history/PRD-256.review.claude.v3.md`
+(the most recent fresh-context Claude pass) is SHA-pinned to `1e6d2b3`.
+Two further commits landed after it — `027024c` (three bot-finding
+fixes: an overstated historical-impact claim, an un-closed second-model
+required edit, a stale SCOPE bullet) and `eca91ad` (five more: two
+resolution notes, the Codex artifact's missing REVIEWED STATE fields,
+R2's direction-vs-approach split, and R3's approach-3-preserving
+rewrite) — neither has had its own fresh-context Claude pass. Bot review
+(exhaustive/out-of-diff mode) has continued auditing every push in this
+window and every finding it raised has been dispositioned the same way
+as all prior rounds (fixed + replied in-thread with the fixing SHA, this
+entry's own trigger included).
+
+**Deliberately not commissioning a v4.** The pattern across five
+dispositioned rounds: each fix landed, and each landing has itself been
+auditable by the same exhaustive bot pass, which has continued to find
+real (if progressively narrower) documentation-consistency issues —
+stale pointers, un-mirrored checklist entries, un-closed resolution
+notes. A v4 full orchestrator/retriever review of `027024c`/`eca91ad`
+would itself produce a new commit, auditable by the same bot, which
+could in principle need a v5, and so on — the same shape of recursion
+PRD-186's "no per-slice drift audit" anti-redundancy clause exists to
+cut. The load-bearing substantive claims (the flat 2.333x/1.000x
+figures, the terminal-layer confirmation, the HOLD-gate mathematical
+proof) were independently re-derived from real code and real data by
+THREE separate passes (v2, v3, and the commissioned Codex disposition)
+before `027024c`/`eca91ad` landed, and neither of those two commits
+touched a numerical or architectural claim — both are prose-consistency
+fixes only (verified: no `cuttingboard/*.py`/`tests/*.py` file appears in
+either diff). Stopping here is a judgment call, recorded rather than
+silent: Dustin reads and holds the human merge gate regardless, and any
+further bot finding on these two commits gets the same fix-and-disposition
+treatment as every round before it, without requiring a fourth full
+review pass to justify making the fix.
+
+## 2026-07-13 — PRD-256 R2 ruling: FIX, not PERMANENT
+
+Ruled by Dustin, reading R1's corrected characterization (below and
+`docs/prd_history/PRD-251.continuation-path.proposal.md`'s "PRD-256 R1"
+section) after both fresh-context review passes and the bot-review
+disposition landed. Recorded per PRD-256's own R2 FAIL condition
+("R3 or R4 work begins before R1's analysis is implemented AND a dated
+DECISIONS.md entry records which branch was ruled").
+
+**Grounds.** The continuation path is not sizing off an inaccurate
+estimate — `options.py::build_option_setups` DISCARDS the qualification
+layer's proxy figure and re-sizes off a fixed, ATR-independent value,
+deliberately bypassing the strategy-aware sizing PRD-251 applied
+everywhere else. This is a code path that opted out of the sizing model,
+understating CREDIT-strategy max loss by a flat 2.333x, always, every
+trade. There is no honest PERMANENT branch: ruling PERMANENT would
+require writing into this file that the continuation path ignores
+strategy-aware sizing and understates credit max loss by 2.333x BY
+DESIGN — that is not a design. The `CONTINUATION_MAX_RISK_PCT_PER_TRADE
+= 0.01` decouple has been a fence around a bypass, not a conservative
+estimate. That the factor is flat rather than regime-dependent makes the
+fix cleaner, not less urgent — not because any real trade has already
+been mis-sized (R1's own evidence: zero continuation candidates have
+ever been accepted, captured-run and replay data agree — see the
+proposal doc and the HOLD-confirmation-gate ticket), but because the
+first credit continuation candidate that ever clears HOLD would be sized
+wrong by this exact factor, with no additional discovery needed.
+
+**What this does NOT authorize.** R2 rules the direction; it does not
+authorize Phase 2 (R3) to begin. R3 gets its own dispatch, informed by
+this ruling, once the FIX-branch scope (which of the proposal doc's
+candidate approaches, or a narrower one now that layer 2 already has a
+working width concept via `strike_distance` — see the corrected R1
+characterization) is decided separately.
+
+`docs/prd_history/PRD-256.md` amended (FILES + R1 text + this ruling
+pointer) same-PR per its own falsified-contract justification below.
+
+## 2026-07-13 — Diff-scoped review is structurally blind to consumer-side re-derivation (third instance)
+
+Pattern note, not a new finding: three separate PRDs now had their
+highest-value catch come from a sweep that went OUTSIDE the diff under
+review, never from the diff-scoped leg examining the changed lines in
+isolation. PRD-252: Sol's commissioned Codex disposition, sweeping past
+PRD-252's own diff, found the `contract.py`/`audit.py` correlation-modifier
+sourcing gap (tracked as PRD-253). PRD-253: the same class recurred one
+layer down. PRD-256: `chatgpt-codex-connector[bot]`'s review, running
+exhaustive/out-of-diff mode, found that `options.py::build_option_setups`
+— a file PRD-256's PR never touched — silently discards and re-derives
+the qualification layer's sizing figure, which both a same-context
+implementer pass and an adversarial fresh-context orchestrator/retriever
+review (itself designed to recompute every number independently) missed,
+because neither was charged with tracing a value to its actual
+downstream consumer — only with verifying the value's own internal
+arithmetic. The fix is a mandatory consumer sweep as a named step in any
+characterization or sizing-logic charge ("trace this value to whatever
+actually renders/audits/executes it, not just to the function that
+computes a plausible-looking number"), not a better or more skeptical
+reviewer — the reviewers involved across all three instances were
+already adversarial by design and still missed it until something swept
+outside the diff.
+
+## 2026-07-13 — PRD-256 Phase 1/R1 corrected: the qualification-layer characterization measured the wrong layer
+
+`chatgpt-codex-connector[bot]`'s review of PR #145 found that the
+2026-07-12 R1 characterization below (and the fresh-context review that
+ACCEPTed it, `docs/prd_history/PRD-256.review.claude.md` @ `0ca2523`)
+measured `_qualify_continuation_candidate`'s ATR-based proxy in isolation
+and treated its `dollar_risk` as the number the system acts on. It is
+not: `cuttingboard/options.py::build_option_setups` re-sizes every
+continuation result from a completely different, ATR-independent figure
+(`_estimated_debit(strike_distance) = 0.30 * strike_distance`, fixed at
+$0.75/share stock or $1.50/share ETF) and, per an explicit in-code guard
+(`result.entry_mode != ENTRY_MODE_CONTINUATION`), NEVER applies PRD-251's
+already-correct `_max_loss_for_strategy` value to continuation results —
+discarding the qualification layer's ATR-scaled dollar figure entirely
+(`options.py:210,253-261`; `tests/test_phase5.py:533-559`).
+
+Re-characterized by direct execution of the real, unmodified
+`build_option_setups` (not a re-derivation) against real ATR14 for all 16
+tradable symbols, three `risk_modifier` values, and both the current and
+hypothetical uncoupled budget: for CREDIT-resolving continuation results,
+real max loss is **exactly 2.333x (0.70/0.30)** what's actually charged
+and audited — constant, not ATR-dependent, not a 4x-9x range. This is not
+merely "the same class" as PRD-251's bug; it is the literal identical
+unfixed arithmetic, reached through a path that deliberately excludes
+continuation results from the fix applied everywhere else. DEBIT
+strategies remain a confirmed 1.000x (no gap) at this layer too. Full
+corrected analysis: `docs/prd_history/PRD-251.continuation-path.proposal.md`
+§ PRD-256 R1 (2026-07-12, corrected 2026-07-13).
+
+The qualification layer's ATR-based proxy is not irrelevant — it still
+sets `result.max_contracts`, one operand of a `min()` against layer 2's
+fixed per-bucket contract cap, so ATR14 can still shift which contract
+count gets sized (narrow-banded; see the corrected doc's section 5) — but
+it never determines the dollar-per-contract understatement, which is
+flat regardless of ATR.
+
+The 2026-07-12 fresh-context review's ACCEPT WITH CHANGES does not carry
+forward to this corrected version; a fresh review pass is required before
+R2 rules on these numbers.
+
+**Process note.** Both the implementer and the fresh-context reviewer
+(orchestrator/retriever split, adversarial by design) independently
+recomputed every number in the original characterization from real data
+and still missed this — the arithmetic was internally consistent and
+numerically correct at the layer both examined, so the review's
+recomputation-heavy method verified precision within a layer without
+questioning which layer was the right one to examine. Neither the PRD nor
+the review charge asked "does this qualification-layer dollar_risk
+actually reach the trader," so nothing prompted tracing the value past
+`_qualify_continuation_candidate`'s return into its caller. Repo-level
+"Exhaustive code review" (enabled 2026-07-13) surfaced it via an
+out-of-diff trace into `options.py`, a file this PR never touched.
+Worth carrying into future characterization charges: for any PRD whose
+deliverable is "what does the system actually charge/size/render," the
+charge should name tracing the value to its final consumer as an
+explicit requirement, not assume the first function that computes a
+plausible-looking number is the end of the path.
+
+**Second bot-review round (2026-07-13, same day, on the correction
+commit).** With Exhaustive code review now active, three more findings
+landed on PR #145: (1) the v2 review artifact this section's correction
+needed didn't exist yet at push time — ACTIONED once written (`af419da`);
+(2) `logs/audit.jsonl` was mischaracterized as notification-transport-only
+when it actually holds two record families (`docs/audit_doctrine.md`) —
+635 notification + 5 genuine pipeline records, none showing continuation
+data — ACTIONED (`e2765d6`); (3) **`docs/prd_history/PRD-256.md`'s own R1
+requirement text still describes the superseded qualification-layer
+formula and its DATA FLOW still omits `options.py`** — at the time this
+entry was written, a real, unresolved gap, correctly NOT patched here:
+`PRD-256.md` was not yet in PRD-256's own FILES section, so rewriting its
+R1 contract was outside this branch's scope-lock (CLAUDE.md: amend the
+PRD before editing a file it doesn't authorize). Flagged for Dustin:
+either authorize a small FILES amendment updating PRD-256.md's R1/DATA
+FLOW prose to name `options.py`, or treat the proposal doc's CORRECTION
+NOTICE as the sufficient source-of-truth update. Not ruled here — this is
+exactly the rule-vs-practice class the 2026-07-11 entry
+("rule-vs-practice gaps discovered mid-PR are legislated at a gate, not
+patched in the PR that found them") describes: surfaced at a gate, not
+resolved by the agent that found it.
+
+**RESOLVED (2026-07-13, same PR).** Dustin authorized the FILES
+amendment (Task 1 of his R2-ruling message). `PRD-256.md` now lists
+itself in FILES (commit `c56e340`), and its R1 text, SCOPE bullet, and
+DATA FLOW were rewritten to name `options.py::build_option_setups` as
+the terminal sizing layer (commits `c56e340`, `027024c`). This item is
+closed, not open, as of those commits — later readers should not treat
+this paragraph's original "unresolved gap" framing as describing the
+current tree.
+
+## 2026-07-12 — PRD-256 Phase 1/R1: continuation-path ATR proxy characterized against real market data
+
+Quantified the max-loss understatement `docs/prd_history/
+PRD-251.continuation-path.proposal.md` flagged and PRD-252 decoupled
+around. Real ATR14 (Wilder RMA, via `cuttingboard.derived._wilder_atr`)
+computed against the system's own cached OHLCV for all 16 real tradable
+symbols, run through the real `_qualify_continuation_candidate` sizing
+formula. Result, in full in the proposal doc's new R1 section: DEBIT
+strategies carry no structural gap (real max loss = debit paid, by
+construction); CREDIT strategies understate real max loss 4x-9x in the
+common (ATR-floor) case (11 of 16 real tradable symbols exactly at the
+floor, 13 of 16 including two more just past it), using the direct
+path's strike-distance
+convention as a benchmark "width" (not an endorsed fix) — same
+risk-through direction as PRD-251's original bug, confirming (not just
+plausibly matching) the class DECISIONS 2026-07-10 ruled warrants the
+decouple by default. The gap narrows to near-zero at high ATR14 (crossover
+at `atr14 = 10 x width`) and, past `atr14 = 20 x width`, the borrowed
+width convention goes mathematically undefined (negative implied max
+loss) — not reachable by any of today's 16 tradable symbols, but not
+guarded against either; noted for whichever FIX approach R2 might choose.
+
+Two out-of-scope findings surfaced and are explicitly NOT actioned here:
+
+1. **`docs/PROJECT_STATE.md`'s "Active PRD" line was stale.** It read
+   "none in progress" while `docs/PRD_REGISTRY.md` showed PRD-256 IN
+   PROGRESS. PRD-253's closeout (PR #143) flagged this and declined to
+   fix it on the premise that `docs/PROJECT_STATE.md` sits outside
+   PRD-256's FILES — incorrect; PRD-256's own FILES section lists it.
+   Corrected in this PR.
+2. **The continuation path's HOLD-confirmation gate appears to never
+   pass.** A full historical replay of the real, unmodified qualification
+   function against ~4,000 real symbol-days (16 symbols x ~250 trading
+   days, VIX-timing gate held favorable to isolate the question) produced
+   zero accepted candidates, tracing to `NO_HOLD_CONFIRMATION`:
+   `detect_continuation_breakout`'s lookback window already includes the
+   candle the HOLD check re-examines, making the check nearly
+   unsatisfiable — apparently inconsistent with
+   `docs/trade_qualification.md:323`'s documented intent. This is
+   consistent with the 95 captured production runs (2026-04-12..2026-07-10)
+   — only 1 of which carries a non-null `continuation_audit` block, and
+   that one itself shows 0 accepted — also carrying zero accepted
+   continuation candidates ever. Unrelated to
+   the ATR max-loss proxy this PRD characterizes; not fixed here; flagged
+   for separate ticketing, not folded into PRD-256's scope.
+
+R2 (Dustin's FIX-vs-PERMANENT ruling) has not fired. Full analysis:
+`docs/prd_history/PRD-251.continuation-path.proposal.md`. Design record:
+`docs/prd_history/PRD-256.md`.
+
+---
+
 ## 2026-07-11 — rule-vs-practice gaps discovered mid-PR are legislated at a gate, not patched in the PR that found them
 
 PR #141 (PRD-255's post-merge closeout) discovered, mid-PR, that

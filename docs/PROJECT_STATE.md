@@ -5,14 +5,23 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-07-12 (PR #143, held for Dustin's manual merge)
+**Last updated:** 2026-07-13 (PRD-256 R2 ruling + amendments)
 
 ## Current state
 
-- **Active PRD:** none in progress. (PRD-256 remains registered IN PROGRESS
-  in `docs/PRD_REGISTRY.md` — pre-existing drift against this line,
-  unrelated to PRD-253; flagged for correction, not fixed here since
-  `docs/PROJECT_STATE.md` is outside PRD-256's own FILES.)
+- **Active PRD:** PRD-256 (Phase 1/R1; HIGH-RISK/EXECUTION; PR opening, not yet merged; R2 has fired RULED FIX 2026-07-13, Phase 2/R3 not yet dispatched).
+- **Active PRD note (2026-07-13):** kept as a single-line bulleted pointer,
+  not a multi-line block, matching PRD-183's convention that
+  `scripts/prd_close.sh`'s closeout regex depends on (it replaces only
+  the first matching line; a multi-line "Active PRD" bullet would leave
+  orphaned continuation text behind at close). Full detail:
+  `docs/prd_history/PRD-251.continuation-path.proposal.md` (the R1
+  analysis), branch `claude/prd-256-phase1-atr-proxy-characterization`.
+  This line previously read "none in progress" while the registry showed
+  PRD-256 IN PROGRESS — flagged during PRD-253's closeout (PR #143) but
+  left uncorrected there on the mistaken premise that
+  `docs/PROJECT_STATE.md` sits outside PRD-256's FILES; it does not
+  (`docs/prd_history/PRD-256.md`'s FILES section lists it). Corrected here.
 - **PRD-253 — COMPLETE (2026-07-12, HIGH-RISK/CONTRACT, PR #143 — held for
   Dustin's manual merge):** `contract.py::_build_trade_candidates` and
   `audit.py::_build_record`'s `qualified_list` construction now source
@@ -261,10 +270,29 @@ Full history: `docs/PRD_REGISTRY.md`.
   path's ATR-based debit proxy still understates true max loss the same
   way PRD-251 fixed on the direct path (unfixed;
   `docs/prd_history/PRD-251.continuation-path.proposal.md` is the tracked
-  fast-follow). **Re-evaluate by 2026-08-15**: either the fast-follow has
-  landed and validated continuation sizing at the raised budget (retiring
-  this constant per the tracked requirement in the proposal doc), or the
-  gap is still open and this date pushes out with a recorded reason.
+  fast-follow). PRD-256 Phase 1/R1 (2026-07-12, corrected 2026-07-13 —
+  the original version characterized the qualification layer's ATR proxy
+  in isolation and missed that `options.py::build_option_setups` discards
+  it and re-sizes continuation results off a fixed, ATR-independent
+  figure instead; caught by `chatgpt-codex-connector[bot]`'s review of
+  PR #145) quantified this by direct execution of the real, unmodified
+  sizing code against real ATR14 readings for the 16 real tradable
+  symbols: for CREDIT-strategy resolutions, real max loss actually
+  charged/audited is a constant 2.333x the figure the system charges
+  (not ATR-dependent), the same literal unfixed arithmetic PRD-251 fixed
+  elsewhere, reached via a path that deliberately excludes continuation
+  results from that fix; DEBIT resolutions remain a confirmed 1.000x (no
+  gap), independently reproduced by a commissioned second-model
+  disposition (`docs/prd_history/PRD-256.review.codex.md`). **R2 has
+  fired: RULED FIX (2026-07-13, `docs/DECISIONS.md`)** — the continuation
+  path is not sizing off an inaccurate estimate but a deliberate bypass
+  of the strategy-aware correction, so there is no honest PERMANENT
+  branch. Phase 2 (R3) is ruled but not yet authorized to start; it gets
+  its own dispatch. **Re-evaluate by 2026-08-15**: either Phase 2 (R3)
+  has landed and validated continuation sizing at the raised budget
+  (retiring this constant per the tracked requirement in the proposal
+  doc), or the FIX is still queued and this date pushes out with a
+  recorded reason (the PERMANENT branch is closed — R2 ruled FIX).
 - **Phantom-SHA debt — CLOSED WONTFIX-HISTORICAL (PRD-243, 2026-07-05).**
   29 PRDs' recorded COMPLETE hashes (35 hash tokens; the "19" first counted at
   PRD-200 had grown through the PRD-208..222 era) are unreachable from a clean
