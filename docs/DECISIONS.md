@@ -16,6 +16,64 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-13 — PRD-256 Phase 1/R1 corrected: the qualification-layer characterization measured the wrong layer
+
+`chatgpt-codex-connector[bot]`'s review of PR #145 found that the
+2026-07-12 R1 characterization below (and the fresh-context review that
+ACCEPTed it, `docs/prd_history/PRD-256.review.claude.md` @ `0ca2523`)
+measured `_qualify_continuation_candidate`'s ATR-based proxy in isolation
+and treated its `dollar_risk` as the number the system acts on. It is
+not: `cuttingboard/options.py::build_option_setups` re-sizes every
+continuation result from a completely different, ATR-independent figure
+(`_estimated_debit(strike_distance) = 0.30 * strike_distance`, fixed at
+$0.75/share stock or $1.50/share ETF) and, per an explicit in-code guard
+(`result.entry_mode != ENTRY_MODE_CONTINUATION`), NEVER applies PRD-251's
+already-correct `_max_loss_for_strategy` value to continuation results —
+discarding the qualification layer's ATR-scaled dollar figure entirely
+(`options.py:210,253-261`; `tests/test_phase5.py:533-559`).
+
+Re-characterized by direct execution of the real, unmodified
+`build_option_setups` (not a re-derivation) against real ATR14 for all 16
+tradable symbols, three `risk_modifier` values, and both the current and
+hypothetical uncoupled budget: for CREDIT-resolving continuation results,
+real max loss is **exactly 2.333x (0.70/0.30)** what's actually charged
+and audited — constant, not ATR-dependent, not a 4x-9x range. This is not
+merely "the same class" as PRD-251's bug; it is the literal identical
+unfixed arithmetic, reached through a path that deliberately excludes
+continuation results from the fix applied everywhere else. DEBIT
+strategies remain a confirmed 1.000x (no gap) at this layer too. Full
+corrected analysis: `docs/prd_history/PRD-251.continuation-path.proposal.md`
+§ PRD-256 R1 (2026-07-12, corrected 2026-07-13).
+
+The qualification layer's ATR-based proxy is not irrelevant — it still
+sets `result.max_contracts`, one operand of a `min()` against layer 2's
+fixed per-bucket contract cap, so ATR14 can still shift which contract
+count gets sized (narrow-banded; see the corrected doc's section 5) — but
+it never determines the dollar-per-contract understatement, which is
+flat regardless of ATR.
+
+The 2026-07-12 fresh-context review's ACCEPT WITH CHANGES does not carry
+forward to this corrected version; a fresh review pass is required before
+R2 rules on these numbers.
+
+**Process note.** Both the implementer and the fresh-context reviewer
+(orchestrator/retriever split, adversarial by design) independently
+recomputed every number in the original characterization from real data
+and still missed this — the arithmetic was internally consistent and
+numerically correct at the layer both examined, so the review's
+recomputation-heavy method verified precision within a layer without
+questioning which layer was the right one to examine. Neither the PRD nor
+the review charge asked "does this qualification-layer dollar_risk
+actually reach the trader," so nothing prompted tracing the value past
+`_qualify_continuation_candidate`'s return into its caller. Repo-level
+"Exhaustive code review" (enabled 2026-07-13) surfaced it via an
+out-of-diff trace into `options.py`, a file this PR never touched.
+Worth carrying into future characterization charges: for any PRD whose
+deliverable is "what does the system actually charge/size/render," the
+charge should name tracing the value to its final consumer as an
+explicit requirement, not assume the first function that computes a
+plausible-looking number is the end of the path.
+
 ## 2026-07-12 — PRD-256 Phase 1/R1: continuation-path ATR proxy characterized against real market data
 
 Quantified the max-loss understatement `docs/prd_history/

@@ -266,14 +266,21 @@ Full history: `docs/PRD_REGISTRY.md`.
   path's ATR-based debit proxy still understates true max loss the same
   way PRD-251 fixed on the direct path (unfixed;
   `docs/prd_history/PRD-251.continuation-path.proposal.md` is the tracked
-  fast-follow). PRD-256 Phase 1/R1 (2026-07-12) quantified this against
-  real ATR14 readings for the 16 real tradable symbols: for CREDIT-strategy
-  resolutions in the common (ATR floor) case, real max loss runs 4x-9x the
-  proxy's figure (11 of 16 symbols exactly at the floor, 13 of 16 including
-  two more just past it), understating in the same risk-through direction as
-  PRD-251's bug; DEBIT resolutions carry no structural gap. R2 (Dustin's
-  FIX-vs-PERMANENT ruling, informed by that characterization) has not fired
-  yet. **Re-evaluate by 2026-08-15**: either Phase 2 has landed and
+  fast-follow). PRD-256 Phase 1/R1 (2026-07-12, corrected 2026-07-13 —
+  the original version characterized the qualification layer's ATR proxy
+  in isolation and missed that `options.py::build_option_setups` discards
+  it and re-sizes continuation results off a fixed, ATR-independent
+  figure instead; caught by `chatgpt-codex-connector[bot]`'s review of
+  PR #145) quantified this by direct execution of the real, unmodified
+  sizing code against real ATR14 readings for the 16 real tradable
+  symbols: for CREDIT-strategy resolutions, real max loss actually
+  charged/audited is a constant 2.333x the figure the system charges
+  (not ATR-dependent), the same literal unfixed arithmetic PRD-251 fixed
+  elsewhere, reached via a path that deliberately excludes continuation
+  results from that fix; DEBIT resolutions remain a confirmed 1.000x (no
+  gap). R2 (Dustin's FIX-vs-PERMANENT ruling, informed by that
+  characterization) has not fired yet. **Re-evaluate by 2026-08-15**:
+  either Phase 2 has landed and
   validated continuation sizing at the raised budget (retiring this
   constant per the tracked requirement in the proposal doc) or ruled the
   two-cap split PERMANENT, or the gap is still open and this date pushes
