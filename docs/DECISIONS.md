@@ -74,6 +74,28 @@ charge should name tracing the value to its final consumer as an
 explicit requirement, not assume the first function that computes a
 plausible-looking number is the end of the path.
 
+**Second bot-review round (2026-07-13, same day, on the correction
+commit).** With Exhaustive code review now active, three more findings
+landed on PR #145: (1) the v2 review artifact this section's correction
+needed didn't exist yet at push time — ACTIONED once written (`af419da`);
+(2) `logs/audit.jsonl` was mischaracterized as notification-transport-only
+when it actually holds two record families (`docs/audit_doctrine.md`) —
+635 notification + 5 genuine pipeline records, none showing continuation
+data — ACTIONED (`e2765d6`); (3) **`docs/prd_history/PRD-256.md`'s own R1
+requirement text still describes the superseded qualification-layer
+formula and its DATA FLOW still omits `options.py`** — a real,
+unresolved gap, correctly NOT patched here: `PRD-256.md` is not in
+PRD-256's own FILES section, so rewriting its R1 contract is outside this
+branch's scope-lock (CLAUDE.md: amend the PRD before editing a file it
+doesn't authorize). Flagged for Dustin: either authorize a small FILES
+amendment updating PRD-256.md's R1/DATA FLOW prose to name `options.py`,
+or treat the proposal doc's CORRECTION NOTICE as the sufficient
+source-of-truth update. Not ruled here — this is exactly the
+rule-vs-practice class the 2026-07-11 entry ("rule-vs-practice gaps
+discovered mid-PR are legislated at a gate, not patched in the PR that
+found them") describes: surfaced at a gate, not resolved by the agent
+that found it.
+
 ## 2026-07-12 — PRD-256 Phase 1/R1: continuation-path ATR proxy characterized against real market data
 
 Quantified the max-loss understatement `docs/prd_history/
