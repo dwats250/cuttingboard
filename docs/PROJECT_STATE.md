@@ -278,13 +278,17 @@ Full history: `docs/PRD_REGISTRY.md`.
   (not ATR-dependent), the same literal unfixed arithmetic PRD-251 fixed
   elsewhere, reached via a path that deliberately excludes continuation
   results from that fix; DEBIT resolutions remain a confirmed 1.000x (no
-  gap). R2 (Dustin's FIX-vs-PERMANENT ruling, informed by that
-  characterization) has not fired yet. **Re-evaluate by 2026-08-15**:
-  either Phase 2 has landed and
-  validated continuation sizing at the raised budget (retiring this
-  constant per the tracked requirement in the proposal doc) or ruled the
-  two-cap split PERMANENT, or the gap is still open and this date pushes
-  out with a recorded reason.
+  gap), independently reproduced by a commissioned second-model
+  disposition (`docs/prd_history/PRD-256.review.codex.md`). **R2 has
+  fired: RULED FIX (2026-07-13, `docs/DECISIONS.md`)** — the continuation
+  path is not sizing off an inaccurate estimate but a deliberate bypass
+  of the strategy-aware correction, so there is no honest PERMANENT
+  branch. Phase 2 (R3) is ruled but not yet authorized to start; it gets
+  its own dispatch. **Re-evaluate by 2026-08-15**: either Phase 2 (R3)
+  has landed and validated continuation sizing at the raised budget
+  (retiring this constant per the tracked requirement in the proposal
+  doc), or the FIX is still queued and this date pushes out with a
+  recorded reason (the PERMANENT branch is closed — R2 ruled FIX).
 - **Phantom-SHA debt — CLOSED WONTFIX-HISTORICAL (PRD-243, 2026-07-05).**
   29 PRDs' recorded COMPLETE hashes (35 hash tokens; the "19" first counted at
   PRD-200 had grown through the PRD-208..222 era) are unreachable from a clean
