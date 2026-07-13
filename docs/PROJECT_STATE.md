@@ -9,10 +9,15 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 ## Current state
 
-- **Active PRD:** none in progress. (PRD-256 remains registered IN PROGRESS
-  in `docs/PRD_REGISTRY.md` — pre-existing drift against this line,
-  unrelated to PRD-253; flagged for correction, not fixed here since
-  `docs/PROJECT_STATE.md` is outside PRD-256's own FILES.)
+- **Active PRD:** PRD-256 (Phase 1/R1 — ATR proxy max-loss characterization,
+  `docs/prd_history/PRD-251.continuation-path.proposal.md` — landed on
+  branch `claude/prd-256-phase1-atr-proxy-characterization`; HIGH-RISK/
+  EXECUTION; PR opening, not yet merged; R2 ruling and Phase 2 not started).
+  This line previously read "none in progress" while the registry showed
+  PRD-256 IN PROGRESS — flagged during PRD-253's closeout (PR #143) but
+  left uncorrected there on the mistaken premise that
+  `docs/PROJECT_STATE.md` sits outside PRD-256's FILES; it does not
+  (`docs/prd_history/PRD-256.md`'s FILES section lists it). Corrected here.
 - **PRD-253 — COMPLETE (2026-07-12, HIGH-RISK/CONTRACT, PR #143 — held for
   Dustin's manual merge):** `contract.py::_build_trade_candidates` and
   `audit.py::_build_record`'s `qualified_list` construction now source
@@ -261,10 +266,17 @@ Full history: `docs/PRD_REGISTRY.md`.
   path's ATR-based debit proxy still understates true max loss the same
   way PRD-251 fixed on the direct path (unfixed;
   `docs/prd_history/PRD-251.continuation-path.proposal.md` is the tracked
-  fast-follow). **Re-evaluate by 2026-08-15**: either the fast-follow has
-  landed and validated continuation sizing at the raised budget (retiring
-  this constant per the tracked requirement in the proposal doc), or the
-  gap is still open and this date pushes out with a recorded reason.
+  fast-follow). PRD-256 Phase 1/R1 (2026-07-12) quantified this against
+  real ATR14 readings for the 16 real tradable symbols: for CREDIT-strategy
+  resolutions in the common (ATR floor) case, real max loss runs 3x-9x the
+  proxy's figure, understating in the same risk-through direction as
+  PRD-251's bug; DEBIT resolutions carry no structural gap. R2 (Dustin's
+  FIX-vs-PERMANENT ruling, informed by that characterization) has not fired
+  yet. **Re-evaluate by 2026-08-15**: either Phase 2 has landed and
+  validated continuation sizing at the raised budget (retiring this
+  constant per the tracked requirement in the proposal doc) or ruled the
+  two-cap split PERMANENT, or the gap is still open and this date pushes
+  out with a recorded reason.
 - **Phantom-SHA debt — CLOSED WONTFIX-HISTORICAL (PRD-243, 2026-07-05).**
   29 PRDs' recorded COMPLETE hashes (35 hash tokens; the "19" first counted at
   PRD-200 had grown through the PRD-208..222 era) are unreachable from a clean

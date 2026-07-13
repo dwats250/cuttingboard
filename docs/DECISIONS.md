@@ -16,6 +16,54 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-12 — PRD-256 Phase 1/R1: continuation-path ATR proxy characterized against real market data
+
+Quantified the max-loss understatement `docs/prd_history/
+PRD-251.continuation-path.proposal.md` flagged and PRD-252 decoupled
+around. Real ATR14 (Wilder RMA, via `cuttingboard.derived._wilder_atr`)
+computed against the system's own cached OHLCV for all 16 real tradable
+symbols, run through the real `_qualify_continuation_candidate` sizing
+formula. Result, in full in the proposal doc's new R1 section: DEBIT
+strategies carry no structural gap (real max loss = debit paid, by
+construction); CREDIT strategies understate real max loss 3x-9x in the
+common (ATR-floor) case, using the direct path's strike-distance
+convention as a benchmark "width" (not an endorsed fix) — same
+risk-through direction as PRD-251's original bug, confirming (not just
+plausibly matching) the class DECISIONS 2026-07-10 ruled warrants the
+decouple by default. The gap narrows to near-zero at high ATR14 (crossover
+at `atr14 = 10 x width`) and, past `atr14 = 20 x width`, the borrowed
+width convention goes mathematically undefined (negative implied max
+loss) — not reachable by any of today's 16 tradable symbols, but not
+guarded against either; noted for whichever FIX approach R2 might choose.
+
+Two out-of-scope findings surfaced and are explicitly NOT actioned here:
+
+1. **`docs/PROJECT_STATE.md`'s "Active PRD" line was stale.** It read
+   "none in progress" while `docs/PRD_REGISTRY.md` showed PRD-256 IN
+   PROGRESS. PRD-253's closeout (PR #143) flagged this and declined to
+   fix it on the premise that `docs/PROJECT_STATE.md` sits outside
+   PRD-256's FILES — incorrect; PRD-256's own FILES section lists it.
+   Corrected in this PR.
+2. **The continuation path's HOLD-confirmation gate appears to never
+   pass.** A full historical replay of the real, unmodified qualification
+   function against ~4,000 real symbol-days (16 symbols x ~250 trading
+   days, VIX-timing gate held favorable to isolate the question) produced
+   zero accepted candidates, tracing to `NO_HOLD_CONFIRMATION`:
+   `detect_continuation_breakout`'s lookback window already includes the
+   candle the HOLD check re-examines, making the check nearly
+   unsatisfiable — apparently inconsistent with
+   `docs/trade_qualification.md:323`'s documented intent. This is
+   consistent with 95/95 captured production runs (2026-04-12..2026-07-09)
+   also showing zero accepted continuation candidates ever. Unrelated to
+   the ATR max-loss proxy this PRD characterizes; not fixed here; flagged
+   for separate ticketing, not folded into PRD-256's scope.
+
+R2 (Dustin's FIX-vs-PERMANENT ruling) has not fired. Full analysis:
+`docs/prd_history/PRD-251.continuation-path.proposal.md`. Design record:
+`docs/prd_history/PRD-256.md`.
+
+---
+
 ## 2026-07-11 — rule-vs-practice gaps discovered mid-PR are legislated at a gate, not patched in the PR that found them
 
 PR #141 (PRD-255's post-merge closeout) discovered, mid-PR, that
