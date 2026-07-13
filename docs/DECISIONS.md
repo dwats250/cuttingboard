@@ -25,8 +25,10 @@ computed against the system's own cached OHLCV for all 16 real tradable
 symbols, run through the real `_qualify_continuation_candidate` sizing
 formula. Result, in full in the proposal doc's new R1 section: DEBIT
 strategies carry no structural gap (real max loss = debit paid, by
-construction); CREDIT strategies understate real max loss 3x-9x in the
-common (ATR-floor) case, using the direct path's strike-distance
+construction); CREDIT strategies understate real max loss 4x-9x in the
+common (ATR-floor) case (11 of 16 real tradable symbols exactly at the
+floor, 13 of 16 including two more just past it), using the direct
+path's strike-distance
 convention as a benchmark "width" (not an endorsed fix) — same
 risk-through direction as PRD-251's original bug, confirming (not just
 plausibly matching) the class DECISIONS 2026-07-10 ruled warrants the
@@ -53,8 +55,10 @@ Two out-of-scope findings surfaced and are explicitly NOT actioned here:
    candle the HOLD check re-examines, making the check nearly
    unsatisfiable — apparently inconsistent with
    `docs/trade_qualification.md:323`'s documented intent. This is
-   consistent with 95/95 captured production runs (2026-04-12..2026-07-09)
-   also showing zero accepted continuation candidates ever. Unrelated to
+   consistent with the 95 captured production runs (2026-04-12..2026-07-10)
+   — only 1 of which carries a non-null `continuation_audit` block, and
+   that one itself shows 0 accepted — also carrying zero accepted
+   continuation candidates ever. Unrelated to
    the ATR max-loss proxy this PRD characterizes; not fixed here; flagged
    for separate ticketing, not folded into PRD-256's scope.
 

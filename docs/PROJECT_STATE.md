@@ -268,8 +268,9 @@ Full history: `docs/PRD_REGISTRY.md`.
   `docs/prd_history/PRD-251.continuation-path.proposal.md` is the tracked
   fast-follow). PRD-256 Phase 1/R1 (2026-07-12) quantified this against
   real ATR14 readings for the 16 real tradable symbols: for CREDIT-strategy
-  resolutions in the common (ATR floor) case, real max loss runs 3x-9x the
-  proxy's figure, understating in the same risk-through direction as
+  resolutions in the common (ATR floor) case, real max loss runs 4x-9x the
+  proxy's figure (11 of 16 symbols exactly at the floor, 13 of 16 including
+  two more just past it), understating in the same risk-through direction as
   PRD-251's bug; DEBIT resolutions carry no structural gap. R2 (Dustin's
   FIX-vs-PERMANENT ruling, informed by that characterization) has not fired
   yet. **Re-evaluate by 2026-08-15**: either Phase 2 has landed and
