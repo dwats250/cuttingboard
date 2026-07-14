@@ -5,23 +5,21 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-07-13 (PRD-256 R2 ruling + amendments)
+**Last updated:** 2026-07-13 (PRD-256 Phase 2/R3 implemented, PR #146 open — not yet merged)
 
 ## Current state
 
-- **Active PRD:** PRD-256 (Phase 1/R1; HIGH-RISK/EXECUTION; PR opening, not yet merged; R2 has fired RULED FIX 2026-07-13, Phase 2/R3 not yet dispatched).
+- **Active PRD:** PRD-256 (Phase 2/R3; HIGH-RISK/EXECUTION; PR #146 open, held for review + Dustin's manual merge; R2 fired RULED FIX 2026-07-13; R3 implemented on branch `prd-256-phase2-r3-sizing-fix`).
 - **Active PRD note (2026-07-13):** kept as a single-line bulleted pointer,
   not a multi-line block, matching PRD-183's convention that
   `scripts/prd_close.sh`'s closeout regex depends on (it replaces only
   the first matching line; a multi-line "Active PRD" bullet would leave
   orphaned continuation text behind at close). Full detail:
   `docs/prd_history/PRD-251.continuation-path.proposal.md` (the R1
-  analysis), branch `claude/prd-256-phase1-atr-proxy-characterization`.
-  This line previously read "none in progress" while the registry showed
-  PRD-256 IN PROGRESS — flagged during PRD-253's closeout (PR #143) but
-  left uncorrected there on the mistaken premise that
-  `docs/PROJECT_STATE.md` sits outside PRD-256's FILES; it does not
-  (`docs/prd_history/PRD-256.md`'s FILES section lists it). Corrected here.
+  analysis and R3's implementation record, section 10), `docs/prd_history/
+  PRD-256.md` (the governing PRD doc). R1 landed on branch
+  `claude/prd-256-phase1-atr-proxy-characterization` (PR #145, merged);
+  R3 lands on `prd-256-phase2-r3-sizing-fix` (PR #146).
 - **PRD-253 — COMPLETE (2026-07-12, HIGH-RISK/CONTRACT, PR #143 — held for
   Dustin's manual merge):** `contract.py::_build_trade_candidates` and
   `audit.py::_build_record`'s `qualified_list` construction now source

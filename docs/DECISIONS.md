@@ -46,8 +46,12 @@ HOLD-confirmation-gate defect (`docs/prd_history/
 PRD-256.hold-confirmation-gate.proposal.md`) mean no continuation
 candidate has ever qualified in production. That gate guards something
 real and is simply written wrong (a self-referential lookback window,
-proven mathematically unsatisfiable against 5,985 real OHLCV rows) — it
-is not vestigial and nothing downstream depends on it staying broken.
+proven mathematically unsatisfiable against real OHLCV data — 5,985 rows
+as measured 2026-07-12 per `docs/prd_history/
+PRD-256.hold-confirmation-gate.proposal.md`; the cache is a live, growing
+dataset, so a recount today will differ slightly and that is expected,
+not a correction) — it is not vestigial and nothing downstream depends
+on it staying broken.
 This PR fixes what the system WOULD charge once that separate defect is
 fixed; the HOLD-gate fix itself is out of scope here, tracked as its own
 queued ticket.

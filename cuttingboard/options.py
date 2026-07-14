@@ -99,8 +99,8 @@ class OptionSetup:
     strike_distance:    float         # strike width in underlying $ points
     spread_width:       float         # estimated net debit per share
     dte:                int           # target days to expiry
-    max_contracts:      int           # from qualification
-    dollar_risk:        float         # from qualification
+    max_contracts:      int           # final, resized value (build_option_setups)
+    dollar_risk:        float         # final, resized value (build_option_setups)
     exit_profit_pct:    float         # 0.50 = +50% of max profit
     exit_loss:          str           # "full_debit"
 
@@ -254,7 +254,7 @@ def build_option_setups(
         setups.append(setup)
         logger.info(
             f"OPTION_SETUP {symbol}: {strategy}  {long_strike}/{short_strike}  "
-            f"{dte} DTE  {result.max_contracts}c  ${result.dollar_risk:.0f}  "
+            f"{dte} DTE  {final_contracts}c  ${final_dollar_risk:.0f}  "
             f"mode={result.entry_mode}"
         )
 

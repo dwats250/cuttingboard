@@ -576,10 +576,15 @@ class TestBuildOptionSetups:
         assert setup.dollar_risk == pytest.approx(expected_contracts * expected_max_loss * 100)
 
     def test_credit_strategy_final_resize_agrees_with_candidate_max_loss_prd251(self):
-        # PRD-251 (A1a) R3: when a TradeCandidate IS supplied, the final
-        # resize must use its carried max_loss, not recompute independently
-        # -- Gate 8's decision and the rendered dollar_risk share one
-        # source of truth.
+        # PRD-256 R3 (corrected 2026-07-13, Codex commissioned review):
+        # the final resize recomputes _max_loss_for_strategy(strategy,
+        # strike_distance) fresh for every result -- it no longer reads
+        # candidate.max_loss at all. This test's candidate.max_loss happens
+        # to agree with the recomputed figure because _build_candidate
+        # derives it the same way (same strategy, same strike_distance
+        # bucket) -- see test_non_continuation_result_ignores_stale_
+        # candidate_max_loss_prd256 below for a test that discriminates
+        # the two by deliberately disagreeing.
         candidate = TradeCandidate(
             symbol="SPY", direction="LONG",
             entry_price=560.0, stop_price=555.0, target_price=570.0,
@@ -591,6 +596,26 @@ class TestBuildOptionSetups:
         dm = {"SPY": _dm("SPY")}
         setup = build_option_setups(results, sr, dm, candidates={"SPY": candidate})[0]
         assert setup.dollar_risk == pytest.approx(candidate.max_loss * 100)
+
+    def test_non_continuation_result_ignores_stale_candidate_max_loss_prd256(self):
+        # PRD-256 R3 (Codex commissioned review, RECOMMENDED EDIT): pins
+        # the "always recompute, never read candidate.max_loss" invariant
+        # for the DIRECT (non-continuation) path too, by deliberately
+        # giving the candidate a wrong max_loss -- the prior test above
+        # cannot discriminate this because its candidate.max_loss happens
+        # to already equal the recomputed figure.
+        candidate = TradeCandidate(
+            symbol="SPY", direction="LONG",
+            entry_price=560.0, stop_price=555.0, target_price=570.0,
+            spread_width=_estimated_debit(_MAX_STRIKE_DIST_ETF),
+            max_loss=999.0,  # deliberately wrong -- must not be read at all
+        )
+        results = [_qual_result("SPY", direction="LONG", max_contracts=1, dollar_risk=350.0)]
+        sr = {"SPY": _structure("SPY", TREND, HIGH_IV)}
+        dm = {"SPY": _dm("SPY")}
+        setup = build_option_setups(results, sr, dm, candidates={"SPY": candidate})[0]
+        expected_max_loss = _max_loss_for_strategy(BULL_PUT_SPREAD, _MAX_STRIKE_DIST_ETF)
+        assert setup.dollar_risk == pytest.approx(expected_max_loss * 100)
 
 
 # ---------------------------------------------------------------------------
