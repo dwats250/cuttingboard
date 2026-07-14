@@ -16,6 +16,54 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-13 — PRD-256 R3: continuation-path bypass fixed, budgets re-converged
+
+Implements the FIX ruled at R2 (above). `options.py::build_option_setups`'s
+`effective_max_loss` no longer excludes continuation results from the
+strategy-aware `_max_loss_for_strategy` correction — every result,
+continuation included, now prices off `_max_loss_for_strategy(strategy,
+strike_distance)`, computed fresh from that result's own strategy and
+strike-distance bucket rather than a possibly-stale `TradeCandidate`.
+`config.CONTINUATION_MAX_RISK_PCT_PER_TRADE` is deleted; both sizing
+sites (`qualification.py::_qualify_continuation_candidate`,
+`options.py::build_option_setups`'s correlation-modifier recompute) read
+`MAX_RISK_PCT_PER_TRADE` unconditionally. Validated on real cached OHLCV
+for all 16 real tradable symbols (`docs/prd_history/
+PRD-251.continuation-path.proposal.md` section 10; before/after sizing
+table in the implementation PR). Full pytest suite green.
+
+**No parallel correction invented.** The three candidate approaches the
+proposal doc left open collapsed into one: `strategy` and
+`strike_distance` were already computed unconditionally for every result
+before the entry-mode branch ever ran, so the fix is the removal of the
+exclusion, not a new width concept. This also closes the stale-candidate
+leak the old exclusion's comment warned about, since `candidate.max_loss`
+is no longer read for this purpose at all.
+
+**This does not make continuation trades live.** R1's real-data replay
+(3,984 symbol-days, zero acceptances) and the separately-ticketed
+HOLD-confirmation-gate defect (`docs/prd_history/
+PRD-256.hold-confirmation-gate.proposal.md`) mean no continuation
+candidate has ever qualified in production. That gate guards something
+real and is simply written wrong (a self-referential lookback window,
+proven mathematically unsatisfiable against real OHLCV data — 5,985 rows
+as measured 2026-07-12 per `docs/prd_history/
+PRD-256.hold-confirmation-gate.proposal.md`; the cache is a live, growing
+dataset, so a recount today will differ slightly and that is expected,
+not a correction) — it is not vestigial and nothing downstream depends
+on it staying broken.
+This PR fixes what the system WOULD charge once that separate defect is
+fixed; the HOLD-gate fix itself is out of scope here, tracked as its own
+queued ticket.
+
+**PROJECT_STATE's known-debt entry is closed, not re-dated.** The
+"Continuation-path budget decouple" entry is resolved, not deferred —
+no further re-evaluation date. "Temporary"/"interim" framing struck from
+`config.py`'s comment, `PROJECT_STATE.md`, and the proposal doc; this
+entry and the 2026-07-10/07-12/07-13 historical entries above are left
+as an accurate record of what was true when they were written, not
+edited to match the current, resolved state.
+
 ## 2026-07-13 — PRD-256 review-coverage boundary: stopping the re-review recursion deliberately
 
 Explicit, not silent: `docs/prd_history/PRD-256.review.claude.v3.md`

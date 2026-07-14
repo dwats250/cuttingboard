@@ -23,6 +23,7 @@ from cuttingboard.options import (
     _select_dte,
     _format_strikes,
     _estimated_debit,
+    _max_loss_for_strategy,
     BULL_CALL_SPREAD, BULL_PUT_SPREAD,
     BEAR_PUT_SPREAD, BEAR_CALL_SPREAD,
     _MAX_STRIKE_DIST_ETF, _MAX_STRIKE_DIST_STK,
@@ -478,26 +479,15 @@ class TestBuildOptionSetups:
     def test_empty_input(self):
         assert build_option_setups([], {}, {}) == []
 
-    def test_credit_strategy_no_candidate_fallback_stays_debit_proxy_prd251(self, monkeypatch):
-        # PRD-251 (A1a) R4 safety net. candidate=None in production is
-        # exactly the shape of an EXPANSION-regime continuation-path result
-        # (_qualify_continuation_candidate never populates the candidates
-        # dict) -- a path R4 declares untouched. The final resize must NOT
-        # apply the new strategy-aware max-loss formula here: it must stay
-        # on the old debit-proxy fallback ($1.50/share, $150/contract)
-        # verbatim, even though sr.iv_environment/direction would select
-        # BULL_PUT_SPREAD (a credit strategy) if this were the standard
-        # Gate-8 path. Applying the new formula here would silently re-price
-        # continuation-path trades whose own qualifying arithmetic (the
-        # untouched ATR-based proxy) never changed -- recreating the exact
-        # Gate-8-vs-final-render divergence R3 exists to eliminate, in the
-        # one path this PRD must not touch.
-        #
-        # PRD-252: this is a formula-selection invariant (fallback stays
-        # spread_width-priced at $150/contract), not a budget consequence --
-        # pinned to the pre-PRD-252 $150 effective budget via monkeypatch so
-        # the raised live default doesn't change the resulting contract
-        # count and mask what this test actually guards.
+    def test_credit_strategy_no_candidate_uses_strategy_aware_max_loss_prd256(self, monkeypatch):
+        # PRD-256 R3: candidate=None (the shape _qualify_continuation_candidate
+        # produces, since it never populates the candidates dict) must still
+        # be priced through _max_loss_for_strategy, not the raw debit-proxy
+        # fallback. Pre-PRD-256, this fallback was the exact site of the
+        # 2.333x CREDIT-strategy understatement -- absence of a resolved
+        # TradeCandidate is not license to skip the strategy-aware
+        # correction. Budget pinned to $150 via monkeypatch purely to keep
+        # the contract-count arithmetic legible; not testing budget choice.
         monkeypatch.setattr(config, "ACCOUNT_EQUITY", 15000.0)
         monkeypatch.setattr(config, "MAX_RISK_PCT_PER_TRADE", 0.01)
         results = [_qual_result("SPY", direction="LONG", max_contracts=3, dollar_risk=150.0)]
@@ -505,19 +495,18 @@ class TestBuildOptionSetups:
         dm = {"SPY": _dm("SPY")}
         setup = build_option_setups(results, sr, dm)[0]
         assert setup.strategy == BULL_PUT_SPREAD
+        expected_max_loss = _max_loss_for_strategy(BULL_PUT_SPREAD, _MAX_STRIKE_DIST_ETF)
         assert setup.max_contracts == 1
-        assert setup.dollar_risk == pytest.approx(
-            _estimated_debit(_MAX_STRIKE_DIST_ETF) * 100
-        )
+        assert setup.dollar_risk == pytest.approx(expected_max_loss * 100)
 
-    def test_continuation_shaped_credit_result_unaffected_by_prd251(self):
-        # PRD-251 (A1a) R4, faithful shape: an actual
-        # ENTRY_MODE_CONTINUATION result (as qualify_all produces from
-        # _qualify_continuation_candidate for EXPANSION-regime symbols),
-        # landing on a credit strategy (LONG + HIGH_IV -> BULL_PUT_SPREAD).
-        # Its dollar_risk (150.0) already reflects the continuation path's
-        # OWN untouched ATR-based proxy, sized by qualification.py -- this
-        # PRD must not re-price it through a different formula.
+    def test_continuation_shaped_credit_result_uses_strategy_aware_max_loss_prd256(self):
+        # PRD-256 R3: an actual ENTRY_MODE_CONTINUATION result landing on a
+        # credit strategy (LONG + HIGH_IV -> BULL_PUT_SPREAD) must be priced
+        # the same way any other credit-strategy result is -- width minus
+        # the estimated credit, not the raw debit proxy. Pre-fix this test
+        # asserted the 2.333x-understated figure ($150 instead of $350);
+        # this is the same invariant test_credit_strategy_final_resize_
+        # agrees_with_candidate_max_loss_prd251 checks for the direct path.
         results = [_qual_result(
             "SPY", direction="LONG", max_contracts=1, dollar_risk=150.0,
             entry_mode=ENTRY_MODE_CONTINUATION,
@@ -526,25 +515,25 @@ class TestBuildOptionSetups:
         dm = {"SPY": _dm("SPY")}
         setup = build_option_setups(results, sr, dm)[0]
         assert setup.strategy == BULL_PUT_SPREAD
-        assert setup.dollar_risk == pytest.approx(
-            _estimated_debit(_MAX_STRIKE_DIST_ETF) * 100
-        )
+        expected_max_loss = _max_loss_for_strategy(BULL_PUT_SPREAD, _MAX_STRIKE_DIST_ETF)
+        assert setup.dollar_risk == pytest.approx(expected_max_loss * 100)
 
-    def test_continuation_result_ignores_stale_direct_candidate_prd251(self):
-        # PRD-251 (A1a) R4, Codex-caught gap: in EXPANSION regime,
-        # generate_candidates() (direction_for_regime(EXPANSION)="LONG")
-        # runs alongside the continuation qualifier, so a symbol that fails
-        # direct qualification but passes continuation qualification can
-        # have a DIRECT TradeCandidate sitting in `candidates` for the same
-        # symbol -- with its own resolved, strategy-aware max_loss. The
-        # continuation-shaped result must ignore it and stay on the
-        # untouched debit-proxy fallback, never the direct candidate's
-        # max_loss, even though `candidates` is non-empty for this symbol.
+    def test_continuation_result_unaffected_by_unrelated_stale_direct_candidate_prd256(self):
+        # PRD-256 R3: in EXPANSION regime, generate_candidates() can leave a
+        # DIRECT TradeCandidate in `candidates` for a symbol whose
+        # continuation qualifier also fired -- unrelated to the
+        # continuation result being rendered here. Since R3 removed the
+        # candidate.max_loss read entirely (effective_max_loss is now always
+        # computed fresh from THIS result's own strategy/strike_distance),
+        # an irrelevant candidate sitting in the dict cannot leak its
+        # economics into the continuation result either way -- this test
+        # pins that invariant structurally, not by accident of an
+        # entry_mode branch.
         direct_candidate = TradeCandidate(
             symbol="SPY", direction="LONG",
             entry_price=560.0, stop_price=555.0, target_price=570.0,
             spread_width=_estimated_debit(_MAX_STRIKE_DIST_ETF),
-            max_loss=_MAX_STRIKE_DIST_ETF - _estimated_debit(_MAX_STRIKE_DIST_ETF),
+            max_loss=999.0,  # deliberately wrong -- must not be read at all
         )
         results = [_qual_result(
             "SPY", direction="LONG", max_contracts=1, dollar_risk=150.0,
@@ -554,29 +543,18 @@ class TestBuildOptionSetups:
         dm = {"SPY": _dm("SPY")}
         setup = build_option_setups(results, sr, dm, candidates={"SPY": direct_candidate})[0]
         assert setup.strategy == BULL_PUT_SPREAD
-        assert setup.dollar_risk == pytest.approx(
-            _estimated_debit(_MAX_STRIKE_DIST_ETF) * 100
-        )
+        expected_max_loss = _max_loss_for_strategy(BULL_PUT_SPREAD, _MAX_STRIKE_DIST_ETF)
+        assert setup.dollar_risk == pytest.approx(expected_max_loss * 100)
 
-    def test_continuation_result_recomputes_against_decoupled_budget_prd252(self):
-        # PRD-252 R6 (fresh-context review REQUIRED EDIT): build_option_setups's
-        # correlation-modifier recompute (effective_risk, ~line 232) must
-        # branch on entry_mode == ENTRY_MODE_CONTINUATION to read
-        # CONTINUATION_MAX_RISK_PCT_PER_TRADE, not the raised main constant
-        # -- the qualification.py decouple alone does not close this leak.
-        #
-        # Every other continuation-shaped test in this class uses an
-        # upstream max_contracts of 1, which is always <= any plausible
-        # raw_adjusted and so the min(result.max_contracts, raw_adjusted)
-        # clamp hides a leaked (wrong-constant) recompute. This test
-        # deliberately uses an upstream max_contracts (10) that is NOT the
-        # binding constraint, so raw_adjusted -- and therefore which
-        # constant it was computed from -- is what actually reaches
-        # final_contracts. spread_width=1.0 -> risk_per_contract=$100.
-        # Correctly decoupled: floor(150/100)=1 contract, $100 dollar_risk.
-        # If the raised main constant leaked in: floor(400.005/100)=4
-        # contracts, $400 dollar_risk -- a 4x oversizing of a trade this
-        # budget is supposed to keep frozen at $150.
+    def test_continuation_result_sizes_against_reconverged_budget_prd256(self):
+        # PRD-256 R3: continuation and direct-path results now read the same
+        # MAX_RISK_PCT_PER_TRADE budget -- CONTINUATION_MAX_RISK_PCT_PER_TRADE
+        # is retired. Uses an upstream max_contracts (10) that is NOT the
+        # binding constraint, so raw_adjusted (and therefore which budget it
+        # was computed from) is what actually reaches final_contracts.
+        # LONG + NORMAL_IV -> BULL_CALL_SPREAD (debit): max_loss ==
+        # _estimated_debit(ETF strike distance) == $1.50/share == $150/contract.
+        # floor(400.005 / 150) = 2 contracts, $300 dollar_risk.
         results = [_qual_result(
             "SPY", direction="LONG", max_contracts=10, dollar_risk=1000.0,
             entry_mode=ENTRY_MODE_CONTINUATION,
@@ -589,14 +567,24 @@ class TestBuildOptionSetups:
             spread_width=1.0,
         )
         setup = build_option_setups(results, sr, dm, candidates={"SPY": candidate})[0]
-        assert setup.max_contracts == 1
-        assert setup.dollar_risk == pytest.approx(100.0)
+        assert setup.strategy == BULL_CALL_SPREAD
+        expected_max_loss = _max_loss_for_strategy(BULL_CALL_SPREAD, _MAX_STRIKE_DIST_ETF)
+        expected_contracts = int(
+            (config.ACCOUNT_EQUITY * config.MAX_RISK_PCT_PER_TRADE) // (expected_max_loss * 100)
+        )
+        assert setup.max_contracts == expected_contracts == 2
+        assert setup.dollar_risk == pytest.approx(expected_contracts * expected_max_loss * 100)
 
     def test_credit_strategy_final_resize_agrees_with_candidate_max_loss_prd251(self):
-        # PRD-251 (A1a) R3: when a TradeCandidate IS supplied, the final
-        # resize must use its carried max_loss, not recompute independently
-        # -- Gate 8's decision and the rendered dollar_risk share one
-        # source of truth.
+        # PRD-256 R3 (corrected 2026-07-13, Codex commissioned review):
+        # the final resize recomputes _max_loss_for_strategy(strategy,
+        # strike_distance) fresh for every result -- it no longer reads
+        # candidate.max_loss at all. This test's candidate.max_loss happens
+        # to agree with the recomputed figure because _build_candidate
+        # derives it the same way (same strategy, same strike_distance
+        # bucket) -- see test_non_continuation_result_ignores_stale_
+        # candidate_max_loss_prd256 below for a test that discriminates
+        # the two by deliberately disagreeing.
         candidate = TradeCandidate(
             symbol="SPY", direction="LONG",
             entry_price=560.0, stop_price=555.0, target_price=570.0,
@@ -608,6 +596,26 @@ class TestBuildOptionSetups:
         dm = {"SPY": _dm("SPY")}
         setup = build_option_setups(results, sr, dm, candidates={"SPY": candidate})[0]
         assert setup.dollar_risk == pytest.approx(candidate.max_loss * 100)
+
+    def test_non_continuation_result_ignores_stale_candidate_max_loss_prd256(self):
+        # PRD-256 R3 (Codex commissioned review, RECOMMENDED EDIT): pins
+        # the "always recompute, never read candidate.max_loss" invariant
+        # for the DIRECT (non-continuation) path too, by deliberately
+        # giving the candidate a wrong max_loss -- the prior test above
+        # cannot discriminate this because its candidate.max_loss happens
+        # to already equal the recomputed figure.
+        candidate = TradeCandidate(
+            symbol="SPY", direction="LONG",
+            entry_price=560.0, stop_price=555.0, target_price=570.0,
+            spread_width=_estimated_debit(_MAX_STRIKE_DIST_ETF),
+            max_loss=999.0,  # deliberately wrong -- must not be read at all
+        )
+        results = [_qual_result("SPY", direction="LONG", max_contracts=1, dollar_risk=350.0)]
+        sr = {"SPY": _structure("SPY", TREND, HIGH_IV)}
+        dm = {"SPY": _dm("SPY")}
+        setup = build_option_setups(results, sr, dm, candidates={"SPY": candidate})[0]
+        expected_max_loss = _max_loss_for_strategy(BULL_PUT_SPREAD, _MAX_STRIKE_DIST_ETF)
+        assert setup.dollar_risk == pytest.approx(expected_max_loss * 100)
 
 
 # ---------------------------------------------------------------------------

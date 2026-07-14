@@ -5,23 +5,21 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-07-13 (PRD-256 R2 ruling + amendments)
+**Last updated:** 2026-07-14 (commit #146)
 
 ## Current state
 
-- **Active PRD:** PRD-256 (Phase 1/R1; HIGH-RISK/EXECUTION; PR opening, not yet merged; R2 has fired RULED FIX 2026-07-13, Phase 2/R3 not yet dispatched).
+- **Active PRD:** none in progress.
 - **Active PRD note (2026-07-13):** kept as a single-line bulleted pointer,
   not a multi-line block, matching PRD-183's convention that
   `scripts/prd_close.sh`'s closeout regex depends on (it replaces only
   the first matching line; a multi-line "Active PRD" bullet would leave
   orphaned continuation text behind at close). Full detail:
   `docs/prd_history/PRD-251.continuation-path.proposal.md` (the R1
-  analysis), branch `claude/prd-256-phase1-atr-proxy-characterization`.
-  This line previously read "none in progress" while the registry showed
-  PRD-256 IN PROGRESS — flagged during PRD-253's closeout (PR #143) but
-  left uncorrected there on the mistaken premise that
-  `docs/PROJECT_STATE.md` sits outside PRD-256's FILES; it does not
-  (`docs/prd_history/PRD-256.md`'s FILES section lists it). Corrected here.
+  analysis and R3's implementation record, section 10), `docs/prd_history/
+  PRD-256.md` (the governing PRD doc). R1 landed on branch
+  `claude/prd-256-phase1-atr-proxy-characterization` (PR #145, merged);
+  R3 lands on `prd-256-phase2-r3-sizing-fix` (PR #146).
 - **PRD-253 — COMPLETE (2026-07-12, HIGH-RISK/CONTRACT, PR #143 — held for
   Dustin's manual merge):** `contract.py::_build_trade_candidates` and
   `audit.py::_build_record`'s `qualified_list` construction now source
@@ -189,7 +187,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 - **PRD-212 — COMPLETE, PREMISE SUPERSEDED (2026-07-01):** *(historical — the workflow this configured was retired by PRD-230, 2026-07-04)* pinned `codex-version: 0.142.1` believing the gate outage was CLI-alias drift. **That diagnosis was wrong:** `gpt-5-codex` was deprecated by OpenAI 2026-04-01 — a retired model no CLI pin can serve. The Phase-4 live dispatches (2026-07-01, on main under 0.142.1) fail-closed on the model-metadata fallback every run, falsifying the premise; both waiver legs are void (no Claude-review artifact; the "Phase-4 stand-in" was recorded before any Phase-4 run existed). **The real fix is PR #76:** retarget the requested model to `gpt-5.5` + `ALLOWED_CODEX_MODELS = "gpt-5.5 gpt-5.5-*"`, validated end-to-end by run **28560459040** (resolved-model=gpt-5.5, exit 0, artifact landed at [`docs/prd_history/PRD-212.review.codex.md`](prd_history/PRD-212.review.codex.md)). The 0.142.1 pin is retained (it serves gpt-5.5), so the row stays COMPLETE, not reverted. **PRD-207 is NOT superseded** — its fail-closed honor gate correctly detected the real fallback. Auth is API-key (not ChatGPT sign-in). See DECISIONS 2026-07-01.
 - **PRD-208 — COMPLETE (2026-07-02):** trend-structure SMA alignment presentation. The SMA composite cell renders a compressed 3-state arrow vocabulary (↑/↓/= vs SMA50 and SMA200) under the pinned "SMA 50/200" header; the redundant granular "vs SMA50"/"vs SMA200" columns are cut (trend table 10→8 columns); unavailable states keep "Structure unavailable"/"SMA history insufficient" and are guarded against ever rendering "NULL"/"None"/prose. Pure presentation change in `dashboard_renderer.py` (CLASS CONSUMER; no data/schema/gate/count/regime touched). Impl `0f72e32`; +2 net tests (sandbox 2862 passed / 1 xfailed; CI truth on the PR). HIGH-RISK gate SATISFIED in-tree: Claude review (`PRD-208.review.claude.md`) + genuine Codex cross-review (`PRD-208.review.codex.md`; resolved-model=gpt-5.5, honored/allowlist-verified, read-only, SHA-pinned @ `0f72e32`, run 28563373849) — APPROVE WITH EDITS, the one recommended edit (stale PRD-190 wording) applied. The invalid stage-0 Codex artifact (claimed gpt-5-codex, body self-reported gpt-4.1) is superseded. See DECISIONS 2026-07-02.
 - **Proposed / next:** `prd_index.json` reads `next_prd: 244` (243 and 242 merged via PR #115; 240 merged via PR #111, 241 via PR #113 — all COMPLETE above, drafted from the qualification tuning audit; full ten-finding disposition: DECISIONS 2026-07-05. 226/227 merged via PR #95, closed same-PR per PRD-229; 229–232 merged via the Block-1 batch PR #99; 233–235 via PR #102, which carried the stack — the authoring PRs #100/#101 are closed as contained; 236 via PR #104; 237 via PR #105; 238 rides PR #106; 239 rides PR #108). **MICRO follow-up filed at PRD-238 review (RECOMMENDED, non-blocking):** `reports/levels.py::derive_key_levels` is a contract consumer still typed `dict` — annotate with `PipelineContract` in the next polish batch. Other open items, none in progress: **PRD-209** (OHLCV bar-count floor) — SHELVED, reopen-on-incident (F08 refuted; latent PRD-198 #1 hole documented, not built; see DECISIONS 2026-07-01). **PRD-188** (macro-awareness SHOCK banner + scheduled activation) — PROPOSED, parked; the 2026-07-15 go/no-go is advisory/soft and NOT wired (eval gate unstarted — corpus unlabeled, T unset; see DECISIONS 2026-07-01). **PRD-205/206** are VOID (numbers skipped, filed out of order); PR #51 (PRD-205 codex-review-router scaffold) was CLOSED as orphaned 2026-07-01 (router idea dropped; see DECISIONS 2026-07-01).
-- **Test baseline:** 2935 passing, 1 xfailed (CI truth on `main`; `test` job for `#140`, run 29181537235 — unchanged from `#135`, PRD-255 touched no tests).
+- **Test baseline:** 2937 passing, 1 xfailed (CI truth on `main`; `test` job for `#146`).
 - **Fixed (PRD-194):** the `hourly_alert.yml` render-before-aggregate nit (hourly published a 1-cycle-stale scoreboard) is resolved — PRD-194 reordered the hourly Aggregate step to run before the render, so the hourly dashboard reflects the current run.
 - **Recently landed and live:**
   - The market-stress kill switch forces a terminal HALT (PRD-180). The
@@ -203,6 +201,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 | PRD | Title | Completed |
 |-----|-------|-----------|
+| PRD-256 | Continuation-path ATR proxy max-loss fix or permanent-cap ruling | 2026-07-14 |
 | PRD-253 | Contract/audit sizing sourcing: read correlation- and strategy-adjusted OptionSetup, not pre-adjustment QualificationResult | 2026-07-12 |
 | PRD-257 | Fix dashboard_preview.yml comment referencing the deleted dashboard-publish-refresh skill | 2026-07-12 |
 | PRD-254 | Hook + settings hardening by removal | 2026-07-12 |
@@ -263,36 +262,24 @@ Full history: `docs/PRD_REGISTRY.md`.
   yet scheduled, so every notification-path change still edits one large
   `runtime/__init__.py`. **Re-evaluate by 2026-08-15** (per the VISION principle
   that acknowledged debt carries a re-evaluation date).
-- **Continuation-path budget decouple — interim constant, PRD-252 (2026-07-10).**
-  `config.CONTINUATION_MAX_RISK_PCT_PER_TRADE = 0.01` freezes the
-  EXPANSION-regime continuation path's sizing budget at the pre-PRD-252
-  $150 while the main per-trade budget is $400, because the continuation
-  path's ATR-based debit proxy still understates true max loss the same
-  way PRD-251 fixed on the direct path (unfixed;
-  `docs/prd_history/PRD-251.continuation-path.proposal.md` is the tracked
-  fast-follow). PRD-256 Phase 1/R1 (2026-07-12, corrected 2026-07-13 —
-  the original version characterized the qualification layer's ATR proxy
-  in isolation and missed that `options.py::build_option_setups` discards
-  it and re-sizes continuation results off a fixed, ATR-independent
-  figure instead; caught by `chatgpt-codex-connector[bot]`'s review of
-  PR #145) quantified this by direct execution of the real, unmodified
-  sizing code against real ATR14 readings for the 16 real tradable
-  symbols: for CREDIT-strategy resolutions, real max loss actually
-  charged/audited is a constant 2.333x the figure the system charges
-  (not ATR-dependent), the same literal unfixed arithmetic PRD-251 fixed
-  elsewhere, reached via a path that deliberately excludes continuation
-  results from that fix; DEBIT resolutions remain a confirmed 1.000x (no
-  gap), independently reproduced by a commissioned second-model
-  disposition (`docs/prd_history/PRD-256.review.codex.md`). **R2 has
-  fired: RULED FIX (2026-07-13, `docs/DECISIONS.md`)** — the continuation
-  path is not sizing off an inaccurate estimate but a deliberate bypass
-  of the strategy-aware correction, so there is no honest PERMANENT
-  branch. Phase 2 (R3) is ruled but not yet authorized to start; it gets
-  its own dispatch. **Re-evaluate by 2026-08-15**: either Phase 2 (R3)
-  has landed and validated continuation sizing at the raised budget
-  (retiring this constant per the tracked requirement in the proposal
-  doc), or the FIX is still queued and this date pushes out with a
-  recorded reason (the PERMANENT branch is closed — R2 ruled FIX).
+- **Continuation-path budget decouple — CLOSED, fixed by PRD-256 R3
+  (2026-07-13).** `config.CONTINUATION_MAX_RISK_PCT_PER_TRADE = 0.01` had
+  frozen the EXPANSION-regime continuation path's sizing budget at the
+  pre-PRD-252 $150 while the main per-trade budget was $400, because
+  `options.py::build_option_setups` excluded continuation results from
+  the strategy-aware `_max_loss_for_strategy` correction PRD-251 applies
+  to every other result — understating CREDIT-strategy max loss by a
+  flat 2.333x (confirmed by direct execution of the real sizing code
+  against real ATR14 readings for all 16 real tradable symbols; DEBIT
+  resolutions were unaffected, 1.000x). R2 ruled FIX (2026-07-13,
+  `docs/DECISIONS.md`) — this was a deliberate bypass, not an inaccurate
+  estimate, so there was no honest PERMANENT branch. R3 removed the
+  exclusion: every result, continuation included, now prices through
+  `_max_loss_for_strategy` computed fresh from its own strategy/
+  strike_distance; `CONTINUATION_MAX_RISK_PCT_PER_TRADE` is retired, and
+  both sizing sites (`qualification.py`, `options.py`) read
+  `MAX_RISK_PCT_PER_TRADE` unconditionally. No re-evaluation date — this
+  is resolved, not deferred.
 - **Phantom-SHA debt — CLOSED WONTFIX-HISTORICAL (PRD-243, 2026-07-05).**
   29 PRDs' recorded COMPLETE hashes (35 hash tokens; the "19" first counted at
   PRD-200 had grown through the PRD-208..222 era) are unreachable from a clean

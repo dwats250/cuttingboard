@@ -69,16 +69,14 @@ MIN_REGIME_CONFIDENCE   = 0.50
 # arithmetic -- see PRD-252 rationale). 15000 x 0.026667 ~= 400.00.
 ACCOUNT_EQUITY          = 15000.0
 MAX_RISK_PCT_PER_TRADE  = 0.026667
-# PRD-252: continuation-path candidates (qualification.py's
-# _qualify_continuation_candidate and options.py's build_option_setups for
-# entry_mode == ENTRY_MODE_CONTINUATION) hold at the pre-PRD-252 budget.
-# Its ATR-based debit proxy carries the same max-loss-understatement latent
-# assumption PRD-251 fixed on the direct path (confirmed in
-# docs/prd_history/PRD-251.continuation-path.proposal.md); inheriting the
-# raised budget would size more contracts against an already-too-low risk
-# number. Retire this constant -- and validate the continuation path AT the
-# raised budget, not silently re-couple -- when that fast-follow lands.
-CONTINUATION_MAX_RISK_PCT_PER_TRADE = 0.01
+# PRD-256 R3 (2026-07-13): continuation-path candidates size against this
+# same constant. PRD-252 had decoupled them onto a frozen interim value
+# because options.py::build_option_setups excluded continuation results
+# from the strategy-aware max-loss correction PRD-251 applies everywhere
+# else, understating CREDIT max loss by a flat 2.333x. That exclusion is
+# removed (options.py::build_option_setups now prices every result,
+# continuation included, through _max_loss_for_strategy), so both sizing
+# sites re-converge onto MAX_RISK_PCT_PER_TRADE.
 
 
 def _validate_sizing_config(account_equity: float, max_risk_pct: float) -> None:
