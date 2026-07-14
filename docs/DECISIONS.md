@@ -16,6 +16,30 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-14 — PRD-259 Gate A: HOLD-confirmation gate promoted, strictly-prior window ruled
+
+Dustin promoted `docs/prd_history/PRD-256.hold-confirmation-gate.
+proposal.md` to PRD-259 (EXECUTION / HIGH-RISK) and ruled the fix
+direction, resolving the sidecar's open design question: compute
+`breakout_level` from bars STRICTLY PRIOR to the bar under test —
+option 1 of the sidecar's three (shift the lookback back by
+`hold_candles`), so one window sits before both bars the gate tests.
+The commissioning charge is the Gate A record; the PR is authorized on
+green. Explicit risk posture recorded with the ruling: the gate has
+never fired, its acceptance behavior is unobserved, and making it fire
+is strictly risk-increasing — so PRD-259 carries a stop-and-report
+clause (R4): if the real-data characterization shows implausible
+acceptance, the fix is reported, not shipped. Second-model disposition:
+commissioned (Codex), scoped at the consumer sweep — specifically
+whether anything downstream assumes continuation candidates are never
+accepted.
+
+Stage-0 note: the downstream-consumer audit surfaced two first-fire
+consumer defects (runtime `candidates[symbol]` KeyError; TradeDecision
+geometry substitution), ticketed as
+`docs/prd_history/PRD-259.first-fire-consumers.proposal.md` — out of
+PRD-259's build scope, awaiting their own Gate A.
+
 ## 2026-07-13 — PRD-256 R3: continuation-path bypass fixed, budgets re-converged
 
 Implements the FIX ruled at R2 (above). `options.py::build_option_setups`'s

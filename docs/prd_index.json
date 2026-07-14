@@ -1214,6 +1214,12 @@
       "title": "Fix dashboard_preview.yml comment referencing the deleted dashboard-publish-refresh skill",
       "status": "COMPLETE",
       "commit": "#135"
+    },
+    {
+      "number": 259,
+      "title": "Continuation HOLD-confirmation gate: strictly-prior breakout window",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
