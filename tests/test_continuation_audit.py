@@ -79,14 +79,17 @@ def _frame(
 
 
 def _qualified_df() -> pd.DataFrame:
-    # Last bar: close=104, range=4.0 (>= 0.75×ATR14=1.5), close_location =
-    # (104-101)/(105-101) = 0.75 (clears R5). Lookback high raised to 101
-    # (index 8) so risk=104-101=3.0 and reward=ATR14×3.0=6.0 gives RR=2.0,
-    # clearing the post-R1 EXPANSION_RR_RATIO=2.0 minimum.
+    # All bars are valid OHLC (High >= Close, Low <= Close) — pre-PRD-259
+    # this fixture could only pass HOLD via an impossible bar (index 8
+    # High < Close). Strictly-prior lookback (PRD-259) = indices 3-7,
+    # max high = 101. Hold candle (index 8) closes 102 above it; today
+    # (index 9) closes 104: range = 4.0 (>= 0.75×ATR14=1.5),
+    # close_location = (104-101)/(105-101) = 0.75 (clears R5),
+    # risk = 104-101 = 3.0 vs reward = ATR14×3.0 = 6.0 → RR = 2.0.
     return _frame(
-        closes=[95, 96, 97, 96, 95, 96, 97, 96, 102, 104],
-        highs=[96, 97, 98, 97, 96, 97, 98, 97, 101, 105],
-        lows=[94, 95, 96, 95, 94, 95, 96, 95, 100, 101],
+        closes=[96, 97, 98, 98, 99, 100, 99, 98, 102, 104],
+        highs=[97, 98, 99, 99, 100, 101, 100, 99, 102.5, 105],
+        lows=[95, 96, 97, 97, 98, 99, 98, 97, 100.5, 101],
     )
 
 
@@ -107,29 +110,35 @@ def _no_hold_df() -> pd.DataFrame:
 
 
 def _low_momentum_df() -> pd.DataFrame:
+    # Valid OHLC; passes BREAKOUT and HOLD against the strictly-prior
+    # window (indices 3-7, max high 98), then fails momentum: last bar
+    # range = 104.4-103.8 = 0.6 < 0.75×ATR14 = 1.5.
     return _frame(
         closes=[95, 96, 97, 96, 95, 96, 97, 96, 102, 104],
-        highs=[96, 97, 98, 97, 96, 97, 98, 97, 100, 104.4],
+        highs=[96, 97, 98, 97, 96, 97, 98, 97, 102.5, 104.4],
         lows=[94, 95, 96, 95, 94, 95, 96, 95, 100, 103.8],
     )
 
 
 def _rr_fail_df() -> pd.DataFrame:
-    # Last bar close_location = (105-102)/(106-102) = 0.75 (clears R5);
-    # risk=105-100=5.0, reward=ATR14×3.0=6.0 → RR=1.2, below the 2.0 minimum.
+    # Valid OHLC; last bar close_location = (105-102)/(106-102) = 0.75
+    # (clears R5). Strictly-prior window (indices 3-7) max high = 99 →
+    # risk = 105-99 = 6.0 vs reward = ATR14×3.0 = 6.0 → RR = 1.0, below
+    # the 2.0 minimum.
     return _frame(
         closes=[96, 97, 98, 97, 96, 97, 98, 97, 104, 105],
-        highs=[97, 98, 99, 98, 97, 98, 99, 98, 100, 106],
+        highs=[97, 98, 99, 98, 97, 98, 99, 98, 104.5, 106],
         lows=[95, 96, 97, 96, 95, 96, 97, 96, 103, 102],
     )
 
 
 def _tight_stop_df() -> pd.DataFrame:
-    # Last bar close_location = (100.7-99.2)/(101.2-99.2) = 0.75 (clears R5);
-    # breakout level (100.55) still leaves the stop too tight.
+    # Valid OHLC; last bar close_location = (100.7-99.2)/(101.2-99.2) = 0.75
+    # (clears R5); strictly-prior breakout level (100.5, indices 3-7) still
+    # leaves the stop too tight (risk 0.2 < 1% of entry).
     return _frame(
         closes=[100, 100.2, 100.4, 100.2, 100.1, 100.2, 100.3, 100.4, 100.6, 100.7],
-        highs=[100.3, 100.5, 100.6, 100.4, 100.3, 100.4, 100.5, 100.5, 100.55, 101.2],
+        highs=[100.3, 100.5, 100.6, 100.4, 100.3, 100.4, 100.5, 100.5, 100.7, 101.2],
         lows=[99.8, 100.0, 100.2, 100.0, 99.9, 100.0, 100.1, 100.2, 100.55, 99.2],
     )
 

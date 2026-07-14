@@ -623,13 +623,20 @@ def direction_for_regime(regime: RegimeState) -> Optional[str]:
 def detect_continuation_breakout(
     df: pd.DataFrame,
 ) -> Optional[float]:
-    """Return breakout level when current close clears the recent high."""
+    """Return breakout level when current close clears the recent high.
+
+    The lookback window ends strictly BEFORE the hold candle(s), so the
+    level is computed from bars prior to BOTH bars the continuation gates
+    test: today's close (breakout, gate 3) and the hold candle's close
+    (HOLD, gate 4). PRD-259: a window that included the hold candle made
+    the HOLD check unsatisfiable for any valid OHLC bar (High >= Close).
+    """
     n = config.CONTINUATION_BREAKOUT_BARS
     hold_candles = max(1, config.CONTINUATION_HOLD_CANDLES)
     if len(df) < n + 1 + hold_candles:
         return None
 
-    lookback = df.iloc[-(n + 1):-1]
+    lookback = df.iloc[-(n + 1 + hold_candles):-(1 + hold_candles)]
     breakout_level = float(lookback["High"].max())
     current_close = float(df.iloc[-1]["Close"])
 
