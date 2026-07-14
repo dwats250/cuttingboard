@@ -64,8 +64,8 @@
       "Bash(gh pr diff *)",
       "Bash(gh pr checks:*)",
       "Bash(gh run watch:*)",
-      "Bash(gh api repos/*/pulls/*)",
-      "Bash(gh api repos/*/issues/*)"
+      "Bash(gh api repos/dwats250/cuttingboard/pulls/*)",
+      "Bash(gh api repos/dwats250/cuttingboard/issues/*)"
     ],
     "deny": [
       "Bash(git push --force:*)",
