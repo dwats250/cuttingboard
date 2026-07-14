@@ -9,47 +9,47 @@
     "continuation_audit_present": false,
     "continuation_rejected_count": null,
     "error_count": 0,
-    "qualified_count": 5,
+    "qualified_count": 3,
     "rejected_count": 6
   },
   "correlation": null,
-  "generated_at": "2026-07-14T15:07:25Z",
-  "generation_id": "hourly-20260714T150725Z",
+  "generated_at": "2026-07-14T16:08:21Z",
+  "generation_id": "hourly-20260714T160821Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 3.0612255780725324,
-      "level": 64171.01171875,
+      "change_pct": 4.004209581974708,
+      "level": 64758.16015625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.4230140643749905,
-      "level": 100.7509994506836,
+      "change_pct": -0.28365823051495376,
+      "level": 100.89199829101562,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 1.6854721583436358,
-      "level": 4090.39990234375,
+      "change_pct": 1.2951785474768112,
+      "level": 4074.699951171875,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": -1.1427804396612407,
-      "level": 78.72000122070312,
+      "change_pct": -0.05023347596012479,
+      "level": 79.58999633789062,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -3.76868049991674,
-      "change_pct": -0.8244761361066378,
-      "level": 4.571000099182129,
+      "change_bps": -1.9913667073092987,
+      "change_pct": -0.43394352071546466,
+      "level": 4.5889997482299805,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 2.828560542594964,
-      "level": 59.619998931884766,
+      "change_pct": 2.069680531931181,
+      "level": 59.18000030517578,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -3.9650164449044816,
-      "level": 16.469999313354492,
+      "change_pct": -3.440234202398499,
+      "level": 16.559999465942383,
       "symbol": "^VIX"
     }
   },
@@ -64,33 +64,27 @@
   "outcome": "NO_TRADE",
   "regime": {
     "classification": "RISK_ON",
-    "confidence": 1.0,
-    "net_score": 8,
-    "neutral_votes": 0,
+    "confidence": 0.75,
+    "net_score": 6,
+    "neutral_votes": 2,
     "posture": "AGGRESSIVE_LONG",
     "risk_off_votes": 0,
-    "risk_on_votes": 8,
+    "risk_on_votes": 6,
     "total_votes": 8,
-    "vix_level": 16.469999313354492,
-    "vix_pct_change": -0.03965016444904482,
+    "vix_level": 16.559999465942383,
+    "vix_pct_change": -0.03440234202398499,
     "vote_breakdown": {
       "BTC pct_change": "RISK_ON",
       "DXY pct_change": "RISK_ON",
       "IWM pct_change": "RISK_ON",
       "QQQ pct_change": "RISK_ON",
-      "SPY pct_change": "RISK_ON",
-      "TNX pct_change": "RISK_ON",
+      "SPY pct_change": "NEUTRAL",
+      "TNX pct_change": "NEUTRAL",
       "VIX level": "RISK_ON",
       "VIX pct_change": "RISK_ON"
     }
   },
   "rejections": [
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: stop distance 8.09 below 1\u00d7 ATR14 (8.09); price 1.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "QUALIFICATION",
-      "symbol": "AAPL"
-    },
     {
       "detail": null,
       "reason": "CHOP",
@@ -107,7 +101,7 @@
       "detail": null,
       "reason": "CHOP",
       "stage": "QUALIFICATION",
-      "symbol": "DX-Y.NYB"
+      "symbol": "IWM"
     },
     {
       "detail": null,
@@ -123,15 +117,21 @@
     },
     {
       "detail": null,
+      "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "stage": "QUALIFICATION",
+      "symbol": "^TNX"
+    },
+    {
+      "detail": null,
       "reason": "stop distance 1.89 below 1\u00d7 ATR14 (1.89)",
       "stage": "WATCHLIST",
       "symbol": "^VIX"
     },
     {
       "detail": null,
-      "reason": "R:R 2.00 below 2.0 minimum",
+      "reason": "stop distance 0.5% below 1.0% minimum",
       "stage": "WATCHLIST",
-      "symbol": "^TNX"
+      "symbol": "DX-Y.NYB"
     },
     {
       "detail": null,
@@ -141,9 +141,15 @@
     },
     {
       "detail": null,
-      "reason": "stop distance 9.10 below 1\u00d7 ATR14 (9.10)",
+      "reason": "R:R 2.00 below 2.0 minimum",
       "stage": "WATCHLIST",
       "symbol": "SPY"
+    },
+    {
+      "detail": null,
+      "reason": "R:R 2.00 below 2.0 minimum",
+      "stage": "WATCHLIST",
+      "symbol": "QQQ"
     },
     {
       "detail": null,
@@ -171,7 +177,7 @@
     },
     {
       "detail": null,
-      "reason": "R:R 2.00 below 2.0 minimum",
+      "reason": "stop distance 1.18 below 1\u00d7 ATR14 (1.18)",
       "stage": "WATCHLIST",
       "symbol": "XLE"
     },
@@ -180,6 +186,12 @@
       "reason": "R:R 2.00 below 2.0 minimum",
       "stage": "WATCHLIST",
       "symbol": "TSLA"
+    },
+    {
+      "detail": null,
+      "reason": "R:R 2.00 below 2.0 minimum",
+      "stage": "WATCHLIST",
+      "symbol": "AAPL"
     },
     {
       "detail": null,
@@ -192,7 +204,7 @@
   "session_date": "2026-07-14",
   "status": "OK",
   "system_state": {
-    "confidence": 1.0,
+    "confidence": 0.75,
     "intraday_state": null,
     "market_regime": "RISK_ON",
     "router_mode": "MIXED",
