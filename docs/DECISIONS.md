@@ -16,6 +16,54 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-14 — PRD-258: the permission layer is an accident-prevention layer, not a security boundary (ruled: Dustin)
+
+Ruling, made explicit so it cannot be mistaken for something stronger
+later: `.claude/settings.json`'s `allow`/`deny` rules — including every
+rule PRD-258 added — stop a session from doing something destructive by
+reflex. They do not, and cannot, stop intent.
+
+`.claude/settings.local.json` (untracked, personal, this repo's actual
+accumulated working environment) grants blanket `"Bash(bash *)"`,
+`"Bash(python *)"`, `"Bash(node *)"`, and `"Bash(sh)"` — kept, not denied,
+by deliberate ruling below. Any one of those is a general-purpose
+interpreter. `bash -c 'git fetch --upload-pack=/bin/rm -rf /'` routes
+around every `git * --upload-pack*` deny PRD-258 wrote, because the deny
+pattern matches the literal string `git fetch --upload-pack=...`, and
+`bash -c '...'` hands the dangerous string to `bash` as a quoted argument
+instead — a different top-level command, no match, no block. The same
+routing works for every other deny rule in the file: `--exec`,
+`--receive-pack`, `-X POST`, all of it. A determined or compromised
+session does not need to fight the permission layer; it needs one `bash
+-c` away from it.
+
+This is not a defect discovered in PRD-258 — it is the same ruling
+PRD-254 already made for `protect_files.sh` (`docs/CLAUDE_HOOKS.md`: "the
+hook catches accidents, not intent... a PRD that genuinely needs to touch
+[a protected path] does it through Bash today and did before this change
+too"), extended here to the whole permission surface rather than one
+hook. The two mechanisms differ in shape but share the same nature:
+neither is adversarial-proof, both are accident nets.
+
+**What this means in practice:** PRD-258's deny rules are worth having —
+they stop the actual failure mode that occurs, which is a session
+reaching for a plausible-looking command and tripping a destructive flag
+by reflex, not a session deliberately trying to defeat its own
+guardrails. They are not, and were never meant to be, a barrier against
+an agent (or a human) that is actually trying to get around them. The
+real gate — the only one that is not routable-around — is Dustin's own
+merge. Everything upstream of that is friction-reduction and
+accident-catching, not enforcement.
+
+**Why this is written down now:** so the next person (including a future
+session of this same agent) does not read PRD-258's careful flag-surface
+sweep and conclude the permission layer has become airtight, and does not
+spend effort trying to make it airtight by chasing every possible `bash
+-c`-style bypass — that is not a winnable game at this layer, and treating
+it as one would be effort spent on the wrong control.
+
+---
+
 ## 2026-07-14 — PRD-258: "stays gated by omission" is not real — `.claude/settings.local.json` silently grants what the tracked settings.json never allowed, and only an explicit `deny` is durable
 
 Empirically discovered, not theorized: Dustin asked for a live test —
