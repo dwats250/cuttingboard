@@ -275,6 +275,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-255 | #140 | prd-review-claude to the 2026-07-07 review-artifact spec | COMPLETE | [PRD-255](prd_history/PRD-255.md) |
 | PRD-256 | #146 | Continuation-path ATR proxy max-loss fix or permanent-cap ruling | COMPLETE | [PRD-256](prd_history/PRD-256.md) |
 | PRD-257 | #135 | Fix dashboard_preview.yml comment referencing the deleted dashboard-publish-refresh skill | COMPLETE | [PRD-257](prd_history/PRD-257.md) |
+| PRD-258 | — | Widen the Claude Code Bash permission allow-list for reversible operations | IN PROGRESS | [PRD-258](prd_history/PRD-258.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
