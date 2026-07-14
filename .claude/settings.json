@@ -24,7 +24,6 @@
       "Bash(head:*)",
       "Bash(tail:*)",
       "Bash(ls:*)",
-      "Bash(find:*)",
       "Bash(jq:*)",
       "Bash(wc:*)",
       "Bash(diff:*)",
@@ -84,7 +83,18 @@
       "Bash(gh api * --field*)",
       "Bash(gh api * --input*)",
       "Bash(git * --output*)",
-      "Bash(git * --upload-pack*)"
+      "Bash(git * --upload-pack*)",
+      "Bash(git * --receive-pack*)",
+      "Bash(git * --exec*)",
+      "Bash(git * --ext-diff*)",
+      "Bash(git * --textconv*)",
+      "Bash(git * --filters*)",
+      "Bash(gh * -R*)",
+      "Bash(gh * --repo*)",
+      "Bash(*ruff check * --fix*)",
+      "Bash(*ruff check * --unsafe-fixes*)",
+      "Bash(rg * --pre*)",
+      "Bash(rg * --hostname-bin*)"
     ]
   },
   "hooks": {

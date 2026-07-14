@@ -16,6 +16,68 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-14 — PRD-258: the Bash permission wildcard is a raw string match, not a flag parser — evaluate the FULL flag surface, not the command name
+
+`.claude/settings.json`'s `Bash(prefix*)` permission rule is a raw
+string-prefix match (documented behavior, independently verified): it has
+no knowledge of what a command's flags actually do. Widening an allow-list
+entry by command NAME (`git fetch`, `git cat-file`, `rg`, `find`, `gh pr
+list`) without separately auditing every flag that command accepts is not
+a narrower version of the same risk the name suggests — it is a
+categorically different, unaudited risk, because a command can read as
+"safe inspection" while carrying a flag that writes an arbitrary file,
+executes an arbitrary program, or reads outside the intended scope.
+
+**Worked examples, both found allowing this PRD's own draft to reach a
+real gap before merge:** `git fetch --upload-pack=<exec>` and `git
+ls-remote --upload-pack=<exec>` execute the given string as a shell
+command when fetching from a local path — an inspection-looking command
+becomes arbitrary code execution. `git cat-file --filters` and `git
+diff`/`log`/`show --textconv`/`--ext-diff` run smudge/textconv/diff
+filters or helpers configured in `.gitattributes`/git config — also
+arbitrary commands, also invisible from the command's name. `find` was
+worse: `-delete`, `-exec`/`-ok`/`-execdir`/`-okdir`, and
+`-fprintf`/`-fprint0 FILE` are three independent primitives (delete,
+execute, arbitrary-file-write) on a single command that was
+unconditionally allowed before this PRD ever started.
+
+**Decision:** every `Bash` allow-list entry — present or future — must be
+justified against its command's FULL flag surface (every flag that can
+write/mutate a file, execute an external program, read outside this
+repository, or alter the command's semantics beyond what its name
+suggests), not against the flags the author happens to suspect. A hunt
+(check the flags that come to mind) is not a sweep (read the actual
+`--help` output for the whole command and check every flag against that
+four-part test). PRD-258's implementation PR carries the full table for
+every command in its allow-list, produced this way. Where a command needs
+three or more deny rules to be safe, prefer dropping it from the
+allow-list entirely over patching it (`find` was dropped for exactly this
+reason); where one or two shared deny rules close the gap cheaply, keep
+the command and deny the specific flags.
+
+**Why this matters going forward, not just for this PR:** without this
+rule as a standing bar, the next person adds `Bash(git archive:*)` (which
+also has `--remote`/`--exec=<upload-pack>`) or some other plausible-looking
+git/gh/coreutils command by name, reasoning "it's just for reading X," and
+reopens the identical class of gap this PRD closed. The bar is: read the
+`--help`, not the name.
+
+**Provenance:** the commissioned Codex review (`docs/prd_history/PRD-258.review.codex.md`)
+found the `--upload-pack`/`--output` class of gap once, scoped narrowly to
+one question. The GitHub bot review (`chatgpt-codex-connector[bot]`, PR
+#147) then found four more instances of the identical class
+(`ruff --fix`/`--fix-only`, `gh pr list/diff --repo`, `git diff/log/show
+--ext-diff`/`--textconv`, `git cat-file --filters`) plus one adjacent
+finding (`git commit` invoking local hooks by default) that the
+Codex-commissioned pass, scoped to "indirect path," had not caught because
+it wasn't looking at every command's full flag surface — it was looking
+for the specific shape of thing it had already found once. Ruled (Dustin):
+the fix is not the four findings, it is that the audit method itself was a
+hunt, not a sweep; re-run properly against every allow-listed command
+before merge, table first, fixes after.
+
+---
+
 ## 2026-07-13 — PRD-256 R3: continuation-path bypass fixed, budgets re-converged
 
 Implements the FIX ruled at R2 (above). `options.py::build_option_setups`'s
