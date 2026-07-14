@@ -1,23 +1,23 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 4.004209581974708,
-      "level": 64758.16015625,
+      "change_pct": 3.612191476380701,
+      "level": 64514.0703125,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.28365823051495376,
-      "level": 100.89199829101562,
+      "change_pct": -0.23720125890023128,
+      "level": 100.93900299072266,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 1.2951785474768112,
-      "level": 4074.699951171875,
+      "change_pct": 0.894943547109623,
+      "level": 4058.60009765625,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": -0.05023347596012479,
-      "level": 79.58999633789062,
+      "change_pct": 0.0,
+      "level": 79.62999725341797,
       "symbol": "CL=F"
     },
     "rates": {
@@ -27,28 +27,37 @@
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 2.069680531931181,
-      "level": 59.18000030517578,
+      "change_pct": 1.6471228675312481,
+      "level": 58.935001373291016,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -3.440234202398499,
-      "level": 16.559999465942383,
+      "change_pct": -4.256557192267086,
+      "level": 16.420000076293945,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260714T160821Z",
+    "generation_id": "hourly-20260714T190745Z",
     "symbols_scanned": 22,
-    "timestamp": "2026-07-14T16:08:21Z"
+    "timestamp": "2026-07-14T19:07:45Z"
   },
   "run_status": "OK",
   "schema_version": "1.0",
   "sections": {
     "chain_results_detail": [],
-    "continuation_audit": null,
+    "continuation_audit": {
+      "accepted_count": 0,
+      "rejected_count": 4
+    },
     "option_setups_detail": [],
     "rejected": [
+      {
+        "detail": null,
+        "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 1.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "QUALIFICATION",
+        "symbol": "AAPL"
+      },
       {
         "detail": null,
         "reason": "CHOP",
@@ -81,6 +90,18 @@
       },
       {
         "detail": null,
+        "reason": "2 soft gates failed: stop distance 2.29 below 1\u00d7 ATR14 (2.29); price 1.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "QUALIFICATION",
+        "symbol": "SI=F"
+      },
+      {
+        "detail": null,
+        "reason": "2 soft gates failed: stop distance 1.18 below 1\u00d7 ATR14 (1.18); price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "QUALIFICATION",
+        "symbol": "XLE"
+      },
+      {
+        "detail": null,
         "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "QUALIFICATION",
         "symbol": "^TNX"
@@ -102,18 +123,6 @@
         "reason": "stop distance 0.5% below 1.0% minimum",
         "stage": "WATCHLIST",
         "symbol": "DX-Y.NYB"
-      },
-      {
-        "detail": null,
-        "reason": "stop distance 2.29 below 1\u00d7 ATR14 (2.29)",
-        "stage": "WATCHLIST",
-        "symbol": "SI=F"
-      },
-      {
-        "detail": null,
-        "reason": "R:R 2.00 below 2.0 minimum",
-        "stage": "WATCHLIST",
-        "symbol": "SPY"
       },
       {
         "detail": null,
@@ -147,21 +156,9 @@
       },
       {
         "detail": null,
-        "reason": "stop distance 1.18 below 1\u00d7 ATR14 (1.18)",
-        "stage": "WATCHLIST",
-        "symbol": "XLE"
-      },
-      {
-        "detail": null,
         "reason": "R:R 2.00 below 2.0 minimum",
         "stage": "WATCHLIST",
         "symbol": "TSLA"
-      },
-      {
-        "detail": null,
-        "reason": "R:R 2.00 below 2.0 minimum",
-        "stage": "WATCHLIST",
-        "symbol": "AAPL"
       },
       {
         "detail": null,
@@ -172,8 +169,8 @@
     ]
   },
   "summary": {
-    "confidence": 0.75,
-    "market_regime": "RISK_ON",
+    "confidence": 1.0,
+    "market_regime": "EXPANSION",
     "outcome": null,
     "permission": null,
     "router_mode": "MIXED",
