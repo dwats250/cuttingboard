@@ -62,6 +62,43 @@ spend effort trying to make it airtight by chasing every possible `bash
 -c`-style bypass — that is not a winnable game at this layer, and treating
 it as one would be effort spent on the wrong control.
 
+**Ruling on the blanket grants themselves (Dustin, same date):** kept, not
+denied. `"Bash(bash *)"`, `"Bash(python *)"`, `"Bash(node *)"`, `"Bash(sh)"`,
+`"Bash(npm install *)"` stay in `.claude/settings.local.json` — this repo's
+actual workflow runs Python and shell constantly, and denying them puts
+every session back to prompting on everything, the exact problem PRD-258
+exists to solve.
+
+But a full audit of `settings.local.json`'s ~390 accumulated entries
+(commissioned the same date, reported separately) turned up specific
+standing grants beyond those five blankets — a live grant to disarm
+`.github/workflows/dashboard_preview.yml`'s CI safety properties by
+`sed -i`, a grant to run the real pipeline writing straight to
+`ui/dashboard.html` (the exact thing this project's own doctrine forbids),
+a `rm -rf logs reports` more destructive than a script PRD-258 deliberately
+excluded from the tracked file, two of that same excluded-script list
+granted anyway, and roughly forty dead grants (an old repo path, GitNexus,
+Moomoo, an entire retired Wrangler/`external_trigger` subsystem) plus a
+few more of the same character found by the same reasoning (`gh auth *`
+with no backstop; a `cp`/`jq` pipeline that could silently overwrite
+`.claude/settings.json` itself, bypassing the reviewed `Edit`-tool path).
+Ruled: prune all of it. The reasoning, stated precisely because it is the
+same reasoning behind every `deny` rule this PRD added:
+
+`bash *` means an agent *could* do these things — that is the porous
+boundary just described above, accepted as unfixable at this layer. These
+forty-eight specific grants meant an agent *may* do them without asking,
+silently, as routine — that is not the same thing. The first is a
+boundary already conceded. The second is a set of standing invitations,
+each one a separate decision that happened to get approved once, in
+context, and then never expired. Removing the invitations is worth doing
+even though the boundary underneath them stays porous — an agent that
+*could* still reach `rm -rf logs reports` via `bash -c` is a different,
+much smaller risk than an agent that is *invited* to run it as a named,
+pre-approved command. Same shape as this whole PRD's `deny` rules: not a
+claim of adversarial-proof security, a removal of the routine, silent
+path to a specific bad outcome.
+
 ---
 
 ## 2026-07-14 — PRD-258: "stays gated by omission" is not real — `.claude/settings.local.json` silently grants what the tracked settings.json never allowed, and only an explicit `deny` is durable
