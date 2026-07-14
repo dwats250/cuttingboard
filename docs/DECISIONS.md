@@ -222,6 +222,39 @@ the fix is not the four findings, it is that the audit method itself was a
 hunt, not a sweep; re-run properly against every allow-listed command
 before merge, table first, fixes after.
 
+**Addendum (same date, round 3 — two more lessons the bot's continued
+re-scanning surfaced):**
+
+*Config is a setup primitive, not just a flag.* Several git behaviors
+(`textconv`, `ext-diff`, `core.fsmonitor`, `gpg.program`, a remote's
+transport helper) run a configured external program with **no flag at
+all** on the command that triggers them — the danger lives in
+`.git/config`/`.gitattributes`, set up by an earlier, separate command
+(`git config ...`, `git remote add ...`, or a `.gitattributes` write via
+the already-allowed `Write`/`Edit` tools, none of which `protect_files.sh`
+covers). A flag-surface sweep of the *triggering* command alone misses
+this; the fix is to deny the *setup* commands (`git config`, `git remote
+add`/`set-url`) so the two-step local escalation path (configure the
+helper, then run the now-armed "safe" command) closes, leaving only the
+supply-chain case (repo arrives with the helper already configured) — the
+same already-accepted residual as the `git commit` hooks finding.
+
+*A wildcard pattern must be checked against both the direct and the
+"first token" form, not asserted from having worked once.* Several denies
+this PRD added (`ruff check * --fix`, `gh api * -X`, `git branch -d*`)
+silently assumed a preceding token would always supply the space before
+the dangerous flag — true when there is one (`git diff --output=x`, where
+`diff` supplies it), false when the flag can be the very first thing
+after a fixed multi-word literal (`ruff check --fix`, `gh api -X POST`,
+`git branch foo -d`). The fix (drop the hard-coded space, let the
+wildcard absorb an optional token) was verified with a 66-case matching
+simulation — every affected pattern against both its direct and
+evasion form, plus ~30 legitimate commands that must NOT be denied — run
+BEFORE committing, which itself caught a second bug (a fix for the
+`checkout`/`reset`/`rebase` evasion form that accidentally broke their
+direct form) before it shipped. Simulate the match, don't just reason
+about it.
+
 ---
 
 ## 2026-07-13 — PRD-256 R3: continuation-path bypass fixed, budgets re-converged
