@@ -16,6 +16,67 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-14 — PRD-258: "stays gated by omission" is not real — `.claude/settings.local.json` silently grants what the tracked settings.json never allowed, and only an explicit `deny` is durable
+
+Empirically discovered, not theorized: Dustin asked for a live test —
+`git checkout --orphan test-prompt-fidelity-DO-NOT-CONFIRM`, a command with
+NO matching `allow` rule anywhere in the tracked, PRD-governed
+`.claude/settings.json`. It executed instantly, with zero confirmation of
+any kind.
+
+Root cause: `.claude/settings.local.json` — untracked (`.gitignore`
+matches `*.json`), personal, never reviewed under any PRD, accumulated
+over many months of interactive "always allow" clicks (visible in both the
+worktree and the main checkout, byte-identical, ~394 entries) — carries a
+single blanket `"Bash(git *)"` allow rule. That one rule grants every git
+subcommand, including every one this PRD and the original task explicitly
+intended to keep gated by never adding it to `allow`: `checkout`, `reset`,
+`rebase`, `branch -d`/`-D`, `worktree remove`. "Gated by omission" (never
+allow-listing a command, relying on the default ask-prompt) is not a real
+control once ANY settings source in the precedence chain (user, project,
+local — `permissions.md` line ~452) grants a broader allow. It only holds
+if nothing anywhere in the chain allows it.
+
+Verified before concluding, not assumed: confirmed via Claude Code's own
+documented precedence rule (`permissions.md` line ~456, "if a tool is
+denied at any level, no other level can allow it") that `deny` — unlike
+"gated by omission" — is unconditional regardless of source: a project-level
+`deny` still blocks a command even when a local-level `allow` (however
+broad) also matches. This was checked, not inferred, before landing the
+fix below, because guessing wrong here would have meant reporting a false
+sense of security.
+
+**Decision:** every command this project has ever intended to keep gated
+must be enforced by an explicit `deny` in the tracked `.claude/settings.json`,
+never by omission alone. Landed in this PR:
+`"Bash(git checkout*)"`, `"Bash(git reset*)"`, `"Bash(git rebase*)"`,
+`"Bash(git branch -d*)"`/`-D*`/`--delete*`/`-m*`/`-M*`/`--move*`,
+`"Bash(git worktree remove*)"`.
+
+**Deliberately not fixed here, flagged instead:** `.claude/settings.local.json`
+also carries blanket `"Bash(bash *)"`, `"Bash(python *)"`, `"Bash(node *)"`,
+`"Bash(sh)"`, `"Bash(npm install *)"`/`"Bash(npm i *)"`, and a narrow
+`"Bash(rm -rf logs reports)"`. None of these were in this PRD's or the
+original task's scope (which was specifically about `git`/`gh`/test-lint
+commands), and denying arbitrary code execution broadly (`bash *`,
+`python *`, `node *`) would be a much larger, more disruptive design
+question than this PRD's own remit — this repo's actual workflow runs
+Python/Bash scripts constantly, so a blanket deny would break normal
+operation, not just close a gap. Recorded here so it isn't lost, not
+because it was judged low-risk.
+
+**Why this matters going forward:** the "gated by omission" assumption
+this whole PRD's STAYS-GATED framing relied on — "if we just never add it
+to `allow`, it stays gated" — was falsified by direct empirical test, not
+merely a theoretical gap. Any future claim that a command "stays gated"
+must be verified against `deny`, not against the absence of an `allow`
+entry, and ideally verified empirically (as here) rather than assumed from
+reading the tracked settings file alone, since a personal/local settings
+file sits in the same precedence chain and is invisible to anyone who only
+reads the tracked repo.
+
+---
+
 ## 2026-07-14 — PRD-258: the Bash permission wildcard is a raw string match, not a flag parser — evaluate the FULL flag surface, not the command name
 
 `.claude/settings.json`'s `Bash(prefix*)` permission rule is a raw
