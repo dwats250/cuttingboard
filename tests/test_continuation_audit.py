@@ -157,6 +157,20 @@ def _validation_summary() -> ValidationSummary:
     )
 
 
+def test_fixtures_are_valid_ohlc_prd259():
+    # R2 backstop: every continuation fixture in this file stays physically
+    # possible (High >= max(Open, Close), Low <= min(Open, Close)) — the
+    # pre-PRD-259 fixtures passed HOLD only via impossible bars.
+    frames = [
+        _qualified_df(), _no_breakout_df(), _no_hold_df(),
+        _low_momentum_df(), _rr_fail_df(), _tight_stop_df(),
+    ]
+    for df in frames:
+        ok = ((df["High"] >= df[["Open", "Close"]].max(axis=1))
+              & (df["Low"] <= df[["Open", "Close"]].min(axis=1))).all()
+        assert bool(ok), f"invalid OHLC bar in fixture:\n{df}"
+
+
 def test_continuation_rejection_taxonomy_is_complete():
     assert CONTINUATION_REJECTION_REASONS == (
         "DATA_INCOMPLETE",

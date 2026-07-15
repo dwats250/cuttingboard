@@ -147,7 +147,7 @@ class TestQualifyContinuationCandidate:
         return _ohlcv(
             closes=[100, 100.2, 100.4, 100.2, 100.1, 100.2, 100.3, 100.4, 100.6, 100.7],
             highs=[100.3, 100.5, 100.6, 100.4, 100.3, 100.4, 100.5, 100.5, 100.7, 101.2],
-            lows=[99.8, 100.0, 100.2, 100.0, 99.9, 100.0, 100.1, 100.2, 100.55, 99.2],
+            lows=[99.8, 100.0, 100.2, 100.0, 99.9, 100.0, 100.1, 100.2, 100.4, 99.2],
         )
 
     def _breakout_df(self, entry: float = 100.0, atr: float = 2.0) -> pd.DataFrame:
@@ -173,6 +173,21 @@ class TestQualifyContinuationCandidate:
         # At current bar (index 9): range = 2*atr >= 0.75*atr; close_location
         # = (close-low)/(high-low) = 0.75.
         return _ohlcv(closes, highs, lows)
+
+    def test_fixtures_are_valid_ohlc_prd259(self):
+        # R2 backstop: every HOLD-relevant fixture in this file stays
+        # physically possible (High >= max(Open, Close), Low <= min(Open,
+        # Close)) — the pre-PRD-259 fixtures passed HOLD only via
+        # impossible bars, so validity is asserted, not assumed.
+        frames = [
+            self._breakout_df(),
+            self._tight_stop_df(),
+            TestQualifyAllContinuationPath()._make_ohlcv(100.0, 2.0),
+        ]
+        for df in frames:
+            ok = ((df["High"] >= df[["Open", "Close"]].max(axis=1))
+                  & (df["Low"] <= df[["Open", "Close"]].min(axis=1))).all()
+            assert bool(ok), f"invalid OHLC bar in fixture:\n{df}"
 
     def test_valid_ohlc_sequence_clears_hold_gate_prd259(self):
         # PRD-259 R1 proving test: every bar is a VALID OHLC bar
