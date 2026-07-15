@@ -211,6 +211,46 @@ class TestQualifyContinuationCandidate:
         assert result.rejection_reason is None
         assert result.entry_mode == ENTRY_MODE_CONTINUATION
 
+    def test_intermediate_hold_dip_rejects_at_h2_prd259_r7(self, monkeypatch):
+        # PRD-259 R7 red test: with CONTINUATION_HOLD_CANDLES=2, EVERY
+        # completed hold candle must close above the breakout level. Window
+        # (10 bars, h=2) = indices 2-6, max high = 101. Oldest hold (index
+        # 7) closes 102 above it; the INTERMEDIATE hold (index 8) dips to
+        # 100.5 below it. Pre-R7 the gate checked only the oldest hold, so
+        # this sequence qualified; it must reject NO_HOLD_CONFIRMATION.
+        monkeypatch.setattr("cuttingboard.qualification.config.CONTINUATION_HOLD_CANDLES", 2)
+        closes = [96, 97, 98, 99, 100, 99, 98, 102, 100.5, 104]
+        highs = [97, 98, 99, 100, 101, 100, 99, 102.5, 101, 105]
+        lows = [95, 96, 97, 98, 99, 98, 97, 100.5, 100, 101]
+        df = _ohlcv(closes, highs, lows)
+        result = _qualify_continuation_candidate(
+            "TEST", df, _sr(TREND), _expansion_regime(), _dm(2.0, entry=104.0)
+        )
+        assert result.qualified is False
+        assert result.rejection_reason == "NO_HOLD_CONFIRMATION"
+
+    def test_all_holds_above_level_qualify_at_h2_prd259_r7(self, monkeypatch):
+        # Companion positive case: both completed hold candles close above
+        # the strictly-prior level (101) -> qualifies at h=2.
+        monkeypatch.setattr("cuttingboard.qualification.config.CONTINUATION_HOLD_CANDLES", 2)
+        closes = [96, 97, 98, 99, 100, 99, 98, 102, 102.5, 104]
+        highs = [97, 98, 99, 100, 101, 100, 99, 102.5, 103, 105]
+        lows = [95, 96, 97, 98, 99, 98, 97, 100.5, 101.5, 101]
+        df = _ohlcv(closes, highs, lows)
+        result = _qualify_continuation_candidate(
+            "TEST", df, _sr(TREND), _expansion_regime(), _dm(2.0, entry=104.0)
+        )
+        assert result.qualified is True
+
+    def test_minimum_length_boundary_detects_breakout_prd259(self):
+        # Exactly n + 1 + hold_candles bars (7 at h=1): the window is the
+        # first 5 bars, the hold candle and current bar sit outside it.
+        closes = [96, 97, 98, 97, 96, 102, 104]
+        highs = [97, 98, 99, 98, 97, 102.5, 105]
+        lows = [95, 96, 97, 96, 95, 100.5, 101]
+        df = _ohlcv(closes, highs, lows)
+        assert detect_continuation_breakout(df) == pytest.approx(99.0)
+
     def test_continuation_candidate_qualifies(self):
         entry = 100.0
         atr = 2.0

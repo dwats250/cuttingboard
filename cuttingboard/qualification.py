@@ -673,9 +673,12 @@ def _qualify_continuation_candidate(
         return _continuation_reject(symbol, "NO_BREAKOUT", gates_passed)
     gates_passed.append("BREAKOUT")
 
+    # PRD-259 R7: EVERY completed hold candle must close above the level,
+    # not only the oldest — an intervening dip below the breakout level is
+    # not a hold. Identical behavior at CONTINUATION_HOLD_CANDLES = 1.
     hold_candles = max(1, config.CONTINUATION_HOLD_CANDLES)
-    hold_close = float(df.iloc[-(hold_candles + 1)]["Close"])
-    if hold_close <= breakout_level:
+    hold_closes = df.iloc[-(hold_candles + 1):-1]["Close"].astype(float)
+    if float(hold_closes.min()) <= breakout_level:
         return _continuation_reject(symbol, "NO_HOLD_CONFIRMATION", gates_passed)
     gates_passed.append("HOLD")
 
