@@ -16,6 +16,32 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-15 — PRD-259 merge rulings: R7 ratified; gate ships only paired with the geometry fix (ruled: Dustin)
+
+Three rulings on PR #148, made from the full REVIEW report:
+
+1. **R7 RATIFIED, explicitly and on the record.** The constraint R7
+   relaxed was the authoring session's artifact, not the Gate A ruling;
+   the strictly-prior window direction is intact; the multi-candle HOLD
+   fix is real and a proven no-op at h=1. The acknowledgment ALSO goes
+   in the merge commit body so ratification is distinguishable from not
+   having noticed.
+2. **Geometry posture: HOLD-AND-PAIR.** The gate does not go live while
+   a [CONTINUATION] decision renders the rejected direct candidate's
+   ATR stop instead of the breakout stop the gate validated — a correct
+   max-loss dollar with a wrong stop level is worse than a dead gate,
+   because it looks trustworthy. The first-fire sidecar's Findings B
+   (thread the gate's qualified entry/stop/target into the continuation
+   result so TradeDecision renders the validated level) and C (clean up
+   qual.excluded on continuation promotion) are PROMOTED to a full
+   blocking PRD. PR #148 holds unmerged until the two land as a pair —
+   the gate goes live once, correctly, or stays dead. No
+   merge-now-and-fast-follow.
+3. **Bot threads (PRD-228):** threads 1 (P1 geometry) and 2 (P2 stale
+   exclusion) are NOT dismissed — re-tagged as the blocking dependency
+   above, left open until the pair lands. Thread 3 (PRD-258 registry)
+   ACTIONED, stale at head (fixed by merge commit c07d2c2), closed.
+
 ## 2026-07-14 — PRD-259 R7: commissioned review drove a mid-PRD amendment
 
 The commissioned second-model disposition
