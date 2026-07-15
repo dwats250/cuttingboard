@@ -331,6 +331,9 @@ def test_render_report_labels_continuation_target_ceiling_prd260(monkeypatch):
         ohlcv={"PASS": _qualified_df()},
     )
     assert summary.continuation_audit["accepted"] == 1
+    # PRD-260 R4 negative clause (review RECOMMENDED EDIT 2): a symbol that
+    # was never direct-rejected gains NO excluded entry at promotion.
+    assert "PASS" not in summary.excluded
     setups = build_option_setups(
         summary.qualified_trades,
         {"PASS": _sr("PASS")},
