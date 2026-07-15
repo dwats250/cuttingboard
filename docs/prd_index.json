@@ -1226,6 +1226,12 @@
       "title": "Continuation HOLD-confirmation gate: strictly-prior breakout window",
       "status": "COMPLETE",
       "commit": "#148"
+    },
+    {
+      "number": 260,
+      "title": "Continuation decision geometry: synthesize the promoted candidate",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

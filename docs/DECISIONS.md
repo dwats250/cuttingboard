@@ -16,6 +16,23 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-15 — PRD-260 Gate A: continuation decision geometry, five rulings (ruled: Dustin)
+
+Q1a: synthesize a continuation `TradeCandidate` at acceptance — total
+promotion, the failed direct candidate is replaced ("the direct
+candidate lost, it should be gone"); closes the consumer-sweep class by
+construction. Q2a: target = entry + 3x ATR14, labeled a ceiling
+artifact ON THE CARD, not only in docs. Q3a: rewrite the excluded entry
+on promotion — preserve the direct rejection for audit, kill the
+contradiction in text; the PRD-158 count-sweep cost is accepted. Q4:
+fail-loud guard + red test in the runtime decision loop (a future
+silent KeyError becomes a named failure). Q5: second model COMMISSIONED
+(gpt-5.6-sol, consumer-sweep scope); lands as commits on PR #148 (pair
+shape a) so atomicity is structural, not conventional — R7 ratification
+and the geometry pair ride one squash body. Sol findings E and F ruled
+non-blocking, stay ticketed. PRD-260 opened at Stage 0 on the #148
+branch, red-first, full HIGH-RISK ceremony.
+
 ## 2026-07-15 — PRD-259 merge rulings: R7 ratified; gate ships only paired with the geometry fix (ruled: Dustin)
 
 Three rulings on PR #148, made from the full REVIEW report:
