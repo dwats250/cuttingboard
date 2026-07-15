@@ -16,6 +16,30 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-14 — PRD-259 R7: commissioned review drove a mid-PRD amendment
+
+The commissioned second-model disposition
+(`docs/prd_history/PRD-259.review.codex.md`, gpt-5.6-sol via codex-cli
+0.144.1, Sol/Luna split, spoiler-scrubbed git-free snapshot) returned
+ACCEPT WITH CHANGES on the window fix: the HOLD gate validated only the
+OLDEST hold candle for `CONTINUATION_HOLD_CANDLES > 1` — an intervening
+close below the breakout level still passed. Amended PRD-259 in place
+(R7; CHANGE SURFACE relaxed to admit the HOLD-check lines; dated notes)
+per the amend-vs-spawn bar: same gate, same ruled semantic, ~4 LOC,
+behavior-identical at the configured h=1 (proven by slice equivalence
+AND a full replay re-run reproducing 21/32/0/0 exactly). Red-first at
+h=2. Codex pass-4 remediation verification: ACCEPT. The amendment is
+flagged for Dustin's explicit ruling at the merge gate since it relaxed
+the PRD's own original no-touch constraint. The review also refuted one
+Stage-0 finding (the runtime KeyError is latent, not reachable —
+`ohlcv` is candidate-scoped) and added findings C-F to the first-fire
+sidecar; the sweep's answer to the commissioned question: no blanket
+never-accepted assumption, but two decisive implicit ones — decision
+assembly assumes every accepted result has a candidate, and every
+geometry consumer assumes the TradeDecision carries the geometry that
+qualified. The second is false on the first real acceptance
+(`docs/prd_history/PRD-259.first-fire-consumers.proposal.md`).
+
 ## 2026-07-14 — PRD-259 Gate A: HOLD-confirmation gate promoted, strictly-prior window ruled
 
 Dustin promoted `docs/prd_history/PRD-256.hold-confirmation-gate.
