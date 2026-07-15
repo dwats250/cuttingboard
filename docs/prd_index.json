@@ -1214,6 +1214,12 @@
       "title": "Fix dashboard_preview.yml comment referencing the deleted dashboard-publish-refresh skill",
       "status": "COMPLETE",
       "commit": "#135"
+    },
+    {
+      "number": 258,
+      "title": "Widen the Claude Code Bash permission allow-list for reversible operations",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

@@ -16,6 +16,247 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-14 — PRD-258: the permission layer is an accident-prevention layer, not a security boundary (ruled: Dustin)
+
+Ruling, made explicit so it cannot be mistaken for something stronger
+later: `.claude/settings.json`'s `allow`/`deny` rules — including every
+rule PRD-258 added — stop a session from doing something destructive by
+reflex. They do not, and cannot, stop intent.
+
+`.claude/settings.local.json` (untracked, personal, this repo's actual
+accumulated working environment) grants blanket `"Bash(bash *)"`,
+`"Bash(python *)"`, `"Bash(node *)"`, and `"Bash(sh)"` — kept, not denied,
+by deliberate ruling below. Any one of those is a general-purpose
+interpreter. `bash -c 'git fetch --upload-pack=/bin/rm -rf /'` routes
+around every `git * --upload-pack*` deny PRD-258 wrote, because the deny
+pattern matches the literal string `git fetch --upload-pack=...`, and
+`bash -c '...'` hands the dangerous string to `bash` as a quoted argument
+instead — a different top-level command, no match, no block. The same
+routing works for every other deny rule in the file: `--exec`,
+`--receive-pack`, `-X POST`, all of it. A determined or compromised
+session does not need to fight the permission layer; it needs one `bash
+-c` away from it.
+
+This is not a defect discovered in PRD-258 — it is the same ruling
+PRD-254 already made for `protect_files.sh` (`docs/CLAUDE_HOOKS.md`: "the
+hook catches accidents, not intent... a PRD that genuinely needs to touch
+[a protected path] does it through Bash today and did before this change
+too"), extended here to the whole permission surface rather than one
+hook. The two mechanisms differ in shape but share the same nature:
+neither is adversarial-proof, both are accident nets.
+
+**What this means in practice:** PRD-258's deny rules are worth having —
+they stop the actual failure mode that occurs, which is a session
+reaching for a plausible-looking command and tripping a destructive flag
+by reflex, not a session deliberately trying to defeat its own
+guardrails. They are not, and were never meant to be, a barrier against
+an agent (or a human) that is actually trying to get around them. The
+real gate — the only one that is not routable-around — is Dustin's own
+merge. Everything upstream of that is friction-reduction and
+accident-catching, not enforcement.
+
+**Why this is written down now:** so the next person (including a future
+session of this same agent) does not read PRD-258's careful flag-surface
+sweep and conclude the permission layer has become airtight, and does not
+spend effort trying to make it airtight by chasing every possible `bash
+-c`-style bypass — that is not a winnable game at this layer, and treating
+it as one would be effort spent on the wrong control.
+
+**Ruling on the blanket grants themselves (Dustin, same date):** kept, not
+denied. `"Bash(bash *)"`, `"Bash(python *)"`, `"Bash(node *)"`, `"Bash(sh)"`,
+`"Bash(npm install *)"` stay in `.claude/settings.local.json` — this repo's
+actual workflow runs Python and shell constantly, and denying them puts
+every session back to prompting on everything, the exact problem PRD-258
+exists to solve.
+
+But a full audit of `settings.local.json`'s ~390 accumulated entries
+(commissioned the same date, reported separately) turned up specific
+standing grants beyond those five blankets — a live grant to disarm
+`.github/workflows/dashboard_preview.yml`'s CI safety properties by
+`sed -i`, a grant to run the real pipeline writing straight to
+`ui/dashboard.html` (the exact thing this project's own doctrine forbids),
+a `rm -rf logs reports` more destructive than a script PRD-258 deliberately
+excluded from the tracked file, two of that same excluded-script list
+granted anyway, and roughly forty dead grants (an old repo path, GitNexus,
+Moomoo, an entire retired Wrangler/`external_trigger` subsystem) plus a
+few more of the same character found by the same reasoning (`gh auth *`
+with no backstop; a `cp`/`jq` pipeline that could silently overwrite
+`.claude/settings.json` itself, bypassing the reviewed `Edit`-tool path).
+Ruled: prune all of it. The reasoning, stated precisely because it is the
+same reasoning behind every `deny` rule this PRD added:
+
+`bash *` means an agent *could* do these things — that is the porous
+boundary just described above, accepted as unfixable at this layer. These
+forty-eight specific grants meant an agent *may* do them without asking,
+silently, as routine — that is not the same thing. The first is a
+boundary already conceded. The second is a set of standing invitations,
+each one a separate decision that happened to get approved once, in
+context, and then never expired. Removing the invitations is worth doing
+even though the boundary underneath them stays porous — an agent that
+*could* still reach `rm -rf logs reports` via `bash -c` is a different,
+much smaller risk than an agent that is *invited* to run it as a named,
+pre-approved command. Same shape as this whole PRD's `deny` rules: not a
+claim of adversarial-proof security, a removal of the routine, silent
+path to a specific bad outcome.
+
+---
+
+## 2026-07-14 — PRD-258: "stays gated by omission" is not real — `.claude/settings.local.json` silently grants what the tracked settings.json never allowed, and only an explicit `deny` is durable
+
+Empirically discovered, not theorized: Dustin asked for a live test —
+`git checkout --orphan test-prompt-fidelity-DO-NOT-CONFIRM`, a command with
+NO matching `allow` rule anywhere in the tracked, PRD-governed
+`.claude/settings.json`. It executed instantly, with zero confirmation of
+any kind.
+
+Root cause: `.claude/settings.local.json` — untracked (`.gitignore`
+matches `*.json`), personal, never reviewed under any PRD, accumulated
+over many months of interactive "always allow" clicks (visible in both the
+worktree and the main checkout, byte-identical, ~394 entries) — carries a
+single blanket `"Bash(git *)"` allow rule. That one rule grants every git
+subcommand, including every one this PRD and the original task explicitly
+intended to keep gated by never adding it to `allow`: `checkout`, `reset`,
+`rebase`, `branch -d`/`-D`, `worktree remove`. "Gated by omission" (never
+allow-listing a command, relying on the default ask-prompt) is not a real
+control once ANY settings source in the precedence chain (user, project,
+local — `permissions.md` line ~452) grants a broader allow. It only holds
+if nothing anywhere in the chain allows it.
+
+Verified before concluding, not assumed: confirmed via Claude Code's own
+documented precedence rule (`permissions.md` line ~456, "if a tool is
+denied at any level, no other level can allow it") that `deny` — unlike
+"gated by omission" — is unconditional regardless of source: a project-level
+`deny` still blocks a command even when a local-level `allow` (however
+broad) also matches. This was checked, not inferred, before landing the
+fix below, because guessing wrong here would have meant reporting a false
+sense of security.
+
+**Decision:** every command this project has ever intended to keep gated
+must be enforced by an explicit `deny` in the tracked `.claude/settings.json`,
+never by omission alone. Landed in this PR:
+`"Bash(git checkout*)"`, `"Bash(git reset*)"`, `"Bash(git rebase*)"`,
+`"Bash(git branch -d*)"`/`-D*`/`--delete*`/`-m*`/`-M*`/`--move*`,
+`"Bash(git worktree remove*)"`.
+
+**Deliberately not fixed here, flagged instead:** `.claude/settings.local.json`
+also carries blanket `"Bash(bash *)"`, `"Bash(python *)"`, `"Bash(node *)"`,
+`"Bash(sh)"`, `"Bash(npm install *)"`/`"Bash(npm i *)"`, and a narrow
+`"Bash(rm -rf logs reports)"`. None of these were in this PRD's or the
+original task's scope (which was specifically about `git`/`gh`/test-lint
+commands), and denying arbitrary code execution broadly (`bash *`,
+`python *`, `node *`) would be a much larger, more disruptive design
+question than this PRD's own remit — this repo's actual workflow runs
+Python/Bash scripts constantly, so a blanket deny would break normal
+operation, not just close a gap. Recorded here so it isn't lost, not
+because it was judged low-risk.
+
+**Why this matters going forward:** the "gated by omission" assumption
+this whole PRD's STAYS-GATED framing relied on — "if we just never add it
+to `allow`, it stays gated" — was falsified by direct empirical test, not
+merely a theoretical gap. Any future claim that a command "stays gated"
+must be verified against `deny`, not against the absence of an `allow`
+entry, and ideally verified empirically (as here) rather than assumed from
+reading the tracked settings file alone, since a personal/local settings
+file sits in the same precedence chain and is invisible to anyone who only
+reads the tracked repo.
+
+---
+
+## 2026-07-14 — PRD-258: the Bash permission wildcard is a raw string match, not a flag parser — evaluate the FULL flag surface, not the command name
+
+`.claude/settings.json`'s `Bash(prefix*)` permission rule is a raw
+string-prefix match (documented behavior, independently verified): it has
+no knowledge of what a command's flags actually do. Widening an allow-list
+entry by command NAME (`git fetch`, `git cat-file`, `rg`, `find`, `gh pr
+list`) without separately auditing every flag that command accepts is not
+a narrower version of the same risk the name suggests — it is a
+categorically different, unaudited risk, because a command can read as
+"safe inspection" while carrying a flag that writes an arbitrary file,
+executes an arbitrary program, or reads outside the intended scope.
+
+**Worked examples, both found allowing this PRD's own draft to reach a
+real gap before merge:** `git fetch --upload-pack=<exec>` and `git
+ls-remote --upload-pack=<exec>` execute the given string as a shell
+command when fetching from a local path — an inspection-looking command
+becomes arbitrary code execution. `git cat-file --filters` and `git
+diff`/`log`/`show --textconv`/`--ext-diff` run smudge/textconv/diff
+filters or helpers configured in `.gitattributes`/git config — also
+arbitrary commands, also invisible from the command's name. `find` was
+worse: `-delete`, `-exec`/`-ok`/`-execdir`/`-okdir`, and
+`-fprintf`/`-fprint0 FILE` are three independent primitives (delete,
+execute, arbitrary-file-write) on a single command that was
+unconditionally allowed before this PRD ever started.
+
+**Decision:** every `Bash` allow-list entry — present or future — must be
+justified against its command's FULL flag surface (every flag that can
+write/mutate a file, execute an external program, read outside this
+repository, or alter the command's semantics beyond what its name
+suggests), not against the flags the author happens to suspect. A hunt
+(check the flags that come to mind) is not a sweep (read the actual
+`--help` output for the whole command and check every flag against that
+four-part test). PRD-258's implementation PR carries the full table for
+every command in its allow-list, produced this way. Where a command needs
+three or more deny rules to be safe, prefer dropping it from the
+allow-list entirely over patching it (`find` was dropped for exactly this
+reason); where one or two shared deny rules close the gap cheaply, keep
+the command and deny the specific flags.
+
+**Why this matters going forward, not just for this PR:** without this
+rule as a standing bar, the next person adds `Bash(git archive:*)` (which
+also has `--remote`/`--exec=<upload-pack>`) or some other plausible-looking
+git/gh/coreutils command by name, reasoning "it's just for reading X," and
+reopens the identical class of gap this PRD closed. The bar is: read the
+`--help`, not the name.
+
+**Provenance:** the commissioned Codex review (`docs/prd_history/PRD-258.review.codex.md`)
+found the `--upload-pack`/`--output` class of gap once, scoped narrowly to
+one question. The GitHub bot review (`chatgpt-codex-connector[bot]`, PR
+#147) then found four more instances of the identical class
+(`ruff --fix`/`--fix-only`, `gh pr list/diff --repo`, `git diff/log/show
+--ext-diff`/`--textconv`, `git cat-file --filters`) plus one adjacent
+finding (`git commit` invoking local hooks by default) that the
+Codex-commissioned pass, scoped to "indirect path," had not caught because
+it wasn't looking at every command's full flag surface — it was looking
+for the specific shape of thing it had already found once. Ruled (Dustin):
+the fix is not the four findings, it is that the audit method itself was a
+hunt, not a sweep; re-run properly against every allow-listed command
+before merge, table first, fixes after.
+
+**Addendum (same date, round 3 — two more lessons the bot's continued
+re-scanning surfaced):**
+
+*Config is a setup primitive, not just a flag.* Several git behaviors
+(`textconv`, `ext-diff`, `core.fsmonitor`, `gpg.program`, a remote's
+transport helper) run a configured external program with **no flag at
+all** on the command that triggers them — the danger lives in
+`.git/config`/`.gitattributes`, set up by an earlier, separate command
+(`git config ...`, `git remote add ...`, or a `.gitattributes` write via
+the already-allowed `Write`/`Edit` tools, none of which `protect_files.sh`
+covers). A flag-surface sweep of the *triggering* command alone misses
+this; the fix is to deny the *setup* commands (`git config`, `git remote
+add`/`set-url`) so the two-step local escalation path (configure the
+helper, then run the now-armed "safe" command) closes, leaving only the
+supply-chain case (repo arrives with the helper already configured) — the
+same already-accepted residual as the `git commit` hooks finding.
+
+*A wildcard pattern must be checked against both the direct and the
+"first token" form, not asserted from having worked once.* Several denies
+this PRD added (`ruff check * --fix`, `gh api * -X`, `git branch -d*`)
+silently assumed a preceding token would always supply the space before
+the dangerous flag — true when there is one (`git diff --output=x`, where
+`diff` supplies it), false when the flag can be the very first thing
+after a fixed multi-word literal (`ruff check --fix`, `gh api -X POST`,
+`git branch foo -d`). The fix (drop the hard-coded space, let the
+wildcard absorb an optional token) was verified with a 66-case matching
+simulation — every affected pattern against both its direct and
+evasion form, plus ~30 legitimate commands that must NOT be denied — run
+BEFORE committing, which itself caught a second bug (a fix for the
+`checkout`/`reset`/`rebase` evasion form that accidentally broke their
+direct form) before it shipped. Simulate the match, don't just reason
+about it.
+
+---
+
 ## 2026-07-13 — PRD-256 R3: continuation-path bypass fixed, budgets re-converged
 
 Implements the FIX ruled at R2 (above). `options.py::build_option_setups`'s
