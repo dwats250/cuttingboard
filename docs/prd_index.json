@@ -1216,6 +1216,12 @@
       "commit": "#135"
     },
     {
+      "number": 258,
+      "title": "Widen the Claude Code Bash permission allow-list for reversible operations",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
       "number": 259,
       "title": "Continuation HOLD-confirmation gate: strictly-prior breakout window",
       "status": "COMPLETE",

@@ -188,6 +188,15 @@ each generalizes are canonical in `docs/prd_history/PRD-198.md` (Part A).
 
 ## Working practices
 
+- **The effective permission set is `.claude/settings.json` UNION
+  `.claude/settings.local.json`, not `settings.json` alone.** The local file
+  is untracked, personal, and accumulates silently from months of
+  interactive approvals (currently ~394 entries nobody has ever reviewed
+  as a set). Reasoning about what an agent can execute — or auditing
+  whether a command "stays gated" — from the tracked file alone is
+  unverified; a blanket grant in the local file can silently defeat an
+  assumption the tracked file's design depends on (found empirically,
+  `docs/DECISIONS.md` 2026-07-14, PRD-258). Read both.
 - **Dashboard regeneration = publish from live data, never hand-overwrite the
   snapshot.** "Regenerate the dashboard" means dispatch the `cuttingboard.yml`
   pipeline (`workflow_dispatch`, `mode: live`), which renders from live data
