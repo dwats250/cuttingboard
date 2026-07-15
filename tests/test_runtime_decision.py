@@ -663,3 +663,106 @@ def test_kill_switch_audit_record_carries_halt(monkeypatch, tmp_path):
     result = _run_kill_switch_case(monkeypatch, tmp_path, vix_level=42.0)
     assert result.audit_record["outcome"] == runtime.OUTCOME_HALT
     assert result.audit_record["halt_reason"] == runtime.KILL_SWITCH_HALT_REASON
+
+
+# ---------------------------------------------------------------------------
+# PRD-260: continuation decision geometry
+# ---------------------------------------------------------------------------
+
+def _manual_check_chain(symbol: str) -> ChainValidationResult:
+    return ChainValidationResult(
+        symbol=symbol,
+        classification=MANUAL_CHECK,
+        reason="fixture mode skips live chain validation",
+        spread_pct=None,
+        open_interest=None,
+        volume=None,
+        expiry_used=None,
+        data_source=None,
+    )
+
+
+def _continuation_summary(symbol: str, promoted: TradeCandidate) -> QualificationSummary:
+    return QualificationSummary(
+        regime_passed=True,
+        regime_short_circuited=False,
+        regime_failure_reason=None,
+        qualified_trades=[
+            QualificationResult(
+                symbol=symbol,
+                qualified=True,
+                watchlist=False,
+                direction="LONG",
+                gates_passed=["VIX"],
+                gates_failed=[],
+                hard_failure=None,
+                watchlist_reason=None,
+                max_contracts=2,
+                dollar_risk=150.0,
+                entry_mode="CONTINUATION",
+            )
+        ],
+        watchlist=[],
+        excluded={},
+        symbols_evaluated=1,
+        symbols_qualified=1,
+        symbols_watchlist=0,
+        symbols_excluded=0,
+        continuation_candidates={symbol: promoted},
+    )
+
+
+def test_continuation_decision_uses_promoted_geometry_prd260(monkeypatch, tmp_path):
+    # PRD-260 R1 decision layer (red pre-change): the runtime merges the
+    # promoted candidate over the direct one before decision assembly, so
+    # the REAL create_trade_decision renders the gate's geometry — not the
+    # rejected direct candidate's ATR stop (97.0 in this fixture).
+    symbol = "SPY"
+    _setup_runtime_mocks(monkeypatch, tmp_path, symbol=symbol)
+    monkeypatch.setattr(
+        runtime, "_fixture_chain_results",
+        lambda setups: {symbol: _manual_check_chain(symbol)},
+    )
+    promoted = TradeCandidate(
+        symbol=symbol, direction="LONG", entry_price=104.0,
+        stop_price=101.0, target_price=110.0, spread_width=0.5,
+    )
+    monkeypatch.setattr(
+        runtime, "qualify_all",
+        lambda *args, **kwargs: _continuation_summary(symbol, promoted),
+    )
+
+    result = runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+
+    cand = result.contract["trade_candidates"][0]
+    assert cand["entry"] == pytest.approx(104.0)
+    assert cand["stop"] == pytest.approx(101.0)
+    assert cand["target"] == pytest.approx(110.0)
+    assert cand["risk_reward"] == pytest.approx(2.0)
+
+
+def test_missing_candidate_fails_loud_prd260(monkeypatch, tmp_path):
+    # PRD-260 R5 (red pre-change: bare KeyError): a qualified setup whose
+    # symbol has no candidate raises a NAMED error at decision assembly.
+    symbol = "SPY"
+    _setup_runtime_mocks(monkeypatch, tmp_path, symbol=symbol)
+    monkeypatch.setattr(
+        runtime, "_fixture_chain_results",
+        lambda setups: {symbol: _manual_check_chain(symbol)},
+    )
+    monkeypatch.setattr(runtime, "generate_candidates", lambda *args, **kwargs: {})
+    monkeypatch.setattr(
+        runtime, "qualify_all",
+        lambda *args, **kwargs: _qualification_summary(symbol),
+    )
+
+    with pytest.raises(RuntimeError, match="no TradeCandidate"):
+        runtime._run_pipeline(
+            mode=runtime.MODE_FIXTURE,
+            run_date=date.fromisoformat("2026-04-28"),
+            fixture_file=Path("tests/fixtures/2026-04-12.json"),
+        )

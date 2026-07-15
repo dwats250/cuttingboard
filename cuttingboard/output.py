@@ -332,7 +332,15 @@ def render_report(
 
         def _setup_detail(setup: OptionSetup) -> None:
             mode = entry_mode_for.get(setup.symbol, "")
-            mode_tag = f"  [{mode}]" if mode and mode != "DIRECT" else ""
+            if mode == "CONTINUATION":
+                # PRD-260 R3: the continuation target/R:R is derived from
+                # the synthetic 3xATR reward ceiling (PRD-240 R3), not a
+                # calibrated level — labeled on the card itself.
+                mode_tag = f"  [{mode} | target=3xATR ceiling]"
+            elif mode and mode != "DIRECT":
+                mode_tag = f"  [{mode}]"
+            else:
+                mode_tag = ""
             lines.append(
                 f"  {setup.symbol:<8}  {setup.strategy:<18}  "
                 f"{setup.structure} / {setup.iv_environment}{mode_tag}"

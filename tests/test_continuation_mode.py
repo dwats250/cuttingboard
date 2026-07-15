@@ -9,6 +9,7 @@ import pytest
 from cuttingboard.derived import DerivedMetrics
 from cuttingboard.qualification import (
     ENTRY_MODE_CONTINUATION,
+    TradeCandidate,
     detect_continuation_breakout,
     qualify_all,
     _qualify_continuation_candidate,
@@ -364,6 +365,52 @@ class TestQualifyAllContinuationPath:
         lows = [base - 0.5] * 10
         lows[-1] = entry - atr         # current bar low → range = 2*atr
         return _ohlcv(closes, highs, lows)
+
+    def test_promoted_candidate_carries_gate_geometry_prd260(self):
+        # PRD-260 R1/R2/R4 proving test (red pre-change): a direct-rejected
+        # symbol that the continuation path accepts is TOTALLY promoted —
+        # the summary carries a synthesized TradeCandidate with the gate's
+        # own geometry, and the direct rejection is rewritten in place.
+        entry = 100.0
+        atr = 2.0
+        structure_results = self._make_sr_dict(["NVDA"])
+        derived_metrics = {"NVDA": _dm(atr, entry=entry)}
+        ohlcv = {"NVDA": self._make_ohlcv(entry, atr)}
+        # SHORT direct candidate under EXPANSION (LONG) -> direction-mismatch
+        # rejection recorded in excluded before the continuation pass runs.
+        bad_direct = TradeCandidate(
+            symbol="NVDA", direction="SHORT", entry_price=entry,
+            stop_price=entry + atr, target_price=entry - 2 * atr,
+            spread_width=0.75,
+        )
+        summary = qualify_all(
+            regime=_expansion_regime(),
+            structure_results=structure_results,
+            candidates={"NVDA": bad_direct},
+            derived_metrics=derived_metrics,
+            ohlcv=ohlcv,
+        )
+        cont = [
+            r for r in summary.qualified_trades
+            if r.entry_mode == ENTRY_MODE_CONTINUATION
+        ]
+        assert len(cont) == 1
+        promoted = summary.continuation_candidates["NVDA"]
+        # Gate geometry: entry = accepted close (entry+1), stop = the
+        # strictly-prior window max high (entry-2), target = the synthetic
+        # 3xATR ceiling above the accepted close.
+        assert promoted.direction == "LONG"
+        assert promoted.entry_price == pytest.approx(entry + 1.0)
+        assert promoted.stop_price == pytest.approx(entry - 2.0)
+        assert promoted.target_price == pytest.approx((entry + 1.0) + 3.0 * atr)
+        # R2: implied R:R equals the gate's qualifying ratio.
+        risk = promoted.entry_price - promoted.stop_price
+        assert (promoted.target_price - promoted.entry_price) / risk == pytest.approx(
+            (3.0 * atr) / risk
+        )
+        # R4: the direct rejection survives, rewritten — both facts recorded.
+        assert summary.excluded["NVDA"].startswith("DIRECT rejected (")
+        assert summary.excluded["NVDA"].endswith("promoted via CONTINUATION")
 
     def test_continuation_qualified_when_no_pullback_candidate(self):
         regime = _expansion_regime()

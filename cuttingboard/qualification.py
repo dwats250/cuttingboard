@@ -15,7 +15,7 @@ Short-circuit: STAY_FLAT / CHAOTIC posture halts before any per-symbol work.
 
 import logging
 import math
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from typing import Optional
 
@@ -133,6 +133,12 @@ class QualificationSummary:
     symbols_watchlist: int
     symbols_excluded: int
     continuation_audit: Optional[dict[str, int]] = None
+    # PRD-260: TradeCandidates synthesized at continuation acceptance —
+    # the gate's own geometry (entry = accepted close, stop = breakout
+    # level, target = the synthetic 3xATR ceiling). The runtime merges
+    # these OVER the direct candidates before decision assembly (total
+    # promotion: the failed direct candidate is replaced).
+    continuation_candidates: dict[str, "TradeCandidate"] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -233,6 +239,7 @@ def qualify_all(
                 logger.info(f"REJECTED {symbol}: {excluded[symbol]}")
 
     # --- Continuation path (EXPANSION regime only) ---
+    continuation_candidates: dict[str, TradeCandidate] = {}
     if regime.regime == EXPANSION:
         qualified_syms = {r.symbol for r in qualified}
         watchlist_syms = {r.symbol for r in watchlist_trades}
@@ -248,6 +255,35 @@ def qualify_all(
             if cont.qualified:
                 qualified.append(cont)
                 qualified_syms.add(symbol)
+                # PRD-260 R1/R2: synthesize the promoted candidate from the
+                # gate's own geometry. The stop is the breakout level the
+                # gate qualified on (detect_continuation_breakout is pure —
+                # recomputing returns the identical level); the target is
+                # the synthetic 3xATR reward ceiling, so the decision's R:R
+                # equals the ratio that actually qualified. spread_width is
+                # the path's own debit estimate (sizing is strategy-aware
+                # downstream and candidate-independent, PRD-256/260 R6).
+                cont_entry = float(df.iloc[-1]["Close"])
+                cont_stop = detect_continuation_breakout(df)
+                continuation_candidates[symbol] = TradeCandidate(
+                    symbol=symbol,
+                    direction="LONG",
+                    entry_price=cont_entry,
+                    stop_price=float(cont_stop),
+                    target_price=cont_entry
+                    + config.CONTINUATION_REWARD_ATR_MULTIPLE * dm.atr14,
+                    spread_width=max(0.50, dm.atr14 * 0.05),
+                    has_earnings_soon=None,
+                    max_loss=None,
+                )
+                # PRD-260 R4: total promotion — the direct rejection stays
+                # on the audit trail, rewritten so the same ticker is never
+                # emitted as both a live rejection and a qualified trade.
+                if symbol in excluded:
+                    excluded[symbol] = (
+                        f"DIRECT rejected ({excluded[symbol]}); "
+                        "promoted via CONTINUATION"
+                    )
                 logger.info(
                     f"EXPANSION QUALIFIED {symbol}: CONTINUATION | "
                     f"contracts={cont.max_contracts} risk=${cont.dollar_risk:.0f}"
@@ -295,6 +331,7 @@ def qualify_all(
         symbols_watchlist=len(watchlist_trades),
         symbols_excluded=len(excluded),
         continuation_audit=continuation_audit,
+        continuation_candidates=continuation_candidates,
     )
 
 

@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 import pandas as pd
 
 from cuttingboard.derived import DerivedMetrics
-from cuttingboard.output import OUTCOME_NO_TRADE, render_report
+from cuttingboard.options import build_option_setups
+from cuttingboard.output import OUTCOME_NO_TRADE, OUTCOME_TRADE, render_report
 from cuttingboard.qualification import (
     CONTINUATION_REJECTION_REASONS,
     _qualify_continuation_candidate,
@@ -315,3 +316,37 @@ def test_runtime_logs_continuation_audit(caplog, monkeypatch):
     assert "total_candidates=1" in text
     assert "accepted=0" in text
     assert "NO_BREAKOUT=1" in text
+
+
+def test_render_report_labels_continuation_target_ceiling_prd260(monkeypatch):
+    # PRD-260 R3: a rendered card for a continuation setup carries the
+    # synthetic-ceiling target tag, sourced from the result's entry_mode.
+    monkeypatch.setattr("cuttingboard.qualification._is_late_session", lambda now_et=None: False)
+
+    summary = qualify_all(
+        regime=_expansion_regime(),
+        structure_results={"PASS": _sr("PASS")},
+        candidates=None,
+        derived_metrics={"PASS": _dm("PASS")},
+        ohlcv={"PASS": _qualified_df()},
+    )
+    assert summary.continuation_audit["accepted"] == 1
+    setups = build_option_setups(
+        summary.qualified_trades,
+        {"PASS": _sr("PASS")},
+        {"PASS": _dm("PASS")},
+    )
+    assert len(setups) == 1
+
+    report = render_report(
+        date_str="2026-07-15",
+        run_at_utc=datetime(2026, 7, 15, 14, 30, tzinfo=timezone.utc),
+        regime=_expansion_regime(),
+        validation_summary=_validation_summary(),
+        qualification_summary=summary,
+        option_setups=setups,
+        outcome=OUTCOME_TRADE,
+        watch_summary=None,
+    )
+
+    assert "[CONTINUATION | target=3xATR ceiling]" in report

@@ -335,6 +335,20 @@ The R:R check therefore functions as a **stop-width ceiling**: with
 `risk = entry − breakout_level ≤ 1.5× ATR14`. Combined with check 7, the
 qualifying band is `1% of entry ≤ risk ≤ 1.5× ATR14`.
 
+**Decision geometry (PRD-260):** an accepted continuation candidate is
+**totally promoted** — `qualify_all` synthesizes a `TradeCandidate` from
+the gate's own geometry (entry = the accepted close, stop = the
+strictly-prior breakout level, target = entry + 3× ATR14) and the
+runtime replaces any direct candidate for that symbol with it before
+decision assembly, so the rendered invalidation level is the level the
+gate validated. The target is the synthetic reward **ceiling** (PRD-240
+R3), not a calibrated level — the rendered report and dashboard cards
+label it "3xATR ceiling" via the candidate's `entry_mode`. If the
+symbol had been DIRECT-rejected earlier in the same run, its rejection
+record is rewritten to "DIRECT rejected (<reason>); promoted via
+CONTINUATION" — the audit trail keeps both facts without emitting the
+same ticker as simultaneously qualified and rejected.
+
 **Deliberate asymmetry vs. Gate 6:** the continuation stop has **no ATR
 floor**. The stop anchors to the structural breakout level rather than being
 chosen, so the chosen-stop ATR convention does not map — and adding a 1.0×ATR
