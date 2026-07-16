@@ -1,8 +1,8 @@
 {
   "artifacts": {
-    "log_path": "logs/latest_hourly_run.json",
-    "notification_sent": true,
-    "report_path": "reports/output/hourly_report.html"
+    "log_path": "logs/latest_run.json",
+    "notification_sent": false,
+    "report_path": "reports/2026-07-16.md"
   },
   "audit_summary": {
     "continuation_accepted_count": null,
@@ -12,44 +12,50 @@
     "qualified_count": 0,
     "rejected_count": 0
   },
-  "correlation": null,
-  "generated_at": "2026-07-15T20:03:06Z",
-  "generation_id": "hourly-20260715T200306Z",
+  "correlation": {
+    "dollar_symbol": "DX-Y.NYB",
+    "gold_symbol": "GLD",
+    "risk_modifier": 1.0,
+    "score": 1,
+    "state": "ALIGNED"
+  },
+  "generated_at": "2026-07-16T14:53:34Z",
+  "generation_id": "live-20260716T145334Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -0.12480542729299468,
-      "level": 64907.55078125,
+      "change_pct": -0.2543299564929352,
+      "level": 64547.4296875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.2648894442120366,
-      "level": 100.53199768066406,
+      "change_pct": 0.18406068476525886,
+      "level": 100.69400024414062,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 0.579512792548242,
-      "level": 4061.300048828125,
+      "change_pct": -0.7869935707278244,
+      "level": 4008.89990234375,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 0.4503948567209639,
-      "level": 80.29000091552734,
+      "change_pct": 0.4524894688268837,
+      "level": 79.91999816894531,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -3.9650998508440267,
-      "change_pct": -0.8724091934619335,
-      "level": 4.545000076293945,
+      "change_bps": 4.136974435737542,
+      "change_pct": 0.9020877598578867,
+      "level": 4.585999965667725,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -1.1406230243404825,
-      "level": 58.06999969482422,
+      "change_pct": -1.7819915120333736,
+      "level": 56.494998931884766,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -4.606061993223248,
-      "level": 15.739999771118164,
+      "change_pct": 1.0210583703452691,
+      "level": 15.829999923706055,
       "symbol": "^VIX"
     }
   },
@@ -57,44 +63,54 @@
     "continuation_enabled": false,
     "data_quality": "ok",
     "expansion_regime": null,
-    "imbalance_enabled": null,
+    "imbalance_enabled": false,
     "stale_data_detected": false
   },
   "mode": "live",
   "outcome": "NO_TRADE",
   "regime": {
-    "classification": "RISK_ON",
-    "confidence": 0.375,
-    "net_score": 3,
-    "neutral_votes": 3,
+    "classification": "NEUTRAL",
+    "confidence": 0.0,
+    "net_score": 0,
+    "neutral_votes": 4,
     "posture": "STAY_FLAT",
-    "risk_off_votes": 1,
-    "risk_on_votes": 4,
+    "risk_off_votes": 2,
+    "risk_on_votes": 2,
     "total_votes": 8,
-    "vix_level": 15.739999771118164,
-    "vix_pct_change": -0.04606061993223248,
+    "vix_level": 15.829999923706055,
+    "vix_pct_change": 0.01021058370345269,
     "vote_breakdown": {
       "BTC pct_change": "NEUTRAL",
-      "DXY pct_change": "RISK_ON",
-      "IWM pct_change": "NEUTRAL",
+      "DXY pct_change": "NEUTRAL",
+      "IWM pct_change": "RISK_ON",
       "QQQ pct_change": "RISK_OFF",
       "SPY pct_change": "NEUTRAL",
-      "TNX pct_change": "RISK_ON",
+      "TNX pct_change": "RISK_OFF",
       "VIX level": "RISK_ON",
-      "VIX pct_change": "RISK_ON"
+      "VIX pct_change": "NEUTRAL"
     }
   },
-  "rejections": [],
+  "rejections": [
+    {
+      "detail": null,
+      "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
+      "stage": "REGIME",
+      "symbol": "REGIME"
+    }
+  ],
   "schema_version": "v2",
-  "session_date": "2026-07-15",
+  "session_date": "2026-07-16",
   "status": "STAY_FLAT",
   "system_state": {
-    "confidence": 0.375,
-    "intraday_state": null,
-    "market_regime": "RISK_ON",
+    "confidence": 0.0,
+    "intraday_state": "MIDDAY",
+    "market_regime": "NEUTRAL",
+    "outcome": "NO_TRADE",
+    "permission": "No new trades permitted.",
+    "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
     "router_mode": "MIXED",
-    "stay_flat_reason": "STAY_FLAT posture",
-    "time_gate_open": false,
+    "stay_flat_reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
+    "time_gate_open": true,
     "tradable": false
   },
   "timezone": "America/New_York",
