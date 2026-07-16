@@ -1,8 +1,8 @@
 {
   "artifacts": {
-    "log_path": "logs/latest_run.json",
-    "notification_sent": false,
-    "report_path": "reports/2026-07-16.md"
+    "log_path": "logs/latest_hourly_run.json",
+    "notification_sent": true,
+    "report_path": "reports/output/hourly_report.html"
   },
   "audit_summary": {
     "continuation_accepted_count": null,
@@ -12,50 +12,44 @@
     "qualified_count": 0,
     "rejected_count": 0
   },
-  "correlation": {
-    "dollar_symbol": "DX-Y.NYB",
-    "gold_symbol": "GLD",
-    "risk_modifier": 1.0,
-    "score": 1,
-    "state": "ALIGNED"
-  },
-  "generated_at": "2026-07-16T14:53:34Z",
-  "generation_id": "live-20260716T145334Z",
+  "correlation": null,
+  "generated_at": "2026-07-16T15:03:06Z",
+  "generation_id": "hourly-20260716T150306Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -0.2543299564929352,
-      "level": 64547.4296875,
+      "change_pct": -0.3767473375879611,
+      "level": 64468.2109375,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.18406068476525886,
-      "level": 100.69400024414062,
+      "change_pct": 0.20495044905402462,
+      "level": 100.71499633789062,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -0.7869935707278244,
-      "level": 4008.89990234375,
+      "change_pct": -1.017146880794881,
+      "level": 3999.60009765625,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 0.4524894688268837,
-      "level": 79.91999816894531,
+      "change_pct": 0.1508330194375038,
+      "level": 79.68000030517578,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 4.136974435737542,
-      "change_pct": 0.9020877598578867,
-      "level": 4.585999965667725,
+      "change_bps": 4.3407046114206125,
+      "change_pct": 0.9460994616199077,
+      "level": 4.588000297546387,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -1.7819915120333736,
-      "level": 56.494998931884766,
+      "change_pct": -2.1123090106371825,
+      "level": 56.30500030517578,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 1.0210583703452691,
-      "level": 15.829999923706055,
+      "change_pct": 0.8296114474025186,
+      "level": 15.800000190734863,
       "symbol": "^VIX"
     }
   },
@@ -63,26 +57,26 @@
     "continuation_enabled": false,
     "data_quality": "ok",
     "expansion_regime": null,
-    "imbalance_enabled": false,
+    "imbalance_enabled": null,
     "stale_data_detected": false
   },
   "mode": "live",
   "outcome": "NO_TRADE",
   "regime": {
     "classification": "NEUTRAL",
-    "confidence": 0.0,
-    "net_score": 0,
-    "neutral_votes": 4,
+    "confidence": 0.125,
+    "net_score": -1,
+    "neutral_votes": 5,
     "posture": "STAY_FLAT",
     "risk_off_votes": 2,
-    "risk_on_votes": 2,
+    "risk_on_votes": 1,
     "total_votes": 8,
-    "vix_level": 15.829999923706055,
-    "vix_pct_change": 0.01021058370345269,
+    "vix_level": 15.800000190734863,
+    "vix_pct_change": 0.008296114474025186,
     "vote_breakdown": {
       "BTC pct_change": "NEUTRAL",
       "DXY pct_change": "NEUTRAL",
-      "IWM pct_change": "RISK_ON",
+      "IWM pct_change": "NEUTRAL",
       "QQQ pct_change": "RISK_OFF",
       "SPY pct_change": "NEUTRAL",
       "TNX pct_change": "RISK_OFF",
@@ -90,26 +84,16 @@
       "VIX pct_change": "NEUTRAL"
     }
   },
-  "rejections": [
-    {
-      "detail": null,
-      "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
-      "stage": "REGIME",
-      "symbol": "REGIME"
-    }
-  ],
+  "rejections": [],
   "schema_version": "v2",
   "session_date": "2026-07-16",
   "status": "STAY_FLAT",
   "system_state": {
-    "confidence": 0.0,
-    "intraday_state": "MIDDAY",
+    "confidence": 0.125,
+    "intraday_state": null,
     "market_regime": "NEUTRAL",
-    "outcome": "NO_TRADE",
-    "permission": "No new trades permitted.",
-    "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
     "router_mode": "MIXED",
-    "stay_flat_reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
+    "stay_flat_reason": "STAY_FLAT posture",
     "time_gate_open": true,
     "tradable": false
   },
