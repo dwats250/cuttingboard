@@ -1218,8 +1218,8 @@
     {
       "number": 258,
       "title": "Widen the Claude Code Bash permission allow-list for reversible operations",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "7187d5c"
     },
     {
       "number": 259,
