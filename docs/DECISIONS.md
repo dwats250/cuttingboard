@@ -16,9 +16,46 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
-## 2026-07-17 — PRD-259: `:*` plus an earlier embedded `*` silently breaks a deny pattern — verify live, not by simulation
+## 2026-07-17 — PRD-259 renumbered to PRD-261 (ruled: Dustin) — a two-worktree numbering collision
 
-A commissioned Codex review of PRD-259 (HIGH-RISK, widening/tightening
+Two unrelated PRDs independently claimed number 259 on two different
+unmerged branches: PR #148's branch (`claude/prd-259-hold-confirmation-gate`,
+the continuation HOLD-confirmation gate, locally marked COMPLETE and
+already having spawned PRD-260 off its own numbering) and PR #149's
+branch (`prd-259-hardening-followup`, this session's permission-allowlist
+hardening work). Neither had merged, so `origin/main` never saw either
+allocation — a classic race: both branches forked from a point where 259
+was next-available and neither saw the other claim it.
+
+**Ruling:** PR #148's branch keeps 259 — it is further along (locally
+COMPLETE in its own registry) and has already spawned PRD-260 downstream
+of that numbering; renumbering it would cascade. PR #149's PRD is
+renumbered to PRD-261 instead — self-contained permission tooling,
+nothing spawned off it. Merge order: #148 + PRD-260 first, PRD-261
+(this PR) second. 261, not 260, because PRD-260 (the geometry fix
+paired with #148) will land first and claim 260.
+
+**What this means for `docs/prd_index.json` in the interim, on PR #149's
+own branch (not yet reconciled with #148/PRD-260):** `latest_complete`
+stays 258 and `next_prd` stays 259 — mechanically correct per
+`tools/validate_prd_registry.py`'s own formula (`next_prd ==
+latest_complete + 1`), since neither PRD-259 (hold-gate) nor PRD-260
+(geometry) exist on this branch. The new PRD-261 entry sits above that
+gap deliberately. This looks inconsistent in isolation and is expected
+to stay that way until this branch rebases onto post-#148-merge `main`,
+at which point `latest_complete`/`next_prd` will resolve to the real
+values (260/261) automatically. Not fixed now, on explicit instruction
+("do NOT rebase onto the pair yet — just resolve the number").
+
+---
+
+## 2026-07-17 — PRD-261: `:*` plus an earlier embedded `*` silently breaks a deny pattern — verify live, not by simulation
+
+(Renumbered from PRD-259 to PRD-261 same-day — see the entry above this
+one for why. This entry's content is otherwise unchanged from when it
+was written against the PRD-259 number.)
+
+A commissioned Codex review of PRD-261 (HIGH-RISK, widening/tightening
 `.claude/settings.json`'s Bash deny rules) surfaced 10 gaps beyond the
 PRD's original three. Six were fixed in an amendment (R5-R8). The fix
 for two of them — `git push -f`/`-d`, closing a force-push-reorder and a
@@ -55,7 +92,7 @@ test proved the bug without touching anything real, a second test
 against the actual `origin` remote (to rule out a fake-remote-name
 artifact) deleted a stray, clearly-disposable test-cruft ref that
 existed on `origin` — reported transparently in
-`docs/prd_history/PRD-259.review.claude.v2.md` and PRD-259.md's SECOND
+`docs/prd_history/PRD-261.review.claude.v2.md` and PRD-261.md's SECOND
 FRESH-CONTEXT CLAUDE REVIEW (v2) DISPOSITION section, not smoothed over.
 
 **Fix, and the rule going forward:** replace `:*` with a bare trailing
