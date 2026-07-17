@@ -9,7 +9,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 ## Current state
 
-- **Active PRD:** PRD-259 (PRD-258 follow-up: git -c/ruff --config/git worktree mutation denies). Full detail: `docs/prd_history/PRD-259.md`.
+- **Active PRD:** PRD-259 (PRD-258 follow-up: git -c/ruff --config/git worktree mutation denies, amended with R5-R8 for a commissioned Codex review's further findings — git log -c false positive, ruff -o/pytest --basetemp/git push force-delete-mirror-prune-receive-pack gaps). Full detail: `docs/prd_history/PRD-259.md`.
 - **Active PRD note (2026-07-13):** kept as a single-line bulleted pointer,
   not a multi-line block, matching PRD-183's convention that
   `scripts/prd_close.sh`'s closeout regex depends on (it replaces only

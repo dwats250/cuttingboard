@@ -16,6 +16,62 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-17 — PRD-259: `:*` plus an earlier embedded `*` silently breaks a deny pattern — verify live, not by simulation
+
+A commissioned Codex review of PRD-259 (HIGH-RISK, widening/tightening
+`.claude/settings.json`'s Bash deny rules) surfaced 10 gaps beyond the
+PRD's original three. Six were fixed in an amendment (R5-R8). The fix
+for two of them — `git push -f`/`-d`, closing a force-push-reorder and a
+destructive-ref-deletion gap — used the pattern
+`"Bash(git *push* -f:*)"` / `"...-d:*)"`, verified via a standalone
+Python script that re-implements this session's own documented
+understanding of Claude Code's `Bash(...)` pattern matching (an
+understanding itself sourced from a `claude-code-guide` subagent's
+citation of Claude Code's documentation, used throughout PRD-258/259).
+The simulation reported 0 failures. Both patterns were, in fact,
+completely non-functional — they denied nothing at all, not even the
+literal-order case the pre-existing pattern used to catch.
+
+**Root cause.** The trailing `:*` suffix is a documented shorthand for
+"prefix, then a space-or-end-of-string boundary" — but that equivalence
+only holds when everything before the colon is a plain literal with no
+embedded `*`. Embed a glob wildcard inside that prefix (as `*push*`
+does), and the pattern requires the literal text `git *push* -f`
+(asterisks and all) to open the command — which no real invocation ever
+contains, so it can never match. Grepped the *entire* deny list (58
+entries): only these two new patterns combined an earlier `*` with a
+trailing `:*`; every other `:*`-suffixed pattern (e.g. the pre-existing
+`"Bash(gh pr merge:*)"`) is a pure literal prefix and is unaffected —
+confirmed still working. This was a two-pattern, self-contained
+regression, not a wider or pre-existing one.
+
+**Found by:** a second fresh-context Claude review (v2), which verified
+R5-R8 by *live Bash tool calls against the real permission engine*
+rather than trusting the PRD's own simulation claim — exactly the
+practice CLAUDE.md's hardening invariant 3 ("authoritative source, not
+proxy") calls for, and exactly what this session's simulation was not.
+Verifying `-d` live had a real side effect: after a safe fake-remote-name
+test proved the bug without touching anything real, a second test
+against the actual `origin` remote (to rule out a fake-remote-name
+artifact) deleted a stray, clearly-disposable test-cruft ref that
+existed on `origin` — reported transparently in
+`docs/prd_history/PRD-259.review.claude.v2.md` and PRD-259.md's SECOND
+FRESH-CONTEXT CLAUDE REVIEW (v2) DISPOSITION section, not smoothed over.
+
+**Fix, and the rule going forward:** replace `:*` with a bare trailing
+`*` whenever the pattern contains an earlier embedded `*` — a plain `*`
+correctly matches both "more tokens follow" and "this is the last token,
+end of string," which is the entire reason `:*` was reached for in the
+first place. `:*` is safe only as a suffix on a pure-literal prefix with
+no earlier wildcard. Any new or modified deny pattern must be verified
+by an actual Bash tool call against a safe/fake target (a nonexistent
+remote name, a `/tmp` path, etc.) — a hand-built regex simulation is a
+useful fast first pass, but it is a proxy that can (and here, did)
+encode the same wrong assumption the pattern itself relies on, so it
+cannot be the authoritative check.
+
+---
+
 ## 2026-07-17 — PRD-260 R7: hourly-path gap found by Sol, amended not ticketed (ruled: Dustin)
 
 The commissioned gpt-5.6-sol consumer sweep (Q5, run against e26b589 --
