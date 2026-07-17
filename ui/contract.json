@@ -13,43 +13,43 @@
     "rejected_count": 0
   },
   "correlation": null,
-  "generated_at": "2026-07-17T15:10:38Z",
-  "generation_id": "hourly-20260717T151038Z",
+  "generated_at": "2026-07-17T16:08:20Z",
+  "generation_id": "hourly-20260717T160820Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -1.1836016555378848,
-      "level": 63015.08984375,
+      "change_pct": -0.6759963974464578,
+      "level": 63338.7890625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.01786145868225896,
-      "level": 100.74500274658203,
+      "change_pct": -0.008934515152634834,
+      "level": 100.75399780273438,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 0.2152338203905358,
-      "level": 4004.300048828125,
+      "change_pct": 0.6907450007139634,
+      "level": 4023.300048828125,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 1.2758899192918811,
-      "level": 80.16999816894531,
+      "change_pct": 1.9327927090903134,
+      "level": 80.69000244140625,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -3.964930797865756,
-      "change_pct": -0.8754538641501408,
-      "level": 4.529000282287598,
+      "change_bps": -3.1775944866805412,
+      "change_pct": -0.7003735276777946,
+      "level": 4.536999702453613,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 0.530286110518148,
-      "level": 55.92499923706055,
+      "change_pct": 1.2403354547200656,
+      "level": 56.31999969482422,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 9.03650695160699,
-      "level": 18.219999313354492,
+      "change_pct": 8.13884311708496,
+      "level": 18.06999969482422,
       "symbol": "^VIX"
     }
   },
@@ -71,8 +71,8 @@
     "risk_off_votes": 3,
     "risk_on_votes": 1,
     "total_votes": 8,
-    "vix_level": 18.219999313354492,
-    "vix_pct_change": 0.0903650695160699,
+    "vix_level": 18.06999969482422,
+    "vix_pct_change": 0.0813884311708496,
     "vote_breakdown": {
       "BTC pct_change": "NEUTRAL",
       "DXY pct_change": "NEUTRAL",
