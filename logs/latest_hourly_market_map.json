@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.029700471240153105,
-      "price": 123.7699966430664,
+      "pct_change_decimal": 0.029950933726179,
+      "price": 123.80010223388672,
       "structure": "UNKNOWN",
       "symbol": "USO"
     }
@@ -26,8 +26,8 @@
       "XLE"
     ]
   },
-  "generated_at": "2026-07-17T16:08:20Z",
-  "generation_id": "hourly-20260717T160820Z",
+  "generated_at": "2026-07-17T19:03:12Z",
+  "generation_id": "hourly-20260717T190312Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -41,14 +41,14 @@
   "session_date": "2026-07-17",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-07-17T16:08:20Z"
+    "run_at_utc": "2026-07-17T19:03:12Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 71.66000366210938,
+      "current_price": 71.1449966430664,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -94,7 +94,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 368.385009765625,
+      "current_price": 367.69500732421875,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -145,7 +145,7 @@
       "asset_group": "INDEX",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 697.6599731445312,
+      "current_price": 696.9500122070312,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -201,7 +201,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 50.587799072265625,
+      "current_price": 50.685001373291016,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -247,7 +247,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 745.0700073242188,
+      "current_price": 743.739990234375,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -303,7 +303,7 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 57.415000915527344,
+      "current_price": 57.58000183105469,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
