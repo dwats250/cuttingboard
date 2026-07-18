@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 259,
-  "next_prd": 260,
+  "latest_complete": 260,
+  "next_prd": 261,
   "entries": [
     {
       "number": 56,
@@ -1230,8 +1230,8 @@
     {
       "number": 260,
       "title": "Continuation decision geometry: synthesize the promoted candidate",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "0dcbd8d"
     },
     {
       "number": 261,
