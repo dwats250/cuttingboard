@@ -82,7 +82,7 @@
       "Bash(git * --output*)",
       "Bash(git * --upload-pack*)",
       "Bash(git * --rece*)",
-      "Bash(git * --exec*)",
+      "Bash(git * --ex*)",
       "Bash(git *checkout*)",
       "Bash(git *reset*)",
       "Bash(git *rebase*)",
@@ -125,10 +125,15 @@
       "Bash(*ruff check*--add-noqa*)",
       "Bash(*ruff check* -o*)",
       "Bash(*ruff check*--output-file*)",
-      "Bash(*ruff check*--config*)",
+      "Bash(*ruff*--config*)",
       "Bash(rg *--pre*)",
       "Bash(rg *--hostname-bin*)",
-      "Bash(*pytest *--basetemp*)"
+      "Bash(*pytest *--basetemp*)",
+      "Bash(git *push* :refs*)",
+      "Bash(git *push* +*)",
+      "Bash(git *push *--de*)",
+      "Bash(git *push *--mi*)",
+      "Bash(git *push *--pru*)"
     ]
   },
   "hooks": {

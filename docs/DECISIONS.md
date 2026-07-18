@@ -16,6 +16,67 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-18 — Permission/bypass probes run against a throwaway remote or fake path, never `origin` (ruled: Dustin)
+
+Hard rule, made explicit after it was violated twice in one session:
+verifying whether a dangerous Bash pattern actually blocks something
+must never be done by running the dangerous thing against the real
+`origin` remote. Round 1 (PRD-261 R7 v2 review): confirming a
+`git push -d` bypass deleted a real, if disposable, ref on `origin`.
+Round 2 (this entry): confirming a `git push +HEAD:refs/heads/x` refspec
+bypass created a real branch (`nonexistent-probe-test`) on `origin`,
+which Dustin had to delete himself.
+
+**The rule:** every live verification of a permission pattern — deny or
+allow — targets a nonexistent remote name (`this-remote-does-not-exist-xyz`
+or equivalent) or a throwaway local/`/tmp` path. If the command reaches
+the fake target and fails only on target-resolution grounds (not a
+permission denial), that proves the same thing a real target would have
+proven, with zero blast radius. There is never a reason to point a
+live-fire permission probe at shared, real infrastructure. A command
+that legitimately requires a real remote to test meaningfully (there
+shouldn't be one, for a deny-pattern check) needs Dustin's explicit
+sign-off first, not an agent's judgment call in the moment.
+
+## 2026-07-18 — the Bash permission deny list is an accident-prevention speed bump, provably incomplete by design (ruled: Dustin)
+
+Sixth review this session to find the same underlying class: git (and
+other CLIs) accept an open-ended set of equivalent spellings for a given
+operation — refspec syntax (`+ref`, `:ref`), option abbreviation
+(`--de` for `--delete`), global-option-before-subcommand ordering
+(`ruff --config ... check`), option aliasing (`--exec`/`--receive-pack`
+naming the same executable-selection path), and shell-expansion
+evasion (documented earlier, `docs/DECISIONS.md` 2026-07-17). A
+finite list of string-match deny patterns cannot enumerate an
+open-ended spelling space. This was true after round one and remains
+true after round six; it will be true after round twenty.
+
+**Ruling:** the deny list's job is to catch the easy, accidental,
+unscripted case — not to be complete. Completeness is explicitly NOT
+the goal and is not achievable by adding more patterns; every prior
+"fix another spelling" round has been correct to fix what it found and
+wrong to imply the class was thereby closed. The actual gate against a
+deliberate or determined bypass is (a) the human merge — nothing in
+this repository merges without Dustin's explicit action — and (b) the
+fact that this permission layer was already non-airtight by original
+design: `.claude/settings.local.json`'s blanket `bash*`/`python*`/`node*`
+grants (kept, not removed, per the 2026-07-15 ruling in this same file)
+mean a determined session was never more than one interpreter hop away
+from anything a deny pattern tries to stop. The deny list's real value
+is that it stops the ordinary, unscripted, accidental case — the
+session that just runs the obvious command — which is the failure mode
+that actually occurs.
+
+**What this means going forward:** when a future bot review, commissioned
+model, or session finds a new spelling this deny list doesn't catch,
+the default disposition is DISMISSED, citing this entry — not another
+patch round. A genuinely new CLASS of gap (not another spelling of the
+same one) still gets fixed. The distinction is judgment, not a formula,
+but the six-rounds-and-counting history above is the evidence for where
+that line has actually been.
+
+---
+
 ## 2026-07-17 — PRD-259 renumbered to PRD-261 (ruled: Dustin) — a two-worktree numbering collision
 
 Two unrelated PRDs independently claimed number 259 on two different
