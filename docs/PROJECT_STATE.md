@@ -5,11 +5,11 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-07-15 (commit #148)
+**Last updated:** 2026-07-17 (commit #148)
 
 ## Current state
 
-- **Active PRD:** PRD-258 (widen the Claude Code Bash permission allow-list for reversible operations). Full detail: `docs/prd_history/PRD-258.md`.
+- **Active PRD:** PRD-261 (renumbered from PRD-259 on 2026-07-17 — collision with PR #148's branch; PRD-258 follow-up: git -c/ruff --config/git worktree mutation denies, amended with R5-R8 for a commissioned Codex review's further findings — git log -c false positive, ruff -o/pytest --basetemp/git push force-delete-mirror-prune-receive-pack gaps). Full detail: `docs/prd_history/PRD-261.md`.
 - **Active PRD note (2026-07-13):** kept as a single-line bulleted pointer,
   not a multi-line block, matching PRD-183's convention that
   `scripts/prd_close.sh`'s closeout regex depends on (it replaces only
@@ -201,6 +201,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 | PRD | Title | Completed |
 |-----|-------|-----------|
+| PRD-258 | Widen the Claude Code Bash permission allow-list for reversible operations | 2026-07-17 |
 | PRD-259 | Continuation HOLD-confirmation gate: strictly-prior breakout window | 2026-07-15 |
 | PRD-256 | Continuation-path ATR proxy max-loss fix or permanent-cap ruling | 2026-07-14 |
 | PRD-253 | Contract/audit sizing sourcing: read correlation- and strategy-adjusted OptionSetup, not pre-adjustment QualificationResult | 2026-07-12 |

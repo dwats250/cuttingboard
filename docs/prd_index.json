@@ -1218,8 +1218,8 @@
     {
       "number": 258,
       "title": "Widen the Claude Code Bash permission allow-list for reversible operations",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "7187d5c"
     },
     {
       "number": 259,
@@ -1230,6 +1230,12 @@
     {
       "number": 260,
       "title": "Continuation decision geometry: synthesize the promoted candidate",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
+      "number": 261,
+      "title": "PRD-258 follow-up: git -c/ruff --config/git worktree mutation denies (renumbered from PRD-259 - collision with PR #148's branch, ruled 2026-07-17)",
       "status": "IN PROGRESS",
       "commit": null
     }
