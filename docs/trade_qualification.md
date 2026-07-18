@@ -319,8 +319,8 @@ sequence — first failure wins, one deterministic rejection reason per candidat
 |---|-------|-------------|------------------|
 | 1 | Daily OHLCV + ATR14 present | — | `DATA_INCOMPLETE` |
 | 2 | VIX not spiking: `vix_pct_change ≤ +1%` | `CONTINUATION_VIX_SPIKE_BLOCK = 0.01` | `VIX_BLOCKED` |
-| 3 | Close clears the prior 5-bar high | `CONTINUATION_BREAKOUT_BARS = 5` | `NO_BREAKOUT` |
-| 4 | Close 1 completed bar ago also held above the breakout level | `CONTINUATION_HOLD_CANDLES = 1` | `NO_HOLD_CONFIRMATION` |
+| 3 | Close clears the 5-bar high ending strictly BEFORE the hold candle(s) (PRD-259: the breakout level is computed from bars prior to both bars being tested — the window is `df.iloc[-(n+1+hold):-(1+hold)]`, so the hold candle's own high can never raise the level it is tested against) | `CONTINUATION_BREAKOUT_BARS = 5` | `NO_BREAKOUT` |
+| 4 | Close 1 completed bar ago also held above that same strictly-prior breakout level | `CONTINUATION_HOLD_CANDLES = 1` | `NO_HOLD_CONFIRMATION` |
 | 5 | Last candle range ≥ 0.75× ATR14 AND close in the top quartile of its range (`close_location ≥ 0.75`, PRD-240 R5 — a wick-dominated candle is not momentum) | `CONTINUATION_MOMENTUM_K = 0.75` | `INSUFFICIENT_MOMENTUM` |
 | 6 | Entry ≤ 2.5× ATR14 from EMA21 (fail-open: skipped when EMA21 is unavailable — mirrors DIRECT Gate 10, but records **no** `gates_skipped` marker, so this skip is invisible at runtime) | `CONTINUATION_MAX_EXTENSION_ATR = 2.5` | `EXTENDED_FROM_MEAN` |
 | 7 | Stop = the breakout level; risk ≥ 1% of entry | `MIN_STOP_PCT = 0.01` | `STOP_TOO_TIGHT` |
@@ -334,6 +334,20 @@ The R:R check therefore functions as a **stop-width ceiling**: with
 `EXPANSION_RR_RATIO = 2.0`, a candidate qualifies only when
 `risk = entry − breakout_level ≤ 1.5× ATR14`. Combined with check 7, the
 qualifying band is `1% of entry ≤ risk ≤ 1.5× ATR14`.
+
+**Decision geometry (PRD-260):** an accepted continuation candidate is
+**totally promoted** — `qualify_all` synthesizes a `TradeCandidate` from
+the gate's own geometry (entry = the accepted close, stop = the
+strictly-prior breakout level, target = entry + 3× ATR14) and the
+runtime replaces any direct candidate for that symbol with it before
+decision assembly, so the rendered invalidation level is the level the
+gate validated. The target is the synthetic reward **ceiling** (PRD-240
+R3), not a calibrated level — the rendered report and dashboard cards
+label it "3xATR ceiling" via the candidate's `entry_mode`. If the
+symbol had been DIRECT-rejected earlier in the same run, its rejection
+record is rewritten to "DIRECT rejected (<reason>); promoted via
+CONTINUATION" — the audit trail keeps both facts without emitting the
+same ticker as simultaneously qualified and rejected.
 
 **Deliberate asymmetry vs. Gate 6:** the continuation stop has **no ATR
 floor**. The stop anchors to the structural breakout level rather than being

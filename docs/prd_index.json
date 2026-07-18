@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 257,
-  "next_prd": 258,
+  "latest_complete": 259,
+  "next_prd": 260,
   "entries": [
     {
       "number": 56,
@@ -1218,6 +1218,18 @@
     {
       "number": 258,
       "title": "Widen the Claude Code Bash permission allow-list for reversible operations",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
+      "number": 259,
+      "title": "Continuation HOLD-confirmation gate: strictly-prior breakout window",
+      "status": "COMPLETE",
+      "commit": "#148"
+    },
+    {
+      "number": 260,
+      "title": "Continuation decision geometry: synthesize the promoted candidate",
       "status": "IN PROGRESS",
       "commit": null
     }

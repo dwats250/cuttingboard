@@ -445,6 +445,16 @@ def _execute_notify_run(
                     flow_snapshot=flow_snapshot,
                 )
                 _log_continuation_audit(regime, qualification_summary)
+                # PRD-260 R7: total promotion for the hourly path too --
+                # same fix as R1's daily-pipeline merge (see above), mirrored
+                # at this second call site so a promoted continuation
+                # candidate's R:R is computed from its own synthesized
+                # geometry, not the failed direct candidate's stale one.
+                if qualification_summary.continuation_candidates:
+                    candidates = {
+                        **candidates,
+                        **qualification_summary.continuation_candidates,
+                    }
                 candidate_lines = _build_hourly_candidate_lines(
                     qualification_summary.qualified_trades,
                     execution_structure,
@@ -638,6 +648,17 @@ def _run_decision_gates(
         qualified_by_symbol = {
             result.symbol: result for result in qualification_summary.qualified_trades
         }
+        # PRD-260 R5: fail loud, never KeyError — every qualified setup must
+        # have a candidate (direct, or the synthesized continuation
+        # promotion). A miss means the candidate-join invariant broke
+        # (e.g. OHLCV acquisition widened past candidate scope).
+        for symbol in setup_by_symbol:
+            if symbol not in candidates:
+                raise RuntimeError(
+                    f"decision assembly: no TradeCandidate for qualified "
+                    f"symbol {symbol} — candidate-join invariant violated "
+                    f"(PRD-260 R5)"
+                )
         trade_decisions = [
             create_trade_decision(
                 candidates[symbol],
@@ -983,6 +1004,14 @@ def _run_pipeline(
                 now_et=now_et,
                 flow_snapshot=_load_flow(),
             )
+            # PRD-260 R1: total promotion — synthesized continuation
+            # candidates (the gate's own geometry) replace the direct
+            # candidates for their symbols before decision assembly.
+            if qualification_summary.continuation_candidates:
+                candidates = {
+                    **candidates,
+                    **qualification_summary.continuation_candidates,
+                }
             _log_continuation_audit(regime, qualification_summary)
 
             if qualification_summary.qualified_trades:

@@ -9,6 +9,7 @@ import pytest
 from cuttingboard.derived import DerivedMetrics
 from cuttingboard.qualification import (
     ENTRY_MODE_CONTINUATION,
+    TradeCandidate,
     detect_continuation_breakout,
     qualify_all,
     _qualify_continuation_candidate,
@@ -97,20 +98,20 @@ def _sr(structure: str = TREND) -> StructureResult:
 
 class TestDetectContinuationBreakout:
     def test_breakout_detected(self):
-        # 10 bars: lookback (-6:-1) covers indices 4-8 with max high=100.
-        # Bars 8 and 9 break out above 100.
-        # Index:  0    1    2    3    4    5    6    7    8    9
-        closes = [95,  96,  97,  96,  95,  96,  97,  96,  102, 104]
-        highs  = [96,  97,  98,  97,  96,  97,  98,  97,  100, 106]
-        lows   = [94,  95,  96,  95,  94,  95,  96,  95,  100, 102]
-        # lookback = indices 4-8, highs = [96, 97, 98, 97, 100] → max = 100
-        # current close = 104 > 100 ✓
-        # prev close = 102 > 100 ✓ (hold)
-        # last bar range = 106-102 = 4 >= 0.75*2=1.5 ✓
+        # PRD-259: lookback ends strictly BEFORE the hold candle —
+        # 10 bars, hold_candles=1 → window = indices 3-7, max high = 101.
+        # All bars valid OHLC (High >= Close).
+        # Index:  0    1    2    3    4    5    6    7    8      9
+        closes = [96,  97,  98,  98,  99,  100, 99,  98,  102,   104]
+        highs  = [97,  98,  99,  99,  100, 101, 100, 99,  102.5, 105]
+        lows   = [95,  96,  97,  97,  98,  99,  98,  97,  100.5, 101]
+        # current close = 104 > 101 ✓ (hold candle at index 8 sits outside
+        # the window, so its own high cannot raise the level it is tested
+        # against)
         df = _ohlcv(closes, highs, lows)
         result = detect_continuation_breakout(df)
         assert result is not None
-        assert result == pytest.approx(100.0)  # highest high of lookback window
+        assert result == pytest.approx(101.0)  # highest high of lookback window
 
     def test_no_breakout_when_close_below_high(self):
         closes = [98, 99, 100, 101, 100, 99, 98, 99, 100, 100]
@@ -140,35 +141,116 @@ class TestDetectContinuationBreakout:
 
 class TestQualifyContinuationCandidate:
     def _tight_stop_df(self) -> pd.DataFrame:
-        # Last bar: close=100.7, range=2.0 (>= 0.75×ATR14=0.75), close_location
-        # = (100.7-99.2)/(101.2-99.2) = 0.75 — clears the R5 momentum-conviction
-        # floor while the breakout level (100.55) still leaves the stop too tight.
+        # Valid OHLC. Last bar: close=100.7, range=2.0 (>= 0.75×ATR14=0.75),
+        # close_location = (100.7-99.2)/(101.2-99.2) = 0.75 — clears the R5
+        # momentum-conviction floor while the strictly-prior breakout level
+        # (100.5, indices 3-7) still leaves the stop too tight.
         return _ohlcv(
             closes=[100, 100.2, 100.4, 100.2, 100.1, 100.2, 100.3, 100.4, 100.6, 100.7],
-            highs=[100.3, 100.5, 100.6, 100.4, 100.3, 100.4, 100.5, 100.5, 100.55, 101.2],
-            lows=[99.8, 100.0, 100.2, 100.0, 99.9, 100.0, 100.1, 100.2, 100.55, 99.2],
+            highs=[100.3, 100.5, 100.6, 100.4, 100.3, 100.4, 100.5, 100.5, 100.7, 101.2],
+            lows=[99.8, 100.0, 100.2, 100.0, 99.9, 100.0, 100.1, 100.2, 100.4, 99.2],
         )
 
     def _breakout_df(self, entry: float = 100.0, atr: float = 2.0) -> pd.DataFrame:
-        """Build OHLCV satisfying all continuation conditions.
+        """Build valid-OHLC bars satisfying all continuation conditions.
 
-        Lookback window (N=5) max high = entry - 2.  Current and prev close
-        are both above that level.  Last bar range = 2*atr >= 0.75*atr, and
+        Strictly-prior lookback window (PRD-259: N=5 bars ending before the
+        hold candle, indices 3-7) max high = entry - 2. The hold candle
+        (index 8) and current bar (index 9) both close above that level with
+        High >= Close on every bar. Last bar range = 2*atr >= 0.75*atr, and
         close sits at the top of that range (close_location = 0.75) to clear
-        the R5 momentum-conviction floor.
+        the R5 momentum-conviction floor. Risk = (entry+1) - (entry-2) = 3.0
+        = 1.5*atr at the default atr=2.0 → RR exactly 2.0.
         """
         base = entry - 3.0   # consolidation level
-        # 10 bars: indices 0-3 are history, 4-8 are the lookback, 9 is current
+        # 10 bars: indices 0-2 are history, 3-7 are the lookback, 8 is the
+        # hold candle, 9 is current
         closes = [base] * 8 + [entry, entry + 1.0]
-        # Lookback highs (indices 4-8): all at base+1 < entry
-        highs = [base + 0.5] * 8 + [entry + atr, entry + 1.0 + 0.25 * (2 * atr)]
-        # Override indices 4-8 to be clearly below entry
-        for i in range(4, 9):
+        highs = [base + 0.5] * 8 + [entry + 0.5, entry + 1.0 + 0.25 * (2 * atr)]
+        # Lookback (indices 3-7): all highs at base+1 < entry
+        for i in range(3, 8):
             highs[i] = base + 1.0
         lows = [base - 0.5] * 8 + [entry - atr, entry + 1.0 - 0.75 * (2 * atr)]
         # At current bar (index 9): range = 2*atr >= 0.75*atr; close_location
         # = (close-low)/(high-low) = 0.75.
         return _ohlcv(closes, highs, lows)
+
+    def test_fixtures_are_valid_ohlc_prd259(self):
+        # R2 backstop: every HOLD-relevant fixture in this file stays
+        # physically possible (High >= max(Open, Close), Low <= min(Open,
+        # Close)) — the pre-PRD-259 fixtures passed HOLD only via
+        # impossible bars, so validity is asserted, not assumed.
+        frames = [
+            self._breakout_df(),
+            self._tight_stop_df(),
+            TestQualifyAllContinuationPath()._make_ohlcv(100.0, 2.0),
+        ]
+        for df in frames:
+            ok = ((df["High"] >= df[["Open", "Close"]].max(axis=1))
+                  & (df["Low"] <= df[["Open", "Close"]].min(axis=1))).all()
+            assert bool(ok), f"invalid OHLC bar in fixture:\n{df}"
+
+    def test_valid_ohlc_sequence_clears_hold_gate_prd259(self):
+        # PRD-259 R1 proving test: every bar is a VALID OHLC bar
+        # (High >= max(Open, Close), Low <= min(Open, Close)). Pre-PRD-259
+        # the lookback window included the hold candle itself, so the OHLC
+        # invariant High >= Close made NO_HOLD_CONFIRMATION certain for any
+        # valid input — this test fails there by construction.
+        # Corrected window = indices 3-7, max high = 101. Hold candle
+        # (index 8) closes 102 above it with High 102.5; today (index 9)
+        # closes 104: risk = 104 - 101 = 3.0 = 1.5×ATR14 → RR exactly 2.0.
+        closes = [96, 97, 98, 98, 99, 100, 99, 98, 102, 104]
+        highs = [97, 98, 99, 99, 100, 101, 100, 99, 102.5, 105]
+        lows = [95, 96, 97, 97, 98, 99, 98, 97, 100.5, 101]
+        df = _ohlcv(closes, highs, lows)
+        assert bool(((df["High"] >= df[["Open", "Close"]].max(axis=1))
+                     & (df["Low"] <= df[["Open", "Close"]].min(axis=1))).all())
+        result = _qualify_continuation_candidate(
+            "TEST", df, _sr(TREND), _expansion_regime(), _dm(2.0, entry=104.0)
+        )
+        assert result.qualified is True
+        assert result.rejection_reason is None
+        assert result.entry_mode == ENTRY_MODE_CONTINUATION
+
+    def test_intermediate_hold_dip_rejects_at_h2_prd259_r7(self, monkeypatch):
+        # PRD-259 R7 red test: with CONTINUATION_HOLD_CANDLES=2, EVERY
+        # completed hold candle must close above the breakout level. Window
+        # (10 bars, h=2) = indices 2-6, max high = 101. Oldest hold (index
+        # 7) closes 102 above it; the INTERMEDIATE hold (index 8) dips to
+        # 100.5 below it. Pre-R7 the gate checked only the oldest hold, so
+        # this sequence qualified; it must reject NO_HOLD_CONFIRMATION.
+        monkeypatch.setattr("cuttingboard.qualification.config.CONTINUATION_HOLD_CANDLES", 2)
+        closes = [96, 97, 98, 99, 100, 99, 98, 102, 100.5, 104]
+        highs = [97, 98, 99, 100, 101, 100, 99, 102.5, 101, 105]
+        lows = [95, 96, 97, 98, 99, 98, 97, 100.5, 100, 101]
+        df = _ohlcv(closes, highs, lows)
+        result = _qualify_continuation_candidate(
+            "TEST", df, _sr(TREND), _expansion_regime(), _dm(2.0, entry=104.0)
+        )
+        assert result.qualified is False
+        assert result.rejection_reason == "NO_HOLD_CONFIRMATION"
+
+    def test_all_holds_above_level_qualify_at_h2_prd259_r7(self, monkeypatch):
+        # Companion positive case: both completed hold candles close above
+        # the strictly-prior level (101) -> qualifies at h=2.
+        monkeypatch.setattr("cuttingboard.qualification.config.CONTINUATION_HOLD_CANDLES", 2)
+        closes = [96, 97, 98, 99, 100, 99, 98, 102, 102.5, 104]
+        highs = [97, 98, 99, 100, 101, 100, 99, 102.5, 103, 105]
+        lows = [95, 96, 97, 98, 99, 98, 97, 100.5, 101.5, 101]
+        df = _ohlcv(closes, highs, lows)
+        result = _qualify_continuation_candidate(
+            "TEST", df, _sr(TREND), _expansion_regime(), _dm(2.0, entry=104.0)
+        )
+        assert result.qualified is True
+
+    def test_minimum_length_boundary_detects_breakout_prd259(self):
+        # Exactly n + 1 + hold_candles bars (7 at h=1): the window is the
+        # first 5 bars, the hold candle and current bar sit outside it.
+        closes = [96, 97, 98, 97, 96, 102, 104]
+        highs = [97, 98, 99, 98, 97, 102.5, 105]
+        lows = [95, 96, 97, 96, 95, 100.5, 101]
+        df = _ohlcv(closes, highs, lows)
+        assert detect_continuation_breakout(df) == pytest.approx(99.0)
 
     def test_continuation_candidate_qualifies(self):
         entry = 100.0
@@ -268,19 +350,67 @@ class TestQualifyAllContinuationPath:
         }
 
     def _make_ohlcv(self, entry: float, atr: float) -> pd.DataFrame:
-        # lookback = df.iloc[-6:-1] = indices 4-8; all highs <= base+1 < entry
-        # prev close (index 8) = entry (above breakout level)
-        # current close (index 9) = entry + 1 (above breakout level)
-        # current bar range = 2*atr >= 0.75*atr
+        # PRD-259 strictly-prior lookback = indices 3-7; all window highs
+        # = base+1 < entry. Valid OHLC on every bar (High >= Close): the
+        # hold candle (index 8) closes at entry with High = entry + 0.5,
+        # OUTSIDE the window; current close (index 9) = entry + 1.
+        # Current bar range = 2*atr >= 0.75*atr, close_location = 0.75.
         base = entry - 3.0
-        closes = [base] * 7 + [entry, entry, entry + 1.0]
+        closes = [base] * 8 + [entry, entry + 1.0]
         highs = [base + 0.5] * 10
-        for i in range(3, 9):          # lookback highs all = base+1 < entry
+        for i in range(3, 8):          # lookback highs all = base+1 < entry
             highs[i] = base + 1.0
+        highs[8] = entry + 0.5         # hold candle high (valid, > close)
         highs[-1] = entry + atr        # current bar high
         lows = [base - 0.5] * 10
         lows[-1] = entry - atr         # current bar low → range = 2*atr
         return _ohlcv(closes, highs, lows)
+
+    def test_promoted_candidate_carries_gate_geometry_prd260(self):
+        # PRD-260 R1/R2/R4 proving test (red pre-change): a direct-rejected
+        # symbol that the continuation path accepts is TOTALLY promoted —
+        # the summary carries a synthesized TradeCandidate with the gate's
+        # own geometry, and the direct rejection is rewritten in place.
+        entry = 100.0
+        atr = 2.0
+        structure_results = self._make_sr_dict(["NVDA"])
+        derived_metrics = {"NVDA": _dm(atr, entry=entry)}
+        ohlcv = {"NVDA": self._make_ohlcv(entry, atr)}
+        # SHORT direct candidate under EXPANSION (LONG) -> direction-mismatch
+        # rejection recorded in excluded before the continuation pass runs.
+        bad_direct = TradeCandidate(
+            symbol="NVDA", direction="SHORT", entry_price=entry,
+            stop_price=entry + atr, target_price=entry - 2 * atr,
+            spread_width=0.75,
+        )
+        summary = qualify_all(
+            regime=_expansion_regime(),
+            structure_results=structure_results,
+            candidates={"NVDA": bad_direct},
+            derived_metrics=derived_metrics,
+            ohlcv=ohlcv,
+        )
+        cont = [
+            r for r in summary.qualified_trades
+            if r.entry_mode == ENTRY_MODE_CONTINUATION
+        ]
+        assert len(cont) == 1
+        promoted = summary.continuation_candidates["NVDA"]
+        # Gate geometry: entry = accepted close (entry+1), stop = the
+        # strictly-prior window max high (entry-2), target = the synthetic
+        # 3xATR ceiling above the accepted close.
+        assert promoted.direction == "LONG"
+        assert promoted.entry_price == pytest.approx(entry + 1.0)
+        assert promoted.stop_price == pytest.approx(entry - 2.0)
+        assert promoted.target_price == pytest.approx((entry + 1.0) + 3.0 * atr)
+        # R2: implied R:R equals the gate's qualifying ratio.
+        risk = promoted.entry_price - promoted.stop_price
+        assert (promoted.target_price - promoted.entry_price) / risk == pytest.approx(
+            (3.0 * atr) / risk
+        )
+        # R4: the direct rejection survives, rewritten — both facts recorded.
+        assert summary.excluded["NVDA"].startswith("DIRECT rejected (")
+        assert summary.excluded["NVDA"].endswith("promoted via CONTINUATION")
 
     def test_continuation_qualified_when_no_pullback_candidate(self):
         regime = _expansion_regime()

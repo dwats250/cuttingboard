@@ -936,3 +936,33 @@ class TestSendTelegram:
                 with patch("requests.post", side_effect=ConnectionError("timeout")):
                     result = send_telegram("NO TRADE", "report")
         assert result is False
+
+
+class TestContinuationSynthesizedCandidateSizing:
+    def test_synthesized_candidate_is_sizing_neutral_prd260(self):
+        # PRD-260 R6: the promoted (synthesized) continuation TradeCandidate
+        # must not change sizing at the options layer — final contracts and
+        # dollar_risk are identical to the candidate=None shape PRD-256/259
+        # validated, for BOTH strategy resolutions. Strategy-aware max loss
+        # is computed fresh from the result's own strategy/strike bucket,
+        # candidate-independent.
+        promoted = TradeCandidate(
+            symbol="SPY", direction="LONG",
+            entry_price=104.0, stop_price=101.0, target_price=110.0,
+            spread_width=0.5,  # the path's own ATR-based debit estimate
+            has_earnings_soon=None, max_loss=None,
+        )
+        for iv in (HIGH_IV, NORMAL_IV):
+            results = [_qual_result(
+                "SPY", direction="LONG", max_contracts=2, dollar_risk=150.0,
+                entry_mode=ENTRY_MODE_CONTINUATION,
+            )]
+            sr = {"SPY": _structure("SPY", TREND, iv)}
+            dm = {"SPY": _dm("SPY")}
+            bare = build_option_setups(results, sr, dm, candidates=None)[0]
+            with_promoted = build_option_setups(
+                results, sr, dm, candidates={"SPY": promoted}
+            )[0]
+            assert with_promoted.strategy == bare.strategy
+            assert with_promoted.max_contracts == bare.max_contracts
+            assert with_promoted.dollar_risk == pytest.approx(bare.dollar_risk)

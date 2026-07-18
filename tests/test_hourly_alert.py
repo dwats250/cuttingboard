@@ -23,6 +23,7 @@ from cuttingboard.runtime import (
     _hourly_rr,
 )
 from cuttingboard.sector_router import SectorRouterState
+from cuttingboard.structure import StructureResult
 from cuttingboard.validation import ValidationSummary
 
 
@@ -992,6 +993,81 @@ def test_hourly_sends_exactly_once_stay_flat(tmp_path, monkeypatch):
         result = _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
     mock_send.assert_called_once()
     assert result["status"] == SUMMARY_STATUS_SUCCESS
+
+
+def test_hourly_candidate_line_uses_promoted_geometry_prd260_r7(tmp_path, monkeypatch):
+    # PRD-260 R7 (red pre-change): the live hourly path passed the ORIGINAL,
+    # un-merged candidates dict straight to _build_hourly_candidate_lines,
+    # so a promoted continuation candidate's R:R was computed from the
+    # failed direct candidate's stale ATR geometry (stop 99.2 -> 2.0:1)
+    # instead of the synthesized breakout-level geometry the gate actually
+    # qualified on (stop 98.9 -> 2.2:1). Same defect class R1 fixed for the
+    # daily pipeline's merge at runtime/__init__.py:997-1004, just a second
+    # call site R1 didn't cover.
+    symbol = "SPY"
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
+
+    direct = TradeCandidate(
+        symbol=symbol, direction="LONG", entry_price=100.0,
+        stop_price=99.2, target_price=101.6, spread_width=0.5,
+    )
+    promoted = TradeCandidate(
+        symbol=symbol, direction="LONG", entry_price=100.0,
+        stop_price=98.9, target_price=102.4, spread_width=0.5,
+    )
+    qual_summary = QualificationSummary(
+        regime_passed=True,
+        regime_short_circuited=False,
+        regime_failure_reason=None,
+        qualified_trades=[
+            QualificationResult(
+                symbol=symbol, qualified=True, watchlist=False,
+                direction="LONG", gates_passed=["VIX"], gates_failed=[],
+                hard_failure=None, watchlist_reason=None,
+                max_contracts=2, dollar_risk=150.0,
+                entry_mode="CONTINUATION",
+            )
+        ],
+        watchlist=[],
+        excluded={},
+        symbols_evaluated=1,
+        symbols_qualified=1,
+        symbols_watchlist=0,
+        symbols_excluded=0,
+        continuation_candidates={symbol: promoted},
+    )
+    structure = {
+        symbol: StructureResult(
+            symbol=symbol, structure="TREND", iv_environment="NORMAL_IV",
+            is_tradeable=True, disqualification_reason=None,
+        )
+    }
+
+    with (
+        patch("cuttingboard.runtime.fetch_all", return_value={}),
+        patch("cuttingboard.runtime.normalize_all", return_value={}),
+        patch("cuttingboard.runtime.extract_fetch_failures", return_value={}),
+        patch("cuttingboard.runtime.validate_quotes", return_value=_validation()),
+        patch("cuttingboard.runtime.compute_regime", return_value=_regime()),
+        patch("cuttingboard.runtime.compute_all_derived", return_value={symbol: object()}),
+        patch("cuttingboard.runtime.resolve_sector_router", return_value=_router_state()),
+        patch("cuttingboard.runtime.classify_all_structure", return_value=structure),
+        patch("cuttingboard.runtime.generate_candidates", return_value={symbol: direct}),
+        patch(
+            "cuttingboard.runtime._apply_intraday_short_permission",
+            side_effect=lambda candidates, quotes, now_et: (candidates, {}),
+        ),
+        patch("cuttingboard.runtime.fetch_ohlcv", return_value=None),
+        patch("cuttingboard.runtime.qualify_all", return_value=qual_summary),
+        patch("cuttingboard.runtime._log_continuation_audit", return_value=None),
+        patch("cuttingboard.runtime.send_notification", return_value=True),
+    ):
+        _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    hourly_run = _read_hourly_run(tmp_path)
+    lines = hourly_run["candidate_lines"]
+    assert any("2.2:1" in line for line in lines), lines
+    assert not any("2.0:1" in line for line in lines), lines
 
 
 def test_hourly_sends_exactly_once_system_halted(tmp_path, monkeypatch):

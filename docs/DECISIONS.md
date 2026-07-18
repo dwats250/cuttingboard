@@ -16,6 +16,123 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-17 — PRD-260 R7: hourly-path gap found by Sol, amended not ticketed (ruled: Dustin)
+
+The commissioned gpt-5.6-sol consumer sweep (Q5, run against e26b589 --
+PRD-260's actual pushed head, not a superseded commit) returned GAP
+FOUND: the live hourly path (`runtime/__init__.py`'s `_HOURLY_MODES`
+branch) never applied R1's candidates-merge, so a promoted continuation
+symbol's hourly R:R was computed from the failed direct candidate's
+stale ATR geometry and persisted into `latest_hourly_run.json`. Real,
+repro-confirmed, not a false positive.
+
+Ruling: R7 AMENDMENT, not a ticketed follow-up. By the same standard
+PRD-260 itself exists to enforce ("the gate goes live once, correctly,
+or stays dead"), the pair cannot merge with a known-uncovered path that
+persists wrong geometry to disk -- "not displayed in Telegram today" is
+not the same as inert. The fix is the identical merge R1 already applies
+at the daily-pipeline call site, mirrored at the hourly one -- confirmed
+mechanical before implementing, not assumed.
+
+Scope held to exactly the one gap Sol's 18-consumer sweep found; no
+speculative hunt for a third path. Both review legs (fresh-context
+Claude, fresh gpt-5.6-sol re-sweep pinned to the new head) re-run
+against the amended head before this can be considered done. This
+amendment requires Dustin's explicit acknowledgment at merge time --
+not something a routine merge queue can wave through silently.
+
+---
+
+## 2026-07-15 — PRD-260 Gate A: continuation decision geometry, five rulings (ruled: Dustin)
+
+Q1a: synthesize a continuation `TradeCandidate` at acceptance — total
+promotion, the failed direct candidate is replaced ("the direct
+candidate lost, it should be gone"); closes the consumer-sweep class by
+construction. Q2a: target = entry + 3x ATR14, labeled a ceiling
+artifact ON THE CARD, not only in docs. Q3a: rewrite the excluded entry
+on promotion — preserve the direct rejection for audit, kill the
+contradiction in text; the PRD-158 count-sweep cost is accepted. Q4:
+fail-loud guard + red test in the runtime decision loop (a future
+silent KeyError becomes a named failure). Q5: second model COMMISSIONED
+(gpt-5.6-sol, consumer-sweep scope); lands as commits on PR #148 (pair
+shape a) so atomicity is structural, not conventional — R7 ratification
+and the geometry pair ride one squash body. Sol findings E and F ruled
+non-blocking, stay ticketed. PRD-260 opened at Stage 0 on the #148
+branch, red-first, full HIGH-RISK ceremony.
+
+## 2026-07-15 — PRD-259 merge rulings: R7 ratified; gate ships only paired with the geometry fix (ruled: Dustin)
+
+Three rulings on PR #148, made from the full REVIEW report:
+
+1. **R7 RATIFIED, explicitly and on the record.** The constraint R7
+   relaxed was the authoring session's artifact, not the Gate A ruling;
+   the strictly-prior window direction is intact; the multi-candle HOLD
+   fix is real and a proven no-op at h=1. The acknowledgment ALSO goes
+   in the merge commit body so ratification is distinguishable from not
+   having noticed.
+2. **Geometry posture: HOLD-AND-PAIR.** The gate does not go live while
+   a [CONTINUATION] decision renders the rejected direct candidate's
+   ATR stop instead of the breakout stop the gate validated — a correct
+   max-loss dollar with a wrong stop level is worse than a dead gate,
+   because it looks trustworthy. The first-fire sidecar's Findings B
+   (thread the gate's qualified entry/stop/target into the continuation
+   result so TradeDecision renders the validated level) and C (clean up
+   qual.excluded on continuation promotion) are PROMOTED to a full
+   blocking PRD. PR #148 holds unmerged until the two land as a pair —
+   the gate goes live once, correctly, or stays dead. No
+   merge-now-and-fast-follow.
+3. **Bot threads (PRD-228):** threads 1 (P1 geometry) and 2 (P2 stale
+   exclusion) are NOT dismissed — re-tagged as the blocking dependency
+   above, left open until the pair lands. Thread 3 (PRD-258 registry)
+   ACTIONED, stale at head (fixed by merge commit c07d2c2), closed.
+
+## 2026-07-14 — PRD-259 R7: commissioned review drove a mid-PRD amendment
+
+The commissioned second-model disposition
+(`docs/prd_history/PRD-259.review.codex.md`, gpt-5.6-sol via codex-cli
+0.144.1, Sol/Luna split, spoiler-scrubbed git-free snapshot) returned
+ACCEPT WITH CHANGES on the window fix: the HOLD gate validated only the
+OLDEST hold candle for `CONTINUATION_HOLD_CANDLES > 1` — an intervening
+close below the breakout level still passed. Amended PRD-259 in place
+(R7; CHANGE SURFACE relaxed to admit the HOLD-check lines; dated notes)
+per the amend-vs-spawn bar: same gate, same ruled semantic, ~4 LOC,
+behavior-identical at the configured h=1 (proven by slice equivalence
+AND a full replay re-run reproducing 21/32/0/0 exactly). Red-first at
+h=2. Codex pass-4 remediation verification: ACCEPT. The amendment is
+flagged for Dustin's explicit ruling at the merge gate since it relaxed
+the PRD's own original no-touch constraint. The review also refuted one
+Stage-0 finding (the runtime KeyError is latent, not reachable —
+`ohlcv` is candidate-scoped) and added findings C-F to the first-fire
+sidecar; the sweep's answer to the commissioned question: no blanket
+never-accepted assumption, but two decisive implicit ones — decision
+assembly assumes every accepted result has a candidate, and every
+geometry consumer assumes the TradeDecision carries the geometry that
+qualified. The second is false on the first real acceptance
+(`docs/prd_history/PRD-259.first-fire-consumers.proposal.md`).
+
+## 2026-07-14 — PRD-259 Gate A: HOLD-confirmation gate promoted, strictly-prior window ruled
+
+Dustin promoted `docs/prd_history/PRD-256.hold-confirmation-gate.
+proposal.md` to PRD-259 (EXECUTION / HIGH-RISK) and ruled the fix
+direction, resolving the sidecar's open design question: compute
+`breakout_level` from bars STRICTLY PRIOR to the bar under test —
+option 1 of the sidecar's three (shift the lookback back by
+`hold_candles`), so one window sits before both bars the gate tests.
+The commissioning charge is the Gate A record; the PR is authorized on
+green. Explicit risk posture recorded with the ruling: the gate has
+never fired, its acceptance behavior is unobserved, and making it fire
+is strictly risk-increasing — so PRD-259 carries a stop-and-report
+clause (R4): if the real-data characterization shows implausible
+acceptance, the fix is reported, not shipped. Second-model disposition:
+commissioned (Codex), scoped at the consumer sweep — specifically
+whether anything downstream assumes continuation candidates are never
+accepted.
+
+Stage-0 note: the downstream-consumer audit surfaced two first-fire
+consumer defects (runtime `candidates[symbol]` KeyError; TradeDecision
+geometry substitution), ticketed as
+`docs/prd_history/PRD-259.first-fire-consumers.proposal.md` — out of
+PRD-259's build scope, awaiting their own Gate A.
 ## 2026-07-14 — PRD-258: the permission layer is an accident-prevention layer, not a security boundary (ruled: Dustin)
 
 Ruling, made explicit so it cannot be mistaken for something stronger

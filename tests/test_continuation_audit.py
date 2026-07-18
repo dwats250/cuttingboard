@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 import pandas as pd
 
 from cuttingboard.derived import DerivedMetrics
-from cuttingboard.output import OUTCOME_NO_TRADE, render_report
+from cuttingboard.options import build_option_setups
+from cuttingboard.output import OUTCOME_NO_TRADE, OUTCOME_TRADE, render_report
 from cuttingboard.qualification import (
     CONTINUATION_REJECTION_REASONS,
     _qualify_continuation_candidate,
@@ -79,14 +80,17 @@ def _frame(
 
 
 def _qualified_df() -> pd.DataFrame:
-    # Last bar: close=104, range=4.0 (>= 0.75×ATR14=1.5), close_location =
-    # (104-101)/(105-101) = 0.75 (clears R5). Lookback high raised to 101
-    # (index 8) so risk=104-101=3.0 and reward=ATR14×3.0=6.0 gives RR=2.0,
-    # clearing the post-R1 EXPANSION_RR_RATIO=2.0 minimum.
+    # All bars are valid OHLC (High >= Close, Low <= Close) — pre-PRD-259
+    # this fixture could only pass HOLD via an impossible bar (index 8
+    # High < Close). Strictly-prior lookback (PRD-259) = indices 3-7,
+    # max high = 101. Hold candle (index 8) closes 102 above it; today
+    # (index 9) closes 104: range = 4.0 (>= 0.75×ATR14=1.5),
+    # close_location = (104-101)/(105-101) = 0.75 (clears R5),
+    # risk = 104-101 = 3.0 vs reward = ATR14×3.0 = 6.0 → RR = 2.0.
     return _frame(
-        closes=[95, 96, 97, 96, 95, 96, 97, 96, 102, 104],
-        highs=[96, 97, 98, 97, 96, 97, 98, 97, 101, 105],
-        lows=[94, 95, 96, 95, 94, 95, 96, 95, 100, 101],
+        closes=[96, 97, 98, 98, 99, 100, 99, 98, 102, 104],
+        highs=[97, 98, 99, 99, 100, 101, 100, 99, 102.5, 105],
+        lows=[95, 96, 97, 97, 98, 99, 98, 97, 100.5, 101],
     )
 
 
@@ -107,29 +111,35 @@ def _no_hold_df() -> pd.DataFrame:
 
 
 def _low_momentum_df() -> pd.DataFrame:
+    # Valid OHLC; passes BREAKOUT and HOLD against the strictly-prior
+    # window (indices 3-7, max high 98), then fails momentum: last bar
+    # range = 104.4-103.8 = 0.6 < 0.75×ATR14 = 1.5.
     return _frame(
         closes=[95, 96, 97, 96, 95, 96, 97, 96, 102, 104],
-        highs=[96, 97, 98, 97, 96, 97, 98, 97, 100, 104.4],
+        highs=[96, 97, 98, 97, 96, 97, 98, 97, 102.5, 104.4],
         lows=[94, 95, 96, 95, 94, 95, 96, 95, 100, 103.8],
     )
 
 
 def _rr_fail_df() -> pd.DataFrame:
-    # Last bar close_location = (105-102)/(106-102) = 0.75 (clears R5);
-    # risk=105-100=5.0, reward=ATR14×3.0=6.0 → RR=1.2, below the 2.0 minimum.
+    # Valid OHLC; last bar close_location = (105-102)/(106-102) = 0.75
+    # (clears R5). Strictly-prior window (indices 3-7) max high = 99 →
+    # risk = 105-99 = 6.0 vs reward = ATR14×3.0 = 6.0 → RR = 1.0, below
+    # the 2.0 minimum.
     return _frame(
         closes=[96, 97, 98, 97, 96, 97, 98, 97, 104, 105],
-        highs=[97, 98, 99, 98, 97, 98, 99, 98, 100, 106],
+        highs=[97, 98, 99, 98, 97, 98, 99, 98, 104.5, 106],
         lows=[95, 96, 97, 96, 95, 96, 97, 96, 103, 102],
     )
 
 
 def _tight_stop_df() -> pd.DataFrame:
-    # Last bar close_location = (100.7-99.2)/(101.2-99.2) = 0.75 (clears R5);
-    # breakout level (100.55) still leaves the stop too tight.
+    # Valid OHLC; last bar close_location = (100.7-99.2)/(101.2-99.2) = 0.75
+    # (clears R5); strictly-prior breakout level (100.5, indices 3-7) still
+    # leaves the stop too tight (risk 0.2 < 1% of entry).
     return _frame(
         closes=[100, 100.2, 100.4, 100.2, 100.1, 100.2, 100.3, 100.4, 100.6, 100.7],
-        highs=[100.3, 100.5, 100.6, 100.4, 100.3, 100.4, 100.5, 100.5, 100.55, 101.2],
+        highs=[100.3, 100.5, 100.6, 100.4, 100.3, 100.4, 100.5, 100.5, 100.7, 101.2],
         lows=[99.8, 100.0, 100.2, 100.0, 99.9, 100.0, 100.1, 100.2, 100.55, 99.2],
     )
 
@@ -146,6 +156,20 @@ def _validation_summary() -> ValidationSummary:
         symbols_validated=0,
         symbols_failed=0,
     )
+
+
+def test_fixtures_are_valid_ohlc_prd259():
+    # R2 backstop: every continuation fixture in this file stays physically
+    # possible (High >= max(Open, Close), Low <= min(Open, Close)) — the
+    # pre-PRD-259 fixtures passed HOLD only via impossible bars.
+    frames = [
+        _qualified_df(), _no_breakout_df(), _no_hold_df(),
+        _low_momentum_df(), _rr_fail_df(), _tight_stop_df(),
+    ]
+    for df in frames:
+        ok = ((df["High"] >= df[["Open", "Close"]].max(axis=1))
+              & (df["Low"] <= df[["Open", "Close"]].min(axis=1))).all()
+        assert bool(ok), f"invalid OHLC bar in fixture:\n{df}"
 
 
 def test_continuation_rejection_taxonomy_is_complete():
@@ -292,3 +316,40 @@ def test_runtime_logs_continuation_audit(caplog, monkeypatch):
     assert "total_candidates=1" in text
     assert "accepted=0" in text
     assert "NO_BREAKOUT=1" in text
+
+
+def test_render_report_labels_continuation_target_ceiling_prd260(monkeypatch):
+    # PRD-260 R3: a rendered card for a continuation setup carries the
+    # synthetic-ceiling target tag, sourced from the result's entry_mode.
+    monkeypatch.setattr("cuttingboard.qualification._is_late_session", lambda now_et=None: False)
+
+    summary = qualify_all(
+        regime=_expansion_regime(),
+        structure_results={"PASS": _sr("PASS")},
+        candidates=None,
+        derived_metrics={"PASS": _dm("PASS")},
+        ohlcv={"PASS": _qualified_df()},
+    )
+    assert summary.continuation_audit["accepted"] == 1
+    # PRD-260 R4 negative clause (review RECOMMENDED EDIT 2): a symbol that
+    # was never direct-rejected gains NO excluded entry at promotion.
+    assert "PASS" not in summary.excluded
+    setups = build_option_setups(
+        summary.qualified_trades,
+        {"PASS": _sr("PASS")},
+        {"PASS": _dm("PASS")},
+    )
+    assert len(setups) == 1
+
+    report = render_report(
+        date_str="2026-07-15",
+        run_at_utc=datetime(2026, 7, 15, 14, 30, tzinfo=timezone.utc),
+        regime=_expansion_regime(),
+        validation_summary=_validation_summary(),
+        qualification_summary=summary,
+        option_setups=setups,
+        outcome=OUTCOME_TRADE,
+        watch_summary=None,
+    )
+
+    assert "[CONTINUATION | target=3xATR ceiling]" in report
