@@ -1241,7 +1241,7 @@
     },
     {
       "number": 262,
-      "title": "Missing/NaN pct_change fails loud (F-02): no fabricated 0.0 in ingestion or normalization",
+      "title": "Missing/NaN pct_change fails loud (F-02): no fabricated 0.0 in ingestion, normalization, or the EXPANSION breadth denominator",
       "status": "IN PROGRESS",
       "commit": null
     }

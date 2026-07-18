@@ -68,7 +68,11 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
   `docs/prd_history/PRD-255.md` NOTES section) -> the `prd_close.sh` slice
   -> the rest -> F-02. The connector-gap item sits AHEAD of PRD-256 in
   this ordering — it is not one of the parked-behind-PRD-256 follow-on
-  items tracked in `PRD-255.md`.
+  items tracked in `PRD-255.md`. **Superseded 2026-07-18 for the F-02
+  tail:** Dustin dispatched F-02 directly; it is in flight as PRD-262
+  (Gate A approved + ruling (a) same day, branch
+  `worktree-prd-262-f02-pct-change-fail-loud`). The remaining queue
+  items keep their relative order after it.
 - **Connector-gap investigation (queued, ahead of PRD-256, no PRD number
   yet):** the first sweep pass (comments + reviews + inline comments only)
   found 61/138 merged PRs with no `chatgpt-codex-connector` comment/review,
