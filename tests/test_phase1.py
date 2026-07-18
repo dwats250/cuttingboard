@@ -336,7 +336,7 @@ def _ticker_stub(last_price=540.0, previous_close=538.0, last_volume=1_000_000.0
 
 
 class TestPrd262FailLoudPctChange:
-    @pytest.mark.parametrize("prev_close", [None, float("nan"), 0.0, -1.0])
+    @pytest.mark.parametrize("prev_close", [None, float("nan"), 0.0, -1.0, float("inf")])
     def test_missing_previous_close_raises(self, prev_close):
         with patch(
             "cuttingboard.ingestion.yf.Ticker",

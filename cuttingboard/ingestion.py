@@ -303,7 +303,7 @@ def _yfinance_quote_raw(symbol: str) -> tuple[float, float, Optional[float]]:
     prev_close = info.previous_close
     if (
         prev_close is None
-        or math.isnan(float(prev_close))
+        or not math.isfinite(float(prev_close))
         or float(prev_close) <= 0
     ):
         # PRD-262: a fabricated pct_change=0.0 reads as market-unchanged and
