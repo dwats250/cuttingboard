@@ -16,6 +16,55 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-18 — PRD-262 (F-02): fixed-denominator ruling, characterization-first, and the sol commission (ruled: Dustin)
+
+Three rulings in one arc, recorded together because each reshaped the next.
+
+**1. Characterize before you implement.** Gate A approved F-02 as scoped
+but mandated a pre-implementation characterization of the
+breadth-denominator effect (a dropout shrinking advancing/total). It hit
+the operator's own STOP threshold immediately: ONE dark non-halt symbol
+opens EXPANSION on 6 days/yr (+20%) on days full data says no; unbounded
+under heavy dropout. The scope expansion that followed was found only
+because the characterization was mandated — the consumer sweep has now
+produced the top finding on six straight reviews.
+
+**2. Ruling (a): the fixed denominator is a third twin, not a quorum
+floor.** Grounds (verbatim intent): a ratio gate with a shrinking
+denominator converts "vote against" into "abstain," and abstention is
+directional — it always helps whoever is winning among survivors. Don't
+fabricate a number from missing input; don't fabricate a ratio from it
+either. Options (b) (block on the quorum floor) and (c) (accept the
+loosening) rejected: a correctness fix doesn't block on a policy
+decision, and unmeasurable frequency plus unbounded degradation is not
+an acceptable trade for 3 LOC. Required proof: behavior-neutral replay
+through the real detect_expansion_regime — 30 == 30 EXPANSION days
+pre/post over 246 complete cached days.
+
+**3. Second-model disposition: COMMISSION, no waiver — precisely because
+Leg-1 found nothing.** gpt-5.6-sol, one question (absence-vs-zero
+behavior of every pct_change/valid_quotes consumer), git-free snapshot
+pinned to 45f15d2 with answer-bearing files excluded, banner provenance,
+MCP audit clean. VERDICT yes: artifact
+`docs/prd_history/PRD-262.review.gpt-5.6-sol.md` (materially drove the
+queue — hence this entry). Dispositions: N5 (+inf guard) ACTIONED
+in-PR; F1 (vote-skip confidence concentration, verified empirically:
+absent IWM flips STAY_FLAT conf 0.500 to CONTROLLED_LONG 0.571) becomes
+evidence exhibit 2 for the quorum-floor PRD, which rides next; F2
+(normalization-only dropout invisible in the validation ledger,
+narrowed to fixture-only inputs by N5) becomes a recommended
+validation-ledger follow-up; F3 confirms queued F-07 and argues its
+pull-forward; F4 folds into the queued consumer micro and F-01 notes.
+
+Also parked (operator ruling, same date): the registry validator's ~23
+"unresolvable commit" warnings (PRD-255 parking item 10) — noted that
+CI already runs `--skip-commit-resolvability` for exactly this
+squash-merge history class, so the local-run noise is the whole cost.
+Also recorded: `prd_close.sh --next` aborts against the current
+PROJECT_STATE (the `**Next step:**` bullet moved out of its contracted
+location) — same species as parking item 7, worked around by direct
+edit at PRD-262 closeout.
+
 ## 2026-07-18 — Permission/bypass probes run against a throwaway remote or fake path, never `origin` (ruled: Dustin)
 
 Hard rule, made explicit after it was violated twice in one session:
