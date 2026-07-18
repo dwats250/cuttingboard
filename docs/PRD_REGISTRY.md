@@ -279,6 +279,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-259 | #148 | Continuation HOLD-confirmation gate: strictly-prior breakout window | COMPLETE | [PRD-259](prd_history/PRD-259.md) |
 | PRD-260 | 0dcbd8d | Continuation decision geometry: synthesize the promoted candidate | COMPLETE | [PRD-260](prd_history/PRD-260.md) |
 | PRD-261 | df5ba03 | PRD-258 follow-up: git -c/ruff --config/git worktree mutation denies (renumbered from PRD-259 - collision with PR #148's branch, ruled 2026-07-17) | COMPLETE | [PRD-261](prd_history/PRD-261.md) |
+| PRD-262 | #151 | Missing/NaN pct_change fails loud (F-02): no fabricated 0.0 in ingestion, normalization, or the breadth denominator | COMPLETE | [PRD-262](prd_history/PRD-262.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

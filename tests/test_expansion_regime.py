@@ -190,3 +190,41 @@ class TestExpansionVixSpikeBlock:
         # So expansion should be detected (VIX pct is NOT > threshold)
         result = detect_expansion_regime(quotes)
         assert result is True  # exactly at threshold passes
+
+
+# ---------------------------------------------------------------------------
+# PRD-262 (F-02): breadth denominator is the configured universe, not the
+# survivors — a symbol that failed to report counts as non-advancing.
+# ---------------------------------------------------------------------------
+
+class TestPrd262FixedDenominator:
+    def _eleven_of_sixteen(self) -> dict[str, NormalizedQuote]:
+        """11/16 advancing: breadth (0.6875) is the sole blocking leg."""
+        quotes = _expansion_quotes()
+        for sym in ("AAPL", "META", "AMZN"):  # flip three greens red
+            quotes[sym] = _q(sym, quotes[sym].price, -0.005)
+        return quotes
+
+    def test_breadth_blocked_at_eleven_of_sixteen(self):
+        # Sanity (green pre- and post-change): 11/16 < 0.70 blocks EXPANSION.
+        assert detect_expansion_regime(self._eleven_of_sixteen()) is False
+
+    def test_red_symbol_dropout_does_not_unblock_breadth(self):
+        # Removing a non-advancing non-halt symbol must not raise the ratio.
+        # Pre-change main: 11/15 = 0.733 passes and EXPANSION fires — red.
+        quotes = self._eleven_of_sixteen()
+        del quotes["USO"]
+        assert detect_expansion_regime(quotes) is False
+
+    def test_advancing_symbol_dropout_counts_as_non_advancing(self):
+        # Full fixture is 14/16. Dropping three ADVANCING symbols leaves
+        # 11 advancing; the denominator must stay the configured 16
+        # (11/16 blocks), not shrink to 13 (11/13 = 0.846 would pass).
+        quotes = _expansion_quotes()
+        for sym in ("GLD", "SLV", "GDX"):
+            del quotes[sym]
+        assert detect_expansion_regime(quotes) is False
+
+    def test_full_universe_expansion_unaffected(self):
+        # Behavior-neutral on complete data: the full fixture still fires.
+        assert detect_expansion_regime(_expansion_quotes()) is True
