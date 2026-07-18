@@ -104,13 +104,14 @@ def detect_expansion_regime(valid_quotes: dict[str, NormalizedQuote]) -> bool:
     if vix is None or vix.pct_change_decimal > config.EXPANSION_VIX_PCT_THRESHOLD:
         return False
 
-    # 3. Breadth — count tradable symbols with pct_change > 0
-    tradable = [
-        s for s in valid_quotes
-        if s not in config.NON_TRADABLE_SYMBOLS
-    ]
-    advancing = sum(1 for s in tradable if valid_quotes[s].pct_change_decimal > 0)
-    total = len(tradable)
+    # 3. Breadth — advancing over the CONFIGURED tradable universe (PRD-262):
+    # a symbol that failed to report did not advance; dividing by survivors
+    # would let dropouts raise the ratio and loosen the gate.
+    advancing = sum(
+        1 for s, q in valid_quotes.items()
+        if s not in config.NON_TRADABLE_SYMBOLS and q.pct_change_decimal > 0
+    )
+    total = sum(1 for s in config.ALL_SYMBOLS if s not in config.NON_TRADABLE_SYMBOLS)
     if total == 0 or (advancing / total) < config.EXPANSION_MIN_BREADTH:
         return False
 

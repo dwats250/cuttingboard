@@ -302,14 +302,14 @@ def _yfinance_quote_raw(symbol: str) -> tuple[float, float, Optional[float]]:
 
     prev_close = info.previous_close
     if (
-        prev_close is not None
-        and not math.isnan(float(prev_close))
-        and float(prev_close) > 0
+        prev_close is None
+        or math.isnan(float(prev_close))
+        or float(prev_close) <= 0
     ):
-        pct_change = (price - float(prev_close)) / float(prev_close)
-    else:
-        pct_change = 0.0
-        logger.debug(f"{symbol}: previous_close unavailable, pct_change defaulted to 0.0")
+        # PRD-262: a fabricated pct_change=0.0 reads as market-unchanged and
+        # silently disarms the pct-based stress guards; fail loud instead.
+        raise ValueError(f"fast_info.previous_close invalid: {prev_close!r}")
+    pct_change = (price - float(prev_close)) / float(prev_close)
 
     volume: Optional[float] = None
     try:

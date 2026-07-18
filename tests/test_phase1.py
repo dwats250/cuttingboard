@@ -5,11 +5,12 @@ Run with: pytest tests/test_phase1.py -v
 """
 
 from datetime import datetime, timezone, timedelta
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from cuttingboard import config
-from cuttingboard.ingestion import RawQuote
+from cuttingboard.ingestion import RawQuote, _try_yfinance_quote, _yfinance_quote_raw
 from cuttingboard.normalization import NormalizedQuote, normalize_quote, normalize_quotes
 from cuttingboard.validation import (
     validate_quotes,
@@ -320,3 +321,64 @@ class TestValidation:
         assert summary.symbols_attempted == 7  # 6 normalized + 1 fetch failure
         assert summary.symbols_validated == 6
         assert summary.symbols_failed == 1
+
+
+# ---------------------------------------------------------------------------
+# PRD-262 (F-02): missing/NaN pct_change fails loud — no fabricated 0.0
+# ---------------------------------------------------------------------------
+
+def _ticker_stub(last_price=540.0, previous_close=538.0, last_volume=1_000_000.0):
+    ticker = MagicMock()
+    ticker.fast_info.last_price = last_price
+    ticker.fast_info.previous_close = previous_close
+    ticker.fast_info.last_volume = last_volume
+    return ticker
+
+
+class TestPrd262FailLoudPctChange:
+    @pytest.mark.parametrize("prev_close", [None, float("nan"), 0.0, -1.0])
+    def test_missing_previous_close_raises(self, prev_close):
+        with patch(
+            "cuttingboard.ingestion.yf.Ticker",
+            return_value=_ticker_stub(previous_close=prev_close),
+        ):
+            with pytest.raises(ValueError):
+                _yfinance_quote_raw("SPY")
+
+    def test_wrapper_converts_missing_previous_close_to_fetch_failure(self):
+        with (
+            patch(
+                "cuttingboard.ingestion.yf.Ticker",
+                return_value=_ticker_stub(previous_close=None),
+            ),
+            patch("cuttingboard.ingestion.time.sleep"),
+        ):
+            quote = _try_yfinance_quote("SPY")
+        assert quote.fetch_succeeded is False
+        assert "previous_close" in (quote.failure_reason or "")
+
+    def test_nan_pct_change_raw_drops_quote(self):
+        raw = _raw_quote(symbol="SPY", pct_change_raw=float("nan"))
+        assert normalize_quote(raw) is None
+
+    def test_spy_missing_previous_close_halts_pipeline(self):
+        """Integration: HALT symbol with missing prev-close must halt, not
+        produce a calm-looking evaluation."""
+        with (
+            patch(
+                "cuttingboard.ingestion.yf.Ticker",
+                return_value=_ticker_stub(previous_close=None),
+            ),
+            patch("cuttingboard.ingestion.time.sleep"),
+        ):
+            spy_raw = _try_yfinance_quote("SPY")
+        raw = {
+            "SPY":      spy_raw,
+            "^VIX":     _raw_quote(symbol="^VIX", price=18.5),
+            "DX-Y.NYB": _raw_quote(symbol="DX-Y.NYB", price=104.0),
+            "^TNX":     _raw_quote(symbol="^TNX", price=4.3),
+            "QQQ":      _raw_quote(symbol="QQQ", price=450.0),
+        }
+        summary = validate_quotes(normalize_quotes(raw), extract_fetch_failures(raw))
+        assert summary.system_halted is True
+        assert "SPY" in summary.failed_halt_symbols

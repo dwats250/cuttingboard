@@ -105,8 +105,9 @@ def _to_decimal(pct_change_raw: float, symbol: str) -> float:
     """
     val = float(pct_change_raw)
     if math.isnan(val):
-        logger.warning(f"{symbol}: pct_change_raw is NaN — defaulting to 0.0")
-        return 0.0
+        # PRD-262: NaN must drop the quote (normalization failure), never
+        # become a fabricated market-unchanged 0.0.
+        raise ValueError(f"{symbol}: pct_change_raw is NaN")
     if abs(val) > 2.0:
         logger.warning(
             f"{symbol}: pct_change_raw={val:.4f} appears to be percentage-formatted "
