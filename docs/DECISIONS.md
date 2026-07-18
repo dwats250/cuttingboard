@@ -16,6 +16,33 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-17 — PRD-260 R7: hourly-path gap found by Sol, amended not ticketed (ruled: Dustin)
+
+The commissioned gpt-5.6-sol consumer sweep (Q5, run against e26b589 --
+PRD-260's actual pushed head, not a superseded commit) returned GAP
+FOUND: the live hourly path (`runtime/__init__.py`'s `_HOURLY_MODES`
+branch) never applied R1's candidates-merge, so a promoted continuation
+symbol's hourly R:R was computed from the failed direct candidate's
+stale ATR geometry and persisted into `latest_hourly_run.json`. Real,
+repro-confirmed, not a false positive.
+
+Ruling: R7 AMENDMENT, not a ticketed follow-up. By the same standard
+PRD-260 itself exists to enforce ("the gate goes live once, correctly,
+or stays dead"), the pair cannot merge with a known-uncovered path that
+persists wrong geometry to disk -- "not displayed in Telegram today" is
+not the same as inert. The fix is the identical merge R1 already applies
+at the daily-pipeline call site, mirrored at the hourly one -- confirmed
+mechanical before implementing, not assumed.
+
+Scope held to exactly the one gap Sol's 18-consumer sweep found; no
+speculative hunt for a third path. Both review legs (fresh-context
+Claude, fresh gpt-5.6-sol re-sweep pinned to the new head) re-run
+against the amended head before this can be considered done. This
+amendment requires Dustin's explicit acknowledgment at merge time --
+not something a routine merge queue can wave through silently.
+
+---
+
 ## 2026-07-15 — PRD-260 Gate A: continuation decision geometry, five rulings (ruled: Dustin)
 
 Q1a: synthesize a continuation `TradeCandidate` at acceptance — total

@@ -445,6 +445,16 @@ def _execute_notify_run(
                     flow_snapshot=flow_snapshot,
                 )
                 _log_continuation_audit(regime, qualification_summary)
+                # PRD-260 R7: total promotion for the hourly path too --
+                # same fix as R1's daily-pipeline merge (see above), mirrored
+                # at this second call site so a promoted continuation
+                # candidate's R:R is computed from its own synthesized
+                # geometry, not the failed direct candidate's stale one.
+                if qualification_summary.continuation_candidates:
+                    candidates = {
+                        **candidates,
+                        **qualification_summary.continuation_candidates,
+                    }
                 candidate_lines = _build_hourly_candidate_lines(
                     qualification_summary.qualified_trades,
                     execution_structure,
