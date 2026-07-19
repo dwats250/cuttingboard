@@ -16,6 +16,48 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-18 — PRD-263 Gate A: worst-case bounding, refusal-as-STAY_FLAT, no new literal (ruled: Dustin)
+
+The Tier-4 quorum floor (BUILD_PLAN Wave 5, pulled forward per the F-02
+interaction flag) went through a Stage-0 cold read with a 247-day replay
+through the real compute_regime before any code. Three rulings:
+
+**1. Policy: worst-case bounding, not a fixed denominator, not a blunt
+floor.** Each missing vote (only IWM/BTC-USD can silently drop; the
+other six votes come from HALT_SYMBOLS) is scored as if it voted against
+the survivors' leader: bounded_net = sign(net)*max(0, |net|-k),
+confidence = |bounded_net|/8. Grounds: votes are two-sided, so the
+PRD-262 fixed-denominator pattern does NOT transfer — the replay showed
+it still emitting no-trade -> tradable flips when an against-voter
+drops (drop-BTC: 2x STAY_FLAT->CONTROLLED_LONG). Bounding produced zero
+permissive transitions across all 651 scenario-days, and the floor
+emerges from the existing 0.55 posture boundary instead of a new
+constant: 7 cast votes trade only on near-unanimity; 6 cast votes can
+never trade (max bounded confidence 0.50).
+
+**2. Refusal semantics: STAY_FLAT with a coverage-naming reason.** No
+new regime/posture literal (the Stage-0 consumer sweep found a new
+literal fails open toward TRADABLE at ~8 sites — contract
+tradable/status, hourly qualification gate, REGIME_RISK_MULTIPLIER
+default 1.0, execution-policy blocks, notification bias copy, postmarket
+scoring); no HALT and no new HaltCause (a BTC outage must not be a red
+run or impersonate market stress). The machine key is the truthful
+total_votes; _check_regime_gates appends the human-readable coverage
+note into stay_flat_reason.
+
+**3. Gate B (self-ruled, fail-loud) held:** unit votes {-1,0,+1}
+confirmed (VIX's two votes unit-weight), reachable coverage confirmed
+{8,7,6} (validation halts on any missing-or-invalid HALT symbol before
+compute_regime runs), no boundary comparator moved a tradable row. The
+one exact-boundary row (conf == 0.75 -> AGGRESSIVE_LONG via >=) is
+pre-existing semantics that bounding reuses at 7-cast unanimity.
+
+Evidence: PRD-262 characterization + sol F1 (exhibit 2), FABLE addendum
+arithmetic, and the Stage-0 replay recorded in docs/prd_history/
+PRD-263.md. Second-model slot HELD for the in-flight commissioned Codex
+consumer sweep; the HIGH-RISK close does not proceed with the slot
+unresolved.
+
 ## 2026-07-18 — PRD-262 (F-02): fixed-denominator ruling, characterization-first, and the sol commission (ruled: Dustin)
 
 Three rulings in one arc, recorded together because each reshaped the next.
