@@ -1244,6 +1244,12 @@
       "title": "Missing/NaN pct_change fails loud (F-02): no fabricated 0.0 in ingestion, normalization, or the breadth denominator",
       "status": "COMPLETE",
       "commit": "#151"
+    },
+    {
+      "number": 264,
+      "title": "Pytest import hardening: close the PYTHONPATH-shadowing trap at the config layer",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
