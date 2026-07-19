@@ -16,6 +16,25 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-19 — Package-swap checks under pytest are false-green by default; verify the resolved module path (ruled: Dustin)
+
+Bitten twice, now durable: the PRD-262 review hit it first
+(PRD-262.review.claude.md:91-94) and the PRD-263 mutation check hit it
+again independently. Mechanism, one sentence: with no pytest import-mode
+config and the 0-byte tests/__init__.py, the repo root lands at
+sys.path[0] AHEAD of PYTHONPATH, so a PYTHONPATH swap silently tests the
+repo's own package (plain `python3 script.py` replays are unaffected —
+the PRD-262/263 neutrality replays stand). Binding rule for any check
+that swaps the package under test (mutation, pre/post comparison,
+snapshot run): mutate the working tree in place, OR run pytest from a
+self-contained tree containing the swapped package + tests/ +
+pyproject.toml — and in every case print-and-check the resolved
+`cuttingboard.__file__` before trusting the outcome
+(assert-the-resolved, invariant 2). A pytest result obtained via
+PYTHONPATH shadowing is unverified. Root-cause config hardening is
+PRD-264 (MICRO, scaffolded same day) — this ruling points at its own
+closure.
+
 ## 2026-07-18 — PRD-263 Gate A: worst-case bounding, refusal-as-STAY_FLAT, no new literal (ruled: Dustin)
 
 The Tier-4 quorum floor (BUILD_PLAN Wave 5, pulled forward per the F-02
