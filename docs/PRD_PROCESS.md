@@ -230,6 +230,50 @@ invocations run read-only (`codex exec -s read-only`; see CLAUDE.md
 "Codex mechanics") — the second-model leg never gets repo-write
 access.
 
+### Commission scope: trace to the human surface, not the diff layer (PRD-263)
+
+A commissioned consumer sweep must trace each claimed behavior FORWARD
+to the surface where it reaches a human — a published contract, a
+rendered alert, a dashboard cell, a persisted scoreboard row — not stop
+at the layer the diff touches. A behavior computed correctly at the diff
+layer but never arriving — aborted, truncated, suppressed, or
+overwritten downstream — is a realizability defect the sweep must
+surface, classified INERT or DEGRADED with the intercepting site named.
+Correct-at-the-layer is not the claim; arrives-at-the-surface is.
+
+Incident (this is evidence, not hypothesis): PRD-263 produced two
+instances of the class in one change. (1) The coverage-naming STAY_FLAT
+reason, built correctly in `qualification.py`, is truncated by the
+80-char cap at `output.py:893` on the daily compact alert and never
+built at all on the hourly path (`runtime/__init__.py:426` skips
+qualification on STAY_FLAT) — computed, never fully shown. (2) The
+bounded BTC-USD verdict, computed correctly in `regime.py`, is aborted
+at `contract._build_macro_drivers` (bitcoin is a required driver, raises
+before publish) — computed, never published. Both are the same shape:
+right at the diff layer, absent at the surface. What the commissioned
+sweep did tells the whole story: the SAME leg traced one claimed
+behavior forward and not the other — instance (1) IS its own finding
+(sol C2, traced to `output.py:893` and the hourly path), while it marked
+`contract._build_macro_drivers`'s raise SAFE without tracing the BTC
+verdict forward to it. The fresh-context Claude leg traced neither
+forward; the connector's forward trace caught (2). A single competent
+leg applying the trace to one claim and not the next is exactly why this
+must be a standing prompt clause and not reviewer initiative — initiative
+is inconsistent even within one capable reviewer.
+
+**Required prompt clause (paste verbatim into every commissioned sweep
+prompt; the commission prompt is authored ad-hoc — this doc is its
+source, there is no separate template file):**
+
+> For each behavior you claim the change produces, name the specific
+> human-facing surface it reaches (published contract field, rendered
+> alert line, dashboard cell, persisted row) and confirm it arrives
+> there UNMODIFIED — trace forward through every site that could abort,
+> truncate, suppress, or overwrite it. If it does not arrive intact,
+> classify it INERT (never reaches the surface) or DEGRADED (reaches it
+> altered) and name the intercepting file:line. Do not stop at the
+> layer the diff touches.
+
 ---
 
 ## Governance Compression Principle
