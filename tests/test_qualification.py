@@ -355,6 +355,28 @@ class TestQualifyAllRegimeShortCircuit:
         summary = qualify_all(regime, {})
         assert summary.regime_short_circuited is True
 
+    # -- PRD-263: STAY_FLAT reason names vote coverage under dropout --------
+
+    def test_stay_flat_reason_names_votes_cast_under_dropout(self):
+        # 7 cast votes (IWM or BTC-USD absent): the Gate-1 reason must name
+        # the coverage so stay_flat_reason shows WHY the system stood down.
+        regime = replace(
+            _stay_flat_regime(),
+            regime=RISK_ON, confidence=0.375, net_score=4, total_votes=7,
+        )
+        summary = qualify_all(regime, {})
+        assert summary.regime_short_circuited is True
+        assert "7/8 votes cast" in summary.regime_failure_reason
+
+    def test_stay_flat_reason_unchanged_at_full_coverage(self):
+        # Byte-identity at 8 cast votes: full-coverage reason strings must
+        # not change (PRD-263 R5).
+        summary = qualify_all(_stay_flat_regime(), {})
+        assert summary.regime_failure_reason == (
+            "STAY_FLAT posture (regime=TRANSITION, confidence=0.25)"
+        )
+        assert "votes cast" not in summary.regime_failure_reason
+
 
 # ---------------------------------------------------------------------------
 # qualify_all — CHOP hard stop
