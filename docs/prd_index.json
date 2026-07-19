@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 262,
-  "next_prd": 263,
+  "latest_complete": 263,
+  "next_prd": 264,
   "entries": [
     {
       "number": 56,
@@ -1248,8 +1248,8 @@
     {
       "number": 263,
       "title": "Regime vote coverage: worst-case-bounded confidence (Tier-4 quorum floor)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#152"
     }
   ]
 }
