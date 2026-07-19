@@ -11,9 +11,13 @@ retell origin stories.
   human at every seam.
 - **Claude (project lead, in chat)** drafts and reviews PRDs against VISION
   principles, flags drift, holds architectural direction with Dustin.
-- **Claude Code (this agent)** is the primary implementation agent: PRD
-  construction, implementation, test maintenance, architectural decisions
-  within PRD scope. Invokes Codex for specialist tasks.
+- **Claude Code (this agent)** implements PRDs against the PRD doc as
+  written: implementation, test maintenance, and architectural decisions
+  within PRD scope. Occupies whichever seat the model-role lane assigns
+  (`docs/PRD_PROCESS.md` § Model-role lane) and never both the drafting
+  seat and the second-model review of the same PRD. Invokes Codex only
+  for a review Dustin has commissioned (PRD-242), never at its own
+  discretion.
 - **Codex (or any second model)** is an instrument Dustin may commission for a
   genuinely independent second opinion (PRD-242). Never a standing gate
   requirement; never drives architectural direction.

@@ -173,6 +173,54 @@ does, only *when* they fire relative to each other.
 
 ---
 
+## Model-role lane (PROVISIONAL; adopted 2026-07-19)
+
+PROVISIONAL, not settled practice: the Fable-drafts seat is unproven
+(see the caveat below), so this section carries an explicit review
+trigger and either graduates on evidence or is retired. It does not
+calcify by default.
+
+Review trigger — whichever comes FIRST:
+  (a) five PRDs have completed the full lane with Fable in the drafting
+      seat, or
+  (b) the first drafting defect is found in a Fable-drafted PRD by any
+      downstream leg (implementer, Claude review, or commissioned
+      sweep) — a missing consumer, a wrong FILES boundary, an
+      unrealizable requirement, or a mis-stated evidence claim.
+At the trigger, Dustin rules: graduate the lane to standing practice,
+amend it, or retire it. Record the ruling in docs/DECISIONS.md and
+update this section's status line. An untriggered lane is reviewed at
+the next Alignment check (CLAUDE.md § Alignment check, PRD-230) after
+its adoption — that check already runs at each wave/batch close and
+records a DECISIONS line, so the lane review rides it rather than
+inventing a new cadence.
+
+The lane — the drafting and implementing sessions are separated by
+model and by context:
+
+  Fable drafts the PRD -> a FRESH session implements against it
+  (Opus for HIGH-RISK, Sonnet for MICRO/mechanical) -> fresh-context
+  Claude review -> commissioned second-model consumer sweep (Codex;
+  Sol+Luna instrument naming per the delegation pattern below) ->
+  Dustin's manual merge.
+
+- The PRD doc is the handoff medium. The implementing session starts
+  with no shared context from the drafting session; everything the
+  implementer needs must be in the PRD. The model boundary sits on the
+  governance boundary that already exists.
+- Binding constraint (independent of this lane; recorded at
+  docs/DECISIONS.md 2026-07-19, "a model may not review its own draft"):
+  whichever model DRAFTS a PRD may not serve as its second-model
+  reviewer. Kept there, not here, so retiring this provisional lane
+  cannot retire the rule.
+- Caveat and the reason for PROVISIONAL status: the
+  seven-consecutive-PRD evidence for the second-model leg is for
+  out-of-diff consumer sweeps — retrieval-heavy work. Plan drafting is
+  hypothesis-heavy and has no comparable evidence base. Reviews of
+  Fable-drafted PRDs watch for drafting defects specifically.
+
+---
+
 ## Second-Model Disposition (PRD-242)
 
 A COMPLETE HIGH-RISK PRD numbered >= 242 MUST carry exactly one of:
@@ -228,7 +276,11 @@ required-forever role labels — a commissioned second model may use its
 own naming, as long as the three conditions above hold. Both
 invocations run read-only (`codex exec -s read-only`; see CLAUDE.md
 "Codex mechanics") — the second-model leg never gets repo-write
-access.
+access. The retriever's exhaustive mechanical retrieval is part of THIS
+commissioned review; it is not the discretionary simple-grep /
+mechanical-Codex use that CLAUDE.md § Working practices ("Recon goes to
+subagents") bars — that bar governs standalone recon, not the retriever
+leg of a commissioned second-model review.
 
 ### Commission scope: trace to the human surface, not the diff layer (PRD-263)
 
