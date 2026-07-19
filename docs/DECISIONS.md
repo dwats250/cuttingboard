@@ -16,6 +16,126 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-19 — A control may not backstop another control until its enforcement has been OBSERVED (ruled: Dustin)
+
+Three times in one week we relied on a property that was asserted and
+never verified: the PYTHONPATH swap that did not swap (pytest resolved
+the repo's own package), the fresh-context leg that silently loaded
+persistent memory, and branch protection that did not bind the pushing
+identity (enforce_admins off, pusher is repo admin). Each got a local
+fix; the CLASS survived all three, because each was caught by accident
+rather than by a standing habit. Rule: a control may not be cited as the
+backstop for declining, weakening, or skipping another control until its
+enforcement has been OBSERVED against the actual identity and path in
+question — a live negative check, not a config read and not a doc claim.
+"Protection is enabled" is not evidence that it binds THIS pusher;
+"read-only sandbox" is not evidence that THIS run loaded no memory;
+"PYTHONPATH is set" is not evidence that THIS import resolved there.
+Prefer a config-layer closure to a prose rule wherever one exists: all
+three had one available, and the branch-protection case was a single
+boolean that had sat unflipped since the F-05 plan named it. Corollary:
+any review artifact asserting an independence or isolation property
+states how that property was observed, not that it was configured.
+
+Instance closed by this ruling: `enforce_admins` flipped to true on
+`main` (Dustin, 2026-07-19), so branch protection now binds the admin
+pushing identity, not only `github-actions[bot]`. This is the GitHub
+settings leg the F-05 fence named as an outstanding operator action
+(`audits/BUILD_PLAN.md` Wave 3). It is NOT a closure of a PRD: the F-05
+fence never rode (no CODEOWNERS, no CI changed-path check; the tentative
+"PRD-258" number in BUILD_PLAN drifted onto unrelated permission-widening
+work). The asymmetry is recorded deliberately — PRD-258's loosening of
+the agent's Bash allow-list shipped; F-05's tightening of the same
+agent's reach did not. The remaining F-05 code legs queue behind PRD-265
+per the 2026-07-19 ordering ruling (real-money item first).
+
+## 2026-07-19 — Fresh context is a verified property, not an assertion: memory provenance on every leg (ruled: Dustin)
+
+codex 0.144 loads persistent memory (MEMORY.md, rollout summaries,
+memory-store skills) into a nominally fresh session, so "fresh-context"
+was an ASSERTION on every prior review leg, never a verified property —
+the same shape as the PYTHONPATH trap: a method that silently did not do
+what it claimed, caught only because someone looked. This binds ANY leg
+claiming fresh context, whichever model runs it — the commissioned
+second-model sweep AND the fresh-context Claude review, which has its own
+memory surface (project memory, session summaries, recalled notes). Every
+such artifact records three things: (1) what the run loaded from its
+memory surface, enumerated; (2) that enumeration checked against the
+review's excluded-content list; (3) whether the run persisted anything
+back. Session id (or equivalent run identifier) capture is MANDATORY for
+every leg going forward — it is what makes retro-audit possible
+(`~/.codex/sessions/<date>/rollout-*-<session-id>.jsonl` records memory
+reads; only 9 of 52 prior codex artifacts recorded one, and rollouts
+exist only from 2026-04-11, so older legs are unrecoverable).
+Disclose-or-disqualify: a leg that cannot produce its memory provenance
+is not a fresh-context leg and cannot fill the slot it claims.
+Retro-checked at ruling time: PRD-262's sol run DID load memory
+(MEMORY.md, one Cuttingboard rollout summary, an April
+pipeline-verification skill) — all procedural, zero answer-bearing
+content; that leg retro-verifies sound.
+
+## 2026-07-19 — Package-swap checks under pytest are false-green by default; verify the resolved module path (ruled: Dustin)
+
+Bitten twice, now durable: the PRD-262 review hit it first
+(PRD-262.review.claude.md:91-94) and the PRD-263 mutation check hit it
+again independently. Mechanism, one sentence: with no pytest import-mode
+config and the 0-byte tests/__init__.py, the repo root lands at
+sys.path[0] AHEAD of PYTHONPATH, so a PYTHONPATH swap silently tests the
+repo's own package (plain `python3 script.py` replays are unaffected —
+the PRD-262/263 neutrality replays stand). Binding rule for any check
+that swaps the package under test (mutation, pre/post comparison,
+snapshot run): mutate the working tree in place, OR run pytest from a
+self-contained tree containing the swapped package + tests/ +
+pyproject.toml — and in every case print-and-check the resolved
+`cuttingboard.__file__` before trusting the outcome (CLAUDE.md
+§ Semantic-failure hardening, invariant 2: assert the resolved, not
+the requested). A pytest result obtained via
+PYTHONPATH shadowing is unverified. Root-cause config hardening is
+PRD-264 (MICRO, scaffolded same day) — this ruling points at its own
+closure.
+
+## 2026-07-18 — PRD-263 Gate A: worst-case bounding, refusal-as-STAY_FLAT, no new literal (ruled: Dustin)
+
+The Tier-4 quorum floor (BUILD_PLAN Wave 5, pulled forward per the F-02
+interaction flag) went through a Stage-0 cold read with a 247-day replay
+through the real compute_regime before any code. Three rulings:
+
+**1. Policy: worst-case bounding, not a fixed denominator, not a blunt
+floor.** Each missing vote (only IWM/BTC-USD can silently drop; the
+other six votes come from HALT_SYMBOLS) is scored as if it voted against
+the survivors' leader: bounded_net = sign(net)*max(0, |net|-k),
+confidence = |bounded_net|/8. Grounds: votes are two-sided, so the
+PRD-262 fixed-denominator pattern does NOT transfer — the replay showed
+it still emitting no-trade -> tradable flips when an against-voter
+drops (drop-BTC: 2x STAY_FLAT->CONTROLLED_LONG). Bounding produced zero
+permissive transitions across all 651 scenario-days, and the floor
+emerges from the existing 0.55 posture boundary instead of a new
+constant: 7 cast votes trade only on near-unanimity; 6 cast votes can
+never trade (max bounded confidence 0.50).
+
+**2. Refusal semantics: STAY_FLAT with a coverage-naming reason.** No
+new regime/posture literal (the Stage-0 consumer sweep found a new
+literal fails open toward TRADABLE at ~8 sites — contract
+tradable/status, hourly qualification gate, REGIME_RISK_MULTIPLIER
+default 1.0, execution-policy blocks, notification bias copy, postmarket
+scoring); no HALT and no new HaltCause (a BTC outage must not be a red
+run or impersonate market stress). The machine key is the truthful
+total_votes; _check_regime_gates appends the human-readable coverage
+note into stay_flat_reason.
+
+**3. Gate B (self-ruled, fail-loud) held:** unit votes {-1,0,+1}
+confirmed (VIX's two votes unit-weight), reachable coverage confirmed
+{8,7,6} (validation halts on any missing-or-invalid HALT symbol before
+compute_regime runs), no boundary comparator moved a tradable row. The
+one exact-boundary row (conf == 0.75 -> AGGRESSIVE_LONG via >=) is
+pre-existing semantics that bounding reuses at 7-cast unanimity.
+
+Evidence: PRD-262 characterization + sol F1 (exhibit 2), FABLE addendum
+arithmetic, and the Stage-0 replay recorded in docs/prd_history/
+PRD-263.md. Second-model slot HELD for the in-flight commissioned Codex
+consumer sweep; the HIGH-RISK close does not proceed with the slot
+unresolved.
+
 ## 2026-07-18 — PRD-262 (F-02): fixed-denominator ruling, characterization-first, and the sol commission (ruled: Dustin)
 
 Three rulings in one arc, recorded together because each reshaped the next.

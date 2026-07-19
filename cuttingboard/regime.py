@@ -130,8 +130,10 @@ def compute_regime(valid_quotes: dict[str, NormalizedQuote]) -> RegimeState:
     EXPANSION is returned immediately without running the vote model.
 
     Every input that is absent from valid_quotes is skipped with a warning.
-    The confidence formula uses only the votes that were actually cast, so a
-    missing optional symbol (e.g. IWM) degrades gracefully without halting.
+    Missing votes are scored against the survivors' leader (worst-case
+    bounding, PRD-263): net is shrunk toward zero by one per missing vote and
+    confidence is |bounded net| / 8, so absent data can only make the verdict
+    more cautious, never more permissive.
     """
     vix = valid_quotes.get("^VIX")
     vix_level = vix.price              if vix else None
@@ -190,14 +192,26 @@ def compute_regime(valid_quotes: dict[str, NormalizedQuote]) -> RegimeState:
 
     total_votes = risk_on_votes + risk_off_votes + neutral_votes
     net_score   = risk_on_votes - risk_off_votes
-    confidence  = abs(net_score) / total_votes if total_votes > 0 else 0.0
 
-    regime  = _classify_regime(net_score, confidence, vix_pct)
+    # PRD-263 worst-case bounding: each missing vote (only IWM / BTC-USD can
+    # silently drop; the other six votes come from HALT_SYMBOLS) is scored as
+    # if it voted against the survivors' leader, clamped at zero so bounding
+    # never crosses sign. Confidence is over the structural 8-vote
+    # denominator; on full coverage this equals |net| / total_votes.
+    missing = len(raw_votes) - total_votes
+    if net_score > 0:
+        bounded_net = max(0, net_score - missing)
+    else:
+        bounded_net = min(0, net_score + missing)
+    confidence = abs(bounded_net) / len(raw_votes)
+
+    regime  = _classify_regime(bounded_net, confidence, vix_pct)
     posture = _determine_posture(regime, confidence, vix_level)
 
     logger.info(
         f"Regime: {regime} | {posture} | confidence={confidence:.2f} "
-        f"| net={net_score:+d} (on={risk_on_votes} off={risk_off_votes} neutral={neutral_votes})"
+        f"| net={net_score:+d} (on={risk_on_votes} off={risk_off_votes} "
+        f"neutral={neutral_votes}) | votes={total_votes}/{len(raw_votes)}"
     )
 
     return RegimeState(

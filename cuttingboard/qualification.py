@@ -28,6 +28,7 @@ from cuttingboard.regime import (
     RegimeState,
     RISK_ON, RISK_OFF, NEUTRAL, EXPANSION,
     STAY_FLAT,
+    _VOTE_KEYS,
 )
 from cuttingboard.structure import StructureResult, CHOP
 
@@ -802,7 +803,15 @@ def _qualify_continuation_candidate(
 def _check_regime_gates(regime: RegimeState) -> Optional[str]:
     """Return failure reason if gates 1–2 fail, else None."""
     if regime.posture == STAY_FLAT:
-        return f"STAY_FLAT posture (regime={regime.regime}, confidence={regime.confidence:.2f})"
+        reason = f"STAY_FLAT posture (regime={regime.regime}, confidence={regime.confidence:.2f})"
+        if 0 < regime.total_votes < len(_VOTE_KEYS):
+            # PRD-263: the stand-down came from a worst-case-bounded vote —
+            # name the coverage so stay_flat_reason shows why.
+            reason += (
+                f"; confidence bounded worst-case at "
+                f"{regime.total_votes}/{len(_VOTE_KEYS)} votes cast"
+            )
+        return reason
     if regime.confidence < config.MIN_REGIME_CONFIDENCE:
         return (
             f"confidence {regime.confidence:.2f} < "
