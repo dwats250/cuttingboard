@@ -1244,6 +1244,12 @@
       "title": "Missing/NaN pct_change fails loud (F-02): no fabricated 0.0 in ingestion, normalization, or the breadth denominator",
       "status": "COMPLETE",
       "commit": "#151"
+    },
+    {
+      "number": 265,
+      "title": "Coverage marker: persist RegimeState.total_votes so bounded days are identifiable across runs",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
