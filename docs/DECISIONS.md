@@ -16,6 +16,31 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-19 — Fresh context is a verified property, not an assertion: memory provenance on every leg (ruled: Dustin)
+
+codex 0.144 loads persistent memory (MEMORY.md, rollout summaries,
+memory-store skills) into a nominally fresh session, so "fresh-context"
+was an ASSERTION on every prior review leg, never a verified property —
+the same shape as the PYTHONPATH trap: a method that silently did not do
+what it claimed, caught only because someone looked. This binds ANY leg
+claiming fresh context, whichever model runs it — the commissioned
+second-model sweep AND the fresh-context Claude review, which has its own
+memory surface (project memory, session summaries, recalled notes). Every
+such artifact records three things: (1) what the run loaded from its
+memory surface, enumerated; (2) that enumeration checked against the
+review's excluded-content list; (3) whether the run persisted anything
+back. Session id (or equivalent run identifier) capture is MANDATORY for
+every leg going forward — it is what makes retro-audit possible
+(`~/.codex/sessions/<date>/rollout-*-<session-id>.jsonl` records memory
+reads; only 9 of 52 prior codex artifacts recorded one, and rollouts
+exist only from 2026-04-11, so older legs are unrecoverable).
+Disclose-or-disqualify: a leg that cannot produce its memory provenance
+is not a fresh-context leg and cannot fill the slot it claims.
+Retro-checked at ruling time: PRD-262's sol run DID load memory
+(MEMORY.md, one Cuttingboard rollout summary, an April
+pipeline-verification skill) — all procedural, zero answer-bearing
+content; that leg retro-verifies sound.
+
 ## 2026-07-19 — Package-swap checks under pytest are false-green by default; verify the resolved module path (ruled: Dustin)
 
 Bitten twice, now durable: the PRD-262 review hit it first
@@ -29,8 +54,9 @@ that swaps the package under test (mutation, pre/post comparison,
 snapshot run): mutate the working tree in place, OR run pytest from a
 self-contained tree containing the swapped package + tests/ +
 pyproject.toml — and in every case print-and-check the resolved
-`cuttingboard.__file__` before trusting the outcome
-(assert-the-resolved, invariant 2). A pytest result obtained via
+`cuttingboard.__file__` before trusting the outcome (CLAUDE.md
+§ Semantic-failure hardening, invariant 2: assert the resolved, not
+the requested). A pytest result obtained via
 PYTHONPATH shadowing is unverified. Root-cause config hardening is
 PRD-264 (MICRO, scaffolded same day) — this ruling points at its own
 closure.
