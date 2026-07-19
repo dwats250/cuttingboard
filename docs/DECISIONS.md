@@ -16,6 +16,39 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-19 — A control may not backstop another control until its enforcement has been OBSERVED (ruled: Dustin)
+
+Three times in one week we relied on a property that was asserted and
+never verified: the PYTHONPATH swap that did not swap (pytest resolved
+the repo's own package), the fresh-context leg that silently loaded
+persistent memory, and branch protection that did not bind the pushing
+identity (enforce_admins off, pusher is repo admin). Each got a local
+fix; the CLASS survived all three, because each was caught by accident
+rather than by a standing habit. Rule: a control may not be cited as the
+backstop for declining, weakening, or skipping another control until its
+enforcement has been OBSERVED against the actual identity and path in
+question — a live negative check, not a config read and not a doc claim.
+"Protection is enabled" is not evidence that it binds THIS pusher;
+"read-only sandbox" is not evidence that THIS run loaded no memory;
+"PYTHONPATH is set" is not evidence that THIS import resolved there.
+Prefer a config-layer closure to a prose rule wherever one exists: all
+three had one available, and the branch-protection case was a single
+boolean that had sat unflipped since the F-05 plan named it. Corollary:
+any review artifact asserting an independence or isolation property
+states how that property was observed, not that it was configured.
+
+Instance closed by this ruling: `enforce_admins` flipped to true on
+`main` (Dustin, 2026-07-19), so branch protection now binds the admin
+pushing identity, not only `github-actions[bot]`. This is the GitHub
+settings leg the F-05 fence named as an outstanding operator action
+(`audits/BUILD_PLAN.md` Wave 3). It is NOT a closure of a PRD: the F-05
+fence never rode (no CODEOWNERS, no CI changed-path check; the tentative
+"PRD-258" number in BUILD_PLAN drifted onto unrelated permission-widening
+work). The asymmetry is recorded deliberately — PRD-258's loosening of
+the agent's Bash allow-list shipped; F-05's tightening of the same
+agent's reach did not. The remaining F-05 code legs queue behind PRD-265
+per the 2026-07-19 ordering ruling (real-money item first).
+
 ## 2026-07-19 — Fresh context is a verified property, not an assertion: memory provenance on every leg (ruled: Dustin)
 
 codex 0.144 loads persistent memory (MEMORY.md, rollout summaries,

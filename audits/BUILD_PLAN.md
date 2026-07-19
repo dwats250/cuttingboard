@@ -119,6 +119,23 @@ Not ruled on (stays a recommendation, decided when reached): the Tier-4 quorum-f
 
 ## Wave 3 — the fence (early, not first; both MANUAL-MERGE-ONLY per PRD-186)
 
+**STATUS (2026-07-19): Wave 3 NEVER RODE. The tentative "PRD-257/258"
+numbers below drifted onto unrelated work — the real PRD-257 fixed a
+dashboard_preview.yml comment, the real PRD-258 WIDENED the agent's Bash
+allow-list. F-04's substance landed incidentally under PRD-242
+(`tools/validate_prd_registry.py` enforces the LANE regex + second-model
+disposition). F-05 did NOT: no `.github/CODEOWNERS`, no CI changed-path
+governance check. Only F-05's GitHub settings leg is now done —
+`enforce_admins` flipped true on `main` 2026-07-19 (see `docs/DECISIONS.md`
+2026-07-19, the observed-enforcement class ruling), so protection binds
+the admin pushing identity, not only `github-actions[bot]`. The
+asymmetry is recorded deliberately to surface: the loosening (PRD-258)
+shipped; the tightening (F-05) did not. Remaining F-05 code legs
+(CODEOWNERS, CI changed-path check) are OUTSTANDING and queue BEHIND
+PRD-265 — the real-money coverage-marker item leads; governance tooling
+does not stack ahead of it again. Do not scaffold the fence as part of
+any current charge.**
+
 ### PRD-257 (F-04) — HIGH-RISK gate verifies reality, not labels
 `tools/validate_prd_registry.py`: robust/case-insensitive LANE detection; docless COMPLETE row fails instead of `continue`; artifact leg validates content — non-empty, SHA-pinned to the reviewed commit, and the waiver matched as the exact documented sentence, not an inner substring. **A red test per bypass** (all four verified bypasses become negative tests), per hardening invariant 4.
 **FILES:** `tools/validate_prd_registry.py`, `tests/test_prd_registry.py`.
