@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from cuttingboard.audit import _build_record
 from cuttingboard.options import OptionSetup
 from cuttingboard.qualification import QualificationResult, QualificationSummary
+from cuttingboard.regime import AGGRESSIVE_LONG, RegimeState, RISK_ON
 from cuttingboard.trade_decision import ALLOW_TRADE, TradeDecision
 from cuttingboard.validation import ValidationSummary
 
@@ -61,6 +62,68 @@ def test_audit_trade_decisions_include_execution_policy_fields() -> None:
     assert decision["policy_allowed"] is True
     assert decision["policy_reason"] == "policy_allowed"
     assert decision["size_multiplier"] == 1.0
+
+
+def _regime_state(total_votes: int = 5) -> RegimeState:
+    return RegimeState(
+        regime=RISK_ON,
+        posture=AGGRESSIVE_LONG,
+        confidence=0.75,
+        net_score=5,
+        risk_on_votes=5,
+        risk_off_votes=0,
+        neutral_votes=3,
+        total_votes=total_votes,
+        vote_breakdown={},
+        vix_level=17.5,
+        vix_pct_change=-0.02,
+        computed_at_utc=RUN_AT,
+    )
+
+
+def test_prd265_r1_audit_record_persists_total_votes_from_regime() -> None:
+    """PRD-265 R1: _build_record writes "total_votes" from regime.total_votes
+    when a regime is present, alongside the unchanged regime/posture/
+    confidence/net_score fields."""
+    regime = _regime_state(total_votes=5)
+    record = _build_record(
+        run_at_utc=RUN_AT,
+        date_str="2026-04-29",
+        outcome="NO_TRADE",
+        regime=regime,
+        validation_summary=_validation_summary(),
+        qualification_summary=None,
+        option_setups=[],
+        halt_reason=None,
+        alert_sent=False,
+        report_path="reports/2026-04-29.md",
+    )
+    assert "total_votes" in record, "R1 FAIL: total_votes key missing from audit record"
+    assert record["total_votes"] == 5
+    assert record["regime"] == RISK_ON
+    assert record["posture"] == AGGRESSIVE_LONG
+    assert record["confidence"] == 0.75
+    assert record["net_score"] == 5
+
+
+def test_prd265_r1_audit_record_total_votes_none_when_regime_none() -> None:
+    """R1: no regime this run -> total_votes is None (not omitted, not 0),
+    matching the existing None-fallback behavior of the other Regime fields."""
+    record = _build_record(
+        run_at_utc=RUN_AT,
+        date_str="2026-04-29",
+        outcome="NO_TRADE",
+        regime=None,
+        validation_summary=_validation_summary(),
+        qualification_summary=None,
+        option_setups=[],
+        halt_reason=None,
+        alert_sent=False,
+        report_path="reports/2026-04-29.md",
+    )
+    assert "total_votes" in record
+    assert record["total_votes"] is None
+    assert record["regime"] is None
 
 
 def test_audit_qualified_trades_sizing_sources_from_option_setup() -> None:
