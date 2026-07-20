@@ -809,6 +809,8 @@ _CSS = (
     "#scoreboard .scoreboard-row{font-size:0.74rem;color:#bbb;display:flex;flex-wrap:wrap;gap:10px;margin-top:3px}"
     ".scoreboard-date{color:#ddd;min-width:80px}"
     ".scoreboard-spy{color:#888}"
+    # PRD-265 R5: coverage-bounded day marker on the scoreboard row.
+    ".scoreboard-coverage{color:#ff9800;font-weight:600}"
     # PRD-215: "actionable now" accent (cyan #29b6f6 — the level/VWAP colour) on
     # the falsifiable trade fields, plus the collapsed REASON/PLAY/WATCH detail.
     ".value-actionable{color:#29b6f6}"
@@ -1122,6 +1124,24 @@ def _fmt_pct_signed(fraction: object) -> str:
     if not _is_finite_number(fraction):
         return "n/a"
     return f"{float(fraction) * 100:+.2f}%"
+
+
+def _coverage_bounded(row: dict) -> bool:
+    """PRD-265 four-state coverage predicate: coverage_bounded(row) :=
+    "total_votes" in row and 0 < row["total_votes"] < 8.
+
+    absent (key not in row) = LEGACY (a regime_history row from before this
+    field existed) -- never marked BOUNDED. total_votes == 0 (EXPANSION) and
+    == 8 (FULL) are likewise never marked. Only 0 < total_votes < 8 renders
+    the BOUNDED marker. A present-but-None value is treated the same as
+    absent, never crashing the comparison below.
+    """
+    if "total_votes" not in row:
+        return False
+    total_votes = row["total_votes"]
+    if total_votes is None:
+        return False
+    return 0 < total_votes < 8
 
 
 def _direction_arrow(direction: str) -> str:
@@ -2777,12 +2797,19 @@ def render_dashboard_html(
             )
             _sb_spy = _row.get("spy_close_change_pct")
             _sb_spy_txt = _fmt_pct_signed(_sb_spy) if _sb_spy is not None else "n/a"
+            # PRD-265 R5: mark coverage-bounded days; legacy/EXPANSION/FULL render
+            # unchanged (no marker).
+            _sb_bounded_html = (
+                '<span class="scoreboard-coverage">BOUNDED</span>'
+                if _coverage_bounded(_row) else ""
+            )
             w(
                 f'  <div class="scoreboard-row">'
                 f'<span class="scoreboard-date">{_sb_date}</span>'
                 f'<span class="scoreboard-regime">{_sb_regime}</span>'
                 f'<span class="scoreboard-posture">{_esc(_sb_posture)}</span>'
                 f'<span class="scoreboard-spy">SPY next {_esc(_sb_spy_txt)}</span>'
+                f'{_sb_bounded_html}'
                 f"</div>"
             )
     else:
