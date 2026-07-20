@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 262,
-  "next_prd": 263,
+  "latest_complete": 263,
+  "next_prd": 264,
   "entries": [
     {
       "number": 56,
@@ -1244,6 +1244,12 @@
       "title": "Missing/NaN pct_change fails loud (F-02): no fabricated 0.0 in ingestion, normalization, or the breadth denominator",
       "status": "COMPLETE",
       "commit": "#151"
+    },
+    {
+      "number": 263,
+      "title": "Regime vote coverage: worst-case-bounded confidence (Tier-4 quorum floor)",
+      "status": "COMPLETE",
+      "commit": "#152"
     },
     {
       "number": 264,
