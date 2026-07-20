@@ -281,7 +281,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-261 | df5ba03 | PRD-258 follow-up: git -c/ruff --config/git worktree mutation denies (renumbered from PRD-259 - collision with PR #148's branch, ruled 2026-07-17) | COMPLETE | [PRD-261](prd_history/PRD-261.md) |
 | PRD-262 | #151 | Missing/NaN pct_change fails loud (F-02): no fabricated 0.0 in ingestion, normalization, or the breadth denominator | COMPLETE | [PRD-262](prd_history/PRD-262.md) |
 | PRD-263 | #152 | Regime vote coverage: worst-case-bounded confidence (Tier-4 quorum floor) | COMPLETE | [PRD-263](prd_history/PRD-263.md) |
-| PRD-265 | — | Coverage marker: persist RegimeState.total_votes so bounded days are identifiable across runs | IN PROGRESS | [PRD-265](prd_history/PRD-265.md) |
+| PRD-265 | #154 | Coverage marker: persist RegimeState.total_votes so bounded days are identifiable across runs | COMPLETE | [PRD-265](prd_history/PRD-265.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

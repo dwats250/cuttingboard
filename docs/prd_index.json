@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 263,
-  "next_prd": 264,
+  "latest_complete": 265,
+  "next_prd": 266,
   "entries": [
     {
       "number": 56,
@@ -1254,8 +1254,8 @@
     {
       "number": 265,
       "title": "Coverage marker: persist RegimeState.total_votes so bounded days are identifiable across runs",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#154"
     }
   ]
 }
