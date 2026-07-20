@@ -6,6 +6,27 @@ def _is_run_record(record: dict) -> bool:
     return "outcome" in record and "run_at_utc" in record
 
 
+def _coverage_bounded(row: dict) -> bool:
+    """PRD-265 four-state coverage predicate: coverage_bounded(row) :=
+    "total_votes" in row and 0 < row["total_votes"] < 8.
+
+    absent (key not in row)   = LEGACY    -- never bounded.
+    total_votes == 0          = EXPANSION -- never bounded.
+    0 < total_votes < 8       = BOUNDED   -- excluded from scoring.
+    total_votes == 8          = FULL      -- never bounded.
+
+    A present-but-None total_votes (regime was None the run this row was
+    written) is treated the same as absent: never bounded, never crashes the
+    comparison below.
+    """
+    if "total_votes" not in row:
+        return False
+    total_votes = row["total_votes"]
+    if total_votes is None:
+        return False
+    return 0 < total_votes < 8
+
+
 def _tradable_from_record(record: dict) -> bool:
     posture = record.get("posture") or ""
     return bool(posture) and posture != "STAY_FLAT"
@@ -115,9 +136,22 @@ def build_postmarket_report(
     stay_flat_reason: str | None = ss.get("stay_flat_reason")
     status: str = contract.get("status") or ""
 
-    runs = [r for r in run_history if _is_run_record(r)]
+    # PRD-265 R4: a BOUNDED prior run is coverage, not market evidence -- drop it
+    # from the pool used for both EVR classification and persisted/flipped below.
+    # A legacy row (no total_votes) or an EXPANSION/FULL row (0 or 8) is kept.
+    runs = [r for r in run_history if _is_run_record(r) and not _coverage_bounded(r)]
 
-    if levels is not None:
+    regime_block = contract.get("regime") or {}
+    current_bounded = _coverage_bounded(regime_block)
+
+    if current_bounded:
+        # R4: a bounded CURRENT verdict is a coverage artifact, not a market
+        # call -- it never yields a scored MATCH/PARTIAL/MISS.
+        evr_result, evr_notes = (
+            "COVERAGE_BOUNDED",
+            "Current regime call is coverage-bounded (partial vote coverage) -- not scored",
+        )
+    elif levels is not None:
         evr_result, evr_notes = _classify_evr_with_levels(runs, market_regime, tradable, levels)
     else:
         evr_result, evr_notes = _classify_evr_legacy(runs, market_regime, tradable)
