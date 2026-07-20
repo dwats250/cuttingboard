@@ -9,7 +9,10 @@
 </head>
 <body>
 <div class="wrap">
-<div class="block" id="staleness-banner" hidden style="text-align:center;font-weight:bold" data-session-inactive="false" data-board-stale-after-s="5400"></div>
+<div class="block" id="premarket-banner" style="border-color:#29b6f6;color:#29b6f6;text-align:center">
+  <h2>SUNDAY PRE-MARKET CONTEXT &#8212; NO CASH SESSION</h2>
+</div>
+<div class="block" id="staleness-banner" hidden style="text-align:center;font-weight:bold" data-session-inactive="true" data-board-stale-after-s="5400"></div>
 <script>
 (function () {
   function fmtAge(sec) {
@@ -59,27 +62,41 @@
 </script>
 <div class="block" id="system-state">
   <h2>SYSTEM STATE</h2>
-  <div class="sys-verdict sys-down">Shorts allowed · NO TRADE</div>
-  <div class="sys-context">Risk-off regime · no qualified setups</div>
+  <div class="sys-verdict sys-flat">Stand down · NO TRADE</div>
+  <div class="sys-context">Neutral regime · no qualified setups</div>
   <div class="sep"></div>
   <div class="label">UPDATED</div>
-  <div class="value" id="cb-updated" data-updated-utc="2026-07-17T14:26:38+00:00">2026-07-17 07:26:38 PT</div>
+  <div class="value" id="cb-updated" data-updated-utc="2026-07-20T01:05:17+00:00">2026-07-19 18:05:17 PT</div>
+</div>
+<div class="block" id="sunday-macro-context" style="border-color:#29b6f6">
+  <h2>Sunday Macro Context — No Cash Session</h2>
+  <div class="row">
+    <div class="field"><div class="label">Posture</div><div class="value">NEUTRAL</div></div>
+    <div class="field"><div class="label">Dollar</div><div class="value">flat</div></div>
+    <div class="field"><div class="label">Rates</div><div class="value">rates rising</div></div>
+  </div>
+  <div class="row">
+    <div class="field"><div class="label">Volatility</div><div class="value">low volatility (VIX 17.9)</div></div>
+    <div class="field"><div class="label">Risk Sentiment</div><div class="value">flat</div></div>
+  </div>
+  <div class="field"><div class="label">Metals</div><div class="value">GLD: F (flat) | SLV: F (flat) | GDX: F (flat)</div></div>
+  <div class="field" style="margin-top:8px"><div class="label">Monday Watch</div><div class="value">Watch for confirmation before Monday cash session</div></div>
 </div>
 <div class="block" id="macro-tape">
   <h2>Macro Tape</h2>
   <div class="macro-bias mixed">MACRO BIAS: MIXED</div>
   <div class="macro-tally">Risk votes: 2 off / 2 on → MIXED</div>
-  <div class="macro-pressure-line">• VIX blocks longs<br>• BTC supports risk-on</div>
-  <div class="macro-spot-metals-row"><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">GC&nbsp; ↑</span><span class="macro-tape-value" data-symbol="XAU">4013.3</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">SI&nbsp; ↑</span><span class="macro-tape-value" data-symbol="XAG">56.28</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">BTC ↑</span><span class="macro-tape-value" data-symbol="BTC">64.2K</span></span></div>
-  <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">VIX ↑</span><span class="macro-tape-value" data-symbol="VIX">18.6</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">DXY ↑</span><span class="macro-tape-value" data-symbol="DXY">100.8</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">10Y ↓</span><span class="macro-tape-value" data-symbol="10Y">4.54</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">OIL ↑</span><span class="macro-tape-value" data-symbol="OIL">81.5</span></span></div>
+  <div class="macro-pressure-line">• VIX permits longs<br>• DXY pressures longs<br>• BTC supports risk-on</div>
+  <div class="macro-spot-metals-row"><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">GC&nbsp; ↑</span><span class="macro-tape-value" data-symbol="XAU">4707.0</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">SI&nbsp; ↑</span><span class="macro-tape-value" data-symbol="XAG">87.81</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">BTC ↑</span><span class="macro-tape-value" data-symbol="BTC">80.6K</span></span></div>
+  <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">VIX ↓</span><span class="macro-tape-value" data-symbol="VIX">17.9</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">DXY ↑</span><span class="macro-tape-value" data-symbol="DXY">98.5</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">10Y ↑</span><span class="macro-tape-value" data-symbol="10Y">4.46</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">OIL ↑</span><span class="macro-tape-value" data-symbol="OIL">102.2</span></span></div>
   <div class="sep"></div>
   <div class="macro-tradables-grid">
-    <span class="tradable-cell"><span class="macro-tape-label">SPY</span>&nbsp;<span class="tradable-arrow">↓</span>&nbsp;<span class="macro-tape-value" data-symbol="SPY">743.74</span></span>
-    <span class="tradable-cell"><span class="macro-tape-label">QQQ</span>&nbsp;<span class="tradable-arrow">↓</span>&nbsp;<span class="macro-tape-value" data-symbol="QQQ">696.95</span></span>
-    <span class="tradable-cell"><span class="macro-tape-label">GLD</span>&nbsp;<span class="tradable-arrow">↑</span>&nbsp;<span class="macro-tape-value" data-symbol="GLD">367.70</span></span>
-    <span class="tradable-cell"><span class="macro-tape-label">GDX</span>&nbsp;<span class="tradable-arrow">↓</span>&nbsp;<span class="macro-tape-value" data-symbol="GDX">71.14</span></span>
-    <span class="tradable-cell"><span class="macro-tape-label">SLV</span>&nbsp;<span class="tradable-arrow">↑</span>&nbsp;<span class="macro-tape-value" data-symbol="SLV">50.69</span></span>
-    <span class="tradable-cell"><span class="macro-tape-label">XLE</span>&nbsp;<span class="tradable-arrow">↑</span>&nbsp;<span class="macro-tape-value" data-symbol="XLE">57.58</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">SPY</span>&nbsp;<span class="tradable-arrow">—</span>&nbsp;<span class="macro-tape-value" data-symbol="SPY">746.83</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">QQQ</span>&nbsp;<span class="tradable-arrow">—</span>&nbsp;<span class="macro-tape-value" data-symbol="QQQ">697.66</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">GLD</span>&nbsp;<span class="tradable-arrow">—</span>&nbsp;<span class="macro-tape-value" data-symbol="GLD">366.97</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">GDX</span>&nbsp;<span class="tradable-arrow">—</span>&nbsp;<span class="macro-tape-value" data-symbol="GDX">70.95</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">SLV</span>&nbsp;<span class="tradable-arrow">—</span>&nbsp;<span class="macro-tape-value" data-symbol="SLV">50.56</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">XLE</span>&nbsp;<span class="tradable-arrow">—</span>&nbsp;<span class="macro-tape-value" data-symbol="XLE">57.69</span></span>
   </div>
 </div>
 <div class="block" id="red-folder">
@@ -88,83 +105,23 @@
 </div>
 <div class="block" id="trend-structure">
   <h2>Trend Structure</h2>
-  <table class="ts-table" style="width:100%;border-collapse:collapse;font-size:0.78rem;display:block;overflow-x:auto">
-    <thead><tr style="text-align:left;color:#888">
-      <th style="padding:2px 8px">Symbol</th>
-      <th style="padding:2px 8px">Price</th>
-      <th style="padding:2px 8px">Alignment</th>
-      <th style="padding:2px 8px">RVOL</th>
-      <th style="padding:2px 8px">SMA 50/200</th>
-      <th style="padding:2px 8px">Intraday</th>
-    </tr></thead>
-    <tbody>
-      <tr>
-        <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">SPY</td>
-        <td data-label="Price" class="ts-px-up" style="padding:2px 8px;white-space:nowrap">743.74</td>
-        <td data-label="Alignment" class="ts-align" style="padding:2px 8px;white-space:nowrap">BULL</td>
-        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.85</td>
-        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↑ 50 ↑ 200</td>
-        <td data-label="Intraday" class="ts-intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
-      </tr>
-      <tr>
-        <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">QQQ</td>
-        <td data-label="Price" style="padding:2px 8px;white-space:nowrap">696.95</td>
-        <td data-label="Alignment" class="ts-align" style="padding:2px 8px;white-space:nowrap">MIX</td>
-        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.93</td>
-        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↓ 50 ↑ 200</td>
-        <td data-label="Intraday" class="ts-intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
-      </tr>
-      <tr>
-        <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">GDX</td>
-        <td data-label="Price" class="ts-px-down" style="padding:2px 8px;white-space:nowrap">71.14</td>
-        <td data-label="Alignment" class="ts-align" style="padding:2px 8px;white-space:nowrap">BEAR</td>
-        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">1.03</td>
-        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↓ 50 ↓ 200</td>
-        <td data-label="Intraday" class="ts-intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
-      </tr>
-      <tr>
-        <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">GLD</td>
-        <td data-label="Price" class="ts-px-down" style="padding:2px 8px;white-space:nowrap">367.70</td>
-        <td data-label="Alignment" class="ts-align" style="padding:2px 8px;white-space:nowrap">BEAR</td>
-        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">1.21</td>
-        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↓ 50 ↓ 200</td>
-        <td data-label="Intraday" class="ts-intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
-      </tr>
-      <tr>
-        <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">SLV</td>
-        <td data-label="Price" class="ts-px-down" style="padding:2px 8px;white-space:nowrap">50.69</td>
-        <td data-label="Alignment" class="ts-align" style="padding:2px 8px;white-space:nowrap">BEAR</td>
-        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.99</td>
-        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↓ 50 ↓ 200</td>
-        <td data-label="Intraday" class="ts-intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
-      </tr>
-      <tr>
-        <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">XLE</td>
-        <td data-label="Price" class="ts-px-up" style="padding:2px 8px;white-space:nowrap">57.58</td>
-        <td data-label="Alignment" class="ts-align" style="padding:2px 8px;white-space:nowrap">BULL</td>
-        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.84</td>
-        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↑ 50 ↑ 200</td>
-        <td data-label="Intraday" class="ts-intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="tape-no-data">SESSION INACTIVE</div>
 </div>
 <div class="block" id="candidate-board">
   <h2>Market Map / Developing Setups</h2>
-  <div class="idle-summary">No qualifying short setups currently available.</div>
-  <div class="idle-summary"><div>NO ACTIONABLE SETUPS</div><div>Market is not offering structure</div></div>
+  <div class="unavailable">SESSION INACTIVE</div>
 </div>
 <div class="block" id="run-delta">
   <h2>Changes Since Last Run</h2>
-  <div class="value">Permission flipped to shorts</div>
+  <div class="value">No changes since last run</div>
 </div>
 <div class="block" id="scoreboard">
   <h2>Scoreboard</h2>
+  <div class="scoreboard-row"><span class="scoreboard-date">2026-07-20</span><span class="scoreboard-regime">NEUTRAL</span><span class="scoreboard-posture">Stay Flat</span><span class="scoreboard-spy">SPY next n/a</span></div>
   <div class="scoreboard-row"><span class="scoreboard-date">2026-07-17</span><span class="scoreboard-regime">NEUTRAL</span><span class="scoreboard-posture">Stay Flat</span><span class="scoreboard-spy">SPY next n/a</span></div>
   <div class="scoreboard-row"><span class="scoreboard-date">2026-07-16</span><span class="scoreboard-regime">NEUTRAL</span><span class="scoreboard-posture">Stay Flat</span><span class="scoreboard-spy">SPY next n/a</span></div>
   <div class="scoreboard-row"><span class="scoreboard-date">2026-07-15</span><span class="scoreboard-regime">RISK_ON</span><span class="scoreboard-posture">Stay Flat</span><span class="scoreboard-spy">SPY next -0.54%</span></div>
   <div class="scoreboard-row"><span class="scoreboard-date">2026-07-14</span><span class="scoreboard-regime">RISK_ON</span><span class="scoreboard-posture">Aggressive Long</span><span class="scoreboard-spy">SPY next +0.40%</span></div>
-  <div class="scoreboard-row"><span class="scoreboard-date">2026-07-13</span><span class="scoreboard-regime">RISK_OFF</span><span class="scoreboard-posture">Stay Flat</span><span class="scoreboard-spy">SPY next +0.36%</span></div>
 </div>
 </div>
 </div>

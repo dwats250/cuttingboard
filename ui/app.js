@@ -148,7 +148,10 @@ function renderPrimaryTrade(contract) {
 
   const c = candidates[0];
   const rr = safeGet(c, 'risk_reward');
-  const rrDisplay = rr != null ? Number(rr).toFixed(1) : 'N/A';
+  // PRD-260 R3: a continuation R:R is derived from the synthetic 3xATR
+  // reward ceiling (PRD-240 R3), not a calibrated target — label it.
+  const rrCeiling = safeGet(c, 'entry_mode') === 'CONTINUATION' ? ' (3xATR ceiling)' : '';
+  const rrDisplay = (rr != null ? Number(rr).toFixed(1) : 'N/A') + rrCeiling;
 
   document.getElementById('primary-trade-inner').innerHTML =
     `<div class="primary-trade-symbol">${display(safeGet(c, 'symbol'))}</div>` +
@@ -219,7 +222,9 @@ function renderSecondarySetups(contract) {
   const slice = candidates.slice(1, 5);
   for (const c of slice) {
     const rr = safeGet(c, 'risk_reward');
-    const rrDisplay = rr != null ? Number(rr).toFixed(1) : 'N/A';
+    // PRD-260 R3: label continuation R:R as the synthetic ceiling ratio.
+    const rrCeiling = safeGet(c, 'entry_mode') === 'CONTINUATION' ? ' (3xATR ceiling)' : '';
+    const rrDisplay = (rr != null ? Number(rr).toFixed(1) : 'N/A') + rrCeiling;
     const tr = document.createElement('tr');
     tr.innerHTML =
       `<td>${display(safeGet(c, 'symbol'))}</td>` +
