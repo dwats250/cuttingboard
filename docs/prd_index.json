@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 265,
-  "next_prd": 266,
+  "latest_complete": 266,
+  "next_prd": 267,
   "entries": [
     {
       "number": 56,
@@ -1266,8 +1266,8 @@
     {
       "number": 266,
       "title": "Governance: model-role lane, drafter-not-reviewer constraint, commission-scope trace-to-surface",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "bc0a82b"
     }
   ]
 }
