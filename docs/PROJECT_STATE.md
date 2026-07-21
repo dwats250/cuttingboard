@@ -5,7 +5,7 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-07-20 (commit #154)
+**Last updated:** 2026-07-21 (commit #157)
 
 ## Current state
 
@@ -206,6 +206,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 | PRD | Title | Completed |
 |-----|-------|-----------|
+| PRD-266 | Governance: model-role lane, drafter-not-reviewer constraint, commission-scope trace-to-surface | 2026-07-21 |
 | PRD-265 | Coverage marker: persist RegimeState.total_votes so bounded days are identifiable across runs | 2026-07-20 |
 | PRD-263 | Regime vote coverage: worst-case-bounded confidence (Tier-4 quorum floor) | 2026-07-19 |
 | PRD-262 | Missing/NaN pct_change fails loud (F-02): no fabricated 0.0 in ingestion, normalization, or the breadth denominator | 2026-07-18 |
