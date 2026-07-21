@@ -1,68 +1,185 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.7426375790920798,
-      "level": 65162.1796875,
+      "change_pct": 2.197227225354683,
+      "level": 66645.9296875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.24027399370919827,
-      "level": 100.95899963378906,
+      "change_pct": 0.1822250588659401,
+      "level": 101.15699768066406,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -0.40220346033781695,
-      "level": 4011.60009765625,
+      "change_pct": 0.5307462667137401,
+      "level": 4072.39990234375,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": -1.4586337034982289,
-      "level": 82.41999816894531,
+      "change_pct": 2.713220174350086,
+      "level": 84.41999816894531,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 5.771564542846058,
-      "change_pct": 1.255233684340514,
-      "level": 4.5980000495910645,
+      "change_bps": 2.210509755509884,
+      "change_pct": 0.47846532689737997,
+      "level": 4.619999885559082,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -1.0821170288837076,
-      "level": 56.67499923706055,
+      "change_pct": 2.0221998904009006,
+      "level": 59.279998779296875,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -1.7609387819451638,
-      "level": 18.40999984741211,
+      "change_pct": -7.077746497714096,
+      "level": 17.329999923706055,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260720T201626Z",
-    "symbols_scanned": 0,
-    "timestamp": "2026-07-20T20:16:26Z"
+    "generation_id": "hourly-20260721T150417Z",
+    "symbols_scanned": 23,
+    "timestamp": "2026-07-21T15:04:17Z"
   },
-  "run_status": "STAY_FLAT",
+  "run_status": "OK",
   "schema_version": "1.0",
   "sections": {
     "chain_results_detail": [],
-    "continuation_audit": null,
+    "continuation_audit": {
+      "accepted_count": 0,
+      "rejected_count": 2
+    },
     "option_setups_detail": [],
-    "rejected": [],
+    "rejected": [
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "AMZN"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "BTC-USD"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "CL=F"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "COIN"
+      },
+      {
+        "detail": null,
+        "reason": "2 soft gates failed: stop distance 0.5% below 1.0% minimum; R:R 2.00 below 2.0 minimum",
+        "stage": "QUALIFICATION",
+        "symbol": "DX-Y.NYB"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "MSTR"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "QQQ"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "USO"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "XLE"
+      },
+      {
+        "detail": null,
+        "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "QUALIFICATION",
+        "symbol": "^TNX"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "^VIX"
+      }
+    ],
     "top_trades": [],
     "trade_decision_detail": [],
-    "validation_halt_detail": {
-      "reason": "STAY_FLAT posture"
-    },
+    "validation_halt_detail": null,
     "watch_summary_detail": null,
-    "watchlist": []
+    "watchlist": [
+      {
+        "detail": null,
+        "reason": "stop distance 78.06 below 1\u00d7 ATR14 (78.06)",
+        "stage": "WATCHLIST",
+        "symbol": "GC=F"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 8.44 below 1\u00d7 ATR14 (8.44)",
+        "stage": "WATCHLIST",
+        "symbol": "SPY"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 4.58 below 1\u00d7 ATR14 (4.58)",
+        "stage": "WATCHLIST",
+        "symbol": "IWM"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 7.23 below 1\u00d7 ATR14 (7.23)",
+        "stage": "WATCHLIST",
+        "symbol": "GLD"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 2.03 below 1\u00d7 ATR14 (2.03)",
+        "stage": "WATCHLIST",
+        "symbol": "PAAS"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 16.90 below 1\u00d7 ATR14 (16.90)",
+        "stage": "WATCHLIST",
+        "symbol": "TSLA"
+      },
+      {
+        "detail": null,
+        "reason": "price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "WATCHLIST",
+        "symbol": "AAPL"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 25.70 below 1\u00d7 ATR14 (25.70)",
+        "stage": "WATCHLIST",
+        "symbol": "META"
+      }
+    ]
   },
   "summary": {
-    "confidence": 0.0,
-    "market_regime": "NEUTRAL",
+    "confidence": 1.0,
+    "market_regime": "EXPANSION",
     "outcome": null,
     "permission": null,
     "router_mode": "MIXED",
-    "tradable": false
+    "tradable": true
   }
 }
