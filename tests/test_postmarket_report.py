@@ -17,7 +17,7 @@ _EVR_KEYS = {"result", "notes"}
 _TRADE_SUMMARY_KEYS = {"qualified_count", "watchlist_count", "rejected_count"}
 _REJECTION_BREAKDOWN_KEYS = {"regime", "qualification", "watchlist"}
 _REGIME_VALIDATION_KEYS = {"persisted", "flipped"}
-_VALID_EVR_RESULTS = {"MATCH", "PARTIAL", "MISS", "NO_EXPECTATION"}
+_VALID_EVR_RESULTS = {"MATCH", "PARTIAL", "MISS", "NO_EXPECTATION", "COVERAGE_BOUNDED"}
 
 
 def _make_contract(
@@ -30,6 +30,7 @@ def _make_contract(
     continuation_enabled: bool | None = None,
     rejections: list | None = None,
     correlation: dict | None = None,
+    regime_total_votes: int | None = None,
 ) -> dict:
     return {
         "status": status,
@@ -48,16 +49,25 @@ def _make_contract(
             "continuation_rejected_count": continuation_rejected_count,
         },
         "correlation": correlation,
+        # PRD-265: contract.py:480 already carries total_votes on the regime
+        # block; None here means "no regime_total_votes asserted by this test",
+        # matching build_postmarket_report's `contract.get("regime") or {}` guard.
+        "regime": (
+            {"total_votes": regime_total_votes} if regime_total_votes is not None else None
+        ),
     }
 
 
-def _run_record(regime: str, posture: str = "AGGRESSIVE_LONG") -> dict:
-    return {
+def _run_record(regime: str, posture: str = "AGGRESSIVE_LONG", total_votes: int | None = None) -> dict:
+    record = {
         "run_at_utc": "2026-04-27T12:00:00+00:00",
         "outcome": "TRADE",
         "regime": regime,
         "posture": posture,
     }
+    if total_votes is not None:
+        record["total_votes"] = total_votes
+    return record
 
 
 class TestSchemaExact:
@@ -169,6 +179,70 @@ class TestRegimeValidation:
         report = build_postmarket_report(_make_contract(market_regime="NEUTRAL"), history)
         assert report["regime_validation"]["flipped"] is True
         assert report["regime_validation"]["persisted"] is False
+
+
+class TestPrd265CoverageBoundedFourState:
+    """PRD-265 R3/R4: absent=LEGACY, 0=EXPANSION, 1-7=BOUNDED, 8=FULL. Only
+    BOUNDED (1-7) is excluded from persisted/flipped and never yields a scored
+    EVR MATCH/PARTIAL/MISS; the other three states score exactly as before."""
+
+    def test_r3_legacy_row_scored_exactly_as_today(self):
+        # No total_votes key at all -- must NOT be excluded.
+        history = [_run_record("NEUTRAL", posture="STAY_FLAT")]
+        report = build_postmarket_report(_make_contract(market_regime="NEUTRAL", tradable=False), history)
+        assert report["expectation_vs_reality"]["result"] == "MATCH"
+        report2 = build_postmarket_report(_make_contract(market_regime="NEUTRAL"), history)
+        assert report2["regime_validation"]["persisted"] is True
+
+    def test_r3_expansion_row_total_votes_zero_not_bounded(self):
+        history = [_run_record("NEUTRAL", total_votes=0)]
+        report = build_postmarket_report(_make_contract(market_regime="NEUTRAL"), history)
+        assert report["regime_validation"]["persisted"] is True, "EXPANSION (0) must score normally, not be excluded"
+
+    def test_r3_full_row_total_votes_eight_not_bounded(self):
+        history = [_run_record("NEUTRAL", total_votes=8)]
+        report = build_postmarket_report(_make_contract(market_regime="NEUTRAL"), history)
+        assert report["regime_validation"]["persisted"] is True, "FULL (8) must score normally, not be excluded"
+
+    def test_r4_bounded_row_excluded_from_persisted_flipped(self):
+        # total_votes=5 -> BOUNDED (1-7): the only prior run is coverage, not
+        # market evidence, so this must behave like empty history.
+        history = [_run_record("NEUTRAL", total_votes=5)]
+        report = build_postmarket_report(_make_contract(market_regime="NEUTRAL"), history)
+        assert report["regime_validation"] == {"persisted": False, "flipped": False}
+
+    def test_r4_bounded_row_mixed_with_scored_rows_excluded_from_flip(self):
+        # A bounded RISK_ON row alongside a legacy NEUTRAL row: the bounded
+        # row must not count toward "flipped" even though its regime differs.
+        history = [_run_record("RISK_ON", total_votes=3), _run_record("NEUTRAL")]
+        report = build_postmarket_report(_make_contract(market_regime="NEUTRAL"), history)
+        assert report["regime_validation"] == {"persisted": True, "flipped": False}
+
+    def test_r4_bounded_row_does_not_yield_scored_evr(self):
+        # Only prior run is BOUNDED -> excluded -> no prior run remains for EVR.
+        history = [_run_record("NEUTRAL", posture="STAY_FLAT", total_votes=5)]
+        report = build_postmarket_report(_make_contract(market_regime="NEUTRAL", tradable=False), history)
+        assert report["expectation_vs_reality"]["result"] == "NO_EXPECTATION"
+
+    def test_r4_bounded_current_verdict_yields_coverage_bounded_outcome(self):
+        # Current contract's regime block total_votes=4 (BOUNDED) -> the EVR
+        # outcome for THIS run is coverage-bounded, never a scored hit/miss,
+        # even though a normal scorable prior run exists.
+        history = [_run_record("NEUTRAL", posture="STAY_FLAT")]
+        report = build_postmarket_report(
+            _make_contract(market_regime="NEUTRAL", tradable=False, regime_total_votes=4),
+            history,
+        )
+        assert report["expectation_vs_reality"]["result"] == "COVERAGE_BOUNDED"
+
+    def test_r4_current_verdict_expansion_and_full_still_scored(self):
+        history = [_run_record("NEUTRAL", posture="STAY_FLAT")]
+        for total_votes in (0, 8):
+            report = build_postmarket_report(
+                _make_contract(market_regime="NEUTRAL", tradable=False, regime_total_votes=total_votes),
+                history,
+            )
+            assert report["expectation_vs_reality"]["result"] == "MATCH", total_votes
 
 
 class TestDeterministicObservations:

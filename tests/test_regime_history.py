@@ -75,8 +75,13 @@ def test_prd175_one_record_per_date_excludes_notifications(tmp_path) -> None:
                 "vix_level", "first_run_at_utc", "last_run_at_utc", "run_count"):
         assert key in d0608, f"summary missing required field {key!r}"
     # R1: no audit field that does not exist (vote breakdown)
-    for forbidden in ("risk_on_votes", "risk_off_votes", "neutral_votes", "total_votes"):
+    for forbidden in ("risk_on_votes", "risk_off_votes", "neutral_votes"):
         assert forbidden not in d0608, f"summary must not invent field {forbidden!r}"
+    # PRD-265 R2: total_votes is carried, not forbidden -- present here as None
+    # because the source _pipeline_record fixture (legacy-shaped) has no
+    # total_votes key at all.
+    assert "total_votes" in d0608, "R2 FAIL: total_votes missing from summary"
+    assert d0608["total_votes"] is None
 
 
 # --- representativeness — last run of the day wins -----------------------
@@ -98,6 +103,64 @@ def test_prd175_summary_uses_last_run_of_day(tmp_path) -> None:
     assert rec["posture"] == "CONTROLLED_LONG"
     assert rec["first_run_at_utc"] == "2026-06-09T13:00:00+00:00"
     assert rec["last_run_at_utc"] == "2026-06-09T20:00:00+00:00"
+
+
+# --- PRD-265 R2 — total_votes propagates through the summary -------------
+
+def test_prd265_r2_total_votes_propagates_into_summary(tmp_path) -> None:
+    """A pipeline record carrying total_votes (post-PRD-265 audit row) has its
+    value carried into the regime_history summary unchanged."""
+    audit = tmp_path / "audit.jsonl"
+    history = tmp_path / "regime_history.jsonl"
+    record = _pipeline_record(
+        date="2026-06-09", run_at_utc="2026-06-09T20:00:00+00:00",
+        regime="RISK_ON", posture="CONTROLLED_LONG", confidence=0.8,
+        net_score=3, vix_level=15.0,
+    )
+    record["total_votes"] = 5
+    _write_audit(audit, [record])
+    aggregate(audit_path=str(audit), history_path=str(history), spy_closes=[])
+    rec = _read_history(history)[0]
+    assert rec["total_votes"] == 5
+
+
+def test_prd265_r3_four_states_carried_verbatim(tmp_path) -> None:
+    """R3: LEGACY (absent), EXPANSION (0), BOUNDED (1-7), FULL (8) all carry
+    through the summary as whatever the source row had -- regime_history
+    itself neither excludes nor marks; it is a pure carrier."""
+    audit = tmp_path / "audit.jsonl"
+    history = tmp_path / "regime_history.jsonl"
+    legacy = _pipeline_record(
+        date="2026-06-06", run_at_utc="2026-06-06T20:00:00+00:00",
+        regime="NEUTRAL", posture="STAY_FLAT", confidence=0.4,
+        net_score=0, vix_level=17.0,
+    )  # no total_votes key at all -- LEGACY
+    expansion = _pipeline_record(
+        date="2026-06-07", run_at_utc="2026-06-07T20:00:00+00:00",
+        regime="RISK_ON", posture="CONTROLLED_LONG", confidence=0.5,
+        net_score=1, vix_level=16.0,
+    )
+    expansion["total_votes"] = 0
+    bounded = _pipeline_record(
+        date="2026-06-08", run_at_utc="2026-06-08T20:00:00+00:00",
+        regime="RISK_ON", posture="CONTROLLED_LONG", confidence=0.7,
+        net_score=3, vix_level=15.0,
+    )
+    bounded["total_votes"] = 5
+    full = _pipeline_record(
+        date="2026-06-09", run_at_utc="2026-06-09T20:00:00+00:00",
+        regime="RISK_OFF", posture="DEFENSIVE_SHORT", confidence=0.9,
+        net_score=-6, vix_level=25.0,
+    )
+    full["total_votes"] = 8
+    _write_audit(audit, [legacy, expansion, bounded, full])
+    aggregate(audit_path=str(audit), history_path=str(history), spy_closes=[])
+    by_date = {r["date"]: r for r in _read_history(history)}
+    assert "total_votes" in by_date["2026-06-06"], "LEGACY: key present in summary (carried via .get, value None)"
+    assert by_date["2026-06-06"]["total_votes"] is None
+    assert by_date["2026-06-07"]["total_votes"] == 0
+    assert by_date["2026-06-08"]["total_votes"] == 5
+    assert by_date["2026-06-09"]["total_votes"] == 8
 
 
 # --- R4 — prior-day record gains spy_close_change_pct -------------------

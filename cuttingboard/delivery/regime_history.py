@@ -37,8 +37,15 @@ REGIME_HISTORY_PATH = "logs/regime_history.jsonl"
 STALE_MARKER_KEY = "spy_close_change_pct_stale"
 
 # Representative summary fields, drawn only from fields cuttingboard.audit
-# actually writes to a pipeline record (PRD-175 R1).
-_REGIME_FIELDS = ("regime", "posture", "confidence", "net_score", "vix_level")
+# actually writes to a pipeline record (PRD-175 R1). total_votes (PRD-265) is
+# carried through unconditionally like every other field here: present with
+# whatever value .get() resolves (None for a legacy source row that predates
+# PRD-265, or one written when regime was None). A record on-disk that
+# literally lacks the key entirely (a regime_history.jsonl row written before
+# this PRD shipped, not yet rebuilt) is the true LEGACY-absent case downstream
+# consumers must handle -- see _coverage_bounded in postmarket.py /
+# dashboard_renderer.py.
+_REGIME_FIELDS = ("regime", "posture", "confidence", "net_score", "vix_level", "total_votes")
 
 
 def _load_pipeline_records(audit_path: str) -> list[dict]:

@@ -206,6 +206,7 @@ def _build_record(
         "posture":                regime.posture if regime else None,
         "confidence":             round(regime.confidence, 4) if regime else None,
         "net_score":              regime.net_score if regime else None,
+        "total_votes":            regime.total_votes if regime else None,
         "vix_level":              regime.vix_level if regime else None,
         "router_mode":            router_mode,
         "energy_score":           round(energy_score, 2),

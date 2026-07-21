@@ -282,6 +282,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-262 | #151 | Missing/NaN pct_change fails loud (F-02): no fabricated 0.0 in ingestion, normalization, or the breadth denominator | COMPLETE | [PRD-262](prd_history/PRD-262.md) |
 | PRD-263 | #152 | Regime vote coverage: worst-case-bounded confidence (Tier-4 quorum floor) | COMPLETE | [PRD-263](prd_history/PRD-263.md) |
 | PRD-264 | — | Pytest import hardening: close the PYTHONPATH-shadowing trap at the config layer | IN PROGRESS | [PRD-264](prd_history/PRD-264.md) |
+| PRD-265 | #154 | Coverage marker: persist RegimeState.total_votes so bounded days are identifiable across runs | COMPLETE | [PRD-265](prd_history/PRD-265.md) |
 | PRD-266 | — | Governance: model-role lane, drafter-not-reviewer constraint, commission-scope trace-to-surface | IN PROGRESS | [PRD-266](prd_history/PRD-266.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().

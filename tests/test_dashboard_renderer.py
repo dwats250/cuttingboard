@@ -3637,6 +3637,39 @@ def test_prd177_r4_scoreboard_empty_state() -> None:
         assert 'class="scoreboard-row"' not in board
 
 
+def test_prd265_r5_scoreboard_marks_bounded_row() -> None:
+    # total_votes=5 -> BOUNDED (1-7): renders the marker.
+    hist = [
+        {"date": "2026-06-08", "regime": "RISK_ON", "posture": "CONTROLLED_LONG",
+         "spy_close_change_pct": 0.0123, "total_votes": 5},
+    ]
+    html = render_dashboard_html(_payload(), _run(), regime_history=hist)
+    board = html.split('id="scoreboard"', 1)[1]
+    assert "BOUNDED" in board
+
+
+def test_prd265_r5_scoreboard_four_states_only_bounded_marks() -> None:
+    # absent=LEGACY, 0=EXPANSION, 8=FULL must NOT render BOUNDED; only the
+    # 1-7 row does.
+    hist = [
+        {"date": "2026-06-05", "regime": "NEUTRAL", "posture": "STAY_FLAT",
+         "spy_close_change_pct": 0.0},  # LEGACY: no total_votes key at all
+        {"date": "2026-06-06", "regime": "RISK_ON", "posture": "CONTROLLED_LONG",
+         "spy_close_change_pct": 0.001, "total_votes": 0},  # EXPANSION
+        {"date": "2026-06-07", "regime": "RISK_ON", "posture": "CONTROLLED_LONG",
+         "spy_close_change_pct": 0.002, "total_votes": 5},  # BOUNDED
+        {"date": "2026-06-08", "regime": "RISK_OFF", "posture": "DEFENSIVE_SHORT",
+         "spy_close_change_pct": -0.001, "total_votes": 8},  # FULL
+    ]
+    html = render_dashboard_html(_payload(), _run(), regime_history=hist)
+    board = html.split('id="scoreboard"', 1)[1]
+    rows = board.split('class="scoreboard-row"')[1:]
+    assert len(rows) == 4
+    marked = [i for i, row in enumerate(rows) if "BOUNDED" in row]
+    # Most-recent-first ordering: 06-08 (FULL), 06-07 (BOUNDED), 06-06 (EXPANSION), 06-05 (LEGACY)
+    assert marked == [1], f"only the BOUNDED (1-7) row should carry the marker, got rows marked: {marked}"
+
+
 def test_prd177_r5_red_folder_lists_events() -> None:
     rf = {"ok": True, "error": None, "expiring": False,
           "events": [{"date": "2026-06-11", "time_et": "08:30", "type": "CPI", "name": "CPI (May)"}]}
