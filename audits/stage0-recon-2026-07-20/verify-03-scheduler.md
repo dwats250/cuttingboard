@@ -1,7 +1,13 @@
 # Verification — Track C: stage0-03-scheduler-v0.1.md (Q16-18)
 
-Verifier: separate fresh-context Claude Code session (see
-`verify-00-disposition-index.md` for capability header). Verified against
+**VERIFIED FINDINGS, UNVERIFIED ISOLATION** — see
+`verify-00-disposition-index.md`'s capability header: this session's
+self-reported session id resolved to a template placeholder string, not a
+genuine identifier, so its fresh-context/isolation status per the
+Charter's §14 step 4 could not be established and must not be asserted as
+independent. The findings below were independently derived via each
+check's own methodology regardless — findings and isolation are separable
+claims. Verified against
 this worktree's HEAD, source-tree-identical to the pinned SHA
 `771f730839b00b0537327f9696210275f36cd790`.
 

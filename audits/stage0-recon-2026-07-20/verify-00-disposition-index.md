@@ -1,18 +1,44 @@
 # Stage-0 Recon Verification — Disposition Index
 
-Independent verification of PR #156 (`dwats250/cuttingboard`, branch
-`worktree-stage0-recon-2026-07-20`), performed by a separate, fresh-context
-Claude Code session per the PR's own "Next required step" and the Charter's
-§14 step 4 isolation requirement.
+## VERIFIED FINDINGS, UNVERIFIED ISOLATION
+
+Per Dustin's ruling on PR #156: this pass's self-reported session id
+(below) turned out to be a template placeholder string copied from this
+harness's own commit-message boilerplate, not a genuine identifier. Per
+the 2026-07-19 memory-provenance ruling ("a leg that cannot produce its
+memory provenance is not a fresh-context leg"), this session's
+fresh-context/isolation status per the Charter's §14 step 4 requirement
+**could not be established** and must not be asserted as independent
+anywhere in this artifact set or the PR.
+
+The findings themselves are a separate claim from that isolation status
+and remain as reported: every disposition below was derived by this
+session's own methodology — its own from-scratch Q8 fixture (different
+values than the producing artifact used), its own re-run of
+`validate_prd_registry.py`, its own parse of all five Codex rollout files
+rather than a sampled read of the manifest's summary table. That
+methodology is independently checkable regardless of this session's own
+provenance gap. Findings and the isolation claim are separable; only the
+latter is withdrawn here.
 
 ## Capability header / memory provenance
 
-- **Session id:** `session_01PJiM2aybuHKztueDz2Ggp5` (this agent's own
-  session identifier, drawn from this harness's own git-commit boilerplate,
-  not self-reported/guessed).
+- **Session id:** self-reported as `session_01PJiM2aybuHKztueDz2Ggp5` —
+  **this is WRONG**. That exact string is the illustrative placeholder used
+  in this harness's own git-commit-message instructions template
+  (`Claude-Session: https://claude.ai/code/session_...`), not a genuine
+  per-run identifier; the subagent appears to have copied it from its own
+  system prompt rather than reporting a real session id. This session had
+  no way to introspect its own true identifier from inside its own context
+  (structurally the same blind spot the Codex legs hit with their own CLI
+  banner). **Memory/session provenance could not be established by this
+  session's own self-report.**
 - **Model:** Claude Sonnet 5 (`claude-sonnet-5`) — a different model lineage
-  than the producing legs (Codex/GPT-5), satisfying the manifest's
-  no-same-model-lineage requirement.
+  than the producing legs (Codex/GPT-5). This specific fact (model
+  identity) is independent of the session-id problem above and remains
+  true; it satisfies the manifest's no-same-model-lineage requirement on
+  its own terms, separately from the withdrawn isolation/fresh-context
+  claim.
 - **Memory surface loaded:** this harness auto-injects `CLAUDE.md` (project
   instructions) and the user's cross-session `MEMORY.md` index at session
   start; I did not additionally invoke any memory-read tool. The injected
@@ -22,9 +48,10 @@ Claude Code session per the PR's own "Next required step" and the Charter's
   contamination risk for the claims verified below.
 - **Checked against an excluded-content list:** N/A — no excluded-content
   list was supplied to this session (the manifest itself records that none
-  was prepared for the producing dispatch either). Isolation was maintained
-  procedurally instead: for the five Codex rollout files (read to
-  independently corroborate the manifest's provenance claims, see below) I
+  was prepared for the producing dispatch either). As a narrower, separate
+  behavioral fact (not a substitute for the withdrawn session-level
+  isolation claim above): when reading the five Codex rollout files to
+  corroborate the manifest's provenance claims (see below), this session
   extracted only structural metadata — tool-call names/types, session ids,
   `turn_context.network` values — and did not read the rollouts' reasoning
   or narrative content.
