@@ -173,6 +173,54 @@ does, only *when* they fire relative to each other.
 
 ---
 
+## Model-role lane (PROVISIONAL; adopted 2026-07-19)
+
+PROVISIONAL, not settled practice: the Fable-drafts seat is unproven
+(see the caveat below), so this section carries an explicit review
+trigger and either graduates on evidence or is retired. It does not
+calcify by default.
+
+Review trigger — whichever comes FIRST:
+  (a) five PRDs have completed the full lane with Fable in the drafting
+      seat, or
+  (b) the first drafting defect is found in a Fable-drafted PRD by any
+      downstream leg (implementer, Claude review, or commissioned
+      sweep) — a missing consumer, a wrong FILES boundary, an
+      unrealizable requirement, or a mis-stated evidence claim.
+At the trigger, Dustin rules: graduate the lane to standing practice,
+amend it, or retire it. Record the ruling in docs/DECISIONS.md and
+update this section's status line. An untriggered lane is reviewed at
+the next Alignment check (CLAUDE.md § Alignment check, PRD-230) after
+its adoption — that check already runs at each wave/batch close and
+records a DECISIONS line, so the lane review rides it rather than
+inventing a new cadence.
+
+The lane — the drafting and implementing sessions are separated by
+model and by context:
+
+  Fable drafts the PRD -> a FRESH session implements against it
+  (Opus for HIGH-RISK, Sonnet for MICRO/mechanical) -> fresh-context
+  Claude review -> commissioned second-model consumer sweep (Codex;
+  Sol+Luna instrument naming per the delegation pattern below) ->
+  Dustin's manual merge.
+
+- The PRD doc is the handoff medium. The implementing session starts
+  with no shared context from the drafting session; everything the
+  implementer needs must be in the PRD. The model boundary sits on the
+  governance boundary that already exists.
+- Binding constraint (independent of this lane; recorded at
+  docs/DECISIONS.md 2026-07-19, "a model may not review its own draft"):
+  whichever model DRAFTS a PRD may not serve as its second-model
+  reviewer. Kept there, not here, so retiring this provisional lane
+  cannot retire the rule.
+- Caveat and the reason for PROVISIONAL status: the
+  seven-consecutive-PRD evidence for the second-model leg is for
+  out-of-diff consumer sweeps — retrieval-heavy work. Plan drafting is
+  hypothesis-heavy and has no comparable evidence base. Reviews of
+  Fable-drafted PRDs watch for drafting defects specifically.
+
+---
+
 ## Second-Model Disposition (PRD-242)
 
 A COMPLETE HIGH-RISK PRD numbered >= 242 MUST carry exactly one of:
@@ -228,7 +276,55 @@ required-forever role labels — a commissioned second model may use its
 own naming, as long as the three conditions above hold. Both
 invocations run read-only (`codex exec -s read-only`; see CLAUDE.md
 "Codex mechanics") — the second-model leg never gets repo-write
-access.
+access. The retriever's exhaustive mechanical retrieval is part of THIS
+commissioned review; it is not the discretionary simple-grep /
+mechanical-Codex use that CLAUDE.md § Working practices ("Recon goes to
+subagents") bars — that bar governs standalone recon, not the retriever
+leg of a commissioned second-model review.
+
+### Commission scope: trace to the human surface, not the diff layer (PRD-263)
+
+A commissioned consumer sweep must trace each claimed behavior FORWARD
+to the surface where it reaches a human — a published contract, a
+rendered alert, a dashboard cell, a persisted scoreboard row — not stop
+at the layer the diff touches. A behavior computed correctly at the diff
+layer but never arriving — aborted, truncated, suppressed, or
+overwritten downstream — is a realizability defect the sweep must
+surface, classified INERT or DEGRADED with the intercepting site named.
+Correct-at-the-layer is not the claim; arrives-at-the-surface is.
+
+Incident (this is evidence, not hypothesis): PRD-263 produced two
+instances of the class in one change. (1) The coverage-naming STAY_FLAT
+reason, built correctly in `qualification.py`, is truncated by the
+80-char cap at `output.py:893` on the daily compact alert and never
+built at all on the hourly path (`runtime/__init__.py:426` skips
+qualification on STAY_FLAT) — computed, never fully shown. (2) The
+bounded BTC-USD verdict, computed correctly in `regime.py`, is aborted
+at `contract._build_macro_drivers` (bitcoin is a required driver, raises
+before publish) — computed, never published. Both are the same shape:
+right at the diff layer, absent at the surface. What the commissioned
+sweep did tells the whole story: the SAME leg traced one claimed
+behavior forward and not the other — instance (1) IS its own finding
+(sol C2, traced to `output.py:893` and the hourly path), while it marked
+`contract._build_macro_drivers`'s raise SAFE without tracing the BTC
+verdict forward to it. The fresh-context Claude leg traced neither
+forward; the connector's forward trace caught (2). A single competent
+leg applying the trace to one claim and not the next is exactly why this
+must be a standing prompt clause and not reviewer initiative — initiative
+is inconsistent even within one capable reviewer.
+
+**Required prompt clause (paste verbatim into every commissioned sweep
+prompt; the commission prompt is authored ad-hoc — this doc is its
+source, there is no separate template file):**
+
+> For each behavior you claim the change produces, name the specific
+> human-facing surface it reaches (published contract field, rendered
+> alert line, dashboard cell, persisted row) and confirm it arrives
+> there UNMODIFIED — trace forward through every site that could abort,
+> truncate, suppress, or overwrite it. If it does not arrive intact,
+> classify it INERT (never reaches the surface) or DEGRADED (reaches it
+> altered) and name the intercepting file:line. Do not stop at the
+> layer the diff touches.
 
 ---
 
