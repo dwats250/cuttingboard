@@ -32,9 +32,34 @@
 
 ## Q19 — GEX
 
-NO VIABLE PROVIDER IN BOUNDED PASS
+**Orchestrator re-disposition (post-hoc, per Dustin's ruling on PR #156):**
+The producing leg's original verdict, preserved verbatim below, reads as
+if an external provider was examined and rejected. In fact this leg ran
+under Step 0.5's evidence-integrity lockdown — `apps`, `plugins`,
+`browser_use`, `browser_use_external`, `browser_use_full_cdp_access`, and
+`computer_use` disabled, `mcp_servers` cleared — so it had no network
+reach to any live GEX provider at all. Q19-21 ask whether an external
+provider meets a minimum honesty contract (terms, model semantics,
+expiration scope, update cadence); that question is structurally
+unanswerable without controlled network access, which this dispatch's
+isolation deliberately withheld. Corrected verdict:
 
-This artifact may be dropped or rerun independently; no live or second-provider trial was attempted.
+**NOT ATTEMPTED — EXTERNAL REACH DISABLED.** Q19-21 require controlled
+network access to a live provider; this leg ran under this dispatch's
+network-locked-down isolation and so could not attempt them. This is not a
+re-run under expanded scope — that would be a separate charge with its own
+network surface and its own quarantined-evidence handling.
+
+The leg's repo-only sub-finding below it (no committed GEX provider,
+contract, or consumer path exists in the repo at this pin) is a valid
+STATIC claim, unaffected by this correction — that part examined the repo,
+not an external provider.
+
+Original leg text, preserved verbatim for the record:
+
+> NO VIABLE PROVIDER IN BOUNDED PASS
+>
+> This artifact may be dropped or rerun independently; no live or second-provider trial was attempted.
 
 - **Claim / class:** STATIC@771f730839b00b0537327f9696210275f36cd790 — no committed GEX provider, output contract, or intended GEX display contract was found in the current options-chain path.
 - **Authority:** `cuttingboard/chain_validation.py::ChainValidationResult`, lines 127-137, defines only chain-validation fields; `docs/prd_history/PRD-058.md`, lines 26-36, explicitly excludes gamma-flip logic absent an existing internal source.

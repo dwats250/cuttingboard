@@ -134,11 +134,21 @@ orchestrator note prepended to each artifact.
   no-side-effect dispatch, observed-replacement bar). Note: this leg
   actually ran `git status --short` before/after its live traces to confirm
   no side effects occurred under the read-only sandbox.
-- `stage0-04-gex-v0.1.md` — Q19-21 (GEX). Terminal verdict:
-  **`NO VIABLE PROVIDER IN BOUNDED PASS`** — no committed GEX provider,
-  contract, or consumer path exists in the repo at this pin, and this
-  locked-down session cannot reach any live external provider by design.
-  Droppable/rerunnable independently per the charge.
+- `stage0-04-gex-v0.1.md` — Q19-21 (GEX). **Re-dispositioned post-hoc by
+  Dustin's ruling on PR #156**: the leg's original verdict
+  (`NO VIABLE PROVIDER IN BOUNDED PASS`) implied a provider was examined and
+  rejected; in fact this leg ran with `apps`/`plugins`/`browser_use`/
+  `computer_use` disabled and `mcp_servers` cleared, so it had no network
+  reach to any live provider at all. Q19-21 ask whether an external provider
+  meets an honesty contract — structurally unanswerable without controlled
+  network access this dispatch's isolation deliberately withheld. Corrected
+  verdict: **`NOT ATTEMPTED — EXTERNAL REACH DISABLED`**. The leg's
+  repo-only sub-finding (no committed GEX provider/contract/consumer path
+  exists in the repo at this pin) remains a valid STATIC claim and is
+  unaffected by this correction. Not re-run under expanded scope — that is
+  a separate charge with its own network surface and quarantined-evidence
+  handling. See the artifact's own orchestrator re-disposition note, which
+  preserves the original leg text verbatim for the record.
 - `stage0-05-governance-debt-v0.1.md` — Q22-28 (PRD-264/266/267 status, the
   queued `prd-second-model-commission` skill, `PROJECT_STATE.md` drift, the
   provisional model-role lane trigger). Notably found PRD-266 closeout is
@@ -158,6 +168,25 @@ orchestrator note prepended to each artifact.
 - No artifact blocked another's dispatch or completion. All five ran
   concurrently. Track D's droppable/rerunnable-independently allowance was
   not needed — it returned a clean bounded terminal answer.
+
+## Candidate ruling — logged, not actioned (pending Dustin)
+
+Step 0.5 found `apps`, `plugins`, `browser_use*`, `computer_use`, and the
+`github`/`gmail` plugins live-enabled by default in `~/.codex/config.toml`
+prior to this dispatch (since fixed at the config layer, outside this
+repo). This means **every prior commissioned Codex leg** — including the
+seven-sweep record referenced in prior PRD review artifacts — ran with that
+same undisclosed tool surface available. This is **not evidence of
+contamination**; no prior artifact is being challenged here. But the
+isolation those legs implicitly relied on was asserted, never verified, in
+exactly the shape the 2026-07-19 memory-provenance ruling already
+identified for memory. Codex rollouts can now be read for actual tool
+calls (as demonstrated in this dispatch's own rollout-corroboration check
+above), so any prior artifact with a recorded session id is retro-checkable
+against this same standard if Dustin later wants that audit run. Logged
+here as a candidate ruling alongside the memory-provenance one, for Dustin
+to rule on later — no retro-check of prior artifacts was performed as part
+of this dispatch.
 
 ## Completion status
 
