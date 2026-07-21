@@ -1256,6 +1256,12 @@
       "title": "Pytest import hardening: close the PYTHONPATH-shadowing trap at the config layer",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 266,
+      "title": "Governance: model-role lane, drafter-not-reviewer constraint, commission-scope trace-to-surface",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
