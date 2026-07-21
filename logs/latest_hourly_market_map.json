@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.022699672056285255,
-      "price": 128.64999389648438,
+      "pct_change_decimal": 0.017135065112085093,
+      "price": 127.94999694824219,
       "structure": "CHOPPY",
       "symbol": "USO"
     }
@@ -18,8 +18,8 @@
       "XLE"
     ]
   },
-  "generated_at": "2026-07-21T16:00:18Z",
-  "generation_id": "hourly-20260721T160018Z",
+  "generated_at": "2026-07-21T18:10:24Z",
+  "generation_id": "hourly-20260721T181024Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -33,14 +33,14 @@
   "session_date": "2026-07-21",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-07-21T16:00:18Z"
+    "run_at_utc": "2026-07-21T18:10:24Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "MEDIUM",
-      "current_price": 73.8499984741211,
+      "current_price": 74.0801010131836,
       "fib_levels": {
         "retracements": {
           "0.382": 77.1127,
@@ -67,7 +67,7 @@
         "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bearish defined-risk continuation",
-      "reason_for_grade": "B: bearish pullback, regime mixed, near key level",
+      "reason_for_grade": "B: bearish pullback, regime mixed, away from key level",
       "setup_state": "DEVELOPING",
       "structure": "PULLBACK",
       "symbol": "GDX",
@@ -101,7 +101,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "MEDIUM",
-      "current_price": 373.7973937988281,
+      "current_price": 373.5777893066406,
       "fib_levels": {
         "retracements": {
           "0.382": 377.5896,
@@ -167,7 +167,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 707.510009765625,
+      "current_price": 709.7000122070312,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -223,7 +223,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "MEDIUM",
-      "current_price": 53.27000045776367,
+      "current_price": 53.154998779296875,
       "fib_levels": {
         "retracements": {
           "0.382": 56.235,
@@ -284,7 +284,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "HIGH",
-      "current_price": 747.510009765625,
+      "current_price": 748.4099731445312,
       "fib_levels": {
         "retracements": {
           "0.382": 740.682,
@@ -303,12 +303,12 @@
       "lifecycle": {
         "current_grade": "A+",
         "current_setup_state": "ACTIONABLE",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "B",
-        "previous_setup_state": "DEVELOPING",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "A+",
+        "previous_setup_state": "ACTIONABLE",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
       "reason_for_grade": "A+: bullish trending_up, regime aligned, near key level",
@@ -350,7 +350,7 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 58.29499816894531,
+      "current_price": 58.310001373291016,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
