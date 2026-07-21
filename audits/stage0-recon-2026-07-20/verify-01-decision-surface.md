@@ -1,13 +1,14 @@
 # Verification — Track A: stage0-01-decision-surface-v0.1.md (Q1-12)
 
-**VERIFIED FINDINGS, UNVERIFIED ISOLATION** — see
+**MEMORY PROVENANCE CORROBORATED; SESSION ID SELF-REPORT INVALID** — see
 `verify-00-disposition-index.md`'s capability header: this session's
-self-reported session id resolved to a template placeholder string, not a
-genuine identifier, so its fresh-context/isolation status per the
-Charter's §14 step 4 could not be established and must not be asserted as
-independent. The findings below were independently derived via each
-check's own methodology (own fixtures, own re-runs, own citation checks)
-regardless — findings and isolation are separable claims. Verified against
+self-reported session id was a template placeholder, invalid on its own
+terms, but its memory provenance is independently corroborated from the
+real subagent transcript (agentId `ae66653afaad4b245`): zero memory-file
+reads. Isolation stands as verified on the memory dimension. The findings
+below were independently derived via each check's own methodology (own
+fixtures, own re-runs, own citation checks) as a further, separable claim.
+Verified against
 this worktree's HEAD (`043bcf5`), source-tree-identical to the pinned SHA
 `771f730839b00b0537327f9696210275f36cd790` (confirmed via
 `git diff --stat <pin> HEAD` — only new `audits/*` files differ).

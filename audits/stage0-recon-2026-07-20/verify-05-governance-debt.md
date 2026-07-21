@@ -1,13 +1,13 @@
 # Verification — Track E: stage0-05-governance-debt-v0.1.md (Q22-28)
 
-**VERIFIED FINDINGS, UNVERIFIED ISOLATION** — see
+**MEMORY PROVENANCE CORROBORATED; SESSION ID SELF-REPORT INVALID** — see
 `verify-00-disposition-index.md`'s capability header: this session's
-self-reported session id resolved to a template placeholder string, not a
-genuine identifier, so its fresh-context/isolation status per the
-Charter's §14 step 4 could not be established and must not be asserted as
-independent. The findings below were independently derived via each
-check's own methodology regardless — findings and isolation are separable
-claims. Verified against
+self-reported session id was a template placeholder, invalid on its own
+terms, but its memory provenance is independently corroborated from the
+real subagent transcript (agentId `ae66653afaad4b245`): zero memory-file
+reads. Isolation stands as verified on the memory dimension. The findings
+below were independently derived via each check's own methodology as a
+further, separable claim. Verified against
 this worktree's HEAD, source-tree-identical to the pinned SHA
 `771f730839b00b0537327f9696210275f36cd790`, plus one cross-commit claim at
 `bc64c99ade80c585086e73fe132442931e724f92` (an unmerged branch tip, checked

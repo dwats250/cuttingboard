@@ -102,13 +102,23 @@ Each leg's self-reported memory-file reads were cross-checked against the
 rollout's actual `exec` calls referencing `/home/dustin/.codex/memories/*`
 or `/home/dustin/.agents/skills/*`.
 
-| Artifact | Rollout path | Disposition |
-|---|---|---|
-| stage0-01 | `~/.codex/sessions/2026/07/20/rollout-2026-07-20T22-10-49-019f8315-76ba-7e11-832f-e891729cdff2.jsonl` | **CORROBORATED** |
-| stage0-02 | `~/.codex/sessions/2026/07/20/rollout-2026-07-20T22-10-51-019f8315-7c04-7582-8ce2-9fdcb0136890.jsonl` | **CORROBORATED** |
-| stage0-03 | `~/.codex/sessions/2026/07/20/rollout-2026-07-20T22-10-53-019f8315-8407-7c61-bb73-c5c08ba1b80a.jsonl` | **CORROBORATED** |
-| stage0-04 | `~/.codex/sessions/2026/07/20/rollout-2026-07-20T22-10-55-019f8315-8c28-7873-a180-dbd26fa4355a.jsonl` | **CORROBORATED** |
-| stage0-05 | `~/.codex/sessions/2026/07/20/rollout-2026-07-20T22-10-57-019f8315-934f-70f0-a1b5-606d506b9520.jsonl` | **CORROBORATED** |
+| Artifact | Rollout path | Tool calls (total / distinct names) | Memory/skill paths touched | Disposition |
+|---|---|---|---|---|
+| stage0-01 | `~/.codex/sessions/2026/07/20/rollout-2026-07-20T22-10-49-019f8315-76ba-7e11-832f-e891729cdff2.jsonl` | 20 / `{exec}` only | `MEMORY.md`, `/home/dustin/.agents/skills/*` | **CORROBORATED** |
+| stage0-02 | `~/.codex/sessions/2026/07/20/rollout-2026-07-20T22-10-51-019f8315-7c04-7582-8ce2-9fdcb0136890.jsonl` | 11 / `{exec}` only | `MEMORY.md` | **CORROBORATED** |
+| stage0-03 | `~/.codex/sessions/2026/07/20/rollout-2026-07-20T22-10-53-019f8315-8407-7c61-bb73-c5c08ba1b80a.jsonl` | 35 / `{exec}` only | `MEMORY.md`, `/home/dustin/.agents/skills/*` | **CORROBORATED** |
+| stage0-04 | `~/.codex/sessions/2026/07/20/rollout-2026-07-20T22-10-55-019f8315-8c28-7873-a180-dbd26fa4355a.jsonl` | 8 / `{exec}` only | `MEMORY.md`, `/home/dustin/.agents/skills/*` | **CORROBORATED** |
+| stage0-05 | `~/.codex/sessions/2026/07/20/rollout-2026-07-20T22-10-57-019f8315-934f-70f0-a1b5-606d506b9520.jsonl` | 12 / `{exec}` only | `MEMORY.md` | **CORROBORATED** |
+
+The tool-call counts, distinct-name sets, and memory/skill-path lists above
+are copied inline from the orchestrator's direct parse of each rollout —
+not merely a pointer to the external file — precisely because retention for
+`~/.codex/sessions/**` is undocumented (no TTL/prune/retention config found
+in `~/.codex/config.toml`; `codex --help` shows only manual
+`archive`/`delete`/`unarchive` subcommands, no automatic expiry). A path
+that may be pruned is not durable provenance on its own; this table is the
+durable copy. If the rollout files are later pruned, this table remains the
+record of what was checked and what it found.
 
 No leg is quarantined. No `STATIC@<pin>` claim in any artifact is voided by
 this check.
