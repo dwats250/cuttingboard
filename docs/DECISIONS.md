@@ -16,6 +16,21 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-19 — A model may not be the second-model reviewer of a PRD it drafted (ruled: Dustin)
+
+The second-model leg exists to form independent hypotheses from the PRD
+and diff. If the drafting model also runs the commissioned sweep, the
+sweep validates its own hypothesis — a comprehension check of the draft,
+not an independent search. Binding, and INDEPENDENT of the model-role
+lane (docs/PRD_PROCESS.md § Model-role lane): it holds whoever drafts
+and survives that lane's retirement. If Fable drafts, the commissioned
+leg stays Codex; if a future arrangement has Codex or another model
+draft, that model is barred from its own second-model review. The lane
+references this entry rather than containing it, so retiring the
+provisional lane cannot retire the constraint. Recorded here, separate
+from the lane, precisely so a NOT-provisional rule does not die with a
+provisional section.
+
 ## 2026-07-19 — A control may not backstop another control until its enforcement has been OBSERVED (ruled: Dustin)
 
 Three times in one week we relied on a property that was asserted and

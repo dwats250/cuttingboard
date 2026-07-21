@@ -1250,6 +1250,12 @@
       "title": "Regime vote coverage: worst-case-bounded confidence (Tier-4 quorum floor)",
       "status": "COMPLETE",
       "commit": "#152"
+    },
+    {
+      "number": 266,
+      "title": "Governance: model-role lane, drafter-not-reviewer constraint, commission-scope trace-to-surface",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
