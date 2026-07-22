@@ -1268,6 +1268,18 @@
       "title": "Governance: model-role lane, drafter-not-reviewer constraint, commission-scope trace-to-surface",
       "status": "COMPLETE",
       "commit": "bc0a82b"
+    },
+    {
+      "number": 267,
+      "title": "Coverage-reason surfacing (daily): fix 80-char truncation dropping the vote-coverage clause",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
+      "number": 268,
+      "title": "Coverage-reason surfacing (hourly): build the reason when qualify_all is skipped on STAY_FLAT",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

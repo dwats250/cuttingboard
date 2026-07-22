@@ -284,6 +284,8 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-264 | — | Pytest import hardening: close the PYTHONPATH-shadowing trap at the config layer | IN PROGRESS | [PRD-264](prd_history/PRD-264.md) |
 | PRD-265 | #154 | Coverage marker: persist RegimeState.total_votes so bounded days are identifiable across runs | COMPLETE | [PRD-265](prd_history/PRD-265.md) |
 | PRD-266 | bc0a82b | Governance: model-role lane, drafter-not-reviewer constraint, commission-scope trace-to-surface | COMPLETE | [PRD-266](prd_history/PRD-266.md) |
+| PRD-267 | — | Coverage-reason surfacing (daily): fix 80-char truncation dropping the vote-coverage clause | IN PROGRESS | [PRD-267](prd_history/PRD-267.md) |
+| PRD-268 | — | Coverage-reason surfacing (hourly): build the reason when qualify_all is skipped on STAY_FLAT | IN PROGRESS | [PRD-268](prd_history/PRD-268.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
