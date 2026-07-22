@@ -2,7 +2,38 @@
 Shared pytest fixtures for the cuttingboard test suite.
 """
 
-import pytest
+import sys
+from pathlib import Path
+
+# PRD-264: importlib import mode (pyproject.toml) no longer inserts the
+# repo root onto sys.path to resolve tests/__init__.py as a package.
+# Append (never insert/prepend) it here so `tests.*` and `scripts.*`
+# cross-module imports keep resolving -- appended, so a real PYTHONPATH
+# entry is always searched first and can still shadow `cuttingboard`
+# for a package-swap check. This MUST run before any `import cuttingboard`
+# below: importing it first would resolve "cuttingboard" through the
+# editable install's MetaPathFinder (its hardcoded absolute-path MAPPING)
+# instead of through normal sys.path resolution, which silently gives
+# submodules a different __path__ than a plain sys.path-based import
+# would -- that mismatch, not anything content-related, is what broke
+# nine PRD-265 tests the first time this was ordered the other way.
+_REPO_ROOT = str(Path(__file__).resolve().parent.parent)
+if _REPO_ROOT not in sys.path:
+    sys.path.append(_REPO_ROOT)
+
+import pytest  # noqa: E402 -- must follow the sys.path.append above, not precede it
+
+import cuttingboard  # noqa: E402 -- ditto; see comment above
+
+
+def pytest_terminal_summary(terminalreporter):
+    # PRD-264 R1: name the actually-resolved cuttingboard package on every
+    # session, so a PYTHONPATH swap silently resolving the repo's own
+    # package (docs/DECISIONS.md 2026-07-19) is visible, not silent.
+    # pytest_terminal_summary specifically because it is the one hook whose
+    # write_line output is not suppressed under -q (pytest_report_header and
+    # a plain print() both are, empirically confirmed).
+    terminalreporter.write_line(f"cuttingboard resolved: {cuttingboard.__file__}")
 
 
 @pytest.fixture(autouse=True)
