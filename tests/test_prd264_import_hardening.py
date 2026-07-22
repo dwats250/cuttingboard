@@ -29,6 +29,12 @@ assert _PYTEST_BIN is not None, "bare `pytest` binary not found on PATH"
 
 def _run_pytest(*, cwd: Path, extra_env: dict[str, str] | None = None) -> str:
     env = os.environ.copy()
+    # Scrub PYTEST_ADDOPTS: an ambient PYTEST_ADDOPTS=--import-mode=importlib
+    # in the calling environment would make this probe pass even if
+    # pyproject.toml's addopts were reverted, so it would no longer prove
+    # the repo's own config-layer hardening -- exactly what R2 exists to
+    # verify.
+    env.pop("PYTEST_ADDOPTS", None)
     if extra_env:
         env.update(extra_env)
     result = subprocess.run(
@@ -39,7 +45,15 @@ def _run_pytest(*, cwd: Path, extra_env: dict[str, str] | None = None) -> str:
         text=True,
         timeout=120,
     )
-    return result.stdout + result.stderr
+    output = result.stdout + result.stderr
+    # Fail loud: a nonzero exit from the nested run (e.g. the swapped
+    # package breaking an actual test) must not be silently swallowed just
+    # because the "cuttingboard resolved:" line still happened to print.
+    assert result.returncode == 0, (
+        f"nested `pytest tests/test_regime.py -q` exited {result.returncode}, "
+        f"expected 0:\n{output}"
+    )
+    return output
 
 
 def test_r1_conftest_prints_resolved_package_path():
