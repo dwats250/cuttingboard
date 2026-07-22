@@ -16,6 +16,64 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-22 — The `gh` deny set is the same provably-incomplete speed bump as the `git` one; deliberate-evasion closure stays out of scope (ruled: Dustin)
+
+Second instance of the 2026-07-18 permission-layer theorem
+(`docs/DECISIONS.md` 2026-07-18, "the Bash permission deny list is an
+accident-prevention speed bump, provably incomplete by design"), this
+time on the `gh` deny patterns instead of `git`'s.
+
+The chain: `Bash(gh *-R*)` (and six sibling `gh api` mutation-flag
+denies) matched as a bare substring anywhere in the flattened command
+line — no flag-boundary awareness at all. The literal text `HIGH-RISK`
+in a PR title contains `-R`, colliding with the block meant to catch the
+`-R <owner/repo>` cross-repo-targeting flag and denying three
+consecutive `gh pr create` attempts before the cause was found. Fixed
+by requiring a literal preceding space in each pattern, so the flag must
+be its own whitespace-delimited token — closes the compound-word
+collision and, in a second pass, the first-argument-position gap the
+same fix initially missed (`gh -R owner/repo`, `gh api -X GET ...` have
+no preceding token at all, only the mandatory space). Both fixes landed
+in PR #160 (`1a82d00`, `e6ebdf3`).
+
+A commissioned `chatgpt-codex-connector` review then found the next
+spelling in the same class: shell quoting removes the literal
+space-before-dash the fix requires while leaving the flag fully
+functional (`gh pr list "-R" other/repo` still selects another repo;
+the shell strips the quotes before `gh` ever sees them, but the deny
+pattern only ever sees the quoted text). Escaping, concatenation, and
+other shell-obfuscation techniques carry the identical property. A
+finite set of string-match deny patterns cannot enumerate an open-ended
+quoting/escaping space, for exactly the reason PRD-261's `git`-side
+review already established: this is not a new class, it is the same
+class arriving via a different CLI.
+
+**Ruling:** the space-anchor fix (landed) is the reasonable-completeness
+bar — it stops the accidental case, an ordinary `-R other/repo` or
+`-X POST` typed or generated with ordinary spacing, which is the failure
+mode that actually occurs. Closing quoted, escaped, or concatenated
+evasions is explicitly out of scope, not because the gap is unreal, but
+because chasing it is the exact recursion the 2026-07-18 ruling already
+named and stopped once: each variant closes a real case, which is
+precisely why the loop is hard to stop and precisely why continuing it
+is the wrong move. That recursion defends against the operator
+deliberately bypassing the matcher — the wrong threat model for a layer
+that governs what Claude Code runs under Dustin's direction, not
+adversarial third-party input. The human merge remains the actual gate
+for anything consequential; nothing in this repository merges without
+Dustin's explicit action regardless of what any deny pattern catches or
+misses.
+
+**What this means going forward:** a future bot review, commissioned
+model, or session that finds another quoting/escaping/concatenation
+spelling of this same `gh`-deny bypass gets DISMISSED by default, citing
+this entry — not another patch round. A genuinely new CLASS of gap
+(not another spelling of the same one) still gets fixed. Same
+distinction the parent entry drew for `git`; same judgment call, not a
+formula.
+
+---
+
 ## 2026-07-19 — A model may not be the second-model reviewer of a PRD it drafted (ruled: Dustin)
 
 The second-model leg exists to form independent hypotheses from the PRD
