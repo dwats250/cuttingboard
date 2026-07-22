@@ -1254,8 +1254,8 @@
     {
       "number": 264,
       "title": "Pytest import hardening: close the PYTHONPATH-shadowing trap at the config layer",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#159"
     },
     {
       "number": 265,

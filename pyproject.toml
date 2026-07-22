@@ -29,3 +29,13 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["cuttingboard*"]
+
+[tool.pytest.ini_options]
+# PRD-264: default "prepend" import mode inserts the repo root at
+# sys.path[0] (ahead of PYTHONPATH) to resolve tests/__init__.py as a
+# package -- exactly the shadowing a PYTHONPATH package-swap check needs
+# to not happen. importlib mode imports test modules without that
+# insertion; tests/conftest.py separately appends the repo root so
+# `tests.*` and `scripts.*` cross-imports keep resolving, at the end of
+# sys.path rather than the front.
+addopts = "--import-mode=importlib"
