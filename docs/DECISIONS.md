@@ -16,6 +16,65 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-23 — Two GitHub/git tooling traps that produce false readings, not just incomplete ones (standing caution)
+
+Both surfaced this session doing closeout-integrity and CI-verification work
+on PRDs 269/270; recorded as standing cautions because each has cost
+multiple sessions independently before being written down once, durably.
+
+**1. This repo's CI state is never visible via GitHub's legacy combined
+commit-status endpoint (a `get_status`-style call).** All CI here runs as
+GitHub Actions check-runs; the combined-status API returns `pending` / zero
+checks for every commit in this repo regardless of whether CI actually
+passed, failed, or never ran — the same empty result in every case. Reading
+that as "CI hasn't started" or "nothing to report" is wrong, not merely
+incomplete: a genuinely completed, green run reads identically to one that
+never fired. Use the check-runs API (`get_check_runs` / equivalent) instead,
+and verify against actual job log content — not just the conclusion field —
+when the result gates a decision (e.g. closeout, merge). Full detail:
+`docs/prd_history/PRD-269.md` TOOLING NOTE.
+
+**2. A fresh session's git checkout may be shallow, and a shallow clone
+produces false "commit does not resolve" findings for old history — not a
+warning, a silent false positive indistinguishable from a real one.**
+`actions/checkout` in CI defaults to depth 1 (already known: PRD-200 built
+`--skip-commit-resolvability` around exactly this for the CI leg), but the
+same trap recurs in interactive/sandbox sessions doing provenance work
+directly against a shallow clone — independently hit and worked around
+ad hoc by at least two prior sessions (`docs/prd_history/PRD-200.review.claude.md`,
+`docs/prd_history/PRD-244.review.claude.md`) before this one, never promoted
+to a standing check. Before trusting ANY "unresolvable commit" finding in a
+sandbox/interactive session: confirm via `git rev-parse
+--is-shallow-repository`, and if `true`, run `git fetch --unshallow` before
+proceeding — a shallow clone's "unresolvable" list is not evidence of
+anything about the repo, only about the clone.
+
+---
+
+## 2026-07-23 — `prd_close.sh`'s Test-baseline bullet always asserts "CI truth" regardless of source (open debt, standing caution)
+
+Found while closing out PRD-269/270: when `prd_close.sh` is invoked with a
+hand-supplied `--tests` count instead of `--ci-summary`, it still writes the
+literal phrase `"... (CI truth on \`main\`; \`test\` job for \`<hash>\`)"` into
+`PROJECT_STATE.md`'s Test-baseline bullet — the wording doesn't change based
+on which input path produced the number. A sandbox-local `--tests` value
+therefore reads as CI-verified even when it isn't, which is exactly the
+SHA-attribution conflation class this repo has separately hardened against
+(the bc0a82b/2985/#154 case, see the closeout-integrity audit this session
+opened with).
+
+Not fixed this session — no PRD filed, script untouched. Standing caution
+until it is: **always wait for the real CI run and read its actual pytest
+summary from the job log before running closeout with `--tests`**, rather
+than supplying a sandbox count. Every closeout this session (`#163`, `#164`)
+followed that discipline manually; the script itself does not enforce it.
+A future MICRO/STANDARD PRD could either require `--ci-summary` when
+`--tests` is supplied without also passing evidence of its CI provenance, or
+change the bullet's wording to distinguish `--tests`-sourced counts from
+`--ci-summary`-sourced ones.
+
+---
+
 ## 2026-07-23 — PRD-270: PRD-245's phantom commit cell corrected, not waived (WONTFIX-HISTORICAL stays 29/35)
 
 A read-only closeout-integrity audit found PRD-245's recorded commit
