@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 266,
-  "next_prd": 267,
+  "latest_complete": 269,
+  "next_prd": 270,
   "entries": [
     {
       "number": 56,
@@ -1280,6 +1280,12 @@
       "title": "Coverage-reason surfacing (hourly): build the reason when qualify_all is skipped on STAY_FLAT",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 269,
+      "title": "Close the doc-status blind spot in validate_prd_registry.py (25 registry-COMPLETE rows across three failure shapes whose docs never agreed)",
+      "status": "COMPLETE",
+      "commit": "#163"
     }
   ]
 }

@@ -116,8 +116,13 @@ def _write_fixture(
     missing = omit_history or set()
     for number in range(56, 62):
         if number not in missing:
+            # PRD-269: carries a bare-STATUS/COMPLETE header so the default
+            # fixture stays clean under _validate_doc_status_word_agreement.
+            # Numbers whose registry row isn't COMPLETE (e.g. PRD-061,
+            # default IN PROGRESS) are skipped by that check regardless of
+            # doc content, so a uniform COMPLETE header here is safe.
             (history / f"PRD-{number:03d}.md").write_text(
-                f"PRD-{number:03d} test fixture\n",
+                f"PRD-{number:03d} test fixture\n\nSTATUS\nCOMPLETE\n",
                 encoding="utf-8",
             )
 
@@ -379,6 +384,302 @@ def test_r6_doc_without_status_line_skipped(tmp_path: Path) -> None:
         tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
     )
     assert errors == []
+
+
+# ---------------------------------------------------------------------------
+# PRD-269: doc-status blind spot. _validate_doc_status_agreement above only
+# fires on the "STATUS: COMPLETE @ <hash>" convention, so a doc still
+# reading IN PROGRESS/PROPOSED against a COMPLETE registry row produced no
+# signal there. _extract_doc_status_words / _validate_doc_status_word_agreement
+# read the doc's status word directly, independent of hash format and
+# header convention, and treat an unrecognized-or-absent status line as a
+# FAILURE rather than a skip.
+# ---------------------------------------------------------------------------
+
+def test_269_bold_convention_recognized() -> None:
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\n**Status:** COMPLETE\n")
+    assert words == {"COMPLETE"}
+
+
+def test_269_plain_colon_convention_recognized() -> None:
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\nSTATUS: COMPLETE\n")
+    assert words == {"COMPLETE"}
+
+
+def test_269_bare_next_line_convention_recognized() -> None:
+    words = validate_prd_registry._extract_doc_status_words("PRD-107 — Title\n\nSTATUS\nCOMPLETE\n\nGOAL\n")
+    assert words == {"COMPLETE"}
+
+
+def test_269_escaped_asterisk_convention_recognized() -> None:
+    words = validate_prd_registry._extract_doc_status_words(
+        "# Title\n\n\\*\\*Status:\\*\\* COMPLETE\n**Commit:** --\n"
+    )
+    assert words == {"COMPLETE"}
+
+
+def test_269_heading_convention_recognized() -> None:
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\n## STATUS\nCOMPLETE\n\n## CLASS\n")
+    assert words == {"COMPLETE"}
+
+
+def test_269_bullet_convention_recognized() -> None:
+    words = validate_prd_registry._extract_doc_status_words(
+        "# Title\n\n- **LANE:** STANDARD\n- **STATUS:** COMPLETE\n"
+    )
+    assert words == {"COMPLETE"}
+
+
+def test_269_in_progress_word_extracted() -> None:
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\n**Status:** IN PROGRESS\n")
+    assert words == {"IN PROGRESS"}
+
+
+def test_269_proposed_word_extracted() -> None:
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\nSTATUS\nPROPOSED\n")
+    assert words == {"PROPOSED"}
+
+
+def test_269_no_status_line_returns_empty_set() -> None:
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\n## GOAL\n\nSome body text.\n")
+    assert words == set()
+
+
+def test_269_unrecognized_seventh_format_returns_empty_set() -> None:
+    # A deliberately invented format none of the six known conventions
+    # cover, proving the parser doesn't accidentally match arbitrary prose.
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\nCurrent State: Done\n")
+    assert words == set()
+
+
+def test_269_agreement_passes(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text("# Title\n\n**Status:** COMPLETE\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert errors == []
+
+
+def test_269_disagreement_flagged_in_progress(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text("# Title\n\n**Status:** IN PROGRESS\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert any("Doc status disagreement: PRD-056" in e and "IN PROGRESS" in e for e in errors)
+
+
+def test_269_disagreement_flagged_proposed(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text("# Title\n\nSTATUS\nPROPOSED\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert any("Doc status disagreement: PRD-056" in e and "PROPOSED" in e for e in errors)
+
+
+def test_269_unreadable_when_no_status_line(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text("# Title\n\n## GOAL\n\nBody text only.\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert any("Doc status unreadable: PRD-056" in e for e in errors)
+
+
+def test_269_unreadable_when_unrecognized_format(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text("# Title\n\nCurrent State: Done\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert any("Doc status unreadable: PRD-056" in e for e in errors)
+
+
+def test_269_skipped_when_file_dash(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text("# Title\n\n**Status:** IN PROGRESS\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="—"), errors
+    )
+    assert errors == []
+
+
+def test_269_skipped_when_doc_missing(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert errors == []
+
+
+def test_269_skipped_when_not_complete(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text("# Title\n\nno status line at all\n")
+    rows = {56: {"number": 56, "status": "IN PROGRESS", "commit": None, "file": "[PRD-056](x)"}}
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(tmp_path, rows, errors)
+    assert errors == []
+
+
+def test_269_existing_hash_check_independent_of_new_check(tmp_path: Path) -> None:
+    # R4: the trailing hash-agreement check and the new status-word check
+    # fire independently off the same doc/registry pair, neither masking
+    # the other.
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text(
+        "# Title\n\n**Status:** COMPLETE\n\nSTATUS: COMPLETE @ deadbee\n"
+    )
+    rows = _rows("e7365c6", file_cell="[PRD-056](x)")
+    hash_errors: list[str] = []
+    validate_prd_registry._validate_doc_status_agreement(tmp_path, rows, hash_errors)
+    assert any("Doc/registry hash mismatch: PRD-056" in e for e in hash_errors)
+
+    word_errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(tmp_path, rows, word_errors)
+    assert word_errors == []
+
+
+def test_269_group_a_stale_header_correct_trailer_flagged(tmp_path: Path) -> None:
+    # Group A (found by a full-registry sweep, 8 real instances: PRD-140,
+    # 144-148, 154, 155): the header a human reads first still says
+    # PROPOSED/IN PROGRESS, but a correctly-formatted trailing
+    # "STATUS: COMPLETE @ <hash>" line already exists. A lenient
+    # "COMPLETE anywhere" check passes this silently; the strict
+    # words == {"COMPLETE"} floor must not.
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text(
+        "# Title\n\nSTATUS\nPROPOSED\n\nGOAL\n...\n\nSTATUS: COMPLETE @ e7365c6\n"
+    )
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert any(
+        "Doc status disagreement: PRD-056" in e and "COMPLETE" in e and "PROPOSED" in e
+        for e in errors
+    )
+
+
+def test_269_group_b_correct_header_stale_trailer_flagged(tmp_path: Path) -> None:
+    # Group B (2 real instances: PRD-189, 194): the inverse of Group A —
+    # header correctly says COMPLETE, but a leftover trailing
+    # "STATUS: IN PROGRESS" line was never updated at closeout.
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text(
+        "# Title\n\n**Status:** COMPLETE\n\nGOAL\n...\n\nSTATUS: IN PROGRESS\n"
+    )
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert any(
+        "Doc status disagreement: PRD-056" in e and "COMPLETE" in e and "IN PROGRESS" in e
+        for e in errors
+    )
+
+
+def test_269_completed_typo_not_extracted_as_complete() -> None:
+    # Review catch: a bare `startswith` prefix check accepted "COMPLETED" as
+    # "COMPLETE" ("COMPLETED".startswith("COMPLETE")), silently treating a
+    # malformed status word as valid agreement -- the third partial-match
+    # hole found in this same check (after "COMPLETE anywhere" and the
+    # hash-format-only regex). Requires a token boundary after the
+    # candidate: the matched word must be the whole value or followed by a
+    # non-alphanumeric character.
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\n**Status:** COMPLETED\n")
+    assert words == set()
+
+
+def test_269_incomplete_not_extracted_as_complete() -> None:
+    # A second near-miss, lexically related but not a prefix match in
+    # either direction -- pins that status matching is whole-token, not
+    # substring/fuzzy.
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\n**Status:** INCOMPLETE\n")
+    assert words == set()
+
+
+def test_269_completed_typo_registry_complete_flagged(tmp_path: Path) -> None:
+    # A doc whose ONLY status line is a malformed near-miss is flagged as
+    # a disagreement (something was declared, just wrong), not as
+    # "unreadable" (nothing found) — round 2's malformed-line tracking
+    # distinguishes the two rather than treating both as absence.
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text("# Title\n\n**Status:** COMPLETED\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert any(
+        "Doc status disagreement: PRD-056" in e and "COMPLETED" in e for e in errors
+    )
+
+
+def test_269_hyphenated_near_miss_not_extracted(tmp_path: Path) -> None:
+    # Round-1's boundary fix allowed any non-alphanumeric follower, which
+    # still let "COMPLETE-ish" pass ("-" satisfies that check). Round 2
+    # requires whitespace or end-of-string specifically.
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\n**Status:** COMPLETE-ish\n")
+    assert words == set()
+
+
+def test_269_valid_line_plus_malformed_line_flagged(tmp_path: Path) -> None:
+    # Round-2 catch: a doc with one VALID "Status: COMPLETE" line and a
+    # SEPARATE malformed line ("STATUS: COMPLETED @ abc") must not pass
+    # just because one line happens to be valid — the malformed line is
+    # evidence of a problem, not silently dropped.
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text(
+        "# Title\n\n**Status:** COMPLETE\n\nGOAL\n...\n\nSTATUS: COMPLETED @ abc\n"
+    )
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert any(
+        "Doc status disagreement: PRD-056" in e and "COMPLETE" in e and "COMPLETED" in e
+        for e in errors
+    )
+
+
+def test_269_lowercase_status_prose_not_treated_as_declaration() -> None:
+    # Malformed-line tracking (round 2) initially matched ANY line
+    # starting with "status" case-insensitively, which caught ordinary
+    # body prose ("- status: one of VALID, INCOMPLETE, ...", describing an
+    # unrelated code enum) as a false "malformed declaration" -- found by
+    # running the tightened check against the full live registry before
+    # shipping it (16 false positives). Every real convention capitalizes
+    # the label ("Status"/"STATUS"); plain lowercase "status" must be
+    # ignored entirely, not flagged.
+    words, malformed = validate_prd_registry._scan_doc_status_lines(
+        "# Title\n\n**Status:** COMPLETE\n\n"
+        "- status: one of VALID, INCOMPLETE, CONFLICTED, UNKNOWN\n"
+        "- status = BLOCK_TRADE\n"
+    )
+    assert words == {"COMPLETE"}
+    assert malformed == []
+
+
+def test_269_status_as_a_noun_not_treated_as_declaration() -> None:
+    # A second false-positive shape from the same live-registry run: a
+    # capitalized "Status" used as an ordinary noun ("Status column:
+    # PARTIAL · Tier header: ...", describing a dashboard column) rather
+    # than a declaration. Every real convention has the label immediately
+    # followed by nothing or ":" -- never a space then another word.
+    words, malformed = validate_prd_registry._scan_doc_status_lines(
+        "# Title\n\n**Status:** COMPLETE\n\n"
+        "Status column: PARTIAL · Tier header: D/F — FAILING · Card VALIDATION ·\n"
+    )
+    assert words == {"COMPLETE"}
+    assert malformed == []
 
 
 # ---------------------------------------------------------------------------
