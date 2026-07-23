@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.05025506630954895,
-      "price": 140.44000244140625,
+      "pct_change_decimal": 0.061921224888741355,
+      "price": 142.0,
       "structure": "UNKNOWN",
       "symbol": "USO"
     }
@@ -26,8 +26,8 @@
       "XLE"
     ]
   },
-  "generated_at": "2026-07-23T16:06:54Z",
-  "generation_id": "hourly-20260723T160654Z",
+  "generated_at": "2026-07-23T18:07:42Z",
+  "generation_id": "hourly-20260723T180742Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -41,14 +41,14 @@
   "session_date": "2026-07-23",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-07-23T16:06:54Z"
+    "run_at_utc": "2026-07-23T18:07:42Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 74.51499938964844,
+      "current_price": 74.68499755859375,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -99,7 +99,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 371.3999938964844,
+      "current_price": 370.8450012207031,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -140,11 +140,6 @@
           "context": "primary trend reference",
           "level": 376.2843,
           "type": "EMA21"
-        },
-        {
-          "context": "trend base reference",
-          "level": 389.8049,
-          "type": "EMA50"
         }
       ],
       "what_to_look_for": [
@@ -155,7 +150,7 @@
       "asset_group": "INDEX",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 691.4650268554688,
+      "current_price": 690.530029296875,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -211,7 +206,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 52.12950134277344,
+      "current_price": 51.92499923706055,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -262,7 +257,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 737.9099731445312,
+      "current_price": 736.84912109375,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -318,7 +313,7 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 59.8650016784668,
+      "current_price": 59.755001068115234,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
