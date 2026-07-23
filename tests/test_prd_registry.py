@@ -548,6 +548,45 @@ def test_269_existing_hash_check_independent_of_new_check(tmp_path: Path) -> Non
     assert word_errors == []
 
 
+def test_269_group_a_stale_header_correct_trailer_flagged(tmp_path: Path) -> None:
+    # Group A (found by a full-registry sweep, 8 real instances: PRD-140,
+    # 144-148, 154, 155): the header a human reads first still says
+    # PROPOSED/IN PROGRESS, but a correctly-formatted trailing
+    # "STATUS: COMPLETE @ <hash>" line already exists. A lenient
+    # "COMPLETE anywhere" check passes this silently; the strict
+    # words == {"COMPLETE"} floor must not.
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text(
+        "# Title\n\nSTATUS\nPROPOSED\n\nGOAL\n...\n\nSTATUS: COMPLETE @ e7365c6\n"
+    )
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert any(
+        "Doc status disagreement: PRD-056" in e and "COMPLETE" in e and "PROPOSED" in e
+        for e in errors
+    )
+
+
+def test_269_group_b_correct_header_stale_trailer_flagged(tmp_path: Path) -> None:
+    # Group B (2 real instances: PRD-189, 194): the inverse of Group A —
+    # header correctly says COMPLETE, but a leftover trailing
+    # "STATUS: IN PROGRESS" line was never updated at closeout.
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text(
+        "# Title\n\n**Status:** COMPLETE\n\nGOAL\n...\n\nSTATUS: IN PROGRESS\n"
+    )
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert any(
+        "Doc status disagreement: PRD-056" in e and "COMPLETE" in e and "IN PROGRESS" in e
+        for e in errors
+    )
+
+
 # ---------------------------------------------------------------------------
 # PRD-200: --skip-commit-resolvability is a NARROW, CI-scoped opt-out.
 # In a clean CI checkout the synthetic/historical COMPLETE hashes do not

@@ -408,6 +408,17 @@ def _validate_doc_status_word_agreement(
     # when File='—' or the doc is missing (same convention as the existing
     # check); NOT skipped when the doc exists but declares no recognizable
     # status word — that is the exact gap this check exists to close.
+    #
+    # The pass condition requires the extracted word set to be EXACTLY
+    # {"COMPLETE"}, not merely to contain it: "COMPLETE appears somewhere in
+    # the doc" is itself a partial-match defect of the same shape as the
+    # original blind spot (a docs-history sweep found 8 docs whose header —
+    # the field a human reads first — still said PROPOSED/IN PROGRESS while
+    # an already-correct trailing line said COMPLETE, and 2 more with the
+    # inverse: correct header, stale trailing line; both shapes passed a
+    # lenient "COMPLETE anywhere" check). A doc that declares more than one
+    # status word anywhere is internally inconsistent and must be flagged
+    # regardless of which of those words is COMPLETE.
     for number in sorted(registry_rows):
         row = registry_rows[number]
         if number < TRACKING_START or row.get("status") != "COMPLETE":
@@ -418,7 +429,7 @@ def _validate_doc_status_word_agreement(
         if not doc.exists():
             continue
         words = _extract_doc_status_words(doc.read_text(encoding="utf-8"))
-        if "COMPLETE" in words:
+        if words == {"COMPLETE"}:
             continue
         if words:
             errors.append(

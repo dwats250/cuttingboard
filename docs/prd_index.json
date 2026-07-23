@@ -1283,7 +1283,7 @@
     },
     {
       "number": 269,
-      "title": "Close the doc-status blind spot in validate_prd_registry.py (15 registry-COMPLETE rows whose docs never agreed)",
+      "title": "Close the doc-status blind spot in validate_prd_registry.py (25 registry-COMPLETE rows across three failure shapes whose docs never agreed)",
       "status": "IN PROGRESS",
       "commit": null
     }
