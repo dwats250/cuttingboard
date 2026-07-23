@@ -1,61 +1,55 @@
 {
   "artifacts": {
-    "log_path": "logs/latest_run.json",
-    "notification_sent": false,
-    "report_path": "reports/2026-07-23.md"
+    "log_path": "logs/latest_hourly_run.json",
+    "notification_sent": true,
+    "report_path": "reports/output/hourly_report.html"
   },
   "audit_summary": {
     "continuation_accepted_count": null,
     "continuation_audit_present": false,
     "continuation_rejected_count": null,
     "error_count": 0,
-    "qualified_count": 4,
-    "rejected_count": 9
+    "qualified_count": 0,
+    "rejected_count": 0
   },
-  "correlation": {
-    "dollar_symbol": "DX-Y.NYB",
-    "gold_symbol": "GLD",
-    "risk_modifier": 1.0,
-    "score": 1,
-    "state": "ALIGNED"
-  },
-  "generated_at": "2026-07-23T15:03:37Z",
-  "generation_id": "live-20260723T150337Z",
+  "correlation": null,
+  "generated_at": "2026-07-23T15:09:53Z",
+  "generation_id": "hourly-20260723T150953Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -1.9282284161669476,
-      "level": 64812.30859375,
+      "change_pct": -1.9769629957657364,
+      "level": 64780.1015625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.5337758194446323,
-      "level": 101.51799774169922,
+      "change_pct": 0.4971395530466165,
+      "level": 101.48100280761719,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -1.5771900406053239,
-      "level": 4062.5,
+      "change_pct": -1.601417193826098,
+      "level": 4061.5,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 3.921348519010246,
-      "level": 91.95999908447266,
+      "change_pct": 3.943954771630722,
+      "level": 91.9800033569336,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 5.053653402977286,
-      "change_pct": 1.0736464075895846,
-      "level": 4.706999778747559,
+      "change_bps": 5.360315069251948,
+      "change_pct": 1.1380711307511635,
+      "level": 4.710000038146973,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -3.2642170775955632,
-      "level": 58.084999084472656,
+      "change_pct": -3.3225064413717633,
+      "level": 58.04999923706055,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 14.55088794498613,
-      "level": 19.1299991607666,
+      "change_pct": 16.227538686624918,
+      "level": 19.40999984741211,
       "symbol": "^VIX"
     }
   },
@@ -63,22 +57,22 @@
     "continuation_enabled": false,
     "data_quality": "ok",
     "expansion_regime": null,
-    "imbalance_enabled": false,
+    "imbalance_enabled": null,
     "stale_data_detected": false
   },
   "mode": "live",
-  "outcome": "TRADE",
+  "outcome": "NO_TRADE",
   "regime": {
-    "classification": "RISK_OFF",
+    "classification": "CHAOTIC",
     "confidence": 0.75,
     "net_score": -6,
     "neutral_votes": 2,
-    "posture": "DEFENSIVE_SHORT",
+    "posture": "STAY_FLAT",
     "risk_off_votes": 6,
     "risk_on_votes": 0,
     "total_votes": 8,
-    "vix_level": 19.1299991607666,
-    "vix_pct_change": 0.1455088794498613,
+    "vix_level": 19.40999984741211,
+    "vix_pct_change": 0.16227538686624918,
     "vote_breakdown": {
       "BTC pct_change": "NEUTRAL",
       "DXY pct_change": "RISK_OFF",
@@ -90,288 +84,19 @@
       "VIX pct_change": "RISK_OFF"
     }
   },
-  "rejections": [
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "AMZN"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "BTC-USD"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "CL=F"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "COIN"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: stop distance 0.4% below 1.0% minimum; price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "QUALIFICATION",
-      "symbol": "DX-Y.NYB"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "META"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "QQQ"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "USO"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: stop distance 0.05 below 1\u00d7 ATR14 (0.05); price 3.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "QUALIFICATION",
-      "symbol": "^TNX"
-    },
-    {
-      "detail": null,
-      "reason": "R:R 2.00 below 2.0 minimum",
-      "stage": "WATCHLIST",
-      "symbol": "GC=F"
-    },
-    {
-      "detail": null,
-      "reason": "R:R 2.00 below 2.0 minimum",
-      "stage": "WATCHLIST",
-      "symbol": "SI=F"
-    },
-    {
-      "detail": null,
-      "reason": "price 3.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "WATCHLIST",
-      "symbol": "XLE"
-    },
-    {
-      "detail": null,
-      "reason": "stop distance 7.35 below 1\u00d7 ATR14 (7.35)",
-      "stage": "WATCHLIST",
-      "symbol": "NVDA"
-    },
-    {
-      "detail": null,
-      "reason": "price 4.4\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "WATCHLIST",
-      "symbol": "TSLA"
-    },
-    {
-      "detail": null,
-      "reason": "stop distance 8.02 below 1\u00d7 ATR14 (8.02)",
-      "stage": "WATCHLIST",
-      "symbol": "AAPL"
-    }
-  ],
+  "rejections": [],
   "schema_version": "v2",
   "session_date": "2026-07-23",
-  "status": "OK",
+  "status": "STAY_FLAT",
   "system_state": {
     "confidence": 0.75,
-    "intraday_state": "MIDDAY",
-    "market_regime": "RISK_OFF",
-    "outcome": "TRADE",
-    "permission": "Short bias \u2014 breakdown trades allowed.",
-    "reason": null,
+    "intraday_state": null,
+    "market_regime": "CHAOTIC",
     "router_mode": "MIXED",
-    "stay_flat_reason": null,
+    "stay_flat_reason": "STAY_FLAT posture",
     "time_gate_open": true,
-    "tradable": true
+    "tradable": false
   },
   "timezone": "America/New_York",
-  "trade_candidates": [
-    {
-      "block_reason": "spread too wide: 28.6%",
-      "decision_status": "BLOCK_TRADE",
-      "decision_trace": {
-        "reason": "spread too wide: 28.6%",
-        "source": "execution_policy",
-        "stage": "EXECUTION_POLICY"
-      },
-      "direction": "SHORT",
-      "dollar_risk": 375.0,
-      "enable_conditions": [],
-      "entry": 19.1299991607666,
-      "entry_mode": "DIRECT",
-      "entry_quality": {
-        "action": "UNKNOWN",
-        "blocking": false,
-        "reason": "INSUFFICIENT_DETERMINISTIC_INPUTS",
-        "source": "entry_quality_gate",
-        "status": "UNKNOWN"
-      },
-      "estimated_debit": 75.0,
-      "explanation": {},
-      "invalidation_guidance": null,
-      "notes": "spread too wide: 28.6%",
-      "policy_allowed": false,
-      "policy_reason": "spread too wide: 28.6%",
-      "position_size": 5,
-      "risk_reward": 2.0,
-      "setup_quality": "DISQUALIFIED_OPTIONS_INVALID",
-      "size_multiplier": 0.0,
-      "stop": 21.025268189483047,
-      "strategy_tag": "BEAR_PUT_SPREAD",
-      "symbol": "^VIX",
-      "target": 15.339461103333711,
-      "thesis": null,
-      "timeframe": "7",
-      "trigger": null,
-      "visibility_reason": null,
-      "visibility_status": null
-    },
-    {
-      "block_reason": null,
-      "decision_status": "ALLOW_TRADE",
-      "decision_trace": {
-        "reason": "TOP_TRADE_VALIDATED",
-        "source": "chain_validation",
-        "stage": "CHAIN_VALIDATION"
-      },
-      "direction": "SHORT",
-      "dollar_risk": 300.0,
-      "enable_conditions": [],
-      "entry": 737.8900146484375,
-      "entry_mode": "DIRECT",
-      "entry_quality": {
-        "action": "ALLOW",
-        "blocking": false,
-        "reason": null,
-        "source": "entry_quality_gate",
-        "status": "CLEAN"
-      },
-      "estimated_debit": 150.0,
-      "explanation": {},
-      "invalidation_guidance": {
-        "action": "HOLD_OK",
-        "reason": null,
-        "status": "NOT_TRIGGERED",
-        "thesis_status": "VALID",
-        "triggered_by": null
-      },
-      "notes": null,
-      "policy_allowed": true,
-      "policy_reason": "policy_allowed",
-      "position_size": 2,
-      "risk_reward": 2.0,
-      "setup_quality": "TOP_TRADE_VALIDATED",
-      "size_multiplier": 0.375,
-      "stop": 745.8887219401383,
-      "strategy_tag": "BEAR_PUT_SPREAD",
-      "symbol": "SPY",
-      "target": 721.8926000650358,
-      "thesis": {
-        "block_reason": null,
-        "catalyst": "macro:RISK_OFF",
-        "confirmation": "MACRO_CONFIRMED",
-        "direction": "SHORT",
-        "invalidation": "stop at 745.89",
-        "status": "VALID",
-        "symbol": "SPY"
-      },
-      "timeframe": "7",
-      "trigger": null,
-      "visibility_reason": null,
-      "visibility_status": null
-    },
-    {
-      "block_reason": "liquidity fail: OI=135 vol=26 bid=6.70 ask=7.00",
-      "decision_status": "BLOCK_TRADE",
-      "decision_trace": {
-        "reason": "liquidity fail: OI=135 vol=26 bid=6.70 ask=7.00",
-        "source": "execution_policy",
-        "stage": "EXECUTION_POLICY"
-      },
-      "direction": "SHORT",
-      "dollar_risk": 375.0,
-      "enable_conditions": [],
-      "entry": 372.2099914550781,
-      "entry_mode": "DIRECT",
-      "entry_quality": {
-        "action": "UNKNOWN",
-        "blocking": false,
-        "reason": "INSUFFICIENT_DETERMINISTIC_INPUTS",
-        "source": "entry_quality_gate",
-        "status": "UNKNOWN"
-      },
-      "estimated_debit": 75.0,
-      "explanation": {},
-      "invalidation_guidance": null,
-      "notes": "liquidity fail: OI=135 vol=26 bid=6.70 ask=7.00",
-      "policy_allowed": false,
-      "policy_reason": "liquidity fail: OI=135 vol=26 bid=6.70 ask=7.00",
-      "position_size": 5,
-      "risk_reward": 2.0,
-      "setup_quality": "DISQUALIFIED_OPTIONS_INVALID",
-      "size_multiplier": 0.0,
-      "stop": 379.46844614483547,
-      "strategy_tag": "BEAR_PUT_SPREAD",
-      "symbol": "GLD",
-      "target": 357.69308207556344,
-      "thesis": null,
-      "timeframe": "21",
-      "trigger": null,
-      "visibility_reason": null,
-      "visibility_status": null
-    },
-    {
-      "block_reason": "cooldown",
-      "decision_status": "BLOCK_TRADE",
-      "decision_trace": {
-        "reason": "cooldown",
-        "source": "execution_policy",
-        "stage": "EXECUTION_POLICY"
-      },
-      "direction": "SHORT",
-      "dollar_risk": 375.0,
-      "enable_conditions": [],
-      "entry": 52.20000076293945,
-      "entry_mode": "DIRECT",
-      "entry_quality": {
-        "action": "UNKNOWN",
-        "blocking": false,
-        "reason": "INSUFFICIENT_DETERMINISTIC_INPUTS",
-        "source": "entry_quality_gate",
-        "status": "UNKNOWN"
-      },
-      "estimated_debit": 75.0,
-      "explanation": {},
-      "invalidation_guidance": null,
-      "notes": null,
-      "policy_allowed": false,
-      "policy_reason": "cooldown",
-      "position_size": 5,
-      "risk_reward": 2.0,
-      "setup_quality": "TOP_TRADE_VALIDATED",
-      "size_multiplier": 0.0,
-      "stop": 54.304931166797815,
-      "strategy_tag": "BEAR_PUT_SPREAD",
-      "symbol": "SLV",
-      "target": 47.99013995522273,
-      "thesis": null,
-      "timeframe": "14",
-      "trigger": null,
-      "visibility_reason": null,
-      "visibility_status": null
-    }
-  ]
+  "trade_candidates": []
 }
