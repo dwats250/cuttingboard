@@ -1280,6 +1280,12 @@
       "title": "Coverage-reason surfacing (hourly): build the reason when qualify_all is skipped on STAY_FLAT",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 269,
+      "title": "Close the doc-status blind spot in validate_prd_registry.py (15 registry-COMPLETE rows whose docs never agreed)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
