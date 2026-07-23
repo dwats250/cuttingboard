@@ -587,6 +587,36 @@ def test_269_group_b_correct_header_stale_trailer_flagged(tmp_path: Path) -> Non
     )
 
 
+def test_269_completed_typo_not_extracted_as_complete() -> None:
+    # Review catch: a bare `startswith` prefix check accepted "COMPLETED" as
+    # "COMPLETE" ("COMPLETED".startswith("COMPLETE")), silently treating a
+    # malformed status word as valid agreement -- the third partial-match
+    # hole found in this same check (after "COMPLETE anywhere" and the
+    # hash-format-only regex). Requires a token boundary after the
+    # candidate: the matched word must be the whole value or followed by a
+    # non-alphanumeric character.
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\n**Status:** COMPLETED\n")
+    assert words == set()
+
+
+def test_269_incomplete_not_extracted_as_complete() -> None:
+    # A second near-miss, lexically related but not a prefix match in
+    # either direction -- pins that status matching is whole-token, not
+    # substring/fuzzy.
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\n**Status:** INCOMPLETE\n")
+    assert words == set()
+
+
+def test_269_completed_typo_registry_complete_flagged_unreadable(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text("# Title\n\n**Status:** COMPLETED\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert any("Doc status unreadable: PRD-056" in e for e in errors)
+
+
 # ---------------------------------------------------------------------------
 # PRD-200: --skip-commit-resolvability is a NARROW, CI-scoped opt-out.
 # In a clean CI checkout the synthetic/historical COMPLETE hashes do not

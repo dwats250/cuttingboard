@@ -357,15 +357,35 @@ def _clean_doc_status_line(line: str) -> str:
     return _DOC_STATUS_DECORATION_RE.sub("", line).strip()
 
 
+def _match_status_candidate(value_upper: str, ranked: list[str]) -> str | None:
+    """Match `value_upper` against ALLOWED_STATUSES, requiring a token
+    boundary after the candidate (PRD-269 review catch): a bare prefix
+    check accepts "COMPLETED" or "COMPLETE-ish" as "COMPLETE", silently
+    passing a malformed declaration instead of reporting it as unreadable
+    or disagreeing. The candidate must be the whole value, or followed by a
+    non-alphanumeric character (space, "@", "(", etc.) — never by another
+    letter or digit that would make it a different word.
+    """
+    for candidate in ranked:
+        if not value_upper.startswith(candidate):
+            continue
+        tail_index = len(candidate)
+        if tail_index == len(value_upper) or not value_upper[tail_index].isalnum():
+            return candidate
+    return None
+
+
 def _extract_doc_status_words(text: str) -> set[str]:
     """Return every ALLOWED_STATUSES word a PRD doc's status header declares.
 
     Reads the status word directly, independent of hash format and of
     which header convention the doc uses. An empty return means no
     recognized status declaration was found at all (including a doc with
-    no status line whatsoever) — the caller must treat that as a failure,
-    not a pass: a matcher that cannot see a status word must not report
-    agreement by default (PRD-269 R2).
+    no status line whatsoever, and a doc whose status line reads a
+    malformed near-miss like "COMPLETED" that fails the token-boundary
+    check) — the caller must treat that as a failure, not a pass: a
+    matcher that cannot see a status word must not report agreement by
+    default (PRD-269 R2).
     """
     words: set[str] = set()
     ranked = sorted(ALLOWED_STATUSES, key=len, reverse=True)
@@ -376,11 +396,9 @@ def _extract_doc_status_words(text: str) -> set[str]:
             expect_value_next = False
             if not clean:
                 continue
-            upper = clean.upper()
-            for candidate in ranked:
-                if upper.startswith(candidate):
-                    words.add(candidate)
-                    break
+            match = _match_status_candidate(clean.upper(), ranked)
+            if match:
+                words.add(match)
             continue
         if not clean or not clean.lower().startswith("status"):
             continue
@@ -388,11 +406,9 @@ def _extract_doc_status_words(text: str) -> set[str]:
         if not rest:
             expect_value_next = True
             continue
-        upper = rest.upper()
-        for candidate in ranked:
-            if upper.startswith(candidate):
-                words.add(candidate)
-                break
+        match = _match_status_candidate(rest.upper(), ranked)
+        if match:
+            words.add(match)
     return words
 
 
