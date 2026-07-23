@@ -359,35 +359,39 @@ def _clean_doc_status_line(line: str) -> str:
 
 def _match_status_candidate(value_upper: str, ranked: list[str]) -> str | None:
     """Match `value_upper` against ALLOWED_STATUSES, requiring a token
-    boundary after the candidate (PRD-269 review catch): a bare prefix
-    check accepts "COMPLETED" or "COMPLETE-ish" as "COMPLETE", silently
-    passing a malformed declaration instead of reporting it as unreadable
-    or disagreeing. The candidate must be the whole value, or followed by a
-    non-alphanumeric character (space, "@", "(", etc.) — never by another
-    letter or digit that would make it a different word.
+    boundary after the candidate (PRD-269 review catch, round 2): a bare
+    prefix check accepts "COMPLETED" as "COMPLETE"; allowing any
+    non-alphanumeric follower (round-1 fix) still accepted "COMPLETE-ish".
+    Every real convention observed in this repo's history separates a
+    status word from any trailer (`@ <hash>`, `(...)`, prose) with
+    whitespace, so the candidate must be the whole value or followed by
+    whitespace — never by another letter/digit, and never by punctuation
+    directly attached with no separating space.
     """
     for candidate in ranked:
         if not value_upper.startswith(candidate):
             continue
         tail_index = len(candidate)
-        if tail_index == len(value_upper) or not value_upper[tail_index].isalnum():
+        if tail_index == len(value_upper) or value_upper[tail_index].isspace():
             return candidate
     return None
 
 
-def _extract_doc_status_words(text: str) -> set[str]:
-    """Return every ALLOWED_STATUSES word a PRD doc's status header declares.
+def _scan_doc_status_lines(text: str) -> tuple[set[str], list[str]]:
+    """Scan a PRD doc for status declarations.
 
-    Reads the status word directly, independent of hash format and of
-    which header convention the doc uses. An empty return means no
-    recognized status declaration was found at all (including a doc with
-    no status line whatsoever, and a doc whose status line reads a
-    malformed near-miss like "COMPLETED" that fails the token-boundary
-    check) — the caller must treat that as a failure, not a pass: a
-    matcher that cannot see a status word must not report agreement by
-    default (PRD-269 R2).
+    Returns (words, malformed): `words` is every recognized
+    ALLOWED_STATUSES value found; `malformed` is the raw text of every
+    line that is structurally a status declaration (a "status" label with
+    a value, same line or the next line) but whose value does not match
+    any recognized word. A line shaped like a status declaration that
+    fails to parse is evidence of a problem and must be recorded, not
+    silently dropped (PRD-269 review catch, round 2) — otherwise a doc
+    with one valid line and one malformed line reads as agreement, since
+    the malformed line contributes nothing to either set.
     """
     words: set[str] = set()
+    malformed: list[str] = []
     ranked = sorted(ALLOWED_STATUSES, key=len, reverse=True)
     expect_value_next = False
     for raw_line in text.splitlines():
@@ -399,16 +403,56 @@ def _extract_doc_status_words(text: str) -> set[str]:
             match = _match_status_candidate(clean.upper(), ranked)
             if match:
                 words.add(match)
+            else:
+                malformed.append(raw_line.strip())
             continue
-        if not clean or not clean.lower().startswith("status"):
+        # A deliberate status declaration always capitalizes the label
+        # ("Status" or "STATUS") in every convention observed in this
+        # repo's history. Plain lowercase "status" appears constantly in
+        # body prose (data-flow bullets, code-enum descriptions, field
+        # docs) with nothing to do with the PRD's own completion state; a
+        # case-insensitive match turned every such line into a false
+        # "malformed status declaration" once unmatched lines started
+        # being recorded instead of silently dropped (found by running
+        # the malformed-line tracking against the full live registry
+        # before shipping it).
+        if clean[:6] not in ("Status", "STATUS"):
             continue
-        rest = clean[len("status"):].lstrip(":").strip()
+        tail = clean[6:]
+        # Every real convention has the label immediately followed by
+        # either nothing (bare label) or ":" -- never a space then another
+        # word ("Status column: ..." describes a dashboard column, not a
+        # declaration; also found by the same full-registry run above).
+        if tail and not tail.startswith(":"):
+            continue
+        rest = tail.lstrip(":").strip()
         if not rest:
             expect_value_next = True
             continue
         match = _match_status_candidate(rest.upper(), ranked)
         if match:
             words.add(match)
+        else:
+            malformed.append(raw_line.strip())
+    return words, malformed
+
+
+def _extract_doc_status_words(text: str) -> set[str]:
+    """Return every ALLOWED_STATUSES word a PRD doc's status header declares.
+
+    Reads the status word directly, independent of hash format and of
+    which header convention the doc uses. An empty return means no
+    recognized status declaration was found at all (including a doc with
+    no status line whatsoever, and a doc whose only status line(s) are
+    malformed near-misses like "COMPLETED" that fail the token-boundary
+    check) — the caller must treat that as a failure, not a pass: a
+    matcher that cannot see a status word must not report agreement by
+    default (PRD-269 R2). Thin wrapper over `_scan_doc_status_lines` that
+    drops the malformed-line detail; callers that must not silently ignore
+    a malformed line alongside a valid one (`_validate_doc_status_word_agreement`)
+    call `_scan_doc_status_lines` directly.
+    """
+    words, _malformed = _scan_doc_status_lines(text)
     return words
 
 
@@ -426,15 +470,15 @@ def _validate_doc_status_word_agreement(
     # status word — that is the exact gap this check exists to close.
     #
     # The pass condition requires the extracted word set to be EXACTLY
-    # {"COMPLETE"}, not merely to contain it: "COMPLETE appears somewhere in
-    # the doc" is itself a partial-match defect of the same shape as the
-    # original blind spot (a docs-history sweep found 8 docs whose header —
-    # the field a human reads first — still said PROPOSED/IN PROGRESS while
-    # an already-correct trailing line said COMPLETE, and 2 more with the
-    # inverse: correct header, stale trailing line; both shapes passed a
-    # lenient "COMPLETE anywhere" check). A doc that declares more than one
-    # status word anywhere is internally inconsistent and must be flagged
-    # regardless of which of those words is COMPLETE.
+    # {"COMPLETE"} AND zero malformed status lines: "COMPLETE appears
+    # somewhere in the doc" is itself a partial-match defect of the same
+    # shape as the original blind spot (a docs-history sweep found 8 docs
+    # whose header — the field a human reads first — still said
+    # PROPOSED/IN PROGRESS while an already-correct trailing line said
+    # COMPLETE, and 2 more with the inverse). A doc that declares more than
+    # one status word anywhere, OR carries a malformed status line
+    # alongside a valid one, is internally inconsistent and must be
+    # flagged regardless of which words are valid.
     for number in sorted(registry_rows):
         row = registry_rows[number]
         if number < TRACKING_START or row.get("status") != "COMPLETE":
@@ -444,13 +488,14 @@ def _validate_doc_status_word_agreement(
         doc = root / "docs" / "prd_history" / f"PRD-{number:03d}.md"
         if not doc.exists():
             continue
-        words = _extract_doc_status_words(doc.read_text(encoding="utf-8"))
-        if words == {"COMPLETE"}:
+        words, malformed = _scan_doc_status_lines(doc.read_text(encoding="utf-8"))
+        if words == {"COMPLETE"} and not malformed:
             continue
-        if words:
+        if words or malformed:
+            detail = sorted(words) + [f"malformed:{line!r}" for line in malformed]
             errors.append(
                 f"Doc status disagreement: {_display_prd(number)} registry "
-                f"is COMPLETE but doc status reads {sorted(words)} "
+                f"is COMPLETE but doc status reads {detail} "
                 f"(docs/prd_history/PRD-{number:03d}.md)"
             )
         else:

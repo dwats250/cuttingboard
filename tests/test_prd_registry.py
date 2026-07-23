@@ -607,14 +607,79 @@ def test_269_incomplete_not_extracted_as_complete() -> None:
     assert words == set()
 
 
-def test_269_completed_typo_registry_complete_flagged_unreadable(tmp_path: Path) -> None:
+def test_269_completed_typo_registry_complete_flagged(tmp_path: Path) -> None:
+    # A doc whose ONLY status line is a malformed near-miss is flagged as
+    # a disagreement (something was declared, just wrong), not as
+    # "unreadable" (nothing found) — round 2's malformed-line tracking
+    # distinguishes the two rather than treating both as absence.
     (tmp_path / "docs" / "prd_history").mkdir(parents=True)
     (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text("# Title\n\n**Status:** COMPLETED\n")
     errors: list[str] = []
     validate_prd_registry._validate_doc_status_word_agreement(
         tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
     )
-    assert any("Doc status unreadable: PRD-056" in e for e in errors)
+    assert any(
+        "Doc status disagreement: PRD-056" in e and "COMPLETED" in e for e in errors
+    )
+
+
+def test_269_hyphenated_near_miss_not_extracted(tmp_path: Path) -> None:
+    # Round-1's boundary fix allowed any non-alphanumeric follower, which
+    # still let "COMPLETE-ish" pass ("-" satisfies that check). Round 2
+    # requires whitespace or end-of-string specifically.
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\n**Status:** COMPLETE-ish\n")
+    assert words == set()
+
+
+def test_269_valid_line_plus_malformed_line_flagged(tmp_path: Path) -> None:
+    # Round-2 catch: a doc with one VALID "Status: COMPLETE" line and a
+    # SEPARATE malformed line ("STATUS: COMPLETED @ abc") must not pass
+    # just because one line happens to be valid — the malformed line is
+    # evidence of a problem, not silently dropped.
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text(
+        "# Title\n\n**Status:** COMPLETE\n\nGOAL\n...\n\nSTATUS: COMPLETED @ abc\n"
+    )
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert any(
+        "Doc status disagreement: PRD-056" in e and "COMPLETE" in e and "COMPLETED" in e
+        for e in errors
+    )
+
+
+def test_269_lowercase_status_prose_not_treated_as_declaration() -> None:
+    # Malformed-line tracking (round 2) initially matched ANY line
+    # starting with "status" case-insensitively, which caught ordinary
+    # body prose ("- status: one of VALID, INCOMPLETE, ...", describing an
+    # unrelated code enum) as a false "malformed declaration" -- found by
+    # running the tightened check against the full live registry before
+    # shipping it (16 false positives). Every real convention capitalizes
+    # the label ("Status"/"STATUS"); plain lowercase "status" must be
+    # ignored entirely, not flagged.
+    words, malformed = validate_prd_registry._scan_doc_status_lines(
+        "# Title\n\n**Status:** COMPLETE\n\n"
+        "- status: one of VALID, INCOMPLETE, CONFLICTED, UNKNOWN\n"
+        "- status = BLOCK_TRADE\n"
+    )
+    assert words == {"COMPLETE"}
+    assert malformed == []
+
+
+def test_269_status_as_a_noun_not_treated_as_declaration() -> None:
+    # A second false-positive shape from the same live-registry run: a
+    # capitalized "Status" used as an ordinary noun ("Status column:
+    # PARTIAL · Tier header: ...", describing a dashboard column) rather
+    # than a declaration. Every real convention has the label immediately
+    # followed by nothing or ":" -- never a space then another word.
+    words, malformed = validate_prd_registry._scan_doc_status_lines(
+        "# Title\n\n**Status:** COMPLETE\n\n"
+        "Status column: PARTIAL · Tier header: D/F — FAILING · Card VALIDATION ·\n"
+    )
+    assert words == {"COMPLETE"}
+    assert malformed == []
 
 
 # ---------------------------------------------------------------------------
