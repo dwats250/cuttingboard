@@ -116,8 +116,13 @@ def _write_fixture(
     missing = omit_history or set()
     for number in range(56, 62):
         if number not in missing:
+            # PRD-269: carries a bare-STATUS/COMPLETE header so the default
+            # fixture stays clean under _validate_doc_status_word_agreement.
+            # Numbers whose registry row isn't COMPLETE (e.g. PRD-061,
+            # default IN PROGRESS) are skipped by that check regardless of
+            # doc content, so a uniform COMPLETE header here is safe.
             (history / f"PRD-{number:03d}.md").write_text(
-                f"PRD-{number:03d} test fixture\n",
+                f"PRD-{number:03d} test fixture\n\nSTATUS\nCOMPLETE\n",
                 encoding="utf-8",
             )
 
@@ -379,6 +384,168 @@ def test_r6_doc_without_status_line_skipped(tmp_path: Path) -> None:
         tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
     )
     assert errors == []
+
+
+# ---------------------------------------------------------------------------
+# PRD-269: doc-status blind spot. _validate_doc_status_agreement above only
+# fires on the "STATUS: COMPLETE @ <hash>" convention, so a doc still
+# reading IN PROGRESS/PROPOSED against a COMPLETE registry row produced no
+# signal there. _extract_doc_status_words / _validate_doc_status_word_agreement
+# read the doc's status word directly, independent of hash format and
+# header convention, and treat an unrecognized-or-absent status line as a
+# FAILURE rather than a skip.
+# ---------------------------------------------------------------------------
+
+def test_269_bold_convention_recognized() -> None:
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\n**Status:** COMPLETE\n")
+    assert words == {"COMPLETE"}
+
+
+def test_269_plain_colon_convention_recognized() -> None:
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\nSTATUS: COMPLETE\n")
+    assert words == {"COMPLETE"}
+
+
+def test_269_bare_next_line_convention_recognized() -> None:
+    words = validate_prd_registry._extract_doc_status_words("PRD-107 — Title\n\nSTATUS\nCOMPLETE\n\nGOAL\n")
+    assert words == {"COMPLETE"}
+
+
+def test_269_escaped_asterisk_convention_recognized() -> None:
+    words = validate_prd_registry._extract_doc_status_words(
+        "# Title\n\n\\*\\*Status:\\*\\* COMPLETE\n**Commit:** --\n"
+    )
+    assert words == {"COMPLETE"}
+
+
+def test_269_heading_convention_recognized() -> None:
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\n## STATUS\nCOMPLETE\n\n## CLASS\n")
+    assert words == {"COMPLETE"}
+
+
+def test_269_bullet_convention_recognized() -> None:
+    words = validate_prd_registry._extract_doc_status_words(
+        "# Title\n\n- **LANE:** STANDARD\n- **STATUS:** COMPLETE\n"
+    )
+    assert words == {"COMPLETE"}
+
+
+def test_269_in_progress_word_extracted() -> None:
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\n**Status:** IN PROGRESS\n")
+    assert words == {"IN PROGRESS"}
+
+
+def test_269_proposed_word_extracted() -> None:
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\nSTATUS\nPROPOSED\n")
+    assert words == {"PROPOSED"}
+
+
+def test_269_no_status_line_returns_empty_set() -> None:
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\n## GOAL\n\nSome body text.\n")
+    assert words == set()
+
+
+def test_269_unrecognized_seventh_format_returns_empty_set() -> None:
+    # A deliberately invented format none of the six known conventions
+    # cover, proving the parser doesn't accidentally match arbitrary prose.
+    words = validate_prd_registry._extract_doc_status_words("# Title\n\nCurrent State: Done\n")
+    assert words == set()
+
+
+def test_269_agreement_passes(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text("# Title\n\n**Status:** COMPLETE\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert errors == []
+
+
+def test_269_disagreement_flagged_in_progress(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text("# Title\n\n**Status:** IN PROGRESS\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert any("Doc status disagreement: PRD-056" in e and "IN PROGRESS" in e for e in errors)
+
+
+def test_269_disagreement_flagged_proposed(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text("# Title\n\nSTATUS\nPROPOSED\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert any("Doc status disagreement: PRD-056" in e and "PROPOSED" in e for e in errors)
+
+
+def test_269_unreadable_when_no_status_line(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text("# Title\n\n## GOAL\n\nBody text only.\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert any("Doc status unreadable: PRD-056" in e for e in errors)
+
+
+def test_269_unreadable_when_unrecognized_format(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text("# Title\n\nCurrent State: Done\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert any("Doc status unreadable: PRD-056" in e for e in errors)
+
+
+def test_269_skipped_when_file_dash(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text("# Title\n\n**Status:** IN PROGRESS\n")
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="—"), errors
+    )
+    assert errors == []
+
+
+def test_269_skipped_when_doc_missing(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(
+        tmp_path, _rows("e7365c6", file_cell="[PRD-056](x)"), errors
+    )
+    assert errors == []
+
+
+def test_269_skipped_when_not_complete(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text("# Title\n\nno status line at all\n")
+    rows = {56: {"number": 56, "status": "IN PROGRESS", "commit": None, "file": "[PRD-056](x)"}}
+    errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(tmp_path, rows, errors)
+    assert errors == []
+
+
+def test_269_existing_hash_check_independent_of_new_check(tmp_path: Path) -> None:
+    # R4: the trailing hash-agreement check and the new status-word check
+    # fire independently off the same doc/registry pair, neither masking
+    # the other.
+    (tmp_path / "docs" / "prd_history").mkdir(parents=True)
+    (tmp_path / "docs" / "prd_history" / "PRD-056.md").write_text(
+        "# Title\n\n**Status:** COMPLETE\n\nSTATUS: COMPLETE @ deadbee\n"
+    )
+    rows = _rows("e7365c6", file_cell="[PRD-056](x)")
+    hash_errors: list[str] = []
+    validate_prd_registry._validate_doc_status_agreement(tmp_path, rows, hash_errors)
+    assert any("Doc/registry hash mismatch: PRD-056" in e for e in hash_errors)
+
+    word_errors: list[str] = []
+    validate_prd_registry._validate_doc_status_word_agreement(tmp_path, rows, word_errors)
+    assert word_errors == []
 
 
 # ---------------------------------------------------------------------------

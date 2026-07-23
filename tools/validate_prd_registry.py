@@ -340,6 +340,100 @@ def _validate_doc_status_agreement(
             )
 
 
+_DOC_STATUS_BULLET_RE = re.compile(r"^[-•]\s*")
+_DOC_STATUS_DECORATION_RE = re.compile(r"[\\*#>]+")
+
+
+def _clean_doc_status_line(line: str) -> str:
+    """Strip a bullet marker, then markdown/escape decoration, from one line.
+
+    Normalizes the six observed PRD-doc status-header conventions
+    (**Status:**, Status:, bare STATUS with the value on the next line,
+    \\*\\*Status:\\*\\* literal-escaped, ## STATUS, and - **STATUS:**) down
+    to a bare "status[: value]" shape so a single scan can recognize all of
+    them (PRD-269).
+    """
+    line = _DOC_STATUS_BULLET_RE.sub("", line.strip())
+    return _DOC_STATUS_DECORATION_RE.sub("", line).strip()
+
+
+def _extract_doc_status_words(text: str) -> set[str]:
+    """Return every ALLOWED_STATUSES word a PRD doc's status header declares.
+
+    Reads the status word directly, independent of hash format and of
+    which header convention the doc uses. An empty return means no
+    recognized status declaration was found at all (including a doc with
+    no status line whatsoever) — the caller must treat that as a failure,
+    not a pass: a matcher that cannot see a status word must not report
+    agreement by default (PRD-269 R2).
+    """
+    words: set[str] = set()
+    ranked = sorted(ALLOWED_STATUSES, key=len, reverse=True)
+    expect_value_next = False
+    for raw_line in text.splitlines():
+        clean = _clean_doc_status_line(raw_line)
+        if expect_value_next:
+            expect_value_next = False
+            if not clean:
+                continue
+            upper = clean.upper()
+            for candidate in ranked:
+                if upper.startswith(candidate):
+                    words.add(candidate)
+                    break
+            continue
+        if not clean or not clean.lower().startswith("status"):
+            continue
+        rest = clean[len("status"):].lstrip(":").strip()
+        if not rest:
+            expect_value_next = True
+            continue
+        upper = rest.upper()
+        for candidate in ranked:
+            if upper.startswith(candidate):
+                words.add(candidate)
+                break
+    return words
+
+
+def _validate_doc_status_word_agreement(
+    root: Path,
+    registry_rows: dict[int, dict[str, str | None]],
+    errors: list[str],
+) -> None:
+    # PRD-269: _validate_doc_status_agreement above only fires on the
+    # trailing "STATUS: COMPLETE @ <hash>" convention, so a doc still
+    # reading IN PROGRESS/PROPOSED against a COMPLETE registry row produces
+    # no signal there. This reads the doc's status word directly. Skipped
+    # when File='—' or the doc is missing (same convention as the existing
+    # check); NOT skipped when the doc exists but declares no recognizable
+    # status word — that is the exact gap this check exists to close.
+    for number in sorted(registry_rows):
+        row = registry_rows[number]
+        if number < TRACKING_START or row.get("status") != "COMPLETE":
+            continue
+        if (row.get("file") or "").strip() in {"", "-", "—"}:
+            continue
+        doc = root / "docs" / "prd_history" / f"PRD-{number:03d}.md"
+        if not doc.exists():
+            continue
+        words = _extract_doc_status_words(doc.read_text(encoding="utf-8"))
+        if "COMPLETE" in words:
+            continue
+        if words:
+            errors.append(
+                f"Doc status disagreement: {_display_prd(number)} registry "
+                f"is COMPLETE but doc status reads {sorted(words)} "
+                f"(docs/prd_history/PRD-{number:03d}.md)"
+            )
+        else:
+            errors.append(
+                f"Doc status unreadable: {_display_prd(number)} registry is "
+                f"COMPLETE but no recognized status line was found in "
+                f"docs/prd_history/PRD-{number:03d}.md"
+            )
+
+
 def _validate_second_model_disposition(
     root: Path,
     registry_rows: dict[int, dict[str, str | None]],
@@ -396,6 +490,7 @@ def validate_repository(root: Path, *, skip_commit_resolvability: bool = False) 
     if not skip_commit_resolvability:
         _validate_commit_resolvable(root, registry_rows, errors)
     _validate_doc_status_agreement(root, registry_rows, errors)
+    _validate_doc_status_word_agreement(root, registry_rows, errors)
     _validate_second_model_disposition(root, registry_rows, errors)
     return errors
 
