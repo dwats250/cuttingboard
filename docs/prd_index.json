@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 269,
-  "next_prd": 270,
+  "latest_complete": 270,
+  "next_prd": 271,
   "entries": [
     {
       "number": 56,
@@ -1289,9 +1289,9 @@
     },
     {
       "number": 270,
-      "title": "Correct PRD-245 registry provenance (phantom 6017ce9 → merged 8bea09c)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "title": "Correct PRD-245 registry provenance (phantom 6017ce9 \u2192 merged 8bea09c)",
+      "status": "COMPLETE",
+      "commit": "#164"
     }
   ]
 }
