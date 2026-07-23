@@ -2,15 +2,15 @@
   "artifacts": {
     "log_path": "logs/latest_run.json",
     "notification_sent": false,
-    "report_path": "reports/2026-07-22.md"
+    "report_path": "reports/2026-07-23.md"
   },
   "audit_summary": {
     "continuation_accepted_count": null,
     "continuation_audit_present": false,
     "continuation_rejected_count": null,
     "error_count": 0,
-    "qualified_count": 0,
-    "rejected_count": 0
+    "qualified_count": 4,
+    "rejected_count": 9
   },
   "correlation": {
     "dollar_symbol": "DX-Y.NYB",
@@ -19,43 +19,43 @@
     "score": 1,
     "state": "ALIGNED"
   },
-  "generated_at": "2026-07-22T14:59:49Z",
-  "generation_id": "live-20260722T145949Z",
+  "generated_at": "2026-07-23T15:03:37Z",
+  "generation_id": "live-20260723T150337Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -1.1428023092595776,
-      "level": 65756.03125,
+      "change_pct": -1.9282284161669476,
+      "level": 64812.30859375,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.04053702888621609,
-      "level": 101.10199737548828,
+      "change_pct": 0.5337758194446323,
+      "level": 101.51799774169922,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 0.39656395463063715,
-      "level": 4151.89990234375,
+      "change_pct": -1.5771900406053239,
+      "level": 4062.5,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 1.734853357506051,
-      "level": 86.79000091552734,
+      "change_pct": 3.921348519010246,
+      "level": 91.95999908447266,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 2.614657276288054,
-      "change_pct": 0.5618085770727246,
-      "level": 4.654000282287598,
+      "change_bps": 5.053653402977286,
+      "change_pct": 1.0736464075895846,
+      "level": 4.706999778747559,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 0.7324764923328204,
-      "level": 60.5099983215332,
+      "change_pct": -3.2642170775955632,
+      "level": 58.084999084472656,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 1.524928096868704,
-      "level": 17.309999465942383,
+      "change_pct": 14.55088794498613,
+      "level": 19.1299991607666,
       "symbol": "^VIX"
     }
   },
@@ -67,52 +67,311 @@
     "stale_data_detected": false
   },
   "mode": "live",
-  "outcome": "NO_TRADE",
+  "outcome": "TRADE",
   "regime": {
-    "classification": "NEUTRAL",
-    "confidence": 0.0,
-    "net_score": 0,
-    "neutral_votes": 6,
-    "posture": "STAY_FLAT",
-    "risk_off_votes": 1,
-    "risk_on_votes": 1,
+    "classification": "RISK_OFF",
+    "confidence": 0.75,
+    "net_score": -6,
+    "neutral_votes": 2,
+    "posture": "DEFENSIVE_SHORT",
+    "risk_off_votes": 6,
+    "risk_on_votes": 0,
     "total_votes": 8,
-    "vix_level": 17.309999465942383,
-    "vix_pct_change": 0.015249280968687039,
+    "vix_level": 19.1299991607666,
+    "vix_pct_change": 0.1455088794498613,
     "vote_breakdown": {
       "BTC pct_change": "NEUTRAL",
-      "DXY pct_change": "NEUTRAL",
+      "DXY pct_change": "RISK_OFF",
       "IWM pct_change": "RISK_OFF",
-      "QQQ pct_change": "NEUTRAL",
-      "SPY pct_change": "NEUTRAL",
-      "TNX pct_change": "NEUTRAL",
-      "VIX level": "RISK_ON",
-      "VIX pct_change": "NEUTRAL"
+      "QQQ pct_change": "RISK_OFF",
+      "SPY pct_change": "RISK_OFF",
+      "TNX pct_change": "RISK_OFF",
+      "VIX level": "NEUTRAL",
+      "VIX pct_change": "RISK_OFF"
     }
   },
   "rejections": [
     {
       "detail": null,
-      "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
-      "stage": "REGIME",
-      "symbol": "REGIME"
+      "reason": "CHOP",
+      "stage": "QUALIFICATION",
+      "symbol": "AMZN"
+    },
+    {
+      "detail": null,
+      "reason": "CHOP",
+      "stage": "QUALIFICATION",
+      "symbol": "BTC-USD"
+    },
+    {
+      "detail": null,
+      "reason": "CHOP",
+      "stage": "QUALIFICATION",
+      "symbol": "CL=F"
+    },
+    {
+      "detail": null,
+      "reason": "CHOP",
+      "stage": "QUALIFICATION",
+      "symbol": "COIN"
+    },
+    {
+      "detail": null,
+      "reason": "2 soft gates failed: stop distance 0.4% below 1.0% minimum; price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "stage": "QUALIFICATION",
+      "symbol": "DX-Y.NYB"
+    },
+    {
+      "detail": null,
+      "reason": "CHOP",
+      "stage": "QUALIFICATION",
+      "symbol": "META"
+    },
+    {
+      "detail": null,
+      "reason": "CHOP",
+      "stage": "QUALIFICATION",
+      "symbol": "QQQ"
+    },
+    {
+      "detail": null,
+      "reason": "CHOP",
+      "stage": "QUALIFICATION",
+      "symbol": "USO"
+    },
+    {
+      "detail": null,
+      "reason": "2 soft gates failed: stop distance 0.05 below 1\u00d7 ATR14 (0.05); price 3.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "stage": "QUALIFICATION",
+      "symbol": "^TNX"
+    },
+    {
+      "detail": null,
+      "reason": "R:R 2.00 below 2.0 minimum",
+      "stage": "WATCHLIST",
+      "symbol": "GC=F"
+    },
+    {
+      "detail": null,
+      "reason": "R:R 2.00 below 2.0 minimum",
+      "stage": "WATCHLIST",
+      "symbol": "SI=F"
+    },
+    {
+      "detail": null,
+      "reason": "price 3.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "stage": "WATCHLIST",
+      "symbol": "XLE"
+    },
+    {
+      "detail": null,
+      "reason": "stop distance 7.35 below 1\u00d7 ATR14 (7.35)",
+      "stage": "WATCHLIST",
+      "symbol": "NVDA"
+    },
+    {
+      "detail": null,
+      "reason": "price 4.4\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "stage": "WATCHLIST",
+      "symbol": "TSLA"
+    },
+    {
+      "detail": null,
+      "reason": "stop distance 8.02 below 1\u00d7 ATR14 (8.02)",
+      "stage": "WATCHLIST",
+      "symbol": "AAPL"
     }
   ],
   "schema_version": "v2",
-  "session_date": "2026-07-22",
-  "status": "STAY_FLAT",
+  "session_date": "2026-07-23",
+  "status": "OK",
   "system_state": {
-    "confidence": 0.0,
+    "confidence": 0.75,
     "intraday_state": "MIDDAY",
-    "market_regime": "NEUTRAL",
-    "outcome": "NO_TRADE",
-    "permission": "No new trades permitted.",
-    "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
+    "market_regime": "RISK_OFF",
+    "outcome": "TRADE",
+    "permission": "Short bias \u2014 breakdown trades allowed.",
+    "reason": null,
     "router_mode": "MIXED",
-    "stay_flat_reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
+    "stay_flat_reason": null,
     "time_gate_open": true,
-    "tradable": false
+    "tradable": true
   },
   "timezone": "America/New_York",
-  "trade_candidates": []
+  "trade_candidates": [
+    {
+      "block_reason": "spread too wide: 28.6%",
+      "decision_status": "BLOCK_TRADE",
+      "decision_trace": {
+        "reason": "spread too wide: 28.6%",
+        "source": "execution_policy",
+        "stage": "EXECUTION_POLICY"
+      },
+      "direction": "SHORT",
+      "dollar_risk": 375.0,
+      "enable_conditions": [],
+      "entry": 19.1299991607666,
+      "entry_mode": "DIRECT",
+      "entry_quality": {
+        "action": "UNKNOWN",
+        "blocking": false,
+        "reason": "INSUFFICIENT_DETERMINISTIC_INPUTS",
+        "source": "entry_quality_gate",
+        "status": "UNKNOWN"
+      },
+      "estimated_debit": 75.0,
+      "explanation": {},
+      "invalidation_guidance": null,
+      "notes": "spread too wide: 28.6%",
+      "policy_allowed": false,
+      "policy_reason": "spread too wide: 28.6%",
+      "position_size": 5,
+      "risk_reward": 2.0,
+      "setup_quality": "DISQUALIFIED_OPTIONS_INVALID",
+      "size_multiplier": 0.0,
+      "stop": 21.025268189483047,
+      "strategy_tag": "BEAR_PUT_SPREAD",
+      "symbol": "^VIX",
+      "target": 15.339461103333711,
+      "thesis": null,
+      "timeframe": "7",
+      "trigger": null,
+      "visibility_reason": null,
+      "visibility_status": null
+    },
+    {
+      "block_reason": null,
+      "decision_status": "ALLOW_TRADE",
+      "decision_trace": {
+        "reason": "TOP_TRADE_VALIDATED",
+        "source": "chain_validation",
+        "stage": "CHAIN_VALIDATION"
+      },
+      "direction": "SHORT",
+      "dollar_risk": 300.0,
+      "enable_conditions": [],
+      "entry": 737.8900146484375,
+      "entry_mode": "DIRECT",
+      "entry_quality": {
+        "action": "ALLOW",
+        "blocking": false,
+        "reason": null,
+        "source": "entry_quality_gate",
+        "status": "CLEAN"
+      },
+      "estimated_debit": 150.0,
+      "explanation": {},
+      "invalidation_guidance": {
+        "action": "HOLD_OK",
+        "reason": null,
+        "status": "NOT_TRIGGERED",
+        "thesis_status": "VALID",
+        "triggered_by": null
+      },
+      "notes": null,
+      "policy_allowed": true,
+      "policy_reason": "policy_allowed",
+      "position_size": 2,
+      "risk_reward": 2.0,
+      "setup_quality": "TOP_TRADE_VALIDATED",
+      "size_multiplier": 0.375,
+      "stop": 745.8887219401383,
+      "strategy_tag": "BEAR_PUT_SPREAD",
+      "symbol": "SPY",
+      "target": 721.8926000650358,
+      "thesis": {
+        "block_reason": null,
+        "catalyst": "macro:RISK_OFF",
+        "confirmation": "MACRO_CONFIRMED",
+        "direction": "SHORT",
+        "invalidation": "stop at 745.89",
+        "status": "VALID",
+        "symbol": "SPY"
+      },
+      "timeframe": "7",
+      "trigger": null,
+      "visibility_reason": null,
+      "visibility_status": null
+    },
+    {
+      "block_reason": "liquidity fail: OI=135 vol=26 bid=6.70 ask=7.00",
+      "decision_status": "BLOCK_TRADE",
+      "decision_trace": {
+        "reason": "liquidity fail: OI=135 vol=26 bid=6.70 ask=7.00",
+        "source": "execution_policy",
+        "stage": "EXECUTION_POLICY"
+      },
+      "direction": "SHORT",
+      "dollar_risk": 375.0,
+      "enable_conditions": [],
+      "entry": 372.2099914550781,
+      "entry_mode": "DIRECT",
+      "entry_quality": {
+        "action": "UNKNOWN",
+        "blocking": false,
+        "reason": "INSUFFICIENT_DETERMINISTIC_INPUTS",
+        "source": "entry_quality_gate",
+        "status": "UNKNOWN"
+      },
+      "estimated_debit": 75.0,
+      "explanation": {},
+      "invalidation_guidance": null,
+      "notes": "liquidity fail: OI=135 vol=26 bid=6.70 ask=7.00",
+      "policy_allowed": false,
+      "policy_reason": "liquidity fail: OI=135 vol=26 bid=6.70 ask=7.00",
+      "position_size": 5,
+      "risk_reward": 2.0,
+      "setup_quality": "DISQUALIFIED_OPTIONS_INVALID",
+      "size_multiplier": 0.0,
+      "stop": 379.46844614483547,
+      "strategy_tag": "BEAR_PUT_SPREAD",
+      "symbol": "GLD",
+      "target": 357.69308207556344,
+      "thesis": null,
+      "timeframe": "21",
+      "trigger": null,
+      "visibility_reason": null,
+      "visibility_status": null
+    },
+    {
+      "block_reason": "cooldown",
+      "decision_status": "BLOCK_TRADE",
+      "decision_trace": {
+        "reason": "cooldown",
+        "source": "execution_policy",
+        "stage": "EXECUTION_POLICY"
+      },
+      "direction": "SHORT",
+      "dollar_risk": 375.0,
+      "enable_conditions": [],
+      "entry": 52.20000076293945,
+      "entry_mode": "DIRECT",
+      "entry_quality": {
+        "action": "UNKNOWN",
+        "blocking": false,
+        "reason": "INSUFFICIENT_DETERMINISTIC_INPUTS",
+        "source": "entry_quality_gate",
+        "status": "UNKNOWN"
+      },
+      "estimated_debit": 75.0,
+      "explanation": {},
+      "invalidation_guidance": null,
+      "notes": null,
+      "policy_allowed": false,
+      "policy_reason": "cooldown",
+      "position_size": 5,
+      "risk_reward": 2.0,
+      "setup_quality": "TOP_TRADE_VALIDATED",
+      "size_multiplier": 0.0,
+      "stop": 54.304931166797815,
+      "strategy_tag": "BEAR_PUT_SPREAD",
+      "symbol": "SLV",
+      "target": 47.99013995522273,
+      "thesis": null,
+      "timeframe": "14",
+      "trigger": null,
+      "visibility_reason": null,
+      "visibility_status": null
+    }
+  ]
 }
