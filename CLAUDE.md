@@ -51,6 +51,10 @@ Reference these; do not duplicate them.
 - **Closeout rides the implementation PR** (PRD-229 Same-PR Closeout; owner:
   `docs/PRD_PROCESS.md`). Residual bookkeeping fixes auto-merge as their own
   PR.
+- **Closeouts run only through the `prd-closeout-verified` skill.** Never a
+  hand-rolled `prd_close.sh` call. The skill's preflight distinguishes
+  same-PR mode (`#NNN`, requires an OPEN PR) from hex-hash mode (post-merge)
+  — a hand-rolled call got this wrong on PRD-266 and was caught late.
 - **Scheduled publish workflows never push to `main` (PRD-194).** They publish
   the rendered dashboard and scoreboard state to the dedicated UNPROTECTED
   `publish` branch that GitHub Pages deploys from; `main` receives only
@@ -192,6 +196,17 @@ each generalizes are canonical in `docs/prd_history/PRD-198.md` (Part A).
 
 ## Working practices
 
+- **Session start.** Before any work: `git pull --ff-only origin main` and
+  confirm `HEAD` equals `origin/main`. Report both SHAs. Do not begin work
+  from a stale checkout. This applies to the main checkout at session
+  start; a session opening directly into an existing worktree on a feature
+  branch instead confirms that branch is current against its own origin
+  counterpart, reporting both SHAs the same way.
+- **Blocker phrasing.** When reporting a hold, name the blocker as exactly
+  one of: `"CI is running"` (autonomous wait, no action needed from Dustin)
+  or `"Held for your merge"` / `"Held for your decision"` (Dustin is the
+  blocker and must act). Never blur these — a supervised gate reported as
+  an autonomous wait makes Dustin stand down when he is the one blocking.
 - **The effective permission set is `.claude/settings.json` UNION
   `.claude/settings.local.json`, not `settings.json` alone.** The local file
   is untracked, personal, and accumulates silently from months of
