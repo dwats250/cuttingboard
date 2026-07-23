@@ -262,7 +262,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-242 | #115 | HIGH-RISK gate Option A: second-model review is a commissioned instrument + write-the-sentence disposition validator | COMPLETE | [PRD-242](prd_history/PRD-242.md) |
 | PRD-243 | #115 | Subtraction block: prd_eval detector retirement, GitNexus surface removal, phantom-SHA debt closed WONTFIX-historical | COMPLETE | [PRD-243](prd_history/PRD-243.md) |
 | PRD-244 | #119 | CLAUDE.md governance refactor (compression + reference-out) | COMPLETE | [PRD-244](prd_history/PRD-244.md) |
-| PRD-245 | 6017ce9 | FVG upgrade path: Gate 6 stop-distance floor on the swapped stop — decision PRD (hole vs deliberate) | COMPLETE | [PRD-245](prd_history/PRD-245.md) |
+| PRD-245 | 8bea09c | FVG upgrade path: Gate 6 stop-distance floor on the swapped stop — decision PRD (hole vs deliberate) | COMPLETE | [PRD-245](prd_history/PRD-245.md) |
 | PRD-246 | #123 | Denominator-discriminating test for the FVG floor percent leg (PRD-245 review REC-1) | COMPLETE | [PRD-246](prd_history/PRD-246.md) |
 | PRD-247 | #124 | Qualification doc truth: Gate 8 failure message, EXPANSION regime, continuation fail-open, FVGZone shape | COMPLETE | [PRD-247](prd_history/PRD-247.md) |
 | PRD-248 | #125 | Allowlist .proposal.md in the prd_eval.sh registry-gap hook | COMPLETE | [PRD-248](prd_history/PRD-248.md) |

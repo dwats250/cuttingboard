@@ -16,6 +16,32 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-23 — PRD-270: PRD-245's phantom commit cell corrected, not waived (WONTFIX-HISTORICAL stays 29/35)
+
+A read-only closeout-integrity audit found PRD-245's recorded commit
+(`6017ce9`, in `PRD_REGISTRY.md`, `prd_index.json`, and cited inline in
+`PRD-245.md`'s own STATUS block) doesn't resolve — a phantom pre-renumber
+SHA from when the work was drafted as "PRD-244" before a numbering
+collision forced a renumber at squash-merge (PR #122). The real merge
+commit, `8bea09c`, already appears correctly in `PROJECT_STATE.md`'s own
+PRD-245 narrative; the registry/index/doc trio simply never caught up.
+
+This does not extend the WONTFIX-HISTORICAL waiver (PRD-243, 29 PRDs / 35
+tokens, scoped to rows ≤ PRD-222). PRD-245 is >222 and closed 2026-07-06 —
+after both that ruling and the PRD-229 `#NNN` convention that ended new
+instances of this class — so it was never in scope for the waiver and was
+simply missed, not deliberately deferred. Unlike the waived rows, the
+correct value was fully recoverable and cheap to verify. Ruled: correct
+the cells (PRD-270), do not fold PRD-245 into WONTFIX-HISTORICAL — a
+waiver is for debt that cannot be paid, and extending it here would blunt
+exactly what the `#NNN` convention and the PRD-243 floor logic exist to
+prevent. The WONTFIX-HISTORICAL count itself is unchanged and was never
+wrong: it has correctly read 29 PRDs / 35 tokens in both this file and
+`PROJECT_STATE.md` throughout — an audit framing that cited "23" was
+sourced from a stale external note, not a repo defect.
+
+---
+
 ## 2026-07-22 — The `gh` deny set is the same provably-incomplete speed bump as the `git` one; deliberate-evasion closure stays out of scope (ruled: Dustin)
 
 Second instance of the 2026-07-18 permission-layer theorem
