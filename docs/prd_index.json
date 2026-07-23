@@ -1286,6 +1286,12 @@
       "title": "Close the doc-status blind spot in validate_prd_registry.py (25 registry-COMPLETE rows across three failure shapes whose docs never agreed)",
       "status": "COMPLETE",
       "commit": "#163"
+    },
+    {
+      "number": 270,
+      "title": "Correct PRD-245 registry provenance (phantom 6017ce9 → merged 8bea09c)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
