@@ -13,13 +13,22 @@ config on the same tree reports errors. Delete `[tool.ruff.lint].select`
 and R2/R3 go red immediately.
 """
 
+import os
 import re
 import shutil
 import subprocess
 import tomllib
+import uuid
 from pathlib import Path
 
 from packaging.specifiers import SpecifierSet
+from packaging.version import Version
+
+# Every source type ruff lints. Building `discovered` from *.py alone would
+# make FLOOR 2 fail spuriously the first time a .pyi stub or .ipynb notebook
+# lands under a target — ruff includes them, so the equality check would read
+# a correctly-linted new file as missing coverage and block CI.
+RUFF_SOURCE_GLOBS = ("*.py", "*.pyi", "*.ipynb")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT = REPO_ROOT / "pyproject.toml"
@@ -150,7 +159,8 @@ def test_floor_every_target_file_is_actually_linted():
     discovered = {
         p.resolve()
         for target in LINT_TARGETS
-        for p in (REPO_ROOT / target.rstrip("/")).rglob("*.py")
+        for glob in RUFF_SOURCE_GLOBS
+        for p in (REPO_ROOT / target.rstrip("/")).rglob(glob)
         if "__pycache__" not in p.parts
     }
 
@@ -297,7 +307,14 @@ def test_floor_gate_actually_flags_known_bad_code():
     via a nested config, or excludes the path makes the canary go silent —
     whether or not anyone predicted the mechanism.
     """
-    canary = REPO_ROOT / "tests" / "_prd273_canary_do_not_commit.py"
+    # Unique name, and refuse to touch a path that already exists: a fixed
+    # name would overwrite a developer's untracked file (or a concurrent run's
+    # canary) and then delete it in the finally. A test must not destroy
+    # working-tree state it did not create.
+    canary = (
+        REPO_ROOT / "tests" / f"_prd273_canary_{os.getpid()}_{uuid.uuid4().hex[:8]}.py"
+    )
+    assert not canary.exists(), f"canary path unexpectedly occupied: {canary}"
     try:
         canary.write_text(_CANARY)
         result = _ruff(
@@ -325,10 +342,25 @@ def test_floor_lint_targets_match_what_ci_actually_runs():
     """
     workflow = (REPO_ROOT / ".github/workflows/ci.yml").read_text()
     expected = "ruff check " + " ".join(LINT_TARGETS)
-    assert expected in workflow, (
-        f"ci.yml does not contain {expected!r}; the lint targets these tests "
-        "guard have drifted from the command CI actually runs."
-    )
+
+    # EXACT line match, not a substring. A substring check is evaded by
+    # appending flags: `ruff check cuttingboard/ tests/ --ignore F401` still
+    # contains the expected text while gutting the gate — verified, 17 tests
+    # passed under it. CLI flags are the one config surface FLOOR 4's
+    # filesystem walk cannot see, so the invocation itself must be pinned.
+    ruff_lines = [
+        line.split("run:", 1)[1].strip()
+        for line in workflow.splitlines()
+        if "run:" in line and "ruff" in line
+    ]
+    assert ruff_lines, "ci.yml has no ruff invocation"
+    for line in ruff_lines:
+        assert line == expected, (
+            "ci.yml's ruff invocation is not exactly the pinned command. "
+            "Extra flags (--ignore, --config, --isolated, --exclude) override "
+            "the file-based configuration these floors verify.\n"
+            f"  expected: {expected!r}\n  actual  : {line!r}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -350,14 +382,30 @@ def test_r1_specifier_excludes_the_known_bad_versions():
     to keep out. Parse the specifier and ask it directly.
     (Raised by chatgpt-codex-connector on PR #168; confirmed real.)
     """
-    spec = SpecifierSet(_ruff_specifier().split(";")[0].removeprefix("ruff"))
-    for bad in ("0.16.0", "0.16.1", "0.17.0", "1.0.0"):
-        assert bad not in spec, (
-            f"ruff specifier {_ruff_specifier()!r} admits {bad}, which is "
-            "outside the range this PRD verified. 0.16.0 expanded ruff's "
-            "default rule set and turned CI red with no diff "
-            "(PRD-198 invariant 6)."
-        )
+    raw = _ruff_specifier().split(";")[0].removeprefix("ruff")
+    spec = SpecifierSet(raw)
+
+    # STRUCTURAL, not sampled. Testing a handful of versions is evaded by
+    # `>=0.4,<0.17,!=0.16.0,!=0.16.1`, which excludes the samples and still
+    # admits 0.16.2 — the same "checked the instances I thought of" error
+    # this file has now made five times. Assert the CEILING instead: some
+    # upper-bound clause must cut at or below 0.16, which excludes the whole
+    # interval regardless of how many `!=` exceptions are bolted on.
+    uppers = [
+        Version(s.version)
+        for s in spec
+        if s.operator in ("<", "<=")
+    ]
+    assert uppers, (
+        f"ruff specifier {raw!r} has no upper-bound clause at all; an "
+        "unbounded specifier is a movable identity (PRD-198 invariant 6)."
+    )
+    assert min(uppers) <= Version("0.16"), (
+        f"ruff specifier {raw!r} has ceiling {min(uppers)}, which admits part "
+        "of the 0.16 line. 0.16.0 expanded ruff's default rule set and turned "
+        "CI red with no diff; the whole interval must be excluded, not "
+        "individual patch releases."
+    )
 
 
 def test_r1_specifier_still_admits_the_verified_versions():
