@@ -5,11 +5,11 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-07-23 (commit #164)
+**Last updated:** 2026-07-24 (commit #168)
 
 ## Current state
 
-- **Active PRD:** PRD-273 (pin ruff + declare the lint rule set explicitly) — lands FIRST; it unblocks the `test` gate for every PR, since ruff 0.16.0's expanded defaults turned CI red on unchanged code. PRD-267/272 (PR #166) and the Finding D ruling (PR #167) are held and rebase onto it; PRD-271 (ORB) and PRD-268 remain scaffold-only pending Dustin's Gate A.
+- **Active PRD:** none in progress.
 - **Active PRD note (2026-07-13):** kept as a single-line bulleted pointer,
   not a multi-line block, matching PRD-183's convention that
   `scripts/prd_close.sh`'s closeout regex depends on (it replaces only
@@ -192,7 +192,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 - **PRD-212 — COMPLETE, PREMISE SUPERSEDED (2026-07-01):** *(historical — the workflow this configured was retired by PRD-230, 2026-07-04)* pinned `codex-version: 0.142.1` believing the gate outage was CLI-alias drift. **That diagnosis was wrong:** `gpt-5-codex` was deprecated by OpenAI 2026-04-01 — a retired model no CLI pin can serve. The Phase-4 live dispatches (2026-07-01, on main under 0.142.1) fail-closed on the model-metadata fallback every run, falsifying the premise; both waiver legs are void (no Claude-review artifact; the "Phase-4 stand-in" was recorded before any Phase-4 run existed). **The real fix is PR #76:** retarget the requested model to `gpt-5.5` + `ALLOWED_CODEX_MODELS = "gpt-5.5 gpt-5.5-*"`, validated end-to-end by run **28560459040** (resolved-model=gpt-5.5, exit 0, artifact landed at [`docs/prd_history/PRD-212.review.codex.md`](prd_history/PRD-212.review.codex.md)). The 0.142.1 pin is retained (it serves gpt-5.5), so the row stays COMPLETE, not reverted. **PRD-207 is NOT superseded** — its fail-closed honor gate correctly detected the real fallback. Auth is API-key (not ChatGPT sign-in). See DECISIONS 2026-07-01.
 - **PRD-208 — COMPLETE (2026-07-02):** trend-structure SMA alignment presentation. The SMA composite cell renders a compressed 3-state arrow vocabulary (↑/↓/= vs SMA50 and SMA200) under the pinned "SMA 50/200" header; the redundant granular "vs SMA50"/"vs SMA200" columns are cut (trend table 10→8 columns); unavailable states keep "Structure unavailable"/"SMA history insufficient" and are guarded against ever rendering "NULL"/"None"/prose. Pure presentation change in `dashboard_renderer.py` (CLASS CONSUMER; no data/schema/gate/count/regime touched). Impl `0f72e32`; +2 net tests (sandbox 2862 passed / 1 xfailed; CI truth on the PR). HIGH-RISK gate SATISFIED in-tree: Claude review (`PRD-208.review.claude.md`) + genuine Codex cross-review (`PRD-208.review.codex.md`; resolved-model=gpt-5.5, honored/allowlist-verified, read-only, SHA-pinned @ `0f72e32`, run 28563373849) — APPROVE WITH EDITS, the one recommended edit (stale PRD-190 wording) applied. The invalid stage-0 Codex artifact (claimed gpt-5-codex, body self-reported gpt-4.1) is superseded. See DECISIONS 2026-07-02.
 - **Proposed / next:** `prd_index.json` reads `next_prd: 244` (243 and 242 merged via PR #115; 240 merged via PR #111, 241 via PR #113 — all COMPLETE above, drafted from the qualification tuning audit; full ten-finding disposition: DECISIONS 2026-07-05. 226/227 merged via PR #95, closed same-PR per PRD-229; 229–232 merged via the Block-1 batch PR #99; 233–235 via PR #102, which carried the stack — the authoring PRs #100/#101 are closed as contained; 236 via PR #104; 237 via PR #105; 238 rides PR #106; 239 rides PR #108). **MICRO follow-up filed at PRD-238 review (RECOMMENDED, non-blocking):** `reports/levels.py::derive_key_levels` is a contract consumer still typed `dict` — annotate with `PipelineContract` in the next polish batch. Other open items, none in progress: **PRD-209** (OHLCV bar-count floor) — SHELVED, reopen-on-incident (F08 refuted; latent PRD-198 #1 hole documented, not built; see DECISIONS 2026-07-01). **PRD-188** (macro-awareness SHOCK banner + scheduled activation) — PROPOSED, parked; the 2026-07-15 go/no-go is advisory/soft and NOT wired (eval gate unstarted — corpus unlabeled, T unset; see DECISIONS 2026-07-01). **PRD-205/206** are VOID (numbers skipped, filed out of order); PR #51 (PRD-205 codex-review-router scaffold) was CLOSED as orphaned 2026-07-01 (router idea dropped; see DECISIONS 2026-07-01).
-- **Test baseline:** 3015 passing, 1 xfailed (CI truth on `main`; `test` job for `#164`).
+- **Test baseline:** 3029 passing, 1 xfailed (CI truth on `main`; `test` job for `#168`, run 30133000121).
 - **Fixed (PRD-194):** the `hourly_alert.yml` render-before-aggregate nit (hourly published a 1-cycle-stale scoreboard) is resolved — PRD-194 reordered the hourly Aggregate step to run before the render, so the hourly dashboard reflects the current run.
 - **Recently landed and live:**
   - The market-stress kill switch forces a terminal HALT (PRD-180). The
@@ -206,6 +206,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 | PRD | Title | Completed |
 |-----|-------|-----------|
+| PRD-273 | Pin ruff and declare the lint rule set explicitly | 2026-07-24 |
 | PRD-270 | Correct PRD-245 registry provenance (phantom 6017ce9 → merged 8bea09c) | 2026-07-23 |
 | PRD-269 | Close the doc-status blind spot in validate_prd_registry.py (25 registry-COMPLETE rows across three failure shapes whose docs never agreed) | 2026-07-23 |
 | PRD-264 | Pytest import hardening: close the PYTHONPATH-shadowing trap at the config layer | 2026-07-22 |

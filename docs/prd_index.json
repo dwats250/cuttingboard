@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 270,
-  "next_prd": 271,
+  "latest_complete": 273,
+  "next_prd": 274,
   "entries": [
     {
       "number": 56,
@@ -1296,8 +1296,8 @@
     {
       "number": 273,
       "title": "Pin ruff and declare the lint rule set explicitly",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#168"
     }
   ]
 }
