@@ -288,6 +288,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-268 | — | Coverage-reason surfacing (hourly): build the reason when qualify_all is skipped on STAY_FLAT | IN PROGRESS | [PRD-268](prd_history/PRD-268.md) |
 | PRD-269 | #163 | Close the doc-status blind spot in validate_prd_registry.py (25 registry-COMPLETE rows across three failure shapes whose docs never agreed) | COMPLETE | [PRD-269](prd_history/PRD-269.md) |
 | PRD-270 | #164 | Correct PRD-245 registry provenance (phantom 6017ce9 → merged 8bea09c) | COMPLETE | [PRD-270](prd_history/PRD-270.md) |
+| PRD-272 | — | PROJECT_STATE sweep: correct seven stale queue-authority claims | IN PROGRESS | [PRD-272](prd_history/PRD-272.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
