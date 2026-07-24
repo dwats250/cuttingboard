@@ -1292,6 +1292,12 @@
       "title": "Correct PRD-245 registry provenance (phantom 6017ce9 \u2192 merged 8bea09c)",
       "status": "COMPLETE",
       "commit": "#164"
+    },
+    {
+      "number": 271,
+      "title": "Opening range computed from mid-session bars: bars[:5] after tail(120) truncation",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
