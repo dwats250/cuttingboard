@@ -20,6 +20,7 @@ delivery layer, no pipeline logic.
 
 import logging
 import os
+import re
 import time
 from dataclasses import dataclass
 from hashlib import sha256
@@ -49,6 +50,13 @@ from cuttingboard.watch import (
 )
 
 logger = logging.getLogger(__name__)
+
+# PRD-267: the alert Reason line's character budget, and the vote-coverage
+# clause qualification.py::_check_regime_gates appends to stay_flat_reason.
+# The clause is last in the string, so a naive tail slice drops exactly it.
+_REASON_LIMIT = 80
+_REASON_ELLIPSIS = "... "
+_COVERAGE_CLAUSE_RE = re.compile(r"(\d+)/(\d+) votes cast")
 
 # ---------------------------------------------------------------------------
 # Rate limiting
@@ -879,6 +887,40 @@ def _orb_line(candidate: dict) -> Optional[str]:
     return f"ORB: {high_text} / {low_text} ({pct:.2f}%)"
 
 
+def _fit_reason(text: str, limit: int = _REASON_LIMIT) -> str:
+    """Truncate a reason to `limit`, preserving any vote-coverage clause.
+
+    PRD-267: the vote-coverage clause qualification.py::_check_regime_gates
+    appends ("... 5/8 votes cast") sits at the END of stay_flat_reason, so a
+    naive tail slice drops exactly the part that explains the stand-down.
+    Keep the clause whole and spend the remaining budget on the narrative
+    that precedes it.
+
+    Any input without a well-formed clause is truncated exactly as before,
+    so non-coverage reasons are byte-identical to the pre-PRD-267 rendering.
+    """
+    if len(text) <= limit:
+        return text
+
+    match = _COVERAGE_CLAUSE_RE.search(text)
+    if match is None:
+        return text[:limit]
+
+    cast, total = int(match.group(1)), int(match.group(2))
+    if not 0 < cast < total:
+        # Full coverage (N == M) or a degenerate 0/M carries no bounded-vote
+        # meaning worth protecting; fall back to the unchanged behavior.
+        return text[:limit]
+
+    clause = match.group(0)
+    head_budget = limit - len(clause) - len(_REASON_ELLIPSIS)
+    if head_budget <= 0:
+        # The clause alone cannot fit; never exceed the budget to save it.
+        return text[:limit]
+
+    return text[:head_budget] + _REASON_ELLIPSIS + clause
+
+
 def _alert_reason(contract: dict, *, has_candidates: bool) -> str:
     if has_candidates:
         return "candidates gated"
@@ -890,7 +932,7 @@ def _alert_reason(contract: dict, *, has_candidates: bool) -> str:
         or contract.get("error_detail")
         or "no setups"
     )
-    return str(reason).replace("\n", " ")[:80]
+    return _fit_reason(str(reason).replace("\n", " "))
 
 
 def _watch_lines(candidates: list[dict]) -> list[str]:
