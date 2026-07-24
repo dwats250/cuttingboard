@@ -20,7 +20,7 @@ import pytest
 
 from cuttingboard import output
 from cuttingboard.qualification import _check_regime_gates
-from cuttingboard.regime import STAY_FLAT, RegimeState, _VOTE_KEYS
+from cuttingboard.regime import _VOTE_KEYS, STAY_FLAT, RegimeState
 
 
 def _regime(*, posture: str = STAY_FLAT, total_votes: int, confidence: float = 0.42):
