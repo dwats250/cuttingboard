@@ -157,6 +157,31 @@ def test_r2_effective_rule_set_matches_the_declared_one():
     assert repo_resolved, "resolved rule set is empty"
 
 
+def test_r2_no_per_file_suppressions():
+    """`rules.enabled` does NOT reflect per-file ignores — assert them separately.
+
+    Correcting an overclaim I made when fixing the previous finding: I said
+    comparing resolved rule sets "also catches extend-per-file-ignores". It
+    does not. Per-file suppressions are reported under a different key and
+    leave `linter.rules.enabled` untouched, so
+    `per-file-ignores = {"cuttingboard/output.py" = ["F401"]}` disables F401
+    for that file while every other guard here stays green — verified.
+    (Raised by chatgpt-codex-connector on PR #168; confirmed real.)
+    """
+    result = _ruff("check", "--show-settings", "cuttingboard/output.py")
+    assert result.returncode == 0, result.stderr
+
+    match = re.search(r"^linter\.per_file_ignores = (.*)$", result.stdout, re.M)
+    assert match, "could not find linter.per_file_ignores in ruff --show-settings"
+    assert match.group(1).strip() == "{}", (
+        "ruff resolved a non-empty linter.per_file_ignores. Per-file "
+        "suppressions erode the declared baseline for the affected files "
+        "without changing the enabled rule set, so they must be empty for "
+        "the baseline claim to hold.\n"
+        f"  resolved: {match.group(1).strip()}"
+    )
+
+
 # ---------------------------------------------------------------------------
 # R3 — the declared set reproduces the green baseline
 # ---------------------------------------------------------------------------
@@ -166,6 +191,40 @@ def test_r3_repo_is_clean_under_the_declared_rule_set():
     assert result.returncode == 0, (
         "`ruff check` is not clean under the declared rule set:\n"
         f"{result.stdout}\n{result.stderr}"
+    )
+
+
+def test_r3_lint_actually_covers_both_targets():
+    """A clean exit is not evidence of coverage — ruff exits 0 on zero files.
+
+    `[tool.ruff] exclude = ["cuttingboard/**", "tests/**"]` makes
+    `ruff check cuttingboard/ tests/` print "No Python files found", exit 0,
+    and satisfy every other guard here — the lint gate silently disabled
+    while CI stays green. Verified. So assert the resolved file set, not the
+    exit code alone.
+    (Raised by chatgpt-codex-connector on PR #168; confirmed real.)
+    """
+    result = _ruff("check", "--show-files", *LINT_TARGETS)
+    assert result.returncode == 0, result.stderr
+    files = [Path(line) for line in result.stdout.splitlines() if line.strip()]
+    assert files, (
+        "ruff resolved ZERO files for the CI lint targets — the gate checks "
+        "nothing. Likely an `exclude` / `extend-exclude` covering "
+        f"{LINT_TARGETS}."
+    )
+
+    pkg = REPO_ROOT / "cuttingboard"
+    tst = REPO_ROOT / "tests"
+    assert any(f.is_relative_to(pkg) for f in files), (
+        "no files resolved under cuttingboard/ — that target is excluded"
+    )
+    assert any(f.is_relative_to(tst) for f in files), (
+        "no files resolved under tests/ — that target is excluded"
+    )
+    # This test file itself must be covered; if it is not, the guard is
+    # inspecting a lint run that would not even see its own assertions.
+    assert Path(__file__).resolve() in files, (
+        "this test file is not in ruff's resolved set for the CI targets"
     )
 
 
