@@ -1298,6 +1298,12 @@
       "title": "Opening range computed from mid-session bars: bars[:5] after tail(120) truncation",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 272,
+      "title": "PROJECT_STATE sweep: correct seven stale queue-authority claims",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
