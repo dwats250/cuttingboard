@@ -58,6 +58,11 @@ LINT_TARGETS = ["cuttingboard/", "tests/"]
 # somewhere in the workflow.
 ENFORCING_JOB = "test"
 
+# The pull_request activities a merge gate must fire on. GitHub's default
+# set when `types` is omitted; if a workflow spells `types` out, these must
+# still be in it or the gate stops running on new and updated PRs.
+_REQUIRED_PR_ACTIVITIES = frozenset({"opened", "synchronize", "reopened"})
+
 _RUFF = shutil.which("ruff")
 
 # ---------------------------------------------------------------------------
@@ -548,11 +553,55 @@ def test_floor_lint_targets_match_what_ci_actually_runs():
         "the `pull_request` trigger is narrowed, so the required lint gate "
         f"skips some PRs entirely.\n  narrowing keys: {sorted(narrowing)}"
     )
+    # `types` narrows by ACTIVITY rather than by path, and the path check
+    # above cannot see it: `pull_request: {types: [closed]}` leaves every
+    # other assertion here green while the workflow stops running when a PR
+    # is opened or updated. Not rejected outright — spelling the default set
+    # explicitly is legitimate — so require the activities the merge gate
+    # actually needs to be present.
+    # (Raised by chatgpt-codex-connector on PR #168; confirmed real.)
+    if "types" in pr_trigger:
+        declared = set(pr_trigger["types"] or ())
+        missing = _REQUIRED_PR_ACTIVITIES - declared
+        assert not missing, (
+            "the `pull_request` trigger restricts activity types and omits "
+            "activities the merge gate depends on, so the gate does not run "
+            f"when a PR is opened or updated.\n  declared: {sorted(declared)}"
+            f"\n  missing : {sorted(missing)}"
+        )
     assert any(name == ENFORCING_JOB for name, _ in located), (
         f"no ruff step runs in the {ENFORCING_JOB!r} job — the required "
         "branch-protection check. Ruff running in some other job does not "
         f"gate the merge.\n  found in: {sorted({n for n, _ in located})}"
     )
+
+    # A job is not "run" merely because it is unconditional: `needs:` makes
+    # execution transitive, so a conditional or skipped PREREQUISITE skips
+    # the enforcing job with it, and ruff never executes while this guard
+    # still sees a clean enforcing job and an exact ruff step. Walk the whole
+    # prerequisite closure, not just the job itself.
+    # (Raised by chatgpt-codex-connector on PR #168; confirmed real.)
+    jobs = workflow.get("jobs", {})
+    closure, frontier = set(), [ENFORCING_JOB]
+    while frontier:
+        name = frontier.pop()
+        if name in closure or name not in jobs:
+            continue
+        closure.add(name)
+        needs = jobs[name].get("needs") or []
+        frontier.extend([needs] if isinstance(needs, str) else needs)
+    for name in sorted(closure - {ENFORCING_JOB}):
+        prereq = jobs[name]
+        assert "if" not in prereq, (
+            f"job {name!r} is a prerequisite of {ENFORCING_JOB!r} and is "
+            f"conditional (if: {prereq.get('if')!r}). If it is skipped, "
+            f"{ENFORCING_JOB!r} is skipped with it and ruff never runs."
+        )
+        assert "continue-on-error" not in prereq, (
+            f"job {name!r} is a prerequisite of {ENFORCING_JOB!r} and "
+            "declares continue-on-error; a failure there can leave the gate "
+            "unenforced."
+        )
     for job_name, step in located:
         job = workflow["jobs"][job_name]
         # ABSENT, not "not literally True". GitHub documents expression forms
@@ -643,9 +692,17 @@ def test_r1_specifier_excludes_the_known_bad_versions():
     # this file has now made five times. Assert the CEILING instead: some
     # upper-bound clause must cut at or below 0.16, which excludes the whole
     # interval regardless of how many `!=` exceptions are bolted on.
+    # Filter by OPERATOR before parsing the version. PEP 440 permits wildcard
+    # prefixes on `==` / `!=` (`!=0.14.*`), and `Version("0.14.*")` raises
+    # InvalidVersion — so parsing every clause makes a legitimate specifier
+    # crash the guard rather than evaluate it. Ordered comparison operators
+    # never carry a wildcard, so restricting to them is both safe and exactly
+    # what this assertion is about.
+    # (Raised by chatgpt-codex-connector on PR #168; confirmed real.)
     first_bad = Version("0.16.0")
-    clauses = [(s.operator, Version(s.version)) for s in spec]
-    uppers = [(op, v) for op, v in clauses if op in ("<", "<=")]
+    uppers = [
+        (s.operator, Version(s.version)) for s in spec if s.operator in ("<", "<=")
+    ]
     assert uppers, (
         f"ruff specifier {raw!r} has no upper-bound clause at all; an "
         "unbounded specifier is a movable identity (PRD-198 invariant 6)."
@@ -701,8 +758,11 @@ def test_r1_specifier_excludes_versions_below_the_verified_floor():
     """
     raw = _ruff_specifier().split(";")[0].removeprefix("ruff")
     spec = SpecifierSet(raw)
-    clauses = [(s.operator, Version(s.version)) for s in spec]
-    lowers = [(op, v) for op, v in clauses if op in (">", ">=")]
+    # Operator-filtered before parsing, for the same reason as the ceiling
+    # check above: `!=0.14.*` is a legal clause and an unparseable Version.
+    lowers = [
+        (s.operator, Version(s.version)) for s in spec if s.operator in (">", ">=")
+    ]
     assert lowers, (
         f"ruff specifier {raw!r} has no lower-bound clause; it admits every "
         "release back to 0.0.13, including the 34 whose default rule set "
