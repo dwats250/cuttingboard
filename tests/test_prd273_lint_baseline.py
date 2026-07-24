@@ -63,6 +63,13 @@ ENFORCING_JOB = "test"
 # still be in it or the gate stops running on new and updated PRs.
 _REQUIRED_PR_ACTIVITIES = frozenset({"opened", "synchronize", "reopened"})
 
+# GitHub's built-in shell keywords. Anything else is a custom TEMPLATE, and a
+# template may consume `{0}` without executing it — the command text stays
+# perfect while nothing runs. Allow-list rather than pattern-match.
+_APPROVED_SHELLS = frozenset({
+    "bash", "sh", "pwsh", "powershell", "cmd", "python",
+})
+
 _RUFF = shutil.which("ruff")
 
 # ---------------------------------------------------------------------------
@@ -602,7 +609,52 @@ def test_floor_lint_targets_match_what_ci_actually_runs():
             "declares continue-on-error; a failure there can leave the gate "
             "unenforced."
         )
-    for job_name, step in located:
+    # Validate the ENFORCING step, not every `ruff check` in the workflow.
+    # Requiring all of them to equal the gate command reds CI for a correct
+    # workflow that adds an independent check (`ruff check tools/`) while the
+    # blocking step is untouched — the same false-positive shape as the
+    # `ruff format` finding one round earlier. Weakening the real step still
+    # fails: appending a flag leaves NO step equal to `expected`.
+    # (Raised by chatgpt-codex-connector on PR #168; confirmed real.)
+    gate_steps = [
+        step
+        for name, step in located
+        if name == ENFORCING_JOB and str(step.get("run", "")).strip() == expected
+    ]
+    assert gate_steps, (
+        "no step in the enforcing job runs exactly the pinned command. Extra "
+        "flags (--ignore, --config, --isolated, --exclude, --exit-zero) "
+        "override the file-based configuration these floors verify, and a "
+        "deleted step is not a gate.\n"
+        f"  expected: {expected!r}\n"
+        f"  ruff check steps in {ENFORCING_JOB!r}: "
+        f"{[str(s.get('run', '')).strip() for n, s in located if n == ENFORCING_JOB]}"
+    )
+
+    # A pinned command still does not run if the shell never executes the
+    # generated script: GitHub accepts a custom `shell` TEMPLATE, and one
+    # like `bash -c 'true' -- {0}` exits 0 without running it, leaving every
+    # text assertion above green. Allow-list the built-in keywords rather
+    # than trying to recognise which templates are inert.
+    # (Raised by chatgpt-codex-connector on PR #168; confirmed real.)
+    scopes = [("workflow defaults", workflow.get("defaults", {}) or {})]
+    scopes.append((f"job {ENFORCING_JOB!r} defaults", jobs[ENFORCING_JOB].get("defaults", {}) or {}))
+    for label, defaults in scopes:
+        shell = (defaults.get("run", {}) or {}).get("shell")
+        assert shell is None or shell in _APPROVED_SHELLS, (
+            f"{label} sets a custom `shell` ({shell!r}). A shell template "
+            "may never execute the generated script, so the pinned ruff "
+            f"command would not run.\n  approved: {sorted(_APPROVED_SHELLS)}"
+        )
+    for step in gate_steps:
+        shell = step.get("shell")
+        assert shell is None or shell in _APPROVED_SHELLS, (
+            f"the ruff step sets a custom `shell` ({shell!r}); it may exit "
+            "successfully without executing the command.\n"
+            f"  approved: {sorted(_APPROVED_SHELLS)}"
+        )
+
+    for job_name, step in [(ENFORCING_JOB, s) for s in gate_steps]:
         job = workflow["jobs"][job_name]
         # ABSENT, not "not literally True". GitHub documents expression forms
         # (`continue-on-error: ${{ matrix.experimental }}`); PyYAML leaves
@@ -768,12 +820,13 @@ def test_r1_specifier_excludes_versions_below_the_verified_floor():
         "release back to 0.0.13, including the 34 whose default rule set "
         "does not match BASELINE_RULES."
     )
-    #   `>=X` excludes everything below the floor iff X >= 0.8.0
-    #   `>X`  does iff X >= 0.7.4 (the last unverified release)
-    excludes_unverified = any(
-        (v >= _VERIFIED_FLOOR) if op == ">=" else (v >= _LAST_UNVERIFIED)
-        for op, v in lowers
-    )
+    # The bound must reach the FLOOR, for either operator. An earlier version
+    # accepted `>X` when X >= 0.7.4, which passes for `>0.7.4` while still
+    # admitting anything published in the gap (0.7.5, a 0.7.4.post1 backfill)
+    # — versions nothing has verified, contradicting this test's own stated
+    # guarantee. `>0.8.0` is merely over-tight, which is safe; `>0.7.4` is
+    # not. (Raised by chatgpt-codex-connector on PR #168; confirmed real.)
+    excludes_unverified = any(v >= _VERIFIED_FLOOR for _, v in lowers)
     assert excludes_unverified, (
         f"ruff specifier {raw!r} admits releases below the verified floor "
         f"{_VERIFIED_FLOOR}: {lowers}. Under those, ruff resolves E999 as a "
