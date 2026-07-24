@@ -18,7 +18,6 @@ import re
 import shutil
 import subprocess
 import tomllib
-import uuid
 from pathlib import Path
 
 import yaml
@@ -41,6 +40,10 @@ PYPROJECT = REPO_ROOT / "pyproject.toml"
 
 # The lint targets CI actually checks (.github/workflows/ci.yml).
 LINT_TARGETS = ["cuttingboard/", "tests/"]
+
+# The job name branch protection requires. Ruff must run HERE, not merely
+# somewhere in the workflow.
+ENFORCING_JOB = "test"
 
 _RUFF = shutil.which("ruff")
 
@@ -83,7 +86,7 @@ def _pyproject() -> dict:
         return tomllib.load(fh)
 
 
-def _ruff(*args: str) -> subprocess.CompletedProcess:
+def _ruff(*args: str, stdin: str | None = None) -> subprocess.CompletedProcess:
     """Fail loud if ruff is absent — never skip a required dependency."""
     assert _RUFF is not None, (
         "ruff not found on PATH. It is a declared dev dependency "
@@ -103,6 +106,7 @@ def _ruff(*args: str) -> subprocess.CompletedProcess:
         text=True,
         timeout=180,
         env=env,
+        input=stdin,
     )
 
 
@@ -283,24 +287,32 @@ def test_floor_no_nested_ruff_config_anywhere():
     Filesystem enumeration is EXHAUSTIVE where settings-probing is not: there
     is a finite, walkable set of places a ruff config can live.
     """
-    # Ignored trees (.venv/, .worktrees/) are pruned: a config in there cannot
-    # affect files under the CI targets, but a nested worktree carrying the
-    # same root table would otherwise break the suite for no reason.
-    nested = sorted(_not_ignored({
-        p for name in ("ruff.toml", ".ruff.toml")
-        for p in REPO_ROOT.rglob(name)
-        if ".git" not in p.parts
-    }))
+    # Scope by LOCATION, not by ignore status. Filtering these through
+    # `git check-ignore` opened a hole: an ignored `tests/x/ruff.toml` still
+    # governs a re-included `tests/x/probe.py`, and ruff loads it — verified
+    # via --show-settings naming the ignored config — while the scan skipped
+    # it. Anything under a lint target is rejected regardless of ignore
+    # status; ignored trees like .venv/ and .worktrees/ are excluded because
+    # they sit OUTSIDE the targets, which is why they no longer need a filter.
+    search_roots = [REPO_ROOT / t.rstrip("/") for t in LINT_TARGETS]
+    nested = sorted({
+        p
+        for root in search_roots
+        for name in ("ruff.toml", ".ruff.toml")
+        for p in root.rglob(name)
+    })
     assert not nested, (
         "nested ruff config file(s) found; they silently re-scope the "
         "baseline for their subtree.\n"
         f"  {[str(p.relative_to(REPO_ROOT)) for p in nested]}"
     )
 
-    other_pyprojects = sorted(_not_ignored({
-        p for p in REPO_ROOT.rglob("pyproject.toml")
-        if p != PYPROJECT and ".git" not in p.parts
-    }))
+    other_pyprojects = sorted({
+        p
+        for root in search_roots
+        for p in root.rglob("pyproject.toml")
+        if p != PYPROJECT
+    })
     for p in other_pyprojects:
         with p.open("rb") as fh:
             assert "ruff" not in tomllib.load(fh).get("tool", {}), (
@@ -345,29 +357,28 @@ def test_floor_gate_actually_flags_known_bad_code():
     via a nested config, or excludes the path makes the canary go silent —
     whether or not anyone predicted the mechanism.
     """
-    # Unique name, and refuse to touch a path that already exists: a fixed
-    # name would overwrite a developer's untracked file (or a concurrent run's
-    # canary) and then delete it in the finally. A test must not destroy
-    # working-tree state it did not create.
-    canary = (
-        REPO_ROOT / "tests" / f"_prd273_canary_{os.getpid()}_{uuid.uuid4().hex[:8]}.py"
+    # Fed via stdin under a target-resident FILENAME — nothing is ever written
+    # to the worktree. An earlier version wrote a real file under tests/; while
+    # it existed, any concurrent target-wide `ruff check cuttingboard/ tests/`
+    # (pytest-xdist, or a second invocation sharing the checkout) would lint it
+    # and fail on its four deliberate diagnostics. `--stdin-filename` keeps the
+    # path-dependent config resolution — per-file ignores, nested configs and
+    # excludes all still apply to the declared path — with no file to collide
+    # over, and nothing to clean up if the process dies mid-test.
+    declared_as = REPO_ROOT / "tests" / "_prd273_canary.py"
+    result = _ruff(
+        "check", "--no-cache", "--output-format", "concise",
+        "--stdin-filename", str(declared_as), "-",
+        stdin=_CANARY,
     )
-    assert not canary.exists(), f"canary path unexpectedly occupied: {canary}"
-    try:
-        canary.write_text(_CANARY)
-        result = _ruff(
-            "check", "--no-cache", "--output-format", "concise", str(canary)
-        )
-        reported = set(re.findall(r"\b([EFW]\d{3})\b", result.stdout))
-        missing = _CANARY_EXPECTED - reported
-        assert not missing, (
-            "the lint gate did NOT flag known-bad code. These baseline rules "
-            "are configured as enabled but are not actually enforced for this "
-            f"path:\n  silent: {sorted(missing)}\n  reported: {sorted(reported)}\n"
-            f"{result.stdout}"
-        )
-    finally:
-        canary.unlink(missing_ok=True)
+    reported = set(re.findall(r"\b([EFW]\d{3})\b", result.stdout))
+    missing = _CANARY_EXPECTED - reported
+    assert not missing, (
+        "the lint gate did NOT flag known-bad code. These baseline rules are "
+        "configured as enabled but are not actually enforced for this path:\n"
+        f"  silent: {sorted(missing)}\n  reported: {sorted(reported)}\n"
+        f"{result.stdout}{result.stderr}"
+    )
 
 
 def test_floor_lint_targets_match_what_ci_actually_runs():
@@ -389,17 +400,36 @@ def test_floor_lint_targets_match_what_ci_actually_runs():
     with (REPO_ROOT / ".github/workflows/ci.yml").open("rb") as fh:
         workflow = yaml.safe_load(fh)
 
-    ruff_steps = [
-        step
-        for job in workflow.get("jobs", {}).values()
+    # Keep the JOB association. Flattening steps across all jobs loses it, and
+    # ruff can then be moved into a separate `continue-on-error: true` job and
+    # deleted from the required one — the step still looks perfect while the
+    # required check passes without lint. Verified: 17 tests passed under
+    # exactly that arrangement.
+    located = [
+        (job_name, step)
+        for job_name, job in workflow.get("jobs", {}).items()
         for step in job.get("steps", [])
         if isinstance(step, dict) and "ruff" in str(step.get("run", ""))
     ]
-    assert ruff_steps, (
+    assert located, (
         "ci.yml defines no executable ruff step. A commented-out step is not "
         "a lint gate."
     )
-    for step in ruff_steps:
+    assert any(name == ENFORCING_JOB for name, _ in located), (
+        f"no ruff step runs in the {ENFORCING_JOB!r} job — the required "
+        "branch-protection check. Ruff running in some other job does not "
+        f"gate the merge.\n  found in: {sorted({n for n, _ in located})}"
+    )
+    for job_name, step in located:
+        job = workflow["jobs"][job_name]
+        assert job.get("continue-on-error") is not True, (
+            f"job {job_name!r} is continue-on-error, so its ruff step cannot "
+            "fail CI."
+        )
+        assert "if" not in job, (
+            f"job {job_name!r} is conditional (if: {job.get('if')!r}); it may "
+            "not run on every PR."
+        )
         assert step["run"].strip() == expected, (
             "ci.yml's ruff invocation is not exactly the pinned command. "
             "Extra flags (--ignore, --config, --isolated, --exclude) override "
