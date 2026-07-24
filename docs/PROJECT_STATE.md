@@ -9,7 +9,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 ## Current state
 
-- **Active PRD:** none in progress.
+- **Active PRD:** PRD-267 (coverage-reason surfacing, daily — 80-char truncation fix in `output.py`), implementation in flight. Also IN PROGRESS but NOT active work: PRD-271 (ORB mid-session-bars defect, Stage-0 scaffold only, Gate A pending) and PRD-268 (coverage-reason surfacing, hourly — scaffold only, design fork unruled).
 - **Active PRD note (2026-07-13):** kept as a single-line bulleted pointer,
   not a multi-line block, matching PRD-183's convention that
   `scripts/prd_close.sh`'s closeout regex depends on (it replaces only
