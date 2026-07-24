@@ -21,6 +21,7 @@ import tomllib
 import uuid
 from pathlib import Path
 
+import yaml
 from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 
@@ -29,6 +30,11 @@ from packaging.version import Version
 # lands under a target — ruff includes them, so the equality check would read
 # a correctly-linted new file as missing coverage and block CI.
 RUFF_SOURCE_GLOBS = ("*.py", "*.pyi", "*.ipynb")
+
+# Ruff env vars that redirect its output. Inherited into a subprocess these
+# silently empty stdout, failing every parsing assertion in this file for a
+# reason that has nothing to do with the lint gate.
+_RUFF_OUTPUT_ENV = {"RUFF_OUTPUT_FILE", "RUFF_OUTPUT_FORMAT", "RUFF_NO_CACHE"}
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT = REPO_ROOT / "pyproject.toml"
@@ -84,13 +90,42 @@ def _ruff(*args: str) -> subprocess.CompletedProcess:
         "(pyproject.toml [project.optional-dependencies] dev); a missing "
         "required dep must fail, not skip (PRD-198 invariant 4)."
     )
+    # Scrub ruff's output-redirection env. RUFF_OUTPUT_FILE makes ruff write
+    # settings/file-lists/diagnostics to a file instead of stdout, so every
+    # assertion here that parses stdout fails — verified: 7 failures with the
+    # config and results completely unchanged. These vars do NOT affect rule
+    # selection or file discovery; they break the HARNESS, not the gate.
+    env = {k: v for k, v in os.environ.items() if k not in _RUFF_OUTPUT_ENV}
     return subprocess.run(
         [_RUFF, *args],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
         timeout=180,
+        env=env,
     )
+
+
+def _not_ignored(paths: set[Path]) -> set[Path]:
+    """Drop paths git ignores — ruff honours .gitignore, the walk does not.
+
+    A generated file under an ignored directory (e.g. `tests/build/`) is
+    linted by neither, but a naive `rglob` sees it and the equality check
+    then fails on a correctly-behaving gate.
+    """
+    if not paths:
+        return paths
+    ordered = sorted(paths)
+    result = subprocess.run(
+        ["git", "check-ignore", "--stdin"],
+        cwd=REPO_ROOT,
+        input="\n".join(str(p) for p in ordered),
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    ignored = {Path(line) for line in result.stdout.splitlines() if line.strip()}
+    return paths - ignored
 
 
 # ---------------------------------------------------------------------------
@@ -156,13 +191,13 @@ def test_floor_every_target_file_is_actually_linted():
     assert result.returncode == 0, result.stderr
     resolved = {Path(line) for line in result.stdout.splitlines() if line.strip()}
 
-    discovered = {
+    discovered = _not_ignored({
         p.resolve()
         for target in LINT_TARGETS
         for glob in RUFF_SOURCE_GLOBS
         for p in (REPO_ROOT / target.rstrip("/")).rglob(glob)
         if "__pycache__" not in p.parts
-    }
+    })
 
     assert resolved, (
         "ruff resolved ZERO files for the CI lint targets — the gate lints "
@@ -248,21 +283,24 @@ def test_floor_no_nested_ruff_config_anywhere():
     Filesystem enumeration is EXHAUSTIVE where settings-probing is not: there
     is a finite, walkable set of places a ruff config can live.
     """
-    nested = [
+    # Ignored trees (.venv/, .worktrees/) are pruned: a config in there cannot
+    # affect files under the CI targets, but a nested worktree carrying the
+    # same root table would otherwise break the suite for no reason.
+    nested = sorted(_not_ignored({
         p for name in ("ruff.toml", ".ruff.toml")
         for p in REPO_ROOT.rglob(name)
-        if ".git" not in p.parts and "node_modules" not in p.parts
-    ]
+        if ".git" not in p.parts
+    }))
     assert not nested, (
         "nested ruff config file(s) found; they silently re-scope the "
         "baseline for their subtree.\n"
         f"  {[str(p.relative_to(REPO_ROOT)) for p in nested]}"
     )
 
-    other_pyprojects = [
+    other_pyprojects = sorted(_not_ignored({
         p for p in REPO_ROOT.rglob("pyproject.toml")
         if p != PYPROJECT and ".git" not in p.parts
-    ]
+    }))
     for p in other_pyprojects:
         with p.open("rb") as fh:
             assert "ruff" not in tomllib.load(fh).get("tool", {}), (
@@ -340,26 +378,41 @@ def test_floor_lint_targets_match_what_ci_actually_runs():
     runs — the floor measuring the wrong thing is the one way it fails
     silently, so it is pinned to the workflow's own text.
     """
-    workflow = (REPO_ROOT / ".github/workflows/ci.yml").read_text()
     expected = "ruff check " + " ".join(LINT_TARGETS)
 
-    # EXACT line match, not a substring. A substring check is evaded by
-    # appending flags: `ruff check cuttingboard/ tests/ --ignore F401` still
-    # contains the expected text while gutting the gate — verified, 17 tests
-    # passed under it. CLI flags are the one config surface FLOOR 4's
-    # filesystem walk cannot see, so the invocation itself must be pinned.
-    ruff_lines = [
-        line.split("run:", 1)[1].strip()
-        for line in workflow.splitlines()
-        if "run:" in line and "ruff" in line
+    # Parse the YAML, do not scan raw text. A raw-line search matches a
+    # COMMENTED-OUT step (`# - run: ruff check ...`) and cannot see step
+    # metadata — `continue-on-error: true` removes the gate's failure effect
+    # entirely while the text is unchanged. Verified: 17 tests passed with
+    # the step non-blocking. Extra flags are caught by the exact match, since
+    # CLI flags are the one config surface the filesystem walk cannot see.
+    with (REPO_ROOT / ".github/workflows/ci.yml").open("rb") as fh:
+        workflow = yaml.safe_load(fh)
+
+    ruff_steps = [
+        step
+        for job in workflow.get("jobs", {}).values()
+        for step in job.get("steps", [])
+        if isinstance(step, dict) and "ruff" in str(step.get("run", ""))
     ]
-    assert ruff_lines, "ci.yml has no ruff invocation"
-    for line in ruff_lines:
-        assert line == expected, (
+    assert ruff_steps, (
+        "ci.yml defines no executable ruff step. A commented-out step is not "
+        "a lint gate."
+    )
+    for step in ruff_steps:
+        assert step["run"].strip() == expected, (
             "ci.yml's ruff invocation is not exactly the pinned command. "
             "Extra flags (--ignore, --config, --isolated, --exclude) override "
             "the file-based configuration these floors verify.\n"
-            f"  expected: {expected!r}\n  actual  : {line!r}"
+            f"  expected: {expected!r}\n  actual  : {step['run'].strip()!r}"
+        )
+        assert step.get("continue-on-error") is not True, (
+            "the ruff step is marked continue-on-error, so lint failures do "
+            "not fail CI. The command is pinned but the gate is disabled."
+        )
+        assert "if" not in step, (
+            f"the ruff step is conditional (if: {step.get('if')!r}); it may "
+            "not run on every PR."
         )
 
 
