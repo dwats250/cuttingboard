@@ -391,20 +391,30 @@ def test_r1_specifier_excludes_the_known_bad_versions():
     # this file has now made five times. Assert the CEILING instead: some
     # upper-bound clause must cut at or below 0.16, which excludes the whole
     # interval regardless of how many `!=` exceptions are bolted on.
-    uppers = [
-        Version(s.version)
-        for s in spec
-        if s.operator in ("<", "<=")
-    ]
+    first_bad = Version("0.16.0")
+    clauses = [(s.operator, Version(s.version)) for s in spec]
+    uppers = [(op, v) for op, v in clauses if op in ("<", "<=")]
     assert uppers, (
         f"ruff specifier {raw!r} has no upper-bound clause at all; an "
         "unbounded specifier is a movable identity (PRD-198 invariant 6)."
     )
-    assert min(uppers) <= Version("0.16"), (
-        f"ruff specifier {raw!r} has ceiling {min(uppers)}, which admits part "
-        "of the 0.16 line. 0.16.0 expanded ruff's default rule set and turned "
-        "CI red with no diff; the whole interval must be excluded, not "
-        "individual patch releases."
+    # Operator-aware. Collapsing `<` and `<=` together is an off-by-one:
+    # `<=0.16` admits 0.16.0 (packaging normalises 0.16 == 0.16.0), which is
+    # the exact release that broke CI — and it passed the previous check.
+    #   `<X`  excludes the whole 0.16 line iff X <= 0.16.0
+    #   `<=X` excludes it iff X <  0.16.0
+    excludes_line = any(
+        (v <= first_bad) if op == "<" else (v < first_bad) for op, v in uppers
+    )
+    assert excludes_line, (
+        f"ruff specifier {raw!r} does not exclude the whole 0.16 line: "
+        f"ceiling {uppers}. 0.16.0 expanded ruff's default rule set and "
+        "turned CI red with no diff."
+    )
+    # Belt and braces: assert the property directly too, so a mistake in the
+    # structural reasoning above cannot let 0.16.0 back in on its own.
+    assert str(first_bad) not in spec, (
+        f"ruff specifier {raw!r} admits {first_bad}."
     )
 
 
