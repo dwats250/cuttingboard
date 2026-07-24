@@ -1292,6 +1292,12 @@
       "title": "Correct PRD-245 registry provenance (phantom 6017ce9 \u2192 merged 8bea09c)",
       "status": "COMPLETE",
       "commit": "#164"
+    },
+    {
+      "number": 273,
+      "title": "Pin ruff and declare the lint rule set explicitly",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
