@@ -29,6 +29,39 @@ LINT_TARGETS = ["cuttingboard/", "tests/"]
 
 _RUFF = shutil.which("ruff")
 
+# ---------------------------------------------------------------------------
+# THE FLOOR (Dustin, 2026-07-24)
+# ---------------------------------------------------------------------------
+# Everything below the floor enumerates a bypass MECHANISM — `ignore`,
+# `per-file-ignores`, `exclude`, an unbounded specifier. That approach
+# produced five holes across three review rounds, because a config surface is
+# open-ended: there is no finite list of ways to weaken a lint gate, so a
+# guard built from such a list is provably incomplete.
+#
+# These two constants are the mechanism-INDEPENDENT floor. They assert the
+# OUTCOME rather than the route to it:
+#
+#   BASELINE_RULES  - the effective rule set, exactly
+#   (file coverage) - every .py file under the CI targets is actually linted
+#
+# Anything that empties the file list, disables rules, or suppresses per-file
+# fails against the floor whether or not anyone predicted the mechanism.
+# Same move as PRD-269's fail-loud parser floor.
+#
+# If ruff adds or removes a rule inside the pinned range, the floor goes RED
+# and the baseline is re-derived deliberately. That is the intended behavior,
+# not churn: a silently-changing baseline is the thing this PRD exists to stop.
+BASELINE_RULES = frozenset({
+    "E401", "E402", "E701", "E702", "E703", "E711", "E712", "E713", "E714",
+    "E721", "E722", "E731", "E741", "E742", "E743", "E902",
+    "F401", "F402", "F403", "F404", "F405", "F406", "F407",
+    "F501", "F502", "F503", "F504", "F505", "F506", "F507", "F508", "F509",
+    "F521", "F522", "F523", "F524", "F525", "F541",
+    "F601", "F602", "F621", "F622", "F631", "F632", "F633", "F634",
+    "F701", "F702", "F704", "F706", "F707", "F722",
+    "F811", "F821", "F822", "F823", "F841", "F842", "F901",
+})
+
 
 def _pyproject() -> dict:
     with PYPROJECT.open("rb") as fh:
@@ -48,6 +81,106 @@ def _ruff(*args: str) -> subprocess.CompletedProcess:
         capture_output=True,
         text=True,
         timeout=180,
+    )
+
+
+# ---------------------------------------------------------------------------
+# FLOOR — mechanism-independent. Read these two first; the rest are
+# mechanism-specific tests kept because a named failure message is more
+# useful than a generic one, not because the floor depends on them.
+# ---------------------------------------------------------------------------
+
+def _resolved_rule_codes() -> set[str]:
+    result = _ruff("check", "--show-settings", "cuttingboard/output.py")
+    assert result.returncode == 0, result.stderr
+    block = re.search(
+        r"^linter\.rules\.enabled = \[(.*?)^\]", result.stdout, re.S | re.M
+    )
+    assert block, "could not parse linter.rules.enabled"
+    return set(re.findall(r"\(([A-Z]+[0-9]+)\)", block.group(1)))
+
+
+def test_floor_effective_rule_set_equals_the_pinned_baseline():
+    """FLOOR 1 — the effective rule set IS the baseline, exactly.
+
+    Absolute, not relative: it does not derive the expectation from the same
+    config it is checking, so narrowing `select` cannot move both sides
+    together. Any mechanism that adds, removes, or disables a rule — `ignore`,
+    `extend-select`, `extend-ignore`, a version bump that shifts defaults,
+    or one nobody has thought of — lands here.
+    """
+    resolved = _resolved_rule_codes()
+    assert resolved == set(BASELINE_RULES), (
+        "effective rule set no longer equals the pinned baseline.\n"
+        f"  missing (disabled): {sorted(set(BASELINE_RULES) - resolved)}\n"
+        f"  extra   (added)   : {sorted(resolved - set(BASELINE_RULES))}\n"
+        "Re-derive the baseline deliberately if this change is intended."
+    )
+
+    # `rules.enabled` is GLOBAL and does not reflect per-file suppression —
+    # verified: a per-file ignore leaves the set above identical. So the
+    # rule-dimension floor is only complete with this second half, asserting
+    # ruff's resolved per-file table is empty. State-based, not
+    # mechanism-based: both `per-file-ignores` and `extend-per-file-ignores`
+    # resolve into this same key (both verified).
+    result = _ruff("check", "--show-settings", "cuttingboard/output.py")
+    match = re.search(r"^linter\.per_file_ignores = (.*)$", result.stdout, re.M)
+    assert match, "could not find linter.per_file_ignores"
+    assert match.group(1).strip() == "{}", (
+        "the baseline holds globally but is suppressed for specific files, so "
+        "the effective rule set is NOT the baseline everywhere.\n"
+        f"  resolved per_file_ignores: {match.group(1).strip()}"
+    )
+
+
+def test_floor_every_target_file_is_actually_linted():
+    """FLOOR 2 — the run lints every .py file under the CI targets.
+
+    A run that lints zero files is a FAILURE, not a pass — ruff exits 0 on an
+    empty file list. Asserting set equality against filesystem discovery (not
+    merely non-empty) also catches partial erosion: excluding one directory,
+    one file, or 90% of the tree fails identically. Mechanism-independent
+    across `exclude`, `extend-exclude`, `force-exclude`, `include`,
+    `respect-gitignore`, and anything future.
+    """
+    result = _ruff("check", "--show-files", *LINT_TARGETS)
+    assert result.returncode == 0, result.stderr
+    resolved = {Path(line) for line in result.stdout.splitlines() if line.strip()}
+
+    discovered = {
+        p.resolve()
+        for target in LINT_TARGETS
+        for p in (REPO_ROOT / target.rstrip("/")).rglob("*.py")
+        if "__pycache__" not in p.parts
+    }
+
+    assert resolved, (
+        "ruff resolved ZERO files for the CI lint targets — the gate lints "
+        "nothing while still exiting 0."
+    )
+    assert resolved == discovered, (
+        "ruff's linted file set does not match the .py files present under "
+        f"{LINT_TARGETS}.\n"
+        f"  present but NOT linted: "
+        f"{sorted(str(p.relative_to(REPO_ROOT)) for p in discovered - resolved)}\n"
+        f"  linted but not present: "
+        f"{sorted(str(p.relative_to(REPO_ROOT)) for p in resolved - discovered)}"
+    )
+
+
+def test_floor_lint_targets_match_what_ci_actually_runs():
+    """FLOOR 3 — the floor is measuring the command CI really uses.
+
+    Both floors above are scoped to LINT_TARGETS. If `ci.yml` changed its
+    ruff invocation, they would keep passing while guarding a command nobody
+    runs — the floor measuring the wrong thing is the one way it fails
+    silently, so it is pinned to the workflow's own text.
+    """
+    workflow = (REPO_ROOT / ".github/workflows/ci.yml").read_text()
+    expected = "ruff check " + " ".join(LINT_TARGETS)
+    assert expected in workflow, (
+        f"ci.yml does not contain {expected!r}; the lint targets these tests "
+        "guard have drifted from the command CI actually runs."
     )
 
 
