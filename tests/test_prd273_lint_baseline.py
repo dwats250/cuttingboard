@@ -183,6 +183,84 @@ def test_floor_every_target_file_is_actually_linted():
     )
 
 
+
+# The ONLY ruff configuration keys this repo sanctions. An ALLOW-list, not a
+# deny-list: a deny-list of bypass mechanisms is provably incomplete (eight
+# holes across five rounds proved it empirically), whereas an allow-list is
+# complete by construction — anything not named here fails, including options
+# nobody has heard of.
+SANCTIONED_RUFF_KEYS = frozenset({"lint.select"})
+
+
+def _flatten(d: dict, prefix: str = "") -> set[str]:
+    out: set[str] = set()
+    for key, value in d.items():
+        path = f"{prefix}{key}"
+        if isinstance(value, dict):
+            out |= _flatten(value, f"{path}.")
+        else:
+            out.add(path)
+    return out
+
+
+def test_floor_root_config_contains_only_sanctioned_keys():
+    """FLOOR 3 — allow-list the root config's keys, don't deny-list bypasses.
+
+    Round 4 and 5 each found a behavior-changing option the guards did not
+    know to look for (`dummy-variable-rgx`, `pyflakes.allowed-unused-imports`).
+    Enumerating them is unbounded — ruff has hundreds of settings and gains
+    more each release. Inverting it is bounded: assert the config contains
+    ONLY what we sanctioned, so any unlisted key fails whether or not anyone
+    predicted it.
+    """
+    ruff_cfg = _pyproject().get("tool", {}).get("ruff", {})
+    present = _flatten(ruff_cfg)
+    unsanctioned = present - set(SANCTIONED_RUFF_KEYS)
+    assert not unsanctioned, (
+        "pyproject.toml's [tool.ruff] contains keys this PRD did not "
+        "sanction. Any of them may change what the gate enforces.\n"
+        f"  unsanctioned: {sorted(unsanctioned)}\n"
+        f"  sanctioned  : {sorted(SANCTIONED_RUFF_KEYS)}\n"
+        "If the addition is intended, add it here deliberately and re-derive "
+        "the baseline."
+    )
+    assert present == set(SANCTIONED_RUFF_KEYS), (
+        f"expected exactly {sorted(SANCTIONED_RUFF_KEYS)}, got {sorted(present)}"
+    )
+
+
+def test_floor_no_nested_ruff_config_anywhere():
+    """FLOOR 4 — exactly one ruff configuration exists, repo-wide.
+
+    Probing a couple of files' resolved settings and generalising is a sample;
+    a nested config in any unprobed subtree slips through — verified twice,
+    under `tests/` and under `cuttingboard/delivery/`, with every test green.
+    Filesystem enumeration is EXHAUSTIVE where settings-probing is not: there
+    is a finite, walkable set of places a ruff config can live.
+    """
+    nested = [
+        p for name in ("ruff.toml", ".ruff.toml")
+        for p in REPO_ROOT.rglob(name)
+        if ".git" not in p.parts and "node_modules" not in p.parts
+    ]
+    assert not nested, (
+        "nested ruff config file(s) found; they silently re-scope the "
+        "baseline for their subtree.\n"
+        f"  {[str(p.relative_to(REPO_ROOT)) for p in nested]}"
+    )
+
+    other_pyprojects = [
+        p for p in REPO_ROOT.rglob("pyproject.toml")
+        if p != PYPROJECT and ".git" not in p.parts
+    ]
+    for p in other_pyprojects:
+        with p.open("rb") as fh:
+            assert "ruff" not in tomllib.load(fh).get("tool", {}), (
+                f"{p.relative_to(REPO_ROOT)} declares [tool.ruff]; only the "
+                "root pyproject.toml may configure ruff."
+            )
+
+
 # The canary: real code that MUST be flagged. One violation per baseline
 # family, chosen so each is reported by a different rule.
 _CANARY = '''\
