@@ -168,6 +168,75 @@ def test_floor_every_target_file_is_actually_linted():
     )
 
 
+    # Every linted file must resolve to THIS pyproject. Probing one file and
+    # generalising is a proxy: a nested `tests/ruff.toml` re-scopes an entire
+    # subtree while the probed file's settings are unchanged — verified.
+    seen = set()
+    for probe in ("cuttingboard/output.py", __file__):
+        out = _ruff("check", "--show-settings", str(probe)).stdout
+        m = re.search(r'^Settings path:\s*"(.+)"\s*$', out, re.M)
+        assert m, f"ruff resolved no config for {probe}"
+        seen.add(Path(m.group(1)))
+    assert seen == {PYPROJECT}, (
+        "linted files resolve to more than one ruff configuration; a nested "
+        f"config re-scopes part of the tree.\n  resolved: {sorted(map(str, seen))}"
+    )
+
+
+# The canary: real code that MUST be flagged. One violation per baseline
+# family, chosen so each is reported by a different rule.
+_CANARY = '''\
+import json
+
+lambda_assigned = lambda x: x
+
+
+def _f():
+    unused_local = 42
+    return f"no placeholders"
+'''
+_CANARY_EXPECTED = {"F401", "E731", "F841", "F541"}
+
+
+def test_floor_gate_actually_flags_known_bad_code():
+    """FLOOR 0 — the strongest floor: stop inspecting config, feed it bad input.
+
+    Every other guard here reads ruff's *configuration* and reasons about what
+    it implies. That is a proxy, and it has now failed twice in ways no
+    config-inspection could catch:
+      - `dummy-variable-rgx = ".*"` leaves F841 in the enabled set while
+        making it ignore every variable — behavior changed, codes identical.
+      - a nested `tests/ruff.toml` re-scopes a whole subtree while the probed
+        file's settings are unchanged.
+    Freezing the full settings dump does not fix it either: the dump is not
+    stable across the pinned range (0.15.8 vs 0.15.22 differ by 7 lines of
+    newly-added options), so it would go red on benign patch bumps.
+
+    So this asserts the OUTCOME with no reference to configuration at all: a
+    file containing real violations, written INSIDE the lint targets so every
+    scoping mechanism applies to it, must actually be flagged. Anything that
+    disables a rule, guts its semantics, suppresses it per-file, re-scopes it
+    via a nested config, or excludes the path makes the canary go silent —
+    whether or not anyone predicted the mechanism.
+    """
+    canary = REPO_ROOT / "tests" / "_prd273_canary_do_not_commit.py"
+    try:
+        canary.write_text(_CANARY)
+        result = _ruff(
+            "check", "--no-cache", "--output-format", "concise", str(canary)
+        )
+        reported = set(re.findall(r"\b([EFW]\d{3})\b", result.stdout))
+        missing = _CANARY_EXPECTED - reported
+        assert not missing, (
+            "the lint gate did NOT flag known-bad code. These baseline rules "
+            "are configured as enabled but are not actually enforced for this "
+            f"path:\n  silent: {sorted(missing)}\n  reported: {sorted(reported)}\n"
+            f"{result.stdout}"
+        )
+    finally:
+        canary.unlink(missing_ok=True)
+
+
 def test_floor_lint_targets_match_what_ci_actually_runs():
     """FLOOR 3 — the floor is measuring the command CI really uses.
 
@@ -423,8 +492,13 @@ def test_r4_installed_ruff_satisfies_the_declared_pin():
     result = _ruff("--version")
     assert result.returncode == 0
     version = result.stdout.split()[-1]
-    major, minor = (int(p) for p in version.split(".")[:2])
-    assert (major, minor) < (0, 16), (
-        f"installed ruff {version} is outside the declared range (<0.16). "
-        "The pin and the environment disagree; CI parity is not established."
+    # Check membership in the WHOLE declared range, not just the ceiling: an
+    # assertion named "satisfies the declared pin" that only tests the upper
+    # bound would pass on a pre-0.4 ruff left on PATH by a stale environment.
+    # (Raised by chatgpt-codex-connector on PR #168; correct.)
+    spec = SpecifierSet(_ruff_specifier().split(";")[0].removeprefix("ruff"))
+    assert version in spec, (
+        f"installed ruff {version} does not satisfy the declared pin "
+        f"{_ruff_specifier()!r}. The pin and the environment disagree; CI "
+        "parity is not established (PRD-198 invariant 5)."
     )
