@@ -21,6 +21,10 @@ dev = [
     # future widening of this bound cannot silently re-expand it.
     "ruff>=0.4.0,<0.16",
     "PyYAML>=6.0",            # tests/test_ci_artifact_hygiene.py parses workflow YAML
+    # PRD-273: tests/test_prd273_lint_baseline.py parses the ruff specifier to
+    # assert the ceiling actually excludes 0.16+. Present transitively via
+    # pytest, but declared rather than relied on (PRD-198 invariant 6).
+    "packaging>=23.0",
 ]
 chain = [
     "yahooquery>=2.3.0",

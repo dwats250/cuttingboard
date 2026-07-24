@@ -13,10 +13,13 @@ config on the same tree reports errors. Delete `[tool.ruff.lint].select`
 and R2/R3 go red immediately.
 """
 
+import re
 import shutil
 import subprocess
 import tomllib
 from pathlib import Path
+
+from packaging.specifiers import SpecifierSet
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT = REPO_ROOT / "pyproject.toml"
@@ -52,16 +55,39 @@ def _ruff(*args: str) -> subprocess.CompletedProcess:
 # R1 — ruff is pinned to a bounded range
 # ---------------------------------------------------------------------------
 
-def test_r1_ruff_specifier_has_an_upper_bound():
+def _ruff_specifier() -> str:
     dev = _pyproject()["project"]["optional-dependencies"]["dev"]
-    ruff_specs = [s for s in dev if s.replace(" ", "").startswith("ruff")]
-    assert ruff_specs, "ruff is not declared in the dev extra"
-    spec = ruff_specs[0]
-    assert "<" in spec, (
-        f"ruff specifier {spec!r} has no upper bound. An unbounded specifier "
-        "is a movable identity: ruff 0.16.0 expanded its default rule set and "
-        "turned CI red with no diff (PRD-198 invariant 6)."
-    )
+    specs = [s for s in dev if s.replace(" ", "").startswith("ruff")]
+    assert specs, "ruff is not declared in the dev extra"
+    return specs[0]
+
+
+def test_r1_specifier_excludes_the_known_bad_versions():
+    """Assert the ceiling actually EXCLUDES 0.16+, not merely that one exists.
+
+    Checking only for the presence of a `<` is too weak: `ruff>=0.4.0,<1`
+    contains one and still admits 0.16.0, the exact version this PRD exists
+    to keep out. Parse the specifier and ask it directly.
+    (Raised by chatgpt-codex-connector on PR #168; confirmed real.)
+    """
+    spec = SpecifierSet(_ruff_specifier().split(";")[0].removeprefix("ruff"))
+    for bad in ("0.16.0", "0.16.1", "0.17.0", "1.0.0"):
+        assert bad not in spec, (
+            f"ruff specifier {_ruff_specifier()!r} admits {bad}, which is "
+            "outside the range this PRD verified. 0.16.0 expanded ruff's "
+            "default rule set and turned CI red with no diff "
+            "(PRD-198 invariant 6)."
+        )
+
+
+def test_r1_specifier_still_admits_the_verified_versions():
+    """The ceiling must not be so tight it excludes what CI actually installs."""
+    spec = SpecifierSet(_ruff_specifier().split(";")[0].removeprefix("ruff"))
+    for good in ("0.15.8", "0.15.22"):
+        assert good in spec, (
+            f"ruff specifier {_ruff_specifier()!r} excludes {good}, a version "
+            "the baseline was verified against."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -81,6 +107,54 @@ def test_r2_declared_rule_set_is_the_verified_baseline():
     """Pin the exact set, so widening or narrowing it is a visible diff."""
     lint = _pyproject()["tool"]["ruff"]["lint"]
     assert sorted(lint["select"]) == ["E4", "E7", "E9", "F"]
+
+
+def _enabled_rules(*extra: str) -> set[str]:
+    """The rules ruff RESOLVES for this repo, not the ones it was asked for.
+
+    `select` is the request; this is the effect. Reading the effect is what
+    makes the check immune to `ignore` / `per-file-ignores` quietly removing
+    rules that `select` still lists.
+    """
+    result = _ruff("check", "--show-settings", *extra, "cuttingboard/output.py")
+    assert result.returncode == 0, result.stderr
+    block = re.search(
+        r"^linter\.rules\.enabled = \[(.*?)^\]", result.stdout, re.S | re.M
+    )
+    assert block, "could not parse linter.rules.enabled from ruff --show-settings"
+    return {
+        line.strip().rstrip(",")
+        for line in block.group(1).strip().splitlines()
+        if line.strip()
+    }
+
+
+def test_r2_effective_rule_set_matches_the_declared_one():
+    """Compare RESOLVED rules against the declared selection applied cleanly.
+
+    Asserting only on the `select` list leaves a hole: adding
+    `ignore = ["F401"]` or a `per-file-ignores` entry weakens the effective
+    set while `select` still reads correctly, and — because the tree has no
+    violations under the narrowed set — `ruff check` stays green too. Both
+    guards would pass while the baseline silently eroded.
+
+    So compare the repo's resolved rules against what the declared selection
+    resolves to with no overrides. Any suppression makes the two differ.
+    (Raised by chatgpt-codex-connector on PR #168; confirmed real — adding
+    `ignore = ["F401"]` drops the resolved count from 59 to 58.)
+    """
+    declared = ",".join(_pyproject()["tool"]["ruff"]["lint"]["select"])
+    repo_resolved = _enabled_rules()
+    clean_resolved = _enabled_rules("--isolated", "--select", declared)
+
+    assert repo_resolved == clean_resolved, (
+        "the repo's effective rule set differs from its declared selection "
+        "applied without overrides — something (ignore / per-file-ignores / "
+        "extend-*) is suppressing rules that `select` still lists.\n"
+        f"  suppressed: {sorted(clean_resolved - repo_resolved)}\n"
+        f"  unexpected: {sorted(repo_resolved - clean_resolved)}"
+    )
+    assert repo_resolved, "resolved rule set is empty"
 
 
 # ---------------------------------------------------------------------------
@@ -141,9 +215,14 @@ def test_r4_config_is_actually_applied_not_just_present():
     """
     result = _ruff("check", "--show-settings", "cuttingboard/output.py")
     assert result.returncode == 0, result.stderr
-    assert "pyproject.toml" in result.stdout or "E4" in result.stdout, (
-        "ruff did not report resolving this repo's configuration; the "
-        "[tool.ruff.lint] table may be present but never loaded."
+
+    match = re.search(r'^Settings path:\s*"(.+)"\s*$', result.stdout, re.M)
+    assert match, (
+        "ruff reported no `Settings path`, meaning it resolved NO "
+        "configuration file — the [tool.ruff.lint] table is not being loaded."
+    )
+    assert Path(match.group(1)) == PYPROJECT, (
+        f"ruff loaded {match.group(1)!r}, not this repo's {PYPROJECT}."
     )
 
 
