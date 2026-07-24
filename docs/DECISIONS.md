@@ -16,6 +16,41 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-24 — Finding D RULED: the one-contract floor may not breach the risk budget
+
+Dustin's ruling, 2026-07-24. Finding D was the one member of the PRD-259
+first-fire consumer set that never received a disposition. A/B/C were closed
+by PRD-260; E/F were ruled OPEN-but-non-blocking at Gate A Q5 (2026-07-15)
+and G was added non-blocking from PRD-260's Claude review — but D was
+carried in the PROMOTION AND CLOSURE section's silence. It appears exactly
+once in the entire `docs/` tree: its original statement, never revisited.
+
+**Finding D as originally stated** (`docs/prd_history/PRD-259.first-fire-consumers.proposal.md`,
+from the commissioned second-model disposition, 2026-07-14):
+
+> - D: one-contract floor vs adjusted budget — `options.py`'s
+>   `max(1, ...)` sizes one contract even when that contract's
+>   strategy max loss exceeds `ACCOUNT_EQUITY x MAX_RISK_PCT_PER_TRADE x
+>   risk_modifier`. Pre-existing on all paths; first-fires here for
+>   credit-resolving continuation accepts under correlation penalties.
+
+**RULING — refuse the trade.** The `max(1, ...)` one-contract floor may NOT
+size a contract whose strategy max loss exceeds
+`ACCOUNT_EQUITY × MAX_RISK_PCT_PER_TRADE × risk_modifier`. A floor that
+breaches the risk limit turns the limit into a suggestion. A setup whose
+smallest expressible position already exceeds the budget is correctly
+untradeable — the right output is no trade, not a trade sized past the cap.
+
+This is the conservative reading and it aligns with the fail-loud-never-
+silent-fallback invariant (PRD-198 #1): sizing to one contract anyway is a
+silent substitution of a budget-violating position for the correct refusal.
+
+**NOT IMPLEMENTED.** This entry records the ruling only. The change touches
+`options.py` sizing — execution-class surface — and gets its own PRD with
+its own Gate A, including the downstream-consumer audit for every reader of
+the sizing result and a realizability check on how often the floor actually
+binds today. Nothing in this entry authorizes a code change.
+
 ## 2026-07-23 — Two GitHub/git tooling traps that produce false readings, not just incomplete ones (standing caution)
 
 Both surfaced this session doing closeout-integrity and CI-verification work
