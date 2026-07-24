@@ -15,8 +15,24 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
-    "ruff>=0.4.0",
+    # PRD-273: BOTH bounds are load-bearing, not caution.
+    # Upper: ruff 0.16.0 expanded its DEFAULT rule set and turned CI red on
+    # unchanged code. [tool.ruff.lint] below makes the rule set explicit so a
+    # future widening of this bound cannot silently re-expand it.
+    # Lower: raised 0.4.0 -> 0.8.0 after EXHAUSTIVELY testing all 121 releases
+    # in [0.4.0, 0.16.0). Releases 0.4.0-0.7.4 resolve E999 as a rule code,
+    # so the effective rule set is 60 codes, not the 59 the baseline pins --
+    # FLOOR 1 would go red on an unmodified repo under a version the pin
+    # permitted. Every one of the 87 releases in [0.8.0, 0.16.0) passes both
+    # `ruff check` and the baseline equality check; the block is contiguous.
+    # The declared range is now the VERIFIED range, not a wider guess
+    # (PRD-198 invariant 2 applied to the specifier itself).
+    "ruff>=0.8.0,<0.16",
     "PyYAML>=6.0",            # tests/test_ci_artifact_hygiene.py parses workflow YAML
+    # PRD-273: tests/test_prd273_lint_baseline.py parses the ruff specifier to
+    # assert the ceiling actually excludes 0.16+. Present transitively via
+    # pytest, but declared rather than relied on (PRD-198 invariant 6).
+    "packaging>=23.0",
 ]
 chain = [
     "yahooquery>=2.3.0",
@@ -39,3 +55,23 @@ include = ["cuttingboard*"]
 # `tests.*` and `scripts.*` cross-imports keep resolving, at the end of
 # sys.path rather than the front.
 addopts = "--import-mode=importlib"
+
+[tool.ruff.lint]
+# PRD-273: declared explicitly, never left to ruff's implicit defaults.
+# Before this, the repo had no ruff configuration at all, so `ruff check`
+# enforced whatever the installed version happened to default to -- the same
+# implicit-movable-contract shape PRD-264 closed one section above, where a
+# missing [tool.pytest.ini_options] made the PYTHONPATH-shadowing trap
+# possible.
+#
+# This set is ruff's HISTORICAL default, chosen because it reproduces the
+# green baseline exactly rather than redefining it: verified to report zero
+# errors on pristine origin/main under BOTH ruff 0.15.8 (the last version
+# main was green under) and 0.16.0 (the version that broke it). It therefore
+# suppresses nothing that was previously enforced.
+#   E4 - imports        E7 - statements
+#   E9 - syntax/IO      F  - pyflakes
+# Widening this set is a deliberate, separate change: ruff 0.16.0's defaults
+# report 1112 further violations across ~65 files. See PRD-273 FOLLOW-UP
+# CANDIDATES -- recorded, not queued.
+select = ["E4", "E7", "E9", "F"]
