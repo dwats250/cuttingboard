@@ -15,7 +15,11 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
-    "ruff>=0.4.0",
+    # PRD-273: upper bound is load-bearing, not caution. ruff 0.16.0 expanded
+    # its DEFAULT rule set and turned CI red on unchanged code. The pin bounds
+    # which ruff runs; [tool.ruff.lint] below makes the rule set explicit so a
+    # future widening of this bound cannot silently re-expand it.
+    "ruff>=0.4.0,<0.16",
     "PyYAML>=6.0",            # tests/test_ci_artifact_hygiene.py parses workflow YAML
 ]
 chain = [
@@ -39,3 +43,23 @@ include = ["cuttingboard*"]
 # `tests.*` and `scripts.*` cross-imports keep resolving, at the end of
 # sys.path rather than the front.
 addopts = "--import-mode=importlib"
+
+[tool.ruff.lint]
+# PRD-273: declared explicitly, never left to ruff's implicit defaults.
+# Before this, the repo had no ruff configuration at all, so `ruff check`
+# enforced whatever the installed version happened to default to -- the same
+# implicit-movable-contract shape PRD-264 closed one section above, where a
+# missing [tool.pytest.ini_options] made the PYTHONPATH-shadowing trap
+# possible.
+#
+# This set is ruff's HISTORICAL default, chosen because it reproduces the
+# green baseline exactly rather than redefining it: verified to report zero
+# errors on pristine origin/main under BOTH ruff 0.15.8 (the last version
+# main was green under) and 0.16.0 (the version that broke it). It therefore
+# suppresses nothing that was previously enforced.
+#   E4 - imports        E7 - statements
+#   E9 - syntax/IO      F  - pyflakes
+# Widening this set is a deliberate, separate change: ruff 0.16.0's defaults
+# report 1112 further violations across ~65 files. See PRD-273 FOLLOW-UP
+# CANDIDATES -- recorded, not queued.
+select = ["E4", "E7", "E9", "F"]

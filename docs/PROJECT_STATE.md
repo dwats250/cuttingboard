@@ -9,7 +9,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 ## Current state
 
-- **Active PRD:** none in progress.
+- **Active PRD:** PRD-273 (pin ruff + declare the lint rule set explicitly) — lands FIRST; it unblocks the `test` gate for every PR, since ruff 0.16.0's expanded defaults turned CI red on unchanged code. PRD-267/272 (PR #166) and the Finding D ruling (PR #167) are held and rebase onto it; PRD-271 (ORB) and PRD-268 remain scaffold-only pending Dustin's Gate A.
 - **Active PRD note (2026-07-13):** kept as a single-line bulleted pointer,
   not a multi-line block, matching PRD-183's convention that
   `scripts/prd_close.sh`'s closeout regex depends on (it replaces only
