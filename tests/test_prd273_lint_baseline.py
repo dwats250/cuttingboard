@@ -6,13 +6,30 @@ enforced whatever the installed ruff version happened to default to. On
 had touched — 1112 errors against a pristine `origin/main` whose own last
 recorded CI run was green.
 
-These tests pin the two halves of the fix. R4 is the red-by-construction
-guard (PRD-198 invariant 4): it asserts the declared rule set is what is
-actually holding the line, by showing that ruff run WITHOUT the repo's
-config on the same tree reports errors. Delete `[tool.ruff.lint].select`
-and R2/R3 go red immediately.
+These tests pin the two halves of the fix, and every claim below is stated
+as what was MEASURED rather than what was intended (the PRD-263 R6
+discipline).
+
+Deliberately NOT claimed: that an unconfigured run fails. Under the pinned
+ruff (<0.16) the implicit defaults coincide with the declared set, so
+`ruff check --isolated --no-cache cuttingboard/ tests/` reports
+`All checks passed!` — measured, not assumed. An earlier draft of this
+docstring asserted the opposite and survived nine review rounds; a
+fresh-context review measured it false. That coincidence is the entire
+argument for Dustin's "both, not either" ruling: the pin's protection rests
+on a version-specific accident, and the explicit selection is what survives
+a release moving the defaults.
+
+Deleting the `[tool.ruff.lint]` section turns FOUR of the 14 guards here
+red — FLOOR 2, FLOOR 3, `r2-declared-is-baseline` and `r2-effective`
+(measured 2026-07-24 against the current set). It does NOT red
+`test_r3_repo_is_clean_under_the_declared_rule_set`, for exactly the reason
+above. PRD-273's MUTATION TABLE records the full per-mutation result set;
+it is re-derived whole whenever the guard set changes, never patched row by
+row — patching rows is what let two false claims survive nine rounds.
 """
 
+import fnmatch
 import os
 import re
 import shutil
@@ -21,14 +38,10 @@ import tomllib
 from pathlib import Path
 
 import yaml
+from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
+from packaging.utils import canonicalize_name
 from packaging.version import Version
-
-# Every source type ruff lints. Building `discovered` from *.py alone would
-# make FLOOR 2 fail spuriously the first time a .pyi stub or .ipynb notebook
-# lands under a target — ruff includes them, so the equality check would read
-# a correctly-linted new file as missing coverage and block CI.
-RUFF_SOURCE_GLOBS = ("*.py", "*.pyi", "*.ipynb")
 
 # Ruff env vars that redirect its output. Inherited into a subprocess these
 # silently empty stdout, failing every parsing assertion in this file for a
@@ -110,12 +123,64 @@ def _ruff(*args: str, stdin: str | None = None) -> subprocess.CompletedProcess:
     )
 
 
+def _settings_list(out: str, key: str) -> set[str]:
+    """One `key = [...]` list out of `ruff --show-settings`, fail-loud."""
+    if re.search(rf"^{re.escape(key)} = \[\]\s*$", out, re.M):
+        return set()
+    block = re.search(rf"^{re.escape(key)} = \[$(.*?)^\]\s*$", out, re.S | re.M)
+    assert block, f"could not parse {key} from ruff --show-settings"
+    return set(re.findall(r'"([^"]*)"', block.group(1)))
+
+
+def _ruff_file_resolver() -> tuple[set[str], set[str], bool]:
+    """Ruff's OWN file-discovery settings, read from ruff.
+
+    This replaces a hand-maintained tuple of source globs. That tuple
+    diverged from ruff THREE times in three review rounds — `*.pyi`/`*.ipynb`
+    (round 8), gitignored trees (round 9), and `**/pyproject.toml` (found by
+    the fresh-context review). Every divergence was a FALSE POSITIVE: the
+    guard reddening the merge gate on correct behavior, which is a different
+    and equally fatal way for a gate to be wrong.
+
+    Three instances of one shape is the sampling error this PRD exists to
+    reject, one level up. Ruff publishes its own answer under
+    `file_resolver.*`; asking it is the same quantifier inversion FLOOR 3
+    applies to the config keys.
+
+    RESIDUAL, stated rather than implied: the PATTERN LIST is now derived,
+    but glob MATCHING is still reimplemented here (`rglob` + `fnmatch`). A
+    ruff release that changed glob SEMANTICS — not its pattern list — would
+    still diverge. That surface is far narrower than the one that broke
+    three times, and FLOOR 0 catches a behavior change that reaches the
+    diagnostics.
+    """
+    out = _ruff("check", "--show-settings", "cuttingboard/output.py").stdout
+    include = (
+        _settings_list(out, "file_resolver.include")
+        | _settings_list(out, "file_resolver.extend_include")
+    )
+    exclude = (
+        _settings_list(out, "file_resolver.exclude")
+        | _settings_list(out, "file_resolver.extend_exclude")
+    )
+    assert include, (
+        "ruff reported an empty file_resolver.include; the parse is wrong or "
+        "the gate discovers nothing."
+    )
+    gitignore = re.search(
+        r"^file_resolver\.respect_gitignore = (true|false)\s*$", out, re.M
+    )
+    assert gitignore, "could not parse file_resolver.respect_gitignore"
+    return include, exclude, gitignore.group(1) == "true"
+
+
 def _not_ignored(paths: set[Path]) -> set[Path]:
     """Drop paths git ignores — ruff honours .gitignore, the walk does not.
 
     A generated file under an ignored directory (e.g. `tests/build/`) is
     linted by neither, but a naive `rglob` sees it and the equality check
-    then fails on a correctly-behaving gate.
+    then fails on a correctly-behaving gate. Applied only when ruff reports
+    `respect_gitignore = true` — read from ruff, not assumed.
     """
     if not paths:
         return paths
@@ -133,9 +198,25 @@ def _not_ignored(paths: set[Path]) -> set[Path]:
 
 
 # ---------------------------------------------------------------------------
-# FLOOR — mechanism-independent. Read these two first; the rest are
-# mechanism-specific tests kept because a named failure message is more
-# useful than a generic one, not because the floor depends on them.
+# THE SIX FLOORS — 0 through 5, each defined exactly once below.
+#
+# An earlier version of this comment said the non-floor tests were "kept
+# because a named failure message is more useful than a generic one, not
+# because the floor depends on them." That was measured BACKWARDS and is
+# corrected here rather than left standing: under a coordinated edit that
+# moves a config key and the guards' own constants together, all six floors
+# go GREEN and the sole surviving guard is
+# `test_r2_effective_rule_set_matches_the_declared_one` — one of the tests
+# this comment demoted to decoration.
+#
+# Why it survives is the design principle worth naming: it holds NO constant
+# an editor can move. It derives both sides at runtime (the repo's resolved
+# rules vs. the declared `select` applied under `--isolated`), so defeating
+# it requires rewriting its logic, not editing its data. Every other guard
+# here compares against a frozen constant in this same file.
+#
+# See PRD-273 "WHAT THE FLOOR DOES NOT COVER" item 4 for the residual this
+# leaves open, which is human review of a diff no hook protects.
 # ---------------------------------------------------------------------------
 
 def _resolved_rule_codes() -> set[str]:
@@ -182,7 +263,7 @@ def test_floor_effective_rule_set_equals_the_pinned_baseline():
 
 
 def test_floor_every_target_file_is_actually_linted():
-    """FLOOR 2 — the run lints every .py file under the CI targets.
+    """FLOOR 2 — the run lints every file ruff would discover under the targets.
 
     A run that lints zero files is a FAILURE, not a pass — ruff exits 0 on an
     empty file list. Asserting set equality against filesystem discovery (not
@@ -190,26 +271,47 @@ def test_floor_every_target_file_is_actually_linted():
     one file, or 90% of the tree fails identically. Mechanism-independent
     across `exclude`, `extend-exclude`, `force-exclude`, `include`,
     `respect-gitignore`, and anything future.
+
+    The expected set is built from ruff's OWN `file_resolver` settings
+    (`_ruff_file_resolver`), never a hand-listed glob tuple — see that
+    docstring for the three divergences that motivated the change. Note what
+    that buys: the `__pycache__` filter this walk used to hardcode is gone
+    too. Ruff does not exclude `__pycache__` either, so both sides now agree
+    by derivation instead of by two independently-maintained lists happening
+    to match.
     """
     result = _ruff("check", "--show-files", *LINT_TARGETS)
     assert result.returncode == 0, result.stderr
     resolved = {Path(line) for line in result.stdout.splitlines() if line.strip()}
 
-    discovered = _not_ignored({
+    include, exclude, respect_gitignore = _ruff_file_resolver()
+    walked = {
         p.resolve()
         for target in LINT_TARGETS
-        for glob in RUFF_SOURCE_GLOBS
-        for p in (REPO_ROOT / target.rstrip("/")).rglob(glob)
-        if "__pycache__" not in p.parts
-    })
+        for pattern in include
+        # ruff's include patterns are basename globs (`*.py`) or anchored
+        # ones (`**/pyproject.toml`); rglob applies both once the `**/`
+        # prefix is stripped.
+        for p in (REPO_ROOT / target.rstrip("/")).rglob(pattern.removeprefix("**/"))
+        if p.is_file()
+    }
+    walked = {
+        p for p in walked
+        if not any(
+            fnmatch.fnmatch(part, pattern)
+            for part in p.relative_to(REPO_ROOT).parts
+            for pattern in exclude
+        )
+    }
+    discovered = _not_ignored(walked) if respect_gitignore else walked
 
     assert resolved, (
         "ruff resolved ZERO files for the CI lint targets — the gate lints "
         "nothing while still exiting 0."
     )
     assert resolved == discovered, (
-        "ruff's linted file set does not match the .py files present under "
-        f"{LINT_TARGETS}.\n"
+        "ruff's linted file set does not match the files ruff's own "
+        f"file_resolver settings discover under {LINT_TARGETS}.\n"
         f"  present but NOT linted: "
         f"{sorted(str(p.relative_to(REPO_ROOT)) for p in discovered - resolved)}\n"
         f"  linted but not present: "
@@ -382,7 +484,11 @@ def test_floor_gate_actually_flags_known_bad_code():
 
 
 def test_floor_lint_targets_match_what_ci_actually_runs():
-    """FLOOR 3 — the floor is measuring the command CI really uses.
+    """FLOOR 5 — the floor is measuring the command CI really uses.
+
+    (Numbered 3 until the fresh-context review found two different guards
+    sharing that number — six floors under five numbers, making every
+    cross-reference in the PRD ambiguous.)
 
     Both floors above are scoped to LINT_TARGETS. If `ci.yml` changed its
     ruff invocation, they would keep passing while guarding a command nobody
@@ -405,15 +511,42 @@ def test_floor_lint_targets_match_what_ci_actually_runs():
     # deleted from the required one — the step still looks perfect while the
     # required check passes without lint. Verified: 17 tests passed under
     # exactly that arrangement.
+    # Match the LINT-GATE step (`ruff check`), not every mention of "ruff".
+    # A bare substring also selects `ruff --version` and `ruff format
+    # --check`, and the exact-equality loop below would then red CI for a
+    # correct workflow that merely gained a second ruff command — the same
+    # false-positive shape that broke FLOOR 2 three times.
+    # (Raised by chatgpt-codex-connector on PR #168; confirmed real.)
+    # Removing the `ruff check` step entirely does not escape: `located`
+    # goes empty and the next assertion fires.
     located = [
         (job_name, step)
         for job_name, job in workflow.get("jobs", {}).items()
         for step in job.get("steps", [])
-        if isinstance(step, dict) and "ruff" in str(step.get("run", ""))
+        if isinstance(step, dict)
+        and re.search(r"\bruff\s+check\b", str(step.get("run", "")))
     ]
     assert located, (
-        "ci.yml defines no executable ruff step. A commented-out step is not "
-        "a lint gate."
+        "ci.yml defines no executable `ruff check` step. A commented-out "
+        "step is not a lint gate."
+    )
+
+    # The workflow must actually TRIGGER on pull requests. Every assertion
+    # below concerns jobs and steps; none of them notices that the
+    # `pull_request` trigger was deleted or narrowed by a path filter, which
+    # would leave the required gate not running on the PRs it gates.
+    # (Raised by chatgpt-codex-connector on PR #168; confirmed real.)
+    # NOTE: YAML 1.1 parses the bare key `on` as boolean True — read both.
+    triggers = workflow.get("on", workflow.get(True))
+    assert isinstance(triggers, dict) and "pull_request" in triggers, (
+        "ci.yml has no `pull_request` trigger, so this gate does not run on "
+        f"pull requests at all.\n  triggers: {triggers!r}"
+    )
+    pr_trigger = triggers["pull_request"] or {}
+    narrowing = {"paths", "paths-ignore", "branches", "branches-ignore"} & set(pr_trigger)
+    assert not narrowing, (
+        "the `pull_request` trigger is narrowed, so the required lint gate "
+        f"skips some PRs entirely.\n  narrowing keys: {sorted(narrowing)}"
     )
     assert any(name == ENFORCING_JOB for name, _ in located), (
         f"no ruff step runs in the {ENFORCING_JOB!r} job — the required "
@@ -422,9 +555,18 @@ def test_floor_lint_targets_match_what_ci_actually_runs():
     )
     for job_name, step in located:
         job = workflow["jobs"][job_name]
-        assert job.get("continue-on-error") is not True, (
-            f"job {job_name!r} is continue-on-error, so its ruff step cannot "
-            "fail CI."
+        # ABSENT, not "not literally True". GitHub documents expression forms
+        # (`continue-on-error: ${{ matrix.experimental }}`); PyYAML leaves
+        # those as a plain string, so an identity check against True passes
+        # while the resolved value makes ruff failures non-blocking. There is
+        # no static way to evaluate the expression, so require the key to be
+        # absent — the allow-list move again, one surface over.
+        # (Raised by chatgpt-codex-connector on PR #168; confirmed real.)
+        assert "continue-on-error" not in job, (
+            f"job {job_name!r} declares continue-on-error "
+            f"({job.get('continue-on-error')!r}); if it resolves true, its "
+            "ruff step cannot fail CI. Expressions cannot be evaluated here, "
+            "so the key must be absent."
         )
         assert "if" not in job, (
             f"job {job_name!r} is conditional (if: {job.get('if')!r}); it may "
@@ -436,9 +578,11 @@ def test_floor_lint_targets_match_what_ci_actually_runs():
             "the file-based configuration these floors verify.\n"
             f"  expected: {expected!r}\n  actual  : {step['run'].strip()!r}"
         )
-        assert step.get("continue-on-error") is not True, (
-            "the ruff step is marked continue-on-error, so lint failures do "
-            "not fail CI. The command is pinned but the gate is disabled."
+        assert "continue-on-error" not in step, (
+            "the ruff step declares continue-on-error "
+            f"({step.get('continue-on-error')!r}), so lint failures may not "
+            "fail CI. The command is pinned but the gate is disabled. Absent, "
+            "not merely non-True — see the job-level note above."
         )
         assert "if" not in step, (
             f"the ruff step is conditional (if: {step.get('if')!r}); it may "
@@ -451,10 +595,35 @@ def test_floor_lint_targets_match_what_ci_actually_runs():
 # ---------------------------------------------------------------------------
 
 def _ruff_specifier() -> str:
+    """The ONE unconditional ruff requirement in the dev extra.
+
+    Two holes closed here, both raised on PR #168 and both confirmed real:
+
+    - `startswith("ruff")` also matches `ruff-lsp`, so a differently-ordered
+      dev list would have every R1 assertion silently validating the wrong
+      package. Parse the distribution NAME instead of prefix-matching text.
+    - `specs[0]` discarded every other ruff entry. A dev list carrying
+      `ruff>=0.4.0,<0.16` followed by `ruff>=0.16; sys_platform == "win32"`
+      left R1 green on Linux CI while another platform admitted the excluded
+      release line. Require exactly one ruff requirement, and require it to
+      be UNCONDITIONAL — a marker makes the pin platform-dependent, which is
+      a movable identity by another route (PRD-198 invariant 6).
+    """
     dev = _pyproject()["project"]["optional-dependencies"]["dev"]
-    specs = [s for s in dev if s.replace(" ", "").startswith("ruff")]
+    parsed = [Requirement(s) for s in dev]
+    specs = [r for r in parsed if canonicalize_name(r.name) == "ruff"]
     assert specs, "ruff is not declared in the dev extra"
-    return specs[0]
+    assert len(specs) == 1, (
+        "the dev extra declares more than one ruff requirement; the pin is "
+        "then per-branch and R1 would only validate whichever came first.\n"
+        f"  found: {[str(r) for r in specs]}"
+    )
+    assert specs[0].marker is None, (
+        f"the ruff requirement carries an environment marker "
+        f"({specs[0].marker}); the pin must apply on every platform, not "
+        "only the one CI happens to run."
+    )
+    return str(specs[0])
 
 
 def test_r1_specifier_excludes_the_known_bad_versions():
@@ -504,25 +673,63 @@ def test_r1_specifier_excludes_the_known_bad_versions():
 def test_r1_specifier_still_admits_the_verified_versions():
     """The ceiling must not be so tight it excludes what CI actually installs."""
     spec = SpecifierSet(_ruff_specifier().split(";")[0].removeprefix("ruff"))
-    for good in ("0.15.8", "0.15.22"):
+    for good in ("0.8.0", "0.15.8", "0.15.22"):
         assert good in spec, (
             f"ruff specifier {_ruff_specifier()!r} excludes {good}, a version "
             "the baseline was verified against."
         )
 
 
+# The oldest release whose resolved rule set equals BASELINE_RULES. Below
+# this, ruff resolves E999 as a rule code (60 codes, not 59), so FLOOR 1
+# goes red on an unmodified repo. Established by testing ALL 121 releases in
+# [0.4.0, 0.16.0), not by sampling: 0.4.0-0.7.4 all differ, 0.8.0-0.15.22 all
+# match, and the passing block is contiguous.
+_VERIFIED_FLOOR = Version("0.8.0")
+_LAST_UNVERIFIED = Version("0.7.4")
+
+
+def test_r1_specifier_excludes_versions_below_the_verified_floor():
+    """The LOWER bound is load-bearing too — assert it, don't decorate with it.
+
+    The original `>=0.4.0` was a guess at a safe floor, and it was wrong: it
+    admitted 34 releases under which this file's own FLOOR 1 fails on a
+    pristine tree. A declared range wider than the verified range is the
+    same defect as an unbounded ceiling — it claims coverage that was never
+    measured (PRD-198 invariant 2). Structural, mirroring the ceiling check,
+    so a `!=`-riddled specifier cannot evade it.
+    """
+    raw = _ruff_specifier().split(";")[0].removeprefix("ruff")
+    spec = SpecifierSet(raw)
+    clauses = [(s.operator, Version(s.version)) for s in spec]
+    lowers = [(op, v) for op, v in clauses if op in (">", ">=")]
+    assert lowers, (
+        f"ruff specifier {raw!r} has no lower-bound clause; it admits every "
+        "release back to 0.0.13, including the 34 whose default rule set "
+        "does not match BASELINE_RULES."
+    )
+    #   `>=X` excludes everything below the floor iff X >= 0.8.0
+    #   `>X`  does iff X >= 0.7.4 (the last unverified release)
+    excludes_unverified = any(
+        (v >= _VERIFIED_FLOOR) if op == ">=" else (v >= _LAST_UNVERIFIED)
+        for op, v in lowers
+    )
+    assert excludes_unverified, (
+        f"ruff specifier {raw!r} admits releases below the verified floor "
+        f"{_VERIFIED_FLOOR}: {lowers}. Under those, ruff resolves E999 as a "
+        "rule code and FLOOR 1 fails on an unmodified repo."
+    )
+    # Direct membership too, so an error in the structural reasoning above
+    # cannot let the unverified range back in on its own.
+    assert str(_LAST_UNVERIFIED) not in spec, (
+        f"ruff specifier {raw!r} admits {_LAST_UNVERIFIED}, whose resolved "
+        "rule set differs from the pinned baseline."
+    )
+
+
 # ---------------------------------------------------------------------------
 # R2 — the rule set is declared explicitly
 # ---------------------------------------------------------------------------
-
-def test_r2_lint_rule_set_is_declared_explicitly():
-    lint = _pyproject().get("tool", {}).get("ruff", {}).get("lint", {})
-    assert "select" in lint, (
-        "pyproject.toml has no [tool.ruff.lint] select. Without it the lint "
-        "contract is ruff's implicit default, which changes between versions."
-    )
-    assert lint["select"], "[tool.ruff.lint] select is empty"
-
 
 def test_r2_declared_rule_set_is_the_verified_baseline():
     """Pin the exact set, so widening or narrowing it is a visible diff."""
@@ -578,29 +785,16 @@ def test_r2_effective_rule_set_matches_the_declared_one():
     assert repo_resolved, "resolved rule set is empty"
 
 
-def test_r2_no_per_file_suppressions():
-    """`rules.enabled` does NOT reflect per-file ignores — assert them separately.
-
-    Correcting an overclaim I made when fixing the previous finding: I said
-    comparing resolved rule sets "also catches extend-per-file-ignores". It
-    does not. Per-file suppressions are reported under a different key and
-    leave `linter.rules.enabled` untouched, so
-    `per-file-ignores = {"cuttingboard/output.py" = ["F401"]}` disables F401
-    for that file while every other guard here stays green — verified.
-    (Raised by chatgpt-codex-connector on PR #168; confirmed real.)
-    """
-    result = _ruff("check", "--show-settings", "cuttingboard/output.py")
-    assert result.returncode == 0, result.stderr
-
-    match = re.search(r"^linter\.per_file_ignores = (.*)$", result.stdout, re.M)
-    assert match, "could not find linter.per_file_ignores in ruff --show-settings"
-    assert match.group(1).strip() == "{}", (
-        "ruff resolved a non-empty linter.per_file_ignores. Per-file "
-        "suppressions erode the declared baseline for the affected files "
-        "without changing the enabled rule set, so they must be empty for "
-        "the baseline claim to hold.\n"
-        f"  resolved: {match.group(1).strip()}"
-    )
+# Deleted here (cuts before additions, on measured redundancy — not taste):
+#   test_r2_no_per_file_suppressions      — byte-for-byte identical to the
+#     second half of FLOOR 1; the same probe, regex and assertion twice.
+#   test_r2_lint_rule_set_is_declared_explicitly — "select exists and is
+#     non-empty" is implied by the exact-list pin below AND again by FLOOR 3.
+#   test_r3_lint_actually_covers_both_targets — a strict weakening of
+#     FLOOR 2: non-empty ⊂ spans-both-targets ⊂ set equality.
+#   test_r4_config_is_actually_applied_not_just_present — the same
+#     `Settings path` probe FLOOR 2 already runs, on the same file.
+# Each was verified subsumed by the guard named, not assumed to be.
 
 
 # ---------------------------------------------------------------------------
@@ -612,40 +806,6 @@ def test_r3_repo_is_clean_under_the_declared_rule_set():
     assert result.returncode == 0, (
         "`ruff check` is not clean under the declared rule set:\n"
         f"{result.stdout}\n{result.stderr}"
-    )
-
-
-def test_r3_lint_actually_covers_both_targets():
-    """A clean exit is not evidence of coverage — ruff exits 0 on zero files.
-
-    `[tool.ruff] exclude = ["cuttingboard/**", "tests/**"]` makes
-    `ruff check cuttingboard/ tests/` print "No Python files found", exit 0,
-    and satisfy every other guard here — the lint gate silently disabled
-    while CI stays green. Verified. So assert the resolved file set, not the
-    exit code alone.
-    (Raised by chatgpt-codex-connector on PR #168; confirmed real.)
-    """
-    result = _ruff("check", "--show-files", *LINT_TARGETS)
-    assert result.returncode == 0, result.stderr
-    files = [Path(line) for line in result.stdout.splitlines() if line.strip()]
-    assert files, (
-        "ruff resolved ZERO files for the CI lint targets — the gate checks "
-        "nothing. Likely an `exclude` / `extend-exclude` covering "
-        f"{LINT_TARGETS}."
-    )
-
-    pkg = REPO_ROOT / "cuttingboard"
-    tst = REPO_ROOT / "tests"
-    assert any(f.is_relative_to(pkg) for f in files), (
-        "no files resolved under cuttingboard/ — that target is excluded"
-    )
-    assert any(f.is_relative_to(tst) for f in files), (
-        "no files resolved under tests/ — that target is excluded"
-    )
-    # This test file itself must be covered; if it is not, the guard is
-    # inspecting a lint run that would not even see its own assertions.
-    assert Path(__file__).resolve() in files, (
-        "this test file is not in ruff's resolved set for the CI targets"
     )
 
 
@@ -683,26 +843,6 @@ def test_r4_declared_rule_set_is_a_consequential_choice():
         "a deliberately wider rule set reports no violations on this tree, so "
         "the declared selection draws no real boundary. Re-derive the baseline "
         "instead of assuming this one."
-    )
-
-
-def test_r4_config_is_actually_applied_not_just_present():
-    """Assert the resolved behavior, not the declared intent (invariant 2).
-
-    A `[tool.ruff.lint]` table that ruff never loads would satisfy R2 while
-    doing nothing. Proven by asking ruff itself to resolve the settings for a
-    file in the lint target and echo back the rules it will apply.
-    """
-    result = _ruff("check", "--show-settings", "cuttingboard/output.py")
-    assert result.returncode == 0, result.stderr
-
-    match = re.search(r'^Settings path:\s*"(.+)"\s*$', result.stdout, re.M)
-    assert match, (
-        "ruff reported no `Settings path`, meaning it resolved NO "
-        "configuration file — the [tool.ruff.lint] table is not being loaded."
-    )
-    assert Path(match.group(1)) == PYPROJECT, (
-        f"ruff loaded {match.group(1)!r}, not this repo's {PYPROJECT}."
     )
 
 

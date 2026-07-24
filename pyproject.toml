@@ -15,11 +15,19 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
-    # PRD-273: upper bound is load-bearing, not caution. ruff 0.16.0 expanded
-    # its DEFAULT rule set and turned CI red on unchanged code. The pin bounds
-    # which ruff runs; [tool.ruff.lint] below makes the rule set explicit so a
+    # PRD-273: BOTH bounds are load-bearing, not caution.
+    # Upper: ruff 0.16.0 expanded its DEFAULT rule set and turned CI red on
+    # unchanged code. [tool.ruff.lint] below makes the rule set explicit so a
     # future widening of this bound cannot silently re-expand it.
-    "ruff>=0.4.0,<0.16",
+    # Lower: raised 0.4.0 -> 0.8.0 after EXHAUSTIVELY testing all 121 releases
+    # in [0.4.0, 0.16.0). Releases 0.4.0-0.7.4 resolve E999 as a rule code,
+    # so the effective rule set is 60 codes, not the 59 the baseline pins --
+    # FLOOR 1 would go red on an unmodified repo under a version the pin
+    # permitted. Every one of the 87 releases in [0.8.0, 0.16.0) passes both
+    # `ruff check` and the baseline equality check; the block is contiguous.
+    # The declared range is now the VERIFIED range, not a wider guess
+    # (PRD-198 invariant 2 applied to the specifier itself).
+    "ruff>=0.8.0,<0.16",
     "PyYAML>=6.0",            # tests/test_ci_artifact_hygiene.py parses workflow YAML
     # PRD-273: tests/test_prd273_lint_baseline.py parses the ruff specifier to
     # assert the ceiling actually excludes 0.16+. Present transitively via
