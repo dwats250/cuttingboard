@@ -16,6 +16,7 @@ set (which is exactly why the pin, not the coincidence, is load-bearing).
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 import tomllib
@@ -83,16 +84,32 @@ def test_lint_select_is_historical_set() -> None:
 
 
 def test_ruff_resolves_root_config() -> None:
-    """Ruff resolves the ROOT pyproject.toml as its config source."""
+    """Ruff's reported ``Settings path`` is exactly the ROOT pyproject.toml.
+
+    ``--show-settings`` prints a ``Settings path:`` header naming the config
+    file ruff actually loaded. Parsing that field — rather than inspecting any
+    selected-rule value — proves the pinned ruff resolved the repository-root
+    ``pyproject.toml`` where PRD-273's pin and select live.
+    """
     result = _ruff("check", "--show-settings", "cuttingboard/config.py")
     assert result.returncode == 0, f"--show-settings failed:\n{result.stdout}\n{result.stderr}"
-    expected = f'linter.project_root = "{REPO_ROOT}"'
-    assert expected in result.stdout, (
-        f"ruff did not resolve the root config; expected line {expected!r}"
+
+    settings_path: str | None = None
+    for line in result.stdout.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("Settings path:"):
+            match = re.fullmatch(r'Settings path:\s*"(.+)"', stripped)
+            assert match, f"malformed 'Settings path:' line: {stripped!r}"
+            settings_path = match.group(1)
+            break
+    assert settings_path is not None, (
+        f"ruff --show-settings emitted no 'Settings path:' field:\n{result.stdout}"
     )
-    # The resolved rule set reflects our select family (E4 present, E5 absent).
-    assert "(E402)" in result.stdout, "expected E4-family rule E402 in resolved rule set"
-    assert "line-too-long" not in result.stdout, "E5 (line-too-long) is not in the declared select"
+
+    resolved = Path(settings_path).resolve()
+    assert resolved == REPO_ROOT / "pyproject.toml", (
+        f"ruff resolved config {resolved}, expected root {REPO_ROOT / 'pyproject.toml'}"
+    )
 
 
 def test_ruff_check_passes() -> None:
