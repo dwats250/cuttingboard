@@ -127,12 +127,18 @@ editing.
 
 ### G10 — Current truth is discoverable without deep recon
 
-Once this plan lands:
+Immediately when this plan lands:
 
 - `CLAUDE.md` must link to this doctrine and the companion workplan;
 - `docs/PROJECT_STATE.md` must link to the current workplan phase;
 - meaningful direction changes must be recorded in `docs/DECISIONS.md`; and
-- superseded proposal headers must state their disposition at the top.
+- this workplan is the authority wherever a known proposal header still
+  carries stale status.
+
+The stronger proposal-header guarantee becomes binding at `DOC-0` exit:
+every superseded or partially dispositioned proposal must state its complete
+disposition at the top. Until DOC-0 completes, the two headers named there are
+explicit tracked reconciliation debt, not hidden competing authority.
 
 An agent should not need two model passes or an archaeology sweep to learn
 whether a track exists, is blocked, or is authorized.
@@ -200,8 +206,11 @@ PRD-188 remains PROPOSED and blocked on:
 
 State: `CONSTRUCTED / EVALUATION GATED`.
 
-Before more work, Dustin must choose `KEEP DORMANT`, `PROMOTE PRD-188`, or
-`RETIRE`. No fourth implicit state is allowed.
+Before more work, Dustin must choose `KEEP DORMANT`, `PROMOTE THE PRD-188
+CONSUMER AFTER SPLITTING OUT CADENCE`, or `RETIRE`. PRD-188 may not be
+promoted unchanged because its current proposal combines consumer
+construction and scheduled activation, which G8 forbids. No fourth implicit
+state is allowed.
 
 ## 4. GEX contract and promotion gates
 

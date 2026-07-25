@@ -35,7 +35,7 @@ the PRD-267/272/273 lifecycle closeouts remain unresolved.
 
 | Packet | State | Concern | Mutation permission | Exit |
 |---|---|---|---|---|
-| GOV-0 | PROPOSED | Land doctrine, workplan, and charge template | Docs-only governance PR | Manual merge |
+| GOV-0 | COMPLETE | Land doctrine, workplan, and charge template | Docs-only governance PR | True when its held PR merges |
 | L0 | IN PROGRESS | Reconcile PRD-267/268/271/272/273 lifecycle truth | Bookkeeping only after rulings | Registry validator green |
 | D-RULE | HELD FOR DUSTIN MERGE | Make Finding D refusal ruling canonical | PR #167 only | Ruling on `main` |
 | OPT-0 | EVIDENCE BLOCKED | Trace Finding D implementation seam | Read-only findings artifact | Gate A-ready answers |
@@ -52,6 +52,10 @@ the PRD-267/272/273 lifecycle closeouts remain unresolved.
 | GEX-2 | EVIDENCE BLOCKED | Display-only consumer after GEX-1 | Future CONSUMER PRD | Baseline-neutral display |
 | ODATA-0 | EVIDENCE BLOCKED | Refresh future options-data proposals after OPT-1 | Read-only recon | Ranked, current backlog |
 | ODATA-1+ | EVIDENCE BLOCKED | Data-independent/provider-dependent builds after ODATA-0 | Separate future PRDs | Per-PRD gates |
+
+`GOV-0: COMPLETE` is merge-contingent: the held governance PR's manual merge
+makes that state true and makes `L0` the current packet. No post-merge state
+transition commit is required.
 
 ## 3. Wave 0 — durable planning authority
 
@@ -163,7 +167,7 @@ Questions:
 
 1. Enumerate every path to `options.py`'s final `max(1, ...)`.
 2. Identify which paths can produce a raw adjusted contract count of zero.
-3. Trace all consumers of `OptionSetup.contracts`, `dollar_risk`, and the
+3. Trace all consumers of `OptionSetup.max_contracts`, `dollar_risk`, and the
    absence of an `OptionSetup`.
 4. Determine whether the correct refusal occurs in options construction,
    qualification, decision assembly, or policy materialization.
@@ -291,7 +295,10 @@ Dustin chooses exactly one:
 
 - `KEEP DORMANT`: retain manual/evaluation-only producer and set a dated
   re-evaluation point.
-- `PROMOTE PRD-188`: only after every written gate passes.
+- `PROMOTE THE PRD-188 CONSUMER AFTER SPLITTING OUT CADENCE`: first amend the
+  existing proposal so consumer construction remains in PRD-188 and scheduled
+  activation becomes a separately ruled future packet; then require every
+  written PRD-188 consumer gate to pass before implementation.
 - `RETIRE`: remove dormant surfaces under a separate subtraction PRD.
 
 Forbidden:

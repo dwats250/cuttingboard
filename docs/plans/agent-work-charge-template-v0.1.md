@@ -83,8 +83,17 @@ cherry-pick, or workaround is implied.
 - `path`
 - `path`
 
-No other tracked file may change. If another file is required, STOP and request
-a PRD amendment before editing.
+Lifecycle bookkeeping explicitly made implicit by `docs/PRD_PROCESS.md` is
+also authorized when the packet reaches its applicable Stage-0 or same-PR
+closeout step:
+
+- `docs/PRD_REGISTRY.md`
+- `docs/prd_index.json`
+- `docs/PROJECT_STATE.md`
+
+Those paths may change only for required lifecycle bookkeeping, never for
+unrelated prose. No other tracked file may change. If another file is required,
+STOP and request a PRD amendment before editing.
 
 ## Change-surface ceiling
 
@@ -148,9 +157,12 @@ reproduced CI-parity result and a concrete cause.
 - Required artifact path: [exact path, if governed by a PRD]
 - Maximum correction cycles: ONE
 
-The reviewer reviews the implementation, not prior review prose. If the first
-correction creates new substantive uncertainty, STOP for Dustin rather than
-starting recursive review.
+The reviewer reviews the packet's actual deliverable or change, not prior
+review prose. For an implementation packet this means the implementation; for
+recon, docs-only, provider-evidence, or decision packets it means the
+commissioned artifact and its load-bearing claims. If the first correction
+creates new substantive uncertainty, STOP for Dustin rather than starting
+recursive review.
 
 ## Landing
 
