@@ -16,6 +16,29 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-25 — GEX/news/options expansion planning authority approved for a held governance PR (ruled: Dustin)
+
+Dustin directed the GEX, personalized-news, options-data, and adjacent
+macro-awareness plan to be codified in-repository so future agents do not
+have to reconstruct direction through deep recon or external chat. The v0.1
+package is approved for a manual-merge governance PR and becomes effective
+only when Dustin merges it:
+
+- `docs/plans/decision-support-expansion-doctrine-v0.1.md` — binding track
+  boundaries and promotion gates;
+- `docs/plans/decision-support-workplan-v0.1.md` — the single sequenced
+  existing-work and future-scaffold ledger; and
+- `docs/plans/agent-work-charge-template-v0.1.md` — mandatory non-deviation
+  execution envelope.
+
+The landing authorizes planning and reconciliation only. It allocates no PRD
+number and authorizes no GEX/news/options producer, consumer, live cadence,
+decision coupling, or production change. Every PR governed by the package is
+draft + manual-merge-only. Earlier chats, audits, and proposal files remain
+evidence, not competing queue authority.
+
+---
+
 ## 2026-07-23 — Two GitHub/git tooling traps that produce false readings, not just incomplete ones (standing caution)
 
 Both surfaced this session doing closeout-integrity and CI-verification work
