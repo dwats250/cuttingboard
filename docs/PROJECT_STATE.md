@@ -5,10 +5,15 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-07-23 (commit #164)
+**Last updated:** 2026-07-25 (GOV-0 planning authority)
 
 ## Current state
 
+- **Decision-support expansion workplan:** current packet `GOV-0` — land the
+  approved planning authority under `docs/plans/`. It authorizes no GEX,
+  personalized-news, options-data, macro-awareness consumer, cadence, or
+  production implementation. After GOV-0, follow the workplan's lifecycle-
+  first sequence; no new feature PRD number is allocated while L0 is open.
 - **Active PRD:** PRD-267 (coverage-reason surfacing, daily — 80-char truncation fix in `output.py`), implementation in flight, represented by PR #166. Also IN PROGRESS but NOT active work: PRD-268 (coverage-reason surfacing, hourly — scaffold only, design fork unruled) and PRD-273 (pin ruff + declare lint selection) — PRD-273's implementation already merged to `main` through PR #169, and it stays IN PROGRESS until the PRD-271/272 lifecycle gap closes (the validator gap check), not because its branch is still active work. Separately, the ORB mid-session-bars defect is numbered PRD-271 and held UNMERGED on branch `claude/prd-271-orb-gate-a` pending Dustin's Gate A — it is deliberately not in this branch's registry or index, and lands only when that branch merges.
 - **Active PRD note (2026-07-13):** kept as a single-line bulleted pointer,
   not a multi-line block, matching PRD-183's convention that
