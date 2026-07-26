@@ -15,7 +15,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
-    "ruff>=0.4.0",
+    "ruff==0.15.22",         # PRD-273: exact pin — the lint contract must not move with the installed ruff's defaults
     "PyYAML>=6.0",            # tests/test_ci_artifact_hygiene.py parses workflow YAML
 ]
 chain = [
@@ -39,3 +39,10 @@ include = ["cuttingboard*"]
 # `tests.*` and `scripts.*` cross-imports keep resolving, at the end of
 # sys.path rather than the front.
 addopts = "--import-mode=importlib"
+
+[tool.ruff.lint]
+# PRD-273: declare the historical default selection explicitly so the lint
+# contract is stated in-tree rather than inherited from whatever the installed
+# ruff happens to default to. E4/E7/E9 (pycodestyle subsets) + F (Pyflakes)
+# reproduce the pre-0.16 green baseline; nothing previously enforced is dropped.
+select = ["E4", "E7", "E9", "F"]

@@ -41,16 +41,24 @@ Reference these; do not duplicate them.
 - `docs/CLAUDE_HOOKS.md` — the repo's hooks (file protection, PRD registry-gap
   check, canonical-read guard) and their state files
 - `docs/AGENT_WORKFLOW.md` — protected-file set consumed by the PRD skills
+- `docs/plans/decision-support-expansion-doctrine-v0.1.md` — binding GEX,
+  personalized-news, options-data, and macro-awareness expansion boundaries
+- `docs/plans/decision-support-workplan-v0.1.md` — the single sequenced ledger
+  for existing reconciliation and future scaffolding in those tracks
+- `docs/plans/agent-work-charge-template-v0.1.md` — mandatory non-deviation
+  charge envelope for every packet governed by those two plans
 
 ## How work lands
 
-- **Everything lands through a PR (PRD-184).** Push the feature branch, open
-  the PR, queue `gh pr merge --auto`; `main` branch protection holds the merge
-  until the CI `test` check is green. There is no direct-to-main push path;
+- **Everything lands through a PR (PRD-184), and Dustin merges every one
+  (GOV-1).** Push the feature branch and open the PR; `main` branch protection
+  holds the merge until the CI `test` check is green. **Agents never merge a
+  PR and never queue `gh pr merge --auto`** — the merge is Dustin's act, on
+  every PR, without exception. There is no direct-to-main push path;
   force-push is denied by repo settings.
 - **Closeout rides the implementation PR** (PRD-229 Same-PR Closeout; owner:
-  `docs/PRD_PROCESS.md`). Residual bookkeeping fixes auto-merge as their own
-  PR.
+  `docs/PRD_PROCESS.md`). Residual bookkeeping fixes ride their own PR, held
+  for Dustin's merge like any other.
 - **Closeouts run only through the `prd-closeout-verified` skill.** Never a
   hand-rolled `prd_close.sh` call. The skill's preflight distinguishes
   same-PR mode (`#NNN`, requires an OPEN PR) from hex-hash mode (post-merge)
@@ -59,12 +67,18 @@ Reference these; do not duplicate them.
   the rendered dashboard and scoreboard state to the dedicated UNPROTECTED
   `publish` branch that GitHub Pages deploys from; `main` receives only
   CI-gated PR merges.
-- **Governance changes are MANUAL-MERGE-ONLY (PRD-186).** A PR that changes
+- **Governance changes carry a visible hold (PRD-186).** GOV-1's universal
+  manual merge already covers them; what PRD-186 adds is that a PR changing
   the review-gate skill (`prd-review-claude`) or any governance guardrail in
-  this file — the landing/auto-merge policy, the review gates, the
-  second-model or bot-thread disposition, the drift check, the Alignment
-  check — is opened and HELD for a human merge. Do NOT queue
-  `gh pr merge --auto`: auto-merge must not land changes to its own guardrails.
+  this file — the landing policy, the review gates, the review-depth or
+  bot-thread disposition, the drift check, the Alignment check — is opened as
+  a DRAFT and names itself as governance in its body. The hold is stated, not
+  merely implied.
+- **Decision-support expansion plan PRs carry the same visible hold (GOV-0).**
+  Every PR governed by the three `docs/plans/*-v0.1.md` expansion files is
+  opened as a draft and held for Dustin. Under GOV-1 this is no longer a
+  carve-out from PRD-184 — it is the universal rule, restated here because
+  those plans are read on their own.
 
 ## Review gates
 
@@ -72,7 +86,34 @@ Reference these; do not duplicate them.
   PRD before they are considered done.
 - **Lane declares ceremony.** The PRD header declares LANE (MICRO / STANDARD /
   HIGH-RISK); eligibility and review intensity: `docs/PRD_PROCESS.md`.
-- **HIGH-RISK gate (PRD-242).** Before merge: a fresh-context Claude review
+- **The routine gate is one fresh-context review plus the connector's
+  (GOV-1).** Every PR gets exactly one structured review by a REVIEWING AGENT
+  working from a fresh context — one that did not author the change — plus
+  whatever the connector bot posts (advisory only; see bot-review threads
+  below). That is the whole standing requirement. Deep independent review is
+  NOT standing: it is opt-in, commissioned by Dustin, or triggered by the
+  conditions named in `docs/PRD_PROCESS.md` § Second-Model Disposition.
+- **At most one correction cycle (GOV-1).** The reviewing agent produces
+  findings once; the authoring agent addresses them once; the gate closes. A
+  second round happens only because Dustin asks for one — never because a
+  reviewer wants the last word.
+- **Reviews target the change, never another review's prose (GOV-1).** A
+  review reads the diff and the PRD. It does not critique a prior reviewer's
+  write-up, and no artifact is produced whose subject is another artifact.
+  Disagreement between reviewers is Dustin's to adjudicate, not a prompt for
+  a further round of review-of-review.
+- **Capability roles, not model names (GOV-1).** This section and
+  `docs/PRD_PROCESS.md` § Review Dispatch name SEATS — authoring agent,
+  reviewing agent, independent reviewer, connector bot — not vendors or model
+  families. Which model fills a seat is an operational choice recorded
+  elsewhere (§ Roles, § Working practices) and may change without a
+  governance PR. TWO NAMED EXCEPTIONS, both CI-bound identifiers a docs-only
+  change must not touch: the artifact filename
+  `docs/prd_history/PRD-NNN.review.<model>.md`, and the literal
+  `SECOND-MODEL:` sentence below. `tools/validate_prd_registry.py` matches
+  both as literal strings; renaming either breaks the CI `test` check, so
+  changing them requires a code-touching PRD, not this policy.
+- **HIGH-RISK gate (PRD-242).** Before merge: a fresh-context review
   artifact, plus Dustin's manual merge as the human gate.
 - **Second-model disposition (PRD-242): artifact or the sentence.** Every
   COMPLETE HIGH-RISK PRD from PRD-242 onward carries, in-tree, EITHER a
@@ -104,15 +145,19 @@ Reference these; do not duplicate them.
   treatment — PRD before build when non-trivial, a mutation-verified red test
   per the hardening invariants — never patched silently to clear the thread.
   The thread is not the artifact: resolving it never stands in for the lane's
-  fresh-context Claude review or the second-model disposition. This clause is
-  itself a governance guardrail (manual-merge-only, per above).
+  fresh-context review or the second-model disposition. Connector output is
+  also not a correction cycle — triaging it does not consume the single cycle
+  GOV-1 allows. This clause is itself a governance guardrail (per above).
 - **Drift check in every review (PRD-186).** Every review artifact records a
   DRIFT CHECK, not just correctness: does the change conflict with a
   `VISION.md` non-goal/principle, and does it leave any
   `docs/PROJECT_STATE.md` claim stale? Carried by the `prd-review-claude`
   skill.
-- **Drift review is a post-merge audit under auto-merge (PRD-186)** — the
-  per-PRD DRIFT CHECK plus the Alignment check below — not a pre-merge gate.
+- **Drift review is a post-merge audit (PRD-186)** — the per-PRD DRIFT CHECK
+  plus the Alignment check below — not a pre-merge gate. PRD-186 scoped it
+  that way because auto-merge was then the default; under GOV-1 it stays
+  post-merge for a different reason: Dustin's merge is already the human
+  gate, and the drift audit sweeps wider than any single PR.
 
 ## Scope and approvals
 
