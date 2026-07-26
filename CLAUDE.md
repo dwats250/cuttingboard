@@ -41,6 +41,12 @@ Reference these; do not duplicate them.
 - `docs/CLAUDE_HOOKS.md` — the repo's hooks (file protection, PRD registry-gap
   check, canonical-read guard) and their state files
 - `docs/AGENT_WORKFLOW.md` — protected-file set consumed by the PRD skills
+- `docs/plans/decision-support-expansion-doctrine-v0.1.md` — binding GEX,
+  personalized-news, options-data, and macro-awareness expansion boundaries
+- `docs/plans/decision-support-workplan-v0.1.md` — the single sequenced ledger
+  for existing reconciliation and future scaffolding in those tracks
+- `docs/plans/agent-work-charge-template-v0.1.md` — mandatory non-deviation
+  charge envelope for every packet governed by those two plans
 
 ## How work lands
 
@@ -65,6 +71,10 @@ Reference these; do not duplicate them.
   second-model or bot-thread disposition, the drift check, the Alignment
   check — is opened and HELD for a human merge. Do NOT queue
   `gh pr merge --auto`: auto-merge must not land changes to its own guardrails.
+- **Decision-support expansion plan PRs are MANUAL-MERGE-ONLY (GOV-0).**
+  Every PR governed by the three `docs/plans/*-v0.1.md` expansion files is
+  opened as a draft and held for Dustin. Never queue auto-merge, and never
+  let an agent merge it. This is a track-specific carve-out from PRD-184.
 
 ## Review gates
 
