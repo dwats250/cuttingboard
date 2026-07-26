@@ -16,6 +16,70 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-25 — GOV-1: universal manual merge, one bounded review, capability roles (ruled: Dustin)
+
+Dustin's ruling. Merge authority and review depth were each stated in several
+places with different defaults, so agents could read the same repo and reach
+opposite conclusions about what a PR owes. GOV-1 collapses both into one
+statement each. Docs-only: no code changed, no PRD number allocated.
+
+**1. Dustin merges every PR.** Agents never take the merge action and never
+queue `gh pr merge --auto`. `main` protection still holds on the CI `test`
+check; what changes is that no PR lands without Dustin's hand on it.
+
+This SUPERSEDES the auto-merge clause of the 2026-07-07 entry ("Agents may
+open PRs on per-PR confirmation; agents do not initiate merges"), which
+preserved auto-merge as "the normal landing path for non-manual-merge-only
+lanes" and scoped the ban to agent-INITIATED merges only. That scoping was a
+deliberate correction at the time — an earlier draft had banned auto-merge
+outright and was judged over-broad. GOV-1 reverses that judgment: the
+mechanism itself is retired, not just agent use of it. The 2026-07-07 entry
+stays in the log as history; where the two conflict, GOV-1 governs.
+
+Consequence: the PRD-186 governance carve-out and the GOV-0 expansion
+carve-out are no longer exceptions. They survive as restatements that also
+require a DRAFT PR naming itself as held, so the hold is visible in the PR
+rather than inferred from the file it touches.
+
+**2. The routine gate is one fresh-context review plus the connector's.**
+One structured review by a reviewing agent that did not author the change,
+plus the connector bot's advisory output. Deep independent review is opt-in —
+commissioned by Dustin or triggered by the conditions in `docs/PRD_PROCESS.md`
+§ Second-Model Disposition — never standing.
+
+**3. At most one correction cycle.** Findings once, addressed once, gate
+closes. A further round is Dustin's call, not a reviewer's prerogative.
+Connector-thread triage (PRD-228) is bookkeeping and does not consume it.
+
+**4. Reviews target the change, never another review's prose.**
+Cross-review-of-review is retired; `docs/PRD_PROCESS.md` § Review Dispatch
+previously exempted it from parallel dispatch. Reviewer disagreement goes to
+Dustin to adjudicate. OWED FOLLOW-UP: the `prd-review-claude` skill still
+advertises cross-review-of-review in its trigger text; that file is outside
+this PR's FILES boundary and needs its own edit.
+
+**5. Capability roles, not model names** — authoring agent, reviewing agent,
+independent reviewer, connector bot. Which model fills a seat is operational
+and may change without a governance PR. TWO NAMED EXCEPTIONS, both CI-bound
+literals that a docs-only change must not touch: the artifact filename
+`docs/prd_history/PRD-NNN.review.<model>.md` and the verbatim `SECOND-MODEL:`
+disposition sentence. `tools/validate_prd_registry.py` matches both as literal
+strings; converting either to role language would break the CI `test` check
+and requires a code-touching PRD.
+
+**6. STANDARD lane tightened.** Review Independence moves from `same-context`
+acceptable to fresh-context required. MICRO and HIGH-RISK are unchanged. This
+is the one clause that raises ceremony rather than bounding it.
+
+**PRD-242 is untouched in force.** Every COMPLETE HIGH-RISK PRD ≥ 242 still
+carries either a commissioned artifact or the verbatim disposition sentence,
+still enforced by `tools/validate_prd_registry.py` on the CI `test` check.
+GOV-1 restates that gate in role language; it does not loosen it. A docs-only
+change could not loosen it without putting the docs in direct conflict with
+the validator.
+
+---
+
 ## 2026-07-25 — GEX/news/options expansion planning authority approved for a held governance PR (ruled: Dustin)
 
 Dustin directed the GEX, personalized-news, options-data, and adjacent
