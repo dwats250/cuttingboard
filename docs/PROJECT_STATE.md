@@ -5,10 +5,15 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-07-25 (GOV-0 planning authority)
+**Last updated:** 2026-07-25 (GOV-1 review and merge policy)
 
 ## Current state
 
+- **Review and merge policy:** `GOV-1` — Dustin merges every PR (no
+  auto-merge, any lane); routine gate is one fresh-context review plus the
+  connector's; deep independent review opt-in; one correction cycle. Owner:
+  `CLAUDE.md` § How work lands / § Review gates. Effective when its held PR
+  merges.
 - **Decision-support expansion workplan:** `GOV-0` becomes COMPLETE when this
   held governance PR merges; current packet is `L0` — reconcile
   PRD-267/268/271/272/273 lifecycle truth before allocating a new feature PRD

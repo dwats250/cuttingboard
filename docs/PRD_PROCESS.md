@@ -129,15 +129,28 @@ If a single PRD accumulates more than one PATCH PRD, the root causes MUST be doc
 
 ## Review Dispatch
 
-Every PRD receives the structured Claude review its LANE requires
-(LANE matrix below). A second-model review (Codex or another
-independent model) runs only when Dustin commissions one — it is an
-instrument, never a standing requirement (PRD-242; see Second-Model
+Seats, not vendors (GOV-1). This section names the AUTHORING AGENT,
+the REVIEWING AGENT, the INDEPENDENT REVIEWER, and the CONNECTOR BOT.
+Which model fills a seat is operational and may change without a
+governance PR; see CLAUDE.md § Review gates for the rule and its two
+CI-bound naming exceptions.
+
+Every PRD receives the structured review its LANE requires (LANE
+matrix below), performed by a reviewing agent working from a fresh
+context that did not author the change. A deep INDEPENDENT review —
+the second-model instrument — runs only when Dustin commissions one.
+It is opt-in, never a standing requirement (PRD-242; see Second-Model
 Disposition below and the CLAUDE.md gate text). When a commissioned
-second-model review runs alongside the Claude review, **the two are
+independent review runs alongside the routine review, **the two are
 independent and MUST be dispatched in parallel**, not serially. The
 author submits the draft once and the two reviewers work
 simultaneously against the same artifact.
+
+**One correction cycle (GOV-1).** Findings are produced once and
+addressed once; then the gate closes. A further round is Dustin's
+call, never a reviewer's prerogative. Triaging connector-bot threads
+(PRD-228) does not consume the cycle — that disposition is
+bookkeeping, not a review round.
 
 **Why parallel:** the reviews answer different questions (vision
 alignment vs. structural soundness) from non-overlapping models.
@@ -147,18 +160,32 @@ and the second review's findings did not depend on the first.
 
 **Mechanics:**
 
-- Claude Code dispatches both reviews as parallel subagent calls
-  (single message, multiple tool invocations) once the PRD draft is
-  ready for review.
+- The implementing agent dispatches both reviews as parallel subagent
+  calls (single message, multiple tool invocations) once the PRD draft
+  is ready for review.
 - Reviewer artifacts land at
   `docs/prd_history/PRD-NNN.review.claude.md` and
   `docs/prd_history/PRD-NNN.review.<model>.md` respectively (the
-  Claude slot enforced by the `prd-review-claude` skill).
+  routine-review slot enforced by the `prd-review-claude` skill).
+  These filenames are CI-bound literals and are NOT an exception to
+  the seats-not-vendors rule above — they are simply out of a
+  docs-only PR's reach: `tools/validate_prd_registry.py` globs the
+  literal `PRD-NNN.review.` prefix and treats `claude` as the routine
+  slot. Renaming them to role words breaks the CI `test` check and
+  requires a code-touching PRD.
 - If a review materially drives a decision (KILL, REVISE, scope
   cut), link the artifact path in the `docs/DECISIONS.md` entry so
   the audit trail survives — see CLAUDE.md "Working practices".
-- Cross-review-of-review (one reviewer reviewing the other's
-  output) is by definition serial and exempt from this rule.
+- Cross-review-of-review is RETIRED (GOV-1). A review targets the
+  change — the diff and the PRD — never another review's prose, and
+  no artifact takes another artifact as its subject. Reviewer
+  disagreement goes to Dustin to adjudicate (§ Adjudication Trigger),
+  not to a further round of reviewing. This line previously exempted
+  review-of-review from the parallel-dispatch rule; GOV-1 retires the
+  practice rather than the exemption. NOTE: the `prd-review-claude`
+  skill still advertises cross-review-of-review in its trigger text;
+  that skill is a separate file outside this PR's FILES boundary and
+  is owed a follow-up edit.
 - A second-model artifact saved under any name not matching
   `PRD-NNN.review.<model>.md` exactly (e.g. `PRD-NNN.review-notes.md`,
   `PRD-NNN.reviewed.md`) fails `tools/validate_prd_registry.py`'s
@@ -239,10 +266,19 @@ never a silence — this closes the gate-skip class (PRD-240 merged
 while its own review artifact said the second leg was still owed).
 Historical rows (< 242) are exempt and are not rewritten.
 
-Good reasons to commission a second-model review (the old automatic
-triggers, now advisory): contract or decision-surface changes,
-dashboard/notification semantics shifts, CI/hooks/artifact-push
-semantics shifts, and any reviewer disagreement worth arbitrating.
+Under GOV-1 the term "second-model" is retained here as a CI-bound
+identifier, not as a model name: the seat is the INDEPENDENT REVIEWER,
+and the literal `SECOND-MODEL:` sentence plus the
+`PRD-NNN.review.<model>.md` filename are matched as literal strings by
+`tools/validate_prd_registry.py`. Neither may be reworded into role
+language by a docs-only change.
+
+Conditions that make commissioning an independent review the right
+call (advisory triggers, not standing requirements): contract or
+decision-surface changes, dashboard/notification semantics shifts,
+CI/hooks/artifact-push semantics shifts, and any reviewer
+disagreement worth arbitrating. Absent one of these, the routine
+fresh-context review plus Dustin's merge is the whole gate.
 
 ### Delegation pattern: orchestrator/retriever split (PRD-255)
 
@@ -428,10 +464,10 @@ CONTRACT row's `adjudication artifact mandatory on any reviewer
 disagreement` requirement AND the HIGH-RISK lane's
 fresh-context-or-different-model requirement.
 
-| LANE | Structured Claude review | Review Independence | Second-model review (PRD-242) |
+| LANE | Structured review | Review Independence | Independent review (PRD-242) |
 |------|--------------------------|---------------------|-------------------------------|
 | MICRO | Optional | `same-context` acceptable | Only if commissioned |
-| STANDARD | Required | `same-context` acceptable | Only if commissioned |
+| STANDARD | Required | `same-context` INSUFFICIENT; must be `fresh-context` (GOV-1) | Only if commissioned |
 | HIGH-RISK | Required | `same-context` INSUFFICIENT; must be `fresh-context` OR `different-model` | If commissioned: artifact per the CLAUDE.md properties. If not: the `SECOND-MODEL:` disposition line is mandatory (Second-Model Disposition above) |
 
 ### Lane Downgrade Prohibition (PRD-121 R11)
@@ -454,10 +490,13 @@ STRICTEST lane present among its constituent PRDs** — a PR carrying
 any HIGH-RISK or governance-guardrail PRD is human-held regardless of
 what else rides along. This does not relax the separate, categorical
 2026-07-07 rule that agents never initiate or queue a merge for any
-lane — that rule already makes every PR human-held at the merge action
-itself; this subsection states the ceremony floor for what happens
-before that action (which review legs are owed, whether auto-merge
-may even be queued once a human does act).
+lane. GOV-1 goes further: Dustin merges every PR by hand, so
+auto-merge is not a landing path for any lane — superseding that
+entry's "auto-merge remains the normal landing path for
+non-manual-merge-only lanes" clause (CLAUDE.md § How work lands).
+This subsection states the ceremony floor for what happens BEFORE the
+merge action — which review legs are owed — and no longer speaks to
+whether auto-merge may be queued.
 
 ### MICRO Eligibility Safety Net (PRD-121 R12)
 
