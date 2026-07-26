@@ -284,7 +284,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-264 | #159 | Pytest import hardening: close the PYTHONPATH-shadowing trap at the config layer | COMPLETE | [PRD-264](prd_history/PRD-264.md) |
 | PRD-265 | #154 | Coverage marker: persist RegimeState.total_votes so bounded days are identifiable across runs | COMPLETE | [PRD-265](prd_history/PRD-265.md) |
 | PRD-266 | bc0a82b | Governance: model-role lane, drafter-not-reviewer constraint, commission-scope trace-to-surface | COMPLETE | [PRD-266](prd_history/PRD-266.md) |
-| PRD-267 | — | Coverage-reason surfacing (daily): fix 80-char truncation dropping the vote-coverage clause | IN PROGRESS | [PRD-267](prd_history/PRD-267.md) |
+| PRD-267 | 724d84a | Coverage-reason surfacing (daily): fix 80-char truncation dropping the vote-coverage clause | COMPLETE | [PRD-267](prd_history/PRD-267.md) |
 | PRD-268 | — | Coverage-reason surfacing (hourly): build the reason when qualify_all is skipped on STAY_FLAT | IN PROGRESS | [PRD-268](prd_history/PRD-268.md) |
 | PRD-269 | #163 | Close the doc-status blind spot in validate_prd_registry.py (25 registry-COMPLETE rows across three failure shapes whose docs never agreed) | COMPLETE | [PRD-269](prd_history/PRD-269.md) |
 | PRD-270 | #164 | Correct PRD-245 registry provenance (phantom 6017ce9 → merged 8bea09c) | COMPLETE | [PRD-270](prd_history/PRD-270.md) |
