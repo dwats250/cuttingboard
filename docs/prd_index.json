@@ -1272,8 +1272,8 @@
     {
       "number": 267,
       "title": "Coverage-reason surfacing (daily): fix 80-char truncation dropping the vote-coverage clause",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "724d84a"
     },
     {
       "number": 268,
