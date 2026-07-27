@@ -16,6 +16,59 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-26 — Review artifacts are append-only; a superseded artifact is renamed, never overwritten (ruled: Dustin)
+
+Surfaced during the PRD-267/272/273 closeout sweep. PRD-273's fresh-context
+review artifact at `docs/prd_history/PRD-273.review.claude.md` read
+`VERDICT: ACCEPT / BLOCKER: none / REQUIRED: none` at HEAD. The actual review
+history was the opposite: the first fresh-context review of that PRD returned
+**ACCEPT WITH EDITS with ten blocking required edits (RE-1..RE-10)** against
+`f72fd47` on PR #168, and landed at commit `54a302b` — which is **not** an
+ancestor of `main`. PRD-273 was then rescoped to a minimal implementation on a
+new branch and merged via #169. The clean ACCEPT reviewing the REPLACEMENT was
+written to the SAME PATH, overwriting the record of the ten findings.
+
+The result: at HEAD the working tree showed an unblemished ACCEPT. The ten
+blocking findings survived only in git history and on a closed branch. A
+closeout that reads the working tree — which is what a closeout does — cannot
+see that arc, and cannot distinguish "reviewed clean" from "reviewed hard,
+abandoned, re-reviewed clean on different code." Those are different claims
+about different implementations, and the filename does not distinguish them.
+
+This is the same failure shape as mutation evidence baked into a squash commit:
+the evidence that justified the gate is destroyed by the mechanics of landing
+the work, leaving a green record whose basis is unrecoverable without
+archaeology.
+
+**RULE (binding): review artifacts are APPEND-ONLY.** A superseded review
+artifact is RENAMED and retained in-tree —
+`docs/prd_history/PRD-NNN.review.<model>.superseded-<sha>.md`, where `<sha>` is
+the commit that artifact reviewed — never overwritten in place. The replacing
+artifact states what it supersedes and why (rescope, abandonment, re-review
+against a corrected head). A closeout reading only the working tree must be
+able to see the full review arc without consulting git history.
+
+**COROLLARY (binding), found the same session: a review artifact must be
+SHA-pinned to the commit that MERGED, not merely to a commit on the branch.**
+PRD-273's surviving review pins `a96f16f7` while #169 merged at `8ca1969` — one
+commit later, which modified a test. `CLAUDE.md` § Second-model disposition
+already states that a review of a superseded commit does not count for later
+commits; nothing mechanically enforces it, and nothing caught it here. The
+`a96f16f7` → `8ca1969` delta was read in full and WAIVED by Dustin (test-only,
+one function, no shipped behavior); the coverage loss it caused is recorded as
+a STATED LIMITATION in `docs/prd_history/PRD-273.md` and queued as PRD-274. The
+waiver is the exception that proves the rule needs enforcing: it was granted on
+a full diff read, not on the PRD's self-description, which understated the
+change as "only test #3's root-config assertion."
+
+Scope: this entry records the rule. Mechanical enforcement in
+`tools/validate_prd_registry.py` (a check that a COMPLETE PRD's review artifact
+pins the registry's commit cell, and that no `.review.<model>.md` is modified
+rather than added after its first commit) is scaffolded as **PRD-275**, a
+candidate — not part of this ruling.
+
+---
+
 ## 2026-07-25 — GOV-1: universal manual merge, one bounded review, capability roles (ruled: Dustin)
 
 Dustin's ruling. Merge authority and review depth were each stated in several
