@@ -1,46 +1,46 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -0.023610512160456305,
-      "level": 63681.4296875,
+      "change_pct": 0.23795716697403263,
+      "level": 63848.0390625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.08080402257881512,
-      "level": 101.39900207519531,
+      "change_pct": -0.17934312975601366,
+      "level": 101.29900360107422,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -0.47412571240336354,
-      "level": 4030.39990234375,
+      "change_pct": -0.1012469764267088,
+      "level": 4045.5,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": -0.514956083273029,
-      "level": 81.13999938964844,
+      "change_pct": -3.285924945314564,
+      "level": 78.87999725341797,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -2.6842872763074315,
-      "change_pct": -0.5817701272860392,
-      "level": 4.613999843597412,
+      "change_bps": -4.65239576996844,
+      "change_pct": -1.012711342847884,
+      "level": 4.593999862670898,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -0.34734414133274044,
-      "level": 57.380001068115234,
+      "change_pct": 0.08683437907357053,
+      "level": 57.630001068115234,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -0.5356206805628303,
-      "level": 18.56999969482422,
+      "change_pct": -4.12426595938461,
+      "level": 17.899999618530273,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260728T152215Z",
+    "generation_id": "hourly-20260728T160357Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-07-28T15:22:15Z"
+    "timestamp": "2026-07-28T16:03:57Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -58,8 +58,8 @@
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.125,
-    "market_regime": "NEUTRAL",
+    "confidence": 0.375,
+    "market_regime": "RISK_ON",
     "outcome": null,
     "permission": null,
     "router_mode": "MIXED",
