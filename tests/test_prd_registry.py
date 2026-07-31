@@ -1153,3 +1153,57 @@ def test_277_conflicting_class_declarations_fail_loud(tmp_path: Path) -> None:
     )
     errors = _lane_errors_unregistered(tmp_path, 277, body)
     assert any("Conflicting CLASS declarations: PRD-277" in e for e in errors)
+
+
+def test_277_missing_class_is_rejected_not_exempted(tmp_path: Path) -> None:
+    # PRD-277 R2's own FAIL line required this; the first implementation
+    # returned [] and silently exempted (connector 3688783109).
+    body = "PRD-277 — fixture\n\nLANE\nMICRO\n\nFILES\nM docs/PRD_PROCESS.md\n"
+    errors = _lane_errors_unregistered(tmp_path, 277, body)
+    assert any("Missing CLASS: PRD-277" in e for e in errors)
+
+
+def test_277_patch_overlay_class_is_accepted(tmp_path: Path) -> None:
+    # "+ PATCH" is a documented overlay on any base class
+    # (docs/PRD_TEMPLATE.md:10); PRD-125..129 already use it.
+    errors = _lane_errors_unregistered(
+        tmp_path,
+        277,
+        _lane_doc(277, "MICRO", "INFRA + PATCH", "M docs/some_doc.md"),
+    )
+    assert errors == []
+
+
+def test_277_bare_word_row_does_not_exempt_a_payload_annotation(tmp_path: Path) -> None:
+    # RED case. A bare `row` alternative exempted "(restructure row schema)",
+    # reopening the registry bypass this PRD closes (connector 3688783118).
+    errors = _lane_errors_unregistered(
+        tmp_path,
+        277,
+        _lane_doc(
+            277,
+            "MICRO",
+            "GOVERNANCE",
+            "M docs/PRD_REGISTRY.md (restructure row schema)",
+        ),
+    )
+    assert any("Lane downgrade: PRD-277" in e for e in errors)
+
+
+def test_277_canonical_row_marker_still_exempts(tmp_path: Path) -> None:
+    errors = _lane_errors_unregistered(
+        tmp_path,
+        277,
+        _lane_doc(277, "MICRO", "GOVERNANCE", "- `docs/PRD_REGISTRY.md` (PRD-277 row)"),
+    )
+    assert errors == []
+
+
+def test_277_class_inside_a_fenced_block_is_not_a_declaration(tmp_path: Path) -> None:
+    # PRD docs commonly embed validation fixtures; a fenced negative-test
+    # sample must not be read as a second declaration (connector 3688783125).
+    body = (
+        "PRD-277 — fixture\n\nLANE\nHIGH-RISK\n\nCLASS\nGOVERNANCE\n\n"
+        "VALIDATION\n```\nCLASS\nGOVERANCE\n```\n\nFILES\nM docs/some_doc.md\n"
+    )
+    assert _lane_errors_unregistered(tmp_path, 277, body) == []

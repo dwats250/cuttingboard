@@ -107,9 +107,16 @@ non-closeout commit, that is a violation.
 **Exception — CLASS GOVERNANCE PRDs (PRD-276).** For a PRD whose `CLASS`
 is `GOVERNANCE`, `docs/PRD_REGISTRY.md` and `docs/PROJECT_STATE.md` are
 NOT covered by this allowlist. They must appear in that PRD's `FILES`
-section, annotated `(pointer)` / `(bookkeeping)` if the touch really is
-incidental. STOP and report if either is staged by a GOVERNANCE PRD that
-does not name it.
+section, annotated if the touch really is incidental — either a phrase
+containing `pointer` / `bookkeeping`, or the canonical micro-template
+marker `(PRD-NNN row)`, which `docs/PRD_MICRO_TEMPLATE.md` emits verbatim
+and which is accepted as-is. STOP and report if either file is staged by a
+GOVERNANCE PRD that does not name it.
+
+Using any of those annotations obliges ONE `fresh-context` structured
+review regardless of lane, including MICRO (PRD-276 R5). The annotation is
+a declaration the guard cannot check against the diff; that review is what
+does.
 
 Why the carve-out has a carve-out: for a GOVERNANCE PRD these two files
 are candidate PAYLOAD, and the Lane Downgrade Prohibition decides that

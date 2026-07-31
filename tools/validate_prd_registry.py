@@ -60,6 +60,10 @@ _CLASS_HEADER_RE = re.compile(r"^CLASS(?::[ \t]*(?P<inline>\S.*)|:?[ \t]*)$")
 KNOWN_CLASSES = frozenset(
     {"GOVERNANCE", "SIDECAR", "CONSUMER", "EXECUTION", "CONTRACT", "INFRA"}
 )
+# "+ PATCH" is a documented overlay on any base class (docs/PRD_TEMPLATE.md:10);
+# PRD-125..129 already use it. It is stripped before the base-class check so a
+# correctly classified patch PRD is not rejected (connector 3688783113).
+_CLASS_OVERLAY_RE = re.compile(r"\s*\+\s*PATCH\s*$", re.IGNORECASE)
 # A PRD section header is an all-caps line with no punctuation ("FILES",
 # "CHANGE SURFACE", "OUT OF SCOPE"). Requirement lines ("R1 - ...") and file
 # entries ("M docs/...") both carry lowercase and never match.
@@ -75,12 +79,13 @@ _LANE_HEADER_RE = re.compile(r"^LANE\b:?[ \t]*(?P<inline>\S.*)?$")
 KNOWN_LANES = frozenset({"MICRO", "STANDARD", "HIGH-RISK"})
 # A pointer declaration is the word pointer/bookkeeping inside parentheses,
 # e.g. "(active PRD pointer)" or "(closeout bookkeeping)".
-# `row` is included because docs/PRD_MICRO_TEMPLATE.md emits the canonical
-# registry entry as "`docs/PRD_REGISTRY.md` (PRD-NNN row)". Rejecting the
-# required template's own output made the standard MICRO path unusable
-# (PRD-277 R3).
+# The canonical row marker is docs/PRD_MICRO_TEMPLATE.md's "(PRD-NNN row)".
+# It is matched as a WHOLE FORM, not on the bare word `row`: a bare alternative
+# also exempted payload annotations like "(restructure row schema)", reopening
+# the registry bypass PRD-277 exists to close (connector 3688783118).
 _POINTER_ANNOTATION_RE = re.compile(
-    r"\([^)]*\b(?:pointer|bookkeeping|row)\b[^)]*\)", re.IGNORECASE
+    r"\((?:[^)]*\b(?:pointer|bookkeeping)\b[^)]*|\s*PRD-\d{3}\s+row\s*)\)",
+    re.IGNORECASE,
 )
 _PRD_DOC_RE = re.compile(r"^PRD-(\d{3})\.md$")
 # A commit cell token is a hex SHA (historical / post-merge closeout) or a
@@ -667,19 +672,25 @@ def _declared_classes(text: str) -> list[str]:
     """
     classes: list[str] = []
     lines = text.splitlines()
+    fenced = False
     for index, line in enumerate(lines):
+        if line.lstrip().startswith("```"):
+            fenced = not fenced
+            continue
+        if fenced:
+            continue
         match = _CLASS_HEADER_RE.match(line)
         if not match:
             continue
         inline = (match.group("inline") or "").strip()
         if inline:
-            classes.append(inline.upper())
+            classes.append(_CLASS_OVERLAY_RE.sub("", inline).strip().upper())
             continue
         for following in lines[index + 1:]:
             candidate = following.strip()
             if not candidate or candidate.startswith("<!--"):
                 continue
-            classes.append(candidate.upper())
+            classes.append(_CLASS_OVERLAY_RE.sub("", candidate).strip().upper())
             break
     return classes
 
@@ -711,6 +722,13 @@ def _validate_lane_payload_prohibition(
             continue
         text = doc.read_text(encoding="utf-8")
         classes = _declared_classes(text)
+        if not classes:
+            errors.append(
+                f"Missing CLASS: {_display_prd(number)} declares no CLASS header. "
+                f"A PRD >= {LANE_PAYLOAD_ENFORCEMENT_START} must declare one; an "
+                f"absent CLASS must never be read as an exemption (PRD-277)"
+            )
+            continue
         unknown = [c for c in classes if c not in KNOWN_CLASSES]
         if unknown:
             errors.append(

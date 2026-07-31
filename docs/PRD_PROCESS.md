@@ -500,10 +500,16 @@ ceremony, even though the row-level bookkeeping every PRD performs must not.
 
 **Declaring a pointer touch.** A `FILES` entry for `docs/PROJECT_STATE.md`
 or `docs/PRD_REGISTRY.md` claiming pointer treatment MUST carry a
-parenthesised annotation on its own line containing the word `pointer` or
-`bookkeeping` — e.g. `M docs/PROJECT_STATE.md (active PRD pointer)` or
-`M docs/PRD_REGISTRY.md (PRD-NNN row bookkeeping)`. An unannotated entry is
-read as a payload touch and forces `HIGH-RISK`.
+parenthesised annotation on its own line that is EITHER a phrase containing the
+word `pointer` or `bookkeeping`, OR the canonical micro-template marker
+`(PRD-NNN row)` — e.g. `M docs/PROJECT_STATE.md (active PRD pointer)`,
+`M docs/PRD_REGISTRY.md (PRD-NNN row bookkeeping)`, or the unmodified
+`docs/PRD_MICRO_TEMPLATE.md` line `` - `docs/PRD_REGISTRY.md` (PRD-NNN row) ``.
+An unannotated entry is read as a payload touch and forces `HIGH-RISK`.
+
+The `(PRD-NNN row)` form is matched as a WHOLE marker, not on the bare word
+`row`: an annotation like `(restructure row schema)` describes a PAYLOAD change
+and must NOT be exempted (PRD-277).
 `tools/validate_prd_registry.py` enforces this for PRDs numbered 276 and
 above; earlier PRDs predate the rule and are not retroactively failed.
 
