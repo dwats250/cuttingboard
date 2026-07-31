@@ -876,3 +876,148 @@ def test_242_misnamed_claude_variant_does_not_satisfy(tmp_path: Path) -> None:
     errors: list[str] = []
     validate_prd_registry._validate_second_model_disposition(tmp_path, _hr_rows(243), errors)
     assert any("Second-model disposition missing: PRD-243" in e for e in errors)
+
+
+# ---------------------------------------------------------------------------
+# PRD-276 — Lane Downgrade Prohibition: payload-vs-pointer
+# ---------------------------------------------------------------------------
+
+
+def _lane_rows(number: int) -> dict[int, dict[str, str | None]]:
+    return {
+        number: {
+            "number": number,
+            "status": "IN PROGRESS",
+            "commit": None,
+            "file": f"[PRD-{number:03d}](prd_history/PRD-{number:03d}.md)",
+        }
+    }
+
+
+def _lane_doc(number: int, lane: str, klass: str, files_block: str) -> str:
+    return (
+        f"PRD-{number:03d} — fixture\n\n"
+        f"LANE\n{lane}\n\n"
+        f"CLASS\n{klass}\n\n"
+        f"GOAL\nx\n\n"
+        f"FILES\n{files_block}\n\n"
+        f"REQUIREMENTS\nR1 — x\n"
+    )
+
+
+def _lane_errors(tmp_path: Path, number: int, lane: str, klass: str, files: str) -> list[str]:
+    _write_prd_doc(tmp_path, number, _lane_doc(number, lane, klass, files))
+    errors: list[str] = []
+    validate_prd_registry._validate_lane_payload_prohibition(
+        tmp_path, _lane_rows(number), errors
+    )
+    return errors
+
+
+def test_276_governance_micro_naming_payload_file_fails(tmp_path: Path) -> None:
+    # RED case: the guard must fail when violated (PRD-198 invariant 4).
+    errors = _lane_errors(tmp_path, 276, "MICRO", "GOVERNANCE", "M CLAUDE.md")
+    assert any("Lane downgrade: PRD-276" in e for e in errors)
+    assert any("CLAUDE.md" in e for e in errors)
+
+
+def test_276_governance_high_risk_naming_payload_file_passes(tmp_path: Path) -> None:
+    # The compliant direction must NOT be flagged, or the guard is useless.
+    assert _lane_errors(tmp_path, 276, "HIGH-RISK", "GOVERNANCE", "M CLAUDE.md") == []
+
+
+def test_276_project_state_without_annotation_fails(tmp_path: Path) -> None:
+    errors = _lane_errors(
+        tmp_path, 276, "MICRO", "GOVERNANCE", "M docs/PROJECT_STATE.md"
+    )
+    assert any("Lane downgrade: PRD-276" in e for e in errors)
+    assert any("no pointer/bookkeeping annotation" in e for e in errors)
+
+
+def test_276_project_state_with_pointer_annotation_passes(tmp_path: Path) -> None:
+    assert (
+        _lane_errors(
+            tmp_path,
+            276,
+            "MICRO",
+            "GOVERNANCE",
+            "M docs/PROJECT_STATE.md (active PRD pointer)",
+        )
+        == []
+    )
+
+
+def test_276_project_state_with_bookkeeping_annotation_passes(tmp_path: Path) -> None:
+    assert (
+        _lane_errors(
+            tmp_path,
+            276,
+            "MICRO",
+            "GOVERNANCE",
+            "M docs/PROJECT_STATE.md (closeout bookkeeping)",
+        )
+        == []
+    )
+
+
+def test_276_below_enforcement_start_is_exempt(tmp_path: Path) -> None:
+    # Boundary: PRD-275 predates the rule and must never be retroactively
+    # failed, or landing this guard turns the existing tree red.
+    assert _lane_errors(tmp_path, 275, "MICRO", "GOVERNANCE", "M CLAUDE.md") == []
+
+
+def test_276_non_governance_class_is_exempt(tmp_path: Path) -> None:
+    # The payload list is the GOVERNANCE row's HIGH-RISK FILES; other CLASSes
+    # carry different HIGH-RISK sets and are out of this guard's scope.
+    assert _lane_errors(tmp_path, 276, "MICRO", "INFRA", "M CLAUDE.md") == []
+
+
+def test_276_registry_and_index_never_trigger(tmp_path: Path) -> None:
+    # The PRD-276 R1 defect: registry/index bookkeeping is implicit in every
+    # PRD lifecycle (PRD_PROCESS.md Scope Lock) and must not force a lane.
+    assert (
+        _lane_errors(
+            tmp_path,
+            276,
+            "MICRO",
+            "GOVERNANCE",
+            "M docs/PRD_REGISTRY.md\nM docs/prd_index.json",
+        )
+        == []
+    )
+
+
+def test_276_governance_file_named_outside_files_does_not_trigger(tmp_path: Path) -> None:
+    # Prose routinely names governance files while discussing them; only the
+    # FILES declaration carries scope meaning.
+    body = (
+        "PRD-276 — fixture\n\n"
+        "LANE\nMICRO\n\n"
+        "CLASS\nGOVERNANCE\n\n"
+        "WHY NOW\nThis PRD discusses CLAUDE.md and docs/PRD_PROCESS.md at length.\n\n"
+        "FILES\nM docs/some_other_doc.md\n\n"
+        "REQUIREMENTS\nR1 — x\n"
+    )
+    _write_prd_doc(tmp_path, 276, body)
+    errors: list[str] = []
+    validate_prd_registry._validate_lane_payload_prohibition(
+        tmp_path, _lane_rows(276), errors
+    )
+    assert errors == []
+
+
+def test_276_guard_is_wired_into_validate_repository(tmp_path: Path, monkeypatch) -> None:
+    # Assert the resolved, not the requested (PRD-198 invariant 2): every unit
+    # test above passes even if the guard is never called from the real entry
+    # point. This proves the call site exists.
+    called: dict[str, bool] = {}
+
+    def _spy(root: Path, rows: dict, errors: list[str]) -> None:
+        called["ran"] = True
+
+    monkeypatch.setattr(
+        validate_prd_registry, "_validate_lane_payload_prohibition", _spy
+    )
+    root = _write_fixture(tmp_path)
+    validate_prd_registry.validate_repository(root)
+    assert called.get("ran") is True
