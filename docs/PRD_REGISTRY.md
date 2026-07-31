@@ -294,6 +294,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-274 | — | Restore resolved-rule agreement coverage for the ruff lint baseline | IN PROGRESS | [PRD-274](prd_history/PRD-274.md) |
 | PRD-275 | — | Mechanically enforce review-artifact append-only and merged-commit SHA pinning | IN PROGRESS | [PRD-275](prd_history/PRD-275.md) |
 | PRD-276 | — | Lane Downgrade Prohibition: payload-vs-pointer, and drop the registry contradiction | IN PROGRESS | [PRD-276](prd_history/PRD-276.md) |
+| PRD-277 | — | Lane-guard patch: enumerate PRD docs, validate CLASS, accept the micro-template marker | IN PROGRESS | [PRD-277](prd_history/PRD-277.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

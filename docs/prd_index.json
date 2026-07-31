@@ -1328,6 +1328,12 @@
       "title": "Lane Downgrade Prohibition: payload-vs-pointer, and drop the registry contradiction",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 277,
+      "title": "Lane-guard patch: enumerate PRD docs, validate CLASS, accept the micro-template marker",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
