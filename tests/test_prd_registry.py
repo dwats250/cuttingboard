@@ -1155,12 +1155,21 @@ def test_277_conflicting_class_declarations_fail_loud(tmp_path: Path) -> None:
     assert any("Conflicting CLASS declarations: PRD-277" in e for e in errors)
 
 
-def test_277_missing_class_is_rejected_not_exempted(tmp_path: Path) -> None:
+def test_277_missing_class_with_governance_payload_is_rejected(tmp_path: Path) -> None:
     # PRD-277 R2's own FAIL line required this; the first implementation
     # returned [] and silently exempted (connector 3688783109).
     body = "PRD-277 — fixture\n\nLANE\nMICRO\n\nFILES\nM docs/PRD_PROCESS.md\n"
     errors = _lane_errors_unregistered(tmp_path, 277, body)
     assert any("Missing CLASS: PRD-277" in e for e in errors)
+
+
+def test_277_missing_class_without_governance_payload_is_tolerated(tmp_path: Path) -> None:
+    # docs/PRD_MICRO_TEMPLATE.md emits NO CLASS field, and the PRD-229 cosmetic
+    # short-form has no header block at all. Making a missing CLASS
+    # unconditionally fatal would have failed every micro-PRD from 278 onward
+    # (connector 3688814717). Fatal only when governance payload is named.
+    body = "PRD-277 — fixture\n\nLANE\nMICRO\n\nFILES\nM docs/some_other_doc.md\n"
+    assert _lane_errors_unregistered(tmp_path, 277, body) == []
 
 
 def test_277_patch_overlay_class_is_accepted(tmp_path: Path) -> None:

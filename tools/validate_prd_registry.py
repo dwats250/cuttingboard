@@ -723,11 +723,23 @@ def _validate_lane_payload_prohibition(
         text = doc.read_text(encoding="utf-8")
         classes = _declared_classes(text)
         if not classes:
-            errors.append(
-                f"Missing CLASS: {_display_prd(number)} declares no CLASS header. "
-                f"A PRD >= {LANE_PAYLOAD_ENFORCEMENT_START} must declare one; an "
-                f"absent CLASS must never be read as an exemption (PRD-277)"
-            )
+            # A missing CLASS is fatal ONLY when the PRD names a governance
+            # payload file - otherwise this would fail every PRD copied from
+            # docs/PRD_MICRO_TEMPLATE.md, which emits no CLASS field, and the
+            # PRD-229 cosmetic short-form, which has no header block at all
+            # (connector 3688814717). Scoped to the case the guard exists for:
+            # a doc that cannot be classified but touches governance payload.
+            if any(
+                path in entry
+                for entry in _extract_files_entries(text)
+                for path in GOVERNANCE_PAYLOAD_FILES
+            ):
+                errors.append(
+                    f"Missing CLASS: {_display_prd(number)} names a GOVERNANCE "
+                    f"payload file in FILES but declares no CLASS header, so its "
+                    f"lane cannot be checked. Declare CLASS explicitly; an absent "
+                    f"CLASS must never be read as an exemption (PRD-277)"
+                )
             continue
         unknown = [c for c in classes if c not in KNOWN_CLASSES]
         if unknown:
