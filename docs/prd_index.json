@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 270,
-  "next_prd": 271,
+  "latest_complete": 277,
+  "next_prd": 278,
   "entries": [
     {
       "number": 56,
@@ -1302,14 +1302,38 @@
     {
       "number": 272,
       "title": "PROJECT_STATE sweep: correct seven stale queue-authority claims",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "724d84a"
     },
     {
       "number": 273,
       "title": "Pin ruff and declare the lint selection explicitly",
+      "status": "COMPLETE",
+      "commit": "4a1cb22"
+    },
+    {
+      "number": 274,
+      "title": "Restore resolved-rule agreement coverage for the ruff lint baseline",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 275,
+      "title": "Mechanically enforce review-artifact append-only and merged-commit SHA pinning",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
+      "number": 276,
+      "title": "Lane Downgrade Prohibition: payload-vs-pointer, and drop the registry contradiction",
+      "status": "COMPLETE",
+      "commit": "590dc75"
+    },
+    {
+      "number": 277,
+      "title": "Lane-guard patch: enumerate PRD docs, validate CLASS, accept the micro-template marker",
+      "status": "COMPLETE",
+      "commit": "4b0f3ba"
     }
   ]
 }

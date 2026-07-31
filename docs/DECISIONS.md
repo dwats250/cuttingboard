@@ -16,6 +16,114 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-26 — Review artifacts are append-only; a superseded artifact is renamed, never overwritten (ruled: Dustin)
+
+Surfaced during the PRD-267/272/273 closeout sweep. PRD-273's fresh-context
+review artifact at `docs/prd_history/PRD-273.review.claude.md` read
+`VERDICT: ACCEPT / BLOCKER: none / REQUIRED: none` at HEAD. The actual review
+history was the opposite: the first fresh-context review of that PRD returned
+**ACCEPT WITH EDITS with ten blocking required edits (RE-1..RE-10)** against
+`f72fd47` on PR #168, and landed at commit `54a302b` — which is **not** an
+ancestor of `main`. PRD-273 was then rescoped to a minimal implementation on a
+new branch and merged via #169. The clean ACCEPT reviewing the REPLACEMENT was
+written to the SAME PATH, overwriting the record of the ten findings.
+
+The result: at HEAD the working tree showed an unblemished ACCEPT. The ten
+blocking findings survived only in git history and on a closed branch. A
+closeout that reads the working tree — which is what a closeout does — cannot
+see that arc, and cannot distinguish "reviewed clean" from "reviewed hard,
+abandoned, re-reviewed clean on different code." Those are different claims
+about different implementations, and the filename does not distinguish them.
+
+This is the same failure shape as mutation evidence baked into a squash commit:
+the evidence that justified the gate is destroyed by the mechanics of landing
+the work, leaving a green record whose basis is unrecoverable without
+archaeology.
+
+**RULE (binding): review artifacts are APPEND-ONLY.** A superseded review
+artifact is RENAMED and retained in-tree —
+`docs/prd_history/PRD-NNN.review.<model>.superseded-<sha>.md`, where `<sha>` is
+the commit that artifact reviewed — never overwritten in place. The replacing
+artifact states what it supersedes and why (rescope, abandonment, re-review
+against a corrected head). A closeout reading only the working tree must be
+able to see the full review arc without consulting git history.
+
+**COROLLARY (binding), found the same session: a review artifact must be
+SHA-pinned to the commit that MERGED, not merely to a commit on the branch.**
+PRD-273's surviving review pins `a96f16f7` while the branch advanced one commit
+further, to `8ca1969`, which modified a test. #169 was SQUASH-merged, so NEITHER
+SHA is an ancestor of `main` — the commit that actually landed is `4a1cb22`
+(verified 2026-07-31: `git merge-base --is-ancestor` is false for `a96f16f7` and
+`8ca1969`, true for `4a1cb22`). An earlier version of this entry said #169
+"merged at `8ca1969`"; that was the pre-squash branch head, not the merge
+commit, and the error would have propagated into PRD-275's enforcement target —
+aiming it at a commit no CI checkout of `main` can resolve.
+`CLAUDE.md` § Second-model disposition
+already states that a review of a superseded commit does not count for later
+commits; nothing mechanically enforces it, and nothing caught it here. The
+`a96f16f7` → `8ca1969` delta was read in full and WAIVED by Dustin (test-only,
+one function, no shipped behavior); the coverage loss it caused is recorded as
+a STATED LIMITATION in `docs/prd_history/PRD-273.md` and queued as PRD-274. The
+waiver is the exception that proves the rule needs enforcing: it was granted on
+a full diff read, not on the PRD's self-description, which understated the
+change as "only test #3's root-config assertion."
+
+Scope: this entry records the rule. Mechanical enforcement in
+`tools/validate_prd_registry.py` (a check that a COMPLETE PRD's review artifact
+pins the registry's commit cell, and that no `.review.<model>.md` is modified
+rather than added after its first commit) is scaffolded as **PRD-275**, a
+candidate — not part of this ruling.
+
+KNOWN CONSTRAINTS on this rule and on PRD-275's enforcement sketch, surfaced by
+connector review of PR #174 and each verified against the repo on 2026-07-31.
+**PRD-275 must not be implemented as sketched above until these are resolved.**
+
+1. **The prescribed filename sits inside the validator's live glob.**
+   `tools/validate_prd_registry.py:532-535` globs `PRD-NNN.review.*.md` and
+   excludes only names whose post-prefix text begins `claude`. A superseded
+   NON-Claude artifact — `PRD-NNN.review.codex.superseded-<sha>.md` — therefore
+   still counts as the commissioned second-model artifact, so a HIGH-RISK PRD
+   could pass the disposition gate on a review this very rule declares
+   obsolete. Either the superseded namespace moves outside that glob, or the
+   validator learns this policy.
+2. **"Pins the registry's commit cell" is unsatisfiable for same-PR closeouts.**
+   `docs/PRD_PROCESS.md:73-81` records `#NNN` in the commit cell precisely
+   because the squash SHA does not exist pre-merge, and reviews are a pre-merge
+   gate. The check as sketched would compare a SHA against a PR number. It must
+   target the final reviewed branch commit, or become a post-merge verification.
+3. **"Never modified after first commit" is inert against the incident that
+   motivated it.** PRD-273's original artifact lived on a branch never merged
+   to `main`, and the replacement arrived on a new branch — so merged history
+   sees the canonical path ADDED once, never modified, and a normal CI checkout
+   cannot see the original at all. Detecting this class needs a durable path
+   ledger or closed-PR history, not repository history alone.
+4. **Blanket immutability contradicts a mandated repair path.**
+   `CLAUDE.md:323-324` REQUIRES a post-merge review missing its DRIFT CHECK to
+   be repaired by appending that check in place, with no PRD ceremony. An
+   unqualified "never modified" check would reject that remediation. The
+   append-only DRIFT-CHECK repair needs a narrow, named exception.
+5. **The review writer contradicts this ruling.**
+   `.claude/skills/prd-review-claude/SKILL.md:50-53` refuses an occupied
+   canonical path and directs the operator to `.review.claude.v2.md`, and its
+   V6 check at `:99-100` refuses any target not matching
+   `PRD-<NNN>\.review\.claude(\.v\d+)?\.md` — which the `.superseded-<sha>.md`
+   name does not. Following the skill produces the INVERSE of the layout this
+   rule requires. The skill is a GOVERNANCE HIGH-RISK file; reconciling it is
+   its own change, not a side edit.
+6. **Renaming silently redirects existing audit references.**
+   `docs/PRD_PROCESS.md:176-178` requires a decision that a review materially
+   drove to link that review's artifact path. Renaming the original while the
+   replacement takes the canonical path makes every such existing link resolve
+   to the replacement — the audit trail changes meaning while both files remain
+   present. The rename must retarget existing references, or decisions must
+   cite SHA-specific paths from the outset.
+
+Constraints 1–4 and 6 were raised on 2026-07-27 against `315a2dc` and are
+recorded here rather than silently absorbed; constraint 5 was raised against
+`8c25c33`. None is dismissed.
+
+---
+
 ## 2026-07-25 — GOV-1: universal manual merge, one bounded review, capability roles (ruled: Dustin)
 
 Dustin's ruling. Merge authority and review depth were each stated in several
