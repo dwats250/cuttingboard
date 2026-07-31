@@ -1310,6 +1310,18 @@
       "title": "Pin ruff and declare the lint selection explicitly",
       "status": "COMPLETE",
       "commit": "4a1cb22"
+    },
+    {
+      "number": 274,
+      "title": "Restore resolved-rule agreement coverage for the ruff lint baseline",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
+      "number": 275,
+      "title": "Mechanically enforce review-artifact append-only and merged-commit SHA pinning",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
