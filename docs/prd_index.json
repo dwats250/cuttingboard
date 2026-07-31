@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 272,
-  "next_prd": 273,
+  "latest_complete": 273,
+  "next_prd": 274,
   "entries": [
     {
       "number": 56,
@@ -1308,8 +1308,8 @@
     {
       "number": 273,
       "title": "Pin ruff and declare the lint selection explicitly",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "4a1cb22"
     }
   ]
 }
