@@ -24,6 +24,51 @@ SECOND_MODEL_SENTENCE = (
     "instrument not commissioned, merging on Claude-review + human judgment"
 )
 _LANE_HIGH_RISK_RE = re.compile(r"^LANE\b[:\s]*\n?\s*HIGH-RISK", re.MULTILINE)
+# PRD-276 lane-downgrade enforcement: a GOVERNANCE PRD from this number onward
+# whose FILES names a HIGH-RISK file AS ITS PAYLOAD must declare LANE:
+# HIGH-RISK. Earlier PRDs predate the rule and are never retroactively failed
+# (PRD-155/156/171/202/272 all intersect and are exempt by design).
+LANE_PAYLOAD_ENFORCEMENT_START = 276
+# GOVERNANCE HIGH-RISK FILES with no bookkeeping form: naming one in FILES is
+# always a payload touch. docs/PROJECT_STATE.md is deliberately NOT here - it
+# is the one governance file a PRD may touch incidentally, and it is handled
+# by the annotation rule below. docs/PRD_REGISTRY.md and docs/prd_index.json
+# are absent because PRD_PROCESS.md's Scope Lock declares them implicit in
+# every PRD lifecycle and not enumerated in FILES at all.
+GOVERNANCE_PAYLOAD_FILES = (
+    "CLAUDE.md",
+    "docs/PRD_PROCESS.md",
+    "docs/PRD_TEMPLATE.md",
+    "docs/PRD_MICRO_TEMPLATE.md",
+    "docs/PRD_REVIEW_TEMPLATE.md",
+    ".claude/skills/prd-review-claude/SKILL.md",
+)
+# The two governance files that have BOTH a payload form and a routine
+# bookkeeping form. Naming one in FILES forces HIGH-RISK unless the entry
+# declares itself a pointer/bookkeeping touch.
+GOVERNANCE_ANNOTATABLE_FILES = (
+    "docs/PROJECT_STATE.md",
+    "docs/PRD_REGISTRY.md",
+)
+_CLASS_GOVERNANCE_RE = re.compile(r"^CLASS\b[:\s]*\n?\s*GOVERNANCE\b", re.MULTILINE)
+# A PRD section header is an all-caps line with no punctuation ("FILES",
+# "CHANGE SURFACE", "OUT OF SCOPE"). Requirement lines ("R1 - ...") and file
+# entries ("M docs/...") both carry lowercase and never match.
+_SECTION_HEADER_RE = re.compile(r"^[A-Z][A-Z0-9 ]*$")
+# A canonical FILES entry ("A LICENSE", "M CODEOWNERS") is all-caps and would
+# otherwise read as a section header, truncating the scan and skipping every
+# later entry. Requirement/section headings ("MAX EXPECTED DELTA", "DATA FLOW")
+# have no space after their first character and are unaffected.
+_FILE_ENTRY_RE = re.compile(r"^[AMD]\s+\S")
+# The declared lane comes from a real LANE header - either "LANE: <value>" or a
+# "LANE" line followed by its value - never from prose elsewhere in the doc.
+_LANE_HEADER_RE = re.compile(r"^LANE\b:?[ \t]*(?P<inline>\S.*)?$")
+KNOWN_LANES = frozenset({"MICRO", "STANDARD", "HIGH-RISK"})
+# A pointer declaration is the word pointer/bookkeeping inside parentheses,
+# e.g. "(active PRD pointer)" or "(closeout bookkeeping)".
+_POINTER_ANNOTATION_RE = re.compile(
+    r"\([^)]*\b(?:pointer|bookkeeping)\b[^)]*\)", re.IGNORECASE
+)
 # A commit cell token is a hex SHA (historical / post-merge closeout) or a
 # PR reference "#NNN" (PRD-229 same-PR closeout: the squash SHA does not
 # exist until merge, and PR numbers survive squash-merges).
@@ -545,6 +590,119 @@ def _validate_second_model_disposition(
             )
 
 
+def _extract_files_entries(text: str) -> list[str]:
+    """Return the raw lines of a PRD doc's FILES section.
+
+    Scoped deliberately: a PRD's prose routinely names governance files while
+    discussing them (PRD-276's own WHY NOW names five), and only the FILES
+    declaration carries scope meaning.
+    """
+    entries: list[str] = []
+    in_files = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not in_files:
+            if stripped == "FILES":
+                in_files = True
+            continue
+        if _SECTION_HEADER_RE.match(stripped) and not _FILE_ENTRY_RE.match(stripped):
+            break
+        entries.append(line)
+    return entries
+
+
+def _declared_lanes(text: str) -> list[str]:
+    """Return every lane value declared by a real LANE header, in order.
+
+    Reads the header only. A whole-document regex would let a MICRO PRD
+    disable its own lane check by writing "LANE: HIGH-RISK" in prose - and
+    because this guard SKIPS on HIGH-RISK, that false positive is a bypass,
+    not merely over-checking (the polarity is inverted from PRD-242's use of
+    the same shape).
+    """
+    lanes: list[str] = []
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        match = _LANE_HEADER_RE.match(line)
+        if not match:
+            continue
+        inline = (match.group("inline") or "").strip()
+        if inline:
+            if inline.upper() in KNOWN_LANES:
+                lanes.append(inline.upper())
+            # Anything else on a LANE-prefixed line is prose, not a declaration
+            # ("LANE: HIGH-RISK would be required here"), and is ignored.
+            continue
+        # Header-only form: the value is the next non-blank, non-comment line.
+        for following in lines[index + 1:]:
+            candidate = following.strip()
+            if not candidate or candidate.startswith("<!--"):
+                continue
+            if candidate.upper() in KNOWN_LANES:
+                lanes.append(candidate.upper())
+            break
+    return lanes
+
+
+def _validate_lane_payload_prohibition(
+    root: Path,
+    registry_rows: dict[int, dict[str, str | None]],
+    errors: list[str],
+) -> None:
+    # PRD-276: the Lane Downgrade Prohibition, mechanized for the subset that
+    # is decidable from the PRD text. A GOVERNANCE PRD whose FILES names a
+    # payload HIGH-RISK file must declare LANE: HIGH-RISK.
+    #
+    # NOT mechanized, by design: whether a docs/PROJECT_STATE.md touch is
+    # really a pointer. That is a judgment about intent no static check can
+    # settle, so the guard checks the author's DECLARATION and the
+    # fresh-context review checks the declaration against the diff.
+    history = root / "docs" / "prd_history"
+    for number in sorted(registry_rows):
+        if number < LANE_PAYLOAD_ENFORCEMENT_START:
+            continue
+        doc = history / f"PRD-{number:03d}.md"
+        if not doc.exists():
+            continue
+        text = doc.read_text(encoding="utf-8")
+        if not _CLASS_GOVERNANCE_RE.search(text):
+            continue
+        lanes = _declared_lanes(text)
+        if len(set(lanes)) > 1:
+            errors.append(
+                f"Conflicting LANE declarations: {_display_prd(number)} declares "
+                f"{', '.join(sorted(set(lanes)))}. A PRD has exactly one lane "
+                f"(PRD-276)"
+            )
+            continue
+        if "HIGH-RISK" in lanes:
+            continue
+        triggers: list[str] = []
+        for entry in _extract_files_entries(text):
+            for path in GOVERNANCE_PAYLOAD_FILES:
+                if path in entry and path not in triggers:
+                    triggers.append(path)
+            # PROJECT_STATE.md and PRD_REGISTRY.md are the two governance files
+            # with a genuine bookkeeping form, so both take the annotation rule
+            # rather than being unconditionally in or out (connector 3688464604:
+            # removing the registry outright would let a PRD that RESTRUCTURES
+            # the registry select MICRO).
+            for path in GOVERNANCE_ANNOTATABLE_FILES:
+                if path in entry and not _POINTER_ANNOTATION_RE.search(entry):
+                    marker = f"{path} (no pointer/bookkeeping annotation)"
+                    if marker not in triggers:
+                        triggers.append(marker)
+        if triggers:
+            errors.append(
+                f"Lane downgrade: {_display_prd(number)} is CLASS GOVERNANCE and "
+                f"names {', '.join(triggers)} in FILES as payload, so it must "
+                f"declare LANE: HIGH-RISK (PRD-276; PRD-121 R11). Either escalate "
+                f"the lane, or — for docs/PROJECT_STATE.md only — annotate the "
+                f"FILES entry '(pointer)' or '(bookkeeping)' if the touch really "
+                f"is incidental lifecycle bookkeeping"
+            )
+
+
 def validate_repository(root: Path, *, skip_commit_resolvability: bool = False) -> list[str]:
     errors: list[str] = []
     data = _load_index(root, errors)
@@ -564,6 +722,7 @@ def validate_repository(root: Path, *, skip_commit_resolvability: bool = False) 
     _validate_doc_status_agreement(root, registry_rows, errors)
     _validate_doc_status_word_agreement(root, registry_rows, errors)
     _validate_second_model_disposition(root, registry_rows, errors)
+    _validate_lane_payload_prohibition(root, registry_rows, errors)
     return errors
 
 

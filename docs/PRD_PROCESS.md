@@ -9,7 +9,7 @@ Rules and lifecycle for all PRDs in the cuttingboard decision engine.
 | State | Meaning |
 |-------|---------|
 | PROPOSED | Drafted. Not approved for implementation. |
-| IN PROGRESS | File exists in prd_history/. Implementation has begun. |
+| IN PROGRESS | File exists in prd_history/. The number is allocated and the PRD is open; implementation may not have started. PRD-159 lands the Stage-0 scaffold with this status *before* any implementation commit, precisely so an allocated number is visible in the registry. |
 | COMPLETE | Implementation merged, or closeout is folded into the implementation PR (PRD-229) and becomes true at merge. Commit cell records the squash SHA (historical / post-merge closeouts) or the PR number `#NNN` (same-PR closeouts). |
 | PATCH | Corrective PRD targeting a specific defect in a prior PRD. |
 | DEPRECATED | Requirement superseded or withdrawn before completion. |
@@ -429,7 +429,7 @@ these fields in PRDs.
 
 | CLASS | Default tier | Required reviewers | Validation depth | Forbidden mutation surfaces | HIGH-RISK FILES |
 |-------|--------------|--------------------|------------------|------------------------------|-----------------|
-| GOVERNANCE | T3 | Claude; second-model iff commissioned (PRD-242) | Doc cross-check; throwaway skeleton draft | Production modules, tests, fixtures, payloads, dashboard, notifications — EXCEPT the red test that must accompany a governance enforcement-tooling change (PRD-198 invariant 4; declare it in CHANGE SURFACE) | `docs/PRD_TEMPLATE.md`, `docs/PRD_PROCESS.md`, `docs/PRD_MICRO_TEMPLATE.md`, `CLAUDE.md`, `docs/PRD_REGISTRY.md`, `docs/PROJECT_STATE.md`, `.claude/skills/prd-review-claude/SKILL.md`, `docs/PRD_REVIEW_TEMPLATE.md` |
+| GOVERNANCE | T3 | Claude; second-model iff commissioned (PRD-242) | Doc cross-check; throwaway skeleton draft | Production modules, tests, fixtures, payloads, dashboard, notifications — EXCEPT the red test that must accompany a governance enforcement-tooling change (PRD-198 invariant 4; declare it in CHANGE SURFACE) | `docs/PRD_TEMPLATE.md`, `docs/PRD_PROCESS.md`, `docs/PRD_MICRO_TEMPLATE.md`, `CLAUDE.md`, `docs/PRD_REGISTRY.md`, `docs/PROJECT_STATE.md`, `.claude/skills/prd-review-claude/SKILL.md`, `docs/PRD_REVIEW_TEMPLATE.md`. `docs/PRD_REGISTRY.md` and `docs/PROJECT_STATE.md` take the payload-vs-pointer rule (see Lane Downgrade Prohibition); the rest always force HIGH-RISK. |
 | SIDECAR | T1 | Claude required; second-model iff commissioned | Targeted tests on writer/reader; artifact path + schema check | `cuttingboard/runtime.py` decision logic; `cuttingboard/output.py` payload writer; decision-bearing sections of `cuttingboard/delivery/dashboard_renderer.py` | `cuttingboard/trend_structure.py`, `cuttingboard/evaluation.py`, any new `cuttingboard/<name>_sidecar.py` |
 | CONSUMER | T2 | Claude required; second-model iff commissioned | Manual UI/notification render; targeted tests on consumer path | Decision logic, regime engine, qualification, payload writers | `cuttingboard/delivery/dashboard_renderer.py`, `cuttingboard/notifications/formatter.py`, `ui/dashboard.html`, `ui/index.html`, `ui/app.js` |
 | EXECUTION | T0 | Claude required; second-model iff commissioned | Full pytest suite; targeted regression on regime/qualification/sizing | Sidecar mutation, renderer-derived semantics, payload schema redefinition | `cuttingboard/runtime.py`, `cuttingboard/qualification.py`, `cuttingboard/execution_policy.py`, `cuttingboard/regime.py`, `cuttingboard/trade_decision.py`, `cuttingboard/trade_policy.py` |
@@ -451,9 +451,9 @@ replace either.
 
 | LANE | Eligibility filter | Typical example |
 |------|--------------------|------------------|
-| MICRO | All micro-PRD criteria in `docs/PRD_MICRO_TEMPLATE.md` hold (docs-only / test-helper-only / process-only, ≤ 20 production-code lines, no HIGH-RISK FILES intersect, one deterministic FAIL condition) AND the R12 safety-net behavior surfaces are NOT touched | A typo fix, a docs cross-link |
-| STANDARD | Does NOT qualify for MICRO; `FILES` list does NOT intersect any HIGH-RISK FILES entry in the CLASS Matrix row for the PRD's CLASS | A renderer-only sidecar feature, a notification-formatter tweak, a docs/process expansion that touches several files |
-| HIGH-RISK | `FILES` intersects any HIGH-RISK FILES entry in the CLASS Matrix row for the PRD's CLASS, OR CLASS is `EXECUTION` or `CONTRACT`, OR default Tier is T0 | A regime-input change, a payload schema migration, a publish-gate hardening |
+| MICRO | All micro-PRD criteria in `docs/PRD_MICRO_TEMPLATE.md` hold (docs-only / test-helper-only / process-only, ≤ 20 production-code lines, no HIGH-RISK FILES intersect **as payload** — an annotated pointer/bookkeeping touch of `docs/PROJECT_STATE.md` or `docs/PRD_REGISTRY.md` does not disqualify, but obliges a fresh-context review — one deterministic FAIL condition) AND the R12 safety-net behavior surfaces are NOT touched | A typo fix, a docs cross-link |
+| STANDARD | Does NOT qualify for MICRO; `FILES` list does NOT name any HIGH-RISK FILES entry **as payload** for the PRD's CLASS (same annotated-pointer carve-out as MICRO) | A renderer-only sidecar feature, a notification-formatter tweak, a docs/process expansion that touches several files |
+| HIGH-RISK | `FILES` names any HIGH-RISK FILES entry **as payload** for the PRD's CLASS, OR CLASS is `EXECUTION` or `CONTRACT`, OR default Tier is T0 | A regime-input change, a payload schema migration, a publish-gate hardening |
 
 ### Lane intensity
 
@@ -472,13 +472,58 @@ fresh-context-or-different-model requirement.
 
 ### Lane Downgrade Prohibition (PRD-121 R11)
 
-A PRD whose `FILES` list intersects any HIGH-RISK FILES entry for
-its CLASS, OR whose CLASS is `EXECUTION` or `CONTRACT`, OR whose
-default Tier is T0, MUST declare `LANE: HIGH-RISK`. Authors and
-reviewers cannot select MICRO or STANDARD for such changes
-regardless of diff size. Lane is a ceremony axis; it cannot be used
-to bypass the review intensity required by the existing CLASS
-Matrix.
+A PRD whose `FILES` list names any HIGH-RISK FILES entry for its CLASS
+**as that PRD's payload**, OR whose CLASS is `EXECUTION` or `CONTRACT`,
+OR whose default Tier is T0, MUST declare `LANE: HIGH-RISK`. Authors and
+reviewers cannot select MICRO or STANDARD for such changes regardless of
+diff size. Lane is a ceremony axis; it cannot be used to bypass the
+review intensity required by the existing CLASS Matrix.
+
+**Payload vs pointer (PRD-276).** A HIGH-RISK file is this PRD's PAYLOAD
+when the PRD exists to change that file's content. It is an incidental
+POINTER touch when the edit is lifecycle bookkeeping every PRD performs —
+moving the `Active PRD` bullet, or a closeout's status/provenance line —
+and the PRD would be substantively unchanged if that edit were made by
+someone else. Only a payload touch forces the lane.
+
+The distinction applies to exactly two files — `docs/PROJECT_STATE.md` and
+`docs/PRD_REGISTRY.md` — because they are the only GOVERNANCE HIGH-RISK
+FILES with a genuine bookkeeping form. Every other
+(`CLAUDE.md`, `docs/PRD_PROCESS.md`, the three templates, the review skill)
+has none: naming one in `FILES` is always a payload touch and always forces
+`HIGH-RISK`. Note that `docs/PRD_REGISTRY.md` stays a HIGH-RISK FILE
+deliberately — a PRD that RESTRUCTURES the registry (adds or redefines a
+column, changes what a cell means) is a payload change and must carry full
+ceremony, even though the row-level bookkeeping every PRD performs must not.
+
+**Declaring a pointer touch.** A `FILES` entry for `docs/PROJECT_STATE.md`
+or `docs/PRD_REGISTRY.md` claiming pointer treatment MUST carry a
+parenthesised annotation on its own line containing the word `pointer` or
+`bookkeeping` — e.g. `M docs/PROJECT_STATE.md (active PRD pointer)` or
+`M docs/PRD_REGISTRY.md (PRD-NNN row bookkeeping)`. An unannotated entry is
+read as a payload touch and forces `HIGH-RISK`.
+`tools/validate_prd_registry.py` enforces this for PRDs numbered 276 and
+above; earlier PRDs predate the rule and are not retroactively failed.
+
+**Using the annotation obliges a fresh-context review (PRD-276).** A PRD
+that carries a pointer/bookkeeping annotation on either file owes ONE
+`fresh-context` structured review REGARDLESS of its lane — including at
+MICRO, whose Lane-intensity row otherwise makes structured review optional
+and accepts `same-context`. Without this, the annotation would be an
+unchecked self-declaration that lowers ceremony: the static guard reads the
+claim, and nothing would read the diff. This obligation is what makes the
+next paragraph true.
+
+The annotation is a DECLARATION, not a proof: it records the author's
+claim about intent, which no static check can verify against the actual
+diff. The fresh-context review required above reads the diff and is the
+check on a mis-declaration (PRD-198 invariant 2 — the guard asserts the
+requested here precisely because the resolved is not mechanically knowable,
+and says so rather than pretending otherwise).
+
+`docs/prd_index.json` is NOT a HIGH-RISK FILE for any CLASS and never
+triggers this rule: § Scope Lock above declares index bookkeeping implicit
+in every PRD lifecycle and not enumerated in `FILES`.
 
 ### Cross-PRD Lane Mixing (PRD-255)
 

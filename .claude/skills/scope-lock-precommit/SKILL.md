@@ -104,6 +104,22 @@ a PRD-scoped commit because they are governance bookkeeping:
 Note: `docs/prd_index.json` is **closeout-only**; if it appears in a
 non-closeout commit, that is a violation.
 
+**Exception — CLASS GOVERNANCE PRDs (PRD-276).** For a PRD whose `CLASS`
+is `GOVERNANCE`, `docs/PRD_REGISTRY.md` and `docs/PROJECT_STATE.md` are
+NOT covered by this allowlist. They must appear in that PRD's `FILES`
+section, annotated `(pointer)` / `(bookkeeping)` if the touch really is
+incidental. STOP and report if either is staged by a GOVERNANCE PRD that
+does not name it.
+
+Why the carve-out has a carve-out: for a GOVERNANCE PRD these two files
+are candidate PAYLOAD, and the Lane Downgrade Prohibition decides that
+PRD's lane from how its `FILES` declares them. Leaving them blanket-
+permitted here would make OMITTING the entry strictly easier than
+declaring it falsely — the annotation requirement, and the fresh-context
+review it obliges, would both be bypassable by silence. For every other
+CLASS the allowlist is unchanged: those PRDs touch these files only as
+lifecycle bookkeeping.
+
 ## Protected pipeline set (dynamic, fail-closed)
 
 This skill does NOT carry an inline copy of the protected pipeline
