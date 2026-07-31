@@ -69,11 +69,16 @@ Effect on baseline rows:
   - **CB-12 (evidence narrowed).** PRD-276/277 (`590dc75`, `4b0f3ba`) added
     `_validate_lane_payload_prohibition`
     (`tools/validate_prd_registry.py:27-52,744+`, verified at `68de7d0`):
-    a PRD numbered >= 276 whose FILES names a governance payload file
-    (CLAUDE.md, PRD_PROCESS/TEMPLATE/REVIEW files, the review skill) must
-    declare LANE: HIGH-RISK, seeded from PRD documents rather than registry
-    rows. This mechanizes a subset of bypass (a). Residual, still live:
-    declared-lane trust on every non-governance change surface (code
+    a PRD numbered >= 276 that DECLARES `CLASS: GOVERNANCE` and whose FILES
+    names a governance payload file (CLAUDE.md, PRD_PROCESS/TEMPLATE/REVIEW
+    files, the review skill) must declare LANE: HIGH-RISK; missing,
+    unknown, or conflicting CLASS also errors (never read as exemption),
+    and the guard is seeded from PRD documents rather than registry rows.
+    This mechanizes a subset of bypass (a). Residual, still live:
+    declared-CLASS trust (a known non-GOVERNANCE label such as
+    `CLASS: SIDECAR` skips the check at
+    `tools/validate_prd_registry.py:805` even when FILES names a payload
+    file), declared-lane trust on every non-governance change surface (code
     HIGH-RISK files under a mislabeled lane), the casing bypass, the
     intervening-text bypass, docless-COMPLETE rows, and
     existence-not-content on the artifact leg. CB-12 remains PARTIAL in
@@ -113,7 +118,7 @@ verified personally; every number was recomputed from the pinned artifacts.
 | 5 | The frozen AS-IS proxy carries the same posture transcription defect: floor-only (0.50), no 0.55 tier; its in-script comment ("the finer posture tiers do not change any gate the proxy evaluates") is false against production | AS-IS pine lines 32, 96-99 (floor only); v0.5 zero-disagreement row-level comparison (2,908 common bars) against the PRE-patch export proves both encode 0.50; production trace (rows 1-2) proves the tier binds; corrected analog recomputed: V2 284, QUALIFIED-analog 79, one-miss band 112 | Strategy pin; Cuttingboard code at `68de7d0` | PROXY DEFECT ONLY | The registered 602/170/239 counts may NOT be read as an AS-IS description of Cuttingboard behavior. Dustin decision D2 (section 9) |
 | 6 | The faithful (tier-complete) AS-IS proxy QUALIFIED / WATCHLIST / REJECT counts are not established by any registered run | The only registered run embeds the floor-only defect (row 5); the post-patch v0.5 export gives corrected analogs (284/79/112) but represents just two soft gates, and its generating script is not in the repository (row 9) | Strategy pin | UNRESOLVED PENDING FROZEN RUN | A corrected frozen re-run is the only path to faithful counts, if Dustin wants them (decision D2) |
 | 7 | v0.5's strict requirement that both represented soft gates pass conflicts with neither Cuttingboard documented nor implemented semantics; it describes the qualified-setup layer | `docs/trade_qualification.md:5-11` and `qualification.py:536-581`: zero soft misses = qualified, exactly one = WATCHLIST, two+ = REJECT. "Both represented gates pass" = zero misses within the represented subset. The v0.5 doc itself concedes it "under-surfaces the broader CuttingBoard attention stream" | Cuttingboard code + docs at `68de7d0` | INTENTIONAL CUTTINGBOARD POLICY | None. The frozen AS-IS proxy already implements the count-based rule correctly (pine line 168-171) |
-| 8 | The 239 non-kill bars missing exactly one represented soft gate are WATCHLIST-layer analogs, not suppressed entries - and the count is pre-patch | Recomputed: 239 on the pre-patch export; 112 on the post-patch export (a number stated in no Strategy document - computed by this delta); both subject to the unrepresented gates (g8, g11) and to gates the proxy approximates | Pinned exports; `qualification.py:551-565` | CONFIRMED SUPPORTING EVIDENCE | Sizes the attention-stream layer only. No Cuttingboard consequence |
+| 8 | Only the posture-corrected one-miss band (112 bars) is a WATCHLIST-layer analog; the pre-patch 239 is the DEFECTIVE proxy's one-miss band - 127 of its bars are confidence-0.50 and production hard-rejects them at Gate 1 before any soft gate runs. Neither count is a suppressed-entry count | Recomputed: 239 on the pre-patch export; 112 on the post-patch export (a number stated in no Strategy document - computed by this delta); 239 - 112 = 127 dropped bars, all confidence 0.50; both counts subject to the unrepresented gates (g8, g11) and to gates the proxy approximates | Pinned exports; `qualification.py:368-375,551-565` | CONFIRMED SUPPORTING EVIDENCE | Sizes the attention-stream layer only. No Cuttingboard consequence |
 | 9 | The post-patch evidence has an identity gap: no committed script produces the `2d375b4c` export | The only committed v0.5 pine is pre-patch (`>= 0.50`, hash matches the packet's pinned SHA); the checkpoint doc says the corrected script is operator-held with SHA "still belong[ing] in a future run record" | Strategy pin | CONFIRMED NEW FINDING | Post-patch numbers rest on a hashed CSV plus prose about its generator. Decision D2's dated correction DISPOSITIONS this gap; it does not close it. Closure has exactly one path - the operator-held corrected script resurfaces and is committed strategy-side; recording its hash secondhand, or declaring the field UNRECOVERABLE, preserves the limitation permanently |
 | 10 | Strategy-side record hygiene is inconsistent at the pin | `studies/cuttingboard-asis-proxy/exports/README.md` still reads "Empty: no run has been executed" beside the registered export; the run-count amendment (3,619 -> 3,620, a `wc -l` trailing-newline defect) is recorded only in the dated amendment; classification counts verified unaffected | Strategy pin | CONFIRMED SUPPORTING EVIDENCE | Folded into decision D2's dated correction; nothing for Cuttingboard |
 | 11 | Gate-structure results (g7-fail == NEUTRAL regime on all rows; direction gate binds, falsifying the strategy matrix's Q-03 "CURRENTLY_INERT"; g5 tautological) | `ANALYSIS_GATE_STRUCTURE_2026-07-30.md`; the g7 identity is proxy-construction-specific (R:R fixed at 2.0 by construction; production R:R varies with real geometry) | Strategy pin | OUT OF SCOPE | Strategy-internal translation-matrix corrections (Q-03 already amended at `617978d`). No Cuttingboard row exists for these and none is created |
@@ -128,7 +133,7 @@ All counts recomputed from the pinned exports, evaluation window 2015-01-01+.
 | V2 structure-qualified bars | 602 | 284 | Candidate OCCURRENCE in the proxy after regime/posture/structure. Not a Cuttingboard candidate record |
 | V4 (both represented soft gates pass, kill-switch excluded) | 170 | 79 | The proxy analog of a qualified setup within the two-gate represented subset. Not WATCHLIST eligibility, not a TRADE decision |
 | Selected simulated entry attempts | 118 | 62 | TradingView strategy-engine entries (blocked-position mechanics included). Not Cuttingboard selected entries, not executed trades, not options executions |
-| One-miss non-kill band (WATCHLIST analog) | 239 | 112 | Attention-stream sizing only; the 112 is computed by this delta, stated in no Strategy document |
+| One-miss non-kill band | 239 | 112 | Only the corrected 112 are WATCHLIST-layer analogs; the pre-patch 239 is the defective proxy's one-miss band (127 of its bars are confidence-0.50, hard-rejected by production at Gate 1 before soft gates run). The 112 is computed by this delta, stated in no Strategy document |
 | Both-miss non-kill band | 170 | 82 | REJECT analog. The pre-patch equality with V4 (170) is coincidence, not identity |
 
 The entire before/after delta at every layer consists of bars whose exported
