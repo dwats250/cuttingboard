@@ -5,7 +5,7 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-07-31 (commit 4a1cb22)
+**Last updated:** 2026-07-31 (PR #177 closeout; state verified against `2751527`, the newest commit landed on `main`). Deliberately identifies the closeout rather than pinning a commit: `71c102b` had rewound this header to `4a1cb22`, whose stored `PROJECT_STATE.md` still reads `next_prd: 244` and carries none of the lifecycle facts below, so it cannot serve as this snapshot's provenance (connector 3687995638). The squash SHA for this PR does not exist until merge — the same reason PRD-229 lets a registry commit cell carry `#NNN`.
 
 ## Current state
 
