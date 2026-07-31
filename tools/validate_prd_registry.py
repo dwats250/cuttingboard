@@ -43,12 +43,27 @@ GOVERNANCE_PAYLOAD_FILES = (
     "docs/PRD_REVIEW_TEMPLATE.md",
     ".claude/skills/prd-review-claude/SKILL.md",
 )
-PROJECT_STATE_PATH = "docs/PROJECT_STATE.md"
+# The two governance files that have BOTH a payload form and a routine
+# bookkeeping form. Naming one in FILES forces HIGH-RISK unless the entry
+# declares itself a pointer/bookkeeping touch.
+GOVERNANCE_ANNOTATABLE_FILES = (
+    "docs/PROJECT_STATE.md",
+    "docs/PRD_REGISTRY.md",
+)
 _CLASS_GOVERNANCE_RE = re.compile(r"^CLASS\b[:\s]*\n?\s*GOVERNANCE\b", re.MULTILINE)
 # A PRD section header is an all-caps line with no punctuation ("FILES",
 # "CHANGE SURFACE", "OUT OF SCOPE"). Requirement lines ("R1 - ...") and file
 # entries ("M docs/...") both carry lowercase and never match.
 _SECTION_HEADER_RE = re.compile(r"^[A-Z][A-Z0-9 ]*$")
+# A canonical FILES entry ("A LICENSE", "M CODEOWNERS") is all-caps and would
+# otherwise read as a section header, truncating the scan and skipping every
+# later entry. Requirement/section headings ("MAX EXPECTED DELTA", "DATA FLOW")
+# have no space after their first character and are unaffected.
+_FILE_ENTRY_RE = re.compile(r"^[AMD]\s+\S")
+# The declared lane comes from a real LANE header - either "LANE: <value>" or a
+# "LANE" line followed by its value - never from prose elsewhere in the doc.
+_LANE_HEADER_RE = re.compile(r"^LANE\b:?[ \t]*(?P<inline>\S.*)?$")
+KNOWN_LANES = frozenset({"MICRO", "STANDARD", "HIGH-RISK"})
 # A pointer declaration is the word pointer/bookkeeping inside parentheses,
 # e.g. "(active PRD pointer)" or "(closeout bookkeeping)".
 _POINTER_ANNOTATION_RE = re.compile(
@@ -590,10 +605,43 @@ def _extract_files_entries(text: str) -> list[str]:
             if stripped == "FILES":
                 in_files = True
             continue
-        if _SECTION_HEADER_RE.match(stripped):
+        if _SECTION_HEADER_RE.match(stripped) and not _FILE_ENTRY_RE.match(stripped):
             break
         entries.append(line)
     return entries
+
+
+def _declared_lanes(text: str) -> list[str]:
+    """Return every lane value declared by a real LANE header, in order.
+
+    Reads the header only. A whole-document regex would let a MICRO PRD
+    disable its own lane check by writing "LANE: HIGH-RISK" in prose - and
+    because this guard SKIPS on HIGH-RISK, that false positive is a bypass,
+    not merely over-checking (the polarity is inverted from PRD-242's use of
+    the same shape).
+    """
+    lanes: list[str] = []
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        match = _LANE_HEADER_RE.match(line)
+        if not match:
+            continue
+        inline = (match.group("inline") or "").strip()
+        if inline:
+            if inline.upper() in KNOWN_LANES:
+                lanes.append(inline.upper())
+            # Anything else on a LANE-prefixed line is prose, not a declaration
+            # ("LANE: HIGH-RISK would be required here"), and is ignored.
+            continue
+        # Header-only form: the value is the next non-blank, non-comment line.
+        for following in lines[index + 1:]:
+            candidate = following.strip()
+            if not candidate or candidate.startswith("<!--"):
+                continue
+            if candidate.upper() in KNOWN_LANES:
+                lanes.append(candidate.upper())
+            break
+    return lanes
 
 
 def _validate_lane_payload_prohibition(
@@ -619,17 +667,31 @@ def _validate_lane_payload_prohibition(
         text = doc.read_text(encoding="utf-8")
         if not _CLASS_GOVERNANCE_RE.search(text):
             continue
-        if _LANE_HIGH_RISK_RE.search(text):
+        lanes = _declared_lanes(text)
+        if len(set(lanes)) > 1:
+            errors.append(
+                f"Conflicting LANE declarations: {_display_prd(number)} declares "
+                f"{', '.join(sorted(set(lanes)))}. A PRD has exactly one lane "
+                f"(PRD-276)"
+            )
+            continue
+        if "HIGH-RISK" in lanes:
             continue
         triggers: list[str] = []
         for entry in _extract_files_entries(text):
             for path in GOVERNANCE_PAYLOAD_FILES:
                 if path in entry and path not in triggers:
                     triggers.append(path)
-            if PROJECT_STATE_PATH in entry and not _POINTER_ANNOTATION_RE.search(entry):
-                marker = f"{PROJECT_STATE_PATH} (no pointer/bookkeeping annotation)"
-                if marker not in triggers:
-                    triggers.append(marker)
+            # PROJECT_STATE.md and PRD_REGISTRY.md are the two governance files
+            # with a genuine bookkeeping form, so both take the annotation rule
+            # rather than being unconditionally in or out (connector 3688464604:
+            # removing the registry outright would let a PRD that RESTRUCTURES
+            # the registry select MICRO).
+            for path in GOVERNANCE_ANNOTATABLE_FILES:
+                if path in entry and not _POINTER_ANNOTATION_RE.search(entry):
+                    marker = f"{path} (no pointer/bookkeeping annotation)"
+                    if marker not in triggers:
+                        triggers.append(marker)
         if triggers:
             errors.append(
                 f"Lane downgrade: {_display_prd(number)} is CLASS GOVERNANCE and "

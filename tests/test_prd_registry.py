@@ -972,19 +972,79 @@ def test_276_non_governance_class_is_exempt(tmp_path: Path) -> None:
     assert _lane_errors(tmp_path, 276, "MICRO", "INFRA", "M CLAUDE.md") == []
 
 
-def test_276_registry_and_index_never_trigger(tmp_path: Path) -> None:
-    # The PRD-276 R1 defect: registry/index bookkeeping is implicit in every
-    # PRD lifecycle (PRD_PROCESS.md Scope Lock) and must not force a lane.
+def test_276_registry_as_payload_fails(tmp_path: Path) -> None:
+    # Connector 3688464604: removing docs/PRD_REGISTRY.md from the matrix
+    # outright would let a PRD that RESTRUCTURES the registry (new column,
+    # redefined cell) select MICRO. It takes the annotation rule instead.
+    errors = _lane_errors(tmp_path, 276, "MICRO", "GOVERNANCE", "M docs/PRD_REGISTRY.md")
+    assert any("Lane downgrade: PRD-276" in e for e in errors)
+    assert any("docs/PRD_REGISTRY.md (no pointer/bookkeeping annotation)" in e for e in errors)
+
+
+def test_276_registry_as_annotated_bookkeeping_passes(tmp_path: Path) -> None:
+    # The row-level bookkeeping every PRD performs must stay MICRO-eligible.
     assert (
         _lane_errors(
             tmp_path,
             276,
             "MICRO",
             "GOVERNANCE",
-            "M docs/PRD_REGISTRY.md\nM docs/prd_index.json",
+            "M docs/PRD_REGISTRY.md (PRD-276 row bookkeeping)",
         )
         == []
     )
+
+
+def test_276_prd_index_never_triggers(tmp_path: Path) -> None:
+    # docs/prd_index.json is not a HIGH-RISK FILE for any CLASS.
+    assert _lane_errors(tmp_path, 276, "MICRO", "GOVERNANCE", "M docs/prd_index.json") == []
+
+
+def test_276_lane_declared_in_prose_does_not_disable_the_guard(tmp_path: Path) -> None:
+    # Connector 3688464609: a whole-document regex let a MICRO PRD skip its own
+    # check by writing "LANE: HIGH-RISK" in prose. The guard SKIPS on
+    # HIGH-RISK, so that false positive is a bypass, not over-checking.
+    body = (
+        "PRD-276 — fixture\n\n"
+        "LANE\nMICRO\n\n"
+        "CLASS\nGOVERNANCE\n\n"
+        "WHY NOW\nLANE: HIGH-RISK would be required if this were payload.\n\n"
+        "FILES\nM CLAUDE.md\n\n"
+        "REQUIREMENTS\nR1 — x\n"
+    )
+    _write_prd_doc(tmp_path, 276, body)
+    errors: list[str] = []
+    validate_prd_registry._validate_lane_payload_prohibition(
+        tmp_path, _lane_rows(276), errors
+    )
+    assert any("Lane downgrade: PRD-276" in e for e in errors)
+
+
+def test_276_conflicting_lane_declarations_fail_loud(tmp_path: Path) -> None:
+    body = (
+        "PRD-276 — fixture\n\n"
+        "LANE\nMICRO\n\n"
+        "CLASS\nGOVERNANCE\n\n"
+        "LANE: HIGH-RISK\n\n"
+        "FILES\nM CLAUDE.md\n\n"
+        "REQUIREMENTS\nR1 — x\n"
+    )
+    _write_prd_doc(tmp_path, 276, body)
+    errors: list[str] = []
+    validate_prd_registry._validate_lane_payload_prohibition(
+        tmp_path, _lane_rows(276), errors
+    )
+    assert any("Conflicting LANE declarations: PRD-276" in e for e in errors)
+
+
+def test_276_all_caps_file_entry_does_not_truncate_the_scan(tmp_path: Path) -> None:
+    # Connector 3688464629: "A LICENSE" / "M CODEOWNERS" match the all-caps
+    # section-header heuristic. Extraction stopped there and every later entry
+    # — including the governance payload — went unchecked.
+    errors = _lane_errors(
+        tmp_path, 276, "MICRO", "GOVERNANCE", "A LICENSE\nM CODEOWNERS\nM CLAUDE.md"
+    )
+    assert any("CLAUDE.md" in e for e in errors)
 
 
 def test_276_governance_file_named_outside_files_does_not_trigger(tmp_path: Path) -> None:
