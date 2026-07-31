@@ -1322,6 +1322,12 @@
       "title": "Mechanically enforce review-artifact append-only and merged-commit SHA pinning",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 276,
+      "title": "Lane Downgrade Prohibition: payload-vs-pointer, and drop the registry contradiction",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
