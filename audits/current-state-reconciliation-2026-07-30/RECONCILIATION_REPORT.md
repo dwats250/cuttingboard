@@ -10,6 +10,16 @@ AUTHORIZES NO IMPLEMENTATION
 
 Recommendations in this document are proposals. They authorize nothing.
 
+**Revised 2026-07-30** after an independent connector review of `574a8c6` returned
+twelve findings against the matrix. All twelve were verified against code at
+`9e6b772` and **all twelve were correct.** Four were material: the `FIXED`
+evidence cited for CB-13 did not discriminate the defect it claimed to guard;
+CB-02's "default correlation state" framing was unreachable; CB-04's stated
+user-visible consequence was false; and CB-21 recorded a root cause contradicted
+by a call site two lines from the one it cited. Corrections are recorded in place
+with an explicit withdrawal line rather than silently overwritten. Section 12
+records what the review changed.
+
 ---
 
 ## 1. Confirmed open Critical findings
@@ -46,8 +56,8 @@ Nine, ordered by present user impact.
 1. **CB-04 — Trade brakes count recommendations as fills.** Not theoretical:
    in the published history, `cooldown` blocked 5 qualified candidates against
    only 6 ALLOW_TRADE decisions ever, and **every block occurred in the same run
-   as its ALLOW**. On 2026-06-30 a single SPY recommendation suppressed QQQ, IWM
-   and NVDA from the trader's view.
+   as its ALLOW**. A phantom fill sets the policy status and block reason on
+   candidates that were never traded against.
 2. **CB-03 — The policy size multiplier never resizes anything.** A decision to
    halve size is displayed and exported as full size. `size_rounds_to_zero`, the
    operator-settled block reason, does not exist in the codebase.
@@ -60,15 +70,21 @@ Nine, ordered by present user impact.
 5. **CB-10 — The canonical qualification document states a $150 budget; the code
    uses $400.** Anyone sizing by hand from the document sizes at 37.5 % of the
    real budget.
-6. **CB-06 — The hourly channel cannot fail visibly.** The runner's own docstring
-   says it converts all failures to exit 0; readiness checks key presence, not
-   status.
-7. **CB-08 — Spread economics are a 30 %-of-width estimate**, never live chain
+6. **CB-18 — Freshness measures fetch time, not market time**, and every
+   load-bearing cron slot is premarket or weekend (13:00 UTC = 09:00 ET; Sunday
+   23:30 UTC) — precisely where a prior-close quote gets stamped current and
+   certified fresh.
+7. **CB-06 — The hourly job never goes red and readiness tests key presence, not
+   status.** A thrown exception does notify the operator; a broken-but-
+   non-throwing run — the 2026-07-07 freeze class — does not.
+8. **CB-08 — Spread economics are a 30 %-of-width estimate**, never live chain
    pricing. This is the residual of finding A1, not a restatement of it.
-8. **CB-09 — Load-bearing artifacts are written non-atomically**; a torn
-   `market_map.json` wedges every later daily run until a human clears it.
 9. **CB-11 — `system_candidate_id`, the intended join key, is never emitted.**
    The keystone of the measurement loop `VISION.md` names as the central risk.
+
+**CB-09 (non-atomic writes) has moved to Medium** — the wedge consequence that
+carried its High rating is not reachable on ephemeral CI runners, where the
+commit/push step is gated on `success()`.
 
 ## 3. Partial Critical or High findings
 
@@ -87,20 +103,27 @@ deny rule.
 
 ## 4. Unknown findings with plausible Critical or High consequences
 
-**CB-30** is the one `UNKNOWN` row, and it is deliberately broad: roughly nineteen
-historical mediums and lows (F-09 through F-23 plus three Codex-miss items) were
-**not investigated this pass**. Pass 1 triage placed them below the Critical/High
-verification budget and no lane was asked to run them to ground.
+**CB-30 through CB-47** — eighteen rows, one per historical finding (F-09
+through F-23, three Codex-miss items, and the owed arithmetic pass). All were
+**not investigated this pass**: Pass 1 triage placed them below the
+Critical/High verification budget and no lane was asked to run them to ground.
 
-Two of them carry plausible High consequences and are named here so they are not
-lost in the aggregate: **F-14** (terminal-state truth derived twice in parallel,
-with `verify` checking the summary against itself) and **F-18** (adjusted OHLCV
-history mixed with unadjusted live quotes inside threshold-gate arithmetic — the
-historical ledger already marked its materiality `[2L]`, needs-a-second-look).
+These were originally a single aggregated row. That violated the charter's
+prohibition on combining defects and defeated the point of the exercise — a
+queue reviewable one item at a time. Split after review.
 
-`UNKNOWN` here means their historical text is on record and their current truth is
-not. One targeted sweep per item, of the kind run for CB-01…CB-15, would resolve
-them.
+Two carry plausible High consequences and lead any sweep:
+
+- **CB-35 (F-14)** — terminal-state truth derived twice in parallel, with
+  `verify` checking the summary against itself rather than against the contract
+  that notifications and the dashboard render from.
+- **CB-38 (F-18)** — adjusted OHLCV history mixed with unadjusted live quotes
+  inside threshold-gate arithmetic. The historical ledger already marked its
+  materiality `[2L]`, needs-a-second-look.
+
+`UNKNOWN` here means their historical text is on record and their current truth
+is not. One targeted sweep per item, of the kind run for CB-01…CB-15, resolves
+each.
 
 ## 5. Fixed findings
 
@@ -138,18 +161,19 @@ this reconciliation exists to re-verify would defeat the exercise.
 
 ## 7. Medium and low debt
 
-Nine Medium: CB-16 (sidecar doctrine self-contradiction — a doctrine ruling, not
-code), CB-18 (freshness measures fetch time), CB-19 (no run is reproducible),
-CB-20 (manual journal has no entry point; review scorecard therefore dead),
-CB-21 (evaluation/performance artifacts never written), CB-22 (`_MIN_SAMPLE = 5`,
-symbol-only bucketing), CB-23 (only ALLOW_TRADE candidates evaluated forward),
-CB-24 (78-bar underlying window evaluating 14–21 DTE spreads), CB-25 (gate
-vectors, `stay_flat_reason`, `excluded_symbols` structure discarded).
+Ten Medium: CB-09 (non-atomic writes — moved down from High), CB-16 (sidecar
+doctrine self-contradiction — a doctrine ruling, not code), CB-17 (raw
+`net_score` reaches trader-facing market-map grading — moved up from Low),
+CB-19 (no run is reproducible), CB-20 (manual journal has no entry point; review
+scorecard therefore dead), CB-21 (evaluators run every daily pipeline yet emit no
+artifact), CB-22 (`_MIN_SAMPLE = 5`, symbol-only bucketing), CB-23 (only
+ALLOW_TRADE candidates evaluated forward), CB-24 (78-bar underlying window
+evaluating 14–21 DTE spreads), CB-25 (gate vectors and `excluded_symbols`
+structure discarded from the audit record).
 
-Five Low: CB-17 (raw `net_score` readers — unreachable), CB-26 (no stable
-`run_id`), CB-27 (four remaining doc drifts plus three pipeline numberings),
-CB-28 (`PROJECT_STATE.md` stale at HEAD), CB-29 (no reciprocal pointer to the
-external audit relationship).
+Four Low: CB-26 (no stable `run_id`), CB-27 (four remaining doc drifts plus three
+pipeline numberings), CB-28 (`PROJECT_STATE.md` stale at HEAD), CB-29 (no
+reciprocal pointer to the external audit relationship).
 
 CB-20 through CB-25 form one cluster with one shape: **the system records what it
 said and never records what was done or what happened.** They are listed as six
@@ -219,8 +243,8 @@ an authorization.**
 7. **CB-11** — cheap, and every day it is absent is a day of unrecoverable data.
    The External Context Brief's strongest argument, and the reconciliation finds
    nothing contradicting it.
-8. **CB-30** — a triage sweep to convert the nineteen items behind that single
-   `UNKNOWN` row into individual statuses.
+8. **CB-30…CB-47** — a triage sweep converting the eighteen `UNKNOWN` rows into
+   real statuses, leading with CB-35 and CB-38.
 
 ## 10. Explicitly deferred
 
@@ -293,6 +317,33 @@ Independently rerun by the Opus lead, not accepted from any subagent:
 
 `docs/SCHEMA_MAP.md` and `docs/CALL_SITE_MAP.md` were consulted before grepping,
 per `CLAUDE.md`. Six spot-checked entries all resolve correctly at HEAD.
+
+## 12b. What the connector review changed
+
+Twelve findings against `574a8c6`, all verified against code, all correct. This
+section exists so the delta is auditable without diffing.
+
+| Row | What was withdrawn | Status change |
+|---|---|---|
+| CB-13 | The cited `FIXED` test recomputed its expected value through the same helper under test, so it could not go red on revert. Correct test now cited (`test_phase5.py:388-400`). | stays `FIXED` |
+| CB-02 | "NEUTRAL is the default correlation state." `DX-Y.NYB` is a HALT symbol, so missing/stale inputs halt before sizing; NEUTRAL needs a flat quote. CONFLICT carries the finding and gives the larger breach. | stays Critical |
+| CB-04 | "The trader was shown one candidate instead of four." Blocked candidates still render (`output.py:963-1000`). | stays High |
+| CB-21 | "Code that never runs," plus a diagnostic to find the call site. It runs every daily pipeline (`runtime/__init__.py:1143-1144`). | stays Medium |
+| CB-06 | "Cannot fail visibly / no operator signal." A thrown exception does notify. Narrowed to the job-status and readiness defect. | stays High |
+| CB-09 | The CI wedge consequence — unreachable on ephemeral runners with `success()`-gated push. | High → **Medium** |
+| CB-17 | "Unreachable, no current decision path." `build_market_map` runs outside the STAY_FLAT short-circuit and `_regime_aligned` reads raw `net_score`. | Low → **Medium** |
+| CB-18 | "Crons run in RTH slots." They are premarket and weekend. | Medium → **High** |
+| CB-12 | Bypass (c), intervening text between `LANE` and `HIGH-RISK`, had been dropped from the residual list. | stays `PARTIAL` |
+| CB-12b | "The GitHub-settings leg closed." Live: `enforce_admins false`, `required_pull_request_reviews null`, checks `["test"]` — none of F-05's three settings facts changed. | stays `PARTIAL` |
+| CB-25 | `stay_flat_reason` listed as discarded; it is on every daily contract and payload. | stays Medium |
+| CB-30 | One aggregated row covering ~19 defects, against the charter's own prohibition. | split into **CB-30…CB-47** |
+
+**Two of these are self-indicting and worth naming as such.** CB-13 cited
+non-discriminating evidence in a row whose commentary praised the repo for
+catching exactly that error. CB-12b asserted a closed leg on the authority of
+`docs/DECISIONS.md` without querying the live setting — the precise
+proxy-over-authoritative-source failure this reconciliation was built to find.
+Both were caught by review, not by the author.
 
 ## 13. What this reconciliation did not do
 

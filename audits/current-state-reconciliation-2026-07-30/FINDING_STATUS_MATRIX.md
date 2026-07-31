@@ -44,7 +44,8 @@ concern; it never implies closure.
 | **Current status** | **`OPEN`** |
 | **Current evidence** | `cuttingboard/options.py:228-236`. `raw_adjusted = int(effective_risk // risk_per_contract)`; when `risk_per_contract > effective_risk` this is `0`, and `final_contracts = max(1, min(result.max_contracts, raw_adjusted))` yields `1`. `final_dollar_risk` is then one full `risk_per_contract`. Gate 8 (`qualification.py:464-492`) sizes against the REGIME multiplier only and correctly refuses at `max_c < 1` (`:480-487`) — the correlation modifier is applied later, in `options.py`, where no such refusal exists. |
 | **Production applicability** | Merged production. `CORRELATION_ENABLED = True` (`config.py:271`). |
-| **User-visible consequence** | Worked example on real constants: an index-ETF credit spread has max loss `0.70 × 5.0 × 100 = $350/contract` (`options.py:414-426`, `:65`). Budget is `15000 × 0.026667 × risk_modifier`. At **NEUTRAL correlation (0.7) — the default state**, budget is $280 and the system emits 1 contract at $350, a **1.25× breach**. At CONFLICT (0.4), budget is $160 and it still emits $350, a **2.19× breach**. NEUTRAL is returned whenever GLD or DXY is flat, missing, or stale (`correlation.py:58-70`), so this is the ordinary case, not an edge. The correlation modifier's entire risk reduction is nullified. The breach is silent: `dollar_risk` truthfully prints $350, but no surface states that $350 exceeds the $280 budget the system just computed. |
+| **User-visible consequence** | Worked example on real constants: an index-ETF credit spread has max loss `0.70 × 5.0 × 100 = $350/contract` (`options.py:414-426`, `:65`). Budget is `15000 × 0.026667 × risk_modifier`. At **CONFLICT (0.4)** — reached whenever GLD and DXY move in the same direction (`correlation.py:60-63`) — budget is $160 and the system emits 1 contract at $350, a **2.19× breach**. At NEUTRAL (0.7), budget is $280 and it emits $350, a **1.25× breach**. The correlation modifier's entire risk reduction is nullified. The breach is silent: `dollar_risk` truthfully prints $350, but no surface states that $350 exceeds the budget the system just computed. |
+| **Reachability (corrected 2026-07-30)** | An earlier version of this row called NEUTRAL "the default state." **That was wrong and is withdrawn.** `compute_correlation` returns NEUTRAL only when an input is flat, missing, or stale — and `DX-Y.NYB` is in `config.HALT_SYMBOLS` (`config.py:106`), so a missing or stale dollar quote halts the pipeline before sizing. NEUTRAL is therefore reachable only via a genuinely flat quote. **CONFLICT carries the finding**: it needs no degraded input, occurs whenever both correlation symbols move the same way, and produces the LARGER breach. The defect and its Critical severity stand on CONFLICT alone. |
 | **Current severity** | **Critical** — bypasses a live position-risk limit on the ordinary path. |
 | **Existing work** | **RULED by Dustin 2026-07-24** (`docs/DECISIONS.md:106-139`): "refuse the trade… A floor that breaches the risk limit turns the limit into a suggestion." The same entry states **"NOT IMPLEMENTED… Nothing in this entry authorizes a code change."** |
 | **Missing proof** | Not established: how many of the 6 historical ALLOW_TRADE decisions were emitted under a sub-1.0 correlation modifier (`risk_modifier` is not persisted per candidate in the audit record). |
@@ -84,7 +85,8 @@ concern; it never implies closure.
 | **Current status** | **`OPEN`** |
 | **Current evidence** | `execution_policy.py:94-103` sums `decision_status == ALLOW_TRADE` from prior audit records into `prior_trade_count` and sets `last_trade_at_utc`; `:105-109` derives `consecutive_losses` from the hypothetical `evaluation.jsonl`. `load_execution_session_state` returns those derived values — not the dormant `(0, 0, None)` the operator approved. |
 | **Production applicability** | Merged production, **and observed firing in live published history**. |
-| **User-visible consequence** | Verified against `origin/publish:logs/audit.jsonl` (56 pipeline records, 2026-05-07→2026-07-30): **`cooldown` blocked 5 qualified candidates**, against only 6 `ALLOW_TRADE` decisions in the entire history. Every cooldown block occurred in the **same run** as an ALLOW — 2026-06-30 allowed SPY and blocked QQQ, IWM and NVDA by cooldown; 2026-06-23 allowed AAPL and blocked META; 2026-07-23 allowed SPY and blocked SLV. The trader was shown one candidate instead of four because the system treated its own first *recommendation* as an executed *fill*. |
+| **User-visible consequence** | Verified against `origin/publish:logs/audit.jsonl` (56 pipeline records, 2026-05-07→2026-07-30): **`cooldown` blocked 5 qualified candidates**, against only 6 `ALLOW_TRADE` decisions in the entire history. Every cooldown block occurred in the **same run** as an ALLOW — 2026-06-30 allowed SPY and blocked QQQ, IWM and NVDA by cooldown; 2026-06-23 allowed AAPL and blocked META; 2026-07-23 allowed SPY and blocked SLV. Those candidates' policy status was set to blocked because the system treated its own first *recommendation* as an executed *fill*. |
+| **Consequence NOT claimed (corrected 2026-07-30)** | An earlier version of this row said the trader "was shown one candidate instead of four." **That was wrong and is withdrawn.** `build_notification_message` emits the allowed primary and then iterates the FULL ranked candidate list for up to four additional R:R lines (`output.py:963-1000`), and the text report renders qualified option setups without filtering on policy status (`output.py:320-405`). Blocked candidates remain visible. The demonstrated consequence is that a phantom fill changes DECISION STATUS and the recorded block reason — not that it removes candidates from view. |
 | **Current severity** | **High** — suppresses qualified candidates from the trader's view on a fill that never occurred. Conservative in direction (it blocks rather than permits), which is why it is not Critical. |
 | **Existing work** | Planned as BUILD_PLAN "PRD-255"; that number landed the review-artifact spec. **Operator decision 3 (2026-07-10) approved "fully dormant, including the same-run in-run counter."** Not shipped. |
 | **Missing proof** | None for the defect. Not established: whether Dustin would in fact have taken the suppressed candidates. |
@@ -113,7 +115,7 @@ concern; it never implies closure.
 
 ---
 
-### CB-06 · The hourly channel cannot fail visibly: the runner always exits 0 and readiness checks key presence, not status
+### CB-06 · The hourly job never goes red and readiness tests key presence, not status
 
 | Field | Value |
 |---|---|
@@ -122,8 +124,9 @@ concern; it never implies closure.
 | **Current status** | **`OPEN`** |
 | **Current evidence** | `cuttingboard/alert_runner.py:43` — the function's own docstring reads "Run the hourly alert path and **convert all runtime failures to exit 0**"; returns `0` at `:81`, `:95`, `:122`. `scripts/check_readiness.py:15-16` maps each artifact to a tuple of **key names** (`("meta", "run_status", "schema_version", "sections")`, `("status", "outcome")`) — presence, never value. A fresh ERROR/HALT artifact satisfies it. |
 | **Production applicability** | Merged production. Precedent: the 2026-07-07 hourly freeze. |
-| **User-visible consequence** | The hourly board can stay silently stale or broken while every workflow reports green. PRD-250 added a client-side staleness banner, which fixes the *viewer's* blindness only; the job-level vacuous green remains, with no red test asserting it impossible. |
-| **Current severity** | **High** — a trader-facing channel can degrade with no operator signal. |
+| **User-visible consequence** | The hourly board can stay stale or broken while every workflow reports green, and readiness will publish a fresh ERROR/HALT artifact as healthy. PRD-250 added a client-side staleness banner, which fixes the *viewer's* blindness only; the job-level vacuous green remains, with no red test asserting it impossible. |
+| **Scope NOT claimed (corrected 2026-07-30)** | An earlier version said the channel "cannot fail visibly" and degrades "with no operator signal." **Too broad; withdrawn.** For a THROWN exception the operator IS signalled: `_execute_notify_run` catches it, sends a `format_failure_notification` Telegram message, writes `traceback.txt`, and sets `outcome = OUTCOME_HALT` on the error contract (`runtime/__init__.py:571-619`); `alert_runner` additionally attempts a `HALT - SYSTEM ERROR` send (`alert_runner.py:103-119`). The real defect is narrower and still real: the JOB stays green regardless (`alert_runner.py:43`, returns 0 at `:81,:95,:122`), and readiness tests key PRESENCE not status values (`scripts/check_readiness.py:15-16`) — so a broken-but-NON-throwing run, the 2026-07-07 freeze class, produces no signal at all. |
+| **Current severity** | **High** — a trader-facing channel can degrade silently in the non-throwing case, and a failed run never turns the workflow red. |
 | **Existing work** | Planned as BUILD_PLAN "PRD-259"; that number landed the continuation HOLD gate. PRD-250 addressed the viewer surface only. `.github/workflows/dashboard_preview.yml` already implements the fail-loud inversion, so the pattern exists in-repo. |
 | **Missing proof** | None for the defect. |
 | **Next authority** | Dustin decision. |
@@ -170,7 +173,7 @@ concern; it never implies closure.
 
 ---
 
-### CB-09 · Load-bearing artifacts are written non-atomically; a torn `market_map.json` wedges every later daily run
+### CB-09 · Load-bearing artifacts are written non-atomically, inversely to their criticality
 
 | Field | Value |
 |---|---|
@@ -179,8 +182,9 @@ concern; it never implies closure.
 | **Current status** | **`OPEN`** |
 | **Current evidence** | `runtime/__init__.py` `safe_write_latest`, `_write_summary_files`, `_rewrite_summary_file` use bare `write_text`; atomic `tmp.replace` is used for the less-critical snapshots. `_load_previous_market_map` raises on malformed JSON. |
 | **Production applicability** | Merged production. |
-| **User-visible consequence** | Atomicity is applied inversely to criticality. A mid-write kill wedges the daily pipeline until a human clears the file. |
-| **Current severity** | **High** — a single interrupted write halts the product until manual intervention. |
+| **User-visible consequence** | Atomicity is applied inversely to criticality: the most load-bearing artifacts get bare `write_text` while lower-criticality snapshots get temp+rename. |
+| **Consequence NOT claimed (corrected 2026-07-30)** | An earlier version claimed a mid-write kill "wedges every later daily run until a human clears it," and rated the row High on that basis. **Withdrawn for the CI pipeline.** The pipeline runs on an ephemeral GitHub runner and the commit/push step is gated `if: ${{ success() && env.PUBLISH_READY == 'true' }}` (`.github/workflows/cuttingboard.yml:311`). A `timeout 8m` kill mid-`write_text` therefore never publishes the partial file; the runner is discarded and the next run restores the last good `market_map.json` from `publish`. The wedge remains possible only in a PERSISTENT local checkout. |
+| **Current severity** | **Medium** — reassessed down from High. The non-atomic writes are real, but the production consequence that carried the High rating is not reachable in the CI pipeline. |
 | **Existing work** | BUILD_PLAN Wave 5. Never authored. `RECONCILED_FINDINGS.md` already banked two corrections: the impossible line citation and the cross-workflow-concurrency portion are **wrong and must not be built** (separate runner filesystems). The in-process unlocked appends and the torn-map wedge are the real residue. |
 | **Missing proof** | Not established: whether a torn write has ever actually occurred. |
 | **Next authority** | Dustin decision. |
@@ -243,7 +247,8 @@ concern; it never implies closure.
 | **Existing work** | **What DID land:** PRD-242 (the disposition requirement and its validator) and **PRD-269**, which closed the doc-STATUS blind spot — a registry-COMPLETE row whose doc status disagrees now errors (`:483-499`). That is a real and separate improvement. **It is not F-04's four bypasses.** BUILD_PLAN's "PRD-257" landed a dashboard comment fix. |
 | **Missing proof** | None for the residual. |
 | **Next authority** | Dustin decision. Note **PR #174 (OPEN, not production)** scaffolds PRD-275, which would enforce artifact append-only and merged-commit SHA pinning — the artifact-content leg. An open PR is pending evidence, not closure. |
-| **Residual limitation** | **The residual is: label casing, declared-lane trust, docless-row skip, and existence-not-content on the artifact leg.** Do not restate this row as "the doc-status blind spot" — that half is closed. |
+| **Residual limitation** | **The residual is FOUR bypasses, all live:** (a) declared-lane trust — nothing cross-checks `LANE: STANDARD` against the change surface; (b) label casing — `LANE: High-Risk` evades the regex; (c) **intervening text** — `_LANE_HIGH_RISK_RE` allows only whitespace between `LANE` and `HIGH-RISK`, so a doc with a header line between them is not recognized (verified: `LANE:\n## Change surface\nHIGH-RISK` → BYPASS); (d) docless COMPLETE rows `continue`. Plus existence-not-content on the artifact leg. Do not restate this row as "the doc-status blind spot" — that half is closed. |
+| **Correction (2026-07-30)** | An earlier version of this row omitted bypass (c). It was present in the original F-04 and remains live; PRD-269 did not touch the regex. Restored above. |
 | **Confidence** | **High** — lead read the regex, all three `not doc.exists()` sites, and the `has_artifact` computation directly. **This row corrects a Lane-2 `FIXED` proposal**; see `RECONCILIATION_REPORT.md` § Contradictions. |
 
 ---
@@ -255,7 +260,8 @@ concern; it never implies closure.
 | **Original source** | `audits/FINDINGS.md` F-05 (High, held) |
 | **Exact claim** | No CODEOWNERS, no CI changed-path check, `CLAUDE.md` and `.claude/skills/` absent from the protected set; branch protection requires only `test`, no approvals, admin enforcement disabled. |
 | **Current status** | **`PARTIAL`** |
-| **Current evidence** | `.github/CODEOWNERS` does not exist at HEAD. `.github/workflows/ci.yml` contains no changed-path governance check. `.claude/hooks/protect_files.sh` does not list `CLAUDE.md` or `.claude/skills/`. **Closed leg:** `enforce_admins` was flipped true on `main` 2026-07-19 (`docs/DECISIONS.md`), so protection binds the admin identity. |
+| **Current evidence** | `.github/CODEOWNERS` does not exist at HEAD. `.github/workflows/ci.yml` contains no changed-path governance check. `.claude/hooks/protect_files.sh` does not list `CLAUDE.md` or `.claude/skills/`. **Live branch protection on `main`, queried 2026-07-30:** `required_status_checks.contexts = ["test"]`, `required_pull_request_reviews = null`, `enforce_admins.enabled = false`. |
+| **Correction (2026-07-30) — this row previously claimed a closed leg; it has none** | An earlier version stated "the GitHub-settings leg closed (`enforce_admins` true since 2026-07-19)." **Wrong on both counts, withdrawn.** (1) The live API returns `enforce_admins: false`. That directly contradicts `docs/DECISIONS.md:320`, which records the flip to true on 2026-07-19 — either it was reverted or the record is inaccurate, and this reconciliation cannot tell which. (2) Even a true value would not close the leg: the original F-05 named THREE settings facts — only `test` required, **no approvals**, admin enforcement off — and all three still hold. The row previously inherited the canonical record instead of querying the live setting, which is the precise failure mode this reconciliation exists to catch. |
 | **Production applicability** | Merged production (and live GitHub settings). |
 | **User-visible consequence** | Governance-guardrail edits have no technical backstop in-repo. |
 | **Current severity** | **Medium** — reassessed DOWN from the ledger's High. The finding's premise was unbabysat agent merging; **GOV-1 (2026-07-25) makes Dustin's manual merge universal on every PR, and `.claude/settings.json` denies `gh pr merge` to the agent outright.** The exposure the finding was written against is now covered by process and by a deny rule, not by the missing code. |
@@ -277,7 +283,8 @@ concern; it never implies closure.
 | **Exact claim** | A 30 %-of-width debit proxy became `dollar_risk` for credit strategies: a $5-wide bull put at $1.50 credit printed "max risk $150" against a true max loss of $350. |
 | **Current status** | **`FIXED`** |
 | **Current evidence (code)** | `cuttingboard/options.py:414-426` — `_max_loss_for_strategy` returns `strike_distance - debit_proxy` (70 % of width) for `BULL_PUT_SPREAD` / `BEAR_CALL_SPREAD`, and the debit for debit strategies. Consumed by Gate 8 (`qualification.py:472-475`) and by the final resize (`options.py:229`). |
-| **Current evidence (discriminating regression)** | `tests/test_phase5.py::test_non_continuation_result_ignores_stale_candidate_max_loss_prd256` constructs a candidate with `max_loss=999.0` **deliberately wrong** and asserts `setup.dollar_risk == _max_loss_for_strategy(BULL_PUT_SPREAD, 5.0) * 100`. It goes red if the code ever reads the passed-in value instead of recomputing. Its own comment records that the preceding test could NOT discriminate, because its fixture's `max_loss` already equalled the recomputed figure — the repo found and closed its own non-discriminating-fixture hole. |
+| **Current evidence (discriminating regression)** | `tests/test_phase5.py::test_credit_strategy_max_loss_is_width_minus_debit_prd251` (`:388-400`) asserts `cand.max_loss == _MAX_STRIKE_DIST_ETF - _estimated_debit(_MAX_STRIKE_DIST_ETF)` — width minus debit, expressed WITHOUT calling `_max_loss_for_strategy`. Revert that helper to the 30 %-of-width debit proxy and this test goes red. That is the arithmetic guard. |
+| **Correction (2026-07-30) — the previously cited test does not discriminate** | An earlier version cited `test_non_continuation_result_ignores_stale_candidate_max_loss_prd256` (`:600-618`) as the discriminating evidence. **Withdrawn.** That test computes its expected value as `_max_loss_for_strategy(BULL_PUT_SPREAD, _MAX_STRIKE_DIST_ETF)` — the same helper `build_option_setups` calls — so reverting the arithmetic moves actual and expected together and the test stays green. It genuinely discriminates a DIFFERENT property, exactly the one its name states: that the code recomputes rather than reading a stale `candidate.max_loss`. Both properties matter; only the test now cited proves the arithmetic. The status stays `FIXED` because the code is correct AND a discriminating test exists — but the original citation did not meet this reconciliation's own `FIXED` standard, which is the same non-discriminating-evidence error the row's own commentary praised the repo for catching. |
 | **Production applicability** | Merged production (PRD-251 @ #132; continuation path completed by PRD-256 @ #146). |
 | **User-visible consequence** | n/a — resolved. |
 | **Current severity** | n/a. |
@@ -337,11 +344,21 @@ concern; it never implies closure.
 
 ### CB-17 · `RegimeState.net_score` is stored raw while classification uses `bounded_net`
 
-`OPEN` · **Low** · Source: External Context Brief §4.6; raised as **High** by Lane 4. **Severity reassessed DOWN to Low, and the reason is the substance of this row.** `regime.py:221` stores the raw net; `:206-208` classify and score confidence from `bounded_net`. The decision-bearing raw readers are `qualification.py:649-653` (`direction_for_regime`'s NEUTRAL tiebreaker), `market_map.py:407-409`, `watch.py:453-455`. **The NEUTRAL branch is not reachable in production:** `_classify_regime` returns `NEUTRAL` only when `|bounded_net| ≤ 1`, hence `confidence ≤ 0.125`, and `_determine_posture`'s global floor (`confidence < MIN_REGIME_CONFIDENCE = 0.50`) then forces `STAY_FLAT`, which `qualification.py:368-373` short-circuits before any per-symbol work. `tests/test_regime.py:285-292` states this unreachability explicitly and records the posture branch as deliberately parked by PRD-263. **Residual limitation:** a latent inconsistency with no current decision path, plus one unreachable output channel (`NEUTRAL_PREMIUM`, `regime.py:344`) that nonetheless carries trader-facing copy in `output.py:203`, `runtime/_constants.py:85` and `notifications/formatter.py:313,471`. **Next authority:** none required; Dustin decision if the dead posture should be retired under cuts-before-additions. **Confidence:** High — lead derived the unreachability, then found the repo had already documented it.
+`OPEN` · **Medium** · Source: External Context Brief §4.6; raised as High by Lane 4. `regime.py:221` stores the raw net; `:206-208` classify and score confidence from `bounded_net`. Raw readers: `qualification.py:649-653` (`direction_for_regime`), `market_map.py:407-409` (`_regime_aligned`), `watch.py:453-455`.
+
+**The qualification reader is unreachable; the market-map reader is NOT.** `_classify_regime` returns NEUTRAL only when `|bounded_net| ≤ 1`, hence `confidence ≤ 0.125`, and `_determine_posture`'s floor (`confidence < MIN_REGIME_CONFIDENCE = 0.50`) forces `STAY_FLAT`, which `qualification.py:368-373` short-circuits — so `direction_for_regime`'s NEUTRAL tiebreaker never runs. `tests/test_regime.py:285-292` documents that chain. **But `build_market_map` is called unconditionally at `runtime/__init__.py:1054`, after and outside that short-circuit**, and `_regime_aligned` reads RAW `net_score` (`market_map.py:407-409`) to set `regime_aligned` at `:178`, which feeds record grading and trade framing. Under dropout, raw `+2` / bounded `+1` yields `regime_aligned = True` on the very margin bounding just discounted — while the same bounded evidence at full coverage (raw 0) yields False. Identical bounded evidence, different trader-facing grade.
+
+**Correction (2026-07-30):** an earlier version rated this **Low** and called the divergence unreachable with "no current decision path." That was wrong — it checked only the qualification reader. Raised to **Medium**: reachable on a trader-facing decision-support surface, but it cannot produce a terminal `ALLOW_TRADE`, so it stays below High.
+
+**Also here:** `NEUTRAL_PREMIUM` (`regime.py:344`) is an unreachable output channel that still carries trader-facing copy in `output.py:203`, `runtime/_constants.py:85`, `notifications/formatter.py:313,471`. Deliberately parked by PRD-263. **Next authority:** Dustin decision. **Confidence:** High.
 
 ### CB-18 · Freshness measures fetch time, not market time
 
-`OPEN` · **Medium** · Source: `RECONCILED_FINDINGS.md` C1 (High). `fetched_at_utc = datetime.now()`; no exchange timestamp is read. Stale weekend, holiday, or delayed prices certify as fresh. **Severity reassessed DOWN from High:** the scheduled crons run in RTH slots where the exposure is small, and the daily path halts on other freshness legs. **Residual:** `workflow_dispatch` and local off-hours runs remain exposed. Invalidates F-23's Sunday-halt claim. **Next authority:** Dustin decision. **Confidence:** Medium — carried from Lane 2's evidence; lead did not re-read `validation.py` this pass.
+`OPEN` · **High** · Source: `RECONCILED_FINDINGS.md` C1 (High). `fetched_at_utc = datetime.now()`; no exchange timestamp is read. Stale weekend, holiday, or delayed prices certify as fresh.
+
+**Correction (2026-07-30) — severity restored to High.** An earlier version downgraded this to Medium on the reasoning that "the scheduled crons run in RTH slots where the exposure is small." **That premise is factually wrong.** `.github/workflows/cuttingboard.yml:5-10` schedules the prefetch at 12:50 UTC, the main live run at **13:00 UTC = 09:00 ET (premarket, 30 minutes before the open)**, and the Sunday regime report at 23:30 UTC. `hourly_alert.yml:11-14` likewise starts at 13:00 UTC. **None of the load-bearing slots is in regular trading hours** — they are precisely the contexts where a prior-close or delayed quote gets stamped with the current fetch time and certified fresh. The downgrade is withdrawn and the ledger's original High is restored.
+
+Invalidates F-23's Sunday-halt claim. **Next authority:** Dustin decision. **Confidence:** High — cron schedules read directly.
 
 ### CB-19 · No run is reproducible; `--date` relabels rather than replays
 
@@ -351,9 +368,13 @@ concern; it never implies closure.
 
 `OPEN` · **Medium** · Source: External Context Brief §1.3. Two concerns are deliberately kept in one row **only because the second is strictly downstream of the first**: `cuttingboard/manual_journal.py`'s `append_record` is imported by `tests/test_manual_journal.py` alone; `runtime.build_parser` (`:164-180`) registers only `--mode`, `--notify-mode`, `--fixture-file`, `--file`, `--date`; no script writes an entry; `logs/manual_trades.jsonl` has never existed. `review_scorecard.py` reads that path and has no other input. **Consequence:** the only artifact that would measure TRADER behaviour rather than ENGINE behaviour cannot run. The writer, the 13-value mistake taxonomy, validation, and passing tests all exist — it is wiring, not construction. **Next authority:** Dustin decision. Note `docs/decision_quality_map.md` Gap 5 rules the real journal lives in an Obsidian vault outside the repo, so the doctrine question precedes the wiring question. **Confidence:** High.
 
-### CB-21 · Evaluation and performance artifacts are written by code that never runs
+### CB-21 · The evaluators run on every daily pipeline yet produce no artifact
 
-`OPEN` · **Medium** · Source: External Context Brief §1.3. `evaluation.py:31` defines `logs/evaluation.jsonl` and `performance_engine.py:28-36` writes `performance_summary.json`; neither file exists on `main` or on `origin/publish`, and no reader consumes the summary. **Next authority:** narrow diagnostic — determine whether the runtime ever invokes them — then Dustin decision. **Confidence:** Medium — absence of the artifacts is certain; whether the call site exists and silently no-ops was not run to ground.
+`OPEN` · **Medium** · Source: External Context Brief §1.3. `evaluation.py:31` defines `logs/evaluation.jsonl` and `performance_engine.py:28-36` writes `performance_summary.json`; neither file exists on `main` or on `origin/publish`, and no reader consumes the summary.
+
+**Correction (2026-07-30) — the root cause stated earlier was wrong.** An earlier version said this is "code that never runs" and proposed a diagnostic to determine whether the runtime invokes it. **It does:** every daily pipeline calls `run_post_trade_evaluation(current_run_at_utc=run_at_utc)` at `runtime/__init__.py:1143` and `run_performance_engine(...)` immediately after at `:1144` (imported at `:59-60`). The call site was never in question, and the proposed diagnostic would have sent a follow-up toward an already-answered question.
+
+**Restated concern:** the evaluators run on every daily pipeline yet produce no artifact. The leading hypothesis — surfaced by the connector, NOT verified here — is that `run_post_trade_evaluation` selects only a same-day PRIOR run (`evaluation.py:74-111`) and so returns empty under the normal one-daily-run cadence. **Next authority:** narrow diagnostic to confirm that selection logic is the cause, then Dustin decision. **Confidence:** High that the code runs; Medium on why it emits nothing.
 
 ### CB-22 · `_MIN_SAMPLE = 5` asserts that five observations support a rate, and buckets only by symbol
 
@@ -367,9 +388,13 @@ concern; it never implies closure.
 
 `OPEN` · **Medium** · Source: External Context Brief §3.1. `config.py:191` `EVALUATION_WINDOW_BARS = 78` on 1-minute bars resolves TARGET_HIT / STOP_HIT **on the underlying**, and reports an `R_multiple`; the setups are 14–21 DTE option spreads (`options.py:19-24`). **The charter's distinction applies directly: an underlying target/stop touch is not an actual options-trade result, and must not be read as one.** **Severity held at Medium rather than High** because its most dangerous consumer is neutralised: the brief argues this R feeds `execution_policy`'s `loss_lockout`, and it does — but per CB-04 that lockout derives from the same hypothetical evaluation records and has never been observed firing in the published history (0 of 48 blocks). The corruption is of the *measurement*, not currently of the *decision*. **Next authority:** Dustin decision. **Confidence:** High on the constants; Medium on the consequence chain.
 
-### CB-25 · Gate vectors, `stay_flat_reason`, and `excluded_symbols` structure are computed and discarded
+### CB-25 · Gate vectors and `excluded_symbols` structure are computed and discarded from the audit record
 
-`OPEN` · **Medium** · Source: External Context Brief §4.4. Three losses of already-computed state, grouped because they share one cause — the audit record is narrower than the pipeline's own state. `QualificationResult` carries `gates_passed` / `gates_failed` / `gates_skipped`; `audit._build_record` (`audit.py:127-152`) persists none of them. `stay_flat_reason` reaches only `logs/latest_hourly_contract.json`, overwritten every run — and STAY_FLAT is the modal outcome. `excluded_symbols` is free prose (observed: `{"AAPL": "2 soft gates failed: R:R 2.00 below 2.0 minimum; …", "COIN": "CHOP"}`), which PRD-240 already rewrote once, silently breaking any parser. **Consequence:** rejection analysis requires regex over prose. **Next authority:** Dustin decision. **Confidence:** High.
+`OPEN` · **Medium** · Source: External Context Brief §4.4. Two losses of already-computed state, sharing one cause — the append-only audit record is narrower than the pipeline's own state. `QualificationResult` carries `gates_passed` / `gates_failed` / `gates_skipped`; `audit._build_record` (`audit.py:127-152`) persists none of them. `excluded_symbols` is free prose (observed: `{"AAPL": "2 soft gates failed: R:R 2.00 below 2.0 minimum; …", "COIN": "CHOP"}`), which PRD-240 already rewrote once, silently breaking any parser. **Consequence:** rejection analysis requires regex over prose, and gate-level rejection analysis is impossible from the durable record.
+
+**Correction (2026-07-30) — `stay_flat_reason` removed from this row.** An earlier version listed it as a third discarded field reaching "only `logs/latest_hourly_contract.json`, overwritten every run." **Wrong; withdrawn.** `_build_system_state` sets it on every daily contract (`contract.py:230-236,262`), it is in the contract key whitelist (`:73`), the daily path persists that contract to `logs/latest_contract.json`, and `build_report_payload` forwards it as `validation_halt_detail` (`delivery/payload.py:98-101`). It is present on the daily contract and payload surfaces. The only narrower residual — not restated as a defect here — is that it never reaches the append-only `audit.jsonl`, so it is not queryable across historical runs.
+
+**Next authority:** Dustin decision. **Confidence:** High.
 
 ### CB-26 · Run identity is a timestamp, not a stable id
 
@@ -387,25 +412,60 @@ concern; it never implies closure.
 
 `OPEN` · **Low** · Source: External Context Brief §2.1. CuttingBoard contains zero references to `dwats250/strategy` or `EA-ENGINE-AUDIT-PROGRAM-REV3`. The strategy repo (pinned `934ae8b`) names CuttingBoard extensively — `audits/cuttingboard-engine-strategy-audit/`, `plans/EA-ENGINE-AUDIT-PROGRAM-REV3.md`, `docs/INTERFACE_CHARTER_v0.1.md`, `docs/owner-decisions-2026-07-30.md` — and treats it as a read-only evidence source and forbidden mutation target. Meanwhile CuttingBoard holds one half of that conversation: `docs/audit/gate_recon_2026-06-12.md` ("produced for an externally designed strategic gate-alignment audit"), `audits/stage0-recon-2026-07-20/` (governed by a Charter **not in this repo**, citing its §11, §14, invariants I1–I4 and a Q1–Q28 partition), and `audits/FINDINGS.md` ("the plan file lives outside the repo"). **Cross-repository note, per the charter:** strategy-side owner decisions have NO adoption record in CuttingBoard's `docs/DECISIONS.md`, and none of them authorize a CuttingBoard change. **Next authority:** Dustin decision. **Confidence:** High.
 
-### CB-30 · Held mediums and lows not re-verified this pass
+## UNKNOWN — not investigated this pass
 
-`UNKNOWN` · **Medium (candidate)** · `RECONCILED_FINDINGS.md` Tiers 6–7: F-09 (Gate 9 cannot fail), F-10 (`chain_validation` host-local `date.today()`), F-11 (triplicated pipeline stage sequence), F-12 (commit-resolvability skipped), F-13 (unpinned action tags / no lockfile / floating model id), F-14 (terminal truth derived twice), F-16 (fixture mode via `unittest.mock.patch`), F-17 (silent-default state readers), F-18 (adjusted OHLCV mixed with unadjusted quotes), F-19–F-23, plus the three Codex-miss items (daily-workflow DST, cross-process Telegram dedup, ORB bar-count). **These were explicitly NOT investigated in this pass** — Pass 1 triage placed them below the Critical/High verification budget, and no lane was asked to run them to ground. **`UNKNOWN` is the honest status: their historical text is on record, their current truth is not.** **What would resolve it:** one targeted sweep per item against HEAD, of the kind run for CB-01…CB-15. **Next authority:** Dustin decision on whether that sweep is worth commissioning. **Confidence:** High that they are unverified; no confidence either way on their current truth.
+**Correction (2026-07-30).** These were originally one aggregated row, "CB-30." That violated this matrix's own one-concern-per-row rule and the charter's explicit prohibition on combining defects, and it defeated the initiative's stated purpose — a queue Dustin can review one item at a time. Aggregating also made the real count invisible and made it impossible to update one item's status without rewriting a multi-defect row. Split below, one row each.
+
+Every row here shares the same reason for `UNKNOWN`: **Pass 1 triage placed it below the Critical/High verification budget and no lane was asked to run it to ground.** Their historical text is on record; their current truth is not. Every one is resolved the same way — one targeted sweep against HEAD, of the kind run for CB-01…CB-15 — and the next authority for every one is a Dustin decision on whether that sweep is worth commissioning. Severities shown are the HISTORICAL ledger's, carried unreassessed, and are explicitly not current findings.
+
+| ID | Historical claim (source: `audits/FINDINGS.md` unless noted) | Ledger severity |
+|---|---|---|
+| CB-30 | **F-09** — Gate 9 (earnings) cannot fail: no production code sets `has_earnings_soon` | Medium |
+| CB-31 | **F-10** — `chain_validation` uses host-local `date.today()` for expiry/DTE math | Medium |
+| CB-32 | **F-11** — the hourly path re-implements the pipeline; three stage sequences in one file | Medium |
+| CB-33 | **F-12** — commit-resolvability skipped on the only blocking gate, beyond the settled decision's scope | Medium |
+| CB-34 | **F-13** — identity pinning absent: mutable action tags, no lockfile, floating model id | Medium |
+| CB-35 | **F-14** — terminal-state truth derived twice; `verify` checks the summary against itself | Medium |
+| CB-36 | **F-16** — production runtime implements fixture mode via `unittest.mock.patch` | Medium |
+| CB-37 | **F-17** — silent-default readers on decision-adjacent state | Medium |
+| CB-38 | **F-18** — adjusted OHLCV history mixed with unadjusted live quotes in threshold-gate arithmetic | Medium `[2L]` |
+| CB-39 | **F-19** — fixture-backed Sunday runs mix a live run clock with a frozen validation clock | Low |
+| CB-40 | **F-20** — `logs/macro_awareness_snapshot.json` has zero consumers | Low |
+| CB-41 | **F-21** — canonical docs describe a persisted sector router that does not exist (reclassified from parasitic-state) | Low |
+| CB-42 | **F-22** — `POLYGON_API_KEY` injected into both scheduled workflows; nothing reads it | Low |
+| CB-43 | **F-23** — hygiene batch: pytest awareness in production, repo-root `traceback.txt`, stale `run_daily.sh` comment, mode-ungated failure notification, fixture-chain doc drift | Low |
+| CB-44 | Codex miss — daily workflow fixed at 13:00 UTC with no standard-time schedule (hourly carries dual schedules) | Medium |
+| CB-45 | Codex miss — cross-process Telegram rate-limit/dedup is process-local module globals only | Medium |
+| CB-46 | Codex miss — ORB window 09:30–09:35 may be 6 bars not 5; needs a captured yfinance frame | CANNOT DETERMINE |
+| CB-47 | `RECONCILED_FINDINGS.md` — owed arithmetic pass: `_estimated_debit` soundness beyond max-loss, ATR/EMA formulas, R:R computation, sizing end-to-end | not rated |
+
+**Two carry plausible Critical/High consequences and are named in the report as priorities for any sweep:** CB-35 (F-14) and CB-38 (F-18).
+
+**Note on CB-43:** F-23 is itself a five-item batch in the source ledger. It is kept as one row here because the ledger authored it as one hygiene batch, not because this reconciliation judged the five to be one concern. A sweep should split it.
 
 ---
 
 ## Status counts
 
+Revised 2026-07-30 after the connector review of `574a8c6`. All twelve findings
+were verified against code and **all twelve were correct**; every one is
+reflected above. Movements: CB-09 High → Medium, CB-17 Low → Medium, CB-18
+Medium → High, and the aggregated CB-30 split into eighteen rows.
+
 | Status | Rows |
 |---|---|
 | `OPEN` — Critical | 2 (CB-01, CB-02) |
-| `OPEN` — High | 9 (CB-03…CB-11) |
+| `OPEN` — High | 9 (CB-03…CB-08, CB-10, CB-11, CB-18) |
 | `PARTIAL` — High | 1 (CB-12) |
 | `PARTIAL` — Medium | 1 (CB-12b) |
 | `FIXED` | 3 (CB-13, CB-14, CB-15) |
 | `SUPERSEDED` | 0 |
-| `OPEN` — Medium | 9 (CB-16, CB-18, CB-19, CB-20, CB-21, CB-22, CB-23, CB-24, CB-25) |
-| `OPEN` — Low | 5 (CB-17, CB-26, CB-27, CB-28, CB-29) |
-| `UNKNOWN` | 1 (CB-30, covering ~19 historical mediums/lows) |
+| `OPEN` — Medium | 10 (CB-09, CB-16, CB-17, CB-19…CB-25) |
+| `OPEN` — Low | 4 (CB-26, CB-27, CB-28, CB-29) |
+| `UNKNOWN` | 18 (CB-30…CB-47) |
+| **Total** | **48** |
 
 No row carries more than one status. Every Critical and High row above cites
-current code at `9e6b772` that the lead read directly.
+current code at `9e6b772` that the lead read directly. Rows corrected after
+review carry an explicit `Correction (2026-07-30)` line naming what was
+withdrawn and why — the superseded claim is never silently overwritten.
