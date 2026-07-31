@@ -168,11 +168,15 @@ runs, or any executed trade.
   Cuttingboard semantics; posture floor-only at 0.50 - incorrect against
   Cuttingboard semantics, with an in-script comment asserting the tiers do
   not matter.
-- **Exact confirmed mismatch:** one, in the posture dimension, in both
-  proxy scripts as committed: the 0.55 actionable tier is missing. The
-  soft-gate combination rule itself mismatches only in v0.5 (strict AND vs
-  count), and that divergence is declared inside the v0.5 record, not
-  discovered by this delta.
+- **Exact confirmed mismatch:** one rule mismatch, in the posture
+  dimension, in both proxy scripts as committed: the 0.55 directional
+  actionable tier is missing. v0.5's strict two-gate AND is NOT a second
+  rule mismatch: within the represented subset it is exactly production's
+  qualified condition (zero soft misses). What v0.5 omits is the separate
+  WATCHLIST / REJECT outcome surface - a representation limit, declared
+  inside the v0.5 record itself and consistent with claim row 7. The
+  frozen AS-IS proxy implements the full 0 / 1 / 2+ outcome surface
+  correctly.
 
 ## 7. Frozen AS-IS proxy status
 
