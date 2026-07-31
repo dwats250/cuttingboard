@@ -114,9 +114,32 @@ and which is accepted as-is. STOP and report if either file is staged by a
 GOVERNANCE PRD that does not name it.
 
 Using any of those annotations obliges ONE `fresh-context` structured
-review regardless of lane, including MICRO (PRD-276 R5). The annotation is
-a declaration the guard cannot check against the diff; that review is what
-does.
+review regardless of lane, including MICRO (PRD-276 R5).
+
+**Verify the pointer claim against the staged diff (PRD-277).** Do not
+accept the annotation on its word. This is the SAME check V7 already
+applies to the PRD-229 cosmetic carve-out — a self-declared low-ceremony
+category admitted IFF the staged hunks actually match it — and it is
+applied the same way, with `git diff --cached` on the file:
+
+- `docs/PROJECT_STATE.md` claiming `(pointer)`: the staged hunks touch
+  ONLY the single `- **Active PRD:**` bullet and/or the closeout
+  status/provenance lines. Any edit to another claim in that file is a
+  PAYLOAD touch.
+- `docs/PRD_REGISTRY.md` claiming `(PRD-NNN row)` / `(bookkeeping)`: the
+  staged hunks touch ONLY that PRD's own row. A table-structure change —
+  a column added, a header edited, another PRD's row rewritten — is a
+  PAYLOAD touch.
+
+If the diff contradicts the annotation, STOP and report: the PRD must
+either declare `LANE: HIGH-RISK` or drop the annotation. Fail closed —
+if the staged diff cannot be read, refuse rather than accept the claim.
+
+The CI validator cannot make this check (it has no staged diff), which is
+why PRD-276 recorded the declaration as unverifiable. That was true of the
+validator and false of this skill, which holds the diff. The obliged
+review above remains the backstop for judgment the hunk shapes cannot
+settle.
 
 Why the carve-out has a carve-out: for a GOVERNANCE PRD these two files
 are candidate PAYLOAD, and the Lane Downgrade Prohibition decides that

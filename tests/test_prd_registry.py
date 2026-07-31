@@ -1216,3 +1216,26 @@ def test_277_class_inside_a_fenced_block_is_not_a_declaration(tmp_path: Path) ->
         "VALIDATION\n```\nCLASS\nGOVERANCE\n```\n\nFILES\nM docs/some_doc.md\n"
     )
     assert _lane_errors_unregistered(tmp_path, 277, body) == []
+
+
+def test_277_missing_class_with_annotatable_payload_is_rejected(tmp_path: Path) -> None:
+    # Connector 3688912753: the missing-CLASS branch scanned only
+    # GOVERNANCE_PAYLOAD_FILES, so a CLASS-less PRD naming PRD_REGISTRY.md with
+    # a PAYLOAD annotation reached the exempting `continue`. The two-tuple split
+    # caused this twice; both arms now read one union.
+    body = (
+        "PRD-277 — fixture\n\nLANE\nMICRO\n\n"
+        "FILES\nM docs/PRD_REGISTRY.md (restructure row schema)\n"
+    )
+    errors = _lane_errors_unregistered(tmp_path, 277, body)
+    assert any("Missing CLASS: PRD-277" in e for e in errors)
+
+
+def test_277_missing_class_with_annotated_bookkeeping_still_tolerated(tmp_path: Path) -> None:
+    # The union must not re-break the micro-template path: an ANNOTATED
+    # bookkeeping entry with no CLASS is still tolerated.
+    body = (
+        "PRD-277 — fixture\n\nLANE\nMICRO\n\n"
+        "FILES\n- `docs/PRD_REGISTRY.md` (PRD-277 row)\n"
+    )
+    assert _lane_errors_unregistered(tmp_path, 277, body) == []

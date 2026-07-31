@@ -50,6 +50,13 @@ GOVERNANCE_ANNOTATABLE_FILES = (
     "docs/PROJECT_STATE.md",
     "docs/PRD_REGISTRY.md",
 )
+# Every governance file that can force the lane, regardless of which arm of the
+# rule applies. The payload/annotatable split exists because the two arms treat
+# an entry differently once found - it is NOT a difference in which files are
+# in scope, and reading only one arm caused two defects (connector 3688543123
+# then 3688912753). Any check asking "does this PRD touch governance payload at
+# all?" must use this union.
+GOVERNANCE_LANE_TRIGGER_FILES = GOVERNANCE_PAYLOAD_FILES + GOVERNANCE_ANNOTATABLE_FILES
 # Stricter than the LANE header on purpose: an unrecognised CLASS value is an
 # ERROR, so the pattern must not fire on prose. "CLASS Matrix" appears
 # throughout the docs and has neither a colon nor a bare-header form.
@@ -695,6 +702,22 @@ def _declared_classes(text: str) -> list[str]:
     return classes
 
 
+def _entry_forces_lane(entry: str) -> bool:
+    """True if this FILES entry would force HIGH-RISK for a GOVERNANCE PRD.
+
+    A payload file always forces it. An annotatable file forces it only when
+    the entry carries no pointer/bookkeeping annotation - which is why the
+    missing-CLASS check cannot simply ask "does this name a governance file":
+    an ANNOTATED bookkeeping entry is exactly the micro-template case that must
+    stay tolerated (connector 3688814717 then 3688912753).
+    """
+    if any(path in entry for path in GOVERNANCE_PAYLOAD_FILES):
+        return True
+    return any(
+        path in entry for path in GOVERNANCE_ANNOTATABLE_FILES
+    ) and not _POINTER_ANNOTATION_RE.search(entry)
+
+
 def _validate_lane_payload_prohibition(
     root: Path,
     registry_rows: dict[int, dict[str, str | None]],
@@ -730,9 +753,7 @@ def _validate_lane_payload_prohibition(
             # (connector 3688814717). Scoped to the case the guard exists for:
             # a doc that cannot be classified but touches governance payload.
             if any(
-                path in entry
-                for entry in _extract_files_entries(text)
-                for path in GOVERNANCE_PAYLOAD_FILES
+                _entry_forces_lane(entry) for entry in _extract_files_entries(text)
             ):
                 errors.append(
                     f"Missing CLASS: {_display_prd(number)} names a GOVERNANCE "
