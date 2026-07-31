@@ -1239,3 +1239,38 @@ def test_277_missing_class_with_annotated_bookkeeping_still_tolerated(tmp_path: 
         "FILES\n- `docs/PRD_REGISTRY.md` (PRD-277 row)\n"
     )
     assert _lane_errors_unregistered(tmp_path, 277, body) == []
+
+
+def test_277_class_inside_an_html_comment_is_not_a_declaration(tmp_path: Path) -> None:
+    # RED case, fails OPEN unlike the other parsing defects: a commented-out
+    # CLASS example was parsed as a live declaration, so a PRD with no real
+    # CLASS header was exempted outright (connector 3689422346).
+    body = (
+        "PRD-277 — fixture\n\nLANE\nMICRO\n\n"
+        "<!-- worked example, not a declaration:\nCLASS\nINFRA\n-->\n\n"
+        "FILES\nM docs/PRD_PROCESS.md\n"
+    )
+    errors = _lane_errors_unregistered(tmp_path, 277, body)
+    assert any("Missing CLASS: PRD-277" in e for e in errors)
+
+
+def test_277_lane_inside_an_html_comment_is_not_a_declaration(tmp_path: Path) -> None:
+    # The identical hole in the adjacent reader: a commented HIGH-RISK would
+    # have satisfied the skip and disabled enforcement.
+    body = (
+        "PRD-277 — fixture\n\nLANE\nMICRO\n\nCLASS\nGOVERNANCE\n\n"
+        "<!-- if this were payload it would need:\nLANE\nHIGH-RISK\n-->\n\n"
+        "FILES\nM docs/PRD_PROCESS.md\n"
+    )
+    errors = _lane_errors_unregistered(tmp_path, 277, body)
+    assert any("Lane downgrade: PRD-277" in e for e in errors)
+
+
+def test_277_single_line_html_comment_after_lane_still_parses(tmp_path: Path) -> None:
+    # PRD-273 uses exactly this shape: a one-line <!-- --> immediately after the
+    # LANE value. Blanking must not swallow the declaration above it.
+    body = (
+        "PRD-277 — fixture\n\nLANE\nHIGH-RISK\n<!-- deliberate escalation -->\n\n"
+        "CLASS\nGOVERNANCE\n\nFILES\nM docs/PRD_PROCESS.md\n"
+    )
+    assert _lane_errors_unregistered(tmp_path, 277, body) == []

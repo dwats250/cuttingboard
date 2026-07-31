@@ -630,6 +630,42 @@ def _extract_files_entries(text: str) -> list[str]:
     return entries
 
 
+def _declarable_lines(text: str) -> list[str]:
+    """Lines that can carry a real header, with non-declarable content blanked.
+
+    Content inside a fenced code block or an HTML comment is replaced by an
+    empty line rather than dropped, so callers keep line correspondence and
+    their "next non-blank line" lookahead skips it for free.
+
+    Both header readers share this: PRD docs embed worked examples in fences
+    AND in `<!-- ... -->` blocks, and either form was previously parsed as a
+    live declaration. For CLASS that exempted a PRD outright (connector
+    3689422346); for LANE a commented `HIGH-RISK` would likewise have skipped
+    enforcement. Single-sourced so the two cannot drift apart again.
+    """
+    out: list[str] = []
+    fenced = False
+    commented = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not fenced and not commented and stripped.startswith("<!--"):
+            # A single-line comment opens and closes on the same line.
+            commented = "-->" not in stripped
+            out.append("")
+            continue
+        if commented:
+            if "-->" in stripped:
+                commented = False
+            out.append("")
+            continue
+        if stripped.startswith("```"):
+            fenced = not fenced
+            out.append("")
+            continue
+        out.append("" if fenced else line)
+    return out
+
+
 def _declared_lanes(text: str) -> list[str]:
     """Return every lane value declared by a real LANE header, in order.
 
@@ -640,7 +676,7 @@ def _declared_lanes(text: str) -> list[str]:
     the same shape).
     """
     lanes: list[str] = []
-    lines = text.splitlines()
+    lines = _declarable_lines(text)
     for index, line in enumerate(lines):
         match = _LANE_HEADER_RE.match(line)
         if not match:
@@ -671,14 +707,8 @@ def _declared_classes(text: str) -> list[str]:
     typo ("GOVERANCE") made a PRD look non-governance and exempted it.
     """
     classes: list[str] = []
-    lines = text.splitlines()
-    fenced = False
+    lines = _declarable_lines(text)
     for index, line in enumerate(lines):
-        if line.lstrip().startswith("```"):
-            fenced = not fenced
-            continue
-        if fenced:
-            continue
         match = _CLASS_HEADER_RE.match(line)
         if not match:
             continue
