@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 270,
-  "next_prd": 271,
+  "latest_complete": 273,
+  "next_prd": 274,
   "entries": [
     {
       "number": 56,
@@ -1302,14 +1302,14 @@
     {
       "number": 272,
       "title": "PROJECT_STATE sweep: correct seven stale queue-authority claims",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "724d84a"
     },
     {
       "number": 273,
       "title": "Pin ruff and declare the lint selection explicitly",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "4a1cb22"
     }
   ]
 }
