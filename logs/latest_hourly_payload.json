@@ -1,46 +1,46 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -3.2448509862268873,
-      "level": 62621.76171875,
+      "change_pct": -2.540473048024468,
+      "level": 63077.6484375,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.12776709392271252,
-      "level": 100.0530014038086,
+      "change_pct": -0.31543096281723965,
+      "level": 99.86499786376953,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -0.8879580567940156,
-      "level": 4096.39990234375,
+      "change_pct": -0.6072946955841566,
+      "level": 4108.0,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 2.574068395909622,
-      "level": 84.4800033569336,
+      "change_pct": 2.974741294421816,
+      "level": 84.80999755859375,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 7.311126658502837,
-      "change_pct": 1.5440606522944016,
-      "level": 4.734999656677246,
+      "change_bps": 8.137242802652978,
+      "change_pct": 1.7156320367480586,
+      "level": 4.743000030517578,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -1.774291368670907,
-      "level": 57.57500076293945,
+      "change_pct": -0.9895109007013146,
+      "level": 58.03499984741211,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 1.814985171704371,
-      "level": 17.389999389648438,
+      "change_pct": -2.341918151738965,
+      "level": 16.68000030517578,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260731T160019Z",
+    "generation_id": "hourly-20260731T181513Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-07-31T16:00:19Z"
+    "timestamp": "2026-07-31T18:15:13Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -58,8 +58,8 @@
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.375,
-    "market_regime": "RISK_OFF",
+    "confidence": 0.0,
+    "market_regime": "NEUTRAL",
     "outcome": null,
     "permission": null,
     "router_mode": "MIXED",
