@@ -1081,3 +1081,75 @@ def test_276_guard_is_wired_into_validate_repository(tmp_path: Path, monkeypatch
     root = _write_fixture(tmp_path)
     validate_prd_registry.validate_repository(root)
     assert called.get("ran") is True
+
+
+# ---------------------------------------------------------------------------
+# PRD-277 — lane-guard patch: doc enumeration, CLASS validation, template marker
+# ---------------------------------------------------------------------------
+
+
+def _lane_errors_unregistered(tmp_path: Path, number: int, body: str) -> list[str]:
+    """Run the guard with NO registry rows at all — the PRD-277 R1 case."""
+    _write_prd_doc(tmp_path, number, body)
+    errors: list[str] = []
+    validate_prd_registry._validate_lane_payload_prohibition(tmp_path, {}, errors)
+    return errors
+
+
+def test_277_unregistered_governance_doc_is_still_checked(tmp_path: Path) -> None:
+    # RED case. Before PRD-277 the guard was seeded from registry_rows, so a doc
+    # absent from registry AND index was never inspected: omitting bookkeeping
+    # defeated the check one floor above the scope-lock evasion PRD-276 closed.
+    errors = _lane_errors_unregistered(
+        tmp_path,
+        277,
+        _lane_doc(277, "MICRO", "GOVERNANCE", "M docs/PRD_PROCESS.md"),
+    )
+    assert any("Lane downgrade: PRD-277" in e for e in errors)
+
+
+def test_277_misspelled_class_is_rejected_not_exempted(tmp_path: Path) -> None:
+    # RED case. "GOVERANCE" previously took the non-governance continue and the
+    # PRD was silently exempt - a one-character typo disabled the control.
+    errors = _lane_errors_unregistered(
+        tmp_path,
+        277,
+        _lane_doc(277, "MICRO", "GOVERANCE", "M docs/PRD_PROCESS.md"),
+    )
+    assert any("Unknown CLASS: PRD-277" in e for e in errors)
+
+
+def test_277_class_matrix_prose_is_not_a_declaration(tmp_path: Path) -> None:
+    # "CLASS Matrix" appears throughout the docs. Because an unknown CLASS is an
+    # ERROR here, the header pattern must not fire on prose.
+    body = (
+        "PRD-277 — fixture\n\nLANE\nMICRO\n\nCLASS\nINFRA\n\n"
+        "WHY NOW\nThe CLASS Matrix says this is fine.\n\n"
+        "FILES\nM docs/some_doc.md\n\nREQUIREMENTS\nR1 — x\n"
+    )
+    assert _lane_errors_unregistered(tmp_path, 277, body) == []
+
+
+def test_277_micro_template_registry_marker_is_accepted(tmp_path: Path) -> None:
+    # docs/PRD_MICRO_TEMPLATE.md emits "`docs/PRD_REGISTRY.md` (PRD-NNN row)".
+    # Rejecting the required template's own output made the MICRO path unusable.
+    errors = _lane_errors_unregistered(
+        tmp_path,
+        277,
+        _lane_doc(
+            277,
+            "MICRO",
+            "GOVERNANCE",
+            "- `docs/PRD_REGISTRY.md` (PRD-277 row)",
+        ),
+    )
+    assert errors == []
+
+
+def test_277_conflicting_class_declarations_fail_loud(tmp_path: Path) -> None:
+    body = (
+        "PRD-277 — fixture\n\nLANE\nMICRO\n\nCLASS\nGOVERNANCE\n\n"
+        "CLASS: INFRA\n\nFILES\nM docs/PRD_PROCESS.md\n\nREQUIREMENTS\nR1 — x\n"
+    )
+    errors = _lane_errors_unregistered(tmp_path, 277, body)
+    assert any("Conflicting CLASS declarations: PRD-277" in e for e in errors)
