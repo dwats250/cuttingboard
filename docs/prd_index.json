@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 273,
-  "next_prd": 274,
+  "latest_complete": 276,
+  "next_prd": 277,
   "entries": [
     {
       "number": 56,
@@ -1326,8 +1326,8 @@
     {
       "number": 276,
       "title": "Lane Downgrade Prohibition: payload-vs-pointer, and drop the registry contradiction",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "590dc75"
     },
     {
       "number": 277,
