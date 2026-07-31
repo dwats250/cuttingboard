@@ -27,21 +27,18 @@ not modified by this delta. This file is the only addition.
 
 ## 2. Executive conclusion
 
-The Strategy repository's 2026-07-30 candidate-fidelity work changes nothing
-in Cuttingboard and everything in how the Strategy proxy baseline may be
-read. The posture-threshold "patch" (0.50 -> 0.55) corrects a Strategy-side
-transcription defect: Cuttingboard code (`regime.py:331,336`) and docs
-(`regime_model.md:99-102`) both require confidence >= 0.55 for any actionable
-posture, and Gate 1 hard-rejects STAY_FLAT (`qualification.py:368-375`).
-There is no Cuttingboard production defect and no documentation drift here.
-The frozen AS-IS proxy baseline HAS been executed (registered 2026-07-30,
-identity chain verified), but it implements only the 0.50 floor - the same
-defect - so its registered counts (602 hard-pass / 170 QUALIFIED / 239
-WATCHLIST) overcount what Cuttingboard semantics produce; the corrected
-analog is 284 / 79 / 112 (recomputed here from the pinned post-patch export).
-No PR #175 finding row changes status, severity, evidence, or ordering.
-PRD-271 is untouched. The one genuinely new decision is Strategy-side: how
-to disposition the defective frozen baseline.
+The Strategy 2026-07-30 candidate-fidelity work changes nothing in
+Cuttingboard code or docs. The posture patch (0.50 -> 0.55) fixes a
+Strategy-side transcription defect: Cuttingboard's directional postures
+(RISK_ON / RISK_OFF, the only regimes the proxy represents) require
+confidence >= 0.55, and Gate 1 hard-rejects STAY_FLAT. No production
+defect, no documentation drift. The frozen AS-IS baseline HAS executed
+(identity verified) but shares the floor-only defect: its 602 / 170 / 239
+counts overcount Cuttingboard semantics; corrected analogs 284 / 79 / 112
+(recomputed here). No PR #175 row changes on the Strategy evidence;
+section 3 records two lifecycle updates (CB-12 narrowed by the PRD-276/277
+lane guard; CB-29's zero-reference line stale at HEAD). PRD-271 untouched.
+One new decision: Strategy-side disposition of the defective baseline.
 
 ## 3. Baseline relationship
 
@@ -66,14 +63,40 @@ Effect on baseline rows:
   the proxy models g9 as fail-open "by construction", matching
   `qualification.py:501-504` and `docs/trade_qualification.md:209`. CB-30
   stays UNKNOWN; this delta did not run it to ground.
-- Two baseline citations are stale for lifecycle reasons unrelated to the
-  Strategy evidence, recorded here for the reader, statuses unchanged:
-  CB-12's "PR #174 (OPEN, not production)" - PR #174 MERGED 2026-07-31T05:50Z
-  (`871ce90`), landing only the PRD-275 Stage-0 scaffold, which DECISIONS
-  2026-07-26 blocks behind six named constraints; and CB-28's specifics -
-  `docs/PROJECT_STATE.md` was rewritten 2026-07-31 (baseline described the
-  2026-07-26 version). CB-28's shape (an "Active PRD: none" line against
-  four registry IN PROGRESS rows: 268, 271, 274, 275) persists.
+- Four baseline rows carry lifecycle updates from the intervening
+  Cuttingboard range - not from Strategy evidence. Statuses are Dustin's to
+  move; this delta records the evidence changes only:
+  - **CB-12 (evidence narrowed).** PRD-276/277 (`590dc75`, `4b0f3ba`) added
+    `_validate_lane_payload_prohibition`
+    (`tools/validate_prd_registry.py:27-52,744+`, verified at `68de7d0`):
+    a PRD numbered >= 276 whose FILES names a governance payload file
+    (CLAUDE.md, PRD_PROCESS/TEMPLATE/REVIEW files, the review skill) must
+    declare LANE: HIGH-RISK, seeded from PRD documents rather than registry
+    rows. This mechanizes a subset of bypass (a). Residual, still live:
+    declared-lane trust on every non-governance change surface (code
+    HIGH-RISK files under a mislabeled lane), the casing bypass, the
+    intervening-text bypass, docless-COMPLETE rows, and
+    existence-not-content on the artifact leg. CB-12 remains PARTIAL in
+    substance; its bypass-(a) evidence sentence is now too broad.
+  - **CB-12's PR citation.** "PR #174 (OPEN, not production)" - PR #174
+    MERGED 2026-07-31T05:50Z (`871ce90`), landing only the PRD-275 Stage-0
+    scaffold, which DECISIONS 2026-07-26 blocks behind six named
+    constraints.
+  - **CB-28.** `docs/PROJECT_STATE.md` was rewritten 2026-07-31 (baseline
+    described the 2026-07-26 version). The row's shape (an "Active PRD:
+    none" line against four registry IN PROGRESS rows: 268, 271, 274, 275)
+    persists.
+  - **CB-29 (evidence line stale; this delta participates).** The row's
+    "zero references to `dwats250/strategy`" was true at the baseline's
+    production pin `9e6b772` but has been stale since the baseline's OWN
+    merge (`2751527`): at `68de7d0` the string appears in CHARTER.md,
+    EVIDENCE_INDEX.md, and FINDING_STATUS_MATRIX.md - and this delta adds a
+    stronger, hash-pinned pointer. What the row substantively asks for is
+    still absent: no canonical record (docs/DECISIONS.md, CLAUDE.md, or
+    docs/) names the relationship, and strategy-side owner decisions still
+    have no adoption record here. In substance CB-29 is PARTIAL once this
+    PR merges; moving the row (and whether audit-artifact pointers suffice)
+    is Dustin's ruling, recommended for the next matrix pass.
 - All other untouched rows remain exactly as the baseline states them.
 
 ## 4. Claim matrix
@@ -83,15 +106,15 @@ verified personally; every number was recomputed from the pinned artifacts.
 
 | # | Claim | Evidence | Authority | Disposition | Decision impact |
 |---|---|---|---|---|---|
-| 1 | The v0.5 proxy's original posture gate (`posturePass = confidence >= 0.50`) was too permissive relative to Cuttingboard; the patch to `>= 0.55` aligns it with Cuttingboard | Committed v0.5 pine line 113 reads `>= 0.50` (hash-verified); Cuttingboard `regime.py:325-338` (actionable posture requires `>= 0.55`; 0.50-0.55 band is STAY_FLAT), `qualification.py:368-375` (Gate 1 hard-rejects STAY_FLAT) | Cuttingboard code at `68de7d0` | PROXY DEFECT ONLY | None for Cuttingboard code. Strategy-side records affected (rows 5-6) |
-| 2 | Cuttingboard's 0.55 actionable-posture boundary is documented, implemented policy, not drift | `docs/regime_model.md:99-102`, `docs/runbook.md:40-41` state 0.55; `regime.py:331,336` implements it; `config.py:62` `MIN_REGIME_CONFIDENCE = 0.50` is a separate global floor, also correctly documented | Cuttingboard code + docs at `68de7d0` | INTENTIONAL CUTTINGBOARD POLICY | None. No doc fix owed on this threshold |
+| 1 | The v0.5 proxy's original posture gate (`posturePass = confidence >= 0.50`) was too permissive relative to Cuttingboard; the patch to `>= 0.55` aligns it with Cuttingboard for the regimes the proxy represents | Committed v0.5 pine line 113 reads `>= 0.50` (hash-verified); Cuttingboard `regime.py:325-338` (RISK_ON / RISK_OFF actionable posture requires `>= 0.55`; the 0.50-0.55 band is STAY_FLAT), `qualification.py:368-375` (Gate 1 hard-rejects STAY_FLAT) | Cuttingboard code at `68de7d0` | PROXY DEFECT ONLY | None for Cuttingboard code. Strategy-side records affected (rows 5-6) |
+| 2 | Cuttingboard's 0.55 boundary for directional (RISK_ON / RISK_OFF) actionable posture is documented, implemented policy, not drift - and it is the whole reachable actionable surface the proxy compares against | `docs/regime_model.md:99-102`, `docs/runbook.md:40-41` state 0.55; `regime.py:331,336` implements it; `config.py:62` `MIN_REGIME_CONFIDENCE = 0.50` is the separate global floor, also correctly documented. Scoping, verified: NEUTRAL_PREMIUM (nominally actionable at conf >= 0.50, VIX 18-25) is unreachable under current `compute_regime` - NEUTRAL implies abs(bounded_net) <= 1, so confidence <= 0.125, below the floor; TRANSITION is a legacy alias `compute_regime` never returns (`regime.py:32`); baseline CB-17 already records NEUTRAL_PREMIUM as an unreachable channel. EXPANSION bypasses the ladder at hardcoded confidence 1.0 (`regime.py:142-157`) and is not represented by either proxy | Cuttingboard code + docs at `68de7d0` | INTENTIONAL CUTTINGBOARD POLICY | None. No doc fix owed on this threshold |
 | 3 | The pre/post-patch funnel contrast (V2 602->284, V4 170->79, selected 118->62) isolates exactly the confidence == 0.50 bars | Recomputed from both pinned exports: all values reproduce; all 318 dropped V2 rows carry exported confidence exactly 0.50 (join on bar time). On the 8-vote lattice, [0.50, 0.55) contains only 0.50 (= abs(bounded_net) 4) | Pinned exports `e28aa874` / `2d375b4c`; `regime.py:206` (confidence = abs(bounded_net)/8) | CONFIRMED SUPPORTING EVIDENCE | Quantifies row 1's defect; establishes no Cuttingboard behavior |
 | 4 | The frozen AS-IS proxy baseline has been executed under its pinned manifest | Manifest FROZEN, captured 2026-07-30 05:42 UTC; script SHA re-verified (recomputed = manifest value); export SHA `d1b53750` recomputed; LEDGER row 1; capture screenshot; declared-window counts recomputed from the export: 2,909 bars, 170 QUALIFIED, 239 WATCHLIST, 204 kill-switch | Strategy pin `1aefaaa`; manifest `RUN_SPY_1D_2015-01-01.md` + 2026-07-30 amendment | CONFIRMED NEW FINDING | Q6 answered: executed. See row 5 for what its output may not be read as |
 | 5 | The frozen AS-IS proxy carries the same posture transcription defect: floor-only (0.50), no 0.55 tier; its in-script comment ("the finer posture tiers do not change any gate the proxy evaluates") is false against production | AS-IS pine lines 32, 96-99 (floor only); v0.5 zero-disagreement row-level comparison (2,908 common bars) against the PRE-patch export proves both encode 0.50; production trace (rows 1-2) proves the tier binds; corrected analog recomputed: V2 284, QUALIFIED-analog 79, one-miss band 112 | Strategy pin; Cuttingboard code at `68de7d0` | PROXY DEFECT ONLY | The registered 602/170/239 counts may NOT be read as an AS-IS description of Cuttingboard behavior. Dustin decision D2 (section 9) |
 | 6 | The faithful (tier-complete) AS-IS proxy QUALIFIED / WATCHLIST / REJECT counts are not established by any registered run | The only registered run embeds the floor-only defect (row 5); the post-patch v0.5 export gives corrected analogs (284/79/112) but represents just two soft gates, and its generating script is not in the repository (row 9) | Strategy pin | UNRESOLVED PENDING FROZEN RUN | A corrected frozen re-run is the only path to faithful counts, if Dustin wants them (decision D2) |
 | 7 | v0.5's strict requirement that both represented soft gates pass conflicts with neither Cuttingboard documented nor implemented semantics; it describes the qualified-setup layer | `docs/trade_qualification.md:5-11` and `qualification.py:536-581`: zero soft misses = qualified, exactly one = WATCHLIST, two+ = REJECT. "Both represented gates pass" = zero misses within the represented subset. The v0.5 doc itself concedes it "under-surfaces the broader CuttingBoard attention stream" | Cuttingboard code + docs at `68de7d0` | INTENTIONAL CUTTINGBOARD POLICY | None. The frozen AS-IS proxy already implements the count-based rule correctly (pine line 168-171) |
 | 8 | The 239 non-kill bars missing exactly one represented soft gate are WATCHLIST-layer analogs, not suppressed entries - and the count is pre-patch | Recomputed: 239 on the pre-patch export; 112 on the post-patch export (a number stated in no Strategy document - computed by this delta); both subject to the unrepresented gates (g8, g11) and to gates the proxy approximates | Pinned exports; `qualification.py:551-565` | CONFIRMED SUPPORTING EVIDENCE | Sizes the attention-stream layer only. No Cuttingboard consequence |
-| 9 | The post-patch evidence has an identity gap: no committed script produces the `2d375b4c` export | The only committed v0.5 pine is pre-patch (`>= 0.50`, hash matches the packet's pinned SHA); the checkpoint doc says the corrected script is operator-held with SHA "still belong[ing] in a future run record" | Strategy pin | CONFIRMED NEW FINDING | Post-patch numbers rest on a hashed CSV plus prose about its generator. Cure rides decision D2's dated correction |
+| 9 | The post-patch evidence has an identity gap: no committed script produces the `2d375b4c` export | The only committed v0.5 pine is pre-patch (`>= 0.50`, hash matches the packet's pinned SHA); the checkpoint doc says the corrected script is operator-held with SHA "still belong[ing] in a future run record" | Strategy pin | CONFIRMED NEW FINDING | Post-patch numbers rest on a hashed CSV plus prose about its generator. Decision D2's dated correction DISPOSITIONS this gap; it does not close it. Closure has exactly one path - the operator-held corrected script resurfaces and is committed strategy-side; recording its hash secondhand, or declaring the field UNRECOVERABLE, preserves the limitation permanently |
 | 10 | Strategy-side record hygiene is inconsistent at the pin | `studies/cuttingboard-asis-proxy/exports/README.md` still reads "Empty: no run has been executed" beside the registered export; the run-count amendment (3,619 -> 3,620, a `wc -l` trailing-newline defect) is recorded only in the dated amendment; classification counts verified unaffected | Strategy pin | CONFIRMED SUPPORTING EVIDENCE | Folded into decision D2's dated correction; nothing for Cuttingboard |
 | 11 | Gate-structure results (g7-fail == NEUTRAL regime on all rows; direction gate binds, falsifying the strategy matrix's Q-03 "CURRENTLY_INERT"; g5 tautological) | `ANALYSIS_GATE_STRUCTURE_2026-07-30.md`; the g7 identity is proxy-construction-specific (R:R fixed at 2.0 by construction; production R:R varies with real geometry) | Strategy pin | OUT OF SCOPE | Strategy-internal translation-matrix corrections (Q-03 already amended at `617978d`). No Cuttingboard row exists for these and none is created |
 | 12 | The 52 bars "blocked only by an open simulated position" and all Strategy Tester execution artifacts are TradingView simulation mechanics | v0.5 doc: "Strategy Tester execution artifacts do not equal candidate counts" | Strategy pin | OUT OF SCOPE | Not a Cuttingboard layer; carries no evidence weight here |
@@ -125,8 +148,12 @@ runs, or any executed trade.
 - **Implemented behavior (Cuttingboard, verified at `68de7d0`):**
   `qualification.py:536-581` implements exactly the 0 / 1 / 2+ rule;
   `regime.py:319-347` implements the 0.50 global floor plus the 0.55
-  actionable tier; `qualification.py:368-375` makes STAY_FLAT a Gate 1 hard
-  reject. Docs and code agree.
+  directional-posture tier; `qualification.py:368-375` makes STAY_FLAT a
+  Gate 1 hard reject. Docs and code agree. Scope note: the 0.55 statement
+  is about RISK_ON / RISK_OFF - the NEUTRAL_PREMIUM branch would act at
+  0.50 but is unreachable under current `compute_regime` (claim row 2), and
+  EXPANSION bypasses the ladder at hardcoded confidence 1.0; neither is
+  represented by the proxies, so neither affects any comparison here.
 - **Exploratory v0.5 proxy behavior:** strict AND over its two represented
   soft gates (`directRiskPass = stopDistancePass and notExtended`) - a
   deliberate strict funnel, self-documented as under-surfacing the
@@ -192,8 +219,11 @@ constraints) are unchanged and not re-argued here.
   posture defect. Recommended ruling: commission a dated Strategy-side
   correction record that (a) re-scopes RUN_SPY_1D_2015-01-01 as
   floor-only-posture evidence, (b) fixes the stale `exports/README.md`,
-  and (c) pins the post-patch v0.5 script hash or declares it
-  unrecoverable; decide separately - and without time pressure - whether a
+  and (c) dispositions the post-patch script identity gap - commit the
+  operator-held script in the strategy repo if it still exists (the only
+  closure path), else record the field UNRECOVERABLE per that repo's
+  manifest convention, which PRESERVES the limitation rather than closing
+  it; decide separately - and without time pressure - whether a
   tier-complete frozen re-run is worth a TradingView session. Consequence
   if unruled: the 170/239 counts sit in the strategy repo labeled as an
   executed AS-IS baseline while overstating the Cuttingboard-semantics
@@ -208,14 +238,18 @@ D2's recommended ruling, executed in `dwats250/strategy`).
 - Purpose: one dated amendment re-scoping the registered run as floor-only
   posture evidence, citing the posture-tier trace and the recomputed
   corrected analogs (284 / 79 / 112), correcting the stale exports README,
-  and closing the post-patch script identity gap.
+  and DISPOSITIONING the post-patch script identity gap - which stays open
+  as a preserved limitation unless the operator-held script itself is
+  committed strategy-side (a separate operator act, not promised here).
 - Mutation permission: strategy repo documentation only, via that repo's
   dated-amendment convention; no script edit, no export edit, no re-run.
 - Entry condition: Dustin approves D2.
 - Exit condition: the amendment is committed in the strategy repo and
   referenced from the study README.
 - Does NOT authorize: any Cuttingboard change, any threshold change, any
-  tuning, any re-run, any parity or profitability claim.
+  tuning, any re-run, any parity or profitability claim, or any claim that
+  the script identity gap is closed by hash-recording or an UNRECOVERABLE
+  declaration.
 
 ## 11. What was not checked
 
