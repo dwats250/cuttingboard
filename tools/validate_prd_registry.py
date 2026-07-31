@@ -50,7 +50,20 @@ GOVERNANCE_ANNOTATABLE_FILES = (
     "docs/PROJECT_STATE.md",
     "docs/PRD_REGISTRY.md",
 )
-_CLASS_GOVERNANCE_RE = re.compile(r"^CLASS\b[:\s]*\n?\s*GOVERNANCE\b", re.MULTILINE)
+# Stricter than the LANE header on purpose: an unrecognised CLASS value is an
+# ERROR, so the pattern must not fire on prose. "CLASS Matrix" appears
+# throughout the docs and has neither a colon nor a bare-header form.
+_CLASS_HEADER_RE = re.compile(r"^CLASS(?::[ \t]*(?P<inline>\S.*)|:?[ \t]*)$")
+# The closed CLASS base set from docs/PRD_PROCESS.md's CLASS Matrix. An
+# unrecognised value is an ERROR, never an exemption: before PRD-277 a
+# one-character typo ("GOVERANCE") silently disabled the lane guard.
+KNOWN_CLASSES = frozenset(
+    {"GOVERNANCE", "SIDECAR", "CONSUMER", "EXECUTION", "CONTRACT", "INFRA"}
+)
+# "+ PATCH" is a documented overlay on any base class (docs/PRD_TEMPLATE.md:10);
+# PRD-125..129 already use it. It is stripped before the base-class check so a
+# correctly classified patch PRD is not rejected (connector 3688783113).
+_CLASS_OVERLAY_RE = re.compile(r"\s*\+\s*PATCH\s*$", re.IGNORECASE)
 # A PRD section header is an all-caps line with no punctuation ("FILES",
 # "CHANGE SURFACE", "OUT OF SCOPE"). Requirement lines ("R1 - ...") and file
 # entries ("M docs/...") both carry lowercase and never match.
@@ -66,9 +79,15 @@ _LANE_HEADER_RE = re.compile(r"^LANE\b:?[ \t]*(?P<inline>\S.*)?$")
 KNOWN_LANES = frozenset({"MICRO", "STANDARD", "HIGH-RISK"})
 # A pointer declaration is the word pointer/bookkeeping inside parentheses,
 # e.g. "(active PRD pointer)" or "(closeout bookkeeping)".
+# The canonical row marker is docs/PRD_MICRO_TEMPLATE.md's "(PRD-NNN row)".
+# It is matched as a WHOLE FORM, not on the bare word `row`: a bare alternative
+# also exempted payload annotations like "(restructure row schema)", reopening
+# the registry bypass PRD-277 exists to close (connector 3688783118).
 _POINTER_ANNOTATION_RE = re.compile(
-    r"\([^)]*\b(?:pointer|bookkeeping)\b[^)]*\)", re.IGNORECASE
+    r"\((?:[^)]*\b(?:pointer|bookkeeping)\b[^)]*|\s*PRD-\d{3}\s+row\s*)\)",
+    re.IGNORECASE,
 )
+_PRD_DOC_RE = re.compile(r"^PRD-(\d{3})\.md$")
 # A commit cell token is a hex SHA (historical / post-merge closeout) or a
 # PR reference "#NNN" (PRD-229 same-PR closeout: the squash SHA does not
 # exist until merge, and PR numbers survive squash-merges).
@@ -611,6 +630,42 @@ def _extract_files_entries(text: str) -> list[str]:
     return entries
 
 
+def _declarable_lines(text: str) -> list[str]:
+    """Lines that can carry a real header, with non-declarable content blanked.
+
+    Content inside a fenced code block or an HTML comment is replaced by an
+    empty line rather than dropped, so callers keep line correspondence and
+    their "next non-blank line" lookahead skips it for free.
+
+    Both header readers share this: PRD docs embed worked examples in fences
+    AND in `<!-- ... -->` blocks, and either form was previously parsed as a
+    live declaration. For CLASS that exempted a PRD outright (connector
+    3689422346); for LANE a commented `HIGH-RISK` would likewise have skipped
+    enforcement. Single-sourced so the two cannot drift apart again.
+    """
+    out: list[str] = []
+    fenced = False
+    commented = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not fenced and not commented and stripped.startswith("<!--"):
+            # A single-line comment opens and closes on the same line.
+            commented = "-->" not in stripped
+            out.append("")
+            continue
+        if commented:
+            if "-->" in stripped:
+                commented = False
+            out.append("")
+            continue
+        if stripped.startswith("```"):
+            fenced = not fenced
+            out.append("")
+            continue
+        out.append("" if fenced else line)
+    return out
+
+
 def _declared_lanes(text: str) -> list[str]:
     """Return every lane value declared by a real LANE header, in order.
 
@@ -621,7 +676,7 @@ def _declared_lanes(text: str) -> list[str]:
     the same shape).
     """
     lanes: list[str] = []
-    lines = text.splitlines()
+    lines = _declarable_lines(text)
     for index, line in enumerate(lines):
         match = _LANE_HEADER_RE.match(line)
         if not match:
@@ -644,6 +699,48 @@ def _declared_lanes(text: str) -> list[str]:
     return lanes
 
 
+def _declared_classes(text: str) -> list[str]:
+    """Return every CLASS value declared by a real CLASS header, in order.
+
+    Unlike the lane reader this does NOT silently drop unrecognised values -
+    the caller turns them into errors, because before PRD-277 a one-character
+    typo ("GOVERANCE") made a PRD look non-governance and exempted it.
+    """
+    classes: list[str] = []
+    lines = _declarable_lines(text)
+    for index, line in enumerate(lines):
+        match = _CLASS_HEADER_RE.match(line)
+        if not match:
+            continue
+        inline = (match.group("inline") or "").strip()
+        if inline:
+            classes.append(_CLASS_OVERLAY_RE.sub("", inline).strip().upper())
+            continue
+        for following in lines[index + 1:]:
+            candidate = following.strip()
+            if not candidate or candidate.startswith("<!--"):
+                continue
+            classes.append(_CLASS_OVERLAY_RE.sub("", candidate).strip().upper())
+            break
+    return classes
+
+
+def _entry_forces_lane(entry: str) -> bool:
+    """True if this FILES entry would force HIGH-RISK for a GOVERNANCE PRD.
+
+    A payload file always forces it. An annotatable file forces it only when
+    the entry carries no pointer/bookkeeping annotation - which is why the
+    missing-CLASS check cannot simply ask "does this name a governance file":
+    an ANNOTATED bookkeeping entry is exactly the micro-template case that must
+    stay tolerated (connector 3688814717 then 3688912753).
+    """
+    if any(path in entry for path in GOVERNANCE_PAYLOAD_FILES):
+        return True
+    return any(
+        path in entry for path in GOVERNANCE_ANNOTATABLE_FILES
+    ) and not _POINTER_ANNOTATION_RE.search(entry)
+
+
 def _validate_lane_payload_prohibition(
     root: Path,
     registry_rows: dict[int, dict[str, str | None]],
@@ -658,14 +755,53 @@ def _validate_lane_payload_prohibition(
     # settle, so the guard checks the author's DECLARATION and the
     # fresh-context review checks the declaration against the diff.
     history = root / "docs" / "prd_history"
-    for number in sorted(registry_rows):
+    # Seeded from PRD DOCUMENTS, not registry_rows (PRD-277 R1). Keying the
+    # guard off a bookkeeping artifact let an unregistered doc skip it
+    # entirely - omitting the registry row defeated the check one floor above
+    # the scope-lock evasion PRD-276 R6 had just closed.
+    for doc in sorted(history.glob("PRD-*.md")):
+        name_match = _PRD_DOC_RE.match(doc.name)
+        if not name_match:
+            continue
+        number = int(name_match.group(1))
         if number < LANE_PAYLOAD_ENFORCEMENT_START:
             continue
-        doc = history / f"PRD-{number:03d}.md"
-        if not doc.exists():
-            continue
         text = doc.read_text(encoding="utf-8")
-        if not _CLASS_GOVERNANCE_RE.search(text):
+        classes = _declared_classes(text)
+        if not classes:
+            # A missing CLASS is fatal ONLY when the PRD names a governance
+            # payload file - otherwise this would fail every PRD copied from
+            # docs/PRD_MICRO_TEMPLATE.md, which emits no CLASS field, and the
+            # PRD-229 cosmetic short-form, which has no header block at all
+            # (connector 3688814717). Scoped to the case the guard exists for:
+            # a doc that cannot be classified but touches governance payload.
+            if any(
+                _entry_forces_lane(entry) for entry in _extract_files_entries(text)
+            ):
+                errors.append(
+                    f"Missing CLASS: {_display_prd(number)} names a GOVERNANCE "
+                    f"payload file in FILES but declares no CLASS header, so its "
+                    f"lane cannot be checked. Declare CLASS explicitly; an absent "
+                    f"CLASS must never be read as an exemption (PRD-277)"
+                )
+            continue
+        unknown = [c for c in classes if c not in KNOWN_CLASSES]
+        if unknown:
+            errors.append(
+                f"Unknown CLASS: {_display_prd(number)} declares "
+                f"{', '.join(sorted(set(unknown)))}, which is not in the CLASS "
+                f"Matrix base set {sorted(KNOWN_CLASSES)}. An unrecognised CLASS "
+                f"must never be read as an exemption (PRD-277)"
+            )
+            continue
+        if len(set(classes)) > 1:
+            errors.append(
+                f"Conflicting CLASS declarations: {_display_prd(number)} declares "
+                f"{', '.join(sorted(set(classes)))}. A PRD has exactly one CLASS "
+                f"(PRD-277)"
+            )
+            continue
+        if "GOVERNANCE" not in classes:
             continue
         lanes = _declared_lanes(text)
         if len(set(lanes)) > 1:
@@ -697,9 +833,10 @@ def _validate_lane_payload_prohibition(
                 f"Lane downgrade: {_display_prd(number)} is CLASS GOVERNANCE and "
                 f"names {', '.join(triggers)} in FILES as payload, so it must "
                 f"declare LANE: HIGH-RISK (PRD-276; PRD-121 R11). Either escalate "
-                f"the lane, or — for docs/PROJECT_STATE.md only — annotate the "
-                f"FILES entry '(pointer)' or '(bookkeeping)' if the touch really "
-                f"is incidental lifecycle bookkeeping"
+                f"the lane, or — for {' / '.join(GOVERNANCE_ANNOTATABLE_FILES)} "
+                f"only — annotate the FILES entry '(pointer)', '(bookkeeping)' or "
+                f"'(PRD-NNN row)' if the touch really is incidental lifecycle "
+                f"bookkeeping"
             )
 
 

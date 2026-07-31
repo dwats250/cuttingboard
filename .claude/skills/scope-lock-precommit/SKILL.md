@@ -107,9 +107,27 @@ non-closeout commit, that is a violation.
 **Exception — CLASS GOVERNANCE PRDs (PRD-276).** For a PRD whose `CLASS`
 is `GOVERNANCE`, `docs/PRD_REGISTRY.md` and `docs/PROJECT_STATE.md` are
 NOT covered by this allowlist. They must appear in that PRD's `FILES`
-section, annotated `(pointer)` / `(bookkeeping)` if the touch really is
-incidental. STOP and report if either is staged by a GOVERNANCE PRD that
-does not name it.
+section, annotated if the touch really is incidental — either a phrase
+containing `pointer` / `bookkeeping`, or the canonical micro-template
+marker `(PRD-NNN row)`, which `docs/PRD_MICRO_TEMPLATE.md` emits verbatim
+and which is accepted as-is. STOP and report if either file is staged by a
+GOVERNANCE PRD that does not name it.
+
+Using any of those annotations obliges ONE `fresh-context` structured
+review regardless of lane, including MICRO (PRD-276 R5). The annotation is
+a declaration this skill's numbered contract does not yet check against
+the diff; that review is what does.
+
+Verifying the claim against staged hunks IS the right fix and is not
+abandoned — `docs/prd_history/PRD-277.review.fable.md` item 4 upholds it,
+and the precedent already exists in V7's cosmetic carve-out. It was
+attempted here as prose and reverted (connector 3689272946): a check that
+is not a numbered Phase-1 step with a V-row and a report line is not a
+check, and the hunk-shape vocabulary it needs is not yet correct — the
+first draft would have rejected a FILES-declared closeout row and, per
+that review's independent finding 1, the ordinary PROJECT_STATE closeout
+diff as well. Re-scheduled as a PRD-278 requirement, where the shapes must
+be fixture-tested against real governance diffs before anything is wired.
 
 Why the carve-out has a carve-out: for a GOVERNANCE PRD these two files
 are candidate PAYLOAD, and the Lane Downgrade Prohibition decides that

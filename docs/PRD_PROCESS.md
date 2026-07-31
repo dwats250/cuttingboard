@@ -56,6 +56,8 @@ Scope violations require either a PRD amendment (add the file to FILES before to
 
 Registry and index bookkeeping (`docs/PRD_REGISTRY.md`, `docs/prd_index.json`) is implicit in every PRD lifecycle and is not enumerated in PRD `FILES` sections. Cross-reviewers should treat edits to these two files as authorized by the registry-maintenance step below, not as scope violations.
 
+**Exception — CLASS GOVERNANCE (PRD-276 / PRD-277).** For a PRD whose `CLASS` is `GOVERNANCE`, `docs/PRD_REGISTRY.md` and `docs/PROJECT_STATE.md` ARE enumerated in `FILES`, annotated `(pointer)` / `(bookkeeping)` / `(PRD-NNN row)` when the touch is incidental. For those PRDs the two files are candidate PAYLOAD, and the Lane Downgrade Prohibition decides the lane from how `FILES` declares them — so leaving them implicit would make omission a lane bypass. `docs/prd_index.json` stays implicit for every CLASS. This paragraph and the Prohibition are the single declaration policy; `.claude/skills/scope-lock-precommit/SKILL.md` enforces it.
+
 ### Registry Maintenance
 1. Add a row to `PRD_REGISTRY.md` with status `IN PROGRESS` before implementation begins.
 2. Before merge, in the implementation PR: once the PR is open (its number now exists), push the closeout commit into it — status `COMPLETE`, PR number (`#NNN`) in the commit cell (see Same-PR Closeout below). Work merged by hand outside a normal PR flow may record the merge SHA post-merge instead.
@@ -498,10 +500,16 @@ ceremony, even though the row-level bookkeeping every PRD performs must not.
 
 **Declaring a pointer touch.** A `FILES` entry for `docs/PROJECT_STATE.md`
 or `docs/PRD_REGISTRY.md` claiming pointer treatment MUST carry a
-parenthesised annotation on its own line containing the word `pointer` or
-`bookkeeping` — e.g. `M docs/PROJECT_STATE.md (active PRD pointer)` or
-`M docs/PRD_REGISTRY.md (PRD-NNN row bookkeeping)`. An unannotated entry is
-read as a payload touch and forces `HIGH-RISK`.
+parenthesised annotation on its own line that is EITHER a phrase containing the
+word `pointer` or `bookkeeping`, OR the canonical micro-template marker
+`(PRD-NNN row)` — e.g. `M docs/PROJECT_STATE.md (active PRD pointer)`,
+`M docs/PRD_REGISTRY.md (PRD-NNN row bookkeeping)`, or the unmodified
+`docs/PRD_MICRO_TEMPLATE.md` line `` - `docs/PRD_REGISTRY.md` (PRD-NNN row) ``.
+An unannotated entry is read as a payload touch and forces `HIGH-RISK`.
+
+The `(PRD-NNN row)` form is matched as a WHOLE marker, not on the bare word
+`row`: an annotation like `(restructure row schema)` describes a PAYLOAD change
+and must NOT be exempted (PRD-277).
 `tools/validate_prd_registry.py` enforces this for PRDs numbered 276 and
 above; earlier PRDs predate the rule and are not retroactively failed.
 

@@ -1081,3 +1081,196 @@ def test_276_guard_is_wired_into_validate_repository(tmp_path: Path, monkeypatch
     root = _write_fixture(tmp_path)
     validate_prd_registry.validate_repository(root)
     assert called.get("ran") is True
+
+
+# ---------------------------------------------------------------------------
+# PRD-277 — lane-guard patch: doc enumeration, CLASS validation, template marker
+# ---------------------------------------------------------------------------
+
+
+def _lane_errors_unregistered(tmp_path: Path, number: int, body: str) -> list[str]:
+    """Run the guard with NO registry rows at all — the PRD-277 R1 case."""
+    _write_prd_doc(tmp_path, number, body)
+    errors: list[str] = []
+    validate_prd_registry._validate_lane_payload_prohibition(tmp_path, {}, errors)
+    return errors
+
+
+def test_277_unregistered_governance_doc_is_still_checked(tmp_path: Path) -> None:
+    # RED case. Before PRD-277 the guard was seeded from registry_rows, so a doc
+    # absent from registry AND index was never inspected: omitting bookkeeping
+    # defeated the check one floor above the scope-lock evasion PRD-276 closed.
+    errors = _lane_errors_unregistered(
+        tmp_path,
+        277,
+        _lane_doc(277, "MICRO", "GOVERNANCE", "M docs/PRD_PROCESS.md"),
+    )
+    assert any("Lane downgrade: PRD-277" in e for e in errors)
+
+
+def test_277_misspelled_class_is_rejected_not_exempted(tmp_path: Path) -> None:
+    # RED case. "GOVERANCE" previously took the non-governance continue and the
+    # PRD was silently exempt - a one-character typo disabled the control.
+    errors = _lane_errors_unregistered(
+        tmp_path,
+        277,
+        _lane_doc(277, "MICRO", "GOVERANCE", "M docs/PRD_PROCESS.md"),
+    )
+    assert any("Unknown CLASS: PRD-277" in e for e in errors)
+
+
+def test_277_class_matrix_prose_is_not_a_declaration(tmp_path: Path) -> None:
+    # "CLASS Matrix" appears throughout the docs. Because an unknown CLASS is an
+    # ERROR here, the header pattern must not fire on prose.
+    body = (
+        "PRD-277 — fixture\n\nLANE\nMICRO\n\nCLASS\nINFRA\n\n"
+        "WHY NOW\nThe CLASS Matrix says this is fine.\n\n"
+        "FILES\nM docs/some_doc.md\n\nREQUIREMENTS\nR1 — x\n"
+    )
+    assert _lane_errors_unregistered(tmp_path, 277, body) == []
+
+
+def test_277_micro_template_registry_marker_is_accepted(tmp_path: Path) -> None:
+    # docs/PRD_MICRO_TEMPLATE.md emits "`docs/PRD_REGISTRY.md` (PRD-NNN row)".
+    # Rejecting the required template's own output made the MICRO path unusable.
+    errors = _lane_errors_unregistered(
+        tmp_path,
+        277,
+        _lane_doc(
+            277,
+            "MICRO",
+            "GOVERNANCE",
+            "- `docs/PRD_REGISTRY.md` (PRD-277 row)",
+        ),
+    )
+    assert errors == []
+
+
+def test_277_conflicting_class_declarations_fail_loud(tmp_path: Path) -> None:
+    body = (
+        "PRD-277 — fixture\n\nLANE\nMICRO\n\nCLASS\nGOVERNANCE\n\n"
+        "CLASS: INFRA\n\nFILES\nM docs/PRD_PROCESS.md\n\nREQUIREMENTS\nR1 — x\n"
+    )
+    errors = _lane_errors_unregistered(tmp_path, 277, body)
+    assert any("Conflicting CLASS declarations: PRD-277" in e for e in errors)
+
+
+def test_277_missing_class_with_governance_payload_is_rejected(tmp_path: Path) -> None:
+    # PRD-277 R2's own FAIL line required this; the first implementation
+    # returned [] and silently exempted (connector 3688783109).
+    body = "PRD-277 — fixture\n\nLANE\nMICRO\n\nFILES\nM docs/PRD_PROCESS.md\n"
+    errors = _lane_errors_unregistered(tmp_path, 277, body)
+    assert any("Missing CLASS: PRD-277" in e for e in errors)
+
+
+def test_277_missing_class_without_governance_payload_is_tolerated(tmp_path: Path) -> None:
+    # docs/PRD_MICRO_TEMPLATE.md emits NO CLASS field, and the PRD-229 cosmetic
+    # short-form has no header block at all. Making a missing CLASS
+    # unconditionally fatal would have failed every micro-PRD from 278 onward
+    # (connector 3688814717). Fatal only when governance payload is named.
+    body = "PRD-277 — fixture\n\nLANE\nMICRO\n\nFILES\nM docs/some_other_doc.md\n"
+    assert _lane_errors_unregistered(tmp_path, 277, body) == []
+
+
+def test_277_patch_overlay_class_is_accepted(tmp_path: Path) -> None:
+    # "+ PATCH" is a documented overlay on any base class
+    # (docs/PRD_TEMPLATE.md:10); PRD-125..129 already use it.
+    errors = _lane_errors_unregistered(
+        tmp_path,
+        277,
+        _lane_doc(277, "MICRO", "INFRA + PATCH", "M docs/some_doc.md"),
+    )
+    assert errors == []
+
+
+def test_277_bare_word_row_does_not_exempt_a_payload_annotation(tmp_path: Path) -> None:
+    # RED case. A bare `row` alternative exempted "(restructure row schema)",
+    # reopening the registry bypass this PRD closes (connector 3688783118).
+    errors = _lane_errors_unregistered(
+        tmp_path,
+        277,
+        _lane_doc(
+            277,
+            "MICRO",
+            "GOVERNANCE",
+            "M docs/PRD_REGISTRY.md (restructure row schema)",
+        ),
+    )
+    assert any("Lane downgrade: PRD-277" in e for e in errors)
+
+
+def test_277_canonical_row_marker_still_exempts(tmp_path: Path) -> None:
+    errors = _lane_errors_unregistered(
+        tmp_path,
+        277,
+        _lane_doc(277, "MICRO", "GOVERNANCE", "- `docs/PRD_REGISTRY.md` (PRD-277 row)"),
+    )
+    assert errors == []
+
+
+def test_277_class_inside_a_fenced_block_is_not_a_declaration(tmp_path: Path) -> None:
+    # PRD docs commonly embed validation fixtures; a fenced negative-test
+    # sample must not be read as a second declaration (connector 3688783125).
+    body = (
+        "PRD-277 — fixture\n\nLANE\nHIGH-RISK\n\nCLASS\nGOVERNANCE\n\n"
+        "VALIDATION\n```\nCLASS\nGOVERANCE\n```\n\nFILES\nM docs/some_doc.md\n"
+    )
+    assert _lane_errors_unregistered(tmp_path, 277, body) == []
+
+
+def test_277_missing_class_with_annotatable_payload_is_rejected(tmp_path: Path) -> None:
+    # Connector 3688912753: the missing-CLASS branch scanned only
+    # GOVERNANCE_PAYLOAD_FILES, so a CLASS-less PRD naming PRD_REGISTRY.md with
+    # a PAYLOAD annotation reached the exempting `continue`. The two-tuple split
+    # caused this twice; both arms now read one union.
+    body = (
+        "PRD-277 — fixture\n\nLANE\nMICRO\n\n"
+        "FILES\nM docs/PRD_REGISTRY.md (restructure row schema)\n"
+    )
+    errors = _lane_errors_unregistered(tmp_path, 277, body)
+    assert any("Missing CLASS: PRD-277" in e for e in errors)
+
+
+def test_277_missing_class_with_annotated_bookkeeping_still_tolerated(tmp_path: Path) -> None:
+    # The union must not re-break the micro-template path: an ANNOTATED
+    # bookkeeping entry with no CLASS is still tolerated.
+    body = (
+        "PRD-277 — fixture\n\nLANE\nMICRO\n\n"
+        "FILES\n- `docs/PRD_REGISTRY.md` (PRD-277 row)\n"
+    )
+    assert _lane_errors_unregistered(tmp_path, 277, body) == []
+
+
+def test_277_class_inside_an_html_comment_is_not_a_declaration(tmp_path: Path) -> None:
+    # RED case, fails OPEN unlike the other parsing defects: a commented-out
+    # CLASS example was parsed as a live declaration, so a PRD with no real
+    # CLASS header was exempted outright (connector 3689422346).
+    body = (
+        "PRD-277 — fixture\n\nLANE\nMICRO\n\n"
+        "<!-- worked example, not a declaration:\nCLASS\nINFRA\n-->\n\n"
+        "FILES\nM docs/PRD_PROCESS.md\n"
+    )
+    errors = _lane_errors_unregistered(tmp_path, 277, body)
+    assert any("Missing CLASS: PRD-277" in e for e in errors)
+
+
+def test_277_lane_inside_an_html_comment_is_not_a_declaration(tmp_path: Path) -> None:
+    # The identical hole in the adjacent reader: a commented HIGH-RISK would
+    # have satisfied the skip and disabled enforcement.
+    body = (
+        "PRD-277 — fixture\n\nLANE\nMICRO\n\nCLASS\nGOVERNANCE\n\n"
+        "<!-- if this were payload it would need:\nLANE\nHIGH-RISK\n-->\n\n"
+        "FILES\nM docs/PRD_PROCESS.md\n"
+    )
+    errors = _lane_errors_unregistered(tmp_path, 277, body)
+    assert any("Lane downgrade: PRD-277" in e for e in errors)
+
+
+def test_277_single_line_html_comment_after_lane_still_parses(tmp_path: Path) -> None:
+    # PRD-273 uses exactly this shape: a one-line <!-- --> immediately after the
+    # LANE value. Blanking must not swallow the declaration above it.
+    body = (
+        "PRD-277 — fixture\n\nLANE\nHIGH-RISK\n<!-- deliberate escalation -->\n\n"
+        "CLASS\nGOVERNANCE\n\nFILES\nM docs/PRD_PROCESS.md\n"
+    )
+    assert _lane_errors_unregistered(tmp_path, 277, body) == []
