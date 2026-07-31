@@ -19,9 +19,12 @@ phase produced ≥20 entries and the next phase has clearly begun.
 ## 2026-07-31 — Git deny-list policy: glob patterns cannot narrow checkout; fail closed, tokenize later (ruled: Dustin, PR #181)
 
 PR #181 set out to narrow the blanket `git *checkout*` deny so agents could
-run branch commands. Three connector review rounds (10 findings, all upheld
-on verification, two P1 unrecoverable-discard holes) established that the
-failure was not incomplete enumeration but the pattern language itself:
+run branch commands. Three connector review rounds (10 findings: 8 actioned,
+2 dismissed with reasons; two were P1 unrecoverable-discard holes) established
+that the failure was not incomplete enumeration but the pattern language
+itself. The two dismissals rejected the recommended fixes as worse trades
+(anchoring opens a `git -C <path>` bypass), not the observations, which were
+accurate in all ten cases:
 
 1. Flagless `git checkout <path>` silently discards work and is
    string-identical to `git checkout <branch>` — no glob can separate them.
@@ -32,21 +35,30 @@ failure was not incomplete enumeration but the pattern language itself:
 
 **Ruling:** the checkout blanket deny stays (fail closed). The net-new
 switch/restore/branch denies land, tightened to token-prefix and
-abbreviation-safe forms (`git *switch* -f*`, `git *branch *--forc*`) — those
-subcommands are constrainable because their destructive surfaces are closed
-sets. Branch operations flow through `git switch` / `git switch -c`.
-Disclosed residues and the full hole-class analysis live in the PR #181 body.
+abbreviation-safe forms (`git *switch* -f*`, `git *branch *--forc*`). The
+protection tiers differ and the record must not conflate them: the SWITCH
+short-flag surface is genuinely closed under glob (its value-absorbing flags
+`-c`/`-C`/`-t` bound the bundle alphabet to q/d/m, all denied). The BRANCH
+rules are a deliberate speed bump, NOT a closed set — listing flags can lead
+bundles (`git branch -vd victim`, or repeated `-vvvvvd`) and cannot be denied
+without breaking the allowed `git branch -v`; the exposure is bounded to the
+reflog-recoverable delete/move class. Branch operations flow through
+`git switch` / `git switch -c`. Full analysis in the PR #181 body.
 
 **Decision embedded here:** precision beyond what globs can express is not
-pursued with more globs. The named complete fix is a tokenizing PreToolUse
-hook that parses the git command line — a future PRD, taken only if the
-residual friction proves worth the code.
+pursued with more globs. The named complete fix is a PreToolUse hook — and
+tokenizing alone is NOT sufficient, since `git checkout foo` yields the same
+argv for a branch switch and a flagless path discard. The hook must either
+keep checkout blanket-denied, or resolve the argument against git's actual
+ref/path semantics. A future PRD, taken only if the residual friction proves
+worth the code.
 
 **Lesson:** a deny pattern is a parser wearing a glob costume. When the
 policy needs to know which token is the subcommand and which is an argument,
 the pattern language is the wrong layer, and each patch round buys apparent
-coverage while the hole class stays open. The connector went 10-for-10
-against two rigorous self-verification passes; the review layer, not
+coverage while the hole class stays open. The connector's observations were
+accurate 10 out of 10 times against two rigorous self-verification passes
+(even where its recommended fix was declined); the review layer, not
 self-check, is what caught every hole.
 
 ## 2026-07-26 — Review artifacts are append-only; a superseded artifact is renamed, never overwritten (ruled: Dustin)
