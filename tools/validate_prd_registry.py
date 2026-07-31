@@ -50,13 +50,6 @@ GOVERNANCE_ANNOTATABLE_FILES = (
     "docs/PROJECT_STATE.md",
     "docs/PRD_REGISTRY.md",
 )
-# Every governance file that can force the lane, regardless of which arm of the
-# rule applies. The payload/annotatable split exists because the two arms treat
-# an entry differently once found - it is NOT a difference in which files are
-# in scope, and reading only one arm caused two defects (connector 3688543123
-# then 3688912753). Any check asking "does this PRD touch governance payload at
-# all?" must use this union.
-GOVERNANCE_LANE_TRIGGER_FILES = GOVERNANCE_PAYLOAD_FILES + GOVERNANCE_ANNOTATABLE_FILES
 # Stricter than the LANE header on purpose: an unrecognised CLASS value is an
 # ERROR, so the pattern must not fire on prose. "CLASS Matrix" appears
 # throughout the docs and has neither a colon nor a bare-header form.
