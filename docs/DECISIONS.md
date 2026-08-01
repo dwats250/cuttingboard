@@ -16,6 +16,46 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-01 — GOV-2 ratified upon merge of PR #186: MATERIAL review precedes downstream authority (ruled: Dustin)
+
+Dustin's merge of PR #186 is the ratifying action for
+`docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md`. Before that
+merge, GOV-2 and this entry remain pending and grant no implementation or
+merge authority. Because this entry lands through the same PR, its presence
+on `main` is durable evidence that Dustin performed the ratifying merge.
+
+GOV-2 prevents an author from certifying the completeness of a material
+boundary it selected. Work is MATERIAL when any section 1 condition applies,
+whether found at intake or on required reclassification after material scope
+expansion. MATERIAL takes precedence over MICRO eligibility and therefore
+disqualifies `LANE: MICRO`; it does not itself force HIGH-RISK, which remains
+independently determined by the existing lane triggers.
+
+The MATERIAL packet cycle auto-commissions Codex for exactly two events: one
+independent upstream packet review and one exact-corrected-head confirmation
+after the single consolidated correction. Each event leaves packet-local
+committed evidence. The confirmation is limited to the corrected SHA and the
+prior findings being confirmed; it is not a new broad review or a standing
+Codex gate.
+
+After the packet is review-clean and Dustin issues the design-direction
+ruling, every MATERIAL PRD in STANDARD or HIGH-RISK is reviewed before Gate A
+by the fresh-context independent reviewer capability role. That reviewer is
+not the author or same-session implementer, reviews the PRD together with the
+cleared packet and Dustin's ruling, and records a committed verdict against
+the exact reviewed revision. A qualified fresh-context second-model reviewer
+may fill the role under the MATERIAL workflow; Codex is not mandated for it.
+
+Dustin retains sole authority to issue the design-direction ruling, Gate A,
+any amended Gate A approving a ceiling increase, Gate B, ratification, and
+merge. No agent, reviewer, connector, documentation amendment, or automated
+event may satisfy or infer those owner actions.
+
+**Ratification provenance:** PR #186 is the durable pre-merge reference. The
+final merged SHA does not exist while this entry is reviewed; if the merge
+procedure requires it in addition to the PR number, Dustin fills it into this
+entry at merge.
+
 ## 2026-07-31 — Git deny-list policy: glob patterns cannot narrow checkout; fail closed, tokenize later (ruled: Dustin, PR #181)
 
 PR #181 set out to narrow the blanket `git *checkout*` deny so agents could
