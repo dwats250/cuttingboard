@@ -20,7 +20,10 @@ retell origin stories.
   discretion.
 - **Codex (or any second model)** is an instrument Dustin may commission for a
   genuinely independent second opinion (PRD-242). Never a standing gate
-  requirement; never drives architectural direction.
+  requirement; never drives architectural direction. GOV-2 adds one bounded
+  exception: work classified MATERIAL at intake requires Codex review of the
+  upstream packet and independent confirmation of its exact corrected head
+  before a design-direction ruling.
 
 ## Canonical sources
 
@@ -37,6 +40,10 @@ Reference these; do not duplicate them.
 - `README.md` — outsider's entry point
 - `docs/PRD_PROCESS.md` — PRD lifecycle, CLASS/LANE matrices, Second-Model
   Disposition spec, Same-PR Closeout, Cosmetic Carve-Out, Review Dispatch
+- `docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md` — binding
+  material-work intake classification, upstream review order, exact-head
+  confirmation, bounded correction, and provisional-ceiling rules after
+  Dustin ratifies GOV-2.
 - `docs/architecture.md`, `docs/sidecar_doctrine.md` — structural references
 - `docs/CLAUDE_HOOKS.md` — the repo's hooks (file protection, PRD registry-gap
   check, canonical-read guard) and their state files
@@ -58,7 +65,8 @@ Reference these; do not duplicate them.
   force-push is denied by repo settings.
 - **Closeout rides the implementation PR** (PRD-229 Same-PR Closeout; owner:
   `docs/PRD_PROCESS.md`). Residual bookkeeping fixes ride their own PR, held
-  for Dustin's merge like any other.
+  for Dustin's merge like any other. GOV-2 does not change this rule; moving
+  HIGH-RISK closeout post-merge requires a later code-touching validator PRD.
 - **Closeouts run only through the `prd-closeout-verified` skill.** Never a
   hand-rolled `prd_close.sh` call. The skill's preflight distinguishes
   same-PR mode (`#NNN`, requires an OPEN PR) from hex-hash mode (post-merge)
@@ -91,12 +99,23 @@ Reference these; do not duplicate them.
   working from a fresh context — one that did not author the change — plus
   whatever the connector bot posts (advisory only; see bot-review threads
   below). That is the whole standing requirement. Deep independent review is
-  NOT standing: it is opt-in, commissioned by Dustin, or triggered by the
-  conditions named in `docs/PRD_PROCESS.md` § Second-Model Disposition.
+  NOT standing except for work classified MATERIAL under GOV-2, or when it is
+  otherwise commissioned by Dustin or triggered by the conditions named in
+  `docs/PRD_PROCESS.md` § Second-Model Disposition.
+- **MATERIAL work is classified at intake (GOV-2).** Before opening a PRD,
+  apply `docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md` §1 to the
+  proposed work. A match requires an upstream material packet, independent
+  Codex review, one consolidated correction, and independent SHA-pinned
+  confirmation of the exact corrected head. Only then may Dustin issue a
+  design-direction ruling and downstream PRD drafting begin. Gate A remains
+  the later implementation authorization on the reviewed PRD.
 - **At most one correction cycle (GOV-1).** The reviewing agent produces
   findings once; the authoring agent addresses them once; the gate closes. A
   second round happens only because Dustin asks for one — never because a
-  reviewer wants the last word.
+  reviewer wants the last word. For MATERIAL packets, GOV-2's exact-head
+  confirmation is part of that single bounded cycle; a new material boundary
+  omission returns the packet to DESIGN INCOMPLETE instead of creating an
+  endless review loop.
 - **Reviews target the change, never another review's prose (GOV-1).** A
   review reads the diff and the PRD. It does not critique a prior reviewer's
   write-up, and no artifact is produced whose subject is another artifact.
@@ -139,15 +158,18 @@ Reference these; do not duplicate them.
   advisory INPUT, never gate-satisfying. Disposition of every substantive
   thread is mandatory: (a) ACTIONED — the fix lands (a bug fix or a
   lane-appropriate PRD) and the thread is resolved in-thread citing the fixing
-  commit SHA / PRD number; or (b) DISMISSED with a one-line in-thread reason
-  (out-of-scope, false positive, or already-covered with the covering SHA).
-  No substantive thread is left dangling. A real defect gets the normal
-  treatment — PRD before build when non-trivial, a mutation-verified red test
-  per the hardening invariants — never patched silently to clear the thread.
-  The thread is not the artifact: resolving it never stands in for the lane's
-  fresh-context review or the second-model disposition. Connector output is
-  also not a correction cycle — triaging it does not consume the single cycle
-  GOV-1 allows. This clause is itself a governance guardrail (per above).
+  commit SHA / PRD number; (b) DISMISSED with a one-line in-thread reason
+  (out-of-scope, false positive, or already-covered with the covering SHA); or
+  (c) BLOCKED/PARKED under GOV-2 — the finding is valid, the packet is not
+  review-clean, downstream authority is prohibited, and the thread remains
+  unresolved until Dustin resumes, narrows, or retires the packet. A real
+  defect gets the normal treatment — PRD before build when non-trivial, a
+  mutation-verified red test per the hardening invariants — never patched
+  silently to clear the thread. The thread is not the artifact: resolving it
+  never stands in for the lane's fresh-context review or the second-model
+  disposition. Connector output is also not a correction cycle — triaging it
+  does not consume the single cycle GOV-1 allows. This clause is itself a
+  governance guardrail (per above).
 - **Drift check in every review (PRD-186).** Every review artifact records a
   DRIFT CHECK, not just correctness: does the change conflict with a
   `VISION.md` non-goal/principle, and does it leave any
@@ -191,7 +213,8 @@ Reference these; do not duplicate them.
 - **PRD before build for anything non-trivial** (new module, new external
   dependency, new architectural pattern, change touching multiple pipeline
   layers). Bug fixes and additions within established patterns don't need
-  PRDs.
+  PRDs. GOV-2 runs before this step: qualifying MATERIAL work must clear its
+  upstream packet before the Stage-0 PRD is opened.
 - **Ceremony tiering (PRD-229).** Cosmetic-only changes (ui copy / CSS /
   layout; comment- or docstring-only edits) ride MICRO with a ≤10-line note
   and batch into at most one weekly polish PRD. Owner: `docs/PRD_PROCESS.md`
@@ -291,9 +314,10 @@ each generalizes are canonical in `docs/prd_history/PRD-198.md` (Part A).
   `UserPromptSubmit` hook (`prd_eval.sh`) flags an unregistered prd_history
   file, add the row rather than working past the warning.
 - **Codex mechanics.** Invoke Codex only when Dustin commissions a
-  second-model review (PRD-242) and the value is a genuinely independent
-  second model — PRD cross-review, vision review, structured pre-merge code
-  review. All review invocations run sandboxed read-only:
+  second-model review (PRD-242), or when GOV-2 classifies the proposed work as
+  MATERIAL. The value must be a genuinely independent second model — material
+  packet boundary review, PRD cross-review, vision review, or structured
+  pre-merge code review. All review invocations run sandboxed read-only:
   `codex exec -s read-only - < prompt` (prompt via stdin, verdict from
   stdout). Claude Code writes the review artifact from captured stdout; Codex
   never writes into the repo tree.
