@@ -69,7 +69,7 @@ the §2 baseline.
 
 | Source (exact path or PR) | Current status | North Star destination | Authoritative? | Disposition |
 |---|---|---|---|---|
-| `docs/plans/decision-support-workplan-v0.1.md` | On `main`; GOV-0 COMPLETE; several rows stale (see below) | NS-0 / NS-1 / NS-5 / NS-6, sequencing law | YES for track gates; row states partially stale | RETAINED. Stale rows: `D-RULE` (merged via #167 → COMPLETE), `L0` (the new-PRD allocation freeze has ended — its named conditions resolved: PRD-271 document landed, 267/272/273 COMPLETE, validator green — but **L0 itself remains IN PROGRESS** until PRD-268's disposition and PRD-271's Gate A land), `OPT-0` (packet drafted on PR #184, no longer merely "evidence blocked") |
+| `docs/plans/decision-support-workplan-v0.1.md` | On `main`; GOV-0 COMPLETE; several rows stale (see below) | NS-0 / NS-1 / NS-5 / NS-6, sequencing law | YES for track gates; row states partially stale | RETAINED. Stale row: `D-RULE` (merged via #167 → COMPLETE). Clarified rows: `L0` (the new-PRD allocation freeze has ended — its named conditions resolved: PRD-271 document landed, 267/272/273 COMPLETE, validator green — but **L0 itself remains IN PROGRESS** until PRD-268's disposition and PRD-271's Gate A land), `OPT-0` (portfolio `PARKED / DUSTIN DECISION REQUIRED`; lifecycle `EVIDENCE BLOCKED` per the workplan — drafting PR #184's upstream packet is progress but does not satisfy OPT-0's governed exit, which still requires independent exact-corrected-head confirmation plus Dustin's approval of the carrier, the reason semantics, and the implementation seam) |
 | `docs/plans/decision-support-expansion-doctrine-v0.1.md` | On `main`; binding | NS-5 (GEX gates), NS-6 (news gates), NS-1/ODATA (options contract), global invariants G1–G10 | YES | RETAINED. North Star packets NS-5/NS-6 restate its gates; the doctrine remains the boundary authority |
 | `docs/plans/agent-work-charge-template-v0.1.md` | On `main`; binding | All packet execution | YES | RETAINED |
 | `audits/current-state-reconciliation-2026-07-30/` (CHARTER, EVIDENCE_INDEX, FINDING_STATUS_MATRIX, RECONCILIATION_REPORT) | On `main` (PR #175); pin `9e6b772`; revised after a 12/12-correct connector review | NS-0A (delivered), debt ledger §5 (CB-01…CB-47) | YES as findings evidence; statuses are Dustin's to move | RETAINED. This IS the repository truth reset the ledger's NS-0A asked for |
@@ -223,6 +223,12 @@ gate must both read.
   carried forward.
 - PR #186-adjacent governance ideas; model/process optimization — parked; not
   product workstreams.
+- `prd-second-model-commission` skill — QUEUED / OPERATOR COMMISSION
+  REQUIRED: its queue dependency is cleared, but it remains inactive until
+  Dustin explicitly commissions it; current repository sequencing places it
+  after PRD-268 (source: stage0-05 governance-debt artifact Q24;
+  PROJECT_STATE queue). Not promoted, no PRD allocated, not a new governance
+  initiative.
 
 **Drafted (exists, not authorized):**
 
