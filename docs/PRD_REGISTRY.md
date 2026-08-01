@@ -295,6 +295,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-275 | — | Mechanically enforce review-artifact append-only and merged-commit SHA pinning | IN PROGRESS | [PRD-275](prd_history/PRD-275.md) |
 | PRD-276 | 590dc75 | Lane Downgrade Prohibition: payload-vs-pointer, and drop the registry contradiction | COMPLETE | [PRD-276](prd_history/PRD-276.md) |
 | PRD-277 | 4b0f3ba | Lane-guard patch: enumerate PRD docs, validate CLASS, accept the micro-template marker | COMPLETE | [PRD-277](prd_history/PRD-277.md) |
+| PRD-278 | — | CB-02 smallest-contract refusal: no floor-one past the correlation-adjusted budget | IN PROGRESS | [PRD-278](prd_history/PRD-278.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

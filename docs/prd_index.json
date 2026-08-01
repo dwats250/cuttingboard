@@ -1334,6 +1334,12 @@
       "title": "Lane-guard patch: enumerate PRD docs, validate CLASS, accept the micro-template marker",
       "status": "COMPLETE",
       "commit": "4b0f3ba"
+    },
+    {
+      "number": 278,
+      "title": "CB-02 smallest-contract refusal: no floor-one past the correlation-adjusted budget",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

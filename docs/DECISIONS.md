@@ -16,6 +16,65 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-07-31 — CB-02 Gate A APPROVED: options-construction refusal seam, token, carrier, ceiling (ruled: Dustin)
+
+Dustin's Gate A ruling for the CB-02 / Finding D implementation, issued
+2026-07-31 on the OPT-0 seam trace (PR #184 @ `4d51e84`, the read-only
+findings artifact under `audits/current-state-reconciliation-2026-07-30/`).
+This resolves the one open question the trace surfaced (report-surface
+visibility) in favor of the full-truth five-production-file design, and
+supersedes the trace's provisional 4-file framing. Recorded verbatim:
+
+> GATE A — APPROVED
+>
+> Implement CB-02 refusal at the options-construction seam in
+> options.py::build_option_setups.
+>
+> When the fully adjusted contract quantity is below one, do not apply the
+> existing floor to one contract. Refuse the setup instead.
+>
+> The refusal must:
+>
+> - use the exact reason token: SMALLEST_CONTRACT_EXCEEDS_BUDGET
+> - preserve an explicit minimal refusal record rather than silently
+>   omitting the OptionSetup;
+> - flow through contract rejections[] under the OPTIONS_SIZING stage;
+> - be represented truthfully in the audit record;
+> - appear as one concise human-facing report line;
+> - apply consistently across direct and continuation paths, debit and
+>   credit strategies, and all correlation states through the shared
+>   options-sizing block;
+> - leave all positive-sizing behavior unchanged when the adjusted
+>   quantity is at least one;
+> - preserve PRD-023 R2: correlation adjustment must not alter
+>   qualification outcomes;
+> - distinguish this refusal from size_rounds_to_zero, which remains
+>   reserved for policy-size materialization reducing an otherwise
+>   affordable position to zero.
+>
+> Initial implementation ceiling: production files options.py,
+> runtime/__init__.py, contract.py, audit.py, output.py; test files
+> test_phase5.py, test_contract.py, test_audit.py; approximately 60-100
+> net lines; no dependencies; no workflow changes; no schema expansion
+> beyond the minimum refusal carrier; no unrelated refactor.
+>
+> Required regression coverage includes: current credit-strategy breaches
+> at NEUTRAL and CONFLICT; direct and continuation paths; synthetic debit
+> below-one cases; exact-one and above-one positive controls; explicit
+> contract, audit, and report representation; reason-token stability;
+> mutation tests that restore max(1, ...), omit a strategy class, drop
+> the reason, or silently discard the refusal.
+>
+> This approval authorizes drafting the bounded OPT-1 implementation PRD.
+> It does not authorize implementation before that PRD is reviewed and
+> approved, nor does it authorize changes to budgets, correlation
+> modifiers, strategy selection, qualification policy, chain validation,
+> or unrelated findings.
+
+The bounded PRD this authorizes is drafted as **PRD-278** (Stage-0 scaffold
+rides the same PR as this entry). Implementation remains gated on PRD-278's
+own review and approval.
+
 ## 2026-07-31 — Git deny-list policy: glob patterns cannot narrow checkout; fail closed, tokenize later (ruled: Dustin, PR #181)
 
 PR #181 set out to narrow the blanket `git *checkout*` deny so agents could
