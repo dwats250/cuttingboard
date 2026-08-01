@@ -111,7 +111,11 @@ Reference these; do not duplicate them.
   Codex review, one consolidated correction, and independent SHA-pinned
   confirmation of the exact corrected head. Only then may Dustin issue a
   design-direction ruling and downstream PRD drafting begin. Gate A remains
-  the later implementation authorization on the reviewed PRD.
+  the later implementation authorization on the reviewed PRD. A MATERIAL
+  slice is ineligible for `LANE: MICRO` — GOV-2's required order includes a
+  PRD, its independent review, and an explicit Gate A, none of which MICRO's
+  collapsed path contains; it rides STANDARD at minimum, with HIGH-RISK only
+  per R11's own triggers (GOV-2 §1).
 - **At most one correction cycle (GOV-1).** The reviewing agent produces
   findings once; the authoring agent addresses them once; the gate closes. A
   second round happens only because Dustin asks for one — never because a

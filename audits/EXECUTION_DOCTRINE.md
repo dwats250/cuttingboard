@@ -58,7 +58,7 @@ mandatory fetch->build->review relay inside a slice.
 | **Haiku (optional subcontractor)** | Pulled in ONLY for a genuinely separable bulk job: a large call-site/token sweep, a long full-suite run backgrounded while the driver keeps working. Never a required stage; never edits source. |
 | **Operator (Dustin)** | Non-MATERIAL work: at most two execution touches per slice, Gate A (direction, when not already decided) and Gate B (merge, always). MATERIAL work adds one earlier intake touch - the design-direction ruling on the review-clean upstream packet (GOV-2 section 2 step 6) - which authorizes PRD drafting only and does not satisfy Gate A. Everything else runs unattended. |
 | **Fresh-context reviewer (heavy Claude model)** | HIGH-RISK only: the fresh-context Claude review leg. |
-| **Second model (Codex or other non-Claude)** | Two cases: (a) the two GOV-2 MATERIAL-packet events - upstream packet review and exact-corrected-head confirmation - auto-commissioned by GOV-2 in any lane when the slice is MATERIAL at CARD (GOV-2 section 2, section 7); MATERIAL does not convert STANDARD work into HIGH-RISK. (b) otherwise HIGH-RISK only, and only when Dustin commissions it (PRD-242). |
+| **Second model (Codex or other non-Claude)** | Two cases: (a) the two GOV-2 MATERIAL-packet events - upstream packet review and exact-corrected-head confirmation - auto-commissioned by GOV-2 when the slice is MATERIAL at CARD (GOV-2 section 2, section 7); MATERIAL disqualifies MICRO (section 3, MATERIAL overlay) and does not convert STANDARD work into HIGH-RISK. (b) otherwise HIGH-RISK only, and only when Dustin commissions it (PRD-242). |
 
 Tier by lane: MICRO/STANDARD -> Sonnet runs the whole slice. HIGH-RISK ->
 Sonnet still builds end-to-end; what changes is the close: a separate
@@ -91,6 +91,12 @@ exact-corrected-head confirmation (GOV-2 section 2, section 7) - before any
 PRD or other downstream authority is opened (GOV-2 section 4). A
 design-direction ruling issued from that review-clean packet (GOV-2 section 2
 step 6) authorizes only PRD drafting, not implementation.
+
+MATERIAL also settles lane at this stage: it disqualifies LANE: MICRO, so
+the slice rides STANDARD at minimum (GOV-2 section 1; section 3, MATERIAL
+overlay). Lane assignment then proceeds through the normal PRD_PROCESS
+matrix with MICRO unavailable; HIGH-RISK remains independently determined
+by its own existing triggers, never by materiality alone.
 
 ### SWEEP - only when the change touches asserted surfaces
 Required only when the slice deletes, renames, or re-derives a token that
@@ -264,12 +270,18 @@ GATE A: direction not already decided). MICRO carries its micro note or
 10-line cosmetic note inside BUILD's first commit - the note, the red-first
 proving change, and the registry row are the whole ceremony.
 
-MATERIAL overlay (GOV-2): a slice classified MATERIAL at CARD adds, in any
-lane, one intake touch before STAGE 0 - the design-direction ruling on the
-review-clean upstream packet - and its PRD receives a separately required
-independent review before Gate A (GOV-2 section 2). That ruling authorizes
-PRD drafting only and does not satisfy Gate A. The per-lane execution-touch
-counts above are otherwise unchanged.
+MATERIAL overlay (GOV-2): MATERIAL disqualifies MICRO. GOV-2's required
+order includes a PRD with independent review and an explicit Gate A (GOV-2
+section 1, section 2 steps 7-8), none of which the collapsed MICRO path
+contains, so a slice classified MATERIAL at CARD takes the lane the
+PRD_PROCESS matrix assigns with MICRO unavailable: STANDARD at minimum,
+HIGH-RISK only when R11's own triggers fire. MATERIAL never converts a
+STANDARD slice into HIGH-RISK. For the resulting STANDARD or HIGH-RISK
+slice, the overlay adds one intake touch before STAGE 0 - the
+design-direction ruling on the review-clean upstream packet - and its PRD
+receives a separately required independent review before Gate A (GOV-2
+section 2). That ruling authorizes PRD drafting only and does not satisfy
+Gate A. The per-lane execution-touch counts above are otherwise unchanged.
 
 Overlay: **governance changes** (CLAUDE.md guardrails, `prd-review-claude`,
 `tools/validate_prd_registry.py`, this doctrine once canonical) are

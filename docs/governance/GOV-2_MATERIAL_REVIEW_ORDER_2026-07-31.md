@@ -38,6 +38,19 @@ of the materiality conditions above applies. The materiality conditions take
 precedence over the narrow-change exception. Dustin may classify any otherwise
 non-material change as material.
 
+A slice classified MATERIAL at intake is therefore ineligible for
+`LANE: MICRO`, including MICRO's cosmetic note-only form. The required order
+in section 2 includes a PRD with its required independent review (step 7)
+and an explicit Gate A (step 8); the collapsed MICRO lifecycle contains none
+of these, so materiality operates as an additional MICRO-eligibility
+disqualifier alongside the R12 safety net in `docs/PRD_PROCESS.md`. The
+slice takes the lane the normal matrix assigns with MICRO unavailable:
+STANDARD at minimum, HIGH-RISK only when the Lane Downgrade Prohibition's
+own triggers (PRD-121 R11) fire independently. MATERIAL classification never
+converts a STANDARD slice into HIGH-RISK and adds no Codex-commissioned
+events beyond the two in section 7 (upstream packet review; exact-corrected-
+head confirmation).
+
 ## 2. Review before design-direction ruling
 
 A MATERIAL packet is provisional until an independent Codex review has
