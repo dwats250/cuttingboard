@@ -5,6 +5,11 @@
 **Owner and final authority:** Dustin  
 **Purpose:** Preserve the full product vision, map all active/drafted/parked/debt work, and prevent governance from displacing trader-facing delivery.
 
+**Companion:** `docs/product/NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md` — the
+repository-verified implementation program (§10's deliverable). Statuses below
+were reconciled against live repository truth on 2026-08-01 at `main`
+`5fe8ad7`; the program carries the full source map and evidence citations.
+
 ## 1. North Star
 
 CuttingBoard is Dustin's personal trading decision-support cockpit.
@@ -74,9 +79,9 @@ It must not become:
 
 | Packet | State | Outcome | Exit |
 |---|---|---|---|
-| NS-0A Repository truth reset | `NOW` | Inventory active, merged, drafted, blocked, parked, and stale work | Main SHA, open PRs, PRDs, packets, and debt agree |
-| NS-0B Vision preservation | `NOW` | Ratified North Star and master ledger | Accessible from normal repository entry points |
-| NS-0C Debt classification | `RECONCILE` | Label every debt blocking, non-blocking, parked, or retired | Nothing silently becomes the next task |
+| NS-0A Repository truth reset | `COMPLETE` | Delivered by the 2026-07-30 reconciliation (PR #175), its 2026-07-31 fidelity delta, and the implementation program's verified baseline | Met at `main` `5fe8ad7`: SHA, open PRs (#184/#185 only), PRDs, packets, and debt agree; validator exit 0 |
+| NS-0B Vision preservation | `NOW` | This ledger + the implementation program, on branch `docs/north-star-master-ledger` — the current active documentation packet | Dustin ratifies and merges; held for his decision |
+| NS-0C Debt classification | `COMPLETE` | Every known debt labeled blocking / non-blocking / parked / drafted / retired (program §5) | Nothing silently becomes the next task |
 
 Boundary: read-only reconciliation plus product documentation. No production implementation.
 
@@ -86,10 +91,11 @@ Boundary: read-only reconciliation plus product documentation. No production imp
 
 | Packet | State | Outcome | Exit |
 |---|---|---|---|
-| NS-1A SPY direct-path fidelity | `RECONCILE` | Verify candidates surface/reject for intended reasons | Complete counts, reasons, kill-switch effect, and seam conclusions |
-| NS-1B Artifact/provenance repair | `RECONCILE` | Preserve exploratory lineage without confusing it with frozen studies | Canonical files, truthful names, manifests, and pre/post-patch provenance |
-| NS-1C Engine seam corrections | `BLOCKED` | Fix only confirmed mismatches | Named mismatches fixed; unrelated thresholds unchanged |
+| NS-1A SPY direct-path fidelity | `COMPLETE` | Delivered by the 2026-07-31 fidelity delta on `main`: counts recomputed, kill-switch effect verified, seam conclusion = proxy posture defect only, no engine change | Met; residual is the Strategy-repo D2 ruling (Dustin) |
+| NS-1B Artifact/provenance repair | `COMPLETE` (Cuttingboard side) | Canonical files hash-pinned; exploratory vs frozen lineage separated; manifests verified | Strategy-side dated correction (D2) and the post-patch script identity gap remain Dustin's ruling |
+| NS-1C Engine seam corrections | `BLOCKED` | Fix only confirmed mismatches — the fidelity delta confirmed **zero** Cuttingboard-side mismatches at this pin (the one rule mismatch is proxy-side) | Entry condition unmet; reopen only on a confirmed engine mismatch |
 | NS-1D Prospective baseline freeze | `NEXT` | Observe outcomes without tuning | Frozen rules and timestamped captures |
+| NS-1E Smallest-contract refusal (CB-02 / PRD-278) | `PARKED / DUSTIN DECISION REQUIRED` | Refusal instead of a silent budget-breaching one-contract floor; rejection becomes first-class evidence. Becomes `NOW` only if Dustin explicitly resumes it | If resumed: GOV-2 §12 sequence on PRs #184/#185 — exact-head confirmation, PRD review, Dustin Gate A, implementation, Dustin merge |
 
 Evidence to preserve:
 
@@ -106,7 +112,7 @@ Evidence to preserve:
 | Packet | State | Outcome | Exit |
 |---|---|---|---|
 | NS-2A Fixed SPY observation | `NEXT` | Observe SPY on every relevant run, including `STAY_FLAT` and halted states | Independent of candidate availability |
-| NS-2B Session-correct ORB | `NEXT` | Use the intended market session, not a positional data tail | Correct morning through late session and half-days |
+| NS-2B Session-correct ORB | `NEXT` | Use the intended market session, not a positional data tail — rides PRD-271 (IN PROGRESS scaffold, HIGH-RISK, Gate A pending); never a duplicate ORB truth | Correct morning through late session and half-days |
 | NS-2C Session VWAP | `NEXT` | Authoritative session-anchored typical-price VWAP | Source window, timestamp, and stale behavior explicit |
 | NS-2D Meaningful intraday event | `LATER` | Preserve and expose the last meaningful transition | Rich state is not flattened or discarded |
 | NS-2E Market Control Card | `NEXT` | Compact orientation replacing/refactoring generic Market Map | Answers state, location, event, transition, invalidation, permission, candidate implication |
@@ -146,7 +152,7 @@ Suggested groups: Context, Energy, AI / Semis, Tradeable, Spec / Learning, Holdi
 
 | Packet | State | Outcome |
 |---|---|---|
-| GEX-0 Provider evidence pass | `DRAFTED / BLOCKED` | Test one provider against a bounded honesty contract |
+| GEX-0 Provider evidence pass | `EVIDENCE BLOCKED` | Test one provider against a bounded honesty contract — never attempted (the Stage-0 leg ran network-disabled); requires a Dustin-commissioned network charge |
 | GEX-1 Manual cached producer | `LATER` | Versioned gamma flip, put wall, and call wall snapshot |
 | GEX-2 Display-only consumer | `LATER` | Compact dashboard row with no qualification/sizing effect |
 | GEX-3 Cadence decision | `LATER` | Premarket and bounded intraday refresh only after usefulness |
@@ -161,7 +167,7 @@ Required honesty: provider, model or provider-defined label, expiry scope, sourc
 
 | Packet | State | Outcome |
 |---|---|---|
-| NEWS-0 Static relationship registry | `DRAFTED / BLOCKED` | Symbols, aliases, themes, benchmarks, related companies, approved sources |
+| NEWS-0 Static relationship registry | `EVIDENCE BLOCKED` | Symbols, aliases, themes, benchmarks, related companies, approved sources — nothing drafted yet; the workplan gates it and Dustin supplies/ratifies the universe |
 | NEWS-1 Manual producer | `LATER` | Small deterministic artifact, normally 2–3 items and never over 5 |
 | NEWS-2 Usefulness evaluation | `LATER` | Dustin chooses KEEP, one bounded REVISE, or RETIRE |
 | NEWS-3 Display consumer | `LATER` | Display-only, baseline-neutral context |
@@ -231,28 +237,34 @@ Macro State
 
 ## 5. Existing work, debt, and parked material
 
-These entries preserve known work but require live-repository verification in NS-0A.
+Verified against the live repository on 2026-08-01 (`main` `5fe8ad7`); full
+citations in the implementation program's source map.
 
 ### Options/reconciliation chain
 
-| Item | Working state | Truth check |
+| Item | Working state | Verified truth |
 |---|---|---|
-| OPT-0 / historically PR #184 | `RECONCILE` | Current state, exact head, findings artifact, resolved findings |
-| OPT-1 / historically PR #185 | `RECONCILE` | Current state and whether the prior `docs/DECISIONS.md` blocker remains |
-| PRD-271 lifecycle/document gap | `RECONCILE` | Gate A and landing status |
-| PRD-267/272/273 closeout | `RECONCILE` | Registry, documents, provenance, project-state agreement |
-| PRD-268 scaffold/design fork | `RECONCILE` | Approved, proposed, deprecated, or unresolved |
-| Registry validator historical warnings | `PARKED / RECONCILE` | Confirm unchanged baseline and separate cleanup status |
+| OPT-0 — PR #184 (open draft, head `24660ac`) | `DRAFTED / BLOCKED` | The upstream MATERIAL packet for NS-1E; findings artifacts committed, all 13 connector threads actioned; GOV-2 §12 still requires independent exact-corrected-head confirmation |
+| OPT-1 — PR #185 (open draft, head `ee2d12e`) | `DRAFTED / BLOCKED` | PRD-278 Stage 0 + draft Gate A entry; the prior `DECISIONS.md` blocker is RESOLVED (Finding D ruling merged via PR #167, 2026-07-26); remaining: nine-file-ruling consistency, independent PRD review, Dustin Gate A |
+| PRD-271 lifecycle/document gap | `BLOCKED` | Document landed with its index entry via PR #173; Gate A (ORB remedy design ruling) pending with Dustin — also the NS-2B prerequisite |
+| PRD-267/272/273 closeout | `COMPLETE` | Closed 2026-07-26 / 2026-07-31 (`724d84a`, `724d84a`, `4a1cb22`); registry, index, and validator agree (exit 0) |
+| PRD-268 scaffold/design fork | `PARKED / DECISION REQUIRED` | IN PROGRESS scaffold, design fork unruled; Dustin chooses approve / return to PROPOSED / deprecate (workplan L0's last open step) |
+| Registry validator historical warnings | `RETIRED` | Phantom-SHA class closed WONTFIX-HISTORICAL (PRD-243); CI keeps `--skip-commit-resolvability` permanently; CB-12 residual bypasses remain non-blocking debt |
 
 ### Candidate-fidelity evidence debt
 
-| Item | State | Action |
+Resolved by the 2026-07-31 fidelity delta
+(`audits/current-state-reconciliation-2026-07-30/STRATEGY_CANDIDATE_FIDELITY_DELTA_2026-07-31.md`,
+on `main`), which hash-pinned every canonical artifact and recomputed every
+headline count.
+
+| Item | State | Verified truth |
 |---|---|---|
-| Export naming/content swaps | `RECONCILE` | Select canonical files |
-| Partial-window or duplicate exports | `RECONCILE` | Preserve truthful canonical artifacts and explicit archive lineage |
-| Run manifests | `RECONCILE` | Freeze script/version, data source, chart/session settings, capture time |
-| Pre-patch/post-patch lineage | `RECONCILE` | Label exploratory versus authoritative |
-| TradingView-to-engine mismatches | `RECONCILE` | Promote only confirmed defects |
+| Export naming/content swaps | `COMPLETE` | Canonical files selected and SHA-256-pinned at the strategy pin |
+| Partial-window or duplicate exports | `COMPLETE` | Pre-patch (`e28aa874`) vs post-patch (`2d375b4c`) exports separated with explicit lineage; corrected analogs 284 / 79 / 112 recomputed |
+| Run manifests | `COMPLETE` | Frozen AS-IS manifest verified (script and export hashes recomputed, capture provenance recorded) |
+| Pre-patch/post-patch lineage | `COMPLETE` | Exploratory vs authoritative labeled; the registered AS-IS run is floor-only-posture evidence, not a Cuttingboard-semantics description |
+| TradingView-to-engine mismatches | `COMPLETE` | Exactly one confirmed rule mismatch, and it is proxy-side (missing 0.55 posture tier); zero Cuttingboard defects promoted. Residuals held for Dustin: D2 Strategy-side dated correction; the post-patch script identity gap stays preserved-open |
 
 ### Dormant and parked work
 
@@ -272,32 +284,46 @@ For at least the next three product slices:
 - no historical review archaeology;
 - no process optimization unless the active product slice is truly blocked.
 
-## 6. Recommended order
+## 6. Recommended order (reconciled to repository truth, 2026-08-01)
+
+NS-0A and NS-1A/B — the draft's original NOW — are already delivered on
+`main`. The runway holds exactly one packet: this ratification branch.
 
 ### NOW
 
-1. NS-0A — repository truth reset
-2. NS-0B — ratify and land this ledger
-3. NS-1A/B — candidate-fidelity truth and artifact preservation
+1. **NS-0B — North Star ratification** (this ledger + the implementation
+   program, this branch). Held for Dustin's decision.
+
+### DUSTIN'S IMMEDIATE RUNWAY CHOICE (neither option is chosen here)
+
+- **A.** Resume and finish CB-02 (NS-1E; PRs #184/#185, parked under GOV-2
+  §12), then begin fixed SPY observation.
+- **B.** Leave CB-02 parked and promote fixed SPY observation directly,
+  after resolving its exact prerequisite (the PRD-271 Gate A ORB ruling).
 
 ### NEXT
 
-4. NS-2A/B/C — fixed SPY observation, session ORB, session VWAP
-5. NS-2E — Market Control Card
-6. NS-4A/B — universe registry and basic movement heatmap
+2. NS-2A/B/C — fixed SPY observation, session ORB, session VWAP, visible
+   freshness: the proposed first trader-facing product slice. Prerequisite
+   either way: the PRD-271 Gate A ruling (the ORB remedy the observation
+   card and the execution gate must share). MATERIAL under GOV-2 — begins
+   with its upstream packet, seeded by the stage0-01 decision-surface recon.
+3. NS-2E — Market Control Card
+4. NS-4A/B — universe registry and basic movement heatmap
 
 ### LATER
 
-7. Opportunity Set Engine
-8. GEX evidence → producer → display
-9. Relationship-aware news registry → producer → usefulness decision → display
-10. Decoupling detection
-11. Prospective decision evaluation
-12. Scheduling/freshness promotion
+5. Opportunity Set Engine
+6. GEX evidence → producer → display
+7. Relationship-aware news registry → producer → usefulness decision → display
+8. Decoupling detection
+9. Prospective decision evaluation
+10. Scheduling/freshness promotion
 
 Why:
 
-- fidelity protects truth;
+- fidelity protects truth — CB-02 is fidelity at the sizing seam (the
+  refusal the operator already ruled for), which is the case for option A;
 - SPY observation and the Control Card create immediate daily usefulness;
 - the registry unlocks several later products cheaply;
 - heatmap offers high information value at low cognitive cost;
@@ -357,7 +383,7 @@ A healthy week makes CuttingBoard more useful to Dustin. Governance output witho
 1. Name the initiative **NORTH STAR**.
 2. Make this ledger the authoritative portfolio map.
 3. Confirm the `NOW → NEXT → LATER` order.
-4. Confirm the first visible target: fixed SPY observation with session-correct ORB/VWAP and visible freshness.
+4. Confirm the first trader-facing target: fixed SPY observation with session-correct ORB/VWAP and visible freshness — sequenced by the A/B runway choice (resume CB-02 first, or go straight to SPY observation).
 5. Freeze proactive governance work for the next three product slices.
 6. Keep GEX context-only and air-gapped.
 7. Begin news with a Dustin-ratified relationship registry.
@@ -377,3 +403,8 @@ After live repository truth is reconciled and Dustin ratifies the ledger, Claude
 8. no promotion of `NEXT` or `LATER` without Dustin's ruling.
 
 The full cosmic vision remains visible while only one small, finishable product slice reaches the runway.
+
+**Delivered:** `docs/product/NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md`
+(2026-08-01) — verified baseline, source map, dependency graph, debt ledger,
+single-runway adjudication, acceptance contract, and the not-lost appendix.
+It awaits the same ratification as this ledger and authorizes nothing.
