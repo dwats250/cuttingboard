@@ -36,7 +36,7 @@ opened here.
 |---|---|---|
 | `main` | `5fe8ad7216130d46d739510cc61257e6300080d9` (GOV-2 merge, PR #186) | `git rev-parse origin/main`, this session |
 | Working branch | `docs/north-star-master-ledger`, started at `4b573efbb3059aaa6e1d01752e8512e48cb0c9f3` (= `main` + the ledger commit) | `git rev-parse`, this session |
-| Open PRs | Exactly two, both DRAFT, both held for Dustin: **#184** (OPT-0 seam-trace packet, head `24660ac`) and **#185** (PRD-278 Stage 0, head `ee2d12e`) | GitHub API, this session |
+| Open PRs | Three: **#184** (OPT-0 seam-trace packet, draft, head `24660ac`), **#185** (PRD-278 Stage 0, draft, head `ee2d12e`), and **#187** (this North Star ratification PR). The 2026-08-01 verification snapshot predated #187's opening; #184/#185 are held for Dustin per GOV-2 §12 | GitHub API, this session; updated at the #187 correction pass |
 | Registry validator | `tools/validate_prd_registry.py --skip-commit-resolvability` exit 0 at `4b573efb` | run this session |
 | Test baseline | 3075 passed, 1 xfailed (CI truth on `main` at `4b0f3ba`) | `docs/PROJECT_STATE.md` |
 | Active PRD (implementation) | None in progress | `docs/PROJECT_STATE.md`; registry |
@@ -56,6 +56,8 @@ PRs relevant to North Star, resolved:
   entry). Outstanding per GOV-2 §12: the final canonical nine-file ruling held
   consistently across its five files, then the fresh-context independent PRD
   review, then Dustin's Gate A.
+- **#187 (open)** — this PR: the NS-0B ratification vehicle carrying both
+  North Star documents and the PROJECT_STATE pointer.
 - **#167 (merged)**, **#174 (merged)**, **#175 (merged)** — no longer blockers;
   see §3.
 
@@ -152,6 +154,13 @@ with acknowledged risk.** Neither ruling is made here, and CB-01 does not
 become `NOW` by this listing; Option B of the runway choice cannot silently
 bypass it.
 
+**Conditional packet dependency — blocks NS-2 only: CB-07.**
+ORB computed from mid-session bars (`bars[:5]` after `tail(120)`); owned by
+PRD-271 (HIGH-RISK, Gate A pending). It does not block CB-02 or North Star
+ratification, but NS-2 cannot enter implementation until PRD-271's Gate A
+resolves the shared ORB truth that the observation card and the execution
+gate must both read.
+
 **Open, non-blocking (named, with owner surface):**
 
 - **CB-03 / CB-04 (High)** — policy size multiplier never resizes;
@@ -159,8 +168,6 @@ bypass it.
   (2026-07-10) exists; recommended as a pair.
 - **CB-05 / CB-06 (High)** — macro-pressure fails open; hourly job never goes
   red (readiness tests key presence, not status).
-- **CB-07 (High)** — ORB from mid-session bars; owned by PRD-271, Gate A
-  pending. The one debt row that is also a runway dependency (NS-2B).
 - **CB-08 (High)** — spread economics are a 30%-of-width estimate, never live
   chain pricing (residual of A1; ODATA territory, provider-dependent).
 - **CB-10 (High)** — `docs/trade_qualification.md` states $150 where code uses
@@ -278,8 +285,11 @@ packet where MATERIAL, PRD, review, and Gate A):**
 **LATER (preserved, not authorized):** NS-4A/4B (universe registry and basic
 movement heatmap — the first named promotion candidates after NS-2E; registry
 content is Dustin-authored, seed tuples exist, and promotion is Dustin's),
-NS-2D, NS-2F, NS-3 (all packets), NS-4C/D/E, NS-5 (GEX-0→3, evidence-blocked),
-NS-6 (NEWS-0→4), NS-7, NS-8, NS-9, ODATA-0/1+, PRES-0. Full preservation in §12.
+NS-2D, NS-2F, NS-3 (all packets), NS-4C/D/E, NS-5 (GEX-0→3; GEX-0→2 lifecycle
+`EVIDENCE BLOCKED` per the workplan), NS-6 (NEWS-0→4; NEWS-0→3 lifecycle
+`EVIDENCE BLOCKED` per the workplan), NS-7, NS-8, NS-9, ODATA-0/1+, PRES-0.
+Portfolio rank and lifecycle condition are separate axes (ledger §3). Full
+preservation in §12.
 
 ## 7. The runway candidate held for Dustin's ruling: NS-1E / CB-02
 

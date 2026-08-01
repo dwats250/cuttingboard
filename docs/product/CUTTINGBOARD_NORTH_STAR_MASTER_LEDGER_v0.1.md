@@ -71,6 +71,14 @@ It must not become:
 | `COMPLETE` | Acceptance satisfied and landed |
 | `RETIRED` | Explicitly removed with rationale |
 
+Two axes, defined once. **Portfolio rank** (`NOW` / `NEXT` / `LATER`) records
+where work sits on the runway. **Lifecycle condition** (`DRAFTED`,
+`EVIDENCE BLOCKED`, `DECISION REQUIRED`, `BLOCKED`, `PARKED`, and the other
+promotion states owned by the governed workplans) records what currently
+gates it. A packet may carry both, written `RANK / CONDITION`; rank never
+overrides a lifecycle gate, the authoritative workplan remains the lifecycle
+ledger for its tracks, and promotion on either axis is Dustin's alone.
+
 ## 4. Portfolio map
 
 ### NS-0 — Authority and truth reset
@@ -79,7 +87,7 @@ It must not become:
 
 | Packet | State | Outcome | Exit |
 |---|---|---|---|
-| NS-0A Repository truth reset | `COMPLETE` | Delivered by the 2026-07-30 reconciliation (PR #175), its 2026-07-31 fidelity delta, and the implementation program's verified baseline | Met at `main` `5fe8ad7`: SHA, open PRs (#184/#185 only), PRDs, packets, and debt agree; validator exit 0 |
+| NS-0A Repository truth reset | `COMPLETE` | Delivered by the 2026-07-30 reconciliation (PR #175), its 2026-07-31 fidelity delta, and the implementation program's verified baseline | Met at `main` `5fe8ad7`: SHA, open PRs (#184, #185, and this PR #187), PRDs, packets, and debt agree; validator exit 0 |
 | NS-0B Vision preservation | `NOW — COMPLETE UPON DUSTIN'S MERGE OF PR #187` | This ledger + the implementation program (PR #187) — the current active documentation packet | Dustin's merge is the ratifying and completing act; no post-merge transition commit is required. On merge the `NOW` slot is intentionally vacant until Dustin's A/B runway ruling promotes a packet |
 | NS-0C Debt classification | `COMPLETE` | Every known debt labeled blocking / non-blocking / parked / drafted / retired / UNKNOWN-unadjudicated (program §5) | Nothing silently becomes the next task |
 
@@ -94,7 +102,7 @@ Boundary: read-only reconciliation plus product documentation. No production imp
 | NS-1A SPY direct-path fidelity | `COMPLETE` | Delivered by the 2026-07-31 fidelity delta on `main`: counts recomputed, kill-switch effect verified, seam conclusion = proxy posture defect only, no engine change | Met; residual is the Strategy-repo D2 ruling (Dustin) |
 | NS-1B Artifact/provenance repair | `COMPLETE` (Cuttingboard side) | Canonical files hash-pinned; exploratory vs frozen lineage separated; manifests verified | Strategy-side dated correction (D2) and the post-patch script identity gap remain Dustin's ruling |
 | NS-1C Engine seam corrections | `BLOCKED` | Fix only confirmed mismatches — the fidelity delta confirmed **zero** Cuttingboard-side mismatches at this pin (the one rule mismatch is proxy-side) | Entry condition unmet; reopen only on a confirmed engine mismatch |
-| NS-1D Prospective baseline freeze | `NEXT` | Observe outcomes without tuning | Frozen rules and timestamped captures |
+| NS-1D Prospective baseline freeze | `LATER` | Observe outcomes without tuning — preserved evaluation capability | Dustin-only promotion after the relevant decision surfaces and frozen baseline are ready; frozen rules and timestamped captures |
 | NS-1E Smallest-contract refusal (CB-02 / PRD-278) | `PARKED / DUSTIN DECISION REQUIRED` | Refusal instead of a silent budget-breaching one-contract floor; rejection becomes first-class evidence. Becomes `NOW` only if Dustin explicitly resumes it | If resumed: GOV-2 §12 sequence on PRs #184/#185 — exact-head confirmation, PRD review, Dustin Gate A, implementation, Dustin merge |
 
 Evidence to preserve:
@@ -152,10 +160,10 @@ Suggested groups: Context, Energy, AI / Semis, Tradeable, Spec / Learning, Holdi
 
 | Packet | State | Outcome |
 |---|---|---|
-| GEX-0 Provider evidence pass | `EVIDENCE BLOCKED` | Test one provider against a bounded honesty contract — never attempted (the Stage-0 leg ran network-disabled); requires a Dustin-commissioned network charge |
-| GEX-1 Manual cached producer | `LATER` | Versioned gamma flip, put wall, and call wall snapshot |
-| GEX-2 Display-only consumer | `LATER` | Compact dashboard row with no qualification/sizing effect |
-| GEX-3 Cadence decision | `LATER` | Premarket and bounded intraday refresh only after usefulness |
+| GEX-0 Provider evidence pass | `LATER / EVIDENCE BLOCKED` | Test one provider against a bounded honesty contract — never attempted (the Stage-0 leg ran network-disabled); requires a Dustin-commissioned network charge |
+| GEX-1 Manual cached producer | `LATER / EVIDENCE BLOCKED` | Versioned gamma flip, put wall, and call wall snapshot — lifecycle state per the workplan, gated on GEX-0 passing |
+| GEX-2 Display-only consumer | `LATER / EVIDENCE BLOCKED` | Compact dashboard row with no qualification/sizing effect — lifecycle state per the workplan, gated on GEX-1 |
+| GEX-3 Cadence decision | `LATER` | Premarket and bounded intraday refresh only after usefulness (no workplan lifecycle row; doctrine gate GEX-3 applies) |
 
 Required honesty: provider, model or provider-defined label, expiry scope, source/as-of time, observation time, spot basis, stale/unavailable state.
 
@@ -167,11 +175,11 @@ Required honesty: provider, model or provider-defined label, expiry scope, sourc
 
 | Packet | State | Outcome |
 |---|---|---|
-| NEWS-0 Static relationship registry | `EVIDENCE BLOCKED` | Symbols, aliases, themes, benchmarks, related companies, approved sources — nothing drafted yet; the workplan gates it and Dustin supplies/ratifies the universe |
-| NEWS-1 Manual producer | `LATER` | Small deterministic artifact, normally 2–3 items and never over 5 |
-| NEWS-2 Usefulness evaluation | `LATER` | Dustin chooses KEEP, one bounded REVISE, or RETIRE |
-| NEWS-3 Display consumer | `LATER` | Display-only, baseline-neutral context |
-| NEWS-4 Cadence | `LATER` | Scheduling only after demonstrated usefulness |
+| NEWS-0 Static relationship registry | `LATER / EVIDENCE BLOCKED` | Symbols, aliases, themes, benchmarks, related companies, approved sources — nothing drafted yet; the workplan gates it and Dustin supplies/ratifies the universe |
+| NEWS-1 Manual producer | `LATER / EVIDENCE BLOCKED` | Small deterministic artifact, normally 2–3 items and never over 5 — lifecycle state per the workplan, gated on NEWS-0 |
+| NEWS-2 Usefulness evaluation | `LATER / EVIDENCE BLOCKED` | Dustin chooses KEEP, one bounded REVISE, or RETIRE — lifecycle state per the workplan, gated on NEWS-1 |
+| NEWS-3 Display consumer | `LATER / EVIDENCE BLOCKED` | Display-only, baseline-neutral context — lifecycle state per the workplan, gated on NEWS-2 `KEEP` |
+| NEWS-4 Cadence | `LATER` | Scheduling only after demonstrated usefulness (no workplan lifecycle row; doctrine gate NEWS-4 applies) |
 
 Relationship path:
 
