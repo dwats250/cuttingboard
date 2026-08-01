@@ -87,7 +87,7 @@ ledger for its tracks, and promotion on either axis is Dustin's alone.
 
 | Packet | State | Outcome | Exit |
 |---|---|---|---|
-| NS-0A Repository truth reset | `COMPLETE` | Delivered by the 2026-07-30 reconciliation (PR #175), its 2026-07-31 fidelity delta, and the implementation program's verified baseline | Met at `main` `5fe8ad7`: SHA, open PRs (#184, #185, and this PR #187), PRDs, packets, and debt agree; validator exit 0 |
+| NS-0A Repository truth reset | `COMPLETE` | Delivered by the 2026-07-30 reconciliation (PR #175), its 2026-07-31 fidelity delta, and the implementation program's verified baseline | Met at `main` `5fe8ad7`: SHA, open PRs (#184, #185, and this PR #187), PRDs, packets, and debt agree or are explicitly recorded as open debt (CB-28: the `PROJECT_STATE` "Active PRD: none" line vs four `IN PROGRESS` registry rows); validator exit 0 |
 | NS-0B Vision preservation | `NOW — COMPLETE UPON DUSTIN'S MERGE OF PR #187` | This ledger + the implementation program (PR #187) — the current active documentation packet | Dustin's merge is the ratifying and completing act; no post-merge transition commit is required. On merge the `NOW` slot is intentionally vacant until Dustin's A/B runway ruling promotes a packet |
 | NS-0C Debt classification | `COMPLETE` | Every known debt labeled blocking / non-blocking / parked / drafted / retired / UNKNOWN-unadjudicated (program §5) | Nothing silently becomes the next task |
 
@@ -259,7 +259,7 @@ citations in the implementation program's source map.
 | Item | Working state | Verified truth |
 |---|---|---|
 | OPT-0 — PR #184 (open draft, head `24660ac`) | `PARKED / DUSTIN DECISION REQUIRED` (lifecycle: `EVIDENCE BLOCKED` per the workplan) | The upstream MATERIAL packet for NS-1E; findings artifacts committed, all 13 connector threads actioned — progress, but OPT-0's governed exit is unsatisfied: independent exact-corrected-head confirmation plus Dustin's approval of the carrier, reason semantics, and implementation seam all remain outstanding |
-| OPT-1 — PR #185 (open draft, head `ee2d12e`) | `DRAFTED / BLOCKED` | PRD-278 Stage 0 + draft Gate A entry; the prior `DECISIONS.md` blocker is RESOLVED (Finding D ruling merged via PR #167, 2026-07-26); remaining: nine-file-ruling consistency, independent PRD review, Dustin Gate A |
+| OPT-1 — PR #185 (open draft, head `ee2d12e`) | `DRAFTED / BLOCKED` (lifecycle: `EVIDENCE BLOCKED` per the workplan, gated on OPT-0's exit) | PRD-278 Stage 0 + draft Gate A entry; the prior `DECISIONS.md` blocker is RESOLVED (Finding D ruling merged via PR #167, 2026-07-26); remaining: nine-file-ruling consistency, independent PRD review, Dustin Gate A |
 | PRD-271 lifecycle/document gap | `BLOCKED` | Document landed with its index entry via PR #173; Gate A (ORB remedy design ruling) pending with Dustin — also the NS-2B prerequisite |
 | PRD-267/272/273 closeout | `COMPLETE` | Closed 2026-07-26 / 2026-07-31 (`724d84a`, `724d84a`, `4a1cb22`); registry, index, and validator agree (exit 0) |
 | PRD-268 scaffold/design fork | `IN PROGRESS / DECISION REQUIRED` | Canonical lifecycle state unchanged (registry: IN PROGRESS), design fork unruled; Dustin chooses approve / return to PROPOSED / deprecate (one of L0's two open rulings — the other is PRD-271 Gate A) |
