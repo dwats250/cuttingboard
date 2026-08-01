@@ -1,7 +1,7 @@
 # North Star Implementation Program v0.1
 
 **Initiative:** NORTH STAR
-**Status:** DRAFT FOR DUSTIN RATIFICATION — grants no implementation permission
+**Status:** DRAFT UNTIL MERGE — RATIFIED AND COMPLETE UPON DUSTIN'S MERGE OF PR #187 — grants no implementation permission
 **Owner and final authority:** Dustin
 **Companion:** `docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md` (the vision;
 this document is the portfolio implementation program the ledger's §10 commissions)
@@ -343,6 +343,10 @@ postmarket aggregates agree with the new breakdown member; false generic
 4. Dustin issues Gate A on the reviewed PRD — the first binding ceiling.
 5. Implementation under the Gate A ceiling; implementation review; Dustin
    merges. Closeout rides the implementation PR (PRD-229).
+
+Preparatory CB-02 review may continue, but CB-02 implementation and final
+Gate A authorization cannot begin until Dustin dispositions PRD-268 and
+closes the applicable L0 sequencing gate.
 
 **Blockers, precisely:** steps 1–4 above. All are Dustin-held decisions or
 Dustin-commissioned events. **Stale/apparent blockers, verified not blocking:**

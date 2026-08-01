@@ -1,7 +1,7 @@
 # CuttingBoard North Star Master Ledger v0.1
 
 **Initiative:** NORTH STAR  
-**Status:** DRAFT FOR DUSTIN RATIFICATION  
+**Status:** DRAFT UNTIL MERGE — RATIFIED AND COMPLETE UPON DUSTIN'S MERGE OF PR #187  
 **Owner and final authority:** Dustin  
 **Purpose:** Preserve the full product vision, map all active/drafted/parked/debt work, and prevent governance from displacing trader-facing delivery.
 
@@ -425,4 +425,5 @@ The full cosmic vision remains visible while only one small, finishable product 
 **Delivered:** `docs/product/NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md`
 (2026-08-01) — verified baseline, source map, dependency graph, debt ledger,
 single-runway adjudication, acceptance contract, and the not-lost appendix.
-It awaits the same ratification as this ledger and authorizes nothing.
+It carries the same merge-contingent status as this ledger — ratified and
+complete upon Dustin's merge of PR #187 — and authorizes nothing.
