@@ -231,6 +231,24 @@ gate must both read.
 - PRD-271 scaffold (Gate A pending), PRD-268 scaffold (fork unruled),
   PRD-275 (blocked by six constraints).
 
+**FIXED / COMPLETE (verified at the reconciliation, discriminating tests read
+by its lead):**
+
+- **CB-13 — credit-spread max risk (was Critical): FIXED / COMPLETE.**
+  `_max_loss_for_strategy` returns width-minus-credit; discriminating
+  regression verified red-on-revert (correct test cited after the connector
+  correction: `test_phase5.py:388-400`). Fixing CB-13 does NOT close
+  still-open CB-08 — spread economics remain a 30%-of-width estimate,
+  tracked above.
+- **CB-14 — fabricated `pct_change = 0.0` (was High): FIXED / COMPLETE.**
+  Now raises (PRD-262); two discriminating tests, one parametrised over the
+  invalid values.
+- **CB-15 — regime confidence inflation on dropout (was High): FIXED /
+  COMPLETE.** Worst-case bounding over the fixed 8-vote denominator
+  (PRD-263), named quorum-floor test plus exhaustive proof; disclosed limit:
+  the 247-day replay contained zero partial-vote days, so synthetic tests
+  remain the only dropout evidence.
+
 **Retired / superseded:**
 
 - D-RULE as a pending item (ruling merged via #167).

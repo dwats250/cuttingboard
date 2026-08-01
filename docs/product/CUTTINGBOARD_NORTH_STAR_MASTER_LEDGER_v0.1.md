@@ -93,6 +93,12 @@ ledger for its tracks, and promotion on either axis is Dustin's alone.
 
 Boundary: read-only reconciliation plus product documentation. No production implementation.
 
+Scope note: `L0` remains the current packet inside the decision-support
+workplan's own ledger; NS-0B is the current North Star portfolio ratification
+packet. The two labels live in separate scoped ledgers and authorize no
+concurrent implementation. After PR #187 merges, NS-0B completes and no North
+Star implementation packet is promoted until Dustin rules.
+
 ### NS-1 — Candidate fidelity and backtesting repairs
 
 **Objective:** Make intended engine behavior, direct-path behavior, and evidence artifacts agree before performance interpretation.
@@ -256,7 +262,7 @@ citations in the implementation program's source map.
 | OPT-1 — PR #185 (open draft, head `ee2d12e`) | `DRAFTED / BLOCKED` | PRD-278 Stage 0 + draft Gate A entry; the prior `DECISIONS.md` blocker is RESOLVED (Finding D ruling merged via PR #167, 2026-07-26); remaining: nine-file-ruling consistency, independent PRD review, Dustin Gate A |
 | PRD-271 lifecycle/document gap | `BLOCKED` | Document landed with its index entry via PR #173; Gate A (ORB remedy design ruling) pending with Dustin — also the NS-2B prerequisite |
 | PRD-267/272/273 closeout | `COMPLETE` | Closed 2026-07-26 / 2026-07-31 (`724d84a`, `724d84a`, `4a1cb22`); registry, index, and validator agree (exit 0) |
-| PRD-268 scaffold/design fork | `PARKED / DECISION REQUIRED` | IN PROGRESS scaffold, design fork unruled; Dustin chooses approve / return to PROPOSED / deprecate (one of L0's two open rulings — the other is PRD-271 Gate A) |
+| PRD-268 scaffold/design fork | `IN PROGRESS / DECISION REQUIRED` | Canonical lifecycle state unchanged (registry: IN PROGRESS), design fork unruled; Dustin chooses approve / return to PROPOSED / deprecate (one of L0's two open rulings — the other is PRD-271 Gate A) |
 | Registry validator historical warnings | `RETIRED` | Phantom-SHA class closed WONTFIX-HISTORICAL (PRD-243); CI keeps `--skip-commit-resolvability` permanently; CB-12 residual bypasses remain non-blocking debt |
 
 ### Candidate-fidelity evidence debt
