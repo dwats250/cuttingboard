@@ -52,7 +52,7 @@ FAIL lines MUST be:
 ### Scope Lock
 The `FILES` section defines a hard boundary.
 Any file modified during implementation that does not appear in `FILES` is a scope violation.
-Scope violations require either a PRD amendment (add the file to FILES before touching it) or a separate PRD.
+Before Gate A, scope violations require either a PRD amendment (add the file to FILES before touching it) or a separate PRD. After Gate A, adding a file increases the approved FILES ceiling and follows the GOV-2 §5 renewal sequence: stop work; amend the PRD and relevant MATERIAL packet/authority record; obtain fresh-context independent review of the exact amended PRD revision; and receive Dustin's explicit amended Gate A before touching the added file. The amendment alone is not authorization.
 
 Registry and index bookkeeping (`docs/PRD_REGISTRY.md`, `docs/prd_index.json`) is implicit in every PRD lifecycle and is not enumerated in PRD `FILES` sections. Cross-reviewers should treat edits to these two files as authorized by the registry-maintenance step below, not as scope violations.
 
@@ -139,20 +139,38 @@ CI-bound naming exceptions.
 
 Every PRD receives the structured review its LANE requires (LANE
 matrix below), performed by a reviewing agent working from a fresh
-context that did not author the change. A deep INDEPENDENT review —
-the second-model instrument — runs only when Dustin commissions one.
-It is opt-in, never a standing requirement (PRD-242; see Second-Model
-Disposition below and the CLAUDE.md gate text). When a commissioned
-independent review runs alongside the routine review, **the two are
-independent and MUST be dispatched in parallel**, not serially. The
-author submits the draft once and the two reviewers work
-simultaneously against the same artifact.
+context that did not author the change.
+
+**MATERIAL PRD exception (GOV-2).** For a MATERIAL PRD in either
+STANDARD or HIGH-RISK, the lane-required PRD review is performed by
+the FRESH-CONTEXT INDEPENDENT REVIEWER capability role before Gate A.
+That reviewer is not the PRD author or same-session implementer,
+reviews the PRD together with the review-clean MATERIAL packet and
+Dustin's design-direction ruling, and records a committed verdict
+against the exact reviewed PRD commit SHA or revision. A qualified
+fresh-context second-model reviewer commissioned under the MATERIAL
+workflow may fill the role. This is the required MATERIAL PRD review,
+not an additional routine PRD review, and it does not make Codex the
+mandatory occupant of the role.
+
+Outside that MATERIAL-PRD exception, a deep INDEPENDENT review — the
+second-model instrument — runs only when Dustin commissions one. It
+is opt-in, never a standing requirement (PRD-242; see Second-Model
+Disposition below and the CLAUDE.md gate text). When a separately
+commissioned independent review runs alongside the routine review,
+**the two are independent and MUST be dispatched in parallel**, not
+serially. The author submits the draft once and the two reviewers
+work simultaneously against the same artifact.
 
 **One correction cycle (GOV-1).** Findings are produced once and
 addressed once; then the gate closes. A further round is Dustin's
 call, never a reviewer's prerogative. Triaging connector-bot threads
 (PRD-228) does not consume the cycle — that disposition is
-bookkeeping, not a review round.
+bookkeeping, not a review round. A post-Gate-A ceiling increase
+creates a changed authority revision and requires the amended-PRD
+review in GOV-2 §5. That review receives one findings-and-correction
+cycle for the amended revision; it is not another pass on the prior
+closed review or another Codex packet-cycle event.
 
 **Why parallel:** the reviews answer different questions (vision
 alignment vs. structural soundness) from non-overlapping models.
@@ -453,7 +471,7 @@ replace either.
 
 | LANE | Eligibility filter | Typical example |
 |------|--------------------|------------------|
-| MICRO | All micro-PRD criteria in `docs/PRD_MICRO_TEMPLATE.md` hold (docs-only / test-helper-only / process-only, ≤ 20 production-code lines, no HIGH-RISK FILES intersect **as payload** — an annotated pointer/bookkeeping touch of `docs/PROJECT_STATE.md` or `docs/PRD_REGISTRY.md` does not disqualify, but obliges a fresh-context review — one deterministic FAIL condition) AND the R12 safety-net behavior surfaces are NOT touched AND the slice is not classified MATERIAL at intake (a lane-downgrade-prevention disqualifier alongside R12; GOV-2 §1 — a MATERIAL slice rides STANDARD at minimum, with HIGH-RISK only per this table's own independent trigger) | A typo fix, a docs cross-link |
+| MICRO | All micro-PRD criteria in `docs/PRD_MICRO_TEMPLATE.md` hold (docs-only / test-helper-only / process-only, ≤ 20 production-code lines, no HIGH-RISK FILES intersect **as payload** — an annotated pointer/bookkeeping touch of `docs/PROJECT_STATE.md` or `docs/PRD_REGISTRY.md` does not disqualify, but obliges a fresh-context review — one deterministic FAIL condition) AND the R12 safety-net behavior surfaces are NOT touched AND the slice is not classified MATERIAL under GOV-2, whether at intake or on required reclassification (a lane-downgrade-prevention disqualifier alongside R12; GOV-2 §1 — a MATERIAL slice rides STANDARD at minimum, with HIGH-RISK only per this table's own independent trigger) | A typo fix, a docs cross-link |
 | STANDARD | Does NOT qualify for MICRO; `FILES` list does NOT name any HIGH-RISK FILES entry **as payload** for the PRD's CLASS (same annotated-pointer carve-out as MICRO) | A renderer-only sidecar feature, a notification-formatter tweak, a docs/process expansion that touches several files |
 | HIGH-RISK | `FILES` names any HIGH-RISK FILES entry **as payload** for the PRD's CLASS, OR CLASS is `EXECUTION` or `CONTRACT`, OR default Tier is T0 | A regime-input change, a payload schema migration, a publish-gate hardening |
 
@@ -629,15 +647,21 @@ SURFACE remains optional.
 
 ## Binding MAX EXPECTED DELTA
 
-`MAX EXPECTED DELTA` declared in the PRD header is binding. An
-implementation that exceeds the declared ceiling MUST:
+`MAX EXPECTED DELTA` declared in the PRD header is binding. If implementation
+would exceed the Gate A ceiling, work MUST stop. The author may reduce the
+implementation to remain inside the approved ceiling. Increasing the ceiling
+requires all of the following before work resumes:
 
-1. Stop implementation.
-2. Amend the PRD: revise the ceiling and record the reason for the revision.
-3. Re-trigger review per the CLASS matrix before resuming.
+1. Re-run MATERIAL classification under GOV-2 §1.
+2. Amend the PRD with the revised ceiling and reason.
+3. Amend the relevant MATERIAL packet and canonical authority record with the
+   revised ceiling and consequence.
+4. Obtain fresh-context independent review of the exact amended PRD revision.
+5. Receive Dustin's explicit amended Gate A approving the increased ceiling.
 
-Advisory interpretation is not permitted. The ceiling is the unit of
-drift visibility.
+A documentation amendment alone is not authorization. No agent may issue or
+infer the amended Gate A. Advisory interpretation is not permitted; the
+ceiling is the unit of drift visibility.
 
 ---
 

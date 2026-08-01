@@ -1,18 +1,19 @@
 # GOV-2 — Material review order and bounded correction
 
-Status: PROPOSED FOR DUSTIN RATIFICATION
+Status: RATIFIED UPON DUSTIN'S MERGE OF PR #186
 
 This governance packet addresses the repeated workflow failures observed across
 PRs #178–#185 without imposing second-model review on every repository change.
 
-It becomes binding only when Dustin merges the PR carrying it. Until then it is
-a reviewed proposal.
+Dustin's merge of PR #186 is the ratifying action. Before that merge, this
+document remains a reviewed proposal and is not binding; no agent may treat
+this status line or the pending decision entry as advance ratification.
 
 The governing principle is:
 
 > No agent certifies the completeness of the boundary it chose.
 
-## 1. Materiality is decided at intake
+## 1. Materiality is decided at intake and re-run on expansion
 
 The proposed work is **MATERIAL** when any one of these is true:
 
@@ -32,14 +33,24 @@ it matches, an upstream material design, reconciliation, or seam-trace packet is
 required and must clear the review sequence below before any durable downstream
 PRD, decision entry, or implementation authority is opened.
 
+Re-run the MATERIAL classification before continuing whenever scope,
+consumers, schemas, ceilings, seams, files, or risk assumptions expand
+materially after intake, including during a PRD amendment or boundary
+discovery. If the work newly becomes MATERIAL, stop implementation, create or
+reopen the MATERIAL packet, and clear the packet review, Dustin
+design-direction ruling, fresh-context independent PRD review, and explicit
+Gate A sequence before resuming. A PRD or documentation amendment alone cannot
+authorize continued implementation.
+
 MICRO bookkeeping, cosmetic edits, local documentation corrections, and narrow
 single-surface patches remain under the normal bounded workflow only when none
 of the materiality conditions above applies. The materiality conditions take
 precedence over the narrow-change exception. Dustin may classify any otherwise
 non-material change as material.
 
-A slice classified MATERIAL at intake is therefore ineligible for
-`LANE: MICRO`, including MICRO's cosmetic note-only form. The required order
+A slice classified MATERIAL under this section, whether at intake or on
+required reclassification, is therefore ineligible for `LANE: MICRO`,
+including MICRO's cosmetic note-only form. The required order
 in section 2 includes a PRD with its required independent review (step 7)
 and an explicit Gate A (step 8); the collapsed MICRO lifecycle contains none
 of these, so materiality operates as an additional MICRO-eligibility
@@ -64,12 +75,39 @@ Required order:
 4. Author performs one consolidated correction.
 5. Codex independently confirms the exact corrected head SHA.
 6. Dustin may issue a design-direction ruling from the review-clean packet.
-7. A PRD is drafted from that ruling and receives its required review.
+7. A PRD is drafted from that ruling and receives review by the
+   fresh-context independent reviewer. The reviewer is not the author or
+   same-session implementer, reviews the PRD together with the review-clean
+   packet and Dustin's ruling, and records a committed verdict against the
+   exact reviewed PRD commit SHA or revision.
 8. Dustin issues Gate A only on the reviewed PRD; Gate A remains the
    implementation authorization.
 
 A corrected head that has not received independent SHA-pinned confirmation is
 not review-clean.
+
+Both Codex packet-cycle events require packet-local durable evidence. The
+evidence must be embedded in the committed MATERIAL packet or stored in a
+committed review record in the packet's directory and linked from the packet.
+For each event, the durable record must state:
+
+- the event type: `INITIAL PACKET REVIEW` or
+  `EXACT-CORRECTED-HEAD CONFIRMATION`;
+- the reviewer identity and capability role;
+- the exact reviewed commit SHA or immutable packet revision;
+- the review date;
+- the verdict;
+- the findings and their explicit dispositions, or `none` only when that is
+  the truthful result; and
+- confirmation that the reviewer operated in fresh context and was
+  independent of the authoring session, including the required memory-
+  provenance or equivalent run-isolation evidence.
+
+The exact-corrected-head confirmation record must identify the corrected SHA
+and enumerate the prior finding identifiers and dispositions being confirmed.
+Its scope is confirmation that those findings are resolved at that exact head,
+not a new broad review. A connector comment, resolved thread, external link, or
+ephemeral transcript cannot substitute for either committed record.
 
 Codex is required here because the work is material. It is not a standing gate
 for every repository change.
@@ -100,12 +138,23 @@ contribute evidence but cannot satisfy the independent-review requirement.
 
 ## 4. No downstream authority before upstream review-clean
 
-For material work, no downstream PRD, canonical decision entry,
-implementation branch, or other durable authority may be committed or opened
-until the required upstream material packet is review-clean.
+For MATERIAL work, a design/documentation branch may exist before the
+upstream packet is review-clean only to carry the CARD, MATERIAL packet
+drafting and review records, or governance/design documentation. The branch's
+existence creates no implementation authority.
 
-Disposable local drafting is allowed. It carries no authority and must be
-reconciled or discarded after the upstream packet stabilizes.
+No production implementation, implementation PRD execution, or other
+implementation change may begin until all four conditions hold:
+
+1. the MATERIAL packet is review-clean;
+2. Dustin has issued the design-direction ruling;
+3. the PRD has been drafted and reviewed by the fresh-context independent
+   reviewer; and
+4. Dustin has explicitly issued Gate A.
+
+Only after those conditions hold may a branch be opened or used for
+implementation work. Disposable local drafting remains non-authoritative and
+must be reconciled or discarded after the upstream packet stabilizes.
 
 Normal order:
 
@@ -137,7 +186,25 @@ Use these labels:
 - `IMPLEMENTATION ACTUAL`
 
 The first binding ceiling is the one Dustin approves at Gate A on the reviewed
-PRD. After Gate A, exceeding that ceiling is a stop-and-amend event.
+PRD. After Gate A, any proposed increase to the FILES or LOC ceiling is a
+stop-and-renew event. Before work resumes:
+
+1. the PRD must state the revised ceiling and reason;
+2. the relevant MATERIAL packet and canonical authority record must state the
+   revised ceiling and consequence;
+3. the fresh-context independent reviewer must review the exact amended PRD
+   revision and record a verdict against it; and
+4. Dustin must explicitly issue an amended Gate A approving the increased
+   ceiling.
+
+A documentation amendment alone cannot satisfy the amended Gate A, and no
+agent may issue or infer that approval. Reducing the implementation to remain
+within the existing Gate A ceiling does not increase the ceiling.
+
+The amended-PRD review is a new authority check on a changed revision and
+receives GOV-1's one findings-and-correction cycle for that revision. It is not
+a third auto-commissioned Codex packet event and does not reopen the bounded
+packet cycle unless the boundary-reset rule in section 6 fires.
 
 An author must not exclude a truthful consumer or schema consequence merely to
 preserve a provisional estimate.
@@ -223,8 +290,11 @@ current.
 
 ## 11. Temporary authoring-seat restriction
 
-Until Dustin explicitly re-certifies the model currently occupying the Opus 5
-seat, that seat may perform:
+Until Dustin explicitly re-certifies it, the currently restricted model
+occupies the `fresh-context independent reviewer` capability role as a
+restricted actor. This section constrains that capability-role assignment; it
+does not silently redefine the project lead or implementation driver roles.
+While restricted, that model may perform:
 
 - evidence gathering;
 - provisional design drafting;
@@ -261,8 +331,10 @@ Before either merges:
 
 ## Ratification effect
 
-Merging this governance PR ratifies GOV-2 for new work. The same PR links GOV-2
+Dustin's merge of PR #186 ratifies GOV-2 for new work. The same PR links GOV-2
 from the injected `CLAUDE.md` governance surface so fresh agents cannot miss it
 or follow contradictory review-order instructions.
 
-Held for Dustin's decision.
+Before that merge, GOV-2 is held for Dustin's decision and grants no authority.
+After it, GOV-2 is ratified and binding; Dustin retains sole design-direction,
+Gate A, amended Gate A, Gate B, ratification, and merge authority.

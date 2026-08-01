@@ -57,12 +57,15 @@ mandatory fetch->build->review relay inside a slice.
 | **Driver (Sonnet 5 by default)** | Owns the slice end-to-end: recon, authoring, build, verify, closeout. Runs its own greps and targeted tests. Every lane has exactly one driver. |
 | **Haiku (optional subcontractor)** | Pulled in ONLY for a genuinely separable bulk job: a large call-site/token sweep, a long full-suite run backgrounded while the driver keeps working. Never a required stage; never edits source. |
 | **Operator (Dustin)** | Non-MATERIAL work: at most two execution touches per slice, Gate A (direction, when not already decided) and Gate B (merge, always). MATERIAL work adds one earlier intake touch - the design-direction ruling on the review-clean upstream packet (GOV-2 section 2 step 6) - which authorizes PRD drafting only and does not satisfy Gate A. Everything else runs unattended. |
-| **Fresh-context reviewer (heavy Claude model)** | HIGH-RISK only: the fresh-context Claude review leg. |
-| **Second model (Codex or other non-Claude)** | Two cases: (a) the two GOV-2 MATERIAL-packet events - upstream packet review and exact-corrected-head confirmation - auto-commissioned by GOV-2 when the slice is MATERIAL at CARD (GOV-2 section 2, section 7); MATERIAL disqualifies MICRO (section 3, MATERIAL overlay) and does not convert STANDARD work into HIGH-RISK. (b) otherwise HIGH-RISK only, and only when Dustin commissions it (PRD-242). |
+| **Fresh-context independent reviewer** | Capability role required before Gate A for every MATERIAL PRD in either STANDARD or HIGH-RISK. Works from fresh context, is not the PRD author or same-session implementer, reviews the PRD plus the review-clean MATERIAL packet and Dustin's design-direction ruling, and records a committed verdict against the exact reviewed PRD commit SHA or revision. This role also fills any lane-required fresh-context implementation review when assigned to that distinct event. |
+| **Second model (Codex or other non-Claude)** | Codex is auto-commissioned only for the two GOV-2 MATERIAL-packet events: upstream packet review and exact-corrected-head confirmation (GOV-2 section 2, section 7). A qualified fresh-context second-model reviewer may fill the MATERIAL PRD reviewer role under the MATERIAL workflow; selecting Codex for that role requires a separate Dustin commission. Otherwise a second model is HIGH-RISK only and only when Dustin commissions it (PRD-242). |
 
-Tier by lane: MICRO/STANDARD -> Sonnet runs the whole slice. HIGH-RISK ->
-Sonnet still builds end-to-end; what changes is the close: a separate
-fresh-context heavy-model review, plus the second-model disposition.
+Tier by lane: Sonnet drives MICRO and STANDARD end-to-end; STANDARD's
+structured implementation review is fresh-context under GOV-1. Sonnet also
+drives HIGH-RISK end-to-end; its close adds a separate fresh-context review
+plus the second-model disposition. MATERIAL does not change the lane. It adds
+the fresh-context independent PRD review before Gate A in either STANDARD or
+HIGH-RISK.
 
 Two-leg precision (PRD-242 + the 2026-07-07 DEFINITIONS entry): a
 fresh-context Claude review - however heavy the model - discharges ONLY the
@@ -80,17 +83,31 @@ the HIGH-RISK superset; lower lanes SKIP stages outright (section 3).
 ### CARD - what the slice is
 Pull the slice's spec: a build-plan card, a bug report, an operator ask, a
 review finding. Confirm any ordering constraints and interaction flags it
-declares. Branch `claude/<slug>` (or `claude/prd-NNN-<slug>` once numbered)
-from fresh `origin/main`.
+declares. Apply the GOV-2 materiality test here, at intake
+(`docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md` section 1)
+before assigning an implementation branch or beginning implementation work.
 
-Apply the GOV-2 materiality test here, at intake
-(`docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md` section 1). When
-the slice is MATERIAL, it must create and clear an upstream material packet -
-independent Codex review, one consolidated correction, independent
-exact-corrected-head confirmation (GOV-2 section 2, section 7) - before any
-PRD or other downstream authority is opened (GOV-2 section 4). A
-design-direction ruling issued from that review-clean packet (GOV-2 section 2
-step 6) authorizes only PRD drafting, not implementation.
+A design/documentation branch may be created from fresh `origin/main` before
+a MATERIAL packet is review-clean, but only to carry the CARD, MATERIAL packet
+drafting and review records, or governance/design documentation. Its existence
+does not authorize implementation work. No production implementation,
+implementation PRD execution, or other implementation change may begin until
+the packet is review-clean, Dustin issues the design-direction ruling, the PRD
+is drafted and reviewed by the fresh-context independent reviewer, and Dustin
+explicitly issues Gate A. Only then may the driver open or use
+`claude/<slug>` (or `claude/prd-NNN-<slug>` once numbered) for
+implementation work.
+
+For a non-MATERIAL slice, create `claude/<slug>` (or
+`claude/prd-NNN-<slug>` once numbered) from fresh `origin/main` after the
+intake classification and follow the normal lane path.
+
+When the slice is MATERIAL, it must create and clear an upstream material
+packet - independent Codex review, one consolidated correction, independent
+exact-corrected-head confirmation (GOV-2 section 2, section 7) - before any PRD
+or other downstream authority is opened (GOV-2 section 4). A design-direction
+ruling issued from that review-clean packet (GOV-2 section 2 step 6)
+authorizes only PRD drafting, not implementation.
 
 MATERIAL also settles lane at this stage: it disqualifies LANE: MICRO, so
 the slice rides STANDARD at minimum (GOV-2 section 1; section 3, MATERIAL
@@ -126,11 +143,13 @@ authorizes opening it once green: that is the per-PR confirmation the
 commissions the second model or defaults to the waiver.
 
 **GOV-2 exception - MATERIAL work cannot pre-satisfy Gate A.** For a slice
-classified MATERIAL at CARD, the design-direction ruling that clears the
+classified MATERIAL under GOV-2, the design-direction ruling that clears the
 upstream packet authorizes PRD drafting only; it never doubles as Gate A
-(GOV-2 section 2 steps 6-8). The drafted PRD must first receive its required
-independent review; only after that review does Dustin explicitly issue
-Gate A, and Gate A remains the implementation authorization.
+(GOV-2 section 2 steps 6-8). Before Gate A, the fresh-context independent
+reviewer must review the drafted PRD, the review-clean MATERIAL packet, and
+Dustin's design-direction ruling, then record a committed verdict against the
+exact reviewed PRD commit SHA or revision. Only after that review does Dustin
+explicitly issue Gate A, which remains the implementation authorization.
 
 ### BUILD - red first, then green
 Write the proving test; it MUST fail against pre-change code (a proving test
@@ -148,10 +167,11 @@ burning a CI round-trip, not to substitute for it.
 
 ### REVIEW - by lane
 - **MICRO:** nothing beyond VERIFY. No review artifact.
-- **STANDARD:** one structured Claude review of the implementation against
-  the PRD, same-context acceptable - the driver writes
-  `docs/prd_history/PRD-NNN.review.claude.md` (via `prd-review-claude`),
-  DRIFT CHECK included.
+- **STANDARD:** one structured fresh-context Claude review of the
+  implementation against the PRD - performed by a reviewing agent that did
+  not author the change - recorded in
+  `docs/prd_history/PRD-NNN.review.claude.md` (via
+  `prd-review-claude`), with DRIFT CHECK included.
 - **HIGH-RISK:** dispatch the fresh-context reviewer with a clean context (no
   implementation summary, no PR body). Artifact per the 2026-07-07 decision:
   in-tree, pinned to the reviewed SHA, merge base, fresh-context attestation,
@@ -159,9 +179,12 @@ burning a CI round-trip, not to substitute for it.
   commissioned non-Claude artifact, or the verbatim line
   `SECOND-MODEL: instrument not commissioned, merging on Claude-review + human judgment.`
   Default is the waiver; do not run a second model un-commissioned.
-This is the ONLY review event in the slice (section 6, cut 1) - except for a
-MATERIAL slice under GOV-2, whose upstream-packet review, PRD review, and
-this implementation review are three distinct required events (GOV-2 section 2).
+This is the ONLY review event in the baseline slice (section 6, cut 1) -
+except for a MATERIAL slice under GOV-2, whose upstream-packet review, PRD
+review, and this implementation review are three distinct required events
+(GOV-2 section 2). A post-Gate-A ceiling increase adds the amended-PRD review
+required by GOV-2 section 5. That is a changed-authority review, not another
+Codex packet-cycle event.
 Findings within FILES and against the PRD: fix in place. Anything else: halt
 clause.
 
@@ -222,10 +245,24 @@ A partial result with verified evidence is a success. A guessed completion
 is a failure.
 ```
 
+Before any T2/T5 recovery, and whenever scope, consumers, schemas, ceilings,
+seams, files, or risk assumptions expand materially after intake, the driver
+must re-run the GOV-2 MATERIAL classification before continuing. If the work
+newly becomes MATERIAL, stop implementation, create or reopen the MATERIAL
+packet, and clear the packet review, Dustin design-direction ruling,
+fresh-context independent PRD review, and explicit Gate A sequence before
+resuming.
+
 Driver's response to a halt: T1/T3 -> surface to the operator (a judgment
-seam; may ride the next batched gate). T2/T5 -> amend the PRD (re-touch
-Gate A if the amendment changes direction or lane) or spawn a follow-up per
-the amend-vs-spawn bar; never expand FILES silently. T4 -> the card's claim
+seam; may ride the next batched gate). T2/T5 -> after the required
+materiality reclassification, amend the PRD or spawn a follow-up per the
+amend-vs-spawn bar; never expand FILES or MAX EXPECTED DELTA silently. A
+proposed increase to a Gate A FILES or MAX EXPECTED DELTA ceiling requires
+the PRD and relevant MATERIAL packet/authority record to be amended, the
+exact amended PRD revision to receive fresh-context independent review, and
+Dustin to issue an amended Gate A before work resumes. A documentation
+amendment alone is not authorization. An amendment that changes direction or
+lane also returns to Dustin for an amended Gate A. T4 -> the card's claim
 about current behavior is wrong; back to SWEEP, and the finding goes in the
 PRD as a factual-drift note. T6 -> never bypass (`--no-verify`, sandbox
 overrides) without operator approval. T7 -> quarantine the slice; fix the
@@ -262,7 +299,7 @@ Lane is declared per the PRD_PROCESS matrix and is not negotiable downward
 | Lane | Path | Operator touches |
 |---|---|---|
 | **MICRO** | CARD -> BUILD -> VERIFY -> LAND | 1 (Gate B; commissioning doubles as Gate A + PR authorization) |
-| **STANDARD** | CARD -> [SWEEP] -> STAGE 0 -> [GATE A] -> BUILD -> VERIFY -> REVIEW (same-context) -> LAND | 1-2 (Gate A only if direction not pre-decided) |
+| **STANDARD** | CARD -> [SWEEP] -> STAGE 0 -> [GATE A] -> BUILD -> VERIFY -> REVIEW (fresh-context) -> LAND | 1-2 (Gate A only if direction not pre-decided) |
 | **HIGH-RISK** | all stages | 2 (Gate A incl. commission-or-waive; Gate B human-held) |
 
 Bracketed stages fire only on their trigger (SWEEP: asserted-token contact;
@@ -273,15 +310,18 @@ proving change, and the registry row are the whole ceremony.
 MATERIAL overlay (GOV-2): MATERIAL disqualifies MICRO. GOV-2's required
 order includes a PRD with independent review and an explicit Gate A (GOV-2
 section 1, section 2 steps 7-8), none of which the collapsed MICRO path
-contains, so a slice classified MATERIAL at CARD takes the lane the
+contains, so a slice classified MATERIAL under GOV-2 takes the lane the
 PRD_PROCESS matrix assigns with MICRO unavailable: STANDARD at minimum,
 HIGH-RISK only when R11's own triggers fire. MATERIAL never converts a
-STANDARD slice into HIGH-RISK. For the resulting STANDARD or HIGH-RISK
-slice, the overlay adds one intake touch before STAGE 0 - the
-design-direction ruling on the review-clean upstream packet - and its PRD
-receives a separately required independent review before Gate A (GOV-2
-section 2). That ruling authorizes PRD drafting only and does not satisfy
-Gate A. The per-lane execution-touch counts above are otherwise unchanged.
+STANDARD slice into HIGH-RISK. For either resulting lane, the pre-
+implementation overlay path is CARD -> review-clean MATERIAL packet ->
+Dustin design-direction ruling -> STAGE 0 -> fresh-context independent PRD
+review -> Dustin explicit Gate A. The reviewer is not the author or
+same-session implementer, reads the PRD, cleared packet, and Dustin's ruling,
+and records a committed verdict against the exact reviewed PRD commit SHA or
+revision. The ruling authorizes PRD drafting only and does not satisfy Gate A.
+The per-lane implementation path and operator-touch counts above are otherwise
+unchanged.
 
 Overlay: **governance changes** (CLAUDE.md guardrails, `prd-review-claude`,
 `tools/validate_prd_registry.py`, this doctrine once canonical) are
@@ -405,15 +445,18 @@ in the same commit as the Alignment-check DECISIONS entry - not per-slice.
 
 ## 6. Anti-redundancy - double-checks cut by this doctrine
 
-1. **One review event per slice, not two.** Reviewing the PRD draft AND the
-   implementation as separate ceremonies is cut: `prd-authoring-verified`
-   already mechanically checks the draft (symbols exist, FAIL lines
-   observable, lane correct) and Gate A holds direction - the single REVIEW
-   stage covers implementation-against-PRD. A separate pre-build PRD review
-   is dispatched only if the operator asks at Gate A. This cut does not
-   apply to a MATERIAL slice under GOV-2: its upstream-packet review, PRD
-   review, and implementation review are separately required and none
-   substitutes for another (GOV-2 section 2).
+1. **One review event per baseline slice, not two.** Reviewing the PRD draft
+   AND the implementation as separate ceremonies is cut:
+   `prd-authoring-verified` already mechanically checks the draft (symbols
+   exist, FAIL lines observable, lane correct) and Gate A holds direction -
+   the single REVIEW stage covers implementation-against-PRD. A separate
+   pre-build PRD review is dispatched only if the operator asks at Gate A.
+   This cut does not apply to a MATERIAL slice under GOV-2: its upstream-
+   packet review, PRD review, and implementation review are separately
+   required and none substitutes for another (GOV-2 section 2). A post-Gate-A
+   ceiling increase also requires the changed-revision PRD review and amended
+   Gate A in GOV-2 section 5; it does not reopen or add to the Codex packet
+   cycle.
 2. **Full suite runs twice, not three-plus times.** Targeted tests per
    commit; ONE full local run at VERIFY; CI is the deciding run (invariant
    5). Never full-suite-per-commit, never a second "confirm" full run after

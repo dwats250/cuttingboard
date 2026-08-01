@@ -21,6 +21,16 @@ retell origin stories.
   itself commissions
   (`docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md` §2, §7) —
   never otherwise at its own discretion.
+- **Fresh-context independent reviewer** is the capability role required for
+  every MATERIAL PRD, whether its lane is STANDARD or HIGH-RISK. The reviewer
+  works from fresh context; is not the PRD author or same-session implementer;
+  reviews the drafted PRD, the review-clean MATERIAL packet, and Dustin's
+  design-direction ruling; and records a committed verdict against the exact
+  reviewed PRD commit SHA or revision. A qualified fresh-context second-model
+  reviewer commissioned under the MATERIAL workflow may fill this role.
+  Selecting Codex for this role requires a separate Dustin commission under
+  PRD-242; the role does not expand GOV-2's two auto-commissioned Codex
+  packet-cycle events.
 - **Codex (or any second model)** is an instrument Dustin may commission for a
   genuinely independent second opinion (PRD-242). Never a standing gate
   requirement; never drives architectural direction. GOV-2 adds one bounded
@@ -105,24 +115,34 @@ Reference these; do not duplicate them.
   NOT standing except for work classified MATERIAL under GOV-2, or when it is
   otherwise commissioned by Dustin or triggered by the conditions named in
   `docs/PRD_PROCESS.md` § Second-Model Disposition.
-- **MATERIAL work is classified at intake (GOV-2).** Before opening a PRD,
-  apply `docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md` §1 to the
-  proposed work. A match requires an upstream material packet, independent
-  Codex review, one consolidated correction, and independent SHA-pinned
-  confirmation of the exact corrected head. Only then may Dustin issue a
-  design-direction ruling and downstream PRD drafting begin. Gate A remains
-  the later implementation authorization on the reviewed PRD. A MATERIAL
-  slice is ineligible for `LANE: MICRO` — GOV-2's required order includes a
-  PRD, its independent review, and an explicit Gate A, none of which MICRO's
-  collapsed path contains; it rides STANDARD at minimum, with HIGH-RISK only
-  per R11's own triggers (GOV-2 §1).
+- **MATERIAL work is classified at intake and reclassified on material scope
+  expansion (GOV-2).** Before opening a PRD, apply
+  `docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md` §1 to the
+  proposed work. Re-run that classification before continuing whenever
+  scope, consumers, schemas, ceilings, seams, files, or risk assumptions
+  expand materially after intake. If the work newly becomes MATERIAL, stop
+  implementation, create or reopen the upstream MATERIAL packet, and clear
+  the required packet review and authority sequence before resuming. A
+  MATERIAL match requires independent Codex packet review, one consolidated
+  correction, and independent SHA-pinned confirmation of the exact corrected
+  head. Only then may Dustin issue a design-direction ruling and downstream
+  PRD drafting begin. Gate A remains the later implementation authorization
+  on the independently reviewed PRD. A MATERIAL slice is ineligible for
+  `LANE: MICRO` — GOV-2's required order includes a PRD, its independent
+  review, and an explicit Gate A, none of which MICRO's collapsed path
+  contains; it rides STANDARD at minimum, with HIGH-RISK only per R11's own
+  triggers (GOV-2 §1).
 - **At most one correction cycle (GOV-1).** The reviewing agent produces
   findings once; the authoring agent addresses them once; the gate closes. A
   second round happens only because Dustin asks for one — never because a
   reviewer wants the last word. For MATERIAL packets, GOV-2's exact-head
   confirmation is part of that single bounded cycle; a new material boundary
   omission returns the packet to DESIGN INCOMPLETE instead of creating an
-  endless review loop.
+  endless review loop. A post-Gate-A ceiling increase creates a changed
+  authority revision and therefore requires the amended-PRD review specified
+  by GOV-2 §5. That review receives one findings-and-correction cycle for the
+  amended revision; it is not another pass on the prior closed review and is
+  not another Codex packet-cycle event.
 - **Reviews target the change, never another review's prose (GOV-1).** A
   review reads its stage's governing input, not another review's prose: an
   implementation review reads the diff and the PRD; a GOV-2 upstream
@@ -197,9 +217,13 @@ Reference these; do not duplicate them.
 ## Scope and approvals
 
 - **Strict scope locking.** A PRD's `FILES` section is a hard boundary; touch
-  only what it authorizes. If a change needs a file not listed, STOP and amend
-  the PRD (or open a new one) before editing — never expand FILES silently
-  mid-implementation.
+  only what it authorizes. If a change needs a file not listed, STOP before
+  editing. Before Gate A, amend the PRD or open a new one. After Gate A,
+  adding a file increases the approved FILES ceiling: amend the PRD and the
+  relevant MATERIAL packet/authority record, obtain fresh-context independent
+  review of the exact amended PRD revision, and receive Dustin's explicit
+  amended Gate A before continuing. Never expand FILES silently, and never
+  treat a documentation amendment alone as implementation authorization.
 - **Pre-implementation grep sweep (PRD-158).** Before declaring FILES for any
   change that deletes, renames, or translates a rendered field / contract key
   / enum value, grep all of `tests/` for the affected token and add every
@@ -329,13 +353,15 @@ each generalizes are canonical in `docs/prd_history/PRD-198.md` (Part A).
 - **Codex mechanics.** Invoke Codex only when Dustin commissions a
   second-model review (PRD-242) — PRD cross-review, vision review, or
   structured pre-merge code review — or for exactly the two events GOV-2
-  itself commissions on MATERIAL work: the upstream material-packet review
-  and the independent confirmation of the exact corrected head (GOV-2 §2,
-  §7). MATERIAL classification authorizes nothing beyond those two events —
-  a MATERIAL slice's PRD review and implementation review run on the normal
-  seats, and any second-model involvement there requires its own Dustin
-  commission. Codex is not a general standing gate. All review invocations
-  run sandboxed read-only:
+  itself auto-commissions on MATERIAL work: the upstream material-packet
+  review and the independent confirmation of the exact corrected head
+  (GOV-2 §2, §7). MATERIAL classification automatically authorizes no other
+  Codex event. The MATERIAL workflow separately commissions the
+  fresh-context independent reviewer capability role for the PRD review; a
+  qualified fresh-context second-model reviewer may fill that role, but
+  selecting Codex requires a separate Dustin commission. The implementation
+  review remains the lane-required review. Codex is not a general standing
+  gate. All review invocations run sandboxed read-only:
   `codex exec -s read-only - < prompt` (prompt via stdin, verdict from
   stdout). Claude Code writes the review artifact from captured stdout; Codex
   never writes into the repo tree.
