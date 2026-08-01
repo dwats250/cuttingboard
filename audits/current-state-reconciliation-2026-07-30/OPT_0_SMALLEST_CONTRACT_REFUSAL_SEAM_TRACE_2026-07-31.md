@@ -46,15 +46,18 @@ now lives at `docs/DECISIONS.md:259-292`. Stale citation, correct content.
 1. Seam: OPTIONS CONSTRUCTION -- `options.py::build_option_setups`, replacing
    the `max(1, ...)` floor at `options.py:233` with a refusal branch when
    `raw_adjusted < 1`. Truth is first fully known exactly there.
-2. Carrier: a NEW minimal refusal record returned alongside the setups,
-   threaded into contract `rejections[]` under a new stage token, into the
-   audit record, and onto one report line. No existing carrier is truthful.
+2. Carrier: a NEW minimal refusal record collected via a list-API-preserving
+   `refusals` out-parameter (NOT a return-shape change -- corrected after
+   connector review, section 22), threaded into contract `rejections[]`
+   under a new stage token, the audit record, and the presentation surfaces.
 3. Reason: new token `SMALLEST_CONTRACT_EXCEEDS_BUDGET`;
    `size_rounds_to_zero` is proven semantically distinct (section 11).
-4. Surface: 5 production files, 3 test files, ~60-100 net LOC. The
-   4-production-file ceiling is NOT met by the full-truth design.
-5. One Dustin ruling remains (section 17): report-surface line in OPT-1
-   (5 files, recommended) vs deferred (4 files). All else is settled here.
+4. Surface (corrected, section 14): full truth is 6 production files and
+   ~6 test files, ~90-140 net LOC -- the workplan's 4/3/100 ceiling and the
+   pre-correction 5/3 estimate are both superseded by connector-verified
+   consumers (postmarket aggregation, notification body, HTML adapter).
+5. One Dustin ruling remains (section 17): the full-truth surface vs the
+   smallest defensible reduced design. All else is settled here.
 
 ## 3. Current-defect reproduction
 
@@ -78,7 +81,8 @@ $400.005; modifiers ALIGNED 1.0 / NEUTRAL 0.7 / CONFLICT 0.4,
 | 5 | direct DEBIT, single name, CONFLICT 0.4 | BEAR_PUT_SPREAD, max loss 0.75/share | $75 | $160.00 | 2 contracts, $150.00 | within budget |
 | 6 | CONTINUATION credit, index ETF (entry_mode=CONTINUATION), CONFLICT 0.4 | BULL_PUT_SPREAD | $350 | $160.00 | 1 contract, $350.00 | +$190.00, 2.1875x BREACH |
 | 7 | positive control: debit single name, ALIGNED 1.0 | BULL_CALL_SPREAD | $75 | $400.00 | 5 contracts, $375.00 | within budget (unchanged) |
-| 8 | boundary: credit single name, ALIGNED 1.0 | BULL_PUT_SPREAD | $175 | $400.00 | 2 contracts, $350.00 | within budget (unchanged) |
+| 8 | positive control: credit single name, ALIGNED 1.0 (two-contract case; earlier mislabeled "boundary" -- corrected, section 22) | BULL_PUT_SPREAD | $175 | $400.00 | 2 contracts, $350.00 | within budget (unchanged) |
+| 9 | ONE-CONTRACT BOUNDARY: credit index ETF, ALIGNED 1.0 (added at correction; executed at the pin) | BULL_PUT_SPREAD, width 5.0, max loss 3.5/share | $350 | $400.005 | 1 contract, $350.00 | within budget: `raw_adjusted = int(400.005 // 350) = 1`, `min(1, 1) = 1` |
 
 What this proves and does not prove:
 
@@ -338,10 +342,12 @@ reads of every join). Production only.
 | `audit.py:169-187` | decision join | decisions always have setups | unchanged |
 | `output.py:317-324, 341-386` | A+ TRADES = setups with VALIDATED chains; CHAIN UNVERIFIED = setups missing chain results | a qualified symbol with NO setup appears in NEITHER block -- invisible in the report body | one explicit refusal line required (section 17 carries the only open question: whether it rides OPT-1) |
 | `output.py:435-461` | WATCHLIST / NEAR_A_PLUS / EXCLUDED blocks from qual summary | refusal is in none of them | unchanged (refusal is NOT a qualification exclusion) |
-| `delivery/payload.py:50-51, 133-137` | splits contract `rejections[]` by `stage == WATCHLIST` vs rest | three stages | a new stage lands in the `rejected` bucket automatically (additive-tolerant split; realizability to be re-verified in OPT-1) |
+| `delivery/payload.py:50-51, 133-137` | splits contract `rejections[]` by `stage == WATCHLIST` vs rest | three stages | a new stage lands in the payload's `rejected` bucket automatically (additive-tolerant split) -- but presence in the payload is NOT user-visible HTML; see the next row |
+| `delivery/html_renderer.py:15-23` -> `output.py::render_report_from_payload` (:509-575) | the HTML page body is `render_report_from_payload(payload)` | the adapter reconstructs a MINIMAL report: `qualification_summary=None, option_setups=[]`, and never reads `sections.rejected` -- a refusal present in the payload is DROPPED from the rendered HTML (CORRECTED after connector review; the pre-correction matrix implied payload presence sufficed) | full truth requires the adapter to render the refusal from `sections.rejected` (`output.py`, already in FILES) + `tests/test_delivery.py` |
 | `delivery/dashboard_renderer.py` | NO reads of `max_contracts`/`dollar_risk`/`size_multiplier` (verified); candidate cards from market_map; `_load_contract_entry_context` reads entry/stop/status/block_reason only | -- | no change required |
-| `notifications` (`output.py:957-1020`, `notifications/formatter.py`, `notifications/state.py`) | no size fields; `state.py:58-61` uses `rejections[0].reason` in the dedup key | -- | dedup key may incorporate the refusal reason via the existing mechanism; no format change required |
-| `reports/premarket.py:343-352`, `reports/postmarket.py:131-176` | focus list (no size); rejection counts by stage | -- | postmarket stage counts pick the new stage up mechanically |
+| notification body (`output.py::build_notification_message` :1008-1016, `output.py::_alert_reason` :924-935) | with zero `trade_candidates`, the alert text is `_alert_reason`, whose fallback chain is `stay_flat_reason -> regime_failure_reason -> error_detail -> "no setups"` -- it NEVER reads `contract["rejections"]` | an all-candidates-refused run alerts a generic `Reason: no setups` with no trace of the refusal (CORRECTED after connector review; the pre-correction row claimed "no format change required" -- WITHDRAWN. `state.py:58-61`'s use of `rejections[0].reason` is dedup state only, not body text) | full truth requires `_alert_reason` (or the no-candidates branch) to surface the refusal (`output.py`, already in FILES) + the asserting notification tests (`tests/test_prd017_notification_stabilization.py`, `tests/test_prd267_alert_reason_coverage.py`; exact set locked by the OPT-1 Stage-0 grep sweep) |
+| `reports/postmarket.py::build_postmarket_report` (:159-161, :212-220) | counts rejections by EXACT stage literals `REGIME` / `QUALIFICATION` / `WATCHLIST`; `rejection_breakdown` exposes only those three fixed keys; `trade_summary.rejected_count` = qualification_count only | an `OPTIONS_SIZING` rejection is invisible in the postmarket report (CORRECTED after connector review; the pre-correction row claimed the stage counts "pick the new stage up mechanically" -- WITHDRAWN, the aggregation is fixed-schema, and `tests/test_postmarket_report.py:90-92` pins the exact key set, a discriminating red on any new key) | full truth requires `reports/postmarket.py` + `tests/test_postmarket_report.py` in OPT-1 |
+| `reports/premarket.py:343-352` | focus list from `trade_candidates[:5]` (no size, no rejections) | -- | no change |
 | `contract.py:431` `rejected_count` | `len(qual.excluded)` only | already excludes watchlist/regime | unchanged by design (pre-existing narrowness, not widened here) |
 | `tools/engine_doctor.py:88` | symbol existence of `OptionSetup`, `build_option_setups` | -- | unchanged (names retained) |
 | `ui/app.js:130-137, 255` | `correlation.risk_modifier` display only | -- | no change |
@@ -371,13 +377,32 @@ end-to-end. The minimum new carrier is:
 
 - a small frozen dataclass in `options.py` (e.g. symbol, strategy,
   risk_per_contract, adjusted ceiling, risk_modifier, stable reason token),
-  returned by `build_option_setups` alongside the setups (one production
-  call site; signature change is contained);
+  collected via a NEW OPTIONAL `refusals` out-parameter on
+  `build_option_setups` -- the LIST RETURN SHAPE IS PRESERVED. (CORRECTED
+  after connector review: the pre-correction text said "returned ...
+  alongside the setups", i.e. a tuple return -- WITHDRAWN. A tuple return
+  breaks four test files outside any proposed ceiling. Caller proof, each
+  read directly: `tests/test_continuation_audit.py:337-341` calls
+  `build_option_setups` and consumes the result as a list;
+  `tests/test_runtime_decision.py:164` and `:644`,
+  `tests/test_evaluation.py:386`, and
+  `tests/test_prd161_sizing_gate_fixture.py:210` monkeypatch it as
+  `lambda *a, **k: [...]` -- kwarg-tolerant but returning a plain list that
+  `_run_pipeline` would fail to unpack as a 2-tuple. With the out-parameter,
+  every existing caller stays valid: direct callers omit the kwarg
+  (default `None`), the runtime passes `refusals=<list>`, and the
+  `*a, **k` stubs swallow the kwarg while their list return remains the
+  sole return value the runtime reads);
 - threaded by `runtime/__init__.py` into contract assembly and audit;
 - represented in the contract as ONE new `rejections[]` stage token
   (proposed: `OPTIONS_SIZING`), NOT a new top-level contract field;
 - represented in the audit record explicitly (not the silent-None join);
-- one report line in `output.py` (subject to the section 17 ruling).
+- represented at the presentation consumers (corrected scope, section 22):
+  one report line in `render_report`, the `_alert_reason` /
+  no-candidates notification branch, the `render_report_from_payload`
+  HTML adapter (all three in `output.py`), and the postmarket
+  `rejection_breakdown` (`reports/postmarket.py`) -- subject to the
+  section 17 ruling on full vs reduced surface.
 
 This is deliberately NOT a schema expansion: no new contract key, no new
 enum surface beyond one stage token and one reason token, no new artifact
@@ -492,23 +517,32 @@ and the floor-adjacent tests):
 
 ## 14. Initial FILES estimate
 
-Production (5 -- exceeds the workplan's 4; see sections 17 and 21):
+CORRECTED after connector review (section 22). The pre-correction estimate
+(5 production / 3 tests) omitted three verified consumers and assumed a
+return-shape change; both errors are withdrawn.
+
+Production, FULL-TRUTH design (6):
 
 | Path | Reason |
 |---|---|
-| `cuttingboard/options.py` | The refusal branch replacing the floor; the minimal refusal dataclass; return-shape change of `build_option_setups` |
-| `cuttingboard/runtime/__init__.py` | The single call site (:1018-1024): receive refusals, thread into contract assembly and audit inputs |
+| `cuttingboard/options.py` | The refusal branch replacing the floor; the minimal refusal dataclass; the list-API-preserving `refusals` out-parameter (NOT a return-shape change) |
+| `cuttingboard/runtime/__init__.py` | The single call site (:1018-1024): pass the refusals list, thread into contract assembly and audit inputs |
 | `cuttingboard/contract.py` | `_build_rejections` gains the `OPTIONS_SIZING` stage entries from the threaded refusals |
 | `cuttingboard/audit.py` | Explicit refusal representation on the audit record (replacing the silent-None join shape for refused symbols) |
-| `cuttingboard/output.py` | One refusal line in the report body (THE conditional file -- section 17) |
+| `cuttingboard/output.py` | THREE touch points, one file: the report-body refusal line (`render_report`); the notification body (`_alert_reason` / the no-candidates branch, :924-935 and :1008-1016); the HTML adapter (`render_report_from_payload` :509-575 rendering `sections.rejected`) |
+| `cuttingboard/reports/postmarket.py` | `rejection_breakdown` / counts (:159-161, :212-220) gain the new stage so the postmarket report does not silently omit refusals |
 
-Tests (3):
+Tests, FULL-TRUTH design (6 named; the OPT-1 Stage-0 PRD-158 grep sweep is
+the final lock):
 
 | Path | Assertion surface |
 |---|---|
-| `tests/test_phase5.py` | Rewrite the one floor-binding test (:482-500) to assert refusal + refusal-record economics; add direct/continuation, debit/credit, NEUTRAL/CONFLICT refusal cases; boundary and positive-preservation cases; report-line rendering (render_report tests already live here) |
+| `tests/test_phase5.py` | Rewrite the one floor-binding test (:482-500) to assert refusal + refusal-record economics; add direct/continuation, debit/credit, NEUTRAL/CONFLICT refusal cases; the repro-case-9 one-contract boundary; positive-preservation cases; report-line rendering |
 | `tests/test_contract.py` | `rejections[]` carries the new stage + token; surviving candidates unchanged (the existing sizing-passthrough tests stay green) |
 | `tests/test_audit.py` | Audit record carries the explicit refusal; no silent-None row for a refused symbol; existing sourcing test stays green |
+| `tests/test_postmarket_report.py` | `rejection_breakdown` key-set test (:90-92) updated for the new stage; new count assertion |
+| `tests/test_prd017_notification_stabilization.py` (+ `tests/test_prd267_alert_reason_coverage.py` if the `_alert_reason` fallback-chain edit moves its asserted strings) | All-refused run alerts the refusal, not generic `no setups` |
+| `tests/test_delivery.py` | `render_report_from_payload` / `render_html` output contains the refusal when `sections.rejected` carries an `OPTIONS_SIZING` entry |
 
 Documentation/contract files genuinely required (bookkeeping-class, outside
 the production ceiling per the charge template's lifecycle rule):
@@ -525,15 +559,27 @@ Excluded (plausible but deliberately NOT required):
 - `cuttingboard/trade_decision.py`, `execution_policy.py`,
   `chain_validation.py`, `correlation.py`, `trade_policy.py`, `config.py` --
   no behavior change at those seams.
-- `cuttingboard/delivery/payload.py`, `dashboard_renderer.py`,
-  `notifications/*` -- additive-tolerant to the new stage (verified);
-  re-verify realizability at OPT-1, but no edit expected.
+- `cuttingboard/delivery/payload.py` -- the stage split (:50-51) is
+  additive-tolerant; no edit (the HTML gap is in the ADAPTER,
+  `output.py::render_report_from_payload`, which IS in scope).
+- `cuttingboard/delivery/html_renderer.py` -- delegates wholesale to
+  `render_report_from_payload`; fixing the adapter fixes the page; no edit.
+- `cuttingboard/delivery/dashboard_renderer.py`,
+  `cuttingboard/notifications/formatter.py`,
+  `cuttingboard/notifications/state.py` -- no size/rejection-body reads
+  requiring change (state.py's dedup key tolerates the new reason string).
+- `cuttingboard/reports/premarket.py` -- reads `trade_candidates` only.
 - `cuttingboard/runtime/_types.py` -- only needed if the refusal list is
   added to `PipelineResult`; the minimal design threads it as locals within
   `_run_pipeline` -> `_build_and_finalize_contract` params. If typing forces
   it in, it is a FILES amendment at Stage 0, not a silent expansion.
-- `tests/test_runtime_decision.py`, `tests/test_delivery.py` -- their
-  fixtures pass `option_setups=[]` shapes that remain valid.
+- `tests/test_runtime_decision.py`, `tests/test_evaluation.py`,
+  `tests/test_prd161_sizing_gate_fixture.py`,
+  `tests/test_continuation_audit.py` -- kept OUT by the out-parameter
+  carrier design (section 10 caller proof); a return-shape change would
+  have pulled all four in. (CORRECTED: the pre-correction text excluded
+  `tests/test_delivery.py` on a fixture argument -- WITHDRAWN; it is now a
+  required test file for the HTML adapter.)
 
 ## 15. Required regression matrix
 
@@ -545,7 +591,7 @@ Excluded (plausible but deliberately NOT required):
 | 4 | Continuation credit below one (live constants, CONFLICT; repro case 6) | REFUSED; identical to direct case 2 economics |
 | 5 | Correlation NEUTRAL (0.7), credit ETF (repro case 2) | REFUSED at $280 ceiling |
 | 6 | Correlation CONFLICT (0.4), credit single name (repro case 3) | REFUSED at $160 ceiling |
-| 7 | Quantity exactly one and WITHIN budget (repro case 8 shape) | EMITTED unchanged: 1 contract, same dollar_risk |
+| 7 | Quantity exactly one and WITHIN budget (repro case 9: ALIGNED credit ETF, $350 risk/contract vs $400.005 ceiling, `raw_adjusted = 1`) -- CORRECTED, the pre-correction row cited the two-contract case 8 | EMITTED unchanged: exactly 1 contract, $350.00. Goes RED if the refusal condition is written `raw_adjusted <= 1` instead of `< 1` (off-by-one refuses an affordable one-contract position) |
 | 8 | Quantity above one (repro cases 5, 7) | EMITTED unchanged, value-for-value |
 | 9 | Missing/unavailable economics (`max_contracts is None`, missing StructureResult) | Existing skip behavior unchanged -- and NOT converted to the refusal token (distinctness test, section 16) |
 | 10 | Positive-sizing arithmetic sweep (parametrized over strategies x modifiers with `raw_adjusted >= 1`) | Byte/value-identical to pre-change |
@@ -555,6 +601,9 @@ Excluded (plausible but deliberately NOT required):
 | 14 | Refusal reason stability | Exact token string pinned by test (the CB-03 lesson: an operator-approved reason that exists nowhere in code) |
 | 15 | Outcome derivation | Sole candidate refused -> `NO_TRADE`, not `TRADE`; no actionable decision exists |
 | 16 | ALIGNED (1.0) unchanged | Modifier 1.0 can only refuse what the base budget already could not afford; with `result.max_contracts >= 1` from Gate 8, ALIGNED never refuses when Gate 8 and options agree on max loss -- pinned as a test so the refusal cannot fire spuriously |
+| 17 | Postmarket representation (added at correction) | `build_postmarket_report` on a refusal-run contract exposes the refusal in `rejection_breakdown`; the key-set pin (`tests/test_postmarket_report.py:90-92`) updated and green |
+| 18 | Notification body (added at correction) | An all-candidates-refused run's alert body names the refusal, not generic `no setups`; dedup state unaffected |
+| 19 | HTML delivery (added at correction) | `render_html` / `render_report_from_payload` output on a payload whose `sections.rejected` carries the `OPTIONS_SIZING` entry contains the refusal text |
 
 ## 16. Mutation-red design
 
@@ -583,28 +632,45 @@ Each mutation must turn at least one named test red:
    Red: matrix cases 5-6 vs 16 -- NEUTRAL/CONFLICT refusal thresholds and
    the ALIGNED never-spuriously-refuses pin disagree with any other
    formula.
+6. OFF-BY-ONE REFUSAL (added at correction): write the refusal condition
+   as `raw_adjusted <= 1` instead of `< 1`.
+   Red: matrix case 7 (repro case 9) -- the affordable one-contract
+   ALIGNED credit-ETF position is wrongly refused.
+7. SURFACE OMISSION (added at correction): render the refusal in the
+   report but drop it from any one of postmarket / notification body /
+   HTML adapter.
+   Red: matrix cases 17-19 respectively -- each surface has its own
+   discriminating assertion.
 
 ## 17. Dustin decisions
 
-Exactly one genuinely unresolved decision. Everything else the workplan's
-OPT-0 questions raise is settled by repository authority plus this trace and
-is folded into the Gate A text (section 18).
+REWRITTEN at the connector correction cycle (section 22). The original
+section posed report-line-vs-4-file-ceiling; Dustin approved the 5-file
+design 2026-07-31 -- but that approval was given on incomplete evidence
+(the pre-correction consumer matrix), so the surface question reopens
+honestly rather than being inferred as approved at the larger size.
 
-REQUIRES DUSTIN RULING -- report-surface visibility vs the FILES ceiling:
-full presentation truth (a refusal line in the text report) requires
-`cuttingboard/output.py`, making 5 production files against the workplan's
-stated ceiling of "at most four" (`decision-support-workplan-v0.1.md`,
-OPT-1). Without it, the refusal is durable and explicit in the audit record
-and the contract `rejections[]` (which the dashboard's rejected list and
-postmarket counts read), but the human-readable text report body shows the
-candidate nowhere -- arguably a silent drop on that one surface, which both
-the ruling's spirit and OPT-1's "explicit and stable at every existing
-presentation/audit consumer" weigh against. Options:
-  (a) RECOMMENDED: include `output.py`; approve OPT-1 at 5 production files
-      (ceiling amended explicitly at Gate A, not silently).
-  (b) Hold the 4-file ceiling; defer the report line to the PRES track with
-      a named follow-up, accepting interim report-body absence.
-This trace recommends (a) and will not proceed on either without the ruling.
+REQUIRES DUSTIN RULING -- full-truth surface vs reduced surface:
+
+  (A) FULL-TRUTH DESIGN (RECOMMENDED): 6 production files (the approved
+      five plus `reports/postmarket.py`), ~6 test files (the approved
+      three plus `test_postmarket_report.py`, the asserting notification
+      test(s), `test_delivery.py`), ~90-140 net LOC. Every existing
+      consumer of rejections -- report body, notification body, HTML
+      page, postmarket report, audit, contract -- states the refusal.
+      This is what "explicit and stable at every existing
+      presentation/audit consumer" actually costs.
+  (B) SMALLEST DEFENSIBLE REDUCED DESIGN: the previously approved 5/3
+      surface (report line only on the presentation side). Omits:
+      postmarket `rejection_breakdown` (refusal invisible in the
+      postmarket report), notification body (an all-refused run alerts
+      generic "no setups"), HTML page (refusal absent from the delivered
+      page). Temporarily truthful ONLY if those three omissions are
+      recorded as named, dated presentation debt (the PRD-259 E/F/G
+      precedent) with the audit record and contract `rejections[]` as
+      the interim durable truth -- and honestly NOT compliant with a
+      literal reading of "every existing presentation consumer".
+This trace recommends (A) and proceeds on neither without the ruling.
 
 ## 18. Gate A recommendation for OPT-1
 
@@ -617,24 +683,33 @@ Exact ruling text Dustin can approve verbatim:
 > `max(1, ...)` floor is removed. The `min(result.max_contracts,
 > raw_adjusted)` arithmetic for `raw_adjusted >= 1` is preserved
 > value-for-value.
-> Carrier: a minimal frozen refusal dataclass returned by
-> `build_option_setups` alongside the setups; threaded by
-> `runtime/__init__.py` into (i) contract `rejections[]` as new stage
-> `OPTIONS_SIZING` and (ii) the audit record; plus one report line in
-> `output.py` [per the section 17 ruling]. No new top-level contract field,
-> no new artifact path, no schema expansion.
+> Carrier: a minimal frozen refusal dataclass collected via an optional
+> list-API-preserving `refusals` out-parameter on `build_option_setups`
+> (return shape unchanged); threaded by `runtime/__init__.py` into
+> (i) contract `rejections[]` as new stage `OPTIONS_SIZING`, (ii) the
+> audit record, and (iii) the presentation surfaces per the section 17
+> ruling: report line + notification body + HTML adapter (all in
+> `output.py`) and postmarket `rejection_breakdown`
+> (`reports/postmarket.py`). No new top-level contract field, no new
+> artifact path, no schema expansion beyond the stage key.
 > Reason: new stable token `SMALLEST_CONTRACT_EXCEEDS_BUDGET`, meaning "one
 > contract of the selected spread has max loss exceeding
 > ACCOUNT_EQUITY x MAX_RISK_PCT_PER_TRADE x risk_modifier." Reuse of
 > `size_rounds_to_zero` is rejected on proven non-equivalence.
-> FILES ceiling: production exactly {options.py, runtime/__init__.py,
-> contract.py, audit.py, output.py} [or minus output.py per section 17];
-> tests exactly {test_phase5.py, test_contract.py, test_audit.py};
-> lifecycle bookkeeping per process; <= 100 net production LOC; any
-> further file is a stop-and-amend.
+> FILES ceiling [option A, recommended]: production exactly {options.py,
+> runtime/__init__.py, contract.py, audit.py, output.py,
+> reports/postmarket.py}; tests exactly {test_phase5.py, test_contract.py,
+> test_audit.py, test_postmarket_report.py,
+> test_prd017_notification_stabilization.py (+
+> test_prd267_alert_reason_coverage.py if its asserted strings move),
+> test_delivery.py} with the final test set locked by the Stage-0 PRD-158
+> grep sweep; lifecycle bookkeeping per process; <= 140 net production
+> LOC; any further file is a stop-and-amend.
 > Regression: the section 15 matrix in full, including the synthetic-budget
-> debit cases, the ALIGNED no-spurious-refusal pin, and the exact-token pin.
-> Mutation gate: the five section 16 mutations verified red.
+> debit cases, the ALIGNED no-spurious-refusal pin, the repro-case-9
+> one-contract boundary, the postmarket/notification/HTML rows, and the
+> exact-token pin.
+> Mutation gate: the seven section 16 mutations verified red.
 > Preservation: the section 13 invariants; Gate 8, the continuation sizer,
 > qualification outcomes, and all estimate arithmetic untouched.
 > Non-goals: no fractional contracts, no rounding up, no threshold or
@@ -686,20 +761,27 @@ Definitions the implementation must keep distinct (charge question 16):
 
 ## 21. Ceiling reality check -- and what was not checked
 
-Ceiling (workplan OPT-1: <= 4 production files, <= 3 test files, <= 100 net
-production LOC, no dependency/workflow/schema/unrelated-refactor):
+CORRECTED at the connector cycle (section 22). Ceiling (workplan OPT-1:
+<= 4 production files, <= 3 test files, <= 100 net production LOC, no
+dependency/workflow/schema/unrelated-refactor) versus the corrected
+full-truth design:
 
-- Test-file ceiling: MET (3).
-- LOC ceiling: plausibly MET (~60-100 net; the refusal branch, one
-  dataclass, threading, one stage block, one audit shape, one report line).
+- Production-file ceiling: NOT MET -- 6 files. Beyond the pre-correction
+  five, `reports/postmarket.py` is forced by its fixed-stage aggregation
+  (:159-161, :212-220); the notification-body and HTML-adapter gaps land
+  inside `output.py` (already counted) but were unpriced pre-correction.
+- Test-file ceiling: NOT MET -- ~6 files (adds
+  `test_postmarket_report.py`, the asserting notification test(s),
+  `test_delivery.py`); the Stage-0 PRD-158 grep sweep is the final lock.
+- LOC ceiling: NOT reliably met -- corrected estimate ~90-140 net.
   Stated as an estimate, not a promise; breach is a stop condition.
 - No-dependency/workflow/schema: MET (one stage token + one reason token,
-  no schema key).
-- Production-file ceiling: NOT MET by the full-truth design (5 files). The
-  exact cause: presentation truth in the text report requires `output.py`,
-  because a refused symbol otherwise appears on no report surface
-  (section 9, absence behaviors). This trace does not silently widen the
-  ceiling; it puts the single choice to Dustin (section 17).
+  no schema key beyond the stage value).
+- The pre-correction "5 production / 3 tests / ~60-100 LOC" figures, and
+  Dustin's 2026-07-31 approval OF those figures, were based on the
+  incomplete pre-correction consumer matrix. Neither is preserved here
+  merely because it was approved; section 17 puts the corrected choice
+  back to Dustin explicitly.
 
 Not checked (explicitly out of this trace's evidence):
 
@@ -719,12 +801,37 @@ Not checked (explicitly out of this trace's evidence):
   `build_option_setups` by direct read (:402-460); their notification
   content was not otherwise audited.
 
+## 22. What the connector review changed (correction cycle, 2026-07-31)
+
+Five P2 inline threads on PR #184 (all from `chatgpt-codex-connector[bot]`
+against the original head `4d51e84`). Every one was re-verified by the
+lead directly against code before disposition; all five were CORRECT.
+This is the one bounded correction cycle; corrections are recorded in
+place above with explicit withdrawal notes, per the baseline convention.
+
+| Thread (comment id) | Finding | Disposition | What changed |
+|---|---|---|---|
+| 3694043067 | A return-shape change to `build_option_setups` breaks four test files outside the 3-file ceiling | ACTIONED | Section 10 carrier rewritten to the list-API-preserving `refusals` out-parameter with a per-caller proof (stubs are `lambda *a, **k: [...]`; direct caller at `test_continuation_audit.py:337-341`); sections 2/14/18 updated |
+| 3694043070 | Postmarket aggregation counts fixed stage literals; `OPTIONS_SIZING` would be silently omitted | ACTIONED | Verified `postmarket.py:159-161, 212-220` and the key-set pin `test_postmarket_report.py:90-92`; the pre-correction "picks the new stage up mechanically" claim WITHDRAWN; `reports/postmarket.py` + `test_postmarket_report.py` added to the full-truth surface (sections 9/14/15/18/21) |
+| 3694043072 | Notification body falls back to generic `no setups`; `_alert_reason` never reads `rejections[]` | ACTIONED | Verified `output.py:924-935, 1008-1016`; the pre-correction "no format change required" claim WITHDRAWN; notification body added to the `output.py` scope with its asserting tests (sections 9/14/15/18) |
+| 3694043073 | `render_report_from_payload` ignores `sections.rejected`, so the delivered HTML drops the refusal | ACTIONED | Verified `html_renderer.py:15-23` delegation and `output.py:509-575` (adapter renders with `qualification_summary=None, option_setups=[]`); adapter + `test_delivery.py` added to the full-truth surface (sections 9/14/15/18) |
+| 3694043075 | The cited one-contract boundary fixture is a two-contract case | ACTIONED | Repro case 8 relabeled positive control; NEW case 9 executed at the pin (ALIGNED credit ETF: $350 risk/contract, $400.005 ceiling, `raw_adjusted = 1`, emits exactly 1 contract); matrix case 7 rewritten with the `<= 1` off-by-one red condition; mutation 6 added |
+
+Net effect on the conclusion: seam, carrier dataclass, reason token, and
+every rejected-alternative argument are unchanged. What changed is the
+honest cost of full presentation truth (6 production / ~6 test files /
+~90-140 LOC) and the carrier's compatibility mechanism (out-parameter,
+not tuple return). The prior 5/3 approval is explicitly reopened in
+section 17 rather than silently inherited.
+
 ---
 
 Every load-bearing claim above carries its evidence inline. Dispositions
 used: CONFIRMED (breach repro, single floor site, single call site,
-consumer behaviors, token absence, origin commit); NARROWED (debit
-unreachability at live constants; PRD-157 -> PRD-023 origin correction);
-FALSIFIED (`size_rounds_to_zero` semantic equivalence); REQUIRES DUSTIN
-RULING (exactly one, section 17). Nothing here is CONFIRMED on a prior
-artifact's authority alone.
+consumer behaviors, token absence, origin commit, and all five connector
+findings); NARROWED (debit unreachability at live constants; PRD-157 ->
+PRD-023 origin correction); FALSIFIED (`size_rounds_to_zero` semantic
+equivalence; the pre-correction postmarket/notification/HTML tolerance
+claims, withdrawn in place); REQUIRES DUSTIN RULING (exactly one,
+section 17). Nothing here is CONFIRMED on a prior artifact's authority
+alone.
