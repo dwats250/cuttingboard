@@ -67,7 +67,7 @@ the §2 baseline.
 
 | Source (exact path or PR) | Current status | North Star destination | Authoritative? | Disposition |
 |---|---|---|---|---|
-| `docs/plans/decision-support-workplan-v0.1.md` | On `main`; GOV-0 COMPLETE; several rows stale (see below) | NS-0 / NS-1 / NS-5 / NS-6, sequencing law | YES for track gates; row states partially stale | RETAINED. Stale rows: `D-RULE` (merged via #167 → COMPLETE), `L0` (exit condition met: validator green, 267/272/273 COMPLETE, PRD-271 doc landed; residual = PRD-268 disposition ruling), `OPT-0` (packet drafted on PR #184, no longer merely "evidence blocked") |
+| `docs/plans/decision-support-workplan-v0.1.md` | On `main`; GOV-0 COMPLETE; several rows stale (see below) | NS-0 / NS-1 / NS-5 / NS-6, sequencing law | YES for track gates; row states partially stale | RETAINED. Stale rows: `D-RULE` (merged via #167 → COMPLETE), `L0` (the new-PRD allocation freeze has ended — its named conditions resolved: PRD-271 document landed, 267/272/273 COMPLETE, validator green — but **L0 itself remains IN PROGRESS** until PRD-268's disposition and PRD-271's Gate A land), `OPT-0` (packet drafted on PR #184, no longer merely "evidence blocked") |
 | `docs/plans/decision-support-expansion-doctrine-v0.1.md` | On `main`; binding | NS-5 (GEX gates), NS-6 (news gates), NS-1/ODATA (options contract), global invariants G1–G10 | YES | RETAINED. North Star packets NS-5/NS-6 restate its gates; the doctrine remains the boundary authority |
 | `docs/plans/agent-work-charge-template-v0.1.md` | On `main`; binding | All packet execution | YES | RETAINED |
 | `audits/current-state-reconciliation-2026-07-30/` (CHARTER, EVIDENCE_INDEX, FINDING_STATUS_MATRIX, RECONCILIATION_REPORT) | On `main` (PR #175); pin `9e6b772`; revised after a 12/12-correct connector review | NS-0A (delivered), debt ledger §5 (CB-01…CB-47) | YES as findings evidence; statuses are Dustin's to move | RETAINED. This IS the repository truth reset the ledger's NS-0A asked for |
@@ -141,12 +141,19 @@ Statuses are recorded, not changed. Severity labels are the reconciliation's.
 GOV-2 §12 process steps in §7, all held for Dustin or requiring the
 commissioned confirmation event. No repository defect blocks CB-02.
 
+**Dustin-held safety ruling — gates any product expansion: CB-01.**
+The hourly channel never evaluates the kill switch and publishes
+`kill_switch: False` as a literal (confirmed Critical; no PRD carries it —
+the planned number landed unrelated work; the reconciliation's commission
+order puts it immediately after CB-02). Required before any implementation
+packet begins, under either runway option: one explicit Dustin ruling —
+**(A) promote CB-01 ahead of product expansion, or (B) defer it explicitly
+with acknowledged risk.** Neither ruling is made here, and CB-01 does not
+become `NOW` by this listing; Option B of the runway choice cannot silently
+bypass it.
+
 **Open, non-blocking (named, with owner surface):**
 
-- **CB-01 (Critical, unowned)** — hourly channel never evaluates the kill
-  switch and publishes `kill_switch: False` as a literal. No PRD carries it
-  (the planned number landed unrelated work). Reconciliation's commission
-  order puts it immediately after CB-02. Dustin decision required to number it.
 - **CB-03 / CB-04 (High)** — policy size multiplier never resizes;
   trade brakes count recommendations as fills. Settled operator doctrine
   (2026-07-10) exists; recommended as a pair.
@@ -165,15 +172,19 @@ commissioned confirmation event. No repository defect blocks CB-02.
 - **CB-12 (PARTIAL)** — validator-gate residual bypasses (casing,
   declared-CLASS trust, docless-COMPLETE, existence-not-content), narrowed by
   PRD-276/277; mitigated in practice by GOV-1 universal manual merge.
+- **CB-12b (PARTIAL, Medium)** — manual-merge technical backstops, tracked
+  separately from CB-12: the reconciliation's §12b live check found
+  `enforce_admins` false, no required PR reviews, and checks `["test"]` only;
+  CODEOWNERS and a CI changed-path check were never added. Severity
+  reassessed down because GOV-1's universal manual merge plus the
+  `gh pr merge` deny supersede the unbabysat-agent-merge premise. Source:
+  `FINDING_STATUS_MATRIX.md` CB-12b row and RECONCILIATION_REPORT §12b.
 - **CB-09, CB-16, CB-17, CB-19–CB-25 (Medium)** — including the six-row
   "records what it said, never what happened" cluster (CB-20–25) that NS-8
   will eventually own.
 - **CB-26–CB-29 (Low)** — incl. CB-28 (PROJECT_STATE staleness shape persists:
   "Active PRD: none" vs four IN PROGRESS registry rows) and CB-29 (strategy-repo
   relationship pointer PARTIAL once the delta merged).
-- **CB-30…CB-47 (UNKNOWN, eighteen rows)** — historical findings not run to
-  ground; CB-35 and CB-38 lead any future sweep. A triage sweep is a candidate
-  commission, not scheduled here.
 - **`runtime/` split mid-way** (PRD-173 skeleton only; re-evaluate by
   2026-08-15 per PROJECT_STATE).
 - **Two unfiled MICROs** noted in PROJECT_STATE: `prd_close.sh` Next-step
@@ -181,6 +192,15 @@ commissioned confirmation event. No repository defect blocks CB-02.
 - **PRD-274** — ruff resolved-rule coverage (queued MICRO/INFRA).
 - **DOC-0** — stale proposal headers (PRD-251 continuation proposal;
   PRD-259 proposal disposition summary); doctrine G10 names them tracked debt.
+
+**UNKNOWN / UNADJUDICATED (neither blocking nor non-blocking — unverified):**
+
+- **CB-30…CB-47** — eighteen historical findings whose current truth was
+  never run to ground; the matrix marks CB-35 and CB-38 with plausible
+  Critical/High consequences, and they lead any sweep. These rows never
+  become `NOW` automatically; the triage sweep is a Dustin commission. If any
+  row is confirmed a live safety blocker, the §10 adjacent-discovery stop
+  condition escalates it immediately.
 
 **Parked (reopen only under stated conditions):**
 
@@ -207,8 +227,9 @@ commissioned confirmation event. No repository defect blocks CB-02.
 **Retired / superseded:**
 
 - D-RULE as a pending item (ruling merged via #167).
-- Workplan L0's new-PRD allocation freeze (exit condition met; PRD-278's
-  allocation on #185 is legitimate).
+- Workplan L0's new-PRD allocation freeze only (its named conditions
+  resolved; PRD-278's allocation on #185 is legitimate). L0 itself remains
+  IN PROGRESS — see §3.
 - Phantom-SHA debt class (WONTFIX-HISTORICAL, PRD-243).
 - Continuation budget decouple (fixed by PRD-256 R3).
 - stage0-04's original "NO VIABLE PROVIDER" GEX verdict (re-dispositioned in
@@ -219,10 +240,13 @@ commissioned confirmation event. No repository defect blocks CB-02.
 
 **NOW (exactly one):**
 
-- **NS-0B — North Star ratification** (this ledger + this program, branch
-  `docs/north-star-master-ledger`): the current active documentation packet,
-  held for Dustin's decision. NS-0's truth-reset and debt-classification
-  outcomes are already delivered (PR #175, the fidelity delta, this program).
+- **NS-0B — North Star ratification** (this ledger + this program, PR #187):
+  `NOW — COMPLETE UPON DUSTIN'S MERGE OF PR #187`. Dustin's merge is the
+  ratifying and completing act; no post-merge transition commit is required
+  (the GOV-0 merge-contingent convention). On merge, the NOW slot becomes
+  intentionally vacant — no packet is promoted — until Dustin's A/B runway
+  ruling. NS-0's truth-reset and debt-classification outcomes are already
+  delivered (PR #175, the fidelity delta, this program).
 
 **The immediate runway choice is Dustin's, and it is not made here:**
 
@@ -230,7 +254,8 @@ commissioned confirmation event. No repository defect blocks CB-02.
   its GOV-2 §12 sequence, then begin fixed SPY observation.
 - **Option B — leave CB-02 parked** and promote fixed SPY observation
   directly, after resolving its exact prerequisite (the PRD-271 Gate A ORB
-  ruling).
+  ruling). Option B also requires the explicit CB-01 safety ruling — it
+  cannot silently bypass CB-01 (§5).
 
 Until that ruling, CB-02 / NS-1E is `PARKED / DUSTIN DECISION REQUIRED` and
 no implementation packet is on the runway.
@@ -249,12 +274,12 @@ packet where MATERIAL, PRD, review, and Gate A):**
    persistence + dashboard), so it begins with an upstream packet seeded by
    stage0-01, not with code.
 2. **NS-2E — Market Control Card** (after NS-2A/B/C exist to feed it).
-3. **NS-4A/4B — universe registry and basic movement heatmap** (registry
-   content is Dustin-authored; seed tuples exist).
 
-**LATER (preserved, not authorized):** NS-2D, NS-2F, NS-3 (all packets), NS-4C/D/E,
-NS-5 (GEX-0→3, evidence-blocked), NS-6 (NEWS-0→4), NS-7, NS-8, NS-9, ODATA-0/1+,
-PRES-0. Full preservation in §12.
+**LATER (preserved, not authorized):** NS-4A/4B (universe registry and basic
+movement heatmap — the first named promotion candidates after NS-2E; registry
+content is Dustin-authored, seed tuples exist, and promotion is Dustin's),
+NS-2D, NS-2F, NS-3 (all packets), NS-4C/D/E, NS-5 (GEX-0→3, evidence-blocked),
+NS-6 (NEWS-0→4), NS-7, NS-8, NS-9, ODATA-0/1+, PRES-0. Full preservation in §12.
 
 ## 7. The runway candidate held for Dustin's ruling: NS-1E / CB-02
 
@@ -293,9 +318,11 @@ postmarket aggregates agree with the new breakdown member; false generic
 
 **Blockers, precisely:** steps 1–4 above. All are Dustin-held decisions or
 Dustin-commissioned events. **Stale/apparent blockers, verified not blocking:**
-the Finding D ruling (merged, #167); the workplan's L0 allocation freeze (exit
-met); PRD-268's design fork (different surface); PRD-274/275 (infra debt);
-CB-01 (independent finding, not on this seam).
+the Finding D ruling (merged, #167); the workplan's L0 allocation freeze (its
+conditions resolved — L0 itself remains IN PROGRESS, §3); PRD-268's design
+fork (different surface); PRD-274/275 (infra debt);
+CB-01 (independent finding, not on this seam — though its own Dustin-held
+safety ruling still gates implementation start; §5).
 
 **Considerations for the A/B ruling (neither chosen here).** For Option A:
 CB-02 is the furthest along under the ratified process (upstream packet
@@ -304,9 +331,10 @@ sizing seam, its operator ruling is already canonical, and its ceiling is
 bounded (nine production files, ~220 net LOC, two additive schema changes —
 `ESTIMATED SURFACE — NOT YET APPROVED` until Gate A). For Option B: fixed SPY
 observation is the faster trader-visible win, and CB-02's remaining steps are
-all owner-held, so it parks without decaying. Either way the one-packet rule
-holds: whichever option Dustin rules, only that packet's MATERIAL sequence is
-in flight.
+all owner-held, so it parks without decaying. Either option's implementation
+start additionally requires the CB-01 safety ruling (§5). Either way the
+one-packet rule holds: whichever option Dustin rules, only that packet's
+MATERIAL sequence is in flight.
 
 ## 8. Proposed acceptance contract for CB-02 (applies only if Dustin resumes it)
 
@@ -376,7 +404,8 @@ Held decisions, stated once, none inferred or pre-empted:
    exact-head confirmation on PR #184; accept the #185 consistency
    correction; dispatch the fresh-context independent PRD-278 review; rule
    **Gate A** on PRD-278) — or **leave CB-02 parked** and promote fixed SPY
-   observation directly. Neither option is pre-selected by this program.
+   observation directly, which requires the explicit CB-01 ruling below.
+   Neither option is pre-selected by this program.
 3. **PRD-271 Gate A** — choose the ORB remedy (prerequisite for the NS-2
    slice under either option; also resolves CB-07).
 4. **PRD-268 disposition** — approve / return to PROPOSED / deprecate
@@ -385,8 +414,10 @@ Held decisions, stated once, none inferred or pre-empted:
    PRD-187/188.
 6. **D2 (Strategy repo)** — dated correction of the AS-IS baseline records;
    decide whether a tier-complete frozen re-run is ever worth a session.
-7. **CB-01 ownership** — whether to number the hourly kill-switch defect next
-   (reconciliation's recommended order puts it directly after CB-02).
+7. **CB-01 safety ruling** — required before any implementation packet begins
+   under either runway option: promote CB-01 ahead of product expansion, or
+   defer it explicitly with acknowledged risk (reconciliation's recommended
+   order puts it directly after CB-02).
 8. **Confirm the NEXT slice** — NS-2A/B/C fixed SPY observation as the first
    trader-facing product win, sequenced by the A/B ruling and entering
    through its own MATERIAL packet.
@@ -450,6 +481,9 @@ Nothing below is authorized; everything below is deliberately preserved.
 
 ---
 
-*Validation note: this program is documentation only. CI green on its branch
-proves the docs preserve the current baseline; it does not execute or validate
-any proposed runtime design (GOV-2 §8).*
+*Validation note: this program is documentation only. Green CI on its branch
+proves the repository's existing checks still pass and that these documents
+break no existing validation. CI does not semantically validate this portfolio
+map — no CI check or test consumes these documents. The statuses here rest on
+the session verification evidence cited in §2–§3 (GOV-2 §8). No new CI or
+tests are added by this PR.*

@@ -80,8 +80,8 @@ It must not become:
 | Packet | State | Outcome | Exit |
 |---|---|---|---|
 | NS-0A Repository truth reset | `COMPLETE` | Delivered by the 2026-07-30 reconciliation (PR #175), its 2026-07-31 fidelity delta, and the implementation program's verified baseline | Met at `main` `5fe8ad7`: SHA, open PRs (#184/#185 only), PRDs, packets, and debt agree; validator exit 0 |
-| NS-0B Vision preservation | `NOW` | This ledger + the implementation program, on branch `docs/north-star-master-ledger` — the current active documentation packet | Dustin ratifies and merges; held for his decision |
-| NS-0C Debt classification | `COMPLETE` | Every known debt labeled blocking / non-blocking / parked / drafted / retired (program §5) | Nothing silently becomes the next task |
+| NS-0B Vision preservation | `NOW — COMPLETE UPON DUSTIN'S MERGE OF PR #187` | This ledger + the implementation program (PR #187) — the current active documentation packet | Dustin's merge is the ratifying and completing act; no post-merge transition commit is required. On merge the `NOW` slot is intentionally vacant until Dustin's A/B runway ruling promotes a packet |
+| NS-0C Debt classification | `COMPLETE` | Every known debt labeled blocking / non-blocking / parked / drafted / retired / UNKNOWN-unadjudicated (program §5) | Nothing silently becomes the next task |
 
 Boundary: read-only reconciliation plus product documentation. No production implementation.
 
@@ -248,7 +248,7 @@ citations in the implementation program's source map.
 | OPT-1 — PR #185 (open draft, head `ee2d12e`) | `DRAFTED / BLOCKED` | PRD-278 Stage 0 + draft Gate A entry; the prior `DECISIONS.md` blocker is RESOLVED (Finding D ruling merged via PR #167, 2026-07-26); remaining: nine-file-ruling consistency, independent PRD review, Dustin Gate A |
 | PRD-271 lifecycle/document gap | `BLOCKED` | Document landed with its index entry via PR #173; Gate A (ORB remedy design ruling) pending with Dustin — also the NS-2B prerequisite |
 | PRD-267/272/273 closeout | `COMPLETE` | Closed 2026-07-26 / 2026-07-31 (`724d84a`, `724d84a`, `4a1cb22`); registry, index, and validator agree (exit 0) |
-| PRD-268 scaffold/design fork | `PARKED / DECISION REQUIRED` | IN PROGRESS scaffold, design fork unruled; Dustin chooses approve / return to PROPOSED / deprecate (workplan L0's last open step) |
+| PRD-268 scaffold/design fork | `PARKED / DECISION REQUIRED` | IN PROGRESS scaffold, design fork unruled; Dustin chooses approve / return to PROPOSED / deprecate (one of L0's two open rulings — the other is PRD-271 Gate A) |
 | Registry validator historical warnings | `RETIRED` | Phantom-SHA class closed WONTFIX-HISTORICAL (PRD-243); CI keeps `--skip-commit-resolvability` permanently; CB-12 residual bypasses remain non-blocking debt |
 
 ### Candidate-fidelity evidence debt
@@ -300,6 +300,9 @@ NS-0A and NS-1A/B — the draft's original NOW — are already delivered on
   §12), then begin fixed SPY observation.
 - **B.** Leave CB-02 parked and promote fixed SPY observation directly,
   after resolving its exact prerequisite (the PRD-271 Gate A ORB ruling).
+  Option B also requires the explicit CB-01 safety ruling (promote it ahead
+  of product expansion, or defer it with acknowledged risk) — it cannot
+  silently bypass CB-01 (program §5).
 
 ### NEXT
 
@@ -309,10 +312,11 @@ NS-0A and NS-1A/B — the draft's original NOW — are already delivered on
    card and the execution gate must share). MATERIAL under GOV-2 — begins
    with its upstream packet, seeded by the stage0-01 decision-surface recon.
 3. NS-2E — Market Control Card
-4. NS-4A/B — universe registry and basic movement heatmap
 
 ### LATER
 
+4. NS-4A/B — universe registry and basic movement heatmap (first named
+   promotion candidates after NS-2E; promotion is Dustin's)
 5. Opportunity Set Engine
 6. GEX evidence → producer → display
 7. Relationship-aware news registry → producer → usefulness decision → display
