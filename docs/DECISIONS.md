@@ -75,6 +75,27 @@ The bounded PRD this authorizes is drafted as **PRD-278** (Stage-0 scaffold
 rides the same PR as this entry). Implementation remains gated on PRD-278's
 own review and approval.
 
+**CORRECTION ADDENDUM (same day, 2026-07-31).** Five connector P2 findings
+arrived on PR #184 after this ruling was issued, and all five were verified
+correct against code (artifact section 22, corrected head `6d27dbc`). The
+evidence under the ruling's ceiling was incomplete: the postmarket report
+aggregates rejections over fixed stage literals (an `OPTIONS_SIZING`
+refusal would be silently omitted), the notification body falls back to a
+generic `no setups` without reading `rejections[]`, the HTML delivery
+adapter drops `sections.rejected`, a tuple-return carrier would break four
+test files outside the ceiling, and the cited one-contract boundary
+fixture was a two-contract case. DISPOSITION OF THIS ENTRY: the ruling's
+seam, reason token, carrier semantics, refusal-record requirement,
+PRD-023-R2 preservation, and regression/mutation intent STAND. The
+"5 production / 3 test / ~60-100 LOC" ceiling portion is SUPERSEDED by the
+corrected evidence -- the full-truth surface is 6 production files, ~6
+test files, ~90-140 net LOC (corrected artifact sections 14/17/21).
+PRD-278 was reconciled to the corrected surface the same day. Dustin has
+NOT yet re-ruled on the corrected surface; the choice (full-truth
+option A, recommended, vs the reduced option B with three named
+presentation deferrals) is held for him per artifact section 17. Nothing
+is inferred approved at the larger size.
+
 ## 2026-07-31 — Git deny-list policy: glob patterns cannot narrow checkout; fail closed, tokenize later (ruled: Dustin, PR #181)
 
 PR #181 set out to narrow the blanket `git *checkout*` deny so agents could
