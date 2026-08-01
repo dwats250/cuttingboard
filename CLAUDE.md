@@ -120,8 +120,14 @@ Reference these; do not duplicate them.
   omission returns the packet to DESIGN INCOMPLETE instead of creating an
   endless review loop.
 - **Reviews target the change, never another review's prose (GOV-1).** A
-  review reads the diff and the PRD. It does not critique a prior reviewer's
-  write-up, and no artifact is produced whose subject is another artifact.
+  review reads its stage's governing input, not another review's prose: an
+  implementation review reads the diff and the PRD; a GOV-2 upstream
+  material-packet review — which runs before any PRD exists — reads the
+  packet and the relevant repository surfaces; a GOV-2 PRD review reads the
+  PRD, the packet, and the design-direction ruling; a GOV-2 exact-head
+  confirmation reads the corrected head SHA and the prior review's findings
+  list, and is a confirmation, not a fresh-scope review. No artifact is
+  produced whose subject is another artifact.
   Disagreement between reviewers is Dustin's to adjudicate, not a prompt for
   a further round of review-of-review.
 - **Capability roles, not model names (GOV-1).** This section and
@@ -317,10 +323,15 @@ each generalizes are canonical in `docs/prd_history/PRD-198.md` (Part A).
   `UserPromptSubmit` hook (`prd_eval.sh`) flags an unregistered prd_history
   file, add the row rather than working past the warning.
 - **Codex mechanics.** Invoke Codex only when Dustin commissions a
-  second-model review (PRD-242), or when GOV-2 classifies the proposed work as
-  MATERIAL. The value must be a genuinely independent second model — material
-  packet boundary review, PRD cross-review, vision review, or structured
-  pre-merge code review. All review invocations run sandboxed read-only:
+  second-model review (PRD-242) — PRD cross-review, vision review, or
+  structured pre-merge code review — or for exactly the two events GOV-2
+  itself commissions on MATERIAL work: the upstream material-packet review
+  and the independent confirmation of the exact corrected head (GOV-2 §2,
+  §7). MATERIAL classification authorizes nothing beyond those two events —
+  a MATERIAL slice's PRD review and implementation review run on the normal
+  seats, and any second-model involvement there requires its own Dustin
+  commission. Codex is not a general standing gate. All review invocations
+  run sandboxed read-only:
   `codex exec -s read-only - < prompt` (prompt via stdin, verdict from
   stdout). Claude Code writes the review artifact from captured stdout; Codex
   never writes into the repo tree.

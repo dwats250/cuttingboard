@@ -56,9 +56,9 @@ mandatory fetch->build->review relay inside a slice.
 |---|---|
 | **Driver (Sonnet 5 by default)** | Owns the slice end-to-end: recon, authoring, build, verify, closeout. Runs its own greps and targeted tests. Every lane has exactly one driver. |
 | **Haiku (optional subcontractor)** | Pulled in ONLY for a genuinely separable bulk job: a large call-site/token sweep, a long full-suite run backgrounded while the driver keeps working. Never a required stage; never edits source. |
-| **Operator (Dustin)** | At most two touches per slice: Gate A (direction, when not already decided) and Gate B (merge, always). Everything else runs unattended. |
+| **Operator (Dustin)** | Non-MATERIAL work: at most two execution touches per slice, Gate A (direction, when not already decided) and Gate B (merge, always). MATERIAL work adds one earlier intake touch - the design-direction ruling on the review-clean upstream packet (GOV-2 section 2 step 6) - which authorizes PRD drafting only and does not satisfy Gate A. Everything else runs unattended. |
 | **Fresh-context reviewer (heavy Claude model)** | HIGH-RISK only: the fresh-context Claude review leg. |
-| **Second model (Codex or other non-Claude)** | HIGH-RISK only, and only when Dustin commissions it (PRD-242). |
+| **Second model (Codex or other non-Claude)** | Two cases: (a) the two GOV-2 MATERIAL-packet events - upstream packet review and exact-corrected-head confirmation - auto-commissioned by GOV-2 in any lane when the slice is MATERIAL at CARD (GOV-2 section 2, section 7); MATERIAL does not convert STANDARD work into HIGH-RISK. (b) otherwise HIGH-RISK only, and only when Dustin commissions it (PRD-242). |
 
 Tier by lane: MICRO/STANDARD -> Sonnet runs the whole slice. HIGH-RISK ->
 Sonnet still builds end-to-end; what changes is the close: a separate
@@ -84,13 +84,13 @@ declares. Branch `claude/<slug>` (or `claude/prd-NNN-<slug>` once numbered)
 from fresh `origin/main`.
 
 Apply the GOV-2 materiality test here, at intake
-(`docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md` §1). When the
-slice is MATERIAL, it must create and clear an upstream material packet -
+(`docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md` section 1). When
+the slice is MATERIAL, it must create and clear an upstream material packet -
 independent Codex review, one consolidated correction, independent
-exact-corrected-head confirmation (GOV-2 §2, §7) - before any PRD or other
-downstream authority is opened (GOV-2 §4). A design-direction ruling issued
-from that review-clean packet (GOV-2 §2 step 6) authorizes only PRD
-drafting, not implementation.
+exact-corrected-head confirmation (GOV-2 section 2, section 7) - before any
+PRD or other downstream authority is opened (GOV-2 section 4). A
+design-direction ruling issued from that review-clean packet (GOV-2 section 2
+step 6) authorizes only PRD drafting, not implementation.
 
 ### SWEEP - only when the change touches asserted surfaces
 Required only when the slice deletes, renames, or re-derives a token that
@@ -122,7 +122,7 @@ commissions the second model or defaults to the waiver.
 **GOV-2 exception - MATERIAL work cannot pre-satisfy Gate A.** For a slice
 classified MATERIAL at CARD, the design-direction ruling that clears the
 upstream packet authorizes PRD drafting only; it never doubles as Gate A
-(GOV-2 §2 steps 6-8). The drafted PRD must first receive its required
+(GOV-2 section 2 steps 6-8). The drafted PRD must first receive its required
 independent review; only after that review does Dustin explicitly issue
 Gate A, and Gate A remains the implementation authorization.
 
@@ -155,7 +155,7 @@ burning a CI round-trip, not to substitute for it.
   Default is the waiver; do not run a second model un-commissioned.
 This is the ONLY review event in the slice (section 6, cut 1) - except for a
 MATERIAL slice under GOV-2, whose upstream-packet review, PRD review, and
-this implementation review are three distinct required events (GOV-2 §2).
+this implementation review are three distinct required events (GOV-2 section 2).
 Findings within FILES and against the PRD: fix in place. Anything else: halt
 clause.
 
@@ -177,7 +177,7 @@ clause.
 Bot-review threads (PRD-228) arriving on the PR are triaged by the driver -
 ACTIONED with the fixing SHA or DISMISSED with a one-line in-thread reason -
 and never gate anything. GOV-2 exception: a genuine unresolved MATERIAL
-finding (GOV-2 §7) is dispositioned `BLOCKED/PARKED` instead - the thread
+finding (GOV-2 section 7) is dispositioned `BLOCKED/PARKED` instead - the thread
 stays unresolved and downstream authority is blocked until Dustin resumes,
 narrows, or retires the packet, or the finding is validly dismissed.
 Connector output is still never gate-satisfying review on its own; routine
@@ -263,6 +263,13 @@ Bracketed stages fire only on their trigger (SWEEP: asserted-token contact;
 GATE A: direction not already decided). MICRO carries its micro note or
 10-line cosmetic note inside BUILD's first commit - the note, the red-first
 proving change, and the registry row are the whole ceremony.
+
+MATERIAL overlay (GOV-2): a slice classified MATERIAL at CARD adds, in any
+lane, one intake touch before STAGE 0 - the design-direction ruling on the
+review-clean upstream packet - and its PRD receives a separately required
+independent review before Gate A (GOV-2 section 2). That ruling authorizes
+PRD drafting only and does not satisfy Gate A. The per-lane execution-touch
+counts above are otherwise unchanged.
 
 Overlay: **governance changes** (CLAUDE.md guardrails, `prd-review-claude`,
 `tools/validate_prd_registry.py`, this doctrine once canonical) are
@@ -394,7 +401,7 @@ in the same commit as the Alignment-check DECISIONS entry - not per-slice.
    is dispatched only if the operator asks at Gate A. This cut does not
    apply to a MATERIAL slice under GOV-2: its upstream-packet review, PRD
    review, and implementation review are separately required and none
-   substitutes for another (GOV-2 §2).
+   substitutes for another (GOV-2 section 2).
 2. **Full suite runs twice, not three-plus times.** Targeted tests per
    commit; ONE full local run at VERIFY; CI is the deciding run (invariant
    5). Never full-suite-per-commit, never a second "confirm" full run after
