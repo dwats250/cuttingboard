@@ -16,8 +16,11 @@ retell origin stories.
   within PRD scope. Occupies whichever seat the model-role lane assigns
   (`docs/PRD_PROCESS.md` § Model-role lane) and never both the drafting
   seat and the second-model review of the same PRD. Invokes Codex only
-  for a review Dustin has commissioned (PRD-242), never at its own
-  discretion.
+  for a review Dustin has commissioned (PRD-242), or for the mandatory
+  MATERIAL-packet review and exact-corrected-head confirmation that GOV-2
+  itself commissions
+  (`docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md` §2, §7) —
+  never otherwise at its own discretion.
 - **Codex (or any second model)** is an instrument Dustin may commission for a
   genuinely independent second opinion (PRD-242). Never a standing gate
   requirement; never drives architectural direction. GOV-2 adds one bounded

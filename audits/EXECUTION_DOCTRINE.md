@@ -83,6 +83,15 @@ review finding. Confirm any ordering constraints and interaction flags it
 declares. Branch `claude/<slug>` (or `claude/prd-NNN-<slug>` once numbered)
 from fresh `origin/main`.
 
+Apply the GOV-2 materiality test here, at intake
+(`docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md` §1). When the
+slice is MATERIAL, it must create and clear an upstream material packet -
+independent Codex review, one consolidated correction, independent
+exact-corrected-head confirmation (GOV-2 §2, §7) - before any PRD or other
+downstream authority is opened (GOV-2 §4). A design-direction ruling issued
+from that review-clean packet (GOV-2 §2 step 6) authorizes only PRD
+drafting, not implementation.
+
 ### SWEEP - only when the change touches asserted surfaces
 Required only when the slice deletes, renames, or re-derives a token that
 tests or consumers assert (PRD-158): grep `tests/` for the token, consult
@@ -109,6 +118,13 @@ message, when Gate A is pre-satisfied) names the slice's future PR and
 authorizes opening it once green: that is the per-PR confirmation the
 2026-07-07 decision requires. For HIGH-RISK, Gate A is also where Dustin
 commissions the second model or defaults to the waiver.
+
+**GOV-2 exception - MATERIAL work cannot pre-satisfy Gate A.** For a slice
+classified MATERIAL at CARD, the design-direction ruling that clears the
+upstream packet authorizes PRD drafting only; it never doubles as Gate A
+(GOV-2 §2 steps 6-8). The drafted PRD must first receive its required
+independent review; only after that review does Dustin explicitly issue
+Gate A, and Gate A remains the implementation authorization.
 
 ### BUILD - red first, then green
 Write the proving test; it MUST fail against pre-change code (a proving test
@@ -137,8 +153,11 @@ burning a CI round-trip, not to substitute for it.
   commissioned non-Claude artifact, or the verbatim line
   `SECOND-MODEL: instrument not commissioned, merging on Claude-review + human judgment.`
   Default is the waiver; do not run a second model un-commissioned.
-This is the ONLY review event in the slice (section 6, cut 1). Findings
-within FILES and against the PRD: fix in place. Anything else: halt clause.
+This is the ONLY review event in the slice (section 6, cut 1) - except for a
+MATERIAL slice under GOV-2, whose upstream-packet review, PRD review, and
+this implementation review are three distinct required events (GOV-2 §2).
+Findings within FILES and against the PRD: fix in place. Anything else: halt
+clause.
 
 ### LAND - Gate B, always
 1. Push the branch; open the PR (authorized at Gate A / commissioning).
@@ -157,7 +176,12 @@ within FILES and against the PRD: fix in place. Anything else: halt clause.
 
 Bot-review threads (PRD-228) arriving on the PR are triaged by the driver -
 ACTIONED with the fixing SHA or DISMISSED with a one-line in-thread reason -
-and never gate anything.
+and never gate anything. GOV-2 exception: a genuine unresolved MATERIAL
+finding (GOV-2 §7) is dispositioned `BLOCKED/PARKED` instead - the thread
+stays unresolved and downstream authority is blocked until Dustin resumes,
+narrows, or retires the packet, or the finding is validly dismissed.
+Connector output is still never gate-satisfying review on its own; routine
+non-material findings keep the ACTIONED/DISMISSED-only path.
 
 ---
 
@@ -367,7 +391,10 @@ in the same commit as the Alignment-check DECISIONS entry - not per-slice.
    already mechanically checks the draft (symbols exist, FAIL lines
    observable, lane correct) and Gate A holds direction - the single REVIEW
    stage covers implementation-against-PRD. A separate pre-build PRD review
-   is dispatched only if the operator asks at Gate A.
+   is dispatched only if the operator asks at Gate A. This cut does not
+   apply to a MATERIAL slice under GOV-2: its upstream-packet review, PRD
+   review, and implementation review are separately required and none
+   substitutes for another (GOV-2 §2).
 2. **Full suite runs twice, not three-plus times.** Targeted tests per
    commit; ONE full local run at VERIFY; CI is the deciding run (invariant
    5). Never full-suite-per-commit, never a second "confirm" full run after
