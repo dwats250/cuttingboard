@@ -248,8 +248,8 @@ Before either merges:
 
 ## Ratification effect
 
-Merging this governance PR ratifies GOV-2 for new work. The same PR must link
-GOV-2 from the injected `CLAUDE.md` governance surface so fresh agents cannot
-miss it or follow contradictory review-order instructions.
+Merging this governance PR ratifies GOV-2 for new work. The same PR links GOV-2
+from the injected `CLAUDE.md` governance surface so fresh agents cannot miss it
+or follow contradictory review-order instructions.
 
 Held for Dustin's decision.
