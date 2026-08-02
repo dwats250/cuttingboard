@@ -56,3 +56,69 @@ Entry format:
   both now complete and independently verified. What remains (substantive
   disposition of each comment) is Phase 1 work, not a Phase 0 gap.
 - Status: CLOSED — NON-BLOCKING (2026-08-02)
+
+---
+
+## AMENDMENT-002 — 2026-08-02
+
+- Discovered by: Domain A dispatch, attempt 1 (Phase 1)
+- Description: several North Star lifecycle/evidence-blocked assertions
+  Domain A owns (via Master Ledger / Program) reference GOV-0 and
+  expansion-doctrine mechanics whose primary text is `docs/plans/decision-support-workplan-v0.1.md`
+  and `docs/plans/decision-support-expansion-doctrine-v0.1.md` — both owned
+  by Domain G, not cited by Domain A. Domain A produced a row for each such
+  assertion using only its authorized OWNED/CITED sources (appropriately
+  hedged confidence/result) and did not investigate the G-owned material.
+- Proposed scope change: add `docs/plans/decision-support-workplan-v0.1.md`
+  and the relevant sections of `docs/plans/decision-support-expansion-doctrine-v0.1.md`
+  to Domain A's CITED sources for governance-boundary assertions.
+- Blocking: no — Domain A reached COMPLETE without this citation; the gap
+  affects confidence/completeness of specific rows (see A_GOVERNANCE_AUTHORITY.md
+  evidence table), not overall coverage.
+- Status: PROPOSED
+
+## AMENDMENT-003 — 2026-08-02
+
+- Discovered by: Domain B dispatch, attempt 1 (Phase 1)
+- Description: several Program §3 (source map) and §4 (dependency graph)
+  rows Domain B owns reference PR #184/#185 packet artifacts, additional
+  stage-0 recon files, and PRD-history files beyond Domain B's authorized
+  CITED set. Domain B produced rows for the owning assertions with
+  appropriately hedged confidence and did not investigate the unlisted
+  artifacts.
+- Proposed scope change: add the specific referenced artifacts (not a
+  blanket grant) needed to verify those particular portfolio assertions —
+  exact list to be drawn from B_PORTFOLIO_LIFECYCLE.md's evidence table.
+- Blocking: no — Domain B reached COMPLETE without these citations.
+- Status: PROPOSED
+
+## AMENDMENT-004 — 2026-08-02
+
+- Discovered by: Domain D1 dispatch, attempt 1 (Phase 1)
+- Description: verifying specific stage0-01-owned assertions in full
+  requires four additional pinned implementation files not on D1's
+  9-file seam list: `cuttingboard/config.py` (universe-substrate agreement
+  check), `cuttingboard/delivery/payload.py` and `cuttingboard/trade_visibility.py`
+  (producer/consumer ownership verification), `cuttingboard/trend_structure.py`
+  and `docs/artifact_flow_map.md` (artifact-flow verification). D1
+  explicitly confirmed no broader `cuttingboard/` traversal was performed
+  or needed beyond these four named files.
+- Proposed scope change: add these four specific paths to Domain D1's
+  implementation-seam list. Not an open-ended `cuttingboard/` sweep.
+- Blocking: no — Domain D1 reached COMPLETE without them.
+- Status: PROPOSED
+
+## AMENDMENT-005 — 2026-08-02
+
+- Discovered by: Domain F dispatch, attempt 1 (Phase 1)
+- Description: (a) Program §12's NS-8 references to CB-11 and CB-20…CB-25
+  are outside Domain F's cited `FINDING_STATUS_MATRIX.md` rows (CB-06/CB-18
+  only); (b) the Program §4 dependency graph describes NS-9C as sharing
+  substrate with the NS-2A observation artifact, which Domain F does not
+  own or cite.
+- Proposed scope change: (a) add the relevant matrix rows only if a
+  complete NS-8 dependency-chain verification is required; (b) add the
+  NS-2A artifact source only if a cross-domain substrate audit is
+  required. Neither is needed for F's current scope.
+- Blocking: no.
+- Status: PROPOSED
