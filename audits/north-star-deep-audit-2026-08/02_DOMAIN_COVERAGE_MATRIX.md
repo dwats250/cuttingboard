@@ -21,4 +21,7 @@ execution plan Task 1.11).
 
 Phase 2 (Fable synthesis) does not start until every row reads `COMPLETE`
 or is explicitly waived by a logged Dustin ruling in
-`03_AMENDMENTS_LOG.md`.
+`03_AMENDMENTS_LOG.md` that meets all four elements of Charter §12
+(Definition: WAIVER). A waiver is not equivalent to `COMPLETE` — it is a
+formal amendment that must also state the corresponding change to Stopping
+Rule condition 2 for this audit run, or that row still blocks closure.

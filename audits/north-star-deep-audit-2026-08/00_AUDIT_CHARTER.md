@@ -128,7 +128,13 @@ revision) and some are not. Resolved/unresolved and outdated/current are
 GitHub workflow metadata — they describe a thread's relationship to the
 current diff, not whether the underlying comment was substantively
 actioned or dismissed. GitHub's `isResolved` state cannot by itself
-establish a PRD-228 ACTIONED/DISMISSED disposition. No comment in the
+establish a PRD-228 ACTIONED/DISMISSED disposition; nor can `isOutdated`.
+Establishing that disposition requires the substantive evidence CLAUDE.md's
+own PRD-228 clause already names: ACTIONED requires an in-thread reply
+citing the fixing commit SHA or PRD number; DISMISSED requires an in-thread
+one-line reason. Resolved/unresolved and outdated/current state alone
+establish neither, and inspecting replies/fixes/reasons for all 28 threads
+is Phase 1 work, not part of this Phase 0 attestation. No comment in the
 enumeration above is treated as ACTIONED, DISMISSED, correct, or incorrect
 in this charter. Substantive adjudication of all 28 comments is routed to
 Phase 1 — principally Domain A, which owns the PRD-228 bot-thread
@@ -155,7 +161,21 @@ domain owns a given comment's specific subject matter.
 9. Any discovery that would expand scope is logged to the Amendments Log
    and left un-investigated — never silently folded into a finding.
 
-## 7. Domains (full source assignment in `01_SOURCE_AUTHORITY_MANIFEST.md`)
+## 7. Definition: CONFIDENCE
+
+Referenced by Global Constraint #6. Every evidence row's `confidence` field
+is exactly one of three values, no numbers or additional labels:
+
+- **HIGH** = direct code-and-document cross-reference, or a single direct
+  and unambiguous authoritative source.
+- **MEDIUM** = document-only evidence where no code cross-reference is
+  possible, or one authoritative source plus a minor interpretive step.
+- **LOW** = ambiguous, incomplete, or conflicting evidence.
+
+This is the committed definition every Luna dispatch incorporates — no
+domain file may define or use a different scale.
+
+## 8. Domains (full source assignment in `01_SOURCE_AUTHORITY_MANIFEST.md`)
 
 | Domain | Scope (one line) |
 |---|---|
@@ -171,14 +191,14 @@ domain owns a given comment's specific subject matter.
 Domain H (PR #187 provenance) is not a peer domain — its mechanical check is
 §5 above.
 
-## 8. Amendments procedure
+## 9. Amendments procedure
 
 Any Luna, Fable, or Sol discovery that would expand scope (new domain, new
-source, reversal of an excluded-by-default item, a capability gap like §5's
-GraphQL denial) is appended to `03_AMENDMENTS_LOG.md` and left
+source, reversal of an excluded-by-default item, a capability gap
+discovered mid-audit) is appended to `03_AMENDMENTS_LOG.md` and left
 un-investigated until Dustin rules on it. Full format in that file.
 
-## 9. Stopping rule (verbatim from the ratified proposal)
+## 10. Stopping rule (verbatim from the ratified proposal)
 
 The audit closes when:
 
@@ -191,7 +211,7 @@ The audit closes when:
 7. Sol has no unresolved safety, authority, or matrix-integrity objection;
 8. Dustin ratifies the correction plan.
 
-## 10. Definition: COMPLETE
+## 11. Definition: COMPLETE
 
 A domain's completion status may read `COMPLETE` only when all of the
 following hold simultaneously:
@@ -213,7 +233,25 @@ A domain missing any of these is `IN PROGRESS`, `BLOCKED-PENDING-AMENDMENT`,
 or `INCOMPLETE-RETRY-EXHAUSTED` — never a self-declared `COMPLETE` that
 Fable has to take on faith.
 
-## 11. Post-ratification freeze
+## 12. Definition: WAIVER
+
+A Dustin waiver of an incomplete domain is not equivalent to `COMPLETE`,
+and does not silently satisfy Stopping Rule condition 2 ("every domain
+attests to completed coverage"). A waiver is a formal amendment — logged
+in `03_AMENDMENTS_LOG.md`, never a verbal or implicit approval — that must
+explicitly state all four of:
+
+1. the waived domain or source;
+2. the accepted coverage gap (what remains unknown or unverified);
+3. whether Phase 2 synthesis may proceed despite the gap;
+4. the corresponding amendment to Stopping Rule condition 2, recording
+   that this specific domain is accepted as a logged exception rather than
+   completed.
+
+Absent any one of these four elements, an incomplete domain blocks Phase 2
+— full stop, no informal waiver substitutes for this.
+
+## 13. Post-ratification freeze
 
 The instant Dustin ratifies the correction plan: `90_NORTH_STAR_TRUTH_MATRIX.md`
 becomes immutable — no further edits, not even typo fixes, without a new
@@ -222,7 +260,7 @@ become historical records of how the matrix was reached, not living
 documents. Only future bounded PRDs may implement corrections against the
 frozen matrix — the audit itself does not resume to apply them.
 
-## 12. Post-closure reopening exceptions (verbatim from the ratified proposal)
+## 14. Post-closure reopening exceptions (verbatim from the ratified proposal)
 
 After closure, later discovery does not reopen the audit unless it
 demonstrates: a safety defect; false implementation authority; data
