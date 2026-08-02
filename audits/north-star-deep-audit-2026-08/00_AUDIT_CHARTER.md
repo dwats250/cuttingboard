@@ -132,10 +132,19 @@ repos/dwats250/cuttingboard/pulls/187` and `.../pulls/187/files` and
 
 **Connector thread enumeration (PRD-228):** 28 inline review comments on
 this PR, all authored by `chatgpt-codex-connector[bot]`, zero issue-level
-(non-inline) comments. Severity split: 1 tagged P1 ("Keep the critical
-kill-switch bypass ahead of new product work", CB-01, on
-`NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md`), 27 tagged P2. All 28 target
-the two North Star product docs; none target `docs/PROJECT_STATE.md`.
+(non-inline) comments, as captured at this Phase 0 attestation. **Time-bound
+note (added during Phase 1):** a 29th connector comment (id `3696977973`)
+was posted at `2026-08-02T00:08:09Z`, 37 seconds after PR #187's merge at
+`2026-08-02T00:07:32Z` — after this Phase 0 capture point. The count of 28
+above is accurate as of when Phase 0 captured it, not a mechanical
+undercount; it is simply superseded by the current total. Phase 1's fresh,
+timestamped capture (`domains/PR187_EVIDENCE_SNAPSHOT_2026-08-02.md`)
+records the current total of 29 and is the evidence Domain A's dispatch
+actually used. Severity split at Phase 0 capture time: 1 tagged P1 ("Keep
+the critical kill-switch bypass ahead of new product work", CB-01, on
+`NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md`), 27 tagged P2. All 28 (of that
+capture) target the two North Star product docs; none target
+`docs/PROJECT_STATE.md`.
 Representative topics observed (not adjudicated here — that is Phase 1
 domain territory, principally Domain A): portfolio-state consistency
 (NS-4A/4B, NS-1D, PRD-268), debt-row completeness (CB-12b, GEX-1/2, three
@@ -199,7 +208,7 @@ owns a given comment's specific subject matter.
 9. Any discovery that would expand scope is logged to the Amendments Log
    and left un-investigated — never silently folded into a finding.
 
-## 7. Definition: CONFIDENCE
+## 7. Definition: CONFIDENCE, and the committed evidence schema
 
 Referenced by Global Constraint #6. Every evidence row's `confidence` field
 is exactly one of three values, no numbers or additional labels:
@@ -212,6 +221,50 @@ is exactly one of three values, no numbers or additional labels:
 
 This is the committed definition every Luna dispatch incorporates — no
 domain file may define or use a different scale.
+
+**Domain file header.** Every domain file states these fields before any
+evidence row:
+
+- Baseline SHA: `fdeef90b0a0e0747d1bbf92385d3750b4024f4ae`.
+- Accepted scaffold seam SHA (recorded in `02_DOMAIN_COVERAGE_MATRIX.md`;
+  governs which version of this charter and the manifest the dispatch
+  used).
+- Assigned domain.
+- Owned sources (from `01_SOURCE_AUTHORITY_MANIFEST.md`).
+- Cited sources (from the manifest).
+- Excluded by default (from the manifest).
+- Files inspected — path list, each read via `git show
+  fdeef90b0a0e0747d1bbf92385d3750b4024f4ae:<path>`.
+- Files intentionally excluded — list plus one-line reason.
+- Completion status: `NOT STARTED | IN PROGRESS | COMPLETE |
+  BLOCKED-PENDING-AMENDMENT | INCOMPLETE-RETRY-EXHAUSTED`.
+- Attempt count.
+- No-edits attestation: confirmed.
+
+**Evidence table** — one row per assertion checked:
+
+`| ID | North Star assertion | assertion_type | evidence (path:lines, pinned) | result | risk | confidence | assumptions | Dustin ruling required? |`
+
+- `assertion_type` is one of: `FACT`, `INTERPRETATION`,
+  `FUTURE-DESIGN-INTENT`, `OWNER-DECISION`.
+- `result` is one of: `MATCH`, `MISMATCH`, `PARTIAL`, `UNKNOWN`, `OUT OF
+  SCOPE`. Never `DUPLICATE OF <ID>` (Global Constraint #4) — dedup is
+  Fable-only.
+- `risk` — a short free-text note on the practical consequence if this
+  assertion is wrong. Not an enum; distinct from `confidence`, which is
+  about evidentiary certainty, not consequence.
+- `confidence` — `HIGH`/`MEDIUM`/`LOW` exactly as defined above.
+- `assumptions` — optional, normally empty. Populate only when reaching
+  this row's result required an interpretive assumption beyond what the
+  cited evidence states outright, so Fable and Sol can distinguish
+  observed evidence from inference at a glance.
+- `Dustin ruling required?` — yes/no.
+
+**Non-match detail** — one block per `MISMATCH` or `PARTIAL` row: exact
+source path and lines; governing authority; observed discrepancy;
+practical consequence; false-authority risk; safety relevance;
+current-vs-future-facing effect; proposed disposition; confidence; missing
+evidence.
 
 ## 8. Domains (full source assignment in `01_SOURCE_AUTHORITY_MANIFEST.md`)
 
