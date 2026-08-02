@@ -1,5 +1,13 @@
 # North Star Deep Audit — Domain Coverage Matrix
 
+**Accepted scaffold seam SHA:** `e0d481f4e3daeae9d8cba4a7aee7670d27b5a2b5`
+(PR seam 1, "North Star deep audit: scaffold", merged as PR #188). This pin
+governs the charter, manifest, coverage matrix, amendments procedure, and
+domain dispatch contracts used throughout Phase 1. It is separate from and
+does not alter the North Star repository source-evidence baseline,
+`fdeef90b0a0e0747d1bbf92385d3750b4024f4ae` (Charter §2) — that pin remains
+untouched.
+
 Tracks each domain's dispatch status through Phase 1. A domain may read
 `COMPLETE` only per the Charter §11 definition. Updated by whoever runs
 each Luna dispatch and by Fable during Task 2.1 coverage validation.

@@ -199,7 +199,7 @@ owns a given comment's specific subject matter.
 9. Any discovery that would expand scope is logged to the Amendments Log
    and left un-investigated — never silently folded into a finding.
 
-## 7. Definition: CONFIDENCE
+## 7. Definition: CONFIDENCE, and the committed evidence schema
 
 Referenced by Global Constraint #6. Every evidence row's `confidence` field
 is exactly one of three values, no numbers or additional labels:
@@ -212,6 +212,50 @@ is exactly one of three values, no numbers or additional labels:
 
 This is the committed definition every Luna dispatch incorporates — no
 domain file may define or use a different scale.
+
+**Domain file header.** Every domain file states these fields before any
+evidence row:
+
+- Baseline SHA: `fdeef90b0a0e0747d1bbf92385d3750b4024f4ae`.
+- Accepted scaffold seam SHA (recorded in `02_DOMAIN_COVERAGE_MATRIX.md`;
+  governs which version of this charter and the manifest the dispatch
+  used).
+- Assigned domain.
+- Owned sources (from `01_SOURCE_AUTHORITY_MANIFEST.md`).
+- Cited sources (from the manifest).
+- Excluded by default (from the manifest).
+- Files inspected — path list, each read via `git show
+  fdeef90b0a0e0747d1bbf92385d3750b4024f4ae:<path>`.
+- Files intentionally excluded — list plus one-line reason.
+- Completion status: `NOT STARTED | IN PROGRESS | COMPLETE |
+  BLOCKED-PENDING-AMENDMENT | INCOMPLETE-RETRY-EXHAUSTED`.
+- Attempt count.
+- No-edits attestation: confirmed.
+
+**Evidence table** — one row per assertion checked:
+
+`| ID | North Star assertion | assertion_type | evidence (path:lines, pinned) | result | risk | confidence | assumptions | Dustin ruling required? |`
+
+- `assertion_type` is one of: `FACT`, `INTERPRETATION`,
+  `FUTURE-DESIGN-INTENT`, `OWNER-DECISION`.
+- `result` is one of: `MATCH`, `MISMATCH`, `PARTIAL`, `UNKNOWN`, `OUT OF
+  SCOPE`. Never `DUPLICATE OF <ID>` (Global Constraint #4) — dedup is
+  Fable-only.
+- `risk` — a short free-text note on the practical consequence if this
+  assertion is wrong. Not an enum; distinct from `confidence`, which is
+  about evidentiary certainty, not consequence.
+- `confidence` — `HIGH`/`MEDIUM`/`LOW` exactly as defined above.
+- `assumptions` — optional, normally empty. Populate only when reaching
+  this row's result required an interpretive assumption beyond what the
+  cited evidence states outright, so Fable and Sol can distinguish
+  observed evidence from inference at a glance.
+- `Dustin ruling required?` — yes/no.
+
+**Non-match detail** — one block per `MISMATCH` or `PARTIAL` row: exact
+source path and lines; governing authority; observed discrepancy;
+practical consequence; false-authority risk; safety relevance;
+current-vs-future-facing effect; proposed disposition; confidence; missing
+evidence.
 
 ## 8. Domains (full source assignment in `01_SOURCE_AUTHORITY_MANIFEST.md`)
 
