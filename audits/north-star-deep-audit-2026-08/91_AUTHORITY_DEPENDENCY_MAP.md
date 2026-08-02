@@ -4,7 +4,7 @@
 
 | Authority (owner domain) | Governs | Matrix rows depending on it |
 |---|---|---|
-| `docs/PRD_REGISTRY.md` + `docs/prd_index.json` (B) | Canonical PRD lifecycle values | TM-020, TM-021, TM-028, TM-035; qualifier corrections CP-003/CP-004 must defer to it |
+| `docs/PRD_REGISTRY.md` + `docs/prd_index.json` (B) | Canonical PRD lifecycle values | TM-020, TM-021, TM-028, TM-035; qualifier correction CP-004 must defer to it |
 | `docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md` (A) | MATERIAL intake, review order, exact-head confirmation | TM-016, TM-017, TM-018, TM-022, TM-078; CP-005's content |
 | `CLAUDE.md` (A) | Landing/review/approval rules; PRD-228 taxonomy; CI-scope statement | TM-005, TM-007, TM-019, TM-025, TM-039, TM-081 |
 | `VISION.md` (A) | Mission/non-goals | TM-001, TM-002 |
@@ -20,7 +20,7 @@
 ## 2. What can proceed WITHOUT Dustin (beyond his standard merge of each PR)
 
 - **PR-A (CP-001…CP-004):** doc-only corrections whose content is fully adjudicated from evidence; no open ruling consumed. Dustin's act is the normal GOV-1 merge.
-- **CP-006 phase 1:** in-thread replies for the four refuted threads (comments 4, 8, 20, 21), citing Program:270-280, CLAUDE.md:290-305, Program:341-347/A-GOV-017 evidence, and C-059's evidence respectively — this is exactly the missing administrative record Dustin's 2026-08-01 ruling identified.
+- **CP-006 phase 1:** in-thread replies for 10 refuted/cross-domain-resolved threads — comments 4, 8, 20, 21 (Domain A's own evidence: Program:270-280, CLAUDE.md:290-305, Program:341-347/A-GOV-017, C-059) and comments 2, 6, 7, 9, 12, 15 (a sibling domain's own cited evidence, added 2026-08-02 per Codex connector finding: TM-032/TM-046/TM-040/TM-029/TM-043/TM-047) — this is exactly the missing administrative record Dustin's 2026-08-01 ruling identified, extended to the six comments a cross-domain read resolves.
 - **CP-009 drafting** (PR-D opens as a draft with the PRD-186 visible hold; Dustin accepts or declines).
 
 ## 3. What CANNOT proceed without Dustin
@@ -33,7 +33,7 @@
 | CB-02/OPT-0/OPT-1/ODATA chain | OPT-0 carrier/reason-semantics/seam approval + exact-head confirmation | DR-004 |
 | Governance precedent for PR #187 | MATERIAL-intake classification of PR #187 itself | DR-005 |
 | NS-9C-vs-NS-2 freshness sequencing | promote/split NS-9C vs compatibility-note default | DR-006 |
-| CP-007 (routed-queue adjudication) and confidence uplifts for TM-022/TM-036/TM-060/TM-003 | AMENDMENT-002/003/004 grant rulings + authorization of the bounded triage packet | DR-007 |
+| CP-007 (routed-queue adjudication, narrowed to 12 comments 2026-08-02) and confidence uplifts for TM-022/TM-036/TM-037/TM-060/TM-003 | AMENDMENT-002/003/004 grant rulings + authorization of the bounded triage packet | DR-007 |
 | CP-008 (CB-29 record) | frozen-snapshot-plus-addendum vs in-place matrix update | DR-008 |
 
 ## 4. Parked administration (holds that are NOT substantive blockers)
@@ -57,12 +57,13 @@ Exactly four, all Dustin-held gates rather than unresolved facts: **CB-01** (ope
 ## 7. Correction dependency ordering
 
 ```
-PR-A (CP-001,002,003,004)      — no prerequisites
-   └─ CP-006 phase 2 (SUPPORTED-thread replies cite PR-A/PR-B SHAs)
-DR-003 ── PR-B (CP-005) ───────┘
-DR-007 ── PR-E (CP-007: routed-queue adjudication artifact; may also close TM-003)
+PR-A (CP-001,002,004)          — no prerequisites (CP-003 withdrawn 2026-08-02, moot)
+   └─ CP-006 phase 2 (9 SUPPORTED-thread replies; 7 cite PR-A/PR-B SHAs)
+DR-003 ── PR-B (CP-005) ───────┘         DR-005 ── CP-006 phase 2 (comment 24 reply)
+                                          DR-006 ── CP-006 phase 2 (comment 26 reply)
+DR-007 ── PR-E (CP-007: routed-queue adjudication artifact, 12 comments; may also close TM-003)
 DR-008 ── PR-C (CP-008: CB-29 record)
 (discretionary) PR-D (CP-009: entry-point pointer; PRD-186 draft+hold)
-CP-006 phase 1 (4 refuted threads) — independent, may run first
+CP-006 phase 1 (10 refuted/cross-domain-resolved threads: 2,4,6,7,8,9,12,15,20,21) — independent, may run first, no ruling prerequisite
 ```
-No correction depends on any other correction except CP-006-phase-2 → {CP-001..005 merged}. No cycle exists.
+Corrected 2026-08-02 (Codex connector finding): CP-006 phase 2's two comment-specific replies (24, 26) each individually require DR-005 and DR-006 respectively before they have a valid ACTIONED/DISMISSED basis — added as explicit edges above; the other five phase-2 replies (11, 14, 18, 19, 29) still only need PR-A/PR-B merged. No correction depends on any other correction except CP-006-phase-2 → {CP-001,002,004,005 merged} plus its two comment-specific ruling edges. No cycle exists.
