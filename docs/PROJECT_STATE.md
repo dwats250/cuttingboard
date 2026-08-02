@@ -19,6 +19,12 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
   PRD-267/268/271/272/273 lifecycle truth before allocating a new feature PRD
   number. The plans authorize no GEX, personalized-news, options-data,
   macro-awareness consumer, cadence, or production implementation.
+- **North Star product portfolio (PR #187):**
+  `docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md` (vision and
+  portfolio map) and `docs/product/NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md`
+  (repository-verified implementation program) — on Dustin's merge of PR #187
+  these become the product portfolio and delivery program (NS-0B
+  ratification); until then they are held drafts.
 - **Active PRD:** none in progress.
 - **Active PRD note (2026-07-13):** kept as a single-line bulleted pointer,
   not a multi-line block, matching PRD-183's convention that
