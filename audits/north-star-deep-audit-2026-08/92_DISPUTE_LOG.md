@@ -10,13 +10,13 @@
 - **Options:** (a) schedule CB-01 remediation ahead of any promotion; (b) promote a runway with an explicit, recorded CB-01 deferral ruling; (c) no promotion yet.
 - **Consequences:** (a) delays product delivery but closes the safety bypass first; (b) delivers product sooner but must be a positive recorded act — the current docs place CB-01 non-blocking by classification, not by ruling (the exact gap the P1 connector comment raised, itself still in the TM-080 queue); (c) preserves the status quo, NOW slot stays vacant.
 - **Recommended default:** none forced — this is precisely the promotion authority TM-026 reserves to Dustin. The evidence does establish that silent deferral is not an available option (Program's own stop exception for unsafe execution).
-- **Can work proceed meanwhile:** yes — all corrections (PR-A…PR-E) are doc/administrative and independent of runway choice. Only product implementation waits.
+- **Can work proceed meanwhile:** yes — all corrections (PR-A…PR-E) are doc/administrative and independent of runway choice. Only product implementation waits; comment 7's thread reply (CP-006 phase 3, added 2026-08-02 per Codex connector finding) also waits on this ruling.
 
 ## DR-002 — PRD-268 disposition
 - **Question:** Approve, return to PROPOSED, or deprecate PRD-268 (unruled design fork; L0 closure depends on it)?
 - **Affected matrix rows:** TM-020 (primary); TM-037.
 - **Options:** approve / return / deprecate — exactly the three the Ledger, registry, and Program all preserve (B-015, C-053).
-- **Consequences:** approve → HIGH-RISK implementation path opens under normal gates; return → fork re-drafted; deprecate → L0 closes without it. Until any of the three, CB-02's chain (DR-004) cannot fully clear and comment 14's PARKED-label residual keeps needing the CP-004 qualifier.
+- **Consequences (corrected 2026-08-02, Codex connector finding):** approve → HIGH-RISK implementation path opens under normal gates; return → fork re-drafted; deprecate → L0 closes without it. Until any of the three, CB-02's chain (DR-004) cannot fully clear. (The original text also claimed comment 14 left a PRD-268 `PARKED`-label residual needing CP-004 — false: PRD-268's Ledger row already reads `IN PROGRESS / DECISION REQUIRED`, comment 14 is dismissed on existing evidence, and CP-004 is scoped exclusively to PRD-271. That statement is removed; it never belonged to this DR.)
 - **Recommended default:** none — genuine design fork; evidence is neutral among the three.
 - **Can work proceed meanwhile:** yes for all corrections (CP-004's qualifier deliberately encodes "IN PROGRESS / DECISION REQUIRED", which is true under all three outcomes).
 
@@ -26,7 +26,7 @@
 - **Options:** (ii-a) confirm GOV-2-first ordering and land CP-005; (ii-b) rule an explicit documented exception keeping Gate A first (would need its own GOV-2-consistent rationale). (i) is Gate A itself — approve/amend/reject the ORB design when reached.
 - **Consequences:** (ii-a) removes the false-permission window comment 18 identified; (ii-b) creates a recorded exception rather than a silent contradiction. Without (i), NS-2B, CB-07 closure, and the ORB remedy all stay held.
 - **Recommended default:** (ii-a). GOV-2 is ratified and binding (TM-016); the Program is planning text with no authority (TM-007). Authority precedence resolves the text conflict; only the confirmation and the Gate A ruling itself are Dustin's.
-- **Can work proceed meanwhile:** PR-A yes; PR-B (CP-005) waits for (ii); all ORB implementation waits for (i).
+- **Can work proceed meanwhile:** PR-A yes; PR-B (CP-005) waits for (ii); all ORB implementation waits for (i); comment 12's thread reply (CP-006 phase 3, added 2026-08-02 per Codex connector finding) also waits on (i).
 
 ## DR-004 — OPT-0 approval and CB-02 resumption
 - **Question:** Does Dustin approve OPT-0's carrier, reason semantics, and implementation seam (after exact-head independent confirmation), and thereby permit the ordered CB-02 resumption sequence (which also requires DR-002's L0 closure)?

@@ -20,7 +20,7 @@
 ## 2. What can proceed WITHOUT Dustin (beyond his standard merge of each PR)
 
 - **PR-A (CP-001…CP-004):** doc-only corrections whose content is fully adjudicated from evidence; no open ruling consumed. Dustin's act is the normal GOV-1 merge.
-- **CP-006 phase 1:** in-thread replies for 10 refuted/cross-domain-resolved threads — comments 4, 8, 20, 21 (Domain A's own evidence: Program:270-280, CLAUDE.md:290-305, Program:341-347/A-GOV-017, C-059) and comments 2, 6, 7, 9, 12, 15 (a sibling domain's own cited evidence, added 2026-08-02 per Codex connector finding: TM-032/TM-046/TM-040/TM-029/TM-043/TM-047) — this is exactly the missing administrative record Dustin's 2026-08-01 ruling identified, extended to the six comments a cross-domain read resolves.
+- **CP-006 phase 1:** in-thread replies for 10 refuted/cross-domain-refuted threads — comments 4, 8, 20, 21 (Domain A's own evidence: Program:270-280, CLAUDE.md:290-305, Program:341-347/A-GOV-017, C-059) and comments 2, 6, 9, 15 (a sibling domain's own cited evidence: TM-032/TM-046/TM-029/TM-047) — this is exactly the missing administrative record Dustin's 2026-08-01 ruling identified, extended to the four comments a cross-domain read refutes. (Corrected 2026-08-02, Codex connector finding: comments 7 and 12 were removed from this phase — they are cross-domain-*confirmed*, not refuted, via TM-040/TM-043, and stay BLOCKED/PARKED pending DR-001/DR-003 rather than being dismissed; see §7.)
 - **CP-009 drafting** (PR-D opens as a draft with the PRD-186 visible hold; Dustin accepts or declines).
 
 ## 3. What CANNOT proceed without Dustin
@@ -58,12 +58,17 @@ Exactly four, all Dustin-held gates rather than unresolved facts: **CB-01** (ope
 
 ```
 PR-A (CP-001,002,004)          — no prerequisites (CP-003 withdrawn 2026-08-02, moot)
-   └─ CP-006 phase 2 (9 SUPPORTED-thread replies; 7 cite PR-A/PR-B SHAs)
-DR-003 ── PR-B (CP-005) ───────┘         DR-005 ── CP-006 phase 2 (comment 24 reply)
-                                          DR-006 ── CP-006 phase 2 (comment 26 reply)
+   └─ CP-006 phase 2 (3 fixing-SHA replies: 11, 18, 29)
+DR-003 ── PR-B (CP-005) ───────┘
+
+DR-001 ── CP-006 phase 3 (comment 7 reply)
+DR-003 ── CP-006 phase 3 (comment 12 reply)
+DR-005 ── CP-006 phase 3 (comment 24 reply)
+DR-006 ── CP-006 phase 3 (comment 26 reply)
+
 DR-007 ── PR-E (CP-007: routed-queue adjudication artifact, 12 comments; may also close TM-003)
 DR-008 ── PR-C (CP-008: CB-29 record)
 (discretionary) PR-D (CP-009: entry-point pointer; PRD-186 draft+hold)
-CP-006 phase 1 (10 refuted/cross-domain-resolved threads: 2,4,6,7,8,9,12,15,20,21) — independent, may run first, no ruling prerequisite
+CP-006 phase 1 (10 refuted/cross-domain-refuted threads: 2,4,6,8,9,14,15,19,20,21) — independent, may run first, no ruling prerequisite
 ```
-Corrected 2026-08-02 (Codex connector finding): CP-006 phase 2's two comment-specific replies (24, 26) each individually require DR-005 and DR-006 respectively before they have a valid ACTIONED/DISMISSED basis — added as explicit edges above; the other five phase-2 replies (11, 14, 18, 19, 29) still only need PR-A/PR-B merged. No correction depends on any other correction except CP-006-phase-2 → {CP-001,002,004,005 merged} plus its two comment-specific ruling edges. No cycle exists.
+Corrected three times 2026-08-02 (Codex connector findings): CP-006 phase 2's original nine-comment framing was arithmetic error; comments 14/19 moved to phase 1 (already correct at baseline, no fixing commit exists); comments 7/12 then moved out of phase 1 into a four-comment phase 3 alongside 24/26 — DR-001 (7) and DR-003 (12) join DR-005/DR-006 as required rulings, since 7/12 are SUPPORTED-but-unresolved (the underlying fact is confirmed, but the ordering question the comment raises is exactly what those DRs decide) rather than refuted. No correction depends on any other correction except CP-006-phase-2 → {CP-001,002,004,005 merged}; phase 3 depends on rulings, not corrections. No cycle exists.
