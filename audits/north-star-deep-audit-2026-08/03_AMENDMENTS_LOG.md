@@ -74,7 +74,10 @@ Entry format:
   to Domain A's CITED sources for governance-boundary assertions.
 - Blocking: no — Domain A reached COMPLETE without this citation; the gap
   affects confidence/completeness of specific rows (see A_GOVERNANCE_AUTHORITY.md
-  evidence table), not overall coverage.
+  evidence table), not overall coverage. (Reconciled 2026-08-02: the
+  domain file's own "blocking: yes" on this amendment is scoped to fully
+  resolving A-GOV-017's confidence, not to Domain A's COMPLETE status —
+  both now say the same thing explicitly.)
 - Status: PROPOSED
 
 ## AMENDMENT-003 — 2026-08-02
@@ -90,6 +93,9 @@ Entry format:
   blanket grant) needed to verify those particular portfolio assertions —
   exact list to be drawn from B_PORTFOLIO_LIFECYCLE.md's evidence table.
 - Blocking: no — Domain B reached COMPLETE without these citations.
+  (Reconciled 2026-08-02: the domain file's own "blocking: yes" on this
+  amendment is scoped to fully resolving B-017/B-018's confidence, not to
+  Domain B's COMPLETE status — both now say the same thing explicitly.)
 - Status: PROPOSED
 
 ## AMENDMENT-004 — 2026-08-02
@@ -105,7 +111,11 @@ Entry format:
   or needed beyond these five named files.
 - Proposed scope change: add these five specific paths to Domain D1's
   implementation-seam list. Not an open-ended `cuttingboard/` sweep.
-- Blocking: no — Domain D1 reached COMPLETE without them.
+- Blocking: no — Domain D1 reached COMPLETE without them. (Reconciled
+  2026-08-02: the domain file's own "blocking: yes" on each of these
+  amendments is scoped to fully resolving the affected rows' confidence,
+  not to Domain D1's COMPLETE status — both now say the same thing
+  explicitly.)
 - Status: PROPOSED
 
 ## AMENDMENT-005 — 2026-08-02

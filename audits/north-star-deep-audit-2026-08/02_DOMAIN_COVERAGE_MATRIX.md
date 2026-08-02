@@ -47,6 +47,27 @@ tables unchanged (one immaterial citation-filename typo introduced by A's
 retry was discarded in favor of attempt 1's correct citation — logged in
 the evidence-seam commit, not a substantive change).
 
+**Second Stage 0 review remediation pass (2026-08-02), 9 findings, no
+re-dispatch:** all 8 domains remain COMPLETE; attempt counts unchanged
+(no domain was re-run). Corrections made directly on the committed
+evidence: Domain A's PR #187 disposition work completed for all 29
+comments (was blanket UNKNOWN); an ambiguous "blocking: yes" in A/B/D1's
+PROPOSED AMENDMENT wording clarified to specify what it blocks (never
+domain completion, confirmed by direct Charter §11 application, not by
+treating the prior retry as a Dustin ruling); D1's dispatch-contract
+provenance corrected to cite the pinned execution-contract SHA instead of
+"the worktree" (verified reproducible via commit ancestry, no
+re-collection needed); Domain E's 3 rows citing unauthorized Master Ledger
+content removed and routed to D2/B, which already owned the same findings;
+D2's missing non-match-detail block added and its implementation-absence
+overclaim reframed to document-state evidence; Domain A's one invalid
+filename citation fixed; Domain B's impossible Ledger line range replaced
+with the correct Program range; Domain C's CB-29 row updated from stale
+MATCH to PARTIAL per Program's own superseding text. Also caught during
+this pass, not separately requested: A-GOV-010/011/012 were missing their
+required non-match-detail blocks (Charter §7) despite being MISMATCH/
+PARTIAL since Phase 1 attempt 1 — added.
+
 Status values: `NOT STARTED | IN PROGRESS | COMPLETE |
 BLOCKED-PENDING-AMENDMENT | INCOMPLETE-RETRY-EXHAUSTED` (Charter §11,
 execution plan Task 1.11).

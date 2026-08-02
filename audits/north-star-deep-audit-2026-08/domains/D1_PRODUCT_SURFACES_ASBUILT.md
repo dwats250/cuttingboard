@@ -28,9 +28,9 @@
 
 Files inspected:
 
-- `audits/north-star-deep-audit-2026-08/00_AUDIT_CHARTER.md` — current audit contract, read directly from worktree.
-- `audits/north-star-deep-audit-2026-08/01_SOURCE_AUTHORITY_MANIFEST.md` — current source manifest, read directly from worktree.
-- `audits/north-star-deep-audit-2026-08/02_DOMAIN_COVERAGE_MATRIX.md` — accepted seam and dispatch contract, read directly from worktree.
+- `audits/north-star-deep-audit-2026-08/00_AUDIT_CHARTER.md` — pinned at authorized Phase 1 execution-contract SHA `41bfcd6888b7c28da9c0478c9534bdb66a9a2600`. Corrected during Stage 0 review remediation (2026-08-02): verified via commit ancestry that no commit or uncommitted change preceded this dispatch (the domain-evidence commit `a8bf688` and all later commits are descendants of `41bfcd6`, and the dispatch worktree carried no uncommitted diff against that SHA at dispatch time), so the content actually read is byte-equivalent to `git show 41bfcd6:audits/north-star-deep-audit-2026-08/00_AUDIT_CHARTER.md`. No re-collection was needed.
+- `audits/north-star-deep-audit-2026-08/01_SOURCE_AUTHORITY_MANIFEST.md` — pinned at `41bfcd6888b7c28da9c0478c9534bdb66a9a2600`, same reproducibility verification as above.
+- `audits/north-star-deep-audit-2026-08/02_DOMAIN_COVERAGE_MATRIX.md` — pinned at `41bfcd6888b7c28da9c0478c9534bdb66a9a2600`, same reproducibility verification as above.
 - `CLAUDE.md` — pinned with `git show fdeef90b0a0e0747d1bbf92385d3750b4024f4ae:CLAUDE.md`.
 - `docs/PRD_REGISTRY.md` — pinned with `git show fdeef90b0a0e0747d1bbf92385d3750b4024f4ae:docs/PRD_REGISTRY.md`.
 - `docs/prd_index.json` — pinned with `git show fdeef90b0a0e0747d1bbf92385d3750b4024f4ae:docs/prd_index.json`.
@@ -120,10 +120,10 @@ No-edits attestation: confirmed
 
 ## PROPOSED AMENDMENT
 
-- discovered by: D1 / D1-04 — description: verifying the asserted agreement between `config.TREND_STRUCTURE_SYMBOLS` and `market_map.PRIMARY_SYMBOLS` requires `cuttingboard/config.py` / proposed scope change: add that single pinned file to D1 implementation seams / blocking: yes.
-- discovered by: D1 / Stage0 Q1 — description: full producer/consumer ownership verification requires `cuttingboard/delivery/payload.py` and `cuttingboard/trade_visibility.py` / proposed scope change: add only those two pinned files / blocking: yes.
-- discovered by: D1 / Stage0 Q2 — description: overlapping producer and artifact-flow verification requires `cuttingboard/trend_structure.py` and `docs/artifact_flow_map.md` / proposed scope change: add only those named files / blocking: yes.
-- discovered by: D1 / Stage0 Q4 — description: complete fixed-universe verification requires the excluded configuration source / proposed scope change: add `cuttingboard/config.py` if not covered by the first amendment / blocking: yes.
+- discovered by: D1 / D1-04 — description: verifying the asserted agreement between `config.TREND_STRUCTURE_SYMBOLS` and `market_map.PRIMARY_SYMBOLS` requires `cuttingboard/config.py` / proposed scope change: add that single pinned file to D1 implementation seams / blocking: yes, to fully resolving D1-04's confidence — D1-04 is recorded PARTIAL/MEDIUM with an explicit assumption note ("agreement... cannot be confirmed without reading excluded `cuttingboard/config.py`"), not a blank row. **Not** blocking to Domain D1's own COMPLETE status, independently satisfied per Charter §11.
+- discovered by: D1 / Stage0 Q1 — description: full producer/consumer ownership verification requires `cuttingboard/delivery/payload.py` and `cuttingboard/trade_visibility.py` / proposed scope change: add only those two pinned files / blocking: yes, to fully resolving the affected rows' confidence, not to Domain D1's COMPLETE status (same basis as above).
+- discovered by: D1 / Stage0 Q2 — description: overlapping producer and artifact-flow verification requires `cuttingboard/trend_structure.py` and `docs/artifact_flow_map.md` / proposed scope change: add only those named files / blocking: yes, to fully resolving the affected rows' confidence, not to Domain D1's COMPLETE status (same basis as above).
+- discovered by: D1 / Stage0 Q4 — description: complete fixed-universe verification requires the excluded configuration source / proposed scope change: add `cuttingboard/config.py` if not covered by the first amendment / blocking: yes, to fully resolving the affected rows' confidence, not to Domain D1's COMPLETE status (same basis as above).
 - discovered by: D1 — description: no broader `cuttingboard/` traversal was necessary or performed / proposed scope change: none; preserve the bounded dispatch / blocking: no.
 
 No repository files were edited during this dispatch.
