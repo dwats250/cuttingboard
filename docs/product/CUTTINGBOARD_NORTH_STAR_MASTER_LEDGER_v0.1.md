@@ -3,9 +3,9 @@
 **Initiative:** NORTH STAR  
 **Status:** RATIFIED — ratified and complete as of Dustin's merge of PR #187
 (merge commit `fdeef90b0a0e0747d1bbf92385d3750b4024f4ae`, 2026-08-02). This
-line previously read "DRAFT UNTIL MERGE — RATIFIED AND COMPLETE UPON
-DUSTIN'S MERGE OF PR #187" while that merge was pending; it has since
-occurred.  
+line previously carried a pre-merge draft/awaiting-ratification banner
+naming PR #187's then-pending merge; that banner no longer applies now that
+the merge has occurred.  
 **Owner and final authority:** Dustin  
 **Purpose:** Preserve the full product vision, map all active/drafted/parked/debt work, and prevent governance from displacing trader-facing delivery.
 

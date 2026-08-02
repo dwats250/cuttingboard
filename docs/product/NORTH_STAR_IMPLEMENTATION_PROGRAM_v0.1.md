@@ -3,9 +3,9 @@
 **Initiative:** NORTH STAR
 **Status:** RATIFIED — ratified and complete as of Dustin's merge of PR #187
 (merge commit `fdeef90b0a0e0747d1bbf92385d3750b4024f4ae`, 2026-08-02); grants
-no implementation permission. This line previously read "DRAFT UNTIL MERGE —
-RATIFIED AND COMPLETE UPON DUSTIN'S MERGE OF PR #187" while that merge was
-pending; it has since occurred.
+no implementation permission. This line previously carried a pre-merge
+draft/awaiting-ratification banner naming PR #187's then-pending merge; that
+banner no longer applies now that the merge has occurred.
 **Owner and final authority:** Dustin
 **Companion:** `docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md` (the vision;
 this document is the portfolio implementation program the ledger's §10 commissions)
