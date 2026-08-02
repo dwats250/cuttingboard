@@ -20,7 +20,7 @@
 ## 2. What can proceed WITHOUT Dustin (beyond his standard merge of each PR)
 
 - **PR-A (CP-001…CP-004):** doc-only corrections whose content is fully adjudicated from evidence; no open ruling consumed. Dustin's act is the normal GOV-1 merge.
-- **CP-006 phase 1:** in-thread replies for 10 refuted/cross-domain-refuted threads — comments 4, 8, 20, 21 (Domain A's own evidence: Program:270-280, CLAUDE.md:290-305, Program:341-347/A-GOV-017, C-059) and comments 2, 6, 9, 15 (a sibling domain's own cited evidence: TM-032/TM-046/TM-029/TM-047) — this is exactly the missing administrative record Dustin's 2026-08-01 ruling identified, extended to the four comments a cross-domain read refutes. (Corrected 2026-08-02, Codex connector finding: comments 7 and 12 were removed from this phase — they are cross-domain-*confirmed*, not refuted, via TM-040/TM-043, and stay BLOCKED/PARKED pending DR-001/DR-003 rather than being dismissed; see §7.)
+- **CP-006 phase 1:** in-thread replies for all 10 refuted threads, no dependency — comments 4, 8, 20, 21 (Domain A's own evidence: Program:270-280, CLAUDE.md:290-305, Program:341-347/A-GOV-017, C-059); comments 2, 6, 9, 15 (a sibling domain's own cited evidence: TM-032/TM-046/TM-029/TM-047); and comments 14, 19 (added 2026-08-02, Codex connector finding — both were SUPPORTED findings about NS-0A/PRD-268 that Fable's own corrections showed were already correct at baseline, citing Ledger:265/§3:74-80 and Ledger:87-90 respectively) — this is exactly the missing administrative record Dustin's 2026-08-01 ruling identified. (Comments 7 and 12 are NOT in this phase — they are cross-domain-*confirmed*, not refuted, via TM-040/TM-043, and stay BLOCKED/PARKED pending DR-001/DR-003; see §7.)
 - **CP-009 drafting** (PR-D opens as a draft with the PRD-186 visible hold; Dustin accepts or declines).
 
 ## 3. What CANNOT proceed without Dustin
@@ -38,7 +38,7 @@
 
 ## 4. Parked administration (holds that are NOT substantive blockers)
 
-- All **29** PR #187 threads: BLOCKED/PARKED per Dustin's rulings — the 4 refuted and 18 undetermined holds are administrative record-keeping states only (settled rules 4–5). They block nothing in Phase 2/3.
+- All **29** PR #187 threads: BLOCKED/PARKED per Dustin's rulings — administrative record-keeping states only (settled rules 4–5), regardless of substantive determination. Corrected 2026-08-02 (Codex connector finding — stale pre-reconciliation counts): the final substantive split is **9 SUPPORTED, 8 CONTRADICTED/CORRECTED, 12 UNDETERMINED** (9+8+12=29). None of the three groups is a substantive blocker; see TM-081/CP-006 for the 17 determined threads' reply phasing and CP-007 for the 12 routed ones.
 - **AMENDMENT-005** (Domain F): open PROPOSED, gates nothing (F's own text: "neither is needed for F's current scope"). Recommended disposition: defer/decline; carried inside DR-007's ruling for one-touch closure.
 - Deferred owner decisions in §5 below — tracked debt, no pending question in this audit.
 

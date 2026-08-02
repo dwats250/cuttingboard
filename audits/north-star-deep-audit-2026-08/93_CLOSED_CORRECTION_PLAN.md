@@ -41,9 +41,9 @@
 - **Matrix rows:** TM-018 (MISMATCH).
 - **Surface:** `docs/product/NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md:110-116` and `:297-307` (NS-2 entry conditions).
 - **Type:** doc fix (sequencing text).
-- **Authority:** authoring agent drafts; Dustin merges **after** DR-003(ii) confirms the GOV-2-first ordering (or records a documented exception, in which case CP-005 instead encodes that exception).
+- **Authority:** authoring agent drafts; Dustin merges **after** DR-003(ii) confirms the GOV-2-first ordering.
 - **Dependencies:** DR-003(ii). **Order:** 2.
-- **Acceptance test:** the Program's NS-2 entry conditions state the GOV-2 §2 order — MATERIAL packet review and exact-head confirmation → design-direction ruling → PRD review → Gate A — with PRD-271's Gate A explicitly positioned per the ruling; no wording remains that permits Gate A before the packet review absent a recorded exception.
+- **Acceptance test (corrected 2026-08-02, Codex connector finding — the "absent a recorded exception" carve-out is removed along with DR-003's option (ii-b); GOV-2 §2 provides no exception path):** the Program's NS-2 entry conditions state the GOV-2 §2 order — MATERIAL packet review and exact-head confirmation → design-direction ruling → PRD review → Gate A — with PRD-271's Gate A explicitly positioned per that order; no wording remains that permits Gate A before the packet review.
 - **PR boundary:** PR-B. **Ruling prerequisite:** DR-003.
 
 ### CP-006 — PRD-228 thread-closure records on PR #187 (corrected three times 2026-08-02, Codex connector findings: the original 10+9 phase split was arithmetic error; comments 14/19 were misfiled with no fixing commit to cite; comments 7/12 were then found misfiled too — both are SUPPORTED-but-unresolved findings, not refuted ones, so a reply can cite the confirming evidence but cannot DISMISS the thread while DR-001/DR-003 remain open)
@@ -54,10 +54,10 @@
 - **Three phases, 10+3+4 = 17 determined threads total (matches 9 SUPPORTED + 8 CONTRADICTED/CORRECTED):**
   1. **Dismiss-citing-existing-evidence, 10 comments (2, 4, 6, 8, 9, 14, 15, 19, 20, 21):** no dependency — each reply cites text already present at the pinned baseline showing the comment's concern is refuted or already addressed, so none needs a "fix" to have landed and none is waiting on a Dustin ruling. 4/8/20/21 cite Domain A's own evidence (Program:270-280; CLAUDE.md:290-305; Program:341-347/A-GOV-017; C-059's Program:226-231/stage0-05:78-96); 2/6/9/15 cite a sibling domain's own evidence (TM-032/Ledger; TM-046/Program:182-188; TM-029/Ledger; TM-047/Program:243-256); 14 and 19 cite Ledger:265/§3:74-80 and Ledger:87-90 respectively (both were SUPPORTED findings that Fable's own corrections — TM-013→MATCH, CP-003 withdrawn; TM-014 narrowed, PRD-268's row untouched — showed were already correct at baseline, so no fix exists because none was needed).
   2. **Cite-fixing-commit-SHA, 3 comments (11, 18, 29):** requires PR-A merged (11, 29 — CP-002, CP-004) or PR-B merged (18 — CP-005) so the reply can name the actual landed commit.
-  3. **Cite-Dustin's-ruling, 4 comments (7, 12, 24, 26):** requires DR-001 (7), DR-003 (12), DR-005 (24), or DR-006 (26) to rule; the reply cites the ruling itself, not a repository fix. Unlike phase 1, comments 7 and 12 are **not** refuted — TM-040/TM-043 confirm their underlying facts (CB-01, CB-07) are real and open — but the comment's actual worry (is the current non-blocking/gating ordering acceptable) is exactly what DR-001/DR-003 decide, so the thread stays BLOCKED/PARKED-pending-ruling rather than being DISMISSED prematurely.
+  3. **Ruling-gated, 4 comments (7, 12, 24, 26):** requires DR-001 (7), DR-003 (12), DR-005 (24), or DR-006 (26) to rule before this correction posts any reply for them. Unlike phase 1, comments 7 and 12 are **not** refuted — TM-040/TM-043 confirm their underlying facts (CB-01, CB-07) are real and open — but the comment's actual worry (is the current non-blocking/gating ordering acceptable) is exactly what DR-001/DR-003 decide.
 - **Order:** phase 1 = 1 (parallel with PR-A); phase 2 = 3; phase 3 = after DR-001/DR-003/DR-005/DR-006 respectively.
-- **Acceptance test:** each of the 17 determined threads carries an in-thread reply — phase 1 with a one-line dismissal reason citing the covering text (DISMISSED), phase 2 with a fixing commit SHA/PRD number (ACTIONED), phase 3 citing the Dustin ruling that resolved it (not DISMISSED); none is closed by GitHub-resolve alone; the 12 remaining routed threads are *not* touched by this correction (they belong to CP-007).
-- **PR boundary:** none (no diff). **Ruling prerequisite:** none for phase 1 or phase 2; phase 3 waits on DR-001/DR-003/DR-005/DR-006 respectively.
+- **Acceptance test (taxonomy corrected 2026-08-02, Codex connector finding — PRD-228's disposition set is closed to exactly ACTIONED / DISMISSED / BLOCKED-PARKED; "cite the ruling, not DISMISSED" was an unnamed fourth state):** each of the 13 phase-1/phase-2 threads carries an in-thread reply — phase 1 with a one-line dismissal reason citing the covering text (DISMISSED), phase 2 with a fixing commit SHA/PRD number (ACTIONED); none is closed by GitHub-resolve alone. The 4 phase-3 threads (7, 12, 24, 26) remain `BLOCKED/PARKED` — no reply is posted for any of them — until its ruling lands; the ruling then resolves the thread as `ACTIONED` (if it produces a governed follow-up commit/PRD to cite) or `DISMISSED` (if the ruling itself, cited by decision record, closes the concern with no further repository action) per whichever the ruling's content actually is — this correction cannot predetermine which, only that a reply is not owed before the ruling exists. The 12 remaining routed threads are *not* touched by this correction (they belong to CP-007).
+- **PR boundary:** none (no diff). **Ruling prerequisite:** none for phase 1 or phase 2; phase 3 cannot proceed at all until its ruling lands.
 
 ### CP-007 — Bounded routed-queue adjudication packet (narrowed and grant-scope corrected 2026-08-02, Codex connector findings)
 - **Matrix rows:** TM-080, TM-003 (UNKNOWN); confidence uplifts only for TM-022, TM-036, TM-037, TM-060.
@@ -72,11 +72,11 @@
 ### CP-008 — CB-29 status record
 - **Matrix rows:** TM-050 (PARTIAL).
 - **Surface:** per DR-008's choice — default: `audits/current-state-reconciliation-2026-07-30/FINDING_STATUS_MATRIX.md` CB-29 row (lines 411-413 region), dated addendum only.
-- **Type:** doc fix (registry-of-findings cross-reference).
+- **Type:** doc fix (registry-of-findings cross-reference), **or no repository change** under DR-008 option (c).
 - **Authority:** authoring agent drafts; Dustin merges.
 - **Dependencies:** DR-008. **Order:** 4 (any time after its ruling).
-- **Acceptance test:** a reader of the matrix's CB-29 row is pointed, via dated addendum (or the in-place update if Dustin so rules), to Program:192-194's superseding PARTIAL status and the merged `f6d508f` delta; the missing canonical adoption record remains explicitly listed as CB-29's open residual, unchanged.
-- **PR boundary:** PR-C. **Ruling prerequisite:** DR-008.
+- **Acceptance test (corrected 2026-08-02, Codex connector finding — the original test had no valid path for DR-008 option (c)):** under (a), a reader of the matrix's CB-29 row is pointed via dated addendum to Program:192-194's superseding PARTIAL status and the merged `f6d508f` delta; under (b), the row is updated in place to PARTIAL with the same pointer; under (c), Dustin has ruled the Program is the sole live-status source and the matrix stays untouched — that ruling itself, recorded in `92_DISPUTE_LOG.md`, is the complete and closed disposition, no PR-C is opened, and CP-008 is satisfied by the ruling record alone. Under any option, the missing canonical adoption record remains explicitly listed as CB-29's open residual, unchanged.
+- **PR boundary:** PR-C under (a)/(b); none under (c). **Ruling prerequisite:** DR-008.
 
 ### CP-009 — Canonical entry-point pointer (discretionary)
 - **Matrix rows:** TM-079 (PARTIAL).
@@ -84,7 +84,7 @@
 - **Type:** doc fix — governance-adjacent file, so the PR opens as a **draft with the PRD-186 visible hold**, named as governance in its body.
 - **Authority:** Dustin decides at review — accepting or declining both close TM-079 (decline = accepted state, PROJECT_STATE's existing pointer bullet deemed sufficient).
 - **Dependencies:** none. **Order:** 5 (any time).
-- **Acceptance test:** either `CLAUDE.md`'s canonical-sources list references both North Star documents, or the PR is closed by Dustin with a recorded decline and TM-079's disposition is annotated accepted-as-is in the frozen matrix's amendment trail.
+- **Acceptance test (corrected 2026-08-02, Codex connector finding — "the frozen matrix's amendment trail" named a mechanism Charter §13 does not define; §13 makes `90` immutable after ratification via a new dated amendment, not an open annotation surface):** either `CLAUDE.md`'s canonical-sources list references both North Star documents, or Dustin closes PR-D with a recorded decline — the closed/declined PR itself is the complete closure evidence for TM-079; no further matrix annotation is required or promised.
 - **PR boundary:** PR-D. **Ruling prerequisite:** none formally (the draft-and-hold *is* the decision mechanism).
 
 ## Proposed PR sequence (smallest sensible set)
@@ -93,7 +93,7 @@
 |---|---|---|
 | PR-A | CP-001, CP-002, CP-004 — doc-only North Star status/consistency corrections (CP-003 withdrawn 2026-08-02, moot) | none (Dustin's normal merge) |
 | PR-B | CP-005 — NS-2 ordering text | DR-003 |
-| PR-C | CP-008 — CB-29 record | DR-008 |
+| PR-C | CP-008 — CB-29 record (conditional: opens only under DR-008 option (a)/(b); under (c) the ruling alone closes CP-008, no PR) | DR-008 |
 | PR-D | CP-009 — entry-point pointer (draft + PRD-186 hold) | Dustin's accept/decline at review |
 | PR-E | CP-007 — routed-queue adjudication artifact | DR-007 |
 
