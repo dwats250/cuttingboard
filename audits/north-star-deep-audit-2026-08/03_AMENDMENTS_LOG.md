@@ -27,16 +27,22 @@ Entry format:
   Full per-thread ACTIONED/DISMISSED disposition per the PRD-228 taxonomy
   requires each thread's resolved/unresolved state, which GitHub exposes
   only via GraphQL (`reviewThreads { isResolved }`). This session's `gh api
-  graphql` calls were denied by repository permission settings — not
-  routed around, flagged here instead.
-- Proposed scope change: either (a) Dustin grants GraphQL read access for a
-  future session so this layer can be completed mechanically, (b) Dustin
-  supplies the resolved/unresolved state directly, or (c) per-thread
-  disposition is explicitly deferred to Domain A's governance pass in
-  Phase 1 (Domain A owns the PRD-228 bot-thread convention per the
-  Source Authority Manifest) rather than blocking Phase 0.
-- Blocking: no — the raw enumeration (count, authors, files, severities,
-  representative topics) is complete and independently verified; only the
-  resolved/unresolved layer is gapped. Phase 0 scaffold proceeds without
-  it.
-- Status: PROPOSED
+  graphql` calls were initially denied by repository permission settings.
+- Resolution: GitHub GraphQL review-thread metadata has since been
+  independently obtained: 28 threads exist, all 28 are unresolved, some are
+  marked outdated and some are not. Resolved/unresolved and
+  outdated/current are GitHub workflow metadata — they describe a thread's
+  relationship to the current diff, not whether the underlying comment was
+  substantively actioned or dismissed. GitHub's `isResolved` state cannot
+  by itself establish a PRD-228 ACTIONED/DISMISSED disposition. No comment
+  is treated as ACTIONED, DISMISSED, correct, or incorrect in Phase 0.
+  Substantive adjudication of all 28 comments is routed to Phase 1,
+  principally Domain A (owns the PRD-228 bot-thread convention per the
+  Source Authority Manifest), and to whichever other domain owns a given
+  comment's specific subject matter.
+- Proposed scope change: none — closed without adding a source, domain,
+  finding, or investigative pass.
+- Blocking: no — the raw enumeration and the resolution-state layer are
+  both now complete and independently verified. What remains (substantive
+  disposition of each comment) is Phase 1 work, not a Phase 0 gap.
+- Status: CLOSED — NON-BLOCKING (2026-08-02)

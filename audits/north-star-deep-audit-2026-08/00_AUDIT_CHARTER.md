@@ -113,23 +113,27 @@ this PR, all authored by `chatgpt-codex-connector[bot]`, zero issue-level
 kill-switch bypass ahead of new product work", CB-01, on
 `NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md`), 27 tagged P2. All 28 target
 the two North Star product docs; none target `docs/PROJECT_STATE.md`.
-Representative topics observed (not adjudicated here — that is Domain A/H
-territory in Phase 1, not a Phase 0 scaffold task): portfolio-state
-consistency (NS-4A/4B, NS-1D, PRD-268), debt-row completeness (CB-12b,
-GEX-1/2, three "fixed" reconciliation findings), CI-validates-semantic-truth
-overclaim, self-reference to PR #187 in its own open-PR baseline, and a
-GOV-2 MATERIAL-sequence applicability question.
+Representative topics observed (not adjudicated here — that is Phase 1
+domain territory, principally Domain A): portfolio-state consistency
+(NS-4A/4B, NS-1D, PRD-268), debt-row completeness (CB-12b, GEX-1/2, three
+"fixed" reconciliation findings), CI-validates-semantic-truth overclaim,
+self-reference to PR #187 in its own open-PR baseline, and a GOV-2
+MATERIAL-sequence applicability question.
 
-**Known gap, logged as AMENDMENT-001 (see `03_AMENDMENTS_LOG.md`):** full
-per-thread ACTIONED/DISMISSED disposition per the PRD-228 taxonomy requires
-each thread's GitHub-tracked resolved/unresolved state, which is exposed
-only via the GraphQL API (`reviewThreads { isResolved }`). This session's
-`gh api graphql` calls were denied by repository permission settings (not
-attempted around — flagged instead). The raw enumeration above is complete
-and independently verified; the resolved/unresolved disposition layer is
-not. Whether that layer is required before Phase 1 dispatch, deferrable to
-Domain A's governance pass, or obtainable by Dustin supplying it directly is
-Dustin's call, not this charter's.
+**Connector thread resolution state (AMENDMENT-001, closed non-blocking —
+see `03_AMENDMENTS_LOG.md`):** GitHub-tracked review-thread metadata has
+been independently obtained: all 28 threads are unresolved; some are
+marked outdated (their diff context has been superseded by a later
+revision) and some are not. Resolved/unresolved and outdated/current are
+GitHub workflow metadata — they describe a thread's relationship to the
+current diff, not whether the underlying comment was substantively
+actioned or dismissed. GitHub's `isResolved` state cannot by itself
+establish a PRD-228 ACTIONED/DISMISSED disposition. No comment in the
+enumeration above is treated as ACTIONED, DISMISSED, correct, or incorrect
+in this charter. Substantive adjudication of all 28 comments is routed to
+Phase 1 — principally Domain A, which owns the PRD-228 bot-thread
+convention per the Source Authority Manifest — and to whichever other
+domain owns a given comment's specific subject matter.
 
 ## 6. Global Constraints (non-negotiable, verbatim from Dustin's ruling)
 
