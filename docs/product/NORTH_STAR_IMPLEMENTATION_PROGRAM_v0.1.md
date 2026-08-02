@@ -1,7 +1,11 @@
 # North Star Implementation Program v0.1
 
 **Initiative:** NORTH STAR
-**Status:** DRAFT UNTIL MERGE — RATIFIED AND COMPLETE UPON DUSTIN'S MERGE OF PR #187 — grants no implementation permission
+**Status:** RATIFIED — ratified and complete as of Dustin's merge of PR #187
+(merge commit `fdeef90b0a0e0747d1bbf92385d3750b4024f4ae`, 2026-08-02); grants
+no implementation permission. This line previously carried a pre-merge
+draft/awaiting-ratification banner naming PR #187's then-pending merge; that
+banner no longer applies now that the merge has occurred.
 **Owner and final authority:** Dustin
 **Companion:** `docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md` (the vision;
 this document is the portfolio implementation program the ledger's §10 commissions)
@@ -32,11 +36,16 @@ opened here.
 
 ## 2. Verified repository baseline (2026-08-01)
 
+**Post-merge note:** this baseline snapshot predates PR #187's own merge —
+it records the repository state as observed while #187 was still open. PR
+#187 has since merged as `fdeef90b0a0e0747d1bbf92385d3750b4024f4ae`. The
+table below is preserved as a historical snapshot, not rewritten.
+
 | Fact | Value | Source |
 |---|---|---|
 | `main` | `5fe8ad7216130d46d739510cc61257e6300080d9` (GOV-2 merge, PR #186) | `git rev-parse origin/main`, this session |
 | Working branch | `docs/north-star-master-ledger`, started at `4b573efbb3059aaa6e1d01752e8512e48cb0c9f3` (= `main` + the ledger commit) | `git rev-parse`, this session |
-| Open PRs | Three: **#184** (OPT-0 seam-trace packet, draft, head `24660ac`), **#185** (PRD-278 Stage 0, draft, head `ee2d12e`), and **#187** (this North Star ratification PR). The 2026-08-01 verification snapshot predated #187's opening; #184/#185 are held for Dustin per GOV-2 §12 | GitHub API, this session; updated at the #187 correction pass |
+| Open PRs | Three: **#184** (OPT-0 seam-trace packet, draft, head `24660ac`), **#185** (PRD-278 Stage 0, draft, head `ee2d12e`), and **#187** (this North Star ratification PR). The 2026-08-01 verification snapshot predated #187's opening; #184/#185 are held for Dustin per GOV-2 §12. **#187 has since merged as `fdeef90b0a0e0747d1bbf92385d3750b4024f4ae`; #184/#185 remain open per this row.** | GitHub API, this session; updated at the #187 correction pass |
 | Registry validator | `tools/validate_prd_registry.py --skip-commit-resolvability` exit 0 at `4b573efb` | run this session |
 | Test baseline | 3075 passed, 1 xfailed (CI truth on `main` at `4b0f3ba`) | `docs/PROJECT_STATE.md` |
 | Active PRD (implementation) | None in progress | `docs/PROJECT_STATE.md`; registry |
@@ -56,8 +65,10 @@ PRs relevant to North Star, resolved:
   entry). Outstanding per GOV-2 §12: the final canonical nine-file ruling held
   consistently across its five files, then the fresh-context independent PRD
   review, then Dustin's Gate A.
-- **#187 (open)** — this PR: the NS-0B ratification vehicle carrying both
-  North Star documents and the PROJECT_STATE pointer.
+- **#187 (merged as `fdeef90b0a0e0747d1bbf92385d3750b4024f4ae`)** — the NS-0B
+  ratification vehicle carrying both North Star documents and the
+  PROJECT_STATE pointer. This line originally described #187 as open; it has
+  since merged.
 - **#167 (merged)**, **#174 (merged)**, **#175 (merged)** — no longer blockers;
   see §3.
 
@@ -99,7 +110,7 @@ the §2 baseline.
 ## 4. Dependency graph (NS-0 → NS-9)
 
 ```text
-NS-0 (truth reset + ratification)          [substantially DELIVERED; ratification pending]
+NS-0 (truth reset + ratification)          [DELIVERED; ratified via PR #187's merge as `fdeef90b0a0e0747d1bbf92385d3750b4024f4ae` — this line previously read "ratification pending" before that merge]
   └─ everything below
 
 NS-1E CB-02 refusal (PARKED / DUSTIN DECISION REQUIRED; PRs #184/#185,
@@ -442,7 +453,9 @@ add adjacent requirements at closeout.
 Held decisions, stated once, none inferred or pre-empted:
 
 1. **Ratify** the North Star ledger and this program (NS-0B); merge this
-   branch when satisfied.
+   branch when satisfied. **Done** — this item described the pre-merge
+   state; Dustin has since ratified both documents via merge of PR #187
+   (`fdeef90b0a0e0747d1bbf92385d3750b4024f4ae`).
 2. **The A/B runway ruling:** either **resume CB-02** (then: direct the GOV-2
    exact-head confirmation on PR #184; accept the #185 consistency
    correction; dispatch the fresh-context independent PRD-278 review; rule

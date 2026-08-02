@@ -1,7 +1,11 @@
 # CuttingBoard North Star Master Ledger v0.1
 
 **Initiative:** NORTH STAR  
-**Status:** DRAFT UNTIL MERGE — RATIFIED AND COMPLETE UPON DUSTIN'S MERGE OF PR #187  
+**Status:** RATIFIED — ratified and complete as of Dustin's merge of PR #187
+(merge commit `fdeef90b0a0e0747d1bbf92385d3750b4024f4ae`, 2026-08-02). This
+line previously carried a pre-merge draft/awaiting-ratification banner
+naming PR #187's then-pending merge; that banner no longer applies now that
+the merge has occurred.  
 **Owner and final authority:** Dustin  
 **Purpose:** Preserve the full product vision, map all active/drafted/parked/debt work, and prevent governance from displacing trader-facing delivery.
 
@@ -260,7 +264,7 @@ citations in the implementation program's source map.
 |---|---|---|
 | OPT-0 — PR #184 (open draft, head `24660ac`) | `PARKED / DUSTIN DECISION REQUIRED` (lifecycle: `EVIDENCE BLOCKED` per the workplan) | The upstream MATERIAL packet for NS-1E; findings artifacts committed, all 13 connector threads actioned — progress, but OPT-0's governed exit is unsatisfied: independent exact-corrected-head confirmation plus Dustin's approval of the carrier, reason semantics, and implementation seam all remain outstanding |
 | OPT-1 — PR #185 (open draft, head `ee2d12e`) | `DRAFTED / BLOCKED` (lifecycle: `EVIDENCE BLOCKED` per the workplan, gated on OPT-0's exit) | PRD-278 Stage 0 + draft Gate A entry; the prior `DECISIONS.md` blocker is RESOLVED (Finding D ruling merged via PR #167, 2026-07-26); remaining: nine-file-ruling consistency, independent PRD review, Dustin Gate A |
-| PRD-271 lifecycle/document gap | `BLOCKED` | Document landed with its index entry via PR #173; Gate A (ORB remedy design ruling) pending with Dustin — also the NS-2B prerequisite |
+| PRD-271 lifecycle/document gap | `BLOCKED` (this ledger's lifecycle-condition axis, §3) — a separate axis from, and not in conflict with, the registry's PRD-lifecycle value `IN PROGRESS` for PRD-271; see §3 above for the two-axis distinction | Document landed with its index entry via PR #173; Gate A (ORB remedy design ruling) pending with Dustin — also the NS-2B prerequisite |
 | PRD-267/272/273 closeout | `COMPLETE` | Closed 2026-07-26 / 2026-07-31 (`724d84a`, `724d84a`, `4a1cb22`); registry, index, and validator agree (exit 0) |
 | PRD-268 scaffold/design fork | `IN PROGRESS / DECISION REQUIRED` | Canonical lifecycle state unchanged (registry: IN PROGRESS), design fork unruled; Dustin chooses approve / return to PROPOSED / deprecate (one of L0's two open rulings — the other is PRD-271 Gate A) |
 | Registry validator historical warnings | `RETIRED` | Phantom-SHA class closed WONTFIX-HISTORICAL (PRD-243); CI keeps `--skip-commit-resolvability` permanently; CB-12 residual bypasses remain non-blocking debt |
@@ -425,5 +429,7 @@ The full cosmic vision remains visible while only one small, finishable product 
 **Delivered:** `docs/product/NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md`
 (2026-08-01) — verified baseline, source map, dependency graph, debt ledger,
 single-runway adjudication, acceptance contract, and the not-lost appendix.
-It carries the same merge-contingent status as this ledger — ratified and
-complete upon Dustin's merge of PR #187 — and authorizes nothing.
+It carried the same merge-contingent status as this ledger and was ratified
+and completed upon Dustin's merge of PR #187 (merge commit
+`fdeef90b0a0e0747d1bbf92385d3750b4024f4ae`); it authorizes nothing beyond
+that ratification.
