@@ -33,12 +33,12 @@
 | CB-02/OPT-0/OPT-1/ODATA chain | OPT-0 carrier/reason-semantics/seam approval + exact-head confirmation | DR-004 |
 | Governance precedent for PR #187 | MATERIAL-intake classification of PR #187 itself | DR-005 |
 | NS-9C-vs-NS-2 freshness sequencing | promote/split NS-9C vs compatibility-note default | DR-006 |
-| CP-007 (routed-queue adjudication, narrowed to 12 comments 2026-08-02) and confidence uplifts for TM-022/TM-036/TM-037/TM-060/TM-003 | AMENDMENT-002/003/004 grant rulings + authorization of the bounded triage packet | DR-007 |
+| CP-007 (routed-queue adjudication, narrowed to 11 comments 2026-08-02) and confidence uplifts for TM-022/TM-036/TM-037/TM-060/TM-003 | AMENDMENT-002/003/004 grant rulings + authorization of the bounded triage packet | DR-007 |
 | CP-008 (CB-29 record) | frozen-snapshot-plus-addendum vs in-place matrix update | DR-008 |
 
 ## 4. Parked administration (holds that are NOT substantive blockers)
 
-- All **29** PR #187 threads: BLOCKED/PARKED per Dustin's rulings — administrative record-keeping states only (settled rules 4–5), regardless of substantive determination. Corrected 2026-08-02 (Codex connector finding — stale pre-reconciliation counts): the final substantive split is **9 SUPPORTED, 8 CONTRADICTED/CORRECTED, 12 UNDETERMINED** (9+8+12=29). None of the three groups is a substantive blocker; see TM-081/CP-006 for the 17 determined threads' reply phasing and CP-007 for the 12 routed ones.
+- All **29** PR #187 threads: BLOCKED/PARKED per Dustin's rulings — administrative record-keeping states only (settled rules 4–5), regardless of substantive determination. Corrected twice 2026-08-02 (Codex connector findings — stale pre-reconciliation counts, then comment 17 found misfiled UNDETERMINED though TM-011 already establishes its MISMATCH): the final substantive split is **10 SUPPORTED, 8 CONTRADICTED/CORRECTED, 11 UNDETERMINED** (10+8+11=29). None of the three groups is a substantive blocker; see TM-081/CP-006 for the 18 determined threads' reply phasing and CP-007 for the 11 routed ones.
 - **AMENDMENT-005** (Domain F): open PROPOSED, gates nothing (F's own text: "neither is needed for F's current scope"). Recommended disposition: defer/decline; carried inside DR-007's ruling for one-touch closure.
 - Deferred owner decisions in §5 below — tracked debt, no pending question in this audit.
 
@@ -58,23 +58,26 @@ Exactly four, all Dustin-held gates rather than unresolved facts: **CB-01** (ope
 
 ```
 PR-A (CP-001,002,004)          — no prerequisites (CP-003 withdrawn 2026-08-02, moot)
-   └─ CP-006 phase 2, comments 11 and 29 (cite PR-A's fixing SHAs)
+   └─ CP-006 phase 2, comments 11, 17, and 29 (cite PR-A's fixing SHAs)
 DR-003 ── PR-B (CP-005)
    └─ CP-006 phase 2, comment 18 only (cites PR-B's fixing SHA)
 
-(corrected 2026-08-02, Codex connector finding: the two PR-A/PR-B edges above
-were previously joined at one node, implying all three phase-2 replies waited
-on both PRs; comment 18 depends only on PR-B, comments 11/29 depend only on
-PR-A — neither sub-group depends on the other PR)
+(corrected twice 2026-08-02, Codex connector findings: the two PR-A/PR-B
+edges above were previously joined at one node, implying all three phase-2
+replies waited on both PRs; comment 18 depends only on PR-B, comments 11/29
+depend only on PR-A — neither sub-group depends on the other PR; comment 17
+was then added to the PR-A sub-group — TM-011 already establishes its
+MISMATCH with a fix routed through CP-001/PR-A, so its reply rides the same
+fixing SHA as 11/29)
 
 DR-001 ── CP-006 phase 3 (comment 7 reply)
 DR-003 ── CP-006 phase 3 (comment 12 reply)
 DR-005 ── CP-006 phase 3 (comment 24 reply)
 DR-006 ── CP-006 phase 3 (comment 26 reply)
 
-DR-007 ── PR-E (CP-007: routed-queue adjudication artifact, 12 comments; may also close TM-003)
+DR-007 ── PR-E (CP-007: routed-queue adjudication artifact, 11 comments; may also close TM-003)
 DR-008 ── PR-C (CP-008: CB-29 record)
 (discretionary) PR-D (CP-009: entry-point pointer; PRD-186 draft+hold)
 CP-006 phase 1 (10 refuted/cross-domain-refuted threads: 2,4,6,8,9,14,15,19,20,21) — independent, may run first, no ruling prerequisite
 ```
-Corrected three times 2026-08-02 (Codex connector findings): CP-006 phase 2's original nine-comment framing was arithmetic error; comments 14/19 moved to phase 1 (already correct at baseline, no fixing commit exists); comments 7/12 then moved out of phase 1 into a four-comment phase 3 alongside 24/26 — DR-001 (7) and DR-003 (12) join DR-005/DR-006 as required rulings, since 7/12 are SUPPORTED-but-unresolved (the underlying fact is confirmed, but the ordering question the comment raises is exactly what those DRs decide) rather than refuted. No correction depends on any other correction except CP-006-phase-2 → {CP-001,002,004,005 merged}; phase 3 depends on rulings, not corrections. No cycle exists.
+Corrected four times 2026-08-02 (Codex connector findings): CP-006 phase 2's original nine-comment framing was arithmetic error; comments 14/19 moved to phase 1 (already correct at baseline, no fixing commit exists); comments 7/12 then moved out of phase 1 into a four-comment phase 3 alongside 24/26 — DR-001 (7) and DR-003 (12) join DR-005/DR-006 as required rulings, since 7/12 are SUPPORTED-but-unresolved (the underlying fact is confirmed, but the ordering question the comment raises is exactly what those DRs decide) rather than refuted; comment 17 was then moved out of TM-080's UNDETERMINED queue into phase 2's PR-A sub-group — TM-011 already establishes its MISMATCH, so no ruling or new evidence was needed, only correct filing. No correction depends on any other correction except CP-006-phase-2 → {CP-001,002,004,005 merged}; phase 3 depends on rulings, not corrections. No cycle exists.
