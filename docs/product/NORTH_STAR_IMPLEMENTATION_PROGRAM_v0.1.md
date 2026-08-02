@@ -342,25 +342,30 @@ postmarket aggregates agree with the new breakdown member; false generic
 
 1. Independent exact-corrected-head confirmation of PR #184's final head
    (commissioned per GOV-2 §2/§7 — **not performed by this planning session**).
-2. PR #185 carries the final canonical nine-file ruling consistently,
+2. Dustin approves OPT-0's **carrier**, **reason semantics**, and
+   **implementation seam** — OPT-0's governed exit per the workplan. OPT-1 /
+   PRD-278 cannot advance before this approval.
+3. PR #185 carries the final canonical nine-file ruling consistently,
    including its `docs/DECISIONS.md` entry.
-3. Fresh-context independent review of PRD-278 (reviewer is not the author or
+4. Fresh-context independent review of PRD-278 (reviewer is not the author or
    same-session implementer; verdict committed against the exact revision).
-4. Dustin issues Gate A on the reviewed PRD — the first binding ceiling.
-5. Implementation under the Gate A ceiling; implementation review; Dustin
+5. Dustin issues Gate A on the reviewed PRD — the first binding ceiling.
+6. Implementation under the Gate A ceiling; implementation review; Dustin
    merges. Closeout rides the implementation PR (PRD-229).
 
 Preparatory CB-02 review may continue, but CB-02 implementation and final
 Gate A authorization cannot begin until Dustin dispositions PRD-268 and
 closes the applicable L0 sequencing gate.
 
-**Blockers, precisely:** steps 1–4 above. All are Dustin-held decisions or
+**Blockers, precisely:** steps 1–5 above, plus PRD-268's disposition and
+closure of the applicable L0 sequencing gate — actual sequencing blockers to
+final Gate A authorization and CB-02 implementation (preparatory review may
+continue, as stated above). All are Dustin-held decisions or
 Dustin-commissioned events. **Stale/apparent blockers, verified not blocking:**
 the Finding D ruling (merged, #167); the workplan's L0 allocation freeze (its
-conditions resolved — L0 itself remains IN PROGRESS, §3); PRD-268's design
-fork (different surface); PRD-274/275 (infra debt);
-CB-01 (independent finding, not on this seam — though its own Dustin-held
-safety ruling still gates implementation start; §5).
+conditions resolved — L0 itself remains IN PROGRESS, §3); PRD-274/275 (infra
+debt); CB-01 (independent finding, not on this seam — though its own
+Dustin-held safety ruling still gates implementation start; §5).
 
 **Considerations for the A/B ruling (neither chosen here).** For Option A:
 CB-02 is the furthest along under the ratified process (upstream packet
