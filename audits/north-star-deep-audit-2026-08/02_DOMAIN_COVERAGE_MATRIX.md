@@ -78,3 +78,22 @@ or is explicitly waived by a logged Dustin ruling in
 (Definition: WAIVER). A waiver is not equivalent to `COMPLETE` — it is a
 formal amendment that must also state the corresponding change to Stopping
 Rule condition 2 for this audit run, or that row still blocks closure.
+
+## Phase 2 status
+
+All 8 domains COMPLETE (above) as of the accepted evidence seam. PR #189
+("North Star deep audit: evidence (PR seam 2 of 3)") merged
+`2026-08-02T18:20:45Z` as commit `c3c09daca3c1cda695216f4cd736e267a13cc5d5`
+(parents: scaffold seam `e0d481f4e3daeae9d8cba4a7aee7670d27b5a2b5`, evidence
+seam `d21b8fd2ce77ac9deba1f505d6174de90c2286e8`). Per Charter §2, the
+**accepted evidence-seam commit Fable reads from is
+`d21b8fd2ce77ac9deba1f505d6174de90c2286e8`** — the PR #189 head — verified
+byte-identical to this directory's contents at the PR #189 merge commit
+before Phase 2 dispatch.
+
+Phase 2 (Fable synthesis) dispatched against this pin. Deliverables:
+`90_NORTH_STAR_TRUTH_MATRIX.md`, `91_AUTHORITY_DEPENDENCY_MAP.md`,
+`92_DISPUTE_LOG.md`, `93_CLOSED_CORRECTION_PLAN.md` (PR seam 3 of 3). No
+production or dashboard changes; no correction implementation. Next gate:
+independent Sol counter-review (not invoked in this seam), then Dustin's
+ratification of the correction plan (Charter §13 freeze).
