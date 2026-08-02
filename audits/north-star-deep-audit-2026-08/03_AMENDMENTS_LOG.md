@@ -96,14 +96,14 @@ Entry format:
 
 - Discovered by: Domain D1 dispatch, attempt 1 (Phase 1)
 - Description: verifying specific stage0-01-owned assertions in full
-  requires four additional pinned implementation files not on D1's
+  requires five additional pinned implementation files not on D1's
   9-file seam list: `cuttingboard/config.py` (universe-substrate agreement
   check), `cuttingboard/delivery/payload.py` and `cuttingboard/trade_visibility.py`
   (producer/consumer ownership verification), `cuttingboard/trend_structure.py`
   and `docs/artifact_flow_map.md` (artifact-flow verification). D1
   explicitly confirmed no broader `cuttingboard/` traversal was performed
-  or needed beyond these four named files.
-- Proposed scope change: add these four specific paths to Domain D1's
+  or needed beyond these five named files.
+- Proposed scope change: add these five specific paths to Domain D1's
   implementation-seam list. Not an open-ended `cuttingboard/` sweep.
 - Blocking: no — Domain D1 reached COMPLETE without them.
 - Status: PROPOSED

@@ -37,6 +37,15 @@
 - EXCLUDED BY DEFAULT: `.claude/settings.local.json` — untracked, absent
   from baseline, not a valid pinned-commit read (see note above). No other
   exclusions — broadest domain by design.
+- **PR #187 evidence pin:** the dispatch parameters above (verbatim from
+  the manifest) describe "the 28 inline review comments" — that phrasing
+  reflects Phase 0's capture point. The immutable capture this dispatch
+  actually used is `domains/PR187_EVIDENCE_SNAPSHOT_2026-08-02.md`,
+  captured `2026-08-02T04:12:33Z`. It records 29 comments: a 29th (id
+  `3696977973`) was posted at `2026-08-02T00:08:09Z`, 37 seconds after PR
+  #187's merge and after Phase 0's capture — not a Phase 0 undercount, a
+  later addition. This snapshot's 29-comment count is what feeds the
+  evidence table below, not the manifest's "28" phrasing.
 
 Files inspected:
 

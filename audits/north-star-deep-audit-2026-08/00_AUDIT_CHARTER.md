@@ -132,10 +132,19 @@ repos/dwats250/cuttingboard/pulls/187` and `.../pulls/187/files` and
 
 **Connector thread enumeration (PRD-228):** 28 inline review comments on
 this PR, all authored by `chatgpt-codex-connector[bot]`, zero issue-level
-(non-inline) comments. Severity split: 1 tagged P1 ("Keep the critical
-kill-switch bypass ahead of new product work", CB-01, on
-`NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md`), 27 tagged P2. All 28 target
-the two North Star product docs; none target `docs/PROJECT_STATE.md`.
+(non-inline) comments, as captured at this Phase 0 attestation. **Time-bound
+note (added during Phase 1):** a 29th connector comment (id `3696977973`)
+was posted at `2026-08-02T00:08:09Z`, 37 seconds after PR #187's merge at
+`2026-08-02T00:07:32Z` — after this Phase 0 capture point. The count of 28
+above is accurate as of when Phase 0 captured it, not a mechanical
+undercount; it is simply superseded by the current total. Phase 1's fresh,
+timestamped capture (`domains/PR187_EVIDENCE_SNAPSHOT_2026-08-02.md`)
+records the current total of 29 and is the evidence Domain A's dispatch
+actually used. Severity split at Phase 0 capture time: 1 tagged P1 ("Keep
+the critical kill-switch bypass ahead of new product work", CB-01, on
+`NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md`), 27 tagged P2. All 28 (of that
+capture) target the two North Star product docs; none target
+`docs/PROJECT_STATE.md`.
 Representative topics observed (not adjudicated here — that is Phase 1
 domain territory, principally Domain A): portfolio-state consistency
 (NS-4A/4B, NS-1D, PRD-268), debt-row completeness (CB-12b, GEX-1/2, three

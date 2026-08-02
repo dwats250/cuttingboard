@@ -2,7 +2,16 @@
 **Capture timestamp:** 2026-08-02T04:12:33Z
 **Capture reference:** `gh api repos/dwats250/cuttingboard/pulls/187/comments --paginate` (inline review comments) and `gh api repos/dwats250/cuttingboard/issues/187/comments` (issue-level comments), run against PR #187 in state `closed`/`merged` (merge commit `fdeef90b0a0e0747d1bbf92385d3750b4024f4ae`).
 **Count:** 29 inline review comments, 0 issue-level comments, 0 with `in_reply_to_id` set (no threaded replies exist as of this capture).
-**Correction:** Phase 0's charter/manifest/amendments-log state "28 inline review comments" based on an earlier, undercounted capture. This fresh capture finds 29. The charter's prose is stale on this count; this snapshot is the authoritative evidence Domain A dispatches against. Flagged to Dustin, not silently corrected in the scaffold text.
+**Correction (time-bound, not a mechanical-defect claim):** Phase 0 recorded
+28 comments at its capture point, shortly after PR #187's merge
+(`2026-08-02T00:07:32Z`). A subsequent connector comment (id `3696977973`)
+was posted at `2026-08-02T00:08:09Z`, 37 seconds after that merge and after
+Phase 0's capture, so this timestamped Phase 1 snapshot contains 29. The
+unqualified "28" stated elsewhere in the scaffold is therefore stale for
+Phase 1, but Phase 0's earlier enumeration is not treated as mechanically
+defective — it was accurate when captured. This snapshot is the
+authoritative evidence Domain A's dispatch actually used. Flagged to
+Dustin, not silently corrected in the scaffold's Phase 0 prose.
 **Since this data is GitHub-hosted PR metadata, not a repository path, it is not `git show`-pinned (Charter Sec2). If a new reply or changed thread state appears on PR #187 after this timestamp, that is new material routed to the Amendments Log per Charter Sec2 -- never silently substituted.**
 
 ---
