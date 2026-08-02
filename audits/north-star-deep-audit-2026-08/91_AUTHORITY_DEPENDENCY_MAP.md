@@ -10,7 +10,7 @@
 | `VISION.md` (A) | Mission/non-goals | TM-001, TM-002 |
 | Master Ledger / Program (planning docs; **no implementation authority** per TM-007) | Portfolio states, sequencing intent, debt reconciliation prose | TM-011–TM-014, TM-027–TM-037, TM-040–TM-055, TM-063, TM-070; all CP doc fixes land here except CP-008/CP-009 |
 | `audits/current-state-reconciliation-2026-07-30/FINDING_STATUS_MATRIX.md` + EVIDENCE_INDEX + RECONCILIATION_REPORT (C) | CB-01..47 finding truth | TM-040–TM-051; TM-050's divergence is the one place Program supersedes it (DR-008 decides recording mode) |
-| `docs/plans/decision-support-workplan-v0.1.md` + expansion doctrine (G) | Expansion lifecycle states (OPT-0/OPT-1, GEX), vocabulary anchors | TM-071–TM-077; confidence ceiling on TM-022; six TM-080 queue members name it as their missing source |
+| `docs/plans/decision-support-workplan-v0.1.md` + expansion doctrine (G) | Expansion lifecycle states (OPT-0/OPT-1, GEX), vocabulary anchors | TM-071–TM-077; confidence ceiling on TM-022; seven TM-080 queue members name it as their missing source (corrected 2026-08-02, Codex connector finding — comment 28 was omitted; the full set is comments 1, 10, 13, 16, 22, 27, 28) |
 | stage0 recon set: stage0-01/verify-01 (D1), stage0-02/03/verify (F), stage0-04 (G), stage0-05/verify-05 (A/C split) | As-built evidence bases | TM-056–TM-063, TM-066–TM-069, TM-024, TM-055 |
 | `docs/prd_history/PRD-271.md` (E) | ORB defect ownership, Gate A scope | TM-021, TM-031, TM-058 |
 | STRATEGY_CANDIDATE_FIDELITY_DELTA (E) | Proxy-count truth | TM-064, TM-065 |
@@ -58,8 +58,14 @@ Exactly four, all Dustin-held gates rather than unresolved facts: **CB-01** (ope
 
 ```
 PR-A (CP-001,002,004)          — no prerequisites (CP-003 withdrawn 2026-08-02, moot)
-   └─ CP-006 phase 2 (3 fixing-SHA replies: 11, 18, 29)
-DR-003 ── PR-B (CP-005) ───────┘
+   └─ CP-006 phase 2, comments 11 and 29 (cite PR-A's fixing SHAs)
+DR-003 ── PR-B (CP-005)
+   └─ CP-006 phase 2, comment 18 only (cites PR-B's fixing SHA)
+
+(corrected 2026-08-02, Codex connector finding: the two PR-A/PR-B edges above
+were previously joined at one node, implying all three phase-2 replies waited
+on both PRs; comment 18 depends only on PR-B, comments 11/29 depend only on
+PR-A — neither sub-group depends on the other PR)
 
 DR-001 ── CP-006 phase 3 (comment 7 reply)
 DR-003 ── CP-006 phase 3 (comment 12 reply)
