@@ -89,9 +89,37 @@ Entry format:
   CITED set. Domain B produced rows for the owning assertions with
   appropriately hedged confidence and did not investigate the unlisted
   artifacts.
-- Proposed scope change: add the specific referenced artifacts (not a
-  blanket grant) needed to verify those particular portfolio assertions —
-  exact list to be drawn from B_PORTFOLIO_LIFECYCLE.md's evidence table.
+- Proposed scope change (made exact 2026-08-02 per adjudicated Stage 0
+  finding, derived only from B-017's and B-018's own recorded evidence,
+  citations, and assumptions — no broad repository search performed): add
+  the following specific artifacts to Domain B's CITED set, needed to fully
+  resolve B-017's and B-018's confidence:
+  1. `docs/plans/decision-support-workplan-v0.1.md` — the workplan Program's
+     dependency graph (lines 99-136, B-017's own citation) references for
+     ODATA-0/OPT-1 sequencing ("unlocks ODATA-0 backlog recon (workplan:
+     'after OPT-1')").
+  2. `audits/stage0-recon-2026-07-20/stage0-01-decision-surface-v0.1.md` —
+     the seeded packet for NS-2A/B/C MATERIAL intake, named directly in the
+     same dependency graph range.
+  3. `audits/stage0-recon-2026-07-20/stage0-03-scheduler-v0.1.md` and
+     `audits/stage0-recon-2026-07-20/verify-03-scheduler.md` — the NS-9
+     evidence base named directly in the same dependency graph range
+     ("NS-9 scheduling/freshness (evidence: stage0-03...)").
+  4. GitHub PR #184 and PR #185 content (not a committed repository path —
+     an external GitHub artifact) — named in the same dependency graph
+     range and directly in B-018's own assumption ("PR and packet
+     artifacts were not in Domain B's dispatch"). If granted, this requires
+     authorizing `gh pr view`/`gh pr diff` access, not a file-path CITED
+     grant.
+  5. Unresolved, not enumerable from B-017/B-018's own recorded evidence: the
+     OPT-0 upstream MATERIAL packet's "findings artifacts" referenced by
+     Master Ledger sec5's Options/reconciliation chain (cited in B-018's
+     evidence range, `Master Ledger:257-266`, as "findings artifacts
+     committed, all 13 connector threads actioned"). Neither B-017 nor
+     B-018's recorded text states an exact repository path for these
+     artifacts. This item is named as a precise open gap, not resolved with
+     an invented path; a future amendment or Dustin's direct pointer would
+     be needed before it could be added to CITED.
 - Blocking: no — Domain B reached COMPLETE without these citations.
   (Reconciled 2026-08-02: the domain file's own "blocking: yes" on this
   amendment is scoped to fully resolving B-017/B-018's confidence, not to

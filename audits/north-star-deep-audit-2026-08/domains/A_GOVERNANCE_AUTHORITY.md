@@ -89,7 +89,7 @@ No-edits attestation: confirmed
 | A-GOV-002 | The product must not become a prediction engine, automated execution system, indicator collection, headline firehose, governance project, or backtest-optimization machine. | FACT | Master Ledger:38-45; `VISION.md:36-47`; `CLAUDE.md:44-49` | MATCH | Violating these boundaries creates unsafe or misleading product behavior. | HIGH |  | no |
 | A-GOV-003 | Only one packet may be `NOW`, and Dustin alone promotes `NEXT` or `LATER`. | OWNER-DECISION | Master Ledger:49-50; Master Ledger:74-80; `CLAUDE.md:9-20`; `docs/DECISIONS.md:49-52` | MATCH | Multiple active packets can create unauthorized implementation. | HIGH |  | no |
 | A-GOV-004 | Acceptance requirements are fixed before implementation and closeout may return only the reviewed SHA, requirement PASS/FAIL results, blocking explanations, and ACCEPT/REJECT. | FUTURE-DESIGN-INTENT | Master Ledger:51-53,372-381; `docs/PRD_TEMPLATE.md:17-24`; `docs/PRD_REVIEW_TEMPLATE.md:29-75`; `docs/PRD_PROCESS.md:119-126` | MATCH | Requirements can expand during closeout and invalidate review scope. | HIGH |  | no |
-| A-GOV-005 | A planning entry grants no implementation permission. | FACT | Master Ledger:56; Program:9-14; `CLAUDE.md:118-134`; `docs/AGENT_WORKFLOW.md:160-165` | MATCH | Planning text could be mistaken for authority to edit production. | HIGH |  | no |
+| A-GOV-005 | A planning entry grants no implementation permission. | FACT | Master Ledger:56; Program:9-14; `CLAUDE.md:118-134` | MATCH | Planning text could be mistaken for authority to edit production. | HIGH | Corrected 2026-08-02 per adjudicated Stage 0 finding: removed `docs/AGENT_WORKFLOW.md:160-165` — the pinned file ends at line 51 and does not support this assertion. Master Ledger:56 is a verbatim, direct match ("8. A planning entry grants no implementation permission.") and alone fully supports this row at HIGH confidence; Program:9-14 corroborates. | no |
 | A-GOV-006 | Optional or observational sidecars must preserve baseline output when absent, stale, disabled, or invalid and must not mutate pipeline-owned decision artifacts. | FACT | Master Ledger:55; `VISION.md:49-62`; `docs/sidecar_doctrine.md:43-63,83-96`; `docs/architecture.md:1-40` | MATCH | Sidecar influence could silently change qualification, sizing, or execution decisions. | HIGH |  | no |
 | A-GOV-007 | Governance serves truth, safety, and delivery and is not an independent product track; proactive governance work is frozen for the next three product slices. | OWNER-DECISION | Master Ledger:57,405; Program:28-31; `VISION.md:67-75`; `audits/current-state-reconciliation-2026-07-30/CHARTER.md:24-37` | MATCH | Governance activity could displace trader-facing delivery. | MEDIUM |  | yes |
 | A-GOV-008 | The standard packet requires a bounded scope, dependencies, acceptance contract, evidence, review scope, stop conditions, debt, and Dustin decision field. | FUTURE-DESIGN-INTENT | Master Ledger:352-370; `docs/plans/agent-work-charge-template-v0.1.md:15-36,120-136` | MATCH | Missing fields weaken authority and closeout traceability. | HIGH |  | no |
@@ -225,11 +225,29 @@ No-edits attestation: confirmed
 
 ### A-PR187-011
 
-Substantively the same finding as A-GOV-010 above (comment 11 requests exactly the correction A-GOV-010 independently identifies). See A-GOV-010's detail block; not duplicated here.
+- Exact source path and lines: `docs/product/NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md:33-46` (same evidence A-GOV-010 already establishes, restated in comment 11's own terms).
+- Governing authority: Program §2 (verified repository baseline table), A-cited.
+- Observed discrepancy: comment 11 asks that the open-PR baseline table acknowledge that PR #187 is itself one of the open PRs it lists, even though the audit's pinned baseline (`fdeef90`) is already that PR's merge commit — the table's own snapshot predates its own merge, so PR #187 cannot simultaneously be open and be the commit the baseline is frozen at.
+- Practical consequence: a reader relying on this table to enumerate current open-PR authority would omit that the table's own snapshot predates its own merge.
+- False-authority risk: a stale open-PR count could understate what governance/review state has already closed.
+- Safety relevance: low — documentation-currency issue, not an execution-safety concern.
+- Current-vs-future-facing effect: current-state mismatch, not a future design claim.
+- Proposed disposition: Dustin should confirm whether this table needs a "snapshot predates this PR's own merge" qualifier — this directly answers comment 11's request.
+- Confidence: HIGH.
+- Missing evidence: none — directly confirmed from Program's own text against the pinned merge fact, the same evidence already established at A-GOV-010.
 
 ### A-PR187-019
 
-Substantively the same finding as A-GOV-011 above (comment 19 requests exactly the correction A-GOV-011 independently identifies). See A-GOV-011's detail block; not duplicated here.
+- Exact source path and lines: `docs/product/NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md:99-108,190-231`; `docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md:90-97` (NS-0A row); `docs/PRD_REGISTRY.md:288-297`; `docs/prd_index.json:3-5,1315-1336` (same evidence A-GOV-011 already establishes, restated in comment 19's own terms).
+- Governing authority: Program §2 (verified repository baseline) and §5 (technical-debt ledger), both A-cited; Master Ledger §4 NS-0A row, A-owned.
+- Observed discrepancy: comment 19 raises the same disagreement A-GOV-011 independently identifies: both the Program and the Ledger record `Active PRD: none` (or its equivalent, CB-28) alongside four registry rows marked `IN PROGRESS` (PRD-268, 271, 274, 275) — a self-admitted disagreement both documents flag as CB-28 explicitly, not a resolved reconciliation, even while the Ledger's own NS-0A row is labeled `COMPLETE`.
+- Practical consequence: a reader taking NS-0A's "repository-truth reset complete" claim at face value could conclude the PRD/registry inventory fully agrees, when both the Program's debt ledger and the Ledger's own NS-0A exit condition say otherwise.
+- False-authority risk: NS-0A's `COMPLETE` label could be treated as authority that the inventory is reconciled, when the same row's own exit condition text records an open disagreement.
+- Safety relevance: low — inventory-consistency issue, not execution-safety.
+- Current-vs-future-facing effect: current-state mismatch.
+- Proposed disposition: Dustin should confirm whether NS-0A's exit should be qualified (open pending CB-28) rather than stated as unconditionally complete — this directly answers comment 19's request.
+- Confidence: HIGH.
+- Missing evidence: none — directly confirmed from both the Program's and the Ledger's own self-admitted disagreement, the same evidence already established at A-GOV-011.
 
 ### A-PR187-024
 
