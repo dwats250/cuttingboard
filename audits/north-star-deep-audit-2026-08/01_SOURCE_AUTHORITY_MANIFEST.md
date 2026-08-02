@@ -43,6 +43,7 @@ below and Domain A's dispatch block for how that evidence is pinned).
 | `audits/current-state-reconciliation-2026-07-30/CHARTER.md` | A | C |
 | Master Ledger sec 1, 2, 7, 9, 10 | A | - |
 | Program sec 1, 9, 10, 11 | A | - |
+| Master Ledger preamble, lines 1-12 (before its own §1 heading); Program preamble, lines 1-15 (before its own §1 heading) — AMENDMENT-006, ruled 2026-08-02: an exact, narrow grant closing a manifest gap Fable identified; no later line included, no domain besides A receives citation access, and this creates no general foundational/shared-source doctrine for either document | A | - |
 | `audits/stage0-recon-2026-07-20/stage0-05-governance-debt-v0.1.md`, "## Governance" section only (Q27-28) | A | - |
 | PR #187 mechanical provenance and connector-thread evidence (merge SHA, file list, body — fixed, PR is closed/merged; the 28 inline review comments, their reply threads, cited fixing SHAs/PRDs, and dismissal reasons — read live via `gh api` at Domain A's dispatch time, not `git show`; see Domain A's dispatch block) | A (scaffold-captured per Charter §5) | - |
 | `docs/PROJECT_STATE.md` | B | C |
@@ -88,7 +89,10 @@ path is full and baseline-readable except where noted otherwise.
   `.claude/settings.json`; `docs/PRD_TEMPLATE.md`; `docs/PRD_REVIEW_TEMPLATE.md`;
   `docs/plans/agent-work-charge-template-v0.1.md`; `VISION.md`;
   `audits/current-state-reconciliation-2026-07-30/CHARTER.md`; Master
-  Ledger sec 1, 2, 7, 9, 10; Program sec 1, 9, 10, 11;
+  Ledger sec 1, 2, 7, 9, 10; Program sec 1, 9, 10, 11; Master Ledger
+  preamble lines 1-12 and Program preamble lines 1-15 (AMENDMENT-006,
+  ruled 2026-08-02 — exact grant, no later line, no implicit
+  foundational/shared-source doctrine created);
   `audits/stage0-recon-2026-07-20/stage0-05-governance-debt-v0.1.md`
   "## Governance" section (Q27-28) only; **PR #187 provenance and
   connector-thread evidence** — merge SHA/file list/body are fixed since

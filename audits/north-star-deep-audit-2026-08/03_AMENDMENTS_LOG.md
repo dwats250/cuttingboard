@@ -160,3 +160,35 @@ Entry format:
   required. Neither is needed for F's current scope.
 - Blocking: no.
 - Status: PROPOSED
+
+## AMENDMENT-006 — 2026-08-02
+
+- Discovered by: Fable adjudication (bounded adjudicator pass against head
+  `3d3ededc78e6b32ac3af7cfa6e9b99c9b83b1d97`), Rule 1 closing question
+- Description: the two North Star documents' own preamble/title blocks —
+  `docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md:1-12` and
+  `docs/product/NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md:1-15` (the text
+  before either document's own `## 1.` heading) — are assigned to no
+  domain in `01_SOURCE_AUTHORITY_MANIFEST.md`, yet are cited by A-GOV-005,
+  A-GOV-009, A-GOV-012, A-GOV-024, B-001, and D2-NS2-08. This is a genuine
+  manifest gap, not a violation of an existing grant: no domain's citation
+  of these exact preamble lines re-derives another domain's owned
+  territory, because no domain owned them at all.
+- Proposed scope change: assign exactly
+  `docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md:1-12` and
+  `docs/product/NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md:1-15` to Domain
+  A, consistent with Domain A's existing ownership of both documents' §1
+  (Ledger §1 = lines 13-46; Program §1 = lines 16-32) immediately
+  following. No later line is included in this grant. No domain other than
+  A receives citation access to these ranges. This ruling creates no
+  general "foundational" or "shared-source" doctrine — it is an exact,
+  narrow ownership assignment for exactly these two line ranges, closing
+  the specific gap Fable identified, and does not authorize treating any
+  other document's preamble, or any other section of either North Star
+  document, as implicitly shared.
+- Blocking: no — this closes a manifest gap retroactively; no domain's
+  COMPLETE status depended on these lines being unowned.
+- Status: RULED — ACCEPTED (2026-08-02). Dustin ruled directly: assign both
+  ranges to Domain A, exact grant, no implicit shared-source access
+  created. Applied in `01_SOURCE_AUTHORITY_MANIFEST.md`'s owning/citing
+  table and Domain A's dispatch block in the same commit as this entry.
