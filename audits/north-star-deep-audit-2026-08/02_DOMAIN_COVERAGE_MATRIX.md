@@ -1,7 +1,7 @@
 # North Star Deep Audit — Domain Coverage Matrix
 
 Tracks each domain's dispatch status through Phase 1. A domain may read
-`COMPLETE` only per the Charter §10 definition. Updated by whoever runs
+`COMPLETE` only per the Charter §11 definition. Updated by whoever runs
 each Luna dispatch and by Fable during Task 2.1 coverage validation.
 
 | Domain | Owned sources (see manifest) | Status | Attempt count | Blocking amendments |
@@ -16,7 +16,7 @@ each Luna dispatch and by Fable during Task 2.1 coverage validation.
 | G | Expansion vocabulary set | NOT STARTED | 0 | none |
 
 Status values: `NOT STARTED | IN PROGRESS | COMPLETE |
-BLOCKED-PENDING-AMENDMENT | INCOMPLETE-RETRY-EXHAUSTED` (Charter §10,
+BLOCKED-PENDING-AMENDMENT | INCOMPLETE-RETRY-EXHAUSTED` (Charter §11,
 execution plan Task 1.11).
 
 Phase 2 (Fable synthesis) does not start until every row reads `COMPLETE`

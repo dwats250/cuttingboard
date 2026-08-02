@@ -34,13 +34,18 @@ Entry format:
   outdated/current are GitHub workflow metadata — they describe a thread's
   relationship to the current diff, not whether the underlying comment was
   substantively actioned or dismissed. GitHub's `isResolved` state cannot
-  by itself establish a PRD-228 ACTIONED/DISMISSED disposition, and neither
-  can `isOutdated`. Establishing that disposition requires the substantive
-  evidence CLAUDE.md's own PRD-228 clause names: ACTIONED requires an
-  in-thread reply citing the fixing commit SHA or PRD number; DISMISSED
-  requires an in-thread one-line reason. Inspecting replies/fixes/reasons
-  for all 28 threads is Phase 1 work, not completed here. No comment is
-  treated as ACTIONED, DISMISSED, correct, or incorrect in Phase 0.
+  by itself establish a PRD-228 disposition, and neither can `isOutdated`.
+  The full governed taxonomy is exactly three values (CLAUDE.md's PRD-228
+  clause: ACTIONED/DISMISSED; GOV-2 §7 extends it for MATERIAL packets):
+  ACTIONED requires an in-thread reply citing the fixing commit SHA or PRD
+  number; DISMISSED requires an in-thread one-line reason; BLOCKED/PARKED
+  applies when the finding is valid, the packet is not review-clean, and
+  no downstream authority may proceed until Dustin resumes, narrows, or
+  retires it. An unresolved thread is not automatically BLOCKED/PARKED,
+  and a resolved thread is not automatically ACTIONED or DISMISSED.
+  Inspecting replies/fixes/reasons for all 28 threads is Phase 1 work, not
+  completed here. No comment is treated as ACTIONED, DISMISSED,
+  BLOCKED/PARKED, correct, or incorrect in Phase 0.
   Substantive adjudication of all 28 comments is routed to Phase 1,
   principally Domain A (owns the PRD-228 bot-thread convention per the
   Source Authority Manifest), and to whichever other domain owns a given

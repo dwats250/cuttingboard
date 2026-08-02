@@ -40,15 +40,38 @@ Actual dispatch mechanics (reasoning-effort levels, exact `codex exec`
 invocations) are governed by this repository's existing Codex conventions,
 not by the "Extra High" label above — see the execution plan's Task 1.2.
 
-## 2. Baseline immutability
+## 2. Evidence and artifact pinning
 
-`fdeef90b0a0e0747d1bbf92385d3750b4024f4ae` is immutable for the lifetime of
-this audit. If `main` advances while the audit is in progress, no evidence
-is refreshed, rebased, or re-read against the new state. Any newer material
-discovered incidentally becomes an entry in `03_AMENDMENTS_LOG.md` only —
-never a silent evidence update. Every Luna, Fable, and Sol read in this
-audit is `git show fdeef90b0a0e0747d1bbf92385d3750b4024f4ae:<path>`, never
-the live working tree.
+**Repository source evidence** — every file/section named in
+`01_SOURCE_AUTHORITY_MANIFEST.md` — is pinned to North Star baseline
+`fdeef90b0a0e0747d1bbf92385d3750b4024f4ae` for the entire lifetime of this
+audit. Every such read is `git show
+fdeef90b0a0e0747d1bbf92385d3750b4024f4ae:<path>` — never the live working
+tree. If `main` advances while the audit is in progress, this pin does not
+move: no repository source evidence is refreshed, rebased, or re-read
+against the new state. Any newer material discovered incidentally becomes
+an entry in `03_AMENDMENTS_LOG.md` only — never a silent evidence update.
+This pin is not weakened by anything below.
+
+This baseline pin cannot apply to artifacts this audit itself generates —
+Luna domain files, Fable synthesis artifacts, and Sol counter-review
+artifacts did not exist at `fdeef90` and have no baseline commit to read
+from. Those are pinned separately, by seam, each recorded before the phase
+that depends on it begins:
+
+- **Luna domain artifacts** are read by Fable only from the accepted
+  evidence-seam commit — the head of PR seam 2 once accepted — recorded in
+  `02_DOMAIN_COVERAGE_MATRIX.md` before Phase 2 starts.
+- **Fable synthesis artifacts** are read by Sol only from the exact
+  synthesis head supplied for that specific counter-review round —
+  recorded before that round begins, never inferred from whatever the
+  branch happens to hold at read time.
+- No actor — Luna, Fable, or Sol — reads any generated audit artifact from
+  a mutable live working tree, matching the source-evidence rule above.
+- Once an evidence-seam SHA or a synthesis-round head SHA is accepted and
+  recorded, `main` advancing afterward never changes that accepted pin. A
+  later change becomes a new, separately recorded round, or an Amendments
+  Log entry — never a silent substitution of what was already accepted.
 
 ## 3. Roles (verbatim from the ratified proposal)
 
@@ -128,18 +151,33 @@ revision) and some are not. Resolved/unresolved and outdated/current are
 GitHub workflow metadata — they describe a thread's relationship to the
 current diff, not whether the underlying comment was substantively
 actioned or dismissed. GitHub's `isResolved` state cannot by itself
-establish a PRD-228 ACTIONED/DISMISSED disposition; nor can `isOutdated`.
-Establishing that disposition requires the substantive evidence CLAUDE.md's
-own PRD-228 clause already names: ACTIONED requires an in-thread reply
-citing the fixing commit SHA or PRD number; DISMISSED requires an in-thread
-one-line reason. Resolved/unresolved and outdated/current state alone
-establish neither, and inspecting replies/fixes/reasons for all 28 threads
-is Phase 1 work, not part of this Phase 0 attestation. No comment in the
-enumeration above is treated as ACTIONED, DISMISSED, correct, or incorrect
-in this charter. Substantive adjudication of all 28 comments is routed to
-Phase 1 — principally Domain A, which owns the PRD-228 bot-thread
-convention per the Source Authority Manifest — and to whichever other
-domain owns a given comment's specific subject matter.
+establish a PRD-228 disposition; nor can `isOutdated`.
+
+The full governed taxonomy is exactly three values — CLAUDE.md's PRD-228
+clause names `ACTIONED`/`DISMISSED`; `docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md`
+§7 extends it with the third for MATERIAL packets:
+
+- `ACTIONED` — the correcting commit or governed follow-up lands and is
+  cited in-thread by fixing commit SHA or PRD number.
+- `DISMISSED` — false positive, out of scope, or already covered, with an
+  explicit in-thread one-line reason.
+- `BLOCKED/PARKED` — the finding is valid, the packet is not review-clean,
+  no downstream authority may proceed, and the thread remains unresolved
+  until Dustin resumes, narrows, or retires the packet (GOV-2 §7: "not a
+  substitute for action on a packet presented as ready").
+
+An unresolved GitHub thread is not automatically `BLOCKED/PARKED`, and a
+resolved GitHub thread is not automatically `ACTIONED` or `DISMISSED` —
+resolved/unresolved and outdated/current are workflow metadata and
+establish none of the three by themselves. Inspecting replies, cited
+fixes, and dismissal reasons for all 28 threads to determine their actual
+disposition is Phase 1 work, not part of this Phase 0 attestation. No
+comment in the enumeration above is treated as `ACTIONED`, `DISMISSED`,
+`BLOCKED/PARKED`, correct, or incorrect in this charter. Substantive
+adjudication of all 28 comments is routed to Phase 1 — principally Domain
+A, which owns the PRD-228 bot-thread convention and the PR #187 provenance
+evidence per the Source Authority Manifest — and to whichever other domain
+owns a given comment's specific subject matter.
 
 ## 6. Global Constraints (non-negotiable, verbatim from Dustin's ruling)
 
