@@ -296,7 +296,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-276 | 590dc75 | Lane Downgrade Prohibition: payload-vs-pointer, and drop the registry contradiction | COMPLETE | [PRD-276](prd_history/PRD-276.md) |
 | PRD-277 | 4b0f3ba | Lane-guard patch: enumerate PRD docs, validate CLASS, accept the micro-template marker | COMPLETE | [PRD-277](prd_history/PRD-277.md) |
 | PRD-278 | #196 | Hourly kill-switch bypass: evaluate before qualification, carry terminal HALT through hourly outputs | COMPLETE | [PRD-278](prd_history/PRD-278.md) |
-| PRD-279 | — | Decision State Header for the dashboard | IN PROGRESS | [PRD-279](prd_history/PRD-279.md) |
+| PRD-279 | #197 | Decision State Header for the dashboard | COMPLETE | [PRD-279](prd_history/PRD-279.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
