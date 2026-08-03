@@ -1,9 +1,27 @@
 # CB-01 — Hourly Kill-Switch Bypass: GOV-2 MATERIAL Remediation Packet
 
 ```
-STATUS: PROVISIONAL MATERIAL PACKET
-AUTHORIZES NO IMPLEMENTATION
+STATUS: REVIEW-CLEAN (GOV-2 §2) — 2026-08-03
+AUTHORIZES NO IMPLEMENTATION (implementation gated on Gate A per GOV-2 §4)
 ```
+
+## 0. Committed review-record (GOV-2 §2)
+
+| Event | SHA | Outcome |
+|---|---|---|
+| INITIAL PACKET REVIEW | `73f0f14e7afbc4a7297bec1609b2e3481a9e1397` | Codex (`chatgpt-codex-connector`), fresh-context, read-only PR review. Four findings (2×P1, 2×P2): terminal-HALT carriers, early-exit boundary, failure-path Boolean, CHAOTIC suppression distinction. All four disposed ACTIONED in-thread with the fixing SHA below. |
+| CONSOLIDATED CORRECTION | `22a4a055985901d10a296b0913e17c02f67483a1` | One pass addressing all four findings (§2–§15 below reflect the corrected text). |
+| EXACT-CORRECTED-HEAD CONFIRMATION | `22a4a055985901d10a296b0913e17c02f67483a1` (same commit; confirmation re-reviews the corrected head, not a new commit) | Codex: "Didn't find any major issues." All four original findings confirmed resolved; no new finding raised. |
+
+Reviewer: `chatgpt-codex-connector[bot]`, GitHub App connector, commissioned by
+Dustin per `CLAUDE.md` § Codex mechanics / PRD-242. Fresh context (no prior
+session state; each review is a stateless PR-triggered run), independent of
+the authoring session (this packet's author has no write access to the
+connector's review process), read-only (PR review comments only, no repo
+write access). PR: `dwats250/cuttingboard#194`. Merge commit:
+`a38312efc7a53f1468f3c9eb474113e08f769ee6`. All four original review threads
+resolved (GitHub thread `resolved` state) after ACTIONED disposition. Full
+comment history: `https://github.com/dwats250/cuttingboard/pull/194`.
 
 **Governing order:** `docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md` §§1–4, §7.
 **Materiality trigger:** GOV-2 §1 — "it resolves a Critical or High finding." CB-01 is
@@ -596,8 +614,10 @@ directly; this is no longer an open question.
 ---
 
 _Packet author: Claude Code, fresh-context recon session, 2026-08-03. Reviewed
-against `main` @ `e6a5ce69e8fba18c3e5147bc5ceac3aebddc13c3`. This packet is
-provisional per GOV-2 §2 until independent Codex review, one consolidated
-correction if required, and independent exact-corrected-head confirmation have
-landed. It authorizes no implementation, no PRD drafting, and no design-direction
-ruling._
+against `main` @ `e6a5ce69e8fba18c3e5147bc5ceac3aebddc13c3`. Review-clean per
+GOV-2 §2 as of the committed record in §0 above (independent Codex review,
+one consolidated correction, independent exact-corrected-head confirmation —
+all landed and committed on PR #194). Dustin's design-direction ruling is
+recorded separately in `docs/DECISIONS.md`, "2026-08-03 — CB-01
+design-direction ruling." It authorizes no implementation — implementation
+remains gated on Gate A per GOV-2 §4._
