@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 281,
-  "next_prd": 282,
+  "latest_complete": 282,
+  "next_prd": 283,
   "entries": [
     {
       "number": 56,
@@ -1358,6 +1358,12 @@
       "title": "Decision-State WHY Summary",
       "status": "COMPLETE",
       "commit": "#199"
+    },
+    {
+      "number": 282,
+      "title": "Opportunity Survival Summary",
+      "status": "COMPLETE",
+      "commit": "#203"
     }
   ]
 }

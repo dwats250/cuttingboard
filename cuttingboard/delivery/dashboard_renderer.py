@@ -2392,6 +2392,95 @@ def render_dashboard_html(
       f'{_esc(_updated_pt) if _updated_pt else "unknown"}</div>')
     w("</div>")
 
+    # --- opportunity-survival (PRD-282) ---
+    # Trader-facing survival funnel: how many symbols were surfaced, how many
+    # survived to qualified, how many were watchlisted, how many rejected --
+    # plus the single most common terminal rejection reason. Every value is read
+    # from data already present in the payload at the renderer; no new schema,
+    # contract, or taxonomy (GOV-2 NOT MATERIAL).
+    #
+    # Fail closed (PRD-282 correction F2): render only over a coherent lineage,
+    # a real integer scan (bool is an int subclass -- exclude it), and
+    # well-formed survival inputs. The render path does not re-run
+    # assert_valid_payload, so a corrupted/partial payload can reach here;
+    # malformed shapes suppress the whole block rather than crash, count a
+    # string's length, accept True as 1, or show misleading partial counts.
+    _os_meta = payload.get("meta") or {}
+    _os_surfaced = _os_meta.get("symbols_scanned")
+    _os_sections = payload.get("sections") or {}
+    _os_rejected_all = _os_sections.get("rejected")
+    _os_watchlist = _os_sections.get("watchlist")
+    _os_valid = (
+        not unhealthy_lineage
+        and isinstance(_os_surfaced, int)
+        and not isinstance(_os_surfaced, bool)
+        and _os_surfaced > 0
+        and isinstance(_os_rejected_all, list)
+        and isinstance(_os_watchlist, list)
+        and all(isinstance(_r, dict) for _r in _os_rejected_all)
+    )
+    if _os_valid:
+        # PRD-260 R4 (correction F1): a CONTINUATION-promoted symbol keeps its
+        # DIRECT rejection on the audit trail (reason rewritten to include
+        # "promoted via CONTINUATION", cuttingboard/qualification.py) AND counts
+        # as qualified -- so it appears in BOTH excluded and qualified, double-
+        # counting it in symbols_scanned and seeding a non-terminal rejection
+        # record. "promoted via CONTINUATION" is the pipeline's own authoritative
+        # marker: use it to drop these audit records from REJECTED and the
+        # primary reason, and to remove the double-count from SURFACED, so each
+        # symbol is represented exactly once (the promoted one as qualified).
+        _os_rejected = [
+            _r for _r in _os_rejected_all
+            if "promoted via CONTINUATION" not in str(_r.get("reason") or "")
+        ]
+        _os_promoted_n = len(_os_rejected_all) - len(_os_rejected)
+        _os_surfaced_n = _os_surfaced - _os_promoted_n
+        _os_rejected_n = len(_os_rejected)
+        _os_watchlist_n = len(_os_watchlist)
+        # QUALIFIED is the derived remainder. With the promotion double-count
+        # removed and the scan>0 gate excluding the REGIME short-circuit (the
+        # only other non-QUALIFICATION rejection path, which forces
+        # symbols_scanned == 0), this equals the upstream qualified_count
+        # exactly -- the inverse of symbols_scanned's own definition, not a
+        # divergent proxy (PRD-198 invariant 3). The clamp guards an already-
+        # excluded state.
+        _os_qualified_n = max(0, _os_surfaced_n - _os_rejected_n - _os_watchlist_n)
+        # Primary rejection reason: the mode of the pipeline's own terminal
+        # `reason` strings (not a new taxonomy), with engine internals stripped
+        # by the same policy as the system-state WHY line above
+        # (regime=/confidence= suffixes and None/NULL sentinels) so no raw
+        # internal leaks, then HTML-escaped at render. Deterministic tie-break:
+        # highest count, then lexicographically smallest reason.
+        _os_primary = None
+        if _os_rejected_n > 0:
+            _os_tally: dict[str, int] = {}
+            for _r in _os_rejected:
+                _reason = _r.get("reason")
+                if not _reason:
+                    continue
+                _clean = str(_reason).strip()
+                _clean = re.sub(r"\s*\(?\s*regime=.*", "", _clean)
+                _clean = re.sub(r"\s*\(?\s*confidence=.*", "", _clean)
+                _clean = _clean.strip()
+                if _clean and _clean not in ("None", "NULL"):
+                    _os_tally[_clean] = _os_tally.get(_clean, 0) + 1
+            if _os_tally:
+                _os_primary = sorted(
+                    _os_tally.items(), key=lambda kv: (-kv[1], kv[0])
+                )[0][0]
+        w('<div class="block" id="opportunity-survival">')
+        w('  <h2>OPPORTUNITY SURVIVAL</h2>')
+        w('  <div class="kv-grid">')
+        w(f'    <div class="label">SURFACED</div><div class="value">{_os_surfaced_n}</div>')
+        w(f'    <div class="label">QUALIFIED</div><div class="value">{_os_qualified_n}</div>')
+        w(f'    <div class="label">WATCHLIST</div><div class="value">{_os_watchlist_n}</div>')
+        w(f'    <div class="label">REJECTED</div><div class="value">{_os_rejected_n}</div>')
+        if _os_primary is not None:
+            w('    <div class="label">PRIMARY REJECTION</div>'
+              f'<div class="value">{_esc(_os_primary)}</div>')
+        w('  </div>')
+        w("</div>")
+
     # --- alert-watchlist ---
     if alert_candidates:
         w('<div class="block" id="alert-watchlist">')

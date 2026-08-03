@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from cuttingboard.delivery.dashboard_renderer import render_dashboard_html
 
 from tests.dash_helpers import _macro_drivers, _market_map, _mm_symbol, _payload, _run
@@ -480,3 +482,249 @@ def test_prd281_why_line_suppressed_for_sentinel_with_confidence_suffix() -> Non
     state = _header_block(html)
     assert not _has_why(state)
     assert "WHY: NULL" not in state
+
+
+# ---------------------------------------------------------------------------
+# PRD-282 — Opportunity Survival Summary
+# ---------------------------------------------------------------------------
+
+def _survival_block(html: str) -> str | None:
+    if 'id="opportunity-survival"' not in html:
+        return None
+    seg = html.split('id="opportunity-survival"', 1)[1]
+    return seg.split('id="alert-watchlist"', 1)[0] if 'id="alert-watchlist"' in seg else seg
+
+
+def _survival_pairs(html: str) -> dict[str, str]:
+    block = _survival_block(html)
+    assert block is not None
+    return dict(
+        re.findall(r'<div class="label">([^<]+)</div><div class="value">([^<]+)</div>', block)
+    )
+
+
+def _coherent_survival(
+    scanned: int,
+    rejected_reasons: tuple[str, ...] = (),
+    watchlist_n: int = 0,
+) -> tuple[dict, dict, dict]:
+    """Coherent-lineage payload/run/market_map with the given survival shape.
+
+    Coherent lineage requires matching generation_ids and a non-stale market
+    map, which the default fixtures already provide (all share
+    generation_id "test-gen-001" and timestamp "2026-04-28T12:00:00Z").
+    """
+    payload = _payload()
+    payload["meta"]["symbols_scanned"] = scanned
+    payload["sections"]["rejected"] = [
+        {"symbol": f"R{i}", "stage": "QUALIFICATION", "reason": reason, "detail": None}
+        for i, reason in enumerate(rejected_reasons)
+    ]
+    payload["sections"]["watchlist"] = [
+        {"symbol": f"W{i}", "stage": "WATCHLIST", "reason": "ONE_SOFT_MISS", "detail": None}
+        for i in range(watchlist_n)
+    ]
+    return payload, _run(), _market_map()
+
+
+def test_prd282_survival_counts_reconcile() -> None:
+    # R1: coherent lineage, 12 surfaced, 3 rejected, 2 watchlist ->
+    # SURFACED 12 / QUALIFIED 7 / WATCHLIST 2 / REJECTED 3. QUALIFIED is the
+    # derived remainder; the four counts must reconcile with symbols_scanned.
+    payload, run, mm = _coherent_survival(
+        12, rejected_reasons=("CHOP", "CHOP", "EXTENDED_FROM_MEAN"), watchlist_n=2
+    )
+    html = render_dashboard_html(payload, run, market_map=mm)
+    pairs = _survival_pairs(html)
+    assert pairs["SURFACED"] == "12"
+    assert pairs["QUALIFIED"] == "7"
+    assert pairs["WATCHLIST"] == "2"
+    assert pairs["REJECTED"] == "3"
+
+
+def test_prd282_survival_zero_rejections_no_primary_row() -> None:
+    # R1 + R3: no rejections -> the four counts render, and NO PRIMARY
+    # REJECTION row is emitted.
+    payload, run, mm = _coherent_survival(5)
+    html = render_dashboard_html(payload, run, market_map=mm)
+    pairs = _survival_pairs(html)
+    assert pairs["SURFACED"] == "5"
+    assert pairs["QUALIFIED"] == "5"
+    assert pairs["WATCHLIST"] == "0"
+    assert pairs["REJECTED"] == "0"
+    assert "PRIMARY REJECTION" not in (_survival_block(html) or "")
+
+
+def test_prd282_survival_suppressed_on_zero_scan() -> None:
+    # R2: symbols_scanned == 0 -> the block is absent entirely.
+    payload, run, mm = _coherent_survival(0)
+    html = render_dashboard_html(payload, run, market_map=mm)
+    assert 'id="opportunity-survival"' not in html
+
+
+def test_prd282_survival_suppressed_on_mixed_lineage() -> None:
+    # R2: mixed artifacts (unhealthy lineage) -> no block even with a real
+    # scan, mirroring the card/decision-state suppression.
+    payload, run, mm = _coherent_survival(12, rejected_reasons=("CHOP",))
+    payload["meta"]["generation_id"] = "gen-a"
+    run["generation_id"] = "gen-b"
+    mm["generation_id"] = "gen-a"
+    html = render_dashboard_html(payload, run, market_map=mm)
+    assert 'id="opportunity-survival"' not in html
+
+
+def test_prd282_survival_suppressed_on_missing_market_map() -> None:
+    # R2: no market_map -> MISSING lineage -> no block.
+    payload, run, _mm = _coherent_survival(12, rejected_reasons=("CHOP",))
+    html = render_dashboard_html(payload, run)
+    assert 'id="opportunity-survival"' not in html
+
+
+def test_prd282_survival_suppressed_on_non_int_scan() -> None:
+    # R2: a missing or non-int symbols_scanned suppresses the block (the
+    # isinstance guard), never rendering garbage or raising. payload.py always
+    # emits an int, so this guards the defensive branch R2's prose names.
+    payload, run, mm = _coherent_survival(5)
+    del payload["meta"]["symbols_scanned"]  # missing key -> .get() returns None
+    assert 'id="opportunity-survival"' not in render_dashboard_html(payload, run, market_map=mm)
+
+    payload2, run2, mm2 = _coherent_survival(5)
+    payload2["meta"]["symbols_scanned"] = "5"  # non-int
+    assert 'id="opportunity-survival"' not in render_dashboard_html(payload2, run2, market_map=mm2)
+
+
+def test_prd282_primary_rejection_is_modal_reason() -> None:
+    # R3: the most frequent reason among rejected records wins.
+    payload, run, mm = _coherent_survival(
+        9, rejected_reasons=("CHOP", "CHOP", "EXTENDED_FROM_MEAN")
+    )
+    html = render_dashboard_html(payload, run, market_map=mm)
+    assert _survival_pairs(html)["PRIMARY REJECTION"] == "CHOP"
+
+
+def test_prd282_primary_rejection_tie_break_is_lexicographic() -> None:
+    # R3: on a count tie, the lexicographically smallest reason wins
+    # deterministically -- insertion order (B before A) must NOT decide it.
+    payload, run, mm = _coherent_survival(7, rejected_reasons=("B_REASON", "A_REASON"))
+    html = render_dashboard_html(payload, run, market_map=mm)
+    assert _survival_pairs(html)["PRIMARY REJECTION"] == "A_REASON"
+
+
+def test_prd282_primary_rejection_is_html_escaped() -> None:
+    # R4: reason text passes through _esc; no raw markup leaks into the block.
+    payload, run, mm = _coherent_survival(4, rejected_reasons=("<b>CHOP</b>",))
+    html = render_dashboard_html(payload, run, market_map=mm)
+    block = _survival_block(html)
+    assert block is not None
+    assert "<b>CHOP</b>" not in block
+    assert "&lt;b&gt;CHOP&lt;/b&gt;" in block
+
+
+# ---------------------------------------------------------------------------
+# PRD-282 correction (Codex P2 findings F1/F2/F3)
+# ---------------------------------------------------------------------------
+
+# A promoted-symbol scan: PRD-260 R4 keeps the DIRECT rejection on the audit
+# trail (reason marked "promoted via CONTINUATION") AND counts the symbol as
+# qualified, so symbols_scanned double-counts it. NVDA alone: qualified_count=1
+# and rejected_count=1 -> symbols_scanned = 2, with one promoted rejection record.
+_PROMOTED = "DIRECT rejected (CHOP); promoted via CONTINUATION"
+
+
+def test_prd282_promoted_continuation_counted_as_qualified_not_rejected() -> None:
+    # F1: a promoted symbol is represented once, as qualified -- not as a
+    # rejection, and not double-counted in surfaced.
+    payload, run, mm = _coherent_survival(2, rejected_reasons=(_PROMOTED,))
+    html = render_dashboard_html(payload, run, market_map=mm)
+    pairs = _survival_pairs(html)
+    assert pairs["SURFACED"] == "1"
+    assert pairs["QUALIFIED"] == "1"
+    assert pairs["WATCHLIST"] == "0"
+    assert pairs["REJECTED"] == "0"
+    assert "PRIMARY REJECTION" not in (_survival_block(html) or "")
+
+
+def test_prd282_promoted_audit_record_not_primary_and_terminal_counts_hold() -> None:
+    # F1: with one terminal rejection (CHOP) and one promoted record, the block
+    # shows two distinct symbols -- SURFACED 2 / QUALIFIED 1 / REJECTED 1 -- and
+    # the promoted audit line can NEVER be the primary rejection.
+    # symbols_scanned = qualified(NVDA)=1 + rejected(AAA + NVDA-promoted)=2 = 3.
+    payload, run, mm = _coherent_survival(3, rejected_reasons=("CHOP", _PROMOTED))
+    html = render_dashboard_html(payload, run, market_map=mm)
+    pairs = _survival_pairs(html)
+    assert pairs["SURFACED"] == "2"
+    assert pairs["QUALIFIED"] == "1"
+    assert pairs["WATCHLIST"] == "0"
+    assert pairs["REJECTED"] == "1"
+    assert pairs["PRIMARY REJECTION"] == "CHOP"
+    assert "promoted via CONTINUATION" not in (_survival_block(html) or "")
+
+
+def test_prd282_ordinary_terminal_counts_unchanged_by_promotion_filter() -> None:
+    # F1 (no regression): a scan with no promoted records is unaffected -- the
+    # 12/3/2 reconciliation still holds exactly.
+    payload, run, mm = _coherent_survival(
+        12, rejected_reasons=("CHOP", "CHOP", "EXTENDED_FROM_MEAN"), watchlist_n=2
+    )
+    pairs = _survival_pairs(render_dashboard_html(payload, run, market_map=mm))
+    assert (pairs["SURFACED"], pairs["QUALIFIED"], pairs["WATCHLIST"], pairs["REJECTED"]) == (
+        "12", "7", "2", "3",
+    )
+
+
+def test_prd282_survival_suppressed_on_bool_scan() -> None:
+    # F2: symbols_scanned = True (bool is an int subclass) must NOT render as 1.
+    payload, run, mm = _coherent_survival(5)
+    payload["meta"]["symbols_scanned"] = True
+    assert 'id="opportunity-survival"' not in render_dashboard_html(payload, run, market_map=mm)
+
+
+def test_prd282_survival_suppressed_on_non_list_sections() -> None:
+    # F2: a non-list rejected/watchlist must suppress the block, never count a
+    # string's length or raise.
+    payload, run, mm = _coherent_survival(5)
+    payload["sections"]["rejected"] = "abc"
+    assert 'id="opportunity-survival"' not in render_dashboard_html(payload, run, market_map=mm)
+
+    payload2, run2, mm2 = _coherent_survival(5)
+    payload2["sections"]["watchlist"] = 5
+    assert 'id="opportunity-survival"' not in render_dashboard_html(payload2, run2, market_map=mm2)
+
+
+def test_prd282_survival_suppressed_on_malformed_record() -> None:
+    # F2: a rejected list containing a non-dict record must suppress safely
+    # (no AttributeError from .get on a str).
+    payload, run, mm = _coherent_survival(5, rejected_reasons=("CHOP",))
+    payload["sections"]["rejected"] = [
+        {"symbol": "AAA", "stage": "QUALIFICATION", "reason": "CHOP", "detail": None},
+        "not-a-dict",
+    ]
+    assert 'id="opportunity-survival"' not in render_dashboard_html(payload, run, market_map=mm)
+
+
+def test_prd282_primary_rejection_strips_engine_metadata() -> None:
+    # F3: raw engine internals (regime=/confidence=) must not leak into PRIMARY
+    # REJECTION -- stripped by the same policy as the system-state WHY line.
+    payload, run, mm = _coherent_survival(
+        4, rejected_reasons=("bad (regime=RISK_ON, confidence=0.8)",)
+    )
+    html = render_dashboard_html(payload, run, market_map=mm)
+    block = _survival_block(html)
+    assert block is not None
+    assert _survival_pairs(html)["PRIMARY REJECTION"] == "bad"
+    assert "regime=" not in block
+    assert "confidence=" not in block
+
+
+def test_prd282_primary_rejection_sanitized_text_still_escaped() -> None:
+    # F3 + R4: sanitize (strip engine metadata) and HTML-escape compose --
+    # the surviving text is still escaped.
+    payload, run, mm = _coherent_survival(
+        4, rejected_reasons=("<b>bad</b> (regime=RISK_ON)",)
+    )
+    html = render_dashboard_html(payload, run, market_map=mm)
+    block = _survival_block(html)
+    assert block is not None
+    assert "regime=" not in block
+    assert "<b>bad</b>" not in block
+    assert "&lt;b&gt;bad&lt;/b&gt;" in block
