@@ -208,8 +208,7 @@ if [ "$DO_COMMIT" -eq 1 ]; then
     echo ""
     git add -- "${OPEN_FILES[@]}"
     git commit -m "${PRD_ID}: stage 0" \
-               -m "Scaffold PRD doc + IN PROGRESS registry row + prd_index entry." \
-               -m "Co-authored-by: Claude <claude@anthropic.com>"
+               -m "Scaffold PRD doc + IN PROGRESS registry row + prd_index entry."
 else
     echo ""
     echo "Review the diff, then stage and commit:"

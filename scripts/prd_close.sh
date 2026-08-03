@@ -343,8 +343,7 @@ if [ "$DO_COMMIT" -eq 1 ]; then
     git add -- "${CLOSE_FILES[@]}"
     git commit -m "Close ${PRD_ID} bookkeeping" \
                -m "STATUS COMPLETE @ ${HASH}." \
-               -m "${SUMMARY}" \
-               -m "Co-authored-by: Claude <claude@anthropic.com>"
+               -m "${SUMMARY}"
     if [ "$DO_PUSH" -eq 1 ]; then
         git push
     fi
