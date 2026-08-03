@@ -1,24 +1,22 @@
 {
-  "alert_body": "Regime: RISK ON\nConfidence: 0.62\nReason: candidates gated\nBlockers: STOP_DISTANCE, RR_RATIO, EXTENSION\n\nMacro Tape:\nGC   4093.0  -0.7%\nSI   57.6   -1.3%\nBTC  63.6K  +0.2%\nVIX  15.7   -2.1%\nDXY  100.0  +0.2%\n10Y  4.68   -1.3%\nOIL  79.6   -0.3%\n\nTradables:\nSPY  756.03\nQQQ  697.58\nGLD  370.27\nGDX  75.32\nSLV  51.94\nXLE  59.14\n\nFocus: XLE LONG, SPY LONG, GLD LONG\n\nPending confirmation:\nXLE: trend confirmation",
-  "alert_title": "MONITOR SETUP 9:00 AM",
+  "alert_body": "Regime: RISK ON\nConfidence: 0.62\nReason: candidates gated\nBlockers: STOP_DISTANCE, RR_RATIO, EXTENSION\n\nMacro Tape:\nGC   4092.1  -0.7%\nSI   57.9   -0.9%\nBTC  63.7K  +0.3%\nVIX  15.6   -2.4%\nDXY  99.9   +0.2%\n10Y  4.69   -1.1%\nOIL  79.5   -0.4%\n\nTradables:\nSPY  756.13\nQQQ  698.13\nGLD  369.99\nGDX  75.00\nSLV  52.03\nXLE  58.91\n\nFocus: SPY LONG, GLD LONG, SLV LONG",
+  "alert_title": "MONITOR 10:00 AM",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
     "payload_path": "logs/latest_hourly_payload.json",
     "report_path": "reports/output/hourly_report.html"
   },
-  "candidate_lines": [
-    "XLE | LONG | TREND | 2.0:1"
-  ],
-  "candidates_qualified": 1,
-  "candidates_watchlist": 10,
+  "candidate_lines": [],
+  "candidates_qualified": 0,
+  "candidates_watchlist": 11,
   "confidence": 0.625,
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-08-03T16:00:12Z",
-  "generation_id": "hourly-20260803T160012Z",
+  "generated_at": "2026-08-03T17:04:47Z",
+  "generation_id": "hourly-20260803T170447Z",
   "halt_reason": null,
-  "hourly_slot_utc": "2026-08-03T16:00:00Z",
+  "hourly_slot_utc": "2026-08-03T17:00:00Z",
   "index_score": 0.0,
   "kill_switch": false,
   "mode": "LIVE",
@@ -36,11 +34,11 @@
   "posture": "CONTROLLED_LONG",
   "regime": "RISK_ON",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-08-03T16:00:12Z",
-  "run_id": "hourly-20260803T160012Z",
+  "run_at_utc": "2026-08-03T17:04:47Z",
+  "run_id": "hourly-20260803T170447Z",
   "session_date": "2026-08-03",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-08-03T16:00:12Z",
+  "timestamp": "2026-08-03T17:04:47Z",
   "warnings": []
 }
