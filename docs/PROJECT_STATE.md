@@ -25,7 +25,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
   (repository-verified implementation program) — on Dustin's merge of PR #187
   these become the product portfolio and delivery program (NS-0B
   ratification); until then they are held drafts.
-- **Active PRD:** PRD-278 (hourly kill-switch bypass — evaluate before qualification, carry terminal HALT through hourly outputs; GOV-2 MATERIAL, HIGH-RISK/EXECUTION; upstream packet `audits/current-state-reconciliation-2026-07-30/CB_01_HOURLY_KILL_SWITCH_MATERIAL_PACKET_2026-08-03.md`, review-clean; Dustin's design-direction ruling `docs/DECISIONS.md` 2026-08-03; held at Gate A).
+- **Active PRD:** PRD-278 (hourly kill-switch bypass — evaluate before qualification, carry terminal HALT through hourly outputs; GOV-2 MATERIAL, HIGH-RISK/EXECUTION; upstream packet `audits/current-state-reconciliation-2026-07-30/CB_01_HOURLY_KILL_SWITCH_MATERIAL_PACKET_2026-08-03.md`, review-clean; Dustin's design-direction ruling `docs/DECISIONS.md` 2026-08-03; Gate A approved 2026-08-03; implementation in review).
 - **Active PRD note (2026-07-13):** kept as a single-line bulleted pointer,
   not a multi-line block, matching PRD-183's convention that
   `scripts/prd_close.sh`'s closeout regex depends on (it replaces only

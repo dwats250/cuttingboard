@@ -367,6 +367,10 @@ def _execute_notify_run(
     date_str = run_date.isoformat()
     # PRD-181: wall-clock ET drives the SHORT gate's open-window decision.
     now_et = time_utils.convert_utc_to_et(datetime.now(timezone.utc))
+    # PRD-278 R1: defined before the try so it exists at every summary/contract
+    # call site, including when validation_summary is already halted on entry
+    # (regime, and therefore the kill-switch evaluation, never runs below).
+    hourly_kill_switch = False
     try:
         raw_quotes = fetch_all()
         normalized_quotes = normalize_all(raw_quotes)
@@ -390,6 +394,23 @@ def _execute_notify_run(
 
         if not validation_summary.system_halted:
             regime = compute_regime(validation_summary.valid_quotes)
+
+            # PRD-278 R2/R3: evaluate the existing kill switch immediately
+            # after regime is available, before any downstream derived/
+            # candidate work -- mirroring the daily path's own trip check
+            # (_run_pipeline). Reuses _kill_switch/KILL_SWITCH_HALT_REASON/
+            # HaltCause.MARKET_STRESS verbatim; no new evaluator.
+            if notify_mode in _HOURLY_MODES:
+                hourly_kill_switch = _kill_switch(regime, normalized_quotes)
+                if hourly_kill_switch:
+                    validation_summary = replace(
+                        validation_summary,
+                        system_halted=True,
+                        halt_reason=KILL_SWITCH_HALT_REASON,
+                        halt_cause=HaltCause.MARKET_STRESS,
+                    )
+
+        if not validation_summary.system_halted:
             derived = compute_all_derived(validation_summary.valid_quotes)
             router_state = resolve_sector_router(
                 validation_summary.valid_quotes,
@@ -508,6 +529,7 @@ def _execute_notify_run(
                 qualification_summary=qualification_summary,
                 errors=[],
                 alert_sent=alert_sent,
+                kill_switch=hourly_kill_switch,
             )
             summary = _build_hourly_run_summary(
                 mode=mode,
@@ -524,37 +546,56 @@ def _execute_notify_run(
                 alert_sent=alert_sent,
                 notification_result=notification_result,
                 errors=[],
-                status=SUMMARY_STATUS_SUCCESS,
-                outcome=OUTCOME_NO_TRADE,
+                status=SUMMARY_STATUS_FAIL if hourly_kill_switch else SUMMARY_STATUS_SUCCESS,
+                outcome=OUTCOME_HALT if hourly_kill_switch else OUTCOME_NO_TRADE,
                 raw_quotes=raw_quotes,
                 normalized_quotes=normalized_quotes,
                 slot_utc=slot_utc,
+                kill_switch=hourly_kill_switch,
             )
             _write_hourly_artifacts(summary, contract)
-            if alert_sent and slot_utc is not None:
-                from cuttingboard.notifications.hourly_slot import save_last_slot
-                save_last_slot(slot_utc)
-            hourly_market_map = build_market_map(
-                generated_at=run_at_utc,
-                session_date=run_date.isoformat(),
-                mode=mode,
-                run_at_utc=run_at_utc,
-                normalized_quotes=normalized_quotes,
-                derived_metrics=derived,
-                structure_results=structure,
-                intraday_metrics=intraday_metrics,
-                regime=regime,
-                watch_summary=None,
-                bar_windows=_market_map_bar_windows(ohlcv),
-            )
-            hourly_market_map["generation_id"] = summary["generation_id"]
-            # PRD-166 D1/D3: isolate the hourly market_map read+write so the
-            # shared logs/market_map.json can never poison an hourly render.
-            previous_market_map = _load_previous_market_map(LATEST_HOURLY_MARKET_MAP_PATH)
-            _write_market_map_file(
-                inject_lifecycle(hourly_market_map, previous_market_map),
-                LATEST_HOURLY_MARKET_MAP_PATH,
-            )
+            try:
+                if alert_sent and slot_utc is not None:
+                    from cuttingboard.notifications.hourly_slot import save_last_slot
+                    save_last_slot(slot_utc)
+                hourly_market_map = build_market_map(
+                    generated_at=run_at_utc,
+                    session_date=run_date.isoformat(),
+                    mode=mode,
+                    run_at_utc=run_at_utc,
+                    normalized_quotes=normalized_quotes,
+                    derived_metrics=derived,
+                    structure_results=structure,
+                    intraday_metrics=intraday_metrics,
+                    regime=regime,
+                    watch_summary=None,
+                    bar_windows=_market_map_bar_windows(ohlcv),
+                )
+                hourly_market_map["generation_id"] = summary["generation_id"]
+                # PRD-166 D1/D3: isolate the hourly market_map read+write so the
+                # shared logs/market_map.json can never poison an hourly render.
+                try:
+                    previous_market_map = _load_previous_market_map(LATEST_HOURLY_MARKET_MAP_PATH)
+                except Exception:
+                    # PRD-278 R7: a malformed prior hourly map must not block
+                    # publishing the current, coherent map -- inject_lifecycle
+                    # already treats None as "no previous map."
+                    previous_market_map = None
+                _write_market_map_file(
+                    inject_lifecycle(hourly_market_map, previous_market_map),
+                    LATEST_HOURLY_MARKET_MAP_PATH,
+                )
+            except Exception:
+                # PRD-278 R8: the HALT-consistent summary/contract are already
+                # durably written above; no failure in this auxiliary
+                # post-write segment (slot bookkeeping, market-map build/
+                # write) may reach the outer handler and overwrite that
+                # recorded terminal state with a generic failure -- log and
+                # continue instead. _write_trend_structure_snapshot is not
+                # wrapped here: it already swallows and logs its own
+                # failures internally (see its docstring/body), so it needs
+                # no additional isolation.
+                logger.exception("hourly auxiliary post-write step failed")
             _write_trend_structure_snapshot(
                 normalized_quotes=normalized_quotes,
                 history_by_symbol=_collect_trend_structure_history(ohlcv),
@@ -614,6 +655,11 @@ def _execute_notify_run(
                 outcome=OUTCOME_HALT,
                 raw_quotes={},
                 normalized_quotes={},
+                # PRD-278 R6: fail-safe regardless of what hourly_kill_switch
+                # held at the point of the exception -- the current schema has
+                # no UNKNOWN state, and False on an incomplete evaluation is
+                # never contract-compliant.
+                kill_switch=True,
             )
             _write_hourly_artifacts(failure_summary, error_contract)
         return {"status": SUMMARY_STATUS_FAIL, "suppressed": False}
@@ -1857,10 +1903,15 @@ def _build_hourly_contract(
     qualification_summary: Optional[QualificationSummary],
     errors: list[str],
     alert_sent: bool,
+    kill_switch: bool = False,
 ) -> dict[str, Any]:
     generation_id = _generation_id("hourly", run_at_utc, None)
+    # PRD-278 R5: both OUTCOME_NO_TRADE hardcode sites in this function must
+    # move together on a trip -- this one feeds derive_run_status's outcome
+    # argument, the other is the contract["outcome"] assignment below.
+    contract_outcome = OUTCOME_HALT if kill_switch else OUTCOME_NO_TRADE
     contract_status = derive_run_status(
-        OUTCOME_NO_TRADE,
+        contract_outcome,
         regime,
         bool(validation_summary.system_halted) if validation_summary is not None else False,
     )
@@ -1895,7 +1946,7 @@ def _build_hourly_contract(
         },
         data_quality=data_quality,
     )
-    contract["outcome"] = OUTCOME_NO_TRADE
+    contract["outcome"] = contract_outcome
     contract["generation_id"] = generation_id
     return contract
 
@@ -1921,6 +1972,7 @@ def _build_hourly_run_summary(
     raw_quotes: dict[str, RawQuote],
     normalized_quotes: dict[str, NormalizedQuote],
     slot_utc: Optional[datetime] = None,
+    kill_switch: bool = False,
 ) -> dict[str, Any]:
     regime_name, posture, confidence, net_score = _summary_regime_fields(regime)
     generation_id = _generation_id("hourly", run_at_utc, None)
@@ -1972,7 +2024,7 @@ def _build_hourly_run_summary(
         "router_mode": router_state.mode if router_state is not None else "MIXED",
         "energy_score": float(router_state.energy_score) if router_state is not None else 0.0,
         "index_score": float(router_state.index_score) if router_state is not None else 0.0,
-        "kill_switch": False,
+        "kill_switch": kill_switch,
         "permission": (
             "No trades permitted. System halted."
             if validation_summary is not None and validation_summary.system_halted
