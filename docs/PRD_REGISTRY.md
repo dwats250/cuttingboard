@@ -301,6 +301,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-281 | #199 | Decision-State WHY Summary | COMPLETE | [PRD-281](prd_history/PRD-281.md) |
 | PRD-282 | #203 | Opportunity Survival Summary | COMPLETE | [PRD-282](prd_history/PRD-282.md) |
 | PRD-283 | — | Smallest-contract refusal: refuse when the smallest options contract exceeds the correlation-adjusted risk budget, and carry the true reason through every consumer | IN PROGRESS | [PRD-283](prd_history/PRD-283.md) |
+| PRD-284 | — | Full A2 materialization: apply the execution-policy size multiplier to contracts/dollar_risk, block at EXECUTION_POLICY when the position rounds to zero | PROPOSED | [PRD-284](prd_history/PRD-284.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

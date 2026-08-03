@@ -1370,6 +1370,12 @@
       "title": "Smallest-contract refusal: refuse when the smallest options contract exceeds the correlation-adjusted risk budget, and carry the true reason through every consumer",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 284,
+      "title": "Full A2 materialization: apply the execution-policy size multiplier to contracts/dollar_risk, block at EXECUTION_POLICY when the position rounds to zero",
+      "status": "PROPOSED",
+      "commit": null
     }
   ]
 }
