@@ -1334,6 +1334,12 @@
       "title": "Lane-guard patch: enumerate PRD docs, validate CLASS, accept the micro-template marker",
       "status": "COMPLETE",
       "commit": "4b0f3ba"
+    },
+    {
+      "number": 278,
+      "title": "Hourly kill-switch bypass: evaluate before qualification, carry terminal HALT through hourly outputs",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
