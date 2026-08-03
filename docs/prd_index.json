@@ -1340,6 +1340,12 @@
       "title": "Hourly kill-switch bypass: evaluate before qualification, carry terminal HALT through hourly outputs",
       "status": "COMPLETE",
       "commit": "#196"
+    },
+    {
+      "number": 279,
+      "title": "Decision State Header for the dashboard",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
