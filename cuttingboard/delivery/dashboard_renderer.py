@@ -2263,9 +2263,21 @@ def render_dashboard_html(
     # unchanged. Halt is unmistakable (red verdict, title carries SYSTEM HALT).
     w('<div class="block" id="system-state">')
     w('  <h2>SYSTEM STATE</h2>')
-    _verdict_cls = "sys-halt" if bool(system_halted) else _SYS_VERDICT_CLS.get(
-        str(market_regime), "sys-flat"
-    )
+    # PRD-280: derive the halt color from the already-authoritative `title`
+    # in addition to `system_halted` (not `system_halted` alone) --
+    # _decision_title also returns SYSTEM HALT for status=FAIL/ERROR, which
+    # system_halted-only coloring missed. `bool(system_halted)` is ORed in,
+    # not replaced: when artifact_mixed=True, `title` is overridden to
+    # "MIXED_ARTIFACTS" (Codex correction) even if the underlying run is
+    # genuinely halted, so title alone would silently lose the halt color
+    # for that overlap. Wrapped like PRD-279's R2: an unexpected comparison
+    # error must not crash the render -- fall back to the neutral class.
+    try:
+        _verdict_cls = "sys-halt" if (bool(system_halted) or title == "SYSTEM HALT") else _SYS_VERDICT_CLS.get(
+            str(market_regime), "sys-flat"
+        )
+    except Exception:
+        _verdict_cls = "sys-flat"
     # PRD-279: Decision State Header -- a prominent three-word label derived
     # from the same `title` already computed above (_decision_title), never
     # independently recomputed. Falls back to STATE UNAVAILABLE rather than
