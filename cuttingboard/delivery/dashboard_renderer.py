@@ -729,6 +729,16 @@ _CSS = (
     ".sys-verdict.sys-halt{color:#f44336}"
     ".sys-context{color:#888;font-size:0.8rem;margin-top:2px}"
     ".sys-context.halted{color:#f44336}"
+    # PRD-279: Decision State Header -- prominent HALT/STAY FLAT/TRADE
+    # PERMITTED label above the existing sys-verdict line. Reuses the
+    # sys-up/sys-down/sys-flat/sys-halt colour classes for consistency.
+    ".decision-state-label{color:#888;font-size:0.7rem;text-transform:uppercase;"
+    "letter-spacing:0.08em;margin-bottom:2px}"
+    ".decision-state{font-weight:bold;font-size:1.4rem;letter-spacing:0.02em}"
+    ".decision-state.sys-up{color:#4caf50}"
+    ".decision-state.sys-down{color:#f44336}"
+    ".decision-state.sys-flat{color:#ff9800}"
+    ".decision-state.sys-halt{color:#f44336}"
     "h2{font-size:0.8rem;color:#888;text-transform:uppercase;"
     "letter-spacing:0.08em;margin-bottom:0.75rem}"
     ".sep{border-top:1px solid #1a1a1a;margin:0.5rem 0}"
@@ -2256,6 +2266,27 @@ def render_dashboard_html(
     _verdict_cls = "sys-halt" if bool(system_halted) else _SYS_VERDICT_CLS.get(
         str(market_regime), "sys-flat"
     )
+    # PRD-279: Decision State Header -- a prominent three-word label derived
+    # from the same `title` already computed above (_decision_title), never
+    # independently recomputed. Falls back to STATE UNAVAILABLE rather than
+    # ever propagating, and never infers TRADE PERMITTED from the absence
+    # of HALT (it requires _decision_title's own "TRADE SETUP ACTIVE").
+    try:
+        if title == "MIXED_ARTIFACTS":
+            # PRD-279 (Codex correction): a lineage mismatch is a data-
+            # integrity error, not a coherent STAY FLAT decision -- never
+            # present a confident-looking state over untrustworthy data.
+            _decision_state, _decision_state_cls = "STATE UNAVAILABLE", "sys-flat"
+        elif title == "SYSTEM HALT":
+            _decision_state, _decision_state_cls = "HALT", _verdict_cls
+        elif title == "TRADE SETUP ACTIVE":
+            _decision_state, _decision_state_cls = "TRADE PERMITTED", _verdict_cls
+        else:
+            _decision_state, _decision_state_cls = "STAY FLAT", _verdict_cls
+    except Exception:
+        _decision_state, _decision_state_cls = "STATE UNAVAILABLE", "sys-flat"
+    w('  <div class="decision-state-label">DECISION STATE</div>')
+    w(f'  <div class="decision-state {_decision_state_cls}">{_esc(_decision_state)}</div>')
     w(f'  <div class="sys-verdict {_verdict_cls}">'
       f'{_esc(regime_permission_text)} · {_esc(title)}</div>')
     # Context line: regime in plain words + the trader-facing reason (why).
