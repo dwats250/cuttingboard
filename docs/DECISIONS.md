@@ -16,6 +16,41 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-03 — CB-01 design-direction ruling: fail-safe True on failure-before-evaluation; `_QUALIFY_ONLY_MODES` deferred (ruled: Dustin)
+
+Design-direction ruling under GOV-2 §2 step 6 on the review-clean CB-01
+MATERIAL packet
+(`audits/current-state-reconciliation-2026-07-30/CB_01_HOURLY_KILL_SWITCH_MATERIAL_PACKET_2026-08-03.md`,
+merged PR #194, merge commit `a38312efc7a53f1468f3c9eb474113e08f769ee6`). The
+packet cleared GOV-2 §2's required upstream sequence: provisional packet →
+independent Codex review (four findings, all P1/P2) → one consolidated
+correction → independent Codex confirmation of the exact corrected head
+(`22a4a05`, "Didn't find any major issues").
+
+**Q1 — failure-before-evaluation `kill_switch` value:** Approved. Fail-safe
+`kill_switch=True` when the hourly path cannot complete kill-switch
+evaluation. The current field is Boolean with no safe UNKNOWN state; `False`
+means clear and must not be asserted when evaluation did not complete. This
+ruling does NOT authorize a schema change or a new tri-state model — the
+packet's own non-goals stand.
+
+**Q2 — `_QUALIFY_ONLY_MODES` boundary observation:** Deferred. Not part of
+the confirmed CB-01 defect and not authorized for inclusion in this
+remediation. May be assessed separately later only on direct evidence of an
+independent safety or control-flow problem.
+
+**Authorization:** the packet's recommended design (Option A, corrected) is
+approved for implementation: evaluate the existing kill switch before any
+downstream hourly work; on a trip, take the terminal HALT path immediately —
+no derived-data computation, no flow loading, no candidate
+qualification/presentation — and carry HALT/kill-switch state consistently
+through the hourly outputs (`_build_hourly_run_summary`,
+`_build_hourly_contract`). PRD-278 is authorized to be drafted for this
+bounded CB-01 remediation only. This ruling does not itself authorize
+implementation — Gate A on the reviewed PRD remains the implementation
+authorization (GOV-2 §4), and DR-001 still requires CB-01 to merge before
+CB-02 reaches implementation Gate A.
+
 ## 2026-08-01 — GOV-2 ratified upon merge of PR #186: MATERIAL review precedes downstream authority (ruled: Dustin)
 
 Dustin's merge of PR #186 is the ratifying action for
