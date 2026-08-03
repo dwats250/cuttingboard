@@ -542,6 +542,24 @@ def test_prd282_survival_counts_reconcile() -> None:
     assert pairs["REJECTED"] == "3"
 
 
+def test_prd283_survival_counts_options_sizing_refusal() -> None:
+    # PRD-283 (CB-02): an OPTIONS_SIZING refusal in sections["rejected"] is
+    # counted as REJECTED (additive payload split) and surfaced as the PRIMARY
+    # REJECTION reason — the survival summary agrees with the WHY line.
+    payload, run, mm = _coherent_survival(5)
+    payload["sections"]["rejected"] = [
+        {"symbol": "SPY", "stage": "OPTIONS_SIZING",
+         "reason": "SMALLEST_CONTRACT_EXCEEDS_BUDGET", "detail": None},
+    ]
+    html = render_dashboard_html(payload, run, market_map=mm)
+    pairs = _survival_pairs(html)
+    assert pairs["SURFACED"] == "5"
+    assert pairs["REJECTED"] == "1"
+    assert pairs["QUALIFIED"] == "4"  # 5 surfaced - 1 rejected - 0 watchlist
+    block = _survival_block(html) or ""
+    assert "SMALLEST_CONTRACT_EXCEEDS_BUDGET" in block
+
+
 def test_prd282_survival_zero_rejections_no_primary_row() -> None:
     # R1 + R3: no rejections -> the four counts render, and NO PRIMARY
     # REJECTION row is emitted.

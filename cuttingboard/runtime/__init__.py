@@ -84,7 +84,12 @@ from cuttingboard.notifications.state import (
 from cuttingboard.flow import load_flow_snapshot
 from cuttingboard.overnight_policy import apply_overnight_policy
 from cuttingboard.correlation import CorrelationResult, compute_correlation
-from cuttingboard.options import OptionSetup, build_option_setups, generate_candidates
+from cuttingboard.options import (
+    OptionRefusal,
+    OptionSetup,
+    build_option_setups,
+    generate_candidates,
+)
 from cuttingboard.trade_policy import PolicyContext, evaluate_policy
 from cuttingboard.trade_decision import (
     TradeDecision,
@@ -783,6 +788,7 @@ def _build_and_finalize_contract(
     qualification_summary: Optional[QualificationSummary],
     watch_summary: Optional[WatchSummary],
     option_setups: list[OptionSetup],
+    option_refusals: list[OptionRefusal],
     chain_results: dict[str, ChainValidationResult],
     report_path: str,
     errors: list[str],
@@ -834,6 +840,7 @@ def _build_and_finalize_contract(
         status=contract_status,
         artifacts={"report_path": report_path, "log_path": str(LATEST_RUN_PATH)},
         data_quality=data_quality,
+        options_refusals=option_refusals,
     )
     contract["outcome"] = outcome
     # Inject dashboard-readable fields into system_state
@@ -955,6 +962,7 @@ def _run_pipeline(
     watch_summary: Optional[WatchSummary] = None
     candidates_generated = 0
     option_setups: list[OptionSetup] = []
+    option_refusals: list[OptionRefusal] = []
     trade_decisions: list[TradeDecision] = []
     suppressed_candidates: list[SuppressedCandidate] = []
     intraday_state_context: dict[str, dict[str, Any]] = {}
@@ -1068,6 +1076,7 @@ def _run_pipeline(
                     execution_derived,
                     candidates,
                     risk_modifier=policy_context.risk_modifier,
+                    refusals=option_refusals,
                 )
 
             if option_setups:
@@ -1130,6 +1139,7 @@ def _run_pipeline(
         outcome=outcome,
         halt_reason=validation_summary.halt_reason,
         chain_results=chain_results,
+        option_refusals=option_refusals,
     )
     _write_markdown_report(report, date_str, "NOT RUN")
     report_path = str(REPORTS_DIR / f"{date_str}.md")
@@ -1149,6 +1159,7 @@ def _run_pipeline(
         qualification_summary=qualification_summary,
         watch_summary=watch_summary,
         option_setups=option_setups,
+        option_refusals=option_refusals,
         chain_results=chain_results,
         report_path=report_path,
         errors=errors,
@@ -1180,6 +1191,7 @@ def _run_pipeline(
         qualification_summary=qualification_summary,
         watch_summary=watch_summary,
         option_setups=option_setups,
+        option_refusals=option_refusals,
         trade_decisions=trade_decisions,
         suppressed_candidates=suppressed_candidates,
         halt_reason=validation_summary.halt_reason,

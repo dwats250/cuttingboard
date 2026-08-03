@@ -11,7 +11,17 @@ from cuttingboard import audit, output, runtime
 from cuttingboard import validation as validation_mod
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.chain_validation import ChainValidationResult, MANUAL_CHECK
-from cuttingboard.options import OptionSetup
+from cuttingboard.options import (
+    OPTIONS_SIZING,
+    SMALLEST_CONTRACT_EXCEEDS_BUDGET,
+    OptionRefusal,
+    OptionSetup,
+)
+from cuttingboard.delivery.payload import build_report_payload
+from cuttingboard.delivery.transport import deliver_cli
+from cuttingboard.output import build_notification_message, render_report_from_payload
+from cuttingboard.reports.postmarket import build_postmarket_report as _real_postmarket
+from cuttingboard.reports.premarket import build_premarket_report as _real_premarket
 from cuttingboard.qualification import QualificationResult, QualificationSummary, TradeCandidate
 from cuttingboard.regime import AGGRESSIVE_LONG, RISK_ON, RegimeState
 from cuttingboard.structure import StructureResult
@@ -766,3 +776,74 @@ def test_missing_candidate_fails_loud_prd260(monkeypatch, tmp_path):
             run_date=date.fromisoformat("2026-04-28"),
             fixture_file=Path("tests/fixtures/2026-04-12.json"),
         )
+
+
+def test_prd283_sizing_refusal_reaches_every_consumer(monkeypatch, tmp_path, capsys):
+    """PRD-283 (CB-02) end-to-end: a real refusal generated in the pipeline
+    carries the exact token through contract, audit, postmarket, premarket,
+    HTML delivery, notification, and CLI. Omitting the out-parameter or any
+    forwarding leg turns this red.
+    """
+    symbol = "SPY"
+    _setup_runtime_mocks(monkeypatch, tmp_path, symbol=symbol)
+
+    # build_option_setups refuses the sole candidate via the out-parameter
+    # (the exact contract the real function honors); no OptionSetup is emitted.
+    def _refusing_build(*args, refusals=None, **kwargs):
+        if refusals is not None:
+            refusals.append(OptionRefusal(
+                symbol=symbol, strategy="BULL_PUT_SPREAD",
+                risk_per_contract=350.0, adjusted_budget=160.0, risk_modifier=0.4,
+            ))
+        return []
+    monkeypatch.setattr(runtime, "build_option_setups", _refusing_build)
+    # Use the REAL premarket/postmarket builders so their consumption is proven.
+    monkeypatch.setattr(runtime, "build_premarket_report", _real_premarket)
+    monkeypatch.setattr(runtime, "build_postmarket_report", _real_postmarket)
+
+    result = runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+
+    # No setup was expressed -> NO_TRADE.
+    assert result.outcome == runtime.OUTCOME_NO_TRADE
+
+    # 1. Contract rejections carry the OPTIONS_SIZING stage + token.
+    sizing = [r for r in result.contract["rejections"] if r["stage"] == OPTIONS_SIZING]
+    assert len(sizing) == 1
+    assert sizing[0]["symbol"] == symbol
+    assert sizing[0]["reason"] == SMALLEST_CONTRACT_EXCEEDS_BUDGET
+
+    # 2. Audit record carries the dedicated refusal carrier, no silent-None row.
+    audit_lines = (tmp_path / "logs" / "audit.jsonl").read_text().strip().splitlines()
+    record = json.loads(audit_lines[-1])
+    assert [c["reason"] for c in record["options_refusals"]] == [SMALLEST_CONTRACT_EXCEEDS_BUDGET]
+    assert [q for q in record["qualified_trades"] if q["symbol"] == symbol] == []
+
+    # 3. Postmarket counts the refusal in the breakdown and rejected_count.
+    postmarket = _real_postmarket(result.contract, [])
+    assert postmarket["rejection_breakdown"]["options_sizing"] == 1
+    assert postmarket["trade_summary"]["rejected_count"] >= 1
+
+    # 4. Premarket does not surface the refused symbol as a tradable focus.
+    premarket = _real_premarket(result.contract)
+    assert all(item.get("symbol") != symbol for item in premarket.get("focus_list", []))
+
+    # 5. HTML delivery renders the refusal (not "no qualifying setups").
+    payload = build_report_payload(result.contract)
+    html_text = render_report_from_payload(payload)
+    assert "REFUSED" in html_text
+    assert "no qualifying setups" not in html_text
+
+    # 6. Notification names the refusal, not a generic "no setups".
+    _title, body = build_notification_message(result.contract)
+    assert "Reason: no setups" not in body
+    assert "refused" in body.lower()
+
+    # 7. CLI names the refusal reason.
+    deliver_cli(payload)
+    cli_out = capsys.readouterr().out
+    assert "REFUSED SPY" in cli_out
+    assert SMALLEST_CONTRACT_EXCEEDS_BUDGET in cli_out

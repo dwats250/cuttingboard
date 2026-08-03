@@ -92,6 +92,20 @@ class TestBuildNotificationMessage:
             "- continuation hold above trigger"
         )
 
+    def test_stay_flat_options_sizing_refusal_named_prd283(self):
+        # PRD-283 (CB-02): an all-refused run names the sizing refusal in the
+        # notification body, not the generic "no setups".
+        contract = _make_contract(
+            market_regime="RISK_ON", posture="RISK_ON", trade_candidates=[]
+        )
+        contract["rejections"] = [
+            {"symbol": "SPY", "stage": "OPTIONS_SIZING",
+             "reason": "SMALLEST_CONTRACT_EXCEEDS_BUDGET", "detail": None},
+        ]
+        _title, body = build_notification_message(contract)
+        assert "Reason: no setups" not in body
+        assert "refused" in body.lower()
+
     def test_primary_trade_prd_shape(self):
         candidates = [
             {

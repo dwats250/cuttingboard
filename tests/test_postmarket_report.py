@@ -15,7 +15,7 @@ _SCHEMA_KEYS = {
 _SYSTEM_OUTCOME_KEYS = {"market_regime", "tradable", "stay_flat_reason", "status"}
 _EVR_KEYS = {"result", "notes"}
 _TRADE_SUMMARY_KEYS = {"qualified_count", "watchlist_count", "rejected_count"}
-_REJECTION_BREAKDOWN_KEYS = {"regime", "qualification", "watchlist"}
+_REJECTION_BREAKDOWN_KEYS = {"regime", "qualification", "watchlist", "options_sizing"}
 _REGIME_VALIDATION_KEYS = {"persisted", "flipped"}
 _VALID_EVR_RESULTS = {"MATCH", "PARTIAL", "MISS", "NO_EXPECTATION", "COVERAGE_BOUNDED"}
 
@@ -147,7 +147,9 @@ class TestRejectionBreakdown:
 
     def test_empty_rejections_all_zero(self):
         report = build_postmarket_report(_make_contract(rejections=[]), [])
-        assert report["rejection_breakdown"] == {"regime": 0, "qualification": 0, "watchlist": 0}
+        assert report["rejection_breakdown"] == {
+            "regime": 0, "qualification": 0, "watchlist": 0, "options_sizing": 0,
+        }
 
     def test_trade_summary_matches_rejections(self):
         rejections = [
@@ -161,6 +163,27 @@ class TestRejectionBreakdown:
         assert report["trade_summary"]["qualified_count"] == 2
         assert report["trade_summary"]["rejected_count"] == 1
         assert report["trade_summary"]["watchlist_count"] == 2
+
+    def test_options_sizing_counted_in_breakdown(self):
+        # PRD-283 (CB-02): an OPTIONS_SIZING refusal is a real rejection stage;
+        # the breakdown must count it, not silently omit it.
+        rejections = [
+            {"stage": "OPTIONS_SIZING", "reason": "SMALLEST_CONTRACT_EXCEEDS_BUDGET"},
+            {"stage": "QUALIFICATION", "reason": "hard gate"},
+        ]
+        report = build_postmarket_report(_make_contract(rejections=rejections), [])
+        assert report["rejection_breakdown"]["options_sizing"] == 1
+        assert report["rejection_breakdown"]["qualification"] == 1
+
+    def test_rejected_count_includes_options_sizing(self):
+        # PRD-283 (CB-02): rejected_count may not read zero while a sizing
+        # refusal exists — the summary would contradict the breakdown.
+        rejections = [
+            {"stage": "OPTIONS_SIZING", "reason": "SMALLEST_CONTRACT_EXCEEDS_BUDGET"},
+        ]
+        report = build_postmarket_report(_make_contract(rejections=rejections), [])
+        assert report["rejection_breakdown"]["options_sizing"] == 1
+        assert report["trade_summary"]["rejected_count"] == 1
 
 
 class TestRegimeValidation:

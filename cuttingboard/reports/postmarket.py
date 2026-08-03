@@ -159,6 +159,10 @@ def build_postmarket_report(
     regime_count = sum(1 for r in rejections if r.get("stage") == "REGIME")
     qualification_count = sum(1 for r in rejections if r.get("stage") == "QUALIFICATION")
     watchlist_count = sum(1 for r in rejections if r.get("stage") == "WATCHLIST")
+    # PRD-283 (CB-02): options-sizing refusals are a real rejection stage; the
+    # breakdown and rejected_count must count them or the postmarket report
+    # silently omits a refusal the contract recorded.
+    options_sizing_count = sum(1 for r in rejections if r.get("stage") == "OPTIONS_SIZING")
 
     qualified_count: int = int(audit_summary.get("qualified_count") or 0)
 
@@ -212,12 +216,13 @@ def build_postmarket_report(
         "trade_summary": {
             "qualified_count": qualified_count,
             "watchlist_count": watchlist_count,
-            "rejected_count": qualification_count,
+            "rejected_count": qualification_count + options_sizing_count,
         },
         "rejection_breakdown": {
             "regime": regime_count,
             "qualification": qualification_count,
             "watchlist": watchlist_count,
+            "options_sizing": options_sizing_count,
         },
         "regime_validation": {
             "persisted": persisted,

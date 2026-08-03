@@ -58,6 +58,18 @@ BEAR_PUT_SPREAD  = "BEAR_PUT_SPREAD"
 BEAR_CALL_SPREAD = "BEAR_CALL_SPREAD"
 
 # ---------------------------------------------------------------------------
+# Smallest-contract refusal (PRD-283 / CB-02; Dustin D-RULE 2026-07-24)
+# ---------------------------------------------------------------------------
+# When the smallest expressible position — one contract of the selected spread
+# — carries a max loss exceeding the correlation-adjusted per-trade budget
+# (ACCOUNT_EQUITY × MAX_RISK_PCT_PER_TRADE × risk_modifier), the setup is
+# refused rather than floored to one budget-breaching contract. Distinct from
+# CB-03's size_rounds_to_zero (a policy multiplier zeroing an already-affordable
+# position) — this names the indivisible contract exceeding the ceiling.
+OPTIONS_SIZING = "OPTIONS_SIZING"
+SMALLEST_CONTRACT_EXCEEDS_BUDGET = "SMALLEST_CONTRACT_EXCEEDS_BUDGET"
+
+# ---------------------------------------------------------------------------
 # Spread constraints
 # ---------------------------------------------------------------------------
 
@@ -103,6 +115,24 @@ class OptionSetup:
     dollar_risk:        float         # final, resized value (build_option_setups)
     exit_profit_pct:    float         # 0.50 = +50% of max profit
     exit_loss:          str           # "full_debit"
+
+
+@dataclass(frozen=True)
+class OptionRefusal:
+    """A qualified setup refused at options sizing (PRD-283 / CB-02).
+
+    The setup qualified, but the smallest expressible contract's max loss
+    exceeds the correlation-adjusted per-trade risk budget. It carries the
+    four numbers that prove the refusal so every downstream consumer can state
+    the true reason without recomputing the arithmetic.
+    """
+    symbol:            str
+    strategy:          str
+    risk_per_contract: float   # dollar max loss for one contract
+    adjusted_budget:   float   # ACCOUNT_EQUITY × MAX_RISK_PCT_PER_TRADE × risk_modifier
+    risk_modifier:     float
+    stage:             str = OPTIONS_SIZING
+    reason:            str = SMALLEST_CONTRACT_EXCEEDS_BUDGET
 
 
 # ---------------------------------------------------------------------------
@@ -164,11 +194,18 @@ def build_option_setups(
     candidates: Optional[dict[str, TradeCandidate]] = None,
     *,
     risk_modifier: float = 1.0,
+    refusals: Optional[list["OptionRefusal"]] = None,
 ) -> list["OptionSetup"]:
     """Map each qualified trade to a fully expressed OptionSetup.
 
     Uses the structure/IV matrix to select strategy type, then computes
     DTE from structure + momentum and formats relative strike labels.
+
+    PRD-283 (CB-02): when the smallest expressible contract's max loss exceeds
+    the correlation-adjusted per-trade budget, the setup is REFUSED — no
+    OptionSetup is emitted, and (when ``refusals`` is supplied) an
+    ``OptionRefusal`` is appended to it. The list return shape is unchanged;
+    ``refusals`` is an optional out-parameter so existing callers are unaffected.
     """
     setups: list[OptionSetup] = []
 
@@ -214,7 +251,10 @@ def build_option_setups(
             continue
 
         # Apply correlation risk_modifier: reduce effective risk budget and
-        # recompute max contracts. Never go below 1 contract (AC4: no removal).
+        # recompute max contracts. PRD-283 (CB-02) removed the old
+        # `max(1, ...)` floor: a setup whose smallest contract exceeds the
+        # adjusted budget is REFUSED (below), not sized to one breaching
+        # contract (superseding PRD-023's "no removal" floor at this seam).
         # PRD-157: equity-driven sizing. effective_risk = account equity ×
         # per-trade risk pct × correlation modifier. (Note: risk_modifier here
         # is the correlation modifier, distinct from qualification.py's
@@ -230,7 +270,30 @@ def build_option_setups(
         risk_per_contract = effective_max_loss * 100
         if risk_per_contract > 0:
             raw_adjusted = int(effective_risk // risk_per_contract)
-            final_contracts = max(1, min(result.max_contracts, raw_adjusted))
+            if raw_adjusted < 1:
+                # PRD-283 (CB-02; D-RULE 2026-07-24): the smallest expressible
+                # contract already exceeds the correlation-adjusted budget.
+                # Refuse — never floor to a budget-breaching contract (the old
+                # max(1, ...) silently nullified the correlation risk cut,
+                # PRD-198 invariant #1). This is an economically-valid result
+                # resolving below one contract; distinct from the missing-data
+                # skips above and the risk_per_contract <= 0 branch below.
+                logger.warning(
+                    "OPTION_REFUSAL %s: %s smallest contract $%.2f exceeds "
+                    "adjusted budget $%.2f (x%.2f) — %s",
+                    symbol, strategy, risk_per_contract, effective_risk,
+                    risk_modifier, SMALLEST_CONTRACT_EXCEEDS_BUDGET,
+                )
+                if refusals is not None:
+                    refusals.append(OptionRefusal(
+                        symbol=symbol,
+                        strategy=strategy,
+                        risk_per_contract=round(risk_per_contract, 2),
+                        adjusted_budget=round(effective_risk, 2),
+                        risk_modifier=risk_modifier,
+                    ))
+                continue
+            final_contracts = min(result.max_contracts, raw_adjusted)
         else:
             final_contracts = result.max_contracts
         final_dollar_risk = round(float(final_contracts) * risk_per_contract, 2)

@@ -50,6 +50,7 @@ def write_audit_record(
     watch_summary: Optional[WatchSummary] = None,
     suppressed_candidates: Optional[list] = None,
     intraday_state_context: Optional[dict[str, dict]] = None,
+    option_refusals: Optional[list] = None,
 ) -> dict:
     """Build and append one audit record to logs/audit.jsonl.
 
@@ -77,6 +78,7 @@ def write_audit_record(
         halt_reason=halt_reason,
         alert_sent=alert_sent,
         report_path=report_path,
+        option_refusals=option_refusals,
     )
 
     _append_record(record)
@@ -105,6 +107,7 @@ def _build_record(
     watch_summary: Optional[WatchSummary] = None,
     suppressed_candidates: Optional[list] = None,
     intraday_state_context: Optional[dict[str, dict]] = None,
+    option_refusals: Optional[list] = None,
 ) -> dict:
     qual = qualification_summary
     decisions_by_symbol = {
@@ -112,6 +115,13 @@ def _build_record(
     }
     setup_by_symbol = {
         setup.symbol: setup for setup in option_setups
+    }
+    # PRD-283 (CB-02): symbols refused at options sizing are represented in the
+    # dedicated options_refusals carrier below, NOT as silent-None qualified
+    # rows (a qualified symbol with no OptionSetup and no refusal is a genuine
+    # missing-data skip and keeps its existing row).
+    refused_symbols = {
+        getattr(ref, "symbol", None) for ref in (option_refusals or [])
     }
 
     qualified_list = []
@@ -122,6 +132,8 @@ def _build_record(
 
     if qual is not None:
         for r in qual.qualified_trades:
+            if r.symbol in refused_symbols:
+                continue
             setup = next((s for s in option_setups if s.symbol == r.symbol), None)
             decision = decisions_by_symbol.get(r.symbol)
             entry: dict = {
@@ -233,6 +245,22 @@ def _build_record(
         "near_a_plus":            near_a_plus_list,
         "excluded_symbols":       excluded_dict,
         "suppressed_candidates":  list(suppressed_candidates or []),
+
+        # PRD-283 (CB-02): dedicated options-sizing refusal carrier — a
+        # qualified setup whose smallest contract exceeds the adjusted budget.
+        # Carries the proving economics; never a silent-None qualified row.
+        "options_refusals":       [
+            {
+                "symbol":            getattr(ref, "symbol", None),
+                "strategy":          getattr(ref, "strategy", None),
+                "risk_per_contract": getattr(ref, "risk_per_contract", None),
+                "adjusted_budget":   getattr(ref, "adjusted_budget", None),
+                "risk_modifier":     getattr(ref, "risk_modifier", None),
+                "stage":             getattr(ref, "stage", None),
+                "reason":            getattr(ref, "reason", None),
+            }
+            for ref in (option_refusals or [])
+        ],
 
         # Run metadata
         "halt_reason":            halt_reason,

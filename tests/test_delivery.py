@@ -125,6 +125,23 @@ def _payload(contract: dict | None = None) -> dict:
     return build_report_payload(contract or _contract())
 
 
+def _sizing_refusal_contract() -> dict:
+    # PRD-283 (CB-02): a contract carrying an OPTIONS_SIZING refusal.
+    contract = _contract(status="STAY_FLAT", tradable=False)
+    contract["rejections"] = [{
+        "symbol": "SPY",
+        "stage": "OPTIONS_SIZING",
+        "reason": "SMALLEST_CONTRACT_EXCEEDS_BUDGET",
+        "detail": {
+            "strategy": "BULL_PUT_SPREAD",
+            "risk_per_contract": 350.0,
+            "adjusted_budget": 160.0,
+            "risk_modifier": 0.4,
+        },
+    }]
+    return contract
+
+
 # ---------------------------------------------------------------------------
 # A. render_report_from_payload adapter
 # ---------------------------------------------------------------------------
@@ -154,6 +171,14 @@ class TestRenderReportFromPayload:
         r1 = render_report_from_payload(p)
         r2 = render_report_from_payload(p)
         assert r1 == r2
+
+    def test_options_sizing_refusal_rendered_prd283(self):
+        # PRD-283 (CB-02): the HTML text adapter must surface a refusal carried
+        # in sections["rejected"] rather than dropping it (option_setups=[]).
+        result = render_report_from_payload(_payload(_sizing_refusal_contract()))
+        assert "REFUSED" in result
+        assert "SPY" in result
+        assert "no qualifying setups" not in result
 
     def test_invalid_payload_raises(self):
         bad = _payload()
@@ -332,6 +357,14 @@ class TestDeliverCli:
         assert "TOP_TRADES" in captured.out
         assert "WATCHLIST" in captured.out
         assert "REJECTED" in captured.out
+
+    def test_cli_names_options_sizing_reason_prd283(self, capsys):
+        # PRD-283 (CB-02): CLI must name the sizing refusal reason, not just a
+        # bare count.
+        deliver_cli(_payload(_sizing_refusal_contract()))
+        out = capsys.readouterr().out
+        assert "REFUSED SPY" in out
+        assert "SMALLEST_CONTRACT_EXCEEDS_BUDGET" in out
 
     def test_deterministic_output(self, capsys):
         p = _payload()

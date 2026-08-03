@@ -55,7 +55,17 @@ def deliver_cli(payload: dict) -> None:
     print(f"SYMBOLS_SCANNED: {meta.get('symbols_scanned')}")
     print(f"TOP_TRADES:      {len(sections.get('top_trades', []))}")
     print(f"WATCHLIST:       {len(sections.get('watchlist', []))}")
-    print(f"REJECTED:        {len(sections.get('rejected', []))}")
+
+    rejected = sections.get("rejected", [])
+    print(f"REJECTED:        {len(rejected)}")
+    # PRD-283 (CB-02): a bare count hides why. Name each options-sizing refusal
+    # so a budget-driven no-trade is not indistinguishable from other rejections.
+    for entry in rejected:
+        if entry.get("stage") == "OPTIONS_SIZING":
+            print(
+                f"  REFUSED {entry.get('symbol')}: {entry.get('reason')} "
+                f"(options sizing)"
+            )
 
 
 def deliver(payload: dict, mode: str) -> None:
