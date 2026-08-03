@@ -46,7 +46,7 @@ from cuttingboard.qualification import (
 )
 from cuttingboard.regime import (
     RegimeState,
-    RISK_ON, RISK_OFF, TRANSITION, NEUTRAL,
+    RISK_ON, RISK_OFF, TRANSITION, NEUTRAL, EXPANSION,
     AGGRESSIVE_LONG, DEFENSIVE_SHORT, STAY_FLAT, NEUTRAL_PREMIUM,
 )
 from cuttingboard.structure import (
@@ -901,6 +901,43 @@ class TestRenderReport:
 
     def test_no_trade_contains_data_status(self):
         assert "Validated" in self._no_trade_report()
+
+    def test_expansion_refusal_states_refusal_not_no_continuation_prd283(self):
+        # PRD-283 (CB-02): an EXPANSION run whose continuation candidate is
+        # refused at options sizing must state the refusal as the primary
+        # no-trade cause — NOT "No valid continuation entries yet" (the entry
+        # did qualify), which would also contradict the REFUSED block below.
+        expansion_regime = _regime(regime=EXPANSION, posture=AGGRESSIVE_LONG)
+        refusal = OptionRefusal(
+            symbol="SPY", strategy=BULL_PUT_SPREAD,
+            risk_per_contract=350.0, adjusted_budget=160.0, risk_modifier=0.4,
+        )
+        report = render_report(
+            date_str="2026-04-10", run_at_utc=_NOW,
+            regime=expansion_regime, validation_summary=_val_summary(),
+            qualification_summary=_qual_summary(), option_setups=[],
+            outcome=OUTCOME_NO_TRADE, option_refusals=[refusal],
+        )
+        # Primary no-trade cause is the sizing refusal.
+        assert "refused at options sizing" in report
+        # The detailed OPTIONS SIZING refusal block still renders.
+        assert "REFUSED — OPTIONS SIZING" in report
+        assert "SPY" in report
+        # The misleading EXPANSION fallback text is absent.
+        assert "No valid continuation entries yet" not in report
+
+    def test_expansion_no_refusal_still_shows_continuation_fallback_prd283(self):
+        # Preservation: EXPANSION with NO sizing refusal keeps the existing
+        # continuation-fallback wording.
+        expansion_regime = _regime(regime=EXPANSION, posture=AGGRESSIVE_LONG)
+        report = render_report(
+            date_str="2026-04-10", run_at_utc=_NOW,
+            regime=expansion_regime, validation_summary=_val_summary(),
+            qualification_summary=_qual_summary(), option_setups=[],
+            outcome=OUTCOME_NO_TRADE,
+        )
+        assert "No valid continuation entries yet" in report
+        assert "REFUSED — OPTIONS SIZING" not in report
 
     def test_halt_report_contains_halt_label(self):
         val = _val_summary(validated=17, failed=3)

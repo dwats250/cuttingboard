@@ -331,20 +331,24 @@ def render_report(
         lines.append(f"  {halt_reason or 'unknown halt reason'}")
 
     elif outcome == OUTCOME_NO_TRADE:
-        if regime is not None and regime.regime == EXPANSION:
+        if refusals:
+            # PRD-283 (CB-02): a smallest-contract sizing refusal is the concrete
+            # no-trade cause and takes precedence over the EXPANSION continuation
+            # fallback below — in EXPANSION the refused candidate DID qualify, so
+            # "No valid continuation entries yet" both misleads and contradicts
+            # the REFUSED block rendered later. Never the generic "no qualifying
+            # setups" either.
+            lines.append("  NO TRADE")
+            lines.append(
+                f"  Reason: {len(refusals)} setup"
+                f"{'s' if len(refusals) != 1 else ''} refused at options sizing"
+            )
+        elif regime is not None and regime.regime == EXPANSION:
             lines.append("  EXPANSION MODE — No valid continuation entries yet")
         else:
             lines.append("  NO TRADE")
             if qualification_summary is not None and qualification_summary.regime_short_circuited:
                 lines.append(f"  Reason: {qualification_summary.regime_failure_reason}")
-            elif refusals:
-                # PRD-283 (CB-02): a sizing refusal is the actual cause — never
-                # the generic "no qualifying setups", which would contradict the
-                # refused (budget-exceeding) setups surfaced below.
-                lines.append(
-                    f"  Reason: {len(refusals)} setup"
-                    f"{'s' if len(refusals) != 1 else ''} refused at options sizing"
-                )
             elif regime is not None:
                 lines.append(
                     f"  Reason: {regime.posture} posture — no qualifying setups"
