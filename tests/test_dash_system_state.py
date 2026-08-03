@@ -148,6 +148,65 @@ def test_decision_title_system_halt_system_halted_true() -> None:
     assert "SYSTEM HALT" in _header_block(html)
 
 
+# ---------------------------------------------------------------------------
+# PRD-280 — halt color derives from title, not system_halted alone
+# ---------------------------------------------------------------------------
+
+def test_prd280_status_fail_system_halted_false_renders_halt_color() -> None:
+    # R1 (red pre-change): a status=FAIL run with system_halted=False and a
+    # RISK_ON regime must still color both verdicts sys-halt, not the
+    # regime's own (green) class.
+    html = render_dashboard_html(
+        _payload(market_regime="RISK_ON"), _run(status="FAIL", system_halted=False)
+    )
+    state = _header_block(html)
+    assert 'class="decision-state sys-halt">HALT</div>' in state
+    assert 'class="sys-verdict sys-halt"' in state
+    assert "SYSTEM HALT" in state
+    assert "sys-up" not in state
+
+
+def test_prd280_status_error_system_halted_false_renders_halt_color() -> None:
+    # R1 (red pre-change): same as above for status=ERROR.
+    html = render_dashboard_html(
+        _payload(market_regime="RISK_ON"), _run(status="ERROR", system_halted=False)
+    )
+    state = _header_block(html)
+    assert 'class="decision-state sys-halt">HALT</div>' in state
+    assert 'class="sys-verdict sys-halt"' in state
+    assert "SYSTEM HALT" in state
+    assert "sys-up" not in state
+
+
+def test_prd280_system_halted_true_still_renders_halt_color() -> None:
+    # R2: explicit system_halted=True is unaffected by the R1 change.
+    html = render_dashboard_html(_payload(market_regime="RISK_ON"), _run(system_halted=True))
+    state = _header_block(html)
+    assert 'class="decision-state sys-halt">HALT</div>' in state
+    assert 'class="sys-verdict sys-halt"' in state
+
+
+def test_prd280_normal_risk_on_run_still_renders_sys_up() -> None:
+    # R2: a non-halted, non-failed, no-trade run keeps its regime coloring.
+    html = render_dashboard_html(
+        _payload(market_regime="RISK_ON"),
+        _run(status="SUCCESS", system_halted=False, outcome="NO_TRADE"),
+    )
+    state = _header_block(html)
+    assert 'class="decision-state sys-up">STAY FLAT</div>' in state
+    assert 'class="sys-verdict sys-up"' in state
+
+
+def test_prd280_trade_permitted_still_renders_its_own_color() -> None:
+    # R2: TRADE PERMITTED is unaffected by the R1 change.
+    html = render_dashboard_html(
+        _payload(market_regime="RISK_ON"),
+        _run(status="SUCCESS", system_halted=False, outcome="TRADE"),
+    )
+    state = _header_block(html)
+    assert 'class="decision-state sys-up">TRADE PERMITTED</div>' in state
+
+
 def test_decision_title_trade() -> None:
     html = render_dashboard_html(_payload(), _run(outcome="TRADE"))
     assert "TRADE SETUP ACTIVE" in _header_block(html)
