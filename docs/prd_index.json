@@ -1358,6 +1358,12 @@
       "title": "Decision-State WHY Summary",
       "status": "COMPLETE",
       "commit": "#199"
+    },
+    {
+      "number": 282,
+      "title": "Opportunity Survival Summary",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
