@@ -2342,16 +2342,17 @@ def render_dashboard_html(
     # confidence=…) or a literal None/NULL sentinel. Each pattern is
     # stripped independently of the other -- a bare "confidence=0.25" with
     # no "(regime=" wrapper, or vice versa, must not survive either -- and a
-    # reason that collapses to nothing (or is exactly the sentinel) is
-    # treated as no reason, not rendered as an empty/raw WHY line.
+    # reason that collapses to nothing (or IS the sentinel, before or after
+    # stripping -- e.g. "None (regime=RISK_OFF, confidence=0.25)" strips down
+    # to bare "None") is treated as no reason, not rendered as an empty/raw
+    # WHY line. The sentinel check runs both before AND after stripping.
     if _ctx_reason:
         _reason_str = str(_ctx_reason).strip()
-        if _reason_str in ("None", "NULL"):
-            _ctx_reason = None
-        else:
+        if _reason_str not in ("None", "NULL"):
             _reason_str = re.sub(r"\s*\(?\s*regime=.*", "", _reason_str)
             _reason_str = re.sub(r"\s*\(?\s*confidence=.*", "", _reason_str)
-            _ctx_reason = _reason_str.strip() or None
+            _reason_str = _reason_str.strip()
+        _ctx_reason = None if _reason_str in ("None", "NULL", "") else _reason_str
     # PRD-281: the reason renders exactly once, in the dedicated WHY line
     # below -- never appended to the regime context line (superseding, for
     # this one display, PRD-219's "folds into the context line" choice).

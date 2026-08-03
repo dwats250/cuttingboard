@@ -459,3 +459,24 @@ def test_prd281_why_line_suppressed_for_literal_null_string() -> None:
     html = render_dashboard_html(payload, run)
     state = _header_block(html)
     assert not _has_why(state)
+
+
+def test_prd281_why_line_suppressed_for_sentinel_with_regime_suffix() -> None:
+    # Codex correction (P2, round 2): a sentinel combined with engine
+    # metadata -- "None (regime=RISK_OFF, confidence=0.25)" -- must not
+    # strip down to a bare "None"/"NULL" that then renders raw. The
+    # sentinel check must re-run on the post-strip result, not just the
+    # original string.
+    run = _run(system_halted=True, errors=["None (regime=RISK_OFF, confidence=0.25)"])
+    html = render_dashboard_html(_payload(), run)
+    state = _header_block(html)
+    assert not _has_why(state)
+    assert "WHY: None" not in state
+
+
+def test_prd281_why_line_suppressed_for_sentinel_with_confidence_suffix() -> None:
+    run = _run(system_halted=True, errors=["NULL confidence=0.25"])
+    html = render_dashboard_html(_payload(), run)
+    state = _header_block(html)
+    assert not _has_why(state)
+    assert "WHY: NULL" not in state
