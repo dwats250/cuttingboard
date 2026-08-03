@@ -555,9 +555,6 @@ def _execute_notify_run(
             )
             _write_hourly_artifacts(summary, contract)
             try:
-                if alert_sent and slot_utc is not None:
-                    from cuttingboard.notifications.hourly_slot import save_last_slot
-                    save_last_slot(slot_utc)
                 hourly_market_map = build_market_map(
                     generated_at=run_at_utc,
                     session_date=run_date.isoformat(),
@@ -585,16 +582,20 @@ def _execute_notify_run(
                     inject_lifecycle(hourly_market_map, previous_market_map),
                     LATEST_HOURLY_MARKET_MAP_PATH,
                 )
+                # PRD-278 R7/R8 (Codex correction): slot persistence runs after
+                # the coherent current-generation map is published, not before
+                # -- a save_last_slot failure must not be able to prevent
+                # build_market_map/_write_market_map_file from ever running.
+                if alert_sent and slot_utc is not None:
+                    from cuttingboard.notifications.hourly_slot import save_last_slot
+                    save_last_slot(slot_utc)
             except Exception:
                 # PRD-278 R8: the HALT-consistent summary/contract are already
                 # durably written above; no failure in this auxiliary
-                # post-write segment (slot bookkeeping, market-map build/
-                # write) may reach the outer handler and overwrite that
+                # post-write segment (market-map build/write, slot
+                # bookkeeping) may reach the outer handler and overwrite that
                 # recorded terminal state with a generic failure -- log and
-                # continue instead. _write_trend_structure_snapshot is not
-                # wrapped here: it already swallows and logs its own
-                # failures internally (see its docstring/body), so it needs
-                # no additional isolation.
+                # continue instead.
                 logger.exception("hourly auxiliary post-write step failed")
             _write_trend_structure_snapshot(
                 normalized_quotes=normalized_quotes,
@@ -2115,7 +2116,15 @@ def _collect_trend_structure_history(
     for symbol in config.TREND_STRUCTURE_SYMBOLS:
         df = candidate_ohlcv.get(symbol)
         if df is None:
-            df = fetch_ohlcv(symbol)
+            try:
+                df = fetch_ohlcv(symbol)
+            except Exception:
+                # PRD-278 R8 (Codex correction): a fetch failure is treated
+                # the same as fetch_ohlcv returning None -- the symbol is
+                # omitted, not propagated. Callers (including the hourly
+                # post-write path) must never see this raise.
+                logger.exception("Failed to fetch OHLCV for trend-structure symbol %s", symbol)
+                df = None
         if df is not None:
             history[symbol] = df
     return history
@@ -2126,8 +2135,10 @@ def _write_trend_structure_snapshot(
     history_by_symbol: dict[str, pd.DataFrame],
     generated_at: datetime,
 ) -> None:
-    LOGS_DIR.mkdir(parents=True, exist_ok=True)
     try:
+        # PRD-278 R8 (Codex correction): mkdir moved inside the try -- it
+        # must not be able to propagate past this function's own isolation.
+        LOGS_DIR.mkdir(parents=True, exist_ok=True)
         snapshot = build_trend_structure_snapshot(
             normalized_quotes=normalized_quotes,
             history_by_symbol=history_by_symbol,

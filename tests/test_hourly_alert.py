@@ -1564,8 +1564,11 @@ def test_prd278_market_map_write_failure_preserves_halt(tmp_path, monkeypatch):
 
 
 def test_prd278_slot_persistence_failure_preserves_halt(tmp_path, monkeypatch):
-    """R8 (red pre-change): a slot-write OSError after the HALT is already
-    written must not send a second notification or overwrite the HALT."""
+    """R7/R8 (red pre-change; Codex correction): a slot-write OSError after
+    the HALT is already written must not send a second notification, must
+    not overwrite the HALT, and -- since slot persistence now runs after
+    market-map publication -- must not prevent the coherent current-
+    generation halted map from being written either."""
     from cuttingboard.runtime import KILL_SWITCH_HALT_REASON
 
     _setup_tmp_artifacts_with_market_map(monkeypatch, tmp_path)
@@ -1584,9 +1587,41 @@ def test_prd278_slot_persistence_failure_preserves_halt(tmp_path, monkeypatch):
     mock_send.assert_called_once()
     hourly_run = _read_hourly_run(tmp_path)
     hourly_contract = _read_hourly_contract(tmp_path)
+    market_map = _read_hourly_market_map(tmp_path)
     assert hourly_run["kill_switch"] is True
     assert hourly_run["halt_reason"] == KILL_SWITCH_HALT_REASON
     assert hourly_contract["outcome"] == "HALT"
+    assert market_map["generation_id"] == hourly_run["generation_id"]
+
+
+def test_prd278_trend_history_collection_failure_preserves_halt(tmp_path, monkeypatch):
+    """R8 (red pre-change; Codex correction): a fetch_ohlcv failure while
+    collecting trend-structure history for the hourly post-write snapshot
+    must not propagate to the outer handler -- that would send a second
+    failure notification and overwrite the already-recorded HALT.
+    _collect_trend_structure_history now treats a raising fetch_ohlcv the
+    same as one that returns None (its own documented contract): the
+    symbol is omitted, not propagated."""
+    from cuttingboard.runtime import KILL_SWITCH_HALT_REASON
+
+    _setup_tmp_artifacts_with_market_map(monkeypatch, tmp_path)
+    patches = _patch_pipeline_trip()
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7], patches[8], patches[9]:
+        with patch(
+            "cuttingboard.runtime.fetch_ohlcv",
+            side_effect=RuntimeError("fetch_ohlcv unavailable"),
+        ), patches[10] as mock_send:
+            result = _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    assert result["status"] == SUMMARY_STATUS_SUCCESS
+    mock_send.assert_called_once()
+    hourly_run = _read_hourly_run(tmp_path)
+    hourly_contract = _read_hourly_contract(tmp_path)
+    market_map = _read_hourly_market_map(tmp_path)
+    assert hourly_run["kill_switch"] is True
+    assert hourly_run["halt_reason"] == KILL_SWITCH_HALT_REASON
+    assert hourly_contract["outcome"] == "HALT"
+    assert market_map["generation_id"] == hourly_run["generation_id"]
 
 
 def test_prd278_derive_run_status_receives_outcome_halt_on_trip():
