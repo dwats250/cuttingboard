@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 280,
-  "next_prd": 281,
+  "latest_complete": 281,
+  "next_prd": 282,
   "entries": [
     {
       "number": 56,
@@ -1352,6 +1352,12 @@
       "title": "Decision-state color derives from authoritative title, not system_halted alone",
       "status": "COMPLETE",
       "commit": "#198"
+    },
+    {
+      "number": 281,
+      "title": "Decision-State WHY Summary",
+      "status": "COMPLETE",
+      "commit": "#199"
     }
   ]
 }

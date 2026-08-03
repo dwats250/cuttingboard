@@ -14,6 +14,7 @@ import html as _html
 import json
 import math
 import os
+import re
 import sys
 import time
 from datetime import datetime, timezone
@@ -729,6 +730,11 @@ _CSS = (
     ".sys-verdict.sys-halt{color:#f44336}"
     ".sys-context{color:#888;font-size:0.8rem;margin-top:2px}"
     ".sys-context.halted{color:#f44336}"
+    # PRD-281: WHY line -- the already-authoritative reason, promoted out of
+    # sys-context into its own line under the verdict. Bolder than
+    # sys-context (it is the headline answer to "why"), plainer than the
+    # decision-state/verdict colour classes (it never overrides HALT red).
+    ".sys-why{color:#ccc;font-size:0.85rem;font-weight:bold;margin-top:4px}"
     # PRD-279: Decision State Header -- prominent HALT/STAY FLAT/TRADE
     # PERMITTED label above the existing sys-verdict line. Reuses the
     # sys-up/sys-down/sys-flat/sys-halt colour classes for consistency.
@@ -2301,7 +2307,8 @@ def render_dashboard_html(
     w(f'  <div class="decision-state {_decision_state_cls}">{_esc(_decision_state)}</div>')
     w(f'  <div class="sys-verdict {_verdict_cls}">'
       f'{_esc(regime_permission_text)} · {_esc(title)}</div>')
-    # Context line: regime in plain words + the trader-facing reason (why).
+    # Context line: regime in plain words. PRD-281: the trader-facing reason
+    # ("why") moved to its own dedicated .sys-why line below.
     _regime_plain = _SYS_REGIME_PLAIN.get(
         str(market_regime), str(market_regime).replace("_", " ").title()
     )
@@ -2331,12 +2338,31 @@ def render_dashboard_html(
             _ctx_reason = "no qualified setups"
     else:
         _ctx_reason = None
-    # R2: never surface the raw engine internals (regime=…, confidence=…).
-    if _ctx_reason and "confidence=" in str(_ctx_reason):
-        _ctx_reason = str(_ctx_reason).split(" (regime=")[0].strip()
-    _ctx = _esc(_regime_plain) + " regime"
+    # R2/PRD-281 R4: never surface raw engine internals (regime=…,
+    # confidence=…) or a literal None/NULL sentinel. Each pattern is
+    # stripped independently of the other -- a bare "confidence=0.25" with
+    # no "(regime=" wrapper, or vice versa, must not survive either -- and a
+    # reason that collapses to nothing (or IS the sentinel, before or after
+    # stripping -- e.g. "None (regime=RISK_OFF, confidence=0.25)" strips down
+    # to bare "None") is treated as no reason, not rendered as an empty/raw
+    # WHY line. The sentinel check runs both before AND after stripping.
     if _ctx_reason:
-        _ctx += " · " + _esc(str(_ctx_reason))
+        _reason_str = str(_ctx_reason).strip()
+        if _reason_str not in ("None", "NULL"):
+            _reason_str = re.sub(r"\s*\(?\s*regime=.*", "", _reason_str)
+            _reason_str = re.sub(r"\s*\(?\s*confidence=.*", "", _reason_str)
+            _reason_str = _reason_str.strip()
+        _ctx_reason = None if _reason_str in ("None", "NULL", "") else _reason_str
+    # PRD-281: the reason renders exactly once, in the dedicated WHY line
+    # below -- never appended to the regime context line (superseding, for
+    # this one display, PRD-219's "folds into the context line" choice).
+    # Shown only for HALT / STAY FLAT with a computable reason; TRADE
+    # PERMITTED needs no reason, and STATE UNAVAILABLE (including mixed
+    # artifacts) must never pair a confident-looking reason with an
+    # untrustworthy or unresolved decision state.
+    if _ctx_reason and _decision_state in ("HALT", "STAY FLAT"):
+        w(f'  <div class="sys-why">WHY: {_esc(str(_ctx_reason))}</div>')
+    _ctx = _esc(_regime_plain) + " regime"
     _ctx_cls = " halted" if bool(system_halted) else ""
     w(f'  <div class="sys-context{_ctx_cls}">{_ctx}</div>')
     if bool(kill_switch):

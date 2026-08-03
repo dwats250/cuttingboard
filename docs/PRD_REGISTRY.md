@@ -298,6 +298,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-278 | #196 | Hourly kill-switch bypass: evaluate before qualification, carry terminal HALT through hourly outputs | COMPLETE | [PRD-278](prd_history/PRD-278.md) |
 | PRD-279 | #197 | Decision State Header for the dashboard | COMPLETE | [PRD-279](prd_history/PRD-279.md) |
 | PRD-280 | #198 | Decision-state color derives from authoritative title, not system_halted alone | COMPLETE | [PRD-280](prd_history/PRD-280.md) |
+| PRD-281 | #199 | Decision-State WHY Summary | COMPLETE | [PRD-281](prd_history/PRD-281.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
