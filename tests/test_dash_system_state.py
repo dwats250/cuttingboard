@@ -428,3 +428,34 @@ def test_prd281_why_line_never_leaks_raw_internals() -> None:
     assert "confidence=" not in why
     assert "None" not in why
     assert "NULL" not in why
+
+
+def test_prd281_why_line_strips_bare_confidence_without_regime_prefix() -> None:
+    # Codex correction (P2): a confidence=-bearing reason with no preceding
+    # " (regime=" wrapper must still be sanitized, not pass through raw
+    # because the old split() only fired on the combined format. Stripping
+    # the entire reason here collapses it to nothing, so the WHY line is
+    # correctly suppressed rather than showing an empty/raw value.
+    run = _run(system_halted=True, errors=["confidence=0.25"])
+    html = render_dashboard_html(_payload(), run)
+    state = _header_block(html)
+    assert not _has_why(state)
+    assert "confidence=" not in state
+
+
+def test_prd281_why_line_suppressed_for_literal_none_string() -> None:
+    # Codex correction (P2): first_error/stay_flat_reason resolving to the
+    # literal string "None" (e.g. str(None) from an upstream bug) must not
+    # render "WHY: None" -- it is treated as no reason.
+    run = _run(system_halted=True, errors=["None"])
+    html = render_dashboard_html(_payload(), run)
+    state = _header_block(html)
+    assert not _has_why(state)
+
+
+def test_prd281_why_line_suppressed_for_literal_null_string() -> None:
+    payload = _payload(validation_halt_detail={"reason": "NULL"})
+    run = _run(system_halted=True, errors=[])
+    html = render_dashboard_html(payload, run)
+    state = _header_block(html)
+    assert not _has_why(state)

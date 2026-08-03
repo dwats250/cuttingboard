@@ -14,6 +14,7 @@ import html as _html
 import json
 import math
 import os
+import re
 import sys
 import time
 from datetime import datetime, timezone
@@ -2337,9 +2338,20 @@ def render_dashboard_html(
             _ctx_reason = "no qualified setups"
     else:
         _ctx_reason = None
-    # R2: never surface the raw engine internals (regime=…, confidence=…).
-    if _ctx_reason and "confidence=" in str(_ctx_reason):
-        _ctx_reason = str(_ctx_reason).split(" (regime=")[0].strip()
+    # R2/PRD-281 R4: never surface raw engine internals (regime=…,
+    # confidence=…) or a literal None/NULL sentinel. Each pattern is
+    # stripped independently of the other -- a bare "confidence=0.25" with
+    # no "(regime=" wrapper, or vice versa, must not survive either -- and a
+    # reason that collapses to nothing (or is exactly the sentinel) is
+    # treated as no reason, not rendered as an empty/raw WHY line.
+    if _ctx_reason:
+        _reason_str = str(_ctx_reason).strip()
+        if _reason_str in ("None", "NULL"):
+            _ctx_reason = None
+        else:
+            _reason_str = re.sub(r"\s*\(?\s*regime=.*", "", _reason_str)
+            _reason_str = re.sub(r"\s*\(?\s*confidence=.*", "", _reason_str)
+            _ctx_reason = _reason_str.strip() or None
     # PRD-281: the reason renders exactly once, in the dedicated WHY line
     # below -- never appended to the regime context line (superseding, for
     # this one display, PRD-219's "folds into the context line" choice).
