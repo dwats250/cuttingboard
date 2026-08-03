@@ -25,7 +25,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
   (repository-verified implementation program) — on Dustin's merge of PR #187
   these become the product portfolio and delivery program (NS-0B
   ratification); until then they are held drafts.
-- **Active PRD:** none in progress.
+- **Active PRD:** PRD-279 (Decision State Header for the dashboard), Gate A approved 2026-08-03 (Dustin's authorization message is the design-direction ruling and Gate A for this bounded slice; non-MATERIAL per GOV-2 §1); implementation in progress.
 - **Active PRD note (2026-07-13):** kept as a single-line bulleted pointer,
   not a multi-line block, matching PRD-183's convention that
   `scripts/prd_close.sh`'s closeout regex depends on (it replaces only
