@@ -2392,6 +2392,58 @@ def render_dashboard_html(
       f'{_esc(_updated_pt) if _updated_pt else "unknown"}</div>')
     w("</div>")
 
+    # --- opportunity-survival (PRD-282) ---
+    # Trader-facing survival funnel: how many symbols were surfaced, how many
+    # survived to qualified, how many were watchlisted, how many rejected --
+    # plus the single most common rejection reason. Every value is read from
+    # data already present in the payload at the renderer; no new schema,
+    # contract, or taxonomy (GOV-2 NOT MATERIAL). Rendered only over a coherent
+    # lineage with a real scan (symbols_scanned > 0). That gate also makes the
+    # qualified derivation exact: a REGIME short-circuit is the only path that
+    # puts a non-QUALIFICATION record into sections.rejected, and it forces
+    # symbols_scanned == 0 (qualification skipped) -- so whenever this block
+    # renders, len(sections.rejected) == the payload's rejected_count and
+    # (surfaced - rejected - watchlist) == the upstream qualified_count. The
+    # derivation is the inverse of symbols_scanned's own definition, not a
+    # divergent proxy (PRD-198 invariant 3); the >= 0 clamp guards a state the
+    # gate already excludes.
+    _os_meta = payload.get("meta") or {}
+    _os_surfaced = _os_meta.get("symbols_scanned")
+    if isinstance(_os_surfaced, int) and _os_surfaced > 0 and not unhealthy_lineage:
+        _os_sections = payload.get("sections") or {}
+        _os_rejected = _os_sections.get("rejected") or []
+        _os_watchlist = _os_sections.get("watchlist") or []
+        _os_rejected_n = len(_os_rejected)
+        _os_watchlist_n = len(_os_watchlist)
+        _os_qualified_n = max(0, _os_surfaced - _os_rejected_n - _os_watchlist_n)
+        # Primary rejection reason: the mode of the pipeline's own existing
+        # `reason` strings among the rejected records -- not a new taxonomy.
+        # Deterministic tie-break: highest count, then smallest reason string.
+        _os_primary = None
+        if _os_rejected_n > 0:
+            _os_tally: dict[str, int] = {}
+            for _r in _os_rejected:
+                _reason = _r.get("reason") if isinstance(_r, dict) else None
+                if _reason:
+                    _key = str(_reason)
+                    _os_tally[_key] = _os_tally.get(_key, 0) + 1
+            if _os_tally:
+                _os_primary = sorted(
+                    _os_tally.items(), key=lambda kv: (-kv[1], kv[0])
+                )[0][0]
+        w('<div class="block" id="opportunity-survival">')
+        w('  <h2>OPPORTUNITY SURVIVAL</h2>')
+        w('  <div class="kv-grid">')
+        w(f'    <div class="label">SURFACED</div><div class="value">{_os_surfaced}</div>')
+        w(f'    <div class="label">QUALIFIED</div><div class="value">{_os_qualified_n}</div>')
+        w(f'    <div class="label">WATCHLIST</div><div class="value">{_os_watchlist_n}</div>')
+        w(f'    <div class="label">REJECTED</div><div class="value">{_os_rejected_n}</div>')
+        if _os_primary is not None:
+            w('    <div class="label">PRIMARY REJECTION</div>'
+              f'<div class="value">{_esc(_os_primary)}</div>')
+        w('  </div>')
+        w("</div>")
+
     # --- alert-watchlist ---
     if alert_candidates:
         w('<div class="block" id="alert-watchlist">')
