@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from cuttingboard.delivery.dashboard_renderer import render_dashboard_html
 
-from tests.dash_helpers import _market_map, _payload, _run
+from tests.dash_helpers import _macro_drivers, _market_map, _mm_symbol, _payload, _run
 
 
 # ---------------------------------------------------------------------------
@@ -296,9 +296,13 @@ def test_system_state_reason_no_candidates() -> None:
         state = html.split('id="system-state"', 1)[1].split('id="alert-watchlist"', 1)[0]
     else:
         state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
-    # PRD-219: the reason folds into the context line (no separate Reason field).
-    assert "no qualified setups" in state
+    # PRD-281: the reason renders in the dedicated WHY line, not the context
+    # line (supersedes PRD-219's "folds into the context line" choice).
+    why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
+    assert "no qualified setups" in why
     assert "candidates gated" not in state
+    context = state.split('class="sys-context', 1)[1].split("</div>", 1)[0]
+    assert "no qualified setups" not in context
 
 
 def test_system_state_reason_candidates_gated() -> None:
@@ -310,5 +314,117 @@ def test_system_state_reason_candidates_gated() -> None:
         state = html.split('id="system-state"', 1)[1].split('id="alert-watchlist"', 1)[0]
     else:
         state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
-    assert "candidates gated" in state
+    why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
+    assert "candidates gated" in why
     assert "no qualified candidates" not in state
+    context = state.split('class="sys-context', 1)[1].split("</div>", 1)[0]
+    assert "candidates gated" not in context
+
+
+# ---------------------------------------------------------------------------
+# PRD-281 — Decision-State WHY Summary
+# ---------------------------------------------------------------------------
+
+def _has_why(state: str) -> bool:
+    return 'class="sys-why"' in state
+
+
+def test_prd281_halt_first_error_shows_why() -> None:
+    run = _run(system_halted=True, errors=["disk full"])
+    html = render_dashboard_html(_payload(), run)
+    state = _header_block(html)
+    assert 'class="decision-state sys-halt">HALT</div>' in state
+    why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
+    assert "disk full" in why
+
+
+def test_prd281_halt_stay_flat_reason_shows_why_when_no_error() -> None:
+    payload = _payload(validation_halt_detail={"reason": "STAY_FLAT regime"})
+    run = _run(system_halted=True, errors=[])
+    html = render_dashboard_html(payload, run)
+    state = _header_block(html)
+    assert 'class="decision-state sys-halt">HALT</div>' in state
+    why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
+    assert "STAY_FLAT regime" in why
+
+
+def test_prd281_non_halt_explicit_error_shows_why() -> None:
+    run = _run(system_halted=False, outcome="NO_TRADE", errors=["late data feed"])
+    html = render_dashboard_html(_payload(), run)
+    state = _header_block(html)
+    assert 'class="decision-state sys-up">STAY FLAT</div>' in state
+    why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
+    assert "late data feed" in why
+
+
+def test_prd281_no_qualified_setups_shows_why() -> None:
+    html = render_dashboard_html(
+        _payload(validation_halt_detail=None), _run(permission=None), alert_candidates=[]
+    )
+    state = _header_block(html)
+    assert 'class="decision-state sys-up">STAY FLAT</div>' in state
+    why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
+    assert "no qualified setups" in why
+
+
+def test_prd281_candidates_gated_shows_why() -> None:
+    from tests.dash_helpers import _trade_decision
+    gated = [_trade_decision("META", "LONG", decision_status="BLOCK_TRADE", block_reason="LATE_SESSION")]
+    html = render_dashboard_html(
+        _payload(validation_halt_detail=None), _run(permission=None), alert_candidates=gated
+    )
+    state = _header_block(html)
+    why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
+    assert "candidates gated" in why
+
+
+def test_prd281_high_grade_setups_gated_shows_count_in_why() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A+"), "QQQ": _mm_symbol("QQQ", grade="A")})
+    html = render_dashboard_html(
+        _payload(validation_halt_detail=None), _run(permission=None, outcome="NO_TRADE"), market_map=mm
+    )
+    state = _header_block(html)
+    why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
+    assert "2 setups gated" in why
+
+
+def test_prd281_trade_permitted_has_no_why_line() -> None:
+    html = render_dashboard_html(_payload(), _run(system_halted=False, outcome="TRADE"))
+    state = _header_block(html)
+    assert 'class="decision-state sys-up">TRADE PERMITTED</div>' in state
+    assert not _has_why(state)
+
+
+def test_prd281_mixed_artifacts_no_trade_has_no_why_line() -> None:
+    # The mandatory suppression: a lineage mismatch must never pair a
+    # confident-looking reason (e.g. "no qualified setups") with
+    # STATE UNAVAILABLE, even though outcome=NO_TRADE would otherwise
+    # compute one.
+    payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
+    run = _run(outcome="NO_TRADE")
+    run["timestamp"] = "2026-04-28T12:00:00Z"
+    mm = _market_map()
+    payload["meta"]["generation_id"] = "gen-a"
+    run["generation_id"] = "gen-b"
+    mm["generation_id"] = "gen-a"
+
+    html = render_dashboard_html(payload, run, market_map=mm)
+    state = _header_block(html)
+    assert 'class="decision-state sys-flat">STATE UNAVAILABLE</div>' in state
+    assert not _has_why(state)
+    assert "no qualified setups" not in state
+    assert "candidates gated" not in state
+
+
+def test_prd281_why_line_never_leaks_raw_internals() -> None:
+    payload = _payload(
+        validation_halt_detail={"reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.25)"}
+    )
+    run = _run(system_halted=True, errors=[])
+    html = render_dashboard_html(payload, run)
+    state = _header_block(html)
+    why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
+    assert "(regime=" not in why
+    assert "confidence=" not in why
+    assert "None" not in why
+    assert "NULL" not in why

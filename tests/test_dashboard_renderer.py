@@ -861,15 +861,18 @@ def test_halted_state_verdict_shows_halt() -> None:
     assert "SYSTEM HALT" in state
 
 
-def test_halted_state_reason_in_context_line() -> None:
-    # PRD-219: the halt reason folds into the context line under the verdict.
+def test_halted_state_reason_in_why_line() -> None:
+    # PRD-281: the halt reason renders in the dedicated WHY line (superseding,
+    # for this one display, PRD-219's "folds into the context line" choice).
     payload = _payload(validation_halt_detail={"reason": "STAY_FLAT regime"})
     run = _run(system_halted=True)
     html = render_dashboard_html(payload, run)
     state = _system_state_block(html)
     assert "SYSTEM HALT" in state
+    why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
+    assert "STAY_FLAT regime" in why
     context = state.split('class="sys-context', 1)[1].split("</div>", 1)[0]
-    assert "STAY_FLAT regime" in context
+    assert "STAY_FLAT regime" not in context
 
 
 def test_non_halted_renders_verdict_no_permission_field() -> None:
@@ -994,16 +997,22 @@ def test_prd279_mixed_artifacts_shows_state_unavailable_not_stay_flat() -> None:
 
 
 def test_prd279_existing_system_state_lines_unchanged() -> None:
-    # R4: the pre-existing verdict/context/timestamp lines are byte-identical
-    # to their current form -- the new header only adds lines, never edits.
+    # R4: the pre-existing verdict/timestamp lines are byte-identical to
+    # their current form -- PRD-279's header only added lines, never edited.
+    # PRD-281 is the one deliberate exception: it moves the reason out of
+    # .sys-context into its own .sys-why line (see
+    # test_halted_state_reason_in_why_line), so .sys-context now carries the
+    # regime phrase only.
     run = _run(system_halted=True)
     payload = _payload(validation_halt_detail={"reason": "STAY_FLAT regime"})
     html = render_dashboard_html(payload, run)
     state = _system_state_block(html)
     assert 'class="sys-verdict sys-halt"' in state
     assert "SYSTEM HALT" in state
+    why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
+    assert "STAY_FLAT regime" in why
     context = state.split('class="sys-context', 1)[1].split("</div>", 1)[0]
-    assert "STAY_FLAT regime" in context
+    assert "STAY_FLAT regime" not in context
     assert _updated_value(state)
 
 
@@ -1233,13 +1242,16 @@ def test_permission_none_does_not_mutate_run_dict() -> None:
     assert run["permission"] is None
 
 
-def test_permission_none_reason_in_context_line() -> None:
-    # PRD-219: the reason folds into the context line (no separate Reason field).
+def test_permission_none_reason_in_why_line() -> None:
+    # PRD-281: the reason renders in the dedicated WHY line, not the context
+    # line (supersedes PRD-219's "folds into the context line" choice).
     run = _run(permission=None)
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
+    why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
+    assert "no qualified setups" in why
     context = state.split('class="sys-context', 1)[1].split("</div>", 1)[0]
-    assert "no qualified setups" in context
+    assert "no qualified setups" not in context
 
 
 def test_macro_pressure_missing_shows_unavailable() -> None:
