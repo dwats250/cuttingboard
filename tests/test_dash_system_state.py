@@ -580,6 +580,19 @@ def test_prd282_survival_suppressed_on_missing_market_map() -> None:
     assert 'id="opportunity-survival"' not in html
 
 
+def test_prd282_survival_suppressed_on_non_int_scan() -> None:
+    # R2: a missing or non-int symbols_scanned suppresses the block (the
+    # isinstance guard), never rendering garbage or raising. payload.py always
+    # emits an int, so this guards the defensive branch R2's prose names.
+    payload, run, mm = _coherent_survival(5)
+    del payload["meta"]["symbols_scanned"]  # missing key -> .get() returns None
+    assert 'id="opportunity-survival"' not in render_dashboard_html(payload, run, market_map=mm)
+
+    payload2, run2, mm2 = _coherent_survival(5)
+    payload2["meta"]["symbols_scanned"] = "5"  # non-int
+    assert 'id="opportunity-survival"' not in render_dashboard_html(payload2, run2, market_map=mm2)
+
+
 def test_prd282_primary_rejection_is_modal_reason() -> None:
     # R3: the most frequent reason among rejected records wins.
     payload, run, mm = _coherent_survival(
