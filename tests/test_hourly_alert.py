@@ -1331,3 +1331,382 @@ def test_format_hourly_legacy_header_uses_pt_then_et():
     lines = body.split("\n")
     assert lines[0] == "1:00 PM PT"
     assert lines[1] == "16:00 ET"
+
+
+# ---------------------------------------------------------------------------
+# PRD-278: hourly kill-switch bypass -- evaluate before qualification, carry
+# terminal HALT through hourly outputs (CB-01)
+# ---------------------------------------------------------------------------
+
+def _real_validation(*, halted: bool = False) -> "ValidationSummary":
+    # dataclasses.replace() (R3's escalation path) requires a real dataclass
+    # instance -- the MagicMock-based _validation() helper above is not one.
+    from cuttingboard.validation import ValidationSummary
+
+    return ValidationSummary(
+        system_halted=halted,
+        halt_reason="test halt" if halted else None,
+        failed_halt_symbols=[],
+        results={},
+        valid_quotes={},
+        invalid_symbols={},
+        symbols_attempted=0,
+        symbols_validated=0,
+        symbols_failed=0,
+    )
+
+
+def _trip_regime_vix() -> RegimeState:
+    # Sustained VIX level > 35 with no matching single-interval %-change spike
+    # (> 0.15), and posture pinned away from STAY_FLAT (confidence well above
+    # MIN_REGIME_CONFIDENCE) -- discriminates the new kill-switch gate from
+    # the pre-existing CHAOTIC/STAY_FLAT posture gate.
+    return _regime(posture="DEFENSIVE_SHORT", regime="RISK_OFF", confidence=0.62, vix_level=40.0, vix_pct_change=0.02)
+
+
+def _trip_quotes_spy() -> dict:
+    # |SPY %change| > 0.03, VIX otherwise quiet -- the second, independent
+    # discriminating bypass case. Also carries the non-optional macro-driver
+    # quotes (_build_macro_drivers) build_pipeline_output_contract requires
+    # whenever normalized_quotes is non-empty -- unrelated to the kill switch
+    # itself (_kill_switch reads regime.vix_level/vix_pct_change, not this
+    # ^VIX quote), just required for the contract build not to raise.
+    from cuttingboard.normalization import NormalizedQuote
+
+    def _quote(symbol: str, price: float, pct_change: float = 0.001) -> NormalizedQuote:
+        return NormalizedQuote(
+            symbol=symbol,
+            price=price,
+            pct_change_decimal=pct_change,
+            volume=1_000_000.0,
+            fetched_at_utc=datetime(2026, 4, 23, 14, 30, tzinfo=timezone.utc),
+            source="test",
+            units="usd_price",
+            age_seconds=1.0,
+        )
+
+    return {
+        "SPY": _quote("SPY", 400.0, -0.045),
+        "^VIX": _quote("^VIX", 18.0),
+        "DX-Y.NYB": _quote("DX-Y.NYB", 104.0),
+        "^TNX": _quote("^TNX", 4.3),
+        "BTC-USD": _quote("BTC-USD", 60000.0),
+    }
+
+
+def _patch_pipeline_trip(*, quotes: dict | None = None):
+    """Kill-switch-tripped hourly pipeline: quote validation clears, regime is
+    computed, but the trip must be detected before any of compute_all_derived/
+    resolve_sector_router/_load_flow/generate_candidates/qualify_all run. Each
+    is patched to raise if reached, so this fixture is itself a red test for
+    R2's early-exit boundary."""
+    def _unreachable(name):
+        def _raise(*_a, **_kw):
+            raise AssertionError(f"{name} must not run on a kill-switch trip")
+        return _raise
+
+    return [
+        patch("cuttingboard.runtime.fetch_all", return_value={}),
+        patch("cuttingboard.runtime.normalize_all", return_value=quotes or {}),
+        patch("cuttingboard.runtime.extract_fetch_failures", return_value={}),
+        patch("cuttingboard.runtime.validate_quotes", return_value=_real_validation()),
+        patch("cuttingboard.runtime.compute_regime", return_value=_trip_regime_vix()),
+        patch("cuttingboard.runtime.compute_all_derived", side_effect=_unreachable("compute_all_derived")),
+        patch("cuttingboard.runtime.resolve_sector_router", side_effect=_unreachable("resolve_sector_router")),
+        patch("cuttingboard.runtime._load_flow", side_effect=_unreachable("_load_flow")),
+        patch("cuttingboard.runtime.generate_candidates", side_effect=_unreachable("generate_candidates")),
+        patch("cuttingboard.runtime.qualify_all", side_effect=_unreachable("qualify_all")),
+        patch("cuttingboard.runtime.send_notification", return_value=True),
+    ]
+
+
+def _setup_tmp_artifacts_with_market_map(monkeypatch, tmp_path):
+    import cuttingboard.runtime as runtime
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
+    monkeypatch.setattr(
+        runtime, "LATEST_HOURLY_MARKET_MAP_PATH", tmp_path / "logs" / "latest_hourly_market_map.json"
+    )
+
+
+def _read_hourly_contract(tmp_path) -> dict:
+    return json.loads((tmp_path / "logs" / "latest_hourly_contract.json").read_text(encoding="utf-8"))
+
+
+def _read_hourly_market_map(tmp_path) -> dict:
+    return json.loads((tmp_path / "logs" / "latest_hourly_market_map.json").read_text(encoding="utf-8"))
+
+
+def test_prd278_trip_gates_candidates_and_expensive_work(tmp_path, monkeypatch):
+    """R2 (red pre-change): a kill-switch trip must not reach candidate
+    generation/qualification or any of compute_all_derived/resolve_sector_router/
+    _load_flow -- proven here by making each raise if called."""
+    from cuttingboard.runtime import KILL_SWITCH_HALT_REASON, SUMMARY_STATUS_SUCCESS
+
+    _setup_tmp_artifacts_with_market_map(monkeypatch, tmp_path)
+    patches = _patch_pipeline_trip()
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7], patches[8], patches[9], patches[10] as mock_send:
+        result = _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    # A detected trip is a successful run, not an exception.
+    assert result["status"] == SUMMARY_STATUS_SUCCESS
+    mock_send.assert_called_once()
+
+    hourly_run = _read_hourly_run(tmp_path)
+    assert hourly_run["kill_switch"] is True
+    assert hourly_run["system_halted"] is True
+    assert hourly_run["halt_reason"] == KILL_SWITCH_HALT_REASON
+    assert hourly_run["status"] == SUMMARY_STATUS_FAIL
+    assert hourly_run["outcome"] == "HALT"
+    assert hourly_run["candidates_qualified"] == 0
+    assert hourly_run["candidate_lines"] == []
+
+    hourly_contract = _read_hourly_contract(tmp_path)
+    assert hourly_contract["outcome"] == "HALT"
+
+
+def test_prd278_trip_via_spy_move_gates_candidates(tmp_path, monkeypatch):
+    """R2: the second discriminating bypass case (|SPY %change| > 0.03, VIX
+    otherwise quiet) trips independently of the VIX leg."""
+    from cuttingboard.runtime import KILL_SWITCH_HALT_REASON
+
+    _setup_tmp_artifacts_with_market_map(monkeypatch, tmp_path)
+    quiet_vix_regime = _regime(posture="DEFENSIVE_SHORT", regime="RISK_OFF", confidence=0.62, vix_level=18.0, vix_pct_change=0.01)
+    patches = _patch_pipeline_trip(quotes=_trip_quotes_spy())
+    with patches[0], patches[1], patches[2], patches[3]:
+        with patch("cuttingboard.runtime.compute_regime", return_value=quiet_vix_regime):
+            with patches[5], patches[6], patches[7], patches[8], patches[9], patches[10]:
+                result = _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    assert result["status"] == SUMMARY_STATUS_SUCCESS
+    hourly_run = _read_hourly_run(tmp_path)
+    assert hourly_run["kill_switch"] is True
+    assert hourly_run["halt_reason"] == KILL_SWITCH_HALT_REASON
+
+
+def test_prd278_trip_produces_coherent_current_generation_market_map(tmp_path, monkeypatch):
+    """R7 (red pre-change): the hourly channel must still publish a market map
+    on a trip, sharing the run/payload's exact generation_id, so the dashboard
+    coherent-publish gate accepts the written triple."""
+    from pathlib import Path
+
+    from cuttingboard.delivery import dashboard_renderer as _dr
+
+    _setup_tmp_artifacts_with_market_map(monkeypatch, tmp_path)
+    patches = _patch_pipeline_trip()
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7], patches[8], patches[9], patches[10]:
+        _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    hourly_run = _read_hourly_run(tmp_path)
+    market_map = _read_hourly_market_map(tmp_path)
+    assert market_map["generation_id"] == hourly_run["generation_id"]
+
+    hourly_payload = json.loads((tmp_path / "logs" / "latest_hourly_payload.json").read_text(encoding="utf-8"))
+    # PRD-119 freshness gate (unrelated to this PRD) reads real wall-clock by
+    # default; freeze it near the fixture's run_at_utc so only the PRD-118
+    # coherence check under test is exercised.
+    monkeypatch.setattr(_dr, "_utcnow", lambda: datetime(2026, 4, 23, 14, 31, tzinfo=timezone.utc))
+    # Must not raise: exact generation_id equality across payload/run/market_map.
+    _dr.validate_coherent_publish(
+        payload=hourly_payload,
+        run=hourly_run,
+        market_map=market_map,
+        output_path=Path("ui") / "dashboard.html",
+        fixture_mode=False,
+    )
+
+
+def test_prd278_malformed_previous_market_map_preserves_halt(tmp_path, monkeypatch):
+    """R7/R8 (red pre-change): a malformed prior hourly market map must not
+    block publishing the current coherent map or clobber the recorded HALT."""
+    _setup_tmp_artifacts_with_market_map(monkeypatch, tmp_path)
+    patches = _patch_pipeline_trip()
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7], patches[8], patches[9]:
+        with patch(
+            "cuttingboard.runtime._load_previous_market_map",
+            side_effect=RuntimeError("Previous market_map.json is malformed"),
+        ), patches[10] as mock_send:
+            result = _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    assert result["status"] == SUMMARY_STATUS_SUCCESS
+    mock_send.assert_called_once()
+    hourly_run = _read_hourly_run(tmp_path)
+    hourly_contract = _read_hourly_contract(tmp_path)
+    market_map = _read_hourly_market_map(tmp_path)
+    assert hourly_run["kill_switch"] is True
+    assert hourly_run["status"] == SUMMARY_STATUS_FAIL
+    assert hourly_contract["outcome"] == "HALT"
+    assert market_map["generation_id"] == hourly_run["generation_id"]
+
+
+def test_prd278_market_map_write_failure_preserves_halt(tmp_path, monkeypatch):
+    """R8 (red pre-change): a failure writing the market map itself -- not
+    only reading the previous one -- must not reach the outer handler and
+    overwrite the already-recorded HALT with a generic failure."""
+    _setup_tmp_artifacts_with_market_map(monkeypatch, tmp_path)
+    patches = _patch_pipeline_trip()
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7], patches[8], patches[9]:
+        with patch(
+            "cuttingboard.runtime._write_market_map_file",
+            side_effect=OSError("disk full"),
+        ), patches[10] as mock_send:
+            result = _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    assert result["status"] == SUMMARY_STATUS_SUCCESS
+    mock_send.assert_called_once()
+    hourly_run = _read_hourly_run(tmp_path)
+    hourly_contract = _read_hourly_contract(tmp_path)
+    assert hourly_run["kill_switch"] is True
+    assert hourly_run["status"] == SUMMARY_STATUS_FAIL
+    assert hourly_run["halt_reason"] is not None and "malformed" not in hourly_run["halt_reason"]
+    from cuttingboard.runtime import KILL_SWITCH_HALT_REASON
+    assert hourly_run["halt_reason"] == KILL_SWITCH_HALT_REASON
+    assert hourly_contract["outcome"] == "HALT"
+
+
+def test_prd278_slot_persistence_failure_preserves_halt(tmp_path, monkeypatch):
+    """R7/R8 (red pre-change; Codex correction): a slot-write OSError after
+    the HALT is already written must not send a second notification, must
+    not overwrite the HALT, and -- since slot persistence now runs after
+    market-map publication -- must not prevent the coherent current-
+    generation halted map from being written either."""
+    from cuttingboard.runtime import KILL_SWITCH_HALT_REASON
+
+    _setup_tmp_artifacts_with_market_map(monkeypatch, tmp_path)
+    patches = _patch_pipeline_trip()
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7], patches[8], patches[9]:
+        with patch(
+            "cuttingboard.notifications.hourly_slot.save_last_slot",
+            side_effect=OSError("disk full"),
+        ), patches[10] as mock_send:
+            result = _execute_notify_run(
+                mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY,
+                slot_utc=datetime(2026, 4, 23, 14, 0, tzinfo=timezone.utc),
+            )
+
+    assert result["status"] == SUMMARY_STATUS_SUCCESS
+    mock_send.assert_called_once()
+    hourly_run = _read_hourly_run(tmp_path)
+    hourly_contract = _read_hourly_contract(tmp_path)
+    market_map = _read_hourly_market_map(tmp_path)
+    assert hourly_run["kill_switch"] is True
+    assert hourly_run["halt_reason"] == KILL_SWITCH_HALT_REASON
+    assert hourly_contract["outcome"] == "HALT"
+    assert market_map["generation_id"] == hourly_run["generation_id"]
+
+
+def test_prd278_trend_history_collection_failure_preserves_halt(tmp_path, monkeypatch):
+    """R8 (red pre-change; Codex correction): a fetch_ohlcv failure while
+    collecting trend-structure history for the hourly post-write snapshot
+    must not propagate to the outer handler -- that would send a second
+    failure notification and overwrite the already-recorded HALT.
+    _collect_trend_structure_history now treats a raising fetch_ohlcv the
+    same as one that returns None (its own documented contract): the
+    symbol is omitted, not propagated."""
+    from cuttingboard.runtime import KILL_SWITCH_HALT_REASON
+
+    _setup_tmp_artifacts_with_market_map(monkeypatch, tmp_path)
+    patches = _patch_pipeline_trip()
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7], patches[8], patches[9]:
+        with patch(
+            "cuttingboard.runtime.fetch_ohlcv",
+            side_effect=RuntimeError("fetch_ohlcv unavailable"),
+        ), patches[10] as mock_send:
+            result = _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    assert result["status"] == SUMMARY_STATUS_SUCCESS
+    mock_send.assert_called_once()
+    hourly_run = _read_hourly_run(tmp_path)
+    hourly_contract = _read_hourly_contract(tmp_path)
+    market_map = _read_hourly_market_map(tmp_path)
+    assert hourly_run["kill_switch"] is True
+    assert hourly_run["halt_reason"] == KILL_SWITCH_HALT_REASON
+    assert hourly_contract["outcome"] == "HALT"
+    assert market_map["generation_id"] == hourly_run["generation_id"]
+
+
+def test_prd278_derive_run_status_receives_outcome_halt_on_trip():
+    """R5 (red pre-change): derive_run_status returns STATUS_STAY_FLAT for any
+    system_halted=True input regardless of its outcome argument, so the
+    serialized contract status can't reveal an unfixed hardcode site -- this
+    spies the exact argument derive_run_status receives instead."""
+    from cuttingboard.runtime import OUTCOME_HALT, OUTCOME_NO_TRADE, _build_hourly_contract
+
+    captured = {}
+
+    def _spy(outcome, regime, system_halted):
+        captured["outcome"] = outcome
+        from cuttingboard.contract import derive_run_status as real
+        return real(outcome, regime, system_halted)
+
+    val = _validation(halted=True)
+    with patch("cuttingboard.runtime.derive_run_status", side_effect=_spy):
+        _build_hourly_contract(
+            mode=MODE_LIVE,
+            run_at_utc=datetime(2026, 4, 23, 14, 30, tzinfo=timezone.utc),
+            run_date=date(2026, 4, 23),
+            raw_quotes={},
+            normalized_quotes={},
+            validation_summary=val,
+            regime=None,
+            router_state=None,
+            qualification_summary=None,
+            errors=[],
+            alert_sent=True,
+            kill_switch=True,
+        )
+
+    assert captured["outcome"] == OUTCOME_HALT
+    assert captured["outcome"] != OUTCOME_NO_TRADE
+
+
+def test_prd278_hourly_contract_outcome_clear_when_not_tripped():
+    """R5: the clear-state path is unchanged -- OUTCOME_NO_TRADE, not HALT."""
+    from cuttingboard.runtime import _build_hourly_contract
+
+    contract = _build_hourly_contract(
+        mode=MODE_LIVE,
+        run_at_utc=datetime(2026, 4, 23, 14, 30, tzinfo=timezone.utc),
+        run_date=date(2026, 4, 23),
+        raw_quotes={},
+        normalized_quotes={},
+        validation_summary=_validation(halted=False),
+        regime=_regime(),
+        router_state=_router_state(),
+        qualification_summary=None,
+        errors=[],
+        alert_sent=True,
+        kill_switch=False,
+    )
+    assert contract["outcome"] == "NO_TRADE"
+
+
+def test_prd278_failure_before_evaluation_reports_kill_switch_true(tmp_path, monkeypatch):
+    """R1/R6 (red pre-change): an exception before kill-switch evaluation
+    completes -- e.g. fetch_all failing -- must not raise UnboundLocalError,
+    and the failure summary must report kill_switch=true unconditionally."""
+    monkeypatch.chdir(tmp_path)
+    with (
+        patch("cuttingboard.runtime.fetch_all", side_effect=RuntimeError("data fetch failed")),
+        patch("cuttingboard.runtime.send_notification", return_value=True) as mock_send,
+    ):
+        result = _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    assert result["status"] == SUMMARY_STATUS_FAIL
+    mock_send.assert_called_once()
+    hourly_run = _read_hourly_run(tmp_path)
+    assert hourly_run["kill_switch"] is True
+
+
+def test_prd278_clear_state_reports_kill_switch_false(tmp_path, monkeypatch):
+    """R4: clear-state hourly behavior is unchanged -- kill_switch reports the
+    real evaluated value (false), not a hardcoded literal repurposed."""
+    _setup_tmp_artifacts_with_market_map(monkeypatch, tmp_path)
+    patches = _patch_pipeline_stay_flat()
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7]:
+        result = _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    assert result["status"] == SUMMARY_STATUS_SUCCESS
+    hourly_run = _read_hourly_run(tmp_path)
+    assert hourly_run["kill_switch"] is False
+    assert hourly_run["status"] == SUMMARY_STATUS_SUCCESS
+    assert hourly_run["outcome"] == "NO_TRADE"
