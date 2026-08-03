@@ -1346,6 +1346,12 @@
       "title": "Decision State Header for the dashboard",
       "status": "COMPLETE",
       "commit": "#197"
+    },
+    {
+      "number": 280,
+      "title": "Decision-state color derives from authoritative title, not system_halted alone",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
