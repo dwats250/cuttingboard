@@ -2272,7 +2272,12 @@ def render_dashboard_html(
     # ever propagating, and never infers TRADE PERMITTED from the absence
     # of HALT (it requires _decision_title's own "TRADE SETUP ACTIVE").
     try:
-        if title == "SYSTEM HALT":
+        if title == "MIXED_ARTIFACTS":
+            # PRD-279 (Codex correction): a lineage mismatch is a data-
+            # integrity error, not a coherent STAY FLAT decision -- never
+            # present a confident-looking state over untrustworthy data.
+            _decision_state, _decision_state_cls = "STATE UNAVAILABLE", "sys-flat"
+        elif title == "SYSTEM HALT":
             _decision_state, _decision_state_cls = "HALT", _verdict_cls
         elif title == "TRADE SETUP ACTIVE":
             _decision_state, _decision_state_cls = "TRADE PERMITTED", _verdict_cls

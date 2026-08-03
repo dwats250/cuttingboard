@@ -973,6 +973,26 @@ def test_prd279_state_unavailable_fallback_on_comparison_error(monkeypatch) -> N
     assert 'class="decision-state sys-flat">STATE UNAVAILABLE</div>' in state
 
 
+def test_prd279_mixed_artifacts_shows_state_unavailable_not_stay_flat() -> None:
+    # Codex correction (P2): a payload/run/market_map generation-ID mismatch
+    # is a data-integrity error, not a coherent decision -- the header must
+    # read STATE UNAVAILABLE, never a confident-looking STAY FLAT (which the
+    # pre-correction code rendered, misleadingly colored by regime).
+    payload = _payload(timestamp="2026-04-28T12:00:00Z", macro_drivers=_macro_drivers())
+    run = _run(outcome="TRADE")
+    run["timestamp"] = "2026-04-28T12:00:00Z"
+    mm = _market_map()
+    payload["meta"]["generation_id"] = "gen-a"
+    run["generation_id"] = "gen-b"
+    mm["generation_id"] = "gen-a"
+
+    html = render_dashboard_html(payload, run, market_map=mm)
+    state = _system_state_block(html)
+    assert 'class="decision-state sys-flat">STATE UNAVAILABLE</div>' in state
+    assert ">STAY FLAT</div>" not in state
+    assert "TRADE PERMITTED" not in state
+
+
 def test_prd279_existing_system_state_lines_unchanged() -> None:
     # R4: the pre-existing verdict/context/timestamp lines are byte-identical
     # to their current form -- the new header only adds lines, never edits.
