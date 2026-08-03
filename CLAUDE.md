@@ -299,6 +299,36 @@ each generalizes are canonical in `docs/prd_history/PRD-198.md` (Part A).
    SHA, dependency → declared AND locked. A movable identity changes behavior
    with no diff.
 
+## Execution posture
+
+- **The opening session charter is standing direction.** The session's opening
+  prompt sets priorities, task order, and budgets for the whole session; treat
+  it as in force without restatement. Later prompts may refer back to it rather
+  than repeat it. Only an explicit later instruction from Dustin overrides it;
+  silence does not.
+- **Bounded look-ahead before behavioral edits.** Before changing behavior,
+  inspect the narrow dependency cone the change touches: direct callers, direct
+  consumers, shared helpers, sibling outputs, fallback/error paths, post-write
+  operations, and tests encoding structural assumptions. Surface hidden sibling
+  behavior that could become inconsistent. This extends the Author disciplines
+  to behavioral changes — not license for a broad audit or architecture review.
+- **Solve the bounded behavior, not the reported line.** Fix the complete
+  behavior the defect implicates; prefer the smallest robust diff; preserve
+  unrelated behavior. Never expand schemas, architecture, files, or product
+  scope without explicit need and authorization — scope locking and VISION's
+  `cuts-before-additions` govern.
+- **Review economy.** Finish implementation, focused tests, and local
+  validation before commissioning a second-model review; commission one
+  consolidated review on the review-ready head; handle confirmed findings in
+  the single correction pass GOV-1 already allows. Adjacent or pre-existing
+  findings become follow-up proposals — they do not block the authorized seam.
+  Follow any exact-head confirmation required by GOV-2. Beyond that, a further
+  review is justified only by a concrete unresolved runtime, acceptance,
+  security, or authority risk introduced or left unresolved by the correction —
+  never for reassurance.
+- **Product behavior is the work; governance is the guardrail.** Do not reopen
+  closed audits or manufacture process work absent a concrete blocking defect.
+
 ## Working practices
 
 - **Session start.** Before any work: `git pull --ff-only origin main` and
