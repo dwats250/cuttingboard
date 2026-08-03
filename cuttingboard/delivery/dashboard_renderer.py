@@ -2321,6 +2321,19 @@ def render_dashboard_html(
             1 for _sym, _e in (market_map.get("symbols") or {}).items()
             if isinstance(_e, dict) and _e.get("grade", "") in _HIGH_GRADES
         )
+    # PRD-283 (CB-02): count options-sizing refusals from the payload so the WHY
+    # line names them instead of "no qualified setups" or "gated" — a refused
+    # setup qualified (so it may be high-grade in the market map) but was refused
+    # because its smallest contract exceeds the budget. Without this the WHY line
+    # contradicts the Opportunity Survival Summary, which already counts it.
+    _sizing_refusal_n = 0
+    _why_sections = payload.get("sections") or {}
+    _why_rejected = _why_sections.get("rejected")
+    if isinstance(_why_rejected, list):
+        _sizing_refusal_n = sum(
+            1 for _r in _why_rejected
+            if isinstance(_r, dict) and _r.get("stage") == "OPTIONS_SIZING"
+        )
     if bool(system_halted):
         # On a halt the operational error is the most actionable context;
         # fall back to the posture reason, then a generic label.
@@ -2330,7 +2343,15 @@ def render_dashboard_html(
     elif outcome in (None, "STAY_FLAT", "NO_TRADE"):
         # No trade taken. If the map holds actionable setups, say they're gated
         # (regime/posture standing down) rather than falsely claiming none exist.
-        if _hg_count > 0:
+        # PRD-283: an options-sizing refusal is the precise cause and takes
+        # precedence — a refused setup may still be high-grade, so "gated" and
+        # "no qualified setups" would both be wrong here.
+        if _sizing_refusal_n > 0:
+            _ctx_reason = (
+                f"{_sizing_refusal_n} setup{'s' if _sizing_refusal_n != 1 else ''} "
+                f"refused: contract exceeds risk budget"
+            )
+        elif _hg_count > 0:
             _ctx_reason = f"{_hg_count} setup{'s' if _hg_count != 1 else ''} gated"
         elif alert_candidates:
             _ctx_reason = "candidates gated"

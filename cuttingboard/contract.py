@@ -88,6 +88,7 @@ def build_pipeline_output_contract(
     artifacts: dict[str, Any],
     timezone_name: str = "America/New_York",
     data_quality: Optional[str] = None,
+    options_refusals: Optional[list] = None,
 ) -> PipelineContract:
     """Build a PipelineOutputContract dict from a completed PipelineResult.
 
@@ -138,7 +139,7 @@ def build_pipeline_output_contract(
             getattr(pr, "invalidation_guidance_map", None),
             getattr(pr, "entry_quality_map", None),
         ),
-        "rejections": _build_rejections(qual),
+        "rejections": _build_rejections(qual, options_refusals),
         "audit_summary": _build_audit_summary(qual, errors),
         "artifacts": _build_artifacts(artifacts, pr),
         "correlation": _build_correlation(correlation),
@@ -379,11 +380,19 @@ def _build_trade_candidates(
     return candidates
 
 
-def _build_rejections(qual: Optional[QualificationSummary]) -> list[dict[str, Any]]:
-    if qual is None:
+def _build_rejections(
+    qual: Optional[QualificationSummary],
+    options_refusals: Optional[list] = None,
+) -> list[dict[str, Any]]:
+    if qual is None and not options_refusals:
         return []
 
     rejections: list[dict[str, Any]] = []
+
+    if qual is None:
+        # No qualification summary but options refusals exist (defensive; the
+        # production path always has a summary when refusals are present).
+        return _options_sizing_rejections(options_refusals)
 
     if qual.regime_short_circuited and qual.regime_failure_reason:
         rejections.append({
@@ -409,6 +418,29 @@ def _build_rejections(qual: Optional[QualificationSummary]) -> list[dict[str, An
             "detail": None,
         })
 
+    # PRD-283 (CB-02): options-layer refusals — a qualified setup whose
+    # smallest contract exceeds the correlation-adjusted budget. New stage
+    # value on the existing {symbol,stage,reason,detail} shape (no new key).
+    rejections.extend(_options_sizing_rejections(options_refusals))
+
+    return rejections
+
+
+def _options_sizing_rejections(options_refusals: Optional[list]) -> list[dict[str, Any]]:
+    """Render OptionRefusal carriers as contract rejection entries (PRD-283)."""
+    rejections: list[dict[str, Any]] = []
+    for refusal in options_refusals or []:
+        rejections.append({
+            "symbol": _safe_str(getattr(refusal, "symbol", None)),
+            "stage": _safe_str(getattr(refusal, "stage", None)),
+            "reason": _safe_str(getattr(refusal, "reason", None)),
+            "detail": {
+                "strategy": _safe_str(getattr(refusal, "strategy", None)),
+                "risk_per_contract": getattr(refusal, "risk_per_contract", None),
+                "adjusted_budget": getattr(refusal, "adjusted_budget", None),
+                "risk_modifier": getattr(refusal, "risk_modifier", None),
+            },
+        })
     return rejections
 
 

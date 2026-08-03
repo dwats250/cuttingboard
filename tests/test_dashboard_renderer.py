@@ -3948,6 +3948,40 @@ def test_prd220_context_no_qualified_when_truly_empty() -> None:
     assert "no qualified setups" in state
 
 
+def test_prd283_why_line_names_sizing_refusal() -> None:
+    # PRD-283 (CB-02): a run refused at options sizing must NOT read
+    # "no qualified setups" — that contradicts the Opportunity Survival Summary,
+    # which counts the refusal as REJECTED. The WHY line names the refusal.
+    payload = _payload()
+    payload["sections"]["rejected"] = [
+        {"symbol": "SPY", "stage": "OPTIONS_SIZING",
+         "reason": "SMALLEST_CONTRACT_EXCEEDS_BUDGET", "detail": None},
+    ]
+    html = render_dashboard_html(payload, _run(outcome="NO_TRADE", permission=None))
+    state = _system_state_block(html)
+    why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
+    assert "no qualified setups" not in why
+    assert "refused" in why.lower()
+
+
+def test_prd283_why_line_refusal_wins_over_gated_high_grade() -> None:
+    # A refused setup may still be high-grade in the market map; the sizing
+    # refusal is the precise cause and must win over the "N gated" wording.
+    payload = _payload()
+    payload["sections"]["rejected"] = [
+        {"symbol": "GDX", "stage": "OPTIONS_SIZING",
+         "reason": "SMALLEST_CONTRACT_EXCEEDS_BUDGET", "detail": None},
+    ]
+    mm = _market_map({"GDX": _mm_symbol("GDX", grade="A+")})
+    html = render_dashboard_html(
+        payload, _run(outcome="NO_TRADE", permission=None), market_map=mm
+    )
+    state = _system_state_block(html)
+    why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
+    assert "refused" in why.lower()
+    assert "gated" not in why
+
+
 def test_prd220_macro_pressure_one_bullet_per_line() -> None:
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
     line = html.split('class="macro-pressure-line', 1)[1].split("</div>", 1)[0]

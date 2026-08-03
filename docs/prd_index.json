@@ -1364,6 +1364,12 @@
       "title": "Opportunity Survival Summary",
       "status": "COMPLETE",
       "commit": "#203"
+    },
+    {
+      "number": 283,
+      "title": "Smallest-contract refusal: refuse when the smallest options contract exceeds the correlation-adjusted risk budget, and carry the true reason through every consumer",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

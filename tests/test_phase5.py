@@ -24,6 +24,9 @@ from cuttingboard.options import (
     _format_strikes,
     _estimated_debit,
     _max_loss_for_strategy,
+    OptionRefusal,
+    OPTIONS_SIZING,
+    SMALLEST_CONTRACT_EXCEEDS_BUDGET,
     BULL_CALL_SPREAD, BULL_PUT_SPREAD,
     BEAR_PUT_SPREAD, BEAR_CALL_SPREAD,
     _MAX_STRIKE_DIST_ETF, _MAX_STRIKE_DIST_STK,
@@ -43,7 +46,7 @@ from cuttingboard.qualification import (
 )
 from cuttingboard.regime import (
     RegimeState,
-    RISK_ON, RISK_OFF, TRANSITION, NEUTRAL,
+    RISK_ON, RISK_OFF, TRANSITION, NEUTRAL, EXPANSION,
     AGGRESSIVE_LONG, DEFENSIVE_SHORT, STAY_FLAT, NEUTRAL_PREMIUM,
 )
 from cuttingboard.structure import (
@@ -479,25 +482,32 @@ class TestBuildOptionSetups:
     def test_empty_input(self):
         assert build_option_setups([], {}, {}) == []
 
-    def test_credit_strategy_no_candidate_uses_strategy_aware_max_loss_prd256(self, monkeypatch):
-        # PRD-256 R3: candidate=None (the shape _qualify_continuation_candidate
-        # produces, since it never populates the candidates dict) must still
-        # be priced through _max_loss_for_strategy, not the raw debit-proxy
-        # fallback. Pre-PRD-256, this fallback was the exact site of the
-        # 2.333x CREDIT-strategy understatement -- absence of a resolved
-        # TradeCandidate is not license to skip the strategy-aware
-        # correction. Budget pinned to $150 via monkeypatch purely to keep
-        # the contract-count arithmetic legible; not testing budget choice.
+    def test_credit_strategy_below_one_contract_is_refused_prd283(self, monkeypatch):
+        # PRD-283 (CB-02; D-RULE 2026-07-24): when the smallest contract's
+        # strategy-aware max loss exceeds the adjusted budget, the setup is
+        # REFUSED — the old max(1, ...) floor that sized one budget-breaching
+        # contract here is removed. Budget pinned to $150 so a credit ETF
+        # ($350/contract) resolves below one contract (raw_adjusted == 0).
+        # (Was test_credit_strategy_no_candidate_uses_strategy_aware_max_loss_prd256,
+        # which asserted the now-removed floor: max_contracts == 1, $350.)
         monkeypatch.setattr(config, "ACCOUNT_EQUITY", 15000.0)
         monkeypatch.setattr(config, "MAX_RISK_PCT_PER_TRADE", 0.01)
         results = [_qual_result("SPY", direction="LONG", max_contracts=3, dollar_risk=150.0)]
         sr = {"SPY": _structure("SPY", TREND, HIGH_IV)}
         dm = {"SPY": _dm("SPY")}
-        setup = build_option_setups(results, sr, dm)[0]
-        assert setup.strategy == BULL_PUT_SPREAD
+        refusals: list[OptionRefusal] = []
+        setups = build_option_setups(results, sr, dm, refusals=refusals)
+        # Refused: no OptionSetup emitted, one refusal record with the token.
+        assert setups == []
+        assert len(refusals) == 1
+        refusal = refusals[0]
+        assert refusal.symbol == "SPY"
+        assert refusal.strategy == BULL_PUT_SPREAD
+        assert refusal.reason == SMALLEST_CONTRACT_EXCEEDS_BUDGET
+        assert refusal.stage == OPTIONS_SIZING
         expected_max_loss = _max_loss_for_strategy(BULL_PUT_SPREAD, _MAX_STRIKE_DIST_ETF)
-        assert setup.max_contracts == 1
-        assert setup.dollar_risk == pytest.approx(expected_max_loss * 100)
+        assert refusal.risk_per_contract == pytest.approx(expected_max_loss * 100)
+        assert refusal.adjusted_budget == pytest.approx(150.0)
 
     def test_continuation_shaped_credit_result_uses_strategy_aware_max_loss_prd256(self):
         # PRD-256 R3: an actual ENTRY_MODE_CONTINUATION result landing on a
@@ -616,6 +626,110 @@ class TestBuildOptionSetups:
         setup = build_option_setups(results, sr, dm, candidates={"SPY": candidate})[0]
         expected_max_loss = _max_loss_for_strategy(BULL_PUT_SPREAD, _MAX_STRIKE_DIST_ETF)
         assert setup.dollar_risk == pytest.approx(expected_max_loss * 100)
+
+
+class TestSmallestContractRefusal:
+    """PRD-283 (CB-02): refuse when the smallest contract exceeds the budget."""
+
+    def test_reason_token_and_stage_are_exact_literals(self):
+        # PRD-283 (CB-02): pin the EXACT literal strings, not the imported
+        # symbol — a renamed constant value must go red (the CB-03 lesson: an
+        # operator-approved reason that exists nowhere in code). Every other
+        # refusal test compares against the constant, which would move with a
+        # rename; this is the one anchor to the literal.
+        assert SMALLEST_CONTRACT_EXCEEDS_BUDGET == "SMALLEST_CONTRACT_EXCEEDS_BUDGET"
+        assert OPTIONS_SIZING == "OPTIONS_SIZING"
+
+    def _credit_etf(self, symbol="SPY", entry_mode=ENTRY_MODE_DIRECT):
+        # LONG + HIGH_IV -> BULL_PUT_SPREAD (credit); ETF width 5.0 -> $350/contract.
+        results = [_qual_result(symbol, direction="LONG", max_contracts=3,
+                                dollar_risk=350.0, entry_mode=entry_mode)]
+        sr = {symbol: _structure(symbol, TREND, HIGH_IV)}
+        dm = {symbol: _dm(symbol)}
+        return results, sr, dm
+
+    def test_direct_credit_conflict_refused_live_constants(self):
+        # CONFLICT modifier 0.4: budget $400.005 x 0.4 = $160.00 < $350 -> refuse.
+        results, sr, dm = self._credit_etf()
+        refusals: list[OptionRefusal] = []
+        setups = build_option_setups(results, sr, dm, risk_modifier=0.4, refusals=refusals)
+        assert setups == []
+        assert [r.reason for r in refusals] == [SMALLEST_CONTRACT_EXCEEDS_BUDGET]
+        assert refusals[0].risk_modifier == 0.4
+
+    def test_continuation_credit_conflict_refused(self):
+        # Same block, entry_mode=CONTINUATION (PRD-256 R3 unified path).
+        results, sr, dm = self._credit_etf(entry_mode=ENTRY_MODE_CONTINUATION)
+        refusals: list[OptionRefusal] = []
+        setups = build_option_setups(results, sr, dm, risk_modifier=0.4, refusals=refusals)
+        assert setups == []
+        assert len(refusals) == 1
+        assert refusals[0].reason == SMALLEST_CONTRACT_EXCEEDS_BUDGET
+
+    def test_neutral_credit_refused(self):
+        # NEUTRAL modifier 0.7: budget $280.00 < $350 -> refuse.
+        results, sr, dm = self._credit_etf()
+        refusals: list[OptionRefusal] = []
+        setups = build_option_setups(results, sr, dm, risk_modifier=0.7, refusals=refusals)
+        assert setups == []
+        assert len(refusals) == 1
+
+    def test_synthetic_budget_debit_refused(self, monkeypatch):
+        # Debit is unreachable at live constants (worst $150 < $160 floor); a
+        # synthetic tiny budget drives a debit result below one contract so the
+        # shared refusal path is proven for debit too.
+        monkeypatch.setattr(config, "ACCOUNT_EQUITY", 1000.0)
+        monkeypatch.setattr(config, "MAX_RISK_PCT_PER_TRADE", 0.05)  # budget $50
+        results = [_qual_result("SPY", direction="LONG", max_contracts=3,
+                                dollar_risk=150.0)]  # LONG+NORMAL_IV -> BULL_CALL debit
+        sr = {"SPY": _structure("SPY", TREND, NORMAL_IV)}
+        dm = {"SPY": _dm("SPY")}
+        refusals: list[OptionRefusal] = []
+        setups = build_option_setups(results, sr, dm, refusals=refusals)
+        assert setups == []
+        assert refusals and refusals[0].reason == SMALLEST_CONTRACT_EXCEEDS_BUDGET
+
+    def test_one_contract_in_budget_boundary_not_refused(self):
+        # ALIGNED 1.0: budget $400.005, credit ETF $350/contract ->
+        # raw_adjusted = int(400.005 // 350) = 1 -> EMITTED, exactly 1 contract.
+        # Off-by-one guard: a `<= 1` predicate would wrongly refuse this.
+        results, sr, dm = self._credit_etf()
+        results[0] = _qual_result("SPY", direction="LONG", max_contracts=1,
+                                  dollar_risk=350.0)
+        refusals: list[OptionRefusal] = []
+        setups = build_option_setups(results, sr, dm, risk_modifier=1.0, refusals=refusals)
+        assert refusals == []
+        assert len(setups) == 1
+        assert setups[0].max_contracts == 1
+        assert setups[0].dollar_risk == pytest.approx(350.0)
+
+    def test_aligned_multi_contract_not_refused(self):
+        # ALIGNED debit single name well within budget -> emitted, no refusal.
+        results = [_qual_result("AAPL", direction="LONG", max_contracts=5,
+                                dollar_risk=75.0)]
+        sr = {"AAPL": _structure("AAPL", TREND, NORMAL_IV)}
+        dm = {"AAPL": _dm("AAPL")}
+        refusals: list[OptionRefusal] = []
+        setups = build_option_setups(results, sr, dm, risk_modifier=1.0, refusals=refusals)
+        assert refusals == []
+        assert len(setups) == 1
+        assert setups[0].max_contracts >= 1
+
+    def test_missing_data_skip_is_not_a_refusal(self):
+        # A qualified symbol with no StructureResult is a MISSING-DATA skip,
+        # NOT a sizing refusal — it must never carry the refusal token.
+        results = [_qual_result("SPY", direction="LONG")]
+        refusals: list[OptionRefusal] = []
+        setups = build_option_setups(results, {}, {}, refusals=refusals)
+        assert setups == []
+        assert refusals == []
+
+    def test_refusals_out_parameter_optional(self):
+        # Omitting the out-parameter preserves the list return and does not
+        # crash — the refused symbol is simply dropped.
+        results, sr, dm = self._credit_etf()
+        setups = build_option_setups(results, sr, dm, risk_modifier=0.4)
+        assert setups == []
 
 
 # ---------------------------------------------------------------------------
@@ -787,6 +901,43 @@ class TestRenderReport:
 
     def test_no_trade_contains_data_status(self):
         assert "Validated" in self._no_trade_report()
+
+    def test_expansion_refusal_states_refusal_not_no_continuation_prd283(self):
+        # PRD-283 (CB-02): an EXPANSION run whose continuation candidate is
+        # refused at options sizing must state the refusal as the primary
+        # no-trade cause — NOT "No valid continuation entries yet" (the entry
+        # did qualify), which would also contradict the REFUSED block below.
+        expansion_regime = _regime(regime=EXPANSION, posture=AGGRESSIVE_LONG)
+        refusal = OptionRefusal(
+            symbol="SPY", strategy=BULL_PUT_SPREAD,
+            risk_per_contract=350.0, adjusted_budget=160.0, risk_modifier=0.4,
+        )
+        report = render_report(
+            date_str="2026-04-10", run_at_utc=_NOW,
+            regime=expansion_regime, validation_summary=_val_summary(),
+            qualification_summary=_qual_summary(), option_setups=[],
+            outcome=OUTCOME_NO_TRADE, option_refusals=[refusal],
+        )
+        # Primary no-trade cause is the sizing refusal.
+        assert "refused at options sizing" in report
+        # The detailed OPTIONS SIZING refusal block still renders.
+        assert "REFUSED — OPTIONS SIZING" in report
+        assert "SPY" in report
+        # The misleading EXPANSION fallback text is absent.
+        assert "No valid continuation entries yet" not in report
+
+    def test_expansion_no_refusal_still_shows_continuation_fallback_prd283(self):
+        # Preservation: EXPANSION with NO sizing refusal keeps the existing
+        # continuation-fallback wording.
+        expansion_regime = _regime(regime=EXPANSION, posture=AGGRESSIVE_LONG)
+        report = render_report(
+            date_str="2026-04-10", run_at_utc=_NOW,
+            regime=expansion_regime, validation_summary=_val_summary(),
+            qualification_summary=_qual_summary(), option_setups=[],
+            outcome=OUTCOME_NO_TRADE,
+        )
+        assert "No valid continuation entries yet" in report
+        assert "REFUSED — OPTIONS SIZING" not in report
 
     def test_halt_report_contains_halt_label(self):
         val = _val_summary(validated=17, failed=3)

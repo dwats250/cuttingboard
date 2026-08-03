@@ -136,6 +136,36 @@ def test_r2_no_setups_fallback_unchanged():
     assert result == "no setups"
 
 
+# ---------------------------------------------------------------------------
+# PRD-283 (CB-02) — options-sizing refusal replaces the generic "no setups"
+# ---------------------------------------------------------------------------
+
+def test_options_sizing_refusal_reason_prd283():
+    contract = {
+        "rejections": [
+            {"symbol": "SPY", "stage": "OPTIONS_SIZING",
+             "reason": "SMALLEST_CONTRACT_EXCEEDS_BUDGET", "detail": None},
+        ],
+    }
+    result = output._alert_reason(contract, has_candidates=False)
+    assert result != "no setups"
+    assert "refused" in result.lower()
+
+
+def test_options_sizing_does_not_override_real_stay_flat_reason_prd283():
+    # The refusal only replaces the generic "no setups" — a real stay-flat
+    # reason still wins.
+    contract = {
+        "system_state": {"stay_flat_reason": "CHOP regime"},
+        "rejections": [
+            {"symbol": "SPY", "stage": "OPTIONS_SIZING",
+             "reason": "SMALLEST_CONTRACT_EXCEEDS_BUDGET", "detail": None},
+        ],
+    }
+    result = output._alert_reason(contract, has_candidates=False)
+    assert result == "CHOP regime"
+
+
 def test_r2_full_coverage_reason_unchanged():
     """total_votes == len(_VOTE_KEYS): the producer emits no clause at all."""
     reason = _check_regime_gates(_regime(total_votes=len(_VOTE_KEYS)))

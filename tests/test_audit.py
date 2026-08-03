@@ -3,7 +3,12 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from cuttingboard.audit import _build_record
-from cuttingboard.options import OptionSetup
+from cuttingboard.options import (
+    OPTIONS_SIZING,
+    SMALLEST_CONTRACT_EXCEEDS_BUDGET,
+    OptionRefusal,
+    OptionSetup,
+)
 from cuttingboard.qualification import QualificationResult, QualificationSummary
 from cuttingboard.regime import AGGRESSIVE_LONG, RegimeState, RISK_ON
 from cuttingboard.trade_decision import ALLOW_TRADE, TradeDecision
@@ -196,6 +201,61 @@ def test_audit_qualified_trades_sizing_sources_from_option_setup() -> None:
     entry = record["qualified_trades"][0]
     assert entry["contracts"] == 1
     assert entry["dollar_risk"] == 60.0
+
+
+def test_audit_options_refusal_carrier_not_silent_none_row_prd283() -> None:
+    """PRD-283 (CB-02): a symbol refused at options sizing is carried in the
+    dedicated options_refusals field with its proving economics, and is NOT
+    emitted as a silent-None qualified_trades row."""
+    result = QualificationResult(
+        symbol="SPY", qualified=True, watchlist=False, direction="LONG",
+        gates_passed=["REGIME"], gates_failed=[], hard_failure=None,
+        watchlist_reason=None, max_contracts=3, dollar_risk=350.0,
+    )
+    qual = QualificationSummary(
+        regime_passed=True, regime_short_circuited=False, regime_failure_reason=None,
+        qualified_trades=[result], watchlist=[], excluded={},
+        symbols_evaluated=1, symbols_qualified=1, symbols_watchlist=0, symbols_excluded=0,
+    )
+    refusal = OptionRefusal(
+        symbol="SPY", strategy="BULL_PUT_SPREAD",
+        risk_per_contract=350.0, adjusted_budget=160.0, risk_modifier=0.4,
+    )
+    record = _build_record(
+        run_at_utc=RUN_AT, date_str="2026-04-29", outcome="NO_TRADE", regime=None,
+        validation_summary=_validation_summary(), qualification_summary=qual,
+        option_setups=[], trade_decisions=[], halt_reason=None, alert_sent=False,
+        report_path="reports/2026-04-29.md", option_refusals=[refusal],
+    )
+    # No silent-None qualified row for the refused symbol.
+    assert [e for e in record["qualified_trades"] if e["symbol"] == "SPY"] == []
+    # Explicit refusal carrier with the token and economics.
+    assert len(record["options_refusals"]) == 1
+    carrier = record["options_refusals"][0]
+    assert carrier["symbol"] == "SPY"
+    assert carrier["strategy"] == "BULL_PUT_SPREAD"
+    assert carrier["stage"] == OPTIONS_SIZING
+    assert carrier["reason"] == SMALLEST_CONTRACT_EXCEEDS_BUDGET
+    assert carrier["risk_per_contract"] == 350.0
+    assert carrier["adjusted_budget"] == 160.0
+    assert carrier["risk_modifier"] == 0.4
+
+
+def test_audit_no_refusals_empty_carrier_prd283() -> None:
+    """A run with no refusals carries an empty options_refusals list (present,
+    not absent — so consumers can rely on the key)."""
+    qual = QualificationSummary(
+        regime_passed=True, regime_short_circuited=False, regime_failure_reason=None,
+        qualified_trades=[], watchlist=[], excluded={},
+        symbols_evaluated=0, symbols_qualified=0, symbols_watchlist=0, symbols_excluded=0,
+    )
+    record = _build_record(
+        run_at_utc=RUN_AT, date_str="2026-04-29", outcome="NO_TRADE", regime=None,
+        validation_summary=_validation_summary(), qualification_summary=qual,
+        option_setups=[], trade_decisions=[], halt_reason=None, alert_sent=False,
+        report_path="reports/2026-04-29.md",
+    )
+    assert record["options_refusals"] == []
 
 
 def _qualification_summary(

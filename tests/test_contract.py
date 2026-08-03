@@ -33,7 +33,7 @@ from cuttingboard.contract import (
     derive_run_status,
 )
 from cuttingboard.chain_validation import ChainValidationResult, VALIDATED
-from cuttingboard.options import OptionSetup
+from cuttingboard.options import OptionRefusal, OptionSetup
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.output import OUTCOME_HALT, OUTCOME_NO_TRADE, render_report
 from cuttingboard.qualification import (
@@ -690,6 +690,32 @@ def test_regime_rejection_included_when_short_circuited():
     regime_rejections = [r for r in contract["rejections"] if r["stage"] == "REGIME"]
     assert len(regime_rejections) == 1
     assert regime_rejections[0]["reason"] == "STAY_FLAT_LOW_CONF"
+
+
+def test_options_sizing_refusal_included_in_rejections_prd283():
+    # PRD-283 (CB-02): a threaded OptionRefusal lands as an OPTIONS_SIZING
+    # rejection entry using the existing {symbol,stage,reason,detail} shape.
+    qual = _qual_summary()
+    pr = _FakePipelineResult(regime=_regime(), qualification_summary=qual)
+    refusal = OptionRefusal(
+        symbol="SPY", strategy="BULL_PUT_SPREAD",
+        risk_per_contract=350.0, adjusted_budget=160.0, risk_modifier=0.4,
+    )
+    contract = _build(pr, options_refusals=[refusal])
+    sizing = [r for r in contract["rejections"] if r["stage"] == "OPTIONS_SIZING"]
+    assert len(sizing) == 1
+    assert sizing[0]["symbol"] == "SPY"
+    assert sizing[0]["reason"] == "SMALLEST_CONTRACT_EXCEEDS_BUDGET"
+    assert set(sizing[0].keys()) == {"symbol", "stage", "reason", "detail"}
+    # assert_valid_contract still passes with the new stage present.
+    assert_valid_contract(contract)
+
+
+def test_no_options_sizing_rejection_when_none_refused_prd283():
+    qual = _qual_summary(excluded={"TSLA": "CHOP"})
+    pr = _FakePipelineResult(regime=_regime(), qualification_summary=qual)
+    contract = _build(pr)
+    assert not [r for r in contract["rejections"] if r["stage"] == "OPTIONS_SIZING"]
 
 
 # ---------------------------------------------------------------------------

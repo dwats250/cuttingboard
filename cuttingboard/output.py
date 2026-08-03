@@ -38,7 +38,7 @@ from cuttingboard.chain_validation import (
     ChainValidationResult,
     VALIDATED,
 )
-from cuttingboard.options import OptionSetup
+from cuttingboard.options import OPTIONS_SIZING, OptionRefusal, OptionSetup
 from cuttingboard.qualification import QualificationSummary
 from cuttingboard.regime import RegimeState, EXPANSION
 from cuttingboard.universe import is_tradable_symbol
@@ -238,6 +238,37 @@ OUTCOME_HALT     = "HALT"
 # Report renderer
 # ---------------------------------------------------------------------------
 
+def _render_sizing_refusals(lines: list, refusals: list) -> None:
+    """PRD-283 (CB-02): render options-sizing refusals in the report body.
+
+    A qualified setup whose smallest contract exceeds the correlation-adjusted
+    risk budget is refused — it appears NEITHER in A+ TRADES nor CHAIN
+    UNVERIFIED, so without this block it would vanish silently. Names each
+    refused symbol and the proving economics.
+    """
+    if not refusals:
+        return
+    lines.append(f"  REFUSED — OPTIONS SIZING  ({len(refusals)})")
+    lines.append("  " + "─" * 50)
+    lines.append(
+        "  Smallest expressible contract exceeds the adjusted risk budget —"
+    )
+    lines.append(
+        "  no position size fits. Not a chain/qualification failure."
+    )
+    for refusal in refusals:
+        symbol = getattr(refusal, "symbol", "?")
+        strategy = getattr(refusal, "strategy", "?")
+        rpc = getattr(refusal, "risk_per_contract", 0.0) or 0.0
+        budget = getattr(refusal, "adjusted_budget", 0.0) or 0.0
+        modifier = getattr(refusal, "risk_modifier", 1.0) or 1.0
+        lines.append(
+            f"  {symbol:<8}  {strategy:<18}  "
+            f"smallest ${rpc:.0f} > adjusted budget ${budget:.0f} (x{modifier:.2f})"
+        )
+    lines.append("")
+
+
 def render_report(
     date_str: str,
     run_at_utc: datetime,
@@ -249,11 +280,13 @@ def render_report(
     halt_reason: Optional[str] = None,
     chain_results: Optional[dict[str, "ChainValidationResult"]] = None,
     watch_summary: Optional[WatchSummary] = None,
+    option_refusals: Optional[list] = None,
     **_: object,
 ) -> str:
     """Render the full report as a string (terminal and markdown use same text)."""
     lines: list[str] = []
     cr = chain_results or {}
+    refusals = list(option_refusals or [])
 
     # ---- Header ----
     lines.append(_BORDER)
@@ -298,7 +331,19 @@ def render_report(
         lines.append(f"  {halt_reason or 'unknown halt reason'}")
 
     elif outcome == OUTCOME_NO_TRADE:
-        if regime is not None and regime.regime == EXPANSION:
+        if refusals:
+            # PRD-283 (CB-02): a smallest-contract sizing refusal is the concrete
+            # no-trade cause and takes precedence over the EXPANSION continuation
+            # fallback below — in EXPANSION the refused candidate DID qualify, so
+            # "No valid continuation entries yet" both misleads and contradicts
+            # the REFUSED block rendered later. Never the generic "no qualifying
+            # setups" either.
+            lines.append("  NO TRADE")
+            lines.append(
+                f"  Reason: {len(refusals)} setup"
+                f"{'s' if len(refusals) != 1 else ''} refused at options sizing"
+            )
+        elif regime is not None and regime.regime == EXPANSION:
             lines.append("  EXPANSION MODE — No valid continuation entries yet")
         else:
             lines.append("  NO TRADE")
@@ -403,6 +448,11 @@ def render_report(
             lines.append("")
             for setup in unverified_setups:
                 _setup_detail(setup)
+
+    # PRD-283 (CB-02): options-sizing refusals render for every outcome — a
+    # refused setup appears in neither A+ TRADES nor CHAIN UNVERIFIED, so this
+    # is its only report-body representation.
+    _render_sizing_refusals(lines, refusals)
 
     if (
         regime is not None
@@ -548,6 +598,23 @@ def render_report_from_payload(payload: dict) -> str:
     vhd = sections.get("validation_halt_detail")
     halt_reason: Optional[str] = vhd.get("reason") if vhd else None
 
+    # PRD-283 (CB-02): reconstruct options-sizing refusals from the payload's
+    # rejected section so the delivered HTML surfaces them (the adapter
+    # otherwise renders with option_setups=[] and would drop the refusal).
+    payload_refusals: list[OptionRefusal] = []
+    for r in sections.get("rejected") or []:
+        if r.get("stage") != OPTIONS_SIZING:
+            continue
+        detail = r.get("detail") or {}
+        modifier = detail.get("risk_modifier")
+        payload_refusals.append(OptionRefusal(
+            symbol=r.get("symbol") or "?",
+            strategy=detail.get("strategy") or "?",
+            risk_per_contract=detail.get("risk_per_contract") or 0.0,
+            adjusted_budget=detail.get("adjusted_budget") or 0.0,
+            risk_modifier=1.0 if modifier is None else modifier,
+        ))
+
     symbols_scanned = int(meta.get("symbols_scanned") or 0)
     stub_validation = ValidationSummary(
         system_halted=(run_status == "ERROR"),
@@ -572,6 +639,7 @@ def render_report_from_payload(payload: dict) -> str:
         halt_reason=halt_reason,
         chain_results=None,
         watch_summary=None,
+        option_refusals=payload_refusals,
     )
 
 
@@ -921,6 +989,21 @@ def _fit_reason(text: str, limit: int = _REASON_LIMIT) -> str:
     return text[:head_budget] + _REASON_ELLIPSIS + clause
 
 
+def _sizing_refusal_reason(contract: dict) -> Optional[str]:
+    """PRD-283 (CB-02): plain-language notification reason for an all-refused run.
+
+    Returns None unless the contract carries at least one OPTIONS_SIZING
+    rejection, so it only ever replaces the generic ``no setups`` fallback —
+    never a real regime/stay-flat reason.
+    """
+    rejections = contract.get("rejections") or []
+    sizing = [r for r in rejections if r.get("stage") == OPTIONS_SIZING]
+    if not sizing:
+        return None
+    n = len(sizing)
+    return f"{n} setup{'s' if n != 1 else ''} refused: smallest contract exceeds budget"
+
+
 def _alert_reason(contract: dict, *, has_candidates: bool) -> str:
     if has_candidates:
         return "candidates gated"
@@ -930,6 +1013,7 @@ def _alert_reason(contract: dict, *, has_candidates: bool) -> str:
         system_state.get("stay_flat_reason")
         or audit_summary.get("regime_failure_reason")
         or contract.get("error_detail")
+        or _sizing_refusal_reason(contract)
         or "no setups"
     )
     return _fit_reason(str(reason).replace("\n", " "))
