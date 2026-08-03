@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 277,
-  "next_prd": 278,
+  "latest_complete": 278,
+  "next_prd": 279,
   "entries": [
     {
       "number": 56,
@@ -1338,8 +1338,8 @@
     {
       "number": 278,
       "title": "Hourly kill-switch bypass: evaluate before qualification, carry terminal HALT through hourly outputs",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#196"
     }
   ]
 }
