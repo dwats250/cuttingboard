@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from cuttingboard.delivery.dashboard_renderer import render_dashboard_html
 
-from tests.dash_helpers import _payload, _run
+from tests.dash_helpers import _market_map, _payload, _run
 
 
 # ---------------------------------------------------------------------------
@@ -184,6 +184,26 @@ def test_prd280_system_halted_true_still_renders_halt_color() -> None:
     state = _header_block(html)
     assert 'class="decision-state sys-halt">HALT</div>' in state
     assert 'class="sys-verdict sys-halt"' in state
+
+
+def test_prd280_mixed_artifacts_with_explicit_halt_preserves_halt_color() -> None:
+    # Codex correction (P2): when artifact generation IDs are mixed, `title`
+    # is overridden to "MIXED_ARTIFACTS" even if system_halted=True -- the
+    # R1 title-only check would then lose the red sys-halt signal on
+    # .sys-verdict (falling to the RISK_ON regime's green sys-up) for a
+    # genuinely halted run. system_halted must still force sys-halt.
+    payload = _payload(market_regime="RISK_ON")
+    run = _run(system_halted=True)
+    mm = _market_map()
+    payload["meta"]["generation_id"] = "gen-a"
+    run["generation_id"] = "gen-b"
+    mm["generation_id"] = "gen-a"
+
+    html = render_dashboard_html(payload, run, market_map=mm)
+    state = _header_block(html)
+    assert "MIXED_ARTIFACTS" in state
+    assert 'class="sys-verdict sys-halt"' in state
+    assert "sys-up" not in state
 
 
 def test_prd280_normal_risk_on_run_still_renders_sys_up() -> None:
