@@ -907,6 +907,87 @@ def test_kill_switch_run_shows_kill_switch() -> None:
 
 
 # ---------------------------------------------------------------------------
+# PRD-279: Decision State Header
+# ---------------------------------------------------------------------------
+
+def test_prd279_halted_shows_decision_state_halt() -> None:
+    run = _run(system_halted=True)
+    html = render_dashboard_html(_payload(), run)
+    state = _system_state_block(html)
+    assert '<div class="decision-state-label">DECISION STATE</div>' in state
+    assert 'class="decision-state sys-halt">HALT</div>' in state
+
+
+def test_prd279_kill_switch_halt_shows_decision_state_halt() -> None:
+    # A kill-switch trip escalates system_halted=True (PRD-278); the header
+    # must still read HALT, and the existing kill-switch context line stays.
+    run = _run(system_halted=True, kill_switch=True)
+    html = render_dashboard_html(_payload(), run)
+    state = _system_state_block(html)
+    assert 'class="decision-state sys-halt">HALT</div>' in state
+    assert "Kill switch active" in state
+
+
+def test_prd279_trade_outcome_shows_decision_state_trade_permitted() -> None:
+    run = _run(system_halted=False, outcome="TRADE")
+    html = render_dashboard_html(_payload(), run)
+    state = _system_state_block(html)
+    assert 'decision-state sys-up">TRADE PERMITTED</div>' in state
+
+
+def test_prd279_no_trade_shows_decision_state_stay_flat() -> None:
+    run = _run(system_halted=False, outcome="NO_TRADE")
+    html = render_dashboard_html(_payload(), run)
+    state = _system_state_block(html)
+    assert ">STAY FLAT</div>" in state
+    assert "TRADE PERMITTED" not in state
+
+
+def test_prd279_unrecognized_outcome_never_shows_trade_permitted() -> None:
+    # R1 (red pre-change is the risk being guarded against, not the current
+    # code): TRADE PERMITTED must never be inferred merely from the absence
+    # of HALT -- an outcome _decision_title doesn't recognize as "TRADE"
+    # must fall back to STAY FLAT, not TRADE PERMITTED.
+    run = _run(system_halted=False, outcome="SOMETHING_ELSE")
+    html = render_dashboard_html(_payload(), run)
+    state = _system_state_block(html)
+    assert ">STAY FLAT</div>" in state
+    assert "TRADE PERMITTED" not in state
+
+
+def test_prd279_state_unavailable_fallback_on_comparison_error(monkeypatch) -> None:
+    # R2: an unexpected error deriving the decision state must fall back to
+    # STATE UNAVAILABLE, never crash the render or silently show a state.
+    import cuttingboard.delivery.dashboard_renderer as dr
+
+    class _RaisingEq:
+        def __eq__(self, other):
+            raise RuntimeError("boom")
+
+        def __str__(self):
+            return "adversarial"
+
+    monkeypatch.setattr(dr, "_decision_title", lambda *a, **k: _RaisingEq())
+    html = render_dashboard_html(_payload(), _run())
+    state = _system_state_block(html)
+    assert 'class="decision-state sys-flat">STATE UNAVAILABLE</div>' in state
+
+
+def test_prd279_existing_system_state_lines_unchanged() -> None:
+    # R4: the pre-existing verdict/context/timestamp lines are byte-identical
+    # to their current form -- the new header only adds lines, never edits.
+    run = _run(system_halted=True)
+    payload = _payload(validation_halt_detail={"reason": "STAY_FLAT regime"})
+    html = render_dashboard_html(payload, run)
+    state = _system_state_block(html)
+    assert 'class="sys-verdict sys-halt"' in state
+    assert "SYSTEM HALT" in state
+    context = state.split('class="sys-context', 1)[1].split("</div>", 1)[0]
+    assert "STAY_FLAT regime" in context
+    assert _updated_value(state)
+
+
+# ---------------------------------------------------------------------------
 # PRD-090: Candidate Board Display Tiers
 # ---------------------------------------------------------------------------
 
