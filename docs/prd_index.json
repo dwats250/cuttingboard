@@ -1352,6 +1352,12 @@
       "title": "Decision-state color derives from authoritative title, not system_halted alone",
       "status": "COMPLETE",
       "commit": "#198"
+    },
+    {
+      "number": 281,
+      "title": "Decision-State WHY Summary",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
