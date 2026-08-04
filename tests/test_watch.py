@@ -274,6 +274,41 @@ def test_prior_session_orb_is_invalid_session_mismatch():
     assert metrics.orb_high is None and metrics.orb_low is None
 
 
+def test_pre_open_prior_session_abstains_not_invalid():
+    # The scheduled live run fires pre-open (13:00 UTC = 09:00 ET); with
+    # prepost=False the latest regular-session frame is the prior day. This
+    # normal pre-open condition must abstain (PRE_OPEN), NOT fail closed as a
+    # stale session — otherwise every live run blocks all direct A+ trades.
+    df = _session_df(trading_day="2026-04-14", n_post=60)
+    metrics = compute_intraday_metrics(
+        "SPY",
+        intraday_fetcher=lambda symbol: df,
+        daily_fetcher=lambda symbol: _daily_frame(),
+        asof=datetime(2026, 4, 15, 13, 0, tzinfo=timezone.utc),  # 09:00 ET, pre-open
+    )
+    assert metrics is not None
+    assert metrics.orb is not None
+    assert metrics.orb.state == ORB_PRE_OPEN
+    assert metrics.orb.reason == "pre_open_prior_session"
+    assert metrics.orb_high is None and metrics.orb_low is None
+
+
+def test_prior_session_after_open_is_invalid():
+    # A prior-session frame consumed AFTER the opening range should have formed
+    # (10:00 ET) is a genuine stale session and fails closed.
+    df = _session_df(trading_day="2026-04-14", n_post=60)
+    metrics = compute_intraday_metrics(
+        "SPY",
+        intraday_fetcher=lambda symbol: df,
+        daily_fetcher=lambda symbol: _daily_frame(),
+        asof=datetime(2026, 4, 15, 14, 0, tzinfo=timezone.utc),  # 10:00 ET, post-open
+    )
+    assert metrics is not None
+    assert metrics.orb.state == ORB_INVALID
+    assert metrics.orb.reason == "session_mismatch"
+    assert metrics.orb_high is None
+
+
 def test_malformed_bounds_are_invalid():
     df = _session_df(formation_high=100.0, formation_low=110.0, n_post=20)
     orb = _session_orb(df, asof=None)

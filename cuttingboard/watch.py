@@ -425,10 +425,21 @@ def _session_orb(df: pd.DataFrame, asof: Optional[datetime]) -> OrbObservation:
     et_dates = list(et_index.date)
     trading_date = et_dates[-1]
 
-    # Session identity: bars must belong to the intended current session. A
-    # prior/stale or otherwise mismatched session is fail-closed INVALID, never
-    # presented as the current opening range.
+    # Session identity: a prior-session frame before the intended session's
+    # opening range can have formed (<=09:35 ET) is the benign pre-open
+    # condition — the scheduled live run fires pre-open at 13:00 UTC with
+    # prepost=False, so the latest frame is normally the prior day — and must
+    # abstain (PRE_OPEN), not block. Only a prior-session frame AFTER the range
+    # should have formed is a fail-closed stale session. Neither emits the
+    # prior-session ORB; INVALID additionally BLOCKS, PRE_OPEN keeps allow-flag.
     if intended_date is not None and trading_date != intended_date:
+        if asof.astimezone(EASTERN_TZ).time() <= ORB_WINDOW_END:
+            return OrbObservation(
+                state=ORB_PRE_OPEN,
+                trading_date=intended_date,
+                observed_at_utc=observed_at_utc,
+                reason="pre_open_prior_session",
+            )
         return OrbObservation(
             state=ORB_INVALID,
             trading_date=trading_date,
