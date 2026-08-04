@@ -303,6 +303,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-283 | — | Smallest-contract refusal: refuse when the smallest options contract exceeds the correlation-adjusted risk budget, and carry the true reason through every consumer | IN PROGRESS | [PRD-283](prd_history/PRD-283.md) |
 | PRD-284 | — | Full A2 materialization: apply the execution-policy size multiplier to contracts/dollar_risk, block at EXECUTION_POLICY when the position rounds to zero | IN PROGRESS | [PRD-284](prd_history/PRD-284.md) |
 | PRD-285 | — | Trade-brake dormancy (CB-04): stop counting recommendations/hypothetical evaluations as executed trades; hold trade-count, cooldown, and loss-lockout brakes fully dormant until a trustworthy execution/fill carrier exists | IN PROGRESS | [PRD-285](prd_history/PRD-285.md) |
+| PRD-286 | — | Macro-pressure fail-closed (CB-05): a macro-pressure computation failure must block, not silently degrade to "UNKNOWN" and allow full size | PROPOSED | [PRD-286](prd_history/PRD-286.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
