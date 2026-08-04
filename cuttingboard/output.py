@@ -269,6 +269,27 @@ def _render_sizing_refusals(lines: list, refusals: list) -> None:
     lines.append("")
 
 
+def _render_size_rounds_to_zero(lines: list, size_blocked) -> None:
+    """PRD-284 (CB-03): render execution-policy size_rounds_to_zero blocks.
+
+    A decision whose policy-scaled position floors to zero contracts is blocked
+    at EXECUTION_POLICY and excluded from A+ TRADES; without this block it would
+    vanish from the report body on a mixed run. Names each blocked symbol and
+    the canonical reason carried on the decision's EXECUTION_POLICY block path —
+    never a generic no-trade substitution.
+    """
+    if not size_blocked:
+        return
+    lines.append(f"  EXECUTION POLICY — SIZE ROUNDS TO ZERO  ({len(size_blocked)})")
+    lines.append("  " + "─" * 50)
+    lines.append(
+        "  Policy-scaled position rounds to zero contracts — blocked, not sized."
+    )
+    for symbol in sorted(size_blocked):
+        lines.append(f"  {symbol:<8}  {size_blocked[symbol]}")
+    lines.append("")
+
+
 def render_report(
     date_str: str,
     run_at_utc: datetime,
@@ -282,6 +303,7 @@ def render_report(
     watch_summary: Optional[WatchSummary] = None,
     option_refusals: Optional[list] = None,
     materialized_sizing: Optional[dict[str, tuple[int, float]]] = None,
+    size_blocked: Optional[dict[str, str]] = None,
     **_: object,
 ) -> str:
     """Render the full report as a string (terminal and markdown use same text)."""
@@ -343,6 +365,18 @@ def render_report(
             lines.append(
                 f"  Reason: {len(refusals)} setup"
                 f"{'s' if len(refusals) != 1 else ''} refused at options sizing"
+            )
+        elif size_blocked:
+            # PRD-284 (CB-03) R5: name the execution-policy size_rounds_to_zero
+            # reason as the primary no-trade cause — never the generic
+            # "no qualifying setups" substitution. Reason is read from the
+            # decision's block_reason (the EXECUTION_POLICY block path).
+            lines.append("  NO TRADE")
+            reason = next(iter(size_blocked.values()))
+            syms = ", ".join(sorted(size_blocked))
+            lines.append(
+                f"  Reason: {reason} — {syms} "
+                f"(position rounds to zero at execution policy)"
             )
         elif regime is not None and regime.regime == EXPANSION:
             lines.append("  EXPANSION MODE — No valid continuation entries yet")
@@ -465,6 +499,11 @@ def render_report(
     # refused setup appears in neither A+ TRADES nor CHAIN UNVERIFIED, so this
     # is its only report-body representation.
     _render_sizing_refusals(lines, refusals)
+
+    # PRD-284 (CB-03): execution-policy size_rounds_to_zero blocks render for
+    # every outcome — a zero-rounded decision is excluded from A+ TRADES, so a
+    # mixed run surfaces the blocked symbol/reason here instead of dropping it.
+    _render_size_rounds_to_zero(lines, size_blocked)
 
     if (
         regime is not None

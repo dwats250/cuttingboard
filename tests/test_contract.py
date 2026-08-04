@@ -625,6 +625,81 @@ def test_prd284_render_report_materialized_sizing_and_excludes_blocked():
     assert "QQQ" in legacy
 
 
+def test_prd284_report_sole_size_rounds_to_zero_names_reason():
+    """PRD-284 R5: a sole size_rounds_to_zero run names that reason as the
+    no-trade cause, never the generic 'no qualifying setups' substitution."""
+    from cuttingboard.output import OUTCOME_NO_TRADE
+
+    report = render_report(
+        date_str="2026-04-23",
+        run_at_utc=_NOW,
+        regime=_regime(),
+        validation_summary=_val_summary(),
+        qualification_summary=_qual_summary(),
+        option_setups=[],
+        outcome=OUTCOME_NO_TRADE,
+        size_blocked={"SPY": "size_rounds_to_zero"},
+    )
+    assert "size_rounds_to_zero" in report
+    assert "no qualifying setups" not in report            # no generic substitution
+    assert "EXECUTION POLICY — SIZE ROUNDS TO ZERO" in report
+
+
+def test_prd284_report_mixed_surfaces_blocked_without_a_plus():
+    """PRD-284 R5: a mixed run renders the actionable A+ trade and surfaces the
+    zero-rounded symbol/reason separately — never as an A+ trade."""
+    from cuttingboard.output import OUTCOME_TRADE
+
+    spy = _setup("SPY", max_contracts=2, dollar_risk=300.0)
+    qqq = _setup("QQQ", max_contracts=1, dollar_risk=150.0)
+    chain = {"SPY": _chain_result("SPY"), "QQQ": _chain_result("QQQ")}
+
+    report = render_report(
+        date_str="2026-04-23",
+        run_at_utc=_NOW,
+        regime=_regime(),
+        validation_summary=_val_summary(),
+        qualification_summary=_qual_summary(),
+        option_setups=[spy, qqq],
+        outcome=OUTCOME_TRADE,
+        chain_results=chain,
+        materialized_sizing={"SPY": (1, 150.0)},
+        size_blocked={"QQQ": "size_rounds_to_zero"},
+    )
+    assert "A+ TRADES  (1)" in report                      # only SPY is actionable
+    assert "EXECUTION POLICY — SIZE ROUNDS TO ZERO  (1)" in report
+    assert "size_rounds_to_zero" in report
+    # QQQ appears ONLY in the blocked section, never in the A+ region.
+    a_plus_region, marker, blocked_region = report.partition(
+        "EXECUTION POLICY — SIZE ROUNDS TO ZERO"
+    )
+    assert marker  # section present
+    assert "QQQ" not in a_plus_region                      # never an A+ trade
+    assert "QQQ" in blocked_region
+
+
+def test_prd284_report_no_policy_block_unchanged():
+    """PRD-284 R5/req4: with no execution-policy block, the report is byte-for-
+    byte the pre-change output (empty size_blocked == absent), and the generic
+    no-trade wording is preserved."""
+    from cuttingboard.output import OUTCOME_NO_TRADE
+
+    kwargs = dict(
+        date_str="2026-04-23",
+        run_at_utc=_NOW,
+        regime=_regime(),
+        validation_summary=_val_summary(),
+        qualification_summary=_qual_summary(),
+        option_setups=[],
+        outcome=OUTCOME_NO_TRADE,
+    )
+    r_absent = render_report(**kwargs)
+    r_empty = render_report(size_blocked={}, **kwargs)
+    assert r_absent == r_empty
+    assert "EXECUTION POLICY — SIZE ROUNDS TO ZERO" not in r_absent
+    assert "no qualifying setups" in r_absent              # generic wording preserved
+
+
 # ---------------------------------------------------------------------------
 # 6. Schema version invariant
 # ---------------------------------------------------------------------------
