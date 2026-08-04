@@ -1374,7 +1374,7 @@
     {
       "number": 284,
       "title": "Full A2 materialization: apply the execution-policy size multiplier to contracts/dollar_risk, block at EXECUTION_POLICY when the position rounds to zero",
-      "status": "PROPOSED",
+      "status": "IN PROGRESS",
       "commit": null
     }
   ]

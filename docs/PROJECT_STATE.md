@@ -25,7 +25,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
   (repository-verified implementation program) — on Dustin's merge of PR #187
   these become the product portfolio and delivery program (NS-0B
   ratification); until then they are held drafts.
-- **Active PRD:** PRD-284 (full A2 materialization / CB-03: execution-policy size multiplier applied to contracts/dollar_risk; `size_rounds_to_zero` block at EXECUTION_POLICY) — DRAFT, awaiting Gate A; implementation unauthorized until Dustin's Gate A (`docs/prd_history/PRD-284.md`).
+- **Active PRD:** PRD-284 (full A2 materialization / CB-03: execution-policy size multiplier applied to contracts/dollar_risk; `size_rounds_to_zero` block at EXECUTION_POLICY) — IN PROGRESS; Gate A granted 2026-08-04, implementation in PR #205, held for Dustin's merge (`docs/prd_history/PRD-284.md`).
 - **Active PRD note (2026-07-13):** kept as a single-line bulleted pointer,
   not a multi-line block, matching PRD-183's convention that
   `scripts/prd_close.sh`'s closeout regex depends on (it replaces only
