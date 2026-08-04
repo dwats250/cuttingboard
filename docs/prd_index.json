@@ -1386,7 +1386,7 @@
     {
       "number": 286,
       "title": "Macro-pressure fail-closed (CB-05): a macro-pressure computation failure must block, not silently degrade to \"UNKNOWN\" and allow full size",
-      "status": "PROPOSED",
+      "status": "IN PROGRESS",
       "commit": null
     }
   ]
