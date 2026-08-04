@@ -1376,6 +1376,12 @@
       "title": "Full A2 materialization: apply the execution-policy size multiplier to contracts/dollar_risk, block at EXECUTION_POLICY when the position rounds to zero",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 285,
+      "title": "Trade-brake dormancy (CB-04): stop counting recommendations/hypothetical evaluations as executed trades; hold trade-count, cooldown, and loss-lockout brakes fully dormant until a trustworthy execution/fill carrier exists",
+      "status": "PROPOSED",
+      "commit": null
     }
   ]
 }

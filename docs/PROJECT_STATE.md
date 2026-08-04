@@ -26,6 +26,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
   these become the product portfolio and delivery program (NS-0B
   ratification); until then they are held drafts.
 - **Active PRD:** PRD-284 (full A2 materialization / CB-03: execution-policy size multiplier applied to contracts/dollar_risk; `size_rounds_to_zero` block at EXECUTION_POLICY) — IN PROGRESS; Gate A granted 2026-08-04, implementation in PR #205, held for Dustin's merge (`docs/prd_history/PRD-284.md`).
+- **Stage-0 draft (held for Gate A):** PRD-285 (CB-04 trade-brake dormancy) — PROPOSED, HIGH-RISK / EXECUTION, presumptively MATERIAL. Stops treating audit `ALLOW_TRADE` recommendations and hypothetical `evaluation.jsonl` outcomes as executed trades, and removes the same-run in-memory trade-count/cooldown mutation, so the daily-limit, cooldown, and loss-lockout brakes are fully dormant until a trustworthy execution/fill carrier exists; brake predicates, reason taxonomy, and config thresholds are retained (dormant), no schema change. Stage-0 authoring + one fresh-context review only; production implementation NOT authorized pending Dustin's explicit Gate A (`docs/prd_history/PRD-285.md`).
 - **Active PRD note (2026-07-13):** kept as a single-line bulleted pointer,
   not a multi-line block, matching PRD-183's convention that
   `scripts/prd_close.sh`'s closeout regex depends on (it replaces only
