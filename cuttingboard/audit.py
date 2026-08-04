@@ -146,6 +146,11 @@ def _build_record(
                 "dollar_risk": setup.dollar_risk if setup else None,
             }
             if decision is not None:
+                # PRD-284: surface the MATERIALIZED sizing (post-policy) so
+                # contracts/dollar_risk agree with size_multiplier in this row,
+                # not the pre-policy OptionSetup (CB-03 inconsistent triple).
+                entry["contracts"] = int(decision.contracts)
+                entry["dollar_risk"] = float(decision.dollar_risk)
                 entry["entry"] = decision.entry
                 entry["stop"] = decision.stop
                 entry["target"] = decision.target

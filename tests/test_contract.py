@@ -343,22 +343,22 @@ class TestSuccessfulRun:
         }
         assert "overnight_policy" not in candidate
 
-    def test_prd157_sizing_passthrough_present(self):
-        """PRD-157 R6 / PRD-253 R1: position_size, dollar_risk, estimated_debit
-        pass through from OptionSetup (not QualificationResult) into the
-        per-candidate dict.
+    def test_prd284_sizing_materialized_from_decision(self):
+        """PRD-284 R6: position_size and dollar_risk read the MATERIALIZED
+        TradeDecision (execution policy applied the size multiplier), NOT the
+        pre-policy OptionSetup — so {size_multiplier, position_size, dollar_risk}
+        are mutually consistent (CB-03 inconsistent triple eliminated).
+        estimated_debit still derives from the OptionSetup spread_width.
 
-        Fixture discriminates the two source objects: QualificationResult
-        carries pre-adjustment sizing (max_contracts=2, dollar_risk=150.0,
-        from the shared _qual_summary() helper) while this test's own
-        OptionSetup carries distinct post-adjustment sizing
-        (max_contracts=1, dollar_risk=60.0), simulating a correlation
-        risk_modifier < 1.0 (PRD-023/PRD-157) or a PRD-251 strategy-aware
-        max-loss cut below spread_width. Expected:
-        - position_size == 1 (from OptionSetup.max_contracts, NOT
-          QualificationResult.max_contracts == 2)
-        - dollar_risk == 60.0 (from OptionSetup.dollar_risk, NOT
-          QualificationResult.dollar_risk == 150.0)
+        Fixture discriminates the two source objects: this test's OptionSetup
+        carries distinct sizing (max_contracts=1, dollar_risk=60.0) while the
+        TradeDecision carries materialized sizing (contracts=2,
+        dollar_risk=150.0, from _trade_decision()). Expected:
+        - position_size == 2 (from TradeDecision.contracts, NOT
+          OptionSetup.max_contracts == 1) — re-pointing contract.py to the
+          setup again turns this red.
+        - dollar_risk == 150.0 (from TradeDecision.dollar_risk, NOT
+          OptionSetup.dollar_risk == 60.0)
         - estimated_debit == 75.0 (from spread_width × 100, unaffected)
         """
         setup = OptionSetup(
@@ -386,8 +386,8 @@ class TestSuccessfulRun:
         )
         contract = _build(pr)
         candidate = contract["trade_candidates"][0]
-        assert candidate["position_size"] == 1
-        assert candidate["dollar_risk"] == 60.0
+        assert candidate["position_size"] == 2
+        assert candidate["dollar_risk"] == 150.0
         assert candidate["estimated_debit"] == 75.0
 
     def test_optional_overnight_policy_is_validated(self):
@@ -560,6 +560,69 @@ def test_render_report_stay_flat_no_crash():
         outcome=OUTCOME_NO_TRADE,
     )
     assert isinstance(report, str)
+
+
+def _setup(symbol: str, max_contracts: int, dollar_risk: float) -> OptionSetup:
+    return OptionSetup(
+        symbol=symbol,
+        strategy="BULL_CALL_SPREAD",
+        direction="LONG",
+        structure="TREND",
+        iv_environment="NORMAL_IV",
+        long_strike="1_ITM",
+        short_strike="ATM",
+        strike_distance=5.0,
+        spread_width=0.75,
+        dte=21,
+        max_contracts=max_contracts,
+        dollar_risk=dollar_risk,
+        exit_profit_pct=0.5,
+        exit_loss="full_debit",
+    )
+
+
+def test_prd284_render_report_materialized_sizing_and_excludes_blocked():
+    """PRD-284 R8: with materialized_sizing supplied, the A+ TRADES section
+    renders the materialized position and excludes a chain-VALIDATED setup whose
+    decision was blocked by execution policy (absent from the map)."""
+    from cuttingboard.output import OUTCOME_TRADE
+
+    spy = _setup("SPY", max_contracts=2, dollar_risk=300.0)
+    qqq = _setup("QQQ", max_contracts=1, dollar_risk=150.0)
+    chain = {"SPY": _chain_result("SPY"), "QQQ": _chain_result("QQQ")}
+
+    # SPY materialized to 1 contract / $150; QQQ blocked -> not in the map.
+    report = render_report(
+        date_str="2026-04-23",
+        run_at_utc=_NOW,
+        regime=_regime(),
+        validation_summary=_val_summary(),
+        qualification_summary=_qual_summary(),
+        option_setups=[spy, qqq],
+        outcome=OUTCOME_TRADE,
+        chain_results=chain,
+        materialized_sizing={"SPY": (1, 150.0)},
+    )
+    assert "A+ TRADES  (1)" in report
+    assert "1 contract" in report
+    assert "max risk $150" in report
+    assert "QQQ" not in report  # policy-blocked -> excluded from A+
+
+    # Legacy path (no argument): both render from the pre-policy setup sizing.
+    legacy = render_report(
+        date_str="2026-04-23",
+        run_at_utc=_NOW,
+        regime=_regime(),
+        validation_summary=_val_summary(),
+        qualification_summary=_qual_summary(),
+        option_setups=[spy, qqq],
+        outcome=OUTCOME_TRADE,
+        chain_results=chain,
+    )
+    assert "A+ TRADES  (2)" in legacy
+    assert "2 contracts" in legacy      # SPY pre-policy setup sizing
+    assert "max risk $300" in legacy
+    assert "QQQ" in legacy
 
 
 # ---------------------------------------------------------------------------

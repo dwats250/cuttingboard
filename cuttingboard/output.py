@@ -281,6 +281,7 @@ def render_report(
     chain_results: Optional[dict[str, "ChainValidationResult"]] = None,
     watch_summary: Optional[WatchSummary] = None,
     option_refusals: Optional[list] = None,
+    materialized_sizing: Optional[dict[str, tuple[int, float]]] = None,
     **_: object,
 ) -> str:
     """Render the full report as a string (terminal and markdown use same text)."""
@@ -362,9 +363,15 @@ def render_report(
         # empty) render in an explicit CHAIN UNVERIFIED block instead of
         # being silently upgraded (the old code synthesized a VALIDATED
         # result for them — a fail-open safety gate).
+        # PRD-284: when the caller supplies materialized sizing (built from the
+        # actionable decisions), a chain-VALIDATED setup whose decision was
+        # blocked by execution policy (including size_rounds_to_zero) is NOT an
+        # actionable A+ trade and is excluded here. Absent the argument, the A+
+        # list is unchanged (legacy callers preserved).
         trade_setups = [
             s for s in option_setups
             if s.symbol in cr and cr[s.symbol].classification == VALIDATED
+            and (materialized_sizing is None or s.symbol in materialized_sizing)
         ]
         unverified_setups = [s for s in option_setups if s.symbol not in cr]
 
@@ -403,8 +410,13 @@ def render_report(
                 f"  ·  ${setup.strike_distance:.2f} wide"
                 f"  ·  {setup.dte} DTE"
             )
-            contracts = setup.max_contracts
-            risk = setup.dollar_risk
+            # PRD-284: render the materialized position when supplied, so the
+            # report matches the policy-decided sizing; else the pre-policy setup.
+            if materialized_sizing is not None and setup.symbol in materialized_sizing:
+                contracts, risk = materialized_sizing[setup.symbol]
+            else:
+                contracts = setup.max_contracts
+                risk = setup.dollar_risk
             lines.append(
                 f"             {contracts} contract{'s' if contracts != 1 else ''}"
                 f"  ·  max risk ${risk:.0f}"

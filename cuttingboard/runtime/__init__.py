@@ -1125,6 +1125,15 @@ def _run_pipeline(
     visibility_map = build_visibility_map(trade_decisions, market_map)
     explanation_map = build_explanation_map(trade_decisions, visibility_map, overall_pressure)
 
+    # PRD-284: pass materialized sizing (actionable decisions only) so the report
+    # renders the policy-decided position and excludes policy-blocked setups
+    # (incl. size_rounds_to_zero) from the A+ TRADES section.
+    materialized_sizing = {
+        decision.ticker: (decision.contracts, decision.dollar_risk)
+        for decision in trade_decisions
+        if decision_is_actionable(decision)
+    }
+
     report = render_report(
         date_str=date_str,
         run_at_utc=run_at_utc,
@@ -1140,6 +1149,7 @@ def _run_pipeline(
         halt_reason=validation_summary.halt_reason,
         chain_results=chain_results,
         option_refusals=option_refusals,
+        materialized_sizing=materialized_sizing,
     )
     _write_markdown_report(report, date_str, "NOT RUN")
     report_path = str(REPORTS_DIR / f"{date_str}.md")

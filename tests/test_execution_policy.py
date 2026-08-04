@@ -327,3 +327,120 @@ def test_pressure_default_unknown_preserves_existing_behavior() -> None:
     )
     assert result.allowed is True
     assert result.size_multiplier == 1.0
+
+
+# ---------------------------------------------------------------------------
+# PRD-284 — full A2 materialization: apply size_multiplier to the position;
+# block at EXECUTION_POLICY when the position rounds to zero.
+# ---------------------------------------------------------------------------
+
+from cuttingboard.execution_policy import POLICY_SIZE_ROUNDS_TO_ZERO  # noqa: E402
+from cuttingboard.trade_decision import decision_is_actionable  # noqa: E402
+
+
+def _mk(contracts: int, dollar_risk: float, direction: str = "LONG") -> TradeDecision:
+    return TradeDecision(
+        ticker="SPY",
+        direction=direction,
+        status=ALLOW_TRADE,
+        entry=100.0,
+        stop=97.0,
+        target=106.0,
+        r_r=2.0,
+        contracts=contracts,
+        dollar_risk=dollar_risk,
+        block_reason=None,
+    )
+
+
+def _materialize(decision: TradeDecision, *, confidence: float) -> TradeDecision:
+    # NEUTRAL pressure => macro factor 1.0, so the finalized multiplier is the
+    # confidence-tier multiplier alone (isolates the materialization arithmetic).
+    return apply_execution_policy(
+        decision,
+        market_regime="RISK_ON",
+        posture="AGGRESSIVE_LONG",
+        confidence=confidence,
+        timestamp=RUN_AT,
+        session_state=ExecutionSessionState(),
+        overall_pressure="NEUTRAL",
+    )
+
+
+def test_prd284_multiplier_one_preserves_value_for_value() -> None:
+    # confidence >= 0.80 => multiplier 1.0 => unity short-circuit: contracts and
+    # dollar_risk untouched (structural R3). A materialization mutation must not
+    # perturb the multiplier-1.0 path.
+    out = _materialize(_mk(4, 800.0), confidence=0.85)
+    assert out.status == ALLOW_TRADE
+    assert out.contracts == 4
+    assert out.dollar_risk == 800.0
+    assert out.size_multiplier == 1.0
+    assert out.policy_allowed is True
+
+
+def test_prd284_positive_reduction_two_times_half_to_one() -> None:
+    # 2 contracts x 0.5 => floor(1.0) = 1; dollar_risk 300/2*1 = 150.0.
+    out = _materialize(_mk(2, 300.0), confidence=0.65)
+    assert out.status == ALLOW_TRADE
+    assert out.size_multiplier == 0.5
+    assert out.contracts == 1
+    assert out.dollar_risk == 150.0
+    assert out.policy_allowed is True
+    assert decision_is_actionable(out) is True
+
+
+def test_prd284_multi_contract_floor() -> None:
+    # 3 contracts x 0.75 => floor(2.25) = 2 (floor, not round/ceil).
+    out = _materialize(_mk(3, 900.0), confidence=0.70)
+    assert out.size_multiplier == 0.75
+    assert out.contracts == 2
+    assert out.dollar_risk == 600.0  # 900/3*2
+
+
+def test_prd284_dollar_risk_proportional_cents_rounding() -> None:
+    # 3 contracts $100 x 0.75 => 2 contracts; 100/3*2 = 66.666... -> round 66.67.
+    out = _materialize(_mk(3, 100.0), confidence=0.70)
+    assert out.contracts == 2
+    assert out.dollar_risk == 66.67
+
+
+def test_prd284_size_rounds_to_zero_blocks_at_execution_policy() -> None:
+    # 1 contract x 0.5 => floor(0.5) = 0 => block, do NOT round up to 1.
+    out = _materialize(_mk(1, 150.0), confidence=0.65)
+    assert out.status == BLOCK_TRADE
+    assert out.block_reason == POLICY_SIZE_ROUNDS_TO_ZERO
+    assert out.block_reason == "size_rounds_to_zero"
+    assert out.policy_reason == "size_rounds_to_zero"
+    assert out.policy_allowed is False
+    assert out.size_multiplier == 0.0
+    assert out.decision_trace == {
+        "stage": "EXECUTION_POLICY",
+        "source": "execution_policy",
+        "reason": "size_rounds_to_zero",
+    }
+    # contracts >= 1 invariant preserved on the blocked decision.
+    assert out.contracts == 1
+    # Non-actionable: excluded from run outcome and top_trades.
+    assert decision_is_actionable(out) is False
+
+
+def test_prd284_existing_policy_block_precedence_over_materialization() -> None:
+    # A pre-materialization policy block (low_confidence) keeps its own reason;
+    # materialization / size_rounds_to_zero never overrides an existing block.
+    out = _materialize(_mk(1, 150.0), confidence=0.55)
+    assert out.status == BLOCK_TRADE
+    assert out.policy_reason == "low_confidence"
+    assert out.block_reason != POLICY_SIZE_ROUNDS_TO_ZERO
+    assert out.size_multiplier == 0.0
+
+
+def test_prd284_reason_and_stage_distinct_from_prd283() -> None:
+    # CB-03 (this PRD) vs CB-02 (PRD-283): distinct reason literal and stage.
+    from cuttingboard.execution_policy import POLICY_STAGE
+    from cuttingboard.options import OPTIONS_SIZING, SMALLEST_CONTRACT_EXCEEDS_BUDGET
+
+    assert POLICY_SIZE_ROUNDS_TO_ZERO == "size_rounds_to_zero"
+    assert POLICY_SIZE_ROUNDS_TO_ZERO != SMALLEST_CONTRACT_EXCEEDS_BUDGET
+    assert POLICY_STAGE == "EXECUTION_POLICY"
+    assert POLICY_STAGE != OPTIONS_SIZING
