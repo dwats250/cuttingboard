@@ -236,6 +236,27 @@ def test_retention_preserves_opening_range_bars():
     assert all(ts in retained.index for ts in window_utc)
 
 
+def test_retained_frame_tail_reconstructs_contiguous_window():
+    # The opening-range retention is scoped to WATCH: out-of-scope consumers
+    # (the intraday-state short gate) take tail(MAX_INTRADAY_RETURN_BARS), which
+    # must yield exactly the contiguous rolling window they saw before retention
+    # (the prepended 09:30-09:35 bars dropped, no mid-session gap).
+    start_et = pd.Timestamp("2026-04-15 09:30:00", tz=EASTERN_TZ)
+    idx = pd.date_range(start_et, periods=200, freq="1min")
+    frame = pd.DataFrame([_bar(101.0, 100.0) for _ in range(200)], index=idx)
+
+    retained_tail = _retain_session_frame(frame).tail(MAX_INTRADAY_RETURN_BARS)
+    expected = frame.tail(MAX_INTRADAY_RETURN_BARS).copy()
+    expected.index = expected.index.tz_convert("UTC")
+
+    assert list(retained_tail.index) == list(expected.index)
+    # Contiguous: no gap between consecutive bars in the reconstructed window.
+    deltas = retained_tail.index.to_series().diff().dropna().unique()
+    assert list(deltas) == [pd.Timedelta(minutes=1)]
+    # The prepended opening bar is not in the reconstructed rolling window.
+    assert start_et.tz_convert("UTC") not in retained_tail.index
+
+
 def test_missing_formation_bars_report_unavailable_not_fabricated():
     # A frame with no 09:30-09:35 bars (e.g. tail-only, no retention) must
     # report UNAVAILABLE and fabricate no high/low.
