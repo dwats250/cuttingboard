@@ -304,6 +304,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-284 | — | Full A2 materialization: apply the execution-policy size multiplier to contracts/dollar_risk, block at EXECUTION_POLICY when the position rounds to zero | IN PROGRESS | [PRD-284](prd_history/PRD-284.md) |
 | PRD-285 | — | Trade-brake dormancy (CB-04): stop counting recommendations/hypothetical evaluations as executed trades; hold trade-count, cooldown, and loss-lockout brakes fully dormant until a trustworthy execution/fill carrier exists | IN PROGRESS | [PRD-285](prd_history/PRD-285.md) |
 | PRD-286 | — | Macro-pressure fail-closed (CB-05): a macro-pressure computation failure must block, not silently degrade to "UNKNOWN" and allow full size | IN PROGRESS | [PRD-286](prd_history/PRD-286.md) |
+| PRD-287 | — | Hourly operational-truth: an unhealthy hourly run must never report success — fail-loud runner exit code + health-aware readiness (CB-06) | IN PROGRESS | [PRD-287](prd_history/PRD-287.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

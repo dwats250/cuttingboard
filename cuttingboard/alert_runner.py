@@ -40,7 +40,13 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Run the hourly alert path and convert all runtime failures to exit 0."""
+    """Run the hourly alert path; the exit code reports the run's health (PRD-287).
+
+    Exit 0 only on a healthy completion (``_execute_notify_run`` returned
+    ``SUMMARY_STATUS_SUCCESS`` — TRADE, NO_TRADE, or market-stress safety HALT) or
+    a suppressed slot; an in-run system failure and a runner-level exception both
+    exit 1 (the latter after the unchanged notification/diagnostic backstop).
+    """
     args = _parse_args(argv)
     force_slot = args.force_slot or os.environ.get("CUTTINGBOARD_FORCE_SLOT") == "1"
 
@@ -53,7 +59,11 @@ def main(argv: list[str] | None = None) -> int:
             routine_pt_slot,
         )
         from cuttingboard.output import write_notification_audit
-        from cuttingboard.runtime import MODE_LIVE, _execute_notify_run
+        from cuttingboard.runtime import (
+            MODE_LIVE,
+            SUMMARY_STATUS_SUCCESS,
+            _execute_notify_run,
+        )
 
         now_utc = datetime.now(timezone.utc)
 
@@ -94,12 +104,16 @@ def main(argv: list[str] | None = None) -> int:
                 logger.info("hourly alert suppressed: same slot %s", slot_utc.isoformat())
                 return 0
 
-        _execute_notify_run(
+        result = _execute_notify_run(
             mode=MODE_LIVE,
             run_date=now_utc.date(),
             notify_mode=NOTIFY_HOURLY,
             slot_utc=slot_utc,
         )
+        # PRD-287: exit 0 only on a healthy completion; a non-SUCCESS return
+        # (in-run system failure) exits non-zero so the job fails and does not
+        # publish. A market-stress safety HALT returns SUCCESS and stays 0.
+        return 0 if result.get("status") == SUMMARY_STATUS_SUCCESS else 1
     except Exception as exc:
         now_utc = datetime.now(timezone.utc)
         logger.exception("alert runner backstop caught exception")
@@ -119,7 +133,9 @@ def main(argv: list[str] | None = None) -> int:
             )
         except Exception as notify_exc:
             logger.exception("alert runner backstop notification failed: %s", notify_exc)
-    return 0
+        # PRD-287: runner-level exception is a system failure -- exit non-zero
+        # AFTER the notification/diagnostic attempt above (unchanged).
+        return 1
 
 
 if __name__ == "__main__":
