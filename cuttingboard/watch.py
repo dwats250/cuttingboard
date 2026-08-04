@@ -18,7 +18,7 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 from cuttingboard.derived import DerivedMetrics
-from cuttingboard.ingestion import fetch_intraday_bars, fetch_ohlcv
+from cuttingboard.ingestion import fetch_intraday_orb_bars, fetch_ohlcv
 from cuttingboard.regime import CHAOTIC, NEUTRAL, RISK_OFF, RISK_ON, RegimeState
 from cuttingboard.structure import BREAKOUT, CHOP, PULLBACK, StructureResult, TREND
 
@@ -149,7 +149,7 @@ def get_session_phase(ts: datetime) -> Optional[str]:
 def compute_all_intraday_metrics(
     symbols: list[str],
     *,
-    intraday_fetcher: Callable[[str], Optional[pd.DataFrame]] = fetch_intraday_bars,
+    intraday_fetcher: Callable[[str], Optional[pd.DataFrame]] = fetch_intraday_orb_bars,
     daily_fetcher: Callable[[str], Optional[pd.DataFrame]] = fetch_ohlcv,
     asof: Optional[datetime] = None,
 ) -> tuple[dict[str, IntradayMetrics], list[str]]:
@@ -180,7 +180,7 @@ def compute_all_intraday_metrics(
 def compute_intraday_metrics(
     symbol: str,
     *,
-    intraday_fetcher: Callable[[str], Optional[pd.DataFrame]] = fetch_intraday_bars,
+    intraday_fetcher: Callable[[str], Optional[pd.DataFrame]] = fetch_intraday_orb_bars,
     daily_fetcher: Callable[[str], Optional[pd.DataFrame]] = fetch_ohlcv,
     asof: Optional[datetime] = None,
 ) -> Optional[IntradayMetrics]:

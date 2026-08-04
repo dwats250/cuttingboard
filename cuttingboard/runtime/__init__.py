@@ -43,13 +43,7 @@ from cuttingboard.chain_validation import (
 )
 from cuttingboard.derived import compute_all_derived
 from cuttingboard.ingestion import fetch_ohlcv
-from cuttingboard.ingestion import (
-    MAX_INTRADAY_RETURN_BARS,
-    RawQuote,
-    _ohlcv_cache_path,
-    fetch_all,
-    fetch_intraday_bars,
-)
+from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all, fetch_intraday_bars
 from cuttingboard.intraday_state_engine import (
     Bar as IntradayStateBar,
     _NOISE_END,
@@ -1444,11 +1438,7 @@ def _apply_intraday_short_permission(
             _resolve_unavailable(symbol)
             continue
 
-        # PRD-271 / CB-07: the fetch_intraday_bars opening-range retention is
-        # scoped to WATCH; this out-of-scope short gate takes the contiguous
-        # rolling window it consumed before retention (dropping the prepended
-        # opening bars) so a gapped frame never changes short-permission state.
-        symbol_bars = _intraday_state_bars_from_df(intraday_df.tail(MAX_INTRADAY_RETURN_BARS))
+        symbol_bars = _intraday_state_bars_from_df(intraday_df)
         if not symbol_bars:
             _resolve_unavailable(symbol)
             continue

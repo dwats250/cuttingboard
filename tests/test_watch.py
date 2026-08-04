@@ -236,11 +236,11 @@ def test_retention_preserves_opening_range_bars():
     assert all(ts in retained.index for ts in window_utc)
 
 
-def test_retained_frame_tail_reconstructs_contiguous_window():
-    # The opening-range retention is scoped to WATCH: out-of-scope consumers
-    # (the intraday-state short gate) take tail(MAX_INTRADAY_RETURN_BARS), which
-    # must yield exactly the contiguous rolling window they saw before retention
-    # (the prepended 09:30-09:35 bars dropped, no mid-session gap).
+def test_retention_is_purely_additive_to_the_contiguous_window():
+    # Retention only PREPENDS the 09:30-09:35 opening bars: the recent contiguous
+    # rolling window is byte-for-byte the plain tail(MAX_INTRADAY_RETURN_BARS).
+    # (Retention is opt-in via fetch_intraday_orb_bars, so contiguous-window
+    # consumers never see the retained shape; this documents the invariant.)
     start_et = pd.Timestamp("2026-04-15 09:30:00", tz=EASTERN_TZ)
     idx = pd.date_range(start_et, periods=200, freq="1min")
     frame = pd.DataFrame([_bar(101.0, 100.0) for _ in range(200)], index=idx)

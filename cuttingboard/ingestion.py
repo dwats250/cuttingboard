@@ -192,13 +192,15 @@ def _retain_session_frame(frame: pd.DataFrame) -> pd.DataFrame:
     return retained
 
 
-def fetch_intraday_bars(symbol: str) -> Optional[pd.DataFrame]:
+def fetch_intraday_bars(symbol: str, *, retain_opening_range: bool = False) -> Optional[pd.DataFrame]:
     """Fetch the current regular session's 1-minute bars from yfinance.
 
-    Returns the current session's opening-range formation bars (09:30-09:35 ET)
-    plus up to the last 120 regular-session bars for the latest session date, so
-    the watch-path ORB producer can select the opening range by session
-    timestamp. Failure is per-symbol and returns None without raising.
+    By default returns the last 120 regular-session bars as a CONTIGUOUS
+    trailing window — the original shape every contiguous-window consumer (short
+    gate, post-trade evaluation) relies on. When ``retain_opening_range`` is True
+    the 09:30-09:35 ET formation bars are additionally retained (PRD-271) so the
+    WATCH ORB producer can select the opening range by timestamp; that opt-in
+    shape is NON-contiguous. Failure is per-symbol and returns None.
     """
     if _is_live_data_blocked():
         raise RuntimeError("LIVE_DATA_FORBIDDEN_IN_SUNDAY_MODE")
@@ -230,7 +232,10 @@ def fetch_intraday_bars(symbol: str) -> Optional[pd.DataFrame]:
         frame = frame.loc[frame.index.date == latest_date]
         if frame.empty:
             raise ValueError("no bars for latest session date")
-        return _retain_session_frame(frame)
+        if retain_opening_range:
+            return _retain_session_frame(frame)
+        frame.index = frame.index.tz_convert("UTC")
+        return frame.tail(MAX_INTRADAY_RETURN_BARS)
 
     last_error: Optional[str] = None
     for attempt in range(config.FETCH_RETRIES):
@@ -252,6 +257,13 @@ def fetch_intraday_bars(symbol: str) -> Optional[pd.DataFrame]:
 
     logger.info("%s: intraday unavailable for WATCH — %s", symbol, last_error)
     return None
+
+
+def fetch_intraday_orb_bars(symbol: str) -> Optional[pd.DataFrame]:
+    """WATCH ORB producer's intraday fetch: contiguous window PLUS the retained
+    09:30-09:35 ET opening-range formation bars (PRD-271). Scoping the retention
+    to this entry point keeps it off every contiguous-window consumer."""
+    return fetch_intraday_bars(symbol, retain_opening_range=True)
 
 
 # ---------------------------------------------------------------------------
