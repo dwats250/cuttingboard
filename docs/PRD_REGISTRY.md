@@ -288,7 +288,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-268 | — | Coverage-reason surfacing (hourly): build the reason when qualify_all is skipped on STAY_FLAT | IN PROGRESS | [PRD-268](prd_history/PRD-268.md) |
 | PRD-269 | #163 | Close the doc-status blind spot in validate_prd_registry.py (25 registry-COMPLETE rows across three failure shapes whose docs never agreed) | COMPLETE | [PRD-269](prd_history/PRD-269.md) |
 | PRD-270 | #164 | Correct PRD-245 registry provenance (phantom 6017ce9 → merged 8bea09c) | COMPLETE | [PRD-270](prd_history/PRD-270.md) |
-| PRD-271 | — | Opening range computed from mid-session bars: bars[:5] after tail(120) truncation | IN PROGRESS | [PRD-271](prd_history/PRD-271.md) |
+| PRD-271 | — | ORB/session provenance: opening range lacks trustworthy session identity (positional mid-session slice + unvalidated session selection) | IN PROGRESS | [PRD-271](prd_history/PRD-271.md) |
 | PRD-272 | 724d84a | PROJECT_STATE sweep: correct seven stale queue-authority claims | COMPLETE | [PRD-272](prd_history/PRD-272.md) |
 | PRD-273 | 4a1cb22 | Pin ruff and declare the lint selection explicitly | COMPLETE | [PRD-273](prd_history/PRD-273.md) |
 | PRD-274 | — | Restore resolved-rule agreement coverage for the ruff lint baseline | IN PROGRESS | [PRD-274](prd_history/PRD-274.md) |

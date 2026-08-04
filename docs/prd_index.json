@@ -1295,7 +1295,7 @@
     },
     {
       "number": 271,
-      "title": "Opening range computed from mid-session bars: bars[:5] after tail(120) truncation",
+      "title": "ORB/session provenance: opening range lacks trustworthy session identity (positional mid-session slice + unvalidated session selection)",
       "status": "IN PROGRESS",
       "commit": null
     },
