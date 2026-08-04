@@ -108,6 +108,14 @@ def test_size_multiplier_bands() -> None:
     assert size_multiplier_for_confidence(0.58) == 0.0
 
 
+# --- PRD-285 / CB-04: retained-mechanism tests -----------------------------
+# The daily-limit, loss-lockout, and cooldown predicates are RETAINED (dormant)
+# so a future trustworthy execution/fill carrier can re-activate them by
+# supplying real, non-neutral ExecutionSessionState. These tests inject
+# synthetic non-neutral state DIRECTLY (not via the loader, which is now
+# dormant) to prove the predicates still function. In production the loader
+# returns neutral state and no same-run mutation occurs, so none of these
+# predicates can fire — see the dormancy tests above.
 def test_session_trade_limit_blocks_third_trade() -> None:
     decision = _apply(session_state=ExecutionSessionState(prior_trade_count=2))
     assert decision.status == BLOCK_TRADE
@@ -133,7 +141,12 @@ def test_cooldown_allows_at_15_minutes() -> None:
     assert decision.status == ALLOW_TRADE
 
 
-def test_first_valid_candidate_remains_allow_trade() -> None:
+def test_same_run_recommendations_do_not_block_second_candidate() -> None:
+    # PRD-285 / CB-04: an ALLOW_TRADE recommendation is not an executed trade,
+    # so it must not increment the in-run trade count or start a cooldown for a
+    # later same-run candidate. Both otherwise-valid candidates remain
+    # ALLOW_TRADE, and input order is preserved (R4, R6). This inverts the
+    # former defect-encoding assertion (decisions[1] blocked by cooldown).
     decisions = apply_execution_policy_to_decisions(
         [_decision("SPY"), _decision("QQQ")],
         market_regime="RISK_ON",
@@ -146,13 +159,41 @@ def test_first_valid_candidate_remains_allow_trade() -> None:
             "QQQ": OrbPolicyState(price=202.0, orb_high=201.0, orb_low=199.0),
         },
     )
+    assert [d.ticker for d in decisions] == ["SPY", "QQQ"]  # order preserved (R6)
     assert decisions[0].status == ALLOW_TRADE
     assert decisions[0].policy_reason == "policy_allowed"
-    assert decisions[1].status == BLOCK_TRADE
-    assert decisions[1].policy_reason == "cooldown"
+    assert decisions[1].status == ALLOW_TRADE
+    assert decisions[1].policy_reason == "policy_allowed"
 
 
-def test_load_session_state_counts_same_session_allow_trades(tmp_path) -> None:
+def test_three_valid_same_run_candidates_do_not_trip_daily_limit() -> None:
+    # PRD-285 / CB-04: with EXECUTION_POLICY_MAX_TRADES_PER_DAY == 2, three
+    # otherwise-valid same-run recommendations would trip the daily limit only
+    # if the same-run trade-count accumulation were restored. Dormant: all three
+    # remain ALLOW_TRADE (discriminates the `trade_count += 1` mutation).
+    decisions = apply_execution_policy_to_decisions(
+        [_decision("SPY"), _decision("QQQ"), _decision("IWM")],
+        market_regime="RISK_ON",
+        posture="AGGRESSIVE_LONG",
+        confidence=0.80,
+        timestamp=RUN_AT,
+        session_state=ExecutionSessionState(),
+        orb_states={
+            "SPY": OrbPolicyState(price=102.0, orb_high=101.0, orb_low=99.0),
+            "QQQ": OrbPolicyState(price=202.0, orb_high=201.0, orb_low=199.0),
+            "IWM": OrbPolicyState(price=302.0, orb_high=301.0, orb_low=299.0),
+        },
+    )
+    assert [d.ticker for d in decisions] == ["SPY", "QQQ", "IWM"]
+    assert all(d.status == ALLOW_TRADE for d in decisions)
+    assert all(d.policy_reason == "policy_allowed" for d in decisions)
+
+
+def test_load_session_state_ignores_prior_allow_trade_recommendations(tmp_path) -> None:
+    # PRD-285 / CB-04: prior audit rows with decision_status == ALLOW_TRADE are
+    # recommendations, not executed trades. They must not increment
+    # prior_trade_count (R1) or establish last_trade_at_utc (R2). This inverts
+    # the former defect-encoding assertion (prior_trade_count == 2 / last == prior).
     audit_path = tmp_path / "audit.jsonl"
     evaluation_path = tmp_path / "evaluation.jsonl"
     prior = RUN_AT - timedelta(hours=1)
@@ -178,11 +219,15 @@ def test_load_session_state_counts_same_session_allow_trades(tmp_path) -> None:
         evaluation_log_path=evaluation_path,
     )
 
-    assert state.prior_trade_count == 2
-    assert state.last_trade_at_utc == prior
+    assert state.prior_trade_count == 0
+    assert state.last_trade_at_utc is None
 
 
-def test_load_session_state_counts_consecutive_evaluated_losses(tmp_path) -> None:
+def test_load_session_state_ignores_hypothetical_evaluation_losses(tmp_path) -> None:
+    # PRD-285 / CB-04: evaluation.jsonl carries hypothetical forward-evaluation
+    # outcomes of recommendations, not realized P&L on executed positions. They
+    # must not populate consecutive_losses / drive live loss lockout (R3). This
+    # inverts the former defect-encoding assertion (consecutive_losses == 2).
     audit_path = tmp_path / "audit.jsonl"
     evaluation_path = tmp_path / "evaluation.jsonl"
     audit_path.write_text("", encoding="utf-8")
@@ -212,7 +257,48 @@ def test_load_session_state_counts_consecutive_evaluated_losses(tmp_path) -> Non
         evaluation_log_path=evaluation_path,
     )
 
-    assert state.consecutive_losses == 2
+    assert state.consecutive_losses == 0
+
+
+def test_load_session_state_fully_neutral_with_recommendation_and_hypothetical(tmp_path) -> None:
+    # PRD-285 / CB-04: even with BOTH prior ALLOW_TRADE recommendations AND
+    # hypothetical losses present, the loader reports fully neutral state — no
+    # trustworthy execution/fill carrier exists (R7).
+    audit_path = tmp_path / "audit.jsonl"
+    evaluation_path = tmp_path / "evaluation.jsonl"
+    prior = RUN_AT - timedelta(hours=1)
+    audit_path.write_text(
+        json.dumps(
+            {
+                "date": "2026-04-29",
+                "run_at_utc": prior.isoformat(),
+                "trade_decisions": [{"decision_status": ALLOW_TRADE}],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    evaluation_path.write_text(
+        json.dumps(
+            {
+                "evaluated_at_utc": (RUN_AT - timedelta(minutes=20)).isoformat(),
+                "decision_run_at_utc": (RUN_AT - timedelta(minutes=30)).isoformat(),
+                "symbol": "SPY",
+                "evaluation": {"result": "STOP_HIT", "R_multiple": -1.0},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    state = load_execution_session_state(
+        run_at_utc=RUN_AT,
+        session_date="2026-04-29",
+        audit_log_path=audit_path,
+        evaluation_log_path=evaluation_path,
+    )
+
+    assert state == ExecutionSessionState()
 
 
 # --- PRD-063: macro pressure tests ---

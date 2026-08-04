@@ -1380,7 +1380,7 @@
     {
       "number": 285,
       "title": "Trade-brake dormancy (CB-04): stop counting recommendations/hypothetical evaluations as executed trades; hold trade-count, cooldown, and loss-lockout brakes fully dormant until a trustworthy execution/fill carrier exists",
-      "status": "PROPOSED",
+      "status": "IN PROGRESS",
       "commit": null
     }
   ]
