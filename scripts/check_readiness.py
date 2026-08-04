@@ -8,12 +8,27 @@ import sys
 from pathlib import Path
 from typing import Any
 
+# PRD-287: canonical health vocabularies from their source of truth (public
+# package surfaces), never duplicated literals. The hourly workflow runs
+# `pip install -e .` before this script, so the import resolves.
+from cuttingboard.output import OUTCOME_HALT, OUTCOME_NO_TRADE, OUTCOME_TRADE
+from cuttingboard.runtime import SUMMARY_STATUS_FAIL, SUMMARY_STATUS_SUCCESS
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# PRD-287: the authoritative hourly run-health artifact.
+HOURLY_RUN_PATH = Path("logs/latest_hourly_run.json")
+
+_VALID_RUN_STATUS = frozenset({SUMMARY_STATUS_SUCCESS, SUMMARY_STATUS_FAIL})
+_VALID_RUN_OUTCOME = frozenset({OUTCOME_TRADE, OUTCOME_NO_TRADE, OUTCOME_HALT})
+
 JSON_REQUIRED_FIELDS = {
     Path("logs/latest_hourly_payload.json"): ("meta", "run_status", "schema_version", "sections"),
-    Path("logs/latest_hourly_run.json"): ("status", "outcome"),
+    # PRD-287: `errors` and `system_halted` are already emitted by
+    # _build_hourly_run_summary; requiring them lets readiness judge run HEALTH,
+    # not merely key presence.
+    HOURLY_RUN_PATH: ("status", "outcome", "errors", "system_halted"),
 }
 HTML_ARTIFACTS = (
     Path("ui/dashboard.html"),
@@ -43,13 +58,44 @@ def _load_json(path: Path, failures: list[str]) -> dict[str, Any] | None:
     return data
 
 
+def _validate_hourly_run_health(path: Path, data: dict[str, Any], failures: list[str]) -> None:
+    """PRD-287: judge the hourly run artifact's HEALTH, not just key presence.
+
+    Rejects an in-run system failure (status=FAIL + non-empty errors) and a
+    data-integrity VALIDATION halt (system_halted=True + status=SUCCESS); passes
+    healthy TRADE/NO_TRADE and the market-stress safety HALT (status=FAIL,
+    errors=[], system_halted=True); fails loud on malformed values. Caller
+    guarantees the four required fields are present.
+    """
+    status, outcome = data.get("status"), data.get("outcome")
+    errors, system_halted = data.get("errors"), data.get("system_halted")
+
+    if status not in _VALID_RUN_STATUS:
+        failures.append(f"{path}: status {status!r} not one of {sorted(_VALID_RUN_STATUS)}")
+    if outcome not in _VALID_RUN_OUTCOME:
+        failures.append(f"{path}: outcome {outcome!r} not one of {sorted(_VALID_RUN_OUTCOME)}")
+    if not isinstance(errors, list):
+        failures.append(f"{path}: errors must be a list, got {type(errors).__name__}")
+    if not isinstance(system_halted, bool):
+        failures.append(f"{path}: system_halted must be a bool, got {type(system_halted).__name__}")
+
+    if isinstance(errors, list) and status == SUMMARY_STATUS_FAIL and errors:
+        failures.append(f"{path}: unhealthy run — status=FAIL with errors {errors!r} (in-run system failure)")
+    if isinstance(system_halted, bool) and system_halted and status == SUMMARY_STATUS_SUCCESS:
+        failures.append(f"{path}: unhealthy run — system_halted=True with status=SUCCESS (data-integrity validation halt)")
+
+
 def _validate_json_artifact(path: Path, required_fields: tuple[str, ...], failures: list[str]) -> None:
     data = _load_json(path, failures)
     if data is None:
         return
-    for field in required_fields:
-        if field not in data:
-            failures.append(f"{path}: missing required field {field!r}")
+    missing = [field for field in required_fields if field not in data]
+    for field in missing:
+        failures.append(f"{path}: missing required field {field!r}")
+    # PRD-287: judge run HEALTH only when every required field is present, so a
+    # missing-key failure is not double-reported as a malformed-value failure.
+    if path == HOURLY_RUN_PATH and not missing:
+        _validate_hourly_run_health(path, data, failures)
 
 
 def _read_html(path: Path, failures: list[str]) -> str | None:

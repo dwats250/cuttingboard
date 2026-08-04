@@ -61,7 +61,14 @@ def _stub_execute(*, mode, run_date, notify_mode, slot_utc=None, **kwargs):
 
 
 def _stub_execute_failed_send(*, mode, run_date, notify_mode, slot_utc=None, **kwargs):
-    """Simulate a failed send: audit row written, slot NOT persisted."""
+    """Simulate a failed send: audit row written, slot NOT persisted.
+
+    PRD-287: the real _execute_notify_run returns status SUCCESS for a
+    completed run whose notification TRANSPORT merely failed (the send failure
+    is recorded in notification_status, not the run status), so the run stays
+    healthy and the runner exits 0. The prior non-canonical {"status": "FAILED"}
+    return did not match that contract.
+    """
     from cuttingboard.output import write_notification_audit
     write_notification_audit(
         transport="telegram",
@@ -71,7 +78,7 @@ def _stub_execute_failed_send(*, mode, run_date, notify_mode, slot_utc=None, **k
         success=False,
         state_key=slot_utc.isoformat() if slot_utc is not None else None,
     )
-    return {"status": "FAILED", "suppressed": False}
+    return {"status": "SUCCESS", "suppressed": False}
 
 
 def test_same_slot_second_call_is_suppressed(tmp_path, monkeypatch, intraday_now):

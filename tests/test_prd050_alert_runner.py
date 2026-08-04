@@ -39,6 +39,29 @@ def test_alert_runner_calls_execute_notify_run_once(monkeypatch):
     assert notify_mode == "hourly"
 
 
+def test_alert_runner_success_return_exits_zero(monkeypatch):
+    """PRD-287: a healthy completion (_execute_notify_run status SUCCESS) exits 0."""
+    from cuttingboard import alert_runner
+
+    def ok_execute_notify_run(*, mode: str, run_date: date, notify_mode: str, **kwargs) -> dict:
+        return {"status": "SUCCESS", "suppressed": False}
+
+    monkeypatch.setattr("cuttingboard.runtime._execute_notify_run", ok_execute_notify_run)
+    assert alert_runner.main(["--force-slot"]) == 0
+
+
+def test_alert_runner_in_run_system_failure_exits_nonzero(monkeypatch):
+    """PRD-287: a non-throwing in-run system failure (_execute_notify_run returns
+    status FAIL) exits 1 — the runner no longer converts it to exit 0."""
+    from cuttingboard import alert_runner
+
+    def fail_status_execute_notify_run(*, mode: str, run_date: date, notify_mode: str, **kwargs) -> dict:
+        return {"status": "FAIL", "suppressed": False}
+
+    monkeypatch.setattr("cuttingboard.runtime._execute_notify_run", fail_status_execute_notify_run)
+    assert alert_runner.main(["--force-slot"]) == 1
+
+
 def test_alert_runner_backstop_sends_one_failure_notification(tmp_path, monkeypatch):
     from cuttingboard import alert_runner
 
@@ -55,7 +78,9 @@ def test_alert_runner_backstop_sends_one_failure_notification(tmp_path, monkeypa
     ):
         # PRD-149: --force-slot bypasses the PT-window gate so this test still
         # exercises the runner-level exception backstop.
-        assert alert_runner.main(["--force-slot"]) == 0
+        # PRD-287: a runner-level exception now exits 1 (was 0) — AFTER the
+        # notification/diagnostic attempt asserted below still runs.
+        assert alert_runner.main(["--force-slot"]) == 1
 
     records = _notification_records(tmp_path / "logs" / "audit.jsonl")
     assert len(records) == 1
@@ -76,7 +101,10 @@ def test_alert_runner_backstop_never_raises_if_send_raises(monkeypatch):
         patch("cuttingboard.runtime._execute_notify_run", fail_execute_notify_run),
         patch("cuttingboard.alert_runner.send_notification", side_effect=RuntimeError("transport failure")),
     ):
-        assert alert_runner.main() == 0
+        # PRD-287: --force-slot pins the backstop path deterministically (the
+        # PT-window gate is time-dependent); the runner never raises even when
+        # the failure notification itself raises, and now exits 1 (was 0).
+        assert alert_runner.main(["--force-slot"]) == 1
 
 
 def test_failure_notification_contains_error_title_ascii_timestamp_and_truncated_message():
