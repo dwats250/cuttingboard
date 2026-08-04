@@ -8,12 +8,11 @@ downgraded to BLOCK_TRADE before contract and audit materialization.
 
 from __future__ import annotations
 
-import json
 import math
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 from cuttingboard import config
 from cuttingboard.trade_decision import ALLOW_TRADE, BLOCK_TRADE, TradeDecision
@@ -80,43 +79,25 @@ def load_execution_session_state(
     audit_log_path: str | Path,
     evaluation_log_path: str | Path,
 ) -> ExecutionSessionState:
-    """Derive same-session policy state from existing audit/evaluation logs."""
-    prior_trade_count = 0
-    last_trade_at_utc: Optional[datetime] = None
-    audit_path = Path(audit_log_path)
-    if audit_path.exists():
-        for record in _iter_jsonl(audit_path):
-            if record.get("event") is not None:
-                continue
-            if record.get("date") != session_date:
-                continue
-            record_run_at = _parse_utc(record.get("run_at_utc"), "run_at_utc")
-            if record_run_at >= run_at_utc:
-                continue
-            trade_decisions = record.get("trade_decisions") or []
-            if not isinstance(trade_decisions, list):
-                raise TypeError("audit trade_decisions must be a list")
-            allow_count = sum(
-                1
-                for decision in trade_decisions
-                if isinstance(decision, dict)
-                and decision.get("decision_status") == ALLOW_TRADE
-            )
-            if allow_count:
-                prior_trade_count += allow_count
-                if last_trade_at_utc is None or record_run_at > last_trade_at_utc:
-                    last_trade_at_utc = record_run_at
+    """Return dormant execution-session state (PRD-285 / CB-04).
 
-    consecutive_losses = _load_consecutive_losses(
-        run_at_utc=run_at_utc,
-        session_date=session_date,
-        evaluation_log_path=Path(evaluation_log_path),
-    )
-    return ExecutionSessionState(
-        prior_trade_count=prior_trade_count,
-        consecutive_losses=consecutive_losses,
-        last_trade_at_utc=last_trade_at_utc,
-    )
+    Actual-trades-only doctrine: an ALLOW_TRADE decision is a recommendation,
+    not an executed trade or fill, and a forward hypothetical-evaluation record
+    is not realized P&L. Until a trustworthy execution/fill carrier exists, no
+    brake may fire on that evidence, so this function reports fully neutral
+    state (``prior_trade_count=0``, ``consecutive_losses=0``,
+    ``last_trade_at_utc=None``) and the daily-limit, cooldown, and loss-lockout
+    predicates stay dormant.
+
+    This function is the wiring seam for a future trustworthy carrier: the
+    parameters (``run_at_utc``, ``session_date``, ``audit_log_path``,
+    ``evaluation_log_path``) are retained for that carrier even though the
+    dormant implementation consults neither the audit recommendations nor the
+    hypothetical-evaluation log. A future carrier reading real execution
+    evidence here must fail loud on malformed/unresolvable evidence rather than
+    substitute neutral state.
+    """
+    return ExecutionSessionState()
 
 
 def apply_execution_policy_to_decisions(
@@ -130,33 +111,29 @@ def apply_execution_policy_to_decisions(
     orb_states: Optional[dict[str, OrbPolicyState]] = None,
     overall_pressure: str = "UNKNOWN",
 ) -> list[TradeDecision]:
-    """Apply policy sequentially so in-run trade count and cooldown are deterministic."""
-    materialized: list[TradeDecision] = []
-    trade_count = session_state.prior_trade_count
-    last_trade_at = session_state.last_trade_at_utc
+    """Apply execution policy to each decision against the supplied session state.
 
-    for decision in decisions:
-        effective_state = ExecutionSessionState(
-            prior_trade_count=trade_count,
-            consecutive_losses=session_state.consecutive_losses,
-            last_trade_at_utc=last_trade_at,
-        )
-        materialized_decision = apply_execution_policy(
+    PRD-285 / CB-04: no same-run accumulation. An ALLOW_TRADE decision is a
+    recommendation, not an executed trade, so it must not increment an in-memory
+    trade count or start a cooldown for later same-run candidates. Every
+    decision is evaluated against the same supplied ``session_state``; input
+    ordering is preserved. With the loader dormant (neutral state) and no
+    same-run mutation, the daily-limit and cooldown predicates cannot fire in
+    production, while remaining intact for a future trustworthy carrier.
+    """
+    return [
+        apply_execution_policy(
             decision,
             market_regime=market_regime,
             posture=posture,
             confidence=confidence,
             timestamp=timestamp,
-            session_state=effective_state,
+            session_state=session_state,
             orb_state=(orb_states or {}).get(decision.ticker),
             overall_pressure=overall_pressure,
         )
-        materialized.append(materialized_decision)
-        if materialized_decision.status == ALLOW_TRADE:
-            trade_count += 1
-            last_trade_at = timestamp
-
-    return materialized
+        for decision in decisions
+    ]
 
 
 def apply_execution_policy(
@@ -314,58 +291,3 @@ def _cooldown_active(timestamp: datetime, last_trade_at_utc: Optional[datetime])
         return False
     elapsed = timestamp - last_trade_at_utc
     return timedelta(0) <= elapsed < timedelta(minutes=config.EXECUTION_POLICY_COOLDOWN_MINUTES)
-
-
-def _load_consecutive_losses(
-    *,
-    run_at_utc: datetime,
-    session_date: str,
-    evaluation_log_path: Path,
-) -> int:
-    if not evaluation_log_path.exists():
-        return 0
-
-    records: list[tuple[datetime, datetime, str, bool]] = []
-    for record in _iter_jsonl(evaluation_log_path):
-        decision_run_at = _parse_utc(record.get("decision_run_at_utc"), "decision_run_at_utc")
-        if decision_run_at >= run_at_utc or decision_run_at.date().isoformat() != session_date:
-            continue
-        evaluated_at = _parse_utc(record.get("evaluated_at_utc"), "evaluated_at_utc")
-        symbol = str(record.get("symbol") or "")
-        evaluation = record.get("evaluation")
-        if not isinstance(evaluation, dict):
-            continue
-        r_multiple = evaluation.get("R_multiple")
-        result = evaluation.get("result")
-        losing = result == "STOP_HIT" or (
-            isinstance(r_multiple, (int, float)) and float(r_multiple) < 0.0
-        )
-        records.append((decision_run_at, evaluated_at, symbol, losing))
-
-    consecutive = 0
-    for _, _, _, losing in sorted(records):
-        consecutive = consecutive + 1 if losing else 0
-    return consecutive
-
-
-def _iter_jsonl(path: Path) -> list[dict[str, Any]]:
-    records: list[dict[str, Any]] = []
-    with path.open("r", encoding="utf-8") as fh:
-        for raw_line in fh:
-            line = raw_line.strip()
-            if not line:
-                continue
-            record = json.loads(line)
-            if not isinstance(record, dict):
-                raise TypeError(f"{path} contains non-object JSONL record")
-            records.append(record)
-    return records
-
-
-def _parse_utc(value: Any, field_name: str) -> datetime:
-    if not isinstance(value, str):
-        raise KeyError(f"record missing required field: {field_name}")
-    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    if parsed.tzinfo is None:
-        raise ValueError(f"{field_name} must include timezone")
-    return parsed
