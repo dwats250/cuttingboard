@@ -34,8 +34,18 @@ POLICY_MACRO_PRESSURE_CONFLICT = "macro_pressure_conflict"
 # floors to zero contracts. Distinct from options.py's
 # SMALLEST_CONTRACT_EXCEEDS_BUDGET (OPTIONS_SIZING, pre-TradeDecision).
 POLICY_SIZE_ROUNDS_TO_ZERO = "size_rounds_to_zero"
+# PRD-286 / CB-05: macro-pressure COMPUTATION FAILURE. MACRO_PRESSURE_UNAVAILABLE
+# is the fail-closed pressure-carrier sentinel returned by
+# runtime::_compute_overall_pressure when macro-pressure computation raises —
+# distinct from a genuinely computed "UNKNOWN" (drivers merely absent). It must
+# never be interpreted as an unconstrained state: it blocks direction-agnostically
+# with reason POLICY_MACRO_PRESSURE_UNAVAILABLE.
+MACRO_PRESSURE_UNAVAILABLE = "UNAVAILABLE"
+POLICY_MACRO_PRESSURE_UNAVAILABLE = "macro_pressure_unavailable"
 
-_VALID_PRESSURE_VALUES = frozenset({"RISK_ON", "RISK_OFF", "MIXED", "NEUTRAL", "UNKNOWN"})
+_VALID_PRESSURE_VALUES = frozenset(
+    {"RISK_ON", "RISK_OFF", "MIXED", "NEUTRAL", "UNKNOWN", MACRO_PRESSURE_UNAVAILABLE}
+)
 
 
 @dataclass(frozen=True)
@@ -250,6 +260,12 @@ def evaluate_execution_policy(
 
 
 def _apply_macro_pressure(direction: str, pressure: str, size: float, reason: str) -> PolicyDecision:
+    # PRD-286 / CB-05: a macro-pressure COMPUTATION FAILURE fails CLOSED. This
+    # branch MUST precede every allow/directional branch below — a failed read is
+    # never unconstrained, so it blocks regardless of direction. Distinct from a
+    # genuinely computed "UNKNOWN" (handled with "NEUTRAL" as full-size allow).
+    if pressure == MACRO_PRESSURE_UNAVAILABLE:
+        return PolicyDecision(False, POLICY_MACRO_PRESSURE_UNAVAILABLE, 0.0)
     if pressure in ("UNKNOWN", "NEUTRAL"):
         return PolicyDecision(True, reason, size)
     if pressure == "MIXED":

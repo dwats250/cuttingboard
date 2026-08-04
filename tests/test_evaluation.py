@@ -210,6 +210,9 @@ def test_run_post_trade_evaluation_appends_one_record_per_allow_trade(tmp_path: 
 def test_runtime_runs_evaluation_after_audit_write(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     events: list[str] = []
     _setup_runtime_mocks(monkeypatch, tmp_path)
+    # PRD-286: fixture has no macro drivers; isolate the now-fail-closed macro
+    # seam. This test covers evaluation-after-audit ordering, not macro pressure.
+    monkeypatch.setattr(runtime, "_compute_overall_pressure", lambda quotes: "NEUTRAL")
     monkeypatch.setattr(runtime, "_fixture_chain_results", lambda setups: {
         "SPY": ChainValidationResult(
             symbol="SPY",

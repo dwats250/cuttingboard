@@ -110,6 +110,9 @@ def _output_outcome(rendered: str) -> str:
 
 def test_ac1_outcome_agreement_actionable_case(monkeypatch, tmp_path):
     # One actionable (tradable, ALLOW_TRADE, sized) SPY candidate.
+    # PRD-286: fixture has no macro drivers; isolate the now-fail-closed macro
+    # seam. This test covers PRD-162 outcome agreement, not macro pressure.
+    monkeypatch.setattr(runtime, "_compute_overall_pressure", lambda quotes: "NEUTRAL")
     result, payload, rendered = _run(monkeypatch, tmp_path, "SPY", allow=True)
     assert result.outcome == runtime.OUTCOME_TRADE
     assert _output_outcome(rendered) == runtime.OUTCOME_TRADE

@@ -1382,6 +1382,12 @@
       "title": "Trade-brake dormancy (CB-04): stop counting recommendations/hypothetical evaluations as executed trades; hold trade-count, cooldown, and loss-lockout brakes fully dormant until a trustworthy execution/fill carrier exists",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 286,
+      "title": "Macro-pressure fail-closed (CB-05): a macro-pressure computation failure must block, not silently degrade to \"UNKNOWN\" and allow full size",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

@@ -202,6 +202,10 @@ def _null_context():
 
 def test_runtime_outcome_uses_trade_decision_status(monkeypatch, tmp_path):
     _setup_runtime_mocks(monkeypatch, tmp_path)
+    # PRD-286: this fixture has no macro drivers, so real macro computation now
+    # fails CLOSED (UNAVAILABLE -> block). This test is about outcome-status
+    # derivation, not macro; supply a valid computed pressure to isolate it.
+    monkeypatch.setattr(runtime, "_compute_overall_pressure", lambda quotes: "NEUTRAL")
     monkeypatch.setattr(runtime, "_fixture_chain_results", lambda setups: {
         "SPY": ChainValidationResult(
             symbol="SPY",
@@ -245,6 +249,9 @@ def test_runtime_outcome_excludes_non_tradable_allow(monkeypatch, tmp_path):
     symbol = "^VIX"
     assert symbol in runtime.config.NON_TRADABLE_SYMBOLS
     _setup_runtime_mocks(monkeypatch, tmp_path, symbol=symbol)
+    # PRD-286: isolate from the now-fail-closed macro seam (fixture has no macro
+    # drivers); this test is about NON_TRADABLE exclusion, not macro pressure.
+    monkeypatch.setattr(runtime, "_compute_overall_pressure", lambda quotes: "NEUTRAL")
     monkeypatch.setattr(runtime, "_fixture_chain_results", lambda setups: {
         symbol: ChainValidationResult(
             symbol=symbol,
@@ -311,6 +318,9 @@ def test_runtime_materializes_blocked_decision(monkeypatch, tmp_path):
 
 def test_runtime_eod_attaches_overnight_policy(monkeypatch, tmp_path):
     _setup_runtime_mocks(monkeypatch, tmp_path)
+    # PRD-286: isolate from the now-fail-closed macro seam (fixture has no macro
+    # drivers); this test is about overnight-policy attachment, not macro pressure.
+    monkeypatch.setattr(runtime, "_compute_overall_pressure", lambda quotes: "NEUTRAL")
     monkeypatch.setattr(runtime, "_deterministic_run_at", lambda mode, fixture_file: EOD_RUN_AT)
     monkeypatch.setattr(runtime, "_fixture_chain_results", lambda setups: {
         "SPY": ChainValidationResult(
@@ -962,3 +972,75 @@ def test_prd284_runtime_passes_size_blocked_to_report(monkeypatch, tmp_path):
     # 1 contract x 0.5 -> floor 0 -> size_rounds_to_zero, carried into the report.
     assert captured["size_blocked"] == {"SPY": "size_rounds_to_zero"}
     assert captured["materialized_sizing"] == {}  # nothing actionable
+
+
+# ---------------------------------------------------------------------------
+# PRD-286 / CB-05 — macro-pressure COMPUTATION FAILURE fails closed.
+# ---------------------------------------------------------------------------
+
+def _raise_value_error(*args, **kwargs):
+    raise ValueError("macro computation boom")
+
+
+def test_prd286_compute_pressure_unavailable_when_build_drivers_raises(monkeypatch):
+    # req 1: _build_macro_drivers raising -> the UNAVAILABLE sentinel, not "UNKNOWN".
+    monkeypatch.setattr(runtime, "_build_macro_drivers", _raise_value_error)
+    assert runtime._compute_overall_pressure({}) == "UNAVAILABLE"
+
+
+def test_prd286_compute_pressure_unavailable_when_build_macro_pressure_raises(monkeypatch):
+    # req 2: build_macro_pressure raising -> the UNAVAILABLE sentinel.
+    monkeypatch.setattr(runtime, "_build_macro_drivers", lambda quotes: {})
+    monkeypatch.setattr(runtime, "build_macro_pressure", _raise_value_error)
+    assert runtime._compute_overall_pressure({}) == "UNAVAILABLE"
+
+
+def test_prd286_e2e_macro_unavailable_blocks_run(monkeypatch, tmp_path):
+    # req 3 (end-to-end): a computation failure blocks the run's decisions with
+    # macro_pressure_unavailable at EXECUTION_POLICY (not a full-size allow).
+    _setup_runtime_mocks(monkeypatch, tmp_path)
+    monkeypatch.setattr(runtime, "compute_regime", lambda quotes: _regime_confidence(0.80))
+    monkeypatch.setattr(runtime, "_compute_overall_pressure", lambda quotes: "UNAVAILABLE")
+    monkeypatch.setattr(runtime, "_fixture_chain_results", lambda setups: {"SPY": _chain_manual()})
+    monkeypatch.setattr(runtime, "create_trade_decision", lambda *a, **k: runtime.TradeDecision(
+        ticker="SPY", direction="LONG", status=ALLOW_TRADE, entry=100.0, stop=97.0,
+        target=106.0, r_r=2.0, contracts=2, dollar_risk=400.0, block_reason=None,
+    ))
+
+    result = runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+
+    assert result.outcome == runtime.OUTCOME_NO_TRADE
+    candidate = result.contract["trade_candidates"][0]
+    assert candidate["decision_status"] == BLOCK_TRADE
+    assert candidate["block_reason"] == "macro_pressure_unavailable"
+    assert candidate["policy_reason"] == "macro_pressure_unavailable"
+    assert candidate["size_multiplier"] == 0.0
+    assert candidate["decision_trace"]["stage"] == "EXECUTION_POLICY"
+
+
+def test_prd286_e2e_computed_unknown_not_blocked(monkeypatch, tmp_path):
+    # req 5 (end-to-end distinction): a genuinely computed "UNKNOWN" (drivers
+    # absent, no failure) is NOT a failure — it stays allowed at full size.
+    _setup_runtime_mocks(monkeypatch, tmp_path)
+    monkeypatch.setattr(runtime, "compute_regime", lambda quotes: _regime_confidence(0.80))
+    monkeypatch.setattr(runtime, "_compute_overall_pressure", lambda quotes: "UNKNOWN")
+    monkeypatch.setattr(runtime, "_fixture_chain_results", lambda setups: {"SPY": _chain_manual()})
+    monkeypatch.setattr(runtime, "create_trade_decision", lambda *a, **k: runtime.TradeDecision(
+        ticker="SPY", direction="LONG", status=ALLOW_TRADE, entry=100.0, stop=97.0,
+        target=106.0, r_r=2.0, contracts=2, dollar_risk=400.0, block_reason=None,
+    ))
+
+    result = runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+
+    assert result.outcome == runtime.OUTCOME_TRADE
+    candidate = result.contract["trade_candidates"][0]
+    assert candidate["decision_status"] == ALLOW_TRADE
+    assert candidate["block_reason"] is None

@@ -530,3 +530,116 @@ def test_prd284_reason_and_stage_distinct_from_prd283() -> None:
     assert POLICY_SIZE_ROUNDS_TO_ZERO != SMALLEST_CONTRACT_EXCEEDS_BUDGET
     assert POLICY_STAGE == "EXECUTION_POLICY"
     assert POLICY_STAGE != OPTIONS_SIZING
+
+
+# ---------------------------------------------------------------------------
+# PRD-286 / CB-05 — macro-pressure COMPUTATION FAILURE fails closed. A failed
+# read (the MACRO_PRESSURE_UNAVAILABLE sentinel) blocks direction-agnostically
+# with reason macro_pressure_unavailable; a genuinely computed "UNKNOWN"
+# (drivers absent) is unchanged (full-size allow).
+# ---------------------------------------------------------------------------
+
+from cuttingboard.execution_policy import (  # noqa: E402
+    MACRO_PRESSURE_UNAVAILABLE,
+    POLICY_MACRO_PRESSURE_UNAVAILABLE,
+    _VALID_PRESSURE_VALUES,
+)
+
+
+def test_macro_unavailable_blocks_long_and_short() -> None:
+    # req 3,4: direction-agnostic fail-closed block with the distinct reason.
+    for direction in ("LONG", "SHORT"):
+        result = _eval_pressure(direction, MACRO_PRESSURE_UNAVAILABLE)
+        assert result.allowed is False
+        assert result.reason == "macro_pressure_unavailable"
+        assert result.reason == POLICY_MACRO_PRESSURE_UNAVAILABLE
+        assert result.size_multiplier == 0.0
+
+
+def test_macro_unavailable_full_apply_blocks_at_execution_policy() -> None:
+    # req 3: full apply_execution_policy path -> BLOCK_TRADE, EXECUTION_POLICY
+    # trace, size_multiplier 0.0, canonical reason on every carrier.
+    decision = apply_execution_policy(
+        _decision(direction="LONG"),
+        market_regime="RISK_ON",
+        posture="AGGRESSIVE_LONG",
+        confidence=0.80,
+        timestamp=RUN_AT,
+        session_state=ExecutionSessionState(),
+        overall_pressure=MACRO_PRESSURE_UNAVAILABLE,
+    )
+    assert decision.status == BLOCK_TRADE
+    assert decision.block_reason == "macro_pressure_unavailable"
+    assert decision.policy_reason == "macro_pressure_unavailable"
+    assert decision.decision_trace == {
+        "stage": "EXECUTION_POLICY",
+        "source": "execution_policy",
+        "reason": "macro_pressure_unavailable",
+    }
+    assert decision.size_multiplier == 0.0
+
+
+def test_macro_unavailable_is_valid_pressure_but_garbage_still_raises() -> None:
+    # req 7: the sentinel is a valid pressure value (routed to the macro block,
+    # not raised); an unrecognized string still raises ValueError.
+    assert MACRO_PRESSURE_UNAVAILABLE in _VALID_PRESSURE_VALUES
+    ok = _eval_pressure("LONG", MACRO_PRESSURE_UNAVAILABLE)
+    assert ok.reason == "macro_pressure_unavailable"
+    with pytest.raises(ValueError):
+        _eval_pressure("LONG", "GARBAGE")
+
+
+def test_macro_unavailable_distinct_from_computed_unknown() -> None:
+    # req 5: computed "UNKNOWN" stays allowed at full size; the failure sentinel
+    # blocks. The two are distinct values.
+    unknown = _eval_pressure("LONG", "UNKNOWN")
+    assert unknown.allowed is True
+    assert unknown.size_multiplier == 1.0
+    unavailable = _eval_pressure("LONG", MACRO_PRESSURE_UNAVAILABLE)
+    assert unavailable.allowed is False
+    assert unavailable.reason == "macro_pressure_unavailable"
+    assert MACRO_PRESSURE_UNAVAILABLE != "UNKNOWN"
+
+
+def test_macro_unavailable_blocks_every_decision_on_shared_seam() -> None:
+    # req 9: every decision that shares the macro seam fails closed. Direct and
+    # continuation entry modes both flow through this single
+    # apply_execution_policy_to_decisions call; the macro gate does not inspect
+    # entry mode, so both fail closed identically.
+    decisions = apply_execution_policy_to_decisions(
+        [_decision("SPY", "LONG"), _decision("QQQ", "SHORT")],
+        market_regime="RISK_ON",
+        posture="AGGRESSIVE_LONG",
+        confidence=0.80,
+        timestamp=RUN_AT,
+        session_state=ExecutionSessionState(),
+        orb_states={
+            "SPY": OrbPolicyState(price=102.0, orb_high=101.0, orb_low=99.0),
+            "QQQ": OrbPolicyState(price=198.0, orb_high=201.0, orb_low=199.0),
+        },
+        overall_pressure=MACRO_PRESSURE_UNAVAILABLE,
+    )
+    assert [d.ticker for d in decisions] == ["SPY", "QQQ"]  # order preserved
+    assert all(d.status == BLOCK_TRADE for d in decisions)
+    assert all(d.policy_reason == "macro_pressure_unavailable" for d in decisions)
+
+
+def test_macro_unavailable_reason_reaches_block_reason_consumer() -> None:
+    # req 10: the canonical reason survives to the existing block-reason consumer
+    # (trade_visibility) via its generic fallback — not replaced or lost, with no
+    # consumer edit.
+    from cuttingboard.trade_visibility import build_visibility_map
+
+    decision = apply_execution_policy(
+        _decision(direction="LONG"),
+        market_regime="RISK_ON",
+        posture="AGGRESSIVE_LONG",
+        confidence=0.80,
+        timestamp=RUN_AT,
+        session_state=ExecutionSessionState(),
+        overall_pressure=MACRO_PRESSURE_UNAVAILABLE,
+    )
+    vis = build_visibility_map([decision], {"symbols": {"SPY": {"grade": "A+"}}})
+    entry = vis["SPY"]
+    assert entry["visibility_reason"] == "macro_pressure_unavailable"
+    assert any("macro_pressure_unavailable" in cond for cond in entry["enable_conditions"])

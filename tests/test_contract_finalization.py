@@ -192,6 +192,10 @@ def test_pipeline_rejects_undeclared_system_state_key(monkeypatch, tmp_path):
 def test_pipeline_validates_clean_contract(monkeypatch, tmp_path):
     # Guard against a can't-fail test: the same harness with no corruption
     # completes, proving the corruption (not the mocks) is what raises above.
+    # PRD-286: this fixture has no macro drivers, so real macro computation now
+    # fails closed (UNAVAILABLE -> block). This test covers clean-contract
+    # finalization, not macro pressure; isolate the macro seam.
+    monkeypatch.setattr(runtime, "_compute_overall_pressure", lambda quotes: "NEUTRAL")
     result = _run_mocked_pipeline(monkeypatch, tmp_path)
     assert result.outcome == runtime.OUTCOME_TRADE
 

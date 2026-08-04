@@ -60,6 +60,7 @@ from cuttingboard.evaluation import run_post_trade_evaluation
 from cuttingboard.performance_engine import run_performance_engine
 from cuttingboard.contract import _build_macro_drivers
 from cuttingboard.execution_policy import (
+    MACRO_PRESSURE_UNAVAILABLE,
     POLICY_SIZE_ROUNDS_TO_ZERO,
     ExecutionSessionState,
     OrbPolicyState,
@@ -1467,8 +1468,15 @@ def _compute_overall_pressure(normalized_quotes: dict) -> str:
         snapshot = build_macro_pressure(macro_drivers)
         return snapshot["overall_pressure"]
     except Exception as exc:
-        logger.warning("build_macro_pressure failed, defaulting to UNKNOWN: %s", exc)
-        return "UNKNOWN"
+        # PRD-286 / CB-05: a computation FAILURE fails CLOSED — return the
+        # distinct MACRO_PRESSURE_UNAVAILABLE sentinel (not "UNKNOWN", which is a
+        # valid computed no-signal state that allows full size). Execution policy
+        # blocks direction-agnostically on this sentinel.
+        logger.warning(
+            "build_macro_pressure failed, macro pressure UNAVAILABLE (fail-closed): %s",
+            exc,
+        )
+        return MACRO_PRESSURE_UNAVAILABLE
 
 
 def _load_execution_policy_session_state(run_at_utc: datetime, date_str: str) -> ExecutionSessionState:
