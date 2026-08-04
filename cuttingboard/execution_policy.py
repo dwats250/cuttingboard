@@ -29,6 +29,12 @@ POLICY_SESSION_TRADE_LIMIT = "session_trade_limit"
 POLICY_LOSS_LOCKOUT = "loss_lockout"
 POLICY_COOLDOWN = "cooldown"
 POLICY_ORB_INSIDE_RANGE = "orb_inside_range"
+# PRD-271 / CB-07: the ORB carrier's session provenance is INVALID (stale prior
+# session, session mismatch, malformed/impossible bounds, mixed-session or
+# unordered formation bars). Distinct from POLICY_ORB_UNAVAILABLE (no range yet
+# — a benign abstain that preserves the existing allow-but-flag path): an
+# untrustworthy ORB fails CLOSED at the gate rather than silently allowing.
+POLICY_ORB_INVALID = "orb_invalid_session"
 POLICY_MACRO_PRESSURE_CONFLICT = "macro_pressure_conflict"
 # PRD-284: canonical reason when an allowed decision's policy-scaled position
 # floors to zero contracts. Distinct from options.py's
@@ -54,6 +60,10 @@ class OrbPolicyState:
     orb_high: Optional[float] = None
     orb_low: Optional[float] = None
     continuation_breakout: bool = False
+    # PRD-271 / CB-07: transient session-provenance verdict threaded from the
+    # producer. True when the ORB observation is INVALID (untrustworthy
+    # provenance) and must fail closed; never persisted.
+    invalid: bool = False
 
 
 @dataclass(frozen=True)
@@ -286,6 +296,12 @@ def _evaluate_orb_constraint(
 ) -> Optional[str]:
     if orb_state is not None and orb_state.continuation_breakout:
         return None
+    # PRD-271 / CB-07: an INVALID (untrustworthy-provenance) ORB fails closed —
+    # distinct from UNAVAILABLE's benign allow-but-flag. Evaluated after the
+    # continuation bypass (which legitimately does not gate on ORB) and before
+    # the missing-value path so a mismatched session can never allow a trade.
+    if orb_state is not None and orb_state.invalid:
+        return POLICY_ORB_INVALID
     if (
         orb_state is None
         or orb_state.price is None

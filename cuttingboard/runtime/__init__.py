@@ -124,7 +124,12 @@ from cuttingboard.sector_router import (
 from cuttingboard.structure import classify_all_structure
 from cuttingboard.universe import is_tradable_symbol
 from cuttingboard.validation import HaltCause, ValidationSummary, extract_fetch_failures, validate_quotes
-from cuttingboard.watch import WatchSummary, classify_watchlist, compute_all_intraday_metrics
+from cuttingboard.watch import (
+    ORB_INVALID,
+    WatchSummary,
+    classify_watchlist,
+    compute_all_intraday_metrics,
+)
 
 # PRD-173: constants + pipeline dataclasses live in L0 leaf modules and are
 # re-exported here so the cuttingboard.runtime.<name> surface (including
@@ -1027,7 +1032,9 @@ def _run_pipeline(
             if mode == MODE_FIXTURE:
                 intraday_metrics, ignored_watch_symbols = ({}, sorted(execution_quotes))
             else:
-                intraday_metrics, ignored_watch_symbols = compute_all_intraday_metrics(list(execution_quotes))
+                intraday_metrics, ignored_watch_symbols = compute_all_intraday_metrics(
+                    list(execution_quotes), asof=run_at_utc
+                )
             watch_summary = classify_watchlist(
                 execution_structure,
                 execution_derived,
@@ -1504,11 +1511,16 @@ def _build_execution_policy_orb_states(
                 continuation_breakout=continuation_breakout,
             )
             continue
+        # PRD-271 / CB-07: thread the transient ORB provenance verdict into the
+        # policy state (not persisted); an INVALID observation fails closed.
+        orb = getattr(metrics, "orb", None)
+        orb_invalid = getattr(orb, "state", None) == ORB_INVALID
         states[decision.ticker] = OrbPolicyState(
             price=decision.entry,
             orb_high=getattr(metrics, "orb_high", None),
             orb_low=getattr(metrics, "orb_low", None),
             continuation_breakout=continuation_breakout,
+            invalid=orb_invalid,
         )
     return states
 

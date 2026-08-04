@@ -167,11 +167,38 @@ def _is_fresh_ohlcv_cache(df: pd.DataFrame) -> bool:
     return last_bar.date() >= most_recent_completed_session_date(datetime.now(timezone.utc))
 
 
+# PRD-271 / CB-07: the rolling window the watch layer consumes for recent
+# metrics. The opening-range formation bars (09:30-09:35 ET) are retained IN
+# ADDITION so the session-scoped ORB producer can select them by timestamp even
+# after the tail would evict them — a bounded opening-range retention only.
+MAX_INTRADAY_RETURN_BARS = 120
+ORB_RETENTION_START = "09:30"
+ORB_RETENTION_END = "09:35"
+
+
+def _retain_session_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    """Retain the current session's opening-range bars plus the recent window.
+
+    ``frame`` is a single-session, Eastern-time-indexed regular-session frame.
+    Returns a UTC-indexed frame containing the 09:30-09:35 ET formation bars
+    unioned with the most recent ``MAX_INTRADAY_RETURN_BARS`` bars, so the ORB
+    formation window survives the ordinary rolling truncation (PRD-271).
+    """
+    opening = frame.between_time(ORB_RETENTION_START, ORB_RETENTION_END)
+    recent = frame.tail(MAX_INTRADAY_RETURN_BARS)
+    retained = pd.concat([opening, recent])
+    retained = retained[~retained.index.duplicated(keep="first")].sort_index()
+    retained.index = retained.index.tz_convert("UTC")
+    return retained
+
+
 def fetch_intraday_bars(symbol: str) -> Optional[pd.DataFrame]:
     """Fetch the current regular session's 1-minute bars from yfinance.
 
-    Returns up to the last 120 regular-session bars for the latest session date.
-    Failure is per-symbol and returns None without raising.
+    Returns the current session's opening-range formation bars (09:30-09:35 ET)
+    plus up to the last 120 regular-session bars for the latest session date, so
+    the watch-path ORB producer can select the opening range by session
+    timestamp. Failure is per-symbol and returns None without raising.
     """
     if _is_live_data_blocked():
         raise RuntimeError("LIVE_DATA_FORBIDDEN_IN_SUNDAY_MODE")
@@ -203,8 +230,7 @@ def fetch_intraday_bars(symbol: str) -> Optional[pd.DataFrame]:
         frame = frame.loc[frame.index.date == latest_date]
         if frame.empty:
             raise ValueError("no bars for latest session date")
-        frame.index = frame.index.tz_convert("UTC")
-        return frame.tail(120)
+        return _retain_session_frame(frame)
 
     last_error: Optional[str] = None
     for attempt in range(config.FETCH_RETRIES):
