@@ -1388,6 +1388,12 @@
       "title": "Macro-pressure fail-closed (CB-05): a macro-pressure computation failure must block, not silently degrade to \"UNKNOWN\" and allow full size",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 287,
+      "title": "Hourly operational-truth: an unhealthy hourly run must never report success \u2014 fail-loud runner exit code + health-aware readiness (CB-06)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
