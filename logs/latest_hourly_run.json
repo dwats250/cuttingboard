@@ -1,25 +1,22 @@
 {
-  "alert_body": "Regime: RISK ON\nConfidence: 0.62\nReason: candidates gated\nBlockers: RR_RATIO, EXTENSION, STOP_DISTANCE\n\nMacro Tape:\nGC   4144.3  +0.9%\nSI   60.0   +1.8%\nBTC  64.3K  +1.3%\nVIX  16.5   +4.2%\nDXY  99.9   -0.1%\n10Y  4.63   -1.2%\nOIL  75.8   -6.6%\n\nTradables:\nSPY  772.36\nQQQ  723.75\nGLD  374.98\nGDX  78.33\nSLV  54.03\nXLE  58.55\n\nFocus: AAPL LONG, COIN LONG, IWM LONG\n\nPending confirmation:\nAAPL: breakout confirmation\nCOIN: trend confirmation",
-  "alert_title": "MONITOR SETUP 11:00 AM",
+  "alert_body": "Regime: RISK ON\nConfidence: 0.62\nReason: candidates gated\nBlockers: TIME\n\nMacro Tape:\nGC   4136.4  +0.7%\nSI   59.8   +1.6%\nBTC  64.0K  +0.9%\nVIX  16.4   +3.4%\nDXY  99.9   -0.1%\n10Y  4.63   -1.3%\nOIL  75.8   -6.7%\n\nTradables:\nSPY  771.33\nQQQ  723.85\nGLD  374.15\nGDX  77.92\nSLV  53.84\nXLE  58.52\n\nFocus: GLD LONG, XLE LONG, COIN LONG",
+  "alert_title": "MONITOR 1:00 PM",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
     "payload_path": "logs/latest_hourly_payload.json",
     "report_path": "reports/output/hourly_report.html"
   },
-  "candidate_lines": [
-    "AAPL | LONG | BREAKOUT | 2.0:1",
-    "COIN | LONG | TREND | 2.0:1"
-  ],
-  "candidates_qualified": 3,
-  "candidates_watchlist": 6,
+  "candidate_lines": [],
+  "candidates_qualified": 0,
+  "candidates_watchlist": 4,
   "confidence": 0.625,
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-08-04T18:23:20Z",
-  "generation_id": "hourly-20260804T182320Z",
+  "generated_at": "2026-08-04T20:18:58Z",
+  "generation_id": "hourly-20260804T201858Z",
   "halt_reason": null,
-  "hourly_slot_utc": "2026-08-04T18:00:00Z",
+  "hourly_slot_utc": "2026-08-04T20:00:00Z",
   "index_score": 0.0,
   "kill_switch": false,
   "mode": "LIVE",
@@ -37,11 +34,11 @@
   "posture": "CONTROLLED_LONG",
   "regime": "RISK_ON",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-08-04T18:23:20Z",
-  "run_id": "hourly-20260804T182320Z",
+  "run_at_utc": "2026-08-04T20:18:58Z",
+  "run_id": "hourly-20260804T201858Z",
   "session_date": "2026-08-04",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-08-04T18:23:20Z",
+  "timestamp": "2026-08-04T20:18:58Z",
   "warnings": []
 }
