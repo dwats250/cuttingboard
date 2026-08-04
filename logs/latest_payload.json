@@ -1,46 +1,46 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.4882708561144874,
-      "level": 63803.37109375,
+      "change_pct": 0.7915961093408821,
+      "level": 63968.91015625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.2326140343469244,
-      "level": 99.96900177001953,
+      "change_pct": -0.11497946838796924,
+      "level": 99.9010009765625,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -0.7766990291262136,
-      "level": 4088.0,
+      "change_pct": 0.7326714362494791,
+      "level": 4138.2998046875,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 0.3383840581130564,
-      "level": 80.05999755859375,
+      "change_pct": -5.246954068396359,
+      "level": 76.93000030517578,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -6.021567972781751,
-      "change_pct": -1.2855610489252018,
-      "level": 4.684000015258789,
+      "change_bps": -4.260516949617182,
+      "change_pct": -0.9176215451437401,
+      "level": 4.64300012588501,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -1.6693750440873334,
-      "level": 57.43000030517578,
+      "change_pct": 1.3919533134411322,
+      "level": 59.72999954223633,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -2.501561127303893,
-      "level": 15.59000015258789,
+      "change_pct": 0.6305194428401215,
+      "level": 15.960000038146973,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "live-20260803T153954Z",
+    "generation_id": "live-20260804T151849Z",
     "symbols_scanned": 22,
-    "timestamp": "2026-08-03T15:39:54Z"
+    "timestamp": "2026-08-04T15:18:49Z"
   },
   "run_status": "OK",
   "schema_version": "1.0",
@@ -49,12 +49,22 @@
       {
         "classification": "DISQUALIFIED_OPTIONS_INVALID",
         "notes": "isolated OI spike \u2014 thin liquidity cluster",
-        "symbol": "QQQ"
+        "symbol": "^VIX"
       },
       {
         "classification": "DISQUALIFIED_OPTIONS_INVALID",
         "notes": "isolated OI spike \u2014 thin liquidity cluster",
-        "symbol": "XLE"
+        "symbol": "GLD"
+      },
+      {
+        "classification": "TOP_TRADE_VALIDATED",
+        "notes": null,
+        "symbol": "META"
+      },
+      {
+        "classification": "DISQUALIFIED_OPTIONS_INVALID",
+        "notes": "isolated OI spike \u2014 thin liquidity cluster",
+        "symbol": "COIN"
       }
     ],
     "continuation_audit": null,
@@ -63,29 +73,37 @@
         "direction": "LONG",
         "entry_mode": "DIRECT",
         "strategy_tag": "BULL_CALL_SPREAD",
-        "symbol": "QQQ",
+        "symbol": "^VIX",
         "timeframe": "14"
       },
       {
         "direction": "LONG",
         "entry_mode": "DIRECT",
         "strategy_tag": "BULL_CALL_SPREAD",
-        "symbol": "XLE",
+        "symbol": "GLD",
+        "timeframe": "14"
+      },
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "META",
         "timeframe": "21"
+      },
+      {
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "COIN",
+        "timeframe": "14"
       }
     ],
     "rejected": [
       {
         "detail": null,
-        "reason": "2 soft gates failed: stop distance 9.87 below 1\u00d7 ATR14 (9.87); price 1.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "CHOP",
         "stage": "QUALIFICATION",
-        "symbol": "AAPL"
-      },
-      {
-        "detail": null,
-        "reason": "2 soft gates failed: stop distance 9.51 below 1\u00d7 ATR14 (9.51); price 4.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-        "stage": "QUALIFICATION",
-        "symbol": "AMZN"
+        "symbol": "BTC-USD"
       },
       {
         "detail": null,
@@ -109,7 +127,7 @@
         "detail": null,
         "reason": "CHOP",
         "stage": "QUALIFICATION",
-        "symbol": "IWM"
+        "symbol": "GDX"
       },
       {
         "detail": null,
@@ -119,21 +137,39 @@
       },
       {
         "detail": null,
-        "reason": "2 soft gates failed: stop distance 16.83 below 1\u00d7 ATR14 (16.83); price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "CHOP",
         "stage": "QUALIFICATION",
-        "symbol": "TSLA"
+        "symbol": "PAAS"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "QQQ"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "SI=F"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "SLV"
+      },
+      {
+        "detail": null,
+        "reason": "2 soft gates failed: stop distance 9.22 below 1\u00d7 ATR14 (9.22); price 2.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "QUALIFICATION",
+        "symbol": "SPY"
       },
       {
         "detail": null,
         "reason": "CHOP",
         "stage": "QUALIFICATION",
         "symbol": "USO"
-      },
-      {
-        "detail": null,
-        "reason": "CHOP",
-        "stage": "QUALIFICATION",
-        "symbol": "^VIX"
       }
     ],
     "top_trades": [],
@@ -149,7 +185,7 @@
         "direction": "LONG",
         "entry_mode": "DIRECT",
         "strategy_tag": "BULL_CALL_SPREAD",
-        "symbol": "QQQ"
+        "symbol": "^VIX"
       },
       {
         "block_reason": "isolated OI spike \u2014 thin liquidity cluster",
@@ -162,7 +198,33 @@
         "direction": "LONG",
         "entry_mode": "DIRECT",
         "strategy_tag": "BULL_CALL_SPREAD",
-        "symbol": "XLE"
+        "symbol": "GLD"
+      },
+      {
+        "block_reason": "orb_inside_range",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "orb_inside_range",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "META"
+      },
+      {
+        "block_reason": "isolated OI spike \u2014 thin liquidity cluster",
+        "decision_status": "BLOCK_TRADE",
+        "decision_trace": {
+          "reason": "isolated OI spike \u2014 thin liquidity cluster",
+          "source": "execution_policy",
+          "stage": "EXECUTION_POLICY"
+        },
+        "direction": "LONG",
+        "entry_mode": "DIRECT",
+        "strategy_tag": "BULL_CALL_SPREAD",
+        "symbol": "COIN"
       }
     ],
     "validation_halt_detail": null,
@@ -172,63 +234,39 @@
     "watchlist": [
       {
         "detail": null,
-        "reason": "stop distance 0.06 below 1\u00d7 ATR14 (0.06)",
+        "reason": "R:R 2.00 below 2.0 minimum",
         "stage": "WATCHLIST",
         "symbol": "^TNX"
       },
       {
         "detail": null,
-        "reason": "stop distance 1606.15 below 1\u00d7 ATR14 (1606.15)",
-        "stage": "WATCHLIST",
-        "symbol": "BTC-USD"
-      },
-      {
-        "detail": null,
         "reason": "R:R 2.00 below 2.0 minimum",
         "stage": "WATCHLIST",
-        "symbol": "SI=F"
+        "symbol": "IWM"
       },
       {
         "detail": null,
-        "reason": "stop distance 9.04 below 1\u00d7 ATR14 (9.04)",
+        "reason": "stop distance 1.21 below 1\u00d7 ATR14 (1.21)",
         "stage": "WATCHLIST",
-        "symbol": "SPY"
+        "symbol": "XLE"
       },
       {
         "detail": null,
-        "reason": "stop distance 7.19 below 1\u00d7 ATR14 (7.19)",
+        "reason": "stop distance 16.64 below 1\u00d7 ATR14 (16.64)",
         "stage": "WATCHLIST",
-        "symbol": "GLD"
+        "symbol": "TSLA"
       },
       {
         "detail": null,
-        "reason": "R:R 2.00 below 2.0 minimum",
+        "reason": "stop distance 9.83 below 1\u00d7 ATR14 (9.83)",
         "stage": "WATCHLIST",
-        "symbol": "SLV"
+        "symbol": "AAPL"
       },
       {
         "detail": null,
-        "reason": "stop distance 3.06 below 1\u00d7 ATR14 (3.06)",
+        "reason": "price 3.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "WATCHLIST",
-        "symbol": "GDX"
-      },
-      {
-        "detail": null,
-        "reason": "R:R 2.00 below 2.0 minimum",
-        "stage": "WATCHLIST",
-        "symbol": "PAAS"
-      },
-      {
-        "detail": null,
-        "reason": "stop distance 25.18 below 1\u00d7 ATR14 (25.18)",
-        "stage": "WATCHLIST",
-        "symbol": "META"
-      },
-      {
-        "detail": null,
-        "reason": "stop distance 10.68 below 1\u00d7 ATR14 (10.68)",
-        "stage": "WATCHLIST",
-        "symbol": "COIN"
+        "symbol": "AMZN"
       }
     ]
   },
