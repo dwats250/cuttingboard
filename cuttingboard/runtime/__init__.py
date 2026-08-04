@@ -60,6 +60,7 @@ from cuttingboard.evaluation import run_post_trade_evaluation
 from cuttingboard.performance_engine import run_performance_engine
 from cuttingboard.contract import _build_macro_drivers
 from cuttingboard.execution_policy import (
+    POLICY_SIZE_ROUNDS_TO_ZERO,
     ExecutionSessionState,
     OrbPolicyState,
     apply_execution_policy_to_decisions,
@@ -1125,6 +1126,24 @@ def _run_pipeline(
     visibility_map = build_visibility_map(trade_decisions, market_map)
     explanation_map = build_explanation_map(trade_decisions, visibility_map, overall_pressure)
 
+    # PRD-284: pass materialized sizing (actionable decisions only) so the report
+    # renders the policy-decided position and excludes policy-blocked setups
+    # (incl. size_rounds_to_zero) from the A+ TRADES section.
+    materialized_sizing = {
+        decision.ticker: (decision.contracts, decision.dollar_risk)
+        for decision in trade_decisions
+        if decision_is_actionable(decision)
+    }
+    # PRD-284 (CB-03) R5: carry the size_rounds_to_zero block reason into the
+    # report so a sole zero-rounding run names it (not a generic no-trade
+    # fallback) and a mixed run surfaces the blocked symbol/reason without
+    # rendering it as A+. Reuses the decision's EXECUTION_POLICY block_reason.
+    size_blocked = {
+        decision.ticker: decision.block_reason
+        for decision in trade_decisions
+        if decision.block_reason == POLICY_SIZE_ROUNDS_TO_ZERO
+    }
+
     report = render_report(
         date_str=date_str,
         run_at_utc=run_at_utc,
@@ -1140,6 +1159,8 @@ def _run_pipeline(
         halt_reason=validation_summary.halt_reason,
         chain_results=chain_results,
         option_refusals=option_refusals,
+        materialized_sizing=materialized_sizing,
+        size_blocked=size_blocked,
     )
     _write_markdown_report(report, date_str, "NOT RUN")
     report_path = str(REPORTS_DIR / f"{date_str}.md")

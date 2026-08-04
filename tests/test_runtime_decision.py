@@ -847,3 +847,118 @@ def test_prd283_sizing_refusal_reaches_every_consumer(monkeypatch, tmp_path, cap
     cli_out = capsys.readouterr().out
     assert "REFUSED SPY" in cli_out
     assert SMALLEST_CONTRACT_EXCEEDS_BUDGET in cli_out
+
+
+# ---------------------------------------------------------------------------
+# PRD-284 — full A2 materialization end-to-end (execution_policy -> contract).
+# render_report is stubbed in this harness; render behavior is covered by
+# test_contract.py::test_prd284_render_report_materialized_sizing_and_excludes_blocked.
+# ---------------------------------------------------------------------------
+
+
+def _regime_confidence(confidence: float) -> RegimeState:
+    return RegimeState(
+        regime=RISK_ON,
+        posture=AGGRESSIVE_LONG,
+        confidence=confidence,
+        net_score=5,
+        risk_on_votes=5,
+        risk_off_votes=0,
+        neutral_votes=3,
+        total_votes=8,
+        vote_breakdown={},
+        vix_level=16.0,
+        vix_pct_change=-0.03,
+        computed_at_utc=RUN_AT,
+    )
+
+
+def _chain_manual(symbol: str = "SPY") -> ChainValidationResult:
+    return ChainValidationResult(
+        symbol=symbol,
+        classification=MANUAL_CHECK,
+        reason="fixture mode skips live chain validation",
+        spread_pct=None,
+        open_interest=None,
+        volume=None,
+        expiry_used=None,
+        data_source=None,
+    )
+
+
+def test_prd284_e2e_positive_materialization_reaches_contract(monkeypatch, tmp_path):
+    # confidence 0.65 -> multiplier 0.5 (NEUTRAL pressure isolates it).
+    # Mocked decision: 2 contracts / $400 -> materialized 1 contract / $200.
+    _setup_runtime_mocks(monkeypatch, tmp_path)
+    monkeypatch.setattr(runtime, "compute_regime", lambda quotes: _regime_confidence(0.65))
+    monkeypatch.setattr(runtime, "_compute_overall_pressure", lambda quotes: "NEUTRAL")
+    monkeypatch.setattr(runtime, "_fixture_chain_results", lambda setups: {"SPY": _chain_manual()})
+    monkeypatch.setattr(runtime, "create_trade_decision", lambda *a, **k: runtime.TradeDecision(
+        ticker="SPY", direction="LONG", status=ALLOW_TRADE, entry=100.0, stop=97.0,
+        target=106.0, r_r=2.0, contracts=2, dollar_risk=400.0, block_reason=None,
+    ))
+
+    result = runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+
+    assert result.outcome == runtime.OUTCOME_TRADE
+    candidate = result.contract["trade_candidates"][0]
+    assert candidate["decision_status"] == ALLOW_TRADE
+    assert candidate["size_multiplier"] == 0.5
+    assert candidate["position_size"] == 1        # materialized (setup carries 2)
+    assert candidate["dollar_risk"] == 200.0      # 400/2*1, materialized
+
+
+def test_prd284_e2e_size_rounds_to_zero_blocks_through_contract(monkeypatch, tmp_path):
+    # confidence 0.65 -> multiplier 0.5; 1 contract x 0.5 -> floor 0 -> block.
+    _setup_runtime_mocks(monkeypatch, tmp_path)
+    monkeypatch.setattr(runtime, "compute_regime", lambda quotes: _regime_confidence(0.65))
+    monkeypatch.setattr(runtime, "_compute_overall_pressure", lambda quotes: "NEUTRAL")
+    monkeypatch.setattr(runtime, "_fixture_chain_results", lambda setups: {"SPY": _chain_manual()})
+    monkeypatch.setattr(runtime, "create_trade_decision", lambda *a, **k: runtime.TradeDecision(
+        ticker="SPY", direction="LONG", status=ALLOW_TRADE, entry=100.0, stop=97.0,
+        target=106.0, r_r=2.0, contracts=1, dollar_risk=150.0, block_reason=None,
+    ))
+
+    result = runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+
+    assert result.outcome == runtime.OUTCOME_NO_TRADE
+    candidate = result.contract["trade_candidates"][0]
+    assert candidate["decision_status"] == BLOCK_TRADE
+    assert candidate["block_reason"] == "size_rounds_to_zero"
+    assert candidate["policy_reason"] == "size_rounds_to_zero"
+    assert candidate["size_multiplier"] == 0.0
+    assert candidate["position_size"] == 1  # contracts >= 1 invariant preserved
+    assert candidate["decision_trace"]["stage"] == "EXECUTION_POLICY"
+
+
+def test_prd284_runtime_passes_size_blocked_to_report(monkeypatch, tmp_path):
+    # PRD-284 R5: the pipeline builds the size_rounds_to_zero block map from the
+    # decisions and passes it to render_report (render is otherwise stubbed).
+    _setup_runtime_mocks(monkeypatch, tmp_path)
+    monkeypatch.setattr(runtime, "compute_regime", lambda quotes: _regime_confidence(0.65))
+    monkeypatch.setattr(runtime, "_compute_overall_pressure", lambda quotes: "NEUTRAL")
+    monkeypatch.setattr(runtime, "_fixture_chain_results", lambda setups: {"SPY": _chain_manual()})
+    monkeypatch.setattr(runtime, "create_trade_decision", lambda *a, **k: runtime.TradeDecision(
+        ticker="SPY", direction="LONG", status=ALLOW_TRADE, entry=100.0, stop=97.0,
+        target=106.0, r_r=2.0, contracts=1, dollar_risk=150.0, block_reason=None,
+    ))
+    captured: dict = {}
+    monkeypatch.setattr(runtime, "render_report", lambda **kwargs: captured.update(kwargs) or "report")
+
+    runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+
+    # 1 contract x 0.5 -> floor 0 -> size_rounds_to_zero, carried into the report.
+    assert captured["size_blocked"] == {"SPY": "size_rounds_to_zero"}
+    assert captured["materialized_sizing"] == {}  # nothing actionable

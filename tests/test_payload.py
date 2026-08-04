@@ -624,6 +624,15 @@ class TestTopTradesActionableGating:
         payload = build_report_payload(contract)
         assert payload["sections"]["top_trades"] == []
 
+    def test_prd284_size_rounds_to_zero_candidate_excluded(self):
+        # PRD-284 R5: a size_rounds_to_zero decision is BLOCK_TRADE with
+        # size_multiplier 0.0 — non-actionable, excluded from top_trades.
+        c = _sized_candidate("SPY", decision_status="BLOCK_TRADE", size_multiplier=0.0)
+        c["block_reason"] = "size_rounds_to_zero"
+        contract = _minimal_contract(trade_candidates=[c])
+        payload = build_report_payload(contract)
+        assert payload["sections"]["top_trades"] == []
+
     def test_no_actionable_candidate_yields_empty_top_trades_d3(self):
         # D3: a mix of non-actionable candidates yields an empty top_trades.
         contract = _minimal_contract(trade_candidates=[

@@ -9,6 +9,7 @@ downgraded to BLOCK_TRADE before contract and audit materialization.
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -30,6 +31,10 @@ POLICY_LOSS_LOCKOUT = "loss_lockout"
 POLICY_COOLDOWN = "cooldown"
 POLICY_ORB_INSIDE_RANGE = "orb_inside_range"
 POLICY_MACRO_PRESSURE_CONFLICT = "macro_pressure_conflict"
+# PRD-284: canonical reason when an allowed decision's policy-scaled position
+# floors to zero contracts. Distinct from options.py's
+# SMALLEST_CONTRACT_EXCEEDS_BUDGET (OPTIONS_SIZING, pre-TradeDecision).
+POLICY_SIZE_ROUNDS_TO_ZERO = "size_rounds_to_zero"
 
 _VALID_PRESSURE_VALUES = frozenset({"RISK_ON", "RISK_OFF", "MIXED", "NEUTRAL", "UNKNOWN"})
 
@@ -177,11 +182,42 @@ def apply_execution_policy(
         overall_pressure=overall_pressure,
     )
     if result.allowed:
+        # PRD-284: materialize the finalized size multiplier into the position.
+        if result.size_multiplier == 1.0:
+            # Unity short-circuit — preserve contracts and dollar_risk exactly
+            # (structural R3 guarantee; never rely on (d/c)*c == d in float).
+            return replace(
+                decision,
+                policy_allowed=True,
+                policy_reason=result.reason,
+                size_multiplier=result.size_multiplier,
+            )
+        materialized_contracts = math.floor(decision.contracts * result.size_multiplier)
+        if materialized_contracts >= 1:
+            dollar_risk_per_contract = decision.dollar_risk / decision.contracts
+            return replace(
+                decision,
+                contracts=materialized_contracts,
+                dollar_risk=round(dollar_risk_per_contract * materialized_contracts, 2),
+                policy_allowed=True,
+                policy_reason=result.reason,
+                size_multiplier=result.size_multiplier,
+            )
+        # materialized_contracts == 0: the policy-scaled position rounds to zero.
+        # Block at EXECUTION_POLICY; keep contracts at its pre-materialization
+        # value (the contracts >= 1 invariant forbids 0; the block makes it moot).
         return replace(
             decision,
-            policy_allowed=True,
-            policy_reason=result.reason,
-            size_multiplier=result.size_multiplier,
+            status=BLOCK_TRADE,
+            block_reason=POLICY_SIZE_ROUNDS_TO_ZERO,
+            decision_trace={
+                "stage": POLICY_STAGE,
+                "source": POLICY_SOURCE,
+                "reason": POLICY_SIZE_ROUNDS_TO_ZERO,
+            },
+            policy_allowed=False,
+            policy_reason=POLICY_SIZE_ROUNDS_TO_ZERO,
+            size_multiplier=0.0,
         )
 
     return replace(

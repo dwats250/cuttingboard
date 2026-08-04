@@ -334,11 +334,13 @@ def _build_trade_candidates(
 
         vis = (visibility_map or {}).get(result.symbol, {})
         expl = (explanation_map or {}).get(result.symbol, {})
-        # PRD-157/PRD-253: sizing passthrough. position_size aliases
-        # setup.max_contracts; dollar_risk forwards setup.dollar_risk — both
-        # correlation- and strategy-adjusted (PRD-023/PRD-157/PRD-251), matching
-        # what render_report and audit.py's trade_decisions[] block use for the
-        # same candidate, not the pre-adjustment QualificationResult.
+        # PRD-284: position_size and dollar_risk read the MATERIALIZED decision
+        # (execution_policy applied the size multiplier), not the pre-policy
+        # OptionSetup — so {size_multiplier, position_size, dollar_risk} are
+        # mutually consistent (no inconsistent triple; CB-03). At multiplier 1.0
+        # decision.contracts/dollar_risk equal setup.max_contracts/dollar_risk
+        # value-for-value. decision.contracts is always int >= 1 and
+        # decision.dollar_risk a finite float (TradeDecision invariants).
         # estimated_debit = setup.spread_width × 100 (per-contract dollar debit,
         # since OptionSetup.spread_width is documented as estimated net debit
         # per share at options.py:100).
@@ -361,12 +363,8 @@ def _build_trade_candidates(
             "policy_allowed": decision.policy_allowed,
             "policy_reason": decision.policy_reason,
             "size_multiplier": float(decision.size_multiplier),
-            "position_size": (
-                int(setup.max_contracts) if setup.max_contracts is not None else None
-            ),
-            "dollar_risk": (
-                float(setup.dollar_risk) if setup.dollar_risk is not None else None
-            ),
+            "position_size": int(decision.contracts),
+            "dollar_risk": float(decision.dollar_risk),
             "estimated_debit": float(setup.spread_width * 100),
             "visibility_status": vis.get("visibility_status"),
             "visibility_reason": vis.get("visibility_reason"),

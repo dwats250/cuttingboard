@@ -203,6 +203,95 @@ def test_audit_qualified_trades_sizing_sources_from_option_setup() -> None:
     assert entry["dollar_risk"] == 60.0
 
 
+def test_prd284_qualified_trades_sizing_materialized_from_decision() -> None:
+    """PRD-284 R7: when a materialized TradeDecision exists for the symbol, the
+    qualified_trades[] row reads contracts/dollar_risk from the DECISION (so
+    they agree with size_multiplier), not the pre-policy OptionSetup.
+
+    Fixture discriminates: OptionSetup carries pre-policy sizing
+    (max_contracts=2, dollar_risk=300.0); the decision is materialized at
+    multiplier 0.5 (contracts=1, dollar_risk=150.0). The row must show the
+    decision values and a consistent size_multiplier.
+    """
+    result = QualificationResult(
+        symbol="SPY",
+        qualified=True,
+        watchlist=False,
+        direction="LONG",
+        gates_passed=["REGIME", "CONFIDENCE", "DIRECTION", "STRUCTURE"],
+        gates_failed=[],
+        hard_failure=None,
+        watchlist_reason=None,
+        max_contracts=2,
+        dollar_risk=300.0,
+    )
+    setup = OptionSetup(
+        symbol="SPY",
+        strategy="BULL_CALL_SPREAD",
+        direction="LONG",
+        structure="TREND",
+        iv_environment="NORMAL_IV",
+        long_strike="1_ITM",
+        short_strike="ATM",
+        strike_distance=5.0,
+        spread_width=0.75,
+        dte=21,
+        max_contracts=2,
+        dollar_risk=300.0,
+        exit_profit_pct=0.5,
+        exit_loss="full_debit",
+    )
+    decision = TradeDecision(
+        ticker="SPY",
+        direction="LONG",
+        status=ALLOW_TRADE,
+        entry=100.0,
+        stop=97.0,
+        target=106.0,
+        r_r=2.0,
+        contracts=1,
+        dollar_risk=150.0,
+        block_reason=None,
+        policy_allowed=True,
+        policy_reason="orb_unavailable",
+        size_multiplier=0.5,
+    )
+    qual = QualificationSummary(
+        regime_passed=True,
+        regime_short_circuited=False,
+        regime_failure_reason=None,
+        qualified_trades=[result],
+        watchlist=[],
+        excluded={},
+        symbols_evaluated=1,
+        symbols_qualified=1,
+        symbols_watchlist=0,
+        symbols_excluded=0,
+    )
+    record = _build_record(
+        run_at_utc=RUN_AT,
+        date_str="2026-04-29",
+        outcome="TRADE",
+        regime=None,
+        validation_summary=_validation_summary(),
+        qualification_summary=qual,
+        option_setups=[setup],
+        trade_decisions=[decision],
+        halt_reason=None,
+        alert_sent=False,
+        report_path="reports/2026-04-29.md",
+    )
+
+    entry = record["qualified_trades"][0]
+    assert entry["contracts"] == 1  # decision, not setup's 2
+    assert entry["dollar_risk"] == 150.0  # decision, not setup's 300.0
+    assert entry["size_multiplier"] == 0.5  # consistent with the sizing
+    # trade_decisions[] block agrees (already decision-sourced).
+    td = record["trade_decisions"][0]
+    assert td["contracts"] == 1
+    assert td["dollar_risk"] == 150.0
+
+
 def test_audit_options_refusal_carrier_not_silent_none_row_prd283() -> None:
     """PRD-283 (CB-02): a symbol refused at options sizing is carried in the
     dedicated options_refusals field with its proving economics, and is NOT
