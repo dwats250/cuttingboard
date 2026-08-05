@@ -142,7 +142,8 @@ file and +~5 LOC. Disposition for the PR #214 thread: ACTIONED by this amendment
 is re-confirmed. Re-confirmation: the independent Codex exact-corrected-head
 re-confirmation of the amended head `2e9d6a4` returned CLEAN ("Didn't find any
 major issues"; §17), which RESTORES REVIEW-CLEAN (GOV-2 §7). Remaining downstream
-step: realign PRD-288 (PR #214) FILES to the 6-file / ≤195-LOC ceiling once this
+step: realign PRD-288 (PR #214) FILES to the 6-file / ≤325-LOC ceiling (LOC
+ceiling amended from ≤195 by the 2026-08-05 GOV-2 §5 amendment, §12) once this
 packet merges.
 
 North Star lineage: NS-2A + NS-2C (ledger
@@ -185,7 +186,8 @@ completed — which it now has, **CLEAN** on `2e9d6a4` (§17), so **REVIEW-CLEAN
 RESTORED** (durable in `main` on the merge of PR #215). Even so, no production
 implementation, PRD execution, branch-for-implementation, or contract/persistence
 change may begin; Gate A on PRD-288 follows only after PR #215 merges, PRD-288's
-FILES are realigned to the 6-file / ≤195-LOC ceiling, and the independent PRD
+FILES are realigned to the 6-file / ≤325-LOC ceiling (LOC ceiling amended from
+≤195 by the 2026-08-05 GOV-2 §5 amendment, §12), and the independent PRD
 review completes (GOV-2 §4).
 
 ---
@@ -978,7 +980,8 @@ not fixed by this read-only packet.
 - Fresh-context / independence evidence: independent connector confirmation,
   SHA-pinned to `2e9d6a4`, distinct from the amendment-authoring session.
 - Effect: RESTORES REVIEW-CLEAN. Gate A on PRD-288 is unblocked only after PR #215
-  merges AND PRD-288's FILES are realigned to 6 files / ≤195 LOC AND the
+  merges AND PRD-288's FILES are realigned to 6 files / ≤325 LOC (LOC ceiling
+  amended from ≤195 by the 2026-08-05 GOV-2 §5 amendment, §12) AND the
   independent PRD review completes.
 
 A corrected head without independent SHA-pinned confirmation is not
