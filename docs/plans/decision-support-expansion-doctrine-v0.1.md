@@ -246,12 +246,24 @@ The provider pass must directly establish:
 - staleness behavior; and
 - unavailable/failure behavior.
 
-If any load-bearing meaning is unknowable, the result is:
+**Verdict vocabulary (amended 2026-08-05, ruled: Dustin; `docs/DECISIONS.md`
+2026-08-05 TRUTH-SYNC entry, ruling 5).** The pass ends in exactly one of:
 
-`NO VIABLE PROVIDER IN BOUNDED PASS`
+- `PROVIDER VIABLE`;
+- `PROVIDER NOT VIABLE`; or
+- `EVIDENCE INCOMPLETE`.
 
-That result ends the track until Dustin explicitly commissions a new pass. It
-does not authorize a second provider automatically.
+Every verdict speaks only to the one provider examined in that bounded pass. No
+verdict may claim that no viable provider exists — a one-provider pass cannot
+establish that, and the retired wording `NO VIABLE PROVIDER IN BOUNDED PASS`
+invited exactly that overclaim.
+
+If any load-bearing meaning above is unknowable, the result is
+`EVIDENCE INCOMPLETE`, with the specific unknowns enumerated.
+
+The track-ending consequence is unchanged: `PROVIDER NOT VIABLE` or
+`EVIDENCE INCOMPLETE` ends the track until Dustin explicitly commissions a fresh
+pass. Neither authorizes a second provider automatically.
 
 ### 4.4 Construction gates
 

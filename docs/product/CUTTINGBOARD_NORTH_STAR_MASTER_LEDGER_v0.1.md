@@ -288,7 +288,7 @@ headline count.
 
 | Item | State | Disposition |
 |---|---|---|
-| PRD-187/188 macro-awareness track | `PARKED / DECISION REQUIRED` | KEEP DORMANT, PROMOTE after gates, or RETIRE |
+| PRD-187/188 macro-awareness track | `KEEP DORMANT` (2026-08-05, ruled: Dustin) | Ruled, not open: PRD-187 stays a manual/evaluation-only structural-shock producer; PRD-188 stays PROPOSED and unpromoted; the MACRO-0 read-only decision packet is not run. Reopen only if Dustin reopens the track. See `docs/DECISIONS.md` 2026-08-05 TRUTH-SYNC, ruling 8 |
 | PRD-259 Findings E/F | `PARKED` | Presentation/consumer debt |
 | PRD-259 Finding G | `PARKED` | Possible small presentation correction |
 | Old options-data proposals | `PARKED` | Revisit after the current candidate/refusal path |
