@@ -1044,3 +1044,71 @@ def test_prd286_e2e_computed_unknown_not_blocked(monkeypatch, tmp_path):
     candidate = result.contract["trade_candidates"][0]
     assert candidate["decision_status"] == ALLOW_TRADE
     assert candidate["block_reason"] is None
+
+
+# ---------------------------------------------------------------------------
+# PRD-288: SPY observation threaded through the daily pipeline
+# ---------------------------------------------------------------------------
+
+def _empty_qualification_summary() -> QualificationSummary:
+    return QualificationSummary(
+        regime_passed=True,
+        regime_short_circuited=False,
+        regime_failure_reason=None,
+        qualified_trades=[],
+        watchlist=[],
+        excluded={},
+        symbols_evaluated=0,
+        symbols_qualified=0,
+        symbols_watchlist=0,
+        symbols_excluded=0,
+    )
+
+
+def test_t5_spy_observation_present_on_no_candidate_run(monkeypatch, tmp_path):
+    # Independent of candidate availability: a zero-candidate run still threads
+    # the observation onto the PipelineResult and into the daily payload.
+    _setup_runtime_mocks(monkeypatch, tmp_path)
+    monkeypatch.setattr(runtime, "_compute_overall_pressure", lambda quotes: "NEUTRAL")
+    monkeypatch.setattr(runtime, "generate_candidates", lambda *a, **k: {})
+    monkeypatch.setattr(runtime, "qualify_all", lambda *a, **k: _empty_qualification_summary())
+    monkeypatch.setattr(runtime, "build_option_setups", lambda *a, **k: [])
+
+    result = runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+
+    assert result.outcome == runtime.OUTCOME_NO_TRADE
+    assert result.spy_observation is not None  # present even with zero candidates
+    payload = build_report_payload(result.contract, spy_observation=result.spy_observation)
+    assert "spy_observation" in payload["sections"]
+
+
+def test_t6_t11_halt_threads_unavailable_observation_and_preserves_halt(monkeypatch, tmp_path):
+    _setup_runtime_mocks(monkeypatch, tmp_path)
+    monkeypatch.setattr(
+        runtime, "validate_quotes",
+        lambda *a, **k: _dc_replace(
+            _validation_summary(), system_halted=True, halt_reason="data integrity halt"
+        ),
+    )
+
+    result = runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+
+    # T11: halt semantics unchanged (the pure observation build alters nothing).
+    assert result.outcome == runtime.OUTCOME_HALT
+    assert result.validation_summary.system_halted is True
+    assert result.validation_summary.halt_reason == "data integrity halt"
+    # T6: card present as UNAVAILABLE / system_halted, no fabricated value.
+    assert result.spy_observation is not None
+    assert result.spy_observation.state == "UNAVAILABLE"
+    assert result.spy_observation.reason == "system_halted"
+    assert result.spy_observation.session_vwap is None
+    assert result.spy_observation.current_price is None
+    assert result.spy_observation.orb is None

@@ -43,7 +43,8 @@ from cuttingboard.chain_validation import (
 )
 from cuttingboard.derived import compute_all_derived
 from cuttingboard.ingestion import fetch_ohlcv
-from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all, fetch_intraday_bars
+from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all, fetch_intraday_bars, fetch_intraday_session_bars
+from cuttingboard.spy_observation import build_spy_observation
 from cuttingboard.intraday_state_engine import (
     Bar as IntradayStateBar,
     _NOISE_END,
@@ -284,7 +285,7 @@ def execute_run(
         _rewrite_summary_file(summary_path, pipeline.summary)
         _rewrite_summary_file(latest_path, pipeline.summary)
         _write_contract_file(pipeline.contract)
-        _write_payload_artifacts(pipeline.contract)
+        _write_payload_artifacts(pipeline.contract, spy_observation=pipeline.spy_observation)
         _previous_market_map = _load_previous_market_map()
         _enhanced_market_map = inject_lifecycle(pipeline.market_map, _previous_market_map)
         _write_market_map_file(_enhanced_market_map)
@@ -977,6 +978,7 @@ def _run_pipeline(
     derived: dict[str, Any] = {}
     structure: dict[str, Any] = {}
     intraday_metrics: dict[str, Any] = {}
+    spy_session_frame: Optional[pd.DataFrame] = None
     ohlcv: dict[str, pd.DataFrame] = {}
     outcome = OUTCOME_NO_TRADE
     # Mirrored by _run_decision_gates' own defaults (PRD-236) — keep in
@@ -1035,6 +1037,10 @@ def _run_pipeline(
                 intraday_metrics, ignored_watch_symbols = compute_all_intraday_metrics(
                     list(execution_quotes), asof=run_at_utc
                 )
+                # PRD-288: opt-in SPY full-session frame for the daily session-VWAP
+                # observation only; never lifted above the halt branch and never
+                # fed into IntradayMetrics or any contiguous-tail consumer.
+                spy_session_frame = fetch_intraday_session_bars("SPY")
             watch_summary = classify_watchlist(
                 execution_structure,
                 execution_derived,
@@ -1275,6 +1281,17 @@ def _run_pipeline(
             generated_at=run_at_utc,
         )
 
+    # PRD-288: transient SPY observation for the daily card, built on both the
+    # non-halt and halt branches (halt => UNAVAILABLE / system_halted). Pure and
+    # side-effect-free; projects the PRD-271 ORB verbatim, never recomputes it.
+    _spy_metrics = intraday_metrics.get("SPY")
+    spy_observation = build_spy_observation(
+        run_at_utc=run_at_utc,
+        session_frame=spy_session_frame,
+        orb=_spy_metrics.orb if _spy_metrics is not None else None,
+        halted=validation_summary.system_halted,
+    )
+
     return PipelineResult(
         mode=mode,
         generation_id=generation_id,
@@ -1309,6 +1326,7 @@ def _run_pipeline(
         market_map=market_map,
         visibility_map=visibility_map,
         explanation_map=explanation_map,
+        spy_observation=spy_observation,
     )
 
 
@@ -2261,14 +2279,14 @@ def _write_macro_snapshot(contract: dict[str, Any]) -> None:
         logger.exception("Failed to write macro_drivers snapshot")
 
 
-def _write_payload_artifacts(contract: dict[str, Any]) -> None:
+def _write_payload_artifacts(contract: dict[str, Any], spy_observation=None) -> None:
     import os
     _fixture_mode = os.environ.get("FIXTURE_MODE", "0") == "1"
     try:
         from cuttingboard.delivery.payload import build_report_payload, assert_valid_payload
         from cuttingboard.delivery.transport import deliver_json, deliver_html
 
-        payload = build_report_payload(contract, fixture_mode=_fixture_mode)
+        payload = build_report_payload(contract, fixture_mode=_fixture_mode, spy_observation=spy_observation)
         _attach_generation_id_to_payload(payload, contract)
         assert_valid_payload(payload)
         deliver_json(payload)

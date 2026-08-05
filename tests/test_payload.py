@@ -691,3 +691,54 @@ def test_assert_valid_payload_passes_with_new_summary_fields():
     c["system_state"]["permission"] = "No new trades permitted."
     p = build_report_payload(c)
     assert_valid_payload(p)  # must not raise
+
+
+# ---------------------------------------------------------------------------
+# PRD-288: SPY observation section projection (daily only) + T12 scope-out
+# ---------------------------------------------------------------------------
+
+def _observed_spy_observation():
+    from datetime import date, datetime, timezone
+
+    from cuttingboard.spy_observation import OBSERVED, SpyObservation
+    from cuttingboard.watch import OrbObservation
+
+    return SpyObservation(
+        observed_symbol="SPY",
+        intended_session_date=date(2026, 4, 28),
+        timezone="America/New_York",
+        observed_at_utc=datetime(2026, 4, 28, 13, 34, tzinfo=timezone.utc),
+        state=OBSERVED,
+        reason=None,
+        session_vwap=102.0,
+        current_price=104.0,
+        price_vs_vwap="ABOVE",
+        orb=OrbObservation(
+            state="FORMED", orb_high=105.0, orb_low=100.0,
+            trading_date=date(2026, 4, 28),
+            observed_at_utc=datetime(2026, 4, 28, 13, 35, tzinfo=timezone.utc),
+        ),
+    )
+
+
+def test_spy_observation_section_projected_when_provided():
+    p = build_report_payload(_minimal_contract(), spy_observation=_observed_spy_observation())
+    sec = p["sections"]["spy_observation"]
+    assert sec["observed_symbol"] == "SPY"
+    assert sec["intended_session_date"] == "2026-04-28"          # date ISO-stringified
+    assert sec["observed_at_utc"] == "2026-04-28T13:34:00+00:00"  # datetime ISO-stringified
+    assert sec["state"] == "OBSERVED"
+    assert sec["session_vwap"] == 102.0
+    assert sec["current_price"] == 104.0
+    assert sec["price_vs_vwap"] == "ABOVE"
+    assert sec["orb"]["state"] == "FORMED"
+    assert sec["orb"]["orb_high"] == 105.0
+    assert sec["orb"]["trading_date"] == "2026-04-28"
+    assert_valid_payload(p)   # the extra section must not break validation
+    json.dumps(p)             # JSON-safe
+
+
+def test_t12_no_spy_observation_no_section():
+    # Hourly path and every pre-existing caller pass no observation -> no section.
+    assert "spy_observation" not in build_report_payload(_minimal_contract())["sections"]
+    assert "spy_observation" not in build_report_payload(_minimal_contract(), fixture_mode=True)["sections"]

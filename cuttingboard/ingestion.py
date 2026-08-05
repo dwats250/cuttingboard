@@ -192,7 +192,12 @@ def _retain_session_frame(frame: pd.DataFrame) -> pd.DataFrame:
     return retained
 
 
-def fetch_intraday_bars(symbol: str, *, retain_opening_range: bool = False) -> Optional[pd.DataFrame]:
+def fetch_intraday_bars(
+    symbol: str,
+    *,
+    retain_opening_range: bool = False,
+    retain_full_session: bool = False,
+) -> Optional[pd.DataFrame]:
     """Fetch the current regular session's 1-minute bars from yfinance.
 
     By default returns the last 120 regular-session bars as a CONTIGUOUS
@@ -200,7 +205,10 @@ def fetch_intraday_bars(symbol: str, *, retain_opening_range: bool = False) -> O
     gate, post-trade evaluation) relies on. When ``retain_opening_range`` is True
     the 09:30-09:35 ET formation bars are additionally retained (PRD-271) so the
     WATCH ORB producer can select the opening range by timestamp; that opt-in
-    shape is NON-contiguous. Failure is per-symbol and returns None.
+    shape is NON-contiguous. When ``retain_full_session`` is True the COMPLETE
+    09:30-16:00 ET regular session is returned with NO ``tail`` truncation
+    (PRD-288 session VWAP) — this path sets its own 16:00 bound and must not
+    inherit the default 15:30 bound. Failure is per-symbol and returns None.
     """
     if _is_live_data_blocked():
         raise RuntimeError("LIVE_DATA_FORBIDDEN_IN_SUNDAY_MODE")
@@ -225,13 +233,17 @@ def fetch_intraday_bars(symbol: str, *, retain_opening_range: bool = False) -> O
         if idx.tz is None:
             idx = idx.tz_localize("UTC")
         frame.index = idx.tz_convert("America/New_York")
-        frame = frame.between_time("09:30", "15:30")
+        session_end = "16:00" if retain_full_session else "15:30"
+        frame = frame.between_time("09:30", session_end)
         if frame.empty:
             raise ValueError("no regular-session intraday bars")
         latest_date = frame.index[-1].date()
         frame = frame.loc[frame.index.date == latest_date]
         if frame.empty:
             raise ValueError("no bars for latest session date")
+        if retain_full_session:
+            frame.index = frame.index.tz_convert("UTC")
+            return frame
         if retain_opening_range:
             return _retain_session_frame(frame)
         frame.index = frame.index.tz_convert("UTC")
@@ -264,6 +276,14 @@ def fetch_intraday_orb_bars(symbol: str) -> Optional[pd.DataFrame]:
     09:30-09:35 ET opening-range formation bars (PRD-271). Scoping the retention
     to this entry point keeps it off every contiguous-window consumer."""
     return fetch_intraday_bars(symbol, retain_opening_range=True)
+
+
+def fetch_intraday_session_bars(symbol: str) -> Optional[pd.DataFrame]:
+    """SPY session-VWAP producer's intraday fetch (PRD-288): the COMPLETE
+    09:30-16:00 ET regular session, UTC-indexed, with no ``tail`` truncation.
+    Scoping the full-session shape to this entry point keeps it off every
+    contiguous-window consumer and the WATCH ORB producer."""
+    return fetch_intraday_bars(symbol, retain_full_session=True)
 
 
 # ---------------------------------------------------------------------------
