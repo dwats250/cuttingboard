@@ -338,6 +338,20 @@ def test_malformed_bounds_are_invalid():
     assert orb.orb_high is None
 
 
+def test_single_malformed_formation_bar_is_invalid():
+    # One formation bar has High < Low, but another bar's wider high/low keeps
+    # the AGGREGATE orb_high >= orb_low. Per-bar validation must still reject it
+    # as INVALID rather than aggregate a bad bar into a FORMED range.
+    idx = pd.date_range(_utc_open(), periods=6, freq="1min")
+    rows = [_bar(110.0, 100.0) for _ in range(6)]
+    rows[2] = _bar(99.0, 100.0)  # malformed: High 99 < Low 100
+    df = pd.DataFrame(rows, index=idx)
+    orb = _session_orb(df, asof=None)
+    assert orb.state == ORB_INVALID
+    assert orb.reason == "impossible_bounds"
+    assert orb.orb_high is None and orb.orb_low is None
+
+
 def test_mixed_session_formation_bars_are_invalid():
     d1 = pd.date_range(pd.Timestamp("2026-04-14 09:30:00", tz=EASTERN_TZ), periods=3, freq="1min")
     d2 = pd.date_range(pd.Timestamp("2026-04-15 09:30:00", tz=EASTERN_TZ), periods=6, freq="1min")

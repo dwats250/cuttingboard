@@ -486,7 +486,13 @@ def _session_orb(df: pd.DataFrame, asof: Optional[datetime]) -> OrbObservation:
 
     highs = [float(h) for h, keep in zip(df["High"].tolist(), formation_flags) if keep]
     lows = [float(low) for low, keep in zip(df["Low"].tolist(), formation_flags) if keep]
-    if not all(math.isfinite(v) for v in (*highs, *lows)):
+    # Validate EACH formation bar (finite, high >= low > 0) before aggregating:
+    # aggregating first would let one malformed bar (high < low) hide behind
+    # another bar's wider high/low and still yield orb_high >= orb_low (FORMED).
+    if any(
+        not (math.isfinite(h) and math.isfinite(low)) or h < low or low <= 0
+        for h, low in zip(highs, lows)
+    ):
         return OrbObservation(
             state=ORB_INVALID,
             trading_date=trading_date,
@@ -495,13 +501,6 @@ def _session_orb(df: pd.DataFrame, asof: Optional[datetime]) -> OrbObservation:
         )
     orb_high = max(highs)
     orb_low = min(lows)
-    if orb_high < orb_low or orb_low <= 0:
-        return OrbObservation(
-            state=ORB_INVALID,
-            trading_date=trading_date,
-            observed_at_utc=observed_at_utc,
-            reason="impossible_bounds",
-        )
     return OrbObservation(
         state=ORB_FORMED,
         trading_date=trading_date,
