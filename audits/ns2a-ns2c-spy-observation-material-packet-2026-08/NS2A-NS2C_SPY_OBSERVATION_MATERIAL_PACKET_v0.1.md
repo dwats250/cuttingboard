@@ -1,11 +1,24 @@
 # NS-2A / NS-2C — Fixed SPY Observation & Session VWAP — MATERIAL PACKET (v0.1)
 
-STATUS: PROVISIONAL — NOT REVIEW-CLEAN. This is the upstream GOV-2 MATERIAL
-packet for NS-2A (fixed SPY observation) and NS-2C (session VWAP). It carries no
-implementation authority. Per GOV-2 §2 it must receive an independent Codex
-packet review, one consolidated correction, and independent exact-corrected-head
-confirmation before Dustin issues a design-direction ruling, a PRD is drafted
-and independently reviewed, and Gate A is issued.
+STATUS: REVIEW-CLEAN (2026-08-05). This is the upstream GOV-2 MATERIAL packet for
+NS-2A (fixed SPY observation) and NS-2C (session VWAP). It still carries no
+implementation authority. The GOV-2 §2/§7 packet-review cycle is COMPLETE and is
+recorded durably in §17: an independent Codex packet review (of `16c2e40`), one
+consolidated author correction (correction 2 → `02202f7`, the single GOV-2 §2
+correction cycle), then independent exact-corrected-head confirmation — a bounded
+GOV-2 §6 local fix (correction 3 → `1308871`) followed by Codex's clean
+confirmation of the exact final head
+`130887125bcac8952ea812d6e2dbcbd319515dcb` ("Didn't find any major issues").
+Dustin ACCEPTED the design direction and manually merged the review-clean packet
+(merge `70700f7e4c2ee1d4ca40db5768c6c09a7f73e1a2`, PR #210, GOV-1).
+
+NEXT AUTHORIZED PHASE: Stage-0 PRD drafting — NOT YET STARTED — followed by
+independent PRD review and Dustin's Gate A. No implementation, PRD execution, or
+contract/persistence change is authorized by this packet. Scope is unchanged from
+the reviewed design: the daily `_run_pipeline` only; the hourly publish path
+remains OUT OF SCOPE and deferred (§1 SCOPE, §9, §14). This closeout modifies no
+design element of the packet — only its status header, the §0 order table, the
+§17 review records, and the closing line.
 
 DERIVED AT: `main` @ `4902b1fd27df541ef432ac4511520919ff7045aa` (post-PR #209 /
 PRD-271 merge). Working tree clean at derivation.
@@ -77,20 +90,23 @@ Star deep audit (TM-017).
 
 ```
 materiality check at intake ............................. DONE (MATERIAL; §15)
--> provisional material packet .......................... THIS DOCUMENT
--> independent Codex packet review ...................... RECEIVED (PR #210 @ 16c2e40; advisory — durable §17 record pending Dustin)
--> one consolidated author correction .................. DONE (correction 2, Dustin-authorized; THIS head — cycle consumed)
--> Codex exact-corrected-head confirmation ............. PENDING (of THIS corrected head; §17)
--> Dustin design-direction ruling on review-clean packet PENDING
--> PRD drafting ........................................ NOT STARTED (do not draft yet)
+-> provisional material packet .......................... DONE (THIS DOCUMENT)
+-> independent Codex packet review ...................... DONE (PR #210 @ 16c2e40, 2026-08-05; findings dispositioned; §17)
+-> one consolidated author correction .................. DONE (correction 2 @ 02202f7; single GOV-2 §2 cycle consumed)
+-> Codex exact-corrected-head confirmation ............. DONE (bounded §6 local fix @ 1308871; Codex clean confirmation of 130887125bca; §17)
+-> packet REVIEW-CLEAN ................................. DONE (2026-08-05)
+-> Dustin design-direction ruling on review-clean packet DONE (ACCEPTED; daily-only, hourly deferred)
+-> packet merged to main .............................. DONE (merge 70700f7, PR #210, Dustin manual merge, GOV-1)
+-> PRD drafting ....................................... NEXT AUTHORIZED PHASE (Stage-0; not yet started — do not draft in this closeout)
 -> independent PRD review .............................. later
 -> Dustin Gate A ...................................... later
 -> implementation ..................................... later
 ```
 
-No production implementation, PRD execution, branch-for-implementation, or
-contract/persistence change may begin until the packet is review-clean, Dustin
-has ruled, the PRD is drafted and independently reviewed, and Gate A is issued
+The packet is now REVIEW-CLEAN and Dustin has ruled (ACCEPTED). Stage-0 PRD
+drafting is the next authorized phase. No production implementation, PRD
+execution, branch-for-implementation, or contract/persistence change may begin
+until the PRD is drafted and independently reviewed, and Gate A is issued
 (GOV-2 §4).
 
 ---
@@ -721,31 +737,78 @@ not fixed by this read-only packet.
 
 ---
 
-## 17. Packet review records (GOV-2 §2, §7 — to be completed before review-clean)
+## 17. Packet review records (GOV-2 §2, §7 — COMPLETE; packet REVIEW-CLEAN)
 
-### INITIAL PACKET REVIEW — PENDING
+### INITIAL PACKET REVIEW — COMPLETE
 - Event type: `INITIAL PACKET REVIEW`
-- Reviewer identity / capability role: _pending_
-- Reviewed commit SHA / packet revision: _pending_
-- Review date: _pending_
-- Verdict: _pending_
-- Findings and dispositions: _pending_
-- Fresh-context / independence / run-isolation evidence: _pending_
+- Reviewer identity / capability role: independent Codex packet review by
+  `chatgpt-codex-connector[bot]` (GitHub review 4860908412 on PR #210), the
+  GOV-2 §2 auto-commissioned MATERIAL packet-review event.
+- Reviewed commit SHA / packet revision:
+  `16c2e403782bf7780cbd9aa91f53829979321b8e` (v0.1 + consolidated correction 1,
+  findings F1–F5 applied).
+- Review date: 2026-08-05T04:11:18Z.
+- Verdict: findings raised (COMMENTED) — four findings, all confirmed valid:
+  P1 (cover hourly dashboard publishes), P1 (define a carrier into the payload
+  projection), P2 (resolve the zero-volume value invariant), P3 (mark the
+  correction step consistently).
+- Findings and dispositions: Dustin ruled "correct + scope out hourly" (GOV-2 §6
+  "narrow its claim"); all four ACTIONED in consolidated correction 2 @
+  `02202f7` (PR #210 issue comment 5187622641) — hourly publish path scoped OUT
+  (§1 SCOPE/§2.2/§14; test T12); carrier threaded via
+  `build_report_payload(contract, fixture_mode=False, *, spy_observation=None)`,
+  not on the contract (§2.2/§4.2/§11); zero-volume invariant corrected so
+  `price_vs_vwap="UNAVAILABLE"` is a valid OBSERVED token while `session_vwap`
+  stays `None` (§4.1/§7.1/§8/T9); §0 order table corrected. This consumed the
+  single GOV-2 §2 correction cycle.
+- Fresh-context / independence / run-isolation evidence: independent connector
+  review, not the packet-authoring session; SHA-pinned to `16c2e40`; read-only
+  (documentation-only packet, no code to execute — GOV-2 §8 CI-claim boundary).
+  Advisory per PRD-228; this committed §17 record is the durable GOV-2 §2 record,
+  populated at Dustin's direction, not by the author certifying the gate.
 
-### EXACT-CORRECTED-HEAD CONFIRMATION — PENDING
+### EXACT-CORRECTED-HEAD CONFIRMATION — COMPLETE
 - Event type: `EXACT-CORRECTED-HEAD CONFIRMATION`
-- Reviewer identity / capability role: _pending_
-- Corrected head SHA: _pending_
-- Prior finding identifiers + dispositions being confirmed: _pending_
-- Review date: _pending_
-- Verdict: _pending_
-- Fresh-context / independence evidence: _pending_
+- Reviewer identity / capability role: independent Codex confirmation by
+  `chatgpt-codex-connector[bot]` (PR #210).
+- Corrected head SHA: `130887125bcac8952ea812d6e2dbcbd319515dcb` (final reviewed
+  head). Intermediate confirmation of head
+  `02202f76197d21586380612f0c8346d1f85bc491` (GitHub review 4861190633,
+  2026-08-05T05:11:15Z) confirmed all four prior findings resolved and raised one
+  NEW local P2 — `fixture_mode` dropped from the illustrative
+  `build_report_payload` signature. That was a bounded GOV-2 §6 local
+  signature/wording fix (LOCAL CORRECTION 3), NOT a material boundary omission,
+  so the packet did not return to DESIGN INCOMPLETE (GOV-2 §7); `fixture_mode`
+  was retained @ `1308871` (§2.2/§4.2/§11).
+- Prior finding identifiers + dispositions being confirmed: initial-review P1
+  (hourly), P1 (carrier→payload), P2 (zero-volume), P3 (status) — all confirmed
+  resolved; plus the local P2 (fixture_mode) confirmed resolved at the final head.
+- Review date: 2026-08-05T05:20:29Z (final confirmation of `1308871`).
+- Verdict: CLEAN — Codex "Didn't find any major issues" on the exact final head
+  `130887125b` (PR #210 issue comment 5187870539). Final CI green on the merged
+  state (`main` @ `70700f7`, `test` job run 30977948437: 3224 passed, 1 xfailed).
+- Fresh-context / independence evidence: independent connector confirmation,
+  SHA-pinned to `1308871`, distinct from the packet-authoring session; scope was
+  confirming the prior findings resolved, not a fresh broad review (GOV-2 §7).
+
+### DESIGN-DIRECTION RULING AND MERGE
+- Dustin ACCEPTED the design direction on the review-clean packet (2026-08-05):
+  the Stage-0 recommendation with binding scoping — daily `_run_pipeline` only;
+  the hourly publish path deferred (§1 SCOPE, §9, §14). Recorded in the GOVERNING
+  RULING header and §0.
+- Packet merged to `main` by Dustin's manual merge (GOV-1): merge commit
+  `70700f7e4c2ee1d4ca40db5768c6c09a7f73e1a2`, PR #210, 2026-08-05T05:23:14Z.
+- Packet status: REVIEW-CLEAN. NEXT AUTHORIZED PHASE: Stage-0 PRD drafting
+  (not yet started), then independent PRD review and Dustin's Gate A.
 
 A corrected head without independent SHA-pinned confirmation is not
-review-clean (GOV-2 §2). A connector comment, resolved thread, external link, or
-ephemeral transcript cannot substitute for either committed record.
+review-clean (GOV-2 §2). This §17 block is the durable, packet-local, SHA-pinned
+GOV-2 §2/§7 record; the advisory connector threads on PR #210 do not by
+themselves satisfy the gate — this committed record does.
 
 ---
 
-END OF PACKET v0.1 — HELD FOR INDEPENDENT PACKET REVIEW AND DUSTIN/CHATGPT
-DISPOSITION.
+END OF PACKET v0.1 — REVIEW-CLEAN (2026-08-05). The GOV-2 §2/§7 packet-review
+cycle is complete and durably recorded in §17; Dustin ACCEPTED the design
+direction and manually merged the packet (PR #210, merge `70700f7`). NEXT
+AUTHORIZED PHASE: Stage-0 PRD drafting (not yet started).
