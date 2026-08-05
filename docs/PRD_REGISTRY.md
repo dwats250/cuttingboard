@@ -305,6 +305,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-285 | a47f144 | Trade-brake dormancy (CB-04): stop counting recommendations/hypothetical evaluations as executed trades; hold trade-count, cooldown, and loss-lockout brakes fully dormant until a trustworthy execution/fill carrier exists | COMPLETE | [PRD-285](prd_history/PRD-285.md) |
 | PRD-286 | 9856ba5 | Macro-pressure fail-closed (CB-05): a macro-pressure computation failure must block, not silently degrade to "UNKNOWN" and allow full size | COMPLETE | [PRD-286](prd_history/PRD-286.md) |
 | PRD-287 | bd0401c | Hourly operational-truth: an unhealthy hourly run must never report success — fail-loud runner exit code + health-aware readiness (CB-06) | COMPLETE | [PRD-287](prd_history/PRD-287.md) |
+| PRD-288 | — | NS-2A/NS-2C fixed SPY observation + session VWAP: one transient read-only SPY card on the daily dashboard (daily-only; hourly out of scope) | IN PROGRESS | [PRD-288](prd_history/PRD-288.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
