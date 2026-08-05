@@ -16,6 +16,41 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-05 — PRD-288 GOV-2 §5 LOC-ceiling amendment + amended Gate A (≤195 → ≤325 net production LOC) (ruled: Dustin)
+
+The PRD-288 implementation realized ~308 net production LOC (git `--numstat`
+adds−deletes across the six authorized production files), exceeding the original
+≤195 Gate-A ceiling. Per the STOP CONDITION and GOV-2 §5 this was a
+stop-and-amend event; implementation was held (no PR). Dustin authorized a
+bounded GOV-2 §5 amendment.
+
+**Amendment (PR #216, reviewed clean at `0a792ce`).** The binding production LOC
+ceiling is amended **≤195 → ≤325 net production LOC**, and the governing metric
+is fixed as `git diff --numstat` added minus deleted lines across the six
+production files against the implementation base — the raw repository-diff
+measure (code, comments, docstrings, and blank lines all count; code-only and
+SLOC are supplementary diagnostics only, non-governing). LOC-ceiling amendment
+ONLY: the reviewed design, the exact 6-production / 4-test FILES ceiling, and all
+scope, behavior, invariants, non-effects, T1–T12, and mutation obligations are
+UNCHANGED — no FILES expansion, no schema/persistence change, no hourly
+expansion; daily `_run_pipeline` only remains binding. Amended the MATERIAL
+packet (§12 + §14 + three stale ≤195 gate-lines) and PRD-288 (MAX EXPECTED DELTA
++ ACCEPTANCE) only.
+
+**Independent review (GOV-2 §5, one findings-and-correction cycle).** A
+fresh-context independent review of the amended head returned 4/5 points clean
+plus one non-blocking P3 (three forward-looking packet lines still citing ≤195);
+the `@codex` connector independently raised the same finding (P1 on the
+pre-correction head). Corrected in `0a792ce`; re-confirmation of the exact
+corrected head returned CLEAN and `@codex` re-review of `0a792ce` found no major
+issues. CI green.
+
+**Amended Gate A GRANTED (Dustin, 2026-08-05)** on the clean amended head
+`0a792ce`. Implementation is authorized within the ≤325 ceiling and the
+unchanged 6-production / 4-test FILES ceiling; a seventh file, any further LOC
+growth past ≤325, or any schema/persistence/hourly/design expansion requires a
+further amended Gate A.
+
 ## 2026-08-05 — Gate A granted for PRD-288 (NS-2A/NS-2C fixed SPY observation + session VWAP) on reviewed head `56bd297` (ruled: Dustin)
 
 Dustin granted Gate A for PRD-288 against its exact reviewed FILES ceiling at

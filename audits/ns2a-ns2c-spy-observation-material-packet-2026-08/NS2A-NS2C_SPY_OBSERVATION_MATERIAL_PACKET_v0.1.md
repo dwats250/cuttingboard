@@ -142,7 +142,8 @@ file and +~5 LOC. Disposition for the PR #214 thread: ACTIONED by this amendment
 is re-confirmed. Re-confirmation: the independent Codex exact-corrected-head
 re-confirmation of the amended head `2e9d6a4` returned CLEAN ("Didn't find any
 major issues"; §17), which RESTORES REVIEW-CLEAN (GOV-2 §7). Remaining downstream
-step: realign PRD-288 (PR #214) FILES to the 6-file / ≤195-LOC ceiling once this
+step: realign PRD-288 (PR #214) FILES to the 6-file / ≤325-LOC ceiling (LOC
+ceiling amended from ≤195 by the 2026-08-05 GOV-2 §5 amendment, §12) once this
 packet merges.
 
 North Star lineage: NS-2A + NS-2C (ledger
@@ -185,7 +186,8 @@ completed — which it now has, **CLEAN** on `2e9d6a4` (§17), so **REVIEW-CLEAN
 RESTORED** (durable in `main` on the merge of PR #215). Even so, no production
 implementation, PRD execution, branch-for-implementation, or contract/persistence
 change may begin; Gate A on PRD-288 follows only after PR #215 merges, PRD-288's
-FILES are realigned to the 6-file / ≤195-LOC ceiling, and the independent PRD
+FILES are realigned to the 6-file / ≤325-LOC ceiling (LOC ceiling amended from
+≤195 by the 2026-08-05 GOV-2 §5 amendment, §12), and the independent PRD
 review completes (GOV-2 §4).
 
 ---
@@ -686,14 +688,28 @@ it is not a reactive amendment.
 
 ## 12. Estimated production LOC ceiling
 
-**ESTIMATED SURFACE — NOT YET APPROVED: ≤ 195 net production LOC** across the six
+**GOV-2 §5 CEILING AMENDMENT (2026-08-05, Dustin-authorized).** The binding
+production LOC ceiling is amended from **≤ 195** to **≤ 325 net production LOC**.
+GOVERNING METRIC (binding): the sum of added lines minus deleted lines across the
+SIX authorized production files as reported by `git diff --numstat` against the
+implementation base — the raw repository-diff measure, which counts code,
+comments, docstrings, and blank lines alike. Code-only and SLOC counts may be
+reported as supplementary diagnostics but do NOT govern. Rationale: the original
+≤195 estimate proved insufficient for the realized full-lifecycle implementation;
+the reviewed design, the exact six-production / four-test FILES ceiling, and all
+scope, behavior, invariants, non-effects, T1–T12, and mutation obligations are
+UNCHANGED. This is a LOC-ceiling amendment only — not a new design direction, no
+FILES expansion, no schema/persistence change, no hourly expansion; daily
+`_run_pipeline` only remains binding.
+
+**Superseded original estimate: ≤ 195 net production LOC** across the six
 production files (raised from ≤190/five by correction 4 for the carrier field).
 Indicative split: `spy_observation.py` ~90; `ingestion.py` full-session path ~25;
 `runtime/__init__.py` bridge (non-halt + halt + `PipelineResult` set/forward) ~32;
 `runtime/_types.py` carrier field ~3; `payload.py` projection ~15;
 `dashboard_renderer.py` card ~30. Test LOC is not counted against this ceiling. A
 design that widens the fetch boundary, adds persistence, pushes into a contract
-key, or requires a SEVENTH production file exceeds this estimate and is a
+key, or requires a SEVENTH production file exceeds this ceiling and is a
 stop-and-amend event (§14).
 
 ---
@@ -780,7 +796,8 @@ A guard whose mutation leaves all tests green is not a guard and does not merge.
   follow-up proposal with its own producer/carrier/artifact inventory, FILES, and
   materiality re-run. Do not add it under this packet.
 - A SEVENTH production file, or FILES / LOC growth past the §11/§12 six-file /
-  ≤195-LOC ceiling → GOV-2 §5 stop-and-renew: amend the PRD, obtain fresh-context
+  ≤325-LOC ceiling (amended from ≤195 by the 2026-08-05 GOV-2 §5 ceiling
+  amendment, §12) → GOV-2 §5 stop-and-renew: amend the PRD, obtain fresh-context
   independent review of the exact amended revision, and Dustin's amended Gate A.
   (The 6th file `runtime/_types.py`, the intra-runtime carrier, is authorized by
   correction 4 under Dustin's 2026-08-05 "fix the packet first (GOV-2)" ruling —
@@ -963,7 +980,8 @@ not fixed by this read-only packet.
 - Fresh-context / independence evidence: independent connector confirmation,
   SHA-pinned to `2e9d6a4`, distinct from the amendment-authoring session.
 - Effect: RESTORES REVIEW-CLEAN. Gate A on PRD-288 is unblocked only after PR #215
-  merges AND PRD-288's FILES are realigned to 6 files / ≤195 LOC AND the
+  merges AND PRD-288's FILES are realigned to 6 files / ≤325 LOC (LOC ceiling
+  amended from ≤195 by the 2026-08-05 GOV-2 §5 amendment, §12) AND the
   independent PRD review completes.
 
 A corrected head without independent SHA-pinned confirmation is not
