@@ -1,24 +1,41 @@
 # NS-2A / NS-2C — Fixed SPY Observation & Session VWAP — MATERIAL PACKET (v0.1)
 
-STATUS: REVIEW-CLEAN (2026-08-05). This is the upstream GOV-2 MATERIAL packet for
-NS-2A (fixed SPY observation) and NS-2C (session VWAP). It still carries no
-implementation authority. The GOV-2 §2/§7 packet-review cycle is COMPLETE and is
-recorded durably in §17: an independent Codex packet review (of `16c2e40`), one
-consolidated author correction (correction 2 → `02202f7`, the single GOV-2 §2
-correction cycle), then independent exact-corrected-head confirmation — a bounded
-GOV-2 §6 local fix (correction 3 → `1308871`) followed by Codex's clean
-confirmation of the exact final head
-`130887125bcac8952ea812d6e2dbcbd319515dcb` ("Didn't find any major issues").
-Dustin ACCEPTED the design direction and manually merged the review-clean packet
-(merge `70700f7e4c2ee1d4ca40db5768c6c09a7f73e1a2`, PR #210, GOV-1).
+STATUS: REVIEW-CLEAN — committed to `main` via PR #212
+(merge `3061ca53493649e7e4940c43f78016ba5f1d492c`, 2026-08-05). This is the
+upstream GOV-2 MATERIAL packet for NS-2A (fixed SPY observation) and NS-2C
+(session VWAP). It still carries no implementation authority. The GOV-2 §2/§7
+packet-review cycle is COMPLETE and is recorded durably in §17: an independent
+Codex packet review (of `16c2e40`), one consolidated author correction
+(correction 2 → `02202f7`, the single GOV-2 §2 correction cycle), then
+independent exact-corrected-head confirmation — a bounded GOV-2 §6 local fix
+(correction 3 → `1308871`) followed by Codex's clean confirmation of the exact
+final head `130887125bcac8952ea812d6e2dbcbd319515dcb` ("Didn't find any major
+issues").
+
+CHRONOLOGY / AUTHORITY (binding — the two merges are distinct):
+- PR #210 / merge `70700f7e4c2ee1d4ca40db5768c6c09a7f73e1a2` carried the
+  packet-review evidence (the connector review events) and Dustin's ACCEPTED
+  design direction, BUT the committed packet at that merge remained PROVISIONAL:
+  its header read `STATUS: PROVISIONAL — NOT REVIEW-CLEAN` and its §17 was
+  PENDING. PR #210 is therefore NOT the merged review-clean artifact.
+- PR #212 / merge `3061ca53493649e7e4940c43f78016ba5f1d492c` committed the
+  durable packet-local §17 record and changed the repository artifact to
+  REVIEW-CLEAN. The durable GOV-2 §2/§7 gate is satisfied by the packet as
+  committed through PR #212 — NOT by PR #210 alone. A downstream PRD's GOV-2
+  "review-clean packet" prerequisite is satisfied by the packet at/after the
+  PR #212 merge.
+The design-direction RULING (the decision Dustin issued on the confirmed-clean
+review, tied to PR #210) is DISTINCT from the durable CLOSEOUT (the committed
+review-clean record, PR #212). This later corrective edit fixes only that
+chronology/authority framing; it makes no new design decision.
 
 NEXT AUTHORIZED PHASE: Stage-0 PRD drafting — NOT YET STARTED — followed by
 independent PRD review and Dustin's Gate A. No implementation, PRD execution, or
 contract/persistence change is authorized by this packet. Scope is unchanged from
 the reviewed design: the daily `_run_pipeline` only; the hourly publish path
-remains OUT OF SCOPE and deferred (§1 SCOPE, §9, §14). This closeout modifies no
-design element of the packet — only its status header, the §0 order table, the
-§17 review records, and the closing line.
+remains OUT OF SCOPE and deferred (§1 SCOPE, §9, §14). The PR #212 closeout and
+this corrective edit modify no design element of the packet — only its status
+header, the §0 order table, the §17 review records, and the closing line.
 
 DERIVED AT: `main` @ `4902b1fd27df541ef432ac4511520919ff7045aa` (post-PR #209 /
 PRD-271 merge). Working tree clean at derivation.
@@ -90,20 +107,24 @@ Star deep audit (TM-017).
 
 ```
 materiality check at intake ............................. DONE (MATERIAL; §15)
--> provisional material packet .......................... DONE (THIS DOCUMENT)
--> independent Codex packet review ...................... DONE (PR #210 @ 16c2e40, 2026-08-05; findings dispositioned; §17)
--> one consolidated author correction .................. DONE (correction 2 @ 02202f7; single GOV-2 §2 cycle consumed)
--> Codex exact-corrected-head confirmation ............. DONE (bounded §6 local fix @ 1308871; Codex clean confirmation of 130887125bca; §17)
--> packet REVIEW-CLEAN ................................. DONE (2026-08-05)
--> Dustin design-direction ruling on review-clean packet DONE (ACCEPTED; daily-only, hourly deferred)
--> packet merged to main .............................. DONE (merge 70700f7, PR #210, Dustin manual merge, GOV-1)
--> PRD drafting ....................................... NEXT AUTHORIZED PHASE (Stage-0; not yet started — do not draft in this closeout)
+-> provisional material packet .......................... DONE (THIS DOCUMENT; landed via PR #210 @ 70700f7 in PROVISIONAL form)
+-> independent Codex packet review ...................... DONE (event; PR #210 @ 16c2e40, 2026-08-05; findings dispositioned; §17)
+-> one consolidated author correction .................. DONE (event; correction 2 @ 02202f7; single GOV-2 §2 cycle consumed)
+-> Codex exact-corrected-head confirmation ............. DONE (event; bounded §6 local fix @ 1308871; Codex clean confirmation of 130887125bca; §17)
+-> Dustin design-direction ruling ..................... DONE (ACCEPTED on the confirmed-clean review; tied to the PR #210 merge; daily-only, hourly deferred)
+-> PR #210 merged (packet landed PROVISIONAL) ......... DONE (merge 70700f7; §17 PENDING in that tree — NOT the review-clean artifact)
+-> packet REVIEW-CLEAN in repo history ................ DONE (committed via PR #212, merge 3061ca5; durable §17 record — THIS is the review-clean artifact)
+-> PRD drafting ....................................... NEXT AUTHORIZED PHASE (Stage-0; not yet started — do not draft here)
 -> independent PRD review .............................. later
 -> Dustin Gate A ...................................... later
 -> implementation ..................................... later
 ```
 
-The packet is now REVIEW-CLEAN and Dustin has ruled (ACCEPTED). Stage-0 PRD
+The packet is REVIEW-CLEAN in repository history as committed through PR #212
+(merge `3061ca5`) — the commit that populated the durable §17 record and flipped
+the status. Dustin's design-direction ruling (ACCEPTED) was issued on the
+confirmed-clean review and is tied to the PR #210 merge, which carried the packet
+in PROVISIONAL form; PR #210 is not the review-clean artifact. Stage-0 PRD
 drafting is the next authorized phase. No production implementation, PRD
 execution, branch-for-implementation, or contract/persistence change may begin
 until the PRD is drafted and independently reviewed, and Gate A is issued
@@ -791,24 +812,41 @@ not fixed by this read-only packet.
   SHA-pinned to `1308871`, distinct from the packet-authoring session; scope was
   confirming the prior findings resolved, not a fresh broad review (GOV-2 §7).
 
-### DESIGN-DIRECTION RULING AND MERGE
-- Dustin ACCEPTED the design direction on the review-clean packet (2026-08-05):
-  the Stage-0 recommendation with binding scoping — daily `_run_pipeline` only;
-  the hourly publish path deferred (§1 SCOPE, §9, §14). Recorded in the GOVERNING
-  RULING header and §0.
-- Packet merged to `main` by Dustin's manual merge (GOV-1): merge commit
-  `70700f7e4c2ee1d4ca40db5768c6c09a7f73e1a2`, PR #210, 2026-08-05T05:23:14Z.
-- Packet status: REVIEW-CLEAN. NEXT AUTHORIZED PHASE: Stage-0 PRD drafting
-  (not yet started), then independent PRD review and Dustin's Gate A.
+### DESIGN-DIRECTION RULING, PR #210 MERGE, AND DURABLE REVIEW-CLEAN RECORD
+- Dustin ACCEPTED the design direction (2026-08-05) after Codex's clean
+  confirmation of the final head: the Stage-0 recommendation with binding scoping
+  — daily `_run_pipeline` only; the hourly publish path deferred (§1 SCOPE, §9,
+  §14). Recorded in the GOVERNING RULING header and §0. The ruling is a decision
+  tied to PR #210; it is DISTINCT from the durable review-clean closeout below.
+- PR #210 merge (GOV-1): merge commit
+  `70700f7e4c2ee1d4ca40db5768c6c09a7f73e1a2`, 2026-08-05T05:23:14Z. IMPORTANT:
+  that merge landed THIS packet in its PROVISIONAL form — its header read
+  `STATUS: PROVISIONAL — NOT REVIEW-CLEAN` and §17 was PENDING. The
+  review-clean-in-fact condition (Codex's clean confirmation) preceded the merge,
+  but the durable packet-local record did not, and PR #210 is NOT the merged
+  review-clean artifact.
+- DURABLE REVIEW-CLEAN RECORD: this §17 record and the REVIEW-CLEAN status were
+  committed to `main` via PR #212, merge
+  `3061ca53493649e7e4940c43f78016ba5f1d492c` (2026-08-05). That is the commit
+  that made the packet REVIEW-CLEAN in repository history. A downstream PRD's
+  GOV-2 "review-clean packet" prerequisite is satisfied by the packet as
+  committed through PR #212 — NOT by PR #210 alone. (This chronology framing was
+  corrected in a small follow-up doc edit after PR #212 merged, resolving Codex's
+  PR #212 P2; the review evidence, findings, corrections, scope, and design are
+  unchanged.)
+- NEXT AUTHORIZED PHASE: Stage-0 PRD drafting (not yet started), then independent
+  PRD review and Dustin's Gate A.
 
 A corrected head without independent SHA-pinned confirmation is not
 review-clean (GOV-2 §2). This §17 block is the durable, packet-local, SHA-pinned
 GOV-2 §2/§7 record; the advisory connector threads on PR #210 do not by
-themselves satisfy the gate — this committed record does.
+themselves satisfy the gate — this committed record (via PR #212) does.
 
 ---
 
-END OF PACKET v0.1 — REVIEW-CLEAN (2026-08-05). The GOV-2 §2/§7 packet-review
-cycle is complete and durably recorded in §17; Dustin ACCEPTED the design
-direction and manually merged the packet (PR #210, merge `70700f7`). NEXT
-AUTHORIZED PHASE: Stage-0 PRD drafting (not yet started).
+END OF PACKET v0.1 — REVIEW-CLEAN in repository history, committed via PR #212
+(merge `3061ca5`, 2026-08-05). The GOV-2 §2/§7 packet-review cycle is complete
+and durably recorded in §17. Dustin's ACCEPTED design-direction ruling is tied to
+the PR #210 merge (`70700f7`), which carried the packet in PROVISIONAL form — so
+PR #210 is not the review-clean artifact; the durable review-clean record is the
+PR #212 commit. NEXT AUTHORIZED PHASE: Stage-0 PRD drafting (not yet started).
