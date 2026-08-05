@@ -1394,6 +1394,12 @@
       "title": "Hourly operational-truth: an unhealthy hourly run must never report success \u2014 fail-loud runner exit code + health-aware readiness (CB-06)",
       "status": "COMPLETE",
       "commit": "bd0401c"
+    },
+    {
+      "number": 288,
+      "title": "NS-2A/NS-2C fixed SPY observation + session VWAP: one transient read-only SPY card on the daily dashboard (daily-only; hourly out of scope)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
