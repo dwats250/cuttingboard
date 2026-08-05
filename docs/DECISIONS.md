@@ -16,6 +16,46 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-05 — Gate A granted for PRD-288 (NS-2A/NS-2C fixed SPY observation + session VWAP) on reviewed head `56bd297` (ruled: Dustin)
+
+Dustin granted Gate A for PRD-288 against its exact reviewed FILES ceiling at
+head `56bd2977e3f123d89f9ca293469f19b447243fe3` (PR #214). The independent
+exact-head PRD review returned CLEAN across all nine falsification checks: P1
+(intra-runtime carrier seam) and P2 (Gate A authority basis includes PR #215)
+both resolved; the complete transient seam `_run_pipeline` →
+`PipelineResult.spy_observation` → `execute_run` → `_write_payload_artifacts` →
+`build_report_payload(..., spy_observation=...)` → dashboard renderer verified
+against real symbols; daily `_run_pipeline` only with hourly deferred; no
+durable contract key, no persistence, no ORB recomputation (one ORB truth,
+PRD-271 `OrbObservation` projected verbatim), and no execution / candidate /
+short-permission / evaluation / watch-zone / rolling-VWAP / ORB-policy /
+decision-outcome effect; T1–T12 and the mutation plan complete.
+
+**Binding ceiling** (the reviewed PRD's FILES, verbatim): exactly 6 production
+files — `cuttingboard/spy_observation.py`, `cuttingboard/ingestion.py`,
+`cuttingboard/runtime/__init__.py`, `cuttingboard/runtime/_types.py`,
+`cuttingboard/delivery/payload.py`, `cuttingboard/delivery/dashboard_renderer.py`
+— plus exactly 4 test files — `tests/test_spy_observation.py`,
+`tests/test_dashboard_renderer.py`, `tests/test_payload.py`,
+`tests/test_runtime_decision.py` — and ≤195 net production LOC. The Gate A
+prompt's references to `tests/test_ingestion.py` and
+`tests/test_dash_system_state.py` were transcription errors; on Dustin's ruling
+the binding set is the reviewed PRD's list above. Any FILES expansion, LOC
+increase, schema change, persistence change, hourly expansion, or design
+divergence requires an amended Gate A before the affected file or behavior is
+touched.
+
+The `@codex` exact-head review raised one advisory P2 (PRD-228: connector is
+advisory, never gate-blocking): the `docs/PROJECT_STATE.md` Active-PRD pointer
+still cited the packet as review-clean through PR #212/#213, omitting PR #215's
+six-file carrier revision. Corrected in the same Gate A record commit; thread
+resolved.
+
+Implementation is authorized only from the Gate-A-bearing head and only within
+the ceiling above; the implementation PR is held for Dustin's merge (GOV-1).
+
+---
+
 ## 2026-08-03 — CB-01 design-direction ruling: fail-safe True on failure-before-evaluation; `_QUALIFY_ONLY_MODES` deferred (ruled: Dustin)
 
 Design-direction ruling under GOV-2 §2 step 6 on the review-clean CB-01
