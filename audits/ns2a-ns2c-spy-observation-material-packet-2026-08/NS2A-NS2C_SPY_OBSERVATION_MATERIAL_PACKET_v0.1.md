@@ -25,6 +25,16 @@ PROVISIONAL-CEILING LABELS (GOV-2 §5): every FILES and LOC figure below is
 `ESTIMATED SURFACE — NOT YET APPROVED`. The first binding ceiling is Gate A on
 the reviewed PRD.
 
+CORRECTION LOG — Consolidated correction 1 (2026-08-05): applied one consolidated
+correction addressing review findings F1–F5 (author self-verification pass; NOT
+the GOV-2 §2 independent review). F1 lane classification resolved (§15); F2
+regular-session VWAP window end bound pinned (§5, §6); F3 OBSERVED/`session_vwap`
+contract contradiction eliminated (§4.1, §7.1, §7.2, §8); F4 timestamp authority
+designated for the two-fetch case (§2.2, §4.1, §5); F5 one-ORB-truth and
+halt-semantics proof obligations added (§13). No redesign, no scope expansion.
+This corrected head is still NOT review-clean until the independent Codex packet
+review and exact-corrected-head confirmation (GOV-2 §2, §7) complete.
+
 North Star lineage: NS-2A + NS-2C (ledger
 `docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md:132,134`), unblocked
 by PRD-271 / NS-2B landing (PR #209). Evidence seed: `audits/stage0-recon-2026-07-20/`
@@ -127,6 +137,16 @@ build_spy_observation(...)   -->   SpyObservation (frozen)   -->   payload.secti
 - **Consumer:** `delivery/payload.py::build_report_payload` projects a
   `spy_observation` section; `delivery/dashboard_renderer.py` renders one card,
   reusing existing freshness/timestamp helpers and the VWAP-relation display map.
+- **Two SPY intraday fetches per run (acknowledged coupling, F4).** The projected
+  `OrbObservation` is produced by the existing watch path
+  (`compute_all_intraday_metrics → fetch_intraday_orb_bars`,
+  `runtime/__init__.py:1035`), while the current price, session VWAP, and the
+  headline observation timestamp come from the new SPY-only full-session fetch
+  (§5). This is one additional SPY fetch per run (SPY only; ~391 bars). The two
+  frames are captured at different instants, so their latest-bar timestamps can
+  differ by the inter-fetch interval; the card's single authoritative
+  `observed_at_utc` is defined in §4.1 to resolve this. No recomputation of the
+  ORB occurs (§2.3).
 
 ### 2.3 The one-ORB-truth rule (binding)
 
@@ -178,18 +198,27 @@ single run instead).
 | `observed_symbol` | `str` | Constant `"SPY"`. |
 | `intended_session_date` | `Optional[date]` | ET date of `run_at_utc` (the intended current session). |
 | `timezone` | `str` | `"America/New_York"` (the canonical literal). |
-| `observed_at_utc` | `Optional[datetime]` | UTC timestamp of the latest SPY bar contributing to the observation; `None` when UNAVAILABLE. |
+| `observed_at_utc` | `Optional[datetime]` | UTC timestamp of the latest bar of the SPY **full-session fetch** (§5) — the single authoritative headline observation time; `None` when UNAVAILABLE. |
 | `state` | `str` | Observation lifecycle: `PRE_OPEN` / `OBSERVED` / `STALE` / `UNAVAILABLE` (§7). |
 | `reason` | `Optional[str]` | Reason token for any non-OBSERVED state (§7.2). |
-| `session_vwap` | `Optional[float]` | Emitted **only** when `state == OBSERVED`; else `None`. |
+| `session_vwap` | `Optional[float]` | Emitted **only** when `state == OBSERVED` **and** session volume > 0; else `None` (§4.1 invariant, §8). |
 | `current_price` | `Optional[float]` | SPY last price; emitted **only** when `state == OBSERVED`. |
-| `price_vs_vwap` | `Optional[str]` | `ABOVE` / `BELOW` / `AT_LEVEL`; emitted **only** when `state == OBSERVED`. |
+| `price_vs_vwap` | `Optional[str]` | `ABOVE` / `BELOW` / `AT_LEVEL` when VWAP is formed; `"UNAVAILABLE"` on a zero-volume OBSERVED run; `None` in any non-OBSERVED state. |
 | `orb` | `Optional[OrbObservation]` | The PRD-271 carrier, projected verbatim (§2.3). |
 
 Invariants (mirroring PRD-271's "high/low only when FORMED"):
-- `session_vwap`, `current_price`, `price_vs_vwap` are non-`None` **iff**
-  `state == OBSERVED`. No stale or pre-open value is ever presented as a current
-  session fact (ruling §3).
+- **Timestamp authority (F4):** `observed_at_utc` is the UTC timestamp of the
+  latest bar of the new SPY-only **full-session fetch** (§5) — the single
+  authoritative headline observation time, and the value the freshness state
+  machine (§8) is computed against. The projected `OrbObservation` retains its
+  own `observed_at_utc` on the nested `orb` for ORB provenance; it may differ by
+  the inter-fetch interval and is never the card's headline timestamp.
+- **Value emission (F3):** `current_price` is non-`None` **iff**
+  `state == OBSERVED`. `session_vwap` and `price_vs_vwap` are non-`None` **only
+  when** `state == OBSERVED` **and** session volume > 0; on a zero-volume
+  OBSERVED run `session_vwap = None` and `price_vs_vwap = "UNAVAILABLE"` (the
+  price observation is still current; VWAP simply cannot be formed). No value is
+  ever presented as current in any non-OBSERVED state (ruling §3).
 - `orb_high`/`orb_low` are read only from `orb` and only when
   `orb.state == FORMED` (already guaranteed by `OrbObservation`).
 
@@ -228,10 +257,18 @@ session-anchored one.
 
 **Boundary (binding per ruling §2):**
 - A **new opt-in full-session path** returns the **complete current
-  regular-session** SPY frame (09:30 ET → latest available bar of the intended
-  session), UTC-indexed, no `tail(120)` truncation. Bounded to the single latest
-  session date already selected at `ingestion.py:231-232` (≈361 one-minute bars
-  max; trivial memory for one symbol).
+  regular-session** SPY frame for the intended session, UTC-indexed, no
+  `tail(120)` truncation. **Session window (F2): 09:30–16:00 ET** — the regular
+  session per `time_utils._MARKET_OPEN_ET`/`_MARKET_CLOSE_ET`
+  (`time_utils.py:12-13`). This path **must set its own
+  `between_time("09:30","16:00")` and must NOT inherit the default fetcher's
+  `between_time("09:30","15:30")` bound (`ingestion.py:228`)**, which would
+  silently drop 15:30–16:00 ET and make the "authoritative session VWAP"
+  untruthful. Bounded to the single latest session date selected at
+  `ingestion.py:231-232` (≈391 one-minute bars max for the full 09:30–16:00
+  window; trivial memory for one symbol). The default fetcher's 15:30 bound is a
+  pre-existing behavior of the contiguous-tail path and is **not changed** by
+  this slice (adjacent, out of scope).
 - **Ordinary `fetch_intraday_bars` behavior is unchanged** for short-permission
   state (`runtime/__init__.py:1436`), post-trade evaluation (`evaluation.py:160`),
   and every other contiguous-tail consumer. `fetch_intraday_orb_bars` (the watch
@@ -253,8 +290,10 @@ proven so by test (§13).
 ## 6. VWAP formula and session anchor
 
 - **Session anchor:** 09:30 ET of the intended current trading date.
-- **Window:** 09:30 ET (inclusive) through the latest observed bar of the current
-  session, regular-session bars only.
+- **Window (F2):** 09:30 ET (inclusive) through the latest observed bar, bounded
+  by the 16:00 ET regular-session close; regular-session bars only, over the
+  09:30–16:00 ET frame from the SPY-only full-session fetch (§5) — **not** the
+  default fetcher's 09:30–15:30 frame.
 - **Formula (cumulative typical-price VWAP):**
   `VWAP = Σ(TP_i · V_i) / Σ(V_i)`, where `TP_i = (High_i + Low_i + Close_i) / 3`.
   This reuses the typical-price accumulation pattern at `watch.py:249-253` but
@@ -292,7 +331,7 @@ Two independent axes ride the card:
 | State | Meaning | VWAP/price emitted? |
 |---|---|---|
 | `PRE_OPEN` | Intended session has not opened, or latest frame is the prior session and the intended session's open window has not yet passed (benign). | No |
-| `OBSERVED` | Current-session SPY data present and within the freshness threshold. | Yes |
+| `OBSERVED` | Current-session SPY data present and within the freshness threshold. | `current_price`: yes. `session_vwap`/`price_vs_vwap`: yes when session volume > 0, else `None` / `"UNAVAILABLE"` (§4.1, §8). |
 | `STALE` | Data present but older than the freshness threshold, or a session mismatch after the session should be live. Fail-loud, never presented as current. | No |
 | `UNAVAILABLE` | No usable SPY frame this run (fetch failed, insufficient bars, or run halted). | No |
 
@@ -303,9 +342,13 @@ Two independent axes ride the card:
 current session), `pre_open_prior_session` (prior-session frame before the
 intended session's open window has passed), `session_mismatch` (prior-session
 frame after the session should be live), `observation_lag` (current-session
-frame older than the freshness threshold), `no_volume` (VWAP unavailable, zero
-session volume — the observation may still be OBSERVED with `session_vwap=None`
-if a review prefers; see §8 open question).
+frame older than the freshness threshold).
+
+These reason tokens annotate **non-OBSERVED** states only. VWAP-unavailability
+within an OBSERVED run (zero session volume) is NOT a state or reason change: it
+is expressed through `session_vwap = None` and `price_vs_vwap = "UNAVAILABLE"`
+per the §4.1 value-emission invariant (F3). There is no `no_volume` observation
+reason token.
 
 ---
 
@@ -360,12 +403,12 @@ before Gate A.
 NEW element is only the threshold constant and the observation state machine, not
 the render helpers.
 
-**Open question for review:** whether `no_volume` (zero session volume, VWAP
-uncomputable) should render as `OBSERVED` with `session_vwap=None` (price is
-still current) or as a distinct sub-state. Recommended default: `OBSERVED` with
-`session_vwap=None` and `price_vs_vwap=UNAVAILABLE`, since the price observation
-is genuinely current even when VWAP cannot be formed. Flagged rather than
-silently decided.
+**Zero-volume resolution (F3, resolved — no longer an open question):** a
+zero-session-volume run where VWAP cannot be formed renders as `OBSERVED` (the
+price observation is genuinely current) with `session_vwap = None` and
+`price_vs_vwap = "UNAVAILABLE"`. It is not a distinct state and carries no
+`no_volume` reason token; VWAP-unavailability is a value-emission fact under the
+§4.1 invariant, not a lifecycle transition.
 
 ---
 
@@ -488,8 +531,16 @@ determines truth (PRD-198 #5).
   session for SPY while `fetch_intraday_bars` default still returns the
   contiguous `tail(120)` for the short-gate/evaluation consumers (boundary of §5
   proven).
-- **T9 — Zero-volume session:** VWAP `UNAVAILABLE`/`None` per the §8 open-question
-  resolution; no divide-by-zero, no fabricated VWAP.
+- **T9 — Zero-volume session:** `OBSERVED` with `session_vwap=None` and
+  `price_vs_vwap="UNAVAILABLE"` per the §8 zero-volume resolution; no
+  divide-by-zero, no fabricated VWAP.
+- **T10 — one-ORB-truth (F5):** the card's ORB `state`/`orb_high`/`orb_low` are
+  identical to `intraday_metrics["SPY"].orb`; `build_spy_observation` never calls
+  `_session_orb` and never recomputes an opening range.
+- **T11 — halt semantics unchanged (F5):** on a halted run the run `outcome`,
+  `system_halted`, and `halt_reason` are identical to pre-change behavior; the
+  added `SpyObservation` build is pure and side-effect-free (and yields
+  `UNAVAILABLE / system_halted`, per T6).
 
 **Mutation plan (PRD-198 #4):**
 - Anchor the VWAP to the rolling tail instead of 09:30 → T1/T7 RED.
@@ -499,6 +550,10 @@ determines truth (PRD-198 #5).
 - Skip the observation on no-candidate runs → T5 RED.
 - Let the full-session frame flow into the default fetcher → T8 RED (a
   contiguous-consumer assertion breaks).
+- Introduce any second/recomputed ORB in `build_spy_observation` (instead of
+  projecting `intraday_metrics["SPY"].orb` verbatim) → T10 RED.
+- Make the halt-path `SpyObservation` build alter `outcome`/halt state or raise →
+  T11 RED.
 A guard whose mutation leaves all tests green is not a guard and does not merge.
 
 ---
@@ -535,15 +590,37 @@ payload schema surface with a reader. Therefore this upstream packet, its
 independent Codex review, and the exact-corrected-head confirmation are required
 before a design-direction ruling and downstream PRD.
 
-**Lane (for the eventual PRD): STANDARD.** MATERIAL disqualifies MICRO (GOV-2
-§1). The design deliberately avoids every HIGH-RISK trigger (PRD-121 R11): it
-adds no HIGH-RISK file **as payload** (no `execution_policy.py`, no contract-key
-change, no regime input), its CLASS is CONSUMER/SIDECAR (not EXECUTION or
-CONTRACT), and its default Tier is not T0. MATERIAL classification does not by
-itself convert STANDARD to HIGH-RISK and adds no Codex-commissioned events beyond
-the two GOV-2 §7 packet-cycle events. If review or Gate A instead selects a
-contract-key or execution-touching design, R11 fires and the lane becomes
-HIGH-RISK — a stop-and-amend event (§14).
+**Governing CLASS: CONSUMER. Resulting LANE: HIGH-RISK (F1, resolved).** The
+packet's user-visible deliverable is a dashboard card, and the design edits
+`cuttingboard/delivery/dashboard_renderer.py` to render it. That file is a
+**HIGH-RISK FILE for CLASS CONSUMER** (`docs/PRD_PROCESS.md:454`), touched as this
+change's **payload** (the card render, PRD-276 payload-vs-pointer). Under the Lane
+Downgrade Prohibition (PRD-121 R11, `docs/PRD_PROCESS.md:493-500`) that forces
+`LANE: HIGH-RISK` regardless of diff size — the same determination Dustin applied
+to the presentation-only renderer changes PRD-249 and PRD-250 (both
+HIGH-RISK/CONSUMER because `dashboard_renderer.py` is a CONSUMER HIGH-RISK file).
+MATERIAL already disqualifies MICRO (GOV-2 §1); the earlier STANDARD reading is
+withdrawn.
+
+The new `cuttingboard/spy_observation.py` module and the additive
+`payload.sections["spy_observation"]` are sidecar-flavored, but CONSUMER is the
+governing CLASS because the highest-risk payload surface is a CONSUMER HIGH-RISK
+file and the deliverable is consumer-facing. The `runtime/__init__.py` threading
+is additive and non-decision-bearing; note that the CLASS matrix's EXECUTION
+HIGH-RISK entry names the legacy monolith `cuttingboard/runtime.py`, and whether
+the `cuttingboard/runtime/__init__.py` package file inherits that status is an
+acknowledged ambiguity (runtime-package debt) — it does not lower the lane, which
+is already HIGH-RISK on the renderer trigger.
+
+HIGH-RISK lane consequences the eventual PRD inherits: fresh-context-OR-
+different-model review independence (`docs/PRD_PROCESS.md:491`) and the mandatory
+Second-Model Disposition (a commissioned `PRD-NNN.review.<model>.md` artifact or
+the verbatim `SECOND-MODEL:` line). MATERIAL classification adds no
+Codex-commissioned events beyond the two GOV-2 §7 packet-cycle events; the
+HIGH-RISK implementation-review disposition is a separate, lane-driven
+requirement. A later design that instead added a contract-key or
+execution-touching surface would remain HIGH-RISK and additionally trip the
+CONTRACT/EXECUTION forbidden-surface rules — a stop-and-amend event (§14).
 
 **GOV-0 / expansion-plan note:** this is a North Star NS-2 product slice, not a
 GEX / news / options-data / macro-awareness expansion; the three
