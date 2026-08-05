@@ -35,6 +35,25 @@ halt-semantics proof obligations added (§13). No redesign, no scope expansion.
 This corrected head is still NOT review-clean until the independent Codex packet
 review and exact-corrected-head confirmation (GOV-2 §2, §7) complete.
 
+CORRECTION LOG — Consolidated correction 2 (2026-08-05, Dustin-authorized): the
+GOV-2 §2 step-4 consolidated correction responding to the independent Codex
+packet review received on PR #210 at `16c2e40` (INITIAL PACKET REVIEW). Five
+findings, all confirmed valid; Dustin ruled "correct + scope out hourly" (GOV-2
+§6 "narrow its claim"). Applied: (Codex P1, carrier→payload) the transient
+`SpyObservation` reaches the renderer via a new optional `build_report_payload`
+parameter, NOT the contract — specified in §2.2/§4.2/§11; (Codex P1, hourly) the
+outcome is narrowed to the daily `_run_pipeline`; the hourly publish path is
+explicitly OUT OF SCOPE (card absent on hourly, §1/§2.2/§14), with hourly
+coverage deferred to a follow-up; (Codex P2, zero-volume) the §4.1 value-emission
+invariant is corrected so `price_vs_vwap` is a valid OBSERVED token ("UNAVAILABLE"
+on zero volume) while `session_vwap` stays unset — no contradiction; (Codex P3,
+status) §0's order table now reflects the true state. This consumes the single
+GOV-2 §2 correction cycle for this packet. GOV-2 §6 first-boundary handling: this
+is the first discovered omitted seam (hourly), resolved by narrowing the claim,
+not by rebuild. Next step: independent Codex exact-corrected-head confirmation of
+THIS head (GOV-2 §2 step 5, §7). Findings disposition for PR #210 threads: all
+ACTIONED by this correction (cite this commit).
+
 North Star lineage: NS-2A + NS-2C (ledger
 `docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md:132,134`), unblocked
 by PRD-271 / NS-2B landing (PR #209). Evidence seed: `audits/stage0-recon-2026-07-20/`
@@ -48,9 +67,9 @@ Star deep audit (TM-017).
 ```
 materiality check at intake ............................. DONE (MATERIAL; §15)
 -> provisional material packet .......................... THIS DOCUMENT
--> independent Codex packet review ...................... PENDING (§17)
--> one consolidated author correction .................. PENDING
--> Codex exact-corrected-head confirmation ............. PENDING (§17)
+-> independent Codex packet review ...................... RECEIVED (PR #210 @ 16c2e40; advisory — durable §17 record pending Dustin)
+-> one consolidated author correction .................. DONE (correction 2, Dustin-authorized; THIS head — cycle consumed)
+-> Codex exact-corrected-head confirmation ............. PENDING (of THIS corrected head; §17)
 -> Dustin design-direction ruling on review-clean packet PENDING
 -> PRD drafting ........................................ NOT STARTED (do not draft yet)
 -> independent PRD review .............................. later
@@ -75,14 +94,25 @@ has ruled, the PRD is drafted and independently reviewed, and Gate A is issued
 4. What current-session ORB is active? (projected PRD-271 ORB state + bounds)
 5. What is unavailable, stale, forming, or invalid? (explicit reason token)
 
-**User-visible outcome:** one compact SPY observation card on the dashboard,
-present on **every relevant run** — including STAY_FLAT / NO_TRADE runs and
-halted runs — and therefore **independent of candidate availability**. On a
-healthy live run it shows SPY's session date, observation timestamp, freshness,
-session VWAP and price-vs-VWAP relation, and the current-session ORB state and
-bounds. When any input is missing, stale, pre-open, or the run is halted, the
-card states that explicitly through lifecycle truth rather than blanking or
-fabricating a value.
+**User-visible outcome:** one compact SPY observation card on the daily
+dashboard, present on **every relevant daily `_run_pipeline` run** — including
+STAY_FLAT / NO_TRADE runs and daily halted runs — and therefore **independent of
+candidate availability**. On a healthy run it shows SPY's session date,
+observation timestamp, freshness, session VWAP and price-vs-VWAP relation, and
+the current-session ORB state and bounds. When any input is missing, stale,
+pre-open, or the run is halted, the card states that explicitly through lifecycle
+truth rather than blanking or fabricating a value.
+
+**SCOPE (Codex P1, Dustin ruling 2026-08-05 — narrowed):** this slice covers the
+daily `_run_pipeline` path only. The **hourly publish path is explicitly OUT OF
+SCOPE** — `_execute_notify_run` keeps `intraday_metrics = {}`
+(`runtime/__init__.py:404`) and `_write_hourly_artifacts` renders from
+`build_report_payload(contract)` (`:2112,:2122`) with no observation passed, so
+the card is **absent** on the hourly-published `ui/dashboard.html` during market
+hours. This is an accepted, honest v1 limitation (card appears on the daily
+dashboard render, not the hourly republishes); extending the observation to the
+hourly producer/carrier/artifact path is a deferred follow-up (§9, §14). The
+earlier "every relevant run" wording is withdrawn.
 
 **This is description, not prediction** (VISION). It computes no score, no
 recommendation, no gate; it changes no execution decision (§10).
@@ -131,12 +161,25 @@ build_spy_observation(...)   -->   SpyObservation (frozen)   -->   payload.secti
   — a dedicated module so watch.py's execution-adjacent surface is untouched and
   the non-effect boundary (§10) is structurally obvious.
 - **Carrier:** new frozen `SpyObservation` (transient, non-persisted; mirrors
-  `OrbObservation`'s discipline). Threaded through the pipeline result in
-  `runtime/__init__.py` on BOTH the non-halt path and the halt path (so the card
-  is present on every run).
-- **Consumer:** `delivery/payload.py::build_report_payload` projects a
-  `spy_observation` section; `delivery/dashboard_renderer.py` renders one card,
-  reusing existing freshness/timestamp helpers and the VWAP-relation display map.
+  `OrbObservation`'s discipline). Built in the **daily `_run_pipeline`** on BOTH
+  its non-halt and halt branches (so the card is present on every daily run), and
+  passed to the payload projection as an explicit argument (below). The hourly
+  path does not build or pass it (§1 SCOPE).
+- **Consumer / carrier→payload threading (Codex P1, resolved):**
+  `delivery/payload.py::build_report_payload` currently takes only a
+  `PipelineContract` (`payload.py:24`). Because §4.3 forbids putting the
+  observation on the contract, the carrier reaches the projection via a **new
+  optional parameter** — `build_report_payload(contract, *, spy_observation:
+  SpyObservation | None = None)`. The daily writer passes the built observation;
+  the hourly writer (`_write_hourly_artifacts`, `runtime/__init__.py:2122`) and
+  any other caller pass nothing → `None` → no `spy_observation` section → card
+  omitted (this is exactly the hourly scope-out, achieved by construction, not a
+  special case). When present, `build_report_payload` projects
+  `sections["spy_observation"]`; `delivery/dashboard_renderer.py` renders one
+  card when the section exists and omits it when absent, reusing existing
+  freshness/timestamp helpers and the VWAP-relation display map. The new
+  parameter is additive and default-`None`, so no existing caller changes
+  behavior.
 - **Two SPY intraday fetches per run (acknowledged coupling, F4).** The projected
   `OrbObservation` is produced by the existing watch path
   (`compute_all_intraday_metrics → fetch_intraday_orb_bars`,
@@ -172,8 +215,10 @@ A **transient, read-only SPY observation sidecar** that:
    emitting it **only** in the OBSERVED state.
 3. Derives an observation freshness lifecycle (PRE_OPEN / OBSERVED / STALE /
    UNAVAILABLE, §7-§8), separate from the ORB lifecycle.
-4. Threads `SpyObservation` through `runtime/__init__.py` on non-halt and halt
-   paths, projects it in `build_report_payload`, and renders one dashboard card.
+4. Threads `SpyObservation` through the **daily** `_run_pipeline`
+   (`runtime/__init__.py`) on its non-halt and halt branches, passes it as the
+   new optional `build_report_payload` argument (daily writer only), and renders
+   one dashboard card. The hourly path passes nothing (§1 SCOPE).
 5. Touches **no** execution, candidate, short-permission, evaluation,
    `_watch_zones`, `IntradayMetrics.vwap`, or ORB-policy surface (§10).
 6. Adds **no** durable/contract schema and **no** cross-run persistence (§4.3).
@@ -213,20 +258,27 @@ Invariants (mirroring PRD-271's "high/low only when FORMED"):
   machine (§8) is computed against. The projected `OrbObservation` retains its
   own `observed_at_utc` on the nested `orb` for ORB provenance; it may differ by
   the inter-fetch interval and is never the card's headline timestamp.
-- **Value emission (F3):** `current_price` is non-`None` **iff**
-  `state == OBSERVED`. `session_vwap` and `price_vs_vwap` are non-`None` **only
-  when** `state == OBSERVED` **and** session volume > 0; on a zero-volume
-  OBSERVED run `session_vwap = None` and `price_vs_vwap = "UNAVAILABLE"` (the
-  price observation is still current; VWAP simply cannot be formed). No value is
-  ever presented as current in any non-OBSERVED state (ruling §3).
+- **Value emission (F3 + Codex P2, corrected):** `current_price` and
+  `price_vs_vwap` are non-`None` **iff** `state == OBSERVED`. `session_vwap` is
+  non-`None` **iff** `state == OBSERVED` **and** session volume > 0. On a
+  zero-volume OBSERVED run, `session_vwap = None` while `price_vs_vwap =
+  "UNAVAILABLE"` — `"UNAVAILABLE"` is a **valid OBSERVED relation token** meaning
+  "cannot compare to VWAP", not a null; `current_price` remains present. The
+  price observation is still current; only the VWAP comparison cannot be formed.
+  (This removes the prior lumping of `price_vs_vwap` with `session_vwap`, which
+  made the two contradict on zero volume.) No value is ever presented as current
+  in any non-OBSERVED state (ruling §3).
 - `orb_high`/`orb_low` are read only from `orb` and only when
   `orb.state == FORMED` (already guaranteed by `OrbObservation`).
 
 ### 4.2 Payload projection
 
-`build_report_payload` adds `sections["spy_observation"]` = a plain dict mirror
-of the fields above (dates/timestamps ISO-stringified). One reader: the
-dashboard renderer. No other consumer reads it.
+`build_report_payload(contract, *, spy_observation=None)` adds
+`sections["spy_observation"]` = a plain dict mirror of the fields above
+(dates/timestamps ISO-stringified) **only when the `spy_observation` argument is
+provided** (daily path). When the argument is `None` (hourly path, §1 SCOPE, and
+every pre-existing caller), no section is added and the renderer omits the card.
+One reader: the dashboard renderer. No other consumer reads it.
 
 ### 4.3 Schema / persistence classification
 
@@ -331,7 +383,7 @@ Two independent axes ride the card:
 | State | Meaning | VWAP/price emitted? |
 |---|---|---|
 | `PRE_OPEN` | Intended session has not opened, or latest frame is the prior session and the intended session's open window has not yet passed (benign). | No |
-| `OBSERVED` | Current-session SPY data present and within the freshness threshold. | `current_price`: yes. `session_vwap`/`price_vs_vwap`: yes when session volume > 0, else `None` / `"UNAVAILABLE"` (§4.1, §8). |
+| `OBSERVED` | Current-session SPY data present and within the freshness threshold. | `current_price`: always. `price_vs_vwap`: always (a relation when volume > 0, else the token `"UNAVAILABLE"`). `session_vwap`: only when volume > 0, else `None` (§4.1, §8). |
 | `STALE` | Data present but older than the freshness threshold, or a session mismatch after the session should be live. Fail-loud, never presented as current. | No |
 | `UNAVAILABLE` | No usable SPY frame this run (fetch failed, insufficient bars, or run halted). | No |
 
@@ -462,17 +514,18 @@ Production:
 |---|---|---|
 | A | `cuttingboard/spy_observation.py` (new) | `SpyObservation` carrier + `build_spy_observation` + session-VWAP + freshness state machine |
 | M | `cuttingboard/ingestion.py` | new opt-in bounded full-session SPY fetch path; default contiguous behavior preserved |
-| M | `cuttingboard/runtime/__init__.py` | build & thread `SpyObservation` on non-halt AND halt paths |
-| M | `cuttingboard/delivery/payload.py` | project `sections["spy_observation"]` |
-| M | `cuttingboard/delivery/dashboard_renderer.py` | render one compact SPY card |
+| M | `cuttingboard/runtime/__init__.py` | build & thread `SpyObservation` on the **daily** `_run_pipeline` non-halt AND halt branches, and pass it into the daily `build_report_payload` call. The hourly path (`_execute_notify_run`, `_write_hourly_artifacts`) is **NOT** modified — it keeps passing no observation (hourly scope-out, §1). |
+| M | `cuttingboard/delivery/payload.py` | add optional `spy_observation` parameter to `build_report_payload`; project `sections["spy_observation"]` only when it is provided |
+| M | `cuttingboard/delivery/dashboard_renderer.py` | render one compact SPY card when the section is present; omit it when absent (hourly) |
 
 Tests (edited/added):
 
 | Op | File | Purpose |
 |---|---|---|
-| A | `tests/test_spy_observation.py` (new) | lifecycle, VWAP, freshness, fetch-boundary, halt — discriminating + mutation |
-| M | `tests/test_dashboard_renderer.py` | card render incl. UNAVAILABLE/halt/STALE/PRE_OPEN states |
-| M | `tests/test_payload.py` | payload projection of the section |
+| A | `tests/test_spy_observation.py` (new) | lifecycle, VWAP, freshness, fetch-boundary, halt — discriminating + mutation (T1–T10) |
+| M | `tests/test_dashboard_renderer.py` | card render incl. UNAVAILABLE/halt/STALE/PRE_OPEN states, and card omission when no section |
+| M | `tests/test_payload.py` | payload projection via the `spy_observation` parameter; hourly no-argument → no section (T12) |
+| M | `tests/test_runtime_decision.py` | T11 halt-semantics-unchanged on the daily run (moved here from the must-stay-green set because T11 adds an assertion) |
 
 Must remain GREEN, **unchanged** (non-effect proof; PRD-158 sweep of
 `orb_high|orb_low|orb_inside_range|vwap|OrbObservation|orb_break` across
@@ -480,9 +533,10 @@ Must remain GREEN, **unchanged** (non-effect proof; PRD-158 sweep of
 `tests/test_market_map.py`, `tests/test_intraday_state.py`,
 `tests/test_dash_level_diagram.py`, `tests/test_gap_down_permission_integration.py`,
 `tests/test_levels.py`, `tests/test_overnight_policy.py`,
-`tests/test_prd017_notification_stabilization.py`, `tests/test_runtime_decision.py`,
+`tests/test_prd017_notification_stabilization.py`,
 `tests/test_trade_explanation.py`, `tests/test_trade_visibility.py`,
-`tests/test_trend_structure.py`. (This change renames/deletes no field or token,
+`tests/test_trend_structure.py`. (`tests/test_runtime_decision.py` is edited for
+T11 and is listed above, not here.) (This change renames/deletes no field or token,
 so the PRD-158 sweep adds none of these to FILES; they are listed as the
 must-stay-green non-effect set.)
 
@@ -537,10 +591,15 @@ determines truth (PRD-198 #5).
 - **T10 — one-ORB-truth (F5):** the card's ORB `state`/`orb_high`/`orb_low` are
   identical to `intraday_metrics["SPY"].orb`; `build_spy_observation` never calls
   `_session_orb` and never recomputes an opening range.
-- **T11 — halt semantics unchanged (F5):** on a halted run the run `outcome`,
-  `system_halted`, and `halt_reason` are identical to pre-change behavior; the
-  added `SpyObservation` build is pure and side-effect-free (and yields
-  `UNAVAILABLE / system_halted`, per T6).
+- **T11 — halt semantics unchanged (F5):** on a halted daily run the run
+  `outcome`, `system_halted`, and `halt_reason` are identical to pre-change
+  behavior; the added `SpyObservation` build is pure and side-effect-free (and
+  yields `UNAVAILABLE / system_halted`, per T6).
+- **T12 — hourly scope-out (Codex P1):** the hourly artifact path
+  (`build_report_payload(contract)` with no `spy_observation` argument) produces a
+  payload with **no** `spy_observation` section, and the renderer omits the card;
+  the hourly path is proven unmodified. *(Mutation: pass an observation into the
+  hourly writer → T12 RED, since the scope-out is violated.)*
 
 **Mutation plan (PRD-198 #4):**
 - Anchor the VWAP to the rolling tail instead of 09:30 → T1/T7 RED.
@@ -554,6 +613,8 @@ determines truth (PRD-198 #5).
   projecting `intraday_metrics["SPY"].orb` verbatim) → T10 RED.
 - Make the halt-path `SpyObservation` build alter `outcome`/halt state or raise →
   T11 RED.
+- Pass an observation into the hourly writer / project a section on the hourly
+  payload (violating the scope-out) → T12 RED.
 A guard whose mutation leaves all tests green is not a guard and does not merge.
 
 ---
@@ -574,6 +635,11 @@ A guard whose mutation leaves all tests green is not a guard and does not merge.
   surface to Dustin (no persistence is authorized).
 - Needing to lift SPY acquisition above the halt branch to satisfy any card
   requirement → stop; that is the deferred follow-up (§9).
+- Extending the SPY card to the **hourly** publish path (threading the
+  observation through `_execute_notify_run` / `_write_hourly_artifacts` /
+  `hourly_alert.yml`) → out of scope for this slice (§1 SCOPE); it is a separate
+  follow-up proposal with its own producer/carrier/artifact inventory, FILES, and
+  materiality re-run. Do not add it under this packet.
 - FILES or LOC estimate needing to grow past §11/§12 → GOV-2 §5 stop-and-renew:
   amend the PRD, obtain fresh-context independent review of the exact amended
   revision, and Dustin's amended Gate A.
