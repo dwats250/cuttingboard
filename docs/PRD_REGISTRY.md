@@ -300,7 +300,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-280 | #198 | Decision-state color derives from authoritative title, not system_halted alone | COMPLETE | [PRD-280](prd_history/PRD-280.md) |
 | PRD-281 | #199 | Decision-State WHY Summary | COMPLETE | [PRD-281](prd_history/PRD-281.md) |
 | PRD-282 | #203 | Opportunity Survival Summary | COMPLETE | [PRD-282](prd_history/PRD-282.md) |
-| PRD-283 | — | Smallest-contract refusal: refuse when the smallest options contract exceeds the correlation-adjusted risk budget, and carry the true reason through every consumer | IN PROGRESS | [PRD-283](prd_history/PRD-283.md) |
+| PRD-283 | f806f5b | Smallest-contract refusal: refuse when the smallest options contract exceeds the correlation-adjusted risk budget, and carry the true reason through every consumer | COMPLETE | [PRD-283](prd_history/PRD-283.md) |
 | PRD-284 | dbcb5d3 | Full A2 materialization: apply the execution-policy size multiplier to contracts/dollar_risk, block at EXECUTION_POLICY when the position rounds to zero | COMPLETE | [PRD-284](prd_history/PRD-284.md) |
 | PRD-285 | a47f144 | Trade-brake dormancy (CB-04): stop counting recommendations/hypothetical evaluations as executed trades; hold trade-count, cooldown, and loss-lockout brakes fully dormant until a trustworthy execution/fill carrier exists | COMPLETE | [PRD-285](prd_history/PRD-285.md) |
 | PRD-286 | 9856ba5 | Macro-pressure fail-closed (CB-05): a macro-pressure computation failure must block, not silently degrade to "UNKNOWN" and allow full size | COMPLETE | [PRD-286](prd_history/PRD-286.md) |

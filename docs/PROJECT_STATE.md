@@ -5,7 +5,7 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-08-05 (commit 68cca7607bb01426abd5b5bd6f78be61b3559973)
+**Last updated:** 2026-08-05 (TRUTH-SYNC reconciliation against `main` @ `a419b804`)
 
 ## Current state
 
@@ -234,6 +234,7 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 | PRD-286 | Macro-pressure fail-closed: computation failure blocks, not full-size allow (CB-05) | 2026-08-05 |
 | PRD-285 | Trade-brake dormancy: recommendations/hypotheticals no longer counted as trades (CB-04) | 2026-08-05 |
 | PRD-284 | Full A2 materialization: size multiplier applied to contracts/dollar_risk (CB-03) | 2026-08-05 |
+| PRD-283 | Smallest-contract refusal: refuse when the smallest options contract exceeds the correlation-adjusted risk budget, and carry the true reason through every consumer | 2026-08-03 |
 | PRD-282 | Opportunity Survival Summary | 2026-08-03 |
 | PRD-281 | Decision-State WHY Summary | 2026-08-03 |
 | PRD-280 | Decision-state color derives from authoritative title, not system_halted alone | 2026-08-03 |
