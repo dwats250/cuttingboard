@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 282,
-  "next_prd": 283,
+  "latest_complete": 287,
+  "next_prd": 288,
   "entries": [
     {
       "number": 56,
@@ -1296,8 +1296,8 @@
     {
       "number": 271,
       "title": "ORB/session provenance: opening range lacks trustworthy session identity (positional mid-session slice + unvalidated session selection)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "4902b1f"
     },
     {
       "number": 272,
@@ -1374,26 +1374,26 @@
     {
       "number": 284,
       "title": "Full A2 materialization: apply the execution-policy size multiplier to contracts/dollar_risk, block at EXECUTION_POLICY when the position rounds to zero",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "dbcb5d3"
     },
     {
       "number": 285,
       "title": "Trade-brake dormancy (CB-04): stop counting recommendations/hypothetical evaluations as executed trades; hold trade-count, cooldown, and loss-lockout brakes fully dormant until a trustworthy execution/fill carrier exists",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "a47f144"
     },
     {
       "number": 286,
       "title": "Macro-pressure fail-closed (CB-05): a macro-pressure computation failure must block, not silently degrade to \"UNKNOWN\" and allow full size",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "9856ba5"
     },
     {
       "number": 287,
       "title": "Hourly operational-truth: an unhealthy hourly run must never report success \u2014 fail-loud runner exit code + health-aware readiness (CB-06)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "bd0401c"
     }
   ]
 }
