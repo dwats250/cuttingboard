@@ -20,6 +20,7 @@ from cuttingboard.options import OptionSetup
 from cuttingboard.qualification import QualificationSummary
 from cuttingboard.regime import RegimeState
 from cuttingboard.sector_router import SuppressedCandidate
+from cuttingboard.spy_observation import SpyObservation
 from cuttingboard.trade_decision import TradeDecision
 from cuttingboard.validation import ValidationSummary
 from cuttingboard.watch import WatchSummary
@@ -86,6 +87,9 @@ class PipelineResult:
     market_map: dict[str, Any] = field(default_factory=dict)
     visibility_map: dict[str, dict] = field(default_factory=dict)
     explanation_map: dict[str, dict] = field(default_factory=dict)
+    # PRD-288: transient intra-runtime carrier for the daily SPY observation card.
+    # Additive, defaults to None; never serialized to a durable/decision contract.
+    spy_observation: Optional[SpyObservation] = None
 
 
 __all__ = ["_PartialPipelineResult", "PipelineResult"]

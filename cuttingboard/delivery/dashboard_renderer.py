@@ -144,6 +144,25 @@ _TREND_STRUCTURE_INTRADAY_DISPLAY: dict[tuple[str, str], str] = {
 _INTRADAY_VWAP_DATA_UNAVAILABLE = "Intraday N/A"
 _INTRADAY_VWAP_NOT_COMPUTED = "VWAP N/A"
 
+# PRD-288: SPY session-observation price-vs-VWAP display tokens.
+_SPY_PRICE_VS_VWAP_DISPLAY: dict[str, str] = {
+    "ABOVE": "ABOVE VWAP",
+    "BELOW": "BELOW VWAP",
+    "AT_LEVEL": "AT VWAP",
+    "UNAVAILABLE": "VWAP UNAVAILABLE",
+}
+
+
+def _spy_orb_summary(orb: dict | None) -> str:
+    """Render the verbatim PRD-271 ORB projection; bounds only when FORMED."""
+    if not orb:
+        return "UNAVAILABLE"
+    state = _esc(str(orb.get("state") or "UNAVAILABLE"))
+    high, low = orb.get("orb_high"), orb.get("orb_low")
+    if orb.get("state") == "FORMED" and isinstance(high, (int, float)) and isinstance(low, (int, float)):
+        return f"{state} [{low:.2f}, {high:.2f}]"
+    return state
+
 
 def _intraday_rvol_band(rvol: float | None) -> str:
     if rvol is None:
@@ -2514,6 +2533,39 @@ def render_dashboard_html(
             w(f'  <div class="candidate-state">{sym} {direction}'
               + (f' — {block_reason}' if block_reason else '')
               + '</div>')
+        w("</div>")
+
+    # --- spy-observation (PRD-288: transient daily SPY session card; present
+    #     iff the daily payload carries the section — omitted on hourly/None) ---
+    _spy_obs = (payload.get("sections") or {}).get("spy_observation")
+    if _spy_obs:
+        _spy_reason = _spy_obs.get("reason")
+        _spy_state_display = _esc(str(_spy_obs.get("state") or "UNAVAILABLE")) + (
+            f' — {_esc(str(_spy_reason).upper())}' if _spy_reason else ''
+        )
+        _spy_obs_at = _spy_obs.get("observed_at_utc")
+        _spy_obs_at_label = _esc(_timestamp_label(
+            _spy_obs_at, _parse_utc_timestamp(_spy_obs_at) if _spy_obs_at else None
+        ))
+        _spy_vwap = _spy_obs.get("session_vwap")
+        _spy_vwap_display = f"{_spy_vwap:.2f}" if isinstance(_spy_vwap, (int, float)) else "UNAVAILABLE"
+        _spy_price = _spy_obs.get("current_price")
+        _spy_price_display = f"{_spy_price:.2f}" if isinstance(_spy_price, (int, float)) else "unavailable"
+        _spy_rel = _spy_obs.get("price_vs_vwap")
+        _spy_rel_display = _SPY_PRICE_VS_VWAP_DISPLAY.get(_spy_rel, "") if _spy_rel else ""
+        w('<div class="block" id="spy-observation">')
+        w('  <h2>SPY SESSION OBSERVATION</h2>')
+        w('  <div class="kv-grid">')
+        w(f'    <div class="label">SESSION</div><div class="value">{_esc(str(_spy_obs.get("intended_session_date") or "unavailable"))}</div>')
+        w(f'    <div class="label">STATE</div><div class="value">{_spy_state_display}</div>')
+        w(f'    <div class="label">OBSERVED AT</div><div class="value">{_spy_obs_at_label}</div>')
+        w(f'    <div class="label">SESSION VWAP</div><div class="value">{_spy_vwap_display}</div>')
+        w('    <div class="label">PRICE</div>'
+          f'<div class="value">{_spy_price_display}'
+          + (f' ({_esc(_spy_rel_display)})' if _spy_rel_display else '')
+          + '</div>')
+        w(f'    <div class="label">ORB</div><div class="value">{_spy_orb_summary(_spy_obs.get("orb"))}</div>')
+        w('  </div>')
         w("</div>")
 
     # --- sunday-macro-context (PRD-116: only under coherent Sunday lineage) ---

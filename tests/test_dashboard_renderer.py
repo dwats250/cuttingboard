@@ -4032,3 +4032,81 @@ def test_prd225_trend_rows_wrap_uniformly() -> None:
     assert "gap:2px 8px" in html and "gap:2px 10px" not in html
     assert ".ts-table td:first-child{font-weight:bold;min-width:4ch}" in html
     assert ".ts-table td:nth-child(2){min-width:7ch}" in html
+
+
+# ---------------------------------------------------------------------------
+# PRD-288: SPY session observation card (present iff the daily section exists)
+# ---------------------------------------------------------------------------
+
+def _spy_section(**overrides) -> dict:
+    base = {
+        "observed_symbol": "SPY",
+        "intended_session_date": "2026-04-28",
+        "timezone": "America/New_York",
+        "observed_at_utc": "2026-04-28T13:34:00+00:00",
+        "state": "OBSERVED",
+        "reason": None,
+        "session_vwap": 102.0,
+        "current_price": 104.0,
+        "price_vs_vwap": "ABOVE",
+        "orb": {
+            "state": "FORMED", "trading_date": "2026-04-28",
+            "observed_at_utc": "2026-04-28T13:35:00+00:00",
+            "orb_high": 105.0, "orb_low": 100.0, "reason": None,
+        },
+    }
+    base.update(overrides)
+    return base
+
+
+def _render_with_spy(section: dict | None) -> str:
+    payload = _payload()
+    if section is not None:
+        payload["sections"]["spy_observation"] = section
+    return render_dashboard_html(payload, _run(), market_map=_market_map())
+
+
+def test_spy_observation_card_rendered_observed():
+    html = _render_with_spy(_spy_section())
+    assert 'id="spy-observation"' in html
+    assert "SPY SESSION OBSERVATION" in html
+    assert "102.00" in html            # session VWAP
+    assert "104.00" in html            # current price
+    assert "ABOVE VWAP" in html        # price-vs-VWAP display token
+    assert "FORMED [100.00, 105.00]" in html  # verbatim ORB bounds
+
+
+def test_spy_observation_card_halt_state_no_fabricated_value():
+    html = _render_with_spy(_spy_section(
+        state="UNAVAILABLE", reason="system_halted",
+        session_vwap=None, current_price=None, price_vs_vwap=None, orb=None,
+    ))
+    assert 'id="spy-observation"' in html
+    assert "UNAVAILABLE — SYSTEM_HALTED" in html
+    assert "VWAP UNAVAILABLE" not in html   # no price_vs_vwap token when None
+    # No fabricated VWAP/price number leaks onto the halt card.
+    import re as _re
+    card = _re.search(r'id="spy-observation".*?</div>\s*</div>', html, _re.DOTALL).group(0)
+    assert "102.00" not in card and "104.00" not in card
+
+
+def test_spy_observation_card_stale_and_pre_open():
+    stale = _render_with_spy(_spy_section(
+        state="STALE", reason="session_mismatch",
+        session_vwap=None, current_price=None, price_vs_vwap=None,
+    ))
+    assert "STALE — SESSION_MISMATCH" in stale
+    pre = _render_with_spy(_spy_section(
+        state="PRE_OPEN", reason="pre_open",
+        session_vwap=None, current_price=None, price_vs_vwap=None,
+        orb={"state": "PRE_OPEN", "trading_date": None, "observed_at_utc": None,
+             "orb_high": None, "orb_low": None, "reason": "no_bars"},
+    ))
+    assert "PRE_OPEN — PRE_OPEN" in pre
+
+
+def test_t12_no_spy_observation_card_when_section_absent():
+    # Renderer side of T12: no section -> card omitted entirely.
+    html = _render_with_spy(None)
+    assert 'id="spy-observation"' not in html
+    assert "SPY SESSION OBSERVATION" not in html

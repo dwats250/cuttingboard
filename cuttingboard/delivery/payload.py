@@ -21,10 +21,19 @@ _DECISION_DETAIL_KEYS = frozenset({"symbol", "direction", "strategy_tag", "entry
 _DECISION_TRACE_KEYS = frozenset({"stage", "source", "reason"})
 
 
-def build_report_payload(contract: PipelineContract, fixture_mode: bool = False) -> dict:
+def build_report_payload(
+    contract: PipelineContract,
+    fixture_mode: bool = False,
+    *,
+    spy_observation=None,
+) -> dict:
     """Build a ReportPayload dict from a canonical PRD-011 contract dict.
 
-    Deterministic: identical contract produces identical payload.
+    Deterministic: identical contract produces identical payload. When
+    ``spy_observation`` (a transient ``SpyObservation``) is provided — the DAILY
+    render path only — a ``sections["spy_observation"]`` plain-dict mirror is
+    projected (PRD-288); when ``None`` (hourly path and every pre-existing
+    caller) no section is added and the renderer omits the card.
     """
     ss: dict[str, Any] = contract.get("system_state") or {}
     ac: dict[str, Any] = contract.get("audit_summary") or {}
@@ -117,6 +126,20 @@ def build_report_payload(contract: PipelineContract, fixture_mode: bool = False)
     if fixture_mode:
         meta["fixture_mode"] = True
 
+    sections: dict[str, Any] = {
+        "top_trades": top_trades,
+        "watchlist": watchlist,
+        "rejected": rejected,
+        "continuation_audit": continuation_audit,
+        "option_setups_detail": option_setups_detail,
+        "chain_results_detail": chain_results_detail,
+        "watch_summary_detail": watch_summary_detail,
+        "validation_halt_detail": validation_halt_detail,
+        "trade_decision_detail": trade_decision_detail,
+    }
+    if spy_observation is not None:
+        sections["spy_observation"] = _project_spy_observation(spy_observation)
+
     return {
         "schema_version": PAYLOAD_SCHEMA_VERSION,
         "run_status": contract.get("status", "ERROR"),
@@ -129,18 +152,36 @@ def build_report_payload(contract: PipelineContract, fixture_mode: bool = False)
             "confidence": confidence_val,
             "permission": permission_val,
         },
-        "sections": {
-            "top_trades": top_trades,
-            "watchlist": watchlist,
-            "rejected": rejected,
-            "continuation_audit": continuation_audit,
-            "option_setups_detail": option_setups_detail,
-            "chain_results_detail": chain_results_detail,
-            "watch_summary_detail": watch_summary_detail,
-            "validation_halt_detail": validation_halt_detail,
-            "trade_decision_detail": trade_decision_detail,
-        },
+        "sections": sections,
         "meta": meta,
+    }
+
+
+def _project_spy_observation(obs) -> dict:
+    """Project a transient ``SpyObservation`` into a JSON-safe plain-dict mirror
+    (dates/timestamps ISO-stringified), including the verbatim PRD-271 ORB."""
+    orb = obs.orb
+    orb_mirror = None
+    if orb is not None:
+        orb_mirror = {
+            "state": orb.state,
+            "trading_date": orb.trading_date.isoformat() if orb.trading_date is not None else None,
+            "observed_at_utc": orb.observed_at_utc.isoformat() if orb.observed_at_utc is not None else None,
+            "orb_high": orb.orb_high,
+            "orb_low": orb.orb_low,
+            "reason": orb.reason,
+        }
+    return {
+        "observed_symbol": obs.observed_symbol,
+        "intended_session_date": obs.intended_session_date.isoformat() if obs.intended_session_date is not None else None,
+        "timezone": obs.timezone,
+        "observed_at_utc": obs.observed_at_utc.isoformat() if obs.observed_at_utc is not None else None,
+        "state": obs.state,
+        "reason": obs.reason,
+        "session_vwap": obs.session_vwap,
+        "current_price": obs.current_price,
+        "price_vs_vwap": obs.price_vs_vwap,
+        "orb": orb_mirror,
     }
 
 
