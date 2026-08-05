@@ -1,32 +1,34 @@
 # NS-2A / NS-2C — Fixed SPY Observation & Session VWAP — MATERIAL PACKET (v0.1)
 
-STATUS: DESIGN INCOMPLETE — REVIEW-CLEAN SUSPENDED (2026-08-05). This is the
-upstream GOV-2 MATERIAL packet for NS-2A (fixed SPY observation) and NS-2C
-(session VWAP). It still carries no implementation authority.
+STATUS: REVIEW-CLEAN — RESTORED after correction 4 re-confirmation (2026-08-05);
+durable in `main` on the merge of PR #215. This is the upstream GOV-2 MATERIAL
+packet for NS-2A (fixed SPY observation) and NS-2C (session VWAP). It still
+carries no implementation authority.
 
-The packet was committed REVIEW-CLEAN to `main` via PR #212
-(merge `3061ca53493649e7e4940c43f78016ba5f1d492c`), but a connector finding on the
-downstream Stage-0 PRD-288 (PR #214, **P1**) revealed a MATERIAL BOUNDARY
-OMISSION: the v0.1 transient-carrier seam never specified how the `SpyObservation`
-travels from where it is built (inside the daily `_run_pipeline`) to the daily
-`build_report_payload` call — which runs AFTER `_run_pipeline` returns, in
-`_write_payload_artifacts(pipeline.contract)`, with only `contract` in scope,
-while the return carrier `PipelineResult` (`runtime/_types.py`) has no observation
-field, a contract key is forbidden (§4.3), and recomputing the ORB is forbidden
-(§2.3). Per GOV-2 §6/§7 that omission returns the packet to **DESIGN INCOMPLETE**.
-It is corrected below by **correction 4** (the observation rides a new optional
+The packet was REVIEW-CLEAN via PR #212 (merge `3061ca53493649e7e4940c43f78016ba5f1d492c`);
+a connector finding on downstream Stage-0 PRD-288 (PR #214, **P1**) then revealed a
+MATERIAL BOUNDARY OMISSION — the v0.1 seam never specified the intra-runtime
+carrier from `_run_pipeline` to the daily `build_report_payload` call (which runs
+AFTER the pipeline returns, in `_write_payload_artifacts(pipeline.contract)`, with
+only `contract` in scope; `PipelineResult` (`runtime/_types.py`) had no
+observation field; a contract key is forbidden §4.3; ORB recompute is forbidden
+§2.3). Per GOV-2 §6/§7 that briefly returned the packet to DESIGN INCOMPLETE. It
+is corrected by **correction 4** (the observation rides a new optional
 `PipelineResult.spy_observation` field in `cuttingboard/runtime/_types.py` — a 6th
 production file; §2.1/§2.2/§11/§12/§14), on Dustin's 2026-08-05 "fix the packet
-first (GOV-2)" ruling. The packet is **NOT REVIEW-CLEAN again** until an
-independent exact-corrected-head re-confirmation of this amended head completes
-(§17 EXACT-CORRECTED-HEAD RE-CONFIRMATION — PENDING).
+first (GOV-2)" ruling. The independent exact-corrected-head RE-CONFIRMATION of the
+corrected design head `2e9d6a422f940d07516f5ff011005689a048a881` returned **CLEAN**
+(Codex "Didn't find any major issues"; §17), which RESTORES REVIEW-CLEAN. This
+durable status/record edit is committed on top of that re-confirmed design head
+(record-only — no design changed after the re-confirmed head) and takes effect in
+`main` on the merge of PR #215.
 
-The prior GOV-2 §2/§7 review cycle remains recorded in §17: an independent Codex
-packet review (of `16c2e40`), one consolidated author correction
+The prior GOV-2 §2/§7 review cycle also stands, recorded in §17: an independent
+Codex packet review (of `16c2e40`), one consolidated author correction
 (correction 2 → `02202f7`), then independent exact-corrected-head confirmation —
 a bounded GOV-2 §6 local fix (correction 3 → `1308871`) followed by Codex's clean
-confirmation of `130887125bcac8952ea812d6e2dbcbd319515dcb`. That cycle stands;
-correction 4 is a newly-discovered material boundary, not a re-litigation of it.
+confirmation of `130887125bcac8952ea812d6e2dbcbd319515dcb`. Both cycles stand;
+correction 4 was a newly-discovered material boundary, now re-confirmed clean.
 
 CHRONOLOGY / AUTHORITY (binding — the two merges are distinct):
 - PR #210 / merge `70700f7e4c2ee1d4ca40db5768c6c09a7f73e1a2` carried the
@@ -129,15 +131,19 @@ contract key is forbidden (§4.3), and ORB recompute is forbidden (§2.3), the
 production file), threaded `_run_pipeline` → `execute_run` →
 `_write_payload_artifacts` → `build_report_payload` (§2.1, §2.2, §11, §12, §14).
 This is a MATERIAL boundary (a new production carrier surface), so — unlike
-correction 3 — it returns the packet to DESIGN INCOMPLETE and requires an
+correction 3 — it returned the packet to DESIGN INCOMPLETE and required an
 independent exact-corrected-head RE-CONFIRMATION of this amended head before
-REVIEW-CLEAN is restored and before Gate A on PRD-288 (§17). Every design
+REVIEW-CLEAN could be restored and before Gate A on PRD-288 (§17; that
+re-confirmation is now CLEAN). Every design
 invariant is preserved (transient, no contract key, no persistence, one ORB
 truth, additive param, hourly untouched); the only surface change is +1 carrier
 file and +~5 LOC. Disposition for the PR #214 thread: ACTIONED by this amendment
 (cite this commit); the PRD-288 FILES ceiling is realigned to 6 after this packet
-is re-confirmed. Next step: independent Codex exact-corrected-head re-confirmation
-of THIS amended head (GOV-2 §7).
+is re-confirmed. Re-confirmation: the independent Codex exact-corrected-head
+re-confirmation of the amended head `2e9d6a4` returned CLEAN ("Didn't find any
+major issues"; §17), which RESTORES REVIEW-CLEAN (GOV-2 §7). Remaining downstream
+step: realign PRD-288 (PR #214) FILES to the 6-file / ≤195-LOC ceiling once this
+packet merges.
 
 North Star lineage: NS-2A + NS-2C (ledger
 `docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md:132,134`), unblocked
@@ -157,27 +163,30 @@ materiality check at intake ............................. DONE (MATERIAL; §15)
 -> Codex exact-corrected-head confirmation ............. DONE (event; bounded §6 local fix @ 1308871; Codex clean confirmation of 130887125bca; §17)
 -> Dustin design-direction ruling ..................... DONE (ACCEPTED on the confirmed-clean review; tied to the PR #210 merge; daily-only, hourly deferred)
 -> PR #210 merged (packet landed PROVISIONAL) ......... DONE (merge 70700f7; §17 PENDING in that tree — NOT the review-clean artifact)
--> packet REVIEW-CLEAN in repo history ................ WAS DONE (PR #212, merge 3061ca5) — then SUSPENDED (see next rows)
+-> packet REVIEW-CLEAN (PR #212) ...................... WAS DONE, then SUSPENDED by the material boundary below
 -> material boundary omission found (downstream) ...... DONE (connector P1 on PRD-288 PR #214, 2026-08-05: intra-runtime carrier seam)
 -> correction 4 (add PipelineResult carrier; 6th file) DONE (this amendment; §2.1/§2.2/§11/§12/§14; GOV-2 §6/§7 → DESIGN INCOMPLETE)
--> independent exact-corrected-head RE-CONFIRMATION ... PENDING (of THIS amended head; restores REVIEW-CLEAN; §17)
--> Stage-0 PRD drafting ............................... BEGUN (PRD-288, PR #214) — FILES realigned to 6 after re-confirmation
+-> independent exact-corrected-head RE-CONFIRMATION ... DONE — CLEAN (Codex on 2e9d6a4; §17)
+-> packet REVIEW-CLEAN RESTORED ....................... DONE on the branch; durable in main on the merge of PR #215
+-> Stage-0 PRD drafting ............................... BEGUN (PRD-288, PR #214) — FILES realign to 6 once PR #215 merges
 -> independent PRD review .............................. later
--> Dustin Gate A (on PRD-288) ......................... BLOCKED until this packet is re-confirmed REVIEW-CLEAN
+-> Dustin Gate A (on PRD-288) ......................... after PR #215 merges + PRD-288 FILES realign + independent PRD review
 -> implementation ..................................... later
 ```
 
-The packet WAS REVIEW-CLEAN in repository history as committed through PR #212
-(merge `3061ca5`), and Dustin's design-direction ruling (ACCEPTED) — issued on
-the confirmed-clean review, tied to the PR #210 merge — still stands. That
-REVIEW-CLEAN status is now **SUSPENDED**: correction 4 (this amendment) adds the
-intra-runtime carrier seam and a 6th production file to close a material boundary
-omission the connector found on downstream PRD-288 (PR #214). Per GOV-2 §6/§7 the
-packet is **DESIGN INCOMPLETE** until an independent exact-corrected-head
-re-confirmation of this amended head completes (§17); only then is REVIEW-CLEAN
-restored. No production implementation, PRD execution, branch-for-implementation,
-or contract/persistence change may begin, and Gate A on PRD-288 stays BLOCKED,
-until that re-confirmation lands (GOV-2 §4).
+The packet was REVIEW-CLEAN via PR #212 (merge `3061ca5`), and Dustin's
+design-direction ruling (ACCEPTED) — issued on the confirmed-clean review, tied to
+the PR #210 merge — still stands. REVIEW-CLEAN was briefly SUSPENDED when
+correction 4 (this amendment) added the intra-runtime carrier seam and a 6th
+production file to close a material boundary omission the connector found on
+downstream PRD-288 (PR #214). Per GOV-2 §6/§7 the packet was DESIGN INCOMPLETE
+until an independent exact-corrected-head re-confirmation of the amended head
+completed — which it now has, **CLEAN** on `2e9d6a4` (§17), so **REVIEW-CLEAN is
+RESTORED** (durable in `main` on the merge of PR #215). Even so, no production
+implementation, PRD execution, branch-for-implementation, or contract/persistence
+change may begin; Gate A on PRD-288 follows only after PR #215 merges, PRD-288's
+FILES are realigned to the 6-file / ≤195-LOC ceiling, and the independent PRD
+review completes (GOV-2 §4).
 
 ---
 
@@ -934,35 +943,46 @@ not fixed by this read-only packet.
   `cuttingboard/runtime/_types.py` (6th production file) as the carrier, threaded
   `_run_pipeline` → `execute_run` → `_write_payload_artifacts` →
   `build_report_payload` (§2.1/§2.2/§11/§12/§14). All design invariants preserved.
-- GOV-2 classification: MATERIAL boundary → the packet returns to DESIGN
-  INCOMPLETE; REVIEW-CLEAN is SUSPENDED until re-confirmation.
+- GOV-2 classification: MATERIAL boundary → the packet returned to DESIGN
+  INCOMPLETE; REVIEW-CLEAN suspended until re-confirmation (now CLEAN, below).
 
-### EXACT-CORRECTED-HEAD RE-CONFIRMATION (of correction 4) — PENDING
+### EXACT-CORRECTED-HEAD RE-CONFIRMATION (of correction 4) — COMPLETE (CLEAN)
 - Event type: `EXACT-CORRECTED-HEAD CONFIRMATION` (GOV-2 §7).
 - Reviewer identity / capability role: independent Codex confirmation
-  (`chatgpt-codex-connector[bot]`), requested on the correction-4 amendment PR.
-- Corrected head SHA: _pending_ (this amendment's merged head).
-- Scope: confirm ONLY that correction 4's carrier seam resolves the PR #214 P1 and
-  introduces no new material boundary — not a fresh broad review.
-- Review date / Verdict / independence evidence: _pending_.
-- Until this record is completed with an independent SHA-pinned clean
-  confirmation, the packet is NOT REVIEW-CLEAN and Gate A on PRD-288 is BLOCKED.
+  (`chatgpt-codex-connector[bot]`), requested on the correction-4 amendment
+  PR #215.
+- Corrected (design) head SHA: `2e9d6a422f940d07516f5ff011005689a048a881` — the
+  head carrying correction 4's design (§2.1/§2.2/§11/§12/§14). This §17 record +
+  the REVIEW-CLEAN restoration are committed on top of that head (record-only, no
+  design change after the re-confirmed head), durable in `main` on the merge of
+  PR #215.
+- Scope: confirmed ONLY that correction 4's carrier seam resolves the PR #214 P1
+  and introduces no new material boundary — not a fresh broad review.
+- Review date: 2026-08-05.
+- Verdict: **CLEAN** — Codex "Didn't find any major issues" on `2e9d6a422f`.
+- Fresh-context / independence evidence: independent connector confirmation,
+  SHA-pinned to `2e9d6a4`, distinct from the amendment-authoring session.
+- Effect: RESTORES REVIEW-CLEAN. Gate A on PRD-288 is unblocked only after PR #215
+  merges AND PRD-288's FILES are realigned to 6 files / ≤195 LOC AND the
+  independent PRD review completes.
 
 A corrected head without independent SHA-pinned confirmation is not
 review-clean (GOV-2 §2). This §17 block is the durable, packet-local, SHA-pinned
-GOV-2 §2/§7 record; the advisory connector threads on PR #210/#214 do not by
-themselves satisfy the gate — the committed records here do. The prior cycle's
-records (PR #212) stand; correction 4 requires its own re-confirmation above.
+GOV-2 §2/§7 record; the advisory connector threads on PR #210/#214/#215 do not by
+themselves satisfy the gate — the committed records here do. Both cycles (the
+PR #212 cycle and correction 4's re-confirmation) stand.
 
 ---
 
-END OF PACKET v0.1 — DESIGN INCOMPLETE; REVIEW-CLEAN SUSPENDED (2026-08-05).
-The packet was REVIEW-CLEAN via PR #212 (merge `3061ca5`), and Dustin's ACCEPTED
-design-direction ruling still stands, but correction 4 (this amendment) adds the
-intra-runtime carrier seam + a 6th production file (`runtime/_types.py`) to close a
-material boundary omission the connector found on downstream PRD-288 (PR #214 P1),
-on Dustin's "fix the packet first (GOV-2)" ruling. Per GOV-2 §6/§7 the packet is
-DESIGN INCOMPLETE until an independent exact-corrected-head RE-CONFIRMATION of this
-amended head (§17); only then is REVIEW-CLEAN restored and Gate A on PRD-288
-unblocked. PR #210 remains the provisional-merge + ruling; the durable review-clean
-record was the PR #212 commit (now superseded by this pending re-confirmation).
+END OF PACKET v0.1 — REVIEW-CLEAN (RESTORED after correction 4 re-confirmation,
+2026-08-05; durable in `main` on the merge of PR #215). The packet was
+REVIEW-CLEAN via PR #212 (merge `3061ca5`), and Dustin's ACCEPTED design-direction
+ruling still stands; correction 4 (this amendment) added the intra-runtime carrier
+seam + a 6th production file (`runtime/_types.py`) to close a material boundary
+omission the connector found on downstream PRD-288 (PR #214 P1), on Dustin's "fix
+the packet first (GOV-2)" ruling. Per GOV-2 §6/§7 that briefly returned the packet
+to DESIGN INCOMPLETE; the independent exact-corrected-head RE-CONFIRMATION of the
+amended head `2e9d6a4` returned CLEAN (§17), restoring REVIEW-CLEAN. PR #210
+remains the provisional-merge + ruling; the durable review-clean record is the
+PR #212 cycle plus correction 4's re-confirmation. Gate A on PRD-288 follows PR
+#215's merge, the PRD-288 FILES realign (5→6), and the independent PRD review.
