@@ -101,6 +101,36 @@ def test_continuation_breakout_bypasses_orb_range() -> None:
     assert decision.policy_reason == "policy_allowed"
 
 
+def test_invalid_orb_provenance_fails_closed() -> None:
+    # PRD-271 / CB-07: an INVALID (untrustworthy-provenance) ORB fails closed
+    # with a reason distinct from orb_unavailable — a mismatched session must
+    # never allow a trade.
+    decision = _apply(orb_state=OrbPolicyState(price=100.0, invalid=True))
+    assert decision.status == BLOCK_TRADE
+    assert decision.policy_allowed is False
+    assert decision.policy_reason == "orb_invalid_session"
+    assert decision.size_multiplier == 0.0
+
+
+def test_invalid_orb_reason_is_distinct_from_unavailable() -> None:
+    invalid = _apply(orb_state=OrbPolicyState(price=100.0, invalid=True))
+    unavailable = _apply(orb_state=None)
+    assert invalid.policy_reason != unavailable.policy_reason
+    assert invalid.status == BLOCK_TRADE
+    assert unavailable.status == ALLOW_TRADE
+
+
+def test_continuation_bypass_overrides_invalid_orb() -> None:
+    # The continuation-breakout bypass is retained: a continuation entry is not
+    # newly blocked because the ORB is invalid/unavailable (the ORB value itself
+    # is withheld upstream, so nothing stale is rendered).
+    decision = _apply(
+        orb_state=OrbPolicyState(price=100.0, invalid=True, continuation_breakout=True)
+    )
+    assert decision.status == ALLOW_TRADE
+    assert decision.policy_reason == "policy_allowed"
+
+
 def test_size_multiplier_bands() -> None:
     assert size_multiplier_for_confidence(0.80) == 1.0
     assert size_multiplier_for_confidence(0.74) == 0.75

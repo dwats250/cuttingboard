@@ -345,6 +345,38 @@ def test_watch_zones_shape_validation():
         assert isinstance(zone["context"], str)
 
 
+def test_formed_orb_zones_present_baseline():
+    # Baseline: a FORMED ORB (the default _intraday fixture) renders ORB zones.
+    result = _build()
+    zone_types = {z["type"] for z in result["symbols"]["SPY"]["watch_zones"]}
+    assert {"ORB_HIGH", "ORB_LOW"} <= zone_types
+
+
+def test_stale_or_invalid_orb_does_not_leak_into_zones():
+    # PRD-271 / CB-07: when the ORB has no valid FORMED value (stale, invalid,
+    # unavailable), its high/low are None and must not render as market-map key
+    # levels — no ORB zone may leak onto the decision surface.
+    import dataclasses
+
+    from cuttingboard.watch import ORB_INVALID, OrbObservation
+
+    quotes, derived, structure, intraday = _full_inputs()
+    intraday = dict(intraday)
+    intraday["SPY"] = dataclasses.replace(
+        intraday["SPY"],
+        orb_high=None,
+        orb_low=None,
+        orb=OrbObservation(state=ORB_INVALID, reason="session_mismatch"),
+    )
+    result = _build(intraday_metrics=intraday)
+
+    zone_types = {z["type"] for z in result["symbols"]["SPY"]["watch_zones"]}
+    assert "ORB_HIGH" not in zone_types
+    assert "ORB_LOW" not in zone_types
+    # Non-ORB zones are unaffected.
+    assert "VWAP" in zone_types
+
+
 def test_fib_calculation_from_fixed_window():
     result = _build(bar_windows={"SPY": _bars()})
     fib = result["symbols"]["SPY"]["fib_levels"]

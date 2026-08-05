@@ -8,8 +8,9 @@ qualification. It never weakens existing trade qualification gates.
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass
-from datetime import datetime, time, timezone
+from datetime import date, datetime, time, timezone
 from statistics import mean
 from typing import Callable, Optional
 from zoneinfo import ZoneInfo
@@ -17,7 +18,7 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 from cuttingboard.derived import DerivedMetrics
-from cuttingboard.ingestion import fetch_intraday_bars, fetch_ohlcv
+from cuttingboard.ingestion import fetch_intraday_orb_bars, fetch_ohlcv
 from cuttingboard.regime import CHAOTIC, NEUTRAL, RISK_OFF, RISK_ON, RegimeState
 from cuttingboard.structure import BREAKOUT, CHOP, PULLBACK, StructureResult, TREND
 
@@ -28,6 +29,20 @@ EASTERN_TZ = ZoneInfo("America/New_York")
 N_RANGE = 5
 N_PRIOR = 20
 MAX_INTRADAY_BARS = 120
+
+# PRD-271 / CB-07: the opening range is the 09:30-09:35 ET formation window of a
+# single, current trading session — never a positional slice of a truncated
+# buffer. Bounds and the >=5-bar rule mirror the sibling intraday_state_engine
+# (_ORB_START/_ORB_END, _compute_orb) so both ORB producers select identically.
+ORB_WINDOW_START = time(9, 30)
+ORB_WINDOW_END = time(9, 35)
+ORB_MIN_BARS = 5
+
+ORB_PRE_OPEN = "PRE_OPEN"
+ORB_FORMING = "FORMING"
+ORB_FORMED = "FORMED"
+ORB_UNAVAILABLE = "UNAVAILABLE"
+ORB_INVALID = "INVALID"
 WATCH_SCORE_MIN = 60.0
 WATCH_OUTPUT_MAX = 10
 
@@ -60,11 +75,28 @@ class IntradayBar:
 
 
 @dataclass(frozen=True)
+class OrbObservation:
+    """Transient session-provenance carrier for the opening range (PRD-271).
+
+    Not persisted, not part of any durable schema. ``orb_high``/``orb_low`` are
+    populated ONLY when ``state == FORMED`` so a non-FORMED or untrustworthy ORB
+    can never be read as a price level; ``reason`` explains a non-FORMED state.
+    """
+
+    state: str
+    trading_date: Optional[date] = None
+    observed_at_utc: Optional[datetime] = None
+    orb_high: Optional[float] = None
+    orb_low: Optional[float] = None
+    reason: Optional[str] = None
+
+
+@dataclass(frozen=True)
 class IntradayMetrics:
     symbol: str
     bars: list[IntradayBar]
-    orb_high: float
-    orb_low: float
+    orb_high: Optional[float]
+    orb_low: Optional[float]
     vwap: float
     pdh: float
     pdl: float
@@ -77,6 +109,7 @@ class IntradayMetrics:
     lower_highs: bool
     first_expansion: bool
     wide_range_dominance: bool
+    orb: Optional[OrbObservation] = None
 
 
 @dataclass(frozen=True)
@@ -116,10 +149,17 @@ def get_session_phase(ts: datetime) -> Optional[str]:
 def compute_all_intraday_metrics(
     symbols: list[str],
     *,
-    intraday_fetcher: Callable[[str], Optional[pd.DataFrame]] = fetch_intraday_bars,
+    intraday_fetcher: Callable[[str], Optional[pd.DataFrame]] = fetch_intraday_orb_bars,
     daily_fetcher: Callable[[str], Optional[pd.DataFrame]] = fetch_ohlcv,
+    asof: Optional[datetime] = None,
 ) -> tuple[dict[str, IntradayMetrics], list[str]]:
-    """Compute intraday metrics for all symbols, ignoring per-symbol failures."""
+    """Compute intraday metrics for all symbols, ignoring per-symbol failures.
+
+    ``asof`` is the run's observation time; its ET date is the intended current
+    trading session used to validate ORB session provenance (PRD-271). When
+    None, session-mismatch validation is skipped (the ORB still derives its own
+    trading date from the formation bars).
+    """
     results: dict[str, IntradayMetrics] = {}
     ignored: list[str] = []
 
@@ -128,6 +168,7 @@ def compute_all_intraday_metrics(
             symbol,
             intraday_fetcher=intraday_fetcher,
             daily_fetcher=daily_fetcher,
+            asof=asof,
         )
         if metrics is None:
             ignored.append(symbol)
@@ -139,8 +180,9 @@ def compute_all_intraday_metrics(
 def compute_intraday_metrics(
     symbol: str,
     *,
-    intraday_fetcher: Callable[[str], Optional[pd.DataFrame]] = fetch_intraday_bars,
+    intraday_fetcher: Callable[[str], Optional[pd.DataFrame]] = fetch_intraday_orb_bars,
     daily_fetcher: Callable[[str], Optional[pd.DataFrame]] = fetch_ohlcv,
+    asof: Optional[datetime] = None,
 ) -> Optional[IntradayMetrics]:
     """Build IntradayMetrics from intraday and daily data for one symbol."""
     intraday_df = intraday_fetcher(symbol)
@@ -161,9 +203,10 @@ def compute_intraday_metrics(
     pdh = float(daily_df["High"].astype(float).iloc[-1])
     pdl = float(daily_df["Low"].astype(float).iloc[-1])
 
-    orb_slice = bars[:N_RANGE]
-    orb_high = max(bar.high for bar in orb_slice)
-    orb_low = min(bar.low for bar in orb_slice)
+    # PRD-271 / CB-07: opening range selected by session timestamp from the full
+    # retained frame (which preserves the 09:30-09:35 ET formation bars), not
+    # positionally from the tail-truncated rolling window.
+    orb = _session_orb(intraday_df, asof)
 
     range_last_n = max(bar.high for bar in bars[-N_RANGE:]) - min(bar.low for bar in bars[-N_RANGE:])
     prior_ranges = [(bar.high - bar.low) for bar in bars[-(N_RANGE + N_PRIOR):-N_RANGE]]
@@ -212,8 +255,9 @@ def compute_intraday_metrics(
     return IntradayMetrics(
         symbol=symbol,
         bars=bars,
-        orb_high=orb_high,
-        orb_low=orb_low,
+        orb_high=orb.orb_high,
+        orb_low=orb.orb_low,
+        orb=orb,
         vwap=vwap,
         pdh=pdh,
         pdl=pdl,
@@ -290,7 +334,10 @@ def _classify_symbol(
     near_ema9 = derived.ema9 is not None and _distance_pct(price, derived.ema9) < 0.005
     near_ema21 = derived.ema21 is not None and _distance_pct(price, derived.ema21) < 0.01
     pattern_signal = intraday.higher_lows or intraday.lower_highs
-    near_orb = min(_distance_pct(price, intraday.orb_high), _distance_pct(price, intraday.orb_low)) < 0.005
+    orb_levels = _orb_levels(intraday)
+    near_orb = orb_levels is not None and min(
+        _distance_pct(price, orb_levels[0]), _distance_pct(price, orb_levels[1])
+    ) < 0.005
     near_vwap = _distance_pct(price, intraday.vwap) < 0.005
     near_pdh_pdl = min(_distance_pct(price, intraday.pdh), _distance_pct(price, intraday.pdl)) < 0.005
     volume_signal = intraday.volume_ratio > 1.2
@@ -353,6 +400,123 @@ def _classify_symbol(
     )
 
 
+def _session_orb(df: pd.DataFrame, asof: Optional[datetime]) -> OrbObservation:
+    """Return the session-scoped opening-range observation with provenance.
+
+    The range is the 09:30-09:35 ET formation window of ONE trading date
+    (PRD-271 / CB-07). High/low are emitted only for a FORMED, current-session,
+    valid range; INVALID fails closed downstream, other non-FORMED states
+    abstain.
+    """
+    intended_date = asof.astimezone(EASTERN_TZ).date() if asof is not None else None
+
+    utc_index = pd.to_datetime(df.index, utc=True)
+    if len(utc_index) == 0:
+        return OrbObservation(state=ORB_PRE_OPEN, trading_date=intended_date, reason="no_bars")
+
+    observed_at_utc = utc_index[-1].to_pydatetime()
+    if not utc_index.is_monotonic_increasing:
+        return OrbObservation(
+            state=ORB_INVALID, observed_at_utc=observed_at_utc, reason="unordered_bars"
+        )
+
+    et_index = utc_index.tz_convert(EASTERN_TZ)
+    et_times = list(et_index.time)
+    et_dates = list(et_index.date)
+    trading_date = et_dates[-1]
+
+    # Session identity: a prior-session frame before the intended session's
+    # opening range can have formed (<=09:35 ET) is the benign pre-open
+    # condition — the scheduled live run fires pre-open at 13:00 UTC with
+    # prepost=False, so the latest frame is normally the prior day — and must
+    # abstain (PRE_OPEN), not block. Only a prior-session frame AFTER the range
+    # should have formed is a fail-closed stale session. Neither emits the
+    # prior-session ORB; INVALID additionally BLOCKS, PRE_OPEN keeps allow-flag.
+    if intended_date is not None and trading_date != intended_date:
+        if asof.astimezone(EASTERN_TZ).time() <= ORB_WINDOW_END:
+            return OrbObservation(
+                state=ORB_PRE_OPEN,
+                trading_date=intended_date,
+                observed_at_utc=observed_at_utc,
+                reason="pre_open_prior_session",
+            )
+        return OrbObservation(
+            state=ORB_INVALID,
+            trading_date=trading_date,
+            observed_at_utc=observed_at_utc,
+            reason="session_mismatch",
+        )
+
+    in_window = [ORB_WINDOW_START <= t <= ORB_WINDOW_END for t in et_times]
+    window_dates = {d for d, keep in zip(et_dates, in_window) if keep}
+    # Formation bars spanning more than one ET date are untrustworthy.
+    if len(window_dates) > 1:
+        return OrbObservation(
+            state=ORB_INVALID,
+            trading_date=trading_date,
+            observed_at_utc=observed_at_utc,
+            reason="mixed_session",
+        )
+
+    formation_flags = [keep and d == trading_date for keep, d in zip(in_window, et_dates)]
+    n = sum(formation_flags)
+    last_et_time = et_times[-1]
+    if n == 0:
+        if last_et_time < ORB_WINDOW_START:
+            return OrbObservation(
+                state=ORB_PRE_OPEN, trading_date=trading_date, observed_at_utc=observed_at_utc
+            )
+        return OrbObservation(
+            state=ORB_UNAVAILABLE,
+            trading_date=trading_date,
+            observed_at_utc=observed_at_utc,
+            reason="formation_bars_absent",
+        )
+    if n < ORB_MIN_BARS:
+        if last_et_time <= ORB_WINDOW_END:
+            return OrbObservation(
+                state=ORB_FORMING, trading_date=trading_date, observed_at_utc=observed_at_utc
+            )
+        return OrbObservation(
+            state=ORB_UNAVAILABLE,
+            trading_date=trading_date,
+            observed_at_utc=observed_at_utc,
+            reason="formation_incomplete",
+        )
+
+    highs = [float(h) for h, keep in zip(df["High"].tolist(), formation_flags) if keep]
+    lows = [float(low) for low, keep in zip(df["Low"].tolist(), formation_flags) if keep]
+    # Validate EACH formation bar (finite, high >= low > 0) before aggregating:
+    # aggregating first would let one malformed bar (high < low) hide behind
+    # another bar's wider high/low and still yield orb_high >= orb_low (FORMED).
+    if any(
+        not (math.isfinite(h) and math.isfinite(low)) or h < low or low <= 0
+        for h, low in zip(highs, lows)
+    ):
+        return OrbObservation(
+            state=ORB_INVALID,
+            trading_date=trading_date,
+            observed_at_utc=observed_at_utc,
+            reason="impossible_bounds",
+        )
+    orb_high = max(highs)
+    orb_low = min(lows)
+    return OrbObservation(
+        state=ORB_FORMED,
+        trading_date=trading_date,
+        observed_at_utc=observed_at_utc,
+        orb_high=orb_high,
+        orb_low=orb_low,
+    )
+
+
+def _orb_levels(intraday: IntradayMetrics) -> Optional[tuple[float, float]]:
+    """Return (orb_high, orb_low) only when a valid FORMED range is present."""
+    if intraday.orb_high is None or intraday.orb_low is None:
+        return None
+    return (intraday.orb_high, intraday.orb_low)
+
+
 def _bars_from_df(df: pd.DataFrame) -> list[IntradayBar]:
     frame = df.tail(MAX_INTRADAY_BARS).copy()
     frame.index = pd.to_datetime(frame.index, utc=True)
@@ -386,13 +550,16 @@ def _compression_score(compression_ratio: float) -> float:
 
 
 def _proximity_score(price: float, intraday: IntradayMetrics) -> float:
-    distance_pct = min(
-        _distance_pct(price, intraday.orb_high),
-        _distance_pct(price, intraday.orb_low),
+    distances = [
         _distance_pct(price, intraday.vwap),
         _distance_pct(price, intraday.pdh),
         _distance_pct(price, intraday.pdl),
-    )
+    ]
+    orb_levels = _orb_levels(intraday)
+    if orb_levels is not None:
+        distances.append(_distance_pct(price, orb_levels[0]))
+        distances.append(_distance_pct(price, orb_levels[1]))
+    distance_pct = min(distances)
     return max(0.0, min(20.0, 20.0 * (1.0 - (distance_pct / 0.01))))
 
 
@@ -410,11 +577,15 @@ def _momentum_score(volume_ratio: float, first_expansion: bool) -> float:
 
 def _nearest_level(price: float, intraday: IntradayMetrics) -> str:
     distances = {
-        "ORB": min(_distance_pct(price, intraday.orb_high), _distance_pct(price, intraday.orb_low)),
         "VWAP": _distance_pct(price, intraday.vwap),
         "PDH": _distance_pct(price, intraday.pdh),
         "PDL": _distance_pct(price, intraday.pdl),
     }
+    orb_levels = _orb_levels(intraday)
+    if orb_levels is not None:
+        distances["ORB"] = min(
+            _distance_pct(price, orb_levels[0]), _distance_pct(price, orb_levels[1])
+        )
     return min(distances.items(), key=lambda item: (item[1], item[0]))[0]
 
 
@@ -427,7 +598,10 @@ def _compression_state(intraday: IntradayMetrics) -> str:
 
 
 def _breakout_confirmed(price: float, intraday: IntradayMetrics) -> bool:
-    return price > intraday.orb_high or price < intraday.orb_low
+    orb_levels = _orb_levels(intraday)
+    if orb_levels is None:
+        return False
+    return price > orb_levels[0] or price < orb_levels[1]
 
 
 def _infer_bias(price: float, derived: DerivedMetrics, intraday: IntradayMetrics) -> str:
@@ -439,7 +613,11 @@ def _infer_bias(price: float, derived: DerivedMetrics, intraday: IntradayMetrics
         return "SHORT"
     if derived.ema_aligned_bull:
         return "LONG"
-    return "LONG" if _distance_pct(price, intraday.orb_high) <= _distance_pct(price, intraday.orb_low) else "SHORT"
+    orb_levels = _orb_levels(intraday)
+    if orb_levels is None:
+        # No valid opening range to break; fall back to VWAP position.
+        return "LONG" if price >= intraday.vwap else "SHORT"
+    return "LONG" if _distance_pct(price, orb_levels[0]) <= _distance_pct(price, orb_levels[1]) else "SHORT"
 
 
 def regime_bias(regime: Optional[RegimeState]) -> str:
