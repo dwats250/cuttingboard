@@ -1,16 +1,32 @@
 # NS-2A / NS-2C — Fixed SPY Observation & Session VWAP — MATERIAL PACKET (v0.1)
 
-STATUS: REVIEW-CLEAN — committed to `main` via PR #212
-(merge `3061ca53493649e7e4940c43f78016ba5f1d492c`, 2026-08-05). This is the
+STATUS: DESIGN INCOMPLETE — REVIEW-CLEAN SUSPENDED (2026-08-05). This is the
 upstream GOV-2 MATERIAL packet for NS-2A (fixed SPY observation) and NS-2C
-(session VWAP). It still carries no implementation authority. The GOV-2 §2/§7
-packet-review cycle is COMPLETE and is recorded durably in §17: an independent
-Codex packet review (of `16c2e40`), one consolidated author correction
-(correction 2 → `02202f7`, the single GOV-2 §2 correction cycle), then
-independent exact-corrected-head confirmation — a bounded GOV-2 §6 local fix
-(correction 3 → `1308871`) followed by Codex's clean confirmation of the exact
-final head `130887125bcac8952ea812d6e2dbcbd319515dcb` ("Didn't find any major
-issues").
+(session VWAP). It still carries no implementation authority.
+
+The packet was committed REVIEW-CLEAN to `main` via PR #212
+(merge `3061ca53493649e7e4940c43f78016ba5f1d492c`), but a connector finding on the
+downstream Stage-0 PRD-288 (PR #214, **P1**) revealed a MATERIAL BOUNDARY
+OMISSION: the v0.1 transient-carrier seam never specified how the `SpyObservation`
+travels from where it is built (inside the daily `_run_pipeline`) to the daily
+`build_report_payload` call — which runs AFTER `_run_pipeline` returns, in
+`_write_payload_artifacts(pipeline.contract)`, with only `contract` in scope,
+while the return carrier `PipelineResult` (`runtime/_types.py`) has no observation
+field, a contract key is forbidden (§4.3), and recomputing the ORB is forbidden
+(§2.3). Per GOV-2 §6/§7 that omission returns the packet to **DESIGN INCOMPLETE**.
+It is corrected below by **correction 4** (the observation rides a new optional
+`PipelineResult.spy_observation` field in `cuttingboard/runtime/_types.py` — a 6th
+production file; §2.1/§2.2/§11/§12/§14), on Dustin's 2026-08-05 "fix the packet
+first (GOV-2)" ruling. The packet is **NOT REVIEW-CLEAN again** until an
+independent exact-corrected-head re-confirmation of this amended head completes
+(§17 EXACT-CORRECTED-HEAD RE-CONFIRMATION — PENDING).
+
+The prior GOV-2 §2/§7 review cycle remains recorded in §17: an independent Codex
+packet review (of `16c2e40`), one consolidated author correction
+(correction 2 → `02202f7`), then independent exact-corrected-head confirmation —
+a bounded GOV-2 §6 local fix (correction 3 → `1308871`) followed by Codex's clean
+confirmation of `130887125bcac8952ea812d6e2dbcbd319515dcb`. That cycle stands;
+correction 4 is a newly-discovered material boundary, not a re-litigation of it.
 
 CHRONOLOGY / AUTHORITY (binding — the two merges are distinct):
 - PR #210 / merge `70700f7e4c2ee1d4ca40db5768c6c09a7f73e1a2` carried the
@@ -29,13 +45,17 @@ review, tied to PR #210) is DISTINCT from the durable CLOSEOUT (the committed
 review-clean record, PR #212). This later corrective edit fixes only that
 chronology/authority framing; it makes no new design decision.
 
-NEXT AUTHORIZED PHASE: Stage-0 PRD drafting — NOT YET STARTED — followed by
-independent PRD review and Dustin's Gate A. No implementation, PRD execution, or
+NEXT PHASE (blocked pending re-confirmation): Stage-0 PRD drafting has BEGUN —
+PRD-288 (PR #214) — but Dustin's Gate A on that PRD is BLOCKED until this amended
+packet is re-confirmed REVIEW-CLEAN (§17). No implementation, PRD execution, or
 contract/persistence change is authorized by this packet. Scope is unchanged from
 the reviewed design: the daily `_run_pipeline` only; the hourly publish path
 remains OUT OF SCOPE and deferred (§1 SCOPE, §9, §14). The PR #212 closeout and
-this corrective edit modify no design element of the packet — only its status
-header, the §0 order table, the §17 review records, and the closing line.
+the PR #213 chronology edit modified no design element; **correction 4 (this
+amendment) DOES amend design** — it adds the intra-runtime carrier seam
+(§2.1/§2.2) and a 6th production file `runtime/_types.py` (§11/§12/§14) — which is
+exactly why it reopens the packet to DESIGN INCOMPLETE and requires an independent
+exact-corrected-head re-confirmation before REVIEW-CLEAN is restored.
 
 DERIVED AT: `main` @ `4902b1fd27df541ef432ac4511520919ff7045aa` (post-PR #209 /
 PRD-271 merge). Working tree clean at derivation.
@@ -95,6 +115,30 @@ argument after it — `build_report_payload(contract, fixture_mode=False, *,
 spy_observation=None)` (§2.2, §4.2, §11). No other change. A narrowly scoped
 exact-head confirmation of the new head is then requested.
 
+CORRECTION 4 (2026-08-05, Dustin-authorized "fix the packet first (GOV-2)" ruling
+— a NEWLY DISCOVERED MATERIAL BOUNDARY OMISSION, GOV-2 §6/§7): the connector's
+review of the downstream Stage-0 PRD-288 (PR #214) raised a P1 — the v0.1 seam
+specified the `build_report_payload` parameter but never the INTRA-RUNTIME carrier
+that moves the `SpyObservation` from `_run_pipeline` (where the ORB is built) to
+the daily `build_report_payload` call (which runs after the pipeline returns, in
+`_write_payload_artifacts(pipeline.contract)`, with only `contract` in scope).
+Because `PipelineResult` (`runtime/_types.py`) had no observation field, a
+contract key is forbidden (§4.3), and ORB recompute is forbidden (§2.3), the
+5-file ceiling was not realizable. Corrected: the observation rides a NEW optional
+`PipelineResult.spy_observation` field in `cuttingboard/runtime/_types.py` (a 6th
+production file), threaded `_run_pipeline` → `execute_run` →
+`_write_payload_artifacts` → `build_report_payload` (§2.1, §2.2, §11, §12, §14).
+This is a MATERIAL boundary (a new production carrier surface), so — unlike
+correction 3 — it returns the packet to DESIGN INCOMPLETE and requires an
+independent exact-corrected-head RE-CONFIRMATION of this amended head before
+REVIEW-CLEAN is restored and before Gate A on PRD-288 (§17). Every design
+invariant is preserved (transient, no contract key, no persistence, one ORB
+truth, additive param, hourly untouched); the only surface change is +1 carrier
+file and +~5 LOC. Disposition for the PR #214 thread: ACTIONED by this amendment
+(cite this commit); the PRD-288 FILES ceiling is realigned to 6 after this packet
+is re-confirmed. Next step: independent Codex exact-corrected-head re-confirmation
+of THIS amended head (GOV-2 §7).
+
 North Star lineage: NS-2A + NS-2C (ledger
 `docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md:132,134`), unblocked
 by PRD-271 / NS-2B landing (PR #209). Evidence seed: `audits/stage0-recon-2026-07-20/`
@@ -113,22 +157,27 @@ materiality check at intake ............................. DONE (MATERIAL; §15)
 -> Codex exact-corrected-head confirmation ............. DONE (event; bounded §6 local fix @ 1308871; Codex clean confirmation of 130887125bca; §17)
 -> Dustin design-direction ruling ..................... DONE (ACCEPTED on the confirmed-clean review; tied to the PR #210 merge; daily-only, hourly deferred)
 -> PR #210 merged (packet landed PROVISIONAL) ......... DONE (merge 70700f7; §17 PENDING in that tree — NOT the review-clean artifact)
--> packet REVIEW-CLEAN in repo history ................ DONE (committed via PR #212, merge 3061ca5; durable §17 record — THIS is the review-clean artifact)
--> PRD drafting ....................................... NEXT AUTHORIZED PHASE (Stage-0; not yet started — do not draft here)
+-> packet REVIEW-CLEAN in repo history ................ WAS DONE (PR #212, merge 3061ca5) — then SUSPENDED (see next rows)
+-> material boundary omission found (downstream) ...... DONE (connector P1 on PRD-288 PR #214, 2026-08-05: intra-runtime carrier seam)
+-> correction 4 (add PipelineResult carrier; 6th file) DONE (this amendment; §2.1/§2.2/§11/§12/§14; GOV-2 §6/§7 → DESIGN INCOMPLETE)
+-> independent exact-corrected-head RE-CONFIRMATION ... PENDING (of THIS amended head; restores REVIEW-CLEAN; §17)
+-> Stage-0 PRD drafting ............................... BEGUN (PRD-288, PR #214) — FILES realigned to 6 after re-confirmation
 -> independent PRD review .............................. later
--> Dustin Gate A ...................................... later
+-> Dustin Gate A (on PRD-288) ......................... BLOCKED until this packet is re-confirmed REVIEW-CLEAN
 -> implementation ..................................... later
 ```
 
-The packet is REVIEW-CLEAN in repository history as committed through PR #212
-(merge `3061ca5`) — the commit that populated the durable §17 record and flipped
-the status. Dustin's design-direction ruling (ACCEPTED) was issued on the
-confirmed-clean review and is tied to the PR #210 merge, which carried the packet
-in PROVISIONAL form; PR #210 is not the review-clean artifact. Stage-0 PRD
-drafting is the next authorized phase. No production implementation, PRD
-execution, branch-for-implementation, or contract/persistence change may begin
-until the PRD is drafted and independently reviewed, and Gate A is issued
-(GOV-2 §4).
+The packet WAS REVIEW-CLEAN in repository history as committed through PR #212
+(merge `3061ca5`), and Dustin's design-direction ruling (ACCEPTED) — issued on
+the confirmed-clean review, tied to the PR #210 merge — still stands. That
+REVIEW-CLEAN status is now **SUSPENDED**: correction 4 (this amendment) adds the
+intra-runtime carrier seam and a 6th production file to close a material boundary
+omission the connector found on downstream PRD-288 (PR #214). Per GOV-2 §6/§7 the
+packet is **DESIGN INCOMPLETE** until an independent exact-corrected-head
+re-confirmation of this amended head completes (§17); only then is REVIEW-CLEAN
+restored. No production implementation, PRD execution, branch-for-implementation,
+or contract/persistence change may begin, and Gate A on PRD-288 stays BLOCKED,
+until that re-confirmation lands (GOV-2 §4).
 
 ---
 
@@ -189,6 +238,15 @@ recommendation, no gate; it changes no execution decision (§10).
   `trading_date`, `observed_at_utc`, `orb_high`, `orb_low`, `reason`. Produced by
   `_session_orb` (`watch.py:403`). ORB high/low populated **only** when
   `state == FORMED`.
+- **Daily payload build path (current state — the seam v0.1 omitted).** The daily
+  payload is written AFTER `_run_pipeline` returns: `execute_run`
+  (`runtime/__init__.py:287`) calls `_write_payload_artifacts(pipeline.contract)`
+  (`:2264`), which calls `build_report_payload(contract, ...)` (`:2271`).
+  `_run_pipeline` returns `PipelineResult` (`cuttingboard/runtime/_types.py:55`),
+  which carries `contract` and the decision surfaces but NO intraday-observation
+  field. So the transient `intraday_metrics["SPY"].orb`, built inside
+  `_run_pipeline` (`:1035`), is not reachable at the daily `build_report_payload`
+  call site. (See §2.2 correction 4 for the added carrier.)
 
 ### 2.2 Proposed seam (additive; nothing above is modified)
 
@@ -232,6 +290,23 @@ build_spy_observation(...)   -->   SpyObservation (frozen)   -->   payload.secti
   freshness/timestamp helpers and the VWAP-relation display map. The new
   parameter is additive and default-`None`, so no existing caller changes
   behavior.
+- **Intra-runtime carrier (PR #214 P1 — correction 4).** The parameter above says
+  HOW `build_report_payload` receives the observation; this bullet says HOW the
+  observation reaches that call, which the v0.1 packet left unspecified. The daily
+  payload is built AFTER `_run_pipeline` returns (§2.1): `execute_run`
+  (`runtime/__init__.py:287`) → `_write_payload_artifacts(pipeline.contract)`
+  (`:2264`) → `build_report_payload` (`:2271`); the return carrier `PipelineResult`
+  (`cuttingboard/runtime/_types.py:55`) has NO observation field, §4.3 forbids a
+  contract key, and §2.3 forbids recomputing the ORB in `execute_run`. Therefore
+  the transient `SpyObservation` is carried on a NEW optional field
+  **`PipelineResult.spy_observation`** (`cuttingboard/runtime/_types.py` — a 6th
+  production file, see §11/§14): `_run_pipeline` sets it on both the non-halt and
+  daily-halt returns; `execute_run` forwards `pipeline.spy_observation` into
+  `_write_payload_artifacts`, which forwards it into `build_report_payload`. The
+  field is optional and defaults to `None`, so every non-daily caller (hourly
+  writer, error path) is unchanged. This preserves every invariant (transient, no
+  contract key, no persistence, one ORB truth, additive param, hourly untouched);
+  it adds exactly one carrier file. Added by correction 4 under GOV-2 §6/§7.
 - **Two SPY intraday fetches per run (acknowledged coupling, F4).** The projected
   `OrbObservation` is produced by the existing watch path
   (`compute_all_intraday_metrics → fetch_intraday_orb_bars`,
@@ -560,13 +635,14 @@ evidence.
 
 ## 11. Exact likely files (ESTIMATED SURFACE — NOT YET APPROVED)
 
-Production:
+Production (SIX files after correction 4 — the added carrier file is `runtime/_types.py`):
 
 | Op | File | Purpose |
 |---|---|---|
 | A | `cuttingboard/spy_observation.py` (new) | `SpyObservation` carrier + `build_spy_observation` + session-VWAP + freshness state machine |
 | M | `cuttingboard/ingestion.py` | new opt-in bounded full-session SPY fetch path; default contiguous behavior preserved |
-| M | `cuttingboard/runtime/__init__.py` | build & thread `SpyObservation` on the **daily** `_run_pipeline` non-halt AND halt branches, and pass it into the daily `build_report_payload` call. The hourly path (`_execute_notify_run`, `_write_hourly_artifacts`) is **NOT** modified — it keeps passing no observation (hourly scope-out, §1). |
+| M | `cuttingboard/runtime/__init__.py` | build & thread `SpyObservation` on the **daily** `_run_pipeline` non-halt AND halt branches; set it on the returned `PipelineResult`; `execute_run` forwards `pipeline.spy_observation` into `_write_payload_artifacts` → the daily `build_report_payload` call. The hourly path (`_execute_notify_run`, `_write_hourly_artifacts`) is **NOT** modified — it keeps passing no observation (hourly scope-out, §1). |
+| M | `cuttingboard/runtime/_types.py` | **(correction 4, PR #214 P1)** add ONE optional field `spy_observation: SpyObservation \| None = None` to the frozen `PipelineResult` dataclass — the intra-runtime carrier from `_run_pipeline` to the daily payload writer (§2.1/§2.2). Additive, defaults to `None`; no existing field or reader changes. |
 | M | `cuttingboard/delivery/payload.py` | add a keyword-only `spy_observation` parameter to `build_report_payload` **after the existing `fixture_mode`** (retain `fixture_mode`); project `sections["spy_observation"]` only when it is provided |
 | M | `cuttingboard/delivery/dashboard_renderer.py` | render one compact SPY card when the section is present; omit it when absent (hourly) |
 
@@ -601,12 +677,14 @@ it is not a reactive amendment.
 
 ## 12. Estimated production LOC ceiling
 
-**ESTIMATED SURFACE — NOT YET APPROVED: ≤ 190 net production LOC** across the five
-production files. Indicative split: `spy_observation.py` ~90; `ingestion.py`
-full-session path ~25; `runtime/__init__.py` bridge (non-halt + halt) ~30;
-`payload.py` projection ~15; `dashboard_renderer.py` card ~30. Test LOC is not
-counted against this ceiling. A design that widens the fetch boundary, adds
-persistence, or pushes into a contract key exceeds this estimate and is a
+**ESTIMATED SURFACE — NOT YET APPROVED: ≤ 195 net production LOC** across the six
+production files (raised from ≤190/five by correction 4 for the carrier field).
+Indicative split: `spy_observation.py` ~90; `ingestion.py` full-session path ~25;
+`runtime/__init__.py` bridge (non-halt + halt + `PipelineResult` set/forward) ~32;
+`runtime/_types.py` carrier field ~3; `payload.py` projection ~15;
+`dashboard_renderer.py` card ~30. Test LOC is not counted against this ceiling. A
+design that widens the fetch boundary, adds persistence, pushes into a contract
+key, or requires a SEVENTH production file exceeds this estimate and is a
 stop-and-amend event (§14).
 
 ---
@@ -692,9 +770,12 @@ A guard whose mutation leaves all tests green is not a guard and does not merge.
   `hourly_alert.yml`) → out of scope for this slice (§1 SCOPE); it is a separate
   follow-up proposal with its own producer/carrier/artifact inventory, FILES, and
   materiality re-run. Do not add it under this packet.
-- FILES or LOC estimate needing to grow past §11/§12 → GOV-2 §5 stop-and-renew:
-  amend the PRD, obtain fresh-context independent review of the exact amended
-  revision, and Dustin's amended Gate A.
+- A SEVENTH production file, or FILES / LOC growth past the §11/§12 six-file /
+  ≤195-LOC ceiling → GOV-2 §5 stop-and-renew: amend the PRD, obtain fresh-context
+  independent review of the exact amended revision, and Dustin's amended Gate A.
+  (The 6th file `runtime/_types.py`, the intra-runtime carrier, is authorized by
+  correction 4 under Dustin's 2026-08-05 "fix the packet first (GOV-2)" ruling —
+  it is no longer a stop-and-amend trigger; a 7th file is.)
 
 ---
 
@@ -758,7 +839,7 @@ not fixed by this read-only packet.
 
 ---
 
-## 17. Packet review records (GOV-2 §2, §7 — COMPLETE; packet REVIEW-CLEAN)
+## 17. Packet review records (GOV-2 §2, §7 — prior cycle COMPLETE; RE-CONFIRMATION PENDING after correction 4)
 
 ### INITIAL PACKET REVIEW — COMPLETE
 - Event type: `INITIAL PACKET REVIEW`
@@ -834,19 +915,54 @@ not fixed by this read-only packet.
   corrected in a small follow-up doc edit after PR #212 merged, resolving Codex's
   PR #212 P2; the review evidence, findings, corrections, scope, and design are
   unchanged.)
-- NEXT AUTHORIZED PHASE: Stage-0 PRD drafting (not yet started), then independent
-  PRD review and Dustin's Gate A.
+- NEXT PHASE: Stage-0 PRD drafting has begun (PRD-288, PR #214); Gate A is BLOCKED
+  pending the correction-4 re-confirmation below.
+
+### CORRECTION 4 — MATERIAL BOUNDARY OMISSION (found downstream) — ACTIONED
+- Event type: `MATERIAL BOUNDARY OMISSION + CORRECTION` (GOV-2 §6/§7).
+- Source: independent Codex review of downstream Stage-0 PRD-288 (PR #214),
+  finding **P1** ("Add the missing transient carrier seam to FILES"),
+  2026-08-05.
+- Finding (valid): the v0.1 seam never specified the intra-runtime carrier from
+  `_run_pipeline` to the daily `build_report_payload` call
+  (`_write_payload_artifacts(pipeline.contract)`), and `PipelineResult`
+  (`runtime/_types.py`) had no observation field — so the 5-file ceiling was not
+  realizable without a contract key (forbidden §4.3) or an ORB recompute
+  (forbidden §2.3).
+- Disposition: Dustin ruled "fix the packet first (GOV-2)" (2026-08-05).
+  Correction 4 adds the optional `PipelineResult.spy_observation` field in
+  `cuttingboard/runtime/_types.py` (6th production file) as the carrier, threaded
+  `_run_pipeline` → `execute_run` → `_write_payload_artifacts` →
+  `build_report_payload` (§2.1/§2.2/§11/§12/§14). All design invariants preserved.
+- GOV-2 classification: MATERIAL boundary → the packet returns to DESIGN
+  INCOMPLETE; REVIEW-CLEAN is SUSPENDED until re-confirmation.
+
+### EXACT-CORRECTED-HEAD RE-CONFIRMATION (of correction 4) — PENDING
+- Event type: `EXACT-CORRECTED-HEAD CONFIRMATION` (GOV-2 §7).
+- Reviewer identity / capability role: independent Codex confirmation
+  (`chatgpt-codex-connector[bot]`), requested on the correction-4 amendment PR.
+- Corrected head SHA: _pending_ (this amendment's merged head).
+- Scope: confirm ONLY that correction 4's carrier seam resolves the PR #214 P1 and
+  introduces no new material boundary — not a fresh broad review.
+- Review date / Verdict / independence evidence: _pending_.
+- Until this record is completed with an independent SHA-pinned clean
+  confirmation, the packet is NOT REVIEW-CLEAN and Gate A on PRD-288 is BLOCKED.
 
 A corrected head without independent SHA-pinned confirmation is not
 review-clean (GOV-2 §2). This §17 block is the durable, packet-local, SHA-pinned
-GOV-2 §2/§7 record; the advisory connector threads on PR #210 do not by
-themselves satisfy the gate — this committed record (via PR #212) does.
+GOV-2 §2/§7 record; the advisory connector threads on PR #210/#214 do not by
+themselves satisfy the gate — the committed records here do. The prior cycle's
+records (PR #212) stand; correction 4 requires its own re-confirmation above.
 
 ---
 
-END OF PACKET v0.1 — REVIEW-CLEAN in repository history, committed via PR #212
-(merge `3061ca5`, 2026-08-05). The GOV-2 §2/§7 packet-review cycle is complete
-and durably recorded in §17. Dustin's ACCEPTED design-direction ruling is tied to
-the PR #210 merge (`70700f7`), which carried the packet in PROVISIONAL form — so
-PR #210 is not the review-clean artifact; the durable review-clean record is the
-PR #212 commit. NEXT AUTHORIZED PHASE: Stage-0 PRD drafting (not yet started).
+END OF PACKET v0.1 — DESIGN INCOMPLETE; REVIEW-CLEAN SUSPENDED (2026-08-05).
+The packet was REVIEW-CLEAN via PR #212 (merge `3061ca5`), and Dustin's ACCEPTED
+design-direction ruling still stands, but correction 4 (this amendment) adds the
+intra-runtime carrier seam + a 6th production file (`runtime/_types.py`) to close a
+material boundary omission the connector found on downstream PRD-288 (PR #214 P1),
+on Dustin's "fix the packet first (GOV-2)" ruling. Per GOV-2 §6/§7 the packet is
+DESIGN INCOMPLETE until an independent exact-corrected-head RE-CONFIRMATION of this
+amended head (§17); only then is REVIEW-CLEAN restored and Gate A on PRD-288
+unblocked. PR #210 remains the provisional-merge + ruling; the durable review-clean
+record was the PR #212 commit (now superseded by this pending re-confirmation).
