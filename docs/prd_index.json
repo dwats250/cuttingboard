@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 287,
-  "next_prd": 288,
+  "latest_complete": 288,
+  "next_prd": 289,
   "entries": [
     {
       "number": 56,
@@ -1398,8 +1398,8 @@
     {
       "number": 288,
       "title": "NS-2A/NS-2C fixed SPY observation + session VWAP: one transient read-only SPY card on the daily dashboard (daily-only; hourly out of scope)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "68cca7607bb01426abd5b5bd6f78be61b3559973"
     }
   ]
 }
