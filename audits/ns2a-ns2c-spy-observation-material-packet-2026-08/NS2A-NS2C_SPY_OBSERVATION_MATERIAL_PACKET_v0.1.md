@@ -54,6 +54,17 @@ not by rebuild. Next step: independent Codex exact-corrected-head confirmation o
 THIS head (GOV-2 §2 step 5, §7). Findings disposition for PR #210 threads: all
 ACTIONED by this correction (cite this commit).
 
+LOCAL CORRECTION 3 (2026-08-05, Dustin-authorized, GOV-2 §6 local fix — NOT a new
+substantive cycle): the exact-corrected-head confirmation of `02202f7` confirmed
+all four prior findings resolved and raised one NEW local P2 — the illustrative
+`build_report_payload` signature dropped the existing `fixture_mode` parameter.
+This is a local signature/wording accuracy fix, not a material boundary omission,
+so it does not return the packet to DESIGN INCOMPLETE (GOV-2 §7). Corrected: the
+signature now retains `fixture_mode` and adds `spy_observation` as a keyword-only
+argument after it — `build_report_payload(contract, fixture_mode=False, *,
+spy_observation=None)` (§2.2, §4.2, §11). No other change. A narrowly scoped
+exact-head confirmation of the new head is then requested.
+
 North Star lineage: NS-2A + NS-2C (ledger
 `docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md:132,134`), unblocked
 by PRD-271 / NS-2B landing (PR #209). Evidence seed: `audits/stage0-recon-2026-07-20/`
@@ -166,11 +177,15 @@ build_spy_observation(...)   -->   SpyObservation (frozen)   -->   payload.secti
   passed to the payload projection as an explicit argument (below). The hourly
   path does not build or pass it (§1 SCOPE).
 - **Consumer / carrier→payload threading (Codex P1, resolved):**
-  `delivery/payload.py::build_report_payload` currently takes only a
-  `PipelineContract` (`payload.py:24`). Because §4.3 forbids putting the
-  observation on the contract, the carrier reaches the projection via a **new
-  optional parameter** — `build_report_payload(contract, *, spy_observation:
-  SpyObservation | None = None)`. The daily writer passes the built observation;
+  `delivery/payload.py::build_report_payload` currently takes a `PipelineContract`
+  plus a `fixture_mode` flag (`payload.py:24`:
+  `build_report_payload(contract, fixture_mode=False)`). Because §4.3 forbids
+  putting the observation on the contract, the carrier reaches the projection via
+  a **new keyword-only parameter added AFTER the existing ones (retaining
+  `fixture_mode`)** — `build_report_payload(contract, fixture_mode=False, *,
+  spy_observation: SpyObservation | None = None)`. Existing callers (which pass
+  `fixture_mode=_fixture_mode`) are unaffected; the daily writer additionally
+  passes the built observation;
   the hourly writer (`_write_hourly_artifacts`, `runtime/__init__.py:2122`) and
   any other caller pass nothing → `None` → no `spy_observation` section → card
   omitted (this is exactly the hourly scope-out, achieved by construction, not a
@@ -273,7 +288,7 @@ Invariants (mirroring PRD-271's "high/low only when FORMED"):
 
 ### 4.2 Payload projection
 
-`build_report_payload(contract, *, spy_observation=None)` adds
+`build_report_payload(contract, fixture_mode=False, *, spy_observation=None)` adds
 `sections["spy_observation"]` = a plain dict mirror of the fields above
 (dates/timestamps ISO-stringified) **only when the `spy_observation` argument is
 provided** (daily path). When the argument is `None` (hourly path, §1 SCOPE, and
@@ -515,7 +530,7 @@ Production:
 | A | `cuttingboard/spy_observation.py` (new) | `SpyObservation` carrier + `build_spy_observation` + session-VWAP + freshness state machine |
 | M | `cuttingboard/ingestion.py` | new opt-in bounded full-session SPY fetch path; default contiguous behavior preserved |
 | M | `cuttingboard/runtime/__init__.py` | build & thread `SpyObservation` on the **daily** `_run_pipeline` non-halt AND halt branches, and pass it into the daily `build_report_payload` call. The hourly path (`_execute_notify_run`, `_write_hourly_artifacts`) is **NOT** modified — it keeps passing no observation (hourly scope-out, §1). |
-| M | `cuttingboard/delivery/payload.py` | add optional `spy_observation` parameter to `build_report_payload`; project `sections["spy_observation"]` only when it is provided |
+| M | `cuttingboard/delivery/payload.py` | add a keyword-only `spy_observation` parameter to `build_report_payload` **after the existing `fixture_mode`** (retain `fixture_mode`); project `sections["spy_observation"]` only when it is provided |
 | M | `cuttingboard/delivery/dashboard_renderer.py` | render one compact SPY card when the section is present; omit it when absent (hourly) |
 
 Tests (edited/added):
