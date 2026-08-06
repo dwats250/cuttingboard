@@ -1,12 +1,11 @@
 # CuttingBoard Product-Delivery Operating Rule
 
-Status: RATIFIED UPON DUSTIN'S MERGE OF THE PULL REQUEST THAT LANDS THIS
-DOCUMENT
+Status: RATIFIED UPON DUSTIN'S MERGE OF PR #220
 
 This document records the operating rule Dustin authored for the session of
 2026-08-06. It is an owner-authored mandate, recorded verbatim; the persisting
-agent is the scribe, not the author. Dustin's merge of the landing pull request
-is the ratifying action. Before that merge this document is a held draft and is
+agent is the scribe, not the author. Dustin's merge of PR #220 is the ratifying
+action. Before that merge this document is a held draft and is
 not binding; no agent may treat this status line as advance ratification.
 
 It complements the operating model in `CLAUDE.md` and the material-review order
