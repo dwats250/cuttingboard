@@ -163,8 +163,13 @@ handed as a **separate kwarg** (not via the contract dict) to
 `_write_payload_artifacts(pipeline.contract, spy_observation=...)` (`:288`,
 signature `:2282`, forward `:2289`) → `build_report_payload(..., spy_observation=
 None)` (`delivery/payload.py:24-28`) → projected to `sections["spy_observation"]`
-on the daily path only (`payload.py:140-141`, `_project_spy_observation`
+whenever the kwarg is non-`None` (`payload.py:140-141`, `_project_spy_observation`
 `:160-185`) → rendered read-only (`dashboard_renderer.py:2538-2569`).
+**Daily-only-ness is enforced by the runtime writer, not `payload.py`:** the daily
+`_write_payload_artifacts` (`:288`) passes the kwarg; the hourly
+`_write_hourly_artifacts` (`runtime/__init__.py:2140`) does not — so no
+`spy_observation` section appears on the hourly payload. The card mirrors this
+exactly.
 
 ### 2.2 Proposed seam (additive; nothing above is modified)
 
@@ -400,8 +405,11 @@ Production (5):
    Optional[MarketControlCard] = None` to `PipelineResult` (mirror `:90-92`).
 3. `cuttingboard/runtime/__init__.py` — build the card in `_run_pipeline`
    (near `:1288`), assign to the result (near `:1329`), thread the kwarg through
-   `_write_payload_artifacts` (`:288`, `:2282`, `:2289`); if D-1 adopted, one
-   always-on `compute_intraday_state("SPY", …)` call.
+   the daily `_write_payload_artifacts` (`:288`, `:2282`, `:2289`); if D-1
+   adopted, one always-on `compute_intraday_state("SPY", …)` call. The **second**
+   production `build_report_payload` caller is the hourly `_write_hourly_artifacts`
+   (`:2140`); it is left untouched, so the new keyword-only default-`None` kwarg
+   provably breaks no caller and the card stays daily-only.
 4. `cuttingboard/delivery/payload.py` — add the kwarg to `build_report_payload`
    and `_project_market_control_card` projection (mirror `:140-141,160-185`).
 5. `cuttingboard/delivery/dashboard_renderer.py` — the read-only render block
@@ -431,6 +439,11 @@ no existing rendered token, so no existing assertion should require editing. If
 implementation finds otherwise, that is a scope-expansion stop-and-amend event
 (§13).**
 
+Docs candidate to resolve at PRD-stage FILES sweep: a new presented dashboard
+surface plausibly warrants a one-line entry in a dashboard-surface doc
+(`docs/system_logic_map.md` or equivalent) under VISION docs-match-code. Carried
+here as a note for the PRD's PRD-158 grep sweep, not counted in the estimate.
+
 ESTIMATE: ~9 files (5 production + 4 test). This is provisional (GOV-2 §5).
 
 ---
@@ -454,9 +467,12 @@ Provisional; the binding ceiling is Gate A on the reviewed PRD.
 - PRESENT: on a daily OBSERVED run the card block renders with LOCATION +
   PERMISSION populated, STATE populated (per D-1), and EVENT/TRANSITION shown
   UNAVAILABLE with their reason tokens.
-- ABSENT: when the daily payload carries no `market_control_card` section (hourly
-  / None), the block is omitted entirely — mirroring the SPY block's
-  section-gated omission (`dashboard_renderer.py:2540`).
+- ABSENT: when the payload carries no `market_control_card` section, the block is
+  omitted entirely — mirroring the SPY block's section-gated omission
+  (`dashboard_renderer.py:2540`). A **named** test asserts the hourly writer
+  (`_write_hourly_artifacts`, `runtime/__init__.py:2140`) emits no
+  `market_control_card` section (daily-only-ness is a runtime-writer property,
+  not a `payload.py` property).
 - HALT: the block is present and truthful — STATE/LOCATION UNAVAILABLE
   (`system_halted`), INVALIDATION reports HALT active, no fabricated numbers.
 - CONTRACT UNCHANGED: a test asserts `contract.json` / `market_map.json` bytes
@@ -565,8 +581,23 @@ requirement (GOV-2 §3: a subagent spawned by the author cannot satisfy it).
   both re-verified against current `main`; the load-bearing anchors
   (candidate-card block, SPY card block, carrier seam, single STATE call site,
   notification dead branch) were re-run by the authoring agent directly.
-- One fresh-context sub-agent review of this packet (verdict recorded in the
-  session and in the PR description). It is author-side self-verification only.
+- One fresh-context sub-agent review of this packet (did not author it),
+  instructed to falsify every load-bearing citation and design claim against
+  current `main`. **VERDICT: ACCEPT — no required corrections.** It independently
+  re-derived the renderer blocks, the full carrier seam, the single
+  `compute_intraday_state` production call site (`:1466`, via grep), the
+  notification dead branch, the engine state values, and all three §9 live
+  Market Map consumers; all resolved at `daa7065d4`. It confirmed FILES
+  completeness (the payload validation layer tolerates extra sections — no schema
+  bump; the new keyword-only default-`None` kwarg breaks no existing
+  `build_report_payload` caller). Three non-blocking RECOMMENDED refinements were
+  folded into this revision: (i) daily-only projection attributed to the runtime
+  writer, not `payload.py` (§2.1, §12); (ii) the second emitter
+  `_write_hourly_artifacts` (`:2140`) named as provably unaffected (§10); (iii) a
+  docs-match-code dashboard-surface doc entry carried to the PRD FILES sweep
+  (§10). This is author-side self-verification only; per GOV-2 §3 it does **not**
+  satisfy the independent-review requirement, which remains the PENDING Codex
+  packet review above.
 
 ---
 
