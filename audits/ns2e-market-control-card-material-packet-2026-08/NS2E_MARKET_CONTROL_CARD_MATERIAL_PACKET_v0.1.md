@@ -7,7 +7,32 @@ downstream PRD, decision entry, or implementation authority may open it must
 clear: an independent Codex packet review (GOV-2 §2 step 3), one consolidated
 correction (step 4), independent exact-corrected-head confirmation (step 5),
 Dustin's design-direction ruling (step 6), a drafted+independently-reviewed PRD
-(step 7), and Dustin's Gate A (step 8). None of those has occurred.
+(step 7), and Dustin's Gate A (step 8).
+
+CORRECTION LOG — Consolidated correction 1 (GOV-2 §2 step 4). The independent
+Codex packet review of `0a8f57ebf2` (GOV-2 §2 step 3) returned two P2 findings,
+both confirmed valid against current `main`; this single consolidated correction
+ACTIONS both (GOV-1's one correction cycle):
+- **F1 (Codex, packet L226) — guard the always-on STATE computation.**
+  `compute_intraday_state` can *raise* `InsufficientDataError`
+  (`intraday_state_engine.py:130-138`), not only return `None`; a bare always-on
+  call could fail the daily pipeline. §3 now makes the `try/except` isolation
+  (mirroring the existing `runtime/__init__.py:1465-1471` guard) a binding part of
+  the D-1 design, mapping a raise to `STATE = UNAVAILABLE(insufficient_bars)`; §4
+  field 1 updated to match.
+- **F2 (Codex, packet L180) — pass candidate outcomes to the builder.** The base
+  `build_market_control_card` inputs omitted a candidate source, so D-3's rollup
+  would have been un-derivable without the renderer inventing it (forbidden §2.3).
+  §4 field 7 and §5 now make the candidate data (`visibility_map`
+  `runtime/__init__.py:1140` and/or `trade_decisions`) an explicit conditional
+  builder input riding the same transient carrier, adopted only if D-3 includes
+  the rollup.
+Neither finding is a previously-omitted downstream consumer class, so neither
+triggers a GOV-2 §6 boundary-reset; both are bounded design-completeness /
+robustness corrections. This consumes the single GOV-2 §2 correction cycle. Next:
+independent exact-corrected-head confirmation of the corrected head (GOV-2 §2
+step 5), which Dustin re-triggers (`@codex review`), then his design-direction
+ruling (step 6). No implementation authority is created by this correction.
 
 DERIVED AT: `main` @ `daa7065d4fb5ee5a4a051de05bd1d18cae375afc` (== `origin/main`;
 the merge of PR #221, Owner-Merge / Agent-Managed-Closeout Convention). Working
@@ -73,11 +98,11 @@ Required order and current position:
 
 | Step | GOV-2 §2 | State |
 |---|---|---|
-| 1 | Author investigates and self-verifies | DONE (this packet; §17 records the author self-verification) |
-| 2 | Author produces provisional packet | **THIS DOCUMENT** |
-| 3 | Independent Codex review of packet + surface | **PENDING — Dustin commissions.** Codex is not installed in the packet-authoring environment; cannot be self-run here |
-| 4 | One consolidated author correction | not started |
-| 5 | Independent exact-corrected-head confirmation | not started |
+| 1 | Author investigates and self-verifies | DONE (this packet; §16 records the author self-verification) |
+| 2 | Author produces provisional packet | DONE (this document) |
+| 3 | Independent Codex review of packet + surface | **DONE** — reviewed `0a8f57ebf2`; two P2 findings, both valid (§16) |
+| 4 | One consolidated author correction | **DONE** — correction 1 (top of packet); F1+F2 ACTIONED |
+| 5 | Independent exact-corrected-head confirmation | **PENDING — Dustin re-triggers `@codex review` on the corrected head** |
 | 6 | Dustin design-direction ruling | not started — **owner hold** |
 | 7 | PRD drafted + fresh-context independent review | not started |
 | 8 | Dustin Gate A | not started — **owner hold** |
@@ -222,11 +247,29 @@ when SPY is a SHORT candidate, so STATE would almost always be UNAVAILABLE and
 the card would fail "the-system-serves-the-trader." The SPY session bars are
 already in hand each daily run (`_market_map_bar_windows` primary set includes
 SPY; the SpyObservation session frame exists), and `compute_intraday_state` is
-pure (`IntraState | None`), so one additional always-on call
-`compute_intraday_state("SPY", spy_bars)` is safe and additive. **Whether v1
-includes this always-on STATE call, or instead ships STATE as
+side-effect-free, so one additional always-on call
+`compute_intraday_state("SPY", spy_bars)` is additive.
+
+**Binding guard requirement (do not implement the call bare).**
+`compute_intraday_state` does not merely return `None`; it can **raise**
+`InsufficientDataError` — `_compute_orb` (`intraday_state_engine.py:130-138`)
+raises when the 09:30–09:35 ET window holds fewer than five bars, a reachable
+state for a post-09:45 SPY frame with sparse/late provider bars. The existing
+production call site already isolates this in `try/except Exception`
+(`runtime/__init__.py:1465-1471`, mapping failure to unavailable). The card's
+always-on call **must** reuse that same isolation: catch
+`InsufficientDataError` (and any computation/data error) and map it to
+`STATE = UNAVAILABLE(reason="insufficient_bars")`. A bare call would let a
+missing provider bar **fail the daily pipeline** instead of emitting the promised
+UNAVAILABLE — violating §8 (the card has no effect on execution) and the
+fail-loud-in-the-right-place principle (the card is read-only; it must not be the
+thing that halts the run). This isolation is a hard part of the D-1 design, not
+an implementation detail left to the PRD.
+
+**Whether v1 includes this always-on STATE call, or instead ships STATE as
 "available-only-when-SPY-is-a-short-candidate / else UNAVAILABLE," is an
-unresolved owner decision (§15, D-1).**
+unresolved owner decision (§15, D-1). Either way the guard above applies wherever
+the call is made.**
 
 ---
 
@@ -238,7 +281,10 @@ Each field is `value | UNAVAILABLE(reason)`. "Source" is the producer;
 1. **STATE** — market-state classification. Source: `IntraState.state`
    (`RANGE`/`FAILED_EXPANSION`/`EXPANSION_CONFIRMED`). Derivation: pass-through of
    the SPY `IntraState.state`; `UNAVAILABLE` with reason (`pre_open` /
-   `insufficient_bars` / `not_computed`) when `None`. Depends on D-1 (§15).
+   `insufficient_bars` / `not_computed`) when the call returns `None` **or raises
+   `InsufficientDataError` / any computation error — the call is wrapped in the
+   §3 guard and a raise maps to `UNAVAILABLE(reason="insufficient_bars")`, never
+   propagates**. Depends on D-1 (§15).
 2. **LOCATION** — price vs session anchors. Source: the existing `SpyObservation`
    (`session_vwap`, `price_vs_vwap`, `orb`, `current_price`). Derivation:
    pass-through/compose from the already-built `SpyObservation`; inherits its
@@ -265,11 +311,19 @@ Each field is `value | UNAVAILABLE(reason)`. "Source" is the producer;
    pass-through of the existing global posture. **EXISTS — no new derivation.**
    Presented on its own axis (stage0-01 Q11, binding).
 7. **CANDIDATE IMPLICATION** — what this means for candidates. Source: existing
-   `visibility_map` / candidate outcomes. Derivation (minimal): a descriptive
-   count/presence statement (e.g. "N actionable candidate(s)" / "none"), derived
-   from existing per-candidate data; UNAVAILABLE when candidate data absent. A
-   richer negative-statement rollup ("no quality longs") is NS-3C `LATER`.
-   **PARTIAL — minimal rollup is new; owner decision D-3 (§15) on scope.**
+   `visibility_map` (built at `runtime/__init__.py:1140`) and/or `trade_decisions`
+   / candidate outcomes. Derivation (minimal): a descriptive count/presence
+   statement (e.g. "N actionable candidate(s)" / "none"), derived from existing
+   per-candidate data; UNAVAILABLE when candidate data absent. A richer
+   negative-statement rollup ("no quality longs") is NS-3C `LATER`.
+   **Realizability (binding, per Codex F2): if D-3 adopts this rollup, the
+   selected candidate data (`visibility_map` and/or `trade_decisions`) MUST be
+   passed into `build_market_control_card` as an explicit input — it is not in the
+   base signature below. The renderer may not derive it (§2.3); a builder with no
+   candidate input would force this field to be fabricated or always UNAVAILABLE.
+   If D-3 defers, the field is `UNAVAILABLE(reason="deferred_ns3")` and no
+   candidate input is threaded.** **PARTIAL — minimal rollup is new; owner
+   decision D-3 (§15) on scope.**
 
 ---
 
@@ -298,6 +352,15 @@ class MarketControlCard:
 ```
 
 (Exact field shape is design-level; the reviewed PRD fixes it.)
+
+**Builder inputs (binding).** `build_market_control_card` is pure and reads only
+what `_run_pipeline` passes it: the already-built `SpyObservation` (LOCATION), the
+SPY `IntraState` result of the §3-guarded call (STATE), `system_state.permission`
+(PERMISSION), the halt flag, and the kill-switch state (INVALIDATION). **If D-3
+adopts the candidate rollup (§4 field 7, Codex F2), the selected candidate data
+— `visibility_map` (`runtime/__init__.py:1140`) and/or `trade_decisions` — is an
+additional explicit builder input and rides the same transient carrier; it is NOT
+sourced by the renderer.** No builder input is fetched or mutated by the card.
 
 **Schema / persistence classification (binding):** NOT a schema. NOT persisted.
 NOT a decision-contract key. It is a transient render sidecar projected only into
@@ -560,16 +623,35 @@ review; this packet does not fix it (GOV-2: lane is a PRD-stage property).
 
 ## 16. Packet review records (GOV-2 §2, §7)
 
-### INITIAL PACKET REVIEW (GOV-2 §2 step 3) — **PENDING**
+### INITIAL PACKET REVIEW (GOV-2 §2 step 3) — **DONE**
 
-Not performed. Codex is **not installed** in the packet-authoring environment, so
-the auto-commissioned independent Codex packet review cannot be self-run here. It
-must be commissioned by Dustin (Codex, or another qualified fresh-context
-second-model reviewer under the MATERIAL workflow). Until it completes and its
-findings are dispositioned, this packet is PROVISIONAL and confers no downstream
-authority (GOV-2 §2, §4).
+- Event type: `INITIAL PACKET REVIEW`.
+- Reviewer identity / role: `chatgpt-codex-connector[bot]` (Codex), the
+  fresh-context second-model reviewer, auto-triggered on the PR being marked
+  ready for review. Independent of the authoring session.
+- Reviewed commit: `0a8f57ebf2977e78e32375c648e0dff86013828` (the packet head at
+  review time).
+- Review date: 2026-08-06. Delivered as PR #222 review comments.
+- Verdict: two P2 findings, no P1/blocker; both confirmed valid against current
+  `main` by the author.
+- Findings and dispositions (both **ACTIONED** by consolidated correction 1 —
+  see the CORRECTION LOG at the top of this packet):
+  - **F1** (packet L226) guard the always-on STATE computation against
+    `InsufficientDataError` → ACTIONED (§3, §4 field 1).
+  - **F2** (packet L180) pass candidate outcomes to the builder for D-3 →
+    ACTIONED (§4 field 7, §5).
 
-### EXACT-CORRECTED-HEAD CONFIRMATION (GOV-2 §2 step 5) — not started.
+Dustin commissioned this review by marking PR #222 ready for review (the connector
+auto-triggers on that event); it was not self-run by the author (Codex is not
+installed in the packet-authoring environment).
+
+### EXACT-CORRECTED-HEAD CONFIRMATION (GOV-2 §2 step 5) — **PENDING**
+
+The corrected head (this revision) requires an independent Codex confirmation that
+F1 and F2 are resolved at that exact head, with no new material boundary omission
+(GOV-2 §7). Dustin re-triggers it (`@codex review` on PR #222). Until that
+confirmation returns clean, the packet remains PROVISIONAL and confers no
+downstream authority.
 
 ### AUTHOR SELF-VERIFICATION (GOV-2 §3 — NOT independent review)
 
@@ -596,8 +678,9 @@ requirement (GOV-2 §3: a subagent spawned by the author cannot satisfy it).
   `_write_hourly_artifacts` (`:2140`) named as provably unaffected (§10); (iii) a
   docs-match-code dashboard-surface doc entry carried to the PRD FILES sweep
   (§10). This is author-side self-verification only; per GOV-2 §3 it does **not**
-  satisfy the independent-review requirement, which remains the PENDING Codex
-  packet review above.
+  satisfy the independent-review requirement — that is the Codex INITIAL PACKET
+  REVIEW above (now DONE; its two P2 findings ACTIONED in correction 1), which the
+  exact-corrected-head confirmation must still clean-confirm.
 
 ---
 
