@@ -1,0 +1,574 @@
+# NS-2E — Market Control Card — MATERIAL PACKET (v0.1)
+
+STATUS: **PROVISIONAL — NOT REVIEW-CLEAN.** This is the upstream GOV-2 MATERIAL
+packet for NS-2E (Market Control Card). It carries **no implementation
+authority**. It is the author's provisional packet (GOV-2 §2 step 2). Before any
+downstream PRD, decision entry, or implementation authority may open it must
+clear: an independent Codex packet review (GOV-2 §2 step 3), one consolidated
+correction (step 4), independent exact-corrected-head confirmation (step 5),
+Dustin's design-direction ruling (step 6), a drafted+independently-reviewed PRD
+(step 7), and Dustin's Gate A (step 8). None of those has occurred.
+
+DERIVED AT: `main` @ `daa7065d4fb5ee5a4a051de05bd1d18cae375afc` (== `origin/main`;
+the merge of PR #221, Owner-Merge / Agent-Managed-Closeout Convention). Working
+tree clean at derivation. Branch carrying this packet:
+`claude/ns-2e-market-control-card-jz6xxr`.
+
+GOVERNING AUTHORITY (this packet invents no product direction; it composes what
+these already establish):
+- `docs/governance/PRODUCT_DELIVERY_OPERATING_RULE_2026-08-06.md` — Product-
+  priority rule (ratified on PR #220): active lane 1 is **NS-2E Market Control
+  Card**.
+- `docs/DECISIONS.md` 2026-08-05 (nine TRUTH-SYNC rulings), ruling #1 —
+  BALANCED route; product NEXT is NS-2E.
+- `docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md:136` — NS-2E is
+  `NEXT`; outcome "Compact orientation replacing/refactoring generic Market
+  Map"; "Answers state, location, event, transition, invalidation, permission,
+  candidate implication."
+- `docs/product/NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md:325-327` — "NS-2E —
+  Market Control Card — now the live NEXT packet, with NS-2A/B/C existing to
+  feed it. Still MATERIAL: it begins with its own upstream packet, not with
+  code."
+- `VISION.md:14-34,49-62` — the four questions and the Operating principles
+  (description-not-prediction; read-only-sidecars-by-default; cuts-before-
+  additions; the-system-serves-the-trader; docs-match-code).
+- Evidence seed: `audits/stage0-recon-2026-07-20/stage0-01-decision-surface-v0.1.md`
+  (Control Card §, Q10–Q12) — HYPOTHESIS-class, pinned at `771f730`; **its line
+  numbers and "unavailable in v1" list are re-verified against current `main` in
+  §2 below, because NS-2A/2B/2C shipped after that pin.**
+
+PROVENANCE NOTE (source pointer, resolved — for Dustin): the charge that
+commissioned this packet cites "Prompt J2" in
+`audits/compression-runway-2026-08-05/COMPRESSION_RUNWAY_PLAN_2026-08-05.md`.
+That file was **never committed to the repository** (`git log --all --
+audits/compression-runway-2026-08-05/*` is empty; the only commit referencing
+the string is `8ba61f2`, the DECISIONS.md entry that cites the plan as an
+off-tree planning packet). Consistent with the PRD-230 rule
+(`CLAUDE.md` § Anti-patterns) that off-tree session scratch is discarded once
+its durable rulings land in `docs/DECISIONS.md`. The J2 prompt's substance is
+fully restated in the charge and its authority is the in-tree governing set
+above, so this packet was produced within existing authority. If Dustin instead
+wants the J2 plan restored before this packet is reviewed, this is a stop point.
+
+CI CLAIM BOUNDARY (GOV-2 §8): This is a documentation-only packet. If CI runs
+against the branch carrying it, green CI confirms only that this documentation
+branch preserves the current green baseline. It does not execute or validate the
+proposed runtime design, consumer inventory, contract, or regression plan.
+
+PROVISIONAL-CEILING LABELS (GOV-2 §5): every FILES and LOC figure below is
+`ESTIMATED SURFACE — NOT YET APPROVED`. The first binding ceiling is Gate A on
+the reviewed PRD.
+
+---
+
+## 0. Where this packet sits in the GOV-2 order
+
+Materiality (GOV-2 §1): **MATERIAL.** It selects an implementation seam shared
+across pipeline layers (runtime → payload → renderer); it adds a new presented
+surface with more than one reader; it crosses runtime, delivery/payload, and
+dashboard. It is therefore ineligible for `LANE: MICRO`; the downstream PRD
+rides STANDARD at minimum (§14).
+
+Required order and current position:
+
+| Step | GOV-2 §2 | State |
+|---|---|---|
+| 1 | Author investigates and self-verifies | DONE (this packet; §17 records the author self-verification) |
+| 2 | Author produces provisional packet | **THIS DOCUMENT** |
+| 3 | Independent Codex review of packet + surface | **PENDING — Dustin commissions.** Codex is not installed in the packet-authoring environment; cannot be self-run here |
+| 4 | One consolidated author correction | not started |
+| 5 | Independent exact-corrected-head confirmation | not started |
+| 6 | Dustin design-direction ruling | not started — **owner hold** |
+| 7 | PRD drafted + fresh-context independent review | not started |
+| 8 | Dustin Gate A | not started — **owner hold** |
+
+No PRD number is allocated by this packet (GOV-2 §2: the PRD is step 7, after
+Dustin's ruling). No `prd_history/` file, no registry row, no `prd_index.json`
+entry is created.
+
+---
+
+## 1. Product question and user-visible outcome
+
+**Question the card answers (once, for SPY, on the daily dashboard):** where are
+we, and what does it mean for whether I act? It is a compact, read-only
+*orientation* surface — description, not prediction — answering the seven
+ledger fields, which map onto VISION's four questions:
+
+- STATE, LOCATION → Q1 "What environment are we in?"
+- EVENT, TRANSITION → the meaningful-change axis feeding Q1/Q2
+- INVALIDATION → Q4 "What would invalidate this?" (extreme stress = hard
+  invalidation, `VISION.md:30-34`)
+- PERMISSION, CANDIDATE IMPLICATION → Q3 "Is this actually tradable?"
+
+**User-visible outcome:** one new block on the **daily** dashboard (a sibling of
+the existing `spy-observation` block), rendered read-only. Every field either
+carries a value traceable to an existing upstream producer, or is shown
+explicitly UNAVAILABLE with a reason token. The card never asserts a value the
+system has not computed.
+
+**Scope boundary (binding for v1):**
+- DAILY `_run_pipeline` only. The hourly publish path is OUT OF SCOPE (the hourly
+  runtime builds a market map with empty intraday metrics — `runtime/__init__.py`
+  hourly branch — and carries no SPY session observation; §9). This mirrors the
+  NS-2A/2C daily-only boundary.
+- The card is **additive**. It retires nothing in this slice. Whether it
+  ultimately *replaces/refactors* the generic per-symbol Market Map board is a
+  separate, larger slice — see §9 (SPLIT recommendation).
+
+---
+
+## 2. Exact producer → carrier → consumer seam
+
+### 2.1 Current state (what exists at `daa7065d4`)
+
+Re-verified against current `main` (the stage0-01 seed was pinned at `771f730`;
+NS-2A/2B/2C have since shipped, so several "unavailable in v1" statements from
+that seed are now partially satisfied — noted inline).
+
+**The current "Market Map decision surface" is the per-symbol candidate card, not
+a Control Card.** `_render_candidate_card` at
+`cuttingboard/delivery/dashboard_renderer.py:1826-1991` renders, per graded
+symbol: header (grade/setup_state/bias/structure, `1856-1874`), `IF NOW`
+(`1876-1883`), the market-map `LIFECYCLE` line (`1885-1899`), `IN →`
+(`1901-1907`), `OUT →` (`1909-1924`), and the `REASON`/`PLAY`/`WATCH` detail
+(`1926-1945`). It is invoked from the candidate board ("Market Map / Developing
+Setups") at `2866-2978` (card call `2959-2964`). This is per-*candidate*, not
+per-*session*.
+
+**A SPY session card already exists** (PRD-288 seed): the `spy-observation` block
+at `dashboard_renderer.py:2538-2569`, gated on `payload["sections"]
+["spy_observation"]`. It renders SESSION, STATE (a *freshness* state, not
+market-state), OBSERVED AT, SESSION VWAP, PRICE (+`price_vs_vwap`), ORB — each
+with an explicit UNAVAILABLE fallback (never fabricated). This is the Control
+Card's seed and the exact render pattern it extends.
+
+Producers of the seven fields at current `main`:
+
+| Field | Producer at `main` | Persisted? |
+|---|---|---|
+| STATE | `IntraState.state` (`intraday_state_engine.py:86`; values `RANGE`/`FAILED_EXPANSION`/`EXPANSION_CONFIRMED`, `:479-492`). Built via `compute_intraday_state` — **single production call site** `runtime/__init__.py:1466**, inside the SHORT-permission gate `_apply_intraday_short_permission`. Returns `None` before 09:45 ET / <5 ORB bars (`:435-436`, `:91-92`). | Transient object. Only the `.state` string leaks to the durable audit record for **candidate** symbols (`audit.py:167,179`). Not computed for SPY unless SPY is itself a SHORT candidate. |
+| LOCATION | `SpyObservation` (`spy_observation.py:48-61`): `session_vwap`, `current_price`, `price_vs_vwap` (`ABOVE`/`BELOW`/`AT_LEVEL`/`UNAVAILABLE`), `orb` (PRD-271 `OrbObservation`, projected verbatim). Built **unconditionally** each daily run at `runtime/__init__.py:1288`. | Transient; projected only into the render payload (`sections["spy_observation"]`), never the decision contract. |
+| EVENT | none. `market_map_lifecycle.inject_lifecycle` (`market_map_lifecycle.py:39-99`) transitions **presentation** grade/setup only. | n/a |
+| TRANSITION | none genuine. Same presentation lifecycle; no cross-run `IntraState` is loaded or diffed — market state is recomputed fresh and discarded each run. | n/a |
+| INVALIDATION | no discrete value. Raw materials exist: ORB levels + VWAP (LOCATION), and the extreme-stress kill-switch (`_kill_switch`, thresholds `runtime/__init__.py:2319-2321`; terminal HALT per `docs/system_logic_map.md` / `VISION.md:30-34`). `invalidation.py` is per-*candidate* trade-thesis invalidation (PRD-068), not a market-read. | n/a |
+| PERMISSION | `system_state.permission` (durable; `runtime/__init__.py:860`), plus the separate `downside_permission` axis (`:1477`) and per-candidate `TradeDecision.policy_allowed` (`trade_decision.py:41`; `execution_policy.py:188-229`). | `system_state.permission` is in the durable contract. |
+| CANDIDATE IMPLICATION | per-candidate only: `policy_allowed` (`trade_decision.py:41`) and `visibility_map` (`trade_visibility.build_visibility_map`, `trade_visibility.py:31-53`). No card-level rollup statement. | Per-candidate durable in contract/audit. |
+
+**The reusable carrier seam** (PRD-288 pattern — the card reuses it exactly):
+`PipelineResult.spy_observation` (`runtime/_types.py:90-92`, an
+`Optional[SpyObservation]` "transient intra-runtime carrier … never serialized
+to a durable/decision contract") → assigned in `_run_pipeline` (`:1329`) →
+handed as a **separate kwarg** (not via the contract dict) to
+`_write_payload_artifacts(pipeline.contract, spy_observation=...)` (`:288`,
+signature `:2282`, forward `:2289`) → `build_report_payload(..., spy_observation=
+None)` (`delivery/payload.py:24-28`) → projected to `sections["spy_observation"]`
+on the daily path only (`payload.py:140-141`, `_project_spy_observation`
+`:160-185`) → rendered read-only (`dashboard_renderer.py:2538-2569`).
+
+### 2.2 Proposed seam (additive; nothing above is modified)
+
+Introduce one transient carrier that rides the identical seam:
+
+```
+_run_pipeline (daily)
+  build_market_control_card(spy_observation, intra_state?, permission, halted, kill_switch_state)   # NEW, pure
+  → PipelineResult.market_control_card: Optional[MarketControlCard]                                   # NEW field on _types.py
+  → _write_payload_artifacts(contract, spy_observation=..., market_control_card=...)                  # NEW kwarg, threaded
+  → build_report_payload(contract, *, spy_observation=None, market_control_card=None)                 # NEW kwarg
+  → sections["market_control_card"] = _project_market_control_card(...)                               # NEW projection (daily only)
+  → dashboard_renderer: render read-only block, present iff the section is present                    # NEW render block
+```
+
+No decision contract key is added (§5). No existing producer, contract, or
+artifact schema is modified. The card **composes** existing transient producers;
+its only genuinely-new derivations are enumerated in §6.
+
+### 2.3 The renderer-invents-nothing rule (binding)
+
+Every value on the card is produced by `build_market_control_card()` (a pure
+composition helper) or by a named upstream producer it reads. The renderer only
+formats strings and chooses present/absent; it computes no decision-bearing
+value. Where no producer exists for a field (EVENT, TRANSITION in v1), the field
+is emitted as an explicit `UNAVAILABLE` token with a reason, never inferred,
+back-filled, or relabeled from an adjacent value. In particular, the presentation
+grade/setup lifecycle **must not** be relabeled as a market-state TRANSITION
+(stage0-01 Q11, binding), and the SPY *freshness* state (PRE_OPEN/OBSERVED/STALE)
+**must not** be conflated with the market STATE axis (they are two distinct
+fields on the card).
+
+---
+
+## 3. Recommended implementation design (single design, not alternatives)
+
+A new module `cuttingboard/market_control_card.py` mirroring
+`spy_observation.py`: a frozen, transient, non-persisted `MarketControlCard`
+dataclass and a pure `build_market_control_card(...)` that assembles the seven
+fields from already-computed inputs passed in by `_run_pipeline` (it fetches
+nothing and mutates nothing). The card is built once on the daily path, rides the
+`PipelineResult` → payload-kwarg → `sections[...]` seam, and renders as a
+read-only dashboard block. The design **reuses** the `SpyObservation` already
+built at `runtime/__init__.py:1288` for LOCATION rather than recomputing VWAP/ORB
+(one-truth rule: no second VWAP/ORB authority).
+
+The single genuinely-new **always-on** derivation the design recommends is a
+SPY market-STATE call (§6, field 1): today `compute_intraday_state` runs only
+when SPY is a SHORT candidate, so STATE would almost always be UNAVAILABLE and
+the card would fail "the-system-serves-the-trader." The SPY session bars are
+already in hand each daily run (`_market_map_bar_windows` primary set includes
+SPY; the SpyObservation session frame exists), and `compute_intraday_state` is
+pure (`IntraState | None`), so one additional always-on call
+`compute_intraday_state("SPY", spy_bars)` is safe and additive. **Whether v1
+includes this always-on STATE call, or instead ships STATE as
+"available-only-when-SPY-is-a-short-candidate / else UNAVAILABLE," is an
+unresolved owner decision (§15, D-1).**
+
+---
+
+## 4. The seven-field contract (smallest truthful v1)
+
+Each field is `value | UNAVAILABLE(reason)`. "Source" is the producer;
+"Derivation" is what `build_market_control_card` does.
+
+1. **STATE** — market-state classification. Source: `IntraState.state`
+   (`RANGE`/`FAILED_EXPANSION`/`EXPANSION_CONFIRMED`). Derivation: pass-through of
+   the SPY `IntraState.state`; `UNAVAILABLE` with reason (`pre_open` /
+   `insufficient_bars` / `not_computed`) when `None`. Depends on D-1 (§15).
+2. **LOCATION** — price vs session anchors. Source: the existing `SpyObservation`
+   (`session_vwap`, `price_vs_vwap`, `orb`, `current_price`). Derivation:
+   pass-through/compose from the already-built `SpyObservation`; inherits its
+   UNAVAILABLE/STALE semantics verbatim. **EXISTS — no new derivation.**
+3. **EVENT** — last meaningful intraday transition. Source: none (NS-2D `LATER`).
+   Derivation: `UNAVAILABLE(reason="deferred_ns2d")`. Not derived in v1.
+4. **TRANSITION** — genuine market-session transition. Source: none (would need
+   cross-run `IntraState` persistence = a durable schema change, out of a
+   read-only sidecar's scope). Derivation: `UNAVAILABLE(reason=
+   "no_session_transition_source")`. Not derived in v1. Must not be sourced from
+   presentation lifecycle (§2.3).
+5. **INVALIDATION** — what voids the current read. Source: the extreme-stress
+   kill-switch/terminal-HALT state (authoritative; `VISION.md:30-34`,
+   `docs/system_logic_map.md`) **plus** the session-anchor reference levels
+   already in LOCATION (ORB high/low, VWAP). Derivation (bounded, descriptive):
+   report the hard-invalidation state (HALT active/inactive) and name the
+   reference levels whose loss/break changes the read — **without** asserting a
+   directional thesis (directional/ranked invalidation is NS-2F `LATER`).
+   Anchor-level clauses are UNAVAILABLE when their source is UNAVAILABLE. **NEW
+   derivation — bounded; owner decision D-2 (§15) on whether v1 includes it or
+   defers.**
+6. **PERMISSION** — trading posture, a separate axis from STATE. Source:
+   `system_state.permission` (`runtime/__init__.py:860`). Derivation:
+   pass-through of the existing global posture. **EXISTS — no new derivation.**
+   Presented on its own axis (stage0-01 Q11, binding).
+7. **CANDIDATE IMPLICATION** — what this means for candidates. Source: existing
+   `visibility_map` / candidate outcomes. Derivation (minimal): a descriptive
+   count/presence statement (e.g. "N actionable candidate(s)" / "none"), derived
+   from existing per-candidate data; UNAVAILABLE when candidate data absent. A
+   richer negative-statement rollup ("no quality longs") is NS-3C `LATER`.
+   **PARTIAL — minimal rollup is new; owner decision D-3 (§15) on scope.**
+
+---
+
+## 5. Sidecar contract (`MarketControlCard`)
+
+New frozen dataclass in `cuttingboard/market_control_card.py`, transient and
+non-persisted (mirrors `SpyObservation`):
+
+```
+@dataclass(frozen=True)
+class MarketControlCard:
+    observed_symbol: str            # "SPY"
+    intended_session_date: date | None
+    observed_at_utc: datetime | None
+    # seven fields, each value-or-UNAVAILABLE:
+    state: str                      # market-state token or "UNAVAILABLE"
+    state_reason: str | None
+    location: <compose from SpyObservation: vwap, price_vs_vwap, orb summary>
+    event: str                      # "UNAVAILABLE"
+    event_reason: str | None        # "deferred_ns2d"
+    transition: str                 # "UNAVAILABLE"
+    transition_reason: str | None   # "no_session_transition_source"
+    invalidation: <hard-halt state + reference levels> | "UNAVAILABLE"
+    permission: str                 # existing system_state.permission posture
+    candidate_implication: str | "UNAVAILABLE"
+```
+
+(Exact field shape is design-level; the reviewed PRD fixes it.)
+
+**Schema / persistence classification (binding):** NOT a schema. NOT persisted.
+NOT a decision-contract key. It is a transient render sidecar projected only into
+`sections["market_control_card"]` of `latest_payload.json` (a render artifact),
+exactly like `spy_observation`. It does not touch `contract.json`,
+`market_map.json`, the audit record, or any cross-run state. This satisfies
+VISION read-only-sidecars-by-default and keeps the decision contract frozen.
+
+---
+
+## 6. Values already existing vs new derivation
+
+| Field | Verdict | If new, what exactly |
+|---|---|---|
+| STATE | EXISTS (conditional) | Optionally one always-on `compute_intraday_state("SPY", spy_bars)` call so STATE is present most sessions (D-1). Engine unchanged. |
+| LOCATION | EXISTS | none — reuse `SpyObservation`. |
+| EVENT | NEW | none in v1 — emit UNAVAILABLE (deferred NS-2D). |
+| TRANSITION | NEW | none in v1 — emit UNAVAILABLE (no source; forbidden to source from presentation lifecycle). |
+| INVALIDATION | NEW (bounded) | a pure composition over existing kill-switch state + existing anchor levels; no new inputs fetched (D-2). |
+| PERMISSION | EXISTS | none — reuse `system_state.permission`. |
+| CANDIDATE IMPLICATION | PARTIAL | a minimal descriptive rollup over existing candidate/visibility data (D-3). |
+
+Net: **four of seven fields need no new derivation** (LOCATION, PERMISSION, and
+the two explicit-UNAVAILABLE deferrals EVENT/TRANSITION). STATE needs at most one
+always-on call to an existing pure engine. INVALIDATION and CANDIDATE
+IMPLICATION are bounded compositions over existing values. No new data source, no
+new fetch, no schema change.
+
+---
+
+## 7. Lifecycle, reason tokens, and UNAVAILABLE semantics
+
+The card inherits the daily run's freshness truth from `SpyObservation`
+(PRE_OPEN/OBSERVED/STALE/UNAVAILABLE and its reason tokens,
+`spy_observation.py:25-28,84-114`). On a system HALT the card is present and
+truthful: LOCATION/STATE report UNAVAILABLE (`system_halted`), INVALIDATION
+reports the hard-invalidation HALT as active. Field-level reason tokens
+introduced by the card are limited to `deferred_ns2d` (EVENT),
+`no_session_transition_source` (TRANSITION), and STATE's pass-through reasons.
+No new global lifecycle vocabulary is created.
+
+---
+
+## 8. Explicit non-effects on execution (read-only)
+
+The card reads `IntraState`, `SpyObservation`, `system_state.permission`, and
+kill-switch state; it **mutates none of them** and feeds nothing back into
+routing, qualification, sizing, gating, or the contract. Removing the card from
+the build would change no decision, no audit record, and no contract byte — only
+the rendered daily dashboard. If the always-on STATE call (D-1) is adopted, it is
+an additional read-only invocation of a pure engine; it does not enter the
+short-permission gate and cannot change candidate filtering.
+
+---
+
+## 9. Market Map retirement — SPLIT (recommended); this slice is additive
+
+The ledger outcome says "replacing/refactoring generic Market Map." This packet
+recommends the retirement be **split out of the v1 card slice**, for concrete,
+enumerated reasons:
+
+Retiring/refactoring the generic per-symbol Market Map board
+(`dashboard_renderer.py:1826-1991` card + `2866-2978` board) is a **subtractive**
+change that orphans multiple **live** consumers, each of which must be
+re-homed or deleted with its own dead-branch enumeration:
+- `trade_visibility.build_visibility_map` reads `market_map["symbols"][sym]
+  ["grade"]` — `trade_visibility.py:40-53`.
+- `overnight_policy._near_key_level` reads `["watch_zones"]` —
+  `overnight_policy.py:167-178`.
+- `macro_pressure.build_macro_pressure(macro_drivers, market_map)` —
+  `macro_pressure.py:112-116`.
+- Renderer secondary market_map readers: `_build_tape_value_slots`
+  (`1249-1265`), `_build_pressure_snapshot` (`1473-1477`), `_build_integrator_
+  input` (`1399-1413`), `_build_sunday_context` (`1501-1527`), high-grade count
+  (`2334-2340`).
+- `inject_lifecycle` producer (`market_map_lifecycle.py:39`) and its writers
+  (`runtime/__init__.py:289-291` daily, `571-601` hourly), plus the
+  `LATEST_HOURLY_MARKET_MAP_PATH` artifact contract (`_constants.py:55`; CI-
+  guarded by `tests/test_ci_artifact_hygiene.py:164-166,274`).
+
+Per VISION cuts-before-additions, a cut must justify itself; the honest sequence
+is to ship the additive Control Card first, let it earn its keep, **then** open a
+separate MATERIAL packet for the Market Map retirement with a full dead-branch
+enumeration. Trying to retire in the same slice would multiply the FILES ceiling
+and the risk without a truthful need. **Recommendation: additive card now;
+retirement is a distinct later slice. Owner decision D-4 (§15).**
+
+**Related live drift found (not fixed here):** the notification lifecycle
+renderer (`notifications/__init__.py:288-395`) is already a **dead branch** in
+production — the runtime callers `format_hourly_notification`
+(`runtime/__init__.py:502-510`) and `format_notification` (`:512-523`) pass no
+`market_map=`, so lifecycle alerts always receive `None` and emit nothing; only
+tests exercise that code. This is pre-existing and out of scope for the card; it
+belongs to the eventual Market Map retirement slice (wire it or delete it).
+Recorded so the retirement packet inherits it, not silently carried.
+
+---
+
+## 10. Exact likely FILES (ESTIMATED SURFACE — NOT YET APPROVED)
+
+Production (5):
+1. `cuttingboard/market_control_card.py` — NEW. `MarketControlCard` +
+   `build_market_control_card()`.
+2. `cuttingboard/runtime/_types.py` — add `market_control_card:
+   Optional[MarketControlCard] = None` to `PipelineResult` (mirror `:90-92`).
+3. `cuttingboard/runtime/__init__.py` — build the card in `_run_pipeline`
+   (near `:1288`), assign to the result (near `:1329`), thread the kwarg through
+   `_write_payload_artifacts` (`:288`, `:2282`, `:2289`); if D-1 adopted, one
+   always-on `compute_intraday_state("SPY", …)` call.
+4. `cuttingboard/delivery/payload.py` — add the kwarg to `build_report_payload`
+   and `_project_market_control_card` projection (mirror `:140-141,160-185`).
+5. `cuttingboard/delivery/dashboard_renderer.py` — the read-only render block
+   (mirror the SPY block `:2538-2569`).
+
+Tests (4–5) — the PRD-158 grep sweep of `tests/` for the tokens this design
+touches (the existing SPY-card, candidate-card, and lifecycle assertions are the
+compatibility baseline that must stay green):
+6. `tests/test_market_control_card.py` — NEW. Builder/composition units;
+   present/absent and UNAVAILABLE-not-fabricated per field.
+7. `tests/test_payload.py` — projection mirror + daily-only presence.
+8. `tests/test_dashboard_renderer.py` — render block present/absent; halt truth;
+   UNAVAILABLE rendering; **regression guard that the existing `spy-observation`
+   block (`:2538-2569`) and candidate board are unchanged.**
+9. `tests/test_runtime_decision.py` — carrier threading through
+   `PipelineResult`/`_write_payload_artifacts`; present on daily, absent
+   otherwise.
+- Possibly `tests/test_spy_observation.py` only if the compose reuses its
+  fixtures.
+
+Compatibility baseline (must stay green, not edited unless a token they assert is
+deliberately changed — none is planned): `tests/test_dash_candidates.py`
+(candidate card IN→/OUT→/IF NOW/LIFECYCLE), `tests/test_market_map_lifecycle.py`,
+`tests/test_market_map.py`, `tests/test_notifications.py`,
+`tests/test_ci_artifact_hygiene.py`. **The card adds a surface; it renames/removes
+no existing rendered token, so no existing assertion should require editing. If
+implementation finds otherwise, that is a scope-expansion stop-and-amend event
+(§13).**
+
+ESTIMATE: ~9 files (5 production + 4 test). This is provisional (GOV-2 §5).
+
+---
+
+## 11. Estimated production LOC ceiling (ESTIMATED SURFACE — NOT YET APPROVED)
+
+- `market_control_card.py`: ~120–160 (cf. `spy_observation.py` = 174).
+- `_types.py`: +2.
+- `runtime/__init__.py`: +8–15 (build + thread; +~5 if D-1 always-on STATE).
+- `payload.py`: +20–30 (projection).
+- `dashboard_renderer.py`: +30–45 (render block).
+
+Estimated production net: **~+180–250 LOC**, additive. Tests: ~+150–250 LOC.
+Provisional; the binding ceiling is Gate A on the reviewed PRD.
+
+---
+
+## 12. Discriminating test plan (present/absent + mutation)
+
+**Present/absent compatibility:**
+- PRESENT: on a daily OBSERVED run the card block renders with LOCATION +
+  PERMISSION populated, STATE populated (per D-1), and EVENT/TRANSITION shown
+  UNAVAILABLE with their reason tokens.
+- ABSENT: when the daily payload carries no `market_control_card` section (hourly
+  / None), the block is omitted entirely — mirroring the SPY block's
+  section-gated omission (`dashboard_renderer.py:2540`).
+- HALT: the block is present and truthful — STATE/LOCATION UNAVAILABLE
+  (`system_halted`), INVALIDATION reports HALT active, no fabricated numbers.
+- CONTRACT UNCHANGED: a test asserts `contract.json` / `market_map.json` bytes
+  are unaffected by the card (read-only sidecar).
+- EXISTING SURFACES UNCHANGED: a test asserts the `spy-observation` block and the
+  candidate board render identically with and without the card.
+
+**Mutation plan (each guard ships a red test — PRD-198 #4):**
+1. Drop `market_control_card` from `PipelineResult` / stop threading the kwarg →
+   the PRESENT render test goes red (carrier proven load-bearing).
+2. Emit a fabricated STATE/LOCATION value when the producer is UNAVAILABLE → the
+   "UNAVAILABLE-not-fabricated" test goes red (renderer-invents-nothing, §2.3).
+3. Source TRANSITION from the presentation grade/setup lifecycle → the
+   "no market-state relabel" test goes red (stage0-01 Q11).
+4. Conflate the SPY freshness state with the market STATE field → a
+   two-distinct-fields test goes red.
+5. Omit the extreme-stress HALT from INVALIDATION (if D-2 adopted) → the
+   hard-invalidation test goes red.
+6. Render the card on the hourly path → the daily-only presence test goes red.
+
+Each mutation must turn ≥1 **named** test red; a guard that no mutation can break
+is banned (PRD-198 #4).
+
+---
+
+## 13. Stop-and-amend conditions
+
+Stop, re-run GOV-2 §1 materiality, and amend the packet/PRD (with fresh
+independent review and, after Gate A, an amended Gate A per GOV-2 §5) if
+implementation discovers any of:
+- a decision-contract key, `market_map.json`, or audit-record change is needed
+  (would break the read-only-sidecar classification, §5);
+- an existing rendered token must be renamed/removed (would pull compatibility
+  test files into FILES beyond the additive baseline, §10);
+- STATE cannot be produced for SPY without entering or altering the
+  short-permission gate (would cross into execution behavior, §8);
+- INVALIDATION or CANDIDATE IMPLICATION cannot be produced without a new data
+  source or a directional/predictive judgment (would violate description-not-
+  prediction; defer the field to UNAVAILABLE instead);
+- the hourly path is pulled in (explicitly OUT OF SCOPE, §1/§9);
+- a previously-omitted consumer class surfaces (GOV-2 §6 boundary-reset).
+
+---
+
+## 14. Materiality / lane classification
+
+MATERIAL (GOV-2 §1): shared runtime→payload→renderer seam; new presented surface
+with more than one reader; crosses runtime/delivery/dashboard. Therefore **MICRO-
+ineligible**. The downstream PRD rides **STANDARD** (a new read-only observational
+surface, additive, no execution/contract change). It is **not** HIGH-RISK on its
+face: it changes no execution gate, no contract, no persisted schema — the R11
+(PRD-121) downgrade-prohibition triggers do not fire on a read-only sidecar. If
+D-1's always-on STATE call, on review, is judged to touch execution-adjacent
+behavior, re-run classification (§13). Final lane is set on the drafted PRD at
+review; this packet does not fix it (GOV-2: lane is a PRD-stage property).
+
+---
+
+## 15. Unresolved owner decisions (for Dustin's design-direction ruling)
+
+- **D-1 (STATE availability).** Adopt the single always-on
+  `compute_intraday_state("SPY", spy_bars)` call so STATE is present most
+  sessions? Or ship STATE as available-only-when-SPY-is-a-short-candidate, else
+  UNAVAILABLE? Recommendation: **adopt the always-on call** (else the field is
+  near-always empty and fails serves-the-trader); it is a read-only call to a
+  pure engine.
+- **D-2 (INVALIDATION scope for v1).** Include the bounded descriptive
+  INVALIDATION (hard-HALT state + reference anchor levels, no directional
+  thesis)? Or defer INVALIDATION entirely to NS-2F and show UNAVAILABLE?
+  Recommendation: **include the bounded form** — it directly serves VISION Q4 and
+  uses only existing values.
+- **D-3 (CANDIDATE IMPLICATION scope).** Minimal presence/count rollup from
+  existing candidate data, or defer to NS-3 and show UNAVAILABLE?
+  Recommendation: **minimal rollup** (cheap, truthful, from existing data);
+  negative-statement richness stays NS-3C.
+- **D-4 (Market Map retirement split).** Confirm the retirement/refactor of the
+  generic per-symbol Market Map board is a **separate later slice**, with the card
+  additive in v1? Recommendation: **yes, split** (§9).
+- **D-5 (provenance).** Proceed on in-tree authority (the J2 plan is off-tree and
+  its rulings are durable in DECISIONS.md), or restore the compression-runway
+  plan file before review? Recommendation: **proceed**; the plan was session
+  scratch per PRD-230.
+
+---
+
+## 16. Packet review records (GOV-2 §2, §7)
+
+### INITIAL PACKET REVIEW (GOV-2 §2 step 3) — **PENDING**
+
+Not performed. Codex is **not installed** in the packet-authoring environment, so
+the auto-commissioned independent Codex packet review cannot be self-run here. It
+must be commissioned by Dustin (Codex, or another qualified fresh-context
+second-model reviewer under the MATERIAL workflow). Until it completes and its
+findings are dispositioned, this packet is PROVISIONAL and confers no downstream
+authority (GOV-2 §2, §4).
+
+### EXACT-CORRECTED-HEAD CONFIRMATION (GOV-2 §2 step 5) — not started.
+
+### AUTHOR SELF-VERIFICATION (GOV-2 §3 — NOT independent review)
+
+Recorded for transparency; explicitly does **not** satisfy the independent-review
+requirement (GOV-2 §3: a subagent spawned by the author cannot satisfy it).
+- Prerequisites re-verified at `main` @ `daa7065d4` (== origin/main); working
+  tree clean.
+- Two fresh-context sub-agent seam traces (renderer/consumer; producer/state),
+  both re-verified against current `main`; the load-bearing anchors
+  (candidate-card block, SPY card block, carrier seam, single STATE call site,
+  notification dead branch) were re-run by the authoring agent directly.
+- One fresh-context sub-agent review of this packet (verdict recorded in the
+  session and in the PR description). It is author-side self-verification only.
+
+---
+
+*End of packet v0.1. No implementation authority. No PRD number allocated. Held
+for Dustin's decision.*
