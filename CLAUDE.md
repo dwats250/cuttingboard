@@ -57,6 +57,10 @@ Reference these; do not duplicate them.
   material-work intake classification, upstream review order, exact-head
   confirmation, bounded correction, and provisional-ceiling rules after
   Dustin ratifies GOV-2.
+- `docs/governance/PRODUCT_DELIVERY_OPERATING_RULE_2026-08-06.md` — Dustin's
+  owner-authored operating rule: default behavior, Fable escalation triggers,
+  the anti-stall choice, the post-TRUTH-SYNC lane order (NS-2E, GEX, context
+  registry), and the owner holds. Binding on Dustin's merge of its landing PR.
 - `docs/architecture.md`, `docs/sidecar_doctrine.md` — structural references
 - `docs/CLAUDE_HOOKS.md` — the repo's hooks (file protection, PRD registry-gap
   check, canonical-read guard) and their state files
