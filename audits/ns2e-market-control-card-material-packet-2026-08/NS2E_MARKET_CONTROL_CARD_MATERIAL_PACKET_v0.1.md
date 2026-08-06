@@ -1,25 +1,29 @@
 # NS-2E — Market Control Card — MATERIAL PACKET (v0.1)
 
-STATUS: **DESIGN INCOMPLETE (GOV-2 §6/§7) — HELD FOR DUSTIN'S DECISION.** This is
-the upstream GOV-2 MATERIAL packet for NS-2E (Market Control Card). It carries
-**no implementation authority**. The GOV-2 §2 step-5 exact-corrected-head
-confirmation of `f0a55a3` surfaced a **new valid P2** (the STATE unavailable-reason
-does not reach the builder — §16, confirmation record), tied to the STATE
-input-carrier that consolidated correction 1 itself introduced. Per GOV-2 §6/§7,
-a new material design omission found at exact-head confirmation **reopens the
-packet as DESIGN INCOMPLETE and stops incremental patching** — the single GOV-1
-correction cycle is already consumed, so the author does **not** self-apply a
-second correction. **Dustin chooses the path** (GOV-2 §6): rebuild from a fresh
-frame, narrow the claim (e.g. drop the always-on STATE / D-1, which removes the
-reason-carrier need), authorize one more bounded correction (GOV-1: a second
-round happens only because Dustin asks), or park. Downstream authority (PRD,
+STATUS: **PROVISIONAL — NOT REVIEW-CLEAN (owner-authorized exceptional correction 2
+applied; final exact-head confirmation pending).** This is the upstream GOV-2
+MATERIAL packet for NS-2E (Market Control Card). It carries **no implementation
+authority**. The GOV-2 §2 step-5 exact-corrected-head confirmation of `f0a55a3`
+surfaced a new valid P2 (the STATE unavailable-reason did not reach the builder),
+tied to the STATE input-carrier consolidated correction 1 introduced — which
+reopened the packet as DESIGN INCOMPLETE (GOV-2 §6/§7). **Dustin then authorized
+one exceptional, narrowly bounded correction beyond the single GOV-1 cycle**,
+scoped exactly to that defect. **Consolidated correction 2** (below) applies it:
+a typed `StateOutcome` now carries the guarded computation's state-or-reason into
+`build_market_control_card`, so the builder still produces every final card value
+(§2.3) and the exception→reason mapping stays in the guard, never the renderer.
+No contract, FILES estimate, product scope, or D-1…D-5 changed. The corrected head
+now requires **one final independent Codex exact-head confirmation**; if that
+review finds any additional boundary omission, the packet stops and returns to
+Dustin — no further correction loop without his ruling. Downstream authority (PRD,
 Gate A) remains prohibited until the packet is review-clean.
 
-The full GOV-2 §2 order still to clear once Dustin sets the path: independent
-Codex packet review (step 3, DONE), one consolidated correction (step 4, DONE),
-independent exact-corrected-head confirmation (step 5, DONE — **not clean**),
-Dustin's design-direction ruling (step 6), a drafted+independently-reviewed PRD
-(step 7), and Dustin's Gate A (step 8).
+GOV-2 §2 order: independent Codex packet review (step 3, DONE), consolidated
+correction (step 4, DONE), independent exact-corrected-head confirmation (step 5,
+DONE — found one P2), **owner-authorized exceptional correction 2 (applied)**,
+final exact-head confirmation (**pending**), Dustin's design-direction ruling
+(step 6), a drafted+independently-reviewed PRD (step 7), and Dustin's Gate A
+(step 8).
 
 CORRECTION LOG — Consolidated correction 1 (GOV-2 §2 step 4). The independent
 Codex packet review of `0a8f57ebf2` (GOV-2 §2 step 3) returned two P2 findings,
@@ -39,12 +43,38 @@ ACTIONS both (GOV-1's one correction cycle):
   `runtime/__init__.py:1140` and/or `trade_decisions`) an explicit conditional
   builder input riding the same transient carrier, adopted only if D-3 includes
   the rollup.
-Neither finding is a previously-omitted downstream consumer class, so neither
-triggers a GOV-2 §6 boundary-reset; both are bounded design-completeness /
-robustness corrections. This consumes the single GOV-2 §2 correction cycle. Next:
-independent exact-corrected-head confirmation of the corrected head (GOV-2 §2
-step 5), which Dustin re-triggers (`@codex review`), then his design-direction
-ruling (step 6). No implementation authority is created by this correction.
+This consumed the single GOV-1 correction cycle.
+
+**F2 durable disposition: ACTIONED and CONFIRMED RESOLVED.** The candidate-input
+finding was actioned in correction 1 (§4 field 7, §5) and the GOV-2 step-5
+exact-corrected-head confirmation of `f0a55a3` verified it resolved (no re-raise).
+It is closed on the merits; the F2 connector thread needs no further design change.
+
+CORRECTION LOG — Consolidated correction 2 (OWNER-AUTHORIZED EXCEPTIONAL, beyond
+the single GOV-1 cycle). The GOV-2 step-5 exact-corrected-head confirmation of
+`f0a55a3` confirmed F2 resolved but surfaced one NEW valid P2 — the STATE
+unavailable-reason did not reach the builder (the §5 input list carried only the
+guarded call's `IntraState | None`, and the guard sets `None` on catch, so
+`insufficient_bars` was indistinguishable from a natural pre-open `None`, while
+§2.3 requires the builder to produce every card value). Per GOV-2 §6/§7 the packet
+reopened as DESIGN INCOMPLETE and the author did not self-patch. **Dustin then
+authorized one exceptional, narrowly bounded correction** scoped exactly to this
+defect. Applied:
+- **F3 (Codex step-5, packet L359) — carry the STATE failure reason into the
+  builder.** A typed `StateOutcome` (§5) now carries **either** the computed
+  `IntraState` **or** a typed `unavailable_reason` (`pre_open` /
+  `insufficient_bars` / `not_computed`) from the §3 guard into
+  `build_market_control_card`. The exception→reason mapping stays in the guard
+  (runtime), never the renderer (§2.3 preserved: the builder produces the final
+  STATE value/reason from the typed input). §3, §4 field 1, and §5 updated.
+Scope discipline (per the owner authorization): this correction adds **no** file
+(the `StateOutcome` type lives in the already-listed `market_control_card.py`; the
+guard in the already-listed `runtime/__init__.py`), **no** contract key, **no**
+new card field, and changes **no** FILES/LOC estimate, product scope, or D-1…D-5.
+Next: **one final** independent Codex exact-head confirmation of the corrected
+head. If it finds any additional boundary omission, the packet stops and returns
+to Dustin — no further correction loop without his ruling (GOV-2 §7). No
+implementation authority is created by this correction.
 
 DERIVED AT: `main` @ `daa7065d4fb5ee5a4a051de05bd1d18cae375afc` (== `origin/main`;
 the merge of PR #221, Owner-Merge / Agent-Managed-Closeout Convention). Working
@@ -114,8 +144,10 @@ Required order and current position:
 | 2 | Author produces provisional packet | DONE (this document) |
 | 3 | Independent Codex review of packet + surface | **DONE** — reviewed `0a8f57ebf2`; two P2 findings, both valid (§16) |
 | 4 | One consolidated author correction | **DONE** — correction 1 (top of packet); F1+F2 ACTIONED |
-| 5 | Independent exact-corrected-head confirmation | **DONE — NOT CLEAN.** Reviewed `f0a55a3`; one NEW valid P2 (STATE reason does not reach the builder, §16). Per GOV-2 §6/§7 → packet **DESIGN INCOMPLETE**; incremental patching stops |
-| 6 | Dustin design-direction ruling | **blocked** — Dustin first chooses the GOV-2 §6 path (rebuild / narrow / authorize one more correction / park) |
+| 5 | Independent exact-corrected-head confirmation | **DONE** — reviewed `f0a55a3`; F2 confirmed resolved, one NEW valid P2 (F3: STATE reason does not reach the builder, §16) |
+| 5b | **Owner-authorized exceptional correction 2** | **DONE** — Dustin authorized one bounded correction beyond the GOV-1 cycle; F3 ACTIONED via the typed `StateOutcome` (correction log + §3/§4.1/§5) |
+| 5c | Final independent exact-head confirmation | **PENDING** — one final Codex confirmation of the corrected head; stop-and-return-to-Dustin if any additional omission |
+| 6 | Dustin design-direction ruling | not started — **owner hold** (after review-clean) |
 | 7 | PRD drafted + fresh-context independent review | not started |
 | 8 | Dustin Gate A | not started — **owner hold** |
 
@@ -268,15 +300,28 @@ side-effect-free, so one additional always-on call
 raises when the 09:30–09:35 ET window holds fewer than five bars, a reachable
 state for a post-09:45 SPY frame with sparse/late provider bars. The existing
 production call site already isolates this in `try/except Exception`
-(`runtime/__init__.py:1465-1471`, mapping failure to unavailable). The card's
-always-on call **must** reuse that same isolation: catch
-`InsufficientDataError` (and any computation/data error) and map it to
-`STATE = UNAVAILABLE(reason="insufficient_bars")`. A bare call would let a
-missing provider bar **fail the daily pipeline** instead of emitting the promised
-UNAVAILABLE — violating §8 (the card has no effect on execution) and the
-fail-loud-in-the-right-place principle (the card is read-only; it must not be the
-thing that halts the run). This isolation is a hard part of the D-1 design, not
-an implementation detail left to the PRD.
+(`runtime/__init__.py:1465-1471`, setting `intra_state = None` on failure). The
+card's always-on call **must** reuse that isolation so a missing provider bar can
+never **fail the daily pipeline** (violating §8 and the fail-loud-in-the-right-
+place principle — the read-only card must not be the thing that halts the run).
+
+**The guard produces a typed STATE outcome, not a bare `IntraState | None`
+(correction 2, owner-authorized — resolves the step-5 P2).** A bare `None` on
+catch cannot distinguish an `InsufficientDataError` (which must surface as
+`insufficient_bars`) from a natural pre-open/not-computed `None`. So the guarded
+computation in `_run_pipeline` yields a small typed `StateOutcome` (§5) carrying
+**exactly one of**: the computed `IntraState`, or an explicit typed
+`unavailable_reason` token (`pre_open` / `insufficient_bars` / `not_computed`).
+The guard sets the reason from the two disjoint failure modes — a caught
+`InsufficientDataError` → `insufficient_bars`; a `None` return → the engine's
+documented pre-09:45 / no-state reason — and passes the `StateOutcome` into
+`build_market_control_card`. The builder then produces the final STATE card value
+(the `IntraState.state` string, or `UNAVAILABLE` plus `state_reason`) from that
+typed input — so **the builder still produces every final card value (§2.3), and
+the exception→reason mapping stays in the guard, never in the renderer.** The
+guarded computation and the `StateOutcome` type both live in the already-listed
+FILES (`runtime/__init__.py`, `cuttingboard/market_control_card.py`); this adds
+no file, no contract key, and no card field.
 
 **Whether v1 includes this always-on STATE call, or instead ships STATE as
 "available-only-when-SPY-is-a-short-candidate / else UNAVAILABLE," is an
@@ -290,13 +335,16 @@ the call is made.**
 Each field is `value | UNAVAILABLE(reason)`. "Source" is the producer;
 "Derivation" is what `build_market_control_card` does.
 
-1. **STATE** — market-state classification. Source: `IntraState.state`
-   (`RANGE`/`FAILED_EXPANSION`/`EXPANSION_CONFIRMED`). Derivation: pass-through of
-   the SPY `IntraState.state`; `UNAVAILABLE` with reason (`pre_open` /
-   `insufficient_bars` / `not_computed`) when the call returns `None` **or raises
-   `InsufficientDataError` / any computation error — the call is wrapped in the
-   §3 guard and a raise maps to `UNAVAILABLE(reason="insufficient_bars")`, never
-   propagates**. Depends on D-1 (§15).
+1. **STATE** — market-state classification. Source: the typed `StateOutcome` (§5)
+   from the §3-guarded SPY call — carrying either the computed `IntraState` or a
+   typed `unavailable_reason`. Derivation: the builder emits `IntraState.state`
+   (`RANGE`/`FAILED_EXPANSION`/`EXPANSION_CONFIRMED`) when the outcome carries a
+   state, else `UNAVAILABLE` with the carried `state_reason` (`pre_open` /
+   `insufficient_bars` / `not_computed`). The exception→reason mapping happens in
+   the §3 guard (a raised `InsufficientDataError` → `insufficient_bars`, never
+   propagates); the builder produces the final STATE value from the typed input,
+   so `insufficient_bars` is distinguishable from a natural pre-open `None`.
+   Depends on D-1 (§15).
 2. **LOCATION** — price vs session anchors. Source: the existing `SpyObservation`
    (`session_vwap`, `price_vs_vwap`, `orb`, `current_price`). Derivation:
    pass-through/compose from the already-built `SpyObservation`; inherits its
@@ -341,10 +389,19 @@ Each field is `value | UNAVAILABLE(reason)`. "Source" is the producer;
 
 ## 5. Sidecar contract (`MarketControlCard`)
 
-New frozen dataclass in `cuttingboard/market_control_card.py`, transient and
-non-persisted (mirrors `SpyObservation`):
+New frozen dataclasses in `cuttingboard/market_control_card.py`, transient and
+non-persisted (mirrors `SpyObservation`). The `StateOutcome` type (correction 2)
+is the typed carrier that lets the §3 guard convey *why* STATE is unavailable
+without moving the mapping into the renderer:
 
 ```
+@dataclass(frozen=True)
+class StateOutcome:
+    # Typed result of the §3-guarded always-on SPY IntraState call.
+    # Exactly one side is populated; produced in _run_pipeline, consumed by the builder.
+    state: IntraState | None = None            # the computed state, when available
+    unavailable_reason: str | None = None      # "pre_open" | "insufficient_bars" | "not_computed"
+
 @dataclass(frozen=True)
 class MarketControlCard:
     observed_symbol: str            # "SPY"
@@ -367,8 +424,10 @@ class MarketControlCard:
 
 **Builder inputs (binding).** `build_market_control_card` is pure and reads only
 what `_run_pipeline` passes it: the already-built `SpyObservation` (LOCATION), the
-SPY `IntraState` result of the §3-guarded call (STATE), `system_state.permission`
-(PERMISSION), the halt flag, and the kill-switch state (INVALIDATION). **If D-3
+typed **`StateOutcome`** from the §3-guarded call (STATE — carries the computed
+`IntraState` **or** the typed `unavailable_reason`, so the builder emits the right
+STATE value/reason itself), `system_state.permission` (PERMISSION), the halt flag,
+and the kill-switch state (INVALIDATION). **If D-3
 adopts the candidate rollup (§4 field 7, Codex F2), the selected candidate data
 — `visibility_map` (`runtime/__init__.py:1140`) and/or `trade_decisions` — is an
 additional explicit builder input and rides the same transient carrier; it is NOT
@@ -387,7 +446,7 @@ VISION read-only-sidecars-by-default and keeps the decision contract frozen.
 
 | Field | Verdict | If new, what exactly |
 |---|---|---|
-| STATE | EXISTS (conditional) | Optionally one always-on `compute_intraday_state("SPY", spy_bars)` call so STATE is present most sessions (D-1). Engine unchanged. |
+| STATE | EXISTS (conditional) | Optionally one always-on `compute_intraday_state("SPY", spy_bars)` call so STATE is present most sessions (D-1), guarded and carried into the builder via the typed `StateOutcome` (§3, §5). Engine unchanged. |
 | LOCATION | EXISTS | none — reuse `SpyObservation`. |
 | EVENT | NEW | none in v1 — emit UNAVAILABLE (deferred NS-2D). |
 | TRANSITION | NEW | none in v1 — emit UNAVAILABLE (no source; forbidden to source from presentation lifecycle). |
@@ -678,24 +737,25 @@ installed in the packet-authoring environment).
   runtime, not the renderer) to produce every card value. Doing the reason-mapping
   outside the builder conflicts with §2.3. Confirmed valid by the author against
   `intraday_state_engine.py:130-138` and `runtime/__init__.py:1465-1471`.
-- **Disposition: BLOCKED/PARKED (GOV-2 §7).** The finding is valid; the packet is
-  **not review-clean**; no downstream authority may proceed; the connector thread
-  remains unresolved until Dustin resumes, narrows, or retires the packet.
-- **GOV-2 §6/§7 consequence: the packet reopens as DESIGN INCOMPLETE.** The new
-  omission is in the STATE input-carrier that correction 1 itself introduced —
-  the author does not certify the completeness of the boundary it chose, and the
-  single GOV-1 correction cycle is already consumed, so the author **does not
-  self-apply a second correction**. Dustin chooses the path.
-- **Obvious remedy (recorded, NOT applied — awaits Dustin's authorization of a
-  further cycle):** pass a typed STATE outcome into the builder — either the
-  `IntraState` OR an explicit unavailable-reason token (`pre_open` /
-  `insufficient_bars` / `not_computed`) — so the §3 guard's mapping reaches the
-  builder and §2.3 holds. If Dustin instead **narrows** by dropping the always-on
-  STATE (D-1 → available-only-when-short-candidate), the reason-carrier need
-  disappears and this finding is mooted.
+- **GOV-2 §6/§7 consequence at the time:** the packet reopened as DESIGN
+  INCOMPLETE; the omission was in the STATE input-carrier that correction 1 itself
+  introduced, so the author did not self-certify its own boundary and did not
+  self-apply a second correction. The decision went to Dustin.
+- **Resolution — Dustin authorized one exceptional bounded correction.** Scoped
+  exactly to this defect. F3 is **ACTIONED** by consolidated correction 2 (the
+  typed `StateOutcome` — §3, §4 field 1, §5; correction log at the top). The
+  connector thread's disposition is therefore ACTIONED (fix in the corrected head
+  below); it remains unresolved on GitHub only pending the final exact-head
+  confirmation.
 
-Until Dustin sets the GOV-2 §6 path and the packet is re-confirmed review-clean,
-it confers no downstream authority.
+### FINAL EXACT-HEAD CONFIRMATION (owner-authorized correction 2) — **PENDING**
+
+The exceptional-correction head requires one final independent Codex confirmation
+that F3 is resolved and no additional boundary omission exists. Dustin re-triggers
+it (`@codex review`). Per his authorization and GOV-2 §7, if that review finds any
+additional boundary omission the packet **stops and returns to Dustin** — no
+further correction loop without his ruling. Until it returns clean, the packet
+remains PROVISIONAL — NOT REVIEW-CLEAN and confers no downstream authority.
 
 ### AUTHOR SELF-VERIFICATION (GOV-2 §3 — NOT independent review)
 
