@@ -285,14 +285,14 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-265 | #154 | Coverage marker: persist RegimeState.total_votes so bounded days are identifiable across runs | COMPLETE | [PRD-265](prd_history/PRD-265.md) |
 | PRD-266 | bc0a82b | Governance: model-role lane, drafter-not-reviewer constraint, commission-scope trace-to-surface | COMPLETE | [PRD-266](prd_history/PRD-266.md) |
 | PRD-267 | 724d84a | Coverage-reason surfacing (daily): fix 80-char truncation dropping the vote-coverage clause | COMPLETE | [PRD-267](prd_history/PRD-267.md) |
-| PRD-268 | — | Coverage-reason surfacing (hourly): build the reason when qualify_all is skipped on STAY_FLAT | IN PROGRESS | [PRD-268](prd_history/PRD-268.md) |
+| PRD-268 | — | Coverage-reason surfacing (hourly): build the reason when qualify_all is skipped on STAY_FLAT | PROPOSED | [PRD-268](prd_history/PRD-268.md) |
 | PRD-269 | #163 | Close the doc-status blind spot in validate_prd_registry.py (25 registry-COMPLETE rows across three failure shapes whose docs never agreed) | COMPLETE | [PRD-269](prd_history/PRD-269.md) |
 | PRD-270 | #164 | Correct PRD-245 registry provenance (phantom 6017ce9 → merged 8bea09c) | COMPLETE | [PRD-270](prd_history/PRD-270.md) |
 | PRD-271 | 4902b1f | ORB/session provenance: opening range lacks trustworthy session identity (positional mid-session slice + unvalidated session selection) | COMPLETE | [PRD-271](prd_history/PRD-271.md) |
 | PRD-272 | 724d84a | PROJECT_STATE sweep: correct seven stale queue-authority claims | COMPLETE | [PRD-272](prd_history/PRD-272.md) |
 | PRD-273 | 4a1cb22 | Pin ruff and declare the lint selection explicitly | COMPLETE | [PRD-273](prd_history/PRD-273.md) |
 | PRD-274 | — | Restore resolved-rule agreement coverage for the ruff lint baseline | IN PROGRESS | [PRD-274](prd_history/PRD-274.md) |
-| PRD-275 | — | Mechanically enforce review-artifact append-only and merged-commit SHA pinning | IN PROGRESS | [PRD-275](prd_history/PRD-275.md) |
+| PRD-275 | — | Mechanically enforce review-artifact append-only and merged-commit SHA pinning | PROPOSED | [PRD-275](prd_history/PRD-275.md) |
 | PRD-276 | 590dc75 | Lane Downgrade Prohibition: payload-vs-pointer, and drop the registry contradiction | COMPLETE | [PRD-276](prd_history/PRD-276.md) |
 | PRD-277 | 4b0f3ba | Lane-guard patch: enumerate PRD docs, validate CLASS, accept the micro-template marker | COMPLETE | [PRD-277](prd_history/PRD-277.md) |
 | PRD-278 | #196 | Hourly kill-switch bypass: evaluate before qualification, carry terminal HALT through hourly outputs | COMPLETE | [PRD-278](prd_history/PRD-278.md) |
@@ -300,7 +300,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-280 | #198 | Decision-state color derives from authoritative title, not system_halted alone | COMPLETE | [PRD-280](prd_history/PRD-280.md) |
 | PRD-281 | #199 | Decision-State WHY Summary | COMPLETE | [PRD-281](prd_history/PRD-281.md) |
 | PRD-282 | #203 | Opportunity Survival Summary | COMPLETE | [PRD-282](prd_history/PRD-282.md) |
-| PRD-283 | — | Smallest-contract refusal: refuse when the smallest options contract exceeds the correlation-adjusted risk budget, and carry the true reason through every consumer | IN PROGRESS | [PRD-283](prd_history/PRD-283.md) |
+| PRD-283 | f806f5b | Smallest-contract refusal: refuse when the smallest options contract exceeds the correlation-adjusted risk budget, and carry the true reason through every consumer | COMPLETE | [PRD-283](prd_history/PRD-283.md) |
 | PRD-284 | dbcb5d3 | Full A2 materialization: apply the execution-policy size multiplier to contracts/dollar_risk, block at EXECUTION_POLICY when the position rounds to zero | COMPLETE | [PRD-284](prd_history/PRD-284.md) |
 | PRD-285 | a47f144 | Trade-brake dormancy (CB-04): stop counting recommendations/hypothetical evaluations as executed trades; hold trade-count, cooldown, and loss-lockout brakes fully dormant until a trustworthy execution/fill carrier exists | COMPLETE | [PRD-285](prd_history/PRD-285.md) |
 | PRD-286 | 9856ba5 | Macro-pressure fail-closed (CB-05): a macro-pressure computation failure must block, not silently degrade to "UNKNOWN" and allow full size | COMPLETE | [PRD-286](prd_history/PRD-286.md) |

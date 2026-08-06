@@ -1278,7 +1278,7 @@
     {
       "number": 268,
       "title": "Coverage-reason surfacing (hourly): build the reason when qualify_all is skipped on STAY_FLAT",
-      "status": "IN PROGRESS",
+      "status": "PROPOSED",
       "commit": null
     },
     {
@@ -1320,7 +1320,7 @@
     {
       "number": 275,
       "title": "Mechanically enforce review-artifact append-only and merged-commit SHA pinning",
-      "status": "IN PROGRESS",
+      "status": "PROPOSED",
       "commit": null
     },
     {
@@ -1368,8 +1368,8 @@
     {
       "number": 283,
       "title": "Smallest-contract refusal: refuse when the smallest options contract exceeds the correlation-adjusted risk budget, and carry the true reason through every consumer",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "f806f5b"
     },
     {
       "number": 284,

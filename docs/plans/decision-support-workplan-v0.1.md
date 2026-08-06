@@ -36,18 +36,18 @@ the PRD-267/272/273 lifecycle closeouts remain unresolved.
 | Packet | State | Concern | Mutation permission | Exit |
 |---|---|---|---|---|
 | GOV-0 | COMPLETE | Land doctrine, workplan, and charge template | Docs-only governance PR | True when its held PR merges |
-| L0 | IN PROGRESS | Reconcile PRD-267/268/271/272/273 lifecycle truth | Bookkeeping only after rulings | Registry validator green |
-| D-RULE | HELD FOR DUSTIN MERGE | Make Finding D refusal ruling canonical | PR #167 only | Ruling on `main` |
-| OPT-0 | EVIDENCE BLOCKED | Trace Finding D implementation seam | Read-only findings artifact | Gate A-ready answers |
-| OPT-1 | EVIDENCE BLOCKED | Implement smallest-contract refusal after OPT-0 | Future HIGH-RISK PRD | Reviewed draft PR |
-| DOC-0 | PROPOSED | Correct stale proposal headers | Docs-only bounded change | Headers match reality |
-| MACRO-0 | HELD FOR DUSTIN DECISION | Keep, promote, or retire PRD-187/188 track | Read-only decision packet | One explicit state |
+| L0 | COMPLETE (2026-08-05) | Reconcile PRD-267/268/271/272/273 lifecycle truth | Bookkeeping only after rulings | Met: PRD-267/271/272/273 all COMPLETE with real merged provenance; PRD-268 returned to PROPOSED and PARKED on Dustin's 2026-08-05 ruling (its last open disposition); `tools/validate_prd_registry.py --skip-commit-resolvability` exits 0 |
+| D-RULE | COMPLETE | Make Finding D refusal ruling canonical | PR #167 only | Met: the ruling is on `main` (`docs/DECISIONS.md`, 2026-07-24 "Finding D RULED"), merged via PR #167 on 2026-07-26 |
+| OPT-0 | SUPERSEDED (2026-08-05) | Trace Finding D implementation seam | Read-only findings artifact | Superseded by PRD-283. Its two evidence artifacts are durably in-tree under `audits/current-state-reconciliation-2026-07-30/` (imported out of order under a historical banner); PR #184 is closed as superseded, not merged. See `docs/DECISIONS.md` 2026-08-05 "TRUTH-SYNC" |
+| OPT-1 | SUPERSEDED (2026-08-05) | Implement smallest-contract refusal after OPT-0 | Future HIGH-RISK PRD | Superseded by PRD-283, which restarted this line under its own number and merged to `main` as `f806f5b` on 2026-08-03 (HIGH-RISK/EXECUTION; validated at the exact merged head by `docs/prd_history/PRD-283.review.claude.md`). PR #185 (the abandoned OPT-1/PRD-278 draft) carries no authority. See `docs/DECISIONS.md` 2026-08-05 "TRUTH-SYNC" |
+| DOC-0 | COMPLETE (2026-08-05) | Correct stale proposal headers | Docs-only bounded change | Met: the PRD-251 continuation-path and PRD-259 first-fire-consumers proposal headers now state their current disposition on the first screen |
+| MACRO-0 | KEEP DORMANT (2026-08-05, ruled: Dustin) | Keep, promote, or retire PRD-187/188 track | Read-only decision packet | Met by explicit ruling: PRD-187 stays a manual/evaluation-only producer, PRD-188 stays PROPOSED and unpromoted, the read-only decision packet is not run. Re-evaluate only if Dustin reopens the track |
 | PRES-0 | DEFERRED | PRD-259 Findings E/F/G | No current build | Separately promoted |
 | NEWS-0 | EVIDENCE BLOCKED | Static news registry and schema after L0 | Future planning/PRD | Approved static contract |
 | NEWS-1 | EVIDENCE BLOCKED | Manual news producer after NEWS-0 | Future SIDECAR PRD | Useful artifact |
 | NEWS-2 | EVIDENCE BLOCKED | News usefulness evaluation after NEWS-1 | Evaluation only | KEEP/REVISE/RETIRE |
 | NEWS-3 | EVIDENCE BLOCKED | Display consumer after NEWS-2 | Future CONSUMER PRD | Baseline-neutral display |
-| GEX-0 | EVIDENCE BLOCKED | One-provider live evidence pass after L0 | Network research only | PASS or bounded stop |
+| GEX-0 | EVIDENCE BLOCKED (commissioned 2026-08-05; L0 gate now cleared) | One-provider live evidence pass after L0 | Network research only | Exactly one verdict: `PROVIDER VIABLE`, `PROVIDER NOT VIABLE`, or `EVIDENCE INCOMPLETE` — each speaking only to the one provider examined in that bounded pass. The first commissioned pass (2026-08-05) stopped without a verdict: egress policy denied all provider hosts, so no primary evidence could be gathered. GEX-0 stays EVIDENCE BLOCKED pending an egress grant |
 | GEX-1 | EVIDENCE BLOCKED | Manual cached GEX producer after GEX-0 | Future SIDECAR PRD | Honest artifact |
 | GEX-2 | EVIDENCE BLOCKED | Display-only consumer after GEX-1 | Future CONSUMER PRD | Baseline-neutral display |
 | ODATA-0 | EVIDENCE BLOCKED | Refresh future options-data proposals after OPT-1 | Read-only recon | Ranked, current backlog |
@@ -372,10 +372,16 @@ Separate CONSUMER PRD after `KEEP`:
 Network-enabled, read-only, one provider.
 
 The artifact must answer every minimum-honesty field from the doctrine with
-current primary evidence and a real response. It ends in exactly one verdict:
+current primary evidence and a real response. It ends in exactly one verdict
+(amended 2026-08-05 per doctrine §4.3; each speaks only to the one provider
+examined in this bounded pass, never to the existence of a viable provider):
 
-- `PROVIDER PASSES BOUNDED HONESTY CONTRACT`; or
-- `NO VIABLE PROVIDER IN BOUNDED PASS`.
+- `PROVIDER VIABLE`;
+- `PROVIDER NOT VIABLE`; or
+- `EVIDENCE INCOMPLETE`.
+
+`PROVIDER NOT VIABLE` or `EVIDENCE INCOMPLETE` ends the track until Dustin
+explicitly commissions a fresh pass.
 
 No second provider, code, abstraction, schema implementation, or PRD number is
 authorized automatically.
