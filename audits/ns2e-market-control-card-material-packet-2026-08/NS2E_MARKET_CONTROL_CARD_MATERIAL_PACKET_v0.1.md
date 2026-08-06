@@ -1,41 +1,41 @@
 # NS-2E — Market Control Card — MATERIAL PACKET (v0.1)
 
-STATUS: **PROVISIONAL — NOT REVIEW-CLEAN (owner-authorized exceptional correction 2
-applied; final exact-head confirmation pending).** This is the upstream GOV-2
+STATUS: **PROVISIONAL — NOT REVIEW-CLEAN (owner-authorized FINAL correction 3 for
+F4 applied; final exact-head confirmation pending).** This is the upstream GOV-2
 MATERIAL packet for NS-2E (Market Control Card). It carries **no implementation
-authority**. The GOV-2 §2 step-5 exact-corrected-head confirmation of `f0a55a3`
-surfaced a new valid P2 (the STATE unavailable-reason did not reach the builder),
-tied to the STATE input-carrier consolidated correction 1 introduced — which
-reopened the packet as DESIGN INCOMPLETE (GOV-2 §6/§7). **Dustin then authorized
-one exceptional, narrowly bounded correction beyond the single GOV-1 cycle**,
-scoped exactly to that defect. **Consolidated correction 2** (below) applies it:
-a typed `StateOutcome` now carries the guarded computation's state-or-reason into
-`build_market_control_card`, so the builder still produces every final card value
-(§2.3) and the exception→reason mapping stays in the guard, never the renderer.
-No contract, FILES estimate, product scope, or D-1…D-5 changed.
+authority**. History of the bounded corrections: correction 1 (GOV-1 cycle,
+F1+F2); correction 2 (owner-authorized exceptional — F3, the typed `StateOutcome`
+reason-carrier); correction 3 (owner-authorized FINAL — F4, below). Two
+exact-head confirmations preceded this: step-5 on `f0a55a3` found F3; the final
+confirmation on `3ff6c04` verified F3 resolved and found F4 (STATE not gated on
+the SPY observation's session/freshness); the author stopped and returned to
+Dustin, who **ratified the record-only stop commit `6fdc908`** and **authorized
+one final, narrowly bounded correction for F4 only**.
 
-**UPDATE — final exact-head confirmation of `3ff6c04`: NOT CLEAN → STOPPED (DESIGN
-INCOMPLETE), HELD FOR DUSTIN.** The final Codex confirmation verified **F3
-resolved** (the typed `StateOutcome` works) but surfaced a **NEW valid P2 (F4):
-STATE is not gated on the observation session/freshness.** `compute_intraday_state`
-gates only on the last bar's wall-clock time (`intraday_state_engine.py:432,435`)
-and never compares the frame's date to the intended session, whereas
-`build_spy_observation` does session-gate (STALE/session_mismatch,
-`spy_observation.py:99-114`) — so the always-on STATE could forward a prior-session
-state as today's, contradicting the freshness-gated LOCATION on the same card.
-Per Dustin's correction-2 authorization (*"stop if that review finds any
-additional boundary omission; do not enter another correction loop without my
-ruling"*) and GOV-2 §7, the author **stops** — F4 is NOT corrected. The packet is
-DESIGN INCOMPLETE and returns to Dustin for a GOV-2 §6 decision (§16 records F4;
-§15 D-1 and the repeated-friction note frame the choice). Downstream authority
-(PRD, Gate A) remains prohibited.
+**Consolidated correction 3 (below) applies F4:** the §3 guard now consults the
+already-built `SpyObservation` session/freshness truth and forwards a computed
+`IntraState` only when the observation is `OBSERVED`; any non-current / non-fresh
+observation maps to `StateOutcome(unavailable_reason="non_current_observation")`,
+so STATE can never be surfaced from a stale or prior-session frame and stays
+consistent with the freshness-gated LOCATION. The builder remains the sole
+producer of the final STATE value; the mapping stays in the guard, never the
+renderer. No new card field, decision-contract key, persistence surface, or
+source; no change to D-1…D-5, product scope, or the FILES/LOC estimate.
+
+**Terminal condition (owner ruling):** the corrected head now requires **one
+final exact-head Codex confirmation**. If that review finds any further boundary
+omission, the packet **stops permanently and returns for a redesign decision — no
+additional correction cycle.** Downstream authority (PRD, Gate A) remains
+prohibited until the packet is review-clean.
 
 GOV-2 §2 order: independent Codex packet review (step 3, DONE), consolidated
 correction (step 4, DONE), independent exact-corrected-head confirmation (step 5,
 DONE — found F3), **owner-authorized exceptional correction 2 (applied — resolved
-F3)**, final exact-head confirmation (DONE — **found NEW F4; STOPPED per owner
-instruction + GOV-2 §7**), Dustin's GOV-2 §6 decision (**pending**), then — if the
-packet becomes review-clean — his design-direction ruling (step 6), a
+F3)**, final exact-head confirmation of `3ff6c04` (DONE — found F4; STOPPED),
+record-only stop commit `6fdc908` (**owner-ratified**), **owner-authorized FINAL
+correction 3 for F4 (applied)**, one final exact-head confirmation (**pending** —
+terminal: any further omission → permanent stop / redesign, no more cycles), then
+— if review-clean — Dustin's design-direction ruling (step 6), a
 drafted+independently-reviewed PRD (step 7), and Dustin's Gate A (step 8).
 
 CORRECTION LOG — Consolidated correction 1 (GOV-2 §2 step 4). The independent
@@ -62,6 +62,36 @@ This consumed the single GOV-1 correction cycle.
 finding was actioned in correction 1 (§4 field 7, §5) and the GOV-2 step-5
 exact-corrected-head confirmation of `f0a55a3` verified it resolved (no re-raise).
 It is closed on the merits; the F2 connector thread needs no further design change.
+
+**Owner ratification of `6fdc908`.** Dustin ratified commit
+`6fdc9087709c9343ca861477db8dc17b49c1d6a3` as an owner-accepted, record-only
+clarification (it truthfully records the final-confirmation result and stop
+condition and changes no design, contract, scope, D-1…D-5, or FILES/LOC estimate).
+It is retained (not reverted).
+
+CORRECTION LOG — Consolidated correction 3 (OWNER-AUTHORIZED FINAL, F4 ONLY). The
+final exact-head confirmation of `3ff6c04` surfaced F4 — STATE was not gated on
+the SPY observation's session/freshness, so a stale or prior-session frame could
+surface a valid-looking state. Dustin ruled: **STATE must never be surfaced from a
+non-current SPY observation; gate STATE using the existing `SpyObservation`
+session/freshness truth; map a non-current/non-fresh observation to a typed
+unavailable outcome carried into `build_market_control_card`; the builder remains
+the sole producer of the final STATE value; no renderer semantics; no new card
+field, decision-contract key, persistence surface, or source; no change to
+D-1…D-5, product scope, or FILES/LOC estimate.** Applied:
+- **F4 (Codex final, packet L319) — gate STATE on observation session/freshness.**
+  The §3 guard now consults the already-built `SpyObservation.state` and forwards a
+  computed `IntraState` only when it is `OBSERVED` (current session, fresh); any
+  `PRE_OPEN`/`STALE`/`UNAVAILABLE` observation →
+  `StateOutcome(unavailable_reason="non_current_observation")` regardless of the
+  computed state. §3, §4 field 1, and §5 updated; `non_current_observation` is a new
+  value of the existing `state_reason`, not a new field. The gate reuses the
+  existing `SpyObservation` (no new source/fetch); the builder still produces the
+  final STATE value; the mapping stays in the guard, never the renderer.
+This is the owner-authorized FINAL bounded correction. **Terminal condition:** if
+the final exact-head confirmation finds any further boundary omission, the packet
+stops permanently and returns for a redesign decision — no additional correction
+cycle. No implementation authority is created by this correction.
 
 CORRECTION LOG — Consolidated correction 2 (OWNER-AUTHORIZED EXCEPTIONAL, beyond
 the single GOV-1 cycle). The GOV-2 step-5 exact-corrected-head confirmation of
@@ -160,7 +190,9 @@ Required order and current position:
 | 5 | Independent exact-corrected-head confirmation | **DONE** — reviewed `f0a55a3`; F2 confirmed resolved, one NEW valid P2 (F3: STATE reason does not reach the builder, §16) |
 | 5b | **Owner-authorized exceptional correction 2** | **DONE** — Dustin authorized one bounded correction beyond the GOV-1 cycle; F3 ACTIONED via the typed `StateOutcome` (correction log + §3/§4.1/§5) |
 | 5c | Final independent exact-head confirmation | **DONE — NOT CLEAN.** Reviewed `3ff6c04`; F3 confirmed resolved, one NEW valid P2 (F4: STATE not gated on observation session/freshness, §16). Per owner instruction + GOV-2 §7 → **STOPPED, DESIGN INCOMPLETE**; F4 not corrected |
-| 5d | Dustin GOV-2 §6 decision on F4 | **PENDING — owner hold** (narrow / one more bounded correction / rebuild / park) |
+| 5d | Dustin GOV-2 §6 decision on F4 | **DONE** — Dustin ratified the record-only `6fdc908` and authorized one FINAL bounded correction for F4 only |
+| 5e | **Owner-authorized FINAL correction 3 (F4)** | **DONE** — STATE gated on `SpyObservation` session/freshness → `non_current_observation` (correction log + §3/§4.1/§5) |
+| 5f | Final exact-head confirmation (terminal) | **PENDING** — one final Codex confirmation; any further omission → **permanent stop / redesign, no more cycles** |
 | 6 | Dustin design-direction ruling | not started — **owner hold** (after review-clean) |
 | 7 | PRD drafted + fresh-context independent review | not started |
 | 8 | Dustin Gate A | not started — **owner hold** |
@@ -337,6 +369,29 @@ guarded computation and the `StateOutcome` type both live in the already-listed
 FILES (`runtime/__init__.py`, `cuttingboard/market_control_card.py`); this adds
 no file, no contract key, and no card field.
 
+**STATE is gated on the SPY observation's session and freshness (correction 3,
+owner-authorized FINAL — resolves F4).** `compute_intraday_state` gates only on
+the last bar's wall-clock time (`intraday_state_engine.py:432,435`,
+`current_et_time < _NOISE_END`) and never compares the frame's date to the
+intended session, so a prior-session or stale post-09:45 frame can produce a
+valid-looking `IntraState`. `build_spy_observation` already carries the
+authoritative session/freshness truth for the same frame — its `state`
+(`PRE_OPEN` / `OBSERVED` / `STALE` / `UNAVAILABLE`) and reason
+(`spy_observation.py:25-28,99-114`). Therefore the §3 guard **first consults the
+already-built `SpyObservation` (the same object used for LOCATION) and forwards a
+computed `IntraState` only when `obs.state == OBSERVED` (current session, fresh).
+For any non-current / non-fresh observation (`PRE_OPEN` / `STALE` / `UNAVAILABLE`)
+the guard sets `StateOutcome(unavailable_reason="non_current_observation")`
+regardless of what `compute_intraday_state` returns**, so STATE can never be
+surfaced from a stale or prior-session frame and stays consistent with the
+freshness-gated LOCATION on the same card. The gate reuses the existing
+`SpyObservation` truth (no new source, no new fetch); the reason travels as a
+value of the existing `StateOutcome.unavailable_reason` / `state_reason` (no new
+field, no new type); the builder remains the sole producer of the final STATE
+value (it maps this typed outcome to `UNAVAILABLE` + reason); the mapping stays
+in the guard, never the renderer. No file, contract key, card field, persistence
+surface, product scope, FILES/LOC estimate, or D-1…D-5 changes.
+
 **Whether v1 includes this always-on STATE call, or instead ships STATE as
 "available-only-when-SPY-is-a-short-candidate / else UNAVAILABLE," is an
 unresolved owner decision (§15, D-1). Either way the guard above applies wherever
@@ -354,11 +409,16 @@ Each field is `value | UNAVAILABLE(reason)`. "Source" is the producer;
    typed `unavailable_reason`. Derivation: the builder emits `IntraState.state`
    (`RANGE`/`FAILED_EXPANSION`/`EXPANSION_CONFIRMED`) when the outcome carries a
    state, else `UNAVAILABLE` with the carried `state_reason` (`pre_open` /
-   `insufficient_bars` / `not_computed`). The exception→reason mapping happens in
-   the §3 guard (a raised `InsufficientDataError` → `insufficient_bars`, never
-   propagates); the builder produces the final STATE value from the typed input,
-   so `insufficient_bars` is distinguishable from a natural pre-open `None`.
-   Depends on D-1 (§15).
+   `insufficient_bars` / `not_computed` / `non_current_observation`). Two mappings
+   happen in the §3 guard, never the renderer: (a) a raised `InsufficientDataError`
+   → `insufficient_bars` (never propagates); and (b) **session/freshness gating
+   (correction 3, F4): STATE is forwarded only when the already-built
+   `SpyObservation` is `OBSERVED` for the intended session; any non-current /
+   non-fresh observation (`PRE_OPEN`/`STALE`/`UNAVAILABLE`) →
+   `non_current_observation`, regardless of the computed state.** The builder
+   produces the final STATE value from the typed input, so `insufficient_bars` and
+   a stale/prior-session read are both distinguishable from a live state and STATE
+   stays consistent with LOCATION's freshness. Depends on D-1 (§15).
 2. **LOCATION** — price vs session anchors. Source: the existing `SpyObservation`
    (`session_vwap`, `price_vs_vwap`, `orb`, `current_price`). Derivation:
    pass-through/compose from the already-built `SpyObservation`; inherits its
@@ -413,8 +473,8 @@ without moving the mapping into the renderer:
 class StateOutcome:
     # Typed result of the §3-guarded always-on SPY IntraState call.
     # Exactly one side is populated; produced in _run_pipeline, consumed by the builder.
-    state: IntraState | None = None            # the computed state, when available
-    unavailable_reason: str | None = None      # "pre_open" | "insufficient_bars" | "not_computed"
+    state: IntraState | None = None            # the computed state, forwarded ONLY when the SpyObservation is OBSERVED
+    unavailable_reason: str | None = None      # "pre_open" | "insufficient_bars" | "not_computed" | "non_current_observation"
 
 @dataclass(frozen=True)
 class MarketControlCard:
@@ -441,7 +501,11 @@ what `_run_pipeline` passes it: the already-built `SpyObservation` (LOCATION), t
 typed **`StateOutcome`** from the §3-guarded call (STATE — carries the computed
 `IntraState` **or** the typed `unavailable_reason`, so the builder emits the right
 STATE value/reason itself), `system_state.permission` (PERMISSION), the halt flag,
-and the kill-switch state (INVALIDATION). **If D-3
+and the kill-switch state (INVALIDATION). **The §3 guard that builds the
+`StateOutcome` consults the same `SpyObservation.state` (correction 3, F4): it
+forwards a computed `IntraState` only when the observation is `OBSERVED`, else
+emits `unavailable_reason="non_current_observation"`. This reuses the existing
+`SpyObservation` truth — no new builder input, source, or field.** **If D-3
 adopts the candidate rollup (§4 field 7, Codex F2), the selected candidate data
 — `visibility_map` (`runtime/__init__.py:1140`) and/or `trade_decisions` — is an
 additional explicit builder input and rides the same transient carrier; it is NOT
@@ -783,24 +847,29 @@ installed in the packet-authoring environment).
   post-09:45 frame yields a normal STATE presented as today's — contradicting the
   freshness-gated LOCATION on the same card. **Confirmed valid** by the author
   against `intraday_state_engine.py:400-438` and `spy_observation.py:99-114`.
-- **Disposition: BLOCKED/PARKED (GOV-2 §7).** Valid finding; packet not
-  review-clean; no downstream authority; connector thread left unresolved.
-- **STOPPED — no correction applied.** Per Dustin's correction-2 authorization
-  ("stop if that review finds any additional boundary omission; do not enter
-  another correction loop without my ruling") and GOV-2 §7, the author does **not**
-  correct F4. The packet is DESIGN INCOMPLETE and held for Dustin's GOV-2 §6
-  decision.
-- **Repeated-friction note (for Dustin's decision).** F3 and F4 both arise from
-  the always-on STATE call (D-1) bolting the session-agnostic
-  `compute_intraday_state` onto a session-gated card. Two consecutive exact-head
-  confirmations have each surfaced a STATE-derivation omission. The narrowing
-  option in D-1 (drop the always-on STATE → available-only-when-SPY-is-a-short-
-  candidate, or gate STATE behind the `SpyObservation` freshness state) would moot
-  this whole class of findings. Recorded so the §6 decision has the pattern in
-  view; the author makes no ruling.
+- **Disposition: ACTIONED (correction 3).** At the time of the confirmation the
+  finding was recorded BLOCKED/PARKED and the author stopped (per Dustin's
+  correction-2 authorization). Dustin then ratified the record-only stop commit
+  `6fdc908` and authorized one FINAL bounded correction for F4 only; **F4 is now
+  ACTIONED by consolidated correction 3** — the §3 guard gates STATE on the
+  `SpyObservation` session/freshness truth and maps a non-current/non-fresh
+  observation to `non_current_observation` (§3, §4 field 1, §5). The connector
+  thread's disposition is ACTIONED (fix in the corrected head); it remains
+  unresolved on GitHub only pending the terminal final confirmation.
+- **Repeated-friction note (retained).** F3 and F4 both arose from the always-on
+  STATE call (D-1) bolting the session-agnostic `compute_intraday_state` onto a
+  session-gated card. Dustin chose to keep the always-on STATE and close the class
+  by gating it on the existing `SpyObservation` freshness (correction 3's
+  approach), rather than narrow D-1.
 
-Until Dustin sets the GOV-2 §6 path and the packet is re-confirmed review-clean,
-it confers no downstream authority.
+### TERMINAL FINAL EXACT-HEAD CONFIRMATION (owner-authorized correction 3) — **PENDING**
+
+The correction-3 head requires **one final** independent Codex confirmation that
+F4 is resolved and no further boundary omission exists. Per Dustin's ruling this
+is **terminal**: if that review finds any additional boundary omission, the packet
+**stops permanently and returns for a redesign decision — no additional
+correction cycle**. Until it returns clean, the packet remains PROVISIONAL — NOT
+REVIEW-CLEAN and confers no downstream authority.
 
 ### AUTHOR SELF-VERIFICATION (GOV-2 §3 — NOT independent review)
 
