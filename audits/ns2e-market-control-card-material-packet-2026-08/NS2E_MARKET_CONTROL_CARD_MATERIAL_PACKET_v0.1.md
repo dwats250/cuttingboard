@@ -1,11 +1,23 @@
 # NS-2E — Market Control Card — MATERIAL PACKET (v0.1)
 
-STATUS: **PROVISIONAL — NOT REVIEW-CLEAN.** This is the upstream GOV-2 MATERIAL
-packet for NS-2E (Market Control Card). It carries **no implementation
-authority**. It is the author's provisional packet (GOV-2 §2 step 2). Before any
-downstream PRD, decision entry, or implementation authority may open it must
-clear: an independent Codex packet review (GOV-2 §2 step 3), one consolidated
-correction (step 4), independent exact-corrected-head confirmation (step 5),
+STATUS: **DESIGN INCOMPLETE (GOV-2 §6/§7) — HELD FOR DUSTIN'S DECISION.** This is
+the upstream GOV-2 MATERIAL packet for NS-2E (Market Control Card). It carries
+**no implementation authority**. The GOV-2 §2 step-5 exact-corrected-head
+confirmation of `f0a55a3` surfaced a **new valid P2** (the STATE unavailable-reason
+does not reach the builder — §16, confirmation record), tied to the STATE
+input-carrier that consolidated correction 1 itself introduced. Per GOV-2 §6/§7,
+a new material design omission found at exact-head confirmation **reopens the
+packet as DESIGN INCOMPLETE and stops incremental patching** — the single GOV-1
+correction cycle is already consumed, so the author does **not** self-apply a
+second correction. **Dustin chooses the path** (GOV-2 §6): rebuild from a fresh
+frame, narrow the claim (e.g. drop the always-on STATE / D-1, which removes the
+reason-carrier need), authorize one more bounded correction (GOV-1: a second
+round happens only because Dustin asks), or park. Downstream authority (PRD,
+Gate A) remains prohibited until the packet is review-clean.
+
+The full GOV-2 §2 order still to clear once Dustin sets the path: independent
+Codex packet review (step 3, DONE), one consolidated correction (step 4, DONE),
+independent exact-corrected-head confirmation (step 5, DONE — **not clean**),
 Dustin's design-direction ruling (step 6), a drafted+independently-reviewed PRD
 (step 7), and Dustin's Gate A (step 8).
 
@@ -102,8 +114,8 @@ Required order and current position:
 | 2 | Author produces provisional packet | DONE (this document) |
 | 3 | Independent Codex review of packet + surface | **DONE** — reviewed `0a8f57ebf2`; two P2 findings, both valid (§16) |
 | 4 | One consolidated author correction | **DONE** — correction 1 (top of packet); F1+F2 ACTIONED |
-| 5 | Independent exact-corrected-head confirmation | **PENDING — Dustin re-triggers `@codex review` on the corrected head** |
-| 6 | Dustin design-direction ruling | not started — **owner hold** |
+| 5 | Independent exact-corrected-head confirmation | **DONE — NOT CLEAN.** Reviewed `f0a55a3`; one NEW valid P2 (STATE reason does not reach the builder, §16). Per GOV-2 §6/§7 → packet **DESIGN INCOMPLETE**; incremental patching stops |
+| 6 | Dustin design-direction ruling | **blocked** — Dustin first chooses the GOV-2 §6 path (rebuild / narrow / authorize one more correction / park) |
 | 7 | PRD drafted + fresh-context independent review | not started |
 | 8 | Dustin Gate A | not started — **owner hold** |
 
@@ -645,13 +657,45 @@ Dustin commissioned this review by marking PR #222 ready for review (the connect
 auto-triggers on that event); it was not self-run by the author (Codex is not
 installed in the packet-authoring environment).
 
-### EXACT-CORRECTED-HEAD CONFIRMATION (GOV-2 §2 step 5) — **PENDING**
+### EXACT-CORRECTED-HEAD CONFIRMATION (GOV-2 §2 step 5) — **DONE — NOT CLEAN**
 
-The corrected head (this revision) requires an independent Codex confirmation that
-F1 and F2 are resolved at that exact head, with no new material boundary omission
-(GOV-2 §7). Dustin re-triggers it (`@codex review` on PR #222). Until that
-confirmation returns clean, the packet remains PROVISIONAL and confers no
-downstream authority.
+- Event type: `EXACT-CORRECTED-HEAD CONFIRMATION`.
+- Reviewer identity / role: `chatgpt-codex-connector[bot]` (Codex), fresh-context
+  second-model reviewer; re-triggered by Dustin's `@codex review` comment on
+  PR #222. Independent of the authoring session.
+- Reviewed commit: `f0a55a3d0094b7a66c762e93656cfb1244e04e0e` (the corrected head).
+- Review date: 2026-08-06.
+- Prior findings confirmed resolved: **F2** (candidate-outcome builder input) —
+  resolved at this head, no re-raise.
+- **NEW finding (P2), packet L359 — STATE failure reason does not reach the
+  builder.** The consolidated-correction-1 STATE guard maps a caught
+  `InsufficientDataError` to `UNAVAILABLE(insufficient_bars)`, but §5's binding
+  builder-input list passes only the guarded call's `IntraState | None` result.
+  The existing guard pattern (`runtime/__init__.py:1465-1471`) sets
+  `intra_state = None` on catch, so the builder receives bare `None` and **cannot
+  distinguish** `insufficient_bars` (caught raise) from a natural
+  `pre_open`/`not_computed` `None` — yet §2.3 requires the builder (not the
+  runtime, not the renderer) to produce every card value. Doing the reason-mapping
+  outside the builder conflicts with §2.3. Confirmed valid by the author against
+  `intraday_state_engine.py:130-138` and `runtime/__init__.py:1465-1471`.
+- **Disposition: BLOCKED/PARKED (GOV-2 §7).** The finding is valid; the packet is
+  **not review-clean**; no downstream authority may proceed; the connector thread
+  remains unresolved until Dustin resumes, narrows, or retires the packet.
+- **GOV-2 §6/§7 consequence: the packet reopens as DESIGN INCOMPLETE.** The new
+  omission is in the STATE input-carrier that correction 1 itself introduced —
+  the author does not certify the completeness of the boundary it chose, and the
+  single GOV-1 correction cycle is already consumed, so the author **does not
+  self-apply a second correction**. Dustin chooses the path.
+- **Obvious remedy (recorded, NOT applied — awaits Dustin's authorization of a
+  further cycle):** pass a typed STATE outcome into the builder — either the
+  `IntraState` OR an explicit unavailable-reason token (`pre_open` /
+  `insufficient_bars` / `not_computed`) — so the §3 guard's mapping reaches the
+  builder and §2.3 holds. If Dustin instead **narrows** by dropping the always-on
+  STATE (D-1 → available-only-when-short-candidate), the reason-carrier need
+  disappears and this finding is mooted.
+
+Until Dustin sets the GOV-2 §6 path and the packet is re-confirmed review-clean,
+it confers no downstream authority.
 
 ### AUTHOR SELF-VERIFICATION (GOV-2 §3 — NOT independent review)
 
