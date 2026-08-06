@@ -41,8 +41,21 @@ without another owner prompt —
 - close explicitly superseded PRs with a provenance comment;
 - reconcile local and remote branch state;
 - delete a merged or explicitly superseded branch only after proving it
-  contains no unique commits or unpreserved artifacts;
+  retains no unique unpreserved work — a squash-merged branch whose tree is
+  preserved on `main` qualifies even though its commits are not ancestors of
+  `main`; deletion turns on preservation of the work, not commit ancestry
+  (matching the §3 stop condition);
 - report the completed seam and any remaining product gate.
+
+These actions describe intended authority, not a grant that overrides the
+harness. Each remains subject to the live permission model
+(`.claude/settings.json`, the enforcement layer named in
+`docs/AGENT_WORKFLOW.md`). Where the harness denies a command an agent would
+otherwise run under this section — for example `gh pr ready`, branch or ref
+deletion, or `git checkout`/`restore` — the agent surfaces the blocked step
+for Dustin rather than treating it as autonomously available. Aligning the
+harness to permit these commands is a separate, explicitly reviewed change,
+not assumed by this convention.
 
 ## 3. Mandatory stop conditions
 

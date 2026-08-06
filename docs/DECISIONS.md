@@ -16,6 +16,40 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-06 — Owner-Merge / Agent-Managed-Closeout Convention ratified (ruled: Dustin)
+
+Dustin authored, and directed recording as owner-ratified governance (MICRO,
+no PRD), the Owner-Merge / Agent-Managed-Closeout Convention:
+`docs/governance/OWNER_MERGE_AGENT_CLOSEOUT_CONVENTION_2026-08-06.md`,
+referenced from `CLAUDE.md` canonical sources, landed via PR #221. Same
+owner-authored-boundary reasoning as the Product-Delivery Operating Rule entry
+below: GOV-2 §1's "changes a governance guardrail" MATERIAL trigger does not
+pull in the upstream-packet/Codex sequence because Dustin authored the
+boundary.
+
+**What it settles.** Dustin exclusively holds semantic/product rulings, Gate A,
+explicit ratification, and every merge (unchanged from GOV-1). Agents own the
+deterministic completion work around the merge — PR-metadata attribution
+hygiene, post-review readiness, PR-body truth updates, post-merge reviewed-tree
+verification, closing explicitly superseded PRs with a provenance comment,
+branch reconciliation, and safe branch deletion — without re-asking, bounded by
+six mandatory stop conditions (merge absent; merged tree ≠ reviewed head;
+CI/validator not green; unique unpreserved work; the action changes
+semantics/policy/production rather than reconciling recorded state; authorities
+conflict). Verification replaces repeated permission-seeking.
+
+**Codex #221 dispositions (PRD-228, advisory).** Three findings, all ACTIONED
+in this PR by narrowing the text (Dustin's ruling): (P1) the convention no
+longer over-promises against the live harness — a §2 clause states the
+agent-managed actions remain subject to `.claude/settings.json` and the agent
+surfaces any harness-denied command (`gh pr ready`, branch/ref deletion,
+`git checkout`/`restore`) rather than assuming autonomy; actually granting
+those commands in the harness is a named, separate, explicitly-reviewed
+follow-up, not done here. (P2) this DECISIONS entry (the finding it requested).
+(P2) §2 branch-deletion now turns on "no unique unpreserved work," consistent
+with the §3 stop condition, so routine squash-merged branches remain eligible
+for cleanup.
+
 ## 2026-08-06 — Product-Delivery Operating Rule ratified; active-lane priority supersedes the North Star LATER ranking (ruled: Dustin)
 
 Dustin authored the Product-Delivery Operating Rule and directed it be recorded
