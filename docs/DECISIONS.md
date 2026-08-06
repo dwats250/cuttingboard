@@ -125,7 +125,11 @@ updated to match.
   qualified. This sits inside PRD-283's GOAL ("without contradiction") but
   outside R6's letter, and a reconciliation needs its own bounded scope. It
   gets its own lane-appropriate PRD; it is deliberately NOT fixed in this
-  docs-only PR.
+  docs-only PR. The unresolved question (framing ruled: Dustin, 2026-08-06) is
+  whether postmarket `qualified_count` means (1) passed the qualification
+  stage, including symbols later refused at options sizing; or (2) survived
+  through options sizing. No production change is authorized until that
+  semantic definition is ruled.
 - **F2 (LOW) — noted debt.** The `_run_pipeline` end-to-end test injects a
   stubbed refusal (`tests/test_runtime_decision.py:802-809` monkeypatches
   `runtime.build_option_setups`), so every forwarding leg is exercised but the

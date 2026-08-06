@@ -93,9 +93,9 @@ the §2 baseline.
 | PR #184 artifacts (`OPT_0_SMALLEST_CONTRACT_REFUSAL_SEAM_TRACE_2026-07-31.md`, addendum) | **On `main` since the 2026-08-05 TRUTH-SYNC**, under `audits/current-state-reconciliation-2026-07-30/`, byte-identical except one prepended historical/out-of-order banner | NS-1E (CB-02) | YES as the upstream MATERIAL packet, preserved as historical evidence | SUPERSEDED — imported, not merged; PR #184 is closed as superseded after Dustin merges the TRUTH-SYNC PR (Dustin ruling 3, 2026-08-05). Its corrected nine-production-file ceiling is the one PRD-283's eight-file FILES differs from; recorded, not reconciled. See §7 |
 | PR #185 (`PRD-278.md`, Gate A ruling draft, registry/index edits) | Open draft branch `worktree-opt-1-prd`; never merged | NS-1E (CB-02) | NONE — the OPT-1/PRD-278 line was abandoned and PRD-278 was reused for unrelated work (hourly kill-switch bypass) | SUPERSEDED by PRD-283, which restarted this work under its own number. Carries no authority. See §7 |
 | `docs/prd_history/PRD-271.md` | COMPLETE @ `4902b1f` (PR #209, 2026-08-05); HIGH-RISK/EXECUTION; Gate A granted 2026-08-04 at reviewed head `51077db` | NS-2B (session-correct ORB) | YES — it owns the ORB defect (CB-07) | DELIVERED. NS-2B shipped through this PRD, not duplicated: session-scoped ORB + transient `watch.OrbObservation` provenance carrier + fail-closed `orb_invalid_session` |
-| `docs/prd_history/PRD-268.md` | IN PROGRESS scaffold; design fork unruled; HIGH-RISK | Debt ledger (drafted) | Scaffold only | REQUIRES DUSTIN RULING: approve / return to PROPOSED / deprecate (workplan L0 step 2, still open) |
+| `docs/prd_history/PRD-268.md` | `PROPOSED — PARKED` (demonstrated-need reopen condition; TRUTH-SYNC ruling 4, 2026-08-05); design fork unruled; HIGH-RISK. The prior reading — "IN PROGRESS scaffold" — was true at this program's 2026-08-01 pin and is superseded | Debt ledger (drafted) | Scaffold only | RULED 2026-08-05 (TRUTH-SYNC ruling 4): PARKED with demonstrated-need reopen condition; design fork stays unruled |
 | `docs/prd_history/PRD-274.md` | IN PROGRESS (queued); restores ruff resolved-rule coverage | Debt ledger (non-blocking) | YES | RETAINED, queued; not runway work |
-| `docs/prd_history/PRD-275.md` | IN PROGRESS; blocked by six constraints (DECISIONS 2026-07-26) | Debt ledger (drafted/blocked) | YES | RETAINED, blocked; must not be implemented as sketched |
+| `docs/prd_history/PRD-275.md` | `PROPOSED` (TRUTH-SYNC ruling 7, 2026-08-05); blocked by six constraints (DECISIONS 2026-07-26). The prior reading — "IN PROGRESS" — was true at this program's 2026-08-01 pin and is superseded | Debt ledger (drafted/blocked) | YES | RETAINED, blocked; must not be implemented as sketched |
 | `docs/prd_history/PRD-187.md` / `PRD-188.md` | 187 COMPLETE (dormant producer); 188 PROPOSED, gates unmet | MACRO-0 decision (workplan Wave 3) | YES | REQUIRES DUSTIN RULING: KEEP DORMANT / PROMOTE after splitting cadence / RETIRE. No fourth implicit state |
 | `docs/prd_history/PRD-259.first-fire-consumers.proposal.md` | Findings E/F deferred, G parked, D ruled + tracked by CB-02; header disposition incomplete (DOC-0 still PROPOSED) | Debt ledger (parked); DOC-0 | Evidence yes; header stale by its own admission (doctrine G10 names it tracked debt) | RETAINED. DOC-0 header correction remains open, non-blocking |
 | `docs/prd_history/PRD-209.md` | PROPOSED, shelved reopen-on-incident | Debt ledger (parked) | YES | RETAINED |
@@ -354,8 +354,11 @@ work — the design it proposed, and the sequence that was pending — because i
 is what PRD-283 was built against. It is no longer a live gate list. Its two
 live residuals are recorded elsewhere: the review's F1 (postmarket
 `qualified_count` vs. the dashboard survival funnel) as a named follow-up defect
-candidate for its own PRD, and the 8-vs-9 production-file ceiling discrepancy
-between PRD-283 § FILES and the OPT-0 addendum's corrected ceiling.
+candidate for its own PRD (open semantic question, Dustin 2026-08-06:
+qualification-stage-passed vs. survived-through-options-sizing; the definition
+must be ruled before any production change), and the 8-vs-9 production-file
+ceiling discrepancy between PRD-283 § FILES and the OPT-0 addendum's corrected
+ceiling.
 
 **Trader question served:** Q3 (is anything tradable?) and Q4 — a setup whose
 smallest expressible contract exceeds the adjusted risk budget must refuse,
