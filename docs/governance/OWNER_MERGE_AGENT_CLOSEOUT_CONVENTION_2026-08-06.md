@@ -1,13 +1,12 @@
 # CuttingBoard Owner-Merge / Agent-Managed-Closeout Convention
 
-Status: RATIFIED UPON DUSTIN'S MERGE OF THE PULL REQUEST THAT LANDS THIS
-DOCUMENT
+Status: RATIFIED UPON DUSTIN'S MERGE OF PR #221
 
 This document records an operating convention Dustin authored. It is an
 owner-authored mandate, recorded faithfully; the persisting agent is the
-scribe, not the author. Dustin's merge of the landing pull request is the
-ratifying action. Before that merge this document is a held draft and is not
-binding; no agent may treat this status line as advance ratification.
+scribe, not the author. Dustin's merge of PR #221 is the ratifying action.
+Before that merge this document is a held draft and is not binding; no agent
+may treat this status line as advance ratification.
 
 It complements `CLAUDE.md` (GOV-1 — Dustin merges every PR; PRD-186 governance
 draft-hold) and
