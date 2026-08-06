@@ -90,19 +90,19 @@ the §2 baseline.
 | `audits/stage0-recon-2026-07-20/stage0-03-scheduler-v0.1.md` (+ `verify-03`) | On `main` | NS-9 evidence base | YES as evidence | RETAINED for NS-9 (schedule owners, force/dedup semantics, verify-mode diagnostic baseline, "observed replacement" bar) |
 | `audits/stage0-recon-2026-07-20/stage0-04-gex-v0.1.md` | On `main`; corrected verdict `NOT ATTEMPTED — EXTERNAL REACH DISABLED` | NS-5 | YES (repo-only claim: no GEX exists) | RETAINED. The original "NO VIABLE PROVIDER" verdict is superseded by the in-file re-disposition; GEX-0 has NOT been run |
 | `audits/stage0-recon-2026-07-20/stage0-05-governance-debt-v0.1.md` (+ `verify-05`) | On `main` | Debt ledger | YES as evidence | RETAINED |
-| PR #184 artifacts (`OPT_0_SMALLEST_CONTRACT_REFUSAL_SEAM_TRACE_2026-07-31.md`, addendum) | Open draft branch `worktree-opt-0-seam-trace` | NS-1E (CB-02) | YES as the upstream MATERIAL packet, pending exact-head confirmation | PARKED — DUSTIN DECISION REQUIRED (resume or leave parked). See §7 |
-| PR #185 (`PRD-278.md`, Gate A ruling draft, registry/index edits) | Open draft branch `worktree-opt-1-prd` | NS-1E (CB-02) | Drafting only; no authority until reviewed + Gate A | PARKED — DUSTIN DECISION REQUIRED. See §7 |
-| `docs/prd_history/PRD-271.md` | IN PROGRESS Stage-0 scaffold on `main`; **Gate A pending**; HIGH-RISK/EXECUTION | NS-2B (session-correct ORB) | YES — it owns the ORB defect (CB-07) | RETAINED, BLOCKED on Dustin's Gate A design ruling. NS-2B must ride this PRD, not duplicate it |
-| `docs/prd_history/PRD-268.md` | IN PROGRESS scaffold; design fork unruled; HIGH-RISK | Debt ledger (drafted) | Scaffold only | REQUIRES DUSTIN RULING: approve / return to PROPOSED / deprecate (workplan L0 step 2, still open) |
+| PR #184 artifacts (`OPT_0_SMALLEST_CONTRACT_REFUSAL_SEAM_TRACE_2026-07-31.md`, addendum) | **On `main` since the 2026-08-05 TRUTH-SYNC**, under `audits/current-state-reconciliation-2026-07-30/`, byte-identical except one prepended historical/out-of-order banner | NS-1E (CB-02) | YES as the upstream MATERIAL packet, preserved as historical evidence | SUPERSEDED — imported, not merged; PR #184 is closed as superseded after Dustin merges the TRUTH-SYNC PR (Dustin ruling 3, 2026-08-05). Its corrected nine-production-file ceiling is the one PRD-283's eight-file FILES differs from; recorded, not reconciled. See §7 |
+| PR #185 (`PRD-278.md`, Gate A ruling draft, registry/index edits) | Open draft branch `worktree-opt-1-prd`; never merged | NS-1E (CB-02) | NONE — the OPT-1/PRD-278 line was abandoned and PRD-278 was reused for unrelated work (hourly kill-switch bypass) | SUPERSEDED by PRD-283, which restarted this work under its own number. Carries no authority. See §7 |
+| `docs/prd_history/PRD-271.md` | COMPLETE @ `4902b1f` (PR #209, 2026-08-05); HIGH-RISK/EXECUTION; Gate A granted 2026-08-04 at reviewed head `51077db` | NS-2B (session-correct ORB) | YES — it owns the ORB defect (CB-07) | DELIVERED. NS-2B shipped through this PRD, not duplicated: session-scoped ORB + transient `watch.OrbObservation` provenance carrier + fail-closed `orb_invalid_session` |
+| `docs/prd_history/PRD-268.md` | `PROPOSED — PARKED` (demonstrated-need reopen condition; TRUTH-SYNC ruling 4, 2026-08-05); design fork unruled; HIGH-RISK. The prior reading — "IN PROGRESS scaffold" — was true at this program's 2026-08-01 pin and is superseded | Debt ledger (drafted) | Scaffold only | RULED 2026-08-05 (TRUTH-SYNC ruling 4): PARKED with demonstrated-need reopen condition; design fork stays unruled |
 | `docs/prd_history/PRD-274.md` | IN PROGRESS (queued); restores ruff resolved-rule coverage | Debt ledger (non-blocking) | YES | RETAINED, queued; not runway work |
-| `docs/prd_history/PRD-275.md` | IN PROGRESS; blocked by six constraints (DECISIONS 2026-07-26) | Debt ledger (drafted/blocked) | YES | RETAINED, blocked; must not be implemented as sketched |
+| `docs/prd_history/PRD-275.md` | `PROPOSED` (TRUTH-SYNC ruling 7, 2026-08-05); blocked by six constraints (DECISIONS 2026-07-26). The prior reading — "IN PROGRESS" — was true at this program's 2026-08-01 pin and is superseded | Debt ledger (drafted/blocked) | YES | RETAINED, blocked; must not be implemented as sketched |
 | `docs/prd_history/PRD-187.md` / `PRD-188.md` | 187 COMPLETE (dormant producer); 188 PROPOSED, gates unmet | MACRO-0 decision (workplan Wave 3) | YES | REQUIRES DUSTIN RULING: KEEP DORMANT / PROMOTE after splitting cadence / RETIRE. No fourth implicit state |
 | `docs/prd_history/PRD-259.first-fire-consumers.proposal.md` | Findings E/F deferred, G parked, D ruled + tracked by CB-02; header disposition incomplete (DOC-0 still PROPOSED) | Debt ledger (parked); DOC-0 | Evidence yes; header stale by its own admission (doctrine G10 names it tracked debt) | RETAINED. DOC-0 header correction remains open, non-blocking |
 | `docs/prd_history/PRD-209.md` | PROPOSED, shelved reopen-on-incident | Debt ledger (parked) | YES | RETAINED |
 | Old options-data proposals (A1b / live economics, per workplan Wave 6) | Superseded as queue authority by the workplan | ODATA-0 (after CB-02) | Evidence only | RETAINED as evidence for the ODATA-0 recon; numbers not carried forward |
 | TradingView/backtesting evidence (`dwats250/strategy` pins in the fidelity delta) | Hash-pinned at strategy `1aefaaa`; registered AS-IS run carries the floor-only posture defect | NS-1B residual; Dustin decision D2 | YES as pinned evidence | REQUIRES DUSTIN RULING (D2): Strategy-side dated correction; script identity gap preserved-open unless the operator-held script is committed |
 | Market Map / decision-surface findings (stage0-01 Q10–Q12; `_render_candidate_card`) | Current surface is the candidate card; no Control Card contract exists | NS-2E | YES as evidence | RETAINED; row-disposition hypotheses feed the NS-2 packet |
-| Fixed-SPY-observation work | **None exists in production.** No durable session-observation artifact; `watch.py` ORB positional defect reproduced twice | NS-2A | n/a | The slice is genuinely unbuilt; see §6 NEXT |
+| Fixed-SPY-observation work | **Shipped.** PRD-288 (COMPLETE @ `68cca76`, PR #218, 2026-08-05) delivers one transient read-only SPY card on the daily dashboard, with session VWAP; PRD-271 fixed the `watch.py` ORB positional defect it projects | NS-2A + NS-2C | YES — the delivered slice | DELIVERED (daily `_run_pipeline` only; hourly deliberately out of scope, and no durable contract key or persistence was added). The line above — "None exists in production… the slice is genuinely unbuilt" — was true at this program's 2026-08-01 pin and is superseded |
 | Universe substrate (`config.TREND_STRUCTURE_SYMBOLS`, `market_map.PRIMARY_SYMBOLS`) | Two agreeing fixed six-symbol tuples | NS-4A seed | YES | RETAINED as the registry seed; NS-4A stays LATER |
 | Registry-validator / closeout debt | Phantom-SHA class CLOSED WONTFIX-HISTORICAL (PRD-243); CI keeps `--skip-commit-resolvability` permanently; CB-12 residual bypasses PARTIAL, narrowed by PRD-276/277 | Debt ledger | YES | RETIRED as a work item (historical class); CB-12 residuals stay non-blocking debt |
 | GOV-2 (`docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md`) | RATIFIED | Process spine of any implementation packet; MATERIAL intake test for every future NS packet | YES | BINDING. Not part of the product portfolio itself |
@@ -113,17 +113,19 @@ the §2 baseline.
 NS-0 (truth reset + ratification)          [DELIVERED; ratified via PR #187's merge as `fdeef90b0a0e0747d1bbf92385d3750b4024f4ae` — this line previously read "ratification pending" before that merge]
   └─ everything below
 
-NS-1E CB-02 refusal (PARKED / DUSTIN DECISION REQUIRED; PRs #184/#185,
-  GOV-2 §12 sequence if resumed)
+NS-1E CB-02 refusal  [DELIVERED by PRD-283, merged `f806f5b` 2026-08-03;
+  closed out 2026-08-05. This line previously read "PARKED / DUSTIN DECISION
+  REQUIRED; PRs #184/#185, GOV-2 §12 sequence if resumed"]
   ├─ unlocks ODATA-0 backlog recon (workplan: "after OPT-1")
   └─ unlocks PRES-0 Finding G promotion decision
 
-PRD-271 Gate A (ORB session-provenance ruling)  [Dustin]
-  └─ NS-2B session-correct ORB
+PRD-271 Gate A (ORB session-provenance ruling)  [GRANTED 2026-08-04]
+  └─ NS-2B session-correct ORB          [SHIPPED — PRD-271 @ `4902b1f`]
        └─ NS-2A fixed SPY observation + NS-2C session VWAP
-            ├─ needs: MATERIAL intake → upstream packet (seeded by stage0-01)
+                                        [SHIPPED — PRD-288 @ `68cca76`]
             ├─ NS-2D meaningful intraday event (LATER)
-            └─ NS-2E Market Control Card
+            └─ NS-2E Market Control Card [NEXT — still needs its own
+                 MATERIAL intake → upstream packet (seeded by stage0-01)]
                  └─ NS-2F ranked control ladder (LATER)
 
 NS-4A universe registry (LATER; seed exists in config)
@@ -290,7 +292,7 @@ by its lead):**
   ruling. NS-0's truth-reset and debt-classification outcomes are already
   delivered (PR #175, the fidelity delta, this program).
 
-**The immediate runway choice is Dustin's, and it is not made here:**
+**The A/B runway choice recorded here is RESOLVED (2026-08-05).** It read:
 
 - **Option A — resume and finish CB-02** (NS-1E; PRs #184/#185), completing
   its GOV-2 §12 sequence, then begin fixed SPY observation.
@@ -299,23 +301,30 @@ by its lead):**
   ruling). Option B also requires the explicit CB-01 safety ruling — it
   cannot silently bypass CB-01 (§5).
 
-Until that ruling, CB-02 / NS-1E is `PARKED / DUSTIN DECISION REQUIRED` and
-no implementation packet is on the runway.
+What actually happened: CB-01 got its safety ruling and shipped (PRD-278,
+`#196`, 2026-08-02); CB-02 was resumed and shipped as PRD-283 (`f806f5b`,
+2026-08-03); PRD-271's Gate A was granted and NS-2B/2A/2C shipped
+(PRD-271 `4902b1f`, PRD-288 `68cca76`, both 2026-08-05). Dustin's 2026-08-05
+BALANCED ruling (`docs/DECISIONS.md`, TRUTH-SYNC ruling 1) is the runway
+reassessment DR-001 required and sets the route from here: truth-sync first,
+then three parallel lanes — NS-2E, GEX, and the context registry / news /
+heatmap — converging only at his gates.
 
 **NEXT (approved follow-ons, not active; each needs its own GOV-2 intake,
 packet where MATERIAL, PRD, review, and Gate A):**
 
-1. **NS-2A/2B/2C — fixed SPY observation with session-correct ORB and session
-   VWAP, with visible freshness.** The proposed first trader-facing product
-   slice. Entry conditions: Dustin's A/B runway ruling above, **and** the
-   PRD-271 Gate A design ruling (the ORB remedy — timestamp-based session
-   selection vs widened window vs fail-loud — is a design choice the
-   observation artifact and the execution gate must share; two independent ORB
-   truths would be drift by construction). This slice is MATERIAL under GOV-2
-   §1 (new persisted schema with multiple readers, crosses runtime +
-   persistence + dashboard), so it begins with an upstream packet seeded by
-   stage0-01, not with code.
-2. **NS-2E — Market Control Card** (after NS-2A/B/C exist to feed it).
+1. **NS-2A/2B/2C — SHIPPED, not next.** Fixed SPY observation with
+   session-correct ORB and session VWAP landed as PRD-271 (`4902b1f`, PR #209)
+   and PRD-288 (`68cca76`, PR #218), both 2026-08-05, daily-only. Both entry
+   conditions were met first: the A/B runway ruling above, and the PRD-271
+   Gate A design ruling that fixed one shared ORB truth (PRD-288 projects
+   PRD-271's `OrbObservation` verbatim rather than recomputing it, so the two
+   independent ORB truths this program warned about never came into being).
+   The slice ran the MATERIAL route it required — upstream packet seeded by
+   stage0-01, PRD, independent review, Gate A — not code first.
+2. **NS-2E — Market Control Card** — now the live NEXT packet, with NS-2A/B/C
+   existing to feed it. Still MATERIAL: it begins with its own upstream packet,
+   not with code.
 
 **LATER (preserved, not authorized):** NS-4A/4B (universe registry and basic
 movement heatmap — the first named promotion candidates after NS-2E; registry
@@ -326,11 +335,30 @@ NS-2D, NS-2F, NS-3 (all packets), NS-4C/D/E, NS-5 (GEX-0→3; GEX-0→2 lifecycl
 Portfolio rank and lifecycle condition are separate axes (ledger §3). Full
 preservation in §12.
 
-## 7. The runway candidate held for Dustin's ruling: NS-1E / CB-02
+## 7. NS-1E / CB-02 — RESOLVED (was: the runway candidate held for Dustin's ruling)
 
-CB-02 is `PARKED / DUSTIN DECISION REQUIRED`. It becomes the NOW packet only
-if Dustin explicitly resumes it (Option A in §6); nothing in this section is
-that ruling. The facts below record where the parked work stands.
+**Status (2026-08-05): DELIVERED by PRD-283.** Dustin resumed CB-02; it was
+drafted as its own PRD, gated, implemented, and merged to `main` as
+`f806f5b2a0f6bccd7db67424ab4c2d5117454bb0` on 2026-08-03 (PR #204), then closed
+out COMPLETE on 2026-08-05 against a fresh-context validation of the exact
+merged head (`docs/prd_history/PRD-283.review.claude.md`, VERDICT VALIDATED
+WITH FINDINGS). Honest chronology, which this section does not soften: the
+implementation landed before the complete governed evidence chain was durably
+recorded; the later review and closeout reconcile truth; they do not rewrite
+authorization history. The PR #184 packet is now in-tree under
+`audits/current-state-reconciliation-2026-07-30/` and PR #184 is closed as
+superseded, not merged; PR #185 carries no authority.
+
+The rest of this section is retained as the historical record of the parked
+work — the design it proposed, and the sequence that was pending — because it
+is what PRD-283 was built against. It is no longer a live gate list. Its two
+live residuals are recorded elsewhere: the review's F1 (postmarket
+`qualified_count` vs. the dashboard survival funnel) as a named follow-up defect
+candidate for its own PRD (open semantic question, Dustin 2026-08-06:
+qualification-stage-passed vs. survived-through-options-sizing; the definition
+must be ruled before any production change), and the 8-vs-9 production-file
+ceiling discrepancy between PRD-283 § FILES and the OPT-0 addendum's corrected
+ceiling.
 
 **Trader question served:** Q3 (is anything tradable?) and Q4 — a setup whose
 smallest expressible contract exceeds the adjusted risk budget must refuse,

@@ -16,6 +16,168 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-05 — TRUTH-SYNC: nine compression-runway rulings, PRD-283 honest evidence closeout, L0 exit, GEX-0 verdict-vocabulary amendment (ruled: Dustin)
+
+One docs-only reconciliation PR carrying Dustin's nine rulings on the
+2026-08-05 compression-runway planning packet
+(`audits/compression-runway-2026-08-05/COMPRESSION_RUNWAY_PLAN_2026-08-05.md`,
+revision 2), plus the repository-truth corrections they imply. The packet
+authorizes no implementation and allocates no PRD number; neither does this
+entry.
+
+**Chronology preserved, verbatim, for PRD-283:** the implementation landed
+before the complete governed evidence chain was durably recorded; the later
+review and closeout reconcile truth; they do not rewrite authorization history.
+
+### The nine rulings
+
+1. **Route: BALANCED.** Truth-sync first (one commissioned review + one docs
+   PR), then three parallel lanes — product NEXT (NS-2E), GEX (evidence →
+   producer → display), registry/news/heatmap — converging only at Dustin's
+   gates. This ruling doubles as the runway reassessment DR-001 required after
+   CB-02 landed; DR-001 is satisfied by this dated entry. Alternatives
+   considered and set aside: *Fastest* (inverts the ratified rank order for
+   negligible wall-clock gain) and *Maximum-conservatism* (a retro GOV-2 §12
+   sequence — defensible only if the merged PRD-283 implementation were itself
+   in doubt; nothing found supports that doubt).
+2. **PRD-283: exact-merged-head review, then honest evidence closeout.** One
+   independent fresh-context review of the exact merged commit
+   `f806f5b2a0f6bccd7db67424ab4c2d5117454bb0` was commissioned and is committed
+   at `docs/prd_history/PRD-283.review.claude.md` (reviewed-SHA-pinned, fresh
+   context, review-only). It is recorded as **validation of the landed
+   implementation**, not a pre-implementation review; it confers no authority
+   and claims no retroactive authorization. VERDICT: **VALIDATED WITH
+   FINDINGS** — R1–R8 all satisfied by observable behavior at the authoritative
+   seam, FILES boundary respected exactly, every OUT OF SCOPE
+   retained-with-reason disposition holding, six mutations each turning ≥1
+   named test red. PRD-283 is closed COMPLETE @ `f806f5b` in this PR (registry
+   row 303, `prd_index.json`, both PRD-doc status markers, PROJECT_STATE
+   Recent-ships row dated 2026-08-03).
+3. **PR #184: superseded through this PR; not merged separately.** Its two
+   evidence artifacts —
+   `OPT_0_SMALLEST_CONTRACT_REFUSAL_SEAM_TRACE_2026-07-31.md` and
+   `OPT_0_LATE_CONNECTOR_ADDENDUM_2026-07-31.md` — are imported into
+   `audits/current-state-reconciliation-2026-07-30/`, byte-identical except one
+   prepended historical/out-of-order banner on each. PR #184 is closed as
+   superseded (a comment citing the importing commit) only after Dustin merges
+   this PR; closing, never merging.
+4. **PRD-268: PARK.** Returned to PROPOSED with a demonstrated-need reopen
+   condition — a concrete observed incident where the missing hourly coverage
+   reason misled a session. The design fork stays unruled; parking is the
+   ruling, not a deferral of one. This was L0's last open disposition, so L0
+   is now COMPLETE (see below).
+5. **GEX-0: commissioned immediately, running in parallel.** The verdict
+   vocabulary is amended (see below). The first commissioned pass on 2026-08-05
+   stopped without a verdict — egress policy denied all provider hosts, so no
+   primary evidence could be gathered. GEX-0 remains `EVIDENCE BLOCKED` pending
+   an egress grant; no verdict is claimed and no provider was examined.
+6. **Registry (NS-4A universe + NEWS-0 relationship): agent drafts from
+   repository seeds, Dustin ratifies.** Seeds are `config.TREND_STRUCTURE_SYMBOLS`
+   and `market_map.PRIMARY_SYMBOLS` plus the Ledger's suggested groups; every
+   element beyond the seeds is flagged for ratification. No symbol or source is
+   inferred. Not started by this PR.
+7. **PRD-275: returned to PROPOSED; non-blocking.** Its `BLOCKED — DO NOT
+   IMPLEMENT AS SKETCHED` design note and the six undismissed constraints from
+   the 2026-07-26 append-only ruling are retained in full and still govern.
+   The lifecycle change records that no implementation is in flight; it
+   dismisses nothing.
+8. **MACRO-0: KEEP DORMANT.** PRD-187 stays a manual/evaluation-only
+   structural-shock producer; PRD-188 stays PROPOSED and unpromoted; the
+   MACRO-0 read-only decision packet is not run. This is the one explicit state
+   the workplan's Wave 3 required — no fourth implicit state.
+9. **PRD-274: retained as non-blocking MICRO debt.** No lifecycle change: its
+   registry row stays `IN PROGRESS`, its doc stays `LANE: MICRO`, and its
+   binding scope note (compare the COMPLETE resolved ruff rule set against the
+   expansion of the declared `select`, never spot-check probes) still governs
+   whenever it is picked up.
+
+### GEX-0 verdict-vocabulary amendment (doctrine §4.3)
+
+Amended under the doctrine's own four-step rule — Dustin's ruling, this dated
+entry, the doctrine edit, and Dustin's manual merge, all riding this PR. The
+verdict set becomes `PROVIDER VIABLE` / `PROVIDER NOT VIABLE` /
+`EVIDENCE INCOMPLETE`, and every verdict speaks only to the one provider
+examined in that bounded pass. The retired wording
+`NO VIABLE PROVIDER IN BOUNDED PASS` invited the overclaim that no viable
+provider exists, which a one-provider pass cannot establish. The track-ending
+consequence and the fresh-commission requirement are unchanged:
+`PROVIDER NOT VIABLE` or `EVIDENCE INCOMPLETE` ends the track until Dustin
+explicitly commissions a fresh pass, and neither authorizes a second provider
+automatically. `docs/plans/decision-support-workplan-v0.1.md` §2 and §8 are
+updated to match.
+
+### Disposition of the PRD-283 review's six findings
+
+- **F6 (LOW, factual drift) — ACTIONED by this PR.** PRD-283's lifecycle state
+  was stale on `main` in four places (PRD doc header and trailing STATUS,
+  registry commit cell, `prd_index.json`, and an absent PROJECT_STATE
+  Recent-ships row). All four are reconciled here, and the previously missing
+  review artifact is now in-tree.
+- **F1 (MEDIUM, schema ambiguity) — NAMED FOLLOW-UP DEFECT CANDIDATE, not
+  fixed here.** `reports/postmarket.py:216-220` sets
+  `trade_summary.qualified_count` from `audit_summary["qualified_count"]`,
+  which still includes a refused symbol, while `rejected_count` now also counts
+  it — so a sole-candidate all-refused run reads `qualified_count: 1,
+  rejected_count: 1` over one symbol. The dashboard survival funnel resolves it
+  the other way, subtracting the refusal out of QUALIFIED
+  (`dashboard_renderer.py:2487`) so the four counts sum to SURFACED. The two
+  consumer surfaces therefore disagree on whether a refused symbol is
+  qualified. This sits inside PRD-283's GOAL ("without contradiction") but
+  outside R6's letter, and a reconciliation needs its own bounded scope. It
+  gets its own lane-appropriate PRD; it is deliberately NOT fixed in this
+  docs-only PR. The unresolved question (framing ruled: Dustin, 2026-08-06) is
+  whether postmarket `qualified_count` means (1) passed the qualification
+  stage, including symbols later refused at options sizing; or (2) survived
+  through options sizing. No production change is authorized until that
+  semantic definition is ruled.
+- **F2 (LOW) — noted debt.** The `_run_pipeline` end-to-end test injects a
+  stubbed refusal (`tests/test_runtime_decision.py:802-809` monkeypatches
+  `runtime.build_option_setups`), so every forwarding leg is exercised but the
+  producer predicate and its arithmetic never run in the integration path.
+  Mitigated by eight unit tests against live constants, three of them
+  mutation-proven discriminating.
+- **F3 (LOW) — noted debt.** `notifications/state.py:56-62` reads
+  `contract["rejections"][0]["reason"]` and is an unenumerated consumer of the
+  surface PRD-283 extended. The behavior change is benign and arguably an
+  improvement; the gap is in the downstream-consumer audit, not in the code.
+- **F4 (LOW) — noted debt.** `runtime/__init__.py::_build_run_summary` never
+  receives `option_refusals`, so `logs/latest_run.json` carries no
+  representation of a sizing refusal. An omission, not a false statement —
+  `candidates_qualified` is computed from `ALLOW_TRADE` decisions and is
+  correctly 0 on an all-refused run.
+- **F5 (LOW) — RESOLVED IN PART by this PR.** The finding was that the upstream
+  packet's production-file ceiling had no durable in-tree record and so could
+  not be compared with PRD-283's own. The packet is now in-tree (ruling 3), and
+  the comparison is: **the packet's corrected ceiling is NINE production files
+  (`OPT_0_LATE_CONNECTOR_ADDENDUM_2026-07-31.md` § "Production files — exactly
+  nine") while PRD-283 § FILES and § MAX EXPECTED DELTA both state EIGHT, and
+  the landed diff touched exactly eight.** The 8-vs-9 discrepancy is recorded
+  in PRD-283's closeout section and here; it is not reconciled, and nothing in
+  this entry revises either ceiling.
+
+### L0 exit and the drift sweep
+
+L0 is COMPLETE. PRD-267/271/272/273 are COMPLETE with real merged provenance,
+PRD-268 is parked by ruling 4 (its last open disposition), and
+`tools/validate_prd_registry.py --skip-commit-resolvability` exits 0. That
+clears the workplan gate the GEX-0 and NEWS-0 packets sit behind.
+
+Bookkeeping corrections riding this PR, changing no policy: `PROJECT_STATE.md`
+stops describing GOV-1, GOV-0, and PR #187 as held/unmerged (all merged and
+effective) and stops describing PR #174 and PRD-278 in stale terms; the
+workplan's D-RULE row is COMPLETE via PR #167 and its OPT-0/OPT-1 rows are
+SUPERSEDED by PRD-283; the North Star Ledger and Implementation Program record
+NS-2A/2B/2C as shipped (PRD-288 / PRD-271) and NS-1E as resolved by PRD-283;
+`FINDING_STATUS_MATRIX.md`'s CB-02 row is RESOLVED with commit and
+review-artifact pointers; and DOC-0's two proposal headers state their current
+disposition on the first screen, which completes DOC-0.
+
+Residual, deliberately not swept by this charge and left for a later pass: the
+matrix's `## OPEN — CRITICAL` section heading and its Status-counts table still
+reflect the 2026-07-30 pin `9e6b772` (CB-01 and CB-03…CB-07 have also landed
+since), and the Implementation Program's PRD-268/274/275 source-map rows still
+describe the lifecycle states this entry just changed.
+
 ## 2026-08-05 — PRD-288 GOV-2 §5 LOC-ceiling amendment + amended Gate A (≤195 → ≤325 net production LOC) (ruled: Dustin)
 
 The PRD-288 implementation realized ~308 net production LOC (git `--numstat`

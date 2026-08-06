@@ -113,7 +113,7 @@ Star implementation packet is promoted until Dustin rules.
 | NS-1B Artifact/provenance repair | `COMPLETE` (Cuttingboard side) | Canonical files hash-pinned; exploratory vs frozen lineage separated; manifests verified | Strategy-side dated correction (D2) and the post-patch script identity gap remain Dustin's ruling |
 | NS-1C Engine seam corrections | `BLOCKED` | Fix only confirmed mismatches — the fidelity delta confirmed **zero** Cuttingboard-side mismatches at this pin (the one rule mismatch is proxy-side) | Entry condition unmet; reopen only on a confirmed engine mismatch |
 | NS-1D Prospective baseline freeze | `LATER` | Observe outcomes without tuning — preserved evaluation capability | Dustin-only promotion after the relevant decision surfaces and frozen baseline are ready; frozen rules and timestamped captures |
-| NS-1E Smallest-contract refusal (CB-02 / PRD-278) | `PARKED / DUSTIN DECISION REQUIRED` | Refusal instead of a silent budget-breaching one-contract floor; rejection becomes first-class evidence. Becomes `NOW` only if Dustin explicitly resumes it | If resumed: GOV-2 §12 sequence on PRs #184/#185 — exact-head confirmation, PRD review, Dustin Gate A, implementation, Dustin merge |
+| NS-1E Smallest-contract refusal (CB-02 / PRD-283) | `COMPLETE` — resolved by PRD-283 | Delivered: refusal instead of a silent budget-breaching one-contract floor, and the rejection is first-class evidence at the contract, audit, postmarket, report, notification, CLI, and dashboard surfaces | Met. Merged to `main` as `f806f5b` on 2026-08-03 (PR #204); validated at the exact merged head by `docs/prd_history/PRD-283.review.claude.md` (VALIDATED WITH FINDINGS); closed out 2026-08-05. The abandoned OPT-1/PRD-278 line is superseded, PR #184's packet is imported in-tree, and PR #185 carries no authority. See `docs/DECISIONS.md` 2026-08-05 TRUTH-SYNC |
 
 Evidence to preserve:
 
@@ -129,9 +129,9 @@ Evidence to preserve:
 
 | Packet | State | Outcome | Exit |
 |---|---|---|---|
-| NS-2A Fixed SPY observation | `NEXT` | Observe SPY on every relevant run, including `STAY_FLAT` and halted states | Independent of candidate availability |
-| NS-2B Session-correct ORB | `NEXT` | Use the intended market session, not a positional data tail — rides PRD-271 (IN PROGRESS scaffold, HIGH-RISK, Gate A pending); never a duplicate ORB truth | Correct morning through late session and half-days |
-| NS-2C Session VWAP | `NEXT` | Authoritative session-anchored typical-price VWAP | Source window, timestamp, and stale behavior explicit |
+| NS-2A Fixed SPY observation | `SHIPPED` — PRD-288 | Observe SPY on every relevant run, including `STAY_FLAT` and halted states | Met by PRD-288 (COMPLETE @ `68cca76`, PR #218, 2026-08-05): one transient read-only SPY card on the daily dashboard, independent of candidate availability. Daily `_run_pipeline` only; hourly deliberately out of scope |
+| NS-2B Session-correct ORB | `SHIPPED` — PRD-271 | Use the intended market session, not a positional data tail; never a duplicate ORB truth | Met by PRD-271 (COMPLETE @ `4902b1f`, PR #209, 2026-08-05): timestamp-windowed session-scoped ORB (09:30–09:35 ET of the current trading date) with a transient `watch.OrbObservation` provenance carrier and the fail-closed `orb_invalid_session` gate reason. One ORB truth; PRD-288 projects it verbatim |
+| NS-2C Session VWAP | `SHIPPED` — PRD-288 | Authoritative session-anchored typical-price VWAP | Met by PRD-288 (same commit as NS-2A): source window, timestamp, and stale behavior explicit via the shared freshness states and reason tokens |
 | NS-2D Meaningful intraday event | `LATER` | Preserve and expose the last meaningful transition | Rich state is not flattened or discarded |
 | NS-2E Market Control Card | `NEXT` | Compact orientation replacing/refactoring generic Market Map | Answers state, location, event, transition, invalidation, permission, candidate implication |
 | NS-2F Ranked control ladder | `LATER` | Support, pivot, resistance, structural failure | Evidence-linked, non-predictive |
@@ -288,7 +288,7 @@ headline count.
 
 | Item | State | Disposition |
 |---|---|---|
-| PRD-187/188 macro-awareness track | `PARKED / DECISION REQUIRED` | KEEP DORMANT, PROMOTE after gates, or RETIRE |
+| PRD-187/188 macro-awareness track | `KEEP DORMANT` (2026-08-05, ruled: Dustin) | Ruled, not open: PRD-187 stays a manual/evaluation-only structural-shock producer; PRD-188 stays PROPOSED and unpromoted; the MACRO-0 read-only decision packet is not run. Reopen only if Dustin reopens the track. See `docs/DECISIONS.md` 2026-08-05 TRUTH-SYNC, ruling 8 |
 | PRD-259 Findings E/F | `PARKED` | Presentation/consumer debt |
 | PRD-259 Finding G | `PARKED` | Possible small presentation correction |
 | Old options-data proposals | `PARKED` | Revisit after the current candidate/refusal path |
