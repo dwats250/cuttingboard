@@ -12,18 +12,31 @@ scoped exactly to that defect. **Consolidated correction 2** (below) applies it:
 a typed `StateOutcome` now carries the guarded computation's state-or-reason into
 `build_market_control_card`, so the builder still produces every final card value
 (§2.3) and the exception→reason mapping stays in the guard, never the renderer.
-No contract, FILES estimate, product scope, or D-1…D-5 changed. The corrected head
-now requires **one final independent Codex exact-head confirmation**; if that
-review finds any additional boundary omission, the packet stops and returns to
-Dustin — no further correction loop without his ruling. Downstream authority (PRD,
-Gate A) remains prohibited until the packet is review-clean.
+No contract, FILES estimate, product scope, or D-1…D-5 changed.
+
+**UPDATE — final exact-head confirmation of `3ff6c04`: NOT CLEAN → STOPPED (DESIGN
+INCOMPLETE), HELD FOR DUSTIN.** The final Codex confirmation verified **F3
+resolved** (the typed `StateOutcome` works) but surfaced a **NEW valid P2 (F4):
+STATE is not gated on the observation session/freshness.** `compute_intraday_state`
+gates only on the last bar's wall-clock time (`intraday_state_engine.py:432,435`)
+and never compares the frame's date to the intended session, whereas
+`build_spy_observation` does session-gate (STALE/session_mismatch,
+`spy_observation.py:99-114`) — so the always-on STATE could forward a prior-session
+state as today's, contradicting the freshness-gated LOCATION on the same card.
+Per Dustin's correction-2 authorization (*"stop if that review finds any
+additional boundary omission; do not enter another correction loop without my
+ruling"*) and GOV-2 §7, the author **stops** — F4 is NOT corrected. The packet is
+DESIGN INCOMPLETE and returns to Dustin for a GOV-2 §6 decision (§16 records F4;
+§15 D-1 and the repeated-friction note frame the choice). Downstream authority
+(PRD, Gate A) remains prohibited.
 
 GOV-2 §2 order: independent Codex packet review (step 3, DONE), consolidated
 correction (step 4, DONE), independent exact-corrected-head confirmation (step 5,
-DONE — found one P2), **owner-authorized exceptional correction 2 (applied)**,
-final exact-head confirmation (**pending**), Dustin's design-direction ruling
-(step 6), a drafted+independently-reviewed PRD (step 7), and Dustin's Gate A
-(step 8).
+DONE — found F3), **owner-authorized exceptional correction 2 (applied — resolved
+F3)**, final exact-head confirmation (DONE — **found NEW F4; STOPPED per owner
+instruction + GOV-2 §7**), Dustin's GOV-2 §6 decision (**pending**), then — if the
+packet becomes review-clean — his design-direction ruling (step 6), a
+drafted+independently-reviewed PRD (step 7), and Dustin's Gate A (step 8).
 
 CORRECTION LOG — Consolidated correction 1 (GOV-2 §2 step 4). The independent
 Codex packet review of `0a8f57ebf2` (GOV-2 §2 step 3) returned two P2 findings,
@@ -146,7 +159,8 @@ Required order and current position:
 | 4 | One consolidated author correction | **DONE** — correction 1 (top of packet); F1+F2 ACTIONED |
 | 5 | Independent exact-corrected-head confirmation | **DONE** — reviewed `f0a55a3`; F2 confirmed resolved, one NEW valid P2 (F3: STATE reason does not reach the builder, §16) |
 | 5b | **Owner-authorized exceptional correction 2** | **DONE** — Dustin authorized one bounded correction beyond the GOV-1 cycle; F3 ACTIONED via the typed `StateOutcome` (correction log + §3/§4.1/§5) |
-| 5c | Final independent exact-head confirmation | **PENDING** — one final Codex confirmation of the corrected head; stop-and-return-to-Dustin if any additional omission |
+| 5c | Final independent exact-head confirmation | **DONE — NOT CLEAN.** Reviewed `3ff6c04`; F3 confirmed resolved, one NEW valid P2 (F4: STATE not gated on observation session/freshness, §16). Per owner instruction + GOV-2 §7 → **STOPPED, DESIGN INCOMPLETE**; F4 not corrected |
+| 5d | Dustin GOV-2 §6 decision on F4 | **PENDING — owner hold** (narrow / one more bounded correction / rebuild / park) |
 | 6 | Dustin design-direction ruling | not started — **owner hold** (after review-clean) |
 | 7 | PRD drafted + fresh-context independent review | not started |
 | 8 | Dustin Gate A | not started — **owner hold** |
@@ -748,14 +762,45 @@ installed in the packet-authoring environment).
   below); it remains unresolved on GitHub only pending the final exact-head
   confirmation.
 
-### FINAL EXACT-HEAD CONFIRMATION (owner-authorized correction 2) — **PENDING**
+### FINAL EXACT-HEAD CONFIRMATION (owner-authorized correction 2) — **DONE — NOT CLEAN → STOPPED**
 
-The exceptional-correction head requires one final independent Codex confirmation
-that F3 is resolved and no additional boundary omission exists. Dustin re-triggers
-it (`@codex review`). Per his authorization and GOV-2 §7, if that review finds any
-additional boundary omission the packet **stops and returns to Dustin** — no
-further correction loop without his ruling. Until it returns clean, the packet
-remains PROVISIONAL — NOT REVIEW-CLEAN and confers no downstream authority.
+- Event type: `EXACT-CORRECTED-HEAD CONFIRMATION` (final, on the correction-2 head).
+- Reviewer identity / role: `chatgpt-codex-connector[bot]` (Codex), fresh-context
+  second-model reviewer; re-triggered by Dustin's `@codex review` comment on
+  PR #222. Independent of the authoring session.
+- Reviewed commit: `3ff6c04e22efa2f537e16e2e02e45cee62ffc3c4` (correction-2 head).
+- Review date: 2026-08-06.
+- **Prior finding confirmed resolved: F3** (STATE reason-carrier) — the typed
+  `StateOutcome` works; its thread is now outdated. Consolidated correction 2 is
+  verified effective.
+- **NEW finding (P2), packet L319 — F4: STATE is not gated on the observation
+  session / freshness.** `build_spy_observation` marks a prior-session or lagging
+  frame `PRE_OPEN`/`STALE` and suppresses live values (`spy_observation.py:99-114`),
+  but the always-on STATE path emits whatever `IntraState` the guarded call
+  returns. `compute_intraday_state` gates only on the last bar's wall-clock time
+  (`intraday_state_engine.py:432,435` — `current_et_time < _NOISE_END`) and never
+  compares the frame's **date** to the intended session, so a prior day's
+  post-09:45 frame yields a normal STATE presented as today's — contradicting the
+  freshness-gated LOCATION on the same card. **Confirmed valid** by the author
+  against `intraday_state_engine.py:400-438` and `spy_observation.py:99-114`.
+- **Disposition: BLOCKED/PARKED (GOV-2 §7).** Valid finding; packet not
+  review-clean; no downstream authority; connector thread left unresolved.
+- **STOPPED — no correction applied.** Per Dustin's correction-2 authorization
+  ("stop if that review finds any additional boundary omission; do not enter
+  another correction loop without my ruling") and GOV-2 §7, the author does **not**
+  correct F4. The packet is DESIGN INCOMPLETE and held for Dustin's GOV-2 §6
+  decision.
+- **Repeated-friction note (for Dustin's decision).** F3 and F4 both arise from
+  the always-on STATE call (D-1) bolting the session-agnostic
+  `compute_intraday_state` onto a session-gated card. Two consecutive exact-head
+  confirmations have each surfaced a STATE-derivation omission. The narrowing
+  option in D-1 (drop the always-on STATE → available-only-when-SPY-is-a-short-
+  candidate, or gate STATE behind the `SpyObservation` freshness state) would moot
+  this whole class of findings. Recorded so the §6 decision has the pattern in
+  view; the author makes no ruling.
+
+Until Dustin sets the GOV-2 §6 path and the packet is re-confirmed review-clean,
+it confers no downstream authority.
 
 ### AUTHOR SELF-VERIFICATION (GOV-2 §3 — NOT independent review)
 
