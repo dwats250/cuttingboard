@@ -16,6 +16,40 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-06 — Product-Delivery Operating Rule ratified; active-lane priority supersedes the North Star LATER ranking (ruled: Dustin)
+
+Dustin authored the Product-Delivery Operating Rule and directed it be recorded
+as owner-ratified governance (no PRD):
+`docs/governance/PRODUCT_DELIVERY_OPERATING_RULE_2026-08-06.md`, referenced from
+`CLAUDE.md` canonical sources, held for his merge on PR #220. GOV-2 §1's
+"changes a governance guardrail" MATERIAL trigger does not pull in the
+upstream-packet/Codex sequence here, because Dustin authored the boundary —
+GOV-2's "no agent certifies the boundary it chose" principle does not apply to
+an owner-authored mandate.
+
+**Lane precedence.** The rule's Product-priority order — (1) NS-2E Market
+Control Card, (2) GEX evidence → producer → display, (3) Context registry →
+news and heatmap — codifies Dustin's 2026-08-05 BALANCED-route ruling (recorded
+in the PR #219 TRUTH-SYNC entry/body: truth-sync first, then the three parallel
+lanes). For active-lane priority it **supersedes the static North Star LATER
+ranking**, which places GEX at #6 behind NS-4A/B and the Opportunity Set Engine
+(`docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md:336-339`,
+`docs/product/NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md:320-321`). It supersedes
+only the ordering of what work is active; it lifts no lifecycle gate — GEX
+remains subject to the "GEX go/stop after evidence" owner hold and its
+`EVIDENCE BLOCKED` status (GEX-0 has no passing verdict; the 2026-08-05
+commissioned pass was egress-blocked) until evidence exists.
+
+**TRUTH-SYNC completion condition.** TRUTH-SYNC completes when PR #219 is merged
+into `main`. The subsequent closure of PR #184 as superseded is post-merge seam
+closeout and does not block activation of the product lanes. As of 2026-08-06,
+PR #219 is an open held draft, so the lane order is dormant.
+
+**Codex connector P1s on PR #220 (PRD-228, advisory input).** Both ACTIONED by
+this entry plus the framing correction and TRUTH-SYNC clarification in the
+operating-rule doc: line-73 (reconcile lane order with the portfolio) and
+line-69 (define TRUTH-SYNC). Fix commit cited in-thread at resolution.
+
 ## 2026-08-05 — PRD-288 GOV-2 §5 LOC-ceiling amendment + amended Gate A (≤195 → ≤325 net production LOC) (ruled: Dustin)
 
 The PRD-288 implementation realized ~308 net production LOC (git `--numstat`

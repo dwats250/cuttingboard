@@ -9,10 +9,19 @@ action. Before that merge this document is a held draft and is
 not binding; no agent may treat this status line as advance ratification.
 
 It complements the operating model in `CLAUDE.md` and the material-review order
-in `docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md`; where this rule
-names an owner hold, a lane order, or an escalation trigger, it states the
-priority frame those documents already assume. It introduces no new gate,
-schema, or consumer.
+in `docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md`. Where this rule
+names an owner hold or an escalation trigger, it restates a frame those
+documents already assume. Where it names the active-lane order (Product-priority
+rule), it is an **owner directive that sets lane priority**, not a restatement:
+it re-sequences GEX ahead of the North Star LATER ranking (GEX #6, behind
+NS-4A/B and the Opportunity Set Engine, in
+`docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md` and
+`docs/product/NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md`), codifying Dustin's
+2026-08-05 BALANCED-route ruling. That precedence, and exactly what it
+supersedes, is recorded in `docs/DECISIONS.md` (2026-08-06). Setting lane
+priority does not lift a lifecycle gate: GEX stays subject to Dustin's "GEX
+go/stop after evidence" hold and its `EVIDENCE BLOCKED` status until that
+evidence exists. This document introduces no new gate, schema, or consumer.
 
 CuttingBoard governance exists to protect truthful product delivery, not to
 displace it.
@@ -74,6 +83,12 @@ After TRUTH-SYNC closes, the active lanes are:
 
 Governance work may not replace these lanes unless a concrete blocking defect
 meets the stop conditions above.
+
+> **Owner clarification (2026-08-06, recorded at ratification):** TRUTH-SYNC
+> completes when PR #219 is merged into `main`. The subsequent closure of PR
+> #184 as superseded is post-merge seam closeout and does not block activation
+> of the product lanes above. Until PR #219 merges, the lane order above is
+> dormant.
 
 ## Owner holds
 
