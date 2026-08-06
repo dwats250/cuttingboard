@@ -61,6 +61,12 @@ Reference these; do not duplicate them.
   owner-authored operating rule: default behavior, Fable escalation triggers,
   the anti-stall choice, the post-TRUTH-SYNC lane order (NS-2E, GEX, context
   registry), and the owner holds. Binding on Dustin's merge of its landing PR.
+- `docs/governance/OWNER_MERGE_AGENT_CLOSEOUT_CONVENTION_2026-08-06.md` —
+  Dustin's owner-authored convention: Dustin holds every merge, semantic/
+  product rulings, Gate A, and ratification; agents own deterministic
+  post-review readiness, PR-metadata hygiene, post-merge seam closeout, and
+  safe branch reconciliation without re-asking, bounded by explicit stop
+  conditions. Binding on Dustin's merge of its landing PR.
 - `docs/architecture.md`, `docs/sidecar_doctrine.md` — structural references
 - `docs/CLAUDE_HOOKS.md` — the repo's hooks (file protection, PRD registry-gap
   check, canonical-read guard) and their state files
