@@ -34,7 +34,7 @@ in the PR #219 TRUTH-SYNC entry/body: truth-sync first, then the three parallel
 lanes). For active-lane priority it **supersedes the static North Star LATER
 ranking**, which places GEX at #6 behind NS-4A/B and the Opportunity Set Engine
 (`docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md:336-339`,
-`docs/product/NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md:320-321`). It supersedes
+`docs/product/NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md:329-332`). It supersedes
 only the ordering of what work is active; it lifts no lifecycle gate — GEX
 remains subject to the "GEX go/stop after evidence" owner hold and its
 `EVIDENCE BLOCKED` status (GEX-0 has no passing verdict; the 2026-08-05
