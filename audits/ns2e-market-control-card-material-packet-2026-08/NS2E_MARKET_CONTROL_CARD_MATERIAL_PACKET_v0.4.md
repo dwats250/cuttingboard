@@ -84,9 +84,18 @@ exact-corrected-head confirmation (step 5) ............. DONE (2026-08-07:
                                                           narrow confirmation on
                                                           b78e77c CLEAN; packet
                                                           merged @ 53e76d5, §18)
-Dustin design-direction ruling (step 6) ................ PENDING (§16 rulings
-                                                          ratified 2026-08-07 stand)
-Stage-0 PRD drafting (step 7) .......................... PENDING (no PRD allocated)
+Dustin design-direction ruling (step 6) ................ DONE (2026-08-07:
+                                                          PROCEED with Option A;
+                                                          recorded in
+                                                          docs/DECISIONS.md,
+                                                          "2026-08-07 — NS-2E
+                                                          design-direction
+                                                          ruling"; D-1 YES,
+                                                          D-4 SPLIT, D-5
+                                                          PROCEED, R3
+                                                          dashboard+payload only)
+Stage-0 PRD drafting (step 7) .......................... IN PROGRESS (PRD-289
+                                                          allocated)
 independent PRD review (step 7) ........................ PENDING
 Dustin Gate A (step 8) ................................. PENDING (not requested)
 ```
