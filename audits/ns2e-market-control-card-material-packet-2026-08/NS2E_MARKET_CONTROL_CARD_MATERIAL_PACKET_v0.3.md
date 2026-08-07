@@ -354,15 +354,17 @@ Programmer errors keep the exit-non-zero path untouched.
 
 Reason tokens are **field-specific constants + a `VALID_*` frozenset** per producer
 (the repo's strongest idiom: `execution_policy.py`, `invalidation.py`), NOT one
-global enum. Shared SPY-frame conditions are projected from the observation's reason,
-not re-derived. Reason classes: FIELD-SPECIFIC / SHARED / OWNER-DECISION-DEFERRED /
+global enum. LOCATION surfaces `SpyObservation` directly and admits its raw `reason`
+tokens; STATE and PERMISSION are downstream fields and admit shared observation
+conditions ONLY through the deterministic normalization table below (never as raw
+tokens). Reason classes: FIELD-SPECIFIC / SHARED / OWNER-DECISION-DEFERRED /
 INPUT-UNAVAILABLE / PRODUCER-ABSENT.
 
 | Field | Source | Legitimate unavailable branches | Class |
 |---|---|---|---|
 | LOCATION | `SpyObservation` (existing) | shared frame conditions; zero-volume→VWAP None (`price_vs_vwap="UNAVAILABLE"`) | SHARED; FIELD-SPECIFIC |
 | STATE | `SpyStateOutcome` from FRAME A (§5, §6) | `observation_unavailable` (shared); `insufficient_bars`; `pre_computation_window`; `state_computation_error` (adapter data-shape or engine ValueError); `non_current_observation` (cascade) | SHARED; FIELD-SPECIFIC; INPUT-UNAVAILABLE |
-| PERMISSION | `system_state.permission` (existing) | shared frame conditions; STATE-unavailable cascade | SHARED; FIELD-SPECIFIC |
+| PERMISSION | `system_state.permission` (existing) | genuine shared observation failure → `observation_unavailable`; source absent → `permission_state_absent`; source present-but-indeterminate → `permission_uncomputable`. Non-current freshness (`PRE_OPEN`/`STALE`) does NOT make PERMISSION unavailable | SHARED; FIELD-SPECIFIC |
 | EVENT | none | `no_truthful_producer` (declared defensive — no producer today) | PRODUCER-ABSENT |
 | TRANSITION | per R1 (§16) | STATE-unavailable cascade; per-R1 shape (see §16) | FIELD-SPECIFIC; OWNER-DECISION-DEFERRED |
 | INVALIDATION | bounded composition over `invalidation_guidance_map` | D-2 declined/pending token (R2); map empty `{}`; per-symbol absent; in-band UNKNOWN (`INSUFFICIENT_DETERMINISTIC_INPUTS`, projected verbatim) | OWNER-DECISION-DEFERRED; INPUT-UNAVAILABLE; PRODUCER-ABSENT |
@@ -376,8 +378,9 @@ active channel.
 deferred to the implementing PRD).** Each field's unavailable-reason token set is
 fixed here as a closed frozenset; the carrier/composer rejects any token outside its
 field's set. Tokens are field-specific `snake_case` constants (the
-`execution_policy.py` / `invalidation.py` idiom); SHARED frame conditions are
-projected from `SpyObservation.reason`, not re-derived.
+`execution_policy.py` / `invalidation.py` idiom). Shared observation conditions reach
+LOCATION as raw `SpyObservation.reason` tokens and reach STATE/PERMISSION only via
+the deterministic normalization table that follows the frozensets.
 
 - `VALID_SPY_STATE_UNAVAILABLE_REASONS = frozenset({"insufficient_bars",
   "pre_computation_window", "state_computation_error", "non_current_observation",
@@ -392,8 +395,11 @@ projected from `SpyObservation.reason`, not re-derived.
   "observation_lag"}` (`spy_observation.py`), plus the field-specific
   `"vwap_unavailable"` for the zero-volume `price_vs_vwap="UNAVAILABLE"` case.
 - `VALID_PERMISSION_UNAVAILABLE_REASONS = frozenset({"observation_unavailable",
-  "permission_state_absent", "permission_uncomputable"})` — shared; permission
-  source absent; cascade when STATE is unavailable.
+  "permission_state_absent", "permission_uncomputable"})` — respectively: genuine
+  shared observation failure (observation `UNAVAILABLE`, e.g. halt / fetch-failed);
+  `system_state.permission` source absent; source present but indeterminate.
+  Non-current freshness (`PRE_OPEN`/`STALE`) does NOT enter this set (normalization
+  table below).
 - `VALID_EVENT_UNAVAILABLE_REASONS = frozenset({"no_truthful_producer"})` — declared
   defensive; no producer today.
 - `VALID_TRANSITION_UNAVAILABLE_REASONS = frozenset({"transition_state_unavailable",
@@ -408,6 +414,33 @@ projected from `SpyObservation.reason`, not re-derived.
   frozenset({"candidate_implication_deferred_d3", "candidate_inputs_absent",
   "candidate_implication_uncomposable"})` — owner-deferred (R2); `visibility_map`
   empty / no candidates; uncomposable when the decision inputs are absent.
+
+**Shared-observation reason normalization (normative; the implementing PRD has ZERO
+discretion here).** LOCATION is the one field that surfaces `SpyObservation`
+directly, so it admits the raw `SpyObservation.reason` tokens verbatim — that is
+intentional and internally consistent (LOCATION *is* the observation projection).
+STATE and PERMISSION do NOT admit raw observation tokens; they normalize
+deterministically per the table below, keyed on `SpyObservation.state` (the closed
+four-constant axis, which fully partitions the reason space). Every normalized output
+is a member of that field's `VALID_*` frozenset, so no documented shared branch can
+produce a token its carrier rejects.
+
+| `SpyObservation.state` | member `SpyObservation.reason`(s) | → STATE token | → PERMISSION token |
+|---|---|---|---|
+| `OBSERVED` | — (observation current) | STATE computed; else acquisition-seam token (`insufficient_bars` / `pre_computation_window` / `state_computation_error`) | PERMISSION from `system_state.permission`; else `permission_state_absent` (source absent) or `permission_uncomputable` (source indeterminate) |
+| `PRE_OPEN` | `pre_open`, `pre_open_prior_session` | `non_current_observation` | — (unaffected: `system_state.permission` is independent of SPY freshness and remains valued) |
+| `STALE` | `session_mismatch`, `observation_lag` | `non_current_observation` | — (unaffected, as above) |
+| `UNAVAILABLE` | `system_halted`, `intraday_fetch_failed`, `insufficient_bars` | `observation_unavailable` | `observation_unavailable` |
+
+Normative rules: (1) STATE normalizes non-current freshness (`PRE_OPEN`/`STALE`) to
+`non_current_observation` and genuine observation failure (`UNAVAILABLE`) to
+`observation_unavailable` — the distinction the existing STATE vocabulary already
+supports; STATE never emits a raw observation token. (2) PERMISSION is produced
+independently by `system_state.permission`; its only shared-observation coupling is
+genuine unavailability (`UNAVAILABLE` → `observation_unavailable`); non-current
+freshness does not make PERMISSION unavailable. (3) No new tokens are introduced —
+the enumerated vocabulary already expresses every required distinction. Pinned by
+M13.
 
 Every branch in the table above maps to exactly one token in its field's frozenset;
 the sets are closed at THIS packet's authority (not deferred), so an unenumerated
@@ -543,7 +576,7 @@ production files; test LOC uncounted.
 | M10 | Unknown reason token | constructor raises | **YES** |
 | M11 | Persistence truth | card present in redirected `latest_payload.json` + rendered `dashboard.html`; redirected `audit.jsonl` and `latest_contract.json` byte-unchanged (conftest `_isolate_real_log_paths`) | |
 | M12 | Additive-only e2e | `_run_pipeline(mode=MODE_FIXTURE)`: outcome/halt/decision fields pinned unchanged while card section present | |
-| M13 | Freshness coherence | STALE observation → card STATE never rendered fresh (cascade UNAVAILABLE) | **YES** |
+| M13 | Freshness coherence + shared-reason normalization | `STALE`/`PRE_OPEN` observation → STATE = `non_current_observation` (never fresh) AND PERMISSION unaffected (still valued); observation `UNAVAILABLE` (halt) → STATE and PERMISSION = `observation_unavailable`. Pins the §7 normalization table into STATE/PERMISSION | **YES** |
 | M14 | Halt path | `halted=True` → observation + carrier unavailable; no fetch, no engine call attempted | |
 
 Reuse `_utc_frame` (test_spy_observation.py:27-33) for DataFrame fixtures and the ET
