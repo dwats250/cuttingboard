@@ -1,10 +1,13 @@
 # NS-2E — Market Control Card — MATERIAL PACKET (v0.4, REPLACEMENT)
 
-STATUS: PROVISIONAL — REPLACEMENT PACKET v0.4 — NOT REVIEW-CLEAN — NO
-IMPLEMENTATION AUTHORITY. This packet carries no implementation authority; Gate A
-is neither requested nor granted. The owner rulings in §16 marked RATIFIED were
-ratified by Dustin on 2026-08-07 in the authorization commissioning this packet;
-the remainder stay RECOMMENDED — PENDING RATIFICATION.
+STATUS: REVIEW-CLEAN / MERGED (PR #227, merge commit
+`53e76d56350c3d0a6a60cb0e4f80235e28f2f774`, reviewed head
+`b78e77c1bdabb433565af2928bbf03c33a67395c`) — NO IMPLEMENTATION AUTHORITY.
+This packet carries no implementation authority; Gate A is neither requested
+nor granted. Option A and all ratified owner rulings are unchanged. The owner
+rulings in §16 marked RATIFIED were ratified by Dustin on 2026-08-07 in the
+authorization commissioning this packet; the remainder stay RECOMMENDED —
+PENDING RATIFICATION.
 
 ## Supersession and termination statement (binding context)
 
@@ -74,9 +77,13 @@ independent packet review (GOV-2 §2 step 3) ............. DONE (2026-08-07,
 one consolidated correction (step 4) ................... DONE (this revision —
                                                           the single GOV-1 cycle,
                                                           authorized 2026-08-07)
-exact-corrected-head confirmation (step 5) ............. PENDING (terminal:
-                                                          a new substantive P1
-                                                          stops v0.4 permanently)
+exact-corrected-head confirmation (step 5) ............. DONE (2026-08-07:
+                                                          4b8c7d0 confirmed, one
+                                                          P2 → owner-authorized
+                                                          micro-correction; final
+                                                          narrow confirmation on
+                                                          b78e77c CLEAN; packet
+                                                          merged @ 53e76d5, §18)
 Dustin design-direction ruling (step 6) ................ PENDING (§16 rulings
                                                           ratified 2026-08-07 stand)
 Stage-0 PRD drafting (step 7) .......................... PENDING (no PRD allocated)
@@ -927,12 +934,13 @@ follow-up material outside NS-2E.
 
 ---
 
-## 18. Packet review records (GOV-2 §2, §7 — PENDING)
+## 18. Packet review records (GOV-2 §2, §7 — COMPLETE; merged @ `53e76d5`)
 
 The v0.1/v0.2/v0.3 review records remain on their PR trails (#222, #225, #226)
-and satisfy no gate for v0.4. Until the confirmation record below is populated,
-this packet is PROVISIONAL — NOT REVIEW-CLEAN, and no downstream PRD may be
-opened on it.
+and satisfy no gate for v0.4. All v0.4 review events below are COMPLETE; the
+packet is REVIEW-CLEAN and MERGED (PR #227 @ `53e76d5`). Downstream authority
+still requires, in order: Dustin's design-direction ruling, a Stage-0 PRD, the
+independent PRD review, and Gate A — none of which this packet grants.
 
 ### INITIAL PACKET REVIEW — COMPLETE (2026-08-07)
 
@@ -956,14 +964,23 @@ opened on it.
 | Verdict | F1–F4 dispositions confirmed (none re-raised); ZERO new P1 / boundary findings; ONE new P2 (M24 fixture matrix not discriminating for the stated total order — `{WARNING, UNKNOWN}` / `{TRIGGERED, UNKNOWN}` pairings absent) |
 | Disposition | Owner ruled the permanent-stop rule NOT triggered (P2, not P1/boundary) and authorized a P2-ONLY micro-correction strictly limited to completing the M24 fixture matrix (this revision). Precedence semantics, vocabularies, reachability claims, and all contracts unchanged. |
 
-### NARROW EXACT-HEAD CONFIRMATION OF THE P2 MICRO-CORRECTION — PENDING
+### NARROW EXACT-HEAD CONFIRMATION OF THE P2 MICRO-CORRECTION — COMPLETE (2026-08-07)
 
 | Field | Value |
 |---|---|
 | Event type | narrow exact-head confirmation (owner-commissioned, 2026-08-07) |
 | Scope | ONLY: does M24 now discriminate the complete stated precedence, and does any new substantive P1/boundary inconsistency exist at the micro-corrected head |
-| Reviewed commit SHA | PENDING — pinned at confirmation time |
-| Verdict | PENDING |
+| Reviewer identity / capability role | independent Codex review (`chatgpt-codex-connector`, Codex cloud), fresh context, read-only |
+| Reviewed commit SHA | `b78e77c1bdabb433565af2928bbf03c33a67395c` |
+| Verdict | **CLEAN — no issues found.** M24 discrimination unchallenged; zero new substantive P1/boundary inconsistencies; permanent-stop rule not triggered |
+
+### MERGE RECORD (2026-08-07)
+
+PR #227 merged by Dustin (GOV-1 manual merge) at merge commit
+`53e76d56350c3d0a6a60cb0e4f80235e28f2f774`, reviewed head
+`b78e77c1bdabb433565af2928bbf03c33a67395c`. The v0.4 MATERIAL packet is
+REVIEW-CLEAN / MERGED. Option A and all §16 ratified owner rulings are
+unchanged by the merge.
 
 **Terminal rule (binding, per Dustin 2026-08-07).** The permanent-stop rule is
 unchanged: any NEW substantive P1 or boundary omission at any confirmation head
@@ -973,11 +990,11 @@ reset it.
 
 ---
 
-END OF PACKET v0.4 — PROVISIONAL — REPLACEMENT — NOT REVIEW-CLEAN — NO
-IMPLEMENTATION AUTHORITY. v0.4 replaces PR #226 (v0.3), which was terminated
-because vocabulary closure had not been exhaustively reconciled before the
-composer vocabulary was specified; v0.1 (PR #222), v0.2 (PR #225), and v0.3
-(PR #226) are preserved untouched as the historical review trail. Option A is
-preserved unchanged; the seven-field vocabulary layer is replaced by the
+END OF PACKET v0.4 — REVIEW-CLEAN / MERGED (PR #227 @ `53e76d5`, reviewed head
+`b78e77c`) — NO IMPLEMENTATION AUTHORITY. v0.4 replaces PR #226 (v0.3), which
+was terminated because vocabulary closure had not been exhaustively reconciled
+before the composer vocabulary was specified; v0.1 (PR #222), v0.2 (PR #225),
+and v0.3 (PR #226) are preserved untouched as the historical review trail.
+Option A is preserved unchanged; the seven-field vocabulary layer is the
 reconciled, code-demonstrated contract of §7. Gate A is neither requested nor
-granted.
+granted; the next governed step is Dustin's design-direction ruling.
