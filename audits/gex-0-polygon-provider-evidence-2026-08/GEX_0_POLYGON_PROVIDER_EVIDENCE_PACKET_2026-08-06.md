@@ -12,10 +12,12 @@ PROVISIONAL — NO PROVIDER SELECTED — NO IMPLEMENTATION AUTHORITY.
 > for the track.)
 
 **PROVIDER UNDER EVALUATION:** Polygon.io — raw options-chain data offering
-(contracts reference, per-contract open interest, model-computed greeks, quotes,
-underlying spot), from which a GEX figure would be *computed in-repo*. This is
-explicitly **not** a derived-GEX vendor feed (no vendor-supplied flip / put-wall /
-call-wall levels).
+(contracts reference, per-contract open interest, greeks, quotes, underlying spot),
+from which a GEX figure would be *computed in-repo*. Understood — pending direct
+evidence — as a raw-data source whose greeks/IV are expected to be provider-computed
+rather than exchange-sourced, and which is expected to ship no vendor-derived
+flip / put-wall / call-wall levels. These are **unverified provider-description
+characteristics** (see §6 rows 3 and 16, and §9's quarantine), not established facts.
 
 **Commissioned by:** Dustin (charge: "GEX-0 provider evidence", 2026-08-06).
 **Lead:** Read-only recon (network research attempted; blocked).
@@ -82,9 +84,13 @@ not lift the verdict above `EVIDENCE INCOMPLETE`.
 (confirmed: `grep -rniE "gex|gamma" cuttingboard/` yields no producer, contract
 field, or renderer; corroborated by `audits/stage0-recon-2026-07-20/stage0-04-gex-v0.1.md`).
 No GEX value reaches any consumer. The **plausible future artifact seam** (described,
-not built) is a single JSON sidecar `logs/gex_snapshot.json` documented in
-`docs/artifact_flow_map.md`, consumed display-only by the dashboard renderer — the
-observation-sidecar shape of `cuttingboard/watchlist_sidecar.py`. **This pass creates
+not built) *would* be a single JSON sidecar `logs/gex_snapshot.json` that *would* be
+registered in `docs/artifact_flow_map.md` and consumed display-only by the dashboard
+renderer — mirroring the observation-sidecar shape of
+`cuttingboard/watchlist_sidecar.py`. A scoped search of implementation paths
+(`cuttingboard/`) and the artifact-registration surface (`docs/artifact_flow_map.md`)
+finds no `gex_snapshot` artifact, consumer, or registration at this SHA; this audit
+packet itself contains prospective references to the name. **This pass creates
 none of that.**
 
 ---
@@ -106,8 +112,11 @@ none of that.**
 
 **Offering evaluated:** Polygon.io options data — the **raw options-chain** product
 family (options *contracts reference*, per-contract *open interest*, *greeks* and
-*implied volatility* as model-computed by Polygon, *quotes/trades*, and *underlying
-spot*). GEX would be **computed descriptively in-repo** from these fields (Σ over
+*implied volatility*, *quotes/trades*, and *underlying spot*). Greeks and IV are
+**understood — pending direct evidence — to be model-computed by Polygon rather than
+exchange-sourced; an unverified provider-description characteristic, not an established
+fact (see §6 row 3 and §9's quarantine)**. GEX would be **computed descriptively
+in-repo** from these fields (Σ over
 strikes of gamma · open-interest · contract-multiplier · dealer-sign convention ·
 spot factor). Polygon is evaluated as a *raw-data* source, **not** a derived-GEX
 vendor: it is not expected to ship flip / put-wall / call-wall levels (see row 16).
@@ -373,12 +382,23 @@ after evidence exists.
     (`/root/.local/share/uv/tools/pytest/bin/python`, a uv-isolated tool venv **without**
     the project's runtime deps), whose nested collection fails on `ModuleNotFoundError`.
     The project deps are installed under `/usr/local/bin/python` (used by
-    `python -m pytest`). Under CI parity (one shared environment) the suite is green
-    per `docs/PROJECT_STATE.md`. **This packet changes no code, so the post-write
-    re-run is identical (see the closing validation note).**
+    `python -m pytest`). This is the **concrete local cause** of the two failures and
+    stands on its own local evidence, independent of any remote result. A **post-write
+    re-run** (also `python -m pytest`, this packet changing no code) was **identical:
+    3243 passed, 1 xfailed, 2 failed**. No reproduced remote-CI-parity result existed
+    at authoring time; a subsequent one is recorded in the post-merge addendum below.
 - **No network evidence was obtained.** Every provider-side value herein is either
-  `unavailable` or fenced memory. CI/GitHub Actions is impaired; no remote check was
-  triggered and no absent remote check is interpreted as acceptance.
+  `unavailable` or fenced memory. At the time of authoring, GitHub Actions was impaired
+  and no remote check had been triggered; no absent remote check is interpreted as
+  acceptance.
+- **Post-merge addendum (2026-08-06, PR #223).** After authoring, PR #223 opened and its
+  `pull_request` event triggered the repository `test` check, which completed **green**
+  on the reviewed content; PR #223 was then squash-merged to `origin/main` as `5fb05a1`.
+  That green `test` run is a reproduced remote-CI-parity result on the merged packet. It
+  **corroborates but is not by itself dispositive of** the local interpreter-split
+  diagnosis above — whose concrete local cause is recorded separately — and no green (or
+  absent) remote check is treated as acceptance of the packet's substantive verdict,
+  which remains `EVIDENCE INCOMPLETE` on owner ruling.
 ```
 PROVISIONAL — NO PROVIDER SELECTED — NO IMPLEMENTATION AUTHORITY.
 ```
