@@ -783,7 +783,7 @@ and pin the corrected producer semantics.
 | M21 | INVALIDATION normalization | constructed guidance entry with `status=UNKNOWN`, `reason="INSUFFICIENT_DETERMINISTIC_INPUTS"` → card shows `invalidation_indeterminate`; the raw upstream string appears nowhere in the card | **YES** — projecting the raw token reddens (the exact PR #226 terminal defect, pinned forever) |
 | M22 | TRANSITION derivation + cascade | precedence pinned (`FAILURE_CONFIRMED` > `failed_reclaim` > `reclaimed_orb` > break-direction > `NO_BREAK`) with one fixture per row; STATE-unavailable → `transition_state_unavailable` | **YES** — reordering precedence reddens |
 | M23 | Sunday absence (F1) | `_run_pipeline(mode=MODE_SUNDAY)`: `PipelineResult.market_control_card is None`, `sections["market_control_card"]` absent from the payload, and no card block in the rendered dashboard | **YES** — producing the card on Sunday reddens |
-| M24 | INVALIDATION mixed-status precedence (F4) | constructed non-empty maps: {TRIGGERED, WARNING} → `TRIGGERED`; {WARNING, NOT_TRIGGERED} → `WARNING`; {UNKNOWN, NOT_TRIGGERED} → `invalidation_indeterminate`; uniform NOT_TRIGGERED → `NOT_TRIGGERED` | **YES** — reordering the severity precedence reddens |
+| M24 | INVALIDATION mixed-status precedence (F4; fixture matrix completed per the owner-authorized P2 micro-correction, 2026-08-07) | constructed non-empty maps: {TRIGGERED, WARNING} → `TRIGGERED`; {TRIGGERED, UNKNOWN} → `TRIGGERED`; {WARNING, UNKNOWN} → `WARNING`; {WARNING, NOT_TRIGGERED} → `WARNING`; {UNKNOWN, NOT_TRIGGERED} → `invalidation_indeterminate`; uniform NOT_TRIGGERED → `NOT_TRIGGERED`. The matrix pairs every adjacent and skip-level status, so it is discriminating for the complete stated total order — e.g. a wrong `TRIGGERED > UNKNOWN > WARNING > NOT_TRIGGERED` ordering fails the {WARNING, UNKNOWN} fixture | **YES** — reordering the severity precedence reddens |
 
 Reuse `_utc_frame` (`test_spy_observation.py:27-33`) for DataFrame fixtures and
 the ET `_bar/_orb_bars/_noise_bars` builders (`test_intraday_state.py`) for Bar
@@ -946,19 +946,30 @@ opened on it.
 | Findings and dispositions | F1 Sunday skipped-gates vs truthful-empty (P1) → Sunday exclusion ruled, §1/M23. F2 LOCATION value vocabulary not closed (P1) → `VALID_LOCATION_STATES` / `VALID_LOCATION_PRICE_VS_VWAP` added, reason set renamed, §7.1. F3 `CANDIDATES_BLOCKED_OR_NEAR_MISS` false for ACTIVE-only map (P1) → replaced by `CANDIDATES_PRESENT_NONE_ACTIONABLE`, §7.7/M20. F4 mixed-status rollup precedence undefined (P2) → severity precedence pinned, §7.6/M24. All four dispositioned in the single GOV-1 consolidated correction (this revision), authorized by Dustin 2026-08-07 (§16). |
 | Fresh-context / independence / run-isolation evidence | Codex cloud connector review, triggered by PR commission comment; reviewer had no authoring-session context and no write access; findings posted as PR review threads on PR #227 |
 
-### EXACT-CORRECTED-HEAD CONFIRMATION — PENDING
+### EXACT-CORRECTED-HEAD CONFIRMATION — COMPLETE (2026-08-07)
 
 | Field | Value |
 |---|---|
 | Event type | `EXACT-CORRECTED-HEAD CONFIRMATION` (GOV-2 §2 step 5) |
 | Scope | disposition of exactly F1–F4 at the corrected head, plus detection of any new blocking inconsistency — a confirmation, not a fresh-scope review |
+| Reviewed commit SHA | `4b8c7d0a965363ca442fc43b3a47f388581c7adf` |
+| Verdict | F1–F4 dispositions confirmed (none re-raised); ZERO new P1 / boundary findings; ONE new P2 (M24 fixture matrix not discriminating for the stated total order — `{WARNING, UNKNOWN}` / `{TRIGGERED, UNKNOWN}` pairings absent) |
+| Disposition | Owner ruled the permanent-stop rule NOT triggered (P2, not P1/boundary) and authorized a P2-ONLY micro-correction strictly limited to completing the M24 fixture matrix (this revision). Precedence semantics, vocabularies, reachability claims, and all contracts unchanged. |
+
+### NARROW EXACT-HEAD CONFIRMATION OF THE P2 MICRO-CORRECTION — PENDING
+
+| Field | Value |
+|---|---|
+| Event type | narrow exact-head confirmation (owner-commissioned, 2026-08-07) |
+| Scope | ONLY: does M24 now discriminate the complete stated precedence, and does any new substantive P1/boundary inconsistency exist at the micro-corrected head |
 | Reviewed commit SHA | PENDING — pinned at confirmation time |
 | Verdict | PENDING |
 
-**Terminal rule (binding, per Dustin 2026-08-07).** The consolidated correction
-above is the ONE cycle GOV-1 allows. If the exact-corrected-head confirmation
-raises another substantive P1 or boundary omission, work STOPS PERMANENTLY on
-v0.4 and returns to Dustin — no third packet-correction cycle.
+**Terminal rule (binding, per Dustin 2026-08-07).** The permanent-stop rule is
+unchanged: any NEW substantive P1 or boundary omission at any confirmation head
+stops v0.4 permanently and returns it to the owner — no further correction
+cycle exists. The P2 micro-correction above did not trigger it and does not
+reset it.
 
 ---
 
