@@ -963,6 +963,7 @@ independent PRD review, and Gate A — none of which this packet grants.
 | Reviewed commit SHA | `4b8c7d0a965363ca442fc43b3a47f388581c7adf` |
 | Verdict | F1–F4 dispositions confirmed (none re-raised); ZERO new P1 / boundary findings; ONE new P2 (M24 fixture matrix not discriminating for the stated total order — `{WARNING, UNKNOWN}` / `{TRIGGERED, UNKNOWN}` pairings absent) |
 | Disposition | Owner ruled the permanent-stop rule NOT triggered (P2, not P1/boundary) and authorized a P2-ONLY micro-correction strictly limited to completing the M24 fixture matrix (this revision). Precedence semantics, vocabularies, reachability claims, and all contracts unchanged. |
+| Fresh-context / independence / run-isolation evidence | Codex cloud connector review (`chatgpt-codex-connector`), commissioned by owner PR comment on PR #227 (2026-08-07 19:11Z-commission pattern; confirmation commission at 21:0xZ). Run-isolation: the reviewer executes in OpenAI's vendor-hosted Codex cloud runtime, instantiated per event, whose only inputs are the committed repository state at the pinned SHA and the PR surface — it shares no memory, context window, or session state with the Claude authoring session (different vendor, different runtime, no cross-session persistence). Read-only: no repo write access; finding delivered as PR review thread `discussion_r3738800831` (2026-08-07 21:13Z). |
 
 ### NARROW EXACT-HEAD CONFIRMATION OF THE P2 MICRO-CORRECTION — COMPLETE (2026-08-07)
 
@@ -973,6 +974,8 @@ independent PRD review, and Gate A — none of which this packet grants.
 | Reviewer identity / capability role | independent Codex review (`chatgpt-codex-connector`, Codex cloud), fresh context, read-only |
 | Reviewed commit SHA | `b78e77c1bdabb433565af2928bbf03c33a67395c` |
 | Verdict | **CLEAN — no issues found.** M24 discrimination unchallenged; zero new substantive P1/boundary inconsistencies; permanent-stop rule not triggered |
+| Prior findings confirmed | the single P2 of the `4b8c7d0` confirmation (M24 fixture-matrix discrimination, thread `discussion_r3738800831`) — ACTIONED at this head; no other findings were open |
+| Fresh-context / independence / run-isolation evidence | Codex cloud connector review (`chatgpt-codex-connector`), commissioned by owner PR comment on PR #227 (2026-08-07 22:19Z). Run-isolation: the reviewer executes in OpenAI's vendor-hosted Codex cloud runtime, instantiated per event, whose only inputs are the committed repository state at `b78e77c` and the PR surface — it shares no memory, context window, or session state with the Claude authoring session (different vendor, different runtime, no cross-session persistence). Read-only: no repo write access; verdict delivered as the PR comment "Didn't find any major issues. Reviewed commit: `b78e77c1bd`" (2026-08-07 22:35Z). |
 
 ### MERGE RECORD (2026-08-07)
 
