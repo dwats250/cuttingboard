@@ -87,9 +87,10 @@ No GEX value reaches any consumer. The **plausible future artifact seam** (descr
 not built) *would* be a single JSON sidecar `logs/gex_snapshot.json` that *would* be
 registered in `docs/artifact_flow_map.md` and consumed display-only by the dashboard
 renderer — mirroring the observation-sidecar shape of
-`cuttingboard/watchlist_sidecar.py`. No such artifact, no `artifact_flow_map.md` entry
-for it, and no such consumer exists at this SHA (`grep -rniE "gex_snapshot"` and
-`gex|gamma` in `docs/artifact_flow_map.md` both return nothing). **This pass creates
+`cuttingboard/watchlist_sidecar.py`. A scoped search of implementation paths
+(`cuttingboard/`) and the artifact-registration surface (`docs/artifact_flow_map.md`)
+finds no `gex_snapshot` artifact, consumer, or registration at this SHA; this audit
+packet itself contains prospective references to the name. **This pass creates
 none of that.**
 
 ---
