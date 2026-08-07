@@ -68,11 +68,15 @@ the reviewed PRD.
 materiality check at intake ............................. DONE (MATERIAL; §15)
 producer→field vocabulary reconciliation ................ DONE (2026-08-07; §2, §7)
 provisional material packet authored .................... DONE (this v0.4 doc)
-independent packet review (GOV-2 §2 step 3) ............. PENDING (§18; single
-                                                          review, only after Dustin
-                                                          authorizes push/PR)
-one consolidated correction (step 4) ................... PENDING (GOV-1: at most one)
-exact-corrected-head confirmation (step 5) ............. PENDING
+independent packet review (GOV-2 §2 step 3) ............. DONE (2026-08-07,
+                                                          PR #227 @ b95cccc,
+                                                          4 findings F1-F4; §18)
+one consolidated correction (step 4) ................... DONE (this revision —
+                                                          the single GOV-1 cycle,
+                                                          authorized 2026-08-07)
+exact-corrected-head confirmation (step 5) ............. PENDING (terminal:
+                                                          a new substantive P1
+                                                          stops v0.4 permanently)
 Dustin design-direction ruling (step 6) ................ PENDING (§16 rulings
                                                           ratified 2026-08-07 stand)
 Stage-0 PRD drafting (step 7) .......................... PENDING (no PRD allocated)
@@ -91,7 +95,16 @@ answering VISION's questions at a glance: where are we, what is the market's
 state, what am I permitted to do, and what does that imply for today's
 candidates — without prediction, inventing nothing.
 
-- **Scope: the daily `_run_pipeline` only.** Hourly is OUT OF SCOPE from inception.
+- **Scope: the daily `_run_pipeline` only, and NOT `MODE_SUNDAY` (ruled F1,
+  2026-08-07).** Hourly is OUT OF SCOPE from inception. **The card is not
+  produced and not rendered for `MODE_SUNDAY` runs**: Sunday skips the entire
+  candidate/gate block (`runtime/__init__.py:1021-1123`) while the defaults
+  (`outcome=NO_TRADE`, empty maps, `:983-989`) still hold, so a Sunday card
+  could only misreport skipped gates as truthful emptiness. ELIGIBLE runs —
+  the only runs on which the composer executes — are daily `_run_pipeline`
+  executions in `MODE_LIVE` or `MODE_FIXTURE` (halted eligible runs included).
+  There is no Sunday-specific unavailable token; the card is simply absent
+  (payload section omitted, renderer block absent), pinned by M23.
 - **Seven fields, each value-or-explicit-UNAVAILABLE:** LOCATION, STATE,
   PERMISSION, EVENT, TRANSITION, INVALIDATION, CANDIDATE-IMPLICATION. Every
   field is a truthful value or a typed UNAVAILABLE carrying a reason token from
@@ -179,13 +192,17 @@ Read-only presentation surface. The **builder is the SOLE producer** of every
 final card value; the **renderer projects and never derives, defaults, or
 invents**. No decision-contract key; no persistence beyond §8. All card-side
 time logic is keyed on `run_at_utc` — never wall-clock `now()` — so the card is
-deterministic for a given run.
+deterministic for a given run. **The composer contract is defined over ELIGIBLE
+runs only (§1): daily `MODE_LIVE`/`MODE_FIXTURE` executions. On `MODE_SUNDAY`
+the composer is not invoked and the card does not exist** — every §7 mapping
+presupposes an eligible run.
 
 ---
 
 ## 3. Recommended implementation design (Option A, preserved; EVENT routed)
 
-One build, once, on the daily path:
+One build, once, on the eligible daily path (`MODE_LIVE` / `MODE_FIXTURE`;
+never `MODE_SUNDAY`, §1):
 
 1. **Single-frame STATE acquisition.** `spy_state.py` receives FRAME A (the
    exact `spy_session_frame` object) and the SPY `previous_close`
@@ -340,11 +357,21 @@ PRD has ZERO discretion anywhere in this section.
 | ORB sub-object (`watch.py:407-505`), projected VERBATIM | REACHABLE | sub-axis | states `{PRE_OPEN, FORMING, FORMED, UNAVAILABLE, INVALID}`; reasons `{no_bars, unordered_bars, pre_open_prior_session, session_mismatch, mixed_session, formation_bars_absent, formation_incomplete, impossible_bounds}`; `reason=None` legal for PRE_OPEN/FORMING/FORMED; `orb=None` when SPY metrics absent |
 
 ```
-VALID_LOCATION_UNAVAILABLE_REASONS = frozenset({
+VALID_LOCATION_STATES = frozenset({"OBSERVED", "PRE_OPEN", "STALE",
+                                   "UNAVAILABLE"})
+VALID_LOCATION_PRICE_VS_VWAP = frozenset({"ABOVE", "BELOW", "AT_LEVEL"})
+    # valued (OBSERVED, volume > 0) observations only; the zero-volume case
+    # normalizes to the reason token "vwap_unavailable" below, and the raw
+    # upstream literal price_vs_vwap="UNAVAILABLE" never renders as a value.
+VALID_LOCATION_REASONS = frozenset({
     "system_halted", "intraday_fetch_failed", "insufficient_bars",
     "pre_open_prior_session", "session_mismatch", "pre_open",
     "observation_lag", "vwap_unavailable",
 })
+    # renamed from v0.4-initial VALID_LOCATION_UNAVAILABLE_REASONS (F2):
+    # pre_open / pre_open_prior_session / session_mismatch / observation_lag
+    # accompany the PRE_OPEN and STALE states, which are non-current but NOT
+    # UNAVAILABLE — the old name mislabeled them.
 VALID_LOCATION_ORB_STATES  = frozenset({"PRE_OPEN", "FORMING", "FORMED",
                                         "UNAVAILABLE", "INVALID"})
 VALID_LOCATION_ORB_REASONS = frozenset({"no_bars", "unordered_bars",
@@ -352,13 +379,21 @@ VALID_LOCATION_ORB_REASONS = frozenset({"no_bars", "unordered_bars",
     "formation_bars_absent", "formation_incomplete", "impossible_bounds"})
 ```
 
-Closure: the observation's four-state axis fully partitions its reason space;
-all seven raw reasons + the field-specific `vwap_unavailable` are enumerated;
-the ORB sub-axis (previously unenumerated — a v0.3 gap) is now closed at packet
-authority. `insufficient_bars` appears in both LOCATION and STATE sets with
-different meanings (empty frame vs <5 ORB bars); the sets are per-field
-namespaces and never mix, and the collision is called out here so no reviewer
-reads them as one condition.
+Composer validation for LOCATION (zero discretion, per §4.1): `state` must be a
+member of `VALID_LOCATION_STATES`; `reason` must be `None` (legal exactly for
+`OBSERVED`) or a member of `VALID_LOCATION_REASONS` keyed by state per the table
+above; a valued observation's `price_vs_vwap` must be a member of
+`VALID_LOCATION_PRICE_VS_VWAP` or normalize to `vwap_unavailable`; the ORB
+sub-object validates against the two ORB sets (its `reason=None` is legal for
+`PRE_OPEN`/`FORMING`/`FORMED`).
+
+Closure: the observation's four-state axis IS the closed value contract and
+fully partitions its reason space; all seven raw reasons + the field-specific
+`vwap_unavailable` are enumerated; the ORB sub-axis (previously unenumerated —
+a v0.3 gap) is closed at packet authority. `insufficient_bars` appears in both
+LOCATION and STATE sets with different meanings (empty frame vs <5 ORB bars);
+the sets are per-field namespaces and never mix, and the collision is called
+out here so no reviewer reads them as one condition.
 
 ### 7.2 STATE — `SpyStateOutcome` from FRAME A
 
@@ -536,7 +571,7 @@ dead under current routing (§17 A-2, out of scope for NS-2E).
 | an entry with `WARNING` | DEFENSIVE-ONLY (dead under current routing) | value | `WARNING` |
 | an entry with `TRIGGERED` | DEFENSIVE-ONLY (dead; a TRIGGERED guidance is written to the map before the block conversion, `invalidation.py:154-169`) | value | `TRIGGERED` |
 | an entry with `UNKNOWN` (upstream reason `INSUFFICIENT_DETERMINISTIC_INPUTS`) | DEFENSIVE-ONLY (dead) | UNAVAILABLE | `invalidation_indeterminate` — the upstream status is NORMALIZED; the raw reason string is NEVER projected (RATIFIED; the open reason axis cannot enter a closed vocabulary) |
-| map `{}`, outcome ≠ `HALT` | REACHABLE | truthful value — NOT unavailable | `NO_ACTIVE_CANDIDATES` (gates ran; no candidate in scope) |
+| map `{}`, outcome ≠ `HALT` (eligible run, §1) | REACHABLE | truthful value — NOT unavailable | `NO_ACTIVE_CANDIDATES` (on an eligible non-halt run the gate chain executed — vacuously when zero setups exist, `runtime/__init__.py:1105-1123`, `:701-705` — and no candidate was in scope; `MODE_SUNDAY`, where the chain is skipped wholesale, produces no card at all, §1/F1) |
 | map `{}`, outcome = `HALT` | REACHABLE | UNAVAILABLE | `invalidation_inputs_absent` (gates never ran; `runtime/__init__.py:983-989`) |
 | per-symbol absent (symbol without an ALLOW decision) | REACHABLE | excluded from the run-level rollup | — (the contract already renders per-symbol `None`, `contract.py:374`; not a card token) |
 | D-2 declined by a later owner ruling | OWNER-DEFERRED (dormant) | UNAVAILABLE | `invalidation_deferred_d2` |
@@ -551,10 +586,26 @@ VALID_INVALIDATION_UNAVAILABLE_REASONS = frozenset({
 })
 ```
 
+**Mixed-status aggregate precedence (F4, ruled 2026-08-07 — the implementing
+PRD has ZERO discretion).** For a non-empty map, the single field result derives
+from the highest-severity entry status under the strict order:
+
+```
+TRIGGERED > WARNING > UNKNOWN (→ invalidation_indeterminate) > NOT_TRIGGERED
+```
+
+i.e. any `TRIGGERED` entry → value `TRIGGERED`; else any `WARNING` → `WARNING`;
+else any `UNKNOWN` → UNAVAILABLE `invalidation_indeterminate`; else →
+`NOT_TRIGGERED`. Mixed maps are DEFENSIVE-ONLY like their member branches
+(current routing produces uniform `NOT_TRIGGERED`), but the rule is total over
+every combination of the 4-member status axis. Pinned by M24.
+
 Closure: the producer's closed axis is the 4-member STATUS set; each member maps
-to exactly one card value/token; the two `{}` worlds are split deterministically
-by `outcome` (RATIFIED — non-halt empty is a truthful empty, halt empty is
-absent inputs); no raw reason string can reach the card.
+to exactly one card value/token, and the F4 precedence makes the rollup total
+and deterministic over every multi-entry combination; the two `{}` worlds are
+split deterministically by `outcome` on eligible runs (RATIFIED — non-halt
+empty is a truthful empty, halt empty is absent inputs; `MODE_SUNDAY` produces
+no card, §1); no raw reason string can reach the card.
 
 ### 7.7 CANDIDATE-IMPLICATION — rollup over `visibility_map` + `outcome` (RATIFIED)
 
@@ -569,8 +620,8 @@ are TOTAL at the boundary: `PipelineResult.outcome` is a non-optional `str`
 | Upstream outcome | Class | Field result | Exact token/value |
 |---|---|---|---|
 | `outcome=TRADE` (≥1 actionable decision) | REACHABLE | value | `ACTIONABLE_CANDIDATES` (+ ACTIVE/NEAR_MISS/BLOCKED counts) |
-| `outcome=NO_TRADE`, map non-empty | REACHABLE (note: ACTIVE+NO_TRADE is possible — a policy-allowed NON_TRADABLE symbol is excluded from actionability, `:766-774`) | value | `CANDIDATES_BLOCKED_OR_NEAR_MISS` (+ counts) |
-| `outcome=NO_TRADE`, map `{}` | REACHABLE | truthful value — NOT unavailable | `NO_CANDIDATES` |
+| `outcome=NO_TRADE`, map non-empty | REACHABLE | value | `CANDIDATES_PRESENT_NONE_ACTIONABLE` (+ ACTIVE/NEAR_MISS/BLOCKED counts) — truthful cover-all (F3, ruled 2026-08-07): candidates exist and none is actionable, whether BLOCKED, NEAR_MISS, or ACTIVE-but-non-actionable (a policy-allowed NON_TRADABLE symbol is `ACTIVE` in the map yet excluded from actionability, `trade_visibility.py:47-52`, `runtime/__init__.py:766-774`); the retired label `CANDIDATES_BLOCKED_OR_NEAR_MISS` was false for the reachable ACTIVE-only map |
+| `outcome=NO_TRADE`, map `{}` (eligible run, §1) | REACHABLE | truthful value — NOT unavailable | `NO_CANDIDATES` (`MODE_SUNDAY` produces no card at all, §1/F1) |
 | `outcome=HALT` (map always `{}` — gates skipped) | REACHABLE | UNAVAILABLE | `candidate_inputs_absent` |
 | inputs absent/`None` at the boundary | **UNREACHABLE / IMPOSSIBLE** | — | v0.3's `candidate_implication_uncomposable` is removed (RATIFIED) — it contradicted v0.3's own §9 verification that these inputs are never absent |
 | per-symbol absent (no decision for a symbol) | REACHABLE | excluded from rollup | — (distinct from the empty map; not a card token) |
@@ -578,23 +629,29 @@ are TOTAL at the boundary: `PipelineResult.outcome` is a non-optional `str`
 
 ```
 VALID_CANDIDATE_IMPLICATION_VALUES = frozenset({"ACTIONABLE_CANDIDATES",
-    "CANDIDATES_BLOCKED_OR_NEAR_MISS", "NO_CANDIDATES"})
+    "CANDIDATES_PRESENT_NONE_ACTIONABLE", "NO_CANDIDATES"})
 VALID_CANDIDATE_IMPLICATION_UNAVAILABLE_REASONS = frozenset({
     "candidate_implication_deferred_d3", "candidate_inputs_absent",
 })
 ```
 
-Closure: `(outcome, map-emptiness)` has six combinations; `TRADE` with an empty
-map is impossible (an actionable decision implies a map entry), `HALT` with a
-non-empty map is impossible (gates skipped ⇒ no decisions); the four possible
-combinations map to exactly one value/token each.
+Closure: over eligible runs (§1), `(outcome, map-emptiness)` has six
+combinations; `TRADE` with an empty map is impossible (an actionable decision
+implies a map entry), `HALT` with a non-empty map is impossible (gates skipped
+⇒ no decisions); the four possible combinations map to exactly one value/token
+each, and `CANDIDATES_PRESENT_NONE_ACTIONABLE` is truthful over every
+non-actionable status mix including the ACTIVE-only map (F3).
 
 ### 7.8 Closure demonstration — summary
 
-For each field: every REACHABLE branch in §7.1–§7.7 maps to exactly one member
-of that field's value set or unavailable frozenset; every DEFENSIVE-ONLY and
-OWNER-DEFERRED member is explicitly declared as such; every UNREACHABLE token
-from v0.3 is removed, not silently kept (`permission_state_absent`,
+All §7 mappings are defined over ELIGIBLE runs (§1); `MODE_SUNDAY` produces no
+card and therefore consumes no vocabulary (F1). For each field: every REACHABLE
+branch in §7.1–§7.7 maps to exactly one member of that field's value set or
+unavailable frozenset (LOCATION's value contract closed per F2; the
+CANDIDATE-IMPLICATION non-actionable value truthful per F3; the INVALIDATION
+mixed-map rollup total per F4); every DEFENSIVE-ONLY and OWNER-DEFERRED member
+is explicitly declared as such; every UNREACHABLE token from v0.3 is removed,
+not silently kept (`permission_state_absent`,
 `permission_uncomputable`, PERMISSION `observation_unavailable`,
 `candidate_implication_uncomposable`, TRANSITION `no_truthful_producer`,
 EVENT `no_truthful_producer`). No raw upstream reason string enters any closed
@@ -664,7 +721,7 @@ run-time-keyed view (§3.4).
 |---|---|---|
 | A | `cuttingboard/spy_state.py` (new) | `SpyStateOutcome` + `VALID_SPY_STATE_UNAVAILABLE_REASONS`; owned FRAME A→`list[Bar]` adapter; `build_spy_state_outcome`; the §5 isolation boundary |
 | A | `cuttingboard/market_control_card.py` (new) | `MarketControlCard`, the six other `VALID_*` sets, the seven-field composer (sole producer), the red-folder run-time resolution (§3.4) |
-| M | `cuttingboard/runtime/__init__.py` | call `build_spy_state_outcome` with the existing `spy_session_frame` + SPY `previous_close`; build the card (passing `system_state.permission`, `visibility_map`, `invalidation_guidance_map`, `outcome`, `run_at_utc`); set `PipelineResult.market_control_card`; forward to the daily `build_report_payload`; hourly untouched |
+| M | `cuttingboard/runtime/__init__.py` | call `build_spy_state_outcome` with the existing `spy_session_frame` + SPY `previous_close`; build the card on ELIGIBLE runs only (`MODE_LIVE`/`MODE_FIXTURE`, §1 — never `MODE_SUNDAY`); set `PipelineResult.market_control_card`; forward to the daily `build_report_payload`; hourly untouched |
 | M | `cuttingboard/runtime/_types.py` | one optional `market_control_card` field on `PipelineResult` (mirrors `spy_observation` @ `:92`) |
 | M | `cuttingboard/delivery/payload.py` | keyword-only `market_control_card` param + `sections["market_control_card"]` projection |
 | M | `cuttingboard/delivery/dashboard_renderer.py` | one card block, present iff section present (precedent `:2538-2556`) |
@@ -722,9 +779,11 @@ and pin the corrected producer semantics.
 | M17 | EVENT unavailable | missing/malformed schedule file → `event_schedule_unavailable`; the loader's free-form `error` string does NOT appear anywhere in the card cell | **YES** — projecting the raw error string reddens |
 | M18 | PERMISSION total projection | halt fixture → card PERMISSION is the literal halt line; non-halt fixture → the exact posture line; no unavailable branch exists in the composer | **YES** — mapping halt to an unavailable token reddens |
 | M19 | INVALIDATION empty-map split | non-halt `{}` → value `NO_ACTIVE_CANDIDATES`; halt `{}` → `invalidation_inputs_absent` | **YES** — merging the two worlds reddens |
-| M20 | CANDIDATE-IMPLICATION split | non-halt `{}` → `NO_CANDIDATES`; halt → `candidate_inputs_absent`; NO_TRADE + non-empty map → `CANDIDATES_BLOCKED_OR_NEAR_MISS` | **YES** |
+| M20 | CANDIDATE-IMPLICATION split | non-halt `{}` → `NO_CANDIDATES`; halt → `candidate_inputs_absent`; NO_TRADE + non-empty map → `CANDIDATES_PRESENT_NONE_ACTIONABLE`, including a discriminating ACTIVE-only fixture (policy-allowed NON_TRADABLE symbol) proving the value is truthful when nothing is blocked or near-miss (F3) | **YES** |
 | M21 | INVALIDATION normalization | constructed guidance entry with `status=UNKNOWN`, `reason="INSUFFICIENT_DETERMINISTIC_INPUTS"` → card shows `invalidation_indeterminate`; the raw upstream string appears nowhere in the card | **YES** — projecting the raw token reddens (the exact PR #226 terminal defect, pinned forever) |
 | M22 | TRANSITION derivation + cascade | precedence pinned (`FAILURE_CONFIRMED` > `failed_reclaim` > `reclaimed_orb` > break-direction > `NO_BREAK`) with one fixture per row; STATE-unavailable → `transition_state_unavailable` | **YES** — reordering precedence reddens |
+| M23 | Sunday absence (F1) | `_run_pipeline(mode=MODE_SUNDAY)`: `PipelineResult.market_control_card is None`, `sections["market_control_card"]` absent from the payload, and no card block in the rendered dashboard | **YES** — producing the card on Sunday reddens |
+| M24 | INVALIDATION mixed-status precedence (F4) | constructed non-empty maps: {TRIGGERED, WARNING} → `TRIGGERED`; {WARNING, NOT_TRIGGERED} → `WARNING`; {UNKNOWN, NOT_TRIGGERED} → `invalidation_indeterminate`; uniform NOT_TRIGGERED → `NOT_TRIGGERED` | **YES** — reordering the severity precedence reddens |
 
 Reuse `_utc_frame` (`test_spy_observation.py:27-33`) for DataFrame fixtures and
 the ET `_bar/_orb_bars/_noise_bars` builders (`test_intraday_state.py`) for Bar
@@ -805,6 +864,24 @@ independent PRD review → Gate A sequence is required before implementation.
   `insufficient_bars`, `pre_computation_window`, `state_computation_error`,
   `non_current_observation`, `observation_unavailable`. (§7.2)
 
+### RATIFIED (Dustin, 2026-08-07, authorizing the single GOV-1 consolidated correction — findings F1–F4 of the initial packet review, §18)
+
+- **F1 — Sunday exclusion:** the card is not produced/rendered for
+  `MODE_SUNDAY` runs; no Sunday-specific unavailable token; the truthful-empty
+  mappings apply only to eligible non-Sunday daily runs where the
+  candidate/gate path is actually in scope. (§1, §2.3, §7.6, §7.7; M23)
+- **F2 — LOCATION closure:** `VALID_LOCATION_STATES` and
+  `VALID_LOCATION_PRICE_VS_VWAP` added; the reason vocabulary renamed to
+  `VALID_LOCATION_REASONS` (PRE_OPEN/STALE reasons are non-current, not
+  "unavailable"); ORB sub-axis retained explicitly. (§7.1)
+- **F3 — candidate-implication label:** `CANDIDATES_BLOCKED_OR_NEAR_MISS`
+  replaced by the truthful cover-all `CANDIDATES_PRESENT_NONE_ACTIONABLE`,
+  correct for ACTIVE-only/non-tradable maps as well as blocked/near-miss.
+  (§7.7; M20)
+- **F4 — INVALIDATION mixed-status precedence:**
+  `TRIGGERED > WARNING > invalidation_indeterminate > NOT_TRIGGERED`, total
+  over the defensive mixed-map combinations. (§7.6; M24)
+
 ### CARRIED FORWARD — RECOMMENDED, PENDING RATIFICATION (before Gate A)
 
 - **D-1 always-on SPY STATE — recommend YES** (implicitly reaffirmed by the
@@ -852,29 +929,36 @@ follow-up material outside NS-2E.
 
 ## 18. Packet review records (GOV-2 §2, §7 — PENDING)
 
-NO REVIEW OF THIS v0.4 PACKET HAS OCCURRED. The single fresh independent Codex
-packet review is commissioned ONLY AFTER Dustin authorizes the push/PR carrying
-it. The v0.1/v0.2/v0.3 review records remain on their PR trails (#222, #225,
-#226) and satisfy no gate for v0.4. Until the record below is populated, this
-packet is PROVISIONAL — NOT REVIEW-CLEAN, and no downstream PRD may be opened
-on it.
+The v0.1/v0.2/v0.3 review records remain on their PR trails (#222, #225, #226)
+and satisfy no gate for v0.4. Until the confirmation record below is populated,
+this packet is PROVISIONAL — NOT REVIEW-CLEAN, and no downstream PRD may be
+opened on it.
 
-### INITIAL PACKET REVIEW — PENDING
+### INITIAL PACKET REVIEW — COMPLETE (2026-08-07)
 
 | Field | Value |
 |---|---|
 | Event type | `INITIAL PACKET REVIEW` (v0.4, GOV-2 §2 auto-commissioned) |
-| Reviewer identity / capability role | PENDING — independent Codex packet review, fresh context, read-only |
-| Reviewed commit SHA / packet revision | PENDING — pinned at review time |
-| Review date | PENDING |
-| Verdict | PENDING |
-| Findings and dispositions | PENDING — at most one consolidated correction cycle (GOV-1) |
-| Fresh-context / independence / run-isolation evidence | PENDING — recorded at review time |
+| Reviewer identity / capability role | independent Codex packet review (`chatgpt-codex-connector`, Codex cloud), fresh context, read-only (no repo write access) |
+| Reviewed commit SHA / packet revision | `b95cccc87a70c2c26cdd8c0fa98b64b40502cd60` (PR #227 initial head) |
+| Review date | 2026-08-07 |
+| Verdict | 4 findings: 3 P1 + 1 P2 (no architectural finding; Option A undisputed) |
+| Findings and dispositions | F1 Sunday skipped-gates vs truthful-empty (P1) → Sunday exclusion ruled, §1/M23. F2 LOCATION value vocabulary not closed (P1) → `VALID_LOCATION_STATES` / `VALID_LOCATION_PRICE_VS_VWAP` added, reason set renamed, §7.1. F3 `CANDIDATES_BLOCKED_OR_NEAR_MISS` false for ACTIVE-only map (P1) → replaced by `CANDIDATES_PRESENT_NONE_ACTIONABLE`, §7.7/M20. F4 mixed-status rollup precedence undefined (P2) → severity precedence pinned, §7.6/M24. All four dispositioned in the single GOV-1 consolidated correction (this revision), authorized by Dustin 2026-08-07 (§16). |
+| Fresh-context / independence / run-isolation evidence | Codex cloud connector review, triggered by PR commission comment; reviewer had no authoring-session context and no write access; findings posted as PR review threads on PR #227 |
 
-**Terminal rule (binding).** This replacement gets ONE fresh independent review
-after Dustin authorizes the push/PR. If that review finds a structural or
-boundary omission, work STOPS and returns to Dustin — it does NOT begin another
-iterative correction chain.
+### EXACT-CORRECTED-HEAD CONFIRMATION — PENDING
+
+| Field | Value |
+|---|---|
+| Event type | `EXACT-CORRECTED-HEAD CONFIRMATION` (GOV-2 §2 step 5) |
+| Scope | disposition of exactly F1–F4 at the corrected head, plus detection of any new blocking inconsistency — a confirmation, not a fresh-scope review |
+| Reviewed commit SHA | PENDING — pinned at confirmation time |
+| Verdict | PENDING |
+
+**Terminal rule (binding, per Dustin 2026-08-07).** The consolidated correction
+above is the ONE cycle GOV-1 allows. If the exact-corrected-head confirmation
+raises another substantive P1 or boundary omission, work STOPS PERMANENTLY on
+v0.4 and returns to Dustin — no third packet-correction cycle.
 
 ---
 
