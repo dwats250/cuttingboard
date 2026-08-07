@@ -60,7 +60,7 @@ designs each out.
 |---|---|---|---|
 | P1 frame-identity mismatch | BY CONSTRUCTION | §2.2, §6 — STATE and freshness are functions of the SAME `spy_session_frame` object; no second SPY fetch exists to diverge | M1, M2 |
 | P1 false no-persistence boundary | BY CORRECTED CLASSIFICATION | §8 — four-category vocabulary; v0.2's absolute "durable artifacts byte-for-byte unchanged" explicitly retracted; verified against `assert_valid_payload` | M11 |
-| P1 STATE isolation too narrow | BY CONSTRUCTION | §5 — adapter + prev-close + engine call live inside one typed seam; the adapter has no existence outside the guard | M4, M8 |
+| P1 STATE isolation too narrow | BY CONSTRUCTION (scoped) | §5 — the STATE-acquisition seam (owned adapter + prev-close + engine call) is inside one typed guard in `spy_state.py`; the adapter has no existence outside it. Scoped to STATE acquisition; it does NOT enclose the separate, unmodified `build_spy_observation` (F1) | M3, M4, M5, M8 |
 | P1 incomplete reason vocabulary | BY CONSTRUCTION | §7, §9 — top-down per-field taxonomy + closed frozenset the carrier validates; an unenumerated branch fails construction | M7, M10 |
 | P2 unenforced XOR | BY CONSTRUCTION | §4.1 — `SpyStateOutcome.__post_init__` (TradeDecision idiom) | M9 |
 
@@ -233,18 +233,19 @@ recommends YES and the FRAME A design makes it actually computable EOD.
 
 ## 4. Sidecar contract
 
-### 4.1 New dataclasses (transient, non-persisted)
+### 4.1 New dataclasses (transient — not a durable schema of their own)
 
 - **`SpyStateOutcome`** (frozen; `cuttingboard/spy_state.py`): fields `state:
   Optional[IntraState]`, `unavailable_reason: Optional[str]`. Strict-XOR invariant
   enforced in `__post_init__` on the `TradeDecision.__post_init__` idiom
   (`trade_decision.py:45-88`) — it MUST reject: both populated; neither populated;
   `unavailable_reason` not in the closed
-  `VALID_SPY_STATE_UNAVAILABLE_REASONS` frozenset; `state` populated but not an
-  `IntraState`. Pure validation (no derived-default backfill). The pre-09:45 engine
+  `VALID_SPY_STATE_UNAVAILABLE_REASONS` frozenset (enumerated at packet authority in
+  §7); `state` populated but not an `IntraState`. Pure validation (no derived-default backfill). The pre-09:45 engine
   `None` maps to a carrier with the pre-computation-window token — `state=None,
   reason=None` is constructor-rejected, which IS the P2 fix.
-- **`MarketControlCard`** (frozen, transient, non-persisted): seven fields, each a
+- **`MarketControlCard`** (frozen, transient — not a durable schema of its own; its
+  projected dict mirror rides the payload additively, §8): seven fields, each a
   value-or-explicit-UNAVAILABLE cell (a small structured value carrying either a
   truthful value or a reason token). Sole producer: the card builder.
 
@@ -259,16 +260,39 @@ market_control_card=None)` — `fixture_mode` and `spy_observation` retained ver
 
 ### 4.3 Schema / persistence classification
 
-Transient, non-persisted. NO decision-contract key, NO schema migration, NO
-`PAYLOAD_SCHEMA_VERSION` bump, NO required-key change — verified: `assert_valid_payload`
-accepts extra `sections` keys (§2.1). See §8 for the full persistence boundary.
+The `SpyStateOutcome` / `MarketControlCard` dataclasses are transient (in-memory, not
+a durable schema of their own). NO decision-contract key, NO schema migration, NO
+`PAYLOAD_SCHEMA_VERSION` bump, NO required-key change — verified:
+`assert_valid_payload` accepts extra `sections` keys (§2.1). The card's projected
+`sections["market_control_card"]` key DOES appear additively in the schema-governed
+`latest_payload.json` artifact (cat-4); see §8 for that precise persistence boundary.
 
 ---
 
-## 5. STATE acquisition and failure isolation (closes findings 1 + 3)
+## 5. STATE acquisition and failure isolation (closes finding 3 — STATE isolation)
 
-The seam is inside `spy_state.py` — never at the runtime call site, never
-pipeline-wide.
+**Scope of the boundary (F1 correction).** The isolation boundary is the
+`spy_state.py` STATE-ACQUISITION seam ONLY — the owned FRAME A → `list[Bar]` adapter
+plus the `compute_intraday_state` call. It is not the runtime call site and not
+pipeline-wide, and it explicitly does NOT enclose `build_spy_observation`, which is a
+separate, unmodified upstream producer that reads FRAME A first
+(`runtime/__init__.py:1288`, before the STATE seam) and owns its own defensive
+handling (`session_frame is None`/`<1 bar` → `UNAVAILABLE`, `spy_observation.py`).
+This section makes no claim about, and requires no change to, the observation
+producer.
+
+**Realizable inputs (F1 correction).** FRAME A's shape is guaranteed by the single
+`fetch_intraday_session_bars("SPY")` contract, which selects the OHLCV columns
+(`ingestion.py:231`) or returns `None`/empty on failure (`:258-271`). The input
+states this seam must handle are therefore exactly: a well-formed session frame; or
+`None`/empty. A present-but-malformed FRAME A (e.g. an otherwise-current frame
+missing a column) is not producible by that fetch; the packet does NOT claim to
+convert such a pathological frame into typed unavailability at the daily-run
+altitude, because `build_spy_observation` would encounter it first and covering it
+there would require modifying `spy_observation.py` (§14 hard stop #1). The caught set
+below protects the acquisition seam against the malformations reachable at the
+adapter/compute stage and against realistic `None`/empty inputs — not against a
+frame shape the fetch contract cannot produce.
 
 - **Acquisition:** adapt FRAME A → `list[Bar]` (owned adapter), then
   `compute_intraday_state("SPY", bars, previous_close=previous_close)`.
@@ -302,9 +326,10 @@ catch is the anti-pattern v0.3 corrects, not the idiom it copies.
 exit non-zero — never substitute-and-continue") forbids fabricating substitute
 values and forbids silence; a typed UNAVAILABLE with a validated reason token,
 rendered explicitly on a read-only sidecar, substitutes nothing and hides nothing.
-Collapsing the entire daily run because one presentation sidecar's provider frame
-was malformed would be failing loud at the WRONG altitude. Programmer errors keep
-the exit-non-zero path untouched.
+Collapsing the entire daily run because the STATE-acquisition seam hit an
+input-quality failure (insufficient/late bars, an adapter data-shape error on the
+bars it adapts, or a compute error) would be failing loud at the WRONG altitude.
+Programmer errors keep the exit-non-zero path untouched.
 
 ---
 
@@ -336,7 +361,7 @@ INPUT-UNAVAILABLE / PRODUCER-ABSENT.
 | Field | Source | Legitimate unavailable branches | Class |
 |---|---|---|---|
 | LOCATION | `SpyObservation` (existing) | shared frame conditions; zero-volume→VWAP None (`price_vs_vwap="UNAVAILABLE"`) | SHARED; FIELD-SPECIFIC |
-| STATE | `SpyStateOutcome` from FRAME A (§5, §6) | shared frame conditions; `insufficient_bars`; `pre_computation_window`; adapter data-shape; `state_computation_error`; non-current cascade | SHARED; FIELD-SPECIFIC; INPUT-UNAVAILABLE |
+| STATE | `SpyStateOutcome` from FRAME A (§5, §6) | `observation_unavailable` (shared); `insufficient_bars`; `pre_computation_window`; `state_computation_error` (adapter data-shape or engine ValueError); `non_current_observation` (cascade) | SHARED; FIELD-SPECIFIC; INPUT-UNAVAILABLE |
 | PERMISSION | `system_state.permission` (existing) | shared frame conditions; STATE-unavailable cascade | SHARED; FIELD-SPECIFIC |
 | EVENT | none | `no_truthful_producer` (declared defensive — no producer today) | PRODUCER-ABSENT |
 | TRANSITION | per R1 (§16) | STATE-unavailable cascade; per-R1 shape (see §16) | FIELD-SPECIFIC; OWNER-DECISION-DEFERRED |
@@ -345,9 +370,50 @@ INPUT-UNAVAILABLE / PRODUCER-ABSENT.
 
 EVENT / TRANSITION-without-truthful-producer are DECLARED DEFENSIVE (Author
 discipline #3): explicit `UNAVAILABLE(reason="no_truthful_producer")`, no implied
-active channel. The per-field vocabularies are finalized as closed frozensets in
-this packet's implementing PRD; every branch above has an enumerated token, so an
-unenumerated branch fails construction rather than rendering silence.
+active channel.
+
+**Closed per-field reason vocabularies (F2 — enumerated at PACKET authority; NOT
+deferred to the implementing PRD).** Each field's unavailable-reason token set is
+fixed here as a closed frozenset; the carrier/composer rejects any token outside its
+field's set. Tokens are field-specific `snake_case` constants (the
+`execution_policy.py` / `invalidation.py` idiom); SHARED frame conditions are
+projected from `SpyObservation.reason`, not re-derived.
+
+- `VALID_SPY_STATE_UNAVAILABLE_REASONS = frozenset({"insufficient_bars",
+  "pre_computation_window", "state_computation_error", "non_current_observation",
+  "observation_unavailable"})` — respectively: engine `InsufficientDataError`
+  (<5 ORB bars); engine `None` before 09:45 ET (in-band); adapter data-shape
+  (`KeyError`/`ValueError`/`TypeError`) or engine `ValueError` at the acquisition
+  seam; cascade when `SpyObservation.state` is `PRE_OPEN`/`STALE`; shared, when
+  `SpyObservation` is `UNAVAILABLE` (halt / `None`-frame / fetch-failed).
+- `VALID_LOCATION_UNAVAILABLE_REASONS` — PROJECTED from the existing `SpyObservation`
+  vocabulary, not a new set: `{"system_halted", "intraday_fetch_failed",
+  "insufficient_bars", "pre_open_prior_session", "session_mismatch", "pre_open",
+  "observation_lag"}` (`spy_observation.py`), plus the field-specific
+  `"vwap_unavailable"` for the zero-volume `price_vs_vwap="UNAVAILABLE"` case.
+- `VALID_PERMISSION_UNAVAILABLE_REASONS = frozenset({"observation_unavailable",
+  "permission_state_absent", "permission_uncomputable"})` — shared; permission
+  source absent; cascade when STATE is unavailable.
+- `VALID_EVENT_UNAVAILABLE_REASONS = frozenset({"no_truthful_producer"})` — declared
+  defensive; no producer today.
+- `VALID_TRANSITION_UNAVAILABLE_REASONS = frozenset({"transition_state_unavailable",
+  "transition_deferred", "no_truthful_producer"})` — cascade when STATE unavailable;
+  owner-deferred if R1 (§16) is declined; defensive if no same-run producer is
+  ratified.
+- `VALID_INVALIDATION_UNAVAILABLE_REASONS = frozenset({"invalidation_deferred_d2",
+  "invalidation_inputs_absent", "invalidation_indeterminate"})` — owner-deferred
+  (R2); `invalidation_guidance_map` empty / per-symbol absent; in-band UNKNOWN
+  (upstream `INSUFFICIENT_DETERMINISTIC_INPUTS`).
+- `VALID_CANDIDATE_IMPLICATION_UNAVAILABLE_REASONS =
+  frozenset({"candidate_implication_deferred_d3", "candidate_inputs_absent",
+  "candidate_implication_uncomposable"})` — owner-deferred (R2); `visibility_map`
+  empty / no candidates; uncomposable when the decision inputs are absent.
+
+Every branch in the table above maps to exactly one token in its field's frozenset;
+the sets are closed at THIS packet's authority (not deferred), so an unenumerated
+branch fails construction rather than rendering silence. The implementing PRD binds
+these sets as written and may only narrow them under a recorded owner ruling (e.g.
+the R1 TRANSITION shape).
 
 ---
 
@@ -370,9 +436,18 @@ Output classification (verified `transport.py:15-16`, `dashboard_renderer.py:54-
 - TRUE and intended: the card appears in existing PRESENTATION outputs (cat 1) — a
   new optional `sections["market_control_card"]` key in `latest_payload.json` and a
   rendered block in `dashboard.html` (and in `report.html` only per R3, §10).
-- TRUE: NO new DECISION/AUDIT/SCHEMA-GOVERNED persistence (cats 3 & 4 untouched); an
-  additive optional `sections` key adds no schema surface — no
-  `PAYLOAD_SCHEMA_VERSION` bump, no required-key change (§2.1). NO new cat-2 writes.
+- TRUE (F3 — precise): `logs/latest_payload.json` is a SCHEMA-GOVERNED (cat-4) — and
+  simultaneously PRESENTATION (cat-1) — artifact, and it CHANGES ADDITIVELY: the
+  optional `sections["market_control_card"]` key is written into it. That change is
+  additive only — its required-key contract and `PAYLOAD_SCHEMA_VERSION` remain
+  unchanged (verified: `assert_valid_payload` accepts extra `sections` keys, §2.1;
+  accepting extra keys governs compatibility, it does not make the persistence
+  disappear). The OTHER cat-4 artifacts (`market_map.json`, `latest_contract.json`)
+  are untouched. All DECISION/AUDIT (cat-3) artifacts — `latest_contract.json`,
+  `audit.jsonl`, `evaluation.jsonl` — are untouched. NO new cat-2 writes; NO new
+  durable persistence SURFACE is introduced. **No blanket "category 4 is untouched"
+  claim is made** — that would be false, since the payload artifact is cat-4 and
+  changes additively.
 - **EXPLICIT RETRACTION:** v0.2's absolute claim "durable artifacts byte-for-byte
   unchanged" (v0.2 §13 T10) is FALSE (the card, by design, changes cat-1 presentation
   files) and is retired. It must not be restated in any absolute form in any
@@ -458,9 +533,9 @@ production files; test LOC uncounted.
 |---|---|---|---|
 | M1 | Same-frame identity | STATE derived from the exact object passed to `build_spy_observation`; discriminating fixture where full-session vs tail-120 frame yield different STATE (ORB present only in full session) | **YES** — reintroducing a separate fetch/frame reddens |
 | M2 | Single fetch | fetch counter: exactly one `fetch_intraday_session_bars("SPY")` feeds both observation and STATE | **YES** |
-| M3 | Fetch None | observation UNAVAILABLE AND carrier unavailable (producer-absent); no crash | |
-| M4 | Adapter KeyError (drop `Volume`) | typed UNAVAILABLE; daily run contract NOT ERROR (altitude) | **YES** — narrowing the boundary to compute-only reddens |
-| M5 | Adapter ValueError (unparseable index) | typed UNAVAILABLE; run survives | |
+| M3 | Fetch None/empty FRAME A (the realistic failure the fetch contract can produce) | observation UNAVAILABLE (its own guard) AND carrier unavailable (producer-absent); daily run NOT ERROR | |
+| M4 | Adapter data-shape failure at the STATE seam — call `build_spy_state_outcome` with a malformed bar input (missing OHLCV column) | typed UNAVAILABLE from that call (unit-level, at the `spy_state.py` seam) — proves the adapter/compute guard catches it | **YES** — narrowing the guard to compute-only reddens |
+| M5 | Adapter ValueError at the STATE seam (uncoercible/unparseable value) | typed UNAVAILABLE from `build_spy_state_outcome` | |
 | M6 | InsufficientDataError (<5 ORB bars) | typed UNAVAILABLE, field-specific token | |
 | M7 | Pre-09:45 engine None | typed UNAVAILABLE, `pre_computation_window` — distinct from error tokens | |
 | M8 | Injected AttributeError in the engine call | PROPAGATES to run level (error contract) — proves no blanket catch | **YES** |
@@ -486,7 +561,12 @@ guard whose mutation leaves all tests green is not a guard and does not merge.
 2. Any required-key addition to `assert_valid_payload` or any `PAYLOAD_SCHEMA_VERSION`
    bump.
 3. Any SPY fetch beyond the existing single `fetch_intraday_session_bars("SPY")`.
-4. Any cat-2/3/4 persistence write for the card.
+4. Any NEW durable persistence SURFACE for the card; any write to a cat-2
+   (observation/cache) or cat-3 (decision/audit) artifact; or any change to a cat-4
+   artifact's `PAYLOAD_SCHEMA_VERSION` or required-key contract. (The additive
+   optional `sections["market_control_card"]` key in the existing cat-4/cat-1
+   `latest_payload.json` is the intended, allowed behavior — §8 — not a stop
+   condition.)
 5. The hourly path consuming `sections["market_control_card"]`.
 6. TRANSITION (R1) requiring persisted prior-run state — a new persistence category.
 7. Any decision-contract change.
@@ -503,8 +583,9 @@ guard whose mutation leaves all tests green is not a guard and does not merge.
 **MATERIAL** under GOV-2 §1: new cross-layer seam (runtime → transient carrier →
 payload → renderer), new module `spy_state.py`, new `SpyStateOutcome` /
 `MarketControlCard` dataclasses. Fits the existing NS-2E MATERIAL classification; no
-new materiality trigger beyond what v0.1/v0.2 carried (Option A expands no
-consumers/schemas/persistence). Lane: STANDARD minimum (MICRO-ineligible). After the
+new materiality trigger beyond what v0.1/v0.2 carried (Option A adds no new consumer,
+no schema-version/required-key change, and no new persistence surface — the card
+rides the existing payload additively, §8). Lane: STANDARD minimum (MICRO-ineligible). After the
 packet is review-clean and Dustin issues a design-direction ruling, a fresh PRD →
 independent PRD review → Gate A sequence is required before implementation.
 
