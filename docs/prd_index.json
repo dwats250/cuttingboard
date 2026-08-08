@@ -1400,6 +1400,12 @@
       "title": "NS-2A/NS-2C fixed SPY observation + session VWAP: one transient read-only SPY card on the daily dashboard (daily-only; hourly out of scope)",
       "status": "COMPLETE",
       "commit": "68cca7607bb01426abd5b5bd6f78be61b3559973"
+    },
+    {
+      "number": 289,
+      "title": "NS-2E Market Control Card: seven-field read-only daily decision-support card (Option A, v0.4 MATERIAL packet)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

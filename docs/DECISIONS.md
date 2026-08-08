@@ -16,6 +16,55 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-07 — NS-2E design-direction ruling: PROCEED with Option A per the review-clean v0.4 MATERIAL packet; PRD-289 authorized to draft (ruled: Dustin)
+
+Design-direction ruling under GOV-2 §2 step 6 on the review-clean NS-2E
+Market Control Card MATERIAL packet
+(`audits/ns2e-market-control-card-material-packet-2026-08/NS2E_MARKET_CONTROL_CARD_MATERIAL_PACKET_v0.4.md`,
+merged PR #227, merge commit `53e76d56350c3d0a6a60cb0e4f80235e28f2f774`,
+reviewed head `b78e77c1bdabb433565af2928bbf03c33a67395c`; closeout
+bookkeeping merged PR #228 @ `f6fb123dcdc7a7114c9055f74a9a6177dce259e3`).
+The packet cleared GOV-2 §2's required upstream sequence: provisional v0.4
+replacement packet → independent Codex review (`b95cccc`, four findings
+F1–F4: 3 P1 + 1 P2) → one consolidated GOV-1 correction → independent
+exact-corrected-head confirmation (`4b8c7d0`, F1–F4 confirmed, one new P2)
+→ owner-authorized P2-only micro-correction → narrow exact-head
+confirmation (`b78e77c`, "CLEAN — no issues found"). Issued by Dustin in
+the session charge commissioning the PRD-289 drafting seam; recorded here
+verbatim per that charge.
+
+**Architecture — PROCEED with Option A as defined by the merged v0.4
+packet.** The packet is accepted as design authority for PRD drafting: one
+authoritative SPY FRAME A (`fetch_intraday_session_bars("SPY")`), STATE
+co-derived from the exact same `spy_session_frame` object as
+`SpyObservation` (identity, not equivalence-checking; no second SPY
+fetch), a new bounded `spy_state.py` seam with a frozen `SpyStateOutcome`
+XOR carrier, `spy_observation.py` and `intraday_state_engine.py`
+untouched, the §5 failure boundary (catch exactly `KeyError` /
+`ValueError` / `TypeError` / `InsufficientDataError`; pre-computation
+`None` in-band; everything else propagates; no `except Exception`), the §7
+closed vocabularies exactly as landed, and the §14 hard stops in force.
+
+**§16 carried-forward items, now ruled:**
+
+- **D-1 always-on SPY STATE:** YES — STATE is co-derived on every eligible
+  daily run (`MODE_LIVE`/`MODE_FIXTURE`; never `MODE_SUNDAY`), per the
+  packet's recommendation.
+- **D-4 Market Map retirement:** SPLIT — no Market Map coupling, removal,
+  or refactor in this slice; retirement remains a separate future decision.
+- **D-5 proceed on committed in-tree authority:** PROCEED.
+- **R3 presentation surface:** `dashboard.html` + `latest_payload.json`
+  ONLY — not `report.html` (packet §10).
+
+**Authorization:** the packet's recommended design (Option A, §3, with the
+§7 reconciled seven-field vocabulary contract) is approved as the design
+authority for PRD drafting. PRD-289 is authorized to be drafted for this
+bounded NS-2E Market Control Card slice only. This ruling does not itself
+authorize implementation — Gate A on the reviewed PRD remains the
+implementation authorization (GOV-2 §4). The next governed artifacts, in
+order: Stage-0 PRD-289, fresh-context independent PRD review, Dustin's
+explicit Gate A.
+
 ## 2026-08-06 — Owner-Merge / Agent-Managed-Closeout Convention ratified (ruled: Dustin)
 
 Dustin authored, and directed recording as owner-ratified governance (MICRO,
