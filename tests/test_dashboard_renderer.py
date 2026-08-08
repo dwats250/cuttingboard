@@ -4110,3 +4110,107 @@ def test_t12_no_spy_observation_card_when_section_absent():
     html = _render_with_spy(None)
     assert 'id="spy-observation"' not in html
     assert "SPY SESSION OBSERVATION" not in html
+
+
+# ---------------------------------------------------------------------------
+# PRD-289: Market Control Card block (present iff the daily section exists)
+# ---------------------------------------------------------------------------
+
+def _mcc_section(**overrides) -> dict:
+    base = {
+        "location": {"state": "OBSERVED", "reason": None, "price_vs_vwap": "ABOVE",
+                     "orb": {"state": "FORMED", "reason": None, "orb_high": 105.0, "orb_low": 100.0}},
+        "state": {"value": "RANGE", "unavailable_reason": None},
+        "permission": {"value": "Selective only — defined risk, R:R >= 3:1."},
+        "event": {"events": [{"date": "2026-04-29", "time_et": "08:30", "type": "CPI", "name": "CPI (April)"}],
+                  "value": None, "unavailable_reason": None, "expiring": False},
+        "transition": {"value": "NO_BREAK", "unavailable_reason": None},
+        "invalidation": {"value": "NO_ACTIVE_CANDIDATES", "unavailable_reason": None},
+        "candidate_implication": {"value": "CANDIDATES_PRESENT_NONE_ACTIONABLE",
+                                  "unavailable_reason": None,
+                                  "counts": {"ACTIVE": 1, "NEAR_MISS": 0, "BLOCKED": 0}},
+    }
+    base.update(overrides)
+    return base
+
+
+def _render_with_mcc(section: dict | None) -> str:
+    payload = _payload()
+    if section is not None:
+        payload["sections"]["market_control_card"] = section
+    return render_dashboard_html(payload, _run(), market_map=_market_map())
+
+
+def _mcc_block(html: str) -> str:
+    import re as _re
+    match = _re.search(r'id="market-control-card".*?</div>\s*</div>', html, _re.DOTALL)
+    assert match is not None, "market-control-card block missing"
+    return match.group(0)
+
+
+def test_m11_market_control_card_rendered_with_all_seven_fields():
+    html = _render_with_mcc(_mcc_section())
+    block = _mcc_block(html)
+    for label in ("LOCATION", "STATE", "PERMISSION", "EVENT", "TRANSITION",
+                  "INVALIDATION", "CANDIDATE-IMPLICATION"):
+        assert f'<div class="label">{label}</div>' in block
+    assert "MARKET CONTROL" in html
+    assert "RANGE" in block
+    assert "Selective only — defined risk, R:R &gt;= 3:1." in block
+    assert "2026-04-29 08:30 ET — CPI: CPI (April)" in block
+    assert "FORMED [100.00, 105.00]" in block          # verbatim ORB bounds
+    assert "NO_ACTIVE_CANDIDATES" in block
+    assert "CANDIDATES_PRESENT_NONE_ACTIONABLE (ACTIVE 1 / NEAR_MISS 0 / BLOCKED 0)" in block
+
+
+def test_m23_no_market_control_card_when_section_absent():
+    html = _render_with_mcc(None)
+    assert 'id="market-control-card"' not in html
+
+
+def test_r5_zero_volume_location_renders_vwap_unavailable_never_raw_literal():
+    html = _render_with_mcc(_mcc_section(
+        location={"state": "OBSERVED", "reason": "vwap_unavailable",
+                  "price_vs_vwap": None, "orb": None},
+    ))
+    block = _mcc_block(html)
+    assert "OBSERVED — vwap_unavailable" in block
+    assert "(UNAVAILABLE VWAP)" not in block  # the raw upstream literal never renders
+    assert "UNAVAILABLE VWAP" not in block
+
+
+def test_r13_unavailable_cells_render_typed_tokens_only():
+    html = _render_with_mcc(_mcc_section(
+        state={"value": None, "unavailable_reason": "pre_computation_window"},
+        transition={"value": None, "unavailable_reason": "transition_state_unavailable"},
+        event={"events": None, "value": None,
+               "unavailable_reason": "event_schedule_unavailable", "expiring": None},
+        invalidation={"value": None, "unavailable_reason": "invalidation_indeterminate"},
+        candidate_implication={"value": None, "unavailable_reason": "candidate_inputs_absent"},
+    ))
+    block = _mcc_block(html)
+    assert "UNAVAILABLE — pre_computation_window" in block
+    assert "UNAVAILABLE — transition_state_unavailable" in block
+    assert "UNAVAILABLE — event_schedule_unavailable" in block
+    assert "UNAVAILABLE — invalidation_indeterminate" in block
+    assert "UNAVAILABLE — candidate_inputs_absent" in block
+    # No renderer-derived value stands in for an unavailable cell.
+    assert "RANGE" not in block and "NO_BREAK" not in block
+
+
+def test_m17_renderer_never_carries_loader_error_string():
+    html = _render_with_mcc(_mcc_section(
+        event={"events": None, "value": None,
+               "unavailable_reason": "event_schedule_unavailable", "expiring": None},
+    ))
+    assert "red-folder schedule not found" not in html
+    assert "malformed red-folder schedule" not in html
+
+
+def test_event_truthful_empty_and_expiring_flag():
+    html = _render_with_mcc(_mcc_section(
+        event={"events": None, "value": "no_scheduled_events",
+               "unavailable_reason": None, "expiring": True},
+    ))
+    block = _mcc_block(html)
+    assert "no_scheduled_events [SCHEDULE EXPIRING]" in block

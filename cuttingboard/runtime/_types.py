@@ -15,6 +15,7 @@ from typing import Any, Optional
 from cuttingboard.chain_validation import ChainValidationResult
 from cuttingboard.correlation import CorrelationResult
 from cuttingboard.ingestion import RawQuote
+from cuttingboard.market_control_card import MarketControlCard
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.options import OptionSetup
 from cuttingboard.qualification import QualificationSummary
@@ -90,6 +91,8 @@ class PipelineResult:
     # PRD-288: transient intra-runtime carrier for the daily SPY observation card.
     # Additive, defaults to None; never serialized to a durable/decision contract.
     spy_observation: Optional[SpyObservation] = None
+    # PRD-289: transient carrier for the daily Market Control Card, same rules.
+    market_control_card: Optional[MarketControlCard] = None
 
 
 __all__ = ["_PartialPipelineResult", "PipelineResult"]

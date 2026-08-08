@@ -34,6 +34,14 @@ always current).
 
 ---
 
+## cuttingboard/spy_observation.py / cuttingboard/spy_state.py / cuttingboard/market_control_card.py (PRD-288/289)
+
+| Function | Purpose |
+|----------|---------|
+| `build_spy_observation` | PRD-288 transient SPY session observation (freshness lifecycle + session VWAP + verbatim ORB); called from `_run_pipeline` on both halt and non-halt daily branches |
+| `build_spy_state_outcome` | PRD-289 STATE acquisition seam: exact FRAME A → `list[Bar]` → `compute_intraday_state` READ-ONLY, packet-§5 catch boundary `(KeyError, ValueError, TypeError, InsufficientDataError)`; called only from `_run_pipeline` on eligible daily runs |
+| `build_market_control_card` | PRD-289 sole producer of the seven-field card; reads `SpyObservation` + `SpyStateOutcome` + `system_state.permission` + `red_folder.load_schedule()` resolved at `run_at_utc` + invalidation/visibility maps + `outcome`; called only from `_run_pipeline` on eligible daily runs (never `MODE_SUNDAY`) |
+
 ## cuttingboard/delivery/dashboard_renderer.py
 
 | Function | Purpose |
@@ -42,6 +50,7 @@ always current).
 | `_render_level_diagram` | Candidate-card SVG level ladder. Pinned geometry: SVG_H=110, LINE_W=160, yellow `#f5c518` anchor line. PRD-223: optional `contract_stop` draws the entry→stop risk zone (`#e05252`, `opacity="0.08"`, dashed STOP edge) |
 | `_render_candidate_card` | Renders one candidate card; pair-gates the risk band (stop only draws when the contract entry is the anchor) |
 | `_load_contract_entry_context` | Reads `logs/latest_hourly_contract.json` → entry map + stop map (finite, > 0) + alert candidates + generated_at |
+| `_mcc_cell_display` / `_mcc_event_display` / `_mcc_location_display` | PRD-289 Market Control Card cell projection (value or typed unavailable token, never a default); block renders iff `sections["market_control_card"]` present |
 
 Note: the candidate board reads `market_map["symbols"]` directly, not payload
 candidates. The level diagram's anchor/stop come from the contract overlay

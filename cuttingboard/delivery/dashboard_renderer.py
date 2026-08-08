@@ -164,6 +164,34 @@ def _spy_orb_summary(orb: dict | None) -> str:
     return state
 
 
+def _mcc_cell_display(cell: dict) -> str:
+    """PRD-289 card cell: project the value or the typed unavailable token —
+    never a default, never a derivation (R13)."""
+    if cell.get("value") is not None:
+        return _esc(str(cell["value"]))
+    return "UNAVAILABLE — " + _esc(str(cell.get("unavailable_reason")))
+
+
+def _mcc_event_display(cell: dict) -> str:
+    if cell.get("unavailable_reason") is not None:
+        return "UNAVAILABLE — " + _esc(str(cell["unavailable_reason"]))
+    suffix = " [SCHEDULE EXPIRING]" if cell.get("expiring") else ""
+    if cell.get("value") is not None:
+        return _esc(str(cell["value"])) + suffix
+    return _esc("; ".join(
+        f'{e["date"]} {e["time_et"]} ET — {e["type"]}: {e["name"]}' for e in cell["events"]
+    )) + suffix
+
+
+def _mcc_location_display(cell: dict) -> str:
+    text = _esc(str(cell["state"]))
+    if cell.get("reason"):
+        text += f' — {_esc(str(cell["reason"]))}'
+    if cell.get("price_vs_vwap"):
+        text += f' ({_esc(str(cell["price_vs_vwap"]))} VWAP)'
+    return text
+
+
 def _intraday_rvol_band(rvol: float | None) -> str:
     if rvol is None:
         return "UNAVAILABLE"
@@ -2565,6 +2593,33 @@ def render_dashboard_html(
           + (f' ({_esc(_spy_rel_display)})' if _spy_rel_display else '')
           + '</div>')
         w(f'    <div class="label">ORB</div><div class="value">{_spy_orb_summary(_spy_obs.get("orb"))}</div>')
+        w('  </div>')
+        w("</div>")
+
+    # --- market-control-card (PRD-289: seven-field daily card; present iff the
+    #     payload carries the section; projection-only — no renderer derivation) ---
+    _mcc = (payload.get("sections") or {}).get("market_control_card")
+    if _mcc:
+        _cand = _mcc["candidate_implication"]
+        _cand_display = _mcc_cell_display(_cand)
+        if _cand.get("counts") is not None:
+            _c = _cand["counts"]
+            _cand_display += _esc(
+                f' (ACTIVE {_c["ACTIVE"]} / NEAR_MISS {_c["NEAR_MISS"]} / BLOCKED {_c["BLOCKED"]})'
+            )
+        w('<div class="block" id="market-control-card">')
+        w('  <h2>MARKET CONTROL</h2>')
+        w('  <div class="kv-grid">')
+        w(f'    <div class="label">LOCATION</div><div class="value">{_mcc_location_display(_mcc["location"])}</div>')
+        _mcc_orb = _mcc["location"].get("orb")
+        if _mcc_orb is not None:
+            w(f'    <div class="label">ORB</div><div class="value">{_spy_orb_summary(_mcc_orb)}</div>')
+        w(f'    <div class="label">STATE</div><div class="value">{_mcc_cell_display(_mcc["state"])}</div>')
+        w(f'    <div class="label">PERMISSION</div><div class="value">{_esc(str(_mcc["permission"]["value"]))}</div>')
+        w(f'    <div class="label">EVENT</div><div class="value">{_mcc_event_display(_mcc["event"])}</div>')
+        w(f'    <div class="label">TRANSITION</div><div class="value">{_mcc_cell_display(_mcc["transition"])}</div>')
+        w(f'    <div class="label">INVALIDATION</div><div class="value">{_mcc_cell_display(_mcc["invalidation"])}</div>')
+        w(f'    <div class="label">CANDIDATE-IMPLICATION</div><div class="value">{_cand_display}</div>')
         w('  </div>')
         w("</div>")
 

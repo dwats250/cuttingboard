@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 288,
-  "next_prd": 289,
+  "latest_complete": 289,
+  "next_prd": 290,
   "entries": [
     {
       "number": 56,
@@ -1404,8 +1404,8 @@
     {
       "number": 289,
       "title": "NS-2E Market Control Card: seven-field read-only daily decision-support card (Option A, v0.4 MATERIAL packet)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#231"
     }
   ]
 }

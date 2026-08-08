@@ -742,3 +742,61 @@ def test_t12_no_spy_observation_no_section():
     # Hourly path and every pre-existing caller pass no observation -> no section.
     assert "spy_observation" not in build_report_payload(_minimal_contract())["sections"]
     assert "spy_observation" not in build_report_payload(_minimal_contract(), fixture_mode=True)["sections"]
+
+
+# ---------------------------------------------------------------------------
+# PRD-289: sections["market_control_card"] — additive projection only
+# ---------------------------------------------------------------------------
+
+def _sample_card():
+    from cuttingboard.market_control_card import MarketControlCard
+
+    return MarketControlCard(
+        location={"state": "OBSERVED", "reason": None, "price_vs_vwap": "ABOVE",
+                  "orb": {"state": "FORMED", "reason": None, "orb_high": 455.0, "orb_low": 450.0}},
+        state={"value": "RANGE", "unavailable_reason": None},
+        permission={"value": "No new trades permitted."},
+        event={"events": [{"date": "2026-04-29", "time_et": "08:30", "type": "CPI", "name": "CPI (April)"}],
+               "value": None, "unavailable_reason": None, "expiring": False},
+        transition={"value": "NO_BREAK", "unavailable_reason": None},
+        invalidation={"value": "NO_ACTIVE_CANDIDATES", "unavailable_reason": None},
+        candidate_implication={"value": "NO_CANDIDATES", "unavailable_reason": None},
+    )
+
+
+def test_m23_no_card_no_section():
+    payload = build_report_payload(_minimal_contract(), market_control_card=None)
+    assert "market_control_card" not in payload["sections"]
+
+
+def test_m11_m12_card_section_is_additive_only():
+    contract = _minimal_contract()
+    base = build_report_payload(contract)
+    with_card = build_report_payload(contract, market_control_card=_sample_card())
+    section = with_card["sections"].pop("market_control_card")
+    assert with_card == base  # the section is the ONLY delta — nothing else moves
+    assert section["state"] == {"value": "RANGE", "unavailable_reason": None}
+    assert section["permission"] == {"value": "No new trades permitted."}
+    assert section["event"]["events"] == [
+        {"date": "2026-04-29", "time_et": "08:30", "type": "CPI", "name": "CPI (April)"}
+    ]
+    assert section["location"]["orb"] == {"state": "FORMED", "reason": None,
+                                          "orb_high": 455.0, "orb_low": 450.0}
+
+
+def test_card_section_passes_gate_and_is_json_safe():
+    payload = build_report_payload(_minimal_contract(), market_control_card=_sample_card())
+    assert_valid_payload(payload)  # additive key; no required-key/schema change
+    round_tripped = json.loads(json.dumps(payload))
+    assert round_tripped["sections"]["market_control_card"]["transition"] == {
+        "value": "NO_BREAK", "unavailable_reason": None,
+    }
+
+
+def test_card_projection_does_not_alias_the_frozen_card():
+    card = _sample_card()
+    payload = build_report_payload(_minimal_contract(), market_control_card=card)
+    payload["sections"]["market_control_card"]["location"]["orb"]["state"] = "MUTATED"
+    payload["sections"]["market_control_card"]["event"]["events"][0]["name"] = "MUTATED"
+    assert card.location["orb"]["state"] == "FORMED"
+    assert card.event["events"][0]["name"] == "CPI (April)"

@@ -5,6 +5,7 @@ from dataclasses import replace as _dc_replace
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from cuttingboard import audit, output, runtime
@@ -19,6 +20,7 @@ from cuttingboard.options import (
 )
 from cuttingboard.delivery.payload import build_report_payload
 from cuttingboard.delivery.transport import deliver_cli
+from cuttingboard.delivery.dashboard_renderer import render_dashboard_html
 from cuttingboard.output import build_notification_message, render_report_from_payload
 from cuttingboard.reports.postmarket import build_postmarket_report as _real_postmarket
 from cuttingboard.reports.premarket import build_premarket_report as _real_premarket
@@ -1112,3 +1114,236 @@ def test_t6_t11_halt_threads_unavailable_observation_and_preserves_halt(monkeypa
     assert result.spy_observation.session_vwap is None
     assert result.spy_observation.current_price is None
     assert result.spy_observation.orb is None
+
+
+# ---------------------------------------------------------------------------
+# PRD-289: Market Control Card threaded through the daily pipeline
+# ---------------------------------------------------------------------------
+
+def _spy_session_frame(n_bars: int = 20, start_utc: str = "2026-04-28 13:30") -> pd.DataFrame:
+    idx = pd.date_range(start_utc, periods=n_bars, freq="1min", tz="UTC")
+    closes = [100.0 + i for i in range(n_bars)]
+    return pd.DataFrame(
+        {"Open": closes, "High": [c + 1 for c in closes], "Low": [c - 1 for c in closes],
+         "Close": closes, "Volume": [1000] * n_bars},
+        index=idx,
+    )
+
+
+def _setup_live_card_mocks(monkeypatch, tmp_path):
+    _setup_runtime_mocks(monkeypatch, tmp_path)
+    monkeypatch.setattr(runtime, "compute_all_intraday_metrics", lambda symbols, asof: ({}, []))
+    monkeypatch.setattr(runtime, "_refresh_trend_structure_sidecar", lambda **kwargs: None)
+
+
+def test_m1_m2_single_fetch_feeds_observation_and_state_same_object(monkeypatch, tmp_path):
+    _setup_live_card_mocks(monkeypatch, tmp_path)
+    run_at = datetime(2026, 4, 28, 13, 49, 30, tzinfo=timezone.utc)  # 09:49:30 ET
+
+    class _FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return run_at if tz is not None else run_at.replace(tzinfo=None)
+
+    # MODE_LIVE keys run_at_utc on datetime.now (runtime/__init__.py) — freeze it.
+    monkeypatch.setattr(runtime, "datetime", _FrozenDatetime)
+    frame = _spy_session_frame()
+    fetch_calls: list[str] = []
+
+    def _fake_session_fetch(symbol):
+        fetch_calls.append(symbol)
+        return frame
+
+    monkeypatch.setattr(runtime, "fetch_intraday_session_bars", _fake_session_fetch)
+    observation_frames: list = []
+    real_build_observation = runtime.build_spy_observation
+
+    def _tap_observation(**kwargs):
+        observation_frames.append(kwargs["session_frame"])
+        return real_build_observation(**kwargs)
+
+    monkeypatch.setattr(runtime, "build_spy_observation", _tap_observation)
+    seam_frames: list = []
+    real_seam = runtime.build_spy_state_outcome
+
+    def _tap_seam(**kwargs):
+        seam_frames.append(kwargs["session_frame"])
+        return real_seam(**kwargs)
+
+    monkeypatch.setattr(runtime, "build_spy_state_outcome", _tap_seam)
+
+    result = runtime._run_pipeline(mode=runtime.MODE_LIVE, run_date=date(2026, 4, 28), fixture_file=None)
+
+    # M2: exactly one SPY session fetch feeds both observation and STATE.
+    assert fetch_calls == ["SPY"]
+    # M1: both consumers received the EXACT frame object — identity, not equality.
+    assert observation_frames and seam_frames
+    assert observation_frames[0] is frame
+    assert seam_frames[0] is frame
+    assert result.spy_observation.state == "OBSERVED"
+    card = result.market_control_card
+    assert card is not None
+    assert card.state["value"] in {"EXPANSION_CONFIRMED", "FAILED_EXPANSION", "RANGE"}
+    assert card.state["unavailable_reason"] is None
+
+
+def test_m14_halt_run_composes_card_without_fetch_or_engine(monkeypatch, tmp_path):
+    _setup_live_card_mocks(monkeypatch, tmp_path)
+    monkeypatch.setattr(
+        runtime, "validate_quotes",
+        lambda *a, **k: _dc_replace(
+            _validation_summary(), system_halted=True, halt_reason="data integrity halt"
+        ),
+    )
+
+    def _no_fetch(symbol):
+        raise AssertionError("halt run must not fetch SPY session bars")
+
+    monkeypatch.setattr(runtime, "fetch_intraday_session_bars", _no_fetch)
+    import cuttingboard.spy_state as spy_state_module
+
+    def _no_engine(*a, **k):
+        raise AssertionError("halt run must not call the intraday state engine")
+
+    monkeypatch.setattr(spy_state_module, "compute_intraday_state", _no_engine)
+
+    result = runtime._run_pipeline(mode=runtime.MODE_LIVE, run_date=date(2026, 4, 28), fixture_file=None)
+
+    assert result.outcome == runtime.OUTCOME_HALT
+    card = result.market_control_card
+    assert card is not None  # halted ELIGIBLE runs still carry the card
+    assert card.state == {"value": None, "unavailable_reason": "observation_unavailable"}
+    assert card.permission == {"value": "No trades permitted. System halted."}
+    assert card.transition == {"value": None, "unavailable_reason": "transition_state_unavailable"}
+    assert card.invalidation == {"value": None, "unavailable_reason": "invalidation_inputs_absent"}
+    assert card.candidate_implication == {"value": None, "unavailable_reason": "candidate_inputs_absent"}
+    assert card.location["state"] == "UNAVAILABLE"
+    assert card.location["reason"] == "system_halted"
+
+
+def test_m12_fixture_run_card_is_additive_only(monkeypatch, tmp_path):
+    _setup_runtime_mocks(monkeypatch, tmp_path)
+    monkeypatch.setattr(runtime, "_compute_overall_pressure", lambda quotes: "NEUTRAL")
+    monkeypatch.setattr(runtime, "generate_candidates", lambda *a, **k: {})
+    monkeypatch.setattr(runtime, "qualify_all", lambda *a, **k: _empty_qualification_summary())
+    monkeypatch.setattr(runtime, "build_option_setups", lambda *a, **k: [])
+
+    result = runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+
+    # Pinned decision fields unchanged while the card exists (additive-only).
+    assert result.outcome == runtime.OUTCOME_NO_TRADE
+    assert result.contract["outcome"] == runtime.OUTCOME_NO_TRADE
+    assert result.validation_summary.system_halted is False
+    card = result.market_control_card
+    assert card is not None
+    base = build_report_payload(result.contract, spy_observation=result.spy_observation)
+    with_card = build_report_payload(
+        result.contract, spy_observation=result.spy_observation, market_control_card=card
+    )
+    carded = with_card["sections"].pop("market_control_card")
+    assert carded["permission"]["value"] == result.contract["system_state"]["permission"]
+    assert with_card == base  # the section is the ONLY delta
+
+
+def test_m23_sunday_run_produces_no_card_and_no_section(monkeypatch, tmp_path):
+    _setup_runtime_mocks(monkeypatch, tmp_path)
+
+    result = runtime._run_pipeline(
+        mode=runtime.MODE_SUNDAY, run_date=date.fromisoformat("2026-04-26"), fixture_file=None
+    )
+
+    assert result.market_control_card is None
+    payload = build_report_payload(
+        result.contract,
+        spy_observation=result.spy_observation,
+        market_control_card=result.market_control_card,
+    )
+    assert "market_control_card" not in payload["sections"]
+
+
+def test_m11_card_persists_additively_contract_and_audit_byte_unchanged(monkeypatch, tmp_path):
+    # M11 persistence truth against the ACTUAL PERSISTED ARTIFACTS (not in-memory
+    # _run_pipeline return values). Drive the real write path through the
+    # production entry point execute_run — which runs the pipeline (appending the
+    # audit record), writes latest_contract.json, and forwards the card to the
+    # payload write (runtime/__init__.py:290-294) — with and without the card, and
+    # prove the PRD-289 M11 claims against the bytes on disk:
+    #   (a) the card section is additive in the persisted latest_payload.json;
+    #   (b) the card block renders in the dashboard produced from the persisted payload;
+    #   (c) the persisted latest_contract.json and audit.jsonl are byte-identical with
+    #       and without the card, and the card literal appears in neither.
+    # This reddens if execute_run / _write_payload_artifacts / payload delivery /
+    # dashboard delivery regress so the real artifacts drift or omit the card while
+    # the card still exists on PipelineResult (the in-memory-only comparison could not
+    # catch that — Codex P1-A on PR #231).
+    repo_root = Path.cwd()
+    fixture_file = repo_root / "tests" / "fixtures" / "2026-04-12.json"
+    _setup_runtime_mocks(monkeypatch, tmp_path)
+    # The autouse `_isolate_real_log_paths` fixture + `_setup_runtime_mocks`
+    # redirect every default-path artifact write into tmp_path/logs, so the real
+    # write path lands its artifacts here:
+    logs = tmp_path / "logs"
+    payload_path = logs / "latest_payload.json"
+    contract_path = logs / "latest_contract.json"
+    audit_path = logs / "audit.jsonl"
+    # execute_run also writes the market map + macro snapshot via default paths
+    # the redirect fixtures do not cover; neutralize them so this test stays
+    # hermetic (both are irrelevant to the card's persistence).
+    monkeypatch.setattr(runtime, "_load_previous_market_map", lambda *a, **k: None)
+    monkeypatch.setattr(runtime, "_write_market_map_file", lambda *a, **k: None)
+    monkeypatch.setattr(runtime, "_write_macro_snapshot", lambda *a, **k: None)
+
+    def _run_and_persist():
+        # Route through execute_run (the production entry point), NOT the write
+        # helpers directly, so a regression in execute_run's own forwarding of
+        # the card to the write path — runtime/__init__.py:290-294 — is covered
+        # (Codex P1-A re-raise on PR #231). execute_run runs the pipeline (which
+        # appends the audit record), then writes latest_contract.json and the
+        # payload artifacts; the autouse redirect lands them under tmp_path/logs.
+        summary = runtime.execute_run(
+            mode=runtime.MODE_FIXTURE,
+            run_date=date.fromisoformat("2026-04-28"),
+            fixture_file=fixture_file,
+        )
+        return summary, {
+            "payload": payload_path.read_text(encoding="utf-8"),
+            "contract": contract_path.read_text(encoding="utf-8"),
+            "audit": audit_path.read_text(encoding="utf-8").splitlines()[-1],
+        }
+
+    # WITH card — capture the persisted bytes before the WITHOUT run overwrites them.
+    with_summary, with_art = _run_and_persist()
+    payload_with_obj = json.loads(with_art["payload"])
+    # execute_run succeeded AND forwarded the card all the way to the persisted
+    # payload: if execute_run stopped forwarding market_control_card, dropped the
+    # payload write, or fell into its error path, the section would be absent here.
+    assert "market_control_card" in payload_with_obj["sections"]
+
+    # Reset the overwrite-mode artifacts so the WITHOUT run writes them fresh
+    # (audit.jsonl is append-only; its latest record is compared below).
+    payload_path.unlink()
+    contract_path.unlink()
+
+    # WITHOUT card
+    monkeypatch.setattr(runtime, "build_market_control_card", lambda **kwargs: None)
+    without_summary, without_art = _run_and_persist()
+    payload_without_obj = json.loads(without_art["payload"])
+
+    # (a) card section additive in the PERSISTED payload
+    assert "market_control_card" not in payload_without_obj["sections"]
+
+    # (b) dashboard delivery renders the card block FROM the persisted payload; absent without
+    html_with = render_dashboard_html(payload_with_obj, with_summary, market_map=None)
+    html_without = render_dashboard_html(payload_without_obj, without_summary, market_map=None)
+    assert 'id="market-control-card"' in html_with
+    assert 'id="market-control-card"' not in html_without
+
+    # (c) persisted contract + audit byte-identical with/without the card; card leaks into neither
+    assert with_art["contract"] == without_art["contract"]
+    assert with_art["audit"] == without_art["audit"]
+    assert "market_control_card" not in with_art["contract"]
+    assert "market_control_card" not in with_art["audit"]
