@@ -1,256 +1,220 @@
 # CUTTINGBOARD — Context Registry + NEWS-0 Consolidation: Planning Packet
 
 PLANNING ONLY. No implementation, no PRD allocated, no Gate A, no PR beyond
-this planning commit. Prepared for Dustin + ChatGPT review. Recon basis:
-`main` lineage at `7d0805ee`; 3 narrow read-only recon agents + direct reads;
-load-bearing claims cite files.
+the planning commits. Prepared for Dustin + ChatGPT review. Recon basis:
+`main` lineage at `7d0805ee`; 3 narrow read-only recon agents + direct
+reads; load-bearing claims cite files. Normalized 2026-08-08 to the common
+14-section packet structure; two over-decided points (benchmark v1
+inclusion, theme-axis outcome) demoted back to explicit owner decisions per
+the normalization pass.
 
 **PLANNING DISPOSITION (2026-08-08): DRAFT COMPLETE — HELD FOR OWNER
-REVIEW. Not implementation-ready until owner rulings (D1–D6) and GOV-2
-MATERIAL intake close.**
+REVIEW. Not implementation-ready until owner rulings (REG-D1–REG-D7) and
+GOV-2 MATERIAL intake close.**
 
-**Core hypothesis verdict: CONFIRMED.** The "context registry" and NEWS-0
-are one deliverable. This is not a new synthesis — it is already standing
-owner direction: TRUTH-SYNC ruling 6 (DECISIONS.md:233-237) names the fused
+**READINESS: MATERIAL-PACKET-READY.** (The MATERIAL packet draft can be
+commissioned now — no evidence phase is needed; every input is in-tree.
+See §13.)
+
+**Core hypothesis verdict: CONFIRMED.** The "context registry" and NEWS-0's
+registry half are ONE deliverable. This is already standing owner
+direction: TRUTH-SYNC ruling 6 (DECISIONS.md:233-237) names the fused
 "Registry (NS-4A universe + NEWS-0 relationship)" with seeds
 (`config.TREND_STRUCTURE_SYMBOLS`, `market_map.PRIMARY_SYMBOLS`, the
 Ledger's suggested groups), agent-drafted, Dustin-ratified, "No symbol or
-source is inferred." The Operating Rule's lane 3 is "Context registry →
-news and heatmap." This packet shapes that direction into a contract; it
-does not re-decide it.
+source is inferred." The Product-Delivery Operating Rule's lane 3 is
+"Context registry → news and heatmap." This packet shapes that direction
+into a contract; it does not re-decide it.
 
 ---
 
-## 1. CURRENT TRUTH / DUPLICATION MAP
-
-**At least five separately-maintained universe concepts exist** (all
-verified with consumers greped):
-
-| Vocabulary | Members | Metadata | Production consumers |
-|---|---|---|---|
-| `config.MACRO_DRIVERS` (:198) = `NON_TRADABLE_SYMBOLS` (:199, same set, second name) | 7 (^VIX, DX-Y.NYB, ^TNX, BTC-USD, CL=F, GC=F, SI=F) | none | contract.py, regime.py (breadth), universe.py, trade_decision.py, runtime |
-| `config.INDICES` / `COMMODITIES` / `HIGH_BETA` (:200-202) | 3 / 6 / 7 | none | **ZERO** — test-only negative assertions (test_config.py:36-38); live only via `ALL_SYMBOLS` concatenation |
-| `config.ALL_SYMBOLS` (:204) | 23 | none | ingestion fetch loop, regime breadth, runtime filter |
-| `config.REQUIRED_SYMBOLS` (:205) | 6 | none | **ZERO** production consumers (test-only, test_config.py:60-61) |
-| `config.TREND_STRUCTURE_SYMBOLS` (:209, PRD-110) | 6 (SPY,QQQ,GDX,GLD,SLV,XLE) | none | trend_structure writer, dashboard renderer |
-| `market_map.PRIMARY_SYMBOLS` (:20) | **identical 6, identical order** | none | market_map builder |
-| `watchlist_sidecar.WATCHLIST_SYMBOLS` (:27-39, PRD-114) | 11 | (symbol, sector_theme, watch_reason) | **ZERO** modules — human-reader-only sidecar by explicit ruling (DECISIONS 2026-05-22: "the human reader is the consumer") |
-| `config.EXPANSION_LEADERSHIP_SYMBOLS` (:142) | 5 (incl. **SMCI**) | none | regime.py:120 (EXPANSION detection — decision logic) |
-
-Supporting duplication/facts:
-- `TREND_STRUCTURE_SYMBOLS` and `PRIMARY_SYMBOLS` are byte-identical tuples
-  declared independently in two files with no import relationship — the
-  flagship consolidation target, and exactly the pair ruling 6 names as
-  seeds.
-- `contract.py:64` and `payload.py:318-336` each declare their own
-  `_OPTIONAL_MACRO_DRIVERS` = {oil, gold, silver} with a comment asking
-  they stay aligned — an unenforced duplicate.
-- **SMCI** (in EXPANSION_LEADERSHIP_SYMBOLS) appears in NO other table — no
-  `PRICE_BOUNDS`, no `SYMBOL_UNITS`, not in `ALL_SYMBOLS`: a symbol used in
-  regime scoring that the universe machinery doesn't know exists.
-- Watchlist taxonomy ('Index'/'Commodities'/'High beta') parallels
-  config's INDICES/COMMODITIES/HIGH_BETA but membership diverges (COIN,
-  MSTR, PAAS, USO, IWM in config lists but absent from the watchlist).
-- The only relationship structure in the codebase is the hardcoded GLD/DXY
-  correlation pair (`config.py:271-276` → `correlation.py`) — decision
-  logic, not context.
-- No alias structure, no benchmark structure, no grouping structure exists
-  anywhere (verified by grep).
-
-**Should seed the registry** (per ruling 6 + candidates for ratification):
-- *Pre-authorized seeds (ruling 6):* the identical 6-tuple
-  (TREND_STRUCTURE_SYMBOLS / PRIMARY_SYMBOLS) and the Ledger's suggested
-  groups (Context, Energy, AI/Semis, Tradeable, Spec/Learning, Holdings).
-- *Candidate seeds (agent may draft FROM them; ratification required):*
-  `ALL_SYMBOLS` membership as universe-candidate inventory; the watchlist's
-  11 (symbol, sector_theme, watch_reason) rows — the richest existing
-  human-authored metadata; MACRO_DRIVERS as context-only classification
-  input.
-
-**Must NOT become authority automatically:**
-- Decision/pipeline configuration: `HALT_SYMBOLS`, `PRICE_BOUNDS`,
-  `SYMBOL_UNITS`, `SYMBOL_SOURCE_PRIORITY`, `NON_TRADABLE_SYMBOLS`'
-  tradability gate, `EXPANSION_LEADERSHIP_SYMBOLS`, the correlation pair.
-  These encode pipeline behavior, not context semantics; absorbing them
-  would silently make the registry a decision surface (forbidden here).
-- Zero-consumer config lists (INDICES/COMMODITIES/HIGH_BETA,
-  REQUIRED_SYMBOLS) — inputs to drafting at most; likely cuts (§9, §14).
-- The Ledger's six groups as a flat enum — they conflate at least three
-  axes (sector-theme: Energy, AI/Semis; role/status: Tradeable, Context;
-  personal intent: Holdings, Spec/Learning) and need owner-ruled axis
-  separation (D2), not verbatim adoption.
-
-## 2. PRODUCT PURPOSE
+## 1. PURPOSE / USER VALUE
 
 The registry is CuttingBoard's single, interpretable, hand-auditable
 statement of *what Dustin watches and how those things relate*: canonical
-identity, classification, themes, benchmark assignment, watch reasons, and
-(in later versions) explicit typed relationships. It is static, versioned,
-owner-ratified data — the shared substrate the North Star names for
-watchlists, news, heatmap, leadership/decoupling, and external mirroring
-(NS-4/NS-6/NS-7, Ledger:151-208).
+identity, classification, themes, watch reasons, and (per owner rulings)
+benchmark assignments and later typed relationships. It is static,
+versioned, owner-ratified data — the shared substrate the North Star names
+for watchlists, news, heatmap, leadership/decoupling, and external
+mirroring (NS-4/NS-6/NS-7, Ledger:151-208).
 
 Hard properties: descriptive and deterministic; hand-editable and
 diff-reviewable; every element beyond the ruling-6 seeds explicitly
 ratified; no scoring engine, no prediction, no automated ontology
 generation, no fuzzy/AI relationship inference at runtime. Consumers read
-it; nothing computes it.
+it; nothing computes it. **It is descriptive context authority, never
+decision authority.**
 
-## 3. SMALLEST VIABLE REGISTRY CONTRACT (proposed)
+## 2. CURRENT TRUTH (duplication map)
 
-One versioned, hand-authored JSON file (location per §7), strict keys,
-canonically sorted. Proposed v1 sections:
+**At least five separately-maintained universe concepts exist** (verified,
+consumers greped):
+
+| Vocabulary | Members | Metadata | Production consumers |
+|---|---|---|---|
+| `config.MACRO_DRIVERS` (:198) = `NON_TRADABLE_SYMBOLS` (:199, same set, second name) | 7 | none | contract.py, regime.py (breadth), universe.py, trade_decision.py, runtime |
+| `config.INDICES` / `COMMODITIES` / `HIGH_BETA` (:200-202) | 3 / 6 / 7 | none | **ZERO** — test-only negative assertions; live only via `ALL_SYMBOLS` concatenation |
+| `config.ALL_SYMBOLS` (:204) | 23 | none | ingestion fetch loop, regime breadth, runtime filter |
+| `config.REQUIRED_SYMBOLS` (:205) | 6 | none | **ZERO** production consumers (test-only) |
+| `config.TREND_STRUCTURE_SYMBOLS` (:209, PRD-110) | 6 | none | trend_structure writer, dashboard renderer |
+| `market_map.PRIMARY_SYMBOLS` (:20) | **identical 6, identical order** | none | market_map builder |
+| `watchlist_sidecar.WATCHLIST_SYMBOLS` (:27-39, PRD-114) | 11 | (symbol, sector_theme, watch_reason) | **ZERO** modules — human-reader-only sidecar by explicit ruling (DECISIONS 2026-05-22) |
+| `config.EXPANSION_LEADERSHIP_SYMBOLS` (:142) | 5 (incl. **SMCI**) | none | regime.py:120 (EXPANSION detection — decision logic) |
+
+Supporting facts:
+- The twin 6-tuples are byte-identical, independently declared, no import
+  relationship — the flagship consolidation target and exactly the pair
+  ruling 6 names as seeds.
+- `contract.py:64` and `payload.py:318-336` each declare their own
+  `_OPTIONAL_MACRO_DRIVERS` with a keep-aligned comment — an unenforced
+  duplicate. **NAMED DEBT — not fixed in this lane.**
+- **SMCI** appears in NO universe/bounds/units table while regime scoring
+  uses it. **NAMED DEBT, graduated out of this lane** — surfaced to
+  REG-D1 as a membership question only; any fix is separate corrective
+  work.
+- Watchlist taxonomy ('Index'/'Commodities'/'High beta') parallels
+  config's axis lists but membership diverges (COIN, MSTR, PAAS, USO, IWM
+  absent from the watchlist).
+- The only relationship structure in code is the hardcoded GLD/DXY
+  correlation pair (`config.py:271-276`) — decision logic, not context.
+- No alias, benchmark, or grouping structure exists anywhere (verified).
+
+**Pre-authorized seeds (ruling 6):** the identical 6-tuple and the
+Ledger's suggested groups (Context, Energy, AI/Semis, Tradeable,
+Spec/Learning, Holdings). **Candidate seeds (drafting input only;
+ratification required):** ALL_SYMBOLS membership; the watchlist's 11
+metadata rows; MACRO_DRIVERS as classification input.
+
+**Must NOT become authority automatically:** decision/pipeline
+configuration — `HALT_SYMBOLS`, `PRICE_BOUNDS`, `SYMBOL_UNITS`,
+`SYMBOL_SOURCE_PRIORITY`, `NON_TRADABLE_SYMBOLS`' tradability gate,
+`EXPANSION_LEADERSHIP_SYMBOLS`, the correlation pair. These encode
+pipeline behavior, not context; absorbing them would make the registry a
+decision surface. Zero-consumer config lists are drafting inputs at most
+(likely cuts, §14). The Ledger's six groups conflate at least three axes
+(sector-theme / role-status / personal intent) and are NOT adopted
+verbatim — axis semantics are REG-D2's ruling to make.
+
+## 3. UNRESOLVED LOOP
+
+What keeps this lane open right now:
+- **Owner rulings REG-D1–REG-D7** (§5): universe membership, theme-axis
+  semantics, benchmark v1 inclusion + semantics, NEWS-0 satisfaction and
+  source ratification, schema minimality, watchlist direction, canonical
+  file/schema shape. None are pre-decided here; the schema below is a
+  PROPOSAL throughout.
+- **GOV-2 §1 MATERIAL intake classification** (recommendation §11; the
+  mechanical classification happens at intake).
+- No evidence gap exists — all inputs are in-tree.
+
+## 4. SMALLEST NEXT SLICE (R1)
+
+**R1 — registry creation only:** canonical static registry (content
+drafted from seeds, every non-seed element marked unratified) + read-only
+loader + CI-gate validator + the NEWS artifact-schema proposal doc. **ZERO
+consumer migration.** Old vocabularies remain authoritative for all
+existing behavior. R2 (bounded per-consumer adoption) and R3 (delete
+duplicates only once actually unreferenced) are later, separate work (§13
+sequencing).
+
+### 4.1 Proposed minimal contract (all of it pending REG-D rulings)
+
+One versioned, hand-authored JSON file (proposed path
+`data/context_registry.json` — the `data/red_folder_2026.json`
+hand-authored-input precedent; **final canonical file/schema shape is
+REG-D7, not settled here**), strict keys, canonically sorted:
 
 - **`meta`**: `schema_version`, `content_version`, ratification record
   (date + DECISIONS pointer). Ratification is file-version-level — one
-  owner act per content version, not per-row ceremony.
+  owner act per content version.
 - **`themes`**: the ratified theme vocabulary (names + one-line meaning).
-  Axis-separated per D2 — sector-subject themes (Energy, AI/Semis, …) kept
-  distinct from roles.
-- **`symbols[]`**, each: `symbol` (canonical, the in-repo provider ticker),
-  `classification` (`tradeable` | `context_only`), `themes[]` (⊆ themes
-  vocabulary), `benchmark` (optional, must reference a registry symbol),
-  `watch_reason` (short free text, seeded from the watchlist),
-  `state` (`active` | `dormant`), `aliases[]` (optional; news matching
-  needs "Apple"→AAPL; may start sparse), `provenance` (`seed` |
-  `ratified_addition`).
+  **PROPOSED to be axis-separated** — sector-subject themes (Energy,
+  AI/Semis, …) kept distinct from role/status tags — **pending REG-D2;
+  not yet ratified, and REG-D2 may rule otherwise.**
+- **`symbols[]`**, each: `symbol` (canonical in-repo provider ticker),
+  `classification` (`tradeable` | `context_only`), `themes[]` (⊆ ratified
+  vocabulary), `watch_reason` (short free text, seeded from the
+  watchlist), `state` (`active` | `dormant`), `aliases[]` (optional,
+  sparse; news matching motivation — REG-D5), `provenance` (`seed` |
+  `ratified_addition`), and — **only if REG-D3a rules it into v1** — a
+  `benchmark` reference (must reference a registry symbol, non-self).
 - **`sources[]`** (NEWS-0's approved-source allowlist): `name`, `domain`,
-  `enabled`, `reason`. Section present from v1; content may be ratified
-  later — an empty ratified-sources list truthfully means the news track
-  remains content-gated (§5).
+  `enabled`, `reason`. Section present from v1; content ratified per
+  REG-D4 — an empty ratified-sources list truthfully means the news track
+  remains content-gated.
 
 **Deliberately deferred (cuts until a consumer demands them):** pairwise
 typed relationships / "related companies" (reserved section name recorded
-in the schema doc so no competing structure appears later; populated only
-when NEWS-1's relevance rules prove the need); `roles`/personal-status
-tags beyond classification (Holdings, Spec/Learning — D2 decides if they
-enter v1 or wait); `horizons` and `questions` (NS-4A ledger fields with no
+in the schema doc so no competing structure appears later); personal-
+status roles (Holdings, Spec/Learning) unless REG-D2 rules them into
+canonical context; `horizons` and `questions` (NS-4A fields with no
 near-term consumer); any numeric fields (bounds, weights, scores —
-forbidden or config-owned).
+config-owned or forbidden).
 
 This is the smallest shape that unlocks both dependents: the heatmap needs
-universe + themes + deterministic order (+ benchmark for the later
-leadership mode), and news needs universe + aliases + themes + sources.
+universe + themes + deterministic order (benchmark only for the later
+leadership mode — the timing trade is exactly REG-D3a); news needs
+universe + aliases + themes + sources.
 
-## 4. OWNER-RATIFICATION BOUNDARY
+## 5. OWNER DECISIONS REQUIRED
 
-- **Derivable facts (no ratification needed to state):** current list
-  memberships and their consumers (§1); the identity of the two 6-tuples;
-  watchlist metadata contents; SMCI's coverage gap. These are inputs, not
-  authority.
-- **Agent-draftable proposals (drafted, marked unratified):** the seeded
-  draft registry content — symbol rows built from seeds + candidate seeds,
-  proposed theme assignments, proposed benchmark assignments, absorbed
-  watch reasons, proposed aliases. Ruling 6 explicitly assigns this
-  drafting to the agent.
-- **Owner-only (cannot become canonical without explicit decision):**
-  final universe membership (every symbol beyond the 6-tuple seeds —
-  including the fate of COIN, MSTR, PAAS, USO, IWM, SMCI in the context
-  universe); the theme vocabulary and its axis semantics; benchmark
-  semantics and assignments; every news source; whether NEWS-0 is formally
-  satisfied; any personal-status content (Holdings). Mechanism: Dustin's
-  merge of the content-carrying PR is the ratifying act (GOV-1), recorded
-  with a dated DECISIONS entry naming the ratified `content_version`.
+1. **REG-D1 — Universe membership:** which symbols enter the ratified
+   context universe beyond the 6-tuple seeds — the rest of ALL_SYMBOLS?
+   the watchlist's 11? COIN/MSTR/PAAS/USO/IWM? SMCI (used in regime
+   scoring, absent from every universe table — membership question only;
+   the coverage gap itself is named debt outside this lane)?
+2. **REG-D2 — Theme vocabulary + axis semantics:** ratify the theme list
+   and rule the axis question for the Ledger's six groups — adopt the
+   proposed axis separation, collapse to one flat grouping, or something
+   else; and whether personal/status roles (Holdings, Spec/Learning)
+   belong in canonical context at all.
+3. **REG-D3a — Whether `benchmark` belongs in v1 at all** (defer like
+   relationships/roles, or include now to spare a schema amendment before
+   NS-4C/NS-7). **REG-D3b — if included:** benchmark semantics (NS-4C
+   leadership comparison target) and the actual assignments.
+4. **REG-D4 — NEWS-0 satisfaction semantics:** confirm NEWS-0 is formally
+   satisfied by this registry + the news-schema proposal doc; decide
+   whether sources are ratified now (name them) or deferred (news track
+   stays gated).
+5. **REG-D5 — Schema minimality confirmations:** defer pairwise
+   relationships, horizons, questions (recommended); include sparse
+   aliases in v1 (recommended)?
+6. **REG-D6 — Watchlist direction:** confirm the watchlist tuple's content
+   is absorbed as seed material now, with sidecar retirement deferred to
+   R2/R3 (no execution in this slice).
+7. **REG-D7 — Final canonical file/schema shape:** location (proposed
+   `data/context_registry.json`), format (proposed JSON), and section
+   layout — proposal only until ruled.
 
-## 5. NEWS-0 CONSOLIDATION — YES, one deliverable, split cleanly
+## 6. DEPENDENCIES
 
-Doctrine §5.4 defines NEWS-0 as "static universe/source/theme registry
-**and schema proposal**, no network producer." The registry file (§3)
-satisfies the first half outright — same universe, same themes, same
-sources section the Ledger's NEWS-0 row enumerates ("Symbols, aliases,
-themes, benchmarks, related companies, approved sources", Ledger:188).
+- The MATERIAL packet draft benefits from REG-D2 first (drafting content
+  without the axis ruling risks a wasted ratification round) but can be
+  built to present REG-D1–REG-D7 as bounded choices.
+- Ratification mechanism: Dustin's merge of the content-carrying PR is the
+  ratifying act (GOV-1), recorded with a dated DECISIONS entry naming the
+  ratified `content_version`.
+- Heatmap (NS-4B) depends on: ratified universe with `active`/`dormant`
+  state; theme membership; deterministic canonical ordering (no rank
+  implication — the watchlist's R14 rule carries over); `classification`.
+  NS-4C/NS-7 additionally depend on benchmark (REG-D3a decides when that
+  arrives). The heatmap needs NO pairwise relationships.
+- News (NEWS-1+) depends on: ratified universe, aliases, themes, and a
+  ratified non-empty sources list (REG-D4).
+- No dependency on the Morning Brief arc, GEX, or Market Map work.
 
-**What remains NEWS-specific (rides the same PRD as a small docs
-deliverable, not a second registry):** the news *artifact* schema proposal
-— item fields (title, source, publication time, URL, matched
-symbols/themes, source-grounded excerpt), the 2-3-normally/5-hard item
-cap, and deterministic relevance/dedup/freshness rules (doctrine §5.2).
-That is a proposal document, not data; it needs no network work and no
-producer.
+## 7. PARALLEL-SAFE WORK
 
-**NEWS-0 closes** when Dustin ratifies (a) the registry content version
-and (b) the news-schema proposal — jointly or separately (sources may be
-ratified later; until then NEWS-1 stays gated by honest absence of an
-approved-source list, while the heatmap path is unaffected).
+Fully parallel, no file collisions: Morning Brief CF-E1/CF-E2 work and
+packet (runtime/, delivery/, workflows, cloudflare/ — disjoint from this
+lane's data/, tools/, tests/); the bounded GEX owner decision (no files);
+real-use Market Control Card observation (no files). The single shared
+file is `.github/workflows/ci.yml` (this lane adds one validator line;
+the Morning Brief arc does not touch ci.yml) — trivial, resolved by
+Dustin's serialized merges. Must serialize: R2 consumer-adoption PRDs
+against anything touching the same consumer files — out of scope here.
 
-**Duplicate-registry prevention:** the PRD/DECISIONS closeout records that
-NEWS-0's registry IS `data/context_registry.json` (or final path), and the
-workplan's NEWS-0 row is updated at closeout to point at it. Any future
-news/heatmap PRD that proposes its own symbol/theme structure contradicts
-a canonical source and fails review on that ground.
-
-## 6. HEATMAP DEPENDENCY (heatmap itself out of scope)
-
-Before NS-4B can exist cleanly, the registry must provide: (a) a ratified
-universe with `active`/`dormant` state (what appears at all); (b) theme
-membership (row grouping); (c) deterministic canonical ordering (stable
-rendering without rank implication — the watchlist's R14 rule carries
-over); (d) `classification` (context rows vs tradeable rows render
-differently or not at all — product choice later). Benchmark assignment is
-required not for NS-4B's grouped raw movement but for NS-4C
-leadership/relative mode and NS-7 decoupling — including the one field in
-v1 avoids a schema amendment one slice later. Nothing else is needed; in
-particular the heatmap needs no pairwise relationships.
-
-## 7. FILE / SURFACE PLAN (data/schema-first; no renderer/runtime changes)
-
-| Surface | Path | Est. |
-|---|---|---|
-| Canonical registry (hand-authored, versioned JSON) | `data/context_registry.json` — follows the `data/red_folder_2026.json` hand-authored-input precedent, NOT the logs/ produced-artifact precedent | content, not LOC |
-| Read-only loader (frozen dataclasses, fail-loud, no I/O beyond the file — `red_folder.py` pattern) | `cuttingboard/context_registry.py` (new) | 80–160 |
-| CI-gate validator (standalone, wired as a bare step before pytest — `validate_prd_registry.py` precedent) | `tools/validate_context_registry.py` (new) + one line in `.github/workflows/ci.yml` | 120–220 |
-| Tests | `tests/test_context_registry.py` (loader + validator + determinism) | 250–450 |
-| Docs | NEWS-0 news-schema proposal doc; DECISIONS ratification entry; PROJECT_STATE row at PRD time. G5/artifact_flow_map: registration NOT required (static input, not a produced artifact — red_folder precedent), stated explicitly in the PRD so the omission is a decision, not an oversight | n/a |
-
-**Untouched in this slice:** `config.py` lists, `market_map.py`,
-`watchlist_sidecar.py`, `trend_structure`, renderer, payload, runtime,
-regime — every current consumer keeps its existing vocabulary until R2
-adoption (§9). LOC honesty note (PRD-288/289 lesson): the validator IS the
-validation surface — it is counted as the largest code item, not rounded
-away.
-
-## 8. VALIDATION / FALSIFICATION (each check = a real invariant)
-
-Validator (CI gate) + loader tests, all falsifiable with red tests:
-- duplicate canonical symbols; duplicate aliases; alias colliding with any
-  canonical symbol (breaks news matching determinism);
-- `benchmark` must reference an existing, non-self registry symbol
-  (unknown-target and self-reference both fail; deeper cycle rules are NOT
-  added — no v1 computation follows benchmark chains, so a cycle invariant
-  would be complexity without an invariant);
-- every `themes[]` entry ∈ ratified theme vocabulary; every enum field
-  (`classification`, `state`, `provenance`) ∈ its closed set;
-- strict-key schema: unknown keys rejected (schema drift fails loud);
-  `schema_version` exact-match;
-- canonical ordering enforced (file sorted by symbol; sections sorted) —
-  deterministic diffs, no rank implication;
-- sources: duplicate domains, `enabled` boolean, non-empty `reason`;
-- consumer-independent: validator + loader run green with zero consumers
-  (that is the slice's definition of done);
-- ratification representation: `content_version` + provenance vocabulary
-  validated; a row marked `ratified_addition` in an unratified content
-  version is a validator error (prevents silent authority).
-
-## 9. MIGRATION / CONSOLIDATION PLAN (three stages, only R1 now)
-
-- **R1 (this lane):** create registry + loader + validator + news-schema
-  proposal. Zero consumer changes. Old vocabularies remain authoritative
-  for all existing behavior.
-- **R2 (later, per-consumer adoption PRDs, each bounded):** candidates in
-  rough order of value — unify the twin 6-tuples (trend_structure +
-  market_map read the registry group); watchlist sidecar reads registry
-  rows (then its frozen tuple retires); news/heatmap consumers are born on
-  the registry. Decision-config consumers (regime EXPANSION list, halt
-  set, bounds) likely NEVER migrate — they are pipeline behavior, not
-  context.
-- **R3 (later, subtraction PRD):** delete duplicates once unreferenced —
-  `INDICES`/`COMMODITIES`/`HIGH_BETA` and `REQUIRED_SYMBOLS` (already
-  zero-production-consumer; their negative-assertion tests move or
-  retire), `WATCHLIST_SYMBOLS` tuple, one of the twin 6-tuples.
-  Cuts-before-additions is satisfied by *naming* these cuts now and
-  executing them after adoption, not by a cross-cutting refactor in R1.
-
-## 10. SCOPE WALLS (this lane does NOT include)
+## 8. SCOPE WALLS (this lane does NOT include)
 
 News ingestion or any network producer; headline ranking; AI
 summarization; sentiment or any LLM-derived label; GEX; heatmap
@@ -258,110 +222,141 @@ implementation; Market Map retirement; scheduler work; decision-contract
 changes; automatic trading implications; automated relationship discovery
 or AI ontology inference; absorption of decision/pipeline config
 (HALT_SYMBOLS, PRICE_BOUNDS, SYMBOL_UNITS, SYMBOL_SOURCE_PRIORITY,
-EXPANSION_LEADERSHIP_SYMBOLS, correlation pair); any dashboard surface or
-payload section; any consumer migration (R2) or deletion (R3); pairwise
-relationship content.
+EXPANSION_LEADERSHIP_SYMBOLS, correlation pair — outside the registry
+unless separately ruled); any dashboard surface or payload section; any
+consumer migration (R2) or deletion (R3); pairwise relationship content;
+fixing SMCI coverage or the `_OPTIONAL_MACRO_DRIVERS` duplicate (named
+debt, separate corrective work if warranted).
 
-## 11. MATERIALITY / GOVERNANCE RECOMMENDATION
+## 9. FILE / SURFACE ESTIMATE
 
-**MATERIAL — with no evidence packet needed.** Rationale: the slice mints
-canonical, owner-ratified product authority (the universe and theme
-semantics ARE product semantics) and establishes a schema that three
-future lanes (news, heatmap, NS-7 decoupling) will depend on — a shared
-seam whose misdesign propagates. That matches GOV-2's MATERIAL intent even
-though the slice has zero production consumers and no behavior change; the
-final call is the mechanical GOV-2 §1 classification at intake, and if
-that classification comes back non-MATERIAL, the owner-ratification act
-(§4) still stands as the substantive gate. No bounded evidence packet is
-required: no provider, no network, no licensing — every input is already
-in-tree. Expected shape: MATERIAL packet (small — schema + seeded draft
-content marked unratified) → Codex packet review + exact-head confirmation
-→ Dustin design-direction + content ratification path → Stage-0 PRD →
-review → Gate A. Lane: STANDARD (no HIGH-RISK file is touched — renderer
-and runtime stay out), MATERIAL classification notwithstanding.
+Honest ranges — validators and closed vocabularies counted as first-class
+(the PRD-288: 195→308→amended 325 and PRD-289: 300→499→amended 525
+estimate-miss lesson):
 
-## 12. PARALLELISM
+| Surface | Path (proposed, REG-D7) | Est. |
+|---|---|---|
+| Canonical registry (hand-authored, versioned JSON) | `data/context_registry.json` | content, not LOC |
+| Read-only loader (frozen dataclasses, fail-loud — `red_folder.py` pattern) | `cuttingboard/context_registry.py` (new) | 80–160 |
+| CI-gate validator (standalone, bare CI step before pytest — `validate_prd_registry.py` precedent) | `tools/validate_context_registry.py` (new) + one `.github/workflows/ci.yml` line | 120–220 |
+| Tests | `tests/test_context_registry.py` (loader + validator + determinism + mutation scaffolding) | 250–450 |
+| Docs | NEWS-0 news-schema proposal doc; DECISIONS ratification entry; PROJECT_STATE row at PRD time. artifact_flow_map registration NOT required (static input, red_folder precedent) — stated in the PRD so the omission is a decision | n/a |
 
-Safely parallel, no file collisions:
-- **Cloudflare/Morning Brief E1/E2 + packet:** touches runtime/, delivery/,
-  .github/workflows/cuttingboard.yml, cloudflare/ — disjoint from this
-  lane's data/, tools/, tests/, ci.yml. The single shared file is
-  `.github/workflows/ci.yml` (this lane adds one validator line; the brief
-  arc does not touch ci.yml) — no real collision; Dustin's serialized
-  merges resolve any trivial overlap.
-- **Bounded GEX decision/evidence:** no files; fully parallel. If GEX-1
-  ever wants registry symbols, it consumes a ratified version later.
-- **Card real-use observation:** no files; fully parallel.
+**Untouched:** `config.py` lists, `market_map.py`, `watchlist_sidecar.py`,
+`trend_structure`, renderer, payload, runtime, regime — every current
+consumer keeps its vocabulary until R2.
 
-Serialize only: R2 consumer-adoption PRDs against anything else touching
-the same consumer files (renderer/payload single-owner rule) — out of
-scope here anyway.
+## 10. TEST / FALSIFICATION PLAN
 
-## 13. OWNER DECISIONS REQUIRED (minimum set)
+Validator (CI gate) + loader tests; every guard ships a red test (PRD-198
+#4); mutation targets marked (M):
+- duplicate canonical symbols; duplicate aliases; alias colliding with a
+  canonical symbol (M: drop each dedup check → seeded-duplicate fixture
+  turns red);
+- `benchmark` (if REG-D3a includes it) must reference an existing,
+  non-self registry symbol (M: remove referent check → unknown-target
+  fixture red; deeper cycle rules NOT added — no v1 computation follows
+  benchmark chains, so a cycle invariant would be complexity without an
+  invariant);
+- every `themes[]` entry ∈ ratified vocabulary; every enum
+  (`classification`, `state`, `provenance`) ∈ its closed set (M: widen an
+  enum → red);
+- strict-key schema: unknown keys rejected (M: accept unknown key →
+  drift fixture red); `schema_version` exact-match;
+- canonical ordering enforced (file sorted by symbol; sections sorted) —
+  deterministic diffs, no rank implication (M: remove sort check →
+  shuffled fixture red);
+- sources: duplicate domains, `enabled` boolean, non-empty `reason` (M
+  per check);
+- consumer-independent: validator + loader run green with zero consumers
+  — the slice's definition of done;
+- ratification representation: `content_version` + provenance vocabulary
+  validated; a `ratified_addition` row in an unratified content version is
+  a validator error (M: drop the check → silent-authority fixture red);
+- loader: fail-loud on missing/malformed file — no substitute-and-continue
+  (PRD-198 #1; M: add a silent default → red).
 
-1. **D1 — Universe membership:** which symbols enter the ratified context
-   universe beyond the 6-tuple seeds — the rest of ALL_SYMBOLS? the
-   watchlist's 11? COIN/MSTR/PAAS/USO/IWM? SMCI (currently used in regime
-   scoring but absent from every universe table)?
-2. **D2 — Theme vocabulary + axis semantics:** ratify the theme list and
-   rule the axis separation of the Ledger's six groups (Energy, AI/Semis →
-   themes; Tradeable/Context → classification; Holdings, Spec/Learning →
-   include as roles in v1, defer, or drop?).
-3. **D3 — Benchmark semantics:** what `benchmark` means (NS-4C leadership
-   comparison target), and the actual assignments (e.g. SPY for high-beta
-   names? none for SPY itself?).
-4. **D4 — NEWS-0 satisfaction:** confirm NEWS-0 is formally satisfied by
-   this registry + the news-schema proposal doc; decide whether sources
-   are ratified now (name them) or deferred (news track stays gated).
-5. **D5 — Schema minimality confirmations:** defer pairwise relationships,
-   horizons, questions (recommended); include sparse aliases in v1
-   (recommended)?
-6. **D6 — Watchlist direction:** confirm the watchlist tuple's content is
-   absorbed as seed material now, with sidecar retirement deferred to R2/R3
-   (no execution in this slice).
+## 11. MATERIALITY / GOVERNANCE PATH
 
-## 14. RECOMMENDED NEXT ACTION
+**MATERIAL recommended — no evidence packet needed.** The slice mints
+canonical, owner-ratified product authority (universe and theme semantics
+ARE product semantics) and a schema that three future lanes (news,
+heatmap, NS-7 decoupling) depend on — a shared seam whose misdesign
+propagates. The mechanical GOV-2 §1 classification at intake makes the
+final call; if it returns non-MATERIAL, the owner-ratification act still
+stands as the substantive gate. No provider, no network, no licensing —
+every input is in-tree. Expected shape: MATERIAL packet (schema + seeded
+draft content marked unratified + news-schema proposal) → Codex packet
+review + exact-head confirmation → Dustin design-direction + ratification
+rulings → Stage-0 PRD → independent review → Gate A. Lane: STANDARD (no
+HIGH-RISK file touched — renderer and runtime stay out), MATERIAL
+classification notwithstanding.
+
+## 12. STOP CONDITIONS
+
+**Boundary reset (stop, re-run GOV-2 classification / amend upstream):**
+any consumer migration creeping into R1; any renderer/payload/runtime
+file entering FILES; any decision-config list proposed for absorption;
+any numeric/scoring field proposed for the schema; pairwise relationship
+content arriving before its evidence-driven trigger; LOC growth past the
+eventual Gate-A ceiling (GOV-2 §5).
+
+**Lane stops entirely if:** Dustin declines to ratify any universe/theme
+content (a registry with only unratified content has no consumers-to-be
+and no purpose — park, don't build); or GOV-2 intake + owner ruling
+redirect the deliverable's shape so materially (e.g. registry must carry
+decision config after all) that the doctrine boundary (context-only)
+breaks — that contradiction goes back to Dustin, not into the packet.
+
+## 13. IMPLEMENTATION READINESS
+
+**MATERIAL-PACKET-READY.** Not PRD-READY, not IMPLEMENTATION-READY: every
+schema element is a proposal pending REG-D1–REG-D7, and content authority
+is entirely unratified. The implementation itself (loader + validator +
+CI line + tests) is mechanical once the packet freezes the schema — a
+genuine Ultracode sprint — but readiness is not promoted on ease.
+
+Sequential (hard order): REG-D2 (ideally first) → MATERIAL packet draft →
+Codex cycle → Dustin rulings REG-D1–REG-D7 + design direction → Stage-0
+PRD → review → Gate A → implementation → (later, separately) R2 adoption
+→ R3 deletion. Intentionally deferred: pairwise relationships; roles;
+horizons/questions; all consumer migration; all deletions.
+
+## 14. RECOMMENDED NEXT COMMISSION
 
 **Commission the MATERIAL packet draft now** (design-class model): schema
-spec + the seeded draft registry content (every non-seed element marked
-unratified) + the news-schema proposal doc, built to make D1–D6 answerable
-as bounded choices rather than open questions. No evidence/recon phase is
-needed first — all inputs are in-tree and this packet's recon is current.
-Then: Codex packet review → Dustin's design-direction + ratification
-rulings → Stage-0 PRD → implementation (mechanical: loader + validator +
-CI line + tests — a genuine Ultracode sprint once the packet freezes the
-schema).
+spec + seeded draft registry content (every non-seed element marked
+unratified) + the news-schema proposal doc, built to make REG-D1–REG-D7
+answerable as bounded choices. Asking REG-D2 (theme-axis) first avoids a
+wasted ratification round. Then: Codex packet review → owner rulings →
+Stage-0 PRD → implementation.
 
-**Hidden dependencies found:** contract.py/payload.py's duplicated
-`_OPTIONAL_MACRO_DRIVERS` (pre-existing, adjacent — a future R2/cleanup
-candidate, not this slice); SMCI's universe-coverage gap (regime uses a
-symbol the fetch/bounds tables don't know — surfaced for D1, possibly its
-own tiny corrective PRD); negative-assertion tests pinning zero-consumer
-lists (deletion in R3 must retire them deliberately).
+**Hidden dependencies (named debt, outside this lane):**
+`contract.py`/`payload.py`'s duplicated `_OPTIONAL_MACRO_DRIVERS`; SMCI's
+universe-coverage gap; negative-assertion tests pinning zero-consumer
+lists (R3 must retire them deliberately).
 
 **Likely cuts:** INDICES/COMMODITIES/HIGH_BETA and REQUIRED_SYMBOLS
 (zero-production-consumer vocabulary); horizons/questions fields; the
 watchlist tuple (after R2); one twin 6-tuple (after R2).
 
-**Duplicate concepts that should disappear (eventually):** twin 6-tuples →
-one registry group; watchlist taxonomy vs config axis lists → one ratified
-theme vocabulary; NON_TRADABLE_SYMBOLS-vs-MACRO_DRIVERS double name →
-registry `classification` (R2 decision).
+**Duplicate concepts that should disappear (eventually):** twin 6-tuples
+→ one registry group; watchlist taxonomy vs config axis lists → one
+ratified theme vocabulary; NON_TRADABLE_SYMBOLS-vs-MACRO_DRIVERS double
+name → registry `classification` (an R2 decision).
 
-**Sequencing risks:** (a) schema churn after consumers adopt — mitigated
-by ratifying schema+content BEFORE any R2 adoption; (b) heatmap pressure
-to widen the schema mid-flight — mitigated by the reserved-section rule
-and amendment path; (c) a future news PRD drafting its own registry —
-mitigated by the §5 canonical-pointer closeout; (d) drafting content
-without D2's axis ruling wastes a ratification round — ask D2 first.
+**Sequencing risks:** schema churn after consumers adopt (mitigate:
+ratify schema+content BEFORE any R2 adoption); heatmap pressure to widen
+the schema mid-flight (mitigate: reserved-section rule + amendment path);
+a future news PRD drafting its own registry (mitigate: canonical-pointer
+closeout per §4.1/REG-D4); drafting content before REG-D2 (mitigate: ask
+REG-D2 first).
 
-**Lightweight vs product reasoning:** lightweight agents were sufficient
-for the entire §1 duplication/consumer inventory and the conventions
-survey (all mechanical greps and reads); product reasoning was required
-for the axis-conflation finding in the Ledger groups, the
-decision-config-vs-context authority boundary (§1/§10), the
-NEWS-0 split (§5), and the ratification mechanics (§4) — none of which a
-grep can settle.
+**Lightweight vs product reasoning:** lightweight agents sufficed for the
+entire §2 duplication/consumer inventory and conventions survey; product
+reasoning was required for the axis-conflation finding, the
+decision-config-vs-context authority boundary, the NEWS-0 split, and the
+ratification mechanics.
 
 **Held:** PRD number, Gate A, all implementation, registry content
 authority (nothing here is ratified), consumer migration, deletions.

@@ -11,6 +11,17 @@ Grounded in repo state at `main` = `7d0805ee` (PRD-289 merge). Evidence:
 direct reads plus a 7-agent read-only survey; every load-bearing claim below
 was verified against a file, not chat memory.
 
+**SUPERSESSION NOTE (2026-08-08, normalization pass):** this memo's
+"probably cut the scheduler/freshness arc" recommendation (§3 rank 9, §4)
+is SUPERSEDED by the owner's same-day product reframing — Cloudflare as
+the clock for a daily Morning Brief and evolving market artifact — and by
+the resulting `CLOUDFLARE_CLOCK_MORNING_BRIEF_PLANNING_PACKET_2026-08-08.md`.
+The memo's verdict evaluated the arc as a staleness framework only; the
+reframing changed its leverage. The memo's §6 numbered next-moves list
+predates that packet and the registry packet — the merged sequencing across
+all three lanes is deliberately left to the final holistic sequencing
+review. All other content stands as written.
+
 ## 1. The project story, organized
 
 **Shipped foundations.** Three layers, in dependency order. (a) *Truthful
