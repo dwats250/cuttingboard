@@ -1262,3 +1262,27 @@ def test_m23_sunday_run_produces_no_card_and_no_section(monkeypatch, tmp_path):
         market_control_card=result.market_control_card,
     )
     assert "market_control_card" not in payload["sections"]
+
+
+def test_m11_card_leaves_contract_and_audit_record_identical(monkeypatch, tmp_path):
+    # Persistence truth at the source: the contract and audit record that feed
+    # latest_contract.json / audit.jsonl are identical with and without the
+    # card — the card exists only on the PipelineResult and in the payload.
+    def _fixture_run():
+        return runtime._run_pipeline(
+            mode=runtime.MODE_FIXTURE,
+            run_date=date.fromisoformat("2026-04-28"),
+            fixture_file=Path("tests/fixtures/2026-04-12.json"),
+        )
+
+    _setup_runtime_mocks(monkeypatch, tmp_path)
+    with_card = _fixture_run()
+    assert with_card.market_control_card is not None
+    monkeypatch.setattr(runtime, "build_market_control_card", lambda **kwargs: None)
+    without_card = _fixture_run()
+    assert without_card.market_control_card is None
+    dumps = lambda obj: json.dumps(obj, sort_keys=True, default=str)  # noqa: E731
+    assert dumps(with_card.contract) == dumps(without_card.contract)
+    assert dumps(with_card.audit_record) == dumps(without_card.audit_record)
+    assert "market_control_card" not in dumps(with_card.contract)
+    assert "market_control_card" not in dumps(with_card.audit_record)

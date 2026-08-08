@@ -52,6 +52,8 @@ Consumer notes that outlive the retired field table (semantics, not shape):
 | `payload["meta"]["symbols_scanned"]` | int | qualified + rejected + watchlist count |
 | `payload["meta"]["session_type"]` | string \| absent | conditional; only present when session_type exists in system_state |
 | `payload["meta"]["fixture_mode"]` | bool \| absent | conditional; only present when fixture_mode=True (payload.py:106–107) |
+| `payload["sections"]["spy_observation"]` | dict \| absent | PRD-288; DAILY path only — present iff `build_report_payload(spy_observation=...)` receives the transient observation; JSON-safe mirror incl. the verbatim PRD-271 ORB sub-object (`_project_spy_observation`) |
+| `payload["sections"]["market_control_card"]` | dict \| absent | PRD-289; DAILY eligible runs only (halted included, never MODE_SUNDAY) — seven closed-vocabulary cells (`location`/`state`/`permission`/`event`/`transition`/`invalidation`/`candidate_implication`) mirrored from the frozen `MarketControlCard` (`_project_market_control_card`); additive, no required-key/schema change |
 
 ---
 
