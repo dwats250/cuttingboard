@@ -16,6 +16,46 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-08 — PRD-289 Gate A granted, then GOV-2 §5 stop-and-renew: LOC ceiling ≤300 → ≤525 proposed (ruled: Dustin)
+
+Canonical authority record for the NS-2E Market Control Card implementation
+arc. Two owner rulings on the same day, recorded together for coherence.
+
+**Gate A — GRANTED (GOV-2 §4).** After PR #229 merged (`d575006`), Dustin
+granted Gate A authorizing implementation of PRD-289 / NS-2E Market Control
+Card (Option A) on reviewed/corrected head `44e8c55`, at a ≤ 300 net-
+production-LOC ceiling across exactly the six authorized production files.
+Binding authority chain: merged v0.4 MATERIAL packet → design-direction
+ruling (2026-08-07 entry below) → PRD-289 @ `44e8c55` → fresh-context PRD
+review + advisory dispositions → Gate A.
+
+**Implementation + stop.** The reviewed six-step sequence was implemented
+across exactly the six authorized production files (branch
+`claude/ns2e-pre-gate-a-trace-knq9fs`, stopped head `dcad228`): full targeted
+and full-suite validation green apart from the already-known environment-only
+PRD-264 subprocess cases; all 16 required mutations demonstrated red and
+reverted. Measured at `dcad228` against base `d575006`, the net production
+delta is **499 LOC** — above the ≤ 300 ceiling → FAIL CONDITION 9.
+Implementation stopped before the implementation PR; no scope widened.
+
+**GOV-2 §5 stop-and-renew — as-built path (ruled: Dustin, 2026-08-08).**
+Dustin ruled the as-built amendment path (no compression, no redesign): the
+≤ 300 ceiling materially underestimated the already-ratified seven-field
+composer + construction-time validation surface. Prior ceiling ≤ 300;
+discovered actual 499; **proposed renewed ceiling ≤ 525** (same six files,
+same governing metric). The amendment (PRD-289 AMENDMENT 1 + packet
+POST-MERGE AUTHORITY ADDENDUM + this entry) is prepared on docs/governance
+branch `claude/ns2e-prd289-ceiling-amendment`; a fresh-context independent
+reviewer is commissioned on the exact amended PRD revision
+(`docs/prd_history/PRD-289.amendment.review.claude.md`). Implementation
+remains HELD for Dustin's amended Gate-A ruling; the implementation PR is NOT
+opened. Per GOV-2 §5 the amended-PRD review is the operative authority check.
+
+**GOV-2 §6 boundary-reset: DID NOT FIRE.** The change is a pure ceiling
+number — no consumer, schema, seam, file-set (still exactly six), or risk
+assumption changed. Under GOV-2 §5 this does not reopen the bounded Codex
+packet cycle and commissions no new Codex packet-cycle event.
+
 ## 2026-08-07 — NS-2E design-direction ruling: PROCEED with Option A per the review-clean v0.4 MATERIAL packet; PRD-289 authorized to draft (ruled: Dustin)
 
 Design-direction ruling under GOV-2 §2 step 6 on the review-clean NS-2E
