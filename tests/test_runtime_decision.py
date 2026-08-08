@@ -20,6 +20,7 @@ from cuttingboard.options import (
 )
 from cuttingboard.delivery.payload import build_report_payload
 from cuttingboard.delivery.transport import deliver_cli
+from cuttingboard.delivery.dashboard_renderer import render_dashboard_html
 from cuttingboard.output import build_notification_message, render_report_from_payload
 from cuttingboard.reports.postmarket import build_postmarket_report as _real_postmarket
 from cuttingboard.reports.premarket import build_premarket_report as _real_premarket
@@ -1264,25 +1265,81 @@ def test_m23_sunday_run_produces_no_card_and_no_section(monkeypatch, tmp_path):
     assert "market_control_card" not in payload["sections"]
 
 
-def test_m11_card_leaves_contract_and_audit_record_identical(monkeypatch, tmp_path):
-    # Persistence truth at the source: the contract and audit record that feed
-    # latest_contract.json / audit.jsonl are identical with and without the
-    # card — the card exists only on the PipelineResult and in the payload.
-    def _fixture_run():
-        return runtime._run_pipeline(
+def test_m11_card_persists_additively_contract_and_audit_byte_unchanged(monkeypatch, tmp_path):
+    # M11 persistence truth against the ACTUAL PERSISTED ARTIFACTS (not in-memory
+    # _run_pipeline return values). Drive the real write path — _run_pipeline (which
+    # appends the audit record) → _write_contract_file → _write_payload_artifacts
+    # (which builds and delivers the payload) — with and without the card, each into
+    # its own redirected tmp tree, and prove the PRD-289 M11 claims against the bytes
+    # on disk:
+    #   (a) the card section is additive in the persisted latest_payload.json;
+    #   (b) the card block renders in the dashboard produced from the persisted payload;
+    #   (c) the persisted latest_contract.json and audit.jsonl are byte-identical with
+    #       and without the card, and the card literal appears in neither.
+    # This reddens if execute_run / _write_payload_artifacts / payload delivery /
+    # dashboard delivery regress so the real artifacts drift or omit the card while
+    # the card still exists on PipelineResult (the in-memory-only comparison could not
+    # catch that — Codex P1-A on PR #231).
+    repo_root = Path.cwd()
+    fixture_file = repo_root / "tests" / "fixtures" / "2026-04-12.json"
+    _setup_runtime_mocks(monkeypatch, tmp_path)
+    # The autouse `_isolate_real_log_paths` fixture + `_setup_runtime_mocks`
+    # redirect every default-path artifact write into tmp_path/logs, so the real
+    # write path lands its artifacts here:
+    logs = tmp_path / "logs"
+    payload_path = logs / "latest_payload.json"
+    contract_path = logs / "latest_contract.json"
+    audit_path = logs / "audit.jsonl"
+
+    def _run_and_persist():
+        pipeline = runtime._run_pipeline(
             mode=runtime.MODE_FIXTURE,
             run_date=date.fromisoformat("2026-04-28"),
-            fixture_file=Path("tests/fixtures/2026-04-12.json"),
+            fixture_file=fixture_file,
         )
+        runtime._write_contract_file(pipeline.contract)          # -> latest_contract.json
+        runtime._write_payload_artifacts(                        # -> latest_payload.json (deliver_json)
+            pipeline.contract,
+            spy_observation=pipeline.spy_observation,
+            market_control_card=pipeline.market_control_card,
+        )
+        return pipeline
 
-    _setup_runtime_mocks(monkeypatch, tmp_path)
-    with_card = _fixture_run()
-    assert with_card.market_control_card is not None
+    # WITH card — capture the persisted bytes before the WITHOUT run overwrites them.
+    with_pipe = _run_and_persist()
+    assert with_pipe.market_control_card is not None
+    payload_with = payload_path.read_text(encoding="utf-8")
+    contract_with = contract_path.read_text(encoding="utf-8")
+    audit_with = audit_path.read_text(encoding="utf-8").splitlines()[-1]
+
+    # Reset the overwrite-mode artifacts so the WITHOUT run writes them fresh
+    # (audit.jsonl is append-only; its second record is compared below).
+    payload_path.unlink()
+    contract_path.unlink()
+
+    # WITHOUT card
     monkeypatch.setattr(runtime, "build_market_control_card", lambda **kwargs: None)
-    without_card = _fixture_run()
-    assert without_card.market_control_card is None
-    dumps = lambda obj: json.dumps(obj, sort_keys=True, default=str)  # noqa: E731
-    assert dumps(with_card.contract) == dumps(without_card.contract)
-    assert dumps(with_card.audit_record) == dumps(without_card.audit_record)
-    assert "market_control_card" not in dumps(with_card.contract)
-    assert "market_control_card" not in dumps(with_card.audit_record)
+    without_pipe = _run_and_persist()
+    assert without_pipe.market_control_card is None
+    payload_without = payload_path.read_text(encoding="utf-8")
+    contract_without = contract_path.read_text(encoding="utf-8")
+    audit_without = audit_path.read_text(encoding="utf-8").splitlines()[-1]
+
+    payload_with_obj = json.loads(payload_with)
+    payload_without_obj = json.loads(payload_without)
+
+    # (a) card section additive in the PERSISTED payload
+    assert "market_control_card" in payload_with_obj["sections"]
+    assert "market_control_card" not in payload_without_obj["sections"]
+
+    # (b) dashboard delivery renders the card block FROM the persisted payload; absent without
+    html_with = render_dashboard_html(payload_with_obj, with_pipe.summary, market_map=None)
+    html_without = render_dashboard_html(payload_without_obj, without_pipe.summary, market_map=None)
+    assert 'id="market-control-card"' in html_with
+    assert 'id="market-control-card"' not in html_without
+
+    # (c) persisted contract + audit byte-identical with/without the card; card leaks into neither
+    assert contract_with == contract_without
+    assert audit_with == audit_without
+    assert "market_control_card" not in contract_with
+    assert "market_control_card" not in audit_with
