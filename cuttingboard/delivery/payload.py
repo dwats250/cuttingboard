@@ -26,6 +26,7 @@ def build_report_payload(
     fixture_mode: bool = False,
     *,
     spy_observation=None,
+    market_control_card=None,
 ) -> dict:
     """Build a ReportPayload dict from a canonical PRD-011 contract dict.
 
@@ -33,7 +34,9 @@ def build_report_payload(
     ``spy_observation`` (a transient ``SpyObservation``) is provided — the DAILY
     render path only — a ``sections["spy_observation"]`` plain-dict mirror is
     projected (PRD-288); when ``None`` (hourly path and every pre-existing
-    caller) no section is added and the renderer omits the card.
+    caller) no section is added and the renderer omits the card. The same rule
+    projects ``sections["market_control_card"]`` from a provided
+    ``MarketControlCard`` (PRD-289) — additive, present iff the card is.
     """
     ss: dict[str, Any] = contract.get("system_state") or {}
     ac: dict[str, Any] = contract.get("audit_summary") or {}
@@ -139,6 +142,8 @@ def build_report_payload(
     }
     if spy_observation is not None:
         sections["spy_observation"] = _project_spy_observation(spy_observation)
+    if market_control_card is not None:
+        sections["market_control_card"] = _project_market_control_card(market_control_card)
 
     return {
         "schema_version": PAYLOAD_SCHEMA_VERSION,
@@ -182,6 +187,30 @@ def _project_spy_observation(obs) -> dict:
         "current_price": obs.current_price,
         "price_vs_vwap": obs.price_vs_vwap,
         "orb": orb_mirror,
+    }
+
+
+def _project_market_control_card(card) -> dict:
+    """Project a transient ``MarketControlCard`` into a JSON-safe plain-dict
+    mirror (PRD-289). Cells are already plain data; the copies only guard the
+    frozen card against downstream aliasing."""
+    location = dict(card.location)
+    if location.get("orb") is not None:
+        location["orb"] = dict(location["orb"])
+    event = dict(card.event)
+    if event.get("events") is not None:
+        event["events"] = [dict(entry) for entry in event["events"]]
+    candidate_implication = dict(card.candidate_implication)
+    if candidate_implication.get("counts") is not None:
+        candidate_implication["counts"] = dict(candidate_implication["counts"])
+    return {
+        "location": location,
+        "state": dict(card.state),
+        "permission": dict(card.permission),
+        "event": event,
+        "transition": dict(card.transition),
+        "invalidation": dict(card.invalidation),
+        "candidate_implication": candidate_implication,
     }
 
 

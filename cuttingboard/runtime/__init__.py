@@ -44,7 +44,9 @@ from cuttingboard.chain_validation import (
 from cuttingboard.derived import compute_all_derived
 from cuttingboard.ingestion import fetch_ohlcv
 from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all, fetch_intraday_bars, fetch_intraday_session_bars
+from cuttingboard.market_control_card import build_market_control_card
 from cuttingboard.spy_observation import build_spy_observation
+from cuttingboard.spy_state import build_spy_state_outcome
 from cuttingboard.intraday_state_engine import (
     Bar as IntradayStateBar,
     _NOISE_END,
@@ -285,7 +287,11 @@ def execute_run(
         _rewrite_summary_file(summary_path, pipeline.summary)
         _rewrite_summary_file(latest_path, pipeline.summary)
         _write_contract_file(pipeline.contract)
-        _write_payload_artifacts(pipeline.contract, spy_observation=pipeline.spy_observation)
+        _write_payload_artifacts(
+            pipeline.contract,
+            spy_observation=pipeline.spy_observation,
+            market_control_card=pipeline.market_control_card,
+        )
         _previous_market_map = _load_previous_market_map()
         _enhanced_market_map = inject_lifecycle(pipeline.market_map, _previous_market_map)
         _write_market_map_file(_enhanced_market_map)
@@ -1292,6 +1298,27 @@ def _run_pipeline(
         halted=validation_summary.system_halted,
     )
 
+    # PRD-289: Market Control Card, composed once per ELIGIBLE daily run (halted
+    # runs included; never MODE_SUNDAY). STATE co-derives from the exact FRAME A
+    # object above; previous_close reconstructs from the already-fetched SPY
+    # quote — no second SPY fetch anywhere.
+    market_control_card = None
+    if mode != MODE_SUNDAY:
+        spy_state_outcome = build_spy_state_outcome(
+            observation=spy_observation,
+            session_frame=spy_session_frame,
+            previous_close=_reconstruct_previous_close(normalized_quotes.get("SPY")),
+        )
+        market_control_card = build_market_control_card(
+            observation=spy_observation,
+            spy_state_outcome=spy_state_outcome,
+            permission=contract["system_state"]["permission"],
+            run_at_utc=run_at_utc,
+            invalidation_guidance_map=invalidation_guidance_map,
+            visibility_map=visibility_map,
+            outcome=outcome,
+        )
+
     return PipelineResult(
         mode=mode,
         generation_id=generation_id,
@@ -1327,6 +1354,7 @@ def _run_pipeline(
         visibility_map=visibility_map,
         explanation_map=explanation_map,
         spy_observation=spy_observation,
+        market_control_card=market_control_card,
     )
 
 
@@ -2279,14 +2307,17 @@ def _write_macro_snapshot(contract: dict[str, Any]) -> None:
         logger.exception("Failed to write macro_drivers snapshot")
 
 
-def _write_payload_artifacts(contract: dict[str, Any], spy_observation=None) -> None:
+def _write_payload_artifacts(contract: dict[str, Any], spy_observation=None, market_control_card=None) -> None:
     import os
     _fixture_mode = os.environ.get("FIXTURE_MODE", "0") == "1"
     try:
         from cuttingboard.delivery.payload import build_report_payload, assert_valid_payload
         from cuttingboard.delivery.transport import deliver_json, deliver_html
 
-        payload = build_report_payload(contract, fixture_mode=_fixture_mode, spy_observation=spy_observation)
+        payload = build_report_payload(
+            contract, fixture_mode=_fixture_mode,
+            spy_observation=spy_observation, market_control_card=market_control_card,
+        )
         _attach_generation_id_to_payload(payload, contract)
         assert_valid_payload(payload)
         deliver_json(payload)
