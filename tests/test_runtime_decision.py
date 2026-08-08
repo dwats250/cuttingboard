@@ -1267,11 +1267,11 @@ def test_m23_sunday_run_produces_no_card_and_no_section(monkeypatch, tmp_path):
 
 def test_m11_card_persists_additively_contract_and_audit_byte_unchanged(monkeypatch, tmp_path):
     # M11 persistence truth against the ACTUAL PERSISTED ARTIFACTS (not in-memory
-    # _run_pipeline return values). Drive the real write path — _run_pipeline (which
-    # appends the audit record) → _write_contract_file → _write_payload_artifacts
-    # (which builds and delivers the payload) — with and without the card, each into
-    # its own redirected tmp tree, and prove the PRD-289 M11 claims against the bytes
-    # on disk:
+    # _run_pipeline return values). Drive the real write path through the
+    # production entry point execute_run — which runs the pipeline (appending the
+    # audit record), writes latest_contract.json, and forwards the card to the
+    # payload write (runtime/__init__.py:290-294) — with and without the card, and
+    # prove the PRD-289 M11 claims against the bytes on disk:
     #   (a) the card section is additive in the persisted latest_payload.json;
     #   (b) the card block renders in the dashboard produced from the persisted payload;
     #   (c) the persisted latest_contract.json and audit.jsonl are byte-identical with
@@ -1290,56 +1290,60 @@ def test_m11_card_persists_additively_contract_and_audit_byte_unchanged(monkeypa
     payload_path = logs / "latest_payload.json"
     contract_path = logs / "latest_contract.json"
     audit_path = logs / "audit.jsonl"
+    # execute_run also writes the market map + macro snapshot via default paths
+    # the redirect fixtures do not cover; neutralize them so this test stays
+    # hermetic (both are irrelevant to the card's persistence).
+    monkeypatch.setattr(runtime, "_load_previous_market_map", lambda *a, **k: None)
+    monkeypatch.setattr(runtime, "_write_market_map_file", lambda *a, **k: None)
+    monkeypatch.setattr(runtime, "_write_macro_snapshot", lambda *a, **k: None)
 
     def _run_and_persist():
-        pipeline = runtime._run_pipeline(
+        # Route through execute_run (the production entry point), NOT the write
+        # helpers directly, so a regression in execute_run's own forwarding of
+        # the card to the write path — runtime/__init__.py:290-294 — is covered
+        # (Codex P1-A re-raise on PR #231). execute_run runs the pipeline (which
+        # appends the audit record), then writes latest_contract.json and the
+        # payload artifacts; the autouse redirect lands them under tmp_path/logs.
+        summary = runtime.execute_run(
             mode=runtime.MODE_FIXTURE,
             run_date=date.fromisoformat("2026-04-28"),
             fixture_file=fixture_file,
         )
-        runtime._write_contract_file(pipeline.contract)          # -> latest_contract.json
-        runtime._write_payload_artifacts(                        # -> latest_payload.json (deliver_json)
-            pipeline.contract,
-            spy_observation=pipeline.spy_observation,
-            market_control_card=pipeline.market_control_card,
-        )
-        return pipeline
+        return summary, {
+            "payload": payload_path.read_text(encoding="utf-8"),
+            "contract": contract_path.read_text(encoding="utf-8"),
+            "audit": audit_path.read_text(encoding="utf-8").splitlines()[-1],
+        }
 
     # WITH card — capture the persisted bytes before the WITHOUT run overwrites them.
-    with_pipe = _run_and_persist()
-    assert with_pipe.market_control_card is not None
-    payload_with = payload_path.read_text(encoding="utf-8")
-    contract_with = contract_path.read_text(encoding="utf-8")
-    audit_with = audit_path.read_text(encoding="utf-8").splitlines()[-1]
+    with_summary, with_art = _run_and_persist()
+    payload_with_obj = json.loads(with_art["payload"])
+    # execute_run succeeded AND forwarded the card all the way to the persisted
+    # payload: if execute_run stopped forwarding market_control_card, dropped the
+    # payload write, or fell into its error path, the section would be absent here.
+    assert "market_control_card" in payload_with_obj["sections"]
 
     # Reset the overwrite-mode artifacts so the WITHOUT run writes them fresh
-    # (audit.jsonl is append-only; its second record is compared below).
+    # (audit.jsonl is append-only; its latest record is compared below).
     payload_path.unlink()
     contract_path.unlink()
 
     # WITHOUT card
     monkeypatch.setattr(runtime, "build_market_control_card", lambda **kwargs: None)
-    without_pipe = _run_and_persist()
-    assert without_pipe.market_control_card is None
-    payload_without = payload_path.read_text(encoding="utf-8")
-    contract_without = contract_path.read_text(encoding="utf-8")
-    audit_without = audit_path.read_text(encoding="utf-8").splitlines()[-1]
-
-    payload_with_obj = json.loads(payload_with)
-    payload_without_obj = json.loads(payload_without)
+    without_summary, without_art = _run_and_persist()
+    payload_without_obj = json.loads(without_art["payload"])
 
     # (a) card section additive in the PERSISTED payload
-    assert "market_control_card" in payload_with_obj["sections"]
     assert "market_control_card" not in payload_without_obj["sections"]
 
     # (b) dashboard delivery renders the card block FROM the persisted payload; absent without
-    html_with = render_dashboard_html(payload_with_obj, with_pipe.summary, market_map=None)
-    html_without = render_dashboard_html(payload_without_obj, without_pipe.summary, market_map=None)
+    html_with = render_dashboard_html(payload_with_obj, with_summary, market_map=None)
+    html_without = render_dashboard_html(payload_without_obj, without_summary, market_map=None)
     assert 'id="market-control-card"' in html_with
     assert 'id="market-control-card"' not in html_without
 
     # (c) persisted contract + audit byte-identical with/without the card; card leaks into neither
-    assert contract_with == contract_without
-    assert audit_with == audit_without
-    assert "market_control_card" not in contract_with
-    assert "market_control_card" not in audit_with
+    assert with_art["contract"] == without_art["contract"]
+    assert with_art["audit"] == without_art["audit"]
+    assert "market_control_card" not in with_art["contract"]
+    assert "market_control_card" not in with_art["audit"]
