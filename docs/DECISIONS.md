@@ -16,6 +16,39 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-08 — PRD-289 Gate A: GRANTED on reviewed/corrected head `44e8c55` (ruled: Dustin)
+
+Gate A under GOV-2 §4 — the implementation authorization on the
+independently reviewed PRD. Issued by Dustin in the session charge
+following the merge of PR #229; recorded here per that charge.
+
+**Authorized:** implementation of PRD-289 / NS-2E Market Control Card,
+Option A, on PRD revision `44e8c557c5c3a52bc40ebbfc1b4a168acafcae1a`
+(PR #229 corrected head; fresh-context review ACCEPT pinned to `5ebcdae`
+plus the owner-approved advisory correction, dispositions recorded
+in-artifact). Precondition satisfied: PR #229 merged as `d575006`;
+implementation branches from that main.
+
+**Binding ceilings:** exactly the six production files named in PRD-289
+FILES; ≤300 net production LOC measured by `git diff --numstat` against
+the implementation base (`d575006`). Test/docs LOC uncounted.
+
+**Binding authority, in order:** merged NS-2E v0.4 MATERIAL packet →
+design-direction ruling (2026-08-07 entry below) → PRD-289 @ `44e8c55` →
+independent PRD review + recorded advisory dispositions → this Gate A.
+Preserved exactly as charged: single FRAME A / no second SPY fetch; the
+`SpyStateOutcome` XOR carrier; the §5 catch set
+(`KeyError, ValueError, TypeError, InsufficientDataError`) with pre-09:45
+`None` → `pre_computation_window` and programmer errors propagating; the
+seven closed vocabularies verbatim; renderer invents nothing;
+`MODE_SUNDAY` card absence; no prior-run TRANSITION persistence; EVENT
+keyed only on `run_at_utc`; no wall-clock in the builder; no free-form
+string into a closed vocabulary; additive `latest_payload` section only;
+no `PAYLOAD_SCHEMA_VERSION` bump; no decision/audit-contract change; no
+hourly, Market Map, or GEX work. Stop-and-amend per GOV-2 §5 on any
+seventh file, ceiling breach, producer touch, schema/persistence surface,
+or authority contradiction.
+
 ## 2026-08-07 — NS-2E design-direction ruling: PROCEED with Option A per the review-clean v0.4 MATERIAL packet; PRD-289 authorized to draft (ruled: Dustin)
 
 Design-direction ruling under GOV-2 §2 step 6 on the review-clean NS-2E
