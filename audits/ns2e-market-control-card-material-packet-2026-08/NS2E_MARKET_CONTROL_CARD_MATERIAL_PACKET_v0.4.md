@@ -59,6 +59,37 @@ CI CLAIM BOUNDARY (GOV-2 §8): documentation-only packet. Green CI on the branch
 carrying it confirms only that the branch preserves the current green baseline;
 it does not execute or validate the proposed design.
 
+## POST-MERGE AUTHORITY ADDENDUM — GOV-2 §5 stop-and-renew (2026-08-08)
+
+This addendum records events AFTER packet merge; it does not re-adjudicate the
+packet or reopen the bounded packet cycle. The packet's Option A design and §7
+vocabulary contract are UNCHANGED by everything below.
+
+- **Stage-0 + review + Gate A.** PRD-289 was drafted (Stage-0), independently
+  reviewed fresh-context (ACCEPT, 0 REQUIRED / 2 RECOMMENDED, both advisory
+  actioned), and merged docs-only via PR #229 (corrected head `44e8c55`).
+  Dustin granted **Gate A on 2026-08-08** at the reviewed ≤ 300 net-production-
+  LOC ceiling.
+- **Implementation + stop.** Implementation was executed across EXACTLY the
+  six authorized production files. Measured at stopped head `dcad228` against
+  base `d575006`, the net production delta is **499 LOC**, above the ≤ 300
+  Gate-A ceiling → FAIL CONDITION 9. Implementation stopped before the
+  implementation PR; no scope widened.
+- **Prior Gate-A ceiling:** ≤ 300 net production LOC.
+- **Discovered actual:** 499 net production LOC (six files; per-file numstat
+  recorded in `docs/prd_history/PRD-289.md` AMENDMENT 1).
+- **Proposed renewed ceiling:** ≤ 525 net production LOC (same six files;
+  same governing metric).
+- **Consequence:** GOV-2 §5 STOP-AND-RENEW. PRD-289 amended (AMENDMENT 1),
+  this authority record updated, amended-PRD independent review commissioned
+  on the exact amended revision. Implementation HELD pending Dustin's amended
+  Gate-A ruling.
+- **GOV-2 §6 boundary-reset trigger: DID NOT FIRE.** The revision is a pure
+  ceiling number; no consumer, schema, seam, file-set, or risk assumption
+  changed. Per GOV-2 §5 this does NOT reopen the bounded Codex packet cycle
+  and commissions no new Codex packet-cycle event; the amended-PRD
+  fresh-context review is the operative authority check.
+
 PROVISIONAL-CEILING LABELS (GOV-2 §5): every FILES and LOC figure below is
 `ESTIMATED SURFACE — NOT YET APPROVED`. The first binding ceiling is Gate A on
 the reviewed PRD.
