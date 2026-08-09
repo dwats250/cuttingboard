@@ -49,11 +49,33 @@ consolidated cycle at the corrected head:
    contract: one transactional safely-quoted `export` block, deduped, never on
    failure, success→failure reuse tested (invariant 15).
 
-## 2. EXACT-CORRECTED-HEAD CONFIRMATION — corrected head (this commit)
-PENDING — the independent Sol exact-corrected-head confirmation runs against the
-corrected head that carries this record; its verdict + the confirmed SHA are
-appended in the immediately following commit before the packet returns
-review-clean.
+## 2. EXACT-CORRECTED-HEAD CONFIRMATION — corrected head `16f8771f240a00b3b15de269f7b57b0c533c527b`
+**VERDICT: CONFIRMED.** Independent Sol@xhigh confirmation (read-only, same
+invocation profile, pinned to the corrected head; a confirmation, not a fresh-
+scope review). All 10 required corrections CLOSED; no new material boundary
+omission:
+1. CLOSED — §§9-10 cover concurrency, contention, read-only/unwritable, base-
+   Python prerequisites, interrupted installs, polluted envs, reused env files.
+2. CLOSED — repo-scoped locking around validate/create/install + after-lock
+   re-probe + bounded contention failure.
+3. CLOSED — isolated Python/pip, env/config neutralization, write-confinement
+   (cwd, user-site, pip target/config, cache, temp).
+4. CLOSED — READY verifies physical venv identity, isolation, editable
+   provenance, module origin, all PEP-440 requirements, executable probes.
+5. CLOSED — `fork` included, exit-2 described accurately, pip-internal retries
+   bounded/disabled.
+6. CLOSED — `CLAUDE_ENV_FILE` shell-script contract: safely-quoted exports,
+   transactional deduped replacement, write-failure narrowing, stale-binding
+   recovery.
+7. CLOSED — tests require full settings-tree equality minus only
+   `hooks.SessionStart`, plus textual preservation of existing hooks/permissions.
+8. CLOSED — `docs/DECISIONS.md` in lifecycle/authority; payload exactly 3 files.
+9. CLOSED — 90-LOC point replaced by a compliant range; Gate-A ceiling at upper
+   bound + margin.
+10. CLOSED — cross-event failure bounded + truthful, with no-network coverage
+    and success→failure env-file reuse tested.
+
+This packet is GOV-2 review-clean for Dustin's design-direction ruling.
 
 ## Disposition
 GOV-2 upstream packet cycle: independent Sol packet review + one consolidated
