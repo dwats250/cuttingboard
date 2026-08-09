@@ -88,7 +88,7 @@ the §2 baseline.
 | `audits/stage0-recon-2026-07-20/stage0-01-decision-surface-v0.1.md` (+ `verify-01`) | On `main`; SHA-pinned recon @ `771f730` | NS-2A/2B/2C/2E evidence base | YES as evidence; HYPOTHESIS-class consequences, no authority | RETAINED. Seeds the future NS-2 MATERIAL packet: producer/ownership map, positional-ORB runtime repro, two-axis lifecycle schema, Control Card row disposition |
 | `audits/stage0-recon-2026-07-20/stage0-02-evaluation-v0.1.md` (+ `verify-02`) | On `main` | NS-8 evidence base | YES as evidence | RETAINED for NS-8 (cohort schema, `stay_flat_reason` audit gap, session-clustering absence) |
 | `audits/stage0-recon-2026-07-20/stage0-03-scheduler-v0.1.md` (+ `verify-03`) | On `main` | NS-9 evidence base | YES as evidence | RETAINED for NS-9 (schedule owners, force/dedup semantics, verify-mode diagnostic baseline, "observed replacement" bar) |
-| `audits/stage0-recon-2026-07-20/stage0-04-gex-v0.1.md` | On `main`; corrected verdict `NOT ATTEMPTED — EXTERNAL REACH DISABLED` | NS-5 | YES (repo-only claim: no GEX exists) | RETAINED. The original "NO VIABLE PROVIDER" verdict is superseded by the in-file re-disposition; GEX-0 has NOT been run |
+| `audits/stage0-recon-2026-07-20/stage0-04-gex-v0.1.md` | On `main`; corrected verdict `NOT ATTEMPTED — EXTERNAL REACH DISABLED` | NS-5 | YES (repo-only claim: no GEX exists) | RETAINED. The original "NO VIABLE PROVIDER" verdict is superseded by the in-file re-disposition; the 2026-08-05 GEX-0 egress pass has since run (reached Polygon, HTTP 401; EVIDENCE INCOMPLETE), superseding this file's earlier 'not attempted' framing |
 | `audits/stage0-recon-2026-07-20/stage0-05-governance-debt-v0.1.md` (+ `verify-05`) | On `main` | Debt ledger | YES as evidence | RETAINED |
 | PR #184 artifacts (`OPT_0_SMALLEST_CONTRACT_REFUSAL_SEAM_TRACE_2026-07-31.md`, addendum) | **On `main` since the 2026-08-05 TRUTH-SYNC**, under `audits/current-state-reconciliation-2026-07-30/`, byte-identical except one prepended historical/out-of-order banner | NS-1E (CB-02) | YES as the upstream MATERIAL packet, preserved as historical evidence | SUPERSEDED — imported, not merged; PR #184 is closed as superseded after Dustin merges the TRUTH-SYNC PR (Dustin ruling 3, 2026-08-05). Its corrected nine-production-file ceiling is the one PRD-283's eight-file FILES differs from; recorded, not reconciled. See §7 |
 | PR #185 (`PRD-278.md`, Gate A ruling draft, registry/index edits) | Open draft branch `worktree-opt-1-prd`; never merged | NS-1E (CB-02) | NONE — the OPT-1/PRD-278 line was abandoned and PRD-278 was reused for unrelated work (hourly kill-switch bypass) | SUPERSEDED by PRD-283, which restarted this work under its own number. Carries no authority. See §7 |
@@ -142,8 +142,9 @@ NS-3 Opportunity Set Engine (LATER; needs qualification introspection —
 NS-8 prospective evaluation (LATER; needs NS-2/NS-3 surfaces plus the
   stage0-02 cohort decisions and CB-11 join key; CB-20…CB-25 cluster)
 
-NS-5 GEX (EVIDENCE BLOCKED; GEX-0 requires a Dustin-commissioned
-  network-enabled charge; doctrine gates GEX-0→3; air-gapped by G2)
+NS-5 GEX (GEX-0 EVIDENCE INCOMPLETE; the 2026-08-05 egress pass reached
+  Polygon (HTTP 401), so GEX-0 needs a real free-tier Polygon credential;
+  doctrine gates GEX-0→3)
 ```
 
 No LATER packet inherits permission from this graph; it records only ordering.
@@ -277,7 +278,8 @@ by its lead):**
 - Phantom-SHA debt class (WONTFIX-HISTORICAL, PRD-243).
 - Continuation budget decouple (fixed by PRD-256 R3).
 - stage0-04's original "NO VIABLE PROVIDER" GEX verdict (re-dispositioned in
-  place: NOT ATTEMPTED, external reach disabled).
+  place: NOT ATTEMPTED, external reach disabled -- since superseded by the
+  2026-08-05 egress pass, which reached Polygon (HTTP 401)).
 - The ledger draft's "historically PR #184/#185" framing — both PRs are live.
 
 ## 6. NOW / NEXT / LATER portfolio
@@ -329,7 +331,7 @@ packet where MATERIAL, PRD, review, and Gate A):**
 **LATER (preserved, not authorized):** NS-4A/4B (universe registry and basic
 movement heatmap — the first named promotion candidates after NS-2E; registry
 content is Dustin-authored, seed tuples exist, and promotion is Dustin's),
-NS-2D, NS-2F, NS-3 (all packets), NS-4C/D/E, NS-5 (GEX-0→3; GEX-0→2 lifecycle
+NS-2D, NS-2F, NS-3 (all packets), NS-4C/D/E, NS-5 (GEX-0→3; GEX-0 lifecycle `EVIDENCE INCOMPLETE`, GEX-1→2 lifecycle
 `EVIDENCE BLOCKED` per the workplan), NS-6 (NEWS-0→4; NEWS-0→3 lifecycle
 `EVIDENCE BLOCKED` per the workplan), NS-7, NS-8, NS-9, ODATA-0/1+, PRES-0.
 Portfolio rank and lifecycle condition are separate axes (ledger §3). Full
