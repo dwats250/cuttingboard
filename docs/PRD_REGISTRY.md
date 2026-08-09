@@ -309,6 +309,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-289 | #231 | NS-2E Market Control Card: seven-field read-only daily decision-support card (Option A, v0.4 MATERIAL packet) | COMPLETE | [PRD-289](prd_history/PRD-289.md) |
 | PRD-290 | #233 | Estimation Surface Discipline Graduation | COMPLETE | [PRD-290](prd_history/PRD-290.md) |
 | PRD-291 | #234 | Agent Draft-to-Ready Permission Grant | COMPLETE | [PRD-291](prd_history/PRD-291.md) |
+| PRD-292 | #237 | Deduplicate the optional-macro-driver vocabulary into the shared leaf | COMPLETE | [PRD-292](prd_history/PRD-292.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

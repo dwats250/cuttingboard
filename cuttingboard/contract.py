@@ -19,6 +19,7 @@ from cuttingboard.contract_types import (
     ContractCandidate,
     PipelineContract,
     SystemState,
+    _OPTIONAL_MACRO_DRIVERS,
 )
 from cuttingboard.trade_decision import (
     ALLOW_TRADE,
@@ -55,13 +56,6 @@ _MACRO_DRIVER_SYMBOLS = {
     "gold": "GC=F",
     "silver": "SI=F",
 }
-
-# PRD-122 / PRD-136: visibility-only drivers that may be absent without
-# halting the pipeline or failing contract validation. Quotes missing or
-# non-finite are silently skipped in _build_macro_drivers;
-# assert_valid_contract permits (but does not require) their presence in
-# the macro_drivers payload.
-_OPTIONAL_MACRO_DRIVERS: frozenset[str] = frozenset({"oil", "gold", "silver"})
 
 # PRD-233: the declared system_state schema. Built keys come from
 # _build_system_state / build_error_contract; runtime keys are the

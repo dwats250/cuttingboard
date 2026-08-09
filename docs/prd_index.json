@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 291,
-  "next_prd": 292,
+  "latest_complete": 292,
+  "next_prd": 293,
   "entries": [
     {
       "number": 56,
@@ -1418,6 +1418,12 @@
       "title": "Agent Draft-to-Ready Permission Grant",
       "status": "COMPLETE",
       "commit": "#234"
+    },
+    {
+      "number": 292,
+      "title": "Deduplicate the optional-macro-driver vocabulary into the shared leaf",
+      "status": "COMPLETE",
+      "commit": "#237"
     }
   ]
 }

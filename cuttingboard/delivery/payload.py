@@ -11,7 +11,7 @@ import json
 import math
 from typing import Any, Optional
 
-from cuttingboard.contract_types import PipelineContract
+from cuttingboard.contract_types import PipelineContract, _OPTIONAL_MACRO_DRIVERS
 from cuttingboard.trade_decision import candidate_is_actionable
 
 PAYLOAD_SCHEMA_VERSION = "1.0"
@@ -313,12 +313,6 @@ def _require_type_or_none(obj: dict, key: str, expected_type: type) -> None:
             f"got {type(obj[key]).__name__}"
         )
 
-
-# PRD-122-PATCH: optional drivers are accepted but not required. Must remain
-# aligned with cuttingboard.contract._OPTIONAL_MACRO_DRIVERS — payload-layer
-# duplication is intentional to keep this module free of cross-package
-# imports, but the semantics must not drift.
-_OPTIONAL_MACRO_DRIVERS = frozenset({"oil", "gold", "silver"})
 
 
 def _require_macro_drivers(macro_drivers: dict) -> None:
