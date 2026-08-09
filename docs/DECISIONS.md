@@ -16,6 +16,23 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-09 — GEX-0 status addendum: egress reached Polygon (HTTP 401); the 2026-08-05 "egress-blocked" framing is now historical
+
+Later evidence supersedes the reachability framing of the 2026-08-05 GEX-0
+ruling (ruling 5 below) and the 2026-08-06 lane-precedence entry: subsequent
+testing reached Polygon and received a real authentication-required HTTP 401.
+External network reach to Polygon IS available, so the earlier "egress policy
+denied all provider hosts / no provider was examined / external reach disabled"
+statements are historical, not current. The original dated rulings are
+preserved unchanged.
+
+This corrects only the reachability framing. A 401 proves reachability and
+that authentication is required; it does NOT establish usable chain-data
+evidence, provider viability, evidence sufficiency, or GEX-1 authorization, and
+no API key is available. GEX-0's standing verdict is `EVIDENCE INCOMPLETE`; the
+next step needs a real free-tier Polygon credential. All downstream GEX / NEWS
+/ ODATA holds remain in force.
+
 ## 2026-08-08 — Alignment check #6 (phase boundary: NS-2E / PRD-289 close) — PASS, no drift
 
 Phase-boundary diff-read per CLAUDE.md (PRD-230 model). Covered `main` merges

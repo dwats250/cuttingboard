@@ -20,7 +20,7 @@ NS-4A/B and the Opportunity Set Engine, in
 2026-08-05 BALANCED-route ruling. That precedence, and exactly what it
 supersedes, is recorded in `docs/DECISIONS.md` (2026-08-06). Setting lane
 priority does not lift a lifecycle gate: GEX stays subject to Dustin's "GEX
-go/stop after evidence" hold and its `EVIDENCE BLOCKED` status until that
+go/stop after evidence" hold and its `EVIDENCE INCOMPLETE` status until that
 evidence exists. This document introduces no new gate, schema, or consumer.
 
 CuttingBoard governance exists to protect truthful product delivery, not to

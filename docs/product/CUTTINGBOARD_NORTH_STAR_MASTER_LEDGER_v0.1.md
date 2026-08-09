@@ -170,7 +170,7 @@ Suggested groups: Context, Energy, AI / Semis, Tradeable, Spec / Learning, Holdi
 
 | Packet | State | Outcome |
 |---|---|---|
-| GEX-0 Provider evidence pass | `LATER / EVIDENCE BLOCKED` | Test one provider against a bounded honesty contract — never attempted (the Stage-0 leg ran network-disabled); requires a Dustin-commissioned network charge |
+| GEX-0 Provider evidence pass | `LATER / EVIDENCE INCOMPLETE` | Test one provider against a bounded honesty contract — the 2026-08-05 egress pass reached Polygon and got a real HTTP 401 (authentication required); no provider-viability verdict was established, so the next step needs a real free-tier Polygon credential |
 | GEX-1 Manual cached producer | `LATER / EVIDENCE BLOCKED` | Versioned gamma flip, put wall, and call wall snapshot — lifecycle state per the workplan, gated on GEX-0 passing |
 | GEX-2 Display-only consumer | `LATER / EVIDENCE BLOCKED` | Compact dashboard row with no qualification/sizing effect — lifecycle state per the workplan, gated on GEX-1 |
 | GEX-3 Cadence decision | `LATER` | Premarket and bounded intraday refresh only after usefulness (no workplan lifecycle row; doctrine gate GEX-3 applies) |
