@@ -16,6 +16,57 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-09 — Cloudflare / Morning Brief slice 1: CF-D owner-ruling bundle ratified (pre-A0; NOT a MATERIAL packet, NOT Stage-0) (ruled: Dustin)
+
+Dustin ratifies the CF-D decision bundle for the Cloudflare / Morning Brief
+feature (slice 1). These are the canonical owner rulings. The branch planning
+packet (`CLOUDFLARE_CLOCK_MORNING_BRIEF_PLANNING_PACKET_2026-08-08.md`, on branch
+`claude/cuttingboard-reconciliation-notes-op3p8w`) remains PLANNING input and is
+NOT relabeled a GOV-2 MATERIAL packet. Authority model: Cloudflare is the punctual
+clock; the GitHub pipeline stays the executor / artifact authority (GitHub is not
+designed out of slice 1).
+
+- **CF-D1a — APPROVED.** The material gap threshold reuses the engine's existing
+  `_GAP_THRESHOLD = 0.25%` (`cuttingboard/intraday_state_engine.py:42`) as the v1
+  promote bar for the open-gap banner.
+- **CF-D1b — DEFERRED.** The remaining evidence-dependent gap behavior/ruling
+  (premarket-displacement banner) is deferred until CF-E2 is captured and reviewed.
+- **CF-D2 — APPROVED.** Premarket displacement is quote-based.
+- **CF-D3 — APPROVED.** Post-open cadence is TWO dispatches: OPEN and OPEN+1.
+- **CF-D4 — APPROVED.** Retain the existing GitHub cron heartbeats in slice 1
+  (Cloudflare = clock, GitHub = executor; GitHub is not redesigned out).
+- **CF-D5 — APPROVED (design) / OPERATIONALLY INCOMPLETE.** Dustin owns the
+  Cloudflare account and Worker deployment, fine-grained GitHub PAT creation (repo
+  scope `dwats250/cuttingboard`, minimum required Actions write), installation into
+  Worker secret storage, and credential rotation/revocation. No credential or
+  secret value may be written to the repository, an audit packet, a prompt, a
+  review artifact, or a chat transcript. The design decision is ratified; the
+  operational prerequisite is not yet satisfied. CF-E1 remains blocked until Dustin
+  completes it.
+- **CF-D6 — APPROVED.** Refresh/update behavior is silent; preserve the existing
+  ~06:00 PT notification reach; add no new notification audience or surface.
+- **CF-E1 — AUTHORIZED, NOT COMPLETE.** Capture the real Cloudflare -> GitHub
+  `workflow_dispatch` trigger path only after the CF-D5 operational setup exists.
+  Authorization is not captured evidence.
+- **CF-E2 — AUTHORIZED, NOT COMPLETE.** Run the already-staged timing/evidence
+  harness (`audits/cloudflare-morning-brief-evidence-2026-08/cf_e2_capture.py`) on
+  Monday 2026-08-10 at the ~06:00 PT and ~06:32 PT observation points.
+  Authorization is not captured evidence.
+
+Status truth (none of the following is true yet): no CF-E1/CF-E2 evidence is
+captured; no GOV-2 MATERIAL packet exists or is review-clean; CF-D1b is unresolved;
+no Stage-0 PRD is authorized; no Gate A is available; zero Cloudflare production
+implementation has begun. GOV-2 order to reach implementation: evidence (CF-E1 +
+CF-E2) -> CF-D1b ruling -> MATERIAL packet -> Codex packet review + exact-head
+confirmation -> owner design-direction ruling -> Stage-0 PRD -> independent PRD
+review -> Gate A -> build. CF currently sits at pre-A0.
+
+Harness note: subsequent CF execution (evidence capture after CF-D5, MATERIAL
+packet draft, independent packet review) moves to the Codex harness; owner semantic
+authority (the CF-D1b ruling after evidence, the design-direction ruling, Gate A,
+credential/security choices, and any architecture/FILES/schema widening) stays with
+Dustin.
+
 ## 2026-08-09 — GEX-0 status addendum: egress reached Polygon (HTTP 401); the 2026-08-05 "egress-blocked" framing is now historical
 
 Later evidence supersedes the reachability framing of the 2026-08-05 GEX-0
