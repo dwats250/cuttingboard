@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 290,
-  "next_prd": 291,
+  "latest_complete": 291,
+  "next_prd": 292,
   "entries": [
     {
       "number": 56,
@@ -1416,8 +1416,8 @@
     {
       "number": 291,
       "title": "Agent Draft-to-Ready Permission Grant",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#234"
     }
   ]
 }
