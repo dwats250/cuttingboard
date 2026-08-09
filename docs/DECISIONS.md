@@ -16,6 +16,24 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-08 — Alignment check #6 (phase boundary: NS-2E / PRD-289 close) — PASS, no drift
+
+Phase-boundary diff-read per CLAUDE.md (PRD-230 model). Covered `main` merges
+since check #5 (2026-07-05): PRDs 240–267, 269–273, 276–289 (PRD-268, 274, 275
+not yet merged). Q1 new prediction logic: none — the new surfaces describe the
+present (PRD-288 SPY observation and PRD-289 Market Control Card are read-only
+descriptive; PRD-278 kill-switch is invalidation per VISION Q4). Q2 new sidecar
+without a documented consumer: none — spy_observation feeds the daily SPY card;
+the Market Control Card renders to dashboard.html + latest_payload only; both
+cleared the GOV-2 MATERIAL workflow. Q3 new module serving none of VISION's four
+questions: none (283/284/285 serve Q3 tradability; 286/287 are fail-loud
+integrity). Q4 post-merge drift: no substantive drift; two in-place bookkeeping
+items — this pointer refresh, and one Claude primary review artifact
+(PRD-249.review.claude.md) that predates the PRD-255 review spec and lacked a
+labeled DRIFT CHECK (appended in place, no PRD ceremony). Findings: none
+substantive. Next check: next phase boundary (the reconciliation-campaign wave
+closing the Cloudflare / Registry / GEX lanes).
+
 ## 2026-08-08 — PRD-289 Gate A granted, then GOV-2 §5 stop-and-renew: LOC ceiling ≤300 → ≤525 proposed (ruled: Dustin)
 
 Canonical authority record for the NS-2E Market Control Card implementation
