@@ -387,7 +387,7 @@ Deliberately deferred during the 2026-06-10 dashboard-batch scoping:
 ## Alignment check
 
 Phase-boundary diff-read per `CLAUDE.md` (PRD-230 retired the scheduled
-4-6-week ceremony). Last check: 2026-07-05 (#5, PASS, no drift — the
-Fable-window close boundary; PRDs 191–239 covered; see `docs/DECISIONS.md`).
-Next check: the next phase boundary (likely the post-window Opus wave
-closing D/E or K/L/M).
+4-6-week ceremony). Last check: 2026-08-08 (#6, PASS, no substantive drift —
+the NS-2E / PRD-289 close boundary; PRDs 240–289 covered; see
+`docs/DECISIONS.md`). Next check: the next phase boundary (the
+reconciliation-campaign wave closing the Cloudflare / Registry / GEX lanes).
