@@ -157,7 +157,16 @@ on 2026-07-25.
 - All provider, model, expiration, cadence, spot-basis, and unavailability
   semantics remain unverified.
 
-State: `EVIDENCE BLOCKED`.
+Current status (updated 2026-08-09): the 2026-08-05 GEX-0 egress pass
+reached Polygon and received a real HTTP 401 (authentication required), so
+external reach is available -- the Stage-0 "external reach was disabled"
+bullet above is historical, not current. A 401 proves reachability and that
+authentication is required only; it does not establish usable chain
+evidence, provider viability, or evidence sufficiency, and no key is
+available. GEX-0 is `EVIDENCE INCOMPLETE`; the next step needs a real
+free-tier Polygon credential. Downstream GEX-1..3 holds remain in force.
+
+State: `EVIDENCE INCOMPLETE` (GEX-0; GEX-1..3 remain gated `EVIDENCE BLOCKED`).
 
 No GEX implementation PRD may be drafted until the bounded provider evidence
 gate in section 4 passes.
