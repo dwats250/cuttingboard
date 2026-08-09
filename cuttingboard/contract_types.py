@@ -36,6 +36,14 @@ suite if a producer key and a TypedDict key ever drift apart. Keep
 # __optional_keys__ on Python 3.11, which the sync guards depend on.
 from typing import Any, NotRequired, Optional, TypedDict
 
+# PRD-122 / PRD-136: visibility-only macro drivers that may be absent
+# without halting the pipeline or failing contract validation (quotes
+# missing or non-finite are silently skipped in the producer, and
+# assert_valid_contract permits but does not require them). Single
+# authoritative vocabulary (PRD-292 dedup); imported by contract.py and
+# delivery/payload.py from this leaf, so neither module duplicates it.
+_OPTIONAL_MACRO_DRIVERS: frozenset[str] = frozenset({"oil", "gold", "silver"})
+
 
 class SystemState(TypedDict):
     """`contract["system_state"]` — built keys + declared runtime injections."""
