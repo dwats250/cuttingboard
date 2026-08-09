@@ -197,6 +197,19 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|fork",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" && bash scripts/dev_bootstrap.sh",
+            "timeout": 300,
+            "statusMessage": "Preparing CuttingBoard developer environment..."
+          }
+        ]
+      }
     ]
   }
 }
