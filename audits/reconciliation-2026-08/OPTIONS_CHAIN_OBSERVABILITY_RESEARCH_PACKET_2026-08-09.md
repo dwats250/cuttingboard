@@ -97,12 +97,17 @@ deterministic OBSERVATIONS computed from the chain as raw input.**
   must be horizon-disclosed or typed-unavailable (§5), and Greeks
   beyond delta are provider-model-derived and must carry provenance
   labels.
-- **The two tracks (GEX, options observability) share more than raw
-  data — they share the same unresolved evidence blocker.** (FACT, §10):
-  GEX-0's verdict is fixed at `EVIDENCE INCOMPLETE` solely by egress
-  denial; every provider-dependent claim in this packet is behind the
-  same wall. One owner-granted evidence pass could serve both tracks'
-  data-contract needs without coupling their authority.
+- **The two tracks (GEX, options observability) share a provider-
+  evidence dependency, not a network blocker.** (FACT, §10, current as
+  of DECISIONS.md's 2026-08-09 addendum): GEX-0's egress pass reached
+  Polygon and received a real HTTP 401 (authentication required) —
+  reachability is proven; the "egress denied" framing is now
+  historical. GEX-0's verdict is unchanged at `EVIDENCE INCOMPLETE`
+  because no usable authenticated response was ever captured, not
+  because the network is unreachable. One owner-commissioned evidence
+  pass (a real credential + an explicit GEX fresh-pass commission)
+  could serve both tracks' data-contract needs without coupling their
+  authority.
 - **A genuine surprise from this session's primary-doc pass (§4):** the
   provider ships a `fmv` (Fair Market Value) field — a proprietary
   fair-value estimate — that the original commission never anticipated
@@ -261,7 +266,7 @@ this pass did not attempt).
 | Moneyness, intrinsic, extrinsic | DERIVABLE | Needs fresh underlying spot + contract metadata (+ entitled quote for extrinsic); see §5 |
 | Realized volatility (any window) | HISTORY REQUIRED — **computable today** | From underlying daily OHLCV; the repo already fetches/caches underlying history via yfinance (FACT). Does not require the options provider at all |
 | IV history / IV rank / percentile | HISTORY REQUIRED, likely UNAVAILABLE as a service | No stored IV time series exists in-repo; constant-maturity IV history would have to be accumulated locally (≥ ~252 obs); no provider IV-history product was found in this pass (not exhaustively searched) |
-| Real-time vs 15-min delayed status | ENTITLEMENT-DEPENDENT — **primary-doc-fetched, THIS PACKET ONLY** | Chain-snapshot doc, verbatim structure: Options Starter/Developer receive 15-minute delayed data; real-time requires Options Advanced or Business tiers. This corroborates the practical wisdom behind GEX-0 row 8's caution ("do not assume real-time") for THIS packet's own purposes — it does NOT change GEX-0 row 8's own status, which remains `unavailable — egress blocked` until GEX-0's own authorized captured-response pass runs (a documentation-page paraphrase is not GEX-0's doctrine-grade evidentiary bar) |
+| Real-time vs 15-min delayed status | ENTITLEMENT-DEPENDENT — **primary-doc-fetched, THIS PACKET ONLY** | Chain-snapshot doc, verbatim structure: Options Starter/Developer receive 15-minute delayed data; real-time requires Options Advanced or Business tiers. This corroborates the practical wisdom behind GEX-0 row 8's caution ("do not assume real-time") for THIS packet's own purposes — it does NOT change GEX-0 row 8's own status. That row's authoritative record is GEX-0's own packet, not this one; per DECISIONS.md's 2026-08-09 addendum, GEX-0's egress pass DID reach Polygon (a real HTTP 401), so "unavailable — egress blocked" is itself now historical framing there too — GEX-0 row 8 remains genuinely unresolved because no authenticated response was ever captured, pending its own authorized credentialed pass (a documentation-page paraphrase is not GEX-0's doctrine-grade evidentiary bar either way) |
 | Rate limits per plan | SEMANTICS UNCLEAR (unchanged) | No rate-limit figure found on any options doc page fetched this pass. Historical in-repo fact: free tier was 5 req/min for the REMOVED equities integration (PRD-history doc; not current options truth) |
 | Auth mechanism (header vs `?apiKey=`) | SEMANTICS UNCLEAR (unchanged) | Not documented on the quotes endpoint page fetched this pass. CuttingBoard's own policy is header-only regardless (109-exposure query-string leak precedent), so this is moot for implementation but remains formally unconfirmed against the provider |
 | Licensing: caching/persistence/public display | UNAVAILABLE at this evidence level (unchanged) | Endpoint documentation cannot answer a Terms-of-Service question by construction; GEX-0 row 11 flagged this viability-critical for the public Pages dashboard — identical concern here, still requires its own ToS review, not another doc fetch |
@@ -558,32 +563,47 @@ artifact (future work), renderer as consumer, zero contract mutation.
 ## 10. GEX OVERLAP — SHARED DATA, SEPARATE AUTHORITY
 
 FACT unless noted:
-- Standing GEX state: `EVIDENCE INCOMPLETE` (GEX-0 packet §1). This
-  packet cites the packet verdict and does not touch the four stale
-  docs that contradict it (TD-1/QW-4, already dispositioned FIX NOW in
-  the engineering-health packet).
+- Standing GEX state: `EVIDENCE INCOMPLETE` (GEX-0 packet §1) — and, as
+  of `docs/DECISIONS.md`'s 2026-08-09 addendum (merged to `main`,
+  `d32a9c2`/`a396488`), the REASON has been reconciled: the 2026-08-05
+  egress pass reached Polygon and received a real HTTP 401
+  (authentication required). External reach IS available; the earlier
+  "egress policy denied all provider hosts" framing is now historical,
+  not current. The verdict is unchanged — `EVIDENCE INCOMPLETE` — but
+  its cause is a missing/failed credential, not network denial. This
+  is precisely what TD-1/QW-4 (named in this session's engineering-
+  health packet as FIX NOW) has since become: not a pending fix, but a
+  landed one, across `PROJECT_STATE.md`, the workplan, both North Star
+  product docs, the expansion doctrine, and the Product-Delivery
+  Operating Rule.
 - Both tracks read the same raw surface (an options chain snapshot
   with IV/Greeks/OI). Neither depends on the other: GEX aggregates
   gamma across the chain into levels; observability renders per-
   contract/per-expiry descriptions. No shared code exists yet; nothing
   here creates any.
-- **They share the same evidence blocker, but sharing the capture
-  requires BOTH GEX rulings, not one.** GEX-0's verdict is fixed at
-  INCOMPLETE solely by egress denial (all 16 rows `unavailable —
-  egress blocked`); every provider-dependent row in §4 is behind the
-  same wall. INFERENCE, precisely stated: an egress grant alone
-  (GEX-D1) opens network access but does NOT by itself authorize a
-  GEX-0 continuation pass — doctrine §4.3 requires Dustin's explicit
-  fresh-pass commission (GEX-D2) before any captured response counts
-  toward GEX-0's record. If Dustin issues GEX-D1 AND GEX-D2 together
-  with an options-evidence commission (OBS-D2), ONE captured-response
-  pass could feed both tracks' records. If GEX-D2 is withheld, an
-  egress grant issued for OBS-D2 alone still evidences the
-  observability track, but nothing captured under it advances GEX-0 —
-  egress access is not a substitute for GEX's own commissioning act.
-  That is evidence-sharing, not authority-sharing: this track's future
-  requires its own rulings (§13) regardless. Neither track's gate opens
-  the other's.
+- **They share a provider-evidence DEPENDENCY, not a current network
+  blocker — and sharing a future capture still requires BOTH GEX
+  rulings, not one.** GEX-0 remains `EVIDENCE INCOMPLETE` because the
+  available evidence is insufficient: reachability was demonstrated by
+  the 401, but no usable AUTHENTICATED provider response was ever
+  captured, and no API key is available (DECISIONS.md 2026-08-09: "A
+  401 proves reachability and that authentication is required; it does
+  NOT establish usable chain-data evidence, provider viability,
+  evidence sufficiency, or GEX-1 authorization"). INFERENCE, precisely
+  stated: a real Polygon credential (GEX-D1, as originally framed as an
+  "egress grant" by the 2026-08-08 GEX remainder packet — that framing
+  itself may need the GEX track's own reconciliation now that
+  reachability is proven, which this packet does not attempt) plus
+  Dustin's explicit fresh-pass commission (GEX-D2, per doctrine §4.3)
+  are both still required before any captured response counts toward
+  GEX-0's record. If Dustin commissions both together with an
+  options-evidence pass (OBS-D2), ONE credentialed capture could feed
+  both tracks' records. Network/egress access ALONE — which is already
+  proven available — never advances GEX-0 by itself; it never did the
+  work GEX-D1 was assumed to gate, and it is not a substitute for
+  GEX's own credential and commissioning act. That is evidence-sharing,
+  not authority-sharing: this track's future requires its own rulings
+  (§13) regardless. Neither track's gate opens the other's.
 - Greeks provenance cuts differently per track (INFERENCE): for GEX,
   model-derived gamma makes the headline number derived-of-derived
   (GEX-0 row 3, material to its doctrine). For observability, a
@@ -654,11 +674,12 @@ All OWNER DECISION REQUIRED; namespaced OBS-D:
   (whose predecessor gate is superseded)? The workplan is the only
   planning ledger; a row needs your ruling to exist.
 - **OBS-D2 — Evidence base.** Commission a Polygon/Massive provider-
-  evidence pass (shares the GEX-D1 egress-grant mechanics), or rule
-  that a first slice may be evidenced against the incumbent
-  yfinance/yahooquery seam it already uses? (Doctrine: provider-
-  dependent work needs a data-contract evidence pass before a feature
-  PRD.)
+  evidence pass (network reach is already proven, per the 2026-08-09
+  reconciliation — a real credential is what a shared pass would still
+  need), or rule that a first slice may be evidenced against the
+  incumbent yfinance/yahooquery seam it already uses? (Doctrine:
+  provider-dependent work needs a data-contract evidence pass before a
+  feature PRD.)
 - **OBS-D3 — Entitlement posture.** Quotes are the card's spine and
   are plan-gated (`primary-doc-fetched`, §4: Starter/Developer get
   15-min-delayed data, real-time needs Advanced/Business). Which
@@ -691,25 +712,31 @@ All OWNER DECISION REQUIRED; namespaced OBS-D:
 - **Adjacent named debt, graduated not fixed here:** F-22/CB-42
   (unused POLYGON_API_KEY in workflows), F-10/CB-31 (`date.today()`
   DTE math in chain_validation), CB-47 (`_estimated_debit` arithmetic
-  pass owed), the MANUAL_CHECK render gap (PARKED), TD-1/QW-4 (GEX
-  docs drift, already FIX NOW), and the SCHEMA_MAP/CALL_SITE_MAP
-  options silence. None is touched by this packet.
+  pass owed), the MANUAL_CHECK render gap (PARKED), and the
+  SCHEMA_MAP/CALL_SITE_MAP options silence. None is touched by this
+  packet. (TD-1/QW-4, the GEX docs-drift item this session's
+  engineering-health packet flagged FIX NOW, has since LANDED on
+  `main` — see §10 — and is removed from this list as resolved, not
+  outstanding.)
 - **Closing challenge test (house convention): does anything here
   displace the standing lane order (Cloudflare → registry → GEX
-  bundle)?** **NO.** Every §13 question can wait; the only
-  time-coupled observation is that a GEX-D1 egress grant, if and when
-  you make it, could cheaply serve OBS-D2 in the same pass.
+  bundle)?** **NO.** Every §13 question can wait; the only time-
+  coupled observation is that a real Polygon credential plus an
+  explicit GEX fresh-pass commission (§10), if and when Dustin issues
+  both, could cheaply serve OBS-D2 in the same pass — network access
+  alone no longer gates that, since reachability is already proven.
 
 ## 15. RECOMMENDED NEXT STEP
 
 One step, no priority change: **rule on OBS-D4 and OBS-D1** (does the
 surface earn a seat; is it a new ledger row). If both answers are
 yes-shaped, the natural sequel is a single provider-evidence commission
-that serves GEX-D1+GEX-D2 and OBS-D2 together — one egress grant, one
-EXPLICIT fresh-pass commission covering both tracks, one
-captured-response pass, two tracks' data contracts evidenced without
-coupling their authority. Granting only egress (GEX-D1) without the
-commissioning act (GEX-D2) would still let OBS-D2 proceed alone; it
-would not advance GEX-0. Everything else in this packet (definitions,
-taxonomy, card shapes, alert candidates) is durable research that
+that serves GEX-0's continuation and OBS-D2 together — one real
+Polygon credential, one EXPLICIT fresh-pass commission covering both
+tracks, one authenticated captured-response pass, two tracks' data
+contracts evidenced without coupling their authority. Network/egress
+access alone is already available and was never the remaining gate;
+granting it again advances nothing by itself. Everything else in this
+packet (definitions, taxonomy, card shapes, alert candidates) is
+durable research that
 keeps: it waits without decaying.
