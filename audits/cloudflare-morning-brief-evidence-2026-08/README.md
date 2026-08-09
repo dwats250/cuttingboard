@@ -1,4 +1,4 @@
-# CF-E2 diagnostic capture -- staging (planning evidence, non-production)
+# CF-E2 diagnostic capture -- hardened staging (planning evidence, non-production)
 
 Prepared under the 2026-08-08 execution-campaign charge (owner item 4: "Stage
 the CF-E2 diagnostic harness NOW -- preparation only, no fabricated evidence,
@@ -30,9 +30,11 @@ day is **Monday 2026-08-10** (the system is holiday-unaware by design; confirm
 - Run 1 -- premarket: **Mon 2026-08-10, ~6:00 PT**
 - Run 2 -- open:      **Mon 2026-08-10, ~6:32 PT**
 
-Trigger times are observation intents; the observations are bar-window /
-quote-snapshot defined, so a few minutes' slippage is harmless (it changes when
-the capture lands, not what it records).
+The harness is deliberately locked to this single campaign date. It validates
+the date, weekday, and selected PT window both before provider access and after
+the provider response. A capture that starts or completes outside its window
+refuses with exit 3 and writes no evidence. A later date requires a reviewed
+source change; there is no capture CLI override.
 
 ## How to run
 
@@ -44,18 +46,56 @@ python3 audits/cloudflare-morning-brief-evidence-2026-08/cf_e2_capture.py --slot
 python3 audits/cloudflare-morning-brief-evidence-2026-08/cf_e2_capture.py --slot open         # ~6:32 PT
 ```
 
-`--slot auto` (the default) detects the window from the current PT time and
-**refuses to run outside a capture window** (exit 3), so a mistimed run cannot
-produce misleading evidence.
+Explicit `--slot` chooses the intended observation but does not bypass the
+authorization guard. `--slot auto` (the default) selects the matching window.
+Every mode refuses outside the authorized date/window with exit 3 and writes
+nothing.
 
 ## Discipline (guaranteed by the harness)
 
 - **No credentials** used or emitted (public yfinance quote path).
-- **No fabricated values.** Missing/unusable data is written as `UNAVAILABLE`
-  with its reason and the process exits non-zero. Absence of a bar at ~6:32 is
-  itself real evidence (bar not yet published), recorded truthfully.
+- **No fabricated values.** Provider/runtime failure is written as
+  `UNAVAILABLE` with its reason and exits non-zero, but only while the capture
+  remains inside its authorized window. Absence of a bar at ~6:32 is itself
+  real evidence and is recorded as `ABSENT`.
 - Writes exactly one timestamped JSON evidence file per run into this folder,
   with UTC + PT provenance and the provider field path. Touches nothing else.
+
+## Evidence outcomes
+
+Premarket evidence preserves selected raw values from both `Ticker.fast_info`
+and `Ticker.info`. A difference between `last_price` and `previous_close` is
+recorded but is explicitly not classification evidence.
+
+- `status: OK`, `classification: PROVIDER_IDENTIFIED_PREMARKET` requires the
+  provider itself to report `marketState=PRE`, a positive `preMarketPrice`, and
+  a valid `preMarketTime` on the authorized date within the US premarket
+  session, plus a valid previous close. The derived displacement uses that
+  provider-labeled premarket price.
+- `status: INCONCLUSIVE`, `classification: INCONCLUSIVE` means those provider
+  session/timestamp semantics were insufficient. Raw observations and the
+  exact reason remain in the artifact for owner inspection.
+- `status: UNAVAILABLE` is reserved for provider/runtime acquisition failure.
+
+Each requested OPEN bar has an independent `outcome`:
+
+- `PRESENT`: exact timestamp found and finite positive Open/Close values parsed.
+- `ABSENT`: no row for the exact timestamp was returned.
+- `UNPARSEABLE`: a matching row was malformed or duplicated. Raw/error detail
+  remains visible, and the overall record is `status: INVALID`, never `OK`.
+
+## Behavior checks
+
+From the repo root:
+
+```
+PYTHONDONTWRITEBYTECODE=1 python3 -m pytest \
+  audits/cloudflare-morning-brief-evidence-2026-08/test_cf_e2_capture.py \
+  -q -p no:cacheprovider
+```
+
+These tests inject time only in-process; the ordinary capture CLI has no clock
+or authorization bypass.
 
 ## After capture
 
