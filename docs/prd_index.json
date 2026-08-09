@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 292,
-  "next_prd": 293,
+  "latest_complete": 293,
+  "next_prd": 294,
   "entries": [
     {
       "number": 56,
@@ -1424,6 +1424,12 @@
       "title": "Deduplicate the optional-macro-driver vocabulary into the shared leaf",
       "status": "COMPLETE",
       "commit": "#237"
+    },
+    {
+      "number": 293,
+      "title": "Idempotent dev bootstrap for remote/mobile sessions (script + thin SessionStart hook)",
+      "status": "COMPLETE",
+      "commit": "#238"
     }
   ]
 }
