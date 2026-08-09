@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 291,
-  "next_prd": 292,
+  "latest_complete": 292,
+  "next_prd": 293,
   "entries": [
     {
       "number": 56,
@@ -1422,8 +1422,8 @@
     {
       "number": 292,
       "title": "Deduplicate the optional-macro-driver vocabulary into the shared leaf",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#237"
     }
   ]
 }
