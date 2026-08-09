@@ -79,10 +79,14 @@ recorded but is explicitly not classification evidence.
 
 Each requested OPEN bar has an independent `outcome`:
 
-- `PRESENT`: exact timestamp found and finite positive Open/Close values parsed.
+- `PRESENT`: a timezone-aware provider timestamp normalizes to the exact ET
+  minute and finite positive Open/Close values parse successfully. The original
+  provider timestamp representation is preserved as `raw_timestamp`.
 - `ABSENT`: no row for the exact timestamp was returned.
-- `UNPARSEABLE`: a matching row was malformed or duplicated. Raw/error detail
-  remains visible, and the overall record is `status: INVALID`, never `OK`.
+- `UNPARSEABLE`: a matching row was malformed or duplicated, or its timestamp
+  was timezone-naive (`reason: timezone_unverified`). Naive timestamps are never
+  localized by assumption. Raw/error detail remains visible, and any ambiguous
+  timestamp makes the overall record `status: INVALID`, never `OK`.
 
 ## Behavior checks
 

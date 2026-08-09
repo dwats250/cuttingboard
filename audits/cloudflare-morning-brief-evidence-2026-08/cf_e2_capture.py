@@ -276,7 +276,7 @@ def _flatten_columns(df):
     return df
 
 
-def _open_bar_outcome(row: Any, timestamp: datetime) -> dict[str, Any]:
+def _open_bar_outcome(row: Any, timestamp: datetime, raw_timestamp: str) -> dict[str, Any]:
     raw = repr(row.to_dict()) if hasattr(row, "to_dict") else repr(row)
     try:
         open_price = float(row["Open"])
@@ -288,15 +288,40 @@ def _open_bar_outcome(row: Any, timestamp: datetime) -> dict[str, Any]:
     except Exception as exc:
         return {
             "outcome": "UNPARSEABLE",
+            "raw_timestamp": raw_timestamp,
             "time_et": timestamp.isoformat(),
             "error": repr(exc),
             "raw": raw,
         }
     return {
         "outcome": "PRESENT",
+        "raw_timestamp": raw_timestamp,
         "time_et": timestamp.isoformat(),
         "open": open_price,
         "close": close_price,
+    }
+
+
+def _merge_open_outcome(
+    current: dict[str, Any], candidate: dict[str, Any]
+) -> dict[str, Any]:
+    if current["outcome"] == "ABSENT":
+        return candidate
+
+    raw_timestamps: list[str] = []
+    for outcome in (current, candidate):
+        raw_timestamps.extend(outcome.get("raw_timestamps", []))
+        if "raw_timestamp" in outcome:
+            raw_timestamps.append(outcome["raw_timestamp"])
+    timezone_unverified = any(
+        outcome.get("reason") == "timezone_unverified" for outcome in (current, candidate)
+    )
+    return {
+        "outcome": "UNPARSEABLE",
+        "reason": "timezone_unverified" if timezone_unverified else "duplicate_bar_rows",
+        "error": "duplicate rows returned for the same expected bar",
+        "raw_timestamps": raw_timestamps,
+        "raw": repr([current, candidate]),
     }
 
 
@@ -307,26 +332,37 @@ def _build_open_record(df: Any, now: datetime) -> dict[str, Any]:
     bars: dict[str, dict[str, Any]] = {
         label: {"outcome": "ABSENT", "expected_time_et": hhmm} for label, hhmm in expected
     }
+    timestamp_errors: list[dict[str, str]] = []
 
     if df is not None:
         for idx, row in df.iterrows():
+            raw_timestamp = repr(idx)
             timestamp = idx.to_pydatetime()
-            timestamp = timestamp.replace(tzinfo=ET) if timestamp.tzinfo is None else timestamp.astimezone(ET)
+            if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+                ambiguous = {
+                    "outcome": "UNPARSEABLE",
+                    "reason": "timezone_unverified",
+                    "raw_timestamp": raw_timestamp,
+                }
+                matched_expected_wall_time = False
+                for label, hhmm in expected:
+                    if timestamp.date() == et_today and timestamp.strftime("%H:%M") == hhmm:
+                        bars[label] = _merge_open_outcome(bars[label], ambiguous)
+                        matched_expected_wall_time = True
+                if not matched_expected_wall_time:
+                    timestamp_errors.append(ambiguous)
+                continue
+
+            timestamp = timestamp.astimezone(ET)
             for label, hhmm in expected:
                 if timestamp.date() == et_today and timestamp.strftime("%H:%M") == hhmm:
-                    parsed = _open_bar_outcome(row, timestamp)
-                    if bars[label]["outcome"] == "ABSENT":
-                        bars[label] = parsed
-                    else:
-                        bars[label] = {
-                            "outcome": "UNPARSEABLE",
-                            "time_et": timestamp.isoformat(),
-                            "error": "duplicate rows returned for the same expected bar",
-                            "raw": repr([bars[label], parsed]),
-                        }
+                    parsed = _open_bar_outcome(row, timestamp, raw_timestamp)
+                    bars[label] = _merge_open_outcome(bars[label], parsed)
 
-    invalid = any(bar["outcome"] == "UNPARSEABLE" for bar in bars.values())
-    return {
+    invalid = bool(timestamp_errors) or any(
+        bar["outcome"] == "UNPARSEABLE" for bar in bars.values()
+    )
+    record = {
         "status": "INVALID" if invalid else "OK",
         "slot": "OPEN",
         "symbol": SYMBOL,
@@ -348,6 +384,9 @@ def _build_open_record(df: Any, now: datetime) -> dict[str, Any]:
             "no_credentials": True,
         },
     }
+    if timestamp_errors:
+        record["timestamp_errors"] = timestamp_errors
+    return record
 
 
 def capture_open() -> None:

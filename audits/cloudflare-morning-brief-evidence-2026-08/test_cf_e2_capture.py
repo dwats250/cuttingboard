@@ -66,6 +66,78 @@ def test_duplicate_open_rows_cannot_hide_an_unparseable_row():
     assert record["status"] == "INVALID"
 
 
+@pytest.mark.parametrize(
+    ("hhmm", "bar_key"),
+    [
+        ("09:30", "bar_0930_OPEN"),
+        ("09:31", "bar_0931_OPEN_PLUS_1"),
+    ],
+)
+def test_timezone_naive_open_timestamp_is_unparseable(hhmm, bar_key):
+    now = datetime(2026, 8, 10, 13, 32, tzinfo=timezone.utc)
+    raw_timestamp = pd.Timestamp(f"2026-08-10 {hhmm}:00")
+    frame = pd.DataFrame(
+        {"Open": [100.0], "Close": [101.0]},
+        index=[raw_timestamp],
+    )
+
+    record = cf_e2._build_open_record(frame, now)
+    outcome = record["bars"][bar_key]
+
+    assert outcome["outcome"] == "UNPARSEABLE"
+    assert outcome["reason"] == "timezone_unverified"
+    assert outcome["raw_timestamp"] == repr(raw_timestamp)
+    assert record["status"] == "INVALID"
+    assert record["diagnostic"][f"bar_{hhmm.replace(':', '')}_present"] is False
+
+
+def test_timezone_aware_utc_open_timestamps_normalize_to_et_and_are_present():
+    now = datetime(2026, 8, 10, 13, 32, tzinfo=timezone.utc)
+    raw_0930 = pd.Timestamp("2026-08-10T13:30:00+00:00")
+    raw_0931 = pd.Timestamp("2026-08-10T13:31:00+00:00")
+    frame = pd.DataFrame(
+        {"Open": [100.0, 101.0], "Close": [100.5, 101.5]},
+        index=[raw_0930, raw_0931],
+    )
+
+    record = cf_e2._build_open_record(frame, now)
+
+    assert record["status"] == "OK"
+    assert record["bars"]["bar_0930_OPEN"] == {
+        "outcome": "PRESENT",
+        "raw_timestamp": repr(raw_0930),
+        "time_et": "2026-08-10T09:30:00-04:00",
+        "open": 100.0,
+        "close": 100.5,
+    }
+    assert record["bars"]["bar_0931_OPEN_PLUS_1"] == {
+        "outcome": "PRESENT",
+        "raw_timestamp": repr(raw_0931),
+        "time_et": "2026-08-10T09:31:00-04:00",
+        "open": 101.0,
+        "close": 101.5,
+    }
+
+
+def test_mixed_naive_and_aware_duplicate_retains_timezone_reason_and_raw_values():
+    now = datetime(2026, 8, 10, 13, 32, tzinfo=timezone.utc)
+    naive = pd.Timestamp("2026-08-10 09:30:00")
+    aware = pd.Timestamp("2026-08-10T13:30:00+00:00")
+    frame = pd.DataFrame(
+        {"Open": [100.0, 100.0], "Close": [101.0, 101.0]},
+        index=[naive, aware],
+    )
+
+    record = cf_e2._build_open_record(frame, now)
+    outcome = record["bars"]["bar_0930_OPEN"]
+
+    assert outcome["outcome"] == "UNPARSEABLE"
+    assert outcome["reason"] == "timezone_unverified"
+    assert repr(naive) in outcome["raw_timestamps"]
+    assert repr(aware) in outcome["raw_timestamps"]
+    assert record["status"] == "INVALID"
+
+
 def test_price_difference_without_provider_session_semantics_is_inconclusive():
     now = datetime(2026, 8, 10, 13, 0, tzinfo=timezone.utc)
 
