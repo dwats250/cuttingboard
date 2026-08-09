@@ -79,7 +79,7 @@ of this section):
 | `config.REQUIRED_SYMBOLS` (:205) | 6 | none | ZERO production consumers (test-only) |
 | `config.TREND_STRUCTURE_SYMBOLS` (:209, PRD-110) | 6 | none | trend_structure writer, dashboard renderer |
 | `market_map.PRIMARY_SYMBOLS` (:20) | identical 6, identical order | none | market_map builder |
-| `watchlist_sidecar.WATCHLIST_SYMBOLS` (:27-39, PRD-114) | 11 | (symbol, sector_theme, watch_reason) | ZERO modules -- human-reader-only sidecar (DECISIONS 2026-05-22) |
+| `watchlist_sidecar.WATCHLIST_SYMBOLS` (:27-39, PRD-114) | 11 | (symbol, sector_theme, watch_reason) | runtime PRODUCES the snapshot -- imports `build_watchlist_snapshot` (`runtime/__init__.py:58`), calls it (`:2279`) to write `logs/watchlist_snapshot.json`; that snapshot OUTPUT has zero downstream module consumers (human-reader-only, DECISIONS 2026-05-22). R1 changes neither `watchlist_sidecar.py`, runtime, nor the artifact/consumer path. |
 | `config.EXPANSION_LEADERSHIP_SYMBOLS` (:142) | 5 (incl. SMCI) | none | regime.py (EXPANSION detection -- decision logic) |
 
 Supporting facts (re-verified at `7d0805e`):
@@ -454,9 +454,13 @@ test (PRD-198 #4); the mutation that must turn the test red is annotated
   unknown keys -> drift fixture with a stray key -> red)`
 - `schema_version` exact-match against the loader's expected value. `(M: relax
   to prefix/substring match -> wrong-version fixture -> red)`
-- Canonical ordering enforced: file sorted by symbol, sections sorted --
-  deterministic diffs, no rank implication. `(M: remove the sort check ->
-  shuffled fixture -> red)`
+- Canonical ordering enforced with explicit comparators (pinned in the Stage-0
+  validator so ordering is deterministic, not "canonical" by convention):
+  `symbols[]` ascending byte-wise by `symbol`; `themes[]` ascending by theme
+  `id`; `sources[]` ascending by `domain`; each symbol's `aliases[]` ascending
+  byte-wise; top-level sections in a fixed declared order (`meta`, `themes`,
+  `symbols`, `sources`). Deterministic diffs, no rank implication. `(M: remove
+  the sort check -> shuffled fixture -> red)`
 - Sources: duplicate domains rejected; `enabled` is boolean; `reason` is
   non-empty. `(M per check: drop dedup -> duplicate-domain fixture red; accept
   non-boolean enabled -> string-enabled fixture red; accept empty reason ->
