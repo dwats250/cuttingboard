@@ -16,14 +16,59 @@ doctrine-grade evidence` (WebSearch result text; neither current provider
 documentation read directly nor a real API response) and `MEMORY — NOT
 EVIDENCE`. Nothing here advances the GEX-0 provider-evidence rows.
 
-EXECUTION NOTE (honest provenance). Commissioned Codex seats route through
-the asher remote-control bridge per Dustin's ruling this session. At
-drafting time the bridge was not yet connected; sections that await the
-Codex primary-doc confirmation pass are fenced `CODEX-CONFIRMATION
-PENDING`. The adversarial pre-commit pass runs when the bridge is up.
-House-style note: the charge mandates these 15 sections and the four
-labels above; where this diverges from the 14-section planning template,
-the charge governs (deliberate, not drift).
+EXECUTION NOTE (honest provenance, corrected 2026-08-09 on asher).
+Commissioned Codex seats route through the asher remote-control bridge
+per Dustin's ruling. Once connected, `codex exec -s read-only` was
+**measured, not assumed**: it has NO network egress on this host (DNS
+resolution fails for control hosts and target hosts alike — confirmed
+by direct probe). The plan's assumption that asher's Codex route would
+have "real egress the container lacks" is FALSIFIED by that
+measurement. Codex therefore ran the read-only, filesystem-only
+adversarial pass (§ below); it could not fetch primary documentation.
+The provider-documentation confirmation instead ran through the
+authoring agent's own WebFetch tool, which — unlike the earlier cloud
+session, where the identical tool returned `EGRESS_BLOCKED` for these
+same domains — reached `massive.com`/`polygon.io` directly in this
+session. Cause of that difference is unobserved; stated as fact, not
+theory. Two evidence tiers appear below, kept distinct per the
+adversarial pass's finding: `primary-doc-fetched (WebFetch,
+2026-08-09)` — a real documentation-page fetch and summary, MORE than a
+search snippet, LESS than GEX-0's doctrine bar of a captured/hashed raw
+API response — and `live-endpoint-observed (WebFetch redirect trace,
+2026-08-09)` — an observed HTTP status (e.g. a 301), not a
+documentation claim. Neither tier advances GEX-0's provider-evidence
+rows or changes any GEX-0 row's own status; that process still requires
+its own captured-response pass under its own commissioning act. Where
+this packet's own executive/owner-question language elsewhere still
+said "search-derived" for a field this pass upgraded, that was a
+propagation bug caught by the adversarial pass and corrected — see
+§4 for the authoritative per-field tier. House-style note: the charge
+mandates these 15 sections and the four labels above; where this
+diverges from the 14-section planning template, the charge governs
+(deliberate, not drift).
+
+ADVERSARIAL PASS (2026-08-09, `codex exec -s read-only`, xhigh, fresh
+context, filesystem-only — no network, per the measured blocker above).
+Six findings, verdict MATERIAL CORRECTIONS NEEDED; all six applied:
+(1) missing file:line citations for repo FACT claims in §3 — added;
+(2) RV/IV "standard, institutionally documented" phrasing lacked a
+source — §5 now labels the RV formula/window as DESIGN HYPOTHESIS
+(conventional, not owner-unreviewable fact); (3) two places (§1, §13
+OBS-D3) still said "search-derived" for a field §4 had upgraded to
+primary-doc-fetched — propagated; (4) a §4 row claimed to "confirm"
+GEX-0's own row 8, overstepping the separate-authority boundary —
+reworded to corroborate this packet's reasoning only, GEX-0's row
+status unchanged; (5) §10/§15 blurred GEX-D1 (egress grant) with
+GEX-D2 (fresh-pass commission) as if egress alone could produce
+GEX-0-usable evidence — reworded to require both explicitly; (6) a
+live HTTP redirect observation was bundled under the documentation-
+fetch evidence tier — split into its own tier above. No defect found
+in predictive-semantics or scope-wall categories (verbatim: "FMV is
+structurally excluded; break_even_price is quarantined/relabelled;
+IV−RV is explicitly described as a disclosed juxtaposition with typed
+unavailability... the packet does not actually reintroduce scores,
+rankings, fair value, rich/cheap judgments, or hard-coded alert
+thresholds").
 
 ---
 
@@ -48,15 +93,22 @@ deterministic OBSERVATIONS computed from the chain as raw input.**
   notification dedupe machinery all exist and are directly reusable.
 - **The first-slice OPTIONS OBSERVATION CARD hypothesis survives with
   three material amendments** (§11): bid/ask/spread/quote-age is
-  entitlement-gated at the provider (search-derived), IV−RV must be
-  horizon-disclosed or typed-unavailable (§5), and Greeks beyond delta
-  are provider-model-derived and must carry provenance labels.
+  entitlement-gated at the provider (`primary-doc-fetched`, §4), IV−RV
+  must be horizon-disclosed or typed-unavailable (§5), and Greeks
+  beyond delta are provider-model-derived and must carry provenance
+  labels.
 - **The two tracks (GEX, options observability) share more than raw
   data — they share the same unresolved evidence blocker.** (FACT, §10):
   GEX-0's verdict is fixed at `EVIDENCE INCOMPLETE` solely by egress
   denial; every provider-dependent claim in this packet is behind the
   same wall. One owner-granted evidence pass could serve both tracks'
   data-contract needs without coupling their authority.
+- **A genuine surprise from this session's primary-doc pass (§4):** the
+  provider ships a `fmv` (Fair Market Value) field — a proprietary
+  fair-value estimate — that the original commission never anticipated
+  and that lands exactly inside the "no theoretical fair value"
+  prohibition. It is now named and structurally excluded (§12), not
+  merely a hypothetical risk.
 
 ## 2. USER PROBLEM
 
@@ -88,63 +140,84 @@ to fix whenever a future slice lands, not before).
 
 **What exists:**
 - `cuttingboard/options.py` — strategy-label generator (spread type ×
-  VIX band, relative strikes like `"ATM-5.00"`, hardcoded $5/$2.50
-  strike distance, 0.30×width debit heuristic). Emits no market data.
+  VIX band, relative strikes like `"ATM-5.00"` via `_format_strikes`
+  at :388, hardcoded $5/$2.50 strike distance at :76-78, 0.30×width
+  debit heuristic `_estimated_debit` at :465). Emits no market data.
 - `cuttingboard/chain_validation.py` — the ONLY live chain fetcher:
-  yfinance primary, yahooquery fallback. Reads bid/ask/OI/volume/strike
-  for one ATM-ish contract per symbol; computes mid and spread_pct
-  internally; classifies liquidity into a 5-value vocabulary. **Its
+  yfinance primary (`_fetch_chain_yfinance`, :318), yahooquery fallback
+  (`_fetch_chain_yahooquery`, :340). Reads bid/ask/OI/volume/strike for
+  one ATM-ish contract per symbol via `_eval_contract` (:468-478);
+  computes mid and spread_pct internally; `ChainValidationResult`
+  (:126-136) classifies liquidity into a 5-value vocabulary. **Its
   computed bid/ask/mid never escape the module** — no consumer can see
   an actual quote today.
 - `cuttingboard/flow.py` — the richest options schema in the repo
-  (strike, type, premium, side, sweep, moneyness), fully implemented,
-  fully tested, permanently `NO_DATA` (config ships no `data_path`).
-- Volatility surface = a 4-label VIX band (`classify_iv_environment`)
-  that **silently returns NORMAL_IV when VIX is None** — a fabricated
-  default, explicitly NOT reusable for a display card — plus ATR14.
-  yfinance's `impliedVolatility` chain column is deliberately unread.
+  (`FlowPrint`, :28-36: strike, type, premium, side, sweep, moneyness),
+  fully implemented, fully tested, permanently `NO_DATA` because
+  `config.get_flow_data_path()` (config.py:22-34) returns `None` (no
+  `data_path` key shipped in `config.toml`'s `[flow]` section).
+- Volatility surface = a 4-label VIX band (`classify_iv_environment`,
+  structure.py:126-139) that **silently returns NORMAL_IV when VIX is
+  None** (:131-132) — a fabricated default, explicitly NOT reusable
+  for a display card — plus ATR14 (`derived.py:26-40`). yfinance's
+  `impliedVolatility` chain column is deliberately unread.
 - **No Polygon client exists.** `POLYGON_API_KEY` is exported in
-  `cuttingboard.yml` and `hourly_alert.yml` and read by zero code
-  (known finding F-22/CB-42). The prior Polygon integration was removed
+  `cuttingboard.yml:47` and `hourly_alert.yml:40` and read by zero code
+  (known finding F-22/CB-42; confirmed by repo-wide grep for `polygon`
+  outside test ban-lists). The prior Polygon integration was removed
   ("never used in production", DECISIONS heading 2026-06; a 109-exposure
   query-string key leak was remediated by rotation — any future auth
   MUST be header-based, never `?apiKey=`).
 - **No realized-vol calculator, no Greeks, no IV, no GEX code, no
   rate limiter, no entitlement handling, no options artifact under
-  `logs/`.**
+  `logs/`.** (Confirmed by targeted grep across `cuttingboard/` for
+  `realized_vol`, `implied_vol`/`impliedVolatility`, `delta|gamma|theta
+  |vega`, `GEX`, `polygon` — Seat A archaeology pass.)
 
 **Reusable primitives a future slice would build on (FACT):**
-- Quote-age: `NormalizedQuote.age_seconds` + three-tier freshness
-  (300s/900s/clock-skew guard); per-surface staleness budget precedent
-  (`spy_observation`: 180s, deliberately its own).
-- Typed-unavailable: `spy_state.py` strict-XOR frozen dataclass with
-  closed reason vocabulary (the strongest template); market-control-card
-  per-cell XOR; trend_structure prioritized token propagation.
-- Snapshot compare: `market_map_lifecycle.inject_lifecycle` (pure
-  two-snapshot diff → NEW/UNCHANGED/UPGRADED/DOWNGRADED + removed) and
-  notification state/dedupe/priority machinery.
-- Fetch layer: retries/timeouts, trading-day-keyed parquet OHLCV cache,
-  `block_live_data()` fence, per-source priority. **No rate limiting** —
-  a gap any per-contract provider would expose immediately.
-- Card idioms: `watchlist_sidecar` (pure, no-I/O, explicitly
-  no-decision-surface) is the closest describe-don't-predict template;
+- Quote-age: `NormalizedQuote.age_seconds` (`normalization.py:34`,
+  computed at :74) + three-tier freshness (300s `config.
+  FRESHNESS_SECONDS`/900s `validation.py:27`/clock-skew guard); per-
+  surface staleness budget precedent (`spy_observation.py:33`: 180s,
+  deliberately its own).
+- Typed-unavailable: `spy_state.py:41-62` `SpyStateOutcome` strict-XOR
+  frozen dataclass with closed reason vocabulary (the strongest
+  template); `market_control_card.py:29-70,75-81` per-cell XOR;
+  `trend_structure.py:87-110` prioritized token propagation.
+- Snapshot compare: `market_map_lifecycle.py:39` `inject_lifecycle`
+  (pure two-snapshot diff → NEW/UNCHANGED/UPGRADED/DOWNGRADED +
+  removed) and `notifications/state.py` state/dedupe/priority
+  machinery.
+- Fetch layer: retries/timeouts, trading-day-keyed parquet OHLCV cache
+  (`ingestion.py:119,147-167`), `block_live_data()` fence (:47-58),
+  per-source priority. **No rate limiting** — a gap any per-contract
+  provider would expose immediately.
+- Card idioms: `watchlist_sidecar.py` (pure, no-I/O, explicitly
+  no-decision-surface per its :6-8 docstring) is the closest
+  describe-don't-predict template; `dashboard_renderer.py:3178`
   `_load_contract_entry_context` is the natural per-ticker join seam.
 
 **Dangerous couplings a future slice must design around (FACT):**
-- `_validated_chain_result()` fabricates a VALIDATED pass for missing
-  chain data inside the decision chain — an observation surface must
-  never inherit this default.
-- `iv_environment` is a decision input (steers strategy selection), not
-  an observation; a display card must compute its own typed-unavailable
-  IV state, never call `classify_iv_environment`.
-- "Spread" already means two things (`spread_width` = estimated debit;
+- `_validated_chain_result()` (`runtime/__init__.py:2401-2411`, called
+  at :733) fabricates a VALIDATED pass for missing chain data inside
+  the decision chain — an observation surface must never inherit this
+  default.
+- `iv_environment` is a decision input (`options.py:342-347` branches
+  strategy selection on it), not an observation; a display card must
+  compute its own typed-unavailable IV state, never call
+  `classify_iv_environment`.
+- "Spread" already means two things (`options.py:13,459`
+  `spread_width` = estimated debit; `chain_validation.py`'s
   `spread_pct` = bid-ask). A quote-spread observation makes three —
   naming discipline required.
 - Contract schema (`contract_types.py`) is guard-enforced with zero
-  options fields; payload section keys are test-pinned; `option_setups_
-  detail`/`chain_results_detail` payload sections are MISNAMED
+  options fields; payload section keys are test-pinned
+  (`test_payload.py:426`); `payload.py:85-103,137-138`'s
+  `option_setups_detail`/`chain_results_detail` sections are MISNAMED
   re-projections of trade candidates carrying no chain data.
-- Banned-import walls: `reports/levels.py`, `market_map.py`,
+- Banned-import walls: `tests/test_levels.py:159-165`,
+  `tests/test_market_map.py:480-493`, `tests/test_scenario_engine.
+  py:318-319` — `reports/levels.py`, `market_map.py`,
   `reports/premarket.py` may not reach any fetcher.
 
 ## 4. PROVIDER / DATA REALITY
@@ -153,32 +226,45 @@ Scope fence (FACT): the standing Polygon boundary is governance about
 the FUTURE provider; the incumbent runtime reality is yfinance/
 yahooquery. The load-bearing repo finding is that mismatch — an unused
 `POLYGON_API_KEY` in workflow config beside a yfinance fetcher — not
-any branding question. Provider naming: rebrand Polygon→Massive
-(announced Oct 2025; `api.polygon.io` remains valid, `api.massive.com`
-parallel) is provider-context metadata only (search-derived;
-CODEX-CONFIRMATION PENDING).
+any branding question. Provider naming (two distinct evidence types,
+kept separate): the rebrand Polygon→Massive itself is `primary-doc-
+fetched (WebFetch, 2026-08-09)` from Massive's own blog post ("Polygon.
+io is Now Massive," announced Oct 2025); that `api.polygon.io` still
+resolves is a separate, narrower observation — `live-endpoint-observed
+(WebFetch redirect trace, 2026-08-09)`: a fetch of a `polygon.io` doc
+URL returned HTTP 301 to the equivalent `massive.com` URL, i.e. the old
+host is live and redirecting, not a documentation claim. Both are
+provider-context metadata only, not a substantive finding.
 
-**Field classification.** Everything below is `search-derived — NOT
-doctrine-grade evidence` unless marked otherwise; the entire table is
-CODEX-CONFIRMATION PENDING and none of it advances GEX-0's 16 rows.
+**Field classification.** Rows marked `primary-doc-fetched (WebFetch,
+2026-08-09)` were read directly from current Massive/Polygon
+documentation pages this pass (chain-snapshot, contract-snapshot,
+quotes, IV knowledge-base, index-Greeks knowledge-base — URLs on
+request). Unmarked rows remain `search-derived — NOT doctrine-grade
+evidence`. Nothing in this table advances GEX-0's 16 provider-evidence
+rows (that process requires a captured, hashed raw API response, which
+this pass did not attempt).
 
 | Field | Classification (per charge vocabulary) | Notes |
 |---|---|---|
 | Underlying, expiration, strike, call/put | DIRECTLY PROVIDED | Contract metadata; reference + snapshot endpoints; index underlyings via `I:` prefix (SPX etc.), some indices paid-tier |
-| Bid / ask / quote timestamps | DIRECTLY PROVIDED **and** ENTITLEMENT-DEPENDENT | Snapshot returns last_quote "only if your plan includes quotes"; lower options tiers reportedly exclude quotes/trades entirely |
-| Last trade / trade timestamp | DIRECTLY PROVIDED and ENTITLEMENT-DEPENDENT | Same gating pattern |
-| Day volume | DIRECTLY PROVIDED | Day aggregates in snapshot |
-| Open interest | DIRECTLY PROVIDED, FRESHNESS-CONSTRAINED | "Quantity held at the end of the last trading day" — an EOD quantity, never intraday-fresh; exact publication time SEMANTICS UNCLEAR |
-| Implied volatility | DIRECTLY PROVIDED, SEMANTICS UNCLEAR | Provider-computed (binomial model per search-derived docs); model inputs/rate assumptions undocumented at this evidence level; absent for some contracts (deep ITM noted) |
-| Delta, gamma, theta, vega | DIRECTLY PROVIDED, SEMANTICS UNCLEAR | Provider-model-computed, not exchange-sourced — the GEX-0 packet's "derived-of-derived" concern (row 3) applies verbatim; may be absent per-contract |
+| **Fair Market Value (`fmv`, `fmv_last_updated`)** | DIRECTLY PROVIDED, ENTITLEMENT-DEPENDENT — **primary-doc-fetched** | Contract-snapshot field, Business-plan-only, "proprietary algorithm," nanosecond timestamp. **Not in the original commission's field list; surfaced by this pass.** This is a provider-computed fair-value estimate — see the new §12 exclusion this finding forces |
+| `break_even_price` | DERIVABLE, DIRECTLY PROVIDED — **primary-doc-fetched** | Strike adjusted by premium (call: strike+premium; put: strike−premium); pure arithmetic, but "break-even" framing can read as a forward statement about where price must go — flagged for §7/§12 judgment, not accepted outright |
+| Bid / ask / quote timestamps | DIRECTLY PROVIDED **and** ENTITLEMENT-DEPENDENT — **primary-doc-fetched** | Chain-snapshot doc: `last_quote`/`last_trade` populated "only if your plan includes quotes/trades"; standalone quotes/trades REST endpoints confirmed to require Options Advanced (individual plans) or a Business tier |
+| Last trade / trade timestamp | Same as above — **primary-doc-fetched** | Same gating; `last_trade.sip_timestamp` confirmed nanosecond-precision |
+| Day volume (+ VWAP) | DIRECTLY PROVIDED — **primary-doc-fetched** | `day` object confirmed to carry OHLCV, volume, AND VWAP (VWAP not previously noted) |
+| Open interest | DIRECTLY PROVIDED, FRESHNESS-CONSTRAINED — **primary-doc-fetched** | Confirmed verbatim: "the quantity of this contract held at the end of the last trading day"; exact publication/update time still NOT documented at either endpoint fetched — publication cadence remains SEMANTICS UNCLEAR even after primary-doc confirmation |
+| Implied volatility | DIRECTLY PROVIDED, SEMANTICS UNCLEAR (partially resolved) — **primary-doc-fetched** | Methodology confirmed verbatim from provider KB: "We use the binomial option pricing model to calculate our IV." Rate/dividend assumptions and deep-ITM absence behavior remain UNDOCUMENTED at this evidence level (KB article does not address them; chain-snapshot doc separately notes greeks — not IV specifically — "will not be returned" in some deep-ITM cases) |
+| Delta, gamma, theta, vega | DIRECTLY PROVIDED, SEMANTICS UNCLEAR — **primary-doc-fetched** | Provider-model-computed, not exchange-sourced — the GEX-0 packet's "derived-of-derived" concern (row 3) applies verbatim; confirmed verbatim: "there are certain circumstances where greeks will not be returned, such as options contracts that are deep in the money"; index-contract Greeks (e.g. SPX) confirmed supported, no index-specific entitlement restriction documented |
 | Midpoint, spread, spread% | DERIVABLE | From bid/ask when entitled; trivial arithmetic |
-| Quote age | DERIVABLE | From quote timestamp vs observation time; needs timestamp-semantics confirmation (TZ, epoch units) |
+| Quote age | DERIVABLE, timestamp units now confirmed | Quote/trade/underlying timestamps confirmed nanosecond-precision (`last_quote.last_updated`, `last_trade.sip_timestamp`, `underlying_asset.last_updated`) — **primary-doc-fetched**; TZ convention still unconfirmed |
 | Moneyness, intrinsic, extrinsic | DERIVABLE | Needs fresh underlying spot + contract metadata (+ entitled quote for extrinsic); see §5 |
 | Realized volatility (any window) | HISTORY REQUIRED — **computable today** | From underlying daily OHLCV; the repo already fetches/caches underlying history via yfinance (FACT). Does not require the options provider at all |
-| IV history / IV rank / percentile | HISTORY REQUIRED, likely UNAVAILABLE as a service | No stored IV time series exists in-repo; constant-maturity IV history would have to be accumulated locally (≥ ~252 obs) or found as a provider product (unverified) |
-| Real-time vs 15-min delayed status | ENTITLEMENT-DEPENDENT, UNVERIFIED | GEX-0 row 8's own fence stands: do not assume real-time |
-| Rate limits per plan | SEMANTICS UNCLEAR | Historical in-repo fact: free tier was 5 req/min for the REMOVED equities integration (PRD-history doc; not current options truth) |
-| Licensing: caching/persistence/public display | UNAVAILABLE at this evidence level | GEX-0 row 11 flagged this viability-critical for the public Pages dashboard; identical concern here |
+| IV history / IV rank / percentile | HISTORY REQUIRED, likely UNAVAILABLE as a service | No stored IV time series exists in-repo; constant-maturity IV history would have to be accumulated locally (≥ ~252 obs); no provider IV-history product was found in this pass (not exhaustively searched) |
+| Real-time vs 15-min delayed status | ENTITLEMENT-DEPENDENT — **primary-doc-fetched, THIS PACKET ONLY** | Chain-snapshot doc, verbatim structure: Options Starter/Developer receive 15-minute delayed data; real-time requires Options Advanced or Business tiers. This corroborates the practical wisdom behind GEX-0 row 8's caution ("do not assume real-time") for THIS packet's own purposes — it does NOT change GEX-0 row 8's own status, which remains `unavailable — egress blocked` until GEX-0's own authorized captured-response pass runs (a documentation-page paraphrase is not GEX-0's doctrine-grade evidentiary bar) |
+| Rate limits per plan | SEMANTICS UNCLEAR (unchanged) | No rate-limit figure found on any options doc page fetched this pass. Historical in-repo fact: free tier was 5 req/min for the REMOVED equities integration (PRD-history doc; not current options truth) |
+| Auth mechanism (header vs `?apiKey=`) | SEMANTICS UNCLEAR (unchanged) | Not documented on the quotes endpoint page fetched this pass. CuttingBoard's own policy is header-only regardless (109-exposure query-string leak precedent), so this is moot for implementation but remains formally unconfirmed against the provider |
+| Licensing: caching/persistence/public display | UNAVAILABLE at this evidence level (unchanged) | Endpoint documentation cannot answer a Terms-of-Service question by construction; GEX-0 row 11 flagged this viability-critical for the public Pages dashboard — identical concern here, still requires its own ToS review, not another doc fetch |
 
 **Consequences (INFERENCE):**
 - A quality-honest card *requires* quotes; if the chosen plan tier
@@ -193,24 +279,44 @@ CODEX-CONFIRMATION PENDING and none of it advances GEX-0's 16 rows.
   first slice could be evidenced against the incumbent seam while the
   Polygon evidence pass waits (DESIGN HYPOTHESIS; owner's provider
   boundary governs, → OBS-D2).
+- **The provider ships a `fmv` field and a `break_even_price` field
+  that this packet did not anticipate** (INFERENCE): `fmv` is exactly
+  the theoretical-fair-value category §12 already forbids — now named,
+  not hypothetical (§12 updated). `break_even_price` is pure arithmetic
+  (survives the no-prediction test) but its NAME implies a forward
+  claim; DESIGN HYPOTHESIS: if ever surfaced, relabel descriptively
+  ("premium-adjusted strike") rather than adopt the provider's
+  break-even framing verbatim.
 
 ## 5. VOLATILITY DEFINITIONS
 
-Seat C. Definitions are FACT (standard, institutionally documented);
-availability claims inherit §4's fences; display judgments are DESIGN
+Seat C. IV's definition and methodology carry the §4 primary-doc
+citation. RV's formula and window conventions are standard
+practitioner/textbook usage (the close-to-close log-return estimator
+and √252 annualization used throughout quant-finance literature and by
+exchange realized-vol methodologies) — this pass did not fetch a
+specific citation for them, so they are labeled DESIGN HYPOTHESIS
+(a conventional, defensible choice, not an owner-unreviewable fact) run
+alongside the fixed-vs-DTE-matched window discussion below, not FACT.
+Availability claims inherit §4's fences; display judgments are DESIGN
 HYPOTHESIS. IMPLIED and REALIZED are kept conceptually separate
 throughout; no composite volatility score exists or is proposed.
 
 **Implied volatility (IV).** The volatility parameter that makes an
 option-pricing model reproduce the observed option price. Inputs: option
-price, spot, strike, DTE, rate/dividend assumptions, model (provider
-uses a binomial model per §4). Forward-looking over the contract's
-remaining life; quoted annualized. Failure modes: missing/crossed
-quotes → no defensible IV; deep-ITM contracts may return none;
-model/rate assumptions are the provider's, not observable. Typed-
-unavailable: `IV_UNAVAILABLE(provider_absent | quote_quality |
-stale_quote)`. Displayable without recommendation: yes — a number with
-provenance ("provider-computed, binomial") and as-of time.
+price, spot, strike, DTE, rate/dividend assumptions, model — confirmed
+`primary-doc-fetched` (§4): provider states verbatim "we use the
+binomial option pricing model to calculate our IV." Forward-looking
+over the contract's remaining life; quoted annualized (annualization
+BASIS — trading-day vs calendar-day — is not stated in the KB article
+fetched; remains UNCONFIRMED, see the comparability discussion below).
+Failure modes: missing/crossed quotes → no defensible IV; rate/dividend
+assumptions and deep-ITM-absence behavior specifically for IV (as
+opposed to Greeks, where deep-ITM absence IS documented, §4) are
+UNDOCUMENTED at this evidence level. Typed-unavailable:
+`IV_UNAVAILABLE(provider_absent | quote_quality | stale_quote)`.
+Displayable without recommendation: yes — a number with provenance
+("provider-computed, binomial model") and as-of time.
 
 **Realized/historical volatility (RV).** Annualized standard deviation
 of daily log returns of the UNDERLYING over a trailing window:
@@ -225,8 +331,9 @@ pattern). Displayable: yes — pure description of the past.
 IV and RV are only comparable when three conventions are disclosed:
 1. **Annualization**: both must be annualized on the same basis.
    Practitioner RV uses √252 (trading days); provider IV annualization
-   convention is SEMANTICS UNCLEAR at this evidence level
-   (CODEX-CONFIRMATION PENDING) — if the provider annualizes on
+   convention was checked against the provider's own IV knowledge-base
+   article this pass and is NOT stated there — it remains genuinely
+   UNCONFIRMED, not merely unchecked. If the provider annualizes on
    calendar time, a constant ~√(365/252) ≈ 1.20 scaling ambiguity
    contaminates the difference.
 2. **Direction of time**: IV is forward over the contract's remaining
@@ -460,15 +567,23 @@ FACT unless noted:
   gamma across the chain into levels; observability renders per-
   contract/per-expiry descriptions. No shared code exists yet; nothing
   here creates any.
-- **They share the same evidence blocker.** GEX-0's verdict is fixed
-  at INCOMPLETE solely by egress denial (all 16 rows `unavailable —
+- **They share the same evidence blocker, but sharing the capture
+  requires BOTH GEX rulings, not one.** GEX-0's verdict is fixed at
+  INCOMPLETE solely by egress denial (all 16 rows `unavailable —
   egress blocked`); every provider-dependent row in §4 is behind the
-  same wall. INFERENCE: one owner-commissioned provider-evidence pass
-  (the GEX-D1 egress grant) would produce the captured real responses
-  BOTH tracks need. That is evidence-sharing, not authority-sharing:
-  GEX resumption still requires GEX-D1+GEX-D2; this track's future
-  requires its own rulings (§13). Neither track's gate opens the
-  other's.
+  same wall. INFERENCE, precisely stated: an egress grant alone
+  (GEX-D1) opens network access but does NOT by itself authorize a
+  GEX-0 continuation pass — doctrine §4.3 requires Dustin's explicit
+  fresh-pass commission (GEX-D2) before any captured response counts
+  toward GEX-0's record. If Dustin issues GEX-D1 AND GEX-D2 together
+  with an options-evidence commission (OBS-D2), ONE captured-response
+  pass could feed both tracks' records. If GEX-D2 is withheld, an
+  egress grant issued for OBS-D2 alone still evidences the
+  observability track, but nothing captured under it advances GEX-0 —
+  egress access is not a substitute for GEX's own commissioning act.
+  That is evidence-sharing, not authority-sharing: this track's future
+  requires its own rulings (§13) regardless. Neither track's gate opens
+  the other's.
 - Greeks provenance cuts differently per track (INFERENCE): for GEX,
   model-derived gamma makes the headline number derived-of-derived
   (GEX-0 row 3, material to its doctrine). For observability, a
@@ -522,6 +637,15 @@ abstraction/comparison layer (doctrine §4.2), no reuse of
 extension (sidecar artifact only), no IV rank until history exists, no
 skew summaries in a first slice, and no touching the GEX verdict.
 
+**Named explicitly, not hypothetically (§4 finding):** the provider's
+`fmv` (Fair Market Value) field — a proprietary-algorithm fair-value
+estimate the provider computes and ships — is NEVER surfaced by any
+CuttingBoard options observation, at any tier. It is the concrete,
+now-confirmed instance of the "no theoretical fair value" boundary
+above, not a new rule. `break_even_price` is arithmetic (survives the
+no-prediction test) but MUST be relabeled descriptively if ever used
+(§5) — never rendered under the provider's forward-sounding name.
+
 ## 13. OPEN OWNER QUESTIONS
 
 All OWNER DECISION REQUIRED; namespaced OBS-D:
@@ -536,9 +660,10 @@ All OWNER DECISION REQUIRED; namespaced OBS-D:
   dependent work needs a data-contract evidence pass before a feature
   PRD.)
 - **OBS-D3 — Entitlement posture.** Quotes are the card's spine and
-  are plan-gated (search-derived). Which entitlement tier — if any —
-  is acceptable? (This is a product decision: no quotes ⇒ no MARKET
-  block.)
+  are plan-gated (`primary-doc-fetched`, §4: Starter/Developer get
+  15-min-delayed data, real-time needs Advanced/Business). Which
+  entitlement tier — if any — is acceptable? (This is a product
+  decision: no quotes ⇒ no MARKET block.)
 - **OBS-D4 — Does it earn the seat at all?** §2's argument (compresses
   an existing manual act) is ours; the "changes what I will actually
   do" test is yours alone. A NO retires this research cleanly.
@@ -579,9 +704,12 @@ All OWNER DECISION REQUIRED; namespaced OBS-D:
 
 One step, no priority change: **rule on OBS-D4 and OBS-D1** (does the
 surface earn a seat; is it a new ledger row). If both answers are
-yes-shaped, the natural sequel is a single provider-evidence
-commission that serves GEX-D1 and OBS-D2 together — one egress grant,
-one captured-response pass, two tracks' data contracts evidenced
-without coupling their authority. Everything else in this packet
-(definitions, taxonomy, card shapes, alert candidates) is durable
-research that keeps: it waits without decaying.
+yes-shaped, the natural sequel is a single provider-evidence commission
+that serves GEX-D1+GEX-D2 and OBS-D2 together — one egress grant, one
+EXPLICIT fresh-pass commission covering both tracks, one
+captured-response pass, two tracks' data contracts evidenced without
+coupling their authority. Granting only egress (GEX-D1) without the
+commissioning act (GEX-D2) would still let OBS-D2 proceed alone; it
+would not advance GEX-0. Everything else in this packet (definitions,
+taxonomy, card shapes, alert candidates) is durable research that
+keeps: it waits without decaying.
