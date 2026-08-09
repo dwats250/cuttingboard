@@ -23,8 +23,9 @@ fix is what makes that reuse real. The intraday/orb slots (orb_trajectory /
 post_orb / midmorning / power_hour) are
 likewise NOT resolved here: their real behavior lives in ``_execute_notify_run``
 (the ``alert_runner`` / ``hourly_alert.yml`` path), not ``cli_main``, and the
-intraday window is already covered by ``hourly_alert.yml``; correctly homing
-those slots (plus a per-slot audit marker for dedup) is deferred to PRD-192. See
+intraday window is already covered by ``hourly_alert.yml``. PRD-189 removed
+those intraday/orb crons from ``cuttingboard.yml``, and PRD-192 ratified the
+``hourly_alert.yml`` coverage rather than re-homing the slots here. See
 ``docs/PROJECT_STATE.md``.
 
 Because only dedicated crons remain, resolution is a pure cron-string lookup:
@@ -47,9 +48,9 @@ _DEDICATED: dict[str, str] = {
     "30 23 * * 0": "sunday",
     "50 12 * * 1-5": "prefetch",  # PRD-193: publish-safe cache-warm slot
 }
-# Parked dead-noop crons -- present in cuttingboard.yml `on.schedule` but resolved
-# to NOOP, pending a future cron tidy-up: the intraday crons "50 13 * * 1-5" /
-# "*/30 14-21 * * 1-5" (deferred to PRD-192).
+# The dropped intraday crons "50 13 * * 1-5" / "*/30 14-21 * * 1-5" would resolve
+# to NOOP if ever supplied. PRD-189 removed them from cuttingboard.yml;
+# hourly_alert.yml covers the intraday window.
 
 
 def resolve(*, event_name: str, dispatch_mode: str, schedule: str) -> str:
