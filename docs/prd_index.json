@@ -1424,6 +1424,12 @@
       "title": "Deduplicate the optional-macro-driver vocabulary into the shared leaf",
       "status": "COMPLETE",
       "commit": "#237"
+    },
+    {
+      "number": 293,
+      "title": "Idempotent dev bootstrap for remote/mobile sessions (script + thin SessionStart hook)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
