@@ -1406,6 +1406,12 @@
       "title": "NS-2E Market Control Card: seven-field read-only daily decision-support card (Option A, v0.4 MATERIAL packet)",
       "status": "COMPLETE",
       "commit": "#231"
+    },
+    {
+      "number": 290,
+      "title": "Estimation Surface Discipline Graduation",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

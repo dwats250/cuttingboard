@@ -307,6 +307,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-287 | bd0401c | Hourly operational-truth: an unhealthy hourly run must never report success — fail-loud runner exit code + health-aware readiness (CB-06) | COMPLETE | [PRD-287](prd_history/PRD-287.md) |
 | PRD-288 | 68cca7607bb01426abd5b5bd6f78be61b3559973 | NS-2A/NS-2C fixed SPY observation + session VWAP: one transient read-only SPY card on the daily dashboard (daily-only; hourly out of scope) | COMPLETE | [PRD-288](prd_history/PRD-288.md) |
 | PRD-289 | #231 | NS-2E Market Control Card: seven-field read-only daily decision-support card (Option A, v0.4 MATERIAL packet) | COMPLETE | [PRD-289](prd_history/PRD-289.md) |
+| PRD-290 | — | Estimation Surface Discipline Graduation | IN PROGRESS | [PRD-290](prd_history/PRD-290.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
