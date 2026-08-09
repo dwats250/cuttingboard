@@ -663,6 +663,27 @@ A documentation amendment alone is not authorization. No agent may issue or
 infer the amended Gate A. Advisory interpretation is not permitted; the
 ceiling is the unit of drift visibility.
 
+**Estimation counts validation surface as first-class (PRD-288/289 lesson).**
+When a MATERIAL packet or PRD proposes a net-production-LOC ceiling (the
+MAX EXPECTED DELTA), the estimate MUST count as first-class implementation
+surface -- not incidental plumbing -- every: closed-vocabulary / enum
+declaration; construction-time and load-time validation (fail-loud guards,
+value-XOR-typed-unavailable cells); and provenance, freshness, and
+typed-unavailable carriers; plus the production-side seams, guards, and
+proof-support code the semantic-failure-hardening invariants (PRD-198) require
+-- test LOC stays outside the net-production-LOC metric. More generally, count
+any code a ratified requirement or invariant makes mandatory (for example
+DST / time-window / determinism logic, or auth / secret-handling code), rather
+than treating it as unlisted plumbing. State the LOC estimate as a RANGE until
+Gate A; the GATE A CEILING (GOV-2 §5) is the single binding number -- propose
+it at the top of the range plus margin, never the middle; the binding ceiling
+remains the one Dustin approves at Gate A. Rationale: GOV-2 §5 stop-and-renew
+fired on both PRD-288 (195 -> 325) and PRD-289 (300 -> 525) for one root cause
+-- a biased estimator that treated ratified validation surface as incidental.
+This rule removes the estimator bias behind that recurring, self-inflicted
+ceremony; it does not change any ceiling authority, review gate, or the GOV-2
+sequence itself.
+
 ---
 
 ## Adjudication Trigger

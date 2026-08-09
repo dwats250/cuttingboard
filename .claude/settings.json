@@ -83,7 +83,6 @@
       "Bash(git *push *--mirror*)",
       "Bash(git *push *--prune*)",
       "Bash(gh pr merge:*)",
-      "Bash(gh pr ready*)",
       "Bash(git * --output*)",
       "Bash(git * --upload-pack*)",
       "Bash(git * --rece*)",

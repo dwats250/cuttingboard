@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 289,
-  "next_prd": 290,
+  "latest_complete": 291,
+  "next_prd": 292,
   "entries": [
     {
       "number": 56,
@@ -1406,6 +1406,18 @@
       "title": "NS-2E Market Control Card: seven-field read-only daily decision-support card (Option A, v0.4 MATERIAL packet)",
       "status": "COMPLETE",
       "commit": "#231"
+    },
+    {
+      "number": 290,
+      "title": "Estimation Surface Discipline Graduation",
+      "status": "COMPLETE",
+      "commit": "#233"
+    },
+    {
+      "number": 291,
+      "title": "Agent Draft-to-Ready Permission Grant",
+      "status": "COMPLETE",
+      "commit": "#234"
     }
   ]
 }
