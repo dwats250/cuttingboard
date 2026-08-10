@@ -222,6 +222,12 @@ does, only *when* they fire relative to each other.
 
 ## Model-role lane (PROVISIONAL; adopted 2026-07-19)
 
+RETIRED 2026-08-09 (Dustin's ruling; see docs/DECISIONS.md 2026-08-09). Seat
+occupancy is now recorded in docs/AGENT_SEATING.md. The body below is preserved
+as marked history (GOV-2 §10) and is not current practice. The separately
+durable "a model may not review its own draft" constraint is unaffected — it
+lives at docs/DECISIONS.md 2026-07-19, not in this lane.
+
 PROVISIONAL, not settled practice: the Fable-drafts seat is unproven
 (see the caveat below), so this section carries an explicit review
 trigger and either graduates on evidence or is retired. It does not
