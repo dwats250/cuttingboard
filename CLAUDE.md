@@ -13,9 +13,9 @@ retell origin stories.
   principles, flags drift, holds architectural direction with Dustin.
 - **Claude Code (this agent)** implements PRDs against the PRD doc as
   written: implementation, test maintenance, and architectural decisions
-  within PRD scope. Occupies whichever seat the model-role lane assigns
-  (`docs/PRD_PROCESS.md` § Model-role lane) and never both the drafting
-  seat and the second-model review of the same PRD. Invokes Codex only
+  within PRD scope. Occupies whichever harness seat it is assigned (§ Roles
+  harness seats; current occupants in `docs/AGENT_SEATING.md`) and never both
+  the drafting seat and the second-model review of the same PRD. Invokes Codex only
   for a review Dustin has commissioned (PRD-242), or for the mandatory
   MATERIAL-packet review and exact-corrected-head confirmation that GOV-2
   itself commissions
