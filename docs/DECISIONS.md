@@ -42,6 +42,17 @@ Provenance: Phase-0 preflight (base `ddacbf0`) + a Fable Extra-High navigator
 pass (verdict: REQUIRED CHANGES). Landed via PRD-294 (governance DRAFT hold, PR
 #241).
 
+Classification: NON-MATERIAL under the owner-boundary precedent (Dustin's ruling
+2026-08-10). Dustin defined the operating direction and explicitly selected,
+adopted, and authorized the exact frozen PRD-294 boundary after Phase-0 and the
+Fable pass; agents and Fable supplied analysis and wording but did not
+independently certify or authorize the boundary they proposed, and his adoption
+preceded Stage-0/Gate A. This applies only to the frozen PRD-294 boundary and
+creates no general GOV-2 exemption for agent-designed governance changes. The
+commissioned Sol second-model review returned REQUIRED CHANGES on the Owner-seat
+wording and this classification; both were resolved by this ruling and a bounded
+correction.
+
 ## 2026-08-09 — Cloudflare / Morning Brief slice 1: CF-D owner-ruling bundle ratified (pre-A0; NOT a MATERIAL packet, NOT Stage-0) (ruled: Dustin)
 
 Dustin ratifies the CF-D decision bundle for the Cloudflare / Morning Brief

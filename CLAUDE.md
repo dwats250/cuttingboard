@@ -13,9 +13,10 @@ retell origin stories.
   principles, flags drift, holds architectural direction with Dustin.
 - **Claude Code (this agent)** implements PRDs against the PRD doc as
   written: implementation, test maintenance, and architectural decisions
-  within PRD scope. Occupies whichever harness seat it is assigned (§ Roles
-  harness seats; current occupants in `docs/AGENT_SEATING.md`) and never both
-  the drafting seat and the second-model review of the same PRD. Invokes Codex only
+  within PRD scope. Occupies whichever agent-fillable harness seat it is
+  assigned (§ Roles harness seats; current occupants in `docs/AGENT_SEATING.md`)
+  and never both the drafting seat and the second-model review of the same PRD.
+  Invokes Codex only
   for a review Dustin has commissioned (PRD-242), or for the mandatory
   MATERIAL-packet review and exact-corrected-head confirmation that GOV-2
   itself commissions
@@ -37,17 +38,19 @@ retell origin stories.
   exception: work classified MATERIAL at intake requires Codex review of the
   upstream packet and independent confirmation of its exact corrected head
   before a design-direction ruling.
-- **Harness seats (orchestration).** The durable capability seats an agent
-  session fills are Owner, HELM/orchestrator, Builder, Navigator,
-  Adversary/independent-review, and mechanical/recon subagent. These are the
-  execution-side seats and do NOT create a second review taxonomy: the Adversary
-  seat IS the existing independent-reviewer / commissioned second-model
-  capability named under § Roles and § Review gates — nothing new. Navigator
-  (Fable consultation), HELM, Builder, and the mechanical/recon subagent carry
-  no review or gate authority. Which model currently fills each seat, its
-  reasoning-effort default, and the concurrency number are operational current
-  state recorded in `docs/AGENT_SEATING.md` — an informative record that owns no
-  authority and is corrected whenever it conflicts with any governance source.
+- **Harness seats (orchestration).** Owner is Dustin, permanently (§ Roles, the
+  human at every seam); it is not an agent-fillable or model-routable seat. The
+  agent-fillable capability seats a session may fill are HELM/orchestrator,
+  Builder, Navigator, Adversary/independent-review, and mechanical/recon
+  subagent. These are the execution-side seats and do NOT create a second review
+  taxonomy: the Adversary seat IS the existing independent-reviewer /
+  commissioned second-model capability named under § Roles and § Review gates —
+  nothing new. Navigator (Fable consultation), HELM, Builder, and the
+  mechanical/recon subagent carry no review or gate authority. Which model
+  currently fills each agent-fillable seat, its reasoning-effort default, and the
+  concurrency number are operational current state recorded in
+  `docs/AGENT_SEATING.md` — an informative record that owns no authority and is
+  corrected whenever it conflicts with any governance source.
 
 ## Canonical sources
 
