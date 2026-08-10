@@ -1430,6 +1430,12 @@
       "title": "Idempotent dev bootstrap for remote/mobile sessions (script + thin SessionStart hook)",
       "status": "COMPLETE",
       "commit": "#238"
+    },
+    {
+      "number": 295,
+      "title": "Morning executor fail-loud failure notification (additive)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
