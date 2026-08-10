@@ -1430,6 +1430,12 @@
       "title": "Idempotent dev bootstrap for remote/mobile sessions (script + thin SessionStart hook)",
       "status": "COMPLETE",
       "commit": "#238"
+    },
+    {
+      "number": 294,
+      "title": "Harness seat doctrine, agent seating map, and proactive-Fable supersession",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

@@ -311,6 +311,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-291 | #234 | Agent Draft-to-Ready Permission Grant | COMPLETE | [PRD-291](prd_history/PRD-291.md) |
 | PRD-292 | #237 | Deduplicate the optional-macro-driver vocabulary into the shared leaf | COMPLETE | [PRD-292](prd_history/PRD-292.md) |
 | PRD-293 | #238 | Idempotent dev bootstrap for remote/mobile sessions (script + thin SessionStart hook) | COMPLETE | [PRD-293](prd_history/PRD-293.md) |
+| PRD-294 | — | Harness seat doctrine, agent seating map, and proactive-Fable supersession | IN PROGRESS | [PRD-294](prd_history/PRD-294.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
