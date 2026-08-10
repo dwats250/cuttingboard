@@ -1,6 +1,6 @@
 {
-  "alert_body": "Regime: NEUTRAL\nConfidence: 0.00\nReason: stay flat posture\n\nMacro Tape:\nGC   4383.1  -0.1%\nSI   64.1   +0.4%\nBTC  64.7K  -0.2%\nVIX  15.2   +1.9%\nDXY  99.8   +0.0%\n10Y  4.69   +0.6%\nOIL  80.8   +2.5%\n\nTradables:\nSPY  774.32\nQQQ  723.86\nGLD  397.55\nGDX  88.62\nSLV  57.92\nXLE  59.21\n\nFocus: no active setup",
-  "alert_title": "STAY FLAT \u2014 7:00 AM PT",
+  "alert_body": "Regime: NEUTRAL\nConfidence: 0.00\nReason: stay flat posture\n\nMacro Tape:\nGC   4403.8  +0.4%\nSI   64.9   +1.7%\nBTC  64.6K  -0.4%\nVIX  15.2   +2.1%\nDXY  99.7   +0.0%\n10Y  4.68   +0.5%\nOIL  80.8   +2.5%\n\nTradables:\nSPY  773.90\nQQQ  722.56\nGLD  399.10\nGDX  89.57\nSLV  58.54\nXLE  59.31\n\nFocus: no active setup",
+  "alert_title": "STAY FLAT \u2014 8:00 AM PT",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
     "payload_path": "logs/latest_hourly_payload.json",
@@ -13,10 +13,10 @@
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-08-10T14:20:04Z",
-  "generation_id": "hourly-20260810T142004Z",
+  "generated_at": "2026-08-10T15:07:58Z",
+  "generation_id": "hourly-20260810T150758Z",
   "halt_reason": null,
-  "hourly_slot_utc": "2026-08-10T14:00:00Z",
+  "hourly_slot_utc": "2026-08-10T15:00:00Z",
   "index_score": 0.0,
   "kill_switch": false,
   "mode": "LIVE",
@@ -34,11 +34,11 @@
   "posture": "STAY_FLAT",
   "regime": "NEUTRAL",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-08-10T14:20:04Z",
-  "run_id": "hourly-20260810T142004Z",
+  "run_at_utc": "2026-08-10T15:07:58Z",
+  "run_id": "hourly-20260810T150758Z",
   "session_date": "2026-08-10",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-08-10T14:20:04Z",
+  "timestamp": "2026-08-10T15:07:58Z",
   "warnings": []
 }
