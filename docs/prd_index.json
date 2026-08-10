@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 293,
-  "next_prd": 294,
+  "latest_complete": 294,
+  "next_prd": 295,
   "entries": [
     {
       "number": 56,
@@ -1434,8 +1434,8 @@
     {
       "number": 294,
       "title": "Harness seat doctrine, agent seating map, and proactive-Fable supersession",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#241"
     }
   ]
 }
