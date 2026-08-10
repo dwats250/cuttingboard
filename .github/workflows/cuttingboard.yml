@@ -45,6 +45,9 @@ jobs:
 
     env:
       POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+      # PRD-295: credentials for the terminal fail-loud notification step only.
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       # PRD-194: artifacts publish to this unprotected branch, not main.
       PUBLISH_BRANCH: publish
       # Static-analysis default so the VS Code GitHub Actions extension can
@@ -160,16 +163,19 @@ jobs:
       - name: Lint
         run: |
           set -eo pipefail
+          echo "CB_STAGE=lint" >> "$GITHUB_ENV"
           ruff check cuttingboard/ tests/
 
       - name: Test
         run: |
           set -eo pipefail
+          echo "CB_STAGE=tests" >> "$GITHUB_ENV"
           pytest tests/ -q
 
       - name: Engine health check
         run: |
           set -eo pipefail
+          echo "CB_STAGE=engine_doctor" >> "$GITHUB_ENV"
           python3 tools/engine_doctor.py --json --baseline tools/baseline.json > engine_doctor.json || true
           python3 tools/engine_doctor.py --baseline tools/baseline.json > engine_doctor.txt 2>&1 || true
 
@@ -193,6 +199,7 @@ jobs:
         if: steps.mode.outputs.job_mode == 'prefetch'
         run: |
           set -eo pipefail
+          echo "CB_STAGE=execute" >> "$GITHUB_ENV"
           echo "=== START prefetch ==="
           date -u +"%Y-%m-%dT%H:%M:%SZ"
           timeout 8m python -m cuttingboard --mode prefetch --notify-mode premarket
@@ -232,6 +239,7 @@ jobs:
         if: steps.mode.outputs.job_mode == 'live'
         run: |
           set -eo pipefail
+          echo "CB_STAGE=execute" >> "$GITHUB_ENV"
           echo "=== START live ==="
           date -u +"%Y-%m-%dT%H:%M:%SZ"
           timeout 8m python -m cuttingboard --mode live --notify-mode premarket
@@ -244,6 +252,7 @@ jobs:
         if: steps.mode.outputs.job_mode == 'sunday'
         run: |
           set -eo pipefail
+          echo "CB_STAGE=execute" >> "$GITHUB_ENV"
           echo "=== START sunday ==="
           date -u +"%Y-%m-%dT%H:%M:%SZ"
           timeout 8m python -m cuttingboard --mode sunday --notify-mode premarket
@@ -259,6 +268,7 @@ jobs:
           steps.mode.outputs.job_mode == 'verify'
         run: |
           set -eo pipefail
+          echo "CB_STAGE=verify" >> "$GITHUB_ENV"
           echo "=== START verify ==="
           date -u +"%Y-%m-%dT%H:%M:%SZ"
           timeout 8m python -m cuttingboard --mode verify --notify-mode premarket
@@ -311,6 +321,7 @@ jobs:
         if: ${{ success() && env.PUBLISH_READY == 'true' }}
         run: |
           set -euo pipefail
+          echo "CB_STAGE=render_commit" >> "$GITHUB_ENV"
           PRE_SHA=$(git rev-parse HEAD)
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -355,4 +366,35 @@ jobs:
         if: ${{ success() && env.PUBLISH_READY == 'true' && github.ref == 'refs/heads/main' }}
         run: |
           set -euo pipefail
+          echo "CB_STAGE=push" >> "$GITHUB_ENV"
           bash tools/ci_push_artifacts.sh
+
+      # PRD-295: fail-loud. On ANY job failure, send ONE Telegram alert built from
+      # current workflow context only (mode + CB_STAGE + current time, via the existing
+      # format_failure_notification + send_telegram), never from logs/latest_run.json.
+      # Coverage begins after "Install dev dependencies" succeeds: if cuttingboard is not
+      # importable (a pre-install failure) this step is a no-op. Job cancellation / the
+      # 20-min hard timeout do not trigger if: failure().
+      - name: Notify on failure
+        if: failure()
+        env:
+          CB_JOB_MODE: ${{ steps.mode.outputs.job_mode }}
+          CB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -eo pipefail
+          python3 - <<'PY'
+          import os
+          try:
+              from cuttingboard.notifications import format_failure_notification
+              from cuttingboard.output import send_telegram
+          except Exception:
+              print("cuttingboard not importable (pre-install failure); no alert sent (PRD-295 option A)")
+              raise SystemExit(0)
+          mode = os.environ.get("CB_JOB_MODE") or "unknown"
+          stage = os.environ.get("CB_STAGE") or "unknown"
+          run_url = os.environ.get("CB_RUN_URL", "")
+          reason = f"morning pipeline failed at stage: {stage} (mode {mode}). {run_url}".strip()
+          title, body = format_failure_notification(mode, "", reason)
+          send_telegram(title, body)
+          print(f"failure alert sent: mode={mode} stage={stage}")
+          PY
