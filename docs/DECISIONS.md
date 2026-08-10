@@ -16,6 +16,43 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-09 — Harness seat doctrine + AGENT_SEATING.md + proactive-Fable supersession (PRD-294; ruled: Dustin)
+
+Refinement of the harness operating model, not a governance rewrite. Two-home
+architecture: durable harness seats (Owner, HELM/orchestrator, Builder,
+Navigator, Adversary/independent-review, mechanical/recon subagent) and their
+invariants live in `CLAUDE.md` (binding); current model occupants, reasoning-
+effort defaults, and the concurrency number live in the new
+`docs/AGENT_SEATING.md` (informative, owns no authority). NO standalone
+`docs/AGENT_HARNESS_PROTOCOL.md` — a binding-but-unprotected file was rejected
+(it would be editable at MICRO ceremony while equivalent `CLAUDE.md` text is
+validator-forced HIGH-RISK).
+
+- Provisional model-role lane retired through its own disposition path
+  (`docs/PRD_PROCESS.md`); the 2026-07-19 reviewer-independence rule is
+  unaffected (it lives here, not in the lane).
+- Product Delivery Operating Rule superseded in part (Escalation clause):
+  orchestrator authority = HELM seat; proactive Fable permitted at foreseeable
+  inflection points as permission, never obligation. Prior ratified prose kept
+  verbatim (supersede-in-part per GOV-2 §10).
+- Invalidation before build is conditional, not universal. Codex/Sol reasoning:
+  economical default, selective escalation to higher/max, no permanent ceiling.
+
+Provenance: Phase-0 preflight (base `ddacbf0`) + a Fable Extra-High navigator
+pass (verdict: REQUIRED CHANGES). Landed via PRD-294 (governance DRAFT hold, PR
+#241).
+
+Classification: NON-MATERIAL under the owner-boundary precedent (Dustin's ruling
+2026-08-10). Dustin defined the operating direction and explicitly selected,
+adopted, and authorized the exact frozen PRD-294 boundary after Phase-0 and the
+Fable pass; agents and Fable supplied analysis and wording but did not
+independently certify or authorize the boundary they proposed, and his adoption
+preceded Stage-0/Gate A. This applies only to the frozen PRD-294 boundary and
+creates no general GOV-2 exemption for agent-designed governance changes. The
+commissioned Sol second-model review returned REQUIRED CHANGES on the Owner-seat
+wording and this classification; both were resolved by this ruling and a bounded
+correction.
+
 ## 2026-08-09 — Cloudflare / Morning Brief slice 1: CF-D owner-ruling bundle ratified (pre-A0; NOT a MATERIAL packet, NOT Stage-0) (ruled: Dustin)
 
 Dustin ratifies the CF-D decision bundle for the Cloudflare / Morning Brief

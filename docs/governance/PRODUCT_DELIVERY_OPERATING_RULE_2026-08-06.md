@@ -44,6 +44,10 @@ displace it.
 
 ## Escalation rule
 
+> SUPERSEDED-IN-PART (2026-08-09, PRD-294): the default-orchestrator line and the
+> Fable-invocation clause below are superseded by the Amendment at the end of
+> this document; the original text is retained verbatim as history (GOV-2 §10).
+
 Opus 4.8 is the default orchestrator.
 
 Invoke Fable only when one of these occurs:
@@ -113,3 +117,20 @@ The process is working when:
 - product slices reach Dustin quickly;
 - and Fable is used as high-leverage consultation rather than a permanent
   dependency.
+
+---
+
+## Amendment 2026-08-09 — HELM seat and proactive Navigator (PRD-294)
+
+Status: RATIFIED UPON DUSTIN'S MERGE OF PR #241
+
+Supersedes in part the Escalation rule above; a held draft until that merge; prior ratified prose unchanged.
+
+- Orchestrator authority belongs to the HELM seat; the current occupant is
+  resolved through `docs/AGENT_SEATING.md` (informative), not by a model name here.
+- Reactive Fable triggers above are retained; additionally, Fable (Navigator) may
+  be invoked PROACTIVELY at foreseeable inflection points involving material
+  circularity risk, semantic ambiguity, authority overlap, or blast radius.
+- Proactive consultation is permission, never obligation; non-invocation is never
+  a review finding; Navigator creates no lifecycle gate and its output is not
+  automatically a gate-satisfying review artifact.

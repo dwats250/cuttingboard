@@ -13,9 +13,10 @@ retell origin stories.
   principles, flags drift, holds architectural direction with Dustin.
 - **Claude Code (this agent)** implements PRDs against the PRD doc as
   written: implementation, test maintenance, and architectural decisions
-  within PRD scope. Occupies whichever seat the model-role lane assigns
-  (`docs/PRD_PROCESS.md` § Model-role lane) and never both the drafting
-  seat and the second-model review of the same PRD. Invokes Codex only
+  within PRD scope. Occupies whichever agent-fillable harness seat it is
+  assigned (§ Roles harness seats; current occupants in `docs/AGENT_SEATING.md`)
+  and never both the drafting seat and the second-model review of the same PRD.
+  Invokes Codex only
   for a review Dustin has commissioned (PRD-242), or for the mandatory
   MATERIAL-packet review and exact-corrected-head confirmation that GOV-2
   itself commissions
@@ -37,6 +38,19 @@ retell origin stories.
   exception: work classified MATERIAL at intake requires Codex review of the
   upstream packet and independent confirmation of its exact corrected head
   before a design-direction ruling.
+- **Harness seats (orchestration).** Owner is Dustin, permanently (§ Roles, the
+  human at every seam); it is not an agent-fillable or model-routable seat. The
+  agent-fillable capability seats a session may fill are HELM/orchestrator,
+  Builder, Navigator, Adversary/independent-review, and mechanical/recon
+  subagent. These are the execution-side seats and do NOT create a second review
+  taxonomy: the Adversary seat IS the existing independent-reviewer /
+  commissioned second-model capability named under § Roles and § Review gates —
+  nothing new. Navigator (Fable consultation), HELM, Builder, and the
+  mechanical/recon subagent carry no review or gate authority. Which model
+  currently fills each agent-fillable seat, its reasoning-effort default, and the
+  concurrency number are operational current state recorded in
+  `docs/AGENT_SEATING.md` — an informative record that owns no authority and is
+  corrected whenever it conflicts with any governance source.
 
 ## Canonical sources
 
@@ -338,6 +352,20 @@ each generalizes are canonical in `docs/prd_history/PRD-198.md` (Part A).
   never for reassurance.
 - **Product behavior is the work; governance is the guardrail.** Do not reopen
   closed audits or manufacture process work absent a concrete blocking defect.
+- **Harness invariants (orchestration).** One authoritative HELM/campaign lane
+  at a time; never two competing HELMs over one campaign. Subordinate agents run
+  bounded independent work in parallel and return evidence, not semantic rulings;
+  no semantic decision is made by vote (disagreement is Dustin's to adjudicate,
+  per § Review gates); no uncontrolled concurrent shared-seam writes (scope
+  locking governs). The current concurrency number is recorded in
+  `docs/AGENT_SEATING.md`, not here.
+- **Invalidation before build is conditional, not universal.** It applies ONLY
+  when a change carries a non-obvious load-bearing premise whose falsification
+  could materially change the FILES set, an authority boundary, semantics, blast
+  radius, or whether the work should proceed. When it applies, state the premise
+  and its falsifier before implementing and stop once decision-relevant evidence
+  is sufficient; when it does not — the common case — add nothing. This creates
+  no new template section, lane, or tier; MATERIAL work stays governed by GOV-2.
 
 ## Working practices
 
