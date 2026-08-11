@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 296,
-  "next_prd": 297,
+  "latest_complete": 297,
+  "next_prd": 298,
   "entries": [
     {
       "number": 56,
@@ -1452,8 +1452,8 @@
     {
       "number": 297,
       "title": "Morning executor gate swap: exact-SHA CI proof + narrow runtime readiness + post-render artifact-health (remove full-suite/ruff from the live path)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#244"
     }
   ]
 }
