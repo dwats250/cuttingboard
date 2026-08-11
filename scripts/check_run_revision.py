@@ -94,6 +94,19 @@ def _collect_runs(repo: str, sha: str, token: str) -> list[dict]:
         batch = data.get("workflow_runs")
         if batch is None or not isinstance(batch, list):
             raise ProofError("missing/invalid 'workflow_runs' in API response")
+        # A malformed record (null item, or non-comparable run_number/created_at
+        # types) must surface as a typed CI_PROOF_ERROR, not an AttributeError/
+        # TypeError traceback that escapes main() (R3/I2: every schema anomaly is
+        # named and fail-closed).
+        for item in batch:
+            if not isinstance(item, dict):
+                raise ProofError(f"malformed run record (not an object): {type(item).__name__}")
+            run_number = item.get("run_number")
+            if run_number is not None and not isinstance(run_number, int):
+                raise ProofError(f"malformed run_number in run record: {run_number!r}")
+            created_at = item.get("created_at")
+            if created_at is not None and not isinstance(created_at, str):
+                raise ProofError(f"malformed created_at in run record: {created_at!r}")
         runs.extend(batch)
         if len(batch) < 100:
             break

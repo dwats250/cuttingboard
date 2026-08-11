@@ -147,6 +147,34 @@ def test_collect_runs_follows_pagination(monkeypatch):
     assert len(runs) == 101 and seen["pages"] == [1, 2]
 
 
+def test_malformed_null_record_is_proof_error(monkeypatch):
+    monkeypatch.setattr(cr, "_api_get", lambda url, token: {"workflow_runs": [None]})
+    with pytest.raises(cr.ProofError):
+        cr._collect_runs(REPO, SHA, TOKEN)
+
+
+def test_malformed_run_number_type_is_proof_error(monkeypatch):
+    monkeypatch.setattr(cr, "_api_get", lambda url, token: {"workflow_runs": [{"run_number": "x", "created_at": "z"}]})
+    with pytest.raises(cr.ProofError):
+        cr._collect_runs(REPO, SHA, TOKEN)
+
+
+def test_malformed_created_at_type_is_proof_error(monkeypatch):
+    monkeypatch.setattr(cr, "_api_get", lambda url, token: {"workflow_runs": [{"run_number": 1, "created_at": 123}]})
+    with pytest.raises(cr.ProofError):
+        cr._collect_runs(REPO, SHA, TOKEN)
+
+
+def test_malformed_record_surfaces_as_named_proof_error(monkeypatch, capsys):
+    # A schema anomaly must produce the typed CI_PROOF_ERROR, never a traceback.
+    monkeypatch.setenv("GITHUB_REPOSITORY", REPO)
+    monkeypatch.setenv("GITHUB_TOKEN", TOKEN)
+    monkeypatch.setenv("CB_EXPECTED_SHA", SHA)
+    monkeypatch.setattr(cr, "_api_get", lambda url, token: {"workflow_runs": [None]})
+    assert cr.main([]) != 0
+    assert "CI_PROOF_STATE=CI_PROOF_ERROR" in capsys.readouterr().out
+
+
 def test_api_get_http_error_is_proof_error(monkeypatch):
     import urllib.error
 
