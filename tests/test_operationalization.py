@@ -126,7 +126,7 @@ def test_cli_main_fixture_dispatches_to_fixture_path(monkeypatch):
         captured["mode"] = mode
         captured["run_date"] = run_date
         captured["fixture_file"] = fixture_file
-        return {"status": "SUCCESS"}
+        return runtime.RunResult({"status": "SUCCESS"}, execution_success=True)
 
     monkeypatch.setattr(runtime, "execute_run", _fake_execute_run)
 
@@ -191,7 +191,7 @@ def test_cli_main_auto_switches_live_to_sunday(monkeypatch):
         captured["mode"] = mode
         captured["run_date"] = run_date
         captured["fixture_file"] = fixture_file
-        return {"status": "SUCCESS"}
+        return runtime.RunResult({"status": "SUCCESS"}, execution_success=True)
 
     monkeypatch.setattr(runtime, "execute_run", _fake_execute_run)
 

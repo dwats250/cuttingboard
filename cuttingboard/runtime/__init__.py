@@ -234,7 +234,10 @@ def cli_main(argv: Optional[list[str]] = None) -> int:
         fixture_file=fixture_path,
         notify_mode=args.notify_mode,
     )
-    return 0 if result["status"] == SUMMARY_STATUS_SUCCESS else 1
+    # PRD-298: exit code follows the EXECUTION-success signal, not the domain
+    # status (a valid market-stress HALT is status=FAIL but execution success).
+    # Fail-closed: an absent signal (any path returning a bare dict) is failure.
+    return 0 if getattr(result, "execution_success", False) else 1
 
 
 def execute_prefetch() -> int:
@@ -267,12 +270,44 @@ def _emit_fail_owned_signal(delivered: bool, pre_verification_fail: bool) -> Non
         print(FAIL_OWNED_SIGNAL, flush=True)
 
 
+class RunResult(dict):
+    """PRD-298: the run summary dict plus an in-memory execution-success signal
+    that drives the process exit code WITHOUT being persisted. Subclasses dict so
+    result["status"] access, `summary = execute_run(...)` callers, and dict
+    equality are all unchanged; execution_success is an attribute, never a
+    serialized dict item, so no artifact schema field is added."""
+
+    def __init__(self, summary: dict[str, Any], *, execution_success: bool) -> None:
+        super().__init__(summary)
+        self.execution_success = bool(execution_success)
+
+
+def _is_execution_success(
+    *,
+    verification_pass: bool,
+    status: str,
+    system_halted: Any,
+    halt_cause: Any,
+    errors: Any,
+) -> bool:
+    """PRD-298: a run is an EXECUTION success (drives exit 0 / publish) iff
+    verification passed AND it is either a normal SUCCESS or a VALID market-stress
+    HALT (system_halted with halt_cause == MARKET_STRESS and NO errors). A
+    VALIDATION halt (errors non-empty), a crash, or any failed verification is
+    execution FAILURE. The persisted domain status is unaffected."""
+    if not verification_pass:
+        return False
+    if status == SUMMARY_STATUS_SUCCESS:
+        return True
+    return bool(system_halted) and halt_cause == HaltCause.MARKET_STRESS and not errors
+
+
 def execute_run(
     mode: str,
     run_date: date,
     fixture_file: Optional[Path] = None,
     notify_mode: Optional[str] = None,
-) -> dict[str, Any]:
+) -> "RunResult":
     errors: list[str] = []
     report_path: Optional[Path] = None
     summary_path: Optional[Path] = None
@@ -311,7 +346,20 @@ def execute_run(
         _enhanced_market_map = inject_lifecycle(pipeline.market_map, _previous_market_map)
         _write_market_map_file(_enhanced_market_map)
         _write_macro_snapshot(pipeline.contract)
-        return pipeline.summary
+        # PRD-298: EXECUTION success is separate from the persisted DOMAIN status.
+        # A valid market-stress kill-switch HALT (status=FAIL, system_halted,
+        # halt_cause=MARKET_STRESS, errors==[]) is a valid observation -> execution
+        # success -> exit 0 -> publishes. The `not errors` guard encodes the
+        # market-stress-vs-degraded invariant explicitly; a VALIDATION halt (errors
+        # non-empty) or any failed verification stays execution FAILURE.
+        execution_success = _is_execution_success(
+            verification_pass=bool(verification["pass"]),
+            status=pipeline.summary["status"],
+            system_halted=pipeline.summary.get("system_halted"),
+            halt_cause=pipeline.validation_summary.halt_cause,
+            errors=pipeline.summary.get("errors"),
+        )
+        return RunResult(pipeline.summary, execution_success=execution_success)
     except Exception as exc:
         logger.exception("Run failed")
         errors.append(str(exc))
@@ -346,7 +394,8 @@ def execute_run(
         summary["status"] = SUMMARY_STATUS_FAIL
         _rewrite_summary_file(timestamped_path, summary)
         _rewrite_summary_file(latest_path, summary)
-        return summary
+        # PRD-298: a crash is ALWAYS execution FAILURE (exit 1, no publish).
+        return RunResult(summary, execution_success=False)
 
 
 def _hourly_rr(candidate: Any) -> float:
@@ -907,7 +956,18 @@ def _build_and_finalize_contract(
         priority = classify_notification_priority(contract)
         last_key = load_last_state(LAST_STATE_PATH)
 
-        if should_send(current_key, priority, last_key):
+        # PRD-298: a valid market-stress HALT always owns its single HALT
+        # notification - it must never be dedup-suppressed to ZERO. A halt now
+        # concludes execution-success, so the workflow if:failure() backstop no
+        # longer fires; the runtime's own send is the only channel. Daily-scoped
+        # (inside the LIVE/SUNDAY block); should_send / classify_notification_priority
+        # are unchanged, so the hourly path is untouched. Single call site -> no double.
+        force_halt_notification = (
+            validation_summary.system_halted
+            and validation_summary.halt_cause == HaltCause.MARKET_STRESS
+        )
+
+        if force_halt_notification or should_send(current_key, priority, last_key):
             title, body = build_notification_message(contract)
             alert_sent = send_notification(
                 title,
