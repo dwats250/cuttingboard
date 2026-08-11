@@ -314,6 +314,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-294 | #241 | Harness seat doctrine, agent seating map, and proactive-Fable supersession | COMPLETE | [PRD-294](prd_history/PRD-294.md) |
 | PRD-295 | #242 | Morning executor fail-loud failure notification (additive) | COMPLETE | [PRD-295](prd_history/PRD-295.md) |
 | PRD-296 | #243 | Single notification ownership for FAIL/HALT outcomes (duplicate-alert suppression) | COMPLETE | [PRD-296](prd_history/PRD-296.md) |
+| PRD-297 | #244 | Morning executor gate swap: exact-SHA CI proof + narrow runtime readiness + post-render artifact-health (remove full-suite/ruff from the live path) | COMPLETE | [PRD-297](prd_history/PRD-297.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

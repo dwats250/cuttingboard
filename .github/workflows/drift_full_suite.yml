@@ -1,0 +1,34 @@
+name: Drift Full Suite
+
+# PRD-297 (D4): NON-BLOCKING drift observation. After the morning executor
+# stopped running the full suite on the live path, this re-runs the full suite
+# on a schedule so main's quality signal is not lost on quiet no-merge days.
+#
+# It is structurally incapable of authority: its path is NOT
+# .github/workflows/ci.yml (so the exact-SHA CI proof can never select it), it
+# holds no repository secrets, it never publishes/pushes or sets PUBLISH_READY,
+# it writes no market artifact, and a failure fails only its own run. It does
+# not gate any morning slot and is not evidence of anything for the executor.
+on:
+  schedule:
+    # Daily 08:00 UTC -- a quiet slot clear of the pipeline (12:50/13:00 UTC)
+    # and Sunday (23:30 UTC) crons and the hourly alert.
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install -e ".[dev]"
+      - run: ruff check cuttingboard/ tests/
+      - run: pytest tests/ -q
