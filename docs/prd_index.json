@@ -1442,6 +1442,12 @@
       "title": "Morning executor fail-loud failure notification (additive)",
       "status": "COMPLETE",
       "commit": "#242"
+    },
+    {
+      "number": 296,
+      "title": "Single notification ownership for FAIL/HALT outcomes (duplicate-alert suppression)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
