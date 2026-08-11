@@ -1,0 +1,62 @@
+name: probe-actions-read
+
+# DISPOSABLE EVIDENCE PROBE (PRD-297 morning gate-swap, Section-9 evidence #1).
+# Proves FROM a real workflow run that a GITHUB_TOKEN scoped to
+# {contents: read, actions: read} can resolve the exact-SHA authoritative
+# ci.yml push run via the Actions REST API (local gh is insufficient per the
+# MATERIAL packet). Touches NO market state, NO main, NO publish branch, sends
+# no notification, writes nothing. Runs only on evidence/** branches. Safe to
+# delete once the evidence is captured.
+on:
+  push:
+    branches:
+      - 'evidence/actions-read-probe-2026-08'
+      - 'evidence/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main (mirror the real executor's checkout)
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Resolve exact checked-out SHA
+        id: sha
+        run: |
+          set -eo pipefail
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "resolved main HEAD: $(git rev-parse HEAD)"
+
+      - name: Prove actions:read resolves the exact-SHA ci.yml push run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eo pipefail
+          SHA="${{ steps.sha.outputs.sha }}"
+          echo "querying ci.yml push runs for main HEAD $SHA with the workflow GITHUB_TOKEN (permissions: actions:read)"
+          RESP="$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=$SHA&event=push&per_page=100")"
+          echo "$RESP" | jq '{total_count, runs: [.workflow_runs[] | {num: .run_number, attempt: .run_attempt, status: .status, conclusion: .conclusion, path: .path}]}'
+          TC="$(echo "$RESP" | jq '.total_count')"
+          echo "PROBE_RESULT total_count=$TC"
+          if [ "$TC" -ge 1 ]; then
+            echo "PROBE PASS: actions:read token resolved the exact-SHA ci.yml push run (would authorize CI_SUCCESS)"
+          else
+            echo "PROBE NOTE: token reachable but 0 push runs for this SHA (executor would name CI_MISSING). Token capability still proven if this step reached the API without auth error."
+          fi
+
+      - name: Negative control - a non-existent SHA must return zero, not error
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eo pipefail
+          FAKE="0000000000000000000000000000000000000000"
+          RESP="$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=$FAKE&event=push&per_page=100")"
+          TC="$(echo "$RESP" | jq '.total_count')"
+          echo "negative-control total_count=$TC (expected 0 => deterministic CI_MISSING, not an API error)"
