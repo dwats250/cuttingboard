@@ -46,10 +46,22 @@ def test_market_stress_halt_with_errors_is_failure():
 
 
 def test_validation_halt_is_failure():
-    # (Mutation: dropping the MARKET_STRESS check flips a VALIDATION halt to True.)
+    # A real VALIDATION halt carries errors (halt_reason appended); this fails via the
+    # `not errors` clause. The MARKET_STRESS guard is isolated separately below.
     assert _is_execution_success(
         verification_pass=True, status=FAIL, system_halted=True,
         halt_cause=HaltCause.VALIDATION, errors=["missing HALT symbol"],
+    ) is False
+
+
+def test_non_market_stress_halt_with_no_errors_is_failure():
+    # Isolates the MARKET_STRESS guard (PRD-198 #4): a system_halted run with NO errors
+    # but a non-MARKET_STRESS cause must NOT be promoted. (Mutation: dropping the
+    # `halt_cause == MARKET_STRESS` clause flips this to True -> the guard is red-tested
+    # independently of the `not errors` clause.)
+    assert _is_execution_success(
+        verification_pass=True, status=FAIL, system_halted=True,
+        halt_cause=HaltCause.VALIDATION, errors=[],
     ) is False
 
 
