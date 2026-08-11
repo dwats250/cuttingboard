@@ -313,7 +313,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-293 | #238 | Idempotent dev bootstrap for remote/mobile sessions (script + thin SessionStart hook) | COMPLETE | [PRD-293](prd_history/PRD-293.md) |
 | PRD-294 | #241 | Harness seat doctrine, agent seating map, and proactive-Fable supersession | COMPLETE | [PRD-294](prd_history/PRD-294.md) |
 | PRD-295 | #242 | Morning executor fail-loud failure notification (additive) | COMPLETE | [PRD-295](prd_history/PRD-295.md) |
-| PRD-296 | — | Single notification ownership for FAIL/HALT outcomes (duplicate-alert suppression) | IN PROGRESS | [PRD-296](prd_history/PRD-296.md) |
+| PRD-296 | #243 | Single notification ownership for FAIL/HALT outcomes (duplicate-alert suppression) | COMPLETE | [PRD-296](prd_history/PRD-296.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

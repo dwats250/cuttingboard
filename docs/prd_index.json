@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 295,
-  "next_prd": 296,
+  "latest_complete": 296,
+  "next_prd": 297,
   "entries": [
     {
       "number": 56,
@@ -1446,8 +1446,8 @@
     {
       "number": 296,
       "title": "Single notification ownership for FAIL/HALT outcomes (duplicate-alert suppression)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#243"
     }
   ]
 }
