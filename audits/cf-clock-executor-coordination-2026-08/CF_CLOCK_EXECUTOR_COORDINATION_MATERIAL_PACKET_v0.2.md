@@ -1,7 +1,18 @@
-# CF Clock / GitHub Executor — First-Success Coordination — MATERIAL PACKET (v0.1)
+# CF Clock / GitHub Executor — First-Success Coordination — MATERIAL PACKET (v0.2)
 
-STATUS: PROVISIONAL — DESIGN COMPLETE (author-hardened, §19), PENDING INDEPENDENT
-CODEX PACKET REVIEW (GOV-2 §2 step 3). This packet grants no downstream authority. No Stage-0 PRD,
+STATUS: PROVISIONAL — DESIGN COMPLETE (author-hardened §19; corrected against a
+non-gating independent evidence review §20), PENDING INDEPENDENT CODEX PACKET
+REVIEW (GOV-2 §2 step 3). This packet grants no downstream authority.
+
+CORRECTION CYCLE (v0.1 → v0.2): a fresh-context independent EVIDENCE review
+(`PACKET.review.evidence.md`, NON-GATING per GOV-2 §3; reviewed v0.1 @
+`982615442e7e3ebcfb60b440feb04436a010ae13`) returned REQUIRED CHANGES. Three
+consolidated corrections (C1 UTC window basis; C2 dedicated OPEN concurrency
+group + PRD-194 correction; C3 CF-D4 owner-ruling conflict) plus one recommended
+(C4 rerun-conclusion test) are folded in and dispositioned in §20. One element —
+the CF-D4 heartbeat-retention conflict — is HELD FOR DUSTIN'S EXPLICIT RULING
+(§16), not auto-resolved. This EVIDENCE review does not consume GOV-1's single
+correction cycle for the eventual Codex gate, which reviews this corrected head. No Stage-0 PRD,
 Gate A, or implementation may begin until the review sequence in §17 is clean
 and Dustin has issued the design-direction ruling (§16 records the standing
 owner pre-authorizations that make that ruling automatic *iff* this design
@@ -25,7 +36,7 @@ materiality check at intake                         <- §15 (MATERIAL: crosses
                                                        runtime-exit / workflow /
                                                        notification / delivery;
                                                        adds a coordination seam)
--> provisional material packet                       <- THIS DOCUMENT (v0.1)
+-> provisional material packet                       <- THIS DOCUMENT (v0.2)
 -> Codex packet review                               <- PENDING (§17; instrument
                                                        not present in the current
                                                        cloud session)
@@ -208,26 +219,47 @@ GitHub-native fact; `source` is never read here):
 2. `event` ∈ {`workflow_dispatch`, `schedule`};
 3. `head_branch` == `main`;
 4. `display_title` contains `CB-SLOT:OPEN`;
-5. `created_at`, converted to `America/Los_Angeles`, falls **within today's OPEN
-   dispatch WINDOW** — not merely today's PT date;
+5. `created_at` (UTC) falls **within today's OPEN dispatch WINDOW, anchored in
+   UTC** — not merely today's calendar date;
 6. `status` == `completed`;
 7. `conclusion` == `success`.
 
-**Clause 5 is a WINDOW, not a bare date (adversarial finding #5 — this is the
-fix for a real missing-board defect).** A bare same-PT-date test would let ANY
-earlier successful `CB-SLOT:OPEN` run that day — an operator's off-hour
-`slot=OPEN` dispatch, or a mis-fired early trigger — permanently satisfy the
-slot and thereby SUPPRESS the real scheduled OPEN, producing the exact
-missing-board failure this design exists to prevent (the predicate is
-source-blind by §10, so a manual `slot=OPEN` run is otherwise indistinguishable
-from the automatic clock). Bounding satisfaction to the OPEN dispatch window
-closes this. The window is a REVIEWED DESIGN parameter derived from the existing
-live-slot trigger time (≈06:00 PT) plus the ≤~5-minute fallback margin — e.g. a
-conservative `[05:55, 06:20) PT` — with exact bounds set at Stage-0; it is a
-constant in the helper (no persisted state, still GitHub-native). Both the CF
-OPEN trigger (~06:00 PT) and the delayed GH fallback (~06:05 PT) fall inside it;
-an off-window operator/recovery run does not (and per charter, manual runs do
-not participate in automatic coordination anyway).
+**Clause 5 is a WINDOW, and it is anchored in UTC (evidence review C1/D1 — this
+supersedes v0.1's PT anchoring, which was a real winter defect).** Two reasons
+the window must be a window, and must be UTC:
+
+- *Why a window, not a bare date (v0.1 finding #5):* a bare same-date test would
+  let ANY earlier successful `CB-SLOT:OPEN` run that day — an operator's off-hour
+  `slot=OPEN` dispatch, or a mis-fired early trigger — permanently satisfy the
+  slot and thereby SUPPRESS the real scheduled OPEN, producing the exact
+  missing-board failure this design exists to prevent (the predicate is
+  source-blind by §10, so a manual `slot=OPEN` run is otherwise indistinguishable
+  from the automatic clock).
+- *Why UTC, not PT (evidence review C1):* **both** clocks that produce candidate
+  runs are UTC — GitHub Actions schedule crons are UTC, and Cloudflare Worker
+  cron triggers are UTC-only (no timezone support). A PT-anchored window would
+  track the trigger instants only in PDT: the existing live cron `0 13 * * 1-5`
+  is labelled "06:00 PT / 13:00 UTC" (`cuttingboard.yml:8`), true in summer but
+  05:00 PST in winter. A PT window like `[05:55, 06:20)` would EXCLUDE the real
+  ~13:00/13:05 UTC runs every winter → `UNSATISFIED` for ~4–5 months/year →
+  systematic double-execution. Anchoring the window in UTC to the actual trigger
+  instants contains the real runs in BOTH DST regimes.
+
+The window is a REVIEWED DESIGN parameter bracketing the actual UTC trigger
+instants (~13:00 UTC CF + ~13:05 UTC fallback) with margin — candidate
+**`[12:50, 13:25) UTC`** — exact bounds set at Stage-0 from CF-E1/E2 run-time
+evidence; it is a constant in the helper (no persisted state, still
+GitHub-native). **PT-date identity is preserved, not lost:** 12:50–13:25 UTC
+maps to 04:50–05:25 (PST) or 05:50–06:25 (PDT) — early morning on the SAME
+calendar date in both PT and UTC (the slot is far from any date boundary in
+either zone), so the UTC window and the logical PT trading date coincide. The
+weekday OPEN slot never lands on a DST-transition day (transitions occur Sunday;
+OPEN is `1-5`), so there is no transition-day edge. Both the CF OPEN trigger and
+the delayed GH fallback fall inside the window year-round; an off-window
+operator/recovery run does not (and per charter, manual runs do not participate
+in automatic coordination anyway). If Dustin instead wants a fixed *PT* board
+time year-round, that is a larger design (a seasonal cron pair), called out here
+and not chosen.
 
 PRE and OPEN cannot collide (distinct tokens, clause 4). Previous-day and
 off-window runs cannot qualify (clause 5). Manual ordinary dispatches
@@ -239,16 +271,16 @@ satisfied), and it is pinned by test T20 (§11). Wrong-ref runs cannot qualify
 
 ### 5.3 Date-boundary rule (the rerun / stale-success guard)
 
-The PT date+window membership (clause 5) is derived **at query time** from each
-candidate run's **original creation instant**, converted to
-`America/Los_Angeles`. This is what makes clauses 5–7 immune to reruns:
+The UTC window membership (clause 5) is derived **at query time** from each
+candidate run's **original creation instant** (`created_at`, UTC). This is what
+makes clauses 5–7 immune to reruns:
 
-- A re-run of a previous-day run keeps its original creation instant → stays in
-  its original PT date/window → cannot satisfy today's slot (Phase-1 #6/#7).
-- The OPEN window (≈06:00 PT ≈ 13:00 UTC) sits far from the UTC midnight
-  boundary, so a `created=>=<utc-today-00:00Z>` server-side filter safely
-  captures every candidate for today's PT OPEN slot without a same-day
-  UTC/PT split.
+- A re-run of a previous-day run keeps its original `created_at` → stays in its
+  original UTC date/window → cannot satisfy today's slot (Phase-1 #6/#7).
+- The OPEN window (~13:00 UTC) sits far from the UTC midnight boundary, so a
+  `created=>=<utc-today-00:00Z>` server-side filter safely captures every
+  candidate for today's OPEN slot; the UTC calendar date of the window equals
+  the PT trading date for this slot (§5.2), so no PT candidate is dropped.
 
 **Author-verification obligation (carried into implementation review):** confirm
 the exact Actions-API field whose value is immutable across re-runs and use it
@@ -363,46 +395,74 @@ overlapping CF-OPEN and GH-fallback so the later one re-checks *after* the prior
 completes — serialization orders them; the first-success query dedupes them
 (concurrency alone does not dedupe — preserved recon).
 
-**OPEN CONCURRENCY-GROUP DECISION (adversarial finding #6 — resolve at Codex
-review / Stage-0).** The existing group `cuttingboard-pipeline` is STATIC and
-shared across all slots. GitHub allows only ONE *pending* run per group: if
-CF-OPEN is still running at 06:05 and the fallback queues *pending* behind it,
-then any third same-group run queuing (a prefetch tail, a manual dispatch,
-Sunday) would **cancel the pending fallback** — and if CF-OPEN then fails, the
-fallback that should have covered it is gone → missing board. This is a narrow
-window (it needs CF-OPEN to run >5 min AND a third same-group enqueue in that
-gap) but it is a real availability hole. Two candidate resolutions, to be chosen
-under review: (a) give coordination-participating OPEN runs their own
-concurrency group (e.g. keyed on the PT date) so a pending OPEN fallback cannot
-be evicted by an unrelated slot — weighed against PRD-194's deliberate
-single-group self-serialization and its cross-workflow-publish-race reasoning;
-or (b) accept and document the narrow hazard. This packet does NOT unilaterally
-change the concurrency group (blast radius); it records the decision as a
-required review item and lists it in §14.
+**OPEN CONCURRENCY GROUP — RECOMMENDATION: a dedicated group (evidence review
+C2/D2; corrects v0.1's mischaracterization).** The existing group
+`cuttingboard-pipeline` is STATIC and shared across all slots. GitHub allows only
+ONE *pending* run per group: if CF-OPEN is still running at ~06:05 and the
+fallback queues *pending* behind it, then any third same-group run queuing (a
+manual dispatch in the gap; prefetch is done by ~05:58; Sunday is a weekend)
+would **cancel the pending fallback** — and if CF-OPEN then fails, the fallback
+that should have covered it is gone → missing board. A real availability hole.
+
+**Give coordination-participating OPEN runs their own concurrency group** (keyed
+on the trading date) so a pending OPEN fallback cannot be evicted by an unrelated
+slot. **This does NOT reintroduce a publication race** — v0.1 wrongly claimed it
+would. Verified: `hourly_alert.yml` runs under a DIFFERENT group (`hourly-alert`,
+`:27`) and already publishes to the same `publish` branch CONCURRENTLY with
+`cuttingboard-pipeline`; cross-workflow publish-race safety lives in
+`tools/ci_push_artifacts.sh` (delta-append + bounded push-retry), NOT in the
+shared concurrency group (`cuttingboard.yml:31–33` states exactly this). The only
+cross-slot mutable seams in `cuttingboard.yml` are (i) the `publish` branch
+(delta-append-safe, already exercised concurrently) and (ii) the OHLCV
+`actions/cache`, whose sole writer is `prefetch` (`Save OHLCV cache` gated on
+`job_mode=='prefetch'`; live/OPEN never saves it). A dedicated OPEN group touches
+neither seam unsafely. Stage-0 records the one-line confirmation of these two
+seams and corrects the PRD-194 characterization. (Option "keep the shared group
+and accept the eviction hazard" is rejected: it leaves the missing-board hole the
+whole design exists to prevent.)
 
 ### 7.5 Delayed OPEN fallback cron — REPLACES the existing 06:00 live cron
 
-The existing `0 13 * * 1-5` (≈06:00 PT) live cron is **replaced**, not
-supplemented (adversarial finding #7a — this is a correctness fix, not an
-optimization). Leaving it in place would defeat the whole "CF preferred + delayed
-fallback" framing: at 06:00 the existing cron would run `live` unconditionally
-(no `CB-SLOT:OPEN` token, no §7.4 pre-check) *alongside* the CF dispatch →
-guaranteed double execution, with CF redundant. The delayed GH OPEN fallback
-cron (≈06:05 PT, ~5 min after the preferred CF OPEN trigger; supported by
-observed run-time evidence, §14 lists the falsifier) takes its place: it carries
-`CB-SLOT:OPEN` via the cron→slot map and runs the same §7.4 first-success query,
-participating in the identical symmetric rule.
+Two separable changes to the existing `0 13 * * 1-5` (13:00 UTC ≈ 06:00 PDT /
+05:00 PST) live cron — the evidence review (C3) requires distinguishing them:
+
+- **(a) CORRECTNESS REQUIREMENT (forced).** The existing live cron must NOT run
+  un-gated alongside a CF dispatch: at the same instant it would run `live`
+  unconditionally (no `CB-SLOT:OPEN` token, no §7.4 pre-check) *alongside* CF →
+  guaranteed double execution. So the existing cron MUST be made
+  coordination-participating — carry the `CB-SLOT:OPEN` token and run the §7.4
+  first-success pre-check. This is non-negotiable and does not by itself change
+  the cron's time or retire the heartbeat.
+- **(b) RETIMING TO A DELAYED FALLBACK (elective — HELD for Dustin).** The
+  charter frames GH as a "~5-min-delayed fallback" behind CF's punctual clock
+  (justified because GitHub scheduled crons fire unreliably late, which is the
+  actual case for CF punctuality). Implementing that means retiming the ~13:00
+  UTC cron ~5 min later. **This conflicts with ratified CF-D4 — "Retain the
+  existing GitHub cron heartbeats in slice 1" (`DECISIONS.md:73`)** — and is NOT
+  inside §16's auto-ruling boundary. Reconciling the charter's delayed-fallback
+  intent with CF-D4 is a GOV-2 §10 canonical-ruling-propagation act only Dustin
+  can make (§16 item 4). Until he rules, the design lands change (a) only and
+  keeps the heartbeat at its current time; (b) awaits his ruling.
+
+Whichever timing Dustin rules, the OPEN cron carries `CB-SLOT:OPEN` via the
+cron→slot map and runs the §7.4 first-success query, participating in the
+identical symmetric rule (D3: expressed as a fixed-UTC cron, DST-drifting in PT
+per the existing convention, not labelled PT-stable).
 
 **Rollout / graceful-degradation consequence (flagged for Dustin).** The Worker
-ships UNDEPLOYED (§9). In the pre-deployment state the ≈06:05 fallback is the
-*only* OPEN trigger, so the daily live board publishes ≈5 minutes later than
-today's ≈06:00. Once the CF Worker is deployed, CF fires at ≈06:00 (board
-≈06:00) with the ≈06:05 cron as fallback. This ≈5-minute pre-deployment shift is
-within the charter's evidence-supported ~5-min fallback allowance, but it is a
-real behavioral change to the daily board time and is called out, not buried.
-The PRD-158 pre-implementation grep sweep MUST enumerate every
-`resolve_run_mode` / workflow test that asserts the current `0 13 * * 1-5 → live`
-mapping and fold them into FILES.
+ships UNDEPLOYED (§9). Under change (a)-only (heartbeat kept at ~13:00 UTC,
+token + pre-check added), the daily board time is UNCHANGED pre-deployment — the
+existing cron still fires at its current instant and, with no prior CF success,
+executes normally. The ≈5-min board-time shift arises ONLY if Dustin rules to
+retime (b): then, before the Worker is deployed, the delayed cron is the sole
+OPEN trigger and the board publishes ~5 min later; once CF is deployed, CF fires
+punctually and the delayed cron is the fallback. That shift is within the
+charter's evidence-supported ~5-min allowance but is a real behavioral change to
+the board time — surfaced with the CF-D4 ruling (§16 item 4), not buried. The
+PRD-158 pre-implementation grep sweep MUST enumerate every `resolve_run_mode` /
+workflow test that asserts the current `0 13 * * 1-5 → live` mapping —
+`tests/test_resolve_run_mode.py` exists and is in scope — and fold them into
+FILES.
 
 ### 7.6 Manual dispatch / PRE
 
@@ -548,6 +608,8 @@ reddening mutation must be shown to flip the test. Target file
 | T20 | Manual in-window `slot=OPEN` success (source-blind) | `SATISFIED` (intended: a real in-window OPEN publish IS the slot) | — (pins the §5.2 accepted behavior) |
 | T21 | CF OPEN success present, fallback pre-check hits API error | `PROOF_ERROR` → executes (duplicate accepted); NEVER `SATISFIED`-suppressed on error | flip error→treated-as-satisfied → wrong suppression (proves fail-toward-availability) |
 | T22 | No-op success run (SATISFIED path concluded success) exists alongside the real publish | `∃ qualifying OPEN success ⟺ real publish occurred` holds; no-op never the sole matcher | construct no-op-only-without-prior-publish (unreachable) → asserts invariant |
+| T23 | Original publishing run re-run today and the re-run FAILS (latest-attempt `conclusion=failure`); a no-op success also present | suppression still SAFE — the published board persists on the `publish` branch; a failed re-run does not unpublish (evidence review C4, Target 6 edge) | remove the persistence argument / treat re-run-failure as unpublish → wrong; pins the one falsifiable case of the §3/Phase-1-#3 prose invariant |
+| T24 (PST) | CF + fallback runs at ~13:00/13:05 UTC on a WINTER (PST) date | both fall inside the UTC window → deduped (proves UTC anchoring, C1) | use a PT-anchored `[05:55,06:20)` window → winter runs excluded → double-execute (reddens the v0.1 defect) |
 
 Verification runway (at implementation): focused tests green locally, then the
 full suite reproduced on CI (PRD-198 #5, environment parity);
@@ -564,9 +626,9 @@ Binding only at Gate A on the reviewed Stage-0 PRD (GOV-2 §5). Estimate:
 - `M .github/workflows/cuttingboard.yml` — slot/source inputs, `run-name`
   carrier, OPEN pre-execution query step, delayed OPEN cron
 - `M scripts/resolve_run_mode.py` — slot↔mode consistency / cron→slot map
-- `M tests/test_resolve_run_mode.py` — slot/mode fail-closed cases (if the file
-  exists; else folded into the coordination test — confirmed at Stage-0 via the
-  PRD-158 grep sweep)
+- `M tests/test_resolve_run_mode.py` — slot/mode fail-closed cases; the file
+  EXISTS (verified) and asserts the current cron→mode mapping, so it is in FILES
+  and its `0 13 → live` assertions are updated by the PRD-158 sweep
 - `A workers/cuttingboard-clock/` — undeployed Worker source, config example,
   README (no secret values)
 
@@ -612,22 +674,27 @@ inside the transport boundary (not a stop) unless it proves `created_at` is not
 attempt-stable AND no in-boundary correction exists — then it escalates to
 item 2.
 
-**In-boundary review decisions (from the author-side hardening pass, §19 — NOT
-stops; resolved at Codex review / Stage-0):**
+**Review decisions (D1–D3 resolved by the evidence review C1–C2; D3/CF-D4 held
+for Dustin — see §16 item 4):**
 
-- **D1 — OPEN dispatch window bounds (§5.2 clause 5).** Exact `[start, end)` PT
-  window. Candidate `[05:55, 06:20)`. Must contain the CF trigger and the ≈06:05
-  fallback and exclude off-window operator runs. In-boundary (a helper constant);
-  escalates to charter RETURN-7 only if evidence shows no window satisfies both
-  containment and exclusion.
-- **D2 — OPEN concurrency group (§7.4).** Keep the shared static
-  `cuttingboard-pipeline` group and accept the narrow pending-eviction hazard,
-  or give coordination OPEN runs a dedicated group. Weighed against PRD-194.
-  In-boundary (a workflow `concurrency:` change) but with real blast radius —
-  flagged for explicit review.
-- **D3 — existing 06:00 live cron replacement (§7.5).** Confirmed required (not
-  optional); the only open sub-decision is the exact fallback cron minute and
-  the PRD-158 test-sweep set.
+- **D1 — OPEN dispatch window bounds (§5.2 clause 5).** RESOLVED: anchor in
+  **UTC**, candidate `[12:50, 13:25) UTC`, bracketing the ~13:00/13:05 UTC
+  trigger instants; exact bounds set at Stage-0 from CF-E1/E2 run-time evidence.
+  In-boundary (a helper constant); escalates to charter RETURN-7 only if evidence
+  shows no window satisfies both containment and exclusion.
+- **D2 — OPEN concurrency group (§7.4).** RESOLVED: a **dedicated** group for
+  coordination-participating OPEN runs (keyed on the trading date). Verified not
+  to reintroduce a publish race (PRD-194 publish-safety is in
+  `ci_push_artifacts.sh`, not the shared group; the only cross-slot seams are the
+  delta-append-safe `publish` branch and the prefetch-only OHLCV cache). Closes
+  the pending-eviction/missing-board hazard.
+- **D3 — fallback clock / DST (§7.5).** A single **fixed-UTC** fallback cron,
+  paired with the D1 UTC window; documented as tracking a fixed UTC instant that
+  drifts ±1h in PT across DST (the existing accepted convention,
+  `cuttingboard.yml:8`) — NOT labelled "~06:05 PT" as if PT-stable. The exact
+  fallback minute and the PRD-158 test-sweep set (`tests/test_resolve_run_mode.py`
+  exists and MUST be in FILES) are Stage-0 items. **Whether the existing 06:00
+  heartbeat is retimed at all is HELD for Dustin (CF-D4 conflict, §16 item 4).**
 
 ---
 
@@ -651,7 +718,7 @@ confirmation).
 ## 16. Owner rulings recorded (standing pre-authorizations from the resume charter)
 
 The design-direction ruling is **automatically effective** iff this design stays
-inside ALL of the following (verified true for v0.1):
+inside ALL of the following (verified true for v0.2):
 
 - Cloudflare remains clock only — §2 ✓
 - GitHub remains executor only — §2 ✓
@@ -671,6 +738,28 @@ packet.
 step 3 / §7). The design-direction ruling being automatic removes Dustin's
 manual ruling from the critical path; it does not remove the Codex packet
 review, which is a capability/instrument gate, not an owner decision.
+
+### Items requiring Dustin's EXPLICIT ruling (NOT auto-effective)
+
+The evidence review (§20, C3) identified one element outside the auto-ruling
+boundary above:
+
+- **Item 4 — CF-D4 heartbeat conflict (from §7.5).** Retiming the existing
+  ~13:00 UTC live heartbeat into a ~5-min-delayed fallback conflicts with
+  ratified **CF-D4 — "Retain the existing GitHub cron heartbeats in slice 1"**
+  (`DECISIONS.md:73`). The auto-ruling list contains no authorization to modify
+  CF-D4. This session's charter frames the delayed fallback as approved GREEN
+  recon, so the charter and CF-D4 are in tension; reconciling them is a GOV-2 §10
+  canonical-ruling-propagation act (mark CF-D4 SUPERSEDED and record one current
+  ruling) that only Dustin can perform. **Options for his ruling:** (i) confirm
+  the charter supersedes CF-D4 for this slice → retime to the delayed fallback,
+  and mark CF-D4 SUPERSEDED in DECISIONS; or (ii) keep CF-D4 → land change (a)
+  only (existing heartbeat kept at its current instant, made
+  coordination-participating with token + pre-check), no retiming, CF and the
+  heartbeat both nominally ~13:00 UTC and deduped via first-success +
+  serialization + natural GitHub cron lateness. The correctness requirement
+  (token + pre-check on the heartbeat) holds under BOTH options; only the timing
+  differs. Implementation of the retiming is blocked until this ruling.
 
 ---
 
@@ -760,6 +849,33 @@ persisted state, no credential-scope change, and no CF-D1b/CF-E2 coupling.
 
 ---
 
-END OF PACKET v0.1 (author-hardened) — PROVISIONAL, PENDING INDEPENDENT CODEX
-PACKET REVIEW. No downstream authority (Stage-0 PRD, Gate A, implementation) is
-granted by this document.
+## 20. Evidence-review correction cycle (v0.1 → v0.2; NON-GATING)
+
+A fresh-context independent EVIDENCE review of v0.1 @
+`982615442e7e3ebcfb60b440feb04436a010ae13` returned REQUIRED CHANGES. Full record:
+`PACKET.review.evidence.md` (this directory). Per GOV-2 §3 it is EVIDENCE, not
+the independent-review gate — the GOV-2 §2/§7 Codex packet review (§17) remains
+PENDING and reviews THIS corrected head. Corrections folded in:
+
+| # | Finding (evidence review) | Disposition | Where |
+|---|---|---|---|
+| C1 | OPEN window PT-anchored but the CF + GH clocks are UTC → excludes real runs every PST winter → seasonal double-execution | ACTIONED — re-anchored the window to **UTC** `[12:50, 13:25)`; PT-date identity preserved; false "both fall inside" claim removed; T24 PST test added | §5.2, §5.3, §14-D1 |
+| C2 | v0.1 wrongly claimed a dedicated OPEN concurrency group creates a publish race; PRD-194 mischaracterized | ACTIONED — recommend a **dedicated** OPEN group; corrected: publish-safety is in `ci_push_artifacts.sh`, not the shared group (`hourly-alert` already publishes concurrently); two cross-slot seams stated benign | §7.4, §14-D2 |
+| C3 | §7.5 cron replacement conflicts with ratified **CF-D4** (retain heartbeats) and over-states "correctness fix" | ACTIONED + **HELD FOR DUSTIN** — split into forced correctness (token + pre-check) vs elective retiming; CF-D4 conflict raised as §16 item 4 for explicit owner ruling | §7.5, §14-D3, §16 item 4 |
+| C4 | rerun-conclusion-mutation edge of the no-op invariant asserted "unreachable" rather than pinned | ACTIONED — T23 added, with the `publish`-branch-persistence safety argument | §11 T23 |
+
+Independent re-verification by the author (Author disciplines / sub-agent sweep
+re-verification): the C1 cron label (`cuttingboard.yml:8`), the C2 facts
+(`hourly-alert` group, concurrent publish, `ci_push_artifacts.sh` delta-append,
+prefetch-only cache save), and the C3 CF-D4 wording (`DECISIONS.md:73`) were each
+re-checked directly, not taken on the reviewer's word. No correction breached an
+owner pre-authorization or introduced persisted state / credential-scope change /
+CF-D1b/CF-E2 coupling. The one non-mechanical item (CF-D4) is held for Dustin,
+not resolved by the author.
+
+---
+
+END OF PACKET v0.2 — PROVISIONAL, author-hardened (§19) + evidence-review-
+corrected (§20), PENDING INDEPENDENT CODEX PACKET REVIEW (§17). One element
+(CF-D4, §16 item 4) is HELD FOR DUSTIN'S EXPLICIT RULING. No downstream authority
+(Stage-0 PRD, Gate A, implementation) is granted by this document.
