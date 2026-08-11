@@ -1,8 +1,19 @@
-# CF Clock / GitHub Executor — First-Success Coordination — MATERIAL PACKET (v0.2)
+# CF Clock / GitHub Executor — First-Success Coordination — MATERIAL PACKET (v0.3)
 
 STATUS: PROVISIONAL — DESIGN COMPLETE (author-hardened §19; corrected against a
-non-gating independent evidence review §20), PENDING INDEPENDENT CODEX PACKET
-REVIEW (GOV-2 §2 step 3). This packet grants no downstream authority.
+non-gating independent evidence review §20; owner CF-D4 ruling folded in §21),
+PENDING INDEPENDENT CODEX PACKET REVIEW (GOV-2 §2 step 3). This packet grants no
+downstream authority.
+
+OWNER RULING FOLDED IN (v0.2 → v0.3): Dustin ruled §16 item 4 (2026-08-11,
+option (i)) — CF-D4 SUPERSEDED-IN-PART: the OPEN/live GitHub heartbeat is retimed
+to a delayed coordinated fallback (candidate ~+5 min, exact UTC minute at
+Stage-0), not fired concurrently with the CF clock. UTC-window direction
+approved; the ~5-min pre-deployment rollout shift accepted (not hidden); the
+dedicated OPEN concurrency group accepted-in-principle with a Stage-0 confirm +
+RED trigger. Canonical record: `docs/DECISIONS.md` 2026-08-11. This ruling clears
+§16 item 4; it does NOT clear the still-open GOV-2 §2/§7 Codex packet-review gate
+(§17).
 
 CORRECTION CYCLE (v0.1 → v0.2): a fresh-context independent EVIDENCE review
 (`PACKET.review.evidence.md`, NON-GATING per GOV-2 §3; reviewed v0.1 @
@@ -10,8 +21,9 @@ CORRECTION CYCLE (v0.1 → v0.2): a fresh-context independent EVIDENCE review
 consolidated corrections (C1 UTC window basis; C2 dedicated OPEN concurrency
 group + PRD-194 correction; C3 CF-D4 owner-ruling conflict) plus one recommended
 (C4 rerun-conclusion test) are folded in and dispositioned in §20. One element —
-the CF-D4 heartbeat-retention conflict — is HELD FOR DUSTIN'S EXPLICIT RULING
-(§16), not auto-resolved. This EVIDENCE review does not consume GOV-1's single
+the CF-D4 heartbeat-retention conflict — was HELD for Dustin's explicit ruling at
+v0.2 and has since been RULED (2026-08-11, §21). This EVIDENCE review does not
+consume GOV-1's single
 correction cycle for the eventual Codex gate, which reviews this corrected head. No Stage-0 PRD,
 Gate A, or implementation may begin until the review sequence in §17 is clean
 and Dustin has issued the design-direction ruling (§16 records the standing
@@ -36,7 +48,7 @@ materiality check at intake                         <- §15 (MATERIAL: crosses
                                                        runtime-exit / workflow /
                                                        notification / delivery;
                                                        adds a coordination seam)
--> provisional material packet                       <- THIS DOCUMENT (v0.2)
+-> provisional material packet                       <- THIS DOCUMENT (v0.3)
 -> Codex packet review                               <- PENDING (§17; instrument
                                                        not present in the current
                                                        cloud session)
@@ -433,36 +445,31 @@ Two separable changes to the existing `0 13 * * 1-5` (13:00 UTC ≈ 06:00 PDT /
   coordination-participating — carry the `CB-SLOT:OPEN` token and run the §7.4
   first-success pre-check. This is non-negotiable and does not by itself change
   the cron's time or retire the heartbeat.
-- **(b) RETIMING TO A DELAYED FALLBACK (elective — HELD for Dustin).** The
-  charter frames GH as a "~5-min-delayed fallback" behind CF's punctual clock
-  (justified because GitHub scheduled crons fire unreliably late, which is the
-  actual case for CF punctuality). Implementing that means retiming the ~13:00
-  UTC cron ~5 min later. **This conflicts with ratified CF-D4 — "Retain the
-  existing GitHub cron heartbeats in slice 1" (`DECISIONS.md:73`)** — and is NOT
-  inside §16's auto-ruling boundary. Reconciling the charter's delayed-fallback
-  intent with CF-D4 is a GOV-2 §10 canonical-ruling-propagation act only Dustin
-  can make (§16 item 4). Until he rules, the design lands change (a) only and
-  keeps the heartbeat at its current time; (b) awaits his ruling.
+- **(b) RETIMING TO A DELAYED FALLBACK (RULED 2026-08-11 — AUTHORIZED).** Dustin
+  ruled §16 item 4 option (i): CF-D4 is SUPERSEDED-IN-PART, and the OPEN/live
+  GitHub heartbeat is retimed to fire LATER than the CF OPEN trigger (candidate
+  ~+5 min, exact reviewed UTC minute at Stage-0) rather than concurrently — so
+  Cloudflare is the preferred clock and GitHub is the resilience fallback, not a
+  peer clock racing the same slot. Canonical record: `DECISIONS.md` 2026-08-11
+  (CF-D4 marked SUPERSEDED-IN-PART; retain-GitHub-heartbeat principle and
+  PRE/Sunday behavior unchanged). Both changes (a) and (b) are now in scope.
 
-Whichever timing Dustin rules, the OPEN cron carries `CB-SLOT:OPEN` via the
-cron→slot map and runs the §7.4 first-success query, participating in the
-identical symmetric rule (D3: expressed as a fixed-UTC cron, DST-drifting in PT
-per the existing convention, not labelled PT-stable).
+The retimed OPEN cron carries `CB-SLOT:OPEN` via the cron→slot map and runs the
+§7.4 first-success query, participating in the identical symmetric rule (D3:
+expressed as a fixed-UTC cron, DST-drifting in PT per the existing convention,
+not labelled PT-stable).
 
-**Rollout / graceful-degradation consequence (flagged for Dustin).** The Worker
-ships UNDEPLOYED (§9). Under change (a)-only (heartbeat kept at ~13:00 UTC,
-token + pre-check added), the daily board time is UNCHANGED pre-deployment — the
-existing cron still fires at its current instant and, with no prior CF success,
-executes normally. The ≈5-min board-time shift arises ONLY if Dustin rules to
-retime (b): then, before the Worker is deployed, the delayed cron is the sole
-OPEN trigger and the board publishes ~5 min later; once CF is deployed, CF fires
-punctually and the delayed cron is the fallback. That shift is within the
-charter's evidence-supported ~5-min allowance but is a real behavioral change to
-the board time — surfaced with the CF-D4 ruling (§16 item 4), not buried. The
-PRD-158 pre-implementation grep sweep MUST enumerate every `resolve_run_mode` /
-workflow test that asserts the current `0 13 * * 1-5 → live` mapping —
-`tests/test_resolve_run_mode.py` exists and is in scope — and fold them into
-FILES.
+**Rollout consequence (RULED, ACCEPTED — do not hide).** The Worker ships
+UNDEPLOYED (§9). Under the ruled retiming, before the Worker is deployed the
+delayed GitHub cron is the SOLE automatic OPEN trigger, so the daily board
+publishes ~5 min later than today; once CF is deployed, CF fires punctually and
+the delayed cron is the fallback. Dustin explicitly accepted this temporary
+rollout behavior (`DECISIONS.md` 2026-08-11: "do not hide it"); repo-side
+implementation is NOT blocked on the Worker being live, and the external deploy
+sequence should minimize the interval. The PRD-158 pre-implementation grep sweep
+MUST enumerate every `resolve_run_mode` / workflow test that asserts the current
+`0 13 * * 1-5 → live` mapping — `tests/test_resolve_run_mode.py` exists and is in
+scope — and fold them into FILES.
 
 ### 7.6 Manual dispatch / PRE
 
@@ -668,6 +675,12 @@ Return RED / stop if any becomes true (these mirror the charter's RETURN list):
 9. CF-D1b / CF-E2 becomes coupled to coordination.
 10. Actual external Worker/PAT deployment is the remaining seam (owner-held).
 11. Final implementation is merge-ready (return to hand off).
+12. **(owner-directed, 2026-08-11)** Stage-0 finds a concrete shared-write race
+    that the actual publish mechanism (`ci_push_artifacts.sh` delta-append/retry)
+    does NOT protect, once OPEN is moved to a dedicated concurrency group (D2).
+    The old PRD-194 shared-group characterization was falsified and must not be
+    relied on; if a real unprotected race exists, return RED rather than assume
+    the delta-append path covers it.
 
 The §5.3 `created_at`-vs-`run_started_at` verification is a bounded correction
 inside the transport boundary (not a stop) unless it proves `created_at` is not
@@ -693,8 +706,8 @@ for Dustin — see §16 item 4):**
   drifts ±1h in PT across DST (the existing accepted convention,
   `cuttingboard.yml:8`) — NOT labelled "~06:05 PT" as if PT-stable. The exact
   fallback minute and the PRD-158 test-sweep set (`tests/test_resolve_run_mode.py`
-  exists and MUST be in FILES) are Stage-0 items. **Whether the existing 06:00
-  heartbeat is retimed at all is HELD for Dustin (CF-D4 conflict, §16 item 4).**
+  exists and MUST be in FILES) are Stage-0 items. **The retiming itself is RULED
+  AUTHORIZED (2026-08-11, §16 item 4); CF-D4 is SUPERSEDED-IN-PART.**
 
 ---
 
@@ -718,7 +731,7 @@ confirmation).
 ## 16. Owner rulings recorded (standing pre-authorizations from the resume charter)
 
 The design-direction ruling is **automatically effective** iff this design stays
-inside ALL of the following (verified true for v0.2):
+inside ALL of the following (verified true for v0.3):
 
 - Cloudflare remains clock only — §2 ✓
 - GitHub remains executor only — §2 ✓
@@ -739,27 +752,21 @@ step 3 / §7). The design-direction ruling being automatic removes Dustin's
 manual ruling from the critical path; it does not remove the Codex packet
 review, which is a capability/instrument gate, not an owner decision.
 
-### Items requiring Dustin's EXPLICIT ruling (NOT auto-effective)
+### Items that required Dustin's explicit ruling
 
-The evidence review (§20, C3) identified one element outside the auto-ruling
-boundary above:
-
-- **Item 4 — CF-D4 heartbeat conflict (from §7.5).** Retiming the existing
-  ~13:00 UTC live heartbeat into a ~5-min-delayed fallback conflicts with
-  ratified **CF-D4 — "Retain the existing GitHub cron heartbeats in slice 1"**
-  (`DECISIONS.md:73`). The auto-ruling list contains no authorization to modify
-  CF-D4. This session's charter frames the delayed fallback as approved GREEN
-  recon, so the charter and CF-D4 are in tension; reconciling them is a GOV-2 §10
-  canonical-ruling-propagation act (mark CF-D4 SUPERSEDED and record one current
-  ruling) that only Dustin can perform. **Options for his ruling:** (i) confirm
-  the charter supersedes CF-D4 for this slice → retime to the delayed fallback,
-  and mark CF-D4 SUPERSEDED in DECISIONS; or (ii) keep CF-D4 → land change (a)
-  only (existing heartbeat kept at its current instant, made
-  coordination-participating with token + pre-check), no retiming, CF and the
-  heartbeat both nominally ~13:00 UTC and deduped via first-success +
-  serialization + natural GitHub cron lateness. The correctness requirement
-  (token + pre-check on the heartbeat) holds under BOTH options; only the timing
-  differs. Implementation of the retiming is blocked until this ruling.
+- **Item 4 — CF-D4 heartbeat conflict (from §7.5) — RESOLVED 2026-08-11, option
+  (i).** Dustin ruled: CF-D4 is SUPERSEDED-IN-PART; the OPEN/live GitHub
+  heartbeat is RETIMED to a delayed coordinated fallback (candidate ~+5 min,
+  exact UTC minute at Stage-0), not fired concurrently with the CF clock — making
+  Cloudflare the preferred clock and GitHub the resilience fallback operationally
+  real. UTC-window direction approved; the ~5-min pre-deployment rollout shift
+  accepted and not to be hidden; PRE/Sunday unchanged. The dedicated OPEN
+  concurrency group is accepted in principle, conditioned on Stage-0 confirming
+  publish-race safety is provided by `ci_push_artifacts.sh` (not the old shared
+  group) — a concrete unprotected shared-write race found at Stage-0 is a RED
+  (§14 item 12). Canonical record: `docs/DECISIONS.md` 2026-08-11. No item
+  outside the auto-ruling boundary now remains open; the only remaining gate is
+  the GOV-2 §2/§7 Codex packet review (§17).
 
 ---
 
@@ -861,7 +868,7 @@ PENDING and reviews THIS corrected head. Corrections folded in:
 |---|---|---|---|
 | C1 | OPEN window PT-anchored but the CF + GH clocks are UTC → excludes real runs every PST winter → seasonal double-execution | ACTIONED — re-anchored the window to **UTC** `[12:50, 13:25)`; PT-date identity preserved; false "both fall inside" claim removed; T24 PST test added | §5.2, §5.3, §14-D1 |
 | C2 | v0.1 wrongly claimed a dedicated OPEN concurrency group creates a publish race; PRD-194 mischaracterized | ACTIONED — recommend a **dedicated** OPEN group; corrected: publish-safety is in `ci_push_artifacts.sh`, not the shared group (`hourly-alert` already publishes concurrently); two cross-slot seams stated benign | §7.4, §14-D2 |
-| C3 | §7.5 cron replacement conflicts with ratified **CF-D4** (retain heartbeats) and over-states "correctness fix" | ACTIONED + **HELD FOR DUSTIN** — split into forced correctness (token + pre-check) vs elective retiming; CF-D4 conflict raised as §16 item 4 for explicit owner ruling | §7.5, §14-D3, §16 item 4 |
+| C3 | §7.5 cron replacement conflicts with ratified **CF-D4** (retain heartbeats) and over-states "correctness fix" | ACTIONED + subsequently RULED (§21, 2026-08-11) — split into forced correctness (token + pre-check) vs elective retiming; CF-D4 conflict raised as §16 item 4, then ruled option (i) | §7.5, §14-D3, §16 item 4, §21 |
 | C4 | rerun-conclusion-mutation edge of the no-op invariant asserted "unreachable" rather than pinned | ACTIONED — T23 added, with the `publish`-branch-persistence safety argument | §11 T23 |
 
 Independent re-verification by the author (Author disciplines / sub-agent sweep
@@ -870,12 +877,40 @@ re-verification): the C1 cron label (`cuttingboard.yml:8`), the C2 facts
 prefetch-only cache save), and the C3 CF-D4 wording (`DECISIONS.md:73`) were each
 re-checked directly, not taken on the reviewer's word. No correction breached an
 owner pre-authorization or introduced persisted state / credential-scope change /
-CF-D1b/CF-E2 coupling. The one non-mechanical item (CF-D4) is held for Dustin,
-not resolved by the author.
+CF-D1b/CF-E2 coupling. The one non-mechanical item (CF-D4) was held for Dustin and has since
+been RULED (2026-08-11, §21).
 
 ---
 
-END OF PACKET v0.2 — PROVISIONAL, author-hardened (§19) + evidence-review-
-corrected (§20), PENDING INDEPENDENT CODEX PACKET REVIEW (§17). One element
-(CF-D4, §16 item 4) is HELD FOR DUSTIN'S EXPLICIT RULING. No downstream authority
-(Stage-0 PRD, Gate A, implementation) is granted by this document.
+## 21. Owner ruling folded in (v0.2 → v0.3; CF-D4 §16 item 4)
+
+Dustin's 2026-08-11 ruling on §16 item 4, option (i). Canonical record:
+`docs/DECISIONS.md` 2026-08-11 ("CF-D4 SUPERSEDED-IN-PART …"), with the
+2026-08-09 CF-D4 bullet marked SUPERSEDED-IN-PART (preserved, not deleted).
+
+Ruled and folded in:
+- **CF-D4 SUPERSEDED-IN-PART** — only the OPEN/live heartbeat TIMING changes; the
+  retain-GitHub-heartbeat principle and PRE/Sunday behavior are unchanged.
+- **OPEN/live GitHub heartbeat RETIMED** to fire later than the CF OPEN trigger
+  (candidate ~+5 min; exact reviewed UTC minute at Stage-0), not concurrently —
+  Cloudflare = preferred clock, GitHub = resilience fallback (§7.5(b), §14-D3,
+  §16 item 4).
+- **UTC-window direction APPROVED** (§5.2 clause 5, D1).
+- **Rollout shift ACCEPTED, not hidden** — pre-deployment the delayed fallback is
+  the sole OPEN trigger; board ~5 min later; repo-side work not blocked on the
+  Worker (§7.5 rollout).
+- **Dedicated OPEN concurrency group accepted in principle** (D2), conditioned on
+  a Stage-0 confirm that publish-race safety is in `ci_push_artifacts.sh`; a
+  concrete unprotected shared-write race at Stage-0 is a RED (§14 item 12).
+
+This ruling closes the last item outside the auto-ruling boundary. The design is
+now fully within the standing owner pre-authorizations (§16). The ONLY remaining
+gate is the GOV-2 §2/§7 independent Codex packet review (§17, PENDING).
+
+---
+
+END OF PACKET v0.3 — PROVISIONAL, author-hardened (§19) + evidence-review-
+corrected (§20) + owner-CF-D4-ruling folded in (§21), PENDING INDEPENDENT CODEX
+PACKET REVIEW (§17). No item now awaits an owner ruling. No downstream authority
+(Stage-0 PRD, Gate A, implementation) is granted by this document until the Codex
+packet-review gate is clean.
