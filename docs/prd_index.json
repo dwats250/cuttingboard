@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 294,
-  "next_prd": 295,
+  "latest_complete": 295,
+  "next_prd": 296,
   "entries": [
     {
       "number": 56,
@@ -1440,8 +1440,8 @@
     {
       "number": 295,
       "title": "Morning executor fail-loud failure notification (additive)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#242"
     }
   ]
 }
