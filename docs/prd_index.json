@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 297,
-  "next_prd": 298,
+  "latest_complete": 298,
+  "next_prd": 299,
   "entries": [
     {
       "number": 56,
@@ -1458,8 +1458,8 @@
     {
       "number": 298,
       "title": "Valid market-stress HALT is an execution SUCCESS: publish the halt board, own the single HALT notification, conclude the executor successfully (daily path)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#245"
     }
   ]
 }
