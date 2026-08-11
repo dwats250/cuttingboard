@@ -252,6 +252,21 @@ def execute_prefetch() -> int:
         return 1
 
 
+FAIL_OWNED_SIGNAL = "::CB_NOTIFY_OWNED_FAIL::"
+
+
+def _emit_fail_owned_signal(delivered: bool, pre_verification_fail: bool) -> None:
+    """PRD-296: print the ephemeral FAIL-owned notification sentinel to stdout iff the runtime
+    already DELIVERED a notification for this attempt AND the outcome is a PRE-verification FAIL
+    (validation_summary.system_halted or errors, the same :1413 formula, read before any
+    verification override). Emitted inside _run_pipeline immediately after the send and BEFORE the
+    fallible post-send work, so ownership survives a later exception in the same attempt. A SUCCESS
+    send (pre_verification_fail False) that only fails verification never owns; a send failure
+    (delivered False) never owns. Ephemeral: no persisted or shared state."""
+    if delivered and pre_verification_fail:
+        print(FAIL_OWNED_SIGNAL, flush=True)
+
+
 def execute_run(
     mode: str,
     run_date: date,
@@ -1215,6 +1230,14 @@ def _run_pipeline(
         fixture_backed=fixture_backed,
         notify_mode=notify_mode,
     )
+
+    # PRD-296: emit the FAIL-owned ownership signal HERE, immediately after the send and BEFORE
+    # the fallible post-send work below (audit / evaluation / performance / sidecar / SPY card),
+    # so ownership survives a post-send exception in the same attempt. Gated on the PRE-verification
+    # FAIL (system_halted or errors) - the same formula _build_run_summary uses at the summary
+    # status line - read before any verification override, so a SUCCESS send that only fails
+    # verification never owns and a send failure never owns.
+    _emit_fail_owned_signal(alert_sent, bool(validation_summary.system_halted or errors))
 
     run_history = _load_run_history(LOGS_DIR / "audit.jsonl")
     premarket_report = build_premarket_report(contract)

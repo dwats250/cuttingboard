@@ -112,7 +112,10 @@ def test_telegram_env_exposed_on_job():
 
 def test_notify_step_is_terminal_and_failure_only():
     step, steps = _notify_step(_workflow())
-    assert step["if"] == "failure()"                    # success never triggers the alert (R6)
+    # PRD-296: the terminal notifier now also suppresses itself when the runtime already
+    # owns and sent the FAIL notification (CB_NOTIFIED). It still fires on every failure
+    # the runtime did not own, and never on success.
+    assert step["if"] == "failure() && env.CB_NOTIFIED != 'true'"
     assert steps[-1]["name"] == "Notify on failure"     # terminal: catches any prior step's failure
     run = step["run"]
     assert "format_failure_notification" in run and "send_telegram" in run  # reuse (R4)
