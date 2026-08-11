@@ -9,7 +9,9 @@ so its verification-failure alert is not suppressed (the crux the Stage-0 review
 from __future__ import annotations
 
 import inspect
+from datetime import date
 from pathlib import Path
+from types import SimpleNamespace
 
 import yaml
 
@@ -72,6 +74,41 @@ def test_emit_uses_pre_verification_status_before_override():
     assert src.index("_emit_fail_owned_signal(") < src.index('pipeline.summary["status"] ='), (
         "the FAIL-owned signal must be emitted before the post-verification status override"
     )
+
+
+def test_execute_run_success_pipeline_failing_verification_emits_no_token(monkeypatch, capsys):
+    """Crux behavioral proof (PRD-296 VALIDATION / Stage-0 REQUIRED CHANGE #2): a delivered
+    notification on a :1413-SUCCESS attempt whose post-pipeline verification FAILS must emit NO
+    token, even though execute_run flips the final status to FAIL and cli would exit 1. The
+    terminal notifier must stay free to fire (PRD-295 no-regression). Moving the emission after
+    the :300-304 override makes this test fail (the token would be printed on the final FAIL)."""
+    fake = SimpleNamespace(
+        report_path="/does/not/matter.md",
+        report="r",
+        date_str="2026-04-12",
+        run_at_utc=runtime.datetime(2026, 4, 12, 13, 0, tzinfo=runtime.timezone.utc),
+        summary={"status": SUMMARY_STATUS_SUCCESS, "warnings": [], "errors": []},
+        contract={"artifacts": {"notification_sent": True}},
+        spy_observation=None,
+        market_control_card=None,
+        market_map={},
+    )
+    monkeypatch.setattr(runtime, "_run_pipeline", lambda **kw: fake)
+    monkeypatch.setattr(runtime, "_write_summary_files", lambda *a, **k: (Path("s.json"), Path("l.json")))
+    monkeypatch.setattr(runtime, "verify_run_summary", lambda *a, **k: {"pass": False, "warnings": [], "errors": ["verify failed"]})
+    monkeypatch.setattr(runtime, "_write_markdown_report", lambda *a, **k: None)
+    monkeypatch.setattr(runtime, "_rewrite_summary_file", lambda *a, **k: None)
+    monkeypatch.setattr(runtime, "_write_contract_file", lambda *a, **k: None)
+    monkeypatch.setattr(runtime, "_write_payload_artifacts", lambda *a, **k: None)
+    monkeypatch.setattr(runtime, "_load_previous_market_map", lambda *a, **k: {})
+    monkeypatch.setattr(runtime, "inject_lifecycle", lambda *a, **k: {})
+    monkeypatch.setattr(runtime, "_write_market_map_file", lambda *a, **k: None)
+    monkeypatch.setattr(runtime, "_write_macro_snapshot", lambda *a, **k: None)
+
+    summary = runtime.execute_run(mode=runtime.MODE_LIVE, run_date=date.fromisoformat("2026-04-12"))
+
+    assert summary["status"] == SUMMARY_STATUS_FAIL          # override flipped SUCCESS -> FAIL (cli would exit 1)
+    assert FAIL_OWNED_SIGNAL not in capsys.readouterr().out  # but NO token: terminal stays free to fire
 
 
 # --- Workflow wiring -------------------------------------------------------------------
