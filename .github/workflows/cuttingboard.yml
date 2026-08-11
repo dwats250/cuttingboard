@@ -256,10 +256,18 @@ jobs:
           echo "CB_STAGE=execute" >> "$GITHUB_ENV"
           echo "=== START live ==="
           date -u +"%Y-%m-%dT%H:%M:%SZ"
-          timeout 8m python -m cuttingboard --mode live --notify-mode premarket
+          # PRD-296: capture the CLI exit code (set +e + PIPESTATUS) so the
+          # FAIL-owned sentinel grep runs even on failure, then preserve the
+          # original exit semantics (PUBLISH_READY still gated on rc==0).
+          set +e
+          timeout 8m python -m cuttingboard --mode live --notify-mode premarket 2>&1 | tee "$RUNNER_TEMP/cb_run.log"
+          rc=${PIPESTATUS[0]}
+          set -e
+          if grep -q '::CB_NOTIFY_OWNED_FAIL::' "$RUNNER_TEMP/cb_run.log"; then echo "CB_NOTIFIED=true" >> "$GITHUB_ENV"; fi
           date -u +"%Y-%m-%dT%H:%M:%SZ"
           echo "=== END live ==="
-          echo "PUBLISH_READY=true" >> "$GITHUB_ENV"
+          if [ "$rc" -eq 0 ]; then echo "PUBLISH_READY=true" >> "$GITHUB_ENV"; fi
+          exit "$rc"
 
       # --- Sunday regime-only report ---
       - name: Run Sunday regime report
@@ -269,10 +277,18 @@ jobs:
           echo "CB_STAGE=execute" >> "$GITHUB_ENV"
           echo "=== START sunday ==="
           date -u +"%Y-%m-%dT%H:%M:%SZ"
-          timeout 8m python -m cuttingboard --mode sunday --notify-mode premarket
+          # PRD-296: capture the CLI exit code (set +e + PIPESTATUS) so the
+          # FAIL-owned sentinel grep runs even on failure, then preserve the
+          # original exit semantics (PUBLISH_READY still gated on rc==0).
+          set +e
+          timeout 8m python -m cuttingboard --mode sunday --notify-mode premarket 2>&1 | tee "$RUNNER_TEMP/cb_run.log"
+          rc=${PIPESTATUS[0]}
+          set -e
+          if grep -q '::CB_NOTIFY_OWNED_FAIL::' "$RUNNER_TEMP/cb_run.log"; then echo "CB_NOTIFIED=true" >> "$GITHUB_ENV"; fi
           date -u +"%Y-%m-%dT%H:%M:%SZ"
           echo "=== END sunday ==="
-          echo "PUBLISH_READY=true" >> "$GITHUB_ENV"
+          if [ "$rc" -eq 0 ]; then echo "PUBLISH_READY=true" >> "$GITHUB_ENV"; fi
+          exit "$rc"
 
       # --- Verify: runs after live or sunday, or standalone via workflow_dispatch ---
       - name: Verify run
@@ -400,7 +416,10 @@ jobs:
       # never silenced. Job cancellation / the 20-min hard timeout do not trigger
       # if: failure().
       - name: Notify on failure
-        if: failure()
+        # PRD-296: suppress the generic alert only when the runtime already owns and
+        # sent the FAIL notification for this attempt (CB_NOTIFIED set by the live/
+        # sunday execute step on the FAIL-owned sentinel). All other failures still fire.
+        if: failure() && env.CB_NOTIFIED != 'true'
         env:
           CB_JOB_MODE: ${{ steps.mode.outputs.job_mode }}
           CB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

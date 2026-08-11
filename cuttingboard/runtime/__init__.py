@@ -252,6 +252,19 @@ def execute_prefetch() -> int:
         return 1
 
 
+FAIL_OWNED_SIGNAL = "::CB_NOTIFY_OWNED_FAIL::"
+
+
+def _emit_fail_owned_signal(contract: dict[str, Any], summary: dict[str, Any]) -> None:
+    """PRD-296: print the ephemeral FAIL-owned notification sentinel to stdout iff the
+    runtime already delivered a notification for this attempt AND the summary status is
+    FAIL. Callers MUST pass the PRE-verification summary (before execute_run's
+    post-verification status override), so a SUCCESS attempt that only fails verification
+    leaves the workflow terminal notifier free to fire. Ephemeral: no persisted state."""
+    if contract["artifacts"].get("notification_sent") and summary.get("status") == SUMMARY_STATUS_FAIL:
+        print(FAIL_OWNED_SIGNAL, flush=True)
+
+
 def execute_run(
     mode: str,
     run_date: date,
@@ -264,6 +277,11 @@ def execute_run(
 
     try:
         pipeline = _run_pipeline(mode=mode, run_date=run_date, fixture_file=fixture_file, notify_mode=notify_mode)
+        # PRD-296: emit the FAIL-owned signal from the PRE-verification summary (before the
+        # post-verification status override below) so the workflow terminal notifier can
+        # suppress only an already-owned FAIL alert. Never in a finally: the exception path
+        # sends no notification and prints no token.
+        _emit_fail_owned_signal(pipeline.contract, pipeline.summary)
         report_path = Path(pipeline.report_path)
         summary_path, latest_path = _write_summary_files(
             pipeline.summary,
