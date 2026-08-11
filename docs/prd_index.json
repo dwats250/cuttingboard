@@ -1448,6 +1448,12 @@
       "title": "Single notification ownership for FAIL/HALT outcomes (duplicate-alert suppression)",
       "status": "COMPLETE",
       "commit": "#243"
+    },
+    {
+      "number": 297,
+      "title": "Morning executor gate swap: exact-SHA CI proof + narrow runtime readiness + post-render artifact-health (remove full-suite/ruff from the live path)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
