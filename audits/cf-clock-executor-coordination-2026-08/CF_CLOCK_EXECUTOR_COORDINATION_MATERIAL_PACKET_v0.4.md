@@ -1,9 +1,20 @@
-# CF Clock / GitHub Executor — First-Success Coordination — MATERIAL PACKET (v0.3)
+# CF Clock / GitHub Executor — First-Success Coordination — MATERIAL PACKET (v0.4)
 
-STATUS: PROVISIONAL — DESIGN COMPLETE (author-hardened §19; corrected against a
-non-gating independent evidence review §20; owner CF-D4 ruling folded in §21),
-PENDING INDEPENDENT CODEX PACKET REVIEW (GOV-2 §2 step 3). This packet grants no
-downstream authority.
+STATUS: PROVISIONAL — GOV-2 INITIAL PACKET REVIEW COMPLETE (independent Sol,
+REQUIRED CHANGES → one bounded correction applied, §22); PENDING GOV-2
+EXACT-CORRECTED-HEAD CONFIRMATION (§17, §7). This packet grants no downstream
+authority until that confirmation is clean.
+
+GOV-2 GATE STATUS (§17):
+- INITIAL PACKET REVIEW — DONE. Independent GPT-5.6 Sol (fresh-context, not the
+  author), reviewed v0.3 @ `12c77ca7782a21ccb6a9b841f6a0b49d6a41fb5d`, verdict
+  REQUIRED CHANGES, one finding (C5). Durable record: `PACKET.review.sol.md`.
+- ONE BOUNDED CORRECTION (C5) — applied here (v0.3 → v0.4, §22).
+- EXACT-CORRECTED-HEAD CONFIRMATION — PENDING: this corrected head returns to the
+  same independent Sol seat.
+
+Prior provenance retained: author-hardened §19; non-gating author-side evidence
+review §20; owner CF-D4 ruling §21.
 
 OWNER RULING FOLDED IN (v0.2 → v0.3): Dustin ruled §16 item 4 (2026-08-11,
 option (i)) — CF-D4 SUPERSEDED-IN-PART: the OPEN/live GitHub heartbeat is retimed
@@ -48,12 +59,12 @@ materiality check at intake                         <- §15 (MATERIAL: crosses
                                                        runtime-exit / workflow /
                                                        notification / delivery;
                                                        adds a coordination seam)
--> provisional material packet                       <- THIS DOCUMENT (v0.3)
--> Codex packet review                               <- PENDING (§17; instrument
-                                                       not present in the current
-                                                       cloud session)
--> one consolidated correction                       <- pending
--> Codex confirmation of exact corrected head        <- pending
+-> provisional material packet                       <- THIS DOCUMENT (v0.4)
+-> independent packet review                          <- DONE (§17; GPT-5.6 Sol,
+                                                       REQUIRED CHANGES, finding C5)
+-> one consolidated correction                       <- DONE (C5, §22 — this v0.4)
+-> confirmation of exact corrected head              <- PENDING (§17; same Sol
+                                                       seat, against this v0.4 head)
 -> Dustin design-direction ruling                    <- automatic iff in-bounds
                                                        (§16 pre-authorizations)
 -> PRD drafting (Stage-0)                             <- pending
@@ -393,9 +404,18 @@ Add a dynamic `run-name:` emitting the `CB-SLOT:<slot>` token per §5.1.
 
 ### 7.4 Pre-execution first-success query (OPEN only)
 
-Before the live execute step, on an **automatic OPEN** invocation, run
-`check_open_slot_satisfied.py` using the ambient `github.token` (the workflow
-already holds `actions: read` — **no new credential**):
+**Step ordering (BINDING — Sol C5 ordering bind).** For an automatic OPEN
+invocation the workflow MUST validate slot/mode consistency (§7.2, fail closed)
+**before** the first-success SATISFIED/no-op decision runs. A malformed
+invocation therefore concludes FAILURE at validation and can NEVER reach the
+no-op path — so it can never become a "successful no-op" that (carrying
+`CB-SLOT:OPEN` in `display_title`) would falsely match the §5.2 predicate and
+satisfy the slot. Order: (1) resolve mode/slot → (2) slot/mode validation
+(fail closed) → (3) first-success pre-check → (4) execute or no-op.
+
+Then, before the live execute step, run `check_open_slot_satisfied.py` using the
+ambient `github.token` (the workflow already holds `actions: read` — **no new
+credential**):
 
 - `SATISFIED` → no-op successfully **before** market execution (skip the live
   pipeline; the run concludes success as a legitimate coordinated no-op).
@@ -416,11 +436,10 @@ manual dispatch in the gap; prefetch is done by ~05:58; Sunday is a weekend)
 would **cancel the pending fallback** — and if CF-OPEN then fails, the fallback
 that should have covered it is gone → missing board. A real availability hole.
 
-**Give coordination-participating OPEN runs their own concurrency group** (keyed
-on the trading date) so a pending OPEN fallback cannot be evicted by an unrelated
-slot. **This does NOT reintroduce a publication race** — v0.1 wrongly claimed it
-would. Verified: `hourly_alert.yml` runs under a DIFFERENT group (`hourly-alert`,
-`:27`) and already publishes to the same `publish` branch CONCURRENTLY with
+**Give coordination-participating OPEN runs a dedicated concurrency group.** This
+does NOT reintroduce a publication race — v0.1 wrongly claimed it would. Verified:
+`hourly_alert.yml` runs under a DIFFERENT group (`hourly-alert`, `:27`) and
+already publishes to the same `publish` branch CONCURRENTLY with
 `cuttingboard-pipeline`; cross-workflow publish-race safety lives in
 `tools/ci_push_artifacts.sh` (delta-append + bounded push-retry), NOT in the
 shared concurrency group (`cuttingboard.yml:31–33` states exactly this). The only
@@ -429,9 +448,61 @@ cross-slot mutable seams in `cuttingboard.yml` are (i) the `publish` branch
 `actions/cache`, whose sole writer is `prefetch` (`Save OHLCV cache` gated on
 `job_mode=='prefetch'`; live/OPEN never saves it). A dedicated OPEN group touches
 neither seam unsafely. Stage-0 records the one-line confirmation of these two
-seams and corrects the PRD-194 characterization. (Option "keep the shared group
-and accept the eviction hazard" is rejected: it leaves the missing-board hole the
-whole design exists to prevent.)
+seams and corrects the PRD-194 characterization. (Keeping the shared group is
+rejected: it leaves the missing-board hole the whole design exists to prevent.)
+
+**BUT a dedicated group alone does NOT close the hazard — the queuing must be
+NON-EVICTING (Sol finding C5, load-bearing).** A dedicated group only stops
+NON-OPEN runs from evicting the pending fallback. GitHub's DEFAULT single-pending
+behavior still lets a *third OPEN-class* run evict a pending fallback WITHIN the
+group: CF-OPEN A running → GH fallback B pending → a `workflow_dispatch` C with
+`slot=OPEN` (or a duplicate CF dispatch) enters the same group → default
+concurrency replaces pending B with C → A fails → C fails closed on malformed
+input → no fallback remains → missing board. So the correction is:
+
+- **The dedicated OPEN group MUST use non-evicting queue semantics** — a pending
+  fallback must never be dropped/replaced by a later OPEN-class enqueue; OPEN
+  runs serialize (A → B → C), each running its own first-success pre-check, so
+  the first completed successful OPEN satisfies the slot and later ones no-op.
+- **Mechanism (Stage-0 pin — PRD-198 #6).** The target invariant is FULL
+  non-eviction: no later OPEN-class enqueue — valid third OPEN, duplicate CF
+  dispatch, OR malformed `slot=OPEN` — may drop the pending fallback; all OPEN
+  runs serialize (T25–T27). Sol proposes the native form
+  `concurrency: { group: <fixed OPEN group>, cancel-in-progress: false,
+  queue: max }`. The author flags that a native `queue`/queue-all (multi-pending)
+  option is NOT in the documented GitHub Actions `concurrency` schema as of the
+  knowledge cutoff (documented keys are `group` and `cancel-in-progress` only,
+  single-pending-replace default). **Stage-0 MUST verify and pin the exact
+  current native mechanism.** Decision tree:
+  1. If GitHub natively supports multi-pending / non-evicting queuing
+     (`queue: max` or equivalent) → use it; it satisfies T25–T27.
+  2. If NOT, a *validity-routed group expression* — assigning a malformed OR
+     slot/mode-invalid dispatch its own isolated per-run group, e.g.
+     `group: ${{ (inputs.slot=='OPEN' && inputs.mode=='live') && 'cb-open' || format('cb-open-isolated-{0}', github.run_id) }}`
+     — removes ONLY the malformed-evictor case (T26; the concrete missing-board
+     scenario in Sol's example, where the evictor fails closed). It does **NOT**
+     stop a *valid* third OPEN / duplicate CF dispatch from evicting the pending
+     fallback (T25/T27) under single-pending-replace, so it is a PARTIAL
+     mitigation, not the full fix.
+  3. If neither (1) nor an equivalent full-non-eviction mechanism (e.g. an
+     explicit external "wait-for-prior-run" queue step, weighed for added
+     dependency) can guarantee the pending fallback survives every OPEN-class
+     enqueue, the missing-board hazard is unclosed → **return RED (§14 item 13).**
+  The residual T25/T27 harm if only the partial mitigation is available: a valid
+  evictor that itself fails at runtime after evicting the pending fallback, while
+  the original CF run also failed — narrow but real, which is why full
+  non-eviction is the required target, not the partial mitigation.
+- **Group key.** A FIXED dedicated OPEN group is used (not trading-date-keyed):
+  Sol correctly notes a date key must be derivable from allowed workflow-level
+  contexts without a new date/input authority field, and a once-daily OPEN slot
+  has no legitimate cross-day overlap (runs finish in <20 min, never spanning two
+  OPEN instants), so a fixed group suffices. Stage-0 confirms no cross-day
+  overlap requirement.
+- **Ordering (C5 bind).** Per §7.4 step ordering above, slot/mode validation
+  fails a malformed OPEN dispatch closed BEFORE the no-op decision, so even a
+  malformed C that briefly enters the group concludes FAILURE and never becomes
+  a satisfying no-op; combined with non-evicting queuing, it also cannot remove
+  the valid pending fallback. Tests T25–T27 (§11).
 
 ### 7.5 Delayed OPEN fallback cron — REPLACES the existing 06:00 live cron
 
@@ -617,6 +688,9 @@ reddening mutation must be shown to flip the test. Target file
 | T22 | No-op success run (SATISFIED path concluded success) exists alongside the real publish | `∃ qualifying OPEN success ⟺ real publish occurred` holds; no-op never the sole matcher | construct no-op-only-without-prior-publish (unreachable) → asserts invariant |
 | T23 | Original publishing run re-run today and the re-run FAILS (latest-attempt `conclusion=failure`); a no-op success also present | suppression still SAFE — the published board persists on the `publish` branch; a failed re-run does not unpublish (evidence review C4, Target 6 edge) | remove the persistence argument / treat re-run-failure as unpublish → wrong; pins the one falsifiable case of the §3/Phase-1-#3 prose invariant |
 | T24 (PST) | CF + fallback runs at ~13:00/13:05 UTC on a WINTER (PST) date | both fall inside the UTC window → deduped (proves UTC anchoring, C1) | use a PT-anchored `[05:55,06:20)` window → winter runs excluded → double-execute (reddens the v0.1 defect) |
+| T25 | running CF OPEN A + pending GH fallback B + a third VALID OPEN C enqueues (non-evicting group) | B is NOT canceled/replaced; A→B→C serialize; first completed successful OPEN satisfies (Sol C5) | evicting/default queue → B dropped → assert missing-fallback hazard |
+| T26 M | running CF OPEN A + pending GH fallback B + a MALFORMED `slot=OPEN` dispatch | malformed dispatch fails closed at slot/mode validation BEFORE the no-op decision, and cannot remove B; the valid fallback survives (Sol C5 + ordering bind) | let malformed dispatch reach the no-op path → it concludes success carrying `CB-SLOT:OPEN` and (a) falsely satisfies OPEN and/or (b) evicts B → reddens both halves of C5 |
+| T27 | multiple duplicate CF OPEN dispatches into the OPEN group | they serialize without evicting the fallback; exactly the first completed successful OPEN satisfies the slot; the rest no-op | evicting queue → all but one dropped, and if the survivor fails → missing board |
 
 Verification runway (at implementation): focused tests green locally, then the
 full suite reproduced on CI (PRD-198 #5, environment parity);
@@ -681,26 +755,37 @@ Return RED / stop if any becomes true (these mirror the charter's RETURN list):
     The old PRD-194 shared-group characterization was falsified and must not be
     relied on; if a real unprotected race exists, return RED rather than assume
     the delta-append path covers it.
+13. **(Sol C5)** Stage-0 finds NO mechanism that guarantees the dedicated OPEN
+    group's queuing is non-evicting — i.e. a pending GH fallback can still be
+    dropped/replaced by a later OPEN-class enqueue (a third valid OPEN, a
+    malformed `slot=OPEN` dispatch, or a duplicate CF dispatch). If neither a
+    native GitHub non-evicting queue option nor the validity-routed group
+    expression (nor an equivalent) can guarantee the pending fallback survives,
+    the missing-board hazard is unclosed → return RED.
 
 The §5.3 `created_at`-vs-`run_started_at` verification is a bounded correction
 inside the transport boundary (not a stop) unless it proves `created_at` is not
 attempt-stable AND no in-boundary correction exists — then it escalates to
 item 2.
 
-**Review decisions (D1–D3 resolved by the evidence review C1–C2; D3/CF-D4 held
-for Dustin — see §16 item 4):**
+**Review decisions (D1 UTC window, D3 fallback clock: evidence review C1; D2
+dedicated + non-evicting: evidence review C2 + Sol C5; CF-D4 retiming: owner
+ruling §16 item 4):**
 
 - **D1 — OPEN dispatch window bounds (§5.2 clause 5).** RESOLVED: anchor in
   **UTC**, candidate `[12:50, 13:25) UTC`, bracketing the ~13:00/13:05 UTC
   trigger instants; exact bounds set at Stage-0 from CF-E1/E2 run-time evidence.
   In-boundary (a helper constant); escalates to charter RETURN-7 only if evidence
   shows no window satisfies both containment and exclusion.
-- **D2 — OPEN concurrency group (§7.4).** RESOLVED: a **dedicated** group for
-  coordination-participating OPEN runs (keyed on the trading date). Verified not
-  to reintroduce a publish race (PRD-194 publish-safety is in
-  `ci_push_artifacts.sh`, not the shared group; the only cross-slot seams are the
-  delta-append-safe `publish` branch and the prefetch-only OHLCV cache). Closes
-  the pending-eviction/missing-board hazard.
+- **D2 — OPEN concurrency group (§7.4).** A **fixed dedicated** group for
+  coordination-participating OPEN runs, with **NON-EVICTING queue semantics**
+  (Sol C5). The dedicated group alone only stops NON-OPEN eviction; a third
+  OPEN-class run can still evict a pending fallback under GitHub's default
+  single-pending-replace, so the queuing MUST be non-evicting. Not a publish race
+  (PRD-194 publish-safety is in `ci_push_artifacts.sh`, not the shared group; the
+  only cross-slot seams are the delta-append-safe `publish` branch and the
+  prefetch-only OHLCV cache). Exact non-evicting mechanism pinned at Stage-0
+  (§7.4); no safe mechanism → RED (§14 item 13).
 - **D3 — fallback clock / DST (§7.5).** A single **fixed-UTC** fallback cron,
   paired with the D1 UTC window; documented as tracking a fixed UTC instant that
   drifts ±1h in PT across DST (the existing accepted convention,
@@ -731,7 +816,7 @@ confirmation).
 ## 16. Owner rulings recorded (standing pre-authorizations from the resume charter)
 
 The design-direction ruling is **automatically effective** iff this design stays
-inside ALL of the following (verified true for v0.3):
+inside ALL of the following (verified true for v0.4):
 
 - Cloudflare remains clock only — §2 ✓
 - GitHub remains executor only — §2 ✓
@@ -766,45 +851,46 @@ review, which is a capability/instrument gate, not an owner decision.
   group) — a concrete unprotected shared-write race found at Stage-0 is a RED
   (§14 item 12). Canonical record: `docs/DECISIONS.md` 2026-08-11. No item
   outside the auto-ruling boundary now remains open; the only remaining gate is
-  the GOV-2 §2/§7 Codex packet review (§17).
+  the GOV-2 §7 exact-corrected-head confirmation by the Sol seat (§17; the
+  INITIAL PACKET REVIEW is done).
 
 ---
 
-## 17. Packet review records (GOV-2 §2, §7) — PENDING (NOT satisfied)
+## 17. Packet review records (GOV-2 §2, §7)
 
-This packet is PROVISIONAL. The two GOV-2 auto-commissioned Codex events have
-NOT occurred. No verdict is fabricated. The required durable-record fields
-(GOV-2 §2) are scaffolded here and MUST be filled by the actual independent
-reviewer against the exact reviewed SHA before any downstream authority opens.
+Event 1 (INITIAL PACKET REVIEW) is COMPLETE by an independent instrument. Event 2
+(EXACT-CORRECTED-HEAD CONFIRMATION) is PENDING against this corrected head.
 
-### INITIAL PACKET REVIEW — PENDING
+### INITIAL PACKET REVIEW — COMPLETE (2026-08-11)
 
 | Field | Value |
 |---|---|
 | Event type | `INITIAL PACKET REVIEW` (GOV-2 §2 auto-commissioned) |
-| Reviewer identity / capability role | PENDING (independent Codex, fresh context) |
-| Reviewed commit SHA / revision | PENDING (this packet's committed SHA) |
-| Review date | PENDING |
-| Verdict | PENDING |
-| Findings + dispositions | PENDING |
-| Fresh-context / independence evidence | PENDING |
+| Reviewer identity / capability role | GPT-5.6 **Sol** / independent fresh-context — the Adversary / independent-review seat (`AGENT_SEATING.md`: "Codex/Sol"); a different model family, not the author, not a subagent spawned by the authoring session |
+| Reviewed commit SHA / revision | `12c77ca7782a21ccb6a9b841f6a0b49d6a41fb5d` (v0.3) |
+| Review date | 2026-08-11 |
+| Verdict | **REQUIRED CHANGES** (one finding, C5 — dedicated OPEN group does not fully remove pending eviction) |
+| Findings + dispositions | C5 — ACTIONED: non-evicting queue requirement + fixed group + ordering bind + mechanism Stage-0 pin/RED + tests T25–T27 (§7.4, §14-D2, §14 item 13, §11, §22) |
+| Fresh-context / independence evidence | separate GPT-5.6 Sol review seat, run by the owner outside the authoring session; the authoring HELM did not perform, in-line prompt, or spawn it |
+
+Durable record: `PACKET.review.sol.md` (this directory).
 
 ### EXACT-CORRECTED-HEAD CONFIRMATION — PENDING
 
 | Field | Value |
 |---|---|
 | Event type | `EXACT-CORRECTED-HEAD CONFIRMATION` |
-| Corrected SHA | PENDING |
-| Prior finding ids + dispositions confirmed | PENDING |
-| Reviewer / independence evidence | PENDING |
+| Corrected SHA | PENDING — the committed v0.4 head (this correction) |
+| Prior finding ids + dispositions confirmed | PENDING — confirm C5 dispositioned + no new load-bearing defect |
+| Reviewer / independence evidence | PENDING — same independent Sol seat |
 
-**Instrument note.** GOV-2 §2/§7 require an independent **Codex** review for
-both events; `docs/DECISIONS.md` (2026-08-09) states CF execution "moves to the
-Codex harness." The Codex instrument is not present in the current cloud
-session, and GOV-2 §3 forbids a subagent spawned by the authoring session from
-satisfying independent review. The packet therefore stops, correctly, at
-PROVISIONAL — this is the standing blocker, held for Dustin to run/commission
-the Codex packet review (or direct otherwise).
+**Instrument note.** The INITIAL PACKET REVIEW was performed by the genuinely
+independent Sol seat (not by the authoring session — the author cannot satisfy
+this per GOV-2 §3, and there is no Codex/Sol instrument inside the authoring
+cloud session). The one bounded C5 correction is applied here; the corrected head
+returns to the SAME Sol seat for the exact-corrected-head confirmation, which is
+the remaining gate before the standing design-direction ruling becomes effective
+and Stage-0 opens.
 
 ---
 
@@ -904,13 +990,37 @@ Ruled and folded in:
   concrete unprotected shared-write race at Stage-0 is a RED (§14 item 12).
 
 This ruling closes the last item outside the auto-ruling boundary. The design is
-now fully within the standing owner pre-authorizations (§16). The ONLY remaining
-gate is the GOV-2 §2/§7 independent Codex packet review (§17, PENDING).
+now fully within the standing owner pre-authorizations (§16).
 
 ---
 
-END OF PACKET v0.3 — PROVISIONAL, author-hardened (§19) + evidence-review-
-corrected (§20) + owner-CF-D4-ruling folded in (§21), PENDING INDEPENDENT CODEX
-PACKET REVIEW (§17). No item now awaits an owner ruling. No downstream authority
-(Stage-0 PRD, Gate A, implementation) is granted by this document until the Codex
-packet-review gate is clean.
+## 22. Independent Sol review correction cycle (v0.3 → v0.4; GOV-2 §7)
+
+The GOV-2 §2 INITIAL PACKET REVIEW was performed by the independent GPT-5.6 Sol
+seat against v0.3 @ `12c77ca7782a21ccb6a9b841f6a0b49d6a41fb5d` — verdict REQUIRED
+CHANGES, one finding (C5). Durable record: `PACKET.review.sol.md` (§17). This is
+GOV-1's single bounded correction cycle. Applied:
+
+| # | Finding (Sol) | Disposition | Where |
+|---|---|---|---|
+| C5 | A **dedicated** OPEN concurrency group only stops NON-OPEN eviction; a third OPEN-class run (a valid OPEN, a malformed `slot=OPEN` dispatch that fails closed, or a duplicate CF dispatch) can still replace the pending GH fallback under GitHub's default single-pending-replace → if the running CF OPEN then fails and the evictor fails, the morning board is missed (first-success/availability invariant) | ACTIONED — (1) the dedicated group MUST use **non-evicting queue** semantics so a pending fallback is never dropped by a later OPEN-class enqueue; (2) **fixed** group (not date-keyed — no cross-day overlap; date key not derivable without a new authority field); (3) exact non-evicting **mechanism pinned at Stage-0** (PRD-198 #6) — Sol's `queue: max` candidate flagged as not-in-the-documented-schema-as-of-cutoff, validity-routed group expression given as the fallback mechanism, **no safe mechanism → RED**; (4) **ordering bind**: slot/mode validation fails a malformed OPEN dispatch closed BEFORE the no-op decision, so it can neither become a satisfying no-op nor (with non-eviction) remove the valid fallback; (5) tests T25–T27 | §7.4, §14-D2, §14 item 13, §11 T25–T27 |
+
+Author disposition note (honest mechanism handling): the non-eviction
+**requirement** is adopted in full; the exact GitHub mechanism is pinned as a
+Stage-0 verification with a RED escape rather than asserting `queue: max` as a
+working native key the author cannot confirm exists — this addresses the finding
+without introducing an unverified config as fact. No new persisted state,
+credential widening, or CF-D1b/CF-E2 coupling is introduced. Sol confirmed "no
+other packet authority/truth findings require correction."
+
+Next: this v0.4 corrected head returns to the same independent Sol seat for the
+GOV-2 §7 EXACT-CORRECTED-HEAD CONFIRMATION (§17).
+
+---
+
+END OF PACKET v0.4 — INITIAL PACKET REVIEW COMPLETE (independent Sol, REQUIRED
+CHANGES → one bounded C5 correction applied §22); author-hardened (§19),
+evidence-review-corrected (§20), owner-CF-D4-ruling folded in (§21). PENDING the
+GOV-2 §7 EXACT-CORRECTED-HEAD CONFIRMATION by the same Sol seat (§17). No item
+awaits an owner ruling. No downstream authority (Stage-0 PRD, Gate A,
+implementation) is granted until that confirmation is clean.
