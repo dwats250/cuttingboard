@@ -37,6 +37,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   pipeline:
@@ -160,17 +161,29 @@ jobs:
           set -eo pipefail
           pip install -e ".[dev]"
 
-      - name: Lint
+      # PRD-297: exact-SHA authoritative CI proof (replaces the removed
+      # full-suite/ruff runtime gate; quality control stays at the ci.yml merge
+      # gate). CI_SUCCESS authorizes an observation ATTEMPT only; any other
+      # typed state fails named and loud before execution.
+      - name: Exact-SHA CI proof
+        if: steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -eo pipefail
-          echo "CB_STAGE=lint" >> "$GITHUB_ENV"
-          ruff check cuttingboard/ tests/
+          echo "CB_STAGE=ci_proof" >> "$GITHUB_ENV"
+          python3 scripts/check_run_revision.py | tee "$RUNNER_TEMP/ci_proof.out"
+          echo "CB_PROVEN_SHA=$(sed -n 's/^CI_PROOF_SHA=//p' "$RUNNER_TEMP/ci_proof.out")" >> "$GITHUB_ENV"
 
-      - name: Test
+      # PRD-297: narrow deterministic runtime readiness (startup import chain,
+      # parquet backend, entrypoint arg contract, writable dirs). Seconds-fast,
+      # no network / market semantics / pytest / ruff / repair.
+      - name: Runtime readiness
+        if: steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday'
         run: |
           set -eo pipefail
-          echo "CB_STAGE=tests" >> "$GITHUB_ENV"
-          pytest tests/ -q
+          echo "CB_STAGE=runtime_readiness" >> "$GITHUB_ENV"
+          python3 scripts/check_runtime_readiness.py
 
       - name: Engine health check
         run: |
@@ -247,6 +260,22 @@ jobs:
         with:
           path: data/cache
           key: ohlcv-${{ runner.os }}-${{ steps.ohlcvcache.outputs.day }}
+
+      # PRD-297: REVISION_DRIFT guard -- re-read HEAD immediately before execute
+      # and fail named rather than execute an unproven revision. Defense-in-depth
+      # (the single checkout makes in-workspace drift near-impossible); the guard
+      # is total and red-tested.
+      - name: Revision drift guard
+        if: steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday'
+        run: |
+          set -eo pipefail
+          echo "CB_STAGE=revision_drift" >> "$GITHUB_ENV"
+          CUR="$(git rev-parse HEAD)"
+          if [ "$CUR" != "$CB_PROVEN_SHA" ]; then
+            echo "REVISION_DRIFT: current HEAD $CUR != CI-proven SHA $CB_PROVEN_SHA" >&2
+            exit 1
+          fi
+          echo "revision drift guard: HEAD $CUR matches CI-proven SHA $CB_PROVEN_SHA"
 
       # --- Premarket full pipeline ---
       - name: Run live pipeline
@@ -380,6 +409,12 @@ jobs:
           # HEAD so the pipeline never republishes the hourly's mutable contract (the
           # hourly owns + publishes it); tracked on main, so checkout cleanly unstages.
           git checkout HEAD -- logs/latest_hourly_contract.json
+          # PRD-297: validate the FRESHLY-RENDERED current morning artifacts
+          # (logs/latest_run.json run-health + ui/dashboard.html/index.html
+          # markers) BEFORE commit. A non-zero validation aborts the step
+          # (set -euo pipefail) before any commit or push.
+          echo "CB_STAGE=artifact_validate" >> "$GITHUB_ENV"
+          python3 scripts/check_readiness.py --profile morning
           if [ -f .cb_commit_msg ]; then
             git diff --staged --quiet || git commit -F .cb_commit_msg
           else

@@ -125,8 +125,24 @@ def test_notify_step_is_terminal_and_failure_only():
 
 def test_stage_carrier_present_and_bounded_to_post_install():
     text = WORKFLOW.read_text(encoding="utf-8")
-    for stage in ("lint", "tests", "engine_doctor", "execute", "verify", "render_commit", "push"):
+    # PRD-297: the full-suite lint/pytest steps were removed from the live path;
+    # the new pre-execution gates (ci_proof, runtime_readiness, revision_drift)
+    # and the post-render artifact_validate step are the reportable stages.
+    for stage in (
+        "engine_doctor",
+        "ci_proof",
+        "runtime_readiness",
+        "revision_drift",
+        "execute",
+        "verify",
+        "render_commit",
+        "artifact_validate",
+        "push",
+    ):
         assert f'echo "CB_STAGE={stage}" >> "$GITHUB_ENV"' in text, f"missing CB_STAGE carrier: {stage}"
+    # PRD-297: the removed full-suite gate's carriers must be gone.
+    assert "CB_STAGE=lint" not in text
+    assert "CB_STAGE=tests" not in text
     # Pre-install / non-helper-available stages are not reportable (option-A boundary).
     assert "CB_STAGE=install" not in text
     assert "CB_STAGE=mode_resolution" not in text
