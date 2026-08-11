@@ -11,7 +11,7 @@ import json
 from datetime import date
 
 from cuttingboard import runtime
-from cuttingboard.runtime import RunResult, _is_execution_success
+from cuttingboard.runtime import RunResult, _is_execution_success, _is_pre_verification_fail
 from cuttingboard.validation import HaltCause
 from tests.test_operationalization import FIXTURE_PATH, _isolate_artifacts
 from tests.test_notification_ownership import _isolate_artifacts as _isolate_live_artifacts
@@ -204,3 +204,36 @@ def test_validation_halt_still_obeys_dedup_suppression(monkeypatch, tmp_path):
         monkeypatch, tmp_path, HaltCause.VALIDATION, should_send_result=False
     )
     assert len(sends) == 0
+
+
+# --- Finding 2: a successful market-stress HALT must NOT own FAIL notification ------
+# (connector P1 #240, owner-actioned): otherwise the stale CB_NOTIFIED flag would suppress
+# the PRD-295 generic notifier on a LATER artifact-validation/commit/push failure.
+
+def test_market_stress_halt_does_not_own_fail_notification():
+    # (Mutation: reverting the gate to `system_halted or errors` makes this return True -> red,
+    #  which would re-establish CB_NOTIFIED and silence a later publish-path failure.)
+    assert _is_pre_verification_fail(
+        system_halted=True, halt_cause=HaltCause.MARKET_STRESS, errors=[]
+    ) is False
+
+
+def test_validation_halt_still_owns_fail_notification():
+    assert _is_pre_verification_fail(
+        system_halted=True, halt_cause=HaltCause.VALIDATION, errors=["missing HALT symbol"]
+    ) is True
+
+
+def test_degraded_market_stress_with_errors_still_owns():
+    # A market-stress-labelled run with errors is a genuine executor FAILURE -> still owns.
+    assert _is_pre_verification_fail(
+        system_halted=True, halt_cause=HaltCause.MARKET_STRESS, errors=["boom"]
+    ) is True
+
+
+def test_crash_owns_fail_notification():
+    assert _is_pre_verification_fail(system_halted=False, halt_cause=None, errors=["boom"]) is True
+
+
+def test_normal_run_does_not_own_fail_notification():
+    assert _is_pre_verification_fail(system_halted=False, halt_cause=None, errors=[]) is False

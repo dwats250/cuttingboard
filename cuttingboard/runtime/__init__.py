@@ -270,6 +270,15 @@ def _emit_fail_owned_signal(delivered: bool, pre_verification_fail: bool) -> Non
         print(FAIL_OWNED_SIGNAL, flush=True)
 
 
+def _is_pre_verification_fail(system_halted: Any, halt_cause: Any, errors: Any) -> bool:
+    """PRD-296/298: whether this run is a GENUINE pre-verification executor FAIL for
+    notification-ownership. A VALID market-stress HALT is EXCLUDED - it concludes
+    executor-success (PRD-298), so it must NOT establish FAIL-owned suppression (a later
+    artifact-validation/commit/push failure must still fire the PRD-295 generic notifier).
+    A degraded halt (non-empty errors), a VALIDATION halt, or any errored run still qualifies."""
+    return bool(errors) or (bool(system_halted) and halt_cause != HaltCause.MARKET_STRESS)
+
+
 class RunResult(dict):
     """PRD-298: the run summary dict plus an in-memory execution-success signal
     that drives the process exit code WITHOUT being persisted. Subclasses dict so
@@ -1297,7 +1306,16 @@ def _run_pipeline(
     # FAIL (system_halted or errors) - the same formula _build_run_summary uses at the summary
     # status line - read before any verification override, so a SUCCESS send that only fails
     # verification never owns and a send failure never owns.
-    _emit_fail_owned_signal(alert_sent, bool(validation_summary.system_halted or errors))
+    # PRD-298 (connector P1 #240, owner-actioned): a VALID market-stress HALT now concludes
+    # executor-SUCCESS (exit 0) and traverses the publish stages, so it must NOT establish
+    # FAIL-owned suppression - otherwise a later artifact-validation/commit/push failure would be
+    # silently suppressed by the stale CB_NOTIFIED flag. Exclude a market-stress halt from the
+    # pre-verification-FAIL gate; a degraded halt (non-empty errors) or a VALIDATION halt (any
+    # genuine executor failure the runtime already notified) still owns exactly as before.
+    _emit_fail_owned_signal(
+        alert_sent,
+        _is_pre_verification_fail(validation_summary.system_halted, validation_summary.halt_cause, errors),
+    )
 
     run_history = _load_run_history(LOGS_DIR / "audit.jsonl")
     premarket_report = build_premarket_report(contract)
