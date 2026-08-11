@@ -1,20 +1,23 @@
 # CF Clock / GitHub Executor — First-Success Coordination — MATERIAL PACKET (v0.4)
 
-STATUS: PROVISIONAL — GOV-2 INITIAL PACKET REVIEW COMPLETE (independent Sol,
-REQUIRED CHANGES → one bounded correction applied, §22); PENDING GOV-2
-EXACT-CORRECTED-HEAD CONFIRMATION (§17, §7). This packet grants no downstream
-authority until that confirmation is clean.
+STATUS: **REVIEW-CLEAN @ `46963f7`** — GOV-2 §2/§7 packet-review cycle COMPLETE;
+standing design-direction ruling (§16) now automatically effective; cleared to
+PROCEED TO STAGE-0. Downstream authority (Stage-0 PRD, then independent PRD
+review, then Gate A) opens per GOV-2 order.
 
 GOV-2 GATE STATUS (§17):
 - INITIAL PACKET REVIEW — DONE. Independent GPT-5.6 Sol (fresh-context, not the
   author), reviewed v0.3 @ `12c77ca7782a21ccb6a9b841f6a0b49d6a41fb5d`, verdict
   REQUIRED CHANGES, one finding (C5). Durable record: `PACKET.review.sol.md`.
-- ONE BOUNDED CORRECTION (C5) — applied here (v0.3 → v0.4, §22).
-- EXACT-CORRECTED-HEAD CONFIRMATION — PENDING: this corrected head returns to the
-  same independent Sol seat.
+- ONE BOUNDED CORRECTION (C5) — applied (v0.3 → v0.4, §22).
+- EXACT-CORRECTED-HEAD CONFIRMATION — DONE. Same Sol seat, corrected head
+  `46963f7f5de6e757c7ccbabc1ca7ff0d76c728d8`, C5 CONFIRMED CORRECTED, verdict
+  ACCEPT ("PACKET REVIEW CLEAN — PROCEED TO STAGE-0"). Sol independently
+  confirmed the native `concurrency: queue: max` mechanism (§7.4 pin resolved to
+  branch 1). Durable record: `PACKET.review.sol.md`.
 
 Prior provenance retained: author-hardened §19; non-gating author-side evidence
-review §20; owner CF-D4 ruling §21.
+review §20; owner CF-D4 ruling §21; Sol correction cycle §22.
 
 OWNER RULING FOLDED IN (v0.2 → v0.3): Dustin ruled §16 item 4 (2026-08-11,
 option (i)) — CF-D4 SUPERSEDED-IN-PART: the OPEN/live GitHub heartbeat is retimed
@@ -875,22 +878,24 @@ Event 1 (INITIAL PACKET REVIEW) is COMPLETE by an independent instrument. Event 
 
 Durable record: `PACKET.review.sol.md` (this directory).
 
-### EXACT-CORRECTED-HEAD CONFIRMATION — PENDING
+### EXACT-CORRECTED-HEAD CONFIRMATION — COMPLETE (2026-08-11)
 
 | Field | Value |
 |---|---|
 | Event type | `EXACT-CORRECTED-HEAD CONFIRMATION` |
-| Corrected SHA | PENDING — the committed v0.4 head (this correction) |
-| Prior finding ids + dispositions confirmed | PENDING — confirm C5 dispositioned + no new load-bearing defect |
-| Reviewer / independence evidence | PENDING — same independent Sol seat |
+| Corrected SHA | `46963f7f5de6e757c7ccbabc1ca7ff0d76c728d8` (v0.4) |
+| Prior finding ids + dispositions confirmed | C5 — CONFIRMED CORRECTED (non-evicting invariant binding; fixed group; validation-before-no-op ordering; T25–T27; RED escape; native `queue: max` confirmed) |
+| Verdict | **ACCEPT** — "PACKET REVIEW CLEAN — PROCEED TO STAGE-0" |
+| Reviewer / independence evidence | GPT-5.6 Sol, same independent seat, run by owner outside the authoring session |
 
-**Instrument note.** The INITIAL PACKET REVIEW was performed by the genuinely
-independent Sol seat (not by the authoring session — the author cannot satisfy
-this per GOV-2 §3, and there is no Codex/Sol instrument inside the authoring
-cloud session). The one bounded C5 correction is applied here; the corrected head
-returns to the SAME Sol seat for the exact-corrected-head confirmation, which is
-the remaining gate before the standing design-direction ruling becomes effective
-and Stage-0 opens.
+Durable record: `PACKET.review.sol.md` (both events).
+
+**Cycle complete.** Both GOV-2 §2/§7 packet-cycle events are done by the genuine
+independent Sol seat (not the author — GOV-2 §3). The packet is REVIEW-CLEAN at
+`46963f7`; the standing design-direction ruling (§16) is automatically effective;
+Stage-0 is authorized. The §7.4 non-eviction mechanism pin is resolved to native
+`concurrency: queue: max` (Sol point 6; `queue: max` not combined with
+`cancel-in-progress: true`).
 
 ---
 

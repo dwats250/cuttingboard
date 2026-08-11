@@ -81,5 +81,49 @@ does the standing design-direction ruling become effective.
 
 Author disposition of C5 is recorded in the packet (§7.4, §14-D2, §14 item 13,
 §11 T25–T27, §22). This file is the durable INITIAL PACKET REVIEW record; the
-EXACT-CORRECTED-HEAD CONFIRMATION record will be appended by Sol against the
-corrected SHA.
+EXACT-CORRECTED-HEAD CONFIRMATION record is appended below.
+
+---
+
+# EXACT-CORRECTED-HEAD CONFIRMATION (GOV-2 §7)
+
+## GOV-2 durable record
+
+- **Event type:** `EXACT-CORRECTED-HEAD CONFIRMATION` (GOV-2 §7 packet-cycle
+  event 2 of 2).
+- **Reviewer identity / capability role:** GPT-5.6 **Sol** / independent
+  fresh-context — the SAME independent seat as the INITIAL PACKET REVIEW; not the
+  author, not a subagent spawned by the authoring session.
+- **Corrected exact SHA:** `46963f7f5de6e757c7ccbabc1ca7ff0d76c728d8` (v0.4).
+- **Confirmation date:** 2026-08-11.
+- **Prior finding confirmed:** C5 — **CONFIRMED CORRECTED.**
+- **Verdict:** **ACCEPT** — "PACKET REVIEW CLEAN — PROCEED TO STAGE-0."
+
+## Verified corrections (as recorded by Sol)
+
+1. Non-evicting queuing is now a binding OPEN concurrency invariant — a later
+   OPEN-class enqueue may not cancel/replace the pending fallback.
+2. Dedicated OPEN concurrency uses a fixed group rather than a new
+   trading-date/input authority field.
+3. Slot/mode validation is ordered before the first-success no-op decision,
+   preventing malformed OPEN input from becoming a successful satisfying no-op.
+4. T25 / T26 / T27 explicitly falsify third-valid-OPEN, malformed-OPEN, and
+   duplicate-CF-OPEN eviction.
+5. Failure to find a full-non-eviction mechanism is an explicit RED/owner-return
+   condition, not an accepted residual hazard.
+6. **Native mechanism independently confirmed by Sol against current GitHub
+   Actions documentation:**
+   `concurrency: { group: <fixed dedicated OPEN group>, queue: max }`, with the
+   documented restriction that `queue: max` must NOT be combined with
+   `cancel-in-progress: true`. This resolves the packet's §7.4 Stage-0 mechanism
+   pin to decision-tree **branch 1** (native support exists → use it); the
+   validity-routed group expression is no longer needed as a fallback.
+
+"No new load-bearing authority, truth, state, security, or scope defect was
+introduced by the bounded C5 correction."
+
+## Effect
+
+The GOV-2 §2/§7 packet-review cycle is COMPLETE and the packet is REVIEW-CLEAN at
+`46963f7`. Under the standing owner pre-authorizations (packet §16), the
+design-direction ruling is automatically effective. **PROCEED TO STAGE-0.**
