@@ -1460,6 +1460,12 @@
       "title": "Valid market-stress HALT is an execution SUCCESS: publish the halt board, own the single HALT notification, conclude the executor successfully (daily path)",
       "status": "COMPLETE",
       "commit": "#245"
+    },
+    {
+      "number": 299,
+      "title": "Cloudflare clock / GitHub executor OPEN-slot first-success coordination",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

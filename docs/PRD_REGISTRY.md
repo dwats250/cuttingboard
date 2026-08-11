@@ -316,6 +316,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-296 | #243 | Single notification ownership for FAIL/HALT outcomes (duplicate-alert suppression) | COMPLETE | [PRD-296](prd_history/PRD-296.md) |
 | PRD-297 | #244 | Morning executor gate swap: exact-SHA CI proof + narrow runtime readiness + post-render artifact-health (remove full-suite/ruff from the live path) | COMPLETE | [PRD-297](prd_history/PRD-297.md) |
 | PRD-298 | #245 | Valid market-stress HALT is an execution SUCCESS: publish the halt board, own the single HALT notification, conclude the executor successfully (daily path) | COMPLETE | [PRD-298](prd_history/PRD-298.md) |
+| PRD-299 | — | Cloudflare clock / GitHub executor OPEN-slot first-success coordination | IN PROGRESS | [PRD-299](prd_history/PRD-299.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
