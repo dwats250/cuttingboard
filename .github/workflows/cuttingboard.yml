@@ -179,6 +179,13 @@ jobs:
           python3 tools/engine_doctor.py --json --baseline tools/baseline.json > engine_doctor.json || true
           python3 tools/engine_doctor.py --baseline tools/baseline.json > engine_doctor.txt 2>&1 || true
 
+      # PRD-295 (Codex P2): mark the upload stage so an artifact-upload failure reports
+      # upload_engine_doctor, not the preceding engine_doctor. if: success() so it never
+      # overwrites an earlier failing stage before this always() upload runs.
+      - name: Stage marker (upload engine doctor)
+        if: success()
+        run: echo "CB_STAGE=upload_engine_doctor" >> "$GITHUB_ENV"
+
       - name: Upload engine doctor artifacts
         if: always()
         uses: actions/upload-artifact@v7
@@ -219,6 +226,7 @@ jobs:
         if: steps.mode.outputs.job_mode == 'prefetch'
         run: |
           set -eo pipefail
+          echo "CB_STAGE=prefetch_cache_check" >> "$GITHUB_ENV"
           warmed=$(python3 -c "import glob,pandas as pd;from cuttingboard.ingestion import _is_fresh_ohlcv_cache as F;print('true' if any(F(pd.read_parquet(f)) for f in glob.glob('data/cache/*_ohlcv.parquet')) else 'false')" 2>/dev/null || echo false)
           echo "ohlcv_warmed=$warmed" >> "$GITHUB_OUTPUT"
           echo "OHLCV cache warmed (fresh bar present): $warmed"
@@ -227,6 +235,12 @@ jobs:
       # the 13:00 live run (a fresh runner) restores it. Only the prefetch run
       # saves -- the producer -- and only when it actually warmed a fresh cache,
       # so the immutable day key is never owned by a cold/halted run.
+      # PRD-295 (Codex P2): mark the save stage so a cache-save failure reports
+      # prefetch_cache_save, not the preceding execute stage.
+      - name: Stage marker (save OHLCV cache)
+        if: steps.mode.outputs.job_mode == 'prefetch' && steps.warmed.outputs.ohlcv_warmed == 'true'
+        run: echo "CB_STAGE=prefetch_cache_save" >> "$GITHUB_ENV"
+
       - name: Save OHLCV cache
         if: steps.mode.outputs.job_mode == 'prefetch' && steps.warmed.outputs.ohlcv_warmed == 'true'
         uses: actions/cache/save@v4
@@ -286,6 +300,13 @@ jobs:
       # already covered by hourly_alert.yml. Re-homing them is a follow-up PRD.
 
       # --- Generate commit message from latest_run.json (live and sunday only) ---
+      # PRD-295 (Codex P2): mark the commit-message stage so a failure of the always()
+      # Generate step reports commit_message. if: success() (+ same modes) so it never
+      # overwrites an earlier failing stage (execute/verify) that this always() step runs after.
+      - name: Stage marker (generate commit message)
+        if: success() && (steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday')
+        run: echo "CB_STAGE=commit_message" >> "$GITHUB_ENV"
+
       - name: Generate commit message
         if: >-
           always() &&
@@ -372,9 +393,12 @@ jobs:
       # PRD-295: fail-loud. On ANY job failure, send ONE Telegram alert built from
       # current workflow context only (mode + CB_STAGE + current time, via the existing
       # format_failure_notification + send_telegram), never from logs/latest_run.json.
-      # Coverage begins after "Install dev dependencies" succeeds: if cuttingboard is not
-      # importable (a pre-install failure) this step is a no-op. Job cancellation / the
-      # 20-min hard timeout do not trigger if: failure().
+      # Coverage begins after "Install dev dependencies" succeeds (post-install steps set
+      # CB_STAGE). If the normal notification stack cannot be imported: a pre-install
+      # failure (CB_STAGE empty) is a no-op (Option A); a post-install import failure
+      # (CB_STAGE set) still sends a minimal stdlib fallback so the fail-loud path is
+      # never silenced. Job cancellation / the 20-min hard timeout do not trigger
+      # if: failure().
       - name: Notify on failure
         if: failure()
         env:
@@ -384,17 +408,42 @@ jobs:
           set -eo pipefail
           python3 - <<'PY'
           import os
+          mode = os.environ.get("CB_JOB_MODE") or "unknown"
+          stage = os.environ.get("CB_STAGE") or ""
+          run_url = os.environ.get("CB_RUN_URL", "")
+          reason = f"morning pipeline failed at stage: {stage or 'unknown'} (mode {mode}). {run_url}".strip()
           try:
               from cuttingboard.notifications import format_failure_notification
               from cuttingboard.output import send_telegram
           except Exception:
-              print("cuttingboard not importable (pre-install failure); no alert sent (PRD-295 option A)")
+              # Importing the normal notification/output stack failed. Distinguish:
+              #  - pre-install failure (no post-install step ran): CB_STAGE is empty ->
+              #    Option-A, outside Slice-1 coverage, no alert and no stdlib fallback.
+              #  - post-install failure where the stack import itself broke (a syntax or
+              #    import error transitively reached by these modules -- exactly what a
+              #    failing Lint/Test surfaces): CB_STAGE is set -> send a MINIMAL stdlib
+              #    alert so the fail-loud path is not silenced. Not a second broad
+              #    notification implementation; current workflow truth only.
+              if not stage:
+                  print("pre-install failure (no CB_STAGE carrier); no alert sent (PRD-295 option A)")
+                  raise SystemExit(0)
+              import urllib.parse, urllib.request
+              token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+              chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+              text = (f"cuttingboard: morning pipeline FAILED at stage {stage} (mode {mode}); "
+                      f"notification stack unavailable, minimal fallback alert. {run_url}").strip()
+              if token and chat_id:
+                  payload = urllib.parse.urlencode({"chat_id": chat_id, "text": text}).encode()
+                  req = urllib.request.Request(f"https://api.telegram.org/bot{token}/sendMessage", data=payload)
+                  try:
+                      urllib.request.urlopen(req, timeout=15)
+                      print(f"failure alert sent (stdlib fallback): stage={stage} mode={mode}")
+                  except Exception as send_exc:
+                      print(f"stdlib fallback failed to send: {type(send_exc).__name__}")
+              else:
+                  print("stdlib fallback: Telegram credentials absent; no alert sent")
               raise SystemExit(0)
-          mode = os.environ.get("CB_JOB_MODE") or "unknown"
-          stage = os.environ.get("CB_STAGE") or "unknown"
-          run_url = os.environ.get("CB_RUN_URL", "")
-          reason = f"morning pipeline failed at stage: {stage} (mode {mode}). {run_url}".strip()
           title, body = format_failure_notification(mode, "", reason)
           send_telegram(title, body)
-          print(f"failure alert sent: mode={mode} stage={stage}")
+          print(f"failure alert sent: mode={mode} stage={stage or 'unknown'}")
           PY
