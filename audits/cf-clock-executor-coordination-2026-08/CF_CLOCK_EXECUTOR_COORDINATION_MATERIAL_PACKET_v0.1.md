@@ -1,7 +1,7 @@
 # CF Clock / GitHub Executor — First-Success Coordination — MATERIAL PACKET (v0.1)
 
-STATUS: PROVISIONAL — DESIGN COMPLETE, PENDING INDEPENDENT CODEX PACKET REVIEW
-(GOV-2 §2 step 3). This packet grants no downstream authority. No Stage-0 PRD,
+STATUS: PROVISIONAL — DESIGN COMPLETE (author-hardened, §19), PENDING INDEPENDENT
+CODEX PACKET REVIEW (GOV-2 §2 step 3). This packet grants no downstream authority. No Stage-0 PRD,
 Gate A, or implementation may begin until the review sequence in §17 is clean
 and Dustin has issued the design-direction ruling (§16 records the standing
 owner pre-authorizations that make that ruling automatic *iff* this design
@@ -76,12 +76,27 @@ preferred punctual clock and a delayed GitHub cron as a coordinated fallback —
 without any repo-persisted coordination state, and without a second successful
 OPEN board being published for the same slot.
 
+**Terminology (pin — prevents conflation).** In this packet **"OPEN" denotes the
+live morning-observation slot** (`mode==live`, the job the existing `0 13 * * 1-5`
+≈ 06:00 PT cron performs), per the charter's `OPEN→live` mapping. It is NOT the
+CF-D3 market-open (09:30 ET / 06:30 PT) "OPEN / OPEN+1" bar-dispatch cadence —
+that belongs to the out-of-scope displacement slice (§0.1, §18). Everywhere
+below, OPEN = the live morning observation.
+
 **User-visible outcome (Dustin).** The morning board is published once per OPEN
-slot, on time, whether Cloudflare fired the clock or the GitHub fallback did. A
-duplicate clock tick, a late Cloudflare arrival, or a Cloudflare outage never
-produces either a missing board or a redundant second execution. Nothing about
-market truth, board freshness, or validity is asserted by this change beyond
-what the existing artifacts already prove (§11 TRUTH).
+slot, on time, whether Cloudflare fired the clock or the GitHub fallback did.
+Under **provable** coordination (the first-success query returns a definite
+answer), a duplicate clock tick, a late Cloudflare arrival, or a Cloudflare
+outage produces neither a missing board nor a redundant second execution. Under
+**unprovable** coordination — when the Actions-API evidence is transiently
+unavailable (`PROOF_ERROR`) — the design deliberately prefers a *possible*
+duplicate execution over a *possible* missed board (availability over
+suppression, §6.2): it will re-run rather than risk dropping the only fallback.
+A duplicate OPEN run re-publishes the same-slot board from slightly later data
+and may re-emit the single success/HALT notification; that cost is accepted as
+strictly less harmful than a missing board (§10 TRUTH owns this explicitly).
+Nothing about market truth, board freshness, or validity is asserted by this
+change beyond what the existing artifacts already prove (§11 TRUTH).
 
 ---
 
@@ -108,7 +123,7 @@ is verified against the merged code and workflow. **All GREEN; no RED.**
 |---|---|---|---|
 | 1 | `conclusion=success` now covers TRADE, NO_TRADE, and valid MARKET_STRESS HALT | GREEN | PRD-298 R1: `execution_success = verification.pass AND (status==SUCCESS OR (system_halted AND halt_cause==MARKET_STRESS AND not errors))`; `cuttingboard/runtime/__init__.py` cli_main drives exit code from this signal; valid halt → exit 0 |
 | 2 | Genuine crash / VALIDATION failure / publish failure remain `conclusion=failure` | GREEN | PRD-298 R1/R5/I3: VALIDATION halt, crash, `errors!=[]` → exit 1, no publish. Publish steps are `if: success() && PUBLISH_READY=='true'` with `set -euo pipefail`; a failed `check_readiness`/`git push` aborts the step → job failure (`cuttingboard.yml` "Commit artifacts" :387–417, "Push" :438) |
-| 3 | Publish occurs **before** workflow success is finalized | GREEN | The render → `check_readiness --profile morning` → commit → push sequence runs as job steps; the job cannot conclude `success` until they complete. A run that concludes success on the OPEN slot has necessarily published (PRD-298 DATA FLOW; `cuttingboard.yml` :386–442). "Run success" therefore implies "board published" — the exact property coordination consumes |
+| 3 | Publish occurs **before** workflow success is finalized | GREEN (bounded — see note) | For an EXECUTING live run the render → `check_readiness --profile morning` → commit → push sequence runs as job steps; the job cannot conclude `success` until they complete, so an executing OPEN run that concludes success has necessarily published (PRD-298 DATA FLOW; `cuttingboard.yml` :386–442). **Bounding note (adversarial finding #7b):** this packet ALSO introduces a `SATISFIED` no-op success path (§7.4) that concludes success WITHOUT publishing (`PUBLISH_READY` stays false → commit/push skip). So post-change, "OPEN success" no longer implies "*this* run published" in general. The property coordination actually consumes is weaker and still true: **the FIRST qualifying OPEN success today published**, because a no-op success can only occur downstream of a prior `SATISFIED` verdict, which itself requires a prior real published success. Thus `∃ qualifying OPEN success today ⟺ the slot was really published today`. No non-coordination consumer reads "OPEN success ⇒ this run published"; the workflow's own publish is `PUBLISH_READY`-gated, not conclusion-gated |
 | 4 | GitHub run metadata identifies workflow identity, event type, run conclusion, ref/head branch, and logical slot identity | GREEN (slot identity requires §5 carrier, unbuilt but mechanically addable inside the transport boundary) | Actions API run objects expose `path`/`workflow_id`, `event`, `status`+`conclusion`, `head_branch`, and `name`/`display_title`. Slot identity is carried in `display_title` per §5 |
 | 5 | Delayed fallback can query prior qualifying runs deterministically | GREEN | `GET /repos/{repo}/actions/workflows/cuttingboard.yml/runs?branch=main&status=completed&created=>=<utc-today>`; identical transport already in production (`scripts/check_run_revision.py` :84–116) |
 | 6 | rerun / `run_attempt` cannot let a stale SUCCESS satisfy a new logical slot | GREEN (with §5.3 bucketing rule) | Date bucketing uses the run's **original creation** timestamp, not the latest attempt's `run_started_at`; a re-run keeps its original date bucket. Manual reruns are additionally excluded from automatic coordination (§6). See §5.3 for the exact field-selection rule and its author-verification obligation |
@@ -159,12 +174,30 @@ CB-SLOT:PRE      (prefetch warm-up slot)
 ```
 
 `run-name` is evaluated at run start and may reference `inputs.*` and
-`github.event.*`. For `workflow_dispatch`, the token derives from the validated
-`slot` input. For the `schedule` OPEN fallback cron, the token derives from a
-cron-string → slot map (`github.event.schedule`). The exact `run-name`
-expression is an implementation detail reviewable at the PRD/implementation
-stage; the DESIGN commitment is: **every automatic PRE/OPEN run carries exactly
-one `CB-SLOT:` token in `display_title`, and no other run does.**
+`github.event.*` (contexts: `github`, `inputs`, `vars`), and the evaluated value
+is returned as `display_title` on each run object from the list endpoint
+(confirmed feasible, adversarial finding #1). For `workflow_dispatch`, the token
+derives from the validated `slot` input. For the `schedule` OPEN fallback cron,
+the token derives from a cron-string → slot map (`github.event.schedule`). A
+chained-boolean expression covers both without shell, e.g.:
+
+```yaml
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch' && inputs.slot && format('CB-SLOT:{0}', inputs.slot)
+   || github.event.schedule == '<OPEN-fallback-cron>' && 'CB-SLOT:OPEN'
+   || github.event.schedule == '50 12 * * 1-5' && 'CB-SLOT:PRE'
+   || format('cuttingboard {0}', github.run_number) }}
+```
+
+The exact expression is finalized at the PRD/implementation stage; the DESIGN
+commitment is: **every automatic PRE/OPEN run carries exactly one `CB-SLOT:`
+token in `display_title`, and no other run does.** Two implementation-review
+verification obligations (adversarial finding #1, cheap, non-blocking):
+(i) confirm `inputs.slot` on a `schedule` event coerces falsey (guarded by the
+explicit `event_name == 'workflow_dispatch'` test above); (ii) confirm the
+non-slot crons (Sunday `30 23 * * 0`, and any run not matching a slot) evaluate
+to a default that does NOT contain the substring `CB-SLOT:`, so clause-4
+matching is safe.
 
 ### 5.2 Match predicate for "a satisfied OPEN slot"
 
@@ -175,24 +208,44 @@ GitHub-native fact; `source` is never read here):
 2. `event` ∈ {`workflow_dispatch`, `schedule`};
 3. `head_branch` == `main`;
 4. `display_title` contains `CB-SLOT:OPEN`;
-5. `PT-date(created_at)` == the target PT date (today, at query time);
+5. `created_at`, converted to `America/Los_Angeles`, falls **within today's OPEN
+   dispatch WINDOW** — not merely today's PT date;
 6. `status` == `completed`;
 7. `conclusion` == `success`.
 
-PRE and OPEN cannot collide (distinct tokens, clause 4). Historical/previous-day
-runs cannot qualify (clause 5). Manual ordinary dispatches (`mode`-only, no
-`CB-SLOT:OPEN`) cannot qualify (clause 4). Wrong-ref runs cannot qualify
+**Clause 5 is a WINDOW, not a bare date (adversarial finding #5 — this is the
+fix for a real missing-board defect).** A bare same-PT-date test would let ANY
+earlier successful `CB-SLOT:OPEN` run that day — an operator's off-hour
+`slot=OPEN` dispatch, or a mis-fired early trigger — permanently satisfy the
+slot and thereby SUPPRESS the real scheduled OPEN, producing the exact
+missing-board failure this design exists to prevent (the predicate is
+source-blind by §10, so a manual `slot=OPEN` run is otherwise indistinguishable
+from the automatic clock). Bounding satisfaction to the OPEN dispatch window
+closes this. The window is a REVIEWED DESIGN parameter derived from the existing
+live-slot trigger time (≈06:00 PT) plus the ≤~5-minute fallback margin — e.g. a
+conservative `[05:55, 06:20) PT` — with exact bounds set at Stage-0; it is a
+constant in the helper (no persisted state, still GitHub-native). Both the CF
+OPEN trigger (~06:00 PT) and the delayed GH fallback (~06:05 PT) fall inside it;
+an off-window operator/recovery run does not (and per charter, manual runs do
+not participate in automatic coordination anyway).
+
+PRE and OPEN cannot collide (distinct tokens, clause 4). Previous-day and
+off-window runs cannot qualify (clause 5). Manual ordinary dispatches
+(`mode`-only, no `CB-SLOT:OPEN`) cannot qualify (clause 4); a manual *in-window*
+`slot=OPEN` dispatch is definitionally an OPEN run and would qualify — that is
+the intended, safe behavior (a real in-window published OPEN board IS the slot
+satisfied), and it is pinned by test T20 (§11). Wrong-ref runs cannot qualify
 (clause 3). A PRE run cannot satisfy OPEN (clause 4).
 
 ### 5.3 Date-boundary rule (the rerun / stale-success guard)
 
-The PT date is derived **at query time** from each candidate run's **original
-creation instant**, converted to `America/Los_Angeles`. This is what makes
-clauses 5–7 immune to reruns:
+The PT date+window membership (clause 5) is derived **at query time** from each
+candidate run's **original creation instant**, converted to
+`America/Los_Angeles`. This is what makes clauses 5–7 immune to reruns:
 
 - A re-run of a previous-day run keeps its original creation instant → stays in
-  its original PT-date bucket → cannot satisfy today's slot (Phase-1 #6/#7).
-- The OPEN window (~06:30 PT ≈ 13:30 UTC) sits far from the UTC midnight
+  its original PT date/window → cannot satisfy today's slot (Phase-1 #6/#7).
+- The OPEN window (≈06:00 PT ≈ 13:00 UTC) sits far from the UTC midnight
   boundary, so a `created=>=<utc-today-00:00Z>` server-side filter safely
   captures every candidate for today's PT OPEN slot without a same-day
   UTC/PT split.
@@ -211,7 +264,7 @@ introduces no persisted state. This is flagged, not deferred.
 ### 5.4 No `invocation_id`
 
 No `invocation_id` or synthetic correlation id is introduced. The slot token +
-PT-date bucket + GitHub-native run fields are sufficient evidence. (If review
+PT-date/window bucket + GitHub-native run fields are sufficient evidence. (If review
 falsifies this — §14 stop-and-amend — the smallest alternative is stamping the
 PT date into `display_title` on the dispatch path, still no persisted state.)
 
@@ -310,13 +363,46 @@ overlapping CF-OPEN and GH-fallback so the later one re-checks *after* the prior
 completes — serialization orders them; the first-success query dedupes them
 (concurrency alone does not dedupe — preserved recon).
 
-### 7.5 Delayed OPEN fallback cron
+**OPEN CONCURRENCY-GROUP DECISION (adversarial finding #6 — resolve at Codex
+review / Stage-0).** The existing group `cuttingboard-pipeline` is STATIC and
+shared across all slots. GitHub allows only ONE *pending* run per group: if
+CF-OPEN is still running at 06:05 and the fallback queues *pending* behind it,
+then any third same-group run queuing (a prefetch tail, a manual dispatch,
+Sunday) would **cancel the pending fallback** — and if CF-OPEN then fails, the
+fallback that should have covered it is gone → missing board. This is a narrow
+window (it needs CF-OPEN to run >5 min AND a third same-group enqueue in that
+gap) but it is a real availability hole. Two candidate resolutions, to be chosen
+under review: (a) give coordination-participating OPEN runs their own
+concurrency group (e.g. keyed on the PT date) so a pending OPEN fallback cannot
+be evicted by an unrelated slot — weighed against PRD-194's deliberate
+single-group self-serialization and its cross-workflow-publish-race reasoning;
+or (b) accept and document the narrow hazard. This packet does NOT unilaterally
+change the concurrency group (blast radius); it records the decision as a
+required review item and lists it in §14.
 
-Add a `schedule` cron for the GH OPEN fallback, delayed ~5 minutes from the
-preferred CF OPEN trigger (supported by observed run-time evidence; §14 lists
-the falsifier). It carries `CB-SLOT:OPEN` via the cron→slot map and runs the
-same §7.4 first-success query, so it participates in the identical symmetric
-rule.
+### 7.5 Delayed OPEN fallback cron — REPLACES the existing 06:00 live cron
+
+The existing `0 13 * * 1-5` (≈06:00 PT) live cron is **replaced**, not
+supplemented (adversarial finding #7a — this is a correctness fix, not an
+optimization). Leaving it in place would defeat the whole "CF preferred + delayed
+fallback" framing: at 06:00 the existing cron would run `live` unconditionally
+(no `CB-SLOT:OPEN` token, no §7.4 pre-check) *alongside* the CF dispatch →
+guaranteed double execution, with CF redundant. The delayed GH OPEN fallback
+cron (≈06:05 PT, ~5 min after the preferred CF OPEN trigger; supported by
+observed run-time evidence, §14 lists the falsifier) takes its place: it carries
+`CB-SLOT:OPEN` via the cron→slot map and runs the same §7.4 first-success query,
+participating in the identical symmetric rule.
+
+**Rollout / graceful-degradation consequence (flagged for Dustin).** The Worker
+ships UNDEPLOYED (§9). In the pre-deployment state the ≈06:05 fallback is the
+*only* OPEN trigger, so the daily live board publishes ≈5 minutes later than
+today's ≈06:00. Once the CF Worker is deployed, CF fires at ≈06:00 (board
+≈06:00) with the ≈06:05 cron as fallback. This ≈5-minute pre-deployment shift is
+within the charter's evidence-supported ~5-min fallback allowance, but it is a
+real behavioral change to the daily board time and is called out, not buried.
+The PRD-158 pre-implementation grep sweep MUST enumerate every
+`resolve_run_mode` / workflow test that asserts the current `0 13 * * 1-5 → live`
+mapping and fold them into FILES.
 
 ### 7.6 Manual dispatch / PRE
 
@@ -351,9 +437,12 @@ run does not satisfy.
 | Prior OPEN still running when fallback arrives | concurrency serializes; fallback re-checks after prior completes; prior success → no-op; prior failure → execute |
 | Malformed Actions API record | `PROOF_ERROR` → execute + logged degraded evidence |
 | Actions API outage | `PROOF_ERROR` → execute |
-| Old successful run from previous PT date | excluded by §5.3 date bucket |
+| CF OPEN already succeeded, then fallback's proof query transiently errors | `PROOF_ERROR` → execute → **possible duplicate publish** (accepted: availability over suppression, §6.2/§10) |
+| Old successful run from previous PT date, or same-date but off-window | excluded by §5.2 clause 5 (window) / §5.3 |
 | PRE run | not `CB-SLOT:OPEN` → ignored for OPEN |
-| Manual run | not `CB-SLOT:OPEN` → ignored for automatic coordination |
+| Manual ordinary run (`mode`-only, no `CB-SLOT:OPEN`) | ignored for automatic coordination (clause 4) |
+| Manual in-window `slot=OPEN` dispatch | definitionally an OPEN run; qualifies if it succeeds+publishes in-window (intended; source-blind, §10) |
+| Prior OPEN pending-behind a long CF-OPEN, evicted by a third same-group enqueue | availability hazard — §7.4 concurrency-group decision |
 | Wrong ref | `head_branch != main` → ignored |
 | Wrong slot/mode | fail-closed at §7.2, no execution |
 | Publish failure on an otherwise-live run | job `conclusion=failure` → non-satisfying (§11 TRUTH) |
@@ -397,10 +486,24 @@ semantics are unchanged (still observation state, monotonic-guarded). All
 coordination evidence is read live from the GitHub Actions API at query time.
 
 **TRUTH.** Run success is execution-control evidence only. It means the executor
-completed and (for a live OPEN) published, per existing artifact truth. It does
-NOT promote dashboard freshness or market validity beyond what the published
-artifacts already assert. Coordination reads run conclusion; it never reads or
-asserts market/quote/displacement facts.
+completed and (for an executing live OPEN) published, per existing artifact
+truth. It does NOT promote dashboard freshness or market validity beyond what
+the published artifacts already assert. Coordination reads run conclusion; it
+never reads or asserts market/quote/displacement facts.
+
+**Duplicate-publish cost (owned, adversarial finding #4/#7c).** Because the
+fallback fails toward availability (§6.2), a `PROOF_ERROR` at the fallback's
+pre-check when a prior CF OPEN already succeeded yields a SECOND live OPEN run
+that re-renders and re-publishes today's board from ~5-min-later data and may
+re-emit the single success/HALT notification. This is not free, and the packet
+does not pretend it is. It is bounded and accepted: (i) the second board is the
+SAME slot's board, monotonically written (`safe_write_latest` guards
+`latest_run.json`; the published board is idempotent in identity, only fresher
+in data); (ii) a duplicate operator notification is a strictly smaller harm than
+a silently missing morning board; (iii) it occurs only under provable
+API-evidence unavailability, not in the normal path. Whether the duplicate
+success notification should additionally be de-duplicated is a candidate
+follow-up, explicitly NOT bundled here (§18), and does not gate this slice.
 
 **SECURITY / AUTHORITY.** The Worker credential is Actions-write only
 (dispatch). The in-workflow coordination query uses the ambient `github.token`
@@ -431,7 +534,8 @@ reddening mutation must be shown to flip the test. Target file
 | T7 | GH-fallback success present, evaluated by a later CF run | `SATISFIED` → no-op | — |
 | T8M | Malformed run record (non-object / wrong-typed field) | `PROOF_ERROR` → executes; never `UNSATISFIED` | make record well-formed-but-nonmatching → `UNSATISFIED` (proves PROOF_ERROR ≠ UNSATISFIED) |
 | T9M | API HTTP/URL error | `PROOF_ERROR` → executes | — |
-| T10 | Successful OPEN run with previous-PT-date `created_at` | excluded → `UNSATISFIED` | move date to today → `SATISFIED` (proves date bucketing) |
+| T10 | Successful OPEN run with previous-PT-date `created_at` | excluded → `UNSATISFIED` | move date to today (in-window) → `SATISFIED` (proves date bucketing) |
+| T10b M | Successful `CB-SLOT:OPEN` run today but OFF-WINDOW (e.g. 05:00 PT) | excluded → `UNSATISFIED` (real OPEN not suppressed) | widen predicate to bare date → wrongly `SATISFIED` (proves §5.2 clause-5 window closes finding #5) |
 | T11 | `CB-SLOT:PRE` success run only | ignored for OPEN → `UNSATISFIED` | change token to OPEN → `SATISFIED` |
 | T12 | Manual run (no `CB-SLOT:` token) success | ignored → `UNSATISFIED` | add OPEN token → `SATISFIED` |
 | T13 | Run on non-main `head_branch` | ignored → `UNSATISFIED` | set branch=main → `SATISFIED` |
@@ -441,6 +545,9 @@ reddening mutation must be shown to flip the test. Target file
 | T17 | Valid HALT board still satisfying post-298 | `SATISFIED` for a valid market-stress HALT OPEN | — |
 | T18 | Publish-failure run (live, `conclusion=failure`) | non-satisfying → `UNSATISFIED` | — |
 | T19 | Current run excluded from its own scan | current `run_id` never self-satisfies | remove exclusion → false self-satisfy |
+| T20 | Manual in-window `slot=OPEN` success (source-blind) | `SATISFIED` (intended: a real in-window OPEN publish IS the slot) | — (pins the §5.2 accepted behavior) |
+| T21 | CF OPEN success present, fallback pre-check hits API error | `PROOF_ERROR` → executes (duplicate accepted); NEVER `SATISFIED`-suppressed on error | flip error→treated-as-satisfied → wrong suppression (proves fail-toward-availability) |
+| T22 | No-op success run (SATISFIED path concluded success) exists alongside the real publish | `∃ qualifying OPEN success ⟺ real publish occurred` holds; no-op never the sole matcher | construct no-op-only-without-prior-publish (unreachable) → asserts invariant |
 
 Verification runway (at implementation): focused tests green locally, then the
 full suite reproduced on CI (PRD-198 #5, environment parity);
@@ -504,6 +611,23 @@ The §5.3 `created_at`-vs-`run_started_at` verification is a bounded correction
 inside the transport boundary (not a stop) unless it proves `created_at` is not
 attempt-stable AND no in-boundary correction exists — then it escalates to
 item 2.
+
+**In-boundary review decisions (from the author-side hardening pass, §19 — NOT
+stops; resolved at Codex review / Stage-0):**
+
+- **D1 — OPEN dispatch window bounds (§5.2 clause 5).** Exact `[start, end)` PT
+  window. Candidate `[05:55, 06:20)`. Must contain the CF trigger and the ≈06:05
+  fallback and exclude off-window operator runs. In-boundary (a helper constant);
+  escalates to charter RETURN-7 only if evidence shows no window satisfies both
+  containment and exclusion.
+- **D2 — OPEN concurrency group (§7.4).** Keep the shared static
+  `cuttingboard-pipeline` group and accept the narrow pending-eviction hazard,
+  or give coordination OPEN runs a dedicated group. Weighed against PRD-194.
+  In-boundary (a workflow `concurrency:` change) but with real blast radius —
+  flagged for explicit review.
+- **D3 — existing 06:00 live cron replacement (§7.5).** Confirmed required (not
+  optional); the only open sub-decision is the exact fallback cron minute and
+  the PRD-158 test-sweep set.
 
 ---
 
@@ -602,6 +726,40 @@ the Codex packet review (or direct otherwise).
 
 ---
 
-END OF PACKET v0.1 — PROVISIONAL, PENDING INDEPENDENT CODEX PACKET REVIEW.
-No downstream authority (Stage-0 PRD, Gate A, implementation) is granted by this
-document.
+---
+
+## 19. Author-side hardening pass (GOV-2 §3 evidence — NOT the independent gate)
+
+Before hand-off, the authoring session ran one fresh-context adversarial pass
+against v0.1 whose only charge was to falsify the design. Per GOV-2 §3 this
+**contributes evidence and does NOT satisfy the independent-review
+requirement** — it is author self-verification, not the GOV-2 §2/§7 Codex gate,
+which remains PENDING (§17). It is recorded here for the independent reviewer's
+provenance and to avoid re-litigating settled points.
+
+Findings and dispositions (all folded into this revision):
+
+| # | Finding | Severity | Disposition |
+|---|---|---|---|
+| 1 | `run-name` schedule-branch feasibility + two coercion checks | verify | HOLDS; expression + verification obligations added to §5.1 |
+| 2 | `created_at` immutability across re-runs | confirm | HOLDS; §5.3 unchanged, its flagged obligation retained |
+| 3 | Actions API filters/fields all exist; `?event=` single-valued | confirm | HOLDS; §5.2 already filters event client-side |
+| 4 | §1 overclaimed "no duplicate" vs `PROOF_ERROR`→execute | correctness-of-spec | ACTIONED — §1 reworded; §10 owns the duplicate cost; §8/§11 rows added |
+| 5 | Same-PT-*date* + source-blind suppresses the real OPEN (missing board) | **blocking defect** | ACTIONED — §5.2 clause 5 changed from date to **window**; T10b/T20 added |
+| 6 | Pending-fallback eviction under shared static concurrency group | availability hazard | ACTIONED — §7.4 decision D2 recorded + §14; candidate fix stated |
+| 7a | Existing 06:00 live cron not removed → double execution | **blocking defect** | ACTIONED — §7.5 now REPLACES the cron; rollout consequence + PRD-158 sweep noted |
+| 7b | "success ⇒ published" invariant broken by the no-op path | consistency | ACTIONED — Phase-1 #3 bounded to the first qualifying success; T22 added |
+| 7c | Duplicate publish/notification cost unowned | honesty | ACTIONED — §10 duplicate-publish paragraph |
+
+Net effect: two blocking defects (#5, #7a) were caught and corrected at the
+packet stage — the value of running the adversarial pass before hand-off. No
+finding falsified a Phase-1 assumption or breached an owner pre-authorization
+boundary; the design remains RED-free and in-bounds (§16). The two `blocking`
+items were design-of-spec corrections, not a redesign, and introduce no new
+persisted state, no credential-scope change, and no CF-D1b/CF-E2 coupling.
+
+---
+
+END OF PACKET v0.1 (author-hardened) — PROVISIONAL, PENDING INDEPENDENT CODEX
+PACKET REVIEW. No downstream authority (Stage-0 PRD, Gate A, implementation) is
+granted by this document.
