@@ -255,13 +255,15 @@ def execute_prefetch() -> int:
 FAIL_OWNED_SIGNAL = "::CB_NOTIFY_OWNED_FAIL::"
 
 
-def _emit_fail_owned_signal(contract: dict[str, Any], summary: dict[str, Any]) -> None:
-    """PRD-296: print the ephemeral FAIL-owned notification sentinel to stdout iff the
-    runtime already delivered a notification for this attempt AND the summary status is
-    FAIL. Callers MUST pass the PRE-verification summary (before execute_run's
-    post-verification status override), so a SUCCESS attempt that only fails verification
-    leaves the workflow terminal notifier free to fire. Ephemeral: no persisted state."""
-    if contract["artifacts"].get("notification_sent") and summary.get("status") == SUMMARY_STATUS_FAIL:
+def _emit_fail_owned_signal(delivered: bool, pre_verification_fail: bool) -> None:
+    """PRD-296: print the ephemeral FAIL-owned notification sentinel to stdout iff the runtime
+    already DELIVERED a notification for this attempt AND the outcome is a PRE-verification FAIL
+    (validation_summary.system_halted or errors, the same :1413 formula, read before any
+    verification override). Emitted inside _run_pipeline immediately after the send and BEFORE the
+    fallible post-send work, so ownership survives a later exception in the same attempt. A SUCCESS
+    send (pre_verification_fail False) that only fails verification never owns; a send failure
+    (delivered False) never owns. Ephemeral: no persisted or shared state."""
+    if delivered and pre_verification_fail:
         print(FAIL_OWNED_SIGNAL, flush=True)
 
 
@@ -277,11 +279,6 @@ def execute_run(
 
     try:
         pipeline = _run_pipeline(mode=mode, run_date=run_date, fixture_file=fixture_file, notify_mode=notify_mode)
-        # PRD-296: emit the FAIL-owned signal from the PRE-verification summary (before the
-        # post-verification status override below) so the workflow terminal notifier can
-        # suppress only an already-owned FAIL alert. Never in a finally: the exception path
-        # sends no notification and prints no token.
-        _emit_fail_owned_signal(pipeline.contract, pipeline.summary)
         report_path = Path(pipeline.report_path)
         summary_path, latest_path = _write_summary_files(
             pipeline.summary,
@@ -1233,6 +1230,14 @@ def _run_pipeline(
         fixture_backed=fixture_backed,
         notify_mode=notify_mode,
     )
+
+    # PRD-296: emit the FAIL-owned ownership signal HERE, immediately after the send and BEFORE
+    # the fallible post-send work below (audit / evaluation / performance / sidecar / SPY card),
+    # so ownership survives a post-send exception in the same attempt. Gated on the PRE-verification
+    # FAIL (system_halted or errors) - the same formula _build_run_summary uses at the summary
+    # status line - read before any verification override, so a SUCCESS send that only fails
+    # verification never owns and a send failure never owns.
+    _emit_fail_owned_signal(alert_sent, bool(validation_summary.system_halted or errors))
 
     run_history = _load_run_history(LOGS_DIR / "audit.jsonl")
     premarket_report = build_premarket_report(contract)
