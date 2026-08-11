@@ -1,0 +1,17 @@
+# PRD-299: EXAMPLE Cloudflare Worker config for the Cuttingboard clock.
+# Copy to wrangler.toml and deploy out-of-band (owner-held; CF-D5). NO SECRET
+# VALUES here or in any committed file.
+name = "cuttingboard-clock"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# Cloudflare cron triggers are UTC (no timezone support). Preferred punctual
+# clock; the GitHub crons in .github/workflows/cuttingboard.yml remain the
+# delayed fallback (PRE 50 12; OPEN fallback 5 13, ~5 min after CF OPEN).
+[triggers]
+crons = ["50 12 * * 1-5", "0 13 * * 1-5"]
+
+# The Actions-write-only GitHub token is a SECRET, set out-of-band, never here:
+#   wrangler secret put GH_DISPATCH_TOKEN
+# Fine-grained PAT scope: repository dwats250/cuttingboard, Actions: Read and
+# write (write is required to POST a workflow_dispatch); NO other permission.

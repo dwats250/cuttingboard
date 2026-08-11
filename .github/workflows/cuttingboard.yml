@@ -1,11 +1,26 @@
 name: Cuttingboard Pipeline
 
+# PRD-299: stamp the GitHub-native slot carrier into display_title. Every
+# automatic OPEN/PRE run carries exactly one CB-SLOT:<slot> token; a legacy/
+# operator dispatch without a slot, Sunday, and any non-slot run get the default
+# name (which MUST NOT contain the substring "CB-SLOT:"). The event_name guard
+# keeps inputs.slot from being read on a schedule event.
+run-name: >-
+  ${{ (github.event_name == 'workflow_dispatch' && inputs.slot != '') && format('CB-SLOT:{0}', inputs.slot)
+   || github.event.schedule == '5 13 * * 1-5' && 'CB-SLOT:OPEN'
+   || github.event.schedule == '50 12 * * 1-5' && 'CB-SLOT:PRE'
+   || format('Cuttingboard Pipeline {0}', github.run_number) }}
+
 on:
   schedule:
-    # Prefetch warm-up: 05:50 PT / 12:50 UTC, Monday–Friday
+    # Prefetch warm-up: 05:50 PT / 12:50 UTC, Monday–Friday (PRE slot)
     - cron: '50 12 * * 1-5'
-    # Premarket: 06:00 PT / 13:00 UTC, Monday–Friday
-    - cron: '0 13 * * 1-5'
+    # PRD-299: OPEN/live delayed fallback — 13:05 UTC (~5 min after the preferred
+    # Cloudflare OPEN dispatch; CF-D4 SUPERSEDED-IN-PART 2026-08-11). Replaces the
+    # old 0 13 live cron so CF and GitHub are not routine peer clocks racing the
+    # same slot. Fixed UTC cron -> drifts ±1h in PT across DST (existing accepted
+    # convention); NOT a fixed PT wall-clock time.
+    - cron: '5 13 * * 1-5'
     # Sunday regime-only report: 23:30 UTC (7:30 PM ET, 30 min after futures open)
     - cron: '30 23 * * 0'
     # PRD-189: the ORB (50 13) and intraday (*/30 14-21) crons were removed.
@@ -25,15 +40,39 @@ on:
           - sunday
           - verify
           - prefetch
+      # PRD-299: logical slot (Cloudflare Worker sets this). OPEN<->live,
+      # PRE<->prefetch (validated fail-closed in resolve_run_mode.py). Empty =
+      # legacy/operator dispatch with no slot. type: string (not choice) so the
+      # optional-empty case is unambiguous.
+      slot:
+        description: 'Logical slot: OPEN, PRE, or empty (legacy)'
+        required: false
+        default: ''
+        type: string
+      # PRD-299: descriptive provenance ONLY — never read by any coordination
+      # predicate or authority check; a spoofed source grants nothing.
+      source:
+        description: 'Dispatch provenance (provenance only, not authentication)'
+        required: false
+        default: ''
+        type: string
 
 # Never cancel a mid-run pipeline — queue instead.
-# Per-workflow self-serialization (prevents two pipeline runs overlapping).
+# PRD-299: coordination-participating OPEN runs (CF workflow_dispatch slot=OPEN,
+# and the 5 13 delayed fallback cron) use a FIXED DEDICATED group with native
+# non-evicting queuing (queue: max), so a later OPEN-class enqueue (a third valid
+# OPEN, a malformed slot=OPEN dispatch, or a duplicate CF dispatch) can NEVER
+# cancel/replace a pending OPEN fallback (Sol finding C5). All other slots keep
+# the cuttingboard-pipeline group. queue: max is a strict superset of the prior
+# "queue, don't cancel" intent (the old single-pending default silently DROPPED a
+# pending run) and never combines with cancel-in-progress: true.
 # PRD-194: cross-workflow publish races to the `publish` branch are handled by
-# ci_push_artifacts.sh's delta-append + bounded push-retry, NOT a shared lock — a
-# shared group over-serialized the time-sensitive hourly alert (Codex P2).
+# ci_push_artifacts.sh's delta-append + bounded push-retry, NOT a shared lock.
 concurrency:
-  group: cuttingboard-pipeline
-  cancel-in-progress: false
+  group: >-
+    ${{ ((github.event_name == 'workflow_dispatch' && inputs.slot == 'OPEN') || github.event.schedule == '5 13 * * 1-5')
+     && 'cb-open-coordination' || 'cuttingboard-pipeline' }}
+  queue: max
 
 permissions:
   contents: write
@@ -86,11 +125,54 @@ jobs:
           CB_EVENT_NAME: ${{ github.event_name }}
           CB_DISPATCH_MODE: ${{ github.event.inputs.mode }}
           CB_SCHEDULE: ${{ github.event.schedule }}
+          CB_SLOT: ${{ github.event.inputs.slot }}
         run: |
           set -eo pipefail
+          # PRD-299 R2: resolve_run_mode.py also validates slot<->mode for a
+          # workflow_dispatch (OPEN<->live, PRE<->prefetch) and exits non-zero on
+          # a mismatch. `set -e` + command substitution fails the step closed here,
+          # BEFORE the OPEN first-success pre-check below, so a malformed OPEN
+          # dispatch can never become a satisfying no-op.
           job_mode="$(python3 scripts/resolve_run_mode.py)"
           echo "job_mode=$job_mode" >> "$GITHUB_OUTPUT"
           echo "Resolved mode: $job_mode"
+
+      # PRD-299 R6: automatic-OPEN first-success pre-check. Runs only for an
+      # automatic OPEN invocation (the 5 13 fallback cron OR a workflow_dispatch
+      # slot=OPEN). Uses the ambient github.token (existing actions: read; no new
+      # credential). FAIL TOWARD AVAILABILITY: never fail the job here — the
+      # emitted `state` output is the signal. state==SATISFIED => a prior
+      # qualifying OPEN already published today => skip live (coordinated no-op
+      # success). UNSATISFIED / PROOF_ERROR / empty (crash) => execute. Only stdlib
+      # + the cuttingboard package (time_utils) is needed, so this runs before the
+      # dev-dependency install.
+      - name: OPEN first-success pre-check
+        id: openslot
+        if: >-
+          steps.mode.outputs.job_mode == 'live' &&
+          (github.event.schedule == '5 13 * * 1-5' || github.event.inputs.slot == 'OPEN')
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          python3 scripts/check_open_slot_satisfied.py
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            # Unexpected non-zero (the script normally exits 0 and emits state);
+            # fail toward availability -> execute.
+            echo "check_open_slot_satisfied exited $rc unexpectedly; executing (fail toward availability)"
+            echo "state=PROOF_ERROR" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: OPEN slot already satisfied (coordinated no-op)
+        if: >-
+          steps.mode.outputs.job_mode == 'live' &&
+          steps.openslot.outputs.state == 'SATISFIED'
+        run: |
+          echo "OPEN slot already satisfied by a prior successful qualifying run "
+          echo "(${{ steps.openslot.outputs.state }}) — skipping live execution."
+          echo "This run concludes as a coordinated no-op success; no publish."
 
       # PRD-193: persist the OHLCV warm-up cache (data/cache) across the ephemeral
       # runners so the 12:50 prefetch run warms it and the 13:00 live run reads it
@@ -166,7 +248,7 @@ jobs:
       # gate). CI_SUCCESS authorizes an observation ATTEMPT only; any other
       # typed state fails named and loud before execution.
       - name: Exact-SHA CI proof
-        if: steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday'
+        if: (steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday') && steps.openslot.outputs.state != 'SATISFIED'
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
@@ -179,7 +261,7 @@ jobs:
       # parquet backend, entrypoint arg contract, writable dirs). Seconds-fast,
       # no network / market semantics / pytest / ruff / repair.
       - name: Runtime readiness
-        if: steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday'
+        if: (steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday') && steps.openslot.outputs.state != 'SATISFIED'
         run: |
           set -eo pipefail
           echo "CB_STAGE=runtime_readiness" >> "$GITHUB_ENV"
@@ -266,7 +348,7 @@ jobs:
       # (the single checkout makes in-workspace drift near-impossible); the guard
       # is total and red-tested.
       - name: Revision drift guard
-        if: steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday'
+        if: (steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday') && steps.openslot.outputs.state != 'SATISFIED'
         run: |
           set -eo pipefail
           echo "CB_STAGE=revision_drift" >> "$GITHUB_ENV"
@@ -279,7 +361,7 @@ jobs:
 
       # --- Premarket full pipeline ---
       - name: Run live pipeline
-        if: steps.mode.outputs.job_mode == 'live'
+        if: steps.mode.outputs.job_mode == 'live' && steps.openslot.outputs.state != 'SATISFIED'
         run: |
           set -eo pipefail
           echo "CB_STAGE=execute" >> "$GITHUB_ENV"
@@ -322,9 +404,10 @@ jobs:
       # --- Verify: runs after live or sunday, or standalone via workflow_dispatch ---
       - name: Verify run
         if: >-
-          steps.mode.outputs.job_mode == 'live' ||
+          (steps.mode.outputs.job_mode == 'live' ||
           steps.mode.outputs.job_mode == 'sunday' ||
-          steps.mode.outputs.job_mode == 'verify'
+          steps.mode.outputs.job_mode == 'verify') &&
+          steps.openslot.outputs.state != 'SATISFIED'
         run: |
           set -eo pipefail
           echo "CB_STAGE=verify" >> "$GITHUB_ENV"
