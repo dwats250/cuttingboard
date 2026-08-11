@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 293,
-  "next_prd": 294,
+  "latest_complete": 294,
+  "next_prd": 295,
   "entries": [
     {
       "number": 56,
@@ -1430,6 +1430,12 @@
       "title": "Idempotent dev bootstrap for remote/mobile sessions (script + thin SessionStart hook)",
       "status": "COMPLETE",
       "commit": "#238"
+    },
+    {
+      "number": 294,
+      "title": "Harness seat doctrine, agent seating map, and proactive-Fable supersession",
+      "status": "COMPLETE",
+      "commit": "#241"
     },
     {
       "number": 295,
