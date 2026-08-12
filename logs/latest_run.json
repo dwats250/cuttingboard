@@ -1,5 +1,5 @@
 {
-  "candidates_generated": 15,
+  "candidates_generated": 14,
   "candidates_qualified": 0,
   "candidates_watchlist": 0,
   "chain_validation": {},
@@ -8,7 +8,7 @@
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generation_id": "live-20260811T141452Z",
+  "generation_id": "live-20260812T142356Z",
   "halt_reason": null,
   "index_score": 0.0,
   "kill_switch": false,
@@ -20,11 +20,11 @@
   "posture": "STAY_FLAT",
   "regime": "RISK_ON",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-08-11T14:14:52Z",
-  "run_id": "live-20260811T141452Z",
+  "run_at_utc": "2026-08-12T14:23:56Z",
+  "run_id": "live-20260812T142356Z",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-08-11T14:14:52Z",
+  "timestamp": "2026-08-12T14:23:56Z",
   "warnings": [],
-  "watch_candidates": 2
+  "watch_candidates": 0
 }

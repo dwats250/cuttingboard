@@ -1,46 +1,46 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.3791475798675165,
-      "level": 64154.19140625,
+      "change_pct": 0.3166908179768384,
+      "level": 63732.94921875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.03407474640040098,
-      "level": 99.8270034790039,
+      "change_pct": -0.1391683357089496,
+      "level": 99.73999786376953,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -0.7549654833035515,
-      "level": 4443.2001953125,
+      "change_pct": 0.7059931278607923,
+      "level": 4493.2998046875,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": -0.2679021107464366,
-      "level": 81.9000015258789,
+      "change_pct": -1.7092017108679525,
+      "level": 82.80999755859375,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -1.8923701104387767,
-      "change_pct": -0.4043526025321584,
-      "level": 4.679999828338623,
+      "change_bps": -1.594514127205824,
+      "change_pct": -0.3415839870671665,
+      "level": 4.668000221252441,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -1.4781662941996823,
-      "level": 64.98500061035156,
+      "change_pct": 1.3194994428231843,
+      "level": 66.41999816894531,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 0.12936289805955653,
-      "level": 15.479999542236328,
+      "change_pct": -2.945024981212054,
+      "level": 14.829999923706055,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "live-20260811T141452Z",
+    "generation_id": "live-20260812T142356Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-08-11T14:14:52Z"
+    "timestamp": "2026-08-12T14:23:56Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -54,12 +54,6 @@
       },
       "event": {
         "events": [
-          {
-            "date": "2026-08-12",
-            "name": "Consumer Price Index",
-            "time_et": "08:30",
-            "type": "CPI"
-          },
           {
             "date": "2026-08-13",
             "name": "Producer Price Index",
@@ -77,8 +71,8 @@
       },
       "location": {
         "orb": {
-          "orb_high": 774.5399780273438,
-          "orb_low": 773.010009765625,
+          "orb_high": 774.9000244140625,
+          "orb_low": 772.719970703125,
           "reason": null,
           "state": "FORMED"
         },
@@ -108,21 +102,21 @@
       }
     ],
     "spy_observation": {
-      "current_price": 773.780029296875,
-      "intended_session_date": "2026-08-11",
-      "observed_at_utc": "2026-08-11T14:14:00+00:00",
+      "current_price": 772.9000244140625,
+      "intended_session_date": "2026-08-12",
+      "observed_at_utc": "2026-08-12T14:24:00+00:00",
       "observed_symbol": "SPY",
       "orb": {
-        "observed_at_utc": "2026-08-11T14:14:00+00:00",
-        "orb_high": 774.5399780273438,
-        "orb_low": 773.010009765625,
+        "observed_at_utc": "2026-08-12T14:24:00+00:00",
+        "orb_high": 774.9000244140625,
+        "orb_low": 772.719970703125,
         "reason": null,
         "state": "FORMED",
-        "trading_date": "2026-08-11"
+        "trading_date": "2026-08-12"
       },
       "price_vs_vwap": "AT_LEVEL",
       "reason": null,
-      "session_vwap": 773.5188155982323,
+      "session_vwap": 773.1546579753656,
       "state": "OBSERVED",
       "timezone": "America/New_York"
     },
