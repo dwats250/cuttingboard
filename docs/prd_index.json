@@ -1472,6 +1472,12 @@
       "title": "Notification-delivery backstop: resend the owed market-stress HALT notification on transport failure (daily path)",
       "status": "COMPLETE",
       "commit": "#247"
+    },
+    {
+      "number": 301,
+      "title": "Atomic link-based dev_bootstrap lock: close the mkdir-to-pid publication race, with legacy-directory migration and abandoned-temp lifecycle",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
