@@ -488,18 +488,27 @@ def test_state_writers_do_not_share_one_concurrency_lock() -> None:
     # PRD-194 R5 (Codex P2): a shared cb-publish group serialized the entire hourly
     # alert job behind the pipeline/macro producer and could drop a time-sensitive
     # alert. Each writer keeps its OWN per-workflow group instead.
-    expected = {
-        "cuttingboard.yml": "group: cuttingboard-pipeline",
-        "hourly_alert.yml": "group: hourly-alert",
-        "macro_awareness.yml": "group: macro-awareness",
-    }
-    for wf, group in expected.items():
+    # PRD-299: cuttingboard.yml now routes OPEN runs to a dedicated
+    # `cb-open-coordination` group via a `group:` expression (queue: max
+    # non-eviction) while non-OPEN runs keep `cuttingboard-pipeline`. Both are
+    # cuttingboard's OWN groups -- neither is a shared lock. The intent is
+    # unchanged: no writer shares another writer's (or a cb-publish) group.
+    for wf in ("cuttingboard.yml", "hourly_alert.yml", "macro_awareness.yml"):
         text = _workflow_text(wf)
         assert "group: cb-publish" not in text, (
             f"{wf} still shares the cb-publish lock; that over-serializes the hourly "
             "alert (Codex P2). Publish races are handled by the push-helper retry."
         )
-        assert group in text, f"{wf} should keep its own per-workflow group ({group})"
+
+    cb = _workflow_text("cuttingboard.yml")
+    # cuttingboard keeps its OWN groups (non-OPEN + the PRD-299 dedicated OPEN
+    # group) and shares neither the hourly nor the macro writer's group.
+    assert "cuttingboard-pipeline" in cb
+    assert "cb-open-coordination" in cb
+    assert "group: hourly-alert" not in cb and "group: macro-awareness" not in cb
+
+    assert "group: hourly-alert" in _workflow_text("hourly_alert.yml")
+    assert "group: macro-awareness" in _workflow_text("macro_awareness.yml")
 
 
 def test_hourly_restores_dedup_slot_and_aggregates_before_render() -> None:

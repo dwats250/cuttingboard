@@ -107,6 +107,26 @@ def test_validate_slot_mode_mismatch_fails_closed(slot, mode) -> None:
         rrm.validate_slot_mode(slot, mode)
 
 
+def test_main_fails_closed_on_bad_slot(monkeypatch) -> None:
+    # R1/R2 (Sol I2): a non-{OPEN,PRE,empty} slot on a workflow_dispatch exits
+    # non-zero from main() so the workflow step fails closed BEFORE first-success.
+    monkeypatch.setenv("CB_EVENT_NAME", "workflow_dispatch")
+    monkeypatch.setenv("CB_DISPATCH_MODE", "live")
+    monkeypatch.setenv("CB_SCHEDULE", "")
+    monkeypatch.setenv("CB_SLOT", "BOGUS")
+    assert rrm.main() == 2
+
+
+def test_main_ok_on_valid_open_and_on_empty_legacy_slot(monkeypatch, capsys) -> None:
+    for slot, mode in (("OPEN", "live"), ("", "live"), ("PRE", "prefetch")):
+        monkeypatch.setenv("CB_EVENT_NAME", "workflow_dispatch")
+        monkeypatch.setenv("CB_DISPATCH_MODE", mode)
+        monkeypatch.setenv("CB_SCHEDULE", "")
+        monkeypatch.setenv("CB_SLOT", slot)
+        assert rrm.main() == 0
+        assert capsys.readouterr().out.strip() == mode
+
+
 # --- workflow_dispatch: explicit operator intent ----------------------------
 def test_workflow_dispatch_returns_dispatch_mode() -> None:
     assert _resolve(event="workflow_dispatch", dispatch="verify") == "verify"
