@@ -26,38 +26,42 @@ targets and never links inside a directory; `ls -A` gives the clean-vs-stray dis
 legacy-dir snapshot relies on. The mechanism's Linux assumptions are empirically confirmed.
 Reproduce: `/home/dustin/.claude/jobs/fd88871b/tmp/portability_linux.sh` (harness; ephemeral).
 
-## macOS/BSD — NOT OBTAINABLE INSIDE EXISTING AUTHORITY (owner item-C RED)
+## macOS — COMPLETE (owner event #6, Option B; executed on GitHub-hosted macOS runners)
 
-The packet makes a macOS-runner check a REQUIRED pre-Gate-A validation (not documentation-based
-acceptance). It cannot be satisfied inside the current ratified authority:
+Obtained via the owner-authorized temporary evidence-only workflow
+`.github/workflows/prd301_macos_portability_evidence.yml` (permissions `{}`, no secrets, no
+checkout, no third-party Actions, no writes, 5-minute timeout, matrix fail-fast off), triggered by
+draft PR #248.
 
-- No macOS runner exists anywhere in the repo. All 8 GitHub Actions workflows run
-  `runs-on: ubuntu-latest` (`.github/workflows/*.yml`); the project has never executed on macOS.
-- The HELM environment is Linux (Debian); there is no local macOS to execute `link`/`ls -A` on.
-- The only ways to obtain a macOS-runner check are OUTSIDE authority: (a) adding a
-  `.github/workflows/*.yml` macOS job — a new file outside the ratified FILES
-  (`scripts/dev_bootstrap.sh` + `tests/test_dev_bootstrap.py` + lifecycle/packet/review
-  artifacts), and "no additional payload file"; or (b) a Mac the owner runs it on; or (c) the
-  owner ruling macOS a non-target.
-- Per owner item C, HELM STOPS at RED rather than weakening or inferring macOS behavior from
-  man pages (which Finding 4 explicitly rejected as documentation-based acceptance).
+- Evidence commit SHA: **8452e144360cb327792bfcbb195883d3688881fd**
+- Run: https://github.com/dwats250/cuttingboard/actions/runs/31647596061 (conclusion: success)
+- Jobs (both success):
+  - `link_ls_evidence (macos-15)` — https://github.com/dwats250/cuttingboard/actions/runs/31647596061/job/94284651440
+  - `link_ls_evidence (macos-15-intel)` — https://github.com/dwats250/cuttingboard/actions/runs/31647596061/job/94284651283
+- Hermetic posture confirmed in the run log: GITHUB_TOKEN Permissions = `Metadata: read` only (the
+  irremovable minimum under `permissions: {}`); no other scope; no secret consumed; no checkout.
 
-This is the owner-anticipated RED. It blocks completing item C and therefore the fresh PRD review
-(item D), whose package requires the portability evidence. Returned to the owner with options:
+| Runner | Kernel / arch | macOS | Runner image | `link` | `ls` | Result |
+|---|---|---|---|---|---|---|
+| `macos-15` (Apple Silicon) | Darwin 24.6.0 arm64 | 15.7.7 (24G720) | macos-15 20260727.0377.1 | /bin/link | /bin/ls | PORTABILITY-OK |
+| `macos-15-intel` (Intel) | Darwin 24.6.0 x86_64 | 15.7.7 (24G720) | macos-15 20260727.0377.1 | /bin/link | /bin/ls | PORTABILITY-OK |
 
-- Option A — owner supplies macOS evidence: run the same eight checks above on a Mac
-  (`command -v link`; `link src dir` fails, no child; `link src newfile` ok; `link src existing`
-  EEXIST; `ls -A` on empty/one-pid/stray) and provide the output; HELM records it here.
-- Option B — owner authorizes a temporary macOS CI job as an explicit FILES addition (amended
-  FILES): HELM adds a minimal `.github/workflows` macos-latest job asserting the checks, captures
-  the run, and (optionally) removes it. This adds a file beyond the ratified FILES and needs the
-  owner's explicit authorization.
-- Option C (HELM recommendation if macOS is not a real dev/CI target) — owner rules macOS a
-  NON-target for dev_bootstrap and narrows R6 to Linux-only. The whole system runs on the owner's
-  Debian box + ubuntu CI; dropping an unvalidatable macOS claim is a doc correction (not a
-  weakening: it removes the requirement rather than inferring the behavior), aligned with VISION
-  cuts-before-additions. This eliminates the macOS-evidence obligation.
+Both runners passed ALL EIGHT assertion-hard checks (correctness from return codes + filesystem
+state): `link` present at `/bin/link`; `link src dir` fails and creates NO child inside the
+directory; `link src newfile` succeeds (same inode); `link src existing` fails EEXIST; `ls -A`
+gives empty / `pid` / `child pid` for empty / one-pid / stray dirs; `[ "$(ls -A onlypid)" = pid ]`
+holds and `[ "$(ls -A stray)" = pid ]` does not. macOS `link` is the BSD `link(1)` utility at
+`/bin/link`, present on both architectures, with the same exact-pathname EEXIST semantics as
+Linux — no macOS behavior was inferred; it was executed.
 
-HELM has NOT chosen among these — it is an owner design/scope decision. No macOS behavior is
-inferred or asserted here. 07dce51 stays RED-held; no production/test implementation; the 250
-ceiling stays binding; no review (item D) proceeds until the owner resolves macOS.
+Conclusion (macOS): the amended mechanism's `link` exact-path and `ls -A` assumptions are
+empirically confirmed on macOS 15 (both Apple Silicon and Intel). Portability item C is COMPLETE
+on Linux + macOS.
+
+## Item C disposition: COMPLETE
+
+Linux and macOS (both arches) empirically confirm the amended primitives. Per the owner protocol
+(event #6), the temporary evidence-only workflow is REMOVED in a separate commit after this record
+lands, and its absence from the final diff (plus no change to any existing workflow) is proven
+below/in the PR. 07dce51 stays RED-held; no production/test implementation; the 250 ceiling stays
+binding; 260 remains only proposed. The fresh-context PRD review (item D) may now proceed.
