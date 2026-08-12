@@ -173,3 +173,131 @@ Then return for the owner design-direction ruling. Only after a review-clean pac
 ruling may HELM update PRD-301 against the ruling, obtain fresh-context review of the exact
 amended PRD revision, and return for explicit amended Gate A. Production implementation remains
 prohibited until amended Gate A.
+
+## CORRECTION CYCLE (GOV-2 independent packet review 2026-08-12 — one consolidated cycle)
+The independent packet review returned REQUIRED-CHANGES (5 findings + 1 recommended). All are
+resolved below; this is the single GOV-2 correction cycle.
+
+FINDING 1 (RESOLVED) — the `_have_reclaim_lock` boolean was not an ownership PROOF across
+release + caught-signal cleanup (A release -> B acquire -> TERM-A -> A's trap unlinks B's live
+reclaim lock; and a signal after acquire but before flag-set wedges). CORRECTION: the boolean
+flag is REMOVED; the EXIT trap removes RECLAIM_LOCK ONLY when it still holds THIS process's pid
+(`IFS= read -r _p <"$RECLAIM_LOCK" && [ "$_p" = "$$" ] && rm -f "$RECLAIM_LOCK"`). This is a
+pid-IDENTITY ownership proof: RECLAIM_LOCK cannot change hands while it holds our pid (any other
+process's `link` fails EEXIST while it exists), so the read-then-rm is not a TOCTOU, and if B
+holds it (B's pid) our trap reads B's pid != $$ and leaves it. The normal-release `rm -f
+"$RECLAIM_LOCK"` is safe (we own it); a signal in the acquire->critical->release window leaves
+RECLAIM_LOCK holding our pid, which the trap then cleans, or (SIGKILL) which the bounded-wait-
+then-fail-loud path recovers. No boolean-flag window remains. Tests: A-release -> B-acquire ->
+TERM-A asserts B's lock survives; TERM immediately after a successful acquire asserts the trap
+cleans our own reclaim lock (no wedge).
+
+FINDING 2 (RESOLVED) — `.stale.PID` exists in TWO forms (the pre-amendment regular-file hardlink
+grave AND the legacy-directory grave); and the pre-amendment `ln`-into-dir defect can leave a
+stray child inside a legacy directory, so a later dead/malformed reclaim's `rmdir` fails on the
+non-empty grave and it persists. CORRECTION: the amended `_reclaim_lock` no longer creates a
+`.stale.PID` file grave at all (it serializes via RECLAIM_LOCK); only `_reclaim_legacy_dir`
+creates a `.stale.PID` (a moved-aside legacy directory). A dead/malformed legacy directory is
+reclaimed ONLY when it is clean (`[ "$(ls -A "$LOCKFILE")" = pid ]`); a directory holding any
+stray child (the former false-acquisition artifact) is NOT auto-removed -> `_reclaim_legacy_dir`
+returns 3 and `_lock` FAILS LOUD ("legacy lock directory with stray content ... remove it
+manually") — fail-closed, never a silent persist or auto-`rm -rf`. Test: seed a legacy dir with
+a dead pid + a stray child, assert fail-loud rc 2 and no auto-removal.
+
+FINDING 3 (RESOLVED) — the LOC derivation is now pinned to an AUDITABLE line-level diff from the
+exact 07dce51 script (below). Durable model measured with the ceiling metric: 252 net-production
+(bash -n clean) — within the 260 provisional ceiling (8-line margin). The prior narrative
+`+0`-accounting referenced a superseded intermediate draft and is withdrawn; the diff is
+authoritative.
+
+FINDING 4 (RESOLVED) — wording corrected: POSIX standardizes the `link()` FUNCTION (atomic,
+exact-pathname, EEXIST on existing target); `link(1)` is a coreutils/BSD COMMAND present on both
+target platforms, not "the POSIX utility." A macOS-runner check (`command -v link`; `link src
+dir` fails with no child; `link src newfile` succeeds; `link src existing` fails EEXIST) is a
+REQUIRED pre-Gate-A portability validation, not optional documentation-based acceptance.
+
+FINDING 5 (RESOLVED) — the mutation plan is tightened to controlled event orders: (serialization)
+a 3-process order A-captures-and-removes-dead-D -> C-acquires-canonical (live) -> delayed-B-
+unlinks, asserting C survives; (never-auto-steal) the two Finding-1 signal windows; (exact-
+pathname) `[ -d ]` evaluated false, THEN the directory appears, THEN acquire, asserting no child
+link + no false ownership; (fail-closed legacy) the Finding-2 seeded non-empty-legacy-dir. Each
+guard has a NAMED real-process test whose corresponding mutant it independently reddens.
+
+RECOMMENDED 1 (APPLIED) — §1's minimum pre-amendment race is THREE bootstrap processes: two
+reclaimers A/B plus a distinct fresh acquirer C (with only A/B, neither performs the fresh
+acquisition landing in the other's stat->unlink gap).
+
+### AUDITABLE MODEL DIFF (verbatim unified diff; apply against `scripts/dev_bootstrap.sh` @ 07dce51 -> corrected amended model; 252 net-production, `bash -n` clean)
+The hunks below are the exact line-level delta from the RED-held 07dce51 script to the
+correction-cycle model. This is the pinned auditable model for Finding #3; the durable-model LOC
+(252) is derived from applying it to 07dce51. Production implementation of it remains prohibited
+until amended Gate A.
+```diff
+@@ -7,6 +7,7 @@
+ VENV="$REPO_ROOT/.venv"
+ VPY="$VENV/bin/python"
+ LOCKFILE="$REPO_ROOT/.dev_bootstrap.lock"
++RECLAIM_LOCK="$LOCKFILE.reclaim"
+ LOCK_TRIES="${DEV_BOOTSTRAP_LOCK_TRIES:-120}"
+ LOCK_SLEEP="${DEV_BOOTSTRAP_LOCK_SLEEP:-0.5}"
+ BEGIN="# >>> dev_bootstrap (PRD-293) >>>"
+@@ -45,8 +46,9 @@
+ }
+ 
+ _on_exit() {
+-  local rc=$?
++  local rc=$? _p
+   [ -n "$_lock_tmp" ] && rm -f "$_lock_tmp"
++  IFS= read -r _p <"$RECLAIM_LOCK" 2>/dev/null && [ "$_p" = "$$" ] && rm -f "$RECLAIM_LOCK"
+   _unlock || rc=2
+   trap - EXIT
+   exit "$rc"
+@@ -69,11 +71,10 @@
+ # hardlink grave, judge liveness on that immutable inode, and remove the lock only
+ # if it is STILL that captured dead inode (a live/new owner is never touched).
+ _reclaim_lock() {
+-  local grave="$LOCKFILE.stale.$$" pid
+-  ln "$LOCKFILE" "$grave" 2>/dev/null || return 1
+-  IFS= read -r pid <"$grave" 2>/dev/null && _pid_live "$pid" && { rm -f "$grave"; return 1; }
+-  [ "$LOCKFILE" -ef "$grave" ] && rm -f "$LOCKFILE"
+-  rm -f "$grave"
++  local pid
++  link "$_lock_tmp" "$RECLAIM_LOCK" 2>/dev/null || return 1
++  { IFS= read -r pid <"$LOCKFILE" 2>/dev/null && _pid_live "$pid"; } || rm -f "$LOCKFILE"
++  rm -f "$RECLAIM_LOCK"
+ }
+ 
+ # Legacy (pre-PRD-301) DIRECTORY carrier, detected by [ -d ] (NOT by ln failing:
+@@ -83,6 +84,7 @@
+   local pid grave="$LOCKFILE.stale.$$"
+   [ -s "$LOCKFILE/pid" ] && IFS= read -r pid <"$LOCKFILE/pid" 2>/dev/null && [ -n "$pid" ] || return 1
+   _pid_live "$pid" && return 1
++  [ "$(ls -A "$LOCKFILE" 2>/dev/null)" = pid ] || return 3
+   mv "$LOCKFILE" "$grave" 2>/dev/null || return 1
+   rm -f "$grave/pid" 2>/dev/null; rmdir "$grave" 2>/dev/null || true
+ }
+@@ -97,8 +99,8 @@
+   printf '%s\n' "$$" >"$_lock_tmp" || { rm -f "$_lock_tmp"; _lock_tmp=""; return 1; }
+   while :; do
+     if [ -d "$LOCKFILE" ]; then
+-      _reclaim_legacy_dir || true
+-    elif ln "$_lock_tmp" "$LOCKFILE" 2>/dev/null; then
++      _reclaim_legacy_dir; [ $? -eq 3 ] && { echo "dev_bootstrap: FAIL [legacy lock directory with stray content] $LOCKFILE -- inspect and, if no dev_bootstrap is running, remove it manually" >&2; return 2; }
++    elif link "$_lock_tmp" "$LOCKFILE" 2>/dev/null; then
+       break
+     else
+       _reclaim_lock || true
+@@ -107,6 +109,7 @@
+     if [ "$i" -gt "$LOCK_TRIES" ]; then
+       rm -f "$_lock_tmp"; _lock_tmp=""
+       [ -d "$LOCKFILE" ] && [ ! -s "$LOCKFILE/pid" ] && { echo "dev_bootstrap: FAIL [legacy lock directory without pid] $LOCKFILE -- ensure no dev_bootstrap process is running, then remove it with: rmdir \"$LOCKFILE\"" >&2; return 2; }
++      [ -e "$RECLAIM_LOCK" ] && { echo "dev_bootstrap: FAIL [stale reclaim lock] $RECLAIM_LOCK -- ensure no dev_bootstrap process is running, then remove it with: rm -f \"$RECLAIM_LOCK\"" >&2; return 2; }
+       return 1
+     fi
+     sleep "$LOCK_SLEEP"
+```
+
+POST-CORRECTION STATUS: the corrected packet supersedes §4-§10's pre-correction wording where it
+conflicts with this cycle. Honest re-modeled ceiling remains 260 (model 252). Ready for the
+independent exact-corrected-head confirmation, then the owner design-direction ruling. No
+production implementation before amended Gate A.
