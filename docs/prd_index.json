@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 299,
-  "next_prd": 300,
+  "latest_complete": 300,
+  "next_prd": 301,
   "entries": [
     {
       "number": 56,
@@ -1466,6 +1466,12 @@
       "title": "Cloudflare clock / GitHub executor OPEN-slot first-success coordination",
       "status": "COMPLETE",
       "commit": "#246"
+    },
+    {
+      "number": 300,
+      "title": "Notification-delivery backstop: resend the owed market-stress HALT notification on transport failure (daily path)",
+      "status": "COMPLETE",
+      "commit": "#247"
     }
   ]
 }

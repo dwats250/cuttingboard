@@ -270,6 +270,84 @@ def _emit_fail_owned_signal(delivered: bool, pre_verification_fail: bool) -> Non
         print(FAIL_OWNED_SIGNAL, flush=True)
 
 
+DELIVERY_FAILED_SIGNAL = "::CB_NOTIFY_DELIVERY_FAILED::"
+
+
+def _safe_last_notification_status() -> str:
+    """PRD-300: the last in-process notification transport status, fail-safe.
+
+    Returns get_last_notification_result().notification_status, or the neutral
+    "NOT_REQUESTED" on ANY exception. The delivery-failed emission reads the
+    status through this accessor so a malformed / absent / inaccessible
+    notification result can never raise into _run_pipeline and thereby flip
+    execution_success or the exit code (PRD-300 R3)."""
+    try:
+        return get_last_notification_result().notification_status
+    except Exception:
+        logger.exception("safe notification-status read failed; treating as NOT_REQUESTED")
+        return "NOT_REQUESTED"
+
+
+def _emit_delivery_failed_signal(*, system_halted: Any, halt_cause: Any, notification_status: str) -> None:
+    """PRD-300: print the ephemeral delivery-failed sentinel to stdout iff a VALID
+    market-stress HALT's single owed notification returned FAILED_TRANSPORT, so the
+    workflow can resend the IDENTICAL owed notification. The three conjuncts are
+    individually load-bearing: a non-halt (normal success), a non-MARKET_STRESS halt
+    (a VALIDATION halt is exit 1, already backstopped by the workflow failure()
+    notifier), and any status other than FAILED_TRANSPORT (SENT / SUPPRESSED /
+    SKIPPED_NO_CONFIG / NOT_REQUESTED) each emit nothing. The whole body is wrapped so
+    no exception can propagate into _run_pipeline: execution_success stays invariant to
+    notification-result health (PRD-300 R3). Ephemeral: no persisted or shared state."""
+    try:
+        if (
+            bool(system_halted)
+            and halt_cause == HaltCause.MARKET_STRESS
+            and notification_status == "FAILED_TRANSPORT"
+        ):
+            print(DELIVERY_FAILED_SIGNAL, flush=True)
+    except Exception:
+        logger.exception("delivery-failed sentinel emission suppressed")
+
+
+def resend_owed_market_stress_halt_notification() -> bool:
+    """PRD-300 workflow backstop entrypoint. Reconstruct and resend the EXACT single
+    notification already owed for the current valid market-stress HALT, from the
+    canonical persisted contract, via the existing formatter + dispatch, so a transient
+    transport failure does not silently swallow the HALT alert. Returns True iff the
+    resend was accepted by transport.
+
+    Parity with the original successful-send path (:980-989): the reloaded contract is
+    validated with assert_valid_contract(finalized=True) BEFORE reconstruction; the
+    message is build_notification_message(contract) (which reads only the contract, never
+    notification_sent, so it is byte-identical to the owed message); priority/state_key
+    come from the same helpers; dispatch is the same send_notification (which re-applies
+    the dashboard footer and the single send_telegram retry limit); and on success
+    save_last_state(state_key, LAST_STATE_PATH) is called exactly as the daily path does.
+
+    Fail-open: any missing / malformed / invalid contract or dispatch error returns False
+    WITHOUT raising and WITHOUT dispatching or persisting state (PRD-300 R5). No new
+    notification class and no new persisted schema."""
+    try:
+        contract = json.loads(Path(LATEST_CONTRACT_PATH).read_text(encoding="utf-8"))
+        assert_valid_contract(contract, finalized=True)
+        title, body = build_notification_message(contract)
+        priority = classify_notification_priority(contract)
+        state_key = notification_state_key(contract)
+        alert_sent = send_notification(
+            title,
+            body,
+            notification_priority=priority.value,
+            notification_state_key=state_key,
+            notify_mode="premarket",
+        )
+        if alert_sent:
+            save_last_state(state_key, LAST_STATE_PATH)
+        return alert_sent
+    except Exception:
+        logger.exception("PRD-300 delivery backstop resend failed (fail-open)")
+        return False
+
+
 def _is_pre_verification_fail(system_halted: Any, halt_cause: Any, errors: Any) -> bool:
     """PRD-296/298: whether this run is a GENUINE pre-verification executor FAIL for
     notification-ownership. A VALID market-stress HALT is EXCLUDED - it concludes
@@ -1315,6 +1393,17 @@ def _run_pipeline(
     _emit_fail_owned_signal(
         alert_sent,
         _is_pre_verification_fail(validation_summary.system_halted, validation_summary.halt_cause, errors),
+    )
+
+    # PRD-300: on the SAME single-send attempt, if a VALID market-stress HALT's owed
+    # notification failed at transport (FAILED_TRANSPORT), emit the delivery-failed
+    # sentinel so the workflow backstop can resend the identical owed notification. The
+    # status is read fail-safe; a market-stress HALT still concludes executor-SUCCESS
+    # (exit 0, PRD-298) whether or not this fires. Not a FAIL-ownership signal.
+    _emit_delivery_failed_signal(
+        system_halted=validation_summary.system_halted,
+        halt_cause=validation_summary.halt_cause,
+        notification_status=_safe_last_notification_status(),
     )
 
     run_history = _load_run_history(LOGS_DIR / "audit.jsonl")

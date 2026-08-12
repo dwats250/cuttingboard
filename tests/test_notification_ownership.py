@@ -25,6 +25,7 @@ import yaml
 
 from cuttingboard import audit, runtime
 from cuttingboard.runtime import (
+    DELIVERY_FAILED_SIGNAL,
     FAIL_OWNED_SIGNAL,
     SUMMARY_STATUS_FAIL,
     SUMMARY_STATUS_SUCCESS,
@@ -230,3 +231,44 @@ def test_ownership_cannot_be_established_by_prefetch_or_verify():
 def test_signal_token_is_the_shared_literal():
     assert FAIL_OWNED_SIGNAL == "::CB_NOTIFY_OWNED_FAIL::"
     assert FAIL_OWNED_SIGNAL in _step("Run live pipeline")["run"]
+
+
+# --- PRD-300: delivery-failed relay + backstop step wiring ------------------------------
+
+def test_execute_steps_relay_delivery_failed_sentinel():
+    for name in ("Run live pipeline", "Run Sunday regime report"):
+        run = _step(name)["run"]
+        assert DELIVERY_FAILED_SIGNAL in run                 # greps the delivery-failed token
+        assert "CB_DELIVERY_FAILED=true" in run              # relays via $GITHUB_ENV
+        # The OWNED_FAIL wiring is unchanged alongside it (belt-and-braces with the tests above).
+        assert FAIL_OWNED_SIGNAL in run
+        assert "CB_NOTIFIED=true" in run
+
+
+def test_backstop_step_gated_on_flag_and_invokes_resend():
+    step = _step("Backstop owed HALT notification (delivery retry)")
+    assert step["if"] == "env.CB_DELIVERY_FAILED == 'true'"   # fires only when the owed send failed transport
+    assert "resend_owed_market_stress_halt_notification" in step["run"]
+    assert "exit 0" in step["run"]                           # fail-open: never fails the job
+
+
+def test_backstop_runs_before_verify():
+    names = [s.get("name") for s in _workflow()["jobs"]["pipeline"]["steps"]]
+    backstop = "Backstop owed HALT notification (delivery retry)"
+    assert backstop in names
+    # Placed before Verify so a later step failure cannot skip the owed resend.
+    assert names.index(backstop) < names.index("Verify run")
+
+
+def test_delivery_backstop_absent_from_prefetch_and_verify():
+    for name in ("Run prefetch", "Verify run"):
+        run = _step(name).get("run", "")
+        assert DELIVERY_FAILED_SIGNAL not in run
+        assert "CB_DELIVERY_FAILED" not in run
+
+
+def test_delivery_and_owned_sentinels_are_distinct_literals():
+    # The two independent grep relays must key on non-colliding literals.
+    assert DELIVERY_FAILED_SIGNAL == "::CB_NOTIFY_DELIVERY_FAILED::"
+    assert FAIL_OWNED_SIGNAL not in DELIVERY_FAILED_SIGNAL
+    assert DELIVERY_FAILED_SIGNAL not in FAIL_OWNED_SIGNAL
