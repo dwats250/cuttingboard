@@ -276,7 +276,7 @@ Gate A.
  BEGIN="# >>> dev_bootstrap (PRD-293) >>>"
 @@ -45,8 +46,9 @@
  }
- 
+
  _on_exit() {
 -  local rc=$?
 +  local rc=$? _p
@@ -299,7 +299,7 @@ Gate A.
 +  { IFS= read -r pid <"$LOCKFILE" 2>/dev/null && _pid_live "$pid"; } || rm -f "$LOCKFILE"
 +  rm -f "$RECLAIM_LOCK"
  }
- 
+
  # Legacy (pre-PRD-301) DIRECTORY carrier, detected by [ -d ] (NOT by ln failing:
 @@ -83,22 +84,28 @@
    local pid grave="$LOCKFILE.stale.$$"
@@ -313,7 +313,7 @@ Gate A.
 +  echo "dev_bootstrap: FAIL [legacy grave retained] $grave -- a non-pid entry moved into the grave; ensure no dev_bootstrap process is running, inspect $grave, and remove it manually only when safe (never rm -rf)" >&2
 +  return 4
  }
- 
+
  # Acquire by hardlinking a pid-bearing temp onto $LOCKFILE (EEXIST is the mutex), so
  # the lock, the instant it exists, already holds the owner pid (no publication window).
  # A directory at the path is a legacy carrier and is handled before any ln attempt.
