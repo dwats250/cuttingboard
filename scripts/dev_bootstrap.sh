@@ -6,7 +6,9 @@ SELF_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_ROOT="$(cd -- "$SELF_DIR/.." && pwd -P)"
 VENV="$REPO_ROOT/.venv"
 VPY="$VENV/bin/python"
-LOCKDIR="$REPO_ROOT/.dev_bootstrap.lock"
+LOCKFILE="$REPO_ROOT/.dev_bootstrap.lock"
+LOCK_TRIES="${DEV_BOOTSTRAP_LOCK_TRIES:-120}"
+LOCK_SLEEP="${DEV_BOOTSTRAP_LOCK_SLEEP:-0.5}"
 BEGIN="# >>> dev_bootstrap (PRD-293) >>>"
 END="# <<< dev_bootstrap (PRD-293) <<<"
 UNDER_CLAUDE=0; [ -n "${CLAUDE_ENV_FILE:-}" ] && UNDER_CLAUDE=1
@@ -15,21 +17,27 @@ unset PYTHONPATH PYTHONHOME PYTHONSTARTUP PIP_TARGET PIP_REQUIRE_VIRTUALENV \
       PIP_USER PIP_CONFIG_FILE 2>/dev/null || true
 
 _have_lock=0
+_lock_tmp=""
+
+_pid_live() {
+  case "${1:-}" in ''|*[!0-9]*) return 1;; esac
+  kill -0 "$1" 2>/dev/null
+}
 
 _lock_owned() {
   local pid
-  [ "$_have_lock" = 1 ] && [ -d "$LOCKDIR" ] && [ -f "$LOCKDIR/pid" ] &&
-    IFS= read -r pid <"$LOCKDIR/pid" && [ "$pid" = "$$" ]
+  [ "$_have_lock" = 1 ] && [ -f "$LOCKFILE" ] &&
+    IFS= read -r pid <"$LOCKFILE" && [ "$pid" = "$$" ]
 }
 
 _unlock() {
   [ "$_have_lock" = 1 ] || return 0
   if ! _lock_owned; then
-    echo "dev_bootstrap: FAIL [lock ownership lost] $LOCKDIR" >&2
+    echo "dev_bootstrap: FAIL [lock ownership lost] $LOCKFILE" >&2
     return 1
   fi
-  if ! rm -f "$LOCKDIR/pid" || ! rmdir "$LOCKDIR"; then
-    echo "dev_bootstrap: FAIL [lock release] $LOCKDIR" >&2
+  if ! rm -f "$LOCKFILE"; then
+    echo "dev_bootstrap: FAIL [lock release] $LOCKFILE" >&2
     return 1
   fi
   _have_lock=0
@@ -37,6 +45,7 @@ _unlock() {
 
 _on_exit() {
   local rc=$?
+  [ -n "$_lock_tmp" ] && rm -f "$_lock_tmp"
   _unlock || rc=2
   trap - EXIT
   exit "$rc"
@@ -44,36 +53,64 @@ _on_exit() {
 trap _on_exit EXIT
 trap 'exit 2' HUP INT TERM
 
-_dead_lock() {
-  local pid
-  [ -f "$LOCKDIR/pid" ] || return 0
-  IFS= read -r pid <"$LOCKDIR/pid" || return 0
-  case "$pid" in ''|*[!0-9]*) return 0;; esac
-  kill -0 "$pid" 2>/dev/null && return 1
-  return 0
+# Remove acquisition temps (.new.PID.*) and reclaim graves (.stale.PID) left by
+# DEAD processes; a live owner's is kept. Handles file and empty-dir graves.
+_sweep_stale() {
+  local t pid
+  for t in "$LOCKFILE".new.* "$LOCKFILE".stale.*; do
+    [ -e "$t" ] || continue
+    pid="${t#*.new.}"; pid="${pid#*.stale.}"; pid="${pid%%.*}"
+    _pid_live "$pid" || { rm -f "$t" "$t/pid" 2>/dev/null; rmdir "$t" 2>/dev/null; }
+  done
 }
 
+# Identity-safe reclaim of the regular-file lock: capture the current inode via a
+# hardlink grave, judge liveness on that immutable inode, and remove the lock only
+# if it is STILL that captured dead inode (a live/new owner is never touched).
 _reclaim_lock() {
-  local grave="$LOCKDIR.stale.$$"
-  _dead_lock || return 1
-  mv "$LOCKDIR" "$grave" 2>/dev/null || return 1
-  rm -f "$grave/pid" 2>/dev/null || true
-  rmdir "$grave" 2>/dev/null || true
-  return 0
+  local grave="$LOCKFILE.stale.$$" pid
+  ln "$LOCKFILE" "$grave" 2>/dev/null || return 1
+  IFS= read -r pid <"$grave" 2>/dev/null && _pid_live "$pid" && { rm -f "$grave"; return 1; }
+  [ "$LOCKFILE" -ef "$grave" ] && rm -f "$LOCKFILE"
+  rm -f "$grave"
 }
 
+# Legacy (pre-PRD-301) DIRECTORY carrier, detected by [ -d ] (NOT by ln failing:
+# `ln f dir` links inside dir and returns 0). Live pid -> wait (return 1);
+# dead/malformed pid -> reclaim; pid-less -> wait (caller fails loud after the bound).
+_reclaim_legacy_dir() {
+  local pid grave="$LOCKFILE.stale.$$"
+  [ -s "$LOCKFILE/pid" ] && IFS= read -r pid <"$LOCKFILE/pid" 2>/dev/null && [ -n "$pid" ] || return 1
+  _pid_live "$pid" && return 1
+  mv "$LOCKFILE" "$grave" 2>/dev/null || return 1
+  rm -f "$grave/pid" 2>/dev/null; rmdir "$grave" 2>/dev/null || true
+}
+
+# Acquire by hardlinking a pid-bearing temp onto $LOCKFILE (EEXIST is the mutex), so
+# the lock, the instant it exists, already holds the owner pid (no publication window).
+# A directory at the path is a legacy carrier and is handled before any ln attempt.
 _lock() {
   local i=0
-  while ! mkdir "$LOCKDIR" 2>/dev/null; do
-    _reclaim_lock || true
+  _sweep_stale
+  _lock_tmp="$(mktemp "$LOCKFILE.new.$$.XXXXXX")" || return 1
+  printf '%s\n' "$$" >"$_lock_tmp" || { rm -f "$_lock_tmp"; _lock_tmp=""; return 1; }
+  while :; do
+    if [ -d "$LOCKFILE" ]; then
+      _reclaim_legacy_dir || true
+    elif ln "$_lock_tmp" "$LOCKFILE" 2>/dev/null; then
+      break
+    else
+      _reclaim_lock || true
+    fi
     i=$((i + 1))
-    [ "$i" -le 120 ] || return 1
-    sleep 0.5
+    if [ "$i" -gt "$LOCK_TRIES" ]; then
+      rm -f "$_lock_tmp"; _lock_tmp=""
+      [ -d "$LOCKFILE" ] && [ ! -s "$LOCKFILE/pid" ] && { echo "dev_bootstrap: FAIL [legacy lock directory without pid] $LOCKFILE -- ensure no dev_bootstrap process is running, then remove it with: rmdir \"$LOCKFILE\"" >&2; return 2; }
+      return 1
+    fi
+    sleep "$LOCK_SLEEP"
   done
-  if ! printf '%s\n' "$$" >"$LOCKDIR/pid"; then
-    rmdir "$LOCKDIR" 2>/dev/null || true
-    return 1
-  fi
+  rm -f "$_lock_tmp"; _lock_tmp=""
   _have_lock=1
 }
 
@@ -229,7 +266,7 @@ _base_py() {
 }
 
 cd -- "$REPO_ROOT" || fail "cd repo root"
-_lock || fail "lock contention >60s"
+_lock || { _rc=$?; [ "$_rc" -eq 2 ] || fail "lock contention >60s"; exit 2; }
 
 if _ready; then
   _bind || fail "CLAUDE_ENV_FILE publish"
