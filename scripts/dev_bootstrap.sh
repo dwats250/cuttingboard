@@ -21,6 +21,7 @@ _lock_tmp=""
 
 _pid_live() {
   case "${1:-}" in ''|*[!0-9]*) return 1;; esac
+  case "$1" in *[1-9]*) ;; *) return 1;; esac  # reject 0 / all-zero: kill -0 0 probes the group
   kill -0 "$1" 2>/dev/null
 }
 
@@ -59,7 +60,7 @@ _sweep_stale() {
   local t pid
   for t in "$LOCKFILE".new.* "$LOCKFILE".stale.*; do
     [ -e "$t" ] || continue
-    pid="${t#*.new.}"; pid="${pid#*.stale.}"; pid="${pid%%.*}"
+    pid="${t#"$LOCKFILE".new.}"; pid="${pid#"$LOCKFILE".stale.}"; pid="${pid%%.*}"
     _pid_live "$pid" || { rm -f "$t" "$t/pid" 2>/dev/null; rmdir "$t" 2>/dev/null; }
   done
 }

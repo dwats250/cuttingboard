@@ -370,6 +370,10 @@ def test_script_stays_within_frozen_production_ceiling():
     # PRD-301: no GNU-only lock flags; atomic hardlink publication is present.
     assert "mv -T" not in text and "ln -T" not in text
     assert 'ln "$_lock_tmp" "$LOCKFILE"' in text
+    # PRD-301 (R5): the production lock-wait bound stays 60s (120 x 0.5s); tests override via
+    # env, so pin the defaults in text lest a future edit silently change the production bound.
+    assert "${DEV_BOOTSTRAP_LOCK_TRIES:-120}" in text
+    assert "${DEV_BOOTSTRAP_LOCK_SLEEP:-0.5}" in text
 
 
 def test_ready_path_is_isolated_version_true_and_binds(tmp_path):
@@ -549,6 +553,34 @@ def test_dead_owner_acquisition_temp_is_swept_live_is_not(tmp_path):
         assert result.returncode == 0, result.stderr
         assert not dead_temp.exists()  # dead-owner temp swept
         assert live_temp.exists()  # live contender's temp preserved
+    finally:
+        holder.terminate()
+        holder.wait()
+    live_temp.unlink(missing_ok=True)
+
+
+def test_pid_zero_lock_is_reclaimed_not_treated_as_live(tmp_path):
+    # `kill -0 0` probes the caller's process group and succeeds; a lock holding pid 0 must
+    # be treated as malformed/dead and reclaimed, not mistaken for a live owner.
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    lock.write_text("0\n")
+    result = _run(repo, extra_env=_FAST_WAIT)
+    assert result.returncode == 0, result.stderr
+    assert _session(repo).count(BEGIN) == 1
+
+
+def test_sweep_parses_pid_by_literal_prefix_not_first_new_in_path(tmp_path):
+    # The repo path itself contains ".new."; a live contender's temp must not be mis-parsed
+    # (first ".new." in the parent path) and wrongly swept.
+    repo = _mkrepo(tmp_path / "a.new.b", with_venv=True, ready=True)
+    holder = subprocess.Popen(["sleep", "30"])
+    live_temp = repo / f".dev_bootstrap.lock.new.{holder.pid}.zZzZzZ"
+    live_temp.write_text(f"{holder.pid}\n")
+    try:
+        result = _run(repo)
+        assert result.returncode == 0, result.stderr
+        assert live_temp.exists()  # correct literal-prefix parse keeps the live temp
     finally:
         holder.terminate()
         holder.wait()
