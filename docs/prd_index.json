@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 298,
-  "next_prd": 299,
+  "latest_complete": 299,
+  "next_prd": 300,
   "entries": [
     {
       "number": 56,
@@ -1464,8 +1464,8 @@
     {
       "number": 299,
       "title": "Cloudflare clock / GitHub executor OPEN-slot first-success coordination",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#246"
     }
   ]
 }
