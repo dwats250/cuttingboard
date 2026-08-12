@@ -410,8 +410,10 @@ jobs:
           rc=${PIPESTATUS[0]}
           set -e
           if grep -q '::CB_NOTIFY_OWNED_FAIL::' "$RUNNER_TEMP/cb_run.log"; then echo "CB_NOTIFIED=true" >> "$GITHUB_ENV"; fi
-          # PRD-300: relay the delivery-failed sentinel (a VALID market-stress HALT whose owed
-          # notification failed at transport) so the backstop step below can resend the owed alert.
+          # PRD-300: relay the delivery-failed sentinel, mirroring the OWNED_FAIL relay and the
+          # live step. DEFENSIVE/SYMMETRY on Sunday: MODE_SUNDAY forces STAY_FLAT and never
+          # system-halts, so a market-stress HALT (and thus this sentinel) cannot arise here
+          # today; kept identical to the live relay for parity and future-routing robustness.
           if grep -q '::CB_NOTIFY_DELIVERY_FAILED::' "$RUNNER_TEMP/cb_run.log"; then echo "CB_DELIVERY_FAILED=true" >> "$GITHUB_ENV"; fi
           date -u +"%Y-%m-%dT%H:%M:%SZ"
           echo "=== END sunday ==="
