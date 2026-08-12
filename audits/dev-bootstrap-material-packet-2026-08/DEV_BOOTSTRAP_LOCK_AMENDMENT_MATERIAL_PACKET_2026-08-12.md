@@ -6,9 +6,12 @@ corrective realization PRD-301 Amendment 1, classified MATERIAL by the owner 202
 (owner event #3) because it changes the binding production LOC ceiling (250 -> 260 provisional),
 a GOV-2 §1 trigger. Prepared for independent packet review; NO production implementation exists
 for the amended mechanism (RED-held at 07dce51). The pre-amendment implementation at 07dce51
-already closes the original mkdir->pid publication race deterministically and preserves every
-safety invariant; this packet governs only the correction of the two safety residuals (Sol #1,
-#2) and the caught-signal cleanup (#5) the owner ruled must be fixed.
+closes the original mkdir->pid publication race deterministically, but it does NOT preserve every
+safety invariant: it remains RED-held precisely because Sol findings #1 and #2 are safety-invariant
+violations (the two-reclaimer compare-then-unlink can unlink a newly acquired live owner's lock,
+and the legacy-directory `[ -d ]`->`ln` TOCTOU can let a process enter protected work without
+holding the canonical lock). This packet governs the correction of those two safety residuals
+(Sol #1, #2) and the caught-signal cleanup (#5) the owner ruled must be fixed.
 
 ## 0. Intake classification (GOV-2 §1)
 MATERIAL. Trigger: changes a production LOC ceiling (250 -> 260). Not triggered: no new
@@ -99,7 +102,14 @@ the recovery is single-actor (the operator) and cannot be represented as automat
   every `_lock` return + EXIT trap; a dead-owner leftover is removed by the next run's
   `_sweep_stale` (pid parsed from the literal `$LOCKFILE.new.` prefix — Sol #4 fix).
 - Legacy reclaim grave `$LOCKFILE.stale.PID` (dir renamed aside during legacy dead/malformed
-  reclaim): removed in-function; a dead-owner leftover swept next run (literal `.stale.` prefix).
+  reclaim): the AUTHORITATIVE post-move check governs it — after `mv` + `rm -f "$grave/pid"`,
+  `rmdir "$grave"` SUCCESS removes it in-function (reclaimed); FAILURE (any residual entry,
+  including a child injected after the pre-move `ls -A` snapshot) is NOT swallowed — the run fails
+  loud (dedicated diagnostic naming `$grave`, `_reclaim_legacy_dir` returns 4, `_lock` returns 2,
+  bootstrap does not continue), and the grave is RETAINED for manual inspection (never `rm -rf`).
+  There is thus no silent persistent non-empty grave; a retained grave is always an exit-2 fail-loud
+  state, not a swept-later leftover (owner event #4). A dead-owner leftover from a clean prior
+  removal path does not arise (removal is in-function on success).
 - Legacy directory `$LOCKFILE` (pre-upgrade carrier): live pid -> never reclaimed; dead/malformed
   -> reclaimed via atomic `mv`; pid-less -> never auto-reclaimed, bounded-wait-then-`rmdir`
   fail-loud (ratified).
@@ -192,23 +202,36 @@ then-fail-loud path recovers. No boolean-flag window remains. Tests: A-release -
 TERM-A asserts B's lock survives; TERM immediately after a successful acquire asserts the trap
 cleans our own reclaim lock (no wedge).
 
-FINDING 2 (RESOLVED) — `.stale.PID` exists in TWO forms (the pre-amendment regular-file hardlink
-grave AND the legacy-directory grave); and the pre-amendment `ln`-into-dir defect can leave a
-stray child inside a legacy directory, so a later dead/malformed reclaim's `rmdir` fails on the
-non-empty grave and it persists. CORRECTION: the amended `_reclaim_lock` no longer creates a
-`.stale.PID` file grave at all (it serializes via RECLAIM_LOCK); only `_reclaim_legacy_dir`
-creates a `.stale.PID` (a moved-aside legacy directory). A dead/malformed legacy directory is
-reclaimed ONLY when it is clean (`[ "$(ls -A "$LOCKFILE")" = pid ]`); a directory holding any
-stray child (the former false-acquisition artifact) is NOT auto-removed -> `_reclaim_legacy_dir`
-returns 3 and `_lock` FAILS LOUD ("legacy lock directory with stray content ... remove it
-manually") — fail-closed, never a silent persist or auto-`rm -rf`. Test: seed a legacy dir with
-a dead pid + a stray child, assert fail-loud rc 2 and no auto-removal.
+FINDING 2 (RESOLVED — post-move check is AUTHORITATIVE per owner event #4) — `.stale.PID` exists
+in TWO forms (the pre-amendment regular-file hardlink grave AND the legacy-directory grave); and
+the pre-amendment `ln`-into-dir defect can leave a stray child inside a legacy directory, so a
+later dead/malformed reclaim's `rmdir` fails on the non-empty grave and it persists. The prior
+correction relied on the pre-move `[ "$(ls -A "$LOCKFILE")" = pid ]` snapshot ALONE, which the
+exact-corrected-head confirmation (5b94a18) found insufficient: a stray child arriving AFTER the
+snapshot but BEFORE the `mv` is carried into the grave and survived the swallowed `rmdir ...
+|| true`. CORRECTION (draft6): the amended `_reclaim_lock` no longer creates a `.stale.PID` file
+grave at all (it serializes via RECLAIM_LOCK); only `_reclaim_legacy_dir` creates a `.stale.PID`
+(a moved-aside legacy directory). The pre-move `ls -A` snapshot is retained as a first-line filter
+(a legacy directory already holding stray content at inspection -> return 3 -> fail loud without
+moving), but the AUTHORITATIVE guarantee is the POST-move check: after `mv "$LOCKFILE" "$grave"`
+and `rm -f "$grave/pid"`, `rmdir "$grave"` is attempted — SUCCESS returns 0 (reclaimed); FAILURE
+(any entry remains, including a child injected after the snapshot) prints a dedicated diagnostic
+naming the retained grave and returns 4, and `_lock` returns 2 (exit 2). Neither path auto-removes
+with `rm -rf`; the grave is RETAINED for manual inspection and the run refuses to continue into
+readiness / venv / install / env publication / acquisition. This closes the confirmation's
+check-to-`mv` TOCTOU regardless of the injection timing. Tests: (a) seed a legacy dir already
+holding a stray child -> pre-move rc 3 fail-loud; (b) the owner-directed proof — dead/malformed
+pid, snapshot passes, inject a non-pid child before `mv`, assert exit 2, the retained-grave
+diagnostic, the inspectable retained grave, and NO bootstrap work or env publication; mutation:
+restoring `rmdir ... || true` reddens the named (b) test. Proof executed against the durable model
+(draft6): PASS (both (b) GREEN on draft6 and RED on the mutant), recorded in the PATH-B section.
 
 FINDING 3 (RESOLVED) — the LOC derivation is now pinned to an AUDITABLE line-level diff from the
-exact 07dce51 script (below). Durable model measured with the ceiling metric: 252 net-production
-(bash -n clean) — within the 260 provisional ceiling (8-line margin). The prior narrative
-`+0`-accounting referenced a superseded intermediate draft and is withdrawn; the diff is
-authoritative.
+exact 07dce51 script (below). Durable model measured with the ceiling metric (non-blank,
+non-comment lines, identical to `test_script_stays_within_frozen_production_ceiling`): 257
+net-production (bash -n clean) after the PATH-B post-move correction — within the 260 provisional
+ceiling (3-line margin), no packing. The prior narrative `+0`-accounting referenced a superseded
+intermediate draft and is withdrawn; the diff is authoritative.
 
 FINDING 4 (RESOLVED) — wording corrected: POSIX standardizes the `link()` FUNCTION (atomic,
 exact-pathname, EEXIST on existing target); `link(1)` is a coreutils/BSD COMMAND present on both
@@ -227,11 +250,13 @@ RECOMMENDED 1 (APPLIED) — §1's minimum pre-amendment race is THREE bootstrap 
 reclaimers A/B plus a distinct fresh acquirer C (with only A/B, neither performs the fresh
 acquisition landing in the other's stat->unlink gap).
 
-### AUDITABLE MODEL DIFF (verbatim unified diff; apply against `scripts/dev_bootstrap.sh` @ 07dce51 -> corrected amended model; 252 net-production, `bash -n` clean)
-The hunks below are the exact line-level delta from the RED-held 07dce51 script to the
-correction-cycle model. This is the pinned auditable model for Finding #3; the durable-model LOC
-(252) is derived from applying it to 07dce51. Production implementation of it remains prohibited
-until amended Gate A.
+### AUDITABLE MODEL DIFF (verbatim unified diff; apply against `scripts/dev_bootstrap.sh` @ 07dce51 -> corrected amended model; 257 net-production, `bash -n` clean)
+The hunks below are the exact line-level delta from the RED-held 07dce51 script (249
+net-production) to the corrected model, INCLUDING the PATH-B post-move fail-loud correction (owner
+event #4). This is the pinned auditable model for Finding #3; the durable-model LOC (257) is
+derived from applying it to 07dce51 (249 + 8 counted lines). Within the 260 provisional ceiling
+(3-line margin); no packing. Production implementation of it remains prohibited until amended
+Gate A.
 ```diff
 @@ -7,6 +7,7 @@
  VENV="$REPO_ROOT/.venv"
@@ -268,26 +293,40 @@ until amended Gate A.
  }
  
  # Legacy (pre-PRD-301) DIRECTORY carrier, detected by [ -d ] (NOT by ln failing:
-@@ -83,6 +84,7 @@
+@@ -83,22 +84,28 @@
    local pid grave="$LOCKFILE.stale.$$"
    [ -s "$LOCKFILE/pid" ] && IFS= read -r pid <"$LOCKFILE/pid" 2>/dev/null && [ -n "$pid" ] || return 1
    _pid_live "$pid" && return 1
 +  [ "$(ls -A "$LOCKFILE" 2>/dev/null)" = pid ] || return 3
    mv "$LOCKFILE" "$grave" 2>/dev/null || return 1
-   rm -f "$grave/pid" 2>/dev/null; rmdir "$grave" 2>/dev/null || true
+-  rm -f "$grave/pid" 2>/dev/null; rmdir "$grave" 2>/dev/null || true
++  rm -f "$grave/pid" 2>/dev/null
++  rmdir "$grave" 2>/dev/null && return 0
++  echo "dev_bootstrap: FAIL [legacy grave retained] $grave -- a non-pid entry moved into the grave; ensure no dev_bootstrap process is running, inspect $grave, and remove it manually only when safe (never rm -rf)" >&2
++  return 4
  }
-@@ -97,8 +99,8 @@
+ 
+ # Acquire by hardlinking a pid-bearing temp onto $LOCKFILE (EEXIST is the mutex), so
+ # the lock, the instant it exists, already holds the owner pid (no publication window).
+ # A directory at the path is a legacy carrier and is handled before any ln attempt.
+ _lock() {
+-  local i=0
++  local i=0 _r
+   _sweep_stale
+   _lock_tmp="$(mktemp "$LOCKFILE.new.$$.XXXXXX")" || return 1
    printf '%s\n' "$$" >"$_lock_tmp" || { rm -f "$_lock_tmp"; _lock_tmp=""; return 1; }
    while :; do
      if [ -d "$LOCKFILE" ]; then
 -      _reclaim_legacy_dir || true
 -    elif ln "$_lock_tmp" "$LOCKFILE" 2>/dev/null; then
-+      _reclaim_legacy_dir; [ $? -eq 3 ] && { echo "dev_bootstrap: FAIL [legacy lock directory with stray content] $LOCKFILE -- inspect and, if no dev_bootstrap is running, remove it manually" >&2; return 2; }
++      _reclaim_legacy_dir; _r=$?
++      [ "$_r" -eq 3 ] && { echo "dev_bootstrap: FAIL [legacy lock directory with stray content] $LOCKFILE -- inspect and, if no dev_bootstrap is running, remove it manually" >&2; return 2; }
++      [ "$_r" -eq 4 ] && return 2
 +    elif link "$_lock_tmp" "$LOCKFILE" 2>/dev/null; then
        break
      else
        _reclaim_lock || true
-@@ -107,6 +109,7 @@
+@@ -107,6 +114,7 @@
      if [ "$i" -gt "$LOCK_TRIES" ]; then
        rm -f "$_lock_tmp"; _lock_tmp=""
        [ -d "$LOCKFILE" ] && [ ! -s "$LOCKFILE/pid" ] && { echo "dev_bootstrap: FAIL [legacy lock directory without pid] $LOCKFILE -- ensure no dev_bootstrap process is running, then remove it with: rmdir \"$LOCKFILE\"" >&2; return 2; }
@@ -298,6 +337,53 @@ until amended Gate A.
 ```
 
 POST-CORRECTION STATUS: the corrected packet supersedes §4-§10's pre-correction wording where it
-conflicts with this cycle. Honest re-modeled ceiling remains 260 (model 252). Ready for the
-independent exact-corrected-head confirmation, then the owner design-direction ruling. No
-production implementation before amended Gate A.
+conflicts with this cycle. Honest re-modeled ceiling remains 260 (model 257 after PATH-B). See
+the PATH-B section below for the owner-event-#4 post-move correction, its deterministic proof, the
+`ls -A` portability evidence, and two discovered-but-out-of-scope items. No production
+implementation before amended Gate A.
+
+## PATH-B CORRECTION (owner event #4, 2026-08-12) — authoritative post-move fail-loud
+
+The GOV-2 exact-corrected-head confirmation of head 5b94a18 returned DESIGN INCOMPLETE on Finding
+2 (a check-to-`mv` TOCTOU: a stray child injected after the `ls -A` snapshot survived the swallowed
+`rmdir ... || true` as a persistent non-empty `.stale.PID` grave). The owner selected PATH B and
+authorized ONE bounded correction. Applied in the durable model (draft6):
+
+CORRECTION. `_reclaim_legacy_dir` trailing `rm -f "$grave/pid"; rmdir "$grave" || true` is replaced
+by an authoritative post-move sequence: `rm -f "$grave/pid"`; `rmdir "$grave" && return 0`; else a
+dedicated diagnostic naming the retained grave to stderr and `return 4`. `_lock` catches rc 4 and
+returns 2, so a retained grave fails the run loud (exit 2), identifies the grave, instructs the
+operator to confirm no bootstrap is running / inspect / remove manually only when safe, never uses
+or recommends `rm -rf`, and does NOT continue into readiness, venv creation, installation, env
+publication, or successful acquisition. The pre-move `ls -A` snapshot (rc 3) is retained as a
+first-line filter; the post-move check — not the snapshot alone — is authoritative.
+
+DETERMINISTIC PROOF (owner steps 1-7), executed against the durable model (draft6), not production
+(implementation prohibited). Harness: a fake repo with a legacy directory holding only a
+dead/malformed pid; a PATH-shimmed `mv` injects a non-`pid` child into the directory in the window
+between the snapshot and the real `mv` (post-snapshot false-acquisition, step 3); the real `mv`
+carries the child into the grave (step 4); `rmdir` fails on the non-empty grave (step 5). Observed
+on draft6: exit 2; stderr `dev_bootstrap: FAIL [legacy grave retained] <grave> -- ...`; the grave
+retained and holding the injected child (inspectable); no `.venv` created; `CLAUDE_ENV_FILE` not
+published (step 6). Mutation (step 7): restoring `rmdir "$grave" 2>/dev/null || true` makes
+`_reclaim_legacy_dir` return 0, `_lock` acquire, and the run proceed — the retained-grave
+diagnostic is ABSENT, reddening the named test. RESULT: named test GREEN on draft6, RED on mutant
+(PASS). `bash -n` clean; 257 net-production (canonical metric), within 260.
+
+`ls -A` PORTABILITY (owner additional-correction #1 — `ls -A` remains in the mechanism). `ls -A`
+(list all entries except `.` and `..`) is POSIX and behaves identically on the repo's Linux
+(GNU coreutils) and macOS/BSD `ls`; it is added to R6's permitted-primitive list. The pre-Gate-A
+macOS-runner check (already REQUIRED for `link`) additionally asserts `ls -A` on an empty vs a
+one-`pid` vs a stray-child directory. `ls -A` is not a new dependency (present on both platforms).
+
+DISCOVERED — OUT OF PATH-B SCOPE (surfaced, not silently fixed):
+- `_on_exit` (line 51) `IFS= read -r _p <"$RECLAIM_LOCK" 2>/dev/null` leaks a spurious
+  "No such file or directory" to stderr whenever RECLAIM_LOCK is absent (the common exit), because
+  bash processes the failing `<` open before `2>/dev/null` applies. Pre-existing in the
+  confirmation-ACCEPTED draft5 Finding-1 fix; cosmetic (the ownership logic is correct: a failed
+  read leaves `_p` empty -> no `rm`); NOT a safety/lifecycle boundary. Ready +0-line fix
+  (`[ -e "$RECLAIM_LOCK" ] &&` guard) deferred to the post-Gate-A implementation, per owner scope.
+- PRD-301.md line 106 still describes the SUPERSEDED `_have_reclaim_lock` held-flag that this
+  correction cycle replaced with the pid-identity ownership proof (Finding 1). The PRD amendment
+  spec now conflicts with this packet; surfaced for the owner (not edited here — the owner directed
+  no PRD update against final direction beyond the authorized R6 `ls -A` addition).
