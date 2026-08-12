@@ -40,7 +40,7 @@ def _resolve(schedule: str = "", *, event: str = "schedule", dispatch: str = "")
 @pytest.mark.parametrize(
     "schedule,expected",
     [
-        ("0 13 * * 1-5", "live"),
+        ("5 13 * * 1-5", "live"),  # PRD-299: OPEN/live delayed fallback (was 0 13)
         ("30 23 * * 0", "sunday"),
         ("50 12 * * 1-5", "prefetch"),  # PRD-193: re-enabled cache-warm slot
     ],
@@ -49,11 +49,17 @@ def test_dedicated_cron_resolves(schedule, expected) -> None:
     assert _resolve(schedule) == expected
 
 
+def test_old_live_cron_no_longer_resolves() -> None:
+    # PRD-299 R7: the 0 13 live cron was replaced by the delayed 5 13 fallback,
+    # so 0 13 must no longer map to live (a stale 0 13 firing resolves to noop).
+    assert _resolve("0 13 * * 1-5") == "noop"
+
+
 def test_resolution_is_time_independent() -> None:
     # The resolver takes no clock input, so a queue-delayed run resolves
     # identically to an on-time one -- the freeze bug (exact-minute match) is
     # gone by construction.
-    assert _resolve("0 13 * * 1-5") == "live"
+    assert _resolve("5 13 * * 1-5") == "live"
 
 
 # --- Deferred crons resolve to noop -----------------------------------------
@@ -73,7 +79,57 @@ def test_unknown_or_empty_schedule_is_noop() -> None:
 
 
 def test_non_schedule_event_is_noop() -> None:
-    assert _resolve("0 13 * * 1-5", event="push") == "noop"
+    assert _resolve("5 13 * * 1-5", event="push") == "noop"
+
+
+# --- PRD-299 R2: slot/mode consistency, fail-closed --------------------------
+def test_validate_slot_mode_valid_pairs() -> None:
+    rrm.validate_slot_mode("OPEN", "live")  # no raise
+    rrm.validate_slot_mode("PRE", "prefetch")  # no raise
+    rrm.validate_slot_mode(" OPEN ", "live")  # surrounding whitespace tolerated
+    rrm.validate_slot_mode("", "live")  # empty slot -> no constraint (legacy)
+    rrm.validate_slot_mode("", "prefetch")
+
+
+@pytest.mark.parametrize(
+    "slot,mode",
+    [
+        ("OPEN", "prefetch"),
+        ("OPEN", "sunday"),
+        ("OPEN", ""),
+        ("PRE", "live"),
+        ("PRE", ""),
+        ("BOGUS", "live"),
+        # Exact-case contract (Sol connector P2): lowercase/mixed-case must fail
+        # closed -- the workflow predicates compare 'OPEN' case-sensitively.
+        ("open", "live"),
+        ("pre", "prefetch"),
+        ("Open", "live"),
+    ],
+)
+def test_validate_slot_mode_mismatch_fails_closed(slot, mode) -> None:
+    with pytest.raises(rrm.SlotModeError):
+        rrm.validate_slot_mode(slot, mode)
+
+
+def test_main_fails_closed_on_bad_slot(monkeypatch) -> None:
+    # R1/R2 (Sol I2): a non-{OPEN,PRE,empty} slot on a workflow_dispatch exits
+    # non-zero from main() so the workflow step fails closed BEFORE first-success.
+    monkeypatch.setenv("CB_EVENT_NAME", "workflow_dispatch")
+    monkeypatch.setenv("CB_DISPATCH_MODE", "live")
+    monkeypatch.setenv("CB_SCHEDULE", "")
+    monkeypatch.setenv("CB_SLOT", "BOGUS")
+    assert rrm.main() == 2
+
+
+def test_main_ok_on_valid_open_and_on_empty_legacy_slot(monkeypatch, capsys) -> None:
+    for slot, mode in (("OPEN", "live"), ("", "live"), ("PRE", "prefetch")):
+        monkeypatch.setenv("CB_EVENT_NAME", "workflow_dispatch")
+        monkeypatch.setenv("CB_DISPATCH_MODE", mode)
+        monkeypatch.setenv("CB_SCHEDULE", "")
+        monkeypatch.setenv("CB_SLOT", slot)
+        assert rrm.main() == 0
+        assert capsys.readouterr().out.strip() == mode
 
 
 # --- workflow_dispatch: explicit operator intent ----------------------------

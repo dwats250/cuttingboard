@@ -70,8 +70,11 @@ designed out of slice 1).
   (premarket-displacement banner) is deferred until CF-E2 is captured and reviewed.
 - **CF-D2 — APPROVED.** Premarket displacement is quote-based.
 - **CF-D3 — APPROVED.** Post-open cadence is TWO dispatches: OPEN and OPEN+1.
-- **CF-D4 — APPROVED.** Retain the existing GitHub cron heartbeats in slice 1
-  (Cloudflare = clock, GitHub = executor; GitHub is not redesigned out).
+- **CF-D4 — APPROVED [SUPERSEDED-IN-PART 2026-08-11 — see below].** Retain the
+  existing GitHub cron heartbeats in slice 1 (Cloudflare = clock, GitHub =
+  executor; GitHub is not redesigned out). *Superseded only as to the OPEN/live
+  heartbeat TIMING by the 2026-08-11 ruling (delayed coordinated fallback); the
+  retain-GitHub-heartbeat principle and PRE/Sunday behavior are unchanged.*
 - **CF-D5 — APPROVED (design) / OPERATIONALLY INCOMPLETE.** Dustin owns the
   Cloudflare account and Worker deployment, fine-grained GitHub PAT creation (repo
   scope `dwats250/cuttingboard`, minimum required Actions write), installation into
@@ -103,6 +106,53 @@ packet draft, independent packet review) moves to the Codex harness; owner seman
 authority (the CF-D1b ruling after evidence, the design-direction ruling, Gate A,
 credential/security choices, and any architecture/FILES/schema widening) stays with
 Dustin.
+
+## 2026-08-11 — CF-D4 SUPERSEDED-IN-PART: OPEN/live GitHub heartbeat retimed to a delayed coordinated fallback (clock/executor-coordination slice) (ruled: Dustin)
+
+Dustin's ruling on the clock/executor-coordination MATERIAL packet
+(`audits/cf-clock-executor-coordination-2026-08/`, option (i) of the packet's
+§16 item 4). This is the single current ruling on OPEN/live heartbeat timing;
+the 2026-08-09 CF-D4 above remains as history, marked SUPERSEDED-IN-PART, and is
+changed ONLY as to that timing.
+
+Binding behavior for the OPEN/live slot:
+- Cloudflare is the preferred OPEN clock; the GitHub OPEN cron remains an
+  automatic heartbeat/fallback (CF-D4's retain-GitHub-heartbeat principle
+  stands).
+- The GitHub OPEN heartbeat is RETIMED to fire LATER than the Cloudflare OPEN
+  trigger rather than concurrently — candidate ~+5 minutes, exact reviewed UTC
+  minute set in Stage-0. Reason: a same-instant heartbeat leaves Cloudflare and
+  GitHub as routine peer clocks racing the same slot, which contradicts the
+  intended authority model (Cloudflare = preferred clock, GitHub cron =
+  resilience fallback); the delay makes that distinction operationally real.
+- The fallback carries the same OPEN slot identity and runs the same
+  first-success proof before execution: a prior qualifying OPEN success →
+  no-op; none → execute; proof uncertainty → execute (never risk a missing
+  board).
+- PRE and Sunday behavior are UNCHANGED unless separately authorized.
+
+Time basis: trigger/window mechanics are UTC-anchored (both scheduled clocks are
+UTC); PT remains authoritative for trading-date identity; a fixed UTC cron is
+NOT to be described as a year-round fixed PT wall-clock time. The packet's
+UTC-window direction (window `[12:50, 13:25) UTC` candidate) is approved.
+
+Rollout consequence ACCEPTED (do not hide): until the Cloudflare Worker is
+deployed, the retimed GitHub fallback is the only automatic OPEN trigger, so the
+board may publish ~5 minutes later than today. Repo-side implementation is not
+blocked on the Worker being live; the external deploy sequence should minimize
+that interval.
+
+Concurrency direction: a dedicated OPEN coordination concurrency group is
+preferred IF Stage-0 confirms artifact-publish race safety remains provided by
+the actual publish mechanism (`tools/ci_push_artifacts.sh` delta-append/retry),
+NOT the old shared `cuttingboard-pipeline` group — the PRD-194 shared-group
+characterization was falsified by the evidence review and must not be relied on.
+If Stage-0 finds a concrete shared-write race the publish mechanism does not
+protect, return RED.
+
+This ruling clears the packet's §16 item 4. It does NOT clear the still-open
+GOV-2 §2/§7 independent Codex packet-review gate (packet §17 PENDING); Stage-0,
+Gate A, and implementation remain blocked on that review.
 
 ## 2026-08-09 — GEX-0 status addendum: egress reached Polygon (HTTP 401); the 2026-08-05 "egress-blocked" framing is now historical
 
