@@ -184,16 +184,18 @@ jobs:
       - name: OHLCV cache day key
         id: ohlcvcache
         if: >-
-          steps.mode.outputs.job_mode == 'prefetch' ||
+          (steps.mode.outputs.job_mode == 'prefetch' ||
           steps.mode.outputs.job_mode == 'live' ||
-          steps.mode.outputs.job_mode == 'sunday'
+          steps.mode.outputs.job_mode == 'sunday') &&
+          steps.openslot.outputs.state != 'SATISFIED'
         run: echo "day=$(date -u +%F)" >> "$GITHUB_OUTPUT"
 
       - name: Restore OHLCV cache
         if: >-
-          steps.mode.outputs.job_mode == 'prefetch' ||
+          (steps.mode.outputs.job_mode == 'prefetch' ||
           steps.mode.outputs.job_mode == 'live' ||
-          steps.mode.outputs.job_mode == 'sunday'
+          steps.mode.outputs.job_mode == 'sunday') &&
+          steps.openslot.outputs.state != 'SATISFIED'
         uses: actions/cache/restore@v4
         with:
           path: data/cache
@@ -233,12 +235,16 @@ jobs:
       # Only the publishing modes need it.
       - name: Restore publish state
         if: >-
-          steps.mode.outputs.job_mode == 'live' ||
+          (steps.mode.outputs.job_mode == 'live' ||
           steps.mode.outputs.job_mode == 'sunday' ||
-          steps.mode.outputs.job_mode == 'verify'
+          steps.mode.outputs.job_mode == 'verify') &&
+          steps.openslot.outputs.state != 'SATISFIED'
         run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/evaluation.jsonl logs/last_notification_state.json logs/market_map.json logs/latest_hourly_contract.json logs/regime_history.jsonl 'logs/run_*.json'
 
       - name: Install dev dependencies
+        # PRD-299 (Sol connector P2): skip on an OPEN coordinated no-op so no
+        # fallible tail step can fail the run and fire the failure notifier.
+        if: steps.openslot.outputs.state != 'SATISFIED'
         run: |
           set -eo pipefail
           pip install -e ".[dev]"
@@ -268,6 +274,7 @@ jobs:
           python3 scripts/check_runtime_readiness.py
 
       - name: Engine health check
+        if: steps.openslot.outputs.state != 'SATISFIED'
         run: |
           set -eo pipefail
           echo "CB_STAGE=engine_doctor" >> "$GITHUB_ENV"
@@ -277,12 +284,16 @@ jobs:
       # PRD-295 (Codex P2): mark the upload stage so an artifact-upload failure reports
       # upload_engine_doctor, not the preceding engine_doctor. if: success() so it never
       # overwrites an earlier failing stage before this always() upload runs.
+      # Pure echo (cannot fail) -> NOT state-gated, preserving the PRD-295
+      # invariant that markers before always()/uses: steps stay `if: success()`.
+      # The fallible Upload step below IS state-gated; a no-op that sets this
+      # marker but skips the upload concludes success (no failure() -> no notify).
       - name: Stage marker (upload engine doctor)
         if: success()
         run: echo "CB_STAGE=upload_engine_doctor" >> "$GITHUB_ENV"
 
       - name: Upload engine doctor artifacts
-        if: always()
+        if: always() && steps.openslot.outputs.state != 'SATISFIED'
         uses: actions/upload-artifact@v7
         with:
           name: engine-doctor-${{ github.run_id }}
@@ -431,6 +442,8 @@ jobs:
       # PRD-295 (Codex P2): mark the commit-message stage so a failure of the always()
       # Generate step reports commit_message. if: success() (+ same modes) so it never
       # overwrites an earlier failing stage (execute/verify) that this always() step runs after.
+      # Pure echo (cannot fail) -> NOT state-gated (PRD-295 marker invariant). The
+      # fallible Generate-commit-message step below IS state-gated.
       - name: Stage marker (generate commit message)
         if: success() && (steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday')
         run: echo "CB_STAGE=commit_message" >> "$GITHUB_ENV"
@@ -438,7 +451,8 @@ jobs:
       - name: Generate commit message
         if: >-
           always() &&
-          (steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday')
+          (steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday') &&
+          steps.openslot.outputs.state != 'SATISFIED'
         run: |
           set -eo pipefail
           python3 - <<'PY'

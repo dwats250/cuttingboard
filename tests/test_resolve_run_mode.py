@@ -86,7 +86,7 @@ def test_non_schedule_event_is_noop() -> None:
 def test_validate_slot_mode_valid_pairs() -> None:
     rrm.validate_slot_mode("OPEN", "live")  # no raise
     rrm.validate_slot_mode("PRE", "prefetch")  # no raise
-    rrm.validate_slot_mode("open", "live")  # case-insensitive
+    rrm.validate_slot_mode(" OPEN ", "live")  # surrounding whitespace tolerated
     rrm.validate_slot_mode("", "live")  # empty slot -> no constraint (legacy)
     rrm.validate_slot_mode("", "prefetch")
 
@@ -100,6 +100,11 @@ def test_validate_slot_mode_valid_pairs() -> None:
         ("PRE", "live"),
         ("PRE", ""),
         ("BOGUS", "live"),
+        # Exact-case contract (Sol connector P2): lowercase/mixed-case must fail
+        # closed -- the workflow predicates compare 'OPEN' case-sensitively.
+        ("open", "live"),
+        ("pre", "prefetch"),
+        ("Open", "live"),
     ],
 )
 def test_validate_slot_mode_mismatch_fails_closed(slot, mode) -> None:

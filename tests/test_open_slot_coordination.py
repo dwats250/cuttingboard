@@ -316,3 +316,29 @@ def test_struct_precheck_uses_ambient_token_no_new_credential() -> None:
     assert "github.token" in region
     # permissions block still only actions: read (no new credential).
     assert "actions: read" in text
+
+
+@pytest.mark.parametrize(
+    "step_name",
+    [
+        "Restore OHLCV cache",
+        "Restore publish state",
+        "Install dev dependencies",
+        "Engine health check",
+        "Upload engine doctor artifacts",
+        "Generate commit message",
+    ],
+)
+def test_struct_satisfied_noop_skips_fallible_tail(step_name) -> None:
+    # Sol connector P2: on a SATISFIED coordinated no-op, every fallible live/
+    # shared step must be gated on state != 'SATISFIED' so a transient failure
+    # cannot fail the no-op run and fire the failure notifier.
+    text = _wf()
+    i = text.index(f"name: {step_name}")
+    # The step's `if:` (and any folded continuation) is within the block before
+    # the next step definition.
+    nxt = text.find("      - name:", i + 1)
+    block = text[i:nxt] if nxt != -1 else text[i:]
+    assert "steps.openslot.outputs.state != 'SATISFIED'" in block, (
+        f"{step_name!r} must be gated on the OPEN no-op state (P2)"
+    )

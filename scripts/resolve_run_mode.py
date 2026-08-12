@@ -74,14 +74,25 @@ def validate_slot_mode(slot: str, mode: str) -> None:
     """PRD-299 R2: OPEN<->live, PRE<->prefetch, fail-closed on mismatch.
 
     An empty slot imposes no constraint (a legacy/operator dispatch that carries
-    only ``mode``). A non-empty slot MUST match its mode, else SlotModeError.
+    only ``mode``). A non-empty slot MUST be EXACT-CASE ``OPEN`` or ``PRE`` and
+    match its mode, else SlotModeError.
+
+    Exact-case is deliberate (Sol connector P2): the workflow's run-name carrier,
+    concurrency group expression, and OPEN first-success pre-check all consume the
+    raw ``inputs.slot`` and compare case-SENSITIVELY against ``OPEN``. If this
+    validator lowercased/uppercased, a ``slot=open`` dispatch would pass here but
+    be treated as a NON-OPEN run by every workflow predicate -> it would carry a
+    ``CB-SLOT:open`` token, enter the ordinary concurrency group, skip the
+    first-success pre-check, and could execute concurrently with / duplicate the
+    automatic OPEN run. Rejecting non-exact-case here keeps the whole path
+    consistent and fail-closed.
     """
-    slot = (slot or "").strip().upper()
+    slot = (slot or "").strip()  # NOTE: no case-folding -- exact-case contract
     if not slot:
         return
     expected = _SLOT_MODE.get(slot)
     if expected is None:
-        raise SlotModeError(f"unknown slot {slot!r} (expected OPEN or PRE)")
+        raise SlotModeError(f"unknown slot {slot!r} (expected exact-case OPEN or PRE)")
     if (mode or "").strip() != expected:
         raise SlotModeError(f"slot {slot} requires mode {expected!r}, got {(mode or '').strip()!r}")
 
