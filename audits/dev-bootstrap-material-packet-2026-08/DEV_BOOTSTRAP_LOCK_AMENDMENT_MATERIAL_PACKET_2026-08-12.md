@@ -107,17 +107,25 @@ the recovery is single-actor (the operator) and cannot be represented as automat
   including a child injected after the pre-move `ls -A` snapshot) is NOT swallowed — the run fails
   loud (dedicated diagnostic naming `$grave`, `_reclaim_legacy_dir` returns 4, `_lock` returns 2,
   bootstrap does not continue), and the grave is RETAINED for manual inspection (never `rm -rf`).
-  There is thus no silent persistent non-empty grave; a retained grave is always an exit-2 fail-loud
-  state, not a swept-later leftover (owner event #4). A dead-owner leftover from a clean prior
-  removal path does not arise (removal is in-function on success).
+  The run that performs the move fails loud (exit 2) and does not continue (owner event #4). The
+  retained non-empty grave is thereafter an INERT pid-tagged leftover: it is NOT at `$LOCKFILE`, so
+  it never blocks or re-triggers acquisition (a subsequent run finds `$LOCKFILE` absent — moved
+  aside — and acquires a fresh lock normally); and `_sweep_stale` on a later run cannot silently
+  remove it (its `rmdir` fails on the non-empty dir, exactly as intended), so it persists as a
+  visible artifact awaiting manual removal, never auto-`rm -rf`. This satisfies the owner-directed
+  retain-and-fail-loud contract without wedging future runs. A grave from a CLEAN reclaim
+  (`rmdir` succeeded) is removed in-function and leaves nothing.
 - Legacy directory `$LOCKFILE` (pre-upgrade carrier): live pid -> never reclaimed; dead/malformed
   -> reclaimed via atomic `mv`; pid-less -> never auto-reclaimed, bounded-wait-then-`rmdir`
   fail-loud (ratified).
 - RECLAIM_LOCK `$LOCKFILE.reclaim` (fixed-name): §4 state machine; NOT pid-tagged so the sweep
   glob does not match it; recovered by caught-signal cleanup or bounded-wait-then-fail-loud
-  manual `rm`. No permanent unowned artifact survives a later bootstrap for the pid-tagged
-  classes; RECLAIM_LOCK's only non-swept residue path is the SIGKILL-then-manual-`rm` case,
-  which is loud, bounded, and single-actor.
+  manual `rm`. No SILENT unowned artifact survives a later bootstrap for the pid-tagged classes
+  (temps and clean graves self-clean via `_sweep_stale`); the two by-design exceptions are both
+  LOUD and manual-removal-only: the retained NON-empty legacy grave (exit-2 diagnostic on the run
+  that creates it; inert visible leftover thereafter, above) and RECLAIM_LOCK's
+  SIGKILL-then-manual-`rm` case (bounded, single-actor). Neither is a silent orphan; neither is
+  ever auto-`rm -rf`.
 
 ## 7. First-class LOC budget
 Durable model of the review-corrected amended mechanism: **253 net-production** lines
