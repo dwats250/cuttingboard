@@ -379,6 +379,9 @@ def test_script_stays_within_frozen_production_ceiling():
     assert 'RECLAIM_LOCK="$LOCKFILE.reclaim"' in text
     assert 'link "$_lock_tmp" "$RECLAIM_LOCK"' in text
     assert '[ -e "$RECLAIM_LOCK" ] && IFS= read -r _p <"$RECLAIM_LOCK"' in text
+    # PRD-301 AMENDMENT 1 (owner event #8): acquisition-side RECLAIM_LOCK gate at the loop top so a
+    # present (even orphaned, with $LOCKFILE absent) reclaim mutex blocks acquisition, never bypassed.
+    assert 'if [ -e "$RECLAIM_LOCK" ]; then' in text
     assert 'rmdir "$grave" 2>/dev/null && return 0' in text
     assert "return 4" in text
     assert "-ef" not in text
@@ -1118,3 +1121,92 @@ def test_second_reclaimer_is_excluded_while_first_holds_reclaim_lock(tmp_path):
             proc_a.wait(timeout=15)
         except subprocess.TimeoutExpired:
             proc_a.kill()
+
+
+# rm shim: after removing the canonical dead lock (arg ends exactly in `.dev_bootstrap.lock`),
+# pause so a test can SIGKILL the reclaimer AFTER the dead-lock removal but BEFORE it releases
+# RECLAIM_LOCK. All other rm calls (temps, graves, .reclaim) pass through untouched.
+FAKE_RM_PAUSE = r"""#!/usr/bin/env bash
+real_rm=/usr/bin/rm; [ -x "$real_rm" ] || real_rm=/bin/rm
+last="${@: -1}"
+"$real_rm" "$@"; rc=$?
+case "$last" in
+  *.dev_bootstrap.lock)
+    if [ -n "${RM_BARRIER_DIR:-}" ] && [ -d "${RM_BARRIER_DIR}" ]; then
+      touch "$RM_BARRIER_DIR/reached"
+      while [ ! -e "$RM_BARRIER_DIR/go" ]; do sleep 0.01; done
+    fi
+    ;;
+esac
+exit "$rc"
+"""
+
+
+def test_orphaned_reclaim_lock_blocks_acquisition_and_fails_loud(tmp_path):
+    # Owner event #8 (acquisition-side gate): with the canonical lock ABSENT but a SIGKILL-orphaned
+    # RECLAIM_LOCK present, the loop-top gate must BLOCK acquisition/legacy/reclaim/work -- a
+    # bounded wait then exit 2 with the stale-reclaim diagnostic, RETAINING the reclaim mutex for
+    # manual recovery. It must NEVER acquire the canonical lock, do readiness/install work, or
+    # publish the Claude environment. (Pre-fix, an absent $LOCKFILE let `link` succeed and bypass
+    # the mutex.)
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    reclaim = repo / ".dev_bootstrap.lock.reclaim"
+    session = repo / "session.sh"
+    session.write_text("# user content\n")
+    assert not lock.exists()  # canonical lock ABSENT
+    reclaim.write_text(f"{_dead_pid()}\n")  # SIGKILL-orphaned reclaim mutex (dead pid)
+    result = _run(repo, extra_env=_FAST_WAIT)
+    assert result.returncode == 2, result
+    assert "stale reclaim lock" in result.stderr, result.stderr
+    assert "rm -f" in result.stderr and ".reclaim" in result.stderr
+    assert "rm -rf" not in result.stderr
+    assert not lock.exists()  # never acquired the canonical lock
+    assert reclaim.exists()  # foreign/orphaned mutex retained, never auto-stolen
+    assert "ready" not in result.stdout and "bootstrapped" not in result.stdout
+    assert _session(repo) == "# user content\n"  # no env publication
+    assert BEGIN not in _session(repo)
+
+
+def test_sigkilled_reclaimer_after_dead_lock_removal_blocks_contender(tmp_path):
+    # Owner event #8 SIGKILL interleaving: a real reclaimer removes the dead canonical lock, then
+    # is SIGKILLed BEFORE releasing RECLAIM_LOCK (leaving $LOCKFILE ABSENT + an orphaned reclaim
+    # mutex). A contender must NEVER acquire the canonical lock or do bootstrap work; it
+    # bounded-fails loud and RETAINS the mutex for manual recovery. Deterministic via an rm barrier.
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    reclaim = repo / ".dev_bootstrap.lock.reclaim"
+    session = repo / "session.sh"
+    session.write_text("# user content\n")
+    lock.write_text(f"{_dead_pid()}\n")  # dead canonical lock -> triggers reclaim
+    barrier = repo / "barrier"
+    barrier.mkdir()
+    shimbin = repo / "shimbin"
+    shimbin.mkdir()
+    _write_executable(shimbin / "rm", FAKE_RM_PAUSE)
+    base = _env(repo, session)
+    env_r = {**base, "PATH": f"{shimbin}:{base['PATH']}", "RM_BARRIER_DIR": str(barrier), **_FAST_WAIT}
+    reclaimer = subprocess.Popen(
+        ["bash", str(repo / "scripts" / "dev_bootstrap.sh")],
+        cwd=repo, env=env_r, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    try:
+        _wait_for_barrier(reclaimer, barrier / "reached")
+        assert not lock.exists()  # reclaimer removed the dead canonical lock
+        assert reclaim.exists()  # reclaimer holds RECLAIM_LOCK, paused before releasing it
+        reclaimer.kill()  # SIGKILL before it can release RECLAIM_LOCK (trap cannot run)
+        reclaimer.wait(timeout=15)
+        assert reclaim.exists()  # orphaned mutex survives the SIGKILL
+        # A real, unshimmed contender must be blocked by the acquisition-side gate.
+        contender = _run(repo, extra_env=_FAST_WAIT)
+        assert contender.returncode == 2, contender
+        assert "stale reclaim lock" in contender.stderr, contender.stderr
+        assert not lock.exists()  # contender never acquired the canonical lock
+        assert reclaim.exists()  # mutex retained for manual recovery
+        assert "ready" not in contender.stdout and "bootstrapped" not in contender.stdout
+        assert _session(repo) == "# user content\n"  # no env publication by the contender
+    finally:
+        (barrier / "go").touch()
+        if reclaimer.poll() is None:
+            reclaimer.kill()
+            reclaimer.wait(timeout=10)

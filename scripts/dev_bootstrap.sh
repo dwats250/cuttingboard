@@ -105,7 +105,13 @@ _lock() {
   _lock_tmp="$(mktemp "$LOCKFILE.new.$$.XXXXXX")" || return 1
   printf '%s\n' "$$" >"$_lock_tmp" || { rm -f "$_lock_tmp"; _lock_tmp=""; return 1; }
   while :; do
-    if [ -d "$LOCKFILE" ]; then
+    # Acquisition-side gate: while RECLAIM_LOCK exists (a reclaim in progress OR a SIGKILL-
+    # orphaned mutex, even with $LOCKFILE absent), never acquire, handle a legacy dir, enter a
+    # reclaim, or proceed to any work; wait in the bounded loop, then fail loud at the bound
+    # below. Never auto-steal it. This closes the LOCKFILE-absent-but-RECLAIM_LOCK-present bypass.
+    if [ -e "$RECLAIM_LOCK" ]; then
+      :
+    elif [ -d "$LOCKFILE" ]; then
       _reclaim_legacy_dir; _r=$?
       [ "$_r" -eq 3 ] && { echo "dev_bootstrap: FAIL [legacy lock directory with stray content] $LOCKFILE -- inspect and, if no dev_bootstrap is running, remove it manually" >&2; return 2; }
       [ "$_r" -eq 4 ] && return 2
