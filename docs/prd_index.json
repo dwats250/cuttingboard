@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 300,
-  "next_prd": 301,
+  "latest_complete": 301,
+  "next_prd": 302,
   "entries": [
     {
       "number": 56,
@@ -1476,8 +1476,8 @@
     {
       "number": 301,
       "title": "Atomic link-based dev_bootstrap lock: close the mkdir-to-pid publication race, with legacy-directory migration and abandoned-temp lifecycle",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#248"
     }
   ]
 }

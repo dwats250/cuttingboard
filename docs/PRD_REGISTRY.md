@@ -318,7 +318,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-298 | #245 | Valid market-stress HALT is an execution SUCCESS: publish the halt board, own the single HALT notification, conclude the executor successfully (daily path) | COMPLETE | [PRD-298](prd_history/PRD-298.md) |
 | PRD-299 | #246 | Cloudflare clock / GitHub executor OPEN-slot first-success coordination | COMPLETE | [PRD-299](prd_history/PRD-299.md) |
 | PRD-300 | #247 | Notification-delivery backstop: resend the owed market-stress HALT notification on transport failure (daily path) | COMPLETE | [PRD-300](prd_history/PRD-300.md) |
-| PRD-301 | — | Atomic link-based dev_bootstrap lock: close the mkdir-to-pid publication race, with legacy-directory migration and abandoned-temp lifecycle | IN PROGRESS | [PRD-301](prd_history/PRD-301.md) |
+| PRD-301 | #248 | Atomic link-based dev_bootstrap lock: close the mkdir-to-pid publication race, with legacy-directory migration and abandoned-temp lifecycle | COMPLETE | [PRD-301](prd_history/PRD-301.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
