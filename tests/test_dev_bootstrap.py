@@ -11,6 +11,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -517,8 +518,6 @@ def test_pid_appearing_during_wait_changes_the_result(tmp_path):
     # pid-less legacy directory, then drop a DEAD pid into it while the run waits; the run
     # re-checks, reclaims the now-dead-pid directory, and proceeds instead of failing loud.
     import threading
-    import time
-
     repo = _mkrepo(tmp_path, with_venv=True, ready=True)
     lock = repo / ".dev_bootstrap.lock"
     lock.mkdir()
@@ -636,13 +635,29 @@ exec "$real_link" "$@"
 """
 
 
+def _wait_for_barrier(proc, marker, *, timeout=30.0):
+    # Wait until the shimmed child touches `marker`, OR the bootstrap process exits early. On
+    # early exit, surface its stdout/stderr so a CI-only divergence is diagnosable rather than an
+    # opaque "never reached". Generous timeout for loaded CI runners; local hits are sub-second.
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if marker.exists():
+            return
+        if proc.poll() is not None:
+            out, err = proc.communicate()
+            raise AssertionError(
+                f"bootstrap exited (rc={proc.returncode}) before reaching barrier {marker}\n"
+                f"--- stdout ---\n{out}\n--- stderr ---\n{err}"
+            )
+        time.sleep(0.02)
+    raise AssertionError(f"barrier {marker} not reached within {timeout}s (bootstrap still running)")
+
+
 def test_owner_paused_before_link_publishes_no_incomplete_lock_and_never_steals(tmp_path):
     # Atomic publication (FINAL RATIFIED DIRECTION item 1): an owner paused after its pid-temp is
     # written but before the exact-pathname `link` exposes no incomplete authoritative lock;
     # another process may acquire; the paused owner then waits and acquires cleanly (never
     # stealing). Deterministic via a `link` barrier.
-    import time
-
     repo = _mkrepo(tmp_path, with_venv=True, ready=True)
     (repo / "session.sh").write_text("# user content\n")
     lock = repo / ".dev_bootstrap.lock"
@@ -661,11 +676,7 @@ def test_owner_paused_before_link_publishes_no_incomplete_lock_and_never_steals(
         cwd=repo, env=env_a, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
     )
     try:
-        for _ in range(1000):
-            if (barrier / "reached").exists():
-                break
-            time.sleep(0.01)
-        assert (barrier / "reached").exists(), "owner never reached the pre-link barrier"
+        _wait_for_barrier(proc_a, barrier / "reached")
         # INVARIANT: no incomplete authoritative lock is visible while the owner is paused.
         assert not lock.exists()
         # Another process acquires cleanly while A is paused, and fully releases.
@@ -687,8 +698,6 @@ def test_serialized_reclaimer_never_unlinks_a_fresh_live_owner(tmp_path):
     # LIVE owner takes the canonical path while the reclaimer holds RECLAIM_LOCK, the reclaimer
     # reads the live pid and leaves the lock intact -- never steals. Deterministic via a
     # RECLAIM_LOCK `link` barrier.
-    import time
-
     repo = _mkrepo(tmp_path, with_venv=True, ready=True)
     lock = repo / ".dev_bootstrap.lock"
     reclaim = repo / ".dev_bootstrap.lock.reclaim"
@@ -710,11 +719,7 @@ def test_serialized_reclaimer_never_unlinks_a_fresh_live_owner(tmp_path):
     )
     new_owner = subprocess.Popen(["sleep", "30"])
     try:
-        for _ in range(1000):
-            if (barrier / "reached").exists():
-                break
-            time.sleep(0.01)
-        assert (barrier / "reached").exists(), "reclaimer never reached the RECLAIM_LOCK barrier"
+        _wait_for_barrier(proc_c, barrier / "reached")
         assert reclaim.exists(), "reclaimer does not hold RECLAIM_LOCK at the barrier"
         # A NEW live owner takes the canonical path while the reclaimer is paused holding
         # RECLAIM_LOCK. The serialized critical section reads the CURRENT (now live) pid.
@@ -932,7 +937,6 @@ def test_terminated_reclaimer_does_not_orphan_its_reclaim_lock(tmp_path):
     # FINAL RATIFIED DIRECTION item 3: a reclaimer holding its OWN RECLAIM_LOCK that is TERM'd
     # does not orphan it -- the caught-signal / EXIT path removes its own reclaim lock.
     import signal
-    import time
 
     repo = _mkrepo(tmp_path, with_venv=True, ready=True)
     lock = repo / ".dev_bootstrap.lock"
@@ -956,11 +960,7 @@ def test_terminated_reclaimer_does_not_orphan_its_reclaim_lock(tmp_path):
         cwd=repo, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
     )
     try:
-        for _ in range(1000):
-            if (barrier / "reached").exists():
-                break
-            time.sleep(0.01)
-        assert (barrier / "reached").exists(), "reclaimer never reached the RECLAIM_LOCK barrier"
+        _wait_for_barrier(proc, barrier / "reached")
         assert reclaim.exists()  # it holds its own RECLAIM_LOCK
         proc.send_signal(signal.SIGTERM)
         (barrier / "go").touch()  # release the paused link child so the pending trap can run
@@ -1040,8 +1040,6 @@ def test_published_lock_already_contains_owner_pid(tmp_path):
     # is no pid-less publication window. Deterministic via a post-acquisition link barrier that
     # pauses AFTER the real link. (The pre-link no-lock test alone green-passes a mutation that
     # writes the pid after the link.)
-    import time
-
     repo = _mkrepo(tmp_path, with_venv=True, ready=True)
     lock = repo / ".dev_bootstrap.lock"
     barrier = repo / "barrier"
@@ -1062,11 +1060,7 @@ def test_published_lock_already_contains_owner_pid(tmp_path):
         cwd=repo, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
     )
     try:
-        for _ in range(1000):
-            if (barrier / "reached").exists():
-                break
-            time.sleep(0.01)
-        assert (barrier / "reached").exists(), "owner never reached the post-link barrier"
+        _wait_for_barrier(proc, barrier / "reached")
         # The lock is now visible; it must ALREADY contain the owner pid (no pid-less window).
         assert lock.exists()
         assert lock.read_text().strip() == str(proc.pid), lock.read_text()
@@ -1085,8 +1079,6 @@ def test_second_reclaimer_is_excluded_while_first_holds_reclaim_lock(tmp_path):
     # untouched until A runs. A weakened `link ... || :` would let B proceed and evict the dead lock
     # while A is paused. Deterministic: A pauses AFTER a successful RECLAIM_LOCK link; B is a real
     # unshimmed bootstrap.
-    import time
-
     repo = _mkrepo(tmp_path, with_venv=True, ready=True)
     lock = repo / ".dev_bootstrap.lock"
     reclaim = repo / ".dev_bootstrap.lock.reclaim"
@@ -1110,11 +1102,7 @@ def test_second_reclaimer_is_excluded_while_first_holds_reclaim_lock(tmp_path):
         cwd=repo, env=env_a, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
     )
     try:
-        for _ in range(1000):
-            if (barrier / "reached").exists():
-                break
-            time.sleep(0.01)
-        assert (barrier / "reached").exists(), "reclaimer A never reached the RECLAIM_LOCK barrier"
+        _wait_for_barrier(proc_a, barrier / "reached")
         assert reclaim.exists()  # A holds RECLAIM_LOCK
         # A second REAL (unshimmed) reclaimer B runs while A holds RECLAIM_LOCK; B must be excluded.
         result_b = _run(repo, extra_env=_FAST_WAIT)
