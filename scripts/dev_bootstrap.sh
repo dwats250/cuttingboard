@@ -7,6 +7,7 @@ REPO_ROOT="$(cd -- "$SELF_DIR/.." && pwd -P)"
 VENV="$REPO_ROOT/.venv"
 VPY="$VENV/bin/python"
 LOCKFILE="$REPO_ROOT/.dev_bootstrap.lock"
+RECLAIM_LOCK="$LOCKFILE.reclaim"
 LOCK_TRIES="${DEV_BOOTSTRAP_LOCK_TRIES:-120}"
 LOCK_SLEEP="${DEV_BOOTSTRAP_LOCK_SLEEP:-0.5}"
 BEGIN="# >>> dev_bootstrap (PRD-293) >>>"
@@ -45,8 +46,9 @@ _unlock() {
 }
 
 _on_exit() {
-  local rc=$?
+  local rc=$? _p
   [ -n "$_lock_tmp" ] && rm -f "$_lock_tmp"
+  [ -e "$RECLAIM_LOCK" ] && IFS= read -r _p <"$RECLAIM_LOCK" 2>/dev/null && [ "$_p" = "$$" ] && rm -f "$RECLAIM_LOCK"
   _unlock || rc=2
   trap - EXIT
   exit "$rc"
@@ -65,40 +67,49 @@ _sweep_stale() {
   done
 }
 
-# Identity-safe reclaim of the regular-file lock: capture the current inode via a
-# hardlink grave, judge liveness on that immutable inode, and remove the lock only
-# if it is STILL that captured dead inode (a live/new owner is never touched).
+# Serialized reclaim of a dead regular-file lock: acquire the fixed-name RECLAIM_LOCK
+# (atomic `link`; only one reclaimer at a time), then remove $LOCKFILE only if its pid
+# is dead/absent. A live owner is never reclaimed and no second reclaimer runs
+# concurrently, so there is no compare-then-unlink race against a fresh owner.
 _reclaim_lock() {
-  local grave="$LOCKFILE.stale.$$" pid
-  ln "$LOCKFILE" "$grave" 2>/dev/null || return 1
-  IFS= read -r pid <"$grave" 2>/dev/null && _pid_live "$pid" && { rm -f "$grave"; return 1; }
-  [ "$LOCKFILE" -ef "$grave" ] && rm -f "$LOCKFILE"
-  rm -f "$grave"
+  local pid
+  link "$_lock_tmp" "$RECLAIM_LOCK" 2>/dev/null || return 1
+  { IFS= read -r pid <"$LOCKFILE" 2>/dev/null && _pid_live "$pid"; } || rm -f "$LOCKFILE"
+  rm -f "$RECLAIM_LOCK"
 }
 
-# Legacy (pre-PRD-301) DIRECTORY carrier, detected by [ -d ] (NOT by ln failing:
-# `ln f dir` links inside dir and returns 0). Live pid -> wait (return 1);
-# dead/malformed pid -> reclaim; pid-less -> wait (caller fails loud after the bound).
+# Legacy (pre-PRD-301) DIRECTORY carrier, routed by an explicit [ -d ] test (a `link`
+# failure is EEXIST for a file OR a dir and cannot distinguish them). Live pid -> wait
+# (return 1); dead/malformed CLEAN dir -> reclaim; a stray non-pid child -> return 3
+# (fail loud); a non-empty retained grave after the move -> return 4 (fail loud);
+# pid-less -> wait (caller fails loud after the bound).
 _reclaim_legacy_dir() {
   local pid grave="$LOCKFILE.stale.$$"
   [ -s "$LOCKFILE/pid" ] && IFS= read -r pid <"$LOCKFILE/pid" 2>/dev/null && [ -n "$pid" ] || return 1
   _pid_live "$pid" && return 1
+  [ "$(ls -A "$LOCKFILE" 2>/dev/null)" = pid ] || return 3
   mv "$LOCKFILE" "$grave" 2>/dev/null || return 1
-  rm -f "$grave/pid" 2>/dev/null; rmdir "$grave" 2>/dev/null || true
+  rm -f "$grave/pid" 2>/dev/null
+  rmdir "$grave" 2>/dev/null && return 0
+  echo "dev_bootstrap: FAIL [legacy grave retained] $grave -- a non-pid entry moved into the grave; ensure no dev_bootstrap process is running, inspect $grave, and remove it manually only when safe (never rm -rf)" >&2
+  return 4
 }
 
-# Acquire by hardlinking a pid-bearing temp onto $LOCKFILE (EEXIST is the mutex), so
-# the lock, the instant it exists, already holds the owner pid (no publication window).
-# A directory at the path is a legacy carrier and is handled before any ln attempt.
+# Acquire with the exact-pathname `link` utility: link a pid-bearing temp onto $LOCKFILE
+# (EEXIST is the mutex), so the lock, the instant it exists, already holds the owner pid
+# (no publication window). `link` fails EEXIST on a directory too, so a legacy directory
+# is routed by the explicit [ -d ] test before any link attempt.
 _lock() {
-  local i=0
+  local i=0 _r
   _sweep_stale
   _lock_tmp="$(mktemp "$LOCKFILE.new.$$.XXXXXX")" || return 1
   printf '%s\n' "$$" >"$_lock_tmp" || { rm -f "$_lock_tmp"; _lock_tmp=""; return 1; }
   while :; do
     if [ -d "$LOCKFILE" ]; then
-      _reclaim_legacy_dir || true
-    elif ln "$_lock_tmp" "$LOCKFILE" 2>/dev/null; then
+      _reclaim_legacy_dir; _r=$?
+      [ "$_r" -eq 3 ] && { echo "dev_bootstrap: FAIL [legacy lock directory with stray content] $LOCKFILE -- inspect and, if no dev_bootstrap is running, remove it manually" >&2; return 2; }
+      [ "$_r" -eq 4 ] && return 2
+    elif link "$_lock_tmp" "$LOCKFILE" 2>/dev/null; then
       break
     else
       _reclaim_lock || true
@@ -107,6 +118,7 @@ _lock() {
     if [ "$i" -gt "$LOCK_TRIES" ]; then
       rm -f "$_lock_tmp"; _lock_tmp=""
       [ -d "$LOCKFILE" ] && [ ! -s "$LOCKFILE/pid" ] && { echo "dev_bootstrap: FAIL [legacy lock directory without pid] $LOCKFILE -- ensure no dev_bootstrap process is running, then remove it with: rmdir \"$LOCKFILE\"" >&2; return 2; }
+      [ -e "$RECLAIM_LOCK" ] && { echo "dev_bootstrap: FAIL [stale reclaim lock] $RECLAIM_LOCK -- ensure no dev_bootstrap process is running, then remove it with: rm -f \"$RECLAIM_LOCK\"" >&2; return 2; }
       return 1
     fi
     sleep "$LOCK_SLEEP"
