@@ -9,9 +9,18 @@ correction is applied, and the exact corrected head is independently confirmed
 
 > **REVISION:** This is the one-consolidated-correction revision. The INITIAL
 > PACKET REVIEW returned `DESIGN INCOMPLETE` with 9 findings (1 CRITICAL, 6
-> MAJOR, 2 MINOR); all are dispositioned in the `## CORRECTION CYCLE` section
+> MAJOR, 2 MINOR); all were dispositioned in the `## CORRECTION CYCLE` section
 > at the end, and the affected sections below are rewritten. The review record
 > is `PACKET.review.sol.md` in this directory.
+>
+> **OUTCOME AT EXACT-CORRECTED-HEAD CONFIRMATION (`8c7669ed`): DESIGN
+> INCOMPLETE.** The independent confirmation (`PACKET.review.sol.md` section 3)
+> confirmed findings 1-4 and 6-8 ADDRESSED, but found finding 5 NOT-ADDRESSED
+> and a NEW material boundary omission, plus finding 9 NOT-ADDRESSED. Per GOV-2
+> sections 6-7 the packet is NOT review-clean; the single consolidated
+> correction cycle is spent; HELM does not run a second cycle. **Held for the
+> owner to choose: rebuild the read-surface boundary from a corrected frame,
+> narrow the claim, or park.** See section 0.1.
 
 - **Base:** `origin/main` @ `ff320357e35dc4d16c80787dff9197f90c6ab0a2`
   (PR #248 merged; unchanged from the planning base, so next-free-PRD,
@@ -57,6 +66,60 @@ branch confirms only that the branch preserves the current green baseline. It
 does not execute or validate the proposed runtime design, the secret-isolation
 guarantees, the consumer inventory, or the regression plan. A docs-only
 full-suite count is not evidence that any proposed implementation is complete.
+
+### 0.1 DESIGN INCOMPLETE at exact-corrected-head confirmation
+
+The exact-corrected-head confirmation (`8c7669ed`) returned **DESIGN
+INCOMPLETE**. Two prior findings were not fully addressed and one NEW material
+boundary omission was introduced by the correction. Per GOV-2 sections 6-7 this
+is a hard stop: no second correction cycle runs autonomously, and the owner
+chooses whether to **rebuild** the affected boundary from a corrected frame,
+**narrow** the packet's claim, or **park** it.
+
+**Unresolved item A -- runner-wide model read surface (NEW omission; the stop
+driver).** The correction's finding-5 fix asserted a bounded model-readable
+surface (sparse checkout + isolated working directory = only prompt, schema,
+tool, event). That claim is false at pinned Codex `0.147.0`: built-in
+`:read-only` grants `:root = read` (whole-filesystem read), and
+`working-directory` only sets `codex exec --cd`. So the model can read the
+checkout's `.git` object database (the full repository, not just the sparse
+working tree) and any same-user-readable runner, action, temporary, and
+Codex-home path. The model-input/trust surface -- and the secret-isolation and
+PRD-230 analyses that leaned on a bounded surface -- must be redone on the true
+runner-wide read boundary. Sections 3.5, 5.2, and 5.6 are affected.
+
+**Unresolved item B -- CONTRACT ceremony not actually bound (finding 9
+NOT-ADDRESSED).** Section 1.2 states the schema-diff review and full-consumer
+audit are "carried into section 7," but section 7 contains no such binding
+requirement (requirement 12 is only a validator/schema equivalence test). The
+claim and the requirements set are inconsistent.
+
+**HELM realizability note (attributed to HELM, not the confirmer).** Unresolved
+item A is a correct property of the Codex read-only sandbox, but its *actual
+Slice-A exploitability* is bounded and worth stating for the owner ruling:
+
+- The repository is **public**, so the readable `.git` contents and reviewed
+  tree are not themselves secret; reading them leaks nothing not already public.
+- `OPENAI_API_KEY` is **proxy-held** by `openai/codex-action` and is never
+  written to disk as a file the model could read; requirement 9's
+  `persist-credentials: false` removes the `GITHUB_TOKEN` from the on-disk
+  checkout. So no *repository* secret is on-disk-readable by the model in the
+  corrected Slice-A design.
+- The residual real risk is the *general* runner surface (other actions' temp
+  files, environment, Codex home) that a filesystem-root-read model can reach --
+  a property shared by any `openai/codex-action` read-only run, including the
+  live precedent's SDK-in-`run:` job, which is *less* contained. The concrete
+  defect here is therefore primarily that the **packet over-claimed a bounded
+  read surface**, not that Slice-A is demonstrably exploitable.
+- This does not, on its own, collapse the two-slice design or the PRD-230
+  distinction (which rests on no-gate / no-authenticity-upkeep /
+  non-authoritative output, not on the read-surface leg). It does mean the
+  security analysis must be honestly rebuilt on the true read boundary before
+  the packet can be review-clean.
+
+This note is realizability context for the owner; it is **not** a HELM
+resolution of the finding and **not** a second correction cycle. The lawful
+next step is Dustin's (rebuild / narrow / park), per GOV-2 section 6.
 
 ---
 
@@ -766,15 +829,21 @@ during downstream work:
 
 ## 11. GOV-2 sequence status
 
-This packet is the provisional MATERIAL packet (step 2 of the GOV-2 required
-order). The two auto-commissioned Codex packet-cycle events (INITIAL PACKET
-REVIEW; EXACT-CORRECTED-HEAD CONFIRMATION) and the one consolidated correction
-are recorded in `PACKET.review.sol.md` in this directory. No PRD is allocated,
-no Stage 0 is opened, and no Gate A is issued or inferred by this document.
+This packet completed the bounded GOV-2 packet cycle: INITIAL PACKET REVIEW
+(DESIGN INCOMPLETE, 9 findings) -> one consolidated correction (all nine
+addressed) -> EXACT-CORRECTED-HEAD CONFIRMATION at `8c7669ed`. Both
+auto-commissioned Codex packet-cycle events and the single correction are
+recorded in `PACKET.review.sol.md`. No PRD is allocated, no Stage 0 is opened,
+and no Gate A is issued or inferred by this document.
 
-**On completion of the review cycle the campaign stops at:**
-`MATERIAL PACKET REVIEW-CLEAN -- HELD FOR OWNER DESIGN-DIRECTION RULING. NO
-STAGE 0. NO IMPLEMENTATION.`
+The confirmation returned **DESIGN INCOMPLETE (new material boundary
+omission)**. The single consolidated correction cycle is spent; HELM does not
+run a second cycle (GOV-2 sections 6-7). The packet is therefore **not
+review-clean**.
+
+**The campaign stops at:**
+`PRD-302 MATERIAL PACKET -- DESIGN INCOMPLETE AT EXACT-HEAD CONFIRMATION --
+HELD FOR OWNER (REBUILD / NARROW / PARK). NO STAGE 0. NO IMPLEMENTATION.`
 
 ---
 

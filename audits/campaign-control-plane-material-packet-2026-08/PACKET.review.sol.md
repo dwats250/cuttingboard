@@ -78,8 +78,50 @@ below once confirmed).
 
 ## 3. EXACT-CORRECTED-HEAD CONFIRMATION
 
-PENDING -- to be filled from the independent Codex/Sol confirmation of the exact
-corrected head. Per GOV-2 sections 5 and 7 this is a confirmation that each
-prior finding is resolved at that exact head, not a new broad review; the only
-lawful non-ACCEPT outcome is a NEW material boundary omission returning the
-packet to `DESIGN INCOMPLETE` for the owner.
+- **Event type:** `EXACT-CORRECTED-HEAD CONFIRMATION` (GOV-2 section 2, step 5;
+  scope per sections 5, 7 -- confirmation that each prior finding is resolved at
+  the exact head, not a new broad review).
+- **Reviewer / role:** `gpt-5.6-sol`, fresh-context independent reviewer,
+  distinct session from the INITIAL review.
+- **Confirmed head SHA:** `8c7669ed36d36fd9d9c47aa3fee82c4479746e60`
+  (the consolidated-correction commit).
+- **Confirmation date:** 2026-08-13.
+- **Run:** `codex exec -s read-only -m gpt-5.6-sol -c
+  model_reasoning_effort=xhigh`, sandbox `read-only`.
+- **VERDICT: DESIGN INCOMPLETE (new material boundary omission).**
+
+### Per-finding confirmation (prior findings 1-9)
+
+| # | Prior finding | Confirmation |
+|---|---|---|
+| 1 | 90-day public job-log surface | **ADDRESSED** -- 3.8 inventory is honest; secret proxy-excluded; Slice-B public-log constraint named. |
+| 2 | Secret boundary / ref / persist-credentials / allow-users | **ADDRESSED** -- 3.4 + req 9 bind the controls; `allow-users` correctly additive. |
+| 3 | Model-output transport (injection) | **ADDRESSED** -- 3.6 + req 11 bind inert transport + injection-inertness test. |
+| 4 | Bootstrap precedent / lawful NO path | **ADDRESSED** -- 9.2 accurate vs PRD-197/207/212 histories and GOV-2 section 9; false PRD-255 blocking claim withdrawn. |
+| 5 | "Model receives only event JSON" over-claim | **NOT-ADDRESSED** -- see new omission below. The replacement claim (readable surface = exactly prompt/schema/tool/event) is false: `working-directory` only sets `codex exec --cd`; Codex 0.147.0 `:read-only` = `:root = read`. |
+| 6 | FILES/ceiling completeness | **ADDRESSED** -- validator selected; download-artifact removed; lifecycle files enumerated; estimate revised. |
+| 7 | Model identity / pin currency | **ADDRESSED** -- requested-only; served unobservable; pins reconciled to a consistent current-major SHA set. |
+| 8 | Anti-stall need as fact | **ADDRESSED** -- relabeled owner product hypothesis; KEEP/NO-GO is the seam. |
+| 9 | INFRA "not CONTRACT" ceremony | **NOT-ADDRESSED** -- 1.2 acknowledges the subordinate CONTRACT surface and 1.2 says the schema-diff review + full-consumer-audit ceremony is "carried into section 7," but section 7 contains no such binding requirement; req 12 is only a validator/schema equivalence test. |
+
+### NEW MATERIAL BOUNDARY OMISSION (the DESIGN INCOMPLETE driver)
+
+> The correction newly asserts an enumerated model-readable surface without
+> covering the actual runner-wide filesystem-read transition. At pinned Codex
+> 0.147.0, built-in `:read-only` grants `:root = read`; an isolated current
+> directory and sparse checkout therefore do not prevent the model from reading
+> the checkout's `.git` object database or other same-user-readable runner,
+> action, temporary, and Codex-home paths. The model-input/trust surface -- and
+> the security analysis based on it -- is materially incomplete.
+
+Per GOV-2 sections 6 and 7 this returns the packet to `DESIGN INCOMPLETE`. The
+one consolidated correction cycle GOV-1/GOV-2 authorize is spent; HELM does not
+run a second cycle autonomously. See the HELM realizability note in `PACKET.md`
+section 0 and the owner options recorded there.
+
+### Isolation (Sol, verbatim)
+
+> Fresh context, independent of the authoring session; exact head
+> `8c7669ed36d36fd9d9c47aa3fee82c4479746e60` reviewed read-only, with no
+> repository writes, files created, staging changes, or git changes;
+> pre-existing untracked `.confirm_prompt.txt` remained untouched.
