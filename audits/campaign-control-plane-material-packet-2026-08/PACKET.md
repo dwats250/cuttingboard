@@ -873,3 +873,261 @@ CLASS INFRA (dominant) / LANE HIGH-RISK forcing; the default-branch bootstrap
 fact; the good secret-hygiene elements (as necessary-not-sufficient); the
 structural-test tripwire honesty; PRD-230 non-revival as genuine; and the
 ceiling estimation method (number pending Finding 6, now resolved).
+
+---
+---
+
+# REBUILD (owner-authorized 2026-08-13; GOV-2 section 6 ruling: REBUILD)
+
+**This REBUILD block is the CURRENT AUTHORITATIVE packet content.** After the
+first-cycle exact-corrected-head confirmation returned DESIGN INCOMPLETE
+(section 0.1), Dustin ruled REBUILD (not narrow, not park). Everything above
+(sections 0-11 and the first-cycle CORRECTION CYCLE) is preserved **verbatim as
+historical first-cycle lineage** per the rebuild charge; where it conflicts with
+this REBUILD block, this block **supersedes** it (GOV-2 section 10 -- exactly
+one current ruling is plainly identified). The rebuild is documentation-only and
+grants nothing downstream: no PRD, Stage 0, Gate A, implementation, or merge.
+The bootstrap-COMPLETE exception (R.10), the marginal-return KEEP/NO-GO ruling
+(R.9), Stage 0, Gate A, and merge all remain ungranted and return to Dustin only
+after this rebuilt packet is review-clean.
+
+## R.1 The true boundary: runner-wide readability (withdrawal + enumeration)
+
+**Withdrawn.** Every first-cycle statement that a sparse checkout, a
+`working-directory` selection, or an isolated directory is a *confidentiality*
+boundary is **withdrawn**. Those are scope-minimization and navigation controls
+only; they do not limit what the model can READ. Specifically superseded:
+first-cycle sections 3.5 ("minimal, isolated checkout ... the model's readable
+input surface is therefore enumerated" as if bounded), the section 5.2 "model
+input" row's reliance on checkout isolation, and requirement 10's framing of
+sparse checkout as a read-surface bound.
+
+**Conservative model (primary evidence R.3).** The Codex process must be modeled
+as able to read **every path the pinned sandbox permits**. At Codex `0.147.0`
+the `:read-only` profile grants `:root = read` -- **whole-filesystem read**,
+zero write, and network **Restricted** (no outbound). So the model can read any
+path the runner OS lets its uid read, subject only to OS privilege (procfs of
+other-privilege processes needs escalation).
+
+Readable-surface enumeration (charge frame item 2):
+
+| Surface | Model-readable? | Basis / label |
+|---|---|---|
+| Sparse working tree + **full `.git` object DB** | YES | VERIFIED -- whole-fs read; `.git` holds the entire repo regardless of sparse working tree. Content is the **public** repo. |
+| Action code under the runner action cache | YES | VERIFIED -- whole-fs read. Public action code (non-secret). |
+| Runner temp dirs + workflow command files (`GITHUB_ENV`, `GITHUB_OUTPUT`, `GITHUB_PATH`, `GITHUB_STEP_SUMMARY`) | YES, same-uid, **no sudo needed** | VERIFIED -- same-uid files + whole-fs read. Content is whatever steps write; **Slice A writes no secret here** (binding R.7.4). |
+| `HOME`, `CODEX_HOME`, tool caches, action state, generated config | YES | VERIFIED readable. Whether any on-disk proxy/CODEX_HOME config contains the raw API key: **INFERRED NOT PRESENT** (the action captures the key via stdin, not a file -- R.3), residual **UNRESOLVED** pending direct inspection of the proxy config-writing step. |
+| `/proc` -- same-uid, non-privileged entries | YES | VERIFIED -- same-uid procfs (e.g. own environ) readable without sudo. |
+| `/proc` -- other-privilege process memory/environ (the proxy, the runner agent) | Only with escalation | VERIFIED (vendor, R.3): extractable "with appropriate privileges" i.e. **sudo**; closed by `safety-strategy: drop-sudo`. The exact same-uid `ptrace_scope` nuance on hosted runners is **UNRESOLVED** and is a named review/implementation item (R.4). |
+| Checkout credential / `GITHUB_TOKEN` on disk (`.git/config`) | Only if `persist-credentials: true` | VERIFIED (actions/checkout): removed by **`persist-credentials: false`** (binding R.7). |
+| `GITHUB_TOKEN` / Actions runtime, cache, artifact tokens in the runner process env | Only via privileged procfs | VERIFIED reachable only via sudo/escalation -> `drop-sudo`; also **not in the codex step env** (Slice A passes no token to the codex-action step). Scope is `contents: read` regardless (R.6). |
+| Proxy token / `PROXY_API_KEY` | In-memory in the proxy process | VERIFIED not in codex env (`env -u`, R.3); on-disk **INFERRED NOT PRESENT**; in-memory reachable only via escalation -> `drop-sudo` (+ UNRESOLVED ptrace nuance). |
+| stdout/stderr + **public Actions job log** (~90 days) | YES (public repo) | VERIFIED (first-cycle F1). Raw model output lands here; the **secret does not** (proxy). |
+| OIDC token material | **NOT PRESENT** | VERIFIED -- Slice A declares no `id-token: write`, so no OIDC token is minted (binding R.7.5). |
+
+The rule the first cycle violated and this block obeys: **do not infer
+"not readable" from "not intentionally passed to the model."**
+
+## R.2 Secret-and-capability inventory (charge frame item 4)
+
+producer -> storage/representation -> reader -> model-command reachability ->
+lifetime -> consumer -> write/network effect -> enforcing control:
+
+- **OPENAI_API_KEY** -- owner repo Actions secret -> captured by the proxy via
+  **stdin**, codex child launched with `env -u PROXY_API_KEY` (not on disk, not
+  in codex env; R.3) -> read by the proxy process (in memory) -> model
+  reachability: not via env, not via disk, in-memory only via privileged procfs
+  (blocked by `drop-sudo`; same-uid ptrace residual UNRESOLVED) -> lifetime: the
+  run -> consumer: the proxy forwards to the OpenAI Responses API -> effect:
+  **OpenAI API spend only, no GitHub effect** -> control: proxy + `drop-sudo` +
+  command-network Restricted; worst-case exfil path is the trusted model
+  emitting it into its own output (see R.5).
+- **GITHUB_TOKEN** -- Actions per-job token -> `.git/config` only if
+  `persist-credentials: true`; runner env otherwise -> reader: referencing
+  steps -> model reachability: removed from disk by `persist-credentials:
+  false`; env reachable only via privileged procfs (`drop-sudo`) -> lifetime:
+  job end -> **scope `contents: read`** so even if read it grants no write ->
+  control: `persist-credentials: false` + least-privilege `permissions` +
+  `drop-sudo`.
+- **Actions runtime / cache / artifact tokens** (`ACTIONS_RUNTIME_TOKEN` etc.)
+  -> runner process env/runtime -> model reachability only via privileged
+  procfs (`drop-sudo`); not in the codex step env -> effect: artifact/cache
+  manipulation *within the run* if read -> control: `drop-sudo` + the secret-
+  bearing codex job is separate from the artifact-uploading validator job.
+- **Proxy config / PROXY_API_KEY** -- as OPENAI_API_KEY above.
+- **OIDC token** -- **NOT PRESENT** (no `id-token` permission).
+- **Checkout auth** -- covered by GITHUB_TOKEN + `persist-credentials: false`.
+- **Workflow command files** -- runner temp files, same-uid readable **without
+  sudo** -> content is step-written; **binding: Slice A writes no secret to any
+  command file** (R.7.4), so they hold no credential.
+
+## R.3 Primary evidence (re-derived from source, charge frame item 3)
+
+- **Codex `0.147.0` sandbox** -- `codex-rs/protocol/src/permissions.rs` at
+  `rust-v0.147.0`: `read_only_file_system_entries()` returns
+  `FileSystemPath::Special{Root}` with `FileSystemAccessMode::Read`;
+  `read_only()` builds a policy with `:root = read` and
+  `network_access: false`; `NetworkSandboxPolicy` defaults `Restricted` (no
+  network), `Enabled` otherwise; `has_full_disk_read_access()` is true for a
+  restricted-with-root-read policy. -> whole-fs read, zero write, no command
+  network. VERIFIED.
+- **openai/codex-action** action.yml at `52fe01ec...`: inputs include
+  `openai-api-key`, `prompt-file`, `output-file`, `output-schema-file`, `model`,
+  `effort`, `permission-profile`, `safety-strategy`
+  (`drop-sudo`|`unprivileged-user`|`read-only`|`unsafe`), `codex-version`,
+  `codex-args`, `allow-users`. The key is **proxied**: a "Start Responses API
+  proxy" step captures it via stdin and the codex child is launched
+  `printenv PROXY_API_KEY | env -u PROXY_API_KEY "${args[@]}"` (key unset in the
+  codex env). The action runs a fixed sequence ending in the `codex exec`
+  invocation. VERIFIED.
+- **openai/codex-action** docs/security.md at `52fe01ec...`: the key is **not**
+  kept secret by the proxy alone -- "Linux's procfs makes a considerable amount
+  of information available via file-read operations to a user with appropriate
+  privileges ... **Be sure to use either `drop-sudo` or `unprivileged-user` to
+  ensure it stays secret!**" Permission profiles "constrain commands that Codex
+  runs; they do not replace the action's `safety-strategy`, which controls the
+  privileges of the Codex process itself." Untrusted values must be passed via
+  `env:` and quoted, not spliced. VERIFIED.
+- **GitHub-hosted runners** (docs.github.com/en/actions/reference/runners/
+  github-hosted-runners; .../concepts/runners/github-hosted-runners): a **new
+  VM per job**, "automatically provisions a new VM ... automatically
+  decommissioned"; "each job runs in a fresh instance"; "The Linux and macOS
+  virtual machines both run using **passwordless sudo**." -> the procfs+sudo key
+  threat is real, so `drop-sudo` is load-bearing. VERIFIED.
+- **GITHUB_TOKEN** (docs.github.com/.../automatic-token-authentication):
+  accessible via `github.token` even if not passed; the workflow `permissions:`
+  block sets its scope; least-access advised. VERIFIED. (Lifetime = job end:
+  INFERRED, standard behavior, not quoted here.)
+
+Requested model identity (`gpt-5.6-sol`) is recorded as **requested only**;
+served identity is not positively observable (PRD-207); it is never recorded as
+resolved (retained from first cycle, section 6.1).
+
+## R.4 Slice-A reassessment on the truthful boundary (charge frame item 5)
+
+- Repository + synthetic event content are **public/non-secret**, so broad read
+  access to them is acceptable -- but it is **not** called isolation.
+- `persist-credentials: false` **does** remove the GitHub token from the on-disk
+  checkout (a real control given whole-fs read); it does **not** confer
+  filesystem confidentiality.
+- `safety-strategy: drop-sudo` is **load-bearing** (not defense-in-depth) for
+  API-key and runner-credential confidentiality: the vendor names it as the
+  control that closes the procfs escalation path that passwordless sudo would
+  otherwise open. Residual: the exact same-uid `ptrace_scope` behavior on hosted
+  runners is **UNRESOLVED**; recorded as a review/implementation item, not
+  papered over.
+- `permission-profile: ":read-only"` (whole-fs read, zero write, **no command
+  network**) and `contents: read` + no write scopes together mean **no
+  model-readable credential enables a write or GitHub effect** (R.6).
+- "Proxy-held API key" is established from pinned implementation (stdin capture +
+  `env -u`), and does **not** imply every runtime credential is unreadable --
+  the runner/proxy in-memory credentials rest on `drop-sudo`.
+- The pinned action, `drop-sudo`, main-only trusted ref, no untrusted ingress,
+  and action-final placement each protect a specific thing and are proven, not
+  assumed.
+
+## R.5 Smallest lawful security claim (charge frame item 6)
+
+> Slice A intentionally processes only **public, fixed, non-sensitive inputs**
+> on an ephemeral GitHub-hosted runner. It **does not claim filesystem
+> confidentiality from the model** (Codex `:read-only` grants whole-filesystem
+> read). Its safety rests on: (a) the **absence of sensitive model-readable
+> inputs** -- the repo is public, the event is a fixed synthetic public value,
+> `persist-credentials: false` removes the GitHub token from disk, and no secret
+> is written to any same-uid-readable command file; (b) **proxy separation of
+> the owner API key combined with `drop-sudo`**, the vendor-named control pair,
+> as defense-in-depth for the one sensitive value present; (c) **least-privilege
+> GitHub permissions** (`contents: read`; no issues/PR/checks/actions write; no
+> `id-token`) so no model-readable credential grants a write or GitHub effect;
+> (d) Codex `:read-only` **denies command network egress and all writes**, so
+> the model cannot exfiltrate off-runner via commands or mutate anything; (e)
+> **no untrusted ingress** (fixed synthetic event -- no adversary can instruct
+> the model to read and emit a credential); (f) **no publication path**; and (g)
+> **zero authoritative effect** (a NOT-AUTHORITY proposal). The single residual
+> exposure -- the trusted model emitting the API key into its own output, which
+> lands in the public job log -- requires the model to misbehave on a fixed
+> owner prompt with no untrusted ingress, and is bounded (key spend, no GitHub
+> effect); it is stated, not hidden.
+
+## R.6 Denied-effect analysis (charge frame item 5)
+
+Does any model-readable credential enable a network or GitHub effect despite
+`contents: read`? **No, for Slice A:**
+
+- Command network egress is **denied** (`:read-only` -> `NetworkSandboxPolicy::
+  Restricted`), so the model cannot open sockets to exfiltrate or call GitHub
+  APIs from a tool/command.
+- Even a read `GITHUB_TOKEN` is scoped `contents: read` (workflow `permissions`)
+  -- no write, no issue/PR/checks/actions mutation.
+- No `id-token` -> no OIDC federation to cloud.
+- The only off-runner channel the model can reach is its own model output ->
+  public log/artifact (an information-disclosure channel, not a mutation
+  channel), which R.5(e) bounds via no-untrusted-ingress.
+
+## R.7 Normative CONTRACT ceremony (BINDING requirements; charge frame item 7)
+
+These are **normative requirements** for the downstream PRD, not descriptive
+prose (this is the fix for first-cycle finding 9 NOT-ADDRESSED). CLASS stays
+**INFRA on dominant-purpose grounds** while the subordinate CONTRACT ceremony is
+carried explicitly:
+
+1. **Schema-diff review (binding).** The reviewer performs a field-by-field
+   schema-diff over `.github/campaign/charge.schema.json` and the synthetic
+   event shape covering **every field, type, enum, pattern, length, required
+   key, and `additionalProperties` rule**; the review artifact records it.
+2. **Full producer/consumer audit (binding).** Enumerate and disposition every
+   producer and consumer of the event and charge schemas: the model (as
+   constraint), the handwritten validator, the renderer, the one-day artifact,
+   the public job log, the owner, and **every future Slice-B dependency
+   disclosed by Slice A** (issue ingress, publisher, checkpoint carrier).
+3. **Drift-guard test (binding).** A test proves the handwritten stdlib
+   validator and the JSON schema accept/reject the identical closed vocabulary
+   (required keys, enums, patterns, limits, `additionalProperties: false`).
+4. **No secret to any same-uid-readable sink (binding).** Slice A writes no
+   credential to `GITHUB_ENV`/`GITHUB_OUTPUT`/`GITHUB_STEP_SUMMARY`, any command
+   file, any artifact, or any log; model output transport is via step `env:` +
+   quoted input through pinned `github-script` only (retained requirement 11).
+5. **No `id-token` and no write scopes (binding).** Permissions are
+   `contents: read` throughout; no `issues`, `pull-requests`, `checks`,
+   `actions`, `contents: write`, or `id-token`. TRIPWIRE-asserted.
+6. **`safety-strategy: drop-sudo` present (binding, load-bearing).** A TRIPWIRE
+   asserts `drop-sudo`; removing it is a security regression, not a style
+   change.
+7. **Reviewer disposition obligation (binding).** Any consumer or schema drift
+   is dispositioned **before Gate A and again at implementation review**;
+   sparse-checkout/working-directory are never cited as confidentiality.
+
+## R.8 Retained from the first cycle (unchanged unless contradicted above)
+
+LANE HIGH-RISK / CLASS INFRA / MATERIAL (section 1); current official action
+pins and the removal of unearned `download-artifact` (section 6); requested-only
+model identity (section 6.1); inert model-output transport (section 3.6 /
+requirement 11); the public Actions-log presentation path (section 3.8); no
+model-authored verification field (requirement 1); no issue trigger/write in
+Slice A (requirement 7); the Codex Action as the literal final secret-bearing
+job step (requirement 8); structural tests labeled `TRIPWIRE -- NOT BEHAVIORAL
+PROOF` (section 4); the default-branch bootstrap fact (section 3.9); and the
+PRD-230 distinct-product-capability analysis (section 5) -- which remains
+subject to the owner KEEP/NO-GO ruling. The Slice-A ceiling remains ESTIMATED
+(section 8), unchanged by the rebuild (the rebuild adds requirements and honesty,
+not new payload LOC beyond the already-counted validation surface).
+
+## R.9 NO-GO assessment
+
+**Not NO-GO.** On the truthful runner-wide boundary, Slice A's confidentiality
+and denied-effect claims **are** supportable on a standard GitHub-hosted runner
+via the R.5 claim: safety rests on absence-of-sensitive-inputs + least privilege
++ no untrusted ingress + command-network denial, with key confidentiality as
+evidence-backed defense-in-depth (proxy + `drop-sudo`) and one honestly-flagged
+UNRESOLVED ptrace residual. The architecture is not unsafe or unprovable; it
+required an honest security claim, which R.5 supplies. The PRD-230
+distinct-capability finding stands, and the marginal-return KEEP/NO-GO remains
+the owner's product ruling.
+
+## R.10 Owner decisions unchanged by the rebuild (return after review-clean)
+
+The bootstrap-COMPLETE exception (first-cycle section 9.3, recommended YES via
+same-PR closeout with named post-merge validation follow-up), the second-model
+recommendation (commission, do not waive), and the marginal-return KEEP/NO-GO
+ruling remain **ungranted** and return to Dustin only after this rebuilt packet
+is review-clean.
