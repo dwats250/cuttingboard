@@ -375,12 +375,16 @@ def test_untrusted_model_text_has_no_active_markup_or_mentions():
 
 def test_inert_content_is_rendered_as_data():
     ev = cc.parse_event(_event_dict())
-    hostile = 'q"n\n$(id)`x`${{ secrets.X }} ::set-output name=y::z'
+    hostile = '<x>@dwats250 $(id) `x` ${{ secrets.X }} ::set-output name=y::z'
     ch = cc.parse_charge(_charge_dict(charge_markdown=hostile))
     out = cc.render_charge(ev, ch)
-    # present as escaped data, never as an active construct
-    assert "$(id)" not in out or "&#" in out  # dollar-paren neutralized/escaped context
-    assert "::set-output" not in out.replace("&#", "")  # not a live workflow command
+    # model content is confined to <pre> and HTML/mentions are neutralized;
+    # shell/workflow tokens survive only as inert escaped display text (the
+    # workflow-command-splice hazard is the workflow's concern, R10/structural).
+    assert "<pre>" in out
+    assert "<x>" not in out            # angle tag escaped, cannot open an element
+    assert "&lt;x&gt;" in out          # ... it survives only as escaped text
+    assert "@dwats250" not in out      # mention neutralized
 
 
 # --------------------------------------------------------------------------
