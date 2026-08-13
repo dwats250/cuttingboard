@@ -1478,6 +1478,12 @@
       "title": "Atomic link-based dev_bootstrap lock: close the mkdir-to-pid publication race, with legacy-directory migration and abandoned-temp lifecycle",
       "status": "COMPLETE",
       "commit": "#248"
+    },
+    {
+      "number": 302,
+      "title": "Campaign Control Plane Slice A: dispatch-only Codex proposal bootstrap (structural install, behavioral validation post-merge)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
