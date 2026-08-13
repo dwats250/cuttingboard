@@ -2,7 +2,9 @@
 # bootstrap. Structural installation only -- behavioral + credential-isolation
 # proof is the mandatory FIRST post-merge `main` dispatch (PRD-302 R7/R18).
 # The structural tests in tests/test_campaign_control.py are TRIPWIRES, not
-# behavioral proof. Slice A: no issue trigger, no write scope, no publication.
+# behavioral proof. Slice A: no issue trigger, no write scope, and no
+# repository-authoritative / issue / PR / comment publication (the job log and a
+# one-day artifact remain observable -- that is not a publication path).
 name: Campaign Control Plane (Slice A bootstrap)
 
 # Slice A: workflow_dispatch ONLY. No issue_comment / pull_request /
@@ -75,23 +77,26 @@ jobs:
         run: |
           set -euo pipefail
           RUNNER_UID="$(id -u)"
-          RUNNER_ROOT=""
-          for cand in "$HOME/actions-runner" "/home/runner/actions-runner" \
-                      "/opt/actions-runner" "/actions-runner"; do
-            if [ -f "$cand/.credentials" ]; then
-              if [ -n "$RUNNER_ROOT" ] && [ "$RUNNER_ROOT" != "$cand" ]; then
-                echo "campaign-control: FAIL [probe-root] ambiguous runner root" >&2
-                exit 2
-              fi
-              RUNNER_ROOT="$cand"
-            fi
-          done
-          if [ -z "$RUNNER_ROOT" ]; then
-            echo "campaign-control: FAIL [probe-root] runner root not resolved" >&2
+          # Derive the runner root from the LIVE Runner.Worker executable
+          # (<root>/bin/Runner.Worker) -- never a guessed candidate list. Require
+          # exactly one worker; fail closed on none/ambiguous.
+          mapfile -t WORKER_PIDS < <(pgrep -x Runner.Worker || true)
+          if [ "${#WORKER_PIDS[@]}" -ne 1 ]; then
+            echo "campaign-control: FAIL [probe-root] Runner.Worker not uniquely resolved" >&2
             exit 2
           fi
+          WORKER_EXE="$(readlink -f "/proc/${WORKER_PIDS[0]}/exe")"
+          RUNNER_ROOT="$(dirname "$(dirname "$WORKER_EXE")")"
+          if [ -z "${RUNNER_TEMP:-}" ]; then
+            echo "campaign-control: FAIL [probe-temp] RUNNER_TEMP source not set" >&2
+            exit 2
+          fi
+          # Run the probe AS the distinct codex uid; pass the canonical runner
+          # root and the runner-temp source explicitly across the uid transition.
           sudo -u "$CODEX_USER" python3 tools/campaign_control.py probe-isolation \
-            --runner-uid "$RUNNER_UID" --runner-root "$RUNNER_ROOT"
+            --runner-uid "$RUNNER_UID" \
+            --runner-root "$RUNNER_ROOT" \
+            --runner-temp "$RUNNER_TEMP"
 
       # Codex Action: the LITERAL FINAL secret-bearing step of this job. Nothing
       # runs after the key reaches the proxy. unprivileged-user isolates the
@@ -103,7 +108,6 @@ jobs:
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           prompt-file: .github/campaign/charge_prompt.md
-          output-file: .campaign-output/charge.json
           output-schema-file: .github/campaign/charge.schema.json
           model: gpt-5.6-sol
           effort: xhigh
@@ -156,7 +160,9 @@ jobs:
             --charge .campaign-output/charge.json \
             --comment-output .campaign-output/proposed_charge.md
 
-      - name: Upload rendered proposal (one-day retention; no publication)
+      # Observable one-day artifact; NOT a repository-authoritative/issue/PR/
+      # comment publication path.
+      - name: Upload rendered proposal (one-day retention)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: proposed-charge

@@ -39,7 +39,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 2000,
-      "pattern": "^(?:[^\\u0000-\\u001f]|\\n)*$"
+      "pattern": "^(?:[^\\u0000-\\u001f\\u007f]|\\n)*$"
     },
     "charge_markdown": {
       "type": "string",

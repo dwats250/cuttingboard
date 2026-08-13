@@ -5,7 +5,8 @@ Tests-first (RED before tools/campaign_control.py, .github/campaign/*, and
 macro-awareness pattern: add tools/ to sys.path and import by plain name.
 
 Slice A only: fixed synthetic event, non-authoritative proposed charge, no
-network, no issue/PR/comment/publication. See docs/prd_history/PRD-302.md.
+network, and no repository-authoritative/issue/PR/comment publication (the job
+log and a one-day artifact remain observable). See docs/prd_history/PRD-302.md.
 """
 from __future__ import annotations
 
@@ -419,54 +420,107 @@ def test_error_has_stable_code():
 
 
 # --------------------------------------------------------------------------
+# loader robustness: event byte/control contract vs charge (no whole-charge cap)
+# --------------------------------------------------------------------------
+def test_charge_max_size_is_accepted_by_loader(tmp_path):
+    # a schema-valid maximum charge serializes > 8192 bytes; the charge loader
+    # must NOT impose the event's 8192-byte cap.
+    big = _charge_dict(rationale="r" * 2000, charge_markdown="m" * 6000)
+    p = tmp_path / "charge.json"
+    p.write_text(json.dumps(big))
+    assert len(p.read_bytes()) > cc.MAX_EVENT_BYTES
+    ch = cc.load_charge_json(p)
+    assert len(ch.charge_markdown) == 6000
+
+
+def test_event_loader_rejects_tab_control_in_raw_bytes():
+    # a TAB used as JSON whitespace is an ASCII control -> event allows only \n
+    raw = ('{\n\t"schema": "%s"}' % cc.SCHEMA_EVENT).encode("utf-8")
+    with pytest.raises(cc.CampaignError):
+        cc.load_event_bytes(raw)
+
+
+def test_event_loader_allows_newline_whitespace():
+    ev = cc.load_event_bytes((json.dumps(_event_dict(), indent=2)).encode("utf-8"))
+    assert ev.event_id == "PRD-302-E01"
+
+
+def test_charge_rejects_unhashable_confidence_as_campaign_error():
+    with pytest.raises(cc.CampaignError):
+        cc.parse_charge(_charge_dict(confidence=[]))
+
+
+def test_event_rejects_unhashable_trigger_as_campaign_error():
+    with pytest.raises(cc.CampaignError):
+        cc.parse_event(_event_dict(trigger=[]))
+
+
+def test_event_rejects_unhashable_recommended_option():
+    with pytest.raises(cc.CampaignError):
+        cc.parse_event(_event_dict(recommended_option=[]))
+
+
+# --------------------------------------------------------------------------
 # R7 credential-isolation probe: fail-closed decision logic
 # --------------------------------------------------------------------------
+def _iso(**kw):
+    base = dict(runner_uid=1000, codex_uid=2000, runner_root="/runner",
+                runner_temp="/tmp", observations=[_cred()])
+    base.update(kw)
+    return cc.evaluate_isolation(**base)
+
+
 def test_probe_passes_when_isolated():
-    cc.evaluate_isolation(
-        runner_uid=1000, codex_uid=2000, runner_root="/runner",
-        observations=[_cred()])
+    _iso()  # distinct uid, temp source, canonical runner-owned unreadable cred
 
 
 def test_probe_fails_when_codex_uid_equals_runner_uid():
     with pytest.raises(cc.CampaignError):
-        cc.evaluate_isolation(
-            runner_uid=1000, codex_uid=1000, runner_root="/runner",
-            observations=[_cred()])
+        _iso(codex_uid=1000)
 
 
 def test_probe_fails_on_ambiguous_root():
     with pytest.raises(cc.CampaignError):
-        cc.evaluate_isolation(
-            runner_uid=1000, codex_uid=2000, runner_root="",
-            observations=[_cred()])
+        _iso(runner_root="")
+
+
+def test_probe_fails_on_missing_temp_source():
+    with pytest.raises(cc.CampaignError):
+        _iso(runner_temp="")
+
+
+def test_probe_fails_on_wrong_nonempty_root():
+    # canonical path is <runner_root>/.credentials; a stale/incorrect nonempty
+    # root must not match a truthful observation for the REAL root (false-green).
+    with pytest.raises(cc.CampaignError):
+        _iso(runner_root="/wrong-root", observations=[_cred(path="/runner/.credentials")])
 
 
 def test_probe_fails_when_credentials_absent():
     with pytest.raises(cc.CampaignError):
-        cc.evaluate_isolation(
-            runner_uid=1000, codex_uid=2000, runner_root="/runner",
-            observations=[_cred(exists=False, owner_uid=None)])
+        _iso(observations=[_cred(exists=False, owner_uid=None)])
 
 
 def test_probe_fails_when_credentials_missing_from_observations():
     with pytest.raises(cc.CampaignError):
-        cc.evaluate_isolation(
-            runner_uid=1000, codex_uid=2000, runner_root="/runner",
-            observations=[])
+        _iso(observations=[])
 
 
 def test_probe_fails_when_credentials_wrong_owner():
     with pytest.raises(cc.CampaignError):
-        cc.evaluate_isolation(
-            runner_uid=1000, codex_uid=2000, runner_root="/runner",
-            observations=[_cred(owner_uid=2000)])
+        _iso(observations=[_cred(owner_uid=2000)])
 
 
 def test_probe_fails_when_credential_readable_by_codex():
     with pytest.raises(cc.CampaignError):
-        cc.evaluate_isolation(
-            runner_uid=1000, codex_uid=2000, runner_root="/runner",
-            observations=[_cred(readable_by_codex=True)])
+        _iso(observations=[_cred(readable_by_codex=True)])
+
+
+def test_probe_fails_when_extra_target_readable():
+    # every enumerated target must be unreadable, not only the canonical one
+    with pytest.raises(cc.CampaignError):
+        _iso(observations=[_cred(),
+                           _cred(path="/runner/.runner", readable_by_codex=True)])
 
 
 def test_probe_reports_no_credential_contents():
@@ -482,30 +536,70 @@ def _schema():
     return json.loads(_SCHEMA_PATH.read_text(encoding="utf-8"))
 
 
-def test_charge_schema_required_keys_match_validator():
+# Literal expected projection of charge.schema.json's properties. Exact-dict
+# equality means ANY schema mutation (changed pattern/type/enum/length, added or
+# removed key) fails the drift guard. Do NOT derive these from cc constants --
+# the point is an independent lock.
+_EXPECTED_CHARGE_PROPS = {
+    "schema": {"type": "string", "const": "cuttingboard-owner-charge/v1"},
+    "event_id": {"type": "string", "pattern": "^PRD-[0-9]{3}-E[0-9]{2}$"},
+    "head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "recommended_option": {"type": "string", "enum": ["A", "B", "C"]},
+    "confidence": {"type": "string", "enum": ["HIGH", "MEDIUM", "LOW"]},
+    "rationale": {"type": "string", "minLength": 1, "maxLength": 2000,
+                  "pattern": "^(?:[^\\u0000-\\u001f\\u007f]|\\n)*$"},
+    "charge_markdown": {"type": "string", "minLength": 1, "maxLength": 6000},
+}
+_EXPECTED_CHARGE_REQUIRED = ["schema", "event_id", "head_sha",
+                             "recommended_option", "confidence", "rationale",
+                             "charge_markdown"]
+_EXPECTED_TRIGGERS = {"AUTHORITY_CONFLICT", "REVIEW_SPLIT", "FILES_LOC",
+                      "MATERIALITY", "PORTABILITY", "NEW_CONSUMER",
+                      "OTHER_BOUNDARY"}
+_EXPECTED_BOUNDARIES = {"SEMANTICS", "GOVERNANCE", "FILES_LOC", "TRUST",
+                        "PLATFORM", "CONSUMER", "EVIDENCE"}
+
+
+def test_charge_schema_exact_projection():
     s = _schema()
-    assert set(s["required"]) == cc.CHARGE_KEYS
+    assert s["type"] == "object"
     assert s["additionalProperties"] is False
+    assert set(s["required"]) == set(_EXPECTED_CHARGE_REQUIRED)
+    assert set(s["properties"]) == set(_EXPECTED_CHARGE_PROPS)
+    for key, spec in _EXPECTED_CHARGE_PROPS.items():
+        assert s["properties"][key] == spec, key
 
 
 def test_charge_schema_has_no_verification_field():
     s = _schema()
-    assert "verification" not in s["properties"]
-    assert all("verif" not in k for k in s["properties"])
+    assert all("verif" not in k and "attest" not in k for k in s["properties"])
 
 
-def test_charge_schema_enums_and_limits_match_validator():
+def test_charge_schema_matches_validator_constants():
+    # schema <-> handwritten validator equivalence (R12/R17)
     s = _schema()
     props = s["properties"]
+    assert set(s["required"]) == cc.CHARGE_KEYS
+    assert props["schema"]["const"] == cc.SCHEMA_CHARGE
+    assert props["head_sha"]["pattern"] == cc.RE_SHA.pattern
+    assert props["event_id"]["pattern"] == cc.RE_EVENT_ID.pattern
     assert set(props["recommended_option"]["enum"]) == set(cc.OPTION_IDS)
     assert set(props["confidence"]["enum"]) == set(cc.CONFIDENCE)
-    assert props["charge_markdown"]["maxLength"] == cc.MAX_CHARGE_CHARS
     assert props["rationale"]["maxLength"] == cc.MAX_RATIONALE_CHARS
-    assert props["schema"]["const"] == cc.SCHEMA_CHARGE
+    assert props["charge_markdown"]["maxLength"] == cc.MAX_CHARGE_CHARS
+
+
+def test_event_vocabulary_is_locked_literally():
+    # independent literal lock so a matching drift in impl + derived expectation
+    # cannot evade the guard
+    assert cc.TRIGGERS == _EXPECTED_TRIGGERS
+    assert cc.BOUNDARIES == _EXPECTED_BOUNDARIES
+    assert cc.KIND == "OWNER_DECISION"
+    assert cc.OPTION_IDS == ("A", "B", "C")
+    assert cc.MAX_EVENT_BYTES == 8192
 
 
 def test_schema_and_validator_agree_on_a_sweep():
-    # every field the schema rejects, the validator also rejects (sample sweep)
     for bad in (
         _charge_dict(schema="x/v1"),
         _charge_dict(confidence="X"),
@@ -749,8 +843,36 @@ def test_tripwire_model_output_transported_inertly():
         "CHARGE_JSON: ${{ needs.codex.outputs.charge_json }}", "")
 
 
-def test_tripwire_probe_precedes_codex_action():
-    """TRIPWIRE - NOT BEHAVIORAL PROOF: the R7 credential probe runs before the key step."""
+def test_tripwire_github_script_write_is_a_fixed_safe_write():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: the model-output materializer is a fixed non-evaluating write."""
+    script = None
+    for s in _steps(_job(_wf(), "validate")):
+        if isinstance(s.get("uses"), str) and s["uses"].startswith("actions/github-script@"):
+            script = s["with"]["script"]
+    assert script is not None
+    assert "fs.writeFileSync" in script
+    assert "process.env.CHARGE_JSON" in script
+    for danger in ("eval(", "Function(", "child_process", "execSync", "require('vm')"):
+        assert danger not in script
+
+
+def test_tripwire_no_explicit_action_output_file():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: no explicit codex output-file (unwritable by the codex uid)."""
+    step = _codex_action_step(_job(_wf(), "codex"))
+    assert step is not None
+    assert "output-file" not in step["with"]
+
+
+def test_tripwire_staged_inputs_world_readable():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: staged inputs are made readable to the distinct uid (a+rX)."""
+    text = _wf_text()
+    assert "useradd" in text
+    assert "a+rX" in text          # all-readable, so the distinct codex uid can read inputs
+    assert "chmod -R u+rX" not in text  # user-only would starve the codex uid
+
+
+def test_tripwire_probe_runs_as_codex_uid_with_derived_root():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: probe runs AS the codex uid, root derived live, before the key step."""
     steps = _steps(_job(_wf(), "codex"))
     probe_idx = next((i for i, s in enumerate(steps)
                       if "probe-isolation" in (s.get("run") or "")), None)
@@ -759,6 +881,12 @@ def test_tripwire_probe_precedes_codex_action():
                        and s["uses"].startswith("openai/codex-action@")), None)
     assert probe_idx is not None and action_idx is not None
     assert probe_idx < action_idx
+    run = steps[probe_idx]["run"]
+    assert 'sudo -u "$CODEX_USER"' in run          # runs as the distinct codex uid
+    assert "--runner-root" in run and "--runner-temp" in run
+    # root derived from the LIVE runner process, not a guessed candidate path
+    assert "Runner.Worker" in run and "/proc/" in run
+    assert "/actions-runner" not in run            # no hardcoded candidate list
 
 
 def test_tripwire_no_issue_or_comment_publication():

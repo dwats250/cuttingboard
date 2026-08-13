@@ -91,8 +91,15 @@ def _require(cond: bool, code: str, message: str) -> None:
 
 
 def _no_controls(text: str) -> bool:
-    """True iff text has no ASCII control chars other than newline."""
-    return all(ch == "\n" or ord(ch) >= 0x20 for ch in text)
+    """True iff text has no ASCII control chars other than newline (rejects
+    0x00-0x1f except \\n, and 0x7f DEL)."""
+    return all(ch == "\n" or (ord(ch) >= 0x20 and ch != "\x7f") for ch in text)
+
+
+def _in_str(value: Any, choices, code: str, message: str) -> None:
+    """Enum membership with a preceding string/type guard so an unhashable
+    value (e.g. a list) raises a stable CampaignError, never a bare TypeError."""
+    _require(isinstance(value, str) and value in choices, code, message)
 
 
 def _exact_keys(obj: dict[str, Any], allowed: frozenset[str], code: str) -> None:
@@ -171,15 +178,15 @@ def parse_event(obj: dict[str, Any]) -> NormalizedEvent:
     sha = obj["head_sha"]
     _require(isinstance(sha, str) and bool(RE_SHA.match(sha)),
              "event-sha", "bad head_sha")
-    _require(obj["trigger"] in TRIGGERS, "event-trigger", "bad trigger")
-    _require(obj["authority_boundary"] in BOUNDARIES, "event-boundary",
-             "bad authority_boundary")
+    _in_str(obj["trigger"], TRIGGERS, "event-trigger", "bad trigger")
+    _in_str(obj["authority_boundary"], BOUNDARIES, "event-boundary",
+            "bad authority_boundary")
     summary = obj["summary"]
     _require(isinstance(summary, str) and 1 <= len(summary) <= MAX_SUMMARY
              and _no_controls(summary), "event-summary", "bad summary")
     options = _parse_options(obj["options"])
     rec = obj["recommended_option"]
-    _require(rec in {o.id for o in options}, "event-rec", "bad recommendation")
+    _in_str(rec, {o.id for o in options}, "event-rec", "bad recommendation")
     return NormalizedEvent(
         schema=SCHEMA_EVENT, source_comment_id=src, campaign=campaign,
         event_id=event_id, kind=KIND, pr_number=pr, head_sha=sha,
@@ -218,9 +225,9 @@ def parse_charge(obj: dict[str, Any]) -> Charge:
     sha = obj["head_sha"]
     _require(isinstance(sha, str) and bool(RE_SHA.match(sha)),
              "charge-sha", "bad head_sha")
-    _require(obj["recommended_option"] in OPTION_IDS, "charge-rec",
-             "bad recommendation")
-    _require(obj["confidence"] in CONFIDENCE, "charge-conf", "bad confidence")
+    _in_str(obj["recommended_option"], OPTION_IDS, "charge-rec",
+            "bad recommendation")
+    _in_str(obj["confidence"], CONFIDENCE, "charge-conf", "bad confidence")
     rationale = obj["rationale"]
     _require(isinstance(rationale, str)
              and 1 <= len(rationale) <= MAX_RATIONALE_CHARS
@@ -277,21 +284,24 @@ def event_to_dict(event: NormalizedEvent) -> dict[str, Any]:
 
 # --- R7 credential-isolation probe: fail-closed decision logic ---------------
 def evaluate_isolation(runner_uid: int, codex_uid: int, runner_root: str,
+                       runner_temp: str,
                        observations: list[CredentialObservation]) -> None:
     """Raise CampaignError unless credential isolation is AFFIRMATIVELY proven:
-    the Codex uid differs from the runner uid, the runner root resolved, the
-    required `.credentials` target exists and is runner-owned, and NO enumerated
-    runner-owned credential is readable by the Codex uid. Absent/ambiguous/
-    mis-owned targets are NOT proof of denial -> fail closed. Never inspects
-    credential contents."""
+    the Codex uid differs from the runner uid; BOTH the runner root and the
+    runner temp SOURCE resolved (a missing source is not proof of denial); the
+    required credential at the EXACT canonical path `<runner_root>/.credentials`
+    is present, runner-owned, and unreadable by the Codex uid; and NO observed
+    runner-owned credential is readable by the Codex uid. Matching is by exact
+    path, never basename, so a stale/incorrect root cannot false-green. Never
+    inspects credential contents."""
     _require(codex_uid != runner_uid, "probe-same-uid",
              "codex uid equals runner uid")
     _require(bool(runner_root), "probe-root", "runner root not resolved")
-    required = [o for o in observations
-                if o.path.endswith("/" + REQUIRED_CREDENTIAL)
-                or os.path.basename(o.path) == REQUIRED_CREDENTIAL]
+    _require(bool(runner_temp), "probe-temp", "runner temp source not resolved")
+    canonical = os.path.join(runner_root, REQUIRED_CREDENTIAL)
+    required = [o for o in observations if o.path == canonical]
     _require(len(required) == 1, "probe-missing-target",
-             "required .credentials observation absent or ambiguous")
+             "required canonical .credentials observation absent or ambiguous")
     cred = required[0]
     _require(cred.exists, "probe-absent", "required .credentials absent")
     _require(cred.owner_uid == runner_uid, "probe-owner",
@@ -301,9 +311,9 @@ def evaluate_isolation(runner_uid: int, codex_uid: int, runner_root: str,
                  "a runner-owned credential is readable by the codex uid")
 
 
-def _gather_observations(runner_root: str) -> list[CredentialObservation]:
+def _gather_observations(runner_root: str,
+                         runner_temp: str) -> list[CredentialObservation]:
     paths = [os.path.join(runner_root, b) for b in CREDENTIAL_BASENAMES]
-    runner_temp = os.environ.get("RUNNER_TEMP", "")
     if runner_temp:
         paths.extend(sorted(glob.glob(os.path.join(runner_temp, "*.credentials"))))
     obs: list[CredentialObservation] = []
@@ -318,12 +328,22 @@ def _gather_observations(runner_root: str) -> list[CredentialObservation]:
 
 
 # --- IO ----------------------------------------------------------------------
+# Non-contract read-safety bound for the charge (a DoS guard well above any
+# schema-valid charge ~8.3 KiB); it is NOT the event's 8192-byte contract limit
+# and never rejects a schema-valid charge.
+MAX_CHARGE_READ_BYTES = 1 << 20
+
+
 def load_event_bytes(raw: bytes) -> NormalizedEvent:
+    """Event contract loader: 8192-byte cap, no ASCII controls except newline in
+    the raw serialized bytes (rejects TAB/CR whitespace), then parse_event."""
     _require(len(raw) <= MAX_EVENT_BYTES, "event-size", "event too large")
     try:
         text = raw.decode("utf-8")
     except UnicodeDecodeError:
         raise CampaignError("event-utf8", "event is not valid utf-8")
+    _require(_no_controls(text), "event-controls",
+             "event contains a disallowed control character")
     try:
         obj = json.loads(text)
     except json.JSONDecodeError:
@@ -331,18 +351,29 @@ def load_event_bytes(raw: bytes) -> NormalizedEvent:
     return parse_event(obj)
 
 
-def load_json(path: Path, code: str) -> dict[str, Any]:
+def load_event_json(path: Path) -> NormalizedEvent:
     try:
         raw = path.read_bytes()
     except OSError:
-        raise CampaignError(code, "input unreadable")
-    _require(len(raw) <= MAX_EVENT_BYTES, code, "input too large")
+        raise CampaignError("event-load", "event unreadable")
+    return load_event_bytes(raw)
+
+
+def load_charge_json(path: Path) -> Charge:
+    """Charge loader: NO whole-charge byte cap (the schema/PRD impose none; the
+    field limits bound validity). A generous non-contract read-safety cap guards
+    against a pathological file without ever rejecting a schema-valid charge."""
+    try:
+        raw = path.read_bytes()
+    except OSError:
+        raise CampaignError("charge-load", "charge unreadable")
+    _require(len(raw) <= MAX_CHARGE_READ_BYTES, "charge-load", "charge unreadably large")
     try:
         obj = json.loads(raw.decode("utf-8"))
     except (json.JSONDecodeError, UnicodeDecodeError):
-        raise CampaignError(code, "input not valid json")
-    _require(isinstance(obj, dict), code, "input is not an object")
-    return obj
+        raise CampaignError("charge-load", "charge not valid json")
+    _require(isinstance(obj, dict), "charge-load", "charge is not an object")
+    return parse_charge(obj)
 
 
 def atomic_write(path: Path, text: str) -> None:
@@ -360,16 +391,17 @@ def cmd_make_dry_run_event(args: argparse.Namespace) -> int:
 
 
 def cmd_validate_charge(args: argparse.Namespace) -> int:
-    event = parse_event(load_json(Path(args.event), "event-load"))
-    charge = parse_charge(load_json(Path(args.charge), "charge-load"))
+    event = load_event_json(Path(args.event))
+    charge = load_charge_json(Path(args.charge))
     atomic_write(Path(args.comment_output), render_charge(event, charge))
     return 0
 
 
 def cmd_probe_isolation(args: argparse.Namespace) -> int:
-    observations = _gather_observations(args.runner_root)
+    observations = _gather_observations(args.runner_root, args.runner_temp)
     evaluate_isolation(runner_uid=args.runner_uid, codex_uid=os.getuid(),
-                       runner_root=args.runner_root, observations=observations)
+                       runner_root=args.runner_root, runner_temp=args.runner_temp,
+                       observations=observations)
     # identities + per-target booleans ONLY; never credential contents.
     print(f"isolation-probe: codex_uid={os.getuid()} runner_uid={args.runner_uid}")
     for obs in observations:
@@ -397,6 +429,7 @@ def build_parser() -> argparse.ArgumentParser:
     p3 = sub.add_parser("probe-isolation")
     p3.add_argument("--runner-uid", required=True, type=int)
     p3.add_argument("--runner-root", required=True)
+    p3.add_argument("--runner-temp", required=True)
     p3.set_defaults(func=cmd_probe_isolation)
 
     return parser
