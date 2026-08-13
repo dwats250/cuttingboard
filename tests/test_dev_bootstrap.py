@@ -627,6 +627,8 @@ if [ -n "${LINK_BARRIER_DIR:-}" ] && [ -d "${LINK_BARRIER_DIR}" ]; then
     *.dev_bootstrap.lock.new.*::*.dev_bootstrap.lock)
       # pause BEFORE publishing so a test observes that no lock is visible yet
       [ -n "${LINK_BARRIER_ACQUIRE:-}" ] && _pause
+      # publish FIRST, then pause, so a test observes the just-published lock already holds the pid
+      if [ -n "${LINK_BARRIER_POST_ACQUIRE:-}" ]; then "$real_link" "$@"; rc=$?; _pause; exit "$rc"; fi
       ;;
   esac
 fi
@@ -1029,3 +1031,102 @@ def test_legacy_dir_appearing_at_acquisition_is_never_linked_into(tmp_path):
     assert lock.is_dir(), result  # the injected directory is present at $LOCKFILE
     assert list(lock.iterdir()) == [], (result, [c.name for c in lock.iterdir()])  # no child linked in
     assert result.returncode == 2, result  # pid-less legacy directory -> bounded-wait then fail loud
+
+
+def test_published_lock_already_contains_owner_pid(tmp_path):
+    # FINAL RATIFIED DIRECTION item 1 (kills the pid-written-after-link mutation): the instant
+    # $LOCKFILE becomes visible it ALREADY holds the owner pid -- the pid is written to the temp
+    # BEFORE `link`, and `link` makes the lock a hardlink to that already-populated inode, so there
+    # is no pid-less publication window. Deterministic via a post-acquisition link barrier that
+    # pauses AFTER the real link. (The pre-link no-lock test alone green-passes a mutation that
+    # writes the pid after the link.)
+    import time
+
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    barrier = repo / "barrier"
+    barrier.mkdir()
+    shimbin = repo / "shimbin"
+    shimbin.mkdir()
+    _write_executable(shimbin / "link", FAKE_LINK)
+    base = _env(repo, repo / "session.sh")
+    env = {
+        **base,
+        "PATH": f"{shimbin}:{base['PATH']}",
+        "LINK_BARRIER_DIR": str(barrier),
+        "LINK_BARRIER_POST_ACQUIRE": "1",
+        **_FAST_WAIT,
+    }
+    proc = subprocess.Popen(
+        ["bash", str(repo / "scripts" / "dev_bootstrap.sh")],
+        cwd=repo, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    try:
+        for _ in range(1000):
+            if (barrier / "reached").exists():
+                break
+            time.sleep(0.01)
+        assert (barrier / "reached").exists(), "owner never reached the post-link barrier"
+        # The lock is now visible; it must ALREADY contain the owner pid (no pid-less window).
+        assert lock.exists()
+        assert lock.read_text().strip() == str(proc.pid), lock.read_text()
+    finally:
+        (barrier / "go").touch()
+        try:
+            proc.wait(timeout=60)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+
+
+def test_second_reclaimer_is_excluded_while_first_holds_reclaim_lock(tmp_path):
+    # FINAL RATIFIED DIRECTION item 2 (kills the `link ... || :` serialization mutation): while a
+    # reclaimer A holds RECLAIM_LOCK, a second REAL reclaimer B cannot enter the critical section --
+    # B's RECLAIM_LOCK link fails EEXIST and B bails (return 1), so the dead primary lock is
+    # untouched until A runs. A weakened `link ... || :` would let B proceed and evict the dead lock
+    # while A is paused. Deterministic: A pauses AFTER a successful RECLAIM_LOCK link; B is a real
+    # unshimmed bootstrap.
+    import time
+
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    reclaim = repo / ".dev_bootstrap.lock.reclaim"
+    dead = _dead_pid()
+    lock.write_text(f"{dead}\n")  # dead primary lock -> triggers reclaim
+    barrier = repo / "barrier"
+    barrier.mkdir()
+    shimbin = repo / "shimbin"
+    shimbin.mkdir()
+    _write_executable(shimbin / "link", FAKE_LINK)
+    base = _env(repo, repo / "session.sh")
+    env_a = {
+        **base,
+        "PATH": f"{shimbin}:{base['PATH']}",
+        "LINK_BARRIER_DIR": str(barrier),
+        "LINK_BARRIER_RECLAIM": "1",
+        **_FAST_WAIT,
+    }
+    proc_a = subprocess.Popen(
+        ["bash", str(repo / "scripts" / "dev_bootstrap.sh")],
+        cwd=repo, env=env_a, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    try:
+        for _ in range(1000):
+            if (barrier / "reached").exists():
+                break
+            time.sleep(0.01)
+        assert (barrier / "reached").exists(), "reclaimer A never reached the RECLAIM_LOCK barrier"
+        assert reclaim.exists()  # A holds RECLAIM_LOCK
+        # A second REAL (unshimmed) reclaimer B runs while A holds RECLAIM_LOCK; B must be excluded.
+        result_b = _run(repo, extra_env=_FAST_WAIT)
+        assert result_b.returncode == 2, result_b  # B bounded-waits then fails loud (stale reclaim lock)
+        assert "stale reclaim lock" in result_b.stderr, result_b.stderr
+        # B never entered the critical section: the dead primary lock is untouched.
+        assert lock.exists() and lock.read_text().strip() == str(dead), (
+            result_b, lock.read_text() if lock.exists() else "GONE",
+        )
+    finally:
+        (barrier / "go").touch()
+        try:
+            proc_a.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            proc_a.kill()
