@@ -11,6 +11,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -358,12 +359,36 @@ def test_script_stays_within_frozen_production_ceiling():
         for line in SCRIPT.read_text().splitlines()
         if line.strip() and not line.lstrip().startswith("#")
     ]
-    assert len(production) <= 235
+    # PRD-301 AMENDMENT 1 (owner amended Gate A 2026-08-12, event #7): the frozen ceiling is
+    # raised to the ratified 260 to admit the exact-pathname link() acquisition, the
+    # RECLAIM_LOCK-serialized reclaim, the PID-identity ownership proof, and the authoritative
+    # post-move legacy-grave fail-loud. 260 is a CEILING not a target; >260 is a Section-8 RED
+    # owner-stop, never a HELM renewal and never packed to evade.
+    assert len(production) <= 260
     text = SCRIPT.read_text()
     assert "PIP_CONFIG_FILE=/dev/null" in text
     assert "--isolated install --no-cache-dir" in text
     assert 'mv -f "$tmp" "$CLAUDE_ENV_FILE"' in text
     assert '>>"$CLAUDE_ENV_FILE"' not in text
+    # PRD-301 AMENDMENT 1: exact-pathname link() acquisition (not `ln`, which links inside a
+    # directory); no GNU-only flags; RECLAIM_LOCK-serialized reclaim with a PID-identity,
+    # existence-guarded EXIT release; authoritative post-move legacy-grave fail-loud; and the
+    # superseded non-atomic `-ef` compare-then-unlink is gone.
+    assert "mv -T" not in text and "ln -T" not in text
+    assert 'link "$_lock_tmp" "$LOCKFILE"' in text
+    assert 'RECLAIM_LOCK="$LOCKFILE.reclaim"' in text
+    assert 'link "$_lock_tmp" "$RECLAIM_LOCK"' in text
+    assert '[ -e "$RECLAIM_LOCK" ] && IFS= read -r _p <"$RECLAIM_LOCK"' in text
+    # PRD-301 AMENDMENT 1 (owner event #8): acquisition-side RECLAIM_LOCK gate at the loop top so a
+    # present (even orphaned, with $LOCKFILE absent) reclaim mutex blocks acquisition, never bypassed.
+    assert 'if [ -e "$RECLAIM_LOCK" ]; then' in text
+    assert 'rmdir "$grave" 2>/dev/null && return 0' in text
+    assert "return 4" in text
+    assert "-ef" not in text
+    # PRD-301 (R5): the production lock-wait bound stays 60s (120 x 0.5s); tests override via
+    # env, so pin the defaults in text lest a future edit silently change the production bound.
+    assert "${DEV_BOOTSTRAP_LOCK_TRIES:-120}" in text
+    assert "${DEV_BOOTSTRAP_LOCK_SLEEP:-0.5}" in text
 
 
 def test_ready_path_is_isolated_version_true_and_binds(tmp_path):
@@ -433,20 +458,311 @@ def test_install_failure_removes_stale_positive_binding(tmp_path):
     assert BEGIN not in _session(repo)
 
 
-def test_dead_malformed_and_orphaned_locks_are_reclaimed(tmp_path):
-    for kind, contents in (
-        ("dead", "99999999\n"),
-        ("malformed", "not-a-pid\n"),
-        ("orphan", None),
-    ):
+# --- PRD-301: lock-carrier migration, reclamation, temp lifecycle -----------------------
+
+_FAST_WAIT = {"DEV_BOOTSTRAP_LOCK_TRIES": "3", "DEV_BOOTSTRAP_LOCK_SLEEP": "0.02"}
+
+
+def _dead_pid() -> int:
+    """A pid that is certainly not live: spawn a trivial process and reap it."""
+    proc = subprocess.Popen(["true"])
+    proc.wait()
+    return proc.pid
+
+
+def test_dead_and_malformed_legacy_dir_locks_are_reclaimed(tmp_path):
+    # Steady-state migration: a pre-upgrade DIRECTORY with a dead or malformed pid is
+    # reclaimed automatically and the run proceeds.
+    for kind, contents in (("dead", f"{_dead_pid()}\n"), ("malformed", "not-a-pid\n")):
         repo = _mkrepo(tmp_path / kind, with_venv=True, ready=True)
         lock = repo / ".dev_bootstrap.lock"
         lock.mkdir()
-        if contents is not None:
-            (lock / "pid").write_text(contents)
+        (lock / "pid").write_text(contents)
         result = _run(repo)
         assert result.returncode == 0, (kind, result.stderr)
         assert not lock.exists(), kind
+        assert _session(repo).count(BEGIN) == 1
+
+
+def test_pid_less_legacy_dir_is_never_reclaimed_and_fails_loud(tmp_path):
+    # Owner ruling #3: a pid-less legacy DIRECTORY is never automatically moved/removed;
+    # after the bounded wait the run fails loud with a specific rmdir (never rm -rf) recovery.
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    lock.mkdir()
+    result = _run(repo, extra_env=_FAST_WAIT)
+    assert result.returncode == 2
+    assert "legacy lock directory without pid" in result.stderr
+    assert "rmdir" in result.stderr and "rm -rf" not in result.stderr
+    assert lock.is_dir()  # never moved or removed automatically
+    assert not (lock / "pid").exists()
+
+
+def test_live_pid_legacy_dir_is_never_reclaimed(tmp_path):
+    # A legacy DIRECTORY owned by a LIVE process is never reclaimed; a new-version process
+    # never acquires the canonical lock while that live owner is recognized.
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    lock.mkdir()
+    holder = subprocess.Popen(["sleep", "30"])
+    try:
+        (lock / "pid").write_text(f"{holder.pid}\n")
+        result = _run(repo, extra_env=_FAST_WAIT)
+        assert result.returncode == 2  # generic contention timeout, not the pid-less path
+        assert "legacy lock directory without pid" not in result.stderr
+        assert lock.is_dir() and (lock / "pid").read_text().strip() == str(holder.pid)
+    finally:
+        holder.terminate()
+        holder.wait()
+
+
+def test_pid_appearing_during_wait_changes_the_result(tmp_path):
+    # Ruling #4: a pid appearing during the bounded wait changes the outcome. Start with a
+    # pid-less legacy directory, then drop a DEAD pid into it while the run waits; the run
+    # re-checks, reclaims the now-dead-pid directory, and proceeds instead of failing loud.
+    import threading
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    lock.mkdir()
+    dead = _dead_pid()
+
+    def _drop_pid():
+        time.sleep(0.05)
+        (lock / "pid").write_text(f"{dead}\n")
+
+    writer = threading.Thread(target=_drop_pid)
+    writer.start()
+    try:
+        result = _run(repo, extra_env={"DEV_BOOTSTRAP_LOCK_TRIES": "80", "DEV_BOOTSTRAP_LOCK_SLEEP": "0.02"})
+        assert result.returncode == 0, result.stderr
+        assert "legacy lock directory without pid" not in result.stderr
+        assert not lock.exists()
+    finally:
+        writer.join()
+
+
+def test_file_lock_reclaims_dead_malformed_and_empty_pid(tmp_path):
+    # Steady-state (post-migration) FILE lock: a dead, malformed, or empty pid is reclaimed.
+    for kind, contents in (("dead", f"{_dead_pid()}\n"), ("malformed", "not-a-pid\n"), ("empty", "")):
+        repo = _mkrepo(tmp_path / kind, with_venv=True, ready=True)
+        lock = repo / ".dev_bootstrap.lock"
+        lock.write_text(contents)  # a FILE, not a directory
+        result = _run(repo, extra_env=_FAST_WAIT)
+        assert result.returncode == 0, (kind, result.stderr)
+        assert _session(repo).count(BEGIN) == 1
+
+
+def test_dead_owner_acquisition_temp_is_swept_live_is_not(tmp_path):
+    # Ruling #2/#4: a later run sweeps acquisition temps owned by DEAD pids and never a
+    # live contender's temp; no permanently unowned artifact remains.
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    dead_temp = repo / f".dev_bootstrap.lock.new.{_dead_pid()}.aBcDeF"
+    dead_temp.write_text("stale\n")
+    holder = subprocess.Popen(["sleep", "30"])
+    live_temp = repo / f".dev_bootstrap.lock.new.{holder.pid}.zZzZzZ"
+    live_temp.write_text(f"{holder.pid}\n")
+    try:
+        result = _run(repo)
+        assert result.returncode == 0, result.stderr
+        assert not dead_temp.exists()  # dead-owner temp swept
+        assert live_temp.exists()  # live contender's temp preserved
+    finally:
+        holder.terminate()
+        holder.wait()
+    live_temp.unlink(missing_ok=True)
+
+
+def test_pid_zero_lock_is_reclaimed_not_treated_as_live(tmp_path):
+    # `kill -0 0` probes the caller's process group and succeeds; a lock holding pid 0 must
+    # be treated as malformed/dead and reclaimed, not mistaken for a live owner.
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    lock.write_text("0\n")
+    result = _run(repo, extra_env=_FAST_WAIT)
+    assert result.returncode == 0, result.stderr
+    assert _session(repo).count(BEGIN) == 1
+
+
+def test_sweep_parses_pid_by_literal_prefix_not_first_new_in_path(tmp_path):
+    # The repo path itself contains ".new."; a live contender's temp must not be mis-parsed
+    # (first ".new." in the parent path) and wrongly swept.
+    repo = _mkrepo(tmp_path / "a.new.b", with_venv=True, ready=True)
+    holder = subprocess.Popen(["sleep", "30"])
+    live_temp = repo / f".dev_bootstrap.lock.new.{holder.pid}.zZzZzZ"
+    live_temp.write_text(f"{holder.pid}\n")
+    try:
+        result = _run(repo)
+        assert result.returncode == 0, result.stderr
+        assert live_temp.exists()  # correct literal-prefix parse keeps the live temp
+    finally:
+        holder.terminate()
+        holder.wait()
+    live_temp.unlink(missing_ok=True)
+
+
+def test_sigkill_holder_lock_is_reclaimed_on_next_run(tmp_path):
+    # Post-acquisition SIGKILL leaves a file lock with a dead pid; the next run reclaims it.
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    lock.write_text(f"{_dead_pid()}\n")  # a holder acquired then was SIGKILLed
+    stray_temp = repo / f".dev_bootstrap.lock.new.{_dead_pid()}.kkkkkk"
+    stray_temp.write_text("orphan\n")
+    result = _run(repo, extra_env=_FAST_WAIT)
+    assert result.returncode == 0, result.stderr
+    assert not lock.exists()  # dead-pid file lock reclaimed, then released by the new owner
+    assert not stray_temp.exists()
+    assert _session(repo).count(BEGIN) == 1
+
+
+# Barrier shim for the exact-pathname `link` COMMAND (the ratified acquisition + reclaim
+# primitive). Pauses the acquisition link (temp -> $LOCKFILE) or the RECLAIM_LOCK link
+# (temp -> $LOCKFILE.reclaim) deterministically; all other link calls pass through.
+FAKE_LINK = r"""#!/usr/bin/env bash
+real_link=/usr/bin/link; [ -x "$real_link" ] || real_link=/bin/link
+_pause() { touch "$LINK_BARRIER_DIR/reached"; while [ ! -e "$LINK_BARRIER_DIR/go" ]; do sleep 0.01; done; }
+if [ -n "${LINK_BARRIER_DIR:-}" ] && [ -d "${LINK_BARRIER_DIR}" ]; then
+  case "${1:-}::${2:-}" in
+    *.dev_bootstrap.lock.new.*::*.dev_bootstrap.lock.reclaim)
+      # reclaimer: acquire RECLAIM_LOCK FIRST, then pause while holding it
+      if [ -n "${LINK_BARRIER_RECLAIM:-}" ]; then "$real_link" "$@"; rc=$?; _pause; exit "$rc"; fi
+      ;;
+    *.dev_bootstrap.lock.new.*::*.dev_bootstrap.lock)
+      # pause BEFORE publishing so a test observes that no lock is visible yet
+      [ -n "${LINK_BARRIER_ACQUIRE:-}" ] && _pause
+      # publish FIRST, then pause, so a test observes the just-published lock already holds the pid
+      if [ -n "${LINK_BARRIER_POST_ACQUIRE:-}" ]; then "$real_link" "$@"; rc=$?; _pause; exit "$rc"; fi
+      ;;
+  esac
+fi
+exec "$real_link" "$@"
+"""
+
+
+def _wait_for_barrier(proc, marker, *, timeout=30.0):
+    # Wait until the shimmed child touches `marker`, OR the bootstrap process exits early. On
+    # early exit, surface its stdout/stderr so a CI-only divergence is diagnosable rather than an
+    # opaque "never reached". Generous timeout for loaded CI runners; local hits are sub-second.
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if marker.exists():
+            return
+        if proc.poll() is not None:
+            out, err = proc.communicate()
+            raise AssertionError(
+                f"bootstrap exited (rc={proc.returncode}) before reaching barrier {marker}\n"
+                f"--- stdout ---\n{out}\n--- stderr ---\n{err}"
+            )
+        time.sleep(0.02)
+    raise AssertionError(f"barrier {marker} not reached within {timeout}s (bootstrap still running)")
+
+
+def test_owner_paused_before_link_publishes_no_incomplete_lock_and_never_steals(tmp_path):
+    # Atomic publication (FINAL RATIFIED DIRECTION item 1): an owner paused after its pid-temp is
+    # written but before the exact-pathname `link` exposes no incomplete authoritative lock;
+    # another process may acquire; the paused owner then waits and acquires cleanly (never
+    # stealing). Deterministic via a `link` barrier.
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    (repo / "session.sh").write_text("# user content\n")
+    lock = repo / ".dev_bootstrap.lock"
+    barrier = repo / "barrier"
+    barrier.mkdir()
+    shimbin = repo / "shimbin"
+    shimbin.mkdir()
+    _write_executable(shimbin / "link", FAKE_LINK)
+
+    env_a = _env(repo, repo / "session.sh")
+    env_a["PATH"] = f"{shimbin}:{env_a['PATH']}"
+    env_a["LINK_BARRIER_DIR"] = str(barrier)
+    env_a["LINK_BARRIER_ACQUIRE"] = "1"
+    proc_a = subprocess.Popen(
+        ["bash", str(repo / "scripts" / "dev_bootstrap.sh")],
+        cwd=repo, env=env_a, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    try:
+        _wait_for_barrier(proc_a, barrier / "reached")
+        # INVARIANT: no incomplete authoritative lock is visible while the owner is paused.
+        assert not lock.exists()
+        # Another process acquires cleanly while A is paused, and fully releases.
+        result_b = _run(repo)
+        assert result_b.returncode == 0, result_b.stderr
+    finally:
+        (barrier / "go").touch()
+    out_a = proc_a.communicate(timeout=60)
+    assert proc_a.returncode == 0, out_a  # A waited, then acquired cleanly -- never stole
+    content = _session(repo)
+    assert content.count(BEGIN) == 1 and content.count(END) == 1
+    assert "# user content\n" in content
+
+
+def test_serialized_reclaimer_never_unlinks_a_fresh_live_owner(tmp_path):
+    # Ratified RECLAIM_LOCK serialization (FINAL RATIFIED DIRECTION item 2; supersedes the
+    # pre-amendment `-ef` inode-capture test). A reclaimer removes $LOCKFILE only inside the
+    # RECLAIM_LOCK critical section and only if the CURRENT lock pid is dead/absent. If a fresh
+    # LIVE owner takes the canonical path while the reclaimer holds RECLAIM_LOCK, the reclaimer
+    # reads the live pid and leaves the lock intact -- never steals. Deterministic via a
+    # RECLAIM_LOCK `link` barrier.
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    reclaim = repo / ".dev_bootstrap.lock.reclaim"
+    lock.write_text(f"{_dead_pid()}\n")  # a dead FILE lock present -> triggers reclaim
+    barrier = repo / "barrier"
+    barrier.mkdir()
+    shimbin = repo / "shimbin"
+    shimbin.mkdir()
+    _write_executable(shimbin / "link", FAKE_LINK)
+
+    env_c = _env(repo, repo / "session.sh")
+    env_c["PATH"] = f"{shimbin}:{env_c['PATH']}"
+    env_c["LINK_BARRIER_DIR"] = str(barrier)
+    env_c["LINK_BARRIER_RECLAIM"] = "1"
+    env_c.update(_FAST_WAIT)
+    proc_c = subprocess.Popen(
+        ["bash", str(repo / "scripts" / "dev_bootstrap.sh")],
+        cwd=repo, env=env_c, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    new_owner = subprocess.Popen(["sleep", "30"])
+    try:
+        _wait_for_barrier(proc_c, barrier / "reached")
+        assert reclaim.exists(), "reclaimer does not hold RECLAIM_LOCK at the barrier"
+        # A NEW live owner takes the canonical path while the reclaimer is paused holding
+        # RECLAIM_LOCK. The serialized critical section reads the CURRENT (now live) pid.
+        lock.unlink()
+        lock.write_text(f"{new_owner.pid}\n")
+        (barrier / "go").touch()
+        out_c = proc_c.communicate(timeout=60)
+        # The live owner's lock is left intact; the reclaimer never unlinks a live owner.
+        assert lock.exists() and lock.read_text().strip() == str(new_owner.pid), out_c
+        # The reclaimer released RECLAIM_LOCK (no orphaned mutex from a clean exit).
+        assert not reclaim.exists(), out_c
+    finally:
+        (barrier / "go").touch()
+        new_owner.terminate()
+        new_owner.wait()
+        try:
+            proc_c.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            proc_c.kill()
+
+
+def test_concurrent_ready_starts_are_deterministically_serialized_under_stress(tmp_path):
+    # Non-flaky guard: many rounds of concurrent ready starts must all exit 0 with exactly
+    # one owned block. Reverting atomic publication (mkdir + later pid) reintroduces the
+    # ownership-theft race and turns this red across rounds.
+    for round_index in range(12):
+        repo = _mkrepo(tmp_path / f"r{round_index}", with_venv=True, ready=True)
+        (repo / "session.sh").write_text("# user content\n")
+        env = _env(repo, repo / "session.sh")
+        procs = [
+            subprocess.Popen(
+                ["bash", str(repo / "scripts" / "dev_bootstrap.sh")],
+                cwd=repo, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            )
+            for _ in range(4)
+        ]
+        results = [p.communicate(timeout=60) for p in procs]
+        assert all(p.returncode == 0 for p in procs), (round_index, results)
+        content = _session(repo)
+        assert content.count(BEGIN) == 1 and content.count(END) == 1
 
 
 def test_concurrent_ready_starts_serialize_env_publication(tmp_path):
@@ -540,3 +856,357 @@ def test_settings_adds_only_required_sessionstart_hook():
     assert len(settings["hooks"]["PreToolUse"]) == 3
     assert "Bash(gh pr merge:*)" in settings["permissions"]["deny"]
     assert "Bash(gh pr ready*)" not in settings["permissions"]["deny"]
+
+
+# --- PRD-301 AMENDMENT 1 (PATH-B) ratified-mechanism tests ---
+
+# mv shim: inject a non-pid child into the legacy lock directory right before it is renamed to
+# its .stale. grave -- models a false-acquisition child arriving AFTER the ls -A snapshot and
+# BEFORE the move, so the authoritative post-move rmdir must fail loud. Other mv calls pass.
+FAKE_MV_INJECT = r"""#!/usr/bin/env bash
+real_mv=/usr/bin/mv; [ -x "$real_mv" ] || real_mv=/bin/mv
+dst="${@: -1}"; src="${@: -2:1}"
+case "$dst" in
+  *.dev_bootstrap.lock.stale.*) [ -d "$src" ] && : >"$src/stray" ;;
+esac
+exec "$real_mv" "$@"
+"""
+
+
+def _shim_path(repo: Path, shimbin: Path, session: Path) -> dict[str, str]:
+    base = _env(repo, session)
+    return {"PATH": f"{shimbin}:{base['PATH']}"}
+
+
+def test_post_move_retained_grave_fails_loud_and_does_no_bootstrap_work(tmp_path):
+    # FINAL RATIFIED DIRECTION items 5 and 7: a non-pid child arriving after the ls -A snapshot
+    # and before the mv is carried into the grave; the AUTHORITATIVE post-move rmdir fails, the
+    # run fails loud (exit 2) naming the retained inspectable grave, never recommends rm -rf, and
+    # does NO bootstrap work or env publication. Deterministic via an mv-injection shim.
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    lock.mkdir()  # legacy DIRECTORY carrier
+    (lock / "pid").write_text(f"{_dead_pid()}\n")  # dead pid -> eligible for reclaim
+    session = repo / "session.sh"
+    session.write_text("# user content\n")
+    shimbin = repo / "shimbin"
+    shimbin.mkdir()
+    _write_executable(shimbin / "mv", FAKE_MV_INJECT)
+    result = _run(repo, extra_env={**_FAST_WAIT, **_shim_path(repo, shimbin, session)})
+    assert result.returncode == 2, result
+    assert "legacy grave retained" in result.stderr, result.stderr
+    assert "never rm -rf" in result.stderr  # warns against, never recommends, rm -rf
+    graves = list(repo.glob(".dev_bootstrap.lock.stale.*"))
+    assert len(graves) == 1 and (graves[0] / "stray").exists(), (result, graves)
+    # No bootstrap work / env publication after the retained-grave failure.
+    assert "ready" not in result.stdout and "bootstrapped" not in result.stdout
+    assert _session(repo) == "# user content\n"
+    assert BEGIN not in _session(repo)
+
+
+def test_clean_exit_emits_no_spurious_reclaim_lock_stderr(tmp_path):
+    # FINAL RATIFIED DIRECTION item 8: a normal run never creates RECLAIM_LOCK, and the
+    # existence-guarded EXIT read must NOT emit a spurious "No such file or directory".
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    result = _run(repo)
+    assert result.returncode == 0, result.stderr
+    assert "No such file or directory" not in result.stderr
+    assert ".reclaim" not in result.stderr
+
+
+def test_stale_foreign_reclaim_lock_fails_loud_and_is_never_removed(tmp_path):
+    # FINAL RATIFIED DIRECTION items 3 and 4: a foreign RECLAIM_LOCK (another live pid) is NEVER
+    # auto-stolen -- the run bounded-waits then fails loud with the manual `rm` instruction, and
+    # the PID-identity EXIT trap leaves the foreign reclaim lock intact (removes only its own).
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    lock.write_text(f"{_dead_pid()}\n")  # dead file lock -> triggers reclaim attempts
+    reclaim = repo / ".dev_bootstrap.lock.reclaim"
+    foreign = subprocess.Popen(["sleep", "30"])  # a live foreign pid
+    reclaim.write_text(f"{foreign.pid}\n")
+    try:
+        result = _run(repo, extra_env=_FAST_WAIT)
+        assert result.returncode == 2, result
+        assert "stale reclaim lock" in result.stderr, result.stderr
+        assert "rm -f" in result.stderr and ".reclaim" in result.stderr
+        assert "rm -rf" not in result.stderr
+        assert reclaim.exists() and reclaim.read_text().strip() == str(foreign.pid), result
+    finally:
+        foreign.terminate()
+        foreign.wait()
+
+
+def test_terminated_reclaimer_does_not_orphan_its_reclaim_lock(tmp_path):
+    # FINAL RATIFIED DIRECTION item 3: a reclaimer holding its OWN RECLAIM_LOCK that is TERM'd
+    # does not orphan it -- the caught-signal / EXIT path removes its own reclaim lock.
+    import signal
+
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    reclaim = repo / ".dev_bootstrap.lock.reclaim"
+    lock.write_text(f"{_dead_pid()}\n")
+    barrier = repo / "barrier"
+    barrier.mkdir()
+    shimbin = repo / "shimbin"
+    shimbin.mkdir()
+    _write_executable(shimbin / "link", FAKE_LINK)
+    base = _env(repo, repo / "session.sh")
+    env = {
+        **base,
+        "PATH": f"{shimbin}:{base['PATH']}",
+        "LINK_BARRIER_DIR": str(barrier),
+        "LINK_BARRIER_RECLAIM": "1",
+        **_FAST_WAIT,
+    }
+    proc = subprocess.Popen(
+        ["bash", str(repo / "scripts" / "dev_bootstrap.sh")],
+        cwd=repo, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    try:
+        _wait_for_barrier(proc, barrier / "reached")
+        assert reclaim.exists()  # it holds its own RECLAIM_LOCK
+        proc.send_signal(signal.SIGTERM)
+        (barrier / "go").touch()  # release the paused link child so the pending trap can run
+        proc.wait(timeout=30)
+        assert not reclaim.exists(), "TERM'd reclaimer orphaned its own RECLAIM_LOCK"
+    finally:
+        (barrier / "go").touch()
+        try:
+            proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+
+
+def test_live_legacy_dir_is_never_linked_into(tmp_path):
+    # FINAL RATIFIED DIRECTION items 1 and 5: the exact-pathname `link` acquisition never links a
+    # temp INSIDE a legacy directory (the pre-amendment `ln` bug). A live-pid legacy directory is
+    # routed by [ -d ] and waited on; no `.new.*` child is ever created inside it.
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    lock.mkdir()
+    live = subprocess.Popen(["sleep", "30"])
+    (lock / "pid").write_text(f"{live.pid}\n")
+    try:
+        result = _run(repo, extra_env=_FAST_WAIT)
+        assert result.returncode == 2, result  # live legacy owner -> contention fail, never steal
+        children = [p.name for p in lock.iterdir()]
+        assert children == ["pid"], children  # no acquisition temp linked inside the directory
+        assert (lock / "pid").read_text().strip() == str(live.pid)  # live owner untouched
+    finally:
+        live.terminate()
+        live.wait()
+
+
+# link shim: create a directory at $LOCKFILE ONCE, immediately before the real acquisition link,
+# to model a legacy directory appearing AFTER the [ -d ] test but at the instant of acquisition.
+FAKE_LINK_DIR_INJECT = r"""#!/usr/bin/env bash
+real_link=/usr/bin/link; [ -x "$real_link" ] || real_link=/bin/link
+case "${1:-}::${2:-}" in
+  *.dev_bootstrap.lock.new.*::*.dev_bootstrap.lock)
+    if [ -n "${DIR_INJECT_DIR:-}" ] && [ ! -e "$DIR_INJECT_DIR/done" ]; then
+      mkdir "$2" 2>/dev/null && touch "$DIR_INJECT_DIR/done"
+    fi
+    ;;
+esac
+exec "$real_link" "$@"
+"""
+
+
+def test_legacy_dir_appearing_at_acquisition_is_never_linked_into(tmp_path):
+    # FINAL RATIFIED DIRECTION items 1 and 5 (kills the exact-path link mutation): if a legacy
+    # directory appears at $LOCKFILE exactly when acquisition runs (after the [ -d ] test),
+    # exact-pathname `link` FAILS EEXIST and links NO child inside it -- the pre-amendment `ln`
+    # would link a temp INSIDE the directory (a false acquisition). The run then routes the
+    # now-pid-less directory to the bounded-wait-then-fail-loud path.
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    marker = repo / "inject"
+    marker.mkdir()
+    shimbin = repo / "shimbin"
+    shimbin.mkdir()
+    _write_executable(shimbin / "link", FAKE_LINK_DIR_INJECT)
+    base = _env(repo, repo / "session.sh")
+    env = {**base, "PATH": f"{shimbin}:{base['PATH']}", "DIR_INJECT_DIR": str(marker), **_FAST_WAIT}
+    result = subprocess.run(
+        ["bash", str(repo / "scripts" / "dev_bootstrap.sh")],
+        cwd=repo, env=env, capture_output=True, text=True, timeout=60,
+    )
+    assert lock.is_dir(), result  # the injected directory is present at $LOCKFILE
+    assert list(lock.iterdir()) == [], (result, [c.name for c in lock.iterdir()])  # no child linked in
+    assert result.returncode == 2, result  # pid-less legacy directory -> bounded-wait then fail loud
+
+
+def test_published_lock_already_contains_owner_pid(tmp_path):
+    # FINAL RATIFIED DIRECTION item 1 (kills the pid-written-after-link mutation): the instant
+    # $LOCKFILE becomes visible it ALREADY holds the owner pid -- the pid is written to the temp
+    # BEFORE `link`, and `link` makes the lock a hardlink to that already-populated inode, so there
+    # is no pid-less publication window. Deterministic via a post-acquisition link barrier that
+    # pauses AFTER the real link. (The pre-link no-lock test alone green-passes a mutation that
+    # writes the pid after the link.)
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    barrier = repo / "barrier"
+    barrier.mkdir()
+    shimbin = repo / "shimbin"
+    shimbin.mkdir()
+    _write_executable(shimbin / "link", FAKE_LINK)
+    base = _env(repo, repo / "session.sh")
+    env = {
+        **base,
+        "PATH": f"{shimbin}:{base['PATH']}",
+        "LINK_BARRIER_DIR": str(barrier),
+        "LINK_BARRIER_POST_ACQUIRE": "1",
+        **_FAST_WAIT,
+    }
+    proc = subprocess.Popen(
+        ["bash", str(repo / "scripts" / "dev_bootstrap.sh")],
+        cwd=repo, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    try:
+        _wait_for_barrier(proc, barrier / "reached")
+        # The lock is now visible; it must ALREADY contain the owner pid (no pid-less window).
+        assert lock.exists()
+        assert lock.read_text().strip() == str(proc.pid), lock.read_text()
+    finally:
+        (barrier / "go").touch()
+        try:
+            proc.wait(timeout=60)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+
+
+def test_second_reclaimer_is_excluded_while_first_holds_reclaim_lock(tmp_path):
+    # FINAL RATIFIED DIRECTION item 2 (kills the `link ... || :` serialization mutation): while a
+    # reclaimer A holds RECLAIM_LOCK, a second REAL reclaimer B cannot enter the critical section --
+    # B's RECLAIM_LOCK link fails EEXIST and B bails (return 1), so the dead primary lock is
+    # untouched until A runs. A weakened `link ... || :` would let B proceed and evict the dead lock
+    # while A is paused. Deterministic: A pauses AFTER a successful RECLAIM_LOCK link; B is a real
+    # unshimmed bootstrap.
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    reclaim = repo / ".dev_bootstrap.lock.reclaim"
+    dead = _dead_pid()
+    lock.write_text(f"{dead}\n")  # dead primary lock -> triggers reclaim
+    barrier = repo / "barrier"
+    barrier.mkdir()
+    shimbin = repo / "shimbin"
+    shimbin.mkdir()
+    _write_executable(shimbin / "link", FAKE_LINK)
+    base = _env(repo, repo / "session.sh")
+    env_a = {
+        **base,
+        "PATH": f"{shimbin}:{base['PATH']}",
+        "LINK_BARRIER_DIR": str(barrier),
+        "LINK_BARRIER_RECLAIM": "1",
+        **_FAST_WAIT,
+    }
+    proc_a = subprocess.Popen(
+        ["bash", str(repo / "scripts" / "dev_bootstrap.sh")],
+        cwd=repo, env=env_a, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    try:
+        _wait_for_barrier(proc_a, barrier / "reached")
+        assert reclaim.exists()  # A holds RECLAIM_LOCK
+        # A second REAL (unshimmed) reclaimer B runs while A holds RECLAIM_LOCK; B must be excluded.
+        result_b = _run(repo, extra_env=_FAST_WAIT)
+        assert result_b.returncode == 2, result_b  # B bounded-waits then fails loud (stale reclaim lock)
+        assert "stale reclaim lock" in result_b.stderr, result_b.stderr
+        # B never entered the critical section: the dead primary lock is untouched.
+        assert lock.exists() and lock.read_text().strip() == str(dead), (
+            result_b, lock.read_text() if lock.exists() else "GONE",
+        )
+    finally:
+        (barrier / "go").touch()
+        try:
+            proc_a.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            proc_a.kill()
+
+
+# rm shim: after removing the canonical dead lock (arg ends exactly in `.dev_bootstrap.lock`),
+# pause so a test can SIGKILL the reclaimer AFTER the dead-lock removal but BEFORE it releases
+# RECLAIM_LOCK. All other rm calls (temps, graves, .reclaim) pass through untouched.
+FAKE_RM_PAUSE = r"""#!/usr/bin/env bash
+real_rm=/usr/bin/rm; [ -x "$real_rm" ] || real_rm=/bin/rm
+last="${@: -1}"
+"$real_rm" "$@"; rc=$?
+case "$last" in
+  *.dev_bootstrap.lock)
+    if [ -n "${RM_BARRIER_DIR:-}" ] && [ -d "${RM_BARRIER_DIR}" ]; then
+      touch "$RM_BARRIER_DIR/reached"
+      while [ ! -e "$RM_BARRIER_DIR/go" ]; do sleep 0.01; done
+    fi
+    ;;
+esac
+exit "$rc"
+"""
+
+
+def test_orphaned_reclaim_lock_blocks_acquisition_and_fails_loud(tmp_path):
+    # Owner event #8 (acquisition-side gate): with the canonical lock ABSENT but a SIGKILL-orphaned
+    # RECLAIM_LOCK present, the loop-top gate must BLOCK acquisition/legacy/reclaim/work -- a
+    # bounded wait then exit 2 with the stale-reclaim diagnostic, RETAINING the reclaim mutex for
+    # manual recovery. It must NEVER acquire the canonical lock, do readiness/install work, or
+    # publish the Claude environment. (Pre-fix, an absent $LOCKFILE let `link` succeed and bypass
+    # the mutex.)
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    reclaim = repo / ".dev_bootstrap.lock.reclaim"
+    session = repo / "session.sh"
+    session.write_text("# user content\n")
+    assert not lock.exists()  # canonical lock ABSENT
+    reclaim.write_text(f"{_dead_pid()}\n")  # SIGKILL-orphaned reclaim mutex (dead pid)
+    result = _run(repo, extra_env=_FAST_WAIT)
+    assert result.returncode == 2, result
+    assert "stale reclaim lock" in result.stderr, result.stderr
+    assert "rm -f" in result.stderr and ".reclaim" in result.stderr
+    assert "rm -rf" not in result.stderr
+    assert not lock.exists()  # never acquired the canonical lock
+    assert reclaim.exists()  # foreign/orphaned mutex retained, never auto-stolen
+    assert "ready" not in result.stdout and "bootstrapped" not in result.stdout
+    assert _session(repo) == "# user content\n"  # no env publication
+    assert BEGIN not in _session(repo)
+
+
+def test_sigkilled_reclaimer_after_dead_lock_removal_blocks_contender(tmp_path):
+    # Owner event #8 SIGKILL interleaving: a real reclaimer removes the dead canonical lock, then
+    # is SIGKILLed BEFORE releasing RECLAIM_LOCK (leaving $LOCKFILE ABSENT + an orphaned reclaim
+    # mutex). A contender must NEVER acquire the canonical lock or do bootstrap work; it
+    # bounded-fails loud and RETAINS the mutex for manual recovery. Deterministic via an rm barrier.
+    repo = _mkrepo(tmp_path, with_venv=True, ready=True)
+    lock = repo / ".dev_bootstrap.lock"
+    reclaim = repo / ".dev_bootstrap.lock.reclaim"
+    session = repo / "session.sh"
+    session.write_text("# user content\n")
+    lock.write_text(f"{_dead_pid()}\n")  # dead canonical lock -> triggers reclaim
+    barrier = repo / "barrier"
+    barrier.mkdir()
+    shimbin = repo / "shimbin"
+    shimbin.mkdir()
+    _write_executable(shimbin / "rm", FAKE_RM_PAUSE)
+    base = _env(repo, session)
+    env_r = {**base, "PATH": f"{shimbin}:{base['PATH']}", "RM_BARRIER_DIR": str(barrier), **_FAST_WAIT}
+    reclaimer = subprocess.Popen(
+        ["bash", str(repo / "scripts" / "dev_bootstrap.sh")],
+        cwd=repo, env=env_r, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    try:
+        _wait_for_barrier(reclaimer, barrier / "reached")
+        assert not lock.exists()  # reclaimer removed the dead canonical lock
+        assert reclaim.exists()  # reclaimer holds RECLAIM_LOCK, paused before releasing it
+        reclaimer.kill()  # SIGKILL before it can release RECLAIM_LOCK (trap cannot run)
+        reclaimer.wait(timeout=15)
+        assert reclaim.exists()  # orphaned mutex survives the SIGKILL
+        # A real, unshimmed contender must be blocked by the acquisition-side gate.
+        contender = _run(repo, extra_env=_FAST_WAIT)
+        assert contender.returncode == 2, contender
+        assert "stale reclaim lock" in contender.stderr, contender.stderr
+        assert not lock.exists()  # contender never acquired the canonical lock
+        assert reclaim.exists()  # mutex retained for manual recovery
+        assert "ready" not in contender.stdout and "bootstrapped" not in contender.stdout
+        assert _session(repo) == "# user content\n"  # no env publication by the contender
+    finally:
+        (barrier / "go").touch()
+        if reclaimer.poll() is None:
+            reclaimer.kill()
+            reclaimer.wait(timeout=10)
