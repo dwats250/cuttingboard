@@ -3,9 +3,15 @@
 Upstream MATERIAL design packet for the PRD-302 Slice-A bootstrap of a
 campaign control plane. Authored per the GOV-2 material-review order
 (`docs/governance/GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md`). This packet is
-provisional until an independent Codex review completes, one consolidated
+provisional until the independent Codex review completes, one consolidated
 correction is applied, and the exact corrected head is independently confirmed
 (GOV-2 sections 2, 7). It authorizes nothing downstream.
+
+> **REVISION:** This is the one-consolidated-correction revision. The INITIAL
+> PACKET REVIEW returned `DESIGN INCOMPLETE` with 9 findings (1 CRITICAL, 6
+> MAJOR, 2 MINOR); all are dispositioned in the `## CORRECTION CYCLE` section
+> at the end, and the affected sections below are rewritten. The review record
+> is `PACKET.review.sol.md` in this directory.
 
 - **Base:** `origin/main` @ `ff320357e35dc4d16c80787dff9197f90c6ab0a2`
   (PR #248 merged; unchanged from the planning base, so next-free-PRD,
@@ -58,37 +64,44 @@ full-suite count is not evidence that any proposed implementation is complete.
 
 ### 1.1 MATERIAL: YES
 
-Matched GOV-2 section 1 triggers (any one suffices; several apply):
+Matched GOV-2 section 1 triggers (any one suffices; the first two independently
+carry the conclusion, confirmed by the initial review):
 
 - **Establishes a production FILES ceiling and a LOC ceiling** -- the packet
-  proposes a five-file Slice-A FILES set and a net-added-line ceiling
+  proposes a five-file Slice-A payload FILES set and a net-added-line ceiling
   (section 8).
 - **Selects an implementation seam / carrier shared across layers** -- a new
   CI workflow that invokes an external model, threads a repository secret, and
   defines the JSON event/charge carriers a future Slice B will consume.
-- **Adds a persisted/coordination schema surface with more than one reader**
+- **Adds a coordination/artifact schema surface with more than one reader**
   -- the charge output schema is read by the model (as constraint), the
   secret-free validator, and (in Slice B) the publisher and owner.
 - **Security-sensitive secret handling** -- introduces `OPENAI_API_KEY` into a
   new workflow; the trust and containment boundary is the core design object.
-- **Owner discretion** -- GOV-2 section 1 lets Dustin classify any change
-  MATERIAL; the intake recommendation and the Fable reconciliation both land
-  on MATERIAL.
 
-### 1.2 CLASS: INFRA
+### 1.2 CLASS: INFRA (dominant purpose), with an acknowledged subordinate contract surface
 
 INFRA is a canonical class in the `docs/PRD_PROCESS.md` CLASS table ("CI,
-hooks, artifact-push plumbing, scripts, settings"). The deliverable is a CI
-workflow plus its checked-in tool, prompt, and schema -- CI/plumbing surface.
+hooks, artifact-push plumbing, scripts, settings"). The deliverable's dominant
+purpose is CI/workflow plumbing plus its checked-in tool, prompt, and schema.
 
-It is **not CONTRACT**: the coordination JSON schemas are internal to this
-control plane and do not redefine Cuttingboard's runtime/payload contract
-(`cuttingboard/output.py`, `ui/contract.json`, the `TradeDecision` shape). It
-is **not EXECUTION**: it contains no trading-decision, regime, qualification,
-or sizing logic. Relabeling it CONTRACT or EXECUTION merely because it invokes
-a model and owns internal schemas would be a mis-classification (this is
-Fable finding F5, REJECTED-after-canon-check, confirmed here against the live
-CLASS table).
+**Subordinate contract surface, acknowledged (not dismissed).** The canonical
+CONTRACT definition in `docs/PRD_PROCESS.md` is broader than the trading
+payload: "payload schema, artifact contracts, cross-module shape definitions."
+The charge/event JSON schemas ARE genuine internal artifact / job-boundary
+contracts and are a real, subordinate CONTRACT-shaped surface. The class is
+nonetheless **INFRA on dominant-purpose grounds**: the deliverable exists to
+install CI/workflow plumbing that happens to define internal coordination
+schemas; it does not modify or redefine Cuttingboard's runtime/payload contract
+(`cuttingboard/output.py`, `ui/contract.json`, the `TradeDecision` shape), and
+the schemas have no consumer in the trading pipeline. It is **not EXECUTION**
+(no trading-decision, regime, qualification, or sizing logic). This does not
+narrow the canonical CONTRACT definition to trading-only; it applies the
+dominant-purpose test to a mixed-surface change (the same treatment PRD-230
+gave a mixed workflow+process change). The CONTRACT-class ceremony that matters
+here -- schema-diff review and full consumer audit of the internal schemas --
+is carried into the design requirements (section 7) regardless of the class
+label.
 
 INFRA default tier is T1 ("T0 if hooks/CI gate runtime"). This workflow does
 not gate the runtime pipeline, so its default tier is T1. The lane is forced
@@ -96,12 +109,13 @@ above the tier by R11 (below), not by the tier.
 
 ### 1.3 LANE: HIGH-RISK (forced)
 
-Two independent forcings:
+Two independent forcings (both confirmed by the initial review):
 
 - **R11 Lane Downgrade Prohibition** -- `FILES` names
   `.github/workflows/campaign_control.yml` as this PRD's **payload**, and
-  `.github/workflows/**` is the INFRA HIGH-RISK FILES entry. R11 forces
-  `LANE: HIGH-RISK` regardless of diff size.
+  `.github/workflows/**` is the INFRA HIGH-RISK FILES entry
+  (`docs/PRD_PROCESS.md`). R11 forces `LANE: HIGH-RISK` regardless of diff
+  size.
 - **GOV-2 section 1 MICRO-ineligibility** -- a MATERIAL slice cannot be
   `LANE: MICRO`; with MICRO removed it takes STANDARD at minimum, and R11
   lifts it to HIGH-RISK.
@@ -128,10 +142,12 @@ publication path. It:
    (`source_comment_id: 0`, `pr_number: 1`, `head_sha` = the trusted workflow
    ref SHA);
 2. invokes pinned `openai/codex-action` with the existing `OPENAI_API_KEY`
-   secret in a read-only sandbox;
+   secret in a read-only sandbox, over a minimal, isolated checkout (section
+   3.5, 3.6);
 3. returns schema-constrained JSON as a job output;
-4. validates and renders it inside a fixed non-authority wrapper in a
-   separate, secret-free job; and
+4. transports that job output as inert data (never spliced into shell) into a
+   separate, secret-free job that validates and renders it inside a fixed
+   non-authority wrapper (section 3.6);
 5. uploads the rendered proposal as a one-day artifact.
 
 It has **no** issue trigger, **no** issue permission, **no** comment API, and
@@ -142,19 +158,28 @@ It has **no** issue trigger, **no** issue permission, **no** comment API, and
 
 ## 3. Full trust, effect, and boundary enumeration (Slice A)
 
-### 3.1 FILES (five, all Slice-A payload)
+### 3.1 Payload FILES (five)
 
 | Path | Bootstrap responsibility |
 |---|---|
-| `tools/campaign_control.py` | Synthetic-event generation, normalized-event loading, charge validation, inert rendering, CLI. No network calls. |
-| `tests/test_campaign_control.py` | Unit + workflow-structure (TRIPWIRE) tests. |
+| `tools/campaign_control.py` | Synthetic-event generation, normalized-event loading, **handwritten stdlib charge validation** (section 3.11), inert rendering, CLI. No network calls. |
+| `tests/test_campaign_control.py` | Unit tests, the schema-vs-validator drift-guard test (3.11), the model-output injection-inertness test (3.6), and workflow-structure (TRIPWIRE) tests. |
 | `.github/workflows/campaign_control.yml` | `workflow_dispatch` only; secret-bearing Codex job + secret-free validation/artifact job. |
 | `.github/campaign/charge_prompt.md` | Read-only, non-authoritative synthesizer prompt. |
-| `.github/campaign/charge.schema.json` | Strict JSON output schema (`additionalProperties: false`). |
+| `.github/campaign/charge.schema.json` | Strict JSON schema (`additionalProperties: false`), kept in lockstep with the handwritten validator by the 3.11 drift-guard test. |
 
-No other repository file is touched by Slice A payload. (Registry/index
-bookkeeping is implicit per `docs/PRD_PROCESS.md` Scope Lock and is not a
-payload FILES entry.)
+**Lifecycle / authority files (NOT payload; enumerated for honesty, per the
+initial review Finding 6).** The implementation PR and its closeout will also
+touch: `docs/prd_history/PRD-302.md` (the Stage-0 PRD doc);
+`docs/prd_history/PRD-302.review.claude.md` and
+`docs/prd_history/PRD-302.review.<model>.md` (routine + commissioned reviews);
+`docs/PROJECT_STATE.md` (active-PRD **pointer** touch -- annotated per the
+payload-vs-pointer rule, obliging a fresh-context review; NOT implicit); and
+this packet plus its review records (design documentation). Registry
+(`docs/PRD_REGISTRY.md`) and index (`docs/prd_index.json`) bookkeeping is
+implicit per `docs/PRD_PROCESS.md` Scope Lock and is not enumerated in FILES.
+No new dependency file (`pyproject.toml`) is touched because validation is
+handwritten stdlib (3.11).
 
 ### 3.2 Trigger
 
@@ -173,15 +198,16 @@ runs.
 
 - Top-level `permissions: contents: read`.
 - **Codex job** (secret-bearing): `contents: read` only. Holds the key via the
-  action proxy; cannot write anything.
+  action proxy; cannot write anything. Checkout uses
+  `persist-credentials: false` and a minimal sparse checkout (3.5).
 - **Validator/artifact job** (secret-free): `contents: read` only. Receives
-  the model JSON as a job output, validates it, renders it, uploads a one-day
-  artifact.
+  the model JSON as a job output, transports it as inert data (3.6), validates
+  it, renders it, uploads a one-day artifact.
 
 Slice A grants **no** `issues`, `pull-requests`, `checks`, `actions`, or
 `contents: write` scope in any job.
 
-### 3.4 Secret path (the core containment object)
+### 3.4 Secret path and its enforceable boundary (revised per Finding 2)
 
 `OPENAI_API_KEY` appears **exactly once**, only as the `openai-api-key` input
 of the `openai/codex-action` step, which is the **literal final step** of the
@@ -190,40 +216,113 @@ Codex job. It is never a job-level or step-level `env:`, never referenced in a
 the validator job. No repository code or artifact-upload step runs after the
 key reaches the action proxy.
 
-### 3.5 External actions and model identity
+Those properties are **necessary but not a complete boundary** (initial review
+Finding 2). Binding additions:
 
-The five pinned actions and the codex-action inputs are enumerated with
-verification status in section 6. Model-facing inputs (proposed): requested
-model `gpt-5.6-sol`, `effort: xhigh`, `permission-profile: ":read-only"`,
-`safety-strategy: drop-sudo`, `codex-version: 0.147.0`,
-`allow-users: dwats250`, `codex-args: ["--ephemeral", "--ignore-user-config"]`.
+- **Bind the secret-bearing run to reviewed `main`.** `workflow_dispatch`
+  offers a branch selector, so "the workflow exists on the default branch" does
+  not by itself prove the run uses reviewed `main` code (the live
+  `macro_awareness.yml:28-35` acknowledges exactly this). Slice A binds
+  `ref: main` on the Codex-job checkout and a `github.ref == 'refs/heads/main'`
+  guard; but see the next point for why that alone is insufficient.
+- **Prefer a protected Environment deployment-branch policy for the secret.**
+  A predicate inside a workflow file that a dispatcher could run from a
+  modified branch is not equivalent to environment-level secret restriction.
+  The design REQUIRES one of: (a) move `OPENAI_API_KEY` into a GitHub
+  Environment whose deployment-branch rule restricts it to `main` (recommended;
+  GitHub enforces this regardless of which workflow-file revision runs); or (b)
+  the owner **explicitly accepts the sole-writer threat model** and it is
+  documented. Under current live state only `dwats250` has write access (so no
+  presently-known second dispatcher), which bounds the residual, but this must
+  be an explicit owner acceptance, not a silent assumption. This is part of the
+  owner design-direction ruling (section 9).
+- **`allow-users` is additive, not a deny-by-default allowlist** (Finding 2).
+  `openai/codex-action`'s `allow-users` permits the listed users **in addition
+  to** actors with repository write access; it is not owner-only. The real
+  actor control is that `workflow_dispatch` requires write access, combined with
+  the Environment/branch policy above. The packet records `allow-users:
+  dwats250` as defense-in-depth, not as the primary actor gate.
+- **`persist-credentials: false`** on every checkout in the Codex job, so the
+  `GITHUB_TOKEN` is not left on disk under `$RUNNER_TEMP` where the
+  filesystem-read-capable model could read it (Finding 2).
 
-### 3.6 Model input and output
+### 3.5 Minimal, isolated checkout and the model's readable surface (revised per Finding 5)
+
+The earlier claim that "the model receives only event JSON" was over-claimed:
+`actions/checkout` makes the whole reviewed tree readable and
+`openai/codex-action` defaults its working directory to the repository root.
+The truthful boundary and its binding controls:
+
+- The model does **not** check out the referenced PR head (true, and the real
+  distinction from the deleted gate -- section 5).
+- The Codex job uses a **minimal sparse checkout** limited to
+  `.github/campaign/charge_prompt.md`, `.github/campaign/charge.schema.json`,
+  and `tools/campaign_control.py`, and runs the action in an **isolated
+  working directory** whose readable contents are exactly the prompt, the
+  schema, the synthetic event file, and that tool. A TRIPWIRE test asserts the
+  sparse-checkout paths and working-directory isolation.
+- The model's readable input surface is therefore **enumerated**: the synthetic
+  event JSON (untrusted-shaped but fixed), plus the prompt, schema, and tool
+  above -- and, if any project-instruction file (e.g. `AGENTS.md`) would fall
+  inside the isolated directory, it is enumerated too. The prompt-injection,
+  consumer, secret, and PRD-230 analyses are done against this truthful,
+  bounded surface, not against a false "event JSON only" claim.
+
+### 3.6 Model output transport (new, per Finding 3)
+
+Model-controlled `charge_json` is untrusted data and must never enter shell or
+workflow-command syntax before validation. Binding transport:
+
+- The Codex job output is consumed only via a step `env:` variable (or a
+  command file) and passed as **quoted input** to the checked-in Python tool
+  and to pinned `actions/github-script`; it is **never** interpolated into a
+  `run:` body, a filename, an artifact name, a workflow command
+  (`::set-output::` / `::notice::` etc.), or any shell syntax. Direct
+  `${{ needs.codex.outputs.charge_json }}` splicing into `run:` is prohibited
+  (it would be pre-validation expression/shell injection).
+- A mutation/red test feeds `charge_json` values containing `"`, `'`, newlines,
+  `$()`, backticks, `${{ }}`, and `::workflow-command::` strings and proves
+  they remain inert data through transport, validation, and rendering.
+
+### 3.7 Model input and output (semantics)
 
 The model receives the **normalized synthetic event JSON** as untrusted-shaped
-input. It does **not** receive the raw comment stream (there is none in Slice
-A) and does **not** check out the referenced PR head. It returns
-schema-constrained JSON whose `final-message` becomes the Codex job output
-`charge_json`.
+input (plus the enumerated trusted files of 3.5). It does **not** receive a raw
+comment stream (there is none in Slice A) and does **not** check out the
+referenced PR head. It returns schema-constrained JSON whose `final-message`
+becomes the Codex job output `charge_json`.
 
-### 3.7 Output, artifact, and consumers
+### 3.8 Producer-to-final-consumer surface inventory (rewritten per Finding 1)
 
-The validator job validates `charge_json` against the schema, renders it inside
-a fixed `PROPOSED OWNER CHARGE -- NOT AUTHORITY` wrapper with all model text
-HTML-escaped, `@`-neutralized, and confined to `<pre>` blocks, and uploads the
-rendered file as a **one-day retention** artifact. In Slice A the **only**
-consumer is that ephemeral artifact. There is no dashboard cell, no
-notification, no comment, no persisted state, no scoreboard row, no published
-contract field. (Downstream-consumer audit, Author-discipline 2: the Slice-A
-emission reaches no human-facing surface other than the one-day artifact a
-maintainer downloads.)
+The earlier "one-day artifact is the only surface" claim was wrong. GOV-2
+section 6 producer-to-final-consumer inventory for Slice A:
 
-### 3.8 Denied effects (negative boundary)
+| Surface | Persistence | What reaches it | Trust note |
+|---|---|---|---|
+| Codex action step **stdout** | in the Actions **job log** | the raw model final message (PRD-207 confirms Codex output reaches the completed job log) | The **secret never reaches it** (proxy-held, not echoed). The raw proposal text DOES appear here. |
+| Actions **job log** | **~90 days**, and this repository is **public** so the log is **publicly readable**; `retention-days: 1` on the artifact does NOT shorten the job log | the raw proposal text + workflow diagnostics | In Slice A the proposal is derived from the FIXED SYNTHETIC event -- no untrusted third-party content -- so public 90-day log persistence is benign. See the Slice-B constraint below. |
+| check/run UI | run lifetime | job status, step names | no untrusted content |
+| Codex job **output** (`charge_json`) | run lifetime | model JSON | transported as inert data (3.6) |
+| uploaded **artifact** | **1 day** | the rendered, wrapped, neutralized proposal | HTML-escaped, `@`-neutralized, `<pre>`-confined, fixed NOT-AUTHORITY wrapper |
+| artifact **downloader** (a maintainer) | -- | the rendered proposal | the only intended human surface |
+| human **owner** | -- | the rendered proposal | evaluates on merits |
 
-Slice A performs none of: issue write, comment API call, PR/branch/check/action
-write, `git push`, `gh` invocation, any command after the Codex action step,
-any secret in logs, any network call from the checked-in Python tool. A failure
-never publishes and never echoes untrusted content.
+Consequences recorded honestly:
+
+- The neutralization/wrapper hardening governs **only the uploaded artifact**,
+  not the raw job log. The job log carries the raw model text for ~90 days,
+  publicly.
+- **Slice A is safe** because its model input is synthetic, so nothing
+  untrusted or third-party reaches the public log, and the secret is excluded
+  from all logs.
+- **Named Slice-B design constraint (not authorized here):** in Slice B the
+  model input includes **untrusted issue-comment text**, so that text and the
+  model's output would persist in the **public** Actions job log for ~90 days,
+  and log content **cannot be neutralized** the way the artifact is. Slice B's
+  MATERIAL packet must design for public raw-log persistence of untrusted text
+  (e.g. minimize what the model echoes, accept the exposure explicitly, or
+  change the carrier). This is surfaced now so the boundary is not rediscovered
+  late.
 
 ### 3.9 Default-branch bootstrap limitation (load-bearing)
 
@@ -234,47 +333,72 @@ Therefore the workflow **cannot be dispatched before it is merged to `main`**.
 The first behavioral proof of the harness is physically post-merge. This is the
 crux of the owner design question in section 9; it is a fact about GitHub, not
 a design choice, and it invalidates any one-PR plan that promises a pre-merge
-Actions run.
+Actions run. (Confirmed by the initial review.)
 
-### 3.10 Failure paths
+### 3.10 Denied effects and failure paths
 
-Every failure is generic and fail-closed: the tool emits only
-`campaign-control: FAIL [stable-code] safe-message` and exits 2. Failure output
+Slice A performs none of: issue write, comment API call, PR/branch/check/action
+write, `git push`, `gh` invocation, any command after the Codex action step,
+any secret in logs, any network call from the checked-in Python tool. Every
+failure is generic and fail-closed: the tool emits only
+`campaign-control: FAIL [stable-code] safe-message` and exits 2; failure output
 excludes event text, model output, API responses, and secrets. There is no
-silent-fallback path: a malformed input, an unresolvable identity, or an
-unreadable stream fails loudly (PRD-198 invariant 1).
+silent-fallback path (PRD-198 invariant 1).
+
+### 3.11 Validator mechanism (new, per Finding 6)
+
+Validation is **handwritten stdlib** inside `tools/campaign_control.py`
+(consistent with the tool's stdlib-only constraint): strict exact-key parsing
+enforcing the same closed vocabulary, patterns, and limits as
+`.github/campaign/charge.schema.json`. To keep the Python contract and the JSON
+schema from drifting while still truthfully "validating against the schema," a
+**drift-guard test** asserts that the handwritten validator and the schema
+accept/reject the same closed vocabulary (required keys, enums, patterns,
+limits, `additionalProperties: false`). This adds **no** third-party dependency
+(no `jsonschema`), so `pyproject.toml` is not in FILES. The counterfactual --
+using a `jsonschema` dependency -- would add a dependency + config surface to
+FILES and is deliberately not chosen.
 
 ---
 
 ## 4. Structural workflow tests are TRIPWIRES, not behavioral proof
 
 Every YAML/shape test in `tests/test_campaign_control.py` -- trigger set,
-permission scopes, single secret placement, action pins, Codex-action-final,
-validation-before-upload, prohibited-command absence -- asserts that the
-workflow **file says the right thing**. Each such test's name/docstring is
-labeled `TRIPWIRE -- NOT BEHAVIORAL PROOF`, and a meta-test asserts that marker
-remains machine-visible.
+permission scopes, single secret placement, `persist-credentials: false`,
+sparse-checkout paths, `ref: main` binding, action pins, Codex-action-final,
+inert-transport, validation-before-upload, prohibited-command absence --
+asserts that the workflow **file says the right thing**. Each such test's
+name/docstring is labeled `TRIPWIRE -- NOT BEHAVIORAL PROOF`, and a meta-test
+asserts that marker remains machine-visible.
 
 Under PRD-198 invariant 4 ("every guard ships a red test"), these tripwires
 satisfy the red-test requirement for the **structural contract** only: they
 fail if a future edit adds a banned trigger, moves the secret, unpins an
-action, or grants a write scope. They do **not** prove the harness behaves --
-that Codex authenticates, that the sandbox holds, that the schema constrains
-real output, that no write occurs at runtime. Behavioral truth is determined
-only where GitHub, the proxy, the action, and the served model run (PRD-198
-invariant 5), i.e. the post-merge `main` dispatch (section 9). The PRD,
-closeout, and merge-return language must never describe merge-time green as
-behavioral proof.
+action, drops `persist-credentials: false`, or grants a write scope. They do
+**not** prove the harness behaves -- that Codex authenticates, that the sandbox
+holds, that the schema constrains real output, that no write occurs at runtime.
+Behavioral truth is determined only where GitHub, the proxy, the action, and
+the served model run (PRD-198 invariant 5), i.e. the post-merge `main` dispatch
+(section 9). The PRD, closeout, and merge-return language must never describe
+merge-time green as behavioral proof. (Confirmed by the initial review.)
+
+The runtime-data guards that CAN be tested behaviorally in CI -- the schema/
+validator drift guard (3.11) and the model-output injection-inertness test
+(3.6) -- are genuine behavioral tests and are not tripwires; they run against
+the checked-in Python, not the live workflow.
 
 ---
 
 ## 5. Cuts-before-additions reconciliation (VISION; PRD-230)
 
-This is the decisive section. VISION's `cuts-before-additions` requires an
-addition to justify itself against removal, and PRD-230 already **removed** a
-Codex-in-CI apparatus. The design proceeds only if this is a distinct product
-capability, not that deleted apparatus returning under a new name. If the
-distinction fails, the correct result is **NO-GO**.
+VISION's `cuts-before-additions` requires an addition to justify itself against
+removal, and PRD-230 already **removed** a Codex-in-CI apparatus. The design
+proceeds only if this is a distinct product capability, not that deleted
+apparatus returning under a new name. If the distinction fails, the correct
+result is **NO-GO**. (The initial review CONFIRMED the distinction is genuine
+and "not automatically NO-GO"; the corrections below tighten the two axes it
+flagged -- repository-input and the no-gate coupling -- and preserve the
+owner's marginal-return ruling as the real seam.)
 
 ### 5.1 What PRD-230 deleted, and why
 
@@ -301,38 +425,42 @@ human merge seam.
 |---|---|---|
 | Purpose | Authenticate that a genuine second-model **review** happened, to satisfy a merge gate | Surface an **owner-decision checkpoint** off-terminal and produce one copy-ready **proposal** |
 | Output role | Review-of-record; **counted toward** the HIGH-RISK gate | Explicitly `NOT AUTHORITY`; gates nothing; Dustin accepts/edits/rejects |
-| Model input | The PR's **repository code** at a SHA | A normalized **event JSON**; never checks out PR code |
+| Model input | The PR's **repository code** at a SHA (the review's whole subject) | A normalized **event JSON** + an enumerated, minimal trusted checkout (3.5); never the PR head; the repo tree is not the review subject |
 | Authority granted | Contributed to a merge decision | Zero; cannot approve, resume, dispatch, rerun CI, resolve reviews, or merge |
 | Authenticity upkeep | Allowlist-as-gate + resolved-model provenance + laundering detection + 16 artifacts | **None** -- because the proposal gates nothing, no served-model authenticity machinery is needed or built |
-| Problem solved | Host-independent review gate (PRD-197) | Owner-decision coordination / anti-stall (below) |
+| Problem solved | Host-independent review gate (PRD-197) | Owner-decision coordination / anti-stall (section 5.3) |
 
-The single most important line: the expensive part of the deleted apparatus
-(the PRD-207 resolved-model authenticity machinery) existed **only because its
-output counted toward a gate**. PRD-302's output counts toward nothing, so it
+The load-bearing line: the expensive part of the deleted apparatus (the PRD-207
+resolved-model authenticity machinery) existed **only because its output
+counted toward a gate**. PRD-302's output counts toward nothing, so it
 deliberately does not build, and does not need, that machinery. The teardown's
-cost driver is absent by construction.
+cost driver is absent by construction. (Finding 5 correctly tightened the
+"model input" row: the distinction is "never the PR head + minimal enumerated
+checkout," not the over-claimed "event JSON only.")
 
-### 5.3 The live product need (why the addition earns its place)
+### 5.3 The product need is an owner hypothesis, not a repository-established fact (revised per Finding 8)
 
-The owner-authored `PRODUCT_DELIVERY_OPERATING_RULE_2026-08-06.md` names the
-need directly: the Anti-stall rule requires an agent that hits friction to
-"present Dustin with a bounded decision," and the Success criterion is that
-"decisions arrive with bounded options" and "product slices reach Dustin
-quickly." Today a local HELM campaign that reaches a genuine owner-decision
-checkpoint stalls at the terminal until Dustin is present. The control plane
-gives that checkpoint a GitHub-mediated carrier: a native notification plus a
-bounded-options proposal Dustin can act on off-terminal. That is a
-coordination/delivery capability, not a review-authenticity apparatus.
+The owner-authored `PRODUCT_DELIVERY_OPERATING_RULE_2026-08-06.md` requires an
+agent that hits friction to "present Dustin with a bounded decision" and states
+the Success criterion that "decisions arrive with bounded options" and "product
+slices reach Dustin quickly." That establishes that bounded owner decisions are
+valued and should reach Dustin quickly. It does **not** establish, as
+repository fact, that the current terminal carrier is inadequate, that
+off-terminal stalls have actually occurred at a material frequency, or that an
+LLM-in-CI proposal is the necessary remedy. Those are a **product hypothesis**:
+that a GitHub-mediated, off-terminal owner-decision checkpoint with a
+bounded-options proposal has positive marginal return over the status quo. The
+KEEP / NO-GO ruling on that hypothesis is Dustin's, and it is the actual
+cuts-before-additions seam (section 9).
 
 ### 5.4 openai/codex-action vs the live SDK-in-run precedent
 
 The live `macro_awareness.yml` (PRD-187) runs an LLM SDK in a `run:` step:
-`ANTHROPIC_API_KEY` sits in **job-level `env:`** (line 22-23), so **every step
-in that job** -- including `pip install anthropic feedparser requests` of
-arbitrary network clients and `python3 tools/macro_awareness_collector.py` --
-executes with the secret present, and there is no sandbox around the model
-call. This proves LLM-in-CI is not categorically banned in this repo; the
-question is only the containment.
+`ANTHROPIC_API_KEY` sits in **job-level `env:`** (lines 22-23), so **every step
+in that job** -- including `pip install anthropic feedparser requests` and
+`python3 tools/macro_awareness_collector.py` -- executes with the secret
+present, and there is no sandbox around the model call. This proves LLM-in-CI is
+not categorically banned in this repo; the question is only the containment.
 
 The proposed `openai/codex-action` is materially tighter, and the addition is
 justified **only** through the containment actually needed here:
@@ -359,29 +487,29 @@ B turns on untrusted ingress -- and the final-step secret isolation plus schema
 output remain worth having even for the synthetic run. This is the weakest
 point of the marginal-return argument and is named as such.
 
-### 5.5 The sharpest falsification target (for the Codex review and the owner)
+### 5.5 The sharpest falsification target (for the owner)
 
 PRD-302 reuses the **same secure workflow mechanism** the deleted
 `codex-review.yml` used: `openai/codex-action`, read-only sandbox, key-isolated
-job split. A skeptic's strongest objection is: "this is codex-review.yml with
-the output relabeled from review to proposal." The rebuttal is section 5.2
+job split. The strongest objection is: "this is codex-review.yml with the
+output relabeled from review to proposal." The rebuttal is section 5.2
 (purpose, output role, coupling, and the absent authenticity upkeep all
 differ), reinforced by the fact that PRD-230 killed the old apparatus for
 **marginal-return**, not security -- so reusing its proven-secure mechanism for
-a genuinely different, gate-free product purpose is not revival. But whether
-the coordination capability carries **positive** marginal return in a solo repo
-is a genuine **owner product judgment**, the same judgment PRD-230 exercised in
-the other direction. The Codex review must attempt to falsify the distinction;
-the owner must rule on the product value.
+a genuinely different, gate-free product purpose is not revival. The initial
+review CONFIRMED this. But whether the coordination capability carries
+**positive** marginal return in a solo repo is a genuine **owner product
+judgment**, the same judgment PRD-230 exercised in the other direction.
 
 ### 5.6 Verdict
 
-**DISTINCT PRODUCT CAPABILITY -- not a revival of the deleted review gate.**
-The design survives cuts-before-additions on purpose, output role, coupling,
-and the deliberate absence of the deleted authenticity upkeep. It is **not**
-NO-GO on the design merits. The one gating judgment left open is the owner's
-marginal-return product ruling (section 9); if Dustin judges the coordination
-value insufficient, NO-GO remains the correct and lawful outcome and no design
+**DISTINCT PRODUCT CAPABILITY -- not a revival of the deleted review gate**
+(confirmed by the initial review). The design survives cuts-before-additions on
+purpose, output role, coupling, and the deliberate absence of the deleted
+authenticity upkeep. It is **not** NO-GO on the design merits. The one gating
+judgment left open is the owner's marginal-return product ruling on the
+section-5.3 hypothesis (section 9); if Dustin judges the coordination value
+insufficient, NO-GO remains the correct and lawful outcome and no design
 element here resists it.
 
 ---
@@ -394,52 +522,59 @@ Labels: **VERIFIED** (resolved to a real official release/binary),
 **INFERRED** (established by repository practice / owner ruling, not
 independently confirmable against an external catalog here), **UNRESOLVED**.
 
-| Identity | Proposed pin | Resolves to | Status | Disposition |
+Per Finding 7 the action pins are **reconciled now** to a single, consistent,
+current-major, SHA-pinned set; `download-artifact` is **removed** (no Slice-A
+data-flow responsibility -- Finding 6). Behavioral-compatibility of the current
+majors is an implementation check.
+
+| Action / identity | Reconciled pin (current major) | Resolves to | Status | Note |
 |---|---|---|---|---|
-| `actions/checkout` | `d23441a48e516b6c34aea4fa41551a30e30af803` | **v6.1.0** (= current `v6`) | VERIFIED | Current; consistent with repo (`@v6`). |
-| `openai/codex-action` | `52fe01ec70a42f454c9d2ebd47598f9fd6893d56` | **v1.11** (= current `v1`) | VERIFIED | Current major/minor. |
-| `actions/github-script` | `f28e40c7f34bde8b3046d885e986cb6290c5673b` | **v7.1.0** | VERIFIED | Real release, but behind current `v9`. Reconcile or justify at implementation. |
-| `actions/upload-artifact` | `ea165f8d65b6e75b540449e92b4886f43607fa02` | **v4.6.2** | VERIFIED | Real release, but behind current `v7`, and the repo's live workflows use `@v7`. **Version drift finding** -- reconcile to `v7` or justify `v4.6.2` before Gate A. |
-| `actions/download-artifact` | `634f93cb2916e3fdff6788551b99b062d0335ce0` | **v5.0.0** | VERIFIED | Real release, but behind current `v8`. Reconcile or justify. (Slice A may not need download-artifact if the model JSON is passed as a job output rather than an uploaded artifact; confirm necessity at implementation.) |
+| `actions/checkout` | `3d3c42e5aac5ba805825da76410c181273ba90b1` | **v7.0.1** (= `v7`) | VERIFIED | Was proposed at v6.1.0 (behind current major v7); reconciled up to v7. |
+| `actions/upload-artifact` | `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a` | **v7.0.1** (= `v7`) | VERIFIED | Was proposed at v4.6.2 (diverged from repo's live `@v7`); reconciled to v7 (matches repo). |
+| `actions/github-script` | `3a2844b7e9c422d3c10d287c895573f7108da1b3` | **v9.0.0** (= `v9`) | VERIFIED | Was proposed at v7.1.0 (behind v9); reconciled up to v9. Responsibility: inert-data transport + secret-free write (3.6). |
+| `openai/codex-action` | `52fe01ec70a42f454c9d2ebd47598f9fd6893d56` | **v1.11** (= `v1`) | VERIFIED | Current; unchanged. |
+| `actions/download-artifact` | **REMOVED from Slice A** | -- | n/a | No Slice-A data flow; unearned supply-chain surface under cuts-before-additions (Finding 6). |
 | Codex CLI | `codex-version: 0.147.0` | local `codex-cli 0.147.0` | VERIFIED | Matches the running CLI in this environment. |
-| Model (requested) | `model: gpt-5.6-sol` | live probe served `gpt-5.6-sol` | INFERRED | Established reviewer/model identity by owner ruling 2026-08-08 and landed artifacts (`gh-pr-ready .../PACKET.review.sol.md`, `PRD-293.review.sol.md`); a live read-only probe on 2026-08-13 was served `gpt-5.6-sol`. See 6.1. |
+| Model (requested) | `model: gpt-5.6-sol` | -- | **REQUESTED ONLY** | See 6.1. Served identity is **not positively observable** on this toolchain (PRD-207); recorded as requested, never as resolved/served. |
 
-### 6.1 Requested model is not resolved model (PRD-207 lesson, binding)
+### 6.1 Requested model is not resolved model (PRD-207 lesson, binding; Finding 7)
 
-The `model:` input is the **requested** identity only. The PRD-207 incident is
-the cautionary case: `codex-review.yml` requested `gpt-5-codex`, a fallback
-model served the run, and the gate laundered the request into a false
-"resolved" claim. On this toolchain (PRD-207 finding) the Codex `--json` stream
-carries **no** structured served-model field; the only served-model signal is a
-structured `item.error` fallback event (request-not-honored) or the banned
-prose self-report. Therefore:
+The `model:` input is the **requested** identity only. The earlier table's
+"live probe served gpt-5.6-sol" was an internal contradiction and is removed: a
+`codex exec` run banner echoes the **requested/configured** model, which is
+exactly the proxy the PRD-207 incident showed can diverge from the served model
+(`codex-review.yml` requested `gpt-5-codex`, a fallback served the run, and the
+gate laundered the request into a false "resolved" claim). On this toolchain
+(PRD-207 finding) the Codex `--json` stream carries **no** structured
+served-model field. Therefore:
 
-- The packet and PRD must record `gpt-5.6-sol` as **requested**, never assert
-  it as the **served/resolved** model.
+- The packet and PRD record `gpt-5.6-sol` as **requested**; the served identity
+  is **unresolved / not positively observable** and is never asserted as
+  resolved.
+- If the rendered artifact is retained without an honor gate, its fixed wrapper
+  must disclose "requested model; served identity unverified."
 - Because PRD-302's output is explicitly non-authoritative, served-model
   authenticity is low-stakes (a mis-served proposal is one Dustin evaluates on
   its merits and can reject) -- which is precisely why PRD-302 does **not** need
-  or build the PRD-207 resolved-model authenticity machinery. This is
-  consistent with section 5.2: no gate, no authenticity upkeep.
+  or build the PRD-207 resolved-model authenticity machinery (consistent with
+  section 5.2: no gate, no authenticity upkeep).
 
 ### 6.2 Pinning is more rigorous than current repo practice
 
 The repo's live workflows pin actions by floating major tags (`@v6`, `@v7`),
-not SHAs. The proposed SHA pins are therefore **more** rigorous than current
-practice (aligned with PRD-198 invariant 6, "action -> commit SHA"), but the
-SHAs cannot be cross-checked against in-repo usage; the external verification
-above is the check. The version-currency drift (three actions behind latest;
-upload-artifact diverging from the repo's live `@v7`) is a real disposition
-item for the implementation slice, not a packet blocker.
+not SHAs. The reconciled SHA pins above are therefore **more** rigorous than
+current practice (aligned with PRD-198 invariant 6, "action -> commit SHA") and
+are now consistent (all current majors) rather than a mix of old and new.
 
 ---
 
 ## 7. Binding design requirements for the downstream PRD
 
-These are the reconciled design corrections (Fable F1-F8, strengthened). They
-become **binding packet requirements** the downstream PRD must honor. Each is
-tagged **[A]** (Slice-A binding) or **[B]** (future Slice-B constraint --
-recorded here for continuity, not authorized by PRD-302).
+These are the reconciled design corrections (Fable F1-F8, strengthened, plus
+the initial-review corrections). They become **binding packet requirements**
+the downstream PRD must honor. Each is tagged **[A]** (Slice-A binding) or
+**[B]** (future Slice-B constraint -- recorded for continuity, not authorized
+by PRD-302).
 
 1. **[A] No model-authored verification field.** The charge schema has no
    field by which the model attests a live check occurred; only the (Slice-B)
@@ -457,16 +592,33 @@ recorded here for continuity, not authorized by PRD-302).
 5. **[B] Slice-B checkpoint concurrency keyed by parsed event ID, plus a final
    marker scan.** Event-ID job concurrency supplies mutual exclusion; a final
    existing-marker scan immediately before posting supplies durable
-   idempotency. The invariant is **at most one checkpoint per event ID** (a
-   first valid event may create a checkpoint before a later duplicate is
-   rejected). (Fable F1, strengthened -- a rescan alone is TOCTOU.)
+   idempotency. Invariant: **at most one checkpoint per event ID**. (Fable F1.)
 6. **[A] Additions-column LOC measurement; deletions never offset additions.**
-   Both ceilings sum the additions column of `git diff --numstat`; a deletion
-   never buys back an addition. (Fable F8.)
-7. **[A] No issue trigger and no issue write in Slice A.** Slice A is
-   dispatch-only with `contents: read` throughout.
+   Both ceilings sum the additions column of `git diff --numstat`. (Fable F8.)
+7. **[A] No issue trigger and no issue write in Slice A.** Dispatch-only with
+   `contents: read` throughout.
 8. **[A] The Codex action is the literal final secret-bearing job step.** No
    repository code or artifact step runs after the key reaches the proxy.
+9. **[A] Secret-run controls (Finding 2):** `persist-credentials: false` on
+   every Codex-job checkout; bind `ref: main` + a `github.ref` guard; AND
+   either a protected Environment restricting `OPENAI_API_KEY` to `main` or an
+   explicit owner acceptance of the sole-writer threat model. `allow-users` is
+   documented as additive defense-in-depth, not the primary actor gate.
+10. **[A] Minimal, isolated model checkout (Finding 5):** sparse checkout of
+    only the prompt, schema, and tool; isolated working directory; the model's
+    readable surface enumerated and TRIPWIRE-asserted.
+11. **[A] Inert model-output transport (Finding 3):** job output -> `env:` /
+    command file -> quoted input via pinned `github-script`; never spliced into
+    `run:`, filenames, artifact names, or workflow commands; injection-inertness
+    mutation test.
+12. **[A] Handwritten stdlib validator + schema drift-guard test (Finding 6):**
+    no new dependency; a test asserts the Python validator and the JSON schema
+    accept/reject the same closed vocabulary.
+13. **[A] Model identity recorded as requested only (Finding 7);** served
+    identity never asserted; artifact wrapper discloses "requested model;
+    served identity unverified" if retained without an honor gate.
+14. **[A] Reconciled current-major SHA-pinned actions (Finding 7);**
+    `download-artifact` removed unless a data-flow responsibility is added.
 
 ---
 
@@ -476,23 +628,28 @@ recorded here for continuity, not authorized by PRD-302).
 constraints; the first binding number is the GATE A CEILING Dustin approves on
 the reviewed PRD.
 
-- **Slice-A estimated surface:** ~550-650 added physical lines across the four
+- **Slice-A estimated surface:** ~600-720 added physical lines across the four
   **non-test** payload files (`tools/campaign_control.py`,
   `.github/workflows/campaign_control.yml`, `.github/campaign/charge_prompt.md`,
   `.github/campaign/charge.schema.json`), measured by summing the additions
   column of `git diff --numstat <slice-base> -- <four paths>`; deletions never
-  offset additions. Test LOC (`tests/test_campaign_control.py`) is tracked
-  separately and excluded from the net-production metric.
-- **First-class validation surface (PRD-288/289 lesson).** The estimate counts
-  as first-class -- not incidental plumbing -- the strict exact-key parsing,
+  offset additions. The range rose from the initial ~550-650 because the
+  validator is now **handwritten stdlib** (Finding 6) rather than a
+  dependency-backed one, adding validation surface to `campaign_control.py`.
+  Test LOC (`tests/test_campaign_control.py`) is tracked separately and
+  excluded from the net-production metric.
+- **First-class validation surface (PRD-288/289 lesson; method CONFIRMED by the
+  initial review).** The estimate counts as first-class -- not incidental
+  plumbing -- the strict exact-key parsing, the schema/validator drift guard,
   the fail-loud guards, the `neutralize()` and fixed-wrapper rendering, the
-  atomic write, the stable failure codes, and the schema's closed vocabulary
-  and limits. These are the bulk of the surface and are ratified-mandatory by
-  the semantic-failure invariants, so they are not discounted.
+  atomic write, the stable failure codes, the inert-transport handling, and the
+  schema's closed vocabulary and limits. These are the bulk of the surface and
+  are ratified-mandatory by the semantic-failure invariants.
 - **Recommendation for Gate A (not decided here):** set the GATE A CEILING at
-  the top of the estimate plus margin (the plan's proposed 650), stated as the
-  single binding number on the reviewed PRD. A post-Gate-A breach is a
-  stop-and-renew event (GOV-2 section 5).
+  the top of the estimate plus margin, stated as the single binding number on
+  the reviewed PRD. A post-Gate-A breach is a stop-and-renew event (GOV-2
+  section 5). The number remains provisional until implementation resolves the
+  now-specified surface (validator, transport, checkout isolation).
 
 ---
 
@@ -504,52 +661,76 @@ May PRD-302 close **COMPLETE** for the bounded deliverable **"structurally
 installed bootstrap, behavioral validation pending,"** even though GitHub makes
 the first behavioral proof physically post-merge (section 3.9)?
 
-### 9.2 Precedent, options, recommendation
+### 9.2 Current law, corrected (per Finding 4)
 
-**Precedent (directly on point):** PRD-197 merged under a one-time explicit
-bootstrapping waiver whose close condition was the first post-merge
-`workflow_dispatch` run; PRD-207 deferred its first trustworthy Codex run to a
-post-merge validation; PRD-212 was the second such waiver and was **flagged for
-the next alignment audit** to confirm the pattern was not masking drift. The
-"install now, prove on first main dispatch" shape is established, and it
-carries a standing caution: repeated bootstrap waivers get audited.
+The precedent must be stated accurately. PRD-197, PRD-207, and PRD-212 did
+**not** close COMPLETE-at-install. Each **merged with the PRD `IN PROGRESS`**
+and closed COMPLETE only **later**, after post-merge validation/closeout
+(PRD-197 merge `cc3ecb4`/`761eac4` carried `STATUS: IN PROGRESS` and no
+`PRD-197.review.codex.md` exists; PRD-207 merge `55f9cd2` was `IN PROGRESS`,
+closed at `847db58`; PRD-212 impl `daedf10` was `IN PROGRESS`, closed at
+`bb05721`, and its validation premise was later falsified). So they are
+precedent for "merge IN PROGRESS, prove post-merge, close later" -- which is
+exactly the pattern **current GOV-2 section 9 now restricts** for HIGH-RISK:
+moving HIGH-RISK closeout after merge weakens the second-model enforcement
+(enforced by the validator only on a COMPLETE row) and requires a separate
+code-touching PRD that first adds equivalent pre-merge enforcement for IN
+PROGRESS implementation PRDs. Until that lands, same-PR closeout (PRD-229) is
+mandatory.
 
-**Recommended ruling: YES**, as a one-time explicit bootstrap exception, only
-if all of:
+Two corrections to the earlier draft, both material:
+
+- The earlier "lawful NO alternative = merge IN PROGRESS, bookkeeping PR later"
+  is **not presently lawful** for HIGH-RISK without the GOV-2 section 9
+  enforcement PRD first.
+- The earlier claim that a landed `IN PROGRESS` PRD-302 "blocks the closeout of
+  any later-numbered PRD" is **false**: the PRD-255 rule blocks on an allocated
+  number whose **document has not landed on `main`**; once the doc is on
+  `main`, any status (including IN PROGRESS) suffices. That claim is withdrawn.
+- Retained and accurate: an IN PROGRESS merge would **defer the HIGH-RISK
+  second-model check** past merge (GOV-2 section 9) -- an argument **for**
+  same-PR closeout, i.e. for the YES framing below.
+
+### 9.3 Options and recommendation
+
+**Recommended ruling: YES**, framed lawfully under current closeout law -- the
+bounded **COMPLETE deliverable is the structural installation**, closed via
+**same-PR closeout at merge** (which keeps the HIGH-RISK second-model
+enforcement at merge), with **post-merge behavioral validation as a named,
+non-closeout follow-up**. Conditions:
 
 - (a) the post-merge behavioral-validation limitation is **prominent** in the
-  PRD, the closeout, and the merge-return language (never described as
-  operationally proven at merge -- section 4);
+  PRD, the closeout, and the merge-return language, and merge-time green is
+  never described as behavioral proof (section 4);
 - (b) the **first `main`-branch dispatch is recorded as named PRD-302
   behavioral evidence** (run ID, workflow SHA, action pins, artifact identity,
-  validator result), mirroring the PRD-207 bootstrap-note pattern;
+  validator result) -- recorded as follow-up evidence, not as a closeout
+  condition;
 - (c) **Slice B remains parked** until that recorded dispatch is green; and
 - (d) a **failure requires a governed correction** before any use -- it never
   justifies weakening the sandbox or schema.
-- Plus (from PRD-212): **flag the repeated-bootstrap-waiver pattern for the
-  next alignment audit.**
+- Plus: **flag the bootstrap-close pattern for the next alignment audit**
+  (PRD-212 established that repeated bootstrap waivers get audited).
 
-**Lawful NO alternative and its consequence.** Dustin may rule NO: PRD-302 may
-not close COMPLETE at merge. Then the workflow merges with the PRD **IN
-PROGRESS**, and PRD-302 closes only via a later bookkeeping PR after the
-post-merge `main` dispatch is green. Consequences to weigh:
+**Lawful alternatives (the real fork):**
 
-- An IN-PROGRESS PRD-302 **blocks the closeout of any later-numbered PRD**
-  until it closes (PRD-255 allocated-but-unlanded rule).
-- HIGH-RISK second-model disposition is CI-enforced by
-  `tools/validate_prd_registry.py` **only on a COMPLETE row** (GOV-2 section
-  9). Merging IN PROGRESS therefore defers that enforcement past the merge --
-  i.e. the NO path **weakens the pre-merge second-model gate**, the same
-  weakening GOV-2 section 9 warns about for post-merge closeout. This is a real
-  argument in favor of the YES path, not against it.
+- **YES (recommended):** structural-install-as-COMPLETE, same-PR closeout,
+  named post-merge validation follow-up (above).
+- **NO / defer:** either (i) require the GOV-2 section 9 pre-merge-enforcement
+  PRD to land first if Dustin wants behavioral proof to be part of acceptance
+  before a COMPLETE flip is permitted; or (ii) narrow or park the capability
+  (the cuts-before-additions NO-GO of section 5.3/5.6). Consequence of (i): a
+  new dependency PRD before PRD-302 can proceed. Consequence of (ii): the
+  coordination capability is not built this way.
 
-### 9.3 Second-model disposition
+### 9.4 Second-model disposition
 
 **Recommendation: commission** the HIGH-RISK second-model artifact for the
 implementation PR; do **not** take the `SECOND-MODEL:` waiver. Rationale: this
-is a security-sensitive INFRA change introducing a new secret-bearing workflow;
-it is exactly the contract/decision-surface + CI-semantics profile the PRD-242
-advisory triggers name. (Fable owner-decision 2.)
+is a security-sensitive INFRA change introducing a new secret-bearing workflow
+with a subordinate internal contract surface; it is exactly the
+contract/decision-surface + CI-semantics profile the PRD-242 advisory triggers
+name. (Fable owner-decision 2.)
 
 ---
 
@@ -558,11 +739,15 @@ advisory triggers name. (Fable owner-decision 2.)
 Stop and return to Dustin (do not improvise around) if any of these arise
 during downstream work:
 
-- The cuts-before-additions distinction (section 5) does not survive review or
-  owner product judgment -> **NO-GO**.
+- The cuts-before-additions distinction (section 5) does not survive owner
+  product judgment -> **NO-GO**.
 - A secure implementation needs PR-head repository code to execute **after** the
   key is introduced.
 - `OPENAI_API_KEY` must become job-level or cross-job state.
+- The model's readable surface cannot be bounded to the enumerated minimal
+  checkout (Finding 5).
+- Model output cannot be transported as inert data without shell/command
+  exposure (Finding 3).
 - Codex cannot run with `:read-only`, `drop-sudo`, the pinned action, and the
   action as the final step.
 - Codex requires any GitHub write permission.
@@ -570,7 +755,9 @@ during downstream work:
 - FILES or an approved ceiling must expand (GOV-2 section 5 stop-and-renew).
 - A schema consumer, notification audience, durable datastore, or HELM
   endpoint is added.
-- Failure can look successful or expose untrusted/secret content.
+- Failure can look successful or expose secret content; or the **public** raw
+  job log would carry untrusted third-party content (a Slice-B boundary --
+  section 3.8).
 - The post-merge operational dispatch is misrepresented as pre-merge evidence.
 - A review finds a new material authority boundary (GOV-2 sections 6, 7 ->
   packet returns to DESIGN INCOMPLETE).
@@ -588,3 +775,32 @@ no Stage 0 is opened, and no Gate A is issued or inferred by this document.
 **On completion of the review cycle the campaign stops at:**
 `MATERIAL PACKET REVIEW-CLEAN -- HELD FOR OWNER DESIGN-DIRECTION RULING. NO
 STAGE 0. NO IMPLEMENTATION.`
+
+---
+
+## CORRECTION CYCLE (one consolidated cycle, GOV-2 sections 2, 7)
+
+Initial review: `PACKET.review.sol.md` section 1 (reviewed head
+`3de08a35118764fe0df5847d6ad8216659c45142`, `gpt-5.6-sol`, read-only, xhigh).
+Verdict `DESIGN INCOMPLETE`, 9 findings. All dispositioned here; this is the one
+consolidated correction GOV-1/GOV-2 authorize. No second cycle is improvised;
+if the exact-corrected-head confirmation finds a NEW material boundary omission,
+the packet returns to `DESIGN INCOMPLETE` for the owner (GOV-2 sections 6, 7).
+
+| # | Sev | Finding | Disposition |
+|---|---|---|---|
+| 1 | CRITICAL | Raw model output has an omitted ~90-day public job-log presentation path | **ACTIONED.** Section 3.8 rewritten as a full producer-to-final-consumer inventory (GOV-2 section 6 first-class refresh): job log = ~90-day, public, carries raw proposal; secret proxy-excluded; Slice A synthetic = benign; Slice B untrusted-text-to-public-log named as a Slice-B design constraint. "Only surface" claim removed. |
+| 2 | MAJOR | Secret boundary does not bind the ref or remove checkout credentials; `allow-users` mischaracterized | **ACTIONED.** Section 3.4 + req 9: `persist-credentials: false`; bind `ref: main` + `github.ref` guard; protected Environment secret restriction OR explicit owner sole-writer acceptance; `allow-users` recorded as additive defense-in-depth, not the primary gate. |
+| 3 | MAJOR | Model-output-to-validator transport unspecified (shell injection) | **ACTIONED.** New section 3.6 + req 11: job output -> `env:`/command file -> quoted input via pinned github-script; never spliced into `run:`/filenames/commands; injection-inertness mutation test. |
+| 4 | MAJOR | Bootstrap precedent and "lawful NO" path misstated | **ACTIONED.** Section 9.2 rewritten to current law: PRD-197/207/212 merged IN PROGRESS and closed later (not COMPLETE-at-install); the "merge IN PROGRESS then bookkeeping PR" NO path is not presently lawful for HIGH-RISK (GOV-2 section 9); the false later-numbered-closeout-blocking claim withdrawn; YES reframed as structural-install-as-COMPLETE via same-PR closeout with named post-merge follow-up; the deferred-second-model-check point retained. |
+| 5 | MAJOR | "Model receives only event JSON / never checks out repo code" over-claimed | **ACTIONED.** Section 3.5 + req 10: minimal sparse checkout (prompt/schema/tool), isolated working directory, enumerated readable surface, TRIPWIRE-asserted; section 5.2 "model input" row corrected to "never the PR head + minimal enumerated checkout." |
+| 6 | MAJOR | Five-file FILES set + ceiling not yet reviewable as complete | **ACTIONED.** Section 3.11: handwritten stdlib validator + schema drift-guard test (no new dep, no pyproject.toml in FILES). Section 6: `download-artifact` removed (unearned); github-script given the explicit transport responsibility. Section 3.1: lifecycle/authority files (PRD doc, review artifacts, PROJECT_STATE pointer) enumerated separately from payload; registry/index noted implicit. Section 8: estimate revised to ~600-720 for the handwritten validator. |
+| 7 | MAJOR | Model-identity row records an unsupported resolved identity; pin currency inconsistent | **ACTIONED.** Section 6.1: `gpt-5.6-sol` recorded as requested only; served identity not positively observable (PRD-207); "live probe served" removed; wrapper-disclosure requirement added. Section 6: action pins reconciled now to a consistent current-major SHA set (checkout v7.0.1, upload-artifact v7.0.1, github-script v9.0.0, codex-action v1.11), download-artifact removed. |
+| 8 | MINOR | Anti-stall doc does not establish the off-terminal need as fact | **ACTIONED.** Section 5.3 relabels off-terminal value as an owner product hypothesis, not repository-established fact; the KEEP/NO-GO ruling is the cuts-before-additions seam. |
+| 9 | MINOR | INFRA "not CONTRACT" rationale narrows the canonical definition | **ACTIONED.** Section 1.2 keeps INFRA on dominant-purpose grounds, explicitly acknowledges the subordinate internal-contract surface, carries the schema-diff/consumer-audit ceremony into section 7, and does not redefine CONTRACT as trading-only. |
+
+Confirmations recorded by the initial review (no change required): materiality;
+CLASS INFRA (dominant) / LANE HIGH-RISK forcing; the default-branch bootstrap
+fact; the good secret-hygiene elements (as necessary-not-sufficient); the
+structural-test tripwire honesty; PRD-230 non-revival as genuine; and the
+ceiling estimation method (number pending Finding 6, now resolved).
