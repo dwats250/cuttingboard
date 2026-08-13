@@ -772,7 +772,6 @@ def test_tripwire_no_issue_or_comment_publication():
 
 def test_tripwire_marker_present_on_every_tripwire_test():
     """TRIPWIRE - NOT BEHAVIORAL PROOF: meta-test -- the marker stays machine-visible."""
-    import inspect
     mod = sys.modules[__name__]
     tripwires = [obj for name, obj in vars(mod).items()
                  if name.startswith("test_tripwire_") and callable(obj)]

@@ -1,0 +1,165 @@
+# PRD-302 Slice A: dispatch-only, owner-only, non-authoritative Codex proposal
+# bootstrap. Structural installation only -- behavioral + credential-isolation
+# proof is the mandatory FIRST post-merge `main` dispatch (PRD-302 R7/R18).
+# The structural tests in tests/test_campaign_control.py are TRIPWIRES, not
+# behavioral proof. Slice A: no issue trigger, no write scope, no publication.
+name: Campaign Control Plane (Slice A bootstrap)
+
+# Slice A: workflow_dispatch ONLY. No issue_comment / pull_request /
+# pull_request_target / repository_dispatch / workflow_run / push / schedule.
+on:
+  workflow_dispatch:
+    inputs:
+      head_sha:
+        description: "Trusted main head SHA to bind into the fixed synthetic event."
+        required: true
+        type: string
+
+concurrency:
+  group: campaign-control-slice-a
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  codex:
+    # Sole-writer actor + reviewed-main binding (PRD-302 R2/R3; owner ruling 5).
+    if: >-
+      github.actor == 'dwats250' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CODEX_USER: codexsandbox
+      HEAD_SHA: ${{ inputs.head_sha }}
+    outputs:
+      charge_json: ${{ steps.codex.outputs.final-message }}
+    steps:
+      - name: Checkout reviewed main (minimal, no persisted credentials)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+          sparse-checkout: |
+            tools/campaign_control.py
+            .github/campaign/charge_prompt.md
+            .github/campaign/charge.schema.json
+          sparse-checkout-cone-mode: false
+
+      - name: Provision unprivileged codex user and stage public inputs
+        run: |
+          set -euo pipefail
+          id "$CODEX_USER" >/dev/null 2>&1 || sudo useradd -m "$CODEX_USER"
+          mkdir -p .campaign-input .campaign-output
+          # Make ONLY the public inputs + tool readable to the distinct uid;
+          # this is minimization/navigation, NOT a confidentiality boundary.
+          sudo chmod -R a+rX tools/campaign_control.py .github/campaign \
+            .campaign-input .campaign-output
+
+      - name: Build fixed synthetic event
+        run: |
+          set -euo pipefail
+          python3 tools/campaign_control.py make-dry-run-event \
+            --head-sha "$HEAD_SHA" \
+            --event-output .campaign-input/event.json
+          sudo chmod a+r .campaign-input/event.json
+
+      # R7 blocking credential-isolation probe: prove the unprivileged codex uid
+      # canNOT read runner-owned credentials, run AS that exact uid, BEFORE the
+      # secret-bearing action. Fail closed on absent/ambiguous/mis-owned/readable.
+      # This proves the FAIL-CLOSED LOGIC structurally; live closure is proven at
+      # the post-merge main dispatch (R7/R18).
+      - name: Credential-isolation probe (blocking, R7)
+        run: |
+          set -euo pipefail
+          RUNNER_UID="$(id -u)"
+          RUNNER_ROOT=""
+          for cand in "$HOME/actions-runner" "/home/runner/actions-runner" \
+                      "/opt/actions-runner" "/actions-runner"; do
+            if [ -f "$cand/.credentials" ]; then
+              if [ -n "$RUNNER_ROOT" ] && [ "$RUNNER_ROOT" != "$cand" ]; then
+                echo "campaign-control: FAIL [probe-root] ambiguous runner root" >&2
+                exit 2
+              fi
+              RUNNER_ROOT="$cand"
+            fi
+          done
+          if [ -z "$RUNNER_ROOT" ]; then
+            echo "campaign-control: FAIL [probe-root] runner root not resolved" >&2
+            exit 2
+          fi
+          sudo -u "$CODEX_USER" python3 tools/campaign_control.py probe-isolation \
+            --runner-uid "$RUNNER_UID" --runner-root "$RUNNER_ROOT"
+
+      # Codex Action: the LITERAL FINAL secret-bearing step of this job. Nothing
+      # runs after the key reaches the proxy. unprivileged-user isolates the
+      # distinct codex uid from runner-owned credentials (R6; proxy holds the key,
+      # R.3). The API secret appears exactly once, here, as an action input only.
+      - name: Codex synthesis (read-only, unprivileged-user, action-final)
+        id: codex
+        uses: openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56  # v1.11
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: .github/campaign/charge_prompt.md
+          output-file: .campaign-output/charge.json
+          output-schema-file: .github/campaign/charge.schema.json
+          model: gpt-5.6-sol
+          effort: xhigh
+          permission-profile: ":read-only"
+          safety-strategy: unprivileged-user
+          codex-user: codexsandbox
+          codex-version: "0.147.0"
+          allow-users: dwats250
+          codex-args: '["--ephemeral", "--ignore-user-config"]'
+
+  validate:
+    needs: codex
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      HEAD_SHA: ${{ inputs.head_sha }}
+    steps:
+      - name: Checkout reviewed main (minimal, no persisted credentials)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+          sparse-checkout: |
+            tools/campaign_control.py
+          sparse-checkout-cone-mode: false
+
+      # Inert transport (R10): model output enters ONLY via env into pinned
+      # github-script and is written to a file without source interpolation. It
+      # is never spliced into a run: body, filename, artifact name, or command.
+      - name: Materialize model output inertly
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
+        env:
+          CHARGE_JSON: ${{ needs.codex.outputs.charge_json }}
+        with:
+          script: |
+            const fs = require('fs');
+            fs.mkdirSync('.campaign-input', { recursive: true });
+            fs.mkdirSync('.campaign-output', { recursive: true });
+            fs.writeFileSync('.campaign-output/charge.json', process.env.CHARGE_JSON ?? '');
+
+      - name: Validate and render the proposed charge
+        run: |
+          set -euo pipefail
+          python3 tools/campaign_control.py make-dry-run-event \
+            --head-sha "$HEAD_SHA" \
+            --event-output .campaign-input/event.json
+          python3 tools/campaign_control.py validate-charge \
+            --event .campaign-input/event.json \
+            --charge .campaign-output/charge.json \
+            --comment-output .campaign-output/proposed_charge.md
+
+      - name: Upload rendered proposal (one-day retention; no publication)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: proposed-charge
+          path: .campaign-output/proposed_charge.md
+          retention-days: 1
+          if-no-files-found: error
