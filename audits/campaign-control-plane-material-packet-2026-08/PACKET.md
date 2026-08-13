@@ -1131,3 +1131,176 @@ same-PR closeout with named post-merge validation follow-up), the second-model
 recommendation (commission, do not waive), and the marginal-return KEEP/NO-GO
 ruling remain **ungranted** and return to Dustin only after this rebuilt packet
 is review-clean.
+
+## R.11 REBUILD CORRECTION CYCLE (one consolidated cycle)
+
+The rebuilt INITIAL PACKET REVIEW (Sol, read-only, xhigh, pinned `ab958645`)
+returned **DESIGN INCOMPLETE** with 6 findings (1 CRITICAL, 5 MAJOR) and
+material confirmations. Full record: `PACKET.review.sol.md` section 4. This is
+the single consolidated rebuild correction (GOV-2 sections 2, 7); it supersedes
+the conflicting R.1-R.9 text above per GOV-2 section 10.
+
+**Correction summary (the security model, corrected):** The API key is
+**well protected** (Finding 3 strengthened the claim). The genuine residual is
+the **runner's own credentials**, which are **same-uid readable** by the Codex
+process and are **not** protected by `drop-sudo`. The correct control is
+`unprivileged-user`, proven at the already-required post-merge dry-run.
+
+### F1 (CRITICAL) -- runner-root credential surface; drop-sudo is insufficient. ACTIONED.
+
+- **Corrected fact.** A GitHub-hosted runner stores a job-scoped Actions-service
+  OAuth token in `<runner-root>/.credentials` (mode-600, owned by the `runner`
+  user). The Codex process runs as `runner` (same uid) under `:read-only`
+  whole-filesystem read, so it can read `.credentials` **without sudo**.
+  `safety-strategy: drop-sudo` removes an escalation path; it does **not** change
+  the Codex uid or block ordinary same-uid file reads. The first-cycle/rebuild
+  labels calling runner/runtime tokens "reachable only via privileged procfs"
+  are **withdrawn**; they are **same-uid readable** and UNRESOLVED for effect.
+- **Readable-surface additions (supersedes R.1 table).** Add: runner-root
+  `.credentials` (Actions-service token), `.runner`, `.credentials_migrated`,
+  credential/diagnostic stores; `$HOME` (may hold credentials per GitHub's
+  hosted-runner filesystem docs); and `GITHUB_EVENT_PATH`. All same-uid
+  readable; none isolated by `drop-sudo`.
+- **Corrected control (BINDING).** Runner-owned-credential confidentiality
+  requires **`safety-strategy: unprivileged-user`** -- run Codex as a distinct,
+  unprivileged uid so runner-owned mode-600 files are not same-uid readable --
+  with the staged public inputs (prompt, schema, tool, synthetic event) made
+  readable to that uid. `drop-sudo` alone is insufficient and is downgraded from
+  "load-bearing" to "necessary-but-insufficient." Closure of the runner-credential
+  surface under `unprivileged-user` is **INFERRED** at documentation stage and
+  **must be VERIFIED at the post-merge bootstrap dry-run** (R.11.F6), which is a
+  live hosted-runner probe the bootstrap already requires. If closure cannot be
+  achieved on a standard hosted runner, it is a named RED stop (owner isolation
+  choice, R.11 owner note).
+
+### F2 (MAJOR) -- the Responses API channel and provider are omitted sinks/consumers. ACTIONED.
+
+- **Corrected fact.** Command-network restriction (`:read-only` ->
+  `NetworkSandboxPolicy::Restricted`) governs sandboxed **commands**, not the
+  parent Codex process's intentionally-permitted **Responses API** traffic. A
+  shell command's output (e.g. reading a file) is serialized into the next
+  Responses request and POSTed upstream to the OpenAI provider **before** any
+  final-message/log decision. So the Responses channel is an off-runner path for
+  anything the model reads -- the public log is **not** the only egress.
+- **Inventory additions (supersedes R.2/R.6).** Add as consumers/sinks: the
+  Codex runtime, the local Responses proxy, the Responses request body, the
+  OpenAI/model provider (and its retention/handling boundary), the runner log
+  service, the command-file processor, and the artifact service.
+- **Corrected control (BINDING).** The model's readable surface must contain no
+  runner-owned credential (achieved by `unprivileged-user`, F1); credential
+  **unreachability**, not command-network restriction, is the control that keeps
+  a credential out of a tool result and thus out of a Responses request. Bind:
+  no sensitive runner surface may enter a tool result or Responses request;
+  verified at the post-merge dry-run.
+
+### F3 (MAJOR) -- proxy analysis corrected; the API-key claim is STRENGTHENED. ACTIONED.
+
+- **Corrected fact (stronger).** The Responses-API proxy runs as the same
+  `runner` uid but is **non-dumpable**: it calls process hardening before
+  `main` setting Linux `PR_SET_DUMPABLE=0` (fail-closed) plus `mlock`, so
+  `/proc/<proxy>/mem` and same-uid ptrace do **not** yield the key without an
+  overriding capability (which `drop-sudo` removes). `/proc/<proxy>/environ`
+  lacks the key (`env -u PROXY_API_KEY`). The proxy config writer emits only the
+  provider and loopback port, **not** the raw key. Therefore
+  **`OPENAI_API_KEY` confidentiality from the model is VERIFIED** (non-dumpable
+  proxy + `env -u` + key-free config), not merely `drop-sudo`-dependent
+  defense-in-depth. Runner-wide absence from disk/swap/diagnostics remains
+  UNRESOLVED but is not the primary custody path.
+- **Separation.** The proxy's hardened key custody is distinct from the runner
+  worker / composite-action orchestration, which also receives the secret input
+  and job credentials and is **not** shown to use the proxy's hardening. That
+  runner-worker exposure is the general "compromised runner can harvest secrets"
+  baseline GitHub documents for **all** actions; it is not specific to this
+  design and is recorded as an accepted platform baseline, not a packet defect.
+
+### F4 (MAJOR) -- no-secret-to-sink rule reframed; "no publication path" narrowed. ACTIONED.
+
+- **Corrected fact.** The pinned action **always** writes the final message to a
+  temporary `output.md` and to `GITHUB_OUTPUT` via `setOutput`. So a normative
+  "Slice A writes no credential to `GITHUB_OUTPUT`/command files" is **not**
+  enforceable by design discipline: if the model emitted a secret in its final
+  message it is already in `output.md` + `GITHUB_OUTPUT` before any `env:` /
+  `github-script` transport, and GitHub masking is expressly **not** a security
+  boundary (output can be encoded/split).
+- **Corrected control (supersedes R.7.4).** The real prerequisite is
+  **credential unreachability** (F1 `unprivileged-user`): if the model cannot
+  read a credential, it cannot emit it into `output.md`/`GITHUB_OUTPUT`/log. The
+  sink rule is reframed as: credential unreachability is the control; the inert
+  `env:`/`github-script` transport (requirement 11) prevents **injection**, not
+  secret-emission.
+- **"No publication path" narrowed (supersedes R.5(f)).** Slice A deliberately
+  has a public job log and a one-day artifact -- those **are** publication
+  surfaces. The supportable claim is **"no repository-authoritative / issue /
+  PR / comment publication path,"** not "no publication path."
+
+### F5 (MAJOR) -- CONTRACT ceremony canonically incomplete; classification is an owner adjudication. ACTIONED.
+
+- **Corrected fact.** The canonical closed CLASS set assigns "payload schema,
+  artifact contracts, cross-module shape definitions" to **CONTRACT**, and there
+  is **no** general "dominant-purpose" rule in canon (PRD-230 is precedent
+  commentary, not a class-definition override). This payload deliberately
+  introduces a JSON schema and a job-boundary artifact contract -- literal
+  CONTRACT purposes.
+- **Corrected disposition (supersedes R.7 CLASS framing).** The INFRA-vs-CONTRACT
+  classification is routed to the **owner as an explicit adjudication**: either
+  (a) reclassify `CLASS: CONTRACT`, or (b) an authoritative adjudication that
+  expressly permits `CLASS: INFRA` for this mixed surface. **Regardless of the
+  label, the full CONTRACT ceremony is now BOUND:** the full test suite, the
+  field-by-field schema-diff review (R.7.1), the full producer/consumer audit
+  including the F1/F2 consumers (R.7.2), and -- because CONTRACT mandates it on
+  **any** reviewer disagreement, and this review is a disagreement -- a
+  **mandatory adjudication artifact** (`PRD-302.adjudication.md`) if CONTRACT
+  applies. The reviewer-disposition obligation (R.7.7) does not substitute for
+  the adjudication artifact.
+
+### F6 (MAJOR) -- FILES/ceiling refresh; NO-GO disposition. ACTIONED.
+
+- **FILES/ceiling (supersedes R.8 "unchanged" claim).** The `unprivileged-user`
+  isolation, the staged-input readability setup, and the extended dry-run
+  acceptance add workflow/validation surface that the estimation rule
+  (PRD-288/289) requires the estimate to count. The Slice-A ceiling is re-marked
+  **ESTIMATED -- PENDING ISOLATION IMPLEMENTATION**; a binding number is not
+  offered until the isolation approach is implemented and its surface measured.
+  The five payload files stand; the workflow carries the `unprivileged-user`
+  configuration (no new file).
+- **NO-GO disposition (supersedes R.9).** **Not an architectural NO-GO.** The
+  pinned action supports `unprivileged-user`, and a distinct-uid design plus the
+  post-merge dry-run proof is a viable path to close the runner-credential
+  surface. The truthful state is a design whose runner-credential isolation is
+  **INFERRED at documentation stage and VERIFIED at the post-merge dry-run** --
+  consistent with the bootstrap lifecycle -- with a named RED stop if the
+  hosted-boundary probe cannot demonstrate closure.
+
+### R.5 smallest lawful security claim -- corrected
+
+> Slice A processes only **public, fixed, non-sensitive inputs** on an ephemeral
+> hosted runner and **does not claim filesystem or runner-credential
+> confidentiality via `drop-sudo`**. Its safety rests on: (a) **no adversarial
+> ingress** -- an owner-only `workflow_dispatch` trigger with a fixed synthetic
+> event and the owner's own trusted prompt, so no third party can instruct the
+> model to read and exfiltrate a credential; (b) **`unprivileged-user`
+> credential isolation** (Codex runs as a distinct uid; runner-owned
+> credentials not same-uid readable), whose closure is VERIFIED at the
+> post-merge dry-run; (c) **VERIFIED `OPENAI_API_KEY` protection** (non-dumpable
+> proxy + `env -u` + key-free config, F3); (d) **least-privilege GitHub
+> permissions** (`contents: read`; no issues/PR/checks/actions write; no
+> `id-token`); (e) Codex `:read-only` **denies all writes and command network**;
+> (f) **no repository-authoritative / issue / PR / comment publication path**
+> (a public log and one-day artifact do exist and are acknowledged); and (g)
+> **zero authoritative effect**. Runner-credential isolation is load-bearing for
+> the future Slice B (untrusted ingress) and is a **blocking prerequisite**
+> there; its hosted-boundary provability also bears on the owner KEEP/NO-GO
+> ruling.
+
+### Owner note surfaced by the rebuild correction (not decided here)
+
+The runner-credential isolation question is **low-risk for Slice A** (no
+adversarial ingress) but **load-bearing and harder for Slice B** (untrusted
+issue text could instruct the model to read `.credentials` and exfiltrate it via
+the Responses channel). Whether `unprivileged-user`-class isolation can be
+demonstrated to close that surface on a standard hosted runner is provable only
+at a live run and directly informs the marginal-return **KEEP / NO-GO** ruling:
+if runner-credential isolation cannot be achieved for untrusted ingress, Slice B
+-- and thus the control plane's product purpose -- may be unviable on a standard
+hosted runner. This is surfaced for the owner design-direction ruling; it is not
+decided here.

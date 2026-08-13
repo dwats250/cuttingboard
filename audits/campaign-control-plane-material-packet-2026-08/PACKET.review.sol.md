@@ -125,3 +125,83 @@ section 0 and the owner options recorded there.
 > `8c7669ed36d36fd9d9c47aa3fee82c4479746e60` reviewed read-only, with no
 > repository writes, files created, staging changes, or git changes;
 > pre-existing untracked `.confirm_prompt.txt` remained untouched.
+
+---
+---
+
+# REBUILD CYCLE (owner-ruled REBUILD, 2026-08-13)
+
+Sections 1-3 above are the first-cycle lineage (preserved verbatim). The
+following records the owner-authorized REBUILD cycle's two Codex packet-cycle
+events and its one consolidated correction.
+
+## 4. REBUILD INITIAL PACKET REVIEW
+
+- **Event type:** `INITIAL PACKET REVIEW` (rebuild cycle).
+- **Reviewer / role:** `gpt-5.6-sol`, fresh-context independent reviewer.
+- **Reviewed commit SHA:** `ab958645e58e05832f44bec7a5672afa43c46880` (rebuilt
+  packet with the REBUILD block).
+- **Review date:** 2026-08-13. Run: `codex exec -s read-only -m gpt-5.6-sol -c
+  model_reasoning_effort=xhigh`, read-only, xhigh.
+- **VERDICT: DESIGN INCOMPLETE** (1 CRITICAL, 5 MAJOR; substantial
+  confirmations). The review used primary sources (Codex 0.147.0 permissions.rs;
+  codex-action action.yml / docs/security.md / src at `52fe01ec`; actions/runner
+  `.credentials` design; GitHub runner + compromised-runner docs).
+
+### Findings and dispositions (one consolidated rebuild correction)
+
+Full disposition detail is in `PACKET.md` section `## R.11 REBUILD CORRECTION
+CYCLE`.
+
+| # | Sev | Finding (Sol) | Disposition |
+|---|---|---|---|
+| 1 | CRITICAL | Runner-root `<runner-root>/.credentials` (job-scoped Actions-service token, mode-600, owned by `runner`) is a same-uid-readable surface; `drop-sudo` does not close same-uid reads; the packet mislabeled runner/runtime tokens as sudo-only. | **ACTIONED** (R.11.F1) -- enumerate runner-root credential surfaces; withdraw the sudo-only labels; bind `safety-strategy: unprivileged-user` as the control (distinct uid), closure VERIFIED at the post-merge dry-run; `drop-sudo` downgraded to necessary-but-insufficient. |
+| 2 | MAJOR | The Codex->Responses API channel and provider are omitted sinks; command-network restriction does not stop parent Responses traffic, so anything the model reads is sent upstream before any log decision. | **ACTIONED** (R.11.F2) -- add Responses runtime/proxy/request-body/provider/log/command-file/artifact consumers; bind credential unreachability (not network restriction) as the control; public log is not the only egress. |
+| 3 | MAJOR | Proxy procfs analysis conflated same-uid with privilege; the API-key conclusion was only partly correct. | **ACTIONED and STRENGTHENED** (R.11.F3) -- proxy is same-uid but non-dumpable (`PR_SET_DUMPABLE=0`, fail-closed, `mlock`) with a key-free config, so `OPENAI_API_KEY` confidentiality is VERIFIED; runner-worker credential custody separated as the general platform baseline. |
+| 4 | MAJOR | The no-secret-to-sink requirement contradicts the pinned action (it always writes final-message to `output.md` + `GITHUB_OUTPUT`); "no publication path" is overbroad. | **ACTIONED** (R.11.F4) -- reframe the sink rule around credential unreachability (masking is not a boundary); narrow to "no repository-authoritative / issue / PR / comment publication path." |
+| 5 | MAJOR | CONTRACT ceremony textually binding but canonically incomplete; canon has no dominant-purpose rule; CONTRACT mandates full suite + adjudication on any disagreement. | **ACTIONED** (R.11.F5) -- route INFRA-vs-CONTRACT to owner adjudication; bind the full suite, schema-diff, full consumer audit, and a mandatory `PRD-302.adjudication.md` (this review is a disagreement) regardless of the label. |
+| 6 | MAJOR | FILES/ceiling and "not NO-GO" cannot stay unchanged after the boundary failure. | **ACTIONED** (R.11.F6) -- ceiling re-marked ESTIMATED-PENDING-ISOLATION-IMPLEMENTATION; NO-GO disposition = not architectural NO-GO, isolation VERIFIED at the post-merge dry-run, with a named RED stop if the hosted probe cannot show closure. |
+
+### Confirmations recorded by the rebuilt review (Sol)
+
+Withdrawal of sparse-checkout/working-directory as confidentiality (correct);
+Codex `:read-only` = root read + no write + network Restricted; public
+checkout/action-cache/command-file readability; `OPENAI_API_KEY` proxy custody
+(stdin, `env -u`, non-dumpable, key-free config); `persist-credentials: false`
+prevents checkout-token persistence (checkout v7 default true); no `id-token` =>
+no OIDC; distinctness of filesystem-read vs privilege vs credential-scope vs
+command-network; `contents: read` denies mutation; MATERIAL + HIGH-RISK correct;
+action pins resolve to v7.0.1 / v7.0.1 / v9.0.0 / (codex-action) with
+download-artifact removed; requested-only model identity; TRIPWIRE labeling;
+default-branch bootstrap; PRD-230 distinct-capability comparison. R.7 obligations
+are genuinely normative (fixes first-cycle finding 9's prose defect) though not
+yet canonically complete (F5).
+
+### Isolation (Sol, verbatim)
+
+> Fresh context, independent of the authoring session; repository and primary
+> sources reviewed read-only; no repository files, index entries, commits, or
+> git refs were written or changed. Reviewed exact HEAD
+> `ab958645e58e05832f44bec7a5672afa43c46880`.
+
+## 5. REBUILD CONSOLIDATED CORRECTION
+
+One GOV-1/GOV-2 correction cycle applied to `PACKET.md` (appended as section
+`## R.11`, plus the corrected R.5 smallest-claim), addressing all six rebuilt-
+review findings. The security model is corrected to: API key VERIFIED protected
+(non-dumpable proxy); runner-owned credentials are the genuine residual, closed
+by `unprivileged-user` (proven at the post-merge dry-run); Responses channel
+added as a sink; sink rule reframed around credential unreachability;
+publication claim narrowed; full CONTRACT ceremony + adjudication bound and the
+classification routed to owner adjudication; ceiling re-marked pending isolation
+implementation. Changes are confined to `PACKET.md` and this review record. The
+corrected head is recorded in section 6 once confirmed.
+
+## 6. REBUILD EXACT-CORRECTED-HEAD CONFIRMATION
+
+PENDING -- to be filled from the independent Codex/Sol confirmation of the
+rebuilt corrected head. Confirmation scope per GOV-2 sections 5, 7: each rebuilt
+finding resolved at the exact head, plus a scan for any NEW material boundary
+omission introduced by the correction; the only lawful non-ACCEPT outcome is a
+new omission (DESIGN INCOMPLETE) or an unprovable-on-standard-runner boundary
+(the owner isolation choice / NO-GO per the rebuild charge).
