@@ -238,7 +238,7 @@ TRUTH-SYNC against `main` @ `a419b804`)
 
 | PRD | Title | Completed |
 |-----|-------|-----------|
-| PRD-301 | Atomic link-based dev_bootstrap lock: close the mkdir-to-pid publication race, with legacy-directory migration and abandoned-temp lifecycle | 2026-08-13 |
+| PRD-301 | Atomic link-based dev_bootstrap lock: close the mkdir-to-pid publication race, with legacy-directory migration and abandoned-temp lifecycle (MATERIAL, owner event #3) | 2026-08-13 |
 | PRD-300 | Notification-delivery backstop: resend the owed market-stress HALT notification on transport failure (daily path) | 2026-08-12 |
 | PRD-299 | Cloudflare clock / GitHub executor OPEN-slot first-success coordination | 2026-08-12 |
 | PRD-298 | Valid market-stress HALT is an execution SUCCESS: publish the halt board, own the single HALT notification, conclude the executor successfully (daily path) | 2026-08-11 |
