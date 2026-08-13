@@ -577,3 +577,205 @@ def test_prompt_forbids_authority_claims():
     low = _PROMPT_PATH.read_text(encoding="utf-8").lower()
     for token in ("gate a", "approv", "merge", "ratif"):
         assert token in low  # each named as something the model must NOT claim
+
+
+# ==========================================================================
+# WORKFLOW STRUCTURAL TESTS -- every one is a TRIPWIRE - NOT BEHAVIORAL PROOF.
+# They assert the workflow FILE says the right thing; they do NOT prove the
+# workflow behaves. Behavioral + credential-isolation truth is the mandatory
+# post-merge `main` dispatch (PRD-302 R7/R18). Do not read a green TRIPWIRE as
+# behavioral proof.
+# ==========================================================================
+import yaml  # noqa: E402
+
+_WF_PATH = _REPO_ROOT / ".github" / "workflows" / "campaign_control.yml"
+_TRIPWIRE_MARKER = "TRIPWIRE - NOT BEHAVIORAL PROOF"
+
+_PIN_CHECKOUT = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+_PIN_UPLOAD = "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+_PIN_SCRIPT = "actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3"
+_PIN_CODEX = "openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56"
+
+
+def _wf_text():
+    return _WF_PATH.read_text(encoding="utf-8")
+
+
+def _wf():
+    return yaml.safe_load(_wf_text())
+
+
+def _on_section(wf):
+    # PyYAML (YAML 1.1) parses the `on:` key as the boolean True.
+    return wf[True] if True in wf else wf["on"]
+
+
+def _job(wf, name):
+    return wf["jobs"][name]
+
+
+def _steps(job):
+    return job.get("steps", [])
+
+
+def _codex_action_step(job):
+    for s in _steps(job):
+        if isinstance(s.get("uses"), str) and s["uses"].startswith("openai/codex-action@"):
+            return s
+    return None
+
+
+def test_tripwire_only_workflow_dispatch():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: only workflow_dispatch is declared."""
+    on = _on_section(_wf())
+    keys = set(on) if isinstance(on, dict) else {on}
+    assert keys == {"workflow_dispatch"}
+    for banned in ("issue_comment", "pull_request", "pull_request_target",
+                   "repository_dispatch", "workflow_run", "push", "schedule"):
+        assert banned not in keys
+
+
+def test_tripwire_top_level_permissions_contents_read():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: top-level permissions are contents:read."""
+    assert _wf()["permissions"] == {"contents": "read"}
+
+
+def test_tripwire_both_jobs_contents_read_only():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: both jobs are contents:read only."""
+    wf = _wf()
+    for name in ("codex", "validate"):
+        assert _job(wf, name)["permissions"] == {"contents": "read"}
+
+
+def test_tripwire_no_write_scopes_or_id_token():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: no write scope and no id-token anywhere."""
+    text = _wf_text()
+    assert "id-token" not in text
+    assert "issues:" not in text
+    assert "pull-requests:" not in text
+    assert "contents: write" not in text
+    assert ": write" not in text
+
+
+def test_tripwire_codex_job_actor_and_ref_guard():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: codex job binds owner actor + main ref."""
+    cond = _job(_wf(), "codex")["if"]
+    assert "github.actor == 'dwats250'" in cond
+    assert "github.ref == 'refs/heads/main'" in cond
+
+
+def test_tripwire_codex_checkout_ref_main_and_no_persisted_creds():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: codex checkout uses main + no persisted creds."""
+    for s in _steps(_job(_wf(), "codex")):
+        if isinstance(s.get("uses"), str) and s["uses"].startswith("actions/checkout@"):
+            assert s["with"]["ref"] == "main"
+            assert s["with"]["persist-credentials"] is False
+
+
+def test_tripwire_all_checkouts_disable_persisted_creds():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: every checkout sets persist-credentials:false."""
+    wf = _wf()
+    for name in ("codex", "validate"):
+        for s in _steps(_job(wf, name)):
+            if isinstance(s.get("uses"), str) and s["uses"].startswith("actions/checkout@"):
+                assert s["with"]["persist-credentials"] is False
+
+
+def test_tripwire_secret_appears_once_as_action_input():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: OPENAI_API_KEY only as the codex-action input."""
+    text = _wf_text()
+    assert text.count("OPENAI_API_KEY") == 1
+    assert "openai-api-key: ${{ secrets.OPENAI_API_KEY }}" in text
+    # never in an env: block or a run: step
+    for line in text.splitlines():
+        if "OPENAI_API_KEY" in line:
+            assert "openai-api-key:" in line
+
+
+def test_tripwire_codex_action_is_literal_final_step():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: the Codex Action is the last step of its job."""
+    steps = _steps(_job(_wf(), "codex"))
+    last = steps[-1]
+    assert isinstance(last.get("uses"), str)
+    assert last["uses"].startswith("openai/codex-action@")
+
+
+def test_tripwire_unprivileged_user_and_concrete_codex_user():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: unprivileged-user + concrete codex-user + read-only."""
+    step = _codex_action_step(_job(_wf(), "codex"))
+    assert step is not None
+    with_ = step["with"]
+    assert with_["safety-strategy"] == "unprivileged-user"
+    assert with_["permission-profile"] == ":read-only"
+    codex_user = with_["codex-user"]
+    assert isinstance(codex_user, str) and codex_user.strip()
+    # the user is provisioned by an earlier step
+    assert codex_user in _wf_text()
+    assert "useradd" in _wf_text()
+
+
+def test_tripwire_exact_pins_and_codex_version():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: exact R21 action pins + codex 0.147.0."""
+    text = _wf_text()
+    for pin in (_PIN_CHECKOUT, _PIN_UPLOAD, _PIN_SCRIPT, _PIN_CODEX):
+        assert pin in text
+    assert "0.147.0" in text
+
+
+def test_tripwire_no_download_artifact():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: download-artifact is not present (unearned)."""
+    assert "actions/download-artifact" not in _wf_text()
+
+
+def test_tripwire_artifact_fixed_name_one_day_retention():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: rendered artifact has a fixed name + 1-day retention."""
+    step = None
+    for s in _steps(_job(_wf(), "validate")):
+        if isinstance(s.get("uses"), str) and s["uses"].startswith("actions/upload-artifact@"):
+            step = s
+    assert step is not None
+    assert step["with"]["retention-days"] == 1
+    assert step["with"]["name"]
+
+
+def test_tripwire_model_output_transported_inertly():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: charge_json enters via env->github-script, not spliced."""
+    text = _wf_text()
+    # the model output is consumed only via env into pinned github-script
+    assert "CHARGE_JSON: ${{ needs.codex.outputs.charge_json }}" in text
+    # never spliced into a run: body or an artifact name
+    assert "run: |" in text  # sanity: run steps exist
+    assert "${{ needs.codex.outputs.charge_json }}" not in text.replace(
+        "CHARGE_JSON: ${{ needs.codex.outputs.charge_json }}", "")
+
+
+def test_tripwire_probe_precedes_codex_action():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: the R7 credential probe runs before the key step."""
+    steps = _steps(_job(_wf(), "codex"))
+    probe_idx = next((i for i, s in enumerate(steps)
+                      if "probe-isolation" in (s.get("run") or "")), None)
+    action_idx = next((i for i, s in enumerate(steps)
+                       if isinstance(s.get("uses"), str)
+                       and s["uses"].startswith("openai/codex-action@")), None)
+    assert probe_idx is not None and action_idx is not None
+    assert probe_idx < action_idx
+
+
+def test_tripwire_no_issue_or_comment_publication():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: no issue/PR/comment/authoritative publication."""
+    text = _wf_text()
+    assert "gh pr" not in text
+    assert "gh issue" not in text
+    assert "createComment" not in text
+    assert "issues.create" not in text
+
+
+def test_tripwire_marker_present_on_every_tripwire_test():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF: meta-test -- the marker stays machine-visible."""
+    import inspect
+    mod = sys.modules[__name__]
+    tripwires = [obj for name, obj in vars(mod).items()
+                 if name.startswith("test_tripwire_") and callable(obj)]
+    assert len(tripwires) >= 15
+    for fn in tripwires:
+        assert (fn.__doc__ or "").find(_TRIPWIRE_MARKER) != -1, fn.__name__
