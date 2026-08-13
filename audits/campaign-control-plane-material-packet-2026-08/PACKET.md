@@ -1304,3 +1304,38 @@ if runner-credential isolation cannot be achieved for untrusted ingress, Slice B
 -- and thus the control plane's product purpose -- may be unviable on a standard
 hosted runner. This is surfaced for the owner design-direction ruling; it is not
 decided here.
+
+## R.12 REBUILD OUTCOME: REVIEW-CLEAN
+
+The REBUILD cycle's exact-corrected-head confirmation (Sol, read-only, xhigh,
+pinned `aec9d92d89381584abb97232c5abbf1213a770a7`) returned **ACCEPT**: all six
+rebuilt-review findings ADDRESSED, the R.5 smallest security claim judged
+HONEST, and **no new material boundary omission**. Record:
+`PACKET.review.sol.md` section 6.
+
+**Current authoritative status (GOV-2 section 10, exactly one current ruling):
+the rebuilt packet is REVIEW-CLEAN.** This supersedes the first-cycle DESIGN
+INCOMPLETE hold (section 0.1) and the rebuilt-review DESIGN INCOMPLETE (section
+R.11), both preserved above as lineage. The GOV-2 upstream sequence for this
+MATERIAL packet is complete: two Codex packet-cycle events per cycle, one
+consolidated correction per cycle, across a first cycle (returned to the owner,
+who ruled REBUILD) and this rebuild cycle (now review-clean).
+
+Nothing downstream is authorized: no PRD is allocated, no Stage 0 is opened, no
+Gate A is issued or inferred, and no implementation or merge is permitted by
+this document.
+
+**The campaign stops at:**
+`PRD-302 MATERIAL PACKET REBUILD -- REVIEW-CLEAN -- HELD FOR OWNER
+DESIGN-DIRECTION RULING. NO STAGE 0. NO IMPLEMENTATION.`
+
+Owner decisions now live (returned by this review-clean packet, none decided
+here): (1) the **INFRA-vs-CONTRACT classification adjudication** (R.11.F5);
+(2) the **marginal-return KEEP / NO-GO** product ruling on the coordination
+capability, now informed by the Slice-B runner-credential-isolation viability
+question (R.11 owner note); (3) the **bootstrap-COMPLETE exception** (first-cycle
+section 9.3, recommended YES via same-PR closeout with named post-merge
+validation follow-up -- the post-merge dry-run now also carries the
+credential-isolation live proof); and (4) the **second-model recommendation**
+(commission, do not waive). Gate A, Stage 0, implementation, and merge remain
+ungranted.

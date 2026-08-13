@@ -199,9 +199,47 @@ corrected head is recorded in section 6 once confirmed.
 
 ## 6. REBUILD EXACT-CORRECTED-HEAD CONFIRMATION
 
-PENDING -- to be filled from the independent Codex/Sol confirmation of the
-rebuilt corrected head. Confirmation scope per GOV-2 sections 5, 7: each rebuilt
-finding resolved at the exact head, plus a scan for any NEW material boundary
-omission introduced by the correction; the only lawful non-ACCEPT outcome is a
-new omission (DESIGN INCOMPLETE) or an unprovable-on-standard-runner boundary
-(the owner isolation choice / NO-GO per the rebuild charge).
+- **Event type:** `EXACT-CORRECTED-HEAD CONFIRMATION` (rebuild cycle; GOV-2
+  sections 2, 5, 7).
+- **Reviewer / role:** `gpt-5.6-sol`, fresh-context independent reviewer,
+  distinct session from the rebuilt INITIAL review.
+- **Confirmed head SHA:** `aec9d92d89381584abb97232c5abbf1213a770a7` (the
+  rebuild consolidated-correction commit).
+- **Confirmation date:** 2026-08-13. Run: `codex exec -s read-only -m
+  gpt-5.6-sol -c model_reasoning_effort=xhigh`, read-only, xhigh.
+- **VERDICT: ACCEPT.**
+
+### Per-finding confirmation (rebuilt findings 1-6)
+
+| # | Rebuilt finding | Confirmation |
+|---|---|---|
+| 1 | Runner-root `.credentials` same-uid readable; drop-sudo insufficient | **ADDRESSED** -- surface honestly same-uid-readable; drop-sudo correctly rejected as sufficient; `unprivileged-user` (distinct uid) with hosted-boundary closure deferred to a blocking post-merge dry-run is a sufficient DESIGN-stage resolution (the pinned action implements the UID switch; failure-to-prove is an explicit RED stop). |
+| 2 | Responses API channel / provider omitted as sinks | **ADDRESSED** -- inventory now includes runtime, proxy, request body, provider/retention, logs, command files, artifacts; credential unreachability (not command-network restriction) is correctly the egress control. |
+| 3 | Proxy same-uid vs privilege; API key partly correct | **ADDRESSED** -- strengthened claim accurate: proxy hardened against ptrace/core access, key via stdin, removed from env, memory-locked, key-free config; runner-worker custody correctly separated as the compromised-runner baseline. |
+| 4 | no-secret-to-sink contradicts action; publication overbroad | **ADDRESSED** -- acknowledges final output traverses `output.md`/`GITHUB_OUTPUT`, rejects masking as a boundary, makes credential unreachability the control, limits the publication claim to repository-authoritative/issue/PR/comment paths. |
+| 5 | CONTRACT ceremony canonically incomplete | **ADDRESSED** -- INFRA-vs-CONTRACT is an explicit owner adjudication; full suite, field-by-field schema-diff, complete producer/consumer audit (incl. F1/F2 consumers), and the canonically-required `PRD-302.adjudication.md` (when CONTRACT applies) are bound; no invented dominant-purpose rule. |
+| 6 | FILES/ceiling and not-NO-GO unchanged | **ADDRESSED** -- ceiling truthfully `ESTIMATED -- PENDING ISOLATION IMPLEMENTATION`; five-file payload coherent; "not architectural NO-GO" supportable because distinct-UID isolation is implementable on a standard hosted Linux runner and must fail RED if the live probe cannot establish closure. |
+
+**R.5 smallest claim:** HONEST -- no filesystem/runner-credential confidentiality
+claim from `drop-sudo`; Slice-A safety limited to no adversarial ingress,
+distinct-UID credential isolation with live verification, verified API-key
+protection, least privilege, denied writes/command network, narrowed
+publication, and zero authoritative effect.
+
+**NEW MATERIAL BOUNDARY OMISSION: none.**
+
+### Isolation (Sol, verbatim)
+
+> Fresh-context independent confirmation at exact HEAD
+> `aec9d92d89381584abb97232c5abbf1213a770a7`; read-only throughout, no
+> repository/index/ref writes, and the pre-existing untracked
+> `.rebuild_confirm_prompt.txt` remained untouched.
+
+### Disposition
+
+The REBUILD cycle's GOV-2 packet sequence is complete: rebuilt INITIAL review
+(DESIGN INCOMPLETE, 6 findings) -> one consolidated rebuild correction (all six
+ADDRESSED) -> exact-corrected-head confirmation **ACCEPT** at
+`aec9d92d`. The rebuilt packet is **REVIEW-CLEAN**. This authorizes nothing
+downstream: no PRD, Stage 0, Gate A, implementation, or merge. It returns for
+the owner design-direction ruling.
