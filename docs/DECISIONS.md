@@ -16,6 +16,45 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-14 — PRD-302 isolated-workspace correction + ceiling renewal 750->820 (PRD-302 AMENDMENT 2; ruled: Dustin)
+
+PRD-302 AMENDMENT 1 merged (main `f91d1e96d48336feda00046693db862457ee474e`,
+PR #250). The corrected post-merge behavioral proof (R18) ran and **failed closed
+at R7** (dispatch run **31763968329**, job **94655927784**): after passing
+workspace traversal and the positive public-input/output checks, the probe
+reported `FAIL [probe-readable] a runner-owned credential is readable by the codex
+uid`. API key never handed to the model, Slice B parked — again the
+correction-before-use path (owner ruling 6), not a leak. Root cause: AMENDMENT 1's
+`o+x` ancestor-traversal walk (granted so the codex uid could open the public tool
+under `/home/runner`) also opened traversal to a world-readable file inside the
+runner-owned credential set; granting the codex uid traversal into the runner home
+AT ALL is the wrong boundary. Owner design direction: **replace the ancestor-`o+x`
+approach with an isolated public Codex workspace under `/tmp`** (world-traversable
+`1777`, OUTSIDE `/home/runner`, NOT `$RUNNER_TEMP`, uniquely named from the trusted
+`$GITHUB_RUN_ID`); remove every `o+x` grant on `$GITHUB_WORKSPACE` ancestors and
+`/home/runner`; copy only the approved public tool/prompt/schema/event + a required
+output dir into it; point the pinned `openai/codex-action`
+working-directory/prompt-file/output-schema-file at absolute isolated paths derived
+only from the run id. R7 becomes a **SPLIT proof**: a runner-uid leg (canonical
+`.credentials` exists + runner-owned; enumerate paths, no contents) plus an
+exact-codex-uid leg (via the isolated tool copy: `/home/runner` non-traversable,
+every credential unreadable, only isolated inputs readable / output writable).
+Runner credential permissions unchanged; no credential moved/copied; no dependency/
+container/service added; prompt + schema byte-unchanged; event/charge contracts +
+validators unchanged. Amends only `.github/workflows/campaign_control.yml`,
+`tools/campaign_control.py`, `tests/test_campaign_control.py` + PRD bookkeeping.
+Mutation-killing tests (all proven to flip red) cover: reintroduced ancestor `o+x`,
+staging under `/home/runner` or `$RUNNER_TEMP`, mis-pointed working-directory/
+prompt/schema, removed runner-side existence/ownership proof, wrong-uid denial
+checks, allowed runner-home traversal or readable credential, masked failure, and
+R7 moved after the action. **Owner ceiling renewal (GOV-2 §5 amended Gate A):
+four-non-test-payload physical-line ceiling 750 -> 820**, solely for this
+correction and its guards; exceeding 820, a sixth payload file, weakening the
+credential set, changing the secret topology, or requiring another isolation
+architecture is RED. Post-correction four-file total 798 <= 820. Neither failed
+workflow is rerun; the live proof is a fresh owner-authorized post-merge dispatch
+after this correction merges. Slice B stays parked until that proof is green.
+
 ## 2026-08-14 — PRD-302 R7 traversal correction + ceiling renewal 720->750 (PRD-302 AMENDMENT 1; ruled: Dustin)
 
 PRD-302 Slice A merged (main `426b71ad0a79674cc914381f057e3d982502c86f`, PR #249).

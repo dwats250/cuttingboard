@@ -148,17 +148,6 @@ class Charge:
     charge_markdown: str
 
 
-@dataclasses.dataclass(frozen=True)
-class CredentialObservation:
-    """A gathered fact about one runner-owned credential target. Carries NO
-    credential content -- only path, existence, owner uid, and readability by
-    the Codex uid."""
-    path: str
-    exists: bool
-    owner_uid: int | None
-    readable_by_codex: bool
-
-
 # --- event parsing -----------------------------------------------------------
 def parse_event(obj: dict[str, Any]) -> NormalizedEvent:
     _exact_keys(obj, EVENT_KEYS, "event-keys")
@@ -282,49 +271,66 @@ def event_to_dict(event: NormalizedEvent) -> dict[str, Any]:
     return dataclasses.asdict(event)
 
 
-# --- R7 credential-isolation probe: fail-closed decision logic ---------------
-def evaluate_isolation(runner_uid: int, codex_uid: int, runner_root: str,
-                       runner_temp: str,
-                       observations: list[CredentialObservation]) -> None:
-    """Raise CampaignError unless credential isolation is AFFIRMATIVELY proven:
-    the Codex uid differs from the runner uid; BOTH the runner root and the
-    runner temp SOURCE resolved (a missing source is not proof of denial); the
-    required credential at the EXACT canonical path `<runner_root>/.credentials`
-    is present, runner-owned, and unreadable by the Codex uid; and NO observed
-    runner-owned credential is readable by the Codex uid. Matching is by exact
-    path, never basename, so a stale/incorrect root cannot false-green. Never
-    inspects credential contents."""
-    _require(codex_uid != runner_uid, "probe-same-uid",
-             "codex uid equals runner uid")
-    _require(bool(runner_root), "probe-root", "runner root not resolved")
-    _require(bool(runner_temp), "probe-temp", "runner temp source not resolved")
-    canonical = os.path.join(runner_root, REQUIRED_CREDENTIAL)
-    required = [o for o in observations if o.path == canonical]
-    _require(len(required) == 1, "probe-missing-target",
-             "required canonical .credentials observation absent or ambiguous")
-    cred = required[0]
-    _require(cred.exists, "probe-absent", "required .credentials absent")
-    _require(cred.owner_uid == runner_uid, "probe-owner",
-             "required .credentials not runner-owned")
-    for obs in observations:
-        _require(not obs.readable_by_codex, "probe-readable",
-                 "a runner-owned credential is readable by the codex uid")
+# --- R7 SPLIT credential-isolation proof: fail-closed decision logic ---------
+# PRD-302 AMENDMENT 2 (isolated public workspace): the codex uid is granted NO
+# traversal into the runner home; the public Codex inputs live in an isolated
+# /tmp workspace. The proof is split by uid:
+#   - runner side (runner uid): the runner root + temp resolved and the canonical
+#     <runner_root>/.credentials EXISTS and is runner-owned (existence/ownership
+#     can only be observed by a uid that can traverse the runner home);
+#   - codex side (exact codex uid): /home/runner is NON-traversable, every
+#     enumerated runner credential is UNREADABLE, and only the isolated public
+#     inputs are readable + the isolated output writable.
+# Both sides fail closed; neither reads credential contents.
+RUNNER_HOME = "/home/runner"
 
 
-def _gather_observations(runner_root: str,
-                         runner_temp: str) -> list[CredentialObservation]:
+def enumerate_credentials(runner_root: str, runner_temp: str) -> list[str]:
+    """The bound runner-owned credential path set (paths only, no contents)."""
     paths = [os.path.join(runner_root, b) for b in CREDENTIAL_BASENAMES]
     if runner_temp:
         paths.extend(sorted(glob.glob(os.path.join(runner_temp, "*.credentials"))))
-    obs: list[CredentialObservation] = []
-    for p in paths:
-        exists = os.path.exists(p)
-        owner = os.stat(p).st_uid if exists else None
-        readable = os.access(p, os.R_OK) if exists else False
-        obs.append(CredentialObservation(path=p, exists=exists,
-                                         owner_uid=owner,
-                                         readable_by_codex=readable))
-    return obs
+    return paths
+
+
+def evaluate_runner_side(runner_uid: int, runner_root: str, runner_temp: str,
+                         canonical_exists: bool,
+                         canonical_owner_uid: int | None) -> None:
+    """Runner-side (runner uid) fail-closed proof: runner root + temp source
+    resolved, and the canonical <runner_root>/.credentials EXISTS and is
+    runner-owned. Absence, ambiguity, or mis-ownership fails closed."""
+    _require(bool(runner_root), "probe-root", "runner root not resolved")
+    _require(bool(runner_temp), "probe-temp", "runner temp source not resolved")
+    _require(canonical_exists, "probe-absent", "canonical .credentials absent")
+    _require(canonical_owner_uid == runner_uid, "probe-owner",
+             "canonical .credentials not runner-owned")
+
+
+def evaluate_codex_isolation(runner_uid: int, codex_uid: int,
+                             home_runner_traversable: bool,
+                             credentials_readable: list[tuple[str, bool]],
+                             isolated_inputs_readable: list[tuple[str, bool]],
+                             output_writable: bool) -> None:
+    """Codex-side (exact codex uid) fail-closed proof: distinct uid; /home/runner
+    NON-traversable; every enumerated runner credential UNREADABLE; every
+    isolated public input readable; the isolated output writable. Never inspects
+    contents."""
+    _require(codex_uid != runner_uid, "probe-same-uid",
+             "codex uid equals runner uid")
+    _require(not home_runner_traversable, "probe-home-traversable",
+             "/home/runner is traversable by the codex uid")
+    _require(len(credentials_readable) >= 1, "probe-no-creds",
+             "no enumerated credentials to verify")
+    for _path, readable in credentials_readable:
+        _require(not readable, "probe-readable",
+                 "a runner-owned credential is readable by the codex uid")
+    _require(len(isolated_inputs_readable) >= 1, "probe-no-inputs",
+             "no isolated inputs to verify")
+    for _path, readable in isolated_inputs_readable:
+        _require(readable, "probe-input-unreadable",
+                 "an isolated public input is unreadable by the codex uid")
+    _require(output_writable, "probe-output-unwritable",
+             "the isolated output directory is not writable by the codex uid")
 
 
 # --- IO ----------------------------------------------------------------------
@@ -397,17 +403,41 @@ def cmd_validate_charge(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_probe_isolation(args: argparse.Namespace) -> int:
-    observations = _gather_observations(args.runner_root, args.runner_temp)
-    evaluate_isolation(runner_uid=args.runner_uid, codex_uid=os.getuid(),
-                       runner_root=args.runner_root, runner_temp=args.runner_temp,
-                       observations=observations)
-    # identities + per-target booleans ONLY; never credential contents.
-    print(f"isolation-probe: codex_uid={os.getuid()} runner_uid={args.runner_uid}")
-    for obs in observations:
-        print(f"isolation-probe: {obs.path} exists={obs.exists} "
-              f"owner_uid={obs.owner_uid} readable_by_codex={obs.readable_by_codex}")
-    print("isolation-probe: PASS (runner-owned credentials not readable by codex uid)")
+def cmd_probe_runner_side(args: argparse.Namespace) -> int:
+    # RUN AS THE RUNNER UID. Verify existence + ownership of the canonical
+    # credential (only a traversing uid can observe these), then emit the bound
+    # credential PATHS (paths only, never contents) for the codex-side.
+    creds = enumerate_credentials(args.runner_root, args.runner_temp)
+    canonical = os.path.join(args.runner_root, REQUIRED_CREDENTIAL)
+    canonical_exists = os.path.exists(canonical)
+    canonical_owner = os.stat(canonical).st_uid if canonical_exists else None
+    evaluate_runner_side(args.runner_uid, args.runner_root, args.runner_temp,
+                         canonical_exists, canonical_owner)
+    for c in creds:
+        print(c)
+    return 0
+
+
+def cmd_probe_codex_isolation(args: argparse.Namespace) -> int:
+    # RUN AS THE EXACT CODEX UID (via sudo -u). Gather access facts and decide
+    # fail-closed. Print only identities/paths/booleans -- never contents.
+    codex_uid = os.getuid()
+    home_traversable = os.access(RUNNER_HOME, os.X_OK)
+    creds = [(p, os.access(p, os.R_OK)) for p in args.credential]
+    inputs = [(p, os.access(p, os.R_OK)) for p in args.input]
+    output_writable = os.access(args.output_dir, os.W_OK)
+    evaluate_codex_isolation(args.runner_uid, codex_uid, home_traversable,
+                             creds, inputs, output_writable)
+    print(f"isolation-probe: codex_uid={codex_uid} runner_uid={args.runner_uid} "
+          f"home_runner_traversable={home_traversable}")
+    for p, r in creds:
+        print(f"isolation-probe: credential {p} readable_by_codex={r}")
+    for p, r in inputs:
+        print(f"isolation-probe: isolated_input {p} readable_by_codex={r}")
+    print(f"isolation-probe: isolated_output {args.output_dir} "
+          f"writable_by_codex={output_writable}")
+    print("isolation-probe: PASS (isolated workspace; runner home non-traversable, "
+          "credentials unreadable)")
     return 0
 
 
@@ -426,11 +456,18 @@ def build_parser() -> argparse.ArgumentParser:
     p2.add_argument("--comment-output", required=True)
     p2.set_defaults(func=cmd_validate_charge)
 
-    p3 = sub.add_parser("probe-isolation")
+    p3 = sub.add_parser("probe-runner-side")
     p3.add_argument("--runner-uid", required=True, type=int)
     p3.add_argument("--runner-root", required=True)
     p3.add_argument("--runner-temp", required=True)
-    p3.set_defaults(func=cmd_probe_isolation)
+    p3.set_defaults(func=cmd_probe_runner_side)
+
+    p4 = sub.add_parser("probe-codex-isolation")
+    p4.add_argument("--runner-uid", required=True, type=int)
+    p4.add_argument("--credential", action="append", default=[])
+    p4.add_argument("--input", action="append", default=[])
+    p4.add_argument("--output-dir", required=True)
+    p4.set_defaults(func=cmd_probe_codex_isolation)
 
     return parser
 
