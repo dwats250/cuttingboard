@@ -46,3 +46,16 @@ unauthorized.
   workflow surface re-estimated at 410–540 with proposed 600 ceiling.
 
 Fresh exact-corrected-head confirmation follows below.
+
+## Exact-corrected-head confirmation
+
+**Confirmed SHA:** `2ec8071703dccd45b8b71b44b3c3254e3361c103`
+
+**Verdict:** CONFIRMATION ACCEPT
+
+F1–F6 are ADDRESSED. The confirmer found no new material boundary omission.
+The fifteen production/workflow files and eleven exact test files are complete;
+the 410–540 estimate and proposed 600 additions ceiling are ratifiable as a
+design boundary but are not yet authorized. The packet is ready for Dustin's
+design-direction ruling. Stage 0, repository-variable activation,
+implementation, Gate A, and merge remain unauthorized.
