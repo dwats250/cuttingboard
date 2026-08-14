@@ -1496,6 +1496,12 @@
       "title": "Manual Manageability Lock: operator-availability two-state lock that closes action-bearing surfaces while preserving market observation",
       "status": "COMPLETE",
       "commit": "#254"
+    },
+    {
+      "number": 305,
+      "title": "Operator-lock projection conformance: hourly contract permission + daily notification vocabulary",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
