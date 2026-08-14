@@ -1490,6 +1490,12 @@
       "title": "Candidate Board observation-only scope line",
       "status": "COMPLETE",
       "commit": "#253"
+    },
+    {
+      "number": 304,
+      "title": "Manual Manageability Lock: operator-availability two-state lock that closes action-bearing surfaces while preserving market observation",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
