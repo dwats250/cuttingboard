@@ -5,6 +5,7 @@ All secrets come from .env (gitignored). Constants are safe to commit.
 Never hardcode API keys, tokens, or credentials here.
 """
 
+import logging
 import os
 import tomllib
 from datetime import time
@@ -53,6 +54,65 @@ def get_engine_doctor_runtime_gate(_config_path: Optional[Path] = None) -> bool:
 
 TELEGRAM_BOT_TOKEN: str | None = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID: str | None = os.getenv("TELEGRAM_CHAT_ID")
+
+# ---------------------------------------------------------------------------
+# Operator-availability manual lock (PRD-304)
+# ---------------------------------------------------------------------------
+# A manual two-state discipline lock. When the operator cannot continuously
+# monitor a position, Cuttingboard must stay useful for observation but must
+# not present a new trade as actionable. State is a repository variable Dustin
+# sets explicitly; there is NO schedule, expiry, auto-unlock, or inference, and
+# absence is intentionally LOCKED (fail-closed), never compatible-open.
+OPERATOR_AVAILABILITY_ENV = "CB_OPERATOR_AVAILABILITY"
+OPERATOR_AVAILABLE = "AVAILABLE"
+OPERATOR_CANNOT_MONITOR = "CANNOT_MONITOR"
+# Canonical locked permission carrier (R5/R9). The em dash is canonical; an
+# ASCII-only transport (Telegram) may project it as " - " (see delivery).
+OPERATOR_LOCK_PERMISSION = "No new trades permitted — operator cannot monitor."
+# Canonical dedicated locked-notification title (R6); shared across the daily,
+# hourly, and qualify-only projections so all three emit one projection.
+OPERATOR_LOCK_TITLE = "OBSERVE ONLY — OPERATOR LOCK"
+
+_UNSET = object()
+
+
+def resolve_operator_availability(raw: object = _UNSET) -> str:
+    """Resolve CB_OPERATOR_AVAILABILITY to AVAILABLE or CANNOT_MONITOR (PRD-304 R1).
+
+    Fail-closed: missing, empty, whitespace-only, or any unrecognized value
+    resolves ``CANNOT_MONITOR``. Input is trimmed and upper-cased; the canonical
+    resolved value is exactly ``AVAILABLE`` or ``CANNOT_MONITOR``. A present but
+    unrecognized value logs a warning naming ONLY the variable
+    ``CB_OPERATOR_AVAILABILITY`` and never the raw value (non-disclosure).
+
+    Reads the environment at most once per call (only when ``raw`` is left
+    unset). The runtime resolves this EXACTLY ONCE per entrypoint and threads
+    the frozen result; no consumer re-reads the environment (R2). Tests pass a
+    literal ``raw`` to exercise resolution without touching the environment.
+    """
+    if raw is _UNSET:
+        raw = os.getenv(OPERATOR_AVAILABILITY_ENV)
+    if raw is None:
+        return OPERATOR_CANNOT_MONITOR
+    value = str(raw).strip().upper()
+    if value == OPERATOR_AVAILABLE:
+        return OPERATOR_AVAILABLE
+    if value == OPERATOR_CANNOT_MONITOR:
+        return OPERATOR_CANNOT_MONITOR
+    if value:
+        # Present but unrecognized: warn with the variable NAME only, never the
+        # raw value, then fail closed.
+        logging.getLogger(__name__).warning(
+            "%s set to an unrecognized value; resolving %s (fail-closed)",
+            OPERATOR_AVAILABILITY_ENV,
+            OPERATOR_CANNOT_MONITOR,
+        )
+    return OPERATOR_CANNOT_MONITOR
+
+
+def is_operator_locked(availability: str) -> bool:
+    """Return True when the frozen availability value is the locked state."""
+    return availability == OPERATOR_CANNOT_MONITOR
 
 # ---------------------------------------------------------------------------
 # Pipeline constants

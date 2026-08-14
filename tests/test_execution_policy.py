@@ -6,6 +6,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from cuttingboard.execution_policy import (
+    POLICY_OPERATOR_CANNOT_MONITOR,
+    POLICY_STAGE,
     ExecutionSessionState,
     OrbPolicyState,
     PolicyDecision,
@@ -673,3 +675,159 @@ def test_macro_unavailable_reason_reaches_block_reason_consumer() -> None:
     entry = vis["SPY"]
     assert entry["visibility_reason"] == "macro_pressure_unavailable"
     assert any("macro_pressure_unavailable" in cond for cond in entry["enable_conditions"])
+
+
+# ---------------------------------------------------------------------------
+# PRD-304 R3 — operator-availability lock at EXECUTION_POLICY
+# ---------------------------------------------------------------------------
+
+
+def _blocked_decision(reason: str = "some_upstream_block") -> TradeDecision:
+    return TradeDecision(
+        ticker="SPY",
+        direction="LONG",
+        status=BLOCK_TRADE,
+        entry=100.0,
+        stop=97.0,
+        target=106.0,
+        r_r=2.0,
+        contracts=2,
+        dollar_risk=150.0,
+        block_reason=reason,
+    )
+
+
+def test_operator_lock_blocks_would_be_allow() -> None:
+    # A decision the policy would ALLOW becomes a zero-size operator block at
+    # EXECUTION_POLICY with the operator reason.
+    locked = apply_execution_policy(
+        _decision(),
+        market_regime="RISK_ON",
+        posture="AGGRESSIVE_LONG",
+        confidence=0.80,
+        timestamp=RUN_AT,
+        session_state=ExecutionSessionState(),
+        operator_locked=True,
+    )
+    assert locked.status == BLOCK_TRADE
+    assert locked.policy_reason == POLICY_OPERATOR_CANNOT_MONITOR
+    assert locked.block_reason == POLICY_OPERATOR_CANNOT_MONITOR
+    assert locked.policy_allowed is False
+    assert locked.size_multiplier == 0.0
+    assert locked.decision_trace["stage"] == POLICY_STAGE
+    assert locked.decision_trace["reason"] == POLICY_OPERATOR_CANNOT_MONITOR
+
+
+def test_operator_unlocked_reproduces_allow() -> None:
+    # R10 at the policy layer: without the lock, the same decision is ALLOW.
+    allowed = apply_execution_policy(
+        _decision(),
+        market_regime="RISK_ON",
+        posture="AGGRESSIVE_LONG",
+        confidence=0.80,
+        timestamp=RUN_AT,
+        session_state=ExecutionSessionState(),
+        operator_locked=False,
+    )
+    assert allowed.status == ALLOW_TRADE
+    assert allowed.policy_allowed is True
+    assert allowed.policy_reason != POLICY_OPERATOR_CANNOT_MONITOR
+
+
+def test_operator_lock_preserves_upstream_block_reason() -> None:
+    # A decision already blocked upstream keeps its original reason under lock
+    # (the lock never overwrites an upstream block).
+    locked = apply_execution_policy(
+        _blocked_decision("pre_policy_reason_xyz"),
+        market_regime="RISK_ON",
+        posture="AGGRESSIVE_LONG",
+        confidence=0.80,
+        timestamp=RUN_AT,
+        session_state=ExecutionSessionState(),
+        operator_locked=True,
+    )
+    assert locked.status == BLOCK_TRADE
+    assert locked.policy_reason == "pre_policy_reason_xyz"
+    assert locked.policy_reason != POLICY_OPERATOR_CANNOT_MONITOR
+
+
+def test_operator_lock_preserves_natural_in_policy_block() -> None:
+    # A natural in-policy block (low confidence) keeps its own reason under lock
+    # — the lock intercepts ONLY the allow outcome, not other blocks.
+    locked = apply_execution_policy(
+        _decision(),
+        market_regime="RISK_ON",
+        posture="AGGRESSIVE_LONG",
+        confidence=0.55,
+        timestamp=RUN_AT,
+        session_state=ExecutionSessionState(),
+        operator_locked=True,
+    )
+    assert locked.status == BLOCK_TRADE
+    assert locked.policy_reason == "low_confidence"
+    assert locked.policy_reason != POLICY_OPERATOR_CANNOT_MONITOR
+
+
+def test_operator_lock_preserves_macro_conflict_block() -> None:
+    # A macro-pressure conflict block (RISK_OFF + LONG) keeps its reason under
+    # lock — discriminates a mutation that blanket-overwrites all blocks.
+    locked = apply_execution_policy(
+        _decision(direction="LONG"),
+        market_regime="RISK_ON",
+        posture="AGGRESSIVE_LONG",
+        confidence=0.80,
+        timestamp=RUN_AT,
+        session_state=ExecutionSessionState(),
+        overall_pressure="RISK_OFF",
+        operator_locked=True,
+    )
+    assert locked.status == BLOCK_TRADE
+    assert locked.policy_reason == "macro_pressure_conflict"
+
+
+def test_operator_lock_evaluate_only_intercepts_allow() -> None:
+    # evaluate_execution_policy: locked allow → operator block; locked
+    # low-confidence → low_confidence (unchanged).
+    locked_allow = evaluate_execution_policy(
+        _decision(),
+        market_regime="RISK_ON",
+        posture="AGGRESSIVE_LONG",
+        confidence=0.80,
+        timestamp=RUN_AT,
+        session_state=ExecutionSessionState(),
+        operator_locked=True,
+    )
+    assert locked_allow.allowed is False
+    assert locked_allow.reason == POLICY_OPERATOR_CANNOT_MONITOR
+    assert locked_allow.size_multiplier == 0.0
+
+
+def test_operator_lock_applies_to_all_decisions() -> None:
+    # Plural entry point: every would-be-allow decision is operator-blocked;
+    # input order preserved.
+    decisions = apply_execution_policy_to_decisions(
+        [_decision("SPY"), _decision("QQQ")],
+        market_regime="RISK_ON",
+        posture="AGGRESSIVE_LONG",
+        confidence=0.80,
+        timestamp=RUN_AT,
+        session_state=ExecutionSessionState(),
+        operator_locked=True,
+    )
+    assert [d.ticker for d in decisions] == ["SPY", "QQQ"]
+    assert all(d.status == BLOCK_TRADE for d in decisions)
+    assert all(d.policy_reason == POLICY_OPERATOR_CANNOT_MONITOR for d in decisions)
+    assert all(d.size_multiplier == 0.0 for d in decisions)
+
+
+def test_operator_lock_unlocked_plural_allows() -> None:
+    decisions = apply_execution_policy_to_decisions(
+        [_decision("SPY"), _decision("QQQ")],
+        market_regime="RISK_ON",
+        posture="AGGRESSIVE_LONG",
+        confidence=0.80,
+        timestamp=RUN_AT,
+        session_state=ExecutionSessionState(),
+        operator_locked=False,
+    )
+    assert all(d.status == ALLOW_TRADE for d in decisions)
