@@ -2924,6 +2924,12 @@ def render_dashboard_html(
         w('  <h2>Market Map / Developing Setups &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h2>')
     else:
         w("  <h2>Market Map / Developing Setups</h2>")
+    w(
+        '  <div class="idle-summary candidate-scope">'
+        'OBSERVATION ONLY — setup quality never overrides '
+        'Decision State or Permission.'
+        '</div>'
+    )
     # PRD-158 § 4.3: integrator screen verdicts (Rules 2/3) render here as
     # decision-language banner lines. Suppressed under unhealthy lineage so
     # operators see the lineage diagnostic first.

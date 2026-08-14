@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 302,
-  "next_prd": 303,
+  "latest_complete": 303,
+  "next_prd": 304,
   "entries": [
     {
       "number": 56,
@@ -1484,6 +1484,12 @@
       "title": "Campaign Control Plane Slice A: dispatch-only Codex proposal bootstrap (structural install, behavioral validation post-merge)",
       "status": "COMPLETE",
       "commit": "#249"
+    },
+    {
+      "number": 303,
+      "title": "Candidate Board observation-only scope line",
+      "status": "COMPLETE",
+      "commit": "#253"
     }
   ]
 }

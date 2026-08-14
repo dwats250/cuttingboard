@@ -1020,6 +1020,18 @@ def test_prd279_existing_system_state_lines_unchanged() -> None:
 # PRD-090: Candidate Board Display Tiers
 # ---------------------------------------------------------------------------
 
+def test_prd303_candidate_scope_precedes_setup_action_language() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A+")})
+    html = render_dashboard_html(_payload(), _run(outcome="NO_TRADE"), market_map=mm)
+    board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
+    scope = (
+        "OBSERVATION ONLY — setup quality never overrides "
+        "Decision State or Permission."
+    )
+    assert scope in board
+    assert board.index(scope) < board.index("A+ — ACTIONABLE")
+
+
 def test_c_grade_renders_inside_details_block() -> None:
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="C")})
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
