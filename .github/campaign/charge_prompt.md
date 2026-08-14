@@ -17,10 +17,17 @@ AUTHORITY, it grants nothing, and it decides nothing.
 
 ## Rules
 
-- If the evidence is insufficient to recommend confidently, recommend the HOLD
-  option and set `confidence` to `LOW`. When in doubt, prefer HOLD.
-- Your `recommended_option` MUST equal the event's `recommended_option`, and your
-  `event_id` and `head_sha` MUST equal the event's values exactly.
+- Your `recommended_option` MUST equal the event's `recommended_option` (never
+  substitute a different option, including any option labelled "hold" or
+  "keep"), and your `event_id` and `head_sha` MUST equal the event's values
+  exactly.
+- When the evidence is insufficient to endorse that recommendation confidently,
+  do NOT change `recommended_option`. Instead set `confidence` to `LOW` and write
+  `charge_markdown` as an explicitly CONDITIONAL instruction: the recommended
+  action is taken ONLY AFTER the specific missing evidence is obtained and
+  verified, and if that evidence cannot be obtained Dustin should not proceed.
+  Never resolve insufficiency by recommending a different option or by claiming
+  approval already exists.
 - You MUST NEVER claim that any of the following has occurred or is granted: an
   approval, a Gate A, a ratification, a review disposition, an implementation
   authorization, a merge, a resume, a dispatch, or a CI rerun. The charge you

@@ -660,17 +660,36 @@ def test_cli_validate_charge_fails_closed_on_bad_charge(tmp_path):
 # prompt invariants (RED until prompt lands)
 # --------------------------------------------------------------------------
 def test_prompt_declares_read_only_non_authority():
-    text = _PROMPT_PATH.read_text(encoding="utf-8")
-    low = text.lower()
+    low = _PROMPT_PATH.read_text(encoding="utf-8").lower()
     assert "read-only" in low
     assert "not authority" in low or "non-authoritative" in low
-    assert "hold" in low  # recommend HOLD when evidence insufficient
+    # insufficient evidence -> LOW confidence + explicitly conditional charge
+    assert "insufficient" in low and "conditional" in low
 
 
 def test_prompt_forbids_authority_claims():
     low = _PROMPT_PATH.read_text(encoding="utf-8").lower()
     for token in ("gate a", "approv", "merge", "ratif"):
         assert token in low  # each named as something the model must NOT claim
+
+
+def test_prompt_insufficient_evidence_is_conditional_not_hold_substitution():
+    """PR #249 P1 mutation-kill: the insufficient-evidence path must NOT tell the
+    model to recommend HOLD or substitute a different option -- that conflicts
+    with the validator's enforced recommended_option == event.recommended_option
+    rule (the only synthetic event sets HOLD=A but recommends B). It must instead
+    preserve the event's recommendation and express insufficiency as LOW
+    confidence + an explicitly conditional, evidence-gated charge."""
+    norm = " ".join(_PROMPT_PATH.read_text(encoding="utf-8").lower().split()).replace("`", "")
+    # the conflicting instruction cannot return
+    assert "recommend the hold" not in norm
+    assert "prefer hold" not in norm
+    # the recommendation is always the event's
+    assert "recommended_option must equal the event's recommended_option" in norm
+    # insufficiency -> LOW confidence + explicitly conditional charge
+    assert "insufficient" in norm
+    assert "conditional" in norm
+    assert "confidence to low" in norm
 
 
 # ==========================================================================
