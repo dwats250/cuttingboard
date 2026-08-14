@@ -1,41 +1,30 @@
 {
-  "candidates_generated": 14,
+  "candidates_generated": 11,
   "candidates_qualified": 0,
-  "candidates_watchlist": 6,
-  "chain_validation": {
-    "BTC-USD": {
-      "classification": "NEEDS_MANUAL_CHECK",
-      "reason": "chain data unavailable from all sources"
-    },
-    "^VIX": {
-      "classification": "WATCHLIST_OPTIONS_WEAK",
-      "reason": "spread 9.1% (8\u201315% range)"
-    }
-  },
-  "confidence": 0.625,
+  "candidates_watchlist": 0,
+  "chain_validation": {},
+  "confidence": 0.25,
   "continuation_audit": null,
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generation_id": "live-20260813T142518Z",
+  "generation_id": "live-20260814T141857Z",
   "halt_reason": null,
   "index_score": 0.0,
   "kill_switch": false,
   "min_rr_applied": 2.0,
   "mode": "LIVE",
-  "net_score": 5,
+  "net_score": 2,
   "outcome": "NO_TRADE",
-  "permission": "Long bias \u2014 defined risk preferred.",
-  "posture": "CONTROLLED_LONG",
+  "permission": "No new trades permitted.",
+  "posture": "STAY_FLAT",
   "regime": "RISK_ON",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-08-13T14:25:18Z",
-  "run_id": "live-20260813T142518Z",
+  "run_at_utc": "2026-08-14T14:18:57Z",
+  "run_id": "live-20260814T141857Z",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-08-13T14:25:18Z",
-  "warnings": [
-    "BTC-USD: needs manual chain check"
-  ],
-  "watch_candidates": 1
+  "timestamp": "2026-08-14T14:18:57Z",
+  "warnings": [],
+  "watch_candidates": 0
 }

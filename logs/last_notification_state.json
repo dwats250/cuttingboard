@@ -1,1 +1,1 @@
-{"state_key": "RISK_ON|TRADE_READY|True|^VIX,BTC-USD|CHOP"}
+{"state_key": "RISK_ON|STAY_FLAT|False||STAY_FLAT posture (regime=RISK_ON, confidence=0.25)"}
