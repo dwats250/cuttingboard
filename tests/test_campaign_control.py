@@ -902,6 +902,9 @@ def test_tripwire_probe_runs_as_codex_uid_with_derived_root():
     assert probe_idx < action_idx
     run = steps[probe_idx]["run"]
     assert 'sudo -u "$CODEX_USER"' in run          # runs as the distinct codex uid
+    # the probe-isolation invocation ITSELF must run as the codex uid (mutation-
+    # kill: dropping sudo -u from the probe line specifically -> wrong uid)
+    assert 'sudo -u "$CODEX_USER" python3 tools/campaign_control.py probe-isolation' in run
     assert "--runner-root" in run and "--runner-temp" in run
     # root derived from the LIVE runner process, not a guessed candidate path
     assert "Runner.Worker" in run and "/proc/" in run
@@ -915,6 +918,79 @@ def test_tripwire_no_issue_or_comment_publication():
     assert "gh issue" not in text
     assert "createComment" not in text
     assert "issues.create" not in text
+
+
+def test_tripwire_traversal_is_execute_only_not_read_or_recursive_on_runner_roots():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF (R7 correction): ancestor access is o+x
+    TRAVERSAL ONLY -- never read/list, never a recursive chmod of runner roots.
+    Mutation-kills: removing the traversal grant, or broadening it to read/list
+    or a recursive grant on runner-owned ancestors."""
+    text = _wf_text()
+    # traversal grant present: o+x walk over the workspace ancestors
+    assert 'while [ "$d" != "/" ]; do sudo chmod o+x "$d"' in text
+    # never grant read/list (o+r / o+rx) on directories
+    assert "o+rx" not in text
+    assert "chmod o+r" not in text
+    # the only recursive chmod targets the PUBLIC payload, never a runner root
+    assert text.count("chmod -R") == 1
+    assert "chmod -R a+rX tools/campaign_control.py .github/campaign" in text
+    # no recursive chmod of any runner-owned root
+    assert "chmod -R" not in text.replace(
+        "chmod -R a+rX tools/campaign_control.py .github/campaign", "")
+
+
+def test_tripwire_preflight_positive_access_as_codex_uid():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF (R7 correction): the preflight proves, AS
+    the codex uid, that public inputs are readable and the output dir writable.
+    Mutation-kills: removing the positive checks or running them as the wrong uid."""
+    run = None
+    for s in _steps(_job(_wf(), "codex")):
+        if "probe-isolation" in (s.get("run") or ""):
+            run = s["run"]
+    assert run is not None
+    assert 'sudo -u "$CODEX_USER" test -r' in run          # inputs readable as codex uid
+    assert 'sudo -u "$CODEX_USER" test -w .campaign-output' in run  # output writable
+    assert "tools/campaign_control.py" in run
+    assert ".campaign-input/event.json" in run
+
+
+def test_tripwire_preflight_requires_distinct_uid():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF (R7 correction): preflight fails closed if
+    runner uid == codex uid. Mutation-kill: removing the distinct-uid guard."""
+    run = None
+    for s in _steps(_job(_wf(), "codex")):
+        if "probe-isolation" in (s.get("run") or ""):
+            run = s["run"]
+    assert run is not None
+    assert 'id -u "$CODEX_USER"' in run
+    assert '"$RUNNER_UID" = "$CODEX_UID"' in run
+    assert "preflight-uid" in run
+
+
+def test_tripwire_r7_preflight_is_fail_closed():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF (R7 correction): the preflight is
+    fail-closed -- `set -euo pipefail`, no status masking, and a terminating
+    `exit 2` on every failure branch. Mutation-kills: appending `|| true` (or
+    equivalent) to the probe to mask a failed credential-denial, and removing any
+    required `exit 2`."""
+    run = None
+    for s in _steps(_job(_wf(), "codex")):
+        if "probe-isolation" in (s.get("run") or ""):
+            run = s["run"]
+    assert run is not None
+    assert "set -euo pipefail" in run
+    # the credential-denial probe invocation is NOT status-masked
+    assert '--runner-temp "$RUNNER_TEMP" || ' not in run
+    assert "|| :" not in run
+    assert "|| exit 0" not in run
+    # the ONLY permitted `|| true` is the pgrep no-match guard (immediately
+    # followed by a count check + exit 2); any second one is status masking
+    assert run.count("|| true") <= 1
+    assert "pgrep -x Runner.Worker || true" in run
+    # every fixed FAIL message is paired with a terminating exit 2
+    fail_msgs = run.count("campaign-control: FAIL [")
+    assert fail_msgs >= 5  # preflight-uid, -read, -write, probe-root, probe-temp
+    assert run.count("exit 2") >= fail_msgs
 
 
 def test_tripwire_marker_present_on_every_tripwire_test():

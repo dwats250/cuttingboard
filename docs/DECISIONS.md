@@ -16,6 +16,30 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-14 — PRD-302 R7 traversal correction + ceiling renewal 720->750 (PRD-302 AMENDMENT 1; ruled: Dustin)
+
+PRD-302 Slice A merged (main `426b71ad0a79674cc914381f057e3d982502c86f`, PR #249).
+The mandatory post-merge behavioral proof (R18) ran and **failed closed at the R7
+preflight** (dispatch run **31759823563**, job **94643589597**): the distinct
+`codexsandbox` uid could not open `.../tools/campaign_control.py` (`Errno 13`);
+Codex synthesis skipped, API key never handed to the model, validation/artifact
+skipped, Slice B parked. This is the correction-before-use path (owner ruling 6),
+a benign environmental defect (the fail-closed ordering worked), **not** a
+credential leak. Root cause: on hosted Ubuntu runners `/home/runner` is `0750`,
+non-traversable by a fresh non-`runner`-group uid, so the codex uid could not
+descend `$GITHUB_WORKSPACE` to open the public tool. Fix (amends only the
+workflow + tests): grant EXECUTE/TRAVERSAL ONLY (`o+x`, never read/list, never
+recursive on runner roots) on the workspace ancestors + public dirs; make public
+output/input dirs writable; extend R7 into a codex-uid preflight proving public
+inputs readable + output writable + distinct uid + credentials still unreadable,
+fail-closed, before the secret-bearing action; add mutation-killing tests.
+**Owner ceiling renewal (GOV-2 §5 amended Gate A): four-non-test-payload
+additions-column ceiling 720 -> 750**, solely for this correction and its guards;
+exceeding 750, a sixth payload file, broader readable runner state, or an
+isolation-architecture change is RED. The unchanged workflow is NOT rerun; the
+corrected workflow's live proof is a fresh owner-authorized post-merge dispatch
+after the correction merges. Slice B stays parked until that proof is green.
+
 ## 2026-08-13 — PRD-302 Campaign Control Plane Slice A: KEEP + design-direction ruling (PRD-302; ruled: Dustin)
 
 Owner design-direction ruling on the review-clean GOV-2 MATERIAL packet
