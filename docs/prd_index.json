@@ -1484,6 +1484,12 @@
       "title": "Campaign Control Plane Slice A: dispatch-only Codex proposal bootstrap (structural install, behavioral validation post-merge)",
       "status": "COMPLETE",
       "commit": "#249"
+    },
+    {
+      "number": 303,
+      "title": "Candidate Board observation-only scope line",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

@@ -320,6 +320,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-300 | #247 | Notification-delivery backstop: resend the owed market-stress HALT notification on transport failure (daily path) | COMPLETE | [PRD-300](prd_history/PRD-300.md) |
 | PRD-301 | #248 | Atomic link-based dev_bootstrap lock: close the mkdir-to-pid publication race, with legacy-directory migration and abandoned-temp lifecycle | COMPLETE | [PRD-301](prd_history/PRD-301.md) |
 | PRD-302 | #249 | Campaign Control Plane Slice A: dispatch-only Codex proposal bootstrap (structural install, behavioral validation post-merge) | COMPLETE | [PRD-302](prd_history/PRD-302.md) |
+| PRD-303 | — | Candidate Board observation-only scope line | IN PROGRESS | [PRD-303](prd_history/PRD-303.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
