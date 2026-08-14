@@ -26,6 +26,7 @@ from cuttingboard.contract_types import PipelineContract
 from cuttingboard.delivery.dashboard_integrator import (
     RULE2_LONG_VERDICT,
     RULE2_SHORT_VERDICT,
+    RULE3_MIXED_VERDICT,
     dashboard_integrator,
 )
 from cuttingboard.delivery.macro_tape_layout import (
@@ -305,6 +306,11 @@ _HIGH_GRADES = frozenset({"A+", "A", "B"})
 # when a high-grade card renders below them (UX preference). RULE3_MIXED is a
 # real conflict signal and is deliberately NOT in this set.
 _PRD168_GATED_VERDICTS = frozenset({RULE2_LONG_VERDICT, RULE2_SHORT_VERDICT})
+_LOCKED_INTEGRATOR_VERDICTS: dict[str, str] = {
+    RULE2_LONG_VERDICT: "No high-grade setups observed for the current regime.",
+    RULE2_SHORT_VERDICT: "No high-grade setups observed for the current regime.",
+    RULE3_MIXED_VERDICT: "Mixed regime, macro, and symbol observations.",
+}
 _UNAVAILABLE_WATCH = "Market data unavailable for this run; review during live market session."
 
 # PRD-117: enumerated session_type values that map to an inactive-session
@@ -1530,6 +1536,8 @@ def _build_sunday_context(
     macro_drivers: dict,
     market_regime: str | None,
     market_map: dict | None,
+    *,
+    operator_locked: bool = False,
 ) -> dict:
     drivers = macro_drivers or {}
     dollar_pct = (drivers.get("dollar") or {}).get("change_pct")
@@ -1559,7 +1567,9 @@ def _build_sunday_context(
     risk_context = _pct_label(btc_pct, "risk appetite present", "risk-off signal")
 
     posture = market_regime or "UNKNOWN"
-    if posture in ("RISK_ON", "AGGRESSIVE_LONG", "CONTROLLED_LONG"):
+    if operator_locked:
+        monday_watch = f"Current regime reference: {posture}"
+    elif posture in ("RISK_ON", "AGGRESSIVE_LONG", "CONTROLLED_LONG"):
         monday_watch = "Watch for confirmation of risk-on bias before Monday open"
     elif posture in ("RISK_OFF", "DEFENSIVE_SHORT"):
         monday_watch = "Monitor risk pressure — watch for rejection at resistance"
@@ -1597,6 +1607,8 @@ def _render_level_diagram(
     fib_levels: dict | None,
     watch_zones: list | None,
     contract_stop: float | None = None,
+    *,
+    operator_locked: bool = False,
 ) -> None:
     """Render a deterministic SVG level diagram for a candidate card (PRD-074).
 
@@ -1730,7 +1742,7 @@ def _render_level_diagram(
         band_h = abs(_to_y(contract_entry) - _to_y(stop_price))
         w(
             f'    <rect x="0" y="{band_top}" width="{LINE_W}" height="{band_h}" '
-            f'fill="#e05252" opacity="0.08"/>'
+            f'fill="{"#6b7280" if operator_locked else "#e05252"}" opacity="0.08"/>'
         )
 
     # Draw every level LINE at its true price-mapped y, and collect the label
@@ -1771,11 +1783,13 @@ def _render_level_diagram(
     # per the DECISIONS 2026-07-02 second-order caution.
     if stop_price is not None:
         y = _to_y(stop_price)
+        stop_colour = "#6b7280" if operator_locked else "#e05252"
+        stop_label = "INVALIDATION" if operator_locked else "STOP"
         w(
             f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
-            f'stroke="#e05252" stroke-width="1.5" stroke-dasharray="5,3"/>'
+            f'stroke="{stop_colour}" stroke-width="1.5" stroke-dasharray="5,3"/>'
         )
-        labels.append((y, f"STOP {stop_price:,.2f}{_pct(stop_price)}", "#e05252"))
+        labels.append((y, f"{stop_label} {stop_price:,.2f}{_pct(stop_price)}", stop_colour))
 
     # PRD-226: NOW is the live current price — the 0% reference — drawn as the
     # yellow focal line (no % suffix). The contract entry is never relabelled NOW.
@@ -1798,11 +1812,13 @@ def _render_level_diagram(
         and abs(contract_entry - now_price) >= 0.005
     ):
         y = _to_y(contract_entry)
+        entry_colour = "#6b7280" if operator_locked else "#e0a552"
+        entry_label = "LEVEL" if operator_locked else "ENTRY"
         w(
             f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
-            f'stroke="#e0a552" stroke-width="1.5"/>'
+            f'stroke="{entry_colour}" stroke-width="1.5"/>'
         )
-        labels.append((y, f"ENTRY {contract_entry:,.2f}{_pct(contract_entry)}", "#e0a552"))
+        labels.append((y, f"{entry_label} {contract_entry:,.2f}{_pct(contract_entry)}", entry_colour))
 
     # Label-declutter pass. Spread baselines so no two labels sit closer than
     # LABEL_MIN_GAP px; a thin leader connects any label pushed off its line.
@@ -2024,6 +2040,7 @@ def _render_candidate_card(
             fib_levels,
             watch_zones,
             contract_stop=band_stop,
+            operator_locked=operator_locked,
         )
 
     w("</div>")
@@ -2648,7 +2665,12 @@ def render_dashboard_html(
 
     # --- sunday-macro-context (PRD-116: only under coherent Sunday lineage) ---
     if sunday_coherent:
-        ctx = _build_sunday_context(macro_drivers, market_regime, market_map)
+        ctx = _build_sunday_context(
+            macro_drivers,
+            market_regime,
+            market_map,
+            operator_locked=operator_locked,
+        )
         w('<div class="block" id="sunday-macro-context" style="border-color:#29b6f6">')
         w(f'  <h2>{_esc(ctx["headline"])}</h2>')
         w('  <div class="row">')
@@ -2667,7 +2689,8 @@ def render_dashboard_html(
         w('  </div>')
         w(f'  <div class="field"><div class="label">Metals</div>'
           f'<div class="value">{_esc(ctx["metals_context"])}</div></div>')
-        w(f'  <div class="field" style="margin-top:8px"><div class="label">Monday Watch</div>'
+        _monday_label = "Monday Context" if operator_locked else "Monday Watch"
+        w(f'  <div class="field" style="margin-top:8px"><div class="label">{_monday_label}</div>'
           f'<div class="value">{_esc(ctx["monday_watch"])}</div></div>')
         w("</div>")
 
@@ -2976,7 +2999,12 @@ def render_dashboard_html(
         for _verdict in integrator_verdicts:
             if _prd168_high_grade_card and _verdict in _PRD168_GATED_VERDICTS:
                 continue
-            w(f'  <div class="idle-summary">{_esc(_verdict)}</div>')
+            _display_verdict = (
+                _LOCKED_INTEGRATOR_VERDICTS.get(_verdict, _verdict)
+                if operator_locked
+                else _verdict
+            )
+            w(f'  <div class="idle-summary">{_esc(_display_verdict)}</div>')
     if unhealthy_lineage:
         # PRD-116 R5: suppress candidate cards and tier headers under unhealthy lineage.
         # Preserve legacy diagnostic text (SOURCE_MISSING / PARSE_ERROR / STALE MARKET MAP)
@@ -3083,20 +3111,34 @@ def render_dashboard_html(
         any_emitted = False
         # PRD-158 § 4.2 translation 13: regime transitions render as
         # "Permission flipped to …" or are suppressed entirely.
-        regime_flip = _regime_flip_phrase(
-            _req(previous_run, "regime"),
-            _req(run, "regime"),
-        )
-        if regime_flip is not None:
-            w(f'  <div class="value">{_esc(regime_flip)}</div>')
-            any_emitted = True
-        delta_fields = (
-            ("Posture",
-             _POSTURE_LABELS.get(str(_req(run, "posture")),        str(_req(run, "posture"))),
-             _POSTURE_LABELS.get(str(_req(previous_run, "posture")), str(_req(previous_run, "posture")))),
-            ("System Halted", _bool_str(_req(run, "system_halted")),
-                              _bool_str(_req(previous_run, "system_halted"))),
-        )
+        previous_regime = _req(previous_run, "regime")
+        current_regime = _req(run, "regime")
+        if operator_locked:
+            if previous_regime != current_regime:
+                w(
+                    f'  <div class="value">Regime: {_esc(previous_regime)} '
+                    f'-&gt; {_esc(current_regime)}</div>'
+                )
+                any_emitted = True
+            delta_fields = (
+                ("System Halted", _bool_str(_req(run, "system_halted")),
+                                  _bool_str(_req(previous_run, "system_halted"))),
+            )
+        else:
+            regime_flip = _regime_flip_phrase(previous_regime, current_regime)
+            if regime_flip is not None:
+                w(f'  <div class="value">{_esc(regime_flip)}</div>')
+                any_emitted = True
+            delta_fields = (
+                ("Posture",
+                 _POSTURE_LABELS.get(str(_req(run, "posture")), str(_req(run, "posture"))),
+                 _POSTURE_LABELS.get(
+                     str(_req(previous_run, "posture")),
+                     str(_req(previous_run, "posture")),
+                 )),
+                ("System Halted", _bool_str(_req(run, "system_halted")),
+                                  _bool_str(_req(previous_run, "system_halted"))),
+            )
         for label, current_value, previous_value in delta_fields:
             if current_value != previous_value:
                 w(

@@ -4313,7 +4313,40 @@ def test_r7_available_level_labels_and_accent_present():
     html = render_dashboard_html(_payload(), _run(permission="Long bias — trend continuation allowed."), market_map=mm)
     assert "IN →" in html
     assert "OUT →" in html
-    assert "value-actionable" in html
+    assert '<div class="value-key value-actionable">' in _candidate_card(html)
+
+
+def test_r7_locked_level_diagram_uses_neutral_labels_and_styling():
+    entry = {
+        **_mm_symbol("SPY", grade="A+"),
+        "current_price": 120.0,
+        "watch_zones": [{"type": "SUPPORT", "level": 100.0}],
+    }
+    kwargs = {
+        "market_map": _market_map({"SPY": entry}),
+        "contract_entry_map": {"SPY": 110.0},
+        "contract_stop_map": {"SPY": 105.0},
+    }
+    locked = _candidate_card(render_dashboard_html(
+        _payload(), _run(permission=_LOCK_PERMISSION), **kwargs,
+    ))
+    available = _candidate_card(render_dashboard_html(
+        _payload(), _run(permission="Long bias — trend continuation allowed."), **kwargs,
+    ))
+
+    assert ">LEVEL 110.00 -8.3%</text>" in locked
+    assert ">INVALIDATION 105.00 -12.5%</text>" in locked
+    assert ">ENTRY 110.00 -8.3%</text>" not in locked
+    assert ">STOP 105.00 -12.5%</text>" not in locked
+    assert 'fill="#e05252" opacity="0.08"' not in locked
+    assert 'stroke="#e05252"' not in locked
+    assert 'stroke="#e0a552"' not in locked
+    assert 'fill="#6b7280" opacity="0.08"' in locked
+
+    assert ">ENTRY 110.00 -8.3%</text>" in available
+    assert ">STOP 105.00 -12.5%</text>" in available
+    assert 'fill="#e05252" opacity="0.08"' in available
+    assert 'stroke="#e0a552"' in available
 
 
 def test_r7_locked_low_grade_dashboard_has_no_action_vocabulary():
@@ -4343,3 +4376,89 @@ def test_r7_locked_low_grade_render_does_not_mutate_sources():
     p0, r0, m0 = _copy2.deepcopy(payload), _copy2.deepcopy(run), _copy2.deepcopy(mm)
     render_dashboard_html(payload, run, market_map=mm)
     assert (payload, run, mm) == (p0, r0, m0), "locked low-grade render mutated a source object"
+
+
+def test_r7_locked_run_delta_is_observational():
+    previous = _run(regime="RISK_OFF", posture="DEFENSIVE_SHORT")
+    locked = render_dashboard_html(
+        _payload(market_regime="RISK_ON"),
+        _run(regime="RISK_ON", posture="CONTROLLED_LONG", permission=_LOCK_PERMISSION),
+        previous_run=previous,
+    )
+    available = render_dashboard_html(
+        _payload(market_regime="RISK_ON"),
+        _run(
+            regime="RISK_ON",
+            posture="CONTROLLED_LONG",
+            permission="Long bias — trend continuation allowed.",
+        ),
+        previous_run=previous,
+    )
+
+    assert "Permission flipped to longs" not in locked
+    assert "Posture: Defensive Short -&gt; Controlled Long" not in locked
+    assert "Regime: RISK_OFF -&gt; RISK_ON" in locked
+    assert "Permission flipped to longs" in available
+    assert "Posture: Defensive Short -&gt; Controlled Long" in available
+
+
+def test_r7_locked_integrator_verdicts_are_observational():
+    missing_price = {**_mm_symbol("SPY", grade="A+", bias="BEAR"), "current_price": None}
+    rule2_mm = _market_map({"SPY": missing_price})
+    rule2_locked = render_dashboard_html(
+        _payload(market_regime="RISK_ON"),
+        _run(permission=_LOCK_PERMISSION),
+        market_map=rule2_mm,
+    )
+    rule2_available = render_dashboard_html(
+        _payload(market_regime="RISK_ON"),
+        _run(permission="Long bias — trend continuation allowed."),
+        market_map=rule2_mm,
+    )
+    assert "No qualifying long setups currently available." not in rule2_locked
+    assert "No high-grade setups observed for the current regime." in rule2_locked
+    assert "No qualifying long setups currently available." in rule2_available
+
+    short_macro = _macro_drivers(vix=1.0, dxy=1.0, tnx=1.0, btc=-1.0)
+    rule3_mm = _market_map({"SPY": _mm_symbol("SPY", grade="A+", bias="BULL")})
+    rule3_locked = render_dashboard_html(
+        _payload(market_regime="RISK_ON", macro_drivers=short_macro),
+        _run(permission=_LOCK_PERMISSION),
+        market_map=rule3_mm,
+    )
+    rule3_available = render_dashboard_html(
+        _payload(market_regime="RISK_ON", macro_drivers=short_macro),
+        _run(permission="Long bias — trend continuation allowed."),
+        market_map=rule3_mm,
+    )
+    assert "Mixed tape — directional trades require symbol-level confirmation." not in rule3_locked
+    assert "Mixed regime, macro, and symbol observations." in rule3_locked
+    assert "Mixed tape — directional trades require symbol-level confirmation." in rule3_available
+
+
+def test_r7_locked_sunday_context_has_no_watch_directive():
+    payload = _payload(
+        timestamp="2026-05-10T12:00:00Z",
+        market_regime="RISK_ON",
+        macro_drivers=_macro_drivers(),
+    )
+    payload["meta"]["session_type"] = "SUNDAY_PREMARKET"
+    run_locked = _run_with_timestamp(
+        "2026-05-10T12:00:00Z",
+        permission=_LOCK_PERMISSION,
+    )
+    run_available = _run_with_timestamp(
+        "2026-05-10T12:00:00Z",
+        permission="Long bias — trend continuation allowed.",
+    )
+    mm = _market_map({"SPY": _mm_symbol("SPY")})
+    mm["generated_at"] = "2026-05-10T12:00:00Z"
+
+    locked = render_dashboard_html(payload, run_locked, market_map=mm)
+    available = render_dashboard_html(payload, run_available, market_map=mm)
+    assert "Monday Watch" not in locked
+    assert "Watch for confirmation of risk-on bias before Monday open" not in locked
+    assert "Monday Context" in locked
+    assert "Current regime reference: RISK_ON" in locked
+    assert "Monday Watch" in available
+    assert "Watch for confirmation of risk-on bias before Monday open" in available

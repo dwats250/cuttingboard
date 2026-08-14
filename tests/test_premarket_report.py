@@ -225,11 +225,14 @@ def test_r8_premarket_available_keeps_focus():
 import copy as _copy  # noqa: E402
 import pytest  # noqa: E402
 
-_SCENARIO_FORBIDDEN = [
-    "Continuation long", "size normally", "re-entry zone", "before sizing",
-    "Momentum long", "Size long", "Scale in", "Fade", "exposure", "sizing",
-    "continuation", "re-entry", "Long on", "Short on",
-]
+_SCENARIO_FORBIDDEN = (
+    "continuation long", "size normally", "re-entry", "before sizing",
+    "momentum long", "size long", "scale in", "fade opportunity", "fade bounce",
+    "exposure", "sizing", "long on", "short on", "initiate long", "initiate short",
+    "stay flat", "no trade", "monitor only", "hold longs", "hold existing",
+    "full-size", "setup", "short bias", "bias intact", "no directional bias",
+    "not expected to fade",
+)
 
 
 def _scenario_blob(report: dict) -> str:
@@ -239,15 +242,18 @@ def _scenario_blob(report: dict) -> str:
     )
 
 
-@pytest.mark.parametrize("regime", ["RISK_ON", "RISK_OFF", "EXPANSION", "NEUTRAL"])
-@pytest.mark.parametrize("gap", ["UP", "DOWN", "FLAT"])
+@pytest.mark.parametrize(
+    "regime",
+    ["RISK_ON", "RISK_OFF", "EXPANSION", "NEUTRAL", "CHAOTIC", None, "UNRECOGNIZED"],
+)
+@pytest.mark.parametrize("gap", ["UP", "DOWN", "FLAT", None])
 def test_prd304_locked_scenarios_are_observational(regime, gap):
     c = _make_contract(market_regime=regime, continuation_enabled=(regime == "EXPANSION"))
     c["system_state"]["permission"] = _LOCK
     report = build_premarket_report(c, {"gap_direction": gap})
-    blob = _scenario_blob(report)
+    blob = _scenario_blob(report).casefold()
     for token in _SCENARIO_FORBIDDEN:
-        assert token not in blob, f"locked {regime}/{gap} scenarios leaked {token!r}"
+        assert token.casefold() not in blob, f"locked {regime}/{gap} scenarios leaked {token!r}"
     # No directional instruction survives.
     assert all(s["preferred_direction"] == "NONE" for s in report["scenarios"])
     # Factual level observations are preserved (at least one level name survives).
@@ -260,6 +266,33 @@ def test_prd304_locked_scenarios_are_observational(regime, gap):
         assert set(s.keys()) == _SCENARIO_KEYS
 
 
+@pytest.mark.parametrize(
+    "regime",
+    ["RISK_ON", "RISK_OFF", "EXPANSION", "NEUTRAL", "CHAOTIC", None, "UNRECOGNIZED"],
+)
+@pytest.mark.parametrize("gap", ["UP", "DOWN", "FLAT", None])
+def test_prd304_locked_scenarios_preserve_every_factual_clause(regime, gap):
+    from cuttingboard.reports.premarket import _generate_scenarios
+
+    source = _generate_scenarios(regime, gap, {})
+    c = _make_contract(market_regime=regime, continuation_enabled=(regime == "EXPANSION"))
+    c["system_state"]["permission"] = _LOCK
+    projected = build_premarket_report(c, {"gap_direction": gap})["scenarios"]
+    by_id = {scenario["id"]: scenario for scenario in projected}
+
+    for scenario in source:
+        rendered = by_id[scenario["id"]]["condition"]
+        for clause in scenario["condition"].split(";"):
+            clause = clause.strip()
+            if not any(token in clause.casefold() for token in _SCENARIO_FORBIDDEN):
+                assert clause in rendered, (
+                    f"locked {regime}/{gap}/{scenario['id']} dropped factual clause {clause!r}"
+                )
+        for level in ("prior_high", "prior_low", "range_mid", "prior_close", "gap_direction", "VIX"):
+            if level in scenario["condition"]:
+                assert level in rendered
+
+
 def test_prd304_available_scenarios_retain_action_vocabulary():
     # Non-vacuity anchor: the AVAILABLE path positively produces directional/
     # sizing vocabulary and non-NONE preferred_direction.
@@ -267,6 +300,21 @@ def test_prd304_available_scenarios_retain_action_vocabulary():
     blob = _scenario_blob(report)
     assert "size normally" in blob or "Continuation long" in blob
     assert any(s["preferred_direction"] in ("LONG", "SHORT") for s in report["scenarios"])
+
+
+@pytest.mark.parametrize(
+    ("regime", "gap"),
+    [("RISK_ON", "UP"), ("RISK_OFF", "FLAT"), ("EXPANSION", "DOWN"),
+     ("NEUTRAL", None), ("CHAOTIC", None), (None, None)],
+)
+def test_prd304_available_scenarios_are_byte_for_byte_generator_parity(regime, gap):
+    from cuttingboard.reports.premarket import _generate_scenarios
+
+    report = build_premarket_report(
+        _make_contract(market_regime=regime, continuation_enabled=(regime == "EXPANSION")),
+        {"gap_direction": gap},
+    )
+    assert report["scenarios"] == _generate_scenarios(regime, gap, {})
 
 
 def test_prd304_locked_scenarios_do_not_mutate_source():
@@ -284,7 +332,9 @@ def test_prd304_locked_scenario_projection_helper_is_pure():
     src_before = _copy.deepcopy(src)
     out = _observational_scenario(src)
     assert src == src_before                                  # source untouched
-    assert out["condition"] == "Indices gap up and hold above prior_high"
+    assert out["condition"] == (
+        "Indices gap up and hold above prior_high; momentum and trend strength observed"
+    )
     assert out["preferred_direction"] == "NONE"
     assert "Continuation long" not in out["expected_behavior"]
     assert "size normally" not in out["expected_behavior"]

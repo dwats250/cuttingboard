@@ -324,17 +324,38 @@ _LOCKED_SCENARIO_BEHAVIOR = (
     "Operator lock — observation only while the operator cannot monitor."
 )
 
+# Known action-bearing phrases in the generated scenario conditions are
+# translated in place instead of dropping the whole semicolon-delimited tail.
+# That preserves regime/gap/level facts while removing entry, sizing, exposure,
+# and directional instructions.  The generated scenarios are the closed input
+# set for this renderer projection; tests enumerate every regime/gap branch.
+_LOCKED_CONDITION_REWRITES: tuple[tuple[str, str], ...] = (
+    ("momentum continuation setup", "momentum and trend strength observed"),
+    ("range_mid as re-entry zone", "range_mid is the stabilization reference"),
+    (
+        "breakout setup forming on RISK_ON strength",
+        "RISK_ON strength is present near prior_high",
+    ),
+    ("gap_direction determines re-entry bias", "gap_direction remains observed context"),
+    ("prior_high not expected to fade", "prior_high remains sustained"),
+    ("confirm prior_high before full sizing", "prior_high confirmation is unresolved"),
+    ("short bias intact below prior_low", "RISK_OFF structure persists below prior_low"),
+    ("RISK_OFF bias intact", "RISK_OFF structure persists"),
+    ("fade opportunity", "rejection context"),
+    ("fade bounce", "bounce rejection"),
+    ("no directional bias", "directional structure is neutral"),
+    ("all setups invalid", "market validity is absent"),
+    ("monitor only", "price stabilization remains observed"),
+    ("no trade", "regime resolution is absent"),
+    ("stay flat", "directional structure is unresolved"),
+)
+
 
 def _observational_scenario(scenario: dict) -> dict:
-    """Return a NEW scenario dict that keeps only the factual observation.
-
-    The condition's factual premise is the text before the first ';' (gap /
-    price / level / regime geometry); the setup/action tail after it, the
-    action `expected_behavior`, and the `preferred_direction` instruction are
-    dropped. The input dict is never mutated (deep-copy-safe by construction).
-    """
-    condition = str(scenario.get("condition") or "")
-    factual = condition.split(";", 1)[0].strip()
+    """Return a NEW scenario dict containing the complete factual observation."""
+    factual = str(scenario.get("condition") or "")
+    for action_phrase, observation_phrase in _LOCKED_CONDITION_REWRITES:
+        factual = factual.replace(action_phrase, observation_phrase)
     return {
         "id": scenario.get("id"),
         "condition": factual,
