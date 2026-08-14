@@ -68,6 +68,11 @@ def _classify_evr_with_levels(
     tradable: bool,
     levels: dict,
 ) -> tuple[str, str]:
+    # PRD-304 R8 note: `tradable` here is the ANALYTICAL market-condition fact
+    # used for expectation-vs-reality classification (was the market's posture
+    # expectation met?), not rendered execution permission. The operator lock
+    # preserves this analytical read unchanged; it only suppresses the
+    # permission/execution vocabulary in the report's observations.
     if not runs:
         return "NO_EXPECTATION", "No prior run available in history"
 
