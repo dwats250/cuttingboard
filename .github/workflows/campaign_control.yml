@@ -5,6 +5,12 @@
 # behavioral proof. Slice A: no issue trigger, no write scope, and no
 # repository-authoritative / issue / PR / comment publication (the job log and a
 # one-day artifact remain observable -- that is not a publication path).
+#
+# Amendment 2 (isolated public workspace; full rationale in PRD-302.md): the
+# distinct codex uid runs entirely inside a uniquely-named PUBLIC /tmp workspace
+# (1777), OUTSIDE /home/runner and NOT $RUNNER_TEMP -- no o+x grant on any
+# runner-owned ancestor (that approach exposed a world-readable credential in run
+# 31763968329). R7 is a SPLIT proof: a runner-uid leg + an exact-codex-uid leg.
 name: Campaign Control Plane (Slice A bootstrap)
 
 # Slice A: workflow_dispatch ONLY. No issue_comment / pull_request /
@@ -50,68 +56,63 @@ jobs:
             .github/campaign/charge.schema.json
           sparse-checkout-cone-mode: false
 
-      - name: Provision unprivileged codex user and grant minimal traversal
+      - name: Provision unprivileged codex user and isolated public workspace
         run: |
           set -euo pipefail
           id "$CODEX_USER" >/dev/null 2>&1 || sudo useradd -m "$CODEX_USER"
-          mkdir -p .campaign-input .campaign-output
-          # Public inputs readable to the distinct uid (files + campaign dir);
-          # minimization/navigation, NOT a confidentiality boundary.
-          sudo chmod -R a+rX tools/campaign_control.py .github/campaign
-          # Public/synthetic output+input dirs writable by the codex uid.
-          sudo chmod a+rwx .campaign-input .campaign-output
-          # EXECUTE/TRAVERSAL ONLY (never read/list, never recursive) on the
-          # runner-owned ancestors so the codex uid can OPEN the public tool. On
-          # hosted runners /home/runner is 0750 (drwxr-x---, runner:runner),
-          # non-traversable by a fresh useradd user -- the exact gap that failed
-          # run 31759823563 closed here (Errno 13 opening the tool). o+x grants
-          # traversal to a KNOWN path, never read/list of runner state.
-          d="$GITHUB_WORKSPACE"
-          while [ "$d" != "/" ]; do sudo chmod o+x "$d"; d="$(dirname "$d")"; done
-          sudo chmod o+x "$GITHUB_WORKSPACE/tools" "$GITHUB_WORKSPACE/.github" \
-            "$GITHUB_WORKSPACE/.github/campaign"
+          # Isolated PUBLIC Codex workspace under /tmp -- OUTSIDE /home/runner and
+          # NOT $RUNNER_TEMP. The path is fixed and derived ONLY from the trusted
+          # run id (never model/event text). /tmp is world-traversable (1777), so
+          # the codex uid reaches this workspace WITHOUT any o+x grant on a
+          # runner-owned ancestor -- the ancestor-traversal approach is removed.
+          WS="/tmp/campaign-ws-${GITHUB_RUN_ID}"
+          rm -rf "$WS"
+          mkdir -p "$WS/tools" "$WS/.github/campaign" \
+            "$WS/.campaign-input" "$WS/.campaign-output"
+          # Copy ONLY the approved public inputs (tool, prompt, schema) into the
+          # isolated workspace; the synthetic event is built into it next.
+          cp tools/campaign_control.py "$WS/tools/campaign_control.py"
+          cp .github/campaign/charge_prompt.md "$WS/.github/campaign/charge_prompt.md"
+          cp .github/campaign/charge.schema.json "$WS/.github/campaign/charge.schema.json"
+          # PUBLIC copies readable to the codex uid (minimization under /tmp, never
+          # a grant on a runner-owned path). INPUT dir is read-only to the codex
+          # uid (runner owns it, writes the event); ONLY output is writable (F5).
+          chmod -R a+rX "$WS/tools" "$WS/.github"
+          chmod a+rX "$WS/.campaign-input"
+          chmod a+rwx "$WS/.campaign-output"
 
-      - name: Build fixed synthetic event
+      - name: Build fixed synthetic event (isolated workspace)
         run: |
           set -euo pipefail
+          WS="/tmp/campaign-ws-${GITHUB_RUN_ID}"
           python3 tools/campaign_control.py make-dry-run-event \
             --head-sha "$HEAD_SHA" \
-            --event-output .campaign-input/event.json
-          sudo chmod a+r .campaign-input/event.json
+            --event-output "$WS/.campaign-input/event.json"
+          chmod a+r "$WS/.campaign-input/event.json"
 
-      # R7 preflight, run AS the distinct codex uid, BEFORE the secret-bearing
-      # action: prove (positive) the public inputs are readable and the output
-      # dir writable, (identity) runner uid != codex uid, and (negative) the
-      # enumerated runner credentials remain unreadable. Fail closed; print no
-      # file contents or secrets. Live closure is proven at the post-merge run.
-      - name: Codex-uid access + credential-isolation preflight (blocking, R7)
+      # R7 SPLIT isolation proof, BEFORE the secret-bearing action. Runner-side
+      # leg (runner uid): resolve the runner root from the LIVE Runner.Worker,
+      # require RUNNER_TEMP, and prove the canonical .credentials EXISTS and is
+      # runner-owned (absence/ambiguity/mis-ownership fail closed); it emits the
+      # bound credential PATHS only (never contents). Codex-side leg (exact codex
+      # uid, via the COPY of the tool in the isolated workspace so it never
+      # traverses /home/runner): prove /home/runner NON-traversable, every
+      # enumerated credential UNREADABLE, and only the isolated public inputs
+      # readable / its output writable. Fail closed; print no contents or secrets.
+      - name: Split runner/codex credential-isolation proof (blocking, R7)
         run: |
           set -euo pipefail
+          WS="/tmp/campaign-ws-${GITHUB_RUN_ID}"
           RUNNER_UID="$(id -u)"
-          CODEX_UID="$(id -u "$CODEX_USER")"
-          if [ "$RUNNER_UID" = "$CODEX_UID" ]; then
-            echo "campaign-control: FAIL [preflight-uid] runner uid == codex uid" >&2
+          # --- runner-side leg (runner uid): derive root, prove canonical -------
+          # Capture pgrep's exit code explicitly; NO `|| true`/process-sub that
+          # would slip a one-PID-then-nonzero failure past set -e (Sol F4).
+          set +e; WORKER_PIDS_RAW="$(pgrep -x Runner.Worker)"; PGREP_RC=$?; set -e
+          if [ "$PGREP_RC" -ne 0 ] || [ -z "$WORKER_PIDS_RAW" ]; then
+            echo "campaign-control: FAIL [probe-root] Runner.Worker not resolved" >&2
             exit 2
           fi
-          # positive: every allowlisted public input is readable as the codex uid
-          for f in tools/campaign_control.py .github/campaign/charge_prompt.md \
-                   .github/campaign/charge.schema.json .campaign-input/event.json; do
-            if ! sudo -u "$CODEX_USER" test -r "$f"; then
-              echo "campaign-control: FAIL [preflight-read] public input unreadable by codex uid" >&2
-              exit 2
-            fi
-          done
-          # positive: the output directory is writable as the codex uid
-          if ! sudo -u "$CODEX_USER" test -w .campaign-output; then
-            echo "campaign-control: FAIL [preflight-write] output dir not writable by codex uid" >&2
-            exit 2
-          fi
-          # negative: enumerated runner credentials remain unreadable. Derive the
-          # runner root from the LIVE Runner.Worker executable (<root>/bin/
-          # Runner.Worker); require exactly one; pass root+temp across the uid
-          # transition. The tool probe fails closed on same-uid/absent/ambiguous/
-          # mis-owned/readable and never prints contents.
-          mapfile -t WORKER_PIDS < <(pgrep -x Runner.Worker || true)
+          mapfile -t WORKER_PIDS <<< "$WORKER_PIDS_RAW"
           if [ "${#WORKER_PIDS[@]}" -ne 1 ]; then
             echo "campaign-control: FAIL [probe-root] Runner.Worker not uniquely resolved" >&2
             exit 2
@@ -122,22 +123,44 @@ jobs:
             echo "campaign-control: FAIL [probe-temp] RUNNER_TEMP source not set" >&2
             exit 2
           fi
-          sudo -u "$CODEX_USER" python3 tools/campaign_control.py probe-isolation \
+          # Plain assignment so a runner-side FAIL propagates under set -e (a
+          # process-substitution pipe would swallow the exit code).
+          CRED_PATHS_RAW="$(python3 tools/campaign_control.py probe-runner-side \
             --runner-uid "$RUNNER_UID" \
             --runner-root "$RUNNER_ROOT" \
-            --runner-temp "$RUNNER_TEMP"
+            --runner-temp "$RUNNER_TEMP")"
+          # Empty capture must not become a one-element [""] that false-greens the
+          # codex-side len>=1 check (Sol F1); fail closed before mapfile.
+          [ -n "$CRED_PATHS_RAW" ] || { echo "campaign-control: FAIL [probe-no-creds] runner-side emitted no credential paths" >&2; exit 2; }
+          mapfile -t CRED_PATHS <<< "$CRED_PATHS_RAW"
+          # --- codex-side leg (exact codex uid): prove isolation ---------------
+          CRED_ARGS=()
+          for p in "${CRED_PATHS[@]}"; do CRED_ARGS+=(--credential "$p"); done
+          sudo -u "$CODEX_USER" python3 "$WS/tools/campaign_control.py" probe-codex-isolation \
+            --runner-uid "$RUNNER_UID" \
+            "${CRED_ARGS[@]}" \
+            --input "$WS/tools/campaign_control.py" \
+            --input "$WS/.github/campaign/charge_prompt.md" \
+            --input "$WS/.github/campaign/charge.schema.json" \
+            --input "$WS/.campaign-input/event.json" \
+            --input-dir "$WS/.campaign-input" \
+            --output-dir "$WS/.campaign-output"
 
       # Codex Action: the LITERAL FINAL secret-bearing step of this job. Nothing
       # runs after the key reaches the proxy. unprivileged-user isolates the
-      # distinct codex uid from runner-owned credentials (R6; proxy holds the key,
-      # R.3). The API secret appears exactly once, here, as an action input only.
+      # distinct codex uid inside the isolated /tmp workspace (working-directory);
+      # the proxy holds the key (R6/R.3). The API secret appears exactly once,
+      # here, as an action input only. working-directory/prompt-file/
+      # output-schema-file are absolute, fixed, derived only from the trusted run
+      # id -- never model/event text.
       - name: Codex synthesis (read-only, unprivileged-user, action-final)
         id: codex
         uses: openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56  # v1.11
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          prompt-file: .github/campaign/charge_prompt.md
-          output-schema-file: .github/campaign/charge.schema.json
+          working-directory: /tmp/campaign-ws-${{ github.run_id }}
+          prompt-file: /tmp/campaign-ws-${{ github.run_id }}/.github/campaign/charge_prompt.md
+          output-schema-file: /tmp/campaign-ws-${{ github.run_id }}/.github/campaign/charge.schema.json
           model: gpt-5.6-sol
           effort: xhigh
           permission-profile: ":read-only"
