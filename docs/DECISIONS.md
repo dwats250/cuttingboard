@@ -16,6 +16,31 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-13 — PRD-302 Campaign Control Plane Slice A: KEEP + design-direction ruling (PRD-302; ruled: Dustin)
+
+Owner design-direction ruling on the review-clean GOV-2 MATERIAL packet
+(`audits/campaign-control-plane-material-packet-2026-08/PACKET.md`, REVIEW-CLEAN
+at `aec9d92d` after a first cycle returned DESIGN INCOMPLETE and an owner-ruled
+REBUILD). **KEEP** — proceed with Campaign Control Plane v0.1 **Slice A** as a
+bounded product experiment: a dispatch-only, owner-only, non-authoritative Codex
+proposal bootstrap. It is a distinct coordination capability, not a revival of
+the PRD-230-deleted `codex-review.yml` gate. The owner accepts the
+coordination-value HYPOTHESIS as product direction (terminal stalls are not
+asserted as observed fact). Bindings: **CLASS CONTRACT** (adjudication
+`docs/prd_history/PRD-302.adjudication.md`); LANE HIGH-RISK; MATERIAL;
+**bootstrap-COMPLETE exception YES** (structural install via same-PR closeout,
+named post-merge behavioral + `unprivileged-user` credential-isolation proof,
+Slice B parked until green, correction-before-use on failure, alignment-audit
+flag); **second model COMMISSIONED** (not waived) for the implementation PR;
+**sole-writer threat model accepted** (no Environment / no secret move; actor/
+main/persist-credentials/least-privilege/unprivileged-user bound; any writer/app
+topology change is a RED owner stop); **security claim = the packet's R.5
+smallest lawful claim only** (no filesystem/credential confidentiality via
+drop-sudo; `unprivileged-user` closure proven at the post-merge probe). Slice B
+is separately governed and parked. Gate A is NOT granted by this ruling; the
+Stage-0 PRD (`docs/prd_history/PRD-302.md`) proceeds to fresh-context review and
+returns for Dustin's explicit Gate A.
+
 ## 2026-08-09 — Harness seat doctrine + AGENT_SEATING.md + proactive-Fable supersession (PRD-294; ruled: Dustin)
 
 Refinement of the harness operating model, not a governance rewrite. Two-home

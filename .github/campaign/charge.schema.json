@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cuttingboard-owner-charge/v1",
+  "title": "Cuttingboard owner charge (proposed, non-authoritative)",
+  "description": "PRD-302 Slice A. Kept in lockstep with tools/campaign_control.py parse_charge by the drift-guard tests in tests/test_campaign_control.py. No model-authored verification/attestation field: only deterministic code attests facts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "event_id",
+    "head_sha",
+    "recommended_option",
+    "confidence",
+    "rationale",
+    "charge_markdown"
+  ],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "cuttingboard-owner-charge/v1"
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^PRD-[0-9]{3}-E[0-9]{2}$"
+    },
+    "head_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "recommended_option": {
+      "type": "string",
+      "enum": ["A", "B", "C"]
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["HIGH", "MEDIUM", "LOW"]
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "pattern": "^(?:[^\\u0000-\\u001f\\u007f]|\\n)*$"
+    },
+    "charge_markdown": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 6000
+    }
+  }
+}
