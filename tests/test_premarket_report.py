@@ -219,3 +219,72 @@ def test_r8_premarket_available_keeps_focus():
     report = build_premarket_report(c)
     assert report["focus_list"], "available run must keep candidate focus"
     assert not any("Operator lock" in line for line in report["invalidation"])
+
+
+# PRD-304 Sol finding 2 — locked premarket scenarios are observational
+import copy as _copy  # noqa: E402
+import pytest  # noqa: E402
+
+_SCENARIO_FORBIDDEN = [
+    "Continuation long", "size normally", "re-entry zone", "before sizing",
+    "Momentum long", "Size long", "Scale in", "Fade", "exposure", "sizing",
+    "continuation", "re-entry", "Long on", "Short on",
+]
+
+
+def _scenario_blob(report: dict) -> str:
+    return " ".join(
+        f"{s.get('id')} {s.get('condition')} {s.get('expected_behavior')} {s.get('preferred_direction')}"
+        for s in report["scenarios"]
+    )
+
+
+@pytest.mark.parametrize("regime", ["RISK_ON", "RISK_OFF", "EXPANSION", "NEUTRAL"])
+@pytest.mark.parametrize("gap", ["UP", "DOWN", "FLAT"])
+def test_prd304_locked_scenarios_are_observational(regime, gap):
+    c = _make_contract(market_regime=regime, continuation_enabled=(regime == "EXPANSION"))
+    c["system_state"]["permission"] = _LOCK
+    report = build_premarket_report(c, {"gap_direction": gap})
+    blob = _scenario_blob(report)
+    for token in _SCENARIO_FORBIDDEN:
+        assert token not in blob, f"locked {regime}/{gap} scenarios leaked {token!r}"
+    # No directional instruction survives.
+    assert all(s["preferred_direction"] == "NONE" for s in report["scenarios"])
+    # Factual level observations are preserved (at least one level name survives).
+    assert any(
+        any(lvl in s["condition"] for lvl in ("prior_high", "prior_low", "range_mid", "prior_close", "gap_direction", "VIX", "Indices", "Breadth"))
+        for s in report["scenarios"]
+    ), f"{regime}/{gap} lost its factual observation"
+    # Schema-exact 4 keys retained.
+    for s in report["scenarios"]:
+        assert set(s.keys()) == _SCENARIO_KEYS
+
+
+def test_prd304_available_scenarios_retain_action_vocabulary():
+    # Non-vacuity anchor: the AVAILABLE path positively produces directional/
+    # sizing vocabulary and non-NONE preferred_direction.
+    report = build_premarket_report(_make_contract(market_regime="RISK_ON"), {"gap_direction": "UP"})
+    blob = _scenario_blob(report)
+    assert "size normally" in blob or "Continuation long" in blob
+    assert any(s["preferred_direction"] in ("LONG", "SHORT") for s in report["scenarios"])
+
+
+def test_prd304_locked_scenarios_do_not_mutate_source():
+    c = _make_contract(market_regime="RISK_ON")
+    c["system_state"]["permission"] = _LOCK
+    before = _copy.deepcopy(c)
+    build_premarket_report(c, {"gap_direction": "UP"})
+    assert c == before, "locked scenario projection mutated the source contract"
+
+
+def test_prd304_locked_scenario_projection_helper_is_pure():
+    from cuttingboard.reports.premarket import _observational_scenario
+    src = {"id": "x", "condition": "Indices gap up and hold above prior_high; momentum continuation setup",
+           "expected_behavior": "Continuation long above prior_high; size normally", "preferred_direction": "LONG"}
+    src_before = _copy.deepcopy(src)
+    out = _observational_scenario(src)
+    assert src == src_before                                  # source untouched
+    assert out["condition"] == "Indices gap up and hold above prior_high"
+    assert out["preferred_direction"] == "NONE"
+    assert "Continuation long" not in out["expected_behavior"]
+    assert "size normally" not in out["expected_behavior"]

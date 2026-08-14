@@ -1862,6 +1862,11 @@ def _render_candidate_card(
     grade = entry.get("grade") or ""
     css_class = _GRADE_CSS.get(grade, "unknown")
     _val_cls = "value-key" if operator_locked else "value-key value-actionable"
+    # PRD-304 R7 (Sol finding 3): under lock the action-oriented IN →/OUT →
+    # labels read as neutral observational labels (the level VALUES are
+    # analytical and preserved).
+    _in_label = "LEVEL" if operator_locked else "IN →"
+    _out_label = "INVALIDATION" if operator_locked else "OUT →"
     is_high = grade in _HIGH_GRADES
 
     lifecycle: dict | None = entry.get("lifecycle")
@@ -1937,7 +1942,7 @@ def _render_candidate_card(
         # INVALIDATION→"OUT →" (one couplet) and drops the standalone RISK line.
         entry_val = tf.get("entry")
         if entry_val is not None:
-            w(f'  <div class="label">IN →</div><div class="{_val_cls}">{_esc(entry_val)}</div>')
+            w(f'  <div class="label">{_in_label}</div><div class="{_val_cls}">{_esc(entry_val)}</div>')
 
         # PRD-249 review advisory: trade_framing.downgrade restated the
         # invalidation's PRICE clause but carried one extra clause the couplet
@@ -1954,7 +1959,7 @@ def _render_candidate_card(
                 structural = downgrade.split(" or ", 1)[1].strip()
                 if structural and structural not in invalidation[0]:
                     out_text = f"{out_text}, or {_esc(structural)}"
-            w(f'  <div class="label">OUT →</div><div class="{_val_cls}">{out_text}</div>')
+            w(f'  <div class="label">{_out_label}</div><div class="{_val_cls}">{out_text}</div>')
 
         # PRD-215/PRD-249: REASON/PLAY/WATCH are supporting context — tuck them
         # behind a default-collapsed disclosure so the accented couplet stays the
@@ -3018,8 +3023,11 @@ def render_dashboard_html(
                 )
                 has_actionable = any(symbols[s].get("grade", "") in _HIGH_GRADES for s in sorted_syms)
                 if sorted_syms and not has_actionable:
+                    # PRD-304 R7 (Sol finding 3): the low-grade idle summary reads
+                    # as a neutral observation under lock — no action vocabulary.
+                    _idle_head = "NO HIGH-GRADE SETUPS OBSERVED" if operator_locked else "NO ACTIONABLE SETUPS"
                     w('  <div class="idle-summary">'
-                      '<div>NO ACTIONABLE SETUPS</div>'
+                      f'<div>{_idle_head}</div>'
                       '<div>Market is not offering structure</div>'
                       '</div>')
                 # PRD-158 § 4.3 Rule 4: empty tiers (post-Rule-1 filter) are

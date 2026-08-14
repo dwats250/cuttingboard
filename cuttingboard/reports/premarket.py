@@ -318,6 +318,31 @@ def _generate_invalidation(regime: str | None, gap_direction: str | None, scenar
     ]
 
 
+# ── Operator-lock scenario projection (PRD-304 R8, Sol finding 2) ─────────────
+
+_LOCKED_SCENARIO_BEHAVIOR = (
+    "Operator lock — observation only while the operator cannot monitor."
+)
+
+
+def _observational_scenario(scenario: dict) -> dict:
+    """Return a NEW scenario dict that keeps only the factual observation.
+
+    The condition's factual premise is the text before the first ';' (gap /
+    price / level / regime geometry); the setup/action tail after it, the
+    action `expected_behavior`, and the `preferred_direction` instruction are
+    dropped. The input dict is never mutated (deep-copy-safe by construction).
+    """
+    condition = str(scenario.get("condition") or "")
+    factual = condition.split(";", 1)[0].strip()
+    return {
+        "id": scenario.get("id"),
+        "condition": factual,
+        "expected_behavior": _LOCKED_SCENARIO_BEHAVIOR,
+        "preferred_direction": "NONE",
+    }
+
+
 # ── Public builder ───────────────────────────────────────────────────────────
 
 
@@ -345,6 +370,13 @@ def build_premarket_report(contract: PipelineContract, levels: dict | None = Non
     gap_direction: str | None = _levels.get("gap_direction")
 
     scenarios = _generate_scenarios(market_regime, gap_direction, _levels)
+    if operator_locked:
+        # PRD-304 R8 (Sol finding 2): the locked scenario projection is
+        # observational — it keeps the factual regime/gap/level premise (the
+        # condition text before the first ';') but removes entry, sizing,
+        # exposure, and preferred-direction instructions. New dicts are built, so
+        # the generated scenarios and the source contract are never mutated.
+        scenarios = [_observational_scenario(s) for s in scenarios]
 
     candidates = contract.get("trade_candidates") or []
     # PRD-304 R8: under lock the report carries no candidate/execution focus.

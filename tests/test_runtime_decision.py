@@ -1441,3 +1441,172 @@ def test_operator_lock_preserves_analytical_qualified_count(monkeypatch, tmp_pat
         locked.contract["audit_summary"]["qualified_count"]
         == available.contract["audit_summary"]["qualified_count"]
     )
+
+
+# ---------------------------------------------------------------------------
+# PRD-304 Sol finding 1 — locked daily report is observation-only
+# ---------------------------------------------------------------------------
+
+def _daily_report(*, operator_locked: bool, outcome=None) -> str:
+    return output.render_report(
+        date_str="2026-04-28",
+        run_at_utc=RUN_AT,
+        regime=_regime(),
+        validation_summary=_validation_summary(),
+        qualification_summary=_qualification_summary("SPY"),
+        option_setups=[_option_setup("SPY")],
+        outcome=outcome if outcome is not None else runtime.OUTCOME_NO_TRADE,
+        operator_locked=operator_locked,
+    )
+
+
+_DAILY_FORBIDDEN_UNDER_LOCK = [
+    "Bias:", "Execution posture", "NEAR_A_PLUS", "EXPANSION MODE", "WATCH", "PLAY",
+]
+
+
+def test_prd304_available_daily_report_retains_current_action_path():
+    # Non-vacuity anchor: the AVAILABLE report positively produces the
+    # action-bearing vocabulary the locked assertions require be absent.
+    report = _daily_report(operator_locked=False)
+    assert "Bias:" in report
+    assert "Execution posture" in report
+
+
+def test_prd304_locked_daily_report_is_observation_only():
+    report = _daily_report(operator_locked=True)
+    # The single operator-lock statement + analytical header only.
+    assert "OPERATOR LOCK — CANNOT MONITOR" in report
+    assert "Observation only; no new trades" in report
+    # Analytical observations retained.
+    assert "Regime: RISK_ON" in report
+    assert "VIX:" in report
+    # No action-bearing material survives.
+    for token in _DAILY_FORBIDDEN_UNDER_LOCK:
+        assert token not in report, f"locked daily report leaked {token!r}"
+    # No candidate symbol focus.
+    assert "SPY" not in report
+
+
+def test_prd304_locked_daily_report_halt_still_wins():
+    # A system halt is not downgraded to the lock projection.
+    vs = _dc_replace(_validation_summary(), system_halted=True,
+                     halt_reason="Failed: ^VIX (stale)")
+    report = output.render_report(
+        date_str="2026-04-28", run_at_utc=RUN_AT, regime=None,
+        validation_summary=vs, qualification_summary=None, option_setups=[],
+        outcome=runtime.OUTCOME_HALT, halt_reason="Failed: ^VIX (stale)",
+        chain_results={}, operator_locked=True,
+    )
+    assert "OPERATOR LOCK — CANNOT MONITOR" not in report
+    assert "SYSTEM HALT" in report or "MACRO DATA INVALID" in report
+
+
+# ---------------------------------------------------------------------------
+# PRD-304 Sol finding 4 — exact-once/frozen resolution + count dynamic proofs
+# ---------------------------------------------------------------------------
+from cuttingboard.notifications import NOTIFY_HOURLY, NOTIFY_POST_ORB  # noqa: E402
+
+
+def _count_env_reads(monkeypatch) -> dict:
+    """Patch config's env reader to count reads of CB_OPERATOR_AVAILABILITY.
+
+    The resolver is the ONLY reader (R2); one read per run proves exactly-once
+    resolution AND that no downstream consumer re-reads the environment. A
+    duplicate resolution or a downstream re-read increments the count.
+    """
+    import cuttingboard.config as _cfg
+    counter = {"n": 0}
+    real = _cfg.os.getenv
+
+    def counting(key, *a, **k):
+        if key == "CB_OPERATOR_AVAILABILITY":
+            counter["n"] += 1
+        return real(key, *a, **k)
+
+    monkeypatch.setattr(_cfg.os, "getenv", counting)
+    return counter
+
+
+def _setup_hourly_mocks(monkeypatch, tmp_path, symbol: str = "SPY") -> dict:
+    _setup_runtime_mocks(monkeypatch, tmp_path, symbol=symbol)
+    # Empty quote maps: the mocked regime/qualification path ignores quotes, and
+    # empty maps skip the freshness/tradables iteration that expects real quote
+    # objects. The analytical count comes from the mocked qualification summary.
+    monkeypatch.setattr(runtime, "fetch_all", lambda: {})
+    monkeypatch.setattr(runtime, "normalize_all", lambda raw: {})
+    monkeypatch.setattr(runtime, "extract_fetch_failures", lambda raw: [])
+    monkeypatch.setattr(runtime, "send_notification", lambda *a, **k: True)
+    monkeypatch.setattr(runtime, "get_last_notification_result", lambda: None)
+    monkeypatch.setattr(runtime, "_compute_overall_pressure", lambda quotes: "NEUTRAL")
+    monkeypatch.setattr(runtime, "_kill_switch", lambda regime, quotes: False)
+    # The hourly `candidates_qualified` count is built by _build_hourly_run_summary
+    # from the qualification summary, independently of notification formatting;
+    # mock the formatters so the test does not depend on quote-object shape.
+    monkeypatch.setattr(runtime, "format_hourly_notification", lambda **k: ("T", "B"))
+    monkeypatch.setattr(runtime, "format_notification", lambda *a, **k: ("T", "B"))
+    monkeypatch.setattr(runtime, "_build_hourly_candidate_lines", lambda *a, **k: ())
+    captured: dict = {}
+    monkeypatch.setattr(
+        runtime, "_write_hourly_artifacts",
+        lambda summary, contract: captured.update(summary=summary, contract=contract),
+    )
+    return captured
+
+
+def test_r2_daily_resolves_operator_state_once_and_freezes_it(monkeypatch, tmp_path):
+    monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "CANNOT_MONITOR")
+    counter = _count_env_reads(monkeypatch)
+    _actionable_run_setup(monkeypatch, tmp_path)
+    _run_fixture()
+    assert counter["n"] == 1, f"daily entrypoint read the env {counter['n']} times (expected exactly 1)"
+
+
+def test_r2_hourly_resolves_operator_state_once_and_freezes_it(monkeypatch, tmp_path):
+    monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "CANNOT_MONITOR")
+    counter = _count_env_reads(monkeypatch)
+    _setup_hourly_mocks(monkeypatch, tmp_path)
+    runtime._execute_notify_run(runtime.MODE_FIXTURE, date.fromisoformat("2026-04-28"), NOTIFY_HOURLY)
+    assert counter["n"] == 1, f"hourly entrypoint read the env {counter['n']} times (expected exactly 1)"
+
+
+def test_r2_qualify_only_resolves_operator_state_once_and_freezes_it(monkeypatch, tmp_path):
+    monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "CANNOT_MONITOR")
+    counter = _count_env_reads(monkeypatch)
+    _setup_hourly_mocks(monkeypatch, tmp_path)
+    runtime._execute_notify_run(runtime.MODE_FIXTURE, date.fromisoformat("2026-04-28"), NOTIFY_POST_ORB)
+    assert counter["n"] == 1, f"qualify-only entrypoint read the env {counter['n']} times (expected exactly 1)"
+
+
+def test_r4_locked_daily_summary_count_zero(monkeypatch, tmp_path):
+    monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "CANNOT_MONITOR")
+    _actionable_run_setup(monkeypatch, tmp_path)
+    result = _run_fixture()
+    assert result.summary["candidates_qualified"] == 0
+
+
+def test_r4_available_daily_summary_count_nonzero(monkeypatch, tmp_path):
+    # Non-vacuity anchor: the same actionable run has a non-zero daily count when
+    # AVAILABLE, so the locked-zero assertion above is meaningful.
+    monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "AVAILABLE")
+    _actionable_run_setup(monkeypatch, tmp_path)
+    result = _run_fixture()
+    assert result.summary["candidates_qualified"] >= 1
+
+
+def test_r4_locked_hourly_summary_count_remains_analytical(monkeypatch, tmp_path):
+    # The hourly count is analytical qualification and MUST NOT be zeroed by the
+    # lock. Capture the written hourly summary from a locked hourly run.
+    monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "CANNOT_MONITOR")
+    captured = _setup_hourly_mocks(monkeypatch, tmp_path)
+    runtime._execute_notify_run(runtime.MODE_FIXTURE, date.fromisoformat("2026-04-28"), NOTIFY_HOURLY)
+    assert captured["summary"]["candidates_qualified"] == 1  # analytical count preserved
+
+
+def test_r4_available_hourly_summary_count_same_analytical(monkeypatch, tmp_path):
+    # Parity anchor: AVAILABLE hourly reports the same analytical count, proving
+    # the lock did not change it.
+    monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "AVAILABLE")
+    captured = _setup_hourly_mocks(monkeypatch, tmp_path)
+    runtime._execute_notify_run(runtime.MODE_FIXTURE, date.fromisoformat("2026-04-28"), NOTIFY_HOURLY)
+    assert captured["summary"]["candidates_qualified"] == 1

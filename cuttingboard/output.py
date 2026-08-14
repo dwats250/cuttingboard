@@ -304,9 +304,18 @@ def render_report(
     option_refusals: Optional[list] = None,
     materialized_sizing: Optional[dict[str, tuple[int, float]]] = None,
     size_blocked: Optional[dict[str, str]] = None,
+    operator_locked: bool = False,
     **_: object,
 ) -> str:
-    """Render the full report as a string (terminal and markdown use same text)."""
+    """Render the full report as a string (terminal and markdown use same text).
+
+    PRD-304 R8 (Sol finding 1): under the operator lock the daily report keeps its
+    analytical header (timestamp, session, regime, VIX, data health) but drops all
+    action-bearing material — bias, execution posture, candidate focus,
+    WATCH/entry/trigger language, and permission matrices — in favor of one
+    operator-lock observation statement. A system halt still wins (the HALT
+    outcome precedes the lock branch below). The AVAILABLE path is unchanged.
+    """
     lines: list[str] = []
     cr = chain_results or {}
     refusals = list(option_refusals or [])
@@ -326,10 +335,24 @@ def render_report(
         lines.append(f"  Session: {session or 'OFF_SESSION'}")
         lines.append(f"  Regime: {regime.regime} / {regime.posture}")
         lines.append(f"  VIX: {vix_text}  |  delta: {delta}")
-        lines.append(f"  Bias: {regime_bias(regime)}")
+        if not operator_locked:
+            lines.append(f"  Bias: {regime_bias(regime)}")
 
     lines.append(_BORDER)
     lines.append("")
+
+    # ---- PRD-304 R8: operator-lock observation-only body (non-halt) ----
+    if operator_locked and outcome != OUTCOME_HALT:
+        lines.append("  OPERATOR LOCK — CANNOT MONITOR")
+        lines.append("  Observation only; no new trades while the operator cannot monitor.")
+        if validation_summary is not None and validation_summary.symbols_attempted:
+            lines.append(
+                f"  Data health: {validation_summary.symbols_validated} / "
+                f"{validation_summary.symbols_attempted} validated"
+            )
+        lines.append("")
+        lines.append(_BORDER)
+        return "\n".join(lines)
 
     # ---- Sunday weekly context block ----
     if _is_sunday(date_str) and regime is not None and outcome != OUTCOME_HALT:
@@ -691,6 +714,9 @@ def render_report_from_payload(payload: dict) -> str:
         chain_results=None,
         watch_summary=None,
         option_refusals=payload_refusals,
+        operator_locked=(
+            payload.get("summary", {}).get("permission") == config.OPERATOR_LOCK_PERMISSION
+        ),
     )
 
 

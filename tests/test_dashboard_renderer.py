@@ -4283,3 +4283,63 @@ def test_r7_locked_dashboard_omits_play_directive() -> None:
     assert "PLAY" in card_available                       # present when available
     # The structural reasoning text is not otherwise leaked as an action directive.
     assert "bullish defined-risk continuation" not in card_locked
+
+
+# ---------------------------------------------------------------------------
+# PRD-304 Sol finding 3 — locked dashboard: neutral labels + low-grade wording
+# ---------------------------------------------------------------------------
+import copy as _copy2  # noqa: E402
+
+
+def _framed_aplus_mm():
+    entry = {**_mm_symbol("SPY", grade="A+"),
+             "trade_framing": {"entry": "512.30", "if_now": "break 513"},
+             "invalidation": ["lose 510"]}
+    return _market_map({"SPY": entry})
+
+
+def test_r7_locked_level_labels_are_observational():
+    mm = _framed_aplus_mm()
+    html = render_dashboard_html(_payload(), _run(permission=_LOCK_PERMISSION), market_map=mm)
+    assert "IN →" not in html
+    assert "OUT →" not in html
+    assert ">LEVEL<" in html
+    assert ">INVALIDATION<" in html
+
+
+def test_r7_available_level_labels_and_accent_present():
+    # Non-vacuity anchor: IN →/OUT → and the action accent are present normally.
+    mm = _framed_aplus_mm()
+    html = render_dashboard_html(_payload(), _run(permission="Long bias — trend continuation allowed."), market_map=mm)
+    assert "IN →" in html
+    assert "OUT →" in html
+    assert "value-actionable" in html
+
+
+def test_r7_locked_low_grade_dashboard_has_no_action_vocabulary():
+    mm = _market_map({"XYZ": _mm_symbol("XYZ", grade="C")})
+    html = render_dashboard_html(_payload(), _run(permission=_LOCK_PERMISSION), market_map=mm)
+    assert "NO ACTIONABLE SETUPS" not in html
+    assert "NO HIGH-GRADE SETUPS OBSERVED" in html
+
+
+def test_r7_available_low_grade_keeps_no_actionable_setups():
+    mm = _market_map({"XYZ": _mm_symbol("XYZ", grade="C")})
+    html = render_dashboard_html(_payload(), _run(permission="Long bias — trend continuation allowed."), market_map=mm)
+    assert "NO ACTIONABLE SETUPS" in html
+
+
+def test_r7_locked_high_grade_render_does_not_mutate_sources():
+    mm = _framed_aplus_mm()
+    payload, run = _payload(), _run(permission=_LOCK_PERMISSION)
+    p0, r0, m0 = _copy2.deepcopy(payload), _copy2.deepcopy(run), _copy2.deepcopy(mm)
+    render_dashboard_html(payload, run, market_map=mm)
+    assert (payload, run, mm) == (p0, r0, m0), "locked high-grade render mutated a source object"
+
+
+def test_r7_locked_low_grade_render_does_not_mutate_sources():
+    mm = _market_map({"XYZ": _mm_symbol("XYZ", grade="C")})
+    payload, run = _payload(), _run(permission=_LOCK_PERMISSION)
+    p0, r0, m0 = _copy2.deepcopy(payload), _copy2.deepcopy(run), _copy2.deepcopy(mm)
+    render_dashboard_html(payload, run, market_map=mm)
+    assert (payload, run, mm) == (p0, r0, m0), "locked low-grade render mutated a source object"

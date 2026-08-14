@@ -1367,6 +1367,7 @@ def _run_pipeline(
         option_refusals=option_refusals,
         materialized_sizing=materialized_sizing,
         size_blocked=size_blocked,
+        operator_locked=operator_locked,
     )
     _write_markdown_report(report, date_str, "NOT RUN")
     report_path = str(REPORTS_DIR / f"{date_str}.md")
