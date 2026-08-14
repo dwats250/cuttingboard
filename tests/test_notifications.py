@@ -599,8 +599,8 @@ def test_prd061_duplicate_logical_send_path_skips_second_dispatch(tmp_path, monk
 # ---------------------------------------------------------------------------
 # PRD-304 R6 / R8 — dedicated OBSERVE-ONLY projection + OPERATOR_LOCKED state
 # ---------------------------------------------------------------------------
-from cuttingboard.notifications.formatter import format_operator_lock_projection
-from cuttingboard.notifications.state import (
+from cuttingboard.notifications.formatter import format_operator_lock_projection  # noqa: E402
+from cuttingboard.notifications.state import (  # noqa: E402
     NotificationPriority,
     classify_notification_priority,
     notification_state_key,
