@@ -6,14 +6,11 @@
 # repository-authoritative / issue / PR / comment publication (the job log and a
 # one-day artifact remain observable -- that is not a publication path).
 #
-# Amendment 2 (isolated public workspace): the distinct codex uid runs entirely
-# inside a uniquely-named PUBLIC workspace under /tmp (world-traversable 1777),
-# OUTSIDE /home/runner and NOT $RUNNER_TEMP. No o+x grant is ever placed on any
-# runner-owned ancestor -- that ancestor-traversal approach (which exposed a
-# world-readable runner credential in run 31763968329) is removed. R7 is a SPLIT
-# proof: a runner-uid leg (canonical credential exists + runner-owned) and an
-# exact-codex-uid leg (/home/runner non-traversable, every runner credential
-# unreadable, only the isolated public inputs readable / its output writable).
+# Amendment 2 (isolated public workspace; full rationale in PRD-302.md): the
+# distinct codex uid runs entirely inside a uniquely-named PUBLIC /tmp workspace
+# (1777), OUTSIDE /home/runner and NOT $RUNNER_TEMP -- no o+x grant on any
+# runner-owned ancestor (that approach exposed a world-readable credential in run
+# 31763968329). R7 is a SPLIT proof: a runner-uid leg + an exact-codex-uid leg.
 name: Campaign Control Plane (Slice A bootstrap)
 
 # Slice A: workflow_dispatch ONLY. No issue_comment / pull_request /
@@ -77,11 +74,12 @@ jobs:
           cp tools/campaign_control.py "$WS/tools/campaign_control.py"
           cp .github/campaign/charge_prompt.md "$WS/.github/campaign/charge_prompt.md"
           cp .github/campaign/charge.schema.json "$WS/.github/campaign/charge.schema.json"
-          # Public copies readable to the distinct codex uid; output dir writable.
-          # This is minimization/navigation of PUBLIC copies under /tmp, never a
-          # grant on any runner-owned path.
+          # PUBLIC copies readable to the codex uid (minimization under /tmp, never
+          # a grant on a runner-owned path). INPUT dir is read-only to the codex
+          # uid (runner owns it, writes the event); ONLY output is writable (F5).
           chmod -R a+rX "$WS/tools" "$WS/.github"
-          chmod a+rwx "$WS/.campaign-input" "$WS/.campaign-output"
+          chmod a+rX "$WS/.campaign-input"
+          chmod a+rwx "$WS/.campaign-output"
 
       - name: Build fixed synthetic event (isolated workspace)
         run: |
@@ -107,7 +105,14 @@ jobs:
           WS="/tmp/campaign-ws-${GITHUB_RUN_ID}"
           RUNNER_UID="$(id -u)"
           # --- runner-side leg (runner uid): derive root, prove canonical -------
-          mapfile -t WORKER_PIDS < <(pgrep -x Runner.Worker || true)
+          # Capture pgrep's exit code explicitly; NO `|| true`/process-sub that
+          # would slip a one-PID-then-nonzero failure past set -e (Sol F4).
+          set +e; WORKER_PIDS_RAW="$(pgrep -x Runner.Worker)"; PGREP_RC=$?; set -e
+          if [ "$PGREP_RC" -ne 0 ] || [ -z "$WORKER_PIDS_RAW" ]; then
+            echo "campaign-control: FAIL [probe-root] Runner.Worker not resolved" >&2
+            exit 2
+          fi
+          mapfile -t WORKER_PIDS <<< "$WORKER_PIDS_RAW"
           if [ "${#WORKER_PIDS[@]}" -ne 1 ]; then
             echo "campaign-control: FAIL [probe-root] Runner.Worker not uniquely resolved" >&2
             exit 2
@@ -124,6 +129,9 @@ jobs:
             --runner-uid "$RUNNER_UID" \
             --runner-root "$RUNNER_ROOT" \
             --runner-temp "$RUNNER_TEMP")"
+          # Empty capture must not become a one-element [""] that false-greens the
+          # codex-side len>=1 check (Sol F1); fail closed before mapfile.
+          [ -n "$CRED_PATHS_RAW" ] || { echo "campaign-control: FAIL [probe-no-creds] runner-side emitted no credential paths" >&2; exit 2; }
           mapfile -t CRED_PATHS <<< "$CRED_PATHS_RAW"
           # --- codex-side leg (exact codex uid): prove isolation ---------------
           CRED_ARGS=()
@@ -135,6 +143,7 @@ jobs:
             --input "$WS/.github/campaign/charge_prompt.md" \
             --input "$WS/.github/campaign/charge.schema.json" \
             --input "$WS/.campaign-input/event.json" \
+            --input-dir "$WS/.campaign-input" \
             --output-dir "$WS/.campaign-output"
 
       # Codex Action: the LITERAL FINAL secret-bearing step of this job. Nothing

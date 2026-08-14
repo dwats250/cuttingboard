@@ -310,11 +310,12 @@ def evaluate_codex_isolation(runner_uid: int, codex_uid: int,
                              home_runner_traversable: bool,
                              credentials_readable: list[tuple[str, bool]],
                              isolated_inputs_readable: list[tuple[str, bool]],
-                             output_writable: bool) -> None:
+                             output_writable: bool,
+                             inputs_dir_writable: bool) -> None:
     """Codex-side (exact codex uid) fail-closed proof: distinct uid; /home/runner
     NON-traversable; every enumerated runner credential UNREADABLE; every
-    isolated public input readable; the isolated output writable. Never inspects
-    contents."""
+    isolated public input readable; the isolated output writable; the isolated
+    INPUT dir NOT writable (read-only public inputs). Never inspects contents."""
     _require(codex_uid != runner_uid, "probe-same-uid",
              "codex uid equals runner uid")
     _require(not home_runner_traversable, "probe-home-traversable",
@@ -322,15 +323,21 @@ def evaluate_codex_isolation(runner_uid: int, codex_uid: int,
     _require(len(credentials_readable) >= 1, "probe-no-creds",
              "no enumerated credentials to verify")
     for _path, readable in credentials_readable:
+        _require(bool(_path), "probe-blank-cred",
+                 "a blank credential path was enumerated (empty-set false-green)")
         _require(not readable, "probe-readable",
                  "a runner-owned credential is readable by the codex uid")
     _require(len(isolated_inputs_readable) >= 1, "probe-no-inputs",
              "no isolated inputs to verify")
     for _path, readable in isolated_inputs_readable:
+        _require(bool(_path), "probe-blank-input",
+                 "a blank isolated-input path was enumerated")
         _require(readable, "probe-input-unreadable",
                  "an isolated public input is unreadable by the codex uid")
     _require(output_writable, "probe-output-unwritable",
              "the isolated output directory is not writable by the codex uid")
+    _require(not inputs_dir_writable, "probe-input-writable",
+             "the isolated input directory is writable by the codex uid")
 
 
 # --- IO ----------------------------------------------------------------------
@@ -426,8 +433,9 @@ def cmd_probe_codex_isolation(args: argparse.Namespace) -> int:
     creds = [(p, os.access(p, os.R_OK)) for p in args.credential]
     inputs = [(p, os.access(p, os.R_OK)) for p in args.input]
     output_writable = os.access(args.output_dir, os.W_OK)
+    inputs_dir_writable = os.access(args.input_dir, os.W_OK)
     evaluate_codex_isolation(args.runner_uid, codex_uid, home_traversable,
-                             creds, inputs, output_writable)
+                             creds, inputs, output_writable, inputs_dir_writable)
     print(f"isolation-probe: codex_uid={codex_uid} runner_uid={args.runner_uid} "
           f"home_runner_traversable={home_traversable}")
     for p, r in creds:
@@ -436,8 +444,10 @@ def cmd_probe_codex_isolation(args: argparse.Namespace) -> int:
         print(f"isolation-probe: isolated_input {p} readable_by_codex={r}")
     print(f"isolation-probe: isolated_output {args.output_dir} "
           f"writable_by_codex={output_writable}")
+    print(f"isolation-probe: isolated_input_dir {args.input_dir} "
+          f"writable_by_codex={inputs_dir_writable}")
     print("isolation-probe: PASS (isolated workspace; runner home non-traversable, "
-          "credentials unreadable)")
+          "credentials unreadable, inputs read-only)")
     return 0
 
 
@@ -466,6 +476,7 @@ def build_parser() -> argparse.ArgumentParser:
     p4.add_argument("--runner-uid", required=True, type=int)
     p4.add_argument("--credential", action="append", default=[])
     p4.add_argument("--input", action="append", default=[])
+    p4.add_argument("--input-dir", required=True)
     p4.add_argument("--output-dir", required=True)
     p4.set_defaults(func=cmd_probe_codex_isolation)
 

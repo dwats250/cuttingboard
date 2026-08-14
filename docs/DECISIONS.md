@@ -47,11 +47,16 @@ Mutation-killing tests (all proven to flip red) cover: reintroduced ancestor `o+
 staging under `/home/runner` or `$RUNNER_TEMP`, mis-pointed working-directory/
 prompt/schema, removed runner-side existence/ownership proof, wrong-uid denial
 checks, allowed runner-home traversal or readable credential, masked failure, and
-R7 moved after the action. **Owner ceiling renewal (GOV-2 §5 amended Gate A):
-four-non-test-payload physical-line ceiling 750 -> 820**, solely for this
+R7 moved after the action. The commissioned Sol implementation review returned
+REQUIRED-CHANGES (2 HIGH, 3 MEDIUM); the one-cycle GOV-1 correction ADDRESSED all
+five and added five further mutation-killed classes (empty/blank credential
+enumeration false-green; action `codex-user` != probed `$CODEX_USER`; probe
+CLI-correspondence + exact four `--input` paths; masked `pgrep` process-sub; and
+a world-writable isolated input dir). **Owner ceiling renewal (GOV-2 §5 amended
+Gate A): four-non-test-payload physical-line ceiling 750 -> 820**, solely for this
 correction and its guards; exceeding 820, a sixth payload file, weakening the
 credential set, changing the secret topology, or requiring another isolation
-architecture is RED. Post-correction four-file total 798 <= 820. Neither failed
+architecture is RED. Post-correction four-file total 818 <= 820. Neither failed
 workflow is rerun; the live proof is a fresh owner-authorized post-merge dispatch
 after this correction merges. Slice B stays parked until that proof is green.
 

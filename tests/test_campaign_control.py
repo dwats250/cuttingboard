@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -472,7 +473,7 @@ def _codex_iso(**kw):
     base = dict(runner_uid=1000, codex_uid=2000, home_runner_traversable=False,
                 credentials_readable=[("/runner/.credentials", False)],
                 isolated_inputs_readable=[("/tmp/ws/campaign_control.py", True)],
-                output_writable=True)
+                output_writable=True, inputs_dir_writable=False)
     base.update(kw)
     return cc.evaluate_codex_isolation(**base)
 
@@ -553,6 +554,25 @@ def test_codex_iso_fails_when_output_not_writable():
         _codex_iso(output_writable=False)
 
 
+def test_codex_iso_fails_when_input_dir_writable():
+    # Sol F5: a world-writable input dir lets the codex uid unlink/recreate the
+    # trusted synthetic event -> more than read-only public inputs; fail closed.
+    with pytest.raises(cc.CampaignError):
+        _codex_iso(inputs_dir_writable=True)
+
+
+def test_codex_iso_fails_on_blank_credential_path():
+    # Sol F1: a one-element [""] enumeration (from an empty runner-side capture
+    # piped through `mapfile <<< ""`) must NOT satisfy len>=1 and false-green.
+    with pytest.raises(cc.CampaignError):
+        _codex_iso(credentials_readable=[("", False)])
+
+
+def test_codex_iso_fails_on_blank_input_path():
+    with pytest.raises(cc.CampaignError):
+        _codex_iso(isolated_inputs_readable=[("", True)])
+
+
 # --- credential enumeration is paths-only (contents are never opened) -------
 def test_enumerate_credentials_covers_basenames_and_temp_glob(tmp_path):
     root = tmp_path / "runner"
@@ -575,6 +595,98 @@ def test_enumerate_credentials_returns_paths_not_contents(tmp_path):
     paths = cc.enumerate_credentials(str(root), "")
     assert str(secret) in paths
     assert all("TOP-SECRET-TOKEN" not in p for p in paths)
+
+
+# --------------------------------------------------------------------------
+# R7 CLI correspondence (Sol F3): the probe subcommands actually wire OS facts
+# into the decision functions and return 2 on each negative condition. Without
+# these, deleting the evaluate_* call from a cmd_* would leave the unit tests
+# green (they call evaluate_* directly). main() returns 2 on CampaignError.
+# --------------------------------------------------------------------------
+def _codex_cli_argv():
+    return ["probe-codex-isolation", "--runner-uid", "1000",
+            "--credential", "/runner/.credentials",
+            "--input", "/tmp/ws/tools/campaign_control.py",
+            "--input-dir", "/tmp/ws/.campaign-input",
+            "--output-dir", "/tmp/ws/.campaign-output"]
+
+
+def _fake_access(readable=(), writable=(), traversable=()):
+    def access(path, mode):
+        if mode == cc.os.R_OK:
+            return path in readable
+        if mode == cc.os.W_OK:
+            return path in writable
+        if mode == cc.os.X_OK:
+            return path in traversable
+        return False
+    return access
+
+
+def test_cli_runner_side_passes_when_canonical_owned(monkeypatch, capsys):
+    monkeypatch.setattr(cc.os.path, "exists", lambda p: True)
+    monkeypatch.setattr(cc.os, "stat", lambda p: types.SimpleNamespace(st_uid=1000))
+    rc = cc.main(["probe-runner-side", "--runner-uid", "1000",
+                  "--runner-root", "/runner", "--runner-temp", "/tmp"])
+    assert rc == 0
+    # the enumerated credential paths are emitted for the codex-side leg
+    assert "/runner/.credentials" in capsys.readouterr().out
+
+
+def test_cli_runner_side_returns_2_when_canonical_absent(monkeypatch):
+    monkeypatch.setattr(cc.os.path, "exists", lambda p: False)
+    rc = cc.main(["probe-runner-side", "--runner-uid", "1000",
+                  "--runner-root", "/runner", "--runner-temp", "/tmp"])
+    assert rc == 2  # fail-closed via evaluate_runner_side(probe-absent)
+
+
+def test_cli_runner_side_returns_2_when_wrong_owner(monkeypatch):
+    monkeypatch.setattr(cc.os.path, "exists", lambda p: True)
+    monkeypatch.setattr(cc.os, "stat", lambda p: types.SimpleNamespace(st_uid=2000))
+    rc = cc.main(["probe-runner-side", "--runner-uid", "1000",
+                  "--runner-root", "/runner", "--runner-temp", "/tmp"])
+    assert rc == 2  # probe-owner
+
+
+def test_cli_codex_isolation_passes_when_isolated(monkeypatch):
+    monkeypatch.setattr(cc.os, "getuid", lambda: 2000)  # distinct codex uid
+    monkeypatch.setattr(cc.os, "access", _fake_access(
+        readable=("/tmp/ws/tools/campaign_control.py",),
+        writable=("/tmp/ws/.campaign-output",)))  # /home/runner NOT traversable
+    assert cc.main(_codex_cli_argv()) == 0
+
+
+def test_cli_codex_isolation_returns_2_when_credential_readable(monkeypatch):
+    monkeypatch.setattr(cc.os, "getuid", lambda: 2000)
+    monkeypatch.setattr(cc.os, "access", _fake_access(
+        readable=("/tmp/ws/tools/campaign_control.py", "/runner/.credentials"),
+        writable=("/tmp/ws/.campaign-output",)))
+    assert cc.main(_codex_cli_argv()) == 2  # probe-readable
+
+
+def test_cli_codex_isolation_returns_2_when_home_traversable(monkeypatch):
+    monkeypatch.setattr(cc.os, "getuid", lambda: 2000)
+    monkeypatch.setattr(cc.os, "access", _fake_access(
+        readable=("/tmp/ws/tools/campaign_control.py",),
+        writable=("/tmp/ws/.campaign-output",),
+        traversable=(cc.RUNNER_HOME,)))
+    assert cc.main(_codex_cli_argv()) == 2  # probe-home-traversable
+
+
+def test_cli_codex_isolation_returns_2_when_same_uid(monkeypatch):
+    monkeypatch.setattr(cc.os, "getuid", lambda: 1000)  # == runner uid
+    monkeypatch.setattr(cc.os, "access", _fake_access(
+        readable=("/tmp/ws/tools/campaign_control.py",),
+        writable=("/tmp/ws/.campaign-output",)))
+    assert cc.main(_codex_cli_argv()) == 2  # probe-same-uid
+
+
+def test_cli_codex_isolation_returns_2_when_input_dir_writable(monkeypatch):
+    monkeypatch.setattr(cc.os, "getuid", lambda: 2000)
+    monkeypatch.setattr(cc.os, "access", _fake_access(
+        readable=("/tmp/ws/tools/campaign_control.py",),
+        writable=("/tmp/ws/.campaign-output", "/tmp/ws/.campaign-input")))
+    assert cc.main(_codex_cli_argv()) == 2  # probe-input-writable
 
 
 # --------------------------------------------------------------------------
@@ -898,6 +1010,25 @@ def test_tripwire_unprivileged_user_and_concrete_codex_user():
     assert "useradd" in _wf_text()
 
 
+def test_tripwire_codex_user_binds_env_and_action():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF (Sol F2): the user the action RUNS Codex as
+    (`codex-user`) is the SAME concrete non-runner user the provision + probe legs
+    use via `$CODEX_USER` (job env). Mutation-kill: changing the action
+    `codex-user` to `runner` (or any value != the provisioned/probed user) while
+    the probe still runs under codexsandbox -- which would run Codex at the runner
+    uid despite a green probe under another user."""
+    wf = _wf()
+    job = _job(wf, "codex")
+    env_user = job["env"]["CODEX_USER"]
+    action_user = _codex_action_step(job)["with"]["codex-user"]
+    assert env_user == action_user == "codexsandbox"
+    assert action_user != "runner"
+    # provision + probe legs use the SAME value via $CODEX_USER
+    code = _run_code(wf)
+    assert 'useradd -m "$CODEX_USER"' in code
+    assert 'sudo -u "$CODEX_USER"' in code
+
+
 def test_tripwire_exact_pins_and_codex_version():
     """TRIPWIRE - NOT BEHAVIORAL PROOF: exact R21 action pins + codex 0.147.0."""
     text = _wf_text()
@@ -960,6 +1091,10 @@ def test_tripwire_staged_inputs_world_readable():
     assert "useradd" in text
     assert 'chmod -R a+rX "$WS/tools" "$WS/.github"' in text  # isolated copies readable
     assert "chmod -R u+rX" not in text  # user-only would starve the codex uid
+    # the INPUT dir is read-only to the codex uid; only OUTPUT is writable (Sol F5)
+    assert 'chmod a+rX "$WS/.campaign-input"' in text
+    assert 'chmod a+rwx "$WS/.campaign-input"' not in text
+    assert 'chmod a+rwx "$WS/.campaign-output"' in text
 
 
 def test_tripwire_no_ancestor_or_home_traversal_grant():
@@ -1043,8 +1178,15 @@ def test_tripwire_r7_codex_leg_runs_as_codex_uid():
             "probe-codex-isolation") in run
     assert '--runner-uid "$RUNNER_UID"' in run   # tool fails closed on same-uid
     assert "--credential" in run                 # enumerated runner credentials
-    assert "--input" in run                      # positive isolated-input checks
-    assert "--output-dir" in run                 # positive output-writable check
+    # the EXACT four isolated public inputs are each enumerated (Sol F3: asserting
+    # only that "some --input exists" would let three of four be dropped silently)
+    for inp in ('--input "$WS/tools/campaign_control.py"',
+                '--input "$WS/.github/campaign/charge_prompt.md"',
+                '--input "$WS/.github/campaign/charge.schema.json"',
+                '--input "$WS/.campaign-input/event.json"'):
+        assert inp in run
+    assert '--input-dir "$WS/.campaign-input"' in run   # read-only input dir (F5)
+    assert '--output-dir "$WS/.campaign-output"' in run  # positive output-writable
 
 
 def test_tripwire_r7_before_codex_action():
@@ -1071,23 +1213,27 @@ def test_tripwire_r7_split_proof_is_fail_closed():
     proof through `mapfile < <(...)`."""
     run = _r7_step_run(_job(_wf(), "codex"))
     assert run is not None
-    assert "set -euo pipefail" in run
-    assert "|| :" not in run
-    assert "|| exit 0" not in run
+    # executable shell only, so a comment mentioning `|| true` cannot false-fail
+    code = "\n".join(ln for ln in run.splitlines() if not ln.lstrip().startswith("#"))
+    assert "set -euo pipefail" in code
+    assert "|| :" not in code
+    assert "|| exit 0" not in code
+    # ZERO status-masking anywhere in R7 (Sol F4): no `|| true`, and pgrep is NOT
+    # run inside a process substitution (which hides its exit from set -e).
+    assert "|| true" not in code
+    assert "< <(pgrep" not in code
+    # pgrep's exit code is captured explicitly and checked, then the array is
+    # populated from the successfully-captured output.
+    assert "PGREP_RC=$?" in run
+    assert '"$PGREP_RC" -ne 0' in run and '-z "$WORKER_PIDS_RAW"' in run
     # the runner-side proof is captured by a plain assignment, not a pipe that
-    # would swallow its exit code
+    # would swallow its exit code; an empty capture fails closed before mapfile
     assert "mapfile -t CRED_PATHS < <(python3" not in run
     assert 'CRED_PATHS_RAW="$(python3 tools/campaign_control.py probe-runner-side' in run
-    # the codex-side denial call is not status-masked
-    _after_codex = run.split("probe-codex-isolation", 1)[1]
-    assert "|| true" not in _after_codex
-    # the ONLY permitted `|| true` is the pgrep no-match guard (followed by a
-    # count check + exit 2); any second one is status masking
-    assert run.count("|| true") <= 1
-    assert "pgrep -x Runner.Worker || true" in run
+    assert '[ -n "$CRED_PATHS_RAW" ] ||' in run  # empty-capture guard (Sol F1)
     # every shell-level FAIL message is paired with a terminating exit 2
     fail_msgs = run.count("campaign-control: FAIL [")
-    assert fail_msgs >= 2  # probe-root, probe-temp
+    assert fail_msgs >= 3  # probe-root, probe-temp, probe-no-creds
     assert run.count("exit 2") >= fail_msgs
 
 
