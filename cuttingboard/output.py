@@ -1116,18 +1116,29 @@ def _invalidation_line(candidate: dict) -> Optional[str]:
 
 
 def _build_operator_lock_message(contract: PipelineContract) -> tuple[str, str]:
-    """PRD-304 R6: the daily OBSERVE-ONLY projection. Selected when the contract
-    carries the locked permission (baked in at the runtime entrypoint). Retains
-    only timestamp, regime NAME, and data-health; no symbol focus/candidate,
-    lean/bias, posture, READY/MONITOR, entry/trigger/invalidation, WATCH/PLAY, or
-    permission-to-trade phrase.
+    """PRD-304 R6 / PRD-305 R2: the daily OBSERVE-ONLY projection. Selected when
+    the contract carries the locked permission (baked in at the runtime
+    entrypoint). Mirrors the canonical projection
+    (notifications.formatter.format_operator_lock_projection): the title is
+    OPERATOR_LOCK_TITLE verbatim (timestamp carried in the body), and the body
+    retains ONLY the lock sentence, timestamp, regime NAME, and data-health. It
+    MUST NOT carry a symbol focus/candidate, lean/bias, setup posture, confidence,
+    READY/MONITOR, entry/trigger/invalidation, WATCH/PLAY, or any
+    permission-to-trade phrase — so it does NOT use _alert_context_line, which
+    emits regime|POSTURE|CONFIDENCE.
     """
-    hhmm = _alert_time(contract.get("generated_at") or "")
-    lines = [config.OPERATOR_LOCK_PERMISSION, "", _alert_context_line(contract)]
+    lines = [
+        config.OPERATOR_LOCK_PERMISSION,
+        "",
+        _alert_time(contract.get("generated_at") or ""),
+    ]
     regime_label = _alert_regime_label(contract)
     if regime_label:
         lines.append(f"Regime: {regime_label}")
-    return f"{config.OPERATOR_LOCK_TITLE} {hhmm}", "\n".join(lines)
+    data_quality = (contract.get("market_context") or {}).get("data_quality")
+    if data_quality:
+        lines.append(f"Data: {_compact_label(data_quality)}")
+    return config.OPERATOR_LOCK_TITLE, "\n".join(lines)
 
 
 def build_notification_message(contract: PipelineContract) -> tuple[str, str]:

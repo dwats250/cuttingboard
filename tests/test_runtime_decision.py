@@ -1610,3 +1610,74 @@ def test_r4_available_hourly_summary_count_same_analytical(monkeypatch, tmp_path
     captured = _setup_hourly_mocks(monkeypatch, tmp_path)
     runtime._execute_notify_run(runtime.MODE_FIXTURE, date.fromisoformat("2026-04-28"), NOTIFY_HOURLY)
     assert captured["summary"]["candidates_qualified"] == 1
+
+
+# ---------------------------------------------------------------------------
+# PRD-305 R1 — the persisted HOURLY contract carries the lock permission carrier
+# (PRD-304 threaded it into the summary/notification but not the contract, so the
+# hourly payload/HTML/dashboard derived from system_state.permission missed it).
+# ---------------------------------------------------------------------------
+
+from cuttingboard import config  # noqa: E402
+
+
+def test_prd305_locked_hourly_contract_carries_lock_permission(monkeypatch, tmp_path):
+    # R1: a locked hourly run's persisted contract carries the lock carrier in
+    # system_state.permission, and the payload built from that contract (the real
+    # hourly HTML/dashboard source) reflects it — not just the run summary.
+    monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "CANNOT_MONITOR")
+    captured = _setup_hourly_mocks(monkeypatch, tmp_path)
+    runtime._execute_notify_run(runtime.MODE_FIXTURE, date.fromisoformat("2026-04-28"), NOTIFY_HOURLY)
+    contract = captured["contract"]
+    assert contract["system_state"]["permission"] == _LOCK_PERMISSION
+    payload = build_report_payload(contract)
+    assert payload["summary"]["permission"] == _LOCK_PERMISSION
+
+
+def test_prd305_available_hourly_contract_not_locked(monkeypatch, tmp_path):
+    # Non-vacuity/parity anchor: without the lock the hourly contract does NOT
+    # carry the lock carrier — proving the R1 injection is conditional, not
+    # unconditional.
+    monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "AVAILABLE")
+    captured = _setup_hourly_mocks(monkeypatch, tmp_path)
+    runtime._execute_notify_run(runtime.MODE_FIXTURE, date.fromisoformat("2026-04-28"), NOTIFY_HOURLY)
+    assert captured["contract"]["system_state"].get("permission") != _LOCK_PERMISSION
+
+
+# ---------------------------------------------------------------------------
+# PRD-305 R2 — the daily lock NOTIFICATION (build_notification_message ->
+# _build_operator_lock_message) strips directional posture/confidence and uses
+# the canonical title verbatim. PRD-304 tested the Telegram formatter projection
+# but not this separate output.py builder, so the leak/title shipped green.
+# ---------------------------------------------------------------------------
+
+def test_prd305_locked_daily_notification_strips_posture_and_uses_canonical_title(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "CANNOT_MONITOR")
+    _actionable_run_setup(monkeypatch, tmp_path)
+    result = _run_fixture()
+    title, body = build_notification_message(result.contract)
+    # Canonical title verbatim — no appended timestamp (finding 3).
+    assert title == config.OPERATOR_LOCK_TITLE
+    # Lock sentence leads the body.
+    assert body.splitlines()[0] == _LOCK_PERMISSION
+    # No directional posture, confidence, or the regime|POSTURE|CONFIDENCE
+    # context line leaks (finding 2).
+    assert "AGGRESSIVE" not in body
+    assert "0.80" not in body
+    assert " | " not in body
+    # Permitted analytical field retained: regime NAME.
+    assert "RISK" in body
+
+
+def test_prd305_available_daily_notification_exposes_posture_anchor(monkeypatch, tmp_path):
+    # Non-vacuity anchor: the SAME fixture, unlocked, DOES surface the directional
+    # context line (posture + confidence) the locked assertions require be absent,
+    # so those assertions are meaningful rather than vacuous.
+    monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "AVAILABLE")
+    _actionable_run_setup(monkeypatch, tmp_path)
+    result = _run_fixture()
+    _title, body = build_notification_message(result.contract)
+    assert " | " in body
+    assert "AGGRESSIVE" in body
