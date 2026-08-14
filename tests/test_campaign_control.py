@@ -967,6 +967,32 @@ def test_tripwire_preflight_requires_distinct_uid():
     assert "preflight-uid" in run
 
 
+def test_tripwire_r7_preflight_is_fail_closed():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF (R7 correction): the preflight is
+    fail-closed -- `set -euo pipefail`, no status masking, and a terminating
+    `exit 2` on every failure branch. Mutation-kills: appending `|| true` (or
+    equivalent) to the probe to mask a failed credential-denial, and removing any
+    required `exit 2`."""
+    run = None
+    for s in _steps(_job(_wf(), "codex")):
+        if "probe-isolation" in (s.get("run") or ""):
+            run = s["run"]
+    assert run is not None
+    assert "set -euo pipefail" in run
+    # the credential-denial probe invocation is NOT status-masked
+    assert '--runner-temp "$RUNNER_TEMP" || ' not in run
+    assert "|| :" not in run
+    assert "|| exit 0" not in run
+    # the ONLY permitted `|| true` is the pgrep no-match guard (immediately
+    # followed by a count check + exit 2); any second one is status masking
+    assert run.count("|| true") <= 1
+    assert "pgrep -x Runner.Worker || true" in run
+    # every fixed FAIL message is paired with a terminating exit 2
+    fail_msgs = run.count("campaign-control: FAIL [")
+    assert fail_msgs >= 5  # preflight-uid, -read, -write, probe-root, probe-temp
+    assert run.count("exit 2") >= fail_msgs
+
+
 def test_tripwire_marker_present_on_every_tripwire_test():
     """TRIPWIRE - NOT BEHAVIORAL PROOF: meta-test -- the marker stays machine-visible."""
     mod = sys.modules[__name__]
