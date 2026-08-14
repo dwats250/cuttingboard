@@ -1853,10 +1853,15 @@ def _render_level_diagram(
 
 def _render_candidate_card(
     w: object, sym: str, entry: dict, contract_entry: float | None = None,
-    contract_stop: float | None = None,
+    contract_stop: float | None = None, operator_locked: bool = False,
 ) -> None:
+    # PRD-304 R7: under lock the card keeps every analytical observation (symbol,
+    # grade letter, bias, structure, price/level context, invalidation content,
+    # reasoning, watch) but omits the action directives IF NOW and PLAY and drops
+    # the actionability accent class from the IN/OUT levels (neutral styling).
     grade = entry.get("grade") or ""
     css_class = _GRADE_CSS.get(grade, "unknown")
+    _val_cls = "value-key" if operator_locked else "value-key value-actionable"
     is_high = grade in _HIGH_GRADES
 
     lifecycle: dict | None = entry.get("lifecycle")
@@ -1907,7 +1912,7 @@ def _render_candidate_card(
         # PRD-249: the verdict is the card's headline answer — render it first,
         # immediately under the header, not buried below the identity/lifecycle.
         if_now = tf.get("if_now")
-        if if_now is not None:
+        if if_now is not None and not operator_locked:  # PRD-304 R7: action directive omitted under lock
             w(f'  <div class="label">IF NOW</div><div class="value">{_esc(if_now)}</div>')
 
         # PRD-249: render the lifecycle line only on a REAL transition. A no-op
@@ -1932,7 +1937,7 @@ def _render_candidate_card(
         # INVALIDATION→"OUT →" (one couplet) and drops the standalone RISK line.
         entry_val = tf.get("entry")
         if entry_val is not None:
-            w(f'  <div class="label">IN →</div><div class="value-key value-actionable">{_esc(entry_val)}</div>')
+            w(f'  <div class="label">IN →</div><div class="{_val_cls}">{_esc(entry_val)}</div>')
 
         # PRD-249 review advisory: trade_framing.downgrade restated the
         # invalidation's PRICE clause but carried one extra clause the couplet
@@ -1949,7 +1954,7 @@ def _render_candidate_card(
                 structural = downgrade.split(" or ", 1)[1].strip()
                 if structural and structural not in invalidation[0]:
                     out_text = f"{out_text}, or {_esc(structural)}"
-            w(f'  <div class="label">OUT →</div><div class="value-key value-actionable">{out_text}</div>')
+            w(f'  <div class="label">OUT →</div><div class="{_val_cls}">{out_text}</div>')
 
         # PRD-215/PRD-249: REASON/PLAY/WATCH are supporting context — tuck them
         # behind a default-collapsed disclosure so the accented couplet stays the
@@ -1965,7 +1970,7 @@ def _render_candidate_card(
             w('  <details class="card-detail"><summary>DETAIL ▶</summary>')
             if reason is not None:
                 w(f'  <div class="label">REASON</div><div class="value">{_esc(reason)}</div>')
-            if pts is not None:
+            if pts is not None and not operator_locked:  # PRD-304 R7: PLAY directive omitted under lock
                 w(f'  <div class="label">PLAY</div><div class="value">{_esc(pts)}</div>')
             if _watch_items:
                 _watch_joined = "; ".join(_esc(item) for item in _watch_items)
@@ -2139,6 +2144,12 @@ def render_dashboard_html(
     permission = run.get("permission")
     if permission is None:
         permission = payload.get("summary", {}).get("permission")
+    # PRD-304 R7: the operator lock is visible in the existing permission field.
+    # Under lock the dashboard keeps all analytical observations but replaces
+    # every permission/action vocabulary token (see the OPERATOR LOCK marker,
+    # A+ — OBSERVATION ONLY, SETUPS FOUND, and the suppressed IF NOW/PLAY/accents
+    # below). A system halt keeps its own permission string, so this is False then.
+    operator_locked = permission == config.OPERATOR_LOCK_PERMISSION
     title = "MIXED_ARTIFACTS" if artifact_mixed else _decision_title(outcome, bool(system_halted), status)
 
     # R1 — tape slots
@@ -2350,10 +2361,15 @@ def render_dashboard_html(
             _decision_state, _decision_state_cls = "STAY FLAT", _verdict_cls
     except Exception:
         _decision_state, _decision_state_cls = "STATE UNAVAILABLE", "sys-flat"
+    # PRD-304 R7: under the operator lock, the decision-state and the permission
+    # verb both carry the lock marker instead of any trade-permission vocabulary.
+    if operator_locked:
+        _decision_state = "OBSERVE ONLY"
+    _verb_text = "OPERATOR LOCK — CANNOT MONITOR" if operator_locked else regime_permission_text
     w('  <div class="decision-state-label">DECISION STATE</div>')
     w(f'  <div class="decision-state {_decision_state_cls}">{_esc(_decision_state)}</div>')
     w(f'  <div class="sys-verdict {_verdict_cls}">'
-      f'{_esc(regime_permission_text)} · {_esc(title)}</div>')
+      f'{_esc(_verb_text)} · {_esc(title)}</div>')
     # Context line: regime in plain words. PRD-281: the trader-facing reason
     # ("why") moved to its own dedicated .sys-why line below.
     _regime_plain = _SYS_REGIME_PLAIN.get(
@@ -2540,7 +2556,9 @@ def render_dashboard_html(
         w('  <h2>OPPORTUNITY SURVIVAL</h2>')
         w('  <div class="kv-grid">')
         w(f'    <div class="label">SURFACED</div><div class="value">{_os_surfaced_n}</div>')
-        w(f'    <div class="label">QUALIFIED</div><div class="value">{_os_qualified_n}</div>')
+        # PRD-304 R7: analytical count unchanged; relabelled SETUPS FOUND under lock.
+        _os_qual_label = "SETUPS FOUND" if operator_locked else "QUALIFIED"
+        w(f'    <div class="label">{_os_qual_label}</div><div class="value">{_os_qualified_n}</div>')
         w(f'    <div class="label">WATCHLIST</div><div class="value">{_os_watchlist_n}</div>')
         w(f'    <div class="label">REJECTED</div><div class="value">{_os_rejected_n}</div>')
         if _os_primary is not None:
@@ -3010,18 +3028,28 @@ def render_dashboard_html(
                     tier_syms = [s for s in sorted_syms if symbols[s].get("grade", "") in tier_grades]
                     if not tier_syms:
                         continue
+                    # PRD-304 R7: under lock the A+ tier reads OBSERVATION ONLY,
+                    # never ACTIONABLE; the grade letter itself is analytical and
+                    # preserved. _TIER_DEFS is shared, so substitute the label
+                    # locally rather than mutating the tuple.
+                    _tier_label = (
+                        "A+ — OBSERVATION ONLY"
+                        if operator_locked and tier_id == "aplus"
+                        else tier_label
+                    )
                     is_low_tier = tier_grades.isdisjoint(_HIGH_GRADES)
                     if is_low_tier:
                         w(f'  <details class="tier-group" id="tier-{tier_id}">')
-                        w(f'    <summary class="tier-header">{_esc(tier_label)} ({len(tier_syms)})</summary>')
+                        w(f'    <summary class="tier-header">{_esc(_tier_label)} ({len(tier_syms)})</summary>')
                     else:
                         w(f'  <div class="tier-group" id="tier-{tier_id}">')
-                        w(f'    <div class="tier-header">{_esc(tier_label)} ({len(tier_syms)})</div>')
+                        w(f'    <div class="tier-header">{_esc(_tier_label)} ({len(tier_syms)})</div>')
                     for sym in tier_syms:
                         _render_candidate_card(
                             w, sym, symbols[sym],
                             contract_entry=(contract_entry_map or {}).get(sym),
                             contract_stop=(contract_stop_map or {}).get(sym),
+                            operator_locked=operator_locked,
                         )
                     if is_low_tier:
                         w("  </details>")

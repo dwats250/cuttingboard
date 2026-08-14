@@ -1347,3 +1347,97 @@ def test_m11_card_persists_additively_contract_and_audit_byte_unchanged(monkeypa
     assert with_art["audit"] == without_art["audit"]
     assert "market_control_card" not in with_art["contract"]
     assert "market_control_card" not in with_art["audit"]
+
+
+# ---------------------------------------------------------------------------
+# PRD-304 R3/R4/R5/R10 — operator-availability lock, end-to-end (daily pipeline)
+# ---------------------------------------------------------------------------
+
+_LOCK_PERMISSION = "No new trades permitted — operator cannot monitor."
+
+
+def _actionable_run_setup(monkeypatch, tmp_path):
+    """Mock an otherwise-actionable SPY run (mirrors
+    test_runtime_outcome_uses_trade_decision_status): a tradable ALLOW_TRADE
+    decision under NEUTRAL macro pressure. Absent the lock this yields
+    OUTCOME_TRADE; under lock every allow becomes an operator block."""
+    _setup_runtime_mocks(monkeypatch, tmp_path)
+    monkeypatch.setattr(runtime, "_compute_overall_pressure", lambda quotes: "NEUTRAL")
+    monkeypatch.setattr(runtime, "_fixture_chain_results", lambda setups: {
+        "SPY": ChainValidationResult(
+            symbol="SPY", classification=MANUAL_CHECK,
+            reason="fixture mode skips live chain validation",
+            spread_pct=None, open_interest=None, volume=None,
+            expiry_used=None, data_source=None,
+        )
+    })
+    monkeypatch.setattr(runtime, "create_trade_decision", lambda *a, **k: runtime.TradeDecision(
+        ticker="SPY", direction="LONG", status=ALLOW_TRADE, entry=100.0, stop=97.0,
+        target=106.0, r_r=2.0, contracts=2, dollar_risk=150.0, block_reason=None,
+    ))
+
+
+def _run_fixture():
+    return runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+
+
+def test_operator_lock_run_blocks_and_suppresses(monkeypatch, tmp_path):
+    # R3/R4/R5: explicit CANNOT_MONITOR forces the otherwise-actionable run to a
+    # zero-actionable NO_TRADE with the operator block, empty top_trades, and the
+    # locked permission carrier; analytical tradable is preserved.
+    monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "CANNOT_MONITOR")
+    _actionable_run_setup(monkeypatch, tmp_path)
+    result = _run_fixture()
+
+    assert result.outcome == runtime.OUTCOME_NO_TRADE                          # R4
+    cand = result.contract["trade_candidates"][0]
+    assert cand["decision_status"] == BLOCK_TRADE                              # R3
+    assert cand["block_reason"] == "operator_cannot_monitor"                   # R3
+    ss = result.contract["system_state"]
+    assert ss["permission"] == _LOCK_PERMISSION                                # R5
+    assert isinstance(ss["tradable"], bool)                                    # R8: analytical fact preserved
+    # R4: no actionable candidate survives into the delivery projection.
+    payload = build_report_payload(result.contract)
+    assert payload["sections"]["top_trades"] == []
+
+
+def test_operator_lock_absence_fails_closed(monkeypatch, tmp_path):
+    # R10/I3: absence is LOCKED, not compatible-open. delenv defeats the
+    # suite-wide AVAILABLE default so the production fail-closed path is exercised.
+    monkeypatch.delenv("CB_OPERATOR_AVAILABILITY", raising=False)
+    _actionable_run_setup(monkeypatch, tmp_path)
+    result = _run_fixture()
+
+    assert result.outcome == runtime.OUTCOME_NO_TRADE
+    assert result.contract["trade_candidates"][0]["block_reason"] == "operator_cannot_monitor"
+    assert result.contract["system_state"]["permission"] == _LOCK_PERMISSION
+
+
+def test_operator_available_reproduces_actionable(monkeypatch, tmp_path):
+    # R10: explicit AVAILABLE reproduces the pre-PRD actionable outcome exactly.
+    monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "AVAILABLE")
+    _actionable_run_setup(monkeypatch, tmp_path)
+    result = _run_fixture()
+
+    assert result.outcome == runtime.OUTCOME_TRADE
+    assert result.contract["trade_candidates"][0]["decision_status"] == ALLOW_TRADE
+    assert result.contract["system_state"]["permission"] != _LOCK_PERMISSION
+
+
+def test_operator_lock_preserves_analytical_qualified_count(monkeypatch, tmp_path):
+    # R4: the contract's analytical qualified_count is unchanged by the lock
+    # (it is pre-policy). Compare the AVAILABLE and locked runs directly.
+    monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "AVAILABLE")
+    _actionable_run_setup(monkeypatch, tmp_path)
+    available = _run_fixture()
+    monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "CANNOT_MONITOR")
+    _actionable_run_setup(monkeypatch, tmp_path)
+    locked = _run_fixture()
+    assert (
+        locked.contract["audit_summary"]["qualified_count"]
+        == available.contract["audit_summary"]["qualified_count"]
+    )

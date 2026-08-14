@@ -535,6 +535,10 @@ def _execute_notify_run(
     and returns a minimal status dict. Does not write markdown or summary JSON.
     """
     date_str = run_date.isoformat()
+    # PRD-304 R2: resolve the operator-availability lock EXACTLY ONCE at the
+    # hourly/qualify-only entrypoint and thread the frozen value into the
+    # notification and summary builders; no consumer re-reads the environment.
+    operator_locked = config.is_operator_locked(config.resolve_operator_availability())
     # PRD-181: wall-clock ET drives the SHORT gate's open-window decision.
     now_et = time_utils.convert_utc_to_et(datetime.now(timezone.utc))
     # PRD-278 R1: defined before the try so it exists at every summary/contract
@@ -664,6 +668,7 @@ def _execute_notify_run(
                 candidate_lines=candidate_lines,
                 halt_reason=validation_summary.halt_reason if validation_summary.system_halted else None,
                 normalized_quotes=normalized_quotes,
+                operator_locked=operator_locked and not validation_summary.system_halted,
             )
         else:
             alert_title, alert_body = format_notification(
@@ -677,6 +682,7 @@ def _execute_notify_run(
                 qualification_summary=qualification_summary,
                 normalized_quotes=normalized_quotes,
                 outcome=OUTCOME_NO_TRADE,
+                operator_locked=operator_locked and not validation_summary.system_halted,
             )
 
         alert_sent = False
@@ -722,6 +728,7 @@ def _execute_notify_run(
                 normalized_quotes=normalized_quotes,
                 slot_utc=slot_utc,
                 kill_switch=hourly_kill_switch,
+                operator_locked=operator_locked and not validation_summary.system_halted,
             )
             _write_hourly_artifacts(summary, contract)
             try:
@@ -2287,6 +2294,7 @@ def _build_hourly_run_summary(
     normalized_quotes: dict[str, NormalizedQuote],
     slot_utc: Optional[datetime] = None,
     kill_switch: bool = False,
+    operator_locked: bool = False,
 ) -> dict[str, Any]:
     regime_name, posture, confidence, net_score = _summary_regime_fields(regime)
     generation_id = _generation_id("hourly", run_at_utc, None)
@@ -2342,6 +2350,8 @@ def _build_hourly_run_summary(
         "permission": (
             "No trades permitted. System halted."
             if validation_summary is not None and validation_summary.system_halted
+            else config.OPERATOR_LOCK_PERMISSION
+            if operator_locked
             else _PERMISSION_LINES.get(posture, "No new trades permitted.")
         ),
         "data_status": _data_status(mode, raw_quotes, normalized_quotes, fixture_file=None),

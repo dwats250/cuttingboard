@@ -1089,9 +1089,30 @@ def _invalidation_line(candidate: dict) -> Optional[str]:
     return f"close below stop {stop}"
 
 
+def _build_operator_lock_message(contract: PipelineContract) -> tuple[str, str]:
+    """PRD-304 R6: the daily OBSERVE-ONLY projection. Selected when the contract
+    carries the locked permission (baked in at the runtime entrypoint). Retains
+    only timestamp, regime NAME, and data-health; no symbol focus/candidate,
+    lean/bias, posture, READY/MONITOR, entry/trigger/invalidation, WATCH/PLAY, or
+    permission-to-trade phrase.
+    """
+    hhmm = _alert_time(contract.get("generated_at") or "")
+    lines = [config.OPERATOR_LOCK_PERMISSION, "", _alert_context_line(contract)]
+    regime_label = _alert_regime_label(contract)
+    if regime_label:
+        lines.append(f"Regime: {regime_label}")
+    return f"{config.OPERATOR_LOCK_TITLE} {hhmm}", "\n".join(lines)
+
+
 def build_notification_message(contract: PipelineContract) -> tuple[str, str]:
     """Return a compact execution alert derived from the canonical contract."""
     status = contract.get("status") or ""
+    # PRD-304 R6: the operator lock (baked into system_state.permission at the
+    # runtime entrypoint) bypasses the action formatter. A system halt wins: it
+    # sets the halt permission string instead, so this branch is not taken.
+    ss_perm = (contract.get("system_state") or {}).get("permission")
+    if ss_perm == config.OPERATOR_LOCK_PERMISSION:
+        return _build_operator_lock_message(contract)
     outcome = contract.get("outcome")
     generated_at = contract.get("generated_at") or ""
     hhmm = _alert_time(generated_at)

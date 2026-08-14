@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from cuttingboard import config
 from cuttingboard.delivery.payload import assert_valid_payload
 
 _DEFAULT_HTML_PATH = "reports/output/report.html"
@@ -51,6 +52,11 @@ def deliver_cli(payload: dict) -> None:
     print(f"STATUS:          {payload.get('run_status')}")
     print(f"MARKET_REGIME:   {summary.get('market_regime')}")
     print(f"TRADABLE:        {summary.get('tradable')}")
+    # PRD-304 R8: under the operator lock, render OBSERVATION ONLY. The analytical
+    # TRADABLE fact above is preserved (the lock does not falsify it); this line
+    # asserts the locked-consumer precedence so the CLI never reads as actionable.
+    if summary.get("permission") == config.OPERATOR_LOCK_PERMISSION:
+        print("EXECUTION:       OBSERVATION ONLY")
     print(f"ROUTER_MODE:     {summary.get('router_mode')}")
     print(f"SYMBOLS_SCANNED: {meta.get('symbols_scanned')}")
     print(f"TOP_TRADES:      {len(sections.get('top_trades', []))}")

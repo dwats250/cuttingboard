@@ -695,3 +695,40 @@ def test_publish_workflow_restores_regime_history_before_aggregate(workflow: str
         f"{workflow} restores regime_history.jsonl AFTER the aggregate step; "
         "preserve-prior needs the published prior restored first (PRD-204)."
     )
+
+
+# ---------------------------------------------------------------------------
+# PRD-304 R2 — all three runtime workflows relay CB_OPERATOR_AVAILABILITY
+# ---------------------------------------------------------------------------
+
+_OPERATOR_RELAY = "CB_OPERATOR_AVAILABILITY: ${{ vars.CB_OPERATOR_AVAILABILITY }}"
+
+
+@pytest.mark.parametrize(
+    "workflow",
+    ["cuttingboard.yml", "hourly_alert.yml", "dashboard_preview.yml"],
+)
+def test_workflow_relays_operator_availability(workflow: str) -> None:
+    # PRD-304 R2: each runtime workflow must relay the repository variable into
+    # the runtime env, or the runtime sees it unset (which fail-closes to
+    # CANNOT_MONITOR — breaking the intended AVAILABLE operation).
+    text = (REPO_ROOT / ".github" / "workflows" / workflow).read_text(encoding="utf-8")
+    assert _OPERATOR_RELAY in text, (
+        f"{workflow} does not relay {_OPERATOR_RELAY!r}; the operator-availability "
+        "lock would fail-close because the runtime never receives the variable."
+    )
+
+
+def test_all_relay_workflows_parse_and_declare_env() -> None:
+    import yaml
+    for workflow in ("cuttingboard.yml", "hourly_alert.yml", "dashboard_preview.yml"):
+        doc = yaml.safe_load((REPO_ROOT / ".github" / "workflows" / workflow).read_text(encoding="utf-8"))
+        assert doc is not None, f"{workflow} failed to parse"
+        # The relay lives on a job-level env block; assert at least one job env
+        # carries the variable so a relay hidden in a comment does not pass.
+        jobs = doc.get("jobs") or {}
+        found = any(
+            (job.get("env") or {}).get("CB_OPERATOR_AVAILABILITY") == "${{ vars.CB_OPERATOR_AVAILABILITY }}"
+            for job in jobs.values()
+        )
+        assert found, f"{workflow} has no job-level CB_OPERATOR_AVAILABILITY env relay"

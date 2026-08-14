@@ -1,4 +1,5 @@
 from __future__ import annotations
+from cuttingboard import config
 from cuttingboard.contract_types import PipelineContract
 
 _VOLATILITY_STATE: dict[str, str] = {
@@ -329,6 +330,11 @@ def build_premarket_report(contract: PipelineContract, levels: dict | None = Non
     tradable: bool = bool(ss.get("tradable", False))
     stay_flat_reason: str | None = ss.get("stay_flat_reason")
     status: str = contract.get("status") or ""
+    # PRD-304 R8: the operator lock is visible in the existing permission field.
+    # Under lock the report keeps market facts but drops execution focus/permission
+    # language, carrying one operator-lock statement instead. `tradable` remains
+    # the analytical fact (unchanged).
+    operator_locked: bool = ss.get("permission") == config.OPERATOR_LOCK_PERMISSION
 
     volatility_state: str | None = _VOLATILITY_STATE.get(market_regime) if market_regime else None
     correlation_state: str | None = correlation.get("state") if correlation else None
@@ -341,7 +347,8 @@ def build_premarket_report(contract: PipelineContract, levels: dict | None = Non
     scenarios = _generate_scenarios(market_regime, gap_direction, _levels)
 
     candidates = contract.get("trade_candidates") or []
-    focus_list = [
+    # PRD-304 R8: under lock the report carries no candidate/execution focus.
+    focus_list = [] if operator_locked else [
         {
             "symbol": c.get("symbol") or "",
             "bias": c.get("direction") or "",
@@ -351,7 +358,9 @@ def build_premarket_report(contract: PipelineContract, levels: dict | None = Non
     ]
 
     invalidation = _generate_invalidation(market_regime, gap_direction, scenarios)
-    if not tradable and stay_flat_reason:
+    if operator_locked:
+        invalidation.insert(0, "Operator lock — observation only; no new trades while the operator cannot monitor.")
+    elif not tradable and stay_flat_reason:
         invalidation.insert(0, f"System stay-flat: {stay_flat_reason}")
     elif not tradable:
         invalidation.insert(0, "Tradable == False: no entries permitted this session")

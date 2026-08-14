@@ -21,6 +21,13 @@ jobs:
   preview:
     runs-on: ubuntu-latest
 
+    env:
+      # PRD-304: relay the operator-availability repository variable so the
+      # pre-merge preview renders the same locked/available dashboard the live
+      # runtime would. Absence resolves CANNOT_MONITOR (fail-closed). Pass-through
+      # only — no new job, secret, or push target.
+      CB_OPERATOR_AVAILABILITY: ${{ vars.CB_OPERATOR_AVAILABILITY }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6

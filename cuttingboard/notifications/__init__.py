@@ -26,6 +26,7 @@ from .formatter import (
     LOCAL_TZ,
     OUTCOME_TRADE,
     _ET_TZ,
+    format_operator_lock_projection,
     format_telegram_alert,
     NOTIFY_HOURLY,
 )
@@ -436,6 +437,7 @@ def format_notification(
     outcome: str = "NO_TRADE",
     halt_reason: Optional[str] = None,
     market_map: Optional[dict[str, Any]] = None,
+    operator_locked: bool = False,
     **_: object,
 ) -> tuple[str, str]:
     """Return compact (title, body) for ntfy."""
@@ -451,8 +453,13 @@ def format_notification(
         qualification_summary=qualification_summary,
         watch_summary=watch_summary,
         halt_reason=halt_reason,
+        operator_locked=operator_locked,
     )
     title, body = format_telegram_alert(event)
+    # PRD-304 R6: under lock, do not append lifecycle/action alerts to the
+    # OBSERVE-ONLY projection.
+    if operator_locked:
+        return title, body
     return title, _append_lifecycle_alerts(body, market_map, asof_utc)
 
 
@@ -467,6 +474,7 @@ def format_run_alert(
     halt_reason: Optional[str] = None,
     notify_mode: Optional[str] = None,
     market_map: Optional[dict[str, Any]] = None,
+    operator_locked: bool = False,
     **_: object,
 ) -> tuple[str, str]:
     """Format the default live/sunday ntfy alert from pipeline state."""
@@ -480,8 +488,11 @@ def format_run_alert(
         qualification_summary=qualification_summary,
         watch_summary=watch_summary,
         halt_reason=halt_reason,
+        operator_locked=operator_locked,
     )
     title, body = format_telegram_alert(event)
+    if operator_locked:
+        return title, body
     return title, _append_lifecycle_alerts(body, market_map, run_at_utc)
 
 
@@ -514,8 +525,19 @@ def format_hourly_notification(
     market_map: Optional[dict[str, Any]] = None,
     canonical_outcome: Optional[str] = None,
     normalized_quotes: Optional[dict[str, NormalizedQuote]] = None,
+    operator_locked: bool = False,
 ) -> tuple[str, str]:
     del halt_reason
+    # PRD-304 R6: under lock the hourly action title/focus/lean/posture formatter
+    # is bypassed for the dedicated OBSERVE-ONLY projection (no lifecycle append).
+    # The caller passes operator_locked already gated on "not system_halted", so
+    # halt permission continues to win.
+    if operator_locked:
+        return format_operator_lock_projection(
+            asof_utc=asof_utc,
+            regime=regime,
+            validation_summary=validation_summary,
+        )
     pt = _pt_clock(asof_utc)
     parsed = tuple(
         parsed_line

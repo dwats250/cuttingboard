@@ -1,4 +1,5 @@
 from __future__ import annotations
+from cuttingboard import config
 from cuttingboard.contract_types import PipelineContract
 
 
@@ -135,6 +136,12 @@ def build_postmarket_report(
     tradable: bool = bool(ss.get("tradable", False))
     stay_flat_reason: str | None = ss.get("stay_flat_reason")
     status: str = contract.get("status") or ""
+    # PRD-304 R4/R8: under the operator lock (visible in the existing permission
+    # field) the qualification count is analytical and unchanged, but it is
+    # described as "met analytical qualification", never "qualified for
+    # execution"; execution/permission language is dropped in favor of one
+    # operator-lock statement. `tradable` and `qualified_count` are unchanged.
+    operator_locked: bool = ss.get("permission") == config.OPERATOR_LOCK_PERMISSION
 
     # PRD-265 R4: a BOUNDED prior run is coverage, not market evidence -- drop it
     # from the pool used for both EVR classification and persisted/flipped below.
@@ -188,8 +195,16 @@ def build_postmarket_report(
 
     if qualified_count == 0:
         observations.append("No trade candidates qualified this run")
+    elif operator_locked:
+        # R4: analytical count unchanged; never "qualified for execution".
+        observations.append(f"{qualified_count} candidate(s) met analytical qualification")
     else:
         observations.append(f"{qualified_count} candidate(s) qualified for execution")
+
+    if operator_locked:
+        observations.append(
+            "Operator lock — observation only; no new trades while the operator cannot monitor."
+        )
 
     if correlation:
         corr_state = correlation.get("state")

@@ -47,6 +47,10 @@ VALID_PERMISSION_VALUES = frozenset({
     "No new trades permitted.",
     "EXPANSION — momentum allowed. Continuation entries. R:R >= 1.5.",
     "No trades permitted. System halted.",
+    # PRD-304: the operator-availability lock permission carrier (R9). The gate
+    # shape is unchanged; this admits exactly one additional value and continues
+    # to reject anything not in this frozenset.
+    "No new trades permitted — operator cannot monitor.",
 })
 VALID_PERMISSION_UNAVAILABLE_REASONS = frozenset()  # EMPTY — total producer
 VALID_EVENT_UNAVAILABLE_REASONS = frozenset({"event_schedule_unavailable"})
