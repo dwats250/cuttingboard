@@ -535,6 +535,10 @@ def _execute_notify_run(
     and returns a minimal status dict. Does not write markdown or summary JSON.
     """
     date_str = run_date.isoformat()
+    # PRD-304 R2: resolve the operator-availability lock EXACTLY ONCE at the
+    # hourly/qualify-only entrypoint and thread the frozen value into the
+    # notification and summary builders; no consumer re-reads the environment.
+    operator_locked = config.is_operator_locked(config.resolve_operator_availability())
     # PRD-181: wall-clock ET drives the SHORT gate's open-window decision.
     now_et = time_utils.convert_utc_to_et(datetime.now(timezone.utc))
     # PRD-278 R1: defined before the try so it exists at every summary/contract
@@ -664,6 +668,7 @@ def _execute_notify_run(
                 candidate_lines=candidate_lines,
                 halt_reason=validation_summary.halt_reason if validation_summary.system_halted else None,
                 normalized_quotes=normalized_quotes,
+                operator_locked=operator_locked and not validation_summary.system_halted,
             )
         else:
             alert_title, alert_body = format_notification(
@@ -677,6 +682,7 @@ def _execute_notify_run(
                 qualification_summary=qualification_summary,
                 normalized_quotes=normalized_quotes,
                 outcome=OUTCOME_NO_TRADE,
+                operator_locked=operator_locked and not validation_summary.system_halted,
             )
 
         alert_sent = False
@@ -722,6 +728,7 @@ def _execute_notify_run(
                 normalized_quotes=normalized_quotes,
                 slot_utc=slot_utc,
                 kill_switch=hourly_kill_switch,
+                operator_locked=operator_locked and not validation_summary.system_halted,
             )
             _write_hourly_artifacts(summary, contract)
             try:
@@ -848,12 +855,17 @@ def _run_decision_gates(
     date_str: str,
     intraday_metrics: dict[str, Any],
     normalized_quotes: dict,
+    operator_locked: bool = False,
 ) -> tuple[list[TradeDecision], dict, dict, dict, str, str]:
     """PRD-236: the five-gate decision chain, extracted verbatim from
     _run_pipeline. Materializes trade decisions from setups, threads them
     through execution policy -> thesis -> invalidation -> entry quality,
     and derives the PRD-162 actionable-outcome. With no setups the chain
     is skipped and the defaults below flow through unchanged.
+
+    PRD-304: ``operator_locked`` (resolved once at the entrypoint) forces every
+    otherwise-ALLOW decision to BLOCK_TRADE at EXECUTION_POLICY, so the
+    downstream outcome (NO_TRADE) and post-policy count (0) fall out for free.
     """
     trade_decisions: list[TradeDecision] = []
     overall_pressure = "UNKNOWN"
@@ -899,6 +911,7 @@ def _run_decision_gates(
                 intraday_metrics,
             ),
             overall_pressure=overall_pressure,
+            operator_locked=operator_locked,
         )
         trade_decisions, thesis_map = apply_thesis_gate(
             trade_decisions,
@@ -967,6 +980,7 @@ def _build_and_finalize_contract(
     fixture_file: Optional[Path],
     fixture_backed: bool,
     notify_mode: str,
+    operator_locked: bool = False,
 ) -> tuple[dict[str, Any], bool]:
     """PRD-236: contract build + every post-build runtime mutation,
     extracted verbatim from _run_pipeline — the injection cluster the
@@ -1013,6 +1027,10 @@ def _build_and_finalize_contract(
     _ss_perm = _PERMISSION_LINES.get(_ss_posture_label, "No new trades permitted.")
     if validation_summary.system_halted:
         _ss_perm = "No trades permitted. System halted."
+    elif operator_locked:
+        # PRD-304 R5: the locked permission carrier. System-halt permission
+        # continues to win (the halt branch above precedes this).
+        _ss_perm = config.OPERATOR_LOCK_PERMISSION
     contract["system_state"]["outcome"] = outcome
     contract["system_state"]["permission"] = _ss_perm
     contract["system_state"]["reason"] = contract["system_state"].get("stay_flat_reason")
@@ -1100,6 +1118,11 @@ def _run_pipeline(
     date_str = run_date.isoformat()
     warnings: list[str] = []
     errors: list[str] = []
+
+    # PRD-304: resolve the operator-availability lock EXACTLY ONCE per run at the
+    # entrypoint (R2) and thread the frozen value to the policy, contract, and
+    # summary builders; no downstream consumer re-reads the environment.
+    operator_locked = config.is_operator_locked(config.resolve_operator_availability())
 
     now_et = time_utils.convert_utc_to_et(run_at_utc)
     _log_time_diagnostics(run_at_utc, now_et)
@@ -1288,6 +1311,7 @@ def _run_pipeline(
                 date_str=date_str,
                 intraday_metrics=intraday_metrics,
                 normalized_quotes=normalized_quotes,
+                operator_locked=operator_locked,
             )
 
     market_map = build_market_map(
@@ -1343,6 +1367,7 @@ def _run_pipeline(
         option_refusals=option_refusals,
         materialized_sizing=materialized_sizing,
         size_blocked=size_blocked,
+        operator_locked=operator_locked,
     )
     _write_markdown_report(report, date_str, "NOT RUN")
     report_path = str(REPORTS_DIR / f"{date_str}.md")
@@ -1376,6 +1401,7 @@ def _run_pipeline(
         fixture_file=fixture_file,
         fixture_backed=fixture_backed,
         notify_mode=notify_mode,
+        operator_locked=operator_locked,
     )
 
     # PRD-296: emit the FAIL-owned ownership signal HERE, immediately after the send and BEFORE
@@ -1457,6 +1483,7 @@ def _run_pipeline(
         errors=errors,
         fixture_file=fixture_file,
         outcome=outcome,
+        operator_locked=operator_locked,
     )
 
     # PRD-123: refresh trend_structure_snapshot.json on every MODE_LIVE
@@ -1575,6 +1602,7 @@ def _build_run_summary(
     errors: list[str],
     fixture_file: Optional[Path],
     outcome: str,
+    operator_locked: bool = False,
 ) -> dict[str, Any]:
     data_status = _data_status(mode, raw_quotes, normalized_quotes, fixture_file)
     kill_switch = _kill_switch(regime, normalized_quotes)
@@ -1592,6 +1620,10 @@ def _build_run_summary(
     permission = _PERMISSION_LINES.get(posture_label, "No new trades permitted.")
     if validation_summary.system_halted:
         permission = "No trades permitted. System halted."
+    elif operator_locked:
+        # PRD-304 R5: locked permission carrier in the daily run summary; halt
+        # permission (above) continues to win.
+        permission = config.OPERATOR_LOCK_PERMISSION
 
     summary = {
         "run_id": _run_id(mode, run_at_utc, fixture_file),
@@ -2263,6 +2295,7 @@ def _build_hourly_run_summary(
     normalized_quotes: dict[str, NormalizedQuote],
     slot_utc: Optional[datetime] = None,
     kill_switch: bool = False,
+    operator_locked: bool = False,
 ) -> dict[str, Any]:
     regime_name, posture, confidence, net_score = _summary_regime_fields(regime)
     generation_id = _generation_id("hourly", run_at_utc, None)
@@ -2318,6 +2351,8 @@ def _build_hourly_run_summary(
         "permission": (
             "No trades permitted. System halted."
             if validation_summary is not None and validation_summary.system_halted
+            else config.OPERATOR_LOCK_PERMISSION
+            if operator_locked
             else _PERMISSION_LINES.get(posture, "No new trades permitted.")
         ),
         "data_status": _data_status(mode, raw_quotes, normalized_quotes, fixture_file=None),

@@ -37,6 +37,31 @@ def pytest_terminal_summary(terminalreporter):
 
 
 @pytest.fixture(autouse=True)
+def _default_operator_available(monkeypatch):
+    """PRD-304: default the operator-availability lock to AVAILABLE suite-wide.
+
+    Production sets the ``CB_OPERATOR_AVAILABILITY`` repository variable
+    explicitly; absence fail-closes to ``CANNOT_MONITOR`` (R10, config.py
+    ``resolve_operator_availability``). The pre-PRD test suite was authored for
+    the open baseline and drives many pipeline runs that expect actionable
+    output, so we reproduce production's explicit activation by defaulting the
+    variable to ``AVAILABLE`` for every test. PRD-304 tests set the locked or
+    available state EXPLICITLY (see below), so this default never masks the
+    behavior a PRD-304 test asserts.
+
+    Two override rules (last-setattr-wins, per this conftest's doctrine):
+    - A test that must exercise the FAIL-CLOSED default *through the runtime*
+      MUST ``monkeypatch.delenv("CB_OPERATOR_AVAILABILITY", raising=False)`` —
+      mere absence will not unset the variable once this autouse fixture has set
+      it. (Unit-level resolver tests use ``resolve_operator_availability(raw=…)``
+      and bypass the environment entirely, so they are immune to this fixture.)
+    - A test that must exercise the LOCKED runtime path sets
+      ``monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "CANNOT_MONITOR")``.
+    """
+    monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "AVAILABLE")
+
+
+@pytest.fixture(autouse=True)
 def _reset_telegram_rate_limiter(monkeypatch):
     """Reset the Telegram send-rate state and suppress sleeps between tests.
 

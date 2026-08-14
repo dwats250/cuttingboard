@@ -48,6 +48,12 @@ POLICY_SIZE_ROUNDS_TO_ZERO = "size_rounds_to_zero"
 # with reason POLICY_MACRO_PRESSURE_UNAVAILABLE.
 MACRO_PRESSURE_UNAVAILABLE = "UNAVAILABLE"
 POLICY_MACRO_PRESSURE_UNAVAILABLE = "macro_pressure_unavailable"
+# PRD-304: the manual operator-availability lock. When the operator cannot
+# monitor, an otherwise-ALLOW decision is blocked at EXECUTION_POLICY with this
+# reason. It intercepts ONLY the allow outcome: an upstream block or a natural
+# in-policy block (low confidence, chaotic, macro conflict, size-to-zero, ...)
+# keeps its own reason, so the lock never overwrites a more specific block.
+POLICY_OPERATOR_CANNOT_MONITOR = "operator_cannot_monitor"
 
 _VALID_PRESSURE_VALUES = frozenset(
     {"RISK_ON", "RISK_OFF", "MIXED", "NEUTRAL", "UNKNOWN", MACRO_PRESSURE_UNAVAILABLE}
@@ -130,6 +136,7 @@ def apply_execution_policy_to_decisions(
     session_state: ExecutionSessionState,
     orb_states: Optional[dict[str, OrbPolicyState]] = None,
     overall_pressure: str = "UNKNOWN",
+    operator_locked: bool = False,
 ) -> list[TradeDecision]:
     """Apply execution policy to each decision against the supplied session state.
 
@@ -151,6 +158,7 @@ def apply_execution_policy_to_decisions(
             session_state=session_state,
             orb_state=(orb_states or {}).get(decision.ticker),
             overall_pressure=overall_pressure,
+            operator_locked=operator_locked,
         )
         for decision in decisions
     ]
@@ -166,6 +174,7 @@ def apply_execution_policy(
     session_state: ExecutionSessionState,
     orb_state: Optional[OrbPolicyState] = None,
     overall_pressure: str = "UNKNOWN",
+    operator_locked: bool = False,
 ) -> TradeDecision:
     """Return a decision with PRD-051 policy fields materialized."""
     result = evaluate_execution_policy(
@@ -177,6 +186,7 @@ def apply_execution_policy(
         session_state=session_state,
         orb_state=orb_state,
         overall_pressure=overall_pressure,
+        operator_locked=operator_locked,
     )
     if result.allowed:
         # PRD-284: materialize the finalized size multiplier into the position.
@@ -242,6 +252,7 @@ def evaluate_execution_policy(
     session_state: ExecutionSessionState,
     orb_state: Optional[OrbPolicyState] = None,
     overall_pressure: str = "UNKNOWN",
+    operator_locked: bool = False,
 ) -> PolicyDecision:
     if overall_pressure not in _VALID_PRESSURE_VALUES:
         raise ValueError(f"Invalid overall_pressure: {overall_pressure!r}")
@@ -266,7 +277,16 @@ def evaluate_execution_policy(
         return PolicyDecision(False, orb_reason, 0.0)
 
     base_reason = POLICY_ALLOWED if orb_reason is None else POLICY_ORB_UNAVAILABLE
-    return _apply_macro_pressure(decision.direction, overall_pressure, size, base_reason)
+    result = _apply_macro_pressure(decision.direction, overall_pressure, size, base_reason)
+    # PRD-304: the operator lock intercepts ONLY the allow outcome. A would-be
+    # ALLOW decision becomes a zero-size operator block; every natural block
+    # above (and any upstream block handled by the != ALLOW_TRADE guard) keeps
+    # its own, more specific reason. System-halt precedence is unaffected: a
+    # halted run does not reach an allow here, and halt permission wins in the
+    # presentation layer.
+    if operator_locked and result.allowed:
+        return PolicyDecision(False, POLICY_OPERATOR_CANNOT_MONITOR, 0.0)
+    return result
 
 
 def _apply_macro_pressure(direction: str, pressure: str, size: float, reason: str) -> PolicyDecision:

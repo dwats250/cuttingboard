@@ -340,4 +340,32 @@ def test_vocabularies_are_exactly_the_packet_sets():
     assert VALID_CANDIDATE_IMPLICATION_UNAVAILABLE_REASONS == {
         "candidate_implication_deferred_d3", "candidate_inputs_absent"}
     assert VALID_EVENT_UNAVAILABLE_REASONS == {"event_schedule_unavailable"}
-    assert len(VALID_PERMISSION_VALUES) == 7
+    # PRD-304 R9: one operator-lock permission value added; gate shape unchanged.
+    assert len(VALID_PERMISSION_VALUES) == 8
+    assert "No new trades permitted — operator cannot monitor." in VALID_PERMISSION_VALUES
+
+
+# ---------------------------------------------------------------------------
+# PRD-304 R9 — Market Control Card admits the operator-lock permission value
+# ---------------------------------------------------------------------------
+
+OPERATOR_LOCK_LINE = "No new trades permitted — operator cannot monitor."
+
+
+def test_r9_operator_lock_permission_is_admitted(empty_schedule):
+    # The locked permission carrier is accepted by the validation gate.
+    card = _card(empty_schedule, permission=OPERATOR_LOCK_LINE, outcome="NO_TRADE")
+    assert OPERATOR_LOCK_LINE in _card_strings(card)
+
+
+def test_r9_operator_lock_permission_in_valid_set():
+    from cuttingboard.market_control_card import VALID_PERMISSION_VALUES
+    from cuttingboard import config
+    assert OPERATOR_LOCK_LINE in VALID_PERMISSION_VALUES
+    assert config.OPERATOR_LOCK_PERMISSION == OPERATOR_LOCK_LINE
+
+
+def test_r9_gate_still_rejects_unknown_permission(empty_schedule):
+    # The gate is not loosened: an arbitrary value is still rejected.
+    with pytest.raises(ValueError, match="PERMISSION"):
+        _card(empty_schedule, permission="No new trades permitted — vacation mode.")

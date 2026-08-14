@@ -337,3 +337,27 @@ class TestDeterminism:
         r1 = build_postmarket_report(contract, history)
         r2 = build_postmarket_report(contract, history)
         assert r1 == r2
+
+
+# PRD-304 R4/R8 — postmarket count relabel + execution-language suppression
+_LOCK = "No new trades permitted — operator cannot monitor."
+
+
+def test_r4_postmarket_count_relabelled_under_lock():
+    c = _make_contract(qualified_count=2)
+    c["system_state"]["permission"] = _LOCK
+    report = build_postmarket_report(c, [])
+    joined = " ".join(report["deterministic_observations"])
+    assert "met analytical qualification" in joined      # R4
+    assert "qualified for execution" not in joined        # R4
+    assert any("Operator lock" in o for o in report["deterministic_observations"])
+    # Analytical count unchanged (pre-policy).
+    assert report["trade_summary"]["qualified_count"] == 2
+
+
+def test_r4_postmarket_available_keeps_execution_phrasing():
+    c = _make_contract(qualified_count=2)
+    report = build_postmarket_report(c, [])
+    joined = " ".join(report["deterministic_observations"])
+    assert "qualified for execution" in joined
+    assert "met analytical qualification" not in joined

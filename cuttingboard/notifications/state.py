@@ -17,11 +17,22 @@ from __future__ import annotations
 
 import json
 from enum import Enum
+from cuttingboard import config
 from cuttingboard.contract_types import PipelineContract
 from pathlib import Path
 from typing import Optional
 
 LAST_STATE_PATH = "logs/last_notification_state.json"
+
+# PRD-304 R8: the operator lock is visible schema-neutrally in the existing
+# system_state.permission field (the R5 locked carrier). No new schema key is
+# introduced. This posture value gives the lock a DISTINCT dedup state so an
+# analytical tradable=true run cannot reuse TRADE_READY's dedup key.
+_OPERATOR_LOCKED_POSTURE = "OPERATOR_LOCKED"
+
+
+def _is_operator_locked(system_state: dict) -> bool:
+    return system_state.get("permission") == config.OPERATOR_LOCK_PERMISSION
 
 
 class NotificationPriority(str, Enum):
@@ -48,7 +59,13 @@ def notification_state_key(contract: PipelineContract) -> str:
     ss = contract.get("system_state") or {}
     market_regime = ss.get("market_regime") or ""
     tradable = bool(ss.get("tradable", False))
-    execution_posture = "TRADE_READY" if tradable else "STAY_FLAT"
+    # PRD-304 R8: the operator lock takes precedence over the tradable-as-posture
+    # mapping, giving locked runs a distinct dedup posture. Analytical `tradable`
+    # is preserved in the key so the observation itself still varies the key.
+    if _is_operator_locked(ss):
+        execution_posture = _OPERATOR_LOCKED_POSTURE
+    else:
+        execution_posture = "TRADE_READY" if tradable else "STAY_FLAT"
 
     candidates = (contract.get("trade_candidates") or [])[:3]
     symbols = ",".join(c.get("symbol") or "" for c in candidates)
@@ -81,6 +98,14 @@ def classify_notification_priority(contract: PipelineContract) -> NotificationPr
         return NotificationPriority.CRITICAL
 
     ss = contract.get("system_state") or {}
+    # PRD-304 R8: OPERATOR_LOCKED classifies ahead of TRADE_READY with NORMAL
+    # (suppressible) priority — an analytical tradable=true run under lock must
+    # not be classified HIGH (which bypasses suppression as if a trade were
+    # ready). MEDIUM keeps it meaningful but suppressible; CRITICAL (error/stale)
+    # above still wins.
+    if _is_operator_locked(ss):
+        return NotificationPriority.MEDIUM
+
     if ss.get("tradable"):
         return NotificationPriority.HIGH
 

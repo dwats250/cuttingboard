@@ -40,6 +40,9 @@ jobs:
       POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      # PRD-304: relay the operator-availability repository variable into the
+      # hourly runtime. Absence resolves CANNOT_MONITOR (fail-closed).
+      CB_OPERATOR_AVAILABILITY: ${{ vars.CB_OPERATOR_AVAILABILITY }}
 
     steps:
       # PRD-194: pin to main. workflow_dispatch can be triggered from any branch;

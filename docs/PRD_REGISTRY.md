@@ -321,6 +321,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-301 | #248 | Atomic link-based dev_bootstrap lock: close the mkdir-to-pid publication race, with legacy-directory migration and abandoned-temp lifecycle | COMPLETE | [PRD-301](prd_history/PRD-301.md) |
 | PRD-302 | #249 | Campaign Control Plane Slice A: dispatch-only Codex proposal bootstrap (structural install, behavioral validation post-merge) | COMPLETE | [PRD-302](prd_history/PRD-302.md) |
 | PRD-303 | #253 | Candidate Board observation-only scope line | COMPLETE | [PRD-303](prd_history/PRD-303.md) |
+| PRD-304 | #254 | Manual Manageability Lock: operator-availability two-state lock that closes action-bearing surfaces while preserving market observation | COMPLETE | [PRD-304](prd_history/PRD-304.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

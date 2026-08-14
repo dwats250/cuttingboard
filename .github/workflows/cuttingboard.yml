@@ -88,6 +88,11 @@ jobs:
       # PRD-295: credentials for the terminal fail-loud notification step only.
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      # PRD-304: relay the operator-availability repository variable into the
+      # runtime. Absence resolves CANNOT_MONITOR (fail-closed); Dustin sets it to
+      # AVAILABLE to permit new trades. This is a pass-through only — no new job,
+      # secret, or push target.
+      CB_OPERATOR_AVAILABILITY: ${{ vars.CB_OPERATOR_AVAILABILITY }}
       # PRD-194: artifacts publish to this unprotected branch, not main.
       PUBLISH_BRANCH: publish
       # Static-analysis default so the VS Code GitHub Actions extension can

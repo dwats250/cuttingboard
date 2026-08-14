@@ -534,3 +534,28 @@ class TestExistingRenderReportUnchanged:
         )
         assert isinstance(report, str)
         assert "2026-04-23" in report
+
+
+# ---------------------------------------------------------------------------
+# PRD-304 R8 — CLI delivery renders OBSERVATION ONLY under the operator lock
+# ---------------------------------------------------------------------------
+
+_LOCK_PERMISSION = "No new trades permitted — operator cannot monitor."
+
+
+def test_r8_cli_observation_only_under_lock(capsys):
+    contract = _contract(tradable=True)
+    contract["system_state"]["permission"] = _LOCK_PERMISSION
+    deliver_cli(build_report_payload(contract))
+    out = capsys.readouterr().out
+    assert "OBSERVATION ONLY" in out
+    # Analytical TRADABLE fact preserved (the lock does not falsify it).
+    assert "TRADABLE:        True" in out
+
+
+def test_r8_cli_no_observation_only_when_available(capsys):
+    contract = _contract(tradable=True)
+    contract["system_state"]["permission"] = "Long bias — trend continuation allowed."
+    deliver_cli(build_report_payload(contract))
+    out = capsys.readouterr().out
+    assert "OBSERVATION ONLY" not in out

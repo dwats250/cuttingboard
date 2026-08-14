@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Optional
 from zoneinfo import ZoneInfo
 
+from cuttingboard import config
 from cuttingboard.qualification import QualificationResult, QualificationSummary
 from cuttingboard.regime import (
     AGGRESSIVE_LONG,
@@ -54,6 +55,38 @@ class AlertEvent:
     failure_reason: Optional[str] = None
     intraday_alert_type: Optional[str] = None
     candidate_lines: tuple[str, ...] = ()
+    # PRD-304 R6: when set, the daily/qualify-only action formatters are bypassed
+    # in favor of the dedicated OBSERVE-ONLY projection.
+    operator_locked: bool = False
+
+
+def format_operator_lock_projection(
+    *,
+    asof_utc: datetime,
+    regime: Optional[RegimeState] = None,
+    validation_summary: Optional[ValidationSummary] = None,
+) -> tuple[str, str]:
+    """PRD-304 R6: the ONE dedicated OBSERVE-ONLY projection shared by the daily,
+    hourly, and qualify-only notification paths under the operator lock.
+
+    The body begins with the locked permission sentence (R5) and may include ONLY
+    timestamp, regime NAME, data-health, and raw market levels. It MUST NOT
+    include a symbol focus/candidate, long/short lean or bias, setup posture,
+    READY/MONITOR, entry/trigger/invalidation, WATCH/PLAY, or any
+    permission-to-trade phrase.
+    """
+    lines = [config.OPERATOR_LOCK_PERMISSION, "", _time_line(asof_utc)]
+    if regime is not None:
+        lines.append(f"Regime: {regime.regime}")
+    if validation_summary is not None and validation_summary.symbols_attempted:
+        lines.append(
+            f"{validation_summary.symbols_validated}/"
+            f"{validation_summary.symbols_attempted} validated"
+        )
+    vix = _vix_line(regime)
+    if vix:
+        lines.append(vix)
+    return config.OPERATOR_LOCK_TITLE, "\n".join(lines)
 
 
 def format_telegram_alert(event: AlertEvent) -> tuple[str, str]:
@@ -63,6 +96,14 @@ def format_telegram_alert(event: AlertEvent) -> tuple[str, str]:
         return _format_intraday(event)
     if event.outcome == OUTCOME_HALT or event.halt_reason:
         return _format_halt(event)
+    # PRD-304 R6: the operator lock bypasses every action formatter below, but a
+    # pipeline error (failure_reason) and a system halt (above) still win.
+    if event.operator_locked:
+        return format_operator_lock_projection(
+            asof_utc=event.asof_utc,
+            regime=event.regime,
+            validation_summary=event.validation_summary,
+        )
     if event.notify_mode == NOTIFY_HOURLY:
         return _format_hourly(event)
     if event.alert_context == ALERT_CONTEXT_RUN:

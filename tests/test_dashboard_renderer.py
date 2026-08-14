@@ -4226,3 +4226,239 @@ def test_event_truthful_empty_and_expiring_flag():
     ))
     block = _mcc_block(html)
     assert "no_scheduled_events [SCHEDULE EXPIRING]" in block
+
+
+# ---------------------------------------------------------------------------
+# PRD-304 R7 — dashboard replaces permission/action vocabulary under lock
+# ---------------------------------------------------------------------------
+
+_LOCK_PERMISSION = "No new trades permitted — operator cannot monitor."
+
+
+def test_r7_locked_dashboard_replaces_action_vocabulary() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A+")})
+    run = _run(outcome="NO_TRADE", permission=_LOCK_PERMISSION)
+    html = render_dashboard_html(_payload(), run, market_map=mm)
+
+    # Marker present; A+ relabelled; ACTIONABLE gone.
+    assert "OPERATOR LOCK — CANNOT MONITOR" in html
+    assert "A+ — OBSERVATION ONLY" in html
+    assert "A+ — ACTIONABLE" not in html
+    # Permission verbs suppressed.
+    assert "Longs allowed" not in html
+    assert "Shorts allowed" not in html
+    assert "Momentum longs allowed" not in html
+    # Opportunity-survival count relabelled.
+    assert "SETUPS FOUND" in html
+    assert ">QUALIFIED</div>" not in html
+    # Analytical observations preserved: the symbol card and the A+ grade letter.
+    assert 'id="card-SPY"' in html
+
+
+def test_r7_available_dashboard_keeps_action_vocabulary() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A+")})
+    run = _run(outcome="TRADE", permission="Long bias — trend continuation allowed.")
+    html = render_dashboard_html(_payload(), run, market_map=mm)
+    assert "A+ — ACTIONABLE" in html
+    assert "A+ — OBSERVATION ONLY" not in html
+    assert "OPERATOR LOCK — CANNOT MONITOR" not in html
+    assert ">QUALIFIED</div>" in html
+
+
+def test_r7_locked_dashboard_omits_play_directive() -> None:
+    entry = {
+        **_mm_symbol("SPY", grade="A"),
+        "preferred_trade_structure": "bullish defined-risk continuation",
+    }
+    locked = render_dashboard_html(
+        _payload(), _run(permission=_LOCK_PERMISSION), market_map=_market_map({"SPY": entry})
+    )
+    available = render_dashboard_html(
+        _payload(), _run(permission="Long bias — trend continuation allowed."),
+        market_map=_market_map({"SPY": entry}),
+    )
+    card_locked = _candidate_card(locked)
+    card_available = _candidate_card(available)
+    assert "PLAY" not in card_locked                     # action directive omitted under lock
+    assert "PLAY" in card_available                       # present when available
+    # The structural reasoning text is not otherwise leaked as an action directive.
+    assert "bullish defined-risk continuation" not in card_locked
+
+
+# ---------------------------------------------------------------------------
+# PRD-304 Sol finding 3 — locked dashboard: neutral labels + low-grade wording
+# ---------------------------------------------------------------------------
+import copy as _copy2  # noqa: E402
+
+
+def _framed_aplus_mm():
+    entry = {**_mm_symbol("SPY", grade="A+"),
+             "trade_framing": {"entry": "512.30", "if_now": "break 513"},
+             "invalidation": ["lose 510"]}
+    return _market_map({"SPY": entry})
+
+
+def test_r7_locked_level_labels_are_observational():
+    mm = _framed_aplus_mm()
+    html = render_dashboard_html(_payload(), _run(permission=_LOCK_PERMISSION), market_map=mm)
+    assert "IN →" not in html
+    assert "OUT →" not in html
+    assert ">LEVEL<" in html
+    assert ">INVALIDATION<" in html
+
+
+def test_r7_available_level_labels_and_accent_present():
+    # Non-vacuity anchor: IN →/OUT → and the action accent are present normally.
+    mm = _framed_aplus_mm()
+    html = render_dashboard_html(_payload(), _run(permission="Long bias — trend continuation allowed."), market_map=mm)
+    assert "IN →" in html
+    assert "OUT →" in html
+    assert '<div class="value-key value-actionable">' in _candidate_card(html)
+
+
+def test_r7_locked_level_diagram_uses_neutral_labels_and_styling():
+    entry = {
+        **_mm_symbol("SPY", grade="A+"),
+        "current_price": 120.0,
+        "watch_zones": [{"type": "SUPPORT", "level": 100.0}],
+    }
+    kwargs = {
+        "market_map": _market_map({"SPY": entry}),
+        "contract_entry_map": {"SPY": 110.0},
+        "contract_stop_map": {"SPY": 105.0},
+    }
+    locked = _candidate_card(render_dashboard_html(
+        _payload(), _run(permission=_LOCK_PERMISSION), **kwargs,
+    ))
+    available = _candidate_card(render_dashboard_html(
+        _payload(), _run(permission="Long bias — trend continuation allowed."), **kwargs,
+    ))
+
+    assert ">LEVEL 110.00 -8.3%</text>" in locked
+    assert ">INVALIDATION 105.00 -12.5%</text>" in locked
+    assert ">ENTRY 110.00 -8.3%</text>" not in locked
+    assert ">STOP 105.00 -12.5%</text>" not in locked
+    assert 'fill="#e05252" opacity="0.08"' not in locked
+    assert 'stroke="#e05252"' not in locked
+    assert 'stroke="#e0a552"' not in locked
+    assert 'fill="#6b7280" opacity="0.08"' in locked
+
+    assert ">ENTRY 110.00 -8.3%</text>" in available
+    assert ">STOP 105.00 -12.5%</text>" in available
+    assert 'fill="#e05252" opacity="0.08"' in available
+    assert 'stroke="#e0a552"' in available
+
+
+def test_r7_locked_low_grade_dashboard_has_no_action_vocabulary():
+    mm = _market_map({"XYZ": _mm_symbol("XYZ", grade="C")})
+    html = render_dashboard_html(_payload(), _run(permission=_LOCK_PERMISSION), market_map=mm)
+    assert "NO ACTIONABLE SETUPS" not in html
+    assert "NO HIGH-GRADE SETUPS OBSERVED" in html
+
+
+def test_r7_available_low_grade_keeps_no_actionable_setups():
+    mm = _market_map({"XYZ": _mm_symbol("XYZ", grade="C")})
+    html = render_dashboard_html(_payload(), _run(permission="Long bias — trend continuation allowed."), market_map=mm)
+    assert "NO ACTIONABLE SETUPS" in html
+
+
+def test_r7_locked_high_grade_render_does_not_mutate_sources():
+    mm = _framed_aplus_mm()
+    payload, run = _payload(), _run(permission=_LOCK_PERMISSION)
+    p0, r0, m0 = _copy2.deepcopy(payload), _copy2.deepcopy(run), _copy2.deepcopy(mm)
+    render_dashboard_html(payload, run, market_map=mm)
+    assert (payload, run, mm) == (p0, r0, m0), "locked high-grade render mutated a source object"
+
+
+def test_r7_locked_low_grade_render_does_not_mutate_sources():
+    mm = _market_map({"XYZ": _mm_symbol("XYZ", grade="C")})
+    payload, run = _payload(), _run(permission=_LOCK_PERMISSION)
+    p0, r0, m0 = _copy2.deepcopy(payload), _copy2.deepcopy(run), _copy2.deepcopy(mm)
+    render_dashboard_html(payload, run, market_map=mm)
+    assert (payload, run, mm) == (p0, r0, m0), "locked low-grade render mutated a source object"
+
+
+def test_r7_locked_run_delta_is_observational():
+    previous = _run(regime="RISK_OFF", posture="DEFENSIVE_SHORT")
+    locked = render_dashboard_html(
+        _payload(market_regime="RISK_ON"),
+        _run(regime="RISK_ON", posture="CONTROLLED_LONG", permission=_LOCK_PERMISSION),
+        previous_run=previous,
+    )
+    available = render_dashboard_html(
+        _payload(market_regime="RISK_ON"),
+        _run(
+            regime="RISK_ON",
+            posture="CONTROLLED_LONG",
+            permission="Long bias — trend continuation allowed.",
+        ),
+        previous_run=previous,
+    )
+
+    assert "Permission flipped to longs" not in locked
+    assert "Posture: Defensive Short -&gt; Controlled Long" not in locked
+    assert "Regime: RISK_OFF -&gt; RISK_ON" in locked
+    assert "Permission flipped to longs" in available
+    assert "Posture: Defensive Short -&gt; Controlled Long" in available
+
+
+def test_r7_locked_integrator_verdicts_are_observational():
+    missing_price = {**_mm_symbol("SPY", grade="A+", bias="BEAR"), "current_price": None}
+    rule2_mm = _market_map({"SPY": missing_price})
+    rule2_locked = render_dashboard_html(
+        _payload(market_regime="RISK_ON"),
+        _run(permission=_LOCK_PERMISSION),
+        market_map=rule2_mm,
+    )
+    rule2_available = render_dashboard_html(
+        _payload(market_regime="RISK_ON"),
+        _run(permission="Long bias — trend continuation allowed."),
+        market_map=rule2_mm,
+    )
+    assert "No qualifying long setups currently available." not in rule2_locked
+    assert "No high-grade setups observed for the current regime." in rule2_locked
+    assert "No qualifying long setups currently available." in rule2_available
+
+    short_macro = _macro_drivers(vix=1.0, dxy=1.0, tnx=1.0, btc=-1.0)
+    rule3_mm = _market_map({"SPY": _mm_symbol("SPY", grade="A+", bias="BULL")})
+    rule3_locked = render_dashboard_html(
+        _payload(market_regime="RISK_ON", macro_drivers=short_macro),
+        _run(permission=_LOCK_PERMISSION),
+        market_map=rule3_mm,
+    )
+    rule3_available = render_dashboard_html(
+        _payload(market_regime="RISK_ON", macro_drivers=short_macro),
+        _run(permission="Long bias — trend continuation allowed."),
+        market_map=rule3_mm,
+    )
+    assert "Mixed tape — directional trades require symbol-level confirmation." not in rule3_locked
+    assert "Mixed regime, macro, and symbol observations." in rule3_locked
+    assert "Mixed tape — directional trades require symbol-level confirmation." in rule3_available
+
+
+def test_r7_locked_sunday_context_has_no_watch_directive():
+    payload = _payload(
+        timestamp="2026-05-10T12:00:00Z",
+        market_regime="RISK_ON",
+        macro_drivers=_macro_drivers(),
+    )
+    payload["meta"]["session_type"] = "SUNDAY_PREMARKET"
+    run_locked = _run_with_timestamp(
+        "2026-05-10T12:00:00Z",
+        permission=_LOCK_PERMISSION,
+    )
+    run_available = _run_with_timestamp(
+        "2026-05-10T12:00:00Z",
+        permission="Long bias — trend continuation allowed.",
+    )
+    mm = _market_map({"SPY": _mm_symbol("SPY")})
+    mm["generated_at"] = "2026-05-10T12:00:00Z"
+
+    locked = render_dashboard_html(payload, run_locked, market_map=mm)
+    available = render_dashboard_html(payload, run_available, market_map=mm)
+    assert "Monday Watch" not in locked
+    assert "Watch for confirmation of risk-on bias before Monday open" not in locked
+    assert "Monday Context" in locked
+    assert "Current regime reference: RISK_ON" in locked
+    assert "Monday Watch" in available
+    assert "Watch for confirmation of risk-on bias before Monday open" in available

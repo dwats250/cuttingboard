@@ -1,4 +1,5 @@
 from __future__ import annotations
+from cuttingboard import config
 from cuttingboard.contract_types import PipelineContract
 
 _VOLATILITY_STATE: dict[str, str] = {
@@ -317,6 +318,52 @@ def _generate_invalidation(regime: str | None, gap_direction: str | None, scenar
     ]
 
 
+# ── Operator-lock scenario projection (PRD-304 R8, Sol finding 2) ─────────────
+
+_LOCKED_SCENARIO_BEHAVIOR = (
+    "Operator lock — observation only while the operator cannot monitor."
+)
+
+# Known action-bearing phrases in the generated scenario conditions are
+# translated in place instead of dropping the whole semicolon-delimited tail.
+# That preserves regime/gap/level facts while removing entry, sizing, exposure,
+# and directional instructions.  The generated scenarios are the closed input
+# set for this renderer projection; tests enumerate every regime/gap branch.
+_LOCKED_CONDITION_REWRITES: tuple[tuple[str, str], ...] = (
+    ("momentum continuation setup", "momentum and trend strength observed"),
+    ("range_mid as re-entry zone", "range_mid is the stabilization reference"),
+    (
+        "breakout setup forming on RISK_ON strength",
+        "RISK_ON strength is present near prior_high",
+    ),
+    ("gap_direction determines re-entry bias", "gap_direction remains observed context"),
+    ("prior_high not expected to fade", "prior_high remains sustained"),
+    ("confirm prior_high before full sizing", "prior_high confirmation is unresolved"),
+    ("short bias intact below prior_low", "RISK_OFF structure persists below prior_low"),
+    ("RISK_OFF bias intact", "RISK_OFF structure persists"),
+    ("fade opportunity", "rejection context"),
+    ("fade bounce", "bounce rejection"),
+    ("no directional bias", "directional structure is neutral"),
+    ("all setups invalid", "market validity is absent"),
+    ("monitor only", "price stabilization remains observed"),
+    ("no trade", "regime resolution is absent"),
+    ("stay flat", "directional structure is unresolved"),
+)
+
+
+def _observational_scenario(scenario: dict) -> dict:
+    """Return a NEW scenario dict containing the complete factual observation."""
+    factual = str(scenario.get("condition") or "")
+    for action_phrase, observation_phrase in _LOCKED_CONDITION_REWRITES:
+        factual = factual.replace(action_phrase, observation_phrase)
+    return {
+        "id": scenario.get("id"),
+        "condition": factual,
+        "expected_behavior": _LOCKED_SCENARIO_BEHAVIOR,
+        "preferred_direction": "NONE",
+    }
+
+
 # ── Public builder ───────────────────────────────────────────────────────────
 
 
@@ -329,6 +376,11 @@ def build_premarket_report(contract: PipelineContract, levels: dict | None = Non
     tradable: bool = bool(ss.get("tradable", False))
     stay_flat_reason: str | None = ss.get("stay_flat_reason")
     status: str = contract.get("status") or ""
+    # PRD-304 R8: the operator lock is visible in the existing permission field.
+    # Under lock the report keeps market facts but drops execution focus/permission
+    # language, carrying one operator-lock statement instead. `tradable` remains
+    # the analytical fact (unchanged).
+    operator_locked: bool = ss.get("permission") == config.OPERATOR_LOCK_PERMISSION
 
     volatility_state: str | None = _VOLATILITY_STATE.get(market_regime) if market_regime else None
     correlation_state: str | None = correlation.get("state") if correlation else None
@@ -339,9 +391,17 @@ def build_premarket_report(contract: PipelineContract, levels: dict | None = Non
     gap_direction: str | None = _levels.get("gap_direction")
 
     scenarios = _generate_scenarios(market_regime, gap_direction, _levels)
+    if operator_locked:
+        # PRD-304 R8 (Sol finding 2): the locked scenario projection is
+        # observational — it keeps the factual regime/gap/level premise (the
+        # condition text before the first ';') but removes entry, sizing,
+        # exposure, and preferred-direction instructions. New dicts are built, so
+        # the generated scenarios and the source contract are never mutated.
+        scenarios = [_observational_scenario(s) for s in scenarios]
 
     candidates = contract.get("trade_candidates") or []
-    focus_list = [
+    # PRD-304 R8: under lock the report carries no candidate/execution focus.
+    focus_list = [] if operator_locked else [
         {
             "symbol": c.get("symbol") or "",
             "bias": c.get("direction") or "",
@@ -351,7 +411,9 @@ def build_premarket_report(contract: PipelineContract, levels: dict | None = Non
     ]
 
     invalidation = _generate_invalidation(market_regime, gap_direction, scenarios)
-    if not tradable and stay_flat_reason:
+    if operator_locked:
+        invalidation.insert(0, "Operator lock — observation only; no new trades while the operator cannot monitor.")
+    elif not tradable and stay_flat_reason:
         invalidation.insert(0, f"System stay-flat: {stay_flat_reason}")
     elif not tradable:
         invalidation.insert(0, "Tradable == False: no entries permitted this session")
