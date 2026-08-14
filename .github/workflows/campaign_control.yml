@@ -50,15 +50,26 @@ jobs:
             .github/campaign/charge.schema.json
           sparse-checkout-cone-mode: false
 
-      - name: Provision unprivileged codex user and stage public inputs
+      - name: Provision unprivileged codex user and grant minimal traversal
         run: |
           set -euo pipefail
           id "$CODEX_USER" >/dev/null 2>&1 || sudo useradd -m "$CODEX_USER"
           mkdir -p .campaign-input .campaign-output
-          # Make ONLY the public inputs + tool readable to the distinct uid;
-          # this is minimization/navigation, NOT a confidentiality boundary.
-          sudo chmod -R a+rX tools/campaign_control.py .github/campaign \
-            .campaign-input .campaign-output
+          # Public inputs readable to the distinct uid (files + campaign dir);
+          # minimization/navigation, NOT a confidentiality boundary.
+          sudo chmod -R a+rX tools/campaign_control.py .github/campaign
+          # Public/synthetic output+input dirs writable by the codex uid.
+          sudo chmod a+rwx .campaign-input .campaign-output
+          # EXECUTE/TRAVERSAL ONLY (never read/list, never recursive) on the
+          # runner-owned ancestors so the codex uid can OPEN the public tool. On
+          # hosted runners /home/runner is 0750 (drwxr-x---, runner:runner),
+          # non-traversable by a fresh useradd user -- the exact gap that failed
+          # run 31759823563 closed here (Errno 13 opening the tool). o+x grants
+          # traversal to a KNOWN path, never read/list of runner state.
+          d="$GITHUB_WORKSPACE"
+          while [ "$d" != "/" ]; do sudo chmod o+x "$d"; d="$(dirname "$d")"; done
+          sudo chmod o+x "$GITHUB_WORKSPACE/tools" "$GITHUB_WORKSPACE/.github" \
+            "$GITHUB_WORKSPACE/.github/campaign"
 
       - name: Build fixed synthetic event
         run: |
@@ -68,18 +79,38 @@ jobs:
             --event-output .campaign-input/event.json
           sudo chmod a+r .campaign-input/event.json
 
-      # R7 blocking credential-isolation probe: prove the unprivileged codex uid
-      # canNOT read runner-owned credentials, run AS that exact uid, BEFORE the
-      # secret-bearing action. Fail closed on absent/ambiguous/mis-owned/readable.
-      # This proves the FAIL-CLOSED LOGIC structurally; live closure is proven at
-      # the post-merge main dispatch (R7/R18).
-      - name: Credential-isolation probe (blocking, R7)
+      # R7 preflight, run AS the distinct codex uid, BEFORE the secret-bearing
+      # action: prove (positive) the public inputs are readable and the output
+      # dir writable, (identity) runner uid != codex uid, and (negative) the
+      # enumerated runner credentials remain unreadable. Fail closed; print no
+      # file contents or secrets. Live closure is proven at the post-merge run.
+      - name: Codex-uid access + credential-isolation preflight (blocking, R7)
         run: |
           set -euo pipefail
           RUNNER_UID="$(id -u)"
-          # Derive the runner root from the LIVE Runner.Worker executable
-          # (<root>/bin/Runner.Worker) -- never a guessed candidate list. Require
-          # exactly one worker; fail closed on none/ambiguous.
+          CODEX_UID="$(id -u "$CODEX_USER")"
+          if [ "$RUNNER_UID" = "$CODEX_UID" ]; then
+            echo "campaign-control: FAIL [preflight-uid] runner uid == codex uid" >&2
+            exit 2
+          fi
+          # positive: every allowlisted public input is readable as the codex uid
+          for f in tools/campaign_control.py .github/campaign/charge_prompt.md \
+                   .github/campaign/charge.schema.json .campaign-input/event.json; do
+            if ! sudo -u "$CODEX_USER" test -r "$f"; then
+              echo "campaign-control: FAIL [preflight-read] public input unreadable by codex uid" >&2
+              exit 2
+            fi
+          done
+          # positive: the output directory is writable as the codex uid
+          if ! sudo -u "$CODEX_USER" test -w .campaign-output; then
+            echo "campaign-control: FAIL [preflight-write] output dir not writable by codex uid" >&2
+            exit 2
+          fi
+          # negative: enumerated runner credentials remain unreadable. Derive the
+          # runner root from the LIVE Runner.Worker executable (<root>/bin/
+          # Runner.Worker); require exactly one; pass root+temp across the uid
+          # transition. The tool probe fails closed on same-uid/absent/ambiguous/
+          # mis-owned/readable and never prints contents.
           mapfile -t WORKER_PIDS < <(pgrep -x Runner.Worker || true)
           if [ "${#WORKER_PIDS[@]}" -ne 1 ]; then
             echo "campaign-control: FAIL [probe-root] Runner.Worker not uniquely resolved" >&2
@@ -91,8 +122,6 @@ jobs:
             echo "campaign-control: FAIL [probe-temp] RUNNER_TEMP source not set" >&2
             exit 2
           fi
-          # Run the probe AS the distinct codex uid; pass the canonical runner
-          # root and the runner-temp source explicitly across the uid transition.
           sudo -u "$CODEX_USER" python3 tools/campaign_control.py probe-isolation \
             --runner-uid "$RUNNER_UID" \
             --runner-root "$RUNNER_ROOT" \
