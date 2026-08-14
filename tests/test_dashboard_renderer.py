@@ -4226,3 +4226,60 @@ def test_event_truthful_empty_and_expiring_flag():
     ))
     block = _mcc_block(html)
     assert "no_scheduled_events [SCHEDULE EXPIRING]" in block
+
+
+# ---------------------------------------------------------------------------
+# PRD-304 R7 — dashboard replaces permission/action vocabulary under lock
+# ---------------------------------------------------------------------------
+
+_LOCK_PERMISSION = "No new trades permitted — operator cannot monitor."
+
+
+def test_r7_locked_dashboard_replaces_action_vocabulary() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A+")})
+    run = _run(outcome="NO_TRADE", permission=_LOCK_PERMISSION)
+    html = render_dashboard_html(_payload(), run, market_map=mm)
+
+    # Marker present; A+ relabelled; ACTIONABLE gone.
+    assert "OPERATOR LOCK — CANNOT MONITOR" in html
+    assert "A+ — OBSERVATION ONLY" in html
+    assert "A+ — ACTIONABLE" not in html
+    # Permission verbs suppressed.
+    assert "Longs allowed" not in html
+    assert "Shorts allowed" not in html
+    assert "Momentum longs allowed" not in html
+    # Opportunity-survival count relabelled.
+    assert "SETUPS FOUND" in html
+    assert ">QUALIFIED</div>" not in html
+    # Analytical observations preserved: the symbol card and the A+ grade letter.
+    assert 'id="card-SPY"' in html
+
+
+def test_r7_available_dashboard_keeps_action_vocabulary() -> None:
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A+")})
+    run = _run(outcome="TRADE", permission="Long bias — trend continuation allowed.")
+    html = render_dashboard_html(_payload(), run, market_map=mm)
+    assert "A+ — ACTIONABLE" in html
+    assert "A+ — OBSERVATION ONLY" not in html
+    assert "OPERATOR LOCK — CANNOT MONITOR" not in html
+    assert ">QUALIFIED</div>" in html
+
+
+def test_r7_locked_dashboard_omits_play_directive() -> None:
+    entry = {
+        **_mm_symbol("SPY", grade="A"),
+        "preferred_trade_structure": "bullish defined-risk continuation",
+    }
+    locked = render_dashboard_html(
+        _payload(), _run(permission=_LOCK_PERMISSION), market_map=_market_map({"SPY": entry})
+    )
+    available = render_dashboard_html(
+        _payload(), _run(permission="Long bias — trend continuation allowed."),
+        market_map=_market_map({"SPY": entry}),
+    )
+    card_locked = _candidate_card(locked)
+    card_available = _candidate_card(available)
+    assert "PLAY" not in card_locked                     # action directive omitted under lock
+    assert "PLAY" in card_available                       # present when available
+    # The structural reasoning text is not otherwise leaked as an action directive.
+    assert "bullish defined-risk continuation" not in card_locked

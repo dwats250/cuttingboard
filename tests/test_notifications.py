@@ -594,3 +594,120 @@ def test_prd061_duplicate_logical_send_path_skips_second_dispatch(tmp_path, monk
     assert mock_send.call_count == 1
     assert records[-1]["status"] == "skipped"
     assert records[-1]["reason"] == "duplicate_path"
+
+
+# ---------------------------------------------------------------------------
+# PRD-304 R6 / R8 — dedicated OBSERVE-ONLY projection + OPERATOR_LOCKED state
+# ---------------------------------------------------------------------------
+from cuttingboard.notifications.formatter import format_operator_lock_projection
+from cuttingboard.notifications.state import (
+    NotificationPriority,
+    classify_notification_priority,
+    notification_state_key,
+)
+
+_LOCK_PERMISSION = "No new trades permitted — operator cannot monitor."
+_LOCK_TITLE = "OBSERVE ONLY — OPERATOR LOCK"
+# Vocabulary the locked projection MUST NOT contain (R6).
+_FORBIDDEN = ["READY", "MONITOR", "WATCH", "PLAY", "Trigger", "Entry", "IF NOW",
+              "Long bias", "Short bias", "Leaning", "Setups:", "STAY FLAT"]
+
+
+def test_r6_hourly_locked_projection(monkeypatch):
+    title, body = format_hourly_notification(
+        asof_utc=datetime(2026, 5, 13, 16, 20, tzinfo=timezone.utc),
+        regime=_regime(),
+        validation_summary=_validation_summary(),
+        qualification_summary=_qualification_summary(["SPY", "QQQ"], ["NVDA"]),
+        normalized_quotes={},
+        operator_locked=True,
+    )
+    assert title == _LOCK_TITLE
+    assert body.splitlines()[0] == _LOCK_PERMISSION
+    for token in _FORBIDDEN:
+        assert token not in body, f"forbidden token {token!r} leaked into locked hourly body"
+    # No candidate symbol focus leaks.
+    assert "SPY" not in body and "NVDA" not in body
+
+
+def test_r6_qualify_only_locked_projection():
+    title, body = format_notification(
+        NOTIFY_POST_ORB,
+        "2026-04-15",
+        _regime(),
+        _validation_summary(),
+        _qualification_summary(["BTC-USD", "IWM", "AMZN"], ["NVDA", "MU"]),
+        {},
+        operator_locked=True,
+    )
+    assert title == _LOCK_TITLE
+    assert body.splitlines()[0] == _LOCK_PERMISSION
+    for token in _FORBIDDEN:
+        assert token not in body
+    assert "BTC-USD" not in body and "NVDA" not in body
+
+
+def test_r6_available_reproduces_action_formatter():
+    # R10: without the lock, the ordinary action formatter still fires.
+    title, _ = format_notification(
+        NOTIFY_POST_ORB, "2026-04-15", _regime(),
+        _validation_summary(),
+        _qualification_summary(["BTC-USD"], []), {},
+        operator_locked=False,
+    )
+    assert title == "BTC-USD LONG READY"
+
+
+def test_r6_projection_helper_shape():
+    title, body = format_operator_lock_projection(
+        asof_utc=datetime(2026, 5, 13, 16, 20, tzinfo=timezone.utc),
+        regime=_regime(),
+        validation_summary=_validation_summary(),
+    )
+    assert title == _LOCK_TITLE
+    assert body.startswith(_LOCK_PERMISSION)
+
+
+def _locked_contract(tradable=True):
+    return {
+        "status": "OK",
+        "market_context": {},
+        "system_state": {
+            "market_regime": "RISK_ON",
+            "tradable": tradable,
+            "permission": _LOCK_PERMISSION,
+        },
+        "trade_candidates": [],
+        "rejections": [],
+    }
+
+
+def _available_ready_contract():
+    c = _locked_contract(tradable=True)
+    c["system_state"]["permission"] = "Long bias — trend continuation allowed."
+    return c
+
+
+def test_r8_state_classifies_operator_locked_posture():
+    # OPERATOR_LOCKED posture is distinct from TRADE_READY even when analytical
+    # tradable is True (distinct dedup state).
+    key = notification_state_key(_locked_contract(tradable=True))
+    assert "OPERATOR_LOCKED" in key
+    assert "TRADE_READY" not in key
+    # Distinct from the available tradable run's key.
+    assert key != notification_state_key(_available_ready_contract())
+
+
+def test_r8_operator_locked_priority_is_normal_not_high():
+    # R8: locked runs classify NORMAL (MEDIUM), never HIGH — ahead of the
+    # tradable→HIGH mapping.
+    assert classify_notification_priority(_locked_contract(tradable=True)) == NotificationPriority.MEDIUM
+    # The same analytical state WITHOUT the lock is HIGH (tradable=True).
+    assert classify_notification_priority(_available_ready_contract()) == NotificationPriority.HIGH
+
+
+def test_r8_critical_still_wins_over_lock():
+    # An ERROR still classifies CRITICAL even under lock.
+    c = _locked_contract()
+    c["status"] = "ERROR"
+    assert classify_notification_priority(c) == NotificationPriority.CRITICAL

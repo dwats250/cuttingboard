@@ -192,3 +192,30 @@ class TestDeterminism:
         r1 = build_premarket_report(contract)
         r2 = build_premarket_report(contract)
         assert r1 == r2
+
+
+# PRD-304 R8 — premarket report drops execution focus/permission under lock
+_LOCK = "No new trades permitted — operator cannot monitor."
+
+
+def _locked(contract: dict) -> dict:
+    contract["system_state"]["permission"] = _LOCK
+    return contract
+
+
+def test_r8_premarket_lock_suppresses_focus_and_adds_statement():
+    c = _locked(_make_contract(tradable=True, trade_candidates=[
+        {"symbol": "SPY", "direction": "LONG", "strategy_tag": "continuation"}]))
+    report = build_premarket_report(c)
+    assert report["focus_list"] == []
+    assert any("Operator lock" in line for line in report["invalidation"])
+    # Analytical tradable fact preserved.
+    assert report["system_state"]["tradable"] is True
+
+
+def test_r8_premarket_available_keeps_focus():
+    c = _make_contract(tradable=True, trade_candidates=[
+        {"symbol": "SPY", "direction": "LONG", "strategy_tag": "continuation"}])
+    report = build_premarket_report(c)
+    assert report["focus_list"], "available run must keep candidate focus"
+    assert not any("Operator lock" in line for line in report["invalidation"])
