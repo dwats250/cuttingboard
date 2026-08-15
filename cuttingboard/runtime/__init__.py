@@ -706,6 +706,7 @@ def _execute_notify_run(
                 errors=[],
                 alert_sent=alert_sent,
                 kill_switch=hourly_kill_switch,
+                operator_locked=operator_locked and not validation_summary.system_halted,
             )
             summary = _build_hourly_run_summary(
                 mode=mode,
@@ -2226,6 +2227,7 @@ def _build_hourly_contract(
     errors: list[str],
     alert_sent: bool,
     kill_switch: bool = False,
+    operator_locked: bool = False,
 ) -> dict[str, Any]:
     generation_id = _generation_id("hourly", run_at_utc, None)
     # PRD-278 R5: both OUTCOME_NO_TRADE hardcode sites in this function must
@@ -2270,6 +2272,13 @@ def _build_hourly_contract(
     )
     contract["outcome"] = contract_outcome
     contract["generation_id"] = generation_id
+    if operator_locked:
+        # PRD-305 R1: mirror the daily contract carrier
+        # (_build_and_finalize_contract) so the persisted hourly contract — and
+        # the payload/HTML/dashboard derived from its system_state.permission —
+        # reflect the operator lock. System-halt precedence is applied at the
+        # call site (operator_locked is False when validation_summary.system_halted).
+        contract["system_state"]["permission"] = config.OPERATOR_LOCK_PERMISSION
     return contract
 
 

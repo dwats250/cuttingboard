@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 304,
-  "next_prd": 305,
+  "latest_complete": 305,
+  "next_prd": 306,
   "entries": [
     {
       "number": 56,
@@ -1496,6 +1496,12 @@
       "title": "Manual Manageability Lock: operator-availability two-state lock that closes action-bearing surfaces while preserving market observation",
       "status": "COMPLETE",
       "commit": "#254"
+    },
+    {
+      "number": 305,
+      "title": "Operator-lock projection conformance: hourly contract permission + daily notification vocabulary",
+      "status": "COMPLETE",
+      "commit": "#255"
     }
   ]
 }
