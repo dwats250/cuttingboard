@@ -1037,6 +1037,25 @@ def test_tripwire_exact_pins_and_codex_version():
     assert "0.147.0" in text
 
 
+def test_tripwire_codex_args_proxy_compatible():
+    """TRIPWIRE - NOT BEHAVIORAL PROOF (Amendment 3): the pinned Codex Action is
+    invoked with `--ephemeral` and WITHOUT `--ignore-user-config`, so Codex honors
+    the action-managed Responses-API proxy config written into the fresh
+    codexsandbox CODEX_HOME. Post-merge run 31772422012 reached the action, started
+    the local proxy, then failed 401 because `--ignore-user-config` made Codex
+    ignore that proxy and select provider=openai directly. Mutation-kills: re-adding
+    `--ignore-user-config` while the action-managed proxy is in use, and dropping
+    `--ephemeral`."""
+    step = _codex_action_step(_job(_wf(), "codex"))
+    assert step is not None
+    args = json.loads(step["with"]["codex-args"])
+    assert isinstance(args, list)
+    assert "--ephemeral" in args                 # throwaway session state required
+    assert "--ignore-user-config" not in args    # would bypass the action proxy -> 401
+    # the API key is never handed to Codex via env; it stays in the action proxy
+    assert "OPENAI_API_KEY" not in json.dumps(step["with"].get("env", {}))
+
+
 def test_tripwire_no_download_artifact():
     """TRIPWIRE - NOT BEHAVIORAL PROOF: download-artifact is not present (unearned)."""
     assert "actions/download-artifact" not in _wf_text()

@@ -168,7 +168,8 @@ jobs:
           codex-user: codexsandbox
           codex-version: "0.147.0"
           allow-users: dwats250
-          codex-args: '["--ephemeral", "--ignore-user-config"]'
+          # Amendment 3: --ephemeral only. Do NOT re-add --ignore-user-config: it made Codex ignore the action's CODEX_HOME proxy config -> provider=openai -> 401 (PRD-302).
+          codex-args: '["--ephemeral"]'
 
   validate:
     needs: codex

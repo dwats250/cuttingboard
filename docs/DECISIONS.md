@@ -16,6 +16,38 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-14 — PRD-302 Codex proxy-config compatibility (PRD-302 AMENDMENT 3; no ceiling renewal; ruled: Dustin)
+
+PRD-302 AMENDMENT 2 merged (main `b98812aebe00d3aa6b0a3a2463a8d32d42af2920`,
+PR #251). The corrected post-merge behavioral proof (R18) reached FURTHER than any
+prior run -- dispatch run **31772422012**, job **94680908974**: isolated-workspace
+setup PASSED, the split R7 runner/codex credential-isolation proof PASSED, the
+pinned Codex Action started its Responses API proxy on `127.0.0.1` and wrote its
+proxy config into the fresh `codexsandbox` `CODEX_HOME`. Codex was then invoked
+with `codex-args ["--ephemeral", "--ignore-user-config"]`, IGNORED that proxy
+config, selected `provider=openai` directly, and failed `401 Missing bearer
+authentication`. Validation/artifact did not run; Slice B parked.
+Correction-before-use (owner ruling 6); NOT a credential leak and NOT an isolation
+regression -- the isolation + secret-in-proxy design held, only the client flag
+was incompatible. Root cause: `--ignore-user-config` makes Codex ignore its
+`CODEX_HOME` config, which under the action's `unprivileged-user` strategy is
+exactly where the local key-holding proxy config lives; Codex then bypassed the
+proxy with no bearer token (the key is intentionally never in Codex's env).
+`--ephemeral` is orthogonal and correct. Fix (smallest; amends ONLY the workflow +
+tests): `codex-args` `["--ephemeral", "--ignore-user-config"]` -> `["--ephemeral"]`;
+API key NOT placed in any Codex-visible env and the action proxy NOT bypassed; a
+mutation-killing tripwire proves `--ignore-user-config` cannot return while the
+action-managed proxy is in use and `--ephemeral` remains required. Fresh per-run
+codexsandbox user/home, isolated `/tmp` workspace, `unprivileged-user`,
+`:read-only`, exact action/model pins, local proxy, owner-only dispatch, R7
+ordering, action-final placement, inert transport, and every Amendment-2 security
+guard are unchanged. **No ceiling renewal: the 820 four-non-test-payload ceiling
+remains binding; post-correction total 819 <= 820.** No tool/prompt/schema/
+contract/credential/isolation/architecture change; no Fable/MATERIAL/Stage-0/
+broader governance cycle. Neither this nor any prior failed workflow is rerun; the
+live proof is a fresh owner-authorized post-merge dispatch after this merges.
+Slice B stays parked until that proof is green.
+
 ## 2026-08-14 — PRD-302 isolated-workspace correction + ceiling renewal 750->820 (PRD-302 AMENDMENT 2; ruled: Dustin)
 
 PRD-302 AMENDMENT 1 merged (main `f91d1e96d48336feda00046693db862457ee474e`,
