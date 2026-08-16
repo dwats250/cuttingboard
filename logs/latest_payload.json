@@ -1,133 +1,43 @@
 {
-  "macro_drivers": {
-    "bitcoin": {
-      "change_pct": -1.4067718633309703,
-      "level": 62533.1015625,
-      "symbol": "BTC-USD"
-    },
-    "dollar": {
-      "change_pct": -0.36540711795742914,
-      "level": 99.52300262451172,
-      "symbol": "DX-Y.NYB"
-    },
-    "gold": {
-      "change_pct": 1.5457965458416993,
-      "level": 4447.2998046875,
-      "symbol": "GC=F"
-    },
-    "oil": {
-      "change_pct": 0.13521894580803917,
-      "level": 81.45999908447266,
-      "symbol": "CL=F"
-    },
-    "rates": {
-      "change_bps": 2.109493024738789,
-      "change_pct": 0.452486735172583,
-      "level": 4.661999702453613,
-      "symbol": "^TNX"
-    },
-    "silver": {
-      "change_pct": 2.4929860805751076,
-      "level": 65.77999877929688,
-      "symbol": "SI=F"
-    },
-    "volatility": {
-      "change_pct": -0.2734105368430199,
-      "level": 14.59000015258789,
-      "symbol": "^VIX"
-    }
-  },
+  "macro_drivers": {},
   "meta": {
-    "generation_id": "live-20260814T141857Z",
+    "generation_id": "sunday-20260816T234424Z",
+    "session_type": "SUNDAY_PREMARKET",
     "symbols_scanned": 0,
-    "timestamp": "2026-08-14T14:18:57Z"
+    "timestamp": "2026-08-16T23:44:24Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
   "sections": {
     "chain_results_detail": [],
     "continuation_audit": null,
-    "market_control_card": {
-      "candidate_implication": {
-        "unavailable_reason": null,
-        "value": "NO_CANDIDATES"
-      },
-      "event": {
-        "events": null,
-        "expiring": false,
-        "unavailable_reason": null,
-        "value": "no_scheduled_events"
-      },
-      "invalidation": {
-        "unavailable_reason": null,
-        "value": "NO_ACTIVE_CANDIDATES"
-      },
-      "location": {
-        "orb": {
-          "orb_high": 778.5800170898438,
-          "orb_low": 777.9199829101562,
-          "reason": null,
-          "state": "FORMED"
-        },
-        "price_vs_vwap": "AT_LEVEL",
-        "reason": null,
-        "state": "OBSERVED"
-      },
-      "permission": {
-        "value": "No new trades permitted."
-      },
-      "state": {
-        "unavailable_reason": null,
-        "value": "FAILED_EXPANSION"
-      },
-      "transition": {
-        "unavailable_reason": null,
-        "value": "FAILED_EXPANSION"
-      }
-    },
     "option_setups_detail": [],
-    "rejected": [
-      {
-        "detail": null,
-        "reason": "STAY_FLAT posture (regime=RISK_ON, confidence=0.25)",
-        "stage": "REGIME",
-        "symbol": "REGIME"
-      }
-    ],
+    "rejected": [],
     "spy_observation": {
-      "current_price": 777.9299926757812,
-      "intended_session_date": "2026-08-14",
-      "observed_at_utc": "2026-08-14T14:19:00+00:00",
+      "current_price": null,
+      "intended_session_date": "2026-08-16",
+      "observed_at_utc": null,
       "observed_symbol": "SPY",
-      "orb": {
-        "observed_at_utc": "2026-08-14T14:19:00+00:00",
-        "orb_high": 778.5800170898438,
-        "orb_low": 777.9199829101562,
-        "reason": null,
-        "state": "FORMED",
-        "trading_date": "2026-08-14"
-      },
-      "price_vs_vwap": "AT_LEVEL",
-      "reason": null,
-      "session_vwap": 778.2176007763326,
-      "state": "OBSERVED",
+      "orb": null,
+      "price_vs_vwap": null,
+      "reason": "intraday_fetch_failed",
+      "session_vwap": null,
+      "state": "UNAVAILABLE",
       "timezone": "America/New_York"
     },
     "top_trades": [],
     "trade_decision_detail": [],
     "validation_halt_detail": {
-      "reason": "STAY_FLAT posture (regime=RISK_ON, confidence=0.25)"
+      "reason": "PREMARKET_CONTEXT"
     },
-    "watch_summary_detail": {
-      "session": "MORNING"
-    },
+    "watch_summary_detail": null,
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.25,
-    "market_regime": "RISK_ON",
+    "confidence": 0.0,
+    "market_regime": "NEUTRAL",
     "outcome": "NO_TRADE",
-    "permission": "No new trades permitted.",
+    "permission": "No new trades permitted \u2014 operator cannot monitor.",
     "router_mode": "MIXED",
     "tradable": false
   }
