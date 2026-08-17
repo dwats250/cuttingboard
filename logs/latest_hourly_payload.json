@@ -1,46 +1,46 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 1.245704905329486,
-      "level": 63613.26171875,
+      "change_pct": 1.1986620817801112,
+      "level": 63589.859375,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.08239954718581549,
-      "level": 99.43399810791016,
+      "change_pct": -0.0884254165650536,
+      "level": 99.4280014038086,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -0.22677991812022524,
-      "level": 4443.60009765625,
+      "change_pct": 0.22901647133736452,
+      "level": 4463.89990234375,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 0.668778047233041,
-      "level": 82.79000091552734,
+      "change_pct": 0.2918354807859204,
+      "level": 82.4800033569336,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 1.0021524575101899,
-      "change_pct": 0.21295205857379795,
-      "level": 4.706000328063965,
+      "change_bps": 0.40031167440832455,
+      "change_pct": 0.08517270013909105,
+      "level": 4.699999809265137,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -0.365321356091641,
-      "level": 65.45500183105469,
+      "change_pct": 0.22833020256597114,
+      "level": 65.84500122070312,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 5.473682336639939,
-      "level": 15.029999732971191,
+      "change_pct": 5.333334939521656,
+      "level": 15.010000228881836,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260817T133958Z",
+    "generation_id": "hourly-20260817T142310Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-08-17T13:39:58Z"
+    "timestamp": "2026-08-17T14:23:10Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
