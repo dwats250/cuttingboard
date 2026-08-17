@@ -13,43 +13,43 @@
     "rejected_count": 0
   },
   "correlation": null,
-  "generated_at": "2026-08-17T18:24:31Z",
-  "generation_id": "hourly-20260817T182431Z",
+  "generated_at": "2026-08-17T19:20:50Z",
+  "generation_id": "hourly-20260817T192050Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 2.664938890109743,
-      "level": 64511.21875,
+      "change_pct": 2.336085280630553,
+      "level": 64304.578125,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.07737798936978375,
-      "level": 99.59300231933594,
+      "change_pct": 0.11455285020938363,
+      "level": 99.62999725341797,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 0.3727150155385631,
-      "level": 4470.2998046875,
+      "change_pct": 0.15043013084494128,
+      "level": 4460.39990234375,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 2.9061277379985695,
-      "level": 84.62999725341797,
+      "change_pct": 2.5899865492954546,
+      "level": 84.37000274658203,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 3.0191382025564195,
-      "change_pct": 0.6388358674953235,
-      "level": 4.72599983215332,
+      "change_bps": 2.816682706672307,
+      "change_pct": 0.596249517425778,
+      "level": 4.723999977111816,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 0.5403810922942476,
-      "level": 66.05000305175781,
+      "change_pct": 0.2739939204078611,
+      "level": 65.875,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 6.245616444370203,
-      "level": 15.140000343322754,
+      "change_pct": 6.596488283391584,
+      "level": 15.1899995803833,
       "symbol": "^VIX"
     }
   },
@@ -71,14 +71,14 @@
     "risk_off_votes": 2,
     "risk_on_votes": 2,
     "total_votes": 8,
-    "vix_level": 15.140000343322754,
-    "vix_pct_change": 0.06245616444370203,
+    "vix_level": 15.1899995803833,
+    "vix_pct_change": 0.06596488283391584,
     "vote_breakdown": {
       "BTC pct_change": "RISK_ON",
       "DXY pct_change": "NEUTRAL",
-      "IWM pct_change": "RISK_OFF",
+      "IWM pct_change": "NEUTRAL",
       "QQQ pct_change": "NEUTRAL",
-      "SPY pct_change": "NEUTRAL",
+      "SPY pct_change": "RISK_OFF",
       "TNX pct_change": "NEUTRAL",
       "VIX level": "RISK_ON",
       "VIX pct_change": "RISK_OFF"
