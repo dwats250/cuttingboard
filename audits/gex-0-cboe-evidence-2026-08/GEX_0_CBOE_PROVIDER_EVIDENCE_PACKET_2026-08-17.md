@@ -46,7 +46,8 @@ flagged to owner).
 
 Scoped precisely: for a **personal, non-redistributed, context-only** GEX
 observation built on **~15-minute delayed** data, every load-bearing §4.3 meaning
-was **directly established live** this pass (§6). The feed supplies the two inputs
+was **established this pass - directly observed live, or owner-ruled/REPORTED where
+noted** (the terms leg and the exact delay figure; §6, §8). The feed supplies the two inputs
 a descriptive GEX requires and that a raw-data provider must expose - **per-strike
 open interest** and **per-strike gamma** - plus IV, quotes, and an underlying spot
 basis, for both the retail proxy (SPY) and the correct gamma underlying (SPX,
@@ -193,7 +194,7 @@ independently re-derived; **UNVERIFIABLE** = not establishable from this pass.
 | 9 | spot-price basis | `data.current_price` = underlying reference price: SPY **773.51**; _SPX **7755.51** = SPX **cash index level** (cash-settled; not a tradable last). `prev_day_close` and `close` also present. | VERIFIED |
 | 10 | flip/put-wall/call-wall meaning | **N/A by construction**: the feed ships **no** derived dealer-positioning levels; the schema contains no flip/put-wall/call-wall/GEX field. Such a level would be computed in-repo from OI x gamma. This raw-data property is exactly what GEX needs. | VERIFIED (absence) |
 | 11 | sample response | Real HTTP 200 JSON captured live for both underlyings this pass. Committed artifact is a **lawful truncated excerpt** (schema + 2 partial rows) per the owner redistribution ruling; full responses observed (14,546 / 30,558 contracts). Reproduction command in §13. | VERIFIED |
-| 12 | staleness behavior | Untraded contracts carry a **stale `last_trade_time`** while model fields still populate: observed _SPX sample row `last_trade_time` **2026-08-11** (6 days old) with live Greeks/`theo`/OI. Also observed degenerate Greeks (`gamma`=`iv`=0.0) on a deep-ITM expiring-today SPY contract. Consumer must treat last-trade freshness independently of quote/Greek presence (G6). | VERIFIED |
+| 12 | staleness behavior | Untraded contracts carry a **stale `last_trade_time`** while model fields still populate: observed _SPX sample row `last_trade_time` **2026-08-11** (6 days old) with populated `theo`/OI/model fields (that row's own `gamma`/`iv` read 0.0, deep-ITM). Also observed degenerate Greeks (`gamma`=`iv`=0.0) on a deep-ITM expiring-today SPY contract. Consumer must treat last-trade freshness independently of quote/Greek presence (G6). | VERIFIED |
 | 13 | unavailable/failure behavior | A nonexistent underlying returns **HTTP 403** with an S3-style `<Error><Code>AccessDenied` **XML** body (not a 200 JSON). A producer keys "unavailable" off non-200 status / non-JSON content-type and renders no GEX context (G6, baseline-neutral). | VERIFIED |
 
 **All 13 load-bearing legs are established** (VERIFIED, or owner-ruled REPORTED for
