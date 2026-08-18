@@ -1,46 +1,46 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 2.2482583657964894,
-      "level": 64249.390625,
+      "change_pct": -0.5195227686879652,
+      "level": 64145.01171875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.06833151880044414,
-      "level": 99.58399963378906,
+      "change_pct": -0.011042665812863879,
+      "level": 99.61699676513672,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 0.45579638945758977,
-      "level": 4474.0,
+      "change_pct": 0.04046232431793376,
+      "level": 4449.89990234375,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 2.7966963904446653,
-      "level": 84.54000091552734,
+      "change_pct": -0.9266872909411658,
+      "level": 84.45999908447266,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 2.816682706672307,
-      "change_pct": 0.596249517425778,
-      "level": 4.723999977111816,
+      "change_bps": 2.0084654770501595,
+      "change_pct": 0.42336962369634396,
+      "level": 4.74399995803833,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 0.3957715768905819,
-      "level": 65.95500183105469,
+      "change_pct": -0.2832823791887923,
+      "level": 65.12000274658203,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 6.526317931058114,
-      "level": 15.180000305175781,
+      "change_pct": 4.2791348924328805,
+      "level": 15.84000015258789,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260817T201611Z",
+    "generation_id": "hourly-20260818T134234Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-08-17T20:16:11Z"
+    "timestamp": "2026-08-18T13:42:34Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -58,8 +58,8 @@
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.0,
-    "market_regime": "NEUTRAL",
+    "confidence": 0.25,
+    "market_regime": "RISK_OFF",
     "outcome": null,
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
     "router_mode": "MIXED",
