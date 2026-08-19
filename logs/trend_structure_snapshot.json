@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-08-19T17:18:49.443927+00:00",
+  "generated_at": "2026-08-19T18:19:52.148837+00:00",
   "schema_version": 1,
   "source": "trend_structure",
   "symbols": {
     "GDX": {
-      "current_price": 95.86000061035156,
-      "daily_change_pct": 8.035614347291286,
+      "current_price": 95.41500091552734,
+      "daily_change_pct": 7.534093221601871,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
@@ -20,8 +20,8 @@
       "vwap": null
     },
     "GLD": {
-      "current_price": 411.6099853515625,
-      "daily_change_pct": 3.6018085455732414,
+      "current_price": 411.44268798828125,
+      "daily_change_pct": 3.5596999718805025,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "BELOW",
@@ -36,8 +36,8 @@
       "vwap": null
     },
     "QQQ": {
-      "current_price": 716.375,
-      "daily_change_pct": 0.02722779189589908,
+      "current_price": 715.89501953125,
+      "daily_change_pct": -0.03979173793598677,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
@@ -45,15 +45,15 @@
       "price_vs_vwap": "NOT_COMPUTED",
       "reason": "BULLISH alignment; VWAP NOT_COMPUTED",
       "relative_volume": 1.2468271989207966,
-      "sma_200": 650.442162475586,
+      "sma_200": 650.442158203125,
       "sma_50": 712.8418469238281,
       "symbol": "QQQ",
       "trend_alignment": "BULLISH",
       "vwap": null
     },
     "SLV": {
-      "current_price": 59.310001373291016,
-      "daily_change_pct": 4.162278491905546,
+      "current_price": 59.33000183105469,
+      "daily_change_pct": 4.417461863876605,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "BELOW",
@@ -68,8 +68,8 @@
       "vwap": null
     },
     "SPY": {
-      "current_price": 769.594970703125,
-      "daily_change_pct": 0.3279544504883668,
+      "current_price": 769.3800048828125,
+      "daily_change_pct": 0.2999305134179101,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
@@ -77,15 +77,15 @@
       "price_vs_vwap": "NOT_COMPUTED",
       "reason": "BULLISH alignment; VWAP NOT_COMPUTED",
       "relative_volume": 0.9505470607545107,
-      "sma_200": 703.6378930664063,
+      "sma_200": 703.6378936767578,
       "sma_50": 749.5313854980469,
       "symbol": "SPY",
       "trend_alignment": "BULLISH",
       "vwap": null
     },
     "XLE": {
-      "current_price": 63.78499984741211,
-      "daily_change_pct": 0.3855836440228364,
+      "current_price": 63.66999816894531,
+      "daily_change_pct": 0.20459264863914597,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
@@ -93,7 +93,7 @@
       "price_vs_vwap": "NOT_COMPUTED",
       "reason": "BULLISH alignment; VWAP NOT_COMPUTED",
       "relative_volume": 0.9875641242705635,
-      "sma_200": 53.08251029968262,
+      "sma_200": 53.082510223388674,
       "sma_50": 57.092654876708984,
       "symbol": "XLE",
       "trend_alignment": "BULLISH",
