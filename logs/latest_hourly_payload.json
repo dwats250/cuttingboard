@@ -1,68 +1,188 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.17100142486042183,
-      "level": 64590.26171875,
+      "change_pct": 0.5391516823465041,
+      "level": 65030.05859375,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.040150275212791485,
-      "level": 99.66799926757812,
+      "change_pct": -0.6346107674150043,
+      "level": 98.95600128173828,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -1.0791124063348236,
-      "level": 4400.10009765625,
+      "change_pct": 2.513037076151055,
+      "level": 4519.7998046875,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": -1.3489753969254032,
-      "level": 84.0999984741211,
+      "change_pct": -0.3542785199299011,
+      "level": 84.37999725341797,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -1.7931065777865203,
-      "change_pct": -0.381025595577083,
-      "level": 4.706000328063965,
+      "change_bps": -6.215680540932032,
+      "change_pct": -1.3387207349573895,
+      "level": 4.64300012588501,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -2.4959820235787484,
-      "level": 63.67499923706055,
+      "change_pct": 3.595470845192771,
+      "level": 65.40499877929688,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 4.081638290721753,
-      "level": 15.8100004196167,
+      "change_pct": -4.29293117818995,
+      "level": 15.15999984741211,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260818T201244Z",
-    "symbols_scanned": 0,
-    "timestamp": "2026-08-18T20:12:44Z"
+    "generation_id": "hourly-20260819T134427Z",
+    "symbols_scanned": 22,
+    "timestamp": "2026-08-19T13:44:27Z"
   },
-  "run_status": "STAY_FLAT",
+  "run_status": "OK",
   "schema_version": "1.0",
   "sections": {
     "chain_results_detail": [],
     "continuation_audit": null,
     "option_setups_detail": [],
-    "rejected": [],
+    "rejected": [
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "AAPL"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "AMZN"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "CL=F"
+      },
+      {
+        "detail": null,
+        "reason": "2 soft gates failed: stop distance 0.4% below 1.0% minimum; price 2.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "QUALIFICATION",
+        "symbol": "DX-Y.NYB"
+      },
+      {
+        "detail": null,
+        "reason": "2 soft gates failed: stop distance 75.45 below 1\u00d7 ATR14 (75.45); price 3.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "QUALIFICATION",
+        "symbol": "GC=F"
+      },
+      {
+        "detail": null,
+        "reason": "2 soft gates failed: stop distance 3.18 below 1\u00d7 ATR14 (3.18); price 3.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "QUALIFICATION",
+        "symbol": "GDX"
+      },
+      {
+        "detail": null,
+        "reason": "2 soft gates failed: stop distance 6.91 below 1\u00d7 ATR14 (6.91); price 2.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "QUALIFICATION",
+        "symbol": "GLD"
+      },
+      {
+        "detail": null,
+        "reason": "2 soft gates failed: stop distance 22.18 below 1\u00d7 ATR14 (22.18); price 2.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "QUALIFICATION",
+        "symbol": "META"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "PAAS"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "SI=F"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "SLV"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "TSLA"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "^TNX"
+      }
+    ],
     "top_trades": [],
     "trade_decision_detail": [],
-    "validation_halt_detail": {
-      "reason": "STAY_FLAT posture"
-    },
+    "validation_halt_detail": null,
     "watch_summary_detail": null,
-    "watchlist": []
+    "watchlist": [
+      {
+        "detail": null,
+        "reason": "stop distance 1.47 below 1\u00d7 ATR14 (1.47)",
+        "stage": "WATCHLIST",
+        "symbol": "^VIX"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 1225.22 below 1\u00d7 ATR14 (1225.22)",
+        "stage": "WATCHLIST",
+        "symbol": "BTC-USD"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 0.9% below 1.0% minimum",
+        "stage": "WATCHLIST",
+        "symbol": "SPY"
+      },
+      {
+        "detail": null,
+        "reason": "R:R 2.00 below 2.0 minimum",
+        "stage": "WATCHLIST",
+        "symbol": "QQQ"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 3.67 below 1\u00d7 ATR14 (3.67)",
+        "stage": "WATCHLIST",
+        "symbol": "IWM"
+      },
+      {
+        "detail": null,
+        "reason": "price 3.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "WATCHLIST",
+        "symbol": "XLE"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 8.14 below 1\u00d7 ATR14 (8.14)",
+        "stage": "WATCHLIST",
+        "symbol": "COIN"
+      }
+    ]
   },
   "summary": {
-    "confidence": 0.25,
-    "market_regime": "RISK_OFF",
+    "confidence": 0.875,
+    "market_regime": "RISK_ON",
     "outcome": null,
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
     "router_mode": "MIXED",
-    "tradable": false
+    "tradable": true
   }
 }
