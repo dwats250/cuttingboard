@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": -0.0021322472880534625,
-      "price": 131.0399932861328,
+      "pct_change_decimal": -0.004486664166468631,
+      "price": 130.91000366210938,
       "structure": "TRENDING_UP",
       "symbol": "USO"
     }
@@ -16,8 +16,8 @@
       "SLV"
     ]
   },
-  "generated_at": "2026-08-19T19:18:14Z",
-  "generation_id": "hourly-20260819T191814Z",
+  "generated_at": "2026-08-19T20:16:30Z",
+  "generation_id": "hourly-20260819T201630Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -31,14 +31,14 @@
   "session_date": "2026-08-19",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-08-19T19:18:14Z"
+    "run_at_utc": "2026-08-19T20:16:30Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 96.7699966430664,
+      "current_price": 97.30999755859375,
       "fib_levels": {
         "retracements": {
           "0.382": 84.8366,
@@ -87,7 +87,7 @@
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 413.2300109863281,
+      "current_price": 413.8399963378906,
       "fib_levels": {
         "retracements": {
           "0.382": 391.7629,
@@ -143,7 +143,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 716.9000244140625,
+      "current_price": 716.0800170898438,
       "fib_levels": {
         "retracements": {
           "0.382": 706.5259,
@@ -209,7 +209,7 @@
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 59.95500183105469,
+      "current_price": 60.0099983215332,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -260,7 +260,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 769.719970703125,
+      "current_price": 769.0999755859375,
       "fib_levels": {
         "retracements": {
           "0.382": 760.1668,
@@ -326,7 +326,7 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 63.65439987182617,
+      "current_price": 63.56610107421875,
       "fib_levels": {
         "retracements": {
           "0.382": 61.1888,
