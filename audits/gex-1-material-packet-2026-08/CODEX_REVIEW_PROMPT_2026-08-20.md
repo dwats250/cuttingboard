@@ -37,7 +37,7 @@ material boundary omitted? Specifically verify:
 1. INTAKE (§0): is the GOV-2 §1 classification argued correctly? Any leg
    mis-stated?
 2. SEAM TRACE (§5): re-run the decisive negatives yourself
-   (`rg -niE "gex|gamma" cuttingboard/`; import edges around `tools/`;
+   (`rg -ni 'gex|gamma' cuttingboard/`; import edges around `tools/`;
    readers of `logs/gex_snapshot.json`). Is any consumer, reader, or
    coupled surface omitted? Is any "CONFIRMED" disposition wrong?
 3. DESIGN (§4): does any element violate G1 (prediction), G2 (permission),
