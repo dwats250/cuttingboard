@@ -12,9 +12,11 @@ cuttingboard/ and no cuttingboard module imports it. Stdlib only (R11 dependency
 honesty; zoneinfo included - a missing OS IANA tz database FAILS LOUD, never a
 tzdata pip dependency).
 
-The single source of build truth is docs/prd_history/PRD-306.md
-(BUILD-BINDING CONTRACTS 1-8, REQUIREMENTS R1-R37). This module implements it
-without redesign.
+The source of build truth is docs/prd_history/PRD-306.md (BUILD-BINDING
+CONTRACTS 1-8, REQUIREMENTS R1-R37), patched by docs/prd_history/PRD-307.md
+(R38-R43: open_interest admissibility is semantic integer-valued, not Python
+`int` representation -- Cboe emits whole-number OI as float). This module
+implements them without redesign.
 """
 
 from __future__ import annotations
@@ -125,10 +127,11 @@ def _valid_gamma(value: object) -> bool:
 
 
 def _valid_oi(value: object) -> bool:
-    # non-bool integer (2.5 float / bool rejected), >= 0.
-    if isinstance(value, bool):
-        return False
-    return isinstance(value, int) and value >= 0
+    # Integer-VALUED, not int-REPRESENTED (PRD-307): Cboe emits whole-number OI
+    # as JSON floats (e.g. 2960.0). Admissible iff numeric, non-boolean, finite,
+    # >= 0, and mathematically integer-valued; accepted OI is normalized to
+    # int() at the call site (2.5 / negatives / bool / NaN / Inf rejected).
+    return _finite_number(value) and value >= 0 and float(value).is_integer()
 
 
 def _parse_expiry(yymmdd: str) -> Optional[date]:
@@ -201,8 +204,10 @@ def _classify_row(row: object) -> tuple[Optional[Contract], Optional[str]]:
         return None, "invalid_gamma"
     if not _valid_oi(row["open_interest"]):
         return None, "invalid_open_interest"
+    # Normalize admitted OI to int (2960.0 -> 2960) so arithmetic, zero_oi_rows,
+    # and determinism are byte-identical to a Python-int feed (PRD-307).
     return Contract(root, cp, int(digits) / 1000, expiry, float(row["gamma"]),
-                    row["open_interest"]), None
+                    int(row["open_interest"])), None
 
 
 # ---------------------------------------------------------------------------
