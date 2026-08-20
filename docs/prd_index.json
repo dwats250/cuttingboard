@@ -1508,6 +1508,12 @@
       "title": "Manual Cached _SPX GEX Snapshot Producer",
       "status": "COMPLETE",
       "commit": "#259"
+    },
+    {
+      "number": 307,
+      "title": "Cboe OI numeric-representation conformance",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
