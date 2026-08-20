@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 305,
-  "next_prd": 306,
+  "latest_complete": 306,
+  "next_prd": 307,
   "entries": [
     {
       "number": 56,
@@ -1506,8 +1506,8 @@
     {
       "number": 306,
       "title": "Manual Cached _SPX GEX Snapshot Producer",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#259"
     }
   ]
 }
