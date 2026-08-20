@@ -241,12 +241,21 @@ class TestCWalls:
         assert art["call_wall"]["strike"] == 5000.0
 
     def test_r18_tie_break_lowest_strike(self, tmp_path):
-        opts = [
+        # calls-only tie -> call_wall AND dominant both resolve to lowest strike
+        calls = [
             _contract("SPX260919C05100000", 0.0001, 100),   # +250000
             _contract("SPX260919C05000000", 0.0001, 100),   # +250000 (tie -> lowest)
         ]
-        art = _run_ok(tmp_path, _feed(opts))
+        art = _run_ok(tmp_path, _feed(calls))
         assert art["call_wall"]["strike"] == 5000.0
+        assert art["dominant_net_gamma"]["strike"] == 5000.0   # net == call here
+        # puts-only tie -> put_wall resolves to lowest strike (|put GEX| equal)
+        puts = [
+            _contract("SPX260919P05100000", 0.0001, 100),   # -250000
+            _contract("SPX260919P05000000", 0.0001, 100),   # -250000 (tie -> lowest)
+        ]
+        art_p = _run_ok(tmp_path, _feed(puts))
+        assert art_p["put_wall"]["strike"] == 5000.0
 
     def test_r24_call_wall_unavailable_tokens(self, tmp_path):
         puts_only = [_contract("SPX260919P05000000", 0.0001, 100)]

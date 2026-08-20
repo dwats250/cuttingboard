@@ -21,14 +21,17 @@ TRUTH-SYNC against `main` @ `a419b804`)
   2026-07-25). `L0` is COMPLETE as of the 2026-08-05 TRUTH-SYNC (PRD-267/271/
   272/273 closed with real merged provenance; PRD-268 returned to PROPOSED and
   PARKED on Dustin's ruling; registry validator exit 0), which clears the
-  workplan gate GEX-0 and NEWS-0 sat behind. The `GEX-0` packet (commissioned
-  2026-08-05) remains `EVIDENCE INCOMPLETE` — its first pass (2026-08-05) reached Polygon and got a
-  real HTTP 401 (authentication required), so no provider-viability verdict
-  was established; the next step needs a real free-tier Polygon credential — and is parked behind the active NS-2E lane per the
-  2026-08-06 Product-Delivery Operating Rule's post-TRUTH-SYNC lane order
-  (NS-2E, GEX, context registry). The plans still authorize no GEX,
-  personalized-news, options-data, macro-awareness consumer, cadence, or
-  production implementation.
+  workplan gate GEX-0 and NEWS-0 sat behind. `GEX-0` reached `PROVIDER VIABLE`
+  (Cboe `delayed_quotes`, 2026-08-17; scoped personal/non-redistributed/
+  context-only, ~15-min delayed), superseding the earlier Polygon
+  `EVIDENCE INCOMPLETE` pass (2026-08-05 HTTP 401); see
+  `docs/plans/decision-support-workplan-v0.1.md`. **GEX-1 is now IMPLEMENTED** —
+  PRD-306 landed the manual cached `_SPX` GEX producer (`tools/gex_snapshot.py`,
+  observe-only sidecar `logs/gex_snapshot.json`) via PR #259 under GOV-2
+  MATERIAL + Gate A; it is the first GEX production implementation the plans
+  authorize (manual/local-first, no cadence, no consumer, baseline-neutral). The
+  plans still authorize no personalized-news, options-data, or macro-awareness
+  consumer, and no scheduled/production cadence beyond this manual producer.
 - **North Star product portfolio:** RATIFIED — PR #187 merged 2026-08-02
   (`fdeef90`), which is the NS-0B ratifying act.
   `docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md` (vision and
