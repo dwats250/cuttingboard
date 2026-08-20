@@ -155,6 +155,28 @@ defaults differ.
 - **Test isolation:** pass `state_path=tmp_path/...` to `run()`; written as one coherent
   generation with the snapshot (both-or-neither)
 
+### logs/gex_snapshot.json
+- **Writer:** `tools/gex_snapshot.py:run` — isolated, observe-only manual GEX
+  producer (PRD-306). Imports no `cuttingboard` module, and no `cuttingboard`
+  module imports it (R11). Stdlib only.
+- **Constant:** `tools.gex_snapshot.ARTIFACT_PATH` (= `logs/gex_snapshot.json`)
+- **Source:** one keyless GET against the Cboe `delayed_quotes` `_SPX` endpoint
+  (`https://cdn.cboe.com/api/global/delayed_quotes/options/_SPX.json`); settled
+  P0 gamma-exposure structural outputs (`gex_total_1pct_usd`, `call_wall`,
+  `put_wall`, `dominant_net_gamma`, `zero_dte`) over the SPX+SPXW universe, with
+  an always-present provenance/coverage envelope
+- **Consumers:** Dustin — human, manual local inspection (observe-only); machine
+  consumers: none. Baseline-neutral: no `cuttingboard` decision module reads it;
+  its presence/absence/staleness/failure changes no TRADE/NO TRADE/HALT,
+  candidate permission, qualification, grading/ranking, sizing, regime,
+  kill-switch, or execution behavior
+- **Category:** Sidecar; observe-only; never read for decision logic
+- **Persistence:** manual/local-first — run by hand; no cadence, cron, or
+  scheduled publish. Atomic tmp + `os.replace`; any provider/validation failure
+  exits non-zero and preserves the last good artifact byte-identical
+- **Test isolation:** pass `artifact_path=tmp_path/...` to `run()`; inject
+  `fetch_fn`/`now` (synthetic fixtures only, no network, no committed Cboe chain)
+
 ### logs/audit.jsonl
 - **Writer:** `audit.py:write_audit_record` (one record per pipeline run);
   `audit.py:write_notification_audit` (notification events);
