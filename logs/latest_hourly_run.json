@@ -1,5 +1,5 @@
 {
-  "alert_body": "No new trades permitted \u2014 operator cannot monitor.\n\n12:00 PM\nRegime: RISK_OFF\n23/23 validated\nVIX 16.1 (+8.1%)",
+  "alert_body": "No new trades permitted \u2014 operator cannot monitor.\n\n1:00 PM\nRegime: RISK_OFF\n23/23 validated\nVIX 16.0 (+7.3%)",
   "alert_title": "OBSERVE ONLY \u2014 OPERATOR LOCK",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
@@ -13,10 +13,10 @@
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-08-20T19:23:35Z",
-  "generation_id": "hourly-20260820T192335Z",
+  "generated_at": "2026-08-20T20:18:03Z",
+  "generation_id": "hourly-20260820T201803Z",
   "halt_reason": null,
-  "hourly_slot_utc": "2026-08-20T19:00:00Z",
+  "hourly_slot_utc": "2026-08-20T20:00:00Z",
   "index_score": 0.0,
   "kill_switch": false,
   "mode": "LIVE",
@@ -34,11 +34,11 @@
   "posture": "STAY_FLAT",
   "regime": "RISK_OFF",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-08-20T19:23:35Z",
-  "run_id": "hourly-20260820T192335Z",
+  "run_at_utc": "2026-08-20T20:18:03Z",
+  "run_id": "hourly-20260820T201803Z",
   "session_date": "2026-08-20",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-08-20T19:23:35Z",
+  "timestamp": "2026-08-20T20:18:03Z",
   "warnings": []
 }

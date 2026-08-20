@@ -13,27 +13,27 @@
     "rejected_count": 0
   },
   "correlation": null,
-  "generated_at": "2026-08-20T19:23:35Z",
-  "generation_id": "hourly-20260820T192335Z",
+  "generated_at": "2026-08-20T20:18:03Z",
+  "generation_id": "hourly-20260820T201803Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 4.722526072947548,
-      "level": 72572.71875,
+      "change_pct": 4.786671989237014,
+      "level": 72617.171875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.08602362750387169,
-      "level": 98.89399719238281,
+      "change_pct": 0.0789431440265312,
+      "level": 98.88700103759766,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 0.6058258487553261,
-      "level": 4583.2998046875,
+      "change_pct": 0.5685163911883229,
+      "level": 4581.60009765625,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 2.686713610907009,
-      "level": 86.76000213623047,
+      "change_pct": 2.497337748491481,
+      "level": 86.5999984741211,
       "symbol": "CL=F"
     },
     "rates": {
@@ -43,13 +43,13 @@
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 1.4343103222262592,
-      "level": 68.24500274658203,
+      "change_pct": 1.4566043024887156,
+      "level": 68.26000213623047,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 8.126259303208027,
-      "level": 16.100000381469727,
+      "change_pct": 7.25318938082072,
+      "level": 15.970000267028809,
       "symbol": "^VIX"
     }
   },
@@ -71,8 +71,8 @@
     "risk_off_votes": 5,
     "risk_on_votes": 2,
     "total_votes": 8,
-    "vix_level": 16.100000381469727,
-    "vix_pct_change": 0.08126259303208028,
+    "vix_level": 15.970000267028809,
+    "vix_pct_change": 0.0725318938082072,
     "vote_breakdown": {
       "BTC pct_change": "RISK_ON",
       "DXY pct_change": "NEUTRAL",
@@ -95,7 +95,7 @@
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
     "router_mode": "MIXED",
     "stay_flat_reason": "STAY_FLAT posture",
-    "time_gate_open": true,
+    "time_gate_open": false,
     "tradable": false
   },
   "timezone": "America/New_York",
