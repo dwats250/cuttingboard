@@ -16,6 +16,36 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-20 — PRD-307: Cboe OI admissibility is semantic integer-valued, not Python `int` representation (patch of PRD-306)
+
+PRD-306's first real run of `tools/gex_snapshot.py` failed loud with
+`zero eligible contracts after admissibility (included == 0)`. Root cause: an
+ambiguous requirement conflated *integer-valued* open_interest with *Python
+`int`* representation. `_valid_oi` required `isinstance(value, int)`, but the
+Cboe `_SPX` delayed_quotes endpoint emits whole-number OI counts as JSON
+numerics that decode as Python `float` (e.g. `2969.0`) -- so every one of the
+30282 live contracts failed `invalid_open_interest`. A direct live probe
+confirmed 30282/30282 OI values are float and integer-valued, 0 are Python int.
+
+**Decision.** OI is admissible iff numeric (int OR float), non-boolean, finite,
+`>= 0`, and mathematically integer-valued; accepted OI is normalized to
+`int(value)` before it enters the Contract, so arithmetic, `zero_oi_rows`, and
+byte-determinism are identical to a Python-int feed. Non-integer (`2.5`),
+negative, boolean, `NaN`, and `Inf` OI stay rejected. One production file
+(`tools/gex_snapshot.py`); no new emitted field, schema key, dependency,
+consumer, layer, or authority boundary. The gamma predicate was already
+representation-neutral; OI was the sole holdout.
+
+**Provenance.** LANE STANDARD, CLASS SIDECAR, PATCH of PRD-306. R1-R37 frozen
+and green; adds R38-R43 (float acceptance is mutation-red against the old
+validator: R38/R42 reproduce the exact `included == 0` fail-loud). Full suite
+3848 passed / 1 xfailed; ruff clean. Fresh-context STANDARD review
+`docs/prd_history/PRD-307.review.claude.md` (reviewed `4a97303`): VERDICT
+APPROVE, no required edits, DRIFT CHECK clear. Live Cboe run: exit 0,
+`included == 30282 == contracts_total`, all exclusions 0, coverage reconciles;
+artifact not committed. PR #260 (branch `claude/gex-2-prd-307-oi-repr`), draft,
+held for Dustin's merge.
+
 ## 2026-08-20 — PRD-306 Gate A GRANTED: Manual Cached _SPX GEX Snapshot Producer authorized on corrected head `47f3129` (ruled: Dustin)
 
 Dustin/HELM granted **Gate A** for PRD-306 on the exact corrected PRD revision
