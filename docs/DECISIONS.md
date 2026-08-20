@@ -16,6 +16,62 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-20 — PRD-306 Gate A GRANTED: Manual Cached _SPX GEX Snapshot Producer authorized on corrected head `47f3129` (ruled: Dustin)
+
+Dustin/HELM granted **Gate A** for PRD-306 on the exact corrected PRD revision
+`47f31294c1dee60ee7afc87a15db819d54b34e7f` (PRD-306.md blob `70dbc6a`; PR #258,
+branch `claude/gex-1-prd-306-authority`). This is the GOV-2 sequence step after
+the fresh-context independent PRD review; it authorizes implementation of
+PRD-306 as written and creates no other authority.
+
+**Review provenance (GOV-1 gate closed).** The fresh-context independent PRD
+review (`docs/prd_history/PRD-306.review.ultracode.md`; reviewed candidate
+`1286cb0`) returned REQUIRED-CHANGES with two findings. The author applied the
+single GOV-1 correction cycle at corrected head `47f3129` -- R-1 (artifact-flow
+human-consumer wording: `Consumers: Dustin -- human, manual local inspection
+(observe-only); machine consumers: none`, replacing the forbidden
+`Consumers: (none)`) and R-2 (R12 restored to the exhaustive frozen
+non-redistribution guard, packet D8: 24 raw-chain keys + no row container,
+matched as exact keys). Findings were produced once and addressed once; the
+review gate is closed and no further review is due.
+
+**GATE A — GRANTED.** Binding ceiling (unchanged from the reviewed PRD):
+- `<= 400` net production LOC.
+- Exactly ONE production file: `tools/gex_snapshot.py`.
+- Exactly ONE test file: `tests/test_gex_snapshot.py`.
+- ZERO new dependencies (stdlib only, including `zoneinfo`).
+
+Authorized implementation/closeout FILES surface:
+- A `tools/gex_snapshot.py`
+- A `tests/test_gex_snapshot.py`
+- M `docs/artifact_flow_map.md` (one writer row)
+- M `docs/plans/decision-support-workplan-v0.1.md` (GEX-1 state flip at closeout)
+- ordinary same-PR PRD lifecycle bookkeeping.
+
+**Binding invariants (adopted as written).** Review-clean GEX-1 MATERIAL design
+unchanged; no second provider; no SPY; no workflow/cadence; no machine consumer;
+no dashboard/GEX-2; no dependency; no gamma flip; no raw-chain persistence; no
+decision authority (GEX is context-only -- creates or alters no TRADE/NO
+TRADE/HALT, candidate permission, qualification, grading/ranking, sizing,
+regime, kill switch, or execution).
+
+**STOP-and-renew.** Any FILES increase beyond the four-surface cone, a second
+production file, exceeding the `<= 400` net-production-LOC ceiling, a new
+dependency, a workflow/cadence, or any consumer/machine-reader surface STOPS
+implementation and requires the GOV-2 §5 amended-authority path (re-classify,
+amend PRD + packet + this authority record, fresh-context review of the amended
+revision, explicit amended Gate A) -- never silent expansion.
+
+**State.** Implementation has NOT begun; PRD-306 stays IN PROGRESS until same-PR
+closeout. Implementation is authorized only from the Gate-A-bearing head
+`47f3129` and only within the ceiling above, runs in a separate session/PR under
+the Ultracode charter
+(`audits/gex-1-material-packet-2026-08/PRD_306_ULTRACODE_IMPLEMENTATION_CHARTER_2026-08-20.md`,
+dispatchable now that review-clean + Gate A both hold), and is held for Dustin's
+GOV-1 merge. This authority-package PR #258 (PRD + review artifact + this Gate-A
+record) is itself held for Dustin's merge to land as canonical implementation
+authority.
+
 ## 2026-08-20 — GEX-1 DESIGN DIRECTION APPROVED: review-clean MATERIAL packet ratified, Stage-0 PRD-306 authorized to open (ruled: Dustin)
 
 Dustin issues the GOV-2 **design-direction ruling** on the GEX-1 MATERIAL
