@@ -55,13 +55,16 @@ does not force HIGH-RISK.
   PRD opens only after the design-direction ruling.
 - **Related evidence:**
   `audits/gex-0-cboe-evidence-2026-08/GEX_0_CBOE_PROVIDER_EVIDENCE_PACKET_2026-08-17.md`
-  (verdict `PROVIDER VIABLE`, scoped; head `b55b0de`, **PR #256 — merge
-  pending, Held for Dustin's merge**) and
+  (verdict `PROVIDER VIABLE`, scoped; head `b55b0de`, **PR #256 — MERGED to
+  `main` 2026-08-20, merge commit `ed87913`**) and
   `audits/gex-planning-recon-2026-08/GEX_1_2_PLANNING_RECON_2026-08-20.md`
   (planning recon, same branch as this packet).
-  **Dependency stated plainly:** this packet may be reviewed and corrected
-  while #256 is open, but the Stage-0 PRD must not open before #256 lands on
-  `main` — until then the `PROVIDER VIABLE` verdict is not repository truth.
+  **Dependency, now satisfied:** PR #256 has landed on `main`, so the
+  `PROVIDER VIABLE` verdict and the observed feed facts this design rests on
+  are repository truth. The remaining sequence gate is unchanged — the
+  Stage-0 PRD still opens only after Event-1 review, one consolidated
+  correction, exact-corrected-head confirmation, and Dustin's
+  design-direction ruling.
 - **Precedence on conflict:** `VISION.md` → `CLAUDE.md` /
   `docs/PRD_PROCESS.md` → expansion doctrine → dated operator decision →
   active PRD → this packet. Conflicts stop the work; they are not resolved
@@ -156,13 +159,119 @@ gex_contract = sign · gamma · open_interest · 100 · spot² · 0.01
   (dealers-long-calls / short-puts). It is an **assumption about
   positioning, not measured data**, and the artifact says so in a
   load-bearing `sign_convention` field (G1).
-- Units: USD gamma notional per 1% underlying move (`units` field).
-- Aggregation: `gex_total_1pct_usd` = Σ over all included contracts;
-  `top_strikes` = the 10 strikes with largest |Σ per-strike GEX|, each
-  `{strike, gex_1pct_usd, call_oi, put_oi}`. No full per-strike table in
-  v1 — compact, derived, and nowhere near raw-chain redistribution.
+- Units: USD gamma notional per 1% underlying move (`units` field). Every
+  GEX figure in the artifact — net signed total, both walls, dominant
+  gamma, and the 0DTE numerator/denominator — is in these same units.
+- Aggregation: `gex_total_1pct_usd` = Σ over all included contracts (the
+  **net signed** aggregate, preserved). The five P0 structural outputs
+  (net signed GEX, call wall, put wall, dominant gamma, 0DTE share) are
+  defined deterministically in **D4a** below. `top_strikes` = the 10
+  strikes with largest |Σ per-strike net GEX|, each
+  `{strike, gex_1pct_usd, call_oi, put_oi}` — retained because it is cheap
+  and useful, but it does **not** substitute for the four named structural
+  outputs. No full per-strike table in v1 — compact, derived, and nowhere
+  near raw-chain redistribution.
 - Greeks are Cboe-model-computed; the artifact's `model_label` states the
   figure is derived-of-model (evidence §6 row 4).
+
+### D4a. P0 structural outputs — deterministic definitions
+
+All five are **DERIVED** (deterministic in-repo calculations over the
+observed chain); none is provider-supplied — the Cboe feed ships no
+vendor wall/flip levels (evidence §2). "Eligible contract" = an included
+row per D6 (parseable OCC symbol, present numeric `gamma` and
+`open_interest`; degenerate `gamma == 0` / `open_interest == 0` rows are
+included and simply contribute 0). Per-strike aggregation groups eligible
+contracts by parsed strike **across both roots (SPX + SPXW) and all
+included expirations**. Let `strike_call_gex(k)` = Σ of `gex_contract` over
+eligible **call** rows at strike `k` (each ≥ 0 by the sign convention);
+`strike_put_gex(k)` = Σ of `gex_contract` over eligible **put** rows at
+strike `k` (each ≤ 0); `strike_net_gex(k)` = `strike_call_gex(k) +
+strike_put_gex(k)` (signed).
+
+1. **Net signed GEX** — `gex_total_1pct_usd` = Σ `gex_contract` over all
+   eligible contracts (calls positive, puts negative). Preserved
+   unchanged. Provenance DERIVED; rests on the INFERRED dealer-positioning
+   sign convention.
+
+2. **Call wall** — `call_wall = {strike, call_gex_1pct_usd}` where `strike`
+   = argmax over strikes `k` of `strike_call_gex(k)`, and
+   `call_gex_1pct_usd` = that maximum (a positive call-side aggregate).
+   Selection uses **call-side aggregated GEX, never call OI alone**.
+   Tie-break: on equal `strike_call_gex`, the **lowest** strike wins
+   (deterministic; the same lowest-strike rule is used for every structural
+   output so ordering never depends on dict/iteration order). Unavailable:
+   if there are no eligible call rows, **or** the maximum `strike_call_gex`
+   is `0` (no non-zero call gamma notional anywhere), `call_wall = null`
+   with a `reason` string — never a fabricated strike.
+
+3. **Put wall** — `put_wall = {strike, put_gex_1pct_usd}` where `strike`
+   = argmax over strikes `k` of `|strike_put_gex(k)|`, and
+   `put_gex_1pct_usd` = `strike_put_gex(strike)` reported with its **native
+   negative sign** (selection is by absolute magnitude; the reported value
+   keeps the `−` so the sign convention stays visible and consistent with
+   net signed GEX). Selection uses **put-side aggregated signed GEX, never
+   put OI alone**. Tie-break: lowest strike. Unavailable: no eligible put
+   rows, or maximum `|strike_put_gex|` is `0` → `put_wall = null` with a
+   `reason`.
+
+4. **Dominant gamma** — `dominant_gamma = {strike, net_gex_1pct_usd}` where
+   `strike` = argmax over strikes `k` of `|strike_net_gex(k)|`, and
+   `net_gex_1pct_usd` = `strike_net_gex(strike)` (signed). This is the
+   **maximum absolute net per-strike signed GEX**, and it is deliberately
+   distinct from the two walls: the walls read one side of the book
+   (call-only / put-only) per strike, whereas dominant gamma reads the
+   **net of both sides at the same strike**, so a strike where large call
+   and put GEX cancel ranks high on the walls but low here, and a strike
+   dominated by one side ranks high here. It is the single strike carrying
+   the most concentrated net dealer gamma under the sign convention — not a
+   vague "largest gamma node." (Alternatives considered and rejected for
+   v1: max Σ`gamma·OI` ignoring sign — that is a raw-gamma node, not a
+   signed-GEX node, and double-counts cancelling strikes; max single-contract
+   |contribution| — that is a contract, not a strike.) Tie-break: lowest
+   strike. Unavailable: all `strike_net_gex` are `0` → `dominant_gamma =
+   null` with a `reason`.
+
+5. **0DTE GEX share** — `zero_dte = {share, abs_gex_1pct_usd,
+   denominator_abs_gex_1pct_usd, observation_trading_date, per_root:
+   {SPX, SPXW}, caveat}`.
+   - **Observation trading date** — the calendar date of the feed
+     `timestamp` (authoritative feed clock) converted to US Eastern via the
+     stdlib `zoneinfo` zone `America/New_York`, `.date()`. Eastern is used
+     because OCC expiry dates are Eastern trading dates; `zoneinfo` handles
+     DST and the UTC/ET date-boundary correctly (a feed stamp of
+     `2026-08-18T01:00Z` resolves to trading date `2026-08-17`, not
+     `2026-08-18`). Stdlib-only; see the tz caveat in §9 Q8.
+   - **Numerator** `abs_gex_1pct_usd` = Σ `|gex_contract|` over eligible
+     contracts whose OCC-parsed expiry date **equals** the observation
+     trading date.
+   - **Denominator** `denominator_abs_gex_1pct_usd` = Σ `|gex_contract|`
+     over **all** eligible included contracts (all included expirations —
+     the share of the full observed structure; a bounded near-dated horizon
+     is a modeling choice deferred to §9 Q7).
+   - **`share`** = numerator ÷ denominator, in `[0, 1]`. Absolute (not
+     signed) GEX is used so cancellation cannot push the share negative or
+     above 1.
+   - **`per_root`** = the 0DTE numerator split into SPX vs SPXW contribution
+     (and contract counts). This is the honest handling of the
+     **AM-settled SPX vs PM-settled SPXW** distinction: v1 matches by
+     expiry **date only** and does **not** model whether an AM-settled SPX
+     contract has already settled at the open (that needs settlement-time
+     knowledge and a market calendar — outside stdlib + single-snapshot
+     scope, §9 Q6). Surfacing the per-root split lets the human see how much
+     "0DTE" gamma is AM-settled SPX (which on its expiry morning may already
+     be settled and typically carries ~0 gamma in the feed) versus
+     PM-settled SPXW (true intraday 0DTE). v1 reports what the feed carries;
+     it never drops or reweights already-settled contracts silently.
+   - **`caveat`** — a fixed string stating the expiry-date-only method and
+     the AM/PM-settlement non-modeling, so the artifact is honest standing
+     alone.
+   - **Zero denominator** — if the denominator is `0` (every eligible row
+     inert: all `gamma == 0` or `open_interest == 0`, which is possible even
+     with `included > 0`), `share = null` with a `reason`; never `0/0`.
+     Outside market hours or on a non-trading observation date, the numerator
+     is legitimately `0` (no contracts expire that date) → `share = 0.0`,
+     which is honest, not an error.
 
 ### D5. Schema v1 (versioned, additive from birth — G5)
 
@@ -180,13 +289,36 @@ Top-level keys, all always present on a written artifact:
 | `spot` | `{value, basis: "SPX cash index level (data.current_price)"}` |
 | `model_label` | `"greeks Cboe-model-computed; GEX derived-of-model"` |
 | `sign_convention` | `"calls:+1 / puts:-1 — assumed dealer-long-call/short-put positioning; descriptive assumption, not measured"` |
-| `units` | `"USD gamma notional per 1% underlying move"`; `contract_multiplier`: `100` |
-| `gex_total_1pct_usd` | the total |
-| `top_strikes` | ≤10 rows `{strike, gex_1pct_usd, call_oi, put_oi}` |
+| `units` | `"USD gamma notional per 1% underlying move"`; `contract_multiplier`: `100` — the units of every GEX figure below |
+| `gex_total_1pct_usd` | net signed GEX total (P0 #1; D4a) |
+| `call_wall` | P0 #2 — `{strike, call_gex_1pct_usd}` or `null` + `reason` (D4a) |
+| `put_wall` | P0 #3 — `{strike, put_gex_1pct_usd}` (value signed ≤ 0) or `null` + `reason` (D4a) |
+| `dominant_gamma` | P0 #4 — `{strike, net_gex_1pct_usd}` (value signed) or `null` + `reason` (D4a) |
+| `zero_dte` | P0 #5 — `{share, abs_gex_1pct_usd, denominator_abs_gex_1pct_usd, observation_trading_date, per_root: {SPX, SPXW}, caveat}`; `share` may be `null` + `reason` (D4a) |
+| `top_strikes` | ≤10 rows `{strike, gex_1pct_usd, call_oi, put_oi}` — retained, not a substitute for the four named outputs |
+| `provenance` | classification of every output: `{observed: [...], derived: [...], inferred: [...]}` (D4a; see below) |
 | `coverage` | `{contracts_total, included, excluded: {missing_fields, unparseable_symbol}, zero_gamma_rows, zero_oi_rows, per_root: {SPX, SPXW}, expirations: {count, min, max}}` |
 
+**Provenance classification** (the `provenance` field names each output by
+class, so no modeled figure is ever read as provider-observed truth):
+
+- **OBSERVED** (Cboe/source facts): `source`, `endpoint`, `underlying`/
+  `roots`, `feed_timestamp_utc`, `spot` (value + basis), and the per-contract
+  `gamma`/`open_interest` the calculations consume, plus the `coverage`
+  counts.
+- **DERIVED** (deterministic Cuttingboard calculations): `gex_total_1pct_usd`,
+  `call_wall`, `put_wall`, `dominant_gamma`, `zero_dte` (share + numerator +
+  denominator + `observation_trading_date`), `top_strikes`.
+- **INFERRED / MODEL-DERIVED** (assumption-dependent): the dealer-positioning
+  reading carried by `sign_convention` (calls +1 / puts −1 is an assumption,
+  not measured), and `model_label` (the Cboe greeks are model-computed, so
+  every GEX figure is derived-of-model). The DERIVED outputs are arithmetically
+  exact but inherit this INFERRED interpretive layer — the sign of a wall or
+  of net GEX is a positioning *interpretation*, not an observed dealer book.
+
 The artifact is honest standing alone: source, model, timestamps, delay,
-coverage, and the sign assumption are all embedded (workplan GEX-1 row:
+coverage, the sign assumption, and the OBSERVED/DERIVED/INFERRED provenance
+of every output are all embedded (workplan GEX-1 row:
 "source/model/timestamp/coverage embedded").
 
 ### D6. Coverage and degenerate rows — count, don't hide (G6)
@@ -214,9 +346,12 @@ observation and is recorded as considered-and-rejected (§9 Q3).
 ### D8. Non-redistribution guard — machine-enforced
 
 The artifact contains **no** per-contract rows, quotes, or raw chain data —
-only derived aggregates (total + ≤10 strike rows) and provenance. The test
-suite enforces it: an artifact-shape guard fails if `top_strikes` exceeds
-its cap or any per-contract field (bid/ask/iv/etc.) appears. Test fixtures
+only derived aggregates (net total, the two walls, dominant gamma, the 0DTE
+share, and ≤10 strike rows) and provenance. The four restored P0 outputs are
+each a single strike + scalar (or a null), so they add no redistribution
+surface. The test suite enforces it: an artifact-shape guard fails if
+`top_strikes` exceeds its cap or any per-contract field (bid/ask/iv/etc.)
+appears. Test fixtures
 are **synthetic** chain JSON, never captured Cboe data, so the repo never
 commits provider rows at all (stricter than the evidence packet's excerpt
 cap). Posture unchanged: personal / non-redistributed / context-only; any
@@ -272,17 +407,33 @@ between this packet and Gate A — the PRD's pre-implementation grep sweep
 | R11 | Isolation | No top-level `cuttingboard` import in the producer; no `cuttingboard` module imports it | `test_no_cuttingboard_import`, `test_no_reverse_import` | Add either import edge |
 | R12 | Non-redistribution shape | `top_strikes` ≤ 10; no per-contract field names anywhere in the artifact | `test_artifact_has_no_chain_rows` | Raise the cap; emit bid/ask |
 | R13 | Determinism | Byte-identical output for fixed fixture + fixed clock | `test_deterministic_output` | Introduce dict-order or float-format drift |
+| R14 | Call wall = max call-side GEX | Fixture where the max-`call_oi` strike differs from the max-call-GEX strike → `call_wall.strike` is the call-GEX winner | `test_call_wall_uses_call_side_gex_not_oi` | Select by `call_oi`, or by net (call+put) GEX |
+| R15 | Put wall = max \|put-side GEX\|, sign retained | Fixture where max-`put_oi` strike differs from max-put-GEX strike → correct strike; `put_gex_1pct_usd` is negative | `test_put_wall_uses_put_side_gex_not_oi`, `test_put_wall_value_is_negative` | Select by `put_oi`; report abs value / drop sign |
+| R16 | Call/put cancellation is handled correctly | Strike A has large call & put GEX that net ≈ 0; strike B is one-sided smaller → `dominant_gamma` = B, but A still appears as both a wall candidate | `test_dominant_gamma_ignores_cancelled_strike` | Compute dominant from Σ\|contribution\| (sign-blind) → wrongly picks A |
+| R17 | Dominant gamma = max \|net per-strike signed GEX\| | Fixture with a known signed-net peak → `dominant_gamma.strike` matches; value signed | `test_dominant_gamma_max_abs_net` | Use max signed (not abs); use call-side only |
+| R18 | Deterministic tie-break (lowest strike) | Two strikes with exactly equal selection metric → the lower strike is chosen for every structural output | `test_wall_tie_break_lowest_strike`, `test_dominant_tie_break_lowest_strike` | Rely on dict/iteration order; pick higher strike |
+| R19 | 0DTE numerator = expiry == observation trading date | Fixture with contracts expiring today + later → numerator sums only today's \|GEX\| | `test_zero_dte_numerator_today_only` | Include next-day expiries; use signed GEX |
+| R20 | 0DTE denominator = all eligible expirations | Same fixture → denominator = Σ\|GEX\| over all included, not a window | `test_zero_dte_denominator_all_expirations` | Restrict denominator to a near-dated window |
+| R21 | 0DTE per-root split (AM-SPX vs PM-SPXW) | Fixture with both roots expiring today → `per_root.SPX` and `per_root.SPXW` carry the correct split | `test_zero_dte_per_root_split` | Collapse roots; drop SPXW |
+| R22 | Zero denominator → `share = null` | Fixture `included > 0` but every eligible row inert (gamma 0 / OI 0) → `zero_dte.share` is `null` + `reason`, no crash | `test_zero_dte_zero_denominator_null` | Emit `0.0`; raise `ZeroDivisionError` |
+| R23 | Observation date via ET, not UTC | Fixture feed `timestamp` at `2026-08-18T01:00Z` (= ET 2026-08-17) with today-expiring contracts → `observation_trading_date` = `2026-08-17` and they count as 0DTE | `test_observation_trading_date_eastern_boundary` | Use the UTC calendar date → wrong date, 0DTE miss |
 
 Every guard above is a PRD-198 invariant-4 red test: each merges only with
 its demonstrated failing mutation. Tests never touch the network (fetcher
-injected / URL overridden; synthetic fixtures only).
+injected / URL overridden; synthetic fixtures only). R14–R23 discriminate the
+restored P0 structural outputs; the walls/dominant/0DTE fixtures are
+hand-built so the OI-based winner and the GEX-based winner are *different*
+strikes (R14/R15), the cancelling strike is *not* the dominant one (R16), and
+the ET/UTC date boundary actually flips the 0DTE membership (R23) — proxy
+tests where the two coincide would pass under the wrong implementation and are
+banned.
 
 ## §7 — FILES cone (provisional — the PRD copies or amends it, Gate A locks it)
 
 | File | Change |
 |---|---|
 | `tools/gex_snapshot.py` | A — producer CLI |
-| `tests/test_gex_snapshot.py` | A — R1–R13 suite |
+| `tests/test_gex_snapshot.py` | A — R1–R23 suite |
 | `docs/artifact_flow_map.md` | M — one writer row (mandatory same-PRD, sidecar doctrine) |
 | `docs/plans/decision-support-workplan-v0.1.md` | M — GEX-1 row state flip at closeout |
 | Lifecycle (implicit per PRD_PROCESS): `docs/PRD_REGISTRY.md`, `docs/prd_index.json`, `docs/PROJECT_STATE.md` | M — bookkeeping only |
@@ -295,26 +446,47 @@ to FILES are expected from the sweep — the sweep still runs and binds.
 
 - Production files: **1** (`tools/gex_snapshot.py`)
 - Test files: **1**
-- Net production LOC: **≤ 340** — margin math: fetch ~30, OCC parse ~40,
-  validation ~50, computation ~40, artifact build ~50, atomic write ~20,
-  CLI main ~30, constants/docstrings ~40 ≈ 300, +40 margin so an honest
-  guard never has to fight the ceiling. Exceeding 340, a second production
-  file, a new dependency, a workflow, or any consumer surface is a STOP →
-  GOV-2 §5 amended-authority path, never silent expansion.
-- New dependencies: **0** (stdlib only).
+- Net production LOC: **≤ 420** — raised honestly from the pre-correction
+  ≤ 340 to carry the four restored P0 structural outputs *within the same
+  single production file* (the FILES cone does not widen). Margin math:
+  fetch ~30, OCC parse ~40, top-level/per-row validation ~50, per-contract
+  computation ~40, artifact build ~50, atomic write ~20, CLI main ~30,
+  constants/docstrings ~40 ≈ 300 (the prior estimate); **+ per-strike
+  aggregation ~25, call/put-wall + dominant selection with tie-break and
+  null-on-unavailable ~30, 0DTE (ET-date via `zoneinfo`, expiry-date match,
+  numerator/denominator, per-root split, zero-denominator) ~35, provenance
+  block ~10 ≈ +100**; ≈ 400, + ~20 margin so an honest guard never fights
+  the ceiling. This is a **pre-review provisional** ceiling adjustment (the
+  packet is not yet Gate-A-locked; GOV-2 §5's amended-authority path governs
+  a *post-Gate-A* increase, not this pre-ruling estimate refinement).
+  Exceeding 420, a second production file, a new dependency, a workflow, or
+  any consumer surface is a STOP → GOV-2 §5 amended-authority path, never
+  silent expansion.
+- New dependencies: **0** (stdlib only — `zoneinfo` is stdlib since Python
+  3.9; it reads the OS IANA tz database, present on Linux/macOS and
+  GitHub-hosted runners. If that database is absent, `ZoneInfo` raises and
+  the producer fails loud — never a silent wrong date, and no `tzdata` pip
+  dependency is added. See §9 Q8.)
 
 ## §9 — Open design questions for the design-direction ruling
 
 Each has a recommended default; the ruling can adopt or override them all
-in one act. None blocks packet review.
+in one act. None blocks packet review. The **five P0 structural outputs
+(net signed GEX, call wall, put wall, dominant gamma, 0DTE share) are now
+design-frozen in D4a/D5**, not open questions — the ruling may still
+override a definition, but the packet no longer presents them as optional.
 
 | # | Question | Recommendation | Named alternative |
 |---|---|---|---|
-| Q1 | Aggregation shape | Total + top-10 strikes by \|GEX\| | Full per-strike profile (larger artifact, closer to raw data; additive later under G5) |
-| Q2 | Units | USD per 1% move, spot² · 0.01 | Per-1-point move (spot¹) |
+| Q1 | Extra aggregation shape beyond the P0 outputs | Keep `top_strikes` (top-10 by \|net GEX\|) alongside the five frozen P0 outputs | Full per-strike profile (larger artifact, closer to raw data; additive later under G5) |
+| Q2 | Units | USD per 1% move, spot² · 0.01 (all P0 GEX figures) | Per-1-point move (spot¹) |
 | Q3 | Unavailable behavior | Exit non-zero, write nothing, preserve last good artifact | Write `status: UNAVAILABLE` artifact (rejected: destroys last observation) |
 | Q4 | Delivery | Local-first, artifact gitignored, no workflow | `workflow_dispatch` workflow + force-add commit (named later slice, not GEX-1) |
-| Q5 | Expiry treatment | All expirations, no windowing | Near-dated window or per-bucket breakdown (additive later if ruled useful) |
+| Q5 | Expiry treatment (per-contract inclusion) | All expirations included, no windowing | Near-dated window or per-bucket breakdown (additive later if ruled useful) |
+| Q6 | AM-settled SPX vs PM-settled SPXW in the 0DTE bucket | Match by expiry **date only**; surface the per-root split; do **not** model settlement timing (needs a market calendar + settlement clock, outside stdlib + single-snapshot scope) | Drop/zero already-settled AM-SPX 0DTE contracts (requires settlement-time modeling — deferred; would also risk silently reweighting observed data) |
+| Q7 | 0DTE denominator scope | All eligible included expirations (share of the full observed structure) | Bounded near-dated horizon denominator (a modeling choice; additive later) |
+| Q8 | Observation-date derivation / tz reliance | Feed `timestamp` → `America/New_York` via stdlib `zoneinfo`, `.date()`; fail loud if the OS tz database is absent (no `tzdata` pip dep) | Add the `tzdata` wheel as an explicit dependency (breaks the 0-dependency ceiling); or use UTC date (rejected — wrong ET trading date near the day boundary, R23) |
+| Q9 | Gamma flip / zero-gamma level | **Deferred from P0** — the first slice is useful with net GEX + both walls + dominant gamma + 0DTE share; gamma flip needs hypothetical-spot repricing assumptions and is a separately-dispositioned modeling question. It must **not** delay GEX-1 | Include a flip estimate in v1 (rejected for P0: introduces a repricing model — a prediction-adjacent assumption layer — into a descriptive first slice) |
 
 ## §10 — Review (GOV-2 packet cycle; charge-template mirror)
 
@@ -358,6 +530,30 @@ materially amended (the evidence basis changes → packet returns to Dustin);
 any posture shift toward redistribution; the task creating prediction,
 execution automation, or decision coupling (forbidden by doctrine — and by
 the operator ruling's own final clause).
+
+## §12 — Pre-review revision log
+
+This section records author revisions made **before** the GOV-2 Event-1
+review runs; it is not the `## CORRECTION CYCLE` (that slot stays reserved
+for the single consolidated post-review cycle GOV-1 allows).
+
+- **2026-08-20 — bounded P0 correction (this revision).** Restored four
+  explicit P0 structural outputs that the prior draft had collapsed into
+  net-total + generic `top_strikes`: **call wall**, **put wall**, **dominant
+  gamma (max |net per-strike signed GEX|)**, and **0DTE GEX share** — each
+  now a first-class schema field with a deterministic definition,
+  tie-break, and unavailable behavior (D4a, D5). Net signed GEX preserved;
+  `top_strikes` retained as cheap-and-useful but explicitly not a
+  substitute. Added `provenance` (OBSERVED / DERIVED / INFERRED)
+  classification so no modeled figure reads as provider-observed. Added
+  discriminating tests R14–R23 (wall selection by GEX not OI, call/put
+  cancellation, dominant selection, deterministic tie-break, 0DTE
+  numerator/denominator, per-root AM/PM split, zero-denominator,
+  ET/UTC date boundary). Raised the provisional LOC ceiling ≤ 340 → ≤ 420
+  within the same single-file cone (no FILES widening); dependencies still
+  0 (stdlib `zoneinfo`). Deferred gamma flip from P0 (§9 Q9). Truth-synced
+  §1: PR #256 merged to `main` (`ed87913`). Gamma flip and settlement-time
+  modeling remain out of scope.
 
 ```
 PROVISIONAL MATERIAL PACKET — DESIGN ONLY — REVIEW CYCLE PENDING — NO IMPLEMENTATION AUTHORITY.
