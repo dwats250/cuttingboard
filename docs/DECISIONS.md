@@ -16,6 +16,38 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-20 — GEX GO: Cboe _SPX single-underlying first slice, MATERIAL under GOV-2, GEX-1 design packet commissioned (ruled: Dustin)
+
+Dustin ruled, in-session, on the GEX planning recon
+(`audits/gex-planning-recon-2026-08/GEX_1_2_PLANNING_RECON_2026-08-20.md`,
+same PR as this entry):
+
+1. **GEX GO.** The "GEX go/stop after evidence" owner hold resolves GO, on
+   the Cboe `PROVIDER VIABLE` (scoped) evidence
+   (`audits/gex-0-cboe-evidence-2026-08/`, PR #256 head `b55b0de`). PR #256
+   itself remains **Held for your merge**; the downstream Stage-0 PRD may not
+   open before it lands on `main`.
+2. **GEX-1 first slice uses Cboe `_SPX` as the single underlying.** This is
+   scope minimization, not a ruling that SPY GEX is invalid; SPY remains
+   deferred pending usefulness evidence.
+3. **GEX-1 takes MATERIAL treatment under GOV-2** (owner acceptance of the
+   recon's recommendation; layer-crossing basis recorded in the packet §0).
+4. **The bounded GEX-1 MATERIAL design packet is commissioned immediately:**
+   `audits/gex-1-material-packet-2026-08/GEX_1_MATERIAL_DESIGN_PACKET_2026-08-20.md`.
+5. **GEX remains context-only and creates no decision authority.**
+
+Sequence ahead (GOV-2 §2, unchanged by this entry): independent packet
+review → one consolidated correction → independent exact-corrected-head
+confirmation → Dustin design-direction ruling → Stage-0 PRD (CLASS SIDECAR;
+STANDARD minimum, MICRO barred by MATERIAL) → fresh-context PRD review →
+Gate A → implementation. This entry records the GO ruling and commission
+only; it is not the design-direction ruling and creates no implementation
+authority. Operational note: the authoring container has no `codex` CLI, so
+the two GOV-2 packet-cycle events could not run in the commissioning
+session; the packet dir carries a ready-to-run review prompt
+(`CODEX_REVIEW_PROMPT_2026-08-20.md`) so the review can be executed
+turnkey from an equipped environment.
+
 ## 2026-08-14 — PRD-302 Codex proxy-config compatibility (PRD-302 AMENDMENT 3; no ceiling renewal; ruled: Dustin)
 
 PRD-302 AMENDMENT 2 merged (main `b98812aebe00d3aa6b0a3a2463a8d32d42af2920`,
