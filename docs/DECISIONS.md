@@ -16,6 +16,48 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-20 — GEX-1 DESIGN DIRECTION APPROVED: review-clean MATERIAL packet ratified, Stage-0 PRD-306 authorized to open (ruled: Dustin)
+
+Dustin issues the GOV-2 **design-direction ruling** on the GEX-1 MATERIAL
+packet. This is the ruling the 2026-08-20 GEX GO entry (below) named as the
+next authority step after the independent exact-corrected-head confirmation;
+it is distinct from — and downstream of — that GO commission.
+
+**Provenance (exact):**
+- Review-clean corrected design SHA:
+  `33f753fae0c6e3884367cc31c129eefa9cb7f4ee`
+  (GEX-1 MATERIAL packet: Event-2 confirmation repair F4/F6/R4 + attempt-1 record).
+- Durable Event-2 exact-corrected-head confirmation record commit:
+  `229906083325f5eef3e56b6a58c536d8bc835906`
+  (Codex independent confirmation CONFIRMED, GOV-2 §7).
+- Both SHAs are canonical in `main` via PR #257 (merge `0f6767d`).
+- Verdict: **GEX-1 DESIGN DIRECTION APPROVED.**
+
+**Design adopted without redesign** (deep rationale stays in the packet,
+`audits/gex-1-material-packet-2026-08/GEX_1_MATERIAL_DESIGN_PACKET_2026-08-20.md`;
+build-binding contracts are repeated only in the forthcoming PRD):
+Cboe `delayed_quotes`, `_SPX` single-underlying first slice (roots SPX + SPXW;
+SPY deferred, not invalidated); one provider, no fallback/abstraction;
+standalone `tools/gex_snapshot.py` with no `cuttingboard` package coupling in
+either direction; one GET per invocation, stdlib only, manual/local-first,
+atomic `tmp` + `os.replace` to `logs/gex_snapshot.json`, provider/validation
+failure exits non-zero and preserves the last good artifact; no workflow, no
+cadence, no machine consumer. P0 outputs: `gex_total_1pct_usd`, `call_wall`,
+`put_wall`, `dominant_net_gamma`, `zero_dte`. GEX magnitude
+`sign * gamma * open_interest * 100 * spot^2 * 0.01` (calls `+1`, puts `-1`),
+sign convention explicitly INFERRED, never provider-observed dealer
+positioning. The full explicit-cuts list and the authority invariant (GEX
+creates or alters no TRADE/NO TRADE/HALT, candidate permission, qualification,
+grading/ranking, sizing, regime, kill switch, or execution) are adopted as
+written.
+
+**Next authority step:** Stage-0 **PRD-306 — Manual Cached _SPX GEX Snapshot
+Producer** (CLASS SIDECAR; LANE STANDARD minimum, MICRO barred by MATERIAL
+ancestry per GOV-2 §1). **No implementation authority is created here.**
+Implementation is gated on the fresh-context independent PRD review (GOV-2)
+and Dustin's explicit Gate A on the reviewed PRD revision. This ruling
+authorizes only the opening and drafting of PRD-306.
+
 ## 2026-08-20 — GEX GO: Cboe _SPX single-underlying first slice, MATERIAL under GOV-2, GEX-1 design packet commissioned (ruled: Dustin)
 
 Dustin ruled, in-session, on the GEX planning recon

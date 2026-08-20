@@ -1502,6 +1502,12 @@
       "title": "Operator-lock projection conformance: hourly contract permission + daily notification vocabulary",
       "status": "COMPLETE",
       "commit": "#255"
+    },
+    {
+      "number": 306,
+      "title": "Manual Cached _SPX GEX Snapshot Producer",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
