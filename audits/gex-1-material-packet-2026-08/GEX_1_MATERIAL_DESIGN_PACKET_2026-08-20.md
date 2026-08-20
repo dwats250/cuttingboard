@@ -260,7 +260,7 @@ strike_put_gex(k)` (signed).
    the most concentrated net dealer gamma under the sign convention — not a
    vague "largest gamma node." The persisted field name
    `dominant_net_gamma` keeps the NET semantic explicit (Event-1
-   Recommended 4; the earlier `dominant_gamma` name is renamed everywhere).
+   Recommended 4; the earlier, less-explicit field name is renamed everywhere).
    (Alternatives considered and rejected for
    v1: max Σ`gamma·OI` ignoring sign — that is a raw-gamma node, not a
    signed-GEX node, and double-counts cancelling strikes; max single-contract
@@ -349,9 +349,12 @@ Top-level keys, all always present on a written artifact:
 five explicit classes, so no modeled or transformed figure is ever read as
 provider-observed truth):
 
-- **CONFIGURED** (producer constants, chosen in-repo — NOT provider
-  observations): `schema_version`, `source`, `endpoint`, `underlying`,
-  `roots` (the admissibility allowlist), `units` (+ `contract_multiplier`).
+- **CONFIGURED** (producer constants and producer-emitted metadata, chosen
+  in-repo — NOT provider observations): `schema_version`, `source`,
+  `endpoint`, `underlying`, `roots` (the admissibility allowlist), `units`
+  (+ `contract_multiplier`), and `provenance` itself — the classification
+  manifest is producer metadata, so every emitted top-level field (the
+  manifest included) belongs to exactly one class.
 - **OBSERVED** (provider feed facts read from the response): `spot`
   (`data.current_price`, value + basis), `feed_timestamp_utc` (parsed from
   the provider's top-level `timestamp`), and the per-contract
@@ -809,9 +812,10 @@ already committed). Disposition of every finding:
   admissibility; emitted `feed_timestamp_utc` is normalized to
   timezone-aware ISO-8601 UTC (D5 row rewritten, e.g.
   `2026-08-18T01:00:00+00:00`); malformed provider timestamps fail loud.
-  The old invented `"2026-08-18T01:00Z"` form is removed from D4a
-  (observation-trading-date example now `"2026-08-18 01:00:00"`), from the
-  D5 `feed_timestamp_utc` row, and from R23.
+  The superseded invented ISO-with-`Z` provider-timestamp example is
+  removed from D4a (observation-trading-date example now
+  `"2026-08-18 01:00:00"`), from the D5 `feed_timestamp_utc` row, and from
+  R23.
 - **Test/requirement consequence:** R23 rewritten on the actual provider
   shape, proving ET date `2026-08-17` ≠ UTC date `2026-08-18`; R34
   (malformed timestamp → fail loud) and R35 (tz-aware ISO-8601
@@ -924,7 +928,7 @@ already committed). Disposition of every finding:
 - **Test/requirement consequence:** none.
 - **HELM cut applied:** none under this item.
 
-### Recommended 4 — Rename `dominant_gamma` → `dominant_net_gamma` everywhere
+### Recommended 4 — Rename the dominant-net-gamma field to the explicit `dominant_net_gamma` everywhere
 
 - **ACCEPTED.**
 - **Exact correction:** renamed in D4 (aggregation bullet prose), D4a #4
