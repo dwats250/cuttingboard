@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 306,
-  "next_prd": 307,
+  "latest_complete": 307,
+  "next_prd": 308,
   "entries": [
     {
       "number": 56,
@@ -1508,6 +1508,12 @@
       "title": "Manual Cached _SPX GEX Snapshot Producer",
       "status": "COMPLETE",
       "commit": "#259"
+    },
+    {
+      "number": 307,
+      "title": "Cboe OI numeric-representation conformance",
+      "status": "COMPLETE",
+      "commit": "#260"
     }
   ]
 }

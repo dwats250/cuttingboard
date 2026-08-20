@@ -577,6 +577,91 @@ class TestGIsolation:
 
 
 # ==========================================================================
+# H. OI numeric-representation conformance (PRD-307 patch of PRD-306)
+# ==========================================================================
+
+class TestHOiRepresentation:
+    """PRD-307 R38..R43. Cboe emits whole-number open_interest as JSON floats
+    (e.g. 2960.0); admissibility is semantic integer-valued, not Python-int.
+    Accepted OI is normalized to int(value). R38 and R42 go RED under the
+    pre-patch strict-Python-int validator (float OI -> included==0 -> exit 1)."""
+
+    def test_r38_float_valued_oi_admitted_and_normalized(self, tmp_path):
+        art_f = _run_ok(tmp_path, _feed([_contract("SPX260919C05000000", 0.0002, 2960.0)]))
+        assert art_f["coverage"]["included"] == 1
+        assert art_f["coverage"]["excluded"]["invalid_open_interest"] == 0
+        # int(2960.0) == 2960: the float feed's whole artifact is identical to an
+        # int-2960 feed -- proof the value is normalized, not carried as a float.
+        art_i = _run_ok(tmp_path, _feed([_contract("SPX260919C05000000", 0.0002, 2960)]))
+        assert art_f == art_i
+        assert art_f["call_wall"]["gex_1pct_usd"] == pytest.approx(14_800_000.0)
+
+    def test_r39_zero_float_oi_admitted_and_counted(self, tmp_path):
+        opts = [
+            _contract("SPX260919C05000000", 0.0002, 0.0),   # zero OI as float -> zero_oi row
+            _contract("SPX260919C05100000", 0.0001, 100),   # keep a nonzero included
+        ]
+        art = _run_ok(tmp_path, _feed(opts))
+        assert art["coverage"]["included"] == 2
+        assert art["coverage"]["zero_oi_rows"] == 1
+        assert art["coverage"]["excluded"]["invalid_open_interest"] == 0
+
+    def test_r40_int_oi_representation_preserved(self, tmp_path):
+        art = _run_ok(tmp_path, _feed([_contract("SPX260919C05000000", 0.0002, 2960)]))
+        assert art["coverage"]["included"] == 1
+        assert art["coverage"]["excluded"]["invalid_open_interest"] == 0
+        assert art["call_wall"]["gex_1pct_usd"] == pytest.approx(14_800_000.0)
+
+    def test_r41_invalid_oi_representations_rejected(self, tmp_path):
+        opts = [
+            _contract("SPX260919C05000000", 0.0001, 2.5),           # non-integer float
+            _contract("SPX260919C05100000", 0.0001, True),          # boolean
+            _contract("SPX260919C05200000", 0.0001, False),         # boolean
+            _contract("SPX260919C05300000", 0.0001, -1),            # negative int
+            _contract("SPX260919C05400000", 0.0001, -1.0),          # negative float
+            _contract("SPX260919C05500000", 0.0001, float("nan")),  # NaN
+            _contract("SPX260919C05600000", 0.0001, float("inf")),  # +Inf
+            _contract("SPX260919C05700000", 0.0001, float("-inf")), # -Inf
+            _contract("SPX260919C05800000", 0.0001, 100),           # keep one included
+        ]
+        art = _run_ok(tmp_path, _feed(opts))
+        assert art["coverage"]["excluded"]["invalid_open_interest"] == 8
+        assert art["coverage"]["included"] == 1
+
+    def test_r42_cboe_realistic_all_float_feed_produces_artifact(self, tmp_path):
+        # Mirrors the live failure: every OI is a whole-number float, as Cboe emits.
+        opts = [
+            _contract("SPX260817C05000000", 0.0002, 2969.0),
+            _contract("SPX260817P04900000", 0.0003, 10649.0),
+            _contract("SPXW260817C05100000", 0.0001, 283.0),
+            _contract("SPX260919C05200000", 0.0002, 4428.0),
+            _contract("SPX260919P05000000", 0.00016, 1500.0),
+        ]
+        art = _run_ok(tmp_path, _feed(opts))
+        assert art["coverage"]["included"] == 5
+        assert art["coverage"]["excluded"]["invalid_open_interest"] == 0
+        assert art["gex_total_1pct_usd"] != 0.0
+
+    def test_r43_coverage_reconciles_with_mixed_int_float_oi(self, tmp_path):
+        opts = [
+            _contract("SPX260817C05000000", 0.0001, 2960.0),   # included (float OI)
+            _contract("SPX260817P04900000", 0.0001, 100),      # included (int OI)
+            _contract("SPX260817C05100000", 0.0001, 0.0),      # included, zero_oi (float)
+            _contract("SPX260817C05200000", 0.0001, 2.5),      # invalid_open_interest
+            _contract("SPX260817C05300000", 0.0001, -1.0),     # invalid_open_interest
+            _contract("GARBAGE", 0.0001, 100.0),               # unparseable_symbol
+        ]
+        art = _run_ok(tmp_path, _feed(opts))
+        cov = art["coverage"]
+        assert cov["included"] == 3
+        assert cov["zero_oi_rows"] == 1
+        assert cov["excluded"]["invalid_open_interest"] == 2
+        assert cov["excluded"]["unparseable_symbol"] == 1
+        assert cov["included"] + sum(cov["excluded"].values()) == cov["contracts_total"]
+        assert cov["contracts_total"] == 6
+
+
+# ==========================================================================
 # Guard: JSON must never carry NaN/Inf tokens
 # ==========================================================================
 

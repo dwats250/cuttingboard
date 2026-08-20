@@ -324,6 +324,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-304 | #254 | Manual Manageability Lock: operator-availability two-state lock that closes action-bearing surfaces while preserving market observation | COMPLETE | [PRD-304](prd_history/PRD-304.md) |
 | PRD-305 | #255 | Operator-lock projection conformance: hourly contract permission + daily notification vocabulary | COMPLETE | [PRD-305](prd_history/PRD-305.md) |
 | PRD-306 | #259 | Manual Cached _SPX GEX Snapshot Producer | COMPLETE | [PRD-306](prd_history/PRD-306.md) |
+| PRD-307 | #260 | Cboe OI numeric-representation conformance | COMPLETE | [PRD-307](prd_history/PRD-307.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
