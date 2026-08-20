@@ -1,46 +1,46 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 3.163148994053369,
-      "level": 71492.0703125,
+      "change_pct": 3.486899859431383,
+      "level": 71716.4296875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.027325878981797135,
-      "level": 98.78199768066406,
+      "change_pct": 0.0,
+      "level": 98.80899810791016,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -0.37975047143248813,
-      "level": 4538.39990234375,
+      "change_pct": -0.3709724060066405,
+      "level": 4538.7998046875,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 2.7340575765108914,
-      "level": 86.80000305175781,
+      "change_pct": 2.3553148816179625,
+      "level": 86.4800033569336,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 5.155911505989712,
-      "change_pct": 1.0960696237608176,
-      "level": 4.703999996185303,
+      "change_bps": 4.543528087584655,
+      "change_pct": 0.9671196534388846,
+      "level": 4.697999954223633,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 0.10404235448018286,
-      "level": 67.3499984741211,
+      "change_pct": 0.18579072869790908,
+      "level": 67.40499877929688,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 4.902616020178185,
-      "level": 15.619999885559082,
+      "change_pct": 5.238413129526711,
+      "level": 15.670000076293945,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260820T134753Z",
+    "generation_id": "hourly-20260820T140647Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-08-20T13:47:53Z"
+    "timestamp": "2026-08-20T14:06:47Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -58,7 +58,7 @@
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.25,
+    "confidence": 0.375,
     "market_regime": "RISK_OFF",
     "outcome": null,
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
