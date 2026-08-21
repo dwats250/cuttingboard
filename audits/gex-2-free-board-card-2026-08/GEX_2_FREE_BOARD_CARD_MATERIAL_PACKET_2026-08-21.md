@@ -599,7 +599,7 @@ pure model), never a proxy or the presence of prose.
 | R15 | Reason/value-pair coherence: exactly one of (valid strike + null reason) or (null strike + RECOGNIZED reason); unknown token or contradictory triple -> suppress | `test_gex_reason_pair_coherence` | Accept an unknown reason token / a contradictory pair |
 | R16 | Timestamp: naive/malformed/unparseable, or future beyond skew -> suppressed (no negative age) | `test_gex_timestamp_domain` | Accept a naive or future timestamp |
 | R17 | AST/path-literal guard: NO `cuttingboard` module except the renderer imports `gex_card`; `gex_card` imports no decision module; NO module other than `gex_card` opens `logs/gex_snapshot.json` | `test_gex_isolation_ast` (AST + path-literal scan of all `cuttingboard/`) | Import `gex_card` into any decision module / open the artifact path elsewhere / add a reverse import |
-| R18 | Decision-output invariance: a controlled decision-construction run with the ONLY difference being absent-vs-valid GEX artifact yields byte-identical contract, payload, decision, qualification, regime, grade, sizing, contract-selection, notification, audit/readiness outputs | `test_gex_decision_outputs_unchanged` (end-to-end, `tests/test_dashboard_renderer.py` or a dedicated pipeline test) | Let any decision path read the sidecar |
+| R18 | Decision-output invariance: a controlled decision-construction run with the ONLY difference being absent-vs-valid GEX artifact yields byte-identical contract, payload, decision, qualification, regime, grade, sizing, contract-selection, notification, audit/readiness outputs | `test_gex_decision_outputs_unchanged` (end-to-end, `tests/test_dashboard_renderer.py`) | Let any decision path read the sidecar |
 | R19 | Card adds no readiness marker; not part of `validate_coherent_publish`'s hardcoded set | `test_gex_no_readiness_marker` | Add a GEX readiness marker |
 | R20 | `dashboard_renderer.py` contains no GEX distance/freshness arithmetic (all in `gex_card.py`) | `test_renderer_has_no_gex_math` (structural) | Move card math into the renderer |
 
@@ -666,7 +666,7 @@ the two named; the PRD re-runs the sweep to confirm.
 
 `ESTIMATED SURFACE -- NOT YET APPROVED`:
 
-- Production files: 2 (+1 conditional producer docstring line, Q4).
+- Production files: 2 (+1 conditional producer docstring line, Q5).
 - Test files: 2 (+1 committed golden HTML asset).
 - Net production LOC: `<= 230` across the two production files (re-estimated
   per Event-1 Finding 7 to absorb the D5a domain validation, the explicit
