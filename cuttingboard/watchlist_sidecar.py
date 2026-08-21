@@ -7,13 +7,14 @@ developed outside the Cuttingboard pipeline. Consumer is the dashboard
 renderer and the human reader, not a decision module. Outputs do not
 feed qualification, regime, or any decision surface.
 
-Pure builder over a frozen curated tuple plus existing
+Pure builder over the NS-4A seed registry (PRD-308) plus existing
 `NormalizedQuote.price` pass-through. No I/O, no wall-clock reads, no
 derived semantics.
 
-WATCHLIST_SYMBOLS insertion order is serialization-only. It MUST NOT
-imply rank, priority, conviction, trade preference, alert order, or
-execution preference (R14).
+WATCHLIST_SYMBOLS is now DERIVED from `universe_registry.UNIVERSE_REGISTRY`
+rather than hand-maintained here (PRD-308); its insertion order is
+serialization-only and MUST NOT imply rank, priority, conviction, trade
+preference, alert order, or execution preference (R14).
 """
 
 from __future__ import annotations
@@ -22,20 +23,38 @@ from datetime import datetime
 from typing import Mapping, Optional
 
 from cuttingboard.normalization import NormalizedQuote
+from cuttingboard.universe_registry import UNIVERSE_REGISTRY, UniverseInstrument
 
 
-WATCHLIST_SYMBOLS: tuple[tuple[str, str, str], ...] = (
-    ("SPY", "Index", "broad market reference"),
-    ("QQQ", "Index", "tech-heavy reference"),
-    ("GDX", "Commodities", "gold miners exposure"),
-    ("GLD", "Commodities", "spot gold ETF"),
-    ("SLV", "Commodities", "spot silver ETF"),
-    ("XLE", "Commodities", "energy sector"),
-    ("NVDA", "High beta", "AI/semis bellwether"),
-    ("TSLA", "High beta", "retail-flow signal"),
-    ("META", "High beta", "large-cap tech"),
-    ("AMZN", "High beta", "large-cap tech"),
-    ("AAPL", "High beta", "large-cap tech"),
+# Representation-only normalization (PRD-308): the registry's primary_group
+# vocabulary (INDEX/METALS/ENERGY/TECH/HIGH_BETA) is finer than this sidecar's
+# legacy coarse theme vocabulary. This map projects each group to the existing
+# theme so every unaffected row stays value-for-value identical; it changes no
+# row's value. A group missing here raises KeyError (fail-loud).
+_PRIMARY_GROUP_TO_THEME: dict[str, str] = {
+    "INDEX": "Index",
+    "METALS": "Commodities",
+    "ENERGY": "Commodities",
+    "TECH": "High beta",
+    "HIGH_BETA": "High beta",
+}
+
+
+def build_watchlist_symbols(
+    registry: tuple[UniverseInstrument, ...],
+) -> tuple[tuple[str, str, str], ...]:
+    """Project the enabled registry instruments into the watchlist's
+    (symbol, theme, reason) row shape. Pure function of ``registry``; the
+    watchlist is sourced here, not hand-maintained (PRD-308)."""
+    return tuple(
+        (inst.symbol, _PRIMARY_GROUP_TO_THEME[inst.primary_group], inst.rationale)
+        for inst in registry
+        if inst.enabled
+    )
+
+
+WATCHLIST_SYMBOLS: tuple[tuple[str, str, str], ...] = build_watchlist_symbols(
+    UNIVERSE_REGISTRY
 )
 
 
