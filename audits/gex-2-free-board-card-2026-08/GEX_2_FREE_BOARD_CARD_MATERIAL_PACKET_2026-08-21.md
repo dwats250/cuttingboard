@@ -4,11 +4,14 @@
 STATUS: PROVISIONAL MATERIAL PACKET -- 2026-08-21 -- DESIGN ONLY
 AUTHORIZES NO IMPLEMENTATION, NO PRD NUMBER, NO CONSUMER BUILD, NO CADENCE,
 NO GATE A, NO MERGE.
-GOV-2 PACKET-REVIEW CYCLE: EVENT 1 (independent Codex review) NOT YET RUN.
-This packet is NOT review-clean and carries NO downstream authority until it
-passes Event 1 (independent review), the ONE consolidated correction, and
-Event 2 (exact-corrected-head confirmation). Ceilings below are ESTIMATES
-(GOV-2 sec5), not constraints.
+GOV-2 PACKET-REVIEW CYCLE: EVENT 1 COMPLETE (verdict DESIGN INCOMPLETE at
+  0920c241d2b4235d435c69b98a8ddd1d3340042b; NEW MATERIAL BOUNDARY OMITTED =
+  YES per Finding 3; the ONE consolidated correction APPLIED this revision --
+  see ## CORRECTION CYCLE). AWAITING: EVENT 2 EXACT-CORRECTED-HEAD
+  CONFIRMATION (GOV-2 sec7).
+This packet is NOT review-clean and carries NO downstream authority until
+Event 2 confirms the corrected head. Ceilings below are ESTIMATES (GOV-2
+sec5), not constraints.
 ```
 
 > This is the upstream MATERIAL design packet GOV-2 requires before any GEX-2
@@ -17,9 +20,10 @@ Event 2 (exact-corrected-head confirmation). Ceilings below are ESTIMATES
 > display-only GEX board card so Dustin can issue a design-direction ruling
 > from a review-clean packet. Nothing here is buildable authority.
 >
-> Sequence position: **provisional packet (this revision)** -> Event-1
-> independent Codex review -> ONE consolidated author correction -> Event-2
-> exact-corrected-head confirmation -> Dustin design-direction ruling ->
+> Sequence position: provisional packet -> Event-1 independent Codex review
+> (COMPLETE: DESIGN INCOMPLETE) -> **ONE consolidated author correction (this
+> revision)** -> Event-2 exact-corrected-head confirmation (next) -> Dustin
+> design-direction ruling ->
 > Stage-0 PRD -> fresh-context PRD review -> Gate A -> implementation ->
 > implementation review -> Dustin merge.
 >
@@ -67,14 +71,29 @@ sec1 legs fire on the merits:
   change, enumerates non-consumers, and states falsifiers. GOV-2 sec1 fires
   on the enumeration claim itself.
 
+- **Crosses two or more enumerated layers (fires; added per Event-1 rec).**
+  The read crosses persistence (`logs/gex_snapshot.json`), delivery/dashboard
+  (`cuttingboard/delivery/dashboard_renderer.py` -> `ui/dashboard.html`), and
+  the published-site layer -- two or more of runtime/contract/audit/reporting/
+  notification/delivery/dashboard/persistence, an independent sec1 trigger.
+
 Legs that do NOT fire: no governance guardrail change; no Critical/High
 finding resolution; no contract/audit/payload/notification schema is added,
 removed, renamed, or changed (the card reads an existing sidecar artifact and
-writes nothing). MATERIAL classification does not convert this STANDARD-shaped
-consumer slice into HIGH-RISK; the lane is decided by the normal matrix at PRD
-time with MICRO disqualified by materiality (GOV-2 sec1). See sec9 Q1 for the
-STANDARD-vs-HIGH-RISK question the frozen PR #261 answered "HIGH-RISK"; it is
-Dustin's to rule.
+writes nothing).
+
+**Lane is CONSUMER / HIGH-RISK -- FORCED, not a choice (corrected per Event-1
+Finding 1).** The FILES cone modifies `cuttingboard/delivery/dashboard_renderer.py`
+**as payload**. That file is a HIGH-RISK FILE for the CONSUMER class in the
+`docs/PRD_PROCESS.md` CLASS Matrix, and the Lane Downgrade Prohibition
+(PRD-121 R11) mandates `LANE: HIGH-RISK` whenever a HIGH-RISK FILE is touched
+as payload -- regardless of diff size. STANDARD is therefore NOT available and
+is withdrawn as a recommendation. MATERIAL by itself does not force HIGH-RISK;
+this independent R11 trigger does. The HIGH-RISK lane obligations
+(fresh-context OR different-model review; the mandatory `SECOND-MODEL:`
+disposition -- artifact or the exact waiver sentence) are carried in sec10-11.
+The new `cuttingboard/delivery/gex_card.py` module is not itself a HIGH-RISK
+FILE, but the renderer edit is, and that decides the lane.
 
 ---
 
@@ -149,7 +168,17 @@ sec4; not delegated):
 - `git ls-files --error-unmatch logs/gex_snapshot.json` -> **exit 1 (not
   tracked).** `git ls-tree origin/main -- logs/gex_snapshot.json` -> empty.
   `git check-ignore -v logs/gex_snapshot.json` -> **ignored by `.gitignore:49
-  logs/`.** No workflow force-adds it. (Load-bearing; see D10.)
+  logs/`.** (Load-bearing; see D10.)
+- **CORRECTED per Event-1 Finding 3:** a `git add -f logs/` force-add
+  mechanism DOES exist in CI -- `.github/workflows/cuttingboard.yml:527`
+  (`git add -f logs/ || true`) and `tools/ci_push_artifacts.sh:156`
+  (`git -C "$wt" add -f -- logs`). The artifact is nonetheless absent from the
+  published board because **no workflow invokes the producer
+  `tools/gex_snapshot.py`** (`rg -n 'gex_snapshot' .github/ tools/ci_push_artifacts.sh`
+  -> no match) and it is not in any restore list, so it is never present in the
+  CI runner's `logs/` at stage time -> nothing for the force-add to stage. The
+  earlier packet claim "no workflow force-adds it" was false; see the D10
+  inventory refresh.
 - No non-test module imports `tools.gex_snapshot`; the only tree reference is
   the `docs/artifact_flow_map.md` documentation row.
 
@@ -277,7 +306,7 @@ at fetch time (`tools/gex_snapshot.py:_require_aware(now)` `:156-159`), i.e.
 Staleness suppression (D5) is a separate, real-time elapsed check on
 `fetched_at_utc` vs the injected render `now`; it is honest capture-age, not a
 feed-derived session inference, so it is non-circular. The exact "as of"
-format and whether to additionally show a relative age are sec9 Q3.
+format and whether to additionally show a relative age are sec9 Q4.
 
 ### D5. Suppression / staleness contract -- the failure behavior
 
@@ -296,7 +325,7 @@ Hard suppression (card absent):
   `all_net_gamma_zero`): the card has no anchor row, so the whole card is
   suppressed;
 - **stale**: `fetched_at_utc` older than `STALE_MAX` before the injected
-  render `now`. Provisional default `STALE_MAX = 24h` (sec9 Q3 -- the single
+  render `now`. Provisional default `STALE_MAX = 24h` (sec9 Q4 -- the single
   tunable knob; a generous default avoids the frozen work's H-1
   over-suppression while still hiding a genuinely multi-day-old snapshot).
 
@@ -311,6 +340,46 @@ Row-level typed-unavailable (card renders; that row omitted only):
 
 Malformed / out-of-domain values are treated as INVALID -> suppress; they are
 never coerced to a neutral value, zero, or a generic label (G6).
+
+### D5a. Consumer-side admissibility domain -- frozen (Event-1 Finding 4)
+
+The consumer performs and documents these exact checks; failing any is INVALID
+-> suppress (whole card unless a row-level rule below applies). NaN/Inf cannot
+be persisted by the sole valid producer (`json.dumps(..., allow_nan=False)`,
+`tools/gex_snapshot.py:367-370`), but the consumer still validates finiteness
+so a hand-edited or foreign file cannot leak a non-finite value into display.
+
+- **Schema identity.** `schema_version` is `1` by strict integer check --
+  `isinstance(v, int) and not isinstance(v, bool) and v == 1` (bool-first, so
+  `True == 1` does NOT pass). `source == "cboe_delayed_quotes"` and
+  `data_delay` present and a non-empty str -- these are the identity fields
+  that justify the "Cboe delayed" label; a mismatch suppresses rather than
+  mislabels.
+- **Numerics are real, finite, non-boolean.** For `gex_total_1pct_usd`,
+  `spot.value`, every rendered `*.strike`, and `zero_dte.share`:
+  `isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)`.
+  Additionally `spot.value > 0`; `zero_dte.share` in `[0.0, 1.0]` when
+  non-null; a strike out of a sane positive range suppresses that row.
+- **Reason / value-pair coherence.** For each of `call_wall` / `put_wall` /
+  `dominant_net_gamma`: exactly one of (`strike` is a valid number with
+  `reason is None`) OR (`strike is None` with `reason` a RECOGNIZED token).
+  A contradictory triple (non-null strike with a non-null reason, or null
+  strike with null/unknown reason) is INVALID. Recognized tokens are the
+  producer's exact set: `all_net_gamma_zero` (dominant); `no_eligible_calls` /
+  `no_nonzero_call_gex` (call); `no_eligible_puts` / `no_nonzero_put_gex`
+  (put); `zero_abs_gex_denominator` (`zero_dte`). An UNKNOWN reason token is
+  INVALID -> suppress (never rendered as text).
+- **0DTE honest-zero vs null (unchanged, reaffirmed).** `zero_dte.share == 0.0`
+  with `reason is None` renders `0.0%`; `share is None` with
+  `reason == "zero_abs_gex_denominator"` omits ONLY the 0DTE row.
+- **Timestamp (`fetched_at_utc`).** Must parse to a timezone-AWARE datetime;
+  a naive, malformed, or unparseable value is INVALID -> suppress. A value in
+  the future beyond a small clock-skew tolerance (proposed <= 5 min) is INVALID
+  -> suppress (no negative age). Otherwise capture-age = `now - fetched_at_utc`
+  drives the D5 staleness check.
+
+Each bullet is a named guard in sec6 (R3-R16) whose removal turns a specific
+test red (PRD-198 invariant 4).
 
 ### D6. Baseline-neutrality -- byte-identical golden
 
@@ -333,21 +402,36 @@ current-main and will be re-pinned by the PRD):
 2. In `main()`, beside the trend-structure load (`:3391-3392`), auto-discover
    from `--logs-dir` (NO new CLI flag; mirrors the trend-structure sidecar):
    `gex_snapshot = gex_card.load_gex_snapshot(logs_dir / _GEX_SNAPSHOT_PATH.name)`.
-3. Thread `gex_snapshot` through `write_dashboard(...)` (add kw param beside
-   `:3214`) into `render_dashboard_html(...)` (add keyword-only param beside
-   `:2066`), plus the render `now` the renderer already resolves (the clock
-   used by the freshness helpers, e.g. `:488`).
+3. **Clock threading (corrected, Event-1 Finding 5).** `render_dashboard_html`
+   has NO `now` parameter today (signature `:2049-2071`), and `_utcnow()`
+   (`:486-488`, the PRD-119 freshness indirection) is not currently threaded
+   into it. The PRD therefore ADDS a single timezone-aware render clock,
+   resolved once via `_utcnow()`, and threads it as a new keyword-only param:
+   `main()` -> `write_dashboard(...)` (add kw param beside `:3214`) ->
+   `render_dashboard_html(..., now=...)` (add keyword-only param beside
+   `:2066`) -> `gex_card`. `gex_snapshot` is threaded on the same path.
+   Timestamp behavior is frozen in D5a: a naive or malformed `fetched_at_utc`,
+   or one in the future beyond a small clock-skew tolerance, is INVALID ->
+   suppress (never negative age, never a liveness claim).
 4. At the chosen body position emit:
    `frag = gex_card.render_fragment(gex_snapshot, now=now)` then
    `if frag: w(frag)` -- no `else` branch, so suppression is true omission
-   (mirrors the full-suppress precedent the renderer already uses for the
-   alert-watchlist block).
-5. Add the card's CSS rules into the module-level `_CSS` string (`:757-916`),
-   reusing `.block` and the mobile-reflow idiom (D8). `disabled_class` is
-   reused for per-run dimming consistency.
+   (mirrors the verified full-suppress precedent `if alert_candidates:` at
+   `dashboard_renderer.py:2592-2604`, which emits nothing when empty).
+5. **CSS (corrected, Event-1 Finding 2).** `_CSS` is emitted UNCONDITIONALLY
+   (`w(f"  <style>{_CSS}</style>")` at `:2264`), so ANY rule added to `_CSS`
+   changes every suppressed document and breaks D6 byte-identity even when
+   `frag == ""`. Therefore the card adds ZERO new rules to the module-level
+   `_CSS`: it reuses existing classes (`.block`, `.label`, `.value`,
+   `.candidate-state`, and the `.ts-table` / macro-grid mobile idioms, D8). If
+   a card-specific rule is ever truly unavoidable, it is emitted INSIDE the
+   conditional card fragment (a scoped `<style>` chunk that is present only
+   when the card renders), never in `_CSS`. `disabled_class` is reused for
+   per-run dimming consistency. sec6 R1's mutation set includes "add a card
+   rule to the unconditional `_CSS`" -- it must turn R1 red.
 
-No GEX arithmetic, validation, or vocabulary is added to
-`dashboard_renderer.py` beyond the load-and-emit wiring and the CSS.
+No GEX arithmetic, validation, vocabulary, or unconditional CSS is added to
+`dashboard_renderer.py` beyond the load-and-emit wiring.
 
 ### D8. Mobile layout -- genuinely usable on a phone
 
@@ -375,34 +459,58 @@ assumption; positioning is not measured" (matching
 `provenance.inferred` and explicitly "not measured"). The producer never
 labels negative net as "short gamma"; neither does the card.
 
-### D10. Realizability and the carrier gap (frozen E1-001) -- stated honestly
+### D10. Realizability and the carrier boundary -- full inventory (corrected, Event-1 Finding 3)
 
-**Load-bearing, and the headline for the design-direction ruling.**
-`logs/gex_snapshot.json` is gitignored (`.gitignore:49 logs/`), not tracked,
-and not on `main`; no workflow invokes `tools/gex_snapshot.py` (cadence is the
-deferred GEX-3) and none force-adds the artifact. Consequences, stated per the
-Realizability check (Author discipline sec3) and G6:
+**Load-bearing, and the headline for the design-direction ruling.** Finding 3
+returned NEW MATERIAL BOUNDARY OMITTED = YES: the earlier claim "no workflow
+force-adds it" was false and hid the publish-staging seam. Per GOV-2 sec6 this
+is the FIRST newly discovered class, which triggers ONE complete
+producer-to-final-consumer inventory refresh (below), performed inside this
+single consolidated correction. It does not return the packet to DESIGN
+INCOMPLETE (that is reserved for a SECOND omitted class found at Event 2).
 
-- On the **CI-published public board** (rendered from a clean checkout, where
-  the GEX producer never runs), the artifact is **always absent**, so the card
-  **always suppresses** and the published board stays byte-identical baseline.
-  This is correct fail-soft behavior, not a defect.
-- The card renders **only where a fresh `logs/gex_snapshot.json` exists** --
-  i.e. a local/manual render after Dustin runs the producer by hand. That is
-  exactly the owner's LIVE SMOKE TEST path ("obtain a free GEX snapshot
-  through the existing free path; render the normal board; open the normal
-  board on mobile").
-- Therefore this slice delivers the **capability**: the board can show the GEX
-  card, and does wherever a fresh snapshot is present. **Public-board
-  visibility awaits the later free-cadence slice (GEX-3)** -- consistent with
-  the owner's "Cadence/automation is NOT part of this slice ... A later
-  free-cadence slice can follow after the card works." This packet designs NO
-  carrier and changes NO workflow (honoring the owner boundary and G4).
+**Complete producer -> render -> stage -> publish inventory:**
+
+1. **Produce.** `tools/gex_snapshot.py:run` writes `logs/gex_snapshot.json`
+   (gitignored, `.gitignore:49 logs/`). It is invoked by NO workflow and NO
+   scheduler today (`rg -n 'gex_snapshot' .github/ tools/ci_push_artifacts.sh`
+   -> no match). Cadence is the deferred GEX-3.
+2. **Render.** `cuttingboard/delivery/dashboard_renderer.py` (this slice)
+   auto-discovers `logs/<name>` from `--logs-dir`; if the file is absent it
+   loads `None` and the card suppresses.
+3. **Stage.** The publish path DOES force-add the artifact dir:
+   `cuttingboard.yml:527` `git add -f logs/ || true`; `hourly_alert.yml`
+   stages the sidecars similarly; `tools/ci_push_artifacts.sh:156`
+   `git -C "$wt" add -f -- logs`. Force-add stages only files that EXIST in
+   the runner's `logs/` at that moment.
+4. **Publish.** `ci_push_artifacts.sh` overlays the runner's artifacts onto the
+   `publish` branch tip -> Pages (PRD-194).
+
+**Why the card is absent on the published board today (the truthful reason):**
+NOT "no force-add mechanism" -- one exists. Rather, step 1 never runs in CI and
+`logs/gex_snapshot.json` is in no restore list, so at step 3 it is not present
+in the runner's `logs/`, so the existing `git add -f logs/` has nothing to
+stage for it. Result on the CI-published board: artifact absent -> card
+suppresses -> board byte-identical baseline. Correct fail-soft, not a defect.
+
+**Where the card DOES render:** wherever a fresh `logs/gex_snapshot.json`
+exists in the render's `--logs-dir` -- a local/manual render after Dustin runs
+the producer by hand. That is exactly the owner's LIVE SMOKE TEST path.
+
+**Public-board visibility is capability-now / public-later.** Because the
+staging mechanism already exists, making the card live on the published board
+requires only that a later slice INVOKE the producer in CI (and not revert the
+artifact) -- it does NOT require adding a force-add. That is the precise scope
+of the deferred free-cadence GEX-3, and it remains OPTIONAL and unpresumed
+(doctrine G3/G4/G8; workplan GEX-2 -> GEX-3 gate). This packet designs NO
+carrier and changes NO workflow. Public-board visibility "could follow only if
+that optional slice is later authorized and implemented" -- it is not claimed
+by this slice.
 
 This is the deliberate divergence from frozen PR #261, which escalated to a
-producer-schema field + a cadence carrier slice specifically to force
-current-session liveness on the public board NOW. The owner's free-first
-direction defers that. sec9 Q2 is the explicit ruling this requires.
+producer-schema field + a cadence carrier to force current-session liveness on
+the public board NOW. The owner's free-first direction defers that. sec9 Q3 is
+the explicit ruling this requires.
 
 ### D11. Producer truth-correction (frozen E1-003) -- one-line, non-functional
 
@@ -413,7 +521,7 @@ code, VISION). The minimal honest correction is a ONE-LINE docstring edit
 authority (baseline-neutral)"), and the equivalent update to the
 `docs/artifact_flow_map.md` gex_snapshot consumer row (G5). This is NOT a
 functional or schema producer change. Because the owner card cautions against
-touching the producer, this is surfaced as sec9 Q4: accept the one-line
+touching the producer, this is surfaced as sec9 Q5: accept the one-line
 docstring correction, or restrict the correction to `artifact_flow_map.md`
 plus a docstring rewording the owner prefers. The producer file appears in
 sec7 FILES flagged docstring-only-if-accepted.
@@ -467,61 +575,80 @@ pure model), never a proxy or the presence of prose.
 
 | # | Requirement (observable) | Test | Mutation that must turn it RED |
 |---|---|---|---|
-| R1 | Artifact absent -> card suppressed; full document byte-identical to the committed pre-GEX golden | `test_gex_absent_baseline_identical` (renderer, golden asset) | Emit an empty GEX wrapper div / placeholder on absence |
-| R2 | Malformed JSON / non-dict -> suppressed (loader None) | `test_gex_malformed_suppressed` | Broaden loader to accept / to raise |
-| R3 | `schema_version != 1` -> suppressed | `test_gex_wrong_schema_suppressed` | Drop the schema-version identity check |
+| R1 | Artifact absent -> card suppressed; full document byte-identical to the committed pre-GEX golden asset (D6) | `test_gex_absent_baseline_identical` (renderer, golden asset) | (a) emit an empty GEX wrapper div / placeholder on absence; **(b) add a card rule to the unconditional `_CSS`** (Finding 2) |
+| R2 | Malformed JSON / non-dict -> suppressed (loader None, never raises) | `test_gex_malformed_suppressed` | Broaden loader to accept / to raise |
+| R3 | `schema_version` bool-first strict `== 1`; `source`/`data_delay` identity match -> else suppressed | `test_gex_schema_identity` | Drop the bool-first check (`True==1` leaks) / drop source identity |
 | R4 | Required key missing/wrong-type -> suppressed | `test_gex_missing_key_suppressed` | Skip a required-field validation |
-| R5 | `spot.value` <= 0 / non-finite -> suppressed (no div-by-zero) | `test_gex_bad_spot_suppressed` | Remove the spot-domain guard |
+| R5 | `gex_total_1pct_usd` / `spot.value` / strikes / share: non-bool, finite; `spot.value > 0`; `share` in [0,1] -> else suppressed | `test_gex_numeric_domain` | Remove the bool/finite/range guard |
 | R6 | `fetched_at_utc` older than STALE_MAX vs injected now -> suppressed | `test_gex_stale_suppressed` | Remove the staleness check |
 | R7 | Fresh valid artifact -> Net/Dominant/Call/Put/0DTE rendered with exact values | `test_gex_valid_render_values` | Read a wrong key / wrong scale |
 | R8 | Distance% = `(strike/spot-1)*100`, correct sign+magnitude | `test_gex_distance_math` | Flip the sign / drop the `-1` |
 | R9 | `dominant_net_gamma.strike` null -> WHOLE card suppressed | `test_gex_dominant_null_suppressed` | Render the card without the anchor |
-| R10 | Call/Put/0DTE unavailable (reason token) -> that row omitted only, rest renders | `test_gex_row_typed_unavailable` | Render null as "None"/0/"-" |
+| R10 | Call/Put/0DTE unavailable (recognized reason, null strike) -> that row omitted only, rest renders | `test_gex_row_typed_unavailable` | Render null as "None"/0/"-" |
 | R11 | `zero_dte.share == 0.0`, reason null -> honest 0.0% shown | `test_gex_zero_dte_honest_zero` | Treat 0.0 as unavailable and omit |
-| R12 | Freshness uses `fetched_at_utc` capture clock; no relative "ago"; no session/liveness claim | `test_gex_freshness_source_and_wording` | Bind freshness on `feed_timestamp_utc` / add a session gate |
+| R12 | Freshness uses `fetched_at_utc` capture clock; absolute ET; no relative "ago"; no session/liveness claim | `test_gex_freshness_source_and_wording` | Bind freshness on `feed_timestamp_utc` / add a session gate / print a relative age |
 | R13 | Rendered fragment contains NONE of the forbidden vocabulary/labels (D9) | `test_gex_no_forbidden_vocabulary` | Add any pin/magnet/support/regime/short-gamma label |
 | R14 | Sign-assumption footnote present; Net marked signed-under-assumption | `test_gex_sign_footnote_present` | Drop the footnote / assert "short gamma" |
-| R15 | No `cuttingboard` decision module imports `gex_card`; producer has no machine reader beyond the renderer | `test_gex_no_decision_import` (grep-guard) | Import `gex_card` into any decision module |
-| R16 | Card adds no readiness marker; not in `validate_coherent_publish` triple | `test_gex_no_readiness_marker` | Add a GEX readiness marker |
-| R17 | Decision outputs (contract/payload/decision) byte-identical with vs without the artifact present | `test_gex_decision_outputs_unchanged` | Let the card mutate any decision surface |
-| R18 | `dashboard_renderer.py` contains no GEX distance/freshness arithmetic (all in `gex_card.py`) | `test_renderer_has_no_gex_math` (structural) | Move card math into the renderer |
+| R15 | Reason/value-pair coherence: exactly one of (valid strike + null reason) or (null strike + RECOGNIZED reason); unknown token or contradictory triple -> suppress | `test_gex_reason_pair_coherence` | Accept an unknown reason token / a contradictory pair |
+| R16 | Timestamp: naive/malformed/unparseable, or future beyond skew -> suppressed (no negative age) | `test_gex_timestamp_domain` | Accept a naive or future timestamp |
+| R17 | AST/path-literal guard: NO `cuttingboard` module except the renderer imports `gex_card`; `gex_card` imports no decision module; NO module other than `gex_card` opens `logs/gex_snapshot.json` | `test_gex_isolation_ast` (AST + path-literal scan of all `cuttingboard/`) | Import `gex_card` into any decision module / open the artifact path elsewhere / add a reverse import |
+| R18 | Decision-output invariance: a controlled decision-construction run with the ONLY difference being absent-vs-valid GEX artifact yields byte-identical contract, payload, decision, qualification, regime, grade, sizing, contract-selection, notification, audit/readiness outputs | `test_gex_decision_outputs_unchanged` (end-to-end, `tests/test_dashboard_renderer.py` or a dedicated pipeline test) | Let any decision path read the sidecar |
+| R19 | Card adds no readiness marker; not part of `validate_coherent_publish`'s hardcoded set | `test_gex_no_readiness_marker` | Add a GEX readiness marker |
+| R20 | `dashboard_renderer.py` contains no GEX distance/freshness arithmetic (all in `gex_card.py`) | `test_renderer_has_no_gex_math` (structural) | Move card math into the renderer |
 
 The mutation column is the design-stage promise; the PRD carries these as
 red-proven guards (every guard ships a failing-when-violated test; PRD-198
-invariant 4). R1 and R17 are the load-bearing baseline-neutrality guards.
+invariant 4). R1 (byte-identity incl. the CSS mutation), R17 (isolation
+AST/path guard, not a mere import grep), and R18 (a controlled decision-output
+construction run, not an input-dict before/after comparison) are the
+load-bearing non-coupling / baseline-neutrality guards, strengthened per
+Event-1 Findings 2 and 6.
 
 ---
 
 ## sec7 -- FILES cone (provisional -- ESTIMATED SURFACE, NOT YET APPROVED)
 
 Production (2):
-- `cuttingboard/delivery/gex_card.py` (NEW) -- loader + model + fragment.
+- `cuttingboard/delivery/gex_card.py` (NEW) -- loader + model + fragment (all
+  GEX arithmetic + validation).
 - `cuttingboard/delivery/dashboard_renderer.py` (MODIFY) -- path const, load
-  in `main()`, thread kw params, emit-or-suppress, card CSS.
+  in `main()`, thread `now`+`gex_snapshot` kw params, emit-or-suppress; NO
+  new `_CSS` rules (Finding 2). This file being HIGH-RISK-for-CONSUMER is what
+  forces the HIGH-RISK lane (sec0).
 
-Producer (conditional, sec9 Q4):
-- `tools/gex_snapshot.py` (MODIFY -- docstring line 8 only, non-functional)
-  IF the owner accepts the one-line truth-correction (D11); otherwise removed
-  from FILES and handled entirely in `artifact_flow_map.md`.
-
-Tests (2):
-- `tests/test_gex_card.py` (NEW) -- pure loader/model/fragment (R2-R14).
-- `tests/test_dashboard_renderer.py` (MODIFY) -- renderer integration +
-  golden baseline-neutrality (R1, R7, R15-R18) + the committed pre-GEX golden
-  asset.
+Tests (2 + 1 named golden asset; corrected per Event-1 Finding 7):
+- `tests/test_gex_card.py` (NEW) -- pure loader/model/fragment (R2-R16).
+- `tests/test_dashboard_renderer.py` (MODIFY) -- renderer integration + golden
+  baseline-neutrality + isolation/decision-output guards (R1, R7, R17-R20).
+  R18's decision-output-invariance run lives here (or, if a fuller pipeline
+  fixture is needed, in a dedicated `tests/test_gex_decision_neutrality.py` --
+  the PRD names exactly one and lists it in FILES).
+- `tests/data/dashboard_pre_gex_golden.html` (NEW asset) -- the INDEPENDENT
+  pre-feature golden captured from the parent commit's renderer over the fixed
+  fixture; R1 compares against it. Named explicitly so the FILES boundary is
+  exact.
 
 Docs / lifecycle bookkeeping:
 - `docs/artifact_flow_map.md` (MODIFY) -- gex_snapshot consumer row + the new
   module's read (G5, mandatory in the same PRD).
 - `docs/CALL_SITE_MAP.md` (MODIFY) -- new call site renderer -> gex_card
   (frozen E1-008).
-- `docs/SCHEMA_MAP.md` (MODIFY, if it indexes artifact consumers) -- new
-  consumer of the gex_snapshot schema.
+- `docs/SCHEMA_MAP.md` (MODIFY) -- new consumer of the gex_snapshot schema
+  (verified present; treated as REQUIRED, not conditional).
 - `docs/plans/decision-support-workplan-v0.1.md` (MODIFY) -- GEX-2 state flip
   (lifecycle bookkeeping).
 - Standard Stage-0 / same-PR-closeout bookkeeping: `docs/PRD_REGISTRY.md`,
   `docs/prd_index.json`, `docs/PROJECT_STATE.md` (charge-template implicit
   allowlist).
+
+Conditional FILES resolved at Dustin's ruling (GOV-2 sec5 -- these are
+ESTIMATES until Gate A, but every candidate path is named now):
+- `tools/gex_snapshot.py` (MODIFY -- docstring line 8 only, non-functional):
+  IN if Dustin accepts the D11 one-line truth-correction (Q4); OUT if he
+  restricts the correction to `artifact_flow_map.md`.
+- The R18 test-file choice above (extend `test_dashboard_renderer.py` vs a
+  dedicated file) is the only other conditional; the PRD fixes it before FILES
+  lock.
 
 Pre-implementation grep sweep (PRD-158): before the PRD locks FILES, grep
 `tests/` for any token this card renames/translates -- none is renamed here
@@ -534,12 +661,16 @@ the two named; the PRD re-runs the sweep to confirm.
 
 `ESTIMATED SURFACE -- NOT YET APPROVED`:
 
-- Production files: 2 (+1 conditional producer docstring line).
-- Test files: 2 (+1 committed golden asset).
-- Net production LOC: `<= 200` across the two production files
-  (`gex_card.py` ~120-150 incl. validation/suppression; renderer wiring +
-  CSS ~40-60). Frozen PR #261 r3 independently estimated the GEX-2 consumer
-  at ~120-190 with a 220 ceiling; this is consistent and slightly tighter.
+- Production files: 2 (+1 conditional producer docstring line, Q4).
+- Test files: 2 (+1 committed golden HTML asset).
+- Net production LOC: `<= 230` across the two production files (re-estimated
+  per Event-1 Finding 7 to absorb the D5a domain validation, the explicit
+  clock threading, and the zero-new-`_CSS` fragment builder): `gex_card.py`
+  ~150-190 (loader + full admissibility domain + distance/freshness + fragment
+  builder), renderer wiring ~30-40 (path const, `now`+snapshot threading,
+  `if frag: w(frag)`; no `_CSS` growth). Frozen PR #261 r3 estimated the GEX-2
+  consumer at ~120-190 with a 220 ceiling; the stronger domain contract here
+  justifies the modestly higher <=230 estimate.
 - Zero new dependencies (stdlib + existing renderer imports only).
 - No workflow, no schema, no contract, no cadence change.
 
@@ -550,29 +681,35 @@ Any later increase is a stop-and-renew event.
 
 ## sec9 -- Open design questions for the design-direction ruling
 
-1. **Lane: STANDARD or HIGH-RISK?** sec0 shows MATERIAL but STANDARD-shaped
-   (a suppressible renderer-side reader of an existing sidecar; no decision
-   surface, no schema change). Frozen PR #261 self-classified
-   "CONSUMER / HIGH-RISK". Recommendation: STANDARD (the normal matrix with
-   MICRO disqualified), because the change writes nothing to any decision or
-   contract surface and its worst-case failure is a suppressed card. Dustin
-   rules; HIGH-RISK fires only on an R11 trigger.
-2. **Public-board visibility now, or capability-now / public-later?** (D10).
-   Recommendation: capability-now / public-later -- ship the display-only
-   card with NO carrier; it renders locally / in the smoke test now and goes
-   live on the public board via the deferred free-cadence GEX-3 slice. The
-   alternative (include a minimal carrier so it is live on Pages immediately)
-   would expand this slice beyond the owner's stated "no new cadence" and
-   beyond a pure consumer.
-3. **Freshness display + STALE_MAX knob.** (D4/D5). Recommendation: absolute
-   ET capture time + static "Cboe ~15m delayed source", no relative "ago";
-   `STALE_MAX = 24h` provisional. Confirm the wording and the threshold, or
-   direct a different single knob.
-4. **Producer docstring truth-correction.** (D11). Recommendation: accept the
-   one-line non-functional docstring edit to `tools/gex_snapshot.py:8` plus
-   the `artifact_flow_map.md` row. Alternative: docs-only correction in
-   `artifact_flow_map.md`, with a docstring rewording of the owner's choice.
-5. **Dominant-unavailable rule.** (D5). Recommendation: `dominant_net_gamma`
+1. **Lane -- RESOLVED to CONSUMER / HIGH-RISK, not open (Event-1 Finding 1).**
+   Not a design choice: the renderer edit touches a HIGH-RISK-for-CONSUMER
+   file as payload, so PRD-121 R11 forces HIGH-RISK (sec0). Noted here only so
+   the ruling carries the HIGH-RISK obligations (sec10-11). No STANDARD option.
+2. **Distance-from-spot: presentation geometry or a "new metric"? (adjudicate,
+   Event-1 rec).** The renderer already computes signed-% level distance at
+   `dashboard_renderer.py:1722-1728` (`_pct`, PRD-226), so distance is
+   established presentation geometry, not a new analytic. Recommendation: treat
+   the card's `(strike/spot-1)*100` as permitted presentation geometry
+   (isolated in `gex_card.py`); Dustin confirms it is not a `sidecar_doctrine`
+   "new metric".
+3. **Public-board visibility now, or capability-now / public-later? (THE
+   headline ruling; D10.)** Recommendation: capability-now / public-later --
+   ship the display-only card with NO carrier; it renders locally / in the
+   smoke test now and goes live on the public board via the deferred
+   free-cadence GEX-3 slice (which only needs to invoke the producer in CI;
+   the staging mechanism already exists). The alternative (include a minimal
+   carrier so it is live on Pages immediately) expands this slice beyond the
+   owner's stated "no new cadence" and beyond a pure consumer.
+4. **Freshness display + STALE_MAX knob.** (D4/D5/D5a). Recommendation:
+   absolute ET capture time + static "Cboe ~15m delayed source", no relative
+   "ago"; `STALE_MAX = 24h` provisional. Confirm the wording and the
+   threshold, or direct a different single knob.
+5. **Producer docstring truth-correction.** (D11; Event-1 concurs it is the
+   smallest honest fix). Recommendation: accept the one-line non-functional
+   docstring edit to `tools/gex_snapshot.py:8` plus the `artifact_flow_map.md`
+   row. Alternative: docs-only correction in `artifact_flow_map.md`, with a
+   docstring rewording of the owner's choice.
+6. **Dominant-unavailable rule.** (D5). Recommendation: `dominant_net_gamma`
    null -> suppress the whole card (no anchor). Confirm, or prefer showing
    Net + available rows without a dominant line.
 
@@ -599,6 +736,17 @@ This packet author is not the independent reviewer; Codex (a separate model,
 fresh context, no access to the authoring session) fills the GOV-2
 auto-commissioned packet-review and exact-head-confirmation events.
 
+**Downstream HIGH-RISK obligations (carried per Event-1 Finding 1).** Because
+the slice is CONSUMER / HIGH-RISK, the eventual implementation PRD carries the
+HIGH-RISK lane requirements in addition to the GOV-2 PRD review: a
+fresh-context OR different-model review artifact pinned to the implementation
+head, and the mandatory Second-Model Disposition -- EITHER a committed
+`docs/prd_history/PRD-NNN.review.<model>.md` artifact OR the exact waiver line
+`SECOND-MODEL: instrument not commissioned, merging on Claude-review + human
+judgment.` (`tools/validate_prd_registry.py` fails the CI `test` check on a
+HIGH-RISK close carrying neither). These bind at PRD/merge time, not this
+packet.
+
 ## sec11 -- Validation, landing, stop conditions
 
 - Docs-only validation for the packet branch:
@@ -612,7 +760,7 @@ auto-commissioned packet-review and exact-head-confirmation events.
   as a draft and held for Dustin). Auto-merge FORBIDDEN. Merge FORBIDDEN. No
   other PR/branch touched.
 - Stop conditions: authority conflict; a FILES expansion beyond sec7; any need
-  to change the producer beyond the one-line docstring (Q4); any need for a
+  to change the producer beyond the one-line docstring (Q5); any need for a
   workflow/cadence/schema change (that is GEX-3, out of scope); a boundary-
   reset trigger at Event 2.
 
@@ -638,7 +786,7 @@ card):
 
 DISCARDED (owner FREE-FIRST direction changes the target that forced them):
 - Public-published-board LIVE current-session delivery as the v1 target (drove
-  everything below). Replaced by capability-now / public-later (D10, Q2).
+  everything below). Replaced by capability-now / public-later (D10, Q3).
 - The GEX-3 automated cadence/carrier slice as a prerequisite of the card
   (deferred, not required by this slice).
 - The GEX-1b producer schema extension (`underlying_last_trade_utc`) and the
@@ -648,7 +796,7 @@ DISCARDED (owner FREE-FIRST direction changes the target that forced them):
   `observation_trading_date`/`is_market_open` as a session gate (frozen H-1
   circular). The card uses `fetched_at_utc` capture-age only (D4/D5).
 - The `MAX_FEED_AGE_MINUTES` 0..120 rule and the tunable SESSION_ACTIVITY /
-  FETCH_RECENCY knobs. Replaced by one simple STALE_MAX capture-age knob (Q3).
+  FETCH_RECENCY knobs. Replaced by one simple STALE_MAX capture-age knob (Q4).
 - The single-file / <=120-LOC framing was itself discarded by frozen E1-009;
   this packet sets its own estimate honestly (sec8).
 NOTE: there was never a paid-provider / auth / private-board assumption to
@@ -658,5 +806,78 @@ provider axis with no change.
 ## sec13 -- Pre-review revision log
 
 - 2026-08-21 r1: initial provisional packet authored from current `main`
-  (`2b6dcc2`) on branch `claude/gex-2-free-card-material-packet`. Awaiting
-  GOV-2 Event-1 independent Codex review.
+  (`2b6dcc2`) on branch `claude/gex-2-free-card-material-packet`, committed
+  `0920c24`. Reviewed by Codex Event-1 (DESIGN INCOMPLETE, 7 required
+  findings, NEW MATERIAL BOUNDARY = YES).
+- 2026-08-21 r2: the ONE consolidated author correction (this revision).
+  Addresses Findings 1-7 and the recommendations; see ## CORRECTION CYCLE.
+  Awaiting GOV-2 Event-2 exact-corrected-head confirmation.
+
+---
+
+## CORRECTION CYCLE (GOV-2 Event-1 -- single consolidated author correction, 2026-08-21)
+
+Reviewed head `0920c241d2b4235d435c69b98a8ddd1d3340042b`; verdict DESIGN
+INCOMPLETE. Each finding was verified against the tree by the author before
+correction. Dispositions:
+
+- **F1 (lane must be CONSUMER / HIGH-RISK) -- ACTIONED.** Verified: the CLASS
+  Matrix in `docs/PRD_PROCESS.md` lists `cuttingboard/delivery/dashboard_renderer.py`
+  as a HIGH-RISK FILE for CONSUMER, and PRD-121 R11 forces HIGH-RISK when it is
+  payload. sec0 rewritten to state HIGH-RISK is FORCED; STANDARD withdrawn;
+  sec9 Q1 marked resolved; HIGH-RISK obligations added to sec10.
+
+- **F2 (D6 byte-identity vs D7 unconditional `_CSS`) -- ACTIONED.** Verified:
+  `_CSS` is emitted unconditionally at `dashboard_renderer.py:2264`. D7 step 5
+  rewritten: the card adds ZERO new `_CSS` rules (reuse existing classes; any
+  unavoidable rule goes inside the conditional fragment). R1's mutation set now
+  includes "add a card rule to the unconditional `_CSS`" -> must turn red.
+
+- **F3 (false "no force-add" claim; omitted publish-staging seam) -- ACTIONED
+  (boundary-reset inventory refresh).** Verified: `cuttingboard.yml:527`
+  `git add -f logs/` and `ci_push_artifacts.sh:156` force-add `logs/`; no
+  workflow invokes the producer. sec3 corrected; D10 rewritten with the full
+  producer->render->stage->publish inventory and the truthful suppression
+  reason (producer never invoked in CI + not restored -> never present at
+  stage time). GEX-3 reframed as "invoke producer in CI" (mechanism exists),
+  optional/unpresumed. This was the sole newly discovered class (GOV-2 sec6
+  first-class refresh); no second class -> not returned to DESIGN INCOMPLETE.
+
+- **F4 (invalid domain underspecified) -- ACTIONED.** Added D5a: frozen
+  consumer-side admissibility (bool-first schema/`True==1` guard; non-bool
+  finite numerics; `spot>0`, `share` in [0,1]; reason/value-pair coherence;
+  unknown-token rejection; tz-aware/future-clock timestamp rule; source
+  identity). Honest-zero preserved. sec6 R3/R5/R15/R16 parameterized so each
+  guard has a red mutation.
+
+- **F5 (freshness clock threading inaccurate) -- ACTIONED.** Verified:
+  `render_dashboard_html` has no `now` param; `_utcnow()` (`:486`) is not
+  threaded in. D7 step 3 rewritten: the PRD ADDS a single tz-aware
+  `now = _utcnow()` threaded `main -> write_dashboard -> render_dashboard_html
+  -> gex_card`; naive/future behavior frozen in D5a. `fetched_at_utc`
+  capture-age, absolute ET, no session gate retained.
+
+- **F6 (R15/R17 not discriminating) -- ACTIONED.** R17 (old R15) rewritten as
+  an AST + path-literal isolation guard over all `cuttingboard/` (forbids any
+  import of `gex_card` except by the renderer, any reverse import, and any
+  other module opening the artifact path). R18 (old R17) rewritten as a
+  controlled decision-output construction run whose only difference is
+  absent-vs-valid GEX artifact, byte-comparing contract/payload/decision/
+  qualification/regime/grade/sizing/selection/notification/audit/readiness.
+
+- **F7 (FILES not an exact ceiling) -- ACTIONED.** Named the golden asset
+  `tests/data/dashboard_pre_gex_golden.html`; made `docs/SCHEMA_MAP.md`
+  REQUIRED (verified present); named the R18 test location (with the one
+  remaining conditional stated); re-estimated the ceiling to `<=230` net
+  production LOC to absorb the domain validation and clock threading.
+
+- **Recommendations -- ACCEPTED.** Added the GOV-2 sec1 cross-surface leg to
+  sec0; kept the D11 docstring correction (Codex concurs it is the smallest
+  honest fix); added the distance-geometry adjudication as sec9 Q2 citing the
+  `_pct` precedent (`dashboard_renderer.py:1722-1728`); recorded
+  capability-now/public-later, the dominant-anchor rule, and STALE_MAX=24h as
+  owner-ruling questions with GEX-3 kept optional.
+
+No finding was DISMISSED; none required BLOCKED/PARKED. This is the single
+consolidated correction GOV-1/GOV-2 permit; Event-2 confirms the corrected
+head against this findings list and does not reopen the cycle.
