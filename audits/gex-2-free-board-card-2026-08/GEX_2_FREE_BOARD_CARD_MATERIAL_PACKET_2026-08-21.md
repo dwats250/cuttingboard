@@ -4,11 +4,12 @@
 STATUS: PROVISIONAL MATERIAL PACKET -- 2026-08-21 -- DESIGN ONLY
 AUTHORIZES NO IMPLEMENTATION, NO PRD NUMBER, NO CONSUMER BUILD, NO CADENCE,
 NO GATE A, NO MERGE.
-GOV-2 PACKET-REVIEW CYCLE: EVENT 1 COMPLETE (verdict DESIGN INCOMPLETE at
-  0920c241d2b4235d435c69b98a8ddd1d3340042b; NEW MATERIAL BOUNDARY OMITTED =
-  YES per Finding 3; the ONE consolidated correction APPLIED this revision --
-  see ## CORRECTION CYCLE). AWAITING: EVENT 2 EXACT-CORRECTED-HEAD
-  CONFIRMATION (GOV-2 sec7).
+GOV-2 PACKET-REVIEW CYCLE: EVENT 1 COMPLETE (DESIGN INCOMPLETE at 0920c24; the
+  ONE consolidated correction APPLIED at e9b4cce -- see ## CORRECTION CYCLE).
+  EVENT 2 ATTEMPT 1 (against e9b4cce): NOT CONFIRMED on two NON-MATERIAL defects
+  (F4, F7), F8 PASS (no new material class); one bounded confirmation repair
+  applied this revision. AWAITING: EVENT 2 ATTEMPT 2 exact-corrected-head
+  confirmation (GOV-2 sec7).
 This packet is NOT review-clean and carries NO downstream authority until
 Event 2 confirms the corrected head. Ceilings below are ESTIMATES (GOV-2
 sec5), not constraints.
@@ -351,10 +352,11 @@ so a hand-edited or foreign file cannot leak a non-finite value into display.
 
 - **Schema identity.** `schema_version` is `1` by strict integer check --
   `isinstance(v, int) and not isinstance(v, bool) and v == 1` (bool-first, so
-  `True == 1` does NOT pass). `source == "cboe_delayed_quotes"` and
-  `data_delay` present and a non-empty str -- these are the identity fields
-  that justify the "Cboe delayed" label; a mismatch suppresses rather than
-  mislabels.
+  `True == 1` does NOT pass). Both label-identity fields match the EXACT
+  producer constants (Event-2 F4): `source == "cboe_delayed_quotes"` AND
+  `data_delay == "~15 min delayed (REPORTED; Cboe delayed_quotes posture)"`
+  (`tools/gex_snapshot.py:41,47`) -- not merely "present / non-empty". Any
+  divergence suppresses rather than mislabels the "Cboe delayed" line.
 - **Numerics are real, finite, non-boolean.** For `gex_total_1pct_usd`,
   `spot.value`, every rendered `*.strike`, and `zero_dte.share`:
   `isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)`.
@@ -369,9 +371,14 @@ so a hand-edited or foreign file cannot leak a non-finite value into display.
   `no_nonzero_call_gex` (call); `no_eligible_puts` / `no_nonzero_put_gex`
   (put); `zero_abs_gex_denominator` (`zero_dte`). An UNKNOWN reason token is
   INVALID -> suppress (never rendered as text).
-- **0DTE honest-zero vs null (unchanged, reaffirmed).** `zero_dte.share == 0.0`
-  with `reason is None` renders `0.0%`; `share is None` with
-  `reason == "zero_abs_gex_denominator"` omits ONLY the 0DTE row.
+- **0DTE reason/value coherence + honest-zero (tightened, Event-2 F4).** For
+  `zero_dte`, exactly one of (`share` a valid number in [0,1] with
+  `reason is None`) OR (`share is None` with `reason == "zero_abs_gex_denominator"`).
+  A non-null `share` paired with a NON-null reason is a contradictory pair ->
+  INVALID -> suppress the whole card (never the 0DTE row rendered alongside an
+  unavailable reason). Honest-zero holds: `share == 0.0` with `reason is None`
+  renders `0.0%`; the null-with-`zero_abs_gex_denominator` pair omits ONLY the
+  0DTE row (sec6 R11/R15/R16 carry the red mutations).
 - **Timestamp (`fetched_at_utc`).** Must parse to a timezone-AWARE datetime;
   a naive, malformed, or unparseable value is INVALID -> suppress. A value in
   the future beyond a small clock-skew tolerance (proposed <= 5 min) is INVALID
@@ -620,9 +627,8 @@ Tests (2 + 1 named golden asset; corrected per Event-1 Finding 7):
 - `tests/test_gex_card.py` (NEW) -- pure loader/model/fragment (R2-R16).
 - `tests/test_dashboard_renderer.py` (MODIFY) -- renderer integration + golden
   baseline-neutrality + isolation/decision-output guards (R1, R7, R17-R20).
-  R18's decision-output-invariance run lives here (or, if a fuller pipeline
-  fixture is needed, in a dedicated `tests/test_gex_decision_neutrality.py` --
-  the PRD names exactly one and lists it in FILES).
+  R18's decision-output-invariance run lives HERE (pinned per Event-2 F7 -- no
+  conditional second test file; keeping the test-file count at exactly 2).
 - `tests/data/dashboard_pre_gex_golden.html` (NEW asset) -- the INDEPENDENT
   pre-feature golden captured from the parent commit's renderer over the fixed
   fixture; R1 compares against it. Named explicitly so the FILES boundary is
@@ -644,11 +650,10 @@ Docs / lifecycle bookkeeping:
 Conditional FILES resolved at Dustin's ruling (GOV-2 sec5 -- these are
 ESTIMATES until Gate A, but every candidate path is named now):
 - `tools/gex_snapshot.py` (MODIFY -- docstring line 8 only, non-functional):
-  IN if Dustin accepts the D11 one-line truth-correction (Q4); OUT if he
-  restricts the correction to `artifact_flow_map.md`.
-- The R18 test-file choice above (extend `test_dashboard_renderer.py` vs a
-  dedicated file) is the only other conditional; the PRD fixes it before FILES
-  lock.
+  IN if Dustin accepts the D11 one-line truth-correction (Q5); OUT if he
+  restricts the correction to `artifact_flow_map.md`. This is the SOLE
+  remaining conditional file (the R18 test location is now pinned to
+  `tests/test_dashboard_renderer.py` above, per Event-2 F7).
 
 Pre-implementation grep sweep (PRD-158): before the PRD locks FILES, grep
 `tests/` for any token this card renames/translates -- none is renamed here
@@ -809,9 +814,16 @@ provider axis with no change.
   (`2b6dcc2`) on branch `claude/gex-2-free-card-material-packet`, committed
   `0920c24`. Reviewed by Codex Event-1 (DESIGN INCOMPLETE, 7 required
   findings, NEW MATERIAL BOUNDARY = YES).
-- 2026-08-21 r2: the ONE consolidated author correction (this revision).
+- 2026-08-21 r2: the ONE consolidated author correction, committed `e9b4cce`.
   Addresses Findings 1-7 and the recommendations; see ## CORRECTION CYCLE.
-  Awaiting GOV-2 Event-2 exact-corrected-head confirmation.
+- 2026-08-21 r3: BOUNDED CONFIRMATION REPAIR (not a second correction cycle).
+  Event-2 ATTEMPT 1 against `e9b4cce` returned NOT CONFIRMED on two NON-MATERIAL
+  defects only (F4: `data_delay` exact-identity + the 0DTE contradictory-pair
+  rule; F7: pin R18's test file and fix a Q4->Q5 label), with F8 PASS (no new
+  material class). Per the charge-template "at most one bounded correction pass
+  before escalating", those two defects only were repaired here. Awaiting
+  Event-2 ATTEMPT 2 confirmation. If ATTEMPT 2 does not confirm, STOP for
+  Dustin (no further loop).
 
 ---
 
