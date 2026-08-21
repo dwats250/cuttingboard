@@ -1514,6 +1514,12 @@
       "title": "Cboe OI numeric-representation conformance",
       "status": "COMPLETE",
       "commit": "#260"
+    },
+    {
+      "number": 308,
+      "title": "NS-4A Seed Registry: additive universe seed with one observe-only consumer",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
