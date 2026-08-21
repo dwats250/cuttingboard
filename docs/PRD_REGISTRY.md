@@ -325,7 +325,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-305 | #255 | Operator-lock projection conformance: hourly contract permission + daily notification vocabulary | COMPLETE | [PRD-305](prd_history/PRD-305.md) |
 | PRD-306 | #259 | Manual Cached _SPX GEX Snapshot Producer | COMPLETE | [PRD-306](prd_history/PRD-306.md) |
 | PRD-307 | #260 | Cboe OI numeric-representation conformance | COMPLETE | [PRD-307](prd_history/PRD-307.md) |
-| PRD-308 | — | NS-4A Seed Registry: additive universe seed with one observe-only consumer | IN PROGRESS | [PRD-308](prd_history/PRD-308.md) |
+| PRD-308 | #265 | NS-4A Seed Registry: additive universe seed with one observe-only consumer | COMPLETE | [PRD-308](prd_history/PRD-308.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

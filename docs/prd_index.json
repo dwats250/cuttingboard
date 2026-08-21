@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 307,
-  "next_prd": 308,
+  "latest_complete": 308,
+  "next_prd": 309,
   "entries": [
     {
       "number": 56,
@@ -1518,8 +1518,8 @@
     {
       "number": 308,
       "title": "NS-4A Seed Registry: additive universe seed with one observe-only consumer",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#265"
     }
   ]
 }
