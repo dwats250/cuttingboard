@@ -1,22 +1,25 @@
 {
-  "alert_body": "No new trades permitted \u2014 operator cannot monitor.\n\n8:00 AM\nRegime: EXPANSION\n23/23 validated\nVIX 15.4 (-4.1%)",
+  "alert_body": "No new trades permitted \u2014 operator cannot monitor.\n\n9:00 AM\nRegime: EXPANSION\n23/23 validated\nVIX 15.4 (-3.8%)",
   "alert_title": "OBSERVE ONLY \u2014 OPERATOR LOCK",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
     "payload_path": "logs/latest_hourly_payload.json",
     "report_path": "reports/output/hourly_report.html"
   },
-  "candidate_lines": [],
-  "candidates_qualified": 2,
-  "candidates_watchlist": 7,
+  "candidate_lines": [
+    "IWM | LONG | PULLBACK | 2.0:1",
+    "NVDA | LONG | PULLBACK | 2.0:1"
+  ],
+  "candidates_qualified": 4,
+  "candidates_watchlist": 8,
   "confidence": 1.0,
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-08-21T15:02:26Z",
-  "generation_id": "hourly-20260821T150226Z",
+  "generated_at": "2026-08-21T16:20:56Z",
+  "generation_id": "hourly-20260821T162056Z",
   "halt_reason": null,
-  "hourly_slot_utc": "2026-08-21T15:00:00Z",
+  "hourly_slot_utc": "2026-08-21T16:00:00Z",
   "index_score": 0.0,
   "kill_switch": false,
   "mode": "LIVE",
@@ -34,11 +37,11 @@
   "posture": "EXPANSION_LONG",
   "regime": "EXPANSION",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-08-21T15:02:26Z",
-  "run_id": "hourly-20260821T150226Z",
+  "run_at_utc": "2026-08-21T16:20:56Z",
+  "run_id": "hourly-20260821T162056Z",
   "session_date": "2026-08-21",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-08-21T15:02:26Z",
+  "timestamp": "2026-08-21T16:20:56Z",
   "warnings": []
 }
