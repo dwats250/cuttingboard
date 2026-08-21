@@ -1,7 +1,8 @@
-"""Tests for PRD-114 watchlist snapshot sidecar."""
+"""Tests for PRD-114 watchlist snapshot sidecar (registry-sourced, PRD-308)."""
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -9,9 +10,30 @@ from pathlib import Path
 import pytest
 
 from cuttingboard.normalization import NormalizedQuote
+from cuttingboard.universe_registry import UNIVERSE_REGISTRY
 from cuttingboard.watchlist_sidecar import (
     WATCHLIST_SYMBOLS,
+    _PRIMARY_GROUP_TO_THEME,
     build_watchlist_snapshot,
+    build_watchlist_symbols,
+)
+
+
+# The watchlist exactly as it stood BEFORE PRD-308 (11 rows). Frozen here so the
+# value-for-value (F) and delta (G) tests are anchored to a literal baseline, not
+# to the post-change constant they are meant to police.
+_PRE_CHANGE_WATCHLIST: tuple[tuple[str, str, str], ...] = (
+    ("SPY", "Index", "broad market reference"),
+    ("QQQ", "Index", "tech-heavy reference"),
+    ("GDX", "Commodities", "gold miners exposure"),
+    ("GLD", "Commodities", "spot gold ETF"),
+    ("SLV", "Commodities", "spot silver ETF"),
+    ("XLE", "Commodities", "energy sector"),
+    ("NVDA", "High beta", "AI/semis bellwether"),
+    ("TSLA", "High beta", "retail-flow signal"),
+    ("META", "High beta", "large-cap tech"),
+    ("AMZN", "High beta", "large-cap tech"),
+    ("AAPL", "High beta", "large-cap tech"),
 )
 
 
@@ -36,9 +58,9 @@ def _generated_at() -> datetime:
     return datetime(2026, 5, 10, 14, 0, tzinfo=timezone.utc)
 
 
-def test_frozen_universe_is_eleven_tuple_of_triples() -> None:
+def test_frozen_universe_is_twelve_tuple_of_triples() -> None:
     assert isinstance(WATCHLIST_SYMBOLS, tuple)
-    assert len(WATCHLIST_SYMBOLS) == 11
+    assert len(WATCHLIST_SYMBOLS) == 12
     for entry in WATCHLIST_SYMBOLS:
         assert isinstance(entry, tuple)
         assert len(entry) == 3
@@ -47,9 +69,58 @@ def test_frozen_universe_is_eleven_tuple_of_triples() -> None:
 
 
 def test_frozen_universe_exact_set() -> None:
-    expected = {"SPY", "QQQ", "GDX", "GLD", "SLV", "XLE",
-                "NVDA", "TSLA", "META", "AMZN", "AAPL"}
+    expected = {"SPY", "QQQ", "GDX", "GLD", "SLV", "XLE", "UCO",
+                "NVDA", "TSLA", "META", "AMZN", "GOOG"}
     assert {s for s, _, _ in WATCHLIST_SYMBOLS} == expected
+
+
+# (F) every unaffected row is value-for-value identical to the pre-change baseline
+def test_unaffected_rows_value_for_value_identical() -> None:
+    pre = {s: (t, r) for s, t, r in _PRE_CHANGE_WATCHLIST}
+    post = {s: (t, r) for s, t, r in WATCHLIST_SYMBOLS}
+    unaffected = set(pre) - {"AAPL"}  # AAPL is the only removed symbol
+    assert unaffected  # guard against an empty comparison silently passing
+    for s in unaffected:
+        assert post[s] == pre[s], (s, post.get(s), pre[s])
+
+
+# (G) the only watchlist membership delta is {remove AAPL, add GOOG, add UCO}
+def test_membership_delta_is_exactly_aapl_goog_uco() -> None:
+    pre = {s for s, _, _ in _PRE_CHANGE_WATCHLIST}
+    post = {s for s, _, _ in WATCHLIST_SYMBOLS}
+    assert pre - post == {"AAPL"}
+    assert post - pre == {"GOOG", "UCO"}
+    assert len(WATCHLIST_SYMBOLS) == 12
+
+
+# (H) SOURCING: WATCHLIST_SYMBOLS is exactly the registry projection. This goes
+# RED if the constant is reverted to a hand-maintained literal.
+def test_watchlist_is_sourced_from_registry() -> None:
+    assert WATCHLIST_SYMBOLS == build_watchlist_symbols(UNIVERSE_REGISTRY)
+    by_reg = {i.symbol: i for i in UNIVERSE_REGISTRY if i.enabled}
+    assert {s for s, _, _ in WATCHLIST_SYMBOLS} == set(by_reg)
+    for symbol, theme, reason in WATCHLIST_SYMBOLS:
+        assert reason == by_reg[symbol].rationale
+        assert theme == _PRIMARY_GROUP_TO_THEME[by_reg[symbol].primary_group]
+
+
+# (I) VALUE PROPAGATION: the builder is a pure function of its registry input --
+# a mutated rationale flows through, and a disabled entry drops out.
+def test_builder_is_pure_function_of_registry() -> None:
+    mutated = tuple(
+        dataclasses.replace(i, rationale="MUTATED") if i.symbol == "SPY" else i
+        for i in UNIVERSE_REGISTRY
+    )
+    out = {s: (t, r) for s, t, r in build_watchlist_symbols(mutated)}
+    assert out["SPY"] == ("Index", "MUTATED")
+
+    disabled = tuple(
+        dataclasses.replace(i, enabled=False) if i.symbol == "UCO" else i
+        for i in UNIVERSE_REGISTRY
+    )
+    rows = build_watchlist_symbols(disabled)
+    assert "UCO" not in {s for s, _, _ in rows}
+    assert len(rows) == 11
 
 
 def test_top_level_schema_keys() -> None:
