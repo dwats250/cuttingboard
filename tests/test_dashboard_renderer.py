@@ -4632,3 +4632,15 @@ def test_movement_card_suppression_is_baseline_neutral():  # PRD-311 M8/M9 whole
         mutate(bad)
         assert render_dashboard_html(_payload(), _run(), market_map=None,
                                      movement_snapshot=bad) == baseline
+
+
+def test_movement_card_malformed_json_file_is_baseline_neutral(tmp_path):  # PRD-311 M9 malformed-JSON end-to-end
+    from cuttingboard.delivery import movement_card
+    baseline = render_dashboard_html(_payload(), _run(), market_map=None)
+    p = tmp_path / "watchlist_snapshot.json"
+    p.write_text("{not valid json", encoding="utf-8")
+    snap = movement_card.load_watchlist_snapshot(p)  # malformed on disk -> None
+    assert snap is None
+    # the loader's None drives the renderer to a byte-identical no-block baseline
+    assert render_dashboard_html(_payload(), _run(), market_map=None,
+                                 movement_snapshot=snap) == baseline
