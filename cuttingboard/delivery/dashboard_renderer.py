@@ -29,6 +29,7 @@ from cuttingboard.delivery.dashboard_integrator import (
     RULE3_MIXED_VERDICT,
     dashboard_integrator,
 )
+from cuttingboard.delivery import gex_card
 from cuttingboard.delivery.macro_tape_layout import (
     MACRO_BIAS_CONTRA_CYCLICAL,
     MACRO_BIAS_DRIVERS,
@@ -58,6 +59,7 @@ _OUTPUT_PATH = Path("reports/output/dashboard.html")
 _MACRO_SNAPSHOT_PATH = Path("logs/macro_drivers_snapshot.json")
 _HOURLY_CONTRACT_PATH = Path("logs/latest_hourly_contract.json")
 _TREND_STRUCTURE_PATH = Path("logs/trend_structure_snapshot.json")
+_GEX_SNAPSHOT_PATH = Path("logs/gex_snapshot.json")  # PRD-309: display-only GEX card sidecar
 
 # PRD-112: per-record fields the renderer requires for a non-degraded
 # trend-structure section. Missing or wrong-typed for any curated symbol →
@@ -2068,6 +2070,8 @@ def render_dashboard_html(
     red_folder: dict | None = None,
     pipeline_run: dict | None = None,
     fixture_mode: bool = False,
+    gex_snapshot: dict | None = None,
+    now: datetime | None = None,
 ) -> str:
     """Return deterministic Signal Forge dashboard HTML.
 
@@ -2602,6 +2606,16 @@ def render_dashboard_html(
               + (f' — {block_reason}' if block_reason else '')
               + '</div>')
         w("</div>")
+
+    # --- gex-context (PRD-309: display-only, baseline-neutral GEX card; emitted
+    #     iff a fresh in-domain artifact is present, else true omission -> the
+    #     document stays byte-identical to the pre-GEX baseline) ---
+    if gex_snapshot is not None:
+        gex_fragment = gex_card.render_fragment(
+            gex_snapshot, now=now if now is not None else _utcnow()
+        )
+        if gex_fragment:
+            w(gex_fragment)
 
     # --- spy-observation (PRD-288: transient daily SPY session card; present
     #     iff the daily payload carries the section — omitted on hourly/None) ---
@@ -3216,6 +3230,8 @@ def write_dashboard(
     red_folder: dict | None = None,
     pipeline_run: dict | None = None,
     fixture_mode: bool = False,
+    gex_snapshot: dict | None = None,
+    now: datetime | None = None,
 ) -> None:
     # PRD-118 R1/R2/R3/R10: validate coherent artifact set before any byte is written
     # to output_path. No-op when output_path is not under `ui/`.
@@ -3254,6 +3270,8 @@ def write_dashboard(
         red_folder=red_folder,
         pipeline_run=pipeline_run,
         fixture_mode=fixture_mode,
+        gex_snapshot=gex_snapshot,
+        now=now,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")
@@ -3391,6 +3409,8 @@ def main(
     trend_structure_snapshot = _load_trend_structure_snapshot(
         logs_dir / _TREND_STRUCTURE_PATH.name
     )
+    # PRD-309: display-only GEX card sidecar; absent/malformed => None => card suppressed.
+    gex_snapshot = gex_card.load_gex_snapshot(logs_dir / _GEX_SNAPSHOT_PATH.name)
     # PRD-177: Q4 scoreboard + Q2 red-folder sidecars. Both degrade to their
     # empty-state forms when the artifact is absent and never block publish.
     regime_history = _load_regime_history(logs_dir / "regime_history.jsonl")
@@ -3429,6 +3449,8 @@ def main(
         red_folder=red_folder_view,
         pipeline_run=pipeline_run,
         fixture_mode=_fixture_mode,
+        gex_snapshot=gex_snapshot,
+        now=_utcnow(),
     )
     print(f"Dashboard written: {output_path}")
 
