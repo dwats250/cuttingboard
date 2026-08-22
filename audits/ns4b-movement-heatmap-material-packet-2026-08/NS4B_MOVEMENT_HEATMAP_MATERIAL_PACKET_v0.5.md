@@ -282,9 +282,18 @@ and the count test assert those unchanged constants and stay green with NO edit:
 
 ## 9. Estimated production LOC (ESTIMATED SURFACE — NOT YET APPROVED)
 
-- **~145-185 net production LOC; ceiling <=220.** config ~2; ingestion helper
-  ~15; runtime merge ~6; sidecar ~15; renderer + acceptance + grouping/ordering +
-  12/12/n-a ~105-145 (helper split neutral). Test LOC ~200.
+- **AMENDED CEILING (GOV-2 §5, Dustin amended Gate A 2026-08-22): <=240 net
+  production LOC.** The Stage-0 estimate below understated the already-authorized
+  `movement_card.py` full-12 acceptance validator + grouping + deterministic
+  ordering + fragment (~160 LOC, sibling to gex_card's 200); actual implementation
+  is ~223 net across the same five authorized files — an estimate correction, NOT
+  scope expansion. Seam/FILES/observe-only isolation unchanged; `ingestion.py`
+  untouched (the observe-only fetch is inline in runtime, so no ingestion.py
+  helper was added). Consequence: exceeding ≤240, or any authorized-seam
+  expansion, is a further stop-and-renew.
+- Original Stage-0 estimate (superseded): **~145-185 net production LOC; ceiling
+  <=220.** config ~2; ingestion helper ~15; runtime merge ~6; sidecar ~15;
+  renderer + acceptance + grouping/ordering + 12/12/n-a ~105-145. Test LOC ~200.
 - **Tripwire:** any change to `ALL_SYMBOLS`/`NON_TRADABLE`/a decision universe;
   any observe-only symbol reaching `validate_quotes`/qualification; any daily
   write; any `PAYLOAD_SCHEMA_VERSION`/required-key change -> §12.
