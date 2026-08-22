@@ -739,28 +739,22 @@ _GEX_FINAL, _GEX_TMP = "logs/gex_snapshot.json", "logs/gex_snapshot.json.tmp"
 _GEX_STEP = "- name: Refresh GEX snapshot (best-effort)"
 
 
-def _gex_step_block(text: str) -> str:
-    start = text.index(_GEX_STEP)
-    return text[start:text.index("- name:", start + len(_GEX_STEP))]
-
-
 def test_gex_refresh_step_order_gate_and_exact_body() -> None:
-    # DR4 (a)-(e),(i),(j): one step, strict order, gate, exact body (R1/R2).
+    # DR4 (a)-(e),(i),(j): one step, strict order, EXACT-EQUALITY gate/body on
+    # the parsed step (R1/R2; substring checks miss added commands — review F1).
+    import yaml
     text = _workflow_text("hourly_alert.yml")
     assert text.count(_GEX_STEP) == 1
-    assert (
-        text.index("- name: Aggregate regime history")
-        < text.index(_GEX_STEP)
-        < text.index("- name: Render and stage hourly artifacts")
-    )
-    block = _gex_step_block(text)
-    assert "if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}" in block
-    assert (
-        f"          rm -f {_GEX_FINAL} {_GEX_TMP}\n"
-        "          timeout --kill-after=10 120 python3 tools/gex_snapshot.py"
+    assert (text.index("- name: Aggregate regime history") < text.index(_GEX_STEP)
+            < text.index("- name: Render and stage hourly artifacts"))
+    steps = yaml.safe_load(text)["jobs"]["alert"]["steps"]
+    step = next(s for s in steps if s.get("name") == "Refresh GEX snapshot (best-effort)")
+    assert step["if"] == "${{ success() && steps.freshcheck.outputs.fresh == 'true' }}"
+    assert step["run"] == (
+        f"rm -f {_GEX_FINAL} {_GEX_TMP}\n"
+        "timeout --kill-after=10 120 python3 tools/gex_snapshot.py"
         f" || rm -f {_GEX_FINAL} {_GEX_TMP}\n"
-    ) in block, "body must be EXACTLY the owner-approved contract (R2)"
-    assert "|| true" not in block
+    ), "run body must be EXACTLY the owner-approved contract (R2)"
 
 
 def test_gex_artifact_not_restored_not_staged() -> None:
@@ -840,15 +834,19 @@ def test_gex_body_harness_all_terminal_outcomes(tmp_path: Path) -> None:
 
 def test_gex_mentions_confined_to_hourly_refresh_step_globally() -> None:
     # DR6 global scan: no other workflow may reference gex AT ALL (restore/
-    # staging/publish/failure-upload/invocation); in hourly_alert.yml every
-    # mention sits inside the PRD-310 comment+step region before Render.
+    # staging/publish/failure-upload/invocation); in hourly_alert.yml the
+    # PARSED refresh step is the sole carrier — any second one fails (F2).
+    import yaml
     wf_dir = REPO_ROOT / ".github" / "workflows"
     assert (wf_dir / "hourly_alert.yml").exists()
     for wf in sorted(wf_dir.glob("*.yml")):
         text = wf.read_text(encoding="utf-8")
-        if wf.name == "hourly_alert.yml":
-            outside = (text[:text.index("# PRD-310:")]
-                       + text[text.index("- name: Render and stage hourly artifacts"):])
-            assert "gex" not in outside.lower()
-        else:
+        if wf.name != "hourly_alert.yml":
             assert "gex" not in text.lower(), f"{wf.name} references gex (DR6)"
+            continue
+        doc = yaml.safe_load(text)
+        steps = doc["jobs"]["alert"]["steps"]
+        refresh = [s for s in steps if s.get("name") == "Refresh GEX snapshot (best-effort)"]
+        assert len(refresh) == 1
+        steps.remove(refresh[0])
+        assert "gex" not in str(doc).lower(), "gex outside the refresh step (DR6)"
