@@ -1,14 +1,11 @@
 """GEX-2 free board card (PRD-309): baseline-neutral, display-only GEX context card.
 
-Pure consumer of ``logs/gex_snapshot.json`` (the GEX-1 sidecar). No decision
-authority: GEX informs the board, it never authorizes the trade. The card
-renders only when a fresh, in-domain artifact is present; on any absence,
-staleness, or domain violation it suppresses to nothing so the dashboard is
-byte-identical to the pre-GEX baseline (R1/R6/D6). All GEX validation and
-arithmetic live here; the renderer only loads and emits (R17/R18/R20).
-
-Isolation invariant (R17): this module imports no ``cuttingboard`` module and is
-imported only by the dashboard renderer; stdlib only.
+Pure, stdlib-only consumer of ``logs/gex_snapshot.json`` (the GEX-1 sidecar) with
+NO decision authority. Renders only a fresh, in-domain artifact; on any absence,
+staleness, or domain violation it suppresses to nothing so the dashboard stays
+byte-identical to the pre-GEX baseline (R1/R6/D6). All GEX validation and math
+live here; the renderer only loads and emits. Imports no ``cuttingboard`` module;
+imported only by the renderer (isolation R17).
 """
 
 from __future__ import annotations
@@ -24,9 +21,7 @@ from zoneinfo import ZoneInfo
 _SOURCE = "cboe_delayed_quotes"
 _DATA_DELAY = "~15 min delayed (REPORTED; Cboe delayed_quotes posture)"
 _SCHEMA_VERSION = 1
-
-# Freshness (Q4): a generous single knob; a genuinely multi-day-old snapshot hides.
-_STALE_MAX = timedelta(hours=24)
+_STALE_MAX = timedelta(hours=24)  # Q4 single freshness knob
 _FUTURE_SKEW = timedelta(minutes=5)
 _ET = ZoneInfo("America/New_York")
 
@@ -37,44 +32,34 @@ _REASONS = {
     "put_wall": {"no_eligible_puts", "no_nonzero_put_gex"},
 }
 _ZERO_DTE_REASON = "zero_abs_gex_denominator"
-
-# Sentinel: a sub-object failed reason/value coherence -> the whole card is invalid.
-_INVALID = object()
+_INVALID = object()  # sentinel: reason/value incoherence -> suppress the whole card
 
 
 def load_gex_snapshot(path: Path) -> dict | None:
-    """Soft loader mirroring ``dashboard_renderer._load_trend_structure_snapshot``:
-    never raises; returns a dict on success, ``None`` on missing/malformed/IO error
-    (never modelled on ``_load_json_optional``, which raises)."""
+    """Soft loader for the GEX sidecar: never raises; returns a dict on success,
+    None on missing / malformed / non-dict, so a bad artifact never breaks publish."""
     if not path.exists():
         return None
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError, UnicodeDecodeError):
         return None
-    if not isinstance(data, dict):
-        return None
-    return data
+    return data if isinstance(data, dict) else None
 
 
 def _real(x) -> float | None:
     """Finite, non-boolean int/float -> float; else None (G6: invalid, not coerced)."""
-    if isinstance(x, bool) or not isinstance(x, (int, float)):
-        return None
-    if not math.isfinite(x):
+    if isinstance(x, bool) or not isinstance(x, (int, float)) or not math.isfinite(x):
         return None
     return float(x)
 
 
 def _wall_strike(obj, reasons):
-    """Reason/value coherence for call_wall/put_wall/dominant_net_gamma (D5a/R15).
-
-    Returns a valid strike float (available); ``None`` (typed-unavailable via a
-    recognized reason); or ``_INVALID`` (contradictory/unknown -> suppress card)."""
+    """Coherence for call/put/dominant (D5a/R15): a valid strike float; None (typed-
+    unavailable via a recognized reason); or _INVALID (contradictory -> suppress)."""
     if not isinstance(obj, dict):
         return _INVALID
-    strike = obj.get("strike")
-    reason = obj.get("reason")
+    strike, reason = obj.get("strike"), obj.get("reason")
     if strike is None:
         return None if reason in reasons else _INVALID
     s = _real(strike)
@@ -84,14 +69,11 @@ def _wall_strike(obj, reasons):
 
 
 def _zero_dte_share(obj):
-    """0DTE reason/value coherence + honest zero (D5a/R11/R15).
-
-    Returns a share float in [0, 1] (shown, including 0.0); ``None`` (typed-
-    unavailable); or ``_INVALID`` (contradictory -> suppress card)."""
+    """0DTE coherence + honest zero (D5a/R11/R15): a share float in [0,1] (incl. 0.0);
+    None (typed-unavailable); or _INVALID (contradictory -> suppress)."""
     if not isinstance(obj, dict):
         return _INVALID
-    share = obj.get("share")
-    reason = obj.get("reason")
+    share, reason = obj.get("share"), obj.get("reason")
     if share is None:
         return None if reason == _ZERO_DTE_REASON else _INVALID
     v = _real(share)
@@ -101,7 +83,7 @@ def _zero_dte_share(obj):
 
 
 def _parse_aware(value) -> datetime | None:
-    """Parse an ISO-8601 timestamp to a tz-aware datetime; None if naive/malformed."""
+    """ISO-8601 -> tz-aware datetime; None if not a string / naive / malformed."""
     if not isinstance(value, str):
         return None
     try:
@@ -124,31 +106,26 @@ class GexCard:
 
 
 def build_gex_card(snapshot, *, now: datetime) -> GexCard | None:
-    """Validate the artifact against the frozen admissibility domain (D5a) and
-    build the presentation model, or return ``None`` to suppress the card. ``now``
-    is injected (no hidden clock) so staleness is deterministic and testable."""
+    """Validate against the frozen admissibility domain (D5a) and build the model,
+    or return None to suppress. ``now`` is injected so staleness is deterministic."""
     if not isinstance(snapshot, dict):
         return None
-    # Schema identity: bool-first strict == 1; exact source/data_delay constants.
     sv = snapshot.get("schema_version")
     if not (isinstance(sv, int) and not isinstance(sv, bool) and sv == _SCHEMA_VERSION):
         return None
     if snapshot.get("source") != _SOURCE or snapshot.get("data_delay") != _DATA_DELAY:
         return None
-    # Spot (distance basis): finite and strictly positive (never divide-by-zero).
     spot = snapshot.get("spot")
     spot_val = _real(spot.get("value")) if isinstance(spot, dict) else None
     if spot_val is None or spot_val <= 0:
         return None
-    # Net GEX: finite, signed.
     net = _real(snapshot.get("gex_total_1pct_usd"))
     if net is None:
         return None
-    # Timestamp: tz-aware, not future beyond skew, not stale beyond STALE_MAX.
     fetched = _parse_aware(snapshot.get("fetched_at_utc"))
     if fetched is None or (fetched - now) > _FUTURE_SKEW or (now - fetched) > _STALE_MAX:
         return None
-    # Dominant anchor is required (Q6): unavailable OR invalid -> suppress card.
+    # Dominant anchor is required (Q6): unavailable OR invalid -> suppress the card.
     dom = _wall_strike(snapshot.get("dominant_net_gamma"), _REASONS["dominant_net_gamma"])
     if dom is _INVALID or dom is None:
         return None
@@ -177,8 +154,8 @@ def _fmt_strike(strike: float) -> str:
 
 
 def _fmt_net(net_usd: float) -> str:
-    billions = net_usd / 1e9
-    return f"{'-' if billions < 0 else '+'}${abs(billions):.1f}B"
+    b = net_usd / 1e9
+    return f"{'-' if b < 0 else '+'}${abs(b):.1f}B"
 
 
 def _kv(label: str, value: str) -> str:
@@ -191,14 +168,11 @@ def _row(label: str, pair: tuple[float, float]) -> str:
 
 
 def render_gex_card_html(card: GexCard | None) -> str:
-    """Format the presentation model to a compact HTML fragment; empty string when
-    suppressed. Reuses existing dashboard CSS classes and adds no styles (D7/R1)."""
+    """Format the model to a compact HTML fragment; empty string when suppressed.
+    Reuses existing dashboard CSS classes and adds no styles (D7/R1)."""
     if card is None:
         return ""
-    rows = [
-        _kv("Net", f"{_fmt_net(card.net_usd)} *"),
-        _row("Dominant", card.dominant),
-    ]
+    rows = [_kv("Net", f"{_fmt_net(card.net_usd)} *"), _row("Dominant", card.dominant)]
     if card.call_wall is not None:
         rows.append(_row("Call wall", card.call_wall))
     if card.put_wall is not None:
