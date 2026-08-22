@@ -1,23 +1,23 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 5.820285890567901,
-      "level": 77247.03125,
+      "change_pct": -1.1729590142105217,
+      "level": 77406.8203125,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.08405507194979721,
-      "level": 98.8280029296875,
+      "change_pct": 0.05569933024047137,
+      "level": 98.80000305175781,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 1.8275262830478474,
-      "level": 4674.7998046875,
+      "change_pct": 0.7231740185742366,
+      "level": 4624.10009765625,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 0.21975762597523843,
-      "level": 86.6500015258789,
+      "change_pct": 0.6939607685339976,
+      "level": 87.05999755859375,
       "symbol": "CL=F"
     },
     "rates": {
@@ -27,20 +27,20 @@
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 0.6817539948632729,
-      "level": 69.41000366210938,
+      "change_pct": 0.7629836929721039,
+      "level": 69.46600341796875,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -5.246721677570879,
-      "level": 15.170000076293945,
+      "change_pct": -5.496565283324662,
+      "level": 15.130000114440918,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260821T201501Z",
+    "generation_id": "hourly-20260822T055121Z",
     "symbols_scanned": 23,
-    "timestamp": "2026-08-21T20:15:01Z"
+    "timestamp": "2026-08-22T05:51:21Z"
   },
   "run_status": "OK",
   "schema_version": "1.0",
@@ -48,7 +48,7 @@
     "chain_results_detail": [],
     "continuation_audit": {
       "accepted_count": 0,
-      "rejected_count": 14
+      "rejected_count": 5
     },
     "option_setups_detail": [],
     "rejected": [
@@ -66,51 +66,15 @@
       },
       {
         "detail": null,
-        "reason": "3 soft gates failed: stop distance 1768.42 below 1\u00d7 ATR14 (1768.42); price 6.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
+        "reason": "2 soft gates failed: stop distance 1768.42 below 1\u00d7 ATR14 (1768.42); price 6.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "QUALIFICATION",
         "symbol": "BTC-USD"
       },
       {
         "detail": null,
-        "reason": "3 soft gates failed: stop distance 9.36 below 1\u00d7 ATR14 (9.36); price 3.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-        "stage": "QUALIFICATION",
-        "symbol": "COIN"
-      },
-      {
-        "detail": null,
-        "reason": "3 soft gates failed: stop distance 0.5% below 1.0% minimum; price 2.4\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
+        "reason": "3 soft gates failed: stop distance 0.4% below 1.0% minimum; R:R 2.00 below 2.0 minimum; price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "QUALIFICATION",
         "symbol": "DX-Y.NYB"
-      },
-      {
-        "detail": null,
-        "reason": "3 soft gates failed: stop distance 81.24 below 1\u00d7 ATR14 (81.24); price 4.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-        "stage": "QUALIFICATION",
-        "symbol": "GC=F"
-      },
-      {
-        "detail": null,
-        "reason": "2 soft gates failed: price 4.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-        "stage": "QUALIFICATION",
-        "symbol": "GDX"
-      },
-      {
-        "detail": null,
-        "reason": "2 soft gates failed: price 3.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-        "stage": "QUALIFICATION",
-        "symbol": "GLD"
-      },
-      {
-        "detail": null,
-        "reason": "2 soft gates failed: stop distance 3.71 below 1\u00d7 ATR14 (3.71); entry blocked after 3:30 PM ET",
-        "stage": "QUALIFICATION",
-        "symbol": "IWM"
-      },
-      {
-        "detail": null,
-        "reason": "2 soft gates failed: price 3.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-        "stage": "QUALIFICATION",
-        "symbol": "MSTR"
       },
       {
         "detail": null,
@@ -120,7 +84,7 @@
       },
       {
         "detail": null,
-        "reason": "3 soft gates failed: stop distance 2.29 below 1\u00d7 ATR14 (2.29); price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
+        "reason": "2 soft gates failed: stop distance 2.22 below 1\u00d7 ATR14 (2.22); price 2.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "QUALIFICATION",
         "symbol": "PAAS"
       },
@@ -138,39 +102,15 @@
       },
       {
         "detail": null,
-        "reason": "2 soft gates failed: price 3.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-        "stage": "QUALIFICATION",
-        "symbol": "SLV"
-      },
-      {
-        "detail": null,
-        "reason": "2 soft gates failed: stop distance 0.9% below 1.0% minimum; entry blocked after 3:30 PM ET",
+        "reason": "2 soft gates failed: stop distance 0.9% below 1.0% minimum; R:R 2.00 below 2.0 minimum",
         "stage": "QUALIFICATION",
         "symbol": "SPY"
       },
       {
         "detail": null,
-        "reason": "CHOP",
-        "stage": "QUALIFICATION",
-        "symbol": "TSLA"
-      },
-      {
-        "detail": null,
-        "reason": "3 soft gates failed: stop distance 4.53 below 1\u00d7 ATR14 (4.53); price 1.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
+        "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 1.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "QUALIFICATION",
         "symbol": "USO"
-      },
-      {
-        "detail": null,
-        "reason": "2 soft gates failed: price 2.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-        "stage": "QUALIFICATION",
-        "symbol": "XLE"
-      },
-      {
-        "detail": null,
-        "reason": "2 soft gates failed: stop distance 0.06 below 1\u00d7 ATR14 (0.06); entry blocked after 3:30 PM ET",
-        "stage": "QUALIFICATION",
-        "symbol": "^TNX"
       }
     ],
     "top_trades": [],
@@ -180,21 +120,75 @@
     "watchlist": [
       {
         "detail": null,
-        "reason": "entry blocked after 3:30 PM ET",
+        "reason": "stop distance 1.40 below 1\u00d7 ATR14 (1.40)",
         "stage": "WATCHLIST",
         "symbol": "^VIX"
       },
       {
         "detail": null,
-        "reason": "entry blocked after 3:30 PM ET",
+        "reason": "stop distance 0.06 below 1\u00d7 ATR14 (0.06)",
         "stage": "WATCHLIST",
-        "symbol": "CL=F"
+        "symbol": "^TNX"
       },
       {
         "detail": null,
-        "reason": "entry blocked after 3:30 PM ET",
+        "reason": "price 3.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "WATCHLIST",
+        "symbol": "GC=F"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 3.64 below 1\u00d7 ATR14 (3.64)",
+        "stage": "WATCHLIST",
+        "symbol": "IWM"
+      },
+      {
+        "detail": null,
+        "reason": "price 3.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "WATCHLIST",
+        "symbol": "GLD"
+      },
+      {
+        "detail": null,
+        "reason": "price 2.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "WATCHLIST",
+        "symbol": "SLV"
+      },
+      {
+        "detail": null,
+        "reason": "price 4.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "WATCHLIST",
+        "symbol": "GDX"
+      },
+      {
+        "detail": null,
+        "reason": "price 2.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "WATCHLIST",
+        "symbol": "XLE"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 13.86 below 1\u00d7 ATR14 (13.86)",
+        "stage": "WATCHLIST",
+        "symbol": "TSLA"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 20.26 below 1\u00d7 ATR14 (20.26)",
         "stage": "WATCHLIST",
         "symbol": "META"
+      },
+      {
+        "detail": null,
+        "reason": "price 2.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "WATCHLIST",
+        "symbol": "COIN"
+      },
+      {
+        "detail": null,
+        "reason": "price 2.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "WATCHLIST",
+        "symbol": "MSTR"
       }
     ]
   },
