@@ -282,8 +282,11 @@ and the count test assert those unchanged constants and stay green with NO edit:
 
 ## 9. Estimated production LOC (ESTIMATED SURFACE — NOT YET APPROVED)
 
-- **AMENDED CEILING (GOV-2 §5, Dustin amended Gate A 2026-08-22): <=240 net
-  production LOC.** The Stage-0 estimate below understated the already-authorized
+- **AMENDED CEILINGS (GOV-2 §5, Dustin amended Gate A 2026-08-22): <=240 net
+  production LOC AND <=380 net test LOC** (test ceiling raised 230->380 as a
+  second estimate correction for the required M1-M18 mutation-red + runtime-M18
+  isolation + whole-output/int-bool/malformed-JSON coverage; actual ~366 net
+  test LOC; coverage preserved, not trimmed). The Stage-0 estimate below understated the already-authorized
   `movement_card.py` full-12 acceptance validator + grouping + deterministic
   ordering + fragment (~160 LOC, sibling to gex_card's 200); actual implementation
   is ~223 net across the same five authorized files — an estimate correction, NOT
