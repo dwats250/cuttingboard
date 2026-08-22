@@ -1,13 +1,16 @@
 # NS-4B — Market Movement Heatmap (12/12, observe-only fetch) — MATERIAL PACKET (v0.5, PROVISIONAL, REPLACEMENT)
 
-**Status: PROVISIONAL — NOT REVIEW-CLEAN — NO IMPLEMENTATION AUTHORITY.**
+**Status: REVIEW-CLEAN — NO IMPLEMENTATION AUTHORITY — HELD FOR DUSTIN'S
+DESIGN-DIRECTION RULING.**
 v0.5 is the single consolidated author correction (GOV-2 §2 step 4) of the v0.4
 fresh Event-1 findings F1-F7 + G1, resolved against Dustin's 2026-08-22 ruling
 ("12/12, keep it simple; Option A as the smallest observation-only fetch seam").
-Record of the reviewed findings: `NS4B_V04_EVENT1_CODEX_REVIEW_2026-08-22.md`
-(reviewed SHA `5d51f94`, v0.4). No implementation authority (GOV-2 §4); all
-FILES/LOC are `ESTIMATED SURFACE — NOT YET APPROVED` (GOV-2 §5). Next: Codex
-Event-2 exact-corrected-head confirmation on this head.
+Codex Event-2 (`NS4B_V05_EVENT2_CODEX_CONFIRMATION_2026-08-22.md`, reviewed SHA
+`2789dda`) confirmed **F1-F7 + G1 all RESOLVED, NEW BLOCKING: NONE — VERDICT
+CLEAN**. The GOV-2 packet cycle is COMPLETE and the packet is REVIEW-CLEAN.
+No implementation authority (GOV-2 §4); all FILES/LOC are `ESTIMATED SURFACE —
+NOT YET APPROVED` (GOV-2 §5). Next governed steps (GOV-2 §2/§4): Dustin's
+design-direction ruling -> Stage-0 PRD -> independent PRD review -> Gate A.
 
 **Code baseline `main` @ `80ac6eb`.** Correction facts verified (§16, CORRECTION
 CYCLE). Live yfinance confirmed UCO/GOOG fetch via the existing path (§4.4).
@@ -434,10 +437,12 @@ step 4, against Dustin's Option-A ruling.
 - **G1 — ACTIONED.** M11 has no future-`generated_at` case; no clock introduced;
   §12 clock tripwire is #7 and M11 references #7 (cross-ref fixed).
 
-### EXACT-CORRECTED-HEAD CONFIRMATION (Event-2) — PENDING (v0.5 head)
-Scope: confirm F1-F7 + G1 at the corrected head; detect any NEW blocking
-inconsistency. Terminal rule (GOV-2 §6): a NEW material boundary omission returns
-the packet to DESIGN INCOMPLETE.
+### EXACT-CORRECTED-HEAD CONFIRMATION (Event-2) — COMPLETE, CLEAN (2026-08-22)
+Record: `NS4B_V05_EVENT2_CODEX_CONFIRMATION_2026-08-22.md`. Reviewer: independent
+Codex, fresh context, read-only, high. Reviewed SHA `2789dda` (v0.5). **Verdict:
+CLEAN — F1-F7 + G1 all RESOLVED; NEW BLOCKING: NONE.** The GOV-2 packet cycle is
+COMPLETE; the packet is REVIEW-CLEAN. Downstream authority still requires Dustin's
+design-direction ruling -> Stage-0 PRD -> independent PRD review -> Gate A.
 
 ### Historical records (evidence)
 - 10/12: `NS4B_EVENT1_CODEX_REVIEW_2026-08-22.md` (v0.2), `NS4B_EVENT2_CODEX_CONFIRMATION_2026-08-22.md` (v0.3, G1).
