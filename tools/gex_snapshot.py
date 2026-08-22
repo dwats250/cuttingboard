@@ -4,9 +4,9 @@
 One keyless GET against the Cboe delayed_quotes _SPX endpoint, computes settled
 P0 gamma-exposure structural outputs for the SPX+SPXW option universe, and
 atomically writes one honest, self-describing sidecar artifact
-(logs/gex_snapshot.json) for Dustin's manual local inspection. No cadence, no
-workflow; one optional observe-only renderer consumer (PRD-309), still no
-decision authority (baseline-neutral).
+(logs/gex_snapshot.json) for manual inspection and the hourly best-effort CI
+refresh (PRD-310; run-local in CI, never restored/staged/published); one
+observe-only renderer consumer (PRD-309), still no decision authority.
 
 Isolation invariant (PRD-306 R11): this module imports NOTHING from
 cuttingboard/ and no cuttingboard module imports it. Stdlib only (R11 dependency
@@ -417,7 +417,7 @@ def run(
 
 
 def main(argv: Optional[list[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="Manual cached _SPX GEX snapshot producer (PRD-306)")
+    parser = argparse.ArgumentParser(description="Cached _SPX GEX snapshot producer (PRD-306; manual + hourly best-effort CI, PRD-310)")
     parser.add_argument("--artifact-path", default=str(ARTIFACT_PATH))
     parser.add_argument("--url", default=ENDPOINT)
     args = parser.parse_args(argv)

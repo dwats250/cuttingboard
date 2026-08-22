@@ -732,3 +732,121 @@ def test_all_relay_workflows_parse_and_declare_env() -> None:
             for job in jobs.values()
         )
         assert found, f"{workflow} has no job-level CB_OPERATOR_AVAILABILITY env relay"
+
+# --- PRD-310 — best-effort hourly GEX refresh guards (packet 965529c DR4-DR6) --
+
+_GEX_FINAL, _GEX_TMP = "logs/gex_snapshot.json", "logs/gex_snapshot.json.tmp"
+_GEX_STEP = "- name: Refresh GEX snapshot (best-effort)"
+
+
+def test_gex_refresh_step_order_gate_and_exact_body() -> None:
+    # DR4 (a)-(e),(i),(j): one step, strict order, EXACT-EQUALITY gate/body on
+    # the parsed step (R1/R2; substring checks miss added commands — review F1).
+    import yaml
+    text = _workflow_text("hourly_alert.yml")
+    assert text.count(_GEX_STEP) == 1
+    assert (text.index("- name: Aggregate regime history") < text.index(_GEX_STEP)
+            < text.index("- name: Render and stage hourly artifacts"))
+    steps = yaml.safe_load(text)["jobs"]["alert"]["steps"]
+    step = next(s for s in steps if s.get("name") == "Refresh GEX snapshot (best-effort)")
+    assert step["if"] == "${{ success() && steps.freshcheck.outputs.fresh == 'true' }}"
+    assert step["run"] == (
+        f"rm -f {_GEX_FINAL} {_GEX_TMP}\n"
+        "timeout --kill-after=10 120 python3 tools/gex_snapshot.py"
+        f" || rm -f {_GEX_FINAL} {_GEX_TMP}\n"
+    ), "run body must be EXACTLY the owner-approved contract (R2)"
+
+
+def test_gex_artifact_not_restored_not_staged() -> None:
+    # DR4 (f),(g): artifact in neither the restore invocation nor the commit
+    # add block (run-local, unpersisted — R3).
+    text = _workflow_text("hourly_alert.yml")
+    restore = next(ln for ln in text.splitlines() if "ci_restore_publish_state.sh" in ln)
+    assert "gex" not in restore
+    commit = text[text.index("- name: Commit hourly artifacts"):text.index("- name: Push hourly artifacts")]
+    assert "gex" not in commit[commit.index("git add"):]
+
+
+def test_gex_paths_ignored_and_invisible_to_dirty_tree_guard() -> None:
+    # DR4 (h): both paths, physically present, are check-ignored AND invisible
+    # to `git status --porcelain` — the publish dirty-tree predicate (sec5 7h).
+    paths = [REPO_ROOT / _GEX_FINAL, REPO_ROOT / _GEX_TMP]
+    created = [p for p in paths if not p.exists()]
+    try:
+        for p in created:
+            p.write_text("{}", encoding="utf-8")
+        for p in paths:
+            rel = str(p.relative_to(REPO_ROOT))
+            assert subprocess.run(["git", "check-ignore", "-q", rel], cwd=REPO_ROOT,
+                                  capture_output=True).returncode == 0, f"{rel} not gitignored"
+        status = subprocess.run(["git", "status", "--porcelain"], cwd=REPO_ROOT,
+                                capture_output=True, text=True).stdout
+        assert "logs/gex_snapshot" not in status
+    finally:
+        for p in created:
+            p.unlink(missing_ok=True)
+
+
+def _run_gex_body(tmp_path: Path, producer_sh: str, *, pre: str = ""):
+    # DR5 harness: run the step's `run:` body EXTRACTED from the YAML under
+    # `bash -e`, stubbed python3, and a delegate to the REAL coreutils timeout
+    # at scaled durations (120/10 -> 2/1) so TERM/KILL escalation is real.
+    import os
+    import yaml
+    doc = yaml.safe_load(_workflow_text("hourly_alert.yml"))
+    body = next(s["run"] for s in doc["jobs"]["alert"]["steps"]
+                if s.get("name") == "Refresh GEX snapshot (best-effort)")
+    work, bin_dir = tmp_path / "work", tmp_path / "bin"
+    (work / "logs").mkdir(parents=True)
+    bin_dir.mkdir()
+    (bin_dir / "python3").write_text("#!/bin/bash\n" + producer_sh + "\n")
+    (bin_dir / "timeout").write_text('#!/bin/bash\nexec /usr/bin/timeout --kill-after=1 2 "${@:3}"\n')
+    for stub in ("python3", "timeout"):
+        (bin_dir / stub).chmod(0o755)
+    if pre:
+        subprocess.run(["bash", "-c", pre], cwd=work, check=True)
+    env = dict(os.environ, PATH=f"{bin_dir}:{os.environ['PATH']}")
+    try:
+        return subprocess.run(["bash", "-e", "-c", body], cwd=work, env=env,
+                              capture_output=True, text=True, timeout=30)
+    finally:
+        subprocess.run(["chmod", "-R", "u+w", str(work)], check=False)
+
+
+def test_gex_body_harness_all_terminal_outcomes(tmp_path: Path) -> None:
+    # DR5: the five R2 terminal outcomes, asserted on the extracted body.
+    f, t = _GEX_FINAL, _GEX_TMP
+    r = _run_gex_body(tmp_path / "s1", f'echo "{{}}" > {f}; exit 0')  # success
+    w = tmp_path / "s1" / "work"
+    assert r.returncode == 0 and (w / f).exists() and not (w / t).exists()
+    r = _run_gex_body(tmp_path / "s2", f"echo x > {f}; echo y > {t}; exit 1")  # nonzero
+    w = tmp_path / "s2" / "work"
+    assert r.returncode == 0 and not (w / f).exists() and not (w / t).exists()
+    r = _run_gex_body(tmp_path / "s3", f"trap '' TERM; echo z > {t}; sleep 60")  # hang
+    w = tmp_path / "s3" / "work"
+    assert r.returncode == 0 and not (w / f).exists() and not (w / t).exists()
+    r = _run_gex_body(tmp_path / "s4", "touch ../invoked; exit 0",
+                      pre=f"touch {f} && chmod 555 logs")  # initial scrub fails
+    assert r.returncode != 0 and not (tmp_path / "s4" / "invoked").exists()
+    r = _run_gex_body(tmp_path / "s5", f"echo x > {f}; chmod 555 logs; exit 1")  # cleanup fails
+    assert r.returncode != 0
+
+
+def test_gex_mentions_confined_to_hourly_refresh_step_globally() -> None:
+    # DR6 global scan: no other workflow may reference gex AT ALL (restore/
+    # staging/publish/failure-upload/invocation); in hourly_alert.yml the
+    # PARSED refresh step is the sole carrier — any second one fails (F2).
+    import yaml
+    wf_dir = REPO_ROOT / ".github" / "workflows"
+    assert (wf_dir / "hourly_alert.yml").exists()
+    for wf in sorted(wf_dir.glob("*.yml")):
+        text = wf.read_text(encoding="utf-8")
+        if wf.name != "hourly_alert.yml":
+            assert "gex" not in text.lower(), f"{wf.name} references gex (DR6)"
+            continue
+        doc = yaml.safe_load(text)
+        steps = doc["jobs"]["alert"]["steps"]
+        refresh = [s for s in steps if s.get("name") == "Refresh GEX snapshot (best-effort)"]
+        assert len(refresh) == 1
+        steps.remove(refresh[0])
+        assert "gex" not in str(doc).lower(), "gex outside the refresh step (DR6)"

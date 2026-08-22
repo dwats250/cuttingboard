@@ -156,9 +156,9 @@ defaults differ.
   generation with the snapshot (both-or-neither)
 
 ### logs/gex_snapshot.json
-- **Writer:** `tools/gex_snapshot.py:run` — isolated, observe-only manual GEX
-  producer (PRD-306). Imports no `cuttingboard` module, and no `cuttingboard`
-  module imports it (R11). Stdlib only.
+- **Writer:** `tools/gex_snapshot.py:run` — isolated, observe-only GEX producer
+  (PRD-306; run manually and by the hourly best-effort CI refresh, PRD-310).
+  Imports no `cuttingboard` module; no `cuttingboard` module imports it (R11).
 - **Constant:** `tools.gex_snapshot.ARTIFACT_PATH` (= `logs/gex_snapshot.json`)
 - **Source:** one keyless GET against the Cboe `delayed_quotes` `_SPX` endpoint
   (`https://cdn.cboe.com/api/global/delayed_quotes/options/_SPX.json`); settled
@@ -174,9 +174,9 @@ defaults differ.
   grading/ranking, sizing, regime, kill-switch, or execution behavior (the card
   suppresses to a byte-identical baseline dashboard)
 - **Category:** Sidecar; observe-only; never read for decision logic
-- **Persistence:** manual/local-first — run by hand; no cadence, cron, or
-  scheduled publish. Atomic tmp + `os.replace`; any provider/validation failure
-  exits non-zero and preserves the last good artifact byte-identical
+- **Persistence:** manual/local runs plus the hourly best-effort RUN-LOCAL CI
+  refresh (PRD-310; never restored/staged/published — rendered HTML is durable).
+  Atomic tmp + `os.replace`; failure exits non-zero, local last-good preserved
 - **Test isolation:** pass `artifact_path=tmp_path/...` to `run()`; inject
   `fetch_fn`/`now` (synthetic fixtures only, no network, no committed Cboe chain)
 
