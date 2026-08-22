@@ -327,7 +327,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-307 | #260 | Cboe OI numeric-representation conformance | COMPLETE | [PRD-307](prd_history/PRD-307.md) |
 | PRD-308 | #265 | NS-4A Seed Registry: additive universe seed with one observe-only consumer | COMPLETE | [PRD-308](prd_history/PRD-308.md) |
 | PRD-309 | 2d5b339 | GEX-2 FREE Board Card: baseline-neutral, display-only GEX context card | COMPLETE | [PRD-309](prd_history/PRD-309.md) |
-| PRD-310 | — | Best-effort free hourly GEX refresh for the existing display-only card | IN PROGRESS | [PRD-310](prd_history/PRD-310.md) |
+| PRD-310 | #269 | Best-effort free hourly GEX refresh for the existing display-only card | COMPLETE | [PRD-310](prd_history/PRD-310.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
