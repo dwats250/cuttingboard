@@ -1520,6 +1520,12 @@
       "title": "NS-4A Seed Registry: additive universe seed with one observe-only consumer",
       "status": "COMPLETE",
       "commit": "#265"
+    },
+    {
+      "number": 309,
+      "title": "GEX-2 FREE Board Card: baseline-neutral, display-only GEX context card",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
