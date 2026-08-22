@@ -1532,6 +1532,12 @@
       "title": "Best-effort free hourly GEX refresh for the existing display-only card",
       "status": "COMPLETE",
       "commit": "#269"
+    },
+    {
+      "number": 311,
+      "title": "NS-4B Market Movement Heatmap (12/12, observe-only fetch)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

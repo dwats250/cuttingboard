@@ -5,6 +5,8 @@ import json
 from datetime import date, datetime, timezone
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from cuttingboard.notifications import NOTIFY_HOURLY, format_hourly_notification
 from cuttingboard.notifications.formatter import (
     ALERT_CONTEXT_NOTIFY,
@@ -1710,3 +1712,10 @@ def test_prd278_clear_state_reports_kill_switch_false(tmp_path, monkeypatch):
     assert hourly_run["kill_switch"] is False
     assert hourly_run["status"] == SUMMARY_STATUS_SUCCESS
     assert hourly_run["outcome"] == "NO_TRADE"
+
+
+@pytest.fixture(autouse=True)
+def _stub_observe_only_fetch(monkeypatch):
+    # PRD-311: the hourly watchlist-write seam now fetches observe-only symbols
+    # (UCO/GOOG). Stub it so hourly-path tests stay deterministic and network-free.
+    monkeypatch.setattr("cuttingboard.runtime._fetch_observe_only_quotes", lambda: {})
