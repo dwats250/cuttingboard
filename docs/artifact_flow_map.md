@@ -165,11 +165,14 @@ defaults differ.
   P0 gamma-exposure structural outputs (`gex_total_1pct_usd`, `call_wall`,
   `put_wall`, `dominant_net_gamma`, `zero_dte`) over the SPX+SPXW universe, with
   an always-present provenance/coverage envelope
-- **Consumers:** Dustin — human, manual local inspection (observe-only); machine
-  consumers: none. Baseline-neutral: no `cuttingboard` decision module reads it;
-  its presence/absence/staleness/failure changes no TRADE/NO TRADE/HALT,
-  candidate permission, qualification, grading/ranking, sizing, regime,
-  kill-switch, or execution behavior
+- **Consumers:** Dustin — human, manual local inspection (observe-only); and one
+  machine consumer — `cuttingboard/delivery/gex_card.py` (PRD-309), a display-only
+  dashboard card reader with NO decision authority (loaded by
+  `dashboard_renderer.py`; imports no decision module). Baseline-neutral: no
+  `cuttingboard` decision module reads it; its presence/absence/staleness/failure
+  changes no TRADE/NO TRADE/HALT, candidate permission, qualification,
+  grading/ranking, sizing, regime, kill-switch, or execution behavior (the card
+  suppresses to a byte-identical baseline dashboard)
 - **Category:** Sidecar; observe-only; never read for decision logic
 - **Persistence:** manual/local-first — run by hand; no cadence, cron, or
   scheduled publish. Atomic tmp + `os.replace`; any provider/validation failure

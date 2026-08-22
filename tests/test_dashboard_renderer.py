@@ -1,6 +1,7 @@
 """PRD-083: focused tests for dashboard data freshness and source visibility."""
 from __future__ import annotations
 
+import ast as _ast
 import json
 import os
 import re
@@ -25,6 +26,8 @@ from cuttingboard.delivery.dashboard_renderer import (
     _trend_symbols_usable,
     render_dashboard_html,
 )
+from cuttingboard.delivery import dashboard_renderer as _dr
+from cuttingboard.delivery import gex_card as _gex
 from tests.dash_helpers import (
     _macro_drivers,
     _macro_tape_block,
@@ -4462,3 +4465,124 @@ def test_r7_locked_sunday_context_has_no_watch_directive():
     assert "Current regime reference: RISK_ON" in locked
     assert "Monday Watch" in available
     assert "Watch for confirmation of risk-on bias before Monday open" in available
+
+
+# ============================================================================
+# PRD-309 GEX-2 free board card — integration guards (R1, R7, R17-R20).
+# The card is display-only and baseline-neutral: absent/stale/invalid artifact
+# yields output byte-identical to an INDEPENDENT pre-feature golden, and no
+# decision surface is coupled to the artifact.
+# ============================================================================
+_GEX_FROZEN = datetime(2026, 4, 28, 12, 5, 0, tzinfo=timezone.utc)
+_GEX_GOLDEN = Path(__file__).resolve().parent / "data" / "dashboard_pre_gex_golden.html"
+_CB_ROOT = Path(__file__).resolve().parent.parent / "cuttingboard"
+
+
+def _valid_gex():
+    return {
+        "schema_version": 1,
+        "source": "cboe_delayed_quotes",
+        "data_delay": "~15 min delayed (REPORTED; Cboe delayed_quotes posture)",
+        "gex_total_1pct_usd": -5000000000.0,
+        "spot": {"value": 100.0, "basis": "x"},
+        "fetched_at_utc": "2026-04-28T12:00:00+00:00",
+        "call_wall": {"strike": 105.0, "gex_1pct_usd": 1.0, "reason": None},
+        "put_wall": {"strike": 95.0, "gex_1pct_usd": -1.0, "reason": None},
+        "dominant_net_gamma": {"strike": 101.0, "gex_1pct_usd": -1.0, "reason": None},
+        "zero_dte": {"share": 0.10, "reason": None},
+    }
+
+
+# --- R1: suppressed -> byte-identical to the independent pre-GEX golden ---
+def test_gex_absent_baseline_identical(monkeypatch):
+    # mutation: emit an empty wrapper on absence, OR add a rule to the
+    # unconditional _CSS -> the suppressed document diverges from the golden.
+    monkeypatch.setattr(_dr, "_utcnow", lambda: _GEX_FROZEN)
+    golden = _GEX_GOLDEN.read_text(encoding="utf-8")
+    assert render_dashboard_html(_payload(), _run(), gex_snapshot=None, now=_GEX_FROZEN) == golden
+    stale = _valid_gex()
+    stale["fetched_at_utc"] = "2020-01-01T00:00:00+00:00"
+    assert render_dashboard_html(_payload(), _run(), gex_snapshot=stale, now=_GEX_FROZEN) == golden
+    assert render_dashboard_html(
+        _payload(), _run(), gex_snapshot={"schema_version": 99}, now=_GEX_FROZEN
+    ) == golden
+
+
+# --- R7: valid artifact -> card present with exact values ---
+def test_gex_valid_card_rendered(monkeypatch):
+    monkeypatch.setattr(_dr, "_utcnow", lambda: _GEX_FROZEN)
+    html = render_dashboard_html(_payload(), _run(), gex_snapshot=_valid_gex(), now=_GEX_FROZEN)
+    assert 'id="gex-context"' in html
+    assert "-$5.0B" in html          # net /1e9, signed
+    assert "+1.00%" in html          # dominant 101 vs spot 100
+    assert "+5.00%" in html and "-5.00%" in html  # call/put walls
+    assert "10.0%" in html           # 0DTE share*100
+
+
+# --- R18: decision-output invariance — the ONLY diff vs absent is the card block ---
+def test_gex_decision_outputs_unchanged(monkeypatch):
+    # mutation: let any decision path read the sidecar -> a non-card region differs.
+    monkeypatch.setattr(_dr, "_utcnow", lambda: _GEX_FROZEN)
+    absent = render_dashboard_html(_payload(), _run(), gex_snapshot=None, now=_GEX_FROZEN)
+    present = render_dashboard_html(_payload(), _run(), gex_snapshot=_valid_gex(), now=_GEX_FROZEN)
+    frag = _gex.render_fragment(_valid_gex(), now=_GEX_FROZEN)
+    assert frag and frag in present
+    # Excising exactly the inserted card leaves every other (decision-relevant) byte identical.
+    assert present.replace("\n" + frag, "", 1) == absent
+
+
+# --- R17: AST/path-literal isolation guard ---
+def test_gex_isolation_ast():
+    # mutation: import gex_card into a decision module / open the artifact path
+    # elsewhere / add a reverse import into the card.
+    importers = []
+    card_cb_imports = []
+    artifact_refs = []
+    for py in sorted(_CB_ROOT.rglob("*.py")):
+        src = py.read_text(encoding="utf-8")
+        tree = _ast.parse(src)
+        is_card = py.name == "gex_card.py"
+        is_renderer = py.name == "dashboard_renderer.py"
+        for node in _ast.walk(tree):
+            names = []
+            if isinstance(node, _ast.ImportFrom) and node.module:
+                names.append(node.module)
+            elif isinstance(node, _ast.Import):
+                names.extend(alias.name for alias in node.names)
+            for name in names:
+                if "gex_card" in name and not is_renderer:
+                    importers.append(py.name)
+                if is_card and name.startswith("cuttingboard"):
+                    card_cb_imports.append(name)
+        if "gex_snapshot" in src and py.name not in ("gex_card.py", "dashboard_renderer.py"):
+            artifact_refs.append(py.name)
+    assert importers == [], f"non-renderer importers of gex_card: {importers}"
+    assert card_cb_imports == [], f"gex_card imports cuttingboard: {card_cb_imports}"
+    assert artifact_refs == [], f"unexpected artifact readers: {artifact_refs}"
+
+
+# --- R19: card adds no readiness marker / not in coherent-publish set ---
+def test_gex_no_readiness_marker():
+    # mutation: add a GEX readiness marker.
+    readiness = (Path(__file__).resolve().parent.parent / "scripts" / "check_readiness.py").read_text(
+        encoding="utf-8"
+    )
+    assert "gex" not in readiness.lower()
+    import inspect
+
+    assert "gex" not in inspect.getsource(_dr.validate_coherent_publish).lower()
+
+
+# --- R20: renderer holds no GEX arithmetic (all math lives in gex_card) ---
+def test_renderer_has_no_gex_math():
+    # mutation: move card math into the renderer.
+    src = (_CB_ROOT / "delivery" / "dashboard_renderer.py").read_text(encoding="utf-8")
+    for token in (
+        "gex_total_1pct_usd",
+        "dominant_net_gamma",
+        "call_wall",
+        "put_wall",
+        "zero_dte",
+        "fetched_at_utc",
+    ):
+        assert token not in src, token

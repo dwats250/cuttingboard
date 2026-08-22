@@ -51,11 +51,22 @@ always current).
 | `_render_candidate_card` | Renders one candidate card; pair-gates the risk band (stop only draws when the contract entry is the anchor) |
 | `_load_contract_entry_context` | Reads `logs/latest_hourly_contract.json` → entry map + stop map (finite, > 0) + alert candidates + generated_at |
 | `_mcc_cell_display` / `_mcc_event_display` / `_mcc_location_display` | PRD-289 Market Control Card cell projection (value or typed unavailable token, never a default); block renders iff `sections["market_control_card"]` present |
+| `main` / `write_dashboard` / `render_dashboard_html` (GEX seam) | Loads `logs/gex_snapshot.json` via `gex_card.load_gex_snapshot`, threads a tz-aware `now`, and emits `gex_card.render_fragment(...)` as a display-only card (PRD-309); `if frag:` guarded, so absent/stale/invalid emits nothing (byte-identical baseline) |
 
 Note: the candidate board reads `market_map["symbols"]` directly, not payload
 candidates. The level diagram's anchor/stop come from the contract overlay
 (`trade_candidates[i]["entry"/"stop"]`), with current_price as the
 anchor-only fallback.
+
+---
+
+## cuttingboard/delivery/gex_card.py
+
+| Function | Purpose |
+|---|---|
+| `load_gex_snapshot` | Soft loader for `logs/gex_snapshot.json` (mirrors `_load_trend_structure_snapshot`; never raises; `None` on missing/malformed/non-dict) |
+| `build_gex_card` | Pure model builder (clock injected); validates the D5a admissibility domain + freshness; returns `GexCard` or `None` to suppress |
+| `render_gex_card_html` / `render_fragment` | Pure HTML fragment (empty string suppresses). All GEX arithmetic/validation live here; the renderer only loads and emits (PRD-309 R17/R20) |
 
 ---
 
