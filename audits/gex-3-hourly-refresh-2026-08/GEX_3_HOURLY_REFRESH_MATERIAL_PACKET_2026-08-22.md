@@ -1,6 +1,7 @@
 # GEX-3 -- Best-effort free hourly GEX refresh: MATERIAL design packet
 
-Date: 2026-08-22 (revision 2 -- post-Event-1 consolidated correction)
+Date: 2026-08-22 (revision 3 -- post-Event-1 consolidated correction +
+Event-2 attempt-1 completion edits)
 Author: Claude Code (authoring session; GOV-2 packet author)
 Base inspected: `main` @ `ed53df372ab355b0fd3f36ce7c8d604c9310a276`
 Status: CORRECTED -- awaiting GOV-2 Event-2 exact-corrected-head confirmation.
@@ -122,18 +123,20 @@ artifacts", gated identically to the render step:
         if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
         run: |
           rm -f logs/gex_snapshot.json logs/gex_snapshot.json.tmp
-          timeout 120 python3 tools/gex_snapshot.py \
+          timeout --kill-after=10 120 python3 tools/gex_snapshot.py \
             || rm -f logs/gex_snapshot.json logs/gex_snapshot.json.tmp
 ```
 
 The hard wall-clock bound is coreutils `timeout` (present on ubuntu-latest;
-no new dependency): expiry kills the producer (exit 124, SIGKILL escalation
-137 -- both nonzero), which routes through the SAME `||` cleanup as any
-producer failure, so a hang degrades to absence with the step green. The
-120-second value is the packet recommendation; the duration is
-owner-selectable at the design ruling (sec9 Q2). A GitHub `timeout-minutes`
-alone was rejected: runner cancellation bypasses the shell cleanup and
-fails the step (Event-1 F2).
+no new dependency) WITH ENCODED ESCALATION: at 120s the producer gets
+SIGTERM (exit 124); `--kill-after=10` guarantees SIGKILL 10s later (exit
+137) even for a TERM-ignoring process, so `timeout` itself always returns
+and the expiry always routes through the SAME `||` cleanup as any producer
+failure -- a hang degrades to absence with the step green. The 120s value
+is the packet recommendation; the duration is owner-selectable at the
+design ruling (sec9 Q2). A GitHub `timeout-minutes` alone was rejected:
+runner cancellation bypasses the shell cleanup and fails the step
+(Event-1 F2; escalation encoding per Event-2 attempt 1).
 
 Outcome table (exhaustive under the Actions default `bash -e {0}` shell;
 `||` exempts the producer line from errexit):
@@ -235,10 +238,14 @@ artifacts" add block; mutation-red set (each proven red one at a time):
 (a) delete the step; (b) move it after render; (c) remove the fresh gate;
 (d) remove the pre-invocation scrub; (e) remove the failure-side `|| rm`;
 (f) add the artifact to the restore arguments; (g) add it to the commit add
-block; (h) drop `logs/` gitignore coverage (`git check-ignore` stops
-succeeding for EITHER `logs/gex_snapshot.json` or
-`logs/gex_snapshot.json.tmp`); (i) remove or lengthen-past-ceiling the
-`timeout` bound; (j) drop the .tmp path from either scrub.
+block; (h) ignore-coverage + dirty-tree predicate: with
+`logs/gex_snapshot.json` AND `logs/gex_snapshot.json.tmp` physically
+present in a work tree, `git check-ignore` succeeds for BOTH paths and
+`git status --porcelain` reports NEITHER (the observable clean dirty-tree
+predicate `ci_push_artifacts.sh` depends on) -- red when `logs/` ignore
+coverage is dropped or negated; (i) remove the `timeout` wrapper, its
+`--kill-after` escalation, or lengthen the bound past the ceiling; (j) drop
+the .tmp path from either scrub.
 DR5 Shell-behavior harness (executable, not structural): extract the step
 body verbatim from the workflow YAML and run it in bash with a stubbed
 producer and controlled PATH/permissions, asserting each terminal outcome
@@ -248,9 +255,12 @@ killed, artifact+tmp absent, exit 0; (4) initial scrub failure -> nonzero
 before producer invocation; (5) cleanup failure after producer failure ->
 nonzero. Each asserted against the extracted body so workflow drift cannot
 decouple the harness from the shipped step.
-DR6 Cross-workflow scan guards: no workflow other than
-`hourly_alert.yml` invokes `tools/gex_snapshot.py`; no workflow restores or
-stages any `gex_snapshot` path; the existing all-writers Pages guard
+DR6 Cross-workflow scan guards, GLOBAL over `.github/workflows/*.yml`: no
+workflow other than `hourly_alert.yml` invokes `tools/gex_snapshot.py`; no
+workflow names any `gex_snapshot` path in a restore invocation, an explicit
+`git add` set, a publish/deploy path list, or a failure-artifact upload
+`path` list (the hourly refresh step itself is the sole permitted mention);
+the existing all-writers Pages guard
 (`test_ci_artifact_hygiene.py:648-660` style) remains intact.
 
 ## sec7 -- FILES cone (provisional -- ESTIMATED SURFACE, NOT YET APPROVED)
@@ -368,3 +378,12 @@ Event-1 verdict DESIGN INCOMPLETE @ `a718cf2`; all five findings ACCEPTED:
 No new material boundary was introduced by this correction; the corrected
 head SHA is recorded in the commit that carries this revision and is the
 Event-2 confirmation target.
+
+Event-2 ATTEMPT 1 (@ `11d9643`): NOT CONFIRMED -- F1/F4/F5 RESOLVED; F2/F3
+incompletely resolved; explicitly NO new material boundary (durable record
+`GEX_3_EVENT_2_CONFIRMATION_ATTEMPT_1_2026-08-22.md`). Completion edits in
+this revision, same findings, no new scope: sec4 encodes the SIGKILL
+escalation (`timeout --kill-after=10 120`); DR4(h) adds the observable
+clean dirty-tree predicate for both artifact paths; DR6 goes global over
+all workflow files including publish/deploy and failure-upload path lists.
+Event-2 ATTEMPT 2 targets the head carrying this revision.
