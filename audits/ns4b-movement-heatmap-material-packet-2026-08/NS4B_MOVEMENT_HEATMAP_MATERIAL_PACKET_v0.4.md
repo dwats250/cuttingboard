@@ -1,6 +1,14 @@
 # NS-4B — Market Movement Heatmap (12/12) — MATERIAL PACKET (v0.4, PROVISIONAL, REPLACEMENT)
 
-**Status: PROVISIONAL — NOT REVIEW-CLEAN — NO IMPLEMENTATION AUTHORITY.**
+**Status: DESIGN INCOMPLETE — NOT REVIEW-CLEAN — NO IMPLEMENTATION AUTHORITY —
+HELD FOR DUSTIN.** Fresh Event-1 on this 12/12 boundary (record
+`NS4B_V04_EVENT1_CODEX_REVIEW_2026-08-22.md`, reviewed SHA `5d51f94`) returned
+FINDINGS: F1 refutes the no-decision-authority proof (the config-membership seam
+feeds `ALL_SYMBOLS` into qualification fan-out) and F2 refutes the
+validation-failure->n/a contract. The safe observe-only 12/12 design needs a
+RUNTIME admission cut, a materially larger boundary — a design-direction decision
+for Dustin before the single consolidated correction is spent (§17).**
+
 v0.4 is a MATERIAL BOUNDARY RESET (Dustin, 2026-08-22): NS-4B now targets **12/12
 LIVE coverage** by actually fetching UCO and GOOG through the existing free
 yfinance path, as fetched-but-non-tradable observation symbols. This EXPANDS the
@@ -470,15 +478,26 @@ expanded boundary is commissioned (§17).
 
 ## 17. Packet review records (GOV-2 §2, §7)
 
-### FRESH INITIAL PACKET REVIEW (Event-1 on the 12/12 boundary) — PENDING
+### FRESH INITIAL PACKET REVIEW (Event-1 on the 12/12 boundary) — COMPLETE, FINDINGS
+
+Durable record: `NS4B_V04_EVENT1_CODEX_REVIEW_2026-08-22.md`. Reviewer:
+independent Codex (`codex-cli 0.147.0`, `gpt-5.6-sol`), fresh context, read-only,
+high. Reviewed SHA `5d51f94414515139ad2ae110f6d60d49490d97b1` (v0.4).
+
 | Field | Value |
 |---|---|
-| Event type | `INITIAL PACKET REVIEW` (owner-commissioned on the expanded boundary) |
-| Reviewer | independent Codex, fresh context, read-only (`codex exec -s read-only`) |
-| Reviewed SHA | PENDING (v0.4 committed head) |
-| Verdict / findings / dispositions | PENDING |
+| Verdict | **FINDINGS** — F1/F2/F4 BOUNDARY, F3/F6 P1, F5/F7 P2; E7 (G1 fix) CONFIRMED |
+| F1 (BOUNDARY) | R8 no-decision-authority proof REFUTED: `ALL_SYMBOLS` feeds qualification fan-out (`qualification.py:191` unfiltered; `universe_taxonomy.md`), so UCO/GOOG can affect `symbols_qualified`/outcome despite being non-tradable |
+| F2 (BOUNDARY) | "validation failure -> n/a" FALSE: sidecar is fed `normalized_quotes`; a validation-invalid quote renders movement, not `n/a` |
+| F3/F4/F5/F6/F7 | guard not killable; PRICE_BOUNDS/source-priority vs canonical taxonomy; PRD-158 inventory incomplete (6 files); acceptance lacks full-12 identity; registry `trade_eligible=True` unreconciled |
 
-### EXACT-CORRECTED-HEAD CONFIRMATION (Event-2 on 12/12) — PENDING
+**Consequence (GOV-2 §1):** the safe observe-only 12/12 design requires a RUNTIME
+admission cut / dedicated observe-only fetch path (a materially larger boundary
+than v0.4's config seam). This is a design-direction decision for Dustin; the
+single consolidated correction is NOT spent yet — it awaits the ruling. Packet
+status: **DESIGN INCOMPLETE — HELD FOR DUSTIN.**
+
+### EXACT-CORRECTED-HEAD CONFIRMATION (Event-2 on 12/12) — NOT REACHED (held on the design-direction ruling)
 
 ### Historical records (10/12 boundary — evidence only, do NOT certify 12/12)
 - `NS4B_EVENT1_CODEX_REVIEW_2026-08-22.md`: Event-1 on v0.2 @ `6e5f176`, FINDINGS
