@@ -1,5 +1,16 @@
 # Market State Provenance Panel + Macro-Tape daily-change de-duplication — MATERIAL PACKET (v0.1, PROVISIONAL)
 
+> **SUPERSEDED FOR STATUS by the Event-1 review + consolidated correction.**
+> Codex INITIAL PACKET REVIEW (Event-1, reviewed `66d9731`) returned FINDINGS
+> (2 BLOCKING). See `MARKET_STATE_EVENT1_CODEX_REVIEW_2026-08-22.md` and
+> `MARKET_STATE_CONSOLIDATED_CORRECTION_v0.2.md`. Current status:
+> **REVIEW-CLEAN = NO, DESIGN INCOMPLETE** — the hourly INTRADAY axis has no
+> truthful hourly carrier (F1); held for Dustin's design-direction ruling on
+> D-INTRADAY / D-PLACEMENT / D-1 / D-2. The carrier/cone/mutation claims below are
+> read together with the correction, which retracts the INTRADAY "carrier A
+> available / delivery-only" conclusion and amends the PERMISSION carrier, the
+> FILES cone, and the mutation matrix.
+
 **Status: PROVISIONAL — NOT REVIEW-CLEAN — NO IMPLEMENTATION AUTHORITY —
 awaiting Codex INITIAL PACKET REVIEW (GOV-2 Event-1).**
 This is the initial provisional MATERIAL packet (GOV-2 §2 step 2) for a new
