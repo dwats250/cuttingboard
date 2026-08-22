@@ -1,13 +1,16 @@
 # NS-4B — Market Movement Heatmap — MATERIAL PACKET (v0.3, PROVISIONAL, REPLACEMENT)
 
-**Status: PROVISIONAL — NOT REVIEW-CLEAN — NO IMPLEMENTATION AUTHORITY.**
+**Status: DESIGN INCOMPLETE — NOT REVIEW-CLEAN — NO IMPLEMENTATION AUTHORITY —
+HELD FOR DUSTIN.**
 v0.3 is the single consolidated author correction (GOV-2 §2 step 4) of the
-Event-1 findings F1-F6 (durable record:
-`NS4B_EVENT1_CODEX_REVIEW_2026-08-22.md`, reviewed SHA `6e5f176`, v0.2). It
-carries no implementation authority (GOV-2 §4). All FILES and LOC figures are
-`ESTIMATED SURFACE — NOT YET APPROVED` (GOV-2 §5). The next governed step is the
-Codex Event-2 exact-corrected-head confirmation (GOV-2 §2 step 5), limited to
-F1-F6 at this revision's head.
+Event-1 findings F1-F6 (record: `NS4B_EVENT1_CODEX_REVIEW_2026-08-22.md`,
+reviewed SHA `6e5f176`, v0.2). Event-2 (GOV-2 §2 step 5,
+`NS4B_EVENT2_CODEX_CONFIRMATION_2026-08-22.md`, reviewed SHA `5d21923`) confirmed
+**F1-F6 all RESOLVED** but returned **NOT CLEAN** on one NEW P1 (G1, §17). Per the
+GOV-2 §6 terminal rule the packet is DESIGN INCOMPLETE and the single GOV-1
+correction cycle is spent; it is held for Dustin's decision on G1 (§17 / OWNER
+HANDOFF). No implementation authority (GOV-2 §4); all FILES/LOC are `ESTIMATED
+SURFACE — NOT YET APPROVED` (GOV-2 §5).
 
 **Code baseline `main` @ `80ac6eb2618eb419afff6764292dec5c838204ce`.** Every line
 citation is current at that base; correction facts re-verified by the author
@@ -541,18 +544,26 @@ BOUNDARY, F4/F5 P1, F6 P2; T-2/T-3/T-5/T-8/zero-reader/O-1 CONFIRMED. All six
 dispositioned in the single consolidated correction (this v0.3; CORRECTION CYCLE
 below).
 
-### EXACT-CORRECTED-HEAD CONFIRMATION — PENDING (Event-2)
+### EXACT-CORRECTED-HEAD CONFIRMATION — COMPLETE, NOT CLEAN (Event-2, 2026-08-22)
+
+Full durable record: `NS4B_EVENT2_CODEX_CONFIRMATION_2026-08-22.md` (this
+directory). Reviewer: independent Codex (`codex-cli 0.147.0`, `gpt-5.6-sol`),
+fresh context, read-only, high effort. Reviewed SHA
+`5d21923b36c475ebe272252897721a9228019e52` (v0.3).
 
 | Field | Value |
 |---|---|
-| Event type | `EXACT-CORRECTED-HEAD CONFIRMATION` (GOV-2 §2 step 5) |
-| Scope | confirm F1-F6 resolved at the v0.3 committed head; detect any NEW blocking inconsistency — a confirmation, not a fresh-scope review |
-| Reviewed commit SHA | PENDING (v0.3 head) |
-| Verdict | PENDING |
+| Scope | confirm F1-F6 at the v0.3 head; detect NEW blocking inconsistency |
+| F1-F6 | **all RESOLVED** (per-finding cites in the record file) |
+| Verdict | **NOT CLEAN** — one NEW P1 (G1) |
+| G1 (P1) | M11's "future `generated_at` -> suppress" is undetectable without a clock, which §12 #6 forbids in the block (§5.2 lists only malformed/naive). Introduced by the F5 correction. |
 
-**Terminal rule (GOV-2 §2, §6):** a NEW material boundary omission at the
-confirmation head returns the packet to DESIGN INCOMPLETE (back to Dustin), not
-another correction loop.
+**Terminal rule (GOV-2 §2, §6):** the NEW P1 at the confirmation head returns the
+packet to **DESIGN INCOMPLETE**. The single GOV-1 correction cycle is spent; no
+further author correction without Dustin's explicit authorization. **HELD FOR
+DUSTIN** — authorize a bounded G1-only second correction (drop "future" from M11;
+align §5.2/§10/§12 to clock-free malformed/naive detection) + a narrow Event-2
+re-confirmation of G1; OR rule G1 non-blocking; OR otherwise direct.
 
 ### Out-of-scope observations
 
