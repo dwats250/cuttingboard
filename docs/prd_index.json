@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 310,
-  "next_prd": 311,
+  "latest_complete": 311,
+  "next_prd": 312,
   "entries": [
     {
       "number": 56,
@@ -1536,8 +1536,8 @@
     {
       "number": 311,
       "title": "NS-4B Market Movement Heatmap (12/12, observe-only fetch)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "367a4b8"
     }
   ]
 }
