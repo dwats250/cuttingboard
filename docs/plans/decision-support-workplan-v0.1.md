@@ -49,7 +49,7 @@ the PRD-267/272/273 lifecycle closeouts remain unresolved.
 | NEWS-3 | EVIDENCE BLOCKED | Display consumer after NEWS-2 | Future CONSUMER PRD | Baseline-neutral display |
 | GEX-0 | `PROVIDER VIABLE` (Cboe delayed_quotes, 2026-08-17; scoped: personal/non-redistributed/context-only, ~15-min delayed) | One-provider live evidence pass after L0 | Network research only | Verdict speaks only to the one provider examined. Fresh 2026-08-17 pass reached `cdn.cboe.com/api/global/delayed_quotes/options/{SPY,_SPX}.json` keyless, HTTP 200: SPY 14,546 contracts; _SPX 30,558 (SPX AM-settled + SPXW PM-settled). All 13 doctrine §4.3 legs established live, including per-strike `open_interest` + `gamma` + `iv` + quotes + spot; feed ships no vendor flip/put-wall/call-wall. Packet: `audits/gex-0-cboe-evidence-2026-08/GEX_0_CBOE_PROVIDER_EVIDENCE_PACKET_2026-08-17.md`. GEX-1 remains gated behind a separate PRD + Gate A. Prior 2026-08-06 Polygon pass is unchanged (`EVIDENCE INCOMPLETE` for Polygon: free tier gates the options snapshot where OI/greeks live) |
 | GEX-1 | IMPLEMENTED (PRD-306; Gate A granted 2026-08-20 on reviewed head `47f3129`, authority package merged `a3f01a9`. Producer `tools/gex_snapshot.py` performs one keyless GET against Cboe `_SPX` and writes observe-only `logs/gex_snapshot.json` over the SPX+SPXW universe under the full R1-R37 contract; stdlib-only, isolated from `cuttingboard/`. Context-only; baseline-neutral; no decision authority. SPY still deferred pending usefulness evidence, not invalidated) | Manual cached GEX producer after GEX-0 | PRD-306 (SIDECAR) | Honest artifact |
-| GEX-2 | EVIDENCE BLOCKED | Display-only consumer after GEX-1 | Future CONSUMER PRD | Baseline-neutral display |
+| GEX-2 | IMPLEMENTED (PRD-309; Gate A granted 2026-08-21 on reviewed revision `097faa9`. Display-only, baseline-neutral GEX context card `cuttingboard/delivery/gex_card.py`, loaded and emitted by `dashboard_renderer.py`; reads `logs/gex_snapshot.json` for display only under the R1-R20 contract; suppresses to a byte-identical baseline dashboard on absent/stale/invalid; no decision authority; no producer/cadence/schema change. Public-board visibility is capability-now/public-later (deferred GEX-3). Held for Dustin's merge) | Display-only consumer after GEX-1 | PRD-309 (HIGH-RISK/CONSUMER) | Baseline-neutral display |
 | ODATA-0 | EVIDENCE BLOCKED | Refresh future options-data proposals after OPT-1 | Read-only recon | Ranked, current backlog |
 | ODATA-1+ | EVIDENCE BLOCKED | Data-independent/provider-dependent builds after ODATA-0 | Separate future PRDs | Per-PRD gates |
 
@@ -405,6 +405,14 @@ Only after Dustin inspects useful GEX-1 artifacts:
 - no permission or sizing effect;
 - no renderer computation;
 - missing/stale/invalid yields baseline-identical output.
+
+Delivered by PRD-309 (HIGH-RISK/CONSUMER): a pure `cuttingboard/delivery/gex_card.py`
+plus a load-and-emit seam in `dashboard_renderer.py`. All four constraints hold —
+display-only; no permission/sizing/decision effect (R17-R20); all GEX arithmetic in
+`gex_card.py`, none in the renderer (R20, so "no renderer computation" is satisfied
+and the Q2 distance geometry is presentation-layer only); and absent/stale/invalid
+yields output byte-identical to an independent pre-GEX golden (R1). Public-board
+visibility remains the deferred, optional GEX-3 (invoke the producer in CI).
 
 ## 9. Wave 6 — future options-data refresh
 

@@ -5,7 +5,8 @@ One keyless GET against the Cboe delayed_quotes _SPX endpoint, computes settled
 P0 gamma-exposure structural outputs for the SPX+SPXW option universe, and
 atomically writes one honest, self-describing sidecar artifact
 (logs/gex_snapshot.json) for Dustin's manual local inspection. No cadence, no
-workflow, no machine consumer, no decision authority (baseline-neutral).
+workflow; one optional observe-only renderer consumer (PRD-309), still no
+decision authority (baseline-neutral).
 
 Isolation invariant (PRD-306 R11): this module imports NOTHING from
 cuttingboard/ and no cuttingboard module imports it. Stdlib only (R11 dependency

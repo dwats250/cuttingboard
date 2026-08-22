@@ -81,11 +81,36 @@ Consumer notes that outlive the retired field table (semantics, not shape):
 
 ---
 
+## gex_snapshot (logs/gex_snapshot.json)
+
+Producer `tools/gex_snapshot.py` is authoritative for the full schema; the
+display-only consumer `cuttingboard/delivery/gex_card.py` (PRD-309) reads only
+the paths below. The identity-guard constants must match the producer exactly.
+
+| Field path | Type | Notes |
+|---|---|---|
+| `schema_version` | int | strict `== 1` (bool-first: `True` rejected) |
+| `source` | string | identity guard `== "cboe_delayed_quotes"` |
+| `data_delay` | string | identity guard `== "~15 min delayed (REPORTED; Cboe delayed_quotes posture)"` |
+| `gex_total_1pct_usd` | float | net GEX, signed; rendered `/1e9` as `$B` |
+| `spot.value` | float > 0 | distance basis; suppresses if not finite/positive |
+| `fetched_at_utc` | ISO-8601 tz-aware | capture clock; freshness (STALE_MAX 24h) + absolute ET display; naive/future → suppress |
+| `dominant_net_gamma.{strike,reason}` | float\|null / null\|token | REQUIRED anchor; null strike (reason `all_net_gamma_zero`) → whole card suppressed |
+| `call_wall.{strike,reason}` | float\|null / null\|token | optional row; null strike (`no_eligible_calls`/`no_nonzero_call_gex`) → row omitted |
+| `put_wall.{strike,reason}` | float\|null / null\|token | optional row; null strike (`no_eligible_puts`/`no_nonzero_put_gex`) → row omitted |
+| `zero_dte.{share,reason}` | float[0,1]\|null / null\|token | optional row; null share (`zero_abs_gex_denominator`) → row omitted; honest 0.0 shown |
+
+DISPLAY-ONLY: no `cuttingboard` decision module reads this artifact; the card
+suppresses to a byte-identical baseline dashboard on absent/stale/invalid
+(PRD-309 R1/R17-R20).
+
+---
+
 ## Usage rules
 
 - For **contract** fields, verify against `cuttingboard/contract_types.py`
   (the typed schema) — not this map. This map only carries the untyped
-  artifacts (payload, market_map, run) and the `dict[str, Any]` interiors
+  artifacts (payload, market_map, run, gex_snapshot) and the `dict[str, Any]` interiors
   above.
 - Before adding a field to a PRD, verify it appears in this map or confirm it
   in source.
