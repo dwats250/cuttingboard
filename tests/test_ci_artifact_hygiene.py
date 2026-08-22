@@ -850,3 +850,14 @@ def test_gex_mentions_confined_to_hourly_refresh_step_globally() -> None:
         assert len(refresh) == 1
         steps.remove(refresh[0])
         assert "gex" not in str(doc).lower(), "gex outside the refresh step (DR6)"
+
+
+def test_watchlist_artifact_not_restored_not_staged() -> None:  # PRD-311 R6
+    # The observe-only movement fetch (UCO/GOOG) does not change the watchlist
+    # artifact's run-local posture: it is in neither the restore invocation nor
+    # the commit add block (gitignored, unpersisted, not published).
+    text = _workflow_text("hourly_alert.yml")
+    restore = next(ln for ln in text.splitlines() if "ci_restore_publish_state.sh" in ln)
+    assert "watchlist" not in restore
+    commit = text[text.index("- name: Commit hourly artifacts"):text.index("- name: Push hourly artifacts")]
+    assert "watchlist" not in commit[commit.index("git add"):]

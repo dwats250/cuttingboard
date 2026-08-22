@@ -264,6 +264,15 @@ HIGH_BETA     = ["NVDA", "TSLA", "AAPL", "META", "AMZN", "COIN", "MSTR"]
 ALL_SYMBOLS      = MACRO_DRIVERS + INDICES + COMMODITIES + HIGH_BETA
 REQUIRED_SYMBOLS = ["^VIX", "DX-Y.NYB", "^TNX", "BTC-USD", "SPY", "QQQ"]
 
+# PRD-311 (NS-4B): observation-only symbols for the MARKET MOVEMENT card.
+# DELIBERATELY DISJOINT from ALL_SYMBOLS and NON_TRADABLE_SYMBOLS: these are
+# fetched ONLY at the hourly watchlist-write seam (runtime) and merged only into
+# the watchlist sidecar mapping. They never enter the ingestion universe loop,
+# validate_quotes, derived, structure, regime, candidates, qualification,
+# notification counts, ranking, or permission. Never add these to ALL_SYMBOLS or
+# any decision list (see docs/universe_taxonomy.md § OBSERVE_ONLY).
+OBSERVE_ONLY_SYMBOLS: tuple[str, ...] = ("UCO", "GOOG")
+
 # PRD-110: curated universe for logs/trend_structure_snapshot.json.
 # Strict subset of ALL_SYMBOLS; disjoint from NON_TRADABLE_SYMBOLS.
 TREND_STRUCTURE_SYMBOLS: tuple[str, ...] = ("SPY", "QQQ", "GDX", "GLD", "SLV", "XLE")

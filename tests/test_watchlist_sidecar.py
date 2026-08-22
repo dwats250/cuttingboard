@@ -51,33 +51,34 @@ def _quote(symbol: str, price: float) -> NormalizedQuote:
 
 
 def _full_quotes() -> dict[str, NormalizedQuote]:
-    return {sym: _quote(sym, 100.0 + i) for i, (sym, _, _) in enumerate(WATCHLIST_SYMBOLS)}
+    return {sym: _quote(sym, 100.0 + i) for i, (sym, *_) in enumerate(WATCHLIST_SYMBOLS)}
 
 
 def _generated_at() -> datetime:
     return datetime(2026, 5, 10, 14, 0, tzinfo=timezone.utc)
 
 
-def test_frozen_universe_is_twelve_tuple_of_triples() -> None:
+def test_frozen_universe_is_twelve_tuple_of_quintuples() -> None:  # PRD-311
     assert isinstance(WATCHLIST_SYMBOLS, tuple)
     assert len(WATCHLIST_SYMBOLS) == 12
     for entry in WATCHLIST_SYMBOLS:
         assert isinstance(entry, tuple)
-        assert len(entry) == 3
-        for field in entry:
-            assert isinstance(field, str) and field
+        assert len(entry) == 5
+        sym, theme, reason, group, idx = entry
+        assert all(isinstance(x, str) and x for x in (sym, theme, reason, group))
+        assert isinstance(idx, int) and not isinstance(idx, bool)
 
 
 def test_frozen_universe_exact_set() -> None:
     expected = {"SPY", "QQQ", "GDX", "GLD", "SLV", "XLE", "UCO",
                 "NVDA", "TSLA", "META", "AMZN", "GOOG"}
-    assert {s for s, _, _ in WATCHLIST_SYMBOLS} == expected
+    assert {s for s, *_ in WATCHLIST_SYMBOLS} == expected
 
 
 # (F) every unaffected row is value-for-value identical to the pre-change baseline
 def test_unaffected_rows_value_for_value_identical() -> None:
     pre = {s: (t, r) for s, t, r in _PRE_CHANGE_WATCHLIST}
-    post = {s: (t, r) for s, t, r in WATCHLIST_SYMBOLS}
+    post = {s: (t, r) for s, t, r, *_ in WATCHLIST_SYMBOLS}
     unaffected = set(pre) - {"AAPL"}  # AAPL is the only removed symbol
     assert unaffected  # guard against an empty comparison silently passing
     for s in unaffected:
@@ -87,7 +88,7 @@ def test_unaffected_rows_value_for_value_identical() -> None:
 # (G) the only watchlist membership delta is {remove AAPL, add GOOG, add UCO}
 def test_membership_delta_is_exactly_aapl_goog_uco() -> None:
     pre = {s for s, _, _ in _PRE_CHANGE_WATCHLIST}
-    post = {s for s, _, _ in WATCHLIST_SYMBOLS}
+    post = {s for s, *_ in WATCHLIST_SYMBOLS}
     assert pre - post == {"AAPL"}
     assert post - pre == {"GOOG", "UCO"}
     assert len(WATCHLIST_SYMBOLS) == 12
@@ -98,10 +99,11 @@ def test_membership_delta_is_exactly_aapl_goog_uco() -> None:
 def test_watchlist_is_sourced_from_registry() -> None:
     assert WATCHLIST_SYMBOLS == build_watchlist_symbols(UNIVERSE_REGISTRY)
     by_reg = {i.symbol: i for i in UNIVERSE_REGISTRY if i.enabled}
-    assert {s for s, _, _ in WATCHLIST_SYMBOLS} == set(by_reg)
-    for symbol, theme, reason in WATCHLIST_SYMBOLS:
+    assert {s for s, *_ in WATCHLIST_SYMBOLS} == set(by_reg)
+    for symbol, theme, reason, group, idx in WATCHLIST_SYMBOLS:
         assert reason == by_reg[symbol].rationale
         assert theme == _PRIMARY_GROUP_TO_THEME[by_reg[symbol].primary_group]
+        assert group == by_reg[symbol].primary_group  # PRD-311 fine group passthrough
 
 
 # (I) VALUE PROPAGATION: the builder is a pure function of its registry input --
@@ -111,7 +113,7 @@ def test_builder_is_pure_function_of_registry() -> None:
         dataclasses.replace(i, rationale="MUTATED") if i.symbol == "SPY" else i
         for i in UNIVERSE_REGISTRY
     )
-    out = {s: (t, r) for s, t, r in build_watchlist_symbols(mutated)}
+    out = {s: (t, r) for s, t, r, *_ in build_watchlist_symbols(mutated)}
     assert out["SPY"] == ("Index", "MUTATED")
 
     disabled = tuple(
@@ -119,32 +121,33 @@ def test_builder_is_pure_function_of_registry() -> None:
         for i in UNIVERSE_REGISTRY
     )
     rows = build_watchlist_symbols(disabled)
-    assert "UCO" not in {s for s, _, _ in rows}
+    assert "UCO" not in {s for s, *_ in rows}
     assert len(rows) == 11
 
 
 def test_top_level_schema_keys() -> None:
     snap = build_watchlist_snapshot(_full_quotes(), _generated_at())
     assert set(snap) == {"schema_version", "source", "generated_at", "symbols"}
-    assert snap["schema_version"] == 1
+    assert snap["schema_version"] == 2  # PRD-311: reader-required fields added
     assert snap["source"] == "watchlist"
 
 
-def test_per_symbol_record_has_exactly_four_keys() -> None:
+def test_per_symbol_record_has_exactly_seven_keys() -> None:  # PRD-311
     snap = build_watchlist_snapshot(_full_quotes(), _generated_at())
-    expected_keys = {"symbol", "sector_theme", "watch_reason", "current_price"}
+    expected_keys = {"symbol", "sector_theme", "watch_reason", "current_price",
+                     "daily_change_pct", "primary_group", "registry_index"}
     for record in snap["symbols"].values():
         assert set(record) == expected_keys
 
 
 def test_symbols_set_equals_frozen_universe() -> None:
     snap = build_watchlist_snapshot(_full_quotes(), _generated_at())
-    assert set(snap["symbols"]) == {s for s, _, _ in WATCHLIST_SYMBOLS}
+    assert set(snap["symbols"]) == {s for s, *_ in WATCHLIST_SYMBOLS}
 
 
 def test_insertion_order_preserved() -> None:
     snap = build_watchlist_snapshot(_full_quotes(), _generated_at())
-    assert list(snap["symbols"]) == [s for s, _, _ in WATCHLIST_SYMBOLS]
+    assert list(snap["symbols"]) == [s for s, *_ in WATCHLIST_SYMBOLS]
 
 
 def test_current_price_passthrough() -> None:
@@ -158,7 +161,7 @@ def test_missing_quote_yields_null_price() -> None:
     quotes = {"SPY": _quote("SPY", 500.0)}
     snap = build_watchlist_snapshot(quotes, _generated_at())
     assert snap["symbols"]["SPY"]["current_price"] == 500.0
-    for symbol in {s for s, _, _ in WATCHLIST_SYMBOLS} - {"SPY"}:
+    for symbol in {s for s, *_ in WATCHLIST_SYMBOLS} - {"SPY"}:
         assert snap["symbols"][symbol]["current_price"] is None
 
 
@@ -173,7 +176,7 @@ def test_extra_quote_symbols_ignored() -> None:
 
 def test_watch_reason_byte_equal_to_constant() -> None:
     snap = build_watchlist_snapshot(_full_quotes(), _generated_at())
-    by_symbol = {s: (theme, reason) for s, theme, reason in WATCHLIST_SYMBOLS}
+    by_symbol = {s: (theme, reason) for s, theme, reason, *_ in WATCHLIST_SYMBOLS}
     for symbol, record in snap["symbols"].items():
         expected_theme, expected_reason = by_symbol[symbol]
         assert record["watch_reason"] == expected_reason
@@ -181,8 +184,8 @@ def test_watch_reason_byte_equal_to_constant() -> None:
 
 
 def test_watch_reason_static_across_disjoint_runs() -> None:
-    quotes_a = {sym: _quote(sym, 100.0) for sym, _, _ in WATCHLIST_SYMBOLS}
-    quotes_b = {sym: _quote(sym, 250.0) for sym, _, _ in WATCHLIST_SYMBOLS}
+    quotes_a = {sym: _quote(sym, 100.0) for sym, *_ in WATCHLIST_SYMBOLS}
+    quotes_b = {sym: _quote(sym, 250.0) for sym, *_ in WATCHLIST_SYMBOLS}
     snap_a = build_watchlist_snapshot(quotes_a, _generated_at())
     snap_b = build_watchlist_snapshot(quotes_b, _generated_at())
     for symbol in snap_a["symbols"]:
@@ -303,3 +306,35 @@ def test_runtime_halt_skip_preserves_existing_artifact(tmp_path, monkeypatch) ->
     assert hashlib.sha256(pre_bytes).hexdigest() == hashlib.sha256(post_bytes).hexdigest()
     assert pre_size == post_size
     assert not (tmp_path / "watchlist_snapshot.json.tmp").exists()
+
+
+def _quote_pct(symbol: str, pct: float) -> NormalizedQuote:
+    return dataclasses.replace(_quote(symbol, 100.0), pct_change_decimal=pct)
+
+
+def test_daily_change_pct_scale() -> None:  # PRD-311 M1
+    snap = build_watchlist_snapshot({"SPY": _quote_pct("SPY", 0.052)}, _generated_at())
+    assert snap["symbols"]["SPY"]["daily_change_pct"] == 5.2  # decimal*100, 1 dp
+
+
+def test_missing_quote_daily_change_is_none_never_zero() -> None:  # PRD-311 M2
+    snap = build_watchlist_snapshot({}, _generated_at())
+    for rec in snap["symbols"].values():
+        assert rec["daily_change_pct"] is None  # NEVER fabricated as 0.0
+
+
+def test_registry_index_and_primary_group_populated() -> None:  # PRD-311 M5/M4
+    snap = build_watchlist_snapshot(_full_quotes(), _generated_at())
+    indices = [snap["symbols"][s]["registry_index"] for s, *_ in WATCHLIST_SYMBOLS]
+    assert indices == list(range(12))  # contiguous 0..11 in insertion order
+    for s, theme, reason, group, idx in WATCHLIST_SYMBOLS:
+        assert snap["symbols"][s]["primary_group"] == group
+        assert snap["symbols"][s]["registry_index"] == idx
+
+
+def test_full_12_population_includes_uco_goog() -> None:  # PRD-311 M6
+    snap = build_watchlist_snapshot({}, _generated_at())  # no quotes -> all present as n/a
+    assert set(snap["symbols"]) == {
+        "SPY", "QQQ", "GDX", "GLD", "SLV", "XLE", "UCO",
+        "NVDA", "TSLA", "META", "AMZN", "GOOG",
+    }

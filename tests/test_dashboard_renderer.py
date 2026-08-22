@@ -4586,3 +4586,49 @@ def test_renderer_has_no_gex_math():
         "fetched_at_utc",
     ):
         assert token not in src, token
+
+
+def _movement_snapshot():  # PRD-311: a valid full-12 schema_version-2 artifact
+    from cuttingboard.normalization import NormalizedQuote
+    from cuttingboard.watchlist_sidecar import WATCHLIST_SYMBOLS, build_watchlist_snapshot
+
+    def _q(sym):
+        return NormalizedQuote(
+            symbol=sym, price=100.0, pct_change_decimal=0.012, volume=None,
+            fetched_at_utc=datetime(2026, 8, 22, 14, 30, tzinfo=timezone.utc),
+            source="test", units="usd_price", age_seconds=0.0,
+        )
+
+    quotes = {sym: _q(sym) for sym, *_ in WATCHLIST_SYMBOLS}
+    return build_watchlist_snapshot(quotes, datetime(2026, 8, 22, 14, 30, tzinfo=timezone.utc))
+
+
+def test_movement_card_present_when_valid_snapshot():  # PRD-311 renderer wiring
+    html = render_dashboard_html(_payload(), _run(), market_map=None,
+                                 movement_snapshot=_movement_snapshot())
+    assert 'id="market-movement"' in html
+    assert "MARKET MOVEMENT" in html
+    assert "UCO" in html and "GOOG" in html
+
+
+def test_movement_card_suppression_is_baseline_neutral():  # PRD-311 M8/M9 whole-output equality
+    baseline = render_dashboard_html(_payload(), _run(), market_map=None)  # no movement_snapshot
+    assert "market-movement" not in baseline
+    # absent artifact -> byte-identical to the no-movement baseline
+    assert render_dashboard_html(_payload(), _run(), market_map=None,
+                                 movement_snapshot=None) == baseline
+    # every invalid artifact class -> whole dashboard byte-identical to baseline
+    valid = _movement_snapshot()
+    for mutate in (
+        lambda s: s.__setitem__("schema_version", 1),
+        lambda s: s.__setitem__("source", "not_watchlist"),
+        lambda s: s["symbols"].pop("GOOG"),
+        lambda s: s["symbols"].__setitem__("ZZZ", s["symbols"]["SPY"]),
+        lambda s: s.__setitem__("generated_at", "not-a-date"),
+        lambda s: s.__setitem__("symbols", "not a dict"),
+        lambda s: s["symbols"]["SPY"].__setitem__("daily_change_pct", 1),
+    ):
+        bad = deepcopy(valid)
+        mutate(bad)
+        assert render_dashboard_html(_payload(), _run(), market_map=None,
+                                     movement_snapshot=bad) == baseline

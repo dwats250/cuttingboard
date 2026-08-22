@@ -95,14 +95,42 @@ display. Mutation boundaries below are governance rules, not advisory notes.
 
 ---
 
+## OBSERVE_ONLY_SYMBOLS
+
+- **Purpose:** Observation-only symbols fetched solely for the MARKET MOVEMENT
+  dashboard card (PRD-311). NOT trade candidates, NOT macro context, NOT part of
+  any decision computation.
+- **Ownership:** `cuttingboard/config.py:OBSERVE_ONLY_SYMBOLS` (`("UCO", "GOOG")`).
+- **Consumers:** `runtime._fetch_observe_only_quotes` (best-effort fetch via the
+  existing `fetch_quote` + `normalize_quote`) → merged only into the watchlist
+  sidecar mapping at the hourly write seam → `movement_card` display.
+- **Isolation (binding):** DISJOINT from `ALL_SYMBOLS` and `NON_TRADABLE_SYMBOLS`.
+  These symbols never enter the ingestion universe loop,
+  `normalize_all(fetch_all())`, `validate_quotes`, `valid_quotes`, derived,
+  structure, regime, candidates, qualification, notification counts, ranking, or
+  permission — the structural proof that fetching them creates no decision
+  authority (PRD-311 R2/R8; guarded by `tests/test_observe_only_isolation.py`).
+- **Mutation boundaries:** Members are fetched-but-decision-blind by construction.
+  Adding a member to `ALL_SYMBOLS` or `NON_TRADABLE_SYMBOLS`, or letting an
+  observe-only symbol reach any decision surface, is a stop-and-renew requiring a
+  PRD. No `PRICE_BOUNDS` / `SYMBOL_SOURCE_PRIORITY` entry is required (they bypass
+  `validate_quotes`; source routing uses the `default`).
+
+---
+
 ## Canonical separation rules
 
 1. **One source of truth per universe.** No module redefines a universe
    list locally; consumers import from `config.py`.
 2. **Derived universes stay derived.** The tradable universe is a runtime
    computation, never a constant.
-3. **Sidecar universes are subsets.** Any new sidecar universe must be a
-   strict subset of `ALL_SYMBOLS` and cannot introduce new fetch targets.
+3. **Sidecar universes are subsets, except the observe-only display universe.**
+   Any sidecar universe that FEEDS the decision pipeline must be a strict subset
+   of `ALL_SYMBOLS` and cannot introduce new fetch targets. `OBSERVE_ONLY_SYMBOLS`
+   (PRD-311) is the sole sanctioned exception: display-only, disjoint from
+   `ALL_SYMBOLS`, fetched separately, and structurally excluded from every
+   decision surface — it introduces fetch targets without introducing decision
+   inputs.
 4. **Universe changes are PRD-gated.** Adding, removing, or reordering
    members of any universe above requires an explicit PRD documenting the
    blast radius across ingestion, regime, qualification, and sidecars.

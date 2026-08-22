@@ -106,6 +106,33 @@ suppresses to a byte-identical baseline dashboard on absent/stale/invalid
 
 ---
 
+## watchlist_snapshot (logs/watchlist_snapshot.json)
+
+Producer `cuttingboard/watchlist_sidecar.py:build_watchlist_snapshot`; the
+display-only consumer `cuttingboard/delivery/movement_card.py` (PRD-311, the
+MARKET MOVEMENT card) reads the paths below and suppresses the whole card
+(byte-identical baseline) on any contract violation.
+
+| Field path | Type | Notes |
+|---|---|---|
+| `schema_version` | int | strict `== 2` (bool-first; PRD-311 bump from 1) |
+| `source` | string | identity guard `== "watchlist"` |
+| `generated_at` | ISO-8601 tz-aware\|null | capture clock; card requires tz-aware (naive/malformed → suppress); rendered `captured HH:MM ET` |
+| `symbols` | dict | MUST contain exactly the 12 enabled registry symbols (full-12 identity; missing/extra → suppress) |
+| `symbols[S].symbol` | string | must equal its key |
+| `symbols[S].sector_theme` | string | legacy coarse theme (unchanged) |
+| `symbols[S].watch_reason` | string | registry rationale (unchanged) |
+| `symbols[S].current_price` | float\|null | `NormalizedQuote.price` passthrough (unchanged) |
+| `symbols[S].daily_change_pct` | float\|null | `round(pct_change_decimal*100, 1)` or null (n/a hook; NEVER fabricated 0.0); honest 0.0 shown as `0.0%` |
+| `symbols[S].primary_group` | string | fine registry group ∈ {INDEX, METALS, ENERGY, TECH, HIGH_BETA}; unknown → suppress |
+| `symbols[S].registry_index` | int | 0-based enabled-registry position; unique in-range; drives group-internal order |
+
+DISPLAY-ONLY: no `cuttingboard` decision module reads this artifact. Observe-only
+UCO/GOOG (PRD-311) reach the rows only via the runtime merge at the hourly write
+seam and never any decision surface.
+
+---
+
 ## Usage rules
 
 - For **contract** fields, verify against `cuttingboard/contract_types.py`

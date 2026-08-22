@@ -1681,3 +1681,9 @@ def test_prd305_available_daily_notification_exposes_posture_anchor(monkeypatch,
     _title, body = build_notification_message(result.contract)
     assert " | " in body
     assert "AGGRESSIVE" in body
+
+
+@pytest.fixture(autouse=True)
+def _stub_observe_only_fetch(monkeypatch):
+    # PRD-311: keep the observe-only watchlist fetch (UCO/GOOG) network-free.
+    monkeypatch.setattr("cuttingboard.runtime._fetch_observe_only_quotes", lambda: {})

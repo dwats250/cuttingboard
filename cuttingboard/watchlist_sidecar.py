@@ -42,18 +42,26 @@ _PRIMARY_GROUP_TO_THEME: dict[str, str] = {
 
 def build_watchlist_symbols(
     registry: tuple[UniverseInstrument, ...],
-) -> tuple[tuple[str, str, str], ...]:
+) -> tuple[tuple[str, str, str, str, int], ...]:
     """Project the enabled registry instruments into the watchlist's
-    (symbol, theme, reason) row shape. Pure function of ``registry``; the
-    watchlist is sourced here, not hand-maintained (PRD-308)."""
+    (symbol, theme, reason, primary_group, registry_index) row shape. Pure
+    function of ``registry``; the watchlist is sourced here, not hand-maintained
+    (PRD-308). ``registry_index`` is the 0-based position among enabled
+    instruments (serialization/order only; implies no rank — PRD-311 R2)."""
+    enabled = [inst for inst in registry if inst.enabled]
     return tuple(
-        (inst.symbol, _PRIMARY_GROUP_TO_THEME[inst.primary_group], inst.rationale)
-        for inst in registry
-        if inst.enabled
+        (
+            inst.symbol,
+            _PRIMARY_GROUP_TO_THEME[inst.primary_group],
+            inst.rationale,
+            inst.primary_group,
+            idx,
+        )
+        for idx, inst in enumerate(enabled)
     )
 
 
-WATCHLIST_SYMBOLS: tuple[tuple[str, str, str], ...] = build_watchlist_symbols(
+WATCHLIST_SYMBOLS: tuple[tuple[str, str, str, str, int], ...] = build_watchlist_symbols(
     UNIVERSE_REGISTRY
 )
 
@@ -66,18 +74,25 @@ def build_watchlist_snapshot(
         raise ValueError("generated_at must be timezone-aware or None")
 
     symbols: dict[str, dict] = {}
-    for symbol, sector_theme, watch_reason in WATCHLIST_SYMBOLS:
+    for symbol, sector_theme, watch_reason, primary_group, registry_index in WATCHLIST_SYMBOLS:
         quote = normalized_quotes.get(symbol)
         current_price = quote.price if quote is not None else None
+        # PRD-311 R3: a missing quote -> None (the n/a hook); NEVER coerced to 0.0.
+        daily_change_pct = (
+            round(quote.pct_change_decimal * 100, 1) if quote is not None else None
+        )
         symbols[symbol] = {
             "symbol": symbol,
             "sector_theme": sector_theme,
             "watch_reason": watch_reason,
             "current_price": current_price,
+            "daily_change_pct": daily_change_pct,
+            "primary_group": primary_group,
+            "registry_index": registry_index,
         }
 
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "source": "watchlist",
         "generated_at": generated_at.isoformat() if generated_at is not None else None,
         "symbols": symbols,

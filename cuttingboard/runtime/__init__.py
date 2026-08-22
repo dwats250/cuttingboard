@@ -43,7 +43,7 @@ from cuttingboard.chain_validation import (
 )
 from cuttingboard.derived import compute_all_derived
 from cuttingboard.ingestion import fetch_ohlcv
-from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all, fetch_intraday_bars, fetch_intraday_session_bars
+from cuttingboard.ingestion import RawQuote, _ohlcv_cache_path, fetch_all, fetch_intraday_bars, fetch_intraday_session_bars, fetch_quote
 from cuttingboard.market_control_card import build_market_control_card
 from cuttingboard.spy_observation import build_spy_observation
 from cuttingboard.spy_state import build_spy_state_outcome
@@ -71,7 +71,7 @@ from cuttingboard.execution_policy import (
     load_execution_session_state,
 )
 from cuttingboard.macro_pressure import build_macro_pressure
-from cuttingboard.normalization import NormalizedQuote, normalize_all
+from cuttingboard.normalization import NormalizedQuote, normalize_all, normalize_quote
 from cuttingboard.notifications import (
     NOTIFY_MODES,
     format_failure_notification,
@@ -781,8 +781,11 @@ def _execute_notify_run(
                 generated_at=run_at_utc,
             )
             if not validation_summary.system_halted:
+                # PRD-311 (NS-4B): merge observation-only quotes (UCO/GOOG) into a
+                # NEW mapping passed ONLY to the watchlist writer. normalized_quotes
+                # (the decision-pipeline input) is not mutated (R1/R2).
                 _write_watchlist_snapshot(
-                    normalized_quotes=normalized_quotes,
+                    normalized_quotes={**normalized_quotes, **_fetch_observe_only_quotes()},
                     generated_at=run_at_utc,
                 )
 
@@ -2502,6 +2505,25 @@ def _refresh_trend_structure_sidecar(
         history_by_symbol=history_by_symbol,
         generated_at=generated_at,
     )
+
+
+def _fetch_observe_only_quotes() -> dict[str, NormalizedQuote]:
+    """PRD-311 (NS-4B): best-effort fetch of the observation-only symbols for the
+    MARKET MOVEMENT card, via the EXISTING per-symbol fetch + normalize. These are
+    disjoint from ALL_SYMBOLS and are merged ONLY into the watchlist sidecar
+    mapping at the call site below; they NEVER enter ``normalized_quotes`` /
+    ``validate_quotes`` / any decision surface (R1/R2). Per-symbol failures are
+    swallowed so a bad observe-only fetch renders `n/a` and never halts (R1)."""
+    out: dict[str, NormalizedQuote] = {}
+    for sym in config.OBSERVE_ONLY_SYMBOLS:
+        try:
+            nq = normalize_quote(fetch_quote(sym))
+        except Exception:
+            logger.exception("observe-only fetch failed for %s", sym)
+            continue
+        if nq is not None:
+            out[sym] = nq
+    return out
 
 
 def _write_watchlist_snapshot(
