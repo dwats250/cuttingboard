@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 308,
-  "next_prd": 309,
+  "latest_complete": 309,
+  "next_prd": 310,
   "entries": [
     {
       "number": 56,
@@ -1524,8 +1524,8 @@
     {
       "number": 309,
       "title": "GEX-2 FREE Board Card: baseline-neutral, display-only GEX context card",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "2d5b339"
     }
   ]
 }
