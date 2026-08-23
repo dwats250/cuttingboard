@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 311,
-  "next_prd": 312,
+  "latest_complete": 312,
+  "next_prd": 313,
   "entries": [
     {
       "number": 56,
@@ -1542,8 +1542,8 @@
     {
       "number": 312,
       "title": "Market State five-axis provenance panel + tradables daily-change-arrow de-duplication",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#273"
     }
   ]
 }
