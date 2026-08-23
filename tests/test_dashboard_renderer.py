@@ -3929,14 +3929,14 @@ def test_prd312_market_state_before_system_state_outside_region() -> None:
 # ---------------------------------------------------------------------------
 _PRD314_PHONE_BLOCK = (
     "@media(max-width:430px){"
-    "#market-state,#system-state,#opportunity-survival{padding:12px;margin-bottom:10px}"
+    "#market-state,#system-state,#opportunity-survival{padding:10px;margin-bottom:10px}"
     "#market-state h2,#system-state h2,#opportunity-survival h2{margin-bottom:8px}"
     "#market-state .kv-grid{column-gap:8px}"
     "#market-state .market-state-main{font-weight:600}"
     "#market-state .market-state-provenance,#market-state .market-state-qualifier"
     "{font-size:.72rem;line-height:1.25}"
     "#opportunity-survival .kv-grid"
-    "{grid-template-columns:max-content minmax(0,1fr) max-content minmax(0,1fr)}"
+    "{grid-template-columns:max-content minmax(2.5ch,1fr) max-content minmax(2.5ch,1fr)}"
     "#opportunity-survival .kv-grid>*:nth-child(10){grid-column:2/-1}"
     "}"
 )
