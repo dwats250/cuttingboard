@@ -29,7 +29,6 @@ _EXPECTED_CASE_NAMES = {
     "session_inactive",
     "macro_tape_no_data",
     "red_folder_error",
-    "red_folder_empty",
     "red_folder_expiring",
     "trend_awaiting_data",
     "trend_no_data",

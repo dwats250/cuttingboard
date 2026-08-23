@@ -2849,31 +2849,42 @@ def render_dashboard_html(
     # Presentation only: the caller resolves the loader window (events,
     # expiring, error) and passes a plain view dict; the renderer computes no
     # dates and casts no votes here.
-    w('<div class="block" id="red-folder">')
-    w("  <h2>Red Folder</h2>")
-    if red_folder is not None and not red_folder.get("ok", True):
-        _rf_error = red_folder.get("error") or "schedule unavailable"
-        w(f'  <div class="value">RED FOLDER UNAVAILABLE: {_esc(str(_rf_error))}</div>')
-    else:
-        _rf_events = (red_folder or {}).get("events") or []
-        if _rf_events:
-            for _ev in _rf_events:
-                _ev_date = _esc(str(_ev.get("date", "")))
-                _ev_time = _esc(str(_ev.get("time_et", "")))
-                _ev_name = _esc(str(_ev.get("name", "")))
-                _ev_type = _esc(str(_ev.get("type", "")))
-                w(
-                    f'  <div class="red-folder-event">'
-                    f'<span class="red-folder-when">{_ev_date} {_ev_time} ET</span> '
-                    f'<span class="red-folder-name">{_ev_name}</span>'
-                    f'<span class="red-folder-type"> ({_ev_type})</span>'
-                    f"</div>"
-                )
+    # PRD-313: suppress the standalone block only for a RESOLVED view dict that
+    # is healthy, has zero events, and is not expiring -- the redundant empty
+    # state MARKET STATE EVENT RISK already carries. A None/omitted view is NOT
+    # a resolved view and keeps its existing empty-state render (never silent).
+    _rf_suppress = (
+        isinstance(red_folder, dict)
+        and red_folder.get("ok", True)
+        and not (red_folder.get("events") or [])
+        and not red_folder.get("expiring")
+    )
+    if not _rf_suppress:
+        w('<div class="block" id="red-folder">')
+        w("  <h2>Red Folder</h2>")
+        if red_folder is not None and not red_folder.get("ok", True):
+            _rf_error = red_folder.get("error") or "schedule unavailable"
+            w(f'  <div class="value">RED FOLDER UNAVAILABLE: {_esc(str(_rf_error))}</div>')
         else:
-            w('  <div class="value">No red-folder events in the next 48 hours.</div>')
-        if (red_folder or {}).get("expiring"):
-            w('  <div class="red-folder-expiry">Red-folder schedule nearing expiry -- refresh the calendar.</div>')
-    w("</div>")
+            _rf_events = (red_folder or {}).get("events") or []
+            if _rf_events:
+                for _ev in _rf_events:
+                    _ev_date = _esc(str(_ev.get("date", "")))
+                    _ev_time = _esc(str(_ev.get("time_et", "")))
+                    _ev_name = _esc(str(_ev.get("name", "")))
+                    _ev_type = _esc(str(_ev.get("type", "")))
+                    w(
+                        f'  <div class="red-folder-event">'
+                        f'<span class="red-folder-when">{_ev_date} {_ev_time} ET</span> '
+                        f'<span class="red-folder-name">{_ev_name}</span>'
+                        f'<span class="red-folder-type"> ({_ev_type})</span>'
+                        f"</div>"
+                    )
+            else:
+                w('  <div class="value">No red-folder events in the next 48 hours.</div>')
+            if (red_folder or {}).get("expiring"):
+                w('  <div class="red-folder-expiry">Red-folder schedule nearing expiry -- refresh the calendar.</div>')
+        w("</div>")
 
     # --- trend-structure (PRD-112) ---
     w(f'<div class="block{disabled_class}" id="trend-structure">')

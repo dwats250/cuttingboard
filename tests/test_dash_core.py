@@ -163,7 +163,11 @@ def test_section_order_full_r5_sequence() -> None:
 # PRD-177 R2: four-questions section order
 def test_section_order_four_questions_sequence() -> None:
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="B")})
-    rf = {"ok": True, "error": None, "events": [], "expiring": False}
+    # PRD-313: a healthy-empty view suppresses the standalone block, so the order
+    # check uses a populated (preserved) view to assert red-folder's position.
+    rf = {"ok": True, "error": None,
+          "events": [{"date": "2026-06-11", "time_et": "08:30", "type": "CPI", "name": "CPI (May)"}],
+          "expiring": False}
     hist = [{"date": "2026-06-09", "regime": "RISK_ON", "posture": "CONTROLLED_LONG",
              "spy_close_change_pct": 0.01}]
     html = render_dashboard_html(

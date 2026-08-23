@@ -3808,11 +3808,21 @@ def test_prd177_r5_red_folder_lists_events() -> None:
     assert "No red-folder events" not in block
 
 
-def test_prd177_r5_red_folder_empty_state() -> None:
+def test_prd313_r1_red_folder_healthy_empty_suppressed() -> None:
+    # PRD-313: a healthy, zero-event, non-expiring RESOLVED dict suppresses the
+    # standalone block entirely -- MARKET STATE EVENT RISK already carries the fact.
     rf = {"ok": True, "error": None, "expiring": False, "events": []}
     html = render_dashboard_html(_payload(), _run(), red_folder=rf)
-    block = html.split('id="red-folder"', 1)[1].split('id="trend-structure"', 1)[0]
-    assert "No red-folder events in the next 48 hours." in block
+    assert 'id="red-folder"' not in html
+
+
+def test_prd313_r6_event_risk_and_order_under_suppression() -> None:
+    # PRD-313: suppression leaves EVENT RISK and surrounding block order intact.
+    rf = {"ok": True, "error": None, "expiring": False, "events": []}
+    html = render_dashboard_html(_payload(), _run(), red_folder=rf)
+    assert 'id="red-folder"' not in html
+    assert "no events in 48h" in html
+    assert html.index('id="macro-tape"') < html.index('id="trend-structure"')
 
 
 def test_prd177_r5_red_folder_loader_error_warns() -> None:
