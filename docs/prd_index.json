@@ -1556,6 +1556,12 @@
       "title": "First-screen visual compaction (MARKET STATE / SYSTEM STATE / OPPORTUNITY SURVIVAL, phone 360-430px)",
       "status": "COMPLETE",
       "commit": "#275"
+    },
+    {
+      "number": 315,
+      "title": "Opportunity continuity",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
