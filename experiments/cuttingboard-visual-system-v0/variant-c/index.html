@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Cuttingboard Visual System Lab V0 — Dense Responsive Desk variant">
+  <title>Cuttingboard Lab · Variant C</title>
+  <link rel="stylesheet" href="../shared/base.css">
+  <style>
+    body[data-variant="c"] {
+      --board-max: 1360px;
+      --board-pad: 22px 24px 34px;
+    }
+
+    body[data-variant="c"] .board-titlebar {
+      margin-bottom: 14px;
+    }
+
+    .c-desk {
+      display: grid;
+      gap: 11px;
+    }
+
+    .desk-band {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .desk-band > .family-label {
+      padding-left: 2px;
+    }
+
+    .desk-pair,
+    .desk-conditional {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 9px;
+      min-width: 0;
+    }
+
+    .desk-band .surface {
+      min-width: 0;
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: rgba(13, 20, 27, 0.76);
+    }
+
+    .desk-band--state .surface,
+    .desk-band--opportunity .surface {
+      border-color: var(--line-strong);
+      background: rgba(17, 24, 32, 0.9);
+    }
+
+    .desk-band--opportunity .surface--candidate {
+      border-color: rgba(131, 184, 201, 0.42);
+      background:
+        linear-gradient(115deg, rgba(20, 40, 49, 0.48), transparent 44%),
+        rgba(17, 24, 32, 0.9);
+    }
+
+    .desk-band--opportunity .candidate-minimum {
+      gap: 8px;
+    }
+
+    .desk-band--opportunity .surface--candidate .surface-title {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .desk-band--opportunity .truth-note {
+      margin: 2px 0;
+    }
+
+    .desk-band--context > .surface--macro,
+    .desk-band--structure > .surface--trend,
+    .desk-band--history > .surface--diagnostics,
+    .desk-band--state > .surface--event-detail {
+      margin-top: 1px;
+    }
+
+    .c-desk .surface-title {
+      margin-bottom: 9px;
+      font-size: 0.68rem;
+    }
+
+    .c-desk .axis {
+      padding-block: 6px;
+    }
+
+    .c-desk .axis__value,
+    .c-desk .kv-value {
+      font-size: 0.72rem;
+    }
+
+    .c-desk .decision {
+      font-size: 1.55rem;
+    }
+
+    .c-desk .system-verdict {
+      font-size: 0.72rem;
+    }
+
+    .c-desk .metric {
+      padding: 8px;
+    }
+
+    .c-desk .metric__value {
+      font-size: 1rem;
+    }
+
+    @media (min-width: 960px) {
+      .desk-pair--state {
+        grid-template-columns: minmax(0, 1.24fr) minmax(18rem, 0.76fr);
+      }
+
+      .desk-pair--opportunity {
+        grid-template-columns: minmax(18rem, 0.7fr) minmax(0, 1.3fr);
+      }
+
+      .desk-pair--context {
+        grid-template-columns: minmax(19rem, 0.8fr) minmax(0, 1.2fr);
+      }
+
+      .desk-pair--history {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .desk-conditional:has(.surface) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .desk-band--state .surface--market-state {
+        min-height: 250px;
+      }
+
+      .desk-band--state .surface--system-state {
+        min-height: 250px;
+      }
+
+      .desk-band--opportunity .surface {
+        min-height: 226px;
+      }
+
+      .desk-band--context .desk-pair > .surface {
+        min-height: 266px;
+      }
+
+      .desk-band--context > .surface--macro {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(18rem, 0.8fr);
+        column-gap: 18px;
+      }
+
+      .desk-band--context > .surface--macro .surface-title,
+      .desk-band--context > .surface--macro .provenance {
+        grid-column: 1 / -1;
+      }
+
+      .desk-band--context > .surface--macro .disclosure {
+        margin-top: 0;
+        border-top: 0;
+      }
+    }
+
+    @media (min-width: 700px) and (max-width: 959px) {
+      body[data-variant="c"] {
+        --board-max: 780px;
+      }
+
+      .desk-band .surface {
+        padding: 16px;
+        border-radius: 9px;
+      }
+    }
+
+    @media (max-width: 699px) {
+      body[data-variant="c"] {
+        --board-pad: 14px 12px 28px;
+      }
+
+      .c-desk {
+        gap: 12px;
+      }
+
+      body[data-variant="c"] .board-titlebar {
+        margin-bottom: 8px;
+      }
+
+      body[data-variant="c"] .board-kicker {
+        margin-bottom: 2px;
+      }
+
+      body[data-variant="c"] .board-title {
+        font-size: 1.32rem;
+      }
+
+      .desk-band {
+        gap: 0;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--line-strong);
+      }
+
+      .desk-band:last-child {
+        padding-bottom: 0;
+        border-bottom: 0;
+      }
+
+      .desk-band > .family-label {
+        margin-bottom: 3px;
+        padding: 0;
+      }
+
+      .desk-pair,
+      .desk-conditional {
+        gap: 0;
+      }
+
+      .desk-band .surface {
+        padding: 10px 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+      }
+
+      .desk-pair > .surface + .surface,
+      .desk-conditional > .surface + .surface,
+      .desk-band > .surface {
+        border-top: 1px solid var(--line);
+      }
+
+      .desk-pair > .surface:first-child {
+        border-top: 0;
+      }
+
+      .desk-band--state,
+      .desk-band--opportunity {
+        margin-inline: -2px;
+        padding: 7px 10px 9px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: rgba(17, 24, 32, 0.68);
+      }
+
+      .desk-band--opportunity {
+        border-color: rgba(131, 184, 201, 0.35);
+      }
+
+      .desk-band--state .surface,
+      .desk-band--opportunity .surface {
+        background: transparent;
+      }
+
+      .c-desk .surface-title {
+        margin-bottom: 7px;
+      }
+
+      .desk-band--state .surface-title {
+        margin-bottom: 5px;
+      }
+
+      .c-desk .axis {
+        padding-block: 5px;
+      }
+
+      .desk-band--state .axis__provenance,
+      .desk-band--state .qualifier {
+        line-height: 1.25;
+      }
+
+      .c-desk .metric {
+        padding: 6px 7px;
+        border-radius: 4px;
+      }
+
+      .desk-band--opportunity .metric-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 5px;
+      }
+
+      .c-desk .metric__label {
+        min-height: 2.35em;
+        font-size: 0.5rem;
+      }
+
+      .c-desk .metric__value {
+        font-size: 0.92rem;
+      }
+
+      .c-desk .critical-pair {
+        padding-block: 7px;
+      }
+
+      .desk-band--state .system-reason {
+        margin-top: 6px;
+        font-size: 0.7rem;
+      }
+
+      .desk-band--state .system-context {
+        margin-top: 2px;
+      }
+
+      .desk-band--state .updated-row {
+        margin-top: 9px;
+        padding-top: 7px;
+      }
+    }
+  </style>
+  <script defer src="../shared/fixture-data.js"></script>
+  <script defer src="../shared/prototype.js"></script>
+</head>
+<body data-variant="c">
+  <aside class="lab-toolbar" aria-label="Prototype controls">
+    <div class="lab-toolbar__title">
+      <strong>CUTTINGBOARD VISUAL SYSTEM LAB V0</strong>
+      <span>Throwaway static prototype · no production behavior</span>
+    </div>
+    <div class="lab-toolbar__controls">
+      <nav class="lab-toolbar__nav" aria-label="Variants">
+        <a href="../variant-a/index.html" data-variant-link>A</a>
+        <a href="../variant-b/index.html" data-variant-link>B</a>
+        <a href="../variant-c/index.html" data-variant-link aria-current="page">C</a>
+      </nav>
+      <label>
+        <span hidden>Fixture</span>
+        <select class="fixture-select" data-fixture-select aria-label="Fixture mode">
+          <option value="normal">NORMAL LONG-CONTENT</option>
+          <option value="halt">HALT</option>
+          <option value="degraded">DEGRADED / CARRIER UNAVAILABLE</option>
+          <option value="event">RED-FOLDER EVENT PRESENT</option>
+          <option value="no-candidate">NO CANDIDATE</option>
+        </select>
+      </label>
+    </div>
+  </aside>
+  <main data-board-root aria-live="polite"></main>
+</body>
+</html>

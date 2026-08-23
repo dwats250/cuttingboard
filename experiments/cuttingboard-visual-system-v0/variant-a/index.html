@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Cuttingboard Visual System Lab V0 — Evolutionary variant">
+  <title>Cuttingboard Lab · Variant A</title>
+  <link rel="stylesheet" href="../shared/base.css">
+  <style>
+    body[data-variant="a"] {
+      --board-max: 1040px;
+      --board-pad: 26px;
+    }
+
+    .a-stack {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    .a-stack > .surface,
+    .a-opportunity > .surface {
+      padding: 16px 17px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(17, 24, 32, 0.76);
+      box-shadow: 0 7px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    .a-stack > .surface--market-state,
+    .a-stack > .surface--system-state {
+      border-color: var(--line-strong);
+      background: linear-gradient(180deg, rgba(21, 30, 39, 0.94), rgba(15, 21, 28, 0.88));
+    }
+
+    .a-stack .surface--gex,
+    .a-stack .surface--movement,
+    .a-stack .surface--macro,
+    .a-stack .surface--trend,
+    .a-stack .surface--changes,
+    .a-stack .surface--scoreboard,
+    .a-stack .surface--diagnostics {
+      background: rgba(13, 20, 27, 0.66);
+    }
+
+    .a-opportunity {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    .a-opportunity .surface--opportunity-survival {
+      border-color: var(--line-strong);
+    }
+
+    .a-opportunity .surface--candidate {
+      border-color: rgba(131, 184, 201, 0.42);
+      background: linear-gradient(120deg, rgba(20, 40, 49, 0.62), rgba(17, 24, 32, 0.88) 48%);
+    }
+
+    .a-stack .surface-title {
+      margin-bottom: 10px;
+    }
+
+    .a-stack .surface--system-state .surface-title,
+    .a-opportunity .surface--candidate .surface-title {
+      color: var(--ink-soft);
+    }
+
+    @media (min-width: 960px) {
+      .a-stack {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .a-stack > .surface,
+      .a-opportunity {
+        grid-column: 1 / -1;
+      }
+
+      .a-opportunity {
+        grid-template-columns: minmax(17rem, 0.72fr) minmax(0, 1.28fr);
+      }
+
+      .a-stack > .surface--gex,
+      .a-stack > .surface--movement,
+      .a-stack > .surface--changes,
+      .a-stack > .surface--scoreboard {
+        grid-column: auto;
+      }
+
+      .a-stack > .surface--gex,
+      .a-stack > .surface--movement {
+        min-height: 270px;
+      }
+
+      .a-stack > .surface--changes,
+      .a-stack > .surface--scoreboard {
+        min-height: 126px;
+      }
+    }
+
+    @media (max-width: 700px) {
+      body[data-variant="a"] {
+        --board-pad: 14px 12px 28px;
+      }
+
+      .a-stack {
+        gap: 8px;
+      }
+
+      .a-stack > .surface,
+      .a-opportunity > .surface {
+        padding: 11px 12px;
+        border-color: rgba(56, 71, 84, 0.74);
+        border-radius: 7px;
+        box-shadow: none;
+      }
+
+      .a-opportunity {
+        gap: 8px;
+      }
+
+      .a-stack .surface-title {
+        margin-bottom: 8px;
+      }
+
+      .a-stack .surface--market-state .axis {
+        padding-block: 5px;
+      }
+
+      .a-stack .surface--system-state .system-reason {
+        margin-top: 7px;
+      }
+
+      .a-stack .surface--system-state .updated-row {
+        margin-top: 10px;
+        padding-top: 7px;
+      }
+
+      .a-opportunity .metric {
+        padding: 7px 8px;
+      }
+    }
+  </style>
+  <script defer src="../shared/fixture-data.js"></script>
+  <script defer src="../shared/prototype.js"></script>
+</head>
+<body data-variant="a">
+  <aside class="lab-toolbar" aria-label="Prototype controls">
+    <div class="lab-toolbar__title">
+      <strong>CUTTINGBOARD VISUAL SYSTEM LAB V0</strong>
+      <span>Throwaway static prototype · no production behavior</span>
+    </div>
+    <div class="lab-toolbar__controls">
+      <nav class="lab-toolbar__nav" aria-label="Variants">
+        <a href="../variant-a/index.html" data-variant-link aria-current="page">A</a>
+        <a href="../variant-b/index.html" data-variant-link>B</a>
+        <a href="../variant-c/index.html" data-variant-link>C</a>
+      </nav>
+      <label>
+        <span class="sr-only" hidden>Fixture</span>
+        <select class="fixture-select" data-fixture-select aria-label="Fixture mode">
+          <option value="normal">NORMAL LONG-CONTENT</option>
+          <option value="halt">HALT</option>
+          <option value="degraded">DEGRADED / CARRIER UNAVAILABLE</option>
+          <option value="event">RED-FOLDER EVENT PRESENT</option>
+          <option value="no-candidate">NO CANDIDATE</option>
+        </select>
+      </label>
+    </div>
+  </aside>
+  <main data-board-root aria-live="polite"></main>
+</body>
+</html>

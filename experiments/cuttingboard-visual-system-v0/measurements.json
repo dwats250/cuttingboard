@@ -1,0 +1,4028 @@
+{
+  "generatedAt": "2026-08-23T20:14:29.172Z",
+  "authority": {
+    "main": "8bf3b58a98120c43860a689756d84950a0b3aadb",
+    "visualAudit": "c2299f9f7358ccbea2109b79a616717f34a97024",
+    "firstScreenRecon": "19178e504ef0a41caf54e544aacbcc61c047d174",
+    "pinnedPublish": "77e9fc8b0780133994058f5a8fb82daf60ed1a3d"
+  },
+  "method": {
+    "browser": "Google Chrome headless via Chrome DevTools Protocol",
+    "screenshotType": "exact viewport, deviceScaleFactor 1",
+    "fullBorderCount": "fully bordered containers ending before the candidate identity",
+    "foldVisibility": "computed at scrollY=0 with prototype controls hidden"
+  },
+  "captures": [
+    {
+      "fixture": "normal",
+      "variant": "a",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 360,
+        "widthUsePct": 100,
+        "heightPx": 3254.5
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1301.9,
+        "topThroughOpportunitySurvivalPx": 893.2,
+        "candidateLevelScrollToFirstPixelPx": 237,
+        "candidateLevelScrollToFullyVisiblePx": 291,
+        "fullBorderedContainersBeforeCandidate": 3,
+        "firstContextTopPx": 1309.9,
+        "firstContextScrollToFirstPixelPx": 510,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 934.8,
+          "bottom": 959.2
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1037.4,
+          "bottom": 1091.2
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1091.2,
+          "bottom": 1163.9
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 934.8,
+          "bottom": 959.2
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1037.4,
+          "bottom": 1091.2
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1091.2,
+          "bottom": 1163.9
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-a/normal-360x800.png"
+    },
+    {
+      "fixture": "normal",
+      "variant": "a",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 390,
+        "widthUsePct": 100,
+        "heightPx": 3103.1
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1267.2,
+        "topThroughOpportunitySurvivalPx": 876.3,
+        "candidateLevelScrollToFirstPixelPx": 177,
+        "candidateLevelScrollToFullyVisiblePx": 230,
+        "fullBorderedContainersBeforeCandidate": 3,
+        "firstContextTopPx": 1275.2,
+        "firstContextScrollToFirstPixelPx": 431,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 917.9,
+          "bottom": 942.4
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1020.6,
+          "bottom": 1074.4
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1074.4,
+          "bottom": 1129.2
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 917.9,
+          "bottom": 942.4
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1020.6,
+          "bottom": 1074.4
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1074.4,
+          "bottom": 1129.2
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-a/normal-390x844.png"
+    },
+    {
+      "fixture": "normal",
+      "variant": "a",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 430,
+        "widthUsePct": 100,
+        "heightPx": 3041.5
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1217.2,
+        "topThroughOpportunitySurvivalPx": 841.5,
+        "candidateLevelScrollToFirstPixelPx": 39,
+        "candidateLevelScrollToFullyVisiblePx": 92,
+        "fullBorderedContainersBeforeCandidate": 3,
+        "firstContextTopPx": 1225.2,
+        "firstContextScrollToFirstPixelPx": 293,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 883.9,
+          "bottom": 908.3
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 970.6,
+          "bottom": 1024.4
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1024.4,
+          "bottom": 1079.2
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 883.9,
+          "bottom": 908.3
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 970.6,
+          "bottom": 1024.4
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1024.4,
+          "bottom": 1079.2
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-a/normal-430x932.png"
+    },
+    {
+      "fixture": "normal",
+      "variant": "a",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 768,
+        "widthUsePct": 100,
+        "heightPx": 2607.3
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1208.2,
+        "topThroughOpportunitySurvivalPx": 911.2,
+        "candidateLevelScrollToFirstPixelPx": 25,
+        "candidateLevelScrollToFullyVisiblePx": 61,
+        "fullBorderedContainersBeforeCandidate": 3,
+        "firstContextTopPx": 1218.2,
+        "firstContextScrollToFirstPixelPx": 194,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 962.6,
+          "bottom": 987.1
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1049.3,
+          "bottom": 1085.3
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1085.3,
+          "bottom": 1122.2
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 962.6,
+          "bottom": 987.1
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1049.3,
+          "bottom": 1085.3
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1085.3,
+          "bottom": 1122.2
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-a/normal-768x1024.png"
+    },
+    {
+      "fixture": "normal",
+      "variant": "a",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 1040,
+        "widthUsePct": 81.3,
+        "heightPx": 2155.7
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1053.8,
+        "topThroughOpportunitySurvivalPx": 1053.8,
+        "candidateLevelScrollToFirstPixelPx": 77,
+        "candidateLevelScrollToFullyVisiblePx": 113,
+        "fullBorderedContainersBeforeCandidate": 2,
+        "firstContextTopPx": 1063.8,
+        "firstContextScrollToFirstPixelPx": 264,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": false,
+          "top": 790.3,
+          "bottom": 814.8
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 877,
+          "bottom": 913
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 913,
+          "bottom": 967.8
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": false,
+          "top": 790.3,
+          "bottom": 814.8
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 877,
+          "bottom": 913
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 913,
+          "bottom": 967.8
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 2
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-a/normal-1280x800.png"
+    },
+    {
+      "fixture": "normal",
+      "variant": "a",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 1040,
+        "widthUsePct": 72.2,
+        "heightPx": 2155.7
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1053.8,
+        "topThroughOpportunitySurvivalPx": 1053.8,
+        "candidateLevelScrollToFirstPixelPx": 0,
+        "candidateLevelScrollToFullyVisiblePx": 13,
+        "fullBorderedContainersBeforeCandidate": 2,
+        "firstContextTopPx": 1063.8,
+        "firstContextScrollToFirstPixelPx": 164,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 790.3,
+          "bottom": 814.8
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": false,
+          "top": 877,
+          "bottom": 913
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 913,
+          "bottom": 967.8
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 790.3,
+          "bottom": 814.8
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": false,
+          "top": 877,
+          "bottom": 913
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 913,
+          "bottom": 967.8
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 2
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-a/normal-1440x900.png"
+    },
+    {
+      "fixture": "halt",
+      "variant": "a",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 390,
+        "widthUsePct": 100,
+        "heightPx": 3391.7
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1329,
+        "topThroughOpportunitySurvivalPx": 938.2,
+        "candidateLevelScrollToFirstPixelPx": 238,
+        "candidateLevelScrollToFullyVisiblePx": 292,
+        "fullBorderedContainersBeforeCandidate": 3,
+        "firstContextTopPx": 1337,
+        "firstContextScrollToFirstPixelPx": 493,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 979.8,
+          "bottom": 1004.2
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1082.4,
+          "bottom": 1136.2
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1136.2,
+          "bottom": 1191
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 979.8,
+          "bottom": 1004.2
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1082.4,
+          "bottom": 1136.2
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1136.2,
+          "bottom": 1191
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 12,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-a/halt-390x844.png"
+    },
+    {
+      "fixture": "halt",
+      "variant": "a",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 1040,
+        "widthUsePct": 81.3,
+        "heightPx": 2427.9
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1102.8,
+        "topThroughOpportunitySurvivalPx": 1102.8,
+        "candidateLevelScrollToFirstPixelPx": 126,
+        "candidateLevelScrollToFullyVisiblePx": 162,
+        "fullBorderedContainersBeforeCandidate": 2,
+        "firstContextTopPx": 1112.8,
+        "firstContextScrollToFirstPixelPx": 313,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 839.3,
+          "bottom": 863.8
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 926,
+          "bottom": 962
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 962,
+          "bottom": 1016.8
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 839.3,
+          "bottom": 863.8
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 926,
+          "bottom": 962
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 962,
+          "bottom": 1016.8
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 2
+      },
+      "provenanceNodesVisible": 12,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-a/halt-1280x800.png"
+    },
+    {
+      "fixture": "degraded",
+      "variant": "a",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 390,
+        "widthUsePct": 100,
+        "heightPx": 3383.6
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1366.8,
+        "topThroughOpportunitySurvivalPx": 953.6,
+        "candidateLevelScrollToFirstPixelPx": 276,
+        "candidateLevelScrollToFullyVisiblePx": 330,
+        "fullBorderedContainersBeforeCandidate": 3,
+        "firstContextTopPx": 1374.8,
+        "firstContextScrollToFirstPixelPx": 531,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 995.2,
+          "bottom": 1042
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1120.1,
+          "bottom": 1174
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1174,
+          "bottom": 1228.8
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 995.2,
+          "bottom": 1042
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1120.1,
+          "bottom": 1174
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1174,
+          "bottom": 1228.8
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-a/degraded-390x844.png"
+    },
+    {
+      "fixture": "degraded",
+      "variant": "a",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 1040,
+        "widthUsePct": 81.3,
+        "heightPx": 2339.8
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1102.8,
+        "topThroughOpportunitySurvivalPx": 1102.8,
+        "candidateLevelScrollToFirstPixelPx": 126,
+        "candidateLevelScrollToFullyVisiblePx": 162,
+        "fullBorderedContainersBeforeCandidate": 2,
+        "firstContextTopPx": 1112.8,
+        "firstContextScrollToFirstPixelPx": 313,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 839.3,
+          "bottom": 863.8
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 926,
+          "bottom": 962
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 962,
+          "bottom": 1016.8
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 839.3,
+          "bottom": 863.8
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 926,
+          "bottom": 962
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 962,
+          "bottom": 1016.8
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 2
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-a/degraded-1280x800.png"
+    },
+    {
+      "fixture": "event",
+      "variant": "a",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 390,
+        "widthUsePct": 100,
+        "heightPx": 3799.2
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1429.8,
+        "topThroughOpportunitySurvivalPx": 1038.9,
+        "candidateLevelScrollToFirstPixelPx": 339,
+        "candidateLevelScrollToFullyVisiblePx": 393,
+        "fullBorderedContainersBeforeCandidate": 4,
+        "firstContextTopPx": 1437.8,
+        "firstContextScrollToFirstPixelPx": 594,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1080.5,
+          "bottom": 1105
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1183.1,
+          "bottom": 1237
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1237,
+          "bottom": 1291.8
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "event-detail"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state",
+          "event-detail"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1080.5,
+          "bottom": 1105
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1183.1,
+          "bottom": 1237
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1237,
+          "bottom": 1291.8
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 14,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-a/event-390x844.png"
+    },
+    {
+      "fixture": "event",
+      "variant": "a",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 1040,
+        "widthUsePct": 81.3,
+        "heightPx": 2784.4
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1219.2,
+        "topThroughOpportunitySurvivalPx": 1219.2,
+        "candidateLevelScrollToFirstPixelPx": 242,
+        "candidateLevelScrollToFullyVisiblePx": 278,
+        "fullBorderedContainersBeforeCandidate": 3,
+        "firstContextTopPx": 1229.2,
+        "firstContextScrollToFirstPixelPx": 429,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 955.8,
+          "bottom": 980.2
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1042.5,
+          "bottom": 1078.4
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1078.4,
+          "bottom": 1133.2
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "event-detail"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 955.8,
+          "bottom": 980.2
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1042.5,
+          "bottom": 1078.4
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1078.4,
+          "bottom": 1133.2
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 2
+      },
+      "provenanceNodesVisible": 14,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-a/event-1280x800.png"
+    },
+    {
+      "fixture": "no-candidate",
+      "variant": "a",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 390,
+        "widthUsePct": 100,
+        "heightPx": 3152.3
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1017.9,
+        "topThroughOpportunitySurvivalPx": 876.3,
+        "candidateLevelScrollToFirstPixelPx": null,
+        "candidateLevelScrollToFullyVisiblePx": null,
+        "fullBorderedContainersBeforeCandidate": 3,
+        "firstContextTopPx": 1025.9,
+        "firstContextScrollToFirstPixelPx": 182,
+        "candidateIdentity": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateLevel": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateInvalidation": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateLevel": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateInvalidation": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 12,
+      "disclosureTargetsChecked": 3,
+      "errors": [],
+      "screenshot": "screenshots/variant-a/no-candidate-390x844.png"
+    },
+    {
+      "fixture": "no-candidate",
+      "variant": "a",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 1040,
+        "widthUsePct": 81.3,
+        "heightPx": 2277
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 906.7,
+        "topThroughOpportunitySurvivalPx": 906.7,
+        "candidateLevelScrollToFirstPixelPx": null,
+        "candidateLevelScrollToFullyVisiblePx": null,
+        "fullBorderedContainersBeforeCandidate": 2,
+        "firstContextTopPx": 916.7,
+        "firstContextScrollToFirstPixelPx": 117,
+        "candidateIdentity": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateLevel": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateInvalidation": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateLevel": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateInvalidation": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 2
+      },
+      "provenanceNodesVisible": 12,
+      "disclosureTargetsChecked": 3,
+      "errors": [],
+      "screenshot": "screenshots/variant-a/no-candidate-1280x800.png"
+    },
+    {
+      "fixture": "normal",
+      "variant": "b",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 360,
+        "widthUsePct": 100,
+        "heightPx": 3330.1
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1333.7,
+        "topThroughOpportunitySurvivalPx": 931.9,
+        "candidateLevelScrollToFirstPixelPx": 267,
+        "candidateLevelScrollToFullyVisiblePx": 321,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 1381,
+        "firstContextScrollToFirstPixelPx": 581,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 964.5,
+          "bottom": 989
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1067.2,
+          "bottom": 1121
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1121,
+          "bottom": 1193.7
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 964.5,
+          "bottom": 989
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1067.2,
+          "bottom": 1121
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1121,
+          "bottom": 1193.7
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-b/normal-360x800.png"
+    },
+    {
+      "fixture": "normal",
+      "variant": "b",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 390,
+        "widthUsePct": 100,
+        "heightPx": 3178.8
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1298.9,
+        "topThroughOpportunitySurvivalPx": 915.1,
+        "candidateLevelScrollToFirstPixelPx": 206,
+        "candidateLevelScrollToFullyVisiblePx": 260,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 1346.2,
+        "firstContextScrollToFirstPixelPx": 502,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 947.7,
+          "bottom": 972.1
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1050.3,
+          "bottom": 1104.1
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1104.1,
+          "bottom": 1158.9
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 947.7,
+          "bottom": 972.1
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1050.3,
+          "bottom": 1104.1
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1104.1,
+          "bottom": 1158.9
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-b/normal-390x844.png"
+    },
+    {
+      "fixture": "normal",
+      "variant": "b",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 430,
+        "widthUsePct": 100,
+        "heightPx": 3141
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1272.8,
+        "topThroughOpportunitySurvivalPx": 904.1,
+        "candidateLevelScrollToFirstPixelPx": 92,
+        "candidateLevelScrollToFullyVisiblePx": 146,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 1320.1,
+        "firstContextScrollToFirstPixelPx": 388,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 937.5,
+          "bottom": 961.9
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1024.2,
+          "bottom": 1078
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1078,
+          "bottom": 1132.8
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 937.5,
+          "bottom": 961.9
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1024.2,
+          "bottom": 1078
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1078,
+          "bottom": 1132.8
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-b/normal-430x932.png"
+    },
+    {
+      "fixture": "normal",
+      "variant": "b",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 768,
+        "widthUsePct": 100,
+        "heightPx": 2682.8
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1243.8,
+        "topThroughOpportunitySurvivalPx": 956.8,
+        "candidateLevelScrollToFirstPixelPx": 60,
+        "candidateLevelScrollToFullyVisiblePx": 96,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 1303,
+        "firstContextScrollToFirstPixelPx": 279,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 997.2,
+          "bottom": 1021.7
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1083.9,
+          "bottom": 1119.8
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1119.8,
+          "bottom": 1156.8
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 997.2,
+          "bottom": 1021.7
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1083.9,
+          "bottom": 1119.8
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1119.8,
+          "bottom": 1156.8
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-b/normal-768x1024.png"
+    },
+    {
+      "fixture": "normal",
+      "variant": "b",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 1200,
+        "widthUsePct": 93.8,
+        "heightPx": 2039.5
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 869.4,
+        "topThroughOpportunitySurvivalPx": 851.4,
+        "candidateLevelScrollToFirstPixelPx": 0,
+        "candidateLevelScrollToFullyVisiblePx": 0,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 928.7,
+        "firstContextScrollToFirstPixelPx": 129,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 622.9,
+          "bottom": 647.3
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 709.6,
+          "bottom": 745.5
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 745.5,
+          "bottom": 782.4
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 622.9,
+          "bottom": 647.3
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 709.6,
+          "bottom": 745.5
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 745.5,
+          "bottom": 782.4
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 2
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-b/normal-1280x800.png"
+    },
+    {
+      "fixture": "normal",
+      "variant": "b",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 1200,
+        "widthUsePct": 83.3,
+        "heightPx": 2039.5
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 869.4,
+        "topThroughOpportunitySurvivalPx": 851.4,
+        "candidateLevelScrollToFirstPixelPx": 0,
+        "candidateLevelScrollToFullyVisiblePx": 0,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 928.7,
+        "firstContextScrollToFirstPixelPx": 29,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 622.9,
+          "bottom": 647.3
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 709.6,
+          "bottom": 745.5
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 745.5,
+          "bottom": 782.4
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 622.9,
+          "bottom": 647.3
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 709.6,
+          "bottom": 745.5
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 745.5,
+          "bottom": 782.4
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 2
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-b/normal-1440x900.png"
+    },
+    {
+      "fixture": "halt",
+      "variant": "b",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 390,
+        "widthUsePct": 100,
+        "heightPx": 3456.4
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1360.8,
+        "topThroughOpportunitySurvivalPx": 976.9,
+        "candidateLevelScrollToFirstPixelPx": 268,
+        "candidateLevelScrollToFullyVisiblePx": 322,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 1408.1,
+        "firstContextScrollToFirstPixelPx": 564,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1009.5,
+          "bottom": 1034
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1112.2,
+          "bottom": 1166
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1166,
+          "bottom": 1220.8
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1009.5,
+          "bottom": 1034
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1112.2,
+          "bottom": 1166
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1166,
+          "bottom": 1220.8
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 12,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-b/halt-390x844.png"
+    },
+    {
+      "fixture": "halt",
+      "variant": "b",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 1200,
+        "widthUsePct": 93.8,
+        "heightPx": 2302.7
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 918.4,
+        "topThroughOpportunitySurvivalPx": 900.4,
+        "candidateLevelScrollToFirstPixelPx": 0,
+        "candidateLevelScrollToFullyVisiblePx": 0,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 977.7,
+        "firstContextScrollToFirstPixelPx": 178,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 671.9,
+          "bottom": 696.3
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 758.6,
+          "bottom": 794.5
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": false,
+          "top": 794.5,
+          "bottom": 831.4
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 671.9,
+          "bottom": 696.3
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 758.6,
+          "bottom": 794.5
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": false,
+          "top": 794.5,
+          "bottom": 831.4
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 2
+      },
+      "provenanceNodesVisible": 12,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-b/halt-1280x800.png"
+    },
+    {
+      "fixture": "degraded",
+      "variant": "b",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 390,
+        "widthUsePct": 100,
+        "heightPx": 3459.3
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1398.5,
+        "topThroughOpportunitySurvivalPx": 992.4,
+        "candidateLevelScrollToFirstPixelPx": 306,
+        "candidateLevelScrollToFullyVisiblePx": 360,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 1445.8,
+        "firstContextScrollToFirstPixelPx": 602,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1025,
+          "bottom": 1071.7
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1149.9,
+          "bottom": 1203.7
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1203.7,
+          "bottom": 1258.5
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1025,
+          "bottom": 1071.7
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1149.9,
+          "bottom": 1203.7
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1203.7,
+          "bottom": 1258.5
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-b/degraded-390x844.png"
+    },
+    {
+      "fixture": "degraded",
+      "variant": "b",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 1200,
+        "widthUsePct": 93.8,
+        "heightPx": 2223.7
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 918.4,
+        "topThroughOpportunitySurvivalPx": 900.4,
+        "candidateLevelScrollToFirstPixelPx": 0,
+        "candidateLevelScrollToFullyVisiblePx": 0,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 977.7,
+        "firstContextScrollToFirstPixelPx": 178,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 671.9,
+          "bottom": 696.3
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 758.6,
+          "bottom": 794.5
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": false,
+          "top": 794.5,
+          "bottom": 831.4
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 671.9,
+          "bottom": 696.3
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 758.6,
+          "bottom": 794.5
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": false,
+          "top": 794.5,
+          "bottom": 831.4
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 2
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-b/degraded-1280x800.png"
+    },
+    {
+      "fixture": "event",
+      "variant": "b",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 390,
+        "widthUsePct": 100,
+        "heightPx": 3867.1
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1475.8,
+        "topThroughOpportunitySurvivalPx": 1091.9,
+        "candidateLevelScrollToFirstPixelPx": 383,
+        "candidateLevelScrollToFullyVisiblePx": 437,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 1523.1,
+        "firstContextScrollToFirstPixelPx": 679,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1124.5,
+          "bottom": 1149
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1227.1,
+          "bottom": 1281
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1281,
+          "bottom": 1335.8
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "event-detail"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1124.5,
+          "bottom": 1149
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1227.1,
+          "bottom": 1281
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1281,
+          "bottom": 1335.8
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 14,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-b/event-390x844.png"
+    },
+    {
+      "fixture": "event",
+      "variant": "b",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 1200,
+        "widthUsePct": 93.8,
+        "heightPx": 2469.5
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1020.9,
+        "topThroughOpportunitySurvivalPx": 1002.9,
+        "candidateLevelScrollToFirstPixelPx": 61,
+        "candidateLevelScrollToFullyVisiblePx": 97,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 1080.2,
+        "firstContextScrollToFirstPixelPx": 280,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 774.3,
+          "bottom": 798.8
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 861,
+          "bottom": 897
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 897,
+          "bottom": 933.9
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "event-detail",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state",
+          "event-detail"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 774.3,
+          "bottom": 798.8
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 861,
+          "bottom": 897
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 897,
+          "bottom": 933.9
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 2
+      },
+      "provenanceNodesVisible": 14,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-b/event-1280x800.png"
+    },
+    {
+      "fixture": "no-candidate",
+      "variant": "b",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 390,
+        "widthUsePct": 100,
+        "heightPx": 3216.9
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1049.7,
+        "topThroughOpportunitySurvivalPx": 915.1,
+        "candidateLevelScrollToFirstPixelPx": null,
+        "candidateLevelScrollToFullyVisiblePx": null,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 1097,
+        "firstContextScrollToFirstPixelPx": 253,
+        "candidateIdentity": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateLevel": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateInvalidation": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateLevel": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateInvalidation": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 12,
+      "disclosureTargetsChecked": 3,
+      "errors": [],
+      "screenshot": "screenshots/variant-b/no-candidate-390x844.png"
+    },
+    {
+      "fixture": "no-candidate",
+      "variant": "b",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 1200,
+        "widthUsePct": 93.8,
+        "heightPx": 2189
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 740.3,
+        "topThroughOpportunitySurvivalPx": 722.3,
+        "candidateLevelScrollToFirstPixelPx": null,
+        "candidateLevelScrollToFullyVisiblePx": null,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 799.6,
+        "firstContextScrollToFirstPixelPx": 0,
+        "candidateIdentity": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateLevel": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateInvalidation": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate",
+          "gex",
+          "movement"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "candidateIdentity": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateLevel": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateInvalidation": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "contextSurfacesIntersectingFold": 2,
+        "contextComparisonColumns": 2
+      },
+      "provenanceNodesVisible": 12,
+      "disclosureTargetsChecked": 3,
+      "errors": [],
+      "screenshot": "screenshots/variant-b/no-candidate-1280x800.png"
+    },
+    {
+      "fixture": "normal",
+      "variant": "c",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 360,
+        "widthUsePct": 100,
+        "heightPx": 3013.9
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1155.1,
+        "topThroughOpportunitySurvivalPx": 807.3,
+        "candidateLevelScrollToFirstPixelPx": 95,
+        "candidateLevelScrollToFullyVisiblePx": 144,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 1184.4,
+        "firstContextScrollToFirstPixelPx": 384,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 818.3,
+          "bottom": 842.8
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 894.6,
+          "bottom": 944.4
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 944.4,
+          "bottom": 1013.1
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 818.3,
+          "bottom": 842.8
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 894.6,
+          "bottom": 944.4
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 944.4,
+          "bottom": 1013.1
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-c/normal-360x800.png"
+    },
+    {
+      "fixture": "normal",
+      "variant": "c",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 390,
+        "widthUsePct": 100,
+        "heightPx": 2972.2
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1136,
+        "topThroughOpportunitySurvivalPx": 806.1,
+        "candidateLevelScrollToFirstPixelPx": 49,
+        "candidateLevelScrollToFullyVisiblePx": 99,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 1165.3,
+        "firstContextScrollToFirstPixelPx": 321,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 817.1,
+          "bottom": 841.6
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 893.4,
+          "bottom": 943.2
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 943.2,
+          "bottom": 994
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 817.1,
+          "bottom": 841.6
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 893.4,
+          "bottom": 943.2
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 943.2,
+          "bottom": 994
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-c/normal-390x844.png"
+    },
+    {
+      "fixture": "normal",
+      "variant": "c",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 430,
+        "widthUsePct": 100,
+        "heightPx": 2928
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1108.1,
+        "topThroughOpportunitySurvivalPx": 794.1,
+        "candidateLevelScrollToFirstPixelPx": 0,
+        "candidateLevelScrollToFullyVisiblePx": 0,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 1137.4,
+        "firstContextScrollToFirstPixelPx": 205,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 805.1,
+          "bottom": 829.6
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 865.5,
+          "bottom": 915.3
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": false,
+          "top": 915.3,
+          "bottom": 966.1
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 805.1,
+          "bottom": 829.6
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 865.5,
+          "bottom": 915.3
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": false,
+          "top": 915.3,
+          "bottom": 966.1
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-c/normal-430x932.png"
+    },
+    {
+      "fixture": "normal",
+      "variant": "c",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 768,
+        "widthUsePct": 100,
+        "heightPx": 2613
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1151.8,
+        "topThroughOpportunitySurvivalPx": 910.6,
+        "candidateLevelScrollToFirstPixelPx": 0,
+        "candidateLevelScrollToFullyVisiblePx": 9,
+        "fullBorderedContainersBeforeCandidate": 3,
+        "firstContextTopPx": 1185,
+        "firstContextScrollToFirstPixelPx": 161,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 936.6,
+          "bottom": 961
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": false,
+          "top": 996.9,
+          "bottom": 1032.8
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1032.8,
+          "bottom": 1069.8
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 936.6,
+          "bottom": 961
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": false,
+          "top": 996.9,
+          "bottom": 1032.8
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1032.8,
+          "bottom": 1069.8
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-c/normal-768x1024.png"
+    },
+    {
+      "fixture": "normal",
+      "variant": "c",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 1280,
+        "widthUsePct": 100,
+        "heightPx": 1864.4
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 752.9,
+        "topThroughOpportunitySurvivalPx": 752.9,
+        "candidateLevelScrollToFirstPixelPx": 0,
+        "candidateLevelScrollToFullyVisiblePx": 0,
+        "fullBorderedContainersBeforeCandidate": 2,
+        "firstContextTopPx": 786.2,
+        "firstContextScrollToFirstPixelPx": 0,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 540.7,
+          "bottom": 565.2
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 601.1,
+          "bottom": 637
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 637,
+          "bottom": 673.9
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate",
+          "gex",
+          "movement"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 540.7,
+          "bottom": 565.2
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 601.1,
+          "bottom": 637
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 637,
+          "bottom": 673.9
+        },
+        "contextSurfacesIntersectingFold": 2,
+        "contextComparisonColumns": 2
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-c/normal-1280x800.png"
+    },
+    {
+      "fixture": "normal",
+      "variant": "c",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 1360,
+        "widthUsePct": 94.4,
+        "heightPx": 1864.4
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 752.9,
+        "topThroughOpportunitySurvivalPx": 752.9,
+        "candidateLevelScrollToFirstPixelPx": 0,
+        "candidateLevelScrollToFullyVisiblePx": 0,
+        "fullBorderedContainersBeforeCandidate": 2,
+        "firstContextTopPx": 786.2,
+        "firstContextScrollToFirstPixelPx": 0,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 540.7,
+          "bottom": 565.2
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 601.1,
+          "bottom": 637
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 637,
+          "bottom": 673.9
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate",
+          "gex",
+          "movement"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 540.7,
+          "bottom": 565.2
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 601.1,
+          "bottom": 637
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 637,
+          "bottom": 673.9
+        },
+        "contextSurfacesIntersectingFold": 2,
+        "contextComparisonColumns": 2
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-c/normal-1440x900.png"
+    },
+    {
+      "fixture": "halt",
+      "variant": "c",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 390,
+        "widthUsePct": 100,
+        "heightPx": 3227.1
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1197.8,
+        "topThroughOpportunitySurvivalPx": 868,
+        "candidateLevelScrollToFirstPixelPx": 111,
+        "candidateLevelScrollToFullyVisiblePx": 161,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 1227.1,
+        "firstContextScrollToFirstPixelPx": 383,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 879,
+          "bottom": 903.4
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 955.2,
+          "bottom": 1005
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1005,
+          "bottom": 1055.8
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 879,
+          "bottom": 903.4
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 955.2,
+          "bottom": 1005
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1005,
+          "bottom": 1055.8
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 12,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-c/halt-390x844.png"
+    },
+    {
+      "fixture": "halt",
+      "variant": "c",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 1280,
+        "widthUsePct": 100,
+        "heightPx": 2115.3
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 801.9,
+        "topThroughOpportunitySurvivalPx": 801.9,
+        "candidateLevelScrollToFirstPixelPx": 0,
+        "candidateLevelScrollToFullyVisiblePx": 0,
+        "fullBorderedContainersBeforeCandidate": 2,
+        "firstContextTopPx": 835.2,
+        "firstContextScrollToFirstPixelPx": 35,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 589.7,
+          "bottom": 614.2
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 650.1,
+          "bottom": 686
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 686,
+          "bottom": 722.9
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 589.7,
+          "bottom": 614.2
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 650.1,
+          "bottom": 686
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 686,
+          "bottom": 722.9
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 2
+      },
+      "provenanceNodesVisible": 12,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-c/halt-1280x800.png"
+    },
+    {
+      "fixture": "degraded",
+      "variant": "c",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 390,
+        "widthUsePct": 100,
+        "heightPx": 3230.1
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1235.8,
+        "topThroughOpportunitySurvivalPx": 883.6,
+        "candidateLevelScrollToFirstPixelPx": 149,
+        "candidateLevelScrollToFullyVisiblePx": 199,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 1265.1,
+        "firstContextScrollToFirstPixelPx": 421,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 894.6,
+          "bottom": 941.4
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 993.2,
+          "bottom": 1043
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1043,
+          "bottom": 1093.8
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 894.6,
+          "bottom": 941.4
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 993.2,
+          "bottom": 1043
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1043,
+          "bottom": 1093.8
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-c/degraded-390x844.png"
+    },
+    {
+      "fixture": "degraded",
+      "variant": "c",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 1280,
+        "widthUsePct": 100,
+        "heightPx": 2042.9
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 801.9,
+        "topThroughOpportunitySurvivalPx": 801.9,
+        "candidateLevelScrollToFirstPixelPx": 0,
+        "candidateLevelScrollToFullyVisiblePx": 0,
+        "fullBorderedContainersBeforeCandidate": 2,
+        "firstContextTopPx": 835.2,
+        "firstContextScrollToFirstPixelPx": 35,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 589.7,
+          "bottom": 614.2
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 650.1,
+          "bottom": 686
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 686,
+          "bottom": 722.9
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 589.7,
+          "bottom": 614.2
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 650.1,
+          "bottom": 686
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 686,
+          "bottom": 722.9
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 2
+      },
+      "provenanceNodesVisible": 11,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-c/degraded-1280x800.png"
+    },
+    {
+      "fixture": "event",
+      "variant": "c",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 390,
+        "widthUsePct": 100,
+        "heightPx": 3552.7
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 1285.6,
+        "topThroughOpportunitySurvivalPx": 955.7,
+        "candidateLevelScrollToFirstPixelPx": 199,
+        "candidateLevelScrollToFullyVisiblePx": 249,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 1314.9,
+        "firstContextScrollToFirstPixelPx": 471,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 966.7,
+          "bottom": 991.1
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1043,
+          "bottom": 1092.8
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1092.8,
+          "bottom": 1143.6
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "event-detail",
+          "opportunity-survival"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state",
+          "event-detail"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 966.7,
+          "bottom": 991.1
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1043,
+          "bottom": 1092.8
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": 1092.8,
+          "bottom": 1143.6
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 14,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-c/event-390x844.png"
+    },
+    {
+      "fixture": "event",
+      "variant": "c",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 1280,
+        "widthUsePct": 100,
+        "heightPx": 2279.8
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 909.5,
+        "topThroughOpportunitySurvivalPx": 909.5,
+        "candidateLevelScrollToFirstPixelPx": 0,
+        "candidateLevelScrollToFullyVisiblePx": 0,
+        "fullBorderedContainersBeforeCandidate": 3,
+        "firstContextTopPx": 942.8,
+        "firstContextScrollToFirstPixelPx": 143,
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 697.4,
+          "bottom": 721.8
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 757.7,
+          "bottom": 793.6
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": false,
+          "top": 793.6,
+          "bottom": 830.5
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "event-detail",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state",
+          "event-detail"
+        ],
+        "candidateIdentity": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 697.4,
+          "bottom": 721.8
+        },
+        "candidateLevel": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": true,
+          "top": 757.7,
+          "bottom": 793.6
+        },
+        "candidateInvalidation": {
+          "rendered": true,
+          "intersectsInitialViewport": true,
+          "fullyAboveFold": false,
+          "top": 793.6,
+          "bottom": 830.5
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 2
+      },
+      "provenanceNodesVisible": 14,
+      "disclosureTargetsChecked": 5,
+      "errors": [],
+      "screenshot": "screenshots/variant-c/event-1280x800.png"
+    },
+    {
+      "fixture": "no-candidate",
+      "variant": "c",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 390,
+        "widthUsePct": 100,
+        "heightPx": 3038.9
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 925.1,
+        "topThroughOpportunitySurvivalPx": 806.1,
+        "candidateLevelScrollToFirstPixelPx": null,
+        "candidateLevelScrollToFullyVisiblePx": null,
+        "fullBorderedContainersBeforeCandidate": 1,
+        "firstContextTopPx": 954.4,
+        "firstContextScrollToFirstPixelPx": 110,
+        "candidateIdentity": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateLevel": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateInvalidation": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival"
+        ],
+        "candidateIdentity": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateLevel": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateInvalidation": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "contextSurfacesIntersectingFold": 0,
+        "contextComparisonColumns": 1
+      },
+      "provenanceNodesVisible": 12,
+      "disclosureTargetsChecked": 3,
+      "errors": [],
+      "screenshot": "screenshots/variant-c/no-candidate-390x844.png"
+    },
+    {
+      "fixture": "no-candidate",
+      "variant": "c",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "horizontalOverflowPx": 0,
+      "board": {
+        "widthPx": 1280,
+        "widthUsePct": 100,
+        "heightPx": 2106.9
+      },
+      "phoneRead": {
+        "topThroughOpportunityZonePx": 752.7,
+        "topThroughOpportunitySurvivalPx": 752.7,
+        "candidateLevelScrollToFirstPixelPx": null,
+        "candidateLevelScrollToFullyVisiblePx": null,
+        "fullBorderedContainersBeforeCandidate": 2,
+        "firstContextTopPx": 786,
+        "firstContextScrollToFirstPixelPx": 0,
+        "candidateIdentity": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateLevel": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateInvalidation": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        }
+      },
+      "desktopRead": {
+        "surfacesIntersectingFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate",
+          "gex",
+          "movement"
+        ],
+        "surfacesFullyAboveFold": [
+          "market-state",
+          "system-state",
+          "opportunity-survival",
+          "candidate"
+        ],
+        "candidateIdentity": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateLevel": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "candidateInvalidation": {
+          "rendered": false,
+          "intersectsInitialViewport": false,
+          "fullyAboveFold": false,
+          "top": null,
+          "bottom": null
+        },
+        "contextSurfacesIntersectingFold": 2,
+        "contextComparisonColumns": 2
+      },
+      "provenanceNodesVisible": 12,
+      "disclosureTargetsChecked": 3,
+      "errors": [],
+      "screenshot": "screenshots/variant-c/no-candidate-1280x800.png"
+    }
+  ],
+  "requiredMeasurements": {
+    "variant-a": {
+      "390x844": {
+        "fixture": "normal",
+        "variant": "a",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "board": {
+          "widthPx": 390,
+          "widthUsePct": 100,
+          "heightPx": 3103.1
+        },
+        "phoneRead": {
+          "topThroughOpportunityZonePx": 1267.2,
+          "topThroughOpportunitySurvivalPx": 876.3,
+          "candidateLevelScrollToFirstPixelPx": 177,
+          "candidateLevelScrollToFullyVisiblePx": 230,
+          "fullBorderedContainersBeforeCandidate": 3,
+          "firstContextTopPx": 1275.2,
+          "firstContextScrollToFirstPixelPx": 431,
+          "candidateIdentity": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 917.9,
+            "bottom": 942.4
+          },
+          "candidateLevel": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 1020.6,
+            "bottom": 1074.4
+          },
+          "candidateInvalidation": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 1074.4,
+            "bottom": 1129.2
+          }
+        },
+        "desktopRead": {
+          "surfacesIntersectingFold": [
+            "market-state",
+            "system-state",
+            "opportunity-survival"
+          ],
+          "surfacesFullyAboveFold": [
+            "market-state",
+            "system-state"
+          ],
+          "candidateIdentity": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 917.9,
+            "bottom": 942.4
+          },
+          "candidateLevel": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 1020.6,
+            "bottom": 1074.4
+          },
+          "candidateInvalidation": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 1074.4,
+            "bottom": 1129.2
+          },
+          "contextSurfacesIntersectingFold": 0,
+          "contextComparisonColumns": 1
+        },
+        "provenanceNodesVisible": 11,
+        "disclosureTargetsChecked": 5,
+        "errors": [],
+        "screenshot": "screenshots/variant-a/normal-390x844.png"
+      },
+      "1280x800": {
+        "fixture": "normal",
+        "variant": "a",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "horizontalOverflowPx": 0,
+        "board": {
+          "widthPx": 1040,
+          "widthUsePct": 81.3,
+          "heightPx": 2155.7
+        },
+        "phoneRead": {
+          "topThroughOpportunityZonePx": 1053.8,
+          "topThroughOpportunitySurvivalPx": 1053.8,
+          "candidateLevelScrollToFirstPixelPx": 77,
+          "candidateLevelScrollToFullyVisiblePx": 113,
+          "fullBorderedContainersBeforeCandidate": 2,
+          "firstContextTopPx": 1063.8,
+          "firstContextScrollToFirstPixelPx": 264,
+          "candidateIdentity": {
+            "rendered": true,
+            "intersectsInitialViewport": true,
+            "fullyAboveFold": false,
+            "top": 790.3,
+            "bottom": 814.8
+          },
+          "candidateLevel": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 877,
+            "bottom": 913
+          },
+          "candidateInvalidation": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 913,
+            "bottom": 967.8
+          }
+        },
+        "desktopRead": {
+          "surfacesIntersectingFold": [
+            "market-state",
+            "system-state",
+            "opportunity-survival",
+            "candidate"
+          ],
+          "surfacesFullyAboveFold": [
+            "market-state",
+            "system-state"
+          ],
+          "candidateIdentity": {
+            "rendered": true,
+            "intersectsInitialViewport": true,
+            "fullyAboveFold": false,
+            "top": 790.3,
+            "bottom": 814.8
+          },
+          "candidateLevel": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 877,
+            "bottom": 913
+          },
+          "candidateInvalidation": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 913,
+            "bottom": 967.8
+          },
+          "contextSurfacesIntersectingFold": 0,
+          "contextComparisonColumns": 2
+        },
+        "provenanceNodesVisible": 11,
+        "disclosureTargetsChecked": 5,
+        "errors": [],
+        "screenshot": "screenshots/variant-a/normal-1280x800.png"
+      }
+    },
+    "variant-b": {
+      "390x844": {
+        "fixture": "normal",
+        "variant": "b",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "board": {
+          "widthPx": 390,
+          "widthUsePct": 100,
+          "heightPx": 3178.8
+        },
+        "phoneRead": {
+          "topThroughOpportunityZonePx": 1298.9,
+          "topThroughOpportunitySurvivalPx": 915.1,
+          "candidateLevelScrollToFirstPixelPx": 206,
+          "candidateLevelScrollToFullyVisiblePx": 260,
+          "fullBorderedContainersBeforeCandidate": 1,
+          "firstContextTopPx": 1346.2,
+          "firstContextScrollToFirstPixelPx": 502,
+          "candidateIdentity": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 947.7,
+            "bottom": 972.1
+          },
+          "candidateLevel": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 1050.3,
+            "bottom": 1104.1
+          },
+          "candidateInvalidation": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 1104.1,
+            "bottom": 1158.9
+          }
+        },
+        "desktopRead": {
+          "surfacesIntersectingFold": [
+            "market-state",
+            "system-state",
+            "opportunity-survival"
+          ],
+          "surfacesFullyAboveFold": [
+            "market-state",
+            "system-state"
+          ],
+          "candidateIdentity": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 947.7,
+            "bottom": 972.1
+          },
+          "candidateLevel": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 1050.3,
+            "bottom": 1104.1
+          },
+          "candidateInvalidation": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 1104.1,
+            "bottom": 1158.9
+          },
+          "contextSurfacesIntersectingFold": 0,
+          "contextComparisonColumns": 1
+        },
+        "provenanceNodesVisible": 11,
+        "disclosureTargetsChecked": 5,
+        "errors": [],
+        "screenshot": "screenshots/variant-b/normal-390x844.png"
+      },
+      "1280x800": {
+        "fixture": "normal",
+        "variant": "b",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "horizontalOverflowPx": 0,
+        "board": {
+          "widthPx": 1200,
+          "widthUsePct": 93.8,
+          "heightPx": 2039.5
+        },
+        "phoneRead": {
+          "topThroughOpportunityZonePx": 869.4,
+          "topThroughOpportunitySurvivalPx": 851.4,
+          "candidateLevelScrollToFirstPixelPx": 0,
+          "candidateLevelScrollToFullyVisiblePx": 0,
+          "fullBorderedContainersBeforeCandidate": 1,
+          "firstContextTopPx": 928.7,
+          "firstContextScrollToFirstPixelPx": 129,
+          "candidateIdentity": {
+            "rendered": true,
+            "intersectsInitialViewport": true,
+            "fullyAboveFold": true,
+            "top": 622.9,
+            "bottom": 647.3
+          },
+          "candidateLevel": {
+            "rendered": true,
+            "intersectsInitialViewport": true,
+            "fullyAboveFold": true,
+            "top": 709.6,
+            "bottom": 745.5
+          },
+          "candidateInvalidation": {
+            "rendered": true,
+            "intersectsInitialViewport": true,
+            "fullyAboveFold": true,
+            "top": 745.5,
+            "bottom": 782.4
+          }
+        },
+        "desktopRead": {
+          "surfacesIntersectingFold": [
+            "market-state",
+            "system-state",
+            "opportunity-survival",
+            "candidate"
+          ],
+          "surfacesFullyAboveFold": [
+            "market-state",
+            "system-state"
+          ],
+          "candidateIdentity": {
+            "rendered": true,
+            "intersectsInitialViewport": true,
+            "fullyAboveFold": true,
+            "top": 622.9,
+            "bottom": 647.3
+          },
+          "candidateLevel": {
+            "rendered": true,
+            "intersectsInitialViewport": true,
+            "fullyAboveFold": true,
+            "top": 709.6,
+            "bottom": 745.5
+          },
+          "candidateInvalidation": {
+            "rendered": true,
+            "intersectsInitialViewport": true,
+            "fullyAboveFold": true,
+            "top": 745.5,
+            "bottom": 782.4
+          },
+          "contextSurfacesIntersectingFold": 0,
+          "contextComparisonColumns": 2
+        },
+        "provenanceNodesVisible": 11,
+        "disclosureTargetsChecked": 5,
+        "errors": [],
+        "screenshot": "screenshots/variant-b/normal-1280x800.png"
+      }
+    },
+    "variant-c": {
+      "390x844": {
+        "fixture": "normal",
+        "variant": "c",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "board": {
+          "widthPx": 390,
+          "widthUsePct": 100,
+          "heightPx": 2972.2
+        },
+        "phoneRead": {
+          "topThroughOpportunityZonePx": 1136,
+          "topThroughOpportunitySurvivalPx": 806.1,
+          "candidateLevelScrollToFirstPixelPx": 49,
+          "candidateLevelScrollToFullyVisiblePx": 99,
+          "fullBorderedContainersBeforeCandidate": 1,
+          "firstContextTopPx": 1165.3,
+          "firstContextScrollToFirstPixelPx": 321,
+          "candidateIdentity": {
+            "rendered": true,
+            "intersectsInitialViewport": true,
+            "fullyAboveFold": true,
+            "top": 817.1,
+            "bottom": 841.6
+          },
+          "candidateLevel": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 893.4,
+            "bottom": 943.2
+          },
+          "candidateInvalidation": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 943.2,
+            "bottom": 994
+          }
+        },
+        "desktopRead": {
+          "surfacesIntersectingFold": [
+            "market-state",
+            "system-state",
+            "opportunity-survival",
+            "candidate"
+          ],
+          "surfacesFullyAboveFold": [
+            "market-state",
+            "system-state",
+            "opportunity-survival"
+          ],
+          "candidateIdentity": {
+            "rendered": true,
+            "intersectsInitialViewport": true,
+            "fullyAboveFold": true,
+            "top": 817.1,
+            "bottom": 841.6
+          },
+          "candidateLevel": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 893.4,
+            "bottom": 943.2
+          },
+          "candidateInvalidation": {
+            "rendered": true,
+            "intersectsInitialViewport": false,
+            "fullyAboveFold": false,
+            "top": 943.2,
+            "bottom": 994
+          },
+          "contextSurfacesIntersectingFold": 0,
+          "contextComparisonColumns": 1
+        },
+        "provenanceNodesVisible": 11,
+        "disclosureTargetsChecked": 5,
+        "errors": [],
+        "screenshot": "screenshots/variant-c/normal-390x844.png"
+      },
+      "1280x800": {
+        "fixture": "normal",
+        "variant": "c",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "horizontalOverflowPx": 0,
+        "board": {
+          "widthPx": 1280,
+          "widthUsePct": 100,
+          "heightPx": 1864.4
+        },
+        "phoneRead": {
+          "topThroughOpportunityZonePx": 752.9,
+          "topThroughOpportunitySurvivalPx": 752.9,
+          "candidateLevelScrollToFirstPixelPx": 0,
+          "candidateLevelScrollToFullyVisiblePx": 0,
+          "fullBorderedContainersBeforeCandidate": 2,
+          "firstContextTopPx": 786.2,
+          "firstContextScrollToFirstPixelPx": 0,
+          "candidateIdentity": {
+            "rendered": true,
+            "intersectsInitialViewport": true,
+            "fullyAboveFold": true,
+            "top": 540.7,
+            "bottom": 565.2
+          },
+          "candidateLevel": {
+            "rendered": true,
+            "intersectsInitialViewport": true,
+            "fullyAboveFold": true,
+            "top": 601.1,
+            "bottom": 637
+          },
+          "candidateInvalidation": {
+            "rendered": true,
+            "intersectsInitialViewport": true,
+            "fullyAboveFold": true,
+            "top": 637,
+            "bottom": 673.9
+          }
+        },
+        "desktopRead": {
+          "surfacesIntersectingFold": [
+            "market-state",
+            "system-state",
+            "opportunity-survival",
+            "candidate",
+            "gex",
+            "movement"
+          ],
+          "surfacesFullyAboveFold": [
+            "market-state",
+            "system-state",
+            "opportunity-survival",
+            "candidate"
+          ],
+          "candidateIdentity": {
+            "rendered": true,
+            "intersectsInitialViewport": true,
+            "fullyAboveFold": true,
+            "top": 540.7,
+            "bottom": 565.2
+          },
+          "candidateLevel": {
+            "rendered": true,
+            "intersectsInitialViewport": true,
+            "fullyAboveFold": true,
+            "top": 601.1,
+            "bottom": 637
+          },
+          "candidateInvalidation": {
+            "rendered": true,
+            "intersectsInitialViewport": true,
+            "fullyAboveFold": true,
+            "top": 637,
+            "bottom": 673.9
+          },
+          "contextSurfacesIntersectingFold": 2,
+          "contextComparisonColumns": 2
+        },
+        "provenanceNodesVisible": 11,
+        "disclosureTargetsChecked": 5,
+        "errors": [],
+        "screenshot": "screenshots/variant-c/normal-1280x800.png"
+      }
+    }
+  }
+}
