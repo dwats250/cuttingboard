@@ -1550,6 +1550,12 @@
       "title": "Empty red-folder display suppression",
       "status": "COMPLETE",
       "commit": "#274"
+    },
+    {
+      "number": 314,
+      "title": "First-screen visual compaction (MARKET STATE / SYSTEM STATE / OPPORTUNITY SURVIVAL, phone 360-430px)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
