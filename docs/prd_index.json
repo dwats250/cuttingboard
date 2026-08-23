@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 312,
-  "next_prd": 313,
+  "latest_complete": 313,
+  "next_prd": 314,
   "entries": [
     {
       "number": 56,
@@ -1548,8 +1548,8 @@
     {
       "number": 313,
       "title": "Empty red-folder display suppression",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#274"
     }
   ]
 }
