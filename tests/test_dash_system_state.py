@@ -503,6 +503,14 @@ def _survival_pairs(html: str) -> dict[str, str]:
     )
 
 
+def _survival_label_order(html: str) -> list[str]:
+    # Direct-child label sequence -- the DOM order the PRD-314 phone 2x2 grid
+    # depends on (a CSS-only reflow; DOM/screen-reader order must not change).
+    block = _survival_block(html)
+    assert block is not None
+    return re.findall(r'<div class="label">([^<]+)</div>', block)
+
+
 def _coherent_survival(
     scanned: int,
     rejected_reasons: tuple[str, ...] = (),
@@ -746,3 +754,25 @@ def test_prd282_primary_rejection_sanitized_text_still_escaped() -> None:
     assert "regime=" not in block
     assert "<b>bad</b>" not in block
     assert "&lt;b&gt;bad&lt;/b&gt;" in block
+
+
+# ---------------------------------------------------------------------------
+# PRD-314 — Opportunity child order the phone 2x2 grid depends on
+# ---------------------------------------------------------------------------
+
+def test_prd314_opportunity_child_order_primary_present() -> None:
+    # PRIMARY REJECTION present -> five label/value pairs (ten children) in the
+    # exact sequence the phone 2x2 grid + full-width rejection row rely on.
+    payload, run, mm = _coherent_survival(10, rejected_reasons=("CHOP",) * 3, watchlist_n=1)
+    html = render_dashboard_html(payload, run, market_map=mm)
+    assert _survival_label_order(html) == [
+        "SURFACED", "QUALIFIED", "WATCHLIST", "REJECTED", "PRIMARY REJECTION",
+    ]
+
+
+def test_prd314_opportunity_child_order_primary_absent() -> None:
+    # No rejections -> exactly the four metric pairs (eight children), no empty
+    # trailing grid row.
+    payload, run, mm = _coherent_survival(5)
+    html = render_dashboard_html(payload, run, market_map=mm)
+    assert _survival_label_order(html) == ["SURFACED", "QUALIFIED", "WATCHLIST", "REJECTED"]

@@ -3925,6 +3925,47 @@ def test_prd312_market_state_before_system_state_outside_region() -> None:
 
 
 # ---------------------------------------------------------------------------
+# PRD-314 — first-screen phone compaction (presentation-only, max-width:430px)
+# ---------------------------------------------------------------------------
+_PRD314_PHONE_BLOCK = (
+    "@media(max-width:430px){"
+    "#market-state,#system-state,#opportunity-survival{padding:10px;margin-bottom:10px}"
+    "#market-state h2,#system-state h2,#opportunity-survival h2{margin-bottom:8px}"
+    "#market-state .kv-grid{column-gap:8px}"
+    "#market-state .market-state-main{font-weight:600}"
+    "#market-state .market-state-provenance,#market-state .market-state-qualifier"
+    "{font-size:.72rem;line-height:1.25}"
+    "#opportunity-survival .kv-grid"
+    "{grid-template-columns:max-content minmax(2.5ch,1fr) max-content minmax(2.5ch,1fr)}"
+    "#opportunity-survival .kv-grid>*:nth-child(10){grid-column:2/-1}"
+    "}"
+)
+
+
+def test_prd314_phone_block_present_and_id_scoped() -> None:
+    # The whole phone block is pinned verbatim: every layout selector is rooted in
+    # one of the three target IDs, and it carries no color/opacity change.
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
+    assert _PRD314_PHONE_BLOCK in html
+    assert "color" not in _PRD314_PHONE_BLOCK
+    assert "opacity" not in _PRD314_PHONE_BLOCK
+
+
+def test_prd314_phone_block_is_separate_from_640_breakpoint() -> None:
+    # A new INDEPENDENT breakpoint; the existing 640px Trend rule is untouched.
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
+    assert "@media(max-width:430px){" in html
+    assert "@media(max-width:640px){" in html
+
+
+def test_prd314_generic_selectors_unchanged() -> None:
+    # No global .block / .kv-grid redefinition -- lower-page cards are unaffected.
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
+    assert ".block{border:1px solid #2a2a2a;border-radius:4px;margin-bottom:1rem;padding:1rem}" in html
+    assert ".kv-grid{display:grid;grid-template-columns:max-content 1fr;gap:2px 0.75rem;margin-top:0.25rem}" in html
+
+
+# ---------------------------------------------------------------------------
 # PRD-220 — round-2 refinements
 # ---------------------------------------------------------------------------
 
