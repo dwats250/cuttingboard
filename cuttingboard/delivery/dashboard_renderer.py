@@ -2621,6 +2621,144 @@ def render_dashboard_html(
         w('  </div>')
         w("</div>")
 
+    # --- candidate-board ---
+    w(f'<div class="block{disabled_class}" id="candidate-board">')
+    if fixture_mode:
+        w('  <h2>Market Map / Developing Setups &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h2>')
+    else:
+        w("  <h2>Market Map / Developing Setups</h2>")
+    w(
+        '  <div class="idle-summary candidate-scope">'
+        'OBSERVATION ONLY — setup quality never overrides '
+        'Decision State or Permission.'
+        '</div>'
+    )
+    # PRD-158 § 4.3: integrator screen verdicts (Rules 2/3) render here as
+    # decision-language banner lines. Suppressed under unhealthy lineage so
+    # operators see the lineage diagnostic first.
+    # PRD-168 D1: when a high-grade card renders below, suppress the RULE2
+    # "no qualifying setups" idle verdicts (UX preference). RULE3 conflict
+    # signals are not gated (D2). The predicate mirrors the healthy-path card
+    # render conditions: not unhealthy, market_map present/usable, not inactive,
+    # and at least one non-skipped high-grade symbol.
+    _prd168_high_grade_card = (
+        not unhealthy_lineage
+        and _mm_status not in ("SOURCE_MISSING", "PARSE_ERROR")
+        and not inactive_session
+        and isinstance(market_map, dict)
+        and any(
+            entry.get("grade", "") in _HIGH_GRADES
+            for sym, entry in ((market_map.get("symbols") or {}).items())
+            if sym not in integrator_skips and isinstance(entry, dict)
+        )
+    )
+    if not unhealthy_lineage:
+        for _verdict in integrator_verdicts:
+            if _prd168_high_grade_card and _verdict in _PRD168_GATED_VERDICTS:
+                continue
+            _display_verdict = (
+                _LOCKED_INTEGRATOR_VERDICTS.get(_verdict, _verdict)
+                if operator_locked
+                else _verdict
+            )
+            w(f'  <div class="idle-summary">{_esc(_display_verdict)}</div>')
+    if unhealthy_lineage:
+        # PRD-116 R5: suppress candidate cards and tier headers under unhealthy lineage.
+        # Preserve legacy diagnostic text (SOURCE_MISSING / PARSE_ERROR / STALE MARKET MAP)
+        # inside the disabled branch so operators retain the file-level reason.
+        if artifact_lineage_state == "STALE":
+            _run_ts_label = _timestamp_label(run_timestamp_value, run_timestamp)
+            _mm_ts_label  = _timestamp_label(market_map_timestamp_value, market_map_timestamp)
+            w('  <div class="unavailable">STALE MARKET MAP</div>')
+            w('  <div class="idle-summary">'
+              '<div>Market Map / Developing Setups paused because market_map timestamp is older than selected run.</div>'
+              f'<div>Run: {_esc(_run_ts_label)}</div>'
+              f'<div>Market map: {_esc(_mm_ts_label)}</div>'
+              '</div>')
+        elif _mm_status in ("SOURCE_MISSING", "PARSE_ERROR"):
+            w(f'  <div class="unavailable">{_esc(_mm_status)}</div>')
+        else:
+            w(
+                '  <div class="unavailable">UNAVAILABLE '
+                f'artifact_lineage_state={_esc(artifact_lineage_state)}</div>'
+            )
+    elif _mm_status in ("SOURCE_MISSING", "PARSE_ERROR"):
+        w(f'  <div class="unavailable">{_esc(_mm_status)}</div>')
+    elif inactive_session:
+        # PRD-117 R5: coherent inactive session — render presentation label only.
+        w(f'  <div class="unavailable">{_esc(INACTIVE_SESSION_LABEL)}</div>')
+    else:
+        if _mm_status == "STALE":
+            w('  <div class="unavailable">STALE</div>')
+        if market_map is None:
+            w('  <div class="unavailable">N/A</div>')
+        else:
+            symbols: dict = market_map.get("symbols") or {}
+            if not symbols:
+                w('  <div class="unavailable">NO_CANDIDATES</div>')
+            else:
+                # PRD-158 § 4.3 Rule 1: emit one skip line per symbol the
+                # integrator flagged for missing required market data; those
+                # symbols are then filtered out of tier rendering.
+                for skip_sym, skip_line in integrator_skips.items():
+                    w(f'  <div class="idle-summary">{_esc(skip_line)}</div>')
+                sorted_syms = sorted(
+                    [s for s in symbols.keys() if s not in integrator_skips],
+                    key=lambda sym: (_GRADE_ORDER.get(symbols[sym].get("grade", ""), 6), sym),
+                )
+                has_actionable = any(symbols[s].get("grade", "") in _HIGH_GRADES for s in sorted_syms)
+                if sorted_syms and not has_actionable:
+                    # PRD-304 R7 (Sol finding 3): the low-grade idle summary reads
+                    # as a neutral observation under lock — no action vocabulary.
+                    _idle_head = "NO HIGH-GRADE SETUPS OBSERVED" if operator_locked else "NO ACTIONABLE SETUPS"
+                    w('  <div class="idle-summary">'
+                      f'<div>{_idle_head}</div>'
+                      '<div>Market is not offering structure</div>'
+                      '</div>')
+                # PRD-158 § 4.3 Rule 4: empty tiers (post-Rule-1 filter) are
+                # suppressed by the existing `if not tier_syms: continue` below.
+                for tier_id, tier_label, tier_grades in _TIER_DEFS:
+                    tier_syms = [s for s in sorted_syms if symbols[s].get("grade", "") in tier_grades]
+                    if not tier_syms:
+                        continue
+                    # PRD-304 R7: under lock the A+ tier reads OBSERVATION ONLY,
+                    # never ACTIONABLE; the grade letter itself is analytical and
+                    # preserved. _TIER_DEFS is shared, so substitute the label
+                    # locally rather than mutating the tuple.
+                    _tier_label = (
+                        "A+ — OBSERVATION ONLY"
+                        if operator_locked and tier_id == "aplus"
+                        else tier_label
+                    )
+                    is_low_tier = tier_grades.isdisjoint(_HIGH_GRADES)
+                    if is_low_tier:
+                        w(f'  <details class="tier-group" id="tier-{tier_id}">')
+                        w(f'    <summary class="tier-header">{_esc(_tier_label)} ({len(tier_syms)})</summary>')
+                    else:
+                        w(f'  <div class="tier-group" id="tier-{tier_id}">')
+                        w(f'    <div class="tier-header">{_esc(_tier_label)} ({len(tier_syms)})</div>')
+                    for sym in tier_syms:
+                        _render_candidate_card(
+                            w, sym, symbols[sym],
+                            contract_entry=(contract_entry_map or {}).get(sym),
+                            contract_stop=(contract_stop_map or {}).get(sym),
+                            operator_locked=operator_locked,
+                        )
+                    if is_low_tier:
+                        w("  </details>")
+                    else:
+                        w("  </div>")
+            removed_syms: list = market_map.get("removed_symbols") or []
+            if removed_syms:
+                w('  <div class="removed-symbols">')
+                w('    <div class="tier-header">REMOVED</div>')
+                for removed_entry in removed_syms:
+                    rsym  = _esc(removed_entry.get("symbol"))
+                    rprev = _esc(removed_entry.get("previous_grade")) or _DASH
+                    w(f'    <div class="removed-row">{rsym} — removed (prev: {rprev})</div>')
+                w("  </div>")
+    w("</div>")
+
     # --- alert-watchlist ---
     if alert_candidates:
         w('<div class="block" id="alert-watchlist">')
@@ -3018,144 +3156,6 @@ def render_dashboard_html(
             w('      </tr>')
         w('    </tbody>')
         w('  </table>')
-    w("</div>")
-
-    # --- candidate-board ---
-    w(f'<div class="block{disabled_class}" id="candidate-board">')
-    if fixture_mode:
-        w('  <h2>Market Map / Developing Setups &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h2>')
-    else:
-        w("  <h2>Market Map / Developing Setups</h2>")
-    w(
-        '  <div class="idle-summary candidate-scope">'
-        'OBSERVATION ONLY — setup quality never overrides '
-        'Decision State or Permission.'
-        '</div>'
-    )
-    # PRD-158 § 4.3: integrator screen verdicts (Rules 2/3) render here as
-    # decision-language banner lines. Suppressed under unhealthy lineage so
-    # operators see the lineage diagnostic first.
-    # PRD-168 D1: when a high-grade card renders below, suppress the RULE2
-    # "no qualifying setups" idle verdicts (UX preference). RULE3 conflict
-    # signals are not gated (D2). The predicate mirrors the healthy-path card
-    # render conditions: not unhealthy, market_map present/usable, not inactive,
-    # and at least one non-skipped high-grade symbol.
-    _prd168_high_grade_card = (
-        not unhealthy_lineage
-        and _mm_status not in ("SOURCE_MISSING", "PARSE_ERROR")
-        and not inactive_session
-        and isinstance(market_map, dict)
-        and any(
-            entry.get("grade", "") in _HIGH_GRADES
-            for sym, entry in ((market_map.get("symbols") or {}).items())
-            if sym not in integrator_skips and isinstance(entry, dict)
-        )
-    )
-    if not unhealthy_lineage:
-        for _verdict in integrator_verdicts:
-            if _prd168_high_grade_card and _verdict in _PRD168_GATED_VERDICTS:
-                continue
-            _display_verdict = (
-                _LOCKED_INTEGRATOR_VERDICTS.get(_verdict, _verdict)
-                if operator_locked
-                else _verdict
-            )
-            w(f'  <div class="idle-summary">{_esc(_display_verdict)}</div>')
-    if unhealthy_lineage:
-        # PRD-116 R5: suppress candidate cards and tier headers under unhealthy lineage.
-        # Preserve legacy diagnostic text (SOURCE_MISSING / PARSE_ERROR / STALE MARKET MAP)
-        # inside the disabled branch so operators retain the file-level reason.
-        if artifact_lineage_state == "STALE":
-            _run_ts_label = _timestamp_label(run_timestamp_value, run_timestamp)
-            _mm_ts_label  = _timestamp_label(market_map_timestamp_value, market_map_timestamp)
-            w('  <div class="unavailable">STALE MARKET MAP</div>')
-            w('  <div class="idle-summary">'
-              '<div>Market Map / Developing Setups paused because market_map timestamp is older than selected run.</div>'
-              f'<div>Run: {_esc(_run_ts_label)}</div>'
-              f'<div>Market map: {_esc(_mm_ts_label)}</div>'
-              '</div>')
-        elif _mm_status in ("SOURCE_MISSING", "PARSE_ERROR"):
-            w(f'  <div class="unavailable">{_esc(_mm_status)}</div>')
-        else:
-            w(
-                '  <div class="unavailable">UNAVAILABLE '
-                f'artifact_lineage_state={_esc(artifact_lineage_state)}</div>'
-            )
-    elif _mm_status in ("SOURCE_MISSING", "PARSE_ERROR"):
-        w(f'  <div class="unavailable">{_esc(_mm_status)}</div>')
-    elif inactive_session:
-        # PRD-117 R5: coherent inactive session — render presentation label only.
-        w(f'  <div class="unavailable">{_esc(INACTIVE_SESSION_LABEL)}</div>')
-    else:
-        if _mm_status == "STALE":
-            w('  <div class="unavailable">STALE</div>')
-        if market_map is None:
-            w('  <div class="unavailable">N/A</div>')
-        else:
-            symbols: dict = market_map.get("symbols") or {}
-            if not symbols:
-                w('  <div class="unavailable">NO_CANDIDATES</div>')
-            else:
-                # PRD-158 § 4.3 Rule 1: emit one skip line per symbol the
-                # integrator flagged for missing required market data; those
-                # symbols are then filtered out of tier rendering.
-                for skip_sym, skip_line in integrator_skips.items():
-                    w(f'  <div class="idle-summary">{_esc(skip_line)}</div>')
-                sorted_syms = sorted(
-                    [s for s in symbols.keys() if s not in integrator_skips],
-                    key=lambda sym: (_GRADE_ORDER.get(symbols[sym].get("grade", ""), 6), sym),
-                )
-                has_actionable = any(symbols[s].get("grade", "") in _HIGH_GRADES for s in sorted_syms)
-                if sorted_syms and not has_actionable:
-                    # PRD-304 R7 (Sol finding 3): the low-grade idle summary reads
-                    # as a neutral observation under lock — no action vocabulary.
-                    _idle_head = "NO HIGH-GRADE SETUPS OBSERVED" if operator_locked else "NO ACTIONABLE SETUPS"
-                    w('  <div class="idle-summary">'
-                      f'<div>{_idle_head}</div>'
-                      '<div>Market is not offering structure</div>'
-                      '</div>')
-                # PRD-158 § 4.3 Rule 4: empty tiers (post-Rule-1 filter) are
-                # suppressed by the existing `if not tier_syms: continue` below.
-                for tier_id, tier_label, tier_grades in _TIER_DEFS:
-                    tier_syms = [s for s in sorted_syms if symbols[s].get("grade", "") in tier_grades]
-                    if not tier_syms:
-                        continue
-                    # PRD-304 R7: under lock the A+ tier reads OBSERVATION ONLY,
-                    # never ACTIONABLE; the grade letter itself is analytical and
-                    # preserved. _TIER_DEFS is shared, so substitute the label
-                    # locally rather than mutating the tuple.
-                    _tier_label = (
-                        "A+ — OBSERVATION ONLY"
-                        if operator_locked and tier_id == "aplus"
-                        else tier_label
-                    )
-                    is_low_tier = tier_grades.isdisjoint(_HIGH_GRADES)
-                    if is_low_tier:
-                        w(f'  <details class="tier-group" id="tier-{tier_id}">')
-                        w(f'    <summary class="tier-header">{_esc(_tier_label)} ({len(tier_syms)})</summary>')
-                    else:
-                        w(f'  <div class="tier-group" id="tier-{tier_id}">')
-                        w(f'    <div class="tier-header">{_esc(_tier_label)} ({len(tier_syms)})</div>')
-                    for sym in tier_syms:
-                        _render_candidate_card(
-                            w, sym, symbols[sym],
-                            contract_entry=(contract_entry_map or {}).get(sym),
-                            contract_stop=(contract_stop_map or {}).get(sym),
-                            operator_locked=operator_locked,
-                        )
-                    if is_low_tier:
-                        w("  </details>")
-                    else:
-                        w("  </div>")
-            removed_syms: list = market_map.get("removed_symbols") or []
-            if removed_syms:
-                w('  <div class="removed-symbols">')
-                w('    <div class="tier-header">REMOVED</div>')
-                for removed_entry in removed_syms:
-                    rsym  = _esc(removed_entry.get("symbol"))
-                    rprev = _esc(removed_entry.get("previous_grade")) or _DASH
-                    w(f'    <div class="removed-row">{rsym} — removed (prev: {rprev})</div>')
-                w("  </div>")
     w("</div>")
 
     # --- run-delta ---

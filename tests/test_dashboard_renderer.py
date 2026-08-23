@@ -37,6 +37,49 @@ from tests.dash_helpers import (
     _run,
 )
 
+# ---------------------------------------------------------------------------
+# PRD-315 depth-aware top-level extraction (test-local; replaces Candidate-
+# relative substring sentinels invalidated by the Opportunity->Candidate move).
+# ---------------------------------------------------------------------------
+
+def _top_ids(html: str) -> list[str]:
+    """Ordered top-level `.block` ids via depth-aware sibling scan."""
+    ids: list[str] = []
+    i = 0
+    while True:
+        j = html.find('class="block', i)
+        if j == -1:
+            break
+        k = html.find('id="', j)
+        e = html.find('"', k + 4)
+        ids.append(html[k + 4:e])
+        i = e
+    return ids
+
+
+def _top_block(html: str, block_id: str) -> str:
+    """Exact `<div ... id="{block_id}"> ... </div>` fragment (matches nested divs)."""
+    marker = f'id="{block_id}"'
+    idx = html.find(marker)
+    assert idx != -1, f"{block_id} not rendered"
+    start = html.rfind("<div", 0, idx)
+    i, depth = start, 0
+    while i < len(html):
+        nd = html.find("<div", i)
+        nc = html.find("</div>", i)
+        if nc == -1:
+            break
+        if nd != -1 and nd < nc:
+            depth += 1
+            i = nd + 4
+        else:
+            depth -= 1
+            i = nc + 6
+            if depth == 0:
+                return html[start:i]
+    return html[start:]
+
+
 _UI_DASHBOARD = Path("ui/dashboard.html")
 _UI_INDEX = Path("ui/index.html")
 _FORBIDDEN_ARTIFACT_PATTERNS = ("pytest-of-", "/tmp/pytest", "/tmp/")
@@ -159,7 +202,7 @@ def test_prd128_hourly_readiness_runs_after_render_and_copy_before_commit_and_pu
 
 
 def _candidate_board_section(html: str) -> str:
-    return html.split('id="candidate-board"', 1)[1].split('</div>\n\n', 1)[0]
+    return _top_block(html, "candidate-board")
 
 
 def _candidate_card(html: str, symbol: str = "SPY") -> str:
@@ -183,7 +226,7 @@ def _set_generation_ids(payload: dict, run: dict, market_map: dict, generation_i
 # T1 — missing market map renders SOURCE_MISSING, not generic MARKET MAP UNAVAILABLE
 def test_missing_market_map_renders_source_missing() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=None)
-    board = html.split('id="candidate-board"', 1)[1]
+    board = _top_block(html, "candidate-board")
     assert "MARKET MAP UNAVAILABLE" not in board
     assert "SOURCE_MISSING" in board or "N/A" in board
 
@@ -195,7 +238,7 @@ def test_stale_market_map_renders_stale(tmp_path: pytest.TempPathFactory) -> Non
     stale_mtime = time.time() - DASHBOARD_STALE_AFTER_SECONDS - 60
     os.utime(mm_file, (stale_mtime, stale_mtime))
     html = render_dashboard_html(_payload(), _run(), market_map_path=mm_file)
-    board = html.split('id="candidate-board"', 1)[1]
+    board = _top_block(html, "candidate-board")
     assert "STALE" in board
 
 
@@ -204,7 +247,7 @@ def test_parse_error_market_map_renders_parse_error(tmp_path: pytest.TempPathFac
     mm_file = tmp_path / "market_map.json"
     mm_file.write_text("{not valid json", encoding="utf-8")
     html = render_dashboard_html(_payload(), _run(), market_map_path=mm_file)
-    board = html.split('id="candidate-board"', 1)[1]
+    board = _top_block(html, "candidate-board")
     assert "PARSE_ERROR" in board
 
 
@@ -309,10 +352,12 @@ def test_macro_pressure_inline_beside_tally() -> None:
     assert '<details id="macro-pressure">' not in html
     assert 'class="macro-pressure-line' in html
 
-    tape_pos = html.index('id="macro-tape"')
-    line_pos = html.index('class="macro-pressure-line')
-    board_pos = html.index('id="candidate-board"')
-    assert tape_pos < line_pos < board_pos
+    # PRD-315: the macro-pressure line lives inside Macro (independent of
+    # Candidate position); Candidate now precedes the Macro chain.
+    macro = _top_block(html, "macro-tape")
+    assert 'class="macro-pressure-line' in macro
+    ids = _top_ids(html)
+    assert ids.index("candidate-board") < ids.index("macro-tape")
 
     pressure = html.split('class="macro-pressure-line', 1)[1].split("</div>", 1)[0]
     has_decision_phrase = any(
@@ -456,7 +501,7 @@ def test_stale_market_map_suppresses_candidate_cards() -> None:
     mm["generated_at"] = "2026-04-28T12:00:00Z"
 
     html = render_dashboard_html(payload, run, market_map=mm)
-    board = html.split('id="candidate-board"', 1)[1]
+    board = _top_block(html, "candidate-board")
 
     assert "STALE MARKET MAP" in board
     assert "Market Map / Developing Setups paused" in board
@@ -470,7 +515,7 @@ def test_market_map_without_generated_at_does_not_trigger_stale() -> None:
     mm.pop("generated_at", None)
 
     html = render_dashboard_html(payload, run, market_map=mm)
-    board = html.split('id="candidate-board"', 1)[1]
+    board = _top_block(html, "candidate-board")
 
     assert "STALE_MARKET_MAP" not in board
 
@@ -1026,7 +1071,7 @@ def test_prd279_existing_system_state_lines_unchanged() -> None:
 def test_prd303_candidate_scope_precedes_setup_action_language() -> None:
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="A+")})
     html = render_dashboard_html(_payload(), _run(outcome="NO_TRADE"), market_map=mm)
-    board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
+    board = _top_block(html, "candidate-board")
     scope = (
         "OBSERVATION ONLY — setup quality never overrides "
         "Decision State or Permission."
@@ -1047,21 +1092,21 @@ def test_c_grade_renders_inside_details_block() -> None:
 def test_a_grade_not_inside_details_block() -> None:
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
-    board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
+    board = _top_block(html, "candidate-board")
     assert '<details' not in board, "A-grade card is incorrectly wrapped in <details>"
 
 
 def test_aplus_grade_not_inside_details_block() -> None:
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="A+")})
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
-    board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
+    board = _top_block(html, "candidate-board")
     assert '<details' not in board, "A+ grade card is incorrectly wrapped in <details>"
 
 
 def test_b_grade_not_inside_details_block() -> None:
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="B")})
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
-    board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
+    board = _top_block(html, "candidate-board")
     assert '<details' not in board, "B-grade card is incorrectly wrapped in <details>"
 
 
@@ -1177,7 +1222,7 @@ def test_a_tier_uses_div_not_summary_header() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
     assert 'id="tier-a"' in html
     assert '<details' not in html.split('id="tier-a"', 1)[1].split('id="card-SPY"', 1)[0]
-    board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
+    board = _top_block(html, "candidate-board")
     assert '<div class="tier-header">' in board
 
 
@@ -1197,7 +1242,7 @@ def test_stale_market_map_shows_updated_wording() -> None:
     mm["generated_at"] = "2026-04-28T12:00:00Z"
 
     html = render_dashboard_html(payload, run, market_map=mm)
-    board = html.split('id="candidate-board"', 1)[1]
+    board = _top_block(html, "candidate-board")
 
     assert "STALE MARKET MAP" in board
     assert "Market Map / Developing Setups paused" in board
@@ -1222,7 +1267,7 @@ def test_stale_market_map_includes_run_timestamp() -> None:
     mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": 512.34}})
     mm["generated_at"] = "2026-04-28T12:00:00Z"
     html = render_dashboard_html(payload, run, market_map=mm)
-    board = html.split('id="candidate-board"', 1)[1]
+    board = _top_block(html, "candidate-board")
     assert "STALE MARKET MAP" in board
     assert "Run:" in board
     assert "2026-04-28T12:10:01" in board
@@ -1234,7 +1279,7 @@ def test_stale_market_map_includes_market_map_timestamp() -> None:
     mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": 512.34}})
     mm["generated_at"] = "2026-04-28T12:00:00Z"
     html = render_dashboard_html(payload, run, market_map=mm)
-    board = html.split('id="candidate-board"', 1)[1]
+    board = _top_block(html, "candidate-board")
     assert "Market map:" in board
     assert "2026-04-28T12:00:00Z" in board
 
@@ -1246,7 +1291,7 @@ def test_stale_market_map_missing_run_timestamp_shows_unavailable() -> None:
     mm = _market_map({"SPY": {**_mm_symbol("SPY"), "current_price": 512.34}})
     mm["generated_at"] = "2026-04-28T12:00:00Z"
     html = render_dashboard_html(payload, run, market_map=mm)
-    board = html.split('id="candidate-board"', 1)[1]
+    board = _top_block(html, "candidate-board")
     assert "STALE MARKET MAP" in board
     assert "Run: unavailable" in board
 
@@ -1299,7 +1344,7 @@ def test_b_candidate_renders_when_permission_none() -> None:
     """R1/R3: B candidates render from fresh market_map even when permission is None."""
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="B")})
     html = render_dashboard_html(_payload(), _run(permission=None), market_map=mm)
-    board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
+    board = _top_block(html, "candidate-board")
     assert 'id="card-SPY"' in board
 
 
@@ -1307,7 +1352,7 @@ def test_b_candidate_not_in_details_when_permission_none() -> None:
     """R3: B candidate renders in normal board flow (not in details) when permission is None."""
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="B")})
     html = render_dashboard_html(_payload(), _run(permission=None), market_map=mm)
-    board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
+    board = _top_block(html, "candidate-board")
     assert '<details' not in board
     assert 'id="card-SPY"' in board
 
@@ -1316,7 +1361,7 @@ def test_b_candidate_renders_when_permission_false() -> None:
     """R3: B candidates render from fresh market_map when permission is False (blocked)."""
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="B")})
     html = render_dashboard_html(_payload(), _run(permission=False), market_map=mm)
-    board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
+    board = _top_block(html, "candidate-board")
     assert 'id="card-SPY"' in board
 
 
@@ -1324,7 +1369,7 @@ def test_a_candidate_renders_when_permission_none() -> None:
     """R2: A candidates render from fresh market_map even when permission is None."""
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
     html = render_dashboard_html(_payload(), _run(permission=None), market_map=mm)
-    board = html.split('id="candidate-board"', 1)[1].split('id="run-delta"', 1)[0]
+    board = _top_block(html, "candidate-board")
     assert 'id="card-SPY"' in board
 
 
@@ -1368,7 +1413,7 @@ def test_stale_market_map_suppresses_candidates_regardless_of_permission() -> No
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="A")})
     mm["generated_at"] = "2026-04-28T12:00:00Z"
     html = render_dashboard_html(payload, run, market_map=mm)
-    board = html.split('id="candidate-board"', 1)[1]
+    board = _top_block(html, "candidate-board")
     assert "STALE MARKET MAP" in board
     assert 'id="card-SPY"' not in board
 
@@ -1440,10 +1485,9 @@ def _ts_healthy_snapshot(generated_at: str = "2026-05-10T12:00:00+00:00") -> dic
 
 
 def _ts_section(html: str) -> str:
-    start = html.find('id="trend-structure"')
-    assert start >= 0, "trend-structure section not rendered"
-    end = html.find('id="candidate-board"', start)
-    return html[start:end if end >= 0 else len(html)]
+    # PRD-315: depth-aware trend-structure extraction; Candidate no longer
+    # follows Trend, so the old candidate-board end sentinel over-captured.
+    return _top_block(html, "trend-structure")
 
 
 # (a) Healthy sidecar fixture
@@ -1719,7 +1763,7 @@ def _trend_section(html: str) -> str:
 
 
 def _candidate_section(html: str) -> str:
-    return html.split('id="candidate-board"', 1)[1].split("</div>\n\n", 1)[0]
+    return _top_block(html, "candidate-board")
 
 
 def _system_state_index(html: str) -> int:
@@ -1886,19 +1930,15 @@ def test_prd116_r7_coherent_live_preserves_sections() -> None:
 
 
 def _trend_structure_section(html: str) -> str:
-    # PRD-120: trend-structure block now contains multiple inner <div>s;
-    # extract by next-section sentinel rather than first </div>.
-    start = html.index('id="trend-structure"')
-    end = html.find('id="candidate-board"', start)
-    return html[start:end] if end >= 0 else html[start:]
+    # PRD-315: depth-aware trend-structure extraction (was bounded by the
+    # candidate-board sentinel, which no longer follows Trend).
+    return _top_block(html, "trend-structure")
 
 
 def _candidate_board_only(html: str) -> str:
-    # PRD-120: candidate-board contains multiple inner <div>s after the
-    # MARKET MAP SOURCE line; extract by next-section sentinel.
-    start = html.index('id="candidate-board"')
-    end = html.find('id="run-delta"', start)
-    return html[start:end] if end >= 0 else html[start:]
+    # PRD-315: depth-aware candidate-board extraction (was bounded by the
+    # run-delta sentinel, which is no longer adjacent after the move).
+    return _top_block(html, "candidate-board")
 
 
 def _inactive_payload(timestamp: str = "2026-04-28T12:00:00Z") -> dict:
@@ -3920,7 +3960,7 @@ def test_prd312_market_state_before_system_state_outside_region() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
     assert 'id="market-state"' in html
     assert html.index('id="market-state"') < html.index('id="system-state"')
-    region = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    region = _top_block(html, "system-state")
     assert 'id="market-state"' not in region  # not inside the protected region
 
 
@@ -3981,7 +4021,7 @@ def test_prd220_context_reports_gated_setups_not_no_qualified() -> None:
 
 def test_prd220_context_no_qualified_when_truly_empty() -> None:
     html = render_dashboard_html(_payload(), _run(outcome="NO_TRADE", permission=None), alert_candidates=[])
-    state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    state = _top_block(html, "system-state")
     assert "no qualified setups" in state
 
 
