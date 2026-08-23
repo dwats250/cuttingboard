@@ -161,13 +161,9 @@ def section_state_cases() -> list[SectionStateCase]:
             render_kwargs={"red_folder": {"ok": False, "error": "schedule unavailable"}},
         )
     )
-    cases.append(
-        _coherent(
-            "red_folder_empty",
-            "No red-folder events in the next 48 hours.",
-            render_kwargs={"red_folder": {"ok": True, "events": []}},
-        )
-    )
+    # PRD-313: the healthy-empty red-folder state suppresses the standalone
+    # block, so it is no longer a reachable rendered section state and has no
+    # marker to catalog (MARKET STATE EVENT RISK carries the fact instead).
     cases.append(
         _coherent(
             "red_folder_expiring",
