@@ -52,6 +52,7 @@ always current).
 | `_load_contract_entry_context` | Reads `logs/latest_hourly_contract.json` → entry map + stop map (finite, > 0) + alert candidates + generated_at |
 | `_mcc_cell_display` / `_mcc_event_display` / `_mcc_location_display` | PRD-289 Market Control Card cell projection (value or typed unavailable token, never a default); block renders iff `sections["market_control_card"]` present |
 | `main` / `write_dashboard` / `render_dashboard_html` (GEX seam) | Loads `logs/gex_snapshot.json` via `gex_card.load_gex_snapshot`, threads a tz-aware `now`, and emits `gex_card.render_fragment(...)` as a display-only card (PRD-309); `if frag:` guarded, so absent/stale/invalid emits nothing (byte-identical baseline) |
+| `render_dashboard_html` (MARKET STATE seam) | Builds the resolved `GexCard` / `MovementCard` (renderer owns the artifact reads), then emits `market_state_panel.render_fragment(...)` immediately BEFORE `id="system-state"` (outside the PRD-219 protected region; PRD-312). Persistent five-axis panel — always emitted (no suppression). Also the arrow-cut site: the tradables daily-change arrow builder + span are removed here |
 
 Note: the candidate board reads `market_map["symbols"]` directly, not payload
 candidates. The level diagram's anchor/stop come from the contract overlay
@@ -67,6 +68,13 @@ anchor-only fallback.
 | `load_gex_snapshot` | Soft loader for `logs/gex_snapshot.json` (mirrors `_load_trend_structure_snapshot`; never raises; `None` on missing/malformed/non-dict) |
 | `build_gex_card` | Pure model builder (clock injected); validates the D5a admissibility domain + freshness; returns `GexCard` or `None` to suppress |
 | `render_gex_card_html` / `render_fragment` | Pure HTML fragment (empty string suppresses). All GEX arithmetic/validation live here; the renderer only loads and emits (PRD-309 R17/R20) |
+
+## cuttingboard/delivery/market_state_panel.py
+
+| Function | Purpose |
+|---|---|
+| `render_fragment` | Pure builder for the PRD-312 five-axis MARKET STATE block (ENVIRONMENT / PERMISSION / POSITIONING / PARTICIPATION / EVENT RISK). Takes the renderer's resolved carriers (regime, permission, run clock, `GexCard`/`MovementCard` objects, red-folder view) — reads NO raw artifact (keeps `gex_card` the sole `gex_snapshot` reader). Always renders exactly five rows; each is a value or honest `unavailable` with its own provenance. No global as-of, no score/verdict/INTRADAY |
+| `_positioning` / `_participation` | Reuse the existing GEX / Movement semantics from the resolved card objects; POSITIONING preserves the configured-assumption + ~15m Cboe qualifiers, PARTICIPATION never claims 12/12 while any symbol is n/a |
 
 ---
 

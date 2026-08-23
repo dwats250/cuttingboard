@@ -329,6 +329,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-309 | 2d5b339 | GEX-2 FREE Board Card: baseline-neutral, display-only GEX context card | COMPLETE | [PRD-309](prd_history/PRD-309.md) |
 | PRD-310 | #269 | Best-effort free hourly GEX refresh for the existing display-only card | COMPLETE | [PRD-310](prd_history/PRD-310.md) |
 | PRD-311 | 367a4b8 | NS-4B Market Movement Heatmap (12/12, observe-only fetch) | COMPLETE | [PRD-311](prd_history/PRD-311.md) |
+| PRD-312 | #273 | Market State five-axis provenance panel + tradables daily-change-arrow de-duplication | COMPLETE | [PRD-312](prd_history/PRD-312.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

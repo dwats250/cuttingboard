@@ -30,6 +30,7 @@ from cuttingboard.delivery.dashboard_integrator import (
     dashboard_integrator,
 )
 from cuttingboard.delivery import gex_card
+from cuttingboard.delivery import market_state_panel
 from cuttingboard.delivery import movement_card
 from cuttingboard.delivery.macro_tape_layout import (
     MACRO_BIAS_CONTRA_CYCLICAL,
@@ -1231,8 +1232,11 @@ def _is_finite_number(value: object) -> bool:
 
 def _build_tape_slots(
     macro_drivers: dict,
-    trend_records: dict[str, dict] | None,
 ) -> list[tuple[str, str]]:
+    # PRD-312: the Macro-Tape tradables daily-change arrow (formerly the SIGN of
+    # the trend-structure record `daily_change_pct`) is retired here — it
+    # duplicated the Market Movement card's signed value. Only the macro-driver
+    # arrows remain; the tradables row keeps its label + price (no arrow).
     slots: list[tuple[str, str]] = []
 
     for row in (MACRO_ROW_1, MACRO_ROW_2):
@@ -1243,19 +1247,6 @@ def _build_tape_slots(
                 slots.append((slot.label, _pct_arrow(float(change_pct))))
             else:
                 slots.append((slot.label, _DASH))
-
-    # PRD-199: the tradables arrow is the SIGN of the symbol's daily %-change
-    # (trend-structure record daily_change_pct), via the same _pct_arrow path as
-    # the macro-driver rows. Replaces the dead trade_framing.direction branch,
-    # whose arrow was computed but never rendered.
-    records = trend_records or {}
-    for slot in TRADABLES_ROW.slots:
-        rec = records.get(slot.quote_symbol)
-        change_pct = rec.get("daily_change_pct") if isinstance(rec, dict) else None
-        if _is_finite_number(change_pct):
-            slots.append((slot.label, _pct_arrow(float(change_pct))))
-        else:
-            slots.append((slot.label, _DASH))
 
     return slots
 
@@ -2182,7 +2173,7 @@ def render_dashboard_html(
     title = "MIXED_ARTIFACTS" if artifact_mixed else _decision_title(outcome, bool(system_halted), status)
 
     # R1 — tape slots
-    tape_slots = _build_tape_slots(macro_drivers, _trend_structure_records(trend_structure_snapshot))
+    tape_slots = _build_tape_slots(macro_drivers)
     tape_value_slots = _build_tape_value_slots(macro_drivers, market_map)
     pressure = _build_pressure_snapshot(macro_drivers, market_map)
 
@@ -2345,6 +2336,29 @@ def render_dashboard_html(
       f' data-session-inactive="{"true" if inactive_session else "false"}"'
       f' data-board-stale-after-s="{BOARD_STALE_AFTER_SECONDS}"></div>')
     w(f'<script>{_STALENESS_BANNER_JS}</script>')
+
+    # --- market-state (PRD-312): hourly-first five-axis provenance panel,
+    #     rendered BEFORE system-state and OUTSIDE the PRD-219 protected
+    #     system-state..candidate-board region. Persistent legibility panel
+    #     (always five rows; honest per-axis unavailable + own provenance);
+    #     market_state_panel owns all assembly — the renderer supplies the
+    #     already-loaded carriers and emits. ---
+    _ms_gex_card = (
+        gex_card.build_gex_card(gex_snapshot, now=now if now is not None else _utcnow())
+        if gex_snapshot is not None else None
+    )
+    _ms_movement_card = (
+        movement_card.build_movement_card(movement_snapshot)
+        if movement_snapshot is not None else None
+    )
+    w(market_state_panel.render_fragment(
+        market_regime=market_regime,
+        permission=permission,
+        run_clock=run_timestamp,
+        gex_card_obj=_ms_gex_card,
+        movement_card_obj=_ms_movement_card,
+        red_folder=red_folder,
+    ))
 
     # --- system-state ---
     regime_permission_text = _regime_to_permission_verb(market_regime)
@@ -2812,22 +2826,16 @@ def render_dashboard_html(
     # Divider
     w('  <div class="sep"></div>')
 
-    # Tradables grid (PRD-199: monochrome daily %-change arrow + price, 2 per row).
-    # The arrow span carries NO _ARROW_CSS color class — color stays reserved
-    # for the macro-driver rows. PRD-199 freshness gate: the arrow reads the
-    # trend-structure snapshot, so it degrades to the dash sentinel unless that
-    # snapshot is health-usable for the current run (_ts_health == "OK" — the same
-    # gate the trend section uses). The price (current_price) is independently fresh
-    # from market_map and is NOT gated: degradation is fresh price + dash arrow.
-    _ts_arrow_ok = _ts_health == "OK"
+    # Tradables grid (PRD-312: label + price, 2 per row). The monochrome
+    # daily-change arrow was retired here — it duplicated the Market Movement
+    # card's signed value. The price (current_price) is independently fresh from
+    # market_map; the tradables row keeps its label + price with no arrow.
     w('  <div class="macro-tradables-grid">')
     for slot in TRADABLES_ROW.slots:
         val = tape_value_map.get(slot.label, "N/A")
-        arrow = _tape_arrow_map.get(slot.label, _DASH) if _ts_arrow_ok else _DASH
         w(
             f'    <span class="tradable-cell">'
             f'<span class="macro-tape-label">{_esc(slot.label)}</span>'
-            f'&nbsp;<span class="tradable-arrow">{_esc(arrow)}</span>'
             f'&nbsp;<span class="macro-tape-value" data-symbol="{_esc(slot.label)}">{_esc(val)}</span>'
             f'</span>'
         )
