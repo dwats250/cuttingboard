@@ -331,7 +331,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-311 | 367a4b8 | NS-4B Market Movement Heatmap (12/12, observe-only fetch) | COMPLETE | [PRD-311](prd_history/PRD-311.md) |
 | PRD-312 | #273 | Market State five-axis provenance panel + tradables daily-change-arrow de-duplication | COMPLETE | [PRD-312](prd_history/PRD-312.md) |
 | PRD-313 | #274 | Empty red-folder display suppression | COMPLETE | [PRD-313](prd_history/PRD-313.md) |
-| PRD-314 | — | First-screen visual compaction (MARKET STATE / SYSTEM STATE / OPPORTUNITY SURVIVAL, phone 360-430px) | IN PROGRESS | [PRD-314](prd_history/PRD-314.md) |
+| PRD-314 | #275 | First-screen visual compaction (MARKET STATE / SYSTEM STATE / OPPORTUNITY SURVIVAL, phone 360-430px) | COMPLETE | [PRD-314](prd_history/PRD-314.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

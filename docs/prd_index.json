@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 313,
-  "next_prd": 314,
+  "latest_complete": 314,
+  "next_prd": 315,
   "entries": [
     {
       "number": 56,
@@ -1554,8 +1554,8 @@
     {
       "number": 314,
       "title": "First-screen visual compaction (MARKET STATE / SYSTEM STATE / OPPORTUNITY SURVIVAL, phone 360-430px)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#275"
     }
   ]
 }
