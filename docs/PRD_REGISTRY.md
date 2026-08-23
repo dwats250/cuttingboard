@@ -343,10 +343,3 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD | File |
 |-----|------|
 | PRD-016 | [docs/prd_history/AUDIT_PRD016.md](prd_history/AUDIT_PRD016.md) |
-| PRD-301 | [docs/prd_history/PRD-301.amendment.confirmation.claude.md](prd_history/PRD-301.amendment.confirmation.claude.md) |
-| PRD-301 | [docs/prd_history/PRD-301.gate-fix.confirmation.codex.md](prd_history/PRD-301.gate-fix.confirmation.codex.md) |
-| PRD-301 | [docs/prd_history/PRD-301.ratified.confirmation.claude.md](prd_history/PRD-301.ratified.confirmation.claude.md) |
-| PRD-309 | [docs/prd_history/PRD-309.impl-review.claude.md](prd_history/PRD-309.impl-review.claude.md) |
-| PRD-311 | [docs/prd_history/PRD-311.impl-review.codex.md](prd_history/PRD-311.impl-review.codex.md) |
-| PRD-312 | [docs/prd_history/PRD-312.impl-review.claude.md](prd_history/PRD-312.impl-review.claude.md) |
-| PRD-313 | [docs/prd_history/PRD-313.impl-review.claude.md](prd_history/PRD-313.impl-review.claude.md) |
