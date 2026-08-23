@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cuttingboard.local/schemas/validation-report.schema.json",
+  "title": "Production visual regression validation report",
+  "type": "object",
+  "required": ["schemaVersion", "baseline", "source", "method", "matrix", "summary", "calibration", "cases"],
+  "properties": {
+    "schemaVersion": { "const": "production-visual-regression-report.v1" },
+    "baseline": { "type": "string", "minLength": 1 },
+    "source": { "type": "object", "required": ["identifier", "mode"], "properties": { "identifier": { "type": "string", "minLength": 1 }, "mode": { "type": "string", "minLength": 1 } }, "additionalProperties": true },
+    "method": { "type": "object", "minProperties": 1, "additionalProperties": true },
+    "matrix": { "$ref": "#/$defs/matrix" },
+    "summary": { "type": "object", "required": ["totalCases", "fixtureCount", "verdictCounts", "expectedFailures", "unexpectedFailures", "screenshotCount", "suiteVerdict"], "properties": { "totalCases": { "$ref": "#/$defs/count" }, "fixtureCount": { "$ref": "#/$defs/count" }, "verdictCounts": { "type": "object", "required": ["FAIL", "PASS", "WARNING"], "properties": { "FAIL": { "$ref": "#/$defs/count" }, "PASS": { "$ref": "#/$defs/count" }, "WARNING": { "$ref": "#/$defs/count" } }, "additionalProperties": false }, "expectedFailures": { "$ref": "#/$defs/count" }, "unexpectedFailures": { "$ref": "#/$defs/count" }, "screenshotCount": { "$ref": "#/$defs/count" }, "suiteVerdict": { "enum": ["PASS", "FAIL"] } }, "additionalProperties": true },
+    "calibration": { "type": "object", "required": ["applicable", "verdict", "failures"], "properties": { "applicable": { "type": "boolean" }, "verdict": { "enum": ["PASS", "FAIL", "INFORMATIONAL"] }, "failures": { "type": "array", "items": { "type": "string" } } }, "additionalProperties": true },
+    "cases": { "type": "array", "items": { "$ref": "#/$defs/case" } }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "count": { "type": "integer", "minimum": 0 },
+    "dimension": { "type": "number", "minimum": 0 },
+    "viewport": { "type": "object", "required": ["width", "height"], "properties": { "width": { "$ref": "#/$defs/dimension" }, "height": { "$ref": "#/$defs/dimension" } }, "additionalProperties": false },
+    "matrix": { "type": "object", "required": ["totalCases", "fixtureCount", "viewports", "scales"], "properties": { "totalCases": { "$ref": "#/$defs/count" }, "fixtureCount": { "$ref": "#/$defs/count" }, "viewports": { "type": "array", "items": { "type": "string" } }, "scales": { "type": "array", "items": { "type": "number", "minimum": 0 } } }, "additionalProperties": true },
+    "check": { "type": "object", "required": ["id", "severity", "status", "message"], "properties": { "id": { "type": "string", "minLength": 1 }, "severity": { "enum": ["FAIL", "WARNING", "INFORMATIONAL"] }, "status": { "enum": ["PASS", "FAIL"] }, "message": { "type": "string" }, "evidence": {} }, "additionalProperties": true },
+    "case": { "type": "object", "required": ["baseline", "sourceIdentifier", "sourceHash", "fixture", "viewport", "scale", "scaleMethod", "geometry", "fold", "checks", "verdict", "failures", "warnings", "information", "screenshot", "raw"], "properties": { "baseline": { "type": "string" }, "sourceIdentifier": { "type": "string", "minLength": 1 }, "sourceHash": { "type": "string", "minLength": 1 }, "fixture": { "type": "string", "minLength": 1 }, "viewport": { "$ref": "#/$defs/viewport" }, "scale": { "type": "number", "minimum": 0 }, "scaleMethod": { "type": "string", "minLength": 1 }, "geometry": { "type": "object", "additionalProperties": true }, "fold": { "type": "object", "additionalProperties": true }, "checks": { "type": "array", "items": { "$ref": "#/$defs/check" } }, "verdict": { "enum": ["PASS", "FAIL", "WARNING"] }, "failures": { "type": "array", "items": { "type": "string" } }, "warnings": { "type": "array", "items": { "type": "string" } }, "information": { "type": "array", "items": { "type": "string" } }, "screenshot": { "type": ["string", "null"] }, "raw": { "type": "object", "additionalProperties": true } }, "additionalProperties": true }
+  }
+}

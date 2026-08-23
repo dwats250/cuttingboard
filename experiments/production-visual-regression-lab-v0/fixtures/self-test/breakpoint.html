@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Breakpoint self-test</title>
+  <style>
+    [data-lab-key="boundary"] { --lab-boundary: wide; width: 240px; }
+    @media (max-width: 430px) { [data-lab-key="boundary"] { --lab-boundary: narrow; width: 120px; } }
+  </style>
+</head>
+<body><main><h1>Breakpoint</h1><div data-lab-key="boundary">Boundary changes at 430 pixels</div></main></body>
+</html>

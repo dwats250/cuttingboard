@@ -1,0 +1,202 @@
+# Cuttingboard Production Visual Regression Torture Lab V0 Results
+
+- Baseline: `044602770f745e322dc47a88e9bd342dc0955ce7`
+- Source: `cuttingboard@044602770f745e322dc47a88e9bd342dc0955ce7` (deterministic-current-renderer-fixtures)
+- Fixtures: 35
+- Validation cases: 438
+- Suite verdict: **FAIL**
+- PASS / WARNING / FAIL: 252 / 27 / 159
+- Expected calibration failures: 1
+- Unexpected outcomes: 158
+- Screenshots: 175
+
+## PRD-314 calibration
+
+- `prd314-current-23-13` 360x800 scale 100%: PASS (expected PASS)
+- `prd314-current-23-13` 360x800 scale 125%: FAIL (expected PASS)
+- `prd314-current-23-13` 431x932 scale 100%: PASS (expected PASS)
+- `prd314-prefixt-23-13` 360x800 scale 100%: PASS (expected PASS)
+- `prd314-prefixt-23-13` 360x800 scale 125%: FAIL (expected FAIL)
+- `prd314-prefixt-23-13` 431x932 scale 100%: PASS (expected PASS)
+
+## Screenshot inventory
+
+- `screenshots/candidate-carrier-unavailable__390x844__scale-150__fail.png`
+- `screenshots/candidate-carrier-unavailable__390x844__scale-200__fail.png`
+- `screenshots/content-event-long__360x800__scale-125__fail.png`
+- `screenshots/content-event-long__360x800__scale-150__fail.png`
+- `screenshots/content-event-long__360x800__scale-200__fail.png`
+- `screenshots/content-event-long__430x932__scale-150__fail.png`
+- `screenshots/content-event-long__430x932__scale-200__fail.png`
+- `screenshots/content-event-long__431x932__scale-150__fail.png`
+- `screenshots/content-event-long__431x932__scale-200__fail.png`
+- `screenshots/content-event-medium__360x800__scale-125__fail.png`
+- `screenshots/content-event-medium__360x800__scale-150__fail.png`
+- `screenshots/content-event-medium__360x800__scale-200__fail.png`
+- `screenshots/content-event-medium__430x932__scale-150__fail.png`
+- `screenshots/content-event-medium__430x932__scale-200__fail.png`
+- `screenshots/content-event-medium__431x932__scale-150__fail.png`
+- `screenshots/content-event-medium__431x932__scale-200__fail.png`
+- `screenshots/content-event-short__360x800__scale-125__fail.png`
+- `screenshots/content-event-short__360x800__scale-150__fail.png`
+- `screenshots/content-event-short__360x800__scale-200__fail.png`
+- `screenshots/content-event-short__430x932__scale-150__fail.png`
+- `screenshots/content-event-short__430x932__scale-200__fail.png`
+- `screenshots/content-event-short__431x932__scale-150__fail.png`
+- `screenshots/content-event-short__431x932__scale-200__fail.png`
+- `screenshots/content-long-text__360x800__scale-125__fail.png`
+- `screenshots/content-long-text__360x800__scale-150__fail.png`
+- `screenshots/content-long-text__360x800__scale-200__fail.png`
+- `screenshots/content-long-text__430x932__scale-150__fail.png`
+- `screenshots/content-long-text__430x932__scale-200__fail.png`
+- `screenshots/content-long-text__431x932__scale-150__fail.png`
+- `screenshots/content-long-text__431x932__scale-200__fail.png`
+- `screenshots/content-missing-optionals__360x800__scale-125__fail.png`
+- `screenshots/content-missing-optionals__360x800__scale-150__fail.png`
+- `screenshots/content-missing-optionals__360x800__scale-200__fail.png`
+- `screenshots/content-missing-optionals__430x932__scale-150__fail.png`
+- `screenshots/content-missing-optionals__430x932__scale-200__fail.png`
+- `screenshots/content-missing-optionals__431x932__scale-150__fail.png`
+- `screenshots/content-missing-optionals__431x932__scale-200__fail.png`
+- `screenshots/content-multiple-cards__360x800__scale-125__fail.png`
+- `screenshots/content-multiple-cards__360x800__scale-150__fail.png`
+- `screenshots/content-multiple-cards__360x800__scale-200__fail.png`
+- `screenshots/content-multiple-cards__430x932__scale-150__fail.png`
+- `screenshots/content-multiple-cards__430x932__scale-200__fail.png`
+- `screenshots/content-multiple-cards__431x932__scale-150__fail.png`
+- `screenshots/content-multiple-cards__431x932__scale-200__fail.png`
+- `screenshots/content-opportunity-0__360x800__scale-150__fail.png`
+- `screenshots/content-opportunity-0__360x800__scale-200__fail.png`
+- `screenshots/content-opportunity-0__430x932__scale-200__fail.png`
+- `screenshots/content-opportunity-0__431x932__scale-200__fail.png`
+- `screenshots/content-opportunity-100__360x800__scale-125__fail.png`
+- `screenshots/content-opportunity-100__360x800__scale-150__fail.png`
+- `screenshots/content-opportunity-100__360x800__scale-200__fail.png`
+- `screenshots/content-opportunity-100__430x932__scale-150__fail.png`
+- `screenshots/content-opportunity-100__430x932__scale-200__fail.png`
+- `screenshots/content-opportunity-100__431x932__scale-150__fail.png`
+- `screenshots/content-opportunity-100__431x932__scale-200__fail.png`
+- `screenshots/content-opportunity-10__360x800__scale-150__fail.png`
+- `screenshots/content-opportunity-10__360x800__scale-200__fail.png`
+- `screenshots/content-opportunity-10__430x932__scale-200__fail.png`
+- `screenshots/content-opportunity-10__431x932__scale-200__fail.png`
+- `screenshots/content-opportunity-13__360x800__scale-150__fail.png`
+- `screenshots/content-opportunity-13__360x800__scale-200__fail.png`
+- `screenshots/content-opportunity-13__430x932__scale-200__fail.png`
+- `screenshots/content-opportunity-13__431x932__scale-200__fail.png`
+- `screenshots/content-opportunity-1__360x800__scale-150__fail.png`
+- `screenshots/content-opportunity-1__360x800__scale-200__fail.png`
+- `screenshots/content-opportunity-1__430x932__scale-200__fail.png`
+- `screenshots/content-opportunity-1__431x932__scale-200__fail.png`
+- `screenshots/content-opportunity-23__360x800__scale-125__fail.png`
+- `screenshots/content-opportunity-23__360x800__scale-150__fail.png`
+- `screenshots/content-opportunity-23__360x800__scale-200__fail.png`
+- `screenshots/content-opportunity-23__430x932__scale-150__fail.png`
+- `screenshots/content-opportunity-23__430x932__scale-200__fail.png`
+- `screenshots/content-opportunity-23__431x932__scale-150__fail.png`
+- `screenshots/content-opportunity-23__431x932__scale-200__fail.png`
+- `screenshots/content-opportunity-999__360x800__scale-125__fail.png`
+- `screenshots/content-opportunity-999__360x800__scale-150__fail.png`
+- `screenshots/content-opportunity-999__360x800__scale-200__fail.png`
+- `screenshots/content-opportunity-999__430x932__scale-150__fail.png`
+- `screenshots/content-opportunity-999__430x932__scale-200__fail.png`
+- `screenshots/content-opportunity-999__431x932__scale-150__fail.png`
+- `screenshots/content-opportunity-999__431x932__scale-200__fail.png`
+- `screenshots/content-opportunity-99__360x800__scale-125__fail.png`
+- `screenshots/content-opportunity-99__360x800__scale-150__fail.png`
+- `screenshots/content-opportunity-99__360x800__scale-200__fail.png`
+- `screenshots/content-opportunity-99__430x932__scale-150__fail.png`
+- `screenshots/content-opportunity-99__430x932__scale-200__fail.png`
+- `screenshots/content-opportunity-99__431x932__scale-150__fail.png`
+- `screenshots/content-opportunity-99__431x932__scale-200__fail.png`
+- `screenshots/content-opportunity-9__360x800__scale-150__fail.png`
+- `screenshots/content-opportunity-9__360x800__scale-200__fail.png`
+- `screenshots/content-opportunity-9__430x932__scale-200__fail.png`
+- `screenshots/content-opportunity-9__431x932__scale-200__fail.png`
+- `screenshots/content-permission-long__360x800__scale-125__fail.png`
+- `screenshots/content-permission-long__360x800__scale-150__fail.png`
+- `screenshots/content-permission-long__360x800__scale-200__fail.png`
+- `screenshots/content-permission-long__430x932__scale-150__fail.png`
+- `screenshots/content-permission-long__430x932__scale-200__fail.png`
+- `screenshots/content-permission-long__431x932__scale-150__fail.png`
+- `screenshots/content-permission-long__431x932__scale-200__fail.png`
+- `screenshots/content-permission-short__360x800__scale-125__fail.png`
+- `screenshots/content-permission-short__360x800__scale-150__fail.png`
+- `screenshots/content-permission-short__360x800__scale-200__fail.png`
+- `screenshots/content-permission-short__430x932__scale-150__fail.png`
+- `screenshots/content-permission-short__430x932__scale-200__fail.png`
+- `screenshots/content-permission-short__431x932__scale-150__fail.png`
+- `screenshots/content-permission-short__431x932__scale-200__fail.png`
+- `screenshots/content-symbol-extremes__360x800__scale-125__fail.png`
+- `screenshots/content-symbol-extremes__360x800__scale-150__fail.png`
+- `screenshots/content-symbol-extremes__360x800__scale-200__fail.png`
+- `screenshots/content-symbol-extremes__430x932__scale-150__fail.png`
+- `screenshots/content-symbol-extremes__430x932__scale-200__fail.png`
+- `screenshots/content-symbol-extremes__431x932__scale-150__fail.png`
+- `screenshots/content-symbol-extremes__431x932__scale-200__fail.png`
+- `screenshots/gex-unavailable__390x844__scale-125__fail.png`
+- `screenshots/gex-unavailable__390x844__scale-150__fail.png`
+- `screenshots/gex-unavailable__390x844__scale-200__fail.png`
+- `screenshots/halt__1280x800__scale-100__pass.png`
+- `screenshots/halt__390x844__scale-100__pass.png`
+- `screenshots/halt__390x844__scale-125__fail.png`
+- `screenshots/halt__390x844__scale-150__fail.png`
+- `screenshots/halt__390x844__scale-200__fail.png`
+- `screenshots/healthy-empty-red-folder__390x844__scale-125__fail.png`
+- `screenshots/healthy-empty-red-folder__390x844__scale-150__fail.png`
+- `screenshots/healthy-empty-red-folder__390x844__scale-200__fail.png`
+- `screenshots/inactive-session__390x844__scale-125__fail.png`
+- `screenshots/inactive-session__390x844__scale-150__fail.png`
+- `screenshots/inactive-session__390x844__scale-200__fail.png`
+- `screenshots/movement-unavailable__390x844__scale-125__fail.png`
+- `screenshots/movement-unavailable__390x844__scale-150__fail.png`
+- `screenshots/movement-unavailable__390x844__scale-200__fail.png`
+- `screenshots/multiple-candidates__390x844__scale-125__fail.png`
+- `screenshots/multiple-candidates__390x844__scale-150__fail.png`
+- `screenshots/multiple-candidates__390x844__scale-200__fail.png`
+- `screenshots/no-candidate__1280x800__scale-100__pass.png`
+- `screenshots/no-candidate__390x844__scale-100__pass.png`
+- `screenshots/no-candidate__390x844__scale-125__fail.png`
+- `screenshots/no-candidate__390x844__scale-150__fail.png`
+- `screenshots/no-candidate__390x844__scale-200__fail.png`
+- `screenshots/normal__1280x800__scale-100__pass.png`
+- `screenshots/normal__1440x900__scale-100__pass.png`
+- `screenshots/normal__360x800__scale-100__pass.png`
+- `screenshots/normal__360x800__scale-125__fail.png`
+- `screenshots/normal__360x800__scale-150__fail.png`
+- `screenshots/normal__360x800__scale-200__fail.png`
+- `screenshots/normal__390x844__scale-100__pass.png`
+- `screenshots/normal__390x844__scale-125__fail.png`
+- `screenshots/normal__390x844__scale-150__fail.png`
+- `screenshots/normal__390x844__scale-200__fail.png`
+- `screenshots/normal__430x932__scale-100__pass.png`
+- `screenshots/normal__430x932__scale-150__fail.png`
+- `screenshots/normal__430x932__scale-200__fail.png`
+- `screenshots/normal__431x932__scale-100__pass.png`
+- `screenshots/normal__431x932__scale-150__fail.png`
+- `screenshots/normal__431x932__scale-200__fail.png`
+- `screenshots/normal__768x1024__scale-100__pass.png`
+- `screenshots/normal__960x900__scale-100__pass.png`
+- `screenshots/operator-lock__390x844__scale-125__fail.png`
+- `screenshots/operator-lock__390x844__scale-150__fail.png`
+- `screenshots/operator-lock__390x844__scale-200__fail.png`
+- `screenshots/opportunity-suppressed__390x844__scale-200__fail.png`
+- `screenshots/prd314-current-23-13__360x800__scale-125__fail.png`
+- `screenshots/prd314-prefixt-23-13__360x800__scale-125__fail.png`
+- `screenshots/qualified-zero-b-candidate__390x844__scale-200__fail.png`
+- `screenshots/red-folder-event__1280x800__scale-100__pass.png`
+- `screenshots/red-folder-event__390x844__scale-100__pass.png`
+- `screenshots/red-folder-event__390x844__scale-125__fail.png`
+- `screenshots/red-folder-event__390x844__scale-150__fail.png`
+- `screenshots/red-folder-event__390x844__scale-200__fail.png`
+- `screenshots/stale-board__390x844__scale-125__fail.png`
+- `screenshots/stale-board__390x844__scale-150__fail.png`
+- `screenshots/stale-board__390x844__scale-200__fail.png`
+- `screenshots/state-unavailable__1280x800__scale-100__pass.png`
+- `screenshots/state-unavailable__390x844__scale-100__pass.png`
+- `screenshots/state-unavailable__390x844__scale-150__fail.png`
+- `screenshots/state-unavailable__390x844__scale-200__fail.png`
+
+## Isolation
+
+All implementation, fixtures, measurements, reports, and screenshots are contained beneath `experiments/production-visual-regression-lab-v0/`. No production behavior is modified.

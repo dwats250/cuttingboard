@@ -1,0 +1,589 @@
+{
+  "after": {
+    "identifier": "sha256:9ca9642a0560704b7df2fdec7892639e0712f02a675fd90148f248000641336e"
+  },
+  "before": {
+    "identifier": "sha256:2fd78b943ff34a6300cfb466a88c794981eeee09b51c8b500e15ce7804fb92d6"
+  },
+  "method": {
+    "browser": "Chrome/151.0.7922.108",
+    "colorScheme": "dark",
+    "deviceScaleFactor": 1,
+    "fixedNow": "2026-08-23T20:00:00Z",
+    "protocolVersion": "1.3",
+    "reducedMotion": true,
+    "textScaleMethod": "root-font-size",
+    "timezone": "America/Vancouver"
+  },
+  "pairs": [
+    {
+      "candidateDiscoverability": {
+        "after": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "wrapper": true
+        },
+        "before": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "wrapper": true
+        },
+        "regressions": []
+      },
+      "clipping": {
+        "after": [],
+        "before": [],
+        "new": [],
+        "resolved": []
+      },
+      "contextPosition": {
+        "after": 630.7,
+        "before": 642.7,
+        "delta": -12
+      },
+      "criticalVisibleText": {
+        "candidateIdentity": {
+          "after": "SPY · B · DEVELOPING · BULL UPTREND",
+          "before": "SPY · B · DEVELOPING · BULL UPTREND",
+          "equal": true
+        },
+        "marketState": {
+          "after": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 16:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 16:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "before": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 16:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 16:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "equal": true
+        },
+        "opportunity": {
+          "after": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "before": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "equal": true
+        },
+        "systemState": {
+          "after": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: 1 setup gated\nRisk-on regime\nUPDATED\n2026-08-23 13:00:00 PT",
+          "before": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: 1 setup gated\nRisk-on regime\nUPDATED\n2026-08-23 13:00:00 PT",
+          "equal": true
+        }
+      },
+      "domOrder": {
+        "after": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "candidate",
+          "runDelta",
+          "scoreboard"
+        ],
+        "before": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "candidate",
+          "runDelta",
+          "scoreboard"
+        ],
+        "changed": false
+      },
+      "failures": [],
+      "fixture": "prd314-current-23-13",
+      "geometryDeltas": {
+        "candidateIdentityY": {
+          "after": 1825.7,
+          "before": 1837.7,
+          "delta": -12
+        },
+        "candidateInvalidationY": {
+          "after": 1960.7,
+          "before": 1972.7,
+          "delta": -12
+        },
+        "candidateLevelY": {
+          "after": 1912.7,
+          "before": 1924.7,
+          "delta": -12
+        },
+        "candidateY": {
+          "after": 1675.7,
+          "before": 1687.7,
+          "delta": -12
+        },
+        "contextY": {
+          "after": 630.7,
+          "before": 642.7,
+          "delta": -12
+        },
+        "firstZoneHeight": {
+          "after": 604.7,
+          "before": 616.7,
+          "delta": -12
+        },
+        "gexExposedSpace": {
+          "after": 169.3,
+          "before": 157.3,
+          "delta": 12
+        },
+        "opportunityToCandidateGap": {
+          "after": 1055,
+          "before": 1055,
+          "delta": 0
+        }
+      },
+      "key": "prd314-current-23-13__360x800__scale-100",
+      "overflow": {
+        "after": 0,
+        "before": 0,
+        "delta": 0
+      },
+      "scale": 100,
+      "screenshotPair": {
+        "after": "screenshots/compare-after-prd314-current-23-13__360x800__scale-100__pass.png",
+        "before": "screenshots/compare-before-prd314-current-23-13__360x800__scale-100__pass.png"
+      },
+      "verdict": "PASS",
+      "viewport": {
+        "height": 800,
+        "width": 360
+      }
+    },
+    {
+      "candidateDiscoverability": {
+        "after": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "wrapper": true
+        },
+        "before": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "wrapper": true
+        },
+        "regressions": []
+      },
+      "clipping": {
+        "after": [
+          "critical-horizontal-clipping:opportunity"
+        ],
+        "before": [
+          "critical-horizontal-clipping:opportunity",
+          "critical-horizontal-clipping:opportunity:QUALIFIED",
+          "critical-horizontal-clipping:opportunity:REJECTED",
+          "critical-horizontal-clipping:opportunity:SURFACED",
+          "critical-horizontal-clipping:opportunity:WATCHLIST"
+        ],
+        "new": [],
+        "resolved": [
+          "critical-horizontal-clipping:opportunity:QUALIFIED",
+          "critical-horizontal-clipping:opportunity:REJECTED",
+          "critical-horizontal-clipping:opportunity:SURFACED",
+          "critical-horizontal-clipping:opportunity:WATCHLIST"
+        ]
+      },
+      "contextPosition": {
+        "after": 886,
+        "before": 898,
+        "delta": -12
+      },
+      "criticalVisibleText": {
+        "candidateIdentity": {
+          "after": "SPY · B · DEVELOPING · BULL UPTREND",
+          "before": "SPY · B · DEVELOPING · BULL UPTREND",
+          "equal": true
+        },
+        "marketState": {
+          "after": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 16:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 16:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "before": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 16:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 16:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "equal": true
+        },
+        "opportunity": {
+          "after": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "before": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "equal": true
+        },
+        "systemState": {
+          "after": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: 1 setup gated\nRisk-on regime\nUPDATED\n2026-08-23 13:00:00 PT",
+          "before": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: 1 setup gated\nRisk-on regime\nUPDATED\n2026-08-23 13:00:00 PT",
+          "equal": true
+        }
+      },
+      "domOrder": {
+        "after": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "candidate",
+          "runDelta",
+          "scoreboard"
+        ],
+        "before": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "candidate",
+          "runDelta",
+          "scoreboard"
+        ],
+        "changed": false
+      },
+      "failures": [
+        "new horizontal page overflow"
+      ],
+      "fixture": "prd314-current-23-13",
+      "geometryDeltas": {
+        "candidateIdentityY": {
+          "after": 2482,
+          "before": 2494,
+          "delta": -12
+        },
+        "candidateInvalidationY": {
+          "after": 2671,
+          "before": 2683,
+          "delta": -12
+        },
+        "candidateLevelY": {
+          "after": 2591,
+          "before": 2603,
+          "delta": -12
+        },
+        "candidateY": {
+          "after": 2264,
+          "before": 2276,
+          "delta": -12
+        },
+        "contextY": {
+          "after": 886,
+          "before": 898,
+          "delta": -12
+        },
+        "firstZoneHeight": {
+          "after": 856,
+          "before": 868,
+          "delta": -12
+        },
+        "gexExposedSpace": {
+          "after": 0,
+          "before": 0,
+          "delta": 0
+        },
+        "opportunityToCandidateGap": {
+          "after": 1388,
+          "before": 1388,
+          "delta": 0
+        }
+      },
+      "key": "prd314-current-23-13__360x800__scale-125",
+      "overflow": {
+        "after": 19,
+        "before": 0,
+        "delta": 19
+      },
+      "scale": 125,
+      "screenshotPair": {
+        "after": "screenshots/compare-after-prd314-current-23-13__360x800__scale-125__fail.png",
+        "before": "screenshots/compare-before-prd314-current-23-13__360x800__scale-125__fail.png"
+      },
+      "verdict": "FAIL",
+      "viewport": {
+        "height": 800,
+        "width": 360
+      }
+    },
+    {
+      "candidateDiscoverability": {
+        "after": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "wrapper": true
+        },
+        "before": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "wrapper": true
+        },
+        "regressions": []
+      },
+      "clipping": {
+        "after": [],
+        "before": [],
+        "new": [],
+        "resolved": []
+      },
+      "contextPosition": {
+        "after": 704,
+        "before": 704,
+        "delta": 0
+      },
+      "criticalVisibleText": {
+        "candidateIdentity": {
+          "after": "SPY · B · DEVELOPING · BULL UPTREND",
+          "before": "SPY · B · DEVELOPING · BULL UPTREND",
+          "equal": true
+        },
+        "marketState": {
+          "after": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 16:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 16:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "before": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 16:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 16:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "equal": true
+        },
+        "opportunity": {
+          "after": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "before": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "equal": true
+        },
+        "systemState": {
+          "after": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: 1 setup gated\nRisk-on regime\nUPDATED\n2026-08-23 13:00:00 PT",
+          "before": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: 1 setup gated\nRisk-on regime\nUPDATED\n2026-08-23 13:00:00 PT",
+          "equal": true
+        }
+      },
+      "domOrder": {
+        "after": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "candidate",
+          "runDelta",
+          "scoreboard"
+        ],
+        "before": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "candidate",
+          "runDelta",
+          "scoreboard"
+        ],
+        "changed": false
+      },
+      "failures": [],
+      "fixture": "prd314-current-23-13",
+      "geometryDeltas": {
+        "candidateIdentityY": {
+          "after": 1841,
+          "before": 1841,
+          "delta": 0
+        },
+        "candidateInvalidationY": {
+          "after": 1961,
+          "before": 1961,
+          "delta": 0
+        },
+        "candidateLevelY": {
+          "after": 1913,
+          "before": 1913,
+          "delta": 0
+        },
+        "candidateY": {
+          "after": 1706,
+          "before": 1706,
+          "delta": 0
+        },
+        "contextY": {
+          "after": 704,
+          "before": 704,
+          "delta": 0
+        },
+        "firstZoneHeight": {
+          "after": 672,
+          "before": 672,
+          "delta": 0
+        },
+        "gexExposedSpace": {
+          "after": 206,
+          "before": 206,
+          "delta": 0
+        },
+        "opportunityToCandidateGap": {
+          "after": 1018,
+          "before": 1018,
+          "delta": 0
+        }
+      },
+      "key": "prd314-current-23-13__431x932__scale-100",
+      "overflow": {
+        "after": 0,
+        "before": 0,
+        "delta": 0
+      },
+      "scale": 100,
+      "screenshotPair": {
+        "after": "screenshots/compare-after-prd314-current-23-13__431x932__scale-100__pass.png",
+        "before": "screenshots/compare-before-prd314-current-23-13__431x932__scale-100__pass.png"
+      },
+      "verdict": "PASS",
+      "viewport": {
+        "height": 932,
+        "width": 431
+      }
+    },
+    {
+      "candidateDiscoverability": {
+        "after": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "wrapper": true
+        },
+        "before": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "wrapper": true
+        },
+        "regressions": []
+      },
+      "clipping": {
+        "after": [],
+        "before": [],
+        "new": [],
+        "resolved": []
+      },
+      "contextPosition": {
+        "after": 992,
+        "before": 992,
+        "delta": 0
+      },
+      "criticalVisibleText": {
+        "candidateIdentity": {
+          "after": "SPY · B · DEVELOPING · BULL UPTREND",
+          "before": "SPY · B · DEVELOPING · BULL UPTREND",
+          "equal": true
+        },
+        "marketState": {
+          "after": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 16:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 16:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "before": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 16:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 16:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "equal": true
+        },
+        "opportunity": {
+          "after": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "before": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "equal": true
+        },
+        "systemState": {
+          "after": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: 1 setup gated\nRisk-on regime\nUPDATED\n2026-08-23 13:00:00 PT",
+          "before": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: 1 setup gated\nRisk-on regime\nUPDATED\n2026-08-23 13:00:00 PT",
+          "equal": true
+        }
+      },
+      "domOrder": {
+        "after": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "candidate",
+          "runDelta",
+          "scoreboard"
+        ],
+        "before": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "candidate",
+          "runDelta",
+          "scoreboard"
+        ],
+        "changed": false
+      },
+      "failures": [],
+      "fixture": "prd314-current-23-13",
+      "geometryDeltas": {
+        "candidateIdentityY": {
+          "after": 2438,
+          "before": 2438,
+          "delta": 0
+        },
+        "candidateInvalidationY": {
+          "after": 2608,
+          "before": 2608,
+          "delta": 0
+        },
+        "candidateLevelY": {
+          "after": 2547,
+          "before": 2547,
+          "delta": 0
+        },
+        "candidateY": {
+          "after": 2258,
+          "before": 2258,
+          "delta": 0
+        },
+        "contextY": {
+          "after": 992,
+          "before": 992,
+          "delta": 0
+        },
+        "firstZoneHeight": {
+          "after": 952,
+          "before": 952,
+          "delta": 0
+        },
+        "gexExposedSpace": {
+          "after": 0,
+          "before": 0,
+          "delta": 0
+        },
+        "opportunityToCandidateGap": {
+          "after": 1286,
+          "before": 1286,
+          "delta": 0
+        }
+      },
+      "key": "prd314-current-23-13__431x932__scale-125",
+      "overflow": {
+        "after": 0,
+        "before": 0,
+        "delta": 0
+      },
+      "scale": 125,
+      "screenshotPair": {
+        "after": "screenshots/compare-after-prd314-current-23-13__431x932__scale-125__pass.png",
+        "before": "screenshots/compare-before-prd314-current-23-13__431x932__scale-125__pass.png"
+      },
+      "verdict": "PASS",
+      "viewport": {
+        "height": 932,
+        "width": 431
+      }
+    }
+  ],
+  "schemaVersion": "production-visual-comparison-report.v1",
+  "summary": {
+    "failedPairs": 1,
+    "totalPairs": 4,
+    "verdict": "FAIL"
+  }
+}

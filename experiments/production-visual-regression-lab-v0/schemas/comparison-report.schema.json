@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cuttingboard.local/schemas/comparison-report.schema.json",
+  "title": "Production visual comparison report",
+  "type": "object",
+  "required": ["schemaVersion", "before", "after", "method", "summary", "pairs"],
+  "properties": {
+    "schemaVersion": { "const": "production-visual-comparison-report.v1" },
+    "before": { "$ref": "#/$defs/source" },
+    "after": { "$ref": "#/$defs/source" },
+    "method": { "type": "object", "additionalProperties": true },
+    "summary": { "type": "object", "required": ["totalPairs", "failedPairs", "verdict"], "properties": { "totalPairs": { "$ref": "#/$defs/count" }, "failedPairs": { "$ref": "#/$defs/count" }, "verdict": { "enum": ["PASS", "FAIL"] } }, "additionalProperties": true },
+    "pairs": { "type": "array", "items": { "$ref": "#/$defs/pair" } }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "count": { "type": "integer", "minimum": 0 },
+    "source": { "type": "object", "required": ["identifier"], "properties": { "identifier": { "type": "string", "minLength": 1 } }, "additionalProperties": true },
+    "dimension": { "type": "number", "minimum": 0 },
+    "pair": { "type": "object", "required": ["key", "fixture", "viewport", "scale", "verdict", "failures", "criticalVisibleText", "domOrder", "geometryDeltas", "overflow", "clipping", "candidateDiscoverability", "contextPosition", "screenshotPair"], "properties": { "key": { "type": "string" }, "fixture": { "type": "string" }, "viewport": { "type": "object", "required": ["width", "height"], "properties": { "width": { "$ref": "#/$defs/dimension" }, "height": { "$ref": "#/$defs/dimension" } }, "additionalProperties": true }, "scale": { "type": "number", "minimum": 0 }, "verdict": { "enum": ["PASS", "FAIL", "WARNING"] }, "failures": { "type": "array", "items": { "type": "string" } }, "criticalVisibleText": { "type": "object", "additionalProperties": { "type": "object", "required": ["before", "after", "equal"], "properties": { "before": { "type": "string" }, "after": { "type": "string" }, "equal": { "type": "boolean" } }, "additionalProperties": true } }, "domOrder": { "type": "object", "required": ["before", "after", "changed"], "properties": { "before": { "type": "array" }, "after": { "type": "array" }, "changed": { "type": "boolean" } }, "additionalProperties": true }, "geometryDeltas": { "type": "object", "additionalProperties": true }, "overflow": { "type": "object", "additionalProperties": true }, "clipping": { "type": "object", "additionalProperties": true }, "candidateDiscoverability": { "type": "object", "additionalProperties": true }, "contextPosition": { "type": "object", "additionalProperties": true }, "screenshotPair": { "type": "object", "required": ["before", "after"], "properties": { "before": { "type": ["string", "null"] }, "after": { "type": ["string", "null"] } }, "additionalProperties": true } }, "additionalProperties": true }
+  }
+}

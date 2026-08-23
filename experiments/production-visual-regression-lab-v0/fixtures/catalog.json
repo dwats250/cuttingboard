@@ -1,0 +1,3413 @@
+{
+  "baseline": "044602770f745e322dc47a88e9bd342dc0955ce7",
+  "baselineSha": "044602770f745e322dc47a88e9bd342dc0955ce7",
+  "defaults": {
+    "candidateInvalidationLabels": [
+      "OUT →",
+      "INVALIDATION"
+    ],
+    "candidateLevelLabels": [
+      "IN →",
+      "LEVEL"
+    ],
+    "contextKeys": [
+      "gex",
+      "movement",
+      "macro",
+      "redFolder",
+      "trend"
+    ],
+    "criticalKeys": [
+      "marketState",
+      "systemState",
+      "candidate"
+    ],
+    "order": [
+      "marketState",
+      "systemState",
+      "opportunity",
+      "gex",
+      "movement",
+      "macro",
+      "redFolder",
+      "trend",
+      "candidate",
+      "runDelta",
+      "scoreboard"
+    ],
+    "selectors": {
+      "candidate": "#candidate-board",
+      "candidateIdentity": "#candidate-board .candidate-card .card-header,#candidate-board .candidate-card .failed-card-fields .value",
+      "gex": "#gex-context",
+      "macro": "#macro-tape",
+      "marketState": "#market-state",
+      "movement": "#market-movement",
+      "opportunity": "#opportunity-survival",
+      "provenance": "#market-state .market-state-provenance",
+      "qualifier": "#market-state .market-state-qualifier",
+      "redFolder": "#red-folder",
+      "root": ".wrap",
+      "runDelta": "#run-delta",
+      "scoreboard": "#scoreboard",
+      "staleness": "#staleness-banner",
+      "systemState": "#system-state",
+      "trend": "#trend-structure"
+    },
+    "surfaceKeys": [
+      "marketState",
+      "systemState",
+      "opportunity",
+      "gex",
+      "movement",
+      "macro",
+      "redFolder",
+      "trend",
+      "candidate",
+      "runDelta",
+      "scoreboard"
+    ]
+  },
+  "expectedCaseCount": 438,
+  "fixedNow": "2026-08-23T20:00:00Z",
+  "fixtures": [
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "candidate-carrier-unavailable"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": false,
+          "invalidation": false,
+          "level": false,
+          "maximumCards": 0,
+          "minimumCards": 0
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {},
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "absent",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "SOURCE_MISSING",
+          {
+            "includes": [
+              "SOURCE_MISSING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/candidate-carrier-unavailable.html",
+      "groups": [
+        "core"
+      ],
+      "id": "candidate-carrier-unavailable",
+      "label": "Candidate Carrier Unavailable",
+      "matrix": "representative",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "event-text-long"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "redFolder",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "present",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "E",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": [
+          "redFolder"
+        ]
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/content-event-long.html",
+      "groups": [
+        "content-torture"
+      ],
+      "id": "content-event-long",
+      "label": "Content Event Long",
+      "matrix": "pressure",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "event-text-medium"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "redFolder",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "present",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "E",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/content-event-medium.html",
+      "groups": [
+        "content-torture"
+      ],
+      "id": "content-event-medium",
+      "label": "Content Event Medium",
+      "matrix": "pressure",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "event-text-short"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "redFolder",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "present",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "E",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/content-event-short.html",
+      "groups": [
+        "content-torture"
+      ],
+      "id": "content-event-short",
+      "label": "Content Event Short",
+      "matrix": "pressure",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "long-invalidation",
+        "long-reason",
+        "long-watch"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "extended evidence remains under observation",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": [
+          "candidateInvalidation"
+        ]
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/content-long-text.html",
+      "groups": [
+        "content-torture"
+      ],
+      "id": "content-long-text",
+      "label": "Content Long Text",
+      "matrix": "pressure",
+      "setup": {
+        "openDetails": [
+          "#candidate-board details.card-detail"
+        ]
+      },
+      "sourceMode": "production-renderer+open-disclosure-stress",
+      "synthetic": true
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "missing-optional-fields"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": false,
+          "level": false,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          {
+            "includes": [
+              "GLD"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/content-missing-optionals.html",
+      "groups": [
+        "content-torture"
+      ],
+      "id": "content-missing-optionals",
+      "label": "Content Missing Optionals",
+      "matrix": "pressure",
+      "setup": {
+        "openDetails": [
+          "#candidate-board details.tier-group"
+        ]
+      },
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "missing-optional-fields",
+        "multiple-cards"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 4
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "QQQ"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "GDX"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "GLD"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/content-multiple-cards.html",
+      "groups": [
+        "content-torture"
+      ],
+      "id": "content-multiple-cards",
+      "label": "Content Multiple Cards",
+      "matrix": "pressure",
+      "setup": {
+        "openDetails": [
+          "#candidate-board details.tier-group"
+        ]
+      },
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "opportunity-0"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {},
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "absent",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/content-opportunity-0.html",
+      "groups": [
+        "content-torture"
+      ],
+      "id": "content-opportunity-0",
+      "label": "Content Opportunity 0",
+      "matrix": "pressure",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "opportunity-1"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 0,
+          "REJECTED": 0,
+          "SURFACED": 1,
+          "WATCHLIST": 1
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "SURFACED",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/content-opportunity-1.html",
+      "groups": [
+        "content-torture"
+      ],
+      "id": "content-opportunity-1",
+      "label": "Content Opportunity 1",
+      "matrix": "pressure",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "opportunity-10"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 0,
+          "REJECTED": 0,
+          "SURFACED": 10,
+          "WATCHLIST": 10
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "SURFACED",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/content-opportunity-10.html",
+      "groups": [
+        "content-torture"
+      ],
+      "id": "content-opportunity-10",
+      "label": "Content Opportunity 10",
+      "matrix": "pressure",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "opportunity-100"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 0,
+          "REJECTED": 87,
+          "SURFACED": 100,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "SURFACED",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/content-opportunity-100.html",
+      "groups": [
+        "content-torture"
+      ],
+      "id": "content-opportunity-100",
+      "label": "Content Opportunity 100",
+      "matrix": "pressure",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "opportunity-13"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 0,
+          "REJECTED": 0,
+          "SURFACED": 13,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "SURFACED",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/content-opportunity-13.html",
+      "groups": [
+        "content-torture"
+      ],
+      "id": "content-opportunity-13",
+      "label": "Content Opportunity 13",
+      "matrix": "pressure",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "opportunity-23"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 0,
+          "REJECTED": 10,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "SURFACED",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/content-opportunity-23.html",
+      "groups": [
+        "content-torture"
+      ],
+      "id": "content-opportunity-23",
+      "label": "Content Opportunity 23",
+      "matrix": "pressure",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "opportunity-9"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 0,
+          "REJECTED": 0,
+          "SURFACED": 9,
+          "WATCHLIST": 9
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "SURFACED",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/content-opportunity-9.html",
+      "groups": [
+        "content-torture"
+      ],
+      "id": "content-opportunity-9",
+      "label": "Content Opportunity 9",
+      "matrix": "pressure",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "opportunity-99"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 0,
+          "REJECTED": 86,
+          "SURFACED": 99,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "SURFACED",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/content-opportunity-99.html",
+      "groups": [
+        "content-torture"
+      ],
+      "id": "content-opportunity-99",
+      "label": "Content Opportunity 99",
+      "matrix": "pressure",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "opportunity-999"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 0,
+          "REJECTED": 986,
+          "SURFACED": 999,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "SURFACED",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/content-opportunity-999.html",
+      "groups": [
+        "content-torture"
+      ],
+      "id": "content-opportunity-999",
+      "label": "Content Opportunity 999",
+      "matrix": "pressure",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "long-permission"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "continuously monitor",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": [
+          "marketState"
+        ]
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/content-permission-long.html",
+      "groups": [
+        "content-torture"
+      ],
+      "id": "content-permission-long",
+      "label": "Content Permission Long",
+      "matrix": "pressure",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "short-permission"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "WAIT",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/content-permission-short.html",
+      "groups": [
+        "content-torture"
+      ],
+      "id": "content-permission-short",
+      "label": "Content Permission Short",
+      "matrix": "pressure",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "registry-longest-symbol",
+        "registry-shortest-symbol"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 2
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "NVDA",
+          "UCO",
+          {
+            "includes": [
+              "UCO"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "NVDA"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/content-symbol-extremes.html",
+      "groups": [
+        "content-torture"
+      ],
+      "id": "content-symbol-extremes",
+      "label": "Content Symbol Extremes",
+      "matrix": "pressure",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "gex-unavailable"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "marketState",
+          "movement",
+          "opportunity",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "absent",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "absent",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "POSITIONING",
+          "unavailable",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "POSITIONING",
+              "unavailable"
+            ],
+            "key": "marketState"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/gex-unavailable.html",
+      "groups": [
+        "core"
+      ],
+      "id": "gex-unavailable",
+      "label": "Gex Unavailable",
+      "matrix": "representative",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "halt",
+        "long-halt-reason",
+        "long-unavailable-reason"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "HALT: execution carrier unavailable",
+          "SYSTEM HALT",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "HALT",
+              "SYSTEM HALT"
+            ],
+            "key": "systemState"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/halt.html",
+      "groups": [
+        "core"
+      ],
+      "id": "halt",
+      "label": "Halt",
+      "matrix": "representative",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "healthy-empty-red-folder"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "no events in 48h",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "no events in 48h"
+            ],
+            "key": "marketState"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/healthy-empty-red-folder.html",
+      "groups": [
+        "core"
+      ],
+      "id": "healthy-empty-red-folder",
+      "label": "Healthy Empty Red Folder",
+      "matrix": "representative",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "inactive-session"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": false,
+          "invalidation": false,
+          "level": false,
+          "maximumCards": 0,
+          "minimumCards": 0
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "staleness",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "staleness": "present",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "SESSION INACTIVE",
+          {
+            "includes": [
+              "MARKET CLOSED"
+            ],
+            "key": "staleness"
+          },
+          {
+            "includes": [
+              "SESSION INACTIVE"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/inactive-session.html",
+      "groups": [
+        "core"
+      ],
+      "id": "inactive-session",
+      "label": "Inactive Session",
+      "matrix": "representative",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "movement-unavailable"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "absent",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "PARTICIPATION",
+          "unavailable",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "PARTICIPATION",
+              "unavailable"
+            ],
+            "key": "marketState"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/movement-unavailable.html",
+      "groups": [
+        "core"
+      ],
+      "id": "movement-unavailable",
+      "label": "Movement Unavailable",
+      "matrix": "representative",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "multiple-cards"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 3
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "QQQ"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "GDX"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/multiple-candidates.html",
+      "groups": [
+        "core"
+      ],
+      "id": "multiple-candidates",
+      "label": "Multiple Candidates",
+      "matrix": "representative",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "no-candidate"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": false,
+          "invalidation": false,
+          "level": false,
+          "maximumCards": 0,
+          "minimumCards": 0
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "NO_CANDIDATES"
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/no-candidate.html",
+      "groups": [
+        "core"
+      ],
+      "id": "no-candidate",
+      "label": "No Candidate",
+      "matrix": "representative",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "b-developing",
+        "full-positioning-provenance",
+        "full-qualifier",
+        "normal",
+        "surface-23",
+        "symbol-short",
+        "watchlist-13"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "Cboe ~15m delayed",
+          "SURFACED",
+          "WATCHLIST",
+          "positioning is not measured",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/normal.html",
+      "groups": [
+        "core"
+      ],
+      "id": "normal",
+      "label": "Normal",
+      "matrix": "all",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "operator-lock",
+        "short-permission"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [
+          "IF NOW",
+          "TRADE PERMITTED"
+        ],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "REJECTED": 7,
+          "SETUPS FOUND": 3,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "OBSERVE ONLY",
+          "OPERATOR LOCK",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "OBSERVE ONLY",
+              "OPERATOR LOCK"
+            ],
+            "key": "systemState"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/operator-lock.html",
+      "groups": [
+        "core"
+      ],
+      "id": "operator-lock",
+      "label": "Operator Lock",
+      "matrix": "representative",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "opportunity-suppressed"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {},
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "absent",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/opportunity-suppressed.html",
+      "groups": [
+        "core"
+      ],
+      "id": "opportunity-suppressed",
+      "label": "Opportunity Suppressed",
+      "matrix": "representative",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "prd314",
+        "surface-23",
+        "watchlist-13"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "SURFACED",
+          "WATCHLIST",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/prd314-current-23-13.html",
+      "groups": [
+        "calibration",
+        "prd314"
+      ],
+      "id": "prd314-current-23-13",
+      "label": "Prd314 Current 23 13",
+      "matrix": "calibration",
+      "runPlan": [
+        {
+          "height": 800,
+          "scales": [
+            100,
+            125
+          ],
+          "width": 360
+        },
+        {
+          "height": 932,
+          "scales": [
+            100
+          ],
+          "width": 431
+        }
+      ],
+      "sourceMode": "production-current",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "historical-defect",
+        "prd314",
+        "surface-23",
+        "watchlist-13"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "SURFACED",
+          "WATCHLIST",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "expectedVerdicts": [
+        {
+          "height": 800,
+          "scale": 125,
+          "verdict": "FAIL",
+          "width": 360
+        }
+      ],
+      "file": "generated/prd314-prefixt-23-13.html",
+      "groups": [
+        "calibration",
+        "prd314"
+      ],
+      "id": "prd314-prefixt-23-13",
+      "label": "Prd314 Prefixt 23 13",
+      "matrix": "calibration",
+      "runPlan": [
+        {
+          "height": 800,
+          "scales": [
+            100,
+            125
+          ],
+          "width": 360
+        },
+        {
+          "height": 932,
+          "scales": [
+            100
+          ],
+          "width": 431
+        }
+      ],
+      "sourceMode": "synthetic-calibration",
+      "synthetic": true
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "b-developing",
+        "qualified-zero"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 0,
+          "REJECTED": 0,
+          "SURFACED": 13,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "SURFACED",
+          "WATCHLIST",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/qualified-zero-b-candidate.html",
+      "groups": [
+        "core"
+      ],
+      "id": "qualified-zero-b-candidate",
+      "label": "Qualified Zero B Candidate",
+      "matrix": "representative",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "red-folder-event"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "redFolder",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "present",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "1 events in 48h",
+          "CPI (July)",
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/red-folder-event.html",
+      "groups": [
+        "core"
+      ],
+      "id": "red-folder-event",
+      "label": "Red Folder Event",
+      "matrix": "representative",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "stale-board"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": true,
+          "invalidation": true,
+          "level": true,
+          "minimumCards": 1
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "opportunity",
+          "provenance",
+          "qualifier",
+          "staleness",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {
+          "QUALIFIED": 3,
+          "REJECTED": 7,
+          "SURFACED": 23,
+          "WATCHLIST": 13
+        },
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "present",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "staleness": "present",
+          "systemState": "present"
+        },
+        "requiredText": [
+          {
+            "includes": [
+              "SPY"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "B"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "DEVELOPING"
+            ],
+            "key": "candidate"
+          },
+          {
+            "includes": [
+              "BOARD 2h OLD"
+            ],
+            "key": "staleness"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/stale-board.html",
+      "groups": [
+        "core"
+      ],
+      "id": "stale-board",
+      "label": "Stale Board",
+      "matrix": "representative",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    },
+    {
+      "comparison": {
+        "requireTextEquality": [
+          "marketState",
+          "systemState",
+          "opportunity"
+        ],
+        "visibleTextKeys": [
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidateIdentity"
+        ]
+      },
+      "covers": [
+        "mixed-generation",
+        "state-unavailable"
+      ],
+      "expected": {
+        "candidate": {
+          "identity": false,
+          "invalidation": false,
+          "level": false,
+          "maximumCards": 0,
+          "minimumCards": 0
+        },
+        "criticalKeys": [
+          "candidate",
+          "gex",
+          "marketState",
+          "movement",
+          "provenance",
+          "qualifier",
+          "systemState"
+        ],
+        "forbiddenText": [],
+        "information": [
+          "Opportunity-to-Candidate adjacency and Candidate-before-Context are measurements only."
+        ],
+        "opportunityValues": {},
+        "presence": {
+          "candidate": "present",
+          "gex": "present",
+          "marketState": "present",
+          "movement": "present",
+          "opportunity": "absent",
+          "provenance": "present",
+          "qualifier": "present",
+          "redFolder": "absent",
+          "systemState": "present"
+        },
+        "requiredText": [
+          "MIXED_ARTIFACTS",
+          "STATE UNAVAILABLE",
+          {
+            "includes": [
+              "STATE UNAVAILABLE"
+            ],
+            "key": "systemState"
+          }
+        ],
+        "warnOnWrap": []
+      },
+      "expectedVerdict": "PASS",
+      "file": "generated/state-unavailable.html",
+      "groups": [
+        "core"
+      ],
+      "id": "state-unavailable",
+      "label": "State Unavailable",
+      "matrix": "representative",
+      "sourceMode": "production-renderer",
+      "synthetic": false
+    }
+  ],
+  "matrix": {
+    "defaults": {
+      "matrix": "representative",
+      "scale": 100
+    },
+    "scales": [
+      100,
+      125,
+      150,
+      200
+    ],
+    "viewports": [
+      [
+        360,
+        800
+      ],
+      [
+        390,
+        844
+      ],
+      [
+        430,
+        932
+      ],
+      [
+        431,
+        932
+      ],
+      [
+        768,
+        1024
+      ],
+      [
+        960,
+        900
+      ],
+      [
+        1280,
+        800
+      ],
+      [
+        1440,
+        900
+      ]
+    ]
+  },
+  "matrixDefaults": {
+    "phoneBreakpointMaxWidth": 430,
+    "scaleMethod": "root-font-size-percent",
+    "scales": [
+      100,
+      125,
+      150,
+      200
+    ],
+    "viewports": [
+      [
+        360,
+        800
+      ],
+      [
+        390,
+        844
+      ],
+      [
+        430,
+        932
+      ],
+      [
+        431,
+        932
+      ],
+      [
+        768,
+        1024
+      ],
+      [
+        960,
+        900
+      ],
+      [
+        1280,
+        800
+      ],
+      [
+        1440,
+        900
+      ]
+    ]
+  },
+  "requiredCoverage": [
+    "normal",
+    "halt",
+    "operator-lock",
+    "state-unavailable",
+    "candidate-carrier-unavailable",
+    "gex-unavailable",
+    "movement-unavailable",
+    "red-folder-event",
+    "healthy-empty-red-folder",
+    "no-candidate",
+    "multiple-cards",
+    "opportunity-suppressed",
+    "qualified-zero",
+    "b-developing",
+    "stale-board",
+    "inactive-session",
+    "opportunity-0",
+    "opportunity-1",
+    "opportunity-9",
+    "opportunity-10",
+    "opportunity-13",
+    "opportunity-23",
+    "opportunity-99",
+    "opportunity-100",
+    "opportunity-999",
+    "symbol-short",
+    "registry-shortest-symbol",
+    "registry-longest-symbol",
+    "long-reason",
+    "long-watch",
+    "long-invalidation",
+    "missing-optional-fields",
+    "short-permission",
+    "long-permission",
+    "long-unavailable-reason",
+    "full-positioning-provenance",
+    "full-qualifier",
+    "event-text-short",
+    "event-text-medium",
+    "event-text-long",
+    "surface-23",
+    "watchlist-13",
+    "historical-defect"
+  ],
+  "scales": [
+    100,
+    125,
+    150,
+    200
+  ],
+  "schemaVersion": 1,
+  "sourceIdentifier": "cuttingboard@044602770f745e322dc47a88e9bd342dc0955ce7",
+  "viewports": [
+    {
+      "height": 800,
+      "width": 360
+    },
+    {
+      "height": 844,
+      "width": 390
+    },
+    {
+      "height": 932,
+      "width": 430
+    },
+    {
+      "height": 932,
+      "width": 431
+    },
+    {
+      "height": 1024,
+      "width": 768
+    },
+    {
+      "height": 900,
+      "width": 960
+    },
+    {
+      "height": 800,
+      "width": 1280
+    },
+    {
+      "height": 900,
+      "width": 1440
+    }
+  ]
+}
