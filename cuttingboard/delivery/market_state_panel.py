@@ -33,16 +33,28 @@ def _run_provenance(run_clock: datetime | None) -> str:
     return "as of unavailable"
 
 
+def _hook(main: str, provenance: str | None = None, qualifier: str | None = None) -> str:
+    """PRD-314 presentation-only wrapper: main value, optional provenance, optional
+    qualifier -- each in its own span, joined by the existing middot separator. Adds
+    no text; visible output is byte-identical to the pre-PRD-314 assembly."""
+    parts = [f'<span class="market-state-main">{main}</span>']
+    if provenance is not None:
+        parts.append(f'<span class="market-state-provenance">{provenance}</span>')
+    if qualifier is not None:
+        parts.append(f'<span class="market-state-qualifier">{qualifier}</span>')
+    return " &middot; ".join(parts)
+
+
 def _environment(market_regime, run_clock) -> str:
     if not isinstance(market_regime, str) or not market_regime.strip():
-        return _UNAVAILABLE
-    return f"{html.escape(market_regime)} &middot; {_run_provenance(run_clock)}"
+        return _hook(_UNAVAILABLE)
+    return _hook(html.escape(market_regime), _run_provenance(run_clock))
 
 
 def _permission(permission, run_clock) -> str:
     if not isinstance(permission, str) or not permission.strip():
-        return _UNAVAILABLE
-    return f"{html.escape(permission)} &middot; {_run_provenance(run_clock)}"
+        return _hook(_UNAVAILABLE)
+    return _hook(html.escape(permission), _run_provenance(run_clock))
 
 
 def _fmt_net(net_usd: float) -> str:
@@ -58,12 +70,12 @@ def _positioning(gex_card_obj) -> str:
     positioning-assumption / not-measured qualifier. None (absent/suppressed)
     -> unavailable. No new interpretation."""
     if gex_card_obj is None:
-        return _UNAVAILABLE
-    return (
-        f"net {_fmt_net(gex_card_obj.net_usd)} * &middot; "
-        f"as of {gex_card_obj.as_of_et} ET, Cboe ~15m delayed &middot; "
+        return _hook(_UNAVAILABLE)
+    return _hook(
+        f"net {_fmt_net(gex_card_obj.net_usd)} *",
+        f"as of {gex_card_obj.as_of_et} ET, Cboe ~15m delayed",
         "* net signed under a configured positioning assumption; "
-        "positioning is not measured"
+        "positioning is not measured",
     )
 
 
@@ -73,7 +85,7 @@ def _participation(movement_card_obj) -> str:
     while any symbol is n/a; creates no breadth/leadership/direction/score. None
     (absent/suppressed) -> unavailable."""
     if movement_card_obj is None:
-        return _UNAVAILABLE
+        return _hook(_UNAVAILABLE)
     chips = [chip for _group, chips in movement_card_obj.groups for chip in chips]
     total = len(chips)
     na = sum(1 for chip in chips if chip.endswith(" n/a"))
@@ -82,18 +94,18 @@ def _participation(movement_card_obj) -> str:
         f"{usable}/{total} captured" if na == 0
         else f"{usable}/{total} captured, {na} n/a"
     )
-    return f"{captured} &middot; captured {movement_card_obj.captured_et} ET"
+    return _hook(captured, f"captured {movement_card_obj.captured_et} ET")
 
 
 def _event_risk(red_folder) -> str:
     """Existing red-folder 48h calendar semantics; no invented feed timestamp.
     Loader error / absent -> unavailable."""
     if not isinstance(red_folder, dict) or not red_folder.get("ok"):
-        return _UNAVAILABLE
+        return _hook(_UNAVAILABLE)
     events = red_folder.get("events") or []
     n = len(events)
     label = f"{n} events in 48h" if n else "no events in 48h"
-    return f"{label} &middot; red-folder calendar"
+    return _hook(label, "red-folder calendar")
 
 
 def _row(label: str, value: str) -> str:
