@@ -248,12 +248,10 @@ def _build_record(
     df: Optional[pd.DataFrame],
 ) -> dict[str, Any]:
     current_price = float(quote.price) if quote is not None else None
-    # PRD-199: additive daily %-change (sign drives the macro-tape tradables
-    # arrow via _pct_arrow). Mirrors the macro-driver change_pct convention
-    # (pct_change_decimal * 100). None when the quote is absent.
-    daily_change_pct = (
-        float(quote.pct_change_decimal) * 100.0 if quote is not None else None
-    )
+    # PRD-312: the additive `daily_change_pct` field (formerly the SIGN source for
+    # the retired Macro-Tape tradables arrow) is removed — its only reader, that
+    # arrow, is cut in the same slice. price_vs_vwap and trend_alignment below are
+    # unchanged.
 
     closes = _close_series(df)
     sma_50 = _sma(closes, 50)
@@ -274,7 +272,6 @@ def _build_record(
         "symbol": symbol,
         "data_status": data_status,
         "current_price": current_price,
-        "daily_change_pct": daily_change_pct,
         "vwap": vwap,
         "sma_50": sma_50,
         "sma_200": sma_200,

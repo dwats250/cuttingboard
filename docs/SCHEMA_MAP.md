@@ -133,6 +133,20 @@ seam and never any decision surface.
 
 ---
 
+## MARKET STATE panel (PRD-312) — introduces NO new schema
+
+`cuttingboard/delivery/market_state_panel.py` is a display-only five-axis panel
+(ENVIRONMENT / PERMISSION / POSITIONING / PARTICIPATION / EVENT RISK). It defines
+no artifact and no new field: it reads only carriers the renderer already
+resolves — `summary.market_regime`, `run.permission` (run-first), the resolved
+`GexCard` / `MovementCard` objects, and the red-folder view. It never reads a raw
+snapshot (keeps `gex_card` the sole `gex_snapshot` reader). Related cut: the trend
+record's `daily_change_pct` field (produced by `trend_structure._build_record`,
+its only reader the retired Macro-Tape tradables arrow) is REMOVED — distinct from
+the watchlist row's `daily_change_pct` above (PRD-311), which is unchanged.
+
+---
+
 ## Usage rules
 
 - For **contract** fields, verify against `cuttingboard/contract_types.py`

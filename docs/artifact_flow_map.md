@@ -129,7 +129,10 @@ defaults differ.
   `validate_quotes`/any decision surface.
 - **Consumers:** `cuttingboard.delivery.movement_card` (via `dashboard_renderer`,
   PRD-311 MARKET MOVEMENT card — the first machine reader; validates + suppresses
-  baseline-neutral on any contract violation).
+  baseline-neutral on any contract violation); and (PRD-312) the MARKET STATE
+  panel's PARTICIPATION row, which reads the resolved `MovementCard` object the
+  renderer builds (availability + `generated_at` + honest partial state only —
+  never a "12/12" overclaim), not the raw artifact.
 - **Category:** Sidecar; not runtime-critical for decisions
 - **Test isolation:** monkeypatch `runtime.WATCHLIST_PATH` and `runtime.LOGS_DIR` to `tmp_path`
 
@@ -177,7 +180,11 @@ defaults differ.
 - **Consumers:** Dustin — human, manual local inspection (observe-only); and one
   machine consumer — `cuttingboard/delivery/gex_card.py` (PRD-309), a display-only
   dashboard card reader with NO decision authority (loaded by
-  `dashboard_renderer.py`; imports no decision module). Baseline-neutral: no
+  `dashboard_renderer.py`; imports no decision module). PRD-312: the MARKET STATE
+  panel's POSITIONING row also surfaces GEX, but reads the resolved `GexCard`
+  object the renderer builds (preserving the configured-assumption + ~15m Cboe
+  qualifiers) — it never reads the `gex_snapshot` artifact, keeping `gex_card` the
+  sole artifact reader (R17 isolation). Baseline-neutral: no
   `cuttingboard` decision module reads it; its presence/absence/staleness/failure
   changes no TRADE/NO TRADE/HALT, candidate permission, qualification,
   grading/ranking, sizing, regime, kill-switch, or execution behavior (the card

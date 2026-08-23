@@ -567,9 +567,10 @@ def test_prd110_no_leakage_into_decision_modules():
     assert offenders == [], f"trend_structure leakage into decision modules: {offenders}"
 
 
-def test_prd199_record_carries_daily_change_pct():
-    # PRD-199 R1: _build_record emits an additive daily_change_pct from
-    # quote.pct_change_decimal (sign-preserving); None when the quote is absent.
+def test_prd312_record_has_no_daily_change_pct_field():
+    # PRD-312 (M16): the orphaned `daily_change_pct` producer is removed (its only
+    # reader, the Macro-Tape tradables arrow, is cut in the same slice). The
+    # structural fields price_vs_vwap and trend_alignment are preserved.
     def _q(sym: str, price: float, pct: float) -> NormalizedQuote:
         return NormalizedQuote(
             symbol=sym, price=price, pct_change_decimal=pct, volume=1_000_000.0,
@@ -579,8 +580,7 @@ def test_prd199_record_carries_daily_change_pct():
 
     quotes = {"SPY": _q("SPY", 100.0, 0.012), "QQQ": _q("QQQ", 100.0, -0.008)}
     out = build_trend_structure_snapshot(quotes, {}, ["SPY", "QQQ"])
-    assert out["symbols"]["SPY"]["daily_change_pct"] > 0
-    assert out["symbols"]["QQQ"]["daily_change_pct"] < 0
-    # Absent quote -> None (present key, null value).
-    out2 = build_trend_structure_snapshot({}, {}, ["SPY"])
-    assert out2["symbols"]["SPY"]["daily_change_pct"] is None
+    rec = out["symbols"]["SPY"]
+    assert "daily_change_pct" not in rec  # producer removed
+    assert "price_vs_vwap" in rec         # structural field preserved
+    assert "trend_alignment" in rec       # structural field preserved

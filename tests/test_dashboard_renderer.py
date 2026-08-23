@@ -3878,69 +3878,40 @@ def _render_tradables(monkeypatch, changes, *, generated_at, mm_symbols=None) ->
     return render_dashboard_html(payload, run, market_map=market_map, trend_structure_snapshot=snap)
 
 
-def test_prd199_r2_tradable_arrow_follows_pct_not_direction(monkeypatch) -> None:
-    # Red test: SPY trade_framing.direction = LONG (high-grade BULL) but
-    # daily_change_pct < 0 -> arrow must be DOWN (driven by %-change sign, not direction).
-    html = _render_tradables(
-        monkeypatch, {"SPY": -0.42}, generated_at=_fresh_ts_iso(),
-        mm_symbols={"SPY": _mm_symbol("SPY", grade="A", bias="BULL")},
-    )
-    cell = _tradable_cell(html, "SPY")
-    assert '<span class="tradable-arrow">↓</span>' in cell
-    assert '<span class="tradable-arrow">↑</span>' not in cell
-
-
-def test_prd199_r3_tradable_arrow_renders_for_nonzero_change(monkeypatch) -> None:
-    html = _render_tradables(
-        monkeypatch, {"QQQ": 0.85}, generated_at=_fresh_ts_iso(),
-        mm_symbols={"QQQ": _mm_symbol("QQQ", grade="A", bias="BULL")},
-    )
-    assert '<span class="tradable-arrow">↑</span>' in _tradable_cell(html, "QQQ")
-
-
-def test_prd199_r3_tradable_arrow_dash_when_change_missing(monkeypatch) -> None:
-    # Fresh+healthy snapshot but daily_change_pct absent -> dash sentinel (missing-field path).
-    html = _render_tradables(
-        monkeypatch, {}, generated_at=_fresh_ts_iso(),
-        mm_symbols={"SPY": _mm_symbol("SPY", grade="A")},
-    )
-    assert '<span class="tradable-arrow">—</span>' in _tradable_cell(html, "SPY")
-
-
-def test_prd199_arrow_is_monochrome_no_color_class(monkeypatch) -> None:
-    # Approval edit: the tradable arrow carries no _ARROW_CSS color class; color
-    # stays reserved for the macro-driver rows (tape-slot up/down).
+def test_prd312_tradables_arrow_removed(monkeypatch) -> None:
+    # PRD-312 (M14): the Macro-Tape tradables daily-change arrow is cut. No
+    # `tradable-arrow` span renders anywhere, regardless of trend-snapshot content
+    # -- reintroducing the arrow reddens. (Supersedes the PRD-199/R5 arrow tests.)
     html = _render_tradables(
         monkeypatch, {"SPY": -0.42, "QQQ": 0.85}, generated_at=_fresh_ts_iso(),
-        mm_symbols={"SPY": _mm_symbol("SPY", grade="A")},
+        mm_symbols={"SPY": _mm_symbol("SPY", grade="A"), "QQQ": _mm_symbol("QQQ", grade="A")},
     )
+    assert "tradable-arrow" not in html
     grid = html.split('class="macro-tradables-grid"', 1)[1].split("</div>", 1)[0]
-    assert "tradable-arrow" in grid
-    assert "tape-slot up" not in grid
-    assert "tape-slot down" not in grid
+    assert "tradable-arrow" not in grid
 
 
-def test_prd199_r4_tradable_price_unchanged_with_arrow(monkeypatch) -> None:
-    from tests.dash_helpers import _macro_tape_value_slots
+def test_prd312_tradables_price_preserved(monkeypatch) -> None:
+    # PRD-312 (M15): the tradables PRICE tape survives the arrow cut -- the label +
+    # current_price still render; removing the price reddens. (Supersedes the
+    # PRD-199 R4 price-unchanged-with-arrow test.)
     html = _render_tradables(
         monkeypatch, {"SPY": 0.5}, generated_at=_fresh_ts_iso(),
         mm_symbols={"SPY": {**_mm_symbol("SPY", grade="A"), "current_price": 512.345}},
     )
-    assert dict(_macro_tape_value_slots(html))["SPY"] == "512.35"
-
-
-def test_prd199_r5_tradable_arrow_dashes_when_trend_snapshot_stale(monkeypatch) -> None:
-    # PRD-199 R5 (freshness gate): lineage fresh+coherent but the trend snapshot is
-    # wall-clock STALE -> _ts_health == STALE -> the tradables ARROW degrades to the dash
-    # sentinel, while the price (independently fresh from market_map) is retained.
-    html = _render_tradables(
-        monkeypatch, {"SPY": -0.42}, generated_at="2020-01-01T00:00:00+00:00",
-        mm_symbols={"SPY": _mm_symbol("SPY", grade="A")},
-    )
     cell = _tradable_cell(html, "SPY")
-    assert '<span class="tradable-arrow">—</span>' in cell       # arrow degraded to dash
-    assert '<span class="tradable-arrow">↓</span>' not in cell    # not the stale directional arrow
-    assert 'data-symbol="SPY">100.00</span>' in cell             # price retained (market_map fresh)
+    assert 'data-symbol="SPY">512.35</span>' in cell
+    assert "tradable-arrow" not in cell
+
+
+def test_prd312_market_state_before_system_state_outside_region() -> None:
+    # PRD-312 (M13): the MARKET STATE block renders BEFORE id="system-state", so it
+    # is OUTSIDE the PRD-219 system-state..candidate-board protected region.
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
+    assert 'id="market-state"' in html
+    assert html.index('id="market-state"') < html.index('id="system-state"')
+    region = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    assert 'id="market-state"' not in region  # not inside the protected region
 
 
 # ---------------------------------------------------------------------------
@@ -4004,12 +3975,16 @@ def test_prd220_macro_pressure_one_bullet_per_line() -> None:
     assert "<br>" in line  # phrases on separate lines
 
 
-def test_prd220_tradables_arrow_before_price() -> None:
-    import re as _r220
+def test_prd312_tradables_label_then_price_no_arrow() -> None:
+    # PRD-312 (supersedes PRD-220 arrow-before-price): the arrow is cut, so a
+    # tradable cell now goes label -> price directly with NO arrow span between
+    # them. Reintroducing the arrow reddens.
+    import re as _r312
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=_market_map())
-    # arrow span precedes the value span within a tradable cell
-    assert _r220.search(
-        r'class="tradable-arrow">[^<]*</span>&nbsp;<span class="macro-tape-value"', html
+    assert "tradable-arrow" not in html
+    # label span is immediately followed by the value span (no arrow in between)
+    assert _r312.search(
+        r'class="macro-tape-label">[^<]*</span>&nbsp;<span class="macro-tape-value"', html
     )
 
 
@@ -4527,8 +4502,18 @@ def test_gex_decision_outputs_unchanged(monkeypatch):
     present = render_dashboard_html(_payload(), _run(), gex_snapshot=_valid_gex(), now=_GEX_FROZEN)
     frag = _gex.render_fragment(_valid_gex(), now=_GEX_FROZEN)
     assert frag and frag in present
-    # Excising exactly the inserted card leaves every other (decision-relevant) byte identical.
-    assert present.replace("\n" + frag, "", 1) == absent
+    # PRD-312: the display-only MARKET STATE panel also reflects GEX presence in its
+    # POSITIONING row (present -> net, absent -> unavailable), so it is a second
+    # display region, not a decision output. Strip that block from both renders,
+    # then excise exactly the inserted GEX card: every remaining decision-relevant
+    # byte must be identical.
+    import re as _re312
+    def _strip_ms(html):
+        return _re312.sub(
+            r'<div class="block" id="market-state">.*?\n</div>', "", html,
+            count=1, flags=_re312.S,
+        )
+    assert _strip_ms(present).replace("\n" + frag, "", 1) == _strip_ms(absent)
 
 
 # --- R17: AST/path-literal isolation guard ---
