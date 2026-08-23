@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-23T04:06:15.170638+00:00",
+  "generated_at": "2026-08-23T04:49:57.017477+00:00",
   "schema_version": 1,
   "source": "trend_structure",
   "symbols": {
@@ -42,7 +42,7 @@
       "price_vs_vwap": "NOT_COMPUTED",
       "reason": "BULLISH alignment; VWAP NOT_COMPUTED",
       "relative_volume": 0.8339952969794545,
-      "sma_200": 651.74275390625,
+      "sma_200": 651.7427499389648,
       "sma_50": 713.3455383300782,
       "symbol": "QQQ",
       "trend_alignment": "BULLISH",

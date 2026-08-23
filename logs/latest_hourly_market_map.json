@@ -16,8 +16,8 @@
       "QQQ"
     ]
   },
-  "generated_at": "2026-08-22T05:51:21Z",
-  "generation_id": "hourly-20260822T055121Z",
+  "generated_at": "2026-08-23T04:49:57Z",
+  "generation_id": "hourly-20260823T044957Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -28,10 +28,10 @@
   ],
   "removed_symbols": [],
   "schema_version": "market_map.v1",
-  "session_date": "2026-08-22",
+  "session_date": "2026-08-23",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-08-22T05:51:21Z"
+    "run_at_utc": "2026-08-23T04:49:57Z"
   },
   "symbols": {
     "GDX": {

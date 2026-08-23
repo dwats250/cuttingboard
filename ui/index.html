@@ -60,10 +60,10 @@
 <div class="block" id="market-state">
   <h2>MARKET STATE</h2>
   <div class="kv-grid">
-    <div class="label">ENVIRONMENT</div><div class="value">EXPANSION &middot; as of 00:06 ET</div>
-    <div class="label">PERMISSION</div><div class="value">No new trades permitted — operator cannot monitor. &middot; as of 00:06 ET</div>
-    <div class="label">POSITIONING</div><div class="value">unavailable</div>
-    <div class="label">PARTICIPATION</div><div class="value">unavailable</div>
+    <div class="label">ENVIRONMENT</div><div class="value">EXPANSION &middot; as of 00:49 ET</div>
+    <div class="label">PERMISSION</div><div class="value">No new trades permitted — operator cannot monitor. &middot; as of 00:49 ET</div>
+    <div class="label">POSITIONING</div><div class="value">net +$10.0B * &middot; as of 00:50 ET, Cboe ~15m delayed &middot; * net signed under a configured positioning assumption; positioning is not measured</div>
+    <div class="label">PARTICIPATION</div><div class="value">12/12 captured &middot; captured 00:49 ET</div>
     <div class="label">EVENT RISK</div><div class="value">no events in 48h &middot; red-folder calendar</div>
   </div>
 </div>
@@ -87,36 +87,35 @@
     <div class="label">PRIMARY REJECTION</div><div class="value">CHOP</div>
   </div>
 </div>
-<div class="block" id="spy-observation">
-  <h2>SPY SESSION OBSERVATION</h2>
+<div class="block" id="gex-context">
+  <h2>GEX <span class="label">(context only)</span></h2>
   <div class="kv-grid">
-    <div class="label">SESSION</div><div class="value">2026-08-23</div>
-    <div class="label">STATE</div><div class="value">PRE_OPEN — PRE_OPEN_PRIOR_SESSION</div>
-    <div class="label">OBSERVED AT</div><div class="value">2026-08-21T19:59:00+00:00</div>
-    <div class="label">SESSION VWAP</div><div class="value">UNAVAILABLE</div>
-    <div class="label">PRICE</div><div class="value">unavailable</div>
-    <div class="label">ORB</div><div class="value">PRE_OPEN</div>
+    <div class="label">Net</div><div class="value">+$10.0B *</div>
+    <div class="label">Dominant</div><div class="value">7900 &nbsp; +2.94%</div>
+    <div class="label">Call wall</div><div class="value">8000 &nbsp; +4.24%</div>
+    <div class="label">Put wall</div><div class="value">8000 &nbsp; +4.24%</div>
+    <div class="label">0DTE</div><div class="value">0.0%</div>
   </div>
+  <div class="label">as of 00:50 ET &middot; Cboe ~15m delayed source</div>
+  <div class="label">* net is signed under a configured positioning assumption; positioning is not measured.</div>
 </div>
-<div class="block" id="market-control-card">
-  <h2>MARKET CONTROL</h2>
+<div class="block" id="market-movement">
+  <h2>MARKET MOVEMENT</h2>
   <div class="kv-grid">
-    <div class="label">LOCATION</div><div class="value">PRE_OPEN — pre_open_prior_session</div>
-    <div class="label">ORB</div><div class="value">PRE_OPEN</div>
-    <div class="label">STATE</div><div class="value">UNAVAILABLE — non_current_observation</div>
-    <div class="label">PERMISSION</div><div class="value">No new trades permitted — operator cannot monitor.</div>
-    <div class="label">EVENT</div><div class="value">no_scheduled_events</div>
-    <div class="label">TRANSITION</div><div class="value">UNAVAILABLE — transition_state_unavailable</div>
-    <div class="label">INVALIDATION</div><div class="value">NO_ACTIVE_CANDIDATES</div>
-    <div class="label">CANDIDATE-IMPLICATION</div><div class="value">CANDIDATES_PRESENT_NONE_ACTIONABLE (ACTIVE 0 / NEAR_MISS 0 / BLOCKED 1)</div>
+    <div class="label">INDEX</div><div class="value">SPY +0.4% &nbsp; QQQ +0.4%</div>
+    <div class="label">METALS</div><div class="value">GDX +3.1% &nbsp; GLD +2.0% &nbsp; SLV +1.7%</div>
+    <div class="label">ENERGY</div><div class="value">XLE -0.3% &nbsp; UCO +1.3%</div>
+    <div class="label">TECH</div><div class="value">NVDA -1.1% &nbsp; META +0.7% &nbsp; AMZN -0.7% &nbsp; GOOG +1.1%</div>
+    <div class="label">HIGH_BETA</div><div class="value">TSLA +4.8%</div>
   </div>
+  <div class="label">captured 00:49 ET</div>
 </div>
 <div class="block" id="macro-tape">
   <h2>Macro Tape</h2>
   <div class="macro-bias short">MACRO BIAS: SHORT ↓</div>
   <div class="macro-tally">Risk votes: 3 off / 1 on → SHORT</div>
   <div class="macro-pressure-line">• VIX permits longs<br>• DXY pressures longs<br>• BTC pressures risk-on</div>
-  <div class="macro-spot-metals-row"><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">GC&nbsp; ↑</span><span class="macro-tape-value" data-symbol="XAU">4680.6</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">SI&nbsp; ↑</span><span class="macro-tape-value" data-symbol="XAG">69.53</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">BTC ↓</span><span class="macro-tape-value" data-symbol="BTC">76.9K</span></span></div>
+  <div class="macro-spot-metals-row"><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">GC&nbsp; ↑</span><span class="macro-tape-value" data-symbol="XAU">4680.6</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">SI&nbsp; ↑</span><span class="macro-tape-value" data-symbol="XAG">69.53</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">BTC ↓</span><span class="macro-tape-value" data-symbol="BTC">76.6K</span></span></div>
   <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">VIX ↓</span><span class="macro-tape-value" data-symbol="VIX">15.1</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">DXY ↑</span><span class="macro-tape-value" data-symbol="DXY">98.8</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">10Y ↑</span><span class="macro-tape-value" data-symbol="10Y">4.74</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">OIL ↑</span><span class="macro-tape-value" data-symbol="OIL">87.1</span></span></div>
   <div class="sep"></div>
   <div class="macro-tradables-grid">
@@ -202,46 +201,30 @@
     <div class="tier-header">B — DEVELOPING (1)</div>
 <div class="candidate-card grade-b" id="card-SPY">
   <div class="card-header">SPY · B · DEVELOPING · BULLISH PULLBACK</div>
-  <div class="label">LEVEL</div><div class="value-key">hold above VWAP with constructive follow-through</div>
-  <div class="label">INVALIDATION</div><div class="value-key">loses VWAP with weak recovery, or structure turns choppy</div>
+  <div class="label">LEVEL</div><div class="value-key">hold above EMA9 with constructive follow-through</div>
+  <div class="label">INVALIDATION</div><div class="value-key">loses EMA9 with weak recovery, or structure turns choppy</div>
   <details class="card-detail"><summary>DETAIL ▶</summary>
   <div class="label">REASON</div><div class="value">B: bullish pullback, regime aligned, near key level</div>
-  <div class="label">WATCH</div><div class="value">watch hold above VWAP; look for higher low with expanding volume</div>
+  <div class="label">WATCH</div><div class="value">watch hold above EMA9; look for higher low with expanding volume</div>
   </details>
   <div class="lvl-diagram">
     <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
     <rect width="160" height="110" fill="#0a0a0a"/>
-    <line x1="0" y1="46" x2="160" y2="46" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="0" y1="45" x2="160" y2="45" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
     <line x1="0" y1="72" x2="160" y2="72" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
     <line x1="0" y1="99" x2="160" y2="99" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
     <line x1="0" y1="11" x2="160" y2="11" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="11" x2="160" y2="11" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="27" x2="160" y2="27" stroke="#1a4a5a" stroke-width="1"/>
     <line x1="0" y1="31" x2="160" y2="31" stroke="#1a4a5a" stroke-width="1"/>
     <line x1="0" y1="80" x2="160" y2="80" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="21" x2="160" y2="21" stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>
     <line x1="0" y1="20" x2="160" y2="20" stroke="#f5c518" stroke-width="2"/>
     <circle cx="3" cy="20" r="3" fill="#f5c518"/>
-    <line x1="160" y1="46" x2="163" y2="74" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="77" font-size="9" fill="#555" font-family="monospace">0.382 760.17 -0.7%</text>
-    <line x1="160" y1="72" x2="163" y2="85" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="88" font-size="9" fill="#555" font-family="monospace">0.5 754.24 -1.5%</text>
-    <line x1="160" y1="99" x2="163" y2="107" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="110" font-size="9" fill="#555" font-family="monospace">0.618 748.30 -2.3%</text>
-    <line x1="160" y1="11" x2="163" y2="8" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="11" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_HIGH 767.85 +0.3%</text>
-    <line x1="160" y1="11" x2="163" y2="19" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="22" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9 767.79 +0.3%</text>
-    <line x1="160" y1="27" x2="163" y2="52" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="55" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_LOW 764.17 -0.2%</text>
-    <line x1="160" y1="31" x2="163" y2="63" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="66" font-size="9" fill="#3a7a8a" font-family="monospace">EMA21 763.29 -0.3%</text>
-    <line x1="160" y1="80" x2="163" y2="96" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="99" font-size="9" fill="#3a7a8a" font-family="monospace">EMA50 752.63 -1.7%</text>
-    <line x1="160" y1="21" x2="163" y2="41" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="44" font-size="9" fill="#29b6f6" font-family="monospace">VWAP 765.63 -0.0%</text>
-    <line x1="160" y1="20" x2="163" y2="30" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="33" font-size="9" fill="#f5c518" font-family="monospace">NOW 765.72</text>
+    <text x="164" y="49" font-size="9" fill="#555" font-family="monospace">0.382 760.17 -0.7%</text>
+    <text x="164" y="76" font-size="9" fill="#555" font-family="monospace">0.5 754.24 -1.5%</text>
+    <text x="164" y="103" font-size="9" fill="#555" font-family="monospace">0.618 748.30 -2.3%</text>
+    <text x="164" y="15" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9 767.79 +0.3%</text>
+    <text x="164" y="37" font-size="9" fill="#3a7a8a" font-family="monospace">EMA21 763.29 -0.3%</text>
+    <text x="164" y="87" font-size="9" fill="#3a7a8a" font-family="monospace">EMA50 752.63 -1.7%</text>
+    <text x="164" y="26" font-size="9" fill="#f5c518" font-family="monospace">NOW 765.72</text>
     </svg>
   </div>
 </div>
