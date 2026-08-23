@@ -459,11 +459,15 @@ FINDINGS (F1-F7). Dispositions folded here:
 - **F7 (P1) — ACTIONED by D-1/D-2** (M4b GEX qualifier; M6b partial-absence; no
   12/12 overclaim; no re-presented GEX net without qualifier).
 
-### EXACT-CORRECTED-HEAD CONFIRMATION (Event-2) — PENDING
-To be recorded as `MARKET_STATE_EVENT2_CODEX_CONFIRMATION_2026-08-22.md`:
-corrected SHA, enumerated F1-F7 dispositions confirmed, five-axis consistency,
-placement, GEX qualifier, PARTICIPATION no-overclaim, arrow proof, FILES/LOC
-match, no new MATERIAL boundary; verdict.
+### EXACT-CORRECTED-HEAD CONFIRMATION (Event-2) — COMPLETE, CLEAN (2026-08-22)
+Record: `MARKET_STATE_EVENT2_CODEX_CONFIRMATION_2026-08-22.md`. Reviewer:
+independent Codex, fresh context, read-only, high. Confirmed corrected SHA
+`e6b8758`. **Verdict: CLEAN — F1-F7 all RESOLVED, five-axis contract internally
+consistent, NEW BLOCKING: NONE** (all nine confirmation items: F1-resolved-by-
+dropping-INTRADAY, F2-F7 dispositions, five-axis consistency, placement, GEX
+qualifier, PARTICIPATION no-overclaim, arrow proof, FILES/LOC match, no new
+MATERIAL boundary). The GOV-2 packet cycle is COMPLETE; the packet is
+REVIEW-CLEAN.
 
 ---
 
