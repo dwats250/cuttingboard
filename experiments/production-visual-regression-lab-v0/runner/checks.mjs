@@ -151,8 +151,12 @@ export function classifyObservation(raw, fixture, defaults = {}) {
         "candidateIdentity", "candidateLevel", "candidateInvalidation",
         "provenance", "qualifier", "staleness"
       ].includes(key);
+    const ownHorizontalClip = Boolean(
+      measurement.nonScrollHorizontalOverflow &&
+      ["hidden", "clip"].includes(String(measurement.overflowX).toLowerCase())
+    );
     const horizontalClip = Boolean(
-      measurement.nonScrollHorizontalOverflow ||
+      ownHorizontalClip ||
       (textBoundsAreAuthoritative && measurement.textExitsBoxX) ||
       (measurement.clippedByAncestor || []).some((item) =>
         item.axis === "x" || item.axis === "both"

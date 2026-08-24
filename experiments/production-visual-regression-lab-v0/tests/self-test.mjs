@@ -75,6 +75,7 @@ function elementMeasurement(overrides = {}) {
     display: "block",
     visibility: "visible",
     opacity: 1,
+    overflowX: "visible",
     directlyHidden: false,
     zeroSize: false,
     hiddenByAncestor: [],
@@ -208,6 +209,7 @@ test("classifier detects overflow, critical clipping, hidden critical, wrong ord
   const clipped = classificationFor(rawObservation({
     elements: { critical: elementMeasurement({
       scrollWidth: 240,
+      overflowX: "hidden",
       nonScrollHorizontalOverflow: true
     }) }
   }), { criticalKeys: ["critical"] });
@@ -237,6 +239,22 @@ test("classifier detects overflow, critical clipping, hidden critical, wrong ord
   assert.ok(tooFewCards.checks.some((check) =>
     check.id === "candidate-minimum-card-count" && check.status === "FAIL"
   ));
+});
+
+test("classifier does not call visible surface bleed clipping", () => {
+  const visibleBleed = classificationFor(rawObservation({
+    elements: { critical: elementMeasurement({
+      scrollWidth: 106,
+      overflowX: "visible",
+      nonScrollHorizontalOverflow: true,
+      textExitsBoxX: false
+    }) }
+  }), { criticalKeys: ["critical"] });
+  assert.notEqual(visibleBleed.verdict, "FAIL");
+  assert.equal(
+    visibleBleed.checks.find((check) => check.id === "critical-horizontal-clipping:critical").status,
+    "PASS"
+  );
 });
 
 test("classifier does not fail readable wrapping", () => {
