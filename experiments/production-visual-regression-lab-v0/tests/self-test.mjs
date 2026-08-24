@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,6 +11,7 @@ import {
   createTarget,
   enablePageRuntime,
   evaluate,
+  injectCss,
   launchChrome,
   navigateFile,
   setRootFontScale,
@@ -35,6 +37,12 @@ const selfTestRoot = join(labRoot, "fixtures", "self-test");
 const catalog = JSON.parse(
   await readFile(join(labRoot, "fixtures", "catalog.json"), "utf8")
 );
+const currentmainCatalog = JSON.parse(
+  await readFile(join(labRoot, "fixtures", "currentmain-catalog.json"), "utf8")
+);
+const candidateCssText = (
+  await readFile(join(labRoot, "prototypes", "opportunity-125.css"), "utf8")
+).trim();
 
 let chrome = null;
 
@@ -400,4 +408,137 @@ test("PRD-314 pre-fix/current domain fixtures preserve the exact clipping calibr
   assert.deepEqual(currentTargetedFailures, new Set());
   assert.equal(pre431.result.verdict, "PASS");
   assert.equal(current431.result.verdict, "PASS");
+});
+
+// --- Opportunity 125% prototype: current-main content + candidate CSS override ---
+
+async function measureCurrentMain(id, viewport, scale, { inject = false } = {}) {
+  const fixture = currentmainCatalog.fixtures.find((entry) => entry.id === id);
+  assert.ok(fixture, `current-main fixture ${id} must exist`);
+  const target = await createTarget(chrome);
+  try {
+    await enablePageRuntime(target);
+    await configureViewport(target, viewport.width, viewport.height);
+    await navigateFile(target, join(labRoot, "fixtures", fixture.file));
+    await setRootFontScale(target, scale);
+    let injection = null;
+    if (inject) injection = await injectCss(target, candidateCssText);
+    const raw = await evaluate(target, buildProbeExpression({
+      ...(currentmainCatalog.defaults || {}),
+      ...(fixture.probe || {})
+    }));
+    const result = classifyObservation(raw, fixture, currentmainCatalog.defaults || {});
+    return { fixture, raw, result, injection };
+  } finally {
+    await closeTarget(target);
+  }
+}
+
+test("candidate CSS resolves Opportunity 125% overflow, and removing it reintroduces it (red test)", async () => {
+  // Worst case: operator-lock SETUPS FOUND + PRIMARY REJECTION at 360x800/125.
+  const before = await measureCurrentMain("operator-lock", { width: 360, height: 800 }, 125);
+  assert.ok(before.raw.page.overflowX > 1,
+    `operator-lock 360/125 must overflow the page without the fix (saw ${before.raw.page.overflowX}px)`);
+  assert.equal(before.result.verdict, "FAIL");
+
+  const after = await measureCurrentMain("operator-lock", { width: 360, height: 800 }, 125, { inject: true });
+  assert.equal(after.injection.injected, true);
+  assert.ok(after.raw.page.overflowX <= 1,
+    `candidate CSS must remove page overflow (saw ${after.raw.page.overflowX}px)`);
+  assert.equal(after.result.verdict, "PASS");
+
+  // Values remain readable (no clipping) with the fix applied.
+  const surfaced = after.raw.opportunityValues?.SURFACED;
+  assert.equal(String(surfaced?.text).trim(), "23");
+});
+
+test("candidate override is media-scoped: it changes the grid under phone pressure and is inert at 431", async () => {
+  // Read at a fixed 800px height so 360 and 431 are the only variable.
+  const readColumns = async (width, inject) => {
+    const target = await createTarget(chrome);
+    try {
+      await enablePageRuntime(target);
+      await configureViewport(target, width, 800);
+      await navigateFile(target, join(labRoot, "fixtures", "currentmain", "operator-lock.html"));
+      await setRootFontScale(target, 125);
+      if (inject) await injectCss(target, candidateCssText);
+      return await evaluate(target,
+        "getComputedStyle(document.querySelector('#opportunity-survival .kv-grid')).gridTemplateColumns");
+    } finally {
+      await closeTarget(target);
+    }
+  };
+  // 360px is inside @media(max-width:430) and under real overflow pressure, so
+  // the label tracks (max-content -> auto) resolve to different widths.
+  const at360Plain = await readColumns(360, false);
+  const at360Fixed = await readColumns(360, true);
+  // 431px is outside the phone media query entirely; the injected @media rule
+  // never applies, so it is inert.
+  const at431Plain = await readColumns(431, false);
+  const at431Fixed = await readColumns(431, true);
+  assert.notEqual(at360Fixed, at360Plain,
+    "override must shrink the Opportunity label tracks under 360px/125 pressure");
+  assert.equal(at431Fixed, at431Plain,
+    "override must be inert at 431px (outside @media max-width:430)");
+});
+
+test("runtime candidate injection never mutates the source HTML bytes", async () => {
+  const sourcePath = join(labRoot, "fixtures", "currentmain", "operator-lock.html");
+  const before = createHash("sha256").update(await readFile(sourcePath)).digest("hex");
+  await measureCurrentMain("operator-lock", { width: 360, height: 800 }, 125, { inject: true });
+  const after = createHash("sha256").update(await readFile(sourcePath)).digest("hex");
+  assert.equal(after, before, "candidate CSS is a runtime override; the fixture bytes must be unchanged");
+});
+
+test("current-main authority order is truthful under PRD-315; the pre-PRD-315 order is a red test", async () => {
+  const { raw, result } = await measureCurrentMain("normal", { width: 390, height: 844 }, 100);
+  const order = raw.dom.surfaceOrder;
+  assert.equal(order.indexOf("candidate"), order.indexOf("opportunity") + 1,
+    "current main renders candidate immediately after opportunity");
+  assert.ok(!result.failures.some((message) => message.startsWith("wrong DOM authority order")),
+    "current-main catalog order must PASS on current-main render");
+
+  // Red test: the reusable lab's pre-PRD-315 order (candidate after trend) must
+  // FAIL against current-main content -- exactly the calibration bug corrected.
+  const preOrder = [
+    "marketState", "systemState", "opportunity", "gex", "movement",
+    "macro", "redFolder", "trend", "candidate", "runDelta", "scoreboard"
+  ];
+  const normalFixture = currentmainCatalog.fixtures.find((entry) => entry.id === "normal");
+  const red = classifyObservation(
+    raw,
+    { id: "normal", expected: { ...normalFixture.expected, order: preOrder } },
+    currentmainCatalog.defaults || {}
+  );
+  assert.ok(red.failures.some((message) => message.startsWith("wrong DOM authority order")),
+    "pre-PRD-315 order must FAIL on current-main render");
+});
+
+test("candidate CSS is Opportunity-scoped, media-bounded, and free of forbidden techniques", () => {
+  const css = candidateCssText;
+  assert.ok(css.includes("@media (max-width: 430px)"), "must stay within the phone breakpoint");
+  assert.ok(css.includes("#opportunity-survival .kv-grid"), "must reuse the Opportunity selector");
+  assert.ok(css.includes("minmax(2.5ch, 1fr)"), "must preserve PRD-314 value floor");
+  const forbidden = [
+    /display\s*:\s*none/i,
+    /visibility\s*:\s*hidden/i,
+    /overflow[a-z-]*\s*:\s*(scroll|auto)/i,
+    /text-overflow/i,
+    /ellipsis/i,
+    /white-space\s*:\s*nowrap/i,
+    /font-size/i,
+    /#market-state/i,
+    /#system-state/i,
+    /#gex-context/i
+  ];
+  for (const pattern of forbidden) {
+    assert.ok(!pattern.test(css), `candidate CSS must not use ${pattern}`);
+  }
+});
+
+test("committed prototype report is byte-stable under re-normalization", async () => {
+  const path = join(labRoot, "reports", "opportunity-125-prototype.json");
+  const committed = await readFile(path, "utf8");
+  const reNormalized = stableStringify(JSON.parse(committed));
+  assert.equal(reNormalized, committed, "prototype report must already be in normalized form");
 });

@@ -163,6 +163,36 @@ export async function setRootFontScale(target, percent = 100) {
   await evaluate(target, "document.fonts?.ready ?? Promise.resolve()");
 }
 
+/**
+ * Apply candidate CSS to the already-loaded, immutable document as a trailing
+ * <style> element. The source HTML file on disk is never rewritten; the override
+ * lives only in the live DOM. Equal-specificity, later-source-order lets a rule
+ * that reuses the production selector win over the production stylesheet.
+ * Returns proof of application for the report.
+ */
+export async function injectCss(target, css, id = "lab-candidate-override") {
+  const expression = `(() => {
+    const css = ${JSON.stringify(String(css))};
+    const previous = document.getElementById(${JSON.stringify(id)});
+    if (previous) previous.remove();
+    const style = document.createElement("style");
+    style.id = ${JSON.stringify(id)};
+    style.setAttribute("data-lab-candidate", "1");
+    style.textContent = css;
+    document.head.appendChild(style);
+    let ruleCount = null;
+    try { ruleCount = style.sheet ? style.sheet.cssRules.length : null; } catch { ruleCount = null; }
+    return {
+      injected: document.getElementById(${JSON.stringify(id)}) !== null,
+      chars: css.length,
+      ruleCount,
+      isLastHeadStyle:
+        document.head.querySelector("style:last-of-type") === style
+    };
+  })()`;
+  return evaluate(target, expression);
+}
+
 export async function evaluate(target, expression) {
   const result = await target.client.send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true });
   if (result.exceptionDetails) throw new Error(`Evaluation failed: ${JSON.stringify(result.exceptionDetails)}`);

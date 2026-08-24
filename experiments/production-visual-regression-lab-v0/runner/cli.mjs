@@ -12,6 +12,7 @@ import {
   createTarget,
   enablePageRuntime,
   evaluate,
+  injectCss,
   launchChrome,
   navigateFile,
   setRootFontScale,
@@ -121,7 +122,9 @@ async function observeOne({
   sourceIdentifier,
   baseline,
   screenshotPrefix = "",
-  forceScreenshot = false
+  forceScreenshot = false,
+  candidateCss = null,
+  captureScreenshots = true
 }) {
   const fixture = caseEntry.fixture;
   const htmlPath = sourcePath || fixturePath(catalogPath, fixture);
@@ -131,6 +134,10 @@ async function observeOne({
     await configureViewport(target, caseEntry.viewport.width, caseEntry.viewport.height);
     await navigateFile(target, htmlPath);
     await setRootFontScale(target, caseEntry.scale);
+    let injection = null;
+    if (candidateCss) {
+      injection = await injectCss(target, candidateCss);
+    }
     for (const selector of fixture.setup?.openDetails || []) {
       await evaluate(target, `Array.from(document.querySelectorAll(${JSON.stringify(selector)}))
         .forEach((element) => { element.open = true; });`);
@@ -173,9 +180,9 @@ async function observeOne({
       caseEntry.viewport,
       caseEntry.scale
     );
-    const shouldCapture = forceScreenshot ||
+    const shouldCapture = captureScreenshots && (forceScreenshot ||
       selectedBaselineScreenshot(caseEntry) ||
-      classification.verdict === "FAIL";
+      classification.verdict === "FAIL");
     let screenshot = null;
     if (shouldCapture) {
       await mkdir(screenshotRoot, { recursive: true });
@@ -210,6 +217,7 @@ async function observeOne({
       failures: classification.failures,
       warnings: classification.warnings,
       information: classification.information,
+      candidateCss: candidateCss ? { applied: true, injection } : { applied: false },
       screenshot,
       raw
     };
@@ -246,7 +254,9 @@ async function runCases({
   sourceIdentifier,
   baseline,
   screenshotPrefix = "",
-  forceScreenshot = false
+  forceScreenshot = false,
+  candidateCss = null,
+  captureScreenshots = true
 }) {
   const chrome = await launchChrome();
   const results = [];
@@ -262,7 +272,9 @@ async function runCases({
         sourceIdentifier,
         baseline,
         screenshotPrefix,
-        forceScreenshot
+        forceScreenshot,
+        candidateCss,
+        captureScreenshots
       }));
       if ((index + 1) % 25 === 0 || index + 1 === cases.length) {
         console.log(`measured ${index + 1}/${cases.length} cases`);
@@ -463,12 +475,263 @@ async function compareCommand(options) {
   if (report.summary.verdict === "FAIL") process.exitCode = 1;
 }
 
+const PHONE_VIEWPORTS = MANDATORY_VIEWPORTS.filter((v) => v.width <= 431);
+
+function casesFor(fixture, viewports, scales) {
+  return viewports.flatMap((viewport) =>
+    scales.map((scale) => ({
+      key: caseKey(fixture.id, viewport, scale),
+      fixture,
+      viewport: { ...viewport },
+      scale
+    }))
+  );
+}
+
+function verdictCounts(results) {
+  const counts = { PASS: 0, WARNING: 0, FAIL: 0 };
+  for (const result of results) counts[result.verdict] += 1;
+  return counts;
+}
+
+function overflowRow(result) {
+  return {
+    key: result.key,
+    fixture: result.fixture,
+    viewport: `${result.viewport.width}x${result.viewport.height}`,
+    scale: result.scale,
+    verdict: result.verdict,
+    overflowPx: Number(result.raw?.page?.overflowX || 0),
+    authorityOrderOk: !(result.failures || []).some((message) =>
+      message.startsWith("wrong DOM authority order")
+    ),
+    failures: result.failures || []
+  };
+}
+
+function indexByKey(results) {
+  return new Map(results.map((result) => [result.key, result]));
+}
+
+async function prototypeCommand(options) {
+  const catalogPath = resolve(options.catalog || join(labRoot, "fixtures", "currentmain-catalog.json"));
+  const catalog = await readJson(catalogPath);
+  const cssPath = resolve(options["candidate-css"] || join(labRoot, "prototypes", "opportunity-125.css"));
+  const candidateCss = (await readFile(cssPath, "utf8")).trim();
+  if (!candidateCss) throw new Error(`candidate CSS is empty: ${cssPath}`);
+  const cssHash = createHash("sha256").update(candidateCss).digest("hex");
+
+  const fixtures = catalog.fixtures.map((fixture) => ({ ...fixture }));
+  const bindingCases = fixtures.flatMap((fixture) => casesFor(fixture, PHONE_VIEWPORTS, [125]));
+  const regressionCases = fixtures.flatMap((fixture) => casesFor(fixture, MANDATORY_VIEWPORTS, [100]));
+  const informationalCases = fixtures.flatMap((fixture) => casesFor(fixture, PHONE_VIEWPORTS, [150, 200]));
+
+  // The prototype is a geometry proof; it never writes screenshots so the
+  // committed screenshot set and report stay small and deterministic.
+  const common = { catalog, catalogPath, baseline: catalog.baseline,
+    forceScreenshot: false, captureScreenshots: false };
+  const quick = Boolean(options.quick);
+
+  // Mutation proof, ordered exactly as the task specifies.
+  console.log("prototype: [1//] binding 125% BEFORE (no candidate CSS)");
+  const before125 = await runCases({ ...common, cases: bindingCases,
+    sourceIdentifier: `${catalog.sourceIdentifier}#before`, candidateCss: null });
+  console.log("prototype: [2] binding 125% WITH candidate CSS");
+  const with125 = await runCases({ ...common, cases: bindingCases,
+    sourceIdentifier: `${catalog.sourceIdentifier}#candidate`, candidateCss });
+  console.log("prototype: [3] binding 125% REVERT (candidate CSS removed)");
+  const revert125 = await runCases({ ...common, cases: bindingCases,
+    sourceIdentifier: `${catalog.sourceIdentifier}#revert`, candidateCss: null });
+
+  let before100 = null, with100 = null, beforeInfo = null, withInfo = null;
+  if (!quick) {
+    console.log("prototype: [4] 100% eight-viewport BEFORE (no candidate CSS)");
+    before100 = await runCases({ ...common, cases: regressionCases,
+      sourceIdentifier: `${catalog.sourceIdentifier}#before100`, candidateCss: null });
+    console.log("prototype: [5] 100% eight-viewport WITH candidate CSS");
+    with100 = await runCases({ ...common, cases: regressionCases,
+      sourceIdentifier: `${catalog.sourceIdentifier}#candidate100`, candidateCss });
+    console.log("prototype: [6] 150/200% informational BEFORE");
+    beforeInfo = await runCases({ ...common, cases: informationalCases,
+      sourceIdentifier: `${catalog.sourceIdentifier}#beforeInfo`, candidateCss: null });
+    console.log("prototype: [7] 150/200% informational WITH candidate CSS");
+    withInfo = await runCases({ ...common, cases: informationalCases,
+      sourceIdentifier: `${catalog.sourceIdentifier}#candidateInfo`, candidateCss });
+  }
+
+  const withIdx = indexByKey(with125.results);
+  const revertIdx = indexByKey(revert125.results);
+
+  const binding = before125.results.map((before) => {
+    const withResult = withIdx.get(before.key);
+    const revertResult = revertIdx.get(before.key);
+    return {
+      ...overflowRow(withResult),
+      before: overflowRow(before),
+      after: overflowRow(withResult),
+      revert: overflowRow(revertResult),
+      transition: `${before.verdict}->${withResult.verdict}`
+    };
+  });
+
+  const bindingBeforeFail = before125.results.filter((r) => r.verdict === "FAIL");
+  const bindingAfterFail = with125.results.filter((r) => r.verdict === "FAIL");
+  const revertFail = revert125.results.filter((r) => r.verdict === "FAIL");
+
+  const before100Idx = before100 ? indexByKey(before100.results) : null;
+  const newFail100 = with100
+    ? with100.results
+        .filter((r) => r.verdict === "FAIL")
+        .filter((r) => before100Idx.get(r.key)?.verdict !== "FAIL")
+    : [];
+
+  const mutationProof = {
+    step1_before_reproduces_failures: {
+      failCount: bindingBeforeFail.length,
+      passed: bindingBeforeFail.length > 0
+    },
+    step2_candidate_all_pass: {
+      failCount: bindingAfterFail.length,
+      total: with125.results.length,
+      passed: bindingAfterFail.length === 0
+    },
+    step3_revert_failures_return: {
+      failCount: revertFail.length,
+      matchesBefore: revertFail.length === bindingBeforeFail.length,
+      passed: revertFail.length === bindingBeforeFail.length && revertFail.length > 0
+    },
+    step4_hundred_percent_green_with_candidate: with100
+      ? { newFailKeys: newFail100.map((r) => r.key), passed: newFail100.length === 0 }
+      : { skipped: true }
+  };
+  mutationProof.overall = Boolean(
+    mutationProof.step1_before_reproduces_failures.passed &&
+    mutationProof.step2_candidate_all_pass.passed &&
+    mutationProof.step3_revert_failures_return.passed &&
+    (quick || mutationProof.step4_hundred_percent_green_with_candidate.passed)
+  );
+
+  // Calibration: current-main authority order must be truthful (PASS) already,
+  // independent of the candidate CSS.
+  const authorityFailures = before125.results.filter((r) =>
+    (r.failures || []).some((m) => m.startsWith("wrong DOM authority order"))
+  );
+
+  // 430/431 boundary. The candidate rule lives inside @media(max-width:430px):
+  // at 431 it must be inert (before == after for every case); at 430 it applies.
+  const before431 = bindingRows(before125.results, 431);
+  const after431 = bindingRows(with125.results, 431);
+  const before430 = bindingRows(before125.results, 430);
+  const after430 = bindingRows(with125.results, 430);
+  const overrideInertAt431 = before431.every((row) => {
+    const after = after431.find((a) => a.fixture === row.fixture);
+    return after && after.overflowPx === row.overflowPx && after.verdict === row.verdict;
+  });
+  const activeAt430 = after430.every((row) => row.overflowPx <= 1);
+  const boundaryCheck = {
+    overrideInertAt431,
+    ruleActiveAndCleanAt430: activeAt430,
+    before431, after431, before430, after430
+  };
+
+  const informational = withInfo
+    ? summarizeInformational(beforeInfo.results, withInfo.results)
+    : { skipped: true };
+
+  const regressionSummary = with100
+    ? {
+        before: verdictCounts(before100.results),
+        after: verdictCounts(with100.results),
+        newFailures: newFail100.map((r) => overflowRow(r))
+      }
+    : { skipped: true };
+
+  const report = {
+    reportType: "opportunity-125-prototype",
+    schemaVersion: 1,
+    baseline: catalog.baseline,
+    sourceIdentifier: catalog.sourceIdentifier,
+    provenance: catalog.provenance || null,
+    candidate: {
+      cssPath: `prototypes/${basename(cssPath)}`,
+      cssSha256: cssHash,
+      css: candidateCss,
+      selectorScope: "#opportunity-survival .kv-grid (inside @media(max-width:430px))",
+      appliedAsRuntimeOverride: true
+    },
+    method: before125.method,
+    matrix: {
+      bindingViewports: PHONE_VIEWPORTS.map((v) => `${v.width}x${v.height}`),
+      bindingScale: 125,
+      regressionViewports: MANDATORY_VIEWPORTS.map((v) => `${v.width}x${v.height}`),
+      regressionScale: 100,
+      informationalScales: [150, 200],
+      fixtures: fixtures.map((f) => f.id)
+    },
+    calibration: {
+      forkedBase: catalog.provenance?.forkedBase || null,
+      currentMain: catalog.baseline,
+      authorityOrder: catalog.defaults.order,
+      authorityOrderFailures: authorityFailures.map((r) => r.key),
+      currentMainTruthful: authorityFailures.length === 0
+    },
+    binding: {
+      before: verdictCounts(before125.results),
+      after: verdictCounts(with125.results),
+      revert: verdictCounts(revert125.results),
+      allPassAt125: bindingAfterFail.length === 0,
+      cases: binding
+    },
+    boundary: boundaryCheck,
+    regression: regressionSummary,
+    informational,
+    mutationProof
+  };
+
+  const outputPath = resolve(options.output || join(reportRoot, "opportunity-125-prototype.json"));
+  await writeStableJson(outputPath, report);
+  console.log(`binding 125%%: before FAIL=${verdictCounts(before125.results).FAIL}, after FAIL=${verdictCounts(with125.results).FAIL}`);
+  console.log(`mutation proof: ${mutationProof.overall ? "PASS" : "FAIL"}`);
+  console.log(`current-main authority order truthful: ${report.calibration.currentMainTruthful}`);
+  console.log(`report: ${outputPath}`);
+  if (!mutationProof.overall || bindingAfterFail.length !== 0) process.exitCode = 1;
+}
+
+function bindingRows(results, width) {
+  return results
+    .filter((r) => r.viewport.width === width)
+    .map((r) => overflowRow(r));
+}
+
+function summarizeInformational(beforeResults, withResults) {
+  const beforeIdx = indexByKey(beforeResults);
+  const byScale = {};
+  for (const scale of [150, 200]) {
+    const beforeScale = beforeResults.filter((r) => r.scale === scale);
+    const withScale = withResults.filter((r) => r.scale === scale);
+    const beforeFail = beforeScale.filter((r) => r.verdict === "FAIL");
+    const withFail = withScale.filter((r) => r.verdict === "FAIL");
+    const improved = beforeScale.filter((r) => {
+      const after = withResults.find((w) => w.key === r.key);
+      return r.verdict === "FAIL" && after && after.verdict !== "FAIL";
+    });
+    byScale[scale] = {
+      beforeFail: beforeFail.length,
+      afterFail: withFail.length,
+      improvedIncidentally: improved.length,
+      stillFailingKeys: withFail.map((r) => r.key)
+    };
+  }
+  return byScale;
+}
+
 function usage() {
   return `Usage:
   node runner/cli.mjs validate [--quick] [--fixture ID[,ID]] [--output PATH]
   node runner/cli.mjs inspect --html PATH [--fixture ID] [--contract PATH] [--source-id ID]
   node runner/cli.mjs compare --before PATH --after PATH [--fixture ID] [--contract PATH]
       [--all-scales | --scales 100,125] [--viewports 360x800,431x932]
+  node runner/cli.mjs prototype [--candidate-css PATH] [--catalog PATH] [--quick] [--output PATH]
 `;
 }
 
@@ -478,6 +741,7 @@ async function main() {
   if (command === "validate") return validateCommand(options);
   if (command === "inspect") return inspectCommand(options);
   if (command === "compare") return compareCommand(options);
+  if (command === "prototype") return prototypeCommand(options);
   if (command === "help" || command === "--help" || command === "-h") {
     console.log(usage());
     return;

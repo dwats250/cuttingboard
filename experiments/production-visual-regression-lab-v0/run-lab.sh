@@ -13,6 +13,10 @@ build_fixtures() {
   "$PYTHON" "$LAB_ROOT/fixtures/build_fixtures.py"
 }
 
+build_currentmain_fixtures() {
+  "$PYTHON" "$LAB_ROOT/fixtures/build_currentmain_fixtures.py"
+}
+
 run_cli() {
   (cd "$LAB_ROOT" && node "$CLI" "$@")
 }
@@ -33,7 +37,12 @@ case "$command" in
     ;;
   self-test)
     build_fixtures
+    build_currentmain_fixtures
     (cd "$LAB_ROOT" && node --test tests/self-test.mjs "$@")
+    ;;
+  prototype)
+    build_currentmain_fixtures
+    run_cli prototype "$@"
     ;;
   inspect)
     if [[ ! -f "$CATALOG" ]]; then
@@ -55,7 +64,7 @@ case "$command" in
       --output "$LAB_ROOT/reports/comparison-prd314.json" "$@"
     ;;
   *)
-    echo "Usage: $0 [validate|quick|self-test|inspect|compare|calibrate] [args...]" >&2
+    echo "Usage: $0 [validate|quick|self-test|inspect|compare|calibrate|prototype] [args...]" >&2
     exit 2
     ;;
 esac

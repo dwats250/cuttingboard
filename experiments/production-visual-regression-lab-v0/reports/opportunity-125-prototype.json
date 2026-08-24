@@ -1,0 +1,3342 @@
+{
+  "baseline": "2914ec857610e4e952af4895c03617dd8a0848e0",
+  "binding": {
+    "after": {
+      "FAIL": 0,
+      "PASS": 60,
+      "WARNING": 0
+    },
+    "allPassAt125": true,
+    "before": {
+      "FAIL": 12,
+      "PASS": 48,
+      "WARNING": 0
+    },
+    "cases": [
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "candidate-carrier-unavailable",
+          "key": "candidate-carrier-unavailable__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "candidate-carrier-unavailable",
+          "key": "candidate-carrier-unavailable__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "failures": [],
+        "fixture": "candidate-carrier-unavailable",
+        "key": "candidate-carrier-unavailable__360x800__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "candidate-carrier-unavailable",
+          "key": "candidate-carrier-unavailable__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "360x800"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "candidate-carrier-unavailable",
+          "key": "candidate-carrier-unavailable__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "candidate-carrier-unavailable",
+          "key": "candidate-carrier-unavailable__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "failures": [],
+        "fixture": "candidate-carrier-unavailable",
+        "key": "candidate-carrier-unavailable__390x844__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "candidate-carrier-unavailable",
+          "key": "candidate-carrier-unavailable__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "390x844"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "candidate-carrier-unavailable",
+          "key": "candidate-carrier-unavailable__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "candidate-carrier-unavailable",
+          "key": "candidate-carrier-unavailable__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "failures": [],
+        "fixture": "candidate-carrier-unavailable",
+        "key": "candidate-carrier-unavailable__430x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "candidate-carrier-unavailable",
+          "key": "candidate-carrier-unavailable__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "candidate-carrier-unavailable",
+          "key": "candidate-carrier-unavailable__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "candidate-carrier-unavailable",
+          "key": "candidate-carrier-unavailable__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "failures": [],
+        "fixture": "candidate-carrier-unavailable",
+        "key": "candidate-carrier-unavailable__431x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "candidate-carrier-unavailable",
+          "key": "candidate-carrier-unavailable__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "gex-unavailable",
+          "key": "gex-unavailable__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "gex-unavailable",
+          "key": "gex-unavailable__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "failures": [],
+        "fixture": "gex-unavailable",
+        "key": "gex-unavailable__360x800__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "gex-unavailable",
+          "key": "gex-unavailable__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "scale": 125,
+        "transition": "FAIL->PASS",
+        "verdict": "PASS",
+        "viewport": "360x800"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "gex-unavailable",
+          "key": "gex-unavailable__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "gex-unavailable",
+          "key": "gex-unavailable__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "failures": [],
+        "fixture": "gex-unavailable",
+        "key": "gex-unavailable__390x844__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "gex-unavailable",
+          "key": "gex-unavailable__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "390x844"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "gex-unavailable",
+          "key": "gex-unavailable__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "gex-unavailable",
+          "key": "gex-unavailable__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "failures": [],
+        "fixture": "gex-unavailable",
+        "key": "gex-unavailable__430x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "gex-unavailable",
+          "key": "gex-unavailable__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "gex-unavailable",
+          "key": "gex-unavailable__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "gex-unavailable",
+          "key": "gex-unavailable__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "failures": [],
+        "fixture": "gex-unavailable",
+        "key": "gex-unavailable__431x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "gex-unavailable",
+          "key": "gex-unavailable__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "halt",
+          "key": "halt__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "halt",
+          "key": "halt__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "failures": [],
+        "fixture": "halt",
+        "key": "halt__360x800__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "halt",
+          "key": "halt__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "scale": 125,
+        "transition": "FAIL->PASS",
+        "verdict": "PASS",
+        "viewport": "360x800"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "halt",
+          "key": "halt__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "halt",
+          "key": "halt__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "failures": [],
+        "fixture": "halt",
+        "key": "halt__390x844__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "halt",
+          "key": "halt__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "390x844"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "halt",
+          "key": "halt__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "halt",
+          "key": "halt__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "failures": [],
+        "fixture": "halt",
+        "key": "halt__430x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "halt",
+          "key": "halt__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "halt",
+          "key": "halt__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "halt",
+          "key": "halt__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "failures": [],
+        "fixture": "halt",
+        "key": "halt__431x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "halt",
+          "key": "halt__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "healthy-empty-red-folder",
+          "key": "healthy-empty-red-folder__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "healthy-empty-red-folder",
+          "key": "healthy-empty-red-folder__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "failures": [],
+        "fixture": "healthy-empty-red-folder",
+        "key": "healthy-empty-red-folder__360x800__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "healthy-empty-red-folder",
+          "key": "healthy-empty-red-folder__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "scale": 125,
+        "transition": "FAIL->PASS",
+        "verdict": "PASS",
+        "viewport": "360x800"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "healthy-empty-red-folder",
+          "key": "healthy-empty-red-folder__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "healthy-empty-red-folder",
+          "key": "healthy-empty-red-folder__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "failures": [],
+        "fixture": "healthy-empty-red-folder",
+        "key": "healthy-empty-red-folder__390x844__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "healthy-empty-red-folder",
+          "key": "healthy-empty-red-folder__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "390x844"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "healthy-empty-red-folder",
+          "key": "healthy-empty-red-folder__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "healthy-empty-red-folder",
+          "key": "healthy-empty-red-folder__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "failures": [],
+        "fixture": "healthy-empty-red-folder",
+        "key": "healthy-empty-red-folder__430x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "healthy-empty-red-folder",
+          "key": "healthy-empty-red-folder__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "healthy-empty-red-folder",
+          "key": "healthy-empty-red-folder__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "healthy-empty-red-folder",
+          "key": "healthy-empty-red-folder__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "failures": [],
+        "fixture": "healthy-empty-red-folder",
+        "key": "healthy-empty-red-folder__431x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "healthy-empty-red-folder",
+          "key": "healthy-empty-red-folder__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "inactive-session",
+          "key": "inactive-session__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "inactive-session",
+          "key": "inactive-session__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "failures": [],
+        "fixture": "inactive-session",
+        "key": "inactive-session__360x800__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "inactive-session",
+          "key": "inactive-session__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "scale": 125,
+        "transition": "FAIL->PASS",
+        "verdict": "PASS",
+        "viewport": "360x800"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "inactive-session",
+          "key": "inactive-session__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "inactive-session",
+          "key": "inactive-session__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "failures": [],
+        "fixture": "inactive-session",
+        "key": "inactive-session__390x844__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "inactive-session",
+          "key": "inactive-session__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "390x844"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "inactive-session",
+          "key": "inactive-session__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "inactive-session",
+          "key": "inactive-session__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "failures": [],
+        "fixture": "inactive-session",
+        "key": "inactive-session__430x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "inactive-session",
+          "key": "inactive-session__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "inactive-session",
+          "key": "inactive-session__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "inactive-session",
+          "key": "inactive-session__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "failures": [],
+        "fixture": "inactive-session",
+        "key": "inactive-session__431x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "inactive-session",
+          "key": "inactive-session__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "movement-unavailable",
+          "key": "movement-unavailable__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "movement-unavailable",
+          "key": "movement-unavailable__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "failures": [],
+        "fixture": "movement-unavailable",
+        "key": "movement-unavailable__360x800__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "movement-unavailable",
+          "key": "movement-unavailable__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "scale": 125,
+        "transition": "FAIL->PASS",
+        "verdict": "PASS",
+        "viewport": "360x800"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "movement-unavailable",
+          "key": "movement-unavailable__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "movement-unavailable",
+          "key": "movement-unavailable__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "failures": [],
+        "fixture": "movement-unavailable",
+        "key": "movement-unavailable__390x844__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "movement-unavailable",
+          "key": "movement-unavailable__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "390x844"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "movement-unavailable",
+          "key": "movement-unavailable__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "movement-unavailable",
+          "key": "movement-unavailable__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "failures": [],
+        "fixture": "movement-unavailable",
+        "key": "movement-unavailable__430x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "movement-unavailable",
+          "key": "movement-unavailable__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "movement-unavailable",
+          "key": "movement-unavailable__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "movement-unavailable",
+          "key": "movement-unavailable__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "failures": [],
+        "fixture": "movement-unavailable",
+        "key": "movement-unavailable__431x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "movement-unavailable",
+          "key": "movement-unavailable__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "multiple-candidates",
+          "key": "multiple-candidates__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "multiple-candidates",
+          "key": "multiple-candidates__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "failures": [],
+        "fixture": "multiple-candidates",
+        "key": "multiple-candidates__360x800__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "multiple-candidates",
+          "key": "multiple-candidates__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "scale": 125,
+        "transition": "FAIL->PASS",
+        "verdict": "PASS",
+        "viewport": "360x800"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "multiple-candidates",
+          "key": "multiple-candidates__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "multiple-candidates",
+          "key": "multiple-candidates__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "failures": [],
+        "fixture": "multiple-candidates",
+        "key": "multiple-candidates__390x844__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "multiple-candidates",
+          "key": "multiple-candidates__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "390x844"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "multiple-candidates",
+          "key": "multiple-candidates__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "multiple-candidates",
+          "key": "multiple-candidates__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "failures": [],
+        "fixture": "multiple-candidates",
+        "key": "multiple-candidates__430x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "multiple-candidates",
+          "key": "multiple-candidates__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "multiple-candidates",
+          "key": "multiple-candidates__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "multiple-candidates",
+          "key": "multiple-candidates__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "failures": [],
+        "fixture": "multiple-candidates",
+        "key": "multiple-candidates__431x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "multiple-candidates",
+          "key": "multiple-candidates__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "no-candidate",
+          "key": "no-candidate__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "no-candidate",
+          "key": "no-candidate__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "failures": [],
+        "fixture": "no-candidate",
+        "key": "no-candidate__360x800__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "no-candidate",
+          "key": "no-candidate__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "scale": 125,
+        "transition": "FAIL->PASS",
+        "verdict": "PASS",
+        "viewport": "360x800"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "no-candidate",
+          "key": "no-candidate__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "no-candidate",
+          "key": "no-candidate__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "failures": [],
+        "fixture": "no-candidate",
+        "key": "no-candidate__390x844__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "no-candidate",
+          "key": "no-candidate__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "390x844"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "no-candidate",
+          "key": "no-candidate__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "no-candidate",
+          "key": "no-candidate__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "failures": [],
+        "fixture": "no-candidate",
+        "key": "no-candidate__430x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "no-candidate",
+          "key": "no-candidate__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "no-candidate",
+          "key": "no-candidate__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "no-candidate",
+          "key": "no-candidate__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "failures": [],
+        "fixture": "no-candidate",
+        "key": "no-candidate__431x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "no-candidate",
+          "key": "no-candidate__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "normal",
+          "key": "normal__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "normal",
+          "key": "normal__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "failures": [],
+        "fixture": "normal",
+        "key": "normal__360x800__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "normal",
+          "key": "normal__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "scale": 125,
+        "transition": "FAIL->PASS",
+        "verdict": "PASS",
+        "viewport": "360x800"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "normal",
+          "key": "normal__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "normal",
+          "key": "normal__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "failures": [],
+        "fixture": "normal",
+        "key": "normal__390x844__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "normal",
+          "key": "normal__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "390x844"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "normal",
+          "key": "normal__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "normal",
+          "key": "normal__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "failures": [],
+        "fixture": "normal",
+        "key": "normal__430x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "normal",
+          "key": "normal__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "normal",
+          "key": "normal__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "normal",
+          "key": "normal__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "failures": [],
+        "fixture": "normal",
+        "key": "normal__431x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "normal",
+          "key": "normal__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "operator-lock",
+          "key": "operator-lock__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 49px"
+          ],
+          "fixture": "operator-lock",
+          "key": "operator-lock__360x800__scale-125",
+          "overflowPx": 49,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "failures": [],
+        "fixture": "operator-lock",
+        "key": "operator-lock__360x800__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 49px"
+          ],
+          "fixture": "operator-lock",
+          "key": "operator-lock__360x800__scale-125",
+          "overflowPx": 49,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "scale": 125,
+        "transition": "FAIL->PASS",
+        "verdict": "PASS",
+        "viewport": "360x800"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "operator-lock",
+          "key": "operator-lock__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "operator-lock",
+          "key": "operator-lock__390x844__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "390x844"
+        },
+        "failures": [],
+        "fixture": "operator-lock",
+        "key": "operator-lock__390x844__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "operator-lock",
+          "key": "operator-lock__390x844__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "390x844"
+        },
+        "scale": 125,
+        "transition": "FAIL->PASS",
+        "verdict": "PASS",
+        "viewport": "390x844"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "operator-lock",
+          "key": "operator-lock__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "operator-lock",
+          "key": "operator-lock__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "failures": [],
+        "fixture": "operator-lock",
+        "key": "operator-lock__430x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "operator-lock",
+          "key": "operator-lock__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "operator-lock",
+          "key": "operator-lock__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "operator-lock",
+          "key": "operator-lock__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "failures": [],
+        "fixture": "operator-lock",
+        "key": "operator-lock__431x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "operator-lock",
+          "key": "operator-lock__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "opportunity-suppressed",
+          "key": "opportunity-suppressed__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "opportunity-suppressed",
+          "key": "opportunity-suppressed__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "failures": [],
+        "fixture": "opportunity-suppressed",
+        "key": "opportunity-suppressed__360x800__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "opportunity-suppressed",
+          "key": "opportunity-suppressed__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "360x800"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "opportunity-suppressed",
+          "key": "opportunity-suppressed__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "opportunity-suppressed",
+          "key": "opportunity-suppressed__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "failures": [],
+        "fixture": "opportunity-suppressed",
+        "key": "opportunity-suppressed__390x844__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "opportunity-suppressed",
+          "key": "opportunity-suppressed__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "390x844"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "opportunity-suppressed",
+          "key": "opportunity-suppressed__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "opportunity-suppressed",
+          "key": "opportunity-suppressed__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "failures": [],
+        "fixture": "opportunity-suppressed",
+        "key": "opportunity-suppressed__430x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "opportunity-suppressed",
+          "key": "opportunity-suppressed__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "opportunity-suppressed",
+          "key": "opportunity-suppressed__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "opportunity-suppressed",
+          "key": "opportunity-suppressed__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "failures": [],
+        "fixture": "opportunity-suppressed",
+        "key": "opportunity-suppressed__431x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "opportunity-suppressed",
+          "key": "opportunity-suppressed__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "qualified-zero-b-candidate",
+          "key": "qualified-zero-b-candidate__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "qualified-zero-b-candidate",
+          "key": "qualified-zero-b-candidate__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "failures": [],
+        "fixture": "qualified-zero-b-candidate",
+        "key": "qualified-zero-b-candidate__360x800__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "qualified-zero-b-candidate",
+          "key": "qualified-zero-b-candidate__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "360x800"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "qualified-zero-b-candidate",
+          "key": "qualified-zero-b-candidate__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "qualified-zero-b-candidate",
+          "key": "qualified-zero-b-candidate__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "failures": [],
+        "fixture": "qualified-zero-b-candidate",
+        "key": "qualified-zero-b-candidate__390x844__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "qualified-zero-b-candidate",
+          "key": "qualified-zero-b-candidate__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "390x844"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "qualified-zero-b-candidate",
+          "key": "qualified-zero-b-candidate__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "qualified-zero-b-candidate",
+          "key": "qualified-zero-b-candidate__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "failures": [],
+        "fixture": "qualified-zero-b-candidate",
+        "key": "qualified-zero-b-candidate__430x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "qualified-zero-b-candidate",
+          "key": "qualified-zero-b-candidate__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "qualified-zero-b-candidate",
+          "key": "qualified-zero-b-candidate__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "qualified-zero-b-candidate",
+          "key": "qualified-zero-b-candidate__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "failures": [],
+        "fixture": "qualified-zero-b-candidate",
+        "key": "qualified-zero-b-candidate__431x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "qualified-zero-b-candidate",
+          "key": "qualified-zero-b-candidate__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "red-folder-event",
+          "key": "red-folder-event__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "red-folder-event",
+          "key": "red-folder-event__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "failures": [],
+        "fixture": "red-folder-event",
+        "key": "red-folder-event__360x800__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "red-folder-event",
+          "key": "red-folder-event__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "scale": 125,
+        "transition": "FAIL->PASS",
+        "verdict": "PASS",
+        "viewport": "360x800"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "red-folder-event",
+          "key": "red-folder-event__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "red-folder-event",
+          "key": "red-folder-event__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "failures": [],
+        "fixture": "red-folder-event",
+        "key": "red-folder-event__390x844__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "red-folder-event",
+          "key": "red-folder-event__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "390x844"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "red-folder-event",
+          "key": "red-folder-event__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "red-folder-event",
+          "key": "red-folder-event__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "failures": [],
+        "fixture": "red-folder-event",
+        "key": "red-folder-event__430x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "red-folder-event",
+          "key": "red-folder-event__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "red-folder-event",
+          "key": "red-folder-event__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "red-folder-event",
+          "key": "red-folder-event__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "failures": [],
+        "fixture": "red-folder-event",
+        "key": "red-folder-event__431x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "red-folder-event",
+          "key": "red-folder-event__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "stale-board",
+          "key": "stale-board__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "stale-board",
+          "key": "stale-board__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "failures": [],
+        "fixture": "stale-board",
+        "key": "stale-board__360x800__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [
+            "horizontal page overflow: 19px"
+          ],
+          "fixture": "stale-board",
+          "key": "stale-board__360x800__scale-125",
+          "overflowPx": 19,
+          "scale": 125,
+          "verdict": "FAIL",
+          "viewport": "360x800"
+        },
+        "scale": 125,
+        "transition": "FAIL->PASS",
+        "verdict": "PASS",
+        "viewport": "360x800"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "stale-board",
+          "key": "stale-board__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "stale-board",
+          "key": "stale-board__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "failures": [],
+        "fixture": "stale-board",
+        "key": "stale-board__390x844__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "stale-board",
+          "key": "stale-board__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "390x844"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "stale-board",
+          "key": "stale-board__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "stale-board",
+          "key": "stale-board__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "failures": [],
+        "fixture": "stale-board",
+        "key": "stale-board__430x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "stale-board",
+          "key": "stale-board__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "stale-board",
+          "key": "stale-board__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "stale-board",
+          "key": "stale-board__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "failures": [],
+        "fixture": "stale-board",
+        "key": "stale-board__431x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "stale-board",
+          "key": "stale-board__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "state-unavailable",
+          "key": "state-unavailable__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "state-unavailable",
+          "key": "state-unavailable__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "failures": [],
+        "fixture": "state-unavailable",
+        "key": "state-unavailable__360x800__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "state-unavailable",
+          "key": "state-unavailable__360x800__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "360x800"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "360x800"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "state-unavailable",
+          "key": "state-unavailable__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "state-unavailable",
+          "key": "state-unavailable__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "failures": [],
+        "fixture": "state-unavailable",
+        "key": "state-unavailable__390x844__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "state-unavailable",
+          "key": "state-unavailable__390x844__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "390x844"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "390x844"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "state-unavailable",
+          "key": "state-unavailable__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "state-unavailable",
+          "key": "state-unavailable__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "failures": [],
+        "fixture": "state-unavailable",
+        "key": "state-unavailable__430x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "state-unavailable",
+          "key": "state-unavailable__430x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "430x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "after": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "state-unavailable",
+          "key": "state-unavailable__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "authorityOrderOk": true,
+        "before": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "state-unavailable",
+          "key": "state-unavailable__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "failures": [],
+        "fixture": "state-unavailable",
+        "key": "state-unavailable__431x932__scale-125",
+        "overflowPx": 0,
+        "revert": {
+          "authorityOrderOk": true,
+          "failures": [],
+          "fixture": "state-unavailable",
+          "key": "state-unavailable__431x932__scale-125",
+          "overflowPx": 0,
+          "scale": 125,
+          "verdict": "PASS",
+          "viewport": "431x932"
+        },
+        "scale": 125,
+        "transition": "PASS->PASS",
+        "verdict": "PASS",
+        "viewport": "431x932"
+      }
+    ],
+    "revert": {
+      "FAIL": 12,
+      "PASS": 48,
+      "WARNING": 0
+    }
+  },
+  "boundary": {
+    "after430": [
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "candidate-carrier-unavailable",
+        "key": "candidate-carrier-unavailable__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "gex-unavailable",
+        "key": "gex-unavailable__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "halt",
+        "key": "halt__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "healthy-empty-red-folder",
+        "key": "healthy-empty-red-folder__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "inactive-session",
+        "key": "inactive-session__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "movement-unavailable",
+        "key": "movement-unavailable__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "multiple-candidates",
+        "key": "multiple-candidates__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "no-candidate",
+        "key": "no-candidate__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "normal",
+        "key": "normal__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "operator-lock",
+        "key": "operator-lock__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "opportunity-suppressed",
+        "key": "opportunity-suppressed__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "qualified-zero-b-candidate",
+        "key": "qualified-zero-b-candidate__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "red-folder-event",
+        "key": "red-folder-event__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "stale-board",
+        "key": "stale-board__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "state-unavailable",
+        "key": "state-unavailable__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      }
+    ],
+    "after431": [
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "candidate-carrier-unavailable",
+        "key": "candidate-carrier-unavailable__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "gex-unavailable",
+        "key": "gex-unavailable__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "halt",
+        "key": "halt__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "healthy-empty-red-folder",
+        "key": "healthy-empty-red-folder__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "inactive-session",
+        "key": "inactive-session__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "movement-unavailable",
+        "key": "movement-unavailable__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "multiple-candidates",
+        "key": "multiple-candidates__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "no-candidate",
+        "key": "no-candidate__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "normal",
+        "key": "normal__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "operator-lock",
+        "key": "operator-lock__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "opportunity-suppressed",
+        "key": "opportunity-suppressed__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "qualified-zero-b-candidate",
+        "key": "qualified-zero-b-candidate__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "red-folder-event",
+        "key": "red-folder-event__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "stale-board",
+        "key": "stale-board__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "state-unavailable",
+        "key": "state-unavailable__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      }
+    ],
+    "before430": [
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "candidate-carrier-unavailable",
+        "key": "candidate-carrier-unavailable__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "gex-unavailable",
+        "key": "gex-unavailable__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "halt",
+        "key": "halt__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "healthy-empty-red-folder",
+        "key": "healthy-empty-red-folder__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "inactive-session",
+        "key": "inactive-session__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "movement-unavailable",
+        "key": "movement-unavailable__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "multiple-candidates",
+        "key": "multiple-candidates__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "no-candidate",
+        "key": "no-candidate__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "normal",
+        "key": "normal__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "operator-lock",
+        "key": "operator-lock__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "opportunity-suppressed",
+        "key": "opportunity-suppressed__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "qualified-zero-b-candidate",
+        "key": "qualified-zero-b-candidate__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "red-folder-event",
+        "key": "red-folder-event__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "stale-board",
+        "key": "stale-board__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "state-unavailable",
+        "key": "state-unavailable__430x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "430x932"
+      }
+    ],
+    "before431": [
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "candidate-carrier-unavailable",
+        "key": "candidate-carrier-unavailable__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "gex-unavailable",
+        "key": "gex-unavailable__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "halt",
+        "key": "halt__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "healthy-empty-red-folder",
+        "key": "healthy-empty-red-folder__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "inactive-session",
+        "key": "inactive-session__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "movement-unavailable",
+        "key": "movement-unavailable__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "multiple-candidates",
+        "key": "multiple-candidates__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "no-candidate",
+        "key": "no-candidate__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "normal",
+        "key": "normal__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "operator-lock",
+        "key": "operator-lock__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "opportunity-suppressed",
+        "key": "opportunity-suppressed__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "qualified-zero-b-candidate",
+        "key": "qualified-zero-b-candidate__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "red-folder-event",
+        "key": "red-folder-event__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "stale-board",
+        "key": "stale-board__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      },
+      {
+        "authorityOrderOk": true,
+        "failures": [],
+        "fixture": "state-unavailable",
+        "key": "state-unavailable__431x932__scale-125",
+        "overflowPx": 0,
+        "scale": 125,
+        "verdict": "PASS",
+        "viewport": "431x932"
+      }
+    ],
+    "overrideInertAt431": true,
+    "ruleActiveAndCleanAt430": true
+  },
+  "calibration": {
+    "authorityOrder": [
+      "marketState",
+      "systemState",
+      "opportunity",
+      "candidate",
+      "gex",
+      "movement",
+      "macro",
+      "redFolder",
+      "trend",
+      "runDelta",
+      "scoreboard"
+    ],
+    "authorityOrderFailures": [],
+    "currentMain": "2914ec857610e4e952af4895c03617dd8a0848e0",
+    "currentMainTruthful": true,
+    "forkedBase": "044602770f745e322dc47a88e9bd342dc0955ce7"
+  },
+  "candidate": {
+    "appliedAsRuntimeOverride": true,
+    "css": "/* Opportunity narrow-phone 125% overflow correction -- CANDIDATE (experiment).\n *\n * Recorded separately from the immutable current-main HTML and injected at\n * runtime; the source bytes are never rewritten.\n *\n * Scope: the exact PRD-314 Opportunity selector, inside the same\n * @media(max-width:430px) block, reusing identical specificity so later\n * source order wins over the production rule. Nothing outside\n * #opportunity-survival .kv-grid is touched.\n *\n * Root cause: the two label tracks are `max-content`, so the widest label\n * (`PRIMARY REJECTION`, and `SETUPS FOUND` under operator lock) pins the grid\n * wider than the narrow phone as root text grows, producing 19-49px of page\n * overflow at 125%.\n *\n * Correction: swap the two `max-content` label tracks to `auto`. `auto` still\n * resolves to `max-content` when there is room (100% geometry unchanged), but\n * floors at min-content under pressure -- the two-word labels wrap at their\n * space (all text preserved, no truncation) while single-word labels stay\n * whole. The value tracks keep PRD-314's `minmax(2.5ch,1fr)` so 2-digit counts\n * never clip. No markup, DOM order, or text changes. */\n@media (max-width: 430px) {\n  #opportunity-survival .kv-grid {\n    grid-template-columns: auto minmax(2.5ch, 1fr) auto minmax(2.5ch, 1fr);\n  }\n}",
+    "cssPath": "prototypes/opportunity-125.css",
+    "cssSha256": "b92984dd28c03bd6ec6c6204d72ebaacc35fbf1f61e722b8b6b78d8d688f3f94",
+    "selectorScope": "#opportunity-survival .kv-grid (inside @media(max-width:430px))"
+  },
+  "informational": {
+    "150": {
+      "afterFail": 3,
+      "beforeFail": 36,
+      "improvedIncidentally": 33,
+      "stillFailingKeys": [
+        "candidate-carrier-unavailable__360x800__scale-150",
+        "candidate-carrier-unavailable__390x844__scale-150",
+        "state-unavailable__360x800__scale-150"
+      ]
+    },
+    "200": {
+      "afterFail": 60,
+      "beforeFail": 60,
+      "improvedIncidentally": 0,
+      "stillFailingKeys": [
+        "candidate-carrier-unavailable__360x800__scale-200",
+        "candidate-carrier-unavailable__390x844__scale-200",
+        "candidate-carrier-unavailable__430x932__scale-200",
+        "candidate-carrier-unavailable__431x932__scale-200",
+        "gex-unavailable__360x800__scale-200",
+        "gex-unavailable__390x844__scale-200",
+        "gex-unavailable__430x932__scale-200",
+        "gex-unavailable__431x932__scale-200",
+        "halt__360x800__scale-200",
+        "halt__390x844__scale-200",
+        "halt__430x932__scale-200",
+        "halt__431x932__scale-200",
+        "healthy-empty-red-folder__360x800__scale-200",
+        "healthy-empty-red-folder__390x844__scale-200",
+        "healthy-empty-red-folder__430x932__scale-200",
+        "healthy-empty-red-folder__431x932__scale-200",
+        "inactive-session__360x800__scale-200",
+        "inactive-session__390x844__scale-200",
+        "inactive-session__430x932__scale-200",
+        "inactive-session__431x932__scale-200",
+        "movement-unavailable__360x800__scale-200",
+        "movement-unavailable__390x844__scale-200",
+        "movement-unavailable__430x932__scale-200",
+        "movement-unavailable__431x932__scale-200",
+        "multiple-candidates__360x800__scale-200",
+        "multiple-candidates__390x844__scale-200",
+        "multiple-candidates__430x932__scale-200",
+        "multiple-candidates__431x932__scale-200",
+        "no-candidate__360x800__scale-200",
+        "no-candidate__390x844__scale-200",
+        "no-candidate__430x932__scale-200",
+        "no-candidate__431x932__scale-200",
+        "normal__360x800__scale-200",
+        "normal__390x844__scale-200",
+        "normal__430x932__scale-200",
+        "normal__431x932__scale-200",
+        "operator-lock__360x800__scale-200",
+        "operator-lock__390x844__scale-200",
+        "operator-lock__430x932__scale-200",
+        "operator-lock__431x932__scale-200",
+        "opportunity-suppressed__360x800__scale-200",
+        "opportunity-suppressed__390x844__scale-200",
+        "opportunity-suppressed__430x932__scale-200",
+        "opportunity-suppressed__431x932__scale-200",
+        "qualified-zero-b-candidate__360x800__scale-200",
+        "qualified-zero-b-candidate__390x844__scale-200",
+        "qualified-zero-b-candidate__430x932__scale-200",
+        "qualified-zero-b-candidate__431x932__scale-200",
+        "red-folder-event__360x800__scale-200",
+        "red-folder-event__390x844__scale-200",
+        "red-folder-event__430x932__scale-200",
+        "red-folder-event__431x932__scale-200",
+        "stale-board__360x800__scale-200",
+        "stale-board__390x844__scale-200",
+        "stale-board__430x932__scale-200",
+        "stale-board__431x932__scale-200",
+        "state-unavailable__360x800__scale-200",
+        "state-unavailable__390x844__scale-200",
+        "state-unavailable__430x932__scale-200",
+        "state-unavailable__431x932__scale-200"
+      ]
+    }
+  },
+  "matrix": {
+    "bindingScale": 125,
+    "bindingViewports": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "431x932"
+    ],
+    "fixtures": [
+      "candidate-carrier-unavailable",
+      "gex-unavailable",
+      "halt",
+      "healthy-empty-red-folder",
+      "inactive-session",
+      "movement-unavailable",
+      "multiple-candidates",
+      "no-candidate",
+      "normal",
+      "operator-lock",
+      "opportunity-suppressed",
+      "qualified-zero-b-candidate",
+      "red-folder-event",
+      "stale-board",
+      "state-unavailable"
+    ],
+    "informationalScales": [
+      150,
+      200
+    ],
+    "regressionScale": 100,
+    "regressionViewports": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "431x932",
+      "768x1024",
+      "960x900",
+      "1280x800",
+      "1440x900"
+    ]
+  },
+  "method": {
+    "browser": "Chrome/151.0.7922.108",
+    "colorScheme": "dark",
+    "deviceScaleFactor": 1,
+    "fixedNow": "2026-08-23T20:00:00Z",
+    "protocolVersion": "1.3",
+    "reducedMotion": true,
+    "textScaleMethod": "root-font-size",
+    "timezone": "America/Vancouver"
+  },
+  "mutationProof": {
+    "overall": true,
+    "step1_before_reproduces_failures": {
+      "failCount": 12,
+      "passed": true
+    },
+    "step2_candidate_all_pass": {
+      "failCount": 0,
+      "passed": true,
+      "total": 60
+    },
+    "step3_revert_failures_return": {
+      "failCount": 12,
+      "matchesBefore": true,
+      "passed": true
+    },
+    "step4_hundred_percent_green_with_candidate": {
+      "newFailKeys": [],
+      "passed": true
+    }
+  },
+  "provenance": {
+    "currentMain": "2914ec857610e4e952af4895c03617dd8a0848e0",
+    "forkedBase": "044602770f745e322dc47a88e9bd342dc0955ce7",
+    "note": "Rendered from origin/main via git show + importlib; working tree not modified. Only dashboard_renderer.py differs between forkedBase and currentMain.",
+    "prd315": "candidate-board relocated above alert-watchlist (move-only)"
+  },
+  "regression": {
+    "after": {
+      "FAIL": 0,
+      "PASS": 120,
+      "WARNING": 0
+    },
+    "before": {
+      "FAIL": 0,
+      "PASS": 120,
+      "WARNING": 0
+    },
+    "newFailures": []
+  },
+  "reportType": "opportunity-125-prototype",
+  "schemaVersion": 1,
+  "sourceIdentifier": "cuttingboard@2914ec857610e4e952af4895c03617dd8a0848e0"
+}

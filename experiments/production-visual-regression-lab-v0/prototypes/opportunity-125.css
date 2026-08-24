@@ -1,0 +1,26 @@
+/* Opportunity narrow-phone 125% overflow correction -- CANDIDATE (experiment).
+ *
+ * Recorded separately from the immutable current-main HTML and injected at
+ * runtime; the source bytes are never rewritten.
+ *
+ * Scope: the exact PRD-314 Opportunity selector, inside the same
+ * @media(max-width:430px) block, reusing identical specificity so later
+ * source order wins over the production rule. Nothing outside
+ * #opportunity-survival .kv-grid is touched.
+ *
+ * Root cause: the two label tracks are `max-content`, so the widest label
+ * (`PRIMARY REJECTION`, and `SETUPS FOUND` under operator lock) pins the grid
+ * wider than the narrow phone as root text grows, producing 19-49px of page
+ * overflow at 125%.
+ *
+ * Correction: swap the two `max-content` label tracks to `auto`. `auto` still
+ * resolves to `max-content` when there is room (100% geometry unchanged), but
+ * floors at min-content under pressure -- the two-word labels wrap at their
+ * space (all text preserved, no truncation) while single-word labels stay
+ * whole. The value tracks keep PRD-314's `minmax(2.5ch,1fr)` so 2-digit counts
+ * never clip. No markup, DOM order, or text changes. */
+@media (max-width: 430px) {
+  #opportunity-survival .kv-grid {
+    grid-template-columns: auto minmax(2.5ch, 1fr) auto minmax(2.5ch, 1fr);
+  }
+}
