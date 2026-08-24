@@ -1,46 +1,46 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 2.421169682704637,
-      "level": 79607.40625,
+      "change_pct": 2.6302085191794164,
+      "level": 79769.8828125,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.15278087515682773,
-      "level": 98.98600006103516,
+      "change_pct": 0.13355975656646288,
+      "level": 98.96700286865234,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 0.6470542139536894,
-      "level": 4728.60009765625,
+      "change_pct": 0.35544903020334623,
+      "level": 4714.89990234375,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": -0.7824339488911628,
-      "level": 84.95999908447266,
+      "change_pct": -0.7590726583357797,
+      "level": 84.9800033569336,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -3.7695335147685394,
-      "change_pct": -0.8020284399453882,
-      "level": 4.699999809265137,
+      "change_bps": -4.751358057611984,
+      "change_pct": -1.013082729134952,
+      "level": 4.690000057220459,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 0.014504258067371227,
-      "level": 68.97000122070312,
+      "change_pct": -0.4422858312427914,
+      "level": 68.65499877929688,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 4.626568433380366,
-      "level": 15.829999923706055,
+      "change_pct": 3.8995383220437754,
+      "level": 15.720000267028809,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260824T150927Z",
+    "generation_id": "hourly-20260824T162447Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-08-24T15:09:27Z"
+    "timestamp": "2026-08-24T16:24:47Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -58,7 +58,7 @@
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.0,
+    "confidence": 0.125,
     "market_regime": "NEUTRAL",
     "outcome": null,
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
