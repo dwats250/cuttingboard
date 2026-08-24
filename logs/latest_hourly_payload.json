@@ -1,46 +1,46 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.7072964776197174,
-      "level": 78275.2890625,
+      "change_pct": 1.4545261193324754,
+      "level": 78856.1328125,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.11736461327225185,
-      "level": 98.95099639892578,
+      "change_pct": 0.14468330350972222,
+      "level": 98.97799682617188,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 0.6896237068840981,
-      "level": 4730.60009765625,
+      "change_pct": 0.408660896366357,
+      "level": 4717.39990234375,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 0.17517404027817932,
-      "level": 85.77999877929688,
+      "change_pct": -0.11677972361152009,
+      "level": 85.52999877929688,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -2.9809782782444243,
-      "change_pct": -0.6331729316709851,
-      "level": 4.708000183105469,
+      "change_bps": -4.1627511143070866,
+      "change_pct": -0.8864461299802964,
+      "level": 4.696000099182129,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 0.6815563035715767,
-      "level": 69.43000030517578,
+      "change_pct": -0.16676024549922694,
+      "level": 68.84500122070312,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 4.362193274421515,
-      "level": 15.789999961853027,
+      "change_pct": 5.750164434755725,
+      "level": 16.0,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260824T135212Z",
+    "generation_id": "hourly-20260824T140843Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-08-24T13:52:12Z"
+    "timestamp": "2026-08-24T14:08:43Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -58,8 +58,8 @@
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.125,
-    "market_regime": "NEUTRAL",
+    "confidence": 0.25,
+    "market_regime": "RISK_OFF",
     "outcome": null,
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
     "router_mode": "MIXED",
