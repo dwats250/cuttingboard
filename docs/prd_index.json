@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 315,
-  "next_prd": 316,
+  "latest_complete": 316,
+  "next_prd": 317,
   "entries": [
     {
       "number": 56,
@@ -1566,8 +1566,8 @@
     {
       "number": 316,
       "title": "Opportunity 125% narrow-phone resilience",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#277"
     }
   ]
 }
