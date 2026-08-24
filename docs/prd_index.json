@@ -1562,6 +1562,12 @@
       "title": "Opportunity continuity",
       "status": "COMPLETE",
       "commit": "#276"
+    },
+    {
+      "number": 316,
+      "title": "Opportunity 125% narrow-phone resilience",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
