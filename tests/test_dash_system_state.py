@@ -10,6 +10,49 @@ from tests.dash_helpers import _macro_drivers, _market_map, _mm_symbol, _payload
 
 
 # ---------------------------------------------------------------------------
+# PRD-315 depth-aware top-level extraction (test-local; replaces Candidate-
+# relative substring sentinels invalidated by the Opportunity->Candidate move).
+# ---------------------------------------------------------------------------
+
+def _top_ids(html: str) -> list[str]:
+    """Ordered top-level `.block` ids via depth-aware sibling scan."""
+    ids: list[str] = []
+    i = 0
+    while True:
+        j = html.find('class="block', i)
+        if j == -1:
+            break
+        k = html.find('id="', j)
+        e = html.find('"', k + 4)
+        ids.append(html[k + 4:e])
+        i = e
+    return ids
+
+
+def _top_block(html: str, block_id: str) -> str:
+    """Exact `<div ... id="{block_id}"> ... </div>` fragment (matches nested divs)."""
+    marker = f'id="{block_id}"'
+    idx = html.find(marker)
+    assert idx != -1, f"{block_id} not rendered"
+    start = html.rfind("<div", 0, idx)
+    i, depth = start, 0
+    while i < len(html):
+        nd = html.find("<div", i)
+        nc = html.find("</div>", i)
+        if nc == -1:
+            break
+        if nd != -1 and nd < nc:
+            depth += 1
+            i = nd + 4
+        else:
+            depth -= 1
+            i = nc + 6
+            if depth == 0:
+                return html[start:i]
+    return html[start:]
+
+
+# ---------------------------------------------------------------------------
 # R2 / R2.1 — System State Block
 # ---------------------------------------------------------------------------
 
@@ -34,7 +77,7 @@ def test_system_state_expansion_renders_momentum_longs() -> None:
         _payload(market_regime="EXPANSION"),
         _run(posture="EXPANSION_LONG", permission=expansion_permission),
     )
-    state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    state = _top_block(html, "system-state")
     assert "Momentum longs allowed" in state
     assert "Stand down" not in state
 
@@ -56,7 +99,7 @@ def test_system_state_permission_shows_dash_when_none() -> None:
     # no market_map, lineage is MISSING -> Permission renders UNKNOWN.
     r = _run(permission=None)
     html = render_dashboard_html(_payload(), r)
-    state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    state = _top_block(html, "system-state")
     # PRD-219: no Permission field / no dash placeholder; a distilled verdict.
     assert 'class="sys-verdict' in state
     assert ">&#8212;<" not in state
@@ -65,7 +108,7 @@ def test_system_state_permission_shows_dash_when_none() -> None:
 
 def test_system_state_stay_flat_omitted_when_none() -> None:
     html = render_dashboard_html(_payload(validation_halt_detail=None), _run())
-    state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    state = _top_block(html, "system-state")
     assert "Stay Flat" not in state
 
 
@@ -75,7 +118,7 @@ def test_system_state_stay_flat_present_when_set() -> None:
     html = render_dashboard_html(
         _payload(validation_halt_detail={"reason": "STAY_FLAT posture"}), _run()
     )
-    state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    state = _top_block(html, "system-state")
     assert "STAY_FLAT posture" not in state
 
 
@@ -85,7 +128,7 @@ def test_system_state_no_redundant_permission_copy() -> None:
         _payload(validation_halt_detail={"reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.25)"}),
         _run(permission="No new trades permitted."),
     )
-    state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    state = _top_block(html, "system-state")
     # PRD-219: no Permission field; the distilled verdict replaces it, and the
     # confidence-laden posture string never appears.
     assert ">Permission<" not in state
@@ -100,7 +143,7 @@ def test_system_state_permission_fallback_when_no_reason() -> None:
         _payload(validation_halt_detail=None),
         _run(permission="No new trades permitted."),
     )
-    state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    state = _top_block(html, "system-state")
     # PRD-219: the raw permission text is no longer echoed; the verdict conveys it.
     assert 'class="sys-verdict' in state
     assert "No new trades permitted." not in state
@@ -110,7 +153,7 @@ def test_system_state_permission_shows_from_run_when_non_null() -> None:
     """Permission shows the run value when run.permission is a non-null string."""
     r = _run(permission="No new trades permitted.")
     html = render_dashboard_html(_payload(), r)
-    state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    state = _top_block(html, "system-state")
     assert 'class="sys-verdict' in state
     assert "No new trades permitted." not in state
     assert "&#8212;" not in state
@@ -122,7 +165,7 @@ def test_system_state_permission_falls_back_to_payload_when_run_none() -> None:
     payload_with_perm["summary"]["permission"] = "No new trades permitted."
     r = _run(permission=None)
     html = render_dashboard_html(payload_with_perm, r)
-    state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    state = _top_block(html, "system-state")
     assert 'class="sys-verdict' in state
     assert "No new trades permitted." not in state
 
@@ -294,10 +337,7 @@ def test_posture_label_in_run_delta() -> None:
 def test_system_state_reason_no_candidates() -> None:
     """When permission=None, stay_flat=None, no alert_candidates: reason is 'no qualified candidates'."""
     html = render_dashboard_html(_payload(validation_halt_detail=None), _run(permission=None), alert_candidates=[])
-    if 'id="alert-watchlist"' in html:
-        state = html.split('id="system-state"', 1)[1].split('id="alert-watchlist"', 1)[0]
-    else:
-        state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    state = _top_block(html, "system-state")
     # PRD-281: the reason renders in the dedicated WHY line, not the context
     # line (supersedes PRD-219's "folds into the context line" choice).
     why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
@@ -312,10 +352,7 @@ def test_system_state_reason_candidates_gated() -> None:
     from tests.dash_helpers import _trade_decision
     gated = [_trade_decision("META", "LONG", decision_status="BLOCK_TRADE", block_reason="LATE_SESSION")]
     html = render_dashboard_html(_payload(validation_halt_detail=None), _run(permission=None), alert_candidates=gated)
-    if 'id="alert-watchlist"' in html:
-        state = html.split('id="system-state"', 1)[1].split('id="alert-watchlist"', 1)[0]
-    else:
-        state = html.split('id="system-state"', 1)[1].split('id="candidate-board"', 1)[0]
+    state = _top_block(html, "system-state")
     why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
     assert "candidates gated" in why
     assert "no qualified candidates" not in state
@@ -489,10 +526,12 @@ def test_prd281_why_line_suppressed_for_sentinel_with_confidence_suffix() -> Non
 # ---------------------------------------------------------------------------
 
 def _survival_block(html: str) -> str | None:
+    # PRD-315: extract the exact opportunity-survival block depth-aware; the old
+    # alert-watchlist end sentinel no longer bounds it (Candidate now sits
+    # between Opportunity and Alert).
     if 'id="opportunity-survival"' not in html:
         return None
-    seg = html.split('id="opportunity-survival"', 1)[1]
-    return seg.split('id="alert-watchlist"', 1)[0] if 'id="alert-watchlist"' in seg else seg
+    return _top_block(html, "opportunity-survival")
 
 
 def _survival_pairs(html: str) -> dict[str, str]:
@@ -776,3 +815,39 @@ def test_prd314_opportunity_child_order_primary_absent() -> None:
     payload, run, mm = _coherent_survival(5)
     html = render_dashboard_html(payload, run, market_map=mm)
     assert _survival_label_order(html) == ["SURFACED", "QUALIFIED", "WATCHLIST", "REJECTED"]
+
+
+# ---------------------------------------------------------------------------
+# PRD-315 — Opportunity/Candidate independence under continuity adjacency.
+# The move places Candidate immediately after Opportunity; adjacency must never
+# read as a survivor/lineage claim (packet section 11.2 mandatory fixture).
+# ---------------------------------------------------------------------------
+
+def test_prd315_qualified_zero_with_independent_b_candidate() -> None:
+    # QUALIFIED 0 funnel coexisting with an independent B DEVELOPING Candidate:
+    # the Opportunity count (derived from the payload survival funnel) and the
+    # Candidate population (driven by market_map) are separate carriers. Their
+    # top-level adjacency communicates operator reading sequence, not data
+    # lineage -- there is no carrier join and no survivor claim.
+    payload, run, _empty = _coherent_survival(1, rejected_reasons=("CHOP",))  # 1 - 1 - 0
+    mm = _market_map({"GLD": _mm_symbol("GLD", grade="B")})
+    html = render_dashboard_html(payload, run, market_map=mm)
+
+    # Opportunity renders and its derived QUALIFIED is 0 (scanned 1 > 0 => block present).
+    assert 'id="opportunity-survival"' in html
+    pairs = _survival_pairs(html)
+    assert pairs["SURFACED"] == "1"
+    assert pairs["REJECTED"] == "1"
+    assert pairs["WATCHLIST"] == "0"
+    assert pairs["QUALIFIED"] == "0"
+
+    # The Candidate board independently renders the B DEVELOPING card.
+    board = _top_block(html, "candidate-board")
+    assert "B — DEVELOPING" in board
+    assert 'id="card-GLD"' in board
+
+    # Continuity: Candidate is the immediate top-level successor of Opportunity;
+    # nothing intervenes, and no survivor-claim copy couples them.
+    ids = _top_ids(html)
+    assert ids.index("opportunity-survival") + 1 == ids.index("candidate-board")
+    assert "survived" not in board.lower()

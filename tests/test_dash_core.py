@@ -13,6 +13,50 @@ from tests.dash_helpers import _macro_drivers, _market_map, _mm_symbol, _payload
 
 
 # ---------------------------------------------------------------------------
+# PRD-315 depth-aware top-level extraction (test-local; replaces Candidate-
+# relative substring sentinels so the Opportunity->Candidate continuity move
+# cannot silently weaken order coverage).
+# ---------------------------------------------------------------------------
+
+def _top_ids(html: str) -> list[str]:
+    """Ordered top-level `.block` ids via depth-aware sibling scan."""
+    ids: list[str] = []
+    i = 0
+    while True:
+        j = html.find('class="block', i)
+        if j == -1:
+            break
+        k = html.find('id="', j)
+        e = html.find('"', k + 4)
+        ids.append(html[k + 4:e])
+        i = e
+    return ids
+
+
+def _top_block(html: str, block_id: str) -> str:
+    """Exact `<div ... id="{block_id}"> ... </div>` fragment (matches nested divs)."""
+    marker = f'id="{block_id}"'
+    idx = html.find(marker)
+    assert idx != -1, f"{block_id} not rendered"
+    start = html.rfind("<div", 0, idx)
+    i, depth = start, 0
+    while i < len(html):
+        nd = html.find("<div", i)
+        nc = html.find("</div>", i)
+        if nc == -1:
+            break
+        if nd != -1 and nd < nc:
+            depth += 1
+            i = nd + 4
+        else:
+            depth -= 1
+            i = nc + 6
+            if depth == 0:
+                return html[start:i]
+    return html[start:]
+
+
+# ---------------------------------------------------------------------------
 # Field mapping
 # ---------------------------------------------------------------------------
 
@@ -152,12 +196,16 @@ def test_section_order_system_state_before_run_delta() -> None:
 def test_section_order_full_r5_sequence() -> None:
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="B")})
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), previous_run=_run(), market_map=mm)
-    system_pos     = html.index('id="system-state"')
-    tape_pos       = html.index('id="macro-tape"')
-    pressure_pos   = html.index('class="macro-pressure-line')
-    candidates_pos = html.index('id="candidate-board"')
-    delta_pos      = html.index('id="run-delta"')
-    assert system_pos < tape_pos < pressure_pos < candidates_pos < delta_pos
+    ids = _top_ids(html)
+    # PRD-315: Candidate is lifted ahead of the detailed Context chain, so the
+    # full-board order is System (-> Opportunity when valid) -> Candidate ->
+    # Macro -> ... -> Run Delta. macro-pressure stays inline inside macro-tape.
+    assert ids.index("system-state") < ids.index("candidate-board")
+    assert ids.index("candidate-board") < ids.index("macro-tape") < ids.index("run-delta")
+    if "opportunity-survival" in ids:
+        assert ids.index("system-state") < ids.index("opportunity-survival") < ids.index("candidate-board")
+    macro = _top_block(html, "macro-tape")
+    assert 'class="macro-pressure-line' in macro
 
 
 # PRD-177 R2: four-questions section order
@@ -174,11 +222,14 @@ def test_section_order_four_questions_sequence() -> None:
         _payload(macro_drivers=_macro_drivers()), _run(),
         previous_run=_run(), market_map=mm, regime_history=hist, red_folder=rf,
     )
+    # PRD-315: Candidate now leads the detailed Context chain (System ->
+    # Candidate -> Macro -> Red Folder -> Trend), so it precedes macro-tape.
     order = [
-        "system-state", "macro-tape", "red-folder", "trend-structure",
-        "candidate-board", "run-delta", "scoreboard",
+        "system-state", "candidate-board", "macro-tape", "red-folder",
+        "trend-structure", "run-delta", "scoreboard",
     ]
-    positions = [html.index(f'id="{section}"') for section in order]
+    ids = _top_ids(html)
+    positions = [ids.index(section) for section in order]
     assert positions == sorted(positions)
 
 

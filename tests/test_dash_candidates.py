@@ -11,6 +11,49 @@ from tests.dash_helpers import _market_map, _mm_symbol, _payload, _run
 
 
 # ---------------------------------------------------------------------------
+# PRD-315 depth-aware top-level extraction (test-local; replaces Candidate-
+# relative substring sentinels invalidated by the Opportunity->Candidate move).
+# ---------------------------------------------------------------------------
+
+def _top_ids(html: str) -> list[str]:
+    """Ordered top-level `.block` ids via depth-aware sibling scan."""
+    ids: list[str] = []
+    i = 0
+    while True:
+        j = html.find('class="block', i)
+        if j == -1:
+            break
+        k = html.find('id="', j)
+        e = html.find('"', k + 4)
+        ids.append(html[k + 4:e])
+        i = e
+    return ids
+
+
+def _top_block(html: str, block_id: str) -> str:
+    """Exact `<div ... id="{block_id}"> ... </div>` fragment (matches nested divs)."""
+    marker = f'id="{block_id}"'
+    idx = html.find(marker)
+    assert idx != -1, f"{block_id} not rendered"
+    start = html.rfind("<div", 0, idx)
+    i, depth = start, 0
+    while i < len(html):
+        nd = html.find("<div", i)
+        nc = html.find("</div>", i)
+        if nc == -1:
+            break
+        if nd != -1 and nd < nc:
+            depth += 1
+            i = nd + 4
+        else:
+            depth -= 1
+            i = nc + 6
+            if depth == 0:
+                return html[start:i]
+    return html[start:]
+
+
+# ---------------------------------------------------------------------------
 # R3 — Candidate Visibility Board
 # ---------------------------------------------------------------------------
 
@@ -665,18 +708,25 @@ def test_alert_watchlist_shows_symbol_and_direction() -> None:
         _trade_decision("XLE", "LONG", decision_status="BLOCK_TRADE", block_reason="LATE_SESSION"),
     ]
     html = render_dashboard_html(_payload(), _run(), alert_candidates=gated)
-    block = html.split('id="alert-watchlist"', 1)[1].split('id="candidate-board"', 1)[0]
+    block = _top_block(html, "alert-watchlist")
     assert "META" in block
     assert "LONG" in block
     assert "XLE" in block
 
 
-def test_alert_watchlist_positioned_before_candidate_board() -> None:
-    """alert-watchlist section appears before candidate-board in DOM."""
+def test_candidate_board_positioned_before_alert_watchlist() -> None:
+    """PRD-315: candidate-board immediately precedes alert-watchlist in DOM.
+
+    Supersedes the historical Alert-before-Candidate pin (packet section 5):
+    Candidate is lifted above Alert and is its immediate top-level predecessor.
+    Reverting Candidate to its old seam breaks the adjacency assertion below.
+    """
     from tests.dash_helpers import _trade_decision
     gated = [_trade_decision("NVDA", "LONG", decision_status="BLOCK_TRADE", block_reason="LATE_SESSION")]
     html = render_dashboard_html(_payload(), _run(), alert_candidates=gated)
-    assert html.index('id="alert-watchlist"') < html.index('id="candidate-board"')
+    ids = _top_ids(html)
+    assert ids.index("candidate-board") < ids.index("alert-watchlist")
+    assert ids.index("alert-watchlist") == ids.index("candidate-board") + 1
 
 
 # ---------------------------------------------------------------------------
