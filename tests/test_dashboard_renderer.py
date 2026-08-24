@@ -3976,7 +3976,7 @@ _PRD314_PHONE_BLOCK = (
     "#market-state .market-state-provenance,#market-state .market-state-qualifier"
     "{font-size:.72rem;line-height:1.25}"
     "#opportunity-survival .kv-grid"
-    "{grid-template-columns:max-content minmax(2.5ch,1fr) max-content minmax(2.5ch,1fr)}"
+    "{grid-template-columns:auto minmax(2.5ch,1fr) auto minmax(2.5ch,1fr)}"
     "#opportunity-survival .kv-grid>*:nth-child(10){grid-column:2/-1}"
     "}"
 )
