@@ -13,43 +13,43 @@
     "rejected_count": 0
   },
   "correlation": null,
-  "generated_at": "2026-08-24T16:24:47Z",
-  "generation_id": "hourly-20260824T162447Z",
+  "generated_at": "2026-08-24T17:22:29Z",
+  "generation_id": "hourly-20260824T172229Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 2.6302085191794164,
-      "level": 79769.8828125,
+      "change_pct": 1.2736011585630376,
+      "level": 78715.5078125,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.13355975656646288,
-      "level": 98.96700286865234,
+      "change_pct": 0.16391214142482216,
+      "level": 98.99700164794922,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 0.35544903020334623,
-      "level": 4714.89990234375,
+      "change_pct": 0.2490252978773246,
+      "level": 4709.89990234375,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": -0.7590726583357797,
-      "level": 84.9800033569336,
+      "change_pct": -0.7941145941688543,
+      "level": 84.94999694824219,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -4.751358057611984,
-      "change_pct": -1.013082729134952,
-      "level": 4.690000057220459,
+      "change_bps": -4.35915347743847,
+      "change_pct": -0.9286650391000437,
+      "level": 4.693999767303467,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -0.4422858312427914,
-      "level": 68.65499877929688,
+      "change_pct": -0.1595136482191902,
+      "level": 68.8499984741211,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 3.8995383220437754,
-      "level": 15.720000267028809,
+      "change_pct": 3.569067797544966,
+      "level": 15.670000076293945,
       "symbol": "^VIX"
     }
   },
@@ -65,20 +65,20 @@
   "regime": {
     "classification": "NEUTRAL",
     "confidence": 0.125,
-    "net_score": 1,
+    "net_score": -1,
     "neutral_votes": 3,
     "posture": "STAY_FLAT",
-    "risk_off_votes": 2,
-    "risk_on_votes": 3,
+    "risk_off_votes": 3,
+    "risk_on_votes": 2,
     "total_votes": 8,
-    "vix_level": 15.720000267028809,
-    "vix_pct_change": 0.03899538322043775,
+    "vix_level": 15.670000076293945,
+    "vix_pct_change": 0.03569067797544966,
     "vote_breakdown": {
-      "BTC pct_change": "RISK_ON",
+      "BTC pct_change": "NEUTRAL",
       "DXY pct_change": "NEUTRAL",
       "IWM pct_change": "RISK_OFF",
       "QQQ pct_change": "RISK_OFF",
-      "SPY pct_change": "NEUTRAL",
+      "SPY pct_change": "RISK_OFF",
       "TNX pct_change": "RISK_ON",
       "VIX level": "RISK_ON",
       "VIX pct_change": "NEUTRAL"
