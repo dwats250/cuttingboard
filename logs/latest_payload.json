@@ -1,40 +1,130 @@
 {
-  "macro_drivers": {},
+  "macro_drivers": {
+    "bitcoin": {
+      "change_pct": 0.9289096077152087,
+      "level": 78447.5390625,
+      "symbol": "BTC-USD"
+    },
+    "dollar": {
+      "change_pct": 0.10927476094988144,
+      "level": 98.94300079345703,
+      "symbol": "DX-Y.NYB"
+    },
+    "gold": {
+      "change_pct": 0.6811118868865383,
+      "level": 4730.2001953125,
+      "symbol": "GC=F"
+    },
+    "oil": {
+      "change_pct": -0.0817466975002439,
+      "level": 85.55999755859375,
+      "symbol": "CL=F"
+    },
+    "rates": {
+      "change_bps": -3.178346862664219,
+      "change_pct": -0.6753817766884394,
+      "level": 4.706000328063965,
+      "symbol": "^TNX"
+    },
+    "silver": {
+      "change_pct": 0.26826792495623,
+      "level": 69.1449966430664,
+      "symbol": "SI=F"
+    },
+    "volatility": {
+      "change_pct": 4.824848226799257,
+      "level": 15.859999656677246,
+      "symbol": "^VIX"
+    }
+  },
   "meta": {
-    "generation_id": "sunday-20260823T234525Z",
-    "session_type": "SUNDAY_PREMARKET",
+    "generation_id": "live-20260824T135725Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-08-23T23:45:25Z"
+    "timestamp": "2026-08-24T13:57:25Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
   "sections": {
     "chain_results_detail": [],
     "continuation_audit": null,
+    "market_control_card": {
+      "candidate_implication": {
+        "unavailable_reason": null,
+        "value": "NO_CANDIDATES"
+      },
+      "event": {
+        "events": null,
+        "expiring": false,
+        "unavailable_reason": null,
+        "value": "no_scheduled_events"
+      },
+      "invalidation": {
+        "unavailable_reason": null,
+        "value": "NO_ACTIVE_CANDIDATES"
+      },
+      "location": {
+        "orb": {
+          "orb_high": 764.8099975585938,
+          "orb_low": 763.1699829101562,
+          "reason": null,
+          "state": "FORMED"
+        },
+        "price_vs_vwap": "AT_LEVEL",
+        "reason": null,
+        "state": "OBSERVED"
+      },
+      "permission": {
+        "value": "No new trades permitted \u2014 operator cannot monitor."
+      },
+      "state": {
+        "unavailable_reason": null,
+        "value": "FAILED_EXPANSION"
+      },
+      "transition": {
+        "unavailable_reason": null,
+        "value": "FAILED_EXPANSION"
+      }
+    },
     "option_setups_detail": [],
-    "rejected": [],
+    "rejected": [
+      {
+        "detail": null,
+        "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)",
+        "stage": "REGIME",
+        "symbol": "REGIME"
+      }
+    ],
     "spy_observation": {
-      "current_price": null,
-      "intended_session_date": "2026-08-23",
-      "observed_at_utc": null,
+      "current_price": 763.4400024414062,
+      "intended_session_date": "2026-08-24",
+      "observed_at_utc": "2026-08-24T13:57:00+00:00",
       "observed_symbol": "SPY",
-      "orb": null,
-      "price_vs_vwap": null,
-      "reason": "intraday_fetch_failed",
-      "session_vwap": null,
-      "state": "UNAVAILABLE",
+      "orb": {
+        "observed_at_utc": "2026-08-24T13:57:00+00:00",
+        "orb_high": 764.8099975585938,
+        "orb_low": 763.1699829101562,
+        "reason": null,
+        "state": "FORMED",
+        "trading_date": "2026-08-24"
+      },
+      "price_vs_vwap": "AT_LEVEL",
+      "reason": null,
+      "session_vwap": 763.5383269397073,
+      "state": "OBSERVED",
       "timezone": "America/New_York"
     },
     "top_trades": [],
     "trade_decision_detail": [],
     "validation_halt_detail": {
-      "reason": "PREMARKET_CONTEXT"
+      "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)"
     },
-    "watch_summary_detail": null,
+    "watch_summary_detail": {
+      "session": "MORNING"
+    },
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.0,
+    "confidence": 0.125,
     "market_regime": "NEUTRAL",
     "outcome": "NO_TRADE",
     "permission": "No new trades permitted \u2014 operator cannot monitor.",

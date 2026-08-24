@@ -2,7 +2,7 @@
   "artifacts": {
     "log_path": "logs/latest_run.json",
     "notification_sent": true,
-    "report_path": "reports/2026-08-23.md"
+    "report_path": "reports/2026-08-24.md"
   },
   "audit_summary": {
     "continuation_accepted_count": null,
@@ -15,50 +15,102 @@
   "correlation": {
     "dollar_symbol": "DX-Y.NYB",
     "gold_symbol": "GLD",
-    "risk_modifier": 0.7,
-    "score": 0,
-    "state": "NEUTRAL"
+    "risk_modifier": 0.4,
+    "score": -1,
+    "state": "CONFLICT"
   },
-  "generated_at": "2026-08-23T23:45:25Z",
-  "generation_id": "sunday-20260823T234525Z",
-  "macro_drivers": {},
+  "generated_at": "2026-08-24T13:57:25Z",
+  "generation_id": "live-20260824T135725Z",
+  "macro_drivers": {
+    "bitcoin": {
+      "change_pct": 0.9289096077152087,
+      "level": 78447.5390625,
+      "symbol": "BTC-USD"
+    },
+    "dollar": {
+      "change_pct": 0.10927476094988144,
+      "level": 98.94300079345703,
+      "symbol": "DX-Y.NYB"
+    },
+    "gold": {
+      "change_pct": 0.6811118868865383,
+      "level": 4730.2001953125,
+      "symbol": "GC=F"
+    },
+    "oil": {
+      "change_pct": -0.0817466975002439,
+      "level": 85.55999755859375,
+      "symbol": "CL=F"
+    },
+    "rates": {
+      "change_bps": -3.178346862664219,
+      "change_pct": -0.6753817766884394,
+      "level": 4.706000328063965,
+      "symbol": "^TNX"
+    },
+    "silver": {
+      "change_pct": 0.26826792495623,
+      "level": 69.1449966430664,
+      "symbol": "SI=F"
+    },
+    "volatility": {
+      "change_pct": 4.824848226799257,
+      "level": 15.859999656677246,
+      "symbol": "^VIX"
+    }
+  },
   "market_context": {
     "continuation_enabled": false,
-    "data_quality": "stale",
+    "data_quality": "ok",
     "expansion_regime": null,
-    "imbalance_enabled": null,
-    "stale_data_detected": null
+    "imbalance_enabled": false,
+    "stale_data_detected": false
   },
-  "mode": "sunday",
+  "mode": "live",
   "outcome": "NO_TRADE",
   "regime": {
     "classification": "NEUTRAL",
-    "confidence": 0.0,
-    "net_score": 0,
-    "neutral_votes": 0,
+    "confidence": 0.125,
+    "net_score": -1,
+    "neutral_votes": 3,
     "posture": "STAY_FLAT",
-    "risk_off_votes": 0,
-    "risk_on_votes": 0,
-    "total_votes": 0,
-    "vix_level": null,
-    "vix_pct_change": null,
-    "vote_breakdown": {}
+    "risk_off_votes": 3,
+    "risk_on_votes": 2,
+    "total_votes": 8,
+    "vix_level": 15.859999656677246,
+    "vix_pct_change": 0.04824848226799257,
+    "vote_breakdown": {
+      "BTC pct_change": "NEUTRAL",
+      "DXY pct_change": "NEUTRAL",
+      "IWM pct_change": "RISK_OFF",
+      "QQQ pct_change": "RISK_OFF",
+      "SPY pct_change": "RISK_OFF",
+      "TNX pct_change": "RISK_ON",
+      "VIX level": "RISK_ON",
+      "VIX pct_change": "NEUTRAL"
+    }
   },
-  "rejections": [],
+  "rejections": [
+    {
+      "detail": null,
+      "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)",
+      "stage": "REGIME",
+      "symbol": "REGIME"
+    }
+  ],
   "schema_version": "v2",
-  "session_date": "2026-08-23",
+  "session_date": "2026-08-24",
   "status": "STAY_FLAT",
   "system_state": {
-    "confidence": 0.0,
-    "intraday_state": null,
+    "confidence": 0.125,
+    "intraday_state": "MORNING",
     "market_regime": "NEUTRAL",
     "outcome": "NO_TRADE",
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
-    "reason": "STAY_FLAT posture",
+    "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)",
     "router_mode": "MIXED",
-    "session_type": "SUNDAY_PREMARKET",
-    "stay_flat_reason": "PREMARKET_CONTEXT",
-    "time_gate_open": false,
+    "stay_flat_reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)",
+    "time_gate_open": true,
     "tradable": false
   },
   "timezone": "America/New_York",
