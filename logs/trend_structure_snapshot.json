@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-08-25T17:23:13.523304+00:00",
+  "generated_at": "2026-08-25T18:24:56.904097+00:00",
   "schema_version": 1,
   "source": "trend_structure",
   "symbols": {
     "GDX": {
-      "current_price": 104.91000366210938,
+      "current_price": 105.02999877929688,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
@@ -19,7 +19,7 @@
       "vwap": null
     },
     "GLD": {
-      "current_price": 425.6700134277344,
+      "current_price": 426.3900146484375,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
@@ -34,7 +34,7 @@
       "vwap": null
     },
     "QQQ": {
-      "current_price": 709.9600219726562,
+      "current_price": 709.4349975585938,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
@@ -49,7 +49,7 @@
       "vwap": null
     },
     "SLV": {
-      "current_price": 62.150001525878906,
+      "current_price": 62.23500061035156,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "BELOW",
@@ -64,7 +64,7 @@
       "vwap": null
     },
     "SPY": {
-      "current_price": 765.169921875,
+      "current_price": 764.9299926757812,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
@@ -72,14 +72,14 @@
       "price_vs_vwap": "NOT_COMPUTED",
       "reason": "BULLISH alignment; VWAP NOT_COMPUTED",
       "relative_volume": 0.7008338415533295,
-      "sma_200": 705.4515600585937,
+      "sma_200": 705.4515618896485,
       "sma_50": 752.1102502441406,
       "symbol": "SPY",
       "trend_alignment": "BULLISH",
       "vwap": null
     },
     "XLE": {
-      "current_price": 62.564998626708984,
+      "current_price": 62.51499938964844,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
@@ -87,7 +87,7 @@
       "price_vs_vwap": "NOT_COMPUTED",
       "reason": "BULLISH alignment; VWAP NOT_COMPUTED",
       "relative_volume": 0.8583621656428305,
-      "sma_200": 53.49478689193725,
+      "sma_200": 53.49478687286377,
       "sma_50": 57.585547561645505,
       "symbol": "XLE",
       "trend_alignment": "BULLISH",
