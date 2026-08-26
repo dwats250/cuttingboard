@@ -1,46 +1,46 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -0.6393323462960038,
-      "level": 78482.4375,
+      "change_pct": -0.09574757024622367,
+      "level": 78451.609375,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.08279139172884109,
-      "level": 98.96299743652344,
+      "change_pct": 0.1444815680200768,
+      "level": 99.11599731445312,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -0.3967239756383234,
-      "level": 4669.7001953125,
+      "change_pct": -0.47010480945232547,
+      "level": 4679.0,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": -3.734054114492358,
-      "level": 82.23999786376953,
+      "change_pct": 1.5447932540447815,
+      "level": 81.51000213623047,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -4.358858136383257,
-      "change_pct": -0.935377313113843,
-      "level": 4.659999847412109,
+      "change_bps": 1.9077872339620634,
+      "change_pct": 0.4095721848619259,
+      "level": 4.6579999923706055,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -0.4195549254070292,
-      "level": 67.6449966430664,
+      "change_pct": -1.407736708126759,
+      "level": 68.28500366210938,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -4.482323429971527,
-      "level": 15.130000114440918,
+      "change_pct": 0.38835223532312185,
+      "level": 15.510000228881836,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "live-20260825T135643Z",
+    "generation_id": "live-20260826T135950Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-08-25T13:56:43Z"
+    "timestamp": "2026-08-26T13:59:50Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -64,12 +64,12 @@
       },
       "location": {
         "orb": {
-          "orb_high": 766.780029296875,
-          "orb_low": 765.9299926757812,
+          "orb_high": 765.7999877929688,
+          "orb_low": 764.6799926757812,
           "reason": null,
           "state": "FORMED"
         },
-        "price_vs_vwap": "AT_LEVEL",
+        "price_vs_vwap": "ABOVE",
         "reason": null,
         "state": "OBSERVED"
       },
@@ -78,45 +78,45 @@
       },
       "state": {
         "unavailable_reason": null,
-        "value": "RANGE"
+        "value": "FAILED_EXPANSION"
       },
       "transition": {
         "unavailable_reason": null,
-        "value": "FAILED_RECLAIM"
+        "value": "FAILED_EXPANSION"
       }
     },
     "option_setups_detail": [],
     "rejected": [
       {
         "detail": null,
-        "reason": "STAY_FLAT posture (regime=RISK_ON, confidence=0.50)",
+        "reason": "STAY_FLAT posture (regime=RISK_ON, confidence=0.25)",
         "stage": "REGIME",
         "symbol": "REGIME"
       }
     ],
     "spy_observation": {
-      "current_price": 765.8599853515625,
-      "intended_session_date": "2026-08-25",
-      "observed_at_utc": "2026-08-25T13:56:00+00:00",
+      "current_price": 766.6900024414062,
+      "intended_session_date": "2026-08-26",
+      "observed_at_utc": "2026-08-26T14:00:00+00:00",
       "observed_symbol": "SPY",
       "orb": {
-        "observed_at_utc": "2026-08-25T13:56:00+00:00",
-        "orb_high": 766.780029296875,
-        "orb_low": 765.9299926757812,
+        "observed_at_utc": "2026-08-26T14:00:00+00:00",
+        "orb_high": 765.7999877929688,
+        "orb_low": 764.6799926757812,
         "reason": null,
         "state": "FORMED",
-        "trading_date": "2026-08-25"
+        "trading_date": "2026-08-26"
       },
-      "price_vs_vwap": "AT_LEVEL",
+      "price_vs_vwap": "ABOVE",
       "reason": null,
-      "session_vwap": 766.2801832041753,
+      "session_vwap": 765.609305190738,
       "state": "OBSERVED",
       "timezone": "America/New_York"
     },
     "top_trades": [],
     "trade_decision_detail": [],
     "validation_halt_detail": {
-      "reason": "STAY_FLAT posture (regime=RISK_ON, confidence=0.50)"
+      "reason": "STAY_FLAT posture (regime=RISK_ON, confidence=0.25)"
     },
     "watch_summary_detail": {
       "session": "MORNING"
@@ -124,7 +124,7 @@
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.5,
+    "confidence": 0.25,
     "market_regime": "RISK_ON",
     "outcome": "NO_TRADE",
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
