@@ -1568,6 +1568,12 @@
       "title": "Opportunity 125% narrow-phone resilience",
       "status": "COMPLETE",
       "commit": "#277"
+    },
+    {
+      "number": 317,
+      "title": "Mobile operator layout promotion",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

@@ -928,6 +928,13 @@ _CSS = (
     "#market-state .market-state-provenance,#market-state .market-state-qualifier{font-size:.72rem;line-height:1.25}"
     "#opportunity-survival .kv-grid{grid-template-columns:auto minmax(2.5ch,1fr) auto minmax(2.5ch,1fr)}"
     "#opportunity-survival .kv-grid>*:nth-child(10){grid-column:2/-1}"
+    "#staleness-banner{padding:6px 10px;margin-bottom:10px;font-size:.75rem;letter-spacing:.04em}"
+    "#candidate-board{padding:10px;margin-bottom:10px}"
+    "#candidate-board h2{margin-bottom:8px}"
+    "#candidate-board .candidate-scope{padding:6px 8px;margin-bottom:8px;font-size:.72rem;line-height:1.25}"
+    "#candidate-board:not(:has(.candidate-card)) .unavailable{font-size:.75rem}"
+    "#gex-context,#market-movement,#macro-tape,#trend-structure{padding:10px 0;margin-bottom:8px;border-right:0;border-left:0;border-radius:0}"
+    "#run-delta,#scoreboard{padding:10px;margin-bottom:8px}"
     "}"
 )
 
