@@ -1,0 +1,52 @@
+/* Experiment only: phone operator hierarchy, current main 8318979.
+ *
+ * Keeps all text, DOM order, visibility gates, values, and desktop geometry.
+ * The first group makes the stale status and Candidate entry chrome compact.
+ * The second group gives lower-page context/history a lighter shared rhythm so
+ * those surfaces scan as a cluster instead of full-weight peer subsystems.
+ */
+@media (max-width: 430px) {
+  #staleness-banner {
+    padding: 6px 10px;
+    margin-bottom: 10px;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+  }
+
+  #candidate-board {
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+
+  #candidate-board h2 {
+    margin-bottom: 8px;
+  }
+
+  #candidate-board .candidate-scope {
+    padding: 6px 8px;
+    margin-bottom: 8px;
+    font-size: 0.72rem;
+    line-height: 1.25;
+  }
+
+  #candidate-board:not(:has(.candidate-card)) .unavailable {
+    font-size: 0.75rem;
+  }
+
+  #gex-context,
+  #market-movement,
+  #macro-tape,
+  #trend-structure {
+    padding: 10px 0;
+    margin-bottom: 8px;
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+  }
+
+  #run-delta,
+  #scoreboard {
+    padding: 10px;
+    margin-bottom: 8px;
+  }
+}

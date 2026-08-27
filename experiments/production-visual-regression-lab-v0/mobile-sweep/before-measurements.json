@@ -1,0 +1,695 @@
+{
+  "phase": "before",
+  "cssPath": null,
+  "results": [
+    {
+      "phase": "before",
+      "fixture": "stale-board",
+      "viewport": "360x800",
+      "screenshot": "/tmp/cuttingboard-mobile-lab.80M2R8/experiments/production-visual-regression-lab-v0/mobile-sweep/screenshots/before-stale-board-360x800.png",
+      "metrics": {
+        "pageHeight": 2475,
+        "horizontalOverflow": 0,
+        "authoritativeDecisionY": 378.7,
+        "opportunityY": 579.7,
+        "candidateY": 695.7,
+        "candidateIdentityY": 845.7,
+        "candidateLevelY": 932.7,
+        "candidateInvalidationY": 980.7,
+        "firstMeaningfulContext": "gex",
+        "firstMeaningfulContextY": 1229.7,
+        "staleBannerHeight": 49,
+        "marketStateHeight": 287.7,
+        "systemStateHeight": 191,
+        "opportunityHeight": 106,
+        "candidateHeight": 518,
+        "fold": {
+          "intersecting": [
+            "staleness",
+            "marketState",
+            "systemState",
+            "opportunity",
+            "candidate"
+          ],
+          "fullyAbove": [
+            "staleness",
+            "marketState",
+            "systemState",
+            "opportunity"
+          ]
+        },
+        "surfaceOrder": [
+          "staleness",
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidate",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "runDelta",
+          "scoreboard"
+        ],
+        "criticalText": {
+          "staleness": "BOARD 2h OLD",
+          "marketState": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 14:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 14:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "systemState": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: 1 setup gated\nRisk-on regime\nUPDATED\n2026-08-23 11:00:00 PT",
+          "opportunity": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "candidate": "MARKET MAP / DEVELOPING SETUPS\nOBSERVATION ONLY — setup quality never overrides Decision State or Permission.\nB — DEVELOPING (1)\nSPY · B · DEVELOPING · BULL UPTREND\nIF NOW\nWAIT\nIN →\nhold above reference with constructive follow-through\nOUT →\nloses reference and fails to recover with constructive follow-through\nDETAIL ▶\nRESISTANCE 101.00 +1.0%\nSUPPORT 99.00 -1.0%\nNOW 100.00"
+        }
+      }
+    },
+    {
+      "phase": "before",
+      "fixture": "stale-board",
+      "viewport": "390x844",
+      "screenshot": "/tmp/cuttingboard-mobile-lab.80M2R8/experiments/production-visual-regression-lab-v0/mobile-sweep/screenshots/before-stale-board-390x844.png",
+      "metrics": {
+        "pageHeight": 2416,
+        "horizontalOverflow": 0,
+        "authoritativeDecisionY": 363.7,
+        "opportunityY": 564.7,
+        "candidateY": 680.7,
+        "candidateIdentityY": 830.7,
+        "candidateLevelY": 902.7,
+        "candidateInvalidationY": 950.7,
+        "firstMeaningfulContext": "gex",
+        "firstMeaningfulContextY": 1184.7,
+        "staleBannerHeight": 49,
+        "marketStateHeight": 272.7,
+        "systemStateHeight": 191,
+        "opportunityHeight": 106,
+        "candidateHeight": 488,
+        "fold": {
+          "intersecting": [
+            "staleness",
+            "marketState",
+            "systemState",
+            "opportunity",
+            "candidate"
+          ],
+          "fullyAbove": [
+            "staleness",
+            "marketState",
+            "systemState",
+            "opportunity"
+          ]
+        },
+        "surfaceOrder": [
+          "staleness",
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidate",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "runDelta",
+          "scoreboard"
+        ],
+        "criticalText": {
+          "staleness": "BOARD 2h OLD",
+          "marketState": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 14:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 14:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "systemState": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: 1 setup gated\nRisk-on regime\nUPDATED\n2026-08-23 11:00:00 PT",
+          "opportunity": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "candidate": "MARKET MAP / DEVELOPING SETUPS\nOBSERVATION ONLY — setup quality never overrides Decision State or Permission.\nB — DEVELOPING (1)\nSPY · B · DEVELOPING · BULL UPTREND\nIF NOW\nWAIT\nIN →\nhold above reference with constructive follow-through\nOUT →\nloses reference and fails to recover with constructive follow-through\nDETAIL ▶\nRESISTANCE 101.00 +1.0%\nSUPPORT 99.00 -1.0%\nNOW 100.00"
+        }
+      }
+    },
+    {
+      "phase": "before",
+      "fixture": "stale-board",
+      "viewport": "430x932",
+      "screenshot": "/tmp/cuttingboard-mobile-lab.80M2R8/experiments/production-visual-regression-lab-v0/mobile-sweep/screenshots/before-stale-board-430x932.png",
+      "metrics": {
+        "pageHeight": 2326,
+        "horizontalOverflow": 0,
+        "authoritativeDecisionY": 317.5,
+        "opportunityY": 518.5,
+        "candidateY": 634.5,
+        "candidateIdentityY": 769.5,
+        "candidateLevelY": 841.5,
+        "candidateInvalidationY": 889.5,
+        "firstMeaningfulContext": "gex",
+        "firstMeaningfulContextY": 1123.5,
+        "staleBannerHeight": 49,
+        "marketStateHeight": 226.5,
+        "systemStateHeight": 191,
+        "opportunityHeight": 106,
+        "candidateHeight": 473,
+        "fold": {
+          "intersecting": [
+            "staleness",
+            "marketState",
+            "systemState",
+            "opportunity",
+            "candidate"
+          ],
+          "fullyAbove": [
+            "staleness",
+            "marketState",
+            "systemState",
+            "opportunity"
+          ]
+        },
+        "surfaceOrder": [
+          "staleness",
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidate",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "runDelta",
+          "scoreboard"
+        ],
+        "criticalText": {
+          "staleness": "BOARD 2h OLD",
+          "marketState": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 14:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 14:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "systemState": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: 1 setup gated\nRisk-on regime\nUPDATED\n2026-08-23 11:00:00 PT",
+          "opportunity": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "candidate": "MARKET MAP / DEVELOPING SETUPS\nOBSERVATION ONLY — setup quality never overrides Decision State or Permission.\nB — DEVELOPING (1)\nSPY · B · DEVELOPING · BULL UPTREND\nIF NOW\nWAIT\nIN →\nhold above reference with constructive follow-through\nOUT →\nloses reference and fails to recover with constructive follow-through\nDETAIL ▶\nRESISTANCE 101.00 +1.0%\nSUPPORT 99.00 -1.0%\nNOW 100.00"
+        }
+      }
+    },
+    {
+      "phase": "before",
+      "fixture": "stale-board",
+      "viewport": "1280x800",
+      "screenshot": "/tmp/cuttingboard-mobile-lab.80M2R8/experiments/production-visual-regression-lab-v0/mobile-sweep/screenshots/before-stale-board-1280x800.png",
+      "metrics": {
+        "pageHeight": 2281,
+        "horizontalOverflow": 0,
+        "authoritativeDecisionY": 291,
+        "opportunityY": 514,
+        "candidateY": 694,
+        "candidateIdentityY": 829,
+        "candidateLevelY": 901,
+        "candidateInvalidationY": 934,
+        "firstMeaningfulContext": "gex",
+        "firstMeaningfulContextY": 1153,
+        "staleBannerHeight": 49,
+        "marketStateHeight": 194,
+        "systemStateHeight": 207,
+        "opportunityHeight": 164,
+        "candidateHeight": 443,
+        "fold": {
+          "intersecting": [
+            "staleness",
+            "marketState",
+            "systemState",
+            "opportunity",
+            "candidate"
+          ],
+          "fullyAbove": [
+            "staleness",
+            "marketState",
+            "systemState",
+            "opportunity"
+          ]
+        },
+        "surfaceOrder": [
+          "staleness",
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidate",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "runDelta",
+          "scoreboard"
+        ],
+        "criticalText": {
+          "staleness": "BOARD 2h OLD",
+          "marketState": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 14:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 14:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "systemState": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: 1 setup gated\nRisk-on regime\nUPDATED\n2026-08-23 11:00:00 PT",
+          "opportunity": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "candidate": "MARKET MAP / DEVELOPING SETUPS\nOBSERVATION ONLY — setup quality never overrides Decision State or Permission.\nB — DEVELOPING (1)\nSPY · B · DEVELOPING · BULL UPTREND\nIF NOW\nWAIT\nIN →\nhold above reference with constructive follow-through\nOUT →\nloses reference and fails to recover with constructive follow-through\nDETAIL ▶\nRESISTANCE 101.00 +1.0%\nSUPPORT 99.00 -1.0%\nNOW 100.00"
+        }
+      }
+    },
+    {
+      "phase": "before",
+      "fixture": "no-candidate",
+      "viewport": "360x800",
+      "screenshot": "/tmp/cuttingboard-mobile-lab.80M2R8/experiments/production-visual-regression-lab-v0/mobile-sweep/screenshots/before-no-candidate-360x800.png",
+      "metrics": {
+        "pageHeight": 2041,
+        "horizontalOverflow": 0,
+        "authoritativeDecisionY": 313.7,
+        "opportunityY": 514.7,
+        "candidateY": 630.7,
+        "candidateIdentityY": null,
+        "candidateLevelY": null,
+        "candidateInvalidationY": null,
+        "firstMeaningfulContext": "gex",
+        "firstMeaningfulContextY": 795.7,
+        "staleBannerHeight": 0,
+        "marketStateHeight": 287.7,
+        "systemStateHeight": 191,
+        "opportunityHeight": 106,
+        "candidateHeight": 149,
+        "fold": {
+          "intersecting": [
+            "marketState",
+            "systemState",
+            "opportunity",
+            "candidate",
+            "gex"
+          ],
+          "fullyAbove": [
+            "marketState",
+            "systemState",
+            "opportunity",
+            "candidate"
+          ]
+        },
+        "surfaceOrder": [
+          "staleness",
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidate",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "runDelta",
+          "scoreboard"
+        ],
+        "criticalText": {
+          "staleness": "",
+          "marketState": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 16:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 16:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "systemState": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: no qualified setups\nRisk-on regime\nUPDATED\n2026-08-23 13:00:00 PT",
+          "opportunity": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "candidate": "MARKET MAP / DEVELOPING SETUPS\nOBSERVATION ONLY — setup quality never overrides Decision State or Permission.\nNO_CANDIDATES"
+        }
+      }
+    },
+    {
+      "phase": "before",
+      "fixture": "no-candidate",
+      "viewport": "390x844",
+      "screenshot": "/tmp/cuttingboard-mobile-lab.80M2R8/experiments/production-visual-regression-lab-v0/mobile-sweep/screenshots/before-no-candidate-390x844.png",
+      "metrics": {
+        "pageHeight": 2012,
+        "horizontalOverflow": 0,
+        "authoritativeDecisionY": 298.7,
+        "opportunityY": 499.7,
+        "candidateY": 615.7,
+        "candidateIdentityY": null,
+        "candidateLevelY": null,
+        "candidateInvalidationY": null,
+        "firstMeaningfulContext": "gex",
+        "firstMeaningfulContextY": 780.7,
+        "staleBannerHeight": 0,
+        "marketStateHeight": 272.7,
+        "systemStateHeight": 191,
+        "opportunityHeight": 106,
+        "candidateHeight": 149,
+        "fold": {
+          "intersecting": [
+            "marketState",
+            "systemState",
+            "opportunity",
+            "candidate",
+            "gex"
+          ],
+          "fullyAbove": [
+            "marketState",
+            "systemState",
+            "opportunity",
+            "candidate"
+          ]
+        },
+        "surfaceOrder": [
+          "staleness",
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidate",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "runDelta",
+          "scoreboard"
+        ],
+        "criticalText": {
+          "staleness": "",
+          "marketState": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 16:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 16:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "systemState": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: no qualified setups\nRisk-on regime\nUPDATED\n2026-08-23 13:00:00 PT",
+          "opportunity": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "candidate": "MARKET MAP / DEVELOPING SETUPS\nOBSERVATION ONLY — setup quality never overrides Decision State or Permission.\nNO_CANDIDATES"
+        }
+      }
+    },
+    {
+      "phase": "before",
+      "fixture": "no-candidate",
+      "viewport": "430x932",
+      "screenshot": "/tmp/cuttingboard-mobile-lab.80M2R8/experiments/production-visual-regression-lab-v0/mobile-sweep/screenshots/before-no-candidate-430x932.png",
+      "metrics": {
+        "pageHeight": 1922,
+        "horizontalOverflow": 0,
+        "authoritativeDecisionY": 252.5,
+        "opportunityY": 453.5,
+        "candidateY": 569.5,
+        "candidateIdentityY": null,
+        "candidateLevelY": null,
+        "candidateInvalidationY": null,
+        "firstMeaningfulContext": "gex",
+        "firstMeaningfulContextY": 719.5,
+        "staleBannerHeight": 0,
+        "marketStateHeight": 226.5,
+        "systemStateHeight": 191,
+        "opportunityHeight": 106,
+        "candidateHeight": 134,
+        "fold": {
+          "intersecting": [
+            "marketState",
+            "systemState",
+            "opportunity",
+            "candidate",
+            "gex"
+          ],
+          "fullyAbove": [
+            "marketState",
+            "systemState",
+            "opportunity",
+            "candidate",
+            "gex"
+          ]
+        },
+        "surfaceOrder": [
+          "staleness",
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidate",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "runDelta",
+          "scoreboard"
+        ],
+        "criticalText": {
+          "staleness": "",
+          "marketState": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 16:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 16:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "systemState": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: no qualified setups\nRisk-on regime\nUPDATED\n2026-08-23 13:00:00 PT",
+          "opportunity": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "candidate": "MARKET MAP / DEVELOPING SETUPS\nOBSERVATION ONLY — setup quality never overrides Decision State or Permission.\nNO_CANDIDATES"
+        }
+      }
+    },
+    {
+      "phase": "before",
+      "fixture": "no-candidate",
+      "viewport": "1280x800",
+      "screenshot": "/tmp/cuttingboard-mobile-lab.80M2R8/experiments/production-visual-regression-lab-v0/mobile-sweep/screenshots/before-no-candidate-1280x800.png",
+      "metrics": {
+        "pageHeight": 1907,
+        "horizontalOverflow": 0,
+        "authoritativeDecisionY": 226,
+        "opportunityY": 449,
+        "candidateY": 629,
+        "candidateIdentityY": null,
+        "candidateLevelY": null,
+        "candidateInvalidationY": null,
+        "firstMeaningfulContext": "gex",
+        "firstMeaningfulContextY": 779,
+        "staleBannerHeight": 0,
+        "marketStateHeight": 194,
+        "systemStateHeight": 207,
+        "opportunityHeight": 164,
+        "candidateHeight": 134,
+        "fold": {
+          "intersecting": [
+            "marketState",
+            "systemState",
+            "opportunity",
+            "candidate",
+            "gex"
+          ],
+          "fullyAbove": [
+            "marketState",
+            "systemState",
+            "opportunity",
+            "candidate"
+          ]
+        },
+        "surfaceOrder": [
+          "staleness",
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidate",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "runDelta",
+          "scoreboard"
+        ],
+        "criticalText": {
+          "staleness": "",
+          "marketState": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 16:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 16:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "systemState": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: no qualified setups\nRisk-on regime\nUPDATED\n2026-08-23 13:00:00 PT",
+          "opportunity": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "candidate": "MARKET MAP / DEVELOPING SETUPS\nOBSERVATION ONLY — setup quality never overrides Decision State or Permission.\nNO_CANDIDATES"
+        }
+      }
+    },
+    {
+      "phase": "before",
+      "fixture": "normal",
+      "viewport": "360x800",
+      "screenshot": "/tmp/cuttingboard-mobile-lab.80M2R8/experiments/production-visual-regression-lab-v0/mobile-sweep/screenshots/before-normal-360x800.png",
+      "metrics": {
+        "pageHeight": 2410,
+        "horizontalOverflow": 0,
+        "authoritativeDecisionY": 313.7,
+        "opportunityY": 514.7,
+        "candidateY": 630.7,
+        "candidateIdentityY": 780.7,
+        "candidateLevelY": 867.7,
+        "candidateInvalidationY": 915.7,
+        "firstMeaningfulContext": "gex",
+        "firstMeaningfulContextY": 1164.7,
+        "staleBannerHeight": 0,
+        "marketStateHeight": 287.7,
+        "systemStateHeight": 191,
+        "opportunityHeight": 106,
+        "candidateHeight": 518,
+        "fold": {
+          "intersecting": [
+            "marketState",
+            "systemState",
+            "opportunity",
+            "candidate"
+          ],
+          "fullyAbove": [
+            "marketState",
+            "systemState",
+            "opportunity"
+          ]
+        },
+        "surfaceOrder": [
+          "staleness",
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidate",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "runDelta",
+          "scoreboard"
+        ],
+        "criticalText": {
+          "staleness": "",
+          "marketState": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 16:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 16:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "systemState": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: 1 setup gated\nRisk-on regime\nUPDATED\n2026-08-23 13:00:00 PT",
+          "opportunity": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "candidate": "MARKET MAP / DEVELOPING SETUPS\nOBSERVATION ONLY — setup quality never overrides Decision State or Permission.\nB — DEVELOPING (1)\nSPY · B · DEVELOPING · BULL UPTREND\nIF NOW\nWAIT\nIN →\nhold above reference with constructive follow-through\nOUT →\nloses reference and fails to recover with constructive follow-through\nDETAIL ▶\nRESISTANCE 101.00 +1.0%\nSUPPORT 99.00 -1.0%\nNOW 100.00"
+        }
+      }
+    },
+    {
+      "phase": "before",
+      "fixture": "normal",
+      "viewport": "390x844",
+      "screenshot": "/tmp/cuttingboard-mobile-lab.80M2R8/experiments/production-visual-regression-lab-v0/mobile-sweep/screenshots/before-normal-390x844.png",
+      "metrics": {
+        "pageHeight": 2351,
+        "horizontalOverflow": 0,
+        "authoritativeDecisionY": 298.7,
+        "opportunityY": 499.7,
+        "candidateY": 615.7,
+        "candidateIdentityY": 765.7,
+        "candidateLevelY": 837.7,
+        "candidateInvalidationY": 885.7,
+        "firstMeaningfulContext": "gex",
+        "firstMeaningfulContextY": 1119.7,
+        "staleBannerHeight": 0,
+        "marketStateHeight": 272.7,
+        "systemStateHeight": 191,
+        "opportunityHeight": 106,
+        "candidateHeight": 488,
+        "fold": {
+          "intersecting": [
+            "marketState",
+            "systemState",
+            "opportunity",
+            "candidate"
+          ],
+          "fullyAbove": [
+            "marketState",
+            "systemState",
+            "opportunity"
+          ]
+        },
+        "surfaceOrder": [
+          "staleness",
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidate",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "runDelta",
+          "scoreboard"
+        ],
+        "criticalText": {
+          "staleness": "",
+          "marketState": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 16:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 16:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "systemState": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: 1 setup gated\nRisk-on regime\nUPDATED\n2026-08-23 13:00:00 PT",
+          "opportunity": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "candidate": "MARKET MAP / DEVELOPING SETUPS\nOBSERVATION ONLY — setup quality never overrides Decision State or Permission.\nB — DEVELOPING (1)\nSPY · B · DEVELOPING · BULL UPTREND\nIF NOW\nWAIT\nIN →\nhold above reference with constructive follow-through\nOUT →\nloses reference and fails to recover with constructive follow-through\nDETAIL ▶\nRESISTANCE 101.00 +1.0%\nSUPPORT 99.00 -1.0%\nNOW 100.00"
+        }
+      }
+    },
+    {
+      "phase": "before",
+      "fixture": "normal",
+      "viewport": "430x932",
+      "screenshot": "/tmp/cuttingboard-mobile-lab.80M2R8/experiments/production-visual-regression-lab-v0/mobile-sweep/screenshots/before-normal-430x932.png",
+      "metrics": {
+        "pageHeight": 2261,
+        "horizontalOverflow": 0,
+        "authoritativeDecisionY": 252.5,
+        "opportunityY": 453.5,
+        "candidateY": 569.5,
+        "candidateIdentityY": 704.5,
+        "candidateLevelY": 776.5,
+        "candidateInvalidationY": 824.5,
+        "firstMeaningfulContext": "gex",
+        "firstMeaningfulContextY": 1058.5,
+        "staleBannerHeight": 0,
+        "marketStateHeight": 226.5,
+        "systemStateHeight": 191,
+        "opportunityHeight": 106,
+        "candidateHeight": 473,
+        "fold": {
+          "intersecting": [
+            "marketState",
+            "systemState",
+            "opportunity",
+            "candidate"
+          ],
+          "fullyAbove": [
+            "marketState",
+            "systemState",
+            "opportunity"
+          ]
+        },
+        "surfaceOrder": [
+          "staleness",
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidate",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "runDelta",
+          "scoreboard"
+        ],
+        "criticalText": {
+          "staleness": "",
+          "marketState": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 16:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 16:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "systemState": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: 1 setup gated\nRisk-on regime\nUPDATED\n2026-08-23 13:00:00 PT",
+          "opportunity": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "candidate": "MARKET MAP / DEVELOPING SETUPS\nOBSERVATION ONLY — setup quality never overrides Decision State or Permission.\nB — DEVELOPING (1)\nSPY · B · DEVELOPING · BULL UPTREND\nIF NOW\nWAIT\nIN →\nhold above reference with constructive follow-through\nOUT →\nloses reference and fails to recover with constructive follow-through\nDETAIL ▶\nRESISTANCE 101.00 +1.0%\nSUPPORT 99.00 -1.0%\nNOW 100.00"
+        }
+      }
+    },
+    {
+      "phase": "before",
+      "fixture": "normal",
+      "viewport": "1280x800",
+      "screenshot": "/tmp/cuttingboard-mobile-lab.80M2R8/experiments/production-visual-regression-lab-v0/mobile-sweep/screenshots/before-normal-1280x800.png",
+      "metrics": {
+        "pageHeight": 2216,
+        "horizontalOverflow": 0,
+        "authoritativeDecisionY": 226,
+        "opportunityY": 449,
+        "candidateY": 629,
+        "candidateIdentityY": 764,
+        "candidateLevelY": 836,
+        "candidateInvalidationY": 869,
+        "firstMeaningfulContext": "gex",
+        "firstMeaningfulContextY": 1088,
+        "staleBannerHeight": 0,
+        "marketStateHeight": 194,
+        "systemStateHeight": 207,
+        "opportunityHeight": 164,
+        "candidateHeight": 443,
+        "fold": {
+          "intersecting": [
+            "marketState",
+            "systemState",
+            "opportunity",
+            "candidate"
+          ],
+          "fullyAbove": [
+            "marketState",
+            "systemState",
+            "opportunity"
+          ]
+        },
+        "surfaceOrder": [
+          "staleness",
+          "marketState",
+          "systemState",
+          "opportunity",
+          "candidate",
+          "gex",
+          "movement",
+          "macro",
+          "trend",
+          "runDelta",
+          "scoreboard"
+        ],
+        "criticalText": {
+          "staleness": "",
+          "marketState": "MARKET STATE\nENVIRONMENT\nRISK_ON · as of 16:00 ET\nPERMISSION\nLong bias — trend continuation allowed. · as of 16:00 ET\nPOSITIONING\nnet -$58.4B * · as of 15:42 ET, Cboe ~15m delayed · * net signed under a configured positioning assumption; positioning is not measured\nPARTICIPATION\n12/12 captured · captured 15:45 ET\nEVENT RISK\nno events in 48h · red-folder calendar",
+          "systemState": "SYSTEM STATE\nDECISION STATE\nSTAY FLAT\nLongs allowed · NO TRADE\nWHY: 1 setup gated\nRisk-on regime\nUPDATED\n2026-08-23 13:00:00 PT",
+          "opportunity": "OPPORTUNITY SURVIVAL\nSURFACED\n23\nQUALIFIED\n3\nWATCHLIST\n13\nREJECTED\n7\nPRIMARY REJECTION\nONE_SOFT_MISS",
+          "candidate": "MARKET MAP / DEVELOPING SETUPS\nOBSERVATION ONLY — setup quality never overrides Decision State or Permission.\nB — DEVELOPING (1)\nSPY · B · DEVELOPING · BULL UPTREND\nIF NOW\nWAIT\nIN →\nhold above reference with constructive follow-through\nOUT →\nloses reference and fails to recover with constructive follow-through\nDETAIL ▶\nRESISTANCE 101.00 +1.0%\nSUPPORT 99.00 -1.0%\nNOW 100.00"
+        }
+      }
+    }
+  ]
+}
