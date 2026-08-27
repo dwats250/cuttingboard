@@ -3983,10 +3983,10 @@ _PRD314_PHONE_BLOCK = (
 
 
 def test_prd314_phone_block_present_and_id_scoped() -> None:
-    # The whole phone block is pinned verbatim: every layout selector is rooted in
-    # one of the three target IDs, and it carries no color/opacity change.
+    # The original PRD-314 prefix is pinned verbatim; PRD-317 appends more ID-scoped
+    # rules before this shared media block closes.
     html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
-    assert _PRD314_PHONE_BLOCK in html
+    assert _PRD314_PHONE_BLOCK[:-1] in html
     assert "color" not in _PRD314_PHONE_BLOCK
     assert "opacity" not in _PRD314_PHONE_BLOCK
 
@@ -4003,6 +4003,61 @@ def test_prd314_generic_selectors_unchanged() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
     assert ".block{border:1px solid #2a2a2a;border-radius:4px;margin-bottom:1rem;padding:1rem}" in html
     assert ".kv-grid{display:grid;grid-template-columns:max-content 1fr;gap:2px 0.75rem;margin-top:0.25rem}" in html
+
+
+# ---------------------------------------------------------------------------
+# PRD-317 — preserved mobile-operator layout promotion (CSS-only, <=430px)
+# ---------------------------------------------------------------------------
+_PRD317_PHONE_RULES = (
+    "#staleness-banner{padding:6px 10px;margin-bottom:10px;font-size:.75rem;letter-spacing:.04em}"
+    "#candidate-board{padding:10px;margin-bottom:10px}"
+    "#candidate-board h2{margin-bottom:8px}"
+    "#candidate-board .candidate-scope{padding:6px 8px;margin-bottom:8px;font-size:.72rem;line-height:1.25}"
+    "#candidate-board:not(:has(.candidate-card)) .unavailable{font-size:.75rem}"
+    "#gex-context,#market-movement,#macro-tape,#trend-structure"
+    "{padding:10px 0;margin-bottom:8px;border-right:0;border-left:0;border-radius:0}"
+    "#run-delta,#scoreboard{padding:10px;margin-bottom:8px}"
+)
+
+
+def test_prd317_exact_phone_rules_share_the_430_boundary() -> None:
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
+    expected = _PRD314_PHONE_BLOCK[:-1] + _PRD317_PHONE_RULES + "}"
+    assert expected in html
+    assert "@media(max-width:431px){" not in html
+
+
+def test_prd317_rules_are_id_scoped_and_overflow_neutral() -> None:
+    selectors = (
+        "#staleness-banner{",
+        "#candidate-board{",
+        "#candidate-board h2{",
+        "#candidate-board .candidate-scope{",
+        "#candidate-board:not(:has(.candidate-card)) .unavailable{",
+        "#gex-context,#market-movement,#macro-tape,#trend-structure{",
+        "#run-delta,#scoreboard{",
+    )
+    assert all(selector in _PRD317_PHONE_RULES for selector in selectors)
+    assert all(token not in _PRD317_PHONE_RULES for token in (
+        "width:", "min-width:", "max-width:", "overflow:", "display:none", "position:", "transform:",
+    ))
+
+
+def test_prd317_authoritative_text_order_parity() -> None:
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
+    ids = (
+        'id="staleness-banner"',
+        'id="market-state"',
+        'id="system-state"',
+        'id="opportunity-survival"',
+        'id="candidate-board"',
+        'id="macro-tape"',
+        'id="trend-structure"',
+        'id="run-delta"',
+        'id="scoreboard"',
+    )
+    assert all(block_id in html for block_id in ids)
+    assert [html.index(block_id) for block_id in ids] == sorted(html.index(block_id) for block_id in ids)
 
 
 # ---------------------------------------------------------------------------
@@ -4689,7 +4744,7 @@ def test_movement_card_present_when_valid_snapshot():  # PRD-311 renderer wiring
 
 def test_movement_card_suppression_is_baseline_neutral():  # PRD-311 M8/M9 whole-output equality
     baseline = render_dashboard_html(_payload(), _run(), market_map=None)  # no movement_snapshot
-    assert "market-movement" not in baseline
+    assert 'id="market-movement"' not in baseline
     # absent artifact -> byte-identical to the no-movement baseline
     assert render_dashboard_html(_payload(), _run(), market_map=None,
                                  movement_snapshot=None) == baseline

@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 316,
-  "next_prd": 317,
+  "latest_complete": 317,
+  "next_prd": 318,
   "entries": [
     {
       "number": 56,
@@ -1568,6 +1568,12 @@
       "title": "Opportunity 125% narrow-phone resilience",
       "status": "COMPLETE",
       "commit": "#277"
+    },
+    {
+      "number": 317,
+      "title": "Mobile operator layout promotion",
+      "status": "COMPLETE",
+      "commit": "#278"
     }
   ]
 }
