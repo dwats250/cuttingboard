@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.019891338805899165,
-      "price": 130.44400024414062,
+      "pct_change_decimal": 0.0164980152981819,
+      "price": 130.00999450683594,
       "structure": "TRENDING_UP",
       "symbol": "USO"
     }
@@ -12,8 +12,8 @@
     "fib_deferred_symbols": [],
     "unavailable_symbols": []
   },
-  "generated_at": "2026-08-27T19:39:53Z",
-  "generation_id": "live-20260827T193953Z",
+  "generated_at": "2026-08-27T22:55:29Z",
+  "generation_id": "live-20260827T225529Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -27,14 +27,14 @@
   "session_date": "2026-08-27",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-08-27T19:39:53Z"
+    "run_at_utc": "2026-08-27T22:55:29Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 103.44969940185547,
+      "current_price": 103.69000244140625,
       "fib_levels": {
         "retracements": {
           "0.382": 93.1595,
@@ -77,18 +77,18 @@
       "watch_zones": [
         {
           "context": "session vwap",
-          "level": 103.5311,
+          "level": 103.5277,
           "type": "VWAP"
-        },
-        {
-          "context": "opening range high",
-          "level": 102.9699,
-          "type": "ORB_HIGH"
         },
         {
           "context": "prior session high",
           "level": 104.16,
           "type": "PRIOR_HIGH"
+        },
+        {
+          "context": "opening range high",
+          "level": 102.9699,
+          "type": "ORB_HIGH"
         },
         {
           "context": "prior session low",
@@ -115,7 +115,7 @@
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 422.45001220703125,
+      "current_price": 422.6000061035156,
       "fib_levels": {
         "retracements": {
           "0.382": 406.2021,
@@ -158,7 +158,7 @@
       "watch_zones": [
         {
           "context": "session vwap",
-          "level": 422.5144,
+          "level": 422.5142,
           "type": "VWAP"
         },
         {
@@ -201,7 +201,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 719.5,
+      "current_price": 721.1099853515625,
       "fib_levels": {
         "retracements": {
           "0.382": 711.171,
@@ -244,7 +244,7 @@
       "watch_zones": [
         {
           "context": "session vwap",
-          "level": 718.4889,
+          "level": 718.4888,
           "type": "VWAP"
         },
         {
@@ -292,7 +292,7 @@
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 62.720001220703125,
+      "current_price": 62.77000045776367,
       "fib_levels": {
         "retracements": {
           "0.382": 58.5916,
@@ -335,7 +335,7 @@
       "watch_zones": [
         {
           "context": "session vwap",
-          "level": 62.5937,
+          "level": 62.6118,
           "type": "VWAP"
         },
         {
@@ -372,8 +372,8 @@
     "SPY": {
       "asset_group": "INDEX",
       "bias": "BULLISH",
-      "confidence": "LOW",
-      "current_price": 770.5599975585938,
+      "confidence": "HIGH",
+      "current_price": 771.0999755859375,
       "fib_levels": {
         "retracements": {
           "0.382": 762.264,
@@ -416,7 +416,7 @@
       "watch_zones": [
         {
           "context": "session vwap",
-          "level": 770.2717,
+          "level": 770.2663,
           "type": "VWAP"
         },
         {
@@ -464,7 +464,7 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 62.415000915527344,
+      "current_price": 62.290000915527344,
       "fib_levels": {
         "retracements": {
           "0.382": 61.8006,
@@ -477,7 +477,7 @@
       },
       "grade": "B",
       "invalidation": [
-        "loses ORB_HIGH with weak recovery",
+        "loses ORB_LOW with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
@@ -497,14 +497,19 @@
       "symbol": "XLE",
       "trade_framing": {
         "direction": "LONG",
-        "downgrade": "wait if price loses ORB_HIGH or structure turns choppy",
-        "entry": "hold above ORB_HIGH with constructive follow-through",
+        "downgrade": "wait if price loses ORB_LOW or structure turns choppy",
+        "entry": "hold above ORB_LOW with constructive follow-through",
         "if_now": "WAIT",
         "setup": "energy bullish pullback",
         "trade_type": "call_spread",
         "upgrade": "improves on clean hold near key level with expanding participation"
       },
       "watch_zones": [
+        {
+          "context": "opening range low",
+          "level": 62.14,
+          "type": "ORB_LOW"
+        },
         {
           "context": "opening range high",
           "level": 62.45,
@@ -517,13 +522,8 @@
         },
         {
           "context": "session vwap",
-          "level": 62.5406,
+          "level": 62.5399,
           "type": "VWAP"
-        },
-        {
-          "context": "opening range low",
-          "level": 62.14,
-          "type": "ORB_LOW"
         },
         {
           "context": "prior session high",
@@ -539,10 +539,15 @@
           "context": "primary trend reference",
           "level": 61.1562,
           "type": "EMA21"
+        },
+        {
+          "context": "trend base reference",
+          "level": 59.2214,
+          "type": "EMA50"
         }
       ],
       "what_to_look_for": [
-        "watch hold above ORB_HIGH",
+        "watch hold above ORB_LOW",
         "look for higher low with expanding volume"
       ]
     }
