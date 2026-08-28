@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 319,
-  "next_prd": 320,
+  "latest_complete": 320,
+  "next_prd": 321,
   "entries": [
     {
       "number": 56,
@@ -1590,8 +1590,8 @@
     {
       "number": 320,
       "title": "Price-bars sidecar producer (Lane A slice 1)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#283"
     }
   ]
 }
