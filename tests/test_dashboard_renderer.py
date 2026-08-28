@@ -4104,6 +4104,24 @@ def test_prd318_details_default_collapsed_and_evidence_present() -> None:
         assert f'id="{block_id}"' in html.split('id="details-history"', 1)[1]
 
 
+def test_prd318_authoritative_permission_renders_once_from_system_state() -> None:
+    normal_permission = "Long bias - defined risk preferred. Kill: VIX crosses 25."
+    locked_permission = "No new trades permitted — operator cannot monitor."
+    payload = _payload()
+    payload["summary"]["permission"] = "payload summary must not win"
+
+    for permission in (normal_permission, locked_permission):
+        html = render_dashboard_html(payload, _run(permission=permission), market_map=_market_map())
+        state = _top_block(html, "system-state")
+
+        assert state.count('class="sys-permission"') == 1
+        assert state.count(permission) == 1
+        assert html.count(permission) == 1
+        assert "payload summary must not win" not in html
+        assert 'id="market-state"' not in html
+        assert '<div class="label">PERMISSION</div>' not in html
+
+
 # ---------------------------------------------------------------------------
 # PRD-220 — round-2 refinements
 # ---------------------------------------------------------------------------

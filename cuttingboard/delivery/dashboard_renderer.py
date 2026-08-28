@@ -871,6 +871,7 @@ _CSS = (
     ".sys-verdict.sys-flat{color:#ff9800}"
     ".sys-verdict.sys-halt{color:#f44336}"
     ".sys-context{color:#888;font-size:0.8rem;margin-top:2px}"
+    ".sys-permission{color:#aaa;font-size:0.78rem;line-height:1.35;margin-top:4px}"
     ".sys-context.halted{color:#f44336}"
     # PRD-281: WHY line -- the already-authoritative reason, promoted out of
     # sys-context into its own line under the verdict. Bolder than
@@ -2626,6 +2627,8 @@ def render_dashboard_html(
     w(f'  <div class="sys-context{_ctx_cls}">{_ctx}</div>')
     if bool(kill_switch):
         w('  <div class="sys-context halted">Kill switch active</div>')
+    if isinstance(permission, str) and permission.strip():
+        w(f'  <div class="sys-permission">{_esc(permission)}</div>')
     w('  <div class="sep"></div>')
     # PRD-219: one absolute Pacific timestamp replaces the three relative
     # RUN SNAPSHOT / LIVE STATE / SCOREBOARD freshness lines. It reads the
