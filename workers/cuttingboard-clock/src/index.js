@@ -11,18 +11,12 @@
 // only. First-success coordination lives in the GitHub pipeline workflow;
 // hourly slot dedup lives in cuttingboard/notifications/hourly_slot.py.
 //
-// PRD-319 R1 / owner time-basis extension ruling (2026-08-28): UTC remains the
-// trigger basis; Pacific Time resolved from event.scheduledTime using
-// America/Los_Angeles is authoritative for weekday slot ELIGIBILITY and
-// intended slot IDENTITY. Handler execution time is never scheduling
-// authority -- a delayed handler can neither miss its own slot nor drift into
-// another, because scheduledTime is fixed by the platform. Dual UTC triggers
-// cover both DST offsets; for any scheduledTime the PT lookup makes AT MOST
-// ONE row eligible, so the off-season twin no-ops here. PRE (12:50Z) is the
-// one UTC-anchored row: a cache warm-up, not a PT cadence slot.
-//
-// Credential: a fine-grained GitHub token, Actions: write only, stored as the
-// Worker secret GH_DISPATCH_TOKEN. No credential value is committed.
+// PRD-319 R1 / owner time-basis extension ruling (2026-08-28): UTC triggers;
+// PT from event.scheduledTime (America/Los_Angeles) is authoritative for slot
+// eligibility and identity; handler execution time is never authority. Dual
+// UTC triggers cover both DST offsets -- at most one resolves per instant.
+// PRE (12:50Z) is the one UTC-anchored row (cache warm-up, not PT cadence).
+// Credential: Actions-write-only token in the GH_DISPATCH_TOKEN secret.
 
 const REPO = "dwats250/cuttingboard";
 const PIPELINE_WORKFLOW = "cuttingboard.yml";

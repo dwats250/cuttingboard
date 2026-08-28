@@ -2,16 +2,12 @@ name: Cuttingboard Hourly Alert
 
 on:
   schedule:
-    # PRD-319 R4: GitHub crons are DELAYED FALLBACK HEARTBEATS behind the
-    # Cloudflare primary clock (workers/cuttingboard-clock). All times UTC.
-    # The 06:xx crons carry EXPLICIT intended-slot identity (mapped from
-    # github.event.schedule in the alert step below), so a late start can
-    # never shift a heartbeat onto a neighbouring slot; the off-season twin
-    # of each pair no-ops inside explicit_pt_slot (future slot / lag > max).
-    # The hourly heartbeats keep start-time inference, which is provably
-    # unambiguous for on-the-hour slots with (6,0) retired: the off-season
-    # 06:10 PST fire finds no eligible slot, and 14:10 PDT exceeds max-lag
-    # for (13,0). 06:00 PT has NO hourly cron — the daily pipeline owns it.
+    # PRD-319 R4: DELAYED FALLBACK HEARTBEATS behind the Cloudflare primary
+    # clock (workers/cuttingboard-clock). 06:xx crons carry EXPLICIT intended
+    # slot identity (mapped from github.event.schedule below) so a late start
+    # never shifts slots; off-season twins no-op in explicit_pt_slot. Hourly
+    # heartbeats keep inference (unambiguous on the hour with (6,0) retired).
+    # 06:00 PT has NO hourly cron — the daily pipeline owns it.
     - cron: '40 13 * * 1-5'   # 06:40 PDT -> intended 06:30 (PST 05:40 -> no-op)
     - cron: '40 14 * * 1-5'   # 06:40 PST -> intended 06:30 (PDT 07:40 -> no-op)
     - cron: '55 13 * * 1-5'   # 06:55 PDT -> intended 06:45 (PST 05:55 -> no-op)
@@ -139,12 +135,9 @@ jobs:
           CB_DISPATCH_KIND: ${{ github.event.inputs.kind }}
           CB_DISPATCH_SLOT: ${{ github.event.inputs.slot }}
         run: |
-          # PRD-319 R2/R4: three arrival classes.
-          #   workflow_dispatch kind=routine + slot -> explicit routine slot
-          #     (window-checked + deduped; identity never shifts);
-          #   workflow_dispatch otherwise -> forced (today's manual behavior);
-          #   schedule 06:xx heartbeat crons -> mapped EXPLICIT intended slot;
-          #   schedule hourly heartbeats -> start-time inference (unambiguous).
+          # PRD-319 R2/R4: routine dispatch -> explicit slot; other dispatch ->
+          # forced (today's behavior); 06:xx heartbeats -> mapped explicit
+          # slot; hourly heartbeats -> inference.
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             if [ "$CB_DISPATCH_KIND" = "routine" ] && [ -n "$CB_DISPATCH_SLOT" ]; then
               python -m cuttingboard.alert_runner --routine-slot "$CB_DISPATCH_SLOT"

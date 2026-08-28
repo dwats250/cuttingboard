@@ -1,32 +1,20 @@
 #!/usr/bin/env python3
 """PRD-319 R5: season gate for the dual-seasonal OPEN fallback crons.
 
-The pipeline's delayed OPEN fallback is a PAIR of fixed-UTC crons so its PT
-wall-clock holds year-round (owner ruling 2026-08-28 Q2, option iii-adjacent):
-``20 13 * * 1-5`` is the PDT-season fallback (06:20 PT) and ``20 14 * * 1-5``
-the PST-season fallback (06:20 PT). Each weekday BOTH fire; exactly one is in
-season. This gate no-ops the off-season twin.
+The delayed OPEN fallback is a dual-seasonal cron pair (owner ruling
+2026-08-28 Q2): ``20 13 * * 1-5`` = 06:20 PT in PDT, ``20 14 * * 1-5`` =
+06:20 PT in PST. Both fire every weekday; this gate no-ops the OFF-SEASON
+twin. It keys on SEASON (the current America/Los_Angeles UTC offset), never a
+wall-clock window: GitHub cron delivery runs 45-55 min late in practice, and
+a window would gate off a late IN-SEASON fallback; an offset match is
+delay-immune while the twin (a full hour off) can never match.
 
-The gate is keyed on SEASON (the current America/Los_Angeles UTC offset), not
-on a wall-clock window, deliberately: GitHub cron delivery is observed 45-55
-minutes late, and a wall-clock window would gate off a late IN-SEASON fallback
-— an availability regression. An offset match is immune to delivery delay,
-while the off-season twin (a full hour off) can never match.
-
-Contract (mirrors ``resolve_run_mode.py``: stdlib only, pure ``check`` for
-tests, fail-closed ``main``):
-
-  check(cron, now_utc) -> "IN_SEASON" | "OFF_SEASON_NOOP"; raises
-  UnknownCronError for a cron not in the pair.
-
-  main() reads the fired cron from ``CB_EVENT_SCHEDULE`` (the workflow passes
-  ``github.event.schedule``), prints the verdict for ``$GITHUB_OUTPUT``
-  consumption, exit 0. An unknown cron or unresolvable offset exits NON-ZERO
-  (fail-closed; PRD-198 invariant 1) — the workflow then fails visibly rather
-  than silently running or skipping.
-
-Only schedule-event OPEN fallback runs consult this gate. ``workflow_dispatch``
-(the Cloudflare OPEN), Sunday, and prefetch never do.
+Contract (mirrors ``resolve_run_mode.py``: stdlib only, pure ``check``,
+fail-closed ``main``): check(cron, now_utc) -> IN_SEASON | OFF_SEASON_NOOP,
+raising UnknownCronError off the pair; main() reads ``CB_EVENT_SCHEDULE``,
+prints the verdict, exit 0 — unknown cron / unresolvable offset exits
+NON-ZERO (PRD-198 invariant 1). Only schedule-event OPEN fallback runs
+consult the gate; workflow_dispatch OPEN, Sunday, and prefetch never do.
 """
 from __future__ import annotations
 
