@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 320,
-  "next_prd": 321,
+  "latest_complete": 321,
+  "next_prd": 322,
   "entries": [
     {
       "number": 56,
@@ -1592,6 +1592,12 @@
       "title": "Price-bars sidecar producer (Lane A slice 1)",
       "status": "COMPLETE",
       "commit": "#283"
+    },
+    {
+      "number": 321,
+      "title": "Operator setup chart consumer (Lane A slice 1)",
+      "status": "COMPLETE",
+      "commit": "#284"
     }
   ]
 }

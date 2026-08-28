@@ -139,8 +139,13 @@ Producer `cuttingboard/runtime/__init__.py:_write_price_bars_snapshot` (path
 constant `PRICE_BARS_PATH`), co-written at BOTH existing sidecar seams — the
 hourly block and the daily MODE_LIVE block — from the frames
 `_collect_trend_structure_history` already bound for the trend sidecar. No new
-fetch, no new provider. CONSUMER: none — the operator setup chart lands in
-PRD-321.
+fetch, no new provider. CONSUMER (PRD-321):
+`cuttingboard/delivery/dashboard_renderer.py:_load_price_bars_snapshot` reads it
+read-only (never raises; missing/corrupt => None), and
+`_price_bars_by_symbol` applies the 5-calendar-day UTC age guard against the
+renderer's `now` before handing bars to
+`cuttingboard/delivery/setup_chart.render_setup_chart_svg`. Display-only: the
+chart writes nothing and no decision module reads it.
 
 | Field path | Type | Notes |
 |---|---|---|
@@ -161,7 +166,8 @@ last 40 are taken — so the window slides back rather than shrinking. Between t
 ET close and 00:00 UTC that cutoff is still the prior weekday; that is the ruled
 Q5(b) behavior, and `as_of` carries it.
 
-DISPLAY-ONLY: no `cuttingboard` decision module reads this artifact (PRD-320 R6).
+DISPLAY-ONLY: the ONLY reader is the dashboard renderer's chart seam above
+(PRD-321); no `cuttingboard` decision module reads this artifact (PRD-320 R6).
 Transport: hourly force-adds it; NO workflow restores it from `publish` — it is
 co-produced fresh state, never revived.
 

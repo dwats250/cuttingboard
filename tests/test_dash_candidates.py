@@ -7,6 +7,8 @@ from cuttingboard.delivery.dashboard_renderer import (
     render_dashboard_html,
 )
 
+import pytest
+
 from tests.dash_helpers import _market_map, _mm_symbol, _payload, _run
 
 
@@ -741,3 +743,308 @@ def test_candidate_board_renamed_to_market_map() -> None:
     # Old label must not appear in the board section heading
     board = html.split('id="candidate-board"', 1)[1].split('</div>', 1)[0]
     assert "Candidate Board" not in board
+
+
+# ---------------------------------------------------------------------------
+# PRD-321 — setup chart consumer: bars loading, age guard, disclosure ordering,
+# and the authority semantics carried into the chart AND the compact ladder.
+# ---------------------------------------------------------------------------
+
+import json  # noqa: E402
+import re  # noqa: E402
+from datetime import datetime, timedelta, timezone  # noqa: E402
+
+from cuttingboard.delivery import dashboard_renderer as _dr  # noqa: E402
+
+_NOW = datetime(2026, 8, 28, 14, 0, tzinfo=timezone.utc)
+
+_PC_BARS = [
+    ["2026-08-19", 100.0, 102.0, 99.5, 101.5, 1_000],
+    ["2026-08-20", 101.5, 103.0, 101.0, 102.8, 1_100],
+    ["2026-08-21", 102.8, 103.5, 101.2, 101.4, 1_200],
+    ["2026-08-24", 101.4, 102.2, 100.1, 100.4, 1_300],
+    ["2026-08-25", 100.4, 101.0, 98.8, 99.2, 1_400],
+    ["2026-08-26", 99.2, 100.6, 98.2, 100.3, 1_500],
+    ["2026-08-27", 100.3, 102.4, 100.0, 102.2, 1_600],
+]
+
+_LADDER_ROW = re.compile(
+    r'<div class="lvl-row (?P<cls>[^"]+)">'
+    r'<span class="lvl-name">(?P<name>[^<]*)</span>'
+    r'<span class="lvl-px">(?P<px>[^<]*)</span>'
+    r'<span class="lvl-pct">(?P<pct>[^<]*)</span></div>'
+)
+
+
+def _bars_snapshot(as_of: str = "2026-08-27", symbols: tuple[str, ...] = ("SPY",)) -> dict:
+    return {
+        "schema_version": 1,
+        "generated_at": "2026-08-28T14:11:03+00:00",
+        "source": {"producer": "hourly", "provider": "yfinance",
+                   "interval": "1d", "adjusted": True},
+        "columns": ["date", "open", "high", "low", "close", "volume"],
+        "symbols": {sym: {"as_of": as_of, "bars": _PC_BARS} for sym in symbols},
+    }
+
+
+def _chartable(sym: str = "SPY", grade: str = "A+") -> dict:
+    entry = _mm_symbol(sym, grade=grade)
+    entry["current_price"] = 101.8
+    entry["watch_zones"] = [{"type": "VWAP", "level": 101.5},
+                            {"type": "EMA9", "level": 100.9},
+                            {"type": "EMA50", "level": 99.4}]
+    entry["fib_levels"] = {"retracements": {"0.5": 100.7}}
+    return entry
+
+
+def _render(mm: dict, snapshot: dict | None = None, **kwargs) -> str:
+    kwargs.setdefault("now", _NOW)
+    return render_dashboard_html(
+        _payload(), kwargs.pop("run", _run(outcome="TRADE")),
+        market_map=mm, price_bars_snapshot=snapshot, **kwargs,
+    )
+
+
+def _pc_card(html: str, sym: str = "SPY") -> str:
+    return html.split(f'id="card-{sym}"', 1)[1].split("</div>\n</div>", 1)[0]
+
+
+def _ladder_rows(fragment: str) -> dict[str, tuple[str, str]]:
+    return {m["name"]: (m["px"], m["pct"]) for m in _LADDER_ROW.finditer(fragment)}
+
+
+def _charts_by_details_depth(html: str) -> list[int]:
+    """Depth of every `.setup-chart` relative to enclosing `<details>` elements."""
+    depths: list[int] = []
+    depth = 0
+    for token in re.finditer(r"<details\b|</details>|<div class=\"setup-chart\"", html):
+        text = token.group(0)
+        if text.startswith("<details"):
+            depth += 1
+        elif text == "</details>":
+            depth -= 1
+        else:
+            depths.append(depth)
+    return depths
+
+
+# --- R2: loading, provenance caption, and the 5-calendar-day UTC age guard ---
+
+def test_prd321_chart_renders_from_the_snapshot_with_an_as_of_caption() -> None:
+    html = _render(_market_map({"SPY": _chartable()}), _bars_snapshot())
+    card = _pc_card(html)
+    assert 'class="setup-chart"' in card
+    assert "bars through 2026-08-27 · yfinance 1d" in card
+    # Source-bar fidelity: one candle per snapshot bar, direction from the input.
+    assert card.count('class="candle-body"') == len(_PC_BARS)
+    assert card.count('class="candle-wick"') == len(_PC_BARS)
+
+
+def test_prd321_age_guard_admits_exactly_five_calendar_days() -> None:
+    # R2 FAIL line, boundary. Mutation: change `> 5` to `>= 5` -> the 5-day
+    # case loses its chart; change it to `> 6` -> the 6-day case renders one.
+    for delta, expect_chart in ((5, True), (6, False)):
+        as_of = (_NOW.date() - timedelta(days=delta)).isoformat()
+        html = _render(_market_map({"SPY": _chartable()}), _bars_snapshot(as_of=as_of))
+        card = _pc_card(html)
+        assert ('class="setup-chart"' in card) is expect_chart, (delta, expect_chart)
+        assert (f"bars through {as_of}" in card) is expect_chart
+        # Either way the compact ladder is present with its exact levels.
+        assert 'class="lvl-ladder' in card
+
+
+def test_prd321_age_guard_uses_utc_calendar_days_not_elapsed_hours() -> None:
+    # 5 days + 23h of wall-clock elapsed time is still 5 CALENDAR days.
+    as_of = "2026-08-23"
+    late = datetime(2026, 8, 28, 23, 30, tzinfo=timezone.utc)
+    html = _render(_market_map({"SPY": _chartable()}), _bars_snapshot(as_of=as_of), now=late)
+    assert 'class="setup-chart"' in _pc_card(html)
+
+
+def test_prd321_now_falls_back_to_utcnow_when_the_caller_passes_none(monkeypatch) -> None:
+    monkeypatch.setattr(_dr, "_utcnow", lambda: _NOW)
+    html = render_dashboard_html(
+        _payload(), _run(outcome="TRADE"), market_map=_market_map({"SPY": _chartable()}),
+        price_bars_snapshot=_bars_snapshot(),
+    )
+    assert 'class="setup-chart"' in _pc_card(html)
+
+
+@pytest.mark.parametrize("snapshot", [
+    None,
+    {},
+    {"symbols": None},
+    {"symbols": {"SPY": {"as_of": "2026-08-27"}}},          # no bars
+    {"symbols": {"SPY": {"as_of": "not-a-date", "bars": _PC_BARS}}},
+    {"symbols": {"SPY": {"as_of": "2026-08-27", "bars": []}}},
+    {"symbols": {"QQQ": {"as_of": "2026-08-27", "bars": _PC_BARS}}},  # other symbol
+])
+def test_prd321_unusable_snapshot_changes_nothing_outside_the_chart_region(snapshot) -> None:
+    # R2 FAIL line: a missing/corrupt snapshot must not raise and must not alter
+    # any non-chart output. The baseline is the same render with no snapshot.
+    mm = _market_map({"SPY": _chartable()})
+    baseline = _render(mm, None)
+    degraded = _render(mm, snapshot)
+    assert degraded == baseline
+    assert 'class="setup-chart"' not in degraded
+    assert "bars through" not in degraded
+    assert 'class="lvl-ladder' in degraded
+
+
+def test_prd321_loader_never_raises_on_a_broken_artifact(tmp_path) -> None:
+    # R2: the reader degrades on missing / non-JSON / wrong-shape files.
+    missing = tmp_path / "absent.json"
+    assert _dr._load_price_bars_snapshot(missing) is None
+    broken = tmp_path / "broken.json"
+    broken.write_text("{not json", encoding="utf-8")
+    assert _dr._load_price_bars_snapshot(broken) is None
+    wrong = tmp_path / "wrong.json"
+    wrong.write_text(json.dumps({"symbols": []}), encoding="utf-8")
+    assert _dr._load_price_bars_snapshot(wrong) is None
+    good = tmp_path / "good.json"
+    good.write_text(json.dumps(_bars_snapshot()), encoding="utf-8")
+    assert _dr._load_price_bars_snapshot(good)["symbols"]["SPY"]["bars"] == _PC_BARS
+
+
+# --- R3: one full chart, everything else behind disclosure -------------------
+
+def test_prd321_only_the_top_setup_gets_a_chart_outside_disclosure() -> None:
+    # R3 FAIL line (depth-aware). Mutation: pass `chart_slot_available=True` for
+    # every card -> three undisclosed charts and this goes red.
+    syms = ("AAA", "BBB", "CCC")
+    mm = _market_map({s: _chartable(s) for s in syms})
+    html = _render(mm, _bars_snapshot(symbols=syms))
+    depths = _charts_by_details_depth(html)
+    assert len(depths) == 3
+    assert depths.count(0) == 1                 # exactly one full-width chart
+    assert sorted(depths)[1:] == [1, 1]         # the rest behind disclosure
+    # The undisclosed chart belongs to the highest-priority visible setup.
+    assert 'class="setup-chart"' in _pc_card(html, "AAA")
+    assert '<details class="chart-detail">' in _pc_card(html, "BBB")
+    assert '<details class="chart-detail">' in _pc_card(html, "CCC")
+    assert '<details class="chart-detail">' not in _pc_card(html, "AAA")
+
+
+def test_prd321_no_chart_sits_outside_disclosure_when_not_permitted() -> None:
+    # R3 FAIL line: the not-permitted `level-detail` wrapper is orthogonal to
+    # the new chart disclosure — under it every chart is behind a <details>.
+    syms = ("AAA", "BBB")
+    mm = _market_map({s: _chartable(s) for s in syms})
+    html = _render(mm, _bars_snapshot(symbols=syms), run=_run(outcome="NO_TRADE"))
+    depths = _charts_by_details_depth(html)
+    assert len(depths) == 2
+    assert 0 not in depths
+    assert '<details class="level-detail">' in _pc_card(html, "AAA")
+    assert 'class="candidate-card grade-aplus candidate-observation"' in html
+
+
+def test_prd321_permitted_render_drops_the_level_detail_wrapper_only() -> None:
+    mm = _market_map({"SPY": _chartable()})
+    permitted = _pc_card(_render(mm, _bars_snapshot(), run=_run(outcome="TRADE")))
+    assert '<details class="level-detail">' not in permitted
+    assert 'class="setup-chart"' in permitted
+    assert 'class="lvl-ladder' in permitted
+
+
+def test_prd321_chart_and_ladder_render_together_never_the_old_ladder() -> None:
+    # R4 FAIL line: chart + compact ladder, and no pre-PRD-321 markup anywhere.
+    card = _pc_card(_render(_market_map({"SPY": _chartable()}), _bars_snapshot()))
+    assert card.index('class="setup-chart"') < card.index('class="lvl-ladder')
+    assert "lvl-diagram" not in card
+    assert 'x2="160"' not in card
+
+
+# --- R3: authority semantics on the chart AND the compact ladder -------------
+
+_LOCK_PERMISSION = "No new trades permitted — operator cannot monitor."
+
+
+def test_prd321_locked_render_neutralizes_the_chart_and_the_ladder() -> None:
+    # R3 FAIL line. Mutation: stop threading `operator_locked` into either the
+    # chart call or the ladder call -> action wording/colours reappear.
+    mm = _market_map({"SPY": _chartable()})
+    card = _pc_card(_render(
+        mm, _bars_snapshot(),
+        run=_run(outcome="NO_TRADE", permission=_LOCK_PERMISSION),
+        contract_entry_map={"SPY": 102.5}, contract_stop_map={"SPY": 99.8},
+    ))
+    assert 'class="setup-chart"' in card
+    chart = card.split('class="setup-chart"', 1)[1].split("</svg>", 1)[0]
+    assert "LEVEL" in chart and "INVALIDATION" in chart
+    assert not re.search(r">ENTRY [+-]", chart) and not re.search(r">STOP [+-]", chart)
+    assert "#e0a552" not in chart and "#e05252" not in chart
+    assert "#6b7280" in chart
+    rows = _ladder_rows(card)
+    assert rows["LEVEL"] == ("102.50", "+0.7%")
+    assert rows["INVALIDATION"] == ("99.80", "-2.0%")
+    assert "ENTRY" not in rows and "STOP" not in rows
+    assert 'class="lvl-riskband lvl-lockrisk"' in card
+
+
+def test_prd321_permitted_render_keeps_the_action_palette() -> None:
+    # Non-vacuity anchor for the lock test above.
+    mm = _market_map({"SPY": _chartable()})
+    card = _pc_card(_render(
+        mm, _bars_snapshot(), run=_run(outcome="TRADE"),
+        contract_entry_map={"SPY": 102.5}, contract_stop_map={"SPY": 99.8},
+    ))
+    chart = card.split('class="setup-chart"', 1)[1].split("</svg>", 1)[0]
+    assert re.search(r">ENTRY [+-]", chart) and re.search(r">STOP [+-]", chart)
+    assert "#e0a552" in chart and "#e05252" in chart
+    rows = _ladder_rows(card)
+    assert rows["ENTRY"] == ("102.50", "+0.7%") and rows["STOP"] == ("99.80", "-2.0%")
+    assert 'class="lvl-riskband lvl-inrisk"' in card
+
+
+def test_prd321_halted_run_still_neutralizes_the_chart() -> None:
+    mm = _market_map({"SPY": _chartable()})
+    card = _pc_card(_render(
+        mm, _bars_snapshot(),
+        run=_run(system_halted=True, permission=_LOCK_PERMISSION, outcome="NO_TRADE"),
+        contract_entry_map={"SPY": 102.5}, contract_stop_map={"SPY": 99.8},
+    ))
+    chart = card.split('class="setup-chart"', 1)[1].split("</svg>", 1)[0]
+    assert "#e0a552" not in chart and "#e05252" not in chart
+
+
+@pytest.mark.parametrize("bad_price", [0, -1.0, float("nan"), float("inf")])
+def test_prd321_invalid_current_price_renders_no_chart_and_no_ladder(bad_price) -> None:
+    # R3 FAIL line (PRD-226): an invalid anchor suppresses BOTH surfaces even
+    # when usable bars exist for the symbol.
+    entry = _chartable()
+    entry["current_price"] = bad_price
+    html = _render(_market_map({"SPY": entry}), _bars_snapshot())   # must not raise
+    assert 'class="setup-chart"' not in html
+    assert 'class="lvl-ladder' not in html
+    assert "bars through" not in html
+    # PRD-158 translation 12 / PRD-226: suppressed outright, not replaced by a
+    # placeholder. Mutation: drop `now_valid` from the caller gate -> the
+    # ladder's belt-and-suspenders guard emits "Chart unavailable" and this
+    # goes red.
+    assert "Chart unavailable" not in html
+    assert 'class="lvl-unavail"' not in html
+    assert 'id="card-SPY"' in html
+
+
+def test_prd321_no_bars_fallback_keeps_the_pct_and_entry_stop_facts() -> None:
+    # R4 FAIL line: the fallback ladder loses no PRD-221/222/223 fact.
+    mm = _market_map({"SPY": _chartable()})
+    card = _pc_card(_render(
+        mm, None, contract_entry_map={"SPY": 102.5}, contract_stop_map={"SPY": 99.8},
+    ))
+    assert 'class="setup-chart"' not in card
+    rows = _ladder_rows(card)
+    assert rows["NOW"] == ("101.80", "")
+    assert rows["ENTRY"] == ("102.50", "+0.7%")
+    assert rows["STOP"] == ("99.80", "-2.0%")
+    assert rows["VWAP"] == ("101.50", "-0.3%")
+    assert rows["0.5"] == ("100.70", "-1.1%")
+    assert 'class="lvl-riskband lvl-inrisk"' in card
+
+
+def test_prd321_low_grade_cards_also_degrade_to_the_compact_ladder() -> None:
+    entry = _chartable("XYZ", grade="C")
+    html = _render(_market_map({"XYZ": entry}), None)
+    card = _pc_card(html, "XYZ")
+    assert 'class="lvl-ladder' in card
+    assert 'class="setup-chart"' not in card

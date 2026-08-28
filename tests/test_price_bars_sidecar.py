@@ -373,12 +373,17 @@ def test_writer_call_graph_contains_no_fetch(isolated):
 
 
 def test_no_module_outside_the_writer_references_the_sidecar():
-    """R6 FAIL line: `rg -l "price_bars_snapshot|PRICE_BARS_PATH"` over
-    cuttingboard/ tools/ scripts/ ui/ returns only the two writer-side files."""
+    """PRD-320 R6 FAIL line, rebased by PRD-321: `rg -l
+    "price_bars_snapshot|PRICE_BARS_PATH"` over cuttingboard/ tools/ scripts/
+    ui/ returns only the two writer-side files plus the ONE sanctioned reader
+    PRD-320 R6 anticipated ("the reader arrives in PRD-321"): the dashboard
+    renderer's display-only loader. Any OTHER reference is still a boundary
+    violation."""
     pattern = re.compile(r"price_bars_snapshot|PRICE_BARS_PATH")
     allowed = {
         Path("cuttingboard/runtime/_constants.py"),
         Path("cuttingboard/runtime/__init__.py"),
+        Path("cuttingboard/delivery/dashboard_renderer.py"),
     }
     offenders: list[str] = []
     for root in ("cuttingboard", "tools", "scripts", "ui"):
