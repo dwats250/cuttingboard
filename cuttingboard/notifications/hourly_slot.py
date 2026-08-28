@@ -22,10 +22,16 @@ _PREMARKET_MINUTES_UTC: frozenset[tuple[int, int]] = frozenset(
     {(12, 50), (13, 0), (13, 50)}
 )
 
-# PRD-149: allowed routine PT slots, interpreted in America/Vancouver.
+# PRD-149: allowed routine PT slots, interpreted in America/Vancouver
+# (identical offsets to the ruling's America/Los_Angeles year-round).
+# PRD-319: (6,0) retired — the daily pipeline exclusively owns the 06:00 PT
+# board and alert, so a routine hourly send there would duplicate it with no
+# cross-path dedup. (6,45) added — the ruled post-open snapshot (CF-D3
+# "OPEN+1"). The 15-minute spacing next to (6,30) sits inside max_lag, which
+# is why routine dispatches carry EXPLICIT slot identity (explicit_pt_slot).
 ALLOWED_PT_SLOTS: tuple[tuple[int, int], ...] = (
-    (6, 0),
     (6, 30),
+    (6, 45),
     (7, 0),
     (8, 0),
     (9, 0),
@@ -74,6 +80,37 @@ def routine_pt_slot(
     if best_slot_pt is None:
         return None
     return best_slot_pt.astimezone(timezone.utc)
+
+
+def explicit_pt_slot(
+    now_utc: datetime, slot_label: str, max_lag_minutes: int = 25
+) -> Optional[datetime]:
+    """Resolve an EXPLICITLY NAMED PT slot ("HH:MM"), never inferring another.
+
+    PRD-319 R2: a routine dispatch (Cloudflare, or a GitHub heartbeat whose
+    cron maps to a fixed intended slot) names its slot; the name is honoured
+    or the arrival no-ops — identity never shifts under start-time delay the
+    way ``routine_pt_slot`` inference can. Returns the canonical UTC slot iff
+    the label parses as HH:MM, is a member of ``ALLOWED_PT_SLOTS``, is not in
+    the future, and lags ``now_utc`` by at most ``max_lag_minutes``; else
+    ``None`` (callers audit ``outside_routine_window`` and exit 0).
+    """
+    if now_utc.tzinfo is None:
+        raise ValueError("explicit_pt_slot requires a tz-aware datetime")
+    try:
+        hh_s, mm_s = slot_label.strip().split(":")
+        hour, minute = int(hh_s), int(mm_s)
+    except (AttributeError, ValueError):
+        return None
+    if (hour, minute) not in ALLOWED_PT_SLOTS:
+        return None
+    now_pt = now_utc.astimezone(_PT_TZ)
+    slot_pt = now_pt.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if slot_pt > now_pt:
+        return None
+    if now_pt - slot_pt > timedelta(minutes=max_lag_minutes):
+        return None
+    return slot_pt.astimezone(timezone.utc)
 
 
 def is_premarket_slot(now_utc: datetime, tolerance_minutes: int = 5) -> bool:

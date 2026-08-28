@@ -156,8 +156,8 @@ def _capture_execute(monkeypatch) -> list[dict]:
 @pytest.mark.parametrize(
     "now_utc",
     [
-        datetime(2026, 5, 19, 13, 0, 0, tzinfo=timezone.utc),   # 06:00 PT PDT
         datetime(2026, 5, 19, 13, 30, 0, tzinfo=timezone.utc),  # 06:30 PT PDT
+        datetime(2026, 5, 19, 13, 45, 0, tzinfo=timezone.utc),  # 06:45 PT PDT (PRD-319)
         datetime(2026, 5, 19, 14, 0, 0, tzinfo=timezone.utc),   # 07:00 PT PDT
         datetime(2026, 5, 19, 19, 0, 0, tzinfo=timezone.utc),   # 12:00 PT PDT
         datetime(2026, 5, 19, 20, 0, 0, tzinfo=timezone.utc),   # 13:00 PT PDT
@@ -177,20 +177,98 @@ def test_prd149_routine_in_window_sends(tmp_path, monkeypatch, now_utc):
     assert calls[0]["slot_utc"] is not None
 
 
-def test_prd149_six_and_six_thirty_have_distinct_slot_utc(tmp_path, monkeypatch):
+def test_prd149_six_thirty_and_six_forty_five_have_distinct_slot_utc(tmp_path, monkeypatch):
     from cuttingboard import alert_runner
 
     monkeypatch.chdir(tmp_path)
     (tmp_path / "logs").mkdir()
     calls = _capture_execute(monkeypatch)
 
-    _patch_now(monkeypatch, datetime(2026, 5, 19, 13, 0, 0, tzinfo=timezone.utc))
-    alert_runner.main()
     _patch_now(monkeypatch, datetime(2026, 5, 19, 13, 30, 0, tzinfo=timezone.utc))
+    alert_runner.main()
+    _patch_now(monkeypatch, datetime(2026, 5, 19, 13, 45, 0, tzinfo=timezone.utc))
     alert_runner.main()
 
     assert len(calls) == 2
     assert calls[0]["slot_utc"] != calls[1]["slot_utc"]
+
+
+# ---- PRD-319 R2: --routine-slot explicit identity ---------------------------
+
+def test_prd319_routine_slot_sends_named_slot(tmp_path, monkeypatch):
+    from cuttingboard import alert_runner
+    from cuttingboard.notifications.hourly_slot import _PT_TZ
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "logs").mkdir()
+    _patch_now(monkeypatch, datetime(2026, 5, 19, 13, 32, 0, tzinfo=timezone.utc))
+    calls = _capture_execute(monkeypatch)
+
+    assert alert_runner.main(["--routine-slot", "06:30"]) == 0
+    assert len(calls) == 1
+    slot_pt = calls[0]["slot_utc"].astimezone(_PT_TZ)
+    assert (slot_pt.hour, slot_pt.minute) == (6, 30)
+
+
+def test_prd319_routine_slot_identity_never_shifts(tmp_path, monkeypatch):
+    """A delayed 06:30 routine dispatch starting at 06:46 PT still sends AS
+    06:30 -- the mutation (falling back to inference) would send 06:45."""
+    from cuttingboard import alert_runner
+    from cuttingboard.notifications.hourly_slot import _PT_TZ
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "logs").mkdir()
+    _patch_now(monkeypatch, datetime(2026, 5, 19, 13, 46, 0, tzinfo=timezone.utc))
+    calls = _capture_execute(monkeypatch)
+
+    assert alert_runner.main(["--routine-slot", "06:30"]) == 0
+    assert len(calls) == 1
+    slot_pt = calls[0]["slot_utc"].astimezone(_PT_TZ)
+    assert (slot_pt.hour, slot_pt.minute) == (6, 30)
+
+
+@pytest.mark.parametrize(
+    "now_utc, label",
+    [
+        # off-season twin: 40 13 cron in PST = 05:40 PT, intended 06:30 (future)
+        (datetime(2026, 1, 12, 13, 40, 0, tzinfo=timezone.utc), "06:30"),
+        # off-season twin: 40 14 cron in PDT = 07:40 PT, intended 06:30 (lag 70)
+        (datetime(2026, 5, 19, 14, 40, 0, tzinfo=timezone.utc), "06:30"),
+        # retired slot named explicitly
+        (datetime(2026, 5, 19, 13, 5, 0, tzinfo=timezone.utc), "06:00"),
+    ],
+)
+def test_prd319_routine_slot_out_of_window_noops(tmp_path, monkeypatch, now_utc, label):
+    from cuttingboard import alert_runner
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "logs").mkdir()
+    _patch_now(monkeypatch, now_utc)
+    calls = _capture_execute(monkeypatch)
+
+    assert alert_runner.main(["--routine-slot", label]) == 0
+    assert calls == []
+
+
+def test_prd319_routine_slot_deduped_like_cron_arrival(tmp_path, monkeypatch):
+    from cuttingboard import alert_runner
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "logs").mkdir()
+    calls = _capture_execute(monkeypatch)
+
+    _patch_now(monkeypatch, datetime(2026, 5, 19, 13, 30, 0, tzinfo=timezone.utc))
+    assert alert_runner.main(["--routine-slot", "06:30"]) == 0
+    assert len(calls) == 1
+    # the real _execute_notify_run persists the slot post-send; the capture
+    # stub does not, so persist it the way the runtime would before the
+    # late heartbeat arrives for the same slot -- suppressed_same_slot
+    from cuttingboard.notifications.hourly_slot import save_last_slot
+
+    save_last_slot(calls[0]["slot_utc"])
+    _patch_now(monkeypatch, datetime(2026, 5, 19, 13, 42, 0, tzinfo=timezone.utc))
+    assert alert_runner.main(["--routine-slot", "06:30"]) == 0
+    assert len(calls) == 1
 
 
 @pytest.mark.parametrize(

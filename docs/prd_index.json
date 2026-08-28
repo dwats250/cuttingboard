@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 318,
-  "next_prd": 319,
+  "latest_complete": 319,
+  "next_prd": 320,
   "entries": [
     {
       "number": 56,
@@ -1580,6 +1580,12 @@
       "title": "Answer-first operator dashboard",
       "status": "COMPLETE",
       "commit": "#279"
+    },
+    {
+      "number": 319,
+      "title": "Reliable market cadence: CF clock primacy, PT slot identity, hourly cache",
+      "status": "COMPLETE",
+      "commit": "#282"
     }
   ]
 }

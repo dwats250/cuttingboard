@@ -267,9 +267,18 @@ def test_struct_run_name_carrier_present() -> None:
 
 
 def test_struct_cron_swapped() -> None:
+    # PRD-319 R5: dual-seasonal delayed fallbacks replace the single 5 13; the
+    # exact pair is pinned, both retired live crons are banned, and the season
+    # gate + run-name + concurrency + first-success predicates must all
+    # recognize BOTH new expressions (counted; a partial literal update fails).
     text = _wf()
-    assert "5 13 * * 1-5" in text
-    assert "0 13 * * 1-5" not in text  # old live cron removed (R7)
+    # Quote-delimited: '20 13 * * 1-5' contains the bare "0 13 * * 1-5" substring.
+    assert "'0 13 * * 1-5'" not in text   # old live cron removed (PRD-299 R7)
+    assert "'5 13 * * 1-5'" not in text   # single fallback retired (PRD-319 R5)
+    assert text.count("'20 13 * * 1-5'") >= 4  # cron + run-name + concurrency + gate/openslot ifs
+    assert text.count("'20 14 * * 1-5'") >= 4
+    assert "check_open_fallback_window.py" in text
+    assert "OFF_SEASON_NOOP" in text
 
 
 def test_struct_slot_and_source_inputs_present() -> None:
