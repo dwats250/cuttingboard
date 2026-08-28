@@ -17,7 +17,7 @@ import os
 import re
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -31,6 +31,7 @@ from cuttingboard.delivery.dashboard_integrator import (
 )
 from cuttingboard.delivery import gex_card
 from cuttingboard.delivery import movement_card
+from cuttingboard.delivery import setup_chart
 from cuttingboard.delivery.macro_tape_layout import (
     MACRO_BIAS_CONTRA_CYCLICAL,
     MACRO_BIAS_DRIVERS,
@@ -62,6 +63,10 @@ _HOURLY_CONTRACT_PATH = Path("logs/latest_hourly_contract.json")
 _TREND_STRUCTURE_PATH = Path("logs/trend_structure_snapshot.json")
 _GEX_SNAPSHOT_PATH = Path("logs/gex_snapshot.json")  # PRD-309: display-only GEX card sidecar
 _MOVEMENT_SNAPSHOT_PATH = Path("logs/watchlist_snapshot.json")  # PRD-311: MARKET MOVEMENT card sidecar
+# PRD-321 R2: read-only consumer of the PRD-320 price-bars sidecar (the writer
+# owns `runtime.PRICE_BARS_PATH`; the renderer never imports runtime).
+_PRICE_BARS_SNAPSHOT_PATH = Path("logs/price_bars_snapshot.json")
+_PRICE_BARS_MAX_AGE_DAYS = 5
 
 # PRD-112: per-record fields the renderer requires for a non-degraded
 # trend-structure section. Missing or wrong-typed for any curated symbol →
@@ -948,8 +953,35 @@ _CSS = (
     ".history-table{display:grid;grid-template-columns:5ch max-content max-content max-content;"
     "column-gap:0.75rem;row-gap:2px;margin-top:4px;align-items:baseline}"
     ".history-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:0.8rem}"
-    ".lvl-diagram{margin-top:8px;padding-top:6px;border-top:1px solid #1a1a1a}"
     ".lvl-unavail{color:#555;font-size:0.75rem;font-style:italic;margin-top:6px}"
+    # PRD-321: the setup chart is the primary spatial representation. viewBox
+    # scaling only — width:100% inside the card, capped so a desktop card shows
+    # the SAME svg wider rather than a second chart system.
+    ".setup-chart{margin-top:8px;padding-top:6px;border-top:1px solid #1a1a1a}"
+    ".setup-chart svg{display:block;width:100%;height:auto;max-width:520px}"
+    ".chart-caption{color:#666;font-size:0.68rem;margin-top:2px}"
+    ".chart-detail{margin-top:8px}"
+    ".chart-detail>summary{cursor:pointer;color:#777;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em}"
+    # PRD-321 R4: compact tiered ladder — the chart's subordinate exact-level
+    # reference and the no-bars fallback. Tier 1 strongest, Tier 2 clear,
+    # Tier 3 faint; the tier weights are the assertion surface.
+    ".lvl-ladder{margin-top:6px;padding-top:5px;border-top:1px solid #1a1a1a;"
+    "max-width:520px;font-family:monospace;font-size:0.72rem;line-height:1.5}"
+    ".lvl-row{display:grid;grid-template-columns:minmax(6ch,auto) 1fr auto;"
+    "column-gap:8px;white-space:nowrap}"
+    ".lvl-px{text-align:right}"
+    ".lvl-pct{text-align:right;min-width:6ch}"
+    ".lvl-t1{color:#ddd;font-weight:700;opacity:1}"
+    ".lvl-t2{color:#3a7a8a;font-weight:400;opacity:0.9}"
+    ".lvl-t3{color:#555;font-weight:400;opacity:0.65}"
+    ".lvl-now{color:#f5c518}"
+    ".lvl-entry{color:#e0a552}"
+    ".lvl-stop{color:#e05252}"
+    ".lvl-vwap{color:#29b6f6}"
+    ".lvl-neutral{color:#6b7280}"
+    ".lvl-riskband{padding-left:5px;margin:1px 0}"
+    ".lvl-inrisk{border-left:2px solid #e05252;background:rgba(224,82,82,.06)}"
+    ".lvl-lockrisk{border-left:2px solid #6b7280;background:rgba(107,114,128,.06)}"
     ".artifact-warning{border-color:#ff9800;color:#ff9800}"
     ".artifact-diagnostics{color:#888;font-size:0.72rem;line-height:1.45}"
     ".artifact-diagnostics span{display:block}"
@@ -1104,6 +1136,76 @@ def _load_trend_structure_snapshot(path: Path) -> dict | None:
     if not isinstance(data, dict):
         return None
     return data
+
+
+def _load_price_bars_snapshot(path: Path) -> dict | None:
+    """PRD-321 R2: read the PRD-320 price-bars sidecar; never raise.
+
+    Missing, unreadable, non-JSON, or structurally wrong => None, and every
+    candidate degrades to the compact ladder. Nothing outside the chart region
+    changes: this loader is the only place the artifact is touched.
+    """
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError):
+        return None
+    if not isinstance(data, dict) or not isinstance(data.get("symbols"), dict):
+        return None
+    return data
+
+
+def _price_bars_caption(snapshot: dict, as_of: str) -> str:
+    """PRD-321 R2: the honesty caption — the bars' `as_of` plus the sidecar's
+    own source provenance (`source.provider` / `source.interval`)."""
+    caption = f"bars through {as_of}"
+    source = snapshot.get("source")
+    if isinstance(source, dict):
+        provenance = " ".join(
+            part for part in (
+                str(source.get("provider") or "").strip(),
+                str(source.get("interval") or "").strip(),
+            ) if part
+        )
+        if provenance:
+            caption = f"{caption} · {provenance}"
+    return caption
+
+
+def _price_bars_by_symbol(
+    snapshot: dict | None, now: datetime
+) -> dict[str, tuple[list, str]]:
+    """PRD-321 R2: `{symbol: (completed bars, caption)}` for the symbols that
+    clear the age guard.
+
+    The guard is UTC calendar-day arithmetic: a symbol is bars-absent when
+    (UTC date of `now`) minus (its `as_of` date) exceeds 5 days. A symbol whose
+    entry is malformed, whose `as_of` is unparseable, or whose bar list is
+    empty is simply absent — OHLC is never synthesized or padded.
+    """
+    usable: dict[str, tuple[list, str]] = {}
+    if not isinstance(snapshot, dict):
+        return usable
+    symbols = snapshot.get("symbols")
+    if not isinstance(symbols, dict):
+        return usable
+    now_date = now.astimezone(timezone.utc).date()
+    for symbol, record in symbols.items():
+        if not isinstance(record, dict):
+            continue
+        bars = record.get("bars")
+        as_of = record.get("as_of")
+        if not isinstance(bars, list) or not bars or not isinstance(as_of, str):
+            continue
+        try:
+            as_of_date = date.fromisoformat(as_of[:10])
+        except ValueError:
+            continue
+        if (now_date - as_of_date).days > _PRICE_BARS_MAX_AGE_DAYS:
+            continue
+        usable[str(symbol)] = (bars, _price_bars_caption(snapshot, as_of[:10]))
+    return usable
 
 
 def _trend_symbols_usable(snapshot: dict | None) -> int:
@@ -1731,7 +1833,7 @@ def _resolve_previous_run(logs_dir: Path) -> dict | None:
     return runs[1]
 
 
-def _render_level_diagram(
+def _render_level_ladder(
     w: object,
     now_price: float | None,
     contract_entry: float | None,
@@ -1741,44 +1843,50 @@ def _render_level_diagram(
     *,
     operator_locked: bool = False,
 ) -> None:
-    """Render a deterministic SVG level diagram for a candidate card (PRD-074).
+    """PRD-321 R4: the compact tiered level ladder — the setup chart's
+    subordinate exact-level reference, and the honest fallback when no
+    completed bars are available.
 
-    PRD-216: each level label carries its dollar value. PRD-221/PRD-222: the
-    anchor is labelled NOW and every other level carries its signed % distance
-    from that anchor. PRD-223: a numeric stop shades the entry→stop span as a
-    soft risk zone with a dashed STOP edge — zone shading, not a crisp hairline,
-    because the invalidation the engine describes is a zone, not a tick.
+    This REPLACES the pre-PRD-321 full-size `_render_level_diagram` SVG
+    (owner ruling Q3: the chart is the spatial representation, the ladder is
+    the compact exact-level reference; no chart + old-ladder duplication).
+    It shares the chart's tier hierarchy — Tier 1 strongest, Tier 2 clear,
+    Tier 3 faint — and carries the same facts the old ladder carried:
 
-    PRD-226: NOW is the *live current price* (``now_price``) — the 0% reference
-    and the yellow focal line. The contract's planned entry (``contract_entry``,
-    from ``trade_candidates[].entry``) is a SEPARATE level: it is the risk-band
-    top edge and, when it differs from NOW beyond display resolution, its own
-    amber ENTRY marker. It is never relabelled NOW. The current price is the
-    required anchor: absent it, the diagram is suppressed (the caller gates on a
-    valid current price) — the entry is never promoted to a NOW label.
+    * PRD-216: every level label carries its dollar value.
+    * PRD-221/PRD-222: NOW is the anchor (the live current price) and every
+      other level carries its signed % distance from it.
+    * PRD-223: the contract entry->stop span is the risk zone, rendered here
+      as a bordered row group spanning exactly those levels.
+    * PRD-226: NOW is `now_price`, never the contract entry; without a valid
+      current price nothing is drawn (the caller gates; this is the
+      belt-and-suspenders guard).
+    * PRD-304: under operator lock the wording neutralizes (ENTRY -> LEVEL,
+      STOP -> INVALIDATION) and no action colour class is emitted.
+
+    Tier assignment mirrors `setup_chart`: EMA50 and fib retracements are
+    Tier 3 context; the named intraday/trend structure levels are Tier 2.
+    An unrecognised watch-zone type keeps its pre-PRD-321 structural weight
+    (Tier 2) so the exact-level reference never silently drops a fact.
     """
-    # PRD-226: everything scales around and reports % distance from the 0%
-    # reference — the live current price. The caller only reaches here with a
-    # valid current price; the guard is belt-and-suspenders. A non-finite anchor
-    # (inf/NaN) must fail here too: the y-scale math would otherwise produce NaN
-    # and round() would raise, aborting the whole render.
     if now_price is None or not math.isfinite(now_price) or now_price <= 0:
         w('  <div class="lvl-unavail">Chart unavailable — no price data</div>')
         return
-    anchor_base = now_price
+    anchor = float(now_price)
 
-    # PRD-223: the risk zone draws only from an honest numeric pair — a
-    # finite positive stop distinct from the anchor. Anything else renders
-    # exactly the pre-PRD-223 diagram.
-    # PRD-226: the band draws entry→stop, so a stop needs a valid contract entry
-    # to pair against — never against the NOW/current-price anchor.
-    stop_price: float | None = None
+    entry_price: float | None = None
     if (
         contract_entry is not None
+        and not isinstance(contract_entry, bool)
+        and math.isfinite(contract_entry)
         and contract_entry > 0
-        and contract_stop is not None
-        and not isinstance(contract_stop, bool)
     ):
+        entry_price = float(contract_entry)
+
+    # PRD-223/PRD-226: the risk band draws only from an honest contract pair —
+    # a finite positive stop distinct from its own entry, never against NOW.
+    stop_price: float | None = None
+    if entry_price is not None and contract_stop is not None and not isinstance(contract_stop, bool):
         try:
             stop_candidate = float(contract_stop)
         except (TypeError, ValueError):
@@ -1787,222 +1895,113 @@ def _render_level_diagram(
             stop_candidate is not None
             and math.isfinite(stop_candidate)
             and stop_candidate > 0
-            and stop_candidate != contract_entry
+            and stop_candidate != entry_price
         ):
             stop_price = stop_candidate
 
-    vwap_level: float | None = None
-    zone_lines: list[tuple[float, str]] = []
+    def _pct(level: float) -> str:
+        return f" {((level - anchor) / anchor * 100.0):+.1f}%"
+
+    # (price, tier, name, extra-class, pct-suffix)
+    rows: list[tuple[float, str, str, str, str]] = []
+    rows.append((anchor, "lvl-t1", "NOW", " lvl-now", ""))
+    if entry_price is not None and abs(entry_price - anchor) >= 0.005:
+        rows.append((
+            entry_price, "lvl-t1",
+            "LEVEL" if operator_locked else "ENTRY",
+            " lvl-neutral" if operator_locked else " lvl-entry",
+            _pct(entry_price),
+        ))
+    if stop_price is not None:
+        rows.append((
+            stop_price, "lvl-t1",
+            "INVALIDATION" if operator_locked else "STOP",
+            " lvl-neutral" if operator_locked else " lvl-stop",
+            _pct(stop_price),
+        ))
+
     for zone in (watch_zones or []):
-        lv = zone.get("level")
-        zt = zone.get("type", "")
-        if lv is None:
+        if not isinstance(zone, dict):
+            continue
+        level = zone.get("level")
+        ztype = str(zone.get("type") or "")
+        if level is None or isinstance(level, bool):
             continue
         try:
-            lv_f = float(lv)
+            level_f = float(level)
         except (TypeError, ValueError):
             continue
-        if zt == "VWAP":
-            if lv_f > 0:
-                vwap_level = lv_f
-        else:
-            zone_lines.append((lv_f, zt))
+        if not math.isfinite(level_f):
+            continue
+        tier = "lvl-t3" if ztype in setup_chart.TIER3_TYPES else "lvl-t2"
+        extra = " lvl-vwap" if ztype == "VWAP" else ""
+        rows.append((level_f, tier, _esc(ztype[:10]), extra, _pct(level_f)))
 
-    fib_items: list[tuple[float, str]] = []
     if fib_levels and isinstance(fib_levels, dict):
-        retracements = fib_levels.get("retracements") or {}
-        for label, val in retracements.items():
-            if val is None:
+        for label, value in (fib_levels.get("retracements") or {}).items():
+            if value is None or isinstance(value, bool):
                 continue
             try:
-                fib_items.append((float(val), str(label)))
+                level_f = float(value)
             except (TypeError, ValueError):
-                pass
+                continue
+            if not math.isfinite(level_f):
+                continue
+            rows.append((level_f, "lvl-t3", _esc(str(label)[:5]), "", _pct(level_f)))
 
-    all_prices = [anchor_base]
-    if contract_entry is not None and contract_entry != anchor_base:
-        all_prices.append(contract_entry)
-    if stop_price is not None:
-        all_prices.append(stop_price)
-    if vwap_level is not None:
-        all_prices.append(vwap_level)
-    for lv_f, _ in zone_lines:
-        all_prices.append(lv_f)
-    for lv_f, _ in fib_items:
-        all_prices.append(lv_f)
+    # Deterministic top-down order: highest price first, insertion order on ties.
+    order = sorted(range(len(rows)), key=lambda i: (-rows[i][0], i))
 
-    p_min = min(all_prices)
-    p_max = max(all_prices)
-    p_span = p_max - p_min
+    band: tuple[float, float] | None = None
+    if entry_price is not None and stop_price is not None:
+        band = (min(entry_price, stop_price), max(entry_price, stop_price))
+    band_class = "lvl-lockrisk" if operator_locked else "lvl-inrisk"
 
-    if p_span < 0.01:
-        p_min = anchor_base * 0.995
-        p_max = anchor_base * 1.005
-        p_span = p_max - p_min
-    else:
-        pad = p_span * 0.12
-        p_min -= pad
-        p_max += pad
-        p_span = p_max - p_min
-
-    SVG_H = 110
-    LINE_W = 160
-    LABEL_X = LINE_W + 4
-    SVG_W = 280
-
-    def _to_y(price: float) -> int:
-        return round(SVG_H * (1.0 - (price - p_min) / p_span))
-
-    def _pct(level: float) -> str:
-        # PRD-226: signed % distance from the 0% reference — the live current
-        # price (`anchor_base` is `now_price`, guaranteed valid past the guard).
-        return f" {((level - anchor_base) / anchor_base * 100.0):+.1f}%"
-
-    w('  <div class="lvl-diagram">')
-    w(
-        f'    <svg width="{SVG_W}" height="{SVG_H}" '
-        f'xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">'
-    )
-    w(f'    <rect width="{LINE_W}" height="{SVG_H}" fill="#0a0a0a"/>')
-
-    # PRD-223/PRD-226: risk zone — the contract entry→stop span (its top edge is
-    # the entry, not the NOW anchor), shaded behind every level line so the
-    # levels stay legible on top of it.
-    if stop_price is not None:
-        band_top = min(_to_y(contract_entry), _to_y(stop_price))
-        band_h = abs(_to_y(contract_entry) - _to_y(stop_price))
-        w(
-            f'    <rect x="0" y="{band_top}" width="{LINE_W}" height="{band_h}" '
-            f'fill="{"#6b7280" if operator_locked else "#e05252"}" opacity="0.08"/>'
-        )
-
-    # Draw every level LINE at its true price-mapped y, and collect the label
-    # for a second pass. Lines are never moved (the ENTRY line y is a pinned
-    # contract for downstream tests); only the text labels are decluttered so
-    # that clustered levels — which is exactly when they matter — stay legible
-    # instead of overprinting into an unreadable stack.
-    labels: list[tuple[int, str, str]] = []  # (true_y, text, fill)
-
-    for lv_f, label in sorted(fib_items, key=lambda x: x[0], reverse=True):
-        y = _to_y(lv_f)
-        w(
-            f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
-            f'stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>'
-        )
-        # PRD-216: annotate with the dollar level (facts, not forecasts).
-        # PRD-221: + signed % distance from price NOW.
-        labels.append((y, f"{_esc(label[:5])} {lv_f:,.2f}{_pct(lv_f)}", "#555"))
-
-    for lv_f, zt in sorted(zone_lines, key=lambda x: x[0], reverse=True):
-        y = _to_y(lv_f)
-        w(
-            f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
-            f'stroke="#1a4a5a" stroke-width="1"/>'
-        )
-        labels.append((y, f"{_esc(zt[:10])} {lv_f:,.2f}{_pct(lv_f)}", "#3a7a8a"))
-
-    if vwap_level is not None:
-        y = _to_y(vwap_level)
-        w(
-            f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
-            f'stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>'
-        )
-        labels.append((y, f"VWAP {vwap_level:,.2f}{_pct(vwap_level)}", "#29b6f6"))
-
-    # PRD-223: dashed STOP edge on the risk zone's far side. Dashed, not
-    # solid — the stop is where the thesis is wrong, rendered as a zone edge
-    # per the DECISIONS 2026-07-02 second-order caution.
-    if stop_price is not None:
-        y = _to_y(stop_price)
-        stop_colour = "#6b7280" if operator_locked else "#e05252"
-        stop_label = "INVALIDATION" if operator_locked else "STOP"
-        w(
-            f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
-            f'stroke="{stop_colour}" stroke-width="1.5" stroke-dasharray="5,3"/>'
-        )
-        labels.append((y, f"{stop_label} {stop_price:,.2f}{_pct(stop_price)}", stop_colour))
-
-    # PRD-226: NOW is the live current price — the 0% reference — drawn as the
-    # yellow focal line (no % suffix). The contract entry is never relabelled NOW.
-    y = _to_y(now_price)
-    w(
-        f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
-        f'stroke="#f5c518" stroke-width="2"/>'
-    )
-    w(f'    <circle cx="3" cy="{y}" r="3" fill="#f5c518"/>')
-    labels.append((y, f"NOW {now_price:,.2f}", "#f5c518"))
-
-    # PRD-226: the contract's planned entry is a SEPARATE amber level carrying
-    # its signed % distance from NOW — the risk-band top edge made explicit. It
-    # is drawn when it differs from NOW beyond display resolution (< 0.005 rounds
-    # to the same 2dp price, so the two lines would overprint an identical
-    # label); when it equals NOW they coincide and only NOW shows.
-    if (
-        contract_entry is not None
-        and contract_entry > 0
-        and abs(contract_entry - now_price) >= 0.005
-    ):
-        y = _to_y(contract_entry)
-        entry_colour = "#6b7280" if operator_locked else "#e0a552"
-        entry_label = "LEVEL" if operator_locked else "ENTRY"
-        w(
-            f'    <line x1="0" y1="{y}" x2="{LINE_W}" y2="{y}" '
-            f'stroke="{entry_colour}" stroke-width="1.5"/>'
-        )
-        labels.append((y, f"{entry_label} {contract_entry:,.2f}{_pct(contract_entry)}", entry_colour))
-
-    # Label-declutter pass. Spread baselines so no two labels sit closer than
-    # LABEL_MIN_GAP px; a thin leader connects any label pushed off its line.
-    # Deterministic: stable sort by (true_y, insertion index).
-    LABEL_MIN_GAP = 11
-    BASE_OFF = 4          # baseline offset that centers text on its line
-    TOP_CLAMP = 9         # keep the topmost label inside the canvas
-    order = sorted(range(len(labels)), key=lambda i: (labels[i][0], i))
-    # When more labels are present than fit at LABEL_MIN_GAP within the canvas
-    # (SVG_H - TOP_CLAMP), shrink the gap so they still fit instead of spilling
-    # off the top/bottom edge. n-1 gaps must span at most (SVG_H - TOP_CLAMP).
-    n = len(order)
-    gap = LABEL_MIN_GAP
-    if n > 1:
-        gap = min(float(LABEL_MIN_GAP), (SVG_H - TOP_CLAMP) / (n - 1))
-    pos: dict[int, float] = {}
-    prev: float | None = None
+    w(f'  <div class="lvl-ladder{" lvl-locked" if operator_locked else ""}">')
+    in_band = False
     for idx in order:
-        base = labels[idx][0] + BASE_OFF
-        p = max(base, TOP_CLAMP) if prev is None else max(base, prev + gap)
-        pos[idx] = p
-        prev = p
-    # If the stack overran the bottom edge, compress upward from the last label.
-    # With the fitted gap above, this can never push the top label past TOP_CLAMP
-    # (SVG_H - (n-1)*gap >= TOP_CLAMP), so every label stays on-canvas.
-    if order and pos[order[-1]] > SVG_H:
-        cap = float(SVG_H)
-        for idx in reversed(order):
-            pos[idx] = min(pos[idx], cap)
-            cap = pos[idx] - gap
-
-    for idx, (true_y, text, fill) in enumerate(labels):
-        by = round(pos[idx])
-        if abs(by - (true_y + BASE_OFF)) > 3:
-            w(
-                f'    <line x1="{LINE_W}" y1="{true_y}" '
-                f'x2="{LABEL_X - 1}" y2="{by - 3}" '
-                f'stroke="#444" stroke-width="0.75"/>'
-            )
+        price, tier, name, extra, pct_text = rows[idx]
+        if band is not None:
+            inside = band[0] <= price <= band[1]
+            if inside and not in_band:
+                w(f'    <div class="lvl-riskband {band_class}">')
+                in_band = True
+            elif not inside and in_band:
+                w("    </div>")
+                in_band = False
         w(
-            f'    <text x="{LABEL_X}" y="{by}" font-size="9" '
-            f'fill="{fill}" font-family="monospace">{text}</text>'
+            f'    <div class="lvl-row {tier}{extra}">'
+            f'<span class="lvl-name">{name}</span>'
+            f'<span class="lvl-px">{price:,.2f}</span>'
+            f'<span class="lvl-pct">{pct_text.strip()}</span></div>'
         )
+    if in_band:
+        w("    </div>")
+    w("  </div>")
 
-    w('    </svg>')
-    w('  </div>')
+
+def _render_setup_chart_block(w: object, svg: str, caption: str, *, disclosed: bool) -> None:
+    """PRD-321 R3 (ruling Q2): one full-width chart for the highest-priority
+    visible setup; every other candidate's chart sits behind a NEW native
+    `<details>` wrapper. That wrapper is orthogonal to the not-permitted
+    `level-detail` wrapper — both apply per their own rules."""
+    if disclosed:
+        w('  <details class="chart-detail"><summary>CHART ▶</summary>')
+    w(f'  <div class="setup-chart">{svg}</div>')
+    w(f'  <div class="chart-caption">{_esc(caption)}</div>')
+    if disclosed:
+        w("  </details>")
 
 
 def _render_candidate_card(
     w: object, sym: str, entry: dict, contract_entry: float | None = None,
     contract_stop: float | None = None, operator_locked: bool = False,
     decision_permitted: bool = False,
-) -> None:
+    bars: list | None = None, bars_caption: str = "",
+    chart_slot_available: bool = False,
+) -> bool:
+    """Render one candidate card. Returns True when this card took the single
+    full-width chart slot (PRD-321 R3 / ruling Q2)."""
     # PRD-304 R7: under lock the card keeps every analytical observation (symbol,
     # grade letter, bias, structure, price/level context, invalidation content,
     # reasoning, watch) but omits the action directives IF NOW and PLAY and drops
@@ -2160,15 +2159,36 @@ def _render_candidate_card(
     # only against it (every rendered high-grade card carries current_price; the
     # integrator's Rule 1 collapses a card that lacks it). The contract entry is
     # never an anchor.
+    took_chart_slot = False
     if now_valid and has_level_context:
         # PRD-223: the risk band needs the contract pair — a stop only draws
         # against its own entry, never against the NOW/current-price anchor.
         # This gate also carries contract staleness: a stale contract nulls
         # the entry map, so its stop can never pair up and draw.
         band_stop = contract_stop if entry_valid else None
+        # PRD-321 R1/R2: the chart draws only from completed bars that passed
+        # the loader's age guard; an empty SVG means "nothing honest to draw"
+        # and the card degrades to the compact ladder alone (R4).
+        chart_svg = setup_chart.render_setup_chart_svg(
+            bars,
+            now_price,
+            contract_entry=contract_entry if entry_valid else None,
+            contract_stop=band_stop,
+            watch_zones=watch_zones,
+            fib_levels=fib_levels,
+            operator_locked=operator_locked,
+        ) if bars else ""
         if not decision_permitted:
             w('  <details class="level-detail"><summary>LEVEL MAP ▶</summary>')
-        _render_level_diagram(
+        if chart_svg:
+            took_chart_slot = bool(chart_slot_available)
+            _render_setup_chart_block(
+                w, chart_svg, bars_caption, disclosed=not took_chart_slot
+            )
+        # PRD-321 R4: the compact ladder is the chart's subordinate exact-level
+        # reference (rendered directly below it) AND the full fallback when no
+        # bars are available. Both roles carry every authority semantic.
+        _render_level_ladder(
             w,
             now_price,
             contract_entry if entry_valid else None,
@@ -2181,6 +2201,7 @@ def _render_candidate_card(
             w("  </details>")
 
     w("</div>")
+    return took_chart_slot
 
 
 def render_dashboard_html(
@@ -2207,6 +2228,7 @@ def render_dashboard_html(
     fixture_mode: bool = False,
     gex_snapshot: dict | None = None,
     movement_snapshot: dict | None = None,
+    price_bars_snapshot: dict | None = None,
     now: datetime | None = None,
 ) -> str:
     """Return deterministic Signal Forge dashboard HTML.
@@ -2836,6 +2858,13 @@ def render_dashboard_html(
         w("</div>")
 
     # --- candidate-board ---
+    # PRD-321 R2/R3: resolve the age-guarded bars once per render, and keep the
+    # single full-width chart slot for the highest-priority visible setup —
+    # every later candidate's chart goes behind its own disclosure (ruling Q2).
+    _price_bars = _price_bars_by_symbol(
+        price_bars_snapshot, now if now is not None else _utcnow()
+    )
+    _chart_slot_open = True
     w(f'<div class="block operator-subsection{disabled_class}" id="candidate-board">')
     if fixture_mode:
         w('  <h3>SETUP SCREENING &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h3>')
@@ -2952,13 +2981,18 @@ def render_dashboard_html(
                         w(f'  <div class="tier-group" id="tier-{tier_id}">')
                         w(f'    <div class="tier-header">{_esc(_tier_label)} ({len(tier_syms)})</div>')
                     for sym in tier_syms:
-                        _render_candidate_card(
+                        _sym_bars, _sym_caption = _price_bars.get(sym, (None, ""))
+                        if _render_candidate_card(
                             w, sym, symbols[sym],
                             contract_entry=(contract_entry_map or {}).get(sym),
                             contract_stop=(contract_stop_map or {}).get(sym),
                             operator_locked=operator_locked,
                             decision_permitted=_decision_state == "TRADE PERMITTED",
-                        )
+                            bars=_sym_bars,
+                            bars_caption=_sym_caption,
+                            chart_slot_available=_chart_slot_open,
+                        ):
+                            _chart_slot_open = False
                     if is_low_tier:
                         w("  </details>")
                     else:
@@ -3516,6 +3550,7 @@ def write_dashboard(
     fixture_mode: bool = False,
     gex_snapshot: dict | None = None,
     movement_snapshot: dict | None = None,
+    price_bars_snapshot: dict | None = None,
     now: datetime | None = None,
 ) -> None:
     # PRD-118 R1/R2/R3/R10: validate coherent artifact set before any byte is written
@@ -3557,6 +3592,7 @@ def write_dashboard(
         fixture_mode=fixture_mode,
         gex_snapshot=gex_snapshot,
         movement_snapshot=movement_snapshot,
+        price_bars_snapshot=price_bars_snapshot,
         now=now,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -3699,6 +3735,9 @@ def main(
     gex_snapshot = gex_card.load_gex_snapshot(logs_dir / _GEX_SNAPSHOT_PATH.name)
     # PRD-311: MARKET MOVEMENT card sidecar; absent/malformed/invalid => None => card suppressed.
     movement_snapshot = movement_card.load_watchlist_snapshot(logs_dir / _MOVEMENT_SNAPSHOT_PATH.name)
+    # PRD-321 R2: display-only price-bars sidecar; absent/malformed => None =>
+    # every candidate degrades to the compact ladder, nothing else changes.
+    price_bars_snapshot = _load_price_bars_snapshot(logs_dir / _PRICE_BARS_SNAPSHOT_PATH.name)
     # PRD-177: Q4 scoreboard + Q2 red-folder sidecars. Both degrade to their
     # empty-state forms when the artifact is absent and never block publish.
     regime_history = _load_regime_history(logs_dir / "regime_history.jsonl")
@@ -3739,6 +3778,7 @@ def main(
         fixture_mode=_fixture_mode,
         gex_snapshot=gex_snapshot,
         movement_snapshot=movement_snapshot,
+        price_bars_snapshot=price_bars_snapshot,
         now=_utcnow(),
     )
     print(f"Dashboard written: {output_path}")

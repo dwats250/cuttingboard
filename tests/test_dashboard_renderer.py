@@ -209,6 +209,23 @@ def _candidate_card(html: str, symbol: str = "SPY") -> str:
     return html.split(f'id="card-{symbol}"', 1)[1].split('</div>\n</div>', 1)[0]
 
 
+_LADDER_ROW = re.compile(
+    r'<div class="lvl-row (?P<cls>[^"]+)">'
+    r'<span class="lvl-name">(?P<name>[^<]*)</span>'
+    r'<span class="lvl-px">(?P<px>[^<]*)</span>'
+    r'<span class="lvl-pct">(?P<pct>[^<]*)</span></div>'
+)
+
+
+def _ladder_rows(fragment: str) -> dict[str, tuple[str, str]]:
+    """PRD-321 R4: {row name: (price, signed % distance)} from a compact ladder."""
+    return {m["name"]: (m["px"], m["pct"]) for m in _LADDER_ROW.finditer(fragment)}
+
+
+def _ladder_classes(fragment: str) -> dict[str, str]:
+    return {m["name"]: m["cls"] for m in _LADDER_ROW.finditer(fragment)}
+
+
 def _run_with_timestamp(timestamp: str, **kwargs: object) -> dict:
     run = _run(**kwargs)
     run["timestamp"] = timestamp
@@ -533,7 +550,9 @@ def test_candidate_level_diagram_uses_current_price_when_contract_entry_missing(
 
     assert "Chart unavailable" not in card
     assert "Level context unavailable" not in card
-    assert 'class="lvl-diagram"' in card
+    # PRD-321: with no bars snapshot the compact ladder is the whole surface.
+    assert 'class="lvl-ladder' in card
+    assert 'class="setup-chart"' not in card
 
 
 def test_candidate_level_diagram_hidden_when_no_level_context() -> None:
@@ -546,7 +565,7 @@ def test_candidate_level_diagram_hidden_when_no_level_context() -> None:
 
     assert "Level context unavailable" not in card
     assert "Chart unavailable" not in card
-    assert 'class="lvl-diagram"' not in card
+    assert 'class="lvl-ladder' not in card
 
 
 def test_candidate_level_diagram_hidden_when_anchor_invalid() -> None:
@@ -559,14 +578,13 @@ def test_candidate_level_diagram_hidden_when_anchor_invalid() -> None:
 
     assert "Chart unavailable" not in card
     assert "Level context unavailable" not in card
-    assert 'class="lvl-diagram"' not in card
+    assert 'class="lvl-ladder' not in card
 
 
 def test_candidate_level_diagram_now_anchor_is_current_price_entry_marked_separately() -> None:
-    # PRD-226: the yellow NOW line is the current price (120), NOT the contract
-    # entry (110). The entry gets its own amber ENTRY line. Pre-PRD-226 the
-    # yellow anchor sat on the contract entry (y=70); now it sits on current
-    # price (y=40) and the amber ENTRY line sits on the entry (y=70).
+    # PRD-226: NOW is the current price (120), NOT the contract entry (110);
+    # the entry is its own separate level. PRD-321 carries this into the
+    # compact ladder: distinct NOW and ENTRY rows, % measured from NOW.
     entry = {
         **_mm_symbol("SPY"),
         "current_price": 120.0,
@@ -584,13 +602,12 @@ def test_candidate_level_diagram_now_anchor_is_current_price_entry_marked_separa
         contract_entry_map={"SPY": 110.0},
     )
     card = _candidate_card(html)
-    now_line = re.search(r'<line x1="0" y1="(?P<y>\d+)" x2="160" y2="\d+" stroke="#f5c518"', card)
-    entry_line = re.search(r'<line x1="0" y1="(?P<y>\d+)" x2="160" y2="\d+" stroke="#e0a552"', card)
+    rows = _ladder_rows(card)
 
-    assert now_line is not None and now_line.group("y") == "40"    # NOW = current price
-    assert entry_line is not None and entry_line.group("y") == "70"  # ENTRY = contract entry
-    assert ">NOW 120.00</text>" in card
-    assert ">ENTRY 110.00 -8.3%</text>" in card
+    assert rows["NOW"] == ("120.00", "")            # NOW = current price
+    assert rows["ENTRY"] == ("110.00", "-8.3%")     # ENTRY = contract entry
+    assert "lvl-now" in _ladder_classes(card)["NOW"]
+    assert "lvl-entry" in _ladder_classes(card)["ENTRY"]
 
 
 def test_stale_contract_entries_are_ignored_for_level_anchors() -> None:
@@ -615,10 +632,10 @@ def test_stale_contract_entries_are_ignored_for_level_anchors() -> None:
         contract_generated_at="2026-04-28T12:00:00Z",
     )
     card = _candidate_card(html)
-    entry_line = re.search(r'<line x1="0" y1="(?P<y>\d+)" x2="160" y2="\d+" stroke="#f5c518"', card)
 
-    assert entry_line is not None
-    assert entry_line.group("y") == "40"
+    # The stale contract entry is dropped: NOW is the only Tier-1 price row.
+    assert _ladder_rows(card)["NOW"] == ("120.00", "")
+    assert "ENTRY" not in _ladder_rows(card)
 
 
 def test_prd223_loader_extracts_valid_stops_and_rejects_invalid(tmp_path: Path) -> None:
@@ -694,11 +711,12 @@ def test_failed_candidate_with_only_current_price_does_not_render_entry_only_dia
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=mm)
     card = _candidate_card(html)
 
-    # PRD-158 translation 12: no diagram and no placeholder when level
+    # PRD-158 translation 12: no level surface and no placeholder when level
     # context is absent.
     assert "Level context unavailable" not in card
-    assert 'class="lvl-diagram"' not in card
-    assert ">ENTRY</text>" not in card
+    assert 'class="lvl-ladder' not in card
+    assert 'class="setup-chart"' not in card
+    assert "ENTRY" not in card
 
 
 # T5b — GDX must appear in tradables section of macro tape
@@ -4524,19 +4542,19 @@ def test_r7_locked_level_diagram_uses_neutral_labels_and_styling():
         _payload(), _run(permission="Long bias — trend continuation allowed."), **kwargs,
     ))
 
-    assert ">LEVEL 110.00 -8.3%</text>" in locked
-    assert ">INVALIDATION 105.00 -12.5%</text>" in locked
-    assert ">ENTRY 110.00 -8.3%</text>" not in locked
-    assert ">STOP 105.00 -12.5%</text>" not in locked
-    assert 'fill="#e05252" opacity="0.08"' not in locked
-    assert 'stroke="#e05252"' not in locked
-    assert 'stroke="#e0a552"' not in locked
-    assert 'fill="#6b7280" opacity="0.08"' in locked
+    # PRD-321 R3/R4: the neutralization binds the redesigned compact ladder.
+    assert _ladder_rows(locked)["LEVEL"] == ("110.00", "-8.3%")
+    assert _ladder_rows(locked)["INVALIDATION"] == ("105.00", "-12.5%")
+    assert "ENTRY" not in _ladder_rows(locked)
+    assert "STOP" not in _ladder_rows(locked)
+    assert "lvl-entry" not in locked and "lvl-stop" not in locked
+    assert "lvl-inrisk" not in locked
+    assert 'class="lvl-riskband lvl-lockrisk"' in locked
 
-    assert ">ENTRY 110.00 -8.3%</text>" in available
-    assert ">STOP 105.00 -12.5%</text>" in available
-    assert 'fill="#e05252" opacity="0.08"' in available
-    assert 'stroke="#e0a552"' in available
+    assert _ladder_rows(available)["ENTRY"] == ("110.00", "-8.3%")
+    assert _ladder_rows(available)["STOP"] == ("105.00", "-12.5%")
+    assert 'class="lvl-riskband lvl-inrisk"' in available
+    assert "lvl-entry" in available and "lvl-stop" in available
 
 
 def test_r7_locked_low_grade_dashboard_has_no_action_vocabulary():

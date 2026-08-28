@@ -47,17 +47,25 @@ always current).
 | Function | Purpose |
 |---|---|
 | `render_dashboard_html` | Renders full dashboard HTML from payload + run artifacts; carries `contract_entry_map` / `contract_stop_map` (PRD-223) |
-| `_render_level_diagram` | Candidate-card SVG level ladder. Pinned geometry: SVG_H=110, LINE_W=160, yellow `#f5c518` anchor line. PRD-223: optional `contract_stop` draws the entry→stop risk zone (`#e05252`, `opacity="0.08"`, dashed STOP edge) |
-| `_render_candidate_card` | Renders one candidate card; pair-gates the risk band (stop only draws when the contract entry is the anchor) |
+| `_render_level_ladder` | PRD-321 R4: candidate-card COMPACT tiered level ladder (replaces the pre-PRD-321 `_render_level_diagram` SVG, whose SVG_H=110 / LINE_W=160 geometry is retired). HTML rows `.lvl-row` in `.lvl-ladder`, ordered high price → low; tier classes `.lvl-t1/.lvl-t2/.lvl-t3`; PRD-223 entry→stop span is the `.lvl-riskband` group (`.lvl-inrisk`, `.lvl-lockrisk` under PRD-304 lock) |
+| `_render_setup_chart_block` | PRD-321 R3: emits the chart SVG + `bars through <as_of>` caption; wraps it in `<details class="chart-detail">` for every card after the highest-priority visible setup (ruling Q2) |
+| `_load_price_bars_snapshot` / `_price_bars_caption` / `_price_bars_by_symbol` | PRD-321 R2: read-only `logs/price_bars_snapshot.json` loader (never raises) + source provenance caption + 5-calendar-day UTC age guard against `now` |
+| `_render_candidate_card` | Renders one candidate card; pair-gates the risk band (stop only draws when the contract entry is the anchor); returns True when it took the single full-width chart slot |
 | `_load_contract_entry_context` | Reads `logs/latest_hourly_contract.json` → entry map + stop map (finite, > 0) + alert candidates + generated_at |
 | `_mcc_cell_display` / `_mcc_event_display` / `_mcc_location_display` | PRD-289 Market Control Card cell projection (value or typed unavailable token, never a default); block renders iff `sections["market_control_card"]` present |
 | `main` / `write_dashboard` / `render_dashboard_html` (GEX seam) | Loads `logs/gex_snapshot.json` via `gex_card.load_gex_snapshot`, threads a tz-aware `now`, and emits `gex_card.render_fragment(...)` as a display-only card (PRD-309); `if frag:` guarded, so absent/stale/invalid emits nothing (byte-identical baseline) |
 | `render_dashboard_html` (MARKET STATE seam) | Builds the resolved `GexCard` / `MovementCard` (renderer owns the artifact reads), then emits `market_state_panel.render_fragment(...)` immediately BEFORE `id="system-state"` (outside the PRD-219 protected region; PRD-312). Persistent five-axis panel — always emitted (no suppression). Also the arrow-cut site: the tradables daily-change arrow builder + span are removed here |
 
 Note: the candidate board reads `market_map["symbols"]` directly, not payload
-candidates. The level diagram's anchor/stop come from the contract overlay
+candidates. The chart/ladder anchor and stop come from the contract overlay
 (`trade_candidates[i]["entry"/"stop"]`), with current_price as the
 anchor-only fallback.
+
+## cuttingboard/delivery/setup_chart.py
+
+| Function | Purpose |
+|---|---|
+| `render_setup_chart_svg` | PRD-321 R1: the ONLY public entry point — pure, deterministic bars+levels → inline SVG. Fixed closed tier map (`TIER2_TYPES`, `TIER3_TYPES`); Tier 3 draws only inside the price domain and never widens the y-scale; returns `""` when there is nothing honest to draw. No I/O, no clock, no randomness, no `cuttingboard.*` import. Called only from `dashboard_renderer._render_candidate_card` |
 
 ---
 
