@@ -5,12 +5,12 @@
     "report_path": "reports/2026-08-28.md"
   },
   "audit_summary": {
-    "continuation_accepted_count": 0,
-    "continuation_audit_present": true,
-    "continuation_rejected_count": 7,
+    "continuation_accepted_count": null,
+    "continuation_audit_present": false,
+    "continuation_rejected_count": null,
     "error_count": 0,
-    "qualified_count": 4,
-    "rejected_count": 8
+    "qualified_count": 0,
+    "rejected_count": 0
   },
   "correlation": {
     "dollar_symbol": "DX-Y.NYB",
@@ -19,360 +19,100 @@
     "score": 1,
     "state": "ALIGNED"
   },
-  "generated_at": "2026-08-28T06:00:20Z",
-  "generation_id": "live-20260828T060020Z",
+  "generated_at": "2026-08-28T22:17:48Z",
+  "generation_id": "live-20260828T221748Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -0.6799935845805706,
-      "level": 79729.4765625,
+      "change_pct": -3.5454535191573067,
+      "level": 77429.21875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.026209839498389675,
-      "level": 99.19999694824219,
+      "change_pct": 0.5071877042234614,
+      "level": 99.677001953125,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -0.19624967988462366,
-      "level": 4627.89990234375,
+      "change_pct": -2.748624765118622,
+      "level": 4504.10009765625,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 0.04813008691322466,
-      "level": 83.1500015258789,
+      "change_pct": 0.39706633212752607,
+      "level": 83.44000244140625,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 0.8013618776670889,
-      "change_pct": 0.17152437702156104,
-      "level": 4.671999931335449,
+      "change_bps": 4.849349328337171,
+      "change_pct": 1.0274044605912251,
+      "level": 4.720000267028809,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -0.22946171577010985,
-      "level": 69.56999969482422,
+      "change_pct": -3.557832267166658,
+      "level": 67.08999633789062,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": -4.602234105914029,
-      "level": 14.510000228881836,
+      "change_pct": -0.5513433662586483,
+      "level": 14.430000305175781,
       "symbol": "^VIX"
     }
   },
   "market_context": {
-    "continuation_enabled": true,
+    "continuation_enabled": false,
     "data_quality": "ok",
-    "expansion_regime": "EXPANSION",
+    "expansion_regime": null,
     "imbalance_enabled": false,
     "stale_data_detected": false
   },
   "mode": "live",
   "outcome": "NO_TRADE",
   "regime": {
-    "classification": "EXPANSION",
-    "confidence": 1.0,
-    "net_score": 0,
-    "neutral_votes": 0,
-    "posture": "EXPANSION_LONG",
-    "risk_off_votes": 0,
-    "risk_on_votes": 0,
-    "total_votes": 0,
-    "vix_level": 14.510000228881836,
-    "vix_pct_change": -0.046022341059140284,
-    "vote_breakdown": {}
+    "classification": "RISK_OFF",
+    "confidence": 0.5,
+    "net_score": -4,
+    "neutral_votes": 2,
+    "posture": "STAY_FLAT",
+    "risk_off_votes": 5,
+    "risk_on_votes": 1,
+    "total_votes": 8,
+    "vix_level": 14.430000305175781,
+    "vix_pct_change": -0.005513433662586483,
+    "vote_breakdown": {
+      "BTC pct_change": "RISK_OFF",
+      "DXY pct_change": "RISK_OFF",
+      "IWM pct_change": "RISK_OFF",
+      "QQQ pct_change": "RISK_OFF",
+      "SPY pct_change": "NEUTRAL",
+      "TNX pct_change": "RISK_OFF",
+      "VIX level": "RISK_ON",
+      "VIX pct_change": "NEUTRAL"
+    }
   },
   "rejections": [
     {
       "detail": null,
-      "reason": "2 soft gates failed: stop distance 2250.11 below 1\u00d7 ATR14 (2250.11); price 3.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "QUALIFICATION",
-      "symbol": "BTC-USD"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: stop distance 10.62 below 1\u00d7 ATR14 (10.62); price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "QUALIFICATION",
-      "symbol": "COIN"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 3.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "QUALIFICATION",
-      "symbol": "GC=F"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: stop distance 3.47 below 1\u00d7 ATR14 (3.47); price 3.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "QUALIFICATION",
-      "symbol": "GDX"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "QUALIFICATION",
-      "symbol": "NVDA"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: stop distance 2.13 below 1\u00d7 ATR14 (2.13); price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "QUALIFICATION",
-      "symbol": "PAAS"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: stop distance 1.69 below 1\u00d7 ATR14 (1.69); price 2.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "QUALIFICATION",
-      "symbol": "SI=F"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "TSLA"
-    },
-    {
-      "detail": null,
-      "reason": "stop distance 1.26 below 1\u00d7 ATR14 (1.26)",
-      "stage": "WATCHLIST",
-      "symbol": "^VIX"
-    },
-    {
-      "detail": null,
-      "reason": "stop distance 0.4% below 1.0% minimum",
-      "stage": "WATCHLIST",
-      "symbol": "DX-Y.NYB"
-    },
-    {
-      "detail": null,
-      "reason": "stop distance 0.8% below 1.0% minimum",
-      "stage": "WATCHLIST",
-      "symbol": "SPY"
-    },
-    {
-      "detail": null,
-      "reason": "stop distance 3.24 below 1\u00d7 ATR14 (3.24)",
-      "stage": "WATCHLIST",
-      "symbol": "IWM"
-    },
-    {
-      "detail": null,
-      "reason": "price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "WATCHLIST",
-      "symbol": "GLD"
-    },
-    {
-      "detail": null,
-      "reason": "price 2.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "WATCHLIST",
-      "symbol": "SLV"
-    },
-    {
-      "detail": null,
-      "reason": "stop distance 4.34 below 1\u00d7 ATR14 (4.34)",
-      "stage": "WATCHLIST",
-      "symbol": "USO"
-    },
-    {
-      "detail": null,
-      "reason": "stop distance 7.09 below 1\u00d7 ATR14 (7.09)",
-      "stage": "WATCHLIST",
-      "symbol": "AAPL"
-    },
-    {
-      "detail": null,
-      "reason": "stop distance 20.22 below 1\u00d7 ATR14 (20.22)",
-      "stage": "WATCHLIST",
-      "symbol": "META"
-    },
-    {
-      "detail": null,
-      "reason": "stop distance 6.71 below 1\u00d7 ATR14 (6.71)",
-      "stage": "WATCHLIST",
-      "symbol": "AMZN"
-    },
-    {
-      "detail": null,
-      "reason": "price 3.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "WATCHLIST",
-      "symbol": "MSTR"
+      "reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.50)",
+      "stage": "REGIME",
+      "symbol": "REGIME"
     }
   ],
   "schema_version": "v2",
   "session_date": "2026-08-28",
-  "status": "OK",
+  "status": "STAY_FLAT",
   "system_state": {
-    "confidence": 1.0,
+    "confidence": 0.5,
     "intraday_state": null,
-    "market_regime": "EXPANSION",
+    "market_regime": "RISK_OFF",
     "outcome": "NO_TRADE",
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
-    "reason": null,
+    "reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.50)",
     "router_mode": "MIXED",
-    "stay_flat_reason": null,
-    "time_gate_open": true,
-    "tradable": true
+    "stay_flat_reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.50)",
+    "time_gate_open": false,
+    "tradable": false
   },
   "timezone": "America/New_York",
-  "trade_candidates": [
-    {
-      "block_reason": "chain data unavailable from all sources",
-      "decision_status": "BLOCK_TRADE",
-      "decision_trace": {
-        "reason": "chain data unavailable from all sources",
-        "source": "execution_policy",
-        "stage": "EXECUTION_POLICY"
-      },
-      "direction": "LONG",
-      "dollar_risk": 375.0,
-      "enable_conditions": [],
-      "entry": 4.671999931335449,
-      "entry_mode": "DIRECT",
-      "entry_quality": {
-        "action": "UNKNOWN",
-        "blocking": false,
-        "reason": "INSUFFICIENT_DETERMINISTIC_INPUTS",
-        "source": "entry_quality_gate",
-        "status": "UNKNOWN"
-      },
-      "estimated_debit": 75.0,
-      "explanation": {},
-      "invalidation_guidance": null,
-      "notes": "chain data unavailable from all sources",
-      "policy_allowed": false,
-      "policy_reason": "chain data unavailable from all sources",
-      "position_size": 5,
-      "risk_reward": 2.0,
-      "setup_quality": "NEEDS_MANUAL_CHECK",
-      "size_multiplier": 0.0,
-      "stop": 4.617919663592477,
-      "strategy_tag": "BULL_CALL_SPREAD",
-      "symbol": "^TNX",
-      "target": 4.780160466821394,
-      "thesis": null,
-      "timeframe": "14",
-      "trigger": null,
-      "visibility_reason": null,
-      "visibility_status": null
-    },
-    {
-      "block_reason": "chain data unavailable from all sources",
-      "decision_status": "BLOCK_TRADE",
-      "decision_trace": {
-        "reason": "chain data unavailable from all sources",
-        "source": "execution_policy",
-        "stage": "EXECUTION_POLICY"
-      },
-      "direction": "LONG",
-      "dollar_risk": 375.0,
-      "enable_conditions": [],
-      "entry": 83.1500015258789,
-      "entry_mode": "DIRECT",
-      "entry_quality": {
-        "action": "UNKNOWN",
-        "blocking": false,
-        "reason": "INSUFFICIENT_DETERMINISTIC_INPUTS",
-        "source": "entry_quality_gate",
-        "status": "UNKNOWN"
-      },
-      "estimated_debit": 75.0,
-      "explanation": {},
-      "invalidation_guidance": null,
-      "notes": "chain data unavailable from all sources",
-      "policy_allowed": false,
-      "policy_reason": "chain data unavailable from all sources",
-      "position_size": 5,
-      "risk_reward": 2.0,
-      "setup_quality": "NEEDS_MANUAL_CHECK",
-      "size_multiplier": 0.0,
-      "stop": 79.46758136610687,
-      "strategy_tag": "BULL_CALL_SPREAD",
-      "symbol": "CL=F",
-      "target": 90.51484184542298,
-      "thesis": null,
-      "timeframe": "7",
-      "trigger": null,
-      "visibility_reason": null,
-      "visibility_status": null
-    },
-    {
-      "block_reason": "liquidity fail: OI=0 vol=338 bid=0.00 ask=0.00",
-      "decision_status": "BLOCK_TRADE",
-      "decision_trace": {
-        "reason": "liquidity fail: OI=0 vol=338 bid=0.00 ask=0.00",
-        "source": "execution_policy",
-        "stage": "EXECUTION_POLICY"
-      },
-      "direction": "LONG",
-      "dollar_risk": 300.0,
-      "enable_conditions": [],
-      "entry": 721.1099853515625,
-      "entry_mode": "DIRECT",
-      "entry_quality": {
-        "action": "UNKNOWN",
-        "blocking": false,
-        "reason": "INSUFFICIENT_DETERMINISTIC_INPUTS",
-        "source": "entry_quality_gate",
-        "status": "UNKNOWN"
-      },
-      "estimated_debit": 150.0,
-      "explanation": {},
-      "invalidation_guidance": null,
-      "notes": "liquidity fail: OI=0 vol=338 bid=0.00 ask=0.00",
-      "policy_allowed": false,
-      "policy_reason": "liquidity fail: OI=0 vol=338 bid=0.00 ask=0.00",
-      "position_size": 2,
-      "risk_reward": 2.0,
-      "setup_quality": "DISQUALIFIED_OPTIONS_INVALID",
-      "size_multiplier": 0.0,
-      "stop": 710.553993450164,
-      "strategy_tag": "BULL_CALL_SPREAD",
-      "symbol": "QQQ",
-      "target": 742.2219691543596,
-      "thesis": null,
-      "timeframe": "7",
-      "trigger": null,
-      "visibility_reason": null,
-      "visibility_status": null
-    },
-    {
-      "block_reason": "liquidity fail: OI=0 vol=7 bid=0.00 ask=0.00",
-      "decision_status": "BLOCK_TRADE",
-      "decision_trace": {
-        "reason": "liquidity fail: OI=0 vol=7 bid=0.00 ask=0.00",
-        "source": "execution_policy",
-        "stage": "EXECUTION_POLICY"
-      },
-      "direction": "LONG",
-      "dollar_risk": 375.0,
-      "enable_conditions": [],
-      "entry": 62.290000915527344,
-      "entry_mode": "DIRECT",
-      "entry_quality": {
-        "action": "UNKNOWN",
-        "blocking": false,
-        "reason": "INSUFFICIENT_DETERMINISTIC_INPUTS",
-        "source": "entry_quality_gate",
-        "status": "UNKNOWN"
-      },
-      "estimated_debit": 75.0,
-      "explanation": {},
-      "invalidation_guidance": null,
-      "notes": "liquidity fail: OI=0 vol=7 bid=0.00 ask=0.00",
-      "policy_allowed": false,
-      "policy_reason": "liquidity fail: OI=0 vol=7 bid=0.00 ask=0.00",
-      "position_size": 5,
-      "risk_reward": 2.0,
-      "setup_quality": "DISQUALIFIED_OPTIONS_INVALID",
-      "size_multiplier": 0.0,
-      "stop": 61.08431065651028,
-      "strategy_tag": "BULL_CALL_SPREAD",
-      "symbol": "XLE",
-      "target": 64.70138143356147,
-      "thesis": null,
-      "timeframe": "14",
-      "trigger": null,
-      "visibility_reason": null,
-      "visibility_status": null
-    }
-  ]
+  "trade_candidates": []
 }
