@@ -1580,6 +1580,12 @@
       "title": "Answer-first operator dashboard",
       "status": "COMPLETE",
       "commit": "#279"
+    },
+    {
+      "number": 321,
+      "title": "Operator setup chart consumer (Lane A slice 1)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
