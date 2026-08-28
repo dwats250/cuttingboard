@@ -7,7 +7,13 @@ EDIT, NO GATE A, NO MERGE.
 GOV-2 PACKET-REVIEW CYCLE: EVENT 1 COMPLETE (DESIGN INCOMPLETE at 000b13a —
   CODEX_EVENT_1_REVIEW_2026-08-28.md, findings F1-F8; the ONE consolidated
   correction is APPLIED in this revision — see ## CORRECTION CYCLE).
-AWAITING: Event-2 exact-corrected-head confirmation (GOV-2 sec7).
+  EVENT 2 ATTEMPT 1 (against 7a2acb9): NOT CONFIRMED on four bounded
+  residuals (F3 sec7 "exactly one send" contradiction; F5 sec1 residual
+  arithmetic; F6 tests/test_hourly_slot.py exact-set pin; F9
+  winter-ownership / (6,0) failure-coverage / 06:45-contention
+  dispositions); F1/F2/F4/F7/F8 PASS. The bounded confirmation repair is
+  applied in THIS revision (## CONFIRMATION REPAIR).
+AWAITING: Event-2 ATTEMPT 2 exact-corrected-head confirmation (GOV-2 sec7).
 Ceilings below are ESTIMATES (GOV-2 sec5), not constraints.
 ```
 
@@ -85,12 +91,14 @@ Full recon: fresh-context sweep 2026-08-28, re-verified where decisive.
    `hourly_alert.yml:103-107`, `alert_runner.py:51,70-71`). A Worker
    dispatch of the hourly today would force-send unconditionally — unusable
    as a routine clock without a new input.
-7. **Request cost today** (yfinance sole quote/bars provider; Cboe one GET
-   per hourly for GEX): hourly run ≈ 25 quotes + ~23 six-month OHLCV
-   downloads + 1 Cboe ≈ 49 requests (the hourly job has NO `actions/cache`
-   step, so the OHLCV cache is cold every run — unlike the pipeline's
-   cached job); daily live ≈ 47+ plus option chains; prefetch ≈ 46. Full
-   PDT day if every slot lands: ~534 yfinance + 9 Cboe.
+7. **Request cost today** (units per sec6: first-attempt LOGICAL provider
+   operations, not HTTP requests): hourly run ceiling = 23 base quotes + 2
+   observe-only quotes + up to 23 cold OHLCV downloads = up to 48 yfinance
+   logical ops, plus 1 Cboe invocation (the hourly job has NO
+   `actions/cache` step, so the OHLCV cache is cold every run — unlike the
+   pipeline's cached job); daily live ≈ 47+ yfinance ops plus option
+   chains; prefetch ≈ 46. Full PDT-day ceiling if every slot lands:
+   ≈ 525 yfinance logical ops + 9 Cboe invocations.
 8. **Notification/dedup hazards a cadence change can trip:** slots <25 min
    apart collapse to the earlier slot; slot state persists only post-send
    and survives only via the publish-branch restore; the daily path's
@@ -117,9 +125,9 @@ per instant, no same-instant peers, slot identity carried by the dispatch)
 
 | Owner slot | Owner | Mechanism | Change required |
 |---|---|---|---|
-| PRE ~06:00 PT (pre-market board + premarket alert) | DAILY PIPELINE, exclusively | CF dispatches OPEN/live at 06:00 PT; existing 13:05Z GitHub fallback + first-success unchanged | Worker cron/gate (sec4). **`(6,0)` is REMOVED from `ALLOWED_PT_SLOTS`** — the hourly's 06:00 board is superseded by the punctual daily board, which eliminates the same-instant daily-vs-hourly double-notification path Event-1 F1 identified (the two paths have no cross-path dedup). GitHub's 13:00Z/13:05Z hourly crons then resolve to no slot before 06:30 and no-op |
+| PRE ~06:00 PT (pre-market board + premarket alert) | DAILY PIPELINE, exclusively | CF dispatches OPEN/live at 06:00 PT; existing 13:05Z GitHub fallback + first-success unchanged in slice 1 | Worker cron/gate (sec4). **`(6,0)` is REMOVED from `ALLOWED_PT_SLOTS`** — the hourly's 06:00 board is superseded by the daily board, eliminating the same-instant daily-vs-hourly double-notification path (Event-1 F1; no cross-path dedup exists). GitHub's 13:00Z/13:05Z hourly crons then resolve to no slot before 06:30 and no-op. **Winter ownership caveat (Event-2 F9):** in PST the 13:05Z fallback (05:05 PST wall-clock, ~05:50 with observed latency) fires BEFORE 06:00 PST; when it succeeds, first-success makes CF's 06:00 dispatch the no-op — the winter board publishes EARLY (05:05-06:00 PST band), and "punctual 06:00" holds only in PDT unless the fallback is retimed. Options and tradeoffs in ruling Q2; slice-1 recommendation is to ACCEPT the early winter board (early is operator-safe; CF still covers extreme GitHub latency; no cron change). **Failure-coverage caveat (Event-2 F9):** with `(6,0)` retired, a failed 06:00 daily pipeline leaves no board until the 06:30 hourly; PRD-295 fail-loud alerting covers the failure signal. Folded into Q7 |
 | OPEN ~06:30 PT | HOURLY, CF-primary | CF routine dispatch carrying EXPLICIT slot identity `06:30`; **GitHub `30 13` and `30 14` heartbeats RETIMED to `40 13` / `40 14`** — delayed fallbacks (06:40 wall-clock in their respective seasons), the exact pattern the 2026-08-11 ruling set for OPEN/live. No same-instant CF-vs-GitHub peer race remains | `hourly_alert.yml` dispatch inputs + cron retime |
-| POST-OPEN ~06:45 PT | HOURLY, CF-only | CF routine dispatch with explicit slot `06:45`; `(6,45)` added to `ALLOWED_PT_SLOTS`; implements the authorized CF-D3 "OPEN+1". No GitHub heartbeat in slice 1 (ruling Q4) | slot set + dispatch |
+| POST-OPEN ~06:45 PT | HOURLY, CF-primary | CF routine dispatch with explicit slot `06:45`; `(6,45)` added to `ALLOWED_PT_SLOTS`; implements the authorized CF-D3 "OPEN+1". No GitHub 06:45 heartbeat in slice 1 (ruling Q4). Corner (Event-2 F9): a 06:40 heartbeat that starts >5 min late infers `(6,45)` and, after a successful CF 06:30, SENDS as 06:45 — the later CF 06:45 then no-ops. One send, no duplicate; occasionally the fallback delivers 06:45's content instead of CF. Documented, folded into Q9 | slot set + dispatch |
 | HOURLY 07:00..13:00 PT | HOURLY, GitHub crons as today | Unchanged; CF extension is a follow-up (ruling Q3) | none |
 
 **Slot identity under delay (Event-1 F2).** Start-time inference
@@ -254,10 +262,15 @@ tallies, and labels HTTP counts unavailable unless instrumented.
 ## sec7 — Validation plan the implementation must satisfy (charge-mandated)
 
 - Simulate every slot: unit fixtures over `routine_pt_slot` for the new set
-  in PST and PDT, including the 15-min-late collapse cases.
-- Prove no duplicate publication: CF dispatch + cron arrival same slot ->
-  exactly one send (dedup test), pipeline CF+fallback -> first-success
-  no-op test (existing suite extended).
+  in PST and PDT, including the 15-min-late collapse cases; the exact
+  `ALLOWED_PT_SLOTS` set assertion in `tests/test_hourly_slot.py`
+  (`test_allowed_pt_slots_exact_set`) updated for the retired/added slots,
+  and a workflow-shape assertion pinning the exact retimed cron set.
+- Prove no duplicate publication on the HEALTHY path: CF dispatch + cron
+  arrival same slot -> at most one send (dedup test); pipeline CF+fallback
+  -> first-success no-op test (existing suite extended). Failure paths are
+  covered by the at-least-once regressions below, never by an
+  "exactly one send" claim (sec3 duplicate policy).
 - Prove failed-preferred -> fallback executes; successful-preferred ->
   fallback no-op (existing `tests/test_open_slot_coordination.py` already
   covers the pipeline side; hourly side gets equivalents).
@@ -286,6 +299,8 @@ gate) or the equivalent test entry point,
 `M .github/workflows/hourly_alert.yml` (dispatch inputs, cron retimes
 30 13->40 13 / 30 14->40 14, cache step),
 `M cuttingboard/notifications/hourly_slot.py` (drop (6,0), add (6,45)),
+`M tests/test_hourly_slot.py` (`test_allowed_pt_slots_exact_set` at :144
+pins the exact slot set and MUST change; per Event-2 F6),
 `M cuttingboard/alert_runner.py` (`--routine-slot`),
 `M tests/test_hourly_slot_idempotency.py` (F3 failure-path regressions +
 slot-set changes; per Event-1 this file is the existing idempotency home),
@@ -322,10 +337,18 @@ STOP-AND-RENEW on breach.
 06:30 + new 06:45 + existing hourly slots via routine hourly dispatch.
 Alternative: also move the 12:50Z cache-warm under CF (not recommended —
 zero operator-visible value).
-**Q2 — PST-season pipeline punctuality.** Recommend: accept the existing
-single 13:05Z fallback (05:05 PST when CF is down); alternative adds a
-second winter fallback cron with predicate work — more surface, marginal
-value while CF is healthy.
+**Q2 — Winter (PST) 06:00 ownership (expanded per Event-2 F9).** In PST
+the 13:05Z fallback front-runs CF's 06:00 dispatch and, when successful,
+suppresses it — the winter board publishes early (05:05-06:00 PST band),
+not at 06:00. Options: (i) RECOMMENDED slice 1: accept the early winter
+board (operator-safe, zero cron change; CF covers extreme GitHub latency;
+"punctual 06:00" then holds in PDT only, stated honestly); (ii) retime the
+fallback to `20 14` UTC — uniform delayed fallback in both seasons (06:20
+PST / 07:20 PDT), giving CF true 06:00 primacy year-round, at the cost of
+a summer fallback that runs POST-open (10:20 EDT) when CF fails — a
+product-semantics question (a "premarket" board generated after open);
+(iii) dual seasonal fallback crons — most surface, rejected unless (i) and
+(ii) both displease.
 **Q3 — CF as primary for ALL hourly slots.** Recommend: yes for
 06:30/06:45 only in slice 1 (smallest change proving the pattern); extend
 to 07:00-13:00 in a follow-up once observed. Alternative: all slots at
@@ -341,22 +364,28 @@ makes MICRO unavailable); if separated it takes its own lane per matrix.
 **Q6 — Worker deploy.** The design assumes Dustin performs CF-E1/E2 per
 the standing authorization once the implementation lands; confirm or
 re-sequence.
-**Q7 — 06:00 ownership (added per Event-1).** Recommend: the daily
-pipeline exclusively owns 06:00 (premarket alert + board) and hourly
-`(6,0)` is retired. Alternative: keep `(6,0)` and accept the dual
-notification paths at the same instant (not recommended — no cross-path
-dedup exists).
+**Q7 — 06:00 ownership (added per Event-1; expanded per Event-2 F9).**
+Recommend: the daily pipeline exclusively owns 06:00 (premarket alert +
+board) and hourly `(6,0)` is retired — accepting that a failed daily
+pipeline leaves no board until 06:30 (PRD-295 fail-loud alerting still
+fires on the failure itself). Alternative: keep `(6,0)` as an independent
+failure-coverage path and accept the dual same-instant notification paths
+(not recommended — no cross-path dedup exists, and the duplicate is the
+common case while the coverage gap is the rare one).
 **Q8 — Worker time-basis extension ruling (added per Event-1).** The PT
 slot-lookup on UTC triggers (sec4) extends the 2026-08-11 time-basis
 ruling; issue or decline the extension. Declining reverts the Worker to
 single-offset UTC crons with accepted seasonal drift (the owner charge
 disprefers this).
-**Q9 — Late-heartbeat identity shift (added per Event-1).** On the
-fallback path only (CF failed), a GitHub 06:40 heartbeat that starts
->5 min late can be relabelled (6,45), costing the 06:30 slot its send.
-Recommend: accept (rare, fallback-only, self-limiting). Alternative:
-carry explicit slot identity on heartbeat crons too via per-cron dispatch
-wrappers (more surface).
+**Q9 — Late-heartbeat identity shift (added per Event-1; expanded per
+Event-2 F9).** Two corners, both on the heartbeat/inference path only:
+(a) CF-failed case — a 06:40 heartbeat starting >5 min late is relabelled
+(6,45), costing the 06:30 slot its send; (b) CF-healthy case — the same
+late heartbeat sends AS 06:45 after a successful CF 06:30, and CF's own
+06:45 dispatch then no-ops (one send, right content, delivered by the
+fallback instead of CF). Recommend: accept both (rare, self-limiting, no
+duplicates). Alternative: carry explicit slot identity on heartbeat crons
+too via per-cron dispatch wrappers (more surface).
 **Q10 — Duplicate-on-failure residual (added per Event-1).** Hourly
 send/persist is not atomic; a send-success + persist/publish-failure can
 re-send next arrival — today's behavior, preserved. Recommend: accept and
@@ -428,3 +457,30 @@ No new material class was introduced: every seam the correction touches
 (hourly crons, slot set, dispatch inputs, worker gate) was inside the
 reviewed design's surface; the correction assigns ownership and contracts
 on that same surface.
+
+## CONFIRMATION REPAIR (bounded; after Event-2 ATTEMPT 1 NOT CONFIRMED)
+
+Event-2 attempt 1 (`CODEX_EVENT_2_CONFIRMATION_ATTEMPT_1_2026-08-28.md`,
+against `7a2acb9`) confirmed F1/F2/F4/F7/F8 and returned four bounded
+residuals, each repaired in this revision:
+- **F3 residual:** sec7's healthy-path proof no longer says "exactly one
+  send" — it says "at most one send on the healthy path", with failure
+  paths owned by the at-least-once regressions; no exactly-once claim
+  remains anywhere in the packet.
+- **F5 residual:** sec1.7 recomputed in the sec6 units (up to 48 yfinance
+  logical ops + 1 Cboe per hourly; PDT-day ceiling ≈ 525 yfinance logical
+  ops + 9 Cboe); the "~534 yfinance + 9 Cboe" figure is gone.
+- **F6 residual:** `tests/test_hourly_slot.py`
+  (`test_allowed_pt_slots_exact_set` at :144, verified) added to the FILES
+  cone, and sec7 mandates a workflow-shape assertion pinning the exact
+  retimed cron set.
+- **F9 (new-boundary check):** all three consequences dispositioned:
+  winter 06:00 ownership (the 13:05Z fallback front-runs CF in PST and
+  first-success suppresses the CF dispatch — stated in sec3 and expanded
+  into ruling Q2 with three concrete options; slice-1 recommendation
+  accepts the early winter board rather than claiming year-round punctual
+  06:00); `(6,0)` retirement's failure-coverage gap (stated in sec3,
+  folded into Q7 with the PRD-295 fail-loud mitigations named); the
+  delayed-heartbeat 06:45 contention corner (stated in sec3, expanded into
+  Q9(b) — one send, fallback-delivered, no duplicate). The 06:45 owner
+  label is corrected from "CF-only" to "CF-primary".
