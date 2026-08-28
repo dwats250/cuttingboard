@@ -1,9 +1,11 @@
 # Reliable market cadence — MATERIAL design packet (Lane B)
 
 ```
-STATUS: PROVISIONAL MATERIAL PACKET — 2026-08-28 — DESIGN ONLY
+STATUS: REVIEW-CLEAN MATERIAL PACKET — 2026-08-28 — DESIGN ONLY
+CONFIRMED AT 843d345f1cb180db31270bf88811779b8c0d96c7 (Event-2 attempt 4).
 AUTHORIZES NO IMPLEMENTATION, NO PRD NUMBER, NO WORKER DEPLOY, NO WORKFLOW
-EDIT, NO GATE A, NO MERGE.
+EDIT, NO GATE A, NO MERGE — AWAITING DUSTIN'S DESIGN-DIRECTION RULING
+(GOV-2 sec2 step 6; ruling questions in sec11).
 GOV-2 PACKET-REVIEW CYCLE: EVENT 1 COMPLETE (DESIGN INCOMPLETE at 000b13a —
   CODEX_EVENT_1_REVIEW_2026-08-28.md, findings F1-F8; the ONE consolidated
   correction is APPLIED in this revision — see ## CORRECTION CYCLE).
@@ -19,7 +21,9 @@ GOV-2 PACKET-REVIEW CYCLE: EVENT 1 COMPLETE (DESIGN INCOMPLETE at 000b13a —
   ATTEMPT 3 (against 3a0171b): NOT CONFIRMED on one residual — sec10's
   stale "06:45 exists only when CF dispatches it" — repaired in THIS
   revision (sec10 bullet rewritten to CF-PRIMARY with the Q9(b) corner).
-AWAITING: Event-2 ATTEMPT 4 exact-corrected-head confirmation (GOV-2 sec7).
+  ATTEMPT 4 (against 843d345): CONFIRMED — REVIEW-CLEAN
+  (CODEX_EVENT_2_CONFIRMATION_ATTEMPT_4_2026-08-28.md). CYCLE COMPLETE.
+AWAITING: Dustin's design-direction ruling (GOV-2 sec2 step 6).
 Ceilings below are ESTIMATES (GOV-2 sec5), not constraints.
 ```
 
