@@ -142,8 +142,10 @@ def test_save_requires_tzaware():
 # ---- PRD-149: routine_pt_slot ----------------------------------------------
 
 def test_allowed_pt_slots_exact_set():
+    # PRD-319 R3: (6,0) retired (the daily pipeline exclusively owns 06:00);
+    # (6,45) added (the ruled CF-D3 "OPEN+1" post-open snapshot).
     assert ALLOWED_PT_SLOTS == (
-        (6, 0), (6, 30), (7, 0), (8, 0), (9, 0),
+        (6, 30), (6, 45), (7, 0), (8, 0), (9, 0),
         (10, 0), (11, 0), (12, 0), (13, 0),
     )
 
@@ -152,10 +154,11 @@ def test_allowed_pt_slots_exact_set():
     "now_utc, expected_pt_hour, expected_pt_minute",
     [
         # PDT day (2026-05-19, UTC-7)
-        (datetime(2026, 5, 19, 13, 0, 0, tzinfo=timezone.utc), 6, 0),
-        (datetime(2026, 5, 19, 13, 24, 0, tzinfo=timezone.utc), 6, 0),
         (datetime(2026, 5, 19, 13, 30, 0, tzinfo=timezone.utc), 6, 30),
+        (datetime(2026, 5, 19, 13, 45, 0, tzinfo=timezone.utc), 6, 45),
+        (datetime(2026, 5, 19, 13, 50, 0, tzinfo=timezone.utc), 6, 45),
         (datetime(2026, 5, 19, 14, 0, 0, tzinfo=timezone.utc), 7, 0),
+        (datetime(2026, 5, 19, 14, 10, 0, tzinfo=timezone.utc), 7, 0),
         (datetime(2026, 5, 19, 19, 0, 0, tzinfo=timezone.utc), 12, 0),
         (datetime(2026, 5, 19, 20, 0, 0, tzinfo=timezone.utc), 13, 0),
         (datetime(2026, 5, 19, 20, 25, 0, tzinfo=timezone.utc), 13, 0),
@@ -175,7 +178,11 @@ def test_routine_pt_slot_pdt_in_window(now_utc, expected_pt_hour, expected_pt_mi
     "now_utc",
     [
         # PDT (2026-05-19, UTC-7): outside lag or past 13:00 PT
-        datetime(2026, 5, 19, 13, 26, 0, tzinfo=timezone.utc),  # lag > 25 min from 06:00
+        # PRD-319 R3: 06:00-06:29 PT now has NO eligible slot ((6,0) retired) --
+        # the off-season hourly heartbeat / stale cron fires before 06:30 no-op.
+        datetime(2026, 5, 19, 13, 0, 0, tzinfo=timezone.utc),   # 06:00 PT -- retired slot
+        datetime(2026, 5, 19, 13, 24, 0, tzinfo=timezone.utc),  # 06:24 PT -- nothing eligible
+        datetime(2026, 5, 19, 13, 26, 0, tzinfo=timezone.utc),  # 06:26 PT -- nothing eligible
         datetime(2026, 5, 19, 20, 26, 0, tzinfo=timezone.utc),  # lag > 25 min from 13:00
         datetime(2026, 5, 19, 21, 0, 0, tzinfo=timezone.utc),   # 14:00 PT — outside
         datetime(2026, 5, 19, 22, 0, 0, tzinfo=timezone.utc),   # 15:00 PT — failure-mode ts
@@ -190,9 +197,11 @@ def test_routine_pt_slot_pdt_outside(now_utc):
     [
         # PST day (2026-01-12, UTC-8)
         (datetime(2026, 1, 12, 13, 0, 0, tzinfo=timezone.utc), None),  # 05:00 PT — before earliest
-        (datetime(2026, 1, 12, 14, 0, 0, tzinfo=timezone.utc), (6, 0)),
-        (datetime(2026, 1, 12, 14, 25, 0, tzinfo=timezone.utc), (6, 0)),
+        (datetime(2026, 1, 12, 14, 0, 0, tzinfo=timezone.utc), None),  # 06:00 PT — retired slot
+        (datetime(2026, 1, 12, 14, 10, 0, tzinfo=timezone.utc), None),  # 06:10 PT — off-season 10 14 heartbeat
+        (datetime(2026, 1, 12, 14, 25, 0, tzinfo=timezone.utc), None),  # 06:25 PT — nothing eligible
         (datetime(2026, 1, 12, 14, 30, 0, tzinfo=timezone.utc), (6, 30)),
+        (datetime(2026, 1, 12, 14, 45, 0, tzinfo=timezone.utc), (6, 45)),
         (datetime(2026, 1, 12, 21, 0, 0, tzinfo=timezone.utc), (13, 0)),
         (datetime(2026, 1, 12, 21, 30, 0, tzinfo=timezone.utc), None),
     ],
@@ -220,12 +229,69 @@ def test_routine_pt_slot_returns_utc():
     assert slot.tzinfo is timezone.utc
 
 
-def test_routine_pt_slot_distinct_keys_for_six_and_six_thirty():
-    """PRD-149: 06:00 and 06:30 must produce distinct dedup slots."""
-    six = routine_pt_slot(datetime(2026, 5, 19, 13, 0, 0, tzinfo=timezone.utc))
+def test_routine_pt_slot_distinct_keys_for_six_thirty_and_six_forty_five():
+    """PRD-149/PRD-319: 06:30 and 06:45 must produce distinct dedup slots."""
     six_thirty = routine_pt_slot(datetime(2026, 5, 19, 13, 30, 0, tzinfo=timezone.utc))
-    assert six is not None and six_thirty is not None
-    assert six.isoformat() != six_thirty.isoformat()
+    six_forty_five = routine_pt_slot(datetime(2026, 5, 19, 13, 45, 0, tzinfo=timezone.utc))
+    assert six_thirty is not None and six_forty_five is not None
+    assert six_thirty.isoformat() != six_forty_five.isoformat()
+
+
+# ---- PRD-319 R2: explicit_pt_slot -------------------------------------------
+
+def test_explicit_pt_slot_resolves_named_slot_in_window():
+    from cuttingboard.notifications.hourly_slot import _PT_TZ, explicit_pt_slot
+
+    # 13:32Z PDT = 06:32 PT, named slot 06:30 -> resolves 06:30 exactly.
+    slot = explicit_pt_slot(
+        datetime(2026, 5, 19, 13, 32, 0, tzinfo=timezone.utc), "06:30"
+    )
+    assert slot is not None and slot.tzinfo is timezone.utc
+    slot_pt = slot.astimezone(_PT_TZ)
+    assert (slot_pt.hour, slot_pt.minute) == (6, 30)
+
+
+def test_explicit_pt_slot_never_shifts_identity():
+    """PRD-319 R2 mutation seam: a delayed 06:30 start at 06:46 PT stays 06:30,
+    never relabelled 06:45 (the inference path would pick 06:45)."""
+    from cuttingboard.notifications.hourly_slot import _PT_TZ, explicit_pt_slot
+
+    now = datetime(2026, 5, 19, 13, 46, 0, tzinfo=timezone.utc)  # 06:46 PDT
+    inferred = routine_pt_slot(now)
+    assert inferred is not None
+    assert (inferred.astimezone(_PT_TZ).hour, inferred.astimezone(_PT_TZ).minute) == (6, 45)
+    explicit = explicit_pt_slot(now, "06:30")
+    assert explicit is not None
+    ex_pt = explicit.astimezone(_PT_TZ)
+    assert (ex_pt.hour, ex_pt.minute) == (6, 30)
+
+
+@pytest.mark.parametrize(
+    "now_utc, label",
+    [
+        # future slot: off-season twin (05:40 PST via 40 13 cron, intended 06:30)
+        (datetime(2026, 1, 12, 13, 40, 0, tzinfo=timezone.utc), "06:30"),
+        # lag > max: off-season twin (07:40 PDT via 40 14 cron, intended 06:30)
+        (datetime(2026, 5, 19, 14, 40, 0, tzinfo=timezone.utc), "06:30"),
+        # slot not in ALLOWED_PT_SLOTS (retired 06:00)
+        (datetime(2026, 5, 19, 13, 5, 0, tzinfo=timezone.utc), "06:00"),
+        # unparseable labels
+        (datetime(2026, 5, 19, 13, 32, 0, tzinfo=timezone.utc), "6:30pm"),
+        (datetime(2026, 5, 19, 13, 32, 0, tzinfo=timezone.utc), ""),
+        (datetime(2026, 5, 19, 13, 32, 0, tzinfo=timezone.utc), "99:99"),
+    ],
+)
+def test_explicit_pt_slot_rejects(now_utc, label):
+    from cuttingboard.notifications.hourly_slot import explicit_pt_slot
+
+    assert explicit_pt_slot(now_utc, label) is None
+
+
+def test_explicit_pt_slot_requires_tzaware():
+    from cuttingboard.notifications.hourly_slot import explicit_pt_slot
+
+    with pytest.raises(ValueError):
+        explicit_pt_slot(datetime(2026, 5, 19, 13, 32, 0), "06:30")
 
 
 def test_is_premarket_slot_remains_importable_after_prd149():

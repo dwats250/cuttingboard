@@ -66,6 +66,8 @@ def _isolate_artifacts(monkeypatch, tmp_path):
     # TREND_STRUCTURE_PATH is a module constant (not LOGS_DIR-derived); a full MODE_LIVE run
     # refreshes it, so redirect it too or the tests pollute the committed repo sidecar.
     monkeypatch.setattr(runtime, "TREND_STRUCTURE_PATH", tmp_path / "trend_structure_snapshot.json")
+    # PRD-320: same reasoning for the co-produced price-bars sidecar.
+    monkeypatch.setattr(runtime, "PRICE_BARS_PATH", tmp_path / "price_bars_snapshot.json")
     # Payload artifacts fan out to the delivery transport; keep them off disk. Orthogonal
     # to the ownership signal under test.
     monkeypatch.setattr(runtime, "_write_payload_artifacts", lambda *a, **k: None)

@@ -36,6 +36,18 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         action="store_true",
         help="Bypass cross-run slot idempotency (workflow_dispatch / operator override).",
     )
+    parser.add_argument(
+        "--routine-slot",
+        default=None,
+        metavar="HH:MM",
+        help=(
+            "PRD-319: explicitly named routine PT slot (Cloudflare routine "
+            "dispatch / mapped GitHub heartbeat). Honoured via explicit_pt_slot "
+            "-- window-checked and deduped like a cron arrival, but the slot "
+            "identity never shifts under start-time delay. Ignored when "
+            "--force-slot is set."
+        ),
+    )
     return parser.parse_args(argv if argv is not None else [])
 
 
@@ -55,6 +67,7 @@ def main(argv: list[str] | None = None) -> int:
         from cuttingboard.notifications.hourly_slot import (
             _PT_TZ,
             canonical_slot_utc,
+            explicit_pt_slot,
             load_last_slot,
             routine_pt_slot,
         )
@@ -70,10 +83,18 @@ def main(argv: list[str] | None = None) -> int:
         if force_slot:
             slot_utc = canonical_slot_utc(now_utc)
         else:
-            slot_utc = routine_pt_slot(now_utc)
+            # PRD-319 R2: an explicitly named routine slot is honoured or the
+            # arrival no-ops; identity never shifts to a neighbouring slot the
+            # way start-time inference can. Cron arrivals keep inference.
+            if args.routine_slot is not None:
+                slot_utc = explicit_pt_slot(now_utc, args.routine_slot)
+            else:
+                slot_utc = routine_pt_slot(now_utc)
             if slot_utc is None:
                 now_pt = now_utc.astimezone(_PT_TZ)
                 state_key = f"outside:{now_pt.strftime('%Y-%m-%dT%H:%M%z')}"
+                if args.routine_slot is not None:
+                    state_key += f":named={args.routine_slot}"
                 write_notification_audit(
                     transport="telegram",
                     status="suppressed",

@@ -48,6 +48,7 @@ def _isolate_artifacts(monkeypatch, tmp_path):
     monkeypatch.setattr(runtime, "LAST_STATE_PATH", str(tmp_path / "last_state.json"))
     monkeypatch.setattr(audit, "AUDIT_LOG_PATH", str(logs_dir / "audit.jsonl"))
     monkeypatch.setattr(runtime, "TREND_STRUCTURE_PATH", tmp_path / "trend_structure_snapshot.json")
+    monkeypatch.setattr(runtime, "PRICE_BARS_PATH", tmp_path / "price_bars_snapshot.json")
     monkeypatch.setattr(runtime, "_write_payload_artifacts", lambda *a, **k: None)
     # Reset the in-process notification result so a prior test's real send cannot leak a stale
     # FAILED_TRANSPORT status into a stubbed-send test via the module global.

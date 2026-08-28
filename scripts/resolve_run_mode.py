@@ -10,7 +10,7 @@ The fix keys resolution on ``github.event.schedule`` (the cron string GitHub
 reports) instead of wall-clock minutes, so a late start still resolves
 correctly::
 
-    5 13 * * 1-5   -> live      (PRD-299: the delayed OPEN fallback cron)
+    20 13 / 20 14 * * 1-5 -> live  (PRD-319: seasonal delayed OPEN fallbacks)
     30 23 * * 0    -> sunday
 
 PRD-299 (CF clock / GitHub executor coordination): the OPEN/live heartbeat moved
@@ -53,7 +53,14 @@ NOOP = "noop"
 # reports in github.event.schedule, so resolution is immune to queue delay --
 # the cron string is identical no matter when the run actually starts.
 _DEDICATED: dict[str, str] = {
-    "5 13 * * 1-5": "live",  # PRD-299: delayed OPEN fallback (was "0 13"; retimed)
+    # PRD-319 R5: dual-seasonal delayed OPEN fallbacks (was the single "5 13").
+    # 20 13 = 06:20 PDT-season fallback; 20 14 = 06:20 PST-season fallback —
+    # ~20 min after the preferred Cloudflare 06:00 PT dispatch, year-round.
+    # The off-season twin is no-oped by scripts/check_open_fallback_window.py
+    # (season gate), NOT here: mode resolution stays a pure cron lookup so a
+    # queue-delayed in-season fallback still resolves live.
+    "20 13 * * 1-5": "live",
+    "20 14 * * 1-5": "live",
     "30 23 * * 0": "sunday",
     "50 12 * * 1-5": "prefetch",  # PRD-193: publish-safe cache-warm slot
 }

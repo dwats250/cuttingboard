@@ -35,6 +35,7 @@ HOURLY_REQUIRED_STAGED_ARTIFACTS = (
     "logs/audit.jsonl",
     "logs/latest_hourly_market_map.json",
     "logs/trend_structure_snapshot.json",
+    "logs/price_bars_snapshot.json",
     "logs/latest_hourly_run.json",
     "logs/latest_hourly_contract.json",
     "logs/latest_hourly_payload.json",
@@ -852,6 +853,28 @@ def test_gex_mentions_confined_to_hourly_refresh_step_globally() -> None:
         assert "gex" not in str(doc).lower(), "gex outside the refresh step (DR6)"
 
 
+def test_price_bars_staged_by_hourly_never_restored() -> None:  # PRD-320 R5
+    # The price-bars sidecar is co-produced fresh state on every live run: the
+    # hourly job force-adds it (pinned via HOURLY_REQUIRED_STAGED_ARTIFACTS
+    # above), and NO workflow restores it from `publish` — a restored copy would
+    # be stale bars silently republished on a run whose writer failed.
+    hourly = _workflow_text("hourly_alert.yml")
+    commit = hourly[
+        hourly.index("- name: Commit hourly artifacts"):hourly.index("- name: Push hourly artifacts")
+    ]
+    assert "logs/price_bars_snapshot.json" in commit[commit.index("git add"):], (
+        "the hourly force-add allowlist must stage logs/price_bars_snapshot.json "
+        "(PRD-320 R5); the global *.json gitignore swallows a plain `git add`."
+    )
+    for workflow in ("hourly_alert.yml", "cuttingboard.yml"):
+        text = _workflow_text(workflow)
+        for line in text.splitlines():
+            if "ci_restore_publish_state.sh" in line:
+                assert "price_bars" not in line, (
+                    f"{workflow} restores the price-bars sidecar; PRD-320 R5 forbids it."
+                )
+
+
 def test_watchlist_artifact_not_restored_not_staged() -> None:  # PRD-311 R6
     # The observe-only movement fetch (UCO/GOOG) does not change the watchlist
     # artifact's run-local posture: it is in neither the restore invocation nor
@@ -861,3 +884,68 @@ def test_watchlist_artifact_not_restored_not_staged() -> None:  # PRD-311 R6
     assert "watchlist" not in restore
     commit = text[text.index("- name: Commit hourly artifacts"):text.index("- name: Push hourly artifacts")]
     assert "watchlist" not in commit[commit.index("git add"):]
+
+
+# --- PRD-319 R8: exact cron sets and dispatch shape are pinned ----------------
+# A silent cron edit (adding a peer clock, resurrecting a retired slot,
+# de-seasoning a fallback) must fail CI, not slip through as YAML noise.
+
+def _workflow_yaml(name: str) -> dict:
+    import yaml
+
+    return yaml.safe_load(
+        (REPO_ROOT / ".github" / "workflows" / name).read_text(encoding="utf-8")
+    )
+
+
+def test_prd319_pipeline_cron_set_exact() -> None:
+    wf = _workflow_yaml("cuttingboard.yml")
+    crons = sorted(t["cron"] for t in wf[True]["schedule"])
+    assert crons == sorted([
+        "50 12 * * 1-5",   # PRE cache warm (UTC-anchored)
+        "20 13 * * 1-5",   # OPEN delayed fallback, PDT season (06:20 PT)
+        "20 14 * * 1-5",   # OPEN delayed fallback, PST season (06:20 PT)
+        "30 23 * * 0",     # Sunday regime report
+    ])
+
+
+def test_prd319_hourly_cron_set_exact() -> None:
+    wf = _workflow_yaml("hourly_alert.yml")
+    crons = sorted(t["cron"] for t in wf[True]["schedule"])
+    assert crons == sorted([
+        "40 13 * * 1-5",   # 06:30 heartbeat, PDT season (06:40 PT)
+        "40 14 * * 1-5",   # 06:30 heartbeat, PST season (06:40 PT)
+        "55 13 * * 1-5",   # 06:45 heartbeat, PDT season (06:55 PT)
+        "55 14 * * 1-5",   # 06:45 heartbeat, PST season (06:55 PT)
+        "10 14-21 * * 1-5",  # hourly heartbeats (07:10-13:10 PT per season)
+    ])
+
+
+def test_prd319_hourly_dispatch_inputs_shape() -> None:
+    wf = _workflow_yaml("hourly_alert.yml")
+    inputs = wf[True]["workflow_dispatch"]["inputs"]
+    assert set(inputs) == {"kind", "slot"}
+    assert inputs["kind"]["default"] == "forced"
+    assert sorted(inputs["kind"]["options"]) == ["forced", "routine"]
+    assert inputs["slot"]["default"] == ""
+
+
+def test_prd319_hourly_heartbeats_carry_explicit_identity() -> None:
+    text = (REPO_ROOT / ".github" / "workflows" / "hourly_alert.yml").read_text(
+        encoding="utf-8"
+    )
+    # The four 06:xx heartbeat crons map to explicit intended slots; the
+    # hourly heartbeats keep inference (no slot literal for them).
+    assert '"40 13 * * 1-5"|"40 14 * * 1-5"' in text
+    assert '--routine-slot "06:30"' in text
+    assert '"55 13 * * 1-5"|"55 14 * * 1-5"' in text
+    assert '--routine-slot "06:45"' in text
+    assert "--force-slot" in text  # manual/forced path preserved
+
+
+def test_prd319_hourly_has_ohlcv_cache_restore() -> None:
+    text = (REPO_ROOT / ".github" / "workflows" / "hourly_alert.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "actions/cache/restore@v4" in text
+    assert "path: data/cache" in text

@@ -40,7 +40,11 @@ def _resolve(schedule: str = "", *, event: str = "schedule", dispatch: str = "")
 @pytest.mark.parametrize(
     "schedule,expected",
     [
-        ("5 13 * * 1-5", "live"),  # PRD-299: OPEN/live delayed fallback (was 0 13)
+        # PRD-319: dual-seasonal delayed OPEN fallbacks (was the single 5 13);
+        # the off-season twin is no-oped by check_open_fallback_window.py,
+        # never by mode resolution.
+        ("20 13 * * 1-5", "live"),
+        ("20 14 * * 1-5", "live"),
         ("30 23 * * 0", "sunday"),
         ("50 12 * * 1-5", "prefetch"),  # PRD-193: re-enabled cache-warm slot
     ],
@@ -59,7 +63,12 @@ def test_resolution_is_time_independent() -> None:
     # The resolver takes no clock input, so a queue-delayed run resolves
     # identically to an on-time one -- the freeze bug (exact-minute match) is
     # gone by construction.
-    assert _resolve("5 13 * * 1-5") == "live"
+    assert _resolve("20 13 * * 1-5") == "live"
+
+
+def test_retired_open_fallback_cron_resolves_to_noop() -> None:
+    # PRD-319 R5 FAIL leg: the retired single fallback must never resolve live.
+    assert _resolve("5 13 * * 1-5") == "noop"
 
 
 # --- Deferred crons resolve to noop -----------------------------------------
@@ -79,7 +88,7 @@ def test_unknown_or_empty_schedule_is_noop() -> None:
 
 
 def test_non_schedule_event_is_noop() -> None:
-    assert _resolve("5 13 * * 1-5", event="push") == "noop"
+    assert _resolve("20 13 * * 1-5", event="push") == "noop"
 
 
 # --- PRD-299 R2: slot/mode consistency, fail-closed --------------------------

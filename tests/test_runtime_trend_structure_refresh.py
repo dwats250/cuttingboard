@@ -216,9 +216,20 @@ def test_prd174_execute_notify_run_wires_trend_history_helper() -> None:
     (so STAY_FLAT runs are covered). Static-source regression, mirroring the
     PRD-123 R7.6 pattern."""
     src = inspect.getsource(_execute_notify_run)
-    assert "history_by_symbol=_collect_trend_structure_history(ohlcv)" in src, (
-        "the hourly trend-structure writer call must pass "
-        "_collect_trend_structure_history(ohlcv) as history_by_symbol"
+    # PRD-320 R2 rebased this pin: the collector call is hoisted to a bound
+    # local (bind-once, threaded to both sidecar writers). The guarded intent
+    # is unchanged — the writer's history argument is collector-wrapped, never
+    # raw ohlcv.
+    assert "trend_history = _collect_trend_structure_history(ohlcv)" in src, (
+        "the hourly seam must bind _collect_trend_structure_history(ohlcv) once"
+    )
+    # Call-SPECIFIC pin (Codex F11): checked inside the trend writer's own call
+    # segment — the sibling bars call also names trend_history, so a whole-
+    # function substring check could not go red on a raw-ohlcv regression here.
+    trend_call = src.split("_write_trend_structure_snapshot(")[1].split(")")[0]
+    assert "history_by_symbol=trend_history" in trend_call, (
+        "the hourly trend-structure writer call must pass the collector-bound "
+        "trend_history as history_by_symbol"
     )
 
 
@@ -234,10 +245,18 @@ def test_prd210_run_pipeline_wraps_premarket_history_with_collector() -> None:
     Static-source lock, mirroring PRD-123 R7.6 (:143) and PRD-174 (:219). Fails on
     pre-fix code (``history_by_symbol=ohlcv``)."""
     src = inspect.getsource(_run_pipeline)
-    assert "history_by_symbol=_collect_trend_structure_history(ohlcv)" in src, (
-        "_run_pipeline must wrap the premarket sidecar's history_by_symbol with "
-        "_collect_trend_structure_history(ohlcv) so non-candidate trend symbols "
-        "resolve on the premarket path (PRD-210 F08 fix); found raw passthrough"
+    # PRD-320 R2 rebased this pin the same way as the PRD-174 pin above:
+    # collector bound once to trend_history, threaded to both writers.
+    assert "trend_history = _collect_trend_structure_history(ohlcv)" in src, (
+        "_run_pipeline must bind _collect_trend_structure_history(ohlcv) once "
+        "for the premarket sidecar path (PRD-210 F08 fix)"
+    )
+    # Call-SPECIFIC pin (Codex F11): the sibling bars call also names
+    # trend_history, so the check must live inside the refresh call segment.
+    refresh_call = src.split("_refresh_trend_structure_sidecar(")[1].split(")")[0]
+    assert "history_by_symbol=trend_history" in refresh_call, (
+        "_run_pipeline must pass the collector-bound trend_history to the "
+        "premarket sidecar refresh; found raw passthrough"
     )
 
 
