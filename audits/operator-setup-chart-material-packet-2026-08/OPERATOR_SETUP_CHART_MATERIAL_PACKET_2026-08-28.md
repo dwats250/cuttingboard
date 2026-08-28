@@ -1,9 +1,11 @@
 # Operator setup chart — MATERIAL design packet
 
 ```
-STATUS: PROVISIONAL MATERIAL PACKET — 2026-08-28 — DESIGN ONLY
+STATUS: REVIEW-CLEAN MATERIAL PACKET — 2026-08-28 — DESIGN ONLY
+CONFIRMED AT 01e31fd9d9ca511306f23c7470f873cad0d46349 (Event-2 attempt 3).
 AUTHORIZES NO IMPLEMENTATION, NO PRD NUMBER, NO PRODUCER BUILD, NO CONSUMER
-BUILD, NO GATE A, NO MERGE.
+BUILD, NO GATE A, NO MERGE — AWAITING DUSTIN'S DESIGN-DIRECTION RULING
+(GOV-2 sec2 step 6; ruling questions in sec9).
 GOV-2 PACKET-REVIEW CYCLE: EVENT 1 COMPLETE (DESIGN INCOMPLETE at 3a06ed6;
   the ONE consolidated correction APPLIED at 64676f5 — ## CORRECTION CYCLE).
   EVENT 2 ATTEMPT 1 (against 64676f5): NOT CONFIRMED (F1/F3/F6/F7; F8 PASS);
@@ -13,7 +15,9 @@ GOV-2 PACKET-REVIEW CYCLE: EVENT 1 COMPLETE (DESIGN INCOMPLETE at 3a06ed6;
   fixture silently skipped by the global `*.json` gitignore and absent from
   HEAD. All three repaired in THIS revision (## CONFIRMATION REPAIR,
   attempt-2 addendum); the fixture is now force-added and tracked.
-AWAITING: Event-2 ATTEMPT 3 exact-corrected-head confirmation (GOV-2 sec7).
+  ATTEMPT 3 (against 01e31fd): CONFIRMED — REVIEW-CLEAN
+  (CODEX_EVENT_2_CONFIRMATION_ATTEMPT_3_2026-08-28.md). CYCLE COMPLETE.
+AWAITING: Dustin's design-direction ruling (GOV-2 sec2 step 6).
 Ceilings below are ESTIMATES (GOV-2 sec5), not constraints.
 ```
 
