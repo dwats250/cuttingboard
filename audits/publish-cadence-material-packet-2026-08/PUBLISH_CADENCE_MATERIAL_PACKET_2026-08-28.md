@@ -16,7 +16,10 @@ GOV-2 PACKET-REVIEW CYCLE: EVENT 1 COMPLETE (DESIGN INCOMPLETE at 000b13a —
   ATTEMPT 2 (against 78c3627): F3/F5/F6/F10 PASS; NOT CONFIRMED on one
   residual — Q4's stale "CF-only" wording — repaired in THIS revision
   (attempt-2 addendum).
-AWAITING: Event-2 ATTEMPT 3 exact-corrected-head confirmation (GOV-2 sec7).
+  ATTEMPT 3 (against 3a0171b): NOT CONFIRMED on one residual — sec10's
+  stale "06:45 exists only when CF dispatches it" — repaired in THIS
+  revision (sec10 bullet rewritten to CF-PRIMARY with the Q9(b) corner).
+AWAITING: Event-2 ATTEMPT 4 exact-corrected-head confirmation (GOV-2 sec7).
 Ceilings below are ESTIMATES (GOV-2 sec5), not constraints.
 ```
 
@@ -324,10 +327,11 @@ STOP-AND-RENEW on breach.
 
 - Worker deploy remains owner-held: until CF-E1/E2 are performed by Dustin,
   the design delivers no punctuality change; the repo changes are inert but
-  safe (routine input defaults to today's behavior; (6,45) simply never
-  fires without a 06:45 arrival — GitHub's `30 13`/`45 13`? NO new GitHub
-  cron is added by default, so 06:45 exists only when CF dispatches it;
-  ruling Q4 offers a GitHub 06:45 heartbeat as an alternative).
+  safe (the routine input defaults to today's forced behavior; with no
+  dedicated 06:45 cron in slice 1, the (6,45) slot is normally fed only by
+  a CF routine dispatch — 06:45 is CF-PRIMARY, and per sec3/Q9(b) a
+  sufficiently delayed 06:40 heartbeat can occasionally deliver it instead;
+  ruling Q4 offers a dedicated GitHub 06:45 heartbeat as an alternative).
 - Silent-green class: unchanged in structure (deliberately — PRD-250 ruled
   the mitigation), but materially rarer because the punctual clock stops
   feeding the late-fire suppression path.
