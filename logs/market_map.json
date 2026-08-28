@@ -12,8 +12,8 @@
     "fib_deferred_symbols": [],
     "unavailable_symbols": []
   },
-  "generated_at": "2026-08-27T22:55:29Z",
-  "generation_id": "live-20260827T225529Z",
+  "generated_at": "2026-08-28T06:00:20Z",
+  "generation_id": "live-20260828T060020Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -24,10 +24,10 @@
   ],
   "removed_symbols": [],
   "schema_version": "market_map.v1",
-  "session_date": "2026-08-27",
+  "session_date": "2026-08-28",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-08-27T22:55:29Z"
+    "run_at_utc": "2026-08-28T06:00:20Z"
   },
   "symbols": {
     "GDX": {
@@ -77,32 +77,22 @@
       "watch_zones": [
         {
           "context": "session vwap",
-          "level": 103.5277,
+          "level": 103.528,
           "type": "VWAP"
         },
         {
           "context": "prior session high",
-          "level": 104.16,
+          "level": 104.11,
           "type": "PRIOR_HIGH"
         },
         {
-          "context": "opening range high",
-          "level": 102.9699,
-          "type": "ORB_HIGH"
-        },
-        {
           "context": "prior session low",
-          "level": 102.31,
+          "level": 101.69,
           "type": "PRIOR_LOW"
         },
         {
-          "context": "opening range low",
-          "level": 102.14,
-          "type": "ORB_LOW"
-        },
-        {
           "context": "fast trend reference",
-          "level": 98.8023,
+          "level": 99.7798,
           "type": "EMA9"
         }
       ],
@@ -158,37 +148,27 @@
       "watch_zones": [
         {
           "context": "session vwap",
-          "level": 422.5142,
+          "level": 422.5141,
           "type": "VWAP"
         },
         {
-          "context": "opening range high",
-          "level": 421.13,
-          "type": "ORB_HIGH"
-        },
-        {
-          "context": "prior session low",
-          "level": 420.31,
-          "type": "PRIOR_LOW"
-        },
-        {
           "context": "prior session high",
-          "level": 424.95,
+          "level": 423.35,
           "type": "PRIOR_HIGH"
         },
         {
-          "context": "opening range low",
-          "level": 419.4,
-          "type": "ORB_LOW"
+          "context": "prior session low",
+          "level": 418.43,
+          "type": "PRIOR_LOW"
         },
         {
           "context": "fast trend reference",
-          "level": 416.1092,
+          "level": 417.4073,
           "type": "EMA9"
         },
         {
           "context": "primary trend reference",
-          "level": 403.9432,
+          "level": 405.6393,
           "type": "EMA21"
         }
       ],
@@ -204,17 +184,17 @@
       "current_price": 721.1099853515625,
       "fib_levels": {
         "retracements": {
-          "0.382": 711.171,
-          "0.5": 703.94,
-          "0.618": 696.709
+          "0.382": 713.7495,
+          "0.5": 707.315,
+          "0.618": 700.8805
         },
         "source": "last_20_bars_high_low",
         "swing_high": 734.58,
-        "swing_low": 673.3
+        "swing_low": 680.05
       },
       "grade": "C",
       "invalidation": [
-        "loses VWAP with weak recovery",
+        "loses PRIOR_HIGH with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
@@ -235,7 +215,7 @@
       "trade_framing": {
         "direction": "NEUTRAL",
         "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for clearer reaction around VWAP",
+        "entry": "wait for clearer reaction around PRIOR_HIGH",
         "if_now": "WAIT",
         "setup": "index low-quality range",
         "trade_type": "none",
@@ -243,48 +223,38 @@
       },
       "watch_zones": [
         {
-          "context": "session vwap",
-          "level": 718.4888,
-          "type": "VWAP"
-        },
-        {
-          "context": "opening range high",
-          "level": 718.47,
-          "type": "ORB_HIGH"
-        },
-        {
-          "context": "opening range low",
-          "level": 715.0,
-          "type": "ORB_LOW"
-        },
-        {
-          "context": "fast trend reference",
-          "level": 713.7028,
-          "type": "EMA9"
-        },
-        {
-          "context": "primary trend reference",
-          "level": 713.0561,
-          "type": "EMA21"
-        },
-        {
           "context": "prior session high",
-          "level": 713.02,
+          "level": 721.35,
           "type": "PRIOR_HIGH"
         },
         {
-          "context": "trend base reference",
-          "level": 708.7465,
-          "type": "EMA50"
+          "context": "session vwap",
+          "level": 718.4889,
+          "type": "VWAP"
+        },
+        {
+          "context": "fast trend reference",
+          "level": 715.1842,
+          "type": "EMA9"
         },
         {
           "context": "prior session low",
-          "level": 707.97,
+          "level": 714.53,
           "type": "PRIOR_LOW"
+        },
+        {
+          "context": "primary trend reference",
+          "level": 713.7883,
+          "type": "EMA21"
+        },
+        {
+          "context": "trend base reference",
+          "level": 709.2312,
+          "type": "EMA50"
         }
       ],
       "what_to_look_for": [
-        "watch hold above VWAP",
+        "watch hold above PRIOR_HIGH",
         "look for higher low with expanding volume"
       ]
     },
@@ -335,33 +305,23 @@
       "watch_zones": [
         {
           "context": "session vwap",
-          "level": 62.6118,
+          "level": 62.5937,
           "type": "VWAP"
         },
         {
           "context": "prior session high",
-          "level": 61.96,
+          "level": 62.97,
           "type": "PRIOR_HIGH"
         },
         {
-          "context": "opening range high",
-          "level": 61.7899,
-          "type": "ORB_HIGH"
-        },
-        {
-          "context": "opening range low",
-          "level": 61.29,
-          "type": "ORB_LOW"
+          "context": "fast trend reference",
+          "level": 61.1819,
+          "type": "EMA9"
         },
         {
           "context": "prior session low",
-          "level": 61.02,
+          "level": 61.08,
           "type": "PRIOR_LOW"
-        },
-        {
-          "context": "fast trend reference",
-          "level": 60.7848,
-          "type": "EMA9"
         }
       ],
       "what_to_look_for": [
@@ -376,13 +336,13 @@
       "current_price": 771.0999755859375,
       "fib_levels": {
         "retracements": {
-          "0.382": 762.264,
-          "0.5": 756.98,
-          "0.618": 751.696
+          "0.382": 763.4444,
+          "0.5": 758.525,
+          "0.618": 753.6056
         },
         "source": "last_20_bars_high_low",
         "swing_high": 779.37,
-        "swing_low": 734.59
+        "swing_low": 737.68
       },
       "grade": "A+",
       "invalidation": [
@@ -416,42 +376,32 @@
       "watch_zones": [
         {
           "context": "session vwap",
-          "level": 770.2663,
+          "level": 770.2662,
           "type": "VWAP"
         },
         {
-          "context": "opening range high",
-          "level": 768.81,
-          "type": "ORB_HIGH"
-        },
-        {
           "context": "prior session high",
-          "level": 767.35,
+          "level": 772.36,
           "type": "PRIOR_HIGH"
         },
         {
-          "context": "opening range low",
-          "level": 767.16,
-          "type": "ORB_LOW"
-        },
-        {
           "context": "fast trend reference",
-          "level": 766.5919,
+          "level": 767.4935,
           "type": "EMA9"
         },
         {
           "context": "prior session low",
-          "level": 763.93,
+          "level": 767.16,
           "type": "PRIOR_LOW"
         },
         {
           "context": "primary trend reference",
-          "level": 763.773,
+          "level": 764.4391,
           "type": "EMA21"
         },
         {
           "context": "trend base reference",
-          "level": 754.0464,
+          "level": 754.7151,
           "type": "EMA50"
         }
       ],
@@ -477,7 +427,7 @@
       },
       "grade": "B",
       "invalidation": [
-        "loses ORB_LOW with weak recovery",
+        "loses EMA9 with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
@@ -497,8 +447,8 @@
       "symbol": "XLE",
       "trade_framing": {
         "direction": "LONG",
-        "downgrade": "wait if price loses ORB_LOW or structure turns choppy",
-        "entry": "hold above ORB_LOW with constructive follow-through",
+        "downgrade": "wait if price loses EMA9 or structure turns choppy",
+        "entry": "hold above EMA9 with constructive follow-through",
         "if_now": "WAIT",
         "setup": "energy bullish pullback",
         "trade_type": "call_spread",
@@ -506,18 +456,8 @@
       },
       "watch_zones": [
         {
-          "context": "opening range low",
-          "level": 62.14,
-          "type": "ORB_LOW"
-        },
-        {
-          "context": "opening range high",
-          "level": 62.45,
-          "type": "ORB_HIGH"
-        },
-        {
           "context": "fast trend reference",
-          "level": 62.4606,
+          "level": 62.4265,
           "type": "EMA9"
         },
         {
@@ -527,27 +467,27 @@
         },
         {
           "context": "prior session high",
-          "level": 63.02,
+          "level": 62.72,
           "type": "PRIOR_HIGH"
         },
         {
           "context": "prior session low",
-          "level": 61.31,
+          "level": 61.55,
           "type": "PRIOR_LOW"
         },
         {
           "context": "primary trend reference",
-          "level": 61.1562,
+          "level": 61.2593,
           "type": "EMA21"
         },
         {
           "context": "trend base reference",
-          "level": 59.2214,
+          "level": 59.3417,
           "type": "EMA50"
         }
       ],
       "what_to_look_for": [
-        "watch hold above ORB_LOW",
+        "watch hold above EMA9",
         "look for higher low with expanding volume"
       ]
     }

@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="refresh" content="30">
   <title>Signal Forge</title>
-  <style>*{box-sizing:border-box;margin:0;padding:0}body{background:#0d0d0d;color:#e0e0e0;font-family:monospace;padding:1rem}.wrap{max-width:640px;margin:0 auto}.block{border:1px solid #2a2a2a;border-radius:4px;margin-bottom:1rem;padding:1rem}.label{color:#888;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em}.value{margin-top:0.25rem}.value-key{margin-top:0.25rem;font-weight:bold}.row{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.5rem}.field{flex:1;min-width:120px}.badge{display:inline-block;padding:0.2rem 0.5rem;border-radius:3px;font-size:0.8rem}.RISK_ON{background:#1a3a1a;color:#4caf50}.RISK_OFF{background:#3a1a1a;color:#f44336}.NEUTRAL{background:#2a2a1a;color:#ff9800}.CHAOTIC{background:#3a1a3a;color:#e040fb}.STAY_FLAT{background:#1a1a2a;color:#90caf9}.AGGRESSIVE_LONG,.CONTROLLED_LONG{background:#1a3a1a;color:#4caf50}.DEFENSIVE_SHORT{background:#3a1a1a;color:#f44336}.NEUTRAL_PREMIUM{background:#2a2a1a;color:#ff9800}.halted{color:#f44336;font-weight:bold}.warn{color:#ff9800}.sys-verdict{font-weight:bold;font-size:0.95rem;letter-spacing:0.02em}.sys-verdict.sys-up{color:#4caf50}.sys-verdict.sys-down{color:#f44336}.sys-verdict.sys-flat{color:#ff9800}.sys-verdict.sys-halt{color:#f44336}.sys-context{color:#888;font-size:0.8rem;margin-top:2px}.sys-context.halted{color:#f44336}.sys-why{color:#ccc;font-size:0.85rem;font-weight:bold;margin-top:4px}.decision-state-label{color:#888;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px}.decision-state{font-weight:bold;font-size:1.4rem;letter-spacing:0.02em}.decision-state.sys-up{color:#4caf50}.decision-state.sys-down{color:#f44336}.decision-state.sys-flat{color:#ff9800}.decision-state.sys-halt{color:#f44336}h2{font-size:0.8rem;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem}.sep{border-top:1px solid #1a1a1a;margin:0.5rem 0}.tape-slot{white-space:nowrap}.macro-tape-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px 12px;margin-top:6px;overflow-x:hidden}.macro-drivers-row,.macro-spot-metals-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 16px;margin-top:6px;overflow-x:hidden}.macro-tradables-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:6px;overflow-x:hidden}.tradable-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.macro-tape-slot{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.macro-tape-label{margin-right:0.25rem}.macro-tape-value{opacity:0.85}.candidate-card{border-left:3px solid #2a2a2a;padding:0.75rem;margin-bottom:0.5rem}.card-header{font-weight:bold;margin-bottom:6px}.grade-aplus{border-left-color:#4caf50}.grade-a{border-left-color:#8bc34a}.grade-b{border-left-color:#ff9800}.grade-c{border-left-color:#607d8b;opacity:0.8}.grade-d{border-left-color:#f44336;opacity:0.7}.grade-f{border-left-color:#424242;opacity:0.5}.unavailable{color:#888}.macro-bias{margin-top:6px;font-weight:bold}.action-line{font-weight:bold;margin-bottom:8px;padding:8px 10px;border-left:3px solid #4a6fa5;background:#111827;font-size:0.9rem;letter-spacing:0.03em}.tier-group{margin-bottom:16px}.tier-header{font-weight:bold;margin-bottom:6px;opacity:0.9}.candidate-state{font-weight:bold;margin-bottom:4px}.candidate-risk{color:#ff9800}.tape-slot.up{color:#4caf50}.tape-slot.down{color:#f44336}.tape-slot.flat{color:#888}.tape-slot.na{color:#444;opacity:0.7}.macro-bias.long{color:#4caf50}.macro-bias.short{color:#f44336}.macro-bias.mixed{color:#ff9800}.tape-no-data{color:#888;font-style:italic;margin-top:4px;font-size:0.8rem}.idle-summary{color:#888;margin-bottom:12px;padding:8px;border-left:3px solid #2a2a2a}.lifecycle-badge{display:inline-block;padding:0.15rem 0.4rem;border-radius:3px;font-size:0.75rem;margin-left:0.5rem}.lifecycle-new{background:#0d2a3a;color:#29b6f6}.lifecycle-upgraded{background:#1a3a1a;color:#4caf50}.lifecycle-downgraded{background:#3a1a1a;color:#f44336}.lifecycle-unknown{background:#222;color:#555}.lifecycle-detail{color:#888;font-size:0.8rem;margin-bottom:4px}.removed-symbols{margin-top:12px}.removed-row{color:#888;font-size:0.8rem;padding:2px 0}.MIXED{background:#2a1a3a;color:#ba68c8}.UNKNOWN{background:#1a1a1a;color:#555}.macro-pressure-line{color:#aaa;font-size:0.72rem;margin-top:3px}.macro-pressure-line.pressure-na{color:#888;font-style:italic}.kv-grid{display:grid;grid-template-columns:max-content 1fr;gap:2px 0.75rem;margin-top:0.25rem}.history-table{display:grid;grid-template-columns:5ch max-content max-content max-content;column-gap:0.75rem;row-gap:2px;margin-top:4px;align-items:baseline}.history-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:0.8rem}.lvl-diagram{margin-top:8px;padding-top:6px;border-top:1px solid #1a1a1a}.lvl-unavail{color:#555;font-size:0.75rem;font-style:italic;margin-top:6px}.artifact-warning{border-color:#ff9800;color:#ff9800}.artifact-diagnostics{color:#888;font-size:0.72rem;line-height:1.45}.artifact-diagnostics span{display:block}#artifact-diagnostics summary,#run-history summary,details.tier-group summary{cursor:pointer;list-style:none}#artifact-diagnostics summary::-webkit-details-marker,#run-history summary::-webkit-details-marker{display:none}#artifact-diagnostics summary{color:#555;font-size:0.72rem}#run-history summary{color:#aaa;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em}.failed-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-top:4px}.failed-card-fields .label{font-size:0.7rem}.failed-card-fields .value{margin-top:1px}.macro-tally{color:#aaa;font-size:0.78rem;margin-top:2px}#red-folder .red-folder-event{font-size:0.78rem;margin-top:4px}.red-folder-when{color:#ddd}.red-folder-type{color:#888}.red-folder-expiry{color:#ff9800;font-size:0.72rem;margin-top:6px}#scoreboard .scoreboard-row{font-size:0.74rem;color:#bbb;display:flex;flex-wrap:wrap;gap:10px;margin-top:3px}.scoreboard-date{color:#ddd;min-width:80px}.scoreboard-spy{color:#888}.scoreboard-coverage{color:#ff9800;font-weight:600}.value-actionable{color:#29b6f6}.card-detail summary{cursor:pointer;list-style:none;color:#888;font-size:0.72rem;text-transform:uppercase;letter-spacing:.05em;margin-top:4px}.card-detail summary::-webkit-details-marker{display:none}.ts-px-up{color:#4caf50}.ts-px-down{color:#f44336}@media(max-width:640px){.ts-table thead{position:absolute;left:-9999px}.ts-table,.ts-table tbody{display:block;width:100%}.ts-table tr{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;border:1px solid #2a2a2a;border-radius:4px;margin-bottom:5px;padding:5px 8px}.ts-table td{white-space:nowrap!important;padding:0!important}.ts-table td::before{content:none}.ts-table td:first-child{font-weight:bold;min-width:4ch}.ts-table td:nth-child(2){min-width:7ch}.ts-table td.ts-intraday{color:#888}.ts-table td.ts-align{min-width:4ch}}@media(max-width:430px){#market-state,#system-state,#opportunity-survival{padding:10px;margin-bottom:10px}#market-state h2,#system-state h2,#opportunity-survival h2{margin-bottom:8px}#market-state .kv-grid{column-gap:8px}#market-state .market-state-main{font-weight:600}#market-state .market-state-provenance,#market-state .market-state-qualifier{font-size:.72rem;line-height:1.25}#opportunity-survival .kv-grid{grid-template-columns:auto minmax(2.5ch,1fr) auto minmax(2.5ch,1fr)}#opportunity-survival .kv-grid>*:nth-child(10){grid-column:2/-1}#staleness-banner{padding:6px 10px;margin-bottom:10px;font-size:.75rem;letter-spacing:.04em}#candidate-board{padding:10px;margin-bottom:10px}#candidate-board h2{margin-bottom:8px}#candidate-board .candidate-scope{padding:6px 8px;margin-bottom:8px;font-size:.72rem;line-height:1.25}#candidate-board:not(:has(.candidate-card)) .unavailable{font-size:.75rem}#gex-context,#market-movement,#macro-tape,#trend-structure{padding:10px 0;margin-bottom:8px;border-right:0;border-left:0;border-radius:0}#run-delta,#scoreboard{padding:10px;margin-bottom:8px}}</style>
+  <style>*{box-sizing:border-box;margin:0;padding:0}body{background:#0d0d0d;color:#e0e0e0;font-family:monospace;padding:1rem}.wrap{max-width:640px;margin:0 auto}.block{border:1px solid #2a2a2a;border-radius:4px;margin-bottom:1rem;padding:1rem}.label{color:#888;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em}.value{margin-top:0.25rem}.value-key{margin-top:0.25rem;font-weight:bold}.row{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.5rem}.field{flex:1;min-width:120px}.badge{display:inline-block;padding:0.2rem 0.5rem;border-radius:3px;font-size:0.8rem}.RISK_ON{background:#1a3a1a;color:#4caf50}.RISK_OFF{background:#3a1a1a;color:#f44336}.NEUTRAL{background:#2a2a1a;color:#ff9800}.CHAOTIC{background:#3a1a3a;color:#e040fb}.STAY_FLAT{background:#1a1a2a;color:#90caf9}.AGGRESSIVE_LONG,.CONTROLLED_LONG{background:#1a3a1a;color:#4caf50}.DEFENSIVE_SHORT{background:#3a1a1a;color:#f44336}.NEUTRAL_PREMIUM{background:#2a2a1a;color:#ff9800}.halted{color:#f44336;font-weight:bold}.warn{color:#ff9800}.sys-verdict{font-weight:bold;font-size:0.95rem;letter-spacing:0.02em}.sys-verdict.sys-up{color:#4caf50}.sys-verdict.sys-down{color:#f44336}.sys-verdict.sys-flat{color:#ff9800}.sys-verdict.sys-halt{color:#f44336}.sys-context{color:#888;font-size:0.8rem;margin-top:2px}.sys-permission{color:#aaa;font-size:0.78rem;line-height:1.35;margin-top:4px}.sys-context.halted{color:#f44336}.sys-why{color:#ccc;font-size:0.85rem;font-weight:bold;margin-top:4px}.decision-state-label{color:#888;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px}.decision-state{font-weight:bold;font-size:1.4rem;letter-spacing:0.02em}.decision-state.sys-up{color:#4caf50}.decision-state.sys-down{color:#f44336}.decision-state.sys-flat{color:#ff9800}.decision-state.sys-halt{color:#f44336}h2{font-size:0.8rem;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem}.sep{border-top:1px solid #1a1a1a;margin:0.5rem 0}.tape-slot{white-space:nowrap}.macro-tape-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px 12px;margin-top:6px;overflow-x:hidden}.macro-drivers-row,.macro-spot-metals-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 16px;margin-top:6px;overflow-x:hidden}.macro-tradables-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:6px;overflow-x:hidden}.tradable-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.macro-tape-slot{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.macro-tape-label{margin-right:0.25rem}.macro-tape-value{opacity:0.85}.candidate-card{border-left:3px solid #2a2a2a;padding:0.75rem;margin-bottom:0.5rem}.card-header{font-weight:bold;margin-bottom:6px}.grade-aplus{border-left-color:#4caf50}.grade-a{border-left-color:#8bc34a}.grade-b{border-left-color:#ff9800}.grade-c{border-left-color:#607d8b;opacity:0.8}.grade-d{border-left-color:#f44336;opacity:0.7}.grade-f{border-left-color:#424242;opacity:0.5}.unavailable{color:#888}.macro-bias{margin-top:6px;font-weight:bold}.action-line{font-weight:bold;margin-bottom:8px;padding:8px 10px;border-left:3px solid #4a6fa5;background:#111827;font-size:0.9rem;letter-spacing:0.03em}.tier-group{margin-bottom:16px}.tier-header{font-weight:bold;margin-bottom:6px;opacity:0.9}.candidate-state{font-weight:bold;margin-bottom:4px}.candidate-risk{color:#ff9800}.tape-slot.up{color:#4caf50}.tape-slot.down{color:#f44336}.tape-slot.flat{color:#888}.tape-slot.na{color:#444;opacity:0.7}.macro-bias.long{color:#4caf50}.macro-bias.short{color:#f44336}.macro-bias.mixed{color:#ff9800}.tape-no-data{color:#888;font-style:italic;margin-top:4px;font-size:0.8rem}.idle-summary{color:#888;margin-bottom:12px;padding:8px;border-left:3px solid #2a2a2a}.lifecycle-badge{display:inline-block;padding:0.15rem 0.4rem;border-radius:3px;font-size:0.75rem;margin-left:0.5rem}.lifecycle-new{background:#0d2a3a;color:#29b6f6}.lifecycle-upgraded{background:#1a3a1a;color:#4caf50}.lifecycle-downgraded{background:#3a1a1a;color:#f44336}.lifecycle-unknown{background:#222;color:#555}.lifecycle-detail{color:#888;font-size:0.8rem;margin-bottom:4px}.removed-symbols{margin-top:12px}.removed-row{color:#888;font-size:0.8rem;padding:2px 0}.MIXED{background:#2a1a3a;color:#ba68c8}.UNKNOWN{background:#1a1a1a;color:#555}.macro-pressure-line{color:#aaa;font-size:0.72rem;margin-top:3px}.macro-pressure-line.pressure-na{color:#888;font-style:italic}.kv-grid{display:grid;grid-template-columns:max-content 1fr;gap:2px 0.75rem;margin-top:0.25rem}.history-table{display:grid;grid-template-columns:5ch max-content max-content max-content;column-gap:0.75rem;row-gap:2px;margin-top:4px;align-items:baseline}.history-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:0.8rem}.lvl-diagram{margin-top:8px;padding-top:6px;border-top:1px solid #1a1a1a}.lvl-unavail{color:#555;font-size:0.75rem;font-style:italic;margin-top:6px}.artifact-warning{border-color:#ff9800;color:#ff9800}.artifact-diagnostics{color:#888;font-size:0.72rem;line-height:1.45}.artifact-diagnostics span{display:block}#artifact-diagnostics summary,#run-history summary,details.tier-group summary{cursor:pointer;list-style:none}#artifact-diagnostics summary::-webkit-details-marker,#run-history summary::-webkit-details-marker{display:none}#artifact-diagnostics summary{color:#555;font-size:0.72rem}#run-history summary{color:#aaa;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em}.failed-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-top:4px}.failed-card-fields .label{font-size:0.7rem}.failed-card-fields .value{margin-top:1px}.macro-tally{color:#aaa;font-size:0.78rem;margin-top:2px}#red-folder .red-folder-event{font-size:0.78rem;margin-top:4px}.red-folder-when{color:#ddd}.red-folder-type{color:#888}.red-folder-expiry{color:#ff9800;font-size:0.72rem;margin-top:6px}#scoreboard .scoreboard-row{font-size:0.74rem;color:#bbb;display:flex;flex-wrap:wrap;gap:10px;margin-top:3px}.scoreboard-date{color:#ddd;min-width:80px}.scoreboard-spy{color:#888}.scoreboard-coverage{color:#ff9800;font-weight:600}.operator-zone{background:#101010}.operator-zone>h2{color:#aaa}.zone-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px}.zone-item{min-width:0}.zone-value{font-size:.82rem;line-height:1.35;margin-top:2px}.zone-note{color:#777;font-size:.7rem;line-height:1.3;margin-top:2px}.tape-drivers{display:flex;gap:6px 12px;flex-wrap:wrap;margin-top:8px;color:#aaa;font-size:.75rem}#verdict-zone{border-color:#3a3a3a}#verdict-zone #system-state.block{border:0;margin:0;padding:0}#system-state>h2{margin-bottom:.45rem}#staleness-banner{border:1px solid currentColor;border-radius:3px;padding:5px 8px;margin-bottom:8px;font-size:.72rem;letter-spacing:.04em}.verdict-warning{border-left:3px solid #ff9800;color:#ff9800;padding:6px 8px;margin-bottom:8px}#watching-zone .operator-subsection{padding-top:10px;margin-top:10px;border-top:1px solid #222}#watching-zone .operator-subsection:first-of-type{padding-top:0;margin-top:0;border-top:0}#watching-zone .block{border:0;border-radius:0;margin-bottom:0;padding-left:0;padding-right:0}#watching-zone h3,#details-history h3{font-size:.75rem;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}.candidate-observation{opacity:.82}.candidate-observation .value-actionable{color:inherit}.level-detail{margin-top:6px}.level-detail>summary{cursor:pointer;color:#777;font-size:.7rem;text-transform:uppercase}#details-history>summary{cursor:pointer;list-style:none;color:#aaa;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}#details-history>summary::-webkit-details-marker{display:none}#details-history>.details-body{margin-top:10px}#details-history .block{border:0;border-radius:0;border-top:1px solid #222;margin:0;padding:12px 0}#details-history .block:first-child{border-top:0}#details-history .block h2{margin-bottom:7px}.spy-session-group{border-top:1px solid #222;padding-top:12px}.spy-session-group>.block:first-of-type{border-top:0}.value-actionable{color:#29b6f6}.card-detail summary{cursor:pointer;list-style:none;color:#888;font-size:0.72rem;text-transform:uppercase;letter-spacing:.05em;margin-top:4px}.card-detail summary::-webkit-details-marker{display:none}.ts-px-up{color:#4caf50}.ts-px-down{color:#f44336}@media(max-width:640px){.ts-table thead{position:absolute;left:-9999px}.ts-table,.ts-table tbody{display:block;width:100%}.ts-table tr{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;border:1px solid #2a2a2a;border-radius:4px;margin-bottom:5px;padding:5px 8px}.ts-table td{white-space:nowrap!important;padding:0!important}.ts-table td::before{content:none}.ts-table td:first-child{font-weight:bold;min-width:4ch}.ts-table td:nth-child(2){min-width:7ch}.ts-table td.ts-intraday{color:#888}.ts-table td.ts-align{min-width:4ch}}@media(max-width:430px){body{padding:8px}.operator-zone{padding:10px;margin-bottom:8px}.operator-zone>h2{margin-bottom:7px}.zone-grid{gap:6px 10px}.zone-value{font-size:.78rem}.decision-state{font-size:1.25rem}.sys-verdict{font-size:.82rem}.sys-why{font-size:.78rem;margin-top:3px}.sys-context{font-size:.74rem}#system-state .sep{margin:5px 0}#system-state #cb-updated{font-size:.78rem}#watching-zone .operator-subsection{padding-top:8px;margin-top:8px}#opportunity-survival .kv-grid{grid-template-columns:auto minmax(2.5ch,1fr) auto minmax(2.5ch,1fr)}#opportunity-survival .kv-grid>*:nth-child(10){grid-column:2/-1}#candidate-board .candidate-scope{padding:5px 7px;margin-bottom:6px;font-size:.68rem;line-height:1.25}#candidate-board:not(:has(.candidate-card)) .unavailable{font-size:.72rem}#details-history .block{padding:10px 0}}</style>
 </head>
 <body>
 <div class="wrap">
+<div class="block operator-zone" id="verdict-zone">
 <div class="block" id="staleness-banner" hidden style="text-align:center;font-weight:bold" data-session-inactive="false" data-board-stale-after-s="5400"></div>
 <script>
 (function () {
@@ -57,42 +58,51 @@
   }
 })();
 </script>
-<div class="block" id="market-state">
-  <h2>MARKET STATE</h2>
-  <div class="kv-grid">
-    <div class="label">ENVIRONMENT</div><div class="value"><span class="market-state-main">EXPANSION</span> &middot; <span class="market-state-provenance">as of 18:55 ET</span></div>
-    <div class="label">PERMISSION</div><div class="value"><span class="market-state-main">No new trades permitted — operator cannot monitor.</span> &middot; <span class="market-state-provenance">as of 18:55 ET</span></div>
-    <div class="label">POSITIONING</div><div class="value"><span class="market-state-main">unavailable</span></div>
-    <div class="label">PARTICIPATION</div><div class="value"><span class="market-state-main">unavailable</span></div>
-    <div class="label">EVENT RISK</div><div class="value"><span class="market-state-main">no events in 48h</span> &middot; <span class="market-state-provenance">red-folder calendar</span></div>
-  </div>
-</div>
-<div class="block" id="system-state">
-  <h2>SYSTEM STATE</h2>
+<div class="block operator-subsection" id="system-state">
+  <h2>VERDICT</h2>
   <div class="decision-state-label">DECISION STATE</div>
   <div class="decision-state sys-up">OBSERVE ONLY</div>
-  <div class="sys-verdict sys-up">OPERATOR LOCK — CANNOT MONITOR · NO TRADE</div>
+  <div class="sys-verdict sys-up" data-raw-title="NO TRADE">Operator locked: cannot monitor · NO TRADE</div>
   <div class="sys-context">Expansion regime</div>
+  <div class="sys-permission">No new trades permitted — operator cannot monitor.</div>
   <div class="sep"></div>
   <div class="label">UPDATED</div>
-  <div class="value" id="cb-updated" data-updated-utc="2026-08-27T22:55:29+00:00">2026-08-27 15:55:29 PT</div>
+  <div class="value" id="cb-updated" data-updated-utc="2026-08-28T06:00:20+00:00">Updated Aug 27 · 11:00 PM PT</div>
 </div>
-<div class="block" id="opportunity-survival">
-  <h2>OPPORTUNITY SURVIVAL</h2>
-  <div class="kv-grid">
-    <div class="label">SURFACED</div><div class="value">23</div>
-    <div class="label">SETUPS FOUND</div><div class="value">0</div>
-    <div class="label">WATCHLIST</div><div class="value">5</div>
-    <div class="label">REJECTED</div><div class="value">18</div>
-    <div class="label">PRIMARY REJECTION</div><div class="value">CHOP</div>
+</div>
+<div class="block operator-zone" id="tape-zone">
+  <h2>TAPE <span class="label">context only</span></h2>
+  <div class="zone-grid">
+    <div class="zone-item"><div class="label">MACRO</div><div class="zone-value">MACRO BIAS: SHORT ↓ · 1 on / 3 off</div></div>
+    <div class="zone-item"><div class="label">TREND</div><div class="zone-value" data-derivation="bullish-row-count">5 of 6 bullish</div></div>
+  </div>
+  <div class="tape-drivers"><span>DXY ↑ 99.2</span><span>10Y ↑ 4.67</span><span>VIX ↓ 14.5</span><span>BTC ↓ 79.7K</span></div>
+</div>
+<div class="block operator-zone" id="today-zone">
+  <h2>TODAY</h2>
+  <div class="zone-grid">
+    <div class="zone-item"><div class="label">EVENT RISK</div><div class="zone-value">No scheduled events in the next 48 hours</div></div>
+    <div class="zone-item"><div class="label">SPY SESSION</div><div class="zone-value" data-raw-state="PRE_OPEN">Pre-open · prior-session reference</div></div>
   </div>
 </div>
-<div class="block" id="candidate-board">
-  <h2>Market Map / Developing Setups</h2>
-  <div class="idle-summary candidate-scope">OBSERVATION ONLY — setup quality never overrides Decision State or Permission.</div>
+<div class="block operator-zone" id="watching-zone">
+  <h2>WATCHING</h2>
+<div class="block operator-subsection" id="opportunity-survival">
+  <h3>OPPORTUNITY</h3>
+  <div class="kv-grid">
+    <div class="label">SURFACED</div><div class="value">23</div>
+    <div class="label">SETUPS FOUND</div><div class="value">4</div>
+    <div class="label">WATCHLIST</div><div class="value">11</div>
+    <div class="label">REJECTED</div><div class="value">8</div>
+    <div class="label">PRIMARY REJECTION</div><div class="value">2 soft gates failed: R:R 2.00 below 2.0 minimum; price 1.7× ATR from EMA21 (max 1.5×) — entry extended</div>
+  </div>
+</div>
+<div class="block operator-subsection" id="candidate-board">
+  <h3>Market Map / Developing Setups · screening</h3>
+  <div class="idle-summary candidate-scope">MARKET-MAP SCREENING GRADES · OBSERVATION ONLY — grades never grant permission.</div>
   <div class="tier-group" id="tier-aplus">
     <div class="tier-header">A+ — OBSERVATION ONLY (1)</div>
-<div class="candidate-card grade-aplus" id="card-SPY">
+<div class="candidate-card grade-aplus candidate-observation" id="card-SPY">
   <div class="card-header">SPY · A+ · ACTIONABLE · BULLISH TRENDING_UP</div>
   <div class="label">LEVEL</div><div class="value-key">hold above VWAP with constructive follow-through</div>
   <div class="label">INVALIDATION</div><div class="value-key">loses VWAP with weak recovery, or structure turns choppy</div>
@@ -100,184 +110,178 @@
   <div class="label">REASON</div><div class="value">A+: bullish trending_up, regime aligned, near key level</div>
   <div class="label">WATCH</div><div class="value">watch hold above VWAP; look for higher low with expanding volume</div>
   </details>
+  <details class="level-detail"><summary>LEVEL MAP ▶</summary>
   <div class="lvl-diagram">
     <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
     <rect width="160" height="110" fill="#0a0a0a"/>
-    <line x1="0" y1="51" x2="160" y2="51" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <line x1="0" y1="75" x2="160" y2="75" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="0" y1="53" x2="160" y2="53" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="0" y1="76" x2="160" y2="76" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
     <line x1="0" y1="99" x2="160" y2="99" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <line x1="0" y1="21" x2="160" y2="21" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="28" x2="160" y2="28" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="29" x2="160" y2="29" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="31" x2="160" y2="31" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="43" x2="160" y2="43" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="44" x2="160" y2="44" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="89" x2="160" y2="89" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="14" x2="160" y2="14" stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>
-    <line x1="0" y1="11" x2="160" y2="11" stroke="#f5c518" stroke-width="2"/>
-    <circle cx="3" cy="11" r="3" fill="#f5c518"/>
-    <line x1="160" y1="51" x2="163" y2="79" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="82" font-size="9" fill="#555" font-family="monospace">0.382 762.26 -1.1%</text>
-    <line x1="160" y1="75" x2="163" y2="89" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="92" font-size="9" fill="#555" font-family="monospace">0.5 756.98 -1.8%</text>
+    <line x1="0" y1="11" x2="160" y2="11" stroke="#1a4a5a" stroke-width="1"/>
+    <line x1="0" y1="34" x2="160" y2="34" stroke="#1a4a5a" stroke-width="1"/>
+    <line x1="0" y1="35" x2="160" y2="35" stroke="#1a4a5a" stroke-width="1"/>
+    <line x1="0" y1="48" x2="160" y2="48" stroke="#1a4a5a" stroke-width="1"/>
+    <line x1="0" y1="94" x2="160" y2="94" stroke="#1a4a5a" stroke-width="1"/>
+    <line x1="0" y1="21" x2="160" y2="21" stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <line x1="0" y1="17" x2="160" y2="17" stroke="#f5c518" stroke-width="2"/>
+    <circle cx="3" cy="17" r="3" fill="#f5c518"/>
+    <line x1="160" y1="53" x2="163" y2="74" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="77" font-size="9" fill="#555" font-family="monospace">0.382 763.44 -1.0%</text>
+    <line x1="160" y1="76" x2="163" y2="85" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="88" font-size="9" fill="#555" font-family="monospace">0.5 758.52 -1.6%</text>
     <line x1="160" y1="99" x2="163" y2="107" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="110" font-size="9" fill="#555" font-family="monospace">0.618 751.70 -2.5%</text>
-    <text x="164" y="27" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_HIGH 768.81 -0.3%</text>
-    <line x1="160" y1="28" x2="163" y2="34" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="37" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_HIGH 767.35 -0.5%</text>
-    <line x1="160" y1="29" x2="163" y2="43" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="46" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_LOW 767.16 -0.5%</text>
-    <line x1="160" y1="31" x2="163" y2="52" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="55" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9 766.59 -0.6%</text>
-    <line x1="160" y1="43" x2="163" y2="61" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="64" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_LOW 763.93 -0.9%</text>
-    <line x1="160" y1="44" x2="163" y2="70" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="73" font-size="9" fill="#3a7a8a" font-family="monospace">EMA21 763.77 -1.0%</text>
-    <line x1="160" y1="89" x2="163" y2="98" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="101" font-size="9" fill="#3a7a8a" font-family="monospace">EMA50 754.05 -2.2%</text>
-    <text x="164" y="18" font-size="9" fill="#29b6f6" font-family="monospace">VWAP 770.27 -0.1%</text>
-    <line x1="160" y1="11" x2="163" y2="6" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="9" font-size="9" fill="#f5c518" font-family="monospace">NOW 771.10</text>
+    <text x="164" y="110" font-size="9" fill="#555" font-family="monospace">0.618 753.61 -2.3%</text>
+    <line x1="160" y1="11" x2="163" y2="8" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="11" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_HIGH 772.36 +0.2%</text>
+    <line x1="160" y1="34" x2="163" y2="41" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="44" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9 767.49 -0.5%</text>
+    <line x1="160" y1="35" x2="163" y2="52" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="55" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_LOW 767.16 -0.5%</text>
+    <line x1="160" y1="48" x2="163" y2="63" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="66" font-size="9" fill="#3a7a8a" font-family="monospace">EMA21 764.44 -0.9%</text>
+    <text x="164" y="99" font-size="9" fill="#3a7a8a" font-family="monospace">EMA50 754.72 -2.1%</text>
+    <line x1="160" y1="21" x2="163" y2="30" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="33" font-size="9" fill="#29b6f6" font-family="monospace">VWAP 770.27 -0.1%</text>
+    <text x="164" y="22" font-size="9" fill="#f5c518" font-family="monospace">NOW 771.10</text>
     </svg>
   </div>
+  </details>
 </div>
   </div>
   <div class="tier-group" id="tier-b">
     <div class="tier-header">B — DEVELOPING (1)</div>
-<div class="candidate-card grade-b" id="card-XLE">
+<div class="candidate-card grade-b candidate-observation" id="card-XLE">
   <div class="card-header">XLE · B · DEVELOPING · BULLISH PULLBACK</div>
-  <div class="label">LEVEL</div><div class="value-key">hold above ORB_LOW with constructive follow-through</div>
-  <div class="label">INVALIDATION</div><div class="value-key">loses ORB_LOW with weak recovery, or structure turns choppy</div>
+  <div class="label">LEVEL</div><div class="value-key">hold above EMA9 with constructive follow-through</div>
+  <div class="label">INVALIDATION</div><div class="value-key">loses EMA9 with weak recovery, or structure turns choppy</div>
   <details class="card-detail"><summary>DETAIL ▶</summary>
   <div class="label">REASON</div><div class="value">B: bullish pullback, regime aligned, near key level</div>
-  <div class="label">WATCH</div><div class="value">watch hold above ORB_LOW; look for higher low with expanding volume</div>
+  <div class="label">WATCH</div><div class="value">watch hold above EMA9; look for higher low with expanding volume</div>
   </details>
+  <details class="level-detail"><summary>LEVEL MAP ▶</summary>
   <div class="lvl-diagram">
     <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
     <rect width="160" height="110" fill="#0a0a0a"/>
-    <line x1="0" y1="39" x2="160" y2="39" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <line x1="0" y1="60" x2="160" y2="60" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <line x1="0" y1="81" x2="160" y2="81" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="0" y1="35" x2="160" y2="35" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="0" y1="58" x2="160" y2="58" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="0" y1="82" x2="160" y2="82" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
     <line x1="0" y1="11" x2="160" y2="11" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="24" x2="160" y2="24" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="24" x2="160" y2="24" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="31" x2="160" y2="31" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="51" x2="160" y2="51" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="54" x2="160" y2="54" stroke="#1a4a5a" stroke-width="1"/>
+    <line x1="0" y1="18" x2="160" y2="18" stroke="#1a4a5a" stroke-width="1"/>
+    <line x1="0" y1="41" x2="160" y2="41" stroke="#1a4a5a" stroke-width="1"/>
+    <line x1="0" y1="49" x2="160" y2="49" stroke="#1a4a5a" stroke-width="1"/>
     <line x1="0" y1="99" x2="160" y2="99" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="22" x2="160" y2="22" stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>
-    <line x1="0" y1="28" x2="160" y2="28" stroke="#f5c518" stroke-width="2"/>
-    <circle cx="3" cy="28" r="3" fill="#f5c518"/>
-    <line x1="160" y1="39" x2="163" y2="61" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="64" font-size="9" fill="#555" font-family="monospace">0.382 61.80 -0.8%</text>
-    <line x1="160" y1="60" x2="163" y2="89" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="92" font-size="9" fill="#555" font-family="monospace">0.5 60.91 -2.2%</text>
-    <line x1="160" y1="81" x2="163" y2="98" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="101" font-size="9" fill="#555" font-family="monospace">0.618 60.01 -3.7%</text>
-    <line x1="160" y1="11" x2="163" y2="6" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="9" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_HIGH 63.02 +1.2%</text>
-    <text x="164" y="27" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9 62.46 +0.3%</text>
-    <line x1="160" y1="24" x2="163" y2="34" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="37" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_HIGH 62.45 +0.3%</text>
-    <line x1="160" y1="31" x2="163" y2="52" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="55" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_LOW 62.14 -0.2%</text>
-    <line x1="160" y1="51" x2="163" y2="70" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="73" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_LOW 61.31 -1.6%</text>
-    <line x1="160" y1="54" x2="163" y2="79" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="82" font-size="9" fill="#3a7a8a" font-family="monospace">EMA21 61.16 -1.8%</text>
+    <line x1="0" y1="15" x2="160" y2="15" stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <line x1="0" y1="22" x2="160" y2="22" stroke="#f5c518" stroke-width="2"/>
+    <circle cx="3" cy="22" r="3" fill="#f5c518"/>
+    <line x1="160" y1="35" x2="163" y2="52" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="55" font-size="9" fill="#555" font-family="monospace">0.382 61.80 -0.8%</text>
+    <line x1="160" y1="58" x2="163" y2="85" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="88" font-size="9" fill="#555" font-family="monospace">0.5 60.91 -2.2%</text>
+    <line x1="160" y1="82" x2="163" y2="96" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="99" font-size="9" fill="#555" font-family="monospace">0.618 60.01 -3.7%</text>
+    <line x1="160" y1="11" x2="163" y2="8" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="11" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_HIGH 62.72 +0.7%</text>
+    <line x1="160" y1="18" x2="163" y2="30" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="33" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9 62.43 +0.2%</text>
+    <line x1="160" y1="41" x2="163" y2="63" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="66" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_LOW 61.55 -1.2%</text>
+    <line x1="160" y1="49" x2="163" y2="74" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="77" font-size="9" fill="#3a7a8a" font-family="monospace">EMA21 61.26 -1.7%</text>
     <line x1="160" y1="99" x2="163" y2="107" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="110" font-size="9" fill="#3a7a8a" font-family="monospace">EMA50 59.22 -4.9%</text>
-    <line x1="160" y1="22" x2="163" y2="15" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="18" font-size="9" fill="#29b6f6" font-family="monospace">VWAP 62.54 +0.4%</text>
-    <line x1="160" y1="28" x2="163" y2="43" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="46" font-size="9" fill="#f5c518" font-family="monospace">NOW 62.29</text>
+    <text x="164" y="110" font-size="9" fill="#3a7a8a" font-family="monospace">EMA50 59.34 -4.7%</text>
+    <text x="164" y="22" font-size="9" fill="#29b6f6" font-family="monospace">VWAP 62.54 +0.4%</text>
+    <line x1="160" y1="22" x2="163" y2="41" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="44" font-size="9" fill="#f5c518" font-family="monospace">NOW 62.29</text>
     </svg>
   </div>
+  </details>
 </div>
   </div>
   <details class="tier-group" id="tier-c">
     <summary class="tier-header">C — EARLY (1)</summary>
-<div class="candidate-card grade-c" id="card-QQQ">
+<div class="candidate-card grade-c candidate-observation" id="card-QQQ">
   <div class="failed-card-fields">
     <div><div class="label">SYMBOL</div><div class="value">QQQ</div></div>
     <div><div class="label">BIAS</div><div class="value">BULLISH</div></div>
     <div><div class="label">STRUCTURE</div><div class="value">RANGE</div></div>
   </div>
-  <div class="label">FAILURE REASON</div><div class="value">C: bullish range, regime aligned, near key level</div>
+  <div class="label">SCREENING NOTE</div><div class="value">C: bullish range, regime aligned, near key level</div>
+  <details class="level-detail"><summary>LEVEL MAP ▶</summary>
   <div class="lvl-diagram">
     <svg width="280" height="110" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
     <rect width="160" height="110" fill="#0a0a0a"/>
-    <line x1="0" y1="47" x2="160" y2="47" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <line x1="0" y1="73" x2="160" y2="73" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="0" y1="44" x2="160" y2="44" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="0" y1="71" x2="160" y2="71" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
     <line x1="0" y1="99" x2="160" y2="99" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,3"/>
-    <line x1="0" y1="20" x2="160" y2="20" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="33" x2="160" y2="33" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="38" x2="160" y2="38" stroke="#1a4a5a" stroke-width="1"/>
+    <line x1="0" y1="11" x2="160" y2="11" stroke="#1a4a5a" stroke-width="1"/>
+    <line x1="0" y1="37" x2="160" y2="37" stroke="#1a4a5a" stroke-width="1"/>
     <line x1="0" y1="40" x2="160" y2="40" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="40" x2="160" y2="40" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="56" x2="160" y2="56" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="58" x2="160" y2="58" stroke="#1a4a5a" stroke-width="1"/>
-    <line x1="0" y1="20" x2="160" y2="20" stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>
-    <line x1="0" y1="11" x2="160" y2="11" stroke="#f5c518" stroke-width="2"/>
-    <circle cx="3" cy="11" r="3" fill="#f5c518"/>
-    <line x1="160" y1="47" x2="163" y2="70" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="73" font-size="9" fill="#555" font-family="monospace">0.382 711.17 -1.4%</text>
-    <line x1="160" y1="73" x2="163" y2="98" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="101" font-size="9" fill="#555" font-family="monospace">0.5 703.94 -2.4%</text>
+    <line x1="0" y1="43" x2="160" y2="43" stroke="#1a4a5a" stroke-width="1"/>
+    <line x1="0" y1="63" x2="160" y2="63" stroke="#1a4a5a" stroke-width="1"/>
+    <line x1="0" y1="23" x2="160" y2="23" stroke="#29b6f6" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <line x1="0" y1="12" x2="160" y2="12" stroke="#f5c518" stroke-width="2"/>
+    <circle cx="3" cy="12" r="3" fill="#f5c518"/>
+    <line x1="160" y1="44" x2="163" y2="74" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="77" font-size="9" fill="#555" font-family="monospace">0.382 713.75 -1.0%</text>
+    <line x1="160" y1="71" x2="163" y2="96" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="99" font-size="9" fill="#555" font-family="monospace">0.5 707.32 -1.9%</text>
     <line x1="160" y1="99" x2="163" y2="107" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="110" font-size="9" fill="#555" font-family="monospace">0.618 696.71 -3.4%</text>
-    <line x1="160" y1="20" x2="163" y2="15" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="18" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_HIGH 718.47 -0.4%</text>
-    <text x="164" y="37" font-size="9" fill="#3a7a8a" font-family="monospace">ORB_LOW 715.00 -0.8%</text>
-    <line x1="160" y1="38" x2="163" y2="43" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="46" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9 713.70 -1.0%</text>
+    <text x="164" y="110" font-size="9" fill="#555" font-family="monospace">0.618 700.88 -2.8%</text>
+    <line x1="160" y1="11" x2="163" y2="8" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="11" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_HIGH 721.35 +0.0%</text>
+    <text x="164" y="44" font-size="9" fill="#3a7a8a" font-family="monospace">EMA9 715.18 -0.8%</text>
     <line x1="160" y1="40" x2="163" y2="52" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="55" font-size="9" fill="#3a7a8a" font-family="monospace">EMA21 713.06 -1.1%</text>
-    <line x1="160" y1="40" x2="163" y2="61" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="64" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_HIGH 713.02 -1.1%</text>
-    <line x1="160" y1="56" x2="163" y2="79" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="82" font-size="9" fill="#3a7a8a" font-family="monospace">EMA50 708.75 -1.7%</text>
-    <line x1="160" y1="58" x2="163" y2="89" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="92" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_LOW 707.97 -1.8%</text>
-    <text x="164" y="27" font-size="9" fill="#29b6f6" font-family="monospace">VWAP 718.49 -0.4%</text>
-    <line x1="160" y1="11" x2="163" y2="6" stroke="#444" stroke-width="0.75"/>
-    <text x="164" y="9" font-size="9" fill="#f5c518" font-family="monospace">NOW 721.11</text>
+    <text x="164" y="55" font-size="9" fill="#3a7a8a" font-family="monospace">PRIOR_LOW 714.53 -0.9%</text>
+    <line x1="160" y1="43" x2="163" y2="63" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="66" font-size="9" fill="#3a7a8a" font-family="monospace">EMA21 713.79 -1.0%</text>
+    <line x1="160" y1="63" x2="163" y2="85" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="88" font-size="9" fill="#3a7a8a" font-family="monospace">EMA50 709.23 -1.6%</text>
+    <line x1="160" y1="23" x2="163" y2="30" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="33" font-size="9" fill="#29b6f6" font-family="monospace">VWAP 718.49 -0.4%</text>
+    <line x1="160" y1="12" x2="163" y2="19" stroke="#444" stroke-width="0.75"/>
+    <text x="164" y="22" font-size="9" fill="#f5c518" font-family="monospace">NOW 721.11</text>
     </svg>
   </div>
+  </details>
 </div>
   </details>
 </div>
+</div>
+<details class="block operator-zone" id="details-history">
+  <summary>DETAILS / HISTORY ▶</summary>
+  <div class="details-body">
+<section class="spy-session-group" id="spy-session-details">
+  <h3>SPY SESSION</h3>
 <div class="block" id="spy-observation">
   <h2>SPY SESSION OBSERVATION</h2>
   <div class="kv-grid">
-    <div class="label">SESSION</div><div class="value">2026-08-27</div>
-    <div class="label">STATE</div><div class="value">STALE — OBSERVATION_LAG</div>
-    <div class="label">OBSERVED AT</div><div class="value">2026-08-27T19:59:00+00:00</div>
+    <div class="label">SESSION</div><div class="value">2026-08-28</div>
+    <div class="label">STATE</div><div class="value" data-raw-state="PRE_OPEN">Pre-open — prior-session reference</div>
+    <div class="label">OBSERVED AT</div><div class="value" data-observed-at-utc="2026-08-27T19:59:00+00:00">Aug 27 · 12:59 PM PT</div>
     <div class="label">SESSION VWAP</div><div class="value">UNAVAILABLE</div>
     <div class="label">PRICE</div><div class="value">unavailable</div>
-    <div class="label">ORB</div><div class="value">FORMED [767.16, 768.81]</div>
+    <div class="label">ORB</div><div class="value"><span data-raw-state="PRE_OPEN">Pre-open</span></div>
   </div>
 </div>
 <div class="block" id="market-control-card">
   <h2>MARKET CONTROL</h2>
   <div class="kv-grid">
-    <div class="label">LOCATION</div><div class="value">STALE — observation_lag</div>
-    <div class="label">ORB</div><div class="value">FORMED [767.16, 768.81]</div>
-    <div class="label">STATE</div><div class="value">UNAVAILABLE — non_current_observation</div>
-    <div class="label">PERMISSION</div><div class="value">No new trades permitted — operator cannot monitor.</div>
-    <div class="label">EVENT</div><div class="value">no_scheduled_events</div>
-    <div class="label">TRANSITION</div><div class="value">UNAVAILABLE — transition_state_unavailable</div>
-    <div class="label">INVALIDATION</div><div class="value">NO_ACTIVE_CANDIDATES</div>
-    <div class="label">CANDIDATE-IMPLICATION</div><div class="value">NO_CANDIDATES</div>
+    <div class="label">LOCATION</div><div class="value"><span data-raw-state="PRE_OPEN">Pre-open — prior-session reference</span></div>
+    <div class="label">STATE</div><div class="value"><span data-raw-reason="non_current_observation">Unavailable — session observation is not current</span></div>
+    <div class="label">EVENT</div><div class="value"><span data-raw-value="no_scheduled_events">No scheduled events in the next 48 hours</span></div>
+    <div class="label">TRANSITION</div><div class="value"><span data-raw-reason="transition_state_unavailable">Unavailable — transition state unavailable</span></div>
+    <div class="label">INVALIDATION</div><div class="value"><span data-raw-value="NO_ACTIVE_CANDIDATES">No active candidates</span></div>
+    <div class="label">CANDIDATE-IMPLICATION</div><div class="value"><span data-raw-value="CANDIDATES_PRESENT_NONE_ACTIONABLE">Candidates present; none actionable</span> (ACTIVE 0 / NEAR_MISS 1 / BLOCKED 3)</div>
   </div>
 </div>
+</section>
 <div class="block" id="macro-tape">
   <h2>Macro Tape</h2>
-  <div class="macro-bias long">MACRO BIAS: LONG ↑</div>
-  <div class="macro-tally">Risk votes: 1 off / 3 on → LONG</div>
-  <div class="macro-pressure-line">• VIX permits longs<br>• DXY supports risk-on<br>• BTC supports risk-on</div>
-  <div class="macro-spot-metals-row"><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">GC&nbsp; ↓</span><span class="macro-tape-value" data-symbol="XAU">4660.6</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">SI&nbsp; ↑</span><span class="macro-tape-value" data-symbol="XAG">70.18</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">BTC ↑</span><span class="macro-tape-value" data-symbol="BTC">80.3K</span></span></div>
-  <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">VIX ↓</span><span class="macro-tape-value" data-symbol="VIX">14.5</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">DXY ↓</span><span class="macro-tape-value" data-symbol="DXY">99.1</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">10Y ↑</span><span class="macro-tape-value" data-symbol="10Y">4.67</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">OIL ↑</span><span class="macro-tape-value" data-symbol="OIL">83.6</span></span></div>
+  <div class="macro-bias short">MACRO BIAS: SHORT ↓</div>
+  <div class="macro-tally">Risk votes: 3 off / 1 on → SHORT</div>
+  <div class="macro-pressure-line">• VIX permits longs<br>• DXY pressures longs<br>• BTC pressures risk-on</div>
+  <div class="macro-spot-metals-row"><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">GC&nbsp; ↓</span><span class="macro-tape-value" data-symbol="XAU">4627.9</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">SI&nbsp; ↓</span><span class="macro-tape-value" data-symbol="XAG">69.57</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">BTC ↓</span><span class="macro-tape-value" data-symbol="BTC">79.7K</span></span></div>
+  <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">VIX ↓</span><span class="macro-tape-value" data-symbol="VIX">14.5</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">DXY ↑</span><span class="macro-tape-value" data-symbol="DXY">99.2</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">10Y ↑</span><span class="macro-tape-value" data-symbol="10Y">4.67</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">OIL ↑</span><span class="macro-tape-value" data-symbol="OIL">83.2</span></span></div>
   <div class="sep"></div>
   <div class="macro-tradables-grid">
     <span class="tradable-cell"><span class="macro-tape-label">SPY</span>&nbsp;<span class="macro-tape-value" data-symbol="SPY">771.10</span></span>
@@ -304,7 +308,7 @@
         <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">SPY</td>
         <td data-label="Price" class="ts-px-up" style="padding:2px 8px;white-space:nowrap">771.10</td>
         <td data-label="Alignment" class="ts-align" style="padding:2px 8px;white-space:nowrap">BULL</td>
-        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.64</td>
+        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.81</td>
         <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↑ 50 ↑ 200</td>
         <td data-label="Intraday" class="ts-intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
       </tr>
@@ -312,7 +316,7 @@
         <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">QQQ</td>
         <td data-label="Price" class="ts-px-up" style="padding:2px 8px;white-space:nowrap">721.11</td>
         <td data-label="Alignment" class="ts-align" style="padding:2px 8px;white-space:nowrap">BULL</td>
-        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.54</td>
+        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.80</td>
         <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↑ 50 ↑ 200</td>
         <td data-label="Intraday" class="ts-intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
       </tr>
@@ -320,7 +324,7 @@
         <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">GDX</td>
         <td data-label="Price" class="ts-px-up" style="padding:2px 8px;white-space:nowrap">103.69</td>
         <td data-label="Alignment" class="ts-align" style="padding:2px 8px;white-space:nowrap">BULL</td>
-        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.92</td>
+        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.65</td>
         <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↑ 50 ↑ 200</td>
         <td data-label="Intraday" class="ts-intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
       </tr>
@@ -328,7 +332,7 @@
         <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">GLD</td>
         <td data-label="Price" class="ts-px-up" style="padding:2px 8px;white-space:nowrap">422.60</td>
         <td data-label="Alignment" class="ts-align" style="padding:2px 8px;white-space:nowrap">BULL</td>
-        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.91</td>
+        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.66</td>
         <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↑ 50 ↑ 200</td>
         <td data-label="Intraday" class="ts-intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
       </tr>
@@ -336,7 +340,7 @@
         <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">SLV</td>
         <td data-label="Price" style="padding:2px 8px;white-space:nowrap">62.77</td>
         <td data-label="Alignment" class="ts-align" style="padding:2px 8px;white-space:nowrap">MIX</td>
-        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.77</td>
+        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.88</td>
         <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↑ 50 ↓ 200</td>
         <td data-label="Intraday" class="ts-intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
       </tr>
@@ -344,7 +348,7 @@
         <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">XLE</td>
         <td data-label="Price" class="ts-px-up" style="padding:2px 8px;white-space:nowrap">62.29</td>
         <td data-label="Alignment" class="ts-align" style="padding:2px 8px;white-space:nowrap">BULL</td>
-        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.93</td>
+        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">1.15</td>
         <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↑ 50 ↑ 200</td>
         <td data-label="Intraday" class="ts-intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
       </tr>
@@ -353,16 +357,18 @@
 </div>
 <div class="block" id="run-delta">
   <h2>Changes Since Last Run</h2>
-  <div class="value">Regime: RISK_ON -&gt; EXPANSION</div>
+  <div class="value">No changes since last run</div>
 </div>
 <div class="block" id="scoreboard">
   <h2>Scoreboard</h2>
+  <div class="scoreboard-row"><span class="scoreboard-date">2026-08-28</span><span class="scoreboard-regime">EXPANSION</span><span class="scoreboard-posture">Expansion Long</span><span class="scoreboard-spy">SPY next n/a</span></div>
   <div class="scoreboard-row"><span class="scoreboard-date">2026-08-27</span><span class="scoreboard-regime">EXPANSION</span><span class="scoreboard-posture">Expansion Long</span><span class="scoreboard-spy">SPY next n/a</span></div>
-  <div class="scoreboard-row"><span class="scoreboard-date">2026-08-26</span><span class="scoreboard-regime">RISK_ON</span><span class="scoreboard-posture">Stay Flat</span><span class="scoreboard-spy">SPY next n/a</span></div>
+  <div class="scoreboard-row"><span class="scoreboard-date">2026-08-26</span><span class="scoreboard-regime">RISK_ON</span><span class="scoreboard-posture">Stay Flat</span><span class="scoreboard-spy">SPY next +0.66%</span></div>
   <div class="scoreboard-row"><span class="scoreboard-date">2026-08-25</span><span class="scoreboard-regime">RISK_ON</span><span class="scoreboard-posture">Stay Flat</span><span class="scoreboard-spy">SPY next +0.02%</span></div>
   <div class="scoreboard-row"><span class="scoreboard-date">2026-08-24</span><span class="scoreboard-regime">NEUTRAL</span><span class="scoreboard-posture">Stay Flat</span><span class="scoreboard-spy">SPY next +0.32%</span></div>
-  <div class="scoreboard-row"><span class="scoreboard-date">2026-08-23</span><span class="scoreboard-regime">NEUTRAL</span><span class="scoreboard-posture">Stay Flat</span><span class="scoreboard-spy">SPY next n/a</span></div>
 </div>
+  </div>
+</details>
 </div>
 </div>
 </body>
