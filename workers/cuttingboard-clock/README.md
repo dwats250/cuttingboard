@@ -1,6 +1,12 @@
 # cuttingboard-clock (Cloudflare Worker) — UNDEPLOYED
 
-PRD-299. The preferred punctual **clock** for the Cuttingboard pipeline. It only
+PRD-299 / PRD-319. The preferred punctual **clock** for the full Cuttingboard
+weekday cadence (pipeline 06:00 PT board + hourly 06:30/06:45/07:00-13:00 PT
+snapshots). PT slot identity resolves from `event.scheduledTime` via the pure
+exported `resolveSlot()` (America/Los_Angeles lookup; owner time-basis
+extension ruling 2026-08-28); dual-offset UTC crons make PT wall-clock hold
+across DST, with off-season twins no-oping inside the Worker. The production
+gate is Node-executed by `tests/test_worker_clock_gate.py`. It only
 POSTs a GitHub `workflow_dispatch`; GitHub remains the executor / observation /
 validation / rendering / publication authority. **Dispatch acceptance is
 *attempt authorization* only — never observation or publish success.**
