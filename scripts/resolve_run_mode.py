@@ -10,7 +10,7 @@ The fix keys resolution on ``github.event.schedule`` (the cron string GitHub
 reports) instead of wall-clock minutes, so a late start still resolves
 correctly::
 
-    5 13 * * 1-5   -> live      (PRD-299: the delayed OPEN fallback cron)
+    20 13 / 20 14 * * 1-5 -> live  (PRD-319: seasonal delayed OPEN fallbacks)
     30 23 * * 0    -> sunday
 
 PRD-299 (CF clock / GitHub executor coordination): the OPEN/live heartbeat moved

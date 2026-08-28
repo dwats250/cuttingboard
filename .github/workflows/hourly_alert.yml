@@ -33,9 +33,9 @@ on:
         default: ''
         type: string
 
-# Per-workflow self-serialization: the 06:00 / 06:05-backup crons must not run
-# concurrently or both could alert before either persists last_hourly_slot (dedup
-# depends on the prior run's saved slot). PRD-194: cross-workflow publish races go
+# Per-workflow self-serialization: the heartbeat and routine-dispatch arrivals
+# for one slot must not run concurrently or both could alert before either
+# persists last_hourly_slot (dedup needs the prior run's saved slot). PRD-194: cross-workflow publish races go
 # through ci_push_artifacts.sh's delta-append + push-retry, not a shared lock that
 # would over-serialize this alert behind the pipeline/macro producer (Codex P2).
 concurrency:
@@ -81,8 +81,8 @@ jobs:
       # the publish branch (main's copies are frozen post-decoupling). Two kinds:
       #  OWNED (hourly regenerates + republishes):
       #   - logs/audit.jsonl: accumulating scoreboard source (delta-appended).
-      #   - logs/last_hourly_slot.json: alert dedup slot (Codex P1) — without it the
-      #     06:05 backup reads main's frozen slot and re-sends the 06:00 alert.
+      #   - logs/last_hourly_slot.json: alert dedup slot (Codex P1) — without it a
+      #     same-slot twin arrival reads main's frozen slot and re-sends the alert.
       #   - logs/latest_hourly_market_map.json: hourly's isolated lifecycle baseline
       #     (_load_previous_market_map at _execute_notify_run) — frozen => bogus
       #     hourly NEW/REMOVED transitions (Codex P2).
