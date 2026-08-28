@@ -13,7 +13,10 @@ GOV-2 PACKET-REVIEW CYCLE: EVENT 1 COMPLETE (DESIGN INCOMPLETE at 000b13a —
   winter-ownership / (6,0) failure-coverage / 06:45-contention
   dispositions); F1/F2/F4/F7/F8 PASS. The bounded confirmation repair is
   applied in THIS revision (## CONFIRMATION REPAIR).
-AWAITING: Event-2 ATTEMPT 2 exact-corrected-head confirmation (GOV-2 sec7).
+  ATTEMPT 2 (against 78c3627): F3/F5/F6/F10 PASS; NOT CONFIRMED on one
+  residual — Q4's stale "CF-only" wording — repaired in THIS revision
+  (attempt-2 addendum).
+AWAITING: Event-2 ATTEMPT 3 exact-corrected-head confirmation (GOV-2 sec7).
 Ceilings below are ESTIMATES (GOV-2 sec5), not constraints.
 ```
 
@@ -353,9 +356,12 @@ product-semantics question (a "premarket" board generated after open);
 06:30/06:45 only in slice 1 (smallest change proving the pattern); extend
 to 07:00-13:00 in a follow-up once observed. Alternative: all slots at
 once.
-**Q4 — 06:45 GitHub heartbeat.** Recommend: none in slice 1 (06:45 is
-CF-only; a CF outage costs only the post-open snapshot). Alternative: add a
-`45 13`+`45 14` GitHub cron pair as heartbeat.
+**Q4 — 06:45 GitHub heartbeat.** Recommend: no dedicated 06:45 heartbeat
+in slice 1 — 06:45 is CF-PRIMARY with no cron of its own (per sec3/Q9(b),
+a sufficiently delayed 06:40 heartbeat can occasionally deliver the 06:45
+send; otherwise a CF outage costs only the post-open snapshot).
+Alternative: add a `45 13`+`45 14` GitHub cron pair as a dedicated
+heartbeat.
 **Q5 — Hourly `actions/cache` companion fix.** Recommend: include in the
 same PRD (cost negative, isolated). The "separate slice" alternative is
 NOT a micro-slice (Event-1 F7: it touches a scheduled workflow and a
@@ -484,3 +490,7 @@ residuals, each repaired in this revision:
   delayed-heartbeat 06:45 contention corner (stated in sec3, expanded into
   Q9(b) — one send, fallback-delivered, no duplicate). The 06:45 owner
   label is corrected from "CF-only" to "CF-primary".
+
+Attempt-2 addendum: the single residual (Q4's "CF-only" contradicting the
+corrected CF-primary ownership) is repaired — Q4 now reads CF-PRIMARY with
+the Q9(b) delayed-heartbeat corner referenced.
