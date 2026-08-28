@@ -54,6 +54,9 @@ MARKET_MAP_PATH = LOGS_DIR / "market_map.json"
 # PRD-118 R3 lineage mismatch. Default/fixture writes stay on MARKET_MAP_PATH.
 LATEST_HOURLY_MARKET_MAP_PATH = LOGS_DIR / "latest_hourly_market_map.json"
 TREND_STRUCTURE_PATH = LOGS_DIR / "trend_structure_snapshot.json"
+# PRD-320: display-only price-bars sidecar (last 40 COMPLETED daily bars per
+# market-map symbol). No decision module reads it; the reader lands in PRD-321.
+PRICE_BARS_PATH = LOGS_DIR / "price_bars_snapshot.json"
 WATCHLIST_PATH = LOGS_DIR / "watchlist_snapshot.json"
 DEFAULT_FIXTURE_DIR = Path("tests/fixtures")
 
@@ -111,6 +114,7 @@ __all__ = [
     "MARKET_MAP_PATH",
     "LATEST_HOURLY_MARKET_MAP_PATH",
     "TREND_STRUCTURE_PATH",
+    "PRICE_BARS_PATH",
     "WATCHLIST_PATH",
     "DEFAULT_FIXTURE_DIR",
     "VALID_REGIMES",

@@ -129,6 +129,7 @@ def _setup_runtime_mocks(monkeypatch, tmp_path, symbol: str = "SPY"):
     monkeypatch.setattr(runtime, "REPORTS_DIR", tmp_path / "reports")
     monkeypatch.setattr(runtime, "LOGS_DIR", tmp_path / "logs")
     monkeypatch.setattr(runtime, "LATEST_RUN_PATH", tmp_path / "logs" / "latest_run.json")
+    monkeypatch.setattr(runtime, "PRICE_BARS_PATH", tmp_path / "logs" / "price_bars_snapshot.json")
     monkeypatch.setattr(runtime, "LATEST_CONTRACT_PATH", str(tmp_path / "logs" / "latest_contract.json"))
     monkeypatch.setattr(audit, "AUDIT_LOG_PATH", str(tmp_path / "logs" / "audit.jsonl"))
     monkeypatch.setattr(runtime, "_deterministic_run_at", lambda mode, fixture_file: RUN_AT)

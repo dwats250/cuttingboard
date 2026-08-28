@@ -35,6 +35,7 @@ HOURLY_REQUIRED_STAGED_ARTIFACTS = (
     "logs/audit.jsonl",
     "logs/latest_hourly_market_map.json",
     "logs/trend_structure_snapshot.json",
+    "logs/price_bars_snapshot.json",
     "logs/latest_hourly_run.json",
     "logs/latest_hourly_contract.json",
     "logs/latest_hourly_payload.json",
@@ -850,6 +851,28 @@ def test_gex_mentions_confined_to_hourly_refresh_step_globally() -> None:
         assert len(refresh) == 1
         steps.remove(refresh[0])
         assert "gex" not in str(doc).lower(), "gex outside the refresh step (DR6)"
+
+
+def test_price_bars_staged_by_hourly_never_restored() -> None:  # PRD-320 R5
+    # The price-bars sidecar is co-produced fresh state on every live run: the
+    # hourly job force-adds it (pinned via HOURLY_REQUIRED_STAGED_ARTIFACTS
+    # above), and NO workflow restores it from `publish` — a restored copy would
+    # be stale bars silently republished on a run whose writer failed.
+    hourly = _workflow_text("hourly_alert.yml")
+    commit = hourly[
+        hourly.index("- name: Commit hourly artifacts"):hourly.index("- name: Push hourly artifacts")
+    ]
+    assert "logs/price_bars_snapshot.json" in commit[commit.index("git add"):], (
+        "the hourly force-add allowlist must stage logs/price_bars_snapshot.json "
+        "(PRD-320 R5); the global *.json gitignore swallows a plain `git add`."
+    )
+    for workflow in ("hourly_alert.yml", "cuttingboard.yml"):
+        text = _workflow_text(workflow)
+        for line in text.splitlines():
+            if "ci_restore_publish_state.sh" in line:
+                assert "price_bars" not in line, (
+                    f"{workflow} restores the price-bars sidecar; PRD-320 R5 forbids it."
+                )
 
 
 def test_watchlist_artifact_not_restored_not_staged() -> None:  # PRD-311 R6
