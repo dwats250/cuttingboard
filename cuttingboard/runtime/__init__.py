@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import math
 import subprocess
 import sys
 from contextlib import contextmanager
@@ -2537,9 +2538,14 @@ def _price_bars_rows(df: Optional[pd.DataFrame], cutoff: date) -> list[list[Any]
             return []
         try:
             o, h, low, c, v = values
-            rows.append([session.isoformat(), float(o), float(h), float(low), float(c), int(v)])
+            bar = [session.isoformat(), float(o), float(h), float(low), float(c), int(v)]
         except Exception:
             return []
+        # Finiteness is checked on the CONVERTED floats: +/-Infinity passes
+        # pd.isna and float(), and json.dumps would emit a non-JSON literal.
+        if not all(math.isfinite(x) for x in bar[1:5]):
+            return []
+        rows.append(bar)
     return rows[-_PRICE_BARS_MAX_BARS:]
 
 

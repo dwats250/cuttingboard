@@ -223,7 +223,11 @@ def test_prd174_execute_notify_run_wires_trend_history_helper() -> None:
     assert "trend_history = _collect_trend_structure_history(ohlcv)" in src, (
         "the hourly seam must bind _collect_trend_structure_history(ohlcv) once"
     )
-    assert "history_by_symbol=trend_history" in src, (
+    # Call-SPECIFIC pin (Codex F11): checked inside the trend writer's own call
+    # segment — the sibling bars call also names trend_history, so a whole-
+    # function substring check could not go red on a raw-ohlcv regression here.
+    trend_call = src.split("_write_trend_structure_snapshot(")[1].split(")")[0]
+    assert "history_by_symbol=trend_history" in trend_call, (
         "the hourly trend-structure writer call must pass the collector-bound "
         "trend_history as history_by_symbol"
     )
@@ -247,9 +251,12 @@ def test_prd210_run_pipeline_wraps_premarket_history_with_collector() -> None:
         "_run_pipeline must bind _collect_trend_structure_history(ohlcv) once "
         "for the premarket sidecar path (PRD-210 F08 fix)"
     )
-    assert "history_by_symbol=trend_history" in src, (
-        "_run_pipeline must pass the collector-bound trend_history as "
-        "history_by_symbol; found raw passthrough"
+    # Call-SPECIFIC pin (Codex F11): the sibling bars call also names
+    # trend_history, so the check must live inside the refresh call segment.
+    refresh_call = src.split("_refresh_trend_structure_sidecar(")[1].split(")")[0]
+    assert "history_by_symbol=trend_history" in refresh_call, (
+        "_run_pipeline must pass the collector-bound trend_history to the "
+        "premarket sidecar refresh; found raw passthrough"
     )
 
 

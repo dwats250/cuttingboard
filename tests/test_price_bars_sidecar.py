@@ -162,9 +162,13 @@ def test_bad_symbol_is_omitted_while_valid_siblings_serialize(isolated, bad):
     assert len(data["symbols"]["QQQ"]["bars"]) == 4
 
 
-def test_nan_in_a_completed_row_omits_the_whole_symbol(isolated):
+@pytest.mark.parametrize("bad_value", [float("nan"), float("inf"), float("-inf")])
+def test_non_finite_in_a_completed_row_omits_the_whole_symbol(isolated, bad_value):
+    """R3: NaN AND +/-Infinity in a completed row omit the symbol — Infinity
+    passes pd.isna and float(), and json.dumps would emit a non-JSON literal.
+    The valid sibling still serializes (partial snapshot legal)."""
     df = _frame(_sessions(5))
-    df.iloc[2, df.columns.get_loc("High")] = float("nan")
+    df.iloc[2, df.columns.get_loc("High")] = bad_value
     _write({"SPY": df, "QQQ": _frame(_sessions(3))})
 
     assert set(_read(isolated)["symbols"]) == {"QQQ"}
@@ -229,10 +233,15 @@ def test_write_is_atomic_tmp_then_replace(isolated, monkeypatch):
 
 
 def test_two_invocations_are_byte_identical_under_symbols(isolated):
+    """R4: `symbols` is a pure function of the frames and the SESSION DATE —
+    two invocations at DIFFERENT generated_at instants sharing one completed
+    session produce byte-identical symbols (invocation-time leakage would
+    diverge them)."""
     history = {"SPY": _frame(_sessions(50)), "QQQ": _frame(_sessions(12))}
-    _write(history)
+    later_same_session = datetime(2026, 5, 12, 20, 30, tzinfo=timezone.utc)
+    _write(history, generated_at=GENERATED_AT)
     first = json.dumps(_read(isolated)["symbols"], sort_keys=True)
-    _write(history)
+    _write(history, generated_at=later_same_session)
     second = json.dumps(_read(isolated)["symbols"], sort_keys=True)
     assert first == second
 
@@ -329,7 +338,13 @@ def test_daily_seam_binds_history_once(monkeypatch):
     assert source.count("_collect_trend_structure_history(") == 1, (
         "the daily seam must bind _collect_trend_structure_history exactly once"
     )
-    assert "history_by_symbol=trend_history" in source
+    # Call-specific pins: BOTH consumers of the bound local, each checked
+    # inside its own call segment so a raw-ohlcv regression in either one is
+    # red even while the other still names trend_history.
+    refresh_seg = source.split("_refresh_trend_structure_sidecar(")[1].split(")")[0]
+    assert "history_by_symbol=trend_history" in refresh_seg, (
+        "the daily trend refresh must receive the SAME bound local"
+    )
     assert re.search(
         r"_write_price_bars_snapshot\(\s*history_by_symbol=trend_history,", source
     ), "the daily bars writer must receive the SAME bound local"
