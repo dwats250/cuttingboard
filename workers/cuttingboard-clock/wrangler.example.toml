@@ -5,11 +5,18 @@ name = "cuttingboard-clock"
 main = "src/index.js"
 compatibility_date = "2024-11-01"
 
-# Cloudflare cron triggers are UTC (no timezone support). Preferred punctual
-# clock; the GitHub crons in .github/workflows/cuttingboard.yml remain the
-# delayed fallback (PRE 50 12; OPEN fallback 5 13, ~5 min after CF OPEN).
+# Cloudflare cron triggers are UTC (no timezone support). PRD-319: four
+# expressions cover the full weekday cadence in BOTH DST offsets; the
+# in-Worker resolveSlot() lookup (event.scheduledTime -> America/Los_Angeles
+# wall clock) picks the intended slot and no-ops every off-season twin.
+#   50 12       -> PRE cache warm (UTC-anchored, year-round)
+#   0 13-21     -> 06:00 PT pipeline OPEN + hourly 07:00..13:00 PT (per season)
+#   30 13,14    -> 06:30 PT (one of the pair per season)
+#   45 13,14    -> 06:45 PT (one of the pair per season)
+# GitHub crons remain the DELAYED fallbacks (pipeline 20 13/20 14 season-gated;
+# hourly 40/55 13,14 with explicit slot identity; 10 14-21 inference).
 [triggers]
-crons = ["50 12 * * 1-5", "0 13 * * 1-5"]
+crons = ["50 12 * * 1-5", "0 13-21 * * 1-5", "30 13,14 * * 1-5", "45 13,14 * * 1-5"]
 
 # The Actions-write-only GitHub token is a SECRET, set out-of-band, never here:
 #   wrangler secret put GH_DISPATCH_TOKEN

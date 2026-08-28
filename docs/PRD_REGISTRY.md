@@ -336,6 +336,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-316 | #277 | Opportunity 125% narrow-phone resilience | COMPLETE | [PRD-316](prd_history/PRD-316.md) |
 | PRD-317 | #278 | Mobile operator layout promotion | COMPLETE | [PRD-317](prd_history/PRD-317.md) |
 | PRD-318 | #279 | Answer-first operator dashboard | COMPLETE | [PRD-318](prd_history/PRD-318.md) |
+| PRD-319 | #282 | Reliable market cadence: CF clock primacy, PT slot identity, hourly cache | COMPLETE | [PRD-319](prd_history/PRD-319.md) |
 | PRD-320 | — | Price-bars sidecar producer (Lane A slice 1) | IN PROGRESS | [PRD-320](prd_history/PRD-320.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
