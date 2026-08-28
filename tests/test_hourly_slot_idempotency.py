@@ -172,9 +172,12 @@ def test_failed_send_does_not_persist_slot(tmp_path, monkeypatch, intraday_now):
     assert "suppressed" not in statuses
 
 
-def test_premarket_invocation_bypasses_gate_then_intraday_also_sends(
+def test_premarket_invocation_noops_then_intraday_sends(
     tmp_path, monkeypatch, premarket_now
 ):
+    """PRD-319 R3: 13:00Z = 06:00 PDT resolves NO routine slot ((6,0) retired --
+    the daily pipeline exclusively owns 06:00); the arrival audits
+    outside_routine_window and exits 0. The 14:00Z (07:00 PT) arrival sends."""
     monkeypatch.chdir(tmp_path)
     (tmp_path / "logs").mkdir()
 
@@ -197,7 +200,10 @@ def test_premarket_invocation_bypasses_gate_then_intraday_also_sends(
         assert alert_runner.main([]) == 0
 
     rows = _notification_rows(tmp_path)
-    assert [r["status"] for r in rows].count("success") == 2
+    statuses = [r["status"] for r in rows]
+    assert statuses.count("success") == 1
+    suppressed = next(r for r in rows if r["status"] == "suppressed")
+    assert suppressed["reason"] == "outside_routine_window"
 
 
 def test_persisted_slot_matches_canonical_slot(tmp_path, monkeypatch, intraday_now):
@@ -216,3 +222,71 @@ def test_persisted_slot_matches_canonical_slot(tmp_path, monkeypatch, intraday_n
     data = json.loads(slot_path.read_text(encoding="utf-8"))
     expected = canonical_slot_utc(intraday_now)
     assert data["slot_utc"] == expected.isoformat()
+
+
+# ---- PRD-319 R7: the at-least-once residual, pinned -------------------------
+
+def _stub_execute_send_ok_persist_lost(*, mode, run_date, notify_mode, slot_utc=None, **kwargs):
+    """Send succeeds but the post-send slot persistence is lost (save raised and
+    was swallowed, or the publish that carries the file failed): audit success,
+    do NOT persist. This is the ruled-accepted PRD-319 Q10 residual."""
+    from cuttingboard.output import write_notification_audit
+    write_notification_audit(
+        transport="telegram",
+        status="success",
+        alert_title="hourly",
+        attempted=True,
+        success=True,
+        state_key=slot_utc.isoformat() if slot_utc is not None else None,
+    )
+    return {"status": "SUCCESS", "suppressed": False}
+
+
+def test_prd319_send_success_persist_failure_resends_next_arrival(
+    tmp_path, monkeypatch
+):
+    """Documented bounded duplicate: transport success + persistence loss means
+    the queued twin for the SAME slot sends again. This pins today's
+    at-least-once semantic (no atomicity machinery exists or is added); if a
+    future change makes send+persist atomic, this test MUST be revisited."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "logs").mkdir()
+
+    first = datetime(2026, 5, 19, 13, 30, 0, tzinfo=timezone.utc)
+    twin = datetime(2026, 5, 19, 13, 40, 0, tzinfo=timezone.utc)
+
+    for now in (first, twin):
+        with (
+            patch("cuttingboard.alert_runner.datetime") as mock_dt,
+            patch("cuttingboard.runtime._execute_notify_run", _stub_execute_send_ok_persist_lost),
+        ):
+            mock_dt.now.return_value = now
+            mock_dt.side_effect = lambda *a, **k: datetime(*a, **k)
+            assert alert_runner.main([]) == 0
+
+    rows = _notification_rows(tmp_path)
+    assert [r["status"] for r in rows].count("success") == 2  # the bounded duplicate
+
+
+def test_prd319_send_success_persist_success_suppresses_twin(tmp_path, monkeypatch):
+    """The healthy-path half of the same seam: persistence lands, the twin
+    arrival for the same slot suppresses."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "logs").mkdir()
+
+    first = datetime(2026, 5, 19, 13, 30, 0, tzinfo=timezone.utc)
+    twin = datetime(2026, 5, 19, 13, 40, 0, tzinfo=timezone.utc)
+
+    for now in (first, twin):
+        with (
+            patch("cuttingboard.alert_runner.datetime") as mock_dt,
+            patch("cuttingboard.runtime._execute_notify_run", _stub_execute),
+        ):
+            mock_dt.now.return_value = now
+            mock_dt.side_effect = lambda *a, **k: datetime(*a, **k)
+            assert alert_runner.main([]) == 0
+
+    rows = _notification_rows(tmp_path)
+    statuses = [r["status"] for r in rows]
+    assert statuses.count("success") == 1
+    assert any(r.get("reason") == "suppressed_same_slot" for r in rows)
