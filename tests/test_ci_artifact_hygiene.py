@@ -861,3 +861,68 @@ def test_watchlist_artifact_not_restored_not_staged() -> None:  # PRD-311 R6
     assert "watchlist" not in restore
     commit = text[text.index("- name: Commit hourly artifacts"):text.index("- name: Push hourly artifacts")]
     assert "watchlist" not in commit[commit.index("git add"):]
+
+
+# --- PRD-319 R8: exact cron sets and dispatch shape are pinned ----------------
+# A silent cron edit (adding a peer clock, resurrecting a retired slot,
+# de-seasoning a fallback) must fail CI, not slip through as YAML noise.
+
+def _workflow_yaml(name: str) -> dict:
+    import yaml
+
+    return yaml.safe_load(
+        (REPO_ROOT / ".github" / "workflows" / name).read_text(encoding="utf-8")
+    )
+
+
+def test_prd319_pipeline_cron_set_exact() -> None:
+    wf = _workflow_yaml("cuttingboard.yml")
+    crons = sorted(t["cron"] for t in wf[True]["schedule"])
+    assert crons == sorted([
+        "50 12 * * 1-5",   # PRE cache warm (UTC-anchored)
+        "20 13 * * 1-5",   # OPEN delayed fallback, PDT season (06:20 PT)
+        "20 14 * * 1-5",   # OPEN delayed fallback, PST season (06:20 PT)
+        "30 23 * * 0",     # Sunday regime report
+    ])
+
+
+def test_prd319_hourly_cron_set_exact() -> None:
+    wf = _workflow_yaml("hourly_alert.yml")
+    crons = sorted(t["cron"] for t in wf[True]["schedule"])
+    assert crons == sorted([
+        "40 13 * * 1-5",   # 06:30 heartbeat, PDT season (06:40 PT)
+        "40 14 * * 1-5",   # 06:30 heartbeat, PST season (06:40 PT)
+        "55 13 * * 1-5",   # 06:45 heartbeat, PDT season (06:55 PT)
+        "55 14 * * 1-5",   # 06:45 heartbeat, PST season (06:55 PT)
+        "10 14-21 * * 1-5",  # hourly heartbeats (07:10-13:10 PT per season)
+    ])
+
+
+def test_prd319_hourly_dispatch_inputs_shape() -> None:
+    wf = _workflow_yaml("hourly_alert.yml")
+    inputs = wf[True]["workflow_dispatch"]["inputs"]
+    assert set(inputs) == {"kind", "slot"}
+    assert inputs["kind"]["default"] == "forced"
+    assert sorted(inputs["kind"]["options"]) == ["forced", "routine"]
+    assert inputs["slot"]["default"] == ""
+
+
+def test_prd319_hourly_heartbeats_carry_explicit_identity() -> None:
+    text = (REPO_ROOT / ".github" / "workflows" / "hourly_alert.yml").read_text(
+        encoding="utf-8"
+    )
+    # The four 06:xx heartbeat crons map to explicit intended slots; the
+    # hourly heartbeats keep inference (no slot literal for them).
+    assert '"40 13 * * 1-5"|"40 14 * * 1-5"' in text
+    assert '--routine-slot "06:30"' in text
+    assert '"55 13 * * 1-5"|"55 14 * * 1-5"' in text
+    assert '--routine-slot "06:45"' in text
+    assert "--force-slot" in text  # manual/forced path preserved
+
+
+def test_prd319_hourly_has_ohlcv_cache_restore() -> None:
+    text = (REPO_ROOT / ".github" / "workflows" / "hourly_alert.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "actions/cache/restore@v4" in text
+    assert "path: data/cache" in text
