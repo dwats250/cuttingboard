@@ -4,10 +4,14 @@
 STATUS: PROVISIONAL MATERIAL PACKET — 2026-08-28 — DESIGN ONLY
 AUTHORIZES NO IMPLEMENTATION, NO PRD NUMBER, NO PRODUCER BUILD, NO CONSUMER
 BUILD, NO GATE A, NO MERGE.
-GOV-2 PACKET-REVIEW CYCLE: EVENT 1 COMPLETE (DESIGN INCOMPLETE at 3a06ed6 —
-  CODEX_EVENT_1_REVIEW_2026-08-28.md; the ONE consolidated correction is
-  APPLIED in this revision — see ## CORRECTION CYCLE).
-AWAITING: Event-2 exact-corrected-head confirmation (GOV-2 sec7).
+GOV-2 PACKET-REVIEW CYCLE: EVENT 1 COMPLETE (DESIGN INCOMPLETE at 3a06ed6;
+  the ONE consolidated correction APPLIED at 64676f5 — ## CORRECTION CYCLE).
+  EVENT 2 ATTEMPT 1 (against 64676f5): NOT CONFIRMED on four bounded
+  residuals (F1 idempotence overstated, F3 stale-fallback bound, F6
+  import-time path binding, F7 evidence reproducibility); F8 PASS — no new
+  material class. The bounded confirmation repair is applied in THIS
+  revision (## CONFIRMATION REPAIR), per the GEX-2 packet-cycle precedent.
+AWAITING: Event-2 ATTEMPT 2 exact-corrected-head confirmation (GOV-2 sec7).
 Ceilings below are ESTIMATES (GOV-2 sec5), not constraints.
 ```
 
@@ -191,19 +195,32 @@ ET-session dates exactly as indexed by the cache.)
   sidecar fresh each run; NEITHER restores it (it is regenerated state, not
   read-back state). The publish overlay full-overwrites it
   (`tools/ci_push_artifacts.sh:97-115`), and after a non-fast-forward retry
-  an older delayed run can overwrite a newer publish. This race is made
-  benign by CONTENT IDEMPOTENCE: under the completed-session rule the bar
-  content for a given symbol is a pure function of
-  `most_recent_completed_session_date`, so any two same-session runs write
-  identical `bars`/`as_of`; an out-of-order overwrite can regress only
-  `generated_at`, bounded by one session. The READER therefore treats
-  per-symbol `as_of` as the truth clock and renders it on the chart
-  ("bars through <as_of>"); `generated_at` is provenance only and is never
-  compared against the page clock (the existing PRD-250 board banner owns
-  page-age staleness). Cross-session overlap (a delayed pre-open run
+  an older delayed run can overwrite a newer publish. The race guarantee is
+  PER-SYMBOL CONTENT IDEMPOTENCE (stated precisely per Event-2 F1: whole-
+  snapshot idempotence is FALSE once partial snapshots are legal): for any
+  symbol PRESENT in a snapshot, its `bars`/`as_of` are a pure function of
+  `most_recent_completed_session_date`, so an overwrite can never replace a
+  present symbol's bars with different bars for the same session. What an
+  out-of-order overwrite CAN do is (a) regress `generated_at` (provenance
+  only, never compared to the page clock — the PRD-250 banner owns page
+  age), and (b) replace a complete snapshot with a partial one, dropping a
+  symbol whose fetch failed in the older run: that symbol's chart degrades
+  to the ladder for at most one publish cycle and self-heals on the next
+  successful run. No state can render WRONG bars; the worst outcome is a
+  visibly absent chart. Cross-session overlap (a delayed pre-open run
   overwriting after the boundary) shifts `as_of` back by exactly one
-  session and is visibly labelled by the same `as_of` caption — honest,
+  session and is visibly labelled by the `as_of` caption plus rejected by
+  the reader guard below when it ever exceeds the age bound — honest,
   bounded, no new locking machinery.
+- **Reader age guard (added per Event-2 F3):** the one-session bound holds
+  only while the pipeline runs; a frozen pipeline leaves the tracked
+  fallback available indefinitely. The RENDERER therefore refuses bars
+  whose `as_of` is more than 5 calendar days older than the render clock
+  (the existing `now` parameter — no new clock source; 5 days spans
+  weekends and holiday gaps without a session calendar): stale-beyond-guard
+  is treated exactly as bars-absent and degrades to the ladder. The chart
+  never draws a candle series older than the guard, whatever the sidecar
+  file says.
 - **Per-symbol validation & partial snapshots (Event-1 F3):** the writer
   validates each frame's columns and row shape; a failing symbol is OMITTED
   from `symbols` (never partially written), and a partial-symbol snapshot
@@ -340,10 +357,13 @@ assertions), `M tests/test_runtime_package_surface.py` (facade re-export),
 `M docs/SCHEMA_MAP.md`. (`cuttingboard.yml` needs no edit: its blanket
 `git add -f logs/` already stages the new file — verified against
 `cuttingboard.yml:511-530`; the hygiene test change is what pins this.)
-The `LOGS_DIR`-derived path means `tests/test_notification_ownership.py` /
-`tests/test_prd300_delivery_backstop.py` need no isolation edits; if
-implementation proves otherwise they enter FILES by PRD amendment before
-Gate A, not silently.
+`M tests/test_notification_ownership.py`, `M tests/test_prd300_delivery_backstop.py`
+(corrected per Event-2 F6: a module-level `PRICE_BARS_PATH = LOGS_DIR / ...`
+binds at import time and does NOT follow a later `LOGS_DIR` monkeypatch, so
+both full-live harnesses must redirect `PRICE_BARS_PATH` explicitly, exactly
+as they already redirect `TREND_STRUCTURE_PATH` —
+`tests/test_notification_ownership.py:54-71`,
+`tests/test_prd300_delivery_backstop.py:40-51`).
 
 PRD-C (consumer): `A cuttingboard/delivery/setup_chart.py`,
 `M cuttingboard/delivery/dashboard_renderer.py`, `A tests/test_setup_chart.py`,
@@ -379,8 +399,10 @@ facts) — owner charge allows either.
 fixed four contract choices; each is severable if the ruling prefers
 otherwise: (a) two co-producers + content idempotence + `as_of` truth clock,
 instead of a single-publisher lock; (b) completed-session authority =
-`most_recent_completed_session_date(generated_at)`; (c) no new chart
-staleness threshold — `as_of` caption + the PRD-250 banner; (d) invalid
+`most_recent_completed_session_date(generated_at)`; (c) chart freshness =
+`as_of` caption + a reader age guard (bars older than 5 calendar days vs
+the renderer's `now` degrade to the ladder; page-age staleness stays with
+the PRD-250 banner); (d) invalid
 `current_price` keeps PRD-226 suppression (no new sentinel).
 **Q4 — Anchor emphasis:** the charge suggests emphasizing "the specific
 anchor driving the setup". No structured per-setup anchor field exists
@@ -460,3 +482,30 @@ this single revision:
 No new material class was introduced by the correction (the carrier
 participants enumerated in F1 were present in the reviewed design's
 mechanism; the correction names and designs for them).
+
+## CONFIRMATION REPAIR (bounded; after Event-2 ATTEMPT 1 NOT CONFIRMED)
+
+Event-2 attempt 1 (`CODEX_EVENT_2_CONFIRMATION_ATTEMPT_1_2026-08-28.md`,
+against `64676f5`) confirmed F2/F4/F5/F8 and returned four bounded
+residuals, each repaired in this revision:
+- **F1 residual:** the whole-snapshot idempotence claim was overstated once
+  partial snapshots are legal. sec3 now states the guarantee precisely as
+  PER-SYMBOL content idempotence and names the real worst case (a symbol
+  drops to ladder-degrade for one publish cycle, self-healing; wrong bars
+  are impossible).
+- **F3 residual:** the one-session freshness bound was false under a frozen
+  pipeline. sec3 adds the READER AGE GUARD: `as_of` older than 5 calendar
+  days versus the renderer's existing `now` is treated as bars-absent
+  (ladder). Also folded into ruling question Q5(c).
+- **F6 residual:** import-time binding means `LOGS_DIR` patching alone does
+  not isolate the new path. sec7's PRD-P cone now includes
+  `tests/test_notification_ownership.py` and
+  `tests/test_prd300_delivery_backstop.py` with explicit `PRICE_BARS_PATH`
+  redirection.
+- **F7 residual:** evidence now reproduces from a fresh checkout: the bar
+  fixture is COMMITTED (`EVIDENCE_BARS_FIXTURE_2026-08-28.json`), the
+  generator loads it via a path relative to its own file (parquet only via
+  an explicit `--parquet` flag), and regeneration was verified
+  BYTE-IDENTICAL to the committed render; the three inspected viewport
+  screenshots are committed
+  (`EVIDENCE_SCREENSHOT_{360,390,430}_2026-08-28.png`).

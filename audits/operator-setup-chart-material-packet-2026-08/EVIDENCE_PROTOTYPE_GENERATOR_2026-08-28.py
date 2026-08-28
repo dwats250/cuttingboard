@@ -1,17 +1,20 @@
-"""PRD-A prototype: static SVG daily-candle setup chart for Cuttingboard.
+"""Operator setup chart prototype generator (MATERIAL-packet evidence).
 
-Design study only — reads real parquet bars from the repo cache, derives demo
-levels, and emits standalone HTML pages for phone-width screenshots.
+Design study only. Reproducible from a fresh checkout: bars load from the
+committed EVIDENCE_BARS_FIXTURE_2026-08-28.json beside this file (extracted
+from the local parquet cache; hashes in packet sec12). If the gitignored
+parquet cache happens to exist, it may be used instead via --parquet.
+Run:  python EVIDENCE_PROTOTYPE_GENERATOR_2026-08-28.py <outdir>
 """
 from __future__ import annotations
 
-import math
+import json
 import pathlib
 import sys
 
-import pandas as pd
-
-REPO = pathlib.Path("/home/dustin/Projects/cuttingboard")
+HERE = pathlib.Path(__file__).resolve().parent
+REPO = HERE.parent.parent
+FIXTURE = HERE / "EVIDENCE_BARS_FIXTURE_2026-08-28.json"
 OUT = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "proto_out")
 OUT.mkdir(parents=True, exist_ok=True)
 
@@ -180,17 +183,30 @@ def build_setup_chart_svg(
 
 
 # ---------------------------------------------------------------- demo build
-def load_bars(sym: str, n: int = 32) -> tuple[list, pd.DataFrame]:
-    df = pd.read_parquet(REPO / f"data/cache/{sym}_ohlcv.parquet").tail(n + 1)
-    bars = [
-        (idx.strftime("%b %d"), round(r.Open, 2), round(r.High, 2), round(r.Low, 2), round(r.Close, 2))
-        for idx, r in df.iterrows()
-    ]
-    return bars, df
+def load_bars(sym: str, n: int = 32):
+    """Committed fixture by default; optional parquet path for local re-derivation."""
+    if "--parquet" in sys.argv:
+        import pandas as pd
+        df = pd.read_parquet(REPO / f"data/cache/{sym}_ohlcv.parquet").tail(n + 1)
+        rows = [
+            (idx.strftime("%Y-%m-%d"), round(r.Open, 2), round(r.High, 2), round(r.Low, 2), round(r.Close, 2))
+            for idx, r in df.iterrows()
+        ]
+    else:
+        raw = json.loads(FIXTURE.read_text())["symbols"][sym][-(n + 1):]
+        rows = [(d, o, h, l, c) for d, o, h, l, c, _v in raw]
+    import datetime as _dt
+    bars = [(_dt.date.fromisoformat(d).strftime("%b %d"), o, h, l, c) for d, o, h, l, c in rows]
+    closes = [c for _d, _o, _h, _l, c in rows]
+    return bars, closes
 
 
-def ema(df: pd.DataFrame, n: int) -> float:
-    return float(df["Close"].ewm(span=n, adjust=False).mean().iloc[-1])
+def ema(closes, n: int) -> float:
+    k = 2.0 / (n + 1)
+    v = closes[0]
+    for c in closes[1:]:
+        v = c * k + v * (1 - k)
+    return v
 
 
 def page(title: str, charts: list[tuple[str, str, str]]) -> str:
@@ -213,8 +229,8 @@ def page(title: str, charts: list[tuple[str, str, str]]) -> str:
 if __name__ == "__main__":
     spy_bars, spy = load_bars("SPY")
     qqq_bars, qqq = load_bars("QQQ")
-    now_spy = round(float(spy["Close"].iloc[-1]) + 1.4, 2)   # demo live tick above last close
-    now_qqq = round(float(qqq["Close"].iloc[-1]) - 2.1, 2)
+    now_spy = round(spy[-1] + 1.4, 2)   # demo live tick above last close
+    now_qqq = round(qqq[-1] - 2.1, 2)
 
     # variant 1: bullish SPY setup — entry above, stop below, EMA structure + fibs
     fibs_spy = {"0.382": 747.95, "0.5": 744.11, "0.618": 740.27}
@@ -222,8 +238,8 @@ if __name__ == "__main__":
         spy_bars[-32:], now_spy,
         entry=round(now_spy * 1.004, 2), stop=round(now_spy * 0.988, 2),
         zones=[("EMA9", ema(spy, 9)), ("EMA21", ema(spy, 21)), ("EMA50", ema(spy, 50)),
-               ("PRIOR_HIGH", round(float(spy["High"].iloc[-2]), 2)),
-               ("PRIOR_LOW", round(float(spy["Low"].iloc[-2]), 2))],
+               ("PRIOR_HIGH", spy_bars[-2][2]),
+               ("PRIOR_LOW", spy_bars[-2][3])],
         fibs=fibs_spy,
     )
     # variant 2: dense-level case + ORB band + VWAP
@@ -233,8 +249,8 @@ if __name__ == "__main__":
         zones=[("VWAP", round(now_qqq * 0.998, 2)),
                ("ORB_HIGH", round(now_qqq * 1.003, 2)), ("ORB_LOW", round(now_qqq * 0.994, 2)),
                ("EMA9", ema(qqq, 9)), ("EMA21", ema(qqq, 21)), ("EMA50", ema(qqq, 50)),
-               ("PRIOR_HIGH", round(float(qqq["High"].iloc[-2]), 2)),
-               ("PRIOR_LOW", round(float(qqq["Low"].iloc[-2]), 2))],
+               ("PRIOR_HIGH", qqq_bars[-2][2]),
+               ("PRIOR_LOW", qqq_bars[-2][3])],
         fibs={"0.382": round(now_qqq * 0.991, 2), "0.5": round(now_qqq * 0.987, 2), "0.618": round(now_qqq * 0.983, 2)},
     )
     # variant 3: operator-locked (neutralized) view of variant 1
