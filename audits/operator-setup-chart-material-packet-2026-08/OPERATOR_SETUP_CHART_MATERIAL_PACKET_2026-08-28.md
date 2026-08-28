@@ -6,12 +6,14 @@ AUTHORIZES NO IMPLEMENTATION, NO PRD NUMBER, NO PRODUCER BUILD, NO CONSUMER
 BUILD, NO GATE A, NO MERGE.
 GOV-2 PACKET-REVIEW CYCLE: EVENT 1 COMPLETE (DESIGN INCOMPLETE at 3a06ed6;
   the ONE consolidated correction APPLIED at 64676f5 — ## CORRECTION CYCLE).
-  EVENT 2 ATTEMPT 1 (against 64676f5): NOT CONFIRMED on four bounded
-  residuals (F1 idempotence overstated, F3 stale-fallback bound, F6
-  import-time path binding, F7 evidence reproducibility); F8 PASS — no new
-  material class. The bounded confirmation repair is applied in THIS
-  revision (## CONFIRMATION REPAIR), per the GEX-2 packet-cycle precedent.
-AWAITING: Event-2 ATTEMPT 2 exact-corrected-head confirmation (GOV-2 sec7).
+  EVENT 2 ATTEMPT 1 (against 64676f5): NOT CONFIRMED (F1/F3/F6/F7; F8 PASS);
+  repair applied at f1abe01. ATTEMPT 2 (against f1abe01): F6 PASS; NOT
+  CONFIRMED on three narrowed residuals — F1 "one publish cycle" wording,
+  F3 internal sec4/sec10 contradiction with the new age guard, F7 the bar
+  fixture silently skipped by the global `*.json` gitignore and absent from
+  HEAD. All three repaired in THIS revision (## CONFIRMATION REPAIR,
+  attempt-2 addendum); the fixture is now force-added and tracked.
+AWAITING: Event-2 ATTEMPT 3 exact-corrected-head confirmation (GOV-2 sec7).
 Ceilings below are ESTIMATES (GOV-2 sec5), not constraints.
 ```
 
@@ -205,9 +207,12 @@ ET-session dates exactly as indexed by the cache.)
   only, never compared to the page clock — the PRD-250 banner owns page
   age), and (b) replace a complete snapshot with a partial one, dropping a
   symbol whose fetch failed in the older run: that symbol's chart degrades
-  to the ladder for at most one publish cycle and self-heals on the next
-  successful run. No state can render WRONG bars; the worst outcome is a
-  visibly absent chart. Cross-session overlap (a delayed pre-open run
+  to the ladder and stays degraded until the next publish whose run
+  successfully fetches that symbol — one cycle in the common case, longer
+  under repeated per-symbol fetch failure (bounded by fetch health, not by
+  cycle count). No state can render WRONG bars; the worst outcome is a
+  visibly absent chart, and the age guard below caps how old a PRESENT
+  symbol's bars can ever render. Cross-session overlap (a delayed pre-open run
   overwriting after the boundary) shifts `as_of` back by exactly one
   session and is visibly labelled by the `as_of` caption plus rejected by
   the reader guard below when it ever exceeds the age bound — honest,
@@ -282,10 +287,13 @@ renderer supplies already-loaded facts (the GEX-card assembly pattern).
 - **Degradation chain (never fabricate; corrected per Event-1 F5):** bars
   present -> candle chart; sidecar absent/unreadable or symbol omitted ->
   the existing `_render_level_diagram` ladder (retained as the fallback
-  surface, no longer the primary). There is NO separate chart-staleness
-  threshold: the completed-session rule means the sidecar is at most one
-  session behind by construction, the chart captions its own `as_of`, and
-  page-age staleness stays owned by the PRD-250 banner. No valid
+  surface, no longer the primary). Chart freshness has exactly ONE
+  threshold — the sec3 reader age guard (`as_of` > 5 calendar days vs the
+  renderer's `now` -> treated as bars-absent -> ladder): while the pipeline
+  runs, the completed-session rule keeps bars at most one session behind;
+  if it freezes, the guard caps what can ever be drawn. The chart captions
+  its own `as_of`; page-age staleness stays owned by the PRD-250 banner.
+  No valid
   `current_price` -> the chart is SUPPRESSED exactly as PRD-226 suppresses
   the ladder today (the candidate-card caller gates on a valid price,
   `dashboard_renderer.py:2141-2164`; the in-function sentinel remains the
@@ -414,7 +422,9 @@ its own MATERIAL intake if ever wanted. No text-mining of narratives.
 
 - Stale sidecar on a frozen pipeline: mitigated by provenance (`generated_at`
   + per-symbol `as_of` rendered as the chart's own clock) and the existing
-  staleness banner; completed-bars rule bounds the lie to "yesterday".
+  staleness banner; while the pipeline runs, the completed-bars rule keeps
+  bars at most one session behind, and under a frozen pipeline the sec3
+  reader age guard (5 calendar days) caps what can ever be drawn.
 - yfinance daily-frame shape drift: writer validates columns and drops the
   symbol (fail-quiet per snapshot precedent) rather than writing garbage.
 - Renderer size: +~50 KB sidecar, +~10-15 KB SVG per full chart — well
@@ -509,3 +519,18 @@ residuals, each repaired in this revision:
   BYTE-IDENTICAL to the committed render; the three inspected viewport
   screenshots are committed
   (`EVIDENCE_SCREENSHOT_{360,390,430}_2026-08-28.png`).
+
+Attempt-2 addendum (residuals from
+`CODEX_EVENT_2_CONFIRMATION_ATTEMPT_2_2026-08-28.md`, against `f1abe01`):
+- **F1 wording:** "at most one publish cycle" corrected — omission persists
+  until the next successful per-symbol fetch (bounded by fetch health, not
+  cycle count); the invariants that matter are unchanged (wrong bars
+  impossible; absence visible; the age guard caps a present symbol's age).
+- **F3 consistency:** sec4 and sec10 rewritten to name the sec3 age guard
+  as the ONE chart-freshness threshold; the one-session bound is now
+  stated as conditional on a running pipeline everywhere it appears.
+- **F7 staging:** the fixture was silently excluded by `.gitignore:54`
+  (`*.json`) — exactly the silent-skip class the semantic-failure
+  invariants warn about; it is now `git add -f`-tracked, and PRD-P's
+  hygiene-test work must remember the same force-add requirement applies
+  to `logs/price_bars_snapshot.json`.
