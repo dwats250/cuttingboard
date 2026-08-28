@@ -4,8 +4,10 @@
 STATUS: PROVISIONAL MATERIAL PACKET — 2026-08-28 — DESIGN ONLY
 AUTHORIZES NO IMPLEMENTATION, NO PRD NUMBER, NO PRODUCER BUILD, NO CONSUMER
 BUILD, NO GATE A, NO MERGE.
-GOV-2 PACKET-REVIEW CYCLE: NOT STARTED. AWAITING: Event-1 independent Codex
-review (GOV-2 sec2 step 3).
+GOV-2 PACKET-REVIEW CYCLE: EVENT 1 COMPLETE (DESIGN INCOMPLETE at 3a06ed6 —
+  CODEX_EVENT_1_REVIEW_2026-08-28.md; the ONE consolidated correction is
+  APPLIED in this revision — see ## CORRECTION CYCLE).
+AWAITING: Event-2 exact-corrected-head confirmation (GOV-2 sec7).
 Ceilings below are ESTIMATES (GOV-2 sec5), not constraints.
 ```
 
@@ -111,14 +113,24 @@ supporting text."
    `structure`, `setup_state`, narrative `invalidation` /`trade_framing`.
    Numeric entry/stop come only from the contract maps
    (`contract_entry_map` / `contract_stop_map`, already renderer inputs).
-   Hourly maps currently carry EMA zones only (no intraday metrics on the
-   hourly path — `runtime/__init__.py:566`), fibs on daily maps.
-5. **Sidecar transport precedent.** `logs/trend_structure_snapshot.json` is
-   git-tracked as a fallback, refreshed by both paths, published via the
-   workflow force-add allowlist, and restored to hourly jobs by
-   `tools/ci_restore_publish_state.sh` (PRD-194 machinery,
-   `.github/workflows/hourly_alert.yml:90,194`). The new sidecar rides the
-   identical mechanism.
+   Hourly-map level content is PATH/STATE DEPENDENT (Event-1 F4): with no
+   candidates the hourly map carries EMA zones only (no intraday metrics on
+   the hourly path — `runtime/__init__.py:566`); when hourly qualification
+   fetches candidate OHLCV (`runtime/__init__.py:605-609,628-632`) the
+   primary-symbol frames reach `build_market_map` (`:736-748`) and fibs are
+   derived (`market_map.py:159-175,359-384`), so an hourly candidate can
+   carry fibs.
+5. **Sidecar transport precedent (corrected per Event-1 F1).**
+   `logs/trend_structure_snapshot.json` is git-tracked as a fallback,
+   CO-PRODUCED FRESH by both paths (it is NOT in either workflow's
+   `ci_restore_publish_state.sh` restore list — restore is for read-back
+   state, which a regenerated snapshot does not need), force-add staged by
+   the hourly (`.github/workflows/hourly_alert.yml:185-197`) and covered by
+   the daily's blanket `git add -f logs/` (`cuttingboard.yml:511-530`), then
+   full-overwritten onto the publish tip by `tools/ci_push_artifacts.sh`
+   (PRD-194). The new sidecar rides THIS mechanism: co-produced, never
+   restored. The resulting two-producer overwrite race is designed for in
+   sec3 (content idempotence per completed session + `as_of` truth clock).
 6. **Provider.** yfinance only (`cuttingboard/config.py:284-293`). No new
    provider is necessary; the charge's STOP condition does not fire.
 7. **Existing chart surface.** `_render_level_diagram`
@@ -136,38 +148,87 @@ Display-only, read-only-sidecar-by-default (VISION), one writer, one reader.
 {
   "schema_version": 1,
   "generated_at": "<UTC ISO of the writing run>",
-  "source": {"mode": "hourly|live", "provider": "yfinance", "interval": "1d"},
+  "source": {
+    "producer": "hourly|daily",
+    "provider": "yfinance", "interval": "1d", "adjusted": true
+  },
+  "columns": ["session_date", "open", "high", "low", "close", "volume"],
   "symbols": {
     "SPY": {
-      "as_of": "<date of last completed bar>",
+      "as_of": "<session date of last completed bar written>",
       "bars": [["2026-08-26", 764.73, 767.35, 763.93, 766.08, 28459700], ...]
     }, ...
   }
 }
 ```
 
+(Event-1 F3 dispositions baked in: `source.producer` names the writing PATH
+— hourly vs daily — because runtime `mode` cannot distinguish them
+(`runtime/_constants.py:26-29`); `adjusted: true` records the
+`auto_adjust=True` basis of `fetch_ohlcv` (`ingestion.py:389-402`);
+`columns` pins the positional order; `session_date` values are naive
+ET-session dates exactly as indexed by the cache.)
+
 - **Writer:** one small function beside `_write_trend_structure_snapshot`
   / `_write_watchlist_snapshot` (`runtime/__init__.py:2469`, `:787`),
-  called at BOTH existing seams (`:778` hourly, `:1493` daily) with the
-  `history` frames already in hand. Serialization only — no new fetch, no
+  called at BOTH existing seams (`:778` hourly, `:1493` daily). Per Event-1
+  F4: each seam binds `_collect_trend_structure_history(ohlcv)` ONCE to a
+  local and threads the SAME object into the trend writer and the bars
+  writer — never a second collection (which could repeat failed fetches and
+  void the zero-new-call property). Serialization only — no new fetch, no
   new provider, no decision-path read.
-- **Truthfulness rule:** only COMPLETED daily bars are written (any row
-  dated the current trading day is dropped). The trading-day-keyed parquet
-  cache can hold a stale partial bar for today; writing completed bars only
-  makes the series deterministic and honest. "Where is price now" is
-  answered by the existing hourly-fresh `market_map.current_price` NOW
-  line, never by a synthesized/stale candle. **Never synthesize OHLC.**
+- **Completed-session rule (corrected per Event-1 F2):** the writer retains
+  exactly the rows whose session date is <= `most_recent_completed_session_date(generated_at)`
+  — the EXISTING market-session authority the cache itself is keyed by
+  (`cuttingboard/ingestion.py:147-167`). It does not use "!= today": the
+  normal fetch path (`end=<current UTC date>`, exclusive —
+  `ingestion.py:383-396`) already yields completed sessions only, and a
+  today-dated row supplied after the close would be a legitimately
+  completed session that must be kept. "Where is price now" is answered by
+  the existing hourly-fresh `market_map.current_price` NOW line, never by a
+  synthesized candle. **Never synthesize OHLC.**
+- **Two-producer ownership (Event-1 F1):** BOTH workflows co-produce the
+  sidecar fresh each run; NEITHER restores it (it is regenerated state, not
+  read-back state). The publish overlay full-overwrites it
+  (`tools/ci_push_artifacts.sh:97-115`), and after a non-fast-forward retry
+  an older delayed run can overwrite a newer publish. This race is made
+  benign by CONTENT IDEMPOTENCE: under the completed-session rule the bar
+  content for a given symbol is a pure function of
+  `most_recent_completed_session_date`, so any two same-session runs write
+  identical `bars`/`as_of`; an out-of-order overwrite can regress only
+  `generated_at`, bounded by one session. The READER therefore treats
+  per-symbol `as_of` as the truth clock and renders it on the chart
+  ("bars through <as_of>"); `generated_at` is provenance only and is never
+  compared against the page clock (the existing PRD-250 board banner owns
+  page-age staleness). Cross-session overlap (a delayed pre-open run
+  overwriting after the boundary) shifts `as_of` back by exactly one
+  session and is visibly labelled by the same `as_of` caption — honest,
+  bounded, no new locking machinery.
+- **Per-symbol validation & partial snapshots (Event-1 F3):** the writer
+  validates each frame's columns and row shape; a failing symbol is OMITTED
+  from `symbols` (never partially written), and a partial-symbol snapshot
+  is LEGAL — the chart for an omitted symbol degrades per sec4 while other
+  symbols chart normally. All retained symbols in one snapshot share the
+  same completed-session authority, so mixed `as_of` values can differ only
+  via per-symbol fetch failure, which omission already excludes.
 - **Window:** last 40 completed bars per symbol (chart draws ~30; small
   margin for fixtures). ~6-9 KB/symbol, ~50 KB total.
 - **Failure semantics:** writer failure is caught-and-logged exactly like
   the trend snapshot writer (PRD-278 R8 pattern); the renderer's chart
-  degrades honestly (sec4) — a missing/stale sidecar can never fail the run
-  or fabricate a chart.
-- **Transport:** tracked fallback copy in `logs/`, force-add allowlist +
-  publish-state restore, byte-for-byte the trend-snapshot pattern (sec2.5).
+  degrades honestly (sec4) — a missing sidecar can never fail the run or
+  fabricate a chart.
+- **Transport:** tracked fallback copy in `logs/`, added to the hourly
+  force-add allowlist and covered by the daily's `git add -f logs/`;
+  NOT added to any restore list (sec2.5).
 - **Renderer input:** new optional `price_bars_snapshot` parameter loaded in
   the existing `_load_*` style with source provenance, exactly like
   `trend_structure_snapshot`.
+- **Path constant:** `PRICE_BARS_PATH` defined in
+  `cuttingboard/runtime/_constants.py` DERIVED FROM `LOGS_DIR` (the
+  existing pattern), so the full-live test harnesses that patch `LOGS_DIR`
+  / sidecar paths (`tests/test_notification_ownership.py:54-71`,
+  `tests/test_prd300_delivery_backstop.py:40-51`) isolate it; the facade
+  re-export is guarded by `tests/test_runtime_package_surface.py`.
 
 ## sec4 — Chart architecture (consumer)
 
@@ -201,12 +262,19 @@ renderer supplies already-loaded facts (the GEX-card assembly pattern).
 - **Candidate presentation:** highest-priority visible setup renders one
   full-width chart; lower cards keep their native `<details>` disclosure
   (chart inside), so phones never stack three full charts.
-- **Degradation chain (never fabricate):** bars present -> candle chart;
-  sidecar absent/unreadable/stale-beyond-threshold or symbol missing ->
+- **Degradation chain (never fabricate; corrected per Event-1 F5):** bars
+  present -> candle chart; sidecar absent/unreadable or symbol omitted ->
   the existing `_render_level_diagram` ladder (retained as the fallback
-  surface, no longer the primary); no valid `current_price` -> the existing
-  "Chart unavailable — no price data" sentinel. A compact text level table
-  below the chart is available as an optional detail (ruling question Q3).
+  surface, no longer the primary). There is NO separate chart-staleness
+  threshold: the completed-session rule means the sidecar is at most one
+  session behind by construction, the chart captions its own `as_of`, and
+  page-age staleness stays owned by the PRD-250 banner. No valid
+  `current_price` -> the chart is SUPPRESSED exactly as PRD-226 suppresses
+  the ladder today (the candidate-card caller gates on a valid price,
+  `dashboard_renderer.py:2141-2164`; the in-function sentinel remains the
+  unreachable belt-and-suspenders guard it already is). No new sentinel
+  presentation is introduced. A compact text level table below the chart is
+  available as an optional detail (ruling question Q3).
 - **Geometry:** 358x232 viewBox, `width="100%"` + `max-width`, right gutter
   78px. Verified in the prototype: no horizontal overflow at 360/390/430
   (viewBox scaling absorbs the 360px case); labels legible at 390x844.
@@ -217,12 +285,26 @@ levels: bullish setup, dense-levels + ORB band, operator-locked
 (neutralized), and no-contract observation. Screenshots inspected at
 360/390/430; gutter declutter is deterministic and height-aware.
 
-## sec5 — Consumer enumeration and falsifiers
+## sec5 — Carrier-participant enumeration and falsifiers (corrected per Event-1 F1)
 
-Consumers of the NEW sidecar after this design: exactly one —
-`dashboard_renderer.py` via the new loader (plus humans reading the file).
-Falsifier: `rg -l "price_bars_snapshot" cuttingboard/ tools/ scripts/ ui/`
-returns only the writer, the loader, and their tests.
+Participants in the NEW carrier after this design — the full set, not just
+the semantic reader:
+1. Producer A: hourly runtime seam (`runtime/__init__.py:778` block);
+2. Producer B: daily runtime seam (`runtime/__init__.py:1493` block);
+3. Transport stage sites: hourly force-add allowlist
+   (`.github/workflows/hourly_alert.yml:185-197`) + daily blanket
+   `git add -f logs/` (`cuttingboard.yml:511-530`);
+4. Publish overlay: `tools/ci_push_artifacts.sh` full-overwrite semantics;
+5. Guard tests: `tests/test_ci_artifact_hygiene.py` (asserts the exact
+   staged-artifact and restore sets — MUST be updated by PRD-P);
+6. Semantic reader: `dashboard_renderer.py` via the new loader (the only
+   consumer of the CONTENT); plus humans reading the file.
+NOT a participant: either workflow's `ci_restore_publish_state.sh` list
+(co-produced state is never restored).
+Falsifier: `rg -l "price_bars_snapshot|PRICE_BARS_PATH" cuttingboard/ tools/
+scripts/ ui/ .github/ tests/` returns exactly the writer, the constants
+module and facade, the loader, the hourly workflow allowlist, and their
+tests — nothing else.
 
 Consumers of the REPLACED surface (`_render_level_diagram`): exactly one
 call site (`dashboard_renderer.py:2171`, inside `_render_candidate_card`);
@@ -247,22 +329,35 @@ tests per the semantic-failure invariants.
 
 ## sec7 — FILES cones (estimates)
 
-PRD-P (producer): `M cuttingboard/runtime/__init__.py`,
-`A logs/price_bars_snapshot.json` (tracked fallback),
-`M .github/workflows/hourly_alert.yml`, `M .github/workflows/cuttingboard.yml`
-(force-add/restore lists), `M tests/test_runtime_sidecars.py` (or the
-existing runtime snapshot-test home), `M docs/SCHEMA_MAP.md`.
+PRD-P (producer; corrected per Event-1 F6): `M cuttingboard/runtime/__init__.py`,
+`M cuttingboard/runtime/_constants.py` (`PRICE_BARS_PATH` derived from
+`LOGS_DIR`), `A logs/price_bars_snapshot.json` (tracked fallback),
+`M .github/workflows/hourly_alert.yml` (force-add allowlist; NO restore-list
+change), `M tests/test_ci_artifact_hygiene.py` (staged-artifact set
+assertions), `M tests/test_runtime_package_surface.py` (facade re-export),
+`A tests/test_price_bars_sidecar.py` (writer tests, mirroring
+`tests/test_watchlist_sidecar.py` / `tests/test_runtime_trend_structure_refresh.py`),
+`M docs/SCHEMA_MAP.md`. (`cuttingboard.yml` needs no edit: its blanket
+`git add -f logs/` already stages the new file — verified against
+`cuttingboard.yml:511-530`; the hygiene test change is what pins this.)
+The `LOGS_DIR`-derived path means `tests/test_notification_ownership.py` /
+`tests/test_prd300_delivery_backstop.py` need no isolation edits; if
+implementation proves otherwise they enter FILES by PRD amendment before
+Gate A, not silently.
 
 PRD-C (consumer): `A cuttingboard/delivery/setup_chart.py`,
 `M cuttingboard/delivery/dashboard_renderer.py`, `A tests/test_setup_chart.py`,
 `M tests/test_dash_level_diagram.py`, `M tests/test_dashboard_renderer.py`,
-`M tests/test_dash_candidates.py`, `M tests/data/dashboard_pre_gex_golden.html`.
+`M tests/test_dash_candidates.py`, `M tests/data/dashboard_pre_gex_golden.html`,
+`M docs/SCHEMA_MAP.md` / `M docs/CALL_SITE_MAP.md` as the recon maps require.
 
 ## sec8 — LOC ceilings (estimates)
 
-PRD-P: <=120 net production LOC. PRD-C: <=360 net production LOC across the
-two production files (new module ~250 + renderer integration), <=900 net
-test/golden LOC. STOP-AND-RENEW on breach, per standing practice.
+PRD-P: <=140 net production LOC (writer + constants + workflow line).
+PRD-C: <=360 net production LOC across the two production files (new module
+~250 + renderer integration), <=900 net test/golden LOC. Estimates raised
+only where Event-1 F6 widened the producer cone; STOP-AND-RENEW on breach,
+per standing practice.
 
 ## sec9 — Intraday option and ruling questions
 
@@ -280,6 +375,13 @@ rest (recommended), vs full charts for all six.
 **Q3 — Ladder retention:** keep the compact text ladder as an optional
 detail below the chart (recommended: drop it; the gutter carries the same
 facts) — owner charge allows either.
+**Q5 — Carrier contract confirmations (added per Event-1).** The correction
+fixed four contract choices; each is severable if the ruling prefers
+otherwise: (a) two co-producers + content idempotence + `as_of` truth clock,
+instead of a single-publisher lock; (b) completed-session authority =
+`most_recent_completed_session_date(generated_at)`; (c) no new chart
+staleness threshold — `as_of` caption + the PRD-250 banner; (d) invalid
+`current_price` keeps PRD-226 suppression (no new sentinel).
 **Q4 — Anchor emphasis:** the charge suggests emphasizing "the specific
 anchor driving the setup". No structured per-setup anchor field exists
 (only narrative `trade_framing`). Recommendation: fixed closed tier map
@@ -310,9 +412,51 @@ step 7-8. Everything lands through PRs Dustin merges (GOV-1).
 
 - `EVIDENCE_PROTOTYPE_RENDER_2026-08-28.html` — four-state prototype from
   real parquet bars (this directory).
+- `EVIDENCE_PROTOTYPE_GENERATOR_2026-08-28.py` — the deterministic generator
+  that produced the render (added per Event-1 F7). Inputs: the local
+  parquet cache, sha256/16 at generation time
+  `SPY_ohlcv.parquet ad45fd76b2a773e1`, `QQQ_ohlcv.parquet 5b4260c0b7b3e8fe`
+  (gitignored inputs; the hashes pin what the committed render was built
+  from). Viewport inspection at 360/390/430 was performed with headless
+  Chrome (`--window-size`) by the author; the committed HTML re-renders at
+  any width via its viewBox scaling for independent inspection.
+- `CODEX_EVENT_1_REVIEW_2026-08-28.md` — Event-1 verdict (DESIGN INCOMPLETE
+  at 3a06ed6), captured verbatim.
 - Recon sweep 2026-08-28 (fresh-context subagent; every decisive claim
   re-verified by the author per the sub-agent sweep re-verification
   discipline): findings folded into sec2.
 - Prior art consulted: GEX-2 packet (`audits/gex-2-free-board-card-2026-08/`),
   trend-snapshot transport (PRD-194/PRD-123), ladder semantics
   (PRD-074/216/221/222/223/226/304).
+
+## CORRECTION CYCLE (GOV-2 sec2 step 4 — the ONE consolidated correction)
+
+Event-1 verdict: DESIGN INCOMPLETE at `3a06ed6`
+(`CODEX_EVENT_1_REVIEW_2026-08-28.md`). All seven findings dispositioned in
+this single revision:
+- **F1 (MATERIAL-BOUNDARY, transport/ownership):** APPLIED — sec2.5
+  corrected (co-produced, never restored), sec3 adds the two-producer
+  ownership design (content idempotence per completed session; `as_of` as
+  the reader's truth clock; publish-overlay race bounded to one session and
+  visibly captioned), sec5 rewritten as full carrier-participant
+  enumeration with a widened falsifier.
+- **F2 (completed-bars rule):** APPLIED — sec3 now defines completion via
+  `most_recent_completed_session_date(generated_at)`, not "!= today".
+- **F3 (provenance/staleness):** APPLIED — schema adds `source.producer`,
+  `adjusted: true`, pinned `columns`, session-date semantics; per-symbol
+  validation and partial-snapshot legality specified; no undefined
+  staleness threshold remains; surfaced as ruling question Q5.
+- **F4 (bind-once history; hourly-fibs claim):** APPLIED — sec3 writer
+  binds one collection per seam; sec2.4 claim qualified as path/state
+  dependent.
+- **F5 (PRD-226 degradation):** APPLIED — sec4 rules PRD-226-compatible
+  suppression; no new sentinel presentation.
+- **F6 (producer FILES cone):** APPLIED — sec7 adds
+  `tests/test_ci_artifact_hygiene.py`, `runtime/_constants.py`,
+  `tests/test_runtime_package_surface.py`; `LOGS_DIR`-derived path
+  dispositions the live-test isolation files; sec8 re-estimated.
+- **F7 (RECOMMENDED, evidence reproducibility):** APPLIED — generator
+  committed + input hashes recorded (sec12).
+No new material class was introduced by the correction (the carrier
+participants enumerated in F1 were present in the reviewed design's
+mechanism; the correction names and designs for them).
