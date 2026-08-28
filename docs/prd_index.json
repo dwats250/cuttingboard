@@ -1598,6 +1598,12 @@
       "title": "Operator setup chart consumer (Lane A slice 1)",
       "status": "COMPLETE",
       "commit": "#284"
+    },
+    {
+      "number": 322,
+      "title": "Operator context tape: visible macro + trend projection",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
