@@ -1580,6 +1580,12 @@
       "title": "Answer-first operator dashboard",
       "status": "COMPLETE",
       "commit": "#279"
+    },
+    {
+      "number": 320,
+      "title": "Price-bars sidecar producer (Lane A slice 1)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
