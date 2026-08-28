@@ -1580,6 +1580,12 @@
       "title": "Answer-first operator dashboard",
       "status": "COMPLETE",
       "commit": "#279"
+    },
+    {
+      "number": 319,
+      "title": "Reliable market cadence: CF clock primacy, PT slot identity, hourly cache",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
