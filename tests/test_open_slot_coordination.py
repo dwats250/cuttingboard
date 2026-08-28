@@ -272,8 +272,9 @@ def test_struct_cron_swapped() -> None:
     # gate + run-name + concurrency + first-success predicates must all
     # recognize BOTH new expressions (counted; a partial literal update fails).
     text = _wf()
-    assert "0 13 * * 1-5" not in text   # old live cron removed (PRD-299 R7)
-    assert "5 13 * * 1-5" not in text   # single fallback retired (PRD-319 R5)
+    # Quote-delimited: '20 13 * * 1-5' contains the bare "0 13 * * 1-5" substring.
+    assert "'0 13 * * 1-5'" not in text   # old live cron removed (PRD-299 R7)
+    assert "'5 13 * * 1-5'" not in text   # single fallback retired (PRD-319 R5)
     assert text.count("'20 13 * * 1-5'") >= 4  # cron + run-name + concurrency + gate/openslot ifs
     assert text.count("'20 14 * * 1-5'") >= 4
     assert "check_open_fallback_window.py" in text
