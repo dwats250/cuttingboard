@@ -1011,7 +1011,18 @@ _CSS = (
     ".zone-item{min-width:0}"
     ".zone-value{font-size:.82rem;line-height:1.35;margin-top:2px}"
     ".zone-note{color:#777;font-size:.7rem;line-height:1.3;margin-top:2px}"
-    ".tape-drivers{display:flex;gap:6px 12px;flex-wrap:wrap;margin-top:8px;color:#aaa;font-size:.75rem}"
+    # PRD-322: TAPE operator-context bands. Both strips are COLUMN GRIDS (the
+    # PRD-321 `.lvl-row` pattern) so every driver and every symbol lines up on
+    # the same vertical edges; `auto-fit` drops a column rather than
+    # overflowing, and `.tape-slot`'s nowrap keeps each cell on one line.
+    ".tape-band-cap{color:#777;font-size:.64rem;text-transform:uppercase;letter-spacing:.1em}"
+    ".tape-drivers{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));"
+    "gap:2px 12px;margin-top:6px;color:#aaa;font-size:.75rem}"
+    ".tape-driver{display:grid;grid-template-columns:3ch 1ch auto;column-gap:4px}"
+    ".tape-trend{display:grid;grid-template-columns:repeat(auto-fit,minmax(154px,1fr));"
+    "gap:1px 12px;margin-top:5px;font-size:.72rem}"
+    ".tape-trend-row{display:grid;grid-template-columns:4ch 4ch 4ch 5ch 2ch;column-gap:5px}"
+    ".tape-foot{margin-top:2px;opacity:.72}"
     "#verdict-zone{border-color:#3a3a3a}"
     "#verdict-zone #system-state.block{border:0;margin:0;padding:0}"
     "#system-state>h2{margin-bottom:.45rem}"
@@ -1539,6 +1550,110 @@ def _build_tape_value_slots(
             slots.append((slot.label, "N/A"))
 
     return slots
+
+
+# PRD-322: TAPE operator-context vocabularies. Closed display maps only — the
+# bands project values already bound in the render body and compute no new
+# fact. `overall_pressure` is deliberately absent: TAPE shows the per-driver
+# component states, never the aggregate.
+_TAPE_PRESSURE_DISPLAY: dict[str, str] = {
+    "RISK_ON": "risk-on", "RISK_OFF": "risk-off",
+    "NEUTRAL": "neutral", "UNKNOWN": "n/a",
+}
+_TAPE_PRESSURE_COMPONENTS: tuple[tuple[str, str], ...] = (
+    ("volatility_pressure", "VIX"), ("dollar_pressure", "DXY"),
+    ("rates_pressure", "10Y"), ("bitcoin_pressure", "BTC"),
+)
+# The vs-VWAP glyph set is NEW to PRD-322 and closed: a glyph renders only for
+# a computed comparison token, never for DATA_UNAVAILABLE / NOT_COMPUTED.
+_TAPE_VWAP_GLYPH: dict[str, str] = {"ABOVE": "V↑", "BELOW": "V↓", "AT_LEVEL": "V="}
+# A trend row "counts" only when its alignment is an actual comparison outcome.
+_TAPE_COMPUTED_ALIGNMENTS: frozenset[str] = frozenset({"BULLISH", "BEARISH", "MIXED"})
+_TAPE_ALIGN_CSS: dict[str, str] = {"BULLISH": "up", "BEARISH": "down", "MIXED": "flat"}
+_TAPE_TREND_HEALTH_TEXT: dict[str, str] = {
+    "MARKET_CLOSED": "Market closed — awaiting intraday data",
+    "AWAITING_DATA": "Market closed — awaiting intraday data",
+    "STALE": "Trend stale",
+}
+_TAPE_TREND_HEALTH_FALLBACK = "Trend data unavailable"
+_TAPE_TREND_ABSENT = "Trend unavailable"
+_TAPE_PRESSURE_ABSENT = "Pressure unavailable"
+_TAPE_MACRO_ABSENT = "Macro unavailable"
+# The 9 arrow composites are all shaped "<a> 50 <b> 200"; splitting on the
+# window boundary yields the two aligned grid cells without inventing a token.
+_TAPE_COMPOSITE_SPLIT = " 50 "
+
+
+def _tape_trend_summary(ts_records: dict | None, ts_health: str) -> tuple[str, str]:
+    """PRD-322 R1: health-aware TAPE trend summary -> (text, derivation token).
+
+    Unavailability is never rendered as bearishness: only rows whose
+    `trend_alignment` is a computed comparison enter the denominator. All six
+    computed reproduces the pre-PRD-322 string byte-for-byte; every degraded
+    branch derives from `_trend_structure_source_health`, not from a count.
+    """
+    rows = list((ts_records or {}).values())
+    if not rows:
+        return _TAPE_TREND_ABSENT, "trend-health"
+    computed = [
+        rec for rec in rows
+        if isinstance(rec, dict)
+        and str(rec.get("trend_alignment", "")) in _TAPE_COMPUTED_ALIGNMENTS
+    ]
+    bullish = sum(1 for rec in computed if rec.get("trend_alignment") == "BULLISH")
+    if len(computed) == len(rows):
+        return f"{bullish} of {len(rows)} bullish", "bullish-row-count"
+    if computed:
+        return (
+            f"{bullish} of {len(computed)} bullish · {len(rows) - len(computed)} n/a",
+            "trend-health",
+        )
+    return _TAPE_TREND_HEALTH_TEXT.get(ts_health, _TAPE_TREND_HEALTH_FALLBACK), "trend-health"
+
+
+def _build_trend_chips(
+    ts_records: dict | None,
+) -> list[tuple[str, str, str, str, str, str]]:
+    """PRD-322 R4: one aligned TAPE row per curated symbol, in
+    `config.TREND_STRUCTURE_SYMBOLS` order.
+
+    Returns (symbol, alignment, sma_50, sma_200, vwap, css_class). Every token
+    comes verbatim from an existing translator (`_TS_ALIGN_ABBR`,
+    `_trend_structure_composite_display`) or the closed `_TAPE_VWAP_GLYPH` map.
+    A row whose alignment is not computed renders symbol + dash only — never a
+    partial arrow. Enumeration only: no breadth metric, ratio, or score.
+    """
+    records = ts_records or {}
+    rows: list[tuple[str, str, str, str, str, str]] = []
+    for symbol in config.TREND_STRUCTURE_SYMBOLS:
+        record = records.get(symbol)
+        alignment = str(record.get("trend_alignment", "")) if isinstance(record, dict) else ""
+        if alignment not in _TAPE_COMPUTED_ALIGNMENTS:
+            rows.append((symbol, _DASH, "", "", "", "na"))
+            continue
+        composite = _trend_structure_composite_display(record)
+        head, _sep, tail = composite.partition(_TAPE_COMPOSITE_SPLIT)
+        sma_50, sma_200 = (f"{head} 50", tail) if tail else (composite, "")
+        rows.append((
+            symbol,
+            _TS_ALIGN_ABBR[alignment],
+            sma_50,
+            sma_200,
+            _TAPE_VWAP_GLYPH.get(str(record.get("price_vs_vwap", "")), ""),
+            _TAPE_ALIGN_CSS[alignment],
+        ))
+    return rows
+
+
+def _pressure_note(pressure: dict | None) -> str:
+    """PRD-322 R2: per-driver macro-pressure states through a closed four-state
+    display map. The aggregate `overall_pressure` is never read."""
+    if not isinstance(pressure, dict):
+        return _TAPE_PRESSURE_ABSENT
+    return "pressure: " + " · ".join(
+        f"{label} {_TAPE_PRESSURE_DISPLAY.get(str(pressure.get(key)), 'n/a')}"
+        for key, label in _TAPE_PRESSURE_COMPONENTS
+    )
 
 
 _PRESSURE_COMPONENT_LABELS = [
@@ -2679,33 +2794,71 @@ def render_dashboard_html(
 
     # --- TAPE: display-only adjacency over values already loaded above. ---
     _active_lines = _tape_lines
+    # PRD-322: two labeled bands (MACRO, TREND) over the same render-body
+    # values, then a subordinate footer carrying the positioning/participation
+    # availability rows. Every token is a projection of an already-loaded fact.
     w('<div class="block operator-zone" id="tape-zone">')
     w('  <h2>TAPE <span class="label">context only</span></h2>')
-    w('  <div class="zone-grid">')
+    w('  <div class="tape-band">')
+    w('    <div class="tape-band-cap">MACRO</div>')
     _total_votes = long_votes + short_votes
     _macro_summary = macro_bias
     if _total_votes:
         _macro_summary += f" · {long_votes} on / {short_votes} off"
+    # PRD-322 R2: MISSING means the driver payload is empty or unavailable, so
+    # the zero-vote tie below would fabricate "MACRO BIAS: MIXED". FALLBACK
+    # must NOT trip this gate — it also fires on missing tradables under a
+    # genuine, fully-voted macro bias.
+    if _tape_health == "MISSING":
+        _macro_summary = _TAPE_MACRO_ABSENT
     if not integrator_suppress["macro_bias"]:
-        w('    <div class="zone-item"><div class="label">MACRO</div>'
-          f'<div class="zone-value">{_esc(_macro_summary)}</div></div>')
-    _trend_rows = list((_ts_records or {}).values())
-    _trend_bullish = sum(
-        1 for _rec in _trend_rows
-        if isinstance(_rec, dict) and _rec.get("trend_alignment") == "BULLISH"
-    )
-    _trend_summary = (
-        f"{_trend_bullish} of {len(_trend_rows)} bullish"
-        if _trend_rows else "Trend unavailable"
-    )
-    w('    <div class="zone-item"><div class="label">TREND</div>'
-      f'<div class="zone-value" data-derivation="bullish-row-count">{_esc(_trend_summary)}</div></div>')
+        w(f'    <div class="zone-value">{_esc(_macro_summary)}</div>')
+    _tape_values = dict(tape_value_slots)
+    _tape_arrows = dict(tape_slots)
+    # PRD-322 R3: all seven macro drivers, data-driven from the shared layout
+    # rows. Deliberately NOT `macro-tape-slot` / `macro-tape-value` /
+    # `data-symbol` — those are regex-harvested and order-pinned in DETAILS.
+    _driver_cells = [
+        f'<div class="tape-driver tape-slot '
+        f'{_ARROW_CSS.get(_tape_arrows.get(slot.label, _DASH), "na")}">'
+        f'<span>{_esc(slot.display)}</span>'
+        f'<span>{_esc(_tape_arrows.get(slot.label, _DASH))}</span>'
+        f'<span>{_esc(_tape_values.get(slot.label, _DASH))}</span></div>'
+        for _row in (MACRO_ROW_2, MACRO_ROW_1)
+        for slot in _row.slots
+    ]
+    w('    <div class="tape-drivers">' + "".join(_driver_cells) + "</div>")
+    w(f'    <div class="zone-note">{_esc(_pressure_note(pressure))}</div>')
+    w('  </div>')
+    w('  <div class="sep"></div>')
+    w('  <div class="tape-band">')
+    w('    <div class="tape-band-cap">TREND</div>')
+    _trend_summary, _trend_derivation = _tape_trend_summary(_ts_records, _ts_health)
+    w(f'    <div class="zone-value" data-derivation="{_esc(_trend_derivation)}">'
+      f'{_esc(_trend_summary)}</div>')
+    _trend_cells = [
+        f'<div class="tape-trend-row tape-slot {_cls}">'
+        f'<span>{_esc(_sym)}</span><span>{_esc(_align)}</span>'
+        f'<span>{_esc(_c50)}</span><span>{_esc(_c200)}</span>'
+        f'<span>{_esc(_vwap)}</span></div>'
+        for _sym, _align, _c50, _c200, _vwap, _cls in _build_trend_chips(_ts_records)
+    ]
+    w('    <div class="tape-trend">' + "".join(_trend_cells) + "</div>")
+    w('  </div>')
+    w('  <div class="sep"></div>')
+    # PRD-322 R5: absence is stated, never silent. Both rows keep one shape
+    # across present/absent so the GEX decision-invariance regex strips exactly
+    # one row from each document.
+    w('  <div class="zone-grid tape-foot">')
     if _ms_gex_card is not None:
         _gex_b = _ms_gex_card.net_usd / 1e9
         _gex_net = f"{'-' if _gex_b < 0 else '+'}${abs(_gex_b):.1f}B net"
         w('    <div class="zone-item"><div class="label">GEX · CONTEXT ONLY</div>'
           f'<div class="zone-value">{_esc(_gex_net)}</div>'
           f'<div class="zone-note">as of {_esc(_ms_gex_card.as_of_et)} ET · Cboe ~15m delayed · positioning not measured</div></div>')
+    else:
+        w('    <div class="zone-item"><div class="label">GEX · CONTEXT ONLY</div>'
+          '<div class="zone-value">unavailable</div></div>')
     if _ms_movement_card is not None:
         _movement_chips = [
             chip for _group, _chips in _ms_movement_card.groups for chip in _chips
@@ -2714,18 +2867,10 @@ def render_dashboard_html(
         w('    <div class="zone-item"><div class="label">PARTICIPATION</div>'
           f'<div class="zone-value">{_movement_usable}/{len(_movement_chips)} captured</div>'
           f'<div class="zone-note">captured {_esc(_ms_movement_card.captured_et)} ET</div></div>')
+    else:
+        w('    <div class="zone-item"><div class="label">PARTICIPATION</div>'
+          '<div class="zone-value">not captured</div></div>')
     w('  </div>')
-    _tape_values = dict(tape_value_slots)
-    _tape_arrows = dict(tape_slots)
-    _driver_bits = []
-    for _driver in ("DXY", "10Y", "VIX", "BTC"):
-        if _driver in _tape_values:
-            _driver_bits.append(
-                f'<span>{_esc(_driver)} {_esc(_tape_arrows.get(_driver, _DASH))} '
-                f'{_esc(_tape_values[_driver])}</span>'
-            )
-    if _driver_bits:
-        w('  <div class="tape-drivers">' + "".join(_driver_bits) + "</div>")
     w("</div>")
 
     # --- TODAY: existing event/session/Sunday facts, no joined carrier. ---
