@@ -133,6 +133,40 @@ seam and never any decision surface.
 
 ---
 
+## price_bars_snapshot (logs/price_bars_snapshot.json)
+
+Producer `cuttingboard/runtime/__init__.py:_write_price_bars_snapshot` (path
+constant `PRICE_BARS_PATH`), co-written at BOTH existing sidecar seams — the
+hourly block and the daily MODE_LIVE block — from the frames
+`_collect_trend_structure_history` already bound for the trend sidecar. No new
+fetch, no new provider. CONSUMER: none — the operator setup chart lands in
+PRD-321.
+
+| Field path | Type | Notes |
+|---|---|---|
+| `schema_version` | int | `1` |
+| `generated_at` | ISO-8601 tz-aware | the run's `run_at_utc`, verbatim |
+| `source.producer` | string | `"hourly"` \| `"daily"` — which seam wrote this copy |
+| `source.provider` | string | `"yfinance"` |
+| `source.interval` | string | `"1d"` — the ruled Q1 extension point for deferred intraday |
+| `source.adjusted` | bool | `true` |
+| `columns` | list[string] | exactly `["date","open","high","low","close","volume"]` — the bar-row order |
+| `symbols` | dict | subset of `config.TREND_STRUCTURE_SYMBOLS`; a symbol whose frame is absent, malformed, or has zero completed rows is OMITTED (never partial) |
+| `symbols[S].as_of` | `YYYY-MM-DD` | session date of the LAST written bar — the reader's age basis |
+| `symbols[S].bars` | list[list] | <=40 rows `["YYYY-MM-DD", open, high, low, close, volume]`; OHLC float, volume int |
+
+COMPLETED SESSIONS ONLY: rows are filtered to session date <=
+`time_utils.most_recent_completed_session_date(generated_at)` FIRST, then the
+last 40 are taken — so the window slides back rather than shrinking. Between the
+ET close and 00:00 UTC that cutoff is still the prior weekday; that is the ruled
+Q5(b) behavior, and `as_of` carries it.
+
+DISPLAY-ONLY: no `cuttingboard` decision module reads this artifact (PRD-320 R6).
+Transport: hourly force-adds it; NO workflow restores it from `publish` — it is
+co-produced fresh state, never revived.
+
+---
+
 ## MARKET STATE panel (PRD-312) — introduces NO new schema
 
 `cuttingboard/delivery/market_state_panel.py` is a display-only five-axis panel

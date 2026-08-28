@@ -241,6 +241,7 @@ jobs:
             logs/regime_history.jsonl \
             logs/latest_hourly_market_map.json \
             logs/trend_structure_snapshot.json \
+            logs/price_bars_snapshot.json \
             logs/latest_hourly_run.json \
             logs/latest_hourly_contract.json \
             logs/latest_hourly_payload.json

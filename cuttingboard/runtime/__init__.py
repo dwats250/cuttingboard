@@ -161,6 +161,7 @@ from cuttingboard.runtime._constants import (
     MARKET_MAP_PATH as MARKET_MAP_PATH,
     LATEST_HOURLY_MARKET_MAP_PATH as LATEST_HOURLY_MARKET_MAP_PATH,
     TREND_STRUCTURE_PATH as TREND_STRUCTURE_PATH,
+    PRICE_BARS_PATH as PRICE_BARS_PATH,
     WATCHLIST_PATH as WATCHLIST_PATH,
     DEFAULT_FIXTURE_DIR as DEFAULT_FIXTURE_DIR,
     VALID_REGIMES as VALID_REGIMES,
@@ -775,9 +776,19 @@ def _execute_notify_run(
                 # recorded terminal state with a generic failure -- log and
                 # continue instead.
                 logger.exception("hourly auxiliary post-write step failed")
+            # PRD-320 R2: bound ONCE and threaded to both sidecar writers — no
+            # second collection, no new fetch.
+            trend_history = _collect_trend_structure_history(ohlcv)
+            # The bars write precedes the trend write so PRD-311's pinned
+            # adjacency (trend call -> the explicit HALT guard) is preserved.
+            _write_price_bars_snapshot(
+                history_by_symbol=trend_history,
+                generated_at=run_at_utc,
+                producer="hourly",
+            )
             _write_trend_structure_snapshot(
                 normalized_quotes=normalized_quotes,
-                history_by_symbol=_collect_trend_structure_history(ohlcv),
+                history_by_symbol=trend_history,
                 generated_at=run_at_utc,
             )
             if not validation_summary.system_halted:
@@ -1501,11 +1512,21 @@ def _run_pipeline(
         # the candidate-scoped `ohlcv`) still resolves on the premarket path —
         # mirroring the hourly application. The sidecar stays a pure relay
         # (PRD-123 R7.1/R7.2/R7.5).
+        # PRD-320 R2: bound ONCE and threaded to both sidecar writers — no
+        # second collection, no new fetch. The bars write shares this block's
+        # MODE_LIVE gate (the same one _refresh_trend_structure_sidecar
+        # re-asserts internally), so fixture/Sunday runs never reach it.
+        trend_history = _collect_trend_structure_history(ohlcv)
         _refresh_trend_structure_sidecar(
             mode=mode,
             normalized_quotes=normalized_quotes,
-            history_by_symbol=_collect_trend_structure_history(ohlcv),
+            history_by_symbol=trend_history,
             generated_at=run_at_utc,
+        )
+        _write_price_bars_snapshot(
+            history_by_symbol=trend_history,
+            generated_at=run_at_utc,
+            producer="daily",
         )
 
     # PRD-288: transient SPY observation for the daily card, built on both the
@@ -2486,6 +2507,87 @@ def _write_trend_structure_snapshot(
         tmp.replace(TREND_STRUCTURE_PATH)
     except Exception:
         logger.exception("Failed to write trend_structure_snapshot")
+
+
+_PRICE_BARS_MAX_BARS = 40
+_PRICE_BARS_OHLCV_COLUMNS = ("Open", "High", "Low", "Close", "Volume")
+
+
+def _price_bars_rows(df: Optional[pd.DataFrame], cutoff: date) -> list[list[Any]]:
+    """PRD-320 R2/R3: rows of the frame whose session date is <= `cutoff` (the
+    filter runs FIRST), then the LAST 40 of those. Returns [] — meaning the
+    symbol is OMITTED entirely, never partially written — when the frame is
+    absent, empty, missing an OHLCV column, non-datetime-indexed, or holds a
+    non-finite value in a completed row."""
+    if df is None or getattr(df, "empty", True):
+        return []
+    if not set(_PRICE_BARS_OHLCV_COLUMNS).issubset(set(df.columns)):
+        return []
+    try:
+        index = pd.to_datetime(df.index)
+    except Exception:
+        return []
+    rows: list[list[Any]] = []
+    for position, timestamp in enumerate(index):
+        session = timestamp.date()
+        if session > cutoff:
+            continue
+        values = [df.iloc[position][column] for column in _PRICE_BARS_OHLCV_COLUMNS]
+        if any(pd.isna(value) for value in values):
+            return []
+        try:
+            o, h, low, c, v = values
+            rows.append([session.isoformat(), float(o), float(h), float(low), float(c), int(v)])
+        except Exception:
+            return []
+    return rows[-_PRICE_BARS_MAX_BARS:]
+
+
+def _write_price_bars_snapshot(
+    *,
+    history_by_symbol: dict[str, pd.DataFrame],
+    generated_at: datetime,
+    producer: str,
+) -> None:
+    """PRD-320: serialize the last 40 COMPLETED daily bars per market-map symbol
+    from the frames the seam already holds. Display-only sidecar — no fetch, no
+    decision-path reader (the reader arrives in PRD-321). Catch-and-log
+    (PRD-278 R8): a failure here never reaches the calling seam."""
+    try:
+        # PRD-278 R8: mkdir inside the try — it must not propagate past this
+        # function's own isolation.
+        LOGS_DIR.mkdir(parents=True, exist_ok=True)
+        # PRD-320 (Stage-0 review Recommended 3): between the ET close and 00:00
+        # UTC, most_recent_completed_session_date(generated_at) still returns the
+        # PRIOR weekday, so an evening run publishes bars ending one session back.
+        # That is the intentional, owner-ruled Q5(b) behavior inside the
+        # one-session bound — `as_of` carries the truth to the reader. Do not
+        # "fix" it here.
+        cutoff = time_utils.most_recent_completed_session_date(generated_at)
+        symbols: dict[str, Any] = {}
+        for symbol in sorted(history_by_symbol):
+            bars = _price_bars_rows(history_by_symbol.get(symbol), cutoff)
+            if bars:
+                symbols[symbol] = {"as_of": bars[-1][0], "bars": bars}
+        snapshot = {
+            "schema_version": 1,
+            "generated_at": generated_at.isoformat(),
+            "source": {
+                "producer": producer,
+                "provider": "yfinance",
+                "interval": "1d",
+                "adjusted": True,
+            },
+            "columns": ["date", "open", "high", "low", "close", "volume"],
+            "symbols": symbols,
+        }
+        # Distinct tmp stem from the trend writer's `.tmp`: both writers run at
+        # the same seam in the same second.
+        tmp = PRICE_BARS_PATH.with_suffix(".bars.tmp")
+        tmp.write_text(json.dumps(snapshot, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        tmp.replace(PRICE_BARS_PATH)
+    except Exception:
+        logger.exception("Failed to write price_bars_snapshot")
 
 
 def _refresh_trend_structure_sidecar(
