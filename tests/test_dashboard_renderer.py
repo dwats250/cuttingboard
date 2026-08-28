@@ -856,8 +856,8 @@ def test_prd219_updated_reads_pipeline_time_not_fresh_payload() -> None:
         run,
     )
     updated = _updated_value(_system_state_block(html))
-    assert "2026-05-14" in updated
-    assert "2026-06-16" not in updated
+    assert "May 14" in updated
+    assert "Jun 16" not in updated
 
 
 def test_prd219_updated_reads_pipeline_run_not_hourly_override() -> None:
@@ -872,7 +872,7 @@ def test_prd219_updated_reads_pipeline_run_not_hourly_override() -> None:
         pipeline_run=stale_pipeline_run,
     )
     updated = _updated_value(_system_state_block(html))
-    assert "2026-05-14" in updated and "2026-06-16" not in updated
+    assert "May 14" in updated and "Jun 16" not in updated
 
 
 def test_prd219_updated_falls_back_to_run_when_no_pipeline_run() -> None:
@@ -882,7 +882,7 @@ def test_prd219_updated_falls_back_to_run_when_no_pipeline_run() -> None:
         _run_with_timestamp("2026-06-16T12:00:00Z"),
     )
     updated = _updated_value(_system_state_block(html))
-    assert "2026-06-16" in updated
+    assert "Jun 16" in updated
 
 
 def test_main_block_no_original_utc_timestamp() -> None:
@@ -1072,10 +1072,7 @@ def test_prd303_candidate_scope_precedes_setup_action_language() -> None:
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="A+")})
     html = render_dashboard_html(_payload(), _run(outcome="NO_TRADE"), market_map=mm)
     board = _top_block(html, "candidate-board")
-    scope = (
-        "OBSERVATION ONLY — setup quality never overrides "
-        "Decision State or Permission."
-    )
+    scope = "MARKET-MAP SCREENING GRADES · OBSERVATION ONLY — grades never grant permission."
     assert scope in board
     assert board.index(scope) < board.index("A+ — ACTIONABLE")
 
@@ -1229,10 +1226,10 @@ def test_a_tier_uses_div_not_summary_header() -> None:
 # PRD-093-PATCH tests
 
 def test_system_state_heading_is_system_state() -> None:
-    # PRD-219: the decision title moved into the verdict; the h2 is just the label.
+    # PRD-318: the authoritative carrier is unchanged; the zone label is VERDICT.
     html = render_dashboard_html(_payload(), _run())
     state = _system_state_block(html)
-    assert "<h2>SYSTEM STATE</h2>" in state
+    assert "<h2>VERDICT</h2>" in state
 
 
 def test_stale_market_map_shows_updated_wording() -> None:
@@ -1379,7 +1376,7 @@ def test_lower_grade_failure_reason_from_reason_for_grade() -> None:
     mm = _market_map({"SPY": entry})
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
     card = _candidate_card(html)
-    assert "FAILURE REASON" in card
+    assert "SCREENING NOTE" in card
     assert "momentum fading" in card
 
 
@@ -1402,7 +1399,7 @@ def test_lower_grade_failure_reason_from_explicit_field() -> None:
     mm = _market_map({"SPY": entry})
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
     card = _candidate_card(html)
-    assert "FAILURE REASON" in card
+    assert "SCREENING NOTE" in card
     assert "structure broken" in card
 
 
@@ -1782,7 +1779,7 @@ def test_prd116_r1_mixed_section_order_system_state_before_other_blocks() -> Non
     html = render_dashboard_html(payload, run, market_map=mm)
     ss = _system_state_index(html)
     coh = html.index('id="artifact-coherence"')
-    assert coh < ss
+    assert coh < ss  # critical coherence warning remains inside the outer VERDICT card
     for later_id in (
         'id="macro-tape"',
         'id="trend-structure"',
@@ -3861,7 +3858,7 @@ def test_prd313_r6_event_risk_and_order_under_suppression() -> None:
     rf = {"ok": True, "error": None, "expiring": False, "events": []}
     html = render_dashboard_html(_payload(), _run(), red_folder=rf)
     assert 'id="red-folder"' not in html
-    assert "no events in 48h" in html
+    assert "No scheduled events in the next 48 hours" in html
     assert html.index('id="macro-tape"') < html.index('id="trend-structure"')
 
 
@@ -3955,40 +3952,46 @@ def test_prd312_tradables_price_preserved(monkeypatch) -> None:
 
 
 def test_prd312_market_state_before_system_state_outside_region() -> None:
-    # PRD-312 (M13): the MARKET STATE block renders BEFORE id="system-state", so it
-    # is OUTSIDE the PRD-219 system-state..candidate-board protected region.
+    # PRD-318 supersedes the peer-card placement while preserving all five facts
+    # in their operator-question zones.
     html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
-    assert 'id="market-state"' in html
-    assert html.index('id="market-state"') < html.index('id="system-state"')
-    region = _top_block(html, "system-state")
-    assert 'id="market-state"' not in region  # not inside the protected region
+    assert 'id="market-state"' not in html
+    assert "Risk-on regime" in _top_block(html, "system-state")
+    assert 'id="tape-zone"' in html
+    assert 'id="today-zone"' in html
 
 
 # ---------------------------------------------------------------------------
 # PRD-314 — first-screen phone compaction (presentation-only, max-width:430px)
 # ---------------------------------------------------------------------------
-_PRD314_PHONE_BLOCK = (
+_PRD318_PHONE_BLOCK = (
     "@media(max-width:430px){"
-    "#market-state,#system-state,#opportunity-survival{padding:10px;margin-bottom:10px}"
-    "#market-state h2,#system-state h2,#opportunity-survival h2{margin-bottom:8px}"
-    "#market-state .kv-grid{column-gap:8px}"
-    "#market-state .market-state-main{font-weight:600}"
-    "#market-state .market-state-provenance,#market-state .market-state-qualifier"
-    "{font-size:.72rem;line-height:1.25}"
-    "#opportunity-survival .kv-grid"
-    "{grid-template-columns:auto minmax(2.5ch,1fr) auto minmax(2.5ch,1fr)}"
+    "body{padding:8px}"
+    ".operator-zone{padding:10px;margin-bottom:8px}"
+    ".operator-zone>h2{margin-bottom:7px}"
+    ".zone-grid{gap:6px 10px}"
+    ".zone-value{font-size:.78rem}"
+    ".decision-state{font-size:1.25rem}"
+    ".sys-verdict{font-size:.82rem}"
+    ".sys-why{font-size:.78rem;margin-top:3px}"
+    ".sys-context{font-size:.74rem}"
+    "#system-state .sep{margin:5px 0}"
+    "#system-state #cb-updated{font-size:.78rem}"
+    "#watching-zone .operator-subsection{padding-top:8px;margin-top:8px}"
+    "#opportunity-survival .kv-grid{grid-template-columns:auto minmax(2.5ch,1fr) auto minmax(2.5ch,1fr)}"
     "#opportunity-survival .kv-grid>*:nth-child(10){grid-column:2/-1}"
+    "#candidate-board .candidate-scope{padding:5px 7px;margin-bottom:6px;font-size:.68rem;line-height:1.25}"
+    "#candidate-board:not(:has(.candidate-card)) .unavailable{font-size:.72rem}"
+    "#details-history .block{padding:10px 0}"
     "}"
 )
 
 
 def test_prd314_phone_block_present_and_id_scoped() -> None:
-    # The original PRD-314 prefix is pinned verbatim; PRD-317 appends more ID-scoped
-    # rules before this shared media block closes.
+    # PRD-318 supersedes the prior producer-card compaction at the same boundary.
     html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
-    assert _PRD314_PHONE_BLOCK[:-1] in html
-    assert "color" not in _PRD314_PHONE_BLOCK
-    assert "opacity" not in _PRD314_PHONE_BLOCK
+    assert _PRD318_PHONE_BLOCK in html
+    assert "display:none" not in _PRD318_PHONE_BLOCK
 
 
 def test_prd314_phone_block_is_separate_from_640_breakpoint() -> None:
@@ -4008,56 +4011,115 @@ def test_prd314_generic_selectors_unchanged() -> None:
 # ---------------------------------------------------------------------------
 # PRD-317 — preserved mobile-operator layout promotion (CSS-only, <=430px)
 # ---------------------------------------------------------------------------
-_PRD317_PHONE_RULES = (
-    "#staleness-banner{padding:6px 10px;margin-bottom:10px;font-size:.75rem;letter-spacing:.04em}"
-    "#candidate-board{padding:10px;margin-bottom:10px}"
-    "#candidate-board h2{margin-bottom:8px}"
-    "#candidate-board .candidate-scope{padding:6px 8px;margin-bottom:8px;font-size:.72rem;line-height:1.25}"
-    "#candidate-board:not(:has(.candidate-card)) .unavailable{font-size:.75rem}"
-    "#gex-context,#market-movement,#macro-tape,#trend-structure"
-    "{padding:10px 0;margin-bottom:8px;border-right:0;border-left:0;border-radius:0}"
-    "#run-delta,#scoreboard{padding:10px;margin-bottom:8px}"
-)
-
-
 def test_prd317_exact_phone_rules_share_the_430_boundary() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
-    expected = _PRD314_PHONE_BLOCK[:-1] + _PRD317_PHONE_RULES + "}"
-    assert expected in html
+    assert _PRD318_PHONE_BLOCK in html
     assert "@media(max-width:431px){" not in html
 
 
 def test_prd317_rules_are_id_scoped_and_overflow_neutral() -> None:
     selectors = (
-        "#staleness-banner{",
-        "#candidate-board{",
-        "#candidate-board h2{",
+        ".operator-zone{",
+        "#system-state .sep{",
+        "#watching-zone .operator-subsection{",
         "#candidate-board .candidate-scope{",
         "#candidate-board:not(:has(.candidate-card)) .unavailable{",
-        "#gex-context,#market-movement,#macro-tape,#trend-structure{",
-        "#run-delta,#scoreboard{",
+        "#details-history .block{",
     )
-    assert all(selector in _PRD317_PHONE_RULES for selector in selectors)
-    assert all(token not in _PRD317_PHONE_RULES for token in (
-        "width:", "min-width:", "max-width:", "overflow:", "display:none", "position:", "transform:",
+    assert all(selector in _PRD318_PHONE_BLOCK for selector in selectors)
+    assert all(token not in _PRD318_PHONE_BLOCK for token in (
+        "min-width:", "overflow:", "display:none", "position:", "transform:",
     ))
 
 
 def test_prd317_authoritative_text_order_parity() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
     ids = (
-        'id="staleness-banner"',
-        'id="market-state"',
         'id="system-state"',
-        'id="opportunity-survival"',
-        'id="candidate-board"',
-        'id="macro-tape"',
-        'id="trend-structure"',
-        'id="run-delta"',
-        'id="scoreboard"',
+        'id="tape-zone"',
+        'id="today-zone"',
+        'id="watching-zone"',
+        'id="details-history"',
     )
     assert all(block_id in html for block_id in ids)
     assert [html.index(block_id) for block_id in ids] == sorted(html.index(block_id) for block_id in ids)
+
+
+def test_prd318_four_full_weight_zones_before_details() -> None:
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
+    before_details = html.split('<details class="block operator-zone"', 1)[0]
+    assert before_details.count('class="block operator-zone"') == 4
+    assert 'id="market-state"' not in before_details
+    assert html.index('id="system-state"') < html.index('id="tape-zone"')
+    assert html.index('id="tape-zone"') < html.index('id="today-zone"')
+    assert html.index('id="today-zone"') < html.index('id="watching-zone"')
+
+
+def test_prd318_tape_is_display_only_adjacency() -> None:
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(),
+        trend_structure_snapshot=_ts_healthy_snapshot(),
+    )
+    tape = _top_block(html, "tape-zone")
+    assert "6 of 6 bullish" in tape
+    assert 'data-derivation="bullish-row-count"' in tape
+    for forbidden in ("ALIGNED", "DIVERGING", "CONFLUENT", "systems agree"):
+        assert forbidden not in tape
+
+
+def test_prd318_candidate_detail_keys_only_from_authoritative_decision() -> None:
+    entry = _mm_symbol("SPY", grade="A")
+    entry["watch_zones"] = [{"level": 101.0, "type": "RESISTANCE"}]
+    mm = _market_map({"SPY": entry})
+    flat = render_dashboard_html(_payload(), _run(outcome="NO_TRADE"), market_map=mm)
+    permitted = render_dashboard_html(_payload(), _run(outcome="TRADE"), market_map=mm)
+    flat_card = _candidate_card(flat)
+    permitted_card = _candidate_card(permitted)
+    assert 'class="candidate-card grade-a candidate-observation"' in flat
+    assert '<details class="level-detail">' in flat_card
+    assert 'class="candidate-card grade-a"' in permitted
+    assert '<details class="level-detail">' not in permitted_card
+    for fact in ("SPY", "A", "hold above reference", "loses reference"):
+        assert fact in flat_card and fact in permitted_card
+
+
+def test_prd318_candidate_empty_vocabularies_are_distinct() -> None:
+    map_empty = render_dashboard_html(_payload(), _run(), market_map=_market_map({}))
+    mcc_empty = _render_with_mcc(_mcc_section(
+        candidate_implication={
+            "value": "NO_CANDIDATES", "unavailable_reason": None,
+            "counts": {"ACTIVE": 0, "NEAR_MISS": 0, "BLOCKED": 0},
+        }
+    ))
+    assert "Map empty — no symbols graded this run" in map_empty
+    assert "No candidates qualified this run" in mcc_empty
+    assert "No candidates qualified this run" not in map_empty
+
+
+def test_prd318_details_default_collapsed_and_evidence_present() -> None:
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
+    assert '<details class="block operator-zone" id="details-history">' in html
+    assert '<details class="block operator-zone" id="details-history" open' not in html
+    for block_id in ("macro-tape", "trend-structure", "run-delta", "scoreboard"):
+        assert f'id="{block_id}"' in html.split('id="details-history"', 1)[1]
+
+
+def test_prd318_authoritative_permission_renders_once_from_system_state() -> None:
+    normal_permission = "Long bias - defined risk preferred. Kill: VIX crosses 25."
+    locked_permission = "No new trades permitted — operator cannot monitor."
+    payload = _payload()
+    payload["summary"]["permission"] = "payload summary must not win"
+
+    for permission in (normal_permission, locked_permission):
+        html = render_dashboard_html(payload, _run(permission=permission), market_map=_market_map())
+        state = _top_block(html, "system-state")
+
+        assert state.count('class="sys-permission"') == 1
+        assert state.count(permission) == 1
+        assert html.count(permission) == 1
+        assert "payload summary must not win" not in html
+        assert 'id="market-state"' not in html
+        assert '<div class="label">PERMISSION</div>' not in html
 
 
 # ---------------------------------------------------------------------------
@@ -4209,7 +4271,8 @@ def test_spy_observation_card_rendered_observed():
     assert "102.00" in html            # session VWAP
     assert "104.00" in html            # current price
     assert "ABOVE VWAP" in html        # price-vs-VWAP display token
-    assert "FORMED [100.00, 105.00]" in html  # verbatim ORB bounds
+    assert "Opening range formed [100.00, 105.00]" in html
+    assert 'data-raw-state="FORMED"' in html
 
 
 def test_spy_observation_card_halt_state_no_fabricated_value():
@@ -4218,7 +4281,8 @@ def test_spy_observation_card_halt_state_no_fabricated_value():
         session_vwap=None, current_price=None, price_vs_vwap=None, orb=None,
     ))
     assert 'id="spy-observation"' in html
-    assert "UNAVAILABLE — SYSTEM_HALTED" in html
+    assert "Session data unavailable — system halted" in html
+    assert 'data-raw-state="UNAVAILABLE"' in html
     assert "VWAP UNAVAILABLE" not in html   # no price_vs_vwap token when None
     # No fabricated VWAP/price number leaks onto the halt card.
     import re as _re
@@ -4231,14 +4295,15 @@ def test_spy_observation_card_stale_and_pre_open():
         state="STALE", reason="session_mismatch",
         session_vwap=None, current_price=None, price_vs_vwap=None,
     ))
-    assert "STALE — SESSION_MISMATCH" in stale
+    assert "Session data stale — session date mismatch" in stale
     pre = _render_with_spy(_spy_section(
         state="PRE_OPEN", reason="pre_open",
         session_vwap=None, current_price=None, price_vs_vwap=None,
         orb={"state": "PRE_OPEN", "trading_date": None, "observed_at_utc": None,
              "orb_high": None, "orb_low": None, "reason": "no_bars"},
     ))
-    assert "PRE_OPEN — PRE_OPEN" in pre
+    assert "Pre-open — awaiting today&#x27;s session" in pre
+    assert 'data-raw-state="PRE_OPEN"' in pre
 
 
 def test_t12_no_spy_observation_card_when_section_absent():
@@ -4287,16 +4352,16 @@ def _mcc_block(html: str) -> str:
 def test_m11_market_control_card_rendered_with_all_seven_fields():
     html = _render_with_mcc(_mcc_section())
     block = _mcc_block(html)
-    for label in ("LOCATION", "STATE", "PERMISSION", "EVENT", "TRANSITION",
+    for label in ("LOCATION", "STATE", "EVENT", "TRANSITION",
                   "INVALIDATION", "CANDIDATE-IMPLICATION"):
         assert f'<div class="label">{label}</div>' in block
+    assert '<div class="label">PERMISSION</div>' not in block
+    assert '<div class="label">ORB</div>' not in block
     assert "MARKET CONTROL" in html
-    assert "RANGE" in block
-    assert "Selective only — defined risk, R:R &gt;= 3:1." in block
+    assert "Range" in block
     assert "2026-04-29 08:30 ET — CPI: CPI (April)" in block
-    assert "FORMED [100.00, 105.00]" in block          # verbatim ORB bounds
-    assert "NO_ACTIVE_CANDIDATES" in block
-    assert "CANDIDATES_PRESENT_NONE_ACTIONABLE (ACTIVE 1 / NEAR_MISS 0 / BLOCKED 0)" in block
+    assert "No active candidates" in block
+    assert "Candidates present; none actionable" in block
 
 
 def test_m23_no_market_control_card_when_section_absent():
@@ -4310,7 +4375,7 @@ def test_r5_zero_volume_location_renders_vwap_unavailable_never_raw_literal():
                   "price_vs_vwap": None, "orb": None},
     ))
     block = _mcc_block(html)
-    assert "OBSERVED — vwap_unavailable" in block
+    assert "Session data observed — VWAP unavailable" in block
     assert "(UNAVAILABLE VWAP)" not in block  # the raw upstream literal never renders
     assert "UNAVAILABLE VWAP" not in block
 
@@ -4325,11 +4390,11 @@ def test_r13_unavailable_cells_render_typed_tokens_only():
         candidate_implication={"value": None, "unavailable_reason": "candidate_inputs_absent"},
     ))
     block = _mcc_block(html)
-    assert "UNAVAILABLE — pre_computation_window" in block
-    assert "UNAVAILABLE — transition_state_unavailable" in block
-    assert "UNAVAILABLE — event_schedule_unavailable" in block
-    assert "UNAVAILABLE — invalidation_indeterminate" in block
-    assert "UNAVAILABLE — candidate_inputs_absent" in block
+    assert "Unavailable — awaiting the 09:45 ET state window" in block
+    assert "Unavailable — transition state unavailable" in block
+    assert "Unavailable — event schedule unavailable" in block
+    assert "Unavailable — invalidation unavailable" in block
+    assert "Unavailable — candidate inputs unavailable" in block
     # No renderer-derived value stands in for an unavailable cell.
     assert "RANGE" not in block and "NO_BREAK" not in block
 
@@ -4349,7 +4414,8 @@ def test_event_truthful_empty_and_expiring_flag():
                "unavailable_reason": None, "expiring": True},
     ))
     block = _mcc_block(html)
-    assert "no_scheduled_events [SCHEDULE EXPIRING]" in block
+    assert "No scheduled events in the next 48 hours · schedule expiring" in block
+    assert 'data-raw-value="no_scheduled_events"' in block
 
 
 # ---------------------------------------------------------------------------
@@ -4365,7 +4431,7 @@ def test_r7_locked_dashboard_replaces_action_vocabulary() -> None:
     html = render_dashboard_html(_payload(), run, market_map=mm)
 
     # Marker present; A+ relabelled; ACTIONABLE gone.
-    assert "OPERATOR LOCK — CANNOT MONITOR" in html
+    assert "Operator locked: cannot monitor" in html
     assert "A+ — OBSERVATION ONLY" in html
     assert "A+ — ACTIONABLE" not in html
     # Permission verbs suppressed.
@@ -4648,18 +4714,16 @@ def test_gex_decision_outputs_unchanged(monkeypatch):
     present = render_dashboard_html(_payload(), _run(), gex_snapshot=_valid_gex(), now=_GEX_FROZEN)
     frag = _gex.render_fragment(_valid_gex(), now=_GEX_FROZEN)
     assert frag and frag in present
-    # PRD-312: the display-only MARKET STATE panel also reflects GEX presence in its
-    # POSITIONING row (present -> net, absent -> unavailable), so it is a second
-    # display region, not a decision output. Strip that block from both renders,
-    # then excise exactly the inserted GEX card: every remaining decision-relevant
-    # byte must be identical.
+    # PRD-318: TAPE also reflects valid GEX presence. Strip only that display-only
+    # summary row, then excise the full detail card; all other bytes stay equal.
     import re as _re312
-    def _strip_ms(html):
+    def _strip_gex_summary(html):
         return _re312.sub(
-            r'<div class="block" id="market-state">.*?\n</div>', "", html,
+            r'    <div class="zone-item"><div class="label">GEX · CONTEXT ONLY</div>.*?</div></div>\n',
+            "", html,
             count=1, flags=_re312.S,
         )
-    assert _strip_ms(present).replace("\n" + frag, "", 1) == _strip_ms(absent)
+    assert _strip_gex_summary(present).replace("\n" + frag, "", 1) == absent
 
 
 # --- R17: AST/path-literal isolation guard ---

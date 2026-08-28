@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 317,
-  "next_prd": 318,
+  "latest_complete": 318,
+  "next_prd": 319,
   "entries": [
     {
       "number": 56,
@@ -1574,6 +1574,12 @@
       "title": "Mobile operator layout promotion",
       "status": "COMPLETE",
       "commit": "#278"
+    },
+    {
+      "number": 318,
+      "title": "Answer-first operator dashboard",
+      "status": "COMPLETE",
+      "commit": "#279"
     }
   ]
 }

@@ -30,7 +30,6 @@ from cuttingboard.delivery.dashboard_integrator import (
     dashboard_integrator,
 )
 from cuttingboard.delivery import gex_card
-from cuttingboard.delivery import market_state_panel
 from cuttingboard.delivery import movement_card
 from cuttingboard.delivery.macro_tape_layout import (
     MACRO_BIAS_CONTRA_CYCLICAL,
@@ -158,44 +157,129 @@ _SPY_PRICE_VS_VWAP_DISPLAY: dict[str, str] = {
     "UNAVAILABLE": "VWAP UNAVAILABLE",
 }
 
+_SPY_STATE_DISPLAY: dict[str, str] = {
+    "OBSERVED": "Session data observed",
+    "PRE_OPEN": "Pre-open",
+    "STALE": "Session data stale",
+    "UNAVAILABLE": "Session data unavailable",
+}
+
+_SPY_REASON_DISPLAY: dict[str, str] = {
+    "system_halted": "system halted",
+    "intraday_fetch_failed": "intraday data fetch failed",
+    "insufficient_bars": "not enough session bars",
+    "pre_open_prior_session": "prior-session reference",
+    "session_mismatch": "session date mismatch",
+    "pre_open": "awaiting today's session",
+    "observation_lag": "session observation delayed",
+    "vwap_unavailable": "VWAP unavailable",
+}
+
+_ORB_STATE_DISPLAY: dict[str, str] = {
+    "PRE_OPEN": "Pre-open",
+    "FORMING": "Opening range forming",
+    "FORMED": "Opening range formed",
+    "UNAVAILABLE": "Opening range unavailable",
+    "INVALID": "Opening range invalid",
+}
+
+_MCC_VALUE_DISPLAY: dict[str, str] = {
+    "EXPANSION_CONFIRMED": "Expansion confirmed",
+    "FAILED_EXPANSION": "Expansion failed",
+    "RANGE": "Range",
+    "NO_BREAK": "No ORB break",
+    "ORB_BREAK_HOLDING_LONG": "Long ORB break holding",
+    "ORB_BREAK_HOLDING_SHORT": "Short ORB break holding",
+    "ORB_RECLAIMED": "ORB reclaimed",
+    "FAILED_RECLAIM": "Reclaim failed",
+    "NOT_TRIGGERED": "Not triggered",
+    "WARNING": "Warning",
+    "TRIGGERED": "Triggered",
+    "NO_ACTIVE_CANDIDATES": "No active candidates",
+    "ACTIONABLE_CANDIDATES": "Actionable candidates present",
+    "CANDIDATES_PRESENT_NONE_ACTIONABLE": "Candidates present; none actionable",
+    "NO_CANDIDATES": "No candidates qualified this run",
+}
+
+_MCC_REASON_DISPLAY: dict[str, str] = {
+    "insufficient_bars": "not enough session bars",
+    "pre_computation_window": "awaiting the 09:45 ET state window",
+    "state_computation_error": "state calculation unavailable",
+    "non_current_observation": "session observation is not current",
+    "observation_unavailable": "session observation unavailable",
+    "event_schedule_unavailable": "event schedule unavailable",
+    "transition_state_unavailable": "transition state unavailable",
+    "transition_deferred": "transition check deferred",
+    "invalidation_deferred_d2": "invalidation check deferred",
+    "invalidation_inputs_absent": "invalidation inputs unavailable",
+    "invalidation_indeterminate": "invalidation unavailable",
+    "candidate_implication_deferred_d3": "candidate qualification deferred",
+    "candidate_inputs_absent": "candidate inputs unavailable",
+}
+
 
 def _spy_orb_summary(orb: dict | None) -> str:
-    """Render the verbatim PRD-271 ORB projection; bounds only when FORMED."""
+    """Render the PRD-271 ORB projection in closed operator language."""
     if not orb:
-        return "UNAVAILABLE"
-    state = _esc(str(orb.get("state") or "UNAVAILABLE"))
+        return "Opening range unavailable"
+    raw_state = str(orb.get("state") or "UNAVAILABLE")
+    state = _ORB_STATE_DISPLAY.get(raw_state, "Opening range unavailable")
     high, low = orb.get("orb_high"), orb.get("orb_low")
     if orb.get("state") == "FORMED" and isinstance(high, (int, float)) and isinstance(low, (int, float)):
-        return f"{state} [{low:.2f}, {high:.2f}]"
-    return state
+        state = f"{state} [{low:.2f}, {high:.2f}]"
+    return f'<span data-raw-state="{_esc(raw_state)}">{_esc(state)}</span>'
 
 
 def _mcc_cell_display(cell: dict) -> str:
-    """PRD-289 card cell: project the value or the typed unavailable token —
-    never a default, never a derivation (R13)."""
+    """Project a PRD-289 value/reason through a closed display translation."""
     if cell.get("value") is not None:
-        return _esc(str(cell["value"]))
-    return "UNAVAILABLE — " + _esc(str(cell.get("unavailable_reason")))
+        raw = str(cell["value"])
+        shown = _MCC_VALUE_DISPLAY.get(raw, raw)
+        return f'<span data-raw-value="{_esc(raw)}">{_esc(shown)}</span>'
+    raw = str(cell.get("unavailable_reason"))
+    shown = _MCC_REASON_DISPLAY.get(raw, "unavailable")
+    return f'<span data-raw-reason="{_esc(raw)}">Unavailable — {_esc(shown)}</span>'
 
 
 def _mcc_event_display(cell: dict) -> str:
     if cell.get("unavailable_reason") is not None:
-        return "UNAVAILABLE — " + _esc(str(cell["unavailable_reason"]))
-    suffix = " [SCHEDULE EXPIRING]" if cell.get("expiring") else ""
+        raw = str(cell["unavailable_reason"])
+        shown = _MCC_REASON_DISPLAY.get(raw, "event schedule unavailable")
+        return f'<span data-raw-reason="{_esc(raw)}">Unavailable — {_esc(shown)}</span>'
+    suffix = " · schedule expiring" if cell.get("expiring") else ""
     if cell.get("value") is not None:
-        return _esc(str(cell["value"])) + suffix
+        raw = str(cell["value"])
+        shown = "No scheduled events in the next 48 hours" if raw == "no_scheduled_events" else raw
+        return f'<span data-raw-value="{_esc(raw)}">{_esc(shown + suffix)}</span>'
     return _esc("; ".join(
         f'{e["date"]} {e["time_et"]} ET — {e["type"]}: {e["name"]}' for e in cell["events"]
     )) + suffix
 
 
 def _mcc_location_display(cell: dict) -> str:
-    text = _esc(str(cell["state"]))
+    raw_state = str(cell["state"])
+    text = _SPY_STATE_DISPLAY.get(raw_state, "Session data unavailable")
     if cell.get("reason"):
-        text += f' — {_esc(str(cell["reason"]))}'
+        text += f' — {_SPY_REASON_DISPLAY.get(str(cell["reason"]), "unavailable")}'
     if cell.get("price_vs_vwap"):
-        text += f' ({_esc(str(cell["price_vs_vwap"]))} VWAP)'
-    return text
+        relation = {
+            "ABOVE": "above VWAP",
+            "BELOW": "below VWAP",
+            "AT_LEVEL": "at VWAP",
+        }.get(str(cell["price_vs_vwap"]), "VWAP relation unavailable")
+        text += f" ({relation})"
+    return f'<span data-raw-state="{_esc(raw_state)}">{_esc(text)}</span>'
+
+
+def _operator_timestamp(value: object) -> str:
+    """Concise Pacific display clock; carrier value remains in data attributes."""
+    if isinstance(value, datetime):
+        parsed = value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+    else:
+        parsed = _parse_utc_timestamp(value)
+    if parsed is None:
+        return "Update time unavailable"
+    return parsed.astimezone(_PT).strftime("%b %-d · %-I:%M %p PT")
 
 
 def _intraday_rvol_band(rvol: float | None) -> str:
@@ -787,6 +871,7 @@ _CSS = (
     ".sys-verdict.sys-flat{color:#ff9800}"
     ".sys-verdict.sys-halt{color:#f44336}"
     ".sys-context{color:#888;font-size:0.8rem;margin-top:2px}"
+    ".sys-permission{color:#aaa;font-size:0.78rem;line-height:1.35;margin-top:4px}"
     ".sys-context.halted{color:#f44336}"
     # PRD-281: WHY line -- the already-authoritative reason, promoted out of
     # sys-context into its own line under the verdict. Bolder than
@@ -885,6 +970,37 @@ _CSS = (
     ".scoreboard-spy{color:#888}"
     # PRD-265 R5: coverage-bounded day marker on the scoreboard row.
     ".scoreboard-coverage{color:#ff9800;font-weight:600}"
+    # PRD-318: answer-first zones. Existing subsystem blocks remain intact in
+    # the DOM, but their supporting-evidence copies lose peer-card weight under
+    # DETAILS / HISTORY.
+    ".operator-zone{background:#101010}"
+    ".operator-zone>h2{color:#aaa}"
+    ".zone-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px}"
+    ".zone-item{min-width:0}"
+    ".zone-value{font-size:.82rem;line-height:1.35;margin-top:2px}"
+    ".zone-note{color:#777;font-size:.7rem;line-height:1.3;margin-top:2px}"
+    ".tape-drivers{display:flex;gap:6px 12px;flex-wrap:wrap;margin-top:8px;color:#aaa;font-size:.75rem}"
+    "#verdict-zone{border-color:#3a3a3a}"
+    "#verdict-zone #system-state.block{border:0;margin:0;padding:0}"
+    "#system-state>h2{margin-bottom:.45rem}"
+    "#staleness-banner{border:1px solid currentColor;border-radius:3px;padding:5px 8px;margin-bottom:8px;font-size:.72rem;letter-spacing:.04em}"
+    ".verdict-warning{border-left:3px solid #ff9800;color:#ff9800;padding:6px 8px;margin-bottom:8px}"
+    "#watching-zone .operator-subsection{padding-top:10px;margin-top:10px;border-top:1px solid #222}"
+    "#watching-zone .operator-subsection:first-of-type{padding-top:0;margin-top:0;border-top:0}"
+    "#watching-zone .block{border:0;border-radius:0;margin-bottom:0;padding-left:0;padding-right:0}"
+    "#watching-zone h3,#details-history h3{font-size:.75rem;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}"
+    ".candidate-observation{opacity:.82}"
+    ".candidate-observation .value-actionable{color:inherit}"
+    ".level-detail{margin-top:6px}"
+    ".level-detail>summary{cursor:pointer;color:#777;font-size:.7rem;text-transform:uppercase}"
+    "#details-history>summary{cursor:pointer;list-style:none;color:#aaa;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}"
+    "#details-history>summary::-webkit-details-marker{display:none}"
+    "#details-history>.details-body{margin-top:10px}"
+    "#details-history .block{border:0;border-radius:0;border-top:1px solid #222;margin:0;padding:12px 0}"
+    "#details-history .block:first-child{border-top:0}"
+    "#details-history .block h2{margin-bottom:7px}"
+    ".spy-session-group{border-top:1px solid #222;padding-top:12px}"
+    ".spy-session-group>.block:first-of-type{border-top:0}"
     # PRD-215: "actionable now" accent (cyan #29b6f6 — the level/VWAP colour) on
     # the falsifiable trade fields, plus the collapsed REASON/PLAY/WATCH detail.
     ".value-actionable{color:#29b6f6}"
@@ -918,23 +1034,25 @@ _CSS = (
     # (MIX 3ch vs BULL/BEAR 4ch); equalize it so every row wraps identically.
     ".ts-table td.ts-align{min-width:4ch}"
     "}"
-    # PRD-314: first-screen phone compaction (<=430px) -- presentation only, every
-    # selector rooted in the three target IDs; independent of the 640px Trend rule.
+    # PRD-318: phone-first compaction at the existing 430px boundary.
     "@media(max-width:430px){"
-    "#market-state,#system-state,#opportunity-survival{padding:10px;margin-bottom:10px}"
-    "#market-state h2,#system-state h2,#opportunity-survival h2{margin-bottom:8px}"
-    "#market-state .kv-grid{column-gap:8px}"
-    "#market-state .market-state-main{font-weight:600}"
-    "#market-state .market-state-provenance,#market-state .market-state-qualifier{font-size:.72rem;line-height:1.25}"
+    "body{padding:8px}"
+    ".operator-zone{padding:10px;margin-bottom:8px}"
+    ".operator-zone>h2{margin-bottom:7px}"
+    ".zone-grid{gap:6px 10px}"
+    ".zone-value{font-size:.78rem}"
+    ".decision-state{font-size:1.25rem}"
+    ".sys-verdict{font-size:.82rem}"
+    ".sys-why{font-size:.78rem;margin-top:3px}"
+    ".sys-context{font-size:.74rem}"
+    "#system-state .sep{margin:5px 0}"
+    "#system-state #cb-updated{font-size:.78rem}"
+    "#watching-zone .operator-subsection{padding-top:8px;margin-top:8px}"
     "#opportunity-survival .kv-grid{grid-template-columns:auto minmax(2.5ch,1fr) auto minmax(2.5ch,1fr)}"
     "#opportunity-survival .kv-grid>*:nth-child(10){grid-column:2/-1}"
-    "#staleness-banner{padding:6px 10px;margin-bottom:10px;font-size:.75rem;letter-spacing:.04em}"
-    "#candidate-board{padding:10px;margin-bottom:10px}"
-    "#candidate-board h2{margin-bottom:8px}"
-    "#candidate-board .candidate-scope{padding:6px 8px;margin-bottom:8px;font-size:.72rem;line-height:1.25}"
-    "#candidate-board:not(:has(.candidate-card)) .unavailable{font-size:.75rem}"
-    "#gex-context,#market-movement,#macro-tape,#trend-structure{padding:10px 0;margin-bottom:8px;border-right:0;border-left:0;border-radius:0}"
-    "#run-delta,#scoreboard{padding:10px;margin-bottom:8px}"
+    "#candidate-board .candidate-scope{padding:5px 7px;margin-bottom:6px;font-size:.68rem;line-height:1.25}"
+    "#candidate-board:not(:has(.candidate-card)) .unavailable{font-size:.72rem}"
+    "#details-history .block{padding:10px 0}"
     "}"
 )
 
@@ -1883,6 +2001,7 @@ def _render_level_diagram(
 def _render_candidate_card(
     w: object, sym: str, entry: dict, contract_entry: float | None = None,
     contract_stop: float | None = None, operator_locked: bool = False,
+    decision_permitted: bool = False,
 ) -> None:
     # PRD-304 R7: under lock the card keeps every analytical observation (symbol,
     # grade letter, bias, structure, price/level context, invalidation content,
@@ -1903,7 +2022,8 @@ def _render_candidate_card(
     badge_css = _LIFECYCLE_BADGE_CSS.get(lc_tr) if lc_tr else None
     badge_html = f'<span class="lifecycle-badge {badge_css}">{_esc(lc_tr)}</span>' if badge_css else ""
 
-    w(f'<div class="candidate-card grade-{css_class}" id="card-{_esc(sym)}">')
+    _observation_class = "" if decision_permitted else " candidate-observation"
+    w(f'<div class="candidate-card grade-{css_class}{_observation_class}" id="card-{_esc(sym)}">')
 
     if not is_high:
         # PRD-158 § 4.2 translation 11: low-grade GRADE label suppressed —
@@ -1919,7 +2039,7 @@ def _render_candidate_card(
             or entry.get("reason_for_grade")
         )
         _fail_text = _esc(_fail) if _fail else "No failure reason provided"
-        w(f'  <div class="label">FAILURE REASON</div><div class="value">{_fail_text}</div>')
+        w(f'  <div class="label">SCREENING NOTE</div><div class="value">{_fail_text}</div>')
     else:
         # PRD-249: collapse the 8-line stacked identity block (SYMBOL/GRADE/BIAS/
         # STRUCTURE label-over-value pairs) into one header line:
@@ -2046,6 +2166,8 @@ def _render_candidate_card(
         # This gate also carries contract staleness: a stale contract nulls
         # the entry map, so its stop can never pair up and draw.
         band_stop = contract_stop if entry_valid else None
+        if not decision_permitted:
+            w('  <details class="level-detail"><summary>LEVEL MAP ▶</summary>')
         _render_level_diagram(
             w,
             now_price,
@@ -2055,6 +2177,8 @@ def _render_candidate_card(
             contract_stop=band_stop,
             operator_locked=operator_locked,
         )
+        if not decision_permitted:
+            w("  </details>")
 
     w("</div>")
 
@@ -2252,9 +2376,15 @@ def render_dashboard_html(
     integrator_skips: dict[str, str] = integrator_result["symbol_skips"]
 
     lines: list[str] = []
+    _verdict_lines: list[str] = []
+    _tape_lines: list[str] = []
+    _today_lines: list[str] = []
+    _watching_lines: list[str] = []
+    _details_lines: list[str] = []
+    _active_lines = lines
 
     def w(line: str) -> None:
-        lines.append(line)
+        _active_lines.append(line)
 
     session_type = (payload.get("meta") or {}).get("session_type")
     # PRD-116: Sunday context must only render under coherent Sunday/pre-market lineage.
@@ -2281,25 +2411,6 @@ def render_dashboard_html(
     w("</head>")
     w("<body>")
     w('<div class="wrap">')
-
-    if artifact_mixed:
-        w('<div class="block artifact-warning" id="artifact-coherence">')
-        w("  <h2>MIXED_ARTIFACTS</h2>")
-        w("  <div class=\"value\">Dashboard inputs are from different artifact generations.</div>")
-        if generation_ids_mixed:
-            w(
-                "  <div class=\"value\">"
-                f"payload={_esc(payload_generation_id or 'unavailable')} "
-                f"run={_esc(run_generation_id or 'unavailable')} "
-                f"market_map={_esc(market_map_generation_id or 'unavailable')}"
-                "</div>"
-            )
-        w("</div>")
-
-    if sunday_coherent:
-        w('<div class="block" id="premarket-banner" style="border-color:#29b6f6;color:#29b6f6;text-align:center">')
-        w('  <h2>SUNDAY PRE-MARKET CONTEXT &#8212; NO CASH SESSION</h2>')
-        w("</div>")
 
     if fixture_mode:
         from cuttingboard.delivery.fixtures import FIXTURE_SYMBOLS
@@ -2342,25 +2453,36 @@ def render_dashboard_html(
         _market_map_rendered_setup_count(market_map) if _mm_health == "OK" else 0
     )
 
-    # --- staleness banner (PRD-250) ---
-    # Preceding sibling ABOVE #system-state — NOT woven into it, whose verdict/
-    # context region is decision-shaped. The server emits only inert scaffolding
-    # (an empty, hidden container carrying the threshold and the server-supplied
-    # "was a refresh due" flag); the verdict is computed client-side by
-    # _STALENESS_BANNER_JS against the viewer's clock, reading the machine-readable
-    # timestamp emitted on #cb-updated below. Nothing decision-shaped is baked.
+    # --- VERDICT: the sole top-level permission/decision surface. ---
+    _active_lines = _verdict_lines
+    w('<div class="block operator-zone" id="verdict-zone">')
+    if artifact_mixed:
+        w('<div class="verdict-warning" id="artifact-coherence" data-raw-state="MIXED_ARTIFACTS">')
+        w('  <div class="value-key">Inputs are out of sync</div>')
+        w('  <div class="value">Dashboard inputs are from different artifact generations.</div>')
+        if generation_ids_mixed:
+            w(
+                '  <div class="zone-note">'
+                f"payload={_esc(payload_generation_id or 'unavailable')} "
+                f"run={_esc(run_generation_id or 'unavailable')} "
+                f"market_map={_esc(market_map_generation_id or 'unavailable')}"
+                "</div>"
+            )
+        w("</div>")
+
+    # PRD-250 freshness remains client-clocked and safety-visible, but is now a
+    # compact treatment inside the authoritative card instead of a peer card.
     w(f'<div class="block" id="staleness-banner" hidden'
       f' style="text-align:center;font-weight:bold"'
       f' data-session-inactive="{"true" if inactive_session else "false"}"'
       f' data-board-stale-after-s="{BOARD_STALE_AFTER_SECONDS}"></div>')
     w(f'<script>{_STALENESS_BANNER_JS}</script>')
+    w('<div class="block operator-subsection" id="system-state">')
+    w('  <h2>VERDICT</h2>')
 
-    # --- market-state (PRD-312): hourly-first five-axis provenance panel,
-    #     rendered BEFORE system-state and OUTSIDE the PRD-219 protected
-    #     system-state..candidate-board region. Persistent legibility panel
-    #     (always five rows; honest per-axis unavailable + own provenance);
-    #     market_state_panel owns all assembly — the renderer supplies the
-    #     already-loaded carriers and emits. ---
+    # PRD-312's five independent facts are redistributed without changing their
+    # sources: environment+permission here, positioning+participation in TAPE,
+    # and event risk in TODAY. No peer MARKET STATE card remains.
     _ms_gex_card = (
         gex_card.build_gex_card(gex_snapshot, now=now if now is not None else _utcnow())
         if gex_snapshot is not None else None
@@ -2369,16 +2491,7 @@ def render_dashboard_html(
         movement_card.build_movement_card(movement_snapshot)
         if movement_snapshot is not None else None
     )
-    w(market_state_panel.render_fragment(
-        market_regime=market_regime,
-        permission=permission,
-        run_clock=run_timestamp,
-        gex_card_obj=_ms_gex_card,
-        movement_card_obj=_ms_movement_card,
-        red_folder=red_folder,
-    ))
-
-    # --- system-state ---
+    # --- existing SYSTEM STATE authority, now presented as VERDICT ---
     regime_permission_text = _regime_to_permission_verb(market_regime)
     # PRD-219: distilled system-state — a plain-English verdict (posture verb +
     # decision title, coloured by regime), one context line (regime + the
@@ -2386,8 +2499,6 @@ def render_dashboard_html(
     # REGIME/OUTCOME/PERMISSION grep and the three relative freshness lines. The
     # decision title stays inside the verdict, so the decision-title contract is
     # unchanged. Halt is unmistakable (red verdict, title carries SYSTEM HALT).
-    w('<div class="block" id="system-state">')
-    w('  <h2>SYSTEM STATE</h2>')
     # PRD-280: derive the halt color from the already-authoritative `title`
     # in addition to `system_halted` (not `system_halted` alone) --
     # _decision_title also returns SYSTEM HALT for status=FAIL/ERROR, which
@@ -2426,11 +2537,15 @@ def render_dashboard_html(
     # verb both carry the lock marker instead of any trade-permission vocabulary.
     if operator_locked:
         _decision_state = "OBSERVE ONLY"
-    _verb_text = "OPERATOR LOCK — CANNOT MONITOR" if operator_locked else regime_permission_text
+    try:
+        _title_display = "INPUTS OUT OF SYNC" if title == "MIXED_ARTIFACTS" else title
+    except Exception:
+        _title_display = "STATE UNAVAILABLE"
+    _verb_text = "Operator locked: cannot monitor" if operator_locked else regime_permission_text
     w('  <div class="decision-state-label">DECISION STATE</div>')
     w(f'  <div class="decision-state {_decision_state_cls}">{_esc(_decision_state)}</div>')
-    w(f'  <div class="sys-verdict {_verdict_cls}">'
-      f'{_esc(_verb_text)} · {_esc(title)}</div>')
+    w(f'  <div class="sys-verdict {_verdict_cls}" data-raw-title="{_esc(title)}">'
+      f'{_esc(_verb_text)} · {_esc(_title_display)}</div>')
     # Context line: regime in plain words. PRD-281: the trader-facing reason
     # ("why") moved to its own dedicated .sys-why line below.
     _regime_plain = _SYS_REGIME_PLAIN.get(
@@ -2512,6 +2627,8 @@ def render_dashboard_html(
     w(f'  <div class="sys-context{_ctx_cls}">{_ctx}</div>')
     if bool(kill_switch):
         w('  <div class="sys-context halted">Kill switch active</div>')
+    if isinstance(permission, str) and permission.strip():
+        w(f'  <div class="sys-permission">{_esc(permission)}</div>')
     w('  <div class="sep"></div>')
     # PRD-219: one absolute Pacific timestamp replaces the three relative
     # RUN SNAPSHOT / LIVE STATE / SCOREBOARD freshness lines. It reads the
@@ -2523,19 +2640,109 @@ def render_dashboard_html(
     _, _pipeline_run_ts = _first_timestamp(
         _pipeline_run, (("run_at_utc",), ("timestamp",), ("generated_at",))
     )
-    _updated_pt, _ = format_dashboard_timestamp(
-        str(_pipeline_run_ts or payload_timestamp_value or timestamp or "")
-    )
     # PRD-250: machine-readable UTC form of the same timestamp the display uses,
     # for the client-side staleness banner. Mirrors the display fallback
     # (pipeline run first, then payload). Emitted into HTML output ONLY — no
     # contract/payload write; both operands are already-parsed datetimes in hand.
     _updated_dt = _pipeline_run_ts or payload_timestamp
     _updated_iso = _updated_dt.isoformat() if _updated_dt is not None else ""
+    _updated_display = _operator_timestamp(
+        _pipeline_run_ts or payload_timestamp_value or timestamp or ""
+    )
     w('  <div class="label">UPDATED</div>')
     w(f'  <div class="value" id="cb-updated" data-updated-utc="{_esc(_updated_iso)}">'
-      f'{_esc(_updated_pt) if _updated_pt else "unknown"}</div>')
+      f'Updated {_esc(_updated_display)}</div>')
+    w("</div>")  # #system-state
+    w("</div>")  # #verdict-zone
+
+    # --- TAPE: display-only adjacency over values already loaded above. ---
+    _active_lines = _tape_lines
+    w('<div class="block operator-zone" id="tape-zone">')
+    w('  <h2>TAPE <span class="label">context only</span></h2>')
+    w('  <div class="zone-grid">')
+    _total_votes = long_votes + short_votes
+    _macro_summary = macro_bias
+    if _total_votes:
+        _macro_summary += f" · {long_votes} on / {short_votes} off"
+    if not integrator_suppress["macro_bias"]:
+        w('    <div class="zone-item"><div class="label">MACRO</div>'
+          f'<div class="zone-value">{_esc(_macro_summary)}</div></div>')
+    _trend_rows = list((_ts_records or {}).values())
+    _trend_bullish = sum(
+        1 for _rec in _trend_rows
+        if isinstance(_rec, dict) and _rec.get("trend_alignment") == "BULLISH"
+    )
+    _trend_summary = (
+        f"{_trend_bullish} of {len(_trend_rows)} bullish"
+        if _trend_rows else "Trend unavailable"
+    )
+    w('    <div class="zone-item"><div class="label">TREND</div>'
+      f'<div class="zone-value" data-derivation="bullish-row-count">{_esc(_trend_summary)}</div></div>')
+    if _ms_gex_card is not None:
+        _gex_b = _ms_gex_card.net_usd / 1e9
+        _gex_net = f"{'-' if _gex_b < 0 else '+'}${abs(_gex_b):.1f}B net"
+        w('    <div class="zone-item"><div class="label">GEX · CONTEXT ONLY</div>'
+          f'<div class="zone-value">{_esc(_gex_net)}</div>'
+          f'<div class="zone-note">as of {_esc(_ms_gex_card.as_of_et)} ET · Cboe ~15m delayed · positioning not measured</div></div>')
+    if _ms_movement_card is not None:
+        _movement_chips = [
+            chip for _group, _chips in _ms_movement_card.groups for chip in _chips
+        ]
+        _movement_usable = sum(1 for _chip in _movement_chips if not _chip.endswith(" n/a"))
+        w('    <div class="zone-item"><div class="label">PARTICIPATION</div>'
+          f'<div class="zone-value">{_movement_usable}/{len(_movement_chips)} captured</div>'
+          f'<div class="zone-note">captured {_esc(_ms_movement_card.captured_et)} ET</div></div>')
+    w('  </div>')
+    _tape_values = dict(tape_value_slots)
+    _tape_arrows = dict(tape_slots)
+    _driver_bits = []
+    for _driver in ("DXY", "10Y", "VIX", "BTC"):
+        if _driver in _tape_values:
+            _driver_bits.append(
+                f'<span>{_esc(_driver)} {_esc(_tape_arrows.get(_driver, _DASH))} '
+                f'{_esc(_tape_values[_driver])}</span>'
+            )
+    if _driver_bits:
+        w('  <div class="tape-drivers">' + "".join(_driver_bits) + "</div>")
     w("</div>")
+
+    # --- TODAY: existing event/session/Sunday facts, no joined carrier. ---
+    _active_lines = _today_lines
+    _spy_obs = (payload.get("sections") or {}).get("spy_observation")
+    w('<div class="block operator-zone" id="today-zone">')
+    w('  <h2>TODAY</h2>')
+    w('  <div class="zone-grid">')
+    if isinstance(red_folder, dict) and red_folder.get("ok", True):
+        _today_events = red_folder.get("events") or []
+        _today_event_text = (
+            f"{len(_today_events)} scheduled event{'s' if len(_today_events) != 1 else ''} in the next 48 hours"
+            if _today_events else "No scheduled events in the next 48 hours"
+        )
+        if red_folder.get("expiring"):
+            _today_event_text += " · schedule expiring"
+    else:
+        _today_event_text = "Event schedule unavailable"
+    w('    <div class="zone-item"><div class="label">EVENT RISK</div>'
+      f'<div class="zone-value">{_esc(_today_event_text)}</div></div>')
+    if _spy_obs:
+        _today_spy_state = str(_spy_obs.get("state") or "UNAVAILABLE")
+        _today_spy_text = _SPY_STATE_DISPLAY.get(_today_spy_state, "Session data unavailable")
+        if _spy_obs.get("reason"):
+            _today_spy_text += " · " + _SPY_REASON_DISPLAY.get(
+                str(_spy_obs["reason"]), "unavailable"
+            )
+        w('    <div class="zone-item"><div class="label">SPY SESSION</div>'
+          f'<div class="zone-value" data-raw-state="{_esc(_today_spy_state)}">{_esc(_today_spy_text)}</div></div>')
+    if sunday_coherent:
+        w('    <div class="zone-item" id="premarket-banner"><div class="label">SESSION</div>'
+          '<div class="zone-value">SUNDAY PRE-MARKET CONTEXT · no cash session</div></div>')
+    w('  </div>')
+    w("</div>")
+
+    # --- WATCHING: Opportunity -> Candidate -> alert continuity. ---
+    _active_lines = _watching_lines
+    w('<div class="block operator-zone" id="watching-zone">')
+    w('  <h2>WATCHING</h2>')
 
     # --- opportunity-survival (PRD-282) ---
     # Trader-facing survival funnel: how many symbols were surfaced, how many
@@ -2613,8 +2820,8 @@ def render_dashboard_html(
                 _os_primary = sorted(
                     _os_tally.items(), key=lambda kv: (-kv[1], kv[0])
                 )[0][0]
-        w('<div class="block" id="opportunity-survival">')
-        w('  <h2>OPPORTUNITY SURVIVAL</h2>')
+        w('<div class="block operator-subsection" id="opportunity-survival">')
+        w('  <h3>OPPORTUNITY</h3>')
         w('  <div class="kv-grid">')
         w(f'    <div class="label">SURFACED</div><div class="value">{_os_surfaced_n}</div>')
         # PRD-304 R7: analytical count unchanged; relabelled SETUPS FOUND under lock.
@@ -2629,15 +2836,14 @@ def render_dashboard_html(
         w("</div>")
 
     # --- candidate-board ---
-    w(f'<div class="block{disabled_class}" id="candidate-board">')
+    w(f'<div class="block operator-subsection{disabled_class}" id="candidate-board">')
     if fixture_mode:
-        w('  <h2>Market Map / Developing Setups &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h2>')
+        w('  <h3>SETUP SCREENING &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h3>')
     else:
-        w("  <h2>Market Map / Developing Setups</h2>")
+        w("  <h3>Market Map / Developing Setups · screening</h3>")
     w(
         '  <div class="idle-summary candidate-scope">'
-        'OBSERVATION ONLY — setup quality never overrides '
-        'Decision State or Permission.'
+        'MARKET-MAP SCREENING GRADES · OBSERVATION ONLY — grades never grant permission.'
         '</div>'
     )
     # PRD-158 § 4.3: integrator screen verdicts (Rules 2/3) render here as
@@ -2702,7 +2908,8 @@ def render_dashboard_html(
         else:
             symbols: dict = market_map.get("symbols") or {}
             if not symbols:
-                w('  <div class="unavailable">NO_CANDIDATES</div>')
+                w('  <div class="unavailable" data-raw-state="NO_CANDIDATES">'
+                  'Map empty — no symbols graded this run</div>')
             else:
                 # PRD-158 § 4.3 Rule 1: emit one skip line per symbol the
                 # integrator flagged for missing required market data; those
@@ -2750,6 +2957,7 @@ def render_dashboard_html(
                             contract_entry=(contract_entry_map or {}).get(sym),
                             contract_stop=(contract_stop_map or {}).get(sym),
                             operator_locked=operator_locked,
+                            decision_permitted=_decision_state == "TRADE PERMITTED",
                         )
                     if is_low_tier:
                         w("  </details>")
@@ -2768,8 +2976,8 @@ def render_dashboard_html(
 
     # --- alert-watchlist ---
     if alert_candidates:
-        w('<div class="block" id="alert-watchlist">')
-        w('  <h2>Alert Watchlist</h2>')
+        w('<div class="block operator-subsection" id="alert-watchlist">')
+        w('  <h3>ALERT WATCHLIST</h3>')
         w('  <div class="label">Candidates gated by execution policy</div>')
         for cand in alert_candidates:
             sym = _esc(str(cand.get("symbol") or "").upper())
@@ -2779,6 +2987,14 @@ def render_dashboard_html(
               + (f' — {block_reason}' if block_reason else '')
               + '</div>')
         w("</div>")
+
+    w("</div>")  # #watching-zone
+
+    # --- DETAILS / HISTORY: full evidence remains present, default collapsed. ---
+    _active_lines = _details_lines
+    w('<details class="block operator-zone" id="details-history">')
+    w('  <summary>DETAILS / HISTORY ▶</summary>')
+    w('  <div class="details-body">')
 
     # --- gex-context (PRD-309: display-only, baseline-neutral GEX card; emitted
     #     iff a fresh in-domain artifact is present, else true omission -> the
@@ -2799,18 +3015,27 @@ def render_dashboard_html(
         if movement_fragment:
             w(movement_fragment)
 
+    # --- SPY SESSION: two projections over the existing independent carriers,
+    #     visually grouped without joining them into a new state. ---
+    _mcc = (payload.get("sections") or {}).get("market_control_card")
+    if _spy_obs or _mcc:
+        w('<section class="spy-session-group" id="spy-session-details">')
+        w('  <h3>SPY SESSION</h3>')
+
     # --- spy-observation (PRD-288: transient daily SPY session card; present
     #     iff the daily payload carries the section — omitted on hourly/None) ---
-    _spy_obs = (payload.get("sections") or {}).get("spy_observation")
     if _spy_obs:
         _spy_reason = _spy_obs.get("reason")
-        _spy_state_display = _esc(str(_spy_obs.get("state") or "UNAVAILABLE")) + (
-            f' — {_esc(str(_spy_reason).upper())}' if _spy_reason else ''
+        _spy_state_raw = str(_spy_obs.get("state") or "UNAVAILABLE")
+        _spy_state_display = _SPY_STATE_DISPLAY.get(
+            _spy_state_raw, "Session data unavailable"
         )
+        if _spy_reason:
+            _spy_state_display += " — " + _SPY_REASON_DISPLAY.get(
+                str(_spy_reason), "unavailable"
+            )
         _spy_obs_at = _spy_obs.get("observed_at_utc")
-        _spy_obs_at_label = _esc(_timestamp_label(
-            _spy_obs_at, _parse_utc_timestamp(_spy_obs_at) if _spy_obs_at else None
-        ))
+        _spy_obs_at_label = _operator_timestamp(_spy_obs_at)
         _spy_vwap = _spy_obs.get("session_vwap")
         _spy_vwap_display = f"{_spy_vwap:.2f}" if isinstance(_spy_vwap, (int, float)) else "UNAVAILABLE"
         _spy_price = _spy_obs.get("current_price")
@@ -2821,8 +3046,8 @@ def render_dashboard_html(
         w('  <h2>SPY SESSION OBSERVATION</h2>')
         w('  <div class="kv-grid">')
         w(f'    <div class="label">SESSION</div><div class="value">{_esc(str(_spy_obs.get("intended_session_date") or "unavailable"))}</div>')
-        w(f'    <div class="label">STATE</div><div class="value">{_spy_state_display}</div>')
-        w(f'    <div class="label">OBSERVED AT</div><div class="value">{_spy_obs_at_label}</div>')
+        w(f'    <div class="label">STATE</div><div class="value" data-raw-state="{_esc(_spy_state_raw)}">{_esc(_spy_state_display)}</div>')
+        w(f'    <div class="label">OBSERVED AT</div><div class="value" data-observed-at-utc="{_esc(str(_spy_obs_at or ""))}">{_esc(_spy_obs_at_label)}</div>')
         w(f'    <div class="label">SESSION VWAP</div><div class="value">{_spy_vwap_display}</div>')
         w('    <div class="label">PRICE</div>'
           f'<div class="value">{_spy_price_display}'
@@ -2834,7 +3059,6 @@ def render_dashboard_html(
 
     # --- market-control-card (PRD-289: seven-field daily card; present iff the
     #     payload carries the section; projection-only — no renderer derivation) ---
-    _mcc = (payload.get("sections") or {}).get("market_control_card")
     if _mcc:
         _cand = _mcc["candidate_implication"]
         _cand_display = _mcc_cell_display(_cand)
@@ -2847,17 +3071,16 @@ def render_dashboard_html(
         w('  <h2>MARKET CONTROL</h2>')
         w('  <div class="kv-grid">')
         w(f'    <div class="label">LOCATION</div><div class="value">{_mcc_location_display(_mcc["location"])}</div>')
-        _mcc_orb = _mcc["location"].get("orb")
-        if _mcc_orb is not None:
-            w(f'    <div class="label">ORB</div><div class="value">{_spy_orb_summary(_mcc_orb)}</div>')
         w(f'    <div class="label">STATE</div><div class="value">{_mcc_cell_display(_mcc["state"])}</div>')
-        w(f'    <div class="label">PERMISSION</div><div class="value">{_esc(str(_mcc["permission"]["value"]))}</div>')
         w(f'    <div class="label">EVENT</div><div class="value">{_mcc_event_display(_mcc["event"])}</div>')
         w(f'    <div class="label">TRANSITION</div><div class="value">{_mcc_cell_display(_mcc["transition"])}</div>')
         w(f'    <div class="label">INVALIDATION</div><div class="value">{_mcc_cell_display(_mcc["invalidation"])}</div>')
         w(f'    <div class="label">CANDIDATE-IMPLICATION</div><div class="value">{_cand_display}</div>')
         w('  </div>')
         w("</div>")
+
+    if _spy_obs or _mcc:
+        w("</section>")
 
     # --- sunday-macro-context (PRD-116: only under coherent Sunday lineage) ---
     if sunday_coherent:
@@ -3248,6 +3471,18 @@ def render_dashboard_html(
     else:
         w('  <div class="value">No regime history yet.</div>')
     w("</div>")
+
+    w("  </div>")  # .details-body
+    w("</details>")
+
+    # Assemble the five operator-question zones in source order. Each buffer was
+    # rendered from the same in-memory facts as the prior subsystem blocks.
+    _active_lines = lines
+    lines.extend(_verdict_lines)
+    lines.extend(_tape_lines)
+    lines.extend(_today_lines)
+    lines.extend(_watching_lines)
+    lines.extend(_details_lines)
 
     w("</div>")  # .wrap
     w("</div>")

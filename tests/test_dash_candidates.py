@@ -72,7 +72,8 @@ def test_candidate_board_empty_symbols() -> None:
     mm   = _market_map({})
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
     assert 'id="candidate-board"' in html
-    assert "NO_CANDIDATES" in html
+    assert "Map empty — no symbols graded this run" in html
+    assert ">NO_CANDIDATES<" not in html
 
 
 def test_candidate_board_sort_order() -> None:

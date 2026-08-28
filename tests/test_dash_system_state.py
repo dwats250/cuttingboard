@@ -123,17 +123,18 @@ def test_system_state_stay_flat_present_when_set() -> None:
 
 
 def test_system_state_no_redundant_permission_copy() -> None:
-    """Single Permission field; stay_flat_reason is the shown value, not the permission text."""
+    """The authoritative permission renders once without the stale posture internals."""
     html = render_dashboard_html(
         _payload(validation_halt_detail={"reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.25)"}),
         _run(permission="No new trades permitted."),
     )
     state = _top_block(html, "system-state")
-    # PRD-219: no Permission field; the distilled verdict replaces it, and the
-    # confidence-laden posture string never appears.
+    # PRD-318 correction: retain one authoritative permission sentence without
+    # restoring the old labelled projection or confidence-laden posture string.
     assert ">Permission<" not in state
     assert "confidence=" not in state
-    assert "No new trades permitted." not in state
+    assert state.count('class="sys-permission"') == 1
+    assert state.count("No new trades permitted.") == 1
     assert 'class="sys-verdict' in state
 
 
@@ -144,9 +145,9 @@ def test_system_state_permission_fallback_when_no_reason() -> None:
         _run(permission="No new trades permitted."),
     )
     state = _top_block(html, "system-state")
-    # PRD-219: the raw permission text is no longer echoed; the verdict conveys it.
     assert 'class="sys-verdict' in state
-    assert "No new trades permitted." not in state
+    assert state.count('class="sys-permission"') == 1
+    assert state.count("No new trades permitted.") == 1
 
 
 def test_system_state_permission_shows_from_run_when_non_null() -> None:
@@ -155,7 +156,8 @@ def test_system_state_permission_shows_from_run_when_non_null() -> None:
     html = render_dashboard_html(_payload(), r)
     state = _top_block(html, "system-state")
     assert 'class="sys-verdict' in state
-    assert "No new trades permitted." not in state
+    assert state.count('class="sys-permission"') == 1
+    assert state.count("No new trades permitted.") == 1
     assert "&#8212;" not in state
 
 
@@ -167,7 +169,8 @@ def test_system_state_permission_falls_back_to_payload_when_run_none() -> None:
     html = render_dashboard_html(payload_with_perm, r)
     state = _top_block(html, "system-state")
     assert 'class="sys-verdict' in state
-    assert "No new trades permitted." not in state
+    assert state.count('class="sys-permission"') == 1
+    assert state.count("No new trades permitted.") == 1
 
 
 # ---------------------------------------------------------------------------
