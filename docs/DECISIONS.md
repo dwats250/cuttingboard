@@ -16,6 +16,21 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-08-28 — Cloudflare clock DEPLOYED; CF-E1 capture pending Monday (ruled: Dustin's commissioning charge)
+
+The `cuttingboard-clock` Worker (PRD-319) moved from repository-recorded
+UNDEPLOYED to deployed: Dustin performed the owner-held credential acts
+2026-08-28 ~22:58 UTC (login, `wrangler deploy -c wrangler.example.toml`,
+`wrangler secret put GH_DISPATCH_TOKEN`); the live cron set was verified
+equal to the reviewed four expressions via an idempotent trigger re-apply;
+the secret exists by name only; no `wrangler.toml` was created and no
+secret value touched the repo, logs, or transcripts. CF-E1 (first real
+scheduled fire) remains honestly PENDING until Monday 2026-08-31 12:50 UTC
+— weekday-only crons; the GitHub dual-seasonal fallbacks remain the safety
+net. Same charge: PRD-320/321 live-commissioned via a mode=live dispatch
+(publish ca420d2; board verified at four widths, no regression). Evidence:
+`audits/post-prd321-commissioning-2026-08/`.
+
 ## 2026-08-20 — PRD-307: Cboe OI admissibility is semantic integer-valued, not Python `int` representation (patch of PRD-306)
 
 PRD-306's first real run of `tools/gex_snapshot.py` failed loud with
