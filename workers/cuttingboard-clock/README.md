@@ -1,4 +1,13 @@
-# cuttingboard-clock (Cloudflare Worker) — UNDEPLOYED
+# cuttingboard-clock (Cloudflare Worker) — DEPLOYED 2026-08-28
+
+Deployed by Dustin 2026-08-28 ~22:58 UTC (owner-held credential acts:
+`wrangler login` / `wrangler deploy -c wrangler.example.toml` /
+`wrangler secret put GH_DISPATCH_TOKEN -c wrangler.example.toml`; no
+`wrangler.toml` created). Live cron set verified equal to the reviewed
+four expressions; secret present by name only. Evidence:
+`audits/post-prd321-commissioning-2026-08/`. CF-E1 first-real-fire
+capture pending the next weekday cron (Monday 2026-08-31 12:50 UTC).
+The deployment-mechanics text below is retained for redeploys.
 
 PRD-299 / PRD-319. The preferred punctual **clock** for the full Cuttingboard
 weekday cadence (pipeline 06:00 PT board + hourly 06:30/06:45/07:00-13:00 PT
