@@ -339,7 +339,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-319 | #282 | Reliable market cadence: CF clock primacy, PT slot identity, hourly cache | COMPLETE | [PRD-319](prd_history/PRD-319.md) |
 | PRD-320 | #283 | Price-bars sidecar producer (Lane A slice 1) | COMPLETE | [PRD-320](prd_history/PRD-320.md) |
 | PRD-321 | #284 | Operator setup chart consumer (Lane A slice 1) | COMPLETE | [PRD-321](prd_history/PRD-321.md) |
-| PRD-322 | — | Operator context tape: visible macro + trend projection | IN PROGRESS | [PRD-322](prd_history/PRD-322.md) |
+| PRD-322 | #285 | Operator context tape: visible macro + trend projection | COMPLETE | [PRD-322](prd_history/PRD-322.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
