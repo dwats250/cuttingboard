@@ -2818,12 +2818,15 @@ def render_dashboard_html(
     # PRD-322 R3: all seven macro drivers, data-driven from the shared layout
     # rows. Deliberately NOT `macro-tape-slot` / `macro-tape-value` /
     # `data-symbol` — those are regex-harvested and order-pinned in DETAILS.
+    # Codex F3: the strip normalizes the DETAILS-side "N/A" absent-metal
+    # placeholder to the strip's uniform "--"; the shared projection is untouched.
+    _strip_values = {k: ("--" if v == "N/A" else v) for k, v in _tape_values.items()}
     _driver_cells = [
         f'<div class="tape-driver tape-slot '
         f'{_ARROW_CSS.get(_tape_arrows.get(slot.label, _DASH), "na")}">'
         f'<span>{_esc(slot.display)}</span>'
         f'<span>{_esc(_tape_arrows.get(slot.label, _DASH))}</span>'
-        f'<span>{_esc(_tape_values.get(slot.label, _DASH))}</span></div>'
+        f'<span>{_esc(_strip_values.get(slot.label, _DASH))}</span></div>'
         for _row in (MACRO_ROW_2, MACRO_ROW_1)
         for slot in _row.slots
     ]

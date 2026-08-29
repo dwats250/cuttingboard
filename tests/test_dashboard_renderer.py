@@ -5080,17 +5080,29 @@ def test_prd322_tape_renders_all_seven_drivers_in_layout_order() -> None:
     assert labels == ["VIX", "DXY", "10Y", "OIL", "GC", "SI", "BTC"]
 
 
-def test_prd322_absent_driver_keeps_its_chip_with_the_placeholder() -> None:
-    # R3: absence is visible, never zero and never dropped. Mutation: skip
-    # missing drivers -> red (six chips, no OIL).
+@pytest.mark.parametrize(
+    "driver_key,display",
+    [
+        ("volatility", "VIX"), ("dollar", "DXY"), ("rates", "10Y"),
+        ("oil", "OIL"), ("gold", "GC"), ("silver", "SI"), ("bitcoin", "BTC"),
+    ],
+)
+def test_prd322_absent_driver_keeps_its_chip_with_the_placeholder(driver_key, display) -> None:
+    # R3 (Codex F3): absence is visible, never zero and never dropped — for
+    # EVERY slot, including the metals whose DETAILS-side placeholder is
+    # "N/A" (the strip must normalize to "--"). Mutation: skip missing
+    # drivers, or drop the normalization -> red.
     drivers = _macro_drivers()
-    drivers.pop("oil", None)
+    drivers.pop(driver_key, None)
     html = render_dashboard_html(
         _payload(macro_drivers=drivers), _run(), market_map=_market_map(),
     )
     tape = _prd322_tape(html)
     assert tape.count('class="tape-driver tape-slot') == 7
-    assert '<div class="tape-driver tape-slot na"><span>OIL</span><span>—</span><span>--</span></div>' in tape
+    assert (
+        f'<div class="tape-driver tape-slot na"><span>{display}</span>'
+        f'<span>—</span><span>--</span></div>'
+    ) in tape
 
 
 def test_prd322_tape_zone_never_collides_with_the_details_harvest_shape() -> None:
@@ -5224,4 +5236,8 @@ def test_prd322_new_styling_stays_out_of_the_pinned_phone_block() -> None:
     # aligned column grids, nowrap per cell (via .tape-slot), no fixed widths
     assert ".tape-trend-row{display:grid;grid-template-columns:4ch 4ch 4ch 5ch 2ch" in html
     assert ".tape-driver{display:grid;grid-template-columns:3ch 1ch auto" in html
+    # Codex F7: the OUTER strips are grids too — a regression to flex-wrap
+    # (ragged columns, the owner-rejected sketch state) must go red here.
+    assert ".tape-drivers{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr))" in html
+    assert ".tape-trend{display:grid;grid-template-columns:repeat(auto-fit,minmax(154px,1fr))" in html
     assert ".tape-slot{white-space:nowrap}" in html
