@@ -4734,6 +4734,10 @@ def test_gex_decision_outputs_unchanged(monkeypatch):
     assert frag and frag in present
     # PRD-318: TAPE also reflects valid GEX presence. Strip only that display-only
     # summary row, then excise the full detail card; all other bytes stay equal.
+    # PRD-322 R5: absence is now STATED ("unavailable") rather than silent, so the
+    # same literal row shape exists on both sides and the strip applies to BOTH
+    # documents. The invariance claim is unchanged: outside that one row and the
+    # detail card, a valid artifact changes nothing.
     import re as _re312
     def _strip_gex_summary(html):
         return _re312.sub(
@@ -4741,7 +4745,8 @@ def test_gex_decision_outputs_unchanged(monkeypatch):
             "", html,
             count=1, flags=_re312.S,
         )
-    assert _strip_gex_summary(present).replace("\n" + frag, "", 1) == absent
+    assert 'class="label">GEX · CONTEXT ONLY</div><div class="zone-value">unavailable</div>' in absent
+    assert _strip_gex_summary(present).replace("\n" + frag, "", 1) == _strip_gex_summary(absent)
 
 
 # --- R17: AST/path-literal isolation guard ---
@@ -4857,3 +4862,382 @@ def test_movement_card_malformed_json_file_is_baseline_neutral(tmp_path):  # PRD
     # the loader's None drives the renderer to a byte-identical no-block baseline
     assert render_dashboard_html(_payload(), _run(), market_map=None,
                                  movement_snapshot=snap) == baseline
+
+
+# ===========================================================================
+# PRD-322 — operator context tape: visible macro + trend projection.
+# The TAPE zone becomes two labeled bands (MACRO, TREND) plus a subordinate
+# availability footer, all projected from values already bound in the render
+# body. Red-first: the two live honesty defects the PRD names.
+# ===========================================================================
+_PRD322_TAPE_BANNED = (
+    "ALIGNED", "DIVERGING", "CONFLUENT", "systems agree", "agreement", "confluence",
+)
+
+
+def _prd322_tape(html: str) -> str:
+    return _top_block(html, "tape-zone")
+
+
+def _prd322_ts_snapshot(**per_symbol) -> dict:
+    """A curated-6 snapshot whose records carry the given field overrides."""
+    snap = _ts_healthy_snapshot()
+    for rec in snap["symbols"].values():
+        rec.update(per_symbol)
+    return snap
+
+
+def test_prd322_all_unavailable_trend_is_not_reported_as_zero_bullish() -> None:
+    # DEFECT 1 (red-first): six DATA_UNAVAILABLE rows are six records with zero
+    # BULLISH, so the raw count rendered "0 of 6 bullish" — unavailability
+    # presented as bearishness. Mutation: revert the TAPE trend item to the raw
+    # bullish-row count -> red.
+    snap = _prd322_ts_snapshot(
+        trend_alignment="DATA_UNAVAILABLE",
+        price_vs_sma_50="DATA_UNAVAILABLE",
+        price_vs_sma_200="DATA_UNAVAILABLE",
+        price_vs_vwap="DATA_UNAVAILABLE",
+        data_status="MISSING",
+    )
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap,
+    )
+    tape = _prd322_tape(html)
+    assert "0 of 6 bullish" not in tape
+    assert 'data-derivation="trend-health"' in tape
+
+
+def test_prd322_empty_macro_drivers_render_no_fabricated_bias_in_tape() -> None:
+    # DEFECT 2 (red-first): an empty macro-driver payload casts zero votes, and
+    # the zero-vote tie fabricated "MACRO BIAS: MIXED" in the TAPE zone.
+    # Mutation: remove the _tape_health == "MISSING" gate -> red. The DETAILS
+    # macro-tape block is explicitly out of scope and still renders its label.
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(),
+        macro_snapshot_path=Path("/nonexistent/prd322_no_snapshot.json"),
+    )
+    tape = _prd322_tape(html)
+    assert "MACRO BIAS" not in tape
+    assert "Macro unavailable" in tape
+
+
+# --- R1 unit matrix: _tape_trend_summary over the closed vocabulary ---------
+def _prd322_records(*alignments: str) -> dict:
+    return {
+        sym: {**_ts_record(sym), "trend_alignment": align}
+        for sym, align in zip(_TS_CURATED, alignments)
+    }
+
+
+def test_prd322_trend_summary_all_computed_is_byte_identical_to_the_prior_string() -> None:
+    # R1: six computed rows reproduce the pre-PRD-322 headline byte-for-byte,
+    # including its derivation token. Mutation: change either -> red here and
+    # in test_prd318_tape_is_display_only_adjacency.
+    assert _dr._tape_trend_summary(_ts_healthy_snapshot()["symbols"], "OK") == (
+        "6 of 6 bullish", "bullish-row-count",
+    )
+    mixed = _prd322_records("BULLISH", "BEARISH", "MIXED", "BULLISH", "BEARISH", "MIXED")
+    assert _dr._tape_trend_summary(mixed, "OK") == ("2 of 6 bullish", "bullish-row-count")
+
+
+def test_prd322_trend_summary_denominator_counts_only_computed_rows() -> None:
+    # R1: the honest partial form. INSUFFICIENT_HISTORY and NOT_COMPUTED are
+    # n/a rows, not bearish rows. Mutation: count non-computed rows in the
+    # denominator -> red.
+    partial = _prd322_records(
+        "BULLISH", "BEARISH", "DATA_UNAVAILABLE", "BULLISH",
+        "INSUFFICIENT_HISTORY", "NOT_COMPUTED",
+    )
+    assert _dr._tape_trend_summary(partial, "OK") == (
+        "2 of 3 bullish · 3 n/a", "trend-health",
+    )
+
+
+@pytest.mark.parametrize(
+    "health,expected",
+    [
+        ("MARKET_CLOSED", "Market closed — awaiting intraday data"),
+        ("AWAITING_DATA", "Market closed — awaiting intraday data"),
+        ("STALE", "Trend stale"),
+        ("OK", "Trend data unavailable"),
+        ("MIXED", "Trend data unavailable"),
+        ("INACTIVE_SESSION", "Trend data unavailable"),
+    ],
+)
+def test_prd322_trend_summary_zero_computed_uses_source_health(health, expected) -> None:
+    # R1 / DEFECT 1: zero computed rows never render a count. Mutation: fall
+    # back to "0 of 6 bullish" -> red.
+    dead = _prd322_records(*(("DATA_UNAVAILABLE",) * 6))
+    assert _dr._tape_trend_summary(dead, health) == (expected, "trend-health")
+
+
+def test_prd322_trend_summary_absent_records_is_health_derived() -> None:
+    # R1: the records-absent literal is preserved, but its derivation is now
+    # honest (`trend-health`, not a count that was never taken).
+    for records in (None, {}):
+        assert _dr._tape_trend_summary(records, "MISSING") == (
+            "Trend unavailable", "trend-health",
+        )
+
+
+# --- R4 unit matrix: _build_trend_chips ------------------------------------
+def test_prd322_trend_chips_follow_the_curated_order() -> None:
+    # R4: chip order is the curated tuple, not snapshot insertion order.
+    # Mutation: iterate the record dict instead -> red.
+    shuffled = {
+        sym: _ts_record(sym) for sym in ("XLE", "SLV", "GLD", "GDX", "QQQ", "SPY")
+    }
+    assert [row[0] for row in _dr._build_trend_chips(shuffled)] == list(
+        _dr.config.TREND_STRUCTURE_SYMBOLS
+    )
+    assert list(_dr.config.TREND_STRUCTURE_SYMBOLS) == list(_TS_CURATED)
+
+
+def test_prd322_trend_chip_tokens_come_only_from_existing_translators() -> None:
+    # R4: alignment abbreviations, SMA arrow halves and the closed V-glyph set.
+    # Mutation: emit a synthesized token -> red.
+    rows = _dr._build_trend_chips(
+        _prd322_records("BULLISH", "BEARISH", "MIXED", "BULLISH", "BEARISH", "MIXED")
+    )
+    assert [r[1] for r in rows] == ["BULL", "BEAR", "MIX", "BULL", "BEAR", "MIX"]
+    assert {r[2] for r in rows} == {"↑ 50"}
+    assert {r[3] for r in rows} == {"↑ 200"}
+    assert {r[4] for r in rows} == {"V↑"}
+    assert [r[5] for r in rows] == ["up", "down", "flat", "up", "down", "flat"]
+    for row in rows:
+        assert row[1] in set(_dr._TS_ALIGN_ABBR.values())
+        assert f"{row[2]} {row[3]}" in set(_dr._TREND_STRUCTURE_COMPOSITE_DISPLAY.values())
+        assert row[4] in set(_dr._TAPE_VWAP_GLYPH.values())
+
+
+@pytest.mark.parametrize(
+    "vwap,glyph",
+    [("ABOVE", "V↑"), ("BELOW", "V↓"), ("AT_LEVEL", "V="),
+     ("DATA_UNAVAILABLE", ""), ("NOT_COMPUTED", ""), ("UNAVAILABLE", ""), ("", "")],
+)
+def test_prd322_trend_chip_vwap_glyph_only_for_a_computed_comparison(vwap, glyph) -> None:
+    # R4: the V-glyph vocabulary is closed to three tokens and renders only for
+    # a real comparison. Mutation: pass the raw token through -> red.
+    records = {sym: {**_ts_record(sym), "price_vs_vwap": vwap} for sym in _TS_CURATED}
+    assert {row[4] for row in _dr._build_trend_chips(records)} == {glyph}
+
+
+@pytest.mark.parametrize(
+    "alignment", ["DATA_UNAVAILABLE", "INSUFFICIENT_HISTORY", "NOT_COMPUTED", ""]
+)
+def test_prd322_non_computed_trend_row_renders_symbol_and_dash_only(alignment) -> None:
+    # R4: no partial arrows on a row whose alignment was never computed.
+    # Mutation: keep emitting the composite/glyph cells -> red.
+    records = {sym: {**_ts_record(sym), "trend_alignment": alignment} for sym in _TS_CURATED}
+    assert _dr._build_trend_chips(records) == [
+        (sym, "—", "", "", "", "na") for sym in _TS_CURATED
+    ]
+    # a wholly absent record set degrades the same way
+    assert _dr._build_trend_chips(None) == [
+        (sym, "—", "", "", "", "na") for sym in _TS_CURATED
+    ]
+
+
+# --- R2 unit matrix: _pressure_note ----------------------------------------
+def test_prd322_pressure_note_uses_the_closed_four_state_display_map() -> None:
+    # R2: the four component states and nothing else. Mutation: pass the raw
+    # enum through -> red.
+    note = _dr._pressure_note({
+        "volatility_pressure": "RISK_ON", "dollar_pressure": "RISK_OFF",
+        "rates_pressure": "NEUTRAL", "bitcoin_pressure": "UNKNOWN",
+    })
+    assert note == "pressure: VIX risk-on · DXY risk-off · 10Y neutral · BTC n/a"
+    for raw in ("RISK_ON", "RISK_OFF", "NEUTRAL", "UNKNOWN", "MIXED"):
+        assert raw not in note
+
+
+def test_prd322_pressure_note_never_reads_the_overall_aggregate() -> None:
+    # R2: `overall_pressure` is banned from TAPE — an unknown or absent
+    # component degrades to n/a rather than borrowing the aggregate.
+    # Mutation: render overall_pressure -> red.
+    note = _dr._pressure_note({
+        "volatility_pressure": "RISK_ON", "overall_pressure": "MIXED",
+    })
+    assert note == "pressure: VIX risk-on · DXY n/a · 10Y n/a · BTC n/a"
+    assert "overall" not in note and "MIXED" not in note
+    assert _dr._pressure_note(None) == "Pressure unavailable"
+    assert _dr._pressure_note("not a dict") == "Pressure unavailable"
+
+
+# --- rendered path ---------------------------------------------------------
+def _prd322_healthy_render(**kwargs):
+    return render_dashboard_html(
+        _payload(macro_drivers=_macro_drivers()), _run(), market_map=_market_map(),
+        trend_structure_snapshot=_ts_healthy_snapshot(), **kwargs,
+    )
+
+
+def test_prd322_tape_renders_all_seven_drivers_in_layout_order() -> None:
+    # R3: seven chips, data-driven from MACRO_ROW_2 + MACRO_ROW_1. Mutation:
+    # restore the hand-listed four-driver tuple -> red.
+    tape = _prd322_tape(_prd322_healthy_render())
+    labels = re.findall(r'<div class="tape-driver tape-slot \w+"><span>([^<]+)</span>', tape)
+    assert labels == ["VIX", "DXY", "10Y", "OIL", "GC", "SI", "BTC"]
+
+
+@pytest.mark.parametrize(
+    "driver_key,display",
+    [
+        ("volatility", "VIX"), ("dollar", "DXY"), ("rates", "10Y"),
+        ("oil", "OIL"), ("gold", "GC"), ("silver", "SI"), ("bitcoin", "BTC"),
+    ],
+)
+def test_prd322_absent_driver_keeps_its_chip_with_the_placeholder(driver_key, display) -> None:
+    # R3 (Codex F3): absence is visible, never zero and never dropped — for
+    # EVERY slot, including the metals whose DETAILS-side placeholder is
+    # "N/A" (the strip must normalize to "--"). Mutation: skip missing
+    # drivers, or drop the normalization -> red.
+    drivers = _macro_drivers()
+    drivers.pop(driver_key, None)
+    html = render_dashboard_html(
+        _payload(macro_drivers=drivers), _run(), market_map=_market_map(),
+    )
+    tape = _prd322_tape(html)
+    assert tape.count('class="tape-driver tape-slot') == 7
+    assert (
+        f'<div class="tape-driver tape-slot na"><span>{display}</span>'
+        f'<span>—</span><span>--</span></div>'
+    ) in tape
+
+
+def test_prd322_tape_zone_never_collides_with_the_details_harvest_shape() -> None:
+    # R3: `macro-tape-slot` / `macro-tape-value` / `data-symbol` are regex-
+    # harvested and order-pinned in DETAILS. Mutation: reuse them in TAPE ->
+    # red (and the DETAILS harvest silently doubles).
+    html = _prd322_healthy_render()
+    tape = _prd322_tape(html)
+    for token in ("macro-tape-value", "macro-tape-slot", "data-symbol"):
+        assert token not in tape
+        assert token in html.split('id="macro-tape"', 1)[1]
+
+
+def test_prd322_tape_carries_no_agreement_vocabulary_healthy_or_degraded() -> None:
+    # R4: extends the PRD-318 ban test with "agreement"/"confluence" and runs
+    # it over a degraded render too. Mutation: add any agreement semantic -> red.
+    healthy = _prd322_tape(_prd322_healthy_render())
+    degraded = _prd322_tape(render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(),
+        macro_snapshot_path=Path("/nonexistent/prd322_no_snapshot.json"),
+        trend_structure_snapshot=_prd322_ts_snapshot(trend_alignment="DATA_UNAVAILABLE"),
+    ))
+    for tape in (healthy, degraded):
+        for banned in _PRD322_TAPE_BANNED:
+            assert banned not in tape
+
+
+def test_prd322_trend_chips_render_in_curated_order_in_the_tape() -> None:
+    # R4 rendered path: six chips, curated order, alignment-keyed colour class.
+    tape = _prd322_tape(_prd322_healthy_render())
+    rendered = re.findall(
+        r'<div class="tape-trend-row tape-slot (\w+)"><span>([A-Z]+)</span><span>([^<]*)</span>',
+        tape,
+    )
+    assert [sym for _cls, sym, _align in rendered] == list(_TS_CURATED)
+    assert {cls for cls, _s, _a in rendered} == {"up"}
+    assert {align for _c, _s, align in rendered} == {"BULL"}
+
+
+def test_prd322_degraded_trend_rows_render_dash_only_in_the_tape() -> None:
+    # R4 rendered path: the na row shape. Mutation: emit partial arrows -> red.
+    tape = _prd322_tape(render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(),
+        trend_structure_snapshot=_prd322_ts_snapshot(
+            trend_alignment="DATA_UNAVAILABLE", price_vs_sma_50="DATA_UNAVAILABLE",
+            price_vs_sma_200="DATA_UNAVAILABLE", price_vs_vwap="DATA_UNAVAILABLE",
+        ),
+    ))
+    for sym in _TS_CURATED:
+        assert (f'<div class="tape-trend-row tape-slot na"><span>{sym}</span>'
+                f'<span>—</span><span></span><span></span><span></span></div>') in tape
+    assert "↑" not in tape.split('class="tape-trend"', 1)[1]
+
+
+def test_prd322_macro_gate_keys_on_missing_not_fallback() -> None:
+    # R2: FALLBACK also fires on missing TRADABLES values under a genuine,
+    # fully-voted macro bias — it must NOT suppress the bias. Mutation: key the
+    # gate on `!= "OK"` -> red.
+    html = render_dashboard_html(
+        _payload(macro_drivers=_macro_drivers()), _run(), market_map=None,
+    )
+    assert _macro_tape_source_health(
+        macro_drivers=_macro_drivers(),
+        tape_value_slots=_dr._build_tape_value_slots(_macro_drivers(), None),
+    ) == "FALLBACK"
+    tape = _prd322_tape(html)
+    assert "MACRO BIAS:" in tape
+    assert "Macro unavailable" not in tape
+
+
+def test_prd322_suppressed_macro_bias_stays_omitted_with_no_substitute(monkeypatch) -> None:
+    # R2 / OUT OF SCOPE: the integrator seam keeps winning — a suppressed bias
+    # renders no bias line AND no fabricated stand-in. Mutation: render
+    # "Macro unavailable" (or the bias) under suppression -> red.
+    _freeze_renderer_now(monkeypatch)
+    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A", bias="BULL")})
+    html = render_dashboard_html(
+        _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.01, tnx=0.02, btc=0.0)),
+        _run(), market_map=mm,
+    )
+    tape = _prd322_tape(html)
+    assert "MACRO BIAS" not in tape
+    assert "Macro unavailable" not in tape
+    assert '<div class="tape-band-cap">MACRO</div>' in tape  # the band survives
+    assert 'class="tape-driver' in tape                      # drivers stay visible
+
+
+def test_prd322_gex_absence_is_stated_in_the_tape() -> None:
+    # R5: mutation -- restore the silent omission -> red.
+    absent = _prd322_tape(_prd322_healthy_render(gex_snapshot=None))
+    assert ('<div class="zone-item"><div class="label">GEX · CONTEXT ONLY</div>'
+            '<div class="zone-value">unavailable</div></div>') in absent
+    present = _prd322_tape(_prd322_healthy_render(
+        gex_snapshot=_valid_gex(), now=_GEX_FROZEN,
+    ))
+    assert "-$5.0B net" in present and "unavailable" not in present
+
+
+def test_prd322_participation_absence_is_stated_in_the_tape() -> None:
+    # R5: mutation -- restore the silent omission -> red.
+    absent = _prd322_tape(_prd322_healthy_render(movement_snapshot=None))
+    assert ('<div class="zone-item"><div class="label">PARTICIPATION</div>'
+            '<div class="zone-value">not captured</div></div>') in absent
+    present = _prd322_tape(_prd322_healthy_render(movement_snapshot=_movement_snapshot()))
+    assert "captured</div>" in present and "not captured" not in present
+
+
+def test_prd322_tape_band_structure_and_zone_set_are_preserved() -> None:
+    # R6: two labeled bands separated by the board's own `.sep` rule, the
+    # availability footer last, and the four-zone set untouched.
+    html = _prd322_healthy_render()
+    tape = _prd322_tape(html)
+    assert tape.index('<div class="tape-band-cap">MACRO</div>') < tape.index(
+        '<div class="tape-band-cap">TREND</div>')
+    assert tape.index('<div class="tape-band-cap">TREND</div>') < tape.index(
+        '<div class="zone-grid tape-foot">')
+    assert tape.count('<div class="sep"></div>') == 2
+    assert tape.index('class="tape-drivers"') < tape.index('class="zone-note"')
+    before_details = html.split('<details class="block operator-zone"', 1)[0]
+    assert before_details.count('class="block operator-zone"') == 4
+    assert '<h2>TAPE <span class="label">context only</span></h2>' in tape
+
+
+def test_prd322_new_styling_stays_out_of_the_pinned_phone_block() -> None:
+    # R6: every new rule lives in base CSS; the 430px block stays byte-identical.
+    html = _prd322_healthy_render()
+    assert _PRD318_PHONE_BLOCK in html
+    for rule in ("tape-band-cap", "tape-driver", "tape-trend", "tape-foot"):
+        assert rule not in _PRD318_PHONE_BLOCK
+        assert rule in html
+    # aligned column grids, nowrap per cell (via .tape-slot), no fixed widths
+    assert ".tape-trend-row{display:grid;grid-template-columns:4ch 4ch 4ch 5ch 2ch" in html
+    assert ".tape-driver{display:grid;grid-template-columns:3ch 1ch auto" in html
+    # Codex F7: the OUTER strips are grids too — a regression to flex-wrap
+    # (ragged columns, the owner-rejected sketch state) must go red here.
+    assert ".tape-drivers{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr))" in html
+    assert ".tape-trend{display:grid;grid-template-columns:repeat(auto-fit,minmax(154px,1fr))" in html
+    assert ".tape-slot{white-space:nowrap}" in html

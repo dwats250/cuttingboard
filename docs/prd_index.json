@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 321,
-  "next_prd": 322,
+  "latest_complete": 322,
+  "next_prd": 323,
   "entries": [
     {
       "number": 56,
@@ -1598,6 +1598,12 @@
       "title": "Operator setup chart consumer (Lane A slice 1)",
       "status": "COMPLETE",
       "commit": "#284"
+    },
+    {
+      "number": 322,
+      "title": "Operator context tape: visible macro + trend projection",
+      "status": "COMPLETE",
+      "commit": "#285"
     }
   ]
 }
