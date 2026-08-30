@@ -1,6 +1,6 @@
 ---
 name: prd-review-claude
-description: Use when authoring an independent Claude review of a PRD or a Codex review (cross-review-of-review). Generates a structured review artifact at docs/prd_history/PRD-NNN.review.claude.md with VERDICT, REQUIRED EDITS, RECOMMENDED EDITS, RATIONALE. Verifies every cited line number is current, every named symbol exists, every REQUIRED EDIT is observable, and the output is written to the Claude slot — never the Codex slot. Triggers on "review PRD-NNN", "do the Claude cross-review", "review the Codex review for NNN".
+description: Use when authoring an independent Claude review of a PRD (and, when a prior second-model review of it coexists, recording AGREE/DISAGREE with that review's REQUIRED findings as adjudication input - never a review of its prose, per GOV-1). Generates a structured review artifact at docs/prd_history/PRD-NNN.review.claude.md with VERDICT, REQUIRED EDITS, RECOMMENDED EDITS, RATIONALE. Verifies every cited line number is current, every named symbol exists, every REQUIRED EDIT is observable, and the output is written to the Claude slot — never the Codex slot. Triggers on "review PRD-NNN", "do the Claude cross-review of PRD-NNN".
 ---
 
 # Claude PRD Review with Built-in Verification
@@ -9,8 +9,11 @@ description: Use when authoring an independent Claude review of a PRD or a Codex
 
 This skill does two things and only two things:
 
-1. **Generate** an independent Claude review of a PRD (and optionally
-   of a prior Codex review of that PRD).
+1. **Generate** an independent Claude review of a PRD (and, when a prior
+   second-model review of it coexists, record AGREE/DISAGREE/EXTEND on that
+   review's REQUIRED findings as adjudication input for Dustin - not a review
+   of its prose, per GOV-1 "reviews target the change, never another review's
+   prose").
 2. **Verify** every line number, symbol, and file path in the review
    resolves against the current repo state.
 
@@ -19,17 +22,26 @@ It is NOT a substitute for:
 - Authoring the PRD (use `prd-authoring-verified`)
 - Implementing the PRD
 - The cross-review gate's *decision* to invoke Codex — that is the
-  human's call per `CLAUDE.md § Review gates` (second-model
-  disposition). This skill only produces the Claude side of the
-  artifact pair.
+  human's call per `docs/PRD_PROCESS.md` Second-Model Disposition.
+  This skill only produces the Claude side of the artifact pair.
 - Adjudication when Claude and Codex disagree — that is a separate
   artifact (`PRD-NNN.adjudication.md`) and out of scope here.
+
+## Independence (input envelope)
+
+The review receives only: the primary artifact under review (the PRD, and the
+implementation diff if one exists), the exact reviewed SHA, a neutral review
+question, and the applicable canonical authority. It does not treat an
+author-side conclusion, an acceptance-criteria list, or a prior review's verdict
+as presumed truth. Where a prior second-model review coexists, its REQUIRED
+findings are enumerated for AGREE/DISAGREE/EXTEND (adjudication input), never
+reviewed as prose.
 
 ## When to trigger
 
 - "Review PRD-NNN"
 - "Do the Claude cross-review for PRD-NNN"
-- "Review the Codex review for PRD-NNN"
+- "Record agreement/disagreement with the second-model review of PRD-NNN"
 - "Independent review of PRD-NNN"
 
 Do NOT trigger for:
@@ -58,8 +70,9 @@ If unclear, ask once, then default to DRAFT_ONLY.
 
 - `prd` — three-digit PRD number
 - `mode` — `independent` (Claude is first reviewer) OR `cross-review`
-  (a prior Codex review exists and Claude reviews both PRD and Codex
-  review)
+  (a prior second-model review exists; Claude reviews the PRD/change and
+  records AGREE/DISAGREE/EXTEND on that review's REQUIRED findings as
+  adjudication input, treating no prior verdict as presumed truth)
 - `target_path` (WRITE_MODE only, optional) — defaults to
   `docs/prd_history/PRD-NNN.review.claude.md`. The skill validates the
   path is in the Claude slot pattern; refuses anything matching the
@@ -167,8 +180,9 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
    once the reviewed SHA is known, or a review of a non-checked-out ref
    silently pairs one commit's SHA with a different commit's merge
    base. Record the independence line the dispatch specifies.
-3. In cross-review mode: read `PRD-NNN.review.codex.md`. Refuse if
-   missing — there is nothing to cross-review.
+3. In cross-review mode: read `PRD-NNN.review.codex.md` only to enumerate its
+   REQUIRED findings for AGREE/DISAGREE/EXTEND; do not review its prose (GOV-1).
+   Refuse if missing — there is nothing to compare against.
 4. If implementation has started (registry status `IN PROGRESS` or
    `COMPLETE`), read the implementation diff and, per REQUIREMENT,
    determine whether it satisfies the requirement's FAIL line — REVIEW
@@ -185,9 +199,9 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
    principles and the `docs/PROJECT_STATE.md` current-state claims; record
    (i) whether the change conflicts with a VISION non-goal/principle and
    (ii) whether it leaves any PROJECT_STATE claim stale. This is drift, not
-   correctness — keep it to the two recorded lines. Per `CLAUDE.md § Review
-   gates`, under auto-merge drift-review is a post-merge audit, so this
-   recorded check is the standing pre-merge drift signal.
+   correctness — keep it to the two recorded lines. Per
+   `docs/contract/MODE_REVIEW.md`, this recorded DRIFT CHECK is the standing
+   pre-merge drift signal recorded in every review.
 
 ### Phase 2 — Verify (MANDATORY before returning)
 

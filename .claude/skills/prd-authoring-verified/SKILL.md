@@ -15,7 +15,7 @@ This skill does two things and only two things:
 It is NOT a substitute for:
 
 - Independent PRD review (Claude review artifact)
-- Cross-review gate / Codex review (`CLAUDE.md § Review gates`)
+- Cross-review gate / Codex review (`docs/PRD_PROCESS.md` Second-Model Disposition)
 - Implementation review or test-pass verification
 - Adjudication of unresolved review disagreement
 
@@ -156,7 +156,7 @@ apply the hard rule above (generalize / remove / tag `[UNVERIFIED]`).
 
 - `Agent(subagent_type: "Explore", model: "haiku")` for V4 bulk
   test-tree grep when scope is ≥3 files or >5 strings (per
-  `CLAUDE.md § Working practices`, "Recon goes to subagents").
+  `CLAUDE.md § Context and output hygiene`, "Recon goes to subagents").
 - `scripts/pre_commit_sanity.sh` — only relevant if user is about to
   commit; this skill does not commit.
 
