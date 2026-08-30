@@ -1,275 +1,310 @@
-# Intraday Session-Candle Card - MATERIAL Packet (A1)
+# Intraday Session-Candle Card - MATERIAL Packet (A1 = A1-P producer + A1-C consumer)
 
-Date: 2026-08-30
-Status: MATERIAL packet, DESIGN-ONLY. Ready for independent review -> owner
-ruling -> Stage-0 -> Gate A. No implementation authorized by this document.
-Baseline inspected: `main` at `85beb03` (PR #289 README truth-sync MERGED
-2026-08-30; its only diff is `README.md`, touching no A1 code seam, so every
-seam anchor below remains valid).
+Date: 2026-08-30 (corrected after Codex review of `0fda661`)
+Status: MATERIAL packet, DESIGN-ONLY, decomposed into two ordered units.
+Ready for independent review -> owner ruling -> Stage-0 (x2) -> Gate A (x2). No
+implementation authorized by this document.
+Baseline: `main` at `85beb03`; packet branch `claude/intraday-a1-packet-2026-08`.
 
-## 0. Authority and the superseded-memo relationship (honest record)
+## 0. Authority, Helm rulings, and corrections
 
-- Accepted direction: Helm (Dustin) selected A1 - current-session,
-  hourly-fresh 1-minute session candles for the primary setup symbol + SPY,
-  co-produced within the existing hourly run, no cross-run persistence.
-  Delivered as the session charge (Mode DESIGN) and confirmed in-session on
-  2026-08-30.
-- Superseded memo: the only committed intraday artifact is a read/design-only
-  feasibility memo, `audits/intraday-feasibility-2026-08/INTRADAY_FEASIBILITY_MEMO_2026-08-28.md`,
-  present ONLY on branch `claude/intraday-feasibility-memo-2026-08` (`d1e90a4`),
-  NOT on `main`. It uses Option A/B/C labels (not A0/A1) and RECOMMENDS the
-  daily-anchored path (Option A) while flagging the hourly-fresh path (Option B)
-  as "a separate, explicit owner decision ... NOT recommended as a default"
-  (memo:76-78). Per the expansion doctrine, that memo is evidence, not
-  authority; an explicit Helm ruling outranks it (CLAUDE.md Precedence 1). This
-  packet records that Helm's A1 ruling SUPERSEDES the memo's recommendation. The
-  memo is retained as evidence, not deleted.
-- No A0-vs-A1 adjudication is committed anywhere in the repo. Section 12 gives
-  the exact `docs/DECISIONS.md` entry that must land (at Stage-0) to make this
-  ruling canonical.
+Accepted direction is Helm's (Dustin), delivered by charge and confirmed
+in-session 2026-08-30. It SUPERSEDES the daily-anchored recommendation in the
+feasibility memo (`audits/intraday-feasibility-2026-08/INTRADAY_FEASIBILITY_MEMO_2026-08-28.md`,
+branch `claude/intraday-feasibility-memo-2026-08` `d1e90a4`, NOT on `main`);
+the memo is retained as evidence, not authority.
 
-## 1. GOV-2 s1 materiality
+Helm rulings incorporated (this revision):
+1. Split A1 into producer THEN consumer; NO G3/G4/G8 override.
+2. Canonical primary = the exact existing chartable-primary selection, shared by
+   producer and consumer (one definition, no parity approximation).
+3. Persist validated 1-minute source bars; consumer deterministically renders
+   full-session 5-minute bars.
+4. Freshness = current ET session + per-symbol `through`; max age 90 min; max
+   future skew 5 min; any structural failure omits the whole symbol.
+5. Drop the opportunistic-reuse policy.
 
-MATERIAL. This introduces a new persisted schema surface
-(`logs/intraday_bars_snapshot.json`) with a reader, and a carrier that crosses
-runtime + persistence + dashboard. It follows the full order: packet ->
-independent/Codex review -> owner ruling -> Stage-0 scaffold -> Gate A. Same
-classification the feasibility memo reached (memo:44-48).
+Precedent correction (Codex REQUIRED #1, #9): the prior draft wrongly cited
+PRD-311/312 as a same-PR producer+consumer precedent. They added NO persisted
+producer artifact (PRD-311 reused an existing artifact; PRD-312 added no
+producer/artifact/cadence). The correct structural precedent is the price-bars
+lineage, which WAS split: SIDECAR producer PRD-320 + CONSUMER PRD-321. A1 mirrors
+that split. PRD-311's ~230 net LOC (not ~137) is not used as a ceiling anchor;
+ceilings below are ESTIMATED SURFACE ranges.
 
-## 2. Accepted product behavior (A1)
+## 1. Materiality and why two units
 
-- On each in-session hourly run, co-produce a snapshot of CURRENT-SESSION
-  1-minute candles for two symbols at most: the primary setup symbol + SPY,
-  deduped (one symbol when the primary setup symbol IS SPY).
-- Render an intraday candle card on the dashboard for a symbol when its
-  current-session snapshot is present and fresh; otherwise that symbol falls
-  back to the existing daily setup chart + level ladder. Per-symbol omission on
-  fetch failure. Absence/stale/invalid = byte-identical baseline dashboard.
-- Honest caption: session date + through-time (timestamp of the last bar).
-- Same-run co-production only; NO cross-run persistence (each hourly run writes
-  its own fresh snapshot; the artifact is never restored from a prior run).
-- No decision, regime, qualification, sizing, or notification effect.
+MATERIAL under GOV-2 s1: a new persisted schema surface with a reader, and a
+carrier crossing runtime + persistence + dashboard (GOV-2 s1). Because doctrine
+G3 (producer ships before consumer), G4 (no consumer bundling), and G8 (one
+bounded question per PRD) bind and Helm declined an override, A1 is TWO ordered
+implementation units, each its own Stage-0 + Gate A:
 
-## 3. Feasibility correction (the acquisition-cost resolution)
+- A1-P (SIDECAR producer): acquire + validate + persist 1m source bars. Safe to
+  merge with A1-C absent (its artifact has no reader yet).
+- A1-C (HIGH-RISK CONSUMER): read the artifact, derive 5m display bars, render on
+  the canonical-primary card. Lands only after A1-P is on `main`.
 
-The charge phrase "from existing in-session hourly runs" does NOT imply reuse:
-the hourly run (`_execute_notify_run`) fetches ZERO guaranteed intraday session
-bars today. The only hourly intraday fetch is `fetch_intraday_bars(symbol)` at
-`runtime/__init__.py:1730`, gated to SHORT candidates inside
-`_apply_intraday_short_permission`. `fetch_intraday_session_bars("SPY")` runs
-ONLY in the daily `_run_pipeline` (`runtime/__init__.py:1250`). So SPY 1m is not
-paid in the hourly run.
+## 2. Accepted behavior (A1)
 
-Resolution (Helm-confirmed, Acceptance #4 "otherwise" branch): A1 adds same-run
-1-minute fetches for the primary setup symbol + SPY via the EXISTING
-`fetch_intraday_session_bars` (no new fetch function, no new scheduler).
-Cost: at most 2 logical 1m fetches per hourly slot; ~18 logical fetches/day
-(fewer when primary == SPY, or when a qualifying session frame is already paid
-this run). This is far below the memo's six-symbol Option B (~54 ops/day), which
-is the A2 expansion and is explicitly out of scope.
+Per hourly in-session run, co-produce a run-local snapshot of current-session
+1-minute candles for the canonical primary setup symbol + SPY (deduped), and
+render a full-session 5-minute intraday chart on the primary card when the
+snapshot is fresh; otherwise fall back to the existing daily chart + level
+ladder. Honest caption (ET session date + through-time). No cross-run
+persistence. No decision/regime/qualification/sizing/notification effect.
 
-## 4. Confirmed seams (file:line)
+## 3. Feasibility basis (unchanged, re-confirmed by Codex)
 
-Producer (reuse, no new function):
-- `cuttingboard/ingestion.py:281 fetch_intraday_session_bars(symbol)` ->
-  `retain_full_session=True`, complete 09:30-16:00 current-session 1m frame,
-  columns Open/High/Low/Close/Volume, `None` on per-symbol failure. (Wraps
-  `fetch_intraday_bars`, ingestion.py:195, yfinance period=7d interval=1m,
-  filtered to the latest regular session.)
+The hourly run pays for NO guaranteed intraday session bars today:
+`fetch_intraday_session_bars("SPY")` is daily-only (`runtime/__init__.py:1247-1251`);
+the only hourly intraday fetch is SHORT-gated (`runtime/__init__.py:1726-1733`).
+A1-P therefore adds at most 2 logical 1m fetches per hourly slot (~18/day) via
+the EXISTING `fetch_intraday_session_bars` (no new fetch function, no scheduler).
+Correction (Codex RECOMMENDED #1): at the co-production seam the run holds
+normalized quotes + market map + candidate DAILY frames only - NOT a SPY session
+frame; A1-P must fetch it.
 
-Same-run co-production seam:
-- `cuttingboard/runtime/__init__.py:780-802` - the hourly sidecar block inside
-  `_execute_notify_run` (528). Primary + SPY data are in memory here; today it
-  writes price_bars / trend_structure / watchlist snapshots. The new intraday
-  fetch + write attach here.
+## 4. Canonical primary - the single shared definition (Codex #5; Helm ruling 2)
 
-Persistence template (clone exactly):
-- `cuttingboard/runtime/__init__.py:2552 _write_price_bars_snapshot(...)`;
-  `PRICE_BARS_PATH` imported at 165; atomic tmp+`.replace` at 2592-2594;
-  per-symbol omission of absent/malformed/zero-row frames (2574-2577);
-  catch-and-log isolated so it never breaks the seam.
-- Run-local mechanism (workflow, not code): `.github/workflows/hourly_alert.yml`
-  force-adds `logs/price_bars_snapshot.json` at line 244 (publish) but it is
-  ABSENT from the startup restore list at line 105 (`ci_restore_publish_state.sh`).
-  The new artifact must copy this asymmetry: force-added, never restored.
+One pure function, `select_chartable_primary(...)`, added in A1-P and living in
+`cuttingboard/delivery/setup_chart.py`: the first candidate, in the renderer's
+`_TIER_DEFS` grade order over the same integrator-filtered candidate set
+(`dashboard_renderer.py:2500-2513`), whose `render_setup_chart_svg(...)` is
+non-empty (the renderer's actual chartability gate,
+`dashboard_renderer.py:2277-2319,3111-3143`). No `_TIER_DEFS`-only approximation.
 
-Dashboard render seam + fallback:
-- `cuttingboard/delivery/dashboard_renderer.py` - `_load_price_bars_snapshot`
-  (1152, soft), `_price_bars_by_symbol` (1187, per-symbol omission + age guard),
-  `_render_candidate_card` (2111) picks the primary full-width chart slot
-  (3111-3143). Existing daily fallback that remains: `_render_setup_chart_block`
-  (2098) + `_render_level_ladder` (1951).
-- Suppression model (GEX R1): `cuttingboard/delivery/gex_card.py` - pure builder
-  returns `None`/`""` to suppress; renderer guards emission `if frag:` so
-  absent/stale/invalid = byte-identical baseline.
-- Chart body: `cuttingboard/delivery/setup_chart.py render_setup_chart_svg` is
-  interval-agnostic (PRD-321); it captions from `as_of` and carries
-  `source.interval`. Reuse; edit only if an intraday through-time caption needs
-  a tweak (flagged open, Section 11).
+- A1-P calls it at the seam and RECORDS the result as `primary_symbol` in the
+  sidecar, then fetches 1m for `[primary_symbol, "SPY"]` deduped.
+- A1-C rewires the renderer's chart-slot selection (3111-3143) to call the SAME
+  function (behavior-preserving, golden-identical), and renders the intraday
+  chart for the sidecar's recorded `primary_symbol` when fresh.
 
-## 5. Proposed schema (`logs/intraday_bars_snapshot.json`, schema_version 1)
+Because the consumer reads the producer's recorded selection (both grounded in
+the identical function), producer/consumer agreement is by construction, not
+approximation. If `primary_symbol` is not a rendered candidate this pass,
+intraday is omitted for it (honest absence) and the primary card shows its daily
+chart. Bounded Stage-0 implementation item (not a product decision): confirm the
+selector's inputs (candidate order, daily bars, level context, price) are
+available at the `780-802` seam without duplicating heavy renderer prep; if level
+context is not cheaply available pre-render, the recorded `primary_symbol` (the
+producer's single computation) remains the authority the consumer trusts.
 
+## 5. A1-P - SIDECAR producer
+
+Objective: acquire, strictly validate, and persist current-session 1m source
+bars for `[canonical primary, SPY]` as a run-local additive artifact; record the
+canonical `primary_symbol`. No reader.
+
+Seam: `runtime/__init__.py:780-802` (the existing sidecar block). New writer
+`_write_intraday_bars_snapshot(...)` clones `_write_price_bars_snapshot`
+(`:2552`, atomic tmp+`.replace` `:2592-2594`, catch-and-log isolation
+`:2595-2596`).
+
+Schema `logs/intraday_bars_snapshot.json`, schema_version 1 (Codex #3 corrected -
+`ts` column included, six-value bars):
 ```
 {
   "schema_version": 1,
-  "generated_at": "<ISO-8601 UTC>",          # = run_at_utc of the hourly run
-  "session_date": "YYYY-MM-DD",              # regular-session date the bars belong to
-  "source": {"producer": "hourly", "provider": "yfinance",
-             "interval": "1m", "adjusted": false},
-  "columns": ["Open","High","Low","Close","Volume"],
+  "generated_at": "<ISO-8601 UTC>",
+  "session_date": "YYYY-MM-DD",             # ET regular-session date of the bars
+  "primary_symbol": "<canonical primary>",  # recorded selection (Section 4)
+  "source": {"producer":"hourly","provider":"yfinance","interval":"1m","adjusted":false},
+  "columns": ["ts","Open","High","Low","Close","Volume"],
   "symbols": {
-    "SPY":       {"through": "<ISO ts of last bar>", "row_count": N, "bars": [[ts,o,h,l,c,v], ...]},
+    "SPY":       {"through":"<ISO ts last bar>","row_count":N,"bars":[[ts,o,h,l,c,v], ...]},
     "<PRIMARY>": { ... }
   }
 }
 ```
+Strict WHOLE-SYMBOL validation (Codex #3; no cleaned-subset rendering): a symbol
+entry is written only if source/columns match, timestamps are timezone-aware,
+strictly ordered, all within the ET regular session, `row_count == len(bars)`,
+`through == last ts`, OHLCV finite and coherent (H>=max(O,C), L<=min(O,C), V>=0),
+and `session_date` consistent. Any violation OMITS the whole symbol; never a
+partial record.
 
-- schema_version: integer, strict-equality checked by the consumer, bool-rejected
-  first (gex_card.py:113 convention). Start at 1.
-- Per-symbol omission: a symbol whose frame is absent/malformed/zero-rows is
-  OMITTED entirely (never a partial entry), mirroring 2574-2577.
-- No derived/analytic field. Description, not prediction (doctrine G1).
+Acquisition isolation (Codex #6): the fetch + write are wrapped in their own
+per-symbol guard positioned so a raised fetch (incl. the pre-retry
+LIVE_DATA_FORBIDDEN raise at `ingestion.py:213-214`) CANNOT reach the post-send
+failure path (`runtime/__init__.py:806-815`) and cannot emit a second failure
+notification. Red test proves a raised intraday fetch leaves hourly status,
+artifacts, and exactly-once notification unchanged.
 
-## 6. Provenance / freshness / degradation
+Staging (Codex #7; Acceptance #6): `logs/intraday_bars_snapshot.json` is UNTRACKED
+(`.gitignore`), unlike tracked `price_bars_snapshot.json`. Staging must be
+CONDITIONAL - present => `git add -f` it; absent => no-op (never fail the publish
+step on a missing path). Not in the startup restore list
+(`hourly_alert.yml:104-105`) => run-local. Regression in test_ci_artifact_hygiene.
 
-- Provenance: `source.provider="yfinance"`, `source.interval="1m"`,
-  `producer="hourly"`, `generated_at`, per-symbol `through`.
-- Freshness (consumer): the daily 5-day age guard is WRONG for intraday. The
-  intraday card renders for a symbol only if BOTH:
-  (a) `session_date` equals the renderer-clock current regular-session date, AND
-  (b) `generated_at` age <= INTRADAY_MAX_AGE (recommend 90 min; hourly cadence
-      is ~60 min, so >90 min means a missed/failed slot -> suppress).
-  Otherwise suppress that symbol's intraday card (fall back to daily chart).
-- Degradation ladder (all baseline-neutral): missing artifact -> no intraday
-  cards; stale/invalid schema -> suppress; per-symbol fetch failure -> that
-  symbol omitted; empty snapshot -> byte-identical baseline dashboard.
+FILES (A1-P):
+- `cuttingboard/runtime/_constants.py` - add `INTRADAY_BARS_PATH` beside
+  `PRICE_BARS_PATH` (`:59`).
+- `cuttingboard/runtime/__init__.py` - import it; `_write_intraday_bars_snapshot`;
+  seam fetch/validate/write + record `primary_symbol`; acquisition isolation.
+- `cuttingboard/delivery/setup_chart.py` - add pure `select_chartable_primary`
+  (used by A1-P now; renderer rewire is A1-C).
+- `.github/workflows/hourly_alert.yml` - CONDITIONAL staging (238-247 block); NOT
+  in restore (105).
+- `docs/artifact_flow_map.md` - new artifact + its one writer (G5).
+- `docs/SCHEMA_MAP.md`, `docs/CALL_SITE_MAP.md` - producer entries.
 
-## 7. Symbol selection at the runtime seam
+Tests (A1-P):
+- `tests/test_intraday_bars_sidecar.py` (NEW) - envelope incl `ts`,
+  whole-symbol validation, per-symbol omission, `primary_symbol` recorded,
+  producer tag, run-local. Template: `tests/test_price_bars_sidecar.py:259-327`.
+- `tests/test_ci_artifact_hygiene.py:34-45,856-875` - conditional-staging (missing
+  => no-op green; present => staged) and no-restore.
+- `tests/test_hourly_alert.py:1717-1721` - network-free stub for the new fetch.
+- `tests/test_observe_only_isolation.py:91-116` - fetch cannot perturb the
+  decision pipeline / notification (isolation red test).
+- `tests/test_runtime_package_surface.py:43-55` - new facade/patch surface.
+- `tests/test_setup_chart.py:188-192` - `select_chartable_primary` unit tests.
 
-The renderer selects the primary card as the highest-grade-tier candidate with
-usable bars (dashboard_renderer.py:3111-3143). The runtime seam has no single
-"primary" variable, so it must pick the top-ranked candidate from
-`market_map["symbols"]` by the same grade-tier ordering the renderer uses
-(`_TIER_DEFS`), take that symbol + "SPY", dedupe -> 1 or 2 symbols, and fetch 1m
-for them. Recommended: extract the tier-ordering into a shared helper so runtime
-selection and renderer selection cannot drift. If they still differ for a given
-run, the rendered primary card simply lacks an intraday entry and falls back to
-its daily chart - acceptable under the per-symbol omission contract. (Open
-decision 11.1.)
+ESTIMATED SURFACE - NOT YET APPROVED (Codex #9; binding ceiling only at Gate A):
+production ~90-140 net LOC over 3 code files + 1 workflow + 3 doc/map files;
+tests ~6 files. Lane: SIDECAR.
 
-## 8. Opportunistic reuse (Helm: only if a qualifying fetch is already paid)
+Acceptance (A1-P): valid schema-versioned run-local sidecar with strict
+whole-symbol validation and recorded `primary_symbol`; acquisition failure omits
+the whole symbol and cannot trigger a second failure notification; missing
+sidecar => staging no-op; dashboard output byte-identical to pre-A1-P (renderer
+untouched); each guard ships a mutation-red test. SAFE-TO-MERGE-ALONE: the
+artifact has no reader; only new cost is ~18 fetches/day.
 
-If the primary symbol or SPY was already fetched intraday this run, reuse that
-frame instead of re-fetching. Caveat: the only paid hourly intraday fetch today
-is `fetch_intraday_bars` (line 1730), a truncated trailing window
-(MAX_INTRADAY_RETURN_BARS), not the full `fetch_intraday_session_bars` frame a
-candle chart wants. Recommended policy: reuse ONLY a session-shaped paid frame;
-otherwise fetch `fetch_intraday_session_bars`. In practice the hourly run holds
-no session frame today, so reuse rarely applies and A1 fetches for primary+SPY.
-Documented as an optimization, not a dependency. (Open decision 11.3.)
+## 6. A1-C - HIGH-RISK CONSUMER
 
-## 9. FILES (proposed lock; exact lock set at Stage-0)
+Objective: on a fresh valid sidecar, render a deterministic full-session 5m
+intraday chart (derived from the validated 1m truth) on the canonical-primary
+card; otherwise baseline-identical.
 
-Production:
-1. `cuttingboard/runtime/__init__.py` - fetch primary+SPY 1m at the 780-802
-   seam; new `_write_intraday_bars_snapshot(...)` writer cloned from 2552.
-2. module defining `PRICE_BARS_PATH` - add `INTRADAY_BARS_PATH`
-   (`logs/intraday_bars_snapshot.json`) beside it.
-3. `cuttingboard/delivery/dashboard_renderer.py` - `_load_intraday_bars_snapshot`,
-   `_intraday_bars_by_symbol` (freshness guard), and a prefer-intraday branch in
-   `_render_candidate_card` with the existing daily block as fallback.
-4. `cuttingboard/delivery/setup_chart.py` - reuse; touch only if an intraday
-   caption tweak is required (Section 11.5).
-5. `.github/workflows/hourly_alert.yml` - add `logs/intraday_bars_snapshot.json`
-   to the publish force-add list (~244). DO NOT add to the restore list (105).
-6. `docs/artifact_flow_map.md` - record the new artifact writer + reader (G5).
-7. `docs/SCHEMA_MAP.md`, `docs/CALL_SITE_MAP.md` - update the recon cache.
+Derivation (Helm ruling 3): a pure, deterministic 1m -> 5m resample (right-closed
+regular-session bins; O=first, H=max, L=min, C=last, V=sum) over the validated 1m
+bars. No provider call; consumer reads only the sidecar.
 
-Tests (PRD-158 sweep at Stage-0; add every asserting file):
-- `tests/test_intraday_bars_sidecar.py` (NEW) - writer envelope, per-symbol
-  omission, producer tag, run-local (asserts not in the restore list). Template:
-  `tests/test_price_bars_sidecar.py`.
-- `tests/test_dashboard_renderer.py` - intraday-preferred, daily-fallback,
-  suppression on stale/missing (baseline-identical).
-- `tests/test_setup_chart.py` - only if setup_chart is touched.
-- runtime co-production + SHORT-path non-interference test (existing
-  `tests/test_gap_down_permission_integration.py` patches the fetcher; ensure the
-  new fetch does not perturb SHORT permission).
+Freshness admission (Helm ruling 4; Codex #4): admit a symbol only if
+`session_date` == current ET regular session AND `generated_at` age <= 90 min AND
+per-symbol `through` is within the current ET session, not older than 90 min, not
+more than 5 min in the future. Any structural failure omits the whole symbol.
+Missing/stale/invalid sidecar => byte-identical baseline (GEX R1 model:
+`gex_card.py:108-137,170-174`, emit guarded `if frag:` at
+`dashboard_renderer.py:3181-3189`).
 
-## 10. Implementation ceiling
+Rendering: rewire the chart-slot primary selection (`3111-3143`) to call
+`select_chartable_primary` (behavior-preserving; golden-identical test). On a
+fresh sidecar, the primary card's single chart slot shows the 5m intraday chart
+(honest ET session/through caption) INSTEAD of the daily chart; the daily chart +
+level ladder remain the fallback off the intraday branch and whenever intraday is
+absent. `setup_chart.render_setup_chart_svg` is extended to render the supplied
+full-session 5m window (Codex #2: it is NOT interval-agnostic today - it has a
+trailing 40-bar contract at `setup_chart.py:86-98,138`); the daily path is
+unchanged.
 
-- <= ~120 net production LOC (in line with PRD-311 ~137 / PRD-312 ~137).
-- <= 4 production files + 1 workflow + 2 map docs.
-- <= 3 test files.
-- No new dependency, no new fetch function, no new scheduler/cron, no schema on
-  an existing pipeline artifact, no decision/regime/sizing/notification change.
-- Every guard ships a mutation-verified red test.
+FILES (A1-C):
+- `cuttingboard/delivery/dashboard_renderer.py` - `_load_intraday_bars_snapshot`,
+  `_intraday_by_symbol` (freshness), rewire selection to the shared helper, render
+  intraday on the primary card.
+- `cuttingboard/delivery/setup_chart.py` - full-session 5m rendering path + the
+  pure 1m->5m derivation helper; daily path untouched.
+- `docs/artifact_flow_map.md` - add the reader.
+- `README.md:43` - correct the "daily-candle chart" product truth (Codex #8).
+- `docs/SCHEMA_MAP.md`, `docs/CALL_SITE_MAP.md` - consumer entries.
+- `docs/PROJECT_STATE.md`, `docs/DECISIONS.md`, `docs/PRD_REGISTRY.md`,
+  `docs/prd_index.json` - lifecycle/closeout bookkeeping (per PRD_PROCESS).
 
-## 11. Doctrine compliance (expansion doctrine G-invariants)
+Tests (A1-C):
+- `tests/test_dashboard_renderer.py` - intraday-preferred on fresh sidecar;
+  suppression on stale/missing/invalid (baseline-identical golden); selection
+  rewire golden-identical.
+- `tests/test_dash_candidates.py:831-925` - primary-chart selection via the shared
+  helper; fallback behavior.
+- `tests/test_setup_chart.py` - deterministic 1m->5m derivation; full-session
+  render; daily path unchanged.
 
-- G1 description-not-prediction: raw observed candles + provenance only.
-- G2 observation-not-permission: snapshot is written to a NEW artifact and read
-  ONLY by the renderer; no decision/regime/qualification/sizing/notification
-  path reads it.
-- G5 additive artifact: one new versioned path, one writer, recorded in
-  `artifact_flow_map.md`.
-- G6 honest absence: per-symbol omission + suppress-to-baseline; honest caption.
-- G8 one bounded question: display current-session candles for primary+SPY.
-  Not cadence (reuses the existing hourly cron), not the A2 six-symbol
-  expansion, not decision coupling.
-- Same-PR producer+consumer: justified by precedent PRD-311 (movement_card) and
-  PRD-312 (mkt-state), which co-produced a run-local snapshot AND its render in
-  one MATERIAL CONSUMER PRD. This differs from the GEX/news producer-first gates
-  (G3/G4) because the intraday provider (yfinance 1m) is already evidenced and
-  used in the daily run - there is no unproven external provider to gate.
+ESTIMATED SURFACE - NOT YET APPROVED: production ~120-190 net LOC over 2 code
+files + doc/bookkeeping; tests ~3 files. Lane: HIGH-RISK / CONSUMER
+(`dashboard_renderer.py` is a consumer high-risk file, PRD_PROCESS).
 
-## 12. Rejected alternatives
+Acceptance (A1-C): fresh valid sidecar => canonical-primary card shows a
+deterministic full-session 5m chart from validated 1m truth, honestly captioned;
+stale/missing/invalid => byte-identical baseline; daily behavior unchanged off
+the intraday branch; renderer selection provably identical to pre-A1-C except the
+intraday substitution; each guard mutation-red.
 
-1. Daily-anchored zero-cost (memo Option A): free (the daily run already fetches
-   and discards a 1m session frame per symbol), but yields ONE pre-market
-   snapshot, not current-session hourly-fresh candles. Fails the accepted A1
-   behavior. Rejected by Helm ruling.
-2. Six-symbol hourly (memo Option B, ~54 ops/day): this is the A2 expansion.
-   Out of scope; cost unjustified before A1 usefulness is shown.
-3. Cross-run intraday cache: adds a persisted-across-runs carrier with its own
-   freshness key - larger MATERIAL surface and a charge novel-stop
-   (cross-run persistence). Run-local co-production suffices; rejected.
+## 7. Codex review disposition (concise; full transcript NOT persisted per charge)
 
-## 13. Unresolved decisions for Gate A
+Reviewed head `0fda661`; verdict FINDINGS (design incomplete). All 9 REQUIRED
+addressed; 3 RECOMMENDED dispositioned.
+- R1 same-PR precedent false -> split into A1-P/A1-C; precedent corrected (Sec 0,1).
+- R2 setup_chart not interval-agnostic -> A1-C extends it; test added (Sec 6).
+- R3 schema `ts` + strict validation -> schema + whole-symbol validation (Sec 5).
+- R4 per-symbol freshness -> Helm ruling 4 admission rules (Sec 6).
+- R5 canonical primary -> single shared `select_chartable_primary`, recorded
+  primary_symbol, no approximation (Sec 4).
+- R6 acquisition isolation -> own guard off the post-send path + red test (Sec 5).
+- R7 untracked force-add -> conditional staging; missing => no-op (Sec 5).
+- R8 FILES/test sweep -> full inventory across both units, real
+  `runtime/_constants.py` home, all asserting tests enumerated (Sec 5,6);
+  mechanical cross-file inventory cross-checked with Recon Garden v1
+  (call-site classification, deterministically spot-checked, telemetry recorded).
+- R9 ceiling label/estimate -> ESTIMATED SURFACE ranges per unit; PRD-311 LOC
+  corrected (Sec 0,5,6).
+- RECOMMENDED 1 (seam has no SPY session frame) -> corrected (Sec 3).
+- RECOMMENDED 2 (drop reuse) -> dropped (Helm ruling 5).
+- RECOMMENDED 3 (name all GOV-2 triggers; HIGH-RISK consumer) -> Sec 1, 6.
 
-11.1 Primary-symbol parity: shared tier-ordering helper so the runtime-selected
-     primary matches the rendered primary card (recommend yes; accept daily
-     fallback on residual divergence).
-11.2 Freshness threshold INTRADAY_MAX_AGE (recommend 90 min).
-11.3 Opportunistic-reuse policy: reuse only a session-shaped paid frame vs never
-     reuse (recommend reuse-only-if-session-shaped).
-11.4 Bar granularity: raw 1m (up to ~390 bars/symbol) vs 5m-resampled (memo's
-     ~20-25 KB projection). Recommend deciding at Gate A; 1m for two symbols is
-     bounded, 5m matches the memo size projection and improves legibility.
-11.5 Whether `setup_chart.py` renders intraday byte-for-byte via its existing
-     interval-agnostic path or needs a small caption edit.
+## 8. Doctrine compliance
 
-## 14. Required docs/DECISIONS.md entry (to land at Stage-0)
+G1 description-not-prediction: raw candles + provenance only. G2: sidecar read
+only by the renderer; no decision/regime/sizing/notification effect. G3/G4/G8:
+satisfied by the producer/consumer split (Helm declined override). G5: additive
+artifact, one writer (A1-P), one reader (A1-C), recorded in artifact_flow_map. G6:
+whole-symbol omission + baseline-neutral suppression + honest caption. G7:
+adjacent price-bars lineage (PRD-320/321) is COMPLETE; no unresolved neighbor.
+
+## 9. Rejected alternatives
+
+1. Daily-anchored zero-cost (memo Option A): one pre-market snapshot, not
+   current-session hourly-fresh. Rejected by Helm.
+2. Six-symbol hourly (memo Option B, ~54 ops/day): the A2 expansion; out of scope.
+3. Cross-run intraday cache: adds persisted-across-runs carrier; rejected -
+   run-local suffices.
+4. Producer/renderer independently re-deriving primary: rejected as a parity
+   approximation (Codex #5); replaced by one recorded canonical selection.
+
+## 10. Remaining genuine Helm decisions
+
+Most are resolved by rulings 1-5. Remaining, low-stakes, for Gate A:
+1. Confirm the intraday chart REPLACES the daily chart in the primary card's
+   single chart slot when fresh (daily as fallback), rather than showing both.
+2. Confirm `primary_symbol` is recorded by the producer and trusted by the
+   consumer (Section 4 design) vs. both sites independently computing (still one
+   function, but two evaluations). Recommendation: record-and-trust.
+Bounded Stage-0 (implementation, not product): selector-input availability at the
+producer seam (Section 4).
+
+## 11. DECISIONS.md entry (to land at the appropriate Stage-0)
 
 ```
-## 2026-08-30 - Intraday session-candle card: A1 selected over daily-anchored
-(ruled: Dustin)
+## 2026-08-30 - Intraday session-candle card: A1 selected over daily-anchored,
+split producer+consumer (ruled: Dustin)
 
-Helm selects A1: current-session, hourly-fresh 1-minute session candles for the
-primary setup symbol + SPY, co-produced in the existing hourly run, run-local
-(no cross-run persistence), display-only. This SUPERSEDES the recommendation in
-audits/intraday-feasibility-2026-08/INTRADAY_FEASIBILITY_MEMO_2026-08-28.md
-(branch claude/intraday-feasibility-memo-2026-08, d1e90a4), which recommended the
-daily-anchored path; the memo is retained as evidence, not authority. Accepted
-acquisition cost: at most 2 logical 1m fetches per hourly slot (~18/day) via the
-existing fetch_intraday_session_bars, with opportunistic reuse only when a
-qualifying session frame is already paid. MATERIAL under GOV-2 s1: full packet ->
-review -> Stage-0 -> Gate A. No implementation authorized by this entry.
+Helm selects A1 (current-session hourly-fresh 1m candles for the canonical primary
+setup symbol + SPY, run-local, display-only) over the daily-anchored recommendation
+in audits/intraday-feasibility-2026-08/INTRADAY_FEASIBILITY_MEMO_2026-08-28.md
+(branch claude/intraday-feasibility-memo-2026-08 d1e90a4), which is superseded as a
+recommendation and retained as evidence. Per G3/G4/G8 (no override), A1 is two
+ordered units: A1-P SIDECAR producer (persist validated 1m source bars) then A1-C
+HIGH-RISK consumer (deterministic full-session 5m render on the canonical-primary
+card). Canonical primary = the exact chartable-primary selection, shared. Freshness:
+current ET session + per-symbol through, max age 90m, max future skew 5m, whole-symbol
+omission on structural failure. Accepted cost: <=2 logical 1m fetches/hourly slot
+(~18/day) via existing fetch_intraday_session_bars. MATERIAL (GOV-2 s1); each unit
+takes its own Stage-0 + Gate A. No implementation authorized by this entry.
 ```
 
-## 15. STOP / next order
+## 12. STOP / next order
 
-DESIGN boundary reached. Next, in order: independent/Codex review of this packet
-at its committed head -> Helm ruling -> Stage-0 scaffold (allocate the PRD number
-via tooling; land the DECISIONS.md entry in Section 14) -> Gate A. No
-implementation, no PR merge, no PRD number allocated by this packet.
+DESIGN boundary. Next: independent/Codex review of THIS corrected head -> Helm
+ruling -> A1-P Stage-0 + Gate A -> A1-P merge -> A1-C Stage-0 + Gate A. No
+implementation, no PRD number allocated, no merge by this packet.
