@@ -134,8 +134,8 @@ If a single PRD accumulates more than one PATCH PRD, the root causes MUST be doc
 Seats, not vendors (GOV-1). This section names the AUTHORING AGENT,
 the REVIEWING AGENT, the INDEPENDENT REVIEWER, and the CONNECTOR BOT.
 Which model fills a seat is operational and may change without a
-governance PR; see CLAUDE.md § Review gates for the rule and its two
-CI-bound naming exceptions.
+governance PR; see CLAUDE.md § Roles for the rule and AGENTS.md for its
+two CI-bound naming exceptions.
 
 Every PRD receives the structured review its LANE requires (LANE
 matrix below), performed by a reviewing agent working from a fresh
@@ -243,7 +243,7 @@ Review trigger — whichever comes FIRST:
 At the trigger, Dustin rules: graduate the lane to standing practice,
 amend it, or retire it. Record the ruling in docs/DECISIONS.md and
 update this section's status line. An untriggered lane is reviewed at
-the next Alignment check (CLAUDE.md § Alignment check, PRD-230) after
+the next Alignment check (docs/contract/MODE_STEWARD.md, Alignment check, PRD-230) after
 its adoption — that check already runs at each wave/batch close and
 records a DECISIONS line, so the lane review rides it rather than
 inventing a new cadence.
@@ -340,7 +340,7 @@ invocations run read-only (`codex exec -s read-only`; see CLAUDE.md
 "Codex mechanics") — the second-model leg never gets repo-write
 access. The retriever's exhaustive mechanical retrieval is part of THIS
 commissioned review; it is not the discretionary simple-grep /
-mechanical-Codex use that CLAUDE.md § Working practices ("Recon goes to
+mechanical-Codex use that CLAUDE.md § Context and output hygiene ("Recon goes to
 subagents") bars — that bar governs standalone recon, not the retriever
 leg of a commissioned second-model review.
 
@@ -570,7 +570,7 @@ what else rides along. This does not relax the separate, categorical
 lane. GOV-1 goes further: Dustin merges every PR by hand, so
 auto-merge is not a landing path for any lane — superseding that
 entry's "auto-merge remains the normal landing path for
-non-manual-merge-only lanes" clause (CLAUDE.md § How work lands).
+non-manual-merge-only lanes" clause (CLAUDE.md § The wall, HELM).
 This subsection states the ceremony floor for what happens BEFORE the
 merge action — which review legs are owed — and no longer speaks to
 whether auto-merge may be queued.
