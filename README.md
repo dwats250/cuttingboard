@@ -33,24 +33,23 @@ lives in:
 
 ## What the operator sees
 
-The engine renders a single published board (`cuttingboard/delivery/`). Reading
-top to bottom it leads with market state and ends with the trade read:
+The engine renders a single published board (`cuttingboard/delivery/`), designed
+answer-first. It leads with the run **verdict** (the outcome, the permission, and
+the reason), then the day's context - the macro and trend tape, what matters
+today, and what to watch - with detailed surfaces below:
 
-- **Market State** - a five-axis provenance panel of where the market stands.
-- **System State** - the run outcome, permission, and the reason behind it.
-- **Regime and scoreboard** - the current regime read plus its recent history.
-- **Market Map** - symbol-level graded market context.
-- **GEX card** - a display-only gamma-exposure read (Cboe, ~15 min delayed).
+- **GEX** - a display-only gamma-exposure read (Cboe, ~15 min delayed).
 - **Market Movement** - an observe-only movement heatmap.
-- **Operator context tape** - macro pressure and trend-projection bands.
 - **Setup chart** - a deterministic daily-candle chart with tiered levels.
+- **Market Map** - symbol-level graded market context.
+- **Regime scoreboard** - the regime read and its recent history.
 - **Staleness banner** - an in-browser page-age notice so a frozen board can
   never read as fresh; shows "MARKET CLOSED" when the session is inactive.
 
-Every board is honest about degradation: missing or untrustworthy inputs
-fail closed (they block rather than guess), a market-stress HALT publishes a
-halt board, and optional cards (GEX, movement) degrade to their own absence
-rather than blocking the rest of the board.
+The board is honest about degradation: decision-critical validation or
+computation failures fail closed (they block rather than guess), a market-stress
+HALT publishes a halt board, and observational or optional inputs render as
+unavailable or suppress their own card rather than blocking the rest.
 
 ---
 
@@ -62,13 +61,14 @@ Python >= 3.11.
 pip install -e .[dev]
 ```
 
-Environment variables (set in `.env`, gitignored):
+Market data needs no API key - quotes and option chains come from yfinance, with
+a yahooquery fallback. Environment variables (set in `.env`, gitignored):
 
 ```
-POLYGON_API_KEY=<market-data key>          # OHLCV / options pipeline
+CB_OPERATOR_AVAILABILITY=AVAILABLE         # required to permit new trades;
+                                           # absent/other -> observe-only
 TELEGRAM_BOT_TOKEN=<bot token>             # HALT / alert notifications
 TELEGRAM_CHAT_ID=<chat id>
-CB_OPERATOR_AVAILABILITY=<optional>        # operator-availability signal
 ```
 
 Run modes:
@@ -76,7 +76,7 @@ Run modes:
 ```bash
 python -m cuttingboard                              # live
 python -m cuttingboard --mode fixture --fixture-file PATH
-python -m cuttingboard --mode sunday                # regime-only, no live data
+python -m cuttingboard --mode sunday                # Sunday context, no fetch, forced STAY_FLAT
 python -m cuttingboard --mode verify --file PATH    # summary verification only
 ```
 
@@ -104,7 +104,7 @@ unprotected `publish` branch that GitHub Pages serves - the committed snapshot
 on `main` is never hand-overwritten from a local render. Full pipeline detail:
 [`docs/architecture.md`](docs/architecture.md).
 
-Every run produces exactly one outcome: `TRADES | NO TRADE | HALT`.
+Every run produces exactly one outcome: `TRADE | NO_TRADE | HALT`.
 
 Canonical artifacts:
 
@@ -117,19 +117,21 @@ Canonical artifacts:
 | `reports/YYYY-MM-DD.md` | Human-readable daily report |
 | `ui/dashboard.html`, `ui/index.html` | Rendered board (published via `publish`) |
 
-`logs/` is gitignored at runtime; the pipeline force-adds a small allowlist of
-`latest_*.json` artifacts so the published board stays in sync with the run.
+`logs/` is gitignored at runtime; the pipeline force-stages the generated log
+artifacts (plus the report and rendered board) so the published board stays in
+sync with the run.
 
 ---
 
 ## Engineering and validation
 
 - **Tests:** ~136 test files covering the pipeline, contract, gates, and
-  renderer; run in CI on every PR and push.
-- **CI gate:** the `test` job (`.github/workflows/ci.yml`) runs the registry
-  validator, `ruff`, then the full `pytest` suite - isolated, no secrets. The
-  live pipeline additionally gates on an exact-SHA CI proof plus the engine
-  doctor, not the full suite (`docs/engine_doctor.md`).
+  renderer; run in CI on every PR and push to `main`.
+- **CI gate:** the `test` job (`.github/workflows/ci.yml`) runs on every PR and
+  push to `main` - the registry validator, `ruff`, then the full `pytest` suite,
+  isolated with no secrets. The live pipeline additionally gates on an exact-SHA
+  CI proof plus runtime readiness (engine-doctor diagnostics are uploaded but
+  non-blocking), not the full suite (`docs/engine_doctor.md`).
 - **Review discipline:** every change lands through a PR that Dustin merges by
   hand (no auto-merge, no direct push to `main`); each PR gets one
   fresh-context review. Agents operate under a layered standing contract with
@@ -157,11 +159,12 @@ pinescripts/           legacy TradingView helpers (rebuild intent noted inside)
 
 ## Now / next
 
-Recent product work (2026-08) added the Market State panel, the GEX and Market
-Movement cards, the operator context tape, and the setup chart. Current
-direction centers on three balanced lanes - gamma exposure (GEX), the news /
-context-registry / movement-heatmap track, and market-control context - plus a
-reconciliation wave closing the Cloudflare-clock, registry, and GEX seams.
+Recent product work (2026-08) added the GEX and Market Movement cards, the
+operator context tape, and the setup chart, and reorganized the board around an
+answer-first layout. Current direction centers on three balanced lanes - gamma
+exposure (GEX), the news / context-registry / movement-heatmap track, and
+market-control context - plus a reconciliation wave closing the Cloudflare-clock,
+registry, and GEX seams.
 Live status and the active lane always live in
 [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md).
 
