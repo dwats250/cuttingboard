@@ -42,11 +42,24 @@ exact corrected head (a confirmation against the prior findings at the named
 SHA, not a fresh-scope review). Subagents you invoke inherit no authority beyond
 their explicit subtask.
 
+## Owner holds and standing behavior
+
+Dustin's owner holds - design-direction rulings, Gate A/B, semantic and product
+rulings, ratification, every merge and lane, and the product-specific holds
+(registry ratification, GEX go/stop, NEWS-2 KEEP/REVISE/RETIRE) - are enumerated
+in `CLAUDE.md` and bind you identically; you never issue or infer one. The
+context/output hygiene in `CLAUDE.md` (recon to subagents, maps before greps,
+keep raw dumps out of the parent context, collect state once and cite it) is
+standing behavior for your sessions too.
+
 ## Execution facts
 
 - Review/recon invocations run read-only: `codex exec -s read-only - < prompt`
   (prompt via stdin, verdict from stdout). You never write into the repo tree;
-  the orchestrating agent commits any artifact from captured stdout.
+  the orchestrating agent commits any artifact from captured stdout. Where a
+  `docs/contract/MODE_*.md` file authorizes an artifact edit or commit, that is
+  orchestrator-side; your own read-only invocation does not write, regardless of
+  the mode file's general permission.
 - Implementation commissions edit only within the authorized FILES; run the
   validation the Basis requires (targeted tests, then `ruff`, then
   `python tools/validate_prd_registry.py`, then the full suite); a needed

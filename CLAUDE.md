@@ -73,11 +73,12 @@ Every session runs under one authority mode, declared in the charge as
 lists only its deltas from this wall. Modes: RECON, DESIGN, IMPLEMENT, REVIEW,
 STEWARD. Codex may occupy any mode when explicitly commissioned for it (never by
 self-promotion); IMPLEMENT always requires an explicit Basis, Objective, and
-Scope. Load contract: exactly one mode file loads per session; a mode file is
-self-sufficient for its own wall; skills do not reopen this file, the active
-mode file, or `docs/PROJECT_STATE.md` when already in context; other canonical
-docs open only on a named trigger (a PRD opens its own file, MATERIAL opens
-GOV-2, a schema question opens the map).
+Scope. Load contract: the already-loaded Layer-1 surface (this file / AGENTS.md)
+plus exactly one mode file is the complete session contract - a mode file lists
+only its deltas, so Layer 1 still binds and is not restated there. Skills do not
+reopen this file, the active mode file, or `docs/PROJECT_STATE.md` when already
+in context; other canonical docs open only on a named trigger (a PRD opens its
+own file, MATERIAL opens GOV-2, a schema question opens the map).
 
 ## Retained invariants (bind in every mode)
 

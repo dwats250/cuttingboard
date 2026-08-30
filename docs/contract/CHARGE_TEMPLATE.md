@@ -10,7 +10,7 @@ narrow standing authority but never widen it.
 CHARGE <id/date>
 Standing contract: UNCHANGED
 Standing stops + common escalation block apply (CLAUDE.md).
-Mode: <RECON | DESIGN | IMPLEMENT | REVIEW | STEWARD>
+AUTHORITY: <RECON | DESIGN | IMPLEMENT | REVIEW | STEWARD>
 
 Objective: <one sentence, one result>
 Basis: <governing PRD + gate, packet, or dated DECISIONS ruling | NONE>

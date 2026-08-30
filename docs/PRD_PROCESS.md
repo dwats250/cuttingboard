@@ -156,7 +156,7 @@ mandatory occupant of the role.
 Outside that MATERIAL-PRD exception, a deep INDEPENDENT review — the
 second-model instrument — runs only when Dustin commissions one. It
 is opt-in, never a standing requirement (PRD-242; see Second-Model
-Disposition below and the CLAUDE.md gate text). When a separately
+Disposition below and CLAUDE.md § The wall, COMMISSION). When a separately
 commissioned independent review runs alongside the routine review,
 **the two are independent and MUST be dispatched in parallel**, not
 serially. The author submits the draft once and the two reviewers
@@ -195,7 +195,7 @@ and the second review's findings did not depend on the first.
   requires a code-touching PRD.
 - If a review materially drives a decision (KILL, REVISE, scope
   cut), link the artifact path in the `docs/DECISIONS.md` entry so
-  the audit trail survives — see CLAUDE.md "Working practices".
+  the audit trail survives — see CLAUDE.md § Context and output hygiene.
 - Cross-review-of-review is RETIRED (GOV-1). A review targets the
   change — the diff and the PRD — never another review's prose, and
   no artifact takes another artifact as its subject. Reviewer
@@ -280,8 +280,8 @@ A COMPLETE HIGH-RISK PRD numbered >= 242 MUST carry exactly one of:
 
 1. A commissioned second-model artifact
    `docs/prd_history/PRD-NNN.review.<model>.md` meeting the four
-   artifact properties in the CLAUDE.md gate text (in-tree +
-   durable, SHA-pinned, read-only, fresh-context); or
+   artifact properties (in-tree + durable, SHA-pinned, read-only,
+   fresh-context; canonical spec in Second-Model Disposition below); or
 2. The disposition line, verbatim, in the PRD doc:
    `SECOND-MODEL: instrument not commissioned, merging on Claude-review + human judgment.`
 

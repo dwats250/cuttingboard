@@ -22,9 +22,8 @@ It is NOT a substitute for:
 - Authoring the PRD (use `prd-authoring-verified`)
 - Implementing the PRD
 - The cross-review gate's *decision* to invoke Codex — that is the
-  human's call per `CLAUDE.md § Review gates` (second-model
-  disposition). This skill only produces the Claude side of the
-  artifact pair.
+  human's call per `docs/PRD_PROCESS.md` Second-Model Disposition.
+  This skill only produces the Claude side of the artifact pair.
 - Adjudication when Claude and Codex disagree — that is a separate
   artifact (`PRD-NNN.adjudication.md`) and out of scope here.
 
@@ -200,9 +199,9 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
    principles and the `docs/PROJECT_STATE.md` current-state claims; record
    (i) whether the change conflicts with a VISION non-goal/principle and
    (ii) whether it leaves any PROJECT_STATE claim stale. This is drift, not
-   correctness — keep it to the two recorded lines. Per `CLAUDE.md § Review
-   gates`, under auto-merge drift-review is a post-merge audit, so this
-   recorded check is the standing pre-merge drift signal.
+   correctness — keep it to the two recorded lines. Per
+   `docs/contract/MODE_REVIEW.md`, this recorded DRIFT CHECK is the standing
+   pre-merge drift signal recorded in every review.
 
 ### Phase 2 — Verify (MANDATORY before returning)
 
