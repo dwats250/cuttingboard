@@ -1604,6 +1604,12 @@
       "title": "Operator context tape: visible macro + trend projection",
       "status": "COMPLETE",
       "commit": "#285"
+    },
+    {
+      "number": 323,
+      "title": "A1-P intraday 1-minute source-bar producer (intraday session-candle, producer half)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
