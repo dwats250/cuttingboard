@@ -1,40 +1,128 @@
 {
-  "macro_drivers": {},
+  "macro_drivers": {
+    "bitcoin": {
+      "change_pct": 1.8703597771727587,
+      "level": 79136.4609375,
+      "symbol": "BTC-USD"
+    },
+    "dollar": {
+      "change_pct": -0.17972514661364947,
+      "level": 99.41799926757812,
+      "symbol": "DX-Y.NYB"
+    },
+    "gold": {
+      "change_pct": 0.2504515946444544,
+      "level": 4483.2001953125,
+      "symbol": "GC=F"
+    },
+    "oil": {
+      "change_pct": 0.8109090035287632,
+      "level": 85.77999877929688,
+      "symbol": "CL=F"
+    },
+    "rates": {
+      "change_bps": 3.8306040717454373,
+      "change_pct": 0.8050869631718074,
+      "level": 4.758000373840332,
+      "symbol": "^TNX"
+    },
+    "silver": {
+      "change_pct": 0.12717941131752938,
+      "level": 66.92500305175781,
+      "symbol": "SI=F"
+    },
+    "volatility": {
+      "change_pct": 4.1608902794398,
+      "level": 15.020000457763672,
+      "symbol": "^VIX"
+    }
+  },
   "meta": {
-    "generation_id": "sunday-20260831T012839Z",
-    "session_type": "SUNDAY_PREMARKET",
+    "generation_id": "live-20260831T193057Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-08-31T01:28:39Z"
+    "timestamp": "2026-08-31T19:30:57Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
   "sections": {
     "chain_results_detail": [],
     "continuation_audit": null,
+    "market_control_card": {
+      "candidate_implication": {
+        "unavailable_reason": null,
+        "value": "NO_CANDIDATES"
+      },
+      "event": {
+        "events": null,
+        "expiring": false,
+        "unavailable_reason": null,
+        "value": "no_scheduled_events"
+      },
+      "invalidation": {
+        "unavailable_reason": null,
+        "value": "NO_ACTIVE_CANDIDATES"
+      },
+      "location": {
+        "orb": {
+          "orb_high": 767.6199951171875,
+          "orb_low": 765.7899780273438,
+          "reason": null,
+          "state": "FORMED"
+        },
+        "price_vs_vwap": "AT_LEVEL",
+        "reason": null,
+        "state": "OBSERVED"
+      },
+      "permission": {
+        "value": "No new trades permitted \u2014 operator cannot monitor."
+      },
+      "state": {
+        "unavailable_reason": null,
+        "value": "FAILED_EXPANSION"
+      },
+      "transition": {
+        "unavailable_reason": null,
+        "value": "FAILED_EXPANSION"
+      }
+    },
     "option_setups_detail": [],
-    "rejected": [],
+    "rejected": [
+      {
+        "detail": null,
+        "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)",
+        "stage": "REGIME",
+        "symbol": "REGIME"
+      }
+    ],
     "spy_observation": {
-      "current_price": null,
-      "intended_session_date": "2026-08-30",
-      "observed_at_utc": null,
+      "current_price": 766.4099731445312,
+      "intended_session_date": "2026-08-31",
+      "observed_at_utc": "2026-08-31T19:31:00+00:00",
       "observed_symbol": "SPY",
-      "orb": null,
-      "price_vs_vwap": null,
-      "reason": "intraday_fetch_failed",
-      "session_vwap": null,
-      "state": "UNAVAILABLE",
+      "orb": {
+        "observed_at_utc": "2026-08-31T19:30:00+00:00",
+        "orb_high": 767.6199951171875,
+        "orb_low": 765.7899780273438,
+        "reason": null,
+        "state": "FORMED",
+        "trading_date": "2026-08-31"
+      },
+      "price_vs_vwap": "AT_LEVEL",
+      "reason": null,
+      "session_vwap": 766.0000078890795,
+      "state": "OBSERVED",
       "timezone": "America/New_York"
     },
     "top_trades": [],
     "trade_decision_detail": [],
     "validation_halt_detail": {
-      "reason": "PREMARKET_CONTEXT"
+      "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)"
     },
     "watch_summary_detail": null,
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.0,
+    "confidence": 0.125,
     "market_regime": "NEUTRAL",
     "outcome": "NO_TRADE",
     "permission": "No new trades permitted \u2014 operator cannot monitor.",

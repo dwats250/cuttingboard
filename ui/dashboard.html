@@ -10,7 +10,7 @@
 <body>
 <div class="wrap">
 <div class="block operator-zone" id="verdict-zone">
-<div class="block" id="staleness-banner" hidden style="text-align:center;font-weight:bold" data-session-inactive="true" data-board-stale-after-s="5400"></div>
+<div class="block" id="staleness-banner" hidden style="text-align:center;font-weight:bold" data-session-inactive="false" data-board-stale-after-s="5400"></div>
 <script>
 (function () {
   function fmtAge(sec) {
@@ -67,7 +67,7 @@
   <div class="sys-permission">No new trades permitted — operator cannot monitor.</div>
   <div class="sep"></div>
   <div class="label">UPDATED</div>
-  <div class="value" id="cb-updated" data-updated-utc="2026-08-31T01:28:39+00:00">Updated Aug 30 · 6:28 PM PT</div>
+  <div class="value" id="cb-updated" data-updated-utc="2026-08-31T19:30:57+00:00">Updated Aug 31 · 12:30 PM PT</div>
 </div>
 </div>
 <div class="block operator-zone" id="tape-zone">
@@ -75,14 +75,14 @@
   <div class="tape-band">
     <div class="tape-band-cap">MACRO</div>
     <div class="zone-value">MACRO BIAS: MIXED · 2 on / 2 off</div>
-    <div class="tape-drivers"><div class="tape-driver tape-slot down"><span>VIX</span><span>↓</span><span>17.9</span></div><div class="tape-driver tape-slot up"><span>DXY</span><span>↑</span><span>98.5</span></div><div class="tape-driver tape-slot up"><span>10Y</span><span>↑</span><span>4.46</span></div><div class="tape-driver tape-slot up"><span>OIL</span><span>↑</span><span>102.2</span></div><div class="tape-driver tape-slot up"><span>GC</span><span>↑</span><span>4707.0</span></div><div class="tape-driver tape-slot up"><span>SI</span><span>↑</span><span>87.81</span></div><div class="tape-driver tape-slot up"><span>BTC</span><span>↑</span><span>80.6K</span></div></div>
-    <div class="zone-note">pressure: VIX risk-on · DXY risk-off · 10Y risk-off · BTC risk-on</div>
+    <div class="tape-drivers"><div class="tape-driver tape-slot up"><span>VIX</span><span>↑</span><span>15.0</span></div><div class="tape-driver tape-slot down"><span>DXY</span><span>↓</span><span>99.4</span></div><div class="tape-driver tape-slot up"><span>10Y</span><span>↑</span><span>4.76</span></div><div class="tape-driver tape-slot up"><span>OIL</span><span>↑</span><span>85.8</span></div><div class="tape-driver tape-slot up"><span>GC</span><span>↑</span><span>4483.2</span></div><div class="tape-driver tape-slot up"><span>SI</span><span>↑</span><span>66.93</span></div><div class="tape-driver tape-slot up"><span>BTC</span><span>↑</span><span>79.1K</span></div></div>
+    <div class="zone-note">pressure: VIX risk-off · DXY risk-on · 10Y risk-off · BTC risk-on</div>
   </div>
   <div class="sep"></div>
   <div class="tape-band">
     <div class="tape-band-cap">TREND</div>
-    <div class="zone-value" data-derivation="trend-health">Trend stale</div>
-    <div class="tape-trend"><div class="tape-trend-row tape-slot na"><span>SPY</span><span>—</span><span></span><span></span><span></span></div><div class="tape-trend-row tape-slot na"><span>QQQ</span><span>—</span><span></span><span></span><span></span></div><div class="tape-trend-row tape-slot na"><span>GDX</span><span>—</span><span></span><span></span><span></span></div><div class="tape-trend-row tape-slot na"><span>GLD</span><span>—</span><span></span><span></span><span></span></div><div class="tape-trend-row tape-slot na"><span>SLV</span><span>—</span><span></span><span></span><span></span></div><div class="tape-trend-row tape-slot na"><span>XLE</span><span>—</span><span></span><span></span><span></span></div></div>
+    <div class="zone-value" data-derivation="bullish-row-count">4 of 6 bullish</div>
+    <div class="tape-trend"><div class="tape-trend-row tape-slot up"><span>SPY</span><span>BULL</span><span>↑ 50</span><span>↑ 200</span><span></span></div><div class="tape-trend-row tape-slot up"><span>QQQ</span><span>BULL</span><span>↑ 50</span><span>↑ 200</span><span></span></div><div class="tape-trend-row tape-slot up"><span>GDX</span><span>BULL</span><span>↑ 50</span><span>↑ 200</span><span></span></div><div class="tape-trend-row tape-slot flat"><span>GLD</span><span>MIX</span><span>↑ 50</span><span>↓ 200</span><span></span></div><div class="tape-trend-row tape-slot flat"><span>SLV</span><span>MIX</span><span>↑ 50</span><span>↓ 200</span><span></span></div><div class="tape-trend-row tape-slot up"><span>XLE</span><span>BULL</span><span>↑ 50</span><span>↑ 200</span><span></span></div></div>
   </div>
   <div class="sep"></div>
   <div class="zone-grid tape-foot">
@@ -94,8 +94,7 @@
   <h2>TODAY</h2>
   <div class="zone-grid">
     <div class="zone-item"><div class="label">EVENT RISK</div><div class="zone-value">No scheduled events in the next 48 hours</div></div>
-    <div class="zone-item"><div class="label">SPY SESSION</div><div class="zone-value" data-raw-state="UNAVAILABLE">Session data unavailable · intraday data fetch failed</div></div>
-    <div class="zone-item" id="premarket-banner"><div class="label">SESSION</div><div class="zone-value">SUNDAY PRE-MARKET CONTEXT · no cash session</div></div>
+    <div class="zone-item"><div class="label">SPY SESSION</div><div class="zone-value" data-raw-state="OBSERVED">Session data observed</div></div>
   </div>
 </div>
 <div class="block operator-zone" id="watching-zone">
@@ -103,7 +102,116 @@
 <div class="block operator-subsection" id="candidate-board">
   <h3>Market Map / Developing Setups · screening</h3>
   <div class="idle-summary candidate-scope">MARKET-MAP SCREENING GRADES · OBSERVATION ONLY — grades never grant permission.</div>
-  <div class="unavailable">SESSION INACTIVE</div>
+  <div class="tier-group" id="tier-b">
+    <div class="tier-header">B — DEVELOPING (3)</div>
+<div class="candidate-card grade-b candidate-observation" id="card-GLD">
+  <div class="card-header">GLD · B · DEVELOPING · BULLISH BREAKOUT<span class="lifecycle-badge lifecycle-upgraded">UPGRADED</span></div>
+  <div class="lifecycle-detail">LIFECYCLE: F → B | DATA_UNAVAILABLE → DEVELOPING</div>
+  <div class="label">LEVEL</div><div class="value-key">hold above PRIOR_LOW with constructive follow-through</div>
+  <div class="label">INVALIDATION</div><div class="value-key">loses PRIOR_LOW with weak recovery, or structure turns choppy</div>
+  <details class="card-detail"><summary>DETAIL ▶</summary>
+  <div class="label">REASON</div><div class="value">B: bullish breakout, regime mixed, near key level</div>
+  <div class="label">WATCH</div><div class="value">watch hold above PRIOR_LOW; look for higher low with expanding volume</div>
+  </details>
+  <details class="level-detail"><summary>LEVEL MAP ▶</summary>
+  <div class="setup-chart"><svg viewBox="0 0 358 232" width="100%" preserveAspectRatio="xMidYMid meet" role="img" xmlns="http://www.w3.org/2000/svg" font-family="monospace"><rect width="280" height="232" fill="#0a0a0a"/><rect class="orb-band" x="0" y="80.5" width="280" height="3.3" fill="#3a7a8a" opacity="0.10"/><line class="lvl-t3" x1="0" y1="85.4" x2="280" y2="85.4" stroke="#4a4a4a" stroke-width="0.75" stroke-dasharray="2,4"/><line class="lvl-t3" x1="0" y1="105.8" x2="280" y2="105.8" stroke="#4a4a4a" stroke-width="0.75" stroke-dasharray="2,4"/><line class="lvl-t3" x1="0" y1="126.3" x2="280" y2="126.3" stroke="#4a4a4a" stroke-width="0.75" stroke-dasharray="2,4"/><line class="lvl-t3" x1="0" y1="109.2" x2="280" y2="109.2" stroke="#4a4a4a" stroke-width="0.75" stroke-dasharray="2,4"/><line class="lvl-t2" x1="0" y1="81.4" x2="280" y2="81.4" stroke="#3a7a8a" stroke-width="1" opacity="0.8"/><line class="lvl-t2" x1="0" y1="83.8" x2="280" y2="83.8" stroke="#3a7a8a" stroke-width="1" opacity="0.8"/><line class="lvl-t2" x1="0" y1="84.2" x2="280" y2="84.2" stroke="#29b6f6" stroke-width="1" stroke-dasharray="4,2" opacity="0.75"/><line class="lvl-t2" x1="0" y1="80.5" x2="280" y2="80.5" stroke="#3a7a8a" stroke-width="1" opacity="0.8"/><line class="lvl-t2" x1="0" y1="86.2" x2="280" y2="86.2" stroke="#3a7a8a" stroke-width="1" opacity="0.8"/><line class="lvl-t2" x1="0" y1="58.3" x2="280" y2="58.3" stroke="#3a7a8a" stroke-width="1" opacity="0.8"/><line class="lvl-t2" x1="0" y1="32.4" x2="280" y2="32.4" stroke="#3a7a8a" stroke-width="1" opacity="0.8"/><line class="candle-wick" x1="3.5" y1="153.1" x2="3.5" y2="163.4" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="1.3" y="154.0" width="4.3" height="5.4" fill="#4caf50"/><line class="candle-wick" x1="10.5" y1="149.8" x2="10.5" y2="172.8" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="8.3" y="153.2" width="4.3" height="14.0" fill="#f44336"/><line class="candle-wick" x1="17.5" y1="172.9" x2="17.5" y2="191.5" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="15.3" y="175.8" width="4.3" height="3.7" fill="#4caf50"/><line class="candle-wick" x1="24.5" y1="161.0" x2="24.5" y2="167.4" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="22.3" y="164.3" width="4.3" height="1.0" fill="#f44336"/><line class="candle-wick" x1="31.5" y1="167.0" x2="31.5" y2="178.0" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="29.3" y="168.5" width="4.3" height="5.8" fill="#4caf50"/><line class="candle-wick" x1="38.5" y1="180.3" x2="38.5" y2="200.6" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="36.3" y="180.6" width="4.3" height="16.1" fill="#f44336"/><line class="candle-wick" x1="45.5" y1="170.6" x2="45.5" y2="185.9" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="43.3" y="175.6" width="4.3" height="6.8" fill="#f44336"/><line class="candle-wick" x1="52.5" y1="175.7" x2="52.5" y2="189.9" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="50.3" y="181.8" width="4.3" height="1.0" fill="#4caf50"/><line class="candle-wick" x1="59.5" y1="193.0" x2="59.5" y2="205.5" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="57.3" y="195.8" width="4.3" height="7.1" fill="#f44336"/><line class="candle-wick" x1="66.5" y1="190.8" x2="66.5" y2="206.7" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="64.3" y="193.0" width="4.3" height="12.3" fill="#4caf50"/><line class="candle-wick" x1="73.5" y1="192.0" x2="73.5" y2="197.6" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="71.3" y="194.8" width="4.3" height="1.0" fill="#f44336"/><line class="candle-wick" x1="80.5" y1="174.2" x2="80.5" y2="185.5" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="78.3" y="174.8" width="4.3" height="8.9" fill="#4caf50"/><line class="candle-wick" x1="87.5" y1="153.7" x2="87.5" y2="163.4" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="85.3" y="162.5" width="4.3" height="1.0" fill="#4caf50"/><line class="candle-wick" x1="94.5" y1="179.7" x2="94.5" y2="187.0" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="92.3" y="181.8" width="4.3" height="2.4" fill="#f44336"/><line class="candle-wick" x1="101.5" y1="175.7" x2="101.5" y2="185.6" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="99.3" y="183.1" width="4.3" height="1.8" fill="#4caf50"/><line class="candle-wick" x1="108.5" y1="172.8" x2="108.5" y2="180.2" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="106.3" y="175.3" width="4.3" height="2.1" fill="#4caf50"/><line class="candle-wick" x1="115.5" y1="185.0" x2="115.5" y2="194.3" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="113.3" y="189.6" width="4.3" height="1.0" fill="#f44336"/><line class="candle-wick" x1="122.5" y1="166.8" x2="122.5" y2="198.4" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="120.3" y="185.4" width="4.3" height="8.0" fill="#4caf50"/><line class="candle-wick" x1="129.5" y1="166.1" x2="129.5" y2="177.8" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="127.3" y="168.1" width="4.3" height="8.6" fill="#4caf50"/><line class="candle-wick" x1="136.5" y1="182.8" x2="136.5" y2="191.9" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="134.3" y="184.1" width="4.3" height="2.0" fill="#4caf50"/><line class="candle-wick" x1="143.5" y1="182.7" x2="143.5" y2="192.4" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="141.3" y="183.6" width="4.3" height="4.6" fill="#4caf50"/><line class="candle-wick" x1="150.5" y1="169.5" x2="150.5" y2="177.9" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="148.3" y="176.7" width="4.3" height="1.0" fill="#4caf50"/><line class="candle-wick" x1="157.5" y1="127.2" x2="157.5" y2="147.7" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="155.3" y="132.6" width="4.3" height="13.3" fill="#4caf50"/><line class="candle-wick" x1="164.5" y1="125.5" x2="164.5" y2="139.3" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="162.3" y="132.5" width="4.3" height="1.0" fill="#4caf50"/><line class="candle-wick" x1="171.5" y1="101.2" x2="171.5" y2="111.7" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="169.3" y="104.2" width="4.3" height="3.2" fill="#f44336"/><line class="candle-wick" x1="178.5" y1="93.8" x2="178.5" y2="114.7" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="176.3" y="95.8" width="4.3" height="13.8" fill="#4caf50"/><line class="candle-wick" x1="185.5" y1="91.6" x2="185.5" y2="103.4" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="183.3" y="93.3" width="4.3" height="7.0" fill="#f44336"/><line class="candle-wick" x1="192.5" y1="82.1" x2="192.5" y2="93.9" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="190.3" y="87.9" width="4.3" height="1.1" fill="#f44336"/><line class="candle-wick" x1="199.5" y1="95.7" x2="199.5" y2="108.0" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="197.3" y="96.9" width="4.3" height="9.1" fill="#f44336"/><line class="candle-wick" x1="206.5" y1="93.6" x2="206.5" y2="100.4" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="204.3" y="96.8" width="4.3" height="2.0" fill="#f44336"/><line class="candle-wick" x1="213.5" y1="85.3" x2="213.5" y2="96.8" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="211.3" y="87.4" width="4.3" height="9.0" fill="#4caf50"/><line class="candle-wick" x1="220.5" y1="90.8" x2="220.5" y2="109.1" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="218.3" y="95.8" width="4.3" height="11.4" fill="#f44336"/><line class="candle-wick" x1="227.5" y1="63.2" x2="227.5" y2="81.8" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="225.3" y="63.6" width="4.3" height="14.4" fill="#4caf50"/><line class="candle-wick" x1="234.5" y1="56.2" x2="234.5" y2="75.1" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="232.3" y="59.6" width="4.3" height="14.7" fill="#4caf50"/><line class="candle-wick" x1="241.5" y1="32.2" x2="241.5" y2="47.7" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="239.3" y="36.5" width="4.3" height="8.1" fill="#4caf50"/><line class="candle-wick" x1="248.5" y1="19.3" x2="248.5" y2="34.1" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="246.3" y="21.7" width="4.3" height="5.3" fill="#f44336"/><line class="candle-wick" x1="255.5" y1="22.9" x2="255.5" y2="39.4" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="253.3" y="23.1" width="4.3" height="15.1" fill="#4caf50"/><line class="candle-wick" x1="262.5" y1="32.0" x2="262.5" y2="45.2" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="260.3" y="37.5" width="4.3" height="4.8" fill="#f44336"/><line class="candle-wick" x1="269.5" y1="36.5" x2="269.5" y2="50.6" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="267.3" y="38.7" width="4.3" height="5.0" fill="#4caf50"/><line class="candle-wick" x1="276.5" y1="32.4" x2="276.5" y2="81.4" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="274.3" y="39.7" width="4.3" height="38.0" fill="#f44336"/><line class="lvl-t1 lvl-now" x1="0" y1="82.4" x2="280" y2="82.4" stroke="#f5c518" stroke-width="1.75"/><rect class="now-tag" x="279" y="75.4" width="77" height="14" fill="#f5c518"/><text x="283" y="85.9" font-size="9.5" font-weight="bold" fill="#0a0a0a">NOW 407.26</text><line x1="280" y1="81.4" x2="282" y2="69.2" stroke="#333" stroke-width="0.75"/><text x="284" y="72.4" font-size="8.5" fill="#3a7a8a">PDL 407.6</text><line x1="280" y1="80.5" x2="282" y2="57.7" stroke="#333" stroke-width="0.75"/><text x="284" y="60.9" font-size="8.5" fill="#3a7a8a">ORB H 407.9</text><line x1="280" y1="58.3" x2="282" y2="46.2" stroke="#333" stroke-width="0.75"/><text x="284" y="49.4" font-size="8.5" fill="#3a7a8a">EMA9 415.7</text><text x="284" y="35.6" font-size="8.5" fill="#3a7a8a">PDH 424.8</text><line x1="280" y1="83.8" x2="282" y2="95.7" stroke="#333" stroke-width="0.75"/><text x="284" y="98.9" font-size="8.5" fill="#3a7a8a">ORB L 406.8</text><line x1="280" y1="84.2" x2="282" y2="107.2" stroke="#333" stroke-width="0.75"/><text x="284" y="110.4" font-size="8.5" fill="#29b6f6">VWAP 406.6</text><line x1="280" y1="85.4" x2="282" y2="118.2" stroke="#333" stroke-width="0.75"/><text x="284" y="121.0" font-size="7.5" fill="#555">fib 0.382 406.2</text><line x1="280" y1="86.2" x2="282" y2="129.2" stroke="#333" stroke-width="0.75"/><text x="284" y="132.4" font-size="8.5" fill="#3a7a8a">EMA21 405.9</text><line x1="280" y1="105.8" x2="282" y2="140.2" stroke="#333" stroke-width="0.75"/><text x="284" y="143.0" font-size="7.5" fill="#555">fib 0.5 399.0</text><line x1="280" y1="109.2" x2="282" y2="150.7" stroke="#333" stroke-width="0.75"/><text x="284" y="153.5" font-size="7.5" fill="#555">EMA50 397.8</text><line x1="280" y1="126.3" x2="282" y2="161.2" stroke="#333" stroke-width="0.75"/><text x="284" y="164.0" font-size="7.5" fill="#555">fib 0.618 391.9</text><text x="2" y="229" font-size="7.5" fill="#666">Jul 06</text><text x="276" y="229" font-size="7.5" fill="#666" text-anchor="end">Aug 28</text></svg></div>
+  <div class="chart-caption">bars through 2026-08-28 · yfinance 1d</div>
+  <div class="lvl-ladder lvl-locked">
+    <div class="lvl-row lvl-t2"><span class="lvl-name">PRIOR_HIGH</span><span class="lvl-px">424.79</span><span class="lvl-pct">+4.3%</span></div>
+    <div class="lvl-row lvl-t2"><span class="lvl-name">EMA9</span><span class="lvl-px">415.70</span><span class="lvl-pct">+2.1%</span></div>
+    <div class="lvl-row lvl-t2"><span class="lvl-name">ORB_HIGH</span><span class="lvl-px">407.91</span><span class="lvl-pct">+0.2%</span></div>
+    <div class="lvl-row lvl-t2"><span class="lvl-name">PRIOR_LOW</span><span class="lvl-px">407.62</span><span class="lvl-pct">+0.1%</span></div>
+    <div class="lvl-row lvl-t1 lvl-now"><span class="lvl-name">NOW</span><span class="lvl-px">407.26</span><span class="lvl-pct"></span></div>
+    <div class="lvl-row lvl-t2"><span class="lvl-name">ORB_LOW</span><span class="lvl-px">406.75</span><span class="lvl-pct">-0.1%</span></div>
+    <div class="lvl-row lvl-t2 lvl-vwap"><span class="lvl-name">VWAP</span><span class="lvl-px">406.63</span><span class="lvl-pct">-0.2%</span></div>
+    <div class="lvl-row lvl-t3"><span class="lvl-name">0.382</span><span class="lvl-px">406.20</span><span class="lvl-pct">-0.3%</span></div>
+    <div class="lvl-row lvl-t2"><span class="lvl-name">EMA21</span><span class="lvl-px">405.93</span><span class="lvl-pct">-0.3%</span></div>
+    <div class="lvl-row lvl-t3"><span class="lvl-name">0.5</span><span class="lvl-px">399.03</span><span class="lvl-pct">-2.0%</span></div>
+    <div class="lvl-row lvl-t3"><span class="lvl-name">EMA50</span><span class="lvl-px">397.85</span><span class="lvl-pct">-2.3%</span></div>
+    <div class="lvl-row lvl-t3"><span class="lvl-name">0.618</span><span class="lvl-px">391.86</span><span class="lvl-pct">-3.8%</span></div>
+  </div>
+  </details>
+</div>
+<div class="candidate-card grade-b candidate-observation" id="card-SLV">
+  <div class="card-header">SLV · B · DEVELOPING · BULLISH PULLBACK<span class="lifecycle-badge lifecycle-upgraded">UPGRADED</span></div>
+  <div class="lifecycle-detail">LIFECYCLE: F → B | DATA_UNAVAILABLE → DEVELOPING</div>
+  <div class="label">LEVEL</div><div class="value-key">hold above ORB_LOW with constructive follow-through</div>
+  <div class="label">INVALIDATION</div><div class="value-key">loses ORB_LOW with weak recovery, or structure turns choppy</div>
+  <details class="card-detail"><summary>DETAIL ▶</summary>
+  <div class="label">REASON</div><div class="value">B: bullish pullback, regime mixed, near key level</div>
+  <div class="label">WATCH</div><div class="value">watch hold above ORB_LOW; look for higher low with expanding volume</div>
+  </details>
+  <details class="level-detail"><summary>LEVEL MAP ▶</summary>
+  <div class="lvl-ladder lvl-locked">
+    <div class="lvl-row lvl-t2"><span class="lvl-name">EMA9</span><span class="lvl-px">61.18</span><span class="lvl-pct">+1.9%</span></div>
+    <div class="lvl-row lvl-t2"><span class="lvl-name">ORB_HIGH</span><span class="lvl-px">60.42</span><span class="lvl-pct">+0.7%</span></div>
+    <div class="lvl-row lvl-t2"><span class="lvl-name">ORB_LOW</span><span class="lvl-px">60.03</span><span class="lvl-pct">+0.0%</span></div>
+    <div class="lvl-row lvl-t1 lvl-now"><span class="lvl-name">NOW</span><span class="lvl-px">60.03</span><span class="lvl-pct"></span></div>
+    <div class="lvl-row lvl-t2 lvl-vwap"><span class="lvl-name">VWAP</span><span class="lvl-px">59.83</span><span class="lvl-pct">-0.3%</span></div>
+    <div class="lvl-row lvl-t2"><span class="lvl-name">EMA21</span><span class="lvl-px">59.08</span><span class="lvl-pct">-1.6%</span></div>
+    <div class="lvl-row lvl-t3"><span class="lvl-name">0.382</span><span class="lvl-px">58.59</span><span class="lvl-pct">-2.4%</span></div>
+    <div class="lvl-row lvl-t3"><span class="lvl-name">EMA50</span><span class="lvl-px">58.45</span><span class="lvl-pct">-2.6%</span></div>
+    <div class="lvl-row lvl-t3"><span class="lvl-name">0.5</span><span class="lvl-px">57.16</span><span class="lvl-pct">-4.8%</span></div>
+    <div class="lvl-row lvl-t3"><span class="lvl-name">0.618</span><span class="lvl-px">55.74</span><span class="lvl-pct">-7.1%</span></div>
+  </div>
+  </details>
+</div>
+<div class="candidate-card grade-b candidate-observation" id="card-SPY">
+  <div class="card-header">SPY · B · DEVELOPING · BULLISH PULLBACK<span class="lifecycle-badge lifecycle-upgraded">UPGRADED</span></div>
+  <div class="lifecycle-detail">LIFECYCLE: F → B | DATA_UNAVAILABLE → DEVELOPING</div>
+  <div class="label">LEVEL</div><div class="value-key">hold above VWAP with constructive follow-through</div>
+  <div class="label">INVALIDATION</div><div class="value-key">loses VWAP with weak recovery, or structure turns choppy</div>
+  <details class="card-detail"><summary>DETAIL ▶</summary>
+  <div class="label">REASON</div><div class="value">B: bullish pullback, regime mixed, near key level</div>
+  <div class="label">WATCH</div><div class="value">watch hold above VWAP; look for higher low with expanding volume</div>
+  </details>
+  <details class="level-detail"><summary>LEVEL MAP ▶</summary>
+  <div class="lvl-ladder lvl-locked">
+    <div class="lvl-row lvl-t3"><span class="lvl-name">0.382</span><span class="lvl-px">767.69</span><span class="lvl-pct">+0.2%</span></div>
+    <div class="lvl-row lvl-t2"><span class="lvl-name">ORB_HIGH</span><span class="lvl-px">767.62</span><span class="lvl-pct">+0.2%</span></div>
+    <div class="lvl-row lvl-t2"><span class="lvl-name">EMA9</span><span class="lvl-px">767.49</span><span class="lvl-pct">+0.1%</span></div>
+    <div class="lvl-row lvl-t1 lvl-now"><span class="lvl-name">NOW</span><span class="lvl-px">766.39</span><span class="lvl-pct"></span></div>
+    <div class="lvl-row lvl-t2 lvl-vwap"><span class="lvl-name">VWAP</span><span class="lvl-px">766.07</span><span class="lvl-pct">-0.0%</span></div>
+    <div class="lvl-row lvl-t2"><span class="lvl-name">ORB_LOW</span><span class="lvl-px">765.79</span><span class="lvl-pct">-0.1%</span></div>
+    <div class="lvl-row lvl-t2"><span class="lvl-name">EMA21</span><span class="lvl-px">764.44</span><span class="lvl-pct">-0.3%</span></div>
+    <div class="lvl-row lvl-t3"><span class="lvl-name">0.5</span><span class="lvl-px">764.09</span><span class="lvl-pct">-0.3%</span></div>
+    <div class="lvl-row lvl-t3"><span class="lvl-name">0.618</span><span class="lvl-px">760.48</span><span class="lvl-pct">-0.8%</span></div>
+    <div class="lvl-row lvl-t3"><span class="lvl-name">EMA50</span><span class="lvl-px">754.72</span><span class="lvl-pct">-1.5%</span></div>
+  </div>
+  </details>
+</div>
+  </div>
+  <details class="tier-group" id="tier-c">
+    <summary class="tier-header">C — EARLY (1)</summary>
+<div class="candidate-card grade-c candidate-observation" id="card-QQQ">
+  <div class="failed-card-fields">
+    <div><div class="label">SYMBOL</div><div class="value">QQQ<span class="lifecycle-badge lifecycle-upgraded">UPGRADED</span></div></div>
+    <div><div class="label">BIAS</div><div class="value">BULLISH</div></div>
+    <div><div class="label">STRUCTURE</div><div class="value">RANGE</div></div>
+  </div>
+  <div class="label">SCREENING NOTE</div><div class="value">C: bullish range, regime mixed, near key level</div>
+  <details class="level-detail"><summary>LEVEL MAP ▶</summary>
+  <details class="chart-detail"><summary>CHART ▶</summary>
+  <div class="setup-chart"><svg viewBox="0 0 358 232" width="100%" preserveAspectRatio="xMidYMid meet" role="img" xmlns="http://www.w3.org/2000/svg" font-family="monospace"><rect width="280" height="232" fill="#0a0a0a"/><rect class="orb-band" x="0" y="64.1" width="280" height="6.6" fill="#3a7a8a" opacity="0.10"/><line class="lvl-t3" x1="0" y1="66.8" x2="280" y2="66.8" stroke="#4a4a4a" stroke-width="0.75" stroke-dasharray="2,4"/><line class="lvl-t3" x1="0" y1="81.5" x2="280" y2="81.5" stroke="#4a4a4a" stroke-width="0.75" stroke-dasharray="2,4"/><line class="lvl-t3" x1="0" y1="96.2" x2="280" y2="96.2" stroke="#4a4a4a" stroke-width="0.75" stroke-dasharray="2,4"/><line class="lvl-t3" x1="0" y1="83.2" x2="280" y2="83.2" stroke="#4a4a4a" stroke-width="0.75" stroke-dasharray="2,4"/><line class="lvl-t2" x1="0" y1="69.0" x2="280" y2="69.0" stroke="#3a7a8a" stroke-width="1" opacity="0.8"/><line class="lvl-t2" x1="0" y1="68.1" x2="280" y2="68.1" stroke="#3a7a8a" stroke-width="1" opacity="0.8"/><line class="lvl-t2" x1="0" y1="69.7" x2="280" y2="69.7" stroke="#29b6f6" stroke-width="1" stroke-dasharray="4,2" opacity="0.75"/><line class="lvl-t2" x1="0" y1="70.7" x2="280" y2="70.7" stroke="#3a7a8a" stroke-width="1" opacity="0.8"/><line class="lvl-t2" x1="0" y1="71.7" x2="280" y2="71.7" stroke="#3a7a8a" stroke-width="1" opacity="0.8"/><line class="lvl-t2" x1="0" y1="64.1" x2="280" y2="64.1" stroke="#3a7a8a" stroke-width="1" opacity="0.8"/><line class="lvl-t2" x1="0" y1="45.9" x2="280" y2="45.9" stroke="#3a7a8a" stroke-width="1" opacity="0.8"/><line class="candle-wick" x1="3.5" y1="41.0" x2="3.5" y2="60.4" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="1.3" y="49.3" width="4.3" height="7.4" fill="#4caf50"/><line class="candle-wick" x1="10.5" y1="65.8" x2="10.5" y2="95.0" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="8.3" y="71.4" width="4.3" height="12.1" fill="#f44336"/><line class="candle-wick" x1="17.5" y1="76.2" x2="17.5" y2="105.2" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="15.3" y="78.3" width="4.3" height="16.6" fill="#4caf50"/><line class="candle-wick" x1="24.5" y1="45.7" x2="24.5" y2="68.9" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="22.3" y="48.1" width="4.3" height="12.6" fill="#4caf50"/><line class="candle-wick" x1="31.5" y1="40.2" x2="31.5" y2="64.1" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="29.3" y="42.4" width="4.3" height="12.3" fill="#4caf50"/><line class="candle-wick" x1="38.5" y1="59.7" x2="38.5" y2="81.8" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="36.3" y="62.3" width="4.3" height="15.3" fill="#f44336"/><line class="candle-wick" x1="45.5" y1="50.6" x2="45.5" y2="70.9" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="43.3" y="55.9" width="4.3" height="1.4" fill="#f44336"/><line class="candle-wick" x1="52.5" y1="45.3" x2="52.5" y2="81.4" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="50.3" y="46.6" width="4.3" height="15.6" fill="#f44336"/><line class="candle-wick" x1="59.5" y1="72.8" x2="59.5" y2="100.9" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="57.3" y="76.9" width="4.3" height="15.5" fill="#f44336"/><line class="candle-wick" x1="66.5" y1="101.7" x2="66.5" y2="141.3" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="64.3" y="119.5" width="4.3" height="9.4" fill="#4caf50"/><line class="candle-wick" x1="73.5" y1="92.7" x2="73.5" y2="119.0" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="71.3" y="102.0" width="4.3" height="15.6" fill="#f44336"/><line class="candle-wick" x1="80.5" y1="81.9" x2="80.5" y2="100.4" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="78.3" y="84.6" width="4.3" height="6.2" fill="#4caf50"/><line class="candle-wick" x1="87.5" y1="82.9" x2="87.5" y2="98.3" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="85.3" y="93.9" width="4.3" height="4.4" fill="#4caf50"/><line class="candle-wick" x1="94.5" y1="111.0" x2="94.5" y2="138.7" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="92.3" y="121.1" width="4.3" height="7.0" fill="#f44336"/><line class="candle-wick" x1="101.5" y1="126.4" x2="101.5" y2="152.3" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="99.3" y="132.0" width="4.3" height="15.8" fill="#f44336"/><line class="candle-wick" x1="108.5" y1="127.2" x2="108.5" y2="168.9" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="106.3" y="128.8" width="4.3" height="24.4" fill="#f44336"/><line class="candle-wick" x1="115.5" y1="160.1" x2="115.5" y2="189.5" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="113.3" y="168.2" width="4.3" height="1.9" fill="#f44336"/><line class="candle-wick" x1="122.5" y1="158.5" x2="122.5" y2="206.7" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="120.3" y="170.1" width="4.3" height="35.1" fill="#f44336"/><line class="candle-wick" x1="129.5" y1="145.5" x2="129.5" y2="175.7" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="127.3" y="149.5" width="4.3" height="22.5" fill="#4caf50"/><line class="candle-wick" x1="136.5" y1="118.3" x2="136.5" y2="158.5" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="134.3" y="127.7" width="4.3" height="10.5" fill="#f44336"/><line class="candle-wick" x1="143.5" y1="103.5" x2="143.5" y2="143.7" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="141.3" y="107.4" width="4.3" height="30.0" fill="#4caf50"/><line class="candle-wick" x1="150.5" y1="42.0" x2="150.5" y2="88.3" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="148.3" y="46.6" width="4.3" height="40.1" fill="#4caf50"/><line class="candle-wick" x1="157.5" y1="34.7" x2="157.5" y2="64.3" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="155.3" y="40.5" width="4.3" height="22.9" fill="#f44336"/><line class="candle-wick" x1="164.5" y1="58.2" x2="164.5" y2="85.8" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="162.3" y="70.1" width="4.3" height="9.8" fill="#4caf50"/><line class="candle-wick" x1="171.5" y1="47.2" x2="171.5" y2="65.4" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="169.3" y="48.7" width="4.3" height="7.4" fill="#4caf50"/><line class="candle-wick" x1="178.5" y1="44.6" x2="178.5" y2="55.6" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="176.3" y="50.4" width="4.3" height="3.9" fill="#f44336"/><line class="candle-wick" x1="185.5" y1="47.9" x2="185.5" y2="68.0" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="183.3" y="48.1" width="4.3" height="12.3" fill="#f44336"/><line class="candle-wick" x1="192.5" y1="38.0" x2="192.5" y2="49.0" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="190.3" y="38.4" width="4.3" height="8.6" fill="#f44336"/><line class="candle-wick" x1="199.5" y1="20.8" x2="199.5" y2="46.2" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="197.3" y="25.7" width="4.3" height="17.6" fill="#4caf50"/><line class="candle-wick" x1="206.5" y1="19.7" x2="206.5" y2="35.2" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="204.3" y="22.2" width="4.3" height="6.0" fill="#f44336"/><line class="candle-wick" x1="213.5" y1="19.3" x2="213.5" y2="32.8" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="211.3" y="23.4" width="4.3" height="7.9" fill="#f44336"/><line class="candle-wick" x1="220.5" y1="51.0" x2="220.5" y2="66.9" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="218.3" y="55.9" width="4.3" height="6.9" fill="#f44336"/><line class="candle-wick" x1="227.5" y1="52.6" x2="227.5" y2="75.3" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="225.3" y="55.5" width="4.3" height="11.0" fill="#f44336"/><line class="candle-wick" x1="234.5" y1="69.4" x2="234.5" y2="85.8" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="232.3" y="76.7" width="4.3" height="2.9" fill="#f44336"/><line class="candle-wick" x1="241.5" y1="67.5" x2="241.5" y2="84.0" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="239.3" y="68.7" width="4.3" height="4.5" fill="#f44336"/><line class="candle-wick" x1="248.5" y1="82.5" x2="248.5" y2="100.6" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="246.3" y="82.9" width="4.3" height="8.5" fill="#f44336"/><line class="candle-wick" x1="255.5" y1="71.7" x2="255.5" y2="88.5" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="253.3" y="78.9" width="4.3" height="1.3" fill="#f44336"/><line class="candle-wick" x1="262.5" y1="74.3" x2="262.5" y2="87.2" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="260.3" y="78.5" width="4.3" height="7.6" fill="#4caf50"/><line class="candle-wick" x1="269.5" y1="53.0" x2="269.5" y2="70.4" stroke="#4caf50" stroke-width="1"/><rect class="candle-body" x="267.3" y="53.6" width="4.3" height="10.7" fill="#4caf50"/><line class="candle-wick" x1="276.5" y1="45.9" x2="276.5" y2="69.0" stroke="#f44336" stroke-width="1"/><rect class="candle-body" x="274.3" y="57.1" width="4.3" height="8.5" fill="#f44336"/><line class="lvl-t1 lvl-now" x1="0" y1="68.6" x2="280" y2="68.6" stroke="#f5c518" stroke-width="1.75"/><rect class="now-tag" x="279" y="61.599999999999994" width="77" height="14" fill="#f5c518"/><text x="283" y="72.1" font-size="9.5" font-weight="bold" fill="#0a0a0a">NOW 715.26</text><line x1="280" y1="68.1" x2="282" y2="55.3" stroke="#333" stroke-width="0.75"/><text x="284" y="58.6" font-size="8.5" fill="#3a7a8a">EMA9 715.4</text><line x1="280" y1="66.8" x2="282" y2="44.3" stroke="#333" stroke-width="0.75"/><text x="284" y="47.2" font-size="7.5" fill="#555">fib 0.382 716.0</text><line x1="280" y1="64.1" x2="282" y2="33.3" stroke="#333" stroke-width="0.75"/><text x="284" y="36.6" font-size="8.5" fill="#3a7a8a">ORB H 717.0</text><line x1="280" y1="45.9" x2="282" y2="21.8" stroke="#333" stroke-width="0.75"/><text x="284" y="25.1" font-size="8.5" fill="#3a7a8a">PDH 724.1</text><line x1="280" y1="69.0" x2="282" y2="81.8" stroke="#333" stroke-width="0.75"/><text x="284" y="85.1" font-size="8.5" fill="#3a7a8a">PDL 715.1</text><line x1="280" y1="69.7" x2="282" y2="93.3" stroke="#333" stroke-width="0.75"/><text x="284" y="96.6" font-size="8.5" fill="#29b6f6">VWAP 714.8</text><line x1="280" y1="70.7" x2="282" y2="104.8" stroke="#333" stroke-width="0.75"/><text x="284" y="108.1" font-size="8.5" fill="#3a7a8a">ORB L 714.4</text><line x1="280" y1="71.7" x2="282" y2="116.3" stroke="#333" stroke-width="0.75"/><text x="284" y="119.6" font-size="8.5" fill="#3a7a8a">EMA21 714.0</text><line x1="280" y1="81.5" x2="282" y2="127.3" stroke="#333" stroke-width="0.75"/><text x="284" y="130.2" font-size="7.5" fill="#555">fib 0.5 710.2</text><line x1="280" y1="83.2" x2="282" y2="137.8" stroke="#333" stroke-width="0.75"/><text x="284" y="140.7" font-size="7.5" fill="#555">EMA50 709.5</text><line x1="280" y1="96.2" x2="282" y2="148.3" stroke="#333" stroke-width="0.75"/><text x="284" y="151.2" font-size="7.5" fill="#555">fib 0.618 704.4</text><text x="2" y="229" font-size="7.5" fill="#666">Jul 06</text><text x="276" y="229" font-size="7.5" fill="#666" text-anchor="end">Aug 28</text></svg></div>
+  <div class="chart-caption">bars through 2026-08-28 · yfinance 1d</div>
+  </details>
+  <div class="lvl-ladder lvl-locked">
+    <div class="lvl-row lvl-t2"><span class="lvl-name">PRIOR_HIGH</span><span class="lvl-px">724.13</span><span class="lvl-pct">+1.2%</span></div>
+    <div class="lvl-row lvl-t2"><span class="lvl-name">ORB_HIGH</span><span class="lvl-px">717.00</span><span class="lvl-pct">+0.2%</span></div>
+    <div class="lvl-row lvl-t3"><span class="lvl-name">0.382</span><span class="lvl-px">715.95</span><span class="lvl-pct">+0.1%</span></div>
+    <div class="lvl-row lvl-t2"><span class="lvl-name">EMA9</span><span class="lvl-px">715.43</span><span class="lvl-pct">+0.0%</span></div>
+    <div class="lvl-row lvl-t1 lvl-now"><span class="lvl-name">NOW</span><span class="lvl-px">715.26</span><span class="lvl-pct"></span></div>
+    <div class="lvl-row lvl-t2"><span class="lvl-name">PRIOR_LOW</span><span class="lvl-px">715.09</span><span class="lvl-pct">-0.0%</span></div>
+    <div class="lvl-row lvl-t2 lvl-vwap"><span class="lvl-name">VWAP</span><span class="lvl-px">714.82</span><span class="lvl-pct">-0.1%</span></div>
+    <div class="lvl-row lvl-t2"><span class="lvl-name">ORB_LOW</span><span class="lvl-px">714.43</span><span class="lvl-pct">-0.1%</span></div>
+    <div class="lvl-row lvl-t2"><span class="lvl-name">EMA21</span><span class="lvl-px">714.03</span><span class="lvl-pct">-0.2%</span></div>
+    <div class="lvl-row lvl-t3"><span class="lvl-name">0.5</span><span class="lvl-px">710.20</span><span class="lvl-pct">-0.7%</span></div>
+    <div class="lvl-row lvl-t3"><span class="lvl-name">EMA50</span><span class="lvl-px">709.51</span><span class="lvl-pct">-0.8%</span></div>
+    <div class="lvl-row lvl-t3"><span class="lvl-name">0.618</span><span class="lvl-px">704.45</span><span class="lvl-pct">-1.5%</span></div>
+  </div>
+  </details>
+</div>
+  </details>
 </div>
 </div>
 <details class="block operator-zone" id="details-history">
@@ -114,53 +222,109 @@
 <div class="block" id="spy-observation">
   <h2>SPY SESSION OBSERVATION</h2>
   <div class="kv-grid">
-    <div class="label">SESSION</div><div class="value">2026-08-30</div>
-    <div class="label">STATE</div><div class="value" data-raw-state="UNAVAILABLE">Session data unavailable — intraday data fetch failed</div>
-    <div class="label">OBSERVED AT</div><div class="value" data-observed-at-utc="">Update time unavailable</div>
-    <div class="label">SESSION VWAP</div><div class="value">UNAVAILABLE</div>
-    <div class="label">PRICE</div><div class="value">unavailable</div>
-    <div class="label">ORB</div><div class="value">Opening range unavailable</div>
+    <div class="label">SESSION</div><div class="value">2026-08-31</div>
+    <div class="label">STATE</div><div class="value" data-raw-state="OBSERVED">Session data observed</div>
+    <div class="label">OBSERVED AT</div><div class="value" data-observed-at-utc="2026-08-31T19:31:00+00:00">Aug 31 · 12:31 PM PT</div>
+    <div class="label">SESSION VWAP</div><div class="value">766.00</div>
+    <div class="label">PRICE</div><div class="value">766.41 (AT VWAP)</div>
+    <div class="label">ORB</div><div class="value"><span data-raw-state="FORMED">Opening range formed [765.79, 767.62]</span></div>
+  </div>
+</div>
+<div class="block" id="market-control-card">
+  <h2>MARKET CONTROL</h2>
+  <div class="kv-grid">
+    <div class="label">LOCATION</div><div class="value"><span data-raw-state="OBSERVED">Session data observed (at VWAP)</span></div>
+    <div class="label">STATE</div><div class="value"><span data-raw-value="FAILED_EXPANSION">Expansion failed</span></div>
+    <div class="label">EVENT</div><div class="value"><span data-raw-value="no_scheduled_events">No scheduled events in the next 48 hours</span></div>
+    <div class="label">TRANSITION</div><div class="value"><span data-raw-value="FAILED_EXPANSION">Expansion failed</span></div>
+    <div class="label">INVALIDATION</div><div class="value"><span data-raw-value="NO_ACTIVE_CANDIDATES">No active candidates</span></div>
+    <div class="label">CANDIDATE-IMPLICATION</div><div class="value"><span data-raw-value="NO_CANDIDATES">No candidates qualified this run</span></div>
   </div>
 </div>
 </section>
-<div class="block" id="sunday-macro-context" style="border-color:#29b6f6">
-  <h2>Sunday Macro Context — No Cash Session</h2>
-  <div class="row">
-    <div class="field"><div class="label">Posture</div><div class="value">NEUTRAL</div></div>
-    <div class="field"><div class="label">Dollar</div><div class="value">flat</div></div>
-    <div class="field"><div class="label">Rates</div><div class="value">rates rising</div></div>
-  </div>
-  <div class="row">
-    <div class="field"><div class="label">Volatility</div><div class="value">low volatility (VIX 17.9)</div></div>
-    <div class="field"><div class="label">Risk Sentiment</div><div class="value">flat</div></div>
-  </div>
-  <div class="field"><div class="label">Metals</div><div class="value">GLD: F (flat) | SLV: F (flat) | GDX: F (flat)</div></div>
-  <div class="field" style="margin-top:8px"><div class="label">Monday Context</div><div class="value">Current regime reference: NEUTRAL</div></div>
-</div>
 <div class="block" id="macro-tape">
   <h2>Macro Tape</h2>
   <div class="macro-bias mixed">MACRO BIAS: MIXED</div>
   <div class="macro-tally">Risk votes: 2 off / 2 on → MIXED</div>
-  <div class="macro-pressure-line">• VIX permits longs<br>• DXY pressures longs<br>• BTC supports risk-on</div>
-  <div class="macro-spot-metals-row"><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">GC&nbsp; ↑</span><span class="macro-tape-value" data-symbol="XAU">4707.0</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">SI&nbsp; ↑</span><span class="macro-tape-value" data-symbol="XAG">87.81</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">BTC ↑</span><span class="macro-tape-value" data-symbol="BTC">80.6K</span></span></div>
-  <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">VIX ↓</span><span class="macro-tape-value" data-symbol="VIX">17.9</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">DXY ↑</span><span class="macro-tape-value" data-symbol="DXY">98.5</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">10Y ↑</span><span class="macro-tape-value" data-symbol="10Y">4.46</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">OIL ↑</span><span class="macro-tape-value" data-symbol="OIL">102.2</span></span></div>
+  <div class="macro-pressure-line">• VIX blocks longs<br>• DXY supports risk-on<br>• BTC supports risk-on</div>
+  <div class="macro-spot-metals-row"><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">GC&nbsp; ↑</span><span class="macro-tape-value" data-symbol="XAU">4483.2</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">SI&nbsp; ↑</span><span class="macro-tape-value" data-symbol="XAG">66.93</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">BTC ↑</span><span class="macro-tape-value" data-symbol="BTC">79.1K</span></span></div>
+  <div class="macro-drivers-row"><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">VIX ↑</span><span class="macro-tape-value" data-symbol="VIX">15.0</span></span><span class="macro-tape-slot tape-slot down"><span class="macro-tape-label">DXY ↓</span><span class="macro-tape-value" data-symbol="DXY">99.4</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">10Y ↑</span><span class="macro-tape-value" data-symbol="10Y">4.76</span></span><span class="macro-tape-slot tape-slot up"><span class="macro-tape-label">OIL ↑</span><span class="macro-tape-value" data-symbol="OIL">85.8</span></span></div>
   <div class="sep"></div>
   <div class="macro-tradables-grid">
-    <span class="tradable-cell"><span class="macro-tape-label">SPY</span>&nbsp;<span class="macro-tape-value" data-symbol="SPY">769.35</span></span>
-    <span class="tradable-cell"><span class="macro-tape-label">QQQ</span>&nbsp;<span class="macro-tape-value" data-symbol="QQQ">716.43</span></span>
-    <span class="tradable-cell"><span class="macro-tape-label">GLD</span>&nbsp;<span class="macro-tape-value" data-symbol="GLD">408.89</span></span>
-    <span class="tradable-cell"><span class="macro-tape-label">GDX</span>&nbsp;<span class="macro-tape-value" data-symbol="GDX">99.65</span></span>
-    <span class="tradable-cell"><span class="macro-tape-label">SLV</span>&nbsp;<span class="macro-tape-value" data-symbol="SLV">60.02</span></span>
-    <span class="tradable-cell"><span class="macro-tape-label">XLE</span>&nbsp;<span class="macro-tape-value" data-symbol="XLE">62.68</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">SPY</span>&nbsp;<span class="macro-tape-value" data-symbol="SPY">766.39</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">QQQ</span>&nbsp;<span class="macro-tape-value" data-symbol="QQQ">715.26</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">GLD</span>&nbsp;<span class="macro-tape-value" data-symbol="GLD">407.26</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">GDX</span>&nbsp;<span class="macro-tape-value" data-symbol="GDX">98.49</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">SLV</span>&nbsp;<span class="macro-tape-value" data-symbol="SLV">60.03</span></span>
+    <span class="tradable-cell"><span class="macro-tape-label">XLE</span>&nbsp;<span class="macro-tape-value" data-symbol="XLE">63.81</span></span>
   </div>
 </div>
 <div class="block" id="trend-structure">
   <h2>Trend Structure</h2>
-  <div class="tape-no-data">SESSION INACTIVE</div>
+  <table class="ts-table" style="width:100%;border-collapse:collapse;font-size:0.78rem;display:block;overflow-x:auto">
+    <thead><tr style="text-align:left;color:#888">
+      <th style="padding:2px 8px">Symbol</th>
+      <th style="padding:2px 8px">Price</th>
+      <th style="padding:2px 8px">Alignment</th>
+      <th style="padding:2px 8px">RVOL</th>
+      <th style="padding:2px 8px">SMA 50/200</th>
+      <th style="padding:2px 8px">Intraday</th>
+    </tr></thead>
+    <tbody>
+      <tr>
+        <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">SPY</td>
+        <td data-label="Price" class="ts-px-up" style="padding:2px 8px;white-space:nowrap">766.39</td>
+        <td data-label="Alignment" class="ts-align" style="padding:2px 8px;white-space:nowrap">BULL</td>
+        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.46</td>
+        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↑ 50 ↑ 200</td>
+        <td data-label="Intraday" class="ts-intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
+      </tr>
+      <tr>
+        <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">QQQ</td>
+        <td data-label="Price" class="ts-px-up" style="padding:2px 8px;white-space:nowrap">715.26</td>
+        <td data-label="Alignment" class="ts-align" style="padding:2px 8px;white-space:nowrap">BULL</td>
+        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">1.00</td>
+        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↑ 50 ↑ 200</td>
+        <td data-label="Intraday" class="ts-intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
+      </tr>
+      <tr>
+        <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">GDX</td>
+        <td data-label="Price" class="ts-px-up" style="padding:2px 8px;white-space:nowrap">98.49</td>
+        <td data-label="Alignment" class="ts-align" style="padding:2px 8px;white-space:nowrap">BULL</td>
+        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.50</td>
+        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↑ 50 ↑ 200</td>
+        <td data-label="Intraday" class="ts-intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
+      </tr>
+      <tr>
+        <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">GLD</td>
+        <td data-label="Price" style="padding:2px 8px;white-space:nowrap">407.26</td>
+        <td data-label="Alignment" class="ts-align" style="padding:2px 8px;white-space:nowrap">MIX</td>
+        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">2.32</td>
+        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↑ 50 ↓ 200</td>
+        <td data-label="Intraday" class="ts-intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
+      </tr>
+      <tr>
+        <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">SLV</td>
+        <td data-label="Price" style="padding:2px 8px;white-space:nowrap">60.03</td>
+        <td data-label="Alignment" class="ts-align" style="padding:2px 8px;white-space:nowrap">MIX</td>
+        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.75</td>
+        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↑ 50 ↓ 200</td>
+        <td data-label="Intraday" class="ts-intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
+      </tr>
+      <tr>
+        <td data-label="Symbol" style="padding:2px 8px;white-space:nowrap">XLE</td>
+        <td data-label="Price" class="ts-px-up" style="padding:2px 8px;white-space:nowrap">63.81</td>
+        <td data-label="Alignment" class="ts-align" style="padding:2px 8px;white-space:nowrap">BULL</td>
+        <td data-label="RVOL" style="padding:2px 8px;white-space:nowrap">0.79</td>
+        <td data-label="SMA 50/200" style="padding:2px 8px;white-space:nowrap">↑ 50 ↑ 200</td>
+        <td data-label="Intraday" class="ts-intraday" style="padding:2px 8px;white-space:nowrap">VWAP N/A</td>
+      </tr>
+    </tbody>
+  </table>
 </div>
 <div class="block" id="run-delta">
   <h2>Changes Since Last Run</h2>
-  <div class="value">Regime: RISK_OFF -&gt; NEUTRAL</div>
+  <div class="value">No changes since last run</div>
 </div>
 <div class="block" id="scoreboard">
   <h2>Scoreboard</h2>
