@@ -120,3 +120,40 @@ def test_runtime_observe_only_reaches_watchlist_not_decisions(monkeypatch, tmp_p
     assert "UCO" not in cap["validate_in"] and "GOOG" not in cap["validate_in"]
     # but they DID reach the watchlist sidecar mapping
     assert {"UCO", "GOOG"} <= cap["watchlist_in"]
+
+
+def test_intraday_producer_makes_no_live_card_fetch_at_success_seam(monkeypatch, tmp_path):  # PRD-323 R3/R12
+    # The A1-P intraday producer runs on the FULL-SUCCESS hourly seam (not only the
+    # HALT path). Under the conftest autouse default (no opt-in) it performs ZERO
+    # live card fetches. Record at the deeper fetcher and filter by the card
+    # signature (timeout_seconds=25) so the daily :1250 SPY fetch is not
+    # miscounted; do NOT override the autouse _fetch_intraday_card_bars default —
+    # removing that default must turn this red.
+    from datetime import date
+    from cuttingboard.notifications import NOTIFY_HOURLY
+    from cuttingboard.runtime import MODE_LIVE, SUMMARY_STATUS_SUCCESS, _execute_notify_run
+    from tests.test_hourly_alert import _regime, _router_state, _setup_tmp_artifacts, _validation
+
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
+    monkeypatch.setattr(runtime, "INTRADAY_BARS_PATH", tmp_path / "logs" / "intraday_bars_snapshot.json")
+    recorded: list = []
+    monkeypatch.setattr(runtime, "fetch_all", lambda: {})
+    monkeypatch.setattr(runtime, "normalize_all", lambda raw: {})
+    monkeypatch.setattr(runtime, "extract_fetch_failures", lambda raw: {})
+    monkeypatch.setattr(runtime, "validate_quotes", lambda nq, *a, **k: _validation())
+    monkeypatch.setattr(runtime, "compute_regime",
+                        lambda *a, **k: _regime(posture="STAY_FLAT", regime="NEUTRAL"))
+    monkeypatch.setattr(runtime, "compute_all_derived", lambda *a, **k: {})
+    monkeypatch.setattr(runtime, "resolve_sector_router", lambda *a, **k: _router_state())
+    monkeypatch.setattr(runtime, "send_notification", lambda *a, **k: True)
+    monkeypatch.setattr(runtime, "fetch_intraday_session_bars",
+                        lambda symbol, **kwargs: recorded.append(kwargs) or None)
+
+    result = _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    assert result["status"] == SUMMARY_STATUS_SUCCESS
+    # The daily SPY session fetch is in _run_pipeline, not this _execute_notify_run
+    # path, so the card fetch is the only reachable fetch_intraday_session_bars
+    # caller: assert the COMPLETE recorded list is empty (a parallel unguarded
+    # fetch reddens). Do not override the autouse default (removing it reddens).
+    assert recorded == []  # zero intraday fetches of any kind at the seam (R3/R12)

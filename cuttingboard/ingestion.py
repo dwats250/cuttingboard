@@ -197,6 +197,8 @@ def fetch_intraday_bars(
     *,
     retain_opening_range: bool = False,
     retain_full_session: bool = False,
+    timeout_seconds: Optional[float] = None,
+    retries: Optional[int] = None,
 ) -> Optional[pd.DataFrame]:
     """Fetch the current regular session's 1-minute bars from yfinance.
 
@@ -209,6 +211,15 @@ def fetch_intraday_bars(
     09:30-16:00 ET regular session is returned with NO ``tail`` truncation
     (PRD-288 session VWAP) — this path sets its own 16:00 bound and must not
     inherit the default 15:30 bound. Failure is per-symbol and returns None.
+
+    ``timeout_seconds`` and ``retries`` are append-only overrides (PRD-323 R11,
+    A1-P best-effort acquisition budget). Both default to ``None`` = current
+    behavior: ``retries`` falls back to ``config.FETCH_RETRIES`` and no explicit
+    ``timeout`` is passed to ``yf.download`` (yfinance keeps its own default). A
+    caller passing ``timeout_seconds`` supplies a best-effort per-socket-operation
+    timeout to ``yf.download`` (NOT an OS-level hard kill); ``retries=1`` yields a
+    single attempt with no backoff. Existing callers pass neither, so their
+    fetch behavior is byte-for-byte unchanged.
     """
     if _is_live_data_blocked():
         raise RuntimeError("LIVE_DATA_FORBIDDEN_IN_SUNDAY_MODE")
@@ -221,6 +232,9 @@ def fetch_intraday_bars(
             progress=False,
             prepost=False,
             multi_level_index=False,
+            # PRD-323 R11: pass timeout ONLY when overridden, so existing
+            # callers' yf.download call is byte-for-byte unchanged.
+            **({"timeout": timeout_seconds} if timeout_seconds is not None else {}),
         )
         if df.empty:
             raise ValueError("yfinance returned empty intraday DataFrame")
@@ -249,8 +263,11 @@ def fetch_intraday_bars(
         frame.index = frame.index.tz_convert("UTC")
         return frame.tail(MAX_INTRADAY_RETURN_BARS)
 
+    # PRD-323 R11: `retries` defaults to config.FETCH_RETRIES (existing
+    # behavior). A1-P passes retries=1 => a single attempt with no backoff.
+    effective_retries = config.FETCH_RETRIES if retries is None else retries
     last_error: Optional[str] = None
-    for attempt in range(config.FETCH_RETRIES):
+    for attempt in range(effective_retries):
         try:
             df = _run_with_timeout(_do_download, config.FETCH_TIMEOUT_SECONDS * 3)
             logger.info("%s: intraday fetched %d bars from yfinance", symbol, len(df))
@@ -261,10 +278,10 @@ def fetch_intraday_bars(
                 "%s: intraday attempt %d/%d failed: %s",
                 symbol,
                 attempt + 1,
-                config.FETCH_RETRIES,
+                effective_retries,
                 exc,
             )
-            if attempt < config.FETCH_RETRIES - 1:
+            if attempt < effective_retries - 1:
                 time.sleep(config.FETCH_BACKOFF_SECONDS)
 
     logger.info("%s: intraday unavailable for WATCH — %s", symbol, last_error)
@@ -278,12 +295,25 @@ def fetch_intraday_orb_bars(symbol: str) -> Optional[pd.DataFrame]:
     return fetch_intraday_bars(symbol, retain_opening_range=True)
 
 
-def fetch_intraday_session_bars(symbol: str) -> Optional[pd.DataFrame]:
+def fetch_intraday_session_bars(
+    symbol: str,
+    *,
+    timeout_seconds: Optional[float] = None,
+    retries: Optional[int] = None,
+) -> Optional[pd.DataFrame]:
     """SPY session-VWAP producer's intraday fetch (PRD-288): the COMPLETE
     09:30-16:00 ET regular session, UTC-indexed, with no ``tail`` truncation.
     Scoping the full-session shape to this entry point keeps it off every
-    contiguous-window consumer and the WATCH ORB producer."""
-    return fetch_intraday_bars(symbol, retain_full_session=True)
+    contiguous-window consumer and the WATCH ORB producer.
+
+    ``timeout_seconds``/``retries`` are append-only pass-throughs (PRD-323 R11);
+    both default to None = existing behavior. Existing callers pass neither."""
+    return fetch_intraday_bars(
+        symbol,
+        retain_full_session=True,
+        timeout_seconds=timeout_seconds,
+        retries=retries,
+    )
 
 
 # ---------------------------------------------------------------------------

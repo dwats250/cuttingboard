@@ -52,6 +52,7 @@ ATTR_PATCH_SURFACE = [
     "LATEST_CONTRACT_PATH",
     "TREND_STRUCTURE_PATH",
     "PRICE_BARS_PATH",  # PRD-320 R1: redirected by the full-live harnesses.
+    "INTRADAY_BARS_PATH",  # PRD-323 R6: redirected by the intraday-sidecar harnesses.
     "fetch_all",
     "fetch_ohlcv",
     "send_notification",

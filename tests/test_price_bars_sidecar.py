@@ -405,3 +405,58 @@ def test_no_module_outside_the_writer_references_the_sidecar():
     assert not offenders, (
         f"PRD-320 R6: the price-bars sidecar has no reader until PRD-321; found {offenders}"
     )
+
+
+def test_intraday_producer_failure_does_not_disturb_price_bars_cowriter(tmp_path, monkeypatch):  # PRD-323 R9
+    # The A1-P intraday producer shares the hourly seam with the price-bars
+    # writer. Its failure is isolated (R7) and the co-seam price-bars sidecar is
+    # written normally (R9); the intraday producer raised before writing, so no
+    # intraday artifact exists.
+    from cuttingboard.notifications import NOTIFY_HOURLY
+
+    logs_dir = tmp_path / "logs"
+    monkeypatch.chdir(tmp_path)
+    for name, rel in {
+        "LOGS_DIR": logs_dir,
+        "REPORTS_DIR": tmp_path / "reports",
+        "LATEST_HOURLY_RUN_PATH": logs_dir / "latest_hourly_run.json",
+        "LATEST_HOURLY_CONTRACT_PATH": logs_dir / "latest_hourly_contract.json",
+        "LATEST_HOURLY_PAYLOAD_PATH": logs_dir / "latest_hourly_payload.json",
+        "HOURLY_REPORT_PATH": tmp_path / "reports" / "hourly_report.html",
+        "MARKET_MAP_PATH": logs_dir / "market_map.json",
+        "LATEST_HOURLY_MARKET_MAP_PATH": logs_dir / "latest_hourly_market_map.json",
+        "TREND_STRUCTURE_PATH": logs_dir / "trend_structure_snapshot.json",
+        "PRICE_BARS_PATH": logs_dir / "price_bars_snapshot.json",
+        "INTRADAY_BARS_PATH": logs_dir / "intraday_bars_snapshot.json",
+    }.items():
+        monkeypatch.setattr(runtime, name, rel)
+
+    monkeypatch.setattr(runtime, "_collect_trend_structure_history",
+                        lambda ohlcv: {"SPY": _frame(_sessions(5))})
+
+    def _boom(symbol):
+        raise RuntimeError("intraday down")
+
+    monkeypatch.setattr(runtime, "_fetch_intraday_card_bars", _boom)
+
+    validation = MagicMock(spec=runtime.ValidationSummary)
+    validation.system_halted = True
+    validation.halt_reason = "test halt"
+    validation.valid_quotes = {}
+    validation.symbols_validated = 0
+    validation.symbols_attempted = 0
+    with (
+        patch("cuttingboard.runtime.fetch_all", return_value={}),
+        patch("cuttingboard.runtime.normalize_all", return_value={}),
+        patch("cuttingboard.runtime.extract_fetch_failures", return_value={}),
+        patch("cuttingboard.runtime.validate_quotes", return_value=validation),
+        patch("cuttingboard.runtime.send_notification", return_value=True),
+    ):
+        result = runtime._execute_notify_run(
+            mode=runtime.MODE_LIVE, run_date=date(2026, 5, 12), notify_mode=NOTIFY_HOURLY
+        )
+
+    assert result["status"] == runtime.SUMMARY_STATUS_SUCCESS  # intraday failure isolated (R7)
+    price_bars = _read(logs_dir / "price_bars_snapshot.json")
+    assert price_bars["schema_version"] == 1 and "SPY" in price_bars["symbols"]  # co-seam intact (R9)
+    assert not (logs_dir / "intraday_bars_snapshot.json").exists()  # raised before writing

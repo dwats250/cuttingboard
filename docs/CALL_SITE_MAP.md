@@ -15,6 +15,16 @@ always current).
 | `cli_main` | Entry point; resolves command and runtime mode |
 | `_run_pipeline` | Orchestrates regime → qualification → output → artifacts |
 | `_resolve_effective_mode` | Handles live/sunday mode resolution |
+| `_fetch_intraday_card_bars` | PRD-323 A1-P: the DISTINCT, patchable card-fetch reference (SEPARATE from the daily :1250 SPY fetch) → `fetch_intraday_session_bars(sym, timeout_seconds=25, retries=1)`; conftest autouse defaults it to a no-op so the whole `_execute_notify_run` cone is network-free (R3/R12) |
+| `_intraday_symbol_bars` / `_write_intraday_bars_snapshot` | PRD-323 A1-P: whole-symbol validation (R4/R5) + atomic write of `logs/intraday_bars_snapshot.json` (`INTRADAY_BARS_PATH`, R6). Called only from the hourly seam inside the one R7 isolation boundary; no reader (A1-C lands the consumer) |
+
+---
+
+## cuttingboard/delivery/primary_selection.py (PRD-323 A1-P)
+
+| Function | Purpose |
+|---|---|
+| `select_primary_card_symbol` | Renderer-free shared leaf; picks the canonical primary-card symbol = the renderer's inline chart-slot winner (PARITY-LOCKED via the `tests/test_primary_selection.py` cross-check against the real `_render_candidate_card`). Imports ONLY stdlib + `setup_chart`; MUST NOT import `dashboard_renderer` (R1). `_TIER_DEFS`/`_GRADE_ORDER` are temporarily duplicated here; A1-C removes the duplication when it rewires the renderer to this leaf |
 
 ---
 

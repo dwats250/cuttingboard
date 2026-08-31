@@ -231,6 +231,12 @@ jobs:
           if [ -f logs/last_hourly_slot.json ]; then
             git add -f logs/last_hourly_slot.json
           fi
+          # PRD-323 R8 (A1-P): conditionally stage the run-local intraday sidecar
+          # when present; a missing artifact is a no-op (it is gitignored/untracked
+          # and absent from the restore list, so it never revives across runs).
+          if [ -f logs/intraday_bars_snapshot.json ]; then
+            git add -f logs/intraday_bars_snapshot.json
+          fi
           # PRD-194 per-file ownership: hourly stages only what it OWNS/regenerates.
           # The pipeline-owned snapshots (market_map.json, latest_run.json,
           # latest_contract.json, latest_payload.json, macro_drivers_snapshot.json) are
