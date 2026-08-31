@@ -18,6 +18,7 @@ import logging
 import math
 import subprocess
 import sys
+import time
 from contextlib import contextmanager
 from dataclasses import replace
 from datetime import date, datetime, timezone
@@ -55,6 +56,7 @@ from cuttingboard.intraday_state_engine import (
     compute_intraday_state,
 )
 from cuttingboard.market_map import build_market_map
+from cuttingboard.delivery.primary_selection import select_primary_card_symbol
 from cuttingboard.trend_structure import build_trend_structure_snapshot
 from cuttingboard.watchlist_sidecar import build_watchlist_snapshot
 from cuttingboard.trade_visibility import build_visibility_map
@@ -163,6 +165,7 @@ from cuttingboard.runtime._constants import (
     LATEST_HOURLY_MARKET_MAP_PATH as LATEST_HOURLY_MARKET_MAP_PATH,
     TREND_STRUCTURE_PATH as TREND_STRUCTURE_PATH,
     PRICE_BARS_PATH as PRICE_BARS_PATH,
+    INTRADAY_BARS_PATH as INTRADAY_BARS_PATH,
     WATCHLIST_PATH as WATCHLIST_PATH,
     DEFAULT_FIXTURE_DIR as DEFAULT_FIXTURE_DIR,
     VALID_REGIMES as VALID_REGIMES,
@@ -734,6 +737,9 @@ def _execute_notify_run(
                 operator_locked=operator_locked and not validation_summary.system_halted,
             )
             _write_hourly_artifacts(summary, contract)
+            # PRD-323: bind before the try so the A1-P producer below can always
+            # read it (None when build_market_map itself raised).
+            hourly_market_map: Optional[dict[str, Any]] = None
             try:
                 hourly_market_map = build_market_map(
                     generated_at=run_at_utc,
@@ -800,6 +806,60 @@ def _execute_notify_run(
                     normalized_quotes={**normalized_quotes, **_fetch_observe_only_quotes()},
                     generated_at=run_at_utc,
                 )
+
+            # PRD-323 (A1-P): run-local intraday 1m source-bar producer. ONE
+            # isolation boundary (R7): any raise here is logged and swallowed, so
+            # it can never reach the outer handler (:806) or fire the second
+            # (failure) notification (:815) — the primary notification is already
+            # sent (:693). Additive sidecar only: no decision/regime/qualification/
+            # notification effect (R10), and no reader yet (A1-C lands the
+            # consumer). Runs on every hourly seam pass, including HALT.
+            try:
+                # R5: current ET regular-session date, computed independently of
+                # any fetched frame (the spy_observation.py idiom).
+                intraday_session_date = time_utils.convert_utc_to_et(run_at_utc).date()
+                # R1/R2: canonical primary = the renderer's chart-slot winner via
+                # the parity-locked shared leaf. trend_history supplies the
+                # age-admitted daily bars (reusing _price_bars_rows, the same
+                # completed-bar shape the price-bars sidecar writes); RUNTIME
+                # input-source parity is deferred to A1-C, so integrator_skips is
+                # empty here.
+                _intraday_cutoff = time_utils.most_recent_completed_session_date(run_at_utc)
+                _intraday_leaf_bars = {
+                    _sym: (_rows, "")
+                    for _sym in trend_history
+                    if (_rows := _price_bars_rows(trend_history.get(_sym), _intraday_cutoff))
+                }
+                primary_symbol = select_primary_card_symbol(hourly_market_map, _intraday_leaf_bars, {})
+                # R2: exactly [primary, SPY] deduped, order-preserving. A null
+                # primary yields SPY alone.
+                _intraday_targets = list(dict.fromkeys(s for s in (primary_symbol, "SPY") if s))
+                # R11: best-effort acquisition budget. ONE attempt/symbol via the
+                # distinct patchable card-fetch ref (timeout_seconds=25, retries=1,
+                # no backoff). Elapsed is measured monotonically; a >60s COMPLETED
+                # block logs an explicit budget breach WITHOUT raising into the
+                # notification path or altering decisions.
+                _intraday_started = time.monotonic()
+                _intraday_frames: dict[str, Any] = {}
+                for _sym in _intraday_targets:
+                    _frame = _fetch_intraday_card_bars(_sym)
+                    if _frame is not None:
+                        _intraday_frames[_sym] = _frame
+                _intraday_elapsed = time.monotonic() - _intraday_started
+                if _intraday_elapsed > _INTRADAY_ACQUISITION_BUDGET_SECONDS:
+                    logger.warning(
+                        "A1-P intraday acquisition budget breach: %.2fs > %.0fs "
+                        "(best-effort budget, not a hard timeout)",
+                        _intraday_elapsed, _INTRADAY_ACQUISITION_BUDGET_SECONDS,
+                    )
+                _write_intraday_bars_snapshot(
+                    frames_by_symbol=_intraday_frames,
+                    primary_symbol=primary_symbol,
+                    generated_at=run_at_utc,
+                    session_date=intraday_session_date,
+                )
+            except Exception:
+                logger.exception("A1-P intraday producer failed")
 
         return {"status": SUMMARY_STATUS_SUCCESS, "suppressed": False}
 
@@ -2594,6 +2654,113 @@ def _write_price_bars_snapshot(
         tmp.replace(PRICE_BARS_PATH)
     except Exception:
         logger.exception("Failed to write price_bars_snapshot")
+
+
+# --- PRD-323 (A1-P): intraday 1-minute source-bar producer ------------------
+_INTRADAY_ACQUISITION_BUDGET_SECONDS = 60.0
+_INTRADAY_OHLCV_COLUMNS = ("Open", "High", "Low", "Close", "Volume")
+
+
+def _fetch_intraday_card_bars(symbol: str) -> Optional[pd.DataFrame]:
+    """PRD-323 R3/R11: the A1-P card fetch as a DISTINCT module-level reference,
+    SEPARATE from the daily SPY session fetch at the :1250 seam, so the whole
+    ``_execute_notify_run`` test cone can default it to a no-op via the conftest
+    autouse fixture (R12) without touching the daily fetch. Single attempt,
+    best-effort ``timeout_seconds=25``, no retry/backoff (R11)."""
+    return fetch_intraday_session_bars(symbol, timeout_seconds=25, retries=1)
+
+
+def _intraday_symbol_bars(
+    df: Optional[pd.DataFrame], session_date: date
+) -> Optional[list[list[Any]]]:
+    """PRD-323 R4/R5: strictly-validated 1m bar rows for ONE symbol, or ``None``
+    => the WHOLE symbol is omitted (never partially written). A row is
+    ``[ts_iso, Open, High, Low, Close, Volume]``. Rejects a naive/unordered
+    index, a wrong column set, a malformed/partial row, incoherent OHLCV, or any
+    bar whose ET session date differs from ``session_date`` (R5, computed
+    independently of the frame)."""
+    if df is None or getattr(df, "empty", True):
+        return None
+    if not set(_INTRADAY_OHLCV_COLUMNS).issubset(set(df.columns)):
+        return None
+    try:
+        index = pd.to_datetime(df.index)
+    except Exception:
+        return None
+    # R4: timestamps timezone-aware and strictly ascending (monotonic, unique).
+    if getattr(index, "tz", None) is None:
+        return None
+    if not index.is_monotonic_increasing or index.has_duplicates:
+        return None
+    rows: list[list[Any]] = []
+    for position, timestamp in enumerate(index):
+        # R5: current-session-only, checked against the frame-independent date.
+        if time_utils.convert_utc_to_et(timestamp).date() != session_date:
+            return None
+        values = [df.iloc[position][column] for column in _INTRADAY_OHLCV_COLUMNS]
+        if any(pd.isna(value) for value in values):
+            return None
+        try:
+            o, h, low, c, v = (float(value) for value in values)
+        except Exception:
+            return None
+        # Finiteness on the CONVERTED floats: +/-Infinity passes pd.isna/float()
+        # but is not JSON-representable (mirrors the price-bars writer).
+        if not all(math.isfinite(x) for x in (o, h, low, c, v)):
+            return None
+        # R4: positive prices, non-negative volume, coherent OHLCV.
+        if o <= 0 or h <= 0 or low <= 0 or c <= 0 or v < 0:
+            return None
+        if h < max(o, c) or low > min(o, c):
+            return None
+        rows.append([timestamp.isoformat(), o, h, low, c, int(v)])
+    if not rows:
+        return None
+    return rows
+
+
+def _write_intraday_bars_snapshot(
+    *,
+    frames_by_symbol: dict[str, pd.DataFrame],
+    primary_symbol: Optional[str],
+    generated_at: datetime,
+    session_date: date,
+) -> None:
+    """PRD-323 (A1-P): serialize strictly-validated current-session 1m source
+    bars for the acquired symbols to the versioned, run-local sidecar (R6).
+    Whole-symbol omission on any validation failure (R4/R5). No reader (A1-C
+    lands the consumer). This writer carries NO try/except of its own: the single
+    R7 isolation boundary at the call site wraps the fetch, selection, and this
+    serialization together."""
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    symbols: dict[str, Any] = {}
+    for symbol in sorted(frames_by_symbol):
+        bars = _intraday_symbol_bars(frames_by_symbol.get(symbol), session_date)
+        if bars:
+            symbols[symbol] = {
+                "through": bars[-1][0],
+                "row_count": len(bars),
+                "bars": bars,
+            }
+    snapshot = {
+        "schema_version": 1,
+        # R6: timezone-aware UTC, honest provenance.
+        "generated_at": generated_at.astimezone(timezone.utc).isoformat(),
+        "session_date": session_date.isoformat(),
+        "primary_symbol": primary_symbol,
+        "source": {
+            "producer": "hourly",
+            "provider": "yfinance",
+            "interval": "1m",
+            "adjusted": False,
+        },
+        "columns": ["ts", "Open", "High", "Low", "Close", "Volume"],
+        "symbols": symbols,
+    }
+    # Distinct tmp stem from the other seam writers (all run in the same second).
+    tmp = INTRADAY_BARS_PATH.with_suffix(".intraday.tmp")
+    tmp.write_text(json.dumps(snapshot, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    tmp.replace(INTRADAY_BARS_PATH)
 
 
 def _refresh_trend_structure_sidecar(

@@ -173,6 +173,43 @@ co-produced fresh state, never revived.
 
 ---
 
+## intraday_bars_snapshot (logs/intraday_bars_snapshot.json)
+
+Producer `cuttingboard/runtime/__init__.py:_write_intraday_bars_snapshot` (path
+constant `INTRADAY_BARS_PATH`), written at the HOURLY seam only (PRD-323 A1-P,
+the producer half). It acquires strictly-validated CURRENT-session 1-minute
+source bars for exactly the canonical primary-card symbol + SPY (deduped) via the
+injectable, best-effort card fetch `_fetch_intraday_card_bars`
+(`fetch_intraday_session_bars`, one attempt, `timeout_seconds=25`, no retry/backoff
+— R11). The canonical primary is the renderer's chart-slot winner, selected by the
+parity-locked leaf
+`cuttingboard/delivery/primary_selection.select_primary_card_symbol` (R1). NO
+READER yet — the consumer (A1-C) is a later PRD; no decision effect (R10); one
+isolation boundary (R7).
+
+| Field path | Type | Notes |
+|---|---|---|
+| `schema_version` | int | `1` |
+| `generated_at` | ISO-8601 tz-aware UTC | the run's `run_at_utc`, never in the future (R6) |
+| `session_date` | `YYYY-MM-DD` | the CURRENT ET regular-session date, computed independently of the frame (R5) |
+| `primary_symbol` | string \| null | the canonical primary (R1) or `null` when no chartable primary exists |
+| `source.producer` | string | `"hourly"` |
+| `source.provider` | string | `"yfinance"` |
+| `source.interval` | string | `"1m"` |
+| `source.adjusted` | bool | `false` |
+| `columns` | list[string] | exactly `["ts","Open","High","Low","Close","Volume"]` |
+| `symbols` | dict | subset of `[primary_symbol, "SPY"]`; a symbol failing whole-symbol validation (R4) or not the current session (R5) is OMITTED (never partial) |
+| `symbols[S].through` | ISO-8601 tz-aware | ts of the LAST written bar (== `bars[-1][0]`) |
+| `symbols[S].row_count` | int | `len(bars)` |
+| `symbols[S].bars` | list[list] | rows `[ts_iso, open, high, low, close, volume]`; ts tz-aware, strictly ascending, unique; OHLC float coherent (High>=max(O,C), Low<=min(O,C), positive), volume int >=0 |
+
+RUN-LOCAL, ADDITIVE: the artifact is gitignored; the hourly workflow CONDITIONALLY
+force-adds it (present => staged; missing => no-op) and NO workflow restores it
+from `publish` (R8). Best-effort acquisition budget — a completed block exceeding
+60s logs an explicit breach and continues; NOT a hard-kill guarantee (R11).
+
+---
+
 ## MARKET STATE panel (PRD-312) — introduces NO new schema
 
 `cuttingboard/delivery/market_state_panel.py` is a display-only five-axis panel

@@ -30,6 +30,7 @@ defaults differ.
 - `logs/macro_drivers_snapshot.json`
 - `logs/trend_structure_snapshot.json`
 - `logs/watchlist_snapshot.json`
+- `logs/intraday_bars_snapshot.json`
 - `logs/audit.jsonl`
 - `logs/evaluation.jsonl`
 - `logs/performance_summary.json`
@@ -135,6 +136,24 @@ defaults differ.
   never a "12/12" overclaim), not the raw artifact.
 - **Category:** Sidecar; not runtime-critical for decisions
 - **Test isolation:** monkeypatch `runtime.WATCHLIST_PATH` and `runtime.LOGS_DIR` to `tmp_path`
+
+### logs/intraday_bars_snapshot.json
+- **Writer:** `runtime.py:_write_intraday_bars_snapshot` (PRD-323 A1-P, producer half),
+  hourly seam only. Acquires strictly-validated current-session 1m source bars for the
+  canonical primary-card symbol + SPY (deduped) via the injectable best-effort card fetch
+  `_fetch_intraday_card_bars` (one attempt, `timeout_seconds=25`, no retry — R11); the
+  canonical primary is the renderer's chart-slot winner via the parity-locked leaf
+  `delivery/primary_selection.select_primary_card_symbol` (R1).
+- **Constant:** `runtime.INTRADAY_BARS_PATH` (= `LOGS_DIR / "intraday_bars_snapshot.json"`)
+- **Schema (PRD-323):** `schema_version: 1`; `session_date` (current ET session, R5);
+  `primary_symbol` (or null); `source {producer:"hourly", provider:"yfinance", interval:"1m",
+  adjusted:false}`; `columns ["ts","Open","High","Low","Close","Volume"]`; `symbols` a map of
+  `{through, row_count, bars}` with whole-symbol validation (R4/R5). See `docs/SCHEMA_MAP.md`.
+- **Consumers:** NONE yet — the reader/renderer (A1-C) is a later PRD. No decision effect (R10),
+  one isolation boundary (R7).
+- **Category:** Run-local additive sidecar; gitignored; hourly CONDITIONALLY force-adds it
+  (present => staged; missing => no-op), NO workflow restores it from `publish` (R8).
+- **Test isolation:** monkeypatch `runtime.INTRADAY_BARS_PATH` and `runtime.LOGS_DIR` to `tmp_path`
 
 ### logs/macro_drivers_snapshot.json
 - **Writer:** `runtime.py:_write_macro_snapshot`; path constructed as `LOGS_DIR / "macro_drivers_snapshot.json"`

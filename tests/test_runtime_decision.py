@@ -1645,6 +1645,34 @@ def test_prd305_available_hourly_contract_not_locked(monkeypatch, tmp_path):
     assert captured["contract"]["system_state"].get("permission") != _LOCK_PERMISSION
 
 
+def test_intraday_producer_has_no_decision_or_contract_effect(monkeypatch, tmp_path):  # PRD-323 R10
+    # The A1-P intraday producer runs on the hourly seam AFTER the decision
+    # contract/summary are built and is isolated (R7). The persisted hourly
+    # contract's decision surface and the analytical count are identical whether
+    # the intraday card fetch yields omission or RAISES — zero decision effect.
+    monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "AVAILABLE")
+
+    def _capture(card_fetch):
+        cap = _setup_hourly_mocks(monkeypatch, tmp_path)
+        # _setup_hourly_mocks does not chdir (MODE_FIXTURE reads fixtures relative
+        # to the repo) and does not redirect these seam-written sidecar paths, so
+        # point them at tmp to keep the real tracked logs/ clean.
+        for _name in ("INTRADAY_BARS_PATH", "TREND_STRUCTURE_PATH", "WATCHLIST_PATH",
+                      "LATEST_HOURLY_MARKET_MAP_PATH"):
+            monkeypatch.setattr(runtime, _name, tmp_path / "logs" / f"{_name.lower()}.json")
+        monkeypatch.setattr(runtime, "_fetch_intraday_card_bars", card_fetch)
+        runtime._execute_notify_run(runtime.MODE_FIXTURE, date.fromisoformat("2026-04-28"), NOTIFY_HOURLY)
+        return cap["contract"]["system_state"], cap["summary"]["candidates_qualified"]
+
+    def _boom(symbol):
+        raise RuntimeError("intraday down")
+
+    state_omit, count_omit = _capture(lambda symbol: None)
+    state_raise, count_raise = _capture(_boom)
+    assert state_omit == state_raise  # decision surface identical (R10)
+    assert count_omit == count_raise == 1  # analytical count unaffected
+
+
 # ---------------------------------------------------------------------------
 # PRD-305 R2 — the daily lock NOTIFICATION (build_notification_message ->
 # _build_operator_lock_message) strips directional posture/confidence and uses

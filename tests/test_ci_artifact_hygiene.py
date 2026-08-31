@@ -36,6 +36,7 @@ HOURLY_REQUIRED_STAGED_ARTIFACTS = (
     "logs/latest_hourly_market_map.json",
     "logs/trend_structure_snapshot.json",
     "logs/price_bars_snapshot.json",
+    "logs/intraday_bars_snapshot.json",
     "logs/latest_hourly_run.json",
     "logs/latest_hourly_contract.json",
     "logs/latest_hourly_payload.json",
@@ -872,6 +873,28 @@ def test_price_bars_staged_by_hourly_never_restored() -> None:  # PRD-320 R5
             if "ci_restore_publish_state.sh" in line:
                 assert "price_bars" not in line, (
                     f"{workflow} restores the price-bars sidecar; PRD-320 R5 forbids it."
+                )
+
+
+def test_intraday_bars_staged_by_hourly_never_restored() -> None:  # PRD-323 R8
+    # The intraday sidecar is run-local co-produced state: the hourly job
+    # CONDITIONALLY force-adds it (present => staged; missing => no-op, since it is
+    # gitignored/untracked), and NO workflow restores it — a restored copy would
+    # be stale 1m bars silently republished on a run whose producer was omitted.
+    hourly = _workflow_text("hourly_alert.yml")
+    commit = hourly[
+        hourly.index("- name: Commit hourly artifacts"):hourly.index("- name: Push hourly artifacts")
+    ]
+    assert "logs/intraday_bars_snapshot.json" in commit[commit.index("git add"):], (
+        "the hourly commit step must conditionally force-add "
+        "logs/intraday_bars_snapshot.json (PRD-323 R8)."
+    )
+    for workflow in ("hourly_alert.yml", "cuttingboard.yml"):
+        text = _workflow_text(workflow)
+        for line in text.splitlines():
+            if "ci_restore_publish_state.sh" in line:
+                assert "intraday_bars" not in line, (
+                    f"{workflow} restores the intraday sidecar; PRD-323 R8 forbids it."
                 )
 
 

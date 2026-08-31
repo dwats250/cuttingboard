@@ -138,3 +138,28 @@ def _isolate_real_log_paths(monkeypatch, tmp_path):
 
     monkeypatch.setattr(_transport, "deliver_json", _safe_deliver_json)
     monkeypatch.setattr(_transport, "deliver_html", _safe_deliver_html)
+
+
+@pytest.fixture(autouse=True)
+def _default_intraday_card_fetch_omission(monkeypatch):
+    """PRD-323 R3/R12: default A1-P's intraday card fetch to a no-op (whole-symbol
+    omission) suite-wide, so every ``_execute_notify_run`` seam run is network-free
+    unless a test explicitly opts in.
+
+    A1-P's card fetch is UNCONDITIONAL — every hourly success-path seam run reaches
+    it (unlike the SHORT-only legacy intraday fetch) — so without this default the
+    whole seam test cone would attempt a live yfinance download. This patches the
+    DISTINCT module-level reference ``cuttingboard.runtime._fetch_intraday_card_bars``
+    (the A1-P card fetch only); the daily SPY session fetch at the runtime :1250
+    seam calls ``fetch_intraday_session_bars`` directly and is untouched by this
+    fixture. Analogous to ``_isolate_real_log_paths``: a safe default that a
+    specific test overrides (last-setattr-wins) by monkeypatching the same name to
+    a stub returning frames.
+    """
+    import cuttingboard.runtime as _runtime
+    # raising=False: the PRD-264 import-hardening probe runs the working-tree test
+    # suite against a `git archive HEAD` copy of the package that can predate this
+    # attribute; setting it there is harmless (that runtime never calls it). A
+    # misnamed target still surfaces — the seam would hit the real fetch and the
+    # R12 network-guard test would go red.
+    monkeypatch.setattr(_runtime, "_fetch_intraday_card_bars", lambda symbol: None, raising=False)

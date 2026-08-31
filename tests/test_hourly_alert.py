@@ -1719,3 +1719,34 @@ def _stub_observe_only_fetch(monkeypatch):
     # PRD-311: the hourly watchlist-write seam now fetches observe-only symbols
     # (UCO/GOOG). Stub it so hourly-path tests stay deterministic and network-free.
     monkeypatch.setattr("cuttingboard.runtime._fetch_observe_only_quotes", lambda: {})
+
+
+def test_intraday_sidecar_written_at_success_seam_with_card_omission(tmp_path, monkeypatch):
+    # PRD-323 R3/R6: the A1-P producer runs on the FULL-SUCCESS hourly seam and
+    # writes the versioned sidecar. Under the conftest autouse default (no opt-in)
+    # the card fetch is a no-op, so the artifact records card omission: an empty
+    # symbols map and a null primary_symbol, with the honest schema.
+    import json
+    import cuttingboard.runtime as runtime
+
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
+    intraday_path = tmp_path / "logs" / "intraday_bars_snapshot.json"
+    monkeypatch.setattr(runtime, "INTRADAY_BARS_PATH", intraday_path)
+    monkeypatch.setattr(runtime, "fetch_all", lambda: {})
+    monkeypatch.setattr(runtime, "normalize_all", lambda raw: {})
+    monkeypatch.setattr(runtime, "extract_fetch_failures", lambda raw: {})
+    monkeypatch.setattr(runtime, "validate_quotes", lambda nq, *a, **k: _validation())
+    monkeypatch.setattr(runtime, "compute_regime",
+                        lambda *a, **k: _regime(posture="STAY_FLAT", regime="NEUTRAL"))
+    monkeypatch.setattr(runtime, "compute_all_derived", lambda *a, **k: {})
+    monkeypatch.setattr(runtime, "resolve_sector_router", lambda *a, **k: _router_state())
+    monkeypatch.setattr(runtime, "send_notification", lambda *a, **k: True)
+
+    result = _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+
+    assert result["status"] == SUMMARY_STATUS_SUCCESS
+    data = json.loads(intraday_path.read_text(encoding="utf-8"))
+    assert data["schema_version"] == 1
+    assert data["primary_symbol"] is None  # no chartable primary in the empty harness
+    assert data["symbols"] == {}  # card omission by default (R3)
+    assert data["source"]["interval"] == "1m" and data["source"]["adjusted"] is False
