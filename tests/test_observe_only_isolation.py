@@ -152,4 +152,8 @@ def test_intraday_producer_makes_no_live_card_fetch_at_success_seam(monkeypatch,
     result = _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
 
     assert result["status"] == SUMMARY_STATUS_SUCCESS
-    assert [kw for kw in recorded if kw.get("timeout_seconds") == 25] == []  # zero live card fetches
+    # The daily SPY session fetch is in _run_pipeline, not this _execute_notify_run
+    # path, so the card fetch is the only reachable fetch_intraday_session_bars
+    # caller: assert the COMPLETE recorded list is empty (a parallel unguarded
+    # fetch reddens). Do not override the autouse default (removing it reddens).
+    assert recorded == []  # zero intraday fetches of any kind at the seam (R3/R12)

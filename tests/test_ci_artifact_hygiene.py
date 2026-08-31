@@ -889,6 +889,22 @@ def test_intraday_bars_staged_by_hourly_never_restored() -> None:  # PRD-323 R8
         "the hourly commit step must conditionally force-add "
         "logs/intraday_bars_snapshot.json (PRD-323 R8)."
     )
+    # R8 structural guard: staging MUST be conditional (present => staged; MISSING
+    # => no-op, since the artifact is gitignored/untracked). Require the exact
+    # `if [ -f ... ]; then ... fi` block guarding the force-add. A mutation to an
+    # UNCONDITIONAL `git add -f logs/intraday_bars_snapshot.json` drops the guard
+    # line and reddens here (an unconditional add would fail publish on absence).
+    guard = "if [ -f logs/intraday_bars_snapshot.json ]; then"
+    assert guard in commit, (
+        "the intraday force-add must be wrapped in "
+        f"`{guard} ... fi` (PRD-323 R8); an unconditional add breaks publish when "
+        "the artifact is absent."
+    )
+    guard_idx = commit.index(guard)
+    guarded_tail = commit[guard_idx:]
+    add_idx = guarded_tail.index("git add -f logs/intraday_bars_snapshot.json")
+    fi_idx = guarded_tail.index("\n          fi")
+    assert add_idx < fi_idx, "the intraday force-add must sit INSIDE the `if [ -f ... ]; then ... fi` block (R8)."
     for workflow in ("hourly_alert.yml", "cuttingboard.yml"):
         text = _workflow_text(workflow)
         for line in text.splitlines():

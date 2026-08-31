@@ -24,6 +24,11 @@ from cuttingboard.runtime import MODE_LIVE, _execute_notify_run
 
 _ET = ZoneInfo("America/New_York")
 
+# Captured at import time, BEFORE the conftest autouse (function-scoped) replaces
+# the module attribute with a no-op, so tests can drive the REAL A1-P card-fetch
+# wrapper and prove what it forwards (R11).
+_REAL_CARD_FETCH = runtime._fetch_intraday_card_bars
+
 
 # --- fixtures / helpers -----------------------------------------------------
 
@@ -236,6 +241,19 @@ def test_seam_dedupes_when_primary_is_spy(monkeypatch, tmp_path):
     assert calls == ["SPY"]  # deduped to a single acquisition
 
 
+def test_seam_null_primary_targets_spy_only(monkeypatch, tmp_path):
+    # R2: a null primary (no chartable primary) must acquire EXACTLY [SPY] --
+    # never zero targets. A mutation making null-primary produce no targets reddens
+    # here (the null-primary artifact test alone cannot catch it: the autouse
+    # omission yields an empty symbols map either way).
+    calls: list[str] = []
+    monkeypatch.setattr(runtime, "select_primary_card_symbol", lambda *a, **k: None)
+    monkeypatch.setattr(runtime, "_fetch_intraday_card_bars",
+                        lambda symbol: calls.append(symbol) or None)
+    _drive_halted_seam(monkeypatch, tmp_path)
+    assert calls == ["SPY"]
+
+
 def test_seam_records_primary_and_writes_only_targets(monkeypatch, tmp_path):
     logs_dir = _isolate_seam_paths(monkeypatch, tmp_path)
     session = runtime.time_utils.convert_utc_to_et(datetime.now(timezone.utc)).date()
@@ -339,14 +357,33 @@ def test_default_intraday_caller_retry_behavior_unchanged():
     assert attempts["n"] == config.FETCH_RETRIES
 
 
+def test_real_card_fetch_wrapper_forwards_budget_args(monkeypatch):
+    # R11: prove the REAL _fetch_intraday_card_bars wrapper (not the fetcher
+    # called directly) forwards exactly timeout_seconds=25 and retries=1 in a
+    # single call. Drives the captured original so the autouse no-op does not mask
+    # it; records the underlying runtime.fetch_intraday_session_bars call. A
+    # mutation dropping/altering either argument, or making a second call, reddens.
+    calls: list[tuple] = []
+    monkeypatch.setattr(
+        runtime, "fetch_intraday_session_bars",
+        lambda symbol, **kwargs: calls.append((symbol, kwargs)) or None,
+    )
+    _REAL_CARD_FETCH("SPY")
+    assert len(calls) == 1
+    assert calls[0][0] == "SPY"
+    assert calls[0][1] == {"timeout_seconds": 25, "retries": 1}
+
+
 # --- R3 / R12: no network without opt-in ------------------------------------
 
 def test_success_seam_makes_zero_live_card_fetch_under_autouse_default(monkeypatch, tmp_path):
     # R12: under the conftest autouse default (no opt-in), a representative seam
-    # run performs ZERO live card fetches. Record at the DEEPER fetcher and filter
-    # by the card signature (timeout_seconds=25) so the daily :1250 SPY fetch (no
-    # override) is not miscounted. Do NOT override the autouse — removing the
-    # autouse must turn this red.
+    # run performs ZERO intraday fetches OF ANY KIND. The daily SPY session fetch
+    # lives in _run_pipeline (runtime:1310), NOT in this _execute_notify_run path,
+    # so the ONLY fetch_intraday_session_bars caller reachable here is the card
+    # path; assert the COMPLETE recorded list is empty (a parallel unguarded fetch,
+    # with or without the timeout kwarg, reddens). Do NOT override the autouse --
+    # removing it must turn this red too.
     logs_dir = _isolate_seam_paths(monkeypatch, tmp_path)
     recorded: list[dict] = []
 
@@ -356,55 +393,103 @@ def test_success_seam_makes_zero_live_card_fetch_under_autouse_default(monkeypat
 
     monkeypatch.setattr(runtime, "fetch_intraday_session_bars", _recorder)
     _drive_halted_seam(monkeypatch, tmp_path)
-    card_calls = [c for c in recorded if c.get("timeout_seconds") == 25]
-    assert card_calls == []  # the card fetch never fired (R12)
+    assert recorded == []  # no intraday fetch of any kind fired at the seam (R12)
     # And the artifact records card omission (empty symbols map).
     data = _read(logs_dir / "intraday_bars_snapshot.json")
     assert data["symbols"] == {}
 
 
-# --- R10: no decision effect ------------------------------------------------
+# --- R10: no decision effect (full baseline-neutral surface) ----------------
 
-def test_intraday_outcome_does_not_change_decision_output(monkeypatch, tmp_path):
-    session = runtime.time_utils.convert_utc_to_et(datetime.now(timezone.utc)).date()
+_HOURLY_SIDECARS = (
+    "trend_structure_snapshot.json",
+    "price_bars_snapshot.json",
+    "watchlist_snapshot.json",
+    "latest_hourly_market_map.json",
+)
 
-    def _run(card_fetch):
-        _isolate_seam_paths(monkeypatch, tmp_path)
-        monkeypatch.setattr(runtime, "select_primary_card_symbol", lambda *a, **k: "AAPL")
+
+def test_intraday_producer_is_baseline_neutral_across_full_hourly_surface(monkeypatch, tmp_path):
+    # R10: a VALID A1-P acquisition must not alter ANY pre-existing hourly truth.
+    # Run the full-success hourly seam twice under a fixed clock (deterministic) --
+    # once with a valid producer acquisition, once with the producer disabled --
+    # and compare the COMPLETE surface: status, the whole hourly summary and
+    # contract, the notification count and content, and every pre-existing hourly
+    # sidecar. Only the NEW intraday artifact is excluded. Any coupling that lets a
+    # valid acquisition rewrite an outcome/HALT/notification/existing artifact
+    # reddens.
+    from tests.test_hourly_alert import _regime, _router_state, _validation
+
+    # run_at_utc == _regime().computed_at_utc == 2026-04-23 14:30 UTC (fixed), so
+    # the ET session date is 2026-04-23; build the valid frame on that session.
+    valid_frame = _session_frame(date(2026, 4, 23))
+
+    # Each scenario runs in its OWN fresh dir so both see previous_market_map=None
+    # (the hourly market map carries lifecycle state across runs; a shared dir
+    # would make the 2nd run's map legitimately differ). Embedded absolute paths
+    # are normalized out before comparison so only substantive content is compared.
+    def _run(subdir: str, card_fetch):
+        run_dir = tmp_path / subdir
+        run_dir.mkdir()
+        logs_dir = run_dir / "logs"
+        monkeypatch.chdir(run_dir)
+        for name, rel in {
+            "LOGS_DIR": logs_dir,
+            "REPORTS_DIR": run_dir / "reports",
+            "LATEST_HOURLY_RUN_PATH": logs_dir / "latest_hourly_run.json",
+            "LATEST_HOURLY_CONTRACT_PATH": logs_dir / "latest_hourly_contract.json",
+            "LATEST_HOURLY_PAYLOAD_PATH": logs_dir / "latest_hourly_payload.json",
+            "HOURLY_REPORT_PATH": run_dir / "reports" / "hourly_report.html",
+            "MARKET_MAP_PATH": logs_dir / "market_map.json",
+            "LATEST_HOURLY_MARKET_MAP_PATH": logs_dir / "latest_hourly_market_map.json",
+            "TREND_STRUCTURE_PATH": logs_dir / "trend_structure_snapshot.json",
+            "PRICE_BARS_PATH": logs_dir / "price_bars_snapshot.json",
+            "WATCHLIST_PATH": logs_dir / "watchlist_snapshot.json",
+            "INTRADAY_BARS_PATH": logs_dir / "intraday_bars_snapshot.json",
+        }.items():
+            monkeypatch.setattr(runtime, name, rel)
+        monkeypatch.setattr(runtime, "fetch_all", lambda: {})
+        monkeypatch.setattr(runtime, "normalize_all", lambda raw: {})
+        monkeypatch.setattr(runtime, "extract_fetch_failures", lambda raw: {})
+        monkeypatch.setattr(runtime, "validate_quotes", lambda nq, *a, **k: _validation())
+        monkeypatch.setattr(runtime, "compute_regime",
+                            lambda *a, **k: _regime(posture="STAY_FLAT", regime="NEUTRAL"))
+        monkeypatch.setattr(runtime, "compute_all_derived", lambda *a, **k: {})
+        monkeypatch.setattr(runtime, "resolve_sector_router", lambda *a, **k: _router_state())
+        monkeypatch.setattr(runtime, "_fetch_observe_only_quotes", lambda: {})
+        monkeypatch.setattr(runtime, "select_primary_card_symbol", lambda *a, **k: "SPY")
+        captured: dict = {}
+        notifs: list[tuple] = []
+        monkeypatch.setattr(runtime, "_write_hourly_artifacts",
+                            lambda summary, contract: captured.update(summary=summary, contract=contract))
+        monkeypatch.setattr(runtime, "send_notification",
+                            lambda title, body, **k: notifs.append((title, body)) or True)
         monkeypatch.setattr(runtime, "_fetch_intraday_card_bars", card_fetch)
-        titles: list[tuple] = []
-        orig = runtime.format_failure_notification
-        with (
-            patch("cuttingboard.runtime.fetch_all", return_value={}),
-            patch("cuttingboard.runtime.normalize_all", return_value={}),
-            patch("cuttingboard.runtime.extract_fetch_failures", return_value={}),
-            patch("cuttingboard.runtime.validate_quotes", return_value=_halted()),
-            patch("cuttingboard.runtime.send_notification",
-                  side_effect=lambda title, body, **k: titles.append((title, body)) or True),
-        ):
-            assert orig is runtime.format_failure_notification  # sanity: not the failure path
-            result = _execute_notify_run(
-                mode=MODE_LIVE, run_date=date(2026, 5, 12), notify_mode=NOTIFY_HOURLY
-            )
-        return result["status"], titles
+        result = _execute_notify_run(
+            mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY
+        )
+        blob = json.dumps(
+            {
+                "status": result["status"],
+                "summary": captured.get("summary"),
+                "contract": captured.get("contract"),
+                "notifs": notifs,
+                "sidecars": {
+                    name: (logs_dir / name).read_text(encoding="utf-8") if (logs_dir / name).exists() else None
+                    for name in _HOURLY_SIDECARS
+                },
+            },
+            sort_keys=True, default=str,
+        ).replace(str(run_dir), "<RUN>")
+        return result["status"], len(notifs), blob
 
-    def _boom(symbol):
-        raise RuntimeError("intraday down")
+    status_on, n_on, blob_on = _run("on", lambda symbol: valid_frame)
+    status_off, n_off, blob_off = _run("off", lambda symbol: None)
 
-    status_ok, titles_ok = _run(lambda symbol: _session_frame(session))
-    status_fail, titles_fail = _run(_boom)
-    # The decision status and the (single) notification are identical whether the
-    # intraday producer succeeds or fails: it has zero decision/notification effect.
-    assert status_ok == status_fail == runtime.SUMMARY_STATUS_SUCCESS
-    assert len(titles_ok) == len(titles_fail) == 1
-    assert titles_ok == titles_fail
-
-
-def _halted():
-    validation = MagicMock(spec=runtime.ValidationSummary)
-    validation.system_halted = True
-    validation.halt_reason = "test halt"
-    validation.valid_quotes = {}
-    validation.symbols_validated = 0
-    validation.symbols_attempted = 0
-    return validation
+    assert status_on == status_off == runtime.SUMMARY_STATUS_SUCCESS
+    assert n_on == n_off == 1  # exactly-once notification in both
+    # The COMPLETE hourly surface (status, full summary, contract, notification
+    # count+content, and every pre-existing hourly sidecar) is byte-identical
+    # whether the A1-P producer acquired valid bars or was disabled -- only the
+    # NEW intraday artifact (excluded) differs. Zero decision/notification effect.
+    assert blob_on == blob_off
