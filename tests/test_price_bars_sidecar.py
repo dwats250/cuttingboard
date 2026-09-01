@@ -460,3 +460,21 @@ def test_intraday_producer_failure_does_not_disturb_price_bars_cowriter(tmp_path
     price_bars = _read(logs_dir / "price_bars_snapshot.json")
     assert price_bars["schema_version"] == 1 and "SPY" in price_bars["symbols"]  # co-seam intact (R9)
     assert not (logs_dir / "intraday_bars_snapshot.json").exists()  # raised before writing
+
+
+def test_prd325_stay_flat_seam_reuses_candidate_frames_and_writes_both_sidecars(tmp_path, monkeypatch):
+    """PRD-325 R10/R11: under STAY_FLAT with a chartable candidate the RUNTIME
+    binding `cuttingboard.runtime.fetch_ohlcv` is invoked at most once per symbol
+    (the candidate frame is reused by _collect_trend_structure_history), the
+    price-bars snapshot stays honest (producer hourly, fixture symbol present),
+    the trend-structure snapshot is written on the same run, and neither feeds
+    the decision surfaces."""
+    from tests.test_hourly_alert import _prd325_drive, _prd325_regime
+
+    rec = _prd325_drive(monkeypatch, tmp_path, regime=_prd325_regime())
+    fetched = [e.split(":", 1)[1] for e in rec["events"] if e.startswith("fetch_ohlcv:")]
+    assert fetched.count("GDX") == 1 and len(fetched) == len(set(fetched)), fetched
+    bars = _read(rec["logs"] / "price_bars_snapshot.json")
+    assert bars["source"]["producer"] == "hourly" and "GDX" in bars["symbols"]
+    assert (rec["logs"] / "trend_structure_snapshot.json").exists()
+    assert rec["summary"]["candidates_qualified"] == 0 and rec["contract"]["outcome"] == "NO_TRADE"
