@@ -1866,7 +1866,7 @@ def test_prd325_stay_flat_decision_surfaces_and_notification_unchanged(tmp_path,
         validation_summary=on["validation"], qualification_summary=None, candidate_lines=(),
         halt_reason=None, market_map=None, canonical_outcome=None, normalized_quotes=on["quotes"],
         operator_locked=config.is_operator_locked(config.resolve_operator_availability()))
-    assert on["notifs"] == [body] and "Reason: stay flat posture" in body
+    assert on["notifs"] == [body] and "Reason: stay flat posture" in body.splitlines()
     assert on["summary"] == off["summary"] and on["contract"] == off["contract"]
 
 
