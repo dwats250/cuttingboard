@@ -58,6 +58,27 @@ def _session_frame(session_date: date, n: int = 3) -> pd.DataFrame:
     return pd.DataFrame(data, index=index)
 
 
+def _daily_history_frame() -> pd.DataFrame:
+    """A deterministic, OFFLINE 6-month-style daily OHLCV frame (the shape
+    `runtime.fetch_ohlcv` returns: [Open, High, Low, Close, Volume] indexed by
+    date) for use as the daily-history seam stub. Fixed content and a fixed
+    business-day index ending 2026-04-22 (<= the run's completed-session cutoff),
+    so the derived price_bars / trend_structure snapshots are byte-identical on
+    every call and across every scenario run -- removing the ONLY remaining live
+    input (the pre-existing daily fetch that `_collect_trend_structure_history`
+    falls back to) without weakening the compared surface."""
+    index = pd.bdate_range(end="2026-04-22", periods=60)
+    closes = [100.0 + 0.1 * i for i in range(len(index))]
+    data = {
+        "Open": [c - 0.05 for c in closes],
+        "High": [c + 0.20 for c in closes],
+        "Low": [c - 0.25 for c in closes],
+        "Close": closes,
+        "Volume": [1_000_000 + i for i in range(len(index))],
+    }
+    return pd.DataFrame(data, index=index)
+
+
 def _read(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -457,6 +478,16 @@ def test_intraday_producer_is_baseline_neutral_across_full_hourly_surface(monkey
         monkeypatch.setattr(runtime, "compute_all_derived", lambda *a, **k: {})
         monkeypatch.setattr(runtime, "resolve_sector_router", lambda *a, **k: _router_state())
         monkeypatch.setattr(runtime, "_fetch_observe_only_quotes", lambda: {})
+        # Hermeticity: the pre-existing daily-history seam (`fetch_ohlcv`, which
+        # `_collect_trend_structure_history` falls back to for every
+        # TREND_STRUCTURE_SYMBOL since `compute_all_derived` is stubbed empty) is
+        # the last live input. yfinance returns slightly different adjusted floats
+        # between the two sequential scenario runs, which propagate into
+        # price_bars_snapshot.json and trend_structure_snapshot.json and break the
+        # byte-identity assertion. Pin it to a deterministic offline frame so BOTH
+        # runs consume byte-identical daily OHLCV; the A1-P intraday producer
+        # (the only variable under test) is still the sole difference between runs.
+        monkeypatch.setattr(runtime, "fetch_ohlcv", lambda symbol: _daily_history_frame())
         monkeypatch.setattr(runtime, "select_primary_card_symbol", lambda *a, **k: "SPY")
         captured: dict = {}
         notifs: list[tuple] = []
