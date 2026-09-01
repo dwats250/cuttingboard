@@ -5243,12 +5243,8 @@ def test_prd322_new_styling_stays_out_of_the_pinned_phone_block() -> None:
     assert ".tape-slot{white-space:nowrap}" in html
 
 
-# ---------------------------------------------------------------------------
-# PRD-324 (A1-C) intraday session-chart consumer: parity, fallback, isolation.
-# The chart-bearing recipe (`_bars_snapshot`/`_chartable`) is the R11-sanctioned
-# oracle from tests/test_dash_candidates.py; the byte-identity idiom mirrors
-# test_prd120 (freeze the module `datetime` CLASS + `_utcnow`).
-# ---------------------------------------------------------------------------
+# PRD-324 (A1-C) intraday consumer: parity, fallback, isolation. Chart-bearing
+# recipe from test_dash_candidates (R11 oracle); byte-identity mirrors test_prd120.
 from tests.test_dash_candidates import (  # noqa: E402
     _bars_snapshot as _a1c_bars,
     _chartable as _a1c_chartable,
@@ -5378,7 +5374,8 @@ def test_a1c_leaf_receives_runtime_inputs_and_drives_slot(monkeypatch, tmp_path)
     assert len(calls) == 1
     market_map, price_bars, skips, result = calls[0]
     assert "SPY" in market_map["symbols"]                      # the real runtime market_map
-    assert isinstance(price_bars.get("SPY"), tuple)            # the runtime _price_bars map
+    # the EXACT runtime _price_bars map, not a reconstruction (isolates M12):
+    assert price_bars == _dr._price_bars_by_symbol(_a1c_bars(symbols=("SPY",)), _A1C_NOW)
     assert isinstance(skips, dict)                             # the runtime integrator_skips
     assert result == "SPY"                                     # leaf winner
     assert 'class="setup-chart"' in html                       # winner drives the slot
@@ -5388,11 +5385,18 @@ def test_a1c_leaf_fed_post_fixture_symbols(monkeypatch):  # R6/M29
     from cuttingboard.delivery.fixtures import FIXTURE_SYMBOLS
     seen = []
     real = _dr.select_primary_card_symbol
-    monkeypatch.setattr(_dr, "select_primary_card_symbol",
-                        lambda mm, pb, sk: (seen.append(mm), real(mm, pb, sk))[1])
+
+    def rec(mm, pb, sk):
+        seen.append((mm, pb, sk))
+        return real(mm, pb, sk)
+
+    monkeypatch.setattr(_dr, "select_primary_card_symbol", rec)
     _a1c_render_html(monkeypatch, fixture_mode=True)
     assert seen, "leaf not called in fixture mode"
-    assert seen[0]["symbols"] is FIXTURE_SYMBOLS               # POST-replacement inputs feed the leaf
+    mm, pb, sk = seen[0]
+    assert mm["symbols"] is FIXTURE_SYMBOLS                    # POST-replacement symbols feed the leaf
+    assert pb == _dr._price_bars_by_symbol(_a1c_bars(symbols=("SPY",)), _A1C_NOW)  # runtime price bars
+    assert isinstance(sk, dict)                               # runtime integrator_skips
 
 
 def test_a1c_non_primary_daily_chart_preserved_under_intraday(monkeypatch, tmp_path):  # R9/M31
@@ -5404,12 +5408,29 @@ def test_a1c_non_primary_daily_chart_preserved_under_intraday(monkeypatch, tmp_p
     assert 'class="setup-chart"' in _a1c_card(html, "QQQ")    # non-primary daily chart retained
 
 
-def test_a1c_isolation_only_the_chart_slot_differs(monkeypatch, tmp_path):  # R12/M18/M32
+def test_a1c_isolation_only_chart_slot_and_no_write(monkeypatch, tmp_path):  # R12/M18/M32
+    import pathlib
+    path = _a1c_write(tmp_path, _a1c_intraday_snapshot())  # real sidecar write, before the spy
+    writes: list = []
+    monkeypatch.setattr(pathlib.Path, "write_text", lambda self, *a, **k: writes.append(str(self)))
     absent = _a1c_render_html(monkeypatch)
-    path = _a1c_write(tmp_path, _a1c_intraday_snapshot())
+    assert writes == []  # rendering writes nothing
     present = _a1c_render_html(monkeypatch, intraday_path=path)
+    assert writes == []  # M18: admitting intraday adds no write/fetch/notification path
     assert absent != present
-    # Everything before the candidate board (system state, decision, freshness tokens,
-    # notifications markup) is byte-identical -- A1-C touches only the chart slot.
+    # Everything before the candidate board (system state, decision, freshness/notification
+    # markup) is byte-identical -- A1-C touches only the chart slot.
     assert absent.split('id="candidate-board"')[0] == present.split('id="candidate-board"')[0]
     assert "completed through" in present and "completed through" not in absent
+
+
+def test_a1c_loader_never_raises_on_oserror(monkeypatch, tmp_path):  # R1/M19
+    import pathlib
+    p = tmp_path / "i.json"
+    p.write_text("{}", encoding="utf-8")
+
+    def boom(self, *a, **k):
+        raise OSError("unreadable")
+
+    monkeypatch.setattr(pathlib.Path, "read_text", boom)
+    assert _dr._load_intraday_bars_snapshot(p) is None  # OSError swallowed to None, never raised

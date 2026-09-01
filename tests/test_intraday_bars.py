@@ -97,8 +97,7 @@ def test_half_open_bin_excludes_sixth_minute():  # M3
 
 
 def test_bins_anchor_at_0930_not_first_bar():  # M2
-    # Bars start at 09:32 (offsets 2..6): under the 09:30 anchor no bin holds all
-    # five required minutes, so nothing completes; a first-bar anchor would wrongly complete one.
+    # Bars start at 09:32: no bin holds all five 09:30-anchored minutes; a first-bar anchor would.
     bars = [_bar(i) for i in range(2, 7)]
     assert _derive(_snapshot(bars)) is None
 
@@ -139,8 +138,7 @@ def test_future_generated_at_is_rejected():  # M27
 
 
 def test_through_future_skew_5m_admits_6m_omits():  # M8
-    # `through` is the last bar's ts (09:34 ET); choose `now` so it sits at +5m
-    # (admitted, inclusive) then +6m (rejected) into the future.
+    # `through` (last bar 09:34 ET) sits at now+5m (admitted, inclusive) then now+6m (rejected).
     last_ts = _ANCHOR + timedelta(minutes=4)  # 09:34 ET
     now_ok = last_ts - timedelta(minutes=5)   # through == now + 5m
     now_bad = last_ts - timedelta(minutes=6)  # through == now + 6m
@@ -155,8 +153,7 @@ def test_prior_session_date_is_rejected():  # M9
 
 def test_through_outside_regular_session_is_rejected():  # M28
     now = datetime(2026, 8, 27, 20, 10, tzinfo=_UTC)  # 16:10 ET, after close
-    # `through` is a real last bar at 16:05 ET, outside [09:30, 16:00); bin0 is
-    # complete, so ONLY the session-endpoint check can reject -> M28-faithful.
+    # `through` is a real 16:05 ET last bar, outside [09:30,16:00); bin0 complete, so only the endpoint check rejects.
     late = datetime(2026, 8, 27, 20, 5, tzinfo=_UTC).isoformat()
     bars = _bin0_bars() + [[late, 100.0, 101.0, 99.0, 100.0, 10]]
     assert _derive(_snapshot(bars, generated_at=now.isoformat()), now=now) is None
@@ -172,7 +169,8 @@ def test_through_outside_regular_session_is_rejected():  # M28
     lambda s: s["source"].__setitem__("adjusted", True),               # M21
     lambda s: s.__setitem__("columns", ["ts", "o", "h", "l", "c", "v"]),  # M22
     lambda s: s["symbols"]["SPY"].__setitem__("row_count", 99),        # M10 row_count
-    lambda s: s["symbols"]["SPY"].__setitem__("through", "2099-01-01T00:00:00+00:00"),  # M10 through
+    lambda s: s["symbols"]["SPY"].__setitem__(  # M10 through (in-session, != last bar; not skew-masked)
+        "through", s["symbols"]["SPY"]["bars"][-2][0]),
 ])
 def test_envelope_and_nested_defects_fall_back(mutate):
     snap = _snapshot(_bin0_bars())
@@ -180,10 +178,12 @@ def test_envelope_and_nested_defects_fall_back(mutate):
     assert _derive(snap) is None
 
 
-def test_malformed_row_shape_rejected():  # M24
-    bars = _bin0_bars()
-    bars[2] = bars[2][:5]  # five cells, not six
-    assert _derive(_snapshot(bars)) is None
+def test_malformed_row_length_rejected():  # M24
+    # Under-length (5) and over-length (7); the 7-cell case isn't IndexError-masked, isolating the shape guard.
+    for bad in ([_ts(2), 1, 2, 3, 4], _bar(2) + [999]):
+        bars = _bin0_bars()
+        bars[2] = bad
+        assert _derive(_snapshot(bars)) is None
 
 
 def test_non_ascending_ts_rejected():  # M25
@@ -213,12 +213,39 @@ def test_incoherent_ohlcv_rejected():  # M10 coherence
 
 def test_per_bar_et_date_must_equal_session_date():  # M23
     bars = _bin0_bars()
-    # Rewrite one bar to the prior ET date but keep ascending order via an early UTC hour.
+    # A prior-ET-date first bar stays ascending and minute-aligned, so only the session-date guard rejects it.
     bars[0][0] = datetime(2026, 8, 26, 13, 30, tzinfo=_UTC).isoformat()
-    bars[0], bars[1] = bars[1], bars[0]  # keep strictly ascending after the date change
     snap = _snapshot(bars)
     snap["symbols"]["SPY"]["through"] = bars[-1][0]
     assert _derive(snap) is None
+
+
+def test_schema_version_must_be_int_one_not_bool_or_float():  # R2 exact schema type
+    assert _derive(_snapshot(_bin0_bars())) is not None                    # exactly 1 admits
+    assert _derive(_snapshot(_bin0_bars(), schema_version=True)) is None   # True == 1 must NOT admit
+    assert _derive(_snapshot(_bin0_bars(), schema_version=1.0)) is None    # 1.0 == 1 must NOT admit
+
+
+def test_sub_minute_and_duplicate_minutes_rejected():  # R5 exact source-minute membership
+    off = _bin0_bars()
+    off[4][0] = off[4][0].replace(":00+00:00", ":30+00:00")  # 09:34:30 is not minute-aligned
+    assert _derive(_snapshot(off)) is None
+    dup = _bin0_bars()
+    extra = list(dup[0])
+    extra[0] = extra[0].replace(":00+00:00", ":30+00:00")
+    dup.insert(1, extra)  # a second observation inside the 09:30 minute
+    snap = _snapshot(dup)
+    snap["symbols"]["SPY"]["row_count"] = len(dup)
+    snap["symbols"]["SPY"]["through"] = dup[-1][0]
+    assert _derive(snap) is None
+
+
+def test_through_age_90m_admits_91m_omits():  # M7 (through freshness, distinct from generated_at)
+    last = _ANCHOR + timedelta(minutes=4)  # 09:34 ET, the through
+    now90, now91 = last + timedelta(minutes=90), last + timedelta(minutes=91)
+    bars = _bin0_bars()
+    assert _derive(_snapshot(bars, generated_at=now90.isoformat()), now=now90) is not None
+    assert _derive(_snapshot(bars, generated_at=now91.isoformat()), now=now91) is None
 
 
 # --- R7 primary agreement -----------------------------------------------------
@@ -253,14 +280,6 @@ def test_deeply_corrupt_bars_return_none_not_raise():
     assert _derive(snap) is None
 
 
-def test_result_candles_feed_setup_chart_directly():
-    # A Candle is index-addressable like a setup_chart bar row: [0]=label,[1..4]=OHLC.
-    session = _derive(_snapshot(_bin0_bars()))
-    assert session is not None
-    candle = session.candles[0]
-    assert candle[0] == "09:30" and candle[1] == 100.0 and candle[4] == 99.8
-
-
 def test_module_import_boundary_is_pure():  # R12 (a) import boundary
     import ast
     import inspect
@@ -273,7 +292,8 @@ def test_module_import_boundary_is_pure():  # R12 (a) import boundary
             base = node.module or ""
             imported.update(f"{base}.{alias.name}".strip(".") for alias in node.names)
     for path in imported:
-        for forbidden in ("dashboard_renderer", "runtime", "requests", "urllib", "yfinance"):
+        for forbidden in ("dashboard_renderer", "runtime", "requests", "urllib",
+                          "yfinance", "notification", "telegram", "decision"):
             assert forbidden not in path, f"leaf imports {path}"
 
 

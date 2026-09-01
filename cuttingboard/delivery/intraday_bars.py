@@ -63,7 +63,8 @@ def _derive(snapshot, primary_symbol, now):  # noqa: ANN001
     if not isinstance(snapshot, Mapping):
         return None
     # R2 top-level envelope: exact schema / source values / columns.
-    if snapshot.get("schema_version") != 1:
+    sv = snapshot.get("schema_version")
+    if type(sv) is not int or sv != 1:  # reject bool/float lookalikes (True==1, 1.0==1)
         return None
     source = snapshot.get("source")
     if not isinstance(source, Mapping) or source.get("adjusted") is not False:
@@ -127,7 +128,9 @@ def _admit_symbol(entry, session_date):  # noqa: ANN001
         if isinstance(row, (str, bytes)) or not isinstance(row, Sequence) or len(row) != 6:
             return None
         ts = _parse_dt(row[0])
-        if ts is None or (prev is not None and ts <= prev):  # tz-aware + strictly ascending
+        # R5: a 1m START bar is minute-aligned; rejecting sub-minute ts also bars two
+        # observations from sharing one ET minute (a duplicate would be a non-ascending ts).
+        if ts is None or ts.second or ts.microsecond or (prev is not None and ts <= prev):
             return None
         et = _to_et(ts)
         if et is None or et.date() != session_date:  # every bar's ET date == session_date
