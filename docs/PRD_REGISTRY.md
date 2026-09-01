@@ -341,6 +341,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-321 | #284 | Operator setup chart consumer (Lane A slice 1) | COMPLETE | [PRD-321](prd_history/PRD-321.md) |
 | PRD-322 | #285 | Operator context tape: visible macro + trend projection | COMPLETE | [PRD-322](prd_history/PRD-322.md) |
 | PRD-323 | 6847382 | A1-P Intraday 1-minute Source-Bar Producer (intraday session-candle, producer half) | COMPLETE | [PRD-323](prd_history/PRD-323.md) |
+| PRD-324 | — | A1-C Intraday Session-Chart Consumer (intraday session-candle, consumer half) | IN PROGRESS | [PRD-324](prd_history/PRD-324.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

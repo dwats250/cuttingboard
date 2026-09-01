@@ -1610,6 +1610,12 @@
       "title": "A1-P Intraday 1-minute Source-Bar Producer (intraday session-candle, producer half)",
       "status": "COMPLETE",
       "commit": "6847382"
+    },
+    {
+      "number": 324,
+      "title": "A1-C Intraday Session-Chart Consumer (intraday session-candle, consumer half)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
