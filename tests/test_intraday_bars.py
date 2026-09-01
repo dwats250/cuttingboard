@@ -18,8 +18,7 @@ _SESSION = "2026-08-27"
 _NOW = datetime(2026, 8, 27, 13, 46, tzinfo=_UTC)  # 09:46 ET, mid-session
 _GEN = datetime(2026, 8, 27, 13, 45, tzinfo=_UTC).isoformat()  # 1 min before now
 
-# A deterministic bin-0 with distinct OHLCV so aggregation is pinned (M6).
-_BIN0 = [
+_BIN0 = [  # deterministic bin-0 with distinct OHLCV so aggregation is pinned (M6)
     (100.0, 100.5, 99.5, 100.2, 10),
     (100.2, 101.0, 100.0, 100.8, 20),
     (100.8, 100.9, 100.1, 100.3, 30),
@@ -65,8 +64,7 @@ def _derive(snap, primary="SPY", now=_NOW):
 # --- happy path ---------------------------------------------------------------
 
 def test_valid_snapshot_derives_completed_5m_session():
-    # offsets 0..9 -> two complete bins [09:30,09:35) and [09:35,09:40).
-    bars = _bin0_bars() + [_bar(i) for i in range(5, 10)]
+    bars = _bin0_bars() + [_bar(i) for i in range(5, 10)]  # two complete bins
     session = _derive(_snapshot(bars))
     assert session is not None
     assert [c.label for c in session.candles] == ["09:30", "09:35"]  # M1 ET labels, M2 anchor
@@ -77,8 +75,7 @@ def test_valid_snapshot_derives_completed_5m_session():
 
 
 def test_caption_states_completed_through_not_raw_source_through():
-    # Last source bar is 09:34 (offset 4); the completed bin's END is 09:35 -> they differ.
-    session = _derive(_snapshot(_bin0_bars()))
+    session = _derive(_snapshot(_bin0_bars()))  # last bar 09:34; completed END 09:35 -> they differ
     assert session is not None
     assert session.completed_through == "09:35"
     assert "09:35" in session.caption and _SESSION in session.caption
@@ -88,18 +85,21 @@ def test_caption_states_completed_through_not_raw_source_through():
 # --- M3/M4/M5 membership and boundaries ---------------------------------------
 
 def test_half_open_bin_excludes_sixth_minute():  # M3
-    # offsets 0..5: bin0 complete (0-4); offset 5 opens bin1 but does not close bin0.
-    bars = _bin0_bars() + [_bar(5)]
+    bars = _bin0_bars() + [_bar(5)]  # offset 5 opens bin1 but must not close bin0
     session = _derive(_snapshot(bars))
     assert session is not None
     assert len(session.candles) == 1
     assert session.candles[0].close == 99.8  # minute-4 close, not the 6th minute
 
 
-def test_bins_anchor_at_0930_not_first_bar():  # M2
-    # Bars start at 09:32: no bin holds all five 09:30-anchored minutes; a first-bar anchor would.
-    bars = [_bar(i) for i in range(2, 7)]
-    assert _derive(_snapshot(bars)) is None
+def test_premarket_bars_excluded_by_0930_anchor():  # M2 (09:00-anchor / first-bar mutant)
+    # Premarket (09:00-09:04) dropped by the 09:30 anchor (offset<0); a 09:00/first-bar anchor completes a spurious candle.
+    bars = [_bar(m) for m in range(-30, -25)] + _bin0_bars()
+    snap = _snapshot(bars)
+    snap["symbols"]["SPY"]["through"] = bars[-1][0]
+    session = _derive(snap)
+    assert session is not None
+    assert [c.label for c in session.candles] == ["09:30"]
 
 
 def test_missing_interior_minute_drops_the_bin():  # M4
@@ -108,8 +108,7 @@ def test_missing_interior_minute_drops_the_bin():  # M4
 
 
 def test_partial_final_bin_is_not_rendered():  # M5
-    # bin0 complete (0-4), bin1 partial (5,6 only) -> only bin0 renders.
-    bars = _bin0_bars() + [_bar(5), _bar(6)]
+    bars = _bin0_bars() + [_bar(5), _bar(6)]  # bin1 partial (5,6 only) -> only bin0 renders
     session = _derive(_snapshot(bars))
     assert session is not None
     assert len(session.candles) == 1
@@ -138,8 +137,7 @@ def test_future_generated_at_is_rejected():  # M27
 
 
 def test_through_future_skew_5m_admits_6m_omits():  # M8
-    # `through` (last bar 09:34 ET) sits at now+5m (admitted, inclusive) then now+6m (rejected).
-    last_ts = _ANCHOR + timedelta(minutes=4)  # 09:34 ET
+    last_ts = _ANCHOR + timedelta(minutes=4)  # 09:34 ET `through`; now put at through-5m then through-6m
     now_ok = last_ts - timedelta(minutes=5)   # through == now + 5m
     now_bad = last_ts - timedelta(minutes=6)  # through == now + 6m
     bars = _bin0_bars()
@@ -153,8 +151,7 @@ def test_prior_session_date_is_rejected():  # M9
 
 def test_through_outside_regular_session_is_rejected():  # M28
     now = datetime(2026, 8, 27, 20, 10, tzinfo=_UTC)  # 16:10 ET, after close
-    # `through` is a real 16:05 ET last bar, outside [09:30,16:00); bin0 complete, so only the endpoint check rejects.
-    late = datetime(2026, 8, 27, 20, 5, tzinfo=_UTC).isoformat()
+    late = datetime(2026, 8, 27, 20, 5, tzinfo=_UTC).isoformat()  # 16:05 ET through, outside [09:30,16:00)
     bars = _bin0_bars() + [[late, 100.0, 101.0, 99.0, 100.0, 10]]
     assert _derive(_snapshot(bars, generated_at=now.isoformat()), now=now) is None
 
@@ -179,8 +176,7 @@ def test_envelope_and_nested_defects_fall_back(mutate):
 
 
 def test_malformed_row_length_rejected():  # M24
-    # Under-length (5) and over-length (7); the 7-cell case isn't IndexError-masked, isolating the shape guard.
-    for bad in ([_ts(2), 1, 2, 3, 4], _bar(2) + [999]):
+    for bad in ([_ts(2), 1, 2, 3, 4], _bar(2) + [999]):  # 5-cell + 7-cell; over-length isn't IndexError-masked
         bars = _bin0_bars()
         bars[2] = bad
         assert _derive(_snapshot(bars)) is None
@@ -213,8 +209,7 @@ def test_incoherent_ohlcv_rejected():  # M10 coherence
 
 def test_per_bar_et_date_must_equal_session_date():  # M23
     bars = _bin0_bars()
-    # A prior-ET-date first bar stays ascending and minute-aligned, so only the session-date guard rejects it.
-    bars[0][0] = datetime(2026, 8, 26, 13, 30, tzinfo=_UTC).isoformat()
+    bars[0][0] = datetime(2026, 8, 26, 13, 30, tzinfo=_UTC).isoformat()  # prior ET date, still ascending+aligned
     snap = _snapshot(bars)
     snap["symbols"]["SPY"]["through"] = bars[-1][0]
     assert _derive(snap) is None

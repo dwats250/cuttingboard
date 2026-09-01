@@ -5408,20 +5408,29 @@ def test_a1c_non_primary_daily_chart_preserved_under_intraday(monkeypatch, tmp_p
     assert 'class="setup-chart"' in _a1c_card(html, "QQQ")    # non-primary daily chart retained
 
 
-def test_a1c_isolation_only_chart_slot_and_no_write(monkeypatch, tmp_path):  # R12/M18/M32
+def test_a1c_isolation_no_side_effect_and_only_chart_slot(monkeypatch, tmp_path):  # R12/M18/M32
+    import builtins
     import pathlib
-    path = _a1c_write(tmp_path, _a1c_intraday_snapshot())  # real sidecar write, before the spy
-    writes: list = []
-    monkeypatch.setattr(pathlib.Path, "write_text", lambda self, *a, **k: writes.append(str(self)))
+    import cuttingboard.ingestion as _ing
+    import cuttingboard.output as _out
+    path = _a1c_write(tmp_path, _a1c_intraday_snapshot())  # real sidecar write, before the spies
+    effects: list = []
+    real_open = builtins.open
+    # spy every side-effect seam: write/append/create opens, Path writes, notification, fetch
+    monkeypatch.setattr(builtins, "open", lambda f, mode="r", *a, **k:
+                        effects.append("open") if any(c in mode for c in "wax+")
+                        else real_open(f, mode, *a, **k))
+    monkeypatch.setattr(pathlib.Path, "write_text", lambda self, *a, **k: effects.append("write_text"))
+    monkeypatch.setattr(pathlib.Path, "write_bytes", lambda self, *a, **k: effects.append("write_bytes"))
+    monkeypatch.setattr(_out, "send_notification", lambda *a, **k: effects.append("notify"))
+    monkeypatch.setattr(_ing, "fetch_intraday_session_bars", lambda *a, **k: effects.append("fetch"))
     absent = _a1c_render_html(monkeypatch)
-    assert writes == []  # rendering writes nothing
+    assert effects == []
+    effects.clear()
     present = _a1c_render_html(monkeypatch, intraday_path=path)
-    assert writes == []  # M18: admitting intraday adds no write/fetch/notification path
-    assert absent != present
-    # Everything before the candidate board (system state, decision, freshness/notification
-    # markup) is byte-identical -- A1-C touches only the chart slot.
-    assert absent.split('id="candidate-board"')[0] == present.split('id="candidate-board"')[0]
-    assert "completed through" in present and "completed through" not in absent
+    assert effects == []  # M18/M32: admitting intraday adds no write, notification, or fetch
+    assert absent != present  # the admitted case differs (intraday substituted)...
+    assert absent.split('id="candidate-board"')[0] == present.split('id="candidate-board"')[0]  # ...only in the slot
 
 
 def test_a1c_loader_never_raises_on_oserror(monkeypatch, tmp_path):  # R1/M19
