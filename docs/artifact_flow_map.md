@@ -144,6 +144,12 @@ defaults differ.
   `_fetch_intraday_card_bars` (one attempt, `timeout_seconds=25`, no retry — R11); the
   canonical primary is the renderer's chart-slot winner via the parity-locked leaf
   `delivery/primary_selection.select_primary_card_symbol` (R1).
+- **Reader:** `delivery/dashboard_renderer._load_intraday_bars_snapshot`
+  (`_INTRADAY_BARS_SNAPSHOT_PATH`) + the pure leaf
+  `delivery/intraday_bars.derive_intraday_session` (PRD-324 A1-C, consumer half):
+  defensively re-admits the file and substitutes membership-complete 5m candles into
+  the primary setup-card chart slot when fresh, else the daily chart stays.
+  Display-only; adds no new write, fetch, or decision effect (R12).
 - **Constant:** `runtime.INTRADAY_BARS_PATH` (= `LOGS_DIR / "intraday_bars_snapshot.json"`)
 - **Schema (PRD-323):** `schema_version: 1`; `session_date` (current ET session, R5);
   `primary_symbol` (or null); `source {producer:"hourly", provider:"yfinance", interval:"1m",

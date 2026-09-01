@@ -83,8 +83,15 @@ def _day_label(raw: object) -> str:
     return _html.escape(text[:10], quote=True)
 
 
-def _normalize_bars(bars: object) -> list[tuple[str, float, float, float, float]]:
-    """Keep only complete, finite OHLC rows. Never synthesize or pad a candle."""
+def _normalize_bars(
+    bars: object, max_bars: int | None = MAX_BARS
+) -> list[tuple[str, float, float, float, float]]:
+    """Keep only complete, finite OHLC rows. Never synthesize or pad a candle.
+
+    PRD-324 (A1-C R8): ``max_bars=None`` disables the trailing cap so a full
+    current-session intraday series renders; any int keeps the last N rows. The
+    daily default (``MAX_BARS``) is unchanged, so existing callers are byte-identical.
+    """
     rows: list[tuple[str, float, float, float, float]] = []
     if not isinstance(bars, Sequence) or isinstance(bars, (str, bytes)):
         return rows
@@ -95,7 +102,7 @@ def _normalize_bars(bars: object) -> list[tuple[str, float, float, float, float]
         if None in (o, h, low, c):
             continue
         rows.append((_day_label(bar[0]), o, h, low, c))  # type: ignore[arg-type]
-    return rows[-MAX_BARS:]
+    return rows if max_bars is None else rows[-max_bars:]
 
 
 def _tiered_zones(watch_zones: object) -> tuple[list[tuple[str, float]], list[tuple[str, float]]]:
@@ -146,6 +153,7 @@ def render_setup_chart_svg(
     operator_locked: bool = False,
     width: int = CHART_WIDTH,
     height: int = CHART_HEIGHT,
+    max_bars: int | None = MAX_BARS,
 ) -> str:
     """Return a deterministic inline SVG for one candidate, or `""`.
 
@@ -153,7 +161,7 @@ def render_setup_chart_svg(
     NOW anchor (PRD-226). The caller degrades to the compact ladder; it never
     gets a padded or synthesized chart.
     """
-    rows = _normalize_bars(bars)
+    rows = _normalize_bars(bars, max_bars)
     anchor = _fin(now_price)
     if not rows or anchor is None:
         return ""

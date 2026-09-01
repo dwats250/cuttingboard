@@ -5241,3 +5241,205 @@ def test_prd322_new_styling_stays_out_of_the_pinned_phone_block() -> None:
     assert ".tape-drivers{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr))" in html
     assert ".tape-trend{display:grid;grid-template-columns:repeat(auto-fit,minmax(154px,1fr))" in html
     assert ".tape-slot{white-space:nowrap}" in html
+
+
+# PRD-324 (A1-C) intraday consumer: parity, fallback, isolation. Chart-bearing
+# recipe from test_dash_candidates (R11 oracle); byte-identity mirrors test_prd120.
+from tests.test_dash_candidates import (  # noqa: E402
+    _bars_snapshot as _a1c_bars,
+    _chartable as _a1c_chartable,
+    _pc_card as _a1c_card,
+)
+
+_A1C_NOW = _dt112(2026, 8, 28, 14, 0, 0, tzinfo=_tz112.utc)  # 10:00 ET, mid-session
+_A1C_SESSION = "2026-08-28"
+_A1C_MISSING = Path("/nonexistent/a1c_no_intraday.json")
+_A1C_GOLDEN = Path(__file__).resolve().parent / "data" / "dashboard_pre_a1c_chart_golden.html"
+
+
+def _a1c_intraday_snapshot(**over) -> dict:
+    """A valid current-session A1-P sidecar for SPY (2 completed 5m bins, END 09:40)."""
+    n_bars = over.pop("n_bars", 10)
+    anchor = _dt112(2026, 8, 28, 13, 30, tzinfo=_tz112.utc)  # 09:30 ET
+    bars = [[(anchor + timedelta(minutes=i)).isoformat(), 100.0, 101.0, 99.0, 100.0, 10]
+            for i in range(n_bars)]
+    snap = {
+        "schema_version": 1,
+        "generated_at": (_A1C_NOW - timedelta(minutes=5)).isoformat(),
+        "session_date": _A1C_SESSION,
+        "primary_symbol": "SPY",
+        "source": {"producer": "hourly", "provider": "yfinance",
+                   "interval": "1m", "adjusted": False},
+        "columns": ["ts", "Open", "High", "Low", "Close", "Volume"],
+        "symbols": {"SPY": {"through": bars[-1][0] if bars else None,
+                            "row_count": len(bars), "bars": bars}},
+    }
+    snap.update(over)
+    return snap
+
+
+def _a1c_write(tmp_path, snap) -> Path:
+    path = tmp_path / "intraday_bars_snapshot.json"
+    path.write_text(json.dumps(snap), encoding="utf-8")
+    return path
+
+
+def _a1c_render_html(monkeypatch, *, intraday_path=_A1C_MISSING, mm=None, fixture_mode=False) -> str:
+    class _FrozenDT(_dt112):  # P1: freeze the datetime CLASS, not just _utcnow
+        @classmethod
+        def now(cls, tz=None):
+            return _A1C_NOW if tz is None else _A1C_NOW.astimezone(tz)
+    monkeypatch.setattr(_dr112, "datetime", _FrozenDT)
+    _freeze_renderer_now(monkeypatch, _A1C_NOW)
+    monkeypatch.setattr(_dr, "_INTRADAY_BARS_SNAPSHOT_PATH", intraday_path)
+    if mm is None:
+        mm = _market_map({"SPY": _a1c_chartable("SPY", "A+")})
+    payload, run = _payload(), _run(outcome="TRADE")
+    payload["meta"]["generation_id"] = "test-gen-001"
+    run["generation_id"] = "test-gen-001"
+    mm["generation_id"] = "test-gen-001"
+    kwargs = {"price_bars_snapshot": _a1c_bars(symbols=tuple(mm["symbols"])), "now": _A1C_NOW}
+    if fixture_mode:
+        kwargs["fixture_mode"] = True
+    return render_dashboard_html(payload, run, market_map=mm, **kwargs)
+
+
+def test_a1c_pre_a1c_golden_is_chart_bearing_and_reproducible(monkeypatch):  # R11
+    html = _a1c_render_html(monkeypatch)  # sidecar absent
+    assert 'class="setup-chart"' in html  # a REAL chart-bearing baseline, not SOURCE_MISSING
+    if not _A1C_GOLDEN.exists():
+        _A1C_GOLDEN.write_text(html, encoding="utf-8")
+    assert html == _A1C_GOLDEN.read_text(encoding="utf-8")
+
+
+_A1C_NON_ADMITTED = {
+    "stale": lambda: _a1c_intraday_snapshot(
+        generated_at=(_A1C_NOW - timedelta(minutes=91)).isoformat()),   # M17
+    "wrong_schema": lambda: _a1c_intraday_snapshot(schema_version=2),   # M20
+    "wrong_session": lambda: _a1c_intraday_snapshot(session_date="2026-08-27"),  # M9
+    "primary_disagree": lambda: _a1c_intraday_snapshot(primary_symbol="QQQ"),    # M11
+    "zero_completed_bins": lambda: _a1c_intraday_snapshot(n_bars=3),    # M13
+    "malformed_source": lambda: _a1c_intraday_snapshot(source={"producer": "x"}),  # M21
+}
+
+
+@pytest.mark.parametrize("key", list(_A1C_NON_ADMITTED))
+def test_a1c_non_admitted_sidecar_is_baseline_neutral(monkeypatch, tmp_path, key):  # R11/M17
+    path = _a1c_write(tmp_path, _A1C_NON_ADMITTED[key]())
+    assert _a1c_render_html(monkeypatch, intraday_path=path) == _A1C_GOLDEN.read_text(encoding="utf-8")
+
+
+def test_a1c_malformed_json_sidecar_is_baseline_neutral(monkeypatch, tmp_path):  # R1/R11
+    path = tmp_path / "i.json"
+    path.write_text("{not valid json", encoding="utf-8")
+    assert _a1c_render_html(monkeypatch, intraday_path=path) == _A1C_GOLDEN.read_text(encoding="utf-8")
+
+
+def test_a1c_admitted_intraday_replaces_daily_in_primary_slot(monkeypatch, tmp_path):  # R8/R9/R10/M30
+    golden = _A1C_GOLDEN.read_text(encoding="utf-8")
+    path = _a1c_write(tmp_path, _a1c_intraday_snapshot())
+    html = _a1c_render_html(monkeypatch, intraday_path=path)
+    assert html != golden                                    # daily was replaced
+    assert "completed through 09:40 ET" in html              # R10 completed-through caption (END)
+    assert html.count('class="setup-chart"') == 1            # M30: exactly one chart in the slot
+    assert "lvl-row" in html                                 # M30: the compact ladder is retained
+
+
+def test_a1c_empty_intraday_svg_falls_back_to_daily(monkeypatch, tmp_path):  # M14
+    import cuttingboard.delivery.setup_chart as _sc
+    real = _sc.render_setup_chart_svg
+
+    def stub(bars, now_price, **kw):
+        if kw.get("max_bars", "keep") is None:  # the intraday call (max_bars=None) renders empty
+            return ""
+        return real(bars, now_price, **kw)
+
+    monkeypatch.setattr(_sc, "render_setup_chart_svg", stub)
+    path = _a1c_write(tmp_path, _a1c_intraday_snapshot())
+    assert _a1c_render_html(monkeypatch, intraday_path=path) == _A1C_GOLDEN.read_text(encoding="utf-8")
+
+
+def test_a1c_leaf_receives_runtime_inputs_and_drives_slot(monkeypatch, tmp_path):  # R6/M12
+    calls = []
+    real = _dr.select_primary_card_symbol
+
+    def rec(market_map, price_bars, skips):
+        result = real(market_map, price_bars, skips)
+        calls.append((market_map, price_bars, skips, result))
+        return result
+
+    monkeypatch.setattr(_dr, "select_primary_card_symbol", rec)
+    path = _a1c_write(tmp_path, _a1c_intraday_snapshot())
+    html = _a1c_render_html(monkeypatch, intraday_path=path)
+    assert len(calls) == 1
+    market_map, price_bars, skips, result = calls[0]
+    assert "SPY" in market_map["symbols"]                      # the real runtime market_map
+    # the EXACT runtime _price_bars map, not a reconstruction (isolates M12):
+    assert price_bars == _dr._price_bars_by_symbol(_a1c_bars(symbols=("SPY",)), _A1C_NOW)
+    assert isinstance(skips, dict)                             # the runtime integrator_skips
+    assert result == "SPY"                                     # leaf winner
+    assert 'class="setup-chart"' in html                       # winner drives the slot
+
+
+def test_a1c_leaf_fed_post_fixture_symbols(monkeypatch):  # R6/M29
+    from cuttingboard.delivery.fixtures import FIXTURE_SYMBOLS
+    seen = []
+    real = _dr.select_primary_card_symbol
+
+    def rec(mm, pb, sk):
+        seen.append((mm, pb, sk))
+        return real(mm, pb, sk)
+
+    monkeypatch.setattr(_dr, "select_primary_card_symbol", rec)
+    _a1c_render_html(monkeypatch, fixture_mode=True)
+    assert seen, "leaf not called in fixture mode"
+    mm, pb, sk = seen[0]
+    assert mm["symbols"] is FIXTURE_SYMBOLS                    # POST-replacement symbols feed the leaf
+    assert pb == _dr._price_bars_by_symbol(_a1c_bars(symbols=("SPY",)), _A1C_NOW)  # runtime price bars
+    assert isinstance(sk, dict)                               # runtime integrator_skips
+
+
+def test_a1c_non_primary_daily_chart_preserved_under_intraday(monkeypatch, tmp_path):  # R9/M31
+    mm = _market_map({"SPY": _a1c_chartable("SPY", "A+"), "QQQ": _a1c_chartable("QQQ", "A")})
+    path = _a1c_write(tmp_path, _a1c_intraday_snapshot())  # primary is SPY
+    html = _a1c_render_html(monkeypatch, intraday_path=path, mm=mm)
+    assert "completed through 09:40 ET" in html               # SPY took the intraday slot
+    assert html.count('class="setup-chart"') == 2             # SPY intraday + QQQ disclosed daily
+    assert 'class="setup-chart"' in _a1c_card(html, "QQQ")    # non-primary daily chart retained
+
+
+def test_a1c_isolation_no_side_effect_and_only_chart_slot(monkeypatch, tmp_path):  # R12/M18/M32
+    import builtins
+    import pathlib
+    import cuttingboard.ingestion as _ing
+    import cuttingboard.output as _out
+    path = _a1c_write(tmp_path, _a1c_intraday_snapshot())  # real sidecar write, before the spies
+    effects: list = []
+    real_open = builtins.open
+    # spy every side-effect seam: write/append/create opens, Path writes, notification, fetch
+    monkeypatch.setattr(builtins, "open", lambda f, mode="r", *a, **k:
+                        effects.append("open") if any(c in mode for c in "wax+")
+                        else real_open(f, mode, *a, **k))
+    monkeypatch.setattr(pathlib.Path, "write_text", lambda self, *a, **k: effects.append("write_text"))
+    monkeypatch.setattr(pathlib.Path, "write_bytes", lambda self, *a, **k: effects.append("write_bytes"))
+    monkeypatch.setattr(_out, "send_notification", lambda *a, **k: effects.append("notify"))
+    monkeypatch.setattr(_ing, "fetch_intraday_session_bars", lambda *a, **k: effects.append("fetch"))
+    absent = _a1c_render_html(monkeypatch)
+    assert effects == []
+    effects.clear()
+    present = _a1c_render_html(monkeypatch, intraday_path=path)
+    assert effects == []  # M18/M32: admitting intraday adds no write, notification, or fetch
+    assert absent != present  # the admitted case differs (intraday substituted)...
+    assert absent.split('id="candidate-board"')[0] == present.split('id="candidate-board"')[0]  # ...only in the slot
+
+
+def test_a1c_loader_never_raises_on_oserror(monkeypatch, tmp_path):  # R1/M19
+    import pathlib
+    p = tmp_path / "i.json"
+    p.write_text("{}", encoding="utf-8")
+
+    def boom(self, *a, **k):
+        raise OSError("unreadable")
+
+    monkeypatch.setattr(pathlib.Path, "read_text", boom)
+    assert _dr._load_intraday_bars_snapshot(p) is None  # OSError swallowed to None, never raised
