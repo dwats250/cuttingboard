@@ -192,6 +192,24 @@ def test_bar_window_is_capped_at_the_most_recent_sessions() -> None:
     assert f">{setup_chart._day_label(long_series[-1][0])}<" in svg
 
 
+def test_max_bars_none_renders_the_full_session() -> None:
+    # PRD-324 (A1-C R8): max_bars=None disables the trailing cap so a full
+    # current-session intraday series renders every candle (here 60 > MAX_BARS).
+    long_series = BARS * 5  # 60 rows
+    svg = render_setup_chart_svg(long_series, 102.4, max_bars=None)
+    assert len(_WICK.findall(svg)) == len(long_series)
+
+
+def test_max_bars_default_is_byte_identical_to_explicit_cap() -> None:
+    # M16: the daily default must equal passing MAX_BARS explicitly; a changed
+    # default (e.g. None) diverges here and at the :188 cap test above.
+    long_series = BARS * 5
+    assert (
+        render_setup_chart_svg(long_series, 102.4)
+        == render_setup_chart_svg(long_series, 102.4, max_bars=setup_chart.MAX_BARS)
+    )
+
+
 # ---------------------------------------------------------------------------
 # R1 — nothing honest to draw => empty string (the caller falls back)
 # ---------------------------------------------------------------------------

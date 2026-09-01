@@ -30,8 +30,10 @@ from cuttingboard.delivery.dashboard_integrator import (
     dashboard_integrator,
 )
 from cuttingboard.delivery import gex_card
+from cuttingboard.delivery import intraday_bars
 from cuttingboard.delivery import movement_card
 from cuttingboard.delivery import setup_chart
+from cuttingboard.delivery.primary_selection import select_primary_card_symbol
 from cuttingboard.delivery.macro_tape_layout import (
     MACRO_BIAS_CONTRA_CYCLICAL,
     MACRO_BIAS_DRIVERS,
@@ -66,6 +68,7 @@ _MOVEMENT_SNAPSHOT_PATH = Path("logs/watchlist_snapshot.json")  # PRD-311: MARKE
 # PRD-321 R2: read-only consumer of the PRD-320 price-bars sidecar (the writer
 # owns `runtime.PRICE_BARS_PATH`; the renderer never imports runtime).
 _PRICE_BARS_SNAPSHOT_PATH = Path("logs/price_bars_snapshot.json")
+_INTRADAY_BARS_SNAPSHOT_PATH = Path("logs/intraday_bars_snapshot.json")  # PRD-324: A1-P intraday sidecar (consumer)
 _PRICE_BARS_MAX_AGE_DAYS = 5
 
 # PRD-112: per-record fields the renderer requires for a non-degraded
@@ -1167,6 +1170,23 @@ def _load_price_bars_snapshot(path: Path) -> dict | None:
     return data
 
 
+def _load_intraday_bars_snapshot(path: Path) -> dict | None:
+    """PRD-324 (A1-C) R1: read the A1-P intraday 1m sidecar; never raise.
+
+    Missing, unreadable, non-UTF-8, corrupt JSON, or a non-object top level =>
+    None, and the primary card keeps its existing daily chart. Deeper defensive
+    admission of the persisted content lives in
+    ``intraday_bars.derive_intraday_session`` (R2); this loader only reads.
+    """
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
 def _price_bars_caption(snapshot: dict, as_of: str) -> str:
     """PRD-321 R2: the honesty caption — the bars' `as_of` plus the sidecar's
     own source provenance (`source.provider` / `source.interval`)."""
@@ -2114,9 +2134,15 @@ def _render_candidate_card(
     decision_permitted: bool = False,
     bars: list | None = None, bars_caption: str = "",
     chart_slot_available: bool = False,
+    intraday_session: "intraday_bars.IntradaySession | None" = None,
 ) -> bool:
     """Render one candidate card. Returns True when this card took the single
-    full-width chart slot (PRD-321 R3 / ruling Q2)."""
+    full-width chart slot (PRD-321 R3 / ruling Q2).
+
+    PRD-324 (A1-C): when this card holds the chart slot and an admitted
+    ``intraday_session`` is supplied, its full-session 5m chart REPLACES the daily
+    chart in that one slot (R9); every non-admitted state keeps the daily chart
+    byte-identically (R11)."""
     # PRD-304 R7: under lock the card keeps every analytical observation (symbol,
     # grade letter, bias, structure, price/level context, invalidation content,
     # reasoning, watch) but omits the action directives IF NOW and PLAY and drops
@@ -2281,24 +2307,45 @@ def _render_candidate_card(
         # This gate also carries contract staleness: a stale contract nulls
         # the entry map, so its stop can never pair up and draw.
         band_stop = contract_stop if entry_valid else None
-        # PRD-321 R1/R2: the chart draws only from completed bars that passed
-        # the loader's age guard; an empty SVG means "nothing honest to draw"
-        # and the card degrades to the compact ladder alone (R4).
-        chart_svg = setup_chart.render_setup_chart_svg(
-            bars,
-            now_price,
-            contract_entry=contract_entry if entry_valid else None,
-            contract_stop=band_stop,
-            watch_zones=watch_zones,
-            fib_levels=fib_levels,
-            operator_locked=operator_locked,
-        ) if bars else ""
+        # PRD-324 (A1-C R8/R9): when this card holds the chart slot and an admitted
+        # intraday 5m session exists, its full-session chart (`max_bars=None`)
+        # REPLACES the daily chart in this one slot. Every non-admitted state -- no
+        # session, or an empty intraday SVG -- falls through to the untouched daily
+        # branch below byte-identically (R11).
+        chart_svg = ""
+        chart_caption = bars_caption
+        if chart_slot_available and intraday_session is not None:
+            chart_svg = setup_chart.render_setup_chart_svg(
+                intraday_session.candles,
+                now_price,
+                contract_entry=contract_entry if entry_valid else None,
+                contract_stop=band_stop,
+                watch_zones=watch_zones,
+                fib_levels=fib_levels,
+                operator_locked=operator_locked,
+                max_bars=None,
+            )
+            if chart_svg:
+                chart_caption = intraday_session.caption
+        # PRD-321 R1/R2: the daily chart draws only from completed bars that passed
+        # the loader's age guard; an empty SVG means "nothing honest to draw" and
+        # the card degrades to the compact ladder alone (R4).
+        if not chart_svg:
+            chart_svg = setup_chart.render_setup_chart_svg(
+                bars,
+                now_price,
+                contract_entry=contract_entry if entry_valid else None,
+                contract_stop=band_stop,
+                watch_zones=watch_zones,
+                fib_levels=fib_levels,
+                operator_locked=operator_locked,
+            ) if bars else ""
         if not decision_permitted:
             w('  <details class="level-detail"><summary>LEVEL MAP ▶</summary>')
         if chart_svg:
             took_chart_slot = bool(chart_slot_available)
             _render_setup_chart_block(
-                w, chart_svg, bars_caption, disclosed=not took_chart_slot
+                w, chart_svg, chart_caption, disclosed=not took_chart_slot
             )
         # PRD-321 R4: the compact ladder is the chart's subordinate exact-level
         # reference (rendered directly below it) AND the full fallback when no
@@ -3009,10 +3056,23 @@ def render_dashboard_html(
     # PRD-321 R2/R3: resolve the age-guarded bars once per render, and keep the
     # single full-width chart slot for the highest-priority visible setup —
     # every later candidate's chart goes behind its own disclosure (ruling Q2).
-    _price_bars = _price_bars_by_symbol(
-        price_bars_snapshot, now if now is not None else _utcnow()
+    _now_effective = now if now is not None else _utcnow()
+    _price_bars = _price_bars_by_symbol(price_bars_snapshot, _now_effective)
+    # PRD-324 (A1-C R6): the single chart slot is awarded ONCE, by the shared leaf,
+    # over the byte-identical runtime inputs the inline `_chart_slot_open` latch
+    # consumed (post-fixture-replacement `market_map`, `_price_bars`,
+    # `integrator_skips`). The card whose symbol equals this result takes the slot;
+    # the deleted latch is replaced by an equality check at the call site (R6).
+    _primary_card_symbol = select_primary_card_symbol(
+        market_map, _price_bars, integrator_skips
     )
-    _chart_slot_open = True
+    # PRD-324 (A1-C R1/R2/R3): load the A1-P intraday sidecar and derive the
+    # admitted completed-5m session for the primary; None => the daily chart stays.
+    _intraday_session = intraday_bars.derive_intraday_session(
+        _load_intraday_bars_snapshot(_INTRADAY_BARS_SNAPSHOT_PATH),
+        _primary_card_symbol,
+        _now_effective,
+    )
     w(f'<div class="block operator-subsection{disabled_class}" id="candidate-board">')
     if fixture_mode:
         w('  <h3>SETUP SCREENING &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h3>')
@@ -3130,7 +3190,7 @@ def render_dashboard_html(
                         w(f'    <div class="tier-header">{_esc(_tier_label)} ({len(tier_syms)})</div>')
                     for sym in tier_syms:
                         _sym_bars, _sym_caption = _price_bars.get(sym, (None, ""))
-                        if _render_candidate_card(
+                        _render_candidate_card(
                             w, sym, symbols[sym],
                             contract_entry=(contract_entry_map or {}).get(sym),
                             contract_stop=(contract_stop_map or {}).get(sym),
@@ -3138,9 +3198,9 @@ def render_dashboard_html(
                             decision_permitted=_decision_state == "TRADE PERMITTED",
                             bars=_sym_bars,
                             bars_caption=_sym_caption,
-                            chart_slot_available=_chart_slot_open,
-                        ):
-                            _chart_slot_open = False
+                            chart_slot_available=(sym == _primary_card_symbol),
+                            intraday_session=_intraday_session,
+                        )
                     if is_low_tier:
                         w("  </details>")
                     else:

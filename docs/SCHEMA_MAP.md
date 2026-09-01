@@ -183,9 +183,12 @@ injectable, best-effort card fetch `_fetch_intraday_card_bars`
 (`fetch_intraday_session_bars`, one attempt, `timeout_seconds=25`, no retry/backoff
 — R11). The canonical primary is the renderer's chart-slot winner, selected by the
 parity-locked leaf
-`cuttingboard/delivery/primary_selection.select_primary_card_symbol` (R1). NO
-READER yet — the consumer (A1-C) is a later PRD; no decision effect (R10); one
-isolation boundary (R7).
+`cuttingboard/delivery/primary_selection.select_primary_card_symbol` (R1).
+Consumer `cuttingboard/delivery/intraday_bars.derive_intraday_session` (PRD-324
+A1-C), loaded by the renderer via `_load_intraday_bars_snapshot`: defensively
+re-admits this file, derives membership-complete 5m candles, and substitutes them
+into the primary setup-card chart slot when fresh; display-only, no decision or
+write effect (R10/R12); one isolation boundary (R7).
 
 | Field path | Type | Notes |
 |---|---|---|

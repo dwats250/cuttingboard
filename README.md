@@ -40,7 +40,9 @@ today, and what to watch - with detailed surfaces below:
 
 - **GEX** - a display-only gamma-exposure read (Cboe, ~15 min delayed).
 - **Market Movement** - an observe-only movement heatmap.
-- **Setup chart** - a deterministic daily-candle chart with tiered levels.
+- **Setup chart** - a deterministic tiered-level chart for the primary setup: a
+  full current-session 5-minute intraday chart when a fresh intraday snapshot is
+  admitted, otherwise the daily-candle chart.
 - **Market Map** - symbol-level graded market context.
 - **Regime scoreboard** - the regime read and its recent history.
 - **Staleness banner** - an in-browser page-age notice so a frozen board can

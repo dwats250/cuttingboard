@@ -16,7 +16,8 @@ always current).
 | `_run_pipeline` | Orchestrates regime → qualification → output → artifacts |
 | `_resolve_effective_mode` | Handles live/sunday mode resolution |
 | `_fetch_intraday_card_bars` | PRD-323 A1-P: the DISTINCT, patchable card-fetch reference (SEPARATE from the daily :1250 SPY fetch) → `fetch_intraday_session_bars(sym, timeout_seconds=25, retries=1)`; conftest autouse defaults it to a no-op so the whole `_execute_notify_run` cone is network-free (R3/R12) |
-| `_intraday_symbol_bars` / `_write_intraday_bars_snapshot` | PRD-323 A1-P: whole-symbol validation (R4/R5) + atomic write of `logs/intraday_bars_snapshot.json` (`INTRADAY_BARS_PATH`, R6). Called only from the hourly seam inside the one R7 isolation boundary; no reader (A1-C lands the consumer) |
+| `_intraday_symbol_bars` / `_write_intraday_bars_snapshot` | PRD-323 A1-P: whole-symbol validation (R4/R5) + atomic write of `logs/intraday_bars_snapshot.json` (`INTRADAY_BARS_PATH`, R6). Called only from the hourly seam inside the one R7 isolation boundary; consumer is PRD-324 A1-C (below) |
+| `delivery/intraday_bars.derive_intraday_session` | PRD-324 A1-C: pure consumer leaf; defensively admits the sidecar and derives membership-complete 5m candles (R2-R5/R7/R10). Loaded by `delivery/dashboard_renderer._load_intraday_bars_snapshot` and substituted into the primary chart slot in `_render_candidate_card`; the renderer awards that slot via `select_primary_card_symbol` (R6, the inline `_chart_slot_open` latch deleted). Display-only, never raises, no fetch/write/decision effect (R1/R12) |
 
 ---
 
