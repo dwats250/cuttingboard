@@ -1,46 +1,46 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 1.8703597771727587,
-      "level": 79136.4609375,
+      "change_pct": -1.280360849126731,
+      "level": 77555.359375,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.17972514661364947,
-      "level": 99.41799926757812,
+      "change_pct": 0.17084980199272376,
+      "level": 99.6760025024414,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": 0.2504515946444544,
-      "level": 4483.2001953125,
+      "change_pct": -2.0525985659962114,
+      "level": 4394.89990234375,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 0.8109090035287632,
-      "level": 85.77999877929688,
+      "change_pct": 3.100867367615274,
+      "level": 89.44000244140625,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 3.8306040717454373,
-      "change_pct": 0.8050869631718074,
-      "level": 4.758000373840332,
+      "change_bps": 3.018888469620827,
+      "change_pct": 0.6305113622128129,
+      "level": 4.788000106811523,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": 0.12717941131752938,
-      "level": 66.92500305175781,
+      "change_pct": -2.9669186935887737,
+      "level": 65.41000366210938,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 4.1608902794398,
-      "level": 15.020000457763672,
+      "change_pct": 7.3056310121590915,
+      "level": 16.010000228881836,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "live-20260831T193057Z",
+    "generation_id": "live-20260901T172011Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-08-31T19:30:57Z"
+    "timestamp": "2026-09-01T17:20:11Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -64,12 +64,12 @@
       },
       "location": {
         "orb": {
-          "orb_high": 767.6199951171875,
-          "orb_low": 765.7899780273438,
+          "orb_high": 762.39990234375,
+          "orb_low": 761.1799926757812,
           "reason": null,
           "state": "FORMED"
         },
-        "price_vs_vwap": "AT_LEVEL",
+        "price_vs_vwap": "BELOW",
         "reason": null,
         "state": "OBSERVED"
       },
@@ -89,41 +89,43 @@
     "rejected": [
       {
         "detail": null,
-        "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)",
+        "reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.38)",
         "stage": "REGIME",
         "symbol": "REGIME"
       }
     ],
     "spy_observation": {
-      "current_price": 766.4099731445312,
-      "intended_session_date": "2026-08-31",
-      "observed_at_utc": "2026-08-31T19:31:00+00:00",
+      "current_price": 761.719970703125,
+      "intended_session_date": "2026-09-01",
+      "observed_at_utc": "2026-09-01T17:20:00+00:00",
       "observed_symbol": "SPY",
       "orb": {
-        "observed_at_utc": "2026-08-31T19:30:00+00:00",
-        "orb_high": 767.6199951171875,
-        "orb_low": 765.7899780273438,
+        "observed_at_utc": "2026-09-01T17:20:00+00:00",
+        "orb_high": 762.39990234375,
+        "orb_low": 761.1799926757812,
         "reason": null,
         "state": "FORMED",
-        "trading_date": "2026-08-31"
+        "trading_date": "2026-09-01"
       },
-      "price_vs_vwap": "AT_LEVEL",
+      "price_vs_vwap": "BELOW",
       "reason": null,
-      "session_vwap": 766.0000078890795,
+      "session_vwap": 762.7755715143505,
       "state": "OBSERVED",
       "timezone": "America/New_York"
     },
     "top_trades": [],
     "trade_decision_detail": [],
     "validation_halt_detail": {
-      "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)"
+      "reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.38)"
     },
-    "watch_summary_detail": null,
+    "watch_summary_detail": {
+      "session": "MIDDAY"
+    },
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.125,
-    "market_regime": "NEUTRAL",
+    "confidence": 0.375,
+    "market_regime": "RISK_OFF",
     "outcome": "NO_TRADE",
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
     "router_mode": "MIXED",
