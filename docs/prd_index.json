@@ -1616,6 +1616,12 @@
       "title": "A1-C Intraday Session-Chart Consumer (intraday session-candle, consumer half)",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 325,
+      "title": "A1-P STAY_FLAT observational alignment (hourly observation/decision split)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
