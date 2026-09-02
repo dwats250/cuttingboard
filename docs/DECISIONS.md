@@ -16,6 +16,39 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-09-01 — D1 product ruling: primary setup chart visibility is OBSERVATIONAL; PRD-321 R3 FAIL clause and PRD-318 R4 disclosure NARROWED via PRD-326 (ruled: Dustin)
+
+**Ruling (HELM, D1 charge 2026-09-01).** The canonical primary setup chart is
+observational evidence. Chart visibility does not imply trade permission. The
+primary chart may be visible under STAY_FLAT, OBSERVE ONLY, operator lock,
+NO TRADE, and every other non-permitted state. Existing decision authority
+remains binding and visually unmistakable; Market Map grade,
+validation/invalidation, setup condition, and verdict remain the semantic
+boundary. Secondary candidate charts do not open. No trade, permission,
+ranking, A1 chart, or candidate-selection logic changes.
+
+**Effect on prior rules (GOV-2 s10 propagation).**
+- PRD-321 R3 FAIL clause "or a non-permitted render showing any chart outside
+  disclosure" is NARROWED to exclude the single canonical primary-slot chart
+  (the `select_primary_card_symbol` winner). Ruling Q2 (one full chart,
+  secondary charts behind disclosure) is unchanged.
+- PRD-318 R4 "key candidate detail disclosure only from the existing
+  authoritative decision state" is NARROWED: the decision-state-keyed
+  `level-detail` disclosure still governs the compact ladder but no longer
+  wraps the primary-slot chart. R4's DOM-preservation FAIL line is unchanged.
+- PRD-304 R7 and PRD-324 R6/R9/R11 are unchanged; PRD-326 R3 applies the
+  existing lock-neutral presentation to every non-permitted render so an
+  undisclosed chart can never carry ENTRY/STOP action colours on a NO TRADE
+  board.
+The current rule for each clause lives in `docs/prd_history/PRD-326.md`
+(PRIOR-RULE AMENDMENT); the superseded wording stays in PRD-321 / PRD-318 as
+history with an inline marker.
+
+**Why.** The 2026-09-01 dashboard recon measured zero charts on a 390x844
+first screen and traced the burial to these two rules (Stay Flat on 4 of the
+last 5 sessions keeps the A1 slot closed). Visibility and permission were
+coupled by presentation, not by any decision rule; the owner decoupled them.
+
 ## 2026-08-28 — Cloudflare clock DEPLOYED; CF-E1 capture pending Monday (ruled: Dustin's commissioning charge)
 
 The `cuttingboard-clock` Worker (PRD-319) moved from repository-recorded
