@@ -1628,6 +1628,12 @@
       "title": "D1 primary chart observational visibility (dashboard renderer only)",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 327,
+      "title": "Dashboard D2 above-fold context compression (VERDICT/TAPE/TODAY presentation only)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

@@ -16,6 +16,43 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-09-01 — D2-Q2 ruling: TAPE placeholder trend chips may be omitted only when zero rows are computed, lineage is healthy and the session is active; PRD-322 R4 SUPERSEDED IN PART via PRD-327 (ruled: Dustin / HELM)
+
+**Ruling (HELM, PRD-327 D2-Q2, 2026-09-01).** D2-Q2 = APPROVED. The six
+per-symbol trend placeholder chips in TAPE may be omitted when AND ONLY WHEN
+zero trend rows were computed, lineage is healthy (`unhealthy_lineage` is
+false) and the session is active (`inactive_session` is false). In that exact
+state the unchanged DETAILS `#trend-structure` table enumerates the same
+configured symbols, so the chips are duplicate presentation. When lineage is
+unhealthy or the session is inactive the chips remain mandatory: they are
+otherwise the only per-symbol enumeration in the rendered document.
+
+**Not authorized by this ruling:** removing the trend summary line or its
+derivation/context; hiding any unavailable or lineage state; changing trend
+computation or the configured symbols; changing TODAY, WATCHING or candidate
+cards; Concept B (merged CONTEXT block); any synthetic context or verdict.
+
+**Effect on prior rules (GOV-2 s10 propagation).** PRD-322 R4's clause "a
+non-computed row renders a na-styled 'SYM —' chip" is SUPERSEDED IN PART for
+the narrowed state only; the current clause lives in
+`docs/prd_history/PRD-327.md` (D2 RULING) and the superseded wording stays in
+PRD-322 under a `SUPERSEDED IN PART` marker. PRD-318 R1 (four full-weight
+zones) is unchanged: the recommended D2 design keeps VERDICT, TAPE, TODAY and
+WATCHING as separate zones.
+
+**Evidence.** Sol fresh-context review chain: REJECT at a0a116b (measurement
+taken at a 500x757 viewport, later corrected), NOT CONFIRMED on one new
+finding at 64e137c, CONFIRMED-CLEAN at 7236569. The chip gate was narrowed to
+this exact condition after Sol showed (REQ-3) that the DETAILS table is
+bypassed under unhealthy lineage and inactive session (renderer base lines
+3538-3546 at f555b48).
+
+**Gate A GRANTED (Helm, 2026-09-01)** on exact design head `3703f8b`
+(D2-Q2 binding; authority limited to the recorded FILES, OUT, ceilings,
+R1-R11, mobile matrix and Sol-confirmed Concept A semantics). Implementation
+authority is effective only after the Gate-A-bearing head merges to `main`
+via design PR #301; merge remains Helm/ChatGPT only.
+
 ## 2026-09-01 — D1 product ruling: primary setup chart visibility is OBSERVATIONAL; PRD-321 R3 FAIL clause and PRD-318 R4 disclosure NARROWED via PRD-326 (ruled: Dustin)
 
 **Ruling (HELM, D1 charge 2026-09-01).** The canonical primary setup chart is
