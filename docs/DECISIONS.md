@@ -16,6 +16,63 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-09-01 — D1 product ruling: primary setup chart visibility is OBSERVATIONAL; PRD-321 R3 FAIL clause and PRD-318 R4 disclosure NARROWED via PRD-326 (ruled: Dustin)
+
+**Ruling (HELM, D1 charge 2026-09-01).** The canonical primary setup chart is
+observational evidence. Chart visibility does not imply trade permission. The
+primary chart may be visible under STAY_FLAT, OBSERVE ONLY, operator lock,
+NO TRADE, and every other non-permitted state. Existing decision authority
+remains binding and visually unmistakable; Market Map grade,
+validation/invalidation, setup condition, and verdict remain the semantic
+boundary. Secondary candidate charts do not open. No trade, permission,
+ranking, A1 chart, or candidate-selection logic changes.
+
+**Effect on prior rules (GOV-2 s10 propagation).**
+- PRD-321 R3 FAIL clause "or a non-permitted render showing any chart outside
+  disclosure" is SUPERSEDED IN PART; current clause: "or a non-permitted
+  render showing any chart other than the single canonical primary-slot chart
+  outside disclosure" (the `select_primary_card_symbol` winner). Ruling Q2
+  (one full chart, secondary charts behind disclosure) is unchanged.
+- PRD-318 R4 "key candidate detail disclosure only from the existing
+  authoritative decision state; preserve all candidate content in the DOM" is
+  SUPERSEDED IN PART; current sentence keys the compact-ladder disclosure
+  (`level-detail`) from the decision state and emits the primary-slot chart
+  outside it in every decision state. R4's DOM-preservation FAIL line is
+  unchanged.
+- PRD-304 R7 and PRD-324 R6/R9/R11 are unchanged; PRD-326 R3 applies the
+  existing lock-neutral chart presentation to the one surface D1 exposes (the
+  primary chart on a non-permitted render) so it can never carry ENTRY/STOP
+  action colours on a NO TRADE or HALT board; ladders and secondary cards are
+  byte-unchanged.
+The current rule for each clause lives in `docs/prd_history/PRD-326.md`
+(PRIOR-RULE AMENDMENT); the superseded wording stays in PRD-321 / PRD-318 as
+history under a `SUPERSEDED IN PART` marker.
+
+**D1-Q1 ruled OPTION A (ruled: Dustin / HELM, 2026-09-01).** A C-grade
+canonical primary renders inside the collapsed C tier disclosure, which no
+change inside the card renderer can open (surfaced by Sol's initial review at
+5f86f82, REJECT/REQ-1). Ruling: a C-grade canonical primary remains eligible
+for the same observational primary-chart treatment as any A+/A/B primary;
+when the canonical primary resides inside a collapsed low-tier wrapper, that
+specific enclosing tier defaults OPEN (one `open` attribute, roughly 3 LOC at
+the call site); the tier remains manually collapsible; no secondary chart is
+opened; no secondary candidate receives primary-slot treatment; grade,
+verdict, permission, validation/invalidation, and decision authority are
+unchanged; this is solely the minimum container change under the ratified D1
+observational rule. Accepted narrow side effect: other candidate identities
+in that opened tier become visible. Not authorized: secondary chart opening,
+candidate-row redesign, C/D redesign, broader WATCHING changes. The Option B
+alternative (narrow D1 to A+/A/B primaries) is SUPERSEDED. Recorded in
+`docs/prd_history/PRD-326.md` (D1-Q1 RULING). Gate A GRANTED 2026-09-01 on
+design head `5b5c936` (PRD-326 AUTHORITY ANCESTRY); implementation authority
+is effective only from the Gate-A-bearing head after design PR #299 merges;
+merge Helm-only.
+
+**Why.** The 2026-09-01 dashboard recon measured zero charts on a 390x844
+first screen and traced the burial to these two rules (Stay Flat on 4 of the
+last 5 sessions keeps the A1 slot closed). Visibility and permission were
+coupled by presentation, not by any decision rule; the owner decoupled them.
+
 ## 2026-08-28 — Cloudflare clock DEPLOYED; CF-E1 capture pending Monday (ruled: Dustin's commissioning charge)
 
 The `cuttingboard-clock` Worker (PRD-319) moved from repository-recorded
