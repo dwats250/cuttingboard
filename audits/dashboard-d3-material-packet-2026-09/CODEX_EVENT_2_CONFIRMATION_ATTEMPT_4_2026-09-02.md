@@ -1,0 +1,34 @@
+# Codex Event-2 exact-corrected-head confirmation — ATTEMPT 4 (FINAL)
+
+```
+GOV-2 sec7 artifact. Confirmed head: edf28d4. Invocation: codex exec -s read-only, captured verbatim from stdout 2026-09-02; original slot docs/prd_history/PRD-328.confirmation4.codex.md.
+VERDICT: CONFIRMED-CLEAN — REVIEW-CLEAN AT edf28d45b6a8ed02c1fbc528ef5779110362332b; CYCLE COMPLETE.
+```
+
+---
+
+# PRD-328 Confirmation #4 - Sol / Codex (narrow, exact-head)
+
+**Confirmed head:** edf28d45b6a8ed02c1fbc528ef5779110362332b  **Prior confirmation head:** 1d6108a  
+**Verdict:** CONFIRMED-CLEAN
+
+## Item table (1-4)
+
+| Item | Disposition | Evidence |
+|---|---|---|
+| 1. Global FAIL CONDITIONS purity clause | RESOLVED | `PRD-328.md:613-616` binds purity to the `#spy-observation` subtree, identifies it as the R7-bound output of `_render_spy_session`, and explicitly excludes the unchanged MCC sibling under S2-Q1 = MOVE. |
+| 2. T12 neutrality scope | RESOLVED | `PRD-328.md:631-633` binds neutrality to the `#spy-observation` block and specifically requires the forbidden classes and words to be absent from that block's `lvl-ladder`. |
+| 3. Remaining `#spy-session` and "SPY section" mentions | RESOLVED | `PRD-328.md:92-93` is non-normative history of the resolved wording; `:216`, `:392`, `:456`, `:459`, `:512`, `:551`, `:561`, `:584`, `:592`, and `:645` are placement or container-classification statements; `:616` is an allowed purity-boundary statement explicitly excluding the MCC sibling. No remaining mention applies purity or neutrality to all of `#spy-session`, so none conflicts with S2-Q1 = MOVE. |
+| 4. Newly invented symbol, path, or line number | RESOLVED | None. `PRD-328.md:89-95` accurately records confirmation #3 and its existing path; the correction at `:613-616` and `:631-633` uses established `#spy-observation`, `#spy-session`, `_render_spy_session`, and `lvl-ladder` names. References introduced by the new confirmation #3 artifact were verified against `1d6108a`, and the bounded diff contains only `PRD-328.md` and `PRD-328.confirmation3.codex.md`. |
+
+## New findings from the correction
+
+none
+
+## Blockers for Helm
+
+- B1 GOV-2 sequencing: Rule whether the PRD-as-packet precedent satisfies GOV-2 s2 or require the canonical two-artifact sequence.
+- S2-Q1: Rule STAY or MOVE for MARKET CONTROL. The wording now supports either ruling without internal conflict.
+- S2-Q2: Approve or decline the candidate-chart narrowing and same-symbol chart co-occurrence.
+- S1-Q1: Confirm or decline the closed-C-tier secondary-evidence supersession.
+- New blockers: none.

@@ -1,112 +1,97 @@
-PRD-328 — Dashboard D3: user-opened secondary tier evidence + SPY session first-class observation (renderer only)
+# Dashboard D3 — user-opened secondary tier evidence + SPY session first-class observation — MATERIAL design packet
 
-Status: DEPRECATED (packet-in-PRD-form). Helm ruled 2026-09-02 (B1) that the
-canonical GOV-2 two-artifact sequence is required; the review-clean content at
-edf28d4 is canonicalized VERBATIM as the MATERIAL packet
-`audits/dashboard-d3-material-packet-2026-09/DASHBOARD_D3_MATERIAL_PACKET_2026-09-02.md`
-(with the Helm design-direction ruling recorded there). The downstream
-implementation PRD is PRD-329. This file and its review/confirmation artifacts
-remain as provenance and are never implementation authority. Prior status
-text: IN PROGRESS (DESIGN review-clean at edf28d4, Sol CONFIRMED-CLEAN
-2026-09-02; draft PR #303).
+```
+STATUS: REVIEW-CLEAN MATERIAL PACKET — 2026-09-02 — DESIGN ONLY
+CONFIRMED AT edf28d45b6a8ed02c1fbc528ef5779110362332b (Event-2 attempt 4).
+HELM DESIGN-DIRECTION RULING RECORDED 2026-09-02 (section below; GOV-2 sec2
+step 6). Downstream PRD: PRD-329 (Stage-0 opened from this packet + ruling).
+AUTHORIZES NO IMPLEMENTATION, NO GATE A, NO MERGE.
+PROVENANCE: this packet's design content was authored, reviewed and
+confirmed in PRD form as docs/prd_history/PRD-328.md (branch
+claude/prd-328-d3-design, draft PR #303). Helm ruled 2026-09-02 (B1) that
+the canonical GOV-2 two-artifact sequence is required and that PRD-328 must
+NOT become implementation authority; the review-clean content at edf28d4 is
+canonicalized here VERBATIM as the completed MATERIAL packet. PRD-328 is
+DEPRECATED in registry bookkeeping (packet-in-PRD-form; superseded by
+PRD-329); its files remain in docs/prd_history/ as provenance and are never
+deleted. This is a forward process correction; PRD-326 / PRD-327 are not
+reopened.
+GOV-2 PACKET-REVIEW CYCLE: EVENT 1 (Sol/Codex, fresh context, HIGH) at
+  4372b9e: REJECT (7 REQUIRED, 3 RECOMMENDED) — CODEX_EVENT_1_REVIEW.
+  The ONE consolidated correction applied at 2c05ef6 (+ citation follow-up
+  4ca0013). EVENT 2 ATTEMPT 1 (against 4ca0013): NOT CONFIRMED (REQ-1 HELD
+  by design, 3 residuals + 1 RECOMMENDED). Repair 2f7f054. ATTEMPT 2
+  (against 2f7f054): NOT CONFIRMED (2 residuals + 2 REQUIRED). Repair
+  1d6108a. ATTEMPT 3 (against 1d6108a): NOT CONFIRMED (2 wording residuals).
+  Repair edf28d4. ATTEMPT 4 (against edf28d4): CONFIRMED-CLEAN, no new
+  findings. CYCLE COMPLETE.
+Ceilings below are ESTIMATES carried into the downstream PRD (GOV-2 sec5).
+```
 
-LANE
-HIGH-RISK
+> Upstream MATERIAL design packet for the owner-charged "NEXT VISUAL
+> USABILITY SLICE — C-TIER ONE-CLICK EVIDENCE + SPY SESSION SURFACING"
+> (owner charge 2026-09-02). Sequence: packet -> Event-1 review -> one
+> consolidated correction -> Event-2 exact-head confirmation -> Helm
+> design-direction ruling (recorded below) -> Stage-0 downstream PRD-329.
+> Substantive design change beyond the Helm rulings: NONE. The body from
+> "OWNER RULINGS RECORDED" onward is byte-for-byte the reviewed text at
+> edf28d4 except the two section headings marked "(RULED ...)".
 
-CLASS
-CONSUMER
+## HELM DESIGN-DIRECTION RULING (Dustin / HELM, 2026-09-02; GOV-2 sec2 step 6)
 
-MATERIALITY
-MATERIAL (owner classification lineage: D1 charge 2026-09-01 and D2 charge
-2026-09-01 classified presentation-hierarchy changes around the decision
-authority as material; this slice narrowly supersedes several ruled design
-clauses (enumerated in the SUPERSESSION LEDGER: PRD-318 R1/R4/R5, PRD-321
-ruling Q2 / R3 as already narrowed by PRD-326, PRD-326 D1-Q1/R1/R2 clauses,
-and the DECISIONS 2026-09-01 D1 sentence), which is itself a GOV-2 s1
-trigger). The HIGH-RISK lane is independent of that
-classification: `cuttingboard/delivery/dashboard_renderer.py` is a protected
-pipeline file. Upstream review order per GOV-2 applies. Sequencing followed:
-the same PRD-as-packet sequence Helm accepted for the two immediately
-preceding MATERIAL dashboard slices (PRD-326 D1 and PRD-327 D2: "INITIAL
-PACKET REVIEW" by Sol on the PRD head, consolidated correction, exact-head
-confirmation, Gate A), and the owner charge of 2026-09-02 directed "Use the
-next canonical PRD ID" as the design artifact. Sol REQ-1 disputes that this
-satisfies GOV-2 s2 (distinct packet before PRD). The author does not resolve
-that conflict: it is HELD FOR HELM as blocker B1 below. If Helm requires the
-canonical two-artifact sequence, this file is re-labelled the MATERIAL packet
-and a separate PRD is drafted from the ruling; no design content changes.
+Recorded verbatim from the owner charge "CUTTINGBOARD D3 — GOV-2
+CANONICALIZATION + DOWNSTREAM PRD" (2026-09-02):
 
-REVIEW RECORD
-- INITIAL PACKET REVIEW: Sol (Codex), fresh context, HIGH effort, reviewed SHA
-  4372b9e4fdd2a8aa88f9f5c6627b03b94b204e23, 2026-09-02, verdict REJECT, seven
-  REQUIRED and three RECOMMENDED (`docs/prd_history/PRD-328.review.codex.md`).
-  Dispositions (one consolidated correction, this revision):
-  - REQ-1 (PRD cannot be its own MATERIAL packet) -> DISPUTED ON PRECEDENT,
-    NOT SELF-RESOLVED. See MATERIALITY; blocker B1 for Helm.
-  - REQ-2 (supersession set incomplete) -> ACCEPTED. New SUPERSESSION LEDGER
-    section enumerates PRD-318 R1/R4/R5, PRD-321 ruling Q2/R3, PRD-326 D1-Q1
-    bullets, R1 and R2 clauses, and the DECISIONS 2026-09-01 D1 sentence;
-    FILES expanded.
-  - REQ-3 (two clocks; map health bypassed) -> ACCEPTED. R5/R6 now gate on
-    the renderer's existing `_mm_health == "OK"` and `not unhealthy_lineage`
-    results; the chart caption names the market-map clock for NOW; R7's input
-    list amended.
-  - REQ-4 (availability under-specified; EMA "always" wrong) -> ACCEPTED.
-    Recon table corrected; R5 now enumerates the resolution ladder and every
-    input-absence outcome; T13 expanded.
-  - REQ-5 (no-`<rect` oracle rejects every chart) -> ACCEPTED. Neutrality
-    oracle is now absence of `class="risk-zone"` plus ENTRY/STOP words and
-    action colours.
-  - REQ-6 (T1-T16 not all red) -> ACCEPTED. VALIDATION split into
-    change-driving red tests and preserved regression guards.
-  - REQ-7 (`tests/test_preview_fixtures.py` omitted) -> ACCEPTED. Added to
-    FILES and the test ceiling.
-  - REC-1 (R7 non-vacuity) -> ACCEPTED (positive controls, one-variable-at-a-
-    time, source-cone assertion on the emitter source).
-  - REC-2 (two SPY charts) -> ACCEPTED (S2-Q2 sentence + co-occurrence test).
-  - REC-3 (PROJECT_STATE pointer stale) -> ACCEPTED (pointer and date only).
-- CONFIRMATION #1: Sol, narrow exact-head, 4ca0013b7b2a0453426babdc3027fe8df50178a6,
-  2026-09-02, verdict NOT CONFIRMED: REQ-1 HELD (precedent description
-  verified accurate; no self-authorization); REQ-2/3/5/7, REC-2/3 RESOLVED;
-  three residuals + one RECOMMENDED, all corrected in this revision:
-  - REQ-4 residual (`market_map=None` unreachable in branch (b)) -> ACCEPTED;
-    None map assigned to (a) only; (b) restricted to healthy partial maps.
-  - REC-1 / REQ-6 residual (raw `inspect.getsource` word list rejects the
-    mandated `contract_entry=None` keyword syntax; `w` not allowed) ->
-    ACCEPTED; R7 oracle is now an AST identifier-read walk excluding keyword
-    labels, with the exact seven-name signature and separate keyword-constant
-    assertions.
-  - REQ-6 residual (T15 pre-green only under S2-Q1 = STAY) -> ACCEPTED; T15
-    split into bytes (group B) and position (group A under MOVE, group B under
-    STAY).
-  - RECOMMENDED (`INVALID` missing from the health vocabulary) -> ACCEPTED.
-  Record: `docs/prd_history/PRD-328.confirmation1.codex.md`.
-- CONFIRMATION #2: Sol, narrow exact-head, 2f7f054016d7305e228f417d51c4c49b2fc5e229,
-  2026-09-02, verdict NOT CONFIRMED: residuals 3 (T15 grouping) and 4
-  (`INVALID` token) RESOLVED; two residuals + two REQUIRED, all corrected in
-  this revision:
-  - T13(b) still listed `market_map=None` -> ACCEPTED; removed, (a) only.
-  - R7 forbade `decision_state` but the renderer local is `_decision_state`
-    (:2738 region) -> ACCEPTED; both names in the AST forbidden set; the
-    one-variable test names the real local.
-  - S2-Q1 MOVE incompatible with R7's whole-section purity -> ACCEPTED; R7
-    now binds the `#spy-observation` subtree (the exact output of
-    `_render_spy_session`); under MOVE the unchanged MCC block is a sibling
-    outside that subtree (R9 amended). Under STAY nothing else changes.
-  Record: `docs/prd_history/PRD-328.confirmation2.codex.md`.
-- CONFIRMATION #3: Sol, narrow exact-head, 1d6108a9b6c5aaf3db4cc45c0c91a6971a3b9ecb,
-  2026-09-02, verdict NOT CONFIRMED: items 1, 2, 4 RESOLVED; item 3 (MOVE vs
-  R7) resolved in R7/R9 but two wording residuals remained, corrected in this
-  revision: the global FAIL CONDITIONS "SPY section" purity clause and T12's
-  "inside `#spy-session`" are both narrowed to the `#spy-observation`
-  subtree. No other change. Record:
-  `docs/prd_history/PRD-328.confirmation3.codex.md`.
-- CONFIRMATION #4: Sol, narrow exact-head, edf28d45b6a8ed02c1fbc528ef5779110362332b,
-  2026-09-02, verdict CONFIRMED-CLEAN; items 1-4 RESOLVED; new findings: none;
-  Sol's sweep classifies every remaining `#spy-session` mention as placement,
-  so S2-Q1 STAY and MOVE are both internally consistent. Record:
-  `docs/prd_history/PRD-328.confirmation4.codex.md`. Design is review-clean
-  at `edf28d4`; held for Helm on B1, S2-Q1, S2-Q2, S1-Q1, then Gate A.
+- B1 — GOV-2: CANONICAL TWO-ARTIFACT SEQUENCE REQUIRED. The review-clean D3
+  design at edf28d4 is treated as the completed MATERIAL packet content.
+  PRD-328 must NOT become implementation authority merely because the
+  packet was authored in PRD form. Do not reopen or retrofit PRD-326 /
+  PRD-327; forward process correction.
+- S1-Q1 — APPROVED. For cards inside a CLOSED C tier only: the C tier stays
+  closed on initial page load; nested LEVEL MAP carries `open`; nested CHART
+  carries `open`; one operator tap on C reveals card + level map + chart;
+  both nested disclosures remain independently collapsible. No automatic
+  secondary evidence becomes visible on initial page load. Open C tiers and
+  A+/A/B tiers remain byte-behavior unchanged.
+- S2-Q1 — MARKET CONTROL STAY. MARKET CONTROL remains inside DETAILS /
+  HISTORY; it is not moved into the promoted SPY SESSION section. Reason:
+  Market Control carries permission/candidate-implication semantics and is
+  deep evidence; SPY Session Observation is observational orientation;
+  keeping them separate preserves the permission boundary and obeys the
+  owner's instruction not to move unrelated deep evidence.
+- S2-Q2 — APPROVED. PRD-321 ruling Q2 is narrowed to CANDIDATE charts. The
+  visible observational `class="spy-chart"` inside the first-class SPY
+  SESSION section is permitted outside disclosure. Same-symbol co-occurrence
+  is INTENTIONAL: if SPY is also the canonical primary candidate, the page
+  may contain exactly one candidate `class="setup-chart"` and exactly one
+  observational `class="spy-chart"` for SPY. Do NOT suppress the
+  observational SPY chart based on candidate ranking, primary selection,
+  permission or decision state. The observational SPY chart remains neutral
+  and must not read candidate, permission, entry, stop, validation or action
+  state.
+- SPY INTRADAY — remains DEFERRED. D3 uses the existing honestly-labelled
+  DAILY SPY bars only. Do not change A1, acquisition, persistence, producer,
+  intraday consumer, or freshness policy.
+
+Effect on the reviewed text below: the MOVE branch of R9 / T15-position is
+closed (STAY ruled); S2-Q2's co-occurrence sentence is binding; S1-Q1's
+supersession is binding. No other clause changes. Downstream PRD-329 carries
+these as binding requirements.
+
+## EVIDENCE INDEX
+
+- CODEX_REVIEW_PROMPT_2026-09-02.md — Event-1 dispatch prompt (verbatim).
+- CODEX_EVENT_1_REVIEW_2026-09-02.md — Event-1 review at 4372b9e (REJECT).
+- CODEX_EVENT_2_CONFIRMATION_ATTEMPT_1_2026-09-02.md — at 4ca0013 (NOT CONFIRMED).
+- CODEX_EVENT_2_CONFIRMATION_ATTEMPT_2_2026-09-02.md — at 2f7f054 (NOT CONFIRMED).
+- CODEX_EVENT_2_CONFIRMATION_ATTEMPT_3_2026-09-02.md — at 1d6108a (NOT CONFIRMED).
+- CODEX_EVENT_2_CONFIRMATION_ATTEMPT_4_2026-09-02.md — at edf28d4 (CONFIRMED-CLEAN).
+- Provenance originals (unchanged, never deleted): docs/prd_history/PRD-328.md
+  (full lifecycle incl. REVIEW RECORD dispositions), PRD-328.review.codex.md,
+  PRD-328.confirmation{1,2,3,4}.codex.md.
+- Repository truth at review time: main ebf01dd888b68a8414704ad774f1245973673ce8.
+
+## REVIEWED DESIGN (verbatim from docs/prd_history/PRD-328.md at edf28d4)
 
 OWNER RULINGS RECORDED (charge 2026-09-02, verbatim intent)
 - O1. A hidden secondary tier remains collapsed on initial page load. Once the
@@ -544,14 +529,14 @@ HISTORY contains no SPY SESSION OBSERVATION; (6) no horizontal overflow at 360/
 FAIL: any step's binary expectation is not met, or the viewport assertion
 fails, in which case Gate B is not requested.
 
-BLOCKERS FOR HELM
+BLOCKERS FOR HELM (RULED 2026-09-02 by Helm; see HELM DESIGN-DIRECTION RULING above. Text below preserved verbatim as reviewed at edf28d4.)
 - B1 (from Sol REQ-1): GOV-2 s2 sequencing. Either (i) confirm the
   PRD-as-packet sequence used for PRD-326/PRD-327 applies here (the review
   record above then stands as the INITIAL PACKET REVIEW), or (ii) require the
   canonical two-artifact sequence (this file becomes the packet; a separate
   PRD is drafted after the design-direction ruling). Not self-resolved.
 
-RULINGS REQUESTED (Helm; smallest set)
+RULINGS REQUESTED (RULED 2026-09-02 by Helm; see HELM DESIGN-DIRECTION RULING above. Text below preserved verbatim as reviewed at edf28d4.)
 - S2-Q1 MARKET CONTROL placement: STAY in DETAILS / HISTORY (recommended) or
   MOVE with the group. Rationale for STAY: the card projects
   `system_state.permission` and a CANDIDATE-IMPLICATION cell (PRD-289); seating
@@ -672,4 +657,3 @@ green; listed so their continued truth is asserted, not assumed):
 - Full suite green; `ruff` clean; D2 seam file untouched.
 Manual: R10 phone matrix at Gate B.
 
-STATUS: IN PROGRESS
