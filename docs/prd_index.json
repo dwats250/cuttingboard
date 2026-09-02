@@ -1634,6 +1634,12 @@
       "title": "Dashboard D2 above-fold context compression (VERDICT/TAPE/TODAY presentation only)",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 328,
+      "title": "Dashboard D3: user-opened secondary tier evidence + SPY session first-class observation (renderer only)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
