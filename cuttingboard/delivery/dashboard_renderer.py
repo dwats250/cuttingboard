@@ -2389,6 +2389,68 @@ def _render_candidate_card(
     return took_chart_slot
 
 
+def _render_spy_session(
+    w: object, spy_obs: dict, spy_bars: tuple | None, spy_record: object,
+    mm_health: str, unhealthy_lineage: bool, mm_clock_label: str,
+) -> None:
+    """PRD-329 S2 (R4-R8): the `#spy-observation` subtree — the PRD-288 rows
+    (bytes unchanged), then a NEUTRAL SPY daily-bar chart and a NEUTRAL level
+    ladder from the SPY market-map record. A pure function of these
+    observational inputs: no decision, permission, ranking or contract state
+    is read (R7). Resolution ladder (R5): map unhealthy -> one line; no SPY
+    record -> one line; invalid price -> the ladder's no-price line; no bars ->
+    the no-bars line plus the ladder; else chart + caption + ladder. Three
+    clocks stay named: OBSERVED AT (session), bars `as_of` (daily), NOW (map)."""
+    _spy_reason = spy_obs.get("reason")
+    _spy_state_raw = str(spy_obs.get("state") or "UNAVAILABLE")
+    _spy_state_display = _SPY_STATE_DISPLAY.get(_spy_state_raw, "Session data unavailable")
+    if _spy_reason:
+        _spy_state_display += " — " + _SPY_REASON_DISPLAY.get(str(_spy_reason), "unavailable")
+    _spy_obs_at = spy_obs.get("observed_at_utc")
+    _spy_vwap = spy_obs.get("session_vwap")
+    _spy_vwap_display = f"{_spy_vwap:.2f}" if isinstance(_spy_vwap, (int, float)) else "UNAVAILABLE"
+    _spy_price = spy_obs.get("current_price")
+    _spy_price_display = f"{_spy_price:.2f}" if isinstance(_spy_price, (int, float)) else "unavailable"
+    _spy_rel = spy_obs.get("price_vs_vwap")
+    _spy_rel_display = _SPY_PRICE_VS_VWAP_DISPLAY.get(_spy_rel, "") if _spy_rel else ""
+    w('<div class="block" id="spy-observation">')
+    w('  <h2>SPY SESSION OBSERVATION</h2>')
+    w('  <div class="kv-grid">')
+    w(f'    <div class="label">SESSION</div><div class="value">{_esc(str(spy_obs.get("intended_session_date") or "unavailable"))}</div>')
+    w(f'    <div class="label">STATE</div><div class="value" data-raw-state="{_esc(_spy_state_raw)}">{_esc(_spy_state_display)}</div>')
+    w(f'    <div class="label">OBSERVED AT</div><div class="value" data-observed-at-utc="{_esc(str(_spy_obs_at or ""))}">{_esc(_operator_timestamp(_spy_obs_at))}</div>')
+    w(f'    <div class="label">SESSION VWAP</div><div class="value">{_spy_vwap_display}</div>')
+    w('    <div class="label">PRICE</div>'
+      f'<div class="value">{_spy_price_display}'
+      + (f' ({_esc(_spy_rel_display)})' if _spy_rel_display else '')
+      + '</div>')
+    w(f'    <div class="label">ORB</div><div class="value">{_spy_orb_summary(spy_obs.get("orb"))}</div>')
+    w('  </div>')
+    if mm_health != "OK" or unhealthy_lineage:
+        w(f'  <div class="lvl-unavail">Chart and levels unavailable — market map {_esc(mm_health)}</div>')
+    elif not isinstance(spy_record, dict):
+        w('  <div class="lvl-unavail">Chart and levels unavailable — market map no SPY record</div>')
+    else:
+        now_price = spy_record.get("current_price")
+        zones, fibs = spy_record.get("watch_zones"), spy_record.get("fib_levels")
+        price_valid = (isinstance(now_price, (int, float)) and not isinstance(now_price, bool)
+                       and math.isfinite(now_price) and now_price > 0)
+        if price_valid:
+            bars, caption = spy_bars if spy_bars else (None, "")
+            svg = setup_chart.render_setup_chart_svg(
+                bars, now_price, contract_entry=None, contract_stop=None,
+                watch_zones=zones, fib_levels=fibs, operator_locked=False,
+            ) if bars else ""
+            if svg:
+                w(f'  <div class="spy-chart">{svg}</div>')
+                w(f'  <div class="chart-caption">{_esc(f"{caption} · NOW per market map {mm_clock_label}")}</div>')
+            else:
+                w('  <div class="lvl-unavail">Chart unavailable — no bars for SPY</div>')
+        _render_level_ladder(w, now_price if price_valid else None, None, fibs, zones, None,
+                             operator_locked=False)
+    w("</div>")
+
+
 def render_dashboard_html(
     payload: dict,
     run: dict,
@@ -3265,6 +3327,21 @@ def render_dashboard_html(
 
     w("</div>")  # #watching-zone
 
+    # --- SPY SESSION (PRD-329 S2): first-class observational orientation, not an
+    #     operator-zone and not permission authority; present iff the daily
+    #     payload carries the observation (S2-Q1 STAY: MARKET CONTROL stays below).
+    if _spy_obs:
+        _spy_symbols = (market_map or {}).get("symbols")
+        w('<section class="spy-session-group" id="spy-session">')
+        w('  <h3>SPY SESSION</h3>')
+        _render_spy_session(
+            w, _spy_obs, _price_bars.get("SPY"),
+            _spy_symbols.get("SPY") if isinstance(_spy_symbols, dict) else None,
+            _mm_health, unhealthy_lineage,
+            _timestamp_label(market_map_timestamp_value, market_map_timestamp),
+        )
+        w("</section>")
+
     # --- DETAILS / HISTORY: full evidence remains present, default collapsed. ---
     _active_lines = _details_lines
     w('<details class="block operator-zone" id="details-history">')
@@ -3290,47 +3367,13 @@ def render_dashboard_html(
         if movement_fragment:
             w(movement_fragment)
 
-    # --- SPY SESSION: two projections over the existing independent carriers,
-    #     visually grouped without joining them into a new state. ---
+    # --- SPY SESSION (DETAILS): PRD-329 R9 — the observation now renders
+    #     first-class above; the group wrapper survives only for MCC-only renders
+    #     (today's bytes); with an observation present MARKET CONTROL stands alone.
     _mcc = (payload.get("sections") or {}).get("market_control_card")
-    if _spy_obs or _mcc:
+    if _mcc and not _spy_obs:
         w('<section class="spy-session-group" id="spy-session-details">')
         w('  <h3>SPY SESSION</h3>')
-
-    # --- spy-observation (PRD-288: transient daily SPY session card; present
-    #     iff the daily payload carries the section — omitted on hourly/None) ---
-    if _spy_obs:
-        _spy_reason = _spy_obs.get("reason")
-        _spy_state_raw = str(_spy_obs.get("state") or "UNAVAILABLE")
-        _spy_state_display = _SPY_STATE_DISPLAY.get(
-            _spy_state_raw, "Session data unavailable"
-        )
-        if _spy_reason:
-            _spy_state_display += " — " + _SPY_REASON_DISPLAY.get(
-                str(_spy_reason), "unavailable"
-            )
-        _spy_obs_at = _spy_obs.get("observed_at_utc")
-        _spy_obs_at_label = _operator_timestamp(_spy_obs_at)
-        _spy_vwap = _spy_obs.get("session_vwap")
-        _spy_vwap_display = f"{_spy_vwap:.2f}" if isinstance(_spy_vwap, (int, float)) else "UNAVAILABLE"
-        _spy_price = _spy_obs.get("current_price")
-        _spy_price_display = f"{_spy_price:.2f}" if isinstance(_spy_price, (int, float)) else "unavailable"
-        _spy_rel = _spy_obs.get("price_vs_vwap")
-        _spy_rel_display = _SPY_PRICE_VS_VWAP_DISPLAY.get(_spy_rel, "") if _spy_rel else ""
-        w('<div class="block" id="spy-observation">')
-        w('  <h2>SPY SESSION OBSERVATION</h2>')
-        w('  <div class="kv-grid">')
-        w(f'    <div class="label">SESSION</div><div class="value">{_esc(str(_spy_obs.get("intended_session_date") or "unavailable"))}</div>')
-        w(f'    <div class="label">STATE</div><div class="value" data-raw-state="{_esc(_spy_state_raw)}">{_esc(_spy_state_display)}</div>')
-        w(f'    <div class="label">OBSERVED AT</div><div class="value" data-observed-at-utc="{_esc(str(_spy_obs_at or ""))}">{_esc(_spy_obs_at_label)}</div>')
-        w(f'    <div class="label">SESSION VWAP</div><div class="value">{_spy_vwap_display}</div>')
-        w('    <div class="label">PRICE</div>'
-          f'<div class="value">{_spy_price_display}'
-          + (f' ({_esc(_spy_rel_display)})' if _spy_rel_display else '')
-          + '</div>')
-        w(f'    <div class="label">ORB</div><div class="value">{_spy_orb_summary(_spy_obs.get("orb"))}</div>')
-        w('  </div>')
-        w("</div>")
 
     # --- market-control-card (PRD-289: seven-field daily card; present iff the
     #     payload carries the section; projection-only — no renderer derivation) ---
@@ -3354,7 +3397,7 @@ def render_dashboard_html(
         w('  </div>')
         w("</div>")
 
-    if _spy_obs or _mcc:
+    if _mcc and not _spy_obs:
         w("</section>")
 
     # --- sunday-macro-context (PRD-116: only under coherent Sunday lineage) ---
