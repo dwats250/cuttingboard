@@ -5,7 +5,7 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-09-02 (PRD-328 design pointer only; prior full pass 2026-08-31 commit 6847382)
+**Last updated:** 2026-09-02 (PRD-329 downstream-PRD pointer only; PRD-328 DEPRECATED; prior full pass 2026-08-31 commit 6847382)
 amended Gate A + implementation resumption; prior full pass 2026-08-05
 TRUTH-SYNC against `main` @ `a419b804`)
 

@@ -1637,7 +1637,7 @@
     },
     {
       "number": 328,
-      "title": "Dashboard D3: user-opened secondary tier evidence + SPY session first-class observation (renderer only) — packet-in-PRD-form canonicalized to audits/dashboard-d3-material-packet-2026-09/; superseded by PRD-329",
+      "title": "Dashboard D3: user-opened secondary tier evidence + SPY session first-class observation (renderer only) — packet-in-PRD-form; review-clean content at edf28d4 canonicalized to audits/dashboard-d3-material-packet-2026-09/ per Helm B1 ruling 2026-09-02; superseded by PRD-329; never implementation authority",
       "status": "DEPRECATED",
       "commit": null
     },
