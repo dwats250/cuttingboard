@@ -47,6 +47,12 @@ this exact condition after Sol showed (REQ-3) that the DETAILS table is
 bypassed under unhealthy lineage and inactive session (renderer base lines
 3538-3546 at f555b48).
 
+**Gate A GRANTED (Helm, 2026-09-01)** on exact design head `3703f8b`
+(D2-Q2 binding; authority limited to the recorded FILES, OUT, ceilings,
+R1-R11, mobile matrix and Sol-confirmed Concept A semantics). Implementation
+authority is effective only after the Gate-A-bearing head merges to `main`
+via design PR #301; merge remains Helm/ChatGPT only.
+
 ## 2026-09-01 — D1 product ruling: primary setup chart visibility is OBSERVATIONAL; PRD-321 R3 FAIL clause and PRD-318 R4 disclosure NARROWED via PRD-326 (ruled: Dustin)
 
 **Ruling (HELM, D1 charge 2026-09-01).** The canonical primary setup chart is
