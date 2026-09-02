@@ -1750,3 +1750,143 @@ def test_intraday_sidecar_written_at_success_seam_with_card_omission(tmp_path, m
     assert data["primary_symbol"] is None  # no chartable primary in the empty harness
     assert data["symbols"] == {}  # card omission by default (R3)
     assert data["source"]["interval"] == "1m" and data["source"]["adjusted"] is False
+
+
+# ---------------------------------------------------------------------------
+# PRD-325: hourly observation/decision split under STAY_FLAT
+# ---------------------------------------------------------------------------
+
+def _prd325_frame():
+    # Completed daily bars (<= 2026-04-22, the cutoff for run_at 2026-04-23T14:30Z)
+    # with a real High/Low span so fib_levels resolve.
+    import pandas as pd
+    index = pd.bdate_range(end="2026-04-22", periods=30)
+    closes = [40.0 + 0.05 * i for i in range(len(index))]
+    return pd.DataFrame({"Open": closes, "High": [c + 0.3 for c in closes], "Low": [c - 0.3 for c in closes],
+                         "Close": closes, "Volume": [1_000_000] * len(index)}, index=index)
+
+
+def _prd325_regime(**kw) -> RegimeState:
+    # STAY_FLAT that HAS a trade direction (NEUTRAL, net_score=-1 -> SHORT), set explicitly (R7).
+    return _regime(posture="STAY_FLAT", regime="NEUTRAL", net_score=-1, confidence=0.12, **kw)
+
+
+def _prd325_drive(monkeypatch, tmp_path, *, regime, symbols=("GDX",), overrides=None, events=None):
+    """Drive the REAL hourly seam with chartable quote/derived/PULLBACK structure
+    for `symbols` (PRD-325 R7 fixture); every fetch seam is offline and recorded.
+    Returns ordered spy events, notification bodies, and the summary/contract
+    dicts captured at `_write_hourly_artifacts` (which still writes)."""
+    import cuttingboard.runtime as runtime
+    from cuttingboard.derived import DerivedMetrics
+    from cuttingboard.normalization import NormalizedQuote
+    from cuttingboard import config
+    ts = datetime(2026, 4, 23, 14, 0, tzinfo=timezone.utc)
+    quotes = {s: NormalizedQuote(s, 40.0, 0.001, 1e6, ts, "test", "usd_price", 1.0) for s in symbols}
+    # normalized_quotes must carry the macro drivers the contract builder requires;
+    # valid_quotes (structure/candidate input) stays fixture-only.
+    normalized = {**{s: NormalizedQuote(s, 100.0, 0.0, None, ts, "test", "index_level", 1.0)
+                     for s in config.MACRO_DRIVERS}, **quotes}
+    derived = {s: DerivedMetrics(s, 40.1, 39.8, 39.0, False, False, 0.0075, 1.0, 0.025, 0.01, 1.0, ts, True)
+               for s in symbols}
+    structure = {s: StructureResult(s, "PULLBACK", "NORMAL_IV", True, None) for s in symbols}
+    validation = _validation()
+    validation.valid_quotes = dict(quotes)
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
+    logs = tmp_path / "logs"
+    for name, filename in (("LATEST_HOURLY_MARKET_MAP_PATH", "latest_hourly_market_map.json"),
+                           ("TREND_STRUCTURE_PATH", "trend_structure_snapshot.json"),
+                           ("PRICE_BARS_PATH", "price_bars_snapshot.json"),
+                           ("WATCHLIST_PATH", "watchlist_snapshot.json"),
+                           ("INTRADAY_BARS_PATH", "intraday_bars_snapshot.json")):
+        monkeypatch.setattr(runtime, name, logs / filename)
+    rec: dict = {"events": [] if events is None else events, "notifs": [], "quotes": normalized,
+                 "validation": validation, "logs": logs}
+    real_write, real_generate = runtime._write_hourly_artifacts, runtime.generate_candidates
+
+    def _capture(summary, contract):
+        rec.update(summary=summary, contract=contract)
+        real_write(summary, contract)
+
+    def _spy(name, fn):
+        return lambda *a, **k: rec["events"].append(name) or fn(*a, **k)
+
+    stubs = {
+        "fetch_all": lambda: {}, "normalize_all": lambda raw: dict(normalized),
+        "extract_fetch_failures": lambda raw: {}, "validate_quotes": lambda nq, *a, **k: validation,
+        "compute_regime": lambda *a, **k: regime, "compute_all_derived": lambda *a, **k: dict(derived),
+        "resolve_sector_router": lambda *a, **k: _router_state(),
+        "classify_all_structure": _spy("classify", lambda *a, **k: dict(structure)),
+        "generate_candidates": _spy("generate", real_generate),
+        "fetch_ohlcv": lambda symbol: rec["events"].append(f"fetch_ohlcv:{symbol}") or _prd325_frame(),
+        "_fetch_observe_only_quotes": lambda: {},
+        "_fetch_intraday_card_bars": lambda symbol: rec["events"].append(f"card:{symbol}"),
+        "_write_hourly_artifacts": _capture,
+        "send_notification": lambda title, body, **k: rec["notifs"].append(body) or True,
+        **(overrides or {}),
+    }
+    for name, fn in stubs.items():
+        monkeypatch.setattr(runtime, name, fn)
+    rec["result"] = _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+    return rec
+
+
+def test_prd325_stay_flat_computes_structure_primary_and_a1p_follow_through(tmp_path, monkeypatch):
+    # R6/R7/R8/R9 (RED pre-split: GDX graded F/DATA_UNAVAILABLE, fib null, primary null, card=[SPY]).
+    rec = _prd325_drive(monkeypatch, tmp_path, regime=_prd325_regime())
+    assert rec["result"]["status"] == SUMMARY_STATUS_SUCCESS
+    assert rec["events"].count("classify") == 1
+    gdx = json.loads((rec["logs"] / "latest_hourly_market_map.json").read_text(encoding="utf-8"))["symbols"]["GDX"]
+    assert gdx["setup_state"] != "DATA_UNAVAILABLE" and gdx["grade"] == "B", gdx
+    assert gdx["fib_levels"] is not None
+    snap = json.loads((rec["logs"] / "intraday_bars_snapshot.json").read_text(encoding="utf-8"))
+    assert snap["primary_symbol"] == "GDX"
+    assert [e for e in rec["events"] if e.startswith("card:")] == ["card:GDX", "card:SPY"]
+
+
+def test_prd325_stay_flat_decision_surfaces_and_notification_unchanged(tmp_path, monkeypatch):
+    # R1/R2/R3/R17: permission, qualification, audit, and candidate lines never run
+    # under STAY_FLAT. R4: alert_body == the formatter called with (None, ()).
+    # R5: the captured summary/contract dicts are key-for-key identical whether
+    # observation is populated or forced empty (same path constants both runs).
+    from cuttingboard import config
+    sentinels = {n: MagicMock(name=n) for n in ("qualify_all", "_apply_intraday_short_permission",
+                                                "_log_continuation_audit", "_build_hourly_candidate_lines")}
+    on = _prd325_drive(monkeypatch, tmp_path, regime=_prd325_regime(), overrides=sentinels)
+    off = _prd325_drive(monkeypatch, tmp_path, regime=_prd325_regime(), overrides={
+        **sentinels, "classify_all_structure": lambda *a, **k: {},
+        "generate_candidates": lambda *a, **k: {}, "fetch_ohlcv": lambda symbol: None})
+    for sentinel in sentinels.values():
+        assert sentinel.call_count == 0, sentinel
+    assert on["result"]["status"] == off["result"]["status"] == SUMMARY_STATUS_SUCCESS
+    assert on["contract"]["outcome"] == "NO_TRADE"
+    assert (on["summary"]["candidates_qualified"], on["summary"]["candidates_watchlist"],
+            on["summary"]["candidate_lines"]) == (0, 0, [])
+    _, body = format_hourly_notification(
+        asof_utc=_prd325_regime().computed_at_utc, regime=_prd325_regime(),
+        validation_summary=on["validation"], qualification_summary=None, candidate_lines=(),
+        halt_reason=None, market_map=None, canonical_outcome=None, normalized_quotes=on["quotes"],
+        operator_locked=config.is_operator_locked(config.resolve_operator_availability()))
+    assert on["notifs"] == [body] and "Reason: stay flat posture" in body.splitlines()
+    assert on["summary"] == off["summary"] and on["contract"] == off["contract"]
+
+
+def test_prd325_tradeable_path_order_and_permission_pruning_unchanged(tmp_path, monkeypatch):
+    # R12 (M8 guard): structure -> candidates -> SHORT permission -> OHLCV for
+    # POST-permission candidates only -> qualify -> audit -> lines. SLV is a
+    # SHORT candidate the permission stub removes, so it must not be fetched
+    # before qualification (the trend-history seam fetches it later).
+    events: list[str] = []
+
+    def _permission(candidates, quotes, now_et):
+        events.append("permission")
+        return {k: v for k, v in candidates.items() if k != "SLV"}, {}
+
+    def _mark(name, value=None):
+        return lambda *a, **k: events.append(name) or value
+
+    rec = _prd325_drive(monkeypatch, tmp_path, regime=_regime(), symbols=("GDX", "SLV"), events=events, overrides={
+        "_apply_intraday_short_permission": _permission, "qualify_all": _mark("qualify", _qual([])),
+        "_log_continuation_audit": _mark("audit"), "_build_hourly_candidate_lines": _mark("lines", ())})
+    assert rec["result"]["status"] == SUMMARY_STATUS_SUCCESS
+    assert events[: events.index("lines") + 1] == [
+        "classify", "generate", "permission", "fetch_ohlcv:GDX", "qualify", "audit", "lines"], events

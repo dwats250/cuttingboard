@@ -623,43 +623,49 @@ def _execute_notify_run(
                 )
                 _log_continuation_audit(regime, qualification_summary)
 
-            elif notify_mode in _HOURLY_MODES and regime.posture != "STAY_FLAT":
+            elif notify_mode in _HOURLY_MODES:
+                # PRD-325: observation (structure, candidates, candidate OHLCV)
+                # runs for EVERY hourly posture so the market map and the A1-P
+                # primary see the structure the live path computes; STAY_FLAT
+                # gates only the permission/decision subset below.
                 structure = classify_all_structure(validation_summary.valid_quotes, derived, regime.vix_level)
                 execution_quotes = dict(validation_summary.valid_quotes)
                 execution_derived = dict(derived)
                 execution_structure = dict(structure)
                 candidates = generate_candidates(execution_structure, execution_derived, execution_quotes, regime)
-                candidates, _ = _apply_intraday_short_permission(candidates, execution_quotes, now_et)
+                if regime.posture != "STAY_FLAT":
+                    candidates, _ = _apply_intraday_short_permission(candidates, execution_quotes, now_et)
                 ohlcv = {
                     symbol: df
                     for symbol in candidates
                     if (df := fetch_ohlcv(symbol)) is not None
                 }
-                qualification_summary = qualify_all(
-                    regime,
-                    execution_structure,
-                    candidates or None,
-                    execution_derived,
-                    ohlcv=ohlcv,
-                    now_et=time_utils.convert_utc_to_et(datetime.now(timezone.utc)),
-                    flow_snapshot=flow_snapshot,
-                )
-                _log_continuation_audit(regime, qualification_summary)
-                # PRD-260 R7: total promotion for the hourly path too --
-                # same fix as R1's daily-pipeline merge (see above), mirrored
-                # at this second call site so a promoted continuation
-                # candidate's R:R is computed from its own synthesized
-                # geometry, not the failed direct candidate's stale one.
-                if qualification_summary.continuation_candidates:
-                    candidates = {
-                        **candidates,
-                        **qualification_summary.continuation_candidates,
-                    }
-                candidate_lines = _build_hourly_candidate_lines(
-                    qualification_summary.qualified_trades,
-                    execution_structure,
-                    candidates,
-                )
+                if regime.posture != "STAY_FLAT":
+                    qualification_summary = qualify_all(
+                        regime,
+                        execution_structure,
+                        candidates or None,
+                        execution_derived,
+                        ohlcv=ohlcv,
+                        now_et=time_utils.convert_utc_to_et(datetime.now(timezone.utc)),
+                        flow_snapshot=flow_snapshot,
+                    )
+                    _log_continuation_audit(regime, qualification_summary)
+                    # PRD-260 R7: total promotion for the hourly path too --
+                    # same fix as R1's daily-pipeline merge (see above), mirrored
+                    # at this second call site so a promoted continuation
+                    # candidate's R:R is computed from its own synthesized
+                    # geometry, not the failed direct candidate's stale one.
+                    if qualification_summary.continuation_candidates:
+                        candidates = {
+                            **candidates,
+                            **qualification_summary.continuation_candidates,
+                        }
+                    candidate_lines = _build_hourly_candidate_lines(
+                        qualification_summary.qualified_trades,
+                        execution_structure,
+                        candidates,
+                    )
 
         if notify_mode in _HOURLY_MODES:
             header_asof = slot_utc if slot_utc is not None else (
