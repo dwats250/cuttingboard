@@ -2114,13 +2114,16 @@ def _render_level_ladder(
     w("  </div>")
 
 
-def _render_setup_chart_block(w: object, svg: str, caption: str, *, disclosed: bool) -> None:
+def _render_setup_chart_block(
+    w: object, svg: str, caption: str, *, disclosed: bool, open_when_disclosed: bool = False
+) -> None:
     """PRD-321 R3 (ruling Q2): one full-width chart for the highest-priority
     visible setup; every other candidate's chart sits behind a NEW native
     `<details>` wrapper. That wrapper is orthogonal to the not-permitted
-    `level-detail` wrapper — both apply per their own rules."""
+    `level-detail` wrapper — both apply per their own rules. PRD-329 R1: inside
+    a CLOSED low tier the wrapper carries `open` (one tier tap reveals it)."""
     if disclosed:
-        w('  <details class="chart-detail"><summary>CHART ▶</summary>')
+        w(f'  <details{" open" if open_when_disclosed else ""} class="chart-detail"><summary>CHART ▶</summary>')
     w(f'  <div class="setup-chart">{svg}</div>')
     w(f'  <div class="chart-caption">{_esc(caption)}</div>')
     if disclosed:
@@ -2134,6 +2137,7 @@ def _render_candidate_card(
     bars: list | None = None, bars_caption: str = "",
     chart_slot_available: bool = False,
     intraday_session: "intraday_bars.IntradaySession | None" = None,
+    tier_closed: bool = False,
 ) -> bool:
     """Render one candidate card. Returns True when this card took the single
     full-width chart slot (PRD-321 R3 / ruling Q2).
@@ -2356,11 +2360,15 @@ def _render_candidate_card(
             _render_setup_chart_block(
                 w, chart_svg, chart_caption, disclosed=not took_chart_slot
             )
+        # PRD-329 R1 (S1-Q1): inside a CLOSED low tier both nested disclosures
+        # carry `open`, so the operator's single tier tap shows card + LEVEL MAP +
+        # CHART; open tiers and A+/A/B cards keep today's closed wrappers (R2).
         if not decision_permitted:
-            w('  <details class="level-detail"><summary>LEVEL MAP ▶</summary>')
+            w(f'  <details{" open" if tier_closed else ""} class="level-detail"><summary>LEVEL MAP ▶</summary>')
         if chart_svg and not took_chart_slot:
             _render_setup_chart_block(
-                w, chart_svg, chart_caption, disclosed=not took_chart_slot
+                w, chart_svg, chart_caption, disclosed=not took_chart_slot,
+                open_when_disclosed=tier_closed,
             )
         # PRD-321 R4: the compact ladder is the chart's subordinate exact-level
         # reference (rendered directly below it) AND the full fallback when no
@@ -3224,6 +3232,7 @@ def render_dashboard_html(
                             bars_caption=_sym_caption,
                             chart_slot_available=(sym == _primary_card_symbol),
                             intraday_session=_intraday_session,
+                            tier_closed=(is_low_tier and not _open),
                         )
                     if is_low_tier:
                         w("  </details>")

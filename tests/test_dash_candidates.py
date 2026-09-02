@@ -1128,7 +1128,7 @@ def test_prd326_c_grade_primary_tier_opens() -> None:
     mixed = _market_map({"AAA": _chartable("AAA", "A+"), "CCC": _chartable("CCC", "C")})
     html2 = _d1_render(_run(outcome="NO_TRADE"), mixed)
     assert '<details class="tier-group" id="tier-c">' in html2
-    assert "<details open" not in html2
+    assert '<details open class="tier-group"' not in html2  # PRD-329 T7: nested `open` is now S1's
 
 
 # --- R2/R3: everything else keeps today's bytes; the exposed chart is neutral --
@@ -1238,3 +1238,60 @@ def test_prd326_verdict_zones_are_chart_invariant(run) -> None:
         r'<div class="decision-state [^"]*">[^<]*</div>',
     ):
         assert re.findall(pattern, with_bars) == re.findall(pattern, without), pattern
+
+
+# --- PRD-329 (D3) S1: CLOSED-C-TIER ONE-CLICK EVIDENCE. Inside a `tier-group`
+# `<details>` emitted WITHOUT `open`, `level-detail` and `chart-detail` carry
+# `open`, so one tier tap exposes card + LEVEL MAP + CHART; every A+/A/B card and
+# every card inside an OPEN C tier keeps today's bytes (R1/R2); no JS (R3).
+
+_S1_LOCK_HALT = dict(system_halted=True, outcome="NO_TRADE", permission=_LOCK_PERMISSION)
+_S1_STATES = {"stay_flat": dict(outcome="NO_TRADE"),
+              "locked": dict(outcome="NO_TRADE", permission=_LOCK_PERMISSION),
+              "halt_unlocked": _D1_HALT_UNLOCKED, "halt_locked": _S1_LOCK_HALT}
+_S1_LEVEL_OPEN = '<details open class="level-detail"><summary>LEVEL MAP ▶</summary>'
+_S1_CHART_OPEN = '<details open class="chart-detail"><summary>CHART ▶</summary>'
+
+
+def _s1_mixed() -> dict:  # AAA (A+) is the canonical primary, so tier-c is CLOSED
+    return _market_map({"AAA": _chartable("AAA", "A+"), "CCC": _chartable("CCC", "C")})
+
+
+@pytest.mark.parametrize("state", sorted(_S1_STATES))
+def test_prd329_closed_c_tier_evidence_opens_with_the_tier(state) -> None:
+    # T1 (R1): non-permitted states keep the `level-detail` wrapper; both nested
+    # wrappers carry `open` while the tier itself stays closed on load.
+    html = _d1_render(_run(**_S1_STATES[state]), _s1_mixed())
+    assert '<details class="tier-group" id="tier-c">' in html
+    card = _d1_card(html, "CCC")
+    assert _S1_LEVEL_OPEN in card and _S1_CHART_OPEN in card
+    assert '<details class="level-detail">' not in card
+    assert '<details class="chart-detail">' not in card
+    assert _charts_by_details_depth(html) == [0, 3]      # primary undisclosed; tier+level+chart
+    assert "<details open" not in _d1_card(html, "AAA")  # R2: A+ card untouched
+
+
+def test_prd329_closed_c_tier_permitted_chart_opens_without_level_wrapper() -> None:
+    # T2 (R1): TRADE PERMITTED emits no `level-detail`; `chart-detail` alone carries `open`.
+    html = _d1_render(_run(outcome="TRADE"), _s1_mixed())
+    assert ">TRADE PERMITTED<" in html
+    assert '<details class="tier-group" id="tier-c">' in html
+    card = _d1_card(html, "CCC")
+    assert "level-detail" not in card and _S1_CHART_OPEN in card
+    assert _charts_by_details_depth(html) == [0, 2]
+
+
+def test_prd329_open_tiers_and_high_grades_keep_closed_wrappers() -> None:
+    # T3-T6 (R2/R3), regression guards: open C tier siblings, A/B cards and
+    # `card-detail` never carry `open`; exactly the one pre-existing `<script`.
+    mm = _market_map({"CCC": _chartable("CCC", "C"), "DDD": _chartable("DDD", "C")})
+    html = _d1_render(_run(outcome="NO_TRADE"), mm)
+    assert '<details open class="tier-group" id="tier-c">' in html
+    assert "<details open" not in _d1_card(html, "DDD")
+    for state in _S1_STATES.values():
+        html = _d1_render(_run(**state), _market_map(
+            {"AAA": _chartable("AAA", "A+"), "BBB": _chartable("BBB", "B")}))
+        assert '<details open class="tier-group"' not in html  # no low tier at all
+        assert "<details open" not in html
+        assert html.count("<script") == 1
+    assert '<details open class="card-detail">' not in _d1_render(_run(outcome="NO_TRADE"), _s1_mixed())
