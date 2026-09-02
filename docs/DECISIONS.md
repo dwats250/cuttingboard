@@ -29,20 +29,32 @@ ranking, A1 chart, or candidate-selection logic changes.
 
 **Effect on prior rules (GOV-2 s10 propagation).**
 - PRD-321 R3 FAIL clause "or a non-permitted render showing any chart outside
-  disclosure" is NARROWED to exclude the single canonical primary-slot chart
-  (the `select_primary_card_symbol` winner). Ruling Q2 (one full chart,
-  secondary charts behind disclosure) is unchanged.
+  disclosure" is SUPERSEDED IN PART; current clause: "or a non-permitted
+  render showing any chart other than the single canonical primary-slot chart
+  outside disclosure" (the `select_primary_card_symbol` winner). Ruling Q2
+  (one full chart, secondary charts behind disclosure) is unchanged.
 - PRD-318 R4 "key candidate detail disclosure only from the existing
-  authoritative decision state" is NARROWED: the decision-state-keyed
-  `level-detail` disclosure still governs the compact ladder but no longer
-  wraps the primary-slot chart. R4's DOM-preservation FAIL line is unchanged.
+  authoritative decision state; preserve all candidate content in the DOM" is
+  SUPERSEDED IN PART; current sentence keys the compact-ladder disclosure
+  (`level-detail`) from the decision state and emits the primary-slot chart
+  outside it in every decision state. R4's DOM-preservation FAIL line is
+  unchanged.
 - PRD-304 R7 and PRD-324 R6/R9/R11 are unchanged; PRD-326 R3 applies the
-  existing lock-neutral presentation to every non-permitted render so an
-  undisclosed chart can never carry ENTRY/STOP action colours on a NO TRADE
-  board.
+  existing lock-neutral chart presentation to the one surface D1 exposes (the
+  primary chart on a non-permitted render) so it can never carry ENTRY/STOP
+  action colours on a NO TRADE or HALT board; ladders and secondary cards are
+  byte-unchanged.
 The current rule for each clause lives in `docs/prd_history/PRD-326.md`
 (PRIOR-RULE AMENDMENT); the superseded wording stays in PRD-321 / PRD-318 as
-history with an inline marker.
+history under a `SUPERSEDED IN PART` marker.
+
+**Open owner decision D1-Q1 (HELD for Dustin).** A C-grade canonical primary
+renders inside the collapsed C tier disclosure, which no change inside the
+card renderer can open. Option A: the tier wrapper carries `open` when it
+holds the canonical primary (one attribute, roughly 3 LOC at the call site).
+Option B: D1 visibility is narrowed to A+/A/B primaries. Sol's initial review
+(5f86f82, REJECT) surfaced this; the PRD specifies both and is held until
+ruled.
 
 **Why.** The 2026-09-01 dashboard recon measured zero charts on a 390x844
 first screen and traced the burial to these two rules (Stay Flat on 4 of the
