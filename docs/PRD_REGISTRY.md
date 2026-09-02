@@ -344,6 +344,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-324 | — | A1-C Intraday Session-Chart Consumer (intraday session-candle, consumer half) | IN PROGRESS | [PRD-324](prd_history/PRD-324.md) |
 | PRD-325 | — | A1-P STAY_FLAT observational alignment (hourly observation/decision split) | IN PROGRESS | [PRD-325](prd_history/PRD-325.md) |
 | PRD-326 | — | D1 primary chart observational visibility (dashboard renderer only) | IN PROGRESS | [PRD-326](prd_history/PRD-326.md) |
+| PRD-327 | — | Dashboard D2 above-fold context compression (VERDICT/TAPE/TODAY presentation only) | IN PROGRESS | [PRD-327](prd_history/PRD-327.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
