@@ -368,4 +368,5 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-328 | [docs/prd_history/PRD-328.confirmation2.codex.md](prd_history/PRD-328.confirmation2.codex.md) |
 | PRD-328 | [docs/prd_history/PRD-328.confirmation3.codex.md](prd_history/PRD-328.confirmation3.codex.md) |
 | PRD-328 | [docs/prd_history/PRD-328.confirmation4.codex.md](prd_history/PRD-328.confirmation4.codex.md) |
+| PRD-329 | [docs/prd_history/PRD-329.confirmation1.codex.md](prd_history/PRD-329.confirmation1.codex.md) |
 | PRD-315 | [docs/prd_history/PRD-315.impl-review.claude.md](prd_history/PRD-315.impl-review.claude.md) |
