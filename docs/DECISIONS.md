@@ -48,13 +48,22 @@ The current rule for each clause lives in `docs/prd_history/PRD-326.md`
 (PRIOR-RULE AMENDMENT); the superseded wording stays in PRD-321 / PRD-318 as
 history under a `SUPERSEDED IN PART` marker.
 
-**Open owner decision D1-Q1 (HELD for Dustin).** A C-grade canonical primary
-renders inside the collapsed C tier disclosure, which no change inside the
-card renderer can open. Option A: the tier wrapper carries `open` when it
-holds the canonical primary (one attribute, roughly 3 LOC at the call site).
-Option B: D1 visibility is narrowed to A+/A/B primaries. Sol's initial review
-(5f86f82, REJECT) surfaced this; the PRD specifies both and is held until
-ruled.
+**D1-Q1 ruled OPTION A (ruled: Dustin / HELM, 2026-09-01).** A C-grade
+canonical primary renders inside the collapsed C tier disclosure, which no
+change inside the card renderer can open (surfaced by Sol's initial review at
+5f86f82, REJECT/REQ-1). Ruling: a C-grade canonical primary remains eligible
+for the same observational primary-chart treatment as any A+/A/B primary;
+when the canonical primary resides inside a collapsed low-tier wrapper, that
+specific enclosing tier defaults OPEN (one `open` attribute, roughly 3 LOC at
+the call site); the tier remains manually collapsible; no secondary chart is
+opened; no secondary candidate receives primary-slot treatment; grade,
+verdict, permission, validation/invalidation, and decision authority are
+unchanged; this is solely the minimum container change under the ratified D1
+observational rule. Accepted narrow side effect: other candidate identities
+in that opened tier become visible. Not authorized: secondary chart opening,
+candidate-row redesign, C/D redesign, broader WATCHING changes. The Option B
+alternative (narrow D1 to A+/A/B primaries) is SUPERSEDED. Recorded in
+`docs/prd_history/PRD-326.md` (D1-Q1 RULING). Gate A not yet issued.
 
 **Why.** The 2026-09-01 dashboard recon measured zero charts on a 390x844
 first screen and traced the burial to these two rules (Stay Flat on 4 of the
