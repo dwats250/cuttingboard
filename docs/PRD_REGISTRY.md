@@ -345,6 +345,8 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-325 | — | A1-P STAY_FLAT observational alignment (hourly observation/decision split) | IN PROGRESS | [PRD-325](prd_history/PRD-325.md) |
 | PRD-326 | — | D1 primary chart observational visibility (dashboard renderer only) | IN PROGRESS | [PRD-326](prd_history/PRD-326.md) |
 | PRD-327 | — | Dashboard D2 above-fold context compression (VERDICT/TAPE/TODAY presentation only) | IN PROGRESS | [PRD-327](prd_history/PRD-327.md) |
+| PRD-328 | — | Dashboard D3: user-opened secondary tier evidence + SPY session first-class observation (renderer only) — packet-in-PRD-form; review-clean content at edf28d4 canonicalized to audits/dashboard-d3-material-packet-2026-09/ per Helm B1 ruling 2026-09-02; superseded by PRD-329; never implementation authority | DEPRECATED | [PRD-328](prd_history/PRD-328.md) |
+| PRD-329 | — | Dashboard D3 implementation: closed-C-tier one-click evidence (S1) + SPY session first-class observation (S2), renderer only | IN PROGRESS | [PRD-329](prd_history/PRD-329.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
@@ -362,4 +364,10 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-311 | [docs/prd_history/PRD-311.impl-review.codex.md](prd_history/PRD-311.impl-review.codex.md) |
 | PRD-312 | [docs/prd_history/PRD-312.impl-review.claude.md](prd_history/PRD-312.impl-review.claude.md) |
 | PRD-313 | [docs/prd_history/PRD-313.impl-review.claude.md](prd_history/PRD-313.impl-review.claude.md) |
+| PRD-328 | [docs/prd_history/PRD-328.confirmation1.codex.md](prd_history/PRD-328.confirmation1.codex.md) |
+| PRD-328 | [docs/prd_history/PRD-328.confirmation2.codex.md](prd_history/PRD-328.confirmation2.codex.md) |
+| PRD-328 | [docs/prd_history/PRD-328.confirmation3.codex.md](prd_history/PRD-328.confirmation3.codex.md) |
+| PRD-328 | [docs/prd_history/PRD-328.confirmation4.codex.md](prd_history/PRD-328.confirmation4.codex.md) |
+| PRD-329 | [docs/prd_history/PRD-329.confirmation1.codex.md](prd_history/PRD-329.confirmation1.codex.md) |
+| PRD-329 | [docs/prd_history/PRD-329.confirmation2.codex.md](prd_history/PRD-329.confirmation2.codex.md) |
 | PRD-315 | [docs/prd_history/PRD-315.impl-review.claude.md](prd_history/PRD-315.impl-review.claude.md) |

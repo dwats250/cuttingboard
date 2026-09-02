@@ -16,6 +16,70 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-09-02 — Gate A granted for PRD-329 (Dashboard D3: closed-C-tier one-click evidence + SPY session first-class observation) on reviewed head `37a4c0a` (ruled: Dustin / HELM)
+
+**Ruling (HELM, 2026-09-02).** Gate A is GRANTED for PRD-329 on the exact
+review-clean PRD SHA `37a4c0ac04f308a9498ca0bbe248c93bf4d4f387` (Sol
+downstream PRD review REJECT at f46383b, one consolidated correction, Sol
+confirmation #1 NOT CONFIRMED at 25aa144, bounded repair, confirmation #2
+CONFIRMED-CLEAN at 37a4c0a). The prior branch head `ff53f4e` is review-record
+bookkeeping only over the reviewed PRD.
+
+**Binding Gate-A envelope.** S1: closed C tier stays collapsed on page load;
+one tier tap exposes candidate + LEVEL MAP + CHART; nested disclosures remain
+individually collapsible; open C tiers and A+/A/B unchanged; native HTML, no
+JS. S2: SPY SESSION is first-class observational orientation before DETAILS /
+HISTORY; MARKET CONTROL STAYS in DETAILS / HISTORY; neutral SPY daily-bar
+chart and neutral SPY ladder from existing data only; observation subtree
+independent of permission / ranking / primary-selection state; same-symbol
+`setup-chart` + `spy-chart` co-occurrence intentional; SPY intraday DEFERRED.
+Ceilings: production `cuttingboard/delivery/dashboard_renderer.py` only, net
+LOC <= 80; test cone and test net LOC <= 340 exactly as PRD-329 records; no
+A1 / acquisition / persistence / provider / runtime / permission expansion.
+Authority is limited to PRD-329's recorded FILES, OUT OF SCOPE, ceilings,
+R1-R10, SUPERSESSION PROPAGATION table and VALIDATION as reviewed at
+37a4c0a; no substantive requirement, FAIL condition, test matrix, FILES
+entry, ceiling or Helm ruling changes with this record.
+
+**Effect.** Implementation authority is GRANTED BUT HELD: it becomes
+effective only after the Gate-A-bearing authority head merges to `main` via
+draft PR #303; merge remains Helm/ChatGPT only, never auto-merge. The GOV-2
+s10 SUPERSEDED IN PART propagations enumerated in PRD-329 land with the
+implementation, per the 2026-09-02 design-direction entry below.
+
+## 2026-09-02 — D3 design-direction ruling: GOV-2 two-artifact sequence restored (PRD-328 packet-in-PRD-form canonicalized; PRD-329 downstream); S1-Q1 APPROVED, S2-Q1 MARKET CONTROL STAY, S2-Q2 APPROVED, SPY intraday DEFERRED (ruled: Dustin / HELM)
+
+**Ruling (HELM, 2026-09-02).** B1: the canonical GOV-2 two-artifact sequence
+is required. The review-clean D3 design at `edf28d4` (authored in PRD form as
+PRD-328; Sol Event-1 REJECT at 4372b9e, one consolidated correction, Event-2
+confirmations at 4ca0013 / 2f7f054 / 1d6108a NOT CONFIRMED with shrinking
+residuals, CONFIRMED-CLEAN at edf28d4) is treated as the completed MATERIAL
+packet and canonicalized verbatim at
+`audits/dashboard-d3-material-packet-2026-09/`. PRD-328 must not become
+implementation authority; it is DEPRECATED (packet-in-PRD-form, superseded by
+PRD-329), files retained as provenance. Forward process correction only;
+PRD-326 / PRD-327 are not reopened.
+
+**Design-direction rulings (binding on PRD-329).** S1-Q1 APPROVED: for cards
+inside a CLOSED C tier only, nested LEVEL MAP and CHART carry `open`; the tier
+stays closed on load; one tap reveals card + level map + chart; open C tiers
+and A+/A/B tiers byte-unchanged. S2-Q1 MARKET CONTROL STAY: it remains inside
+DETAILS / HISTORY (permission/candidate-implication semantics are deep
+evidence; the observation is orientation). S2-Q2 APPROVED: PRD-321 ruling Q2
+is narrowed to CANDIDATE charts; the observational `class="spy-chart"` in the
+first-class SPY SESSION section is permitted outside disclosure; same-symbol
+co-occurrence (one `setup-chart` + one `spy-chart` for SPY) is intentional
+and never suppressed by ranking, primary selection, permission or decision
+state; the observational chart stays neutral. SPY INTRADAY remains DEFERRED
+(daily bars only; no A1 / acquisition / persistence / producer / consumer /
+freshness change).
+
+**Propagation.** The GOV-2 s10 SUPERSEDED IN PART notes enumerated in the
+packet's SUPERSESSION LEDGER (PRD-318 R1/R4/R5, PRD-321 Q2/R3, PRD-326
+D1-Q1/R1/R2, DECISIONS 2026-09-01 D1 sentence) land with PRD-329's
+Gate-A-bearing head, not with this entry; until then the prior rulings remain
+current.
+
 ## 2026-09-01 — D2-Q2 ruling: TAPE placeholder trend chips may be omitted only when zero rows are computed, lineage is healthy and the session is active; PRD-322 R4 SUPERSEDED IN PART via PRD-327 (ruled: Dustin / HELM)
 
 **Ruling (HELM, PRD-327 D2-Q2, 2026-09-01).** D2-Q2 = APPROVED. The six

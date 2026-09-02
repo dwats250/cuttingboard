@@ -1,0 +1,64 @@
+# Codex Event-2 exact-corrected-head confirmation — ATTEMPT 1
+
+```
+GOV-2 sec7 artifact. Confirmed head: 4ca0013. Invocation: codex exec -s read-only, captured verbatim from stdout 2026-09-02; original slot docs/prd_history/PRD-328.confirmation1.codex.md.
+VERDICT: NOT CONFIRMED (REQ-1 HELD; 3 residuals + 1 RECOMMENDED); repair 2f7f054.
+```
+
+---
+
+# PRD-328 Confirmation - Sol / Codex (narrow, exact-head)
+
+**Confirmed head:** 4ca0013b7b2a0453426babdc3027fe8df50178a6  **Prior review head:** 4372b9e  
+**Verdict:** NOT CONFIRMED
+
+The worktree was clean. The correction diff contains only `docs/prd_history/PRD-328.md`, `docs/prd_history/PRD-328.review.codex.md`, and `docs/PROJECT_STATE.md`, as commissioned.
+
+## Disposition table
+
+| Finding | Disposition | Evidence |
+|---|---|---|
+| REQ-1 | HELD | PRD-328 explicitly records the dispute as not self-resolved and held for Helm at `docs/prd_history/PRD-328.md:20-29`, `:36-37`, and `:472-477`. The precedent description is accurate: PRD-326 records initial review, correction, exact-head confirmation, and later Helm Gate A at `PRD-326.md:19-40` and `:65-78`; PRD-327 records the same sequence at `PRD-327.md:19-90` and `:123-137`. PRD-328 remains DESIGN, says Gate A is not granted, and infers no authority from the precedent. |
+| REQ-2 | RESOLVED | FILES and the prospective supersession ledger now cover PRD-318 R1/R4/R5, PRD-321 Q2/R3, PRD-326 D1-Q1/R1/R2, and the 2026-09-01 decision at `PRD-328.md:161-173` and `:508-522`. Each prior-clause quotation is an accurate full quote or accurately elided excerpt. No clause is presently double-ruled because the ledger says propagation lands only with the Gate-A-bearing head; the old rulings remain current until then. |
+| REQ-3 | RESOLVED | R5 gates map-derived output on `_mm_health == "OK"` and healthy lineage, identifies the daily-bars and market-map clocks separately, and adds both health and clock to R7's source cone at `PRD-328.md:355-399` and `:412-424`. The cited renderer locals and helpers are real at `dashboard_renderer.py:2444`, `:2482`, `:2646`, `:3137`, and `:558`. |
+| REQ-4 | NOT RESOLVED | R5 puts `market_map=None` in branch (b), but branch (a) runs first and such an input necessarily produces lineage and `_mm_health` of `MISSING`, making the stated `no SPY record` outcome and T13(b) expectation unreachable (`PRD-328.md:359-367`, `:569-573`; `dashboard_renderer.py:782-808`, `:1357-1378`, `:2415-2421`). Smallest fix: assign `market_map=None` to branch (a) and remove it from branch (b)/T13(b), or intentionally check record existence before health and state that precedence. |
+| REQ-5 | RESOLVED | The generic no-`<rect` oracle is gone. R5 and T11 now forbid `class="risk-zone"`, ENTRY/STOP text, and action colors at `PRD-328.md:392-396` and `:565-567`. |
+| REQ-6 | NOT RESOLVED | The A/B split is present, and every listed group-A case is genuinely red on the pre-PRD-328 renderer. However, group B says T15 is already green while S2-Q1 still permits MOVE; under MOVE, the MCC position assertion is change-driving and red (`PRD-328.md:446-455`, `:479-485`, `:579-589`). Smallest fix: keep MCC byte parity in group B, but classify its position test as group B only for STAY and group A for MOVE. |
+| REQ-7 | RESOLVED | `tests/test_preview_fixtures.py` is now in FILES and the expanded test ceiling at `PRD-328.md:98-103` and `:161-166`; T16 also requires updating `_EXPECTED_CASE_NAMES` at `:575-576`. |
+| REC-1 | NOT RESOLVED | The positive controls and one-variable-at-a-time comparisons are sound, and none of the five permitted input names trips the word list. The raw source oracle is nevertheless self-rejecting: R5 requires the keyword names `contract_entry`, `contract_stop`, and `operator_locked`, while R7 forbids all three in `inspect.getsource`; R7 also names `_render_spy_session(w, ...)` but rejects every parameter outside the five inputs (`PRD-328.md:376-377`, `:423-432`; `setup_chart.py:145-156`). Smallest fix: inspect AST variable reads rather than raw substrings, ignore keyword labels whose values are pinned literals, explicitly allow the output writer `w`, and separately assert the required `None`, `None`, and `False` call arguments. |
+| REC-2 | RESOLVED | S2-Q2 explicitly rules the same-symbol two-chart case and T17 pins exactly one candidate chart plus one observational chart at `PRD-328.md:486-501` and `:577-578`. |
+| REC-3 | RESOLVED | `docs/PROJECT_STATE.md:8` and `:46` now update only the date and active-work pointer, while explicitly retaining Gate A and implementation holds. |
+
+## New findings from the correction
+
+### REQUIRED 1 - R5 and T13 disagree about `market_map=None`
+
+Branch (a) necessarily captures this case as `MISSING` before branch (b) can emit `no SPY record`. The branches are mutually exclusive because they are ordered, and branches (b) through (e) are otherwise reachable, but the explicitly listed `market_map=None` subcase is assigned to an unreachable branch.
+
+### REQUIRED 2 - T14's source-cone oracle rejects the required implementation
+
+`render_setup_chart_svg` makes `contract_entry`, `contract_stop`, and `operator_locked` keyword-only at `cuttingboard/delivery/setup_chart.py:145-156`. R5 requires those exact keyword calls, while R7's raw word-list test forbids the same tokens. The permitted input names do not cause the collision; the mandated neutral-call syntax does. The signature rule also needs an explicit exception for the writer parameter `w`.
+
+### REQUIRED 3 - T15 is conditionally misfiled as pre-green
+
+Under the recommended STAY ruling, T15's position and byte checks are regression guards. Under the still-available MOVE ruling, only the byte check remains pre-green; the position check becomes change-driving. The validation grouping must be conditional on S2-Q1.
+
+### RECOMMENDED 1 - The new health recon omits a real return token
+
+The recon says `_market_map_source_health` returns `OK`, `MIXED`, `STALE`, `MISSING`, or `INACTIVE_SESSION` at `PRD-328.md:244`, but the helper also returns `INVALID` at `dashboard_renderer.py:1374-1375`. Add `INVALID` to the vocabulary and R5's unhealthy-state description.
+
+The supersession ledger otherwise checks clean. Its proposed rules separate open-tier and closed-tier behavior without conflict, and the PRD-327 four-`operator-zone` ruling remains untouched because `#spy-session` is not an `operator-zone`.
+
+All newly cited paths, existing symbols, and line locations were verified. `_render_spy_session` is intentionally a planned new helper, not falsely represented as an existing symbol. The cited market-map fields and helpers are real at `market_map.py:20`, `:310`, `:343`, and `:359`, and the cited renderer locals are within `render_dashboard_html`.
+
+## Blockers for Helm
+
+- B1 GOV-2 sequencing: unchanged. Helm must rule whether the PRD-as-packet precedent applies or require the canonical two-artifact sequence.
+- S2-Q1: unchanged. STAY or MOVE for MARKET CONTROL.
+- S2-Q2: unchanged. Approve or decline the candidate-chart narrowing and same-symbol chart co-occurrence.
+- S1-Q1: unchanged. Confirm or decline the closed-C-tier secondary-evidence supersession.
+- New correction blocker: reconcile the R5/T13 `market_map=None` precedence.
+- New correction blocker: replace T14's self-rejecting raw source oracle and explicitly allow `w`.
+- New correction blocker: make T15's group classification conditional on S2-Q1.
+
+Gate A remains held.
