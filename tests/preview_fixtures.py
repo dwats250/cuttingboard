@@ -19,9 +19,19 @@ Coverage and the pre-empted (dead-by-routing) states are enumerated in
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 
-from tests.dash_helpers import _macro_drivers, _market_map, _mm_symbol, _payload, _run
+from cuttingboard import config
+from tests.dash_helpers import (
+    _bars_snapshot,
+    _chartable,
+    _macro_drivers,
+    _market_map,
+    _mm_symbol,
+    _payload,
+    _run,
+)
 
 # A path that does not exist, so the macro-snapshot fallback yields {} and the
 # macro tape renders "NO LIVE MACRO DATA" instead of loading the real snapshot.
@@ -29,6 +39,13 @@ _MISSING_SNAPSHOT = Path("/nonexistent/cuttingboard/preview_macro_snapshot.json"
 
 _SUNDAY_PT_TS = "2026-04-12T17:00:00Z"  # Sunday in America/Los_Angeles
 _WEEKDAY_TS = "2026-04-28T12:00:00Z"    # Tuesday — the dash_helpers default
+# PRD-326: chart cases run on a Friday mid-session instant with a frozen `now`
+# one day after the bars' as_of, so the PRD-321 5-day age guard admits them.
+_D1_TS = "2026-08-28T13:00:00Z"
+_D1_NOW = datetime(2026, 8, 28, 14, 0, tzinfo=timezone.utc)
+_D1_CHART = 'class="setup-chart"'
+_D1_LEVEL_MAP = '<details class="level-detail"><summary>LEVEL MAP ▶</summary>'
+_D1_SECONDARY = '<details class="chart-detail">'
 
 
 @dataclass(frozen=True)
@@ -246,6 +263,39 @@ def section_state_cases() -> list[SectionStateCase]:
             market_map=_market_map({"SPY": _mm_symbol("SPY", grade="A+")}),
         )
     )
+
+    # 13-17. PRD-326 (D1) primary-chart matrix. PRIMARY CHART VISIBILITY IS
+    #        OBSERVATIONAL AND DOES NOT GRANT OR IMPLY TRADE PERMISSION: the single
+    #        canonical primary chart renders undisclosed in every decision state,
+    #        neutral when not permitted; the secondary chart stays behind disclosure.
+    def _d1_kwargs(*syms: str) -> dict:
+        return {"price_bars_snapshot": _bars_snapshot(symbols=syms), "now": _D1_NOW,
+                "contract_entry_map": {s: 102.5 for s in syms},
+                "contract_stop_map": {s: 99.8 for s in syms}}
+
+    def _d1_case(name: str, marker: str, run: dict, *extra: str, market_map: dict | None = None):
+        mm = market_map or _market_map({"SPY": _chartable("SPY", "A+"), "QQQ": _chartable("QQQ", "A")})
+        return _coherent(name, marker, ts=_D1_TS, run=run, market_map=mm,
+                         render_kwargs=_d1_kwargs(*mm["symbols"]), extra_markers=extra)
+
+    cases.append(_d1_case("primary_chart_stay_flat", _D1_CHART, _run(outcome="NO_TRADE"),
+                          ">STAY FLAT<", _D1_LEVEL_MAP, _D1_SECONDARY))
+    cases.append(_d1_case("primary_chart_locked", _D1_CHART,
+                          _run(outcome="NO_TRADE", permission=config.OPERATOR_LOCK_PERMISSION),
+                          ">OBSERVE ONLY<", _D1_LEVEL_MAP, _D1_SECONDARY))
+    cases.append(_d1_case("primary_chart_permitted", _D1_CHART, _run(outcome="TRADE"),
+                          ">TRADE PERMITTED<", _D1_SECONDARY))
+    # Stale map: market_map timestamp behind the run by more than the staleness
+    # window while a valid bars snapshot is supplied -> no card, no chart.
+    stale = _d1_case("market_map_stale_with_bars", "STALE MARKET MAP", _run(outcome="NO_TRADE"),
+                     ">STAY FLAT<")
+    stale.market_map["generated_at"] = "2026-08-28T12:00:00Z"   # an hour behind the run
+    cases.append(stale)
+    # D1-Q1 = OPTION A: a C-only chartable map makes the C card the canonical
+    # primary; its enclosing low-tier wrapper defaults open so the chart is visible.
+    cases.append(_d1_case("primary_chart_c_grade", '<details open class="tier-group" id="tier-c">',
+                          _run(outcome="NO_TRADE"), ">STAY FLAT<", _D1_CHART, _D1_LEVEL_MAP,
+                          market_map=_market_map({"SPY": _chartable("SPY", "C")})))
 
     return cases
 

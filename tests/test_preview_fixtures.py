@@ -4,13 +4,17 @@ R1 — every enumerated reachable section state has a catalog case.
 R2 — the harness writes only to non-ui paths, and every case is structurally
      unpublishable to ui/ (the publish gate fails closed).
 R4 — each case render contains its section-state marker.
+PRD-326 R8 — five primary-chart matrix cases; the harness and this module are
+     hermetic against a live `logs/intraday_bars_snapshot.json`.
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
 
+from cuttingboard.delivery import dashboard_renderer as _dr
 from cuttingboard.delivery.dashboard_renderer import (
     CoherentPublishError,
     _output_under_ui,
@@ -18,7 +22,8 @@ from cuttingboard.delivery.dashboard_renderer import (
     validate_coherent_publish,
 )
 from scripts.preview_fixtures import OUT_DIR, render_all
-from tests.preview_fixtures import SECTION_STATE_CASES
+from tests.dash_helpers import _intraday_snapshot
+from tests.preview_fixtures import _D1_NOW, SECTION_STATE_CASES
 
 # The reachable section states enumerated in docs/prd_history/PRD-179.md
 # (REALIZABILITY). This set is the R1 contract: a reachable state without a
@@ -35,9 +40,30 @@ _EXPECTED_CASE_NAMES = {
     "lineage_missing",
     "candidate_no_candidates",
     "healthy_baseline",
+    # PRD-326 (D1) primary-chart matrix (REALIZABILITY extended by PRD-326 R8)
+    "primary_chart_stay_flat",
+    "primary_chart_locked",
+    "primary_chart_permitted",
+    "market_map_stale_with_bars",
+    "primary_chart_c_grade",
 }
+_D1_CHART_CASES = ("primary_chart_stay_flat", "primary_chart_locked",
+                   "primary_chart_permitted", "primary_chart_c_grade")
+_D1_NO_CHART_CASES = ("healthy_baseline", "candidate_no_candidates",
+                      "market_map_stale_with_bars", "coherence_mixed")
+_HERMETIC_MISSING = Path("/nonexistent/cuttingboard/preview_intraday_bars_snapshot.json")
 
 _CASE_IDS = [c.name for c in SECTION_STATE_CASES]
+
+
+@pytest.fixture(autouse=True)
+def _hermetic_intraday_sidecar(monkeypatch):
+    # PRD-326 R8: never let a real/live A1-P sidecar reach a fixture render.
+    monkeypatch.setattr(_dr, "_INTRADAY_BARS_SNAPSHOT_PATH", _HERMETIC_MISSING)
+
+
+def _case(name: str):
+    return next(c for c in SECTION_STATE_CASES if c.name == name)
 
 
 def _render(case) -> str:
@@ -142,3 +168,30 @@ def test_harness_refuses_symlink_into_ui(tmp_path):
     with pytest.raises(SystemExit):
         render_all(out_dir=out_dir)
     assert target.read_text(encoding="utf-8") == "PUBLISH"  # publish tree untouched
+
+
+# --- PRD-326 R8: primary-chart matrix and sidecar hermeticity ---------------
+
+@pytest.mark.parametrize("name", _D1_CHART_CASES)
+def test_prd326_chart_case_renders_an_undisclosed_primary_chart(name):
+    html = _render(_case(name))
+    assert "<details" not in html.split('id="card-SPY"', 1)[1].split('class="setup-chart"', 1)[0]
+    assert "bars through 2026-08-27" in html                      # the daily caption
+
+
+@pytest.mark.parametrize("name", _D1_NO_CHART_CASES)
+def test_prd326_no_primary_cases_render_no_chart(name):
+    html = _render(_case(name))
+    assert 'class="setup-chart"' not in html and 'class="chart-caption"' not in html
+
+
+def test_prd326_harness_is_hermetic_against_a_live_intraday_sidecar(monkeypatch, tmp_path):
+    # M14: a planted, age-admitted sidecar whose primary_symbol equals the chart
+    # case's primary must NOT reach `render_all`; the case keeps its daily caption.
+    planted = tmp_path / "intraday_bars_snapshot.json"
+    planted.write_text(json.dumps(_intraday_snapshot(_D1_NOW, primary="SPY")), encoding="utf-8")
+    monkeypatch.setattr(_dr, "_INTRADAY_BARS_SNAPSHOT_PATH", planted)
+    render_all(out_dir=tmp_path / "out")
+    html = (tmp_path / "out" / "fixture_primary_chart_stay_flat.html").read_text(encoding="utf-8")
+    assert "bars through 2026-08-27" in html and "completed through" not in html
+    assert _dr._INTRADAY_BARS_SNAPSHOT_PATH == planted            # restored after rendering

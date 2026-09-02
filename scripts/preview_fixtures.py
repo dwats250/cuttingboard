@@ -20,6 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from cuttingboard.delivery import dashboard_renderer as _dr  # noqa: E402
 from cuttingboard.delivery.dashboard_renderer import (  # noqa: E402
     _output_under_ui,
     render_dashboard_html,
@@ -27,6 +28,8 @@ from cuttingboard.delivery.dashboard_renderer import (  # noqa: E402
 from tests.preview_fixtures import SECTION_STATE_CASES  # noqa: E402
 
 OUT_DIR = ROOT / "reports" / "output"
+# PRD-326 R8: fixture renders never read the live A1-P intraday sidecar.
+_HERMETIC_MISSING = Path("/nonexistent/cuttingboard/preview_intraday_bars_snapshot.json")
 
 
 def render_all(out_dir: Path = OUT_DIR) -> list[Path]:
@@ -49,29 +52,36 @@ def render_all(out_dir: Path = OUT_DIR) -> list[Path]:
         )
     out_dir.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
-    for case in SECTION_STATE_CASES:
-        html = render_dashboard_html(
-            case.payload,
-            case.run,
-            market_map=case.market_map,
-            fixture_mode=case.fixture_mode,
-            **case.render_kwargs,
-        )
-        if case.marker not in html:
-            raise SystemExit(f"FAIL: case {case.name!r} missing marker {case.marker!r}")
-        for extra in case.extra_markers:
-            if extra not in html:
-                raise SystemExit(f"FAIL: case {case.name!r} missing extra marker {extra!r}")
-        out = out_dir / f"fixture_{case.name}.html"
-        if _output_under_ui(out):
-            raise SystemExit(
-                f"FAIL: render_all refuses to write {out} — it resolves under ui/ "
-                "(e.g. a symlink into the publish tree); fixture output is "
-                "structurally barred from the publish tree (PRD-118 R5)."
+    # PRD-326 R8: hermetic against `logs/intraday_bars_snapshot.json` -- point
+    # the renderer at a guaranteed-missing sidecar for the duration of rendering.
+    _live_intraday_path = _dr._INTRADAY_BARS_SNAPSHOT_PATH
+    _dr._INTRADAY_BARS_SNAPSHOT_PATH = _HERMETIC_MISSING
+    try:
+        for case in SECTION_STATE_CASES:
+            html = render_dashboard_html(
+                case.payload,
+                case.run,
+                market_map=case.market_map,
+                fixture_mode=case.fixture_mode,
+                **case.render_kwargs,
             )
-        out.write_text(html, encoding="utf-8")
-        written.append(out)
-        print(f"  {case.name:24s} -> {out}  [{case.marker}]")
+            if case.marker not in html:
+                raise SystemExit(f"FAIL: case {case.name!r} missing marker {case.marker!r}")
+            for extra in case.extra_markers:
+                if extra not in html:
+                    raise SystemExit(f"FAIL: case {case.name!r} missing extra marker {extra!r}")
+            out = out_dir / f"fixture_{case.name}.html"
+            if _output_under_ui(out):
+                raise SystemExit(
+                    f"FAIL: render_all refuses to write {out} — it resolves under ui/ "
+                    "(e.g. a symlink into the publish tree); fixture output is "
+                    "structurally barred from the publish tree (PRD-118 R5)."
+                )
+            out.write_text(html, encoding="utf-8")
+            written.append(out)
+            print(f"  {case.name:24s} -> {out}  [{case.marker}]")
+    finally:
+        _dr._INTRADAY_BARS_SNAPSHOT_PATH = _live_intraday_path
     return written
 
 

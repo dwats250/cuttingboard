@@ -2312,6 +2312,13 @@ def _render_candidate_card(
         # REPLACES the daily chart in this one slot. Every non-admitted state -- no
         # session, or an empty intraday SVG -- falls through to the untouched daily
         # branch below byte-identically (R11).
+        # PRD-326 R3: the single canonical primary-slot chart is observational and
+        # renders undisclosed in every decision state, so on a non-permitted
+        # render it takes the existing lock presentation (LEVEL / INVALIDATION,
+        # grey). Chart-only: every other card has `chart_slot_available=False`,
+        # so this equals `operator_locked` there; the ladder and every directive
+        # stay keyed on `operator_locked` alone (R2).
+        chart_neutral = operator_locked or (chart_slot_available and not decision_permitted)
         chart_svg = ""
         chart_caption = bars_caption
         if chart_slot_available and intraday_session is not None:
@@ -2322,7 +2329,7 @@ def _render_candidate_card(
                 contract_stop=band_stop,
                 watch_zones=watch_zones,
                 fib_levels=fib_levels,
-                operator_locked=operator_locked,
+                operator_locked=chart_neutral,
                 max_bars=None,
             )
             if chart_svg:
@@ -2338,12 +2345,21 @@ def _render_candidate_card(
                 contract_stop=band_stop,
                 watch_zones=watch_zones,
                 fib_levels=fib_levels,
-                operator_locked=operator_locked,
+                operator_locked=chart_neutral,
             ) if bars else ""
-        if not decision_permitted:
-            w('  <details class="level-detail"><summary>LEVEL MAP ▶</summary>')
         if chart_svg:
             took_chart_slot = bool(chart_slot_available)
+        # PRD-326 R1 (PRD-321 R3 / PRD-318 R4 superseded in part): the primary-slot
+        # chart is emitted BEFORE the decision-state-keyed `level-detail` wrapper,
+        # undisclosed in every decision state; every other card's chart stays
+        # inside that wrapper behind `chart-detail` (R2). No placeholder (R4).
+        if took_chart_slot:
+            _render_setup_chart_block(
+                w, chart_svg, chart_caption, disclosed=not took_chart_slot
+            )
+        if not decision_permitted:
+            w('  <details class="level-detail"><summary>LEVEL MAP ▶</summary>')
+        if chart_svg and not took_chart_slot:
             _render_setup_chart_block(
                 w, chart_svg, chart_caption, disclosed=not took_chart_slot
             )
@@ -3183,7 +3199,9 @@ def render_dashboard_html(
                     )
                     is_low_tier = tier_grades.isdisjoint(_HIGH_GRADES)
                     if is_low_tier:
-                        w(f'  <details class="tier-group" id="tier-{tier_id}">')
+                        # PRD-326 D1-Q1 (Option A): the low tier holding the canonical primary opens.
+                        _open = " open" if _primary_card_symbol in tier_syms else ""
+                        w(f'  <details{_open} class="tier-group" id="tier-{tier_id}">')
                         w(f'    <summary class="tier-header">{_esc(_tier_label)} ({len(tier_syms)})</summary>')
                     else:
                         w(f'  <div class="tier-group" id="tier-{tier_id}">')

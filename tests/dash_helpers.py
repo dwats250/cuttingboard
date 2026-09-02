@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime, timedelta, timezone
 
 
 def _macro_drivers(
@@ -187,4 +188,57 @@ def _trade_decision(
         "decision_status": decision_status,
         "block_reason":   block_reason,
         "decision_trace": {"stage": trace_stage, "source": trace_source, "reason": trace_reason},
+    }
+
+
+# --- PRD-321 / PRD-326 chart-bearing recipe (SEAM 179-A: catalog builders live here) ---
+
+_PC_BARS = [
+    ["2026-08-19", 100.0, 102.0, 99.5, 101.5, 1_000],
+    ["2026-08-20", 101.5, 103.0, 101.0, 102.8, 1_100],
+    ["2026-08-21", 102.8, 103.5, 101.2, 101.4, 1_200],
+    ["2026-08-24", 101.4, 102.2, 100.1, 100.4, 1_300],
+    ["2026-08-25", 100.4, 101.0, 98.8, 99.2, 1_400],
+    ["2026-08-26", 99.2, 100.6, 98.2, 100.3, 1_500],
+    ["2026-08-27", 100.3, 102.4, 100.0, 102.2, 1_600],
+]
+
+
+def _bars_snapshot(as_of: str = "2026-08-27", symbols: tuple[str, ...] = ("SPY",)) -> dict:
+    """PRD-320 daily bars sidecar (``as_of`` within 5 UTC days of the render's ``now``)."""
+    return {
+        "schema_version": 1,
+        "generated_at": "2026-08-28T14:11:03+00:00",
+        "source": {"producer": "hourly", "provider": "yfinance",
+                   "interval": "1d", "adjusted": True},
+        "columns": ["date", "open", "high", "low", "close", "volume"],
+        "symbols": {sym: {"as_of": as_of, "bars": _PC_BARS} for sym in symbols},
+    }
+
+
+def _chartable(sym: str = "SPY", grade: str = "A+") -> dict:
+    """Market-map entry satisfying every chart precondition at the given grade."""
+    entry = _mm_symbol(sym, grade=grade)
+    entry["current_price"] = 101.8
+    entry["watch_zones"] = [{"type": "VWAP", "level": 101.5},
+                            {"type": "EMA9", "level": 100.9},
+                            {"type": "EMA50", "level": 99.4}]
+    entry["fib_levels"] = {"retracements": {"0.5": 100.7}}
+    return entry
+
+
+def _intraday_snapshot(now: datetime, primary: str = "SPY", n_bars: int = 10) -> dict:
+    """PRD-324 A1-P 1m sidecar ADMITTED for ``primary`` at ``now`` (14:00 UTC, EDT date)."""
+    anchor = now.astimezone(timezone.utc).replace(hour=13, minute=30, second=0, microsecond=0)
+    bars = [[(anchor + timedelta(minutes=i)).isoformat(), 100.0, 101.0, 99.0, 100.0, 10]
+            for i in range(n_bars)]
+    return {
+        "schema_version": 1,
+        "generated_at": (now - timedelta(minutes=5)).isoformat(),
+        "session_date": anchor.date().isoformat(),
+        "primary_symbol": primary,
+        "source": {"producer": "hourly", "provider": "yfinance",
+                   "interval": "1m", "adjusted": False},
+        "columns": ["ts", "Open", "High", "Low", "Close", "Volume"],
+        "symbols": {primary: {"through": bars[-1][0], "row_count": len(bars), "bars": bars}},
     }
