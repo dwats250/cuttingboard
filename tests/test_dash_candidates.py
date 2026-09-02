@@ -9,7 +9,16 @@ from cuttingboard.delivery.dashboard_renderer import (
 
 import pytest
 
-from tests.dash_helpers import _market_map, _mm_symbol, _payload, _run
+from tests.dash_helpers import (
+    _PC_BARS,
+    _bars_snapshot,
+    _chartable,
+    _intraday_snapshot,
+    _market_map,
+    _mm_symbol,
+    _payload,
+    _run,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -758,43 +767,12 @@ from cuttingboard.delivery import dashboard_renderer as _dr  # noqa: E402
 
 _NOW = datetime(2026, 8, 28, 14, 0, tzinfo=timezone.utc)
 
-_PC_BARS = [
-    ["2026-08-19", 100.0, 102.0, 99.5, 101.5, 1_000],
-    ["2026-08-20", 101.5, 103.0, 101.0, 102.8, 1_100],
-    ["2026-08-21", 102.8, 103.5, 101.2, 101.4, 1_200],
-    ["2026-08-24", 101.4, 102.2, 100.1, 100.4, 1_300],
-    ["2026-08-25", 100.4, 101.0, 98.8, 99.2, 1_400],
-    ["2026-08-26", 99.2, 100.6, 98.2, 100.3, 1_500],
-    ["2026-08-27", 100.3, 102.4, 100.0, 102.2, 1_600],
-]
-
 _LADDER_ROW = re.compile(
     r'<div class="lvl-row (?P<cls>[^"]+)">'
     r'<span class="lvl-name">(?P<name>[^<]*)</span>'
     r'<span class="lvl-px">(?P<px>[^<]*)</span>'
     r'<span class="lvl-pct">(?P<pct>[^<]*)</span></div>'
 )
-
-
-def _bars_snapshot(as_of: str = "2026-08-27", symbols: tuple[str, ...] = ("SPY",)) -> dict:
-    return {
-        "schema_version": 1,
-        "generated_at": "2026-08-28T14:11:03+00:00",
-        "source": {"producer": "hourly", "provider": "yfinance",
-                   "interval": "1d", "adjusted": True},
-        "columns": ["date", "open", "high", "low", "close", "volume"],
-        "symbols": {sym: {"as_of": as_of, "bars": _PC_BARS} for sym in symbols},
-    }
-
-
-def _chartable(sym: str = "SPY", grade: str = "A+") -> dict:
-    entry = _mm_symbol(sym, grade=grade)
-    entry["current_price"] = 101.8
-    entry["watch_zones"] = [{"type": "VWAP", "level": 101.5},
-                            {"type": "EMA9", "level": 100.9},
-                            {"type": "EMA50", "level": 99.4}]
-    entry["fib_levels"] = {"retracements": {"0.5": 100.7}}
-    return entry
 
 
 def _render(mm: dict, snapshot: dict | None = None, **kwargs) -> str:
@@ -926,15 +904,16 @@ def test_prd321_only_the_top_setup_gets_a_chart_outside_disclosure() -> None:
 
 
 def test_prd321_no_chart_sits_outside_disclosure_when_not_permitted() -> None:
-    # R3 FAIL line: the not-permitted `level-detail` wrapper is orthogonal to
-    # the new chart disclosure — under it every chart is behind a <details>.
+    # R3 FAIL clause as SUPERSEDED IN PART by PRD-326 A1: under a non-permitted
+    # render the single canonical primary-slot chart sits outside disclosure
+    # (depth 0, observational); every other chart stays behind the orthogonal
+    # `level-detail` wrapper AND its own `chart-detail` (depth 2).
     syms = ("AAA", "BBB")
     mm = _market_map({s: _chartable(s) for s in syms})
     html = _render(mm, _bars_snapshot(symbols=syms), run=_run(outcome="NO_TRADE"))
-    depths = _charts_by_details_depth(html)
-    assert len(depths) == 2
-    assert 0 not in depths
+    assert _charts_by_details_depth(html) == [0, 2]
     assert '<details class="level-detail">' in _pc_card(html, "AAA")
+    assert '<details class="chart-detail">' in _pc_card(html, "BBB")
     assert 'class="candidate-card grade-aplus candidate-observation"' in html
 
 
@@ -1048,3 +1027,214 @@ def test_prd321_low_grade_cards_also_degrade_to_the_compact_ladder() -> None:
     card = _pc_card(html, "XYZ")
     assert 'class="lvl-ladder' in card
     assert 'class="setup-chart"' not in card
+
+
+# --- PRD-326 (D1): PRIMARY CHART VISIBILITY IS OBSERVATIONAL AND DOES NOT GRANT
+# OR IMPLY TRADE PERMISSION. The "pre-D1 oracle" (R7) renders the same inputs with
+# `select_primary_card_symbol` returning None: no card takes the chart slot, so every
+# non-primary card and fallback surface keeps its pre-D1 bytes by construction.
+
+_D1_CONTRACTS = {"contract_entry_map": {"AAA": 102.5, "BBB": 102.5},
+                 "contract_stop_map": {"AAA": 99.8, "BBB": 99.8}}
+_D1_HALT_UNLOCKED = dict(system_halted=True, outcome="NO_TRADE")  # non-lock permission
+_D1_ZONES = ("verdict-zone", "staleness-banner", "system-state", "tape-zone", "today-zone")
+_D1_DIRECTIVE = re.compile(
+    r'<div class="label">(?:IF NOW|PLAY|IN →|OUT →|LEVEL|INVALIDATION)</div>'
+    r'<div class="[^"]*">[^<]*</div>'
+)
+
+
+def _d1_map() -> dict:
+    return _market_map({"AAA": _chartable("AAA", "A+"), "BBB": _chartable("BBB", "A")})
+
+
+def _d1_render(run: dict, mm: dict | None = None, *, bars: bool = True, **kwargs) -> str:
+    mm = mm if mm is not None else _d1_map()
+    snap = _bars_snapshot(symbols=tuple(mm["symbols"])) if bars else None
+    return _render(mm, snap, run=run, **kwargs)
+
+
+def _d1_oracle(run: dict, mm: dict | None = None, **kwargs) -> str:
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(_dr, "select_primary_card_symbol", lambda *a, **k: None)
+        return _d1_render(run, mm, **kwargs)
+
+
+def _d1_card(html: str, sym: str) -> str:
+    """Exactly one card: from its id to the card's own column-zero close tag."""
+    return html.split(f'id="card-{sym}"', 1)[1].split("\n</div>\n", 1)[0]
+
+
+def _d1_chart(card: str) -> str:
+    return card.split('class="setup-chart"', 1)[1].split("</svg>", 1)[0]
+
+
+def _assert_neutral(chart: str) -> None:
+    assert "LEVEL" in chart and "INVALIDATION" in chart
+    assert not re.search(r">ENTRY ", chart) and not re.search(r">STOP ", chart)
+    assert "#e0a552" not in chart and "#e05252" not in chart
+    assert "#6b7280" in chart
+
+
+# --- R1: undisclosed primary chart in every decision state -------------------
+
+def test_prd326_primary_chart_undisclosed_when_not_permitted() -> None:
+    # R1 FAIL line. M1 (wrapper opened above the chart), M3 (`disclosed=True`)
+    # and M8 (secondary disclosure keyed on permission) all go red here.
+    html = _d1_render(_run(outcome="NO_TRADE"))
+    assert 'decision-state sys-up">STAY FLAT<' in html
+    card = _d1_card(html, "AAA")
+    assert 'class="setup-chart"' in card
+    assert "<details" not in card.split('class="setup-chart"', 1)[0]
+    assert _charts_by_details_depth(html) == [0, 2]
+    assert '<details class="chart-detail">' not in card
+
+
+def test_prd326_primary_chart_precedes_level_detail() -> None:
+    # R1/R2: chart block, THEN the LEVEL MAP wrapper, THEN the ladder inside it
+    # (M2 emits the chart after the ladder inside the wrapper -> red).
+    card = _d1_card(_d1_render(_run(outcome="NO_TRADE")), "AAA")
+    i_chart = card.index('class="setup-chart"')
+    i_caption = card.index('class="chart-caption"')
+    i_wrap = card.index('<details class="level-detail"><summary>LEVEL MAP ▶</summary>')
+    i_ladder = card.index('class="lvl-ladder')
+    assert i_chart < i_caption < i_wrap < i_ladder
+    assert "</details>" not in card[i_chart:i_wrap]
+    assert card.rstrip().endswith("</details>")   # the ladder closes inside the wrapper
+
+
+def test_prd326_lock_render_primary_chart_undisclosed() -> None:
+    html = _d1_render(_run(outcome="NO_TRADE", permission=_LOCK_PERMISSION))
+    assert ">OBSERVE ONLY<" in html
+    card = _d1_card(html, "AAA")
+    assert "<details" not in card.split('class="setup-chart"', 1)[0]
+    assert '<details class="level-detail">' in card
+    assert _charts_by_details_depth(html) == [0, 2]
+
+
+def test_prd326_c_grade_primary_tier_opens() -> None:
+    # D1-Q1 = OPTION A: the low tier holding the canonical primary defaults OPEN;
+    # its secondary keeps `chart-detail` closed; a C tier without the primary
+    # keeps today's collapsed wrapper (M15 drops the attribute -> red).
+    mm = _market_map({"CCC": _chartable("CCC", "C"), "DDD": _chartable("DDD", "C")})
+    html = _d1_render(_run(outcome="NO_TRADE"), mm)
+    assert '<details open class="tier-group" id="tier-c">' in html
+    card = _d1_card(html, "CCC")
+    assert 'class="setup-chart"' in card
+    assert "<details" not in card.split('class="setup-chart"', 1)[0]
+    assert _charts_by_details_depth(html) == [1, 3]      # open tier; then tier+level+chart
+    assert '<details class="chart-detail">' in _d1_card(html, "DDD")
+    assert "<details open" not in _d1_card(html, "DDD")
+    mixed = _market_map({"AAA": _chartable("AAA", "A+"), "CCC": _chartable("CCC", "C")})
+    html2 = _d1_render(_run(outcome="NO_TRADE"), mixed)
+    assert '<details class="tier-group" id="tier-c">' in html2
+    assert "<details open" not in html2
+
+
+# --- R2/R3: everything else keeps today's bytes; the exposed chart is neutral --
+
+def test_prd326_secondary_and_ladder_byte_identical_when_not_permitted() -> None:
+    # M7 (ladder keyed on chart_neutral) and M10 (predicate without the
+    # chart_slot_available conjunct) both change bytes the oracle pins.
+    run = _run(outcome="NO_TRADE")
+    html, oracle = _d1_render(run, **_D1_CONTRACTS), _d1_oracle(run, **_D1_CONTRACTS)
+    assert 'class="setup-chart"' in _d1_card(html, "AAA")
+    assert '<details class="chart-detail">' in _d1_card(oracle, "AAA")  # oracle: no slot holder
+    assert _d1_card(html, "BBB") == _d1_card(oracle, "BBB")
+    assert "#e0a552" in _d1_chart(_d1_card(html, "BBB"))            # secondary keeps its palette
+    def ladder(h: str) -> str:
+        return _d1_card(h, "AAA").split('class="lvl-ladder', 1)[1]
+    assert ladder(html) == ladder(oracle)
+    assert "ENTRY" in _ladder_rows(_d1_card(html, "AAA"))            # ladder keyed on lock alone
+
+
+def test_prd326_non_permitted_primary_chart_is_neutral() -> None:
+    # R3 (M4): NO_TRADE, unlocked, contract prices present -> the newly exposed
+    # primary chart carries the PRD-304/321 lock presentation, nothing else.
+    card = _d1_card(_d1_render(_run(outcome="NO_TRADE"), **_D1_CONTRACTS), "AAA")
+    _assert_neutral(_d1_chart(card))
+
+
+def test_prd326_non_permitted_intraday_primary_chart_is_neutral(monkeypatch, tmp_path) -> None:
+    # R3 (M5): the admitted intraday session takes the slot and is neutral too.
+    path = tmp_path / "intraday_bars_snapshot.json"
+    path.write_text(json.dumps(_intraday_snapshot(_NOW, primary="AAA")), encoding="utf-8")
+    monkeypatch.setattr(_dr, "_INTRADAY_BARS_SNAPSHOT_PATH", path)
+    card = _d1_card(_d1_render(_run(outcome="NO_TRADE"), **_D1_CONTRACTS), "AAA")
+    assert "completed through 09:40 ET" in card
+    _assert_neutral(_d1_chart(card))
+
+
+def test_prd326_unlocked_halt_primary_chart_is_neutral() -> None:
+    # R3 (M11): system_halted with a NON-lock permission is not permitted, so the
+    # exposed chart is neutral while the unlocked directives stay (F4 not masked).
+    html = _d1_render(_run(**_D1_HALT_UNLOCKED), **_D1_CONTRACTS)
+    assert 'decision-state sys-halt">HALT<' in html
+    assert ">OBSERVE ONLY<" not in html
+    card = _d1_card(html, "AAA")
+    assert "<details" not in card.split('class="setup-chart"', 1)[0]
+    _assert_neutral(_d1_chart(card))
+    assert '<div class="label">IF NOW</div>' in card
+
+
+def test_prd326_directives_stay_keyed_on_lock() -> None:
+    # R2/R3 (M6): IF NOW, PLAY, the IN/OUT couplet and its actionable accent are
+    # keyed on the operator lock alone, even while the exposed chart is neutral.
+    mm = _d1_map()
+    mm["symbols"]["AAA"]["preferred_trade_structure"] = "BULL_CALL_SPREAD"
+    run = _run(outcome="NO_TRADE")
+    card = _d1_card(_d1_render(run, mm, **_D1_CONTRACTS), "AAA")
+    oracle = _d1_card(_d1_oracle(run, mm, **_D1_CONTRACTS), "AAA")
+    assert '<div class="label">IF NOW</div>' in card
+    assert '<div class="label">PLAY</div>' in card
+    assert '<div class="label">IN →</div>' in card and '<div class="label">OUT →</div>' in card
+    assert "value-actionable" in card
+    assert _D1_DIRECTIVE.findall(card) == _D1_DIRECTIVE.findall(oracle)
+    assert "#e0a552" not in _d1_chart(card)
+
+
+# --- R4: no primary / stale board -> unchanged, no placeholder ----------------
+
+def test_prd326_no_primary_renders_no_placeholder(monkeypatch) -> None:
+    run = _run(outcome="NO_TRADE")
+    html = _d1_render(run, bars=False, **_D1_CONTRACTS)
+    assert 'class="setup-chart"' not in html and "bars through" not in html
+    assert 'class="lvl-ladder' in _d1_card(html, "AAA")             # fallback ladder
+    assert 'class="lvl-riskband lvl-lockrisk"' not in html                # no lock palette
+    # M9: force the slot open with nothing honest to draw -> still no placeholder.
+    monkeypatch.setattr(_dr, "select_primary_card_symbol", lambda *a, **k: "AAA")
+    assert _d1_render(run, bars=False, **_D1_CONTRACTS) == html
+
+
+def test_prd326_stale_map_with_bars_renders_no_chart() -> None:
+    mm = _d1_map()
+    mm["generated_at"] = "2026-04-28T11:00:00Z"   # an hour behind the run: STALE
+    run = _run(outcome="NO_TRADE")
+    with_bars = _d1_render(run, mm, **_D1_CONTRACTS)
+    assert "STALE MARKET MAP" in with_bars
+    assert 'class="setup-chart"' not in with_bars and 'id="card-AAA"' not in with_bars
+    assert with_bars == _d1_render(run, mm, bars=False, **_D1_CONTRACTS)
+
+
+# --- R5: verdict, permission, and staleness authority are chart-invariant -----
+
+@pytest.mark.parametrize("run", [
+    _run(outcome="NO_TRADE"),
+    _run(outcome="NO_TRADE", permission=_LOCK_PERMISSION),
+    _run(outcome="TRADE"),
+    _run(**_D1_HALT_UNLOCKED),
+], ids=["stay_flat", "locked", "permitted", "halt_unlocked"])
+def test_prd326_verdict_zones_are_chart_invariant(run) -> None:
+    # M12 (caption text appended into #system-state) goes red here.
+    with_bars = _d1_render(run, **_D1_CONTRACTS)
+    without = _d1_render(run, bars=False, **_D1_CONTRACTS)
+    assert 'class="setup-chart"' in with_bars and 'class="setup-chart"' not in without
+    for zone in _D1_ZONES:
+        assert _top_block(with_bars, zone) == _top_block(without, zone), zone
+    for pattern in (
+        r'<div class="idle-summary candidate-scope">[^<]*</div>',
+        r'<(?:div|summary) class="tier-header">[^<]*</(?:div|summary)>',
+        r'<div class="candidate-card [^"]*" id="card-[A-Z]+">',
+        r'<div class="decision-state [^"]*">[^<]*</div>',
+    ):
+        assert re.findall(pattern, with_bars) == re.findall(pattern, without), pattern
