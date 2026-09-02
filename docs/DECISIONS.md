@@ -16,6 +16,37 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-09-02 — Gate A granted for PRD-329 (Dashboard D3: closed-C-tier one-click evidence + SPY session first-class observation) on reviewed head `37a4c0a` (ruled: Dustin / HELM)
+
+**Ruling (HELM, 2026-09-02).** Gate A is GRANTED for PRD-329 on the exact
+review-clean PRD SHA `37a4c0ac04f308a9498ca0bbe248c93bf4d4f387` (Sol
+downstream PRD review REJECT at f46383b, one consolidated correction, Sol
+confirmation #1 NOT CONFIRMED at 25aa144, bounded repair, confirmation #2
+CONFIRMED-CLEAN at 37a4c0a). The prior branch head `ff53f4e` is review-record
+bookkeeping only over the reviewed PRD.
+
+**Binding Gate-A envelope.** S1: closed C tier stays collapsed on page load;
+one tier tap exposes candidate + LEVEL MAP + CHART; nested disclosures remain
+individually collapsible; open C tiers and A+/A/B unchanged; native HTML, no
+JS. S2: SPY SESSION is first-class observational orientation before DETAILS /
+HISTORY; MARKET CONTROL STAYS in DETAILS / HISTORY; neutral SPY daily-bar
+chart and neutral SPY ladder from existing data only; observation subtree
+independent of permission / ranking / primary-selection state; same-symbol
+`setup-chart` + `spy-chart` co-occurrence intentional; SPY intraday DEFERRED.
+Ceilings: production `cuttingboard/delivery/dashboard_renderer.py` only, net
+LOC <= 80; test cone and test net LOC <= 340 exactly as PRD-329 records; no
+A1 / acquisition / persistence / provider / runtime / permission expansion.
+Authority is limited to PRD-329's recorded FILES, OUT OF SCOPE, ceilings,
+R1-R10, SUPERSESSION PROPAGATION table and VALIDATION as reviewed at
+37a4c0a; no substantive requirement, FAIL condition, test matrix, FILES
+entry, ceiling or Helm ruling changes with this record.
+
+**Effect.** Implementation authority is GRANTED BUT HELD: it becomes
+effective only after the Gate-A-bearing authority head merges to `main` via
+draft PR #303; merge remains Helm/ChatGPT only, never auto-merge. The GOV-2
+s10 SUPERSEDED IN PART propagations enumerated in PRD-329 land with the
+implementation, per the 2026-09-02 design-direction entry below.
+
 ## 2026-09-02 — D3 design-direction ruling: GOV-2 two-artifact sequence restored (PRD-328 packet-in-PRD-form canonicalized; PRD-329 downstream); S1-Q1 APPROVED, S2-Q1 MARKET CONTROL STAY, S2-Q2 APPROVED, SPY intraday DEFERRED (ruled: Dustin / HELM)
 
 **Ruling (HELM, 2026-09-02).** B1: the canonical GOV-2 two-artifact sequence
