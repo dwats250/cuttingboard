@@ -36,6 +36,11 @@ def parse(src):
     p["trend"] = grab(r'data-derivation="[^"]*">(.*?)</div>', t)
     p["trend_chips"] = grab(r'(<div class="tape-trend">.*?</div></div>)', t)
     p["trend_any"] = bool(re.search(r'tape-trend-row tape-slot (up|down|flat)', t))
+    # D2-Q2 (narrowed, Sol REQ-3): placeholder chips may leave the fold only when the
+    # unchanged deep #trend-structure block enumerates the curated symbols (ts-table
+    # present). Unhealthy lineage / inactive session render no table -> keep chips.
+    p["deep_enumerates"] = 'class="ts-table"' in src.split('id="trend-structure"', 1)[1]
+    p["keep_chips"] = p["trend_any"] or not p["deep_enumerates"]
     foot = grab(r'<div class="zone-grid tape-foot">(.*?)</div>\s*</div>\s*$', t)
     p["gex"] = grab(r'GEX · CONTEXT ONLY</div><div class="zone-value">(.*?)</div>', foot)
     p["gex_note"] = grab(r'GEX · CONTEXT ONLY</div><div class="zone-value">.*?</div><div class="zone-note">(.*?)</div>', foot) or ""
@@ -61,7 +66,9 @@ CSS_B = ("<style>"
  "#context-zone .zone-value{margin-top:0}"
  "#context-zone .tape-drivers{margin:3px 0 0 0}#context-zone .zone-note{margin-top:2px}"
  "#context-zone .tape-trend{margin-top:3px}"
- "#context-zone #today-zone{margin-top:5px;padding-top:5px;border-top:1px solid #222}"
+ "#context-zone #today-zone{margin-top:6px;padding-top:6px;border-top:1px solid #2a2a2a}"
+ "#context-zone .ctx-sub{color:#aaa;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}"
+ "#context-zone .ctx-cap-risk{color:#aaa;font-size:.75rem;letter-spacing:.05em}"
  "</style>")
 
 def verdict_block(p):
@@ -74,7 +81,10 @@ def verdict_block(p):
         o.append("  " + p["kill"])
     if p["perm"]:
         o.append("  " + p["perm"])
-    o.append(f'  <div class="{p["ctx_cls"]}">{p["regime"]} · <span class="value" id="cb-updated" data-updated-utc="{p["upd_iso"]}">{p["upd_txt"]}</span></div>')
+    # Sol confirmation revision: keep the regime line and the #cb-updated element
+    # byte-identical to base (no relocation); drop only the "UPDATED" label + sep.
+    o.append(f'  <div class="{p["ctx_cls"]}">{p["regime"]}</div>')
+    o.append(f'  <div class="value" id="cb-updated" data-updated-utc="{p["upd_iso"]}">{p["upd_txt"]}</div>')
     o += ["</div>", "</div>"]
     return "\n".join(x for x in o if x)
 
@@ -86,7 +96,7 @@ def concept_a(p):
     t += ["    " + p["drivers"], f'    <div class="zone-note">{p["pressure"]}</div>', "  </div>",
           '  <div class="tape-band">', '    <div class="tape-band-cap">TREND</div>',
           f'    <div class="zone-value" data-derivation="{p["trend_deriv"]}">{p["trend"]}</div>']
-    if p["trend_any"]:
+    if p["keep_chips"]:
         t.append("    " + p["trend_chips"])
     t += ["  </div>", '  <div class="zone-grid tape-foot">',
           f'    <div class="zone-item"><div class="label">GEX · CONTEXT ONLY</div><div class="zone-value">{p["gex"]}</div>' + (f'<div class="zone-note">{p["gex_note"]}</div>' if p["gex_note"] else "") + "</div>",
@@ -95,22 +105,23 @@ def concept_a(p):
           '<div class="block operator-zone" id="today-zone">', '  <h2>TODAY</h2>', '  <div class="zone-grid">', p["today_items"], "  </div>", "</div>"]
     return verdict_block(p) + "\n" + "\n".join(t) + "\n"
 
-def row(cap, val, extra=""):
-    return f'    <div class="ctx-row"><span class="ctx-cap">{cap}</span><span class="zone-value"{extra}>{val}</span></div>'
+def row(cap, val, extra="", cap_cls="ctx-cap"):
+    return f'    <div class="ctx-row"><span class="{cap_cls}">{cap}</span><span class="zone-value"{extra}>{val}</span></div>'
 
 def concept_b(p):
     t = ['<div class="block operator-zone" id="context-zone">',
          '  <h2>CONTEXT <span class="label">context only · independent facts</span></h2>',
-         '  <div class="ctx-group" id="tape-zone">']
+         '  <div class="ctx-group" id="tape-zone">', '    <div class="ctx-sub">TAPE</div>']
     if p["macro"] is not None:
-        t.append(row("MACRO", p["macro"]))
+        t.append(f'    <div class="zone-value">{p["macro"]}</div>')
     t += ["    " + p["drivers"], f'    <div class="zone-note">{p["pressure"]}</div>',
           row("TREND", p["trend"], f' data-derivation="{p["trend_deriv"]}"')]
-    if p["trend_any"]:
+    if p["keep_chips"]:
         t.append("    " + p["trend_chips"])
-    t.append(row("GEX · CTX ONLY", p["gex"] + (f' <span class="zone-note">{p["gex_note"]}</span>' if p["gex_note"] else "")))
+    t.append(row("GEX",p["gex"] + (f' <span class="zone-note">{p["gex_note"]}</span>' if p["gex_note"] else "")))
     t.append(row("PARTICIPATION", p["part"] + (f' <span class="zone-note">{p["part_note"]}</span>' if p["part_note"] else "")))
-    t += ["  </div>", '  <div class="ctx-group" id="today-zone">', row("EVENT RISK", p["event"])]
+    t += ["  </div>", '  <div class="ctx-group" id="today-zone">', '    <div class="ctx-sub">TODAY</div>',
+          row("EVENT RISK", p["event"], cap_cls="ctx-cap ctx-cap-risk")]
     if p["spy"]:
         st = grab(r'data-raw-state="([^"]*)"', p["spy"])
         tx = grab(r'data-raw-state="[^"]*">(.*?)</div>', p["spy"])
