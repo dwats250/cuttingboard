@@ -16,6 +16,55 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-09-02 — PRD-329 implemented: GOV-2 s10 SUPERSEDED IN PART propagations landed with the implementation head (ruled: Dustin / HELM, Gate A 2026-09-02)
+
+**What landed.** S1: inside a `tier-group` `<details>` emitted without `open`,
+`level-detail` and `chart-detail` carry `open`, so one tier tap on a collapsed
+C tier reveals candidate + LEVEL MAP + CHART; the tier itself stays collapsed
+on page load; native HTML, no JS. S2: `#spy-observation` renders once, in a
+first-class `<section class="spy-session-group" id="spy-session">` between
+`#watching-zone` and `#details-history`, with a neutral SPY daily-bar
+`spy-chart` and a neutral level ladder over the SPY market-map record under the
+PRD-329 R5 fail-closed ladder; MARKET CONTROL stays in DETAILS / HISTORY. No
+CSS was added: the PRD's "one `.spy-chart` CSS rule" delta estimate yielded to
+the binding no-observation byte-identity rule (R2/R4) and the two
+full-document golden guards outside the PRD's cone.
+
+**Resulting current rules (each quoted; PRD-329 is the sole current authority
+for each clause; the prior texts are marked SUPERSEDED IN PART in place):**
+- PRD-318 R1: "The top-level operator order is VERDICT -> TAPE -> TODAY ->
+  WATCHING -> SPY SESSION (first-class observational `section`, not an
+  `operator-zone`, present iff the daily observation is carried) ->
+  default-collapsed DETAILS / HISTORY."
+- PRD-318 R4 (as narrowed by PRD-326): "Key whether the `level-detail`
+  wrapper EXISTS only from the decision state; key its `open` attribute
+  additionally from closed-tier membership (R1). DOM-preservation FAIL
+  unchanged."
+- PRD-318 R5: "Details retains full Trend, Movement, Macro, GEX, Changes,
+  Scoreboard, diagnostics/provenance and Market Control; the SPY session
+  observation renders once, in the first-class SPY SESSION section."
+- PRD-321 ruling Q2: "one full CANDIDATE chart for the highest-priority
+  visible setup; secondary candidate charts behind native disclosure (the
+  enclosing closed tier counts as that disclosure); the single observational
+  `spy-chart` is the only permitted non-candidate chart outside disclosure,
+  including when its symbol is also the primary candidate (S2-Q2)."
+- PRD-321 R3: "secondary candidate charts behind `chart-detail`; the wrapper
+  may carry `open` only inside a closed `tier-group`. Depth-aware FAIL counts
+  `class="setup-chart"` only."
+- PRD-326 D1-Q1 bullet: "no secondary chart is automatically VISIBLE on page
+  load; inside a closed tier, `level-detail` and `chart-detail` carry `open`
+  so one tier tap reveals them (R1)."
+- PRD-326 R1 FAIL last clause: UNCHANGED as written (applies to an OPENED
+  tier; PRD-329 R1 applies inside a CLOSED tier).
+- PRD-326 R2: "Every non-primary card in an A+/A/B tier or in an OPEN C tier
+  is byte-identical to today; a non-primary card in a CLOSED C tier differs
+  only by the `open` attribute on `level-detail` and `chart-detail`."
+- DECISIONS 2026-09-01 D1 entry, sentence "Secondary candidate charts do not
+  open." — superseded by this cross-reference (not edited): "Secondary
+  candidate charts are not visible on page load; a closed tier's cards open
+  with their evidence on the operator's tier tap (PRD-329 R1)."
+- PRD-327 (D2) four full-weight `operator-zone` rule and seam tests: UNCHANGED.
+
 ## 2026-09-02 — Gate A granted for PRD-329 (Dashboard D3: closed-C-tier one-click evidence + SPY session first-class observation) on reviewed head `37a4c0a` (ruled: Dustin / HELM)
 
 **Ruling (HELM, 2026-09-02).** Gate A is GRANTED for PRD-329 on the exact

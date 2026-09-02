@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import ast as _ast
+import hashlib
+import inspect
 import json
 import os
 import re
@@ -29,6 +31,9 @@ from cuttingboard.delivery.dashboard_renderer import (
 from cuttingboard.delivery import dashboard_renderer as _dr
 from cuttingboard.delivery import gex_card as _gex
 from tests.dash_helpers import (
+    _PC_BARS,
+    _bars_snapshot,
+    _chartable,
     _macro_drivers,
     _macro_tape_block,
     _market_map,
@@ -5449,3 +5454,258 @@ def test_a1c_loader_never_raises_on_oserror(monkeypatch, tmp_path):  # R1/M19
 
     monkeypatch.setattr(pathlib.Path, "read_text", boom)
     assert _dr._load_intraday_bars_snapshot(p) is None  # OSError swallowed to None, never raised
+
+
+# ---------------------------------------------------------------------------
+# PRD-329 (D3) S2: SPY SESSION FIRST-CLASS OBSERVATION. The `#spy-observation`
+# subtree is the pure output of `_render_spy_session(...)` over five observational
+# inputs; MARKET CONTROL stays in DETAILS / HISTORY (S2-Q1 STAY); the SPY chart and
+# ladder are neutral and never suppressed by ranking / primary selection (S2-Q2).
+# ---------------------------------------------------------------------------
+
+_S2_NOW = datetime(2026, 8, 28, 14, 0, tzinfo=timezone.utc)
+_S2_LOCK = "No new trades permitted — operator cannot monitor."
+_S2_DEFAULT = object()
+_S2_MAP_LINE = '<div class="lvl-unavail">Chart and levels unavailable — market map {}</div>'
+_S2_KV_SHA = "9ce2c7dcc6f7ffbe42ae54271c7e82513aa10af5121357de448bf18b0440f97b"      # pre-PRD-329 kv-grid
+_S2_MCC_ONLY_SHA = "330eec12eafe1f23d81bd781b3a590f6e08a0d9930d84da1f5a75f377002d806"  # pre-PRD-329 DETAILS group
+
+
+def _s2_render(*, spy: bool = True, mm: object = _S2_DEFAULT, bars: bool = True,
+               run: dict | None = None, **kw) -> str:
+    payload = _payload()
+    if spy:
+        payload["sections"]["spy_observation"] = _spy_section()
+    if mm is _S2_DEFAULT:
+        mm = _market_map({"SPY": _chartable("SPY", "C")})
+    syms = tuple((mm or {}).get("symbols") or ()) or ("SPY",)
+    return render_dashboard_html(
+        payload, run or _run(outcome="NO_TRADE"), market_map=mm,
+        price_bars_snapshot=_bars_snapshot(symbols=syms) if bars else None, now=_S2_NOW, **kw)
+
+
+def _s2_obs(html: str) -> str:
+    """The `#spy-observation` block: from its id to its own column-zero close (the `_d1_card` convention)."""
+    return html.split('id="spy-observation"', 1)[1].split("\n</div>\n", 1)[0]
+
+
+def _s2_sha(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def test_prd329_spy_session_promoted_between_watching_and_details() -> None:
+    # T8/T10 (R4): first-class section strictly between the two seams; the
+    # observation no longer renders inside DETAILS; not an `operator-zone`.
+    html = _s2_render()
+    assert html.index('id="watching-zone"') < html.index('id="spy-session"') < html.index('id="details-history"')
+    assert ('<section class="spy-session-group" id="spy-session">\n  <h3>SPY SESSION</h3>\n'
+            '<div class="block" id="spy-observation">\n  <h2>SPY SESSION OBSERVATION</h2>') in html
+    details = html.split('id="details-history"', 1)[1]
+    assert 'id="spy-observation"' not in details and 'id="spy-session-details"' not in details
+    assert html.count("<h3>SPY SESSION</h3>") == 1 and html.count('id="spy-observation"') == 1
+    assert 'operator-zone" id="spy-session"' not in html
+    assert html.split('<details class="block operator-zone"', 1)[0].count('class="block operator-zone"') == 4
+
+
+def test_prd329_observation_kv_grid_bytes_unchanged() -> None:
+    # T9 (R4/R8), regression guard: the six rows move verbatim.
+    obs = _s2_obs(_s2_render())
+    kv = obs.split('<div class="kv-grid">', 1)[1].split("  </div>", 1)[0]
+    assert _s2_sha(kv) == _S2_KV_SHA
+    for row in ("SESSION", "STATE", "OBSERVED AT", "SESSION VWAP", "PRICE", "ORB"):
+        assert f'<div class="label">{row}</div>' in kv
+    assert 'data-raw-state="OBSERVED"' in kv and 'data-observed-at-utc="2026-04-28T13:34:00+00:00"' in kv
+
+
+def test_prd329_spy_chart_is_daily_neutral_with_named_clocks() -> None:
+    # T11 (R5/R8): `spy-chart` (never `setup-chart`) with no candidate semantics,
+    # even when a SPY contract exists; caption = bars caption + NOW market-map clock.
+    html = _s2_render(contract_entry_map={"SPY": 102.5}, contract_stop_map={"SPY": 99.8})
+    obs = _s2_obs(html)
+    assert obs.count('<div class="spy-chart"><svg') == 1 and 'class="setup-chart"' not in obs
+    svg = obs.split('class="spy-chart"', 1)[1].split("</svg>", 1)[0]
+    for bad in ('class="risk-zone"', "ENTRY", "STOP", "#e0a552", "#e05252"):
+        assert bad not in svg, bad
+    caption = obs.split('<div class="chart-caption">', 1)[1].split("</div>", 1)[0]
+    assert caption == "bars through 2026-08-27 · yfinance 1d · NOW per market map 2026-04-28T12:00:00Z"
+    assert "intraday" not in obs and "5m" not in obs
+    assert obs.index('class="spy-chart"') < obs.index('class="chart-caption"') < obs.index('class="lvl-ladder')
+    assert "ENTRY" in html.split('id="card-SPY"', 1)[1]  # positive control: the candidate chart is not neutral
+
+
+def test_prd329_spy_ladder_is_observational_only() -> None:
+    # T12 (R6): rows are NOW + zones + fibs, byte-equal to a direct neutral ladder
+    # over the same SPY map levels; no candidate class or word.
+    html = _s2_render(contract_entry_map={"SPY": 102.5}, contract_stop_map={"SPY": 99.8})
+    ladder = _s2_obs(html).split('class="lvl-ladder', 1)[1]
+    out: list[str] = []
+    rec = _chartable("SPY", "C")
+    _dr._render_level_ladder(out.append, 101.8, None, rec["fib_levels"], rec["watch_zones"], None,
+                             operator_locked=False)
+    assert "\n".join(out) in _s2_obs(html)
+    for name in ("NOW", "VWAP", "EMA9", "EMA50"):
+        assert f'<span class="lvl-name">{name}</span>' in ladder, name
+    for bad in ("lvl-entry", "lvl-stop", "lvl-riskband", "lvl-inrisk", "lvl-lockrisk", "lvl-neutral",
+                "lvl-locked", "ENTRY", "STOP", "INVALIDATION", "TRADE", "TRIGGER"):
+        assert bad not in ladder, bad
+    assert "102.00" not in ladder and "105.00" not in ladder   # observation VWAP / ORB never merged
+
+
+def test_prd329_spy_unavailable_when_market_map_unhealthy() -> None:
+    # T13(a) (R5): `_mm_health` != OK, including `market_map=None`, -> one honest line.
+    stale = _market_map({"SPY": _chartable("SPY", "C")})
+    stale["generated_at"] = "2026-04-28T10:00:00Z"   # two hours behind the run
+    for mm, token in ((None, "MISSING"), (stale, "STALE")):
+        obs = _s2_obs(_s2_render(mm=mm))
+        assert obs.count(_S2_MAP_LINE.format(token)) == 1, token
+        assert "<svg" not in obs and "lvl-ladder" not in obs and "spy-chart" not in obs
+        assert 'data-raw-state="OBSERVED"' in obs   # observation rows still render
+
+
+def test_prd329_spy_unavailable_when_healthy_map_lacks_spy_record() -> None:
+    # T13(b) (R5): reachable public shapes never raise; direct helper is `.get`-defensive.
+    no_symbols = _market_map()
+    del no_symbols["symbols"]
+    for mm in (_market_map({"QQQ": _chartable("QQQ", "C")}), _market_map(), no_symbols):
+        obs = _s2_obs(_s2_render(mm=mm))
+        assert obs.count(_S2_MAP_LINE.format("no SPY record")) == 1
+        assert "<svg" not in obs and "lvl-ladder" not in obs
+    for rec in (None, ["not", "a", "dict"], "SPY"):
+        out: list[str] = []
+        _dr._render_spy_session(out.append, _spy_section(), (_PC_BARS, "cap"), rec, "OK", False, "clock")
+        assert _S2_MAP_LINE.format("no SPY record") in "\n".join(out) and "<svg" not in "\n".join(out)
+    out = []
+    _dr._render_spy_session(out.append, _spy_section(), (_PC_BARS, "cap"),
+                            {"current_price": 101.8, "watch_zones": None, "fib_levels": None}, "OK", False, "c")
+    assert "<svg" in "\n".join(out) and 'class="lvl-ladder' in "\n".join(out)  # NOW-only ladder, no raise
+
+
+def test_prd329_spy_invalid_price_suppresses_chart_only() -> None:
+    # T13(c) (R5): the ladder's existing no-price line is the only chart-related output.
+    for bad in (None, float("nan"), float("inf"), -1.0, 0, True):
+        rec = _chartable("SPY", "C")
+        rec["current_price"] = bad
+        obs = _s2_obs(_s2_render(mm=_market_map({"SPY": rec})))
+        assert obs.count('<div class="lvl-unavail">Chart unavailable — no price data</div>') == 1, bad
+        assert "<svg" not in obs and "no bars for SPY" not in obs and "lvl-ladder" not in obs
+
+
+def test_prd329_spy_no_bars_keeps_the_ladder(monkeypatch) -> None:
+    # T13(d) (R5): bars absent, or an empty SVG, -> the named line and the ladder.
+    obs = _s2_obs(_s2_render(bars=False))
+    assert obs.count('<div class="lvl-unavail">Chart unavailable — no bars for SPY</div>') == 1
+    assert "<svg" not in obs and "spy-chart" not in obs and '<span class="lvl-name">NOW</span>' in obs
+    monkeypatch.setattr(_dr.setup_chart, "render_setup_chart_svg", lambda *a, **k: "")
+    assert _s2_obs(_s2_render()) == obs
+
+
+def test_prd329_observation_subtree_is_a_pure_function_of_observational_inputs() -> None:
+    # T14 (R7): positive controls, then one decision input at a time -> identical bytes.
+    base = _s2_obs(_s2_render())
+    for control in ('class="spy-chart"', "<svg", 'class="lvl-ladder', 'data-raw-state="OBSERVED"'):
+        assert control in base, control
+    for bad in ("PERMITTED", "TRADE", "NO TRADE", "GRADE", "ACTIONABLE", "TRIGGER"):
+        assert bad not in base, bad
+    variants = (dict(outcome="TRADE"), dict(outcome="NO_TRADE", permission=_S2_LOCK),
+                dict(system_halted=True, outcome="NO_TRADE"),
+                dict(system_halted=True, outcome="NO_TRADE", permission=_S2_LOCK))
+    for run in variants:
+        assert _s2_obs(_s2_render(run=_run(**run))) == base, run
+    assert _s2_obs(_s2_render(contract_entry_map={"SPY": 102.5}, contract_stop_map={"SPY": 99.8})) == base
+    # Observation state is an independent clock: PRE_OPEN / STALE do not suppress chart or ladder.
+    payload = _payload()
+    payload["sections"]["spy_observation"] = _spy_section(state="PRE_OPEN", session_vwap=None, current_price=None)
+    obs = _s2_obs(render_dashboard_html(payload, _run(outcome="NO_TRADE"),
+                                        market_map=_market_map({"SPY": _chartable("SPY", "C")}),
+                                        price_bars_snapshot=_bars_snapshot(), now=_S2_NOW))
+    assert 'class="spy-chart"' in obs and 'class="lvl-ladder' in obs and "UNAVAILABLE" in obs
+
+
+def test_prd329_spy_session_source_cone() -> None:
+    # T14 AST clause (R7): the helper reads no decision / permission / ranking state.
+    fn = _dr._render_spy_session
+    assert list(inspect.signature(fn).parameters) == [
+        "w", "spy_obs", "spy_bars", "spy_record", "mm_health", "unhealthy_lineage", "mm_clock_label"]
+    tree = _ast.parse(inspect.getsource(fn))
+    forbidden = {"_decision_state", "decision_state", "decision_permitted", "permission", "operator_locked",
+                 "system_state", "market_control_card", "contract_entry_map", "contract_stop_map",
+                 "_primary_card_symbol", "chart_slot_available"}
+    reads = [n.id for n in _ast.walk(tree) if isinstance(n, _ast.Name)]
+    reads += [n.attr for n in _ast.walk(tree) if isinstance(n, _ast.Attribute)]
+    assert not [r for r in reads if r in forbidden or r.startswith(("candidate_", "grade", "rank"))], reads
+    calls = {getattr(c.func, "attr", getattr(c.func, "id", None)): c
+             for c in _ast.walk(tree) if isinstance(c, _ast.Call)}
+    kws = {k.arg: k.value for k in calls["render_setup_chart_svg"].keywords}
+    for name, value in (("contract_entry", None), ("contract_stop", None), ("operator_locked", False)):
+        assert isinstance(kws[name], _ast.Constant) and kws[name].value is value, name
+    ladder = calls["_render_level_ladder"].args
+    assert all(isinstance(ladder[i], _ast.Constant) and ladder[i].value is None for i in (2, 5))
+
+
+def test_prd329_market_control_stays_in_details_with_unchanged_bytes() -> None:
+    # T15 / T15-mcc-only (R9): MCC never moves; observation-present renders drop the
+    # single-member DETAILS group; MCC-only renders keep today's wrapper bytes.
+    payload = _payload()
+    payload["sections"]["market_control_card"] = _mcc_section()
+    payload["sections"]["spy_observation"] = _spy_section()
+    html = render_dashboard_html(payload, _run(), market_map=_market_map())
+    assert html.index('id="details-history"') < html.index('id="market-control-card"')
+    details = html.split('id="details-history"', 1)[1]
+    assert 'id="spy-session-details"' not in details and "<h3>SPY SESSION</h3>" not in details
+    section = html.split('id="spy-session"', 1)[1].split("</section>", 1)[0]
+    assert "MARKET CONTROL" not in section and 'id="market-control-card"' not in section
+    mcc_only = _render_with_mcc(_mcc_section())
+    assert _mcc_block(html) == _mcc_block(mcc_only)
+    fragment = mcc_only.split('<section class="spy-session-group" id="spy-session-details">', 1)[1]
+    assert _s2_sha(fragment.split("</section>", 1)[0]) == _S2_MCC_ONLY_SHA
+    assert 'id="spy-session"' not in mcc_only and 'id="spy-observation"' not in mcc_only
+
+
+def test_prd329_spy_chart_never_suppressed_by_primary_selection(monkeypatch) -> None:
+    # T17 (R5 CO-OCCURRENCE): (i) SPY as C primary; (ii) another symbol primary;
+    # (iii) no primary at all; and every decision state -> exactly one `spy-chart`.
+    html = _s2_render()
+    assert '<details open class="tier-group" id="tier-c">' in html
+    assert html.count('class="setup-chart"') == 1 and html.count('class="spy-chart"') == 1
+    html = _s2_render(mm=_market_map({"AAA": _chartable("AAA", "A+"), "SPY": _chartable("SPY", "C")}))
+    assert html.count('class="spy-chart"') == 1
+    assert html.count('class="setup-chart"') == 2   # AAA primary + SPY's own secondary behind disclosure
+    assert html.index('class="setup-chart"') < html.index('id="card-SPY"')   # AAA holds the slot
+    spy_card = html.split('id="card-SPY"', 1)[1].split("\n</div>\n", 1)[0]   # closed C tier -> S1 `open`
+    assert '<details open class="chart-detail">' in spy_card and "spy-chart" not in spy_card
+    for run in (dict(outcome="TRADE"), dict(outcome="NO_TRADE", permission=_S2_LOCK)):
+        assert _s2_render(run=_run(**run)).count('class="spy-chart"') == 1
+    monkeypatch.setattr(_dr, "select_primary_card_symbol", lambda *a, **k: None)
+    html = _s2_render()
+    assert '<details open class="tier-group"' not in html            # no primary: tier stays closed
+    assert "spy-chart" not in html.split('id="card-SPY"', 1)[1].split("\n</div>\n", 1)[0]
+    assert html.count('class="spy-chart"') == 1
+
+
+def test_prd329_spy_session_call_site_guarded_only_by_observation_presence() -> None:
+    # T18 (R5 CALL-SITE RULE): exactly one call, under exactly one `If`, testing bare `_spy_obs`.
+    tree = _ast.parse(inspect.getsource(_dr.render_dashboard_html))
+    parents = {child: node for node in _ast.walk(tree) for child in _ast.iter_child_nodes(node)}
+    calls = [n for n in _ast.walk(tree)
+             if isinstance(n, _ast.Call) and getattr(n.func, "id", None) == "_render_spy_session"]
+    assert len(calls) == 1
+    node, ifs = calls[0], []
+    while node in parents:
+        node = parents[node]
+        if isinstance(node, _ast.If):
+            ifs.append(node)
+    assert len(ifs) == 1
+    assert isinstance(ifs[0].test, _ast.Name) and ifs[0].test.id == "_spy_obs"
+
+
+def test_prd329_preview_fixture_pins_the_promoted_block() -> None:
+    # T16: the `spy_session_observed` fixture renders the promoted block with chart + ladder.
+    from tests.preview_fixtures import SECTION_STATE_CASES
+    case = next(c for c in SECTION_STATE_CASES if c.name == "spy_session_observed")
+    html = render_dashboard_html(case.payload, case.run, market_map=case.market_map, **case.render_kwargs)
+    assert 'id="spy-session"' in html and html.count('class="spy-chart"') == 1
+    assert html.index('id="watching-zone"') < html.index('id="spy-session"') < html.index('id="details-history"')
+    assert _s2_sha(html.split('<div class="block operator-zone" id="watching-zone">', 1)[1]) == _S2_FIXTURE_SHA
+
+
+_S2_FIXTURE_SHA = "dccd1721213618ed2eb24357344ea7f88c1d27175b2f076730eef195c47c973f"  # implementation head

@@ -46,6 +46,8 @@ _EXPECTED_CASE_NAMES = {
     "primary_chart_permitted",
     "market_map_stale_with_bars",
     "primary_chart_c_grade",
+    # PRD-329 (D3) S2: promoted SPY SESSION observation with neutral chart + ladder
+    "spy_session_observed",
 }
 _D1_CHART_CASES = ("primary_chart_stay_flat", "primary_chart_locked",
                    "primary_chart_permitted", "primary_chart_c_grade")

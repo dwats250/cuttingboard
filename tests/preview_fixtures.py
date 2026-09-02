@@ -297,6 +297,22 @@ def section_state_cases() -> list[SectionStateCase]:
                           _run(outcome="NO_TRADE"), ">STAY FLAT<", _D1_CHART, _D1_LEVEL_MAP,
                           market_map=_market_map({"SPY": _chartable("SPY", "C")})))
 
+    # 18. PRD-329 (D3) S2: daily payload carrying `spy_observation`, a healthy map
+    #     with a SPY record and SPY bars -> the promoted first-class SPY SESSION
+    #     section (observation rows + neutral daily chart + neutral ladder) before
+    #     DETAILS / HISTORY, with SPY also the C-grade primary (S2-Q2 co-occurrence).
+    spy_case = _d1_case("spy_session_observed", 'id="spy-session"', _run(outcome="NO_TRADE"),
+                        ">STAY FLAT<", 'class="spy-chart"', 'class="lvl-ladder',
+                        market_map=_market_map({"SPY": _chartable("SPY", "C")}))
+    spy_case.payload["sections"]["spy_observation"] = {
+        "observed_symbol": "SPY", "intended_session_date": "2026-08-28", "timezone": "America/New_York",
+        "observed_at_utc": "2026-08-28T13:34:00+00:00", "state": "OBSERVED", "reason": None,
+        "session_vwap": 101.6, "current_price": 101.8, "price_vs_vwap": "ABOVE",
+        "orb": {"state": "FORMED", "trading_date": "2026-08-28", "observed_at_utc": "2026-08-28T13:35:00+00:00",
+                "orb_high": 102.1, "orb_low": 101.2, "reason": None},
+    }
+    cases.append(spy_case)
+
     return cases
 
 
