@@ -63,7 +63,10 @@ observational rule. Accepted narrow side effect: other candidate identities
 in that opened tier become visible. Not authorized: secondary chart opening,
 candidate-row redesign, C/D redesign, broader WATCHING changes. The Option B
 alternative (narrow D1 to A+/A/B primaries) is SUPERSEDED. Recorded in
-`docs/prd_history/PRD-326.md` (D1-Q1 RULING). Gate A not yet issued.
+`docs/prd_history/PRD-326.md` (D1-Q1 RULING). Gate A GRANTED 2026-09-01 on
+design head `5b5c936` (PRD-326 AUTHORITY ANCESTRY); implementation authority
+is effective only from the Gate-A-bearing head after design PR #299 merges;
+merge Helm-only.
 
 **Why.** The 2026-09-01 dashboard recon measured zero charts on a 390x844
 first screen and traced the burial to these two rules (Stay Flat on 4 of the
