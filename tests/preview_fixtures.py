@@ -301,3 +301,31 @@ def section_state_cases() -> list[SectionStateCase]:
 
 
 SECTION_STATE_CASES: list[SectionStateCase] = section_state_cases()
+
+
+# PRD-327 R4 / TEST STRATEGY 4: the mandatory partial-computed trend case (one
+# computed row, five `na`). Exported on its own rather than appended to
+# SECTION_STATE_CASES so tests/test_preview_fixtures.py's exact catalog set and
+# the R9 sixteen-fixture below-seam pins stay byte-unchanged; consumed by
+# tests/test_dashboard_d2_seam.py.
+def trend_structure_snapshot(computed: tuple[str, ...]) -> dict:
+    """Curated-six snapshot: `computed` symbols carry a BULLISH alignment, the
+    rest are shape-complete but NOT_COMPUTED. No generated_at, so the render is
+    time-independent (see trend_awaiting_data)."""
+    def _rec(sym: str) -> dict:
+        val = "ABOVE" if sym in computed else "NOT_COMPUTED"
+        return {"symbol": sym, "data_status": "OK", "current_price": 100.0, "vwap": 99.0,
+                "sma_50": 98.0, "sma_200": 95.0, "relative_volume": 1.0,
+                "price_vs_vwap": val, "price_vs_sma_50": val, "price_vs_sma_200": val,
+                "trend_alignment": "BULLISH" if sym in computed else "NOT_COMPUTED",
+                "entry_context": "SUPPORTIVE" if sym in computed else "NOT_COMPUTED"}
+    return {"schema_version": 1, "source": "trend_structure",
+            "symbols": {sym: _rec(sym) for sym in config.TREND_STRUCTURE_SYMBOLS}}
+
+
+TREND_PARTIAL_COMPUTED_CASE: SectionStateCase = _coherent(
+    "trend_partial_computed",
+    f'tape-trend-row tape-slot up"><span>{config.TREND_STRUCTURE_SYMBOLS[0]}</span><span>BULL</span>',
+    render_kwargs={"trend_structure_snapshot": trend_structure_snapshot((config.TREND_STRUCTURE_SYMBOLS[0],))},
+    extra_markers=(f'tape-trend-row tape-slot na"><span>{config.TREND_STRUCTURE_SYMBOLS[1]}</span>',),
+)
