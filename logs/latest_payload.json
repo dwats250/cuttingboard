@@ -1,46 +1,46 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.46625932387190305,
-      "level": 77619.0703125,
+      "change_pct": -0.8868143583639665,
+      "level": 76712.3203125,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.25325763180997435,
-      "level": 99.75800323486328,
+      "change_pct": -0.026060654491008577,
+      "level": 99.74500274658203,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -3.140180573740807,
-      "level": 4346.10009765625,
+      "change_pct": 0.9082965823679351,
+      "level": 4388.2998046875,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": 4.657061574094921,
-      "level": 90.79000091552734,
+      "change_pct": -1.323193897157548,
+      "level": 89.48999786376953,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 3.8303112900959286,
-      "change_pct": 0.7986470573497356,
+      "change_bps": 0.0,
+      "change_pct": 0.0,
       "level": 4.796000003814697,
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -4.628397236441273,
-      "level": 64.29000091552734,
+      "change_pct": 1.3464048981078935,
+      "level": 65.11000061035156,
       "symbol": "SI=F"
     },
     "volatility": {
-      "change_pct": 9.51742673614427,
-      "level": 16.34000015258789,
+      "change_pct": -0.12247677805948709,
+      "level": 16.309999465942383,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "live-20260902T032920Z",
+    "generation_id": "live-20260902T131317Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-09-02T03:29:20Z"
+    "timestamp": "2026-09-02T13:13:17Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -53,10 +53,17 @@
         "value": "NO_CANDIDATES"
       },
       "event": {
-        "events": null,
+        "events": [
+          {
+            "date": "2026-09-04",
+            "name": "Employment Situation (Nonfarm Payrolls)",
+            "time_et": "08:30",
+            "type": "NFP"
+          }
+        ],
         "expiring": false,
         "unavailable_reason": null,
-        "value": "no_scheduled_events"
+        "value": null
       },
       "invalidation": {
         "unavailable_reason": null,
@@ -64,14 +71,14 @@
       },
       "location": {
         "orb": {
-          "orb_high": 762.39990234375,
-          "orb_low": 761.1799926757812,
-          "reason": null,
-          "state": "FORMED"
+          "orb_high": null,
+          "orb_low": null,
+          "reason": "pre_open_prior_session",
+          "state": "PRE_OPEN"
         },
         "price_vs_vwap": null,
-        "reason": "observation_lag",
-        "state": "STALE"
+        "reason": "pre_open_prior_session",
+        "state": "PRE_OPEN"
       },
       "permission": {
         "value": "No new trades permitted \u2014 operator cannot monitor."
@@ -89,41 +96,41 @@
     "rejected": [
       {
         "detail": null,
-        "reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.38)",
+        "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)",
         "stage": "REGIME",
         "symbol": "REGIME"
       }
     ],
     "spy_observation": {
       "current_price": null,
-      "intended_session_date": "2026-09-01",
+      "intended_session_date": "2026-09-02",
       "observed_at_utc": "2026-09-01T19:59:00+00:00",
       "observed_symbol": "SPY",
       "orb": {
         "observed_at_utc": "2026-09-01T19:30:00+00:00",
-        "orb_high": 762.39990234375,
-        "orb_low": 761.1799926757812,
-        "reason": null,
-        "state": "FORMED",
-        "trading_date": "2026-09-01"
+        "orb_high": null,
+        "orb_low": null,
+        "reason": "pre_open_prior_session",
+        "state": "PRE_OPEN",
+        "trading_date": "2026-09-02"
       },
       "price_vs_vwap": null,
-      "reason": "observation_lag",
+      "reason": "pre_open_prior_session",
       "session_vwap": null,
-      "state": "STALE",
+      "state": "PRE_OPEN",
       "timezone": "America/New_York"
     },
     "top_trades": [],
     "trade_decision_detail": [],
     "validation_halt_detail": {
-      "reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.38)"
+      "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)"
     },
     "watch_summary_detail": null,
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.375,
-    "market_regime": "RISK_OFF",
+    "confidence": 0.125,
+    "market_regime": "NEUTRAL",
     "outcome": "NO_TRADE",
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
     "router_mode": "MIXED",

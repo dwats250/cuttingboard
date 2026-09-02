@@ -2,7 +2,7 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.048327137546468404,
+      "pct_change_decimal": -0.001062699256110561,
       "price": 141.0,
       "structure": "BREAKOUT",
       "symbol": "USO"
@@ -20,8 +20,8 @@
       "SLV"
     ]
   },
-  "generated_at": "2026-09-02T03:29:20Z",
-  "generation_id": "live-20260902T032920Z",
+  "generated_at": "2026-09-02T13:13:17Z",
+  "generation_id": "live-20260902T131317Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -35,7 +35,7 @@
   "session_date": "2026-09-02",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-09-02T03:29:20Z"
+    "run_at_utc": "2026-09-02T13:13:17Z"
   },
   "symbols": {
     "GDX": {
@@ -55,7 +55,7 @@
       },
       "grade": "B",
       "invalidation": [
-        "loses ORB_LOW with weak recovery",
+        "loses PRIOR_LOW with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
@@ -69,25 +69,20 @@
         "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
-      "reason_for_grade": "B: bullish pullback, regime mixed, near key level",
+      "reason_for_grade": "B: bullish pullback, regime aligned, near key level",
       "setup_state": "DEVELOPING",
       "structure": "PULLBACK",
       "symbol": "GDX",
       "trade_framing": {
         "direction": "LONG",
-        "downgrade": "wait if price loses ORB_LOW or structure turns choppy",
-        "entry": "hold above ORB_LOW with constructive follow-through",
+        "downgrade": "wait if price loses PRIOR_LOW or structure turns choppy",
+        "entry": "hold above PRIOR_LOW with constructive follow-through",
         "if_now": "WAIT",
         "setup": "metals bullish pullback",
         "trade_type": "call_spread",
         "upgrade": "improves on clean hold near key level with expanding participation"
       },
       "watch_zones": [
-        {
-          "context": "opening range low",
-          "level": 94.58,
-          "type": "ORB_LOW"
-        },
         {
           "context": "prior session low",
           "level": 94.49,
@@ -104,11 +99,6 @@
           "type": "VWAP"
         },
         {
-          "context": "opening range high",
-          "level": 96.05,
-          "type": "ORB_HIGH"
-        },
-        {
           "context": "prior session high",
           "level": 98.26,
           "type": "PRIOR_HIGH"
@@ -120,7 +110,7 @@
         }
       ],
       "what_to_look_for": [
-        "watch hold above ORB_LOW",
+        "watch hold above PRIOR_LOW",
         "look for higher low with expanding volume"
       ]
     },
@@ -171,19 +161,9 @@
           "type": "VWAP"
         },
         {
-          "context": "opening range low",
-          "level": 398.08,
-          "type": "ORB_LOW"
-        },
-        {
           "context": "trend base reference",
           "level": 398.2027,
           "type": "EMA50"
-        },
-        {
-          "context": "opening range high",
-          "level": 399.43,
-          "type": "ORB_HIGH"
         },
         {
           "context": "prior session high",
@@ -223,7 +203,7 @@
       },
       "grade": "C",
       "invalidation": [
-        "loses ORB_HIGH with weak recovery",
+        "loses VWAP with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
@@ -237,14 +217,14 @@
         "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
-      "reason_for_grade": "C: bullish range, regime mixed, near key level",
+      "reason_for_grade": "C: bullish range, regime aligned, near key level",
       "setup_state": "LOW_QUALITY",
       "structure": "RANGE",
       "symbol": "QQQ",
       "trade_framing": {
         "direction": "NEUTRAL",
         "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for clearer reaction around ORB_HIGH",
+        "entry": "wait for clearer reaction around VWAP",
         "if_now": "WAIT",
         "setup": "index low-quality range",
         "trade_type": "none",
@@ -252,19 +232,9 @@
       },
       "watch_zones": [
         {
-          "context": "opening range high",
-          "level": 708.04,
-          "type": "ORB_HIGH"
-        },
-        {
           "context": "session vwap",
           "level": 706.8114,
           "type": "VWAP"
-        },
-        {
-          "context": "opening range low",
-          "level": 706.21,
-          "type": "ORB_LOW"
         },
         {
           "context": "trend base reference",
@@ -293,7 +263,7 @@
         }
       ],
       "what_to_look_for": [
-        "watch hold above ORB_HIGH",
+        "watch hold above VWAP",
         "look for higher low with expanding volume"
       ]
     },
@@ -344,23 +314,13 @@
           "type": "VWAP"
         },
         {
-          "context": "opening range low",
-          "level": 58.2401,
-          "type": "ORB_LOW"
-        },
-        {
           "context": "trend base reference",
           "level": 58.5458,
           "type": "EMA50"
         },
         {
-          "context": "opening range high",
-          "level": 58.6,
-          "type": "ORB_HIGH"
-        },
-        {
           "context": "prior session high",
-          "level": 59.0621,
+          "level": 59.06,
           "type": "PRIOR_HIGH"
         },
         {
@@ -387,7 +347,7 @@
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
-        "loses ORB_LOW with weak recovery",
+        "loses VWAP with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
@@ -408,23 +368,13 @@
       "trade_framing": {
         "direction": "NEUTRAL",
         "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for cleaner structure around ORB_LOW",
+        "entry": "wait for cleaner structure around VWAP",
         "if_now": "WAIT",
         "setup": "index choppy structure",
         "trade_type": "none",
         "upgrade": "improves with cleaner directional structure near a key level"
       },
       "watch_zones": [
-        {
-          "context": "opening range low",
-          "level": 761.18,
-          "type": "ORB_LOW"
-        },
-        {
-          "context": "opening range high",
-          "level": 762.3999,
-          "type": "ORB_HIGH"
-        },
         {
           "context": "session vwap",
           "level": 761.1112,
@@ -457,7 +407,7 @@
         }
       ],
       "what_to_look_for": [
-        "watch hold above ORB_LOW",
+        "watch hold above VWAP",
         "look for higher low with expanding volume"
       ]
     },
@@ -512,19 +462,9 @@
           "type": "VWAP"
         },
         {
-          "context": "opening range high",
-          "level": 64.95,
-          "type": "ORB_HIGH"
-        },
-        {
           "context": "prior session high",
           "level": 64.95,
           "type": "PRIOR_HIGH"
-        },
-        {
-          "context": "opening range low",
-          "level": 64.465,
-          "type": "ORB_LOW"
         },
         {
           "context": "prior session low",
