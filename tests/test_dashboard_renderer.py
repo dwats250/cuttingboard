@@ -450,7 +450,7 @@ def test_coherent_generation_ids_preserve_active_setup_behavior() -> None:
     html = render_dashboard_html(payload, run, market_map=mm)
 
     assert "MIXED_ARTIFACTS" not in html
-    assert ">UPDATED</div>" in html
+    assert 'id="cb-updated"' in html  # PRD-327 R1/R2: the UPDATED label left the fold
 
 
 def test_dashboard_render_preserves_decision_fields_byte_equal() -> None:
@@ -762,8 +762,9 @@ def _updated_value(state: str) -> str:
     data-updated-utc for the client-side staleness banner), so parse past the
     class token to the tag close rather than matching 'class="value">' literally.
     """
-    after = state.split(">UPDATED</div>", 1)[1]
-    after_value = after.split('class="value"', 1)[1]
+    # PRD-327 R1: the "UPDATED" label element is gone; the timestamp value is
+    # the only class="value" element inside #system-state.
+    after_value = state.split('class="value"', 1)[1]
     return after_value.split(">", 1)[1].split("</div>", 1)[0]
 
 
@@ -776,7 +777,7 @@ def test_system_state_contains_updated_timestamp() -> None:
     # PRD-219: one absolute UPDATED line replaces RUN SNAPSHOT/LIVE STATE/SCOREBOARD.
     html = render_dashboard_html(_payload(), _run())
     state = _system_state_block(html)
-    assert ">UPDATED</div>" in state
+    assert 'id="cb-updated"' in state  # PRD-327 R2: label removed, value element stays
 
 
 @pytest.mark.parametrize(
@@ -983,7 +984,7 @@ def test_prd279_halted_shows_decision_state_halt() -> None:
     run = _run(system_halted=True)
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert '<div class="decision-state-label">DECISION STATE</div>' in state
+    assert "decision-state-label" not in state  # PRD-327 R1: caption removed
     assert 'class="decision-state sys-halt">HALT</div>' in state
 
 
@@ -5144,8 +5145,13 @@ def test_prd322_trend_chips_render_in_curated_order_in_the_tape() -> None:
 
 def test_prd322_degraded_trend_rows_render_dash_only_in_the_tape() -> None:
     # R4 rendered path: the na row shape. Mutation: emit partial arrows -> red.
+    # PRD-327 D2-Q2: an all-na strip under healthy lineage in an active session
+    # is suppressed (tests/test_dashboard_d2_seam.py), so render the inactive
+    # session, where PRD-322 R4's six na chips remain mandatory.
+    _inactive = _payload()
+    _inactive["meta"]["session_type"] = "SUNDAY_PREMARKET"
     tape = _prd322_tape(render_dashboard_html(
-        _payload(), _run(), market_map=_market_map(),
+        _inactive, _run(), market_map=_market_map(),
         trend_structure_snapshot=_prd322_ts_snapshot(
             trend_alignment="DATA_UNAVAILABLE", price_vs_sma_50="DATA_UNAVAILABLE",
             price_vs_sma_200="DATA_UNAVAILABLE", price_vs_vwap="DATA_UNAVAILABLE",
@@ -5211,15 +5217,15 @@ def test_prd322_participation_absence_is_stated_in_the_tape() -> None:
 
 
 def test_prd322_tape_band_structure_and_zone_set_are_preserved() -> None:
-    # R6: two labeled bands separated by the board's own `.sep` rule, the
-    # availability footer last, and the four-zone set untouched.
+    # R6 (superseded in part by PRD-327 R4): two labeled bands with no `.sep`
+    # dividers, the availability footer last, and the four-zone set untouched.
     html = _prd322_healthy_render()
     tape = _prd322_tape(html)
     assert tape.index('<div class="tape-band-cap">MACRO</div>') < tape.index(
         '<div class="tape-band-cap">TREND</div>')
     assert tape.index('<div class="tape-band-cap">TREND</div>') < tape.index(
         '<div class="zone-grid tape-foot">')
-    assert tape.count('<div class="sep"></div>') == 2
+    assert tape.count('<div class="sep"></div>') == 0
     assert tape.index('class="tape-drivers"') < tape.index('class="zone-note"')
     before_details = html.split('<details class="block operator-zone"', 1)[0]
     assert before_details.count('class="block operator-zone"') == 4

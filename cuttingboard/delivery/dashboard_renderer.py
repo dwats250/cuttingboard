@@ -889,8 +889,6 @@ _CSS = (
     # PRD-279: Decision State Header -- prominent HALT/STAY FLAT/TRADE
     # PERMITTED label above the existing sys-verdict line. Reuses the
     # sys-up/sys-down/sys-flat/sys-halt colour classes for consistency.
-    ".decision-state-label{color:#888;font-size:0.7rem;text-transform:uppercase;"
-    "letter-spacing:0.08em;margin-bottom:2px}"
     ".decision-state{font-weight:bold;font-size:1.4rem;letter-spacing:0.02em}"
     ".decision-state.sys-up{color:#4caf50}"
     ".decision-state.sys-down{color:#f44336}"
@@ -1026,9 +1024,10 @@ _CSS = (
     "gap:1px 12px;margin-top:5px;font-size:.72rem}"
     ".tape-trend-row{display:grid;grid-template-columns:4ch 4ch 4ch 5ch 2ch;column-gap:5px}"
     ".tape-foot{margin-top:2px;opacity:.72}"
+    ".tape-band+.tape-band,.tape-band+.tape-foot{margin-top:6px}"
     "#verdict-zone{border-color:#3a3a3a}"
     "#verdict-zone #system-state.block{border:0;margin:0;padding:0}"
-    "#system-state>h2{margin-bottom:.45rem}"
+    "#system-state>h2{margin-bottom:.3rem}"
     "#staleness-banner{border:1px solid currentColor;border-radius:3px;padding:5px 8px;margin-bottom:8px;font-size:.72rem;letter-spacing:.04em}"
     ".verdict-warning{border-left:3px solid #ff9800;color:#ff9800;padding:6px 8px;margin-bottom:8px}"
     "#watching-zone .operator-subsection{padding-top:10px;margin-top:10px;border-top:1px solid #222}"
@@ -2742,7 +2741,6 @@ def render_dashboard_html(
     except Exception:
         _title_display = "STATE UNAVAILABLE"
     _verb_text = "Operator locked: cannot monitor" if operator_locked else regime_permission_text
-    w('  <div class="decision-state-label">DECISION STATE</div>')
     w(f'  <div class="decision-state {_decision_state_cls}">{_esc(_decision_state)}</div>')
     w(f'  <div class="sys-verdict {_verdict_cls}" data-raw-title="{_esc(title)}">'
       f'{_esc(_verb_text)} · {_esc(_title_display)}</div>')
@@ -2829,7 +2827,6 @@ def render_dashboard_html(
         w('  <div class="sys-context halted">Kill switch active</div>')
     if isinstance(permission, str) and permission.strip():
         w(f'  <div class="sys-permission">{_esc(permission)}</div>')
-    w('  <div class="sep"></div>')
     # PRD-219: one absolute Pacific timestamp replaces the three relative
     # RUN SNAPSHOT / LIVE STATE / SCOREBOARD freshness lines. It reads the
     # PIPELINE run timestamp (PRD-189 source), not the payload's — so a frozen
@@ -2849,7 +2846,6 @@ def render_dashboard_html(
     _updated_display = _operator_timestamp(
         _pipeline_run_ts or payload_timestamp_value or timestamp or ""
     )
-    w('  <div class="label">UPDATED</div>')
     w(f'  <div class="value" id="cb-updated" data-updated-utc="{_esc(_updated_iso)}">'
       f'Updated {_esc(_updated_display)}</div>')
     w("</div>")  # #system-state
@@ -2896,10 +2892,10 @@ def render_dashboard_html(
     w('    <div class="tape-drivers">' + "".join(_driver_cells) + "</div>")
     w(f'    <div class="zone-note">{_esc(_pressure_note(pressure))}</div>')
     w('  </div>')
-    w('  <div class="sep"></div>')
     w('  <div class="tape-band">')
     w('    <div class="tape-band-cap">TREND</div>')
     _trend_summary, _trend_derivation = _tape_trend_summary(_ts_records, _ts_health)
+    _trend_rows = _build_trend_chips(_ts_records)
     w(f'    <div class="zone-value" data-derivation="{_esc(_trend_derivation)}">'
       f'{_esc(_trend_summary)}</div>')
     _trend_cells = [
@@ -2907,11 +2903,21 @@ def render_dashboard_html(
         f'<span>{_esc(_sym)}</span><span>{_esc(_align)}</span>'
         f'<span>{_esc(_c50)}</span><span>{_esc(_c200)}</span>'
         f'<span>{_esc(_vwap)}</span></div>'
-        for _sym, _align, _c50, _c200, _vwap, _cls in _build_trend_chips(_ts_records)
+        for _sym, _align, _c50, _c200, _vwap, _cls in _trend_rows
     ]
-    w('    <div class="tape-trend">' + "".join(_trend_cells) + "</div>")
+    # PRD-327 D2-Q2 (Helm ruling 2026-09-01): the six placeholder chips leave
+    # the fold only when zero rows are computed under healthy lineage in an
+    # active session -- exactly the branch where the unchanged DETAILS
+    # #trend-structure table enumerates the curated symbols. Any computed
+    # row, unhealthy lineage or inactive session keeps all six chips (PRD-322 R4).
+    _chips_visible = (
+        any(_cls in _TAPE_ALIGN_CSS.values() for *_row, _cls in _trend_rows)
+        or unhealthy_lineage
+        or inactive_session
+    )
+    if _chips_visible:
+        w('    <div class="tape-trend">' + "".join(_trend_cells) + "</div>")
     w('  </div>')
-    w('  <div class="sep"></div>')
     # PRD-322 R5: absence is stated, never silent. Both rows keep one shape
     # across present/absent so the GEX decision-invariance regex strips exactly
     # one row from each document.
