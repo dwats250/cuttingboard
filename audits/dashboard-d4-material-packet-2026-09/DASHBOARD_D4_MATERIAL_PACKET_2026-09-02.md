@@ -1,23 +1,28 @@
 # Dashboard D4 - Proto-B primary-path synthesis + SPY chart LEVELS control - MATERIAL design packet
 
 ```
-STATUS: PROVISIONAL MATERIAL PACKET - 2026-09-02 - DESIGN ONLY
-GOV-2 PACKET-REVIEW CYCLE: EVENT 1 (Sol/Codex, fresh context, HIGH) PENDING.
+STATUS: CORRECTED MATERIAL PACKET - 2026-09-02 - DESIGN ONLY
+GOV-2 PACKET-REVIEW CYCLE: EVENT 1 (Sol/Codex, fresh context, HIGH) at 74c915f:
+  REJECT (8 REQUIRED, 3 RECOMMENDED; boundary omissions: none) -
+  CODEX_EVENT_1_REVIEW_2026-09-02.md. The ONE consolidated correction is this
+  revision (REVIEW RECORD at the end lists every disposition). EVENT 2
+  (exact-corrected-head confirmation) PENDING against this commit's SHA.
 AUTHORIZES NO IMPLEMENTATION, NO PRD, NO GATE A, NO MERGE.
 Every FILES / LOC figure below is ESTIMATED SURFACE - NOT YET APPROVED (GOV-2 sec5).
 Repository truth at authoring: main 858147f2057ed967d7d17fbc4a8c2f6cc20bfb71
 (renderer, chart module and tests byte-identical to 218fb9a; 858147f adds only
 docs/product/ASTROLOGY_MODE_CONCEPT_RECORD_v0.1.md).
-Branch: claude/d4-proto-b-levels-design (docs branch; carries this packet only).
+Branch: claude/d4-proto-b-levels-design (docs branch; carries this packet and
+its review records only).
 ```
 
 > Upstream MATERIAL design packet for the owner charge "CUTTINGBOARD D4 -
-> PROTO B + CHART LEVELS ARCHITECTURE" (2026-09-02). Sequence: this packet ->
-> Event-1 review -> one consolidated correction -> Event-2 exact-head
-> confirmation -> Helm design-direction ruling -> Stage-0 downstream PRD.
-> Design evidence: the POST-D3 PRODUCT AUDIT (2026-09-02, chat deliverable),
-> the D4 visual prototype (Proto A / B / A2, 2026-09-02, chat deliverable) and
-> the LEVELS prototype measured in this packet (section 10).
+> PROTO B + CHART LEVELS ARCHITECTURE" (2026-09-02). Sequence: packet ->
+> Event-1 review -> one consolidated correction (this revision) -> Event-2
+> exact-head confirmation -> Helm design-direction ruling -> Stage-0
+> downstream PRD. Design evidence: the POST-D3 PRODUCT AUDIT (2026-09-02, chat
+> deliverable), the D4 visual prototype (Proto A / B / A2, 2026-09-02, chat
+> deliverable) and the LEVELS prototype measured in this packet (section 10).
 > Substantive deviation from Helm rulings: NONE (section 12).
 
 ## 1. OWNER RULINGS RECORDED (charge 2026-09-02, verbatim intent)
@@ -60,7 +65,7 @@ Branch: claude/d4-proto-b-levels-design (docs branch; carries this packet only).
   setup header); DETAILS default collapsed; TAPE and VERDICT unchanged.
 - H10. Out of scope (section 13) as charged.
 
-## 2. MATERIALITY (GOV-2 sec1, applied at intake)
+## 2. MATERIALITY (GOV-2 sec1, applied at intake; re-applied after Event 1)
 
 MATERIAL. Conditions that fire:
 
@@ -71,29 +76,33 @@ MATERIAL. Conditions that fire:
   `<details>` only; no `[open]` CSS rule) is narrowed to admit one native
   form control (section 5.2);
 - changes LOC ceilings and golden/hash authority in PRD-326 R6, PRD-327
-  R5/R8/R9/R10 and PRD-329 R2/R4 (section 7);
+  R5/R8/R9/R11 and PRD-329 R2/R4 (section 7);
 - crosses delivery (chart module), dashboard (renderer, CSS) and the test
   seams that pin them.
 
-Lane: STANDARD at minimum (MICRO unavailable under GOV-2 sec1). No PRD-121 R11
-trigger is identified by the author; the downstream PRD re-applies the lane
-matrix.
+Event 1 found no boundary omission (GOV-2 sec6 not triggered); the
+classification is unchanged. Lane: STANDARD at minimum (MICRO unavailable
+under GOV-2 sec1). No PRD-121 R11 trigger is identified by the author; the
+downstream PRD re-applies the lane matrix.
 
 ## 3. EVIDENCE INDEX
 
-- This packet (provisional; Event-1 head named in the Event-1 record).
-- CODEX_REVIEW_PROMPT_2026-09-02.md - Event-1 dispatch prompt (added with the
-  Event-1 record).
-- CODEX_EVENT_1_REVIEW_2026-09-02.md - Event-1 review (pending).
+- CODEX_REVIEW_PROMPT_2026-09-02.md - Event-1 dispatch prompt (verbatim).
+- CODEX_EVENT_1_REVIEW_2026-09-02.md - Event-1 review at 74c915f (REJECT - 8
+  REQUIRED, 3 RECOMMENDED; boundary omissions: none).
+- CODEX_EVENT_2_CONFIRMATION_2026-09-02.md - Event-2 exact-corrected-head
+  confirmation (pending; added when it lands).
 - Prototype and measurement artifacts (scratch, non-durable, cited for
   provenance only; every load-bearing number is copied into section 10):
   `/tmp/claude-1000/-home-dustin-Projects-cuttingboard/39db22ac-980f-483c-bfb8-49a50ecb4b93/scratchpad/`
-  `proto_B_levels.html`, `proto_B_levels_stress.html`, `gen_levels.py`,
-  `shoot.py`, `shoot_levels.py`, `proto_B_levels_measure.json`,
-  `proto_B_levels_stats.json`, `shot_proto_B_levels_off_y486.png`,
+  `proto_B_levels.html`, `proto_B_levels_stress.html`,
+  `proto_B_levels_onesided.html`, `proto_B_levels_overflow.html`,
+  `gen_levels.py`, `shoot.py`, `shoot_levels.py`, `*_measure.json`,
+  `*_stats.json`, `shot_proto_B_levels_off_y486.png`,
   `shot_proto_B_levels_on_y486.png`, `shot_proto_B_levels_stress_on_y486.png`,
-  `live_dashboard.html` (origin/publish 6f22a00, run 2026-09-02 21:24Z),
-  `live_spy_chart.svg`, `chart_map.md`, `renderer_map.md`.
+  `shot_proto_B_levels_overflow_on_y486.png`, `live_dashboard.html`
+  (origin/publish 6f22a00, run 2026-09-02 21:24Z), `live_spy_chart.svg`,
+  `chart_map.md`, `renderer_map.md`.
 
 ## 4. RECON (repository truth at 858147f; every claim carries file:line)
 
@@ -131,32 +140,36 @@ the candle plot is 280 wide; pads 8 top / 14 bottom (`:57-58`); 40 bars
 (`MAX_BARS` `:59`). The y-domain is bar highs/lows + NOW + contract pair +
 Tier-2 levels; Tier-3 (EMA50, fibs) never widens it (`:176-186`, `:234`,
 `:243`). The SVG is a flat f-string list joined at `:364`; no `<g>`, no ids, no
-data attributes.
+data attributes. Legacy paint order (`:205-364`): background (211) -> risk and
+ORB bands (213-227) -> Tier-3 lines (232-250) -> Tier-2 lines (253-266) ->
+candles (268-282) -> contract lines and words (284-306) -> NOW line (307-311)
+-> NOW tag (333-340) -> rail items and leaders (341-356) -> date axis
+(358-362).
 
-| # | element | source input | setup_chart.py | class today | D4 class |
-|---|---|---|---|---|---|
-| 1 | background rect (plot area) | - | 211 | none | BASE |
-| 2 | candle wicks / bodies | bars | 271-282 | `candle-wick` / `candle-body` | BASE |
-| 3 | NOW line | now_price | 307-311 | `lvl-t1 lvl-now` | BASE |
-| 4 | NOW tag box + label | now_price | 333-340 | `now-tag` / none | BASE |
-| 5 | date axis labels | bars first/last | 358-362 | none | BASE |
-| 6 | VWAP line + rail label | watch_zones VWAP | 253-260 | `lvl-t2` / none | LEVELS |
-| 7 | ORB band (range shading, opacity 0.10) | watch_zones ORB_HIGH+ORB_LOW | 221-227 | `orb-band` | LEVELS |
-| 8 | ORB H / ORB L lines + labels | watch_zones | 261-266 | `lvl-t2` / none | LEVELS |
-| 9 | PDH / PDL lines + labels | watch_zones | 261-266 | `lvl-t2` / none | LEVELS |
-| 10 | EMA9 / EMA21 lines + labels | watch_zones | 261-266 | `lvl-t2` / none | LEVELS |
-| 11 | fib 0.382 / 0.5 / 0.618 lines + labels | fib_levels.retracements | 233-241 | `lvl-t3` / none | LEVELS |
-| 12 | EMA50 line + label | watch_zones EMA50 | 242-250 | `lvl-t3` / none | LEVELS |
-| 13 | leader ticks (displaced labels) | derived | 342-346 | none | LEVELS (redesigned, section 5.3) |
-| 14 | risk band, ENTRY/STOP lines, words, tags | contract_entry/stop | 214-220, 285-306 | `risk-zone`, `lvl-t1 lvl-entry/stop` | CANDIDATE ONLY (never emitted for SPY: `dashboard_renderer.py:2440-2443` passes `None, None`) |
-| - | exact prices of every level, with % from NOW | market_map record | `_render_level_ladder` `dashboard_renderer.py:1970-2115` | `lvl-ladder` rows | LADDER ONLY (precise text; retained, section 5.4) |
+| # | element | source input | setup_chart.py | class today | D4 class | D4 paint group |
+|---|---|---|---|---|---|---|
+| 1 | background rect (plot area) | - | 211 | none | BASE | base/under |
+| 2 | candle wicks / bodies | bars | 271-282 | `candle-wick` / `candle-body` | BASE | base/over |
+| 3 | NOW line | now_price | 307-311 | `lvl-t1 lvl-now` | BASE | base/over |
+| 4 | NOW tag box + label | now_price | 333-340 | `now-tag` / none | BASE | base/over |
+| 5 | date axis labels | bars first/last | 358-362 | none | BASE | base/over |
+| 6 | VWAP line + rail label | watch_zones VWAP | 253-260 | `lvl-t2` / none | LEVELS | levels |
+| 7 | ORB band (range shading, opacity 0.10) | watch_zones ORB_HIGH+ORB_LOW | 221-227 | `orb-band` | LEVELS | levels |
+| 8 | ORB H / ORB L lines + labels | watch_zones | 261-266 | `lvl-t2` / none | LEVELS | levels |
+| 9 | PDH / PDL lines + labels | watch_zones | 261-266 | `lvl-t2` / none | LEVELS | levels |
+| 10 | EMA9 / EMA21 lines + labels | watch_zones | 261-266 | `lvl-t2` / none | LEVELS | levels |
+| 11 | fib 0.382 / 0.5 / 0.618 lines + labels | fib_levels.retracements | 233-241 | `lvl-t3` / none | LEVELS | levels |
+| 12 | EMA50 line + label | watch_zones EMA50 | 242-250 | `lvl-t3` / none | LEVELS | levels |
+| 13 | rail ticks and leaders for LEVELS labels | derived | 342-346 (legacy leaders) | none | LEVELS (redesigned, section 5.3) | levels |
+| 14 | risk band, ENTRY/STOP lines, words, tags | contract_entry/stop | 214-220, 285-306 | `risk-zone`, `lvl-t1 lvl-entry/stop` | CANDIDATE ONLY (never emitted for SPY: `dashboard_renderer.py:2440-2443` passes `None, None`; the layered path is never used with a contract) | n/a |
+| - | exact prices of every level, with % from NOW | market_map record | `_render_level_ladder` `dashboard_renderer.py:1970-2115` | `lvl-ladder` rows | LADDER ONLY (precise text; retained, section 5.4) | n/a |
 
 Classification rationale. BASE is "price and the one orientation anchor":
-candles, NOW, the date axis. Every reference in rows 6-12 is a deterministic
+candles, NOW, the date axis. Every reference in rows 6-13 is a deterministic
 level derived from existing data and is precisely stated in the ladder, so
 none is required for the clean chart to be readable. VWAP and the ORB band are
 the two candidates for a BASE promotion (they are the session anchors named in
-the SPY header); the author keeps them in LEVELS because on a 40-day daily
+the SPY header); the author keeps BOTH in LEVELS because on a 40-day daily
 chart they sit within 3.7 units of NOW and read as clutter, not orientation
 (section 10 numbers). This is Helm's call (section 11, D-2).
 
@@ -188,7 +201,9 @@ origin. This is the "visual chaos" of H4.
   `tests/test_dash_candidates.py:1283-1297`.
 - The renderer emits no `<input>`, `<button>`, `<label>`, `onclick`,
   `tabindex` or `aria-*` today (rg, zero hits). No CSP or nonce is emitted
-  (`:2675-2679`), so policy, not the platform, is the constraint.
+  (`:2675-2679`), so policy, not the platform, is the constraint. Event 1
+  confirmed no existing test rejects `<input>` or `<label>` merely for
+  appearing in the document.
 - Older rules in the same family: PRD-098 (diagnostics need no JavaScript,
   `docs/prd_history/PRD-098.md:64-65`), PRD-036/037 (no JavaScript, no external
   assets), PRD-321 (chart is a pure function bars + levels -> SVG string,
@@ -200,33 +215,50 @@ origin. This is the "visual chaos" of H4.
 
 - `tests/data/dashboard_pre_a1c_chart_golden.html` (one candidate SVG) is
   asserted byte-equal by 9 tests (`tests/test_dashboard_renderer.py:5318-5370`)
-  and self-seeds when missing (`:5321-5322`).
+  and self-seeds when missing (`:5321-5322`). CHANGED by D4 (TODAY, WATCHING,
+  `_CSS`); regenerated deliberately; its embedded candidate SVG is extracted
+  and hash-pinned BEFORE regeneration as the R11 legacy oracle (section 6 R16).
 - `tests/data/dashboard_pre_gex_golden.html` (no SVG) is asserted byte-equal by
-  `test_gex_absent_baseline_identical` (`:4707-4719`); any `_CSS` change breaks
-  it.
+  `test_gex_absent_baseline_identical` (`:4707-4719`). CHANGED (`_CSS`, TODAY,
+  WATCHING); regenerated.
 - `tests/test_dashboard_d2_seam.py`: below-seam sha of both goldens (`:40-43`,
-  `:320`), 15 fixture below-seam shas and 15 `#today-zone` shas (`:45-59`,
-  `:256`, `:326`), `#system-state` and `#tape-zone` shape shas, the Updated
-  line bytes (`:75`, `:208`), the staleness-JS sha (`:76`, `:212`), and the
-  phone-block equality (`_PRD318_PHONE_BLOCK`).
-- `tests/test_dashboard_renderer.py:5701-5711` `_S2_FIXTURE_SHA` hashes
-  everything after `#watching-zone` in the `spy_session_observed` fixture;
-  `:5510` pins the six-row kv-grid bytes; `:5525` requires the exact substring
-  `<div class="spy-chart"><svg`.
+  `:320`), SIXTEEN fixture below-seam shas in `_BASE` (`:45-62`, `:326`;
+  `tests/preview_fixtures.py:322-326` records the sixteen-fixture pin) and
+  sixteen `#today-zone` shas (`:256`): CHANGED, re-pinned. `#system-state` and
+  `#tape-zone` shape shas, the Updated line bytes (`:75`, `:208`), the
+  staleness-JS sha (`:76`, `:212`) and the phone-block equality
+  (`_PRD318_PHONE_BLOCK`): PRESERVED (R15).
+- `tests/test_dashboard_renderer.py:5701-5711` `_S2_FIXTURE_SHA` (everything
+  after `#watching-zone` in `spy_session_observed`): CHANGED, re-pinned.
+  `:5469-5471` `_S2_KV_SHA` (pre-PRD-329 kv-grid bytes) and its test `:5510`:
+  RETIRED with the kv-grid (replaced by R2 state-matrix tests).
+  `:5471` `_S2_MCC_ONLY_SHA` and `:5645-5660`
+  (`test_prd329_market_control_stays_in_details_with_unchanged_bytes`): the
+  MCC-only render has no observation, so it has no `#spy-session` and no
+  control, but its hashed fragment (`#spy-session-details` group in DETAILS)
+  is unchanged by D4: PRESERVED; the same test's non-hash assertions remain
+  valid.
 - Section-order tests: `:4059-4069` (system-state < tape < today < watching <
-  details), `:4072-4079` (exactly four `block operator-zone` before DETAILS),
-  `:5496-5507` (watching < spy-session < details).
+  details) PRESERVED as written (today still precedes watching); `:4072-4079`
+  (exactly four `block operator-zone` before DETAILS) PRESERVED; `:5496-5507`
+  (watching < spy-session < details) CHANGED to tape < spy-session < today <
+  watching (R1).
 - `tests/test_setup_chart.py` is regex/substring only; `<g>` wrapping and
-  label-y changes survive it; `:354` requires the string to start with `<svg`,
-  `:161` requires every numeric `<text>` token to be an input price or fib
-  ratio, `:251` requires the minimum font-size to be exactly 7.5.
+  label-y changes survive it; `:354` requires the string to start with `<svg`
+  (held: the control is emitted by the renderer outside the SVG), `:161`
+  requires every numeric `<text>` token to be an input price or fib ratio
+  (held: LEVELS labels print only input prices and fib ratios; the overflow
+  marker prints a count, so the marker test asserts it separately and `:161`
+  is scoped to the legacy path), `:251` requires the legacy minimum font-size
+  to be exactly 7.5 (PRESERVED for `layers=None`; a separate layered-path
+  assertion pins the 8.5 LEVELS floor, REC-3).
+- `tests/test_dashboard_renderer.py:5624-5642` AST-locks the seven-parameter
+  signature of `_render_spy_session`: PRESERVED; `layers=("levels",)` is passed
+  at the chart call inside the helper, and a new AST assertion pins that call.
 
 Consequence: D4 changes bytes in `#today-zone`, below the WATCHING seam, in
-`_CSS`, and in the SPY SVG. Both full-document goldens, the D2-seam hashes,
-`_S2_FIXTURE_SHA`, the kv-grid byte test and the three order tests all move.
-Each is re-pinned under the downstream PRD's authority, in the same PR, never
-by deleting a self-seeding golden. VERDICT and TAPE shape hashes, the Updated
-line bytes, the staleness-JS sha and the phone block stay untouched.
+`_CSS`, and in the SPY SVG. Each moved pin is re-pinned under the downstream
+PRD's authority, in the same PR, never by deleting a self-seeding golden.
 
 ### 4.6 Data availability (packet question A)
 
@@ -235,12 +267,16 @@ Every LEVELS reference is already an input of `render_setup_chart_svg`:
 map record) and `fib_levels.retracements`, plus `now_price`
 (`dashboard_renderer.py:2438-2443`). The NEXT EVENT strip reads the existing
 red-folder view (`_resolve_red_folder_view` `:3956-3975`; event fields `date`,
-`time_et`, `name`, `type` as rendered at `:3569-3572`). The WATCHING line reads
-`meta.symbols_scanned`, `sections.rejected`, `sections.watchlist` (`:3061-3131`;
-watchlist items carry `symbol`, `reason`, `stage`, `detail`). The SPY header
-reads `sections.spy_observation` (`state`, `reason`, `observed_at_utc`, `orb`,
-`session_vwap`, `current_price`, `price_vs_vwap`; `cuttingboard/spy_observation.py:64-126`).
-No new data, producer, persistence or provider. YES to question A.
+`time_et`, `name`, `type` as rendered at `:3569-3572`; loader validation and
+the inclusive 48-hour window are owned by `cuttingboard/red_folder.py:28-33,
+52-57, 73-116`). The WATCHING line reads `meta.symbols_scanned`,
+`sections.rejected`, `sections.watchlist` (`:3061-3131`; watchlist items carry
+`symbol`, `reason`, `stage`, `detail`). The SPY header reads
+`sections.spy_observation` (`intended_session_date`, `state`, `reason`,
+`observed_at_utc`, `orb`, `session_vwap`, `current_price`, `price_vs_vwap`;
+producer `cuttingboard/spy_observation.py:49-61, 64-126`; payload projection
+`cuttingboard/delivery/payload.py:165-190`). No new data, producer,
+persistence or provider. YES to question A.
 
 Consumers of the chart function (`docs/CALL_SITE_MAP.md:79` is stale and says
 one): `dashboard_renderer.py:2328-2337` (candidate, intraday A1-C),
@@ -252,123 +288,176 @@ only). The map is corrected as part of the downstream change.
 
 ### 5.1 Primary path (carried D4 work, H9)
 
-S1 Order. `#spy-session` is emitted between `#today-zone` and
-`#watching-zone`; TODAY becomes the NEXT EVENT strip and stays an
-`operator-zone` block so PRD-327 R3's four-zone count holds; SPY SESSION stays
-a non-operator `section` (PRD-329 R4). New order of ids: `system-state`,
-`tape-zone`, `spy-session`, `today-zone`, `watching-zone`, `details-history`.
+S1 Order. `#spy-session` is emitted between `#tape-zone` and `#today-zone`;
+TODAY becomes the NEXT EVENT strip and stays an `operator-zone` block so
+PRD-327 R3's four-zone count holds; SPY SESSION stays a non-operator
+`section` (PRD-329 R4). New order of ids: `system-state`, `tape-zone`,
+`spy-session`, `today-zone`, `watching-zone`, `details-history`.
 
 S2 SPY header (Proto B, H3). One heading (`<h3>SPY SESSION</h3>`, styled like
 the zone headings by one CSS rule); the inner `<h2>SPY SESSION OBSERVATION</h2>`
-and the six-row kv-grid are removed. Two lines from the observation carrier
-plus one clock line for the market-map levels:
+and the six-row kv-grid are removed. The evidence the grid carried is kept
+(REQ-3): the observed timestamp is rendered through the existing
+`_operator_timestamp` (`dashboard_renderer.py:282-290`, output shape
+`Sep 2 . 12:59 PM PT`, so the observed DATE and time both stay visible); the
+carrier values stay in data attributes on line 1 (`data-raw-state`,
+`data-observed-at-utc` as today, plus `data-session-date` =
+`intended_session_date`); the intended session date is visible in text
+whenever the observed timestamp cannot stand for it (reason
+`session_mismatch` or `pre_open_prior_session`, and every UNAVAILABLE state,
+where `observed_at_utc` is absent). No date comparison is performed in the
+renderer; the rule is keyed on the producer's own state and reason.
 
-| observation state (reason) | line 1 (session clock) | line 2 |
-|---|---|---|
-| OBSERVED | `SPY 765.16 above session VWAP 765.11 . read 12:59 PM PT` (relation from `price_vs_vwap`; VWAP unavailable -> `SPY 765.16 . session VWAP unavailable . read ...`) | `ORB <lo>-<hi>` (or the closed ORB state word: `Opening range forming` / `unavailable` / `invalid`) |
-| PRE_OPEN (pre_open, pre_open_prior_session) | `Pre-open . prior session read 12:59 PM PT` | ORB line as above |
-| STALE (observation_lag) | `Session read not current . last 12:59 PM PT` | ORB line |
-| STALE (session_mismatch) | `Session read is from another session . last <date> <time>` | ORB line |
-| UNAVAILABLE (each reason) | `No session read . <reason text from _SPY_REASON_DISPLAY>` | ORB line |
-| clock line, every state with a healthy map | `Market-map levels <PT time> . daily bars through <Mon D>` | - |
+| observation state (reason) | line 1 (session clock; `_operator_timestamp(observed_at_utc)` shown as `<obs>`) |
+|---|---|
+| OBSERVED, VWAP present | `SPY 765.16 above session VWAP 765.11 . read <obs>` (relation from `price_vs_vwap`: above / below / at) |
+| OBSERVED, VWAP unavailable | `SPY 765.16 . session VWAP unavailable . read <obs>` |
+| PRE_OPEN (pre_open) | `Pre-open . awaiting today's session . last <obs>` |
+| PRE_OPEN (pre_open_prior_session) | `Pre-open for <intended date> . prior session read <obs>` |
+| STALE (observation_lag) | `Session read not current . last <obs> . no current price/VWAP read` |
+| STALE (session_mismatch) | `Session read is from another session . intended <intended date> . last <obs> . no current price/VWAP read` |
+| UNAVAILABLE (each reason) | `No session read for <intended date> . <reason text from _SPY_REASON_DISPLAY>` |
+| unknown reason (fallback) | the raw reason token, escaped, instead of the bare word `unavailable` (closes the weak fallback at `:2408`) |
 
-The clarifier `no current price/VWAP read` is appended to line 1 only in the
-STALE and UNAVAILABLE states, because those are the states where the ladder
-below shows a market-map VWAP while the carrier withheld its own; the phrase
-"Market-map levels" names the ladder's source in every state so no wording
-implies the map VWAP is the session read (H3). The STALE line never derives
-CLOSED (H3). ORB stays compact (H3). `_SPY_STATE_DISPLAY` / `_SPY_REASON_DISPLAY`
-symbols are kept (PRD-327 R10 pins them by no-diff); line 1 is composed from
-them plus the existing reason map, and the raw-enum ban (PRD-329 R8) holds. The
-chart caption that today prints the raw ISO map timestamp (`:2446`) is removed;
-its two clocks live in the clock line (map time in operator PT via
-`_operator_timestamp`; bars `as_of` via the existing `_price_bars_caption`
-date). The R5 fail-closed ladder, R6 neutral ladder and R7 purity are
-unchanged: the observation subtree stays a pure function of the same inputs and
+Line 2 (ORB, from `spy_obs.orb`, every `_spy_orb_summary` shape enumerated,
+`:229-238` and `_ORB_STATE_DISPLAY` `:192-198`): FORMED with both bounds ->
+`ORB 761.74-762.52`; FORMED without bounds -> `Opening range formed`; FORMING
+-> `Opening range forming`; PRE_OPEN -> `Opening range pre-open`; INVALID ->
+`Opening range invalid`; UNAVAILABLE, None or unknown -> `Opening range
+unavailable`. The ORB `observed_at_utc` and `trading_date` mirror fields stay
+unrendered as today.
+
+Line 3 (map clock, present whenever the R5 ladder reaches the chart branch):
+`Market-map levels <_operator_timestamp(market_map generated_at)> . daily bars
+through <Mon D from price_bars as_of>`. When the map is unhealthy or has no
+SPY record the existing R5 one-line messages render instead and line 3 is
+absent. The chart caption that today prints the raw ISO map timestamp
+(`:2446`) is removed.
+
+The clarifier `no current price/VWAP read` appears in the two STALE rows only
+(REQ-3 confirmed the rule prevents the ladder VWAP being read as the session
+read); UNAVAILABLE rows already state that no read exists. The phrase
+"Market-map levels" names the ladder's source in every state (H3). No CLOSED
+inference (H3). `_SPY_STATE_DISPLAY` / `_SPY_REASON_DISPLAY` symbols are kept
+(PRD-327 R10 pins them by no-diff); the composed lines reuse their strings.
+The R5 fail-closed ladder, R6 neutral ladder and R7 purity are unchanged: the
+observation subtree stays a pure function of the same inputs and
 byte-identical across permission states.
 
 S3 NEXT EVENT strip. `#today-zone` keeps its id and `operator-zone` class;
-heading `NEXT EVENT`; one line `NFP . Fri Sep 4 . 8:30 AM ET` from
-`events[0]` (`type` when present else `name`, weekday + month-day from `date`,
-`time_et`); two or more events append ` . +N more in DETAILS`; none ->
-`No scheduled events in the next 48 hours`; expiring appends
-` . schedule expiring`; loader failure -> `Event schedule unavailable`
-(PRD-327 R6 string, above the fold); the Sunday `#premarket-banner` cell is
-kept. The SPY SESSION cell (`:3036-3044`) is removed: it duplicated the SPY
-header state and never carried a market fact.
+heading `NEXT EVENT`; one line from `events[0]`: `<type if non-empty else
+name> . <Weekday Mon D> . <h:MM AM/PM> ET`; two or more events append
+` . +N more in DETAILS`; none -> `No scheduled events in the next 48 hours`;
+expiring appends ` . schedule expiring`; loader failure -> `Event schedule
+unavailable` (PRD-327 R6 string, above the fold); the Sunday
+`#premarket-banner` cell is kept. Formatter (REC-2): `date` is parsed as
+ISO `YYYY-MM-DD` with `datetime.date.fromisoformat` and rendered `%a %b %-d`;
+`time_et` is parsed as `HH:MM` and rendered `%-I:%M %p`; if either parse
+fails the raw field text is rendered verbatim (escaped) and nothing is
+invented; window inclusion stays loader-owned. When `+N more` is non-zero
+the DETAILS `#red-folder` block is necessarily present (its suppression at
+`:3552-3558` requires an empty window), so the pointer is never dangling.
+The SPY SESSION cell (`:3036-3044`) is removed: it duplicated the SPY header
+state and never carried a market fact.
 
 S4 WATCHING. `#opportunity-survival` (h3 + five-row grid) becomes one
-caption-weight line directly under `<h2>WATCHING</h2>`:
+caption-weight `<p class="screen-line">` directly under `<h2>WATCHING</h2>`:
 `23 screened . 4 held by the 3:30 PM cutoff . 19 rejected . top reason CHOP (4)`.
 Rules: counts as computed today (`:3093-3108`, PRD-282 R1/R5/R6 semantics
-unchanged, block-level fail-closed becomes line-level fail-closed); the
+unchanged; block-level fail-closed becomes line-level fail-closed); the
 watchlist phrase uses a closed display map keyed on the watchlist `reason`
-when every watchlist item shares one mapped reason (initial map: `entry blocked
-after 3:30 PM ET` -> `held by the 3:30 PM cutoff`), else `N on watch`; the
-QUALIFIED / SETUPS FOUND token appears only when the count is > 0 (`. N
-qualified` / `. N setups found` under lock, PRD-304 R7 vocabulary); the top
-reason is `top reason <REASON> (n)` with the same sanitisation as PRD-282 R7;
-"mostly" is never used. The candidate-board header (`:3172-3175`) becomes one
-line `SETUPS . screening grades, not permission`; the A+ lock relabel (PRD-304
-R7) and every card are byte-unchanged. `#alert-watchlist` is unchanged.
+when every watchlist item shares one mapped reason (initial map: `entry
+blocked after 3:30 PM ET` -> `held by the 3:30 PM cutoff`), else `N on
+watch`; the QUALIFIED / SETUPS FOUND token appears only when the count is > 0
+(`. N qualified` / `. N setups found` under lock, PRD-304 R7 vocabulary); the
+top reason is `top reason <REASON> (n)` with the same sanitisation as PRD-282
+R7; "mostly" is never used. The candidate-board header (`:3172-3175`) becomes
+one line `SETUPS . screening grades, not permission`; the A+ lock relabel
+(PRD-304 R7) and every card are byte-unchanged. `#alert-watchlist` is
+unchanged. CSS effect (Event-1 item 9): the `<p>` leaves `#candidate-board`
+as the first `div.operator-subsection`, so `:1034` still zeroes its top
+padding; the `nth-child(10)` phone rule (`:1097`) becomes inert and is
+removed with the grid.
 
 ### 5.2 Chart-control architecture (packet questions C, E, H, I)
 
-Layer model (in `setup_chart.py`):
+Layer model (in `setup_chart.py`), reduced per REQ-8 to the seam that is
+actually specified:
 
 ```
-LayerSpec(key, label, default_on, user_control)          # frozen dataclass
-CHART_LAYERS = (LayerSpec("levels", "LEVELS", False, True),)   # registry, D4
-render_setup_chart_svg(..., layers=None)                 # None -> legacy flat bytes
+_LAYER_RENDERERS = {"levels": _render_levels_layer}    # closed key -> renderer map
+render_setup_chart_svg(..., layers=None)               # None -> legacy flat bytes
+                                                       # tuple of keys -> grouped emission
 ```
 
 - `layers=None` (every candidate call and `primary_selection`) returns the
-  exact bytes it returns today: candidate charts, the A1-C golden's SVG and
-  PRD-326 R2/R3 byte pins are untouched. This is the one abstraction the
-  packet justifies NOW: an optional keyword that switches the same paint list
-  into grouped emission.
-- `layers=CHART_LAYERS` (the SPY call only) emits the same elements inside
-  `<g class="chart-layer" data-layer="base">` (rows 1-5 of 4.2) and
-  `<g class="chart-layer" data-layer="levels">` (rows 6-13, with the section
-  5.3 rail). Paint order inside each group is unchanged. The root `<svg`
-  string still starts the output (`tests/test_setup_chart.py:354` holds).
-- Control emission (renderer, SPY section only), immediately before
-  `<div class="spy-chart">` as its sibling:
+  exact bytes it returns today (R11, proven against the frozen pre-D4 oracle
+  of R16). This is the one abstraction the packet justifies NOW: an optional
+  keyword that switches the same paint list into grouped emission.
+- `layers=("levels",)` (the SPY call only) emits THREE groups that preserve
+  the legacy paint order exactly (REQ-1): `<g class="chart-layer"
+  data-layer="base" data-part="under">` (background), then `<g
+  class="chart-layer" data-layer="levels" display="none">` (rows 6-13 of 4.2:
+  bands, level lines, ticks, leaders, rail labels), then `<g class="chart-layer"
+  data-layer="base" data-part="over">` (candles, NOW line, NOW tag, date
+  axis). Level lines therefore still paint under candles and the NOW tag
+  still paints over the rail, as today. The logical BASE contract is the
+  selector `[data-layer="base"]` (two groups); LEVELS is one group. An unknown
+  key in `layers` raises (fail-loud, PRD-198 invariant 1).
+- Each layer renderer receives the same inputs as the chart (bars, now
+  anchor, y-scale, zones, fibs) and returns SVG elements only; it may not
+  read permission, decision, ranking or contract inputs (purity rule,
+  extends R7).
+- Default state: every layer group is emitted with the SVG presentation
+  attribute `display="none"` and is shown only by the control's CSS rule.
+  With CSS unavailable, the overlay stays hidden and the (unstyled) checkbox
+  is unchecked: the visible state and the control agree (REQ-4). With CSS
+  and no scripting the control works because it never needed scripting.
+- Control emission (renderer, inside `_render_spy_session`, only on the R5
+  branch that produced a non-empty layered SVG; REQ-4): immediately before
+  `<div class="spy-chart">` as its siblings:
   `<input type="checkbox" id="spy-levels" class="chart-toggle">` then
   `<div class="chart-controls"><label for="spy-levels" class="chart-toggle-label">LEVELS</label></div>`.
-  One control per registry entry with `user_control=True`; with the D4
-  registry that is exactly one, so no ASTROLOGY control can be emitted (H6).
-- CSS (in `_CSS`): `.chart-layer[data-layer="levels"]{display:none}` and
-  `#spy-levels:checked~.spy-chart .chart-layer[data-layer="levels"]{display:inline}`
-  plus the label/pill rules and a `:focus-visible` outline. The pattern is
-  `#<control-id>:checked~.spy-chart [data-layer="<key>"]`, one rule per layer,
-  so a second layer is one registry entry, one render function and one CSS
-  rule; the LEVELS contract (ids, classes, selector shape) does not change
-  (question H: YES).
-- Smallest interaction (question E): a native checkbox and `<label for>`.
-  Zero JavaScript, so PRD-329 R3's script count and PRD-327 R10's JS pin hold;
-  R3 is narrowed only to admit this one form control. Tap: the label is the
-  hit target (25x81 CSS px measured; the downstream PRD may raise the label
-  padding toward a 44 px target, section 11 D-5). Keyboard: native checkbox
-  focus and space; `:focus-visible` outline. Screen reader: native checkbox
+  Unavailable-map, no-SPY-record, invalid-price and no-bars renders emit no
+  control (no dead control). The control is keyed by a renderer-side closed
+  map `_LAYER_CONTROLS = {"levels": ("spy-levels", "LEVELS")}`; with the D4
+  maps exactly one control exists and no ASTROLOGY control can be emitted
+  (H6).
+- CSS (in `_CSS`): `#spy-levels:checked~.spy-chart .chart-layer[data-layer="levels"]{display:inline}`
+  (CSS overrides the presentation attribute); `.chart-toggle` visually hidden
+  but focusable: `position:absolute;width:1px;height:1px;margin:-1px;
+  padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);
+  white-space:nowrap;border:0` (never `display:none` / `visibility:hidden`);
+  `.chart-toggle:focus-visible~.chart-controls .chart-toggle-label{outline:1px solid #29b6f6}`;
+  `.chart-toggle:checked~.chart-controls .chart-toggle-label` highlighted;
+  label pill `min-height:44px` (D-5 resolved as author default, REC-1) with
+  the existing zone-note type scale; one `#spy-session>h3` rule; one
+  `#spy-session` box rule. The selector pattern is
+  `#<control-id>:checked~.spy-chart [data-layer="<key>"]`, one rule per
+  layer, so a second layer is one map entry in each closed map, one render
+  function and one CSS rule; the LEVELS contract (ids, classes, selector
+  shape, default-off) does not change (question H: YES).
+- Smallest interaction (question E): native checkbox + `<label for>`, zero
+  JavaScript, so PRD-329 R3's script count and PRD-327 R10's JS pin hold; R3
+  is narrowed only to admit this one form control. Tap: the label is the hit
+  target (44 x 74 CSS px measured). Keyboard: native focus and space;
+  `:focus-visible` outline on the label. Screen reader: native checkbox
   semantics with the visible label text. No fetch, no storage, no state
-  outside the checkbox; a reload returns to OFF. Degrade: with CSS
-  unavailable the overlay and the checkbox are both visible, which is honest
-  (all references shown, control still functional); with CSS but no scripting
-  the control works because it never needed scripting.
+  outside the checkbox; a reload returns to OFF.
 - Truth invariants: the SVG content is identical in OFF and ON (only
-  `display` changes), so toggling can never change a server-derived fact, a
-  price, a permission, a grade or a ranking (H4, H8). R7 purity extends to the
-  layered SVG and the control markup: both are pure functions of the same
-  observational inputs plus the registry.
-- What is premature (question I) and therefore NOT built: a generic
+  computed `display` changes), so toggling can never change a server-derived
+  fact, a price, a permission, a grade or a ranking (H4, H8). R7 purity
+  extends to the layered SVG and the control markup: both are pure functions
+  of the same observational inputs plus the closed maps.
+- What is premature (question I) and therefore NOT built: a LayerSpec
+  dataclass with default-state fields, a generic control generator, a
   client-state model, per-layer persistence, a layer manifest in the payload,
-  a second toggle, any ASTROLOGY render function, any `data-layer="astrology"`
-  string, or a control registry that spans candidate charts. The seam is a
-  registry tuple, a `layers` keyword, group emission and the CSS selector
-  pattern; nothing more.
+  a second toggle, any ASTROLOGY render function, any `astrology` string in
+  code, CSS or output, or a control map that spans candidate charts. The seam
+  is: the `layers` keyword, the two closed maps, stable group keys, the group
+  emission order, the `display="none"` default, and the selector pattern.
 
-### 5.3 Collision policy (packet questions C, D)
+### 5.3 Collision policy (packet questions C, D; REQ-5 invariants)
 
 Deterministic, y-scale preserving, honest:
 
@@ -381,23 +470,35 @@ Deterministic, y-scale preserving, honest:
    the ratio alone, matching the ladder), so a label's position is never the
    only carrier of its price.
 4. Placement: NOW's tag is pinned at true y (as today). Remaining labels are
-   placed by an outward sweep from NOW, nearest-first above and below, at true
-   y when that fits and otherwise at the first free pitch outward; pitch is
-   10 units at the 8.5-unit floor font for every LEVELS label (today Tier-3
-   labels are 7.5, below the floor); frame clamps at 2 and height-14 with
-   inward re-stacking; ties break by input order (already deterministic:
-   fibs sorted high to low, zones in input order).
-5. A label displaced by more than 2 units from its true y gets a visible
-   leader (`#666`, 0.8 width) from its tick to the label's baseline; a label
-   within 2 units gets the tick only.
-6. Range shading: only the ORB band (an actual range) is shaded, at the
+   placed by an outward sweep from NOW, nearest-first above and below, at
+   true y when that fits and otherwise at the first free pitch outward; pitch
+   is 10 units at the 8.5-unit floor font for every LEVELS label; frame
+   clamps at 2 (top) and height-14 (bottom, above the date axis) with inward
+   re-stacking from the clamped edge; ties break by input order (already
+   deterministic: fibs sorted high to low, zones in input order).
+5. Binary invariants, all asserted by tests (R10): (a) label boxes never
+   overlap (centre distance >= pitch); (b) no label box overlaps the NOW tag
+   box; (c) side preservation: a label stays on the same side of NOW as its
+   true y and never crosses NOW; (d) every label box lies inside
+   [2, height-14]; (e) a label displaced by more than 2 units from its true y
+   has a visible leader (`#666`, 0.8 width) from its tick to the label
+   baseline, and its tick is at true y; (f) the y-scale of the layered render
+   equals the legacy render's.
+6. Overflow (deterministic, never silent): if a side's stack cannot satisfy
+   (a)-(d) between NOW and the frame edge (capacity above = floor((NOW_y - 7
+   - 2) / pitch), below = floor((height - 14 - NOW_y - 7) / pitch)), the
+   OUTERMOST labels on that side are dropped from the rail one at a time,
+   their lines and ticks remain, the survivors are re-stacked inward from the
+   edge, and one marker label `+N in ladder` is drawn at that edge in the rail
+   font. The ladder still lists every level. The marker is the only rail text
+   whose number is not a price; the legacy price-token test stays scoped to
+   `layers=None` and a layered-path test asserts the marker shape.
+7. Range shading: only the ORB band (an actual range) is shaded, at the
    existing opacity 0.10; PDH/PDL and fibs stay lines; no other shading.
-7. Rail capacity: 232 units at pitch 10 fits 21 labels; the SPY set is 11 +
-   NOW. When the set would exceed capacity the outermost labels are clamped
-   and stacked, never dropped silently; the ladder still lists them. (Not
-   reachable with the current closed level set.)
 
-Measured on the live cluster and on a synthetic stress cluster: section 10.
+Measured on the live cluster, a symmetric stress cluster, a one-sided cluster
+and a forced overflow: section 10. All four satisfy invariants (a)-(f) by
+assertion in the prototype generator.
 
 ### 5.4 Ladder relationship (packet question: ladder)
 
@@ -405,22 +506,30 @@ Recommendation: option A, the ladder always remains visible and LEVELS only
 changes the chart. Reasons: the ladder is the only precise-price surface
 (two decimals, percent from NOW) and the only one readable without any
 interaction; with LEVELS ON the rail labels repeat the ladder's names and
-one-decimal prices, which is spatial reinforcement, not a second source; H7
-holds. The prototype confirms the ladder costs about 200 CSS px and that the
-LEVELS control adds 33 CSS px; neither harms the primary path in a way that
-justifies removing the ladder. No change to `_render_level_ladder`.
+one-decimal prices, which is spatial reinforcement, not a second source; the
+overflow rule of 5.3 relies on the ladder as the complete list; H7 holds.
+The prototype confirms the ladder costs about 200 CSS px and that the LEVELS
+control adds 52 CSS px at the 44 px target; neither harms the primary path
+in a way that justifies removing the ladder. No change to
+`_render_level_ladder`.
 
 ### 5.5 Future ASTROLOGY seam (H4, H6; packet question H)
 
-The registry and the group/selector pattern are the whole seam. Adding the
-future layer is: one `LayerSpec("astrology", "ASTROLOGY", False, True)`, one
-render function producing elements for `data-layer="astrology"`, one CSS rule
-in the same shape, and its own PRD under the concept record's rules
+The two closed maps and the group/selector pattern are the whole seam.
+Adding the future layer is: one `_LAYER_RENDERERS` entry with its render
+function, one `_LAYER_CONTROLS` entry, one CSS rule in the same shape, and
+its own PRD under the concept record's rules
 (`docs/product/ASTROLOGY_MODE_CONCEPT_RECORD_v0.1.md`, which records no
-control expectation and four VISION tensions). The state matrix BASE / LEVELS /
-ASTROLOGY / LEVELS+ASTROLOGY falls out of two independent checkboxes and two
-independent selectors; neither reads the other. D4 emits no astrology string,
-class, id, control or CSS (FAIL line in section 6).
+control expectation and four VISION tensions). The state matrix BASE / LEVELS
+/ ASTROLOGY / LEVELS+ASTROLOGY falls out of two independent checkboxes and
+two independent selectors; neither reads the other. D4 emits no astrology
+string, class, id, control or CSS (R12). The structural proof (R12) renders
+the SPY chart with the renderer map monkeypatched to add a synthetic
+`"probe"` entry whose stub returns one `<rect>`; the test asserts a third,
+independent `<g data-layer="probe" display="none">` and, with the control
+map likewise patched, an independent control; then asserts the production
+maps emit exactly one control and the three D4 groups and no `probe` string.
+Real independent rendering is proven; no dead UI ships.
 
 ### 5.6 Candidate charts
 
@@ -436,19 +545,22 @@ chart CSS, disclosures, D1 primary-chart rule (PRD-326 R1) and D3 one-tap rule
   `#spy-session` is never an operator-zone. FAIL: any other order or count.
 - R2 SPY header. Exactly one `SPY SESSION` heading in the document; no `SPY
   SESSION OBSERVATION` string; no kv-grid inside `#spy-observation`; line 1
-  and the ORB line are composed only from `sections.spy_observation`; the
-  clock line names `Market-map levels` and the bars date; the clarifier
-  appears iff state is STALE or UNAVAILABLE; no raw enum outside
-  `data-raw-state`; no ISO timestamp text in `#spy-session`. FAIL: any
-  violation on the state matrix fixtures.
+  carries `data-raw-state`, `data-observed-at-utc` and `data-session-date`;
+  the observed timestamp renders through `_operator_timestamp`; the intended
+  date is visible in text for `session_mismatch`, `pre_open_prior_session`
+  and every UNAVAILABLE state; the ORB line follows the 5.1 matrix; line 3
+  names `Market-map levels` and the bars date; the clarifier appears iff
+  state is STALE; no raw enum outside data attributes; no ISO timestamp text
+  in `#spy-session`. FAIL: any violation on the state-matrix fixtures.
 - R3 Purity. `#spy-session` (header, control, SVG, ladder) is byte-identical
   across TRADE PERMITTED / STAY FLAT / OBSERVE ONLY / HALT / operator lock for
   the same observational inputs. FAIL: one differing byte.
 - R4 NEXT EVENT. `#today-zone` renders the first event as `<type or name> .
-  <Weekday Mon D> . <time_et> ET`, appends `+N more in DETAILS` iff N > 0,
-  keeps the expiring / unavailable / Sunday strings, and contains no SPY
-  state text. FAIL: an event count without a name when events exist; a
-  missing `+N more`; a lost unavailable/expiring/Sunday string.
+  <Weekday Mon D> . <h:MM AM/PM> ET`, appends `+N more in DETAILS` iff N > 0,
+  keeps the expiring / unavailable / Sunday strings, renders malformed date
+  or time fields verbatim, and contains no SPY state text. FAIL: an event
+  count without a name when events exist; a missing `+N more`; a lost
+  unavailable/expiring/Sunday string; an invented value.
 - R5 WATCHING line. One `<p class="screen-line">` replaces
   `#opportunity-survival`; the counts equal today's computation; the
   qualified token is absent at zero; the top reason carries its count; the
@@ -459,66 +571,100 @@ chart CSS, disclosures, D1 primary-chart rule (PRD-326 R1) and D3 one-tap rule
   `SETUPS` plus the clause `screening grades, not permission`; the old
   `candidate-scope` banner is absent; every candidate card's bytes are
   unchanged against the D3 fixtures. FAIL: card byte drift; banner present.
-- R7 Layers. The SPY SVG contains exactly two `<g class="chart-layer">` groups
-  with `data-layer="base"` and `data-layer="levels"`; base holds only rows 1-5
-  of section 4.2; levels holds rows 6-13; the set of level lines, their y
-  values and the candle bytes equal the legacy render of the same inputs.
-  FAIL: an element in the wrong group; a candle or line byte that differs
-  from `layers=None` output.
-- R8 Control. Exactly one `<input type="checkbox" id="spy-levels"` and one
-  `<label for="spy-levels">` in the document, both siblings preceding
-  `<div class="spy-chart">`; unchecked by default; `html.count("<script") == 1`;
-  no `onclick`; no `[open]` CSS rule; the two CSS rules of section 5.2 exist.
-  FAIL: any count other than one; a second script; a JS handler.
-- R9 Toggle semantics (browser-verified at 390x844 device metrics): on load
-  the levels group's computed display is `none`; after one tap on the label
-  it is not `none`; after a second tap it is `none`; the SVG innerHTML is
-  identical before and after; no other element's text changes. FAIL: any
-  step.
-- R10 Rail honesty. Every LEVELS label's text contains its price; every label
-  has a tick at true y; every label displaced > 2 units has a leader whose
-  y1 equals the tick y; no label's y is outside [2, height-14]; the y-domain
-  of the layered render equals the legacy render's. FAIL: a label without a
-  tick or price; a leader whose origin is not the true y; a scale change.
+- R7 Layers. The SPY SVG contains exactly three `<g class="chart-layer">`
+  groups in the order base/under, levels, base/over; base/under holds only
+  the background; base/over holds candles, NOW line, NOW tag and date axis;
+  levels holds rows 6-13 of 4.2 and carries `display="none"`; the sequence
+  of non-group elements equals the legacy render's paint order; the set of
+  level lines, their y values and the candle bytes equal the legacy render
+  of the same inputs. FAIL: an element in the wrong group; a paint-order
+  difference; a candle or line byte that differs from `layers=None` output.
+- R8 Control. On a render whose R5 branch produced a non-empty SPY SVG:
+  exactly one `<input type="checkbox" id="spy-levels"` and one
+  `<label for="spy-levels">`, both siblings preceding `<div class="spy-chart">`,
+  unchecked by default; on every other render (map unhealthy, no SPY record,
+  invalid price, no bars, no observation) zero controls; document-wide
+  `html.count("<script") == 1`; no `onclick`; no `[open]` CSS rule; the
+  visually-hidden-focusable rule, the `:checked~` rule and the
+  `:focus-visible` rule exist. FAIL: a control without a chart; a chart
+  without a control; a second script; a JS handler; `display:none` on the
+  input.
+- R9 Toggle semantics (browser-verified at 390x844 device metrics, phone
+  Chrome and Safari where available): on load the levels group's computed
+  display is `none`; after one tap on the label it is not `none`; after a
+  second tap it is `none`; keyboard focus on the input shows the label
+  outline and space toggles it; the SVG innerHTML is identical before and
+  after; no other element's text changes. FAIL: any step.
+- R10 Rail honesty. Invariants 5.3 (a)-(f) hold on the live SPY set, a
+  symmetric cluster, a one-sided cluster and a forced overflow; the overflow
+  marker reads `+N in ladder` with N equal to the dropped count; every
+  dropped level keeps its line and tick. FAIL: any invariant; a dropped label
+  without a marker.
 - R11 Legacy path. With `layers=None` the function's output is byte-identical
-  to 858147f for every fixture in `tests/test_setup_chart.py` and every
-  candidate card in the D3 fixtures. FAIL: one differing byte.
-- R12 No dead UI. The document and `_CSS` contain no `astrology` /
-  `ASTROLOGY` string; the registry contains exactly one entry; a structural
-  test renders with a two-entry registry containing a synthetic
-  `LayerSpec("probe", ...)` and asserts an independent group, control and
-  selector shape, then asserts the production registry emits none of them.
-  FAIL: any astrology string in output; the probe test failing.
+  to the R16 oracle for every oracle input and to 858147f for every candidate
+  card in the D3 fixtures. FAIL: one differing byte.
+- R12 No dead UI. The document, `setup_chart.py` and `_CSS` contain no
+  `astrology` / `ASTROLOGY` string; the production maps contain exactly one
+  key; the probe test of 5.5 passes. FAIL: any astrology string in code or
+  output; the probe test failing.
 - R13 Ladder. `_render_level_ladder` and its call in `_render_spy_session`
   are unchanged. FAIL: a diff hunk in either.
-- R14 Responsive. At 360x780, 390x844 and 430x932 device metrics:
-  `scrollWidth == innerWidth`; no element's right edge exceeds the viewport;
-  the control is tappable at all three. FAIL: overflow at any width.
+- R14 Responsive and placement. At 360x780, 390x844 and 430x932 device
+  metrics: `scrollWidth == innerWidth`; no element's right edge exceeds the
+  viewport; the control's hit box is at least 44 CSS px tall; at 390x844 the
+  top of `#spy-session` is <= 560 px, the top of the SPY chart is <= 780 px
+  and the top of the first `.candidate-card` is <= 1320 px on the
+  `spy_session_observed` fixture (replaces the PRD-327 R11 thresholds, which
+  the Proto-B ordering supersedes by Helm ruling). FAIL: overflow at any
+  width; a threshold missed.
 - R15 Byte freezes kept. `#system-state` and `#tape-zone` shape shas, the
-  Updated line bytes, `_STALENESS_BANNER_JS` sha and the phone block equality
-  are unchanged. FAIL: any of them edited.
+  Updated line bytes, `_STALENESS_BANNER_JS` sha, the phone block equality and
+  `_S2_MCC_ONLY_SHA` are unchanged. FAIL: any of them edited.
+- R16 Legacy oracle. Before any production change, a committed fixture pins
+  sha256 of `render_setup_chart_svg(layers=None)` output for representative
+  inputs (ORB band present, Tier-2 and Tier-3 levels, 40 candles, contract
+  entry and stop, operator lock, a displaced label exactly at the 4-unit
+  leader threshold and one just beyond it) and the sha256 of the candidate
+  `<svg ... </svg>` substring extracted from
+  `tests/data/dashboard_pre_a1c_chart_golden.html` at 858147f. FAIL: the
+  oracle absent, or any D4 legacy render differing from it.
 
-## 7. PREDECESSOR CLAUSES (packet question G)
+## 7. PREDECESSOR CLAUSES (packet question G; REQ-2 completed)
 
 Changed (SUPERSEDED IN PART by the downstream PRD; propagated per GOV-2 s10):
 
 - PRD-318 R1 order clause (`docs/prd_history/PRD-318.md:51-53`): SPY SESSION
-  moves before TODAY; TODAY becomes the NEXT EVENT strip. R3 (`:60-63`) is
-  preserved in substance (named event replaces the count; honest empty
-  states kept).
+  moves before TODAY; TODAY becomes the NEXT EVENT strip. R3 (`:60-63`)
+  preserved in substance (named event replaces the count; honest empty states
+  kept). R5 (`:70-76`) preserved: no observation fact disappears (section 5.1
+  S2 keeps observed date/time, intended date, state, reason and ORB state).
 - PRD-327 R1 id order (`docs/prd_history/PRD-327.md:299-314`): new id order.
   R5 (`:349-355`) `#today-zone` byte identity: superseded; re-pinned to the
   strip. R8 (`:378-394`) no-new-text-above-the-fold: narrowed to admit the
   strip's event text and the SPY header lines (the banned-token list stays in
   force and the new text contains none of the tokens). R9 (`:395-409`)
-  below-seam hashes: re-pinned. R10 (`:410-417`): preserved.
-- PRD-329 R3 (`:261-267`): narrowed to admit exactly one native checkbox and
-  label for the SPY chart; script count, `[open]` ban and native `<details>`
-  rule preserved. R4 (`:270-288`): kv-grid "bytes unchanged" and the
-  after-WATCHING position: superseded by sections 5.1 S1/S2. R5 caption rule
-  (`:340-350`): the two clocks move from the caption to the clock line; the
-  fail-closed ladder (a)-(d) preserved. R9 (`:420-439`): preserved. R10
-  phone matrix (`:440-455`): extended with R9/R14 of this packet.
+  below-seam hashes: re-pinned. R10 (`:410-417`): preserved. R11 (`:419-430`)
+  mobile placement thresholds (`#watching-zone` top <= 560 px, primary
+  `.card-header` top <= 780 px, first-viewport element list including the
+  TODAY event-risk sentence): SUPERSEDED by R14 of this packet, because Helm's
+  Proto-B selection places SPY SESSION before WATCHING and replaces the TODAY
+  sentence with the NEXT EVENT line; the first-viewport list is re-stated
+  without the TODAY sentence.
+- PRD-329 R2 and CHANGE SURFACE (`docs/prd_history/PRD-329.md:226-230`,
+  `:249-260`): "bytes MUST NOT change ... every render without
+  spy_observation": SUPERSEDED IN PART. Renders without an observation gain
+  no control and no SPY section, but their bytes change through the `_CSS`
+  additions, the NEXT EVENT strip and the WATCHING line; the D2-seam and
+  golden pins are re-pinned. R3 (`:261-267`): narrowed to admit exactly one
+  native checkbox and label for the SPY chart; script count, `[open]` ban and
+  native `<details>` rule preserved. R4 (`:270-288`): kv-grid "bytes
+  unchanged", the `#spy-session` after-WATCHING position and the
+  no-observation byte identity: superseded by sections 5.1 S1/S2 and this
+  clause. R5 caption rule (`:340-350`): the two clocks move from the caption
+  to line 3; the fail-closed ladder (a)-(d) preserved. R8 (`:408-418`):
+  preserved (state and observed time visible without a click; no raw enum).
+  R9 (`:420-439`): preserved. R10 phone matrix (`:440-455`): extended with
+  R9/R14 of this packet.
 - PRD-282 R1-R7 (`docs/prd_history/PRD-282.md:112-196`): counts and
   fail-closed semantics preserved; presentation (labels, grid, PRIMARY
   REJECTION row) superseded by section 5.1 S4.
@@ -531,73 +677,95 @@ Changed (SUPERSEDED IN PART by the downstream PRD; propagated per GOV-2 s10):
 - PRD-326 R1-R5: preserved (candidate charts byte-unchanged). R6 goldens
   (`PRD-326.md:332-345`): re-pinned under the PRD.
 - PRD-322 R5 (GEX/PARTICIPATION absence rows): preserved, out of scope.
+- PRD-098 (`PRD-098.md:64-65`), PRD-036, PRD-037 no-JavaScript rules:
+  preserved (zero JavaScript added).
 
 Preserved without change: VERDICT (PRD-327 R1/R2), TAPE (PRD-327 D2-Q2, R4),
 DETAILS content set (PRD-318 R5), MARKET CONTROL placement (PRD-329 R9), the
 producer stale rule (`spy_observation.py:33`), A1-C intraday behaviour
 (PRD-324), Second-Model and lane rules.
 
-## 8. ESTIMATED SURFACE - NOT YET APPROVED (GOV-2 sec5)
+## 8. ESTIMATED SURFACE - NOT YET APPROVED (GOV-2 sec5; recalculated after REQ-1/4/5/8)
 
 Production FILES:
-- `cuttingboard/delivery/setup_chart.py` - `LayerSpec`, `CHART_LAYERS`,
-  `layers=` keyword, grouped emission, LEVELS rail policy: about +95 lines.
+- `cuttingboard/delivery/setup_chart.py` - `_LAYER_RENDERERS`, `layers=`
+  keyword with fail-loud key check, three-group emission preserving paint
+  order, `_render_levels_layer` (lines, ticks, leaders, rail placement with
+  invariants and overflow marker): about +135 lines.
 - `cuttingboard/delivery/dashboard_renderer.py` - S1 move (+2/-2), S2 header
-  (-14/+24), caption removal (-1), control emission (+4), CSS rules (+9 lines
-  inside `_CSS`), S3 strip (-16/+18), S4 line (-24/+14) and header (-3/+1):
-  about +72 / -60, net +12.
+  and state matrix (-14/+34), caption removal (-1), `_LAYER_CONTROLS` and
+  conditional control emission (+10), CSS rules (+11 lines inside `_CSS`,
+  -1 inert phone rule), S3 strip and formatter (-16/+26), S4 line (-24/+16)
+  and header (-3/+1): about +100 / -61, net +39.
 - `docs/CALL_SITE_MAP.md` - one row corrected.
-- Estimated production ceiling: 120 net lines across the two modules.
+- Estimated production ceiling: 180 net lines across the two modules.
 
-Test FILES: `tests/test_setup_chart.py` (R7, R10, R11, R12 probe),
-`tests/test_dashboard_renderer.py` (R1-R6, R8, R13, golden regeneration,
-`_S2_FIXTURE_SHA` re-pin), `tests/test_dashboard_d2_seam.py` (R5/R9 re-pins,
-R15 keeps), `tests/test_dash_candidates.py` (R6 card bytes; the
-`count("<script")` assert unchanged), `tests/test_dash_system_state.py`
-(PRD-282 presentation tests rewritten to the line), `tests/preview_fixtures.py`
-(state-matrix fixtures for R2), `tests/data/dashboard_pre_gex_golden.html` and
-`tests/data/dashboard_pre_a1c_chart_golden.html` (regenerated deliberately),
-plus one browser acceptance script for R9/R14 in the PRD-327 R11 `measure.py`
-style. Estimated test ceiling: 420 lines net.
+Test FILES (complete list):
+- `tests/test_setup_chart.py` (R7, R10, R11, R12 probe, layered 8.5 floor;
+  legacy 7.5 test unchanged).
+- `tests/data/setup_chart_legacy_oracle.json` (R16 sha fixture, new).
+- `tests/test_dashboard_renderer.py` (R1-R6, R8, R13, R15; kv-grid test
+  retired; `_S2_FIXTURE_SHA` re-pin; AST pin of the `layers=("levels",)`
+  call; golden regeneration tests unchanged in shape).
+- `tests/test_dashboard_d2_seam.py` (R5/R9 re-pins for 16 fixtures and 2
+  goldens; R15 keeps).
+- `tests/test_dash_candidates.py` (R6 card bytes; the `count("<script")`
+  assert unchanged).
+- `tests/test_dash_system_state.py` (PRD-282 presentation tests rewritten to
+  the line).
+- `tests/preview_fixtures.py` (state-matrix fixtures for R2, R4, R5).
+- `tests/data/dashboard_pre_gex_golden.html`,
+  `tests/data/dashboard_pre_a1c_chart_golden.html` (regenerated deliberately
+  after the R16 extraction).
+- `docs/prd_history/PRD-NNN.evidence/measure.py` (browser acceptance for R9
+  and R14, PRD-327 R11 precedent path `docs/prd_history/PRD-327.evidence/measure.py`).
+- Estimated test ceiling: 520 lines net (including the fixture JSON).
 
-## 9. TEST CONE (packet question J)
+## 9. TEST CONE (packet question J; REC-3 classification)
 
-- T1 LEVELS OFF preserves the base chart: layered render's base group equals
-  the legacy render minus rows 6-13 (element-by-element).
+Delta-red on 858147f (fail today, pass under D4):
+- T1 LEVELS OFF preserves the base chart: layered base groups equal the legacy
+  render minus rows 6-13 (element-by-element, paint order kept).
 - T2 LEVELS ON adds only authorized overlays: the levels group's element set
   equals rows 6-13 for the same inputs; no ENTRY/STOP/risk-zone in the SPY
-  SVG (kept from D3).
+  SVG.
 - T3 Toggling never changes facts: innerHTML equality before/after two taps;
   `data-raw-state`, ladder rows and header text unchanged (browser).
-- T4 Mobile accessibility: label tap toggles at 360/390/430; checkbox is
-  focusable and space toggles it (browser); one `<label for>` bound to the
-  input.
+- T4 Mobile accessibility: label tap toggles at 360/390/430; input focusable,
+  space toggles, outline visible; 44 px hit box (browser).
+- T6 Extension seam: the probe-registry structural test (R12).
+- T8 Rail honesty (R10) on the live SPY set, a symmetric cluster, a one-sided
+  cluster and a forced overflow (marker asserted).
+- T10 State matrix for the SPY header (R2): OBSERVED with and without VWAP,
+  PRE_OPEN both reasons, STALE both reasons, UNAVAILABLE every reason, unknown
+  reason, plus map unhealthy / no SPY record / invalid price / no bars
+  (control count 0 on each of the last four).
+- T11 NEXT EVENT matrix (R4): 0, 1, 2 events; expiring; unavailable; Sunday;
+  malformed date; malformed time.
+- T12 WATCHING line (R5): live-shaped payload (23/4/19/CHOP 4), zero
+  rejected, mixed watchlist reasons, lock vocabulary, fail-closed suppression.
+- T13 Order and count (R1) and responsive/placement (R14).
+
+Carry-forward guards (pass today, must keep passing):
 - T5 No permission/ranking/state byte change: R3 purity across the five
   permission states; candidate cards byte-identical to the D3 fixtures.
-- T6 Extension seam: the probe-registry structural test (R12); production
-  registry emits one control and two groups only.
-- T7 No dead ASTROLOGY UI: rg-style assertion over the rendered document and
-  `_CSS`.
-- T8 Rail honesty (R10) on the live SPY level set and on a synthetic 11-level
-  cluster within 3 dollars.
-- T9 Legacy byte identity (R11) across the existing `test_setup_chart.py`
-  fixtures.
-- T10 State matrix for the SPY header (R2): OBSERVED with and without VWAP,
-  PRE_OPEN both reasons, STALE both reasons, UNAVAILABLE every reason, plus
-  map unhealthy / no SPY record / invalid price / no bars.
-- T11 NEXT EVENT matrix (R4): 0, 1, 2 events; expiring; unavailable; Sunday.
-- T12 WATCHING line (R5): live-shaped payload (23/4/19/CHOP 4), zero rejected,
-  mixed watchlist reasons, lock vocabulary, fail-closed suppression.
-- T13 Order and count (R1) and responsive (R14).
-- T14 Freezes kept (R15).
+- T7 No dead ASTROLOGY UI (R12 string assertion).
+- T9 Legacy byte identity (R11) against the R16 oracle (the oracle fixture is
+  committed first, from 858147f output, so T9 is green before and after).
+- T14 Freezes kept (R15), including `_S2_MCC_ONLY_SHA`.
+- T15 Existing `tests/test_setup_chart.py:251` minimum-font 7.5 assertion,
+  unchanged.
 
-## 10. VISUAL PROTOTYPE MEASUREMENTS (Proto B + LEVELS, this session)
+## 10. VISUAL PROTOTYPE MEASUREMENTS (Proto B + LEVELS, this session; corrected structure)
 
 Method: Chrome 151 headless driven over the DevTools protocol with
 `Emulation.setDeviceMetricsOverride` (mobile, DPR 2); each run asserted
 `innerWidth`/`innerHeight` equal to the requested viewport and asserted the
 levels group's computed display for OFF and ON. Baseline bytes: the published
-2026-09-02 21:24Z document. Market facts unchanged.
+2026-09-02 21:24Z document. Market facts unchanged. The prototype uses the
+three-group structure of 5.2 (levels between the background and the candles),
+the `display="none"` default, the visually-hidden focusable input and the 44
+px label.
 
 | measure | 360x780 | 390x844 | 430x932 |
 |---|---|---|---|
@@ -607,50 +775,67 @@ levels group's computed display for OFF and ON. Baseline bytes: the published
 | annotation rail width (CSS px) | 70 | 77 | 85 |
 | minimum rail label font (CSS px) | 7.6 | 8.4 | 9.3 |
 | LEVELS labels | 11 | 11 | 11 |
-| control (label) height x width (CSS px) | 25 x 81 | 25 x 81 | 25 x 81 |
+| control (label) height x width (CSS px) | 44 x 74 | 44 x 74 | 44 x 74 |
 | horizontal overflow | none | none | none |
-| SPY SESSION top / first candidate card top (CSS px) | 509 / 1294 | 494 / 1264 | 461 / 1243 |
+| SPY SESSION top / first candidate card top (CSS px) | 509 / 1312 | 494 / 1283 | 461 / 1262 |
 
-Placement on the live SPY set (SVG units; 11 labels, pitch 10, NOW pinned at
-72.3): every label is displaced (11 leaders); maximum displacement 40.9 (PDL,
-true 93.4 -> 134.3); minimum gap 10.0; no clamp reached. Compared with the
-live renderer (maximum displacement 50, invisible leaders, Tier-3 font 7.5),
-D4 reduces the fan by 18 percent, adds a true-y tick and a visible leader to
-every displaced label, and raises the smallest label to the floor. Synthetic
-stress (11 levels within 3.30 dollars of NOW, 0.55 apart): all 11 displaced,
-maximum 51.8, minimum gap 10.0, no clamp, no overflow.
+Placement cases (SVG units; pitch 10; NOW pinned; invariants (a)-(f) asserted
+by the generator on every case):
 
-Vertical effect: the LEVELS control adds 33 CSS px above the chart (first
-candidate 1231 -> 1264 at 390). Against D3 (845) the first candidate sits 419
-px lower in this prototype, of which about 600 is the promoted SPY block and
-about -180 is the D4 cuts; Helm accepted this cost by selecting B over A2.
+| case | labels placed | displaced (leaders) | max displacement | min gap | dropped -> marker |
+|---|---|---|---|---|---|
+| live SPY set (11 levels, 47.6..106.5) | 11 | 11 | 40.9 (PDL 93.4 -> 134.3) | 10.0 | 0 |
+| symmetric stress (11 levels within 3.30 dollars, 0.55 apart) | 11 | 11 | 51.8 | 10.0 | 0 |
+| one-sided (11 levels 30 dollars below NOW, 0.3 apart) | 11 | 10 | 70.8 | 10.0 | 0 |
+| forced overflow (NOW at y 90, 11 levels above) | 7 | 7 | 62.6 | 10.0 | 4 -> `+4 in ladder` |
+
+Compared with the live renderer (maximum displacement 50, invisible leaders,
+Tier-3 font 7.5), D4 reduces the live fan by 18 percent, adds a true-y tick
+and a visible leader to every displaced label, raises the smallest label to
+the floor, and degrades to an explicit marker instead of overlapping when a
+side is over capacity.
+
+Vertical effect: the control at 44 px adds 52 CSS px above the chart (first
+candidate 1231 -> 1283 at 390). Against D3 (845) the first candidate sits 438
+px lower, of which about 600 is the promoted SPY block, about 52 the control,
+and about -180 the D4 cuts; Helm accepted the promotion cost by selecting B
+over A2. R14's thresholds (SPY section <= 560, chart <= 780, first candidate
+<= 1320 at 390) are met by this prototype (494, 661, 1283; `#watching-zone` top 1173).
 
 Screens (scratch): `shot_proto_B_levels_off_y486.png`,
-`shot_proto_B_levels_on_y486.png`, `shot_proto_B_levels_stress_on_y486.png`.
-Visual reading: OFF is candles plus NOW and nothing else; ON shows the eleven
-lines as the tight band they really are (seven within 0.7 percent of price)
-with a legible, price-anchored rail; the stress case fans symmetrically around
-NOW and every label keeps its tick.
+`shot_proto_B_levels_on_y486.png`, `shot_proto_B_levels_stress_on_y486.png`,
+`shot_proto_B_levels_overflow_on_y486.png`. Visual reading: OFF is candles
+plus NOW and nothing else; ON shows the eleven lines under the candles as the
+tight band they really are (seven within 0.7 percent of price) with a legible,
+price-anchored rail; the stress case fans symmetrically around NOW; the
+overflow case shows seven labels, four ticks without labels, and the marker.
 
 ## 11. OPEN HELM DECISIONS
 
-- D-1 STALE clarifier placement: append `no current price/VWAP read` to line 1
-  in STALE and UNAVAILABLE (author's default, +1 wrapped line at 390) or rely
-  on the `Market-map levels` attribution alone.
-- D-2 BASE membership: candles + NOW + axis only (author's default), or promote
-  VWAP and the ORB band into BASE as session anchors.
+- D-1 STALE clarifier: `no current price/VWAP read` in both STALE rows
+  (author's default) or in `observation_lag` only.
+- D-2 BASE membership: candles + NOW + axis only (author's default), or
+  promote VWAP and/or the ORB band into BASE as session anchors.
 - D-3 Rail label font floor 8.5 units (8.4 CSS px at 390; 7.6 at 360) or
   raise to 9 with pitch 11 (more displacement, larger text).
 - D-4 Ladder relationship: option A (author's recommendation) confirmed.
-- D-5 Control hit target: keep the 25 px pill or pad to 44 px.
+- D-5 Control hit target: 44 CSS px minimum height, browser-asserted
+  (author's default after REC-1); Helm may lower to the 24 px WCAG floor.
 - D-6 Confirm the narrowing of PRD-329 R3 to admit one native checkbox +
-  label, and that this does not reopen D1/D2/D3.
+  label, and of PRD-327 R11 to the R14 thresholds, and that neither reopens
+  D1/D2/D3.
 - D-7 Watchlist reason display map: closed map with `N on watch` fallback
   (author's default) or always `N on watch`.
+- D-8 Intended-date visibility rule for the SPY header (author's default:
+  visible for session_mismatch, pre_open_prior_session and UNAVAILABLE; else
+  carried in `data-session-date` with the observed date visible via the
+  timestamp).
 
 ## 12. SUBSTANTIVE DEVIATION FROM HELM RULINGS
 
 NONE. Author-chosen defaults that Helm may override are listed in section 11.
+Event 1 confirmed the packet does not contradict Proto B, the open ladder, no
+CLOSED inference, no dead ASTROLOGY UI, or no candidate change.
 
 ## 13. OUT OF SCOPE (charge section 8, restated)
 
@@ -660,3 +845,23 @@ backtesting, prediction, alerts; permission, ranking or candidate changes;
 producer CLOSED state; watchlist-name exposure; GEX/PARTICIPATION absence
 relocation; any change to VERDICT, TAPE, DETAILS content, candidate cards,
 the ladder or the A1-C intraday path.
+
+## REVIEW RECORD (GOV-2 sec7; Event 1 at 74c915f; dispositions of the one consolidated correction)
+
+| finding | disposition | where |
+|---|---|---|
+| REQ-1 two contiguous groups cannot preserve paint order | ACTIONED: three groups base/under, levels, base/over; legacy paint order preserved; prototype rebuilt and re-measured | 4.2 (paint groups), 5.2, R7, 10 |
+| REQ-2 predecessor ledger omits PRD-329 R2/R4 no-observation byte identity and PRD-327 R11 placement | ACTIONED: both clauses added with exact supersession statements; R14 replaces the R11 thresholds | 7, R14 |
+| REQ-3 compact header drops SESSION / OBSERVED AT evidence; ORB matrix incomplete | ACTIONED: observed date+time via `_operator_timestamp`, `data-session-date` carrier, intended-date visibility rule, full ORB matrix, unknown-reason fallback | 5.1 S2, R2, D-8 |
+| REQ-4 control emission, CSS-off state, focus under-specified | ACTIONED: control only with a non-empty layered SVG; `display="none"` presentation default so CSS-off state agrees with the control; visually-hidden focusable input CSS; `:focus-visible`; control-count matrix tests | 5.2, R8, R9, T10 |
+| REQ-5 clamp/re-stack has no complete collision invariant | ACTIONED: binary invariants (a)-(f), capacity formula, deterministic overflow with `+N in ladder` marker; one-sided and forced-overflow cases measured | 5.3, R10, T8, 10 |
+| REQ-6 R11 lacks a frozen pre-D4 byte oracle | ACTIONED: R16 oracle fixture (sha256 of legacy renders incl. the leader-threshold boundary and the A1-C golden's embedded SVG) committed before any production change | R16, T9, 8 |
+| REQ-7 golden inventory inaccurate; FILES incomplete; ceilings not credible | ACTIONED: 16 fixtures; `_S2_MCC_ONLY_SHA` classified PRESERVED, `_S2_KV_SHA` RETIRED; browser script path named; complete FILES list; ceilings recalculated (180 production, 520 test) | 4.5, 8 |
+| REQ-8 LayerSpec does not define rendering or defaults | ACTIONED: seam reduced to `layers=` keyword + two closed maps + stable keys + `display="none"` default + selector pattern; probe test monkeypatches the renderer map so real independent rendering is proven without dead UI | 5.2, 5.5, R12 |
+| REC-1 phone target | ACTIONED: 44 CSS px minimum height, measured 44 x 74; D-5 restated as the author default | 5.2, R14, 10, D-5 |
+| REC-2 NEXT EVENT formatter | ACTIONED: deterministic date/time formatter with verbatim fallback; window stays loader-owned | 5.1 S3, R4, T11 |
+| REC-3 delta-red vs carry-forward; keep 7.5 test | ACTIONED: T-tests classified; legacy 7.5 assertion kept; layered 8.5 assertion added | 9, 4.5 |
+
+Sol's Strengths section states "ORB band as BASE"; the packet (unchanged from
+74c915f) classifies the ORB band as LEVELS and reserves its promotion for D-2.
+No correction was needed; noted so Event 2 does not treat it as drift.
