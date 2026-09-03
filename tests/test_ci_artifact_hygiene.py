@@ -963,7 +963,7 @@ def test_prd319_hourly_cron_set_exact() -> None:
 def test_prd319_hourly_dispatch_inputs_shape() -> None:
     wf = _workflow_yaml("hourly_alert.yml")
     inputs = wf[True]["workflow_dispatch"]["inputs"]
-    assert set(inputs) == {"kind", "slot"}
+    assert set(inputs) == {"kind", "slot", "source"}
     assert inputs["kind"]["default"] == "forced"
     assert sorted(inputs["kind"]["options"]) == ["forced", "routine"]
     assert inputs["slot"]["default"] == ""
