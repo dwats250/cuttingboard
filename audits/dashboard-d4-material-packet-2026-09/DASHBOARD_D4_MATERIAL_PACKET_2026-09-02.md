@@ -10,8 +10,16 @@ GOV-2 PACKET-REVIEW CYCLE: EVENT 1 (Sol/Codex, fresh context, HIGH) at 74c915f:
   invariant (f) proof, REQ-7 phone-block conflict; boundary omissions: none) -
   CODEX_EVENT_2_CONFIRMATION_ATTEMPT_1_2026-09-02.md. Bounded local repair
   (GOV-2 sec6, local citation/wording/assertion corrections inside the cycle;
-  D3 precedent attempts 2-4) is this revision. EVENT 2 ATTEMPT 2 PENDING
-  against this commit's SHA. REVIEW RECORD at the end lists every disposition.
+  D3 precedent attempts 2-4) landed at d562444. EVENT 2 ATTEMPT 2 (against
+  d562444): NOT CONFIRMED (4 local residuals: REQ-1 stale three-group prose,
+  REQ-5 prototype invariant (f) overclaimed, REQ-7 estimate/ceiling arithmetic
+  and an unscripted chart-top value, REQ-8 two-position renderer-result
+  contract unspecified; Helm confirmation items 1-13 all PASS; boundary
+  omissions: none) - CODEX_EVENT_2_CONFIRMATION_ATTEMPT_2_2026-09-02.md.
+  Helm-authorized ONE consolidated packet-only repair (charge "D4 - EVENT-2C
+  BOUNDED PACKET REPAIR + EXACT-HEAD CONFIRMATION", 2026-09-02) is this
+  revision. EVENT 2 ATTEMPT 3 PENDING against this commit's SHA. REVIEW RECORD
+  at the end lists every disposition.
 AUTHORIZES NO IMPLEMENTATION, NO PRD, NO GATE A, NO MERGE.
 Every FILES / LOC figure below is ESTIMATED SURFACE - NOT YET APPROVED (GOV-2 sec5).
 Repository truth at authoring: main 858147f2057ed967d7d17fbc4a8c2f6cc20bfb71
@@ -99,7 +107,10 @@ downstream PRD re-applies the lane matrix.
   attempt 1 at 955e139 (NOT CONFIRMED - 4 residuals; boundary omissions: none;
   dispatch prompt reproduced inside).
 - CODEX_EVENT_2_CONFIRMATION_ATTEMPT_2_2026-09-02.md - Event-2 confirmation
-  attempt 2 (pending; added when it lands).
+  attempt 2 at d562444 (NOT CONFIRMED - 4 local residuals; Helm items 1-13
+  PASS; boundary omissions: none; dispatch prompt reproduced inside).
+- CODEX_EVENT_2_CONFIRMATION_ATTEMPT_3_2026-09-02.md - Event-2 confirmation
+  attempt 3 (pending; added when it lands).
 - Prototype and measurement artifacts (scratch, non-durable, cited for
   provenance only; every load-bearing number is copied into section 10):
   `/tmp/claude-1000/-home-dustin-Projects-cuttingboard/39db22ac-980f-483c-bfb8-49a50ecb4b93/scratchpad/`
@@ -397,10 +408,24 @@ Layer model (in `setup_chart.py`), reduced per REQ-8 to the seam that is
 actually specified:
 
 ```
+LayerRenderResult(under_elements: tuple[str, ...], rail_elements: tuple[str, ...])
 _LAYER_RENDERERS = {"levels": _render_levels_layer}    # closed key -> renderer map
+                                                       # renderer -> LayerRenderResult
 render_setup_chart_svg(..., layers=None)               # None -> legacy flat bytes
-                                                       # tuple of keys -> grouped emission
+                                                       # tuple of keys -> five-segment compositor
 ```
+
+Closed renderer-result contract (REQ-8, attempt-2 residual): every layer
+renderer returns exactly one `LayerRenderResult` with two element tuples;
+`under_elements` are canvas-level material painted BEFORE the candles (bands,
+level lines), `rail_elements` are annotation material painted AFTER the NOW
+tag (ticks, leaders, rail labels, markers). Either tuple may be empty. The
+compositor's order is fixed: (1) base/under; (2) for each key in `layers`, in
+order, `<g class="chart-layer" data-layer="<key>" data-part="under"
+display="none">` holding that key's `under_elements`; (3) base/price; (4) for
+each key in `layers`, in order, `<g ... data-layer="<key>" data-part="rail"
+display="none">` holding that key's `rail_elements`; (5) base/axis. With
+`layers=("levels",)` that is exactly the five segments below.
 
 - `layers=None` (every candidate call and `primary_selection`) returns the
   exact bytes it returns today (R11, proven against the frozen pre-D4 oracle
@@ -422,7 +447,8 @@ render_setup_chart_svg(..., layers=None)               # None -> legacy flat byt
   `[data-layer="levels"]` (two segments, one CSS rule). An unknown key in
   `layers` raises (fail-loud, PRD-198 invariant 1).
 - Each layer renderer receives the same inputs as the chart (bars, now
-  anchor, y-scale, zones, fibs) and returns SVG elements only; it may not
+  anchor, y-scale, zones, fibs) and returns one `LayerRenderResult` (two
+  element tuples, nothing else); it may not
   read permission, decision, ranking or contract inputs (purity rule,
   extends R7).
 - Default state: every LEVELS segment is emitted with the SVG presentation
@@ -502,10 +528,12 @@ Deterministic, y-scale preserving, honest:
    [2, height-14]; (e) a label displaced by more than 2 units from its true y
    has a visible leader (`#666`, 0.8 width) from its tick to the label
    baseline, and its tick is at true y; (f) the y-scale of the layered render
-   equals the legacy render's: the layered Tier-2/Tier-3 line y values and the
-   candle bytes equal the legacy render's for the same inputs, and the
-   non-group element sequence equals the legacy paint sequence; (g) the tick
-   count equals the level count, including dropped labels.
+   equals the legacy render's: the layered Tier-2/Tier-3 line y values and
+   the tick origins are EXACTLY equal to the legacy render's for the same
+   inputs (same scale function, implementation acceptance test), the candle
+   bytes are identical, and the non-group element sequence equals the legacy
+   paint sequence; (g) the tick count equals the level count, including
+   dropped labels.
 6. Overflow (deterministic, never silent): if a side's stack cannot satisfy
    (a)-(d) between NOW and the frame edge (capacity above = floor((NOW_y - 7
    - 2) / pitch), below = floor((height - 14 - NOW_y - 7) / pitch)), the
@@ -519,13 +547,19 @@ Deterministic, y-scale preserving, honest:
    existing opacity 0.10; PDH/PDL and fibs stay lines; no other shading.
 
 Measured on the live cluster, a symmetric stress cluster, a one-sided cluster
-and a forced overflow: section 10. All four satisfy invariants (a)-(e) and
-(g) by assertion in the prototype generator; (f) is asserted on the live case
-(line y values within 0.3 units of the live SVG's, the prototype's price
-scale being a linear fit of the live one; candle bytes identical; paint
-sequence identical) and the synthetic cases assert the paint sequence. In the
-implementation the layered path uses the same scale function as the legacy
-path, so (f) is exact.
+and a forced overflow: section 10. Prototype evidence versus implementation
+acceptance (REQ-5, attempt-2 residual): the prototype generator asserts
+(a)-(e) and (g) on every case and asserts the paint sequence on every case;
+for (f) the prototype provides APPROXIMATE visual/coordinate evidence only,
+because its price scale is a linear fit of the live SVG (3.715 units per
+dollar through NOW): on the live case the eleven layered line y values agree
+with the live SVG's within the recorded tolerance of 0.3 units (largest
+observed difference 0.2 units, four lines differing by 0.1 to 0.2) and the
+candle bytes are identical; the synthetic cases carry no legacy counterpart
+and make no (f) claim. Exact (f) equality of line y values and tick origins
+is an IMPLEMENTATION invariant, asserted by the R10/T8 tests against the
+legacy render of the same inputs, where both paths share one scale function.
+The production invariant is not weakened by the prototype's tolerance.
 
 ### 5.4 Ladder relationship (packet question: ladder)
 
@@ -552,10 +586,17 @@ control expectation and four VISION tensions). The state matrix BASE / LEVELS
 two independent selectors; neither reads the other. D4 emits no astrology
 string, class, id, control or CSS (R12). The structural proof (R12) renders
 the SPY chart with the renderer map monkeypatched to add a synthetic
-`"probe"` entry whose stub returns one `<rect>`; the test asserts independent
-`<g data-layer="probe" ... display="none">` segments and, with the control map
-likewise patched, an independent control; then asserts the production maps
-emit exactly one control and the five D4 segments and no `probe` string.
+`"probe"` entry whose stub returns `LayerRenderResult(under_elements=(one
+`<rect>`,), rail_elements=(one `<text>`,))`; the test asserts that the probe
+rect lands in a `<g data-layer="probe" data-part="under" display="none">`
+segment positioned before base/price and after the levels/under segment, that
+the probe text lands in a `<g data-layer="probe" data-part="rail"
+display="none">` segment positioned after base/price and after the
+levels/rail segment, that a patched control map yields an independent control
+whose `:checked~` selector shape targets both probe segments and neither
+levels segment, and that every candidate card (`layers=None`) is
+byte-identical with the maps patched; then asserts the production maps emit
+exactly one control and the five D4 segments and no `probe` string.
 Real independent rendering is proven; no dead UI ships.
 
 ### 5.6 Candidate charts
@@ -721,17 +762,22 @@ producer stale rule (`spy_observation.py:33`), A1-C intraday behaviour
 
 Production FILES:
 - `cuttingboard/delivery/setup_chart.py` - `_LAYER_RENDERERS`, `layers=`
-  keyword with fail-loud key check, three-group emission preserving paint
-  order in five segments, `_render_levels_layer` (band and lines segment;
-  ticks, leaders, rail placement with invariants and overflow marker
-  segment): about +140 lines.
+  keyword with fail-loud key check, `LayerRenderResult`, the five-segment
+  compositor preserving legacy paint order, `_render_levels_layer` (returning
+  the under tuple: band and lines; and the rail tuple: ticks, leaders, rail
+  placement with invariants and overflow marker): about +140 lines.
 - `cuttingboard/delivery/dashboard_renderer.py` - S1 move (+2/-2), S2 header
   and state matrix (-14/+34), caption removal (-1), `_LAYER_CONTROLS` and
   conditional control emission (+10), CSS rules (+11 lines inside `_CSS`; the
   inert phone rule at `:1097` is kept), S3 strip and formatter (-16/+26), S4
   line (-24/+16) and header (-3/+1): about +100 / -60, net +40.
 - `docs/CALL_SITE_MAP.md` - one row corrected.
-- Estimated production ceiling: 185 net lines across the two modules.
+- ESTIMATED production surface: about 180 net lines across the two modules
+  (140 + 40).
+- PROPOSED CEILING FOR THE DOWNSTREAM PRD: <= 185 net production lines (the
+  180 estimate plus 5 lines of explicit headroom). Both figures are
+  ESTIMATED SURFACE - NOT YET APPROVED; the first binding ceiling is the one
+  Dustin approves at Gate A (GOV-2 sec5).
 
 Test FILES (complete list):
 - `tests/test_setup_chart.py` (R7, R10, R11, R12 probe, layered 8.5 floor;
@@ -752,7 +798,8 @@ Test FILES (complete list):
   after the R16 extraction).
 - `docs/prd_history/PRD-NNN.evidence/measure.py` (browser acceptance for R9
   and R14, PRD-327 R11 precedent path `docs/prd_history/PRD-327.evidence/measure.py`).
-- Estimated test ceiling: 520 lines net (including the fixture JSON).
+- ESTIMATED test surface: about 500 lines net (including the fixture JSON);
+  PROPOSED test ceiling for the PRD: <= 520 lines net.
 
 ## 9. TEST CONE (packet question J; REC-3 classification)
 
@@ -796,12 +843,12 @@ Method: Chrome 151 headless driven over the DevTools protocol with
 `innerWidth`/`innerHeight` equal to the requested viewport and asserted the
 levels group's computed display for OFF and ON. Baseline bytes: the published
 2026-09-02 21:24Z document. Market facts unchanged. The prototype uses the
-three-group structure of 5.2 (levels between the background and the candles),
-the `display="none"` default, the visually-hidden focusable input and the 44
-px label, rebuilt for Event-2 attempt 2 with the five paint segments of 5.2,
-ticks emitted for every level from the complete list, and generator
-assertions for invariants (a)-(e), (g), the paint sequence and, on the live
-case, (f).
+five-segment compositor of 5.2 (levels/under between the background and the
+candles; levels/rail after the NOW tag and before the axis), the
+`display="none"` default, the visually-hidden focusable input and the 44 px
+label, ticks emitted for every level from the complete list, and generator
+assertions for invariants (a)-(e), (g) and the paint sequence on every case,
+with the approximate (f) comparison on the live case (5.3).
 
 | measure | 360x780 | 390x844 | 430x932 |
 |---|---|---|---|
@@ -813,10 +860,25 @@ case, (f).
 | LEVELS labels | 11 | 11 | 11 |
 | control (label) height x width (CSS px) | 44 x 74 | 44 x 74 | 44 x 74 |
 | horizontal overflow | none | none | none |
-| SPY SESSION top / first candidate card top (CSS px) | 509 / 1312 | 494 / 1283 | 461 / 1262 |
+| SPY SESSION top (CSS px) | 509 | 494 | 461 |
+| SPY chart (svg) top (CSS px) | 693 | 661 | 613 |
+| WATCHING top (CSS px) | 1202 | 1173 | 1152 |
+| first candidate card top (CSS px) | 1312 | 1283 | 1262 |
 
-Placement cases (SVG units; pitch 10; NOW pinned; invariants (a)-(f) asserted
-by the generator on every case):
+All four placement values are emitted by the measurement script
+(`shoot_levels.py`, keys `spyTop`, `chartTop`, `watchingTop`, `firstCard`,
+recorded in `proto_B_levels_measure.json`); a repeat run reproduced them
+exactly. Sol's independent CDP query at attempt 2 (a different script, same
+viewport) returned chart top 654 against the script's 661; measurement
+tolerance between independent scripts is therefore stated as 10 CSS px, and
+R14's thresholds (SPY <= 560, chart <= 780, first candidate <= 1320 at 390)
+keep margins of 66, 119 and 37 px, so the acceptance result does not depend
+on that tolerance. R14 is the acceptance criterion; these numbers are
+evidence.
+
+Placement cases (SVG units; pitch 10; NOW pinned; invariants (a)-(e) and (g)
+asserted by the generator on every case; (f) approximate on the live case only,
+see 5.3):
 
 | case | ticks | labels placed | displaced (leaders) | max displacement | min gap | dropped -> marker |
 |---|---|---|---|---|---|---|
@@ -841,7 +903,8 @@ candidate 1231 -> 1283 at 390). Against D3 (845) the first candidate sits 438
 px lower, of which about 600 is the promoted SPY block, about 52 the control,
 and about -180 the D4 cuts; Helm accepted the promotion cost by selecting B
 over A2. R14's thresholds (SPY section <= 560, chart <= 780, first candidate
-<= 1320 at 390) are met by this prototype (494, 661, 1283; `#watching-zone` top 1173).
+<= 1320 at 390) are met by this prototype (script-backed 494, 661, 1283;
+`#watching-zone` top 1173).
 
 Screens (scratch): `shot_proto_B_levels_off_y486.png`,
 `shot_proto_B_levels_on_y486.png`, `shot_proto_B_levels_stress_on_y486.png`,
@@ -892,13 +955,13 @@ the ladder or the A1-C intraday path.
 
 | finding | disposition | where |
 |---|---|---|
-| REQ-1 two contiguous groups cannot preserve paint order | ACTIONED: three groups base/under, levels, base/over; legacy paint order preserved; prototype rebuilt and re-measured | 4.2 (paint groups), 5.2, R7, 10 |
+| REQ-1 two contiguous groups cannot preserve paint order | ACTIONED at 955e139 as three groups (base/under, levels, base/over); SUBSEQUENTLY FOUND INCOMPLETE by Event-2 attempt 1 (rail labels still preceded candles and NOW) and SUPERSEDED by the five-segment compositor at d562444 (see the attempt-1 table below) | 4.2 (paint segments), 5.2, R7, 10 |
 | REQ-2 predecessor ledger omits PRD-329 R2/R4 no-observation byte identity and PRD-327 R11 placement | ACTIONED: both clauses added with exact supersession statements; R14 replaces the R11 thresholds | 7, R14 |
 | REQ-3 compact header drops SESSION / OBSERVED AT evidence; ORB matrix incomplete | ACTIONED: observed date+time via `_operator_timestamp`, `data-session-date` carrier, intended-date visibility rule, full ORB matrix, unknown-reason fallback | 5.1 S2, R2, D-8 |
 | REQ-4 control emission, CSS-off state, focus under-specified | ACTIONED: control only with a non-empty layered SVG; `display="none"` presentation default so CSS-off state agrees with the control; visually-hidden focusable input CSS; `:focus-visible`; control-count matrix tests | 5.2, R8, R9, T10 |
 | REQ-5 clamp/re-stack has no complete collision invariant | ACTIONED: binary invariants (a)-(f), capacity formula, deterministic overflow with `+N in ladder` marker; one-sided and forced-overflow cases measured | 5.3, R10, T8, 10 |
 | REQ-6 R11 lacks a frozen pre-D4 byte oracle | ACTIONED: R16 oracle fixture (sha256 of legacy renders incl. the leader-threshold boundary and the A1-C golden's embedded SVG) committed before any production change | R16, T9, 8 |
-| REQ-7 golden inventory inaccurate; FILES incomplete; ceilings not credible | ACTIONED: 16 fixtures; `_S2_MCC_ONLY_SHA` classified PRESERVED, `_S2_KV_SHA` RETIRED; browser script path named; complete FILES list; ceilings recalculated (180 production, 520 test) | 4.5, 8 |
+| REQ-7 golden inventory inaccurate; FILES incomplete; ceilings not credible | ACTIONED: 16 fixtures; `_S2_MCC_ONLY_SHA` classified PRESERVED, `_S2_KV_SHA` RETIRED; browser script path named; complete FILES list; surfaces recalculated (about 180 production estimate with a proposed 185 ceiling; about 500 test estimate with a proposed 520 ceiling) | 4.5, 8 |
 | REQ-8 LayerSpec does not define rendering or defaults | ACTIONED: seam reduced to `layers=` keyword + two closed maps + stable keys + `display="none"` default + selector pattern; probe test monkeypatches the renderer map so real independent rendering is proven without dead UI | 5.2, 5.5, R12 |
 | REC-1 phone target | ACTIONED: 44 CSS px minimum height, measured 44 x 74; D-5 restated as the author default | 5.2, R14, 10, D-5 |
 | REC-2 NEXT EVENT formatter | ACTIONED: deterministic date/time formatter with verbatim fallback; window stays loader-owned | 5.1 S3, R4, T11 |
@@ -918,3 +981,12 @@ it as drift.
 | REQ-5 dropped labels lost their ticks; invariant (f) unproven | ACTIONED: ticks emitted for every level from the complete list; invariant (g) tick count; (f) asserted on the live case (line y within 0.3 of the live SVG, candle bytes identical, paint sequence identical); overflow evidence regenerated (11 ticks, 7 labels, marker) | 5.3, R10, 10 |
 | REQ-7 packet removed the `nth-child(10)` rule inside the R10/R15-protected phone block | ACTIONED: rule kept byte-for-byte as inert; LOC estimate adjusted; R15 unchanged | 5.1 S4, 8 |
 | NF-4 blank line at EOF of the Event-1 record | ACTIONED: trailing blank line removed | CODEX_EVENT_1_REVIEW_2026-09-02.md |
+
+### Event-2 attempt 2 (at d562444): NOT CONFIRMED - 4 local residuals; Helm-authorized bounded repair dispositions
+
+| residual | disposition | where |
+|---|---|---|
+| REQ-1 two "three-group" descriptions survived; Event-1 disposition still asserted the three-group repair preserved paint order | ACTIONED: both replaced with five-segment compositor wording; Event-1 REQ-1 row now records the three-group repair as subsequently found incomplete and superseded | 8, 10, review record |
+| REQ-5 invariant (f) overclaimed for the prototype (0.3-unit tolerance on a fitted scale; line 818 said (a)-(f) on every case) | ACTIONED: prototype evidence stated as approximate within its recorded tolerance (largest 0.2 units, live case only); exact (f) retained as the implementation invariant in 5.3 and R10; section 10 wording corrected | 5.3, 10 |
+| REQ-7 estimate summed to 180 but 185 declared; chart top 661 not emitted by the script | ACTIONED: 180 stated as the ESTIMATED surface, 185 as the PROPOSED PRD ceiling, propagated to section 8 and the review record; measurement script extended to emit SPY top, chart top, WATCHING top and first-candidate top at all three viewports; record regenerated and reproduced; inter-script tolerance stated; R14 named as the acceptance criterion | 8, 10 |
+| REQ-8 one renderer entry must feed two compositor positions; contract unspecified | ACTIONED: closed `LayerRenderResult(under_elements, rail_elements)` contract; fixed compositor order stated; probe test proves both insertion positions, independent control and untouched candidate path | 5.2, 5.5 |
