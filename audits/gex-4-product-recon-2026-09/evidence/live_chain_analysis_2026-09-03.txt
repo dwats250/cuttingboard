@@ -1,0 +1,123 @@
+spot=7747.71 feed=2026-09-03T22:42:44+00:00 obs_date=2026-09-03 included=28492/28492
+
+TOTAL net=+80.4B  abs=595.5B  |net|/abs=0.135  strikes=809  range=200.0..20000.0
+call_wall={'strike': 8000.0, 'gex_1pct_usd': 38058745224.035995, 'reason': None}  put_wall={'strike': 8000.0, 'gex_1pct_usd': -32940752290.108654, 'reason': None}  dominant={'strike': 7800.0, 'gex_1pct_usd': 9509226849.427292, 'reason': None}
+
+TOP 15 by |net|:
+    7800  +0.67%  call= +16.56B put=  -7.05B net=  +9.51B abs= 23.61B  |net|/abs=0.40
+    7900  +1.97%  call=  +8.76B put=  -1.21B net=  +7.55B abs=  9.98B  |net|/abs=0.76
+    7825  +1.00%  call=  +7.99B put=  -1.02B net=  +6.98B abs=  9.01B  |net|/abs=0.77
+    7750  +0.03%  call= +19.31B put= -13.56B net=  +5.75B abs= 32.87B  |net|/abs=0.17
+    8000  +3.26%  call= +38.06B put= -32.94B net=  +5.12B abs= 71.00B  |net|/abs=0.07
+    8100  +4.55%  call=  +5.38B put=  -0.33B net=  +5.05B abs=  5.71B  |net|/abs=0.88
+    7850  +1.32%  call=  +5.81B put=  -0.83B net=  +4.98B abs=  6.64B  |net|/abs=0.75
+    7500  -3.20%  call=  +6.46B put= -10.94B net=  -4.48B abs= 17.41B  |net|/abs=0.26
+    8200  +5.84%  call=  +4.23B put=  -0.35B net=  +3.88B abs=  4.57B  |net|/abs=0.85
+    7950  +2.61%  call=  +3.95B put=  -0.28B net=  +3.67B abs=  4.24B  |net|/abs=0.87
+    8050  +3.90%  call=  +3.65B put=  -0.18B net=  +3.47B abs=  3.83B  |net|/abs=0.91
+    8150  +5.19%  call=  +3.25B put=  -0.16B net=  +3.09B abs=  3.41B  |net|/abs=0.90
+    7775  +0.35%  call=  +5.63B put=  -2.70B net=  +2.92B abs=  8.33B  |net|/abs=0.35
+    7550  -2.55%  call=  +4.13B put=  -6.73B net=  -2.60B abs= 10.87B  |net|/abs=0.24
+    8160  +5.32%  call=  +2.60B put=  -0.00B net=  +2.59B abs=  2.60B  |net|/abs=1.00
+
+TOP 15 by abs (call+put magnitude):
+    8000  +3.26%  call= +38.06B put= -32.94B net=  +5.12B abs= 71.00B  |net|/abs=0.07
+    7750  +0.03%  call= +19.31B put= -13.56B net=  +5.75B abs= 32.87B  |net|/abs=0.17
+    7700  -0.62%  call= +13.32B put= -14.23B net=  -0.92B abs= 27.55B  |net|/abs=0.03
+    7000  -9.65%  call= +12.37B put= -13.87B net=  -1.50B abs= 26.23B  |net|/abs=0.06
+    7800  +0.67%  call= +16.56B put=  -7.05B net=  +9.51B abs= 23.61B  |net|/abs=0.40
+    7600  -1.91%  call=  +8.74B put= -10.68B net=  -1.93B abs= 19.42B  |net|/abs=0.10
+    7500  -3.20%  call=  +6.46B put= -10.94B net=  -4.48B abs= 17.41B  |net|/abs=0.26
+    7650  -1.26%  call=  +5.06B put=  -7.29B net=  -2.23B abs= 12.34B  |net|/abs=0.18
+    7550  -2.55%  call=  +4.13B put=  -6.73B net=  -2.60B abs= 10.87B  |net|/abs=0.24
+    7900  +1.97%  call=  +8.76B put=  -1.21B net=  +7.55B abs=  9.98B  |net|/abs=0.76
+    7825  +1.00%  call=  +7.99B put=  -1.02B net=  +6.98B abs=  9.01B  |net|/abs=0.77
+    7400  -4.49%  call=  +3.32B put=  -5.53B net=  -2.21B abs=  8.84B  |net|/abs=0.25
+    7725  -0.29%  call=  +5.38B put=  -3.33B net=  +2.05B abs=  8.71B  |net|/abs=0.24
+    7775  +0.35%  call=  +5.63B put=  -2.70B net=  +2.92B abs=  8.33B  |net|/abs=0.35
+    7450  -3.84%  call=  +3.19B put=  -4.46B net=  -1.27B abs=  7.65B  |net|/abs=0.17
+
+TOP 10 call:
+    8000  +3.26%  call= +38.06B put= -32.94B net=  +5.12B abs= 71.00B  |net|/abs=0.07
+    7750  +0.03%  call= +19.31B put= -13.56B net=  +5.75B abs= 32.87B  |net|/abs=0.17
+    7800  +0.67%  call= +16.56B put=  -7.05B net=  +9.51B abs= 23.61B  |net|/abs=0.40
+    7700  -0.62%  call= +13.32B put= -14.23B net=  -0.92B abs= 27.55B  |net|/abs=0.03
+    7000  -9.65%  call= +12.37B put= -13.87B net=  -1.50B abs= 26.23B  |net|/abs=0.06
+    7900  +1.97%  call=  +8.76B put=  -1.21B net=  +7.55B abs=  9.98B  |net|/abs=0.76
+    7600  -1.91%  call=  +8.74B put= -10.68B net=  -1.93B abs= 19.42B  |net|/abs=0.10
+    7825  +1.00%  call=  +7.99B put=  -1.02B net=  +6.98B abs=  9.01B  |net|/abs=0.77
+    7500  -3.20%  call=  +6.46B put= -10.94B net=  -4.48B abs= 17.41B  |net|/abs=0.26
+    7850  +1.32%  call=  +5.81B put=  -0.83B net=  +4.98B abs=  6.64B  |net|/abs=0.75
+
+TOP 10 put (most negative):
+    8000  +3.26%  call= +38.06B put= -32.94B net=  +5.12B abs= 71.00B  |net|/abs=0.07
+    7700  -0.62%  call= +13.32B put= -14.23B net=  -0.92B abs= 27.55B  |net|/abs=0.03
+    7000  -9.65%  call= +12.37B put= -13.87B net=  -1.50B abs= 26.23B  |net|/abs=0.06
+    7750  +0.03%  call= +19.31B put= -13.56B net=  +5.75B abs= 32.87B  |net|/abs=0.17
+    7500  -3.20%  call=  +6.46B put= -10.94B net=  -4.48B abs= 17.41B  |net|/abs=0.26
+    7600  -1.91%  call=  +8.74B put= -10.68B net=  -1.93B abs= 19.42B  |net|/abs=0.10
+    7650  -1.26%  call=  +5.06B put=  -7.29B net=  -2.23B abs= 12.34B  |net|/abs=0.18
+    7800  +0.67%  call= +16.56B put=  -7.05B net=  +9.51B abs= 23.61B  |net|/abs=0.40
+    7550  -2.55%  call=  +4.13B put=  -6.73B net=  -2.60B abs= 10.87B  |net|/abs=0.24
+    7400  -4.49%  call=  +3.32B put=  -5.53B net=  -2.21B abs=  8.84B  |net|/abs=0.25
+
+CANCELLATION: strikes with abs >= 1% of abs-total AND |net|/abs < 0.35
+    7000  -9.65%  call= +12.37B put= -13.87B net=  -1.50B abs= 26.23B  |net|/abs=0.06
+    7400  -4.49%  call=  +3.32B put=  -5.53B net=  -2.21B abs=  8.84B  |net|/abs=0.25
+    7450  -3.84%  call=  +3.19B put=  -4.46B net=  -1.27B abs=  7.65B  |net|/abs=0.17
+    7500  -3.20%  call=  +6.46B put= -10.94B net=  -4.48B abs= 17.41B  |net|/abs=0.26
+    7550  -2.55%  call=  +4.13B put=  -6.73B net=  -2.60B abs= 10.87B  |net|/abs=0.24
+    7600  -1.91%  call=  +8.74B put= -10.68B net=  -1.93B abs= 19.42B  |net|/abs=0.10
+    7650  -1.26%  call=  +5.06B put=  -7.29B net=  -2.23B abs= 12.34B  |net|/abs=0.18
+    7675  -0.94%  call=  +3.76B put=  -3.87B net=  -0.12B abs=  7.63B  |net|/abs=0.02
+    7700  -0.62%  call= +13.32B put= -14.23B net=  -0.92B abs= 27.55B  |net|/abs=0.03
+    7725  -0.29%  call=  +5.38B put=  -3.33B net=  +2.05B abs=  8.71B  |net|/abs=0.24
+    7750  +0.03%  call= +19.31B put= -13.56B net=  +5.75B abs= 32.87B  |net|/abs=0.17
+    8000  +3.26%  call= +38.06B put= -32.94B net=  +5.12B abs= 71.00B  |net|/abs=0.07
+(strikes with abs>=1% of total: 17; their abs share=0.52; their net sum=+27.6B)
+
+WINDOW SHARES (of abs total / of net total) within +/- pct of spot:
+  +/- 1%: strikes=  31 abs_share=0.33 net_sum=+46.9B  (|net| sum inside=49.6B)
+  +/- 2%: strikes=  62 abs_share=0.48 net_sum=+59.3B  (|net| sum inside=80.5B)
+  +/- 3%: strikes=  93 abs_share=0.56 net_sum=+61.7B  (|net| sum inside=97.1B)
+  +/- 5%: strikes= 155 abs_share=0.80 net_sum=+75.6B  (|net| sum inside=136.5B)
+  +/- 7%: strikes= 217 abs_share=0.86 net_sum=+86.7B  (|net| sum inside=160.4B)
+  +/-10%: strikes= 304 abs_share=0.94 net_sum=+84.5B  (|net| sum inside=177.0B)
+
+STRIKE GRID near spot (pitch between consecutive strikes with abs>0):
+   {5.0: 92} n=93
+  strikes on 25-grid within 3%: 19; abs share of 25-grid among near: 0.60
+
+EXPIRY abs share (top 10):
+  2026-09-18 dte=  15 abs= 212.1B share=0.356 net= +15.2B
+  2026-12-18 dte= 106 abs=  53.1B share=0.089 net=  +4.4B
+  2026-10-16 dte=  43 abs=  52.7B share=0.088 net=  +2.9B
+  2026-09-04 dte=   1 abs=  33.4B share=0.056 net= +11.1B
+  2026-12-31 dte= 119 abs=  27.4B share=0.046 net= +23.7B
+  2026-09-30 dte=  27 abs=  25.5B share=0.043 net=  +2.0B
+  2026-11-20 dte=  78 abs=  19.5B share=0.033 net=  -0.4B
+  2026-09-08 dte=   5 abs=  15.6B share=0.026 net=  +5.3B
+  2026-09-03 dte=   0 abs=  14.8B share=0.025 net=  +1.4B
+  2026-09-11 dte=   8 abs=  14.7B share=0.025 net=  -0.1B
+
+0DTE contracts=504 abs=14.8B share=0.025
+0DTE top 8 by |net|:
+      7750  +0.03% call= +7.58B put= -5.76B net= +1.81B
+      7745  -0.03% call= +0.29B put= -0.54B net= -0.25B
+      7760  +0.16% call= +0.04B put= -0.25B net= -0.22B
+      7740  -0.10% call= +0.09B put= -0.01B net= +0.08B
+      7765  +0.22% call= +0.00B put= -0.06B net= -0.06B
+      7770  +0.29% call= +0.00B put= -0.05B net= -0.05B
+      7775  +0.35% call= +0.00B put= -0.04B net= -0.04B
+      7735  -0.16% call= +0.03B put= -0.00B net= +0.03B
+
+WHERE DOES THE 8000-STYLE FAR STRIKE COME FROM (top-abs strike, by expiry):
+  strike 8000.0 exp 2026-10-16 dte=43 net=+0.93B
+  strike 8000.0 exp 2026-12-18 dte=106 net=+0.79B
+  strike 8000.0 exp 2026-09-30 dte=27 net=+0.68B
+  strike 8000.0 exp 2026-09-18 dte=15 net=+0.58B
+  strike 8000.0 exp 2026-12-31 dte=119 net=+0.46B
+    2026-09-18 call=+11.65B put=-11.07B
+    2026-10-16 call=+8.80B put=-7.88B
+    2026-12-18 call=+6.99B put=-6.20B
+    2027-12-17 call=+1.62B put=-1.50B
