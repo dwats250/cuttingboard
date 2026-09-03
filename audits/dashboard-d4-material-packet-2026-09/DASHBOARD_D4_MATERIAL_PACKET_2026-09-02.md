@@ -1,38 +1,31 @@
 # Dashboard D4 - Proto-B primary-path synthesis + SPY chart LEVELS control - MATERIAL design packet
 
 ```
-STATUS: CORRECTED MATERIAL PACKET (bounded repair 1) - 2026-09-02 - DESIGN ONLY
+STATUS: REVIEW-CLEAN MATERIAL PACKET - 2026-09-02 - DESIGN ONLY
+CONFIRMED-CLEAN AT 005117e3583b1cd007234ac128899aaddb0dae0f (Event-2 attempt 4;
+record CODEX_EVENT_2_CONFIRMATION_ATTEMPT_4_2026-09-02.md committed as 0229c32;
+packet body byte-identical between 005117e and 0229c32).
+HELM DESIGN-DIRECTION RULING RECORDED 2026-09-02 (section below; GOV-2 sec2
+step 6). Downstream PRD: PRD-330 (Stage-0 opened from this packet + ruling).
+AUTHORIZES NO IMPLEMENTATION, NO GATE A, NO MERGE.
 GOV-2 PACKET-REVIEW CYCLE: EVENT 1 (Sol/Codex, fresh context, HIGH) at 74c915f:
-  REJECT (8 REQUIRED, 3 RECOMMENDED; boundary omissions: none) -
-  CODEX_EVENT_1_REVIEW_2026-09-02.md. The ONE consolidated correction landed
-  at 955e139. EVENT 2 ATTEMPT 1 (against 955e139): NOT CONFIRMED (4 residuals:
-  REQ-1 paint order, REQ-3 citations/raw-reason rule, REQ-5 tick emission and
-  invariant (f) proof, REQ-7 phone-block conflict; boundary omissions: none) -
-  CODEX_EVENT_2_CONFIRMATION_ATTEMPT_1_2026-09-02.md. Bounded local repair
-  (GOV-2 sec6, local citation/wording/assertion corrections inside the cycle;
-  D3 precedent attempts 2-4) landed at d562444. EVENT 2 ATTEMPT 2 (against
-  d562444): NOT CONFIRMED (4 local residuals: REQ-1 stale three-group prose,
-  REQ-5 prototype invariant (f) overclaimed, REQ-7 estimate/ceiling arithmetic
-  and an unscripted chart-top value, REQ-8 two-position renderer-result
-  contract unspecified; Helm confirmation items 1-13 all PASS; boundary
-  omissions: none) - CODEX_EVENT_2_CONFIRMATION_ATTEMPT_2_2026-09-02.md.
-  Helm-authorized ONE consolidated packet-only repair (charge "D4 - EVENT-2C
-  BOUNDED PACKET REPAIR + EXACT-HEAD CONFIRMATION", 2026-09-02) is this
-  revision, landed at 7fa7478. EVENT 2 ATTEMPT 3 (against 7fa7478): NOT
-  CONFIRMED (2 local residuals: NF-8 "four" vs five differing coordinates;
-  NF-9 PRD-304 R4/R7 attribution; Helm items 1-11 and 13 PASS, 12 FAIL on the
-  attribution only; boundary omissions: none) -
-  CODEX_EVENT_2_CONFIRMATION_ATTEMPT_3_2026-09-02.md. Helm-authorized ONE
-  final micro-correction (charge "D4 - FINAL MICRO-CORRECTION + EXACT-HEAD
-  CONFIRMATION", 2026-09-02) is this revision. EVENT 2 ATTEMPT 4 PENDING
-  against this commit's SHA. REVIEW RECORD at the end lists every disposition.
-AUTHORIZES NO IMPLEMENTATION, NO PRD, NO GATE A, NO MERGE.
-Every FILES / LOC figure below is ESTIMATED SURFACE - NOT YET APPROVED (GOV-2 sec5).
+  REJECT (8 REQUIRED, 3 RECOMMENDED; boundary omissions: none). ONE consolidated
+  correction at 955e139. EVENT 2 ATTEMPT 1 (against 955e139): NOT CONFIRMED (4
+  local residuals). Bounded repair d562444 (GOV-2 sec6). ATTEMPT 2 (against
+  d562444): NOT CONFIRMED (4 local residuals; Helm items 1-13 PASS). Helm-
+  authorized repair 7fa7478. ATTEMPT 3 (against 7fa7478): NOT CONFIRMED (2
+  local residuals). Helm-authorized micro-correction 005117e. ATTEMPT 4
+  (against 005117e): CONFIRMED-CLEAN, no residuals, no boundary omission.
+  CYCLE COMPLETE. Every attempt record is in this directory; the REVIEW RECORD
+  at the end lists every disposition.
+Every FILES / LOC figure below is ESTIMATED SURFACE - NOT YET APPROVED (GOV-2
+sec5); the downstream PRD carries the estimate (about 180 production / about
+500 test) and the proposed ceilings (185 / 520) to Gate A.
 Repository truth at authoring: main 858147f2057ed967d7d17fbc4a8c2f6cc20bfb71
 (renderer, chart module and tests byte-identical to 218fb9a; 858147f adds only
 docs/product/ASTROLOGY_MODE_CONCEPT_RECORD_v0.1.md).
-Branch: claude/d4-proto-b-levels-design (docs branch; carries this packet and
-its review records only).
+Branch: claude/d4-proto-b-levels-design (docs branch; carries this packet, its
+review records and the downstream PRD Stage-0 scaffold).
 ```
 
 > Upstream MATERIAL design packet for the owner charge "CUTTINGBOARD D4 -
@@ -43,6 +36,75 @@ its review records only).
 > deliverable), the D4 visual prototype (Proto A / B / A2, 2026-09-02, chat
 > deliverable) and the LEVELS prototype measured in this packet (section 10).
 > Substantive deviation from Helm rulings: NONE (section 12).
+
+## HELM DESIGN-DIRECTION RULING (Dustin / HELM, 2026-09-02; GOV-2 sec2 step 6)
+
+Recorded verbatim in intent from the owner charge "D4 - HELM DESIGN-DIRECTION
+RULING -> DOWNSTREAM IMPLEMENTATION PRD" (2026-09-02). GRANTED on the
+review-clean packet body 005117e. Rulings D-1 through D-8:
+
+- D-1 STALE CLARIFIER. When a STALE observation withholds the observation
+  price/VWAP, show `no current price/VWAP read` in both applicable STALE
+  presentations. Reason-specific context remains separate. Never expose raw
+  internal reason tokens.
+- D-2 BASE CHART MEMBERSHIP. BASE contains: chart background / candles; NOW
+  line/tag; date axis; VWAP; an extremely light ORB range band. The BASE chart
+  must remain visually price-first; the dense annotation rail is not in BASE.
+  LEVELS adds the richer deterministic reference overlay (VWAP label, ORB H/L
+  labels, PDH/PDL, fib references, existing EMA references, other
+  already-authorized deterministic level references from existing data). No
+  new data. LEVELS OFF therefore remains a useful market chart, not a bare
+  chart. (This promotes the VWAP line and the ORB band from LEVELS to BASE
+  relative to the reviewed 4.2 default; the labels for both stay in LEVELS.)
+- D-3 RAIL FONT FLOOR. Minimum annotation-label font 9 CSS px; never shrink
+  below 9 px to force labels to fit. When collision/space constraints prevent
+  honest placement: retain the true-price tick, omit the rail label, include
+  it in the existing `+N in ladder` overflow accounting. Never distort y-scale
+  or false-position a label. (This replaces the reviewed 8.5-unit floor.)
+- D-4 LADDER. Option A confirmed: the existing SPY ladder remains visible and
+  independent; LEVELS changes chart presentation only; ladder visibility never
+  depends on LEVELS.
+- D-5 CONTROL HIT TARGET. LEVELS has a minimum mobile tappable target of 44
+  CSS px; the visible control may remain visually compact within that target;
+  accessibility and native interaction remain required.
+- D-6 PREDECESSOR NARROWING. The packet's narrowly scoped partial
+  supersessions of PRD-329 R3 and PRD-327 R11 are approved exactly as
+  recorded; not broadened; all unaffected protections remain binding.
+- D-7 WATCHLIST REASON DISPLAY. Closed operator-facing display policy: if all
+  watched symbols share the known entry-cutoff reason, `N held by the 3:30 PM
+  cutoff`; if reasons are mixed, unknown, or unmapped, `N on watch`. Never emit
+  raw internal reason tokens on the primary path. D4 does not expose the
+  watchlist names.
+- D-8 INTENDED-DATE VISIBILITY. Do not permanently print redundant dates.
+  Normal same-session observation: operator-readable time only. Show the date
+  when required to prevent ambiguity: session mismatch, prior-session /
+  PRE_OPEN context, any state where time alone could imply the wrong trading
+  day. Truth takes precedence over compression. (This narrows the reviewed 5.1
+  S2 default, which printed the observed date in every state via
+  `_operator_timestamp`; the downstream PRD specifies the time-only form for
+  same-session states and the dated form otherwise.)
+- SELECTED VISUAL DIRECTION: Proto B; hierarchy VERDICT -> TAPE -> SPY SESSION
+  -> NEXT EVENT -> WATCHING -> DETAILS / HISTORY; corrected compact Proto-B
+  clock language; preserve the open ladder, candidate-card behaviour, closed-C
+  one-tap evidence, TAPE, VERDICT, DETAILS collapsed, no CLOSED inference, no
+  new data, candidate legacy render path.
+- LEVELS ARCHITECTURE: exactly the reviewed architecture (native checkbox +
+  label, zero new JS, five-segment compositor preserving legacy paint order,
+  closed `LayerRenderResult(under_elements, rail_elements)`, true-price ticks,
+  deterministic outward-sweep collision handling, visible leaders when
+  displaced, y-scale unchanged, overflow marker to ladder, candidate charts on
+  the legacy path). Future Astrology extension STRUCTURAL ONLY: no visible
+  control, no strings, no pattern logic, no geometry, no confluence
+  computation, no prediction.
+- CEILING BASIS FOR THE PRD: production estimated surface about 180 net LOC,
+  proposed hard ceiling <= 185; tests estimated about 500 net LOC, proposed
+  hard ceiling <= 520; binding only if the downstream PRD is review-clean and
+  Helm later grants Gate A.
+
+Effect on the reviewed text below: D-2 and D-3 change two author defaults
+(BASE membership; label font floor) and D-8 narrows one (date visibility);
+D-1, D-4, D-5, D-6, D-7 confirm the author defaults. The reviewed body is not
+edited; PRD-330 carries the ruled values as binding requirements.
 
 ## 1. OWNER RULINGS RECORDED (charge 2026-09-02, verbatim intent)
 
