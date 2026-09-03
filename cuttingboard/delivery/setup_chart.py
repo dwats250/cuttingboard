@@ -438,9 +438,9 @@ def _compose(svg_open: str, ctx: _LayerContext, base_under: list[str],
 
 def _place_rail(refs: Sequence[tuple[str, float, str]], now_y: float, height: float
                 ) -> tuple[list[tuple[str, float, float, str]], dict[str, int]]:
-    """PRD-330 R10: deterministic outward sweep from the pinned NOW tag at a fixed
-    pitch; labels never overlap, never cross NOW, never leave the frame; a side
-    that cannot fit drops its OUTERMOST labels (ticks stay) and reports the count."""
+    """PRD-330 R10: deterministic outward sweep from the pinned NOW tag at a fixed pitch;
+    labels never overlap, never cross NOW, never leave the frame; a side that cannot fit
+    drops its OUTERMOST labels (ticks stay), reserves one pitch for the marker, reports N."""
     half, top, bottom = _LEVELS_PITCH / 2, 2.0, height - 14.0
     placed: list[tuple[str, float, float, str]] = []
     dropped: dict[str, int] = {}
@@ -448,10 +448,10 @@ def _place_rail(refs: Sequence[tuple[str, float, str]], now_y: float, height: fl
                         ("below", sorted([r for r in refs if r[1] > now_y], key=lambda r: r[1]))):
         sign = -1.0 if side == "above" else 1.0
         limit = now_y + sign * 7.0
-        edge_lim = top if side == "above" else bottom
         keep = [r for r in group if len(r[0]) <= _LEVELS_MAX_CHARS]
         dropped[side] = len(group) - len(keep)
         while True:
+            edge_lim = (top if sign < 0 else bottom) - sign * (_LEVELS_PITCH if dropped[side] else 0.0)
             pos: list[float] = []
             edge = limit
             for _t, ty, _c in keep:                      # outward from NOW

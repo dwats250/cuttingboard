@@ -506,28 +506,30 @@ def _rail_items(svg: str) -> tuple[list[float], list[tuple[str, float, float]], 
     return ticks, labels, leaders, rail
 
 
-@pytest.mark.parametrize("name,zones,now", [
-    ("live_like", _ORB_ZONES, 102.4),
+@pytest.mark.parametrize("name,zones,now,fibs", [
+    ("live_like", _ORB_ZONES, 102.4, FIBS),
     ("symmetric_cluster", [{"type": t, "level": 102.4 + d} for t, d in
                            (("VWAP", -0.05), ("EMA9", 0.1), ("EMA21", -0.1), ("PRIOR_HIGH", 0.2), ("PRIOR_LOW", -0.2),
-                            ("ORB_HIGH", 0.3), ("ORB_LOW", -0.3), ("EMA50", 0.4))], 102.4),
+                            ("ORB_HIGH", 0.3), ("ORB_LOW", -0.3), ("EMA50", 0.4))], 102.4, FIBS),
     ("one_sided_below", [{"type": t, "level": 99.6 - i * 0.05} for i, t in
-                         enumerate(("VWAP", "EMA9", "EMA21", "PRIOR_HIGH", "PRIOR_LOW", "ORB_HIGH", "ORB_LOW", "EMA50"))], 104.4),
+                         enumerate(("VWAP", "EMA9", "EMA21", "PRIOR_HIGH", "PRIOR_LOW", "ORB_HIGH", "ORB_LOW", "EMA50"))], 104.4, FIBS),
     ("forced_overflow_above", [{"type": t, "level": 104.45 + i * 0.05} for i, t in
-                               enumerate(("VWAP", "EMA9", "EMA21", "PRIOR_HIGH", "PRIOR_LOW", "ORB_HIGH", "ORB_LOW", "EMA50"))], 104.4),
+                               enumerate(("VWAP", "EMA9", "EMA21", "PRIOR_HIGH", "PRIOR_LOW", "ORB_HIGH", "ORB_LOW", "EMA50"))], 104.4, FIBS),
+    ("dense_sixteen_both_sides", [{"type": t, "level": 102.4 + d} for t, d in zip(("VWAP", "EMA9", "EMA21", "PRIOR_HIGH", "PRIOR_LOW", "ORB_HIGH", "ORB_LOW", "EMA50"), (0.02, 0.04, 0.06, 0.08, -0.02, -0.04, -0.06, -0.08))],
+     102.4, {"retracements": {k: 102.2 + i * 0.05 for i, k in enumerate(("1.618", "1.272", "0.236", "0.382", "0.5", "0.618", "0.786", "1.0"))}}),
 ])
-def test_prd330_r10_rail_invariants(name, zones, now) -> None:
-    # T8: (a) no overlap, (b) clear of the NOW tag, (c) side preserved, (d) in frame,
-    # (e) leader iff displaced > 2, (f) tick/line y equal the legacy scale, (g) a tick per level,
-    # D-3 floor and 11-character cap, overflow marker with ticks retained.
-    svg = _chart(contract_entry=None, contract_stop=None, watch_zones=zones, now_price=now, layers=("levels",))
-    legacy = _chart(contract_entry=None, contract_stop=None, watch_zones=zones, now_price=now)
+def test_prd330_r10_rail_invariants(name, zones, now, fibs) -> None:
+    # T8: (a) no overlap, (b) clear of NOW, (c) side preserved, (d) in frame, (e) leader iff displaced > 2,
+    # (f)+(g) a tick per level at legacy y, D-3 floor, 11-char cap; the overflow marker joins (a), (b), (d).
+    svg = _chart(contract_entry=None, contract_stop=None, watch_zones=zones, fib_levels=fibs, now_price=now, layers=("levels",))
+    legacy = _chart(contract_entry=None, contract_stop=None, watch_zones=zones, fib_levels=fibs, now_price=now)
     ticks, labels, leaders, rail = _rail_items(svg)
     now_y = float(re.search(r'class="lvl-t1 lvl-now" x1="0" y1="([\d.]+)"', svg).group(1))
     line_ys = sorted(float(y) for y in re.findall(r'<line class="lvl-t[23]" x1="0" y1="([\d.]+)"', legacy))
     assert sorted(ticks) == line_ys                                     # (f)+(g): one tick per level, legacy y
     assert sorted(float(y) for y in re.findall(r'<line class="lvl-t[23]" x1="0" y1="([\d.]+)"', svg)) == line_ys
-    ys = sorted(y for _t, y, _f in labels)
+    marker = re.findall(r'lvl-more" x="286" y="([\d.]+)" font-size="10.5" fill="#888">\+(\d+) in ladder</text>', rail)
+    ys = sorted([y for _t, y, _f in labels] + [float(y) - 10.5 * 0.35 for y, _n in marker])   # marker included
     assert all(b - a >= 12 - 0.15 for a, b in zip(ys, ys[1:]))            # (a) (text y printed at 0.1)
     assert all(abs(y - now_y) >= 7 + 6 - 0.15 for y in ys)               # (b)
     assert all(len(t) <= 11 and re.search(r"\d+\.\d$", t) for t, _y, _f in labels)
@@ -537,10 +539,8 @@ def test_prd330_r10_rail_invariants(name, zones, now) -> None:
         assert tick_y in ticks and abs(label_y - tick_y) > 2
         assert (tick_y <= now_y) == (label_y <= now_y)                  # (c) side preserved
     dropped = len(ticks) - len(labels)
-    marker = re.findall(r'lvl-more" x="286" y="[\d.]+" font-size="10.5" fill="#888">\+(\d+) in ladder</text>', rail)
-    assert (dropped > 0) == bool(marker) and (not marker or int(marker[0]) == dropped)
-    if name == "forced_overflow_above":
-        assert dropped >= 1                                              # the overflow path is exercised
+    assert (dropped > 0) == bool(marker) and sum(int(n) for _y, n in marker) == dropped   # truthful +N
+    assert (dropped >= 1) == name.startswith(("forced", "dense"))        # overflow path exercised iff forced
     assert "font-size=\"7.5\"" not in rail and 'font-size="8.5"' not in rail
 
 
