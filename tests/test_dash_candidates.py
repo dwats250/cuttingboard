@@ -746,9 +746,10 @@ def test_candidate_board_positioned_before_alert_watchlist() -> None:
 # ---------------------------------------------------------------------------
 
 def test_candidate_board_renamed_to_market_map() -> None:
-    """Candidate Board heading is renamed to Market Map / Developing Setups."""
+    """PRD-330 R6 (supersedes PRD-102 R5): the board heading is SETUPS with the permission clause."""
     html = render_dashboard_html(_payload(), _run())
-    assert "Market Map / Developing Setups" in html
+    assert '<h3>SETUPS <span class="scope-note">· screening grades, not permission</span></h3>' in html
+    assert "Market Map / Developing Setups · screening" not in html
     # Old label must not appear in the board section heading
     board = html.split('id="candidate-board"', 1)[1].split('</div>', 1)[0]
     assert "Candidate Board" not in board

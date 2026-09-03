@@ -19,9 +19,10 @@ from __future__ import annotations
 
 import html as _html
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 
-__all__ = ["render_setup_chart_svg", "TIER2_TYPES", "TIER3_TYPES",
+__all__ = ["render_setup_chart_svg", "LayerRenderResult", "TIER2_TYPES", "TIER3_TYPES",
            "CHART_WIDTH", "CHART_HEIGHT"]
 
 # --- palette (dashboard-consistent; mirrors the ladder/prototype colours) ---
@@ -57,6 +58,34 @@ _GUTTER = 78
 _PAD_T = 8
 _PAD_B = 14
 MAX_BARS = 40
+
+# PRD-330 (D4) LEVELS rail: label font >= 9 CSS px at the narrowest supported
+# phone width (322 px rendered SVG -> 10.5 units = 9.4 px); one label per pitch.
+_LEVELS_FONT = 10.5
+_LEVELS_PITCH = 12.0
+_LEVELS_MAX_CHARS = 11
+_LEVELS_LEADER_TOL = 2.0
+_LEVELS_MARKER_C = "#888"
+_LEVELS_LEADER_C = "#666"
+
+
+@dataclass(frozen=True)
+class LayerRenderResult:
+    """PRD-330 R7/R12: one chart layer's material for the two compositor slots -
+    canvas-level elements painted BEFORE the candles and rail/annotation
+    elements painted AFTER the NOW tag. Either tuple may be empty."""
+    under_elements: tuple[str, ...] = ()
+    rail_elements: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class _LayerContext:
+    """Observational inputs a layer renderer may read (PRD-330 R3 purity)."""
+    plot_w: int
+    height: int
+    now_y: float
+    level_lines: tuple[str, ...]            # Tier-3 then Tier-2 (VWAP excluded) line elements
+    level_refs: tuple[tuple[str, float, str], ...]   # (label text, true y, colour), every level
 
 
 def _fin(value: object) -> float | None:
@@ -154,8 +183,12 @@ def render_setup_chart_svg(
     width: int = CHART_WIDTH,
     height: int = CHART_HEIGHT,
     max_bars: int | None = MAX_BARS,
+    layers: object = None,
 ) -> str:
     """Return a deterministic inline SVG for one candidate, or `""`.
+
+    PRD-330: `layers=None` (every candidate call) returns the legacy flat bytes;
+    `layers=("levels",)` returns the five-segment compositor output (R7).
 
     `""` means "nothing honest to draw" — no usable completed bars or no valid
     NOW anchor (PRD-226). The caller degrades to the compact ladder; it never
@@ -202,13 +235,14 @@ def render_setup_chart_svg(
     entry_word = "LEVEL" if operator_locked else "ENTRY"
     stop_word = "INVALIDATION" if operator_locked else "STOP"
 
-    out: list[str] = []
-    out.append(
+    svg_open = (
         f'<svg viewBox="0 0 {width} {height}" width="100%" '
         f'preserveAspectRatio="xMidYMid meet" role="img" '
         f'xmlns="http://www.w3.org/2000/svg" font-family="monospace">'
     )
-    out.append(f'<rect width="{plot_w}" height="{height}" fill="{_BG}"/>')
+    # Paint categories in legacy order; `layers=None` joins them unchanged.
+    under: list[str] = [f'<rect width="{plot_w}" height="{height}" fill="{_BG}"/>']
+    out = under
 
     # --- zone shading (behind everything) ---
     if entry is not None and stop is not None:
@@ -228,6 +262,11 @@ def render_setup_chart_svg(
 
     # Right-gutter items: [true_y, text, colour, font-size, bold, boxed]
     items: list[list] = []
+    lines_t3: list[str] = []
+    lines_t2: list[str] = []
+    vwap_line: list[str] = []
+    refs: list[tuple[str, float, str]] = []   # PRD-330 LEVELS labels: (text, true y, colour)
+    out = lines_t3
 
     # --- Tier 3: faint context, clipped to the domain, never widening it ---
     for label, level in fibs:
@@ -239,6 +278,7 @@ def render_setup_chart_svg(
             f'stroke="{_T3_C}" stroke-width="0.75" stroke-dasharray="2,4"/>'
         )
         items.append([y, f"fib {_html.escape(label)} {level:,.1f}", _T3_TEXT, 7.5, False, False])
+        refs.append((f"{_html.escape(label)} {level:.1f}", y, _T3_TEXT))
     for ztype, level in tier3:
         if not lo < level < hi:
             continue
@@ -248,24 +288,28 @@ def render_setup_chart_svg(
             f'stroke="{_T3_C}" stroke-width="0.75" stroke-dasharray="2,4"/>'
         )
         items.append([y, f"{_ABBR[ztype]} {level:,.1f}", _T3_TEXT, 7.5, False, False])
+        refs.append((f"{_ABBR[ztype]} {level:.1f}", y, _T3_TEXT))
 
     # --- Tier 2: clear structural references ---
     for ztype, level in tier2:
         y = y_of(level)
+        refs.append((f"{_ABBR[ztype]} {level:.1f}", y, _VWAP_C if ztype == "VWAP" else _T2_C))
         if ztype == "VWAP":
-            out.append(
+            vwap_line.append(
                 f'<line class="lvl-t2" x1="0" y1="{y}" x2="{plot_w}" y2="{y}" '
                 f'stroke="{_VWAP_C}" stroke-width="1" stroke-dasharray="4,2" opacity="0.75"/>'
             )
             items.append([y, f"VWAP {level:,.1f}", _VWAP_C, 8.5, False, False])
         else:
-            out.append(
+            lines_t2.append(
                 f'<line class="lvl-t2" x1="0" y1="{y}" x2="{plot_w}" y2="{y}" '
                 f'stroke="{_T2_C}" stroke-width="1" opacity="0.8"/>'
             )
             items.append([y, f"{_ABBR[ztype]} {level:,.1f}", _T2_C, 8.5, False, False])
 
     # --- candles (the primary spatial representation) ---
+    price: list[str] = []
+    out = price
     slot = plot_w / len(rows)
     body_w = max(min(slot * 0.62, 9.0), 1.5)
     for index, (_day, o, high, low, c) in enumerate(rows):
@@ -309,6 +353,7 @@ def render_setup_chart_svg(
         f'<line class="lvl-t1 lvl-now" x1="0" y1="{now_y}" x2="{plot_w}" y2="{now_y}" '
         f'stroke="{_NOW_C}" stroke-width="1.75"/>'
     )
+    rail: list[str] = []
 
     # --- right-edge tags: NOW is pinned, everything else is pushed clear of it,
     # order preserved. Height-aware — a boxed tag needs more room than a line.
@@ -338,6 +383,7 @@ def render_setup_chart_svg(
         f'<text x="{plot_w + 3}" y="{now_y + 3.5}" font-size="9.5" font-weight="bold" '
         f'fill="{_BG}">NOW {anchor:,.2f}</text>'
     )
+    out = rail
     for yy, (true_y, text, colour, size, bold, boxed) in placed:
         if abs(yy - true_y) > 4:
             out.append(
@@ -355,10 +401,99 @@ def render_setup_chart_svg(
             f'{weight} fill="{colour}">{text}</text>'
         )
 
-    out.append(f'<text x="2" y="{height - 3}" font-size="7.5" fill="#666">{rows[0][0]}</text>')
-    out.append(
+    axis = [
+        f'<text x="2" y="{height - 3}" font-size="7.5" fill="#666">{rows[0][0]}</text>',
         f'<text x="{plot_w - 4}" y="{height - 3}" font-size="7.5" fill="#666" '
-        f'text-anchor="end">{rows[-1][0]}</text>'
-    )
-    out.append("</svg>")
-    return "".join(out)
+        f'text-anchor="end">{rows[-1][0]}</text>',
+    ]
+    if layers is None:
+        return "".join([svg_open, *under, *lines_t3, *vwap_line, *lines_t2, *price, *rail, *axis, "</svg>"])
+    ctx = _LayerContext(plot_w, height, now_y, tuple(lines_t3 + lines_t2), tuple(refs))
+    return _compose(svg_open, ctx, under, vwap_line + price, axis, layers)
+
+
+def _compose(svg_open: str, ctx: _LayerContext, base_under: list[str],
+             base_price: list[str], base_axis: list[str], layers: object) -> str:
+    """PRD-330 R7: the five-segment compositor. Fixed order: base/under; each
+    layer's under material; base/price; each layer's rail material; base/axis.
+    Layer segments carry the `display="none"` presentation default (R8)."""
+    keys = tuple(layers) if isinstance(layers, (list, tuple)) else (layers,)
+    unknown = [k for k in keys if k not in _LAYER_RENDERERS]
+    if unknown:
+        raise ValueError(f"unknown chart layer(s): {unknown}")   # fail loud (PRD-198)
+    results = {k: _LAYER_RENDERERS[k](ctx) for k in keys}
+
+    def seg(layer: str, part: str, body: Sequence[str]) -> str:
+        hidden = "" if layer == "base" else ' display="none"'
+        return f'<g class="chart-layer" data-layer="{layer}" data-part="{part}"{hidden}>' + "".join(body) + "</g>"
+
+    return "".join([
+        svg_open, seg("base", "under", base_under),
+        *[seg(k, "under", results[k].under_elements) for k in keys],
+        seg("base", "price", base_price),
+        *[seg(k, "rail", results[k].rail_elements) for k in keys],
+        seg("base", "axis", base_axis), "</svg>",
+    ])
+
+
+def _place_rail(refs: Sequence[tuple[str, float, str]], now_y: float, height: float
+                ) -> tuple[list[tuple[str, float, float, str]], dict[str, int]]:
+    """PRD-330 R10: deterministic outward sweep from the pinned NOW tag at a fixed pitch;
+    labels never overlap, never cross NOW, never leave the frame; a side that cannot fit
+    drops its OUTERMOST labels (ticks stay), reserves one pitch for the marker, reports N."""
+    half, top, bottom = _LEVELS_PITCH / 2, 2.0, height - 14.0
+    placed: list[tuple[str, float, float, str]] = []
+    dropped: dict[str, int] = {}
+    for side, group in (("above", sorted([r for r in refs if r[1] <= now_y], key=lambda r: -r[1])),
+                        ("below", sorted([r for r in refs if r[1] > now_y], key=lambda r: r[1]))):
+        sign = -1.0 if side == "above" else 1.0
+        limit = now_y + sign * 7.0
+        keep = [r for r in group if len(r[0]) <= _LEVELS_MAX_CHARS]
+        dropped[side] = len(group) - len(keep)
+        while True:
+            edge_lim = (top if sign < 0 else bottom) - sign * (_LEVELS_PITCH if dropped[side] else 0.0)
+            pos: list[float] = []
+            edge = limit
+            for _t, ty, _c in keep:                      # outward from NOW
+                y = (min if sign < 0 else max)(ty, edge + sign * half)
+                pos.append(y)
+                edge = y + sign * half
+            for i in range(len(keep) - 1, -1, -1):       # frame clamp, re-stacked inward
+                lim = edge_lim - sign * half
+                pos[i] = (max if sign < 0 else min)(pos[i], lim) if i == len(keep) - 1 else pos[i]
+                if i < len(keep) - 1:
+                    pos[i] = (max if sign < 0 else min)(pos[i], pos[i + 1] - sign * _LEVELS_PITCH)
+            if not keep or (sign < 0 and pos[0] + half <= limit + 1e-9) or (sign > 0 and pos[0] - half >= limit - 1e-9):
+                break
+            keep.pop()                                   # overflow: drop the outermost label
+            dropped[side] += 1
+        placed += [(t, ty, y, c) for (t, ty, c), y in zip(keep, pos)]
+    return placed, dropped
+
+
+def _render_levels_layer(ctx: _LayerContext) -> LayerRenderResult:
+    """PRD-330 LEVELS: level lines under the candles; ticks at every true y,
+    leaders when displaced, price-bearing labels at the D-3 floor, overflow marker."""
+    x, half = ctx.plot_w, _LEVELS_PITCH / 2
+    placed, dropped = _place_rail(ctx.level_refs, ctx.now_y, ctx.height)
+    rail = [f'<line class="lvl-tick" x1="{x}" y1="{ty}" x2="{x + 3}" y2="{ty}" stroke="{c}"/>'
+            for _t, ty, c in ctx.level_refs]
+    for text, ty, y, colour in placed:
+        if abs(y - ty) > _LEVELS_LEADER_TOL:
+            rail.append(f'<line class="lvl-leader" x1="{x + 3}" y1="{ty}" x2="{x + 5}" y2="{y:.1f}" '
+                        f'stroke="{_LEVELS_LEADER_C}" stroke-width="0.8"/>')
+        rail.append(f'<text class="lvl-label" x="{x + 6}" y="{y + _LEVELS_FONT * 0.35:.1f}" '
+                    f'font-size="{_LEVELS_FONT}" fill="{colour}">{text}</text>')
+    for side, n in dropped.items():
+        if n:
+            ey = 2.0 + half if side == "above" else ctx.height - 14.0 - half
+            rail.append(f'<text class="lvl-label lvl-more" x="{x + 6}" y="{ey + _LEVELS_FONT * 0.35:.1f}" '
+                        f'font-size="{_LEVELS_FONT}" fill="{_LEVELS_MARKER_C}">+{n} in ladder</text>')
+    return LayerRenderResult(under_elements=ctx.level_lines, rail_elements=tuple(rail))
+
+
+# PRD-330 R12: the closed key -> renderer map. A future layer is one more entry
+# (plus its own PRD); nothing here knows any layer but "levels".
+_LAYER_RENDERERS: dict[str, Callable[[_LayerContext], LayerRenderResult]] = {
+    "levels": _render_levels_layer,
+}

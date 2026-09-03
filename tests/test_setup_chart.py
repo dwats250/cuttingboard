@@ -10,6 +10,8 @@ notes).
 from __future__ import annotations
 
 import ast
+import hashlib as _hashlib
+import json as _json
 import re
 from pathlib import Path
 
@@ -401,3 +403,165 @@ def test_only_the_delivery_layer_imports_setup_chart() -> None:
             if "setup_chart" in path.read_text(encoding="utf-8"):
                 offenders.append(str(rel))
     assert not offenders, f"setup_chart is display-only; found readers: {offenders}"
+
+
+# ---------------------------------------------------------------------------
+# PRD-330 R16 — frozen pre-D4 legacy byte oracle (S0; lands before any S1 change)
+# ---------------------------------------------------------------------------
+_LEGACY_ORACLE = REPO_ROOT / "tests" / "data" / "setup_chart_legacy_oracle.json"
+
+
+def _oracle_render(case: dict) -> str:
+    kw = dict(case["inputs"])
+    return render_setup_chart_svg(kw.pop("bars"), kw.pop("now_price"), **kw)
+
+
+def test_prd330_legacy_path_matches_frozen_oracle() -> None:
+    # R11/R16: with no `layers` argument every representative render is byte-identical
+    # to the sha256 frozen from the pre-PRD-330 module. Mutation: any byte of the
+    # legacy paint list (order, attribute, rounding, leader threshold) fails this.
+    oracle = _json.loads(_LEGACY_ORACLE.read_text())
+    assert len(oracle["cases"]) >= 9
+    for name, case in oracle["cases"].items():
+        svg = _oracle_render(case)
+        assert svg and len(svg) == case["length"], name
+        assert _hashlib.sha256(svg.encode("utf-8")).hexdigest() == case["sha256"], name
+
+
+def test_prd330_oracle_leader_threshold_is_a_real_boundary() -> None:
+    # R16 non-vacuity: the two threshold cases sit at 4.0 (no leader) and 4.1 (leader)
+    # units of displacement of the boxed ENTRY tag, straddling the legacy `> 4` rule.
+    oracle = _json.loads(_LEGACY_ORACLE.read_text())
+    for name, expect_leader in (("leader_threshold_exact_4_0", False), ("leader_threshold_just_over_4_1", True)):
+        svg = _oracle_render(oracle["cases"][name])
+        entry_y = re.search(r'class="lvl-t1 lvl-entry" x1="0" y1="([\d.]+)"', svg).group(1)
+        assert (f'<line x1="280" y1="{entry_y}"' in svg) is expect_leader, name
+
+
+# ---------------------------------------------------------------------------
+# PRD-330 R7 / R10 / R12 — the five-segment compositor and the LEVELS layer
+# ---------------------------------------------------------------------------
+_ORB_ZONES = ZONES + [{"type": "ORB_HIGH", "level": 102.9}, {"type": "ORB_LOW", "level": 102.1},
+                      {"type": "PRIOR_LOW", "level": 99.0}]
+_SEG = re.compile(r'<g class="chart-layer" data-layer="([a-z]+)" data-part="([a-z]+)"( display="none")?>(.*?)</g>', re.S)
+_ELEM = re.compile(r"<[^>]+?/>|<text[^>]*>[^<]*</text>")
+
+
+def _layered(**kw) -> str:
+    return _chart(contract_entry=None, contract_stop=None, watch_zones=_ORB_ZONES, layers=("levels",), **kw)
+
+
+def _segments(svg: str) -> list[tuple[str, str, bool, str]]:
+    return [(m.group(1), m.group(2), bool(m.group(3)), m.group(4)) for m in _SEG.finditer(svg)]
+
+
+def _category(e: str) -> str:
+    if e.startswith("<rect width="):
+        return "bg"
+    for key, cat in (("orb-band", "band"), ('class="lvl-t3"', "t3"), ('class="lvl-t2"', "t2"), ("candle", "candle"),
+                     ("lvl-now", "now"), ("now-tag", "nowtag"), (">NOW ", "nowtag"), ("lvl-", "rail")):
+        if key in e:
+            return cat
+    return "axis" if re.search(r">[A-Z][a-z]{2} \d{2}<", e) else "rail"
+
+
+def _sequence(body: str) -> list[str]:
+    out: list[str] = []
+    for e in _ELEM.findall(body):
+        c = _category(e)
+        if not out or out[-1] != c:
+            out.append(c)
+    return out
+
+
+def test_prd330_r7_five_segments_preserve_legacy_paint_order() -> None:
+    # T1/T2: exact segment order and membership; category sequence equals the legacy render's;
+    # level lines, band and candles byte-equal; VWAP line moves to base/price (D-2).
+    svg, legacy = _layered(), _chart(contract_entry=None, contract_stop=None, watch_zones=_ORB_ZONES)
+    segs = _segments(svg)
+    assert [(s[0], s[1], s[2]) for s in segs] == [("base", "under", False), ("levels", "under", True),
+                                                   ("base", "price", False), ("levels", "rail", True), ("base", "axis", False)]
+    under, lv_under, price, lv_rail, axis = (s[3] for s in segs)
+    assert under.startswith("<rect width=") and under.count("<") == 2 and "orb-band" in under
+    assert price.startswith('<line class="lvl-t2"') and 'stroke="#29b6f6"' in price.split("/>", 1)[0]
+    assert "candle-body" in price and "now-tag" in price and 'class="lvl-t3"' not in price
+    assert lv_under.count('class="lvl-t3"') == 4 and lv_under.count('class="lvl-t2"') == 6 and "#29b6f6" not in lv_under
+    assert axis.count("<text") == 2 and "</svg>" in svg[svg.index(axis) + len(axis):]
+    legacy_elems = _ELEM.findall(legacy)
+    for e in _ELEM.findall(lv_under) + _ELEM.findall(under) + _ELEM.findall(price):
+        assert e in legacy_elems, e[:60]           # lines, band, candles, NOW: byte-equal to legacy
+    assert _sequence(re.sub(r"</?g[^>]*>", "", svg[svg.index(">") + 1: svg.rindex("</svg>")])) == _sequence(
+        legacy[legacy.index(">") + 1: legacy.rindex("</svg>")])
+    with pytest.raises(ValueError):
+        _chart(layers=("astro",))
+    assert _chart() == _chart(layers=None)
+
+
+def _rail_items(svg: str) -> tuple[list[float], list[tuple[str, float, float]], list[tuple[float, float]], str]:
+    rail = _segments(svg)[3][3]
+    ticks = [float(m) for m in re.findall(r'<line class="lvl-tick" x1="280" y1="([\d.]+)"', rail)]
+    labels = [(t, float(y) - 10.5 * 0.35, 10.5) for y, t in
+              re.findall(r'<text class="lvl-label" x="286" y="([\d.]+)" font-size="10.5" fill="#[0-9a-f]{3,6}">([^<]*)</text>', rail)]
+    leaders = [(float(a), float(b)) for a, b in re.findall(r'<line class="lvl-leader" x1="283" y1="([\d.]+)" x2="285" y2="([\d.]+)"', rail)]
+    return ticks, labels, leaders, rail
+
+
+@pytest.mark.parametrize("name,zones,now,fibs", [
+    ("live_like", _ORB_ZONES, 102.4, FIBS),
+    ("symmetric_cluster", [{"type": t, "level": 102.4 + d} for t, d in
+                           (("VWAP", -0.05), ("EMA9", 0.1), ("EMA21", -0.1), ("PRIOR_HIGH", 0.2), ("PRIOR_LOW", -0.2),
+                            ("ORB_HIGH", 0.3), ("ORB_LOW", -0.3), ("EMA50", 0.4))], 102.4, FIBS),
+    ("one_sided_below", [{"type": t, "level": 99.6 - i * 0.05} for i, t in
+                         enumerate(("VWAP", "EMA9", "EMA21", "PRIOR_HIGH", "PRIOR_LOW", "ORB_HIGH", "ORB_LOW", "EMA50"))], 104.4, FIBS),
+    ("forced_overflow_above", [{"type": t, "level": 104.45 + i * 0.05} for i, t in
+                               enumerate(("VWAP", "EMA9", "EMA21", "PRIOR_HIGH", "PRIOR_LOW", "ORB_HIGH", "ORB_LOW", "EMA50"))], 104.4, FIBS),
+    ("dense_sixteen_both_sides", [{"type": t, "level": 102.4 + d} for t, d in zip(("VWAP", "EMA9", "EMA21", "PRIOR_HIGH", "PRIOR_LOW", "ORB_HIGH", "ORB_LOW", "EMA50"), (0.02, 0.04, 0.06, 0.08, -0.02, -0.04, -0.06, -0.08))],
+     102.4, {"retracements": {k: 102.2 + i * 0.05 for i, k in enumerate(("1.618", "1.272", "0.236", "0.382", "0.5", "0.618", "0.786", "1.0"))}}),
+])
+def test_prd330_r10_rail_invariants(name, zones, now, fibs) -> None:
+    # T8: (a) no overlap, (b) clear of NOW, (c) side preserved, (d) in frame, (e) leader iff displaced > 2,
+    # (f)+(g) a tick per level at legacy y, D-3 floor, 11-char cap; the overflow marker joins (a), (b), (d).
+    svg = _chart(contract_entry=None, contract_stop=None, watch_zones=zones, fib_levels=fibs, now_price=now, layers=("levels",))
+    legacy = _chart(contract_entry=None, contract_stop=None, watch_zones=zones, fib_levels=fibs, now_price=now)
+    ticks, labels, leaders, rail = _rail_items(svg)
+    now_y = float(re.search(r'class="lvl-t1 lvl-now" x1="0" y1="([\d.]+)"', svg).group(1))
+    line_ys = sorted(float(y) for y in re.findall(r'<line class="lvl-t[23]" x1="0" y1="([\d.]+)"', legacy))
+    assert sorted(ticks) == line_ys                                     # (f)+(g): one tick per level, legacy y
+    assert sorted(float(y) for y in re.findall(r'<line class="lvl-t[23]" x1="0" y1="([\d.]+)"', svg)) == line_ys
+    marker = re.findall(r'lvl-more" x="286" y="([\d.]+)" font-size="10.5" fill="#888">\+(\d+) in ladder</text>', rail)
+    ys = sorted([y for _t, y, _f in labels] + [float(y) - 10.5 * 0.35 for y, _n in marker])   # marker included
+    assert all(b - a >= 12 - 0.15 for a, b in zip(ys, ys[1:]))            # (a) (text y printed at 0.1)
+    assert all(abs(y - now_y) >= 7 + 6 - 0.15 for y in ys)               # (b)
+    assert all(len(t) <= 11 and re.search(r"\d+\.\d$", t) for t, _y, _f in labels)
+    assert all(2 - 0.15 <= y - 6 and y + 6 <= 232 - 14 + 0.15 for y in ys)   # (d)
+    assert all(any(abs(end - y) < 0.2 for _t, y, _f in labels) for _start, end in leaders)  # (e) leaders end at labels
+    for tick_y, label_y in leaders:
+        assert tick_y in ticks and abs(label_y - tick_y) > 2
+        assert (tick_y <= now_y) == (label_y <= now_y)                  # (c) side preserved
+    dropped = len(ticks) - len(labels)
+    assert (dropped > 0) == bool(marker) and sum(int(n) for _y, n in marker) == dropped   # truthful +N
+    assert (dropped >= 1) == name.startswith(("forced", "dense"))        # overflow path exercised iff forced
+    assert "font-size=\"7.5\"" not in rail and 'font-size="8.5"' not in rail
+
+
+def test_prd330_r12_probe_layer_two_positions_and_no_dead_ui(monkeypatch) -> None:
+    # T6/T7: a synthetic layer renders independently in BOTH compositor positions; the
+    # production map has one key; no astrology string anywhere; legacy path unaffected.
+    from cuttingboard.delivery.setup_chart import LayerRenderResult
+    def probe(ctx):
+        return LayerRenderResult(('<rect class="probe-under" x="0" y="0" width="1" height="1"/>',),
+                                 ('<text class="probe-rail" x="286" y="20">probe</text>',))
+    legacy_before = _chart()
+    monkeypatch.setitem(setup_chart._LAYER_RENDERERS, "probe", probe)
+    svg = _chart(contract_entry=None, contract_stop=None, watch_zones=_ORB_ZONES, layers=("levels", "probe"))
+    segs = [(s[0], s[1], s[2]) for s in _segments(svg)]
+    assert segs == [("base", "under", False), ("levels", "under", True), ("probe", "under", True),
+                    ("base", "price", False), ("levels", "rail", True), ("probe", "rail", True), ("base", "axis", False)]
+    bodies = {(s[0], s[1]): s[3] for s in _segments(svg)}
+    assert bodies[("probe", "under")] == probe(None).under_elements[0] and bodies[("probe", "rail")] == probe(None).rail_elements[0]
+    assert "probe" not in bodies[("levels", "under")] and "probe" not in bodies[("levels", "rail")]
+    assert _chart() == legacy_before                                    # candidate path byte-identical under the patch
+    monkeypatch.undo()
+    assert list(setup_chart._LAYER_RENDERERS) == ["levels"]
+    source = (REPO_ROOT / "cuttingboard" / "delivery" / "setup_chart.py").read_text().lower()
+    assert "astrolog" not in source and "probe" not in _layered()

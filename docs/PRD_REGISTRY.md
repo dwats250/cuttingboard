@@ -347,6 +347,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-327 | — | Dashboard D2 above-fold context compression (VERDICT/TAPE/TODAY presentation only) | IN PROGRESS | [PRD-327](prd_history/PRD-327.md) |
 | PRD-328 | — | Dashboard D3: user-opened secondary tier evidence + SPY session first-class observation (renderer only) — packet-in-PRD-form; review-clean content at edf28d4 canonicalized to audits/dashboard-d3-material-packet-2026-09/ per Helm B1 ruling 2026-09-02; superseded by PRD-329; never implementation authority | DEPRECATED | [PRD-328](prd_history/PRD-328.md) |
 | PRD-329 | — | Dashboard D3 implementation: closed-C-tier one-click evidence (S1) + SPY session first-class observation (S2), renderer only | IN PROGRESS | [PRD-329](prd_history/PRD-329.md) |
+| PRD-330 | — | Dashboard D4 implementation: Proto-B primary-path synthesis + SPY chart LEVELS control | IN PROGRESS | [PRD-330](prd_history/PRD-330.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
