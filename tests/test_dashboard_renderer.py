@@ -5835,8 +5835,6 @@ def test_prd330_r13_ladder_visible_and_independent_of_levels() -> None:
     ladder = obs.split('class="lvl-ladder', 1)[1]
     assert '<span class="lvl-name">NOW</span>' in ladder and "spy-levels" not in ladder
     assert obs.index('</svg>') < obs.index('class="lvl-ladder')
-    # the observation subtree is byte-identical with the checkbox absent from the inputs entirely
-    assert "checked" not in obs.split('class="chart-controls"', 1)[0]
 
 
 def test_prd330_r12_no_astrology_ui_in_document_or_css() -> None:

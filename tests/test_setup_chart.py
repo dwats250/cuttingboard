@@ -532,11 +532,6 @@ def test_prd330_r10_rail_invariants(name, zones, now) -> None:
     assert all(abs(y - now_y) >= 7 + 6 - 0.15 for y in ys)               # (b)
     assert all(len(t) <= 11 and re.search(r"\d+\.\d$", t) for t, _y, _f in labels)
     assert all(2 - 0.15 <= y - 6 and y + 6 <= 232 - 14 + 0.15 for y in ys)   # (d)
-    displaced = 0
-    for text, y, _f in labels:
-        true_y = min(ticks, key=lambda t: abs(t - y)) if len(labels) == len(ticks) else None
-        if true_y is not None and abs(y - true_y) > 2:
-            displaced += 1
     assert all(any(abs(end - y) < 0.2 for _t, y, _f in labels) for _start, end in leaders)  # (e) leaders end at labels
     for tick_y, label_y in leaders:
         assert tick_y in ticks and abs(label_y - tick_y) > 2

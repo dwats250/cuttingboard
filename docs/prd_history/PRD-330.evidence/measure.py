@@ -1,21 +1,11 @@
-"""PRD-330 R9 / R14 browser acceptance (manual, fail-closed).
-
-Renders the `spy_session_observed` fixture, drives real headless Chrome over the
-DevTools protocol with device metrics, and FAILS unless the viewport settled at
-the requested size. Measures placement (R14), overflow (R14), the LEVELS toggle
-semantics and keyboard path (R9), and the control hit box (D-5).
-
-Usage:  .venv/bin/python docs/prd_history/PRD-330.evidence/measure.py [--port 9333]
-Requires a headless Chrome started with --remote-debugging-port=<port>.
-"""
+"""PRD-330 R9 / R14 browser acceptance (manual, fail-closed): renders the
+`spy_session_observed` fixture into headless Chrome over the DevTools protocol with
+device metrics, FAILS unless the viewport settled, and measures placement, overflow,
+the LEVELS toggle (tap + keyboard) and the control hit box.
+Usage: .venv/bin/python docs/prd_history/PRD-330.evidence/measure.py [--port 9333]"""
 from __future__ import annotations
 
-import asyncio
-import base64
-import json
-import sys
-import tempfile
-import urllib.request
+import asyncio, base64, json, sys, tempfile, urllib.request  # noqa: E401
 from pathlib import Path
 
 import websockets
@@ -58,24 +48,22 @@ class CDP:
 
     async def send(self, method, **params):
         self.n += 1
-        fut = asyncio.get_event_loop().create_future()
-        self.pending[self.n] = fut
+        self.pending[self.n] = fut = asyncio.get_event_loop().create_future()
         await self.ws.send(json.dumps({"id": self.n, "method": method, "params": params}))
         return await fut
 
     async def pump(self):
         async for raw in self.ws:
             m = json.loads(raw)
-            if "id" in m and m["id"] in self.pending:
+            if m.get("id") in self.pending:
                 self.pending.pop(m["id"]).set_result(m.get("result", m))
             elif "method" in m:
                 await self.events.put(m)
 
     async def wait(self, name):
-        while True:
-            m = await self.events.get()
-            if m["method"] == name:
-                return m
+        while (m := await self.events.get())["method"] != name:
+            pass
+        return m
 
 
 async def measure(cdp, width, height, url, out_dir):
@@ -88,8 +76,7 @@ async def measure(cdp, width, height, url, out_dir):
         return json.loads((await cdp.send("Runtime.evaluate", expression=MEASURE_JS, returnByValue=True))["result"]["value"])
 
     async def shot(name):
-        data = (await cdp.send("Page.captureScreenshot", format="png"))["data"]
-        (out_dir / name).write_bytes(base64.b64decode(data))
+        (out_dir / name).write_bytes(base64.b64decode((await cdp.send("Page.captureScreenshot", format="png"))["data"]))
 
     m0 = await read()
     assert (m0["innerWidth"], m0["innerHeight"]) == (width, height), f"viewport did not settle: {m0['innerWidth']}x{m0['innerHeight']}"
@@ -117,17 +104,15 @@ async def measure(cdp, width, height, url, out_dir):
         await cdp.send("Input.dispatchKeyEvent", type=kind, key=" ", code="Space", windowsVirtualKeyCode=32, text=" ")
     await asyncio.sleep(0.15)
     m3 = await read()
-    assert m3["levelsDisplay"] == ["inline", "inline"] and m3["checked"], "Space did not toggle LEVELS"
-    assert m3["svgHtml"] == m0["svgHtml"]
+    assert m3["levelsDisplay"] == ["inline", "inline"] and m3["checked"] and m3["svgHtml"] == m0["svgHtml"], "Space toggle"
     outline = (await cdp.send("Runtime.evaluate", expression="getComputedStyle(document.querySelector('.chart-toggle-label')).outlineStyle", returnByValue=True))["result"]["value"]
-    result = {k: m0[k] for k in ("innerWidth", "innerHeight", "spyTop", "chartTop", "watchingTop", "firstCard", "controlH", "controlW", "minLabelCss", "scrollW")}
-    result["focusOutline"] = outline
+    result = {k: m0[k] for k in ("innerWidth", "innerHeight", "spyTop", "chartTop", "watchingTop", "firstCard",
+                                 "controlH", "controlW", "minLabelCss", "scrollW")} | {"focusOutline": outline}
     if (width, height) == (390, 844):
         for key, limit in THRESHOLDS_390.items():
             assert result[key] <= limit, f"{key} {result[key]} > {limit}"
-        head = m0["firstViewportHtml"]
-        for token in FIRST_VIEWPORT_TOKENS:
-            assert token in head, f"first-viewport token missing: {token}"
+        missing = [t for t in FIRST_VIEWPORT_TOKENS if t not in m0["firstViewportHtml"]]
+        assert not missing, f"first-viewport tokens missing: {missing}"
     return result
 
 
@@ -137,8 +122,7 @@ async def main(port: int) -> None:
     tmp = Path(tempfile.mkdtemp()) / "prd330_fixture.html"
     tmp.write_text(html.replace('<meta http-equiv="refresh"', '<meta data-disabled-refresh="'), encoding="utf-8")
     out_dir = Path(__file__).resolve().parent
-    info = json.load(urllib.request.urlopen(f"http://127.0.0.1:{port}/json/list"))
-    page = next(t for t in info if t["type"] == "page")
+    page = next(t for t in json.load(urllib.request.urlopen(f"http://127.0.0.1:{port}/json/list")) if t["type"] == "page")
     results = {}
     async with websockets.connect(page["webSocketDebuggerUrl"], max_size=None) as ws:
         cdp = CDP(ws)
