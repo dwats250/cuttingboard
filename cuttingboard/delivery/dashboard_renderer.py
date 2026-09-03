@@ -290,6 +290,88 @@ def _operator_timestamp(value: object) -> str:
     return parsed.astimezone(_PT).strftime("%b %-d · %-I:%M %p PT")
 
 
+def _operator_clock(value: object) -> str:
+    """PRD-330 D-8: time-only Pacific clock for same-session facts."""
+    parsed = value if isinstance(value, datetime) else _parse_utc_timestamp(value)
+    if parsed is None:
+        return "time unavailable"
+    return (parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)).astimezone(_PT).strftime("%-I:%M %p PT")
+
+
+def _fmt_or_verbatim(fn: object, raw: object) -> str:
+    """PRD-330 R2/R4: format an existing field, or render it verbatim (escaped); never invent."""
+    try:
+        return fn()  # type: ignore[operator]
+    except (ValueError, TypeError):
+        return _esc(raw if raw is not None else "")
+
+
+def _mon_d(iso: object) -> str:
+    return _fmt_or_verbatim(lambda: date.fromisoformat(str(iso)[:10]).strftime("%b %-d"), iso)
+
+
+# PRD-330 R8/R12: the closed layer -> (control id, label) map; one entry, so one control.
+_LAYER_CONTROLS: dict[str, tuple[str, str]] = {"levels": ("spy-levels", "LEVELS")}
+_SPY_REL_WORD = {"ABOVE": "above", "BELOW": "below", "AT_LEVEL": "at"}
+_WATCHLIST_CUTOFF_REASON = "entry blocked after 3:30 PM ET"
+
+
+def _spy_session_lines(spy_obs: dict) -> tuple[str, str]:
+    """PRD-330 R2 (D-1, D-8): line 1 (session clock; time-only iff same session) and line 2 (ORB)."""
+    state, reason = str(spy_obs.get("state") or "UNAVAILABLE"), spy_obs.get("reason")
+    obs_at, intended = spy_obs.get("observed_at_utc"), spy_obs.get("intended_session_date")
+    when = _mon_d(intended) if intended else "unknown session"
+    price, vwap, rel = spy_obs.get("current_price"), spy_obs.get("session_vwap"), spy_obs.get("price_vs_vwap")
+    withheld = " · no current price/VWAP read"
+    if state == "OBSERVED" and isinstance(price, (int, float)) and not isinstance(price, bool):
+        vwap_txt = (f"{_SPY_REL_WORD.get(str(rel), 'at')} session VWAP {vwap:.2f}"
+                    if isinstance(vwap, (int, float)) and not isinstance(vwap, bool) else "· session VWAP unavailable")
+        line1 = f"SPY {price:.2f} {vwap_txt} · read {_operator_clock(obs_at)}"
+    elif state == "PRE_OPEN" and reason == "pre_open_prior_session":
+        line1 = f"Pre-open for {when} · prior session read {_operator_timestamp(obs_at)}"
+    elif state == "PRE_OPEN":
+        line1 = f"Pre-open · awaiting today's session · last {_operator_clock(obs_at)}"
+    elif state == "STALE" and reason == "session_mismatch":
+        line1 = f"Session read is from another session · intended {when} · last {_operator_timestamp(obs_at)}{withheld}"
+    elif state == "STALE":
+        line1 = f"Session read not current · last {_operator_clock(obs_at)}{withheld}"
+    else:
+        line1 = f"No session read for {when} · {_SPY_REASON_DISPLAY.get(str(reason), 'reason not recognised')}"
+    orb = spy_obs.get("orb") if isinstance(spy_obs.get("orb"), dict) else None
+    hi, lo = (orb or {}).get("orb_high"), (orb or {}).get("orb_low")
+    if orb and orb.get("state") == "FORMED" and isinstance(hi, (int, float)) and isinstance(lo, (int, float)):
+        line2 = f"ORB {lo:.2f}-{hi:.2f}"
+    elif orb and orb.get("state") == "PRE_OPEN":
+        line2 = "Opening range pre-open"
+    else:
+        line2 = _spy_orb_summary(orb)
+    return line1, line2
+
+
+def _spy_clock_line(mm_clock_label: str, intended: object, caption: str) -> str:
+    """PRD-330 R2 line 3: map clock (time-only iff same Pacific day as the session) + bars `as_of`."""
+    parsed = _parse_utc_timestamp(mm_clock_label)
+    same_day = parsed is not None and bool(intended) and parsed.astimezone(_PT).date().isoformat() == str(intended)[:10]
+    clock = _operator_clock(parsed) if same_day else _operator_timestamp(parsed if parsed else mm_clock_label)
+    as_of = caption.split("bars through ", 1)[1][:10] if "bars through " in caption else ""
+    return f"Market-map levels {clock} · daily bars through {_mon_d(as_of) if as_of else 'unknown date'}"
+
+
+def _next_event_line(red_folder: object) -> str:
+    """PRD-330 R4: the named next event from the existing red-folder view (window stays loader-owned)."""
+    if not (isinstance(red_folder, dict) and red_folder.get("ok", True)):
+        return "Event schedule unavailable"
+    events = [e for e in (red_folder.get("events") or []) if isinstance(e, dict)]
+    text = "No scheduled events in the next 48 hours"
+    if events:
+        ev = events[0]
+        when = _fmt_or_verbatim(lambda: date.fromisoformat(str(ev.get("date"))[:10]).strftime("%a %b %-d"), ev.get("date"))
+        at = _fmt_or_verbatim(lambda: datetime.strptime(str(ev.get("time_et")), "%H:%M").strftime("%-I:%M %p"), ev.get("time_et"))
+        text = f"{ev.get('type') or ev.get('name') or 'event'} · {when} · {at} ET" + (
+            f" · +{len(events) - 1} more in DETAILS" if len(events) > 1 else "")
+    return text + (" · schedule expiring" if red_folder.get("expiring") else "")
+
+
 def _intraday_rvol_band(rvol: float | None) -> str:
     if rvol is None:
         return "UNAVAILABLE"
@@ -1046,6 +1128,14 @@ _CSS = (
     "#details-history .block h2{margin-bottom:7px}"
     ".spy-session-group{border-top:1px solid #222;padding-top:12px}"
     ".spy-session-group>.block:first-of-type{border-top:0}"
+    # PRD-330 (D4): SPY SESSION section + header lines; native LEVELS control (hidden focusable checkbox, 44 px label); NEXT EVENT strip; WATCHING line.
+    "#spy-session{border:1px solid #2a2a2a;border-radius:4px;background:#101010;padding:1rem;margin-bottom:1rem}#spy-session>h3{font-size:.8rem;color:#aaa;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem;font-weight:normal}#spy-observation{border:0;border-radius:0;padding:0;margin:0}#spy-session .spy-chart{margin-top:6px}"
+    ".spy-read{font-size:.82rem;line-height:1.35}.spy-clock{color:#777;font-size:.7rem;line-height:1.3;margin-top:4px}.chart-controls{display:flex;justify-content:flex-end;margin-top:8px}"
+    ".chart-toggle{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}"
+    ".chart-toggle-label{display:inline-flex;align-items:center;min-height:44px;cursor:pointer;color:#777;border:1px solid #2a2a2a;border-radius:3px;padding:0 10px;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;user-select:none}.chart-toggle-label::before{content:'\\25A1  ';color:#555}"
+    ".chart-toggle:checked~.chart-controls .chart-toggle-label{color:#e0e0e0;border-color:#3a7a8a;background:#132a30}.chart-toggle:checked~.chart-controls .chart-toggle-label::before{content:'\\25A0  ';color:#29b6f6}.chart-toggle:focus-visible~.chart-controls .chart-toggle-label{outline:1px solid #29b6f6}"
+    "#spy-levels:checked~.spy-chart .chart-layer[data-layer=\"levels\"]{display:inline}"
+    "#today-zone h2{display:inline;margin:0 10px 0 0}#today-zone .event-line{display:inline;font-size:.85rem;font-weight:bold;color:#e0e0e0}.screen-line{color:#777;font-size:.7rem;line-height:1.3;margin:-2px 0 8px 0}.scope-note{text-transform:none;letter-spacing:0;color:#666;font-weight:normal}"
     # PRD-215: "actionable now" accent (cyan #29b6f6 — the level/VWAP colour) on
     # the falsifiable trade fields, plus the collapsed REASON/PLAY/WATCH detail.
     ".value-actionable{color:#29b6f6}"
@@ -1099,6 +1189,8 @@ _CSS = (
     "#candidate-board:not(:has(.candidate-card)) .unavailable{font-size:.72rem}"
     "#details-history .block{padding:10px 0}"
     "}"
+    # PRD-330: phone parity in a SEPARATE media block; the PRD-318/327 block above stays byte-identical.
+    "@media(max-width:430px){#spy-session{padding:10px;margin-bottom:8px}#spy-session>h3{margin-bottom:7px}#today-zone{padding:8px 10px}}"
 )
 
 _UP   = "↑"
@@ -2401,31 +2493,14 @@ def _render_spy_session(
     record -> one line; invalid price -> the ladder's no-price line; no bars ->
     the no-bars line plus the ladder; else chart + caption + ladder. Three
     clocks stay named: OBSERVED AT (session), bars `as_of` (daily), NOW (map)."""
-    _spy_reason = spy_obs.get("reason")
-    _spy_state_raw = str(spy_obs.get("state") or "UNAVAILABLE")
-    _spy_state_display = _SPY_STATE_DISPLAY.get(_spy_state_raw, "Session data unavailable")
-    if _spy_reason:
-        _spy_state_display += " — " + _SPY_REASON_DISPLAY.get(str(_spy_reason), "unavailable")
-    _spy_obs_at = spy_obs.get("observed_at_utc")
-    _spy_vwap = spy_obs.get("session_vwap")
-    _spy_vwap_display = f"{_spy_vwap:.2f}" if isinstance(_spy_vwap, (int, float)) else "UNAVAILABLE"
-    _spy_price = spy_obs.get("current_price")
-    _spy_price_display = f"{_spy_price:.2f}" if isinstance(_spy_price, (int, float)) else "unavailable"
-    _spy_rel = spy_obs.get("price_vs_vwap")
-    _spy_rel_display = _SPY_PRICE_VS_VWAP_DISPLAY.get(_spy_rel, "") if _spy_rel else ""
+    _line1, _line2 = _spy_session_lines(spy_obs)
+    _raw_reason = spy_obs.get("reason")
     w('<div class="block" id="spy-observation">')
-    w('  <h2>SPY SESSION OBSERVATION</h2>')
-    w('  <div class="kv-grid">')
-    w(f'    <div class="label">SESSION</div><div class="value">{_esc(str(spy_obs.get("intended_session_date") or "unavailable"))}</div>')
-    w(f'    <div class="label">STATE</div><div class="value" data-raw-state="{_esc(_spy_state_raw)}">{_esc(_spy_state_display)}</div>')
-    w(f'    <div class="label">OBSERVED AT</div><div class="value" data-observed-at-utc="{_esc(str(_spy_obs_at or ""))}">{_esc(_operator_timestamp(_spy_obs_at))}</div>')
-    w(f'    <div class="label">SESSION VWAP</div><div class="value">{_spy_vwap_display}</div>')
-    w('    <div class="label">PRICE</div>'
-      f'<div class="value">{_spy_price_display}'
-      + (f' ({_esc(_spy_rel_display)})' if _spy_rel_display else '')
-      + '</div>')
-    w(f'    <div class="label">ORB</div><div class="value">{_spy_orb_summary(spy_obs.get("orb"))}</div>')
-    w('  </div>')
+    w(f'  <div class="spy-read" data-raw-state="{_esc(str(spy_obs.get("state") or "UNAVAILABLE"))}"'
+      f' data-observed-at-utc="{_esc(str(spy_obs.get("observed_at_utc") or ""))}"'
+      f' data-session-date="{_esc(str(spy_obs.get("intended_session_date") or ""))}"'
+      + (f' data-raw-reason="{_esc(str(_raw_reason))}"' if _raw_reason else "") + f'>{_esc(_line1)}</div>')
+    w(f'  <div class="spy-read">{_line2}</div>')
     if mm_health != "OK" or unhealthy_lineage:
         w(f'  <div class="lvl-unavail">Chart and levels unavailable — market map {_esc(mm_health)}</div>')
     elif not isinstance(spy_record, dict):
@@ -2439,11 +2514,14 @@ def _render_spy_session(
             bars, caption = spy_bars if spy_bars else (None, "")
             svg = setup_chart.render_setup_chart_svg(
                 bars, now_price, contract_entry=None, contract_stop=None,
-                watch_zones=zones, fib_levels=fibs, operator_locked=False,
+                watch_zones=zones, fib_levels=fibs, operator_locked=False, layers=("levels",),
             ) if bars else ""
             if svg:
+                w(f'  <div class="spy-clock">{_esc(_spy_clock_line(mm_clock_label, spy_obs.get("intended_session_date"), caption))}</div>')
+                _cid, _clabel = _LAYER_CONTROLS["levels"]
+                w(f'  <input type="checkbox" id="{_cid}" class="chart-toggle">')
+                w(f'  <div class="chart-controls"><label for="{_cid}" class="chart-toggle-label">{_clabel}</label></div>')
                 w(f'  <div class="spy-chart">{svg}</div>')
-                w(f'  <div class="chart-caption">{_esc(f"{caption} · NOW per market map {mm_clock_label}")}</div>')
             else:
                 w('  <div class="lvl-unavail">Chart unavailable — no bars for SPY</div>')
         _render_level_ladder(w, now_price if price_valid else None, None, fibs, zones, None,
@@ -2647,6 +2725,7 @@ def render_dashboard_html(
     lines: list[str] = []
     _verdict_lines: list[str] = []
     _tape_lines: list[str] = []
+    _spy_lines: list[str] = []
     _today_lines: list[str] = []
     _watching_lines: list[str] = []
     _details_lines: list[str] = []
@@ -3015,37 +3094,31 @@ def render_dashboard_html(
     w('  </div>')
     w("</div>")
 
-    # --- TODAY: existing event/session/Sunday facts, no joined carrier. ---
-    _active_lines = _today_lines
+    # --- SPY SESSION (PRD-330 S1): observational orientation between TAPE and NEXT EVENT. ---
     _spy_obs = (payload.get("sections") or {}).get("spy_observation")
-    w('<div class="block operator-zone" id="today-zone">')
-    w('  <h2>TODAY</h2>')
-    w('  <div class="zone-grid">')
-    if isinstance(red_folder, dict) and red_folder.get("ok", True):
-        _today_events = red_folder.get("events") or []
-        _today_event_text = (
-            f"{len(_today_events)} scheduled event{'s' if len(_today_events) != 1 else ''} in the next 48 hours"
-            if _today_events else "No scheduled events in the next 48 hours"
-        )
-        if red_folder.get("expiring"):
-            _today_event_text += " · schedule expiring"
-    else:
-        _today_event_text = "Event schedule unavailable"
-    w('    <div class="zone-item"><div class="label">EVENT RISK</div>'
-      f'<div class="zone-value">{_esc(_today_event_text)}</div></div>')
+    _now_effective = now if now is not None else _utcnow()
+    _price_bars = _price_bars_by_symbol(price_bars_snapshot, _now_effective)
     if _spy_obs:
-        _today_spy_state = str(_spy_obs.get("state") or "UNAVAILABLE")
-        _today_spy_text = _SPY_STATE_DISPLAY.get(_today_spy_state, "Session data unavailable")
-        if _spy_obs.get("reason"):
-            _today_spy_text += " · " + _SPY_REASON_DISPLAY.get(
-                str(_spy_obs["reason"]), "unavailable"
-            )
-        w('    <div class="zone-item"><div class="label">SPY SESSION</div>'
-          f'<div class="zone-value" data-raw-state="{_esc(_today_spy_state)}">{_esc(_today_spy_text)}</div></div>')
+        _active_lines = _spy_lines
+        _spy_symbols = (market_map or {}).get("symbols")
+        w('<section class="spy-session-group" id="spy-session">')
+        w('  <h3>SPY SESSION</h3>')
+        _render_spy_session(
+            w, _spy_obs, _price_bars.get("SPY"),
+            _spy_symbols.get("SPY") if isinstance(_spy_symbols, dict) else None,
+            _mm_health, unhealthy_lineage,
+            _timestamp_label(market_map_timestamp_value, market_map_timestamp),
+        )
+        w("</section>")
+
+    # --- NEXT EVENT (PRD-330 S3): the named next event, honest empty states, Sunday. ---
+    _active_lines = _today_lines
+    w('<div class="block operator-zone" id="today-zone">')
+    w('  <h2>NEXT EVENT</h2>')
+    w(f'  <div class="event-line">{_esc(_next_event_line(red_folder))}</div>')
     if sunday_coherent:
-        w('    <div class="zone-item" id="premarket-banner"><div class="label">SESSION</div>'
+        w('  <div class="zone-item" id="premarket-banner"><div class="label">SESSION</div>'
           '<div class="zone-value">SUNDAY PRE-MARKET CONTEXT · no cash session</div></div>')
-    w('  </div>')
     w("</div>")
 
     # --- WATCHING: Opportunity -> Candidate -> alert continuity. ---
@@ -3129,27 +3202,22 @@ def render_dashboard_html(
                 _os_primary = sorted(
                     _os_tally.items(), key=lambda kv: (-kv[1], kv[0])
                 )[0][0]
-        w('<div class="block operator-subsection" id="opportunity-survival">')
-        w('  <h3>OPPORTUNITY</h3>')
-        w('  <div class="kv-grid">')
-        w(f'    <div class="label">SURFACED</div><div class="value">{_os_surfaced_n}</div>')
-        # PRD-304 R7: analytical count unchanged; relabelled SETUPS FOUND under lock.
-        _os_qual_label = "SETUPS FOUND" if operator_locked else "QUALIFIED"
-        w(f'    <div class="label">{_os_qual_label}</div><div class="value">{_os_qualified_n}</div>')
-        w(f'    <div class="label">WATCHLIST</div><div class="value">{_os_watchlist_n}</div>')
-        w(f'    <div class="label">REJECTED</div><div class="value">{_os_rejected_n}</div>')
+        # PRD-330 R5 (D-7): one line; counts unchanged; zero qualified omitted; closed reason policy.
+        _os_all_cutoff = _os_watchlist_n > 0 and all(
+            isinstance(_w, dict) and str(_w.get("reason") or "") == _WATCHLIST_CUTOFF_REASON for _w in _os_watchlist)
+        _os_parts = [f"{_os_surfaced_n} screened",
+                     f"{_os_watchlist_n} held by the 3:30 PM cutoff" if _os_all_cutoff else f"{_os_watchlist_n} on watch"]
+        if _os_qualified_n > 0:
+            _os_parts.append(f"{_os_qualified_n} {'setups found' if operator_locked else 'qualified'}")
+        _os_parts.append(f"{_os_rejected_n} rejected")
         if _os_primary is not None:
-            w('    <div class="label">PRIMARY REJECTION</div>'
-              f'<div class="value">{_esc(_os_primary)}</div>')
-        w('  </div>')
-        w("</div>")
+            _os_parts.append(f"top reason {_esc(_os_primary)} ({_os_tally[_os_primary]})")
+        w(f'  <p class="screen-line">{" · ".join(_os_parts)}</p>')
 
     # --- candidate-board ---
     # PRD-321 R2/R3: resolve the age-guarded bars once per render, and keep the
     # single full-width chart slot for the highest-priority visible setup —
     # every later candidate's chart goes behind its own disclosure (ruling Q2).
-    _now_effective = now if now is not None else _utcnow()
-    _price_bars = _price_bars_by_symbol(price_bars_snapshot, _now_effective)
     # PRD-324 (A1-C R6): the single chart slot is awarded ONCE, by the shared leaf,
     # over the byte-identical runtime inputs the inline `_chart_slot_open` latch
     # consumed (post-fixture-replacement `market_map`, `_price_bars`,
@@ -3169,12 +3237,7 @@ def render_dashboard_html(
     if fixture_mode:
         w('  <h3>SETUP SCREENING &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h3>')
     else:
-        w("  <h3>Market Map / Developing Setups · screening</h3>")
-    w(
-        '  <div class="idle-summary candidate-scope">'
-        'MARKET-MAP SCREENING GRADES · OBSERVATION ONLY — grades never grant permission.'
-        '</div>'
-    )
+        w('  <h3>SETUPS <span class="scope-note">· screening grades, not permission</span></h3>')
     # PRD-158 § 4.3: integrator screen verdicts (Rules 2/3) render here as
     # decision-language banner lines. Suppressed under unhealthy lineage so
     # operators see the lineage diagnostic first.
@@ -3326,21 +3389,6 @@ def render_dashboard_html(
         w("</div>")
 
     w("</div>")  # #watching-zone
-
-    # --- SPY SESSION (PRD-329 S2): first-class observational orientation, not an
-    #     operator-zone and not permission authority; present iff the daily
-    #     payload carries the observation (S2-Q1 STAY: MARKET CONTROL stays below).
-    if _spy_obs:
-        _spy_symbols = (market_map or {}).get("symbols")
-        w('<section class="spy-session-group" id="spy-session">')
-        w('  <h3>SPY SESSION</h3>')
-        _render_spy_session(
-            w, _spy_obs, _price_bars.get("SPY"),
-            _spy_symbols.get("SPY") if isinstance(_spy_symbols, dict) else None,
-            _mm_health, unhealthy_lineage,
-            _timestamp_label(market_map_timestamp_value, market_map_timestamp),
-        )
-        w("</section>")
 
     # --- DETAILS / HISTORY: full evidence remains present, default collapsed. ---
     _active_lines = _details_lines
@@ -3798,6 +3846,7 @@ def render_dashboard_html(
     _active_lines = lines
     lines.extend(_verdict_lines)
     lines.extend(_tape_lines)
+    lines.extend(_spy_lines)
     lines.extend(_today_lines)
     lines.extend(_watching_lines)
     lines.extend(_details_lines)

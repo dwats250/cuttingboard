@@ -1096,8 +1096,8 @@ def test_prd303_candidate_scope_precedes_setup_action_language() -> None:
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="A+")})
     html = render_dashboard_html(_payload(), _run(outcome="NO_TRADE"), market_map=mm)
     board = _top_block(html, "candidate-board")
-    scope = "MARKET-MAP SCREENING GRADES · OBSERVATION ONLY — grades never grant permission."
-    assert scope in board
+    scope = '<h3>SETUPS <span class="scope-note">· screening grades, not permission</span></h3>'
+    assert scope in board and "candidate-scope" not in board            # PRD-330 R6 (supersedes PRD-303)
     assert board.index(scope) < board.index("A+ — ACTIONABLE")
 
 
@@ -4290,13 +4290,10 @@ def _render_with_spy(section: dict | None) -> str:
 
 def test_spy_observation_card_rendered_observed():
     html = _render_with_spy(_spy_section())
-    assert 'id="spy-observation"' in html
-    assert "SPY SESSION OBSERVATION" in html
-    assert "102.00" in html            # session VWAP
-    assert "104.00" in html            # current price
-    assert "ABOVE VWAP" in html        # price-vs-VWAP display token
-    assert "Opening range formed [100.00, 105.00]" in html
-    assert 'data-raw-state="FORMED"' in html
+    assert 'id="spy-observation"' in html and "SPY SESSION OBSERVATION" not in html
+    assert "SPY 104.00 above session VWAP 102.00 · read 6:34 AM PT" in html     # PRD-330 R2 (D-8 time-only)
+    assert '<div class="spy-read">ORB 100.00-105.00</div>' in html
+    assert 'data-raw-state="OBSERVED"' in html and "Apr 28 · 6:34" not in _s2_obs(html)
 
 
 def test_spy_observation_card_halt_state_no_fabricated_value():
@@ -4305,8 +4302,8 @@ def test_spy_observation_card_halt_state_no_fabricated_value():
         session_vwap=None, current_price=None, price_vs_vwap=None, orb=None,
     ))
     assert 'id="spy-observation"' in html
-    assert "Session data unavailable — system halted" in html
-    assert 'data-raw-state="UNAVAILABLE"' in html
+    assert "No session read for Apr 28 · system halted" in html and "Session data unavailable" not in html
+    assert 'data-raw-state="UNAVAILABLE"' in html and 'data-raw-reason="system_halted"' in html
     assert "VWAP UNAVAILABLE" not in html   # no price_vs_vwap token when None
     # No fabricated VWAP/price number leaks onto the halt card.
     import re as _re
@@ -4319,22 +4316,39 @@ def test_spy_observation_card_stale_and_pre_open():
         state="STALE", reason="session_mismatch",
         session_vwap=None, current_price=None, price_vs_vwap=None,
     ))
-    assert "Session data stale — session date mismatch" in stale
+    assert ("Session read is from another session · intended Apr 28 · last Apr 28 · 6:34 AM PT"
+            " · no current price/VWAP read") in stale
+    lag = _render_with_spy(_spy_section(state="STALE", reason="observation_lag",
+                                        session_vwap=None, current_price=None, price_vs_vwap=None))
+    assert "Session read not current · last 6:34 AM PT · no current price/VWAP read" in lag
+    assert "STALE" not in re.sub(r'data-raw-state="[A-Z_]+"', "", _s2_obs(lag))
     pre = _render_with_spy(_spy_section(
         state="PRE_OPEN", reason="pre_open",
         session_vwap=None, current_price=None, price_vs_vwap=None,
         orb={"state": "PRE_OPEN", "trading_date": None, "observed_at_utc": None,
              "orb_high": None, "orb_low": None, "reason": "no_bars"},
     ))
-    assert "Pre-open — awaiting today&#x27;s session" in pre
+    assert "Pre-open · awaiting today&#x27;s session · last 6:34 AM PT" in pre
+    assert '<div class="spy-read">Opening range pre-open</div>' in pre
     assert 'data-raw-state="PRE_OPEN"' in pre
+    prior = _render_with_spy(_spy_section(state="PRE_OPEN", reason="pre_open_prior_session",
+                                          observed_at_utc="2026-04-27T19:59:00+00:00",
+                                          session_vwap=None, current_price=None, price_vs_vwap=None))
+    assert "Pre-open for Apr 28 · prior session read Apr 27 · 12:59 PM PT" in prior
+    unmapped = _render_with_spy(_spy_section(state="UNAVAILABLE", reason="weird_token",
+                                             session_vwap=None, current_price=None, price_vs_vwap=None))
+    assert "reason not recognised" in unmapped and 'data-raw-reason="weird_token"' in unmapped
+    assert "weird_token" not in re.sub(r'data-raw-reason="[^"]*"', "", _s2_obs(unmapped))
+    nodate = _render_with_spy(_spy_section(state="UNAVAILABLE", reason="intraday_fetch_failed", intended_session_date=None,
+                                           session_vwap=None, current_price=None, price_vs_vwap=None))
+    assert "No session read for unknown session · intraday data fetch failed" in nodate and 'data-session-date=""' in nodate
 
 
 def test_t12_no_spy_observation_card_when_section_absent():
     # Renderer side of T12: no section -> card omitted entirely.
     html = _render_with_spy(None)
-    assert 'id="spy-observation"' not in html
-    assert "SPY SESSION OBSERVATION" not in html
+    assert 'id="spy-observation"' not in html and 'id="spy-session"' not in html
+    assert 'id="spy-levels"' not in html and 'class="chart-toggle"' not in html
 
 
 # ---------------------------------------------------------------------------
@@ -4462,9 +4476,8 @@ def test_r7_locked_dashboard_replaces_action_vocabulary() -> None:
     assert "Longs allowed" not in html
     assert "Shorts allowed" not in html
     assert "Momentum longs allowed" not in html
-    # Opportunity-survival count relabelled.
-    assert "SETUPS FOUND" in html
-    assert ">QUALIFIED</div>" not in html
+    # Screen line vocabulary relabelled (PRD-304 R4 via PRD-330 R5).
+    assert "5 setups found" in html and "qualified" not in _top_block(html, "watching-zone").split("<div", 2)[1]
     # Analytical observations preserved: the symbol card and the A+ grade letter.
     assert 'id="card-SPY"' in html
 
@@ -4476,7 +4489,7 @@ def test_r7_available_dashboard_keeps_action_vocabulary() -> None:
     assert "A+ — ACTIONABLE" in html
     assert "A+ — OBSERVATION ONLY" not in html
     assert "OPERATOR LOCK — CANNOT MONITOR" not in html
-    assert ">QUALIFIED</div>" in html
+    assert "5 qualified" in html and "setups found" not in html
 
 
 def test_r7_locked_dashboard_omits_play_directive() -> None:
@@ -5531,10 +5544,12 @@ def _s2_sha(text: str) -> str:
 def test_prd329_spy_session_promoted_between_watching_and_details() -> None:
     # T8/T10 (R4): first-class section strictly between the two seams; the
     # observation no longer renders inside DETAILS; not an `operator-zone`.
-    html = _s2_render()
-    assert html.index('id="watching-zone"') < html.index('id="spy-session"') < html.index('id="details-history"')
+    html = _s2_render()   # PRD-330 R1: TAPE -> SPY SESSION -> NEXT EVENT -> WATCHING -> DETAILS
+    ids = ["system-state", "tape-zone", "spy-session", "today-zone", "watching-zone", "details-history"]
+    assert [html.index(f'id="{i}"') for i in ids] == sorted(html.index(f'id="{i}"') for i in ids)
     assert ('<section class="spy-session-group" id="spy-session">\n  <h3>SPY SESSION</h3>\n'
-            '<div class="block" id="spy-observation">\n  <h2>SPY SESSION OBSERVATION</h2>') in html
+            '<div class="block" id="spy-observation">\n  <div class="spy-read" data-raw-state="OBSERVED"') in html
+    assert "SPY SESSION OBSERVATION" not in html and "kv-grid" not in _s2_obs(html)
     details = html.split('id="details-history"', 1)[1]
     assert 'id="spy-observation"' not in details and 'id="spy-session-details"' not in details
     assert html.count("<h3>SPY SESSION</h3>") == 1 and html.count('id="spy-observation"') == 1
@@ -5542,14 +5557,26 @@ def test_prd329_spy_session_promoted_between_watching_and_details() -> None:
     assert html.split('<details class="block operator-zone"', 1)[0].count('class="block operator-zone"') == 4
 
 
-def test_prd329_observation_kv_grid_bytes_unchanged() -> None:
-    # T9 (R4/R8), regression guard: the six rows move verbatim.
+def test_prd330_r2_header_lines_replace_the_kv_grid() -> None:
+    # T10 (R2): three lines in order, carriers in data attributes, no ISO text, no raw enum.
     obs = _s2_obs(_s2_render())
-    kv = obs.split('<div class="kv-grid">', 1)[1].split("  </div>", 1)[0]
-    assert _s2_sha(kv) == _S2_KV_SHA
-    for row in ("SESSION", "STATE", "OBSERVED AT", "SESSION VWAP", "PRICE", "ORB"):
-        assert f'<div class="label">{row}</div>' in kv
-    assert 'data-raw-state="OBSERVED"' in kv and 'data-observed-at-utc="2026-04-28T13:34:00+00:00"' in kv
+    assert 'data-raw-state="OBSERVED" data-observed-at-utc="2026-04-28T13:34:00+00:00" data-session-date="2026-04-28"' in obs
+    lines = re.findall(r'<div class="(spy-read|spy-clock)"[^>]*>([^<]*(?:<span[^>]*>[^<]*</span>)?)</div>', obs)
+    assert [k for k, _ in lines] == ["spy-read", "spy-read", "spy-clock"]
+    assert lines[0][1].startswith("SPY 104.00 above session VWAP 102.00 · read ") and lines[1][1] == "ORB 100.00-105.00"
+    assert lines[2][1] == "Market-map levels 5:00 AM PT · daily bars through Aug 27"
+    body = re.sub(r'data-[a-z-]+="[^"]*"', "", obs)
+    assert not re.search(r"\d{4}-\d{2}-\d{2}T", body) and "OBSERVED" not in body and "UNAVAILABLE" not in body
+    for label in ("OBSERVED AT", "SESSION VWAP", "PRICE", "chart-caption", "NOW per market map"):
+        assert label not in obs, label
+    order = [obs.index(k) for k in ('class="spy-clock"', 'id="spy-levels"', 'class="chart-controls"', 'class="spy-chart"', 'class="lvl-ladder')]
+    assert order == sorted(order)
+    # D-8: the map clock is time-only iff the map's Pacific day is the intended session day
+    cap = "bars through 2026-08-27 · yfinance 1d"
+    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", "2026-04-28", cap) == "Market-map levels 5:00 AM PT · daily bars through Aug 27"
+    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", "2026-04-27", cap) == "Market-map levels Apr 28 · 5:00 AM PT · daily bars through Aug 27"
+    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", None, cap).startswith("Market-map levels Apr 28 · 5:00 AM PT")
+    assert _dr._spy_clock_line("garbage", "2026-04-28", "no caption") == "Market-map levels Update time unavailable · daily bars through unknown date"
 
 
 def test_prd329_spy_chart_is_daily_neutral_with_named_clocks() -> None:
@@ -5561,10 +5588,10 @@ def test_prd329_spy_chart_is_daily_neutral_with_named_clocks() -> None:
     svg = obs.split('class="spy-chart"', 1)[1].split("</svg>", 1)[0]
     for bad in ('class="risk-zone"', "ENTRY", "STOP", "#e0a552", "#e05252"):
         assert bad not in svg, bad
-    caption = obs.split('<div class="chart-caption">', 1)[1].split("</div>", 1)[0]
-    assert caption == "bars through 2026-08-27 · yfinance 1d · NOW per market map 2026-04-28T12:00:00Z"
+    assert "chart-caption" not in obs and "yfinance" not in obs          # PRD-330: clocks live in the R2 clock line
+    assert svg.count('class="chart-layer"') == 5 and svg.count('display="none"') == 2
     assert "intraday" not in obs and "5m" not in obs
-    assert obs.index('class="spy-chart"') < obs.index('class="chart-caption"') < obs.index('class="lvl-ladder')
+    assert obs.index('class="spy-clock"') < obs.index('class="spy-chart"') < obs.index('class="lvl-ladder')
     assert "ENTRY" in html.split('id="card-SPY"', 1)[1]  # positive control: the candidate chart is not neutral
 
 
@@ -5653,7 +5680,7 @@ def test_prd329_observation_subtree_is_a_pure_function_of_observational_inputs()
     obs = _s2_obs(render_dashboard_html(payload, _run(outcome="NO_TRADE"),
                                         market_map=_market_map({"SPY": _chartable("SPY", "C")}),
                                         price_bars_snapshot=_bars_snapshot(), now=_S2_NOW))
-    assert 'class="spy-chart"' in obs and 'class="lvl-ladder' in obs and "UNAVAILABLE" in obs
+    assert 'class="spy-chart"' in obs and 'class="lvl-ladder' in obs and 'data-raw-state="PRE_OPEN"' in obs
 
 
 def test_prd329_spy_session_source_cone() -> None:
@@ -5673,6 +5700,8 @@ def test_prd329_spy_session_source_cone() -> None:
     kws = {k.arg: k.value for k in calls["render_setup_chart_svg"].keywords}
     for name, value in (("contract_entry", None), ("contract_stop", None), ("operator_locked", False)):
         assert isinstance(kws[name], _ast.Constant) and kws[name].value is value, name
+    layers = kws["layers"]   # PRD-330 R3: the SPY chart is the layered render, exactly ("levels",)
+    assert isinstance(layers, _ast.Tuple) and [e.value for e in layers.elts] == ["levels"]
     ladder = calls["_render_level_ladder"].args
     assert all(isinstance(ladder[i], _ast.Constant) and ladder[i].value is None for i in (2, 5))
 
@@ -5739,8 +5768,78 @@ def test_prd329_preview_fixture_pins_the_promoted_block() -> None:
     case = next(c for c in SECTION_STATE_CASES if c.name == "spy_session_observed")
     html = render_dashboard_html(case.payload, case.run, market_map=case.market_map, **case.render_kwargs)
     assert 'id="spy-session"' in html and html.count('class="spy-chart"') == 1
-    assert html.index('id="watching-zone"') < html.index('id="spy-session"') < html.index('id="details-history"')
-    assert _s2_sha(html.split('<div class="block operator-zone" id="watching-zone">', 1)[1]) == _S2_FIXTURE_SHA
+    assert html.index('id="tape-zone"') < html.index('id="spy-session"') < html.index('id="today-zone"')
+    frag = html.split('<section class="spy-session-group" id="spy-session">', 1)[1].split(
+        '<div class="block operator-zone" id="watching-zone">', 1)[0]
+    assert _s2_sha(frag) == _S2_FIXTURE_SHA     # PRD-330: the promoted block + NEXT EVENT strip, byte-pinned
 
 
-_S2_FIXTURE_SHA = "dccd1721213618ed2eb24357344ea7f88c1d27175b2f076730eef195c47c973f"  # implementation head
+_S2_FIXTURE_SHA = "a13cc0b3d25b38d7a634c18d009c7857db0a12dff6deb9ca1976f4a91cf6ebae"  # PRD-330 implementation head (spy-session..watching seam)
+
+
+# ---------------------------------------------------------------------------
+# PRD-330 (D4) — R1 order, R4 NEXT EVENT, R8 control, R13 ladder, R12 no dead UI
+# ---------------------------------------------------------------------------
+def test_prd330_r1_order_and_four_operator_zones() -> None:
+    for html in (_s2_render(), _s2_render(spy=False)):
+        before = html.split('<details class="block operator-zone"', 1)[0]
+        assert before.count('class="block operator-zone"') == 4 and 'operator-zone" id="spy-session"' not in html
+        assert html.index('id="tape-zone"') < html.index('id="today-zone"') < html.index('id="watching-zone"')
+    assert 'id="spy-session"' not in _s2_render(spy=False)
+
+
+def test_prd330_r4_next_event_strip_matrix() -> None:
+    def strip(rf):
+        html = render_dashboard_html(_payload(), _run(), red_folder=rf)
+        block = _top_block(html, "today-zone")
+        assert "<h2>NEXT EVENT</h2>" in block and "EVENT RISK" not in block and "Session data" not in block
+        return re.search(r'<div class="event-line">([^<]*)</div>', block).group(1)
+    ev = {"date": "2026-09-04", "time_et": "08:30", "type": "NFP", "name": "Employment Situation"}
+    assert strip({"ok": True, "events": [ev], "expiring": False}) == "NFP · Fri Sep 4 · 8:30 AM ET"
+    assert strip({"ok": True, "events": [ev, dict(ev, date="2026-09-05")], "expiring": True}) == \
+        "NFP · Fri Sep 4 · 8:30 AM ET · +1 more in DETAILS · schedule expiring"
+    assert strip({"ok": True, "events": [dict(ev, type="")], "expiring": False}).startswith("Employment Situation · ")
+    assert strip({"ok": True, "events": [], "expiring": False}) == "No scheduled events in the next 48 hours"
+    assert strip({"ok": False, "error": "x", "events": [], "expiring": False}) == "Event schedule unavailable"
+    assert strip(None) == "Event schedule unavailable"
+    assert strip({"ok": True, "events": [dict(ev, date="tomorrow", time_et="noon")], "expiring": False}) == \
+        "NFP · tomorrow · noon ET"
+
+
+def test_prd330_r8_control_iff_layered_chart(monkeypatch) -> None:
+    html = _s2_render()
+    obs = _s2_obs(html)
+    assert obs.count('<input type="checkbox" id="spy-levels" class="chart-toggle">') == 1
+    assert obs.count('<div class="chart-controls"><label for="spy-levels" class="chart-toggle-label">LEVELS</label></div>') == 1
+    assert obs.index('id="spy-levels"') < obs.index('class="chart-controls"') < obs.index('<div class="spy-chart"><svg')
+    assert html.count("<script") == 1 and "onclick" not in html and "[open]" not in _dr._CSS
+    for rule in ('#spy-levels:checked~.spy-chart .chart-layer[data-layer="levels"]{display:inline}',
+                 ".chart-toggle{position:absolute;width:1px;height:1px;", "min-height:44px",
+                 ".chart-toggle:focus-visible~.chart-controls .chart-toggle-label{outline:"):
+        assert rule in _dr._CSS and rule not in _dr._CSS.partition("@media(max-width:430px){")[2].partition("}\n")[0]
+    assert "display:none" not in _dr._CSS.split(".chart-toggle{", 1)[1].split("}", 1)[0]
+    stale = _market_map({"SPY": _chartable("SPY", "C")})
+    stale["generated_at"] = "2026-04-28T10:00:00Z"
+    bad_price = _chartable("SPY", "C")
+    bad_price["current_price"] = None
+    for label, kw in (("map unhealthy", dict(mm=stale)), ("no SPY record", dict(mm=_market_map())),
+                      ("invalid price", dict(mm=_market_map({"SPY": bad_price}))), ("no bars", dict(bars=False))):
+        o = _s2_obs(_s2_render(**kw))
+        assert "spy-levels" not in o and "chart-toggle" not in o and "spy-clock" not in o, label
+    monkeypatch.setattr(_dr.setup_chart, "render_setup_chart_svg", lambda *a, **k: "")
+    assert "spy-levels" not in _s2_obs(_s2_render())
+
+
+def test_prd330_r13_ladder_visible_and_independent_of_levels() -> None:
+    obs = _s2_obs(_s2_render())
+    ladder = obs.split('class="lvl-ladder', 1)[1]
+    assert '<span class="lvl-name">NOW</span>' in ladder and "spy-levels" not in ladder
+    assert obs.index('</svg>') < obs.index('class="lvl-ladder')
+    # the observation subtree is byte-identical with the checkbox absent from the inputs entirely
+    assert "checked" not in obs.split('class="chart-controls"', 1)[0]
+
+
+def test_prd330_r12_no_astrology_ui_in_document_or_css() -> None:
+    html = _s2_render().lower()
+    assert "astrolog" not in html and "astrolog" not in _dr._CSS.lower()
+    assert html.count('class="chart-toggle"') == 1 and html.count("<input") == 1

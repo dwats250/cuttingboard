@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from cuttingboard import config
 from cuttingboard.delivery.dashboard_renderer import render_dashboard_html
 
 from tests.dash_helpers import _macro_drivers, _market_map, _mm_symbol, _payload, _run
@@ -529,28 +530,37 @@ def test_prd281_why_line_suppressed_for_sentinel_with_confidence_suffix() -> Non
 # ---------------------------------------------------------------------------
 
 def _survival_block(html: str) -> str | None:
-    # PRD-315: extract the exact opportunity-survival block depth-aware; the old
-    # alert-watchlist end sentinel no longer bounds it (Candidate now sits
-    # between Opportunity and Alert).
-    if 'id="opportunity-survival"' not in html:
-        return None
-    return _top_block(html, "opportunity-survival")
+    # PRD-330 R5: the opportunity funnel is ONE `<p class="screen-line">` under the
+    # WATCHING heading (the old `#opportunity-survival` grid is gone). Returns the
+    # line's text, or None when the fail-closed conditions suppressed it.
+    m = re.search(r'<p class="screen-line">([^<]*)</p>', html)
+    return m.group(1) if m else None
 
 
 def _survival_pairs(html: str) -> dict[str, str]:
-    block = _survival_block(html)
-    assert block is not None
-    return dict(
-        re.findall(r'<div class="label">([^<]+)</div><div class="value">([^<]+)</div>', block)
-    )
+    # The PRD-282 counts projected out of the PRD-330 line: SURFACED / QUALIFIED
+    # (or SETUPS FOUND under lock; "0" when the token is omitted) / WATCHLIST /
+    # REJECTED / PRIMARY REJECTION (absent when no primary reason exists).
+    line = _survival_block(html)
+    assert line is not None
+    pairs = {"SURFACED": re.search(r"(\d+) screened", line).group(1),
+             "WATCHLIST": re.search(r"(\d+) (?:held by the 3:30 PM cutoff|on watch)", line).group(1),
+             "REJECTED": re.search(r"(\d+) rejected", line).group(1)}
+    q = re.search(r"(\d+) (qualified|setups found)", line)
+    pairs["SETUPS FOUND" if q and q.group(2) == "setups found" else "QUALIFIED"] = q.group(1) if q else "0"
+    top = re.search(r"top reason (.+) \((\d+)\)$", line)
+    if top:
+        pairs["PRIMARY REJECTION"] = top.group(1)
+    return pairs
 
 
 def _survival_label_order(html: str) -> list[str]:
-    # Direct-child label sequence -- the DOM order the PRD-314 phone 2x2 grid
-    # depends on (a CSS-only reflow; DOM/screen-reader order must not change).
-    block = _survival_block(html)
-    assert block is not None
-    return re.findall(r'<div class="label">([^<]+)</div>', block)
+    # PRD-330 R5 token order (the grammar's fixed sequence), by token kind.
+    line = _survival_block(html)
+    assert line is not None
+    kinds = {"screened": "SURFACED", "qualified": "QUALIFIED", "setups found": "SETUPS FOUND", "held": "WATCHLIST",
+             "on watch": "WATCHLIST", "rejected": "REJECTED", "top reason": "PRIMARY REJECTION"}
+    return [kinds[k] for part in line.split(" · ") for k in kinds if k in part][:5]
 
 
 def _coherent_survival(
@@ -808,7 +818,7 @@ def test_prd314_opportunity_child_order_primary_present() -> None:
     payload, run, mm = _coherent_survival(10, rejected_reasons=("CHOP",) * 3, watchlist_n=1)
     html = render_dashboard_html(payload, run, market_map=mm)
     assert _survival_label_order(html) == [
-        "SURFACED", "QUALIFIED", "WATCHLIST", "REJECTED", "PRIMARY REJECTION",
+        "SURFACED", "WATCHLIST", "QUALIFIED", "REJECTED", "PRIMARY REJECTION",
     ]
 
 
@@ -817,7 +827,8 @@ def test_prd314_opportunity_child_order_primary_absent() -> None:
     # trailing grid row.
     payload, run, mm = _coherent_survival(5)
     html = render_dashboard_html(payload, run, market_map=mm)
-    assert _survival_label_order(html) == ["SURFACED", "QUALIFIED", "WATCHLIST", "REJECTED"]
+    assert _survival_label_order(html) == ["SURFACED", "WATCHLIST", "QUALIFIED", "REJECTED"]
+    assert "top reason" not in _survival_block(html)
 
 
 # ---------------------------------------------------------------------------
@@ -836,8 +847,9 @@ def test_prd315_qualified_zero_with_independent_b_candidate() -> None:
     mm = _market_map({"GLD": _mm_symbol("GLD", grade="B")})
     html = render_dashboard_html(payload, run, market_map=mm)
 
-    # Opportunity renders and its derived QUALIFIED is 0 (scanned 1 > 0 => block present).
-    assert 'id="opportunity-survival"' in html
+    # The screen line renders and its derived QUALIFIED is 0 (scanned 1 > 0 => line present);
+    # PRD-330 R5 omits the zero token, so the projection reports "0".
+    assert _survival_block(html) is not None and "qualified" not in _survival_block(html)
     pairs = _survival_pairs(html)
     assert pairs["SURFACED"] == "1"
     assert pairs["REJECTED"] == "1"
@@ -851,6 +863,41 @@ def test_prd315_qualified_zero_with_independent_b_candidate() -> None:
 
     # Continuity: Candidate is the immediate top-level successor of Opportunity;
     # nothing intervenes, and no survivor-claim copy couples them.
-    ids = _top_ids(html)
-    assert ids.index("opportunity-survival") + 1 == ids.index("candidate-board")
+    # PRD-330 R5: the screen line is the WATCHING opener and the board follows it directly.
+    watching = _top_block(html, "watching-zone")
+    assert watching.index('<p class="screen-line">') < watching.index('id="candidate-board"')
     assert "survived" not in board.lower()
+
+
+# ---------------------------------------------------------------------------
+# PRD-330 R5 (D-7) — the compact screen line's grammar and closed reason policy
+# ---------------------------------------------------------------------------
+def _watchlist(payload: dict, reasons: tuple[str, ...]) -> None:
+    payload["sections"]["watchlist"] = [
+        {"symbol": f"W{i}", "stage": "WATCHLIST", "reason": r, "detail": None} for i, r in enumerate(reasons)
+    ]
+
+
+def test_prd330_r5_screen_line_grammar_and_reason_policy() -> None:
+    cutoff = "entry blocked after 3:30 PM ET"
+    payload, run, mm = _coherent_survival(23, rejected_reasons=("CHOP",) * 4 + ("EXTENDED",) * 3 + ("GAP",) * 12, watchlist_n=4)
+    _watchlist(payload, (cutoff,) * 4)
+    line = _survival_block(render_dashboard_html(payload, run, market_map=mm))
+    assert line == "23 screened · 4 held by the 3:30 PM cutoff · 19 rejected · top reason GAP (12)"
+    assert "mostly" not in line and cutoff not in line
+    _watchlist(payload, (cutoff, cutoff, "some internal token", cutoff))
+    line = _survival_block(render_dashboard_html(payload, run, market_map=mm))
+    assert line.startswith("23 screened · 4 on watch · ") and "internal token" not in line
+    payload, run, mm = _coherent_survival(5, rejected_reasons=(), watchlist_n=0)
+    assert _survival_block(render_dashboard_html(payload, run, market_map=mm)) == "5 screened · 0 on watch · 5 qualified · 0 rejected"
+    payload, run, mm = _coherent_survival(3, rejected_reasons=("", ""), watchlist_n=1)   # rejected without reasons
+    _watchlist(payload, ("unmapped",))
+    assert _survival_block(render_dashboard_html(payload, run, market_map=mm)) == "3 screened · 1 on watch · 2 rejected"
+    payload, run, mm = _coherent_survival(2, rejected_reasons=("CHOP",), watchlist_n=1)
+    _watchlist(payload, (cutoff,))
+    locked = render_dashboard_html(payload, _run(outcome="NO_TRADE", permission=config.OPERATOR_LOCK_PERMISSION), market_map=mm)
+    assert _survival_block(locked) == "2 screened · 1 held by the 3:30 PM cutoff · 1 rejected · top reason CHOP (1)"
+    payload, run, mm = _coherent_survival(3, rejected_reasons=("CHOP",), watchlist_n=0)
+    locked = render_dashboard_html(payload, _run(outcome="NO_TRADE", permission=config.OPERATOR_LOCK_PERMISSION), market_map=mm)
+    assert _survival_block(locked) == "3 screened · 0 on watch · 2 setups found · 1 rejected · top reason CHOP (1)"
+    assert 'id="opportunity-survival"' not in locked and "PRIMARY REJECTION" not in locked
