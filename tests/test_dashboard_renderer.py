@@ -4705,6 +4705,41 @@ def _valid_gex():
 
 
 # --- R1: suppressed -> byte-identical to the independent pre-GEX golden ---
+# --- PRD-330 R16/R17: frozen golden regions + the A1-C golden's embedded candidate SVG ---
+_LEGACY_ORACLE_JSON = Path(__file__).resolve().parent / "data" / "setup_chart_legacy_oracle.json"
+
+
+def _golden_region(html: str, block_id: str) -> str:
+    idx = html.index(f'id="{block_id}"')
+    start = html.rfind("<", 0, idx)
+    if block_id == "details-history":
+        return html[start: html.rindex("</details>") + len("</details>")]
+    i, depth = start, 0
+    while True:
+        nd, ne = html.find("<div", i), html.find("</div>", i)
+        if nd != -1 and nd < ne:
+            depth, i = depth + 1, nd + 4
+        else:
+            depth, i = depth - 1, ne + 6
+            if depth == 0:
+                return html[start:i]
+
+
+def test_prd330_golden_regions_and_embedded_svg_pinned() -> None:
+    # R17: the VERDICT, TAPE and DETAILS regions of both goldens equal the shas frozen
+    # at S0, so a regeneration may change only the authorized regions; the candidate
+    # SVG embedded in the A1-C golden equals its frozen sha (R16 legacy oracle).
+    oracle = json.loads(_LEGACY_ORACLE_JSON.read_text())
+    for filename, regions in oracle["golden_regions"].items():
+        html = (Path(__file__).resolve().parent / "data" / filename).read_text()
+        for block_id, expected in regions.items():
+            assert hashlib.sha256(_golden_region(html, block_id).encode("utf-8")).hexdigest() == expected, (filename, block_id)
+    a1c = _A1C_GOLDEN.read_text()
+    svg = a1c.split('<div class="setup-chart">', 1)[1].split("</svg>", 1)[0] + "</svg>"
+    assert a1c.count("<svg ") == 1
+    assert hashlib.sha256(svg.encode("utf-8")).hexdigest() == oracle["a1c_golden_embedded_svg_sha256"]
+
+
 def test_gex_absent_baseline_identical(monkeypatch):
     # mutation: emit an empty wrapper on absence, OR add a rule to the
     # unconditional _CSS -> the suppressed document diverges from the golden.

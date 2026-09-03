@@ -401,3 +401,39 @@ def test_only_the_delivery_layer_imports_setup_chart() -> None:
             if "setup_chart" in path.read_text(encoding="utf-8"):
                 offenders.append(str(rel))
     assert not offenders, f"setup_chart is display-only; found readers: {offenders}"
+
+
+# ---------------------------------------------------------------------------
+# PRD-330 R16 — frozen pre-D4 legacy byte oracle (S0; lands before any S1 change)
+# ---------------------------------------------------------------------------
+import hashlib as _hashlib
+import json as _json
+
+_LEGACY_ORACLE = REPO_ROOT / "tests" / "data" / "setup_chart_legacy_oracle.json"
+
+
+def _oracle_render(case: dict) -> str:
+    kw = dict(case["inputs"])
+    return render_setup_chart_svg(kw.pop("bars"), kw.pop("now_price"), **kw)
+
+
+def test_prd330_legacy_path_matches_frozen_oracle() -> None:
+    # R11/R16: with no `layers` argument every representative render is byte-identical
+    # to the sha256 frozen from the pre-PRD-330 module. Mutation: any byte of the
+    # legacy paint list (order, attribute, rounding, leader threshold) fails this.
+    oracle = _json.loads(_LEGACY_ORACLE.read_text())
+    assert len(oracle["cases"]) >= 9
+    for name, case in oracle["cases"].items():
+        svg = _oracle_render(case)
+        assert svg and len(svg) == case["length"], name
+        assert _hashlib.sha256(svg.encode("utf-8")).hexdigest() == case["sha256"], name
+
+
+def test_prd330_oracle_leader_threshold_is_a_real_boundary() -> None:
+    # R16 non-vacuity: the two threshold cases sit at 4.0 (no leader) and 4.1 (leader)
+    # units of displacement of the boxed ENTRY tag, straddling the legacy `> 4` rule.
+    oracle = _json.loads(_LEGACY_ORACLE.read_text())
+    for name, expect_leader in (("leader_threshold_exact_4_0", False), ("leader_threshold_just_over_4_1", True)):
+        svg = _oracle_render(oracle["cases"][name])
+        entry_y = re.search(r'class="lvl-t1 lvl-entry" x1="0" y1="([\d.]+)"', svg).group(1)
+        assert (f'<line x1="280" y1="{entry_y}"' in svg) is expect_leader, name

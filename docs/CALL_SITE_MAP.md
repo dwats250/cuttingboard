@@ -76,7 +76,7 @@ anchor-only fallback.
 
 | Function | Purpose |
 |---|---|
-| `render_setup_chart_svg` | PRD-321 R1: the ONLY public entry point — pure, deterministic bars+levels → inline SVG. Fixed closed tier map (`TIER2_TYPES`, `TIER3_TYPES`); Tier 3 draws only inside the price domain and never widens the y-scale; returns `""` when there is nothing honest to draw. No I/O, no clock, no randomness, no `cuttingboard.*` import. Called only from `dashboard_renderer._render_candidate_card` |
+| `render_setup_chart_svg` | PRD-321 R1: the ONLY public entry point — pure, deterministic bars+levels → inline SVG. Fixed closed tier map (`TIER2_TYPES`, `TIER3_TYPES`); Tier 3 draws only inside the price domain and never widens the y-scale; returns `""` when there is nothing honest to draw. No I/O, no clock, no randomness, no `cuttingboard.*` import. Called from `dashboard_renderer._render_candidate_card` (daily and A1-C intraday branches), `dashboard_renderer._render_spy_session` (neutral SPY chart; PRD-330 passes `layers=("levels",)`) and `primary_selection.select_primary_card_symbol` (non-emptiness predicate only). |
 
 ---
 
