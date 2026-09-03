@@ -147,5 +147,3 @@ None at the producer, consumer, carrier, schema, or renderer-class level. The pa
 ## Blockers for Helm
 
 None beyond D-1 through D-7. The eight REQUIRED findings are packet corrections and propagation work, not new product-direction questions. D-5 should be converted into a binary, testable minimum target decision before PRD ratification.
-
-
