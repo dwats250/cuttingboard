@@ -32,6 +32,14 @@ on:
         required: false
         default: ''
         type: string
+      # CF-E1: the Cloudflare clock (workers/cuttingboard-clock) posts
+      # {kind, slot, source}; GitHub rejects undeclared inputs with 422, so
+      # `source` must be admitted here. Declared for schema compatibility only.
+      source:
+        description: 'Dispatch source'
+        required: false
+        default: ''
+        type: string
 
 # Per-workflow self-serialization: the heartbeat and routine-dispatch arrivals
 # for one slot must not run concurrently or both could alert before either
