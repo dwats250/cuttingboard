@@ -18,8 +18,14 @@ GOV-2 PACKET-REVIEW CYCLE: EVENT 1 (Sol/Codex, fresh context, HIGH) at 74c915f:
   omissions: none) - CODEX_EVENT_2_CONFIRMATION_ATTEMPT_2_2026-09-02.md.
   Helm-authorized ONE consolidated packet-only repair (charge "D4 - EVENT-2C
   BOUNDED PACKET REPAIR + EXACT-HEAD CONFIRMATION", 2026-09-02) is this
-  revision. EVENT 2 ATTEMPT 3 PENDING against this commit's SHA. REVIEW RECORD
-  at the end lists every disposition.
+  revision, landed at 7fa7478. EVENT 2 ATTEMPT 3 (against 7fa7478): NOT
+  CONFIRMED (2 local residuals: NF-8 "four" vs five differing coordinates;
+  NF-9 PRD-304 R4/R7 attribution; Helm items 1-11 and 13 PASS, 12 FAIL on the
+  attribution only; boundary omissions: none) -
+  CODEX_EVENT_2_CONFIRMATION_ATTEMPT_3_2026-09-02.md. Helm-authorized ONE
+  final micro-correction (charge "D4 - FINAL MICRO-CORRECTION + EXACT-HEAD
+  CONFIRMATION", 2026-09-02) is this revision. EVENT 2 ATTEMPT 4 PENDING
+  against this commit's SHA. REVIEW RECORD at the end lists every disposition.
 AUTHORIZES NO IMPLEMENTATION, NO PRD, NO GATE A, NO MERGE.
 Every FILES / LOC figure below is ESTIMATED SURFACE - NOT YET APPROVED (GOV-2 sec5).
 Repository truth at authoring: main 858147f2057ed967d7d17fbc4a8c2f6cc20bfb71
@@ -110,7 +116,10 @@ downstream PRD re-applies the lane matrix.
   attempt 2 at d562444 (NOT CONFIRMED - 4 local residuals; Helm items 1-13
   PASS; boundary omissions: none; dispatch prompt reproduced inside).
 - CODEX_EVENT_2_CONFIRMATION_ATTEMPT_3_2026-09-02.md - Event-2 confirmation
-  attempt 3 (pending; added when it lands).
+  attempt 3 at 7fa7478 (NOT CONFIRMED - 2 local residuals; boundary omissions:
+  none; dispatch prompt reproduced inside).
+- CODEX_EVENT_2_CONFIRMATION_ATTEMPT_4_2026-09-02.md - Event-2 confirmation
+  attempt 4 (pending; added when it lands).
 - Prototype and measurement artifacts (scratch, non-durable, cited for
   provenance only; every load-bearing number is copied into section 10):
   `/tmp/claude-1000/-home-dustin-Projects-cuttingboard/39db22ac-980f-483c-bfb8-49a50ecb4b93/scratchpad/`
@@ -390,7 +399,7 @@ watchlist phrase uses a closed display map keyed on the watchlist `reason`
 when every watchlist item shares one mapped reason (initial map: `entry
 blocked after 3:30 PM ET` -> `held by the 3:30 PM cutoff`), else `N on
 watch`; the QUALIFIED / SETUPS FOUND token appears only when the count is > 0
-(`. N qualified` / `. N setups found` under lock, PRD-304 R7 vocabulary); the
+(`. N qualified` / `. N setups found` under lock, PRD-304 R4 vocabulary); the
 top reason is `top reason <REASON> (n)` with the same sanitisation as PRD-282
 R7; "mostly" is never used. The candidate-board header (`:3172-3175`) becomes
 one line `SETUPS . screening grades, not permission`; the A+ lock relabel
@@ -554,7 +563,7 @@ for (f) the prototype provides APPROXIMATE visual/coordinate evidence only,
 because its price scale is a linear fit of the live SVG (3.715 units per
 dollar through NOW): on the live case the eleven layered line y values agree
 with the live SVG's within the recorded tolerance of 0.3 units (largest
-observed difference 0.2 units, four lines differing by 0.1 to 0.2) and the
+observed difference 0.2 units, five lines differing by 0.1 to 0.2) and the
 candle bytes are identical; the synthetic cases carry no legacy counterpart
 and make no (f) claim. Exact (f) equality of line y values and tick origins
 is an IMPLEMENTATION invariant, asserted by the R10/T8 tests against the
@@ -741,8 +750,10 @@ Changed (SUPERSEDED IN PART by the downstream PRD; propagated per GOV-2 s10):
 - PRD-282 R1-R7 (`docs/prd_history/PRD-282.md:112-196`): counts and
   fail-closed semantics preserved; presentation (labels, grid, PRIMARY
   REJECTION row) superseded by section 5.1 S4.
-- PRD-304 R7 (`docs/prd_history/PRD-304.md:274-293`): SETUPS FOUND vocabulary
-  preserved for the non-zero token; the A+ tier relabel preserved.
+- PRD-304 R4 (`docs/prd_history/PRD-304.md:227-247`): the SETUPS FOUND /
+  qualification-count vocabulary preserved for the non-zero token.
+- PRD-304 R7 (`docs/prd_history/PRD-304.md:274-293`): the locked-dashboard
+  suppression and the A+ tier relabel preserved.
 - PRD-321 R1/R4 ladder rules and ruling Q2 as narrowed by PRD-329: preserved
   (ladder unchanged, one candidate chart, one observational chart). The chart
   module's pure-function rule (`PRD-321.md:62-64`) preserved: `layers` is an
@@ -990,3 +1001,10 @@ it as drift.
 | REQ-5 invariant (f) overclaimed for the prototype (0.3-unit tolerance on a fitted scale; line 818 said (a)-(f) on every case) | ACTIONED: prototype evidence stated as approximate within its recorded tolerance (largest 0.2 units, live case only); exact (f) retained as the implementation invariant in 5.3 and R10; section 10 wording corrected | 5.3, 10 |
 | REQ-7 estimate summed to 180 but 185 declared; chart top 661 not emitted by the script | ACTIONED: 180 stated as the ESTIMATED surface, 185 as the PROPOSED PRD ceiling, propagated to section 8 and the review record; measurement script extended to emit SPY top, chart top, WATCHING top and first-candidate top at all three viewports; record regenerated and reproduced; inter-script tolerance stated; R14 named as the acceptance criterion | 8, 10 |
 | REQ-8 one renderer entry must feed two compositor positions; contract unspecified | ACTIONED: closed `LayerRenderResult(under_elements, rail_elements)` contract; fixed compositor order stated; probe test proves both insertion positions, independent control and untouched candidate path | 5.2, 5.5 |
+
+### Event-2 attempt 3 (at 7fa7478): NOT CONFIRMED - 2 local residuals; Helm-authorized final micro-correction dispositions
+
+| residual | disposition | where |
+|---|---|---|
+| NF-8 (REQ-5) approximate live comparison said four differing coordinates; the count is five | ACTIONED: "four lines" corrected to "five lines"; tolerance, measured differences, invariant and evidence classification unchanged | 5.3 |
+| NF-9 (REQ-2) SETUPS FOUND vocabulary attributed to PRD-304 R7 | ACTIONED: PRD-304 R4 (`PRD-304.md:227-247`) cited for the count vocabulary; PRD-304 R7 retained for the locked-dashboard suppression and the A+ relabel; WATCHING behaviour and wording unchanged | 5.1 S4, 7 |
