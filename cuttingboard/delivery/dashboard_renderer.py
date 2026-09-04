@@ -43,6 +43,7 @@ from cuttingboard.delivery.macro_tape_layout import (
 )
 from cuttingboard.macro_pressure import build_macro_pressure
 from cuttingboard.trade_decision import ALLOW_TRADE
+from cuttingboard.chain_validation import MANUAL_CHECK
 
 # Dashboard sidecar dependencies (PRD-097 audit):
 #   logs/latest_payload.json        — primary payload (overridden by --payload in hourly workflow)
@@ -1013,6 +1014,8 @@ _CSS = (
     ".tier-header{font-size:.72rem;font-weight:normal;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;opacity:1}"
     ".candidate-state{font-weight:bold;margin-bottom:4px}"
     ".candidate-risk{color:#ff9800}"
+    ".candidate-state.manual-check{border-left:3px solid #ff9800;padding:4px 8px}"
+    ".manual-check-flag{display:inline-block;border:1px solid currentColor;border-radius:3px;padding:0 5px;margin-right:6px;font-size:.7rem;letter-spacing:.06em;color:#ff9800}"
     ".tape-slot.up{color:#4caf50}"
     ".tape-slot.down{color:#f44336}"
     ".tape-slot.flat{color:#888}"
@@ -3419,9 +3422,15 @@ def render_dashboard_html(
             sym = _esc(str(cand.get("symbol") or "").upper())
             direction = _esc(str(cand.get("direction") or "").upper())
             block_reason = _esc(str(cand.get("block_reason") or "").upper())
-            w(f'  <div class="candidate-state">{sym} {direction}'
-              + (f' — {block_reason}' if block_reason else '')
-              + '</div>')
+            _tail = f'{sym} {direction}' + (f' — {block_reason}' if block_reason else '') + '</div>'
+            # PRD-331: presentation-only manual-action flag, keyed on the contract's
+            # verbatim chain classification (setup_quality). No value is derived, no
+            # row is reordered; every non-manual row is byte-identical to before.
+            if cand.get("setup_quality") == MANUAL_CHECK:
+                w('  <div class="candidate-state manual-check" data-raw-state="NEEDS_MANUAL_CHECK">'
+                  '<span class="manual-check-flag">MANUAL CHECK</span> ' + _tail)
+            else:
+                w('  <div class="candidate-state">' + _tail)
         w("</div>")
 
     w("</div>")  # #watching-zone
