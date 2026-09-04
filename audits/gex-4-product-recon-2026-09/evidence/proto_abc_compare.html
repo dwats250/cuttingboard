@@ -1,0 +1,363 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>compare</title><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#0d0d0d;color:#e0e0e0;font-family:monospace;padding:8px}
+.frame{width:360px;display:inline-block;vertical-align:top;margin:0 8px 16px 0}.block{border:1px solid #2a2a2a;border-radius:4px;margin-bottom:1rem;padding:1rem}
+.label{color:#888;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em}.value{margin-top:0.25rem}
+.kv-grid{display:grid;grid-template-columns:max-content 1fr;gap:2px 0.75rem}h2{font-size:1rem;margin-bottom:.5rem}
+.lvl-ladder{max-width:520px;font-size:0.72rem;line-height:1.5}.lvl-row{display:grid;grid-template-columns:5ch 6ch 1fr 1fr 6ch;column-gap:8px;white-space:nowrap;text-align:right}
+summary{list-style:none;cursor:pointer}summary::-webkit-details-marker{display:none}svg{display:block;width:100%;height:auto;max-width:520px;margin:.5rem 0}</style><body><div class="frame"><div class="block" id="gex-context"><h2>GEX <span class="label">(context only)</span> <span class="label">A: net ladder</span></h2><div class="kv-grid">
+<div class="label">Net</div><div class="value">+80.4B *</div>
+<div class="label">Gross</div><div class="value">595.5B &nbsp; <span class="label">80% within window</span></div>
+</div><svg viewBox="0 0 358 402" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="SPX gamma notional by 25-point strike bin" font-family="monospace" font-size="10.5">
+<text x="44" y="10" text-anchor="end" fill="#888">STRIKE</text>
+<text x="184" y="10" text-anchor="end" fill="#e66767">put-side &lt;</text><text x="196" y="10" fill="#3987e5">&gt; call-side</text>
+<text x="356" y="10" text-anchor="end" fill="#888">NET $B</text>
+<line x1="190" y1="14" x2="190" y2="390" stroke="#333" stroke-width="1"/>
+<text x="44" y="25.5" text-anchor="end" fill="#888">8125</text>
+<rect x="190.0" y="19" width="22.1" height="6" fill="#3987e5"><title>8125: net +2.8B (call-side 2.9B, put-side 0.1B)</title></rect>
+<text x="356" y="25.5" text-anchor="end" fill="#e0e0e0">+2.8</text>
+<text x="44" y="37.5" text-anchor="end" fill="#e0e0e0">8100</text>
+<rect x="190.0" y="31" width="51.2" height="6" fill="#3987e5"><title>8100: net +6.6B (call-side 6.9B, put-side 0.3B)</title></rect>
+<text x="356" y="37.5" text-anchor="end" fill="#e0e0e0">+6.6</text>
+<text x="44" y="49.5" text-anchor="end" fill="#888">8075</text>
+<rect x="190.0" y="43" width="18.6" height="6" fill="#3987e5"><title>8075: net +2.4B (call-side 2.5B, put-side 0.1B)</title></rect>
+<text x="356" y="49.5" text-anchor="end" fill="#e0e0e0">+2.4</text>
+<text x="44" y="61.5" text-anchor="end" fill="#888">8050</text>
+<rect x="190.0" y="55" width="48.4" height="6" fill="#3987e5"><title>8050: net +6.2B (call-side 6.4B, put-side 0.2B)</title></rect>
+<text x="356" y="61.5" text-anchor="end" fill="#e0e0e0">+6.2</text>
+<text x="44" y="73.5" text-anchor="end" fill="#888">8025</text>
+<rect x="190.0" y="67" width="15.7" height="6" fill="#3987e5"><title>8025: net +2.0B (call-side 2.1B, put-side 0.1B)</title></rect>
+<text x="356" y="73.5" text-anchor="end" fill="#e0e0e0">+2.0</text>
+<text x="44" y="85.5" text-anchor="end" fill="#e0e0e0">8000</text>
+<rect x="190.0" y="79" width="51.5" height="6" fill="#3987e5"><title>8000: net +6.6B (call-side 39.6B, put-side 33.0B)</title></rect>
+<text x="356" y="85.5" text-anchor="end" fill="#e0e0e0">+6.6</text>
+<text x="48" y="85.5" fill="#888" font-size="8.5">CP</text>
+<text x="44" y="97.5" text-anchor="end" fill="#888">7975</text>
+<rect x="190.0" y="91" width="15.1" height="6" fill="#3987e5"><title>7975: net +1.9B (call-side 2.1B, put-side 0.2B)</title></rect>
+<text x="356" y="97.5" text-anchor="end" fill="#e0e0e0">+1.9</text>
+<text x="44" y="109.5" text-anchor="end" fill="#888">7950</text>
+<rect x="190.0" y="103" width="34.1" height="6" fill="#3987e5"><title>7950: net +4.4B (call-side 4.7B, put-side 0.3B)</title></rect>
+<text x="356" y="109.5" text-anchor="end" fill="#e0e0e0">+4.4</text>
+<text x="44" y="121.5" text-anchor="end" fill="#888">7925</text>
+<rect x="190.0" y="115" width="19.4" height="6" fill="#3987e5"><title>7925: net +2.5B (call-side 2.8B, put-side 0.3B)</title></rect>
+<text x="356" y="121.5" text-anchor="end" fill="#e0e0e0">+2.5</text>
+<text x="44" y="133.5" text-anchor="end" fill="#e0e0e0">7900</text>
+<rect x="190.0" y="127" width="74.7" height="6" fill="#3987e5"><title>7900: net +9.6B (call-side 10.9B, put-side 1.3B)</title></rect>
+<text x="356" y="133.5" text-anchor="end" fill="#e0e0e0">+9.6</text>
+<text x="44" y="145.5" text-anchor="end" fill="#888">7875</text>
+<rect x="190.0" y="139" width="31.9" height="6" fill="#3987e5"><title>7875: net +4.1B (call-side 4.5B, put-side 0.4B)</title></rect>
+<text x="356" y="145.5" text-anchor="end" fill="#e0e0e0">+4.1</text>
+<text x="44" y="157.5" text-anchor="end" fill="#888">7850</text>
+<rect x="190.0" y="151" width="56.2" height="6" fill="#3987e5"><title>7850: net +7.2B (call-side 8.4B, put-side 1.2B)</title></rect>
+<text x="356" y="157.5" text-anchor="end" fill="#e0e0e0">+7.2</text>
+<text x="44" y="169.5" text-anchor="end" fill="#888">7825</text>
+<rect x="190.0" y="163" width="82.8" height="6" fill="#3987e5"><title>7825: net +10.6B (call-side 13.3B, put-side 2.7B)</title></rect>
+<text x="356" y="169.5" text-anchor="end" fill="#e0e0e0">+10.6</text>
+<text x="44" y="181.5" text-anchor="end" fill="#e0e0e0">7800</text>
+<rect x="190.0" y="175" width="118.0" height="6" fill="#3987e5"><title>7800: net +15.1B (call-side 24.8B, put-side 9.6B)</title></rect>
+<text x="356" y="181.5" text-anchor="end" fill="#e0e0e0">+15.1</text>
+<text x="48" y="181.5" fill="#888" font-size="8.5">D</text>
+<text x="44" y="193.5" text-anchor="end" fill="#888">7775</text>
+<rect x="190.0" y="187" width="66.4" height="6" fill="#3987e5"><title>7775: net +8.5B (call-side 17.5B, put-side 9.0B)</title></rect>
+<text x="356" y="193.5" text-anchor="end" fill="#e0e0e0">+8.5</text>
+<text x="44" y="205.5" text-anchor="end" fill="#888">7750</text>
+<rect x="190.0" y="199" width="73.3" height="6" fill="#3987e5"><title>7750: net +9.4B (call-side 28.5B, put-side 19.1B)</title></rect>
+<text x="356" y="205.5" text-anchor="end" fill="#e0e0e0">+9.4</text>
+<text x="44" y="217.5" text-anchor="end" fill="#888">7725</text>
+<rect x="190.0" y="211" width="33.1" height="6" fill="#3987e5"><title>7725: net +4.2B (call-side 13.0B, put-side 8.8B)</title></rect>
+<text x="356" y="217.5" text-anchor="end" fill="#e0e0e0">+4.2</text>
+<text x="44" y="229.5" text-anchor="end" fill="#e0e0e0">7700</text>
+<rect x="190.0" y="223" width="0.2" height="6" fill="#3987e5"><title>7700: net +0.0B (call-side 19.8B, put-side 19.7B)</title></rect>
+<text x="356" y="229.5" text-anchor="end" fill="#e0e0e0">+0.0</text>
+<text x="44" y="241.5" text-anchor="end" fill="#888">7675</text>
+<rect x="188.5" y="235" width="1.5" height="6" fill="#e66767"><title>7675: net -0.2B (call-side 10.2B, put-side 10.4B)</title></rect>
+<text x="356" y="241.5" text-anchor="end" fill="#e0e0e0">-0.2</text>
+<text x="44" y="253.5" text-anchor="end" fill="#888">7650</text>
+<rect x="162.6" y="247" width="27.4" height="6" fill="#e66767"><title>7650: net -3.5B (call-side 7.9B, put-side 11.4B)</title></rect>
+<text x="356" y="253.5" text-anchor="end" fill="#e0e0e0">-3.5</text>
+<text x="44" y="265.5" text-anchor="end" fill="#888">7625</text>
+<rect x="172.1" y="259" width="17.9" height="6" fill="#e66767"><title>7625: net -2.3B (call-side 4.2B, put-side 6.5B)</title></rect>
+<text x="356" y="265.5" text-anchor="end" fill="#e0e0e0">-2.3</text>
+<text x="44" y="277.5" text-anchor="end" fill="#e0e0e0">7600</text>
+<rect x="165.2" y="271" width="24.8" height="6" fill="#e66767"><title>7600: net -3.2B (call-side 11.8B, put-side 15.0B)</title></rect>
+<text x="356" y="277.5" text-anchor="end" fill="#e0e0e0">-3.2</text>
+<text x="44" y="289.5" text-anchor="end" fill="#888">7575</text>
+<rect x="174.1" y="283" width="15.9" height="6" fill="#e66767"><title>7575: net -2.0B (call-side 3.8B, put-side 5.8B)</title></rect>
+<text x="356" y="289.5" text-anchor="end" fill="#e0e0e0">-2.0</text>
+<text x="44" y="301.5" text-anchor="end" fill="#888">7550</text>
+<rect x="163.7" y="295" width="26.3" height="6" fill="#e66767"><title>7550: net -3.4B (call-side 6.5B, put-side 9.8B)</title></rect>
+<text x="356" y="301.5" text-anchor="end" fill="#e0e0e0">-3.4</text>
+<text x="44" y="313.5" text-anchor="end" fill="#888">7525</text>
+<rect x="178.5" y="307" width="11.5" height="6" fill="#e66767"><title>7525: net -1.5B (call-side 2.6B, put-side 4.1B)</title></rect>
+<text x="356" y="313.5" text-anchor="end" fill="#e0e0e0">-1.5</text>
+<text x="44" y="325.5" text-anchor="end" fill="#e0e0e0">7500</text>
+<rect x="151.1" y="319" width="38.9" height="6" fill="#e66767"><title>7500: net -5.0B (call-side 7.8B, put-side 12.8B)</title></rect>
+<text x="356" y="325.5" text-anchor="end" fill="#e0e0e0">-5.0</text>
+<text x="44" y="337.5" text-anchor="end" fill="#888">7475</text>
+<rect x="181.3" y="331" width="8.7" height="6" fill="#e66767"><title>7475: net -1.1B (call-side 1.9B, put-side 3.1B)</title></rect>
+<text x="356" y="337.5" text-anchor="end" fill="#e0e0e0">-1.1</text>
+<text x="44" y="349.5" text-anchor="end" fill="#888">7450</text>
+<rect x="175.8" y="343" width="14.2" height="6" fill="#e66767"><title>7450: net -1.8B (call-side 4.4B, put-side 6.2B)</title></rect>
+<text x="356" y="349.5" text-anchor="end" fill="#e0e0e0">-1.8</text>
+<text x="44" y="361.5" text-anchor="end" fill="#888">7425</text>
+<rect x="182.0" y="355" width="8.0" height="6" fill="#e66767"><title>7425: net -1.0B (call-side 1.3B, put-side 2.4B)</title></rect>
+<text x="356" y="361.5" text-anchor="end" fill="#e0e0e0">-1.0</text>
+<text x="44" y="373.5" text-anchor="end" fill="#e0e0e0">7400</text>
+<rect x="169.2" y="367" width="20.8" height="6" fill="#e66767"><title>7400: net -2.7B (call-side 3.7B, put-side 6.4B)</title></rect>
+<text x="356" y="373.5" text-anchor="end" fill="#e0e0e0">-2.7</text>
+<text x="44" y="385.5" text-anchor="end" fill="#888">7375</text>
+<rect x="182.7" y="379" width="7.3" height="6" fill="#e66767"><title>7375: net -0.9B (call-side 0.5B, put-side 1.4B)</title></rect>
+<text x="356" y="385.5" text-anchor="end" fill="#e0e0e0">-0.9</text>
+<line x1="50" y1="203.1" x2="356" y2="203.1" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3 2"/>
+<text x="356" y="201.1" text-anchor="end" fill="#e0e0e0" font-size="9">SPX 7748</text>
+</svg><div class="label">beyond window: 7000 (-9.7%) gross 26.4B net -1.7B</div><details><summary class="label">strike bins by gross &#9656;</summary><div class="lvl-ladder">
+<div class="lvl-row label"><span>bin</span><span>dist</span><span>call-side</span><span>put-side</span><span>net</span></div>
+<div class="lvl-row"><span>8000</span><span>+3.3%</span><span>39.6</span><span>33.0</span><span>+6.6</span></div>
+<div class="lvl-row"><span>7800</span><span>+0.7%</span><span>24.8</span><span>9.6</span><span>+15.1</span></div>
+<div class="lvl-row"><span>7775</span><span>+0.4%</span><span>17.5</span><span>9.0</span><span>+8.5</span></div>
+<div class="lvl-row"><span>7750</span><span>+0.0%</span><span>28.5</span><span>19.1</span><span>+9.4</span></div>
+<div class="lvl-row"><span>7725</span><span>-0.3%</span><span>13.0</span><span>8.8</span><span>+4.2</span></div>
+<div class="lvl-row"><span>7700</span><span>-0.6%</span><span>19.8</span><span>19.7</span><span>+0.0</span></div>
+<div class="lvl-row"><span>7600</span><span>-1.9%</span><span>11.8</span><span>15.0</span><span>-3.2</span></div>
+<div class="lvl-row"><span>7500</span><span>-3.2%</span><span>7.8</span><span>12.8</span><span>-5.0</span></div>
+</div></details><div class="label">window: 31 x 25-pt strike bins around spot, all expirations, SPX+SPXW; C/P/D = largest call-side / largest put-side / largest |net| strike (existing card anchors)</div>
+<div class="label">* net = call-side minus put-side under the configured sign convention (calls +1 / puts -1); positioning is not measured. Gross = call-side + put-side, no sign assumption.</div>
+<div class="label">as of 18:42 ET &middot; Cboe ~15m delayed source</div></div></div><div class="frame"><div class="block" id="gex-context"><h2>GEX <span class="label">(context only)</span> <span class="label">B: net + gross ladder</span></h2><div class="kv-grid">
+<div class="label">Net</div><div class="value">+80.4B *</div>
+<div class="label">Gross</div><div class="value">595.5B &nbsp; <span class="label">80% within window</span></div>
+</div><svg viewBox="0 0 358 402" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="SPX gamma notional by 25-point strike bin" font-family="monospace" font-size="10.5">
+<text x="44" y="10" text-anchor="end" fill="#888">STRIKE</text>
+<text x="184" y="10" text-anchor="end" fill="#e66767">put-side &lt;</text><text x="196" y="10" fill="#3987e5">&gt; call-side</text>
+<text x="356" y="10" text-anchor="end" fill="#888">NET $B</text>
+<line x1="190" y1="14" x2="190" y2="390" stroke="#333" stroke-width="1"/>
+<text x="44" y="25.5" text-anchor="end" fill="#888">8125</text>
+<rect x="189.8" y="18" width="8.8" height="8" fill="#4a4a4a"/>
+<rect x="190.0" y="19" width="8.4" height="6" fill="#3987e5"><title>8125: net +2.8B (call-side 2.9B, put-side 0.1B)</title></rect>
+<text x="356" y="25.5" text-anchor="end" fill="#e0e0e0">+2.8</text>
+<text x="44" y="37.5" text-anchor="end" fill="#e0e0e0">8100</text>
+<rect x="189.0" y="30" width="21.6" height="8" fill="#4a4a4a"/>
+<rect x="190.0" y="31" width="19.6" height="6" fill="#3987e5"><title>8100: net +6.6B (call-side 6.9B, put-side 0.3B)</title></rect>
+<text x="356" y="37.5" text-anchor="end" fill="#e0e0e0">+6.6</text>
+<text x="44" y="49.5" text-anchor="end" fill="#888">8075</text>
+<rect x="189.7" y="42" width="7.7" height="8" fill="#4a4a4a"/>
+<rect x="190.0" y="43" width="7.1" height="6" fill="#3987e5"><title>8075: net +2.4B (call-side 2.5B, put-side 0.1B)</title></rect>
+<text x="356" y="49.5" text-anchor="end" fill="#e0e0e0">+2.4</text>
+<text x="44" y="61.5" text-anchor="end" fill="#888">8050</text>
+<rect x="189.4" y="54" width="19.7" height="8" fill="#4a4a4a"/>
+<rect x="190.0" y="55" width="18.5" height="6" fill="#3987e5"><title>8050: net +6.2B (call-side 6.4B, put-side 0.2B)</title></rect>
+<text x="356" y="61.5" text-anchor="end" fill="#e0e0e0">+6.2</text>
+<text x="44" y="73.5" text-anchor="end" fill="#888">8025</text>
+<rect x="189.7" y="66" width="6.6" height="8" fill="#4a4a4a"/>
+<rect x="190.0" y="67" width="6.0" height="6" fill="#3987e5"><title>8025: net +2.0B (call-side 2.1B, put-side 0.1B)</title></rect>
+<text x="356" y="73.5" text-anchor="end" fill="#e0e0e0">+2.0</text>
+<text x="44" y="85.5" text-anchor="end" fill="#e0e0e0">8000</text>
+<rect x="91.7" y="78" width="216.3" height="8" fill="#4a4a4a"/>
+<rect x="190.0" y="79" width="19.7" height="6" fill="#3987e5"><title>8000: net +6.6B (call-side 39.6B, put-side 33.0B)</title></rect>
+<text x="356" y="85.5" text-anchor="end" fill="#e0e0e0">+6.6</text>
+<text x="48" y="85.5" fill="#888" font-size="8.5">CP</text>
+<text x="44" y="97.5" text-anchor="end" fill="#888">7975</text>
+<rect x="189.5" y="90" width="6.8" height="8" fill="#4a4a4a"/>
+<rect x="190.0" y="91" width="5.8" height="6" fill="#3987e5"><title>7975: net +1.9B (call-side 2.1B, put-side 0.2B)</title></rect>
+<text x="356" y="97.5" text-anchor="end" fill="#e0e0e0">+1.9</text>
+<text x="44" y="109.5" text-anchor="end" fill="#888">7950</text>
+<rect x="189.0" y="102" width="15.0" height="8" fill="#4a4a4a"/>
+<rect x="190.0" y="103" width="13.1" height="6" fill="#3987e5"><title>7950: net +4.4B (call-side 4.7B, put-side 0.3B)</title></rect>
+<text x="356" y="109.5" text-anchor="end" fill="#e0e0e0">+4.4</text>
+<text x="44" y="121.5" text-anchor="end" fill="#888">7925</text>
+<rect x="189.2" y="114" width="9.0" height="8" fill="#4a4a4a"/>
+<rect x="190.0" y="115" width="7.4" height="6" fill="#3987e5"><title>7925: net +2.5B (call-side 2.8B, put-side 0.3B)</title></rect>
+<text x="356" y="121.5" text-anchor="end" fill="#e0e0e0">+2.5</text>
+<text x="44" y="133.5" text-anchor="end" fill="#e0e0e0">7900</text>
+<rect x="186.1" y="126" width="36.3" height="8" fill="#4a4a4a"/>
+<rect x="190.0" y="127" width="28.5" height="6" fill="#3987e5"><title>7900: net +9.6B (call-side 10.9B, put-side 1.3B)</title></rect>
+<text x="356" y="133.5" text-anchor="end" fill="#e0e0e0">+9.6</text>
+<text x="44" y="145.5" text-anchor="end" fill="#888">7875</text>
+<rect x="188.7" y="138" width="14.7" height="8" fill="#4a4a4a"/>
+<rect x="190.0" y="139" width="12.2" height="6" fill="#3987e5"><title>7875: net +4.1B (call-side 4.5B, put-side 0.4B)</title></rect>
+<text x="356" y="145.5" text-anchor="end" fill="#e0e0e0">+4.1</text>
+<text x="44" y="157.5" text-anchor="end" fill="#888">7850</text>
+<rect x="186.5" y="150" width="28.4" height="8" fill="#4a4a4a"/>
+<rect x="190.0" y="151" width="21.5" height="6" fill="#3987e5"><title>7850: net +7.2B (call-side 8.4B, put-side 1.2B)</title></rect>
+<text x="356" y="157.5" text-anchor="end" fill="#e0e0e0">+7.2</text>
+<text x="44" y="169.5" text-anchor="end" fill="#888">7825</text>
+<rect x="182.0" y="162" width="47.7" height="8" fill="#4a4a4a"/>
+<rect x="190.0" y="163" width="31.6" height="6" fill="#3987e5"><title>7825: net +10.6B (call-side 13.3B, put-side 2.7B)</title></rect>
+<text x="356" y="169.5" text-anchor="end" fill="#e0e0e0">+10.6</text>
+<text x="44" y="181.5" text-anchor="end" fill="#e0e0e0">7800</text>
+<rect x="161.3" y="174" width="102.6" height="8" fill="#4a4a4a"/>
+<rect x="190.0" y="175" width="45.1" height="6" fill="#3987e5"><title>7800: net +15.1B (call-side 24.8B, put-side 9.6B)</title></rect>
+<text x="356" y="181.5" text-anchor="end" fill="#e0e0e0">+15.1</text>
+<text x="48" y="181.5" fill="#888" font-size="8.5">D</text>
+<text x="44" y="193.5" text-anchor="end" fill="#888">7775</text>
+<rect x="163.1" y="186" width="79.1" height="8" fill="#4a4a4a"/>
+<rect x="190.0" y="187" width="25.4" height="6" fill="#3987e5"><title>7775: net +8.5B (call-side 17.5B, put-side 9.0B)</title></rect>
+<text x="356" y="193.5" text-anchor="end" fill="#e0e0e0">+8.5</text>
+<text x="44" y="205.5" text-anchor="end" fill="#888">7750</text>
+<rect x="133.2" y="198" width="141.7" height="8" fill="#4a4a4a"/>
+<rect x="190.0" y="199" width="28.0" height="6" fill="#3987e5"><title>7750: net +9.4B (call-side 28.5B, put-side 19.1B)</title></rect>
+<text x="356" y="205.5" text-anchor="end" fill="#e0e0e0">+9.4</text>
+<text x="44" y="217.5" text-anchor="end" fill="#888">7725</text>
+<rect x="163.8" y="210" width="65.1" height="8" fill="#4a4a4a"/>
+<rect x="190.0" y="211" width="12.7" height="6" fill="#3987e5"><title>7725: net +4.2B (call-side 13.0B, put-side 8.8B)</title></rect>
+<text x="356" y="217.5" text-anchor="end" fill="#e0e0e0">+4.2</text>
+<text x="44" y="229.5" text-anchor="end" fill="#e0e0e0">7700</text>
+<rect x="131.1" y="222" width="117.8" height="8" fill="#4a4a4a"/>
+<rect x="190.0" y="223" width="0.1" height="6" fill="#3987e5"><title>7700: net +0.0B (call-side 19.8B, put-side 19.7B)</title></rect>
+<text x="356" y="229.5" text-anchor="end" fill="#e0e0e0">+0.0</text>
+<text x="44" y="241.5" text-anchor="end" fill="#888">7675</text>
+<rect x="159.1" y="234" width="61.1" height="8" fill="#4a4a4a"/>
+<rect x="189.4" y="235" width="0.6" height="6" fill="#e66767"><title>7675: net -0.2B (call-side 10.2B, put-side 10.4B)</title></rect>
+<text x="356" y="241.5" text-anchor="end" fill="#e0e0e0">-0.2</text>
+<text x="44" y="253.5" text-anchor="end" fill="#888">7650</text>
+<rect x="156.1" y="246" width="57.4" height="8" fill="#4a4a4a"/>
+<rect x="179.5" y="247" width="10.5" height="6" fill="#e66767"><title>7650: net -3.5B (call-side 7.9B, put-side 11.4B)</title></rect>
+<text x="356" y="253.5" text-anchor="end" fill="#e0e0e0">-3.5</text>
+<text x="44" y="265.5" text-anchor="end" fill="#888">7625</text>
+<rect x="170.5" y="258" width="32.1" height="8" fill="#4a4a4a"/>
+<rect x="183.2" y="259" width="6.8" height="6" fill="#e66767"><title>7625: net -2.3B (call-side 4.2B, put-side 6.5B)</title></rect>
+<text x="356" y="265.5" text-anchor="end" fill="#e0e0e0">-2.3</text>
+<text x="44" y="277.5" text-anchor="end" fill="#e0e0e0">7600</text>
+<rect x="145.2" y="270" width="80.0" height="8" fill="#4a4a4a"/>
+<rect x="180.5" y="271" width="9.5" height="6" fill="#e66767"><title>7600: net -3.2B (call-side 11.8B, put-side 15.0B)</title></rect>
+<text x="356" y="277.5" text-anchor="end" fill="#e0e0e0">-3.2</text>
+<text x="44" y="289.5" text-anchor="end" fill="#888">7575</text>
+<rect x="172.6" y="282" width="28.7" height="8" fill="#4a4a4a"/>
+<rect x="183.9" y="283" width="6.1" height="6" fill="#e66767"><title>7575: net -2.0B (call-side 3.8B, put-side 5.8B)</title></rect>
+<text x="356" y="289.5" text-anchor="end" fill="#e0e0e0">-2.0</text>
+<text x="44" y="301.5" text-anchor="end" fill="#888">7550</text>
+<rect x="160.7" y="294" width="48.5" height="8" fill="#4a4a4a"/>
+<rect x="179.9" y="295" width="10.1" height="6" fill="#e66767"><title>7550: net -3.4B (call-side 6.5B, put-side 9.8B)</title></rect>
+<text x="356" y="301.5" text-anchor="end" fill="#e0e0e0">-3.4</text>
+<text x="44" y="313.5" text-anchor="end" fill="#888">7525</text>
+<rect x="177.9" y="306" width="19.8" height="8" fill="#4a4a4a"/>
+<rect x="185.6" y="307" width="4.4" height="6" fill="#e66767"><title>7525: net -1.5B (call-side 2.6B, put-side 4.1B)</title></rect>
+<text x="356" y="313.5" text-anchor="end" fill="#e0e0e0">-1.5</text>
+<text x="44" y="325.5" text-anchor="end" fill="#e0e0e0">7500</text>
+<rect x="151.9" y="318" width="61.3" height="8" fill="#4a4a4a"/>
+<rect x="175.1" y="319" width="14.9" height="6" fill="#e66767"><title>7500: net -5.0B (call-side 7.8B, put-side 12.8B)</title></rect>
+<text x="356" y="325.5" text-anchor="end" fill="#e0e0e0">-5.0</text>
+<text x="44" y="337.5" text-anchor="end" fill="#888">7475</text>
+<rect x="180.9" y="330" width="14.9" height="8" fill="#4a4a4a"/>
+<rect x="186.7" y="331" width="3.3" height="6" fill="#e66767"><title>7475: net -1.1B (call-side 1.9B, put-side 3.1B)</title></rect>
+<text x="356" y="337.5" text-anchor="end" fill="#e0e0e0">-1.1</text>
+<text x="44" y="349.5" text-anchor="end" fill="#888">7450</text>
+<rect x="171.6" y="342" width="31.4" height="8" fill="#4a4a4a"/>
+<rect x="184.6" y="343" width="5.4" height="6" fill="#e66767"><title>7450: net -1.8B (call-side 4.4B, put-side 6.2B)</title></rect>
+<text x="356" y="349.5" text-anchor="end" fill="#e0e0e0">-1.8</text>
+<text x="44" y="361.5" text-anchor="end" fill="#888">7425</text>
+<rect x="183.0" y="354" width="11.0" height="8" fill="#4a4a4a"/>
+<rect x="186.9" y="355" width="3.1" height="6" fill="#e66767"><title>7425: net -1.0B (call-side 1.3B, put-side 2.4B)</title></rect>
+<text x="356" y="361.5" text-anchor="end" fill="#e0e0e0">-1.0</text>
+<text x="44" y="373.5" text-anchor="end" fill="#e0e0e0">7400</text>
+<rect x="170.9" y="366" width="30.2" height="8" fill="#4a4a4a"/>
+<rect x="182.0" y="367" width="8.0" height="6" fill="#e66767"><title>7400: net -2.7B (call-side 3.7B, put-side 6.4B)</title></rect>
+<text x="356" y="373.5" text-anchor="end" fill="#e0e0e0">-2.7</text>
+<text x="44" y="385.5" text-anchor="end" fill="#888">7375</text>
+<rect x="185.7" y="378" width="5.8" height="8" fill="#4a4a4a"/>
+<rect x="187.2" y="379" width="2.8" height="6" fill="#e66767"><title>7375: net -0.9B (call-side 0.5B, put-side 1.4B)</title></rect>
+<text x="356" y="385.5" text-anchor="end" fill="#e0e0e0">-0.9</text>
+<line x1="50" y1="203.1" x2="356" y2="203.1" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3 2"/>
+<text x="356" y="201.1" text-anchor="end" fill="#e0e0e0" font-size="9">SPX 7748</text>
+</svg><div class="label">beyond window: 7000 (-9.7%) gross 26.4B net -1.7B</div><details><summary class="label">strike bins by gross &#9656;</summary><div class="lvl-ladder">
+<div class="lvl-row label"><span>bin</span><span>dist</span><span>call-side</span><span>put-side</span><span>net</span></div>
+<div class="lvl-row"><span>8000</span><span>+3.3%</span><span>39.6</span><span>33.0</span><span>+6.6</span></div>
+<div class="lvl-row"><span>7800</span><span>+0.7%</span><span>24.8</span><span>9.6</span><span>+15.1</span></div>
+<div class="lvl-row"><span>7775</span><span>+0.4%</span><span>17.5</span><span>9.0</span><span>+8.5</span></div>
+<div class="lvl-row"><span>7750</span><span>+0.0%</span><span>28.5</span><span>19.1</span><span>+9.4</span></div>
+<div class="lvl-row"><span>7725</span><span>-0.3%</span><span>13.0</span><span>8.8</span><span>+4.2</span></div>
+<div class="lvl-row"><span>7700</span><span>-0.6%</span><span>19.8</span><span>19.7</span><span>+0.0</span></div>
+<div class="lvl-row"><span>7600</span><span>-1.9%</span><span>11.8</span><span>15.0</span><span>-3.2</span></div>
+<div class="lvl-row"><span>7500</span><span>-3.2%</span><span>7.8</span><span>12.8</span><span>-5.0</span></div>
+</div></details><div class="label">window: 31 x 25-pt strike bins around spot, all expirations, SPX+SPXW; C/P/D = largest call-side / largest put-side / largest |net| strike (existing card anchors)</div>
+<div class="label">* net = call-side minus put-side under the configured sign convention (calls +1 / puts -1); positioning is not measured. Gross = call-side + put-side, no sign assumption.</div>
+<div class="label">as of 18:42 ET &middot; Cboe ~15m delayed source</div></div></div><div class="frame"><div class="block" id="gex-context"><h2>GEX <span class="label">(context only)</span> <span class="label">C: columns + ladder</span></h2><div class="kv-grid">
+<div class="label">Net</div><div class="value">+80.4B *</div>
+<div class="label">Gross</div><div class="value">595.5B &nbsp; <span class="label">80% within window</span></div>
+</div><svg viewBox="0 0 358 170" width="100%" preserveAspectRatio="xMidYMid meet" role="img" font-family="monospace" font-size="9.5">
+<line x1="8" y1="77.0" x2="352" y2="77.0" stroke="#333"/>
+<rect x="9.0" y="76.2" width="9.1" height="3.1" fill="#4a4a4a"/>
+<rect x="10.0" y="77.0" width="7.1" height="1.5" fill="#e66767"><title>7375: net -0.9B</title></rect>
+<rect x="20.1" y="71.1" width="9.1" height="16.1" fill="#4a4a4a"/>
+<rect x="21.1" y="77.0" width="7.1" height="4.2" fill="#e66767"><title>7400: net -2.7B</title></rect>
+<text x="24.6" y="152" text-anchor="middle" fill="#888">7400</text>
+<rect x="31.2" y="74.9" width="9.1" height="5.8" fill="#4a4a4a"/>
+<rect x="32.2" y="77.0" width="7.1" height="1.6" fill="#e66767"><title>7425: net -1.0B</title></rect>
+<rect x="42.3" y="70.1" width="9.1" height="16.8" fill="#4a4a4a"/>
+<rect x="43.3" y="77.0" width="7.1" height="2.9" fill="#e66767"><title>7450: net -1.8B</title></rect>
+<rect x="53.4" y="73.9" width="9.1" height="8.0" fill="#4a4a4a"/>
+<rect x="54.4" y="77.0" width="7.1" height="1.8" fill="#e66767"><title>7475: net -1.1B</title></rect>
+<rect x="64.5" y="64.6" width="9.1" height="32.7" fill="#4a4a4a"/>
+<rect x="65.5" y="77.0" width="7.1" height="7.9" fill="#e66767"><title>7500: net -5.0B</title></rect>
+<text x="69.0" y="152" text-anchor="middle" fill="#888">7500</text>
+<rect x="75.6" y="72.9" width="9.1" height="10.5" fill="#4a4a4a"/>
+<rect x="76.6" y="77.0" width="7.1" height="2.4" fill="#e66767"><title>7525: net -1.5B</title></rect>
+<rect x="86.7" y="66.7" width="9.1" height="25.9" fill="#4a4a4a"/>
+<rect x="87.7" y="77.0" width="7.1" height="5.4" fill="#e66767"><title>7550: net -3.4B</title></rect>
+<rect x="97.8" y="70.9" width="9.1" height="15.3" fill="#4a4a4a"/>
+<rect x="98.8" y="77.0" width="7.1" height="3.2" fill="#e66767"><title>7575: net -2.0B</title></rect>
+<rect x="108.9" y="58.2" width="9.1" height="42.7" fill="#4a4a4a"/>
+<rect x="109.9" y="77.0" width="7.1" height="5.1" fill="#e66767"><title>7600: net -3.2B</title></rect>
+<text x="113.4" y="152" text-anchor="middle" fill="#888">7600</text>
+<rect x="120.0" y="70.2" width="9.1" height="17.2" fill="#4a4a4a"/>
+<rect x="121.0" y="77.0" width="7.1" height="3.7" fill="#e66767"><title>7625: net -2.3B</title></rect>
+<rect x="131.1" y="64.5" width="9.1" height="30.6" fill="#4a4a4a"/>
+<rect x="132.1" y="77.0" width="7.1" height="5.6" fill="#e66767"><title>7650: net -3.5B</title></rect>
+<rect x="142.2" y="60.8" width="9.1" height="32.6" fill="#4a4a4a"/>
+<rect x="143.2" y="77.0" width="7.1" height="0.3" fill="#e66767"><title>7675: net -0.2B</title></rect>
+<rect x="153.3" y="45.5" width="9.1" height="62.9" fill="#4a4a4a"/>
+<rect x="154.3" y="77.0" width="7.1" height="0.0" fill="#3987e5"><title>7700: net +0.0B</title></rect>
+<text x="157.8" y="152" text-anchor="middle" fill="#888">7700</text>
+<rect x="164.4" y="56.2" width="9.1" height="34.8" fill="#4a4a4a"/>
+<rect x="165.4" y="70.2" width="7.1" height="6.8" fill="#3987e5"><title>7725: net +4.2B</title></rect>
+<rect x="175.5" y="31.7" width="9.1" height="75.6" fill="#4a4a4a"/>
+<rect x="176.5" y="62.0" width="7.1" height="15.0" fill="#3987e5"><title>7750: net +9.4B</title></rect>
+<rect x="186.5" y="49.1" width="9.1" height="42.2" fill="#4a4a4a"/>
+<rect x="187.5" y="63.4" width="7.1" height="13.6" fill="#3987e5"><title>7775: net +8.5B</title></rect>
+<rect x="197.6" y="37.6" width="9.1" height="54.8" fill="#4a4a4a"/>
+<rect x="198.6" y="52.9" width="7.1" height="24.1" fill="#3987e5"><title>7800: net +15.1B</title></rect>
+<text x="202.2" y="152" text-anchor="middle" fill="#888">7800</text>
+<text x="202.2" y="11" text-anchor="middle" fill="#888" font-size="8">D</text>
+<rect x="208.7" y="55.8" width="9.1" height="25.5" fill="#4a4a4a"/>
+<rect x="209.7" y="60.1" width="7.1" height="16.9" fill="#3987e5"><title>7825: net +10.6B</title></rect>
+<rect x="219.8" y="63.7" width="9.1" height="15.2" fill="#4a4a4a"/>
+<rect x="220.8" y="65.5" width="7.1" height="11.5" fill="#3987e5"><title>7850: net +7.2B</title></rect>
+<rect x="230.9" y="69.8" width="9.1" height="7.9" fill="#4a4a4a"/>
+<rect x="231.9" y="70.5" width="7.1" height="6.5" fill="#3987e5"><title>7875: net +4.1B</title></rect>
+<rect x="242.0" y="59.7" width="9.1" height="19.4" fill="#4a4a4a"/>
+<rect x="243.0" y="61.8" width="7.1" height="15.2" fill="#3987e5"><title>7900: net +9.6B</title></rect>
+<text x="246.6" y="152" text-anchor="middle" fill="#888">7900</text>
+<rect x="253.1" y="72.6" width="9.1" height="4.8" fill="#4a4a4a"/>
+<rect x="254.1" y="73.0" width="7.1" height="4.0" fill="#3987e5"><title>7925: net +2.5B</title></rect>
+<rect x="264.2" y="69.5" width="9.1" height="8.0" fill="#4a4a4a"/>
+<rect x="265.2" y="70.0" width="7.1" height="7.0" fill="#3987e5"><title>7950: net +4.4B</title></rect>
+<rect x="275.3" y="73.6" width="9.1" height="3.7" fill="#4a4a4a"/>
+<rect x="276.3" y="73.9" width="7.1" height="3.1" fill="#3987e5"><title>7975: net +1.9B</title></rect>
+<rect x="286.4" y="14.0" width="9.1" height="115.5" fill="#4a4a4a"/>
+<rect x="287.4" y="66.5" width="7.1" height="10.5" fill="#3987e5"><title>8000: net +6.6B</title></rect>
+<text x="291.0" y="152" text-anchor="middle" fill="#888">8000</text>
+<text x="291.0" y="11" text-anchor="middle" fill="#888" font-size="8">CP</text>
+<rect x="297.5" y="73.6" width="9.1" height="3.5" fill="#4a4a4a"/>
+<rect x="298.5" y="73.8" width="7.1" height="3.2" fill="#3987e5"><title>8025: net +2.0B</title></rect>
+<rect x="308.6" y="66.8" width="9.1" height="10.5" fill="#4a4a4a"/>
+<rect x="309.6" y="67.1" width="7.1" height="9.9" fill="#3987e5"><title>8050: net +6.2B</title></rect>
+<rect x="319.7" y="73.0" width="9.1" height="4.1" fill="#4a4a4a"/>
+<rect x="320.7" y="73.2" width="7.1" height="3.8" fill="#3987e5"><title>8075: net +2.4B</title></rect>
+<rect x="330.8" y="66.0" width="9.1" height="11.5" fill="#4a4a4a"/>
+<rect x="331.8" y="66.6" width="7.1" height="10.4" fill="#3987e5"><title>8100: net +6.6B</title></rect>
+<text x="335.4" y="152" text-anchor="middle" fill="#888">8100</text>
+<rect x="341.9" y="72.4" width="9.1" height="4.7" fill="#4a4a4a"/>
+<rect x="342.9" y="72.5" width="7.1" height="4.5" fill="#3987e5"><title>8125: net +2.8B</title></rect>
+<line x1="179.0" y1="14" x2="179.0" y2="140" stroke="#e0e0e0" stroke-dasharray="3 2"/>
+<text x="182.0" y="164" fill="#e0e0e0" font-size="9">SPX 7748</text>
+<text x="8" y="22" fill="#3987e5">call-side up</text><text x="8" y="138" fill="#e66767">put-side down</text>
+</svg><div class="label">beyond window: 7000 (-9.7%) gross 26.4B net -1.7B</div><details><summary class="label">strike bins by gross &#9656;</summary><div class="lvl-ladder">
+<div class="lvl-row label"><span>bin</span><span>dist</span><span>call-side</span><span>put-side</span><span>net</span></div>
+<div class="lvl-row"><span>8000</span><span>+3.3%</span><span>39.6</span><span>33.0</span><span>+6.6</span></div>
+<div class="lvl-row"><span>7800</span><span>+0.7%</span><span>24.8</span><span>9.6</span><span>+15.1</span></div>
+<div class="lvl-row"><span>7775</span><span>+0.4%</span><span>17.5</span><span>9.0</span><span>+8.5</span></div>
+<div class="lvl-row"><span>7750</span><span>+0.0%</span><span>28.5</span><span>19.1</span><span>+9.4</span></div>
+<div class="lvl-row"><span>7725</span><span>-0.3%</span><span>13.0</span><span>8.8</span><span>+4.2</span></div>
+<div class="lvl-row"><span>7700</span><span>-0.6%</span><span>19.8</span><span>19.7</span><span>+0.0</span></div>
+<div class="lvl-row"><span>7600</span><span>-1.9%</span><span>11.8</span><span>15.0</span><span>-3.2</span></div>
+<div class="lvl-row"><span>7500</span><span>-3.2%</span><span>7.8</span><span>12.8</span><span>-5.0</span></div>
+</div></details><div class="label">window: 31 x 25-pt strike bins around spot, all expirations, SPX+SPXW; C/P/D = largest call-side / largest put-side / largest |net| strike (existing card anchors)</div>
+<div class="label">* net = call-side minus put-side under the configured sign convention (calls +1 / puts -1); positioning is not measured. Gross = call-side + put-side, no sign assumption.</div>
+<div class="label">as of 18:42 ET &middot; Cboe ~15m delayed source</div></div></div></body>
