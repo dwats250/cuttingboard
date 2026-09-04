@@ -459,21 +459,168 @@ def _accessible_table(p: GexProfile) -> list[str]:
     return lines
 
 
+# --- GEX-4 structural strike ladder (inline SVG). Presentation attributes only,
+# no shared-CSS dependency, emitted solely inside the profile block: so the
+# absent-card document stays byte-identical to the pre-GEX baseline (R1). Bars are
+# grayscale magnitude extents (no directional/positioning encoding); the layout is
+# a butterfly around a center spine with higher strikes drawn above lower ones. ---
+_L_VIEW_W = 280.0             # SVG viewBox width (units)
+_L_STRIKE_X = 33.0           # right edge of the left strike-label column
+_L_MARK_X = 37.0             # left edge of the C/P/D marker column
+_L_BAR_L = 48.0              # left bound of the call-bar zone (= spine - bar max)
+_L_SPINE = 160.0             # center spine x: call grows left, put grows right
+_L_BAR_MAX = _SCALE_UNITS    # 112.0 SVG units = the never-clipping max bar extent
+_L_NET_MAX = 96.0            # max |MODEL NET*| tick offset from the spine (< bar max)
+_L_ROW_H = 14.0              # per-bin row height
+_L_TOP = 20.0               # header band height above the first row
+_L_BOT = 10.0               # bottom padding below the last row
+_L_BAR_H = 9.0              # bar thickness
+
+
+def _clamp(x: float, lo: float, hi: float) -> float:
+    return lo if x < lo else hi if x > hi else x
+
+
+def _ladder_rows(p: GexProfile) -> list[dict]:
+    """Pure per-bin geometry for the SVG ladder. The window is ascending by center,
+    so index 0 is the lowest strike; it is drawn at the LARGEST y (bottom) and the
+    highest strike at the smallest y (top). Bar extents are the never-clipping
+    magnitude / scale_denominator ratio times _L_BAR_MAX, so a width can never
+    exceed _L_BAR_MAX; a zero denominator yields zero widths (renders safely)."""
+    denom = p.scale_denominator
+    n = len(p.window_bins)
+    rows: list[dict] = []
+    for i, b in enumerate(p.window_bins):
+        y_mid = _L_TOP + (n - 1 - i) * _L_ROW_H + _L_ROW_H / 2.0
+        call_len = (b.call / denom * _L_BAR_MAX) if denom > 0 else 0.0
+        put_len = (b.put / denom * _L_BAR_MAX) if denom > 0 else 0.0
+        net_off = (b.model_net / denom * _L_NET_MAX) if denom > 0 else 0.0
+        rows.append({
+            "center": b.center, "y_mid": y_mid,
+            "call": b.call, "put": b.put, "model_net": b.model_net,
+            "call_len": call_len, "put_len": put_len,
+            "call_x": _L_SPINE - call_len, "put_x": _L_SPINE,
+            # MODEL NET* > 0 is call-heavy -> tick left of the spine (over the call bar)
+            "net_x": _clamp(_L_SPINE - net_off, _L_BAR_L, _L_SPINE + _L_BAR_MAX),
+            "markers": b.markers,
+        })
+    return rows
+
+
+def _spot_y(p: GexProfile) -> float:
+    """The y of the SPX cash spot rail, interpolated by the ACTUAL spot within the
+    window's bin-center range (never snapped to a bin center)."""
+    n = len(p.window_bins)
+    lo = p.window_bins[0].center
+    f = (p.spot - lo) / (_BIN_MILLS / 1000.0)       # fractional bin index from bottom
+    f = _clamp(f, 0.0, float(n - 1))
+    return _L_TOP + (n - 1 - f) * _L_ROW_H + _L_ROW_H / 2.0
+
+
+def _svg_ladder(p: GexProfile) -> list[str]:
+    """Inline SVG structural ladder: one row per 25-pt window bin, grayscale call
+    (left) / put (right) magnitude bars off a center spine, a MODEL NET* tick, the
+    C/P/D anchor markers in their containing bin, and the SPX cash spot rail."""
+    rows = _ladder_rows(p)
+    n = len(rows)
+    height = _L_TOP + n * _L_ROW_H + _L_BOT
+    spot_y = _spot_y(p)
+
+    def f(x: float) -> str:
+        return f"{x:.2f}"
+
+    mono = 'font-family="ui-monospace,Menlo,Consolas,monospace"'
+    out = [
+        f'  <svg class="gex-ladder" viewBox="0 0 {f(_L_VIEW_W)} {f(height)}" '
+        f'width="100%" style="width:100%;max-width:340px;height:auto;display:block;'
+        f'margin:0.45rem 0" preserveAspectRatio="xMidYMid meet" role="img" '
+        f'aria-label="Modeled GEX strike ladder: {n} twenty-five-point bins around '
+        f'SPX cash spot {_fmt_strike(p.spot)}. Grayscale call and put modeled '
+        f'magnitude per bin with a MODEL NET tick; observational structure only. '
+        f'Full per-bin values are in the table below.">',
+        # column headers
+        f'    <text x="0" y="12" fill="#6b7280" font-size="7" {mono}>STRIKE</text>',
+        f'    <text x="{f((_L_BAR_L + _L_SPINE) / 2)}" y="12" fill="#6b7280" '
+        f'font-size="7" text-anchor="middle" {mono}>CALL</text>',
+        f'    <text x="{f(_L_SPINE)}" y="12" fill="#6b7280" font-size="6.5" '
+        f'text-anchor="middle" {mono}>NET*</text>',
+        f'    <text x="{f((2 * _L_SPINE + _L_BAR_MAX) / 2)}" y="12" fill="#6b7280" '
+        f'font-size="7" text-anchor="middle" {mono}>PUT</text>',
+        # thin rule under the header row
+        f'    <line x1="0" y1="15.5" x2="{f(_L_VIEW_W)}" y2="15.5" '
+        f'stroke="#252b34" stroke-width="0.6"/>',
+        # center spine (the MODEL NET* zero reference; separates call from put)
+        f'    <line x1="{f(_L_SPINE)}" y1="{f(_L_TOP - 3)}" x2="{f(_L_SPINE)}" '
+        f'y2="{f(height - _L_BOT + 3)}" stroke="#333b47" stroke-width="1"/>',
+    ]
+    for r in rows:
+        y = r["y_mid"]
+        bar_y = y - _L_BAR_H / 2.0
+        out.append(
+            f'    <text x="{f(_L_STRIKE_X)}" y="{f(y + 2.6)}" fill="#93a0b0" '
+            f'font-size="8" text-anchor="end" {mono}>{_fmt_strike(r["center"])}</text>'
+        )
+        if r["markers"]:
+            out.append(
+                f'    <text x="{f(_L_MARK_X)}" y="{f(y + 2.6)}" fill="#e5e7eb" '
+                f'font-size="7.5" {mono}>{"".join(r["markers"])}</text>'
+            )
+        if r["call_len"] > 0.0:
+            out.append(
+                f'    <rect x="{f(r["call_x"])}" y="{f(bar_y)}" '
+                f'width="{f(r["call_len"])}" height="{f(_L_BAR_H)}" rx="1.5" '
+                f'fill="#6d7784"><title>{_fmt_strike(r["center"])} CALL MODELED '
+                f'MAGNITUDE {_fmt_b(r["call"])}</title></rect>'
+            )
+        if r["put_len"] > 0.0:
+            out.append(
+                f'    <rect x="{f(r["put_x"])}" y="{f(bar_y)}" '
+                f'width="{f(r["put_len"])}" height="{f(_L_BAR_H)}" rx="1.5" '
+                f'fill="#525b68"><title>{_fmt_strike(r["center"])} PUT MODELED '
+                f'MAGNITUDE {_fmt_b(r["put"])}</title></rect>'
+            )
+        if r["call"] + r["put"] > 0.0:                  # MODEL NET* tick (secondary)
+            out.append(
+                f'    <line x1="{f(r["net_x"])}" y1="{f(y - 3.4)}" '
+                f'x2="{f(r["net_x"])}" y2="{f(y + 3.4)}" stroke="#aeb8c6" '
+                f'stroke-width="1.3"><title>MODEL NET* {_fmt_net_b(r["model_net"])}'
+                f'</title></line>'
+            )
+    # SPX cash spot rail: dashed, brighter than the bars, spanning the bar zone.
+    out.append(
+        f'    <line x1="{f(_L_BAR_L - 4)}" y1="{f(spot_y)}" '
+        f'x2="{f(_L_SPINE + _L_BAR_MAX)}" y2="{f(spot_y)}" stroke="#e5e7eb" '
+        f'stroke-width="1.1" stroke-dasharray="3 2"/>'
+    )
+    out.append(
+        f'    <text x="{f(_L_VIEW_W)}" y="{f(spot_y - 2.5)}" fill="#e5e7eb" '
+        f'font-size="7" text-anchor="end" {mono}>SPOT {_fmt_strike(p.spot)}</text>'
+    )
+    out.append("  </svg>")
+    return out
+
+
 def _profile_block(p: GexProfile) -> list[str]:
-    """The GEX-4 text + accessible profile seam (no SVG ladder geometry yet):
-    coverage line (both directions, summing to 100), spot label, outside-bins
-    line, the full accessible table, and the anchor/bin/expiry disclosures."""
+    """The GEX-4 structural profile seam: the SVG strike ladder (primary visual),
+    then the coverage line (both directions, summing to 100), spot label, outside-
+    bins line, the full accessible table, and the anchor/bin/expiry disclosures."""
     in_i, out_i = round(p.in_window_pct), round(100.0 - p.in_window_pct)
     if in_i + out_i == 100:
         cov_in, cov_out = str(in_i), str(out_i)
     else:                                               # rounding broke the sum -> one decimal
         cov_in, cov_out = f"{p.in_window_pct:.1f}", f"{100.0 - p.in_window_pct:.1f}"
-    lines = [
+    lines = _svg_ladder(p)
+    lines.append(
+        '  <div class="label">LADDER: CALL (LEFT) &middot; PUT (RIGHT) MODELED '
+        'MAGNITUDE PER 25-PT BIN &middot; DASHED RAIL = SPX CASH SPOT &middot; '
+        'NET* TICK = CALL - PUT.</div>'
+    )
+    lines.extend([
         f'  <div class="label">WINDOW SHOWS {cov_in}% OF CHAIN CALL+PUT MODELED '
         f'MAGNITUDE &middot; {cov_out}% OUTSIDE</div>',
         f'  <div class="label">SPX CASH SPOT {_fmt_strike(p.spot)}</div>',
         f'  <div class="label">{_outside_line(p)}</div>',
-    ]
+    ])
     lines.extend(_accessible_table(p))
     lines.extend([
         '  <div class="label">C / P / D = RAW-STRIKE ANCHORS (LARGEST CALL-CONTRACT '
@@ -490,9 +637,12 @@ def _profile_block(p: GexProfile) -> list[str]:
 
 def render_gex_card_html(card: GexCard | None) -> str:
     """Format the model to a compact HTML fragment; empty string when suppressed.
-    Reuses existing dashboard CSS classes and adds no styles (D7/R1). Core rows
-    carry the GEX-4 vocabulary; the profile block (text + accessible table) is
-    emitted only when a reconciled per-strike carrier is present."""
+    Reuses existing dashboard classes and adds NO global styles: the only styling
+    is a #gex-context-scoped block emitted inside the fragment, so a suppressed
+    card leaves the document byte-identical to the pre-GEX baseline (R1/D7). Core
+    rows carry the GEX-4 vocabulary; the profile block (SVG ladder + text +
+    accessible table) is emitted only when a reconciled per-strike carrier is
+    present, and the ladder styles itself with inline SVG presentation only."""
     if card is None:
         return ""
     rows = [
@@ -508,8 +658,20 @@ def render_gex_card_html(card: GexCard | None) -> str:
     if card.profile is not None:
         rows.append(_kv("CALL+PUT MODELED MAGNITUDE", _fmt_b(card.profile.chain_call_plus_put)))
 
+    # Card-scoped presentation, emitted ONLY when the card is present, so the
+    # suppressed document stays byte-identical to the pre-GEX baseline (R1). Long
+    # GEX labels are allowed to wrap and values right-align in their natural width
+    # (grid flipped to 1fr/auto), so the value column can never be squeezed past
+    # the phone edge; the ladder SVG carries its own inline presentation.
+    style = (
+        '  <style>#gex-context .kv-grid{grid-template-columns:minmax(0,1fr) auto;'
+        'column-gap:0.6rem}#gex-context .kv-grid .label{white-space:normal;'
+        'overflow-wrap:anywhere}#gex-context .kv-grid .value{text-align:right;'
+        'white-space:nowrap}</style>'
+    )
     lines = [
         '<div class="block" id="gex-context">',
+        style,
         '  <h2>GEX <span class="label">(context only)</span></h2>',
         '  <div class="kv-grid">',
         *rows,

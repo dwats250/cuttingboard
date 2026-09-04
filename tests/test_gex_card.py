@@ -473,9 +473,9 @@ def test_profile_no_forbidden_vocabulary():
 
 # --- an anchor whose bin is OUTSIDE the window: no ladder marker, still disclosed ---
 def test_profile_anchor_outside_window_disclosed_in_core():
-    # A far max-magnitude anchor sits outside the +/-375 window; the minimal seam
-    # marks only in-window anchor bins (the SVG ladder is deferred), but the raw
-    # strike is always printed in the core LARGEST-... row, so nothing is lost.
+    # A far max-magnitude anchor sits outside the +/-375 window; the ladder marks
+    # only in-window anchor bins, but the raw strike is always printed in the core
+    # LARGEST-... row, so nothing is lost.
     s = _coherent([7750.0, 9000.0], [10.0, 90.0], [0.0, 0.0])        # 9000 >> spot+375
     card = _card(s)
     assert card is not None and card.profile is not None
@@ -483,3 +483,171 @@ def test_profile_anchor_outside_window_disclosed_in_core():
     assert marks == set()                                            # 9000 anchor bin is off-window
     out = _frag(s)
     assert "LARGEST CALL-CONTRACT MAGNITUDE STRIKE" in out and "9000" in out
+
+
+# ===========================================================================
+# GEX-4 SVG structural strike ladder (visual implementation). Geometry is pure
+# in gex_card._ladder_rows / _spot_y; markup is _svg_ladder. Each test is the
+# red mutation for a named ladder invariant (no CSS-declaration theater).
+# ===========================================================================
+def _rich() -> dict:
+    """A carrier spanning the 31-bin window (call-heavy above spot, put-heavy
+    below, a near-balanced straddle at spot) plus outside mass on both sides, so
+    the ladder exercises strong/weak/balanced bins, +/- MODEL NET*, C/P/D markers
+    and a spot that falls between strikes."""
+    spot = 7747.71
+    strike, call, put = [], [], []
+    for k in range(7375, 8126, 25):
+        d = k - spot
+        c = max(0.0, d + 55.0) * math.exp(-abs(d) / 300.0) if d > -55 else 0.0
+        p = max(0.0, -d + 55.0) * math.exp(-abs(d) / 300.0) if d < 55 else 0.0
+        if k in (7825, 7850):
+            c += 250.0
+        if k in (7650, 7675):
+            p += 235.0
+        if k == 7750:
+            c += 72.0
+            p += 68.0
+        strike.append(float(k))
+        call.append(round(c, 3) * 1e9)
+        put.append(round(p, 3) * 1e9)
+    strike = [7000.0] + strike + [8300.0]               # outside-window mass both sides
+    call = [18.0e9] + call + [300.0e9]
+    put = [205.0e9] + put + [45.0e9]
+    return _coherent(strike, call, put, spot=spot)
+
+
+def _ladder(snapshot):
+    card = _card(snapshot)
+    assert card is not None and card.profile is not None
+    return card.profile, "\n".join(gex_card._svg_ladder(card.profile))
+
+
+def test_ladder_present_with_profile_absent_without():
+    # mutation: emit the ladder unconditionally, or never.
+    prof, svg = _ladder(_rich())
+    assert len(gex_card._ladder_rows(prof)) == 31
+    assert svg.count('class="gex-ladder"') == 1
+    assert "gex-ladder" not in _frag(_base())           # valid card, no carrier -> no ladder
+
+
+def test_ladder_higher_strikes_drawn_above():
+    # mutation: reverse the row orientation.
+    prof, _ = _ladder(_rich())
+    rows = gex_card._ladder_rows(prof)
+    centers = [r["center"] for r in rows]
+    ys = [r["y_mid"] for r in rows]
+    assert centers == sorted(centers)                   # index 0 is the lowest strike
+    assert all(ys[i] > ys[i + 1] for i in range(len(ys) - 1))   # higher strike -> smaller y
+
+
+def test_ladder_widths_never_exceed_bounds():
+    # mutation: drop the /scale_denominator normalization (a bar overruns the zone).
+    prof, _ = _ladder(_rich())
+    rows = gex_card._ladder_rows(prof)
+    for r in rows:
+        assert 0.0 <= r["call_len"] <= gex_card._L_BAR_MAX + 1e-9
+        assert 0.0 <= r["put_len"] <= gex_card._L_BAR_MAX + 1e-9
+        assert gex_card._L_BAR_L - 1e-9 <= r["net_x"] <= gex_card._L_SPINE + gex_card._L_BAR_MAX + 1e-9
+    # the largest window bin fills exactly the max extent (never-clipping denom)
+    assert max(max(r["call_len"], r["put_len"]) for r in rows) == gex_card._L_BAR_MAX
+
+
+def test_ladder_net_tick_direction_matches_sign():
+    # mutation: flip the MODEL NET* sign convention (call-heavy tick would go right).
+    prof, _ = _ladder(_rich())
+    saw_call, saw_put = False, False
+    for r in gex_card._ladder_rows(prof):
+        if r["model_net"] > 0:
+            assert r["net_x"] < gex_card._L_SPINE       # call-heavy -> left of spine
+            saw_call = True
+        elif r["model_net"] < 0:
+            assert r["net_x"] > gex_card._L_SPINE        # put-heavy -> right of spine
+            saw_put = True
+        else:
+            assert r["net_x"] == gex_card._L_SPINE
+    assert saw_call and saw_put                          # the fixture exercises both
+
+
+def test_ladder_spot_rail_uses_actual_spot_not_snapped():
+    # mutation: snap the spot rail to the containing bin center.
+    prof, svg = _ladder(_rich())
+    assert f"SPOT {gex_card._fmt_strike(prof.spot)}" in svg  # 7747.71, the true spot
+    assert "SPOT 7750" not in svg                            # not snapped to the bin center
+    rows = gex_card._ladder_rows(prof)
+    row_ys = {round(r["y_mid"], 6) for r in rows}
+    spot_y = gex_card._spot_y(prof)
+    assert round(spot_y, 6) not in row_ys                    # interpolated between rows
+    y7750 = next(r["y_mid"] for r in rows if r["center"] == 7750.0)
+    y7725 = next(r["y_mid"] for r in rows if r["center"] == 7725.0)
+    assert y7750 < spot_y < y7725                            # 7747.71 sits just below 7750
+
+
+def test_ladder_zero_window_magnitude_renders_safely():
+    # mutation: divide by scale_denominator without the zero guard.
+    s = _coherent([7000.0, 8300.0], [50.0, 60.0], [40.0, 30.0], spot=7747.71)
+    card = _card(s)
+    assert card is not None and card.profile is not None
+    prof = card.profile
+    assert prof.scale_denominator == 0.0                     # all mass is outside the window
+    rows = gex_card._ladder_rows(prof)
+    assert len(rows) == 31
+    assert all(r["call_len"] == 0.0 and r["put_len"] == 0.0 for r in rows)
+    assert all(r["net_x"] == gex_card._L_SPINE for r in rows)
+    svg = "\n".join(gex_card._svg_ladder(prof))              # must not raise
+    assert 'class="gex-ladder"' in svg
+    assert "<rect" not in svg                                # no zero-width bars drawn
+
+
+def test_ladder_markers_render_in_containing_bins():
+    # mutation: place a marker on the bin maximum instead of the anchor's own bin.
+    s = _coherent([7700.0, 7750.0, 7800.0], [10.0, 40.0, 5.0], [8.0, 2.0, 30.0], spot=7747.71)
+    prof, svg = _ladder(s)
+    marks = {m: b.center for b in prof.window_bins for m in b.markers}
+    assert marks == {"C": 7750.0, "P": 7800.0, "D": 7750.0}
+    assert ">CD<" in svg                                     # 7750 carries C and D
+    assert ">P<" in svg                                      # 7800 carries P
+
+
+def test_ladder_offwindow_anchor_no_geometry_corruption():
+    # mutation: force an off-window anchor into the window / distort rows to include it.
+    s = _coherent([7750.0, 9000.0], [10.0, 90.0], [0.0, 0.0], spot=7747.71)  # 9000 off-window
+    prof, _ = _ladder(s)
+    rows = gex_card._ladder_rows(prof)
+    assert len(rows) == 31
+    marks = {m for b in prof.window_bins for m in b.markers}
+    assert "C" not in marks and "D" not in marks            # the 9000 anchor stays off-window
+    assert all(0.0 <= r["call_len"] <= gex_card._L_BAR_MAX for r in rows)
+
+
+def test_ladder_table_and_scoped_overflow_guard_present():
+    # mutation: dump the table open by default, or drop the phone overflow guard.
+    frag = _frag(_rich())
+    assert 'class="gex-ladder"' in frag                      # SVG is the primary visual
+    assert "ALL 31 BINS + OUTSIDE BINS" in frag              # full table retained
+    assert "<details>" in frag                               # behind a disclosure, not open
+    assert "grid-template-columns:minmax(0,1fr) auto" in frag  # card-scoped phone guard
+    assert "#gex-context" in frag
+
+
+def test_ladder_no_directional_color_or_vocabulary():
+    # mutation: encode call/put with red/green or add positioning shorthand.
+    _, svg = _ladder(_rich())
+    low = svg.lower()
+    for hue in ("red", "green", "#f00", "#0f0", "#ff0000", "#00ff00", "rgb(",
+                "hsl(", "crimson", "lime", "orange", "gold"):
+        assert hue not in low, hue
+    for token in ("wall", "magnet", "pinning", "flip", "support", "resistance",
+                  "bullish", "bearish", "long gamma", "short gamma", "dealer"):
+        assert token not in low, token
+
+
+def test_ladder_accessibility_scaffolding_present():
+    # mutation: drop role="img" / aria-label / the per-mark <title>s -> screen-reader
+    # and touch users silently lose the datum the table is supposed to back up.
+    _, svg = _ladder(_rich())
+    assert 'role="img"' in svg
+    assert 'aria-label="Modeled GEX strike ladder' in svg
+    assert "<title>" in svg                              # per-bar / net-tick titles exist
+    assert "CALL MODELED MAGNITUDE" in svg               # carried inside a bar <title>
+    assert "MODEL NET*" in svg                           # carried inside a net-tick <title>
