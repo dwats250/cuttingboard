@@ -1,0 +1,247 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GEX-4 corrected prototype</title><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#0d0d0d;color:#e0e0e0;font-family:monospace;padding:8px}
+.frame{width:360px}.block{border:1px solid #2a2a2a;border-radius:4px;margin-bottom:1rem;padding:1rem}
+.label{color:#888;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em}.value{margin-top:0.25rem}
+.kv-grid{display:grid;grid-template-columns:max-content 1fr;gap:2px 0.75rem}h2{font-size:1rem;margin-bottom:.5rem}
+.lvl-ladder{max-width:520px;font-size:0.72rem;line-height:1.5}.lvl-row{display:grid;grid-template-columns:6ch 12ch 1fr 1fr 6ch;column-gap:6px;white-space:nowrap;text-align:right}
+summary{list-style:none;cursor:pointer}summary::-webkit-details-marker{display:none}svg{display:block;width:100%;height:auto;max-width:520px;margin:.5rem 0}</style><body><div class="frame"><div class="block" id="gex-context"><h2>GEX <span class="label">(context only)</span></h2><div class="kv-grid">
+<div class="label">Model net*</div><div class="value">+80.4B</div>
+<div class="label">Largest |model net| strike</div><div class="value">7800 &nbsp; +0.67%</div>
+<div class="label">Largest call mag strike</div><div class="value">8000 &nbsp; +3.26%</div>
+<div class="label">Largest put mag strike</div><div class="value">8000 &nbsp; +3.26%</div>
+<div class="label">0DTE</div><div class="value">2.5%</div>
+<div class="label">Call+put modeled mag</div><div class="value">595.5B</div>
+</div>
+<div class="label">window shows 80% of chain call+put modeled mag &middot; 20% outside</div><svg viewBox="0 0 358 402" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="SPX call and put modeled magnitude by 25-point strike bin with model net overlay" font-family="monospace" font-size="10.5">
+<text x="40" y="10" text-anchor="end" fill="#888">STRIKE</text>
+<text x="190" y="10" text-anchor="end" fill="#888">PUT MAG &lt;</text><text x="202" y="10" fill="#888">&gt; CALL MAG</text>
+<text x="356" y="10" text-anchor="end" fill="#888">MODEL NET* $B</text>
+<line x1="196" y1="14" x2="196" y2="390" stroke="#333" stroke-width="1"/>
+<g aria-label="bin 8125 interval 8112.5 to 8137.5 call mag 2.9B put mag 0.1B model net +2.8B">
+<text x="40" y="25.5" text-anchor="end" fill="#888">8125</text>
+<rect x="195.8" y="18" width="8.4" height="8" fill="#4a4a4a"/>
+<rect x="196.0" y="19" width="8.0" height="6" fill="#e0e0e0"/>
+<text x="356" y="25.5" text-anchor="end" fill="#e0e0e0">+2.8</text>
+</g>
+<g aria-label="bin 8100 interval 8087.5 to 8112.5 call mag 6.9B put mag 0.3B model net +6.6B">
+<text x="40" y="37.5" text-anchor="end" fill="#e0e0e0">8100</text>
+<rect x="195.0" y="30" width="20.5" height="8" fill="#4a4a4a"/>
+<rect x="196.0" y="31" width="18.6" height="6" fill="#e0e0e0"/>
+<text x="356" y="37.5" text-anchor="end" fill="#e0e0e0">+6.6</text>
+</g>
+<g aria-label="bin 8075 interval 8062.5 to 8087.5 call mag 2.5B put mag 0.1B model net +2.4B">
+<text x="40" y="49.5" text-anchor="end" fill="#888">8075</text>
+<rect x="195.7" y="42" width="7.3" height="8" fill="#4a4a4a"/>
+<rect x="196.0" y="43" width="6.7" height="6" fill="#e0e0e0"/>
+<text x="356" y="49.5" text-anchor="end" fill="#e0e0e0">+2.4</text>
+</g>
+<g aria-label="bin 8050 interval 8037.5 to 8062.5 call mag 6.4B put mag 0.2B model net +6.2B">
+<text x="40" y="61.5" text-anchor="end" fill="#888">8050</text>
+<rect x="195.4" y="54" width="18.7" height="8" fill="#4a4a4a"/>
+<rect x="196.0" y="55" width="17.6" height="6" fill="#e0e0e0"/>
+<text x="356" y="61.5" text-anchor="end" fill="#e0e0e0">+6.2</text>
+</g>
+<g aria-label="bin 8025 interval 8012.5 to 8037.5 call mag 2.1B put mag 0.1B model net +2.0B">
+<text x="40" y="73.5" text-anchor="end" fill="#888">8025</text>
+<rect x="195.7" y="66" width="6.3" height="8" fill="#4a4a4a"/>
+<rect x="196.0" y="67" width="5.7" height="6" fill="#e0e0e0"/>
+<text x="356" y="73.5" text-anchor="end" fill="#e0e0e0">+2.0</text>
+</g>
+<g aria-label="bin 8000 interval 7987.5 to 8012.5 call mag 39.6B put mag 33.0B model net +6.6B">
+<text x="40" y="85.5" text-anchor="end" fill="#e0e0e0">8000</text>
+<rect x="102.7" y="78" width="205.3" height="8" fill="#4a4a4a"/>
+<rect x="196.0" y="79" width="18.7" height="6" fill="#e0e0e0"/>
+<text x="356" y="85.5" text-anchor="end" fill="#e0e0e0">+6.6</text>
+<text x="62" y="85.5" fill="#e0e0e0" font-size="9" text-anchor="end">CP</text>
+</g>
+<g aria-label="bin 7975 interval 7962.5 to 7987.5 call mag 2.1B put mag 0.2B model net +1.9B">
+<text x="40" y="97.5" text-anchor="end" fill="#888">7975</text>
+<rect x="195.5" y="90" width="6.5" height="8" fill="#4a4a4a"/>
+<rect x="196.0" y="91" width="5.5" height="6" fill="#e0e0e0"/>
+<text x="356" y="97.5" text-anchor="end" fill="#e0e0e0">+1.9</text>
+</g>
+<g aria-label="bin 7950 interval 7937.5 to 7962.5 call mag 4.7B put mag 0.3B model net +4.4B">
+<text x="40" y="109.5" text-anchor="end" fill="#888">7950</text>
+<rect x="195.1" y="102" width="14.2" height="8" fill="#4a4a4a"/>
+<rect x="196.0" y="103" width="12.4" height="6" fill="#e0e0e0"/>
+<text x="356" y="109.5" text-anchor="end" fill="#e0e0e0">+4.4</text>
+</g>
+<g aria-label="bin 7925 interval 7912.5 to 7937.5 call mag 2.8B put mag 0.3B model net +2.5B">
+<text x="40" y="121.5" text-anchor="end" fill="#888">7925</text>
+<rect x="195.3" y="114" width="8.5" height="8" fill="#4a4a4a"/>
+<rect x="196.0" y="115" width="7.1" height="6" fill="#e0e0e0"/>
+<text x="356" y="121.5" text-anchor="end" fill="#e0e0e0">+2.5</text>
+</g>
+<g aria-label="bin 7900 interval 7887.5 to 7912.5 call mag 10.9B put mag 1.3B model net +9.6B">
+<text x="40" y="133.5" text-anchor="end" fill="#e0e0e0">7900</text>
+<rect x="192.3" y="126" width="34.4" height="8" fill="#4a4a4a"/>
+<rect x="196.0" y="127" width="27.1" height="6" fill="#e0e0e0"/>
+<text x="356" y="133.5" text-anchor="end" fill="#e0e0e0">+9.6</text>
+</g>
+<g aria-label="bin 7875 interval 7862.5 to 7887.5 call mag 4.5B put mag 0.4B model net +4.1B">
+<text x="40" y="145.5" text-anchor="end" fill="#888">7875</text>
+<rect x="194.8" y="138" width="14.0" height="8" fill="#4a4a4a"/>
+<rect x="196.0" y="139" width="11.6" height="6" fill="#e0e0e0"/>
+<text x="356" y="145.5" text-anchor="end" fill="#e0e0e0">+4.1</text>
+</g>
+<g aria-label="bin 7850 interval 7837.5 to 7862.5 call mag 8.4B put mag 1.2B model net +7.2B">
+<text x="40" y="157.5" text-anchor="end" fill="#888">7850</text>
+<rect x="192.7" y="150" width="27.0" height="8" fill="#4a4a4a"/>
+<rect x="196.0" y="151" width="20.4" height="6" fill="#e0e0e0"/>
+<text x="356" y="157.5" text-anchor="end" fill="#e0e0e0">+7.2</text>
+</g>
+<g aria-label="bin 7825 interval 7812.5 to 7837.5 call mag 13.3B put mag 2.7B model net +10.6B">
+<text x="40" y="169.5" text-anchor="end" fill="#888">7825</text>
+<rect x="188.4" y="162" width="45.3" height="8" fill="#4a4a4a"/>
+<rect x="196.0" y="163" width="30.0" height="6" fill="#e0e0e0"/>
+<text x="356" y="169.5" text-anchor="end" fill="#e0e0e0">+10.6</text>
+</g>
+<g aria-label="bin 7800 interval 7787.5 to 7812.5 call mag 24.8B put mag 9.6B model net +15.1B">
+<text x="40" y="181.5" text-anchor="end" fill="#e0e0e0">7800</text>
+<rect x="168.7" y="174" width="97.4" height="8" fill="#4a4a4a"/>
+<rect x="196.0" y="175" width="42.8" height="6" fill="#e0e0e0"/>
+<text x="356" y="181.5" text-anchor="end" fill="#e0e0e0">+15.1</text>
+<text x="62" y="181.5" fill="#e0e0e0" font-size="9" text-anchor="end">D</text>
+</g>
+<g aria-label="bin 7775 interval 7762.5 to 7787.5 call mag 17.5B put mag 9.0B model net +8.5B">
+<text x="40" y="193.5" text-anchor="end" fill="#888">7775</text>
+<rect x="170.5" y="186" width="75.1" height="8" fill="#4a4a4a"/>
+<rect x="196.0" y="187" width="24.1" height="6" fill="#e0e0e0"/>
+<text x="356" y="193.5" text-anchor="end" fill="#e0e0e0">+8.5</text>
+</g>
+<g aria-label="bin 7750 interval 7737.5 to 7762.5 call mag 28.5B put mag 19.1B model net +9.4B">
+<text x="40" y="205.5" text-anchor="end" fill="#888">7750</text>
+<rect x="142.1" y="198" width="134.5" height="8" fill="#4a4a4a"/>
+<rect x="196.0" y="199" width="26.6" height="6" fill="#e0e0e0"/>
+<text x="356" y="205.5" text-anchor="end" fill="#e0e0e0">+9.4</text>
+</g>
+<g aria-label="bin 7725 interval 7712.5 to 7737.5 call mag 13.0B put mag 8.8B model net +4.2B">
+<text x="40" y="217.5" text-anchor="end" fill="#888">7725</text>
+<rect x="171.1" y="210" width="61.8" height="8" fill="#4a4a4a"/>
+<rect x="196.0" y="211" width="12.0" height="6" fill="#e0e0e0"/>
+<text x="356" y="217.5" text-anchor="end" fill="#e0e0e0">+4.2</text>
+</g>
+<g aria-label="bin 7700 interval 7687.5 to 7712.5 call mag 19.8B put mag 19.7B model net +0.0B">
+<text x="40" y="229.5" text-anchor="end" fill="#e0e0e0">7700</text>
+<rect x="140.1" y="222" width="111.8" height="8" fill="#4a4a4a"/>
+<rect x="196.0" y="223" width="0.1" height="6" fill="#e0e0e0"/>
+<text x="356" y="229.5" text-anchor="end" fill="#e0e0e0">+0.0</text>
+</g>
+<g aria-label="bin 7675 interval 7662.5 to 7687.5 call mag 10.2B put mag 10.4B model net -0.2B">
+<text x="40" y="241.5" text-anchor="end" fill="#888">7675</text>
+<rect x="166.7" y="234" width="58.0" height="8" fill="#4a4a4a"/>
+<rect x="195.5" y="235" width="0.5" height="6" fill="#e0e0e0"/>
+<text x="356" y="241.5" text-anchor="end" fill="#e0e0e0">-0.2</text>
+</g>
+<g aria-label="bin 7650 interval 7637.5 to 7662.5 call mag 7.9B put mag 11.4B model net -3.5B">
+<text x="40" y="253.5" text-anchor="end" fill="#888">7650</text>
+<rect x="163.8" y="246" width="54.5" height="8" fill="#4a4a4a"/>
+<rect x="186.1" y="247" width="9.9" height="6" fill="#e0e0e0"/>
+<text x="356" y="253.5" text-anchor="end" fill="#e0e0e0">-3.5</text>
+</g>
+<g aria-label="bin 7625 interval 7612.5 to 7637.5 call mag 4.2B put mag 6.5B model net -2.3B">
+<text x="40" y="265.5" text-anchor="end" fill="#888">7625</text>
+<rect x="177.5" y="258" width="30.5" height="8" fill="#4a4a4a"/>
+<rect x="189.5" y="259" width="6.5" height="6" fill="#e0e0e0"/>
+<text x="356" y="265.5" text-anchor="end" fill="#e0e0e0">-2.3</text>
+</g>
+<g aria-label="bin 7600 interval 7587.5 to 7612.5 call mag 11.8B put mag 15.0B model net -3.2B">
+<text x="40" y="277.5" text-anchor="end" fill="#e0e0e0">7600</text>
+<rect x="153.5" y="270" width="76.0" height="8" fill="#4a4a4a"/>
+<rect x="187.0" y="271" width="9.0" height="6" fill="#e0e0e0"/>
+<text x="356" y="277.5" text-anchor="end" fill="#e0e0e0">-3.2</text>
+</g>
+<g aria-label="bin 7575 interval 7562.5 to 7587.5 call mag 3.8B put mag 5.8B model net -2.0B">
+<text x="40" y="289.5" text-anchor="end" fill="#888">7575</text>
+<rect x="179.5" y="282" width="27.3" height="8" fill="#4a4a4a"/>
+<rect x="190.2" y="283" width="5.8" height="6" fill="#e0e0e0"/>
+<text x="356" y="289.5" text-anchor="end" fill="#e0e0e0">-2.0</text>
+</g>
+<g aria-label="bin 7550 interval 7537.5 to 7562.5 call mag 6.5B put mag 9.8B model net -3.4B">
+<text x="40" y="301.5" text-anchor="end" fill="#888">7550</text>
+<rect x="168.2" y="294" width="46.1" height="8" fill="#4a4a4a"/>
+<rect x="186.4" y="295" width="9.6" height="6" fill="#e0e0e0"/>
+<text x="356" y="301.5" text-anchor="end" fill="#e0e0e0">-3.4</text>
+</g>
+<g aria-label="bin 7525 interval 7512.5 to 7537.5 call mag 2.6B put mag 4.1B model net -1.5B">
+<text x="40" y="313.5" text-anchor="end" fill="#888">7525</text>
+<rect x="184.5" y="306" width="18.8" height="8" fill="#4a4a4a"/>
+<rect x="191.8" y="307" width="4.2" height="6" fill="#e0e0e0"/>
+<text x="356" y="313.5" text-anchor="end" fill="#e0e0e0">-1.5</text>
+</g>
+<g aria-label="bin 7500 interval 7487.5 to 7512.5 call mag 7.8B put mag 12.8B model net -5.0B">
+<text x="40" y="325.5" text-anchor="end" fill="#e0e0e0">7500</text>
+<rect x="159.9" y="318" width="58.1" height="8" fill="#4a4a4a"/>
+<rect x="181.9" y="319" width="14.1" height="6" fill="#e0e0e0"/>
+<text x="356" y="325.5" text-anchor="end" fill="#e0e0e0">-5.0</text>
+</g>
+<g aria-label="bin 7475 interval 7462.5 to 7487.5 call mag 1.9B put mag 3.1B model net -1.1B">
+<text x="40" y="337.5" text-anchor="end" fill="#888">7475</text>
+<rect x="187.3" y="330" width="14.2" height="8" fill="#4a4a4a"/>
+<rect x="192.8" y="331" width="3.2" height="6" fill="#e0e0e0"/>
+<text x="356" y="337.5" text-anchor="end" fill="#e0e0e0">-1.1</text>
+</g>
+<g aria-label="bin 7450 interval 7437.5 to 7462.5 call mag 4.4B put mag 6.2B model net -1.8B">
+<text x="40" y="349.5" text-anchor="end" fill="#888">7450</text>
+<rect x="178.5" y="342" width="29.8" height="8" fill="#4a4a4a"/>
+<rect x="190.8" y="343" width="5.2" height="6" fill="#e0e0e0"/>
+<text x="356" y="349.5" text-anchor="end" fill="#e0e0e0">-1.8</text>
+</g>
+<g aria-label="bin 7425 interval 7412.5 to 7437.5 call mag 1.3B put mag 2.4B model net -1.0B">
+<text x="40" y="361.5" text-anchor="end" fill="#888">7425</text>
+<rect x="189.3" y="354" width="10.4" height="8" fill="#4a4a4a"/>
+<rect x="193.1" y="355" width="2.9" height="6" fill="#e0e0e0"/>
+<text x="356" y="361.5" text-anchor="end" fill="#e0e0e0">-1.0</text>
+</g>
+<g aria-label="bin 7400 interval 7387.5 to 7412.5 call mag 3.7B put mag 6.4B model net -2.7B">
+<text x="40" y="373.5" text-anchor="end" fill="#e0e0e0">7400</text>
+<rect x="177.9" y="366" width="28.6" height="8" fill="#4a4a4a"/>
+<rect x="188.4" y="367" width="7.6" height="6" fill="#e0e0e0"/>
+<text x="356" y="373.5" text-anchor="end" fill="#e0e0e0">-2.7</text>
+</g>
+<g aria-label="bin 7375 interval 7362.5 to 7387.5 call mag 0.5B put mag 1.4B model net -0.9B">
+<text x="40" y="385.5" text-anchor="end" fill="#888">7375</text>
+<rect x="191.9" y="378" width="5.5" height="8" fill="#4a4a4a"/>
+<rect x="193.3" y="379" width="2.7" height="6" fill="#e0e0e0"/>
+<text x="356" y="385.5" text-anchor="end" fill="#e0e0e0">-0.9</text>
+</g>
+<line x1="46" y1="203.1" x2="356" y2="203.1" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3 2"/>
+<text x="48" y="201.1" fill="#e0e0e0" font-size="9">SPX CASH SPOT 7747.71</text>
+</svg><div class="label">outside bins &gt;= 2% of chain mag: 7000 (-9.7%) mag 26.4B net -1.7B</div><details><summary class="label">all 31 bins + outside bins &#9656;</summary><div class="lvl-ladder">
+<div class="lvl-row label"><span>bin</span><span>interval</span><span>call mag</span><span>put mag</span><span>model net*</span></div>
+<div class="lvl-row"><span>8125</span><span>8112.5-8137.5</span><span>2.9</span><span>0.1</span><span>+2.8</span></div>
+<div class="lvl-row"><span>8100</span><span>8087.5-8112.5</span><span>6.9</span><span>0.3</span><span>+6.6</span></div>
+<div class="lvl-row"><span>8075</span><span>8062.5-8087.5</span><span>2.5</span><span>0.1</span><span>+2.4</span></div>
+<div class="lvl-row"><span>8050</span><span>8037.5-8062.5</span><span>6.4</span><span>0.2</span><span>+6.2</span></div>
+<div class="lvl-row"><span>8025</span><span>8012.5-8037.5</span><span>2.1</span><span>0.1</span><span>+2.0</span></div>
+<div class="lvl-row"><span>8000CP</span><span>7987.5-8012.5</span><span>39.6</span><span>33.0</span><span>+6.6</span></div>
+<div class="lvl-row"><span>7975</span><span>7962.5-7987.5</span><span>2.1</span><span>0.2</span><span>+1.9</span></div>
+<div class="lvl-row"><span>7950</span><span>7937.5-7962.5</span><span>4.7</span><span>0.3</span><span>+4.4</span></div>
+<div class="lvl-row"><span>7925</span><span>7912.5-7937.5</span><span>2.8</span><span>0.3</span><span>+2.5</span></div>
+<div class="lvl-row"><span>7900</span><span>7887.5-7912.5</span><span>10.9</span><span>1.3</span><span>+9.6</span></div>
+<div class="lvl-row"><span>7875</span><span>7862.5-7887.5</span><span>4.5</span><span>0.4</span><span>+4.1</span></div>
+<div class="lvl-row"><span>7850</span><span>7837.5-7862.5</span><span>8.4</span><span>1.2</span><span>+7.2</span></div>
+<div class="lvl-row"><span>7825</span><span>7812.5-7837.5</span><span>13.3</span><span>2.7</span><span>+10.6</span></div>
+<div class="lvl-row"><span>7800D</span><span>7787.5-7812.5</span><span>24.8</span><span>9.6</span><span>+15.1</span></div>
+<div class="lvl-row"><span>7775</span><span>7762.5-7787.5</span><span>17.5</span><span>9.0</span><span>+8.5</span></div>
+<div class="lvl-row"><span>7750</span><span>7737.5-7762.5</span><span>28.5</span><span>19.1</span><span>+9.4</span></div>
+<div class="lvl-row"><span>7725</span><span>7712.5-7737.5</span><span>13.0</span><span>8.8</span><span>+4.2</span></div>
+<div class="lvl-row"><span>7700</span><span>7687.5-7712.5</span><span>19.8</span><span>19.7</span><span>+0.0</span></div>
+<div class="lvl-row"><span>7675</span><span>7662.5-7687.5</span><span>10.2</span><span>10.4</span><span>-0.2</span></div>
+<div class="lvl-row"><span>7650</span><span>7637.5-7662.5</span><span>7.9</span><span>11.4</span><span>-3.5</span></div>
+<div class="lvl-row"><span>7625</span><span>7612.5-7637.5</span><span>4.2</span><span>6.5</span><span>-2.3</span></div>
+<div class="lvl-row"><span>7600</span><span>7587.5-7612.5</span><span>11.8</span><span>15.0</span><span>-3.2</span></div>
+<div class="lvl-row"><span>7575</span><span>7562.5-7587.5</span><span>3.8</span><span>5.8</span><span>-2.0</span></div>
+<div class="lvl-row"><span>7550</span><span>7537.5-7562.5</span><span>6.5</span><span>9.8</span><span>-3.4</span></div>
+<div class="lvl-row"><span>7525</span><span>7512.5-7537.5</span><span>2.6</span><span>4.1</span><span>-1.5</span></div>
+<div class="lvl-row"><span>7500</span><span>7487.5-7512.5</span><span>7.8</span><span>12.8</span><span>-5.0</span></div>
+<div class="lvl-row"><span>7475</span><span>7462.5-7487.5</span><span>1.9</span><span>3.1</span><span>-1.1</span></div>
+<div class="lvl-row"><span>7450</span><span>7437.5-7462.5</span><span>4.4</span><span>6.2</span><span>-1.8</span></div>
+<div class="lvl-row"><span>7425</span><span>7412.5-7437.5</span><span>1.3</span><span>2.4</span><span>-1.0</span></div>
+<div class="lvl-row"><span>7400</span><span>7387.5-7412.5</span><span>3.7</span><span>6.4</span><span>-2.7</span></div>
+<div class="lvl-row"><span>7375</span><span>7362.5-7387.5</span><span>0.5</span><span>1.4</span><span>-0.9</span></div>
+<div class="lvl-row"><span>7000 out</span><span>-9.7%</span><span>12.4</span><span>14.0</span><span>-1.7</span></div>
+</div></details><div class="label">C / P / D = raw-strike anchors (largest call mag, largest put mag, largest |model net|) shown in their 25-pt bin; not the bin maximum.</div>
+<div class="label">31 x 25-pt bins [b-12.5, b+12.5) around the SPX cash spot bin; recenters in 25-pt steps. Bin model net can near-balance across different strikes.</div>
+<div class="label">All expirations combined, expiry mix hidden. SPX+SPXW combined, AM/PM settlement not modeled.</div>
+<div class="label">* model net = call mag - put mag under the configured call-plus / put-minus convention; participant and dealer positioning are not measured. Mag = call mag + put mag, no sign assignment.</div>
+<div class="label">as of 18:42 ET &middot; Cboe ~15m delayed source</div></div></div></body>
