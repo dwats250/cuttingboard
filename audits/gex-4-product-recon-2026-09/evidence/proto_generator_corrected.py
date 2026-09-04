@@ -57,7 +57,7 @@ def ladder():
 def outside_line():
     if not outside: return '<div class="label">outside bins &gt;= 2% of chain call+put modeled magnitude: none</div>'
     shown = outside[:CAP]
-    parts = [f"{K(b):.0f} ({dist(b):+.1f}%) call+put modeled magnitude {fM(bins[b][0]+bins[b][1])}B model net {fN(bins[b][0]-bins[b][1])}B" for b in shown]
+    parts = [f"{K(b):.0f} ({dist(b):+.1f}%) call+put modeled magnitude {fM(bins[b][0]+bins[b][1])}B model net* {fN(bins[b][0]-bins[b][1])}B" for b in shown]
     head = f"{len(shown)} of {len(outside)} outside bins &gt;= 2% of chain call+put modeled magnitude shown &middot; {len(outside)-len(shown)} more: " if len(outside) > CAP else "outside bins &gt;= 2% of chain call+put modeled magnitude: "
     return '<div class="label">' + head + "; ".join(parts) + '</div>'
 
