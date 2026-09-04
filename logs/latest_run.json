@@ -1,58 +1,30 @@
 {
-  "candidates_generated": 18,
+  "candidates_generated": 15,
   "candidates_qualified": 0,
-  "candidates_watchlist": 7,
-  "chain_validation": {
-    "GLD": {
-      "classification": "DISQUALIFIED_OPTIONS_INVALID",
-      "reason": "isolated OI spike \u2014 thin liquidity cluster"
-    },
-    "XLE": {
-      "classification": "TOP_TRADE_VALIDATED",
-      "reason": null
-    },
-    "^VIX": {
-      "classification": "NEEDS_MANUAL_CHECK",
-      "reason": "spread varies excessively across strikes"
-    }
-  },
-  "confidence": 1.0,
-  "continuation_audit": {
-    "DATA_INCOMPLETE": 0,
-    "EXTENDED_FROM_MEAN": 0,
-    "INSUFFICIENT_MOMENTUM": 3,
-    "NO_BREAKOUT": 5,
-    "NO_HOLD_CONFIRMATION": 0,
-    "RR_BELOW_THRESHOLD": 0,
-    "STOP_TOO_TIGHT": 0,
-    "TIME_BLOCKED": 0,
-    "VIX_BLOCKED": 0,
-    "accepted": 1,
-    "total_candidates": 9
-  },
+  "candidates_watchlist": 0,
+  "chain_validation": {},
+  "confidence": 0.125,
+  "continuation_audit": null,
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generation_id": "live-20260903T170314Z",
+  "generation_id": "live-20260904T152720Z",
   "halt_reason": null,
   "index_score": 0.0,
   "kill_switch": false,
-  "min_rr_applied": 2.0,
+  "min_rr_applied": 3.0,
   "mode": "LIVE",
-  "net_score": 0,
+  "net_score": -1,
   "outcome": "NO_TRADE",
   "permission": "No new trades permitted \u2014 operator cannot monitor.",
-  "posture": "EXPANSION_LONG",
-  "regime": "EXPANSION",
+  "posture": "STAY_FLAT",
+  "regime": "NEUTRAL",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-09-03T17:03:14Z",
-  "run_id": "live-20260903T170314Z",
+  "run_at_utc": "2026-09-04T15:27:20Z",
+  "run_id": "live-20260904T152720Z",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-09-03T17:03:14Z",
-  "warnings": [
-    "GLD: options invalid",
-    "^VIX: needs manual chain check"
-  ],
+  "timestamp": "2026-09-04T15:27:20Z",
+  "warnings": [],
   "watch_candidates": 0
 }
