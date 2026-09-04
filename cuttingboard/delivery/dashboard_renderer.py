@@ -935,7 +935,7 @@ _TIER_DEFS = [
 
 _CSS = (
     "*{box-sizing:border-box;margin:0;padding:0}"
-    "body{background:#0d0d0d;color:#e0e0e0;font-family:monospace;padding:1rem}"
+    "body{background:#0d0d0d;color:#e0e0e0;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'Liberation Mono','DejaVu Sans Mono',monospace;font-size:13px;padding:1rem}"
     ".wrap{max-width:640px;margin:0 auto}"
     ".block{border:1px solid #2a2a2a;border-radius:4px;margin-bottom:1rem;padding:1rem}"
     ".label{color:#888;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em}"
@@ -993,6 +993,11 @@ _CSS = (
     # PRD-249: one-line identity header replaces the 8-line stacked SYMBOL/GRADE/
     # BIAS/STRUCTURE block.
     ".card-header{font-weight:bold;margin-bottom:6px}"
+    # Change #4: IF NOW / IN / OUT couplets in one aligned-column grid; the
+    # lifecycle line spans both tracks so the labels stay aligned.
+    ".card-brief{gap:3px .75rem;align-items:baseline}"
+    ".card-brief .value,.card-brief .value-key{margin-top:0}"
+    ".card-brief .lifecycle-detail{grid-column:1/-1;margin:2px 0}"
     ".grade-aplus{border-left-color:#4caf50}"
     ".grade-a{border-left-color:#8bc34a}"
     ".grade-b{border-left-color:#ff9800}"
@@ -1005,7 +1010,7 @@ _CSS = (
     "border-left:3px solid #4a6fa5;background:#111827;font-size:0.9rem;"
     "letter-spacing:0.03em}"
     ".tier-group{margin-bottom:16px}"
-    ".tier-header{font-weight:bold;margin-bottom:6px;opacity:0.9}"
+    ".tier-header{font-size:.72rem;font-weight:normal;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;opacity:1}"
     ".candidate-state{font-weight:bold;margin-bottom:4px}"
     ".candidate-risk{color:#ff9800}"
     ".tape-slot.up{color:#4caf50}"
@@ -1015,6 +1020,9 @@ _CSS = (
     ".macro-bias.long{color:#4caf50}"
     ".macro-bias.short{color:#f44336}"
     ".macro-bias.mixed{color:#ff9800}"
+    # Change #3: TAPE bias-token colour -- reuses the palette, adds no weight or
+    # margin (unlike .macro-bias), so only the direction token gets the accent.
+    ".tape-bias.long{color:#4caf50}.tape-bias.short{color:#f44336}.tape-bias.mixed{color:#ff9800}"
     ".tape-no-data{color:#888;font-style:italic;margin-top:4px;font-size:0.8rem}"
     ".idle-summary{color:#888;margin-bottom:12px;padding:8px;"
     "border-left:3px solid #2a2a2a}"
@@ -1049,7 +1057,7 @@ _CSS = (
     # reference and the no-bars fallback. Tier 1 strongest, Tier 2 clear,
     # Tier 3 faint; the tier weights are the assertion surface.
     ".lvl-ladder{margin-top:6px;padding-top:5px;border-top:1px solid #1a1a1a;"
-    "max-width:520px;font-family:monospace;font-size:0.72rem;line-height:1.5}"
+    "max-width:520px;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'Liberation Mono','DejaVu Sans Mono',monospace;font-size:0.72rem;line-height:1.5}"
     ".lvl-row{display:grid;grid-template-columns:minmax(6ch,auto) 1fr auto;"
     "column-gap:8px;white-space:nowrap}"
     ".lvl-px{text-align:right}"
@@ -1099,7 +1107,7 @@ _CSS = (
     # the same vertical edges; `auto-fit` drops a column rather than
     # overflowing, and `.tape-slot`'s nowrap keeps each cell on one line.
     ".tape-band-cap{color:#777;font-size:.64rem;text-transform:uppercase;letter-spacing:.1em}"
-    ".tape-drivers{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));"
+    ".tape-drivers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));"
     "gap:2px 12px;margin-top:6px;color:#aaa;font-size:.75rem}"
     ".tape-driver{display:grid;grid-template-columns:3ch 1ch auto;column-gap:4px}"
     ".tape-trend{display:grid;grid-template-columns:repeat(auto-fit,minmax(154px,1fr));"
@@ -1110,6 +1118,9 @@ _CSS = (
     "#verdict-zone{border-color:#3a3a3a}"
     "#verdict-zone #system-state.block{border:0;margin:0;padding:0}"
     "#system-state>h2{margin-bottom:.3rem}"
+    # Change #1: demote the freshness timestamp below state/why/context so
+    # metadata no longer outranks meaning under the page anchor.
+    "#system-state #cb-updated{color:#666;font-size:.72rem;margin-top:6px}"
     "#staleness-banner{border:1px solid currentColor;border-radius:3px;padding:5px 8px;margin-bottom:8px;font-size:.72rem;letter-spacing:.04em}"
     ".verdict-warning{border-left:3px solid #ff9800;color:#ff9800;padding:6px 8px;margin-bottom:8px}"
     "#watching-zone .operator-subsection{padding-top:10px;margin-top:10px;border-top:1px solid #222}"
@@ -1145,6 +1156,16 @@ _CSS = (
     # PRD-218: alignment-coloured price (bullish green / bearish red).
     ".ts-px-up{color:#4caf50}"
     ".ts-px-down{color:#f44336}"
+    # Change #5: desktop-width trend-table readability. Scoped >=641px so the
+    # <=640px flex-card reflow below stays byte-identical. white-space:normal
+    # needs !important to beat each td's inline "white-space:nowrap".
+    "@media(min-width:641px){"
+    ".ts-table td{border-top:1px solid #1a1a1a}"
+    ".ts-table tbody tr:first-child td{border-top:0}"
+    ".ts-table td:first-child{font-weight:bold}"
+    ".ts-table td.ts-intraday{color:#888;white-space:normal!important;max-width:22ch}"
+    ".ts-table td[data-label='Price'],.ts-table td[data-label='RVOL']{text-align:right}"
+    "}"
     # PRD-213/PRD-218: below the mobile breakpoint each symbol reflows to one
     # compact inline row (per-cell labels hidden) rather than a tall stacked card.
     "@media(max-width:640px){"
@@ -1181,7 +1202,6 @@ _CSS = (
     ".sys-why{font-size:.78rem;margin-top:3px}"
     ".sys-context{font-size:.74rem}"
     "#system-state .sep{margin:5px 0}"
-    "#system-state #cb-updated{font-size:.78rem}"
     "#watching-zone .operator-subsection{padding-top:8px;margin-top:8px}"
     "#opportunity-survival .kv-grid{grid-template-columns:auto minmax(2.5ch,1fr) auto minmax(2.5ch,1fr)}"
     "#opportunity-survival .kv-grid>*:nth-child(10){grid-column:2/-1}"
@@ -2301,6 +2321,10 @@ def _render_candidate_card(
         # PRD-249: the verdict is the card's headline answer — render it first,
         # immediately under the header, not buried below the identity/lifecycle.
         if_now = tf.get("if_now")
+        # Change #4: IF NOW / IN / OUT couplets share ONE kv-grid so their labels
+        # form one aligned column; the lifecycle line spans both columns so the
+        # couplet labels stay aligned across it (no couplet reorder).
+        w('  <div class="kv-grid card-brief">')
         if if_now is not None and not operator_locked:  # PRD-304 R7: action directive omitted under lock
             w(f'  <div class="label">IF NOW</div><div class="value">{_esc(if_now)}</div>')
 
@@ -2344,6 +2368,7 @@ def _render_candidate_card(
                 if structural and structural not in invalidation[0]:
                     out_text = f"{out_text}, or {_esc(structural)}"
             w(f'  <div class="label">{_out_label}</div><div class="{_val_cls}">{out_text}</div>')
+        w('  </div>')
 
         # PRD-215/PRD-249: REASON/PLAY/WATCH are supporting context — tuck them
         # behind a default-collapsed disclosure so the accented couplet stays the
@@ -3010,17 +3035,28 @@ def render_dashboard_html(
     w('  <div class="tape-band">')
     w('    <div class="tape-band-cap">MACRO</div>')
     _total_votes = long_votes + short_votes
-    _macro_summary = macro_bias
-    if _total_votes:
-        _macro_summary += f" · {long_votes} on / {short_votes} off"
+    _votes_suffix = f" · {long_votes} on / {short_votes} off" if _total_votes else ""
     # PRD-322 R2: MISSING means the driver payload is empty or unavailable, so
     # the zero-vote tie below would fabricate "MACRO BIAS: MIXED". FALLBACK
     # must NOT trip this gate — it also fires on missing tradables under a
     # genuine, fully-voted macro bias.
     if _tape_health == "MISSING":
-        _macro_summary = _TAPE_MACRO_ABSENT
+        _macro_html = _esc(_TAPE_MACRO_ABSENT)
+    else:
+        # Change #3: colour ONLY the direction token (LONG/SHORT/MIXED) via
+        # .tape-bias (existing palette; NOT .macro-bias, which adds weight and
+        # margin). The "MACRO BIAS:" label and the vote suffix stay muted.
+        _bias_prefix, _bias_sep, _bias_token = macro_bias.partition(": ")
+        if _bias_sep:
+            _macro_html = (
+                f'{_esc(_bias_prefix)}: '
+                f'<span class="tape-bias {_esc(macro_bias_css.split()[-1])}">'
+                f'{_esc(_bias_token)}</span>{_esc(_votes_suffix)}'
+            )
+        else:
+            _macro_html = _esc(macro_bias) + _esc(_votes_suffix)
     if not integrator_suppress["macro_bias"]:
-        w(f'    <div class="zone-value">{_esc(_macro_summary)}</div>')
+        w(f'    <div class="zone-value">{_macro_html}</div>')
     _tape_values = dict(tape_value_slots)
     _tape_arrows = dict(tape_slots)
     # PRD-322 R3: all seven macro drivers, data-driven from the shared layout
@@ -3731,11 +3767,12 @@ def render_dashboard_html(
                 if _i in _ts_collapsed:
                     continue
                 # PRD-213: data-label mirrors the column header so the mobile
-                # reflow can render the header inline. PRD-218: the Price cell
-                # (index 1) carries the alignment colour class. PRD-220: the
-                # Intraday cell (index 7) gets a class so it wraps to its own line.
+                # reflow can render the header inline. PRD-218 + Change #5: the
+                # Price cell (index 1) AND the Alignment cell (index 3) carry the
+                # alignment colour class. PRD-220: the Intraday cell (index 7)
+                # gets a class so it wraps to its own line.
                 _classes = []
-                if _i == 1 and _px_cls:
+                if _i in (1, 3) and _px_cls:
                     _classes.append(_px_cls)
                 # PRD-225: uniform-width hook — BULL/BEAR/MIX all occupy 4ch so
                 # row width (and therefore wrap behavior) is token-independent.
