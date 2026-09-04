@@ -5,7 +5,7 @@ snapshot; it changes fast. Evergreen purpose lives in `VISION.md`, the operating
 model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale in
 `docs/DECISIONS.md`.
 
-**Last updated:** 2026-09-02 (PRD-330 IMPLEMENTED pointer only; prior pointer PRD-329; prior full pass 2026-08-31 commit 6847382)
+**Last updated:** 2026-09-04 (GEX provider ruling state-sync; prior 2026-09-02 PRD-330 IMPLEMENTED pointer; prior pointer PRD-329; prior full pass 2026-08-31 commit 6847382)
 amended Gate A + implementation resumption; prior full pass 2026-08-05
 TRUTH-SYNC against `main` @ `a419b804`)
 
@@ -31,12 +31,17 @@ TRUTH-SYNC against `main` @ `a419b804`)
   MATERIAL + Gate A; it was the first GEX production implementation the plans
   authorize. GEX-2 (PRD-309, merged 2026-08-21) added the display-only,
   baseline-neutral board-card consumer, and GEX-3 (PRD-310, MATERIAL, Gate A on
-  confirmed revision `8dce95e` under packet `965529c`) adds the hourly
-  best-effort RUN-LOCAL refresh step in `hourly_alert.yml` — provider failure
-  or timeout degrades to card absence and never blocks the hourly publish; the
-  artifact is never restored/staged/published. The plans still authorize no
-  personalized-news, options-data, or macro-awareness consumer, and no GEX
-  cadence beyond this best-effort hourly refresh.
+  confirmed revision `8dce95e` under packet `965529c`) added an hourly
+  best-effort RUN-LOCAL refresh step in `hourly_alert.yml`, but that step was
+  REMOVED on 2026-09-03 (`main 83fd12a`, PR #311) under the Helm provider-rights
+  ruling that automated Cboe `delayed_quotes` retrieval is DISALLOWED. The
+  2026-09-04 Helm ruling closed the provider question: live GEX acquisition
+  stays BLOCKED / context-only (no free CDN automation; the licensed All Access
+  path is not activated), and the reviewed All Access adapter merged (PR #315,
+  `bc2382d`) but stays DORMANT (no credentials, wiring, or caller). The plans
+  still authorize no personalized-news, options-data, or macro-awareness
+  consumer, and there is now NO automated GEX cadence -- acquisition is
+  manual/dormant only.
 - **North Star product portfolio:** RATIFIED — PR #187 merged 2026-08-02
   (`fdeef90`), which is the NS-0B ratifying act.
   `docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md` (vision and
