@@ -195,17 +195,6 @@ jobs:
         if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
         run: python3 -m cuttingboard.delivery.regime_history
 
-      # PRD-310: best-effort, run-local GEX refresh (Gate A @ 8dce95e). Ordinary
-      # producer failure or wall-clock expiry (TERM at 120s, forced KILL +10s)
-      # degrades to GEX absence — the renderer suppresses the card — and must
-      # never fail the hourly publish. An rm failure fails CLOSED: absence we
-      # cannot establish is a local infrastructure failure, never a degrade.
-      - name: Refresh GEX snapshot (best-effort)
-        if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
-        run: |
-          rm -f logs/gex_snapshot.json logs/gex_snapshot.json.tmp
-          timeout --kill-after=10 120 python3 tools/gex_snapshot.py || rm -f logs/gex_snapshot.json logs/gex_snapshot.json.tmp
-
       - name: Render and stage hourly artifacts
         if: ${{ success() && steps.freshcheck.outputs.fresh == 'true' }}
         run: |
