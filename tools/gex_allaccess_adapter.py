@@ -273,9 +273,11 @@ def compose_feed_timestamp(date_str: str, time_of_day: object) -> str:
     (ET trading date) + provider ``time_of_day`` (ET, ``HH:MM:SS[.mmm]``) ->
     ``"YYYY-MM-DD HH:MM:SS"`` in UTC. Fail-closed on any malformed part; never a
     producer-clock fallback."""
-    if not isinstance(time_of_day, str) or _TOD_RE.match(time_of_day) is None:
+    if not isinstance(time_of_day, str) or _TOD_RE.fullmatch(time_of_day) is None:
         # Validate the ENTIRE value (F5): reject empty/short/long fractions,
-        # non-digit or second-dot suffixes -- never silently discard a bad suffix.
+        # non-digit or second-dot suffixes, and trailing newlines (fullmatch, not
+        # match: `$` also matches before a trailing "\n") -- never silently
+        # discard a bad suffix.
         raise AdapterError(f"malformed provider time-of-day: {time_of_day!r}")
     hms = time_of_day.split(".", 1)[0]  # strip validated millis (producer is s-precision)
     try:

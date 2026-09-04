@@ -348,6 +348,7 @@ def test_compose_feed_timestamp_accepts_valid_forms(good, expect):
     "09:30:00.1.2",      # second-dot suffix (F5)
     "09:30:00.12",       # wrong digit count: 2 (F5)
     "09:30:00.1234",     # wrong digit count: 4 (F5)
+    "09:30:00.001\n",    # trailing newline (fullmatch, not match: `$`) (F5-delta)
 ])
 def test_compose_feed_timestamp_malformed_fails_closed(bad):
     with pytest.raises(ad.AdapterError):
