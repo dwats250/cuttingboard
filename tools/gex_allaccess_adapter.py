@@ -40,9 +40,9 @@ rejected as an out-of-scope frozen-contract change with no honesty gain. Proven 
 ``test_source_identity_truthful_cboe_delayed_tier`` and the end-to-end provenance
 assertion.
 
-Fail-closed: any transport non-200 or network failure (URLError/timeout/DNS/
-connection), missing token, malformed envelope, missing per-record identity
-field, or unparseable timestamp raises :class:`AdapterError`.
+Fail-closed: any transport non-200 or network/protocol failure (URLError/timeout/
+DNS/connection/truncation), missing token, malformed envelope, missing per-record
+identity field, or malformed timestamp raises :class:`AdapterError`.
 The producer's ``run`` catches it, returns non-zero, and preserves the last-good
 artifact. This adapter never contacts ``cdn.cboe.com`` / ``delayed_quotes``.
 
@@ -56,6 +56,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import re
 import sys
 import urllib.parse
 from datetime import datetime, timezone
@@ -100,6 +101,11 @@ _REQUIRED_OPTION_FIELDS = ("root", "expiry", "option_type", "strike")
 # Top-level underlying price field mapped to the producer's ``current_price``.
 _UNDERLYING_PRICE_FIELD = "underlying_last_trade_price"
 
+# Provider time-of-day: exactly ``HH:MM:SS`` or ``HH:MM:SS.mmm`` (the documented
+# .mmm form). The full value is validated before millis are stripped so a
+# malformed suffix fails loud instead of being silently discarded.
+_TOD_RE = re.compile(r"^\d{2}:\d{2}:\d{2}(\.\d{3})?$")
+
 # A transport is: (method, url, headers, body_bytes_or_None) -> (status, bytes).
 Transport = Callable[[str, str, dict, Optional[bytes]], "tuple[int, bytes]"]
 
@@ -116,6 +122,7 @@ class AdapterError(Exception):
 def _default_transport(
     method: str, url: str, headers: dict, body: Optional[bytes]
 ) -> "tuple[int, bytes]":
+    import http.client
     import urllib.error
     import urllib.request
 
@@ -125,9 +132,11 @@ def _default_transport(
             return resp.status, resp.read()
     except urllib.error.HTTPError as exc:  # non-200 surfaced as its status
         return exc.code, exc.read() if hasattr(exc, "read") else b""
-    except OSError as exc:  # URLError/timeout/DNS/connection -> typed fail-loud
+    except (OSError, http.client.HTTPException) as exc:
+        # URLError/timeout/DNS/connection (OSError) and protocol/truncation such
+        # as IncompleteRead (HTTPException, NOT an OSError) -> typed fail-loud.
         # Non-secret context only: method + url (creds live in headers, never in
-        # the URL) + the OS-level reason. Never include headers.
+        # the URL) + the reason. Never include headers.
         raise AdapterError(f"transport failure for {method} {url}: {exc}") from exc
 
 
@@ -264,9 +273,11 @@ def compose_feed_timestamp(date_str: str, time_of_day: object) -> str:
     (ET trading date) + provider ``time_of_day`` (ET, ``HH:MM:SS[.mmm]``) ->
     ``"YYYY-MM-DD HH:MM:SS"`` in UTC. Fail-closed on any malformed part; never a
     producer-clock fallback."""
-    if not isinstance(time_of_day, str):
-        raise AdapterError(f"non-string provider timestamp: {time_of_day!r}")
-    hms = time_of_day.split(".", 1)[0]  # drop optional milliseconds
+    if not isinstance(time_of_day, str) or _TOD_RE.match(time_of_day) is None:
+        # Validate the ENTIRE value (F5): reject empty/short/long fractions,
+        # non-digit or second-dot suffixes -- never silently discard a bad suffix.
+        raise AdapterError(f"malformed provider time-of-day: {time_of_day!r}")
+    hms = time_of_day.split(".", 1)[0]  # strip validated millis (producer is s-precision)
     try:
         d = datetime.strptime(date_str, "%Y-%m-%d").date()
         t = datetime.strptime(hms, "%H:%M:%S").time()

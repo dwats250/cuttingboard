@@ -207,6 +207,37 @@ def test_default_transport_preserves_httperror_status(monkeypatch):
     assert status == 503
 
 
+def test_default_transport_wraps_httpexception_truncation_as_adaptererror(
+    monkeypatch,
+):
+    # A response that opens 200 but truncates mid-read raises IncompleteRead, an
+    # http.client.HTTPException (NOT an OSError) -- it must still become
+    # AdapterError (F6), and never leak the bearer token.
+    import http.client
+    import urllib.request as urlreq
+
+    class _TruncatingResp:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            raise http.client.IncompleteRead(b"partial")
+
+    monkeypatch.setattr(urlreq, "urlopen",
+                        lambda req, timeout=None: _TruncatingResp())
+    with pytest.raises(ad.AdapterError) as excinfo:
+        ad._default_transport(
+            "GET", ad.build_chain_url("SPX", "C", _DATE),
+            {"Authorization": "Bearer SECRET-TOKEN"}, None,
+        )
+    assert "SECRET-TOKEN" not in str(excinfo.value)
+
+
 # ---------------------------------------------------------------------------
 # OCC composition + SPX/SPXW admission (round-trips through the producer)
 # ---------------------------------------------------------------------------
@@ -302,7 +333,22 @@ def test_compose_feed_timestamp_uses_real_tz_not_fixed_offset():
     assert ad.compose_feed_timestamp("2026-07-15", "09:30:00") == "2026-07-15 13:30:00"
 
 
-@pytest.mark.parametrize("bad", [None, "9:30", "25:00:00", 930])
+@pytest.mark.parametrize("good,expect", [
+    ("09:30:00", "2026-08-17 13:30:00"),      # plain HH:MM:SS accepted
+    ("09:30:00.001", "2026-08-17 13:30:00"),  # HH:MM:SS.mmm accepted
+])
+def test_compose_feed_timestamp_accepts_valid_forms(good, expect):
+    assert ad.compose_feed_timestamp("2026-08-17", good) == expect
+
+
+@pytest.mark.parametrize("bad", [
+    None, "9:30", "25:00:00", 930,
+    "09:30:00.",         # empty fraction (F5)
+    "09:30:00.NOT_MS",   # alphabetic suffix (F5)
+    "09:30:00.1.2",      # second-dot suffix (F5)
+    "09:30:00.12",       # wrong digit count: 2 (F5)
+    "09:30:00.1234",     # wrong digit count: 4 (F5)
+])
 def test_compose_feed_timestamp_malformed_fails_closed(bad):
     with pytest.raises(ad.AdapterError):
         ad.compose_feed_timestamp("2026-08-17", bad)
