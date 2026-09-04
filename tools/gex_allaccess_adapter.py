@@ -40,8 +40,9 @@ rejected as an out-of-scope frozen-contract change with no honesty gain. Proven 
 ``test_source_identity_truthful_cboe_delayed_tier`` and the end-to-end provenance
 assertion.
 
-Fail-closed: any transport non-200, missing token, malformed envelope, missing
-per-record identity field, or unparseable timestamp raises :class:`AdapterError`.
+Fail-closed: any transport non-200 or network failure (URLError/timeout/DNS/
+connection), missing token, malformed envelope, missing per-record identity
+field, or unparseable timestamp raises :class:`AdapterError`.
 The producer's ``run`` catches it, returns non-zero, and preserves the last-good
 artifact. This adapter never contacts ``cdn.cboe.com`` / ``delayed_quotes``.
 
@@ -124,6 +125,10 @@ def _default_transport(
             return resp.status, resp.read()
     except urllib.error.HTTPError as exc:  # non-200 surfaced as its status
         return exc.code, exc.read() if hasattr(exc, "read") else b""
+    except OSError as exc:  # URLError/timeout/DNS/connection -> typed fail-loud
+        # Non-secret context only: method + url (creds live in headers, never in
+        # the URL) + the OS-level reason. Never include headers.
+        raise AdapterError(f"transport failure for {method} {url}: {exc}") from exc
 
 
 # ---------------------------------------------------------------------------

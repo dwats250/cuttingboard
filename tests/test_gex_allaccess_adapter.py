@@ -16,6 +16,7 @@ from __future__ import annotations
 import base64
 import json
 import sys
+import urllib.error
 import urllib.parse
 from datetime import datetime, timezone
 from pathlib import Path
@@ -160,6 +161,50 @@ def test_fetch_chain_non_200_fails_closed():
     tx = FakeTransport(chain_status=503)
     with pytest.raises(ad.AdapterError):
         ad.fetch_chain("tok-123", "SPX", "C", _DATE, tx)
+
+
+# ---------------------------------------------------------------------------
+# Transport error typing (F4): network failures -> AdapterError; HTTPError
+# status preserved; no secret in the error context.
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("network_exc", [
+    urllib.error.URLError("name resolution failed"),
+    TimeoutError("timed out"),
+    ConnectionResetError("connection reset"),
+])
+def test_default_transport_wraps_network_errors_as_adaptererror(monkeypatch,
+                                                                network_exc):
+    # Without the OSError-family catch these would propagate as their raw type,
+    # not AdapterError; this asserts the typed fail-loud conversion.
+    import urllib.request as urlreq
+
+    def boom(req, timeout=None):
+        raise network_exc
+
+    monkeypatch.setattr(urlreq, "urlopen", boom)
+    with pytest.raises(ad.AdapterError) as excinfo:
+        ad._default_transport(
+            "GET", ad.build_chain_url("SPX", "C", _DATE),
+            {"Authorization": "Bearer SECRET-TOKEN"}, None,
+        )
+    # non-secret context only: the auth token must never leak into the message
+    assert "SECRET-TOKEN" not in str(excinfo.value)
+
+
+def test_default_transport_preserves_httperror_status(monkeypatch):
+    # HTTPError must remain a (status, body) return, NOT be wrapped as
+    # AdapterError -- guards the except-order (HTTPError before OSError).
+    import io
+    import urllib.request as urlreq
+
+    def boom(req, timeout=None):
+        raise urllib.error.HTTPError(ad.TOKEN_URL, 503, "unavailable", {},
+                                     io.BytesIO(b""))
+
+    monkeypatch.setattr(urlreq, "urlopen", boom)
+    status, _ = ad._default_transport("POST", ad.TOKEN_URL, {}, b"grant")
+    assert status == 503
 
 
 # ---------------------------------------------------------------------------
@@ -314,12 +359,17 @@ def test_normalize_missing_options_array_fails_closed():
         ad.normalize([resp], _DATE)
 
 
-def test_normalize_consumes_full_options_array_no_pagination():
-    # The bounded snapshot endpoint has no request-side cursor/limit; the entire
-    # options array is consumed in one response.
-    many = [_option("SPX", "C", 5000.0 + 5 * i, 0.0002, 100) for i in range(40)]
-    payload = ad.normalize([_chain_response(many)], _DATE)
+def test_normalize_preserves_every_option_in_returned_array():
+    # Proves ONLY that normalization preserves every option present in the
+    # returned options array (no silent drop/dedup). It asserts NOTHING about
+    # provider pagination semantics -- per Cboe docs the endpoint returns the
+    # chain in one unfiltered response with no page/limit/cursor param (seq_no is
+    # a sequence number, not a cursor), which is a provider-contract fact a
+    # synthetic fixture cannot and does not prove.
+    returned = [_option("SPX", "C", 5000.0 + 5 * i, 0.0002, 100) for i in range(40)]
+    payload = ad.normalize([_chain_response(returned)], _DATE)
     assert len(payload["data"]["options"]) == 40
+    assert len({o["option"] for o in payload["data"]["options"]}) == 40
 
 
 # ---------------------------------------------------------------------------
