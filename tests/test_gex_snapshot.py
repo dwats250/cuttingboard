@@ -736,6 +736,26 @@ class TestIByStrike:
         art = _run_ok(tmp_path, self._future())
         assert "by_strike" in art["provenance"]["derived"]
 
+    def test_total_equals_pinned_fsum_over_mixed_magnitudes(self, tmp_path):
+        # The core total is exactly the pinned math.fsum over the ascending carrier,
+        # on a chain spanning large and small notionals. This is the invariant the
+        # consumer replays; a fsum-vs-sum divergence is NOT constructible on
+        # CPython 3.12+ (its sum() is Neumaier-compensated), so the binding
+        # property is exact producer/consumer agreement, not fsum beating sum().
+        opts = [
+            _contract("SPX260919C07000000", 0.9, 900000),        # large
+            _contract("SPX260919P07000000", 0.8, 850000),
+            _contract("SPX260919C07500000", 1e-9, 1),            # tiny
+            _contract("SPX260919P07500000", 3e-7, 4),
+            _contract("SPX260919C08000000", 0.4, 250000),
+            _contract("SPX260919P08000000", 0.41, 240000),
+        ]
+        art = _run_ok(tmp_path, _feed(opts, current_price=7500.0))
+        bs = art["by_strike"]
+        c = bs["call_modeled_magnitude_1pct_usd"]
+        p = bs["put_modeled_magnitude_1pct_usd"]
+        assert art["gex_total_1pct_usd"] == math.fsum(v for a, b in zip(c, p) for v in (a, -b))
+
 
 # ==========================================================================
 # Guard: JSON must never carry NaN/Inf tokens

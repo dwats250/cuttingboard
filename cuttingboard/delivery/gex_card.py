@@ -240,7 +240,10 @@ def _reconciles(kf: list, call: list, put: list, snapshot) -> bool:
 
 
 def _anchor_bins(snapshot) -> dict:
-    """Map each available core anchor strike to its containing bin (C/P/D)."""
+    """Map each available core anchor strike to its containing bin (C/P/D). An
+    anchor whose bin falls outside the 31-bin window carries no marker in this
+    text seam; its raw strike and distance are still printed in the core
+    LARGEST-... row, and the ladder slice will place off-window anchors."""
     out = {}
     for mark, key in (("C", "call_wall"), ("P", "put_wall"), ("D", "dominant_net_gamma")):
         obj = snapshot.get(key)

@@ -469,3 +469,17 @@ def test_profile_no_forbidden_vocabulary():
                   "cancellation", "offset", "financing", "footprint", "paired", "two-sided",
                   "tracks spot", "at spot", "bullish", "bearish", "dominant"):
         assert token not in out, token
+
+
+# --- an anchor whose bin is OUTSIDE the window: no ladder marker, still disclosed ---
+def test_profile_anchor_outside_window_disclosed_in_core():
+    # A far max-magnitude anchor sits outside the +/-375 window; the minimal seam
+    # marks only in-window anchor bins (the SVG ladder is deferred), but the raw
+    # strike is always printed in the core LARGEST-... row, so nothing is lost.
+    s = _coherent([7750.0, 9000.0], [10.0, 90.0], [0.0, 0.0])        # 9000 >> spot+375
+    card = _card(s)
+    assert card is not None and card.profile is not None
+    marks = {m for b in card.profile.window_bins for m in b.markers}
+    assert marks == set()                                            # 9000 anchor bin is off-window
+    out = _frag(s)
+    assert "LARGEST CALL-CONTRACT MAGNITUDE STRIKE" in out and "9000" in out
