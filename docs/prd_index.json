@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 323,
-  "next_prd": 324,
+  "latest_complete": 330,
+  "next_prd": 331,
   "entries": [
     {
       "number": 56,
@@ -1614,26 +1614,26 @@
     {
       "number": 324,
       "title": "A1-C Intraday Session-Chart Consumer (intraday session-candle, consumer half)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "116a068"
     },
     {
       "number": 325,
       "title": "A1-P STAY_FLAT observational alignment (hourly observation/decision split)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "25ab0e9"
     },
     {
       "number": 326,
       "title": "D1 primary chart observational visibility (dashboard renderer only)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "f555b48"
     },
     {
       "number": 327,
       "title": "Dashboard D2 above-fold context compression (VERDICT/TAPE/TODAY presentation only)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "ebf01dd"
     },
     {
       "number": 328,
@@ -1644,14 +1644,14 @@
     {
       "number": 329,
       "title": "Dashboard D3 implementation: closed-C-tier one-click evidence (S1) + SPY session first-class observation (S2), renderer only",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "218fb9a"
     },
     {
       "number": 330,
       "title": "Dashboard D4 implementation: Proto-B primary-path synthesis + SPY chart LEVELS control",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "13c7f04"
     }
   ]
 }
