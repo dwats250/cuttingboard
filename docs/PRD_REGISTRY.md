@@ -341,13 +341,13 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-321 | #284 | Operator setup chart consumer (Lane A slice 1) | COMPLETE | [PRD-321](prd_history/PRD-321.md) |
 | PRD-322 | #285 | Operator context tape: visible macro + trend projection | COMPLETE | [PRD-322](prd_history/PRD-322.md) |
 | PRD-323 | 6847382 | A1-P Intraday 1-minute Source-Bar Producer (intraday session-candle, producer half) | COMPLETE | [PRD-323](prd_history/PRD-323.md) |
-| PRD-324 | — | A1-C Intraday Session-Chart Consumer (intraday session-candle, consumer half) | IN PROGRESS | [PRD-324](prd_history/PRD-324.md) |
-| PRD-325 | — | A1-P STAY_FLAT observational alignment (hourly observation/decision split) | IN PROGRESS | [PRD-325](prd_history/PRD-325.md) |
-| PRD-326 | — | D1 primary chart observational visibility (dashboard renderer only) | IN PROGRESS | [PRD-326](prd_history/PRD-326.md) |
-| PRD-327 | — | Dashboard D2 above-fold context compression (VERDICT/TAPE/TODAY presentation only) | IN PROGRESS | [PRD-327](prd_history/PRD-327.md) |
+| PRD-324 | 116a068 | A1-C Intraday Session-Chart Consumer (intraday session-candle, consumer half) | COMPLETE | [PRD-324](prd_history/PRD-324.md) |
+| PRD-325 | 25ab0e9 | A1-P STAY_FLAT observational alignment (hourly observation/decision split) | COMPLETE | [PRD-325](prd_history/PRD-325.md) |
+| PRD-326 | f555b48 | D1 primary chart observational visibility (dashboard renderer only) | COMPLETE | [PRD-326](prd_history/PRD-326.md) |
+| PRD-327 | ebf01dd | Dashboard D2 above-fold context compression (VERDICT/TAPE/TODAY presentation only) | COMPLETE | [PRD-327](prd_history/PRD-327.md) |
 | PRD-328 | — | Dashboard D3: user-opened secondary tier evidence + SPY session first-class observation (renderer only) — packet-in-PRD-form; review-clean content at edf28d4 canonicalized to audits/dashboard-d3-material-packet-2026-09/ per Helm B1 ruling 2026-09-02; superseded by PRD-329; never implementation authority | DEPRECATED | [PRD-328](prd_history/PRD-328.md) |
-| PRD-329 | — | Dashboard D3 implementation: closed-C-tier one-click evidence (S1) + SPY session first-class observation (S2), renderer only | IN PROGRESS | [PRD-329](prd_history/PRD-329.md) |
-| PRD-330 | — | Dashboard D4 implementation: Proto-B primary-path synthesis + SPY chart LEVELS control | IN PROGRESS | [PRD-330](prd_history/PRD-330.md) |
+| PRD-329 | 218fb9a | Dashboard D3 implementation: closed-C-tier one-click evidence (S1) + SPY session first-class observation (S2), renderer only | COMPLETE | [PRD-329](prd_history/PRD-329.md) |
+| PRD-330 | 13c7f04 | Dashboard D4 implementation: Proto-B primary-path synthesis + SPY chart LEVELS control | COMPLETE | [PRD-330](prd_history/PRD-330.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
@@ -371,4 +371,5 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-328 | [docs/prd_history/PRD-328.confirmation4.codex.md](prd_history/PRD-328.confirmation4.codex.md) |
 | PRD-329 | [docs/prd_history/PRD-329.confirmation1.codex.md](prd_history/PRD-329.confirmation1.codex.md) |
 | PRD-329 | [docs/prd_history/PRD-329.confirmation2.codex.md](prd_history/PRD-329.confirmation2.codex.md) |
+| PRD-330 | [docs/prd_history/PRD-330.confirmation1.fable.md](prd_history/PRD-330.confirmation1.fable.md) |
 | PRD-315 | [docs/prd_history/PRD-315.impl-review.claude.md](prd_history/PRD-315.impl-review.claude.md) |
