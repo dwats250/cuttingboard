@@ -16,6 +16,25 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-09-04 — GEX provider question closed: free Cboe path DISALLOWED, All Access dormant (ruled: Dustin / HELM)
+
+Provider-rights recovery (a charge to return to the original free Cboe `_SPX`
+`delayed_quotes` plan) returned CASE B: current first-party Cboe terms do not
+clear it. Helm ruling: (1) do NOT repeal the 2026-09-03 disallow on automated
+Cboe `delayed_quotes` acquisition (`main 83fd12a`, PR #311, which removed the
+PRD-310 hourly refresh step from `hourly_alert.yml`); (2) do NOT activate the
+licensed All Access path (no signup / trial / paid / provider contact); (3) do
+NOT reopen provider shopping. Live GEX acquisition stays BLOCKED / context-only;
+provider-neutral GEX math, board card, and structural-profile work remain valid
+and retained. The reviewed All Access adapter merged (PR #315, `bc2382d`) but
+stays deliberately DORMANT -- no credentials, no wiring, no caller -- and is not
+to be reverted merely for dormancy. Basis: cboe.com/terms/ (Last Updated
+2022-11-16) grants only one-copy personal view/print and requires prior written
+consent to store in a retrieval system or create a derivative index, plus the
+quote-table auto-extraction prohibition (manual ticker entry only); evidence in
+the reconciliation audit (commit `14d3012`). Closes the provider decision; no
+further GEX-provider-rights cycles unless Helm reopens it.
+
 ## 2026-09-02 — PRD-330 implemented (Dashboard D4: Proto-B primary-path synthesis + SPY chart LEVELS control); GOV-2 s10 SUPERSEDED IN PART propagations landed with the implementation head (ruled: Dustin / HELM, design-direction ruling D-1..D-8 2026-09-02; conditional Gate A effective on `c763020` after the deterministic diff verification)
 
 Authority chain: review-clean MATERIAL packet `audits/dashboard-d4-material-packet-2026-09/DASHBOARD_D4_MATERIAL_PACKET_2026-09-02.md` (CONFIRMED-CLEAN at `005117e`) -> Helm design-direction ruling D-1..D-8 (recorded in the packet) -> PRD-330 (fresh-context Fable 5.1 MEDIUM review under the PRD-330-only Helm process ruling, one consolidated correction `a243f5d`, exact-head confirmation #1 `7cfe9ab` with one wording residual, Helm-authorized micro-correction `c763020`) -> Gate A effective on `c763020` by the Helm conditional rule. Implementation commits S0 `69ac257` (legacy byte oracle), S1 `258ae9d` (setup_chart layers seam), S2 `7f825ee` (renderer primary path, control, tests, goldens), S3 (this propagation).
