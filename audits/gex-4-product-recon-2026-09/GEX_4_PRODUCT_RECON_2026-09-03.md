@@ -28,12 +28,24 @@ ACCEPT WITH NARROW IMPLEMENTATION BOUNDARY; no waiver.
 | R5 window honesty | 7 (in/out percentages, N of M shown, recentering statement) |
 | R6 profile-only settlement validity | 8 (fail-closed rule, typed carrier shape, core card untouched) |
 | R7 expiry / root disclosure | 12 (visible adjacent copy) |
-| R8 canonical carrier, exact reconciliation, compatibility | 9 (carrier), 10 (tests), schema v1 kept |
+| R8 canonical carrier, exact reconciliation, compatibility | 9 (carrier: positive call and put modeled magnitudes, model net = call - put, pinned fsum expression), 10 (tests), schema v1 kept |
 | accessibility recommendation | 5 (full-bin textual table, no hover reliance) |
 | live-validation recommendation | 16 (recorded; not all pre-build blockers) |
 | strike-mills recommendation | 7 (adopted) |
 | keep all admitted strikes | 9 (adopted) |
 | window recentering statement | 7, 12 (adopted) |
+
+Event-2 attempt 1 (`GEX_4_EVENT_2_CONFIRMATION_ATTEMPT_1_2026-09-03.md`,
+head d852682): NOT CONFIRMED on two confirmation defects; Helm authorized ONE
+bounded repair limited to them: (A) exact visible vocabulary (CALL MODELED
+MAGNITUDE, PUT MODELED MAGNITUDE, MODEL NET*, CALL+PUT MODELED MAGNITUDE;
+LARGEST CALL-CONTRACT MAGNITUDE STRIKE, LARGEST PUT-CONTRACT MAGNITUDE STRIKE,
+LARGEST RAW-STRIKE |MODEL NET|), applied throughout this document, section 12
+and the current prototype; (B) the carrier stores POSITIVE call and put
+modeled magnitudes (`call_modeled_magnitude_1pct_usd`,
+`put_modeled_magnitude_1pct_usd`), model net = call - put, one pinned fsum
+expression (section 9). R1, R4, R5, R6, R7, schema v1, window, outlier rule,
+accessibility and suppression architecture are unchanged in substance.
 
 Historical artifacts: `GEX_4_CODEX_HIGH_PACKET_2026-09-03.md` is the frozen
 Event-1 review input and is NOT updated (it still contains the superseded
@@ -98,9 +110,9 @@ Nothing per-expiry per-strike is computed. Helm hypothesis CONFIRMED exactly.
 
 ## 3. REAL-DATA FINDINGS (live chain, 2026-09-03 18:42 ET, spot 7747.71)
 
-Quantities below use section 6 definitions: CALL MAG = call modeled
-magnitude, PUT MAG = put modeled magnitude (shown as a positive number), MAG =
-call+put modeled magnitude, MODEL NET* = call mag - put mag under the
+Quantities below use section 6 definitions: CALL MODELED MAGNITUDE = call modeled
+magnitude, PUT MODELED MAGNITUDE = put modeled magnitude (shown as a positive number), CALL+PUT MODELED MAGNITUDE =
+call+put modeled magnitude, MODEL NET* = call modeled magnitude - put modeled magnitude under the
 configured convention.
 
 | quantity | value |
@@ -108,19 +120,19 @@ configured convention.
 | contracts admitted | 28,492 / 28,492 |
 | distinct strikes | 809 (200..20000); 669 with nonzero magnitude |
 | chain MODEL NET* | +80.4B |
-| chain MAG | 595.5B |
+| chain CALL+PUT MODELED MAGNITUDE | 595.5B |
 | chain |model net| / mag | 0.135 |
-| MAG within +/-1% / 2% / 3% / 5% / 10% of spot | 33% / 48% / 56% / 80% / 94% |
+| CALL+PUT MODELED MAGNITUDE within +/-1% / 2% / 3% / 5% / 10% of spot | 33% / 48% / 56% / 80% / 94% |
 | strike pitch within +/-3% | 5 points everywhere (93 strikes) |
-| MAG on 25-multiple strikes within +/-3% | 60%; the other 40% (134B) is spread over 74 five-point strikes, 1-5B each, almost none same-day |
-| largest expiry by MAG | 2026-09-18 monthly, 35.6% of chain MAG |
-| same-day (2026-09-03) contracts still in the post-close feed | 504, 14.8B MAG, share 2.5% |
+| CALL+PUT MODELED MAGNITUDE on 25-multiple strikes within +/-3% | 60%; the other 40% (134B) is spread over 74 five-point strikes, 1-5B each, almost none same-day |
+| largest expiry by CALL+PUT MODELED MAGNITUDE | 2026-09-18 monthly, 35.6% of chain CALL+PUT MODELED MAGNITUDE |
+| same-day (2026-09-03) contracts still in the post-close feed | 504, 14.8B CALL+PUT MODELED MAGNITUDE, share 2.5% |
 
 Observation F1 (R1-corrected). Near-balanced call and put modeled magnitude
 at the same strike is the dominant feature of this chain, and it sits on
 round strikes:
 
-| strike | dist | CALL MAG | PUT MAG | MODEL NET* | MAG | |net|/mag |
+| strike | dist | CALL MODELED MAGNITUDE | PUT MODELED MAGNITUDE | MODEL NET* | CALL+PUT MODELED MAGNITUDE | |model net| / magnitude |
 |---|---|---|---|---|---|---|
 | 8000 | +3.26% | 38.06B | 32.94B | +5.12B | 71.0B | 0.07 |
 | 7750 | +0.03% | 19.31B | 13.56B | +5.75B | 32.9B | 0.17 |
@@ -143,7 +155,7 @@ Consequences for the display:
 - The existing 8000 anchors are argmaxes of call magnitude and put magnitude
   that happen to coincide because both magnitudes are large there. The card
   cannot show that they are near-balanced.
-- A model-net-only profile would render the 7700 bin (MAG 39.5B, MODEL NET*
+- A model-net-only profile would render the 7700 bin (CALL+PUT MODELED MAGNITUDE 39.5B, MODEL NET*
   +0.03B) as nothing, which asserts more than the data supports.
 - A magnitude-only profile would rank 8000 far above every other strike
   without showing that its model net is small.
@@ -153,7 +165,7 @@ Consequences for the display:
   the arithmetic and stops.
 
 Observation F2. Top-N by magnitude is not spatially useful alone: N=16 covers
-51% of MAG spanning 7000..8000; N=32 reaches 6000 and only 64%. Nearest-N is
+51% of CALL+PUT MODELED MAGNITUDE spanning 7000..8000; N=32 reaches 6000 and only 64%. Nearest-N is
 worse (N=32 = +/-1%, 34%).
 
 Observation F3 (R6 input). The post-close feed still carried 504 contracts
@@ -164,12 +176,12 @@ hours ... numerator legitimately 0"; on an expiry day after the close that is
 FALSIFIED by observation. Whether the 13:10 PT (16:10 ET) hourly run sees
 those rows is UNKNOWN (not sampled).
 
-Observation F4. Within +/-5%, 52% of MAG is above spot and CALL MAG is 58% of
-MAG. Above spot |model net|/mag is 0.75-0.9 (mostly call magnitude); at and
+Observation F4. Within +/-5%, 52% of CALL+PUT MODELED MAGNITUDE is above spot and CALL MODELED MAGNITUDE is 58% of
+CALL+PUT MODELED MAGNITUDE. Above spot |model net| / magnitude is 0.75-0.9 (mostly call magnitude); at and
 below spot it is 0.03-0.26 (near-balanced). That asymmetry is invisible today.
 
 Bin fact for R4: in the 31-bin table (section 14 / historical packet) the
-widest bin by MAG is 8000 (72.57B); the widest bin at spot is 7750 (47.53B).
+widest bin by CALL+PUT MODELED MAGNITUDE is 8000 (72.57B); the widest bin at spot is 7750 (47.53B).
 The historical packet's Q8 wording ("widest bin (7750)") was wrong and is
 left uncorrected there as the frozen Event-1 input.
 
@@ -192,18 +204,18 @@ attribute-styled SVG inside the existing `#gex-context` fragment. No JS (the
 renderer test pins exactly one `<script>`).
 
 Row anatomy, left to right: bin label (100-multiples in ink, others muted) |
-raw-strike anchor marker column (C, P, D) | zero axis; PUT MAG extent to the
-left and CALL MAG extent to the right in one neutral gray; MODEL NET* bar
+raw-strike anchor marker column (C, P, D) | zero axis; PUT MODELED MAGNITUDE extent to the
+left and CALL MODELED MAGNITUDE extent to the right in one neutral gray; MODEL NET* bar
 overlaid in ONE non-directional color (dashboard ink #e0e0e0), drawn to the
 left of zero when negative and to the right when positive | MODEL NET* value
 with explicit sign. Spot: dashed line at its exact position, label "SPX CASH
-SPOT <value>". Column headings "PUT MAG <" and "> CALL MAG" in neutral muted
+SPOT <value>". Column headings "PUT MODELED MAGNITUDE <" and "> CALL MODELED MAGNITUDE" in neutral muted
 text. No red, no blue, no status colors anywhere in the block.
 
 Default-visible (inside the existing details-history disclosure as today):
 - existing rows, semantics unchanged, labels relabeled per section 12
-- new row: "CALL+PUT MODELED MAG <x>B"
-- window line: "WINDOW SHOWS 80% OF CHAIN CALL+PUT MODELED MAG . 20% OUTSIDE"
+- new row: "CALL+PUT MODELED MAGNITUDE <x>B"
+- window line: "WINDOW SHOWS 80% OF CHAIN CALL+PUT MODELED MAGNITUDE . 20% OUTSIDE"
 - the ladder
 - outside-bins line with counts (section 7)
 - adjacent qualifier lines (section 12)
@@ -211,7 +223,7 @@ Default-visible (inside the existing details-history disclosure as today):
 
 Accessible textual content (Event-1 recommendation, adopted): a `<details>`
 "ALL 31 BINS + OUTSIDE BINS" plain-HTML table with one row per window bin
-(bin, interval, CALL MAG, PUT MAG, MODEL NET*) plus one row per listed
+(bin, interval, CALL MODELED MAGNITUDE, PUT MODELED MAGNITUDE, MODEL NET*) plus one row per listed
 outside bin. It is the phone-inspectable form; SVG `<title>` remains only as
 a desktop convenience and is not relied on. Each SVG row group also carries an
 `aria-label` with the same four values.
@@ -232,24 +244,26 @@ spot, timestamp: provider-observed. 100, 0.01: configured. s: configured
 assumption (INFERRED class).
 
 Per strike K (existing intermediates, serialized by the canonical carrier):
-- CALL MAG(K) = sum of gex(c) over included calls at K, >= 0
-- PUT MAG(K)  = |sum of gex(c) over included puts at K|, >= 0 (the carrier
-  stores the producer's signed value <= 0; the display prints the magnitude)
-- MODEL NET*(K) = CALL MAG(K) - PUT MAG(K) = the producer's net_by_strike[K]
-- CALL+PUT MODELED MAG(K) = CALL MAG(K) + PUT MAG(K)
+- CALL MODELED MAGNITUDE(K) = sum of gex(c) over included calls at K, >= 0
+- PUT MODELED MAGNITUDE(K)  = |sum of gex(c) over included puts at K|, >= 0 (the carrier
+  stores this positive magnitude; the producer's signed put contribution is
+  -PUT MODELED MAGNITUDE(K))
+- MODEL NET*(K) = CALL MODELED MAGNITUDE(K) - PUT MODELED MAGNITUDE(K) (equal to the producer's
+  net_by_strike[K] under the existing call-positive / put-negative arithmetic)
+- CALL+PUT MODELED MAGNITUDE(K) = CALL MODELED MAGNITUDE(K) + PUT MODELED MAGNITUDE(K)
 
-Per bin b (consumer-derived, section 7): each of CALL MAG and PUT MAG summed
-over K in the bin; MODEL NET* and MAG of the bin follow from the sums. Chain
-totals: MODEL NET* total = existing `gex_total_1pct_usd`; chain MAG = sum over
-K of CALL MAG + PUT MAG.
+Per bin b (consumer-derived, section 7): each of CALL MODELED MAGNITUDE and PUT MODELED MAGNITUDE summed
+over K in the bin; MODEL NET* and CALL+PUT MODELED MAGNITUDE of the bin follow from the sums. Chain
+totals: MODEL NET* total = existing `gex_total_1pct_usd`; chain CALL+PUT MODELED MAGNITUDE = sum over
+K of CALL MODELED MAGNITUDE + PUT MODELED MAGNITUDE.
 
-Meaning: CALL MAG and PUT MAG are the provider-model gamma notionals per 1%
+Meaning: CALL MODELED MAGNITUDE and PUT MODELED MAGNITUDE are the provider-model gamma notionals per 1%
 SPX move carried by call contracts and by put contracts at a strike, across
 all expirations and both roots. MODEL NET* applies the configured call-plus /
-put-minus convention to them. CALL+PUT MODELED MAG is the same arithmetic with
+put-minus convention to them. CALL+PUT MODELED MAGNITUDE is the same arithmetic with
 the sign assignment removed.
 
-A thin MODEL NET* bar over a wide MAG extent means only: the aggregated call
+A thin MODEL NET* bar over a wide CALL+PUT MODELED MAGNITUDE extent means only: the aggregated call
 and put modeled magnitudes inside this bin are near-balanced under the
 configured arithmetic. It does not claim economic offset, participant
 cancellation, dealer exposure, or a true-gamma sign.
@@ -281,41 +295,41 @@ appearing or disappearing between hourly runs is not read as a structural
 change.
 
 Coverage disclosure (both directions, with the denominator named):
-"WINDOW SHOWS <in>% OF CHAIN CALL+PUT MODELED MAG . <out>% OUTSIDE", in + out
+"WINDOW SHOWS <in>% OF CHAIN CALL+PUT MODELED MAGNITUDE . <out>% OUTSIDE", in + out
 = 100 (rounded consistently; if rounding breaks the sum, show one decimal).
 
-Outside bins: every bin outside the window with MAG >= 2% of chain MAG
+Outside bins: every bin outside the window with CALL+PUT MODELED MAGNITUDE >= 2% of chain CALL+PUT MODELED MAGNITUDE
 qualifies; the list is ascending by strike; at most 6 rows are shown; when
-capped the line reads "<N> OF <M> OUTSIDE BINS >= 2% OF CHAIN MAG SHOWN . <K>
-MORE". When none qualify: "OUTSIDE BINS >= 2% OF CHAIN MAG: NONE". Each row:
-bin, distance %, MAG, MODEL NET*. The full accessible table (section 5) lists
-ALL qualifying outside bins, uncapped. Zero-denominator guard: when chain MAG
+capped the line reads "<N> OF <M> OUTSIDE BINS >= 2% OF CHAIN CALL+PUT MODELED MAGNITUDE SHOWN . <K>
+MORE". When none qualify: "OUTSIDE BINS >= 2% OF CHAIN CALL+PUT MODELED MAGNITUDE: NONE". Each row:
+bin, distance %, CALL+PUT MODELED MAGNITUDE, MODEL NET*. The full accessible table (section 5) lists
+ALL qualifying outside bins, uncapped. Zero-denominator guard: when chain CALL+PUT MODELED MAGNITUDE
 == 0 no bin qualifies (a red test covers 0 >= 0).
 
-Scale: bar scale = 112 SVG units per max over window bins of max(CALL MAG,
-PUT MAG); extents always fit; the MODEL NET* bar uses the same scale.
+Scale: bar scale = 112 SVG units per max over window bins of max(CALL MODELED MAGNITUDE,
+PUT MODELED MAGNITUDE); extents always fit; the MODEL NET* bar uses the same scale.
 
 Raw-strike anchors (R4): C, P, D are the existing producer anchors
 (call_wall.strike, put_wall.strike, dominant_net_gamma.strike). They are
 placed in their containing bin and do NOT identify the bin-level maximum;
 the legend and the accessible table row say so and print the raw strike.
 
-Suppression: if window MAG == 0 the ladder is omitted and only the coverage
+Suppression: if window CALL+PUT MODELED MAGNITUDE == 0 the ladder is omitted and only the coverage
 and outside lines are shown; if the carrier is absent, unavailable, or
 malformed the card renders exactly as today (section 9).
 
-Why this rule: 80% of chain MAG is inside the window on the live chain; 25-pt
-resolution keeps all 5-point rows (40% of near MAG) instead of dropping them;
+Why this rule: 80% of chain CALL+PUT MODELED MAGNITUDE is inside the window on the live chain; 25-pt
+resolution keeps all 5-point rows (40% of near CALL+PUT MODELED MAGNITUDE) instead of dropping them;
 the fixed bin count keeps layout stable; the outside list with counts keeps
 far structure honest without distorting geometry. Rejected: distance-%
 window (row count drifts with spot), top-N (51-64% coverage, no contiguity),
 nearest-N (17-40%, never reaches 8000), 25-multiple strikes only (drops 40%
-of near MAG).
+of near CALL+PUT MODELED MAGNITUDE).
 
 Edge cases run on the live chain (`evidence/selection_rule_edge_cases_*`):
 far outlier x5 (window unchanged, in-window 68%, outlier listed at 131B); no
 puts; /100; all magnitude above spot (16/31 bins nonzero, two outside bins
-listed); all zero (ladder omitted; chain MAG 0 also means dominant is
+listed); all zero (ladder omitted; chain CALL+PUT MODELED MAGNITUDE 0 also means dominant is
 `all_net_gamma_zero` so PRD-309 Q6 already suppresses the card); tight near
 cluster (5/31 bins, 100% in window); spot -6% (nine qualifying outside bins,
 in-window 34%: the line reads "6 OF 9 ... 3 MORE" and the table lists all
@@ -358,13 +372,24 @@ change to the core 0DTE numerator (its own PRD).
 ## 9. DATA CONTRACT (R8, schema)
 
 Canonical carrier (producer-internal, always built): the sorted union of
-admitted strikes, ascending by strike_mills, with CALL MAG and the signed put
-sum for every strike, absent sides filled with 0.0, all admitted strikes kept
-including zero-magnitude rows (809 on the live chain). The core
-`gex_total_1pct_usd` is computed from this carrier as
-`math.fsum(call_values) + math.fsum(put_values)` in carrier order, replacing
-the current dict-insertion-order `sum()`; `math.fsum` is exactly rounded, so
-the value is order-independent and reproducible from the serialized arrays.
+admitted strikes, ascending by strike_mills, with CALL MODELED MAGNITUDE and
+PUT MODELED MAGNITUDE (both >= 0; the put magnitude is the absolute value of
+the producer's existing signed put contribution) for every strike, absent
+sides filled with 0.0, all admitted strikes kept including zero-magnitude rows
+(809 on the live chain). The core `gex_total_1pct_usd` is computed from this
+carrier by ONE pinned expression, in ascending raw-strike order:
+
+```
+gex_total_1pct_usd = math.fsum(
+    v for c, p in zip(call_modeled_magnitude, put_modeled_magnitude)
+      for v in (c, -p)
+)
+```
+i.e. the flattened operand sequence c(K1), -p(K1), c(K2), -p(K2), ... . The
+producer calculation, the serialized-carrier validation, and the post-JSON
+round-trip validation use this same operand order and the same `math.fsum`
+semantics (exactly rounded; the current dict-insertion-order `sum()` is
+replaced by it).
 call_wall / put_wall / dominant_net_gamma are selected from the same carrier
 with the existing lowest-strike tie rule (values unchanged; the per-strike
 floats are the same objects).
@@ -373,12 +398,20 @@ Serialized field, additive, schema_version stays 1:
 
 ```
 "by_strike": {
-  "reason": null,                          # or an unavailable token (section 8)
-  "strike_mills":      [200000, ..., 20000000],   # int, strictly ascending
-  "call_gex_1pct_usd": [0.0, ..., 38058745224.036],  # float >= 0
-  "put_gex_1pct_usd":  [0.0, ..., -32940752290.109]  # float <= 0 (signed)
+  "reason": null,                                   # or an unavailable token (section 8)
+  "strike":                            [200.0, ..., 20000.0],           # float, strictly ascending, = strike_mills / 1000
+  "call_modeled_magnitude_1pct_usd":   [0.0, ..., 38058745224.036],     # float >= 0
+  "put_modeled_magnitude_1pct_usd":    [0.0, ..., 32940752290.109]      # float >= 0 (positive magnitude)
 }
 ```
+Field names are binding: the positive put field is NOT named
+`put_gex_1pct_usd`; no signed-negative put value is serialized in the carrier.
+Model net per strike is derived, never stored:
+`model_net(K) = call_modeled_magnitude(K) - put_modeled_magnitude(K)`.
+`strike` is emitted as the producer's own `int(digits) / 1000` float (identical
+expression to the anchors' strikes); the consumer derives
+`strike_mills = int(round(strike * 1000))` for binning and rejects the carrier
+if `strike_mills / 1000 != strike`.
 When unavailable: `"by_strike": {"reason": "<token>"}` with no arrays
 (typed-unavailable, same construction style as the wall objects). Columnar,
 so PRD-306 R12 stays green (no raw-chain keys, no list of objects).
@@ -387,15 +420,17 @@ so PRD-306 R12 stays green (no raw-chain keys, no list of objects).
 
 Exact reconciliation invariants (consumer and tests, after JSON round trip;
 Python float repr round-trips exactly):
-- `math.fsum(call) + math.fsum(put) == gex_total_1pct_usd` (exact equality)
-- argmax(call) with lowest-strike tie == call_wall.strike when call_wall is
-  available; max(call) == 0.0 when call_wall.reason == no_nonzero_call_gex
-- argmax(|put|) likewise against put_wall
-- argmax(|call + put|) likewise against dominant_net_gamma (per-strike net is
-  `call[i] + put[i]`, the same expression the producer uses)
-- strike_mills strictly ascending, ints, > 0; strike_mills / 1000 == the
-  anchors' float strikes by the producer's own `int(digits) / 1000`
-- lengths equal and >= 1; every value finite, non-bool; call >= 0; put <= 0
+- `math.fsum(v for c, p in zip(call, put) for v in (c, -p)) ==
+  gex_total_1pct_usd` (exact equality; the pinned expression above)
+- CALL anchor: argmax(call_modeled_magnitude) with lowest-strike tie ==
+  call_wall.strike when call_wall is available; max == 0.0 when
+  call_wall.reason == no_nonzero_call_gex; call_wall.gex_1pct_usd == call[i]
+- PUT anchor: argmax(put_modeled_magnitude) likewise against put_wall;
+  put_wall.gex_1pct_usd == -put[i]
+- DOMINANT anchor: argmax(abs(call[i] - put[i])) likewise against
+  dominant_net_gamma; dominant_net_gamma.gex_1pct_usd == call[i] - put[i]
+- strike strictly ascending floats > 0; strike_mills round trip exact
+- lengths equal and >= 1; every value finite, non-bool; call >= 0; put >= 0
 
 Compatibility (schema_version stays 1 unless correction work proves a wire
 failure; none found):
@@ -415,8 +450,9 @@ optional v1 extension for consumers, always emitted by the new producer
 ## 10. CHANGE CONE (smallest exact)
 
 - Producer `tools/gex_snapshot.py`: build the canonical sorted carrier from
-  the existing dicts; compute the total with `math.fsum` over it; select the
-  three anchors from it (same tie rule); evaluate the profile validity gate;
+  the existing dicts (put side negated to a positive magnitude); compute the
+  total with the pinned flattened `math.fsum` expression over it; select the
+  three anchors from it (same tie rule; DOMINANT from call - put); evaluate the profile validity gate;
   emit `by_strike`; add the provenance entry. About 35-45 LOC. Core
   semantics unchanged (values identical except possible last-ulp differences
   in the total from exact summation).
@@ -431,8 +467,9 @@ optional v1 extension for consumers, always emitted by the new producer
 - Tests that move: producer R1 schema (new key), R37 provenance, R13
   determinism (regenerate expected bytes if the fsum total differs in the
   last ulp), R2 hand-computed total (exact against fsum); new producer tests:
-  carrier is the exact intermediate (hand-built feed), all admitted strikes
-  kept, strictly ascending mills, exact reconciliation after round trip, R12
+  carrier is the exact intermediate (hand-built feed; put magnitude equals
+  the negated signed put sum), all admitted strikes kept, strictly ascending,
+  exact reconciliation after round trip with the pinned fsum expression, R12
   still green, validity gate rules 1/2/3 each with a red mutation, typed
   unavailable shape. New consumer tests: absent / unavailable / malformed /
   contradicting carriers (profile-only vs whole-card suppression), mills bin
@@ -453,32 +490,35 @@ optional v1 extension for consumers, always emitted by the new producer
 
 Core rows (semantics unchanged, labels relabeled, text-only):
 - "MODEL NET*" (was Net)
-- "LARGEST |MODEL NET| STRIKE" (was Dominant)
-- "LARGEST CALL MAG STRIKE" (was Call wall)
-- "LARGEST PUT MAG STRIKE" (was Put wall)
+- "LARGEST RAW-STRIKE |MODEL NET|" (was Dominant)
+- "LARGEST CALL-CONTRACT MAGNITUDE STRIKE" (was Call wall)
+- "LARGEST PUT-CONTRACT MAGNITUDE STRIKE" (was Put wall)
 - "0DTE" (unchanged)
 
 Profile block:
-- new row: "CALL+PUT MODELED MAG <x>B"
-- coverage: "WINDOW SHOWS <in>% OF CHAIN CALL+PUT MODELED MAG . <out>% OUTSIDE"
-- ladder headers: "STRIKE" | "PUT MAG <" | "> CALL MAG" | "MODEL NET* $B"
+- new row: "CALL+PUT MODELED MAGNITUDE <x>B"
+- coverage: "WINDOW SHOWS <in>% OF CHAIN CALL+PUT MODELED MAGNITUDE . <out>% OUTSIDE"
+- ladder headers: "STRIKE" | "PUT MODELED MAGNITUDE <" | "> CALL MODELED
+  MAGNITUDE" | "MODEL NET* $B"
 - spot label: "SPX CASH SPOT <value>"
 - markers: "C", "P", "D"
-- marker legend: "C / P / D = RAW-STRIKE ANCHORS (LARGEST CALL MAG, LARGEST
-  PUT MAG, LARGEST |MODEL NET|) SHOWN IN THEIR 25-PT BIN; NOT THE BIN MAXIMUM."
+- marker legend: "C / P / D = RAW-STRIKE ANCHORS (LARGEST CALL-CONTRACT
+  MAGNITUDE STRIKE, LARGEST PUT-CONTRACT MAGNITUDE STRIKE, LARGEST RAW-STRIKE
+  |MODEL NET|) SHOWN IN THEIR 25-PT BIN; NOT THE BIN MAXIMUM."
 - bin legend: "31 x 25-PT BINS [B-12.5, B+12.5) AROUND THE SPX CASH SPOT BIN;
   RECENTERS IN 25-PT STEPS. BIN MODEL NET CAN NEAR-BALANCE ACROSS DIFFERENT
   STRIKES."
 - expiry/root: "ALL EXPIRATIONS COMBINED, EXPIRY MIX HIDDEN. SPX+SPXW
   COMBINED, AM/PM SETTLEMENT NOT MODELED."
-- adjacent sign qualifier: "* MODEL NET = CALL MAG - PUT MAG UNDER THE
-  CONFIGURED CALL-PLUS / PUT-MINUS CONVENTION; PARTICIPANT AND DEALER
-  POSITIONING ARE NOT MEASURED. MAG = CALL MAG + PUT MAG, NO SIGN ASSIGNMENT."
-- outside line: "OUTSIDE BINS >= 2% OF CHAIN MAG: <bin> (<dist>) MAG <x>B NET
-  <y>B" / "<N> OF <M> OUTSIDE BINS >= 2% OF CHAIN MAG SHOWN . <K> MORE" /
-  "OUTSIDE BINS >= 2% OF CHAIN MAG: NONE"
+- adjacent sign qualifier: "* MODEL NET = CALL MODELED MAGNITUDE - PUT MODELED
+  MAGNITUDE. CONFIGURED CALL-PLUS / PUT-MINUS CONVENTION; PARTICIPANT AND
+  DEALER POSITIONING ARE NOT MEASURED. CALL+PUT MODELED MAGNITUDE = CALL
+  MODELED MAGNITUDE + PUT MODELED MAGNITUDE, NO SIGN ASSIGNMENT."
+- outside line: "OUTSIDE BINS >= 2% OF CHAIN CALL+PUT MODELED MAGNITUDE: <bin> (<dist>) CALL+PUT MODELED MAGNITUDE <x>B NET
+  <y>B" / "<N> OF <M> OUTSIDE BINS >= 2% OF CHAIN CALL+PUT MODELED MAGNITUDE SHOWN . <K> MORE" /
+  "OUTSIDE BINS >= 2% OF CHAIN CALL+PUT MODELED MAGNITUDE: NONE"
 - accessible table: "ALL 31 BINS + OUTSIDE BINS" with columns BIN | INTERVAL
-  | CALL MAG | PUT MAG | MODEL NET*
+  | CALL MODELED MAGNITUDE | PUT MODELED MAGNITUDE | MODEL NET*
 - footer as today: "as of HH:MM ET . Cboe ~15m delayed source"
 
 Color: one neutral gray extent, one non-directional ink-colored net bar, muted
@@ -495,7 +535,7 @@ gross, cancellation, offset, box, spread, financing, footprint, paired,
 per-expiry claim, relative "ago" freshness.
 
 Provenance classes kept distinct: provider-observed (OI, spot, timestamp);
-provider model output (gamma); Cuttingboard arithmetic (sums, bins, MAG,
+provider model output (gamma); Cuttingboard arithmetic (sums, bins, CALL+PUT MODELED MAGNITUDE,
 coverage); configured assumption (sign, multiplier, 1%, bin size, window,
 2% threshold); human interpretation (none rendered).
 
