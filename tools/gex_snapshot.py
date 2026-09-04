@@ -29,7 +29,7 @@ import os
 import re
 import sys
 from collections import namedtuple
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timezone
 from pathlib import Path
 from typing import Callable, Optional
 from zoneinfo import ZoneInfo
@@ -77,7 +77,7 @@ _PROVENANCE = {
     "observed": ["spot", "feed_timestamp_utc", "fetched_at_utc"],
     "reported": ["data_delay"],
     "derived": ["gex_total_1pct_usd", "call_wall", "put_wall",
-                "dominant_net_gamma", "zero_dte", "coverage"],
+                "dominant_net_gamma", "zero_dte", "coverage", "by_strike"],
     "inferred": ["sign_convention", "model_label"],
 }
 
@@ -257,6 +257,50 @@ def _select_dominant(net_by_strike: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Per-strike modeled-magnitude carrier + profile-only settlement gate (GEX-4)
+# ---------------------------------------------------------------------------
+
+def _profile_reason(included: list, feed_dt: datetime) -> Optional[str]:
+    """Profile-only settlement validity gate (GEX-4 section 8), evaluated per
+    observation, in this order. This governs ONLY whether the per-strike carrier
+    is emitted with arrays; it never changes gex_total, the anchors, or 0DTE.
+    Fail-closed by construction: root, expiry and the ET observation time are
+    already required for admissibility, so the condition is always evaluable.
+    """
+    obs_et = feed_dt.astimezone(ZoneInfo(EASTERN))
+    obs_date = obs_et.date()
+    # 1. Any admitted SPX-root row expiring on the observation date -> unavailable
+    #    (AM settlement timing is not modeled, so same-day AM-settled rows cannot
+    #    be established as unsettled at any time of day).
+    if any(c.root == "SPX" and c.expiry == obs_date for c in included):
+        return "same_day_spx_rows_present"
+    # 2. At or after 16:00 ET with any admitted same-day SPXW row -> unavailable.
+    if obs_et.time() >= time(16, 0, 0) and any(
+        c.root == "SPXW" and c.expiry == obs_date for c in included
+    ):
+        return "post_close_same_day_spxw_rows_present"
+    # 3. Otherwise the profile carrier is emitted with arrays.
+    return None
+
+
+def _by_strike(call_by_strike: dict, put_by_strike: dict,
+               strikes: list, reason: Optional[str]) -> dict:
+    """Serialize the canonical per-strike carrier (GEX-4 section 9): typed-
+    unavailable (reason only) when the settlement gate fires, else the ascending
+    columnar arrays. ``strikes`` is the ascending union; put magnitudes are the
+    absolute value of the producer's signed put contribution (>= 0). Columnar by
+    design (no list-of-objects, no raw-chain keys), so PRD-306 R12 stays green."""
+    if reason is not None:
+        return {"reason": reason}
+    return {
+        "reason": None,
+        "strike": list(strikes),
+        "call_modeled_magnitude_1pct_usd": [call_by_strike.get(k, 0.0) for k in strikes],
+        "put_modeled_magnitude_1pct_usd": [abs(put_by_strike.get(k, 0.0)) for k in strikes],
+    }
+
+
+# ---------------------------------------------------------------------------
 # 0DTE (ET observation date, absolute-GEX numerator, all-expiry denominator) - R19-R23
 # ---------------------------------------------------------------------------
 
@@ -318,9 +362,17 @@ def _build_artifact(payload: object, now: datetime, url: str) -> dict:
         value = _gex(contract, spot)
         target = call_by_strike if contract.cp == "C" else put_by_strike
         target[contract.strike] = target.get(contract.strike, 0.0) + value
-    strikes = set(call_by_strike) | set(put_by_strike)
+    strikes = sorted(set(call_by_strike) | set(put_by_strike))
     net_by_strike = {k: call_by_strike.get(k, 0.0) + put_by_strike.get(k, 0.0) for k in strikes}
-    gex_total = sum(call_by_strike.values()) + sum(put_by_strike.values())
+    # Core total reconciled with the carrier: ONE pinned flattened math.fsum over
+    # the ascending union, operand order c(K1), -p(K1), c(K2), -p(K2), ... . The
+    # consumer and the round-trip validation replay this exact expression, so the
+    # reconciliation is exact equality (replaces the old dict-order sum()).
+    call_mag = [call_by_strike.get(k, 0.0) for k in strikes]
+    put_mag = [abs(put_by_strike.get(k, 0.0)) for k in strikes]
+    gex_total = math.fsum(v for c, p in zip(call_mag, put_mag) for v in (c, -p))
+    by_strike = _by_strike(call_by_strike, put_by_strike, strikes,
+                           _profile_reason(included, feed_dt))
 
     expiries = sorted({contract.expiry for contract in included})
     coverage = {
@@ -356,6 +408,7 @@ def _build_artifact(payload: object, now: datetime, url: str) -> dict:
         "put_wall": _select_put_wall(put_by_strike),
         "dominant_net_gamma": _select_dominant(net_by_strike),
         "zero_dte": _zero_dte(included, spot, feed_dt),
+        "by_strike": by_strike,
         "provenance": {cls: list(fields) for cls, fields in _PROVENANCE.items()},
         "coverage": coverage,
     }

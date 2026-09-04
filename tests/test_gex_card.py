@@ -7,6 +7,7 @@ R17-R20 live in tests/test_dashboard_renderer.py.
 
 from __future__ import annotations
 
+import math
 from datetime import datetime, timedelta, timezone
 
 from cuttingboard.delivery import gex_card
@@ -35,6 +36,50 @@ def _base() -> dict:
 
 def _frag(snapshot, now=NOW) -> str:
     return gex_card.render_fragment(snapshot, now=now)
+
+
+# --- GEX-4 helpers: build a core snapshot made coherent with a per-strike carrier
+def _argmax_low(vals):
+    best = max(vals)
+    return next(i for i, v in enumerate(vals) if v == best)
+
+
+def _coherent(strike, call, put, *, spot=7747.71, reason=None, **overrides):
+    """A fresh, in-domain snapshot whose core total and anchors are derived from
+    the given carrier arrays, so the carrier reconciles by construction. Pass
+    ``reason`` for a typed-unavailable carrier; pass overrides to tamper."""
+    net = [c - p for c, p in zip(call, put)]
+
+    def wall(mag, val, token):
+        if max(mag) == 0.0:
+            return {"strike": None, "gex_1pct_usd": None, "reason": token}
+        i = _argmax_low(mag)
+        return {"strike": strike[i], "gex_1pct_usd": val[i], "reason": None}
+
+    snap = {
+        "schema_version": 1,
+        "source": "cboe_delayed_quotes",
+        "data_delay": _DATA_DELAY,
+        "gex_total_1pct_usd": math.fsum(v for c, p in zip(call, put) for v in (c, -p)),
+        "spot": {"value": spot, "basis": "SPX cash index level"},
+        "fetched_at_utc": "2026-08-20T20:42:28.098947+00:00",
+        "call_wall": wall(call, call, "no_nonzero_call_gex"),
+        "put_wall": wall(put, [-p for p in put], "no_nonzero_put_gex"),
+        "dominant_net_gamma": wall([abs(x) for x in net], net, "all_net_gamma_zero"),
+        "zero_dte": {"share": 0.05, "reason": None},
+    }
+    snap["by_strike"] = (
+        {"reason": reason} if reason is not None
+        else {"reason": None, "strike": list(strike),
+              "call_modeled_magnitude_1pct_usd": list(call),
+              "put_modeled_magnitude_1pct_usd": list(put)}
+    )
+    snap.update(overrides)
+    return snap
+
+
+def _bin(profile, center):
+    return next(b for b in profile.window_bins if b.center == center)
 
 
 def test_valid_baseline_renders():
@@ -154,12 +199,13 @@ def test_gex_row_typed_unavailable():
     s = _base()
     s["call_wall"] = {"strike": None, "gex_1pct_usd": None, "reason": "no_eligible_calls"}
     out = _frag(s)
-    assert out != "" and "Call wall" not in out and "Dominant" in out
+    assert out != "" and "LARGEST CALL-CONTRACT MAGNITUDE STRIKE" not in out
+    assert "LARGEST RAW-STRIKE |MODEL NET|" in out  # required dominant row still present
     assert "None" not in out
     s = _base()
     s["put_wall"] = {"strike": None, "gex_1pct_usd": None, "reason": "no_nonzero_put_gex"}
     out = _frag(s)
-    assert out != "" and "Put wall" not in out
+    assert out != "" and "LARGEST PUT-CONTRACT MAGNITUDE STRIKE" not in out
     s = _base()
     s["zero_dte"] = {"share": None, "reason": "zero_abs_gex_denominator"}
     out = _frag(s)
@@ -236,3 +282,204 @@ def test_gex_timestamp_domain():
     s = _base()
     s["fetched_at_utc"] = "2026-08-20T21:00:00+00:00"  # ~17 min in the future vs NOW
     assert _frag(s) == ""
+
+
+# ==========================================================================
+# GEX-4 structural profile: carrier -> bins/window/outside + compatibility
+# ==========================================================================
+
+def _card(snap, now=NOW):
+    return gex_card.build_gex_card(snap, now=now)
+
+
+# --- absent optional carrier: legacy card renders, no profile block ---
+def test_profile_absent_carrier_compatible():
+    # mutation: require by_strike / raise on its absence.
+    s = _base()                                  # _base() has no by_strike key
+    card = _card(s)
+    assert card is not None and card.profile is None
+    out = _frag(s)
+    assert out != "" and "WINDOW SHOWS" not in out and "ALL 31 BINS" not in out
+
+
+# --- settlement / typed-unavailable carrier: profile absent, card unchanged ---
+def test_profile_settlement_unavailable():
+    # mutation: emit a profile from a typed-unavailable carrier.
+    for token in ("same_day_spx_rows_present", "post_close_same_day_spxw_rows_present"):
+        s = _coherent([7750.0], [10.0], [4.0], reason=token)
+        card = _card(s)
+        assert card is not None and card.profile is None, token
+        assert "WINDOW SHOWS" not in _frag(s)
+
+
+# --- malformed carrier: profile suppressed only; core card still renders ---
+def test_profile_malformed_suppresses_profile_only():
+    # mutation: relax a domain check, or let a malformed carrier suppress the card.
+    good = _coherent([7700.0, 7750.0], [10.0, 20.0], [4.0, 5.0])
+    bad_carriers = [
+        {"reason": None, "strike": [7700.0, 7750.0],                    # length mismatch
+         "call_modeled_magnitude_1pct_usd": [10.0],
+         "put_modeled_magnitude_1pct_usd": [4.0, 5.0]},
+        {"reason": None, "strike": [7750.0, 7700.0],                    # not ascending
+         "call_modeled_magnitude_1pct_usd": [20.0, 10.0],
+         "put_modeled_magnitude_1pct_usd": [5.0, 4.0]},
+        {"reason": None, "strike": [7700.0, 7750.0],                    # negative magnitude
+         "call_modeled_magnitude_1pct_usd": [10.0, -20.0],
+         "put_modeled_magnitude_1pct_usd": [4.0, 5.0]},
+        {"reason": None, "strike": [7700.1234, 7750.0],                 # strike not mills-exact
+         "call_modeled_magnitude_1pct_usd": [10.0, 20.0],
+         "put_modeled_magnitude_1pct_usd": [4.0, 5.0]},
+        {"reason": None, "strike": "nope",                             # wrong type
+         "call_modeled_magnitude_1pct_usd": [10.0, 20.0],
+         "put_modeled_magnitude_1pct_usd": [4.0, 5.0]},
+    ]
+    for bad in bad_carriers:
+        s = dict(good)
+        s["by_strike"] = bad
+        card = _card(s)
+        assert card is not None and card.profile is None, bad
+        assert _frag(s) != "" and "WINDOW SHOWS" not in _frag(s)
+
+
+# --- domain-valid carrier that contradicts the core: WHOLE card suppressed ---
+def test_profile_contradiction_suppresses_whole_card():
+    # mutation: skip reconciliation / suppress only the profile on contradiction.
+    total_bad = _coherent([7700.0, 7750.0], [10.0, 20.0], [4.0, 5.0],
+                          gex_total_1pct_usd=999.0)               # fsum != stored total
+    assert _card(total_bad) is None and _frag(total_bad) == ""
+    anchor_bad = _coherent([7700.0, 7750.0], [10.0, 20.0], [4.0, 5.0],
+                           call_wall={"strike": 7700.0, "gex_1pct_usd": 10.0, "reason": None})
+    assert _card(anchor_bad) is None                              # argmax(call) is 7750, not 7700
+
+
+# --- anchor tie reconciliation: lowest-strike wins; a higher pick contradicts ---
+def test_profile_anchor_tie_lowest_strike():
+    # mutation: resolve the argmax tie to the highest strike.
+    strike, call, put = [7700.0, 7750.0], [20.0, 20.0], [0.0, 0.0]   # call ties
+    ok = _coherent(strike, call, put)                                # helper picks lowest (7700)
+    assert ok["call_wall"]["strike"] == 7700.0
+    card = _card(ok)
+    assert card is not None and card.profile is not None            # reconciles
+    higher = _coherent(strike, call, put,
+                       call_wall={"strike": 7750.0, "gex_1pct_usd": 20.0, "reason": None})
+    assert _card(higher) is None                                    # tie must resolve to 7700
+
+
+# --- half-open bins incl. exact upper boundary + 3-decimal strikes ---
+def test_profile_bin_half_open_and_three_decimal():
+    # mutation: use <= upper / float binning / round strikes before binning.
+    s = _coherent([7737.5, 7762.5], [10.0, 20.0], [0.0, 0.0])       # 3-decimal strikes
+    p = _card(s).profile
+    # 7737.5 is the lower boundary of bin 7750 -> included there
+    assert _bin(p, 7750.0).call == 10.0
+    # 7762.5 is the exact UPPER boundary of bin 7750 -> belongs to the higher bin 7775
+    assert _bin(p, 7775.0).call == 20.0
+    assert _bin(p, 7750.0).interval == (7737.5, 7762.5)
+
+
+# --- window is exactly 31 contiguous ascending 25-point bins around spot ---
+def test_profile_window_31_bins():
+    # mutation: wrong bin count / non-contiguous window / wrong spot bin.
+    p = _card(_coherent([7750.0], [10.0], [4.0])).profile
+    assert len(p.window_bins) == 31
+    centers = [b.center for b in p.window_bins]
+    assert centers == sorted(centers)
+    assert all(centers[i + 1] - centers[i] == 25.0 for i in range(30))
+    assert p.spot_bin_center == 7750.0 and 7750.0 in centers
+
+
+# --- coverage percentages are honest and sum to 100 ---
+def test_profile_coverage_sums_to_100():
+    # mutation: print only one direction / let rounding break the sum.
+    # in-window 7750 plus a far outside cluster at 8500 (> spot+375)
+    s = _coherent([7750.0, 8500.0], [30.0, 70.0], [0.0, 0.0])
+    out = _frag(s)
+    line = next(x for x in out.splitlines() if "WINDOW SHOWS" in x)
+    import re
+    pair = re.search(r"(\d+)% OF CHAIN CALL\+PUT MODELED MAGNITUDE &middot; (\d+)% OUTSIDE", line)
+    assert pair is not None and int(pair.group(1)) + int(pair.group(2)) == 100
+
+
+# --- outside accounting: >=2% qualifies; line caps at 6 with a count; table is full ---
+def test_profile_outside_cap_and_count():
+    # mutation: drop the cap / drop the count / cap the accessible table too.
+    strike = [7750.0] + [8200.0 + 100.0 * i for i in range(8)]      # 8 far bins (> 8125)
+    call = [5.0] + [100.0] * 8                                       # each far bin ~12% of chain
+    put = [0.0] * 9
+    p = _card(_coherent(strike, call, put)).profile
+    assert len(p.outside_bins) == 8                                  # all qualify (>= 2%)
+    assert [b.center for b in p.outside_bins] == sorted(b.center for b in p.outside_bins)
+    out = _frag(_coherent(strike, call, put))
+    assert "6 OF 8 OUTSIDE BINS" in out and "2 MORE" in out          # compact line caps at 6
+    assert out.count("(outside ") == 8                               # accessible table lists all 8
+
+
+# --- zero-denominator guard: chain CALL+PUT == 0 -> no bin qualifies (0 >= 0) ---
+def test_profile_zero_denominator_guard():
+    # mutation: use >= against a zero chain so an empty far bin qualifies.
+    walls = {"call_wall": {"strike": None, "gex_1pct_usd": None, "reason": "no_nonzero_call_gex"},
+             "put_wall": {"strike": None, "gex_1pct_usd": None, "reason": "no_nonzero_put_gex"},
+             "dominant_net_gamma": {"strike": None, "gex_1pct_usd": None, "reason": "all_net_gamma_zero"}}
+    p = gex_card._compute_profile([7750.0, 9000.0], [7750000, 9000000], [0.0, 0.0], [0.0, 0.0],
+                                  walls, 7747.71)
+    assert p.chain_call_plus_put == 0.0 and p.in_window_pct == 0.0 and p.outside_bins == ()
+
+
+# --- per-bin MODEL NET* is exactly call - put ---
+def test_profile_model_net_derivation():
+    # mutation: store a signed producer net / flip the subtraction.
+    p = _card(_coherent([7700.0, 7750.0], [30.0, 10.0], [5.0, 25.0])).profile
+    assert _bin(p, 7700.0).model_net == 25.0                        # 30 - 5
+    assert _bin(p, 7750.0).model_net == -15.0                       # 10 - 25
+    assert _bin(p, 7750.0).call_plus_put == 35.0                    # 10 + 25
+
+
+# --- anchor markers land in their containing bin ---
+def test_profile_anchor_markers_placed():
+    # mutation: place markers by bin maximum instead of the raw anchor strike.
+    p = _card(_coherent([7700.0, 7750.0, 7800.0], [10.0, 40.0, 5.0], [8.0, 2.0, 30.0])).profile
+    marks = {m: b.center for b in p.window_bins for m in b.markers}
+    assert marks["C"] == 7750.0                                     # largest call magnitude
+    assert marks["P"] == 7800.0                                     # largest put magnitude
+    assert marks["D"] == 7750.0                                     # largest |model net|
+
+
+# --- accessible per-bin table carries the exact vocabulary, no hover reliance ---
+def test_profile_accessible_table_vocabulary():
+    # mutation: drop the table / rename a column / omit a disclosure.
+    out = _frag(_coherent([7750.0], [30.0], [10.0]))
+    for token in ("ALL 31 BINS + OUTSIDE BINS", "CALL MODELED MAGNITUDE",
+                  "PUT MODELED MAGNITUDE", "MODEL NET*", "CALL+PUT MODELED MAGNITUDE",
+                  "LARGEST CALL-CONTRACT MAGNITUDE STRIKE",
+                  "LARGEST PUT-CONTRACT MAGNITUDE STRIKE",
+                  "LARGEST RAW-STRIKE |MODEL NET|",
+                  "participant and dealer positioning are not measured",
+                  "AM/PM settlement timing not modeled", "SPX CASH SPOT"):
+        assert token in out, token
+    assert out.count("<script") == 0                                # no JS added
+
+
+# --- extended forbidden vocabulary absent from the rendered profile ---
+def test_profile_no_forbidden_vocabulary():
+    # mutation: reintroduce a wall/dominant label or a directional/positioning word.
+    out = _frag(_coherent([7700.0, 7750.0, 8500.0], [10.0, 40.0, 70.0], [8.0, 2.0, 5.0])).lower()
+    for token in ("gamma flip", "zero gamma", "long gamma", "short gamma", "dealer long",
+                  "dealer short", "dealers are", "hedging pressure", "support", "resistance",
+                  "magnet", "pinning", "expected move", "max pain", "regime", "wall", "gross",
+                  "cancellation", "offset", "financing", "footprint", "paired", "two-sided",
+                  "tracks spot", "at spot", "bullish", "bearish", "dominant"):
+        assert token not in out, token
+
+
+# --- an anchor whose bin is OUTSIDE the window: no ladder marker, still disclosed ---
+def test_profile_anchor_outside_window_disclosed_in_core():
+    # A far max-magnitude anchor sits outside the +/-375 window; the minimal seam
+    # marks only in-window anchor bins (the SVG ladder is deferred), but the raw
+    # strike is always printed in the core LARGEST-... row, so nothing is lost.
+    s = _coherent([7750.0, 9000.0], [10.0, 90.0], [0.0, 0.0])        # 9000 >> spot+375
+    card = _card(s)
+    assert card is not None and card.profile is not None
+    marks = {m for b in card.profile.window_bins for m in b.markers}
+    assert marks == set()                                            # 9000 anchor bin is off-window
+    out = _frag(s)
+    assert "LARGEST CALL-CONTRACT MAGNITUDE STRIKE" in out and "9000" in out

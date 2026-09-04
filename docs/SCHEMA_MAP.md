@@ -99,6 +99,19 @@ the paths below. The identity-guard constants must match the producer exactly.
 | `call_wall.{strike,reason}` | float\|null / null\|token | optional row; null strike (`no_eligible_calls`/`no_nonzero_call_gex`) → row omitted |
 | `put_wall.{strike,reason}` | float\|null / null\|token | optional row; null strike (`no_eligible_puts`/`no_nonzero_put_gex`) → row omitted |
 | `zero_dte.{share,reason}` | float[0,1]\|null / null\|token | optional row; null share (`zero_abs_gex_denominator`) → row omitted; honest 0.0 shown |
+| `by_strike.reason` | null\|token | GEX-4 optional v1 additive carrier; profile-only settlement gate token (`same_day_spx_rows_present`, `post_close_same_day_spxw_rows_present`) → typed-unavailable, no arrays, profile absent, core card unchanged |
+| `by_strike.strike` | float[] > 0, strictly ascending | present iff `reason` null; `= strike_mills/1000`, all admitted strikes kept incl. zero-magnitude; consumer rejects if `strike_mills/1000 != strike` |
+| `by_strike.call_modeled_magnitude_1pct_usd` | float[] >= 0 | per-strike CALL MODELED MAGNITUDE; same length/order as `strike` |
+| `by_strike.put_modeled_magnitude_1pct_usd` | float[] >= 0 | per-strike PUT MODELED MAGNITUDE (positive = abs of the signed put contribution); MODEL NET* = call - put is derived, never stored |
+
+`by_strike` is optional for consumers (absent from an old producer → profile
+absent, core card unchanged); the new producer always emits it (arrays or typed-
+unavailable). Columnar (no list-of-objects, no raw-chain keys) so PRD-306 R12
+holds; classified `provenance.derived`. `gex_total_1pct_usd`, `call_wall`,
+`put_wall`, `dominant_net_gamma` reconcile with this carrier by one pinned
+`math.fsum` (ascending, operand order `c, -p` per strike) and argmax (lowest-
+strike tie); a domain-valid carrier that contradicts them → whole card
+suppressed; a malformed carrier → profile suppressed only.
 
 DISPLAY-ONLY: no `cuttingboard` decision module reads this artifact; the card
 suppresses to a byte-identical baseline dashboard on absent/stale/invalid

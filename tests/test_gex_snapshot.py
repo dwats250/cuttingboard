@@ -662,6 +662,102 @@ class TestHOiRepresentation:
 
 
 # ==========================================================================
+# I. GEX-4 per-strike carrier + profile-only settlement gate (section 8/9)
+# ==========================================================================
+
+class TestIByStrike:
+    """The canonical per-strike modeled-magnitude carrier and the profile-only
+    settlement validity gate. The gate governs ONLY whether the carrier arrays
+    are emitted; gex_total, the anchors and 0DTE are unchanged."""
+
+    def _future(self, **kw):
+        """No SPX same-day expiry; 14:42 ET default -> profile available. Carries
+        a zero-magnitude (gamma 0) call at 4800 to prove empty strikes survive."""
+        opts = [
+            _contract("SPX260919C05200000", 0.0002, 100),   # call  +500000 @ 5200
+            _contract("SPX260919P05000000", 0.00016, 100),  # put   -400000 @ 5000
+            _contract("SPXW260919C05100000", 0.0001, 50),   # call  +125000 @ 5100
+            _contract("SPX260919C04800000", 0.0, 100),      # zero-magnitude @ 4800
+        ]
+        return _feed(opts, **kw)
+
+    def test_available_carrier_all_strikes_ascending_positive(self, tmp_path):
+        # mutation: drop a strike / drop zero-magnitude rows / store signed puts.
+        bs = _run_ok(tmp_path, self._future())["by_strike"]
+        assert bs["reason"] is None
+        assert bs["strike"] == [4800.0, 5000.0, 5100.0, 5200.0]  # ascending union, 4800 kept
+        assert bs["call_modeled_magnitude_1pct_usd"] == [0.0, 0.0, 125000.0, 500000.0]
+        assert bs["put_modeled_magnitude_1pct_usd"] == [0.0, 400000.0, 0.0, 0.0]  # abs, >= 0
+        assert not _has_list_of_objects(bs)  # columnar (R12 shape)
+
+    def test_carrier_fsum_reconciles_core_total(self, tmp_path):
+        # mutation: change the operand order / use sum() so the total drifts.
+        art = _run_ok(tmp_path, self._future())
+        bs = art["by_strike"]
+        c = bs["call_modeled_magnitude_1pct_usd"]
+        p = bs["put_modeled_magnitude_1pct_usd"]
+        total = math.fsum(v for a, b in zip(c, p) for v in (a, -b))
+        assert total == art["gex_total_1pct_usd"]  # exact equality after JSON round trip
+
+    def test_carrier_anchors_reconcile(self, tmp_path):
+        # mutation: select an anchor from a different structure than the carrier.
+        art = _run_ok(tmp_path, self._future())
+        bs = art["by_strike"]
+        k = bs["strike"]
+        c = bs["call_modeled_magnitude_1pct_usd"]
+        p = bs["put_modeled_magnitude_1pct_usd"]
+        ci = max(range(len(k)), key=lambda i: (c[i], -k[i]))       # lowest-strike tie
+        assert k[ci] == art["call_wall"]["strike"]
+        assert c[ci] == art["call_wall"]["gex_1pct_usd"]
+        pi = max(range(len(k)), key=lambda i: (p[i], -k[i]))
+        assert k[pi] == art["put_wall"]["strike"]
+        assert -p[pi] == art["put_wall"]["gex_1pct_usd"]           # wall stores the signed value
+        di = max(range(len(k)), key=lambda i: (abs(c[i] - p[i]), -k[i]))
+        assert k[di] == art["dominant_net_gamma"]["strike"]
+        assert c[di] - p[di] == art["dominant_net_gamma"]["gex_1pct_usd"]
+
+    def test_gate_rule1_spx_same_day_unavailable(self, tmp_path):
+        # mutation: drop rule 1 -> the same-day SPX chain would emit arrays.
+        art = _run_ok(tmp_path, _feed(_happy_options()))  # SPX rows expire on the ET obs date
+        assert art["by_strike"] == {"reason": "same_day_spx_rows_present"}  # typed-unavailable, no arrays
+
+    def test_gate_rule2_spxw_post_close_boundary(self, tmp_path):
+        # mutation: wrong 16:00 boundary (>, or a different hour) flips one branch.
+        opts = [_contract("SPXW260817C05100000", 0.0001, 100),   # SPXW same-day
+                _contract("SPX260919C05200000", 0.0002, 100)]    # SPX future (no rule-1)
+        clock = datetime(2026, 8, 17, 20, 10, tzinfo=timezone.utc)
+        at_close = _run_ok(tmp_path, _feed(opts, timestamp="2026-08-17 20:00:00"), now=clock)  # 16:00:00 ET
+        assert at_close["by_strike"] == {"reason": "post_close_same_day_spxw_rows_present"}
+        before = _run_ok(tmp_path, _feed(opts, timestamp="2026-08-17 19:59:59"), now=clock)     # 15:59:59 ET
+        assert before["by_strike"]["reason"] is None and "strike" in before["by_strike"]
+
+    def test_by_strike_classified_derived(self, tmp_path):
+        # mutation: forget to classify by_strike -> R37 exhaustiveness also fails.
+        art = _run_ok(tmp_path, self._future())
+        assert "by_strike" in art["provenance"]["derived"]
+
+    def test_total_equals_pinned_fsum_over_mixed_magnitudes(self, tmp_path):
+        # The core total is exactly the pinned math.fsum over the ascending carrier,
+        # on a chain spanning large and small notionals. This is the invariant the
+        # consumer replays; a fsum-vs-sum divergence is NOT constructible on
+        # CPython 3.12+ (its sum() is Neumaier-compensated), so the binding
+        # property is exact producer/consumer agreement, not fsum beating sum().
+        opts = [
+            _contract("SPX260919C07000000", 0.9, 900000),        # large
+            _contract("SPX260919P07000000", 0.8, 850000),
+            _contract("SPX260919C07500000", 1e-9, 1),            # tiny
+            _contract("SPX260919P07500000", 3e-7, 4),
+            _contract("SPX260919C08000000", 0.4, 250000),
+            _contract("SPX260919P08000000", 0.41, 240000),
+        ]
+        art = _run_ok(tmp_path, _feed(opts, current_price=7500.0))
+        bs = art["by_strike"]
+        c = bs["call_modeled_magnitude_1pct_usd"]
+        p = bs["put_modeled_magnitude_1pct_usd"]
+        assert art["gex_total_1pct_usd"] == math.fsum(v for a, b in zip(c, p) for v in (a, -b))
+
+
+# ==========================================================================
 # Guard: JSON must never carry NaN/Inf tokens
 # ==========================================================================
 
