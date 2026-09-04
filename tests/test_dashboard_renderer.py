@@ -4000,7 +4000,6 @@ _PRD318_PHONE_BLOCK = (
     ".sys-why{font-size:.78rem;margin-top:3px}"
     ".sys-context{font-size:.74rem}"
     "#system-state .sep{margin:5px 0}"
-    "#system-state #cb-updated{font-size:.78rem}"
     "#watching-zone .operator-subsection{padding-top:8px;margin-top:8px}"
     "#opportunity-survival .kv-grid{grid-template-columns:auto minmax(2.5ch,1fr) auto minmax(2.5ch,1fr)}"
     "#opportunity-survival .kv-grid>*:nth-child(10){grid-column:2/-1}"
@@ -4248,7 +4247,10 @@ def test_prd225_trend_rows_wrap_uniformly() -> None:
         _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap,
     )
     section = _ts_section(html)
-    assert 'class="ts-align"' in section
+    # Change #5: the Alignment cell now also carries the ts-px-up/down colour
+    # class, so it renders class="ts-px-up ts-align" on computed rows; the
+    # uniform-width hook (ts-align) is preserved -- match it as a suffix.
+    assert 'ts-align"' in section
     assert ".ts-table td.ts-align{min-width:4ch}" in html
     assert ".ts-table td{white-space:nowrap!important;padding:0!important}" in html
     assert "gap:2px 8px" in html and "gap:2px 10px" not in html
@@ -5297,7 +5299,7 @@ def test_prd322_new_styling_stays_out_of_the_pinned_phone_block() -> None:
     assert ".tape-driver{display:grid;grid-template-columns:3ch 1ch auto" in html
     # Codex F7: the OUTER strips are grids too — a regression to flex-wrap
     # (ragged columns, the owner-rejected sketch state) must go red here.
-    assert ".tape-drivers{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr))" in html
+    assert ".tape-drivers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))" in html
     assert ".tape-trend{display:grid;grid-template-columns:repeat(auto-fit,minmax(154px,1fr))" in html
     assert ".tape-slot{white-space:nowrap}" in html
 
