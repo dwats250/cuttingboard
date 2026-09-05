@@ -1763,108 +1763,7 @@ def _build_tape_value_slots(
     return slots
 
 
-# PRD-322: TAPE operator-context vocabularies. Closed display maps only — the
-# bands project values already bound in the render body and compute no new
-# fact. `overall_pressure` is deliberately absent: TAPE shows the per-driver
-# component states, never the aggregate.
-_TAPE_PRESSURE_DISPLAY: dict[str, str] = {
-    "RISK_ON": "risk-on", "RISK_OFF": "risk-off",
-    "NEUTRAL": "neutral", "UNKNOWN": "n/a",
-}
-_TAPE_PRESSURE_COMPONENTS: tuple[tuple[str, str], ...] = (
-    ("volatility_pressure", "VIX"), ("dollar_pressure", "DXY"),
-    ("rates_pressure", "10Y"), ("bitcoin_pressure", "BTC"),
-)
-# The vs-VWAP glyph set is NEW to PRD-322 and closed: a glyph renders only for
-# a computed comparison token, never for DATA_UNAVAILABLE / NOT_COMPUTED.
-_TAPE_VWAP_GLYPH: dict[str, str] = {"ABOVE": "V↑", "BELOW": "V↓", "AT_LEVEL": "V="}
-# A trend row "counts" only when its alignment is an actual comparison outcome.
-_TAPE_COMPUTED_ALIGNMENTS: frozenset[str] = frozenset({"BULLISH", "BEARISH", "MIXED"})
-_TAPE_ALIGN_CSS: dict[str, str] = {"BULLISH": "up", "BEARISH": "down", "MIXED": "flat"}
-_TAPE_TREND_HEALTH_TEXT: dict[str, str] = {
-    "MARKET_CLOSED": "Market closed — awaiting intraday data",
-    "AWAITING_DATA": "Market closed — awaiting intraday data",
-    "STALE": "Trend stale",
-}
-_TAPE_TREND_HEALTH_FALLBACK = "Trend data unavailable"
-_TAPE_TREND_ABSENT = "Trend unavailable"
-_TAPE_PRESSURE_ABSENT = "Pressure unavailable"
-_TAPE_MACRO_ABSENT = "Macro unavailable"
-# The 9 arrow composites are all shaped "<a> 50 <b> 200"; splitting on the
-# window boundary yields the two aligned grid cells without inventing a token.
-_TAPE_COMPOSITE_SPLIT = " 50 "
 
-
-def _tape_trend_summary(ts_records: dict | None, ts_health: str) -> tuple[str, str]:
-    """PRD-322 R1: health-aware TAPE trend summary -> (text, derivation token).
-
-    Unavailability is never rendered as bearishness: only rows whose
-    `trend_alignment` is a computed comparison enter the denominator. All six
-    computed reproduces the pre-PRD-322 string byte-for-byte; every degraded
-    branch derives from `_trend_structure_source_health`, not from a count.
-    """
-    rows = list((ts_records or {}).values())
-    if not rows:
-        return _TAPE_TREND_ABSENT, "trend-health"
-    computed = [
-        rec for rec in rows
-        if isinstance(rec, dict)
-        and str(rec.get("trend_alignment", "")) in _TAPE_COMPUTED_ALIGNMENTS
-    ]
-    bullish = sum(1 for rec in computed if rec.get("trend_alignment") == "BULLISH")
-    if len(computed) == len(rows):
-        return f"{bullish} of {len(rows)} bullish", "bullish-row-count"
-    if computed:
-        return (
-            f"{bullish} of {len(computed)} bullish · {len(rows) - len(computed)} n/a",
-            "trend-health",
-        )
-    return _TAPE_TREND_HEALTH_TEXT.get(ts_health, _TAPE_TREND_HEALTH_FALLBACK), "trend-health"
-
-
-def _build_trend_chips(
-    ts_records: dict | None,
-) -> list[tuple[str, str, str, str, str, str]]:
-    """PRD-322 R4: one aligned TAPE row per curated symbol, in
-    `config.TREND_STRUCTURE_SYMBOLS` order.
-
-    Returns (symbol, alignment, sma_50, sma_200, vwap, css_class). Every token
-    comes verbatim from an existing translator (`_TS_ALIGN_ABBR`,
-    `_trend_structure_composite_display`) or the closed `_TAPE_VWAP_GLYPH` map.
-    A row whose alignment is not computed renders symbol + dash only — never a
-    partial arrow. Enumeration only: no breadth metric, ratio, or score.
-    """
-    records = ts_records or {}
-    rows: list[tuple[str, str, str, str, str, str]] = []
-    for symbol in config.TREND_STRUCTURE_SYMBOLS:
-        record = records.get(symbol)
-        alignment = str(record.get("trend_alignment", "")) if isinstance(record, dict) else ""
-        if alignment not in _TAPE_COMPUTED_ALIGNMENTS:
-            rows.append((symbol, _DASH, "", "", "", "na"))
-            continue
-        composite = _trend_structure_composite_display(record)
-        head, _sep, tail = composite.partition(_TAPE_COMPOSITE_SPLIT)
-        sma_50, sma_200 = (f"{head} 50", tail) if tail else (composite, "")
-        rows.append((
-            symbol,
-            _TS_ALIGN_ABBR[alignment],
-            sma_50,
-            sma_200,
-            _TAPE_VWAP_GLYPH.get(str(record.get("price_vs_vwap", "")), ""),
-            _TAPE_ALIGN_CSS[alignment],
-        ))
-    return rows
-
-
-def _pressure_note(pressure: dict | None) -> str:
-    """PRD-322 R2: per-driver macro-pressure states through a closed four-state
-    display map. The aggregate `overall_pressure` is never read."""
-    if not isinstance(pressure, dict):
-        return _TAPE_PRESSURE_ABSENT
-    return "pressure: " + " · ".join(
-        f"{label} {_TAPE_PRESSURE_DISPLAY.get(str(pressure.get(key)), 'n/a')}"
-        for key, label in _TAPE_PRESSURE_COMPONENTS
-    )
 
 
 _PRESSURE_COMPONENT_LABELS = [
@@ -2837,11 +2736,17 @@ def render_dashboard_html(
 
     lines: list[str] = []
     _verdict_lines: list[str] = []
-    _tape_lines: list[str] = []
     _spy_lines: list[str] = []
     _today_lines: list[str] = []
     _watching_lines: list[str] = []
     _details_lines: list[str] = []
+    # PRD-334 R9: two new top-level regions. _structure_lines is MARKET STRUCTURE
+    # (macro families + Trend Structure table + tradables + MARKET MOVEMENT +
+    # participation + Sunday context); _gex_lines is the GEX region (production
+    # card + synthetic reference). Final assembly order (R9):
+    # VERDICT / NEXT EVENT / MARKET STRUCTURE / SPY SESSION / WATCHING / GEX / HISTORY.
+    _structure_lines: list[str] = []
+    _gex_lines: list[str] = []
     _active_lines = lines
 
     def w(line: str) -> None:
@@ -2946,16 +2851,11 @@ def render_dashboard_html(
     w('  <h2>VERDICT</h2>')
 
     # PRD-312's five independent facts are redistributed without changing their
-    # sources: environment+permission here, positioning+participation in TAPE,
-    # and event risk in TODAY. No peer MARKET STATE card remains.
-    _ms_gex_card = (
-        gex_card.build_gex_card(gex_snapshot, now=now if now is not None else _utcnow())
-        if gex_snapshot is not None else None
-    )
-    _ms_movement_card = (
-        movement_card.build_movement_card(movement_snapshot)
-        if movement_snapshot is not None else None
-    )
+    # sources: environment+permission here, positioning+participation in MARKET
+    # STRUCTURE (the MARKET MOVEMENT card), event risk in NEXT EVENT. PRD-334 R9:
+    # the GEX production card and the MARKET MOVEMENT card render directly in the
+    # GEX region and MARKET STRUCTURE via render_fragment; the pre-built model
+    # objects the deleted TAPE-foot consumed are no longer needed here.
     # --- existing SYSTEM STATE authority, now presented as VERDICT ---
     regime_permission_text = _regime_to_permission_verb(market_regime)
     # PRD-219: distilled system-state — a plain-English verdict (posture verb +
@@ -3140,112 +3040,14 @@ def render_dashboard_html(
     w("</div>")  # #system-state
     w("</div>")  # #verdict-zone
 
-    # --- TAPE: display-only adjacency over values already loaded above. ---
-    _active_lines = _tape_lines
-    # PRD-322: two labeled bands (MACRO, TREND) over the same render-body
-    # values, then a subordinate footer carrying the positioning/participation
-    # availability rows. Every token is a projection of an already-loaded fact.
-    w('<div class="block operator-zone" id="tape-zone">')
-    w('  <h2>TAPE <span class="label">context only</span></h2>')
-    w('  <div class="tape-band">')
-    w('    <div class="tape-band-cap">MACRO</div>')
-    _total_votes = long_votes + short_votes
-    _votes_suffix = f" · {long_votes} on / {short_votes} off" if _total_votes else ""
-    # PRD-322 R2: MISSING means the driver payload is empty or unavailable, so
-    # the zero-vote tie below would fabricate "MACRO BIAS: MIXED". FALLBACK
-    # must NOT trip this gate — it also fires on missing tradables under a
-    # genuine, fully-voted macro bias.
-    if _tape_health == "MISSING":
-        _macro_html = _esc(_TAPE_MACRO_ABSENT)
-    else:
-        # Change #3: colour ONLY the direction token (LONG/SHORT/MIXED) via
-        # .tape-bias (existing palette; NOT .macro-bias, which adds weight and
-        # margin). The "MACRO BIAS:" label and the vote suffix stay muted.
-        _bias_prefix, _bias_sep, _bias_token = macro_bias.partition(": ")
-        if _bias_sep:
-            _macro_html = (
-                f'{_esc(_bias_prefix)}: '
-                f'<span class="tape-bias {_esc(macro_bias_css.split()[-1])}">'
-                f'{_esc(_bias_token)}</span>{_esc(_votes_suffix)}'
-            )
-        else:
-            _macro_html = _esc(macro_bias) + _esc(_votes_suffix)
-    if not integrator_suppress["macro_bias"]:
-        w(f'    <div class="zone-value">{_macro_html}</div>')
-    _tape_values = dict(tape_value_slots)
-    _tape_arrows = dict(tape_slots)
-    # PRD-322 R3: all seven macro drivers, data-driven from the shared layout
-    # rows. Deliberately NOT `macro-tape-slot` / `macro-tape-value` /
-    # `data-symbol` — those are regex-harvested and order-pinned in DETAILS.
-    # Codex F3: the strip normalizes the DETAILS-side "N/A" absent-metal
-    # placeholder to the strip's uniform "--"; the shared projection is untouched.
-    _strip_values = {k: ("--" if v == "N/A" else v) for k, v in _tape_values.items()}
-    _driver_cells = [
-        f'<div class="tape-driver tape-slot '
-        f'{_ARROW_CSS.get(_tape_arrows.get(slot.label, _DASH), "na")}">'
-        f'<span>{_esc(slot.display)}</span>'
-        f'<span>{_esc(_tape_arrows.get(slot.label, _DASH))}</span>'
-        f'<span>{_esc(_strip_values.get(slot.label, _DASH))}</span></div>'
-        for _row in (MACRO_ROW_2, MACRO_ROW_1)
-        for slot in _row.slots
-    ]
-    w('    <div class="tape-drivers">' + "".join(_driver_cells) + "</div>")
-    w(f'    <div class="zone-note">{_esc(_pressure_note(pressure))}</div>')
-    w('  </div>')
-    w('  <div class="tape-band">')
-    w('    <div class="tape-band-cap">TREND</div>')
-    _trend_summary, _trend_derivation = _tape_trend_summary(_ts_records, _ts_health)
-    _trend_rows = _build_trend_chips(_ts_records)
-    w(f'    <div class="zone-value" data-derivation="{_esc(_trend_derivation)}">'
-      f'{_esc(_trend_summary)}</div>')
-    _trend_cells = [
-        f'<div class="tape-trend-row tape-slot {_cls}">'
-        f'<span>{_esc(_sym)}</span><span>{_esc(_align)}</span>'
-        f'<span>{_esc(_c50)}</span><span>{_esc(_c200)}</span>'
-        f'<span>{_esc(_vwap)}</span></div>'
-        for _sym, _align, _c50, _c200, _vwap, _cls in _trend_rows
-    ]
-    # PRD-327 D2-Q2 (Helm ruling 2026-09-01): the six placeholder chips leave
-    # the fold only when zero rows are computed under healthy lineage in an
-    # active session -- exactly the branch where the unchanged DETAILS
-    # #trend-structure table enumerates the curated symbols. Any computed
-    # row, unhealthy lineage or inactive session keeps all six chips (PRD-322 R4).
-    _chips_visible = (
-        any(_cls in _TAPE_ALIGN_CSS.values() for *_row, _cls in _trend_rows)
-        or unhealthy_lineage
-        or inactive_session
-    )
-    if _chips_visible:
-        w('    <div class="tape-trend">' + "".join(_trend_cells) + "</div>")
-    w('  </div>')
-    # PRD-322 R5: absence is stated, never silent. Both rows keep one shape
-    # across present/absent so the GEX decision-invariance regex strips exactly
-    # one row from each document.
-    w('  <div class="zone-grid tape-foot">')
-    if _ms_gex_card is not None:
-        _gex_b = _ms_gex_card.net_usd / 1e9
-        _gex_net = f"{'-' if _gex_b < 0 else '+'}${abs(_gex_b):.1f}B net"
-        w('    <div class="zone-item"><div class="label">GEX · CONTEXT ONLY</div>'
-          f'<div class="zone-value">{_esc(_gex_net)}</div>'
-          f'<div class="zone-note">as of {_esc(_ms_gex_card.as_of_et)} ET · Cboe ~15m delayed · positioning not measured</div></div>')
-    else:
-        w('    <div class="zone-item"><div class="label">GEX · CONTEXT ONLY</div>'
-          '<div class="zone-value">unavailable</div></div>')
-    if _ms_movement_card is not None:
-        _movement_chips = [
-            chip for _group, _chips in _ms_movement_card.groups for chip in _chips
-        ]
-        _movement_usable = sum(1 for _chip in _movement_chips if not _chip.endswith(" n/a"))
-        w('    <div class="zone-item"><div class="label">PARTICIPATION</div>'
-          f'<div class="zone-value">{_movement_usable}/{len(_movement_chips)} captured</div>'
-          f'<div class="zone-note">captured {_esc(_ms_movement_card.captured_et)} ET</div></div>')
-    else:
-        w('    <div class="zone-item"><div class="label">PARTICIPATION</div>'
-          '<div class="zone-value">not captured</div></div>')
-    w('  </div>')
-    w("</div>")
+    # PRD-334 R5/R9: the PRD-322 TAPE-zone summary bands are removed. Its macro
+    # bias / driver cells / pressure note duplicated the #macro-tape family tape
+    # (now the single macro representation, promoted into MARKET STRUCTURE below);
+    # the bland TREND chips are replaced by the promoted Trend Structure table; the
+    # tape-foot GEX-context glance moves to the GEX region (with a suppressed-state
+    # availability line) and PARTICIPATION is carried by the MARKET MOVEMENT card.
 
-    # --- SPY SESSION (PRD-330 S1): observational orientation between TAPE and NEXT EVENT. ---
+    # --- SPY SESSION (PRD-330 S1): observational orientation before NEXT EVENT. ---
     _spy_obs = (payload.get("sections") or {}).get("spy_observation")
     _now_effective = now if now is not None else _utcnow()
     _price_bars = _price_bars_by_symbol(price_bars_snapshot, _now_effective)
@@ -3628,28 +3430,34 @@ def render_dashboard_html(
 
     w("</div>")  # #watching-zone
 
-    # --- GEX REFERENCE (PRD-333): one frozen synthetic SPX example at the
-    #     WATCHING -> DETAILS boundary. Always emitted (a bundled, frozen resource),
-    #     structurally separate from current/live GEX and independent of every
-    #     input here (no clock/snapshot/network); invalid/missing -> a labeled
-    #     "unavailable" disclosure. It is NOT an operator zone. ---
-    w(gex_reference.render_reference_fragment())
-
-    # --- DETAILS / HISTORY: full evidence remains present, default collapsed. ---
-    _active_lines = _details_lines
-    w('<details class="block operator-zone" id="details-history">')
-    w('  <summary>DETAILS / HISTORY ▶</summary>')
-    w('  <div class="details-body">')
-
-    # --- gex-context (PRD-309: display-only, baseline-neutral GEX card; emitted
-    #     iff a fresh in-domain artifact is present, else true omission -> the
-    #     document stays byte-identical to the pre-GEX baseline) ---
+    # --- GEX region (PRD-334 R9): the current production card first (when a fresh
+    #     in-domain artifact is present), then the frozen synthetic SPX reference --
+    #     structurally separate, unmistakably not-current. When there is no current
+    #     card (absent / stale / invalid, all -> render_fragment == "") a single
+    #     availability line renders in its place (R7), so the GEX-absent document
+    #     stays deterministic and byte-identical to the recomposed pre-GEX baseline
+    #     (R10). The synthetic reference is a bundled frozen resource (no clock /
+    #     snapshot / network) and always renders. ---
+    _active_lines = _gex_lines
+    w('<div class="block operator-zone" id="gex-zone">')
+    w('  <h2>GEX <span class="label">gamma exposure &middot; context only</span></h2>')
+    _gex_fragment = ""
     if gex_snapshot is not None:
-        gex_fragment = gex_card.render_fragment(
+        _gex_fragment = gex_card.render_fragment(
             gex_snapshot, now=now if now is not None else _utcnow()
         )
-        if gex_fragment:
-            w(gex_fragment)
+    if _gex_fragment:
+        w(_gex_fragment)
+    else:
+        w('  <div class="label">No current GEX for this run.</div>')
+    w(gex_reference.render_reference_fragment())
+    w("</div>")  # #gex-zone
+
+    # --- MARKET STRUCTURE region (PRD-334 R5/R9): MARKET MOVEMENT card, macro
+    #     families, tradables, Trend Structure table, Sunday context. ---
+    _active_lines = _structure_lines
+    w('<div class="block operator-zone" id="market-structure">')
+    w('  <h2>MARKET STRUCTURE <span class="label">context only</span></h2>')
 
     # --- market-movement (PRD-311: display-only 12/12 movement card; emitted iff
     #     a valid schema_version-2 artifact is present, else true omission -> the
@@ -3660,38 +3468,22 @@ def render_dashboard_html(
         if movement_fragment:
             w(movement_fragment)
 
-    # --- SPY SESSION (DETAILS): PRD-329 R9 — the observation now renders
-    #     first-class above; the group wrapper survives only for MCC-only renders
-    #     (today's bytes); with an observation present MARKET CONTROL stands alone.
+    # --- Market Control split (PRD-334 R6, owner ruling G2): the current-natured
+    #     TRANSITION + INVALIDATION projections render near SPY SESSION (their typed-
+    #     unavailable tokens preserved via _mcc_cell_display); LOCATION / STATE /
+    #     EVENT and the candidate-implication counts move into HISTORY. No standalone
+    #     six-field card; market_control_card.py is untouched. ---
     _mcc = (payload.get("sections") or {}).get("market_control_card")
-    if _mcc and not _spy_obs:
-        w('<section class="spy-session-group" id="spy-session-details">')
-        w('  <h3>SPY SESSION</h3>')
-
-    # --- market-control-card (PRD-289: seven-field daily card; present iff the
-    #     payload carries the section; projection-only — no renderer derivation) ---
     if _mcc:
-        _cand = _mcc["candidate_implication"]
-        _cand_display = _mcc_cell_display(_cand)
-        if _cand.get("counts") is not None:
-            _c = _cand["counts"]
-            _cand_display += _esc(
-                f' (ACTIVE {_c["ACTIVE"]} / NEAR_MISS {_c["NEAR_MISS"]} / BLOCKED {_c["BLOCKED"]})'
-            )
-        w('<div class="block" id="market-control-card">')
-        w('  <h2>MARKET CONTROL</h2>')
+        _active_lines = _spy_lines
+        w('<div class="block" id="market-context">')
+        w('  <h3>MARKET CONTEXT</h3>')
         w('  <div class="kv-grid">')
-        w(f'    <div class="label">LOCATION</div><div class="value">{_mcc_location_display(_mcc["location"])}</div>')
-        w(f'    <div class="label">STATE</div><div class="value">{_mcc_cell_display(_mcc["state"])}</div>')
-        w(f'    <div class="label">EVENT</div><div class="value">{_mcc_event_display(_mcc["event"])}</div>')
         w(f'    <div class="label">TRANSITION</div><div class="value">{_mcc_cell_display(_mcc["transition"])}</div>')
         w(f'    <div class="label">INVALIDATION</div><div class="value">{_mcc_cell_display(_mcc["invalidation"])}</div>')
-        w(f'    <div class="label">CANDIDATE-IMPLICATION</div><div class="value">{_cand_display}</div>')
         w('  </div>')
         w("</div>")
-
-    if _mcc and not _spy_obs:
-        w("</section>")
+        _active_lines = _structure_lines
 
     # --- sunday-macro-context (PRD-116: only under coherent Sunday lineage) ---
     if sunday_coherent:
@@ -3836,6 +3628,9 @@ def render_dashboard_html(
     # per-component phrases now render inline beside the tally above.
     w("</div>")
 
+    # PRD-334 R9: the red folder is forward-looking (upcoming events), so it renders
+    # in the NEXT EVENT region (not MARKET STRUCTURE and not HISTORY).
+    _active_lines = _today_lines
     # --- red-folder (PRD-176 loader / PRD-177 render): Q2 "what matters today".
     # Presentation only: the caller resolves the loader window (events,
     # expiring, error) and passes a plain view dict; the renderer computes no
@@ -3877,6 +3672,8 @@ def render_dashboard_html(
                 w('  <div class="red-folder-expiry">Red-folder schedule nearing expiry -- refresh the calendar.</div>')
         w("</div>")
 
+    # PRD-334 R9: back to MARKET STRUCTURE for the promoted Trend Structure table.
+    _active_lines = _structure_lines
     # --- trend-structure (PRD-112) ---
     w(f'<div class="block{disabled_class}" id="trend-structure">')
     # PRD-334 R5: the rich Trend Structure table is the promoted broad-index watch
@@ -4003,6 +3800,32 @@ def render_dashboard_html(
         w('    </tbody>')
         w('  </table>')
     w("</div>")
+    w("</div>")  # #market-structure (PRD-334 R9)
+
+    # --- HISTORY (PRD-334 R9): backward-looking items only. The Market Control
+    #     LOCATION / STATE / EVENT and candidate-implication counts (R6) are homed
+    #     here (no standalone six-field card); then run delta and scoreboard. ---
+    _active_lines = _details_lines
+    w('<details class="block operator-zone" id="details-history">')
+    w('  <summary>HISTORY ▶</summary>')
+    w('  <div class="details-body">')
+    if _mcc:
+        _cand = _mcc["candidate_implication"]
+        _cand_display = _mcc_cell_display(_cand)
+        if _cand.get("counts") is not None:
+            _c = _cand["counts"]
+            _cand_display += _esc(
+                f' (ACTIVE {_c["ACTIVE"]} / NEAR_MISS {_c["NEAR_MISS"]} / BLOCKED {_c["BLOCKED"]})'
+            )
+        w('<div class="block" id="market-control-card">')
+        w('  <h2>MARKET CONTROL</h2>')
+        w('  <div class="kv-grid">')
+        w(f'    <div class="label">LOCATION</div><div class="value">{_mcc_location_display(_mcc["location"])}</div>')
+        w(f'    <div class="label">STATE</div><div class="value">{_mcc_cell_display(_mcc["state"])}</div>')
+        w(f'    <div class="label">EVENT</div><div class="value">{_mcc_event_display(_mcc["event"])}</div>')
+        w(f'    <div class="label">CANDIDATE-IMPLICATION</div><div class="value">{_cand_display}</div>')
+        w('  </div>')
+        w("</div>")
 
     # --- run-delta ---
     w('<div class="block" id="run-delta">')
@@ -4091,15 +3914,19 @@ def render_dashboard_html(
     w("  </div>")  # .details-body
     w("</details>")
 
-    # Assemble the five operator-question zones in source order. Each buffer was
-    # rendered from the same in-memory facts as the prior subsystem blocks.
+    # PRD-334 R9: assemble the seven top-level regions in the recomposed order:
+    # VERDICT / NEXT EVENT / MARKET STRUCTURE / SPY SESSION / WATCHING / GEX /
+    # HISTORY. Each buffer was rendered from the same in-memory facts. The former
+    # TAPE buffer's content was consolidated into MARKET STRUCTURE and the GEX
+    # region in R5/R9.
     _active_lines = lines
-    lines.extend(_verdict_lines)
-    lines.extend(_tape_lines)
-    lines.extend(_spy_lines)
-    lines.extend(_today_lines)
-    lines.extend(_watching_lines)
-    lines.extend(_details_lines)
+    lines.extend(_verdict_lines)     # VERDICT
+    lines.extend(_today_lines)       # NEXT EVENT (+ red folder)
+    lines.extend(_structure_lines)   # MARKET STRUCTURE (macro families, trend, tradables, movement)
+    lines.extend(_spy_lines)         # SPY SESSION (+ market-context transition/invalidation)
+    lines.extend(_watching_lines)    # WATCHING
+    lines.extend(_gex_lines)         # GEX (production card + synthetic reference)
+    lines.extend(_details_lines)     # HISTORY (market control, run delta, scoreboard)
 
     w("</div>")  # .wrap
     w("</div>")

@@ -220,11 +220,13 @@ def test_section_order_full_r5_sequence() -> None:
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="B")})
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), previous_run=_run(), market_map=mm)
     ids = _top_ids(html)
-    # PRD-315: Candidate is lifted ahead of the detailed Context chain, so the
-    # full-board order is System (-> Opportunity when valid) -> Candidate ->
-    # Macro -> ... -> Run Delta. macro-pressure stays inline inside macro-tape.
-    assert ids.index("system-state") < ids.index("candidate-board")
-    assert ids.index("candidate-board") < ids.index("macro-tape") < ids.index("run-delta")
+    # PRD-334 R9: the recomposed order is VERDICT -> NEXT EVENT -> MARKET STRUCTURE
+    # (macro families + trend table) -> SPY -> WATCHING -> GEX -> HISTORY. So the
+    # macro-tape (MARKET STRUCTURE) now precedes the candidate-board (WATCHING), and
+    # run-delta (HISTORY) comes last. macro-pressure stays inline inside macro-tape.
+    assert ids.index("system-state") < ids.index("macro-tape")
+    assert ids.index("macro-tape") < ids.index("candidate-board")
+    assert ids.index("candidate-board") < ids.index("run-delta")
     if "opportunity-survival" in ids:
         assert ids.index("system-state") < ids.index("opportunity-survival") < ids.index("candidate-board")
     macro = _top_block(html, "macro-tape")
@@ -245,11 +247,12 @@ def test_section_order_four_questions_sequence() -> None:
         _payload(macro_drivers=_macro_drivers()), _run(),
         previous_run=_run(), market_map=mm, regime_history=hist, red_folder=rf,
     )
-    # PRD-315: Candidate now leads the detailed Context chain (System ->
-    # Candidate -> Macro -> Red Folder -> Trend), so it precedes macro-tape.
+    # PRD-334 R9: VERDICT -> NEXT EVENT (red folder) -> MARKET STRUCTURE (macro
+    # families, Trend Structure table) -> WATCHING (candidate-board) -> HISTORY
+    # (run delta, scoreboard).
     order = [
-        "system-state", "candidate-board", "macro-tape", "red-folder",
-        "trend-structure", "run-delta", "scoreboard",
+        "system-state", "red-folder", "macro-tape", "trend-structure",
+        "candidate-board", "run-delta", "scoreboard",
     ]
     ids = _top_ids(html)
     positions = [ids.index(section) for section in order]
