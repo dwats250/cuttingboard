@@ -30,6 +30,7 @@ from cuttingboard.delivery.dashboard_integrator import (
     dashboard_integrator,
 )
 from cuttingboard.delivery import gex_card
+from cuttingboard.delivery import gex_reference
 from cuttingboard.delivery import intraday_bars
 from cuttingboard.delivery import movement_card
 from cuttingboard.delivery import setup_chart
@@ -3557,6 +3558,13 @@ def render_dashboard_html(
     w("</div>")
 
     w("</div>")  # #watching-zone
+
+    # --- GEX REFERENCE (PRD-333): one frozen synthetic SPX example at the
+    #     WATCHING -> DETAILS boundary. Always emitted (a bundled, frozen resource),
+    #     structurally separate from current/live GEX and independent of every
+    #     input here (no clock/snapshot/network); invalid/missing -> a labeled
+    #     "unavailable" disclosure. It is NOT an operator zone. ---
+    w(gex_reference.render_reference_fragment())
 
     # --- DETAILS / HISTORY: full evidence remains present, default collapsed. ---
     _active_lines = _details_lines
