@@ -168,6 +168,22 @@ def test_non_finite_carrier_rejected(bad_call):
     assert gex_reference.build_reference(env) is None
 
 
+@pytest.mark.parametrize("bad_share", [float("nan"), float("inf"), True, "x", 1.5, -0.1])
+def test_present_but_degenerate_zero_dte_rejected(bad_share):
+    # R8: a present zero_dte.share that is non-finite / boolean / out-of-range must
+    # reject (matching current admission), never silently omit the row.
+    env = _envelope()
+    env["zero_dte"]["share"] = bad_share
+    assert gex_reference.build_reference(env) is None
+
+
+def test_absent_zero_dte_still_builds_row_omitted():
+    env = _envelope()
+    env.pop("zero_dte")
+    ref = gex_reference.build_reference(env)
+    assert ref is not None and ref.zero_dte_share is None
+
+
 # ---- R8: invalid/missing -> labeled unavailable, no numbers, no ladder, no fallback ----
 
 def test_missing_resource_yields_unavailable(monkeypatch):

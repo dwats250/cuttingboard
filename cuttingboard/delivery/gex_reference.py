@@ -20,7 +20,6 @@ from cuttingboard.delivery import gex_card
 # The one bundled resource. Module-relative and hardcoded (no caller path).
 _RESOURCE = Path(__file__).parent / "data" / "gex_reference_v1.json"
 
-# Reference envelope identity (distinct from any production snapshot).
 _REF_SCHEMA_VERSION = 1
 _KIND = "synthetic_reference"
 _SCENARIO_ID = "spx-structure-v1"
@@ -142,9 +141,10 @@ def build_reference(envelope) -> GexReference | None:
     if dom is None:                                     # dominant anchor is required
         return None
     zd = envelope.get("zero_dte")
-    zshare = gex_card._real(zd.get("share")) if isinstance(zd, dict) else None
-    if zshare is not None and not (0.0 <= zshare <= 1.0):
-        return None
+    raw = zd.get("share") if isinstance(zd, dict) else None   # None = row omitted
+    zshare = gex_card._real(raw)
+    if raw is not None and (zshare is None or not (0.0 <= zshare <= 1.0)):
+        return None                                         # present-but-degenerate -> reject (R8)
     return GexReference(
         scenario_id=_SCENARIO_ID, instrument=_INSTRUMENT, synthetic_source=src,
         authoring_basis_sha=sha, authoring_helper_path=helper,

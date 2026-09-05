@@ -2,6 +2,10 @@
 
 Harness: out-of-repo Chrome DevTools Protocol driver (Chrome 151, headless=new),
 true device metrics via Emulation.setDeviceMetricsOverride (not --window-size).
+Implementation head: 6dd082572a6c8af0d978410104f847ef25751e9d (branch
+claude/prd-333-gex-reference-design). These metrics were captured against that
+commit's rendered output; any later same-PR hardening is validator/test/doc only
+and does not change the rendered fragment (goldens below pin the exact bytes).
 Full per-state metrics are embedded at the end of this file. Fixtures rendered
 through the renderer with the committed macro snapshot (CI parity).
 

@@ -4894,6 +4894,23 @@ def test_prd333_reference_availability_is_isolated(monkeypatch):
     assert _strip_gex_reference(present) == _strip_gex_reference(unavail)
 
 
+@pytest.mark.parametrize("run_kwargs", [
+    {"outcome": "NO_TRADE"},                                  # STAY FLAT
+    {"outcome": "TRADE", "permission": True},                 # TRADE PERMITTED
+    {"system_halted": True, "kill_switch": True},             # HALT
+    {"outcome": "NO_TRADE", "permission": False},             # locked / no-permission
+], ids=["no_trade", "trade", "halt", "locked"])
+def test_prd333_reference_isolated_across_decision_states(monkeypatch, run_kwargs):
+    # R7: across TRADE / NO_TRADE / HALT / locked, reference present vs unavailable
+    # changes ONLY the reference subtree -- every decision/output byte is unchanged.
+    monkeypatch.setattr(_dr, "_utcnow", lambda: _GEX_FROZEN)
+    present = render_dashboard_html(_payload(), _run(**run_kwargs), gex_snapshot=None, now=_GEX_FROZEN)
+    monkeypatch.setattr(_gexref, "_RESOURCE", _gexref._RESOURCE.parent / "nonexistent.json")
+    unavail = render_dashboard_html(_payload(), _run(**run_kwargs), gex_snapshot=None, now=_GEX_FROZEN)
+    assert present != unavail
+    assert _strip_gex_reference(present) == _strip_gex_reference(unavail)
+
+
 def test_prd333_current_gex_bytes_unchanged_with_reference(monkeypatch):
     # R6: the current GEX card fragment is byte-identical with the reference present,
     # and the reference never appears inside TAPE.
