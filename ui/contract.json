@@ -1,8 +1,8 @@
 {
   "artifacts": {
     "log_path": "logs/latest_run.json",
-    "notification_sent": true,
-    "report_path": "reports/2026-09-04.md"
+    "notification_sent": false,
+    "report_path": "reports/2026-09-05.md"
   },
   "audit_summary": {
     "continuation_accepted_count": null,
@@ -19,27 +19,27 @@
     "score": 1,
     "state": "ALIGNED"
   },
-  "generated_at": "2026-09-04T23:05:14Z",
-  "generation_id": "live-20260904T230514Z",
+  "generated_at": "2026-09-05T08:06:07Z",
+  "generation_id": "live-20260905T080607Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -1.9828845391298078,
-      "level": 79660.921875,
+      "change_pct": -0.020356106351438568,
+      "level": 79658.890625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.09994046394988189,
-      "level": 99.15699768066406,
+      "change_pct": 0.10297503105810117,
+      "level": 99.16000366210938,
       "symbol": "DX-Y.NYB"
     },
     "gold": {
-      "change_pct": -0.8108381177426602,
-      "level": 4477.2001953125,
+      "change_pct": -1.8609598040384403,
+      "level": 4429.7998046875,
       "symbol": "GC=F"
     },
     "oil": {
-      "change_pct": -0.8693712796647444,
-      "level": 91.22000122070312,
+      "change_pct": -0.5868216755401288,
+      "level": 91.4800033569336,
       "symbol": "CL=F"
     },
     "rates": {
@@ -49,8 +49,8 @@
       "symbol": "^TNX"
     },
     "silver": {
-      "change_pct": -0.5876614811979655,
-      "level": 66.81999969482422,
+      "change_pct": -1.7377063619948414,
+      "level": 66.0469970703125,
       "symbol": "SI=F"
     },
     "volatility": {
@@ -99,7 +99,7 @@
     }
   ],
   "schema_version": "v2",
-  "session_date": "2026-09-04",
+  "session_date": "2026-09-05",
   "status": "STAY_FLAT",
   "system_state": {
     "confidence": 0.0,
@@ -110,7 +110,7 @@
     "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
     "router_mode": "MIXED",
     "stay_flat_reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
-    "time_gate_open": false,
+    "time_gate_open": true,
     "tradable": false
   },
   "timezone": "America/New_York",
