@@ -403,7 +403,6 @@ def _trend_structure_intraday_display(record: dict) -> str:
     return _TREND_STRUCTURE_INTRADAY_DISPLAY[(vwap_token, band)]
 HISTORY_LIMIT = 5
 SCOREBOARD_LIMIT = 5  # render at most the 5 most-recent regime-history rows (was 10, PRD-177 R4)
-_DASHBOARD_REFRESH_SECONDS = 30
 DASHBOARD_STALE_AFTER_SECONDS = 300
 
 # PRD-250: client-side page-age banner threshold. During an ACTIVE session a
@@ -417,8 +416,10 @@ BOARD_STALE_AFTER_SECONDS = 90 * 60  # 90 min
 
 # PRD-250: inline client-side staleness script. Reads the machine-readable
 # UPDATED timestamp emitted on #cb-updated, compares it to the viewer's clock at
-# VIEW time, and paints a page-age notice into #staleness-banner. Re-runs on each
-# <meta http-equiv="refresh"> reload. Server bakes NO verdict; the browser is the
+# VIEW time, and paints a page-age notice into #staleness-banner. PRD-334 R1: the
+# auto-refresh <meta> was removed (it reset view state); the notice now re-evaluates
+# on a local-clock setInterval instead of on each forced reload -- no network, no
+# storage, so a selected setup survives. Server bakes NO verdict; the browser is the
 # only component that keeps running when the pipeline stops. `data-session-inactive`
 # is the server-supplied "was a refresh due" signal (payload.meta.session_type via
 # inactive_session) — no market calendar is reimplemented here. Informs the age
@@ -468,6 +469,11 @@ _STALENESS_BANNER_JS = """
   } else {
     run();
   }
+  // PRD-334 R1: re-evaluate page age on the viewer's local clock now that the
+  // full-page auto-refresh is gone. setInterval only re-reads the already-baked
+  // #cb-updated timestamp against Date.now(); it opens no network and touches no
+  // storage, so it never grants/revokes permission or revalidates GEX.
+  setInterval(run, 60000);
 })();
 """
 
@@ -1125,6 +1131,11 @@ _CSS = (
     # Change #1: demote the freshness timestamp below state/why/context so
     # metadata no longer outranks meaning under the page anchor.
     "#system-state #cb-updated{color:#666;font-size:.72rem;margin-top:6px}"
+    # PRD-334 R1: manual-reload affordance, 44px touch target, view-state safe.
+    "#system-state .board-reload{display:inline-flex;align-items:center;flex-wrap:wrap;"
+    "gap:2px 8px;min-height:44px;margin-top:2px;color:#29b6f6;text-decoration:none;font-size:.78rem}"
+    "#system-state .board-reload:hover,#system-state .board-reload:focus{text-decoration:underline}"
+    "#system-state .board-reload-note{color:#888;font-size:.7rem}"
     "#staleness-banner{border:1px solid currentColor;border-radius:3px;padding:5px 8px;margin-bottom:8px;font-size:.72rem;letter-spacing:.04em}"
     ".verdict-warning{border-left:3px solid #ff9800;color:#ff9800;padding:6px 8px;margin-bottom:8px}"
     "#watching-zone .operator-subsection{padding-top:10px;margin-top:10px;border-top:1px solid #222}"
@@ -2823,7 +2834,11 @@ def render_dashboard_html(
     w("<head>")
     w('  <meta charset="UTF-8">')
     w('  <meta name="viewport" content="width=device-width, initial-scale=1.0">')
-    w(f'  <meta http-equiv="refresh" content="{_DASHBOARD_REFRESH_SECONDS}">')
+    # PRD-334 R1: no <meta http-equiv="refresh"> -- a forced full-page reload reset
+    # the operator's selected setup. Freshness is now honest and view-state safe:
+    # a server-rendered as-of timestamp (#cb-updated), a client-clocked staleness
+    # notice (#staleness-banner, re-evaluated on setInterval), and a manual reload
+    # affordance -- none of which discard the current selection on their own.
     w("  <title>Signal Forge</title>")
     w(f"  <style>{_CSS}</style>")
     w("</head>")
@@ -3067,6 +3082,12 @@ def render_dashboard_html(
     )
     w(f'  <div class="value" id="cb-updated" data-updated-utc="{_esc(_updated_iso)}">'
       f'Updated {_esc(_updated_display)}</div>')
+    # PRD-334 R1: honest manual-reload affordance replacing the removed auto-refresh.
+    # A native anchor to the current URL (href="") reloads without JS/network/storage;
+    # the copy is explicit that a fresh fetch may return the same board.
+    w('  <a class="board-reload" id="board-reload" href="" data-role="manual-reload">'
+      'Reload for the latest board '
+      '<span class="board-reload-note">a newer board may not exist yet</span></a>')
     w("</div>")  # #system-state
     w("</div>")  # #verdict-zone
 
