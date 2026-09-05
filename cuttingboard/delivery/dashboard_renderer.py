@@ -1174,6 +1174,9 @@ _CSS = (
     ".setup-tab-check{border:1px solid currentColor;border-radius:3px;padding:0 4px;font-size:.62rem;letter-spacing:.06em;color:#ff9800}"
     ".setup-panels{min-width:0}"
     ".setup-panel{min-width:0}"
+    # PRD-332 (D5) / PR #319 salvage: 44px touch targets on the WATCHING and
+    # DETAILS/HISTORY disclosures (main-section, so not scoped into a phone block).
+    "#watching-zone summary,#details-history>summary{min-height:44px;display:flex;align-items:center}"
     "#verdict-zone{border-left:3px solid #3a3a3a}"
     "#verdict-zone:has(.decision-state.sys-up){border-left-color:#4caf50}"
     "#verdict-zone:has(.decision-state.sys-down),#verdict-zone:has(.decision-state.sys-halt){border-left-color:#f44336}"
