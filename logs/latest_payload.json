@@ -1,8 +1,8 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -0.020356106351438568,
-      "level": 79658.890625,
+      "change_pct": 0.10101569704704114,
+      "level": 79755.6015625,
       "symbol": "BTC-USD"
     },
     "dollar": {
@@ -38,9 +38,9 @@
     }
   },
   "meta": {
-    "generation_id": "live-20260905T080607Z",
+    "generation_id": "live-20260905T195459Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-09-05T08:06:07Z"
+    "timestamp": "2026-09-05T19:54:59Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -66,12 +66,12 @@
         "orb": {
           "orb_high": null,
           "orb_low": null,
-          "reason": "pre_open_prior_session",
-          "state": "PRE_OPEN"
+          "reason": "session_mismatch",
+          "state": "INVALID"
         },
         "price_vs_vwap": null,
-        "reason": "pre_open_prior_session",
-        "state": "PRE_OPEN"
+        "reason": "session_mismatch",
+        "state": "STALE"
       },
       "permission": {
         "value": "No new trades permitted \u2014 operator cannot monitor."
@@ -103,14 +103,14 @@
         "observed_at_utc": "2026-09-04T19:30:00+00:00",
         "orb_high": null,
         "orb_low": null,
-        "reason": "pre_open_prior_session",
-        "state": "PRE_OPEN",
-        "trading_date": "2026-09-05"
+        "reason": "session_mismatch",
+        "state": "INVALID",
+        "trading_date": "2026-09-04"
       },
       "price_vs_vwap": null,
-      "reason": "pre_open_prior_session",
+      "reason": "session_mismatch",
       "session_vwap": null,
-      "state": "PRE_OPEN",
+      "state": "STALE",
       "timezone": "America/New_York"
     },
     "top_trades": [],

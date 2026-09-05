@@ -19,8 +19,8 @@
     ],
     "unavailable_symbols": []
   },
-  "generated_at": "2026-09-05T08:06:07Z",
-  "generation_id": "live-20260905T080607Z",
+  "generated_at": "2026-09-05T19:54:59Z",
+  "generation_id": "live-20260905T195459Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -34,7 +34,7 @@
   "session_date": "2026-09-05",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-09-05T08:06:07Z"
+    "run_at_utc": "2026-09-05T19:54:59Z"
   },
   "symbols": {
     "GDX": {

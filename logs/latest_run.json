@@ -8,7 +8,7 @@
   "data_status": "ok",
   "energy_score": 0.0,
   "errors": [],
-  "generation_id": "live-20260905T080607Z",
+  "generation_id": "live-20260905T195459Z",
   "halt_reason": null,
   "index_score": 0.0,
   "kill_switch": false,
@@ -20,11 +20,11 @@
   "posture": "STAY_FLAT",
   "regime": "NEUTRAL",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-09-05T08:06:07Z",
-  "run_id": "live-20260905T080607Z",
+  "run_at_utc": "2026-09-05T19:54:59Z",
+  "run_id": "live-20260905T195459Z",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-09-05T08:06:07Z",
+  "timestamp": "2026-09-05T19:54:59Z",
   "warnings": [],
   "watch_candidates": 0
 }

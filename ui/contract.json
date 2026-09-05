@@ -19,12 +19,12 @@
     "score": 1,
     "state": "ALIGNED"
   },
-  "generated_at": "2026-09-05T08:06:07Z",
-  "generation_id": "live-20260905T080607Z",
+  "generated_at": "2026-09-05T19:54:59Z",
+  "generation_id": "live-20260905T195459Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -0.020356106351438568,
-      "level": 79658.890625,
+      "change_pct": 0.10101569704704114,
+      "level": 79755.6015625,
       "symbol": "BTC-USD"
     },
     "dollar": {
@@ -110,7 +110,7 @@
     "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
     "router_mode": "MIXED",
     "stay_flat_reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
-    "time_gate_open": true,
+    "time_gate_open": false,
     "tradable": false
   },
   "timezone": "America/New_York",

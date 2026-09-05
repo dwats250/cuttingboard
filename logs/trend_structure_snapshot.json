@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-05T08:06:07.894173+00:00",
+  "generated_at": "2026-09-05T19:54:59.561014+00:00",
   "schema_version": 1,
   "source": "trend_structure",
   "symbols": {
@@ -72,7 +72,7 @@
       "price_vs_vwap": "NOT_COMPUTED",
       "reason": "BULLISH alignment; VWAP NOT_COMPUTED",
       "relative_volume": 0.92434763173216,
-      "sma_200": 709.8685507202149,
+      "sma_200": 709.8685494995117,
       "sma_50": 756.8572009277344,
       "symbol": "SPY",
       "trend_alignment": "BULLISH",
@@ -87,7 +87,7 @@
       "price_vs_vwap": "NOT_COMPUTED",
       "reason": "BULLISH alignment; VWAP NOT_COMPUTED",
       "relative_volume": 1.0334099228475493,
-      "sma_200": 54.37358093261719,
+      "sma_200": 54.37358102798462,
       "sma_50": 59.20300025939942,
       "symbol": "XLE",
       "trend_alignment": "BULLISH",
