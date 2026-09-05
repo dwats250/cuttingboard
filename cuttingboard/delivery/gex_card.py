@@ -432,8 +432,12 @@ def _outside_line(p: GexProfile) -> str:
 def _accessible_table(p: GexProfile) -> list[str]:
     """The phone-inspectable full table: all 31 window bins + all outside bins.
     Plain HTML, no hover/JS reliance, exact per-bin vocabulary."""
+    # PRD-334 R7: the full table renders FLAT (a plain heading, no inner
+    # <details>) because the whole profile now sits behind ONE "Full GEX details"
+    # disclosure -- a second nested disclosure here would be the unnecessary
+    # nesting R7 forbids.
     lines = [
-        '  <details><summary class="label">ALL 31 BINS + OUTSIDE BINS</summary>',
+        '  <div class="label">ALL 31 BINS + OUTSIDE BINS</div>',
         '    <table class="gex-bins"><thead><tr><th>BIN</th><th>INTERVAL</th>'
         '<th>CALL MODELED MAGNITUDE</th><th>PUT MODELED MAGNITUDE</th>'
         '<th>MODEL NET*</th></tr></thead><tbody>',
@@ -456,7 +460,7 @@ def _accessible_table(p: GexProfile) -> list[str]:
             f'<td>{_fmt_b(b.call)}</td><td>{_fmt_b(b.put)}</td>'
             f'<td>{_fmt_net_b(b.model_net)}</td></tr>'
         )
-    lines.append("    </tbody></table></details>")
+    lines.append("    </tbody></table>")
     return lines
 
 
@@ -708,7 +712,13 @@ def render_gex_card_html(card: GexCard | None) -> str:
         "  </div>",
     ]
     if card.profile is not None:
+        # PRD-334 R7: the compact summary (kv-grid above) is readable immediately;
+        # the dense structural profile (SVG ladder + coverage/spot/outside lines +
+        # full accessible table + methodology) sits behind ONE bounded disclosure
+        # scoped to THIS fragment. Not open by default.
+        lines.append('  <details class="gex-full"><summary>Full GEX details</summary>')
         lines.extend(_profile_block(card.profile))
+        lines.append("  </details>")
 
     footnote = ("* MODEL NET = CALL MODELED MAGNITUDE - PUT MODELED MAGNITUDE. "
                 "Configured call-plus / put-minus convention; participant and "

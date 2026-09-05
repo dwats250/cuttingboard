@@ -625,7 +625,11 @@ def test_ladder_table_and_scoped_overflow_guard_present():
     frag = _frag(_rich())
     assert 'class="gex-ladder"' in frag                      # SVG is the primary visual
     assert "ALL 31 BINS + OUTSIDE BINS" in frag              # full table retained
-    assert "<details>" in frag                               # behind a disclosure, not open
+    # PRD-334 R7: the dense profile sits behind ONE bounded "Full GEX details"
+    # disclosure (not open by default); the redundant inner table <details> is gone.
+    assert '<details class="gex-full">' in frag
+    assert ">Full GEX details</summary>" in frag
+    assert '<details class="gex-full" open>' not in frag
     assert "grid-template-columns:minmax(0,1fr) auto" in frag  # card-scoped phone guard
     assert "#gex-context" in frag
 

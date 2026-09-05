@@ -185,7 +185,13 @@ def _render(ref: GexReference) -> str:
         '    <div class="kv-grid">',
         *rows,
         "    </div>",
+        # PRD-334 R7: the dense structural profile sits behind ONE bounded "Full GEX
+        # details" disclosure scoped to this fragment. The frozen-example identity
+        # (heading, "Observation date: none (synthetic)", SPX instrument, source) and
+        # the compact summary stay visible above it -- unmistakably not-current data.
+        '    <details class="gex-full"><summary>Full GEX details</summary>',
         *gex_card._profile_block(ref.profile, _REF_LADDER),
+        "    </details>",
         f'    <div class="gex-reference-guide">{_GUIDE}</div>',
         f'    <div class="label">{_FOOTNOTE}</div>',
     ]

@@ -1165,6 +1165,10 @@ _CSS = (
     ".candidate-observation{opacity:.82}"
     ".candidate-observation .value-actionable{color:inherit}"
     "#details-history>summary{cursor:pointer;list-style:none;color:#aaa;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}"
+    # PRD-334 R7: the bounded "Full GEX details" disclosure (both the production
+    # card and the synthetic reference). 44px touch target where the control is.
+    ".gex-full>summary{cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center;color:#9aa4b2;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em}"
+    ".gex-full>summary::-webkit-details-marker{display:none}"
     "#details-history>summary::-webkit-details-marker{display:none}"
     "#details-history>.details-body{margin-top:10px}"
     "#details-history .block{border:0;border-radius:0;border-top:1px solid #222;margin:0;padding:12px 0}"
