@@ -1658,6 +1658,12 @@
       "title": "MANUAL CHECK flag on the ALERT WATCHLIST row (operator prominence, presentation-only)",
       "status": "COMPLETE",
       "commit": "c8b35ef"
+    },
+    {
+      "number": 332,
+      "title": "Dashboard D5 \u2014 A-style upper surface + C-style WATCHING selectable setup workspace",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
