@@ -726,19 +726,19 @@ def test_alert_watchlist_shows_symbol_and_direction() -> None:
     assert "XLE" in block
 
 
-def test_candidate_board_positioned_before_alert_watchlist() -> None:
-    """PRD-315: candidate-board immediately precedes alert-watchlist in DOM.
+def test_alert_watchlist_positioned_before_candidate_board() -> None:
+    """PRD-332 (D5): alert-watchlist immediately precedes candidate-board in DOM.
 
-    Supersedes the historical Alert-before-Candidate pin (packet section 5):
-    Candidate is lifted above Alert and is its immediate top-level predecessor.
-    Reverting Candidate to its old seam breaks the adjacency assertion below.
+    Supersedes the PRD-315 Candidate-before-Alert pin: the MANUAL CHECK / alert
+    band is relocated ABOVE the setups so setup selection can never hide it.
+    Reverting alert-watchlist below candidate-board breaks the assertion below.
     """
     from tests.dash_helpers import _trade_decision
     gated = [_trade_decision("NVDA", "LONG", decision_status="BLOCK_TRADE", block_reason="LATE_SESSION")]
     html = render_dashboard_html(_payload(), _run(), alert_candidates=gated)
     ids = _top_ids(html)
-    assert ids.index("candidate-board") < ids.index("alert-watchlist")
-    assert ids.index("alert-watchlist") == ids.index("candidate-board") + 1
+    assert ids.index("alert-watchlist") < ids.index("candidate-board")
+    assert ids.index("candidate-board") == ids.index("alert-watchlist") + 1
 
 
 # ---------------------------------------------------------------------------

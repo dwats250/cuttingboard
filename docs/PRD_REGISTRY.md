@@ -348,7 +348,8 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-328 | — | Dashboard D3: user-opened secondary tier evidence + SPY session first-class observation (renderer only) — packet-in-PRD-form; review-clean content at edf28d4 canonicalized to audits/dashboard-d3-material-packet-2026-09/ per Helm B1 ruling 2026-09-02; superseded by PRD-329; never implementation authority | DEPRECATED | [PRD-328](prd_history/PRD-328.md) |
 | PRD-329 | 218fb9a | Dashboard D3 implementation: closed-C-tier one-click evidence (S1) + SPY session first-class observation (S2), renderer only | COMPLETE | [PRD-329](prd_history/PRD-329.md) |
 | PRD-330 | 13c7f04 | Dashboard D4 implementation: Proto-B primary-path synthesis + SPY chart LEVELS control | COMPLETE | [PRD-330](prd_history/PRD-330.md) |
-| PRD-331 | — | MANUAL CHECK flag on the ALERT WATCHLIST row (operator prominence, presentation-only) | IN PROGRESS | [PRD-331](prd_history/PRD-331.md) |
+| PRD-331 | c8b35ef | MANUAL CHECK flag on the ALERT WATCHLIST row (operator prominence, presentation-only) | COMPLETE | [PRD-331](prd_history/PRD-331.md) |
+| PRD-332 | #320 | Dashboard D5 — A-style upper surface + C-style WATCHING selectable setup workspace | COMPLETE | [PRD-332](prd_history/PRD-332.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
