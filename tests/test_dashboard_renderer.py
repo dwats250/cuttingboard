@@ -30,6 +30,7 @@ from cuttingboard.delivery.dashboard_renderer import (
 )
 from cuttingboard.delivery import dashboard_renderer as _dr
 from cuttingboard.delivery import gex_card as _gex
+from cuttingboard.delivery import gex_reference as _gexref
 from tests.dash_helpers import (
     _PC_BARS,
     _bars_snapshot,
@@ -4751,7 +4752,15 @@ def test_prd330_golden_regions_and_embedded_svg_pinned() -> None:
             assert hashlib.sha256(_golden_region(html, block_id).encode("utf-8")).hexdigest() == expected, (filename, block_id)
     a1c = _A1C_GOLDEN.read_text()
     svg = a1c.split('<div class="setup-chart">', 1)[1].split("</svg>", 1)[0] + "</svg>"
-    assert a1c.count("<svg ") == 1
+    # PRD-333: the golden now carries a second SVG -- the synthetic GEX reference
+    # ladder, emitted below WATCHING and outside the setup chart. Pin both exactly:
+    # the reference ladder is the only SVG before the setup chart, and the frozen
+    # candidate chart SVG (below) is byte-unchanged (legacy oracle sha intact).
+    assert a1c.count("<svg ") == 2
+    assert a1c.count('<svg class="gex-ladder"') == 1
+    # the setup chart (WATCHING slot) precedes the reference ladder; everything
+    # before #gex-reference holds exactly the one candidate-chart SVG.
+    assert a1c.split('id="gex-reference"', 1)[0].count("<svg ") == 1
     assert hashlib.sha256(svg.encode("utf-8")).hexdigest() == oracle["a1c_golden_embedded_svg_sha256"]
 
 
@@ -4817,6 +4826,9 @@ def test_gex_isolation_ast():
         tree = _ast.parse(src)
         is_card = py.name == "gex_card.py"
         is_renderer = py.name == "dashboard_renderer.py"
+        # PRD-333: the reference carrier is a permitted delivery-only consumer of
+        # gex_card (its own import surface is guarded in test_gex_reference.py).
+        is_reference = py.name == "gex_reference.py"
         for node in _ast.walk(tree):
             names = []
             if isinstance(node, _ast.ImportFrom) and node.module:
@@ -4824,7 +4836,7 @@ def test_gex_isolation_ast():
             elif isinstance(node, _ast.Import):
                 names.extend(alias.name for alias in node.names)
             for name in names:
-                if "gex_card" in name and not is_renderer:
+                if "gex_card" in name and not is_renderer and not is_reference:
                     importers.append(py.name)
                 if is_card and name.startswith("cuttingboard"):
                     card_cb_imports.append(name)
@@ -4833,6 +4845,95 @@ def test_gex_isolation_ast():
     assert importers == [], f"non-renderer importers of gex_card: {importers}"
     assert card_cb_imports == [], f"gex_card imports cuttingboard: {card_cb_imports}"
     assert artifact_refs == [], f"unexpected artifact readers: {artifact_refs}"
+
+
+# ============================================================================
+# PRD-333: GEX synthetic reference coexistence / isolation (whole-dashboard).
+# ============================================================================
+def _strip_gex_reference(html: str) -> str:
+    """Remove the whole #gex-reference disclosure (it nests <details> for the table),
+    so the remaining document can be compared for reference-independence."""
+    i = html.index('<details class="gex-reference"')
+    depth, j = 0, i
+    while True:
+        no, nc = html.find("<details", j), html.find("</details>", j)
+        if no != -1 and no < nc:
+            depth, j = depth + 1, no + 8
+        else:
+            depth, j = depth - 1, nc + len("</details>")
+            if depth == 0:
+                return html[:i] + html[j:]
+
+
+def test_prd333_reference_present_placed_and_collapsed(monkeypatch):
+    # R1: exactly one #gex-reference, after WATCHING and before DETAILS, collapsed,
+    # data-gex-kind="reference", and NOT an operator zone.
+    monkeypatch.setattr(_dr, "_utcnow", lambda: _GEX_FROZEN)
+    html = render_dashboard_html(_payload(), _run(), gex_snapshot=None, now=_GEX_FROZEN)
+    assert html.count('id="gex-reference"') == 1
+    iw = html.rindex('id="watching-zone"')
+    ir = html.index('id="gex-reference"')
+    idet = html.index('id="details-history"')
+    assert iw < ir < idet
+    assert '<details class="gex-reference" id="gex-reference" data-gex-kind="reference">' in html
+    assert 'class="block operator-zone" id="gex-reference"' not in html
+    # collapsed: the <details> opening tag carries no `open` attribute
+    open_tag = html[ir - 40: html.index(">", ir) + 1]
+    assert " open" not in open_tag
+
+
+def test_prd333_reference_availability_is_isolated(monkeypatch):
+    # R7: whether the reference resolves or is unavailable changes ONLY its own
+    # subtree; every other byte of the document is identical.
+    monkeypatch.setattr(_dr, "_utcnow", lambda: _GEX_FROZEN)
+    present = render_dashboard_html(_payload(), _run(), gex_snapshot=None, now=_GEX_FROZEN)
+    monkeypatch.setattr(_gexref, "_RESOURCE", _gexref._RESOURCE.parent / "nonexistent.json")
+    unavail = render_dashboard_html(_payload(), _run(), gex_snapshot=None, now=_GEX_FROZEN)
+    assert present != unavail
+    assert "Reference example unavailable." in unavail
+    assert _strip_gex_reference(present) == _strip_gex_reference(unavail)
+
+
+@pytest.mark.parametrize("run_kwargs", [
+    {"outcome": "NO_TRADE"},                                  # STAY FLAT
+    {"outcome": "TRADE", "permission": True},                 # TRADE PERMITTED
+    {"system_halted": True, "kill_switch": True},             # HALT
+    {"outcome": "NO_TRADE", "permission": False},             # locked / no-permission
+], ids=["no_trade", "trade", "halt", "locked"])
+def test_prd333_reference_isolated_across_decision_states(monkeypatch, run_kwargs):
+    # R7: across TRADE / NO_TRADE / HALT / locked, reference present vs unavailable
+    # changes ONLY the reference subtree -- every decision/output byte is unchanged.
+    monkeypatch.setattr(_dr, "_utcnow", lambda: _GEX_FROZEN)
+    present = render_dashboard_html(_payload(), _run(**run_kwargs), gex_snapshot=None, now=_GEX_FROZEN)
+    monkeypatch.setattr(_gexref, "_RESOURCE", _gexref._RESOURCE.parent / "nonexistent.json")
+    unavail = render_dashboard_html(_payload(), _run(**run_kwargs), gex_snapshot=None, now=_GEX_FROZEN)
+    assert present != unavail
+    assert _strip_gex_reference(present) == _strip_gex_reference(unavail)
+
+
+def test_prd333_current_gex_bytes_unchanged_with_reference(monkeypatch):
+    # R6: the current GEX card fragment is byte-identical with the reference present,
+    # and the reference never appears inside TAPE.
+    monkeypatch.setattr(_dr, "_utcnow", lambda: _GEX_FROZEN)
+    frag = _gex.render_fragment(_valid_gex(), now=_GEX_FROZEN)
+    assert frag  # sanity: the current fixture admits
+    html = render_dashboard_html(_payload(), _run(), gex_snapshot=_valid_gex(), now=_GEX_FROZEN)
+    assert frag in html
+    # the reference lives after WATCHING; it never appears in TAPE / any upper zone.
+    upper = html[html.index('id="tape-zone"'): html.rindex('id="watching-zone"')]
+    assert "gex-reference" not in upper
+
+
+def test_prd333_reference_not_imported_by_upstream():
+    # R7: only the renderer depends on the reference carrier; no decision/upstream
+    # module references it.
+    importers = []
+    for py in sorted(_CB_ROOT.rglob("*.py")):
+        if py.name in ("gex_reference.py", "dashboard_renderer.py"):
+            continue
+        if "gex_reference" in py.read_text(encoding="utf-8"):
+            importers.append(py.name)
+    assert importers == [], f"unexpected gex_reference consumers: {importers}"
 
 
 # --- R19: card adds no readiness marker / not in coherent-publish set ---

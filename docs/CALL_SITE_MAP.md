@@ -65,6 +65,7 @@ always current).
 | `_load_contract_entry_context` | Reads `logs/latest_hourly_contract.json` → entry map + stop map (finite, > 0) + alert candidates + generated_at |
 | `_mcc_cell_display` / `_mcc_event_display` / `_mcc_location_display` | PRD-289 Market Control Card cell projection (value or typed unavailable token, never a default); block renders iff `sections["market_control_card"]` present |
 | `main` / `write_dashboard` / `render_dashboard_html` (GEX seam) | Loads `logs/gex_snapshot.json` via `gex_card.load_gex_snapshot`, threads a tz-aware `now`, and emits `gex_card.render_fragment(...)` as a display-only card (PRD-309); `if frag:` guarded, so absent/stale/invalid emits nothing (byte-identical baseline) |
+| `render_dashboard_html` (GEX REFERENCE seam) | PRD-333: emits `gex_reference.render_reference_fragment()` UNCONDITIONALLY (no inputs) at the WATCHING -> DETAILS boundary (after `#watching-zone` close, before `#details-history`) -- exactly one `<details id="gex-reference">`, structurally separate from current GEX; not an operator zone (keeps the pre-`#details-history` `block operator-zone` count at 4) |
 | `render_dashboard_html` (MARKET STATE seam) | Builds the resolved `GexCard` / `MovementCard` (renderer owns the artifact reads), then emits `market_state_panel.render_fragment(...)` immediately BEFORE `id="system-state"` (outside the PRD-219 protected region; PRD-312). Persistent five-axis panel — always emitted (no suppression). Also the arrow-cut site: the tradables daily-change arrow builder + span are removed here |
 
 Note: the candidate board reads `market_map["symbols"]` directly, not payload
@@ -87,6 +88,16 @@ anchor-only fallback.
 | `load_gex_snapshot` | Soft loader for `logs/gex_snapshot.json` (mirrors `_load_trend_structure_snapshot`; never raises; `None` on missing/malformed/non-dict) |
 | `build_gex_card` | Pure model builder (clock injected); validates the D5a admissibility domain + freshness; returns `GexCard` or `None` to suppress |
 | `render_gex_card_html` / `render_fragment` | Pure HTML fragment (empty string suppresses). All GEX arithmetic/validation live here; the renderer only loads and emits (PRD-309 R17/R20) |
+| `_core_rows` / `_profile_block` / `_svg_ladder` (PRD-333 factoring) | Pure shared helpers reused by `gex_reference`; the default `LadderLabel()` renders byte-identical current output, a reference variant only stamps synthetic identity (accessible name + one visible caption). `_compute_profile` now takes a precomputed `anchors` dict (no production snapshot) |
+
+## cuttingboard/delivery/gex_reference.py
+
+PRD-333 synthetic GEX reference carrier. Imports ONLY `gex_card`; never reads the current artifact (isolation guarded by `test_gex_isolation_ast` + `tests/test_gex_reference.py`). Emitted once by `dashboard_renderer` at the WATCHING -> DETAILS seam.
+
+| Function | Purpose |
+|---|---|
+| `build_reference` | Strict validator/model builder for the bundled reference envelope; returns `GexReference` or `None` (fail-loud, no fallback). Rejects any production snapshot and any renamed/laundered/provenance-stripped input |
+| `render_reference_fragment` | Renderer's sole entry point; NO inputs (no clock/path/network/snapshot). Loads the one bundled resource and always returns exactly one collapsed `<details id="gex-reference" data-gex-kind="reference">`; invalid/missing -> a labeled "Reference example unavailable." disclosure |
 
 ## cuttingboard/delivery/market_state_panel.py
 

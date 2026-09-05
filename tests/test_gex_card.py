@@ -651,3 +651,53 @@ def test_ladder_accessibility_scaffolding_present():
     assert "<title>" in svg                              # per-bar / net-tick titles exist
     assert "CALL MODELED MAGNITUDE" in svg               # carried inside a bar <title>
     assert "MODEL NET*" in svg                           # carried inside a net-tick <title>
+
+
+# --- PRD-333: reuse-factoring guards (default byte-identity + carrier rejection) ---
+
+def _profile_of(snapshot):
+    return gex_card._build_profile(snapshot["by_strike"], snapshot, snapshot["spot"]["value"])
+
+
+def test_default_ladder_label_is_byte_identical():
+    # mutation: change the default LadderLabel so the current card's ladder bytes
+    # drift -> the current-card golden/byte guards break. The explicit default and
+    # the no-arg call must be identical, and neither carries reference identity.
+    p = _profile_of(_rich())
+    default = "\n".join(gex_card._svg_ladder(p))
+    explicit = "\n".join(gex_card._svg_ladder(p, gex_card.LadderLabel()))
+    assert default == explicit
+    assert 'aria-label="Modeled GEX strike ladder' in default    # no reference prefix
+    assert "REFERENCE" not in default and "SYNTHETIC" not in default
+
+
+def test_profile_block_default_byte_identical():
+    p = _profile_of(_rich())
+    assert gex_card._profile_block(p) == gex_card._profile_block(p, gex_card.LadderLabel())
+
+
+def test_current_admission_rejects_reference_shaped_envelope():
+    # mutation: relax build_gex_card so a reference envelope (no production identity)
+    # could be admitted as a current card -> a synthetic example laundered into TAPE.
+    ref_shaped = {
+        "reference_schema_version": 1,
+        "kind": "synthetic_reference",
+        "scenario_id": "spx-structure-v1",
+        "instrument": "SPX",
+        "observation_date": None,
+        "spot": 7747.71,
+        "gex_total_1pct_usd": 1.0,
+        "by_strike": {"strike": [7747.71], "call_modeled_magnitude_1pct_usd": [1.0],
+                      "put_modeled_magnitude_1pct_usd": [0.0]},
+    }
+    assert gex_card.build_gex_card(ref_shaped, now=NOW) is None
+
+
+def test_core_rows_are_the_current_card_rows():
+    # the factored helper is what the current card renders (no vocabulary drift)
+    card = gex_card.build_gex_card(_rich(), now=NOW)
+    rows = gex_card._core_rows(card.net_usd, card.dominant, card.call_wall,
+                               card.put_wall, card.zero_dte_share, card.profile)
+    html = gex_card.render_gex_card_html(card)
+    for row in rows:
+        assert row in html

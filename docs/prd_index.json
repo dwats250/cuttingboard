@@ -1664,6 +1664,12 @@
       "title": "Dashboard D5 \u2014 A-style upper surface + C-style WATCHING selectable setup workspace",
       "status": "COMPLETE",
       "commit": "#320"
+    },
+    {
+      "number": 333,
+      "title": "GEX synthetic reference context disclosure",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

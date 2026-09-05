@@ -117,6 +117,29 @@ DISPLAY-ONLY: no `cuttingboard` decision module reads this artifact; the card
 suppresses to a byte-identical baseline dashboard on absent/stale/invalid
 (PRD-309 R1/R17-R20).
 
+## gex_reference_v1 (cuttingboard/delivery/data/gex_reference_v1.json)
+
+PRD-333 bundled, frozen synthetic SPX reference envelope. A **distinct shape**
+from `gex_snapshot`: it carries NONE of the production identity fields
+(`schema_version`, `source`, `data_delay`, `fetched_at_utc`), so current
+admission (`gex_card.build_gex_card`) rejects it and `gex_reference.build_reference`
+rejects any production snapshot (two-way carrier rejection). Sole reader:
+`cuttingboard/delivery/gex_reference.py`.
+
+| Field path | Type | Notes |
+|---|---|---|
+| `reference_schema_version` | int | strict `== 1` |
+| `kind` | string | strict `== "synthetic_reference"` |
+| `scenario_id` | string | strict `== "spx-structure-v1"` |
+| `instrument` | string | strict `== "SPX"` (never SPY) |
+| `observation_date` | null | must be `null` (not an observation) |
+| `authoring_basis_sha` / `authoring_helper_path` / `synthetic_source` | non-empty string | provenance; missing any → rejected |
+| `spot` | float > 0 | scalar (not `{value}`); frozen example spot 7747.71 |
+| `gex_total_1pct_usd` / `by_strike.*` / `call_wall` / `put_wall` / `dominant_net_gamma` / `zero_dte.share` | as `gex_snapshot` | frozen from `tests/test_gex_card.py::_rich`; reconciled via the same `gex_card` validators (`_validate_carrier`/`_reconciles`) |
+
+DISPLAY-ONLY, reference-only: never populates TAPE, `#gex-context`, or any
+decision input; independent of clock/network/current market (R3/R4/R5/R7).
+
 ---
 
 ## watchlist_snapshot (logs/watchlist_snapshot.json)

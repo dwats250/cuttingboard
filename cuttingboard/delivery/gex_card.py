@@ -268,11 +268,13 @@ def _build_profile(by_strike, snapshot, spot_val: float):
     kf, mills, call, put = validated
     if not _reconciles(kf, call, put, snapshot):
         return _INVALID                                 # contradicts core -> suppress card
-    return _compute_profile(kf, mills, call, put, snapshot, spot_val)
+    return _compute_profile(kf, mills, call, put, _anchor_bins(snapshot), spot_val)
 
 
-def _compute_profile(kf, mills, call, put, snapshot, spot_val: float) -> GexProfile:
-    """All GEX-4 binning/window/outside arithmetic. Pure; deterministic order."""
+def _compute_profile(kf, mills, call, put, anchors: dict, spot_val: float) -> GexProfile:
+    """All GEX-4 binning/window/outside arithmetic. Pure; deterministic order.
+    ``anchors`` is the precomputed mark->bin-mills map (see ``_anchor_bins``), so a
+    reference carrier can reuse this geometry without a production snapshot."""
     bin_call: dict = {}
     bin_put: dict = {}
     for m, c, p in zip(mills, call, put):
@@ -290,7 +292,6 @@ def _compute_profile(kf, mills, call, put, snapshot, spot_val: float) -> GexProf
     center = _bin_mills(round(spot_val * 1000))
     window = [center + (i - _WINDOW_HALF) * _BIN_MILLS for i in range(2 * _WINDOW_HALF + 1)]
     window_set = set(window)
-    anchors = _anchor_bins(snapshot)
 
     window_bins = []
     scale_denom = 0.0
@@ -477,6 +478,19 @@ _L_BOT = 10.0               # bottom padding below the last row
 _L_BAR_H = 9.0              # bar thickness
 
 
+@dataclass(frozen=True)
+class LadderLabel:
+    """Presentation-only ladder labels (PRD-333). Default = byte-identical current
+    output; the reference variant stamps identity into the accessible name and one
+    visible foot caption so a crop or screen-reader pass never loses it."""
+
+    aria_prefix: str = ""       # prepended to the SVG aria-label (accessible name)
+    caption: str = ""           # extra visible <text> at the ladder foot; "" = omit
+
+
+_DEFAULT_LADDER = LadderLabel()
+
+
 def _clamp(x: float, lo: float, hi: float) -> float:
     return lo if x < lo else hi if x > hi else x
 
@@ -517,10 +531,12 @@ def _spot_y(p: GexProfile) -> float:
     return _L_TOP + (n - 1 - f) * _L_ROW_H + _L_ROW_H / 2.0
 
 
-def _svg_ladder(p: GexProfile) -> list[str]:
+def _svg_ladder(p: GexProfile, label: LadderLabel = _DEFAULT_LADDER) -> list[str]:
     """Inline SVG structural ladder: one row per 25-pt window bin, grayscale call
     (left) / put (right) magnitude bars off a center spine, a MODEL NET* tick, the
-    C/P/D anchor markers in their containing bin, and the SPX cash spot rail."""
+    C/P/D anchor markers in their containing bin, and the SPX cash spot rail.
+    ``label`` (PRD-333) defaults to byte-identical output; a reference variant only
+    prepends the accessible-name prefix and appends one visible foot caption."""
     rows = _ladder_rows(p)
     n = len(rows)
     height = _L_TOP + n * _L_ROW_H + _L_BOT
@@ -534,7 +550,7 @@ def _svg_ladder(p: GexProfile) -> list[str]:
         f'  <svg class="gex-ladder" viewBox="0 0 {f(_L_VIEW_W)} {f(height)}" '
         f'width="100%" style="width:100%;max-width:340px;height:auto;display:block;'
         f'margin:0.45rem 0" preserveAspectRatio="xMidYMid meet" role="img" '
-        f'aria-label="Modeled GEX strike ladder: {n} twenty-five-point bins around '
+        f'aria-label="{label.aria_prefix}Modeled GEX strike ladder: {n} twenty-five-point bins around '
         f'SPX cash spot {_fmt_strike(p.spot)}. Grayscale call and put modeled '
         f'magnitude per bin with a MODEL NET tick; observational structure only. '
         f'Full per-bin values are in the table below.">',
@@ -596,20 +612,26 @@ def _svg_ladder(p: GexProfile) -> list[str]:
         f'    <text x="{f(_L_VIEW_W)}" y="{f(spot_y - 2.5)}" fill="#e5e7eb" '
         f'font-size="7" text-anchor="end" {mono}>SPOT {_fmt_strike(p.spot)}</text>'
     )
+    if label.caption:                                   # PRD-333 reference identity, crop-proof
+        out.append(
+            f'    <text x="0" y="{f(height - 2.5)}" fill="#cbd5e1" font-size="7.5" '
+            f'{mono}>{label.caption}</text>'
+        )
     out.append("  </svg>")
     return out
 
 
-def _profile_block(p: GexProfile) -> list[str]:
+def _profile_block(p: GexProfile, label: LadderLabel = _DEFAULT_LADDER) -> list[str]:
     """The GEX-4 structural profile seam: the SVG strike ladder (primary visual),
     then the coverage line (both directions, summing to 100), spot label, outside-
-    bins line, the full accessible table, and the anchor/bin/expiry disclosures."""
+    bins line, the full accessible table, and the anchor/bin/expiry disclosures.
+    ``label`` (PRD-333) is threaded to the ladder; default output is byte-identical."""
     in_i, out_i = round(p.in_window_pct), round(100.0 - p.in_window_pct)
     if in_i + out_i == 100:
         cov_in, cov_out = str(in_i), str(out_i)
     else:                                               # rounding broke the sum -> one decimal
         cov_in, cov_out = f"{p.in_window_pct:.1f}", f"{100.0 - p.in_window_pct:.1f}"
-    lines = _svg_ladder(p)
+    lines = _svg_ladder(p, label)
     lines.append(
         '  <div class="label">LADDER: CALL (LEFT) &middot; PUT (RIGHT) MODELED '
         'MAGNITUDE PER 25-PT BIN &middot; DASHED RAIL = SPX CASH SPOT &middot; '
@@ -635,6 +657,24 @@ def _profile_block(p: GexProfile) -> list[str]:
     return lines
 
 
+def _core_rows(net_usd, dominant, call_wall, put_wall, zero_dte_share, profile) -> list[str]:
+    """Shared metric rows (MODEL NET*, anchors, walls, 0DTE, CALL+PUT), single-sourced
+    for the current card (PRD-309) and the PRD-333 reference. Bytes unchanged."""
+    rows = [
+        _kv("MODEL NET*", _fmt_net(net_usd)),
+        _row("LARGEST RAW-STRIKE |MODEL NET|", dominant),
+    ]
+    if call_wall is not None:
+        rows.append(_row("LARGEST CALL-CONTRACT MAGNITUDE STRIKE", call_wall))
+    if put_wall is not None:
+        rows.append(_row("LARGEST PUT-CONTRACT MAGNITUDE STRIKE", put_wall))
+    if zero_dte_share is not None:
+        rows.append(_kv("0DTE", f"{zero_dte_share * 100:.1f}%"))
+    if profile is not None:
+        rows.append(_kv("CALL+PUT MODELED MAGNITUDE", _fmt_b(profile.chain_call_plus_put)))
+    return rows
+
+
 def render_gex_card_html(card: GexCard | None) -> str:
     """Format the model to a compact HTML fragment; empty string when suppressed.
     Reuses existing dashboard classes and adds NO global styles: the only styling
@@ -645,18 +685,8 @@ def render_gex_card_html(card: GexCard | None) -> str:
     present, and the ladder styles itself with inline SVG presentation only."""
     if card is None:
         return ""
-    rows = [
-        _kv("MODEL NET*", _fmt_net(card.net_usd)),
-        _row("LARGEST RAW-STRIKE |MODEL NET|", card.dominant),
-    ]
-    if card.call_wall is not None:
-        rows.append(_row("LARGEST CALL-CONTRACT MAGNITUDE STRIKE", card.call_wall))
-    if card.put_wall is not None:
-        rows.append(_row("LARGEST PUT-CONTRACT MAGNITUDE STRIKE", card.put_wall))
-    if card.zero_dte_share is not None:
-        rows.append(_kv("0DTE", f"{card.zero_dte_share * 100:.1f}%"))
-    if card.profile is not None:
-        rows.append(_kv("CALL+PUT MODELED MAGNITUDE", _fmt_b(card.profile.chain_call_plus_put)))
+    rows = _core_rows(card.net_usd, card.dominant, card.call_wall, card.put_wall,
+                      card.zero_dte_share, card.profile)
 
     # Card-scoped presentation, emitted ONLY when the card is present, so the
     # suppressed document stays byte-identical to the pre-GEX baseline (R1). Long
