@@ -1652,6 +1652,12 @@
       "title": "Dashboard D4 implementation: Proto-B primary-path synthesis + SPY chart LEVELS control",
       "status": "COMPLETE",
       "commit": "13c7f04"
+    },
+    {
+      "number": 331,
+      "title": "MANUAL CHECK flag on the ALERT WATCHLIST row (operator prominence, presentation-only)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
