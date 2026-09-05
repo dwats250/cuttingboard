@@ -351,6 +351,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-331 | c8b35ef | MANUAL CHECK flag on the ALERT WATCHLIST row (operator prominence, presentation-only) | COMPLETE | [PRD-331](prd_history/PRD-331.md) |
 | PRD-332 | #320 | Dashboard D5 — A-style upper surface + C-style WATCHING selectable setup workspace | COMPLETE | [PRD-332](prd_history/PRD-332.md) |
 | PRD-333 | — | GEX synthetic reference context disclosure | IN PROGRESS | [PRD-333](prd_history/PRD-333.md) |
+| PRD-334 | — | Operator-composition dashboard presentation pass | IN PROGRESS | [PRD-334](prd_history/PRD-334.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
