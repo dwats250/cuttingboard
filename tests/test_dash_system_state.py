@@ -209,7 +209,7 @@ def test_prd280_status_fail_system_halted_false_renders_halt_color() -> None:
         _payload(market_regime="RISK_ON"), _run(status="FAIL", system_halted=False)
     )
     state = _header_block(html)
-    assert 'class="decision-state sys-halt">HALT</div>' in state
+    assert 'class="decision-state sys-halt" data-raw-state="HALT">HALT</div>' in state
     assert 'class="sys-verdict sys-halt"' in state
     assert "SYSTEM HALT" in state
     assert "sys-up" not in state
@@ -221,7 +221,7 @@ def test_prd280_status_error_system_halted_false_renders_halt_color() -> None:
         _payload(market_regime="RISK_ON"), _run(status="ERROR", system_halted=False)
     )
     state = _header_block(html)
-    assert 'class="decision-state sys-halt">HALT</div>' in state
+    assert 'class="decision-state sys-halt" data-raw-state="HALT">HALT</div>' in state
     assert 'class="sys-verdict sys-halt"' in state
     assert "SYSTEM HALT" in state
     assert "sys-up" not in state
@@ -231,7 +231,7 @@ def test_prd280_system_halted_true_still_renders_halt_color() -> None:
     # R2: explicit system_halted=True is unaffected by the R1 change.
     html = render_dashboard_html(_payload(market_regime="RISK_ON"), _run(system_halted=True))
     state = _header_block(html)
-    assert 'class="decision-state sys-halt">HALT</div>' in state
+    assert 'class="decision-state sys-halt" data-raw-state="HALT">HALT</div>' in state
     assert 'class="sys-verdict sys-halt"' in state
 
 
@@ -262,7 +262,7 @@ def test_prd280_normal_risk_on_run_still_renders_sys_up() -> None:
         _run(status="SUCCESS", system_halted=False, outcome="NO_TRADE"),
     )
     state = _header_block(html)
-    assert 'class="decision-state sys-up">STAY FLAT</div>' in state
+    assert 'class="decision-state sys-up" data-raw-state="STAY FLAT">STAY FLAT</div>' in state
     assert 'class="sys-verdict sys-up"' in state
 
 
@@ -273,7 +273,7 @@ def test_prd280_trade_permitted_still_renders_its_own_color() -> None:
         _run(status="SUCCESS", system_halted=False, outcome="TRADE"),
     )
     state = _header_block(html)
-    assert 'class="decision-state sys-up">TRADE PERMITTED</div>' in state
+    assert 'class="decision-state sys-up" data-raw-state="TRADE PERMITTED">TRADE PERMITTED</div>' in state
 
 
 def test_decision_title_trade() -> None:
@@ -376,7 +376,7 @@ def test_prd281_halt_first_error_shows_why() -> None:
     run = _run(system_halted=True, errors=["disk full"])
     html = render_dashboard_html(_payload(), run)
     state = _header_block(html)
-    assert 'class="decision-state sys-halt">HALT</div>' in state
+    assert 'class="decision-state sys-halt" data-raw-state="HALT">HALT</div>' in state
     why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
     assert "disk full" in why
 
@@ -386,7 +386,7 @@ def test_prd281_halt_stay_flat_reason_shows_why_when_no_error() -> None:
     run = _run(system_halted=True, errors=[])
     html = render_dashboard_html(payload, run)
     state = _header_block(html)
-    assert 'class="decision-state sys-halt">HALT</div>' in state
+    assert 'class="decision-state sys-halt" data-raw-state="HALT">HALT</div>' in state
     why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
     assert "STAY_FLAT regime" in why
 
@@ -395,7 +395,7 @@ def test_prd281_non_halt_explicit_error_shows_why() -> None:
     run = _run(system_halted=False, outcome="NO_TRADE", errors=["late data feed"])
     html = render_dashboard_html(_payload(), run)
     state = _header_block(html)
-    assert 'class="decision-state sys-up">STAY FLAT</div>' in state
+    assert 'class="decision-state sys-up" data-raw-state="STAY FLAT">STAY FLAT</div>' in state
     why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
     assert "late data feed" in why
 
@@ -405,7 +405,7 @@ def test_prd281_no_qualified_setups_shows_why() -> None:
         _payload(validation_halt_detail=None), _run(permission=None), alert_candidates=[]
     )
     state = _header_block(html)
-    assert 'class="decision-state sys-up">STAY FLAT</div>' in state
+    assert 'class="decision-state sys-up" data-raw-state="STAY FLAT">STAY FLAT</div>' in state
     why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
     assert "no qualified setups" in why
 
@@ -434,7 +434,7 @@ def test_prd281_high_grade_setups_gated_shows_count_in_why() -> None:
 def test_prd281_trade_permitted_has_no_why_line() -> None:
     html = render_dashboard_html(_payload(), _run(system_halted=False, outcome="TRADE"))
     state = _header_block(html)
-    assert 'class="decision-state sys-up">TRADE PERMITTED</div>' in state
+    assert 'class="decision-state sys-up" data-raw-state="TRADE PERMITTED">TRADE PERMITTED</div>' in state
     assert not _has_why(state)
 
 
@@ -453,7 +453,7 @@ def test_prd281_mixed_artifacts_no_trade_has_no_why_line() -> None:
 
     html = render_dashboard_html(payload, run, market_map=mm)
     state = _header_block(html)
-    assert 'class="decision-state sys-flat">STATE UNAVAILABLE</div>' in state
+    assert 'class="decision-state sys-flat" data-raw-state="STATE UNAVAILABLE">STATE UNAVAILABLE</div>' in state
     assert not _has_why(state)
     assert "no qualified setups" not in state
     assert "candidates gated" not in state

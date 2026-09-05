@@ -2037,6 +2037,31 @@ def _decision_title(outcome: object, system_halted: bool, status: object) -> str
     return "MONITOR"
 
 
+def _verdict_sentence(
+    decision_state: str, regime_permission_text: str, *, mixed_artifacts: bool
+) -> str:
+    """PRD-334 R3: deterministic, faithful TRANSLATION of the ALREADY-RESOLVED
+    decision state + permission into a plain-language verdict sentence. It authors
+    no claim the state machine did not establish:
+    - TRADE PERMITTED surfaces _regime_to_permission_verb's own output, preserving
+      the long / short / momentum-long distinction.
+    - HALT reads "System halted" -- no invented single cause (the WHY line carries
+      the specific reason when the state machine computed one).
+    - STATE UNAVAILABLE reads "Inputs out of sync" (mixed artifacts) or the generic
+      "Board state unavailable"; it never pairs a confident permission with an
+      unresolved state.
+    - OBSERVE ONLY (operator lock) and STAY FLAT read "No new trades permitted" --
+      the generic no-trade statement, WITHOUT asserting "nothing qualifies".
+    """
+    if decision_state == "TRADE PERMITTED":
+        return regime_permission_text
+    if decision_state == "HALT":
+        return "System halted"
+    if decision_state == "STATE UNAVAILABLE":
+        return "Inputs out of sync" if mixed_artifacts else "Board state unavailable"
+    return "No new trades permitted"
+
+
 def _build_pressure_snapshot(macro_drivers: dict, market_map: dict | None) -> dict | None:
     if (not macro_drivers) or all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values()):
         return None
@@ -2947,18 +2972,32 @@ def render_dashboard_html(
             _decision_state, _decision_state_cls = "STAY FLAT", _verdict_cls
     except Exception:
         _decision_state, _decision_state_cls = "STATE UNAVAILABLE", "sys-flat"
-    # PRD-304 R7: under the operator lock, the decision-state and the permission
-    # verb both carry the lock marker instead of any trade-permission vocabulary.
-    if operator_locked:
+    # PRD-334 R3 (supersedes PRD-304 R7's lock vocabulary): under the operator lock
+    # the decision-state reads OBSERVE ONLY -- EXCEPT that a HALT or an inputs-out-
+    # of-sync integrity state SURVIVES the lock overlap. Those are the more urgent
+    # truth and must never be masked by the lock label (R3: halt / coherence /
+    # kill-switch information survives even when an operator lock overlaps).
+    if operator_locked and _decision_state not in ("HALT", "STATE UNAVAILABLE"):
         _decision_state = "OBSERVE ONLY"
-    try:
-        _title_display = "INPUTS OUT OF SYNC" if title == "MIXED_ARTIFACTS" else title
-    except Exception:
-        _title_display = "STATE UNAVAILABLE"
-    _verb_text = "Operator locked: cannot monitor" if operator_locked else regime_permission_text
-    w(f'  <div class="decision-state {_decision_state_cls}">{_esc(_decision_state)}</div>')
-    w(f'  <div class="sys-verdict {_verdict_cls}" data-raw-title="{_esc(title)}">'
-      f'{_esc(_verb_text)} · {_esc(_title_display)}</div>')
+    # PRD-334 R3: the visible verdict is a deterministic, faithful TRANSLATION of
+    # the already-resolved decision state + permission -- it authors no claim the
+    # state machine did not establish. The internal-jargon title token
+    # (TRADE SETUP ACTIVE / NO TRADE / MONITOR) leaves the visible sentence and
+    # survives only in data-raw-title; data-raw-state and data-raw-permission carry
+    # the other canonical values so a review/test can prove the copy never
+    # contradicts them (BLOCKER guard: tests/test_dash_verdict_translation.py).
+    _verdict_sentence_text = _verdict_sentence(
+        _decision_state, regime_permission_text, mixed_artifacts=(title == "MIXED_ARTIFACTS")
+    )
+    # data-raw-permission is the effective canonical permission the copy translates:
+    # under the operator lock it is the lock itself (never the regime direction verb,
+    # which PRD-304 R7 suppresses); otherwise it is _regime_to_permission_verb's own
+    # output (the long / short / momentum-long value surfaced only when permitted).
+    _raw_permission = "OPERATOR_LOCKED" if operator_locked else regime_permission_text
+    w(f'  <div class="decision-state {_decision_state_cls}"'
+      f' data-raw-state="{_esc(_decision_state)}">{_esc(_decision_state)}</div>')
+    w(f'  <div class="sys-verdict {_verdict_cls}" data-raw-title="{_esc(title)}"'
+      f' data-raw-permission="{_esc(_raw_permission)}">{_esc(_verdict_sentence_text)}</div>')
     # Context line: regime in plain words. PRD-281: the trader-facing reason
     # ("why") moved to its own dedicated .sys-why line below.
     _regime_plain = _SYS_REGIME_PLAIN.get(

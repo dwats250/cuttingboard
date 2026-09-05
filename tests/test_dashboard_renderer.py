@@ -4471,11 +4471,15 @@ def test_r7_locked_dashboard_replaces_action_vocabulary() -> None:
     run = _run(outcome="NO_TRADE", permission=_LOCK_PERMISSION)
     html = render_dashboard_html(_payload(), run, market_map=mm)
 
-    # Marker present; A+ relabelled; ACTIONABLE gone.
-    assert "Operator locked: cannot monitor" in html
+    # PRD-334 R3: the lock reads OBSERVE ONLY + the generic "No new trades
+    # permitted" verdict; A+ relabelled; ACTIONABLE gone.
+    assert 'data-raw-state="OBSERVE ONLY">OBSERVE ONLY</div>' in html
+    assert "No new trades permitted" in html
     assert "A+ — OBSERVATION ONLY" in html
     assert "A+ — ACTIONABLE" not in html
-    # Permission verbs suppressed.
+    # Action vocabulary suppressed under lock, including in data-raw-permission
+    # (PRD-304 R7 retained: the lock never surfaces the regime direction verb).
+    assert 'data-raw-permission="OPERATOR_LOCKED"' in html
     assert "Longs allowed" not in html
     assert "Shorts allowed" not in html
     assert "Momentum longs allowed" not in html
