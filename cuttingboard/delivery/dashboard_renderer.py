@@ -315,6 +315,17 @@ def _mon_d(iso: object) -> str:
 # PRD-330 R8/R12: the closed layer -> (control id, label) map; one entry, so one control.
 _LAYER_CONTROLS: dict[str, tuple[str, str]] = {"levels": ("spy-levels", "LEVELS")}
 _SPY_REL_WORD = {"ABOVE": "above", "BELOW": "below", "AT_LEVEL": "at"}
+
+# PRD-334 R5: renderer-local regrouping of the seven macro drivers into market
+# families (keyed by the shared-layout slot .label; macro_tape_layout.py is NOT
+# edited). Order is family order, not the pre-PRD shared-layout order. GC/SI/OIL
+# are futures. (name, (slot labels in order), family note or "")
+_MACRO_FAMILIES: tuple[tuple[str, tuple[str, ...], str], ...] = (
+    ("VOLATILITY", ("VIX",), ""),
+    ("RATES / FX", ("10Y", "DXY"), ""),
+    ("COMMODITIES", ("XAU", "XAG", "OIL"), "futures"),
+    ("CRYPTO", ("BTC",), ""),
+)
 _WATCHLIST_CUTOFF_REASON = "entry blocked after 3:30 PM ET"
 
 
@@ -995,7 +1006,13 @@ _CSS = (
     ".tape-slot{white-space:nowrap}"
     ".macro-tape-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));"
     "gap:6px 12px;margin-top:6px;overflow-x:hidden}"
-    ".macro-drivers-row,.macro-spot-metals-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 16px;margin-top:6px;overflow-x:hidden}"
+    # PRD-334 R5: market-family groups. Unequal family sizes pack via flex-wrap
+    # (never a forced 3-col grid), so 1-3 drivers per family read cleanly.
+    ".macro-family{margin-top:8px}"
+    ".macro-family-cap{font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:#888}"
+    ".macro-family-note{text-transform:none;letter-spacing:0;color:#666;font-size:.62rem}"
+    ".macro-drivers-row{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:4px;overflow-x:hidden}"
+    ".macro-drivers-row .macro-tape-slot{flex:1 1 90px;min-width:0}"
     ".macro-tradables-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;"
     "margin-top:6px;overflow-x:hidden}"
     ".tradable-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
@@ -3766,31 +3783,32 @@ def render_dashboard_html(
         # Applied after _esc; the notification path pads via f"{display:<3}".
         return _esc(display) + "&nbsp;" * max(0, 3 - len(display))
 
-    row_1_html = [
-        f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(_tape_arrow_map.get(slot.label, _DASH), "na")}">'
-        f'<span class="macro-tape-label">{_tape_label_padded(slot.display)} {_esc(_tape_arrow_map.get(slot.label, _DASH))}</span>'
-        f'<span class="macro-tape-value" data-symbol="{_esc(slot.label)}">'
-        f'{_esc(tape_value_map.get(slot.label, ""))}</span>'
-        f'</span>'
-        for slot in MACRO_ROW_1.slots
-    ]
-    w('  <div class="macro-spot-metals-row">' + "".join(row_1_html) + "</div>")
+    def _macro_driver_cell(slot: object) -> str:
+        _lbl = slot.label  # type: ignore[attr-defined]
+        _disp = slot.display  # type: ignore[attr-defined]
+        return (
+            f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(_tape_arrow_map.get(_lbl, _DASH), "na")}">'
+            f'<span class="macro-tape-label">{_tape_label_padded(_disp)} {_esc(_tape_arrow_map.get(_lbl, _DASH))}</span>'
+            f'<span class="macro-tape-value" data-symbol="{_esc(_lbl)}">'
+            f'{_esc(tape_value_map.get(_lbl, ""))}</span>'
+            f'</span>'
+        )
 
-    row_2_html = [
-        f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(_tape_arrow_map.get(slot.label, _DASH), "na")}">'
-        f'<span class="macro-tape-label">{_tape_label_padded(slot.display)} {_esc(_tape_arrow_map.get(slot.label, _DASH))}</span>'
-        f'<span class="macro-tape-value" data-symbol="{_esc(slot.label)}">'
-        f'{_esc(tape_value_map.get(slot.label, ""))}</span>'
-        f'</span>'
-        for slot in MACRO_ROW_2.slots
-    ]
-    w('  <div class="macro-drivers-row">' + "".join(row_2_html) + "</div>")
-
-    # PRD-214: the per-driver macro-evidence rows (PRD-177/PRD-191) are
-    # superseded by the one-line risk-vote tally rendered under the MACRO BIAS
-    # headline above. The cyclicality-aware vote logic they surfaced is retained
-    # in the headline tally computation; only the redundant per-driver
-    # presentation is removed.
+    # PRD-334 R5: the seven macro drivers regroup into market families locally
+    # (VOLATILITY / RATES-FX / COMMODITIES / CRYPTO). The per-cell markup
+    # (macro-tape-slot / macro-tape-value / data-symbol) is byte-identical to the
+    # pre-PRD rows -- only grouping and order change. The former two-wrapper
+    # spot-metals / drivers split (PRD-136) is superseded by the family wrappers.
+    _slot_by_label = {
+        slot.label: slot for _row in (MACRO_ROW_1, MACRO_ROW_2) for slot in _row.slots
+    }
+    for _fam_name, _fam_labels, _fam_note in _MACRO_FAMILIES:
+        _cells = "".join(
+            _macro_driver_cell(_slot_by_label[_l]) for _l in _fam_labels if _l in _slot_by_label
+        )
+        _note = f' <span class="macro-family-note">{_esc(_fam_note)}</span>' if _fam_note else ""
+        w(f'  <div class="macro-family"><div class="macro-family-cap">{_esc(_fam_name)}{_note}</div>'
+          f'<div class="macro-drivers-row">{_cells}</div></div>')
 
     # Divider
     w('  <div class="sep"></div>')
@@ -3857,7 +3875,10 @@ def render_dashboard_html(
 
     # --- trend-structure (PRD-112) ---
     w(f'<div class="block{disabled_class}" id="trend-structure">')
-    w('  <h2>Trend Structure</h2>')
+    # PRD-334 R5: the rich Trend Structure table is the promoted broad-index watch
+    # set (the bland TAPE trend chips are removed in favour of it). Provisional:
+    # an informed current choice of representation, not permanent doctrine.
+    w('  <h2>Trend Structure <span class="label">curated watch set</span></h2>')
     # PRD-123 R6: human-readable degraded-state label and last-snapshot
     # line for the two new "no live data" states. STALE retains its
     # existing rendering — the two are visually and semantically distinct.

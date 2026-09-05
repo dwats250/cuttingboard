@@ -3606,40 +3606,41 @@ def test_prd136_r9a_xau_xag_present_in_rendered_html() -> None:
     tape = _macro_tape_block(html)
     assert 'data-symbol="XAU"' in tape, "XAU missing from macro-tape block"
     assert 'data-symbol="XAG"' in tape, "XAG missing from macro-tape block"
-    assert "macro-spot-metals-row" in tape, "macro-spot-metals-row wrapper missing"
+    # PRD-334 R5: XAU/XAG now live in the COMMODITIES family (futures), not a
+    # standalone spot-metals row.
+    assert 'class="macro-family"' in tape, "macro-family wrappers missing"
+    assert "COMMODITIES" in tape and "futures" in tape
 
 
-def test_prd138_macro_rows_render_in_shared_layout_order() -> None:
-    """R3: row 1 is XAU/XAG/BTC, then row 2, then tradables."""
+def test_prd334_macro_rows_render_in_family_order() -> None:
+    """PRD-334 R5: VOLATILITY / RATES-FX / COMMODITIES / CRYPTO, then tradables."""
     html = render_dashboard_html(
         _payload(macro_drivers=_drivers_with_metals()),
         _run(),
         market_map=_market_map(),
     )
     tape = _macro_tape_block(html)
+    vix_idx = tape.index('data-symbol="VIX"')
+    teny_idx = tape.index('data-symbol="10Y"')
+    dxy_idx = tape.index('data-symbol="DXY"')
     xau_idx = tape.index('data-symbol="XAU"')
     xag_idx = tape.index('data-symbol="XAG"')
-    btc_idx = tape.index('data-symbol="BTC"')
-    vix_idx = tape.index('data-symbol="VIX"')
     oil_idx = tape.index('data-symbol="OIL"')
+    btc_idx = tape.index('data-symbol="BTC"')
     gld_idx = tape.index('data-symbol="GLD"')
-    assert xau_idx < xag_idx < btc_idx < vix_idx < oil_idx < gld_idx
+    assert vix_idx < teny_idx < dxy_idx < xau_idx < xag_idx < oil_idx < btc_idx < gld_idx
 
 
-def test_prd136_r9b_spot_metals_row_follows_macro_bias() -> None:
-    """R9(b) supplement: spot-metals row sits between MACRO BIAS and drivers row."""
+def test_prd334_macro_families_follow_macro_bias() -> None:
+    """PRD-334 R5: the family groups sit below the MACRO BIAS line, in family order."""
     html = render_dashboard_html(
         _payload(macro_drivers=_drivers_with_metals()),
         _run(),
         market_map=_market_map(),
     )
     tape = _macro_tape_block(html)
-    metals_idx = tape.index('class="macro-spot-metals-row"')
-    drivers_idx = tape.index('class="macro-drivers-row"')
-    assert metals_idx < drivers_idx, (
-        f"spot-metals row must precede macro-drivers-row; "
-        f"metals_idx={metals_idx}, drivers_idx={drivers_idx}"
-    )
+    assert tape.index("VOLATILITY") < tape.index("RATES / FX") < tape.index("COMMODITIES") < tape.index("CRYPTO")
+    assert tape.index('class="macro-family"') < tape.index('data-symbol="VIX"')
 
 
 def test_prd138_renderer_uses_shared_macro_tape_layout_constants() -> None:

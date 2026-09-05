@@ -18,10 +18,13 @@ def _drivers() -> dict:
 
 
 def test_prd138_dashboard_macro_tape_row_order() -> None:
+    # PRD-334 R5: family order (VOLATILITY / RATES-FX / COMMODITIES / CRYPTO),
+    # then the unchanged tradables row.
     html = render_dashboard_html(_payload(macro_drivers=_drivers()), _run(), market_map=_market_map())
     assert [symbol for symbol, _value in _macro_tape_value_slots(html)] == [
-        "XAU", "XAG", "BTC",
-        "VIX", "DXY", "10Y", "OIL",
+        "VIX", "10Y", "DXY",
+        "XAU", "XAG", "OIL",
+        "BTC",
         "SPY", "QQQ", "GLD", "GDX", "SLV", "XLE",
     ]
 
