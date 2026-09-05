@@ -146,17 +146,19 @@ historical hash drift on `main` is out of scope).
 ## 6. GOV-2 review sequence — status
 
 1. Author investigates + self-verifies — DONE (design + this packet).
-2. Provisional MATERIAL packet — THIS FILE (provisional).
-3. Codex INITIAL PACKET REVIEW — PENDING (auto-commissioned; prompt +
-   `CODEX_EVENT_1_REVIEW_*.md` to land in this directory).
-4. One consolidated author correction — PENDING.
-5. Codex EXACT-CORRECTED-HEAD CONFIRMATION — PENDING
-   (`CODEX_EVENT_2_CONFIRMATION_*.md`).
+2. Provisional MATERIAL packet — THIS FILE.
+3. Codex INITIAL PACKET REVIEW — ATTEMPTED, BLOCKED (usage limit; no verdict),
+   recorded in `CODEX_EVENT_1_ATTEMPT_1_2026-09-04.md`.
+4/5. Codex events — WAIVED for PRD-332 by Helm exception (2026-09-04); do NOT
+   amend GOV-2 generally.
 6. Dustin design-direction ruling — ALREADY ISSUED (frozen A+C, §1).
-7. PRD-332 drafted + fresh-context independent PRD review (reviewer is NOT this
-   author/session) — PRD-332 scaffolded; independent review PENDING.
-8. Dustin Gate A on the reviewed PRD — PENDING (the smallest decision that
-   unblocks implementation).
+7. Fresh-context independent PRD review — DONE (Helm-substituted for the Codex
+   event): `docs/prd_history/PRD-332.review.claude.md`, VERDICT ACCEPT WITH
+   CHANGES, PASS on all five charged dimensions; the one REQUIRED finding was the
+   sequencing observation the exception resolves. One consolidated correction
+   applied to PRD-332 (R-1 recorded, RC-1/RC-2/RC-3 actioned).
+8. Dustin Gate A on the reviewed, corrected PRD — PENDING (the smallest decision
+   that unblocks implementation).
 
 No branch existence, packet, or PRD here creates implementation authority
-(GOV-2 §4). Held for the review sequence and Helm's Gate A.
+(GOV-2 §4). Held for Helm's Gate A.
