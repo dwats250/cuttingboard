@@ -349,7 +349,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-329 | 218fb9a | Dashboard D3 implementation: closed-C-tier one-click evidence (S1) + SPY session first-class observation (S2), renderer only | COMPLETE | [PRD-329](prd_history/PRD-329.md) |
 | PRD-330 | 13c7f04 | Dashboard D4 implementation: Proto-B primary-path synthesis + SPY chart LEVELS control | COMPLETE | [PRD-330](prd_history/PRD-330.md) |
 | PRD-331 | c8b35ef | MANUAL CHECK flag on the ALERT WATCHLIST row (operator prominence, presentation-only) | COMPLETE | [PRD-331](prd_history/PRD-331.md) |
-| PRD-332 | — | Dashboard D5 — A-style upper surface + C-style WATCHING selectable setup workspace | IN PROGRESS | [PRD-332](prd_history/PRD-332.md) |
+| PRD-332 | #320 | Dashboard D5 — A-style upper surface + C-style WATCHING selectable setup workspace | COMPLETE | [PRD-332](prd_history/PRD-332.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

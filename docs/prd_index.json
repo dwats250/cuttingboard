@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 331,
-  "next_prd": 332,
+  "latest_complete": 332,
+  "next_prd": 333,
   "entries": [
     {
       "number": 56,
@@ -1662,8 +1662,8 @@
     {
       "number": 332,
       "title": "Dashboard D5 \u2014 A-style upper surface + C-style WATCHING selectable setup workspace",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#320"
     }
   ]
 }
