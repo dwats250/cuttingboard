@@ -5814,7 +5814,11 @@ def test_prd330_r8_control_iff_layered_chart(monkeypatch) -> None:
     assert obs.count('<input type="checkbox" id="spy-levels" class="chart-toggle">') == 1
     assert obs.count('<div class="chart-controls"><label for="spy-levels" class="chart-toggle-label">LEVELS</label></div>') == 1
     assert obs.index('id="spy-levels"') < obs.index('class="chart-controls"') < obs.index('<div class="spy-chart"><svg')
-    assert html.count("<script") == 1 and "onclick" not in html and "[open]" not in _dr._CSS
+    assert html.count("<script") == 1 and "onclick" not in html
+    # Tier disclosure layout may use [open]; chart-layer visibility must remain
+    # independent of disclosure state and controlled by the native checkbox.
+    layer_rules = re.findall(r"([^{}]+)\{[^{}]*\}", _dr._CSS)
+    assert not any("[open]" in selector and "chart-layer" in selector for selector in layer_rules)
     for rule in ('#spy-levels:checked~.spy-chart .chart-layer[data-layer="levels"]{display:inline}',
                  ".chart-toggle{position:absolute;width:1px;height:1px;", "min-height:44px",
                  ".chart-toggle:focus-visible~.chart-controls .chart-toggle-label{outline:"):

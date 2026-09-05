@@ -1214,6 +1214,154 @@ _CSS = (
     "}"
     # PRD-330: phone parity in a SEPARATE media block; the PRD-318/327 block above stays byte-identical.
     "@media(max-width:430px){#spy-session{padding:10px;margin-bottom:8px}#spy-session>h3{margin-bottom:7px}#today-zone{padding:8px 10px}}"
+    # Operator cockpit skin: presentation only. Keep state classes, DOM order,
+    # disclosure defaults and SVG contents owned by the existing renderer.
+    # This final cascade also applies consistently to the historical fixtures.
+    """
+    :root{color-scheme:dark;--cockpit-bg:#0b1016;--cockpit-panel:#121a23;
+      --cockpit-line:#2a3745;--cockpit-muted:#9aa9b8;
+      --cockpit-mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace}
+    body{background:var(--cockpit-bg);color:#e6edf3;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+      font-size:14px;line-height:1.45;padding:20px}
+    .wrap{max-width:1080px}
+    .block,#spy-session{border-color:var(--cockpit-line);border-radius:4px}
+    .operator-zone,#spy-session{padding:20px;margin-bottom:14px;min-width:0}
+    h2,.operator-zone>h2,#spy-session>h3{font-size:.75rem;font-weight:750;
+      letter-spacing:.13em;color:#c0cedb;margin-bottom:14px}
+    .label,.tape-band-cap{font-size:.72rem;color:var(--cockpit-muted);letter-spacing:.06em}
+    .operator-zone>h2 .label{font-size:.65rem;font-weight:500;margin-left:8px;
+      letter-spacing:.04em;color:var(--cockpit-muted)}
+    #verdict-zone{background:#18232f;border:1px solid #41566a;
+      border-top:3px solid #8196aa;padding:22px 24px;box-shadow:0 8px 24px #0003}
+    #system-state>h2{margin-bottom:10px}
+    #system-state .decision-state{font-size:clamp(1.85rem,4vw,2.8rem);
+      line-height:1.08;letter-spacing:-.035em;font-weight:800;margin-bottom:10px}
+    #system-state .sys-verdict{font-size:.88rem;letter-spacing:0;line-height:1.4}
+    #system-state .sys-why{font-size:.94rem;line-height:1.45;margin-top:12px;color:#f0f4f8}
+    #system-state .sys-context{font-size:.82rem;color:#b2c0cd;margin-top:4px}
+    #system-state .sys-context.halted{color:#f44336}
+    #system-state .sys-permission{font-size:.85rem;color:#d0dbe5;margin-top:9px;
+      padding:9px 12px;background:#0e1721;border-left:2px solid #6e8296}
+    #system-state #cb-updated{font-size:.75rem;color:#a4b3c1;margin-top:12px;
+      font-variant-numeric:tabular-nums}
+    #staleness-banner{font-size:.72rem;padding:6px 10px;margin-bottom:14px;
+      letter-spacing:.06em;background:#0b1016}
+    .verdict-warning{font-size:.83rem;background:#241c12;line-height:1.5}
+    #tape-zone{background:var(--cockpit-panel)}
+    .tape-band-cap{font-size:.68rem;font-weight:700;color:#9eafbf}
+    .zone-value{font-size:.86rem;line-height:1.45;margin-top:4px}
+    .zone-note{font-size:.75rem;line-height:1.5;color:#99a8b6;margin-top:7px}
+    .tape-drivers{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px;
+      font-family:var(--cockpit-mono);font-size:.8rem;font-variant-numeric:tabular-nums}
+    .tape-driver{grid-template-columns:3ch 1ch minmax(0,1fr);column-gap:5px;
+      align-items:baseline;background:#0c131c;border:1px solid #24313e;padding:8px}
+    .tape-driver>span:first-child{color:#bdc9d4;font-weight:600}
+    .tape-driver>span:last-child{text-align:right}
+    .tape-slot.na{color:#91a0ae;opacity:1}
+    .tape-slot.flat{color:#a5b3c0}
+    .tape-band+.tape-band{border-top:1px solid var(--cockpit-line);padding-top:12px;margin-top:12px}
+    .tape-trend{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:4px 14px;
+      font-family:var(--cockpit-mono);font-size:.75rem;margin-top:8px}
+    .tape-trend-row{grid-template-columns:4ch 4ch 4ch 5ch 2ch;gap:6px;
+      padding:4px 0;border-bottom:1px solid #202d39}
+    .tape-foot{opacity:1;border-top:1px solid var(--cockpit-line);padding-top:10px}
+    .tape-band+.tape-foot{margin-top:12px}
+    .tape-foot .zone-item{padding:2px 0}
+    .tape-foot .zone-item+.zone-item{border-left:1px solid var(--cockpit-line);padding-left:14px}
+    .tape-foot .label{font-size:.65rem}
+    #spy-session{background:#0f1821;border-top:2px solid #526d84}
+    #spy-session>h3{font-weight:750}
+    .spy-read{font-size:.86rem;line-height:1.5;font-variant-numeric:tabular-nums}
+    .spy-clock,.chart-caption{font-size:.75rem;color:#a0afbd;line-height:1.5;margin-top:6px}
+    .spy-chart,.setup-chart{background:#090e14;border:1px solid #263542;
+      border-radius:3px;padding:8px;margin-top:10px}
+    .setup-chart svg,.spy-chart svg{display:block;width:100%;height:auto;margin:0 auto}
+    .chart-caption{padding:4px 2px}
+    .chart-toggle-label{font-size:.75rem;color:#afbfcc;border-color:#3b4e5e;
+      background:#17232e;min-height:44px;padding:0 14px}
+    #today-zone{background:#171b20;border-color:#373b42;border-left:3px solid #8a8171;
+      display:flex;align-items:baseline;flex-wrap:wrap;gap:8px 18px;padding:14px 20px}
+    #today-zone h2{font-size:.7rem;margin:0;flex-shrink:0}
+    #today-zone .event-line{font-size:.88rem;font-weight:600;flex:1;min-width:180px}
+    #watching-zone{background:#101820;border-top:3px solid #5d778d}
+    #watching-zone>h2{font-size:.88rem;color:#e2ebf3}
+    #watching-zone h3{font-size:.72rem;font-weight:700;color:#b5c5d4;margin-bottom:10px}
+    .scope-note,.screen-line{font-size:.75rem;color:#a2b0bd;line-height:1.5}
+    .screen-line{margin-bottom:12px}
+    .tier-header{font-size:.74rem;font-weight:650;color:#bbcbd9;
+      padding:8px 0;border-bottom:1px solid #324353;margin-bottom:10px}
+    .candidate-card{background:#17222d;border:1px solid #314252;border-left-width:3px;
+      border-radius:3px;padding:16px;margin-bottom:12px;min-width:0}
+    .candidate-card.grade-aplus{border-left-color:#4caf50}
+    .candidate-card.grade-a{border-left-color:#8bc34a}
+    .candidate-card.grade-b{border-left-color:#ff9800}
+    .candidate-card.grade-c{border-left-color:#607d8b}
+    .candidate-card.grade-d{border-left-color:#f44336}
+    .candidate-card.grade-f{border-left-color:#424242}
+    .candidate-observation{opacity:1}
+    .card-header{font-size:.95rem;font-weight:750;line-height:1.55;padding-bottom:10px;
+      margin-bottom:10px;border-bottom:1px solid #324353}
+    .card-brief{grid-template-columns:max-content minmax(0,1fr);gap:9px 14px;line-height:1.5}
+    .card-brief .label{font-size:.72rem;padding-top:2px}
+    .card-brief .value-key{font-size:.9rem;font-variant-numeric:tabular-nums}
+    .card-brief .lifecycle-detail{font-size:.78rem;color:#b6c4d0;
+      padding:6px 8px;background:#101923;border-left:2px solid #576f83}
+    .candidate-state.manual-check{padding:12px;background:#292116;
+      border:1px solid #76603a;border-left:3px solid #ff9800;line-height:1.65}
+    .manual-check-flag{font-size:.75rem;padding:2px 7px;background:#19150f;font-weight:750}
+    .lifecycle-badge{font-size:.72rem;vertical-align:middle}
+    .idle-summary{background:#151f29;border-left-color:#4b6073;color:#b5c3cf;padding:12px}
+    .unavailable{color:#9cabb8}
+    .lvl-ladder{font-size:.78rem;max-width:none;padding-top:8px;border-color:#2a3745}
+    .lvl-row{padding:2px 0}
+    .lvl-unavail{color:#9cabb8;font-size:.75rem}
+    details>summary{min-height:44px;align-content:center;touch-action:manipulation}
+    .card-detail>summary,.level-detail>summary,.chart-detail>summary{font-size:.75rem;
+      color:#b0c1d0;padding:10px 0;border-bottom:1px solid #2a3947}
+    summary:focus-visible,a:focus-visible{outline:2px solid #90caf9;outline-offset:3px}
+    #details-history{background:transparent;border-color:#27323d;padding:0 16px}
+    #details-history>summary{font-size:.73rem;color:#91a3b3;padding:12px 0}
+    #details-history .block{border-color:#27323d}
+    @media(min-width:960px){
+      .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+      .wrap>.operator-zone,.wrap>#spy-session,.wrap>#details-history{margin-bottom:0}
+      .wrap>*{grid-column:1/-1;min-width:0}
+      #tape-zone:has(+ #spy-session){grid-column:1}
+      #spy-session{grid-column:2}
+      #verdict-zone{padding:24px 28px}
+      #system-state{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+        column-gap:32px;align-content:start}
+      #system-state>h2{grid-column:1/-1}
+      #system-state .decision-state{grid-column:1;grid-row:2/4}
+      #system-state .sys-verdict{grid-column:1;grid-row:4}
+      #system-state .sys-why{grid-column:2;grid-row:2;margin-top:0}
+      #system-state .sys-context{grid-column:2}
+      #system-state .sys-permission{grid-column:2}
+      #system-state #cb-updated{grid-column:1/-1;border-top:1px solid #344656;padding-top:10px}
+      #system-state .decision-state{font-size:3rem}
+      #tape-zone .tape-drivers{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .tier-group{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px}
+      .tier-group>.tier-header{grid-column:1/-1}
+      details.tier-group:not([open]){display:block}
+    }
+    @media(max-width:600px){
+      body{padding:10px;font-size:14px}
+      .operator-zone,#spy-session{padding:16px;margin-bottom:12px}
+      #verdict-zone{padding:18px}
+      #system-state .decision-state{font-size:2rem}
+      .tape-drivers{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .tape-driver{padding:7px 9px}
+      #today-zone{padding:12px 16px;gap:5px}
+      #today-zone h2{flex-basis:100%}
+      .candidate-card{padding:12px}
+      #watching-zone .operator-subsection{padding-top:12px;margin-top:12px}
+      .zone-value{font-size:.85rem}
+      .spy-chart,.setup-chart{padding:4px;margin-left:-6px;margin-right:-6px}
+      .card-brief{gap:8px 10px}
+      .zone-grid{gap:8px 12px}
+    }
+    """
 )
 
 _UP   = "↑"

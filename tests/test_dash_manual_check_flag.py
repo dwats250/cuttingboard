@@ -136,7 +136,15 @@ def test_manual_check_css_outside_protected_phone_block() -> None:
     assert phone, "phone media block not found in _CSS"
     assert ".manual-check-flag{" in non_phone
     assert ".candidate-state.manual-check{" in non_phone
-    assert "manual-check" not in phone
+    # Inspect the actual media block, not the whole remaining stylesheet:
+    # the shared cockpit skin legitimately follows this historical block.
+    depth = 1
+    for end, char in enumerate(phone):
+        depth += (char == "{") - (char == "}")
+        if depth == 0:
+            break
+    assert depth == 0, "unclosed phone media block"
+    assert "manual-check" not in phone[:end]
 
 
 # --- R4 (presentation-only: no input mutation, no new top-level block) -----

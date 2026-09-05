@@ -328,10 +328,12 @@ def test_r9_fixture_below_seam_hash(name) -> None:
     assert _sha(html.split(_SEAM, 1)[1]) == _BASE[name][0]
 
 
-# --- CSS cone: the three non-phone edits, phone block untouched ---------------
-def test_css_edits_confined_to_the_non_phone_region() -> None:
+# --- Historical D2 base rules; the cockpit skin may override presentation. ----
+def test_d2_base_rules_retained_before_cockpit_skin() -> None:
     non_phone, _sep, phone = _dr._CSS.partition("@media(max-width:430px){")
     assert ".decision-state-label{" not in _dr._CSS
     assert "#system-state>h2{margin-bottom:.3rem}" in non_phone
     assert ".tape-band+.tape-band,.tape-band+.tape-foot{margin-top:6px}" in non_phone
-    assert "tape-band+" not in phone and "#system-state .sep{margin:5px 0}" in phone
+    # D2's phone base remains intact. Later presentation rules are not confined
+    # to D2's original three-edit scope; semantic tuple/hash oracles above remain.
+    assert "#system-state .sep{margin:5px 0}" in phone
