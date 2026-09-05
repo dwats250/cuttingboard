@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 330,
-  "next_prd": 331,
+  "latest_complete": 331,
+  "next_prd": 332,
   "entries": [
     {
       "number": 56,
@@ -1656,8 +1656,8 @@
     {
       "number": 331,
       "title": "MANUAL CHECK flag on the ALERT WATCHLIST row (operator prominence, presentation-only)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "c8b35ef"
     }
   ]
 }
