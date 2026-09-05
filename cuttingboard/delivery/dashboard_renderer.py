@@ -473,8 +473,8 @@ _STALENESS_BANNER_JS = """
     }
     if (ageSec > staleAfter) {
       banner.textContent = "BOARD " + fmtAge(ageSec) + " OLD";
-      banner.style.color = "#ff9800";
-      banner.style.borderColor = "#ff9800";
+      banner.style.color = "var(--color-warning)";
+      banner.style.borderColor = "var(--color-warning)";
       banner.hidden = false;
     } else {
       banner.hidden = true;
@@ -958,6 +958,19 @@ _TIER_DEFS = [
 ]
 
 _CSS = (
+    # PRD-334 R8 (owner ruling G1): semantic colour tokens. Amber's overloaded jobs
+    # are split into distinct hues (neutral / warning / flat-posture / grade /
+    # event); posture/permission colour is separate from up/down price-direction
+    # colour; the cyan "actionable-now" accent is split from the VWAP/level
+    # reference; GEX carries its own derivatives family. Every colour-carried
+    # meaning is ALSO carried by text or shape (colour is never the sole carrier).
+    # Token text colours meet WCAG AA against the #0d0d0d ground.
+    ":root{"
+    "--posture-up:#3ddc84;--posture-down:#ff6b6b;--posture-flat:#d6a44c;--posture-halt:#ff5252;"
+    "--dir-up:#7bc96f;--dir-down:#e58a8a;"
+    "--color-neutral:#9aa4b2;--color-warning:#ffb300;--color-grade:#e0a552;--color-event:#f5c518;"
+    "--color-actionable:#29b6f6;--color-level:#7ec8e3;--color-gex:#b39ddb;"
+    "}"
     "*{box-sizing:border-box;margin:0;padding:0}"
     "body{background:#0d0d0d;color:#e0e0e0;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'Liberation Mono','DejaVu Sans Mono',monospace;font-size:13px;padding:1rem}"
     ".wrap{max-width:640px;margin:0 auto}"
@@ -968,22 +981,22 @@ _CSS = (
     ".row{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.5rem}"
     ".field{flex:1;min-width:120px}"
     ".badge{display:inline-block;padding:0.2rem 0.5rem;border-radius:3px;font-size:0.8rem}"
-    ".RISK_ON{background:#1a3a1a;color:#4caf50}"
-    ".RISK_OFF{background:#3a1a1a;color:#f44336}"
-    ".NEUTRAL{background:#2a2a1a;color:#ff9800}"
+    ".RISK_ON{background:#1a3a1a;color:var(--posture-up)}"
+    ".RISK_OFF{background:#3a1a1a;color:var(--posture-down)}"
+    ".NEUTRAL{background:#2a2a1a;color:var(--posture-flat)}"
     ".CHAOTIC{background:#3a1a3a;color:#e040fb}"
     ".STAY_FLAT{background:#1a1a2a;color:#90caf9}"
-    ".AGGRESSIVE_LONG,.CONTROLLED_LONG{background:#1a3a1a;color:#4caf50}"
-    ".DEFENSIVE_SHORT{background:#3a1a1a;color:#f44336}"
-    ".NEUTRAL_PREMIUM{background:#2a2a1a;color:#ff9800}"
+    ".AGGRESSIVE_LONG,.CONTROLLED_LONG{background:#1a3a1a;color:var(--posture-up)}"
+    ".DEFENSIVE_SHORT{background:#3a1a1a;color:var(--posture-down)}"
+    ".NEUTRAL_PREMIUM{background:#2a2a1a;color:var(--posture-flat)}"
     ".halted{color:#f44336;font-weight:bold}"
-    ".warn{color:#ff9800}"
+    ".warn{color:var(--color-warning)}"
     # PRD-219: distilled system-state verdict + context.
     ".sys-verdict{font-weight:bold;font-size:0.95rem;letter-spacing:0.02em}"
-    ".sys-verdict.sys-up{color:#4caf50}"
-    ".sys-verdict.sys-down{color:#f44336}"
-    ".sys-verdict.sys-flat{color:#ff9800}"
-    ".sys-verdict.sys-halt{color:#f44336}"
+    ".sys-verdict.sys-up{color:var(--posture-up)}"
+    ".sys-verdict.sys-down{color:var(--posture-down)}"
+    ".sys-verdict.sys-flat{color:var(--posture-flat)}"
+    ".sys-verdict.sys-halt{color:var(--posture-halt)}"
     ".sys-context{color:#888;font-size:0.8rem;margin-top:2px}"
     ".sys-permission{color:#aaa;font-size:0.78rem;line-height:1.35;margin-top:4px}"
     ".sys-context.halted{color:#f44336}"
@@ -996,10 +1009,10 @@ _CSS = (
     # PERMITTED label above the existing sys-verdict line. Reuses the
     # sys-up/sys-down/sys-flat/sys-halt colour classes for consistency.
     ".decision-state{font-weight:bold;font-size:1.4rem;letter-spacing:0.02em}"
-    ".decision-state.sys-up{color:#4caf50}"
-    ".decision-state.sys-down{color:#f44336}"
-    ".decision-state.sys-flat{color:#ff9800}"
-    ".decision-state.sys-halt{color:#f44336}"
+    ".decision-state.sys-up{color:var(--posture-up)}"
+    ".decision-state.sys-down{color:var(--posture-down)}"
+    ".decision-state.sys-flat{color:var(--posture-flat)}"
+    ".decision-state.sys-halt{color:var(--posture-halt)}"
     "h2{font-size:0.8rem;color:#888;text-transform:uppercase;"
     "letter-spacing:0.08em;margin-bottom:0.75rem}"
     ".sep{border-top:1px solid #1a1a1a;margin:0.5rem 0}"
@@ -1030,7 +1043,7 @@ _CSS = (
     ".card-brief .lifecycle-detail{grid-column:1/-1;margin:2px 0}"
     ".grade-aplus{border-left-color:#4caf50}"
     ".grade-a{border-left-color:#8bc34a}"
-    ".grade-b{border-left-color:#ff9800}"
+    ".grade-b{border-left-color:var(--color-grade)}"
     ".grade-c{border-left-color:#607d8b;opacity:0.8}"
     ".grade-d{border-left-color:#f44336;opacity:0.7}"
     ".grade-f{border-left-color:#424242;opacity:0.5}"
@@ -1042,19 +1055,19 @@ _CSS = (
     ".tier-group{margin-bottom:16px}"
     ".tier-header{font-size:.72rem;font-weight:normal;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;opacity:1}"
     ".candidate-state{font-weight:bold;margin-bottom:4px}"
-    ".candidate-risk{color:#ff9800}"
-    ".candidate-state.manual-check{border-left:3px solid #ff9800;padding:4px 8px}"
-    ".manual-check-flag{display:inline-block;border:1px solid currentColor;border-radius:3px;padding:0 5px;margin-right:6px;font-size:.7rem;letter-spacing:.06em;color:#ff9800}"
+    ".candidate-risk{color:var(--color-warning)}"
+    ".candidate-state.manual-check{border-left:3px solid var(--color-warning);padding:4px 8px}"
+    ".manual-check-flag{display:inline-block;border:1px solid currentColor;border-radius:3px;padding:0 5px;margin-right:6px;font-size:.7rem;letter-spacing:.06em;color:var(--color-warning)}"
     ".tape-slot.up{color:#4caf50}"
     ".tape-slot.down{color:#f44336}"
     ".tape-slot.flat{color:#888}"
     ".tape-slot.na{color:#444;opacity:0.7}"
     ".macro-bias.long{color:#4caf50}"
     ".macro-bias.short{color:#f44336}"
-    ".macro-bias.mixed{color:#ff9800}"
+    ".macro-bias.mixed{color:var(--posture-flat)}"
     # Change #3: TAPE bias-token colour -- reuses the palette, adds no weight or
     # margin (unlike .macro-bias), so only the direction token gets the accent.
-    ".tape-bias.long{color:#4caf50}.tape-bias.short{color:#f44336}.tape-bias.mixed{color:#ff9800}"
+    ".tape-bias.long{color:var(--dir-up)}.tape-bias.short{color:var(--dir-down)}.tape-bias.mixed{color:var(--posture-flat)}"
     ".tape-no-data{color:#888;font-style:italic;margin-top:4px;font-size:0.8rem}"
     ".idle-summary{color:#888;margin-bottom:12px;padding:8px;"
     "border-left:3px solid #2a2a2a}"
@@ -1098,12 +1111,12 @@ _CSS = (
     ".lvl-now{color:#f5c518}"
     ".lvl-entry{color:#e0a552}"
     ".lvl-stop{color:#e05252}"
-    ".lvl-vwap{color:#29b6f6}"
+    ".lvl-vwap{color:var(--color-level)}"
     ".lvl-neutral{color:#6b7280}"
     ".lvl-riskband{padding-left:5px;margin:1px 0}"
     ".lvl-inrisk{border-left:2px solid #e05252;background:rgba(224,82,82,.06)}"
     ".lvl-lockrisk{border-left:2px solid #6b7280;background:rgba(107,114,128,.06)}"
-    ".artifact-warning{border-color:#ff9800;color:#ff9800}"
+    ".artifact-warning{border-color:var(--color-warning);color:var(--color-warning)}"
     ".artifact-diagnostics{color:#888;font-size:0.72rem;line-height:1.45}"
     ".artifact-diagnostics span{display:block}"
     "#artifact-diagnostics summary,#run-history summary,details.tier-group summary{cursor:pointer;list-style:none}"
@@ -1117,12 +1130,12 @@ _CSS = (
     "#red-folder .red-folder-event{font-size:0.78rem;margin-top:4px}"
     ".red-folder-when{color:#ddd}"
     ".red-folder-type{color:#888}"
-    ".red-folder-expiry{color:#ff9800;font-size:0.72rem;margin-top:6px}"
+    ".red-folder-expiry{color:var(--color-event);font-size:0.72rem;margin-top:6px}"
     "#scoreboard .scoreboard-row{font-size:0.74rem;color:#bbb;display:flex;flex-wrap:wrap;gap:10px;margin-top:3px}"
     ".scoreboard-date{color:#ddd;min-width:80px}"
     ".scoreboard-spy{color:#888}"
     # PRD-265 R5: coverage-bounded day marker on the scoreboard row.
-    ".scoreboard-coverage{color:#ff9800;font-weight:600}"
+    ".scoreboard-coverage{color:var(--color-neutral);font-weight:600}"
     # PRD-318: answer-first zones. Existing subsystem blocks remain intact in
     # the DOM, but their supporting-evidence copies lose peer-card weight under
     # DETAILS / HISTORY.
@@ -1153,11 +1166,11 @@ _CSS = (
     "#system-state #cb-updated{color:#666;font-size:.72rem;margin-top:6px}"
     # PRD-334 R1: manual-reload affordance, 44px touch target, view-state safe.
     "#system-state .board-reload{display:inline-flex;align-items:center;flex-wrap:wrap;"
-    "gap:2px 8px;min-height:44px;margin-top:2px;color:#29b6f6;text-decoration:none;font-size:.78rem}"
+    "gap:2px 8px;min-height:44px;margin-top:2px;color:var(--color-actionable);text-decoration:none;font-size:.78rem}"
     "#system-state .board-reload:hover,#system-state .board-reload:focus{text-decoration:underline}"
     "#system-state .board-reload-note{color:#888;font-size:.7rem}"
     "#staleness-banner{border:1px solid currentColor;border-radius:3px;padding:5px 8px;margin-bottom:8px;font-size:.72rem;letter-spacing:.04em}"
-    ".verdict-warning{border-left:3px solid #ff9800;color:#ff9800;padding:6px 8px;margin-bottom:8px}"
+    ".verdict-warning{border-left:3px solid var(--color-warning);color:var(--color-warning);padding:6px 8px;margin-bottom:8px}"
     "#watching-zone .operator-subsection{padding-top:10px;margin-top:10px;border-top:1px solid #222}"
     "#watching-zone .operator-subsection:first-of-type{padding-top:0;margin-top:0;border-top:0}"
     "#watching-zone .block{border:0;border-radius:0;margin-bottom:0;padding-left:0;padding-right:0}"
@@ -1167,7 +1180,7 @@ _CSS = (
     "#details-history>summary{cursor:pointer;list-style:none;color:#aaa;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}"
     # PRD-334 R7: the bounded "Full GEX details" disclosure (both the production
     # card and the synthetic reference). 44px touch target where the control is.
-    ".gex-full>summary{cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center;color:#9aa4b2;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em}"
+    ".gex-full>summary{cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center;color:var(--color-gex);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em}"
     ".gex-full>summary::-webkit-details-marker{display:none}"
     "#details-history>summary::-webkit-details-marker{display:none}"
     "#details-history>.details-body{margin-top:10px}"
@@ -1188,13 +1201,13 @@ _CSS = (
     # the falsifiable trade fields. PRD-334 R2: REASON/PLAY/WATCH render FLAT in
     # .card-support -- subordinate to the accented IN/OUT couplet (hairline rule,
     # dimmer text) but always visible, never behind a disclosure.
-    ".value-actionable{color:#29b6f6}"
+    ".value-actionable{color:var(--color-actionable)}"
     ".card-support{margin-top:6px;padding-top:6px;border-top:1px solid #1a1a1a}"
     ".card-support .label{color:#888}"
     ".card-support .value{color:#bbb;font-size:.82rem}"
     # PRD-218: alignment-coloured price (bullish green / bearish red).
-    ".ts-px-up{color:#4caf50}"
-    ".ts-px-down{color:#f44336}"
+    ".ts-px-up{color:var(--dir-up)}"
+    ".ts-px-down{color:var(--dir-down)}"
     # PRD-332 (D5) main-section rules: C WATCHING setup-workspace + A-upper
     # refinements. Placed in the main-rules section (before any @media block) so
     # the 44px tab target is not scoped into a phone block (PRD-330 R8). No
@@ -1207,17 +1220,17 @@ _CSS = (
     ".setup-tab-sym{font-weight:bold}"
     ".setup-tab-grade{color:#aaa}"
     ".setup-tab-lc{display:inline-block;padding:0 .35rem;border-radius:3px;font-size:.68rem}"
-    ".setup-tab-check{border:1px solid currentColor;border-radius:3px;padding:0 4px;font-size:.62rem;letter-spacing:.06em;color:#ff9800}"
+    ".setup-tab-check{border:1px solid currentColor;border-radius:3px;padding:0 4px;font-size:.62rem;letter-spacing:.06em;color:var(--color-warning)}"
     ".setup-panels{min-width:0}"
     ".setup-panel{min-width:0}"
     # PRD-332 (D5) / PR #319 salvage: 44px touch targets on the WATCHING and
     # DETAILS/HISTORY disclosures (main-section, so not scoped into a phone block).
     "#watching-zone summary,#details-history>summary{min-height:44px;display:flex;align-items:center}"
     "#verdict-zone{border-left:3px solid #3a3a3a}"
-    "#verdict-zone:has(.decision-state.sys-up){border-left-color:#4caf50}"
-    "#verdict-zone:has(.decision-state.sys-down),#verdict-zone:has(.decision-state.sys-halt){border-left-color:#f44336}"
-    "#verdict-zone:has(.decision-state.sys-flat){border-left-color:#ff9800}"
-    "#today-zone{border-left:3px solid #ff9800}"
+    "#verdict-zone:has(.decision-state.sys-up){border-left-color:var(--posture-up)}"
+    "#verdict-zone:has(.decision-state.sys-down),#verdict-zone:has(.decision-state.sys-halt){border-left-color:var(--posture-down)}"
+    "#verdict-zone:has(.decision-state.sys-flat){border-left-color:var(--posture-flat)}"
+    "#today-zone{border-left:3px solid var(--color-event)}"
     ".lvl-ladder,.tape-drivers,.tape-trend,.history-table{font-variant-numeric:tabular-nums}"
     # Change #5: desktop-width trend-table readability. Scoped >=641px so the
     # <=640px flex-card reflow below stays byte-identical. white-space:normal
@@ -3212,7 +3225,7 @@ def render_dashboard_html(
     )
     w(f'<div class="block operator-subsection{disabled_class}" id="candidate-board">')
     if fixture_mode:
-        w('  <h3>SETUP SCREENING &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h3>')
+        w('  <h3>SETUP SCREENING &#8212; <span style="color:var(--color-warning)">DEMO MODE &#8212; FIXTURE DATA</span></h3>')
     else:
         w('  <h3>SETUPS <span class="scope-note">· screening grades, not permission</span></h3>')
     # PRD-158 § 4.3: integrator screen verdicts (Rules 2/3) render here as
@@ -3353,7 +3366,7 @@ def render_dashboard_html(
                         _dq = _esc(s)
                         _rules.append(f'#{_sid}:checked~.setup-panels .setup-panel:not([data-setup="{_dq}"]){{display:none}}')
                         _rules.append(f'#{_sid}:checked~.setup-panels .tier-group:not(:has(.setup-panel[data-setup="{_dq}"])){{display:none}}')
-                        _rail = {"A+": "#4caf50", "A": "#8bc34a", "B": "#ff9800"}.get(symbols[s].get("grade", ""), "#29b6f6")
+                        _rail = {"A+": "var(--posture-up)", "A": "#8bc34a", "B": "var(--color-grade)"}.get(symbols[s].get("grade", ""), "var(--color-actionable)")
                         _rules.append(f'#{_sid}:checked~.setup-tabs label[for="{_sid}"]{{color:#e0e0e0;background:#0d0d0d;border-bottom-color:{_rail};border-left-color:{_rail}}}')
                         _rules.append(f'#{_sid}:focus-visible~.setup-tabs label[for="{_sid}"]{{outline:1px solid #29b6f6;outline-offset:-2px}}')
                     w(f'  <style>{"".join(_rules)}</style>')

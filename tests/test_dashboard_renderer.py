@@ -1194,7 +1194,43 @@ def test_high_grade_candidate_entry_invalidation_bold() -> None:
     assert 'REASON</div><div class="value-key">' not in card
     # The dedicated classes are defined in CSS (bold key + cyan accent).
     assert ".value-key{margin-top:0.25rem;font-weight:bold}" in html
-    assert ".value-actionable{color:#29b6f6}" in html
+    assert ".value-actionable{color:var(--color-actionable)}" in html   # PRD-334 R8 token
+
+
+def test_prd334_semantic_color_token_system() -> None:
+    # PRD-334 R8 (owner ruling G1): a :root token system splits the overloaded
+    # amber, separates posture from price direction, and splits actionable-now from
+    # the VWAP/level reference; GEX carries its own family.
+    import re as _re8
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
+    css = html.split("<style>", 1)[1].split("</style>", 1)[0]
+    assert ":root{" in css
+    # FAIL guard: the single amber hex #ff9800 is gone -> it can no longer carry
+    # more than one of {neutral, warning, flat-posture, grade, event}.
+    assert "#ff9800" not in css
+    # each overloaded amber role now references a DISTINCT token
+    roles = ("--color-neutral", "--color-warning", "--posture-flat", "--color-grade", "--color-event")
+    hexes = {}
+    for tok in roles:
+        m = _re8.search(rf"{tok}:(#[0-9a-fA-F]{{3,6}})", css)
+        assert m, tok
+        hexes[tok] = m.group(1)
+    assert len(set(hexes.values())) == len(roles), f"amber roles must be distinct hues: {hexes}"
+    # posture colour is distinct from price-direction colour
+    up_post = _re8.search(r"--posture-up:(#[0-9a-fA-F]{3,6})", css).group(1)
+    up_dir = _re8.search(r"--dir-up:(#[0-9a-fA-F]{3,6})", css).group(1)
+    assert up_post != up_dir
+    # actionable-now is split from the VWAP/level reference
+    act = _re8.search(r"--color-actionable:(#[0-9a-fA-F]{3,6})", css).group(1)
+    lvl = _re8.search(r"--color-level:(#[0-9a-fA-F]{3,6})", css).group(1)
+    assert act != lvl
+    assert ".value-actionable{color:var(--color-actionable)}" in css
+    assert ".lvl-vwap{color:var(--color-level)}" in css
+    # GEX derivatives family token exists and is referenced
+    assert "--color-gex:" in css and "var(--color-gex)" in css
+    # colour is not the sole carrier: posture/permission is also carried by the
+    # decision-state text label and the up/down price by the alignment abbreviation.
+    assert "STAY FLAT" in html or "TRADE PERMITTED" in html or "HALT" in html
 
 
 def test_failed_candidate_omits_validation_context() -> None:
@@ -1643,7 +1679,7 @@ def test_prd218_price_color_and_sma_arrow_spacing() -> None:
         _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap,
     )
     section = _ts_section(html)
-    assert ".ts-px-up{color:#4caf50}" in html and ".ts-px-down{color:#f44336}" in html
+    assert ".ts-px-up{color:var(--dir-up)}" in html and ".ts-px-down{color:var(--dir-down)}" in html   # PRD-334 R8 tokens
     assert 'class="ts-px-up"' in section, "bullish price cell not coloured"
     # SMA arrows carry a trailing space (PRD-218); no unspaced arrow-digit.
     assert _r218.search(r"[\u2191\u2193=] 50 [\u2191\u2193=] 200", section), "spaced SMA composite missing"
