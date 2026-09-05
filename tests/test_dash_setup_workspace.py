@@ -117,8 +117,11 @@ def test_low_tier_primary_default_is_first_workspace_symbol() -> None:
     # tab is the first workspace symbol, and no inline chart lives in the workspace.
     html = _low_tier_primary_html()
     assert re.search(r'id="setup-AAA" class="setup-select" checked>', html)
-    workspace = html.split('id="setup-workspace"', 1)[1].split('id="alert-watchlist"', 1)[0]
-    assert 'class="setup-chart"' not in workspace
+    assert 'id="setup-CCC"' not in html  # the C-grade primary is NOT a workspace tab
+    workspace = html.split('id="setup-workspace"', 1)[1].split('id="tier-c"', 1)[0]
+    assert 'class="setup-chart"' not in workspace  # no inline chart in the workspace
+    # the primary's single chart renders with the low-tier CCC card, below the workspace
+    assert 'class="setup-chart"' in html.split('id="tier-c"', 1)[1]
 
 
 # --- S4: tab order = sorted order; tier headers preserved -------------------
@@ -145,8 +148,8 @@ def test_manual_check_tab_token_when_workspace_symbol_is_alert_candidate() -> No
     cand = {"symbol": "AAA", "direction": "LONG",
             "block_reason": "CHAIN DATA UNAVAILABLE", "setup_quality": _MANUAL}
     html = _two_high_grade_html(alert_candidates=[cand])
-    aaa_tab = html.split('for="setup-AAA"', 1)[1].split("</label>", 1)[0]
-    bbb_tab = html.split('for="setup-BBB"', 1)[1].split("</label>", 1)[0]
+    aaa_tab = html.split('for="setup-AAA">', 1)[1].split("</label>", 1)[0]
+    bbb_tab = html.split('for="setup-BBB">', 1)[1].split("</label>", 1)[0]
     assert '<span class="setup-tab-check">CHECK</span>' in aaa_tab
     assert "CHECK" not in bbb_tab
     # the literal MANUAL CHECK is NOT duplicated onto tabs (PRD-331 preserved)
@@ -167,8 +170,10 @@ def test_no_javascript_added() -> None:
 def test_static_css_never_hides_a_panel_and_inline_rules_are_setup_scoped() -> None:
     html = _two_high_grade_html()
     head_css = html.split("<style>", 1)[1].split("</style>", 1)[0]
-    assert "setup-panel" not in head_css or "display:none" not in head_css
-    assert ".tier-group{display:none" not in head_css
+    # No head-CSS rule targeting a panel/tier may carry display:none -- only the
+    # inline #setup- rules toggle visibility, so a selector failure shows more.
+    for sel, body in re.findall(r'([^{}]+)\{([^{}]*)\}', head_css):
+        assert not (("setup-panel" in sel or "tier-group" in sel) and "display:none" in body), sel
     # inline workspace style: every visibility rule is keyed on a #setup- radio
     inline = html.split('id="setup-workspace"', 1)[1].split("<style>", 1)[1].split("</style>", 1)[0]
     for rule in re.findall(r'([^{}]+)\{[^{}]*display:none[^{}]*\}', inline):

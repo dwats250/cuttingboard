@@ -146,9 +146,9 @@ def test_manual_check_render_does_not_mutate_inputs() -> None:
     html = render_dashboard_html(_payload(), _run(), alert_candidates=cands)
     assert cands == snapshot  # inputs untouched
     ids = _top_ids(html)
-    # No new top-level block; alert-watchlist stays immediately after candidate-board.
+    # No new top-level block; alert-watchlist stays immediately before candidate-board (PRD-332 D5).
     assert "alert-watchlist" in ids
-    assert ids.index("alert-watchlist") == ids.index("candidate-board") + 1
+    assert ids.index("candidate-board") == ids.index("alert-watchlist") + 1
 
 
 # --- R4 (mobile layout tokens: the row wraps, never overflows) ------------

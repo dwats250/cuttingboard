@@ -1159,6 +1159,27 @@ _CSS = (
     # PRD-218: alignment-coloured price (bullish green / bearish red).
     ".ts-px-up{color:#4caf50}"
     ".ts-px-down{color:#f44336}"
+    # PRD-332 (D5) main-section rules: C WATCHING setup-workspace + A-upper
+    # refinements. Placed in the main-rules section (before any @media block) so
+    # the 44px tab target is not scoped into a phone block (PRD-330 R8). No
+    # existing rule string is edited (R5). Responsive additions are appended in
+    # @media blocks at the very end of _CSS.
+    ".setup-workspace{min-width:0}"
+    ".setup-select{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}"
+    ".setup-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;border-bottom:1px solid #2a2a2a;margin-bottom:10px;min-width:0}"
+    ".setup-tab{flex:0 0 auto;min-height:44px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;cursor:pointer;color:#888;background:transparent;border-bottom:2px solid transparent;border-left:0;white-space:nowrap;font-size:.75rem;letter-spacing:.04em;user-select:none}"
+    ".setup-tab-sym{font-weight:bold}"
+    ".setup-tab-grade{color:#aaa}"
+    ".setup-tab-lc{display:inline-block;padding:0 .35rem;border-radius:3px;font-size:.68rem}"
+    ".setup-tab-check{border:1px solid currentColor;border-radius:3px;padding:0 4px;font-size:.62rem;letter-spacing:.06em;color:#ff9800}"
+    ".setup-panels{min-width:0}"
+    ".setup-panel{min-width:0}"
+    "#verdict-zone{border-left:3px solid #3a3a3a}"
+    "#verdict-zone:has(.decision-state.sys-up){border-left-color:#4caf50}"
+    "#verdict-zone:has(.decision-state.sys-down),#verdict-zone:has(.decision-state.sys-halt){border-left-color:#f44336}"
+    "#verdict-zone:has(.decision-state.sys-flat){border-left-color:#ff9800}"
+    "#today-zone{border-left:3px solid #ff9800}"
+    ".lvl-ladder,.tape-drivers,.tape-trend,.history-table{font-variant-numeric:tabular-nums}"
     # Change #5: desktop-width trend-table readability. Scoped >=641px so the
     # <=640px flex-card reflow below stays byte-identical. white-space:normal
     # needs !important to beat each td's inline "white-space:nowrap".
@@ -1214,6 +1235,23 @@ _CSS = (
     "}"
     # PRD-330: phone parity in a SEPARATE media block; the PRD-318/327 block above stays byte-identical.
     "@media(max-width:430px){#spy-session{padding:10px;margin-bottom:8px}#spy-session>h3{margin-bottom:7px}#today-zone{padding:8px 10px}}"
+    # PRD-332 (D5) tail: desktop + phone media additions for the C WATCHING setup
+    # workspace and A-upper refinements. The main-section D5 rules are inserted in
+    # the main-rules section above (before the phone blocks) so no 44px touch
+    # target lands inside a phone @media block (PRD-330 R8). Append-only; no
+    # existing rule string is edited (R5).
+    "@media(min-width:641px){"
+    ".wrap{max-width:760px}"
+    ".tape-drivers{grid-template-columns:repeat(auto-fit,minmax(9ch,1fr))}"
+    ".setup-workspace{display:grid;grid-template-columns:minmax(9ch,13ch) minmax(0,1fr);column-gap:14px;align-items:start}"
+    ".setup-workspace>.setup-tabs{grid-column:1;flex-direction:column;flex-wrap:nowrap;overflow-x:visible;border-bottom:0;border-right:1px solid #222;margin-bottom:0}"
+    ".setup-workspace>.setup-panels{grid-column:2;min-width:0}"
+    ".setup-tab{border-bottom:0;border-left:3px solid transparent;justify-content:space-between}"
+    "}"
+    "@media(max-width:430px){"
+    ".setup-tabs{margin-bottom:8px}"
+    ".setup-tab{padding:0 10px;font-size:.72rem}"
+    "}"
 )
 
 _UP   = "↑"
@@ -3253,6 +3291,30 @@ def render_dashboard_html(
             _os_parts.append(f"top reason {_esc(_os_primary)} ({_os_tally[_os_primary]})")
         w(f'  <p class="screen-line">{" · ".join(_os_parts)}</p>')
 
+    # --- alert-watchlist (PRD-332 D5: relocated ABOVE the candidate board so
+    # MANUAL CHECK is never hidden by setup selection; the block's inner markup
+    # is byte-identical to PRD-331 -- only its position moves). ---
+    _manual_check_syms: set[str] = set()
+    if alert_candidates:
+        w('<div class="block operator-subsection" id="alert-watchlist">')
+        w('  <h3>ALERT WATCHLIST</h3>')
+        w('  <div class="label">Candidates gated by execution policy</div>')
+        for cand in alert_candidates:
+            sym = _esc(str(cand.get("symbol") or "").upper())
+            direction = _esc(str(cand.get("direction") or "").upper())
+            block_reason = _esc(str(cand.get("block_reason") or "").upper())
+            _tail = f'{sym} {direction}' + (f' — {block_reason}' if block_reason else '') + '</div>'
+            # PRD-331: presentation-only manual-action flag, keyed on the contract's
+            # verbatim chain classification (setup_quality). No value is derived, no
+            # row is reordered; every non-manual row is byte-identical to before.
+            if cand.get("setup_quality") == MANUAL_CHECK:
+                _manual_check_syms.add(str(cand.get("symbol") or "").upper())
+                w('  <div class="candidate-state manual-check" data-raw-state="NEEDS_MANUAL_CHECK">'
+                  '<span class="manual-check-flag">MANUAL CHECK</span> ' + _tail)
+            else:
+                w('  <div class="candidate-state">' + _tail)
+        w("</div>")
+
     # --- candidate-board ---
     # PRD-321 R2/R3: resolve the age-guarded bars once per render, and keep the
     # single full-width chart slot for the highest-priority visible setup —
@@ -3362,20 +3424,110 @@ def render_dashboard_html(
                       '</div>')
                 # PRD-158 § 4.3 Rule 4: empty tiers (post-Rule-1 filter) are
                 # suppressed by the existing `if not tier_syms: continue` below.
-                for tier_id, tier_label, tier_grades in _TIER_DEFS:
-                    tier_syms = [s for s in sorted_syms if symbols[s].get("grade", "") in tier_grades]
-                    if not tier_syms:
-                        continue
+                # PRD-332 (D5): with >=2 high-grade cards, present them as a native
+                # radio-group setup workspace (no JS). Low tiers stay below, and the
+                # single/zero high-grade case renders byte-identically to before.
+                # Presentation only: sorted order, grades, tier headers/labels,
+                # cards, and the chart slot are all unchanged (`_emit_card` makes the
+                # same `_render_candidate_card` call the pre-D5 loop made).
+                _hg_syms = [s for s in sorted_syms if symbols[s].get("grade", "") in _HIGH_GRADES]
+
+                def _emit_card(sym: str, *, tier_closed: bool) -> None:
+                    _sym_bars, _sym_caption = _price_bars.get(sym, (None, ""))
+                    _render_candidate_card(
+                        w, sym, symbols[sym],
+                        contract_entry=(contract_entry_map or {}).get(sym),
+                        contract_stop=(contract_stop_map or {}).get(sym),
+                        operator_locked=operator_locked,
+                        decision_permitted=_decision_state == "TRADE PERMITTED",
+                        bars=_sym_bars,
+                        bars_caption=_sym_caption,
+                        chart_slot_available=(sym == _primary_card_symbol),
+                        intraday_session=_intraday_session,
+                        tier_closed=tier_closed,
+                    )
+
+                def _tier_label_for(tier_id: str, tier_label: str) -> str:
                     # PRD-304 R7: under lock the A+ tier reads OBSERVATION ONLY,
                     # never ACTIONABLE; the grade letter itself is analytical and
-                    # preserved. _TIER_DEFS is shared, so substitute the label
-                    # locally rather than mutating the tuple.
-                    _tier_label = (
+                    # preserved. _TIER_DEFS is shared, so substitute locally.
+                    return (
                         "A+ — OBSERVATION ONLY"
                         if operator_locked and tier_id == "aplus"
                         else tier_label
                     )
+
+                _use_workspace = len(_hg_syms) >= 2
+                if _use_workspace:
+                    # PRD-332 R1: default selection = the canonical primary when it
+                    # is a high-grade workspace symbol, else the first workspace
+                    # symbol (RC-1: a low-tier primary keeps its own chart slot below
+                    # and is not a workspace tab). Selection is presentation only.
+                    _default_setup = (
+                        _primary_card_symbol
+                        if _primary_card_symbol in _hg_syms
+                        else _hg_syms[0]
+                    )
+                    w('<div class="setup-workspace" id="setup-workspace">')
+                    # PRD-332 R2/R4/R7: native per-symbol visibility, no JS. Every
+                    # rule is keyed on a `#setup-` radio, so the static _CSS never
+                    # hides a panel -> a selector failure shows more, never less.
+                    _rules: list[str] = []
+                    for s in _hg_syms:
+                        _sid = f"setup-{_esc(s)}"
+                        _dq = _esc(s)
+                        _rules.append(f'#{_sid}:checked~.setup-panels .setup-panel:not([data-setup="{_dq}"]){{display:none}}')
+                        _rules.append(f'#{_sid}:checked~.setup-panels .tier-group:not(:has(.setup-panel[data-setup="{_dq}"])){{display:none}}')
+                        _rail = {"A+": "#4caf50", "A": "#8bc34a", "B": "#ff9800"}.get(symbols[s].get("grade", ""), "#29b6f6")
+                        _rules.append(f'#{_sid}:checked~.setup-tabs label[for="{_sid}"]{{color:#e0e0e0;background:#0d0d0d;border-bottom-color:{_rail};border-left-color:{_rail}}}')
+                        _rules.append(f'#{_sid}:focus-visible~.setup-tabs label[for="{_sid}"]{{outline:1px solid #29b6f6;outline-offset:-2px}}')
+                    w(f'  <style>{"".join(_rules)}</style>')
+                    for s in _hg_syms:
+                        _sid = f"setup-{_esc(s)}"
+                        _chk = " checked" if s == _default_setup else ""
+                        w(f'  <input type="radio" name="setup-select" id="{_sid}" class="setup-select"{_chk}>')
+                    w('  <div class="setup-tabs" role="group" aria-label="Setups">')
+                    for s in _hg_syms:
+                        _g = symbols[s].get("grade", "")
+                        _gcss = _GRADE_CSS.get(_g, "unknown")
+                        _lc = symbols[s].get("lifecycle") or {}
+                        _lc_tr = _lc.get("grade_transition")
+                        _badge = _LIFECYCLE_BADGE_CSS.get(_lc_tr) if _lc_tr else None
+                        _lc_html = f'<span class="setup-tab-lc {_badge}">{_esc(_lc_tr)}</span>' if _badge else ""
+                        # PRD-332 R3: mirror MANUAL CHECK onto the tab as the token
+                        # "CHECK" (never the literal "MANUAL CHECK", which stays
+                        # exclusive to #alert-watchlist) when this workspace symbol is
+                        # also a NEEDS_MANUAL_CHECK alert candidate.
+                        _chk_html = '<span class="setup-tab-check">CHECK</span>' if s.upper() in _manual_check_syms else ""
+                        w(f'    <label class="setup-tab grade-{_gcss}" for="setup-{_esc(s)}">'
+                          f'<span class="setup-tab-sym">{_esc(s)}</span>'
+                          f'<span class="setup-tab-grade">{_esc(_g)}</span>{_lc_html}{_chk_html}</label>')
+                    w('  </div>')
+                    w('  <div class="setup-panels">')
+                    for tier_id, tier_label, tier_grades in _TIER_DEFS:
+                        if tier_grades.isdisjoint(_HIGH_GRADES):
+                            continue
+                        tier_syms = [s for s in sorted_syms if symbols[s].get("grade", "") in tier_grades]
+                        if not tier_syms:
+                            continue
+                        w(f'  <div class="tier-group" id="tier-{tier_id}">')
+                        w(f'    <div class="tier-header">{_esc(_tier_label_for(tier_id, tier_label))} ({len(tier_syms)})</div>')
+                        for sym in tier_syms:
+                            w(f'    <div class="setup-panel" data-setup="{_esc(sym)}">')
+                            _emit_card(sym, tier_closed=False)
+                            w('    </div>')
+                        w('  </div>')
+                    w('  </div>')
+                    w('</div>')
+
+                for tier_id, tier_label, tier_grades in _TIER_DEFS:
                     is_low_tier = tier_grades.isdisjoint(_HIGH_GRADES)
+                    if _use_workspace and not is_low_tier:
+                        continue  # high tiers already rendered in the workspace
+                    tier_syms = [s for s in sorted_syms if symbols[s].get("grade", "") in tier_grades]
+                    if not tier_syms:
+                        continue
+                    _tier_label = _tier_label_for(tier_id, tier_label)
                     if is_low_tier:
                         # PRD-326 D1-Q1 (Option A): the low tier holding the canonical primary opens.
                         _open = " open" if _primary_card_symbol in tier_syms else ""
@@ -3385,19 +3537,7 @@ def render_dashboard_html(
                         w(f'  <div class="tier-group" id="tier-{tier_id}">')
                         w(f'    <div class="tier-header">{_esc(_tier_label)} ({len(tier_syms)})</div>')
                     for sym in tier_syms:
-                        _sym_bars, _sym_caption = _price_bars.get(sym, (None, ""))
-                        _render_candidate_card(
-                            w, sym, symbols[sym],
-                            contract_entry=(contract_entry_map or {}).get(sym),
-                            contract_stop=(contract_stop_map or {}).get(sym),
-                            operator_locked=operator_locked,
-                            decision_permitted=_decision_state == "TRADE PERMITTED",
-                            bars=_sym_bars,
-                            bars_caption=_sym_caption,
-                            chart_slot_available=(sym == _primary_card_symbol),
-                            intraday_session=_intraday_session,
-                            tier_closed=(is_low_tier and not _open),
-                        )
+                        _emit_card(sym, tier_closed=(is_low_tier and not _open))
                     if is_low_tier:
                         w("  </details>")
                     else:
@@ -3412,26 +3552,6 @@ def render_dashboard_html(
                     w(f'    <div class="removed-row">{rsym} — removed (prev: {rprev})</div>')
                 w("  </div>")
     w("</div>")
-
-    # --- alert-watchlist ---
-    if alert_candidates:
-        w('<div class="block operator-subsection" id="alert-watchlist">')
-        w('  <h3>ALERT WATCHLIST</h3>')
-        w('  <div class="label">Candidates gated by execution policy</div>')
-        for cand in alert_candidates:
-            sym = _esc(str(cand.get("symbol") or "").upper())
-            direction = _esc(str(cand.get("direction") or "").upper())
-            block_reason = _esc(str(cand.get("block_reason") or "").upper())
-            _tail = f'{sym} {direction}' + (f' — {block_reason}' if block_reason else '') + '</div>'
-            # PRD-331: presentation-only manual-action flag, keyed on the contract's
-            # verbatim chain classification (setup_quality). No value is derived, no
-            # row is reordered; every non-manual row is byte-identical to before.
-            if cand.get("setup_quality") == MANUAL_CHECK:
-                w('  <div class="candidate-state manual-check" data-raw-state="NEEDS_MANUAL_CHECK">'
-                  '<span class="manual-check-flag">MANUAL CHECK</span> ' + _tail)
-            else:
-                w('  <div class="candidate-state">' + _tail)
-        w("</div>")
 
     w("</div>")  # #watching-zone
 
