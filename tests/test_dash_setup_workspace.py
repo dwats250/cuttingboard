@@ -182,12 +182,13 @@ def test_static_css_never_hides_a_panel_and_inline_rules_are_setup_scoped() -> N
 
 # --- S8: chart slot unchanged (primary inline + others disclosed) -----------
 
-def test_setup_chart_count_unchanged_by_workspace() -> None:
-    # PRD-321: the primary takes the inline chart; every other chartable card
-    # keeps its own CHART > disclosure. Both AAA (primary, inline) and BBB
-    # (disclosed) render a setup-chart -> 2. The workspace must not change this.
+def test_setup_chart_flat_for_every_workspace_card() -> None:
+    # PRD-334 R2: the workspace no longer nests any chart behind a chart-detail
+    # disclosure -- every selectable card renders its chart FLAT so a selected
+    # setup shows its chart immediately (the LEVEL MAP -> CHART two-level nesting
+    # is gone). Both AAA (primary) and BBB render a setup-chart -> 2, none disclosed.
     html = _two_high_grade_chart_html()
     assert html.count('class="setup-chart"') == 2
-    # exactly one INLINE chart (not inside a chart-detail disclosure) = the primary
-    disclosed = html.count('class="chart-detail"')
-    assert html.count('class="setup-chart"') - disclosed == 1
+    assert 'class="chart-detail"' not in html
+    assert 'class="level-detail"' not in html
+    assert 'LEVEL MAP' not in html

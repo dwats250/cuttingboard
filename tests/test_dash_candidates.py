@@ -885,45 +885,56 @@ def test_prd321_loader_never_raises_on_a_broken_artifact(tmp_path) -> None:
     assert _dr._load_price_bars_snapshot(good)["symbols"]["SPY"]["bars"] == _PC_BARS
 
 
-# --- R3: one full chart, everything else behind disclosure -------------------
+# --- PRD-334 R2: every chart renders FLAT (no per-card disclosure) ------------
 
-def test_prd321_only_the_top_setup_gets_a_chart_outside_disclosure() -> None:
-    # R3 FAIL line (depth-aware). Mutation: pass `chart_slot_available=True` for
-    # every card -> three undisclosed charts and this goes red.
+def test_prd334_every_high_grade_chart_renders_flat() -> None:
+    # PRD-334 R2 FAIL line (depth-aware). The former "one chart outside disclosure,
+    # the rest behind chart-detail" nesting is removed: every high-grade card
+    # renders its chart FLAT at depth 0 (its tier-group is a plain <div>), so a
+    # selected setup shows its chart with no disclosure to open. Mutation:
+    # reintroduce a chart-detail/level-detail wrapper -> a depth > 0 appears here.
     syms = ("AAA", "BBB", "CCC")
     mm = _market_map({s: _chartable(s) for s in syms})
     html = _render(mm, _bars_snapshot(symbols=syms))
-    depths = _charts_by_details_depth(html)
-    assert len(depths) == 3
-    assert depths.count(0) == 1                 # exactly one full-width chart
-    assert sorted(depths)[1:] == [1, 1]         # the rest behind disclosure
-    # The undisclosed chart belongs to the highest-priority visible setup.
-    assert 'class="setup-chart"' in _pc_card(html, "AAA")
-    assert '<details class="chart-detail">' in _pc_card(html, "BBB")
-    assert '<details class="chart-detail">' in _pc_card(html, "CCC")
-    assert '<details class="chart-detail">' not in _pc_card(html, "AAA")
+    assert _charts_by_details_depth(html) == [0, 0, 0]
+    assert 'class="chart-detail"' not in html
+    assert 'class="level-detail"' not in html
+    assert 'LEVEL MAP' not in html
+    for s in syms:
+        assert 'class="setup-chart"' in _pc_card(html, s)
 
 
-def test_prd321_no_chart_sits_outside_disclosure_when_not_permitted() -> None:
-    # R3 FAIL clause as SUPERSEDED IN PART by PRD-326 A1: under a non-permitted
-    # render the single canonical primary-slot chart sits outside disclosure
-    # (depth 0, observational); every other chart stays behind the orthogonal
-    # `level-detail` wrapper AND its own `chart-detail` (depth 2).
+def test_prd334_charts_flat_in_every_decision_state() -> None:
+    # R2: the selected-card chart never sits inside a <details> in ANY decision
+    # state (the old level-detail/chart-detail keying on permission is gone).
     syms = ("AAA", "BBB")
     mm = _market_map({s: _chartable(s) for s in syms})
-    html = _render(mm, _bars_snapshot(symbols=syms), run=_run(outcome="NO_TRADE"))
-    assert _charts_by_details_depth(html) == [0, 2]
-    assert '<details class="level-detail">' in _pc_card(html, "AAA")
-    assert '<details class="chart-detail">' in _pc_card(html, "BBB")
-    assert 'class="candidate-card grade-aplus candidate-observation"' in html
+    for run in (_run(outcome="NO_TRADE"), _run(outcome="TRADE")):
+        html = _render(mm, _bars_snapshot(symbols=syms), run=run)
+        assert _charts_by_details_depth(html) == [0, 0]
+        assert 'class="chart-detail"' not in html
+        assert 'class="level-detail"' not in html
+    # Non-permitted high-grade cards keep the observation styling (unchanged).
+    non_perm = _render(mm, _bars_snapshot(symbols=syms), run=_run(outcome="NO_TRADE"))
+    assert 'class="candidate-card grade-aplus candidate-observation"' in non_perm
 
 
-def test_prd321_permitted_render_drops_the_level_detail_wrapper_only() -> None:
-    mm = _market_map({"SPY": _chartable()})
-    permitted = _pc_card(_render(mm, _bars_snapshot(), run=_run(outcome="TRADE")))
-    assert '<details class="level-detail">' not in permitted
-    assert 'class="setup-chart"' in permitted
-    assert 'class="lvl-ladder' in permitted
+def test_prd334_reason_play_watch_render_flat_not_behind_details() -> None:
+    # R2 FAIL line: REASON/PLAY/WATCH are basic setup facts and render flat inside
+    # .card-support, never behind a <details> disclosure.
+    entry = _chartable()
+    entry["reason_for_grade"] = "strong trend_UNIQUE"
+    entry["preferred_trade_structure"] = "BULL_CALL_SPREAD"
+    entry["what_to_look_for"] = ["hold above VWAP", "volume expansion"]
+    card = _pc_card(_render(_market_map({"SPY": entry}), _bars_snapshot()))
+    assert 'class="card-support"' in card
+    assert 'class="card-detail"' not in card
+    # the whole card carries no <details> at all (high-grade card, plain-div tier)
+    assert "<details" not in card
+    assert '<div class="label">REASON</div>' in card
+    assert '<div class="label">PLAY</div>' in card
+    assert '<div class="label">WATCH</div>' in card
+    assert 'class="lvl-ladder' in card
 
 
 def test_prd321_chart_and_ladder_render_together_never_the_old_ladder() -> None:
@@ -1077,72 +1088,74 @@ def _assert_neutral(chart: str) -> None:
     assert "#6b7280" in chart
 
 
-# --- R1: undisclosed primary chart in every decision state -------------------
+# --- R1 (as recomposed by PRD-334 R2): flat primary chart, every state --------
 
-def test_prd326_primary_chart_undisclosed_when_not_permitted() -> None:
-    # R1 FAIL line. M1 (wrapper opened above the chart), M3 (`disclosed=True`)
-    # and M8 (secondary disclosure keyed on permission) all go red here.
+def test_prd326_primary_chart_flat_when_not_permitted() -> None:
+    # PRD-334 R2: the primary-slot chart renders flat (depth 0) and every other
+    # high-grade card's chart is flat too -- no chart-detail/level-detail nesting.
     html = _d1_render(_run(outcome="NO_TRADE"))
     assert 'decision-state sys-up">STAY FLAT<' in html
     card = _d1_card(html, "AAA")
     assert 'class="setup-chart"' in card
-    assert "<details" not in card.split('class="setup-chart"', 1)[0]
-    assert _charts_by_details_depth(html) == [0, 2]
-    assert '<details class="chart-detail">' not in card
+    assert "<details" not in card
+    assert _charts_by_details_depth(html) == [0, 0]
+    assert 'class="chart-detail"' not in card
 
 
-def test_prd326_primary_chart_precedes_level_detail() -> None:
-    # R1/R2: chart block, THEN the LEVEL MAP wrapper, THEN the ladder inside it
-    # (M2 emits the chart after the ladder inside the wrapper -> red).
+def test_prd326_primary_chart_precedes_ladder_flat() -> None:
+    # PRD-334 R2: chart block, THEN the ladder -- both flat, no LEVEL MAP wrapper.
     card = _d1_card(_d1_render(_run(outcome="NO_TRADE")), "AAA")
     i_chart = card.index('class="setup-chart"')
     i_caption = card.index('class="chart-caption"')
-    i_wrap = card.index('<details class="level-detail"><summary>LEVEL MAP ▶</summary>')
     i_ladder = card.index('class="lvl-ladder')
-    assert i_chart < i_caption < i_wrap < i_ladder
-    assert "</details>" not in card[i_chart:i_wrap]
-    assert card.rstrip().endswith("</details>")   # the ladder closes inside the wrapper
+    assert i_chart < i_caption < i_ladder
+    assert "level-detail" not in card and "LEVEL MAP" not in card
+    assert "<details" not in card
 
 
-def test_prd326_lock_render_primary_chart_undisclosed() -> None:
+def test_prd326_lock_render_primary_chart_flat() -> None:
     html = _d1_render(_run(outcome="NO_TRADE", permission=_LOCK_PERMISSION))
     assert ">OBSERVE ONLY<" in html
     card = _d1_card(html, "AAA")
-    assert "<details" not in card.split('class="setup-chart"', 1)[0]
-    assert '<details class="level-detail">' in card
-    assert _charts_by_details_depth(html) == [0, 2]
+    assert "<details" not in card
+    assert 'class="level-detail"' not in card
+    assert _charts_by_details_depth(html) == [0, 0]
 
 
-def test_prd326_c_grade_primary_tier_opens() -> None:
-    # D1-Q1 = OPTION A: the low tier holding the canonical primary defaults OPEN;
-    # its secondary keeps `chart-detail` closed; a C tier without the primary
-    # keeps today's collapsed wrapper (M15 drops the attribute -> red).
+def test_prd326_c_grade_primary_tier_opens_cards_flat() -> None:
+    # D1-Q1 = OPTION A: the low tier holding the canonical primary defaults OPEN
+    # (the tier-group <details> collapse is the ONLY retained disclosure; PRD-334
+    # R2 removed the inner level-detail/chart-detail). Every card inside renders
+    # flat, so a chart sits at depth 1 (inside the tier only), never deeper.
     mm = _market_map({"CCC": _chartable("CCC", "C"), "DDD": _chartable("DDD", "C")})
     html = _d1_render(_run(outcome="NO_TRADE"), mm)
     assert '<details open class="tier-group" id="tier-c">' in html
     card = _d1_card(html, "CCC")
     assert 'class="setup-chart"' in card
-    assert "<details" not in card.split('class="setup-chart"', 1)[0]
-    assert _charts_by_details_depth(html) == [1, 3]      # open tier; then tier+level+chart
-    assert '<details class="chart-detail">' in _d1_card(html, "DDD")
-    assert "<details open" not in _d1_card(html, "DDD")
+    assert 'class="chart-detail"' not in card and 'class="level-detail"' not in card
+    assert _charts_by_details_depth(html) == [1, 1]      # both charts flat inside the open tier
+    assert 'class="chart-detail"' not in _d1_card(html, "DDD")
     mixed = _market_map({"AAA": _chartable("AAA", "A+"), "CCC": _chartable("CCC", "C")})
     html2 = _d1_render(_run(outcome="NO_TRADE"), mixed)
-    assert '<details class="tier-group" id="tier-c">' in html2
-    assert '<details open class="tier-group"' not in html2  # PRD-329 T7: nested `open` is now S1's
+    assert '<details class="tier-group" id="tier-c">' in html2   # primary is A+, tier-c closed
+    assert '<details open class="tier-group"' not in html2
 
 
 # --- R2/R3: everything else keeps today's bytes; the exposed chart is neutral --
 
 def test_prd326_secondary_and_ladder_byte_identical_when_not_permitted() -> None:
     # M7 (ladder keyed on chart_neutral) and M10 (predicate without the
-    # chart_slot_available conjunct) both change bytes the oracle pins.
+    # chart_slot_available conjunct) both change bytes the oracle pins. PRD-334 R2:
+    # every chart is flat now, so the oracle's AAA no longer sits behind a
+    # chart-detail; the oracle still differs from the real render only by AAA's
+    # chart NEUTRALITY (the primary slot's whole point), never by the ladder or BBB.
     run = _run(outcome="NO_TRADE")
     html, oracle = _d1_render(run, **_D1_CONTRACTS), _d1_oracle(run, **_D1_CONTRACTS)
     assert 'class="setup-chart"' in _d1_card(html, "AAA")
-    assert '<details class="chart-detail">' in _d1_card(oracle, "AAA")  # oracle: no slot holder
-    assert _d1_card(html, "BBB") == _d1_card(oracle, "BBB")
+    assert 'class="chart-detail"' not in html                        # R2: nothing disclosed
+    assert _d1_card(html, "BBB") == _d1_card(oracle, "BBB")          # non-primary unchanged
     assert "#e0a552" in _d1_chart(_d1_card(html, "BBB"))            # secondary keeps its palette
+    assert "#e0a552" not in _d1_chart(_d1_card(html, "AAA"))        # primary chart neutral
     def ladder(h: str) -> str:
         return _d1_card(h, "AAA").split('class="lvl-ladder', 1)[1]
     assert ladder(html) == ladder(oracle)
@@ -1241,17 +1254,16 @@ def test_prd326_verdict_zones_are_chart_invariant(run) -> None:
         assert re.findall(pattern, with_bars) == re.findall(pattern, without), pattern
 
 
-# --- PRD-329 (D3) S1: CLOSED-C-TIER ONE-CLICK EVIDENCE. Inside a `tier-group`
-# `<details>` emitted WITHOUT `open`, `level-detail` and `chart-detail` carry
-# `open`, so one tier tap exposes card + LEVEL MAP + CHART; every A+/A/B card and
-# every card inside an OPEN C tier keeps today's bytes (R1/R2); no JS (R3).
+# --- PRD-329 (D3) S1 as recomposed by PRD-334 R2: the ONLY retained disclosure is
+# the low tier-group `<details>` itself. Its inner level-detail/chart-detail "one
+# tap reveals LEVEL MAP + CHART" nesting is removed -- one tier tap now reveals the
+# full FLAT card (chart + ladder + support) directly. Every A+/A/B card renders
+# flat with no <details> at all; no JS beyond the one pre-existing staleness script.
 
 _S1_LOCK_HALT = dict(system_halted=True, outcome="NO_TRADE", permission=_LOCK_PERMISSION)
 _S1_STATES = {"stay_flat": dict(outcome="NO_TRADE"),
               "locked": dict(outcome="NO_TRADE", permission=_LOCK_PERMISSION),
               "halt_unlocked": _D1_HALT_UNLOCKED, "halt_locked": _S1_LOCK_HALT}
-_S1_LEVEL_OPEN = '<details open class="level-detail"><summary>LEVEL MAP ▶</summary>'
-_S1_CHART_OPEN = '<details open class="chart-detail"><summary>CHART ▶</summary>'
 
 
 def _s1_mixed() -> dict:  # AAA (A+) is the canonical primary, so tier-c is CLOSED
@@ -1259,40 +1271,42 @@ def _s1_mixed() -> dict:  # AAA (A+) is the canonical primary, so tier-c is CLOS
 
 
 @pytest.mark.parametrize("state", sorted(_S1_STATES))
-def test_prd329_closed_c_tier_evidence_opens_with_the_tier(state) -> None:
-    # T1 (R1): non-permitted states keep the `level-detail` wrapper; both nested
-    # wrappers carry `open` while the tier itself stays closed on load.
+def test_prd329_closed_c_tier_card_is_flat_inside_the_tier(state) -> None:
+    # PRD-334 R2: the low C tier stays a closed <details> (bounded secondary), but
+    # the card inside it renders FLAT -- no inner level-detail/chart-detail. One
+    # tier tap reveals the whole card. Chart depth is 1 (the tier only), never deeper.
     html = _d1_render(_run(**_S1_STATES[state]), _s1_mixed())
     assert '<details class="tier-group" id="tier-c">' in html
     card = _d1_card(html, "CCC")
-    assert _S1_LEVEL_OPEN in card and _S1_CHART_OPEN in card
-    assert '<details class="level-detail">' not in card
-    assert '<details class="chart-detail">' not in card
-    assert _charts_by_details_depth(html) == [0, 3]      # primary undisclosed; tier+level+chart
-    assert "<details open" not in _d1_card(html, "AAA")  # R2: A+ card untouched
+    assert 'class="level-detail"' not in card and 'class="chart-detail"' not in card
+    assert "LEVEL MAP" not in card
+    assert _charts_by_details_depth(html) == [0, 1]      # primary flat (0); C card flat inside tier (1)
+    assert "<details" not in _d1_card(html, "AAA")       # R2: A+ card fully flat
 
 
-def test_prd329_closed_c_tier_permitted_chart_opens_without_level_wrapper() -> None:
-    # T2 (R1): TRADE PERMITTED emits no `level-detail`; `chart-detail` alone carries `open`.
+def test_prd329_closed_c_tier_permitted_chart_flat() -> None:
+    # PRD-334 R2: TRADE PERMITTED renders the C card flat inside the closed tier too.
     html = _d1_render(_run(outcome="TRADE"), _s1_mixed())
     assert ">TRADE PERMITTED<" in html
     assert '<details class="tier-group" id="tier-c">' in html
     card = _d1_card(html, "CCC")
-    assert "level-detail" not in card and _S1_CHART_OPEN in card
-    assert _charts_by_details_depth(html) == [0, 2]
+    assert "level-detail" not in card and "chart-detail" not in card
+    assert _charts_by_details_depth(html) == [0, 1]
 
 
-def test_prd329_open_tiers_and_high_grades_keep_closed_wrappers() -> None:
-    # T3-T6 (R2/R3), regression guards: open C tier siblings, A/B cards and
-    # `card-detail` never carry `open`; exactly the one pre-existing `<script`.
+def test_prd329_high_grade_cards_carry_no_inner_disclosure() -> None:
+    # PRD-334 R2 regression guards: the low tier-group <details> is the only
+    # disclosure; A/B cards carry no <details>; exactly the one staleness <script>.
     mm = _market_map({"CCC": _chartable("CCC", "C"), "DDD": _chartable("DDD", "C")})
     html = _d1_render(_run(outcome="NO_TRADE"), mm)
-    assert '<details open class="tier-group" id="tier-c">' in html
-    assert "<details open" not in _d1_card(html, "DDD")
+    assert '<details open class="tier-group" id="tier-c">' in html   # primary C tier opens
+    assert 'class="chart-detail"' not in html and 'class="level-detail"' not in html
     for state in _S1_STATES.values():
         html = _d1_render(_run(**state), _market_map(
             {"AAA": _chartable("AAA", "A+"), "BBB": _chartable("BBB", "B")}))
-        assert '<details open class="tier-group"' not in html  # no low tier at all
-        assert "<details open" not in html
+        # high tiers only (no low tier-group <details>); cards carry no <details>
+        assert '<details open class="tier-group"' not in html
+        assert "<details" not in _d1_card(html, "AAA")
+        assert "<details" not in _d1_card(html, "BBB")
         assert html.count("<script") == 1
-    assert '<details open class="card-detail">' not in _d1_render(_run(outcome="NO_TRADE"), _s1_mixed())
+    assert 'class="card-detail"' not in _d1_render(_run(outcome="NO_TRADE"), _s1_mixed())

@@ -1061,8 +1061,6 @@ _CSS = (
     ".setup-chart{margin-top:8px;padding-top:6px;border-top:1px solid #1a1a1a}"
     ".setup-chart svg{display:block;width:100%;height:auto;max-width:520px}"
     ".chart-caption{color:#666;font-size:0.68rem;margin-top:2px}"
-    ".chart-detail{margin-top:8px}"
-    ".chart-detail>summary{cursor:pointer;color:#777;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em}"
     # PRD-321 R4: compact tiered ladder — the chart's subordinate exact-level
     # reference and the no-bars fallback. Tier 1 strongest, Tier 2 clear,
     # Tier 3 faint; the tier weights are the assertion surface.
@@ -1144,8 +1142,6 @@ _CSS = (
     "#watching-zone h3,#details-history h3{font-size:.75rem;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}"
     ".candidate-observation{opacity:.82}"
     ".candidate-observation .value-actionable{color:inherit}"
-    ".level-detail{margin-top:6px}"
-    ".level-detail>summary{cursor:pointer;color:#777;font-size:.7rem;text-transform:uppercase}"
     "#details-history>summary{cursor:pointer;list-style:none;color:#aaa;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}"
     "#details-history>summary::-webkit-details-marker{display:none}"
     "#details-history>.details-body{margin-top:10px}"
@@ -1163,11 +1159,13 @@ _CSS = (
     "#spy-levels:checked~.spy-chart .chart-layer[data-layer=\"levels\"]{display:inline}"
     "#today-zone h2{display:inline;margin:0 10px 0 0}#today-zone .event-line{display:inline;font-size:.85rem;font-weight:bold;color:#e0e0e0}.screen-line{color:#777;font-size:.7rem;line-height:1.3;margin:-2px 0 8px 0}.scope-note{text-transform:none;letter-spacing:0;color:#666;font-weight:normal}"
     # PRD-215: "actionable now" accent (cyan #29b6f6 — the level/VWAP colour) on
-    # the falsifiable trade fields, plus the collapsed REASON/PLAY/WATCH detail.
+    # the falsifiable trade fields. PRD-334 R2: REASON/PLAY/WATCH render FLAT in
+    # .card-support -- subordinate to the accented IN/OUT couplet (hairline rule,
+    # dimmer text) but always visible, never behind a disclosure.
     ".value-actionable{color:#29b6f6}"
-    ".card-detail summary{cursor:pointer;list-style:none;color:#888;font-size:0.72rem;"
-    "text-transform:uppercase;letter-spacing:.05em;margin-top:4px}"
-    ".card-detail summary::-webkit-details-marker{display:none}"
+    ".card-support{margin-top:6px;padding-top:6px;border-top:1px solid #1a1a1a}"
+    ".card-support .label{color:#888}"
+    ".card-support .value{color:#bbb;font-size:.82rem}"
     # PRD-218: alignment-coloured price (bullish green / bearish red).
     ".ts-px-up{color:#4caf50}"
     ".ts-px-down{color:#f44336}"
@@ -2282,20 +2280,15 @@ def _render_level_ladder(
     w("  </div>")
 
 
-def _render_setup_chart_block(
-    w: object, svg: str, caption: str, *, disclosed: bool, open_when_disclosed: bool = False
-) -> None:
-    """PRD-321 R3 (ruling Q2): one full-width chart for the highest-priority
-    visible setup; every other candidate's chart sits behind a NEW native
-    `<details>` wrapper. That wrapper is orthogonal to the not-permitted
-    `level-detail` wrapper — both apply per their own rules. PRD-329 R1: inside
-    a CLOSED low tier the wrapper carries `open` (one tier tap reveals it)."""
-    if disclosed:
-        w(f'  <details{" open" if open_when_disclosed else ""} class="chart-detail"><summary>CHART ▶</summary>')
+def _render_setup_chart_block(w: object, svg: str, caption: str) -> None:
+    """PRD-334 R2: the setup chart renders FLAT for every card -- the former
+    per-candidate `chart-detail` disclosure (and the LEVEL MAP -> CHART two-level
+    nesting) is removed. The radio workspace already shows one card at a time, so a
+    selected setup exposes its chart immediately with no disclosure to open. The
+    single canonical chart slot / A1-C intraday-source assignment is unchanged; only
+    the disclosure wrapper is gone (superseding PRD-321 R3 / PRD-329 R1 nesting)."""
     w(f'  <div class="setup-chart">{svg}</div>')
     w(f'  <div class="chart-caption">{_esc(caption)}</div>')
-    if disclosed:
-        w("  </details>")
 
 
 def _render_candidate_card(
@@ -2305,7 +2298,6 @@ def _render_candidate_card(
     bars: list | None = None, bars_caption: str = "",
     chart_slot_available: bool = False,
     intraday_session: "intraday_bars.IntradaySession | None" = None,
-    tier_closed: bool = False,
 ) -> bool:
     """Render one candidate card. Returns True when this card took the single
     full-width chart slot (PRD-321 R3 / ruling Q2).
@@ -2426,10 +2418,10 @@ def _render_candidate_card(
             w(f'  <div class="label">{_out_label}</div><div class="{_val_cls}">{out_text}</div>')
         w('  </div>')
 
-        # PRD-215/PRD-249: REASON/PLAY/WATCH are supporting context — tuck them
-        # behind a default-collapsed disclosure so the accented couplet stays the
-        # focal point. WATCH is now ONE semicolon-joined line under one label
-        # instead of one label per what_to_look_for item.
+        # PRD-334 R2: REASON/PLAY/WATCH are basic setup facts and now render FLAT --
+        # no enclosing <details>. They remain supporting context (styled subordinate
+        # to the accented IN/OUT couplet via .card-support) but never require opening
+        # a disclosure. WATCH is ONE semicolon-joined line under one label (PRD-249).
         reason = entry.get("reason_for_grade")
         pts = entry.get("preferred_trade_structure")
         _watch_items = [
@@ -2437,7 +2429,7 @@ def _render_candidate_card(
             if item and item != _UNAVAILABLE_WATCH
         ]
         if reason is not None or pts is not None or _watch_items:
-            w('  <details class="card-detail"><summary>DETAIL ▶</summary>')
+            w('  <div class="card-support">')
             if reason is not None:
                 w(f'  <div class="label">REASON</div><div class="value">{_esc(reason)}</div>')
             if pts is not None and not operator_locked:  # PRD-304 R7: PLAY directive omitted under lock
@@ -2445,7 +2437,7 @@ def _render_candidate_card(
             if _watch_items:
                 _watch_joined = "; ".join(_esc(item) for item in _watch_items)
                 w(f'  <div class="label">WATCH</div><div class="value">{_watch_joined}</div>')
-            w('  </details>')
+            w('  </div>')
 
     # PRD-158 § 4.2 translation 12: render the level diagram only when both
     # an anchor and level context exist. No placeholder for partial data.
@@ -2525,24 +2517,15 @@ def _render_candidate_card(
             ) if bars else ""
         if chart_svg:
             took_chart_slot = bool(chart_slot_available)
-        # PRD-326 R1 (PRD-321 R3 / PRD-318 R4 superseded in part): the primary-slot
-        # chart is emitted BEFORE the decision-state-keyed `level-detail` wrapper,
-        # undisclosed in every decision state; every other card's chart stays
-        # inside that wrapper behind `chart-detail` (R2). No placeholder (R4).
-        if took_chart_slot:
-            _render_setup_chart_block(
-                w, chart_svg, chart_caption, disclosed=not took_chart_slot
-            )
-        # PRD-329 R1 (S1-Q1): inside a CLOSED low tier both nested disclosures
-        # carry `open`, so the operator's single tier tap shows card + LEVEL MAP +
-        # CHART; open tiers and A+/A/B cards keep today's closed wrappers (R2).
-        if not decision_permitted:
-            w(f'  <details{" open" if tier_closed else ""} class="level-detail"><summary>LEVEL MAP ▶</summary>')
-        if chart_svg and not took_chart_slot:
-            _render_setup_chart_block(
-                w, chart_svg, chart_caption, disclosed=not took_chart_slot,
-                open_when_disclosed=tier_closed,
-            )
+        # PRD-334 R2: the chart and the level ladder render FLAT in every decision
+        # state. The `level-detail` (LEVEL MAP) and nested `chart-detail` (CHART)
+        # disclosures are removed, so a selected setup exposes Level + chart with no
+        # nesting to open (superseding PRD-326 R1 / PRD-329 R1 disclosure keying).
+        # `took_chart_slot` still marks the single canonical chart slot -- and thus
+        # the A1-C intraday-source assignment, unchanged -- but no longer gates
+        # disclosure.
+        if chart_svg:
+            _render_setup_chart_block(w, chart_svg, chart_caption)
         # PRD-321 R4: the compact ladder is the chart's subordinate exact-level
         # reference (rendered directly below it) AND the full fallback when no
         # bars are available. Both roles carry every authority semantic.
@@ -2555,8 +2538,6 @@ def _render_candidate_card(
             contract_stop=band_stop,
             operator_locked=operator_locked,
         )
-        if not decision_permitted:
-            w("  </details>")
 
     w("</div>")
     return took_chart_slot
@@ -3457,7 +3438,7 @@ def render_dashboard_html(
                 # same `_render_candidate_card` call the pre-D5 loop made).
                 _hg_syms = [s for s in sorted_syms if symbols[s].get("grade", "") in _HIGH_GRADES]
 
-                def _emit_card(sym: str, *, tier_closed: bool) -> None:
+                def _emit_card(sym: str) -> None:
                     _sym_bars, _sym_caption = _price_bars.get(sym, (None, ""))
                     _render_candidate_card(
                         w, sym, symbols[sym],
@@ -3469,7 +3450,6 @@ def render_dashboard_html(
                         bars_caption=_sym_caption,
                         chart_slot_available=(sym == _primary_card_symbol),
                         intraday_session=_intraday_session,
-                        tier_closed=tier_closed,
                     )
 
                 def _tier_label_for(tier_id: str, tier_label: str) -> str:
@@ -3539,7 +3519,7 @@ def render_dashboard_html(
                         w(f'    <div class="tier-header">{_esc(_tier_label_for(tier_id, tier_label))} ({len(tier_syms)})</div>')
                         for sym in tier_syms:
                             w(f'    <div class="setup-panel" data-setup="{_esc(sym)}">')
-                            _emit_card(sym, tier_closed=False)
+                            _emit_card(sym)
                             w('    </div>')
                         w('  </div>')
                     w('  </div>')
@@ -3562,7 +3542,7 @@ def render_dashboard_html(
                         w(f'  <div class="tier-group" id="tier-{tier_id}">')
                         w(f'    <div class="tier-header">{_esc(_tier_label)} ({len(tier_syms)})</div>')
                     for sym in tier_syms:
-                        _emit_card(sym, tier_closed=(is_low_tier and not _open))
+                        _emit_card(sym)
                     if is_low_tier:
                         w("  </details>")
                     else:
