@@ -991,7 +991,7 @@ def test_prd279_halted_shows_decision_state_halt() -> None:
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
     assert "decision-state-label" not in state  # PRD-327 R1: caption removed
-    assert 'class="decision-state sys-halt">HALT</div>' in state
+    assert 'class="decision-state sys-halt" data-raw-state="HALT">HALT</div>' in state
 
 
 def test_prd279_kill_switch_halt_shows_decision_state_halt() -> None:
@@ -1000,7 +1000,7 @@ def test_prd279_kill_switch_halt_shows_decision_state_halt() -> None:
     run = _run(system_halted=True, kill_switch=True)
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert 'class="decision-state sys-halt">HALT</div>' in state
+    assert 'class="decision-state sys-halt" data-raw-state="HALT">HALT</div>' in state
     assert "Kill switch active" in state
 
 
@@ -1008,7 +1008,7 @@ def test_prd279_trade_outcome_shows_decision_state_trade_permitted() -> None:
     run = _run(system_halted=False, outcome="TRADE")
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert 'decision-state sys-up">TRADE PERMITTED</div>' in state
+    assert 'decision-state sys-up" data-raw-state="TRADE PERMITTED">TRADE PERMITTED</div>' in state
 
 
 def test_prd279_no_trade_shows_decision_state_stay_flat() -> None:
@@ -1046,7 +1046,7 @@ def test_prd279_state_unavailable_fallback_on_comparison_error(monkeypatch) -> N
     monkeypatch.setattr(dr, "_decision_title", lambda *a, **k: _RaisingEq())
     html = render_dashboard_html(_payload(), _run())
     state = _system_state_block(html)
-    assert 'class="decision-state sys-flat">STATE UNAVAILABLE</div>' in state
+    assert 'class="decision-state sys-flat" data-raw-state="STATE UNAVAILABLE">STATE UNAVAILABLE</div>' in state
 
 
 def test_prd279_mixed_artifacts_shows_state_unavailable_not_stay_flat() -> None:
@@ -1064,7 +1064,7 @@ def test_prd279_mixed_artifacts_shows_state_unavailable_not_stay_flat() -> None:
 
     html = render_dashboard_html(payload, run, market_map=mm)
     state = _system_state_block(html)
-    assert 'class="decision-state sys-flat">STATE UNAVAILABLE</div>' in state
+    assert 'class="decision-state sys-flat" data-raw-state="STATE UNAVAILABLE">STATE UNAVAILABLE</div>' in state
     assert ">STAY FLAT</div>" not in state
     assert "TRADE PERMITTED" not in state
 
@@ -4099,9 +4099,11 @@ def test_prd318_candidate_detail_keys_only_from_authoritative_decision() -> None
     permitted = render_dashboard_html(_payload(), _run(outcome="TRADE"), market_map=mm)
     flat_card = _candidate_card(flat)
     permitted_card = _candidate_card(permitted)
+    # PRD-334 R2: the level-detail disclosure is removed in every decision state;
+    # the authoritative decision still keys the observation styling.
     assert 'class="candidate-card grade-a candidate-observation"' in flat
-    assert '<details class="level-detail">' in flat_card
     assert 'class="candidate-card grade-a"' in permitted
+    assert '<details class="level-detail">' not in flat_card
     assert '<details class="level-detail">' not in permitted_card
     for fact in ("SPY", "A", "hold above reference", "loses reference"):
         assert fact in flat_card and fact in permitted_card
@@ -4295,7 +4297,7 @@ def test_spy_observation_card_rendered_observed():
     html = _render_with_spy(_spy_section())
     assert 'id="spy-observation"' in html and "SPY SESSION OBSERVATION" not in html
     assert "SPY 104.00 above session VWAP 102.00 · read 6:34 AM PT" in html     # PRD-330 R2 (D-8 time-only)
-    assert '<div class="spy-read">ORB 100.00-105.00</div>' in html
+    assert '<div class="spy-read">Opening range 100.00-105.00</div>' in html
     assert 'data-raw-state="OBSERVED"' in html and "Apr 28 · 6:34" not in _s2_obs(html)
 
 
@@ -4319,7 +4321,7 @@ def test_spy_observation_card_stale_and_pre_open():
         state="STALE", reason="session_mismatch",
         session_vwap=None, current_price=None, price_vs_vwap=None,
     ))
-    assert ("Session read is from another session · intended Apr 28 · last Apr 28 · 6:34 AM PT"
+    assert ("Session read is from a different trading day · intended Apr 28 · last Apr 28 · 6:34 AM PT"
             " · no current price/VWAP read") in stale
     lag = _render_with_spy(_spy_section(state="STALE", reason="observation_lag",
                                         session_vwap=None, current_price=None, price_vs_vwap=None))
@@ -5670,8 +5672,8 @@ def test_prd330_r2_header_lines_replace_the_kv_grid() -> None:
     assert 'data-raw-state="OBSERVED" data-observed-at-utc="2026-04-28T13:34:00+00:00" data-session-date="2026-04-28"' in obs
     lines = re.findall(r'<div class="(spy-read|spy-clock)"[^>]*>([^<]*(?:<span[^>]*>[^<]*</span>)?)</div>', obs)
     assert [k for k, _ in lines] == ["spy-read", "spy-read", "spy-clock"]
-    assert lines[0][1].startswith("SPY 104.00 above session VWAP 102.00 · read ") and lines[1][1] == "ORB 100.00-105.00"
-    assert lines[2][1] == "Market-map levels 5:00 AM PT · daily bars through Aug 27"
+    assert lines[0][1].startswith("SPY 104.00 above session VWAP 102.00 · read ") and lines[1][1] == "Opening range 100.00-105.00"
+    assert lines[2][1] == "Levels updated 5:00 AM PT · daily bars through Aug 27"
     body = re.sub(r'data-[a-z-]+="[^"]*"', "", obs)
     assert not re.search(r"\d{4}-\d{2}-\d{2}T", body) and "OBSERVED" not in body and "UNAVAILABLE" not in body
     for label in ("OBSERVED AT", "SESSION VWAP", "PRICE", "chart-caption", "NOW per market map"):
@@ -5680,10 +5682,10 @@ def test_prd330_r2_header_lines_replace_the_kv_grid() -> None:
     assert order == sorted(order)
     # D-8: the map clock is time-only iff the map's Pacific day is the intended session day
     cap = "bars through 2026-08-27 · yfinance 1d"
-    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", "2026-04-28", cap) == "Market-map levels 5:00 AM PT · daily bars through Aug 27"
-    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", "2026-04-27", cap) == "Market-map levels Apr 28 · 5:00 AM PT · daily bars through Aug 27"
-    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", None, cap).startswith("Market-map levels Apr 28 · 5:00 AM PT")
-    assert _dr._spy_clock_line("garbage", "2026-04-28", "no caption") == "Market-map levels Update time unavailable · daily bars through unknown date"
+    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", "2026-04-28", cap) == "Levels updated 5:00 AM PT · daily bars through Aug 27"
+    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", "2026-04-27", cap) == "Levels updated Apr 28 · 5:00 AM PT · daily bars through Aug 27"
+    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", None, cap).startswith("Levels updated Apr 28 · 5:00 AM PT")
+    assert _dr._spy_clock_line("garbage", "2026-04-28", "no caption") == "Levels updated Update time unavailable · daily bars through unknown date"
 
 
 def test_prd329_spy_chart_is_daily_neutral_with_named_clocks() -> None:
@@ -5840,10 +5842,13 @@ def test_prd329_spy_chart_never_suppressed_by_primary_selection(monkeypatch) -> 
     assert html.count('class="setup-chart"') == 1 and html.count('class="spy-chart"') == 1
     html = _s2_render(mm=_market_map({"AAA": _chartable("AAA", "A+"), "SPY": _chartable("SPY", "C")}))
     assert html.count('class="spy-chart"') == 1
-    assert html.count('class="setup-chart"') == 2   # AAA primary + SPY's own secondary behind disclosure
+    assert html.count('class="setup-chart"') == 2   # AAA primary + SPY's own secondary (now flat, PRD-334 R2)
     assert html.index('class="setup-chart"') < html.index('id="card-SPY"')   # AAA holds the slot
-    spy_card = html.split('id="card-SPY"', 1)[1].split("\n</div>\n", 1)[0]   # closed C tier -> S1 `open`
-    assert '<details open class="chart-detail">' in spy_card and "spy-chart" not in spy_card
+    spy_card = html.split('id="card-SPY"', 1)[1].split("\n</div>\n", 1)[0]   # closed C tier
+    # PRD-334 R2: SPY's card chart renders flat (no chart-detail); it is the card's
+    # setup-chart, distinct from the SPY SESSION section's spy-chart.
+    assert 'class="setup-chart"' in spy_card and 'class="chart-detail"' not in spy_card
+    assert "spy-chart" not in spy_card
     for run in (dict(outcome="TRADE"), dict(outcome="NO_TRADE", permission=_S2_LOCK)):
         assert _s2_render(run=_run(**run)).count('class="spy-chart"') == 1
     monkeypatch.setattr(_dr, "select_primary_card_symbol", lambda *a, **k: None)

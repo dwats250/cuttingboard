@@ -334,7 +334,7 @@ def _spy_session_lines(spy_obs: dict) -> tuple[str, str]:
     elif state == "PRE_OPEN":
         line1 = f"Pre-open · awaiting today's session · last {_operator_clock(obs_at)}"
     elif state == "STALE" and reason == "session_mismatch":
-        line1 = f"Session read is from another session · intended {when} · last {_operator_timestamp(obs_at)}{withheld}"
+        line1 = f"Session read is from a different trading day · intended {when} · last {_operator_timestamp(obs_at)}{withheld}"
     elif state == "STALE":
         line1 = f"Session read not current · last {_operator_clock(obs_at)}{withheld}"
     else:
@@ -342,7 +342,9 @@ def _spy_session_lines(spy_obs: dict) -> tuple[str, str]:
     orb = spy_obs.get("orb") if isinstance(spy_obs.get("orb"), dict) else None
     hi, lo = (orb or {}).get("orb_high"), (orb or {}).get("orb_low")
     if orb and orb.get("state") == "FORMED" and isinstance(hi, (int, float)) and isinstance(lo, (int, float)):
-        line2 = f"ORB {lo:.2f}-{hi:.2f}"
+        # PRD-334 R4: plain language -- expand the ORB acronym, matching the
+        # "Opening range pre-open" branch below and _spy_orb_summary.
+        line2 = f"Opening range {lo:.2f}-{hi:.2f}"
     elif orb and orb.get("state") == "PRE_OPEN":
         line2 = "Opening range pre-open"
     else:
@@ -356,7 +358,10 @@ def _spy_clock_line(mm_clock_label: str, intended: object, caption: str) -> str:
     same_day = parsed is not None and bool(intended) and parsed.astimezone(_PT).date().isoformat() == str(intended)[:10]
     clock = _operator_clock(parsed) if same_day else _operator_timestamp(parsed if parsed else mm_clock_label)
     as_of = caption.split("bars through ", 1)[1][:10] if "bars through " in caption else ""
-    return f"Market-map levels {clock} · daily bars through {_mon_d(as_of) if as_of else 'unknown date'}"
+    # PRD-334 R4: plain language -- "Levels updated" instead of the internal
+    # "Market-map levels"; both clocks (the levels read time and the daily-bars
+    # date) are preserved.
+    return f"Levels updated {clock} · daily bars through {_mon_d(as_of) if as_of else 'unknown date'}"
 
 
 def _next_event_line(red_folder: object) -> str:
@@ -2986,8 +2991,11 @@ def render_dashboard_html(
     # survives only in data-raw-title; data-raw-state and data-raw-permission carry
     # the other canonical values so a review/test can prove the copy never
     # contradicts them (BLOCKER guard: tests/test_dash_verdict_translation.py).
+    # PRD-279 R2: derive mixed_artifacts from the already-safe `artifact_mixed`
+    # boolean, never a fresh `title ==` comparison (a title whose __eq__ raises
+    # must still fall back to STATE UNAVAILABLE without crashing the render).
     _verdict_sentence_text = _verdict_sentence(
-        _decision_state, regime_permission_text, mixed_artifacts=(title == "MIXED_ARTIFACTS")
+        _decision_state, regime_permission_text, mixed_artifacts=bool(artifact_mixed)
     )
     # data-raw-permission is the effective canonical permission the copy translates:
     # under the operator lock it is the lock itself (never the regime direction verb,
