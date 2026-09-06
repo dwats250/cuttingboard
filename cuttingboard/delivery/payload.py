@@ -336,24 +336,30 @@ def _require_type_or_none(obj: dict, key: str, expected_type: type) -> None:
 
 
 
+# PRD-335 (Astra finding 1): the SECOND independent macro-driver-key whitelist
+# (the first is contract._MACRO_DRIVER_SYMBOLS). Exposed at module level so a
+# guard-sync test (tests/test_prd335_display_only_fence.py) can assert its key set
+# equals contract's — the two guards must never drift. rates_2y is a DAILY driver
+# and additionally carries an `as_of` date string (validated separately, off the
+# finite-float path); 30Y and USDJPY are intraday.
+_MACRO_DRIVER_FIELD_WHITELIST: dict[str, set[str]] = {
+    "volatility": {"symbol", "level", "change_pct"},
+    "dollar": {"symbol", "level", "change_pct"},
+    "rates": {"symbol", "level", "change_pct", "change_bps"},
+    "bitcoin": {"symbol", "level", "change_pct"},
+    "oil": {"symbol", "level", "change_pct"},
+    "gold": {"symbol", "level", "change_pct"},
+    "silver": {"symbol", "level", "change_pct"},
+    "rates_2y": {"symbol", "level", "change_pct", "as_of"},
+    "rates_30y": {"symbol", "level", "change_pct"},
+    "usdjpy": {"symbol", "level", "change_pct"},
+}
+
+
 def _require_macro_drivers(macro_drivers: dict) -> None:
     if not isinstance(macro_drivers, dict):
         raise ValueError("macro_drivers must be dict")
-    expected = {
-        "volatility": {"symbol", "level", "change_pct"},
-        "dollar": {"symbol", "level", "change_pct"},
-        "rates": {"symbol", "level", "change_pct", "change_bps"},
-        "bitcoin": {"symbol", "level", "change_pct"},
-        "oil": {"symbol", "level", "change_pct"},
-        "gold": {"symbol", "level", "change_pct"},
-        "silver": {"symbol", "level", "change_pct"},
-        # PRD-335 (R1/R2): display-only rate/FX context. rates_2y is a DAILY
-        # driver and additionally carries an `as_of` date string (validated
-        # separately below); 30Y and USDJPY are intraday.
-        "rates_2y": {"symbol", "level", "change_pct", "as_of"},
-        "rates_30y": {"symbol", "level", "change_pct"},
-        "usdjpy": {"symbol", "level", "change_pct"},
-    }
+    expected = _MACRO_DRIVER_FIELD_WHITELIST
     required_keys = set(expected) - _OPTIONAL_MACRO_DRIVERS
     actual_keys = set(macro_drivers)
     missing_required = required_keys - actual_keys
