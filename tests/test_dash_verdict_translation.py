@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import re
 
+import pytest
+
 from cuttingboard import config
 from cuttingboard.delivery.dashboard_renderer import _verdict_sentence, render_dashboard_html
 from tests.dash_helpers import _market_map, _mm_symbol, _payload, _run
@@ -51,6 +53,34 @@ def _sentence(html: str) -> str:
     return m.group(1) if m else ""
 
 
+def _system_state_region(html: str) -> str:
+    seg = html.split('id="system-state"', 1)[1]
+    nxt = seg[10:].find('id="')
+    return seg if nxt == -1 else seg[: nxt + 10]
+
+
+def _verdict_lines(html: str):
+    """(primary, reason, regime, kill-switch) VISIBLE line texts in #system-state.
+    Reads element TEXT only — raw state carried in data-* attributes is excluded."""
+    region = _system_state_region(html)
+
+    def grab(cls):
+        return [m.group(1).strip() for m in re.finditer(
+            r'class="' + cls + r'[^"]*"[^>]*>([^<]*)<', region) if m.group(1).strip()]
+
+    primary = grab("decision-state")
+    reasons = grab("sys-verdict") + grab("sys-why") + grab("sys-permission")
+    ctx = grab("sys-context")
+    regime = [t for t in ctx if t.endswith("regime")]
+    kill = [t for t in ctx if "Kill switch" in t]
+    return primary, reasons, regime, kill
+
+
+def _visible_text(html: str) -> str:
+    primary, reasons, regime, kill = _verdict_lines(html)
+    return " ".join(primary + reasons + regime + kill)
+
+
 def _mm() -> dict:
     return _market_map({"SPY": _mm_symbol("SPY", grade="A+")})
 
@@ -74,28 +104,28 @@ def test_all_three_raw_attributes_present() -> None:
 
 # --- TRADE PERMITTED preserves the long / short / momentum-long distinction ----
 
-def test_trade_permitted_surfaces_the_regime_direction_verb() -> None:
+def test_trade_permitted_surfaces_no_second_verdict_sentence() -> None:
+    # PRD-335 F3 (Helm 2026-09-05): TRADE PERMITTED renders exactly ONE primary
+    # state line and NO second verdict sentence — the old "Longs allowed" /
+    # "Shorts allowed" / "Momentum longs allowed" sys-verdict is removed. The raw
+    # permission verb still lives in data-raw-permission; the direction lives
+    # faithfully in the compact regime-context line.
     for regime, verb in _REGIME_VERB.items():
         html = render_dashboard_html(
             _payload(market_regime=regime), _run(outcome="TRADE"), market_map=_mm())
         raw_state, _raw_title, raw_perm, label = _state(html)
         sentence = _sentence(html)
-        assert raw_state == "TRADE PERMITTED", (regime, raw_state)
-        assert label == "TRADE PERMITTED"
-        assert sentence == verb, (regime, sentence)              # the exact direction verb
-        assert raw_perm == verb
-        # a permitted verdict must NOT deny trading or claim a halt
-        assert "No new trades" not in sentence
-        assert "System halted" not in sentence
+        assert raw_state == "TRADE PERMITTED" and label == "TRADE PERMITTED", (regime, raw_state)
+        assert sentence == "", (regime, sentence)          # no second verdict sentence
+        assert raw_perm == verb                            # raw verb preserved in data-*
+        assert verb not in _visible_text(html)             # never a VISIBLE direction verb
 
 
 def test_neutral_permitted_trade_never_says_stand_down() -> None:
-    # PRD-334 review F1 (BLOCKER): a NEUTRAL-regime run can still resolve
-    # outcome=TRADE (positive/negative NEUTRAL scores qualify LONG/SHORT
-    # candidates). The regime helper returns the NON-directional "Stand down" for
-    # NEUTRAL; surfacing it under TRADE PERMITTED would simultaneously permit and
-    # deny trading. The verdict must read the faithful neutral "Trades permitted",
-    # never "Stand down", and must not invent a direction the neutral regime lacks.
+    # PRD-334 review F1 (BLOCKER), preserved under PRD-335 F3: a NEUTRAL-regime run
+    # can still resolve outcome=TRADE. The verdict must NEVER surface the
+    # non-directional "Stand down" (which would deny in a permitted state). Under
+    # F3 no verdict sentence renders at all, so "Stand down" cannot appear.
     for run in (_run(outcome="TRADE"),
                 _run(outcome="TRADE", posture="CONTROLLED_LONG"),
                 _run(outcome="TRADE", posture="DEFENSIVE_SHORT")):
@@ -103,10 +133,10 @@ def test_neutral_permitted_trade_never_says_stand_down() -> None:
         raw_state, _raw_title, _raw_perm, label = _state(html)
         sentence = _sentence(html)
         assert raw_state == "TRADE PERMITTED" and label == "TRADE PERMITTED", raw_state
-        assert sentence == "Trades permitted", sentence
-        assert "Stand down" not in sentence            # never deny in a permitted state
-        for verb in _DIRECTION_VERBS:                   # NEUTRAL has no regime direction
-            assert verb not in sentence
+        assert sentence == "", sentence
+        assert "Stand down" not in _visible_text(html)   # never VISIBLY deny in a permitted state
+        for verb in _DIRECTION_VERBS:                    # NEUTRAL has no visible regime direction
+            assert verb not in _visible_text(html)
 
 
 # --- no-trade: the state word says it; the sys-verdict sentence is omitted (R5) -
@@ -217,25 +247,28 @@ def test_why_line_carries_the_specific_reason_on_no_trade() -> None:
 # --- the translation is STATE-SPECIFIC (RED under a contradicting mutation) ----
 
 def test_verdict_sentence_translation_is_state_specific() -> None:
-    # Direct unit proof: each resolved state maps to a distinct, faithful sentence.
-    # PRD-335 R5: STAY FLAT / OBSERVE ONLY / HALT / generic-unavailable return ""
-    # (the state word already carries the meaning; the div is omitted). Mutating
-    # any mapping to a contradicting string breaks this test AND the renders above.
-    assert _verdict_sentence("TRADE PERMITTED", "Longs allowed", mixed_artifacts=False) == "Longs allowed"
-    assert _verdict_sentence("TRADE PERMITTED", "Shorts allowed", mixed_artifacts=False) == "Shorts allowed"
-    assert _verdict_sentence("STAY FLAT", "Longs allowed", mixed_artifacts=False) == ""
-    assert _verdict_sentence("OBSERVE ONLY", "Longs allowed", mixed_artifacts=False) == ""
-    assert _verdict_sentence("HALT", "Longs allowed", mixed_artifacts=False) == ""
+    # Direct unit proof (PRD-335 F3): the sys-verdict sentence is a SECOND line
+    # ONLY for STATE UNAVAILABLE with mixed artifacts ("Inputs out of sync").
+    # Every other state — INCLUDING TRADE PERMITTED — returns "" so no second
+    # verdict/permission paraphrase renders. Mutating any mapping to a
+    # contradicting string breaks this test AND the per-state renders above.
     assert _verdict_sentence("STATE UNAVAILABLE", "Longs allowed", mixed_artifacts=True) == "Inputs out of sync"
     assert _verdict_sentence("STATE UNAVAILABLE", "Longs allowed", mixed_artifacts=False) == ""
-    # PRD-334 review F1 mutation proof: a permitted trade whose regime verb is the
-    # non-directional "Stand down" reads the neutral "Trades permitted" -- NEVER
-    # "Stand down" (which would deny in a permitted state). Reverting the F1 fix
-    # (returning regime_permission_text unconditionally here) fails this assertion.
-    assert _verdict_sentence("TRADE PERMITTED", "Stand down", mixed_artifacts=False) == "Trades permitted"
-    # a no-trade state never yields a trade-direction verb, whatever the regime verb
-    for verb in _DIRECTION_VERBS:
+    for state, verb in (
+        ("TRADE PERMITTED", "Longs allowed"),
+        ("TRADE PERMITTED", "Shorts allowed"),
+        ("TRADE PERMITTED", "Momentum longs allowed"),
+        ("TRADE PERMITTED", "Stand down"),      # F1 preserved: never surface "Stand down"
+        ("STAY FLAT", "Longs allowed"),
+        ("OBSERVE ONLY", "Longs allowed"),
+        ("HALT", "Longs allowed"),
+    ):
+        assert _verdict_sentence(state, verb, mixed_artifacts=False) == "", (state, verb)
+    # a no-trade / permitted state never yields a trade-direction verb, whatever
+    # the regime verb argument is.
+    for verb in _DIRECTION_VERBS + ("Stand down",):
         assert _verdict_sentence("STAY FLAT", verb, mixed_artifacts=False) not in _DIRECTION_VERBS
+        assert _verdict_sentence("TRADE PERMITTED", verb, mixed_artifacts=False) not in _DIRECTION_VERBS
 
 
 def test_visible_copy_never_contradicts_raw_state() -> None:
@@ -258,3 +291,54 @@ def test_visible_copy_never_contradicts_raw_state() -> None:
             assert raw_state == "TRADE PERMITTED", (raw_state, sentence)
         if raw_state == "TRADE PERMITTED":                   # never deny in a permitted state
             assert "Stand down" not in sentence and "No new trades" not in sentence
+
+
+# ---------------------------------------------------------------------------
+# PRD-335 F3 (Helm 2026-09-05) — VISIBLE-LINE verdict cardinality matrix.
+# Exactly ONE primary state line + ZERO-or-ONE causal reason + ONE compact regime
+# line. A second verdict/reason line anywhere makes these RED. (Kill switch is a
+# distinct safety indicator, not a verdict/permission paraphrase, and is allowed.)
+# ---------------------------------------------------------------------------
+
+def _mm_hg():
+    return _market_map({"SPY": _mm_symbol("SPY", grade="A+")})
+
+
+_CARDINALITY_CASES = {
+    "trade_risk_on":  ("RISK_ON",  _run(regime="RISK_ON",  outcome="TRADE"), 0),
+    "trade_risk_off": ("RISK_OFF", _run(regime="RISK_OFF", outcome="TRADE"), 0),
+    "trade_neutral":  ("NEUTRAL",  _run(regime="NEUTRAL",  outcome="TRADE"), 0),
+    "stay_flat":      ("NEUTRAL",  _run(regime="NEUTRAL", posture="STAY_FLAT", outcome="NO_TRADE"), 1),
+    "halt":           ("RISK_ON",  _run(system_halted=True, kill_switch=True, outcome="NO_TRADE"), 1),
+    "operator_lock":  ("NEUTRAL",  _run(regime="NEUTRAL", outcome="NO_TRADE",
+                                        permission=config.OPERATOR_LOCK_PERMISSION), 1),
+}
+
+
+@pytest.mark.parametrize("name", sorted(_CARDINALITY_CASES))
+def test_f3_verdict_cardinality_matrix(name) -> None:
+    regime, run, expected_reasons = _CARDINALITY_CASES[name]
+    html = render_dashboard_html(_payload(market_regime=regime), run, market_map=_mm_hg())
+    primary, reasons, regime_lines, _kill = _verdict_lines(html)
+    assert len(primary) == 1, (name, primary)                 # exactly one primary state line
+    assert len(reasons) == expected_reasons, (name, reasons)  # zero-or-one causal reason
+    assert len(regime_lines) == 1, (name, regime_lines)       # one compact regime line
+    # a permitted trade shows NO direction verb as a VISIBLE second sentence
+    # (the raw verb legitimately survives in the data-raw-permission attribute).
+    if name.startswith("trade"):
+        for verb in _DIRECTION_VERBS:
+            assert verb not in _visible_text(html), (name, verb)
+    # under the operator lock the single reason IS the lock, never a WHY line
+    if name == "operator_lock":
+        assert reasons == [config.OPERATOR_LOCK_PERMISSION], reasons
+        assert "WHY:" not in _visible_text(html)
+
+
+def test_f3_mixed_artifact_cardinality() -> None:
+    payload, run, mm = _payload(market_regime="RISK_ON"), _run(outcome="TRADE"), _mm()
+    _mixed_ids(payload, run, mm)
+    html = render_dashboard_html(payload, run, market_map=mm)
+    primary, reasons, regime_lines, _kill = _verdict_lines(html)
+    assert len(primary) == 1
+    assert reasons == ["Inputs out of sync"]        # exactly one explanatory reason
+    assert len(regime_lines) == 1

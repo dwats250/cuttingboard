@@ -47,6 +47,9 @@ from tests.dash_helpers import _macro_drivers, _payload, _run
 from tests.test_contract_macro_drivers import _build_contract, _macro_quotes
 
 _NEW_DRIVERS = ("rates_2y", "rates_30y", "usdjpy")
+# PRD-335 F2: a deterministic render reference date so a dated 2Y render never
+# depends on the wall clock. as_of "2026-09-02" is 2 days before this — admissible.
+_RENDER_NOW = datetime(2026, 9, 4, 13, 0, tzinfo=timezone.utc)
 # The FROZEN production pressure-result key set — a fifth component key here is a
 # fence breach (classification reach).
 _EXACT_PRESSURE_KEYS = {
@@ -267,12 +270,14 @@ def _tape_attrs(html: str) -> dict[str, str]:
 
 
 def test_f4_display_tally_invariant_with_new_drivers() -> None:
-    without = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), market_map=None)
+    without = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(),
+                                    market_map=None, now=_RENDER_NOW)
     md = _macro_drivers()
     md["rates_2y"] = {"symbol": "DGS2", "level": 3.6, "change_pct": -0.05, "as_of": "2026-09-02"}
     md["rates_30y"] = {"symbol": "^TYX", "level": 4.7, "change_pct": 0.05}
     md["usdjpy"] = {"symbol": "JPY=X", "level": 148.2, "change_pct": 0.05}
-    with_new = render_dashboard_html(_payload(macro_drivers=md), _run(), market_map=None)
+    with_new = render_dashboard_html(_payload(macro_drivers=md), _run(),
+                                     market_map=None, now=_RENDER_NOW)
 
     a0, a1 = _tape_attrs(without), _tape_attrs(with_new)
     for attr in ("data-macro-bias", "data-risk-on", "data-risk-off", "data-macro-pressure"):
@@ -381,14 +386,18 @@ def _macro_tape_only(html: str) -> str:
     return after if nxt == -1 else after[:nxt]
 
 
+def _two_y_cell(html: str) -> str | None:
+    m = _re.search(r'data-symbol="2Y">([^<]*)</span>', html)
+    return m.group(1) if m else None
+
+
 def test_r9_daily_marker_present_only_from_producer_as_of() -> None:
     md = _macro_drivers()
     md["rates_2y"] = {"symbol": "DGS2", "level": 3.6, "change_pct": 2.86, "as_of": "2026-09-02"}
     md["rates_30y"] = {"symbol": "^TYX", "level": 4.7, "change_pct": 0.3}
-    html = render_dashboard_html(_payload(macro_drivers=md), _run(), market_map=None)
+    html = render_dashboard_html(_payload(macro_drivers=md), _run(), market_map=None, now=_RENDER_NOW)
     tape = html.split('id="macro-tape"', 1)[1].split('id="red-folder"', 1)[0]
-    import re
-    markers = re.findall(r'<span class="macro-tape-asof">([^<]*)</span>', tape)
+    markers = _re.findall(r'<span class="macro-tape-asof">([^<]*)</span>', tape)
     # the marker appears on EXACTLY the daily 2Y cell, and only from its producer as_of
     assert markers == ["Sep 2"]
 
@@ -396,26 +405,94 @@ def test_r9_daily_marker_present_only_from_producer_as_of() -> None:
 def test_r9_no_marker_when_no_producer_as_of() -> None:
     md = _macro_drivers()
     md["rates_2y"] = {"symbol": "DGS2", "level": 3.6, "change_pct": 2.86}   # no as_of
-    html = render_dashboard_html(_payload(macro_drivers=md), _run(), market_map=None)
+    html = render_dashboard_html(_payload(macro_drivers=md), _run(), market_map=None, now=_RENDER_NOW)
     assert 'class="macro-tape-asof"' not in html
-
-
-def test_r9_stale_or_missing_2y_renders_dash_not_a_number() -> None:
-    # A stale/missing 2Y fails the carrier and is dropped -> the cell renders "--"
-    # (never a stale number). Simulate the dropped-driver state (no rates_2y block).
-    md = _macro_drivers()   # no rates_2y
-    html = render_dashboard_html(_payload(macro_drivers=md), _run(), market_map=None)
-    import re
-    m = re.search(r'data-symbol="2Y">([^<]*)</span>', html)
-    assert m is not None and m.group(1) == "--"
 
 
 def test_r9_no_live_wording_beside_drivers() -> None:
     md = _macro_drivers()
     md["rates_2y"] = {"symbol": "DGS2", "level": 3.6, "change_pct": 2.86, "as_of": "2026-09-02"}
-    html = render_dashboard_html(_payload(macro_drivers=md), _run(), market_map=None)
+    html = render_dashboard_html(_payload(macro_drivers=md), _run(), market_map=None, now=_RENDER_NOW)
     tape = _macro_tape_only(html)
     assert _LIVE_RE.search(tape) is None, _LIVE_RE.search(tape)
+
+
+# ---------------------------------------------------------------------------
+# F2 (Helm 2026-09-05) — daily 2Y consumer-boundary admission. The FRED carrier
+# fails a stale/future fetch closed; this guards the PERSISTED macro-snapshot
+# fallback path where a once-valid rates_2y block reaches the dashboard after its
+# as_of is no longer admissible. Rendered against a deterministic reference date.
+# ---------------------------------------------------------------------------
+
+def _md_with_2y(as_of):
+    md = _macro_drivers()
+    md["rates_2y"] = {"symbol": "DGS2", "level": 3.61, "change_pct": -1.2}
+    if as_of is not None:
+        md["rates_2y"]["as_of"] = as_of
+    return md
+
+
+@pytest.mark.parametrize("as_of,expect_number", [
+    ("2026-09-02", True),    # age 2 -> admissible
+    ("2026-09-01", True),    # age 3 -> admissible
+    ("2026-08-30", True),    # age 5 (inclusive boundary) -> admissible
+    ("2026-08-29", False),   # age 6 -> stale -> "--"
+    ("2026-10-01", False),   # future -> "--"
+    ("not-a-date", False),   # malformed -> "--"
+    (None, False),           # missing as_of on a present daily block -> "--"
+])
+def test_f2_daily_2y_admission_matrix(as_of, expect_number) -> None:
+    # Direct payload path, deterministic reference date (2026-09-04).
+    html = render_dashboard_html(_payload(macro_drivers=_md_with_2y(as_of)), _run(),
+                                 market_map=None, now=_RENDER_NOW)
+    cell = _two_y_cell(html)
+    if expect_number:
+        assert cell not in (None, "--"), (as_of, cell)
+    else:
+        assert cell == "--", (as_of, cell)
+        assert 'class="macro-tape-asof"' not in html   # no stale date marker either
+
+
+def test_f2_persisted_snapshot_present_stale_block_renders_dash() -> None:
+    # THE core F2 case (not mere absence): a PRESENT but stale rates_2y block that
+    # reaches the dashboard through the persisted macro-snapshot fallback must
+    # render "--", never its stale number.
+    import json
+    import tempfile
+    from pathlib import Path
+    snapshot = {"macro_drivers": _md_with_2y("2026-08-01")}   # ~5 weeks old
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(snapshot, f)
+        snap = Path(f.name)
+    try:
+        # payload macro_drivers empty -> the renderer reads the persisted snapshot.
+        html = render_dashboard_html(_payload(), _run(), market_map=None,
+                                     now=_RENDER_NOW, macro_snapshot_path=snap)
+        assert _two_y_cell(html) == "--"
+        assert "3.61" not in html.split('id="macro-tape"', 1)[1].split('id="red-folder"', 1)[0]
+        assert 'class="macro-tape-asof"' not in html
+    finally:
+        snap.unlink(missing_ok=True)
+
+
+def test_f2_persisted_snapshot_present_fresh_block_renders_number() -> None:
+    # Positive control: a PRESENT fresh block via the same persisted fallback path
+    # DOES render its number + date marker (so the guard is not just "always --").
+    import json
+    import tempfile
+    from pathlib import Path
+    snapshot = {"macro_drivers": _md_with_2y("2026-09-02")}   # age 2 at _RENDER_NOW
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(snapshot, f)
+        snap = Path(f.name)
+    try:
+        html = render_dashboard_html(_payload(), _run(), market_map=None,
+                                     now=_RENDER_NOW, macro_snapshot_path=snap)
+        assert _two_y_cell(html) == "3.61"
+        tape = html.split('id="macro-tape"', 1)[1].split('id="red-folder"', 1)[0]
+        assert 'macro-tape-asof">Sep 2</span>' in tape
+    finally:
+        snap.unlink(missing_ok=True)
 
 
 # ---------------------------------------------------------------------------

@@ -1715,6 +1715,52 @@ def _is_finite_number(value: object) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
+# PRD-335 F2 (Helm 2026-09-05): the DISPLAY-ONLY daily drivers whose persisted
+# block must be RE-ADMITTED at the render boundary against a deterministic
+# reference date. Mirrors contract._DAILY_MACRO_DRIVERS (a guard-sync test keeps
+# them equal). The FRED carrier already fails a stale/future fetch closed, but a
+# previously-valid rates_2y block can still reach the tape through the persisted
+# macro-snapshot fallback after its as_of is no longer admissible — this boundary
+# check is the second gate. DISPLAY-ONLY: the decision path (macro_pressure)
+# never reads these keys, so dropping one here has no decision effect.
+_RENDER_DAILY_MACRO_DRIVERS: frozenset[str] = frozenset({"rates_2y"})
+_MACRO_DAILY_MAX_AGE_DAYS = 5
+
+
+def _daily_as_of_admissible(as_of: object, ref_date: date) -> bool:
+    """A present daily block renders a number ONLY with a valid producer as_of aged
+    0-5 calendar days inclusive (PRD-335 R2 / F2). Missing / malformed / future /
+    stale (>5 days) -> inadmissible -> the caller drops the block so the cell reads
+    "--", never a stale number. Weekend/holiday tolerant via the 5-day window."""
+    if not isinstance(as_of, str) or not as_of:
+        return False
+    try:
+        observed = date.fromisoformat(as_of)
+    except ValueError:
+        return False
+    if observed > ref_date:                       # future observation
+        return False
+    if (ref_date - observed).days > _MACRO_DAILY_MAX_AGE_DAYS:
+        return False
+    return True
+
+
+def _admit_daily_macro_drivers(macro_drivers: dict, ref_date: date) -> dict:
+    """Return macro_drivers with any daily driver whose as_of is inadmissible
+    DROPPED (renders "--"). Only daily drivers are touched; 10Y/30Y/USDJPY and the
+    voting drivers pass through unchanged. Never raises."""
+    if not isinstance(macro_drivers, dict):
+        return macro_drivers
+    admitted: dict = {}
+    for key, block in macro_drivers.items():
+        if key in _RENDER_DAILY_MACRO_DRIVERS:
+            as_of = block.get("as_of") if isinstance(block, dict) else None
+            if not _daily_as_of_admissible(as_of, ref_date):
+                continue  # drop the inadmissible daily block -> "--"
+        admitted[key] = block
+    return admitted
+
+
 def _build_tape_slots(
     macro_drivers: dict,
 ) -> list[tuple[str, str]]:
@@ -1990,15 +2036,17 @@ def _verdict_sentence(
     - OBSERVE ONLY (operator lock) and STAY FLAT read "No new trades permitted" --
       the generic no-trade statement, WITHOUT asserting "nothing qualifies".
     """
-    # PRD-335 R5: the verdict sentence is rendered ONLY when it adds information
-    # the decision-state word above it lacks. It returns "" for STAY FLAT,
-    # OBSERVE ONLY, HALT and the generic unavailable case — the state word already
-    # says it, and the reason line below carries the "why" — so the renderer omits
-    # the div entirely and the old duplicated "No new trades permitted" /
-    # "System halted" / "Board state unavailable" paraphrases disappear. The
-    # no-trade guard ("never a direction verb under no-trade") survives as == "".
-    if decision_state == "TRADE PERMITTED":
-        return regime_permission_text if regime_permission_text != "Stand down" else "Trades permitted"
+    # PRD-335 R5 + F3 (Helm 2026-09-05 verdict-cardinality): the sys-verdict is a
+    # SECOND line ONLY for STATE UNAVAILABLE with mixed artifacts ("Inputs out of
+    # sync") — the one case the state word alone does not explain. Every other
+    # state, INCLUDING TRADE PERMITTED, returns "" so exactly one primary
+    # verdict/state line renders and no second permission/verdict paraphrase (e.g.
+    # "Longs allowed") appears; a permitted trade's direction lives faithfully in
+    # the compact regime-context line. The PRD-334 F1 guard survives trivially:
+    # "Stand down" is never surfaced under a permitted trade because nothing is
+    # surfaced (the `regime_permission_text` argument is retained for signature
+    # stability and to keep the no-direction-verb invariant checkable).
+    _ = regime_permission_text
     if decision_state == "STATE UNAVAILABLE":
         return "Inputs out of sync" if mixed_artifacts else ""
     return ""
@@ -2672,6 +2720,14 @@ def render_dashboard_html(
     if (not macro_drivers) or all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values()):
         _snap = macro_snapshot_path if macro_snapshot_path is not None else _MACRO_SNAPSHOT_PATH
         macro_drivers = _load_macro_snapshot(_snap)
+    # PRD-335 F2 (Helm 2026-09-05): re-admit the DAILY 2Y at the consumer boundary
+    # against the deterministic render reference date (the injected `now`, else the
+    # frozen-in-tests _utcnow indirection — never a raw wall-clock read). A present
+    # rates_2y block from the persisted macro-snapshot fallback whose as_of is
+    # stale (>5 calendar days), future, malformed, or missing is dropped so the 2Y
+    # cell renders "--", never a stale number. Global freshness model unchanged.
+    _render_ref_date = (now if now is not None else _utcnow()).date()
+    macro_drivers = _admit_daily_macro_drivers(macro_drivers, _render_ref_date)
 
     system_halted = _req(run, "system_halted")
     kill_switch   = _req(run, "kill_switch")
@@ -3037,13 +3093,13 @@ def render_dashboard_html(
     _why_rendered = bool(_ctx_reason and _decision_state in ("HALT", "STAY FLAT"))
     if _why_rendered:
         w(f'  <div class="sys-why">WHY: {_esc(str(_ctx_reason))}</div>')
-    # PRD-335 R5 (rule 3/4): the operator-lock permission is the reason line when
-    # no WHY was computed, and an independent lock line alongside WHY when one was
-    # — either way it appears iff the operator lock is engaged, rendered from the
-    # canonical config constant verbatim (never the regime direction verb). This
-    # replaces the old always-on raw `permission` line that duplicated the verdict
-    # for non-locked runs.
-    if operator_locked:
+    # PRD-335 R5 + F3: the operator-lock permission is the SINGLE causal reason
+    # under the lock, rendered from the canonical config constant verbatim. It is
+    # gated on the decision-state being OBSERVE ONLY (the lock is the active
+    # primary constraint) — NOT merely on `operator_locked` — so when a HALT or a
+    # coherence (STATE UNAVAILABLE) state survives the lock overlap, that state's
+    # own reason wins and the lock line does not add a competing second reason.
+    if _decision_state == "OBSERVE ONLY":
         w(f'  <div class="sys-permission">{_esc(config.OPERATOR_LOCK_PERMISSION)}</div>')
     # PRD-335 R5 (D-5): RETAIN a compact regime-context line — under STAY FLAT the
     # regime word is otherwise visible nowhere in #system-state. Always rendered.
