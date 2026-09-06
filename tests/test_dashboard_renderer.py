@@ -5567,7 +5567,7 @@ def test_prd329_preview_fixture_pins_the_promoted_block() -> None:
     assert _s2_sha(frag) == _S2_FIXTURE_SHA     # PRD-330 seam byte-pin; regenerated in R11
 
 
-_S2_FIXTURE_SHA = "a13cc0b3d25b38d7a634c18d009c7857db0a12dff6deb9ca1976f4a91cf6ebae"  # PRD-330 implementation head (spy-session..watching seam)
+_S2_FIXTURE_SHA = "d906108e3dc10b9f84c62dbb966a340370aa9aac83c85f207e76329d33c55e07"  # PRD-334 R11: recomposed spy-session..watching seam (SPY copy R4 + market-context R6 + colour tokens R8)
 
 
 # ---------------------------------------------------------------------------
