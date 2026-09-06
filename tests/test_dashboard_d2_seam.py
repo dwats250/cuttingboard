@@ -33,42 +33,42 @@ _FORBIDDEN = ("ALIGNED", "DIVERGING", "CONFLUENT", "systems agree", "supportive"
 # the seam marker id="watching-zone" is unchanged, but below-seam now covers
 # MARKET STRUCTURE's descendants after WATCHING plus GEX and HISTORY) -----------
 _GOLDEN_BELOW_SEAM = {
-    "dashboard_pre_gex_golden.html": "53026f083109a78f32a439b42b810a85585ab690f586fea9d06aa4c27f9f763e",
-    "dashboard_pre_a1c_chart_golden.html": "54d53ce031928de69de026c46bb1ec29723cc86c5d5326cbd19d3cb72eaeba8b",
+    "dashboard_pre_gex_golden.html": "76a714f8aa92921c92663d473daf97f05c2a2159b88776f28f37abb353c5e00b",
+    "dashboard_pre_a1c_chart_golden.html": "d9d002c9b7ecd5fa75fe644a9ff46c45097a04b473798fd11c4fb7378034e5cf",
 }
 # fixture -> (below-seam sha, #today-zone sha, #system-state shape sha, #market-structure shape sha)
 # PRD-334 R11: the 4th slot is the MARKET STRUCTURE region shape (was #tape-zone,
 # now deleted); the chips_visible column is retired (the TAPE trend chips were removed).
 _BASE = {
-    "coherence_mixed": ("9e18cc4bfe495873be435af23cddfab0938633a8386f2200e2b4642ae013bfe4", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "ea116ec497d4fe3818f9e952f952987e04d36c5c0c65f1c1ec471d95cab98fc9", "d34745b9fa0906fa7677e04a120c932dd3bb9485fdfa77617cacca3541bea4b3"),
-    "sunday_premarket": ("b9811ab5a305f9b5945a594f0e28cfc5a94537fb770958292bf21fcd5aef301c", "5941ce1a621774bef8dde02c39345956934d3c8eae8cb88b106ac7322bf20f66", "2a2a3502ba43b78b32d2a3c29976c4551667fac1f088bd4897fd70181298873f", "127eeb7785b9283ba848b521c29312d17ab879c3afbee1b9f932a36b61845ffe"),
-    "session_inactive": ("b9811ab5a305f9b5945a594f0e28cfc5a94537fb770958292bf21fcd5aef301c", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "b3a935c38b351c414d9f28636de961b4abfa81859312394d341c5fa50331c0d0", "0e8d117b1124494089098a0771287432494ddf9f1a283675396addaece6e2179"),
-    "macro_tape_no_data": ("c273f3f2959f3e8bce8f7506a240370762fdeeacf9d7ba4e16c2afe6bf4b5e09", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "b3a935c38b351c414d9f28636de961b4abfa81859312394d341c5fa50331c0d0", "782013c69dc9ec1f9e283202ae0ecb312414468fdd67fe73be90ea5444ef441a"),
-    "red_folder_error": ("c273f3f2959f3e8bce8f7506a240370762fdeeacf9d7ba4e16c2afe6bf4b5e09", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "b3a935c38b351c414d9f28636de961b4abfa81859312394d341c5fa50331c0d0", "f6cfd0f0c217a34f9104f494efc5dcfb8fec831b7575f4116b9bcf0889afeed4"),
-    "red_folder_expiring": ("c273f3f2959f3e8bce8f7506a240370762fdeeacf9d7ba4e16c2afe6bf4b5e09", "7193f1c51ba67ad739c81595af452b9ce0252adf30d56aa9e923b92918c4a17a", "b3a935c38b351c414d9f28636de961b4abfa81859312394d341c5fa50331c0d0", "f6cfd0f0c217a34f9104f494efc5dcfb8fec831b7575f4116b9bcf0889afeed4"),
-    "trend_awaiting_data": ("c273f3f2959f3e8bce8f7506a240370762fdeeacf9d7ba4e16c2afe6bf4b5e09", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "b3a935c38b351c414d9f28636de961b4abfa81859312394d341c5fa50331c0d0", "b77e2d8b228a12f80bd27690f0d1dab3a0e0dad37c97a41c3d1c9c1901795d82"),
-    "trend_no_data": ("c273f3f2959f3e8bce8f7506a240370762fdeeacf9d7ba4e16c2afe6bf4b5e09", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "b3a935c38b351c414d9f28636de961b4abfa81859312394d341c5fa50331c0d0", "f6cfd0f0c217a34f9104f494efc5dcfb8fec831b7575f4116b9bcf0889afeed4"),
-    "lineage_missing": ("53026f083109a78f32a439b42b810a85585ab690f586fea9d06aa4c27f9f763e", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "78b3bca20cbb53f5be20e53dbed076133d65f93709085fda25c932b3790cacb9", "b162fffa5afe418f5ff22ee3b09a79350d8b7ec443a0ea00de71ab65d07977b8"),
-    "candidate_no_candidates": ("426d46b3b58ba7f8c473311e32b433d04186f82550bf0cfc610d966b0f9d735a", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "78b3bca20cbb53f5be20e53dbed076133d65f93709085fda25c932b3790cacb9", "a87e8387a082440fb38e3e48166f4d41a7934fe91327ebe82aa73313978e16b6"),
-    "healthy_baseline": ("68effde0fc0082a85e74a3b93e0e6f1413b431428e30575d42700151f0f3e7b3", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "b3a935c38b351c414d9f28636de961b4abfa81859312394d341c5fa50331c0d0", "f6cfd0f0c217a34f9104f494efc5dcfb8fec831b7575f4116b9bcf0889afeed4"),
-    "primary_chart_stay_flat": ("9e5916bf4327e6977fca1eeb61741f91aec7bf5476992867b73841a00e75e8a9", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "ce88cf68f914483308e472e5c4cb34b4238d3fc094a58be493800fa9f10f04af", "dbd29cd394d05bd34daab48d209214d10df4303e0a68f5bcbe79f092027204ca"),
-    "primary_chart_locked": ("18ce16a9f9fadada6e083fbd0524512faa1b7b0d0bb422ba97fb6c312fc1e975", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "0494c5bd3fb155b16ee9671081b1389892eb0c94b2c84f7ad1399d83d161b8ad", "dbd29cd394d05bd34daab48d209214d10df4303e0a68f5bcbe79f092027204ca"),
-    "primary_chart_permitted": ("db7f4f1bf92b48cdd00afcd662faa4c76a18f7042cf02999f0d9938bcc91fc94", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "272a564bdce4954c38f4b7d00c4fbf55f228476c9c74c9ff3a76335ff5abbb6a", "dbd29cd394d05bd34daab48d209214d10df4303e0a68f5bcbe79f092027204ca"),
-    "market_map_stale_with_bars": ("bd1acc319221e42d906ed53117769353673bb8b01218a7a3887d1acc632e7821", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "ce88cf68f914483308e472e5c4cb34b4238d3fc094a58be493800fa9f10f04af", "197b49e0bcaa2e2da511905267ca5ccc6cc91d9cdb1cdd63b3466132653feded"),
-    "primary_chart_c_grade": ("0c9ebcf8a8ab9755e77aa8631ab9b143a296df08482ef0726b65bb12e8320d83", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "6894564b2b77672146384d0e09c40dc8a283e28fe8c6c0f1388a946af5e3b0f6", "ecae7d18937a9d72cbba2f253d33f85961708806ead37bcc13c941513f778b60"),
+    "candidate_no_candidates": ("485632b36fac3e665d75ee472f595f3a33d0bfaaa144f7514a7d82d2d3df5072", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "2d7f850dd2b5044c15a577b9bd28bd35ba45c3e248e3021f3f441d52cc75ecf5", "28e8dec704768ead06f9a6874beb426a5380c4eb31627180af3c2c626fd47dad"),
+    "coherence_mixed": ("c7399837efd6d496c83b95df601e9b2b4c2157ba63169a7412d94eb2a4d8311a", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "ea116ec497d4fe3818f9e952f952987e04d36c5c0c65f1c1ec471d95cab98fc9", "8c4eabe93ed87c14fc47200aee088317e1c0bdfcd76ee4c2b3c1a5aa518c4e6b"),
+    "healthy_baseline": ("afa91de947d63782aa9641d01cd47c7022507ccfa0d1eb3f8f3aecb8e436b44c", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "2ba331f020aacb2ab5819b9842d29b0804478d3f4332820d7aae1fdd6e9b96db", "1595f87dbad932dfe9a5d9bc0ab944a581383931eda9794cebc7fe0cd891b663"),
+    "lineage_missing": ("76a714f8aa92921c92663d473daf97f05c2a2159b88776f28f37abb353c5e00b", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "2d7f850dd2b5044c15a577b9bd28bd35ba45c3e248e3021f3f441d52cc75ecf5", "159a87fb2a6928e354176823a9cfd7d95820902732667829ddb8d6fde031d7f1"),
+    "macro_tape_no_data": ("eca7c9df628db7a4200081f6a5b7813dad9a7a8d824191794bb47df9bcb3eb94", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "2ba331f020aacb2ab5819b9842d29b0804478d3f4332820d7aae1fdd6e9b96db", "f18f9fe6285bbe1f281f94fb89611e12852d13e3e00f99734df92a7fa8be0296"),
+    "market_map_stale_with_bars": ("032c13f075d811c370771de5cc22d46315f9374123c321b60d19cb949071a7d1", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "39a200802a473f73235b22d0a662285ea5aa4388475cb09f775fc183dc09882a", "f87e4785f939a7e65253f03ce0ebf0c359bc83f1f7d630e1b499964e37fffdb9"),
+    "primary_chart_c_grade": ("7026f6decb8fd9f843c45f5f0c30a029a7a2362af99abe9ea068fb32f6273898", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "aa5398f2e7378c3460d772c159e48f488569e093453ecf69aa89a3a77a5d6054", "4d197f1a372274c0e7e07cfaa1a35523ba644cdcc8a9e96da1ba6c492fb6b8b5"),
+    "primary_chart_locked": ("480f009bce8cb77d5781fbd57b450562379cfbe42b8d54660957879e19c45bf3", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "f44c626b83638c700db4e3fac21a9a2e657214bcbfc49ec88253751a56f54e4c", "31d4221292c5c41dd931394b14d4cdc6ad62fa3b5e9a4ff7ec97a57349927c0a"),
+    "primary_chart_permitted": ("7eed4d913c4f7aeeb002d5bd35bf77281b02e6c3dfc4a778347d2cc6a6728859", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "272a564bdce4954c38f4b7d00c4fbf55f228476c9c74c9ff3a76335ff5abbb6a", "31d4221292c5c41dd931394b14d4cdc6ad62fa3b5e9a4ff7ec97a57349927c0a"),
+    "primary_chart_stay_flat": ("78fd786bb8b0e30088d4c9d9e01447c1933ba8b4a1c6129917b918717ec24878", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "39a200802a473f73235b22d0a662285ea5aa4388475cb09f775fc183dc09882a", "31d4221292c5c41dd931394b14d4cdc6ad62fa3b5e9a4ff7ec97a57349927c0a"),
+    "red_folder_error": ("eca7c9df628db7a4200081f6a5b7813dad9a7a8d824191794bb47df9bcb3eb94", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "2ba331f020aacb2ab5819b9842d29b0804478d3f4332820d7aae1fdd6e9b96db", "1595f87dbad932dfe9a5d9bc0ab944a581383931eda9794cebc7fe0cd891b663"),
+    "red_folder_expiring": ("eca7c9df628db7a4200081f6a5b7813dad9a7a8d824191794bb47df9bcb3eb94", "7193f1c51ba67ad739c81595af452b9ce0252adf30d56aa9e923b92918c4a17a", "2ba331f020aacb2ab5819b9842d29b0804478d3f4332820d7aae1fdd6e9b96db", "1595f87dbad932dfe9a5d9bc0ab944a581383931eda9794cebc7fe0cd891b663"),
+    "session_inactive": ("f8b514cc51acd791f5041a3d2f79e61623f13beeba89530ea5838746d8108ed6", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "2ba331f020aacb2ab5819b9842d29b0804478d3f4332820d7aae1fdd6e9b96db", "be6fa7a8b22d3610c2e0186c5a4cf39f52af5548ed46bfa0d213a65dbb1d7c1c"),
+    "sunday_premarket": ("f8b514cc51acd791f5041a3d2f79e61623f13beeba89530ea5838746d8108ed6", "5941ce1a621774bef8dde02c39345956934d3c8eae8cb88b106ac7322bf20f66", "990ad97c790939e7547a1572b4e63b8bc261f7fd2d72d199effcae78d2c26f5c", "e1a6f4dde54cf24f76e35de5d61aa91a1316e1f6a249cc80dbcbbccae82aed37"),
+    "trend_awaiting_data": ("eca7c9df628db7a4200081f6a5b7813dad9a7a8d824191794bb47df9bcb3eb94", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "2ba331f020aacb2ab5819b9842d29b0804478d3f4332820d7aae1fdd6e9b96db", "1555e08ff94efdf1aa9790ad22e1ef95c8249f418a990ec79a17a482a1ccbaef"),
+    "trend_no_data": ("eca7c9df628db7a4200081f6a5b7813dad9a7a8d824191794bb47df9bcb3eb94", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "2ba331f020aacb2ab5819b9842d29b0804478d3f4332820d7aae1fdd6e9b96db", "1595f87dbad932dfe9a5d9bc0ab944a581383931eda9794cebc7fe0cd891b663"),
 }
 # PRD-334 R3: the verdict is now a faithful translation -- TRADE PERMITTED shows the
 # regime verb; STAY FLAT / OBSERVE ONLY read "No new trades permitted"; HALT reads
 # "System halted"; mixed reads "Inputs out of sync". The internal title token left
 # the visible sentence (it survives only in data-raw-title).
 _R1_AUTHORITY = {
-    "stay_flat": {"decision": "STAY FLAT", "verdict": "No new trades permitted", "why": "WHY: no qualified setups",
+    "stay_flat": {"decision": "STAY FLAT", "verdict": "", "why": "WHY: no qualified setups",
             "kill": None, "permission": None, "regime": "Risk-on regime"},
-    "locked": {"decision": "OBSERVE ONLY", "verdict": "No new trades permitted", "why": None,
+    "locked": {"decision": "OBSERVE ONLY", "verdict": "", "why": None,
             "kill": None, "permission": "No new trades permitted — operator cannot monitor.", "regime": "Risk-on regime"},
     "permitted": {"decision": "TRADE PERMITTED", "verdict": "Longs allowed", "why": None,
             "kill": None, "permission": None, "regime": "Risk-on regime"},
-    "halt": {"decision": "HALT", "verdict": "System halted", "why": "WHY: operational halt",
+    "halt": {"decision": "HALT", "verdict": "", "why": "WHY: operational halt",
             "kill": "Kill switch active", "permission": None, "regime": "Risk-on regime"},
     "mixed": {"decision": "STATE UNAVAILABLE", "verdict": "Inputs out of sync", "why": None,
             "kill": None, "permission": None, "regime": "Risk-on regime"},
@@ -196,9 +196,12 @@ def test_r1_decision_block_is_first_undivided_and_byte_identical(name) -> None:
     assert pre.count('class="sys-permission"') <= 1
     if name == "mixed":  # R6: the coherence warning stays ahead of the decision block
         assert html.find('id="artifact-coherence"') < html.find('id="system-state"')
+    _verdict_frag = _first(state, '<div class="sys-verdict ')
     got = {
         "decision": _first(state, '<div class="decision-state ').split(">", 1)[1],
-        "verdict": _first(state, "<div class=\"sys-verdict ").split(">", 1)[1],
+        # PRD-335 R5: the sys-verdict div is omitted for STAY FLAT / OBSERVE ONLY /
+        # HALT / generic-unavailable, so the verdict slot is "".
+        "verdict": _verdict_frag.split(">", 1)[1] if _verdict_frag else "",
         "why": _first(state, '<div class="sys-why">'),
         "kill": _first(state, '<div class="sys-context halted">Kill') and "Kill switch active",
         "permission": _first(state, '<div class="sys-permission">'),
