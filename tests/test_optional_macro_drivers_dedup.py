@@ -13,7 +13,10 @@ def test_single_authority_identity() -> None:
 
 
 def test_vocabulary_preserved() -> None:
-    assert leaf_ref == frozenset({"oil", "gold", "silver"})
+    # PRD-335: the display-only rate/FX drivers join the visibility fence.
+    assert leaf_ref == frozenset(
+        {"oil", "gold", "silver", "rates_2y", "rates_30y", "usdjpy"}
+    )
 
 
 def test_no_duplicate_literal_declaration() -> None:
