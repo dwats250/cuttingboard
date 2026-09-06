@@ -13,6 +13,7 @@ from datetime import date
 from typing import Any, Optional
 
 from cuttingboard.contract_types import PipelineContract, _OPTIONAL_MACRO_DRIVERS
+from cuttingboard.trade_decision import candidate_is_actionable
 
 # PRD-335 (R2): the daily-cadence macro drivers whose block carries a producer
 # `as_of` DATE STRING. This is the SECOND independent driver-key guard (Astra
@@ -33,7 +34,7 @@ def _valid_iso_date(value: Any) -> bool:
     except ValueError:
         return False
     return True
-from cuttingboard.trade_decision import candidate_is_actionable
+
 
 PAYLOAD_SCHEMA_VERSION = "1.0"
 

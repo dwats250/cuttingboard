@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re as _re
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -34,9 +35,6 @@ def _freeze_fresh(monkeypatch: pytest.MonkeyPatch) -> None:
 # PRD-335 R4: the MACRO BIAS headline / risk-vote tally / per-component pressure
 # phrases are removed from the human surface; the computed engine values survive
 # verbatim as data-* attributes on the #macro-tape element. These read them.
-import re as _re
-
-
 def _macro_tape_attr(html: str, name: str) -> str | None:
     m = _re.search(r'<div class="block" id="macro-tape"([^>]*)>', html)
     if not m:

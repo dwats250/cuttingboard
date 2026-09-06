@@ -28,7 +28,8 @@ Plus mixed-cadence honesty (R9) and notification present/absent (R2).
 from __future__ import annotations
 
 import copy
-from datetime import date, datetime, timezone
+import re as _re
+from datetime import datetime, timezone
 
 import pytest
 
@@ -366,8 +367,6 @@ def test_f5_guard_sync_whitelists_are_equal() -> None:
 # ---------------------------------------------------------------------------
 # R9 — mixed-cadence honesty (renderer + notification)
 # ---------------------------------------------------------------------------
-
-import re as _re
 
 # R9: never a "live" / "real-time" / "now" freshness claim beside a driver.
 _LIVE_RE = _re.compile(r"\b(live|real-?time|now)\b", _re.IGNORECASE)
