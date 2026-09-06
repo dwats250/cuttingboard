@@ -30,8 +30,13 @@ class NormalizedQuote:
     volume: Optional[float]
     fetched_at_utc: datetime    # UTC with tzinfo — never naive
     source: str
-    units: str                  # "usd_price" | "index_level" | "yield_pct"
+    units: str                  # "usd_price" | "index_level" | "yield_pct" | "jpy_per_usd"
     age_seconds: float          # seconds elapsed since fetched_at_utc, at normalization time
+    # PRD-335 (R2/D-1): producer-written observation date as an ISO YYYY-MM-DD
+    # string for daily-cadence drivers (FRED DGS2 2Y); None for intraday quotes.
+    # It is the observation time, never the fetch clock — carried honestly to the
+    # tape and the notification macro block so a daily value is never shown live.
+    as_of: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -83,6 +88,8 @@ def normalize_quote(raw: RawQuote) -> Optional[NormalizedQuote]:
             source=raw.source,
             units=units,
             age_seconds=age_seconds,
+            # ISO YYYY-MM-DD (producer date), or None for intraday quotes.
+            as_of=raw.as_of.isoformat() if raw.as_of is not None else None,
         )
     except Exception as exc:
         logger.error(f"{raw.symbol}: normalization failed: {exc}")

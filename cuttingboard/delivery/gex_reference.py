@@ -180,36 +180,54 @@ def _unavailable() -> str:
 
 
 def _render(ref: GexReference) -> str:
-    rows = gex_card._core_rows(
-        ref.net_usd, ref.dominant, ref.call_wall, ref.put_wall,
-        ref.zero_dte_share, ref.profile)
+    # PRD-335 R6: summary-first. The closed footprint is identity + the three
+    # RAW-STRIKE ANCHOR rows only, scannable in seconds. The MODEL NET* row, the
+    # 0DTE row, the dense profile, the reading guide, and the NET* footnote all
+    # move INSIDE the single "Full GEX details" disclosure -- NET* travels with the
+    # footnote that explains its asterisk, so no dangling asterisk sits above a
+    # hidden footnote. gex_card._core_rows is NOT edited (its bytes are frozen for
+    # the current card, PRD-309); the rows are composed here from the already-
+    # imported gex_card._row / _kv / _fmt_net, so no new import is introduced.
+    anchor_rows = [gex_card._row("LARGEST RAW-STRIKE |MODEL NET|", ref.dominant)]
+    if ref.call_wall is not None:
+        anchor_rows.append(gex_card._row("LARGEST CALL-CONTRACT MAGNITUDE STRIKE", ref.call_wall))
+    if ref.put_wall is not None:
+        anchor_rows.append(gex_card._row("LARGEST PUT-CONTRACT MAGNITUDE STRIKE", ref.put_wall))
+
+    detail_rows = [gex_card._kv("MODEL NET*", gex_card._fmt_net(ref.net_usd))]
+    if ref.zero_dte_share is not None:
+        detail_rows.append(gex_card._kv("0DTE", f"{ref.zero_dte_share * 100:.1f}%"))
+
     inner = [
         "    <h2>REFERENCE - SYNTHETIC SPX EXAMPLE</h2>",
         f'    <div class="label">Scenario: {ref.scenario_id} &middot; Instrument: '
         f'{ref.instrument} &middot; Observation date: none (synthetic)</div>',
         f'    <div class="label">Source: {ref.synthetic_source}</div>',
         '    <div class="kv-grid">',
-        *rows,
+        *anchor_rows,
         "    </div>",
-        # PRD-334 R7 / review F3: the dense structural profile sits behind ONE bounded
-        # "Full GEX details" disclosure scoped to this fragment -- the reference's only
-        # disclosure. The frozen-example identity (heading, "Observation date: none
-        # (synthetic)", SPX instrument, source) and the compact core-row summary are
-        # surfaced directly above it (no outer collapse) -- unmistakably not-current
-        # data, and useful while this deep disclosure stays closed.
+        # The reference's ONLY disclosure. The frozen-example identity (heading,
+        # "Observation date: none (synthetic)", SPX instrument, source) and the
+        # three compact anchor rows are surfaced directly above it -- unmistakably
+        # not-current data, useful while this deep disclosure stays closed. Inside,
+        # in order: MODEL NET* + 0DTE, the dense profile, the reading guide, and
+        # the NET* footnote.
         '    <details class="gex-full"><summary>Full GEX details</summary>',
+        '    <div class="kv-grid">',
+        *detail_rows,
+        "    </div>",
         *gex_card._profile_block(ref.profile, _REF_LADDER),
-        "    </details>",
         f'    <div class="gex-reference-guide">{_GUIDE}</div>',
         f'    <div class="label">{_FOOTNOTE}</div>',
+        "    </details>",
     ]
     return _container_open(inner)
 
 
 def render_reference_fragment() -> str:
     """The renderer's single entry point. Loads the one bundled resource and always
-    returns exactly one labeled <details id="gex-reference">. No inputs: same bytes
+    returns exactly one labeled <section id="gex-reference">. No inputs: same bytes
     for every render (clock/current-market independent). Invalid/missing -> the
-    labeled unavailable disclosure (R8)."""
+    labeled unavailable section (R8)."""
     ref = build_reference(_load_bundled())
     return _unavailable() if ref is None else _render(ref)

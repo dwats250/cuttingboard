@@ -12,9 +12,10 @@ import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
+from urllib.request import Request, urlopen
 
 import pandas as pd
 import yfinance as yf
@@ -32,9 +33,14 @@ class RawQuote:
     pct_change_raw: float       # decimal: 5.2% is stored as 0.052
     volume: Optional[float]
     fetched_at_utc: datetime    # UTC with tzinfo — never naive
-    source: str                 # "yfinance"
+    source: str                 # "yfinance" | "fred"
     fetch_succeeded: bool
     failure_reason: Optional[str]
+    # PRD-335 (R2/D-1): producer-written observation date for daily-cadence
+    # drivers (currently the FRED DGS2 2Y yield). None for intraday yfinance
+    # quotes — fetched_at_utc stays the acquisition clock, never the observation
+    # time. Carried honestly to the tape so a daily value is never shown as live.
+    as_of: Optional[date] = None
 
 
 # ---------------------------------------------------------------------------
@@ -96,6 +102,10 @@ def fetch_quote(symbol: str) -> "RawQuote":
     for source in sources:
         if source == "yfinance":
             result = _try_yfinance_quote(symbol)
+        elif source == "fred":
+            # PRD-335 D-1: the actual 2Y yield carrier. Never reaches yf.Ticker;
+            # inherits the never-raises / per-symbol-isolation contract.
+            result = _try_fred_quote(symbol)
         else:
             logger.warning(f"{symbol}: unknown source '{source}' in priority list — skipping")
             continue
@@ -408,6 +418,134 @@ def _yfinance_quote_raw(symbol: str) -> tuple[float, float, Optional[float]]:
         pass
 
     return price, pct_change, volume
+
+
+# ---------------------------------------------------------------------------
+# FRED (public CSV) — the actual US 2Y Treasury yield carrier (PRD-335 D-1)
+# ---------------------------------------------------------------------------
+#
+# The repo's FIRST non-yfinance carrier. It is deliberately bounded to a single
+# FRED series (DGS2) fetched from the public CSV endpoint (no API key, no paid
+# tier). It never touches yf.Ticker and inherits the never-raises / per-symbol
+# isolation contract of fetch_quote. Any growth beyond "one CSV branch + the
+# as_of field" is a STOP-and-report boundary (PRD-335 R3), not a silent
+# expansion into a rates-platform abstraction.
+
+_FRED_SERIES_BY_SYMBOL = {"DGS2": "DGS2"}
+# Bounded staleness window for a DAILY observation, weekend/holiday tolerant
+# (PRD-335 R2): a row DATE older than this many CALENDAR days fails the fetch
+# closed, so the optional driver renders "--" — never a stale number with a date.
+_FRED_MAX_ASOF_AGE_DAYS = 5
+
+
+def _fred_csv_url(series_id: str) -> str:
+    return f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
+
+
+def _fetch_fred_csv(url: str, timeout_seconds: float) -> str:
+    """Fetch a FRED CSV over HTTP; raises on any network/HTTP failure so the
+    caller can catch it. Isolated from parsing so tests inject canned CSV."""
+    req = Request(url, headers={"User-Agent": "cuttingboard/1.0"})
+    with urlopen(req, timeout=timeout_seconds) as resp:  # noqa: S310 (fixed https host)
+        return resp.read().decode("utf-8")
+
+
+def _parse_fred_dgs2_csv(text: str, today: date) -> tuple[float, float, date]:
+    """Parse a FRED DGS2 CSV into (yield, pct_change_decimal, as_of).
+
+    The CSV is ``<date-col>,DGS2`` with one header row; a missing observation is
+    the literal ``"."``. The last two non-``"."`` rows are used: the latest is the
+    observed yield, the prior is the change base. Raises ``ValueError`` on any
+    malformed, future-dated, or stale (older than the 5-calendar-day window)
+    input so the fetch fails CLOSED — a daily value is never presented as a stale
+    or fabricated number (PRD-335 R2). ``today`` is the caller's reference date.
+    """
+    rows: list[tuple[date, float]] = []
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    if not lines:
+        raise ValueError("DGS2 CSV empty")
+    for line in lines[1:]:  # skip the header row
+        parts = line.split(",")
+        if len(parts) < 2:
+            continue
+        raw_date, raw_value = parts[0].strip(), parts[1].strip()
+        if raw_value == "." or not raw_value:
+            continue  # FRED's missing-observation marker
+        obs_date = date.fromisoformat(raw_date)  # raises on a malformed date
+        obs_value = float(raw_value)             # raises on a malformed number
+        rows.append((obs_date, obs_value))
+    if len(rows) < 2:
+        raise ValueError("DGS2 CSV lacks two usable observations")
+    _, prev_yield = rows[-2]
+    as_of, latest_yield = rows[-1]
+    if not (prev_yield > 0 and latest_yield > 0):
+        raise ValueError("DGS2 yields must be positive")
+    if as_of > today:
+        raise ValueError(f"DGS2 as-of {as_of.isoformat()} is in the future")
+    if (today - as_of).days > _FRED_MAX_ASOF_AGE_DAYS:
+        raise ValueError(
+            f"DGS2 as-of {as_of.isoformat()} stale "
+            f"(> {_FRED_MAX_ASOF_AGE_DAYS} calendar days)"
+        )
+    pct_change = (latest_yield - prev_yield) / prev_yield
+    return latest_yield, pct_change, as_of
+
+
+def _try_fred_quote(symbol: str) -> RawQuote:
+    """Fetch a FRED-series quote (currently DGS2 = the US 2Y yield). Never raises;
+    a network or data failure returns fetch_succeeded=False so the optional driver
+    is dropped in normalization and renders "--" (fail-loud, no stale fallback)."""
+    fetched_at = datetime.now(timezone.utc)
+    series_id = _FRED_SERIES_BY_SYMBOL.get(symbol)
+    if series_id is None:
+        return RawQuote(symbol, 0.0, 0.0, None, fetched_at, "fred", False,
+                        f"no FRED series mapped for {symbol}")
+
+    url = _fred_csv_url(series_id)
+    last_error: Optional[str] = None
+    text: Optional[str] = None
+    for attempt in range(config.FETCH_RETRIES):
+        try:
+            text = _run_with_timeout(
+                lambda: _fetch_fred_csv(url, config.FETCH_TIMEOUT_SECONDS),
+                config.FETCH_TIMEOUT_SECONDS * 3,
+            )
+            break
+        except Exception as exc:
+            last_error = str(exc)
+            logger.warning(
+                f"fred {symbol} attempt {attempt + 1}/{config.FETCH_RETRIES} failed: {exc}"
+            )
+            if attempt < config.FETCH_RETRIES - 1:
+                time.sleep(config.FETCH_BACKOFF_SECONDS)
+
+    if text is None:
+        logger.error(f"fred {symbol}: fetch unavailable — last error: {last_error}")
+        return RawQuote(symbol, 0.0, 0.0, None, fetched_at, "fred", False, last_error)
+
+    # Parse ONCE (deterministic; a stale/malformed CSV must not spin the retry
+    # loop). fetched_at.date() is the staleness reference — fetched_at_utc itself
+    # stays the acquisition clock so validation freshness is unchanged.
+    try:
+        price, pct_change, as_of = _parse_fred_dgs2_csv(text, fetched_at.date())
+    except Exception as exc:
+        logger.info(f"fred {symbol}: unusable CSV — {exc}")
+        return RawQuote(symbol, 0.0, 0.0, None, fetched_at, "fred", False, str(exc))
+
+    logger.info(
+        f"fred {symbol}: yield={price:.4f} pct={pct_change:+.4f} as_of={as_of.isoformat()}"
+    )
+    return RawQuote(
+        symbol=symbol,
+        price=price,
+        pct_change_raw=pct_change,
+        volume=None,
+        fetched_at_utc=fetched_at,
+        source="fred",
+        fetch_succeeded=True,
+        failure_reason=None,
+        as_of=as_of,
+    )
 
 
 def _fetch_ohlcv_from_yfinance(symbol: str) -> Optional[pd.DataFrame]:

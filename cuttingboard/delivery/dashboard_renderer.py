@@ -322,10 +322,18 @@ _SPY_REL_WORD = {"ABOVE": "above", "BELOW": "below", "AT_LEVEL": "at"}
 # are futures. (name, (slot labels in order), family note or "")
 _MACRO_FAMILIES: tuple[tuple[str, tuple[str, ...], str], ...] = (
     ("VOLATILITY", ("VIX",), ""),
-    ("RATES / FX", ("10Y", "DXY"), ""),
-    ("COMMODITIES", ("XAU", "XAG", "OIL"), "futures"),
+    # PRD-335 R4: RATES now carries the actual 2Y (daily FRED), 10Y and 30Y;
+    # "selected maturities" is the honest caption (not a full curve). FX is its
+    # own family (DXY + USDJPY). COMMODITIES keeps GC/SI/OIL front-month futures.
+    # CRYPTO(BTC) is the muted trailing family (D-4): its ingestion and
+    # macro-pressure vote are unchanged; only its presentation is demoted.
+    ("RATES", ("2Y", "10Y", "30Y"), "selected maturities"),
+    ("FX", ("DXY", "USDJPY"), ""),
+    ("COMMODITIES", ("XAU", "XAG", "OIL"), "front-month futures"),
     ("CRYPTO", ("BTC",), ""),
 )
+# PRD-335 D-4: the trailing family rendered muted (presentation-only demotion).
+_MUTED_MACRO_FAMILY = "CRYPTO"
 _WATCHLIST_CUTOFF_REASON = "entry blocked after 3:30 PM ET"
 
 
@@ -1022,6 +1030,9 @@ _CSS = (
     # PRD-334 R5: market-family groups. Unequal family sizes pack via flex-wrap
     # (never a forced 3-col grid), so 1-3 drivers per family read cleanly.
     ".macro-family{margin-top:8px}"
+    # PRD-335 D-4: the trailing CRYPTO family is visually muted (presentation-only
+    # demotion; BTC ingestion + its macro-pressure vote are unchanged).
+    ".macro-family--muted{opacity:0.6}"
     ".macro-family-cap{font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:#888}"
     ".macro-family-note{text-transform:none;letter-spacing:0;color:var(--color-neutral);font-size:.62rem}"
     ".macro-drivers-row{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:4px;overflow-x:hidden}"
@@ -1032,6 +1043,11 @@ _CSS = (
     ".macro-tape-slot{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}"
     ".macro-tape-label{margin-right:0.25rem}"
     ".macro-tape-value{opacity:0.85}"
+    # PRD-335 R2/R9: honest daily-cadence marker for a daily driver's value (e.g.
+    # the FRED 2Y), sourced only from a producer-written observation date. Rendered
+    # on its OWN line under the value so the date stays fully legible inside the
+    # narrow tape cell at 390px (never clipped to an ellipsis).
+    ".macro-tape-asof{display:block;color:#888;font-size:0.6rem;white-space:nowrap;margin-top:1px}"
     ".candidate-card{border-left:3px solid #2a2a2a;padding:0.75rem;margin-bottom:0.5rem}"
     # PRD-249: one-line identity header replaces the 8-line stacked SYMBOL/GRADE/
     # BIAS/STRUCTURE block.
@@ -1048,7 +1064,6 @@ _CSS = (
     ".grade-d{border-left-color:#f44336;opacity:0.7}"
     ".grade-f{border-left-color:#424242;opacity:0.5}"
     ".unavailable{color:#888}"
-    ".macro-bias{margin-top:6px;font-weight:bold}"
     ".action-line{font-weight:bold;margin-bottom:8px;padding:8px 10px;"
     "border-left:3px solid #4a6fa5;background:#111827;font-size:0.9rem;"
     "letter-spacing:0.03em}"
@@ -1062,11 +1077,10 @@ _CSS = (
     ".tape-slot.down{color:#f44336}"
     ".tape-slot.flat{color:#888}"
     ".tape-slot.na{color:#444;opacity:0.7}"
-    ".macro-bias.long{color:#4caf50}"
-    ".macro-bias.short{color:#f44336}"
-    ".macro-bias.mixed{color:var(--posture-flat)}"
+    # PRD-335 R4: the .macro-bias headline classes are removed with the visible
+    # MACRO BIAS line; the raw direction now lives in #macro-tape data-macro-bias.
     # Change #3: TAPE bias-token colour -- reuses the palette, adds no weight or
-    # margin (unlike .macro-bias), so only the direction token gets the accent.
+    # margin, so only the direction token gets the accent.
     ".tape-bias.long{color:var(--dir-up)}.tape-bias.short{color:var(--dir-down)}.tape-bias.mixed{color:var(--posture-flat)}"
     ".tape-no-data{color:#888;font-style:italic;margin-top:4px;font-size:0.8rem}"
     ".idle-summary{color:#888;margin-bottom:12px;padding:8px;"
@@ -1082,9 +1096,8 @@ _CSS = (
     ".removed-row{color:#888;font-size:0.8rem;padding:2px 0}"
     ".MIXED{background:#2a1a3a;color:#ba68c8}"
     ".UNKNOWN{background:#1a1a1a;color:#555}"
-    # PRD-217: pressure phrases fold into one wrapping line beside the tally.
-    ".macro-pressure-line{color:#aaa;font-size:0.72rem;margin-top:3px}"
-    ".macro-pressure-line.pressure-na{color:#888;font-style:italic}"
+    # PRD-335 R4: the .macro-pressure-line prose is removed; the engine value
+    # survives as #macro-tape data-macro-pressure.
     ".kv-grid{display:grid;grid-template-columns:max-content 1fr;gap:2px 0.75rem;margin-top:0.25rem}"
     ".history-table{display:grid;grid-template-columns:5ch max-content max-content max-content;"
     "column-gap:0.75rem;row-gap:2px;margin-top:4px;align-items:baseline}"
@@ -1126,7 +1139,6 @@ _CSS = (
     ".failed-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-top:4px}"
     ".failed-card-fields .label{font-size:0.7rem}"
     ".failed-card-fields .value{margin-top:1px}"
-    ".macro-tally{color:#aaa;font-size:0.78rem;margin-top:2px}"
     "#red-folder .red-folder-event{font-size:0.78rem;margin-top:4px}"
     ".red-folder-when{color:#ddd}"
     ".red-folder-type{color:#888}"
@@ -1703,6 +1715,52 @@ def _is_finite_number(value: object) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
+# PRD-335 F2 (Helm 2026-09-05): the DISPLAY-ONLY daily drivers whose persisted
+# block must be RE-ADMITTED at the render boundary against a deterministic
+# reference date. Mirrors contract._DAILY_MACRO_DRIVERS (a guard-sync test keeps
+# them equal). The FRED carrier already fails a stale/future fetch closed, but a
+# previously-valid rates_2y block can still reach the tape through the persisted
+# macro-snapshot fallback after its as_of is no longer admissible — this boundary
+# check is the second gate. DISPLAY-ONLY: the decision path (macro_pressure)
+# never reads these keys, so dropping one here has no decision effect.
+_RENDER_DAILY_MACRO_DRIVERS: frozenset[str] = frozenset({"rates_2y"})
+_MACRO_DAILY_MAX_AGE_DAYS = 5
+
+
+def _daily_as_of_admissible(as_of: object, ref_date: date) -> bool:
+    """A present daily block renders a number ONLY with a valid producer as_of aged
+    0-5 calendar days inclusive (PRD-335 R2 / F2). Missing / malformed / future /
+    stale (>5 days) -> inadmissible -> the caller drops the block so the cell reads
+    "--", never a stale number. Weekend/holiday tolerant via the 5-day window."""
+    if not isinstance(as_of, str) or not as_of:
+        return False
+    try:
+        observed = date.fromisoformat(as_of)
+    except ValueError:
+        return False
+    if observed > ref_date:                       # future observation
+        return False
+    if (ref_date - observed).days > _MACRO_DAILY_MAX_AGE_DAYS:
+        return False
+    return True
+
+
+def _admit_daily_macro_drivers(macro_drivers: dict, ref_date: date) -> dict:
+    """Return macro_drivers with any daily driver whose as_of is inadmissible
+    DROPPED (renders "--"). Only daily drivers are touched; 10Y/30Y/USDJPY and the
+    voting drivers pass through unchanged. Never raises."""
+    if not isinstance(macro_drivers, dict):
+        return macro_drivers
+    admitted: dict = {}
+    for key, block in macro_drivers.items():
+        if key in _RENDER_DAILY_MACRO_DRIVERS:
+            as_of = block.get("as_of") if isinstance(block, dict) else None
+            if not _daily_as_of_admissible(as_of, ref_date):
+                continue  # drop the inadmissible daily block -> "--"
+        admitted[key] = block
+    return admitted
+
+
 def _build_tape_slots(
     macro_drivers: dict,
 ) -> list[tuple[str, str]]:
@@ -1733,8 +1791,11 @@ def _format_tape_value(symbol: str, value: object) -> str:
         return f"{numeric:.1f}"
     if symbol == "DXY":
         return f"{numeric:.1f}"
-    if symbol == "10Y":
+    # PRD-335: yields render to 2dp (2Y/10Y/30Y); USDJPY to 1dp (yen per dollar).
+    if symbol in ("2Y", "10Y", "30Y"):
         return f"{numeric:.2f}"
+    if symbol == "USDJPY":
+        return f"{numeric:.1f}"
     if symbol == "BTC":
         if abs(numeric) >= 10000:
             return f"{numeric / 1000:.1f}K"
@@ -1779,13 +1840,6 @@ def _build_tape_value_slots(
 
 
 
-_PRESSURE_COMPONENT_LABELS = [
-    ("volatility_pressure", "Volatility"),
-    ("dollar_pressure",     "Dollar"),
-    ("bitcoin_pressure",    "Bitcoin"),
-]
-
-
 # PRD-158 § 4.2 translation tables. Each maps an existing payload value
 # to decision-language output. Returning None means cut from render.
 
@@ -1821,28 +1875,11 @@ _SYS_REGIME_PLAIN: dict[str, str] = {
 _TS_ALIGN_ABBR: dict[str, str] = {"BULLISH": "BULL", "BEARISH": "BEAR", "MIXED": "MIX"}
 
 
-_PRESSURE_DECISION_PHRASES: dict[str, dict[str, str]] = {
-    "volatility_pressure": {
-        "RISK_ON":  "VIX permits longs",
-        "RISK_OFF": "VIX blocks longs",
-    },
-    "dollar_pressure": {
-        "RISK_OFF": "DXY pressures longs",
-        "RISK_ON":  "DXY supports risk-on",
-    },
-    "bitcoin_pressure": {
-        "RISK_ON":  "BTC supports risk-on",
-        "RISK_OFF": "BTC pressures risk-on",
-    },
-}
-
-
-def _pressure_decision_phrase(component_key: str, pressure_value: object) -> str | None:
-    """Translations 4-6: per-component pressure → decision phrase, or None to cut."""
-    table = _PRESSURE_DECISION_PHRASES.get(component_key)
-    if table is None:
-        return None
-    return table.get(str(pressure_value))
+# PRD-335 R4: the per-component pressure decision phrases ("VIX permits longs",
+# "DXY pressures longs", "BTC supports risk-on", …) are removed — the tape values
+# and directions already communicate the observation, and the deterministic
+# macro-pressure engine (macro_pressure.build_macro_pressure) is unchanged and
+# still surfaced as #macro-tape data-macro-pressure.
 
 
 def _regime_flip_phrase(previous_regime: object, current_regime: object) -> str | None:
@@ -1999,13 +2036,20 @@ def _verdict_sentence(
     - OBSERVE ONLY (operator lock) and STAY FLAT read "No new trades permitted" --
       the generic no-trade statement, WITHOUT asserting "nothing qualifies".
     """
-    if decision_state == "TRADE PERMITTED":
-        return regime_permission_text if regime_permission_text != "Stand down" else "Trades permitted"
-    if decision_state == "HALT":
-        return "System halted"
+    # PRD-335 R5 + F3 (Helm 2026-09-05 verdict-cardinality): the sys-verdict is a
+    # SECOND line ONLY for STATE UNAVAILABLE with mixed artifacts ("Inputs out of
+    # sync") — the one case the state word alone does not explain. Every other
+    # state, INCLUDING TRADE PERMITTED, returns "" so exactly one primary
+    # verdict/state line renders and no second permission/verdict paraphrase (e.g.
+    # "Longs allowed") appears; a permitted trade's direction lives faithfully in
+    # the compact regime-context line. The PRD-334 F1 guard survives trivially:
+    # "Stand down" is never surfaced under a permitted trade because nothing is
+    # surfaced (the `regime_permission_text` argument is retained for signature
+    # stability and to keep the no-direction-verb invariant checkable).
+    _ = regime_permission_text
     if decision_state == "STATE UNAVAILABLE":
-        return "Inputs out of sync" if mixed_artifacts else "Board state unavailable"
-    return "No new trades permitted"
+        return "Inputs out of sync" if mixed_artifacts else ""
+    return ""
 
 
 def _build_pressure_snapshot(macro_drivers: dict, market_map: dict | None) -> dict | None:
@@ -2676,6 +2720,14 @@ def render_dashboard_html(
     if (not macro_drivers) or all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values()):
         _snap = macro_snapshot_path if macro_snapshot_path is not None else _MACRO_SNAPSHOT_PATH
         macro_drivers = _load_macro_snapshot(_snap)
+    # PRD-335 F2 (Helm 2026-09-05): re-admit the DAILY 2Y at the consumer boundary
+    # against the deterministic render reference date (the injected `now`, else the
+    # frozen-in-tests _utcnow indirection — never a raw wall-clock read). A present
+    # rates_2y block from the persisted macro-snapshot fallback whose as_of is
+    # stale (>5 calendar days), future, malformed, or missing is dropped so the 2Y
+    # cell renders "--", never a stale number. Global freshness model unchanged.
+    _render_ref_date = (now if now is not None else _utcnow()).date()
+    macro_drivers = _admit_daily_macro_drivers(macro_drivers, _render_ref_date)
 
     system_halted = _req(run, "system_halted")
     kill_switch   = _req(run, "kill_switch")
@@ -2723,15 +2775,10 @@ def render_dashboard_html(
                 long_votes += 1
             else:
                 short_votes += 1
-    if long_votes > short_votes:
-        macro_bias = f"MACRO BIAS: LONG {_UP}"
-        macro_bias_css = "macro-bias long"
-    elif short_votes > long_votes:
-        macro_bias = f"MACRO BIAS: SHORT {_DOWN}"
-        macro_bias_css = "macro-bias short"
-    else:
-        macro_bias = "MACRO BIAS: MIXED"
-        macro_bias_css = "macro-bias mixed"
+    # PRD-335 R4: long_votes/short_votes still flow to the integrator below and
+    # are surfaced verbatim as #macro-tape data-* attributes; the visible
+    # "MACRO BIAS" headline/CSS they used to drive is removed (values already
+    # communicate the observation).
 
     # PRD-158 § 4.3: renderer-bound translation pass. The integrator collapses
     # contradictory raw state into trader-facing verdicts/skips and emits
@@ -2751,7 +2798,9 @@ def render_dashboard_html(
             "rendered_tiers": [],
             "suppress": {"permission": False, "outcome": False, "macro_bias": False},
         }
-    integrator_suppress = integrator_result["suppress"]
+    # PRD-335 R4: the integrator's macro-bias suppression flag drove the (now
+    # removed) visible MACRO BIAS headline; the integrator itself — and its
+    # mixed-tape candidate verdict line — is unchanged and still consumed below.
     integrator_verdicts: list[str] = integrator_result["screen_verdicts"]
     integrator_skips: dict[str, str] = integrator_result["symbol_skips"]
 
@@ -2868,7 +2917,10 @@ def render_dashboard_html(
       f' data-session-inactive="{"true" if inactive_session else "false"}"'
       f' data-board-stale-after-s="{BOARD_STALE_AFTER_SECONDS}"></div>')
     w(f'<script>{_STALENESS_BANNER_JS}</script>')
-    w('<div class="block operator-subsection" id="system-state">')
+    # PRD-335 R5: the canonical regime word is ALWAYS carried as data-regime on
+    # the block, independent of whether a visible regime line renders, so machine
+    # state is unconditional.
+    w(f'<div class="block operator-subsection" id="system-state" data-regime="{_esc(str(market_regime))}">')
     w('  <h2>VERDICT</h2>')
 
     # PRD-312's five independent facts are redistributed without changing their
@@ -2944,10 +2996,20 @@ def render_dashboard_html(
     # which PRD-304 R7 suppresses); otherwise it is _regime_to_permission_verb's own
     # output (the long / short / momentum-long value surfaced only when permitted).
     _raw_permission = "OPERATOR_LOCKED" if operator_locked else regime_permission_text
+    # PRD-335 R5: the decision-state word is always present and now carries ALL
+    # THREE raw attributes (state, title, permission) so machine state is
+    # unconditional even when the sys-verdict div is omitted below. The BLOCKER
+    # verdict-translation guard reads these here.
     w(f'  <div class="decision-state {_decision_state_cls}"'
-      f' data-raw-state="{_esc(_decision_state)}">{_esc(_decision_state)}</div>')
-    w(f'  <div class="sys-verdict {_verdict_cls}" data-raw-title="{_esc(title)}"'
-      f' data-raw-permission="{_esc(_raw_permission)}">{_esc(_verdict_sentence_text)}</div>')
+      f' data-raw-state="{_esc(_decision_state)}" data-raw-title="{_esc(title)}"'
+      f' data-raw-permission="{_esc(_raw_permission)}">{_esc(_decision_state)}</div>')
+    # PRD-335 R5: the sys-verdict sentence renders ONLY when it adds information
+    # the state word lacks (TRADE PERMITTED's directional verb; "Inputs out of
+    # sync" for mixed artifacts). _verdict_sentence returns "" otherwise, and the
+    # div is omitted — removing the duplicated "No new trades permitted" /
+    # "System halted" paraphrase that restated the state word.
+    if _verdict_sentence_text:
+        w(f'  <div class="sys-verdict {_verdict_cls}">{_esc(_verdict_sentence_text)}</div>')
     # Context line: regime in plain words. PRD-281: the trader-facing reason
     # ("why") moved to its own dedicated .sys-why line below.
     _regime_plain = _SYS_REGIME_PLAIN.get(
@@ -3022,15 +3084,30 @@ def render_dashboard_html(
     # PERMITTED needs no reason, and STATE UNAVAILABLE (including mixed
     # artifacts) must never pair a confident-looking reason with an
     # untrustworthy or unresolved decision state.
-    if _ctx_reason and _decision_state in ("HALT", "STAY FLAT"):
+    # PRD-335 R5: exactly one verdict + one reason. The reason line is the WHY
+    # (block_reason-derived) when the state machine computed one — this is the
+    # carrier that keeps a genuine RISK_OFF+LONG veto visible after the prose
+    # deletion. A real veto resolves to STAY FLAT with a computed reason (gated /
+    # refused), so the WHY line always survives; if it ever did not, that is a
+    # STOP condition, not a silent blank verdict.
+    _why_rendered = bool(_ctx_reason and _decision_state in ("HALT", "STAY FLAT"))
+    if _why_rendered:
         w(f'  <div class="sys-why">WHY: {_esc(str(_ctx_reason))}</div>')
+    # PRD-335 R5 + F3: the operator-lock permission is the SINGLE causal reason
+    # under the lock, rendered from the canonical config constant verbatim. It is
+    # gated on the decision-state being OBSERVE ONLY (the lock is the active
+    # primary constraint) — NOT merely on `operator_locked` — so when a HALT or a
+    # coherence (STATE UNAVAILABLE) state survives the lock overlap, that state's
+    # own reason wins and the lock line does not add a competing second reason.
+    if _decision_state == "OBSERVE ONLY":
+        w(f'  <div class="sys-permission">{_esc(config.OPERATOR_LOCK_PERMISSION)}</div>')
+    # PRD-335 R5 (D-5): RETAIN a compact regime-context line — under STAY FLAT the
+    # regime word is otherwise visible nowhere in #system-state. Always rendered.
     _ctx = _esc(_regime_plain) + " regime"
     _ctx_cls = " halted" if bool(system_halted) else ""
     w(f'  <div class="sys-context{_ctx_cls}">{_ctx}</div>')
     if bool(kill_switch):
         w('  <div class="sys-context halted">Kill switch active</div>')
-    if isinstance(permission, str) and permission.strip():
-        w(f'  <div class="sys-permission">{_esc(permission)}</div>')
     # PRD-219: one absolute Pacific timestamp replaces the three relative
     # RUN SNAPSHOT / LIVE STATE / SCOREBOARD freshness lines. It reads the
     # PIPELINE run timestamp (PRD-189 source), not the payload's — so a frozen
@@ -3552,58 +3629,33 @@ def render_dashboard_html(
         w("</div>")
 
     # --- macro-tape ---
-    w('<div class="block" id="macro-tape">')
+    # PRD-335 R4: the MACRO BIAS headline, the risk-vote tally, and the
+    # per-component pressure phrases are removed from the human surface — the
+    # values and directions already communicate the observation, and the machine
+    # prose (Risk votes / "VIX permits longs" …) was the last obvious wall of
+    # text. The computed engine values survive VERBATIM as data-* attributes on
+    # #macro-tape, so the arithmetic guard (and any review/test) still reads them;
+    # nothing about the vote tally, macro_bias, or overall_pressure computation —
+    # nor the integrator's mixed-tape candidate line — changes. The new
+    # display-only drivers (2Y/30Y/USDJPY) cast no vote, so these attributes are
+    # byte-identical with and without them (the MACRO_BIAS_DRIVERS fence).
+    _macro_bias_word = (
+        "LONG" if long_votes > short_votes
+        else "SHORT" if short_votes > long_votes
+        else "MIXED"
+    )
+    _overall_pressure_attr = (
+        str(pressure.get("overall_pressure")) if isinstance(pressure, dict) else "UNKNOWN"
+    )
+    w(
+        f'<div class="block" id="macro-tape" data-macro-bias="{_esc(_macro_bias_word)}"'
+        f' data-risk-on="{long_votes}" data-risk-off="{short_votes}"'
+        f' data-macro-pressure="{_esc(_overall_pressure_attr)}">'
+    )
     w("  <h2>Macro Tape</h2>")
     if (not macro_drivers) or all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values()):
         w('  <div class="tape-no-data">NO LIVE MACRO DATA</div>')
     tape_value_map = dict(tape_value_slots)
-
-    # Suppress the raw MACRO BIAS label when the integrator detects a genuine
-    # regime/macro/setup directional conflict (Rule 3); it emits "Mixed tape —
-    # …" in the candidate-board verdict line instead. Post-PRD-160 the macro
-    # bias fed to the integrator is the cyclicality-correct one, so this fires
-    # only on real divergence.
-    if not integrator_suppress["macro_bias"]:
-        w(f'  <div class="{_esc(macro_bias_css)}">{_esc(macro_bias)}</div>')
-        # PRD-214: single risk-vote tally replaces the per-driver evidence rows.
-        # long_votes/short_votes are the cyclicality-aware counts (risk-ON =
-        # long, risk-OFF = short) computed above; the tally's bias word is
-        # derived from the same counts so it always agrees with the headline.
-        _total_votes = long_votes + short_votes
-        if _total_votes:
-            _tally_bias = (
-                "LONG" if long_votes > short_votes
-                else "SHORT" if short_votes > long_votes
-                else "MIXED"
-            )
-            w(
-                f'  <div class="macro-tally">Risk votes: {short_votes} off / '
-                f'{long_votes} on {_FLAT} {_tally_bias}</div>'
-            )
-
-    # PRD-217: fold the per-component pressure phrases into one wrapping line
-    # beside the tally (replaces the removed MACRO PRESSURE disclosure).
-    _pressure_available = (
-        bool(macro_drivers)
-        and not all(str(v) == "MARKET MAP UNAVAILABLE" for v in macro_drivers.values())
-        and isinstance(pressure, dict)
-    )
-    if _pressure_available:
-        _pressure_phrases = [
-            _pressure_decision_phrase(_pk, pressure.get(_pk))
-            for _pk, _ in _PRESSURE_COMPONENT_LABELS
-        ]
-        _pressure_phrases = [_p for _p in _pressure_phrases if _p]
-        if _pressure_phrases:
-            # PRD-220: one bullet per phrase on its own line (was a single
-            # middot-joined line).
-            w(
-                '  <div class="macro-pressure-line">'
-                + "<br>".join("• " + _esc(_p) for _p in _pressure_phrases)
-                + "</div>"
-            )
-    else:
-        w('  <div class="macro-pressure-line pressure-na">Macro pressure unavailable</div>')
 
     _tape_arrow_map = dict(tape_slots)
 
@@ -3617,11 +3669,22 @@ def render_dashboard_html(
     def _macro_driver_cell(slot: object) -> str:
         _lbl = slot.label  # type: ignore[attr-defined]
         _disp = slot.display  # type: ignore[attr-defined]
+        # PRD-335 R2/R9: a per-driver observation-date marker, sourced ONLY from a
+        # producer-written block `as_of` (daily drivers such as the FRED 2Y) and
+        # never inferred from the symbol/label. Absent block or no as_of -> no
+        # marker (no synthesized "as of" caption, no "live"/"now" wording).
+        _blk = macro_drivers.get(slot.payload_key) if macro_drivers else None  # type: ignore[attr-defined]
+        _asof = _blk.get("as_of") if isinstance(_blk, dict) else None
+        _asof_html = (
+            f'<span class="macro-tape-asof">{_esc(_mon_d(_asof))}</span>'
+            if isinstance(_asof, str) and _asof else ""
+        )
         return (
             f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(_tape_arrow_map.get(_lbl, _DASH), "na")}">'
             f'<span class="macro-tape-label">{_tape_label_padded(_disp)} {_esc(_tape_arrow_map.get(_lbl, _DASH))}</span>'
             f'<span class="macro-tape-value" data-symbol="{_esc(_lbl)}">'
             f'{_esc(tape_value_map.get(_lbl, ""))}</span>'
+            f'{_asof_html}'
             f'</span>'
         )
 
@@ -3638,7 +3701,9 @@ def render_dashboard_html(
             _macro_driver_cell(_slot_by_label[_l]) for _l in _fam_labels if _l in _slot_by_label
         )
         _note = f' <span class="macro-family-note">{_esc(_fam_note)}</span>' if _fam_note else ""
-        w(f'  <div class="macro-family"><div class="macro-family-cap">{_esc(_fam_name)}{_note}</div>'
+        # PRD-335 D-4: the trailing CRYPTO family is muted (presentation-only).
+        _fam_cls = "macro-family macro-family--muted" if _fam_name == _MUTED_MACRO_FAMILY else "macro-family"
+        w(f'  <div class="{_fam_cls}"><div class="macro-family-cap">{_esc(_fam_name)}{_note}</div>'
           f'<div class="macro-drivers-row">{_cells}</div></div>')
 
     # Divider
@@ -3648,6 +3713,14 @@ def render_dashboard_html(
     # daily-change arrow was retired here — it duplicated the Market Movement
     # card's signed value. The price (current_price) is independently fresh from
     # market_map; the tradables row keeps its label + price with no arrow.
+    # PRD-335 R7/D-3: KEEP the grid — it is the only ETF last-price surface in
+    # closed/inactive/unhealthy states (Market Movement is percent-only; Trend
+    # Structure prints no rows then). A "TRADE VEHICLES" caption (reusing the
+    # family-cap markup) makes the macro-underlying (GC/SI front-month futures
+    # above) vs trade-vehicle (GLD/GDX/SLV/XLE ETF last price) distinction
+    # explicit.
+    w('  <div class="macro-family-cap">TRADE VEHICLES'
+      ' <span class="macro-family-note">ETF last price</span></div>')
     w('  <div class="macro-tradables-grid">')
     for slot in TRADABLES_ROW.slots:
         val = tape_value_map.get(slot.label, "N/A")

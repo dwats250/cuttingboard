@@ -90,6 +90,34 @@ def test_five_identity_surfaces():
     assert "current availability is shown in the GEX card above" in frag
 
 
+def test_summary_first_structure_one_disclosure():
+    # PRD-335 R6: exactly ONE <details>; the closed footprint is identity + the
+    # three RAW-STRIKE anchor rows only. MODEL NET*, the 0DTE row, the reading
+    # guide and the NET* footnote all move INSIDE the single "Full GEX details"
+    # disclosure (NET* travels with the footnote that explains its asterisk).
+    frag = gex_reference.render_reference_fragment()
+    assert frag.count("<details") == 1
+    before, _sep, rest = frag.partition("<details")
+    inside, _sep2, _after = rest.partition("</details>")
+    # Visible (closed) footprint: identity + three anchor rows.
+    assert "Observation date: none (synthetic)" in before
+    assert "LARGEST RAW-STRIKE |MODEL NET|" in before
+    assert "LARGEST CALL-CONTRACT MAGNITUDE STRIKE" in before
+    assert "LARGEST PUT-CONTRACT MAGNITUDE STRIKE" in before
+    # NET*/0DTE/guide/footnote are NOT in the closed footprint ...
+    assert 'class="label">MODEL NET*</div>' not in before
+    assert 'class="label">0DTE</div>' not in before
+    assert '<div class="gex-reference-guide">' not in before   # the guide DIV (the CSS selector is in <style>)
+    assert "NET* = CALL MODELED MAGNITUDE" not in before
+    # ... and ARE inside the single disclosure.
+    assert "Full GEX details" in inside
+    assert 'class="label">MODEL NET*</div>' in inside
+    assert 'class="label">0DTE</div>' in inside
+    assert '<div class="gex-reference-guide">' in inside
+    assert "NET* = CALL MODELED MAGNITUDE" in inside
+    assert "<svg" in inside                                   # the dense profile is inside too
+
+
 def test_ladder_caption_and_aria_both_carry_identity():
     # a ladder crop (visible caption) OR screen reader (aria) must not lose identity
     frag = gex_reference.render_reference_fragment()

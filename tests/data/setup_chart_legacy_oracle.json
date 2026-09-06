@@ -5,13 +5,13 @@
   "golden_regions": {
     "dashboard_pre_a1c_chart_golden.html": {
       "details-history": "e835171f64f74c3c9e5326ff0078f1d5c32b75f9d40f26be59f5702a8443707a",
-      "market-structure": "f337b434131040d0ee5764c3a234b4b592d84ce8b164d5b35de637601885abce",
-      "system-state": "9b35f2e962b19653517649072fa94ad047d22dea7d3d1e8c4abd8843db9f96d2"
+      "market-structure": "2f4b3f7fb5213475091f9bd916e0250ef67c9be1946413a8bdb45845c3bead79",
+      "system-state": "e9b86bbd34547a23171dc9dcf7eb7fdde386891f52114ee3b9ac4aadc3158b34"
     },
     "dashboard_pre_gex_golden.html": {
       "details-history": "e835171f64f74c3c9e5326ff0078f1d5c32b75f9d40f26be59f5702a8443707a",
-      "market-structure": "ab5d628946f8237f36c9be0087c6e33b95e57c3ea201d22c16aa1c3b387f8cc5",
-      "system-state": "c28861130053fd285f49064ccf75a5d496f2d98a9145b06fe84977ccf93bafc1"
+      "market-structure": "6174a3bb534ee4fec85ab389be24f2e15a35bc248f0cebc43472ccb0b3ccfbff",
+      "system-state": "dc13668dcecf91df5edf949807fa5152462ecd2aad087e823adb28206efaebfe"
     }
   },
   "cases": {

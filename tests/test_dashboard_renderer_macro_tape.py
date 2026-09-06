@@ -18,11 +18,15 @@ def _drivers() -> dict:
 
 
 def test_prd138_dashboard_macro_tape_row_order() -> None:
-    # PRD-334 R5: family order (VOLATILITY / RATES-FX / COMMODITIES / CRYPTO),
-    # then the unchanged tradables row.
+    # PRD-335 R1/R4: family order (VOLATILITY / RATES [2Y,10Y,30Y] /
+    # FX [DXY,USDJPY] / COMMODITIES / CRYPTO), then the unchanged tradables row.
+    # The 2Y/30Y/USDJPY cells render even when this fixture supplies no block for
+    # them (value "--"); the slot order is fixed by the families.
     html = render_dashboard_html(_payload(macro_drivers=_drivers()), _run(), market_map=_market_map())
     assert [symbol for symbol, _value in _macro_tape_value_slots(html)] == [
-        "VIX", "10Y", "DXY",
+        "VIX",
+        "2Y", "10Y", "30Y",
+        "DXY", "USDJPY",
         "XAU", "XAG", "OIL",
         "BTC",
         "SPY", "QQQ", "GLD", "GDX", "SLV", "XLE",

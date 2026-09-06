@@ -22,12 +22,14 @@ recorded here because this map is the only home for it:
 
 | Field path | Type | Notes |
 |---|---|---|
-| `contract["macro_drivers"]` | dict | per-driver blocks keyed by driver name (`volatility`, `dollar`, `rates`, `bitcoin`, `oil`, `gold`, `silver`); built by `_build_macro_drivers` (contract.py:502) |
-| `contract["macro_drivers"][driver]["symbol"]` | string | source quote symbol (e.g. `gold`→`GC=F`, `silver`→`SI=F`; map at contract.py:50) |
+| `contract["macro_drivers"]` | dict | per-driver blocks keyed by driver name (`volatility`, `dollar`, `rates`, `bitcoin`, `oil`, `gold`, `silver`, and the PRD-335 display-only `rates_2y`, `rates_30y`, `usdjpy`); built by `_build_macro_drivers` (contract.py). Driver→symbol map at `contract._MACRO_DRIVER_SYMBOLS` |
+| `contract["macro_drivers"][driver]["symbol"]` | string | source quote symbol (e.g. `gold`→`GC=F`, `silver`→`SI=F`, `rates_2y`→`DGS2`, `rates_30y`→`^TYX`, `usdjpy`→`JPY=X`) |
 | `contract["macro_drivers"][driver]["level"]` | float | latest price |
 | `contract["macro_drivers"][driver]["change_pct"]` | float | percent change (×100) |
-| `contract["macro_drivers"][driver]["change_bps"]` | float \| absent | rates only |
-| `contract["macro_drivers"]["gold" \| "silver"]` | dict \| absent | OPTIONAL drivers (contract.py:59); the key is **absent** when the `GC=F`/`SI=F` fetch fails (silent skip, contract.py:510/521) → renderer shows `N/A` per-key (dashboard_renderer.py `_build_tape_value_slots`). DISPLAY-ONLY: front-month **futures**, fenced from the decision path (excluded from `_COMPONENT_FIELDS` macro_pressure + `MACRO_BIAS_DRIVERS` vote). Visible tape label is `GC`/`SI` (PRD-211); the slot id / `data-symbol` stays `XAU`/`XAG` |
+| `contract["macro_drivers"][driver]["change_bps"]` | float \| absent | `rates` (10Y) only |
+| `contract["macro_drivers"]["rates_2y"]["as_of"]` | `YYYY-MM-DD` \| absent | PRD-335 R2: the daily 2Y's producer-written **observation date** (ISO string), present ONLY on daily drivers (`contract._DAILY_MACRO_DRIVERS = {"rates_2y"}`). Validated on a path SEPARATE from the finite-float check in BOTH driver-key guards (contract + `delivery/payload._MACRO_DRIVER_FIELD_WHITELIST`). `fetched_at_utc` stays the acquisition clock — this is the observation time, never inferred by the renderer |
+| `contract["macro_drivers"]["gold" \| "silver"]` | dict \| absent | OPTIONAL drivers (`contract_types._OPTIONAL_MACRO_DRIVERS`); the key is **absent** when the fetch fails (silent skip) → renderer shows `N/A`/`--` per-key. DISPLAY-ONLY: front-month **futures**, fenced from the decision path. Visible tape label is `GC`/`SI` (PRD-211); the slot id / `data-symbol` stays `XAU`/`XAG` |
+| `contract["macro_drivers"]["rates_2y" \| "rates_30y" \| "usdjpy"]` | dict \| absent | PRD-335 OPTIONAL DISPLAY-ONLY rate/FX context. Fenced from macro-pressure voting: absent from `macro_pressure._COMPONENT_KEYS`/`_COMPONENT_FIELDS` and `macro_tape_layout.MACRO_BIAS_DRIVERS` (proven by `tests/test_prd335_display_only_fence.py`). `rates_2y` is sourced daily from FRED series DGS2 via `ingestion._try_fred_quote` (the repo's first `source=="fred"` carrier); staleness/future/malformed dates fail the fetch closed inside the carrier so the cell renders `--`, never a stale number |
 
 Consumer notes that outlive the retired field table (semantics, not shape):
 

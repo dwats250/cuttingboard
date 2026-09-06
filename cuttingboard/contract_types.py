@@ -42,7 +42,13 @@ from typing import Any, NotRequired, Optional, TypedDict
 # assert_valid_contract permits but does not require them). Single
 # authoritative vocabulary (PRD-292 dedup); imported by contract.py and
 # delivery/payload.py from this leaf, so neither module duplicates it.
-_OPTIONAL_MACRO_DRIVERS: frozenset[str] = frozenset({"oil", "gold", "silver"})
+# PRD-335 (R1/R2): rates_2y (FRED DGS2), rates_30y (^TYX) and usdjpy (JPY=X) are
+# optional DISPLAY-ONLY drivers on the same visibility fence as oil/gold/silver —
+# a fetch failure never halts, and they carry NO macro-pressure vote (the
+# decision-authority fence, tests/test_prd335_display_only_fence.py).
+_OPTIONAL_MACRO_DRIVERS: frozenset[str] = frozenset(
+    {"oil", "gold", "silver", "rates_2y", "rates_30y", "usdjpy"}
+)
 
 
 class SystemState(TypedDict):

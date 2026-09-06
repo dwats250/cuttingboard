@@ -1094,7 +1094,7 @@ def test_prd326_primary_chart_flat_when_not_permitted() -> None:
     # PRD-334 R2: the primary-slot chart renders flat (depth 0) and every other
     # high-grade card's chart is flat too -- no chart-detail/level-detail nesting.
     html = _d1_render(_run(outcome="NO_TRADE"))
-    assert 'decision-state sys-up" data-raw-state="STAY FLAT">STAY FLAT<' in html
+    assert 'decision-state sys-up"' in html and 'data-raw-state="STAY FLAT"' in html and '>STAY FLAT</div>' in html
     card = _d1_card(html, "AAA")
     assert 'class="setup-chart"' in card
     assert "<details" not in card
@@ -1183,7 +1183,7 @@ def test_prd326_unlocked_halt_primary_chart_is_neutral() -> None:
     # R3 (M11): system_halted with a NON-lock permission is not permitted, so the
     # exposed chart is neutral while the unlocked directives stay (F4 not masked).
     html = _d1_render(_run(**_D1_HALT_UNLOCKED), **_D1_CONTRACTS)
-    assert 'decision-state sys-halt" data-raw-state="HALT">HALT<' in html
+    assert 'decision-state sys-halt"' in html and 'data-raw-state="HALT"' in html and '>HALT</div>' in html
     assert ">OBSERVE ONLY<" not in html
     card = _d1_card(html, "AAA")
     assert "<details" not in card.split('class="setup-chart"', 1)[0]

@@ -171,6 +171,7 @@ from cuttingboard.runtime._constants import (
     VALID_REGIMES as VALID_REGIMES,
     VALID_POSTURES as VALID_POSTURES,
     _FIXTURE_QUOTE_FIELDS as _FIXTURE_QUOTE_FIELDS,
+    _FIXTURE_OPTIONAL_QUOTE_FIELDS as _FIXTURE_OPTIONAL_QUOTE_FIELDS,
     _PERMISSION_LINES as _PERMISSION_LINES,
 )
 from cuttingboard.runtime._types import (
@@ -2128,7 +2129,10 @@ def _load_fixture_quotes(path: Optional[Path]) -> dict[str, NormalizedQuote]:
     for symbol, item in payload.items():
         if not isinstance(item, dict):
             raise ValueError(f"fixture[{symbol}] must be an object")
-        extra = set(item) - _FIXTURE_QUOTE_FIELDS
+        # PRD-335 R2: as_of is an OPTIONAL admitted quote field — allowed-extra,
+        # never required — so daily-driver fixtures can carry it while every
+        # existing fixture (which omits it) still validates.
+        extra = set(item) - _FIXTURE_QUOTE_FIELDS - _FIXTURE_OPTIONAL_QUOTE_FIELDS
         missing = _FIXTURE_QUOTE_FIELDS - set(item)
         if extra or missing:
             raise ValueError(
@@ -2136,6 +2140,7 @@ def _load_fixture_quotes(path: Optional[Path]) -> dict[str, NormalizedQuote]:
             )
         if item["symbol"] != symbol:
             raise ValueError(f"fixture key mismatch for {symbol}")
+        _as_of = item.get("as_of")
         quotes[symbol] = NormalizedQuote(
             symbol=str(item["symbol"]),
             price=float(item["price"]),
@@ -2145,6 +2150,7 @@ def _load_fixture_quotes(path: Optional[Path]) -> dict[str, NormalizedQuote]:
             source=str(item["source"]),
             units=str(item["units"]),
             age_seconds=float(item["age_seconds"]),
+            as_of=None if _as_of is None else str(_as_of),
         )
     return quotes
 

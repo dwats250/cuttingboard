@@ -363,8 +363,9 @@ def test_prd122_oil_renders_from_stale_snapshot(tmp_path: Path) -> None:
 
 
 def test_macro_pressure_inline_beside_tally() -> None:
-    # PRD-217: no standalone macro-pressure disclosure; the per-component phrases
-    # render as one inline line inside the macro tape.
+    # PRD-335 R4: no standalone macro-pressure disclosure AND no inline prose line;
+    # the deterministic engine value survives only as the data-macro-pressure
+    # attribute on #macro-tape, and none of the per-component phrases is visible.
     html = render_dashboard_html(
         _payload(macro_drivers=_macro_drivers()),
         _run(),
@@ -373,42 +374,40 @@ def test_macro_pressure_inline_beside_tally() -> None:
 
     assert 'id="macro-pressure"' not in html
     assert '<details id="macro-pressure">' not in html
-    assert 'class="macro-pressure-line' in html
+    assert 'class="macro-pressure-line' not in html
 
-    # PRD-334 R9: the macro-pressure line lives inside Macro (MARKET STRUCTURE),
-    # which now precedes the WATCHING candidate-board.
+    # The pressure value lives inside Macro (MARKET STRUCTURE), which precedes the
+    # WATCHING candidate-board, as an attribute on the #macro-tape element.
     macro = _top_block(html, "macro-tape")
-    assert 'class="macro-pressure-line' in macro
+    assert 'data-macro-pressure="' in macro
     ids = _top_ids(html)
     assert ids.index("macro-tape") < ids.index("candidate-board")
 
-    pressure = html.split('class="macro-pressure-line', 1)[1].split("</div>", 1)[0]
-    has_decision_phrase = any(
-        phrase in pressure
-        for phrase in (
-            "VIX permits longs", "VIX blocks longs",
-            "DXY pressures longs", "DXY supports risk-on",
-            "BTC supports risk-on", "BTC pressures risk-on",
-        )
-    )
-    assert has_decision_phrase, pressure
-    assert "Overall" not in pressure
+    for phrase in (
+        "VIX permits longs", "VIX blocks longs",
+        "DXY pressures longs", "DXY supports risk-on",
+        "BTC supports risk-on", "BTC pressures risk-on",
+    ):
+        assert phrase not in html
 
 
 def test_macro_pressure_no_data_renders_unavailable_line(tmp_path: Path) -> None:
+    # PRD-335 R4: no votable data -> engine value UNKNOWN on data-macro-pressure;
+    # no visible "unavailable" prose line.
     html = render_dashboard_html(
         _payload(macro_drivers={}),
         _run(),
         market_map=_market_map(),
         macro_snapshot_path=tmp_path / "missing_macro_snapshot.json",
     )
-
-    pressure = html.split('class="macro-pressure-line', 1)[1].split("</div>", 1)[0]
-    assert "Macro pressure unavailable" in pressure
-    assert "NO PRESSURE DATA" not in pressure
+    m = re.search(r'id="macro-tape"[^>]*data-macro-pressure="([^"]*)"', html)
+    assert m is not None and m.group(1) == "UNKNOWN"
+    assert 'class="macro-pressure-line' not in html
 
 
 def test_macro_pressure_field_missing_renders_unavailable_line(monkeypatch: pytest.MonkeyPatch) -> None:
+    # PRD-335 R4: a non-dict pressure snapshot resolves to the UNKNOWN attribute
+    # value; the raw sentinel never leaks to a visible line (there is none).
     monkeypatch.setattr(
         "cuttingboard.delivery.dashboard_renderer._build_pressure_snapshot",
         lambda _macro_drivers, _market_map: "FIELD_MISSING",
@@ -419,10 +418,10 @@ def test_macro_pressure_field_missing_renders_unavailable_line(monkeypatch: pyte
         _run(),
         market_map=_market_map(),
     )
-
-    pressure = html.split('class="macro-pressure-line', 1)[1].split("</div>", 1)[0]
-    assert "Macro pressure unavailable" in pressure
-    assert "FIELD_MISSING" not in pressure
+    m = re.search(r'id="macro-tape"[^>]*data-macro-pressure="([^"]*)"', html)
+    assert m is not None and m.group(1) == "UNKNOWN"
+    assert "FIELD_MISSING" not in html
+    assert 'class="macro-pressure-line' not in html
 
 
 def test_mixed_generation_ids_render_warning_and_suppress_active_setup() -> None:
@@ -926,11 +925,12 @@ def test_permission_label_used_not_trade_permission() -> None:
 
 
 def test_halted_state_verdict_shows_halt() -> None:
-    # PRD-219: halt is unmistakable in the distilled verdict (red, SYSTEM HALT).
+    # PRD-219 / PRD-335 R5: halt is unmistakable in the distilled verdict (red on
+    # the decision-state word; SYSTEM HALT in data-raw-title).
     run = _run(system_halted=True)
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert 'class="sys-verdict sys-halt"' in state
+    assert 'class="decision-state sys-halt"' in state
     assert "SYSTEM HALT" in state
 
 
@@ -949,11 +949,12 @@ def test_halted_state_reason_in_why_line() -> None:
 
 
 def test_non_halted_renders_verdict_no_permission_field() -> None:
-    # PRD-219: no Permission field; the verdict conveys the state.
+    # PRD-219 / PRD-335 R5: no Permission field; the decision-state word conveys
+    # the state (the sys-verdict paraphrase is omitted for a STAY FLAT no-trade).
     run = _run(system_halted=False, permission=True)
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert 'class="sys-verdict' in state
+    assert 'class="decision-state' in state
     assert ">Permission<" not in state
 
 
@@ -991,7 +992,7 @@ def test_prd279_halted_shows_decision_state_halt() -> None:
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
     assert "decision-state-label" not in state  # PRD-327 R1: caption removed
-    assert 'class="decision-state sys-halt" data-raw-state="HALT">HALT</div>' in state
+    assert 'class="decision-state sys-halt"' in state and 'data-raw-state="HALT"' in state and '>HALT</div>' in state
 
 
 def test_prd279_kill_switch_halt_shows_decision_state_halt() -> None:
@@ -1000,7 +1001,7 @@ def test_prd279_kill_switch_halt_shows_decision_state_halt() -> None:
     run = _run(system_halted=True, kill_switch=True)
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert 'class="decision-state sys-halt" data-raw-state="HALT">HALT</div>' in state
+    assert 'class="decision-state sys-halt"' in state and 'data-raw-state="HALT"' in state and '>HALT</div>' in state
     assert "Kill switch active" in state
 
 
@@ -1008,7 +1009,7 @@ def test_prd279_trade_outcome_shows_decision_state_trade_permitted() -> None:
     run = _run(system_halted=False, outcome="TRADE")
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert 'decision-state sys-up" data-raw-state="TRADE PERMITTED">TRADE PERMITTED</div>' in state
+    assert 'decision-state sys-up"' in state and 'data-raw-state="TRADE PERMITTED"' in state and '>TRADE PERMITTED</div>' in state
 
 
 def test_prd279_no_trade_shows_decision_state_stay_flat() -> None:
@@ -1046,7 +1047,7 @@ def test_prd279_state_unavailable_fallback_on_comparison_error(monkeypatch) -> N
     monkeypatch.setattr(dr, "_decision_title", lambda *a, **k: _RaisingEq())
     html = render_dashboard_html(_payload(), _run())
     state = _system_state_block(html)
-    assert 'class="decision-state sys-flat" data-raw-state="STATE UNAVAILABLE">STATE UNAVAILABLE</div>' in state
+    assert 'class="decision-state sys-flat"' in state and 'data-raw-state="STATE UNAVAILABLE"' in state and '>STATE UNAVAILABLE</div>' in state
 
 
 def test_prd279_mixed_artifacts_shows_state_unavailable_not_stay_flat() -> None:
@@ -1064,7 +1065,7 @@ def test_prd279_mixed_artifacts_shows_state_unavailable_not_stay_flat() -> None:
 
     html = render_dashboard_html(payload, run, market_map=mm)
     state = _system_state_block(html)
-    assert 'class="decision-state sys-flat" data-raw-state="STATE UNAVAILABLE">STATE UNAVAILABLE</div>' in state
+    assert 'class="decision-state sys-flat"' in state and 'data-raw-state="STATE UNAVAILABLE"' in state and '>STATE UNAVAILABLE</div>' in state
     assert ">STAY FLAT</div>" not in state
     assert "TRADE PERMITTED" not in state
 
@@ -1080,7 +1081,10 @@ def test_prd279_existing_system_state_lines_unchanged() -> None:
     payload = _payload(validation_halt_detail={"reason": "STAY_FLAT regime"})
     html = render_dashboard_html(payload, run)
     state = _system_state_block(html)
-    assert 'class="sys-verdict sys-halt"' in state
+    # PRD-335 R5: the halt colour moved to the always-present decision-state div
+    # (the sys-verdict paraphrase div is omitted for HALT). SYSTEM HALT survives in
+    # the decision-state data-raw-title.
+    assert 'class="decision-state sys-halt"' in state
     assert "SYSTEM HALT" in state
     why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
     assert "STAY_FLAT regime" in why
@@ -1373,24 +1377,29 @@ def test_permission_none_reason_in_why_line() -> None:
 
 
 def test_macro_pressure_missing_shows_unavailable() -> None:
+    # PRD-335 R4: no votable data -> engine value UNKNOWN, exposed as the
+    # data-macro-pressure attribute (the visible "unavailable" prose is removed).
     html = render_dashboard_html(
         _payload(macro_drivers={}),
         _run(),
         market_map=_market_map(),
         macro_snapshot_path=Path("/nonexistent/macro_snapshot.json"),
     )
-    pressure = html.split('class="macro-pressure-line', 1)[1].split("</div>", 1)[0]
-    assert "Macro pressure unavailable" in pressure
-    assert "NO PRESSURE DATA" not in pressure
+    m = re.search(r'id="macro-tape"[^>]*data-macro-pressure="([^"]*)"', html)
+    assert m is not None and m.group(1) == "UNKNOWN"
+    assert 'class="macro-pressure-line' not in html
 
 
 def test_macro_pressure_with_data_renders_inline_phrases() -> None:
+    # PRD-335 R4: the pressure engine value is an attribute on #macro-tape; no
+    # inline prose line and no standalone disclosure.
     html = render_dashboard_html(
         _payload(macro_drivers=_macro_drivers()),
         _run(),
         market_map=_market_map({"SPY": _mm_symbol("SPY")}),
     )
-    assert 'class="macro-pressure-line' in html
+    assert re.search(r'id="macro-tape"[^>]*data-macro-pressure="', html) is not None
+    assert 'class="macro-pressure-line' not in html
     assert '<details id="macro-pressure">' not in html
 
 
@@ -3668,14 +3677,16 @@ def test_prd334_macro_rows_render_in_family_order() -> None:
 
 
 def test_prd334_macro_families_follow_macro_bias() -> None:
-    """PRD-334 R5: the family groups sit below the MACRO BIAS line, in family order."""
+    """PRD-335 R4: the family groups render in family order (VOLATILITY / RATES /
+    FX / COMMODITIES / CRYPTO); the visible MACRO BIAS headline is removed."""
     html = render_dashboard_html(
         _payload(macro_drivers=_drivers_with_metals()),
         _run(),
         market_map=_market_map(),
     )
     tape = _macro_tape_block(html)
-    assert tape.index("VOLATILITY") < tape.index("RATES / FX") < tape.index("COMMODITIES") < tape.index("CRYPTO")
+    assert (tape.index("VOLATILITY") < tape.index("RATES")
+            < tape.index("FX") < tape.index("COMMODITIES") < tape.index("CRYPTO"))
     assert tape.index('class="macro-family"') < tape.index('data-symbol="VIX"')
 
 
@@ -3683,7 +3694,10 @@ def test_prd138_renderer_uses_shared_macro_tape_layout_constants() -> None:
     from cuttingboard.delivery.macro_tape_layout import MACRO_ROW_1, MACRO_ROW_2, TRADABLES_ROW
 
     assert tuple(slot.label for slot in MACRO_ROW_1.slots) == ("XAU", "XAG", "BTC")
-    assert tuple(slot.label for slot in MACRO_ROW_2.slots) == ("VIX", "DXY", "10Y", "OIL")
+    # PRD-335 R1/R2: 2Y (FRED DGS2), 30Y (^TYX), USDJPY (JPY=X) added.
+    assert tuple(slot.label for slot in MACRO_ROW_2.slots) == (
+        "VIX", "DXY", "USDJPY", "2Y", "10Y", "30Y", "OIL",
+    )
     assert tuple(slot.label for slot in TRADABLES_ROW.slots) == (
         "SPY", "QQQ", "GLD", "GDX", "SLV", "XLE",
     )
@@ -3797,18 +3811,21 @@ def test_prd136_r4a_spot_metals_in_non_tradable_symbols() -> None:
 # ---------------------------------------------------------------------------
 
 def test_prd214_macro_tally_present_and_agrees_with_headline() -> None:
-    # PRD-214: the per-driver macro-evidence rows (PRD-177 R3 / PRD-191) are
-    # superseded by a single risk-vote tally under the MACRO BIAS headline.
-    # Cyclicality-correct bullish drivers: VIX/DXY/10Y down, BTC up -> all four
-    # vote risk-ON (long); headline reads LONG and the tally must agree.
+    # PRD-335 R4: the visible MACRO BIAS headline and the risk-vote tally are
+    # removed; the SAME arithmetic (cyclicality-correct votes) is preserved on
+    # #macro-tape as data-risk-on / data-risk-off / data-macro-bias. Bullish
+    # drivers VIX/DXY/10Y down + BTC up -> all four vote risk-ON (long).
     drivers = _macro_drivers(vix=-0.5, dxy=-0.3, tnx=-0.4, btc=0.6)
     html = render_dashboard_html(_payload(macro_drivers=drivers), _run(), market_map=_market_map())
-    tape = _macro_tape_block(html)
-    assert "MACRO BIAS: LONG" in tape
-    m = re.search(r'class="macro-tally">Risk votes: (\d+) off / (\d+) on \S+ (\w+)</div>', tape)
-    assert m is not None, "PRD-214 macro-tally line missing"
-    off, on, bias_word = int(m.group(1)), int(m.group(2)), m.group(3)
-    assert (on, off, bias_word) == (4, 0, "LONG"), (on, off, bias_word)
+    m = re.search(
+        r'id="macro-tape"[^>]*data-macro-bias="([^"]*)"[^>]*data-risk-on="([^"]*)"'
+        r'[^>]*data-risk-off="([^"]*)"',
+        html,
+    )
+    assert m is not None, "PRD-335 macro-tape engine data-* attributes missing"
+    assert (m.group(1), int(m.group(2)), int(m.group(3))) == ("LONG", 4, 0)
+    assert "MACRO BIAS: LONG" not in html
+    assert 'class="macro-tally"' not in html
 
 
 def test_prd214_macro_evidence_rows_removed() -> None:
@@ -4179,21 +4196,30 @@ def test_prd318_details_default_collapsed_and_evidence_present() -> None:
 
 
 def test_prd318_authoritative_permission_renders_once_from_system_state() -> None:
+    # PRD-335 R5: the raw run/payload permission line is removed for non-locked
+    # runs (it duplicated the verdict). Only the operator lock surfaces a single
+    # canonical permission line, once, from system-state — never the payload
+    # summary, and never the market-state PERMISSION field.
+    locked_permission = _LOCK_PERMISSION
     normal_permission = "Long bias - defined risk preferred. Kill: VIX crosses 25."
-    locked_permission = "No new trades permitted — operator cannot monitor."
     payload = _payload()
     payload["summary"]["permission"] = "payload summary must not win"
 
-    for permission in (normal_permission, locked_permission):
-        html = render_dashboard_html(payload, _run(permission=permission), market_map=_market_map())
-        state = _top_block(html, "system-state")
+    # Locked: exactly one sys-permission line, carrying the canonical lock text.
+    html = render_dashboard_html(payload, _run(permission=locked_permission), market_map=_market_map())
+    state = _top_block(html, "system-state")
+    assert state.count('class="sys-permission"') == 1
+    assert state.count(locked_permission) == 1
+    assert html.count(locked_permission) == 1
+    assert "payload summary must not win" not in html
+    assert 'id="market-state"' not in html
+    assert '<div class="label">PERMISSION</div>' not in html
 
-        assert state.count('class="sys-permission"') == 1
-        assert state.count(permission) == 1
-        assert html.count(permission) == 1
-        assert "payload summary must not win" not in html
-        assert 'id="market-state"' not in html
-        assert '<div class="label">PERMISSION</div>' not in html
+    # Non-locked: no sys-permission line at all (the dedup), and the raw run
+    # permission text is not surfaced as a standalone line.
+    html2 = render_dashboard_html(payload, _run(permission=normal_permission), market_map=_market_map())
+    assert 'class="sys-permission"' not in html2
+    assert "payload summary must not win" not in html2
 
 
 # ---------------------------------------------------------------------------
@@ -4251,10 +4277,13 @@ def test_prd283_why_line_refusal_wins_over_gated_high_grade() -> None:
 
 
 def test_prd220_macro_pressure_one_bullet_per_line() -> None:
+    # PRD-335 R4: the bulleted per-component pressure phrases are removed entirely
+    # (the values/directions already communicate the observation); the engine
+    # value survives only as the data-macro-pressure attribute.
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
-    line = html.split('class="macro-pressure-line', 1)[1].split("</div>", 1)[0]
-    assert "• " in line
-    assert "<br>" in line  # phrases on separate lines
+    assert 'class="macro-pressure-line' not in html
+    assert "VIX permits longs" not in html and "DXY pressures longs" not in html
+    assert re.search(r'id="macro-tape"[^>]*data-macro-pressure="', html) is not None
 
 
 def test_prd312_tradables_label_then_price_no_arrow() -> None:
@@ -4528,9 +4557,12 @@ def test_r7_locked_dashboard_replaces_action_vocabulary() -> None:
     run = _run(outcome="NO_TRADE", permission=_LOCK_PERMISSION)
     html = render_dashboard_html(_payload(), run, market_map=mm)
 
-    # PRD-334 R3: the lock reads OBSERVE ONLY + the generic "No new trades
-    # permitted" verdict; A+ relabelled; ACTIONABLE gone.
-    assert 'data-raw-state="OBSERVE ONLY">OBSERVE ONLY</div>' in html
+    # PRD-334 R3 / PRD-335 R5: the lock reads OBSERVE ONLY, and the single reason
+    # line is the canonical "No new trades permitted — operator cannot monitor";
+    # A+ relabelled; ACTIONABLE gone. The three raw attributes now live on the
+    # decision-state div, so assert the state attribute and label separately.
+    assert 'data-raw-state="OBSERVE ONLY"' in html
+    assert '>OBSERVE ONLY</div>' in html
     assert "No new trades permitted" in html
     assert "A+ — OBSERVATION ONLY" in html
     assert "A+ — ACTIONABLE" not in html

@@ -20,7 +20,11 @@ def test_macro_tape_layout_rows_are_frozen_dataclasses() -> None:
 
 def test_macro_tape_layout_ordering_is_canonical() -> None:
     assert _labels(layout.MACRO_ROW_1) == ("XAU", "XAG", "BTC")
-    assert _labels(layout.MACRO_ROW_2) == ("VIX", "DXY", "10Y", "OIL")
+    # PRD-335 (R1/R2): USDJPY beside DXY (FX); 2Y (FRED DGS2) before 10Y and 30Y
+    # (rates) — all display-only, none voting.
+    assert _labels(layout.MACRO_ROW_2) == (
+        "VIX", "DXY", "USDJPY", "2Y", "10Y", "30Y", "OIL",
+    )
     assert _labels(layout.TRADABLES_ROW) == ("SPY", "QQQ", "GLD", "GDX", "SLV", "XLE")
 
 
@@ -35,7 +39,7 @@ def test_macro_tape_layout_metals_display_is_futures_ticker() -> None:
     assert by_label["XAU"].display == "GC"
     assert by_label["XAG"].display == "SI"
     # Non-metals slots default the display to their label (id == visible text).
-    for label in ("BTC", "VIX", "DXY", "10Y", "OIL"):
+    for label in ("BTC", "VIX", "DXY", "USDJPY", "2Y", "10Y", "30Y", "OIL"):
         assert by_label[label].display == label
 
 
