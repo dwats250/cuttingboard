@@ -1043,9 +1043,11 @@ _CSS = (
     ".macro-tape-slot{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}"
     ".macro-tape-label{margin-right:0.25rem}"
     ".macro-tape-value{opacity:0.85}"
-    # PRD-335 R2/R9: honest daily-cadence marker beside a daily driver's value
-    # (e.g. the FRED 2Y), sourced only from a producer-written observation date.
-    ".macro-tape-asof{margin-left:0.3rem;color:#888;font-size:0.62rem;white-space:nowrap}"
+    # PRD-335 R2/R9: honest daily-cadence marker for a daily driver's value (e.g.
+    # the FRED 2Y), sourced only from a producer-written observation date. Rendered
+    # on its OWN line under the value so the date stays fully legible inside the
+    # narrow tape cell at 390px (never clipped to an ellipsis).
+    ".macro-tape-asof{display:block;color:#888;font-size:0.6rem;white-space:nowrap;margin-top:1px}"
     ".candidate-card{border-left:3px solid #2a2a2a;padding:0.75rem;margin-bottom:0.5rem}"
     # PRD-249: one-line identity header replaces the 8-line stacked SYMBOL/GRADE/
     # BIAS/STRUCTURE block.
