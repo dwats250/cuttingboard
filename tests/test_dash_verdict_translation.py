@@ -77,6 +77,26 @@ def test_trade_permitted_surfaces_the_regime_direction_verb() -> None:
         assert "System halted" not in sentence
 
 
+def test_neutral_permitted_trade_never_says_stand_down() -> None:
+    # PRD-334 review F1 (BLOCKER): a NEUTRAL-regime run can still resolve
+    # outcome=TRADE (positive/negative NEUTRAL scores qualify LONG/SHORT
+    # candidates). The regime helper returns the NON-directional "Stand down" for
+    # NEUTRAL; surfacing it under TRADE PERMITTED would simultaneously permit and
+    # deny trading. The verdict must read the faithful neutral "Trades permitted",
+    # never "Stand down", and must not invent a direction the neutral regime lacks.
+    for run in (_run(outcome="TRADE"),
+                _run(outcome="TRADE", posture="CONTROLLED_LONG"),
+                _run(outcome="TRADE", posture="DEFENSIVE_SHORT")):
+        html = render_dashboard_html(_payload(market_regime="NEUTRAL"), run, market_map=_mm())
+        raw_state, label = _state(html)
+        _rt, _rp, sentence = _verdict(html)
+        assert raw_state == "TRADE PERMITTED" and label == "TRADE PERMITTED", raw_state
+        assert sentence == "Trades permitted", sentence
+        assert "Stand down" not in sentence            # never deny in a permitted state
+        for verb in _DIRECTION_VERBS:                   # NEUTRAL has no regime direction
+            assert verb not in sentence
+
+
 # --- no-trade reads "No new trades permitted", never a direction verb ----------
 
 def test_no_trade_reads_no_new_trades_not_a_direction() -> None:
@@ -189,6 +209,11 @@ def test_verdict_sentence_translation_is_state_specific() -> None:
     assert _verdict_sentence("HALT", "Longs allowed", mixed_artifacts=False) == "System halted"
     assert _verdict_sentence("STATE UNAVAILABLE", "Longs allowed", mixed_artifacts=True) == "Inputs out of sync"
     assert _verdict_sentence("STATE UNAVAILABLE", "Longs allowed", mixed_artifacts=False) == "Board state unavailable"
+    # PRD-334 review F1 mutation proof: a permitted trade whose regime verb is the
+    # non-directional "Stand down" reads the neutral "Trades permitted" -- NEVER
+    # "Stand down" (which would deny in a permitted state). Reverting the F1 fix
+    # (returning regime_permission_text unconditionally here) fails this assertion.
+    assert _verdict_sentence("TRADE PERMITTED", "Stand down", mixed_artifacts=False) == "Trades permitted"
     # a no-trade state never yields a trade-direction verb, whatever the regime verb
     for verb in _DIRECTION_VERBS:
         assert _verdict_sentence("STAY FLAT", verb, mixed_artifacts=False) not in _DIRECTION_VERBS
@@ -196,16 +221,21 @@ def test_verdict_sentence_translation_is_state_specific() -> None:
 
 def test_visible_copy_never_contradicts_raw_state() -> None:
     # The faithfulness invariant across the whole matrix: a trade-direction verb is
-    # visible ONLY when data-raw-state is TRADE PERMITTED.
+    # visible ONLY when data-raw-state is TRADE PERMITTED (a permitted trade may
+    # still read the neutral "Trades permitted" under a NEUTRAL regime -- F1); and a
+    # permitted trade never visibly denies trading ("Stand down" / "No new trades").
     cases = [
-        _run(outcome="TRADE"),
-        _run(outcome="NO_TRADE"),
-        _run(system_halted=True, outcome="NO_TRADE"),
-        _run(outcome="NO_TRADE", permission=config.OPERATOR_LOCK_PERMISSION),
+        ("RISK_ON", _run(outcome="TRADE")),
+        ("NEUTRAL", _run(outcome="TRADE")),          # F1: permitted but non-directional
+        ("RISK_ON", _run(outcome="NO_TRADE")),
+        ("RISK_ON", _run(system_halted=True, outcome="NO_TRADE")),
+        ("RISK_ON", _run(outcome="NO_TRADE", permission=config.OPERATOR_LOCK_PERMISSION)),
     ]
-    for run in cases:
-        html = render_dashboard_html(_payload(market_regime="RISK_ON"), run, market_map=_mm())
+    for regime, run in cases:
+        html = render_dashboard_html(_payload(market_regime=regime), run, market_map=_mm())
         raw_state, _label = _state(html)
         _rt, _rp, sentence = _verdict(html)
-        direction_shown = any(v in sentence for v in _DIRECTION_VERBS)
-        assert direction_shown == (raw_state == "TRADE PERMITTED"), (raw_state, sentence)
+        if any(v in sentence for v in _DIRECTION_VERBS):     # a direction implies permitted
+            assert raw_state == "TRADE PERMITTED", (raw_state, sentence)
+        if raw_state == "TRADE PERMITTED":                   # never deny in a permitted state
+            assert "Stand down" not in sentence and "No new trades" not in sentence

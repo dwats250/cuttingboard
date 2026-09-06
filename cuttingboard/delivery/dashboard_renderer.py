@@ -1023,7 +1023,7 @@ _CSS = (
     # (never a forced 3-col grid), so 1-3 drivers per family read cleanly.
     ".macro-family{margin-top:8px}"
     ".macro-family-cap{font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:#888}"
-    ".macro-family-note{text-transform:none;letter-spacing:0;color:#666;font-size:.62rem}"
+    ".macro-family-note{text-transform:none;letter-spacing:0;color:var(--color-neutral);font-size:.62rem}"
     ".macro-drivers-row{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:4px;overflow-x:hidden}"
     ".macro-drivers-row .macro-tape-slot{flex:1 1 90px;min-width:0}"
     ".macro-tradables-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;"
@@ -1981,8 +1981,16 @@ def _verdict_sentence(
     """PRD-334 R3: deterministic, faithful TRANSLATION of the ALREADY-RESOLVED
     decision state + permission into a plain-language verdict sentence. It authors
     no claim the state machine did not establish:
-    - TRADE PERMITTED surfaces _regime_to_permission_verb's own output, preserving
-      the long / short / momentum-long distinction.
+    - TRADE PERMITTED surfaces _regime_to_permission_verb's own output when it is a
+      directional verb (Longs/Shorts/Momentum longs allowed), preserving the long /
+      short / momentum-long distinction. PRD-334 review F1: the regime helper's
+      NON-directional fallback "Stand down" must NEVER be shown under a permitted
+      trade -- a NEUTRAL-regime run can still resolve outcome=TRADE (positive/
+      negative NEUTRAL scores qualify LONG/SHORT candidates), and "Stand down ·
+      TRADE PERMITTED" simultaneously permits and denies. A permitted trade with no
+      regime-directional verb reads the faithful neutral "Trades permitted"; the
+      canonical restriction stays on the sys-permission line, and no trade direction
+      is invented.
     - HALT reads "System halted" -- no invented single cause (the WHY line carries
       the specific reason when the state machine computed one).
     - STATE UNAVAILABLE reads "Inputs out of sync" (mixed artifacts) or the generic
@@ -1992,7 +2000,7 @@ def _verdict_sentence(
       the generic no-trade statement, WITHOUT asserting "nothing qualifies".
     """
     if decision_state == "TRADE PERMITTED":
-        return regime_permission_text
+        return regime_permission_text if regime_permission_text != "Stand down" else "Trades permitted"
     if decision_state == "HALT":
         return "System halted"
     if decision_state == "STATE UNAVAILABLE":
@@ -3472,14 +3480,28 @@ def render_dashboard_html(
     w('<div class="block operator-zone" id="market-structure">')
     w('  <h2>MARKET STRUCTURE <span class="label">context only</span></h2>')
 
-    # --- market-movement (PRD-311: display-only 12/12 movement card; emitted iff
-    #     a valid schema_version-2 artifact is present, else true omission -> the
-    #     document stays byte-identical to the pre-card baseline). movement_card
-    #     owns all validation/grouping/ordering; the renderer only loads + emits. ---
-    if movement_snapshot is not None:
+    # --- market-movement + participation coverage (PRD-311 / PRD-334 review F4) ---
+    #     movement_card owns all validation/grouping/ordering. R9 moved the former
+    #     TAPE-foot PARTICIPATION availability notice here; F4: it must survive even
+    #     when the movement card itself is unavailable, so the operator never
+    #     silently loses the coverage signal. The count and clock come from
+    #     movement_card's own model -- no new market logic is invented.
+    #     The card fragment (when present) already carries the capture clock, so the
+    #     adjacent coverage line states only the usable/total count to avoid a
+    #     duplicate "captured ET"; when the card is suppressed the line still states
+    #     "not captured" so the operator never silently loses the coverage signal.
+    _mvmt = movement_card.build_movement_card(movement_snapshot) if movement_snapshot is not None else None
+    if _mvmt is not None:
+        _mvmt_chips = [chip for _grp, _chips in _mvmt.groups for chip in _chips]
+        _mvmt_usable = sum(1 for _chip in _mvmt_chips if not _chip.endswith(" n/a"))
+        w('  <div class="zone-item"><div class="label">PARTICIPATION</div>'
+          f'<div class="zone-value">{_mvmt_usable}/{len(_mvmt_chips)} captured</div></div>')
         movement_fragment = movement_card.render_fragment(movement_snapshot)
         if movement_fragment:
             w(movement_fragment)
+    else:
+        w('  <div class="zone-item"><div class="label">PARTICIPATION</div>'
+          '<div class="zone-value">not captured</div></div>')
 
     # --- Market Control split (PRD-334 R6, owner ruling G2): the current-natured
     #     TRANSITION + INVALIDATION projections render near SPY SESSION (their typed-

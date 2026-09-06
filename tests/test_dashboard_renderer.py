@@ -4764,6 +4764,11 @@ def test_r7_locked_sunday_context_has_no_watch_directive():
 _GEX_FROZEN = datetime(2026, 4, 28, 12, 5, 0, tzinfo=timezone.utc)
 _GEX_GOLDEN = Path(__file__).resolve().parent / "data" / "dashboard_pre_gex_golden.html"
 _CB_ROOT = Path(__file__).resolve().parent.parent / "cuttingboard"
+# PRD-334 review F2: a guaranteed-absent macro snapshot path. Rendering the whole-
+# dashboard goldens through this neutralizes the macro region (NO LIVE MACRO DATA)
+# so the dirty logs/macro_drivers_snapshot.json is never rebaselined as canonical
+# truth. Both the goldens and every render that compares against them use it.
+_NEUTRAL_MACRO_PATH = Path("/nonexistent/neutralized_macro_snapshot.json")
 
 
 def _valid_gex():
@@ -4828,14 +4833,20 @@ def test_prd330_golden_regions_and_embedded_svg_pinned() -> None:
 def test_gex_absent_baseline_identical(monkeypatch):
     # mutation: emit an empty wrapper on absence, OR add a rule to the
     # unconditional _CSS -> the suppressed document diverges from the golden.
+    # PRD-334 review F2: render through the NEUTRALIZED macro path so the whole-
+    # dashboard golden never bakes the dirty logs/macro_drivers_snapshot.json live
+    # readings in as canonical truth (macro region renders its NO-LIVE-MACRO state).
     monkeypatch.setattr(_dr, "_utcnow", lambda: _GEX_FROZEN)
     golden = _GEX_GOLDEN.read_text(encoding="utf-8")
-    assert render_dashboard_html(_payload(), _run(), gex_snapshot=None, now=_GEX_FROZEN) == golden
+    assert render_dashboard_html(_payload(), _run(), gex_snapshot=None, now=_GEX_FROZEN,
+                                 macro_snapshot_path=_NEUTRAL_MACRO_PATH) == golden
     stale = _valid_gex()
     stale["fetched_at_utc"] = "2020-01-01T00:00:00+00:00"
-    assert render_dashboard_html(_payload(), _run(), gex_snapshot=stale, now=_GEX_FROZEN) == golden
+    assert render_dashboard_html(_payload(), _run(), gex_snapshot=stale, now=_GEX_FROZEN,
+                                 macro_snapshot_path=_NEUTRAL_MACRO_PATH) == golden
     assert render_dashboard_html(
-        _payload(), _run(), gex_snapshot={"schema_version": 99}, now=_GEX_FROZEN
+        _payload(), _run(), gex_snapshot={"schema_version": 99}, now=_GEX_FROZEN,
+        macro_snapshot_path=_NEUTRAL_MACRO_PATH,
     ) == golden
 
 
@@ -4905,23 +4916,26 @@ def test_gex_isolation_ast():
 # PRD-333: GEX synthetic reference coexistence / isolation (whole-dashboard).
 # ============================================================================
 def _strip_gex_reference(html: str) -> str:
-    """Remove the whole #gex-reference disclosure (it nests <details> for the table),
-    so the remaining document can be compared for reference-independence."""
-    i = html.index('<details class="gex-reference"')
+    """Remove the whole #gex-reference container (a summary-first <section> that holds
+    one nested <details> for the profile; it contains no nested <section>), so the
+    remaining document can be compared for reference-independence."""
+    i = html.index('<section class="gex-reference"')
     depth, j = 0, i
     while True:
-        no, nc = html.find("<details", j), html.find("</details>", j)
+        no, nc = html.find("<section", j), html.find("</section>", j)
         if no != -1 and no < nc:
-            depth, j = depth + 1, no + 8
+            depth, j = depth + 1, no + len("<section")
         else:
-            depth, j = depth - 1, nc + len("</details>")
+            depth, j = depth - 1, nc + len("</section>")
             if depth == 0:
                 return html[:i] + html[j:]
 
 
-def test_prd333_reference_present_placed_and_collapsed(monkeypatch):
-    # R1: exactly one #gex-reference, after WATCHING and before DETAILS, collapsed,
-    # data-gex-kind="reference", and NOT an operator zone.
+def test_prd333_reference_present_placed_and_summary_first(monkeypatch):
+    # PRD-334 R9 + review F3: exactly one #gex-reference, after WATCHING and before
+    # DETAILS, a summary-first <section> (NOT an outer disclosure) whose SINGLE nested
+    # "Full GEX details" disclosure is collapsed; data-gex-kind="reference"; not an
+    # operator zone.
     monkeypatch.setattr(_dr, "_utcnow", lambda: _GEX_FROZEN)
     html = render_dashboard_html(_payload(), _run(), gex_snapshot=None, now=_GEX_FROZEN)
     assert html.count('id="gex-reference"') == 1
@@ -4929,11 +4943,14 @@ def test_prd333_reference_present_placed_and_collapsed(monkeypatch):
     ir = html.index('id="gex-reference"')
     idet = html.index('id="details-history"')
     assert iw < ir < idet
-    assert '<details class="gex-reference" id="gex-reference" data-gex-kind="reference">' in html
+    assert '<section class="gex-reference" id="gex-reference" data-gex-kind="reference">' in html
     assert 'class="block operator-zone" id="gex-reference"' not in html
-    # collapsed: the <details> opening tag carries no `open` attribute
-    open_tag = html[ir - 40: html.index(">", ir) + 1]
-    assert " open" not in open_tag
+    # summary-first, single deep-evidence disclosure: the reference subtree carries
+    # exactly one <details> (the profile), collapsed -- no outer collapse, no chain.
+    ref_sub = html[ir: html.index("</section>", ir)]
+    assert ref_sub.count("<details") == 1
+    assert '<details class="gex-full"><summary>Full GEX details</summary>' in ref_sub
+    assert '<details class="gex-full" open>' not in ref_sub
 
 
 def test_prd333_reference_availability_is_isolated(monkeypatch):
@@ -5142,7 +5159,10 @@ def _a1c_render_html(monkeypatch, *, intraday_path=_A1C_MISSING, mm=None, fixtur
     payload["meta"]["generation_id"] = "test-gen-001"
     run["generation_id"] = "test-gen-001"
     mm["generation_id"] = "test-gen-001"
-    kwargs = {"price_bars_snapshot": _a1c_bars(symbols=tuple(mm["symbols"])), "now": _A1C_NOW}
+    kwargs = {"price_bars_snapshot": _a1c_bars(symbols=tuple(mm["symbols"])), "now": _A1C_NOW,
+              # PRD-334 review F2: neutralized macro path -> the A1-C golden never bakes
+              # the dirty logs/macro_drivers_snapshot.json live readings as canonical truth.
+              "macro_snapshot_path": _NEUTRAL_MACRO_PATH}
     if fixture_mode:
         kwargs["fixture_mode"] = True
     return render_dashboard_html(payload, run, market_map=mm, **kwargs)

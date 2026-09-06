@@ -1,7 +1,9 @@
 """PRD-333: GEX synthetic reference carrier (display-only, educational).
 
 A frozen synthetic SPX example rendered through the existing ``gex_card`` geometry
-as one labeled disclosure at the WATCHING -> DETAILS boundary. Its ONLY input is
+as one summary-first labeled ``<section>`` in the GEX region: the compact identity
+and core-row summary show directly, with the dense profile behind a single nested
+"Full GEX details" disclosure (PRD-334 R7 / review F3). Its ONLY input is
 one bundled resource beside this module (no caller path, clock, network, or
 snapshot input), so it can never show current-market data by construction, not
 merely by label. The envelope carries NONE of the production identity fields:
@@ -37,8 +39,8 @@ _REF_LADDER = gex_card.LadderLabel(
 # summary >= 44px touch target, kv-grid wrap fix, wide table scrolls in place.
 _STYLE = (
     "  <style>#gex-reference{border-top:1px solid #222;margin:0 0 1rem;padding:12px 0}"
-    "#gex-reference>summary{cursor:pointer;list-style:none;color:#aaa;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;min-height:44px;display:flex;align-items:center;flex-wrap:wrap;gap:.15rem .5rem}"
-    "#gex-reference>summary .label{text-transform:none;letter-spacing:0}"
+    "#gex-reference>.gex-reference-head{color:#aaa;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;flex-wrap:wrap;gap:.15rem .5rem;margin-bottom:6px}"
+    "#gex-reference>.gex-reference-head .label{text-transform:none;letter-spacing:0}"
     "#gex-reference h2{font-size:0.8rem;color:#9aa4b2;text-transform:uppercase;letter-spacing:.05em;margin:2px 0 6px}"
     "#gex-reference .gex-bins{display:block;overflow-x:auto;max-width:100%}"
     "#gex-reference .kv-grid{grid-template-columns:minmax(0,1fr) auto;column-gap:0.6rem}"
@@ -154,23 +156,27 @@ def build_reference(envelope) -> GexReference | None:
     )
 
 
-def _details_open(inner: list[str]) -> str:
-    """Wrap inner lines in the labeled collapsed disclosure: always exactly one
-    #gex-reference, always data-gex-kind="reference", never a current wrapper."""
+def _container_open(inner: list[str]) -> str:
+    """Wrap inner lines in the summary-first reference container: always exactly one
+    #gex-reference, always data-gex-kind="reference", never a current wrapper. PRD-334
+    R7 / review F3: the compact identity + summary is surfaced DIRECTLY (a plain
+    <section>, no outer disclosure), so no summary sits behind a collapse; the single
+    nested "Full GEX details" disclosure carries the dense profile, so the reference
+    presents exactly one deep-evidence disclosure and no disclosure chain."""
     head = [
-        '<details class="gex-reference" id="gex-reference" data-gex-kind="reference">',
+        '<section class="gex-reference" id="gex-reference" data-gex-kind="reference">',
         _STYLE,
-        '  <summary>GEX REFERENCE &middot; SYNTHETIC EXAMPLE'
+        '  <div class="gex-reference-head">GEX REFERENCE &middot; SYNTHETIC EXAMPLE'
         '<span class="label">Learning context only &middot; current availability is '
-        'shown in TAPE</span></summary>',
+        'shown in the GEX card above</span></div>',
         '  <div class="gex-reference-body">',
     ]
-    return "\n".join([*head, *inner, "  </div>", "</details>"])
+    return "\n".join([*head, *inner, "  </div>", "</section>"])
 
 
 def _unavailable() -> str:
-    """R8: labeled disclosure, no numbers, no ladder, no fallback."""
-    return _details_open(['    <div class="label">Reference example unavailable.</div>'])
+    """R8: labeled container, no numbers, no ladder, no fallback."""
+    return _container_open(['    <div class="label">Reference example unavailable.</div>'])
 
 
 def _render(ref: GexReference) -> str:
@@ -185,17 +191,19 @@ def _render(ref: GexReference) -> str:
         '    <div class="kv-grid">',
         *rows,
         "    </div>",
-        # PRD-334 R7: the dense structural profile sits behind ONE bounded "Full GEX
-        # details" disclosure scoped to this fragment. The frozen-example identity
-        # (heading, "Observation date: none (synthetic)", SPX instrument, source) and
-        # the compact summary stay visible above it -- unmistakably not-current data.
+        # PRD-334 R7 / review F3: the dense structural profile sits behind ONE bounded
+        # "Full GEX details" disclosure scoped to this fragment -- the reference's only
+        # disclosure. The frozen-example identity (heading, "Observation date: none
+        # (synthetic)", SPX instrument, source) and the compact core-row summary are
+        # surfaced directly above it (no outer collapse) -- unmistakably not-current
+        # data, and useful while this deep disclosure stays closed.
         '    <details class="gex-full"><summary>Full GEX details</summary>',
         *gex_card._profile_block(ref.profile, _REF_LADDER),
         "    </details>",
         f'    <div class="gex-reference-guide">{_GUIDE}</div>',
         f'    <div class="label">{_FOOTNOTE}</div>',
     ]
-    return _details_open(inner)
+    return _container_open(inner)
 
 
 def render_reference_fragment() -> str:

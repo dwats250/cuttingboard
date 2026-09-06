@@ -79,15 +79,15 @@ def test_fragment_marks_reference_kind_not_gex_context():
 
 def test_five_identity_surfaces():
     frag = gex_reference.render_reference_fragment()
-    assert "GEX REFERENCE" in frag                                     # collapsed summary
-    assert "REFERENCE - SYNTHETIC SPX EXAMPLE" in frag                 # expanded heading
+    assert "GEX REFERENCE" in frag                                     # visible head caption
+    assert "REFERENCE - SYNTHETIC SPX EXAMPLE" in frag                 # summary heading
     assert "REFERENCE &middot; SYNTHETIC SPX EXAMPLE" in frag          # ladder visible caption
     assert "Reference synthetic SPX example, not live" in frag         # ladder accessible name
     # provenance block: scenario_id, instrument, null observation date
     assert "spx-structure-v1" in frag
     assert "Instrument: SPX" in frag
     assert "Observation date: none (synthetic)" in frag
-    assert "current availability is shown in TAPE" in frag
+    assert "current availability is shown in the GEX card above" in frag
 
 
 def test_ladder_caption_and_aria_both_carry_identity():
