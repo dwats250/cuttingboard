@@ -61,3 +61,20 @@ tests approx +300/-60 incl. the new fence module; two whole-dashboard goldens
 regenerate once. FILES list is in PRD-335.md.
 
 Nothing here authorizes implementation. No branch, no merge, no auto-merge.
+
+## Post-Gate-A FILES amendment (GOV-2 renewal; Helm ruling 2026-09-05, F1)
+
+The implementation's authorized R1/R4/R5/R6 changes broke pins in five
+test/oracle files co-located with the changed surfaces. Helm judged all five
+required consequences (no production-ceiling increase) and ordered a mechanical
+GOV-2 renewal. The FILES list in this packet's `PRD-335.md` (and the canonical
+`docs/prd_history/PRD-335.md`) now adds exactly:
+`tests/data/setup_chart_legacy_oracle.json` (golden_regions SHAs re-pin; the
+byte-frozen SVG oracle sha + `cases` unchanged), `tests/test_dash_system_state.py`,
+`tests/test_dash_candidates.py`, `tests/test_phase1.py`,
+`tests/test_optional_macro_drivers_dedup.py`. Production FILES remain 12 / <= 12;
+NO new production or design surface is authorized. Amended Gate A pending a
+fresh-context PRD-amendment review scoped to these three questions: (1) are the
+five files required consequences of PRD-335, (2) does the amendment broaden any
+production/design authority, (3) does the final FILES list cover the
+Stage-0 -> implementation diff.
