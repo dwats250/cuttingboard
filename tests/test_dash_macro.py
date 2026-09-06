@@ -72,10 +72,12 @@ def test_macro_tape_arrows() -> None:
     p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=-0.01, tnx=0.0, btc=0.03))
     html = render_dashboard_html(p, _run())
     tape = _macro_tape_block(html)
-    assert "VIX ↑" in tape
-    assert "DXY ↓" in tape
-    assert "10Y →" in tape
-    assert "BTC ↑" in tape
+    # PRD-336 R1: STACKED cell — the label is on its own line; the direction arrow
+    # sits on the value line inside .macro-tape-quote (outside the pure value span).
+    assert '<span class="macro-tape-label">VIX</span><span class="macro-tape-quote">↑&nbsp;' in tape
+    assert '<span class="macro-tape-label">DXY</span><span class="macro-tape-quote">↓&nbsp;' in tape
+    assert '<span class="macro-tape-label">10Y</span><span class="macro-tape-quote">→&nbsp;' in tape
+    assert '<span class="macro-tape-label">BTC</span><span class="macro-tape-quote">↑&nbsp;' in tape
 
 
 def test_macro_tape_no_crash_when_market_map_none() -> None:
@@ -91,27 +93,26 @@ def test_macro_tape_value_row_present() -> None:
 
 
 def test_macro_tape_value_row_slot_order() -> None:
-    # PRD-335 R1/R4: the macro drivers regroup into market families
-    # (VOLATILITY / RATES [2Y,10Y,30Y] / FX [DXY,USDJPY] / COMMODITIES / CRYPTO),
-    # then the canonical tradables row (unchanged). Cell markup / data-symbol is
-    # byte-identical to the pre-PRD rows.
+    # PRD-336 R1: four families rendered four-across in DOM order — VOL / CRYPTO
+    # (VIX/BTC/ETH), RATES (2Y/5Y/10Y/30Y), FX (DXY/EURUSD/USDJPY/USDCAD), FUTURES
+    # (OIL/NG/XAU/XAG) — then the canonical tradables row (unchanged). data-symbol
+    # is the slot label (OIL stays OIL though the cockpit shows "CL").
     html = render_dashboard_html(_payload(), _run())
     slots = _macro_tape_value_slots(html)
     assert [symbol for symbol, _ in slots] == [
-        "VIX",
-        "2Y", "10Y", "30Y",
-        "DXY", "USDJPY",
-        "XAU", "XAG", "OIL",
-        "BTC",
+        "VIX", "BTC", "ETH",
+        "2Y", "5Y", "10Y", "30Y",
+        "DXY", "EURUSD", "USDJPY", "USDCAD",
+        "OIL", "NG", "XAU", "XAG",
         "SPY", "QQQ", "GLD", "GDX", "SLV", "XLE",
     ]
 
 
-def test_macro_tape_value_row_has_sixteen_fixed_slots() -> None:
-    # PRD-335 R1: slot count grew from 13 -> 16 (added 2Y, 30Y, USDJPY drivers;
-    # the six tradables are unchanged).
+def test_macro_tape_value_row_has_twenty_one_fixed_slots() -> None:
+    # PRD-336 R1: slot count grew 16 -> 21 (added the five display-only cockpit
+    # drivers 5Y/EURUSD/USDCAD/NG/ETH; the six tradables are unchanged).
     html = render_dashboard_html(_payload(), _run())
-    assert len(_macro_tape_value_slots(html)) == 16
+    assert len(_macro_tape_value_slots(html)) == 21
 
 
 def test_macro_tape_value_row_vix_format() -> None:

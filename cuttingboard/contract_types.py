@@ -47,7 +47,12 @@ from typing import Any, NotRequired, Optional, TypedDict
 # a fetch failure never halts, and they carry NO macro-pressure vote (the
 # decision-authority fence, tests/test_prd335_display_only_fence.py).
 _OPTIONAL_MACRO_DRIVERS: frozenset[str] = frozenset(
-    {"oil", "gold", "silver", "rates_2y", "rates_30y", "usdjpy"}
+    {
+        "oil", "gold", "silver", "rates_2y", "rates_30y", "usdjpy",
+        # PRD-336: five further display-only cockpit drivers (fetch failure never
+        # halts; no vote at any site).
+        "rates_5y", "eurusd", "usdcad", "natgas", "ethereum",
+    }
 )
 
 

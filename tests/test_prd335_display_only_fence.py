@@ -46,7 +46,11 @@ from cuttingboard.normalization import NormalizedQuote
 from tests.dash_helpers import _macro_drivers, _payload, _run
 from tests.test_contract_macro_drivers import _build_contract, _macro_quotes
 
-_NEW_DRIVERS = ("rates_2y", "rates_30y", "usdjpy")
+_NEW_DRIVERS = (
+    "rates_2y", "rates_30y", "usdjpy",
+    # PRD-336: five further display-only cockpit drivers on the same fence.
+    "rates_5y", "eurusd", "usdcad", "natgas", "ethereum",
+)
 # PRD-335 F2: a deterministic render reference date so a dated 2Y render never
 # depends on the wall clock. as_of "2026-09-02" is 2 days before this — admissible.
 _RENDER_NOW = datetime(2026, 9, 4, 13, 0, tzinfo=timezone.utc)
@@ -70,7 +74,11 @@ def _base() -> dict:
 
 def _new_block(key: str) -> dict:
     """A display-only driver block with an EXTREME move (that must not vote)."""
-    symbol = {"rates_2y": "DGS2", "rates_30y": "^TYX", "usdjpy": "JPY=X"}[key]
+    symbol = {
+        "rates_2y": "DGS2", "rates_30y": "^TYX", "usdjpy": "JPY=X",
+        "rates_5y": "DGS5", "eurusd": "EURUSD=X", "usdcad": "USDCAD=X",
+        "natgas": "NG=F", "ethereum": "ETH-USD",
+    }[key]
     block = {"symbol": symbol, "level": 3.6, "change_pct": -0.05}
     if key in _DAILY_MACRO_DRIVERS:
         block["as_of"] = "2026-09-02"
@@ -91,6 +99,21 @@ def test_f1_new_drivers_are_display_only_membership() -> None:
         # ... but ARE in the display / optional registries.
         assert key in _OPTIONAL_MACRO_DRIVERS, key
         assert key in _MACRO_DRIVER_SYMBOLS, key
+
+
+def test_f1_new_symbols_absent_from_regime_votes() -> None:
+    # Site 5 (PRD-336): regime.py votes by SYMBOL via hardcoded .get() reads and a
+    # raw_votes list. A display-only driver's quote symbol must never appear in the
+    # regime module source — the site the PRD-335 fence did not assert. A
+    # whitelist-only check is insufficient; this reaches the actual vote site.
+    import inspect
+    import cuttingboard.regime as regime_mod
+    src = inspect.getsource(regime_mod)
+    for key in _NEW_DRIVERS:
+        symbol = _MACRO_DRIVER_SYMBOLS[key]
+        assert symbol not in src, (
+            f"display-only {key} symbol {symbol!r} must not be read by regime.py"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -124,7 +147,7 @@ def test_f2a_positive_control_real_vote_is_visible() -> None:
 # F-2b — invariance per new driver (the fence)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("keys", [("rates_2y",), ("rates_30y",), ("usdjpy",), _NEW_DRIVERS])
+@pytest.mark.parametrize("keys", [*[(k,) for k in _NEW_DRIVERS], _NEW_DRIVERS])
 def test_f2b_new_drivers_do_not_change_pressure(keys) -> None:
     base = _base()
     variant = _base()
@@ -243,7 +266,7 @@ def test_f2d_mutation_demo_shows_the_fence_is_load_bearing(new_key) -> None:
 # F-3 — sizing invariance through the policy path
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("keys", [("rates_2y",), ("rates_30y",), ("usdjpy",), _NEW_DRIVERS])
+@pytest.mark.parametrize("keys", [*[(k,) for k in _NEW_DRIVERS], _NEW_DRIVERS])
 def test_f3_sizing_invariant_through_policy(keys) -> None:
     base_pressure = build_macro_pressure(_base())
     variant = _base()
@@ -276,6 +299,13 @@ def test_f4_display_tally_invariant_with_new_drivers() -> None:
     md["rates_2y"] = {"symbol": "DGS2", "level": 3.6, "change_pct": -0.05, "as_of": "2026-09-02"}
     md["rates_30y"] = {"symbol": "^TYX", "level": 4.7, "change_pct": 0.05}
     md["usdjpy"] = {"symbol": "JPY=X", "level": 148.2, "change_pct": 0.05}
+    # PRD-336: the five new display-only drivers, all with extreme moves — the
+    # visible bias tally must stay byte-identical (the MACRO_BIAS_DRIVERS fence).
+    md["rates_5y"] = {"symbol": "DGS5", "level": 4.4, "change_pct": -0.05, "as_of": "2026-09-02"}
+    md["eurusd"] = {"symbol": "EURUSD=X", "level": 1.08, "change_pct": 0.05}
+    md["usdcad"] = {"symbol": "USDCAD=X", "level": 1.38, "change_pct": 0.05}
+    md["natgas"] = {"symbol": "NG=F", "level": 3.5, "change_pct": 0.05}
+    md["ethereum"] = {"symbol": "ETH-USD", "level": 3200.0, "change_pct": 0.05}
     with_new = render_dashboard_html(_payload(macro_drivers=md), _run(),
                                      market_map=None, now=_RENDER_NOW)
 
@@ -297,6 +327,12 @@ def _full_macro_drivers() -> dict:
         "rates_2y": {"symbol": "DGS2", "level": 3.6, "change_pct": 2.86, "as_of": "2026-09-02"},
         "rates_30y": {"symbol": "^TYX", "level": 4.7, "change_pct": 0.3},
         "usdjpy": {"symbol": "JPY=X", "level": 148.2, "change_pct": 0.4},
+        # PRD-336 display-only cockpit drivers (rates_5y is daily -> carries as_of).
+        "rates_5y": {"symbol": "DGS5", "level": 4.4, "change_pct": 0.5, "as_of": "2026-09-02"},
+        "eurusd": {"symbol": "EURUSD=X", "level": 1.08, "change_pct": 0.2},
+        "usdcad": {"symbol": "USDCAD=X", "level": 1.38, "change_pct": 0.1},
+        "natgas": {"symbol": "NG=F", "level": 3.5, "change_pct": 0.6},
+        "ethereum": {"symbol": "ETH-USD", "level": 3200.0, "change_pct": 1.2},
     }
     return md
 
@@ -309,7 +345,8 @@ def test_f5_payload_guard_accepts_present_absent_rejects_unknown() -> None:
     payload_mod._require_macro_drivers(absent)                     # accepts absence (optional)
 
     unknown = dict(present)
-    unknown["rates_5y"] = {"symbol": "DGS5", "level": 3.9, "change_pct": 0.1}
+    # rates_1y is genuinely unregistered (rates_5y is now a valid PRD-336 key).
+    unknown["rates_1y"] = {"symbol": "DGS1", "level": 3.9, "change_pct": 0.1}
     with pytest.raises(ValueError, match="unexpected driver keys"):
         payload_mod._require_macro_drivers(unknown)
 
@@ -333,6 +370,12 @@ def _quotes_with_new() -> dict:
     q["DGS2"] = _quote("DGS2", 3.6, 0.0286, "yield_pct", as_of="2026-09-02")
     q["^TYX"] = _quote("^TYX", 4.7, 0.003, "yield_pct")
     q["JPY=X"] = _quote("JPY=X", 148.2, 0.004, "jpy_per_usd")
+    # PRD-336 display-only cockpit drivers (DGS5 is daily -> carries as_of).
+    q["DGS5"] = _quote("DGS5", 4.4, 0.005, "yield_pct", as_of="2026-09-02")
+    q["EURUSD=X"] = _quote("EURUSD=X", 1.08, 0.002, "usd_per_eur")
+    q["USDCAD=X"] = _quote("USDCAD=X", 1.38, 0.001, "cad_per_usd")
+    q["NG=F"] = _quote("NG=F", 3.5, 0.006, "usd_price")
+    q["ETH-USD"] = _quote("ETH-USD", 3200.0, 0.012, "usd_price")
     return q
 
 
@@ -340,8 +383,9 @@ def test_f5_contract_guard_accepts_new_drivers_present_and_absent() -> None:
     from cuttingboard.contract import assert_valid_contract
 
     present = _build_contract(_quotes_with_new())
-    assert set(present["macro_drivers"]) >= {"rates_2y", "rates_30y", "usdjpy"}
+    assert set(present["macro_drivers"]) >= set(_NEW_DRIVERS)
     assert present["macro_drivers"]["rates_2y"]["as_of"] == "2026-09-02"
+    assert present["macro_drivers"]["rates_5y"]["as_of"] == "2026-09-02"
     assert_valid_contract(present)                                 # accepts present
 
     absent = _build_contract(_macro_quotes())                     # only the four required

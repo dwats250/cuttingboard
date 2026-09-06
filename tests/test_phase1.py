@@ -78,7 +78,9 @@ class TestConfig:
     def test_all_symbols_count(self):
         # PRD-136 added GC=F, SI=F to MACRO_DRIVERS as observational spot-metals.
         # PRD-335 added the display-only ^TYX (30Y), JPY=X (USDJPY) and DGS2 (2Y).
-        assert len(config.ALL_SYMBOLS) == 26
+        # PRD-336 added five display-only cockpit drivers: DGS5 (5Y), EURUSD=X,
+        # USDCAD=X, NG=F, ETH-USD.
+        assert len(config.ALL_SYMBOLS) == 31
 
     def test_required_symbols_subset_of_halt(self):
         for s in config.HALT_SYMBOLS:

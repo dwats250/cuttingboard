@@ -431,15 +431,30 @@ def _yfinance_quote_raw(symbol: str) -> tuple[float, float, Optional[float]]:
 # as_of field" is a STOP-and-report boundary (PRD-335 R3), not a silent
 # expansion into a rates-platform abstraction.
 
-_FRED_SERIES_BY_SYMBOL = {"DGS2": "DGS2"}
+# PRD-336 R2: DGS5 (actual US 5Y yield) joins DGS2 on the same bounded FRED
+# carrier. Each is a separate small per-symbol request (never a combined
+# id=DGS2,DGS5 fetch) so per-symbol never-raises isolation holds.
+_FRED_SERIES_BY_SYMBOL = {"DGS2": "DGS2", "DGS5": "DGS5"}
 # Bounded staleness window for a DAILY observation, weekend/holiday tolerant
 # (PRD-335 R2): a row DATE older than this many CALENDAR days fails the fetch
 # closed, so the optional driver renders "--" — never a stale number with a date.
 _FRED_MAX_ASOF_AGE_DAYS = 5
+# PRD-336 R3: bound the request to a recent window (cosd) so a single hourly fetch
+# returns ~a dozen rows, not the full multi-decade series (~1000x smaller). This
+# is a reliability MITIGATION for the observed intermittent full-series timeouts,
+# not a proven root-cause fix; the fail-closed "--" path remains the safety net.
+# The window must comfortably exceed the 5-day staleness gate so >= 2 usable rows
+# are returned across long weekends/holidays.
+_FRED_WINDOW_DAYS = 14
 
 
-def _fred_csv_url(series_id: str) -> str:
-    return f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
+def _fred_csv_url(series_id: str, start: date) -> str:
+    # PRD-336 R3: `cosd` (change-observation-start-date) bounds the window to the
+    # recent past; the end defaults to the latest available observation.
+    return (
+        "https://fred.stlouisfed.org/graph/fredgraph.csv"
+        f"?id={series_id}&cosd={start.isoformat()}"
+    )
 
 
 def _fetch_fred_csv(url: str, timeout_seconds: float) -> str:
@@ -450,20 +465,27 @@ def _fetch_fred_csv(url: str, timeout_seconds: float) -> str:
         return resp.read().decode("utf-8")
 
 
-def _parse_fred_dgs2_csv(text: str, today: date) -> tuple[float, float, date]:
-    """Parse a FRED DGS2 CSV into (yield, pct_change_decimal, as_of).
+def _parse_fred_csv(text: str, today: date, series_id: str) -> tuple[float, float, date]:
+    """Parse a single-series FRED CSV into (yield, pct_change_decimal, as_of).
 
-    The CSV is ``<date-col>,DGS2`` with one header row; a missing observation is
+    PRD-336 R3: generalized from the DGS2-only parser to serve any single-series
+    ``observation_date,<series_id>`` CSV (DGS2 and DGS5). The value column is
+    verified against ``series_id`` (assert the resolved series, not the requested;
+    PRD-198 #2) so a wrong-series response fails closed. A missing observation is
     the literal ``"."``. The last two non-``"."`` rows are used: the latest is the
     observed yield, the prior is the change base. Raises ``ValueError`` on any
-    malformed, future-dated, or stale (older than the 5-calendar-day window)
-    input so the fetch fails CLOSED — a daily value is never presented as a stale
-    or fabricated number (PRD-335 R2). ``today`` is the caller's reference date.
+    malformed, wrong-series, future-dated, or stale (older than the
+    5-calendar-day window) input so the fetch fails CLOSED — a daily value is
+    never presented as a stale or fabricated number. ``today`` is the caller's
+    reference date.
     """
     rows: list[tuple[date, float]] = []
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
     if not lines:
-        raise ValueError("DGS2 CSV empty")
+        raise ValueError(f"{series_id} CSV empty")
+    header = [c.strip() for c in lines[0].split(",")]
+    if len(header) < 2 or header[1] != series_id:
+        raise ValueError(f"{series_id} CSV header mismatch: {lines[0]!r}")
     for line in lines[1:]:  # skip the header row
         parts = line.split(",")
         if len(parts) < 2:
@@ -475,16 +497,16 @@ def _parse_fred_dgs2_csv(text: str, today: date) -> tuple[float, float, date]:
         obs_value = float(raw_value)             # raises on a malformed number
         rows.append((obs_date, obs_value))
     if len(rows) < 2:
-        raise ValueError("DGS2 CSV lacks two usable observations")
+        raise ValueError(f"{series_id} CSV lacks two usable observations")
     _, prev_yield = rows[-2]
     as_of, latest_yield = rows[-1]
     if not (prev_yield > 0 and latest_yield > 0):
-        raise ValueError("DGS2 yields must be positive")
+        raise ValueError(f"{series_id} yields must be positive")
     if as_of > today:
-        raise ValueError(f"DGS2 as-of {as_of.isoformat()} is in the future")
+        raise ValueError(f"{series_id} as-of {as_of.isoformat()} is in the future")
     if (today - as_of).days > _FRED_MAX_ASOF_AGE_DAYS:
         raise ValueError(
-            f"DGS2 as-of {as_of.isoformat()} stale "
+            f"{series_id} as-of {as_of.isoformat()} stale "
             f"(> {_FRED_MAX_ASOF_AGE_DAYS} calendar days)"
         )
     pct_change = (latest_yield - prev_yield) / prev_yield
@@ -501,7 +523,7 @@ def _try_fred_quote(symbol: str) -> RawQuote:
         return RawQuote(symbol, 0.0, 0.0, None, fetched_at, "fred", False,
                         f"no FRED series mapped for {symbol}")
 
-    url = _fred_csv_url(series_id)
+    url = _fred_csv_url(series_id, fetched_at.date() - timedelta(days=_FRED_WINDOW_DAYS))
     last_error: Optional[str] = None
     text: Optional[str] = None
     for attempt in range(config.FETCH_RETRIES):
@@ -527,7 +549,7 @@ def _try_fred_quote(symbol: str) -> RawQuote:
     # loop). fetched_at.date() is the staleness reference — fetched_at_utc itself
     # stays the acquisition clock so validation freshness is unchanged.
     try:
-        price, pct_change, as_of = _parse_fred_dgs2_csv(text, fetched_at.date())
+        price, pct_change, as_of = _parse_fred_csv(text, fetched_at.date(), series_id)
     except Exception as exc:
         logger.info(f"fred {symbol}: unusable CSV — {exc}")
         return RawQuote(symbol, 0.0, 0.0, None, fetched_at, "fred", False, str(exc))

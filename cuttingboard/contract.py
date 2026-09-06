@@ -61,13 +61,23 @@ _MACRO_DRIVER_SYMBOLS = {
     "rates_2y": "DGS2",
     "rates_30y": "^TYX",
     "usdjpy": "JPY=X",
+    # PRD-336 (R2/R4/R5/R6): five further DISPLAY-ONLY cockpit drivers. Like the
+    # PRD-335 additions they carry NO vote at any of the six sites
+    # (macro_pressure._COMPONENT_KEYS/_COMPONENT_FIELDS/_classify_driver/the
+    # aggregation list, regime.py, MACRO_BIAS_DRIVERS); the fence is proven by
+    # tests/test_prd335_display_only_fence.py.
+    "rates_5y": "DGS5",
+    "eurusd": "EURUSD=X",
+    "usdcad": "USDCAD=X",
+    "natgas": "NG=F",
+    "ethereum": "ETH-USD",
 }
 
 # PRD-335 (R2/D-1): drivers with a DAILY observation cadence carry a producer
 # written `as_of` (ISO YYYY-MM-DD) so their cadence is shown honestly beside the
 # intraday drivers. A present daily block MUST carry a valid as_of; the guard
 # validates it as a DATE STRING on a path separate from the finite-float check.
-_DAILY_MACRO_DRIVERS: frozenset[str] = frozenset({"rates_2y"})
+_DAILY_MACRO_DRIVERS: frozenset[str] = frozenset({"rates_2y", "rates_5y"})
 
 # PRD-233: the declared system_state schema. Built keys come from
 # _build_system_state / build_error_contract; runtime keys are the

@@ -310,8 +310,10 @@ def test_prd122_oil_full_render() -> None:
     assert slots.get("OIL") == "78.5", f"expected OIL=78.5, got slots={slots}"
     tape = _macro_tape_block(html)
     assert 'data-symbol="OIL"' in tape, "OIL slot missing from macro-drivers-row"
-    # Arrow for positive change_pct should be the UP glyph.
-    assert "OIL ↑" in tape, "OIL slot missing UP arrow for positive change_pct"
+    # PRD-336 R5: the oil future is labelled "CL" on the cockpit (data-symbol stays
+    # OIL); the UP arrow for positive change_pct sits on the value line.
+    assert ('<span class="macro-tape-label">CL</span><span class="macro-tape-quote">↑&nbsp;'
+            in tape), "CL (oil) cell missing UP arrow for positive change_pct"
 
 
 # PRD-122 R8(b) — oil key absent: OIL slot degrades to em-dash arrow and '--' value.
@@ -328,8 +330,9 @@ def test_prd122_oil_missing_renders_dash() -> None:
     assert slots.get("OIL") == "--", f"expected OIL=--, got slots={slots}"
     tape = _macro_tape_block(html)
     assert 'data-symbol="OIL"' in tape, "OIL slot must appear in tape even when oil data missing"
-    # Em-dash glyph for missing-arrow case.
-    assert "OIL —" in tape, "OIL slot missing em-dash arrow for absent oil data"
+    # PRD-336 R5: labelled "CL" on the cockpit; em-dash arrow on the value line.
+    assert ('<span class="macro-tape-label">CL</span><span class="macro-tape-quote">—&nbsp;'
+            in tape), "CL (oil) cell missing em-dash arrow for absent oil data"
 
 
 # PRD-122 R8(c) — stale snapshot fallback: payload omits macro_drivers, snapshot supplies them.
@@ -1555,6 +1558,41 @@ def _ts_section(html: str) -> str:
     # PRD-315: depth-aware trend-structure extraction; Candidate no longer
     # follows Trend, so the old candidate-board end sentinel over-captured.
     return _top_block(html, "trend-structure")
+
+
+# PRD-336 R11: the Trade Vehicles grid is a conditional fallback for the Trend
+# Structure Price column. It is suppressed ONLY when Trend Structure renders a
+# finite live price for ALL SIX PRD-110 symbols; it is shown whenever the trend
+# snapshot is degraded OR any symbol lacks a finite price, so no ETF price surface
+# is ever lost. The FAIL: a state where the grid is suppressed while a symbol has
+# no finite trend price (the fresh-context review's blocking finding).
+
+def test_prd336_r11_trade_vehicles_suppressed_when_trend_fully_priced() -> None:
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(),
+        trend_structure_snapshot=_ts_healthy_snapshot(),
+    )
+    assert "TRADE VEHICLES" not in html   # richer Trend Structure prices stand alone
+
+
+def test_prd336_r11_trade_vehicles_shown_when_no_trend_snapshot() -> None:
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
+    assert "TRADE VEHICLES" in html       # degraded (no snapshot) -> fallback
+
+
+def test_prd336_r11_trade_vehicles_shown_on_partial_price_gap() -> None:
+    # A curated symbol present in the snapshot but missing a finite current_price
+    # would render Price "--" in the table while market_map holds its price; the
+    # grid MUST still show so that symbol's price is not lost.
+    import copy
+    partial = copy.deepcopy(_ts_healthy_snapshot())
+    a_symbol = next(iter(partial["symbols"]))
+    partial["symbols"][a_symbol]["current_price"] = None
+    html = render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(),
+        trend_structure_snapshot=partial,
+    )
+    assert "TRADE VEHICLES" in html       # per-symbol fallback preserved
 
 
 # (a) Healthy sidecar fixture
@@ -3651,14 +3689,15 @@ def test_prd136_r9a_xau_xag_present_in_rendered_html() -> None:
     tape = _macro_tape_block(html)
     assert 'data-symbol="XAU"' in tape, "XAU missing from macro-tape block"
     assert 'data-symbol="XAG"' in tape, "XAG missing from macro-tape block"
-    # PRD-334 R5: XAU/XAG now live in the COMMODITIES family (futures), not a
-    # standalone spot-metals row.
+    # PRD-336 R1/R5: XAU/XAG live in the FUTURES family (front-month futures),
+    # shown as GC/SI; the family was renamed COMMODITIES -> FUTURES.
     assert 'class="macro-family"' in tape, "macro-family wrappers missing"
-    assert "COMMODITIES" in tape and "futures" in tape
+    assert "FUTURES" in tape and "futures" in tape
 
 
 def test_prd334_macro_rows_render_in_family_order() -> None:
-    """PRD-334 R5: VOLATILITY / RATES-FX / COMMODITIES / CRYPTO, then tradables."""
+    """PRD-336 R1: VOL / CRYPTO (VIX,BTC,ETH) / RATES / FX / FUTURES
+    (OIL,NG,XAU,XAG), then the tradables row."""
     html = render_dashboard_html(
         _payload(macro_drivers=_drivers_with_metals()),
         _run(),
@@ -3666,27 +3705,27 @@ def test_prd334_macro_rows_render_in_family_order() -> None:
     )
     tape = _macro_tape_block(html)
     vix_idx = tape.index('data-symbol="VIX"')
-    teny_idx = tape.index('data-symbol="10Y"')
-    dxy_idx = tape.index('data-symbol="DXY"')
+    btc_idx = tape.index('data-symbol="BTC"')     # VOL / CRYPTO (top family)
+    teny_idx = tape.index('data-symbol="10Y"')    # RATES
+    dxy_idx = tape.index('data-symbol="DXY"')     # FX
+    oil_idx = tape.index('data-symbol="OIL"')     # FUTURES (shown as CL)
     xau_idx = tape.index('data-symbol="XAU"')
     xag_idx = tape.index('data-symbol="XAG"')
-    oil_idx = tape.index('data-symbol="OIL"')
-    btc_idx = tape.index('data-symbol="BTC"')
-    gld_idx = tape.index('data-symbol="GLD"')
-    assert vix_idx < teny_idx < dxy_idx < xau_idx < xag_idx < oil_idx < btc_idx < gld_idx
+    gld_idx = tape.index('data-symbol="GLD"')     # tradables
+    assert vix_idx < btc_idx < teny_idx < dxy_idx < oil_idx < xau_idx < xag_idx < gld_idx
 
 
 def test_prd334_macro_families_follow_macro_bias() -> None:
-    """PRD-335 R4: the family groups render in family order (VOLATILITY / RATES /
-    FX / COMMODITIES / CRYPTO); the visible MACRO BIAS headline is removed."""
+    """PRD-336 R1: the family groups render in family order (VOL / CRYPTO / RATES /
+    FX / FUTURES); the visible MACRO BIAS headline is removed."""
     html = render_dashboard_html(
         _payload(macro_drivers=_drivers_with_metals()),
         _run(),
         market_map=_market_map(),
     )
     tape = _macro_tape_block(html)
-    assert (tape.index("VOLATILITY") < tape.index("RATES")
-            < tape.index("FX") < tape.index("COMMODITIES") < tape.index("CRYPTO"))
+    assert (tape.index("VOL / CRYPTO") < tape.index("RATES")
+            < tape.index("FX") < tape.index("FUTURES"))
     assert tape.index('class="macro-family"') < tape.index('data-symbol="VIX"')
 
 
@@ -3712,9 +3751,11 @@ def test_prd138_xau_xag_route_through_directional_arrow_css() -> None:
     tape = _macro_tape_block(html)
     # PRD-211: visible label is the honest CME futures ticker (GC/SI); the slot
     # id / data-symbol stays XAU/XAG (asserted by the R9(a)/order tests above).
-    # PRD-224: 2-char labels pad to the 3-char column with &nbsp;.
-    assert 'class="macro-tape-slot tape-slot up"><span class="macro-tape-label">GC&nbsp; ↑</span>' in tape
-    assert 'class="macro-tape-slot tape-slot down"><span class="macro-tape-label">SI&nbsp; ↓</span>' in tape
+    # PRD-336 R1: STACKED cell — bare label, arrow on the value line; no padding.
+    assert ('class="macro-tape-slot tape-slot up"><span class="macro-tape-label">GC</span>'
+            '<span class="macro-tape-quote">↑&nbsp;') in tape
+    assert ('class="macro-tape-slot tape-slot down"><span class="macro-tape-label">SI</span>'
+            '<span class="macro-tape-quote">↓&nbsp;') in tape
 
 
 def test_prd136_r9d_no_silent_na_regression_driver_side() -> None:
@@ -4001,6 +4042,11 @@ def _render_tradables(monkeypatch, changes, *, generated_at, mm_symbols=None) ->
         market_map["symbols"] = mm_symbols
         market_map["primary_symbols"] = list(mm_symbols.keys())
     snap = _ts_snapshot_with_changes(changes, generated_at=generated_at)
+    # PRD-336 R11: the Trade Vehicles grid is now suppressed when Trend Structure
+    # is fully priced. These tests exercise the grid's CONTENT, so force the R11
+    # fallback by leaving one trend symbol without a finite price (SPY/QQQ, the
+    # symbols under test, keep their market_map prices in the grid).
+    snap["symbols"]["SLV"]["current_price"] = None
     return render_dashboard_html(payload, run, market_map=market_map, trend_structure_snapshot=snap)
 
 
@@ -4060,7 +4106,7 @@ _PRD318_PHONE_BLOCK = (
     "#opportunity-survival .kv-grid>*:nth-child(10){grid-column:2/-1}"
     "#candidate-board .candidate-scope{padding:5px 7px;margin-bottom:6px;font-size:.68rem;line-height:1.25}"
     "#candidate-board:not(:has(.candidate-card)) .unavailable{font-size:.72rem}"
-    "#details-history .block{padding:10px 0}"
+    "#details-history .block{padding:6px 0}"
     "}"
 )
 
@@ -4130,7 +4176,7 @@ def test_prd334_operator_zones_before_history() -> None:
     # full-weight operator zones before HISTORY (SPY SESSION renders only with an
     # observation; market-context/spy use their own wrappers).
     html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
-    before_history = html.split('<details class="block operator-zone"', 1)[0]
+    before_history = html.split('<div class="block operator-zone" id="details-history"', 1)[0]
     assert before_history.count('class="block operator-zone"') == 5
     assert 'id="market-state"' not in before_history
     assert html.index('id="verdict-zone"') < html.index('id="today-zone"')
@@ -4181,12 +4227,15 @@ def test_prd318_candidate_empty_vocabularies_are_distinct() -> None:
     assert "No candidates qualified this run" not in map_empty
 
 
-def test_prd318_details_default_collapsed_and_evidence_present() -> None:
+def test_prd318_history_visible_by_default_and_evidence_present() -> None:
+    # PRD-336 R10 SUPERSEDES PRD-318's collapsed-disclosure default: HISTORY is a
+    # plain visible section (no <details>), so SCOREBOARD and MARKET CONTROL are
+    # immediately visible.
     html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
-    assert '<details class="block operator-zone" id="details-history">' in html
-    assert '<details class="block operator-zone" id="details-history" open' not in html
-    # PRD-334 R9: HISTORY holds only backward-looking items (run delta, scoreboard,
-    # market control); macro-tape + trend-structure now live in MARKET STRUCTURE.
+    assert '<div class="block operator-zone" id="details-history">' in html
+    assert '<details' not in html.split('id="details-history"', 1)[1].split("</body>", 1)[0]
+    # HISTORY holds only backward-looking items (scoreboard, run delta, market
+    # control); macro-tape + trend-structure live in MARKET STRUCTURE.
     history = html.split('id="details-history"', 1)[1]
     for block_id in ("run-delta", "scoreboard"):
         assert f'id="{block_id}"' in history
@@ -4384,7 +4433,7 @@ def test_spy_observation_card_halt_state_no_fabricated_value():
         session_vwap=None, current_price=None, price_vs_vwap=None, orb=None,
     ))
     assert 'id="spy-observation"' in html
-    assert "No session read for Apr 28 · system halted" in html and "Session data unavailable" not in html
+    assert "No session for Apr 28 · system halted" in html and "Session data unavailable" not in html
     assert 'data-raw-state="UNAVAILABLE"' in html and 'data-raw-reason="system_halted"' in html
     assert "VWAP UNAVAILABLE" not in html   # no price_vs_vwap token when None
     # No fabricated VWAP/price number leaks onto the halt card.
@@ -4398,11 +4447,12 @@ def test_spy_observation_card_stale_and_pre_open():
         state="STALE", reason="session_mismatch",
         session_vwap=None, current_price=None, price_vs_vwap=None,
     ))
-    assert ("Session read is from a different trading day · intended Apr 28 · last Apr 28 · 6:34 AM PT"
-            " · no current price/VWAP read") in stale
+    # PRD-336 R7: terse copy; the read timestamp/mismatch detail stays machine-
+    # readable on the data-* attrs (asserted below).
+    assert "Session read stale · intended Apr 28" in stale
     lag = _render_with_spy(_spy_section(state="STALE", reason="observation_lag",
                                         session_vwap=None, current_price=None, price_vs_vwap=None))
-    assert "Session read not current · last 6:34 AM PT · no current price/VWAP read" in lag
+    assert "Session read not current" in lag
     assert "STALE" not in re.sub(r'data-raw-state="[A-Z_]+"', "", _s2_obs(lag))
     pre = _render_with_spy(_spy_section(
         state="PRE_OPEN", reason="pre_open",
@@ -4410,20 +4460,20 @@ def test_spy_observation_card_stale_and_pre_open():
         orb={"state": "PRE_OPEN", "trading_date": None, "observed_at_utc": None,
              "orb_high": None, "orb_low": None, "reason": "no_bars"},
     ))
-    assert "Pre-open · awaiting today&#x27;s session · last 6:34 AM PT" in pre
+    assert "Pre-open · awaiting today&#x27;s session" in pre
     assert '<div class="spy-read">Opening range pre-open</div>' in pre
     assert 'data-raw-state="PRE_OPEN"' in pre
     prior = _render_with_spy(_spy_section(state="PRE_OPEN", reason="pre_open_prior_session",
                                           observed_at_utc="2026-04-27T19:59:00+00:00",
                                           session_vwap=None, current_price=None, price_vs_vwap=None))
-    assert "Pre-open for Apr 28 · prior session read Apr 27 · 12:59 PM PT" in prior
+    assert "Pre-open · prior session Apr 28" in prior
     unmapped = _render_with_spy(_spy_section(state="UNAVAILABLE", reason="weird_token",
                                              session_vwap=None, current_price=None, price_vs_vwap=None))
     assert "reason not recognised" in unmapped and 'data-raw-reason="weird_token"' in unmapped
     assert "weird_token" not in re.sub(r'data-raw-reason="[^"]*"', "", _s2_obs(unmapped))
     nodate = _render_with_spy(_spy_section(state="UNAVAILABLE", reason="intraday_fetch_failed", intended_session_date=None,
                                            session_vwap=None, current_price=None, price_vs_vwap=None))
-    assert "No session read for unknown session · intraday data fetch failed" in nodate and 'data-session-date=""' in nodate
+    assert "No session for unknown session · intraday data fetch failed" in nodate and 'data-session-date=""' in nodate
 
 
 def test_t12_no_spy_observation_card_when_section_absent():
@@ -4480,8 +4530,10 @@ def test_m11_market_control_split_across_context_and_history():
     assert '<div class="label">TRANSITION</div>' not in block
     assert '<div class="label">INVALIDATION</div>' not in block
     context = _top_block(html, "market-context")  # near SPY SESSION
-    assert '<div class="label">TRANSITION</div>' in context
-    assert '<div class="label">INVALIDATION</div>' in context
+    # PRD-336 R8: the low-height context strip uses .mc-k keys (not the shared
+    # .kv-grid labels); the transition/invalidation values are unchanged.
+    assert '<span class="mc-k">Transition</span>' in context
+    assert '<span class="mc-k">Invalidation</span>' in context
     assert '<div class="label">PERMISSION</div>' not in html
     assert '<div class="label">ORB</div>' not in html
     assert "MARKET CONTROL" in html
@@ -4824,10 +4876,11 @@ _LEGACY_ORACLE_JSON = Path(__file__).resolve().parent / "data" / "setup_chart_le
 
 
 def _golden_region(html: str, block_id: str) -> str:
+    # PRD-336 R10: HISTORY is now a plain <div> (no <details>), so every frozen
+    # region uses the same nesting-aware <div> depth scan; the old </details>
+    # special-case would latch onto the PRD-333 GEX reference card's close.
     idx = html.index(f'id="{block_id}"')
     start = html.rfind("<", 0, idx)
-    if block_id == "details-history":
-        return html[start: html.rindex("</details>") + len("</details>")]
     i, depth = start, 0
     while True:
         nd, ne = html.find("<div", i), html.find("</div>", i)
@@ -5391,7 +5444,7 @@ def test_prd329_spy_session_promoted_between_watching_and_details() -> None:
     assert 'id="spy-observation"' not in details and 'id="spy-session-details"' not in details
     assert html.count("<h3>SPY SESSION</h3>") == 1 and html.count('id="spy-observation"') == 1
     assert 'operator-zone" id="spy-session"' not in html
-    assert html.split('<details class="block operator-zone"', 1)[0].count('class="block operator-zone"') == 5
+    assert html.split('<div class="block operator-zone" id="details-history"', 1)[0].count('class="block operator-zone"') == 5
 
 
 def test_prd330_r2_header_lines_replace_the_kv_grid() -> None:
@@ -5556,7 +5609,7 @@ def test_prd334_market_control_split_history_and_context() -> None:
     # transition/invalidation render near SPY (market-context), before WATCHING
     assert html.index('id="spy-session"') < html.index('id="market-context"') < html.index('id="watching-zone"')
     context = _top_block(html, "market-context")
-    assert "TRANSITION" in context and "INVALIDATION" in context
+    assert "Transition" in context and "Invalidation" in context   # PRD-336 R8 strip
     # the SPY section itself carries no MARKET CONTROL card
     section = html.split('id="spy-session"', 1)[1].split("</section>", 1)[0]
     assert "MARKET CONTROL" not in section and 'id="market-control-card"' not in section
@@ -5627,7 +5680,7 @@ _S2_FIXTURE_SHA = "d906108e3dc10b9f84c62dbb966a340370aa9aac83c85f207e76329d33c55
 # ---------------------------------------------------------------------------
 def test_prd330_r1_order_and_operator_zones() -> None:
     for html in (_s2_render(), _s2_render(spy=False)):
-        before = html.split('<details class="block operator-zone"', 1)[0]
+        before = html.split('<div class="block operator-zone" id="details-history"', 1)[0]
         assert before.count('class="block operator-zone"') == 5 and 'operator-zone" id="spy-session"' not in html
         assert html.index('id="today-zone"') < html.index('id="market-structure"') < html.index('id="watching-zone"')
     assert 'id="spy-session"' not in _s2_render(spy=False)
