@@ -1670,6 +1670,12 @@
       "title": "GEX synthetic reference context disclosure",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 334,
+      "title": "Operator-composition dashboard presentation pass",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

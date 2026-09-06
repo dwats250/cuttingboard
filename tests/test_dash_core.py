@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 
 from cuttingboard.delivery.dashboard_renderer import (
-    _DASHBOARD_REFRESH_SECONDS,
+    BOARD_STALE_AFTER_SECONDS,
     render_dashboard_html,
 )
 
@@ -150,17 +150,40 @@ def test_preserved_block_ids_present() -> None:
 
 
 # ---------------------------------------------------------------------------
-# PRD-055 PATCH — auto-refresh meta
+# PRD-334 R1 — auto-refresh removed; honest, view-state-safe freshness
 # ---------------------------------------------------------------------------
 
-def test_auto_refresh_meta_present() -> None:
+def test_no_auto_refresh_meta() -> None:
+    """R1 FAIL guard: the forced full-page refresh meta must be gone."""
     html = render_dashboard_html(_payload(), _run())
-    assert 'http-equiv="refresh"' in html
-    assert 'content="30"' in html
+    assert 'http-equiv="refresh"' not in html
 
 
-def test_dashboard_refresh_constant_value() -> None:
-    assert _DASHBOARD_REFRESH_SECONDS == 30
+def test_freshness_affordances_present() -> None:
+    """R1: server-rendered as-of timestamp, client-clocked staleness notice, and a
+    manual-reload affordance whose copy admits a newer board may not exist."""
+    html = render_dashboard_html(_payload(), _run())
+    assert 'id="cb-updated"' in html            # server-rendered as-of timestamp
+    assert 'id="staleness-banner"' in html      # client-clocked age notice
+    assert 'id="board-reload"' in html           # manual reload affordance
+    assert 'a newer board may not exist' in html
+
+
+def test_staleness_timer_reevaluates_without_network_or_storage() -> None:
+    """R1: the age notice re-evaluates on a local-clock setInterval and the added
+    timer opens no network and touches no storage."""
+    html = render_dashboard_html(_payload(), _run())
+    assert 'setInterval(run,' in html
+    # The staleness IIFE must not reach for any network/storage API.
+    assert 'localStorage' not in html
+    assert 'sessionStorage' not in html
+    assert 'fetch(' not in html
+    assert 'XMLHttpRequest' not in html
+
+
+def test_staleness_threshold_unchanged() -> None:
+    """R1 FAIL guard: the staleness threshold constant is unchanged from pre-PRD."""
+    assert BOARD_STALE_AFTER_SECONDS == 90 * 60
 
 
 # ---------------------------------------------------------------------------
@@ -197,11 +220,13 @@ def test_section_order_full_r5_sequence() -> None:
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="B")})
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run(), previous_run=_run(), market_map=mm)
     ids = _top_ids(html)
-    # PRD-315: Candidate is lifted ahead of the detailed Context chain, so the
-    # full-board order is System (-> Opportunity when valid) -> Candidate ->
-    # Macro -> ... -> Run Delta. macro-pressure stays inline inside macro-tape.
-    assert ids.index("system-state") < ids.index("candidate-board")
-    assert ids.index("candidate-board") < ids.index("macro-tape") < ids.index("run-delta")
+    # PRD-334 R9: the recomposed order is VERDICT -> NEXT EVENT -> MARKET STRUCTURE
+    # (macro families + trend table) -> SPY -> WATCHING -> GEX -> HISTORY. So the
+    # macro-tape (MARKET STRUCTURE) now precedes the candidate-board (WATCHING), and
+    # run-delta (HISTORY) comes last. macro-pressure stays inline inside macro-tape.
+    assert ids.index("system-state") < ids.index("macro-tape")
+    assert ids.index("macro-tape") < ids.index("candidate-board")
+    assert ids.index("candidate-board") < ids.index("run-delta")
     if "opportunity-survival" in ids:
         assert ids.index("system-state") < ids.index("opportunity-survival") < ids.index("candidate-board")
     macro = _top_block(html, "macro-tape")
@@ -222,11 +247,12 @@ def test_section_order_four_questions_sequence() -> None:
         _payload(macro_drivers=_macro_drivers()), _run(),
         previous_run=_run(), market_map=mm, regime_history=hist, red_folder=rf,
     )
-    # PRD-315: Candidate now leads the detailed Context chain (System ->
-    # Candidate -> Macro -> Red Folder -> Trend), so it precedes macro-tape.
+    # PRD-334 R9: VERDICT -> NEXT EVENT (red folder) -> MARKET STRUCTURE (macro
+    # families, Trend Structure table) -> WATCHING (candidate-board) -> HISTORY
+    # (run delta, scoreboard).
     order = [
-        "system-state", "candidate-board", "macro-tape", "red-folder",
-        "trend-structure", "run-delta", "scoreboard",
+        "system-state", "red-folder", "macro-tape", "trend-structure",
+        "candidate-board", "run-delta", "scoreboard",
     ]
     ids = _top_ids(html)
     positions = [ids.index(section) for section in order]

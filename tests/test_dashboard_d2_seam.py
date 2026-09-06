@@ -1,19 +1,17 @@
-"""PRD-327 (D2) seam tests: R1, R2, R4-R9 over the VERDICT / TAPE emitters.
+"""PRD-327 (D2) seam tests: R1, R2, R5-R9 over the VERDICT / MARKET STRUCTURE seam.
 
-Constants were captured from the pre-implementation render at main ``a28e568``
-(renderer bytes identical to the design baseline ``f555b48``). Below-seam and
-TODAY hashes are raw base values; the R8 shape hashes are the base ordered
-tuple lists with exactly the R8 removals applied (``.decision-state-label``,
-``.sep``, the ``UPDATED`` label; the two TAPE ``.sep`` dividers; and, only when
-``chips_visible`` is false, the ``.tape-trend`` wrapper with its six rows and
-their cell spans). Any added, reordered or altered element goes RED.
+PRD-334 R11: the SHA / copy constants were regenerated after the whole-page
+recomposition (the #tape-zone was deleted, its content consolidated into
+#market-structure; the TAPE trend chips were removed; the verdict copy is now a
+faithful translation). The 4th _BASE slot is the MARKET STRUCTURE region shape
+(was #tape-zone); the chips_visible column and the chip-gate test (R4) are retired.
+Any added, reordered or altered element still goes RED.
 """
 from __future__ import annotations
 
 import hashlib
 import html as _html
 import json
-from dataclasses import replace
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -23,57 +21,60 @@ from cuttingboard import config
 from cuttingboard.delivery import dashboard_renderer as _dr
 from cuttingboard.delivery.dashboard_renderer import render_dashboard_html
 from tests.dash_helpers import _macro_drivers, _market_map, _mm_symbol, _payload, _run
-from tests.preview_fixtures import (
-    SECTION_STATE_CASES,
-    TREND_PARTIAL_COMPUTED_CASE,
-    trend_structure_snapshot,
-)
+from tests.preview_fixtures import SECTION_STATE_CASES, TREND_PARTIAL_COMPUTED_CASE
 
 _SEAM = '<div class="block operator-zone" id="watching-zone">'
 _DATA = Path(__file__).resolve().parent / "data"
 _HERMETIC_MISSING = Path("/nonexistent/cuttingboard/preview_intraday_bars_snapshot.json")
 _FIXTURES = {c.name: c for c in SECTION_STATE_CASES}
-_CHIP_ROW = '<div class="tape-trend-row tape-slot '
 _FORBIDDEN = ("ALIGNED", "DIVERGING", "CONFLUENT", "systems agree", "supportive", "favorable", "favourable", "constructive", "mildly", "environment", "overall", "score")
 
-# --- base constants (see module docstring) ----------------------------------
+# --- base constants (PRD-334 R11: regenerated after the whole-page recomposition;
+# the seam marker id="watching-zone" is unchanged, but below-seam now covers
+# MARKET STRUCTURE's descendants after WATCHING plus GEX and HISTORY) -----------
 _GOLDEN_BELOW_SEAM = {
-    "dashboard_pre_gex_golden.html": "40231414995b743d69539bd7d608d8fca69010df3548af1fc18ed7a98e2615db",
-    "dashboard_pre_a1c_chart_golden.html": "5aa148d448f9fb74797adb25ca9bcb8efb50d127e26c5d4e00a8ff2c1be68e36",
+    "dashboard_pre_gex_golden.html": "53026f083109a78f32a439b42b810a85585ab690f586fea9d06aa4c27f9f763e",
+    "dashboard_pre_a1c_chart_golden.html": "54d53ce031928de69de026c46bb1ec29723cc86c5d5326cbd19d3cb72eaeba8b",
 }
-# fixture -> (below-seam sha, #today-zone sha, #system-state shape sha, #tape-zone shape sha, chips_visible)
+# fixture -> (below-seam sha, #today-zone sha, #system-state shape sha, #market-structure shape sha)
+# PRD-334 R11: the 4th slot is the MARKET STRUCTURE region shape (was #tape-zone,
+# now deleted); the chips_visible column is retired (the TAPE trend chips were removed).
 _BASE = {
-    "coherence_mixed": ("0ef96e313b29ea117977aecf3e9d8b141fd03ad1c0c2d6c44a95158fe0cdfb39", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "fc805de92df537814271ccb1a926f350ba1a9cd8ff53111e3ee4f53a2bdb885f", "f0a4d63a2524f78130c35a4e12c8a5fabbf392255e9d68be423f407585b5777b", True),
-    "sunday_premarket": ("33f5629ece46d1c7f3efd76a7f249a0adee3af3cccb962b25243f25182db1380", "5941ce1a621774bef8dde02c39345956934d3c8eae8cb88b106ac7322bf20f66", "5b076058bf7ed302f6cb3d51d7eba4fb994df1b9cde7421cfd81ca4bdd0b16f9", "f0a4d63a2524f78130c35a4e12c8a5fabbf392255e9d68be423f407585b5777b", True),
-    "session_inactive": ("2e6523c82b5dbda31281df836ad44992552f907c330349eacca5302f2da9f3c6", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "ff2d341419759e9d0b17871d3bd7f9ba3dfe42f529cdc6d76445a6cd5f6b27c6", "f0a4d63a2524f78130c35a4e12c8a5fabbf392255e9d68be423f407585b5777b", True),
-    "macro_tape_no_data": ("27acab699e97f3d9c6c69e3329ad002083aa04352dedc1faaf474725cde682aa", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "ff2d341419759e9d0b17871d3bd7f9ba3dfe42f529cdc6d76445a6cd5f6b27c6", "412ec82805afdab3c4bffe0cf3379c08c3a2882dc4f9d9a7888d15a7d777306a", False),
-    "red_folder_error": ("20c879a549ab5752478001b94bfe732092a37c0e8348343628f41533d7b4a156", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "ff2d341419759e9d0b17871d3bd7f9ba3dfe42f529cdc6d76445a6cd5f6b27c6", "c69b20f6f3b1d95e9288931cc005a0219d1a977c1a616a4b41015909f69ceb6d", False),
-    "red_folder_expiring": ("11900c9ae69de08e6b9ffc8429b4feb010fb5e1660ca10ddabc74411e66056e6", "7193f1c51ba67ad739c81595af452b9ce0252adf30d56aa9e923b92918c4a17a", "ff2d341419759e9d0b17871d3bd7f9ba3dfe42f529cdc6d76445a6cd5f6b27c6", "c69b20f6f3b1d95e9288931cc005a0219d1a977c1a616a4b41015909f69ceb6d", False),
-    "trend_awaiting_data": ("bb8d1f507d491fe89a4c81a29fa461d3b6bd89ada708d7a6c76f91a6c4c879b2", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "ff2d341419759e9d0b17871d3bd7f9ba3dfe42f529cdc6d76445a6cd5f6b27c6", "c69b20f6f3b1d95e9288931cc005a0219d1a977c1a616a4b41015909f69ceb6d", False),
-    "trend_no_data": ("d1ae34300ba33c1382316e1b49e9fdbffe8ef0fba5706f1d71fae07587116241", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "ff2d341419759e9d0b17871d3bd7f9ba3dfe42f529cdc6d76445a6cd5f6b27c6", "c69b20f6f3b1d95e9288931cc005a0219d1a977c1a616a4b41015909f69ceb6d", False),
-    "lineage_missing": ("66ec093f93bb416645d326c82747f4d158a7e80746f720cb10272f56720d30f6", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "ac75c2ee6451560bebb0d902e48c19c8e3b435a48f0067f5662e1957d5e55b9a", "f0a4d63a2524f78130c35a4e12c8a5fabbf392255e9d68be423f407585b5777b", True),
-    "candidate_no_candidates": ("23225a0f311acfc7af45c5d877e008f72115d9079d36f03daad3a912849cae84", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "ac75c2ee6451560bebb0d902e48c19c8e3b435a48f0067f5662e1957d5e55b9a", "c69b20f6f3b1d95e9288931cc005a0219d1a977c1a616a4b41015909f69ceb6d", False),
-    "healthy_baseline": ("e4e0a0511605a20e0906ad85509ef8d2db07be2abf5cfd192cc163aee89b89f6", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "ff2d341419759e9d0b17871d3bd7f9ba3dfe42f529cdc6d76445a6cd5f6b27c6", "c69b20f6f3b1d95e9288931cc005a0219d1a977c1a616a4b41015909f69ceb6d", False),
-    "primary_chart_stay_flat": ("03852687b9718bf0ee1f727f101d266beee792c59d190e2ef70fe97a89d80eb0", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "752057e4b3a798459bf5ff560231f0fbe391a5d0644eb270ba9a0b414cb1273f", "c69b20f6f3b1d95e9288931cc005a0219d1a977c1a616a4b41015909f69ceb6d", False),
-    "primary_chart_locked": ("81bc1eb5b24b11fd50cb7d378c06fe2fcaebbae25cce039fca7a27c84ce7496b", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "e5f021067242fcf703545706745af21a908ef9c4c700fcb3b7f1bb46519003f5", "c69b20f6f3b1d95e9288931cc005a0219d1a977c1a616a4b41015909f69ceb6d", False),
-    "primary_chart_permitted": ("68ee0a766b89d3bbd2da23759922d635dca1c103bac8e7e0278124832405f628", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "b0820f37f0aa6f0cf6894e2c28872624aa4cfd5b9f5ed305f905575a4c8639d5", "c69b20f6f3b1d95e9288931cc005a0219d1a977c1a616a4b41015909f69ceb6d", False),
-    "market_map_stale_with_bars": ("7dde6e28569c3f7c55e75e17ce588b7ca1b029823cc98a4f5c46c6d8d1b50f6a", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "752057e4b3a798459bf5ff560231f0fbe391a5d0644eb270ba9a0b414cb1273f", "f0a4d63a2524f78130c35a4e12c8a5fabbf392255e9d68be423f407585b5777b", True),
-    "primary_chart_c_grade": ("6148f72b08169040d202821c8b888ff29ce431687fc16e51fdffb3015bd40f7f", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "608ca086de81d2e082e8453d48ca74b10abfa5795568730d1b3f6eb726a9300a", "c69b20f6f3b1d95e9288931cc005a0219d1a977c1a616a4b41015909f69ceb6d", False),
+    "coherence_mixed": ("9e18cc4bfe495873be435af23cddfab0938633a8386f2200e2b4642ae013bfe4", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "ea116ec497d4fe3818f9e952f952987e04d36c5c0c65f1c1ec471d95cab98fc9", "d34745b9fa0906fa7677e04a120c932dd3bb9485fdfa77617cacca3541bea4b3"),
+    "sunday_premarket": ("b9811ab5a305f9b5945a594f0e28cfc5a94537fb770958292bf21fcd5aef301c", "5941ce1a621774bef8dde02c39345956934d3c8eae8cb88b106ac7322bf20f66", "2a2a3502ba43b78b32d2a3c29976c4551667fac1f088bd4897fd70181298873f", "127eeb7785b9283ba848b521c29312d17ab879c3afbee1b9f932a36b61845ffe"),
+    "session_inactive": ("b9811ab5a305f9b5945a594f0e28cfc5a94537fb770958292bf21fcd5aef301c", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "b3a935c38b351c414d9f28636de961b4abfa81859312394d341c5fa50331c0d0", "0e8d117b1124494089098a0771287432494ddf9f1a283675396addaece6e2179"),
+    "macro_tape_no_data": ("c273f3f2959f3e8bce8f7506a240370762fdeeacf9d7ba4e16c2afe6bf4b5e09", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "b3a935c38b351c414d9f28636de961b4abfa81859312394d341c5fa50331c0d0", "782013c69dc9ec1f9e283202ae0ecb312414468fdd67fe73be90ea5444ef441a"),
+    "red_folder_error": ("c273f3f2959f3e8bce8f7506a240370762fdeeacf9d7ba4e16c2afe6bf4b5e09", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "b3a935c38b351c414d9f28636de961b4abfa81859312394d341c5fa50331c0d0", "f6cfd0f0c217a34f9104f494efc5dcfb8fec831b7575f4116b9bcf0889afeed4"),
+    "red_folder_expiring": ("c273f3f2959f3e8bce8f7506a240370762fdeeacf9d7ba4e16c2afe6bf4b5e09", "7193f1c51ba67ad739c81595af452b9ce0252adf30d56aa9e923b92918c4a17a", "b3a935c38b351c414d9f28636de961b4abfa81859312394d341c5fa50331c0d0", "f6cfd0f0c217a34f9104f494efc5dcfb8fec831b7575f4116b9bcf0889afeed4"),
+    "trend_awaiting_data": ("c273f3f2959f3e8bce8f7506a240370762fdeeacf9d7ba4e16c2afe6bf4b5e09", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "b3a935c38b351c414d9f28636de961b4abfa81859312394d341c5fa50331c0d0", "b77e2d8b228a12f80bd27690f0d1dab3a0e0dad37c97a41c3d1c9c1901795d82"),
+    "trend_no_data": ("c273f3f2959f3e8bce8f7506a240370762fdeeacf9d7ba4e16c2afe6bf4b5e09", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "b3a935c38b351c414d9f28636de961b4abfa81859312394d341c5fa50331c0d0", "f6cfd0f0c217a34f9104f494efc5dcfb8fec831b7575f4116b9bcf0889afeed4"),
+    "lineage_missing": ("53026f083109a78f32a439b42b810a85585ab690f586fea9d06aa4c27f9f763e", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "78b3bca20cbb53f5be20e53dbed076133d65f93709085fda25c932b3790cacb9", "b162fffa5afe418f5ff22ee3b09a79350d8b7ec443a0ea00de71ab65d07977b8"),
+    "candidate_no_candidates": ("426d46b3b58ba7f8c473311e32b433d04186f82550bf0cfc610d966b0f9d735a", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "78b3bca20cbb53f5be20e53dbed076133d65f93709085fda25c932b3790cacb9", "a87e8387a082440fb38e3e48166f4d41a7934fe91327ebe82aa73313978e16b6"),
+    "healthy_baseline": ("68effde0fc0082a85e74a3b93e0e6f1413b431428e30575d42700151f0f3e7b3", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "b3a935c38b351c414d9f28636de961b4abfa81859312394d341c5fa50331c0d0", "f6cfd0f0c217a34f9104f494efc5dcfb8fec831b7575f4116b9bcf0889afeed4"),
+    "primary_chart_stay_flat": ("9e5916bf4327e6977fca1eeb61741f91aec7bf5476992867b73841a00e75e8a9", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "ce88cf68f914483308e472e5c4cb34b4238d3fc094a58be493800fa9f10f04af", "dbd29cd394d05bd34daab48d209214d10df4303e0a68f5bcbe79f092027204ca"),
+    "primary_chart_locked": ("18ce16a9f9fadada6e083fbd0524512faa1b7b0d0bb422ba97fb6c312fc1e975", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "0494c5bd3fb155b16ee9671081b1389892eb0c94b2c84f7ad1399d83d161b8ad", "dbd29cd394d05bd34daab48d209214d10df4303e0a68f5bcbe79f092027204ca"),
+    "primary_chart_permitted": ("db7f4f1bf92b48cdd00afcd662faa4c76a18f7042cf02999f0d9938bcc91fc94", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "272a564bdce4954c38f4b7d00c4fbf55f228476c9c74c9ff3a76335ff5abbb6a", "dbd29cd394d05bd34daab48d209214d10df4303e0a68f5bcbe79f092027204ca"),
+    "market_map_stale_with_bars": ("bd1acc319221e42d906ed53117769353673bb8b01218a7a3887d1acc632e7821", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "ce88cf68f914483308e472e5c4cb34b4238d3fc094a58be493800fa9f10f04af", "197b49e0bcaa2e2da511905267ca5ccc6cc91d9cdb1cdd63b3466132653feded"),
+    "primary_chart_c_grade": ("0c9ebcf8a8ab9755e77aa8631ab9b143a296df08482ef0726b65bb12e8320d83", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "6894564b2b77672146384d0e09c40dc8a283e28fe8c6c0f1388a946af5e3b0f6", "ecae7d18937a9d72cbba2f253d33f85961708806ead37bcc13c941513f778b60"),
 }
+# PRD-334 R3: the verdict is now a faithful translation -- TRADE PERMITTED shows the
+# regime verb; STAY FLAT / OBSERVE ONLY read "No new trades permitted"; HALT reads
+# "System halted"; mixed reads "Inputs out of sync". The internal title token left
+# the visible sentence (it survives only in data-raw-title).
 _R1_AUTHORITY = {
-    "stay_flat": {"decision": "STAY FLAT", "verdict": "Longs allowed · NO TRADE", "why": "WHY: no qualified setups",
+    "stay_flat": {"decision": "STAY FLAT", "verdict": "No new trades permitted", "why": "WHY: no qualified setups",
             "kill": None, "permission": None, "regime": "Risk-on regime"},
-    "locked": {"decision": "OBSERVE ONLY", "verdict": "Operator locked: cannot monitor · NO TRADE", "why": None,
+    "locked": {"decision": "OBSERVE ONLY", "verdict": "No new trades permitted", "why": None,
             "kill": None, "permission": "No new trades permitted — operator cannot monitor.", "regime": "Risk-on regime"},
-    "permitted": {"decision": "TRADE PERMITTED", "verdict": "Longs allowed · TRADE SETUP ACTIVE", "why": None,
+    "permitted": {"decision": "TRADE PERMITTED", "verdict": "Longs allowed", "why": None,
             "kill": None, "permission": None, "regime": "Risk-on regime"},
-    "halt": {"decision": "HALT", "verdict": "Longs allowed · SYSTEM HALT", "why": "WHY: operational halt",
+    "halt": {"decision": "HALT", "verdict": "System halted", "why": "WHY: operational halt",
             "kill": "Kill switch active", "permission": None, "regime": "Risk-on regime"},
-    "mixed": {"decision": "STATE UNAVAILABLE", "verdict": "Longs allowed · INPUTS OUT OF SYNC", "why": None,
+    "mixed": {"decision": "STATE UNAVAILABLE", "verdict": "Inputs out of sync", "why": None,
             "kill": None, "permission": None, "regime": "Risk-on regime"},
 }
 _R2_UPDATED_LINE = '<div class="value" id="cb-updated" data-updated-utc="2026-04-28T12:00:00+00:00">Updated Apr 28 · 5:00 AM PT</div>'
-_STALENESS_JS_SHA = "90ca619252eb0a303222902941851743b37e1c28f9b19efc2b34db8ed40d7689"
+_STALENESS_JS_SHA = "293812c1ded273bfd2133221939d6f4889f0af556bafd267429c00c0017d10cd"
 
 
 @pytest.fixture(autouse=True)
@@ -111,8 +112,9 @@ def _pre_watching(html: str) -> str:
 
 
 def _visible_text_above_fold(html: str) -> str:
-    """Direct visible text of every element in the three pre-WATCHING zones."""
-    return " ".join(t[3] for zone in ("system-state", "tape-zone", "today-zone")
+    """Direct visible text of every element in the pre-WATCHING zones (PRD-334 R9:
+    MARKET STRUCTURE replaced the deleted TAPE zone)."""
+    return " ".join(t[3] for zone in ("system-state", "market-structure", "today-zone")
                     for t in zone_tuples(html, zone) if t[3])
 
 
@@ -181,8 +183,9 @@ def _first(fragment: str, opener: str) -> str | None:
 @pytest.mark.parametrize("name", sorted(_R1_AUTHORITY))
 def test_r1_decision_block_is_first_undivided_and_byte_identical(name) -> None:
     html = _helper_render(name)
-    ids = [html.find(f'id="{i}"') for i in ("system-state", "tape-zone", "today-zone",
-                                              "watching-zone", "details-history")]
+    # PRD-334 R9 order: VERDICT -> NEXT EVENT -> MARKET STRUCTURE -> WATCHING -> GEX -> HISTORY.
+    ids = [html.find(f'id="{i}"') for i in ("system-state", "today-zone", "market-structure",
+                                              "watching-zone", "gex-zone", "details-history")]
     assert all(i != -1 for i in ids) and ids == sorted(ids)
     state = _block(html, "system-state")
     assert "decision-state-label" not in html
@@ -212,43 +215,9 @@ def test_r2_updated_line_byte_identical_after_regime_line() -> None:
     assert _sha(_dr._STALENESS_BANNER_JS) == _STALENESS_JS_SHA
 
 
-# --- R4: the narrowed D2-Q2 chip gate, exact truth table -----------------------
-_CHIP_TABLE = [  # (case, chips expected)
-    # zero computed + healthy lineage + active session -> suppressed
-    ("healthy_baseline", False), ("trend_no_data", False), ("trend_awaiting_data", False),
-    ("primary_chart_stay_flat", False), ("primary_chart_locked", False), ("primary_chart_permitted", False),
-    # any computed row (five na chips included) / unhealthy lineage / inactive session -> all six chips
-    ("trend_partial_computed", True), ("six_computed", True), ("coherence_mixed", True), ("lineage_missing", True),
-    ("market_map_stale_with_bars", True), ("session_inactive", True), ("sunday_premarket", True),
-]
-
-
-def _table_case(name):
-    if name == "trend_partial_computed":
-        return TREND_PARTIAL_COMPUTED_CASE
-    if name == "six_computed":
-        return replace(_FIXTURES["healthy_baseline"], name=name, render_kwargs={
-            "trend_structure_snapshot": trend_structure_snapshot(config.TREND_STRUCTURE_SYMBOLS)})
-    return _FIXTURES[name]
-
-
-@pytest.mark.parametrize("name,chips", _CHIP_TABLE)
-def test_r4_chip_gate_truth_table(name, chips) -> None:
-    html = _render(_table_case(name))
-    tape = _block(html, "tape-zone")
-    assert 'class="sep"' not in tape
-    assert tape.count('<div class="tape-band">') == 2 and 'data-derivation="' in tape
-    rows = [seg.split('"', 1)[0] for seg in tape.split(_CHIP_ROW)[1:]]
-    if chips:
-        assert 'class="tape-trend"' in tape and len(rows) == 6
-        syms = [seg.split("</span>", 1)[0] for seg in tape.split(_CHIP_ROW)[1:]]
-        assert [s.split("<span>", 1)[1] for s in syms] == list(config.TREND_STRUCTURE_SYMBOLS)
-    else:
-        assert "tape-trend" not in tape and rows == []
-    if name == "trend_partial_computed":  # filtering only the na rows must go RED
-        assert rows.count("na") == 5 and rows.count("up") == 1
-    if name == "six_computed":
-        assert set(rows) == {"up"}
+# --- R4: PRD-334 R5 removed the bland TAPE trend chips (replaced by the promoted
+# #trend-structure table). The chip-gate truth table (test_r4_chip_gate_truth_table)
+# and its helpers are deleted; the promoted table is asserted in test_r7 below.
 
 
 # --- R5: TODAY byte-identical -------------------------------------------------
@@ -258,15 +227,17 @@ def test_r5_today_zone_byte_identical(name) -> None:
 
 
 # --- R6: unavailable / failure states stay named above the fold ---------------
-_COMMON = ("Trend unavailable", '<div class="zone-value">unavailable</div>', "not captured")
+# PRD-334 R9: above-fold unavailable states now come from VERDICT, NEXT EVENT and
+# MARKET STRUCTURE (macro-tape "NO LIVE MACRO DATA", the promoted trend table's
+# "no trend structure data"), never the deleted TAPE zone. Every unavailable state
+# is still NAMED, never silent.
 _R6_TABLE = {
-    "coherence_mixed": _COMMON + ("Inputs are out of sync", "STATE UNAVAILABLE", "Event schedule unavailable"),
-    "macro_tape_no_data": _COMMON + ("Macro unavailable", "Pressure unavailable", "Event schedule unavailable"),
-    "trend_awaiting_data": _COMMON + ("Event schedule unavailable",),
-    "primary_chart_locked": _COMMON + ("No new trades permitted — operator cannot monitor.",
-                                       "Event schedule unavailable"),
-    "session_inactive": _COMMON + ("Event schedule unavailable",),
-    "red_folder_expiring": _COMMON,
+    "coherence_mixed": ("Inputs are out of sync", "STATE UNAVAILABLE", "Event schedule unavailable"),
+    "macro_tape_no_data": ("NO LIVE MACRO DATA", "no trend structure data", "Event schedule unavailable"),
+    "trend_awaiting_data": ("no trend structure data", "Event schedule unavailable"),
+    "primary_chart_locked": ("No new trades permitted — operator cannot monitor.", "Event schedule unavailable"),
+    "session_inactive": ("SESSION INACTIVE", "Event schedule unavailable"),
+    "red_folder_expiring": ("no trend structure data",),
 }
 
 
@@ -281,28 +252,26 @@ def test_r6_kill_switch_stays_in_the_decision_block() -> None:
     assert "Kill switch active" in _block(_helper_render("halt"), "system-state")
 
 
-# --- R7: chips leave the fold only where DETAILS enumerates the symbols -------
+# --- R7: the promoted Trend Structure table is the single trend representation --
 @pytest.mark.parametrize("name", sorted(_BASE))
-def test_r7_suppressed_chips_imply_the_deep_six_symbol_table(name) -> None:
+def test_r7_promoted_trend_table_present(name) -> None:
+    # PRD-334 R5: the TAPE trend chips are gone; the promoted #trend-structure
+    # "curated watch set" table (in MARKET STRUCTURE) is the trend representation.
     html = _render(_FIXTURES[name])
+    assert 'id="tape-zone"' not in html and 'class="tape-trend"' not in html
     deep = _block(html, "trend-structure")
-    chips = "tape-trend" in _block(html, "tape-zone")
-    assert chips == _BASE[name][4]
-    if not chips:
-        assert 'class="ts-table"' in deep
-        assert all(f">{sym}<" in deep for sym in config.TREND_STRUCTURE_SYMBOLS)
-    else:
-        assert 'class="ts-table"' not in deep
+    assert "curated watch set" in deep
 
 
-# --- R8: exact shape, no new visible text -------------------------------------
+# --- R8: exact region shape, no new visible text ------------------------------
 @pytest.mark.parametrize("name", sorted(_BASE))
-def test_r8_exact_shape_equals_base_minus_listed_removals(name) -> None:
+def test_r8_exact_region_shape(name) -> None:
     html = _render(_FIXTURES[name])
-    ss, tz = zone_tuples(html, "system-state"), zone_tuples(html, "tape-zone")
-    exp_ss, exp_tz = _BASE[name][2], _BASE[name][3]
+    ss = zone_tuples(html, "system-state")
+    ms = zone_tuples(html, "market-structure")   # PRD-334 R9: replaced the deleted tape-zone
+    exp_ss, exp_ms = _BASE[name][2], _BASE[name][3]
     assert _sha(json.dumps(ss)) == exp_ss, ss
-    assert _sha(json.dumps(tz)) == exp_tz, tz
+    assert _sha(json.dumps(ms)) == exp_ms, ms
     text = _visible_text_above_fold(html)
     assert not any(tok in text for tok in _FORBIDDEN), text
 

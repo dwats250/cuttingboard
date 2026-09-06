@@ -375,12 +375,12 @@ def test_macro_pressure_inline_beside_tally() -> None:
     assert '<details id="macro-pressure">' not in html
     assert 'class="macro-pressure-line' in html
 
-    # PRD-315: the macro-pressure line lives inside Macro (independent of
-    # Candidate position); Candidate now precedes the Macro chain.
+    # PRD-334 R9: the macro-pressure line lives inside Macro (MARKET STRUCTURE),
+    # which now precedes the WATCHING candidate-board.
     macro = _top_block(html, "macro-tape")
     assert 'class="macro-pressure-line' in macro
     ids = _top_ids(html)
-    assert ids.index("candidate-board") < ids.index("macro-tape")
+    assert ids.index("macro-tape") < ids.index("candidate-board")
 
     pressure = html.split('class="macro-pressure-line', 1)[1].split("</div>", 1)[0]
     has_decision_phrase = any(
@@ -991,7 +991,7 @@ def test_prd279_halted_shows_decision_state_halt() -> None:
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
     assert "decision-state-label" not in state  # PRD-327 R1: caption removed
-    assert 'class="decision-state sys-halt">HALT</div>' in state
+    assert 'class="decision-state sys-halt" data-raw-state="HALT">HALT</div>' in state
 
 
 def test_prd279_kill_switch_halt_shows_decision_state_halt() -> None:
@@ -1000,7 +1000,7 @@ def test_prd279_kill_switch_halt_shows_decision_state_halt() -> None:
     run = _run(system_halted=True, kill_switch=True)
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert 'class="decision-state sys-halt">HALT</div>' in state
+    assert 'class="decision-state sys-halt" data-raw-state="HALT">HALT</div>' in state
     assert "Kill switch active" in state
 
 
@@ -1008,7 +1008,7 @@ def test_prd279_trade_outcome_shows_decision_state_trade_permitted() -> None:
     run = _run(system_halted=False, outcome="TRADE")
     html = render_dashboard_html(_payload(), run)
     state = _system_state_block(html)
-    assert 'decision-state sys-up">TRADE PERMITTED</div>' in state
+    assert 'decision-state sys-up" data-raw-state="TRADE PERMITTED">TRADE PERMITTED</div>' in state
 
 
 def test_prd279_no_trade_shows_decision_state_stay_flat() -> None:
@@ -1046,7 +1046,7 @@ def test_prd279_state_unavailable_fallback_on_comparison_error(monkeypatch) -> N
     monkeypatch.setattr(dr, "_decision_title", lambda *a, **k: _RaisingEq())
     html = render_dashboard_html(_payload(), _run())
     state = _system_state_block(html)
-    assert 'class="decision-state sys-flat">STATE UNAVAILABLE</div>' in state
+    assert 'class="decision-state sys-flat" data-raw-state="STATE UNAVAILABLE">STATE UNAVAILABLE</div>' in state
 
 
 def test_prd279_mixed_artifacts_shows_state_unavailable_not_stay_flat() -> None:
@@ -1064,7 +1064,7 @@ def test_prd279_mixed_artifacts_shows_state_unavailable_not_stay_flat() -> None:
 
     html = render_dashboard_html(payload, run, market_map=mm)
     state = _system_state_block(html)
-    assert 'class="decision-state sys-flat">STATE UNAVAILABLE</div>' in state
+    assert 'class="decision-state sys-flat" data-raw-state="STATE UNAVAILABLE">STATE UNAVAILABLE</div>' in state
     assert ">STAY FLAT</div>" not in state
     assert "TRADE PERMITTED" not in state
 
@@ -1194,7 +1194,43 @@ def test_high_grade_candidate_entry_invalidation_bold() -> None:
     assert 'REASON</div><div class="value-key">' not in card
     # The dedicated classes are defined in CSS (bold key + cyan accent).
     assert ".value-key{margin-top:0.25rem;font-weight:bold}" in html
-    assert ".value-actionable{color:#29b6f6}" in html
+    assert ".value-actionable{color:var(--color-actionable)}" in html   # PRD-334 R8 token
+
+
+def test_prd334_semantic_color_token_system() -> None:
+    # PRD-334 R8 (owner ruling G1): a :root token system splits the overloaded
+    # amber, separates posture from price direction, and splits actionable-now from
+    # the VWAP/level reference; GEX carries its own family.
+    import re as _re8
+    html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
+    css = html.split("<style>", 1)[1].split("</style>", 1)[0]
+    assert ":root{" in css
+    # FAIL guard: the single amber hex #ff9800 is gone -> it can no longer carry
+    # more than one of {neutral, warning, flat-posture, grade, event}.
+    assert "#ff9800" not in css
+    # each overloaded amber role now references a DISTINCT token
+    roles = ("--color-neutral", "--color-warning", "--posture-flat", "--color-grade", "--color-event")
+    hexes = {}
+    for tok in roles:
+        m = _re8.search(rf"{tok}:(#[0-9a-fA-F]{{3,6}})", css)
+        assert m, tok
+        hexes[tok] = m.group(1)
+    assert len(set(hexes.values())) == len(roles), f"amber roles must be distinct hues: {hexes}"
+    # posture colour is distinct from price-direction colour
+    up_post = _re8.search(r"--posture-up:(#[0-9a-fA-F]{3,6})", css).group(1)
+    up_dir = _re8.search(r"--dir-up:(#[0-9a-fA-F]{3,6})", css).group(1)
+    assert up_post != up_dir
+    # actionable-now is split from the VWAP/level reference
+    act = _re8.search(r"--color-actionable:(#[0-9a-fA-F]{3,6})", css).group(1)
+    lvl = _re8.search(r"--color-level:(#[0-9a-fA-F]{3,6})", css).group(1)
+    assert act != lvl
+    assert ".value-actionable{color:var(--color-actionable)}" in css
+    assert ".lvl-vwap{color:var(--color-level)}" in css
+    # GEX derivatives family token exists and is referenced
+    assert "--color-gex:" in css and "var(--color-gex)" in css
+    # colour is not the sole carrier: posture/permission is also carried by the
+    # decision-state text label and the up/down price by the alignment abbreviation.
+    assert "STAY FLAT" in html or "TRADE PERMITTED" in html or "HALT" in html
 
 
 def test_failed_candidate_omits_validation_context() -> None:
@@ -1643,7 +1679,7 @@ def test_prd218_price_color_and_sma_arrow_spacing() -> None:
         _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap,
     )
     section = _ts_section(html)
-    assert ".ts-px-up{color:#4caf50}" in html and ".ts-px-down{color:#f44336}" in html
+    assert ".ts-px-up{color:var(--dir-up)}" in html and ".ts-px-down{color:var(--dir-down)}" in html   # PRD-334 R8 tokens
     assert 'class="ts-px-up"' in section, "bullish price cell not coloured"
     # SMA arrows carry a trailing space (PRD-218); no unspaced arrow-digit.
     assert _r218.search(r"[\u2191\u2193=] 50 [\u2191\u2193=] 200", section), "spaced SMA composite missing"
@@ -3606,40 +3642,41 @@ def test_prd136_r9a_xau_xag_present_in_rendered_html() -> None:
     tape = _macro_tape_block(html)
     assert 'data-symbol="XAU"' in tape, "XAU missing from macro-tape block"
     assert 'data-symbol="XAG"' in tape, "XAG missing from macro-tape block"
-    assert "macro-spot-metals-row" in tape, "macro-spot-metals-row wrapper missing"
+    # PRD-334 R5: XAU/XAG now live in the COMMODITIES family (futures), not a
+    # standalone spot-metals row.
+    assert 'class="macro-family"' in tape, "macro-family wrappers missing"
+    assert "COMMODITIES" in tape and "futures" in tape
 
 
-def test_prd138_macro_rows_render_in_shared_layout_order() -> None:
-    """R3: row 1 is XAU/XAG/BTC, then row 2, then tradables."""
+def test_prd334_macro_rows_render_in_family_order() -> None:
+    """PRD-334 R5: VOLATILITY / RATES-FX / COMMODITIES / CRYPTO, then tradables."""
     html = render_dashboard_html(
         _payload(macro_drivers=_drivers_with_metals()),
         _run(),
         market_map=_market_map(),
     )
     tape = _macro_tape_block(html)
+    vix_idx = tape.index('data-symbol="VIX"')
+    teny_idx = tape.index('data-symbol="10Y"')
+    dxy_idx = tape.index('data-symbol="DXY"')
     xau_idx = tape.index('data-symbol="XAU"')
     xag_idx = tape.index('data-symbol="XAG"')
-    btc_idx = tape.index('data-symbol="BTC"')
-    vix_idx = tape.index('data-symbol="VIX"')
     oil_idx = tape.index('data-symbol="OIL"')
+    btc_idx = tape.index('data-symbol="BTC"')
     gld_idx = tape.index('data-symbol="GLD"')
-    assert xau_idx < xag_idx < btc_idx < vix_idx < oil_idx < gld_idx
+    assert vix_idx < teny_idx < dxy_idx < xau_idx < xag_idx < oil_idx < btc_idx < gld_idx
 
 
-def test_prd136_r9b_spot_metals_row_follows_macro_bias() -> None:
-    """R9(b) supplement: spot-metals row sits between MACRO BIAS and drivers row."""
+def test_prd334_macro_families_follow_macro_bias() -> None:
+    """PRD-334 R5: the family groups sit below the MACRO BIAS line, in family order."""
     html = render_dashboard_html(
         _payload(macro_drivers=_drivers_with_metals()),
         _run(),
         market_map=_market_map(),
     )
     tape = _macro_tape_block(html)
-    metals_idx = tape.index('class="macro-spot-metals-row"')
-    drivers_idx = tape.index('class="macro-drivers-row"')
-    assert metals_idx < drivers_idx, (
-        f"spot-metals row must precede macro-drivers-row; "
-        f"metals_idx={metals_idx}, drivers_idx={drivers_idx}"
-    )
+    assert tape.index("VOLATILITY") < tape.index("RATES / FX") < tape.index("COMMODITIES") < tape.index("CRYPTO")
+    assert tape.index('class="macro-family"') < tape.index('data-symbol="VIX"')
 
 
 def test_prd138_renderer_uses_shared_macro_tape_layout_constants() -> None:
@@ -3982,7 +4019,7 @@ def test_prd312_market_state_before_system_state_outside_region() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
     assert 'id="market-state"' not in html
     assert "Risk-on regime" in _top_block(html, "system-state")
-    assert 'id="tape-zone"' in html
+    assert 'id="market-structure"' in html
     assert 'id="today-zone"' in html
 
 
@@ -4058,37 +4095,42 @@ def test_prd317_rules_are_id_scoped_and_overflow_neutral() -> None:
 
 def test_prd317_authoritative_text_order_parity() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
+    # PRD-334 R9 order: VERDICT / NEXT EVENT / MARKET STRUCTURE / WATCHING / GEX / HISTORY.
     ids = (
         'id="system-state"',
-        'id="tape-zone"',
         'id="today-zone"',
+        'id="market-structure"',
         'id="watching-zone"',
+        'id="gex-zone"',
         'id="details-history"',
     )
     assert all(block_id in html for block_id in ids)
     assert [html.index(block_id) for block_id in ids] == sorted(html.index(block_id) for block_id in ids)
 
 
-def test_prd318_four_full_weight_zones_before_details() -> None:
+def test_prd334_operator_zones_before_history() -> None:
+    # PRD-334 R9: VERDICT / NEXT EVENT / MARKET STRUCTURE / WATCHING / GEX are the
+    # full-weight operator zones before HISTORY (SPY SESSION renders only with an
+    # observation; market-context/spy use their own wrappers).
     html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
-    before_details = html.split('<details class="block operator-zone"', 1)[0]
-    assert before_details.count('class="block operator-zone"') == 4
-    assert 'id="market-state"' not in before_details
-    assert html.index('id="system-state"') < html.index('id="tape-zone"')
-    assert html.index('id="tape-zone"') < html.index('id="today-zone"')
-    assert html.index('id="today-zone"') < html.index('id="watching-zone"')
+    before_history = html.split('<details class="block operator-zone"', 1)[0]
+    assert before_history.count('class="block operator-zone"') == 5
+    assert 'id="market-state"' not in before_history
+    assert html.index('id="verdict-zone"') < html.index('id="today-zone"')
+    assert html.index('id="today-zone"') < html.index('id="market-structure"')
+    assert html.index('id="market-structure"') < html.index('id="watching-zone"')
+    assert html.index('id="watching-zone"') < html.index('id="gex-zone"')
 
 
-def test_prd318_tape_is_display_only_adjacency() -> None:
+def test_prd334_market_structure_carries_no_agreement_vocabulary() -> None:
     html = render_dashboard_html(
         _payload(), _run(), market_map=_market_map(),
         trend_structure_snapshot=_ts_healthy_snapshot(),
     )
-    tape = _top_block(html, "tape-zone")
-    assert "6 of 6 bullish" in tape
-    assert 'data-derivation="bullish-row-count"' in tape
+    structure = _top_block(html, "market-structure")
+    assert 'id="trend-structure"' in structure       # PRD-334 R5: promoted table present
     for forbidden in ("ALIGNED", "DIVERGING", "CONFLUENT", "systems agree"):
-        assert forbidden not in tape
+        assert forbidden not in structure
 
 
 def test_prd318_candidate_detail_keys_only_from_authoritative_decision() -> None:
@@ -4099,9 +4141,11 @@ def test_prd318_candidate_detail_keys_only_from_authoritative_decision() -> None
     permitted = render_dashboard_html(_payload(), _run(outcome="TRADE"), market_map=mm)
     flat_card = _candidate_card(flat)
     permitted_card = _candidate_card(permitted)
+    # PRD-334 R2: the level-detail disclosure is removed in every decision state;
+    # the authoritative decision still keys the observation styling.
     assert 'class="candidate-card grade-a candidate-observation"' in flat
-    assert '<details class="level-detail">' in flat_card
     assert 'class="candidate-card grade-a"' in permitted
+    assert '<details class="level-detail">' not in flat_card
     assert '<details class="level-detail">' not in permitted_card
     for fact in ("SPY", "A", "hold above reference", "loses reference"):
         assert fact in flat_card and fact in permitted_card
@@ -4124,8 +4168,14 @@ def test_prd318_details_default_collapsed_and_evidence_present() -> None:
     html = render_dashboard_html(_payload(), _run(), market_map=_market_map())
     assert '<details class="block operator-zone" id="details-history">' in html
     assert '<details class="block operator-zone" id="details-history" open' not in html
-    for block_id in ("macro-tape", "trend-structure", "run-delta", "scoreboard"):
-        assert f'id="{block_id}"' in html.split('id="details-history"', 1)[1]
+    # PRD-334 R9: HISTORY holds only backward-looking items (run delta, scoreboard,
+    # market control); macro-tape + trend-structure now live in MARKET STRUCTURE.
+    history = html.split('id="details-history"', 1)[1]
+    for block_id in ("run-delta", "scoreboard"):
+        assert f'id="{block_id}"' in history
+    structure = html.split('id="market-structure"', 1)[1].split('id="details-history"', 1)[0]
+    for block_id in ("macro-tape", "trend-structure"):
+        assert f'id="{block_id}"' in structure
 
 
 def test_prd318_authoritative_permission_renders_once_from_system_state() -> None:
@@ -4295,7 +4345,7 @@ def test_spy_observation_card_rendered_observed():
     html = _render_with_spy(_spy_section())
     assert 'id="spy-observation"' in html and "SPY SESSION OBSERVATION" not in html
     assert "SPY 104.00 above session VWAP 102.00 · read 6:34 AM PT" in html     # PRD-330 R2 (D-8 time-only)
-    assert '<div class="spy-read">ORB 100.00-105.00</div>' in html
+    assert '<div class="spy-read">Opening range 100.00-105.00</div>' in html
     assert 'data-raw-state="OBSERVED"' in html and "Apr 28 · 6:34" not in _s2_obs(html)
 
 
@@ -4319,7 +4369,7 @@ def test_spy_observation_card_stale_and_pre_open():
         state="STALE", reason="session_mismatch",
         session_vwap=None, current_price=None, price_vs_vwap=None,
     ))
-    assert ("Session read is from another session · intended Apr 28 · last Apr 28 · 6:34 AM PT"
+    assert ("Session read is from a different trading day · intended Apr 28 · last Apr 28 · 6:34 AM PT"
             " · no current price/VWAP read") in stale
     lag = _render_with_spy(_spy_section(state="STALE", reason="observation_lag",
                                         session_vwap=None, current_price=None, price_vs_vwap=None))
@@ -4390,18 +4440,24 @@ def _mcc_block(html: str) -> str:
     return match.group(0)
 
 
-def test_m11_market_control_card_rendered_with_all_seven_fields():
+def test_m11_market_control_split_across_context_and_history():
+    # PRD-334 R6: TRANSITION + INVALIDATION render near SPY in #market-context;
+    # LOCATION / STATE / EVENT + CANDIDATE-IMPLICATION render in HISTORY's
+    # #market-control-card (no standalone six-field card). No cell is dropped.
     html = _render_with_mcc(_mcc_section())
-    block = _mcc_block(html)
-    for label in ("LOCATION", "STATE", "EVENT", "TRANSITION",
-                  "INVALIDATION", "CANDIDATE-IMPLICATION"):
+    block = _mcc_block(html)                      # #market-control-card (HISTORY)
+    for label in ("LOCATION", "STATE", "EVENT", "CANDIDATE-IMPLICATION"):
         assert f'<div class="label">{label}</div>' in block
-    assert '<div class="label">PERMISSION</div>' not in block
-    assert '<div class="label">ORB</div>' not in block
+    assert '<div class="label">TRANSITION</div>' not in block
+    assert '<div class="label">INVALIDATION</div>' not in block
+    context = _top_block(html, "market-context")  # near SPY SESSION
+    assert '<div class="label">TRANSITION</div>' in context
+    assert '<div class="label">INVALIDATION</div>' in context
+    assert '<div class="label">PERMISSION</div>' not in html
+    assert '<div class="label">ORB</div>' not in html
     assert "MARKET CONTROL" in html
     assert "Range" in block
     assert "2026-04-29 08:30 ET — CPI: CPI (April)" in block
-    assert "No active candidates" in block
     assert "Candidates present; none actionable" in block
 
 
@@ -4430,14 +4486,15 @@ def test_r13_unavailable_cells_render_typed_tokens_only():
         invalidation={"value": None, "unavailable_reason": "invalidation_indeterminate"},
         candidate_implication={"value": None, "unavailable_reason": "candidate_inputs_absent"},
     ))
-    block = _mcc_block(html)
+    block = _mcc_block(html)                      # #market-control-card (HISTORY)
+    context = _top_block(html, "market-context")  # transition/invalidation near SPY (R6)
     assert "Unavailable — awaiting the 09:45 ET state window" in block
-    assert "Unavailable — transition state unavailable" in block
+    assert "Unavailable — transition state unavailable" in context
     assert "Unavailable — event schedule unavailable" in block
-    assert "Unavailable — invalidation unavailable" in block
+    assert "Unavailable — invalidation unavailable" in context
     assert "Unavailable — candidate inputs unavailable" in block
     # No renderer-derived value stands in for an unavailable cell.
-    assert "RANGE" not in block and "NO_BREAK" not in block
+    assert "RANGE" not in block and "NO_BREAK" not in context
 
 
 def test_m17_renderer_never_carries_loader_error_string():
@@ -4471,11 +4528,15 @@ def test_r7_locked_dashboard_replaces_action_vocabulary() -> None:
     run = _run(outcome="NO_TRADE", permission=_LOCK_PERMISSION)
     html = render_dashboard_html(_payload(), run, market_map=mm)
 
-    # Marker present; A+ relabelled; ACTIONABLE gone.
-    assert "Operator locked: cannot monitor" in html
+    # PRD-334 R3: the lock reads OBSERVE ONLY + the generic "No new trades
+    # permitted" verdict; A+ relabelled; ACTIONABLE gone.
+    assert 'data-raw-state="OBSERVE ONLY">OBSERVE ONLY</div>' in html
+    assert "No new trades permitted" in html
     assert "A+ — OBSERVATION ONLY" in html
     assert "A+ — ACTIONABLE" not in html
-    # Permission verbs suppressed.
+    # Action vocabulary suppressed under lock, including in data-raw-permission
+    # (PRD-304 R7 retained: the lock never surfaces the regime direction verb).
+    assert 'data-raw-permission="OPERATOR_LOCKED"' in html
     assert "Longs allowed" not in html
     assert "Shorts allowed" not in html
     assert "Momentum longs allowed" not in html
@@ -4703,6 +4764,11 @@ def test_r7_locked_sunday_context_has_no_watch_directive():
 _GEX_FROZEN = datetime(2026, 4, 28, 12, 5, 0, tzinfo=timezone.utc)
 _GEX_GOLDEN = Path(__file__).resolve().parent / "data" / "dashboard_pre_gex_golden.html"
 _CB_ROOT = Path(__file__).resolve().parent.parent / "cuttingboard"
+# PRD-334 review F2: a guaranteed-absent macro snapshot path. Rendering the whole-
+# dashboard goldens through this neutralizes the macro region (NO LIVE MACRO DATA)
+# so the dirty logs/macro_drivers_snapshot.json is never rebaselined as canonical
+# truth. Both the goldens and every render that compares against them use it.
+_NEUTRAL_MACRO_PATH = Path("/nonexistent/neutralized_macro_snapshot.json")
 
 
 def _valid_gex():
@@ -4767,14 +4833,20 @@ def test_prd330_golden_regions_and_embedded_svg_pinned() -> None:
 def test_gex_absent_baseline_identical(monkeypatch):
     # mutation: emit an empty wrapper on absence, OR add a rule to the
     # unconditional _CSS -> the suppressed document diverges from the golden.
+    # PRD-334 review F2: render through the NEUTRALIZED macro path so the whole-
+    # dashboard golden never bakes the dirty logs/macro_drivers_snapshot.json live
+    # readings in as canonical truth (macro region renders its NO-LIVE-MACRO state).
     monkeypatch.setattr(_dr, "_utcnow", lambda: _GEX_FROZEN)
     golden = _GEX_GOLDEN.read_text(encoding="utf-8")
-    assert render_dashboard_html(_payload(), _run(), gex_snapshot=None, now=_GEX_FROZEN) == golden
+    assert render_dashboard_html(_payload(), _run(), gex_snapshot=None, now=_GEX_FROZEN,
+                                 macro_snapshot_path=_NEUTRAL_MACRO_PATH) == golden
     stale = _valid_gex()
     stale["fetched_at_utc"] = "2020-01-01T00:00:00+00:00"
-    assert render_dashboard_html(_payload(), _run(), gex_snapshot=stale, now=_GEX_FROZEN) == golden
+    assert render_dashboard_html(_payload(), _run(), gex_snapshot=stale, now=_GEX_FROZEN,
+                                 macro_snapshot_path=_NEUTRAL_MACRO_PATH) == golden
     assert render_dashboard_html(
-        _payload(), _run(), gex_snapshot={"schema_version": 99}, now=_GEX_FROZEN
+        _payload(), _run(), gex_snapshot={"schema_version": 99}, now=_GEX_FROZEN,
+        macro_snapshot_path=_NEUTRAL_MACRO_PATH,
     ) == golden
 
 
@@ -4797,21 +4869,14 @@ def test_gex_decision_outputs_unchanged(monkeypatch):
     present = render_dashboard_html(_payload(), _run(), gex_snapshot=_valid_gex(), now=_GEX_FROZEN)
     frag = _gex.render_fragment(_valid_gex(), now=_GEX_FROZEN)
     assert frag and frag in present
-    # PRD-318: TAPE also reflects valid GEX presence. Strip only that display-only
-    # summary row, then excise the full detail card; all other bytes stay equal.
-    # PRD-322 R5: absence is now STATED ("unavailable") rather than silent, so the
-    # same literal row shape exists on both sides and the strip applies to BOTH
-    # documents. The invariance claim is unchanged: outside that one row and the
-    # detail card, a valid artifact changes nothing.
-    import re as _re312
-    def _strip_gex_summary(html):
-        return _re312.sub(
-            r'    <div class="zone-item"><div class="label">GEX · CONTEXT ONLY</div>.*?</div></div>\n',
-            "", html,
-            count=1, flags=_re312.S,
-        )
-    assert 'class="label">GEX · CONTEXT ONLY</div><div class="zone-value">unavailable</div>' in absent
-    assert _strip_gex_summary(present).replace("\n" + frag, "", 1) == _strip_gex_summary(absent)
+    # PRD-334 R9/R10: the ONLY difference between a valid-GEX and a GEX-absent
+    # document is inside the GEX zone -- the production card fragment (present) vs
+    # the "No current GEX" availability line (absent). Normalize each to one
+    # placeholder; every other byte (verdict, structure, watching, history) is equal.
+    assert '  <div class="label">No current GEX for this run.</div>' in absent
+    present_norm = present.replace(frag, "__GEXSLOT__", 1)
+    absent_norm = absent.replace('  <div class="label">No current GEX for this run.</div>', "__GEXSLOT__", 1)
+    assert present_norm == absent_norm
 
 
 # --- R17: AST/path-literal isolation guard ---
@@ -4851,23 +4916,26 @@ def test_gex_isolation_ast():
 # PRD-333: GEX synthetic reference coexistence / isolation (whole-dashboard).
 # ============================================================================
 def _strip_gex_reference(html: str) -> str:
-    """Remove the whole #gex-reference disclosure (it nests <details> for the table),
-    so the remaining document can be compared for reference-independence."""
-    i = html.index('<details class="gex-reference"')
+    """Remove the whole #gex-reference container (a summary-first <section> that holds
+    one nested <details> for the profile; it contains no nested <section>), so the
+    remaining document can be compared for reference-independence."""
+    i = html.index('<section class="gex-reference"')
     depth, j = 0, i
     while True:
-        no, nc = html.find("<details", j), html.find("</details>", j)
+        no, nc = html.find("<section", j), html.find("</section>", j)
         if no != -1 and no < nc:
-            depth, j = depth + 1, no + 8
+            depth, j = depth + 1, no + len("<section")
         else:
-            depth, j = depth - 1, nc + len("</details>")
+            depth, j = depth - 1, nc + len("</section>")
             if depth == 0:
                 return html[:i] + html[j:]
 
 
-def test_prd333_reference_present_placed_and_collapsed(monkeypatch):
-    # R1: exactly one #gex-reference, after WATCHING and before DETAILS, collapsed,
-    # data-gex-kind="reference", and NOT an operator zone.
+def test_prd333_reference_present_placed_and_summary_first(monkeypatch):
+    # PRD-334 R9 + review F3: exactly one #gex-reference, after WATCHING and before
+    # DETAILS, a summary-first <section> (NOT an outer disclosure) whose SINGLE nested
+    # "Full GEX details" disclosure is collapsed; data-gex-kind="reference"; not an
+    # operator zone.
     monkeypatch.setattr(_dr, "_utcnow", lambda: _GEX_FROZEN)
     html = render_dashboard_html(_payload(), _run(), gex_snapshot=None, now=_GEX_FROZEN)
     assert html.count('id="gex-reference"') == 1
@@ -4875,11 +4943,14 @@ def test_prd333_reference_present_placed_and_collapsed(monkeypatch):
     ir = html.index('id="gex-reference"')
     idet = html.index('id="details-history"')
     assert iw < ir < idet
-    assert '<details class="gex-reference" id="gex-reference" data-gex-kind="reference">' in html
+    assert '<section class="gex-reference" id="gex-reference" data-gex-kind="reference">' in html
     assert 'class="block operator-zone" id="gex-reference"' not in html
-    # collapsed: the <details> opening tag carries no `open` attribute
-    open_tag = html[ir - 40: html.index(">", ir) + 1]
-    assert " open" not in open_tag
+    # summary-first, single deep-evidence disclosure: the reference subtree carries
+    # exactly one <details> (the profile), collapsed -- no outer collapse, no chain.
+    ref_sub = html[ir: html.index("</section>", ir)]
+    assert ref_sub.count("<details") == 1
+    assert '<details class="gex-full"><summary>Full GEX details</summary>' in ref_sub
+    assert '<details class="gex-full" open>' not in ref_sub
 
 
 def test_prd333_reference_availability_is_isolated(monkeypatch):
@@ -4919,8 +4990,9 @@ def test_prd333_current_gex_bytes_unchanged_with_reference(monkeypatch):
     assert frag  # sanity: the current fixture admits
     html = render_dashboard_html(_payload(), _run(), gex_snapshot=_valid_gex(), now=_GEX_FROZEN)
     assert frag in html
-    # the reference lives after WATCHING; it never appears in TAPE / any upper zone.
-    upper = html[html.index('id="tape-zone"'): html.rindex('id="watching-zone"')]
+    # PRD-334 R9: the reference lives in the GEX region (after WATCHING); it never
+    # appears in any upper zone (verdict .. watching).
+    upper = html[: html.index('id="gex-zone"')]
     assert "gex-reference" not in upper
 
 
@@ -5032,379 +5104,6 @@ _PRD322_TAPE_BANNED = (
 )
 
 
-def _prd322_tape(html: str) -> str:
-    return _top_block(html, "tape-zone")
-
-
-def _prd322_ts_snapshot(**per_symbol) -> dict:
-    """A curated-6 snapshot whose records carry the given field overrides."""
-    snap = _ts_healthy_snapshot()
-    for rec in snap["symbols"].values():
-        rec.update(per_symbol)
-    return snap
-
-
-def test_prd322_all_unavailable_trend_is_not_reported_as_zero_bullish() -> None:
-    # DEFECT 1 (red-first): six DATA_UNAVAILABLE rows are six records with zero
-    # BULLISH, so the raw count rendered "0 of 6 bullish" — unavailability
-    # presented as bearishness. Mutation: revert the TAPE trend item to the raw
-    # bullish-row count -> red.
-    snap = _prd322_ts_snapshot(
-        trend_alignment="DATA_UNAVAILABLE",
-        price_vs_sma_50="DATA_UNAVAILABLE",
-        price_vs_sma_200="DATA_UNAVAILABLE",
-        price_vs_vwap="DATA_UNAVAILABLE",
-        data_status="MISSING",
-    )
-    html = render_dashboard_html(
-        _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap,
-    )
-    tape = _prd322_tape(html)
-    assert "0 of 6 bullish" not in tape
-    assert 'data-derivation="trend-health"' in tape
-
-
-def test_prd322_empty_macro_drivers_render_no_fabricated_bias_in_tape() -> None:
-    # DEFECT 2 (red-first): an empty macro-driver payload casts zero votes, and
-    # the zero-vote tie fabricated "MACRO BIAS: MIXED" in the TAPE zone.
-    # Mutation: remove the _tape_health == "MISSING" gate -> red. The DETAILS
-    # macro-tape block is explicitly out of scope and still renders its label.
-    html = render_dashboard_html(
-        _payload(), _run(), market_map=_market_map(),
-        macro_snapshot_path=Path("/nonexistent/prd322_no_snapshot.json"),
-    )
-    tape = _prd322_tape(html)
-    assert "MACRO BIAS" not in tape
-    assert "Macro unavailable" in tape
-
-
-# --- R1 unit matrix: _tape_trend_summary over the closed vocabulary ---------
-def _prd322_records(*alignments: str) -> dict:
-    return {
-        sym: {**_ts_record(sym), "trend_alignment": align}
-        for sym, align in zip(_TS_CURATED, alignments)
-    }
-
-
-def test_prd322_trend_summary_all_computed_is_byte_identical_to_the_prior_string() -> None:
-    # R1: six computed rows reproduce the pre-PRD-322 headline byte-for-byte,
-    # including its derivation token. Mutation: change either -> red here and
-    # in test_prd318_tape_is_display_only_adjacency.
-    assert _dr._tape_trend_summary(_ts_healthy_snapshot()["symbols"], "OK") == (
-        "6 of 6 bullish", "bullish-row-count",
-    )
-    mixed = _prd322_records("BULLISH", "BEARISH", "MIXED", "BULLISH", "BEARISH", "MIXED")
-    assert _dr._tape_trend_summary(mixed, "OK") == ("2 of 6 bullish", "bullish-row-count")
-
-
-def test_prd322_trend_summary_denominator_counts_only_computed_rows() -> None:
-    # R1: the honest partial form. INSUFFICIENT_HISTORY and NOT_COMPUTED are
-    # n/a rows, not bearish rows. Mutation: count non-computed rows in the
-    # denominator -> red.
-    partial = _prd322_records(
-        "BULLISH", "BEARISH", "DATA_UNAVAILABLE", "BULLISH",
-        "INSUFFICIENT_HISTORY", "NOT_COMPUTED",
-    )
-    assert _dr._tape_trend_summary(partial, "OK") == (
-        "2 of 3 bullish · 3 n/a", "trend-health",
-    )
-
-
-@pytest.mark.parametrize(
-    "health,expected",
-    [
-        ("MARKET_CLOSED", "Market closed — awaiting intraday data"),
-        ("AWAITING_DATA", "Market closed — awaiting intraday data"),
-        ("STALE", "Trend stale"),
-        ("OK", "Trend data unavailable"),
-        ("MIXED", "Trend data unavailable"),
-        ("INACTIVE_SESSION", "Trend data unavailable"),
-    ],
-)
-def test_prd322_trend_summary_zero_computed_uses_source_health(health, expected) -> None:
-    # R1 / DEFECT 1: zero computed rows never render a count. Mutation: fall
-    # back to "0 of 6 bullish" -> red.
-    dead = _prd322_records(*(("DATA_UNAVAILABLE",) * 6))
-    assert _dr._tape_trend_summary(dead, health) == (expected, "trend-health")
-
-
-def test_prd322_trend_summary_absent_records_is_health_derived() -> None:
-    # R1: the records-absent literal is preserved, but its derivation is now
-    # honest (`trend-health`, not a count that was never taken).
-    for records in (None, {}):
-        assert _dr._tape_trend_summary(records, "MISSING") == (
-            "Trend unavailable", "trend-health",
-        )
-
-
-# --- R4 unit matrix: _build_trend_chips ------------------------------------
-def test_prd322_trend_chips_follow_the_curated_order() -> None:
-    # R4: chip order is the curated tuple, not snapshot insertion order.
-    # Mutation: iterate the record dict instead -> red.
-    shuffled = {
-        sym: _ts_record(sym) for sym in ("XLE", "SLV", "GLD", "GDX", "QQQ", "SPY")
-    }
-    assert [row[0] for row in _dr._build_trend_chips(shuffled)] == list(
-        _dr.config.TREND_STRUCTURE_SYMBOLS
-    )
-    assert list(_dr.config.TREND_STRUCTURE_SYMBOLS) == list(_TS_CURATED)
-
-
-def test_prd322_trend_chip_tokens_come_only_from_existing_translators() -> None:
-    # R4: alignment abbreviations, SMA arrow halves and the closed V-glyph set.
-    # Mutation: emit a synthesized token -> red.
-    rows = _dr._build_trend_chips(
-        _prd322_records("BULLISH", "BEARISH", "MIXED", "BULLISH", "BEARISH", "MIXED")
-    )
-    assert [r[1] for r in rows] == ["BULL", "BEAR", "MIX", "BULL", "BEAR", "MIX"]
-    assert {r[2] for r in rows} == {"↑ 50"}
-    assert {r[3] for r in rows} == {"↑ 200"}
-    assert {r[4] for r in rows} == {"V↑"}
-    assert [r[5] for r in rows] == ["up", "down", "flat", "up", "down", "flat"]
-    for row in rows:
-        assert row[1] in set(_dr._TS_ALIGN_ABBR.values())
-        assert f"{row[2]} {row[3]}" in set(_dr._TREND_STRUCTURE_COMPOSITE_DISPLAY.values())
-        assert row[4] in set(_dr._TAPE_VWAP_GLYPH.values())
-
-
-@pytest.mark.parametrize(
-    "vwap,glyph",
-    [("ABOVE", "V↑"), ("BELOW", "V↓"), ("AT_LEVEL", "V="),
-     ("DATA_UNAVAILABLE", ""), ("NOT_COMPUTED", ""), ("UNAVAILABLE", ""), ("", "")],
-)
-def test_prd322_trend_chip_vwap_glyph_only_for_a_computed_comparison(vwap, glyph) -> None:
-    # R4: the V-glyph vocabulary is closed to three tokens and renders only for
-    # a real comparison. Mutation: pass the raw token through -> red.
-    records = {sym: {**_ts_record(sym), "price_vs_vwap": vwap} for sym in _TS_CURATED}
-    assert {row[4] for row in _dr._build_trend_chips(records)} == {glyph}
-
-
-@pytest.mark.parametrize(
-    "alignment", ["DATA_UNAVAILABLE", "INSUFFICIENT_HISTORY", "NOT_COMPUTED", ""]
-)
-def test_prd322_non_computed_trend_row_renders_symbol_and_dash_only(alignment) -> None:
-    # R4: no partial arrows on a row whose alignment was never computed.
-    # Mutation: keep emitting the composite/glyph cells -> red.
-    records = {sym: {**_ts_record(sym), "trend_alignment": alignment} for sym in _TS_CURATED}
-    assert _dr._build_trend_chips(records) == [
-        (sym, "—", "", "", "", "na") for sym in _TS_CURATED
-    ]
-    # a wholly absent record set degrades the same way
-    assert _dr._build_trend_chips(None) == [
-        (sym, "—", "", "", "", "na") for sym in _TS_CURATED
-    ]
-
-
-# --- R2 unit matrix: _pressure_note ----------------------------------------
-def test_prd322_pressure_note_uses_the_closed_four_state_display_map() -> None:
-    # R2: the four component states and nothing else. Mutation: pass the raw
-    # enum through -> red.
-    note = _dr._pressure_note({
-        "volatility_pressure": "RISK_ON", "dollar_pressure": "RISK_OFF",
-        "rates_pressure": "NEUTRAL", "bitcoin_pressure": "UNKNOWN",
-    })
-    assert note == "pressure: VIX risk-on · DXY risk-off · 10Y neutral · BTC n/a"
-    for raw in ("RISK_ON", "RISK_OFF", "NEUTRAL", "UNKNOWN", "MIXED"):
-        assert raw not in note
-
-
-def test_prd322_pressure_note_never_reads_the_overall_aggregate() -> None:
-    # R2: `overall_pressure` is banned from TAPE — an unknown or absent
-    # component degrades to n/a rather than borrowing the aggregate.
-    # Mutation: render overall_pressure -> red.
-    note = _dr._pressure_note({
-        "volatility_pressure": "RISK_ON", "overall_pressure": "MIXED",
-    })
-    assert note == "pressure: VIX risk-on · DXY n/a · 10Y n/a · BTC n/a"
-    assert "overall" not in note and "MIXED" not in note
-    assert _dr._pressure_note(None) == "Pressure unavailable"
-    assert _dr._pressure_note("not a dict") == "Pressure unavailable"
-
-
-# --- rendered path ---------------------------------------------------------
-def _prd322_healthy_render(**kwargs):
-    return render_dashboard_html(
-        _payload(macro_drivers=_macro_drivers()), _run(), market_map=_market_map(),
-        trend_structure_snapshot=_ts_healthy_snapshot(), **kwargs,
-    )
-
-
-def test_prd322_tape_renders_all_seven_drivers_in_layout_order() -> None:
-    # R3: seven chips, data-driven from MACRO_ROW_2 + MACRO_ROW_1. Mutation:
-    # restore the hand-listed four-driver tuple -> red.
-    tape = _prd322_tape(_prd322_healthy_render())
-    labels = re.findall(r'<div class="tape-driver tape-slot \w+"><span>([^<]+)</span>', tape)
-    assert labels == ["VIX", "DXY", "10Y", "OIL", "GC", "SI", "BTC"]
-
-
-@pytest.mark.parametrize(
-    "driver_key,display",
-    [
-        ("volatility", "VIX"), ("dollar", "DXY"), ("rates", "10Y"),
-        ("oil", "OIL"), ("gold", "GC"), ("silver", "SI"), ("bitcoin", "BTC"),
-    ],
-)
-def test_prd322_absent_driver_keeps_its_chip_with_the_placeholder(driver_key, display) -> None:
-    # R3 (Codex F3): absence is visible, never zero and never dropped — for
-    # EVERY slot, including the metals whose DETAILS-side placeholder is
-    # "N/A" (the strip must normalize to "--"). Mutation: skip missing
-    # drivers, or drop the normalization -> red.
-    drivers = _macro_drivers()
-    drivers.pop(driver_key, None)
-    html = render_dashboard_html(
-        _payload(macro_drivers=drivers), _run(), market_map=_market_map(),
-    )
-    tape = _prd322_tape(html)
-    assert tape.count('class="tape-driver tape-slot') == 7
-    assert (
-        f'<div class="tape-driver tape-slot na"><span>{display}</span>'
-        f'<span>—</span><span>--</span></div>'
-    ) in tape
-
-
-def test_prd322_tape_zone_never_collides_with_the_details_harvest_shape() -> None:
-    # R3: `macro-tape-slot` / `macro-tape-value` / `data-symbol` are regex-
-    # harvested and order-pinned in DETAILS. Mutation: reuse them in TAPE ->
-    # red (and the DETAILS harvest silently doubles).
-    html = _prd322_healthy_render()
-    tape = _prd322_tape(html)
-    for token in ("macro-tape-value", "macro-tape-slot", "data-symbol"):
-        assert token not in tape
-        assert token in html.split('id="macro-tape"', 1)[1]
-
-
-def test_prd322_tape_carries_no_agreement_vocabulary_healthy_or_degraded() -> None:
-    # R4: extends the PRD-318 ban test with "agreement"/"confluence" and runs
-    # it over a degraded render too. Mutation: add any agreement semantic -> red.
-    healthy = _prd322_tape(_prd322_healthy_render())
-    degraded = _prd322_tape(render_dashboard_html(
-        _payload(), _run(), market_map=_market_map(),
-        macro_snapshot_path=Path("/nonexistent/prd322_no_snapshot.json"),
-        trend_structure_snapshot=_prd322_ts_snapshot(trend_alignment="DATA_UNAVAILABLE"),
-    ))
-    for tape in (healthy, degraded):
-        for banned in _PRD322_TAPE_BANNED:
-            assert banned not in tape
-
-
-def test_prd322_trend_chips_render_in_curated_order_in_the_tape() -> None:
-    # R4 rendered path: six chips, curated order, alignment-keyed colour class.
-    tape = _prd322_tape(_prd322_healthy_render())
-    rendered = re.findall(
-        r'<div class="tape-trend-row tape-slot (\w+)"><span>([A-Z]+)</span><span>([^<]*)</span>',
-        tape,
-    )
-    assert [sym for _cls, sym, _align in rendered] == list(_TS_CURATED)
-    assert {cls for cls, _s, _a in rendered} == {"up"}
-    assert {align for _c, _s, align in rendered} == {"BULL"}
-
-
-def test_prd322_degraded_trend_rows_render_dash_only_in_the_tape() -> None:
-    # R4 rendered path: the na row shape. Mutation: emit partial arrows -> red.
-    # PRD-327 D2-Q2: an all-na strip under healthy lineage in an active session
-    # is suppressed (tests/test_dashboard_d2_seam.py), so render the inactive
-    # session, where PRD-322 R4's six na chips remain mandatory.
-    _inactive = _payload()
-    _inactive["meta"]["session_type"] = "SUNDAY_PREMARKET"
-    tape = _prd322_tape(render_dashboard_html(
-        _inactive, _run(), market_map=_market_map(),
-        trend_structure_snapshot=_prd322_ts_snapshot(
-            trend_alignment="DATA_UNAVAILABLE", price_vs_sma_50="DATA_UNAVAILABLE",
-            price_vs_sma_200="DATA_UNAVAILABLE", price_vs_vwap="DATA_UNAVAILABLE",
-        ),
-    ))
-    for sym in _TS_CURATED:
-        assert (f'<div class="tape-trend-row tape-slot na"><span>{sym}</span>'
-                f'<span>—</span><span></span><span></span><span></span></div>') in tape
-    assert "↑" not in tape.split('class="tape-trend"', 1)[1]
-
-
-def test_prd322_macro_gate_keys_on_missing_not_fallback() -> None:
-    # R2: FALLBACK also fires on missing TRADABLES values under a genuine,
-    # fully-voted macro bias — it must NOT suppress the bias. Mutation: key the
-    # gate on `!= "OK"` -> red.
-    html = render_dashboard_html(
-        _payload(macro_drivers=_macro_drivers()), _run(), market_map=None,
-    )
-    assert _macro_tape_source_health(
-        macro_drivers=_macro_drivers(),
-        tape_value_slots=_dr._build_tape_value_slots(_macro_drivers(), None),
-    ) == "FALLBACK"
-    tape = _prd322_tape(html)
-    assert "MACRO BIAS:" in tape
-    assert "Macro unavailable" not in tape
-
-
-def test_prd322_suppressed_macro_bias_stays_omitted_with_no_substitute(monkeypatch) -> None:
-    # R2 / OUT OF SCOPE: the integrator seam keeps winning — a suppressed bias
-    # renders no bias line AND no fabricated stand-in. Mutation: render
-    # "Macro unavailable" (or the bias) under suppression -> red.
-    _freeze_renderer_now(monkeypatch)
-    mm = _market_map({"SPY": _mm_symbol("SPY", grade="A", bias="BULL")})
-    html = render_dashboard_html(
-        _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.01, tnx=0.02, btc=0.0)),
-        _run(), market_map=mm,
-    )
-    tape = _prd322_tape(html)
-    assert "MACRO BIAS" not in tape
-    assert "Macro unavailable" not in tape
-    assert '<div class="tape-band-cap">MACRO</div>' in tape  # the band survives
-    assert 'class="tape-driver' in tape                      # drivers stay visible
-
-
-def test_prd322_gex_absence_is_stated_in_the_tape() -> None:
-    # R5: mutation -- restore the silent omission -> red.
-    absent = _prd322_tape(_prd322_healthy_render(gex_snapshot=None))
-    assert ('<div class="zone-item"><div class="label">GEX · CONTEXT ONLY</div>'
-            '<div class="zone-value">unavailable</div></div>') in absent
-    present = _prd322_tape(_prd322_healthy_render(
-        gex_snapshot=_valid_gex(), now=_GEX_FROZEN,
-    ))
-    assert "-$5.0B net" in present and "unavailable" not in present
-
-
-def test_prd322_participation_absence_is_stated_in_the_tape() -> None:
-    # R5: mutation -- restore the silent omission -> red.
-    absent = _prd322_tape(_prd322_healthy_render(movement_snapshot=None))
-    assert ('<div class="zone-item"><div class="label">PARTICIPATION</div>'
-            '<div class="zone-value">not captured</div></div>') in absent
-    present = _prd322_tape(_prd322_healthy_render(movement_snapshot=_movement_snapshot()))
-    assert "captured</div>" in present and "not captured" not in present
-
-
-def test_prd322_tape_band_structure_and_zone_set_are_preserved() -> None:
-    # R6 (superseded in part by PRD-327 R4): two labeled bands with no `.sep`
-    # dividers, the availability footer last, and the four-zone set untouched.
-    html = _prd322_healthy_render()
-    tape = _prd322_tape(html)
-    assert tape.index('<div class="tape-band-cap">MACRO</div>') < tape.index(
-        '<div class="tape-band-cap">TREND</div>')
-    assert tape.index('<div class="tape-band-cap">TREND</div>') < tape.index(
-        '<div class="zone-grid tape-foot">')
-    assert tape.count('<div class="sep"></div>') == 0
-    assert tape.index('class="tape-drivers"') < tape.index('class="zone-note"')
-    before_details = html.split('<details class="block operator-zone"', 1)[0]
-    assert before_details.count('class="block operator-zone"') == 4
-    assert '<h2>TAPE <span class="label">context only</span></h2>' in tape
-
-
-def test_prd322_new_styling_stays_out_of_the_pinned_phone_block() -> None:
-    # R6: every new rule lives in base CSS; the 430px block stays byte-identical.
-    html = _prd322_healthy_render()
-    assert _PRD318_PHONE_BLOCK in html
-    for rule in ("tape-band-cap", "tape-driver", "tape-trend", "tape-foot"):
-        assert rule not in _PRD318_PHONE_BLOCK
-        assert rule in html
-    # aligned column grids, nowrap per cell (via .tape-slot), no fixed widths
-    assert ".tape-trend-row{display:grid;grid-template-columns:4ch 4ch 4ch 5ch 2ch" in html
-    assert ".tape-driver{display:grid;grid-template-columns:3ch 1ch auto" in html
-    # Codex F7: the OUTER strips are grids too — a regression to flex-wrap
-    # (ragged columns, the owner-rejected sketch state) must go red here.
-    assert ".tape-drivers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))" in html
-    assert ".tape-trend{display:grid;grid-template-columns:repeat(auto-fit,minmax(154px,1fr))" in html
-    assert ".tape-slot{white-space:nowrap}" in html
-
-
 # PRD-324 (A1-C) intraday consumer: parity, fallback, isolation. Chart-bearing
 # recipe from test_dash_candidates (R11 oracle); byte-identity mirrors test_prd120.
 from tests.test_dash_candidates import (  # noqa: E402
@@ -5460,7 +5159,10 @@ def _a1c_render_html(monkeypatch, *, intraday_path=_A1C_MISSING, mm=None, fixtur
     payload["meta"]["generation_id"] = "test-gen-001"
     run["generation_id"] = "test-gen-001"
     mm["generation_id"] = "test-gen-001"
-    kwargs = {"price_bars_snapshot": _a1c_bars(symbols=tuple(mm["symbols"])), "now": _A1C_NOW}
+    kwargs = {"price_bars_snapshot": _a1c_bars(symbols=tuple(mm["symbols"])), "now": _A1C_NOW,
+              # PRD-334 review F2: neutralized macro path -> the A1-C golden never bakes
+              # the dirty logs/macro_drivers_snapshot.json live readings as canonical truth.
+              "macro_snapshot_path": _NEUTRAL_MACRO_PATH}
     if fixture_mode:
         kwargs["fixture_mode"] = True
     return render_dashboard_html(payload, run, market_map=mm, **kwargs)
@@ -5647,8 +5349,8 @@ def _s2_sha(text: str) -> str:
 def test_prd329_spy_session_promoted_between_watching_and_details() -> None:
     # T8/T10 (R4): first-class section strictly between the two seams; the
     # observation no longer renders inside DETAILS; not an `operator-zone`.
-    html = _s2_render()   # PRD-330 R1: TAPE -> SPY SESSION -> NEXT EVENT -> WATCHING -> DETAILS
-    ids = ["system-state", "tape-zone", "spy-session", "today-zone", "watching-zone", "details-history"]
+    html = _s2_render()   # PRD-334 R9: NEXT EVENT -> MARKET STRUCTURE -> SPY SESSION -> WATCHING -> GEX -> HISTORY
+    ids = ["system-state", "today-zone", "market-structure", "spy-session", "watching-zone", "gex-zone", "details-history"]
     assert [html.index(f'id="{i}"') for i in ids] == sorted(html.index(f'id="{i}"') for i in ids)
     assert ('<section class="spy-session-group" id="spy-session">\n  <h3>SPY SESSION</h3>\n'
             '<div class="block" id="spy-observation">\n  <div class="spy-read" data-raw-state="OBSERVED"') in html
@@ -5657,7 +5359,7 @@ def test_prd329_spy_session_promoted_between_watching_and_details() -> None:
     assert 'id="spy-observation"' not in details and 'id="spy-session-details"' not in details
     assert html.count("<h3>SPY SESSION</h3>") == 1 and html.count('id="spy-observation"') == 1
     assert 'operator-zone" id="spy-session"' not in html
-    assert html.split('<details class="block operator-zone"', 1)[0].count('class="block operator-zone"') == 4
+    assert html.split('<details class="block operator-zone"', 1)[0].count('class="block operator-zone"') == 5
 
 
 def test_prd330_r2_header_lines_replace_the_kv_grid() -> None:
@@ -5666,8 +5368,8 @@ def test_prd330_r2_header_lines_replace_the_kv_grid() -> None:
     assert 'data-raw-state="OBSERVED" data-observed-at-utc="2026-04-28T13:34:00+00:00" data-session-date="2026-04-28"' in obs
     lines = re.findall(r'<div class="(spy-read|spy-clock)"[^>]*>([^<]*(?:<span[^>]*>[^<]*</span>)?)</div>', obs)
     assert [k for k, _ in lines] == ["spy-read", "spy-read", "spy-clock"]
-    assert lines[0][1].startswith("SPY 104.00 above session VWAP 102.00 · read ") and lines[1][1] == "ORB 100.00-105.00"
-    assert lines[2][1] == "Market-map levels 5:00 AM PT · daily bars through Aug 27"
+    assert lines[0][1].startswith("SPY 104.00 above session VWAP 102.00 · read ") and lines[1][1] == "Opening range 100.00-105.00"
+    assert lines[2][1] == "Levels updated 5:00 AM PT · daily bars through Aug 27"
     body = re.sub(r'data-[a-z-]+="[^"]*"', "", obs)
     assert not re.search(r"\d{4}-\d{2}-\d{2}T", body) and "OBSERVED" not in body and "UNAVAILABLE" not in body
     for label in ("OBSERVED AT", "SESSION VWAP", "PRICE", "chart-caption", "NOW per market map"):
@@ -5676,10 +5378,10 @@ def test_prd330_r2_header_lines_replace_the_kv_grid() -> None:
     assert order == sorted(order)
     # D-8: the map clock is time-only iff the map's Pacific day is the intended session day
     cap = "bars through 2026-08-27 · yfinance 1d"
-    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", "2026-04-28", cap) == "Market-map levels 5:00 AM PT · daily bars through Aug 27"
-    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", "2026-04-27", cap) == "Market-map levels Apr 28 · 5:00 AM PT · daily bars through Aug 27"
-    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", None, cap).startswith("Market-map levels Apr 28 · 5:00 AM PT")
-    assert _dr._spy_clock_line("garbage", "2026-04-28", "no caption") == "Market-map levels Update time unavailable · daily bars through unknown date"
+    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", "2026-04-28", cap) == "Levels updated 5:00 AM PT · daily bars through Aug 27"
+    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", "2026-04-27", cap) == "Levels updated Apr 28 · 5:00 AM PT · daily bars through Aug 27"
+    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", None, cap).startswith("Levels updated Apr 28 · 5:00 AM PT")
+    assert _dr._spy_clock_line("garbage", "2026-04-28", "no caption") == "Levels updated Update time unavailable · daily bars through unknown date"
 
 
 def test_prd329_spy_chart_is_daily_neutral_with_named_clocks() -> None:
@@ -5809,22 +5511,26 @@ def test_prd329_spy_session_source_cone() -> None:
     assert all(isinstance(ladder[i], _ast.Constant) and ladder[i].value is None for i in (2, 5))
 
 
-def test_prd329_market_control_stays_in_details_with_unchanged_bytes() -> None:
-    # T15 / T15-mcc-only (R9): MCC never moves; observation-present renders drop the
-    # single-member DETAILS group; MCC-only renders keep today's wrapper bytes.
+def test_prd334_market_control_split_history_and_context() -> None:
+    # PRD-334 R6: LOCATION/STATE/EVENT + candidate-implication render in HISTORY's
+    # #market-control-card; TRANSITION/INVALIDATION render near SPY in #market-context.
+    # The legacy #spy-session-details MCC-only wrapper is removed.
     payload = _payload()
     payload["sections"]["market_control_card"] = _mcc_section()
     payload["sections"]["spy_observation"] = _spy_section()
     html = render_dashboard_html(payload, _run(), market_map=_market_map())
     assert html.index('id="details-history"') < html.index('id="market-control-card"')
-    details = html.split('id="details-history"', 1)[1]
-    assert 'id="spy-session-details"' not in details and "<h3>SPY SESSION</h3>" not in details
+    assert 'id="spy-session-details"' not in html
+    # transition/invalidation render near SPY (market-context), before WATCHING
+    assert html.index('id="spy-session"') < html.index('id="market-context"') < html.index('id="watching-zone"')
+    context = _top_block(html, "market-context")
+    assert "TRANSITION" in context and "INVALIDATION" in context
+    # the SPY section itself carries no MARKET CONTROL card
     section = html.split('id="spy-session"', 1)[1].split("</section>", 1)[0]
     assert "MARKET CONTROL" not in section and 'id="market-control-card"' not in section
+    # MCC-only render (no observation): market-control-card still in HISTORY, byte-stable
     mcc_only = _render_with_mcc(_mcc_section())
     assert _mcc_block(html) == _mcc_block(mcc_only)
-    fragment = mcc_only.split('<section class="spy-session-group" id="spy-session-details">', 1)[1]
-    assert _s2_sha(fragment.split("</section>", 1)[0]) == _S2_MCC_ONLY_SHA
     assert 'id="spy-session"' not in mcc_only and 'id="spy-observation"' not in mcc_only
 
 
@@ -5836,10 +5542,13 @@ def test_prd329_spy_chart_never_suppressed_by_primary_selection(monkeypatch) -> 
     assert html.count('class="setup-chart"') == 1 and html.count('class="spy-chart"') == 1
     html = _s2_render(mm=_market_map({"AAA": _chartable("AAA", "A+"), "SPY": _chartable("SPY", "C")}))
     assert html.count('class="spy-chart"') == 1
-    assert html.count('class="setup-chart"') == 2   # AAA primary + SPY's own secondary behind disclosure
+    assert html.count('class="setup-chart"') == 2   # AAA primary + SPY's own secondary (now flat, PRD-334 R2)
     assert html.index('class="setup-chart"') < html.index('id="card-SPY"')   # AAA holds the slot
-    spy_card = html.split('id="card-SPY"', 1)[1].split("\n</div>\n", 1)[0]   # closed C tier -> S1 `open`
-    assert '<details open class="chart-detail">' in spy_card and "spy-chart" not in spy_card
+    spy_card = html.split('id="card-SPY"', 1)[1].split("\n</div>\n", 1)[0]   # closed C tier
+    # PRD-334 R2: SPY's card chart renders flat (no chart-detail); it is the card's
+    # setup-chart, distinct from the SPY SESSION section's spy-chart.
+    assert 'class="setup-chart"' in spy_card and 'class="chart-detail"' not in spy_card
+    assert "spy-chart" not in spy_card
     for run in (dict(outcome="TRADE"), dict(outcome="NO_TRADE", permission=_S2_LOCK)):
         assert _s2_render(run=_run(**run)).count('class="spy-chart"') == 1
     monkeypatch.setattr(_dr, "select_primary_card_symbol", lambda *a, **k: None)
@@ -5871,23 +5580,24 @@ def test_prd329_preview_fixture_pins_the_promoted_block() -> None:
     case = next(c for c in SECTION_STATE_CASES if c.name == "spy_session_observed")
     html = render_dashboard_html(case.payload, case.run, market_map=case.market_map, **case.render_kwargs)
     assert 'id="spy-session"' in html and html.count('class="spy-chart"') == 1
-    assert html.index('id="tape-zone"') < html.index('id="spy-session"') < html.index('id="today-zone"')
+    # PRD-334 R9: MARKET STRUCTURE precedes SPY SESSION, which precedes WATCHING.
+    assert html.index('id="market-structure"') < html.index('id="spy-session"') < html.index('id="watching-zone"')
     frag = html.split('<section class="spy-session-group" id="spy-session">', 1)[1].split(
         '<div class="block operator-zone" id="watching-zone">', 1)[0]
-    assert _s2_sha(frag) == _S2_FIXTURE_SHA     # PRD-330: the promoted block + NEXT EVENT strip, byte-pinned
+    assert _s2_sha(frag) == _S2_FIXTURE_SHA     # PRD-330 seam byte-pin; regenerated in R11
 
 
-_S2_FIXTURE_SHA = "a13cc0b3d25b38d7a634c18d009c7857db0a12dff6deb9ca1976f4a91cf6ebae"  # PRD-330 implementation head (spy-session..watching seam)
+_S2_FIXTURE_SHA = "d906108e3dc10b9f84c62dbb966a340370aa9aac83c85f207e76329d33c55e07"  # PRD-334 R11: recomposed spy-session..watching seam (SPY copy R4 + market-context R6 + colour tokens R8)
 
 
 # ---------------------------------------------------------------------------
 # PRD-330 (D4) — R1 order, R4 NEXT EVENT, R8 control, R13 ladder, R12 no dead UI
 # ---------------------------------------------------------------------------
-def test_prd330_r1_order_and_four_operator_zones() -> None:
+def test_prd330_r1_order_and_operator_zones() -> None:
     for html in (_s2_render(), _s2_render(spy=False)):
         before = html.split('<details class="block operator-zone"', 1)[0]
-        assert before.count('class="block operator-zone"') == 4 and 'operator-zone" id="spy-session"' not in html
-        assert html.index('id="tape-zone"') < html.index('id="today-zone"') < html.index('id="watching-zone"')
+        assert before.count('class="block operator-zone"') == 5 and 'operator-zone" id="spy-session"' not in html
+        assert html.index('id="today-zone"') < html.index('id="market-structure"') < html.index('id="watching-zone"')
     assert 'id="spy-session"' not in _s2_render(spy=False)
 
 

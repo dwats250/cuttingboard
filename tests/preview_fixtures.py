@@ -44,8 +44,9 @@ _WEEKDAY_TS = "2026-04-28T12:00:00Z"    # Tuesday — the dash_helpers default
 _D1_TS = "2026-08-28T13:00:00Z"
 _D1_NOW = datetime(2026, 8, 28, 14, 0, tzinfo=timezone.utc)
 _D1_CHART = 'class="setup-chart"'
-_D1_LEVEL_MAP = '<details class="level-detail"><summary>LEVEL MAP ▶</summary>'
-_D1_SECONDARY = '<details class="chart-detail">'
+# PRD-334 R2: the former per-card level-detail (LEVEL MAP) and nested chart-detail
+# (CHART) disclosures are removed -- every selected setup renders its chart flat --
+# so the _D1_LEVEL_MAP / _D1_SECONDARY markers those cases asserted no longer exist.
 
 
 @dataclass(frozen=True)
@@ -267,7 +268,9 @@ def section_state_cases() -> list[SectionStateCase]:
     # 13-17. PRD-326 (D1) primary-chart matrix. PRIMARY CHART VISIBILITY IS
     #        OBSERVATIONAL AND DOES NOT GRANT OR IMPLY TRADE PERMISSION: the single
     #        canonical primary chart renders undisclosed in every decision state,
-    #        neutral when not permitted; the secondary chart stays behind disclosure.
+    #        neutral when not permitted. PRD-334 R2: every OTHER card's chart is now
+    #        flat too (no chart-detail / LEVEL MAP disclosure) -- a selected setup
+    #        shows its chart immediately.
     def _d1_kwargs(*syms: str) -> dict:
         return {"price_bars_snapshot": _bars_snapshot(symbols=syms), "now": _D1_NOW,
                 "contract_entry_map": {s: 102.5 for s in syms},
@@ -279,12 +282,12 @@ def section_state_cases() -> list[SectionStateCase]:
                          render_kwargs=_d1_kwargs(*mm["symbols"]), extra_markers=extra)
 
     cases.append(_d1_case("primary_chart_stay_flat", _D1_CHART, _run(outcome="NO_TRADE"),
-                          ">STAY FLAT<", _D1_LEVEL_MAP, _D1_SECONDARY))
+                          ">STAY FLAT<"))
     cases.append(_d1_case("primary_chart_locked", _D1_CHART,
                           _run(outcome="NO_TRADE", permission=config.OPERATOR_LOCK_PERMISSION),
-                          ">OBSERVE ONLY<", _D1_LEVEL_MAP, _D1_SECONDARY))
+                          ">OBSERVE ONLY<"))
     cases.append(_d1_case("primary_chart_permitted", _D1_CHART, _run(outcome="TRADE"),
-                          ">TRADE PERMITTED<", _D1_SECONDARY))
+                          ">TRADE PERMITTED<"))
     # Stale map: market_map timestamp behind the run by more than the staleness
     # window while a valid bars snapshot is supplied -> no card, no chart.
     stale = _d1_case("market_map_stale_with_bars", "STALE MARKET MAP", _run(outcome="NO_TRADE"),
@@ -294,7 +297,7 @@ def section_state_cases() -> list[SectionStateCase]:
     # D1-Q1 = OPTION A: a C-only chartable map makes the C card the canonical
     # primary; its enclosing low-tier wrapper defaults open so the chart is visible.
     cases.append(_d1_case("primary_chart_c_grade", '<details open class="tier-group" id="tier-c">',
-                          _run(outcome="NO_TRADE"), ">STAY FLAT<", _D1_CHART, _D1_LEVEL_MAP,
+                          _run(outcome="NO_TRADE"), ">STAY FLAT<", _D1_CHART,
                           market_map=_market_map({"SPY": _chartable("SPY", "C")})))
 
     # 18. PRD-329 (D3) S2: daily payload carrying `spy_observation`, a healthy map

@@ -315,6 +315,17 @@ def _mon_d(iso: object) -> str:
 # PRD-330 R8/R12: the closed layer -> (control id, label) map; one entry, so one control.
 _LAYER_CONTROLS: dict[str, tuple[str, str]] = {"levels": ("spy-levels", "LEVELS")}
 _SPY_REL_WORD = {"ABOVE": "above", "BELOW": "below", "AT_LEVEL": "at"}
+
+# PRD-334 R5: renderer-local regrouping of the seven macro drivers into market
+# families (keyed by the shared-layout slot .label; macro_tape_layout.py is NOT
+# edited). Order is family order, not the pre-PRD shared-layout order. GC/SI/OIL
+# are futures. (name, (slot labels in order), family note or "")
+_MACRO_FAMILIES: tuple[tuple[str, tuple[str, ...], str], ...] = (
+    ("VOLATILITY", ("VIX",), ""),
+    ("RATES / FX", ("10Y", "DXY"), ""),
+    ("COMMODITIES", ("XAU", "XAG", "OIL"), "futures"),
+    ("CRYPTO", ("BTC",), ""),
+)
 _WATCHLIST_CUTOFF_REASON = "entry blocked after 3:30 PM ET"
 
 
@@ -334,7 +345,7 @@ def _spy_session_lines(spy_obs: dict) -> tuple[str, str]:
     elif state == "PRE_OPEN":
         line1 = f"Pre-open · awaiting today's session · last {_operator_clock(obs_at)}"
     elif state == "STALE" and reason == "session_mismatch":
-        line1 = f"Session read is from another session · intended {when} · last {_operator_timestamp(obs_at)}{withheld}"
+        line1 = f"Session read is from a different trading day · intended {when} · last {_operator_timestamp(obs_at)}{withheld}"
     elif state == "STALE":
         line1 = f"Session read not current · last {_operator_clock(obs_at)}{withheld}"
     else:
@@ -342,7 +353,9 @@ def _spy_session_lines(spy_obs: dict) -> tuple[str, str]:
     orb = spy_obs.get("orb") if isinstance(spy_obs.get("orb"), dict) else None
     hi, lo = (orb or {}).get("orb_high"), (orb or {}).get("orb_low")
     if orb and orb.get("state") == "FORMED" and isinstance(hi, (int, float)) and isinstance(lo, (int, float)):
-        line2 = f"ORB {lo:.2f}-{hi:.2f}"
+        # PRD-334 R4: plain language -- expand the ORB acronym, matching the
+        # "Opening range pre-open" branch below and _spy_orb_summary.
+        line2 = f"Opening range {lo:.2f}-{hi:.2f}"
     elif orb and orb.get("state") == "PRE_OPEN":
         line2 = "Opening range pre-open"
     else:
@@ -356,7 +369,10 @@ def _spy_clock_line(mm_clock_label: str, intended: object, caption: str) -> str:
     same_day = parsed is not None and bool(intended) and parsed.astimezone(_PT).date().isoformat() == str(intended)[:10]
     clock = _operator_clock(parsed) if same_day else _operator_timestamp(parsed if parsed else mm_clock_label)
     as_of = caption.split("bars through ", 1)[1][:10] if "bars through " in caption else ""
-    return f"Market-map levels {clock} · daily bars through {_mon_d(as_of) if as_of else 'unknown date'}"
+    # PRD-334 R4: plain language -- "Levels updated" instead of the internal
+    # "Market-map levels"; both clocks (the levels read time and the daily-bars
+    # date) are preserved.
+    return f"Levels updated {clock} · daily bars through {_mon_d(as_of) if as_of else 'unknown date'}"
 
 
 def _next_event_line(red_folder: object) -> str:
@@ -403,7 +419,6 @@ def _trend_structure_intraday_display(record: dict) -> str:
     return _TREND_STRUCTURE_INTRADAY_DISPLAY[(vwap_token, band)]
 HISTORY_LIMIT = 5
 SCOREBOARD_LIMIT = 5  # render at most the 5 most-recent regime-history rows (was 10, PRD-177 R4)
-_DASHBOARD_REFRESH_SECONDS = 30
 DASHBOARD_STALE_AFTER_SECONDS = 300
 
 # PRD-250: client-side page-age banner threshold. During an ACTIVE session a
@@ -417,8 +432,10 @@ BOARD_STALE_AFTER_SECONDS = 90 * 60  # 90 min
 
 # PRD-250: inline client-side staleness script. Reads the machine-readable
 # UPDATED timestamp emitted on #cb-updated, compares it to the viewer's clock at
-# VIEW time, and paints a page-age notice into #staleness-banner. Re-runs on each
-# <meta http-equiv="refresh"> reload. Server bakes NO verdict; the browser is the
+# VIEW time, and paints a page-age notice into #staleness-banner. PRD-334 R1: the
+# auto-refresh <meta> was removed (it reset view state); the notice now re-evaluates
+# on a local-clock setInterval instead of on each forced reload -- no network, no
+# storage, so a selected setup survives. Server bakes NO verdict; the browser is the
 # only component that keeps running when the pipeline stops. `data-session-inactive`
 # is the server-supplied "was a refresh due" signal (payload.meta.session_type via
 # inactive_session) — no market calendar is reimplemented here. Informs the age
@@ -456,8 +473,8 @@ _STALENESS_BANNER_JS = """
     }
     if (ageSec > staleAfter) {
       banner.textContent = "BOARD " + fmtAge(ageSec) + " OLD";
-      banner.style.color = "#ff9800";
-      banner.style.borderColor = "#ff9800";
+      banner.style.color = "var(--color-warning)";
+      banner.style.borderColor = "var(--color-warning)";
       banner.hidden = false;
     } else {
       banner.hidden = true;
@@ -468,6 +485,11 @@ _STALENESS_BANNER_JS = """
   } else {
     run();
   }
+  // PRD-334 R1: re-evaluate page age on the viewer's local clock now that the
+  // full-page auto-refresh is gone. setInterval only re-reads the already-baked
+  // #cb-updated timestamp against Date.now(); it opens no network and touches no
+  // storage, so it never grants/revokes permission or revalidates GEX.
+  setInterval(run, 60000);
 })();
 """
 
@@ -936,6 +958,19 @@ _TIER_DEFS = [
 ]
 
 _CSS = (
+    # PRD-334 R8 (owner ruling G1): semantic colour tokens. Amber's overloaded jobs
+    # are split into distinct hues (neutral / warning / flat-posture / grade /
+    # event); posture/permission colour is separate from up/down price-direction
+    # colour; the cyan "actionable-now" accent is split from the VWAP/level
+    # reference; GEX carries its own derivatives family. Every colour-carried
+    # meaning is ALSO carried by text or shape (colour is never the sole carrier).
+    # Token text colours meet WCAG AA against the #0d0d0d ground.
+    ":root{"
+    "--posture-up:#3ddc84;--posture-down:#ff6b6b;--posture-flat:#d6a44c;--posture-halt:#ff5252;"
+    "--dir-up:#7bc96f;--dir-down:#e58a8a;"
+    "--color-neutral:#9aa4b2;--color-warning:#ffb300;--color-grade:#e0a552;--color-event:#f5c518;"
+    "--color-actionable:#29b6f6;--color-level:#7ec8e3;--color-gex:#b39ddb;"
+    "}"
     "*{box-sizing:border-box;margin:0;padding:0}"
     "body{background:#0d0d0d;color:#e0e0e0;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'Liberation Mono','DejaVu Sans Mono',monospace;font-size:13px;padding:1rem}"
     ".wrap{max-width:640px;margin:0 auto}"
@@ -946,22 +981,22 @@ _CSS = (
     ".row{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.5rem}"
     ".field{flex:1;min-width:120px}"
     ".badge{display:inline-block;padding:0.2rem 0.5rem;border-radius:3px;font-size:0.8rem}"
-    ".RISK_ON{background:#1a3a1a;color:#4caf50}"
-    ".RISK_OFF{background:#3a1a1a;color:#f44336}"
-    ".NEUTRAL{background:#2a2a1a;color:#ff9800}"
+    ".RISK_ON{background:#1a3a1a;color:var(--posture-up)}"
+    ".RISK_OFF{background:#3a1a1a;color:var(--posture-down)}"
+    ".NEUTRAL{background:#2a2a1a;color:var(--posture-flat)}"
     ".CHAOTIC{background:#3a1a3a;color:#e040fb}"
     ".STAY_FLAT{background:#1a1a2a;color:#90caf9}"
-    ".AGGRESSIVE_LONG,.CONTROLLED_LONG{background:#1a3a1a;color:#4caf50}"
-    ".DEFENSIVE_SHORT{background:#3a1a1a;color:#f44336}"
-    ".NEUTRAL_PREMIUM{background:#2a2a1a;color:#ff9800}"
+    ".AGGRESSIVE_LONG,.CONTROLLED_LONG{background:#1a3a1a;color:var(--posture-up)}"
+    ".DEFENSIVE_SHORT{background:#3a1a1a;color:var(--posture-down)}"
+    ".NEUTRAL_PREMIUM{background:#2a2a1a;color:var(--posture-flat)}"
     ".halted{color:#f44336;font-weight:bold}"
-    ".warn{color:#ff9800}"
+    ".warn{color:var(--color-warning)}"
     # PRD-219: distilled system-state verdict + context.
     ".sys-verdict{font-weight:bold;font-size:0.95rem;letter-spacing:0.02em}"
-    ".sys-verdict.sys-up{color:#4caf50}"
-    ".sys-verdict.sys-down{color:#f44336}"
-    ".sys-verdict.sys-flat{color:#ff9800}"
-    ".sys-verdict.sys-halt{color:#f44336}"
+    ".sys-verdict.sys-up{color:var(--posture-up)}"
+    ".sys-verdict.sys-down{color:var(--posture-down)}"
+    ".sys-verdict.sys-flat{color:var(--posture-flat)}"
+    ".sys-verdict.sys-halt{color:var(--posture-halt)}"
     ".sys-context{color:#888;font-size:0.8rem;margin-top:2px}"
     ".sys-permission{color:#aaa;font-size:0.78rem;line-height:1.35;margin-top:4px}"
     ".sys-context.halted{color:#f44336}"
@@ -974,17 +1009,23 @@ _CSS = (
     # PERMITTED label above the existing sys-verdict line. Reuses the
     # sys-up/sys-down/sys-flat/sys-halt colour classes for consistency.
     ".decision-state{font-weight:bold;font-size:1.4rem;letter-spacing:0.02em}"
-    ".decision-state.sys-up{color:#4caf50}"
-    ".decision-state.sys-down{color:#f44336}"
-    ".decision-state.sys-flat{color:#ff9800}"
-    ".decision-state.sys-halt{color:#f44336}"
+    ".decision-state.sys-up{color:var(--posture-up)}"
+    ".decision-state.sys-down{color:var(--posture-down)}"
+    ".decision-state.sys-flat{color:var(--posture-flat)}"
+    ".decision-state.sys-halt{color:var(--posture-halt)}"
     "h2{font-size:0.8rem;color:#888;text-transform:uppercase;"
     "letter-spacing:0.08em;margin-bottom:0.75rem}"
     ".sep{border-top:1px solid #1a1a1a;margin:0.5rem 0}"
     ".tape-slot{white-space:nowrap}"
     ".macro-tape-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));"
     "gap:6px 12px;margin-top:6px;overflow-x:hidden}"
-    ".macro-drivers-row,.macro-spot-metals-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 16px;margin-top:6px;overflow-x:hidden}"
+    # PRD-334 R5: market-family groups. Unequal family sizes pack via flex-wrap
+    # (never a forced 3-col grid), so 1-3 drivers per family read cleanly.
+    ".macro-family{margin-top:8px}"
+    ".macro-family-cap{font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:#888}"
+    ".macro-family-note{text-transform:none;letter-spacing:0;color:var(--color-neutral);font-size:.62rem}"
+    ".macro-drivers-row{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:4px;overflow-x:hidden}"
+    ".macro-drivers-row .macro-tape-slot{flex:1 1 90px;min-width:0}"
     ".macro-tradables-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;"
     "margin-top:6px;overflow-x:hidden}"
     ".tradable-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
@@ -1002,7 +1043,7 @@ _CSS = (
     ".card-brief .lifecycle-detail{grid-column:1/-1;margin:2px 0}"
     ".grade-aplus{border-left-color:#4caf50}"
     ".grade-a{border-left-color:#8bc34a}"
-    ".grade-b{border-left-color:#ff9800}"
+    ".grade-b{border-left-color:var(--color-grade)}"
     ".grade-c{border-left-color:#607d8b;opacity:0.8}"
     ".grade-d{border-left-color:#f44336;opacity:0.7}"
     ".grade-f{border-left-color:#424242;opacity:0.5}"
@@ -1014,19 +1055,19 @@ _CSS = (
     ".tier-group{margin-bottom:16px}"
     ".tier-header{font-size:.72rem;font-weight:normal;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;opacity:1}"
     ".candidate-state{font-weight:bold;margin-bottom:4px}"
-    ".candidate-risk{color:#ff9800}"
-    ".candidate-state.manual-check{border-left:3px solid #ff9800;padding:4px 8px}"
-    ".manual-check-flag{display:inline-block;border:1px solid currentColor;border-radius:3px;padding:0 5px;margin-right:6px;font-size:.7rem;letter-spacing:.06em;color:#ff9800}"
+    ".candidate-risk{color:var(--color-warning)}"
+    ".candidate-state.manual-check{border-left:3px solid var(--color-warning);padding:4px 8px}"
+    ".manual-check-flag{display:inline-block;border:1px solid currentColor;border-radius:3px;padding:0 5px;margin-right:6px;font-size:.7rem;letter-spacing:.06em;color:var(--color-warning)}"
     ".tape-slot.up{color:#4caf50}"
     ".tape-slot.down{color:#f44336}"
     ".tape-slot.flat{color:#888}"
     ".tape-slot.na{color:#444;opacity:0.7}"
     ".macro-bias.long{color:#4caf50}"
     ".macro-bias.short{color:#f44336}"
-    ".macro-bias.mixed{color:#ff9800}"
+    ".macro-bias.mixed{color:var(--posture-flat)}"
     # Change #3: TAPE bias-token colour -- reuses the palette, adds no weight or
     # margin (unlike .macro-bias), so only the direction token gets the accent.
-    ".tape-bias.long{color:#4caf50}.tape-bias.short{color:#f44336}.tape-bias.mixed{color:#ff9800}"
+    ".tape-bias.long{color:var(--dir-up)}.tape-bias.short{color:var(--dir-down)}.tape-bias.mixed{color:var(--posture-flat)}"
     ".tape-no-data{color:#888;font-style:italic;margin-top:4px;font-size:0.8rem}"
     ".idle-summary{color:#888;margin-bottom:12px;padding:8px;"
     "border-left:3px solid #2a2a2a}"
@@ -1055,8 +1096,6 @@ _CSS = (
     ".setup-chart{margin-top:8px;padding-top:6px;border-top:1px solid #1a1a1a}"
     ".setup-chart svg{display:block;width:100%;height:auto;max-width:520px}"
     ".chart-caption{color:#666;font-size:0.68rem;margin-top:2px}"
-    ".chart-detail{margin-top:8px}"
-    ".chart-detail>summary{cursor:pointer;color:#777;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em}"
     # PRD-321 R4: compact tiered ladder — the chart's subordinate exact-level
     # reference and the no-bars fallback. Tier 1 strongest, Tier 2 clear,
     # Tier 3 faint; the tier weights are the assertion surface.
@@ -1072,12 +1111,12 @@ _CSS = (
     ".lvl-now{color:#f5c518}"
     ".lvl-entry{color:#e0a552}"
     ".lvl-stop{color:#e05252}"
-    ".lvl-vwap{color:#29b6f6}"
+    ".lvl-vwap{color:var(--color-level)}"
     ".lvl-neutral{color:#6b7280}"
     ".lvl-riskband{padding-left:5px;margin:1px 0}"
     ".lvl-inrisk{border-left:2px solid #e05252;background:rgba(224,82,82,.06)}"
     ".lvl-lockrisk{border-left:2px solid #6b7280;background:rgba(107,114,128,.06)}"
-    ".artifact-warning{border-color:#ff9800;color:#ff9800}"
+    ".artifact-warning{border-color:var(--color-warning);color:var(--color-warning)}"
     ".artifact-diagnostics{color:#888;font-size:0.72rem;line-height:1.45}"
     ".artifact-diagnostics span{display:block}"
     "#artifact-diagnostics summary,#run-history summary,details.tier-group summary{cursor:pointer;list-style:none}"
@@ -1091,12 +1130,12 @@ _CSS = (
     "#red-folder .red-folder-event{font-size:0.78rem;margin-top:4px}"
     ".red-folder-when{color:#ddd}"
     ".red-folder-type{color:#888}"
-    ".red-folder-expiry{color:#ff9800;font-size:0.72rem;margin-top:6px}"
+    ".red-folder-expiry{color:var(--color-event);font-size:0.72rem;margin-top:6px}"
     "#scoreboard .scoreboard-row{font-size:0.74rem;color:#bbb;display:flex;flex-wrap:wrap;gap:10px;margin-top:3px}"
     ".scoreboard-date{color:#ddd;min-width:80px}"
     ".scoreboard-spy{color:#888}"
     # PRD-265 R5: coverage-bounded day marker on the scoreboard row.
-    ".scoreboard-coverage{color:#ff9800;font-weight:600}"
+    ".scoreboard-coverage{color:var(--color-neutral);font-weight:600}"
     # PRD-318: answer-first zones. Existing subsystem blocks remain intact in
     # the DOM, but their supporting-evidence copies lose peer-card weight under
     # DETAILS / HISTORY.
@@ -1125,17 +1164,24 @@ _CSS = (
     # Change #1: demote the freshness timestamp below state/why/context so
     # metadata no longer outranks meaning under the page anchor.
     "#system-state #cb-updated{color:#666;font-size:.72rem;margin-top:6px}"
+    # PRD-334 R1: manual-reload affordance, 44px touch target, view-state safe.
+    "#system-state .board-reload{display:inline-flex;align-items:center;flex-wrap:wrap;"
+    "gap:2px 8px;min-height:44px;margin-top:2px;color:var(--color-actionable);text-decoration:none;font-size:.78rem}"
+    "#system-state .board-reload:hover,#system-state .board-reload:focus{text-decoration:underline}"
+    "#system-state .board-reload-note{color:#888;font-size:.7rem}"
     "#staleness-banner{border:1px solid currentColor;border-radius:3px;padding:5px 8px;margin-bottom:8px;font-size:.72rem;letter-spacing:.04em}"
-    ".verdict-warning{border-left:3px solid #ff9800;color:#ff9800;padding:6px 8px;margin-bottom:8px}"
+    ".verdict-warning{border-left:3px solid var(--color-warning);color:var(--color-warning);padding:6px 8px;margin-bottom:8px}"
     "#watching-zone .operator-subsection{padding-top:10px;margin-top:10px;border-top:1px solid #222}"
     "#watching-zone .operator-subsection:first-of-type{padding-top:0;margin-top:0;border-top:0}"
     "#watching-zone .block{border:0;border-radius:0;margin-bottom:0;padding-left:0;padding-right:0}"
     "#watching-zone h3,#details-history h3{font-size:.75rem;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}"
     ".candidate-observation{opacity:.82}"
     ".candidate-observation .value-actionable{color:inherit}"
-    ".level-detail{margin-top:6px}"
-    ".level-detail>summary{cursor:pointer;color:#777;font-size:.7rem;text-transform:uppercase}"
     "#details-history>summary{cursor:pointer;list-style:none;color:#aaa;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}"
+    # PRD-334 R7: the bounded "Full GEX details" disclosure (both the production
+    # card and the synthetic reference). 44px touch target where the control is.
+    ".gex-full>summary{cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center;color:var(--color-gex);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em}"
+    ".gex-full>summary::-webkit-details-marker{display:none}"
     "#details-history>summary::-webkit-details-marker{display:none}"
     "#details-history>.details-body{margin-top:10px}"
     "#details-history .block{border:0;border-radius:0;border-top:1px solid #222;margin:0;padding:12px 0}"
@@ -1152,14 +1198,16 @@ _CSS = (
     "#spy-levels:checked~.spy-chart .chart-layer[data-layer=\"levels\"]{display:inline}"
     "#today-zone h2{display:inline;margin:0 10px 0 0}#today-zone .event-line{display:inline;font-size:.85rem;font-weight:bold;color:#e0e0e0}.screen-line{color:#777;font-size:.7rem;line-height:1.3;margin:-2px 0 8px 0}.scope-note{text-transform:none;letter-spacing:0;color:#666;font-weight:normal}"
     # PRD-215: "actionable now" accent (cyan #29b6f6 — the level/VWAP colour) on
-    # the falsifiable trade fields, plus the collapsed REASON/PLAY/WATCH detail.
-    ".value-actionable{color:#29b6f6}"
-    ".card-detail summary{cursor:pointer;list-style:none;color:#888;font-size:0.72rem;"
-    "text-transform:uppercase;letter-spacing:.05em;margin-top:4px}"
-    ".card-detail summary::-webkit-details-marker{display:none}"
+    # the falsifiable trade fields. PRD-334 R2: REASON/PLAY/WATCH render FLAT in
+    # .card-support -- subordinate to the accented IN/OUT couplet (hairline rule,
+    # dimmer text) but always visible, never behind a disclosure.
+    ".value-actionable{color:var(--color-actionable)}"
+    ".card-support{margin-top:6px;padding-top:6px;border-top:1px solid #1a1a1a}"
+    ".card-support .label{color:#888}"
+    ".card-support .value{color:#bbb;font-size:.82rem}"
     # PRD-218: alignment-coloured price (bullish green / bearish red).
-    ".ts-px-up{color:#4caf50}"
-    ".ts-px-down{color:#f44336}"
+    ".ts-px-up{color:var(--dir-up)}"
+    ".ts-px-down{color:var(--dir-down)}"
     # PRD-332 (D5) main-section rules: C WATCHING setup-workspace + A-upper
     # refinements. Placed in the main-rules section (before any @media block) so
     # the 44px tab target is not scoped into a phone block (PRD-330 R8). No
@@ -1172,17 +1220,17 @@ _CSS = (
     ".setup-tab-sym{font-weight:bold}"
     ".setup-tab-grade{color:#aaa}"
     ".setup-tab-lc{display:inline-block;padding:0 .35rem;border-radius:3px;font-size:.68rem}"
-    ".setup-tab-check{border:1px solid currentColor;border-radius:3px;padding:0 4px;font-size:.62rem;letter-spacing:.06em;color:#ff9800}"
+    ".setup-tab-check{border:1px solid currentColor;border-radius:3px;padding:0 4px;font-size:.62rem;letter-spacing:.06em;color:var(--color-warning)}"
     ".setup-panels{min-width:0}"
     ".setup-panel{min-width:0}"
     # PRD-332 (D5) / PR #319 salvage: 44px touch targets on the WATCHING and
     # DETAILS/HISTORY disclosures (main-section, so not scoped into a phone block).
     "#watching-zone summary,#details-history>summary{min-height:44px;display:flex;align-items:center}"
     "#verdict-zone{border-left:3px solid #3a3a3a}"
-    "#verdict-zone:has(.decision-state.sys-up){border-left-color:#4caf50}"
-    "#verdict-zone:has(.decision-state.sys-down),#verdict-zone:has(.decision-state.sys-halt){border-left-color:#f44336}"
-    "#verdict-zone:has(.decision-state.sys-flat){border-left-color:#ff9800}"
-    "#today-zone{border-left:3px solid #ff9800}"
+    "#verdict-zone:has(.decision-state.sys-up){border-left-color:var(--posture-up)}"
+    "#verdict-zone:has(.decision-state.sys-down),#verdict-zone:has(.decision-state.sys-halt){border-left-color:var(--posture-down)}"
+    "#verdict-zone:has(.decision-state.sys-flat){border-left-color:var(--posture-flat)}"
+    "#today-zone{border-left:3px solid var(--color-event)}"
     ".lvl-ladder,.tape-drivers,.tape-trend,.history-table{font-variant-numeric:tabular-nums}"
     # Change #5: desktop-width trend-table readability. Scoped >=641px so the
     # <=640px flex-card reflow below stays byte-identical. white-space:normal
@@ -1728,108 +1776,7 @@ def _build_tape_value_slots(
     return slots
 
 
-# PRD-322: TAPE operator-context vocabularies. Closed display maps only — the
-# bands project values already bound in the render body and compute no new
-# fact. `overall_pressure` is deliberately absent: TAPE shows the per-driver
-# component states, never the aggregate.
-_TAPE_PRESSURE_DISPLAY: dict[str, str] = {
-    "RISK_ON": "risk-on", "RISK_OFF": "risk-off",
-    "NEUTRAL": "neutral", "UNKNOWN": "n/a",
-}
-_TAPE_PRESSURE_COMPONENTS: tuple[tuple[str, str], ...] = (
-    ("volatility_pressure", "VIX"), ("dollar_pressure", "DXY"),
-    ("rates_pressure", "10Y"), ("bitcoin_pressure", "BTC"),
-)
-# The vs-VWAP glyph set is NEW to PRD-322 and closed: a glyph renders only for
-# a computed comparison token, never for DATA_UNAVAILABLE / NOT_COMPUTED.
-_TAPE_VWAP_GLYPH: dict[str, str] = {"ABOVE": "V↑", "BELOW": "V↓", "AT_LEVEL": "V="}
-# A trend row "counts" only when its alignment is an actual comparison outcome.
-_TAPE_COMPUTED_ALIGNMENTS: frozenset[str] = frozenset({"BULLISH", "BEARISH", "MIXED"})
-_TAPE_ALIGN_CSS: dict[str, str] = {"BULLISH": "up", "BEARISH": "down", "MIXED": "flat"}
-_TAPE_TREND_HEALTH_TEXT: dict[str, str] = {
-    "MARKET_CLOSED": "Market closed — awaiting intraday data",
-    "AWAITING_DATA": "Market closed — awaiting intraday data",
-    "STALE": "Trend stale",
-}
-_TAPE_TREND_HEALTH_FALLBACK = "Trend data unavailable"
-_TAPE_TREND_ABSENT = "Trend unavailable"
-_TAPE_PRESSURE_ABSENT = "Pressure unavailable"
-_TAPE_MACRO_ABSENT = "Macro unavailable"
-# The 9 arrow composites are all shaped "<a> 50 <b> 200"; splitting on the
-# window boundary yields the two aligned grid cells without inventing a token.
-_TAPE_COMPOSITE_SPLIT = " 50 "
 
-
-def _tape_trend_summary(ts_records: dict | None, ts_health: str) -> tuple[str, str]:
-    """PRD-322 R1: health-aware TAPE trend summary -> (text, derivation token).
-
-    Unavailability is never rendered as bearishness: only rows whose
-    `trend_alignment` is a computed comparison enter the denominator. All six
-    computed reproduces the pre-PRD-322 string byte-for-byte; every degraded
-    branch derives from `_trend_structure_source_health`, not from a count.
-    """
-    rows = list((ts_records or {}).values())
-    if not rows:
-        return _TAPE_TREND_ABSENT, "trend-health"
-    computed = [
-        rec for rec in rows
-        if isinstance(rec, dict)
-        and str(rec.get("trend_alignment", "")) in _TAPE_COMPUTED_ALIGNMENTS
-    ]
-    bullish = sum(1 for rec in computed if rec.get("trend_alignment") == "BULLISH")
-    if len(computed) == len(rows):
-        return f"{bullish} of {len(rows)} bullish", "bullish-row-count"
-    if computed:
-        return (
-            f"{bullish} of {len(computed)} bullish · {len(rows) - len(computed)} n/a",
-            "trend-health",
-        )
-    return _TAPE_TREND_HEALTH_TEXT.get(ts_health, _TAPE_TREND_HEALTH_FALLBACK), "trend-health"
-
-
-def _build_trend_chips(
-    ts_records: dict | None,
-) -> list[tuple[str, str, str, str, str, str]]:
-    """PRD-322 R4: one aligned TAPE row per curated symbol, in
-    `config.TREND_STRUCTURE_SYMBOLS` order.
-
-    Returns (symbol, alignment, sma_50, sma_200, vwap, css_class). Every token
-    comes verbatim from an existing translator (`_TS_ALIGN_ABBR`,
-    `_trend_structure_composite_display`) or the closed `_TAPE_VWAP_GLYPH` map.
-    A row whose alignment is not computed renders symbol + dash only — never a
-    partial arrow. Enumeration only: no breadth metric, ratio, or score.
-    """
-    records = ts_records or {}
-    rows: list[tuple[str, str, str, str, str, str]] = []
-    for symbol in config.TREND_STRUCTURE_SYMBOLS:
-        record = records.get(symbol)
-        alignment = str(record.get("trend_alignment", "")) if isinstance(record, dict) else ""
-        if alignment not in _TAPE_COMPUTED_ALIGNMENTS:
-            rows.append((symbol, _DASH, "", "", "", "na"))
-            continue
-        composite = _trend_structure_composite_display(record)
-        head, _sep, tail = composite.partition(_TAPE_COMPOSITE_SPLIT)
-        sma_50, sma_200 = (f"{head} 50", tail) if tail else (composite, "")
-        rows.append((
-            symbol,
-            _TS_ALIGN_ABBR[alignment],
-            sma_50,
-            sma_200,
-            _TAPE_VWAP_GLYPH.get(str(record.get("price_vs_vwap", "")), ""),
-            _TAPE_ALIGN_CSS[alignment],
-        ))
-    return rows
-
-
-def _pressure_note(pressure: dict | None) -> str:
-    """PRD-322 R2: per-driver macro-pressure states through a closed four-state
-    display map. The aggregate `overall_pressure` is never read."""
-    if not isinstance(pressure, dict):
-        return _TAPE_PRESSURE_ABSENT
-    return "pressure: " + " · ".join(
-        f"{label} {_TAPE_PRESSURE_DISPLAY.get(str(pressure.get(key)), 'n/a')}"
-        for key, label in _TAPE_PRESSURE_COMPONENTS
-    )
 
 
 _PRESSURE_COMPONENT_LABELS = [
@@ -2026,6 +1973,39 @@ def _decision_title(outcome: object, system_halted: bool, status: object) -> str
     if outcome == "NO_TRADE":
         return "NO TRADE"
     return "MONITOR"
+
+
+def _verdict_sentence(
+    decision_state: str, regime_permission_text: str, *, mixed_artifacts: bool
+) -> str:
+    """PRD-334 R3: deterministic, faithful TRANSLATION of the ALREADY-RESOLVED
+    decision state + permission into a plain-language verdict sentence. It authors
+    no claim the state machine did not establish:
+    - TRADE PERMITTED surfaces _regime_to_permission_verb's own output when it is a
+      directional verb (Longs/Shorts/Momentum longs allowed), preserving the long /
+      short / momentum-long distinction. PRD-334 review F1: the regime helper's
+      NON-directional fallback "Stand down" must NEVER be shown under a permitted
+      trade -- a NEUTRAL-regime run can still resolve outcome=TRADE (positive/
+      negative NEUTRAL scores qualify LONG/SHORT candidates), and "Stand down ·
+      TRADE PERMITTED" simultaneously permits and denies. A permitted trade with no
+      regime-directional verb reads the faithful neutral "Trades permitted"; the
+      canonical restriction stays on the sys-permission line, and no trade direction
+      is invented.
+    - HALT reads "System halted" -- no invented single cause (the WHY line carries
+      the specific reason when the state machine computed one).
+    - STATE UNAVAILABLE reads "Inputs out of sync" (mixed artifacts) or the generic
+      "Board state unavailable"; it never pairs a confident permission with an
+      unresolved state.
+    - OBSERVE ONLY (operator lock) and STAY FLAT read "No new trades permitted" --
+      the generic no-trade statement, WITHOUT asserting "nothing qualifies".
+    """
+    if decision_state == "TRADE PERMITTED":
+        return regime_permission_text if regime_permission_text != "Stand down" else "Trades permitted"
+    if decision_state == "HALT":
+        return "System halted"
+    if decision_state == "STATE UNAVAILABLE":
+        return "Inputs out of sync" if mixed_artifacts else "Board state unavailable"
+    return "No new trades permitted"
 
 
 def _build_pressure_snapshot(macro_drivers: dict, market_map: dict | None) -> dict | None:
@@ -2271,20 +2251,15 @@ def _render_level_ladder(
     w("  </div>")
 
 
-def _render_setup_chart_block(
-    w: object, svg: str, caption: str, *, disclosed: bool, open_when_disclosed: bool = False
-) -> None:
-    """PRD-321 R3 (ruling Q2): one full-width chart for the highest-priority
-    visible setup; every other candidate's chart sits behind a NEW native
-    `<details>` wrapper. That wrapper is orthogonal to the not-permitted
-    `level-detail` wrapper — both apply per their own rules. PRD-329 R1: inside
-    a CLOSED low tier the wrapper carries `open` (one tier tap reveals it)."""
-    if disclosed:
-        w(f'  <details{" open" if open_when_disclosed else ""} class="chart-detail"><summary>CHART ▶</summary>')
+def _render_setup_chart_block(w: object, svg: str, caption: str) -> None:
+    """PRD-334 R2: the setup chart renders FLAT for every card -- the former
+    per-candidate `chart-detail` disclosure (and the LEVEL MAP -> CHART two-level
+    nesting) is removed. The radio workspace already shows one card at a time, so a
+    selected setup exposes its chart immediately with no disclosure to open. The
+    single canonical chart slot / A1-C intraday-source assignment is unchanged; only
+    the disclosure wrapper is gone (superseding PRD-321 R3 / PRD-329 R1 nesting)."""
     w(f'  <div class="setup-chart">{svg}</div>')
     w(f'  <div class="chart-caption">{_esc(caption)}</div>')
-    if disclosed:
-        w("  </details>")
 
 
 def _render_candidate_card(
@@ -2294,7 +2269,6 @@ def _render_candidate_card(
     bars: list | None = None, bars_caption: str = "",
     chart_slot_available: bool = False,
     intraday_session: "intraday_bars.IntradaySession | None" = None,
-    tier_closed: bool = False,
 ) -> bool:
     """Render one candidate card. Returns True when this card took the single
     full-width chart slot (PRD-321 R3 / ruling Q2).
@@ -2415,10 +2389,10 @@ def _render_candidate_card(
             w(f'  <div class="label">{_out_label}</div><div class="{_val_cls}">{out_text}</div>')
         w('  </div>')
 
-        # PRD-215/PRD-249: REASON/PLAY/WATCH are supporting context — tuck them
-        # behind a default-collapsed disclosure so the accented couplet stays the
-        # focal point. WATCH is now ONE semicolon-joined line under one label
-        # instead of one label per what_to_look_for item.
+        # PRD-334 R2: REASON/PLAY/WATCH are basic setup facts and now render FLAT --
+        # no enclosing <details>. They remain supporting context (styled subordinate
+        # to the accented IN/OUT couplet via .card-support) but never require opening
+        # a disclosure. WATCH is ONE semicolon-joined line under one label (PRD-249).
         reason = entry.get("reason_for_grade")
         pts = entry.get("preferred_trade_structure")
         _watch_items = [
@@ -2426,7 +2400,7 @@ def _render_candidate_card(
             if item and item != _UNAVAILABLE_WATCH
         ]
         if reason is not None or pts is not None or _watch_items:
-            w('  <details class="card-detail"><summary>DETAIL ▶</summary>')
+            w('  <div class="card-support">')
             if reason is not None:
                 w(f'  <div class="label">REASON</div><div class="value">{_esc(reason)}</div>')
             if pts is not None and not operator_locked:  # PRD-304 R7: PLAY directive omitted under lock
@@ -2434,7 +2408,7 @@ def _render_candidate_card(
             if _watch_items:
                 _watch_joined = "; ".join(_esc(item) for item in _watch_items)
                 w(f'  <div class="label">WATCH</div><div class="value">{_watch_joined}</div>')
-            w('  </details>')
+            w('  </div>')
 
     # PRD-158 § 4.2 translation 12: render the level diagram only when both
     # an anchor and level context exist. No placeholder for partial data.
@@ -2514,24 +2488,15 @@ def _render_candidate_card(
             ) if bars else ""
         if chart_svg:
             took_chart_slot = bool(chart_slot_available)
-        # PRD-326 R1 (PRD-321 R3 / PRD-318 R4 superseded in part): the primary-slot
-        # chart is emitted BEFORE the decision-state-keyed `level-detail` wrapper,
-        # undisclosed in every decision state; every other card's chart stays
-        # inside that wrapper behind `chart-detail` (R2). No placeholder (R4).
-        if took_chart_slot:
-            _render_setup_chart_block(
-                w, chart_svg, chart_caption, disclosed=not took_chart_slot
-            )
-        # PRD-329 R1 (S1-Q1): inside a CLOSED low tier both nested disclosures
-        # carry `open`, so the operator's single tier tap shows card + LEVEL MAP +
-        # CHART; open tiers and A+/A/B cards keep today's closed wrappers (R2).
-        if not decision_permitted:
-            w(f'  <details{" open" if tier_closed else ""} class="level-detail"><summary>LEVEL MAP ▶</summary>')
-        if chart_svg and not took_chart_slot:
-            _render_setup_chart_block(
-                w, chart_svg, chart_caption, disclosed=not took_chart_slot,
-                open_when_disclosed=tier_closed,
-            )
+        # PRD-334 R2: the chart and the level ladder render FLAT in every decision
+        # state. The `level-detail` (LEVEL MAP) and nested `chart-detail` (CHART)
+        # disclosures are removed, so a selected setup exposes Level + chart with no
+        # nesting to open (superseding PRD-326 R1 / PRD-329 R1 disclosure keying).
+        # `took_chart_slot` still marks the single canonical chart slot -- and thus
+        # the A1-C intraday-source assignment, unchanged -- but no longer gates
+        # disclosure.
+        if chart_svg:
+            _render_setup_chart_block(w, chart_svg, chart_caption)
         # PRD-321 R4: the compact ladder is the chart's subordinate exact-level
         # reference (rendered directly below it) AND the full fallback when no
         # bars are available. Both roles carry every authority semantic.
@@ -2544,8 +2509,6 @@ def _render_candidate_card(
             contract_stop=band_stop,
             operator_locked=operator_locked,
         )
-        if not decision_permitted:
-            w("  </details>")
 
     w("</div>")
     return took_chart_slot
@@ -2794,11 +2757,17 @@ def render_dashboard_html(
 
     lines: list[str] = []
     _verdict_lines: list[str] = []
-    _tape_lines: list[str] = []
     _spy_lines: list[str] = []
     _today_lines: list[str] = []
     _watching_lines: list[str] = []
     _details_lines: list[str] = []
+    # PRD-334 R9: two new top-level regions. _structure_lines is MARKET STRUCTURE
+    # (macro families + Trend Structure table + tradables + MARKET MOVEMENT +
+    # participation + Sunday context); _gex_lines is the GEX region (production
+    # card + synthetic reference). Final assembly order (R9):
+    # VERDICT / NEXT EVENT / MARKET STRUCTURE / SPY SESSION / WATCHING / GEX / HISTORY.
+    _structure_lines: list[str] = []
+    _gex_lines: list[str] = []
     _active_lines = lines
 
     def w(line: str) -> None:
@@ -2823,7 +2792,11 @@ def render_dashboard_html(
     w("<head>")
     w('  <meta charset="UTF-8">')
     w('  <meta name="viewport" content="width=device-width, initial-scale=1.0">')
-    w(f'  <meta http-equiv="refresh" content="{_DASHBOARD_REFRESH_SECONDS}">')
+    # PRD-334 R1: no <meta http-equiv="refresh"> -- a forced full-page reload reset
+    # the operator's selected setup. Freshness is now honest and view-state safe:
+    # a server-rendered as-of timestamp (#cb-updated), a client-clocked staleness
+    # notice (#staleness-banner, re-evaluated on setInterval), and a manual reload
+    # affordance -- none of which discard the current selection on their own.
     w("  <title>Signal Forge</title>")
     w(f"  <style>{_CSS}</style>")
     w("</head>")
@@ -2899,16 +2872,11 @@ def render_dashboard_html(
     w('  <h2>VERDICT</h2>')
 
     # PRD-312's five independent facts are redistributed without changing their
-    # sources: environment+permission here, positioning+participation in TAPE,
-    # and event risk in TODAY. No peer MARKET STATE card remains.
-    _ms_gex_card = (
-        gex_card.build_gex_card(gex_snapshot, now=now if now is not None else _utcnow())
-        if gex_snapshot is not None else None
-    )
-    _ms_movement_card = (
-        movement_card.build_movement_card(movement_snapshot)
-        if movement_snapshot is not None else None
-    )
+    # sources: environment+permission here, positioning+participation in MARKET
+    # STRUCTURE (the MARKET MOVEMENT card), event risk in NEXT EVENT. PRD-334 R9:
+    # the GEX production card and the MARKET MOVEMENT card render directly in the
+    # GEX region and MARKET STRUCTURE via render_fragment; the pre-built model
+    # objects the deleted TAPE-foot consumed are no longer needed here.
     # --- existing SYSTEM STATE authority, now presented as VERDICT ---
     regime_permission_text = _regime_to_permission_verb(market_regime)
     # PRD-219: distilled system-state — a plain-English verdict (posture verb +
@@ -2951,18 +2919,35 @@ def render_dashboard_html(
             _decision_state, _decision_state_cls = "STAY FLAT", _verdict_cls
     except Exception:
         _decision_state, _decision_state_cls = "STATE UNAVAILABLE", "sys-flat"
-    # PRD-304 R7: under the operator lock, the decision-state and the permission
-    # verb both carry the lock marker instead of any trade-permission vocabulary.
-    if operator_locked:
+    # PRD-334 R3 (supersedes PRD-304 R7's lock vocabulary): under the operator lock
+    # the decision-state reads OBSERVE ONLY -- EXCEPT that a HALT or an inputs-out-
+    # of-sync integrity state SURVIVES the lock overlap. Those are the more urgent
+    # truth and must never be masked by the lock label (R3: halt / coherence /
+    # kill-switch information survives even when an operator lock overlaps).
+    if operator_locked and _decision_state not in ("HALT", "STATE UNAVAILABLE"):
         _decision_state = "OBSERVE ONLY"
-    try:
-        _title_display = "INPUTS OUT OF SYNC" if title == "MIXED_ARTIFACTS" else title
-    except Exception:
-        _title_display = "STATE UNAVAILABLE"
-    _verb_text = "Operator locked: cannot monitor" if operator_locked else regime_permission_text
-    w(f'  <div class="decision-state {_decision_state_cls}">{_esc(_decision_state)}</div>')
-    w(f'  <div class="sys-verdict {_verdict_cls}" data-raw-title="{_esc(title)}">'
-      f'{_esc(_verb_text)} · {_esc(_title_display)}</div>')
+    # PRD-334 R3: the visible verdict is a deterministic, faithful TRANSLATION of
+    # the already-resolved decision state + permission -- it authors no claim the
+    # state machine did not establish. The internal-jargon title token
+    # (TRADE SETUP ACTIVE / NO TRADE / MONITOR) leaves the visible sentence and
+    # survives only in data-raw-title; data-raw-state and data-raw-permission carry
+    # the other canonical values so a review/test can prove the copy never
+    # contradicts them (BLOCKER guard: tests/test_dash_verdict_translation.py).
+    # PRD-279 R2: derive mixed_artifacts from the already-safe `artifact_mixed`
+    # boolean, never a fresh `title ==` comparison (a title whose __eq__ raises
+    # must still fall back to STATE UNAVAILABLE without crashing the render).
+    _verdict_sentence_text = _verdict_sentence(
+        _decision_state, regime_permission_text, mixed_artifacts=bool(artifact_mixed)
+    )
+    # data-raw-permission is the effective canonical permission the copy translates:
+    # under the operator lock it is the lock itself (never the regime direction verb,
+    # which PRD-304 R7 suppresses); otherwise it is _regime_to_permission_verb's own
+    # output (the long / short / momentum-long value surfaced only when permitted).
+    _raw_permission = "OPERATOR_LOCKED" if operator_locked else regime_permission_text
+    w(f'  <div class="decision-state {_decision_state_cls}"'
+      f' data-raw-state="{_esc(_decision_state)}">{_esc(_decision_state)}</div>')
+    w(f'  <div class="sys-verdict {_verdict_cls}" data-raw-title="{_esc(title)}"'
+      f' data-raw-permission="{_esc(_raw_permission)}">{_esc(_verdict_sentence_text)}</div>')
     # Context line: regime in plain words. PRD-281: the trader-facing reason
     # ("why") moved to its own dedicated .sys-why line below.
     _regime_plain = _SYS_REGIME_PLAIN.get(
@@ -3067,115 +3052,23 @@ def render_dashboard_html(
     )
     w(f'  <div class="value" id="cb-updated" data-updated-utc="{_esc(_updated_iso)}">'
       f'Updated {_esc(_updated_display)}</div>')
+    # PRD-334 R1: honest manual-reload affordance replacing the removed auto-refresh.
+    # A native anchor to the current URL (href="") reloads without JS/network/storage;
+    # the copy is explicit that a fresh fetch may return the same board.
+    w('  <a class="board-reload" id="board-reload" href="" data-role="manual-reload">'
+      'Reload for the latest board '
+      '<span class="board-reload-note">a newer board may not exist yet</span></a>')
     w("</div>")  # #system-state
     w("</div>")  # #verdict-zone
 
-    # --- TAPE: display-only adjacency over values already loaded above. ---
-    _active_lines = _tape_lines
-    # PRD-322: two labeled bands (MACRO, TREND) over the same render-body
-    # values, then a subordinate footer carrying the positioning/participation
-    # availability rows. Every token is a projection of an already-loaded fact.
-    w('<div class="block operator-zone" id="tape-zone">')
-    w('  <h2>TAPE <span class="label">context only</span></h2>')
-    w('  <div class="tape-band">')
-    w('    <div class="tape-band-cap">MACRO</div>')
-    _total_votes = long_votes + short_votes
-    _votes_suffix = f" · {long_votes} on / {short_votes} off" if _total_votes else ""
-    # PRD-322 R2: MISSING means the driver payload is empty or unavailable, so
-    # the zero-vote tie below would fabricate "MACRO BIAS: MIXED". FALLBACK
-    # must NOT trip this gate — it also fires on missing tradables under a
-    # genuine, fully-voted macro bias.
-    if _tape_health == "MISSING":
-        _macro_html = _esc(_TAPE_MACRO_ABSENT)
-    else:
-        # Change #3: colour ONLY the direction token (LONG/SHORT/MIXED) via
-        # .tape-bias (existing palette; NOT .macro-bias, which adds weight and
-        # margin). The "MACRO BIAS:" label and the vote suffix stay muted.
-        _bias_prefix, _bias_sep, _bias_token = macro_bias.partition(": ")
-        if _bias_sep:
-            _macro_html = (
-                f'{_esc(_bias_prefix)}: '
-                f'<span class="tape-bias {_esc(macro_bias_css.split()[-1])}">'
-                f'{_esc(_bias_token)}</span>{_esc(_votes_suffix)}'
-            )
-        else:
-            _macro_html = _esc(macro_bias) + _esc(_votes_suffix)
-    if not integrator_suppress["macro_bias"]:
-        w(f'    <div class="zone-value">{_macro_html}</div>')
-    _tape_values = dict(tape_value_slots)
-    _tape_arrows = dict(tape_slots)
-    # PRD-322 R3: all seven macro drivers, data-driven from the shared layout
-    # rows. Deliberately NOT `macro-tape-slot` / `macro-tape-value` /
-    # `data-symbol` — those are regex-harvested and order-pinned in DETAILS.
-    # Codex F3: the strip normalizes the DETAILS-side "N/A" absent-metal
-    # placeholder to the strip's uniform "--"; the shared projection is untouched.
-    _strip_values = {k: ("--" if v == "N/A" else v) for k, v in _tape_values.items()}
-    _driver_cells = [
-        f'<div class="tape-driver tape-slot '
-        f'{_ARROW_CSS.get(_tape_arrows.get(slot.label, _DASH), "na")}">'
-        f'<span>{_esc(slot.display)}</span>'
-        f'<span>{_esc(_tape_arrows.get(slot.label, _DASH))}</span>'
-        f'<span>{_esc(_strip_values.get(slot.label, _DASH))}</span></div>'
-        for _row in (MACRO_ROW_2, MACRO_ROW_1)
-        for slot in _row.slots
-    ]
-    w('    <div class="tape-drivers">' + "".join(_driver_cells) + "</div>")
-    w(f'    <div class="zone-note">{_esc(_pressure_note(pressure))}</div>')
-    w('  </div>')
-    w('  <div class="tape-band">')
-    w('    <div class="tape-band-cap">TREND</div>')
-    _trend_summary, _trend_derivation = _tape_trend_summary(_ts_records, _ts_health)
-    _trend_rows = _build_trend_chips(_ts_records)
-    w(f'    <div class="zone-value" data-derivation="{_esc(_trend_derivation)}">'
-      f'{_esc(_trend_summary)}</div>')
-    _trend_cells = [
-        f'<div class="tape-trend-row tape-slot {_cls}">'
-        f'<span>{_esc(_sym)}</span><span>{_esc(_align)}</span>'
-        f'<span>{_esc(_c50)}</span><span>{_esc(_c200)}</span>'
-        f'<span>{_esc(_vwap)}</span></div>'
-        for _sym, _align, _c50, _c200, _vwap, _cls in _trend_rows
-    ]
-    # PRD-327 D2-Q2 (Helm ruling 2026-09-01): the six placeholder chips leave
-    # the fold only when zero rows are computed under healthy lineage in an
-    # active session -- exactly the branch where the unchanged DETAILS
-    # #trend-structure table enumerates the curated symbols. Any computed
-    # row, unhealthy lineage or inactive session keeps all six chips (PRD-322 R4).
-    _chips_visible = (
-        any(_cls in _TAPE_ALIGN_CSS.values() for *_row, _cls in _trend_rows)
-        or unhealthy_lineage
-        or inactive_session
-    )
-    if _chips_visible:
-        w('    <div class="tape-trend">' + "".join(_trend_cells) + "</div>")
-    w('  </div>')
-    # PRD-322 R5: absence is stated, never silent. Both rows keep one shape
-    # across present/absent so the GEX decision-invariance regex strips exactly
-    # one row from each document.
-    w('  <div class="zone-grid tape-foot">')
-    if _ms_gex_card is not None:
-        _gex_b = _ms_gex_card.net_usd / 1e9
-        _gex_net = f"{'-' if _gex_b < 0 else '+'}${abs(_gex_b):.1f}B net"
-        w('    <div class="zone-item"><div class="label">GEX · CONTEXT ONLY</div>'
-          f'<div class="zone-value">{_esc(_gex_net)}</div>'
-          f'<div class="zone-note">as of {_esc(_ms_gex_card.as_of_et)} ET · Cboe ~15m delayed · positioning not measured</div></div>')
-    else:
-        w('    <div class="zone-item"><div class="label">GEX · CONTEXT ONLY</div>'
-          '<div class="zone-value">unavailable</div></div>')
-    if _ms_movement_card is not None:
-        _movement_chips = [
-            chip for _group, _chips in _ms_movement_card.groups for chip in _chips
-        ]
-        _movement_usable = sum(1 for _chip in _movement_chips if not _chip.endswith(" n/a"))
-        w('    <div class="zone-item"><div class="label">PARTICIPATION</div>'
-          f'<div class="zone-value">{_movement_usable}/{len(_movement_chips)} captured</div>'
-          f'<div class="zone-note">captured {_esc(_ms_movement_card.captured_et)} ET</div></div>')
-    else:
-        w('    <div class="zone-item"><div class="label">PARTICIPATION</div>'
-          '<div class="zone-value">not captured</div></div>')
-    w('  </div>')
-    w("</div>")
+    # PRD-334 R5/R9: the PRD-322 TAPE-zone summary bands are removed. Its macro
+    # bias / driver cells / pressure note duplicated the #macro-tape family tape
+    # (now the single macro representation, promoted into MARKET STRUCTURE below);
+    # the bland TREND chips are replaced by the promoted Trend Structure table; the
+    # tape-foot GEX-context glance moves to the GEX region (with a suppressed-state
+    # availability line) and PARTICIPATION is carried by the MARKET MOVEMENT card.
 
-    # --- SPY SESSION (PRD-330 S1): observational orientation between TAPE and NEXT EVENT. ---
+    # --- SPY SESSION (PRD-330 S1): observational orientation before NEXT EVENT. ---
     _spy_obs = (payload.get("sections") or {}).get("spy_observation")
     _now_effective = now if now is not None else _utcnow()
     _price_bars = _price_bars_by_symbol(price_bars_snapshot, _now_effective)
@@ -3340,7 +3233,7 @@ def render_dashboard_html(
     )
     w(f'<div class="block operator-subsection{disabled_class}" id="candidate-board">')
     if fixture_mode:
-        w('  <h3>SETUP SCREENING &#8212; <span style="color:#ff9800">DEMO MODE &#8212; FIXTURE DATA</span></h3>')
+        w('  <h3>SETUP SCREENING &#8212; <span style="color:var(--color-warning)">DEMO MODE &#8212; FIXTURE DATA</span></h3>')
     else:
         w('  <h3>SETUPS <span class="scope-note">· screening grades, not permission</span></h3>')
     # PRD-158 § 4.3: integrator screen verdicts (Rules 2/3) render here as
@@ -3436,7 +3329,7 @@ def render_dashboard_html(
                 # same `_render_candidate_card` call the pre-D5 loop made).
                 _hg_syms = [s for s in sorted_syms if symbols[s].get("grade", "") in _HIGH_GRADES]
 
-                def _emit_card(sym: str, *, tier_closed: bool) -> None:
+                def _emit_card(sym: str) -> None:
                     _sym_bars, _sym_caption = _price_bars.get(sym, (None, ""))
                     _render_candidate_card(
                         w, sym, symbols[sym],
@@ -3448,7 +3341,6 @@ def render_dashboard_html(
                         bars_caption=_sym_caption,
                         chart_slot_available=(sym == _primary_card_symbol),
                         intraday_session=_intraday_session,
-                        tier_closed=tier_closed,
                     )
 
                 def _tier_label_for(tier_id: str, tier_label: str) -> str:
@@ -3482,7 +3374,7 @@ def render_dashboard_html(
                         _dq = _esc(s)
                         _rules.append(f'#{_sid}:checked~.setup-panels .setup-panel:not([data-setup="{_dq}"]){{display:none}}')
                         _rules.append(f'#{_sid}:checked~.setup-panels .tier-group:not(:has(.setup-panel[data-setup="{_dq}"])){{display:none}}')
-                        _rail = {"A+": "#4caf50", "A": "#8bc34a", "B": "#ff9800"}.get(symbols[s].get("grade", ""), "#29b6f6")
+                        _rail = {"A+": "var(--posture-up)", "A": "#8bc34a", "B": "var(--color-grade)"}.get(symbols[s].get("grade", ""), "var(--color-actionable)")
                         _rules.append(f'#{_sid}:checked~.setup-tabs label[for="{_sid}"]{{color:#e0e0e0;background:#0d0d0d;border-bottom-color:{_rail};border-left-color:{_rail}}}')
                         _rules.append(f'#{_sid}:focus-visible~.setup-tabs label[for="{_sid}"]{{outline:1px solid #29b6f6;outline-offset:-2px}}')
                     w(f'  <style>{"".join(_rules)}</style>')
@@ -3518,7 +3410,7 @@ def render_dashboard_html(
                         w(f'    <div class="tier-header">{_esc(_tier_label_for(tier_id, tier_label))} ({len(tier_syms)})</div>')
                         for sym in tier_syms:
                             w(f'    <div class="setup-panel" data-setup="{_esc(sym)}">')
-                            _emit_card(sym, tier_closed=False)
+                            _emit_card(sym)
                             w('    </div>')
                         w('  </div>')
                     w('  </div>')
@@ -3541,7 +3433,7 @@ def render_dashboard_html(
                         w(f'  <div class="tier-group" id="tier-{tier_id}">')
                         w(f'    <div class="tier-header">{_esc(_tier_label)} ({len(tier_syms)})</div>')
                     for sym in tier_syms:
-                        _emit_card(sym, tier_closed=(is_low_tier and not _open))
+                        _emit_card(sym)
                     if is_low_tier:
                         w("  </details>")
                     else:
@@ -3559,70 +3451,74 @@ def render_dashboard_html(
 
     w("</div>")  # #watching-zone
 
-    # --- GEX REFERENCE (PRD-333): one frozen synthetic SPX example at the
-    #     WATCHING -> DETAILS boundary. Always emitted (a bundled, frozen resource),
-    #     structurally separate from current/live GEX and independent of every
-    #     input here (no clock/snapshot/network); invalid/missing -> a labeled
-    #     "unavailable" disclosure. It is NOT an operator zone. ---
-    w(gex_reference.render_reference_fragment())
-
-    # --- DETAILS / HISTORY: full evidence remains present, default collapsed. ---
-    _active_lines = _details_lines
-    w('<details class="block operator-zone" id="details-history">')
-    w('  <summary>DETAILS / HISTORY ▶</summary>')
-    w('  <div class="details-body">')
-
-    # --- gex-context (PRD-309: display-only, baseline-neutral GEX card; emitted
-    #     iff a fresh in-domain artifact is present, else true omission -> the
-    #     document stays byte-identical to the pre-GEX baseline) ---
+    # --- GEX region (PRD-334 R9): the current production card first (when a fresh
+    #     in-domain artifact is present), then the frozen synthetic SPX reference --
+    #     structurally separate, unmistakably not-current. When there is no current
+    #     card (absent / stale / invalid, all -> render_fragment == "") a single
+    #     availability line renders in its place (R7), so the GEX-absent document
+    #     stays deterministic and byte-identical to the recomposed pre-GEX baseline
+    #     (R10). The synthetic reference is a bundled frozen resource (no clock /
+    #     snapshot / network) and always renders. ---
+    _active_lines = _gex_lines
+    w('<div class="block operator-zone" id="gex-zone">')
+    w('  <h2>GEX <span class="label">gamma exposure &middot; context only</span></h2>')
+    _gex_fragment = ""
     if gex_snapshot is not None:
-        gex_fragment = gex_card.render_fragment(
+        _gex_fragment = gex_card.render_fragment(
             gex_snapshot, now=now if now is not None else _utcnow()
         )
-        if gex_fragment:
-            w(gex_fragment)
+    if _gex_fragment:
+        w(_gex_fragment)
+    else:
+        w('  <div class="label">No current GEX for this run.</div>')
+    w(gex_reference.render_reference_fragment())
+    w("</div>")  # #gex-zone
 
-    # --- market-movement (PRD-311: display-only 12/12 movement card; emitted iff
-    #     a valid schema_version-2 artifact is present, else true omission -> the
-    #     document stays byte-identical to the pre-card baseline). movement_card
-    #     owns all validation/grouping/ordering; the renderer only loads + emits. ---
-    if movement_snapshot is not None:
+    # --- MARKET STRUCTURE region (PRD-334 R5/R9): MARKET MOVEMENT card, macro
+    #     families, tradables, Trend Structure table, Sunday context. ---
+    _active_lines = _structure_lines
+    w('<div class="block operator-zone" id="market-structure">')
+    w('  <h2>MARKET STRUCTURE <span class="label">context only</span></h2>')
+
+    # --- market-movement + participation coverage (PRD-311 / PRD-334 review F4) ---
+    #     movement_card owns all validation/grouping/ordering. R9 moved the former
+    #     TAPE-foot PARTICIPATION availability notice here; F4: it must survive even
+    #     when the movement card itself is unavailable, so the operator never
+    #     silently loses the coverage signal. The count and clock come from
+    #     movement_card's own model -- no new market logic is invented.
+    #     The card fragment (when present) already carries the capture clock, so the
+    #     adjacent coverage line states only the usable/total count to avoid a
+    #     duplicate "captured ET"; when the card is suppressed the line still states
+    #     "not captured" so the operator never silently loses the coverage signal.
+    _mvmt = movement_card.build_movement_card(movement_snapshot) if movement_snapshot is not None else None
+    if _mvmt is not None:
+        _mvmt_chips = [chip for _grp, _chips in _mvmt.groups for chip in _chips]
+        _mvmt_usable = sum(1 for _chip in _mvmt_chips if not _chip.endswith(" n/a"))
+        w('  <div class="zone-item"><div class="label">PARTICIPATION</div>'
+          f'<div class="zone-value">{_mvmt_usable}/{len(_mvmt_chips)} captured</div></div>')
         movement_fragment = movement_card.render_fragment(movement_snapshot)
         if movement_fragment:
             w(movement_fragment)
+    else:
+        w('  <div class="zone-item"><div class="label">PARTICIPATION</div>'
+          '<div class="zone-value">not captured</div></div>')
 
-    # --- SPY SESSION (DETAILS): PRD-329 R9 — the observation now renders
-    #     first-class above; the group wrapper survives only for MCC-only renders
-    #     (today's bytes); with an observation present MARKET CONTROL stands alone.
+    # --- Market Control split (PRD-334 R6, owner ruling G2): the current-natured
+    #     TRANSITION + INVALIDATION projections render near SPY SESSION (their typed-
+    #     unavailable tokens preserved via _mcc_cell_display); LOCATION / STATE /
+    #     EVENT and the candidate-implication counts move into HISTORY. No standalone
+    #     six-field card; market_control_card.py is untouched. ---
     _mcc = (payload.get("sections") or {}).get("market_control_card")
-    if _mcc and not _spy_obs:
-        w('<section class="spy-session-group" id="spy-session-details">')
-        w('  <h3>SPY SESSION</h3>')
-
-    # --- market-control-card (PRD-289: seven-field daily card; present iff the
-    #     payload carries the section; projection-only — no renderer derivation) ---
     if _mcc:
-        _cand = _mcc["candidate_implication"]
-        _cand_display = _mcc_cell_display(_cand)
-        if _cand.get("counts") is not None:
-            _c = _cand["counts"]
-            _cand_display += _esc(
-                f' (ACTIVE {_c["ACTIVE"]} / NEAR_MISS {_c["NEAR_MISS"]} / BLOCKED {_c["BLOCKED"]})'
-            )
-        w('<div class="block" id="market-control-card">')
-        w('  <h2>MARKET CONTROL</h2>')
+        _active_lines = _spy_lines
+        w('<div class="block" id="market-context">')
+        w('  <h3>MARKET CONTEXT</h3>')
         w('  <div class="kv-grid">')
-        w(f'    <div class="label">LOCATION</div><div class="value">{_mcc_location_display(_mcc["location"])}</div>')
-        w(f'    <div class="label">STATE</div><div class="value">{_mcc_cell_display(_mcc["state"])}</div>')
-        w(f'    <div class="label">EVENT</div><div class="value">{_mcc_event_display(_mcc["event"])}</div>')
         w(f'    <div class="label">TRANSITION</div><div class="value">{_mcc_cell_display(_mcc["transition"])}</div>')
         w(f'    <div class="label">INVALIDATION</div><div class="value">{_mcc_cell_display(_mcc["invalidation"])}</div>')
-        w(f'    <div class="label">CANDIDATE-IMPLICATION</div><div class="value">{_cand_display}</div>')
         w('  </div>')
         w("</div>")
-
-    if _mcc and not _spy_obs:
-        w("</section>")
+        _active_lines = _structure_lines
 
     # --- sunday-macro-context (PRD-116: only under coherent Sunday lineage) ---
     if sunday_coherent:
@@ -3718,31 +3614,32 @@ def render_dashboard_html(
         # Applied after _esc; the notification path pads via f"{display:<3}".
         return _esc(display) + "&nbsp;" * max(0, 3 - len(display))
 
-    row_1_html = [
-        f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(_tape_arrow_map.get(slot.label, _DASH), "na")}">'
-        f'<span class="macro-tape-label">{_tape_label_padded(slot.display)} {_esc(_tape_arrow_map.get(slot.label, _DASH))}</span>'
-        f'<span class="macro-tape-value" data-symbol="{_esc(slot.label)}">'
-        f'{_esc(tape_value_map.get(slot.label, ""))}</span>'
-        f'</span>'
-        for slot in MACRO_ROW_1.slots
-    ]
-    w('  <div class="macro-spot-metals-row">' + "".join(row_1_html) + "</div>")
+    def _macro_driver_cell(slot: object) -> str:
+        _lbl = slot.label  # type: ignore[attr-defined]
+        _disp = slot.display  # type: ignore[attr-defined]
+        return (
+            f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(_tape_arrow_map.get(_lbl, _DASH), "na")}">'
+            f'<span class="macro-tape-label">{_tape_label_padded(_disp)} {_esc(_tape_arrow_map.get(_lbl, _DASH))}</span>'
+            f'<span class="macro-tape-value" data-symbol="{_esc(_lbl)}">'
+            f'{_esc(tape_value_map.get(_lbl, ""))}</span>'
+            f'</span>'
+        )
 
-    row_2_html = [
-        f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(_tape_arrow_map.get(slot.label, _DASH), "na")}">'
-        f'<span class="macro-tape-label">{_tape_label_padded(slot.display)} {_esc(_tape_arrow_map.get(slot.label, _DASH))}</span>'
-        f'<span class="macro-tape-value" data-symbol="{_esc(slot.label)}">'
-        f'{_esc(tape_value_map.get(slot.label, ""))}</span>'
-        f'</span>'
-        for slot in MACRO_ROW_2.slots
-    ]
-    w('  <div class="macro-drivers-row">' + "".join(row_2_html) + "</div>")
-
-    # PRD-214: the per-driver macro-evidence rows (PRD-177/PRD-191) are
-    # superseded by the one-line risk-vote tally rendered under the MACRO BIAS
-    # headline above. The cyclicality-aware vote logic they surfaced is retained
-    # in the headline tally computation; only the redundant per-driver
-    # presentation is removed.
+    # PRD-334 R5: the seven macro drivers regroup into market families locally
+    # (VOLATILITY / RATES-FX / COMMODITIES / CRYPTO). The per-cell markup
+    # (macro-tape-slot / macro-tape-value / data-symbol) is byte-identical to the
+    # pre-PRD rows -- only grouping and order change. The former two-wrapper
+    # spot-metals / drivers split (PRD-136) is superseded by the family wrappers.
+    _slot_by_label = {
+        slot.label: slot for _row in (MACRO_ROW_1, MACRO_ROW_2) for slot in _row.slots
+    }
+    for _fam_name, _fam_labels, _fam_note in _MACRO_FAMILIES:
+        _cells = "".join(
+            _macro_driver_cell(_slot_by_label[_l]) for _l in _fam_labels if _l in _slot_by_label
+        )
+        _note = f' <span class="macro-family-note">{_esc(_fam_note)}</span>' if _fam_note else ""
+        w(f'  <div class="macro-family"><div class="macro-family-cap">{_esc(_fam_name)}{_note}</div>'
+          f'<div class="macro-drivers-row">{_cells}</div></div>')
 
     # Divider
     w('  <div class="sep"></div>')
@@ -3766,6 +3663,9 @@ def render_dashboard_html(
     # per-component phrases now render inline beside the tally above.
     w("</div>")
 
+    # PRD-334 R9: the red folder is forward-looking (upcoming events), so it renders
+    # in the NEXT EVENT region (not MARKET STRUCTURE and not HISTORY).
+    _active_lines = _today_lines
     # --- red-folder (PRD-176 loader / PRD-177 render): Q2 "what matters today".
     # Presentation only: the caller resolves the loader window (events,
     # expiring, error) and passes a plain view dict; the renderer computes no
@@ -3807,9 +3707,14 @@ def render_dashboard_html(
                 w('  <div class="red-folder-expiry">Red-folder schedule nearing expiry -- refresh the calendar.</div>')
         w("</div>")
 
+    # PRD-334 R9: back to MARKET STRUCTURE for the promoted Trend Structure table.
+    _active_lines = _structure_lines
     # --- trend-structure (PRD-112) ---
     w(f'<div class="block{disabled_class}" id="trend-structure">')
-    w('  <h2>Trend Structure</h2>')
+    # PRD-334 R5: the rich Trend Structure table is the promoted broad-index watch
+    # set (the bland TAPE trend chips are removed in favour of it). Provisional:
+    # an informed current choice of representation, not permanent doctrine.
+    w('  <h2>Trend Structure <span class="label">curated watch set</span></h2>')
     # PRD-123 R6: human-readable degraded-state label and last-snapshot
     # line for the two new "no live data" states. STALE retains its
     # existing rendering — the two are visually and semantically distinct.
@@ -3930,6 +3835,32 @@ def render_dashboard_html(
         w('    </tbody>')
         w('  </table>')
     w("</div>")
+    w("</div>")  # #market-structure (PRD-334 R9)
+
+    # --- HISTORY (PRD-334 R9): backward-looking items only. The Market Control
+    #     LOCATION / STATE / EVENT and candidate-implication counts (R6) are homed
+    #     here (no standalone six-field card); then run delta and scoreboard. ---
+    _active_lines = _details_lines
+    w('<details class="block operator-zone" id="details-history">')
+    w('  <summary>HISTORY ▶</summary>')
+    w('  <div class="details-body">')
+    if _mcc:
+        _cand = _mcc["candidate_implication"]
+        _cand_display = _mcc_cell_display(_cand)
+        if _cand.get("counts") is not None:
+            _c = _cand["counts"]
+            _cand_display += _esc(
+                f' (ACTIVE {_c["ACTIVE"]} / NEAR_MISS {_c["NEAR_MISS"]} / BLOCKED {_c["BLOCKED"]})'
+            )
+        w('<div class="block" id="market-control-card">')
+        w('  <h2>MARKET CONTROL</h2>')
+        w('  <div class="kv-grid">')
+        w(f'    <div class="label">LOCATION</div><div class="value">{_mcc_location_display(_mcc["location"])}</div>')
+        w(f'    <div class="label">STATE</div><div class="value">{_mcc_cell_display(_mcc["state"])}</div>')
+        w(f'    <div class="label">EVENT</div><div class="value">{_mcc_event_display(_mcc["event"])}</div>')
+        w(f'    <div class="label">CANDIDATE-IMPLICATION</div><div class="value">{_cand_display}</div>')
+        w('  </div>')
+        w("</div>")
 
     # --- run-delta ---
     w('<div class="block" id="run-delta">')
@@ -4018,15 +3949,19 @@ def render_dashboard_html(
     w("  </div>")  # .details-body
     w("</details>")
 
-    # Assemble the five operator-question zones in source order. Each buffer was
-    # rendered from the same in-memory facts as the prior subsystem blocks.
+    # PRD-334 R9: assemble the seven top-level regions in the recomposed order:
+    # VERDICT / NEXT EVENT / MARKET STRUCTURE / SPY SESSION / WATCHING / GEX /
+    # HISTORY. Each buffer was rendered from the same in-memory facts. The former
+    # TAPE buffer's content was consolidated into MARKET STRUCTURE and the GEX
+    # region in R5/R9.
     _active_lines = lines
-    lines.extend(_verdict_lines)
-    lines.extend(_tape_lines)
-    lines.extend(_spy_lines)
-    lines.extend(_today_lines)
-    lines.extend(_watching_lines)
-    lines.extend(_details_lines)
+    lines.extend(_verdict_lines)     # VERDICT
+    lines.extend(_today_lines)       # NEXT EVENT (+ red folder)
+    lines.extend(_structure_lines)   # MARKET STRUCTURE (macro families, trend, tradables, movement)
+    lines.extend(_spy_lines)         # SPY SESSION (+ market-context transition/invalidation)
+    lines.extend(_watching_lines)    # WATCHING
+    lines.extend(_gex_lines)         # GEX (production card + synthetic reference)
+    lines.extend(_details_lines)     # HISTORY (market control, run delta, scoreboard)
 
     w("</div>")  # .wrap
     w("</div>")

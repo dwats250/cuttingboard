@@ -78,13 +78,15 @@ def test_macro_tape_value_row_present() -> None:
 
 
 def test_macro_tape_value_row_slot_order() -> None:
-    # PRD-138: row 1 is spot metals plus BTC, row 2 is macro drivers,
-    # then the canonical tradables row.
+    # PRD-334 R5: the macro drivers regroup into market families
+    # (VOLATILITY / RATES-FX / COMMODITIES / CRYPTO), then the canonical
+    # tradables row (unchanged). Cell markup / data-symbol is byte-identical.
     html = render_dashboard_html(_payload(), _run())
     slots = _macro_tape_value_slots(html)
     assert [symbol for symbol, _ in slots] == [
-        "XAU", "XAG", "BTC",
-        "VIX", "DXY", "10Y", "OIL",
+        "VIX", "10Y", "DXY",
+        "XAU", "XAG", "OIL",
+        "BTC",
         "SPY", "QQQ", "GLD", "GDX", "SLV", "XLE",
     ]
 

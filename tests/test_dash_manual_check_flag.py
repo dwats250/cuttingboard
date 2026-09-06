@@ -97,6 +97,23 @@ def test_manual_check_flag_rendered_once_per_candidate_and_only_in_alert_watchli
     assert block.index("^TNX") < block.index("META") < block.index("XLE")
 
 
+# --- PRD-334 R2 (MANUAL CHECK stays above the workspace, outside radio scope) --
+def test_prd334_manual_check_outside_radio_scoped_setup_panels() -> None:
+    # R2 FAIL line: MANUAL CHECK renders above the workspace and OUTSIDE the
+    # radio-scoped .setup-panels, so it cannot be hidden by any setup selection.
+    from tests.dash_helpers import _chartable, _market_map
+    mm = _market_map({"AAA": _chartable("AAA", "A+"), "BBB": _chartable("BBB", "A")})
+    html = render_dashboard_html(
+        _payload(), _run(outcome="TRADE"), market_map=mm,
+        alert_candidates=[_manual("^TNX")],
+    )
+    assert "MANUAL CHECK" in html
+    assert 'class="setup-panels"' in html                       # workspace radio scope present
+    assert html.index("MANUAL CHECK") < html.index('class="setup-panels"')
+    panels = html.split('class="setup-panels"', 1)[1]
+    assert "MANUAL CHECK" not in panels                          # never inside the radio scope
+
+
 # --- R3 (keyed on classification, not reason text) ------------------------
 def test_manual_check_flag_keyed_on_setup_quality_not_reason_text() -> None:
     # (a) chain-flavoured reason text but NOT the NEEDS_MANUAL_CHECK class -> no flag.
