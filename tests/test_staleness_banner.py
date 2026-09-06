@@ -159,6 +159,10 @@ globalThis.document = {
 };
 __BANNER_JS__
 console.log(JSON.stringify({ hidden: banner.hidden, text: banner.textContent }));
+// PRD-334 R1: the banner JS now schedules a setInterval to re-evaluate page age
+// on the viewer's clock. In this one-shot node harness the interval would keep the
+// process alive forever; exit as soon as the single verdict has been read.
+process.exit(0);
 """
 
 
