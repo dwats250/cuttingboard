@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 import math
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Optional
 
 from cuttingboard import config, time_utils
@@ -55,7 +55,19 @@ _MACRO_DRIVER_SYMBOLS = {
     "oil": "CL=F",
     "gold": "GC=F",
     "silver": "SI=F",
+    # PRD-335 (R1/R2): display-only rate/FX context. These carry NO macro-pressure
+    # vote (absent from macro_pressure._COMPONENT_KEYS/_COMPONENT_FIELDS and
+    # MACRO_BIAS_DRIVERS); the fence is proven by tests/test_prd335_display_only_fence.py.
+    "rates_2y": "DGS2",
+    "rates_30y": "^TYX",
+    "usdjpy": "JPY=X",
 }
+
+# PRD-335 (R2/D-1): drivers with a DAILY observation cadence carry a producer
+# written `as_of` (ISO YYYY-MM-DD) so their cadence is shown honestly beside the
+# intraday drivers. A present daily block MUST carry a valid as_of; the guard
+# validates it as a DATE STRING on a path separate from the finite-float check.
+_DAILY_MACRO_DRIVERS: frozenset[str] = frozenset({"rates_2y"})
 
 # PRD-233: the declared system_state schema. Built keys come from
 # _build_system_state / build_error_contract; runtime keys are the
@@ -539,6 +551,19 @@ def _assert_macro_driver_mapping_sync() -> None:
     assert set(_MACRO_DRIVER_SYMBOLS.values()).issubset(set(config.MACRO_DRIVERS))
 
 
+def _valid_iso_date(value: Any) -> bool:
+    """True iff ``value`` is a parseable ISO ``YYYY-MM-DD`` date string. PRD-335:
+    the daily-driver ``as_of`` is validated on THIS path, never the finite-float
+    path — a date string must never be run through a numeric validator."""
+    if not isinstance(value, str):
+        return False
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
 def _required_finite_float(value: Any, label: str) -> float:
     if value is None:
         raise ValueError(f"Missing required value: {label}")
@@ -578,6 +603,17 @@ def _build_macro_drivers(normalized_quotes: dict) -> dict[str, dict[str, float |
         }
         if driver == "rates":
             block["change_bps"] = pct_change_decimal * price * 100.0
+        if driver in _DAILY_MACRO_DRIVERS:
+            # A present daily block MUST carry a valid producer as_of (PRD-335 R2).
+            # The carrier guarantees one on success; if it is absent/invalid the
+            # optional daily driver is dropped (renders "--"), never a dateless
+            # daily value passed off as intraday.
+            as_of = getattr(quote, "as_of", None)
+            if not _valid_iso_date(as_of):
+                if optional:
+                    continue
+                raise ValueError(f"Missing/invalid as_of for daily macro driver: {driver}")
+            block["as_of"] = as_of
         macro_drivers[driver] = block
 
     return macro_drivers
@@ -688,12 +724,22 @@ def assert_valid_contract(contract: dict, *, finalized: bool = False) -> None:
         required_fields = {"symbol", "level", "change_pct"}
         if driver == "rates":
             required_fields = required_fields | {"change_bps"}
+        # PRD-335 R2: a daily driver additionally carries `as_of` — a DATE STRING,
+        # NOT a numeric field, so it is allowed here and validated on a separate
+        # path below (never the finite-float check). A present dated block would
+        # otherwise be rejected as an unexpected key (INERT driver).
+        if driver in _DAILY_MACRO_DRIVERS:
+            required_fields = required_fields | {"as_of"}
         assert set(block) == required_fields, f"macro_drivers.{driver} has unexpected keys"
         assert block["symbol"] == symbol, f"macro_drivers.{driver}.symbol must be {symbol!r}"
-        for field in required_fields - {"symbol"}:
+        for field in required_fields - {"symbol", "as_of"}:
             value = block[field]
             assert isinstance(value, float), f"macro_drivers.{driver}.{field} must be float"
             assert math.isfinite(value), f"macro_drivers.{driver}.{field} must be finite"
+        if "as_of" in required_fields:
+            assert _valid_iso_date(block["as_of"]), (
+                f"macro_drivers.{driver}.as_of must be an ISO YYYY-MM-DD date string"
+            )
 
     # Must be JSON-serializable with no custom encoder
     json.dumps(contract)

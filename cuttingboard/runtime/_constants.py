@@ -85,6 +85,14 @@ _FIXTURE_QUOTE_FIELDS = {
     "age_seconds",
 }
 
+# PRD-335 (R2, PRD review finding 4): the daily-driver observation date is an
+# OPTIONAL fixture quote field — admitted and preserved when present, but NOT
+# required (every existing fixture omits it). The loader's exact-set check treats
+# these as allowed-extra rather than missing.
+_FIXTURE_OPTIONAL_QUOTE_FIELDS = {
+    "as_of",
+}
+
 _PERMISSION_LINES: dict[str, str] = {
     "AGGRESSIVE_LONG": "Long bias — trend continuation allowed.",
     "CONTROLLED_LONG": "Long bias — defined risk preferred.",
@@ -125,5 +133,6 @@ __all__ = [
     "VALID_REGIMES",
     "VALID_POSTURES",
     "_FIXTURE_QUOTE_FIELDS",
+    "_FIXTURE_OPTIONAL_QUOTE_FIELDS",
     "_PERMISSION_LINES",
 ]

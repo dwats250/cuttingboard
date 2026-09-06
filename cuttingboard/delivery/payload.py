@@ -9,9 +9,30 @@ from __future__ import annotations
 
 import json
 import math
+from datetime import date
 from typing import Any, Optional
 
 from cuttingboard.contract_types import PipelineContract, _OPTIONAL_MACRO_DRIVERS
+
+# PRD-335 (R2): the daily-cadence macro drivers whose block carries a producer
+# `as_of` DATE STRING. This is the SECOND independent driver-key guard (Astra
+# finding 1); it deliberately keeps its own copy of these vocabularies. A
+# guard-sync test (tests/test_prd335_display_only_fence.py) asserts this set and
+# the `expected` whitelist below stay equal to contract's, so the two guards
+# cannot drift.
+_DAILY_MACRO_DRIVER_KEYS: frozenset[str] = frozenset({"rates_2y"})
+
+
+def _valid_iso_date(value: Any) -> bool:
+    """True iff ``value`` is a parseable ISO ``YYYY-MM-DD`` date string. The
+    daily-driver ``as_of`` is validated HERE, never on the finite-float path."""
+    if not isinstance(value, str):
+        return False
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
 from cuttingboard.trade_decision import candidate_is_actionable
 
 PAYLOAD_SCHEMA_VERSION = "1.0"
@@ -326,6 +347,12 @@ def _require_macro_drivers(macro_drivers: dict) -> None:
         "oil": {"symbol", "level", "change_pct"},
         "gold": {"symbol", "level", "change_pct"},
         "silver": {"symbol", "level", "change_pct"},
+        # PRD-335 (R1/R2): display-only rate/FX context. rates_2y is a DAILY
+        # driver and additionally carries an `as_of` date string (validated
+        # separately below); 30Y and USDJPY are intraday.
+        "rates_2y": {"symbol", "level", "change_pct", "as_of"},
+        "rates_30y": {"symbol", "level", "change_pct"},
+        "usdjpy": {"symbol", "level", "change_pct"},
     }
     required_keys = set(expected) - _OPTIONAL_MACRO_DRIVERS
     actual_keys = set(macro_drivers)
@@ -345,7 +372,15 @@ def _require_macro_drivers(macro_drivers: dict) -> None:
             raise ValueError(f"macro_drivers.{driver} has unexpected keys")
         if not isinstance(block["symbol"], str):
             raise ValueError(f"macro_drivers.{driver}.symbol must be str")
-        for field in required_fields - {"symbol"}:
+        for field in required_fields - {"symbol", "as_of"}:
             value = block[field]
             if not isinstance(value, float) or not math.isfinite(value):
                 raise ValueError(f"macro_drivers.{driver}.{field} must be finite float")
+        # PRD-335 R2: `as_of` is a DATE STRING, validated on a SEPARATE path from
+        # the finite-float check above — never rejected as a non-float, never
+        # accepted as a non-date.
+        if "as_of" in required_fields:
+            if not _valid_iso_date(block["as_of"]):
+                raise ValueError(
+                    f"macro_drivers.{driver}.as_of must be an ISO YYYY-MM-DD date string"
+                )

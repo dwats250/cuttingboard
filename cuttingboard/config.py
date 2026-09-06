@@ -255,7 +255,15 @@ EVALUATION_TIMEFRAME    = "1m"
 # Instrument universe
 # ---------------------------------------------------------------------------
 
-MACRO_DRIVERS = ["^VIX", "DX-Y.NYB", "^TNX", "BTC-USD", "CL=F", "GC=F", "SI=F"]
+# PRD-335 (R1/R2): ^TYX (30Y yield) and JPY=X (USDJPY) are DISPLAY-ONLY macro
+# drivers via yfinance; DGS2 is the actual US 2Y Treasury yield sourced from the
+# FRED public CSV (source "fred", D-1). All three are optional and fenced from
+# macro-pressure voting (see contract_types._OPTIONAL_MACRO_DRIVERS and the
+# decision-authority fence tests) — they never enter REQUIRED_SYMBOLS/HALT_SYMBOLS.
+MACRO_DRIVERS = [
+    "^VIX", "DX-Y.NYB", "^TNX", "BTC-USD", "CL=F", "GC=F", "SI=F",
+    "^TYX", "JPY=X", "DGS2",
+]
 NON_TRADABLE_SYMBOLS: frozenset[str] = frozenset(MACRO_DRIVERS)
 INDICES       = ["SPY", "QQQ", "IWM"]
 COMMODITIES   = ["GLD", "SLV", "GDX", "PAAS", "USO", "XLE"]
@@ -289,6 +297,12 @@ SYMBOL_SOURCE_PRIORITY: dict[str, list[str]] = {
     "CL=F":     ["yfinance"],
     "GC=F":     ["yfinance"],
     "SI=F":     ["yfinance"],
+    "^TYX":     ["yfinance"],
+    "JPY=X":    ["yfinance"],
+    # PRD-335 D-1: the actual 2Y yield comes from FRED (series DGS2) via the
+    # public CSV endpoint; the "fred" source is handled by ingestion's dedicated
+    # branch and never reaches yfinance.
+    "DGS2":     ["fred"],
     "default":  ["yfinance"],
 }
 
@@ -320,6 +334,10 @@ PRICE_BOUNDS: dict[str, tuple[float, float]] = {
     "CL=F":     (5,     250),
     "GC=F":     (800,   6000),
     "SI=F":     (5,     200),
+    # PRD-335 (R1/R2): display-only rate/FX context.
+    "^TYX":     (1.0,   8.0),      # 30Y yield points
+    "JPY=X":    (80.0,  250.0),    # yen per dollar
+    "DGS2":     (0.0,   8.0),      # 2Y yield points (FRED DGS2)
 }
 
 # ---------------------------------------------------------------------------
@@ -330,6 +348,12 @@ SYMBOL_UNITS: dict[str, str] = {
     "^VIX":     "index_level",
     "DX-Y.NYB": "index_level",
     "^TNX":     "yield_pct",
+    # PRD-335: display-only rate/FX context. "jpy_per_usd" is a new descriptive
+    # token (units is a free-form string, not an enum) so USDJPY is not mislabeled
+    # as an index level (PRD review finding 6).
+    "^TYX":     "yield_pct",
+    "JPY=X":    "jpy_per_usd",
+    "DGS2":     "yield_pct",
 }
 DEFAULT_UNITS = "usd_price"
 

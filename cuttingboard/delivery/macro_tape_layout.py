@@ -45,7 +45,13 @@ MACRO_ROW_2 = TapeRow(
     slots=(
         TapeSlot(label="VIX", payload_key="volatility", quote_symbol="^VIX"),
         TapeSlot(label="DXY", payload_key="dollar", quote_symbol="DX-Y.NYB"),
+        # PRD-335 (R1/R2): display-only rate/FX context. USDJPY sits beside DXY
+        # (FX); the actual 2Y (FRED DGS2) sits before 10Y and 30Y (rates). None of
+        # these carry a macro-pressure vote — see MACRO_BIAS_DRIVERS below.
+        TapeSlot(label="USDJPY", payload_key="usdjpy", quote_symbol="JPY=X"),
+        TapeSlot(label="2Y", payload_key="rates_2y", quote_symbol="DGS2"),
         TapeSlot(label="10Y", payload_key="rates", quote_symbol="^TNX"),
+        TapeSlot(label="30Y", payload_key="rates_30y", quote_symbol="^TYX"),
         TapeSlot(label="OIL", payload_key="oil", quote_symbol="CL=F"),
     ),
 )
