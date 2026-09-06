@@ -21,7 +21,7 @@ from cuttingboard.trade_decision import candidate_is_actionable
 # guard-sync test (tests/test_prd335_display_only_fence.py) asserts this set and
 # the `expected` whitelist below stay equal to contract's, so the two guards
 # cannot drift.
-_DAILY_MACRO_DRIVER_KEYS: frozenset[str] = frozenset({"rates_2y"})
+_DAILY_MACRO_DRIVER_KEYS: frozenset[str] = frozenset({"rates_2y", "rates_5y"})
 
 
 def _valid_iso_date(value: Any) -> bool:
@@ -354,6 +354,15 @@ _MACRO_DRIVER_FIELD_WHITELIST: dict[str, set[str]] = {
     "rates_2y": {"symbol", "level", "change_pct", "as_of"},
     "rates_30y": {"symbol", "level", "change_pct"},
     "usdjpy": {"symbol", "level", "change_pct"},
+    # PRD-336: five display-only cockpit drivers. rates_5y is daily (carries
+    # as_of, validated on the separate date path); the FX/futures/crypto adds are
+    # intraday. Kept key-synced with contract._MACRO_DRIVER_SYMBOLS by the
+    # guard-sync test.
+    "rates_5y": {"symbol", "level", "change_pct", "as_of"},
+    "eurusd": {"symbol", "level", "change_pct"},
+    "usdcad": {"symbol", "level", "change_pct"},
+    "natgas": {"symbol", "level", "change_pct"},
+    "ethereum": {"symbol", "level", "change_pct"},
 }
 
 

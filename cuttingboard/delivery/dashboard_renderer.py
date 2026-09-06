@@ -40,6 +40,7 @@ from cuttingboard.delivery.macro_tape_layout import (
     MACRO_BIAS_DRIVERS,
     MACRO_ROW_1,
     MACRO_ROW_2,
+    MACRO_ROW_3,
     TRADABLES_ROW,
 )
 from cuttingboard.macro_pressure import build_macro_pressure
@@ -320,20 +321,25 @@ _SPY_REL_WORD = {"ABOVE": "above", "BELOW": "below", "AT_LEVEL": "at"}
 # families (keyed by the shared-layout slot .label; macro_tape_layout.py is NOT
 # edited). Order is family order, not the pre-PRD shared-layout order. GC/SI/OIL
 # are futures. (name, (slot labels in order), family note or "")
+# PRD-336 R1: four families rendered FOUR CELLS ACROSS (desktop and 390px).
+# VOL / CRYPTO is the top family with exactly three meaningful cells (VIX/BTC/ETH;
+# no filler). This SUPERSEDES PRD-335 D-4 (the muted trailing CRYPTO family):
+# BTC's ingestion and macro-pressure vote are UNCHANGED — only its presentation
+# moves into an un-muted top family. RATES carries 2Y/5Y (daily FRED) + 10Y/30Y;
+# FX carries the currency pairs; FUTURES carries CL/NG/GC/SI (front-month). The
+# 5Y/EURUSD/USDCAD/NG/ETH cells resolve to the dashboard-only MACRO_ROW_3 slots.
 _MACRO_FAMILIES: tuple[tuple[str, tuple[str, ...], str], ...] = (
-    ("VOLATILITY", ("VIX",), ""),
-    # PRD-335 R4: RATES now carries the actual 2Y (daily FRED), 10Y and 30Y;
-    # "selected maturities" is the honest caption (not a full curve). FX is its
-    # own family (DXY + USDJPY). COMMODITIES keeps GC/SI/OIL front-month futures.
-    # CRYPTO(BTC) is the muted trailing family (D-4): its ingestion and
-    # macro-pressure vote are unchanged; only its presentation is demoted.
-    ("RATES", ("2Y", "10Y", "30Y"), "selected maturities"),
-    ("FX", ("DXY", "USDJPY"), ""),
-    ("COMMODITIES", ("XAU", "XAG", "OIL"), "front-month futures"),
-    ("CRYPTO", ("BTC",), ""),
+    ("VOL / CRYPTO", ("VIX", "BTC", "ETH"), ""),
+    ("RATES", ("2Y", "5Y", "10Y", "30Y"), "selected maturities"),
+    ("FX", ("DXY", "EURUSD", "USDJPY", "USDCAD"), ""),
+    ("FUTURES", ("OIL", "NG", "XAU", "XAG"), "front-month futures"),
 )
-# PRD-335 D-4: the trailing family rendered muted (presentation-only demotion).
-_MUTED_MACRO_FAMILY = "CRYPTO"
+# PRD-336 R5 (Helm ruling 1): COCKPIT-LOCAL label relabel. The oil future shows
+# "CL" in the FUTURES family, but only on the dashboard — the shared TapeSlot keeps
+# display "OIL" so the notification/alert tape (which reads slot.display) stays
+# byte-unchanged. Metals already carry GC/SI via their slot display_label, so they
+# need no override here.
+_COCKPIT_LABEL_OVERRIDE: dict[str, str] = {"OIL": "CL"}
 _WATCHLIST_CUTOFF_REASON = "entry blocked after 3:30 PM ET"
 
 
@@ -343,21 +349,26 @@ def _spy_session_lines(spy_obs: dict) -> tuple[str, str]:
     obs_at, intended = spy_obs.get("observed_at_utc"), spy_obs.get("intended_session_date")
     when = _mon_d(intended) if intended else "unknown session"
     price, vwap, rel = spy_obs.get("current_price"), spy_obs.get("session_vwap"), spy_obs.get("price_vs_vwap")
-    withheld = " · no current price/VWAP read"
+    # PRD-336 R7: the inactive/pre-open/stale copy is cut to one terse operator
+    # line. Every provenance/freshness fact stays machine-readable on the
+    # #spy-observation data-* attributes (data-raw-state / data-observed-at-utc /
+    # data-session-date / data-raw-reason) and the bars-through date stays on the
+    # .spy-clock line; the visible prose no longer repeats the full read timestamp.
+    # OBSERVED (active) is already concise and is unchanged.
     if state == "OBSERVED" and isinstance(price, (int, float)) and not isinstance(price, bool):
         vwap_txt = (f"{_SPY_REL_WORD.get(str(rel), 'at')} session VWAP {vwap:.2f}"
                     if isinstance(vwap, (int, float)) and not isinstance(vwap, bool) else "· session VWAP unavailable")
         line1 = f"SPY {price:.2f} {vwap_txt} · read {_operator_clock(obs_at)}"
     elif state == "PRE_OPEN" and reason == "pre_open_prior_session":
-        line1 = f"Pre-open for {when} · prior session read {_operator_timestamp(obs_at)}"
+        line1 = f"Pre-open · prior session {when}"
     elif state == "PRE_OPEN":
-        line1 = f"Pre-open · awaiting today's session · last {_operator_clock(obs_at)}"
+        line1 = "Pre-open · awaiting today's session"
     elif state == "STALE" and reason == "session_mismatch":
-        line1 = f"Session read is from a different trading day · intended {when} · last {_operator_timestamp(obs_at)}{withheld}"
+        line1 = f"Session read stale · intended {when}"
     elif state == "STALE":
-        line1 = f"Session read not current · last {_operator_clock(obs_at)}{withheld}"
+        line1 = "Session read not current"
     else:
-        line1 = f"No session read for {when} · {_SPY_REASON_DISPLAY.get(str(reason), 'reason not recognised')}"
+        line1 = f"No session for {when} · {_SPY_REASON_DISPLAY.get(str(reason), 'reason not recognised')}"
     orb = spy_obs.get("orb") if isinstance(spy_obs.get("orb"), dict) else None
     hi, lo = (orb or {}).get("orb_high"), (orb or {}).get("orb_low")
     if orb and orb.get("state") == "FORMED" and isinstance(hi, (int, float)) and isinstance(lo, (int, float)):
@@ -1025,18 +1036,22 @@ _CSS = (
     "letter-spacing:0.08em;margin-bottom:0.75rem}"
     ".sep{border-top:1px solid #1a1a1a;margin:0.5rem 0}"
     ".tape-slot{white-space:nowrap}"
-    ".macro-tape-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));"
-    "gap:6px 12px;margin-top:6px;overflow-x:hidden}"
-    # PRD-334 R5: market-family groups. Unequal family sizes pack via flex-wrap
-    # (never a forced 3-col grid), so 1-3 drivers per family read cleanly.
+    # PRD-336 R1: market families render FOUR CELLS ACROSS on desktop AND 390px
+    # via a fixed four-column grid (no flex-wrap, no 2x2 mobile collapse). A
+    # 3-cell family (VOL / CRYPTO) fills columns 1-3 and leaves column 4 empty so
+    # its cells stay vertically aligned with the four-cell families.
     ".macro-family{margin-top:8px}"
-    # PRD-335 D-4: the trailing CRYPTO family is visually muted (presentation-only
-    # demotion; BTC ingestion + its macro-pressure vote are unchanged).
-    ".macro-family--muted{opacity:0.6}"
     ".macro-family-cap{font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:#888}"
     ".macro-family-note{text-transform:none;letter-spacing:0;color:var(--color-neutral);font-size:.62rem}"
-    ".macro-drivers-row{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:4px;overflow-x:hidden}"
-    ".macro-drivers-row .macro-tape-slot{flex:1 1 90px;min-width:0}"
+    ".macro-drivers-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));"
+    "gap:6px 8px;margin-top:4px;overflow-x:hidden}"
+    # PRD-336 R1: each cell STACKS (label line / arrow+value line / optional daily
+    # as_of line) so four terse cells fit a Pixel-class 390px row with no overflow.
+    ".macro-drivers-row .macro-tape-slot{display:flex;flex-direction:column;min-width:0}"
+    ".macro-drivers-row .macro-tape-label{font-size:.6rem;white-space:nowrap;"
+    "overflow:hidden;text-overflow:ellipsis;max-width:100%}"
+    ".macro-drivers-row .macro-tape-quote{white-space:nowrap;overflow:hidden;"
+    "text-overflow:ellipsis;max-width:100%}"
     ".macro-tradables-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;"
     "margin-top:6px;overflow-x:hidden}"
     ".tradable-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
@@ -1195,14 +1210,21 @@ _CSS = (
     ".gex-full>summary{cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center;color:var(--color-gex);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em}"
     ".gex-full>summary::-webkit-details-marker{display:none}"
     "#details-history>summary::-webkit-details-marker{display:none}"
-    "#details-history>.details-body{margin-top:10px}"
-    "#details-history .block{border:0;border-radius:0;border-top:1px solid #222;margin:0;padding:12px 0}"
+    "#details-history>.details-body{margin-top:6px}"
+    # PRD-336 R10: tighter vertical rhythm for the now-visible HISTORY panels.
+    "#details-history .block{border:0;border-radius:0;border-top:1px solid #222;margin:0;padding:8px 0}"
     "#details-history .block:first-child{border-top:0}"
     "#details-history .block h2{margin-bottom:7px}"
     ".spy-session-group{border-top:1px solid #222;padding-top:12px}"
     ".spy-session-group>.block:first-of-type{border-top:0}"
     # PRD-330 (D4): SPY SESSION section + header lines; native LEVELS control (hidden focusable checkbox, 44 px label); NEXT EVENT strip; WATCHING line.
     "#spy-session{border:1px solid #2a2a2a;border-radius:4px;background:#101010;padding:1rem;margin-bottom:1rem}#spy-session>h3{font-size:.8rem;color:#aaa;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem;font-weight:normal}#spy-observation{border:0;border-radius:0;padding:0;margin:0}#spy-session .spy-chart{margin-top:6px}"
+    # PRD-336 R8: low-height Market Context strip in the SPY region. Own class (not
+    # the shared .kv-grid) so WATCHING is unaffected (R9). Wraps at 390px.
+    ".mc-strip{font-size:.7rem;color:#9a9a9a;display:flex;flex-wrap:wrap;"
+    "gap:.1rem .75rem;align-items:baseline;margin-top:6px}"
+    ".mc-strip .mc-cap{font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;color:#777}"
+    ".mc-strip .mc-k{color:#777;margin-right:.2rem}"
     ".spy-read{font-size:.82rem;line-height:1.35}.spy-clock{color:#777;font-size:.7rem;line-height:1.3;margin-top:4px}.chart-controls{display:flex;justify-content:flex-end;margin-top:8px}"
     ".chart-toggle{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}"
     ".chart-toggle-label{display:inline-flex;align-items:center;min-height:44px;cursor:pointer;color:#777;border:1px solid #2a2a2a;border-radius:3px;padding:0 10px;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;user-select:none}.chart-toggle-label::before{content:'\\25A1  ';color:#555}"
@@ -1295,7 +1317,7 @@ _CSS = (
     "#opportunity-survival .kv-grid>*:nth-child(10){grid-column:2/-1}"
     "#candidate-board .candidate-scope{padding:5px 7px;margin-bottom:6px;font-size:.68rem;line-height:1.25}"
     "#candidate-board:not(:has(.candidate-card)) .unavailable{font-size:.72rem}"
-    "#details-history .block{padding:10px 0}"
+    "#details-history .block{padding:6px 0}"
     "}"
     # PRD-330: phone parity in a SEPARATE media block; the PRD-318/327 block above stays byte-identical.
     "@media(max-width:430px){#spy-session{padding:10px;margin-bottom:8px}#spy-session>h3{margin-bottom:7px}#today-zone{padding:8px 10px}}"
@@ -1723,7 +1745,7 @@ def _is_finite_number(value: object) -> bool:
 # macro-snapshot fallback after its as_of is no longer admissible — this boundary
 # check is the second gate. DISPLAY-ONLY: the decision path (macro_pressure)
 # never reads these keys, so dropping one here has no decision effect.
-_RENDER_DAILY_MACRO_DRIVERS: frozenset[str] = frozenset({"rates_2y"})
+_RENDER_DAILY_MACRO_DRIVERS: frozenset[str] = frozenset({"rates_2y", "rates_5y"})
 _MACRO_DAILY_MAX_AGE_DAYS = 5
 
 
@@ -1770,7 +1792,9 @@ def _build_tape_slots(
     # arrows remain; the tradables row keeps its label + price (no arrow).
     slots: list[tuple[str, str]] = []
 
-    for row in (MACRO_ROW_1, MACRO_ROW_2):
+    # PRD-336: MACRO_ROW_3 is the dashboard-only row (notifications iterate only
+    # rows 1-2). Its arrows render on the cockpit; it casts no vote.
+    for row in (MACRO_ROW_1, MACRO_ROW_2, MACRO_ROW_3):
         for slot in row.slots:
             block = macro_drivers.get(slot.payload_key) if macro_drivers else None
             change_pct = block.get("change_pct") if isinstance(block, dict) else None
@@ -1791,12 +1815,17 @@ def _format_tape_value(symbol: str, value: object) -> str:
         return f"{numeric:.1f}"
     if symbol == "DXY":
         return f"{numeric:.1f}"
-    # PRD-335: yields render to 2dp (2Y/10Y/30Y); USDJPY to 1dp (yen per dollar).
-    if symbol in ("2Y", "10Y", "30Y"):
+    # PRD-335/336: yields render to 2dp (2Y/5Y/10Y/30Y); USDJPY to 1dp (yen per
+    # dollar); EURUSD/USDCAD to 4dp (FX pairs quote to 4 decimals).
+    if symbol in ("2Y", "5Y", "10Y", "30Y"):
         return f"{numeric:.2f}"
     if symbol == "USDJPY":
         return f"{numeric:.1f}"
-    if symbol == "BTC":
+    if symbol in ("EURUSD", "USDCAD"):
+        return f"{numeric:.4f}"
+    if symbol == "NG":
+        return f"{numeric:.2f}"
+    if symbol in ("BTC", "ETH"):
         if abs(numeric) >= 10000:
             return f"{numeric / 1000:.1f}K"
         return f"{numeric:.0f}"
@@ -1815,7 +1844,7 @@ def _build_tape_value_slots(
 ) -> list[tuple[str, str]]:
     slots: list[tuple[str, str]] = []
 
-    for row in (MACRO_ROW_1, MACRO_ROW_2):
+    for row in (MACRO_ROW_1, MACRO_ROW_2, MACRO_ROW_3):  # PRD-336: dashboard-only row 3
         for slot in row.slots:
             block = macro_drivers.get(slot.payload_key) if macro_drivers else None
             value = block.get("level") if isinstance(block, dict) else None
@@ -3587,13 +3616,19 @@ def render_dashboard_html(
     #     six-field card; market_control_card.py is untouched. ---
     _mcc = (payload.get("sections") or {}).get("market_control_card")
     if _mcc:
+        # PRD-336 R8: recompose the former heading + kv-grid card into a compact,
+        # low-height context STRIP that lives with SPY SESSION, so its (usually
+        # unavailable) state consumes little vertical space and WATCHING rises. The
+        # _mcc data feed and the typed _mcc_cell_display tokens are unchanged; a
+        # dedicated .mc-strip class is used (NOT the shared .kv-grid) so WATCHING is
+        # not touched (R9). The buffer swap into _spy_lines is preserved.
         _active_lines = _spy_lines
         w('<div class="block" id="market-context">')
-        w('  <h3>MARKET CONTEXT</h3>')
-        w('  <div class="kv-grid">')
-        w(f'    <div class="label">TRANSITION</div><div class="value">{_mcc_cell_display(_mcc["transition"])}</div>')
-        w(f'    <div class="label">INVALIDATION</div><div class="value">{_mcc_cell_display(_mcc["invalidation"])}</div>')
-        w('  </div>')
+        w('  <div class="mc-strip"><span class="mc-cap">CONTEXT</span>'
+          f'<span class="mc-item"><span class="mc-k">Transition</span> '
+          f'{_mcc_cell_display(_mcc["transition"])}</span>'
+          f'<span class="mc-item"><span class="mc-k">Invalidation</span> '
+          f'{_mcc_cell_display(_mcc["invalidation"])}</span></div>')
         w("</div>")
         _active_lines = _structure_lines
 
@@ -3659,18 +3694,13 @@ def render_dashboard_html(
 
     _tape_arrow_map = dict(tape_slots)
 
-    def _tape_label_padded(display: str) -> str:
-        # PRD-224: pad 2-char labels (GC/SI, PRD-211) to the 3-char column with
-        # &nbsp; so the arrow glyphs align. Plain spaces cannot do this — HTML
-        # collapses consecutive regular spaces even under white-space:nowrap.
-        # Applied after _esc; the notification path pads via f"{display:<3}".
-        return _esc(display) + "&nbsp;" * max(0, 3 - len(display))
-
     def _macro_driver_cell(slot: object) -> str:
         _lbl = slot.label  # type: ignore[attr-defined]
-        _disp = slot.display  # type: ignore[attr-defined]
+        # PRD-336 R5: cockpit-local relabel (OIL future -> "CL"); metals keep their
+        # slot display GC/SI. The notification tape reads slot.display, not this.
+        _disp = _COCKPIT_LABEL_OVERRIDE.get(_lbl, slot.display)  # type: ignore[attr-defined]
         # PRD-335 R2/R9: a per-driver observation-date marker, sourced ONLY from a
-        # producer-written block `as_of` (daily drivers such as the FRED 2Y) and
+        # producer-written block `as_of` (daily drivers such as the FRED 2Y/5Y) and
         # never inferred from the symbol/label. Absent block or no as_of -> no
         # marker (no synthesized "as of" caption, no "live"/"now" wording).
         _blk = macro_drivers.get(slot.payload_key) if macro_drivers else None  # type: ignore[attr-defined]
@@ -3679,11 +3709,18 @@ def render_dashboard_html(
             f'<span class="macro-tape-asof">{_esc(_mon_d(_asof))}</span>'
             if isinstance(_asof, str) and _asof else ""
         )
+        # PRD-336 R1: STACKED cell — label line, then arrow+value line, then the
+        # optional daily as_of line (CSS stacks them). Four terse cells fit a 390px
+        # row. The up/down/flat/na slot class colours the whole cell as before.
+        _arrow = _tape_arrow_map.get(_lbl, _DASH)
+        # The arrow sits on the value LINE but OUTSIDE .macro-tape-value, so the
+        # data-symbol value span stays a pure formatted value for any consumer.
         return (
-            f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(_tape_arrow_map.get(_lbl, _DASH), "na")}">'
-            f'<span class="macro-tape-label">{_tape_label_padded(_disp)} {_esc(_tape_arrow_map.get(_lbl, _DASH))}</span>'
+            f'<span class="macro-tape-slot tape-slot {_ARROW_CSS.get(_arrow, "na")}">'
+            f'<span class="macro-tape-label">{_esc(_disp)}</span>'
+            f'<span class="macro-tape-quote">{_esc(_arrow)}&nbsp;'
             f'<span class="macro-tape-value" data-symbol="{_esc(_lbl)}">'
-            f'{_esc(tape_value_map.get(_lbl, ""))}</span>'
+            f'{_esc(tape_value_map.get(_lbl, ""))}</span></span>'
             f'{_asof_html}'
             f'</span>'
         )
@@ -3694,43 +3731,58 @@ def render_dashboard_html(
     # pre-PRD rows -- only grouping and order change. The former two-wrapper
     # spot-metals / drivers split (PRD-136) is superseded by the family wrappers.
     _slot_by_label = {
-        slot.label: slot for _row in (MACRO_ROW_1, MACRO_ROW_2) for slot in _row.slots
+        slot.label: slot
+        for _row in (MACRO_ROW_1, MACRO_ROW_2, MACRO_ROW_3)  # PRD-336: dashboard-only row 3
+        for slot in _row.slots
     }
     for _fam_name, _fam_labels, _fam_note in _MACRO_FAMILIES:
         _cells = "".join(
             _macro_driver_cell(_slot_by_label[_l]) for _l in _fam_labels if _l in _slot_by_label
         )
         _note = f' <span class="macro-family-note">{_esc(_fam_note)}</span>' if _fam_note else ""
-        # PRD-335 D-4: the trailing CRYPTO family is muted (presentation-only).
-        _fam_cls = "macro-family macro-family--muted" if _fam_name == _MUTED_MACRO_FAMILY else "macro-family"
-        w(f'  <div class="{_fam_cls}"><div class="macro-family-cap">{_esc(_fam_name)}{_note}</div>'
+        # PRD-336 R1: no muted family — VOL / CRYPTO is an un-muted top family
+        # (supersedes PRD-335 D-4; BTC ingestion + its macro-pressure vote unchanged).
+        w(f'  <div class="macro-family"><div class="macro-family-cap">{_esc(_fam_name)}{_note}</div>'
           f'<div class="macro-drivers-row">{_cells}</div></div>')
 
-    # Divider
-    w('  <div class="sep"></div>')
-
-    # Tradables grid (PRD-312: label + price, 2 per row). The monochrome
-    # daily-change arrow was retired here — it duplicated the Market Movement
-    # card's signed value. The price (current_price) is independently fresh from
-    # market_map; the tradables row keeps its label + price with no arrow.
-    # PRD-335 R7/D-3: KEEP the grid — it is the only ETF last-price surface in
-    # closed/inactive/unhealthy states (Market Movement is percent-only; Trend
-    # Structure prints no rows then). A "TRADE VEHICLES" caption (reusing the
-    # family-cap markup) makes the macro-underlying (GC/SI front-month futures
-    # above) vs trade-vehicle (GLD/GDX/SLV/XLE ETF last price) distinction
-    # explicit.
-    w('  <div class="macro-family-cap">TRADE VEHICLES'
-      ' <span class="macro-family-note">ETF last price</span></div>')
-    w('  <div class="macro-tradables-grid">')
-    for slot in TRADABLES_ROW.slots:
-        val = tape_value_map.get(slot.label, "N/A")
-        w(
-            f'    <span class="tradable-cell">'
-            f'<span class="macro-tape-label">{_esc(slot.label)}</span>'
-            f'&nbsp;<span class="macro-tape-value" data-symbol="{_esc(slot.label)}">{_esc(val)}</span>'
-            f'</span>'
-        )
-    w('  </div>')
+    # PRD-336 R11: the Trade Vehicles grid is a CONDITIONAL fallback. It duplicates
+    # the richer Trend Structure Price column (same six PRD-110 symbols), so it is
+    # SUPPRESSED when Trend Structure renders a finite live price for ALL SIX
+    # symbols, and SHOWN otherwise — Trend degraded (unhealthy lineage / inactive /
+    # market-closed / no snapshot) OR any symbol missing a finite trend price. The
+    # grid reads market_map.current_price (which survives a stale/partial trend
+    # snapshot), the table reads _ts_records.current_price, so this guarantees no
+    # per-symbol ETF price is ever lost (preserves PRD-335 D-3's reason while
+    # removing the duplication in the fully-priced live view).
+    _trend_degraded = (
+        unhealthy_lineage
+        or inactive_session
+        or _ts_health in ("MARKET_CLOSED", "AWAITING_DATA")
+        or _ts_records is None
+    )
+    _trend_prices_complete = (not _trend_degraded) and all(
+        _is_finite_number((_ts_records.get(_sym) or {}).get("current_price"))
+        for _sym in config.TREND_STRUCTURE_SYMBOLS
+    )
+    if not _trend_prices_complete:
+        # Divider
+        w('  <div class="sep"></div>')
+        # Tradables grid (PRD-312: label + price, 2 per row; no arrow). A
+        # "TRADE VEHICLES" caption makes the macro-underlying (GC/SI front-month
+        # futures above) vs trade-vehicle (GLD/GDX/SLV/XLE ETF last price)
+        # distinction explicit.
+        w('  <div class="macro-family-cap">TRADE VEHICLES'
+          ' <span class="macro-family-note">ETF last price</span></div>')
+        w('  <div class="macro-tradables-grid">')
+        for slot in TRADABLES_ROW.slots:
+            val = tape_value_map.get(slot.label, "N/A")
+            w(
+                f'    <span class="tradable-cell">'
+                f'<span class="macro-tape-label">{_esc(slot.label)}</span>'
+                f'&nbsp;<span class="macro-tape-value" data-symbol="{_esc(slot.label)}">{_esc(val)}</span>'
+                f'</span>'
+            )
+        w('  </div>')
 
     # PRD-217: the standalone MACRO PRESSURE disclosure is removed; its
     # per-component phrases now render inline beside the tally above.
@@ -3914,9 +3966,48 @@ def render_dashboard_html(
     #     LOCATION / STATE / EVENT and candidate-implication counts (R6) are homed
     #     here (no standalone six-field card); then run delta and scoreboard. ---
     _active_lines = _details_lines
-    w('<details class="block operator-zone" id="details-history">')
-    w('  <summary>HISTORY ▶</summary>')
+    # PRD-336 R10: HISTORY is VISIBLE BY DEFAULT (no collapsed disclosure) and
+    # reordered SCOREBOARD -> MARKET CONTROL -> run-delta, so the two most useful
+    # panels are immediately visible. Semantics (SCOREBOARD_LIMIT, _mcc data) are
+    # unchanged; only order / visibility / padding move.
+    w('<div class="block operator-zone" id="details-history">')
+    w("  <h2>HISTORY</h2>")
     w('  <div class="details-body">')
+    # --- scoreboard (PRD-175 aggregation / PRD-177 render): Q4 calibration.
+    # Reads the finalized logs/regime_history.jsonl rows (already aggregated by
+    # the PRD-175 sidecar); the renderer only formats up to the 10 most-recent
+    # dated rows. Empty/absent history renders a single empty-state line, never
+    # a dead table. PRD-336 R10: rendered FIRST in HISTORY.
+    w('<div class="block" id="scoreboard">')
+    w("  <h2>Scoreboard</h2>")
+    if regime_history:
+        _board_rows = list(regime_history)[-SCOREBOARD_LIMIT:][::-1]
+        for _row in _board_rows:
+            _sb_date = _esc(str(_row.get("date", "")))
+            _sb_regime = _esc(str(_row.get("regime", "")))
+            _sb_posture = _POSTURE_LABELS.get(
+                str(_row.get("posture")), str(_row.get("posture", ""))
+            )
+            _sb_spy = _row.get("spy_close_change_pct")
+            _sb_spy_txt = _fmt_pct_signed(_sb_spy) if _sb_spy is not None else "n/a"
+            # PRD-265 R5: mark coverage-bounded days; legacy/EXPANSION/FULL render
+            # unchanged (no marker).
+            _sb_bounded_html = (
+                '<span class="scoreboard-coverage">BOUNDED</span>'
+                if _coverage_bounded(_row) else ""
+            )
+            w(
+                f'  <div class="scoreboard-row">'
+                f'<span class="scoreboard-date">{_sb_date}</span>'
+                f'<span class="scoreboard-regime">{_sb_regime}</span>'
+                f'<span class="scoreboard-posture">{_esc(_sb_posture)}</span>'
+                f'<span class="scoreboard-spy">SPY next {_esc(_sb_spy_txt)}</span>'
+                f'{_sb_bounded_html}'
+                f"</div>"
+            )
+    else:
+        w('  <div class="value">No regime history yet.</div>')
+    w("</div>")
     if _mcc:
         _cand = _mcc["candidate_implication"]
         _cand_display = _mcc_cell_display(_cand)
@@ -3983,44 +4074,8 @@ def render_dashboard_html(
             w('  <div class="value">No changes since last run</div>')
     w("</div>")
 
-    # --- scoreboard (PRD-175 aggregation / PRD-177 render): Q4 calibration.
-    # Reads the finalized logs/regime_history.jsonl rows (already aggregated by
-    # the PRD-175 sidecar); the renderer only formats up to the 10 most-recent
-    # dated rows. Empty/absent history renders a single empty-state line, never
-    # a dead table.
-    w('<div class="block" id="scoreboard">')
-    w("  <h2>Scoreboard</h2>")
-    if regime_history:
-        _board_rows = list(regime_history)[-SCOREBOARD_LIMIT:][::-1]
-        for _row in _board_rows:
-            _sb_date = _esc(str(_row.get("date", "")))
-            _sb_regime = _esc(str(_row.get("regime", "")))
-            _sb_posture = _POSTURE_LABELS.get(
-                str(_row.get("posture")), str(_row.get("posture", ""))
-            )
-            _sb_spy = _row.get("spy_close_change_pct")
-            _sb_spy_txt = _fmt_pct_signed(_sb_spy) if _sb_spy is not None else "n/a"
-            # PRD-265 R5: mark coverage-bounded days; legacy/EXPANSION/FULL render
-            # unchanged (no marker).
-            _sb_bounded_html = (
-                '<span class="scoreboard-coverage">BOUNDED</span>'
-                if _coverage_bounded(_row) else ""
-            )
-            w(
-                f'  <div class="scoreboard-row">'
-                f'<span class="scoreboard-date">{_sb_date}</span>'
-                f'<span class="scoreboard-regime">{_sb_regime}</span>'
-                f'<span class="scoreboard-posture">{_esc(_sb_posture)}</span>'
-                f'<span class="scoreboard-spy">SPY next {_esc(_sb_spy_txt)}</span>'
-                f'{_sb_bounded_html}'
-                f"</div>"
-            )
-    else:
-        w('  <div class="value">No regime history yet.</div>')
-    w("</div>")
-
     w("  </div>")  # .details-body
-    w("</details>")
+    w("</div>")  # #details-history (PRD-336 R10: visible by default, no disclosure)
 
     # PRD-334 R9: assemble the seven top-level regions in the recomposed order:
     # VERDICT / NEXT EVENT / MARKET STRUCTURE / SPY SESSION / WATCHING / GEX /

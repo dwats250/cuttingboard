@@ -18,17 +18,16 @@ def _drivers() -> dict:
 
 
 def test_prd138_dashboard_macro_tape_row_order() -> None:
-    # PRD-335 R1/R4: family order (VOLATILITY / RATES [2Y,10Y,30Y] /
-    # FX [DXY,USDJPY] / COMMODITIES / CRYPTO), then the unchanged tradables row.
-    # The 2Y/30Y/USDJPY cells render even when this fixture supplies no block for
-    # them (value "--"); the slot order is fixed by the families.
+    # PRD-336 R1: four families four-across in DOM order — VOL / CRYPTO
+    # (VIX/BTC/ETH), RATES (2Y/5Y/10Y/30Y), FX (DXY/EURUSD/USDJPY/USDCAD), FUTURES
+    # (OIL/NG/XAU/XAG) — then the unchanged tradables row. Cells render even when
+    # this fixture supplies no block (value "--"); order is fixed by the families.
     html = render_dashboard_html(_payload(macro_drivers=_drivers()), _run(), market_map=_market_map())
     assert [symbol for symbol, _value in _macro_tape_value_slots(html)] == [
-        "VIX",
-        "2Y", "10Y", "30Y",
-        "DXY", "USDJPY",
-        "XAU", "XAG", "OIL",
-        "BTC",
+        "VIX", "BTC", "ETH",
+        "2Y", "5Y", "10Y", "30Y",
+        "DXY", "EURUSD", "USDJPY", "USDCAD",
+        "OIL", "NG", "XAU", "XAG",
         "SPY", "QQQ", "GLD", "GDX", "SLV", "XLE",
     ]
 
@@ -36,20 +35,24 @@ def test_prd138_dashboard_macro_tape_row_order() -> None:
 def test_prd138_dashboard_xau_xag_directional_css() -> None:
     html = render_dashboard_html(_payload(macro_drivers=_drivers()), _run(), market_map=_market_map())
     tape = _macro_tape_block(html)
-    # PRD-211: visible label is the honest CME futures ticker (GC/SI); the slot
-    # id / data-symbol stays XAU/XAG (asserted elsewhere). PRD-224: 2-char
-    # labels pad to the 3-char column with &nbsp; so arrow glyphs align.
-    assert 'class="macro-tape-slot tape-slot up"><span class="macro-tape-label">GC&nbsp; ↑</span>' in tape
-    assert 'class="macro-tape-slot tape-slot down"><span class="macro-tape-label">SI&nbsp; ↓</span>' in tape
+    # PRD-211: visible label is the honest CME futures ticker (GC/SI); data-symbol
+    # stays XAU/XAG. PRD-336 R1: STACKED cell — label alone, then the direction
+    # arrow on the value line inside .macro-tape-quote; the up/down slot class
+    # colours the whole cell. No label padding (each cell is its own grid column).
+    assert ('class="macro-tape-slot tape-slot up"><span class="macro-tape-label">GC</span>'
+            '<span class="macro-tape-quote">↑&nbsp;') in tape
+    assert ('class="macro-tape-slot tape-slot down"><span class="macro-tape-label">SI</span>'
+            '<span class="macro-tape-quote">↓&nbsp;') in tape
 
 
-def test_prd224_three_char_labels_are_not_padded() -> None:
-    # PRD-224 R1: only sub-3-char labels pad; 3-char slots emit unchanged, and
-    # the pad never leaks into data-symbol ids. Red test: padding a 3-char
-    # label (or dropping the metals pad) fails one of these literals.
+def test_prd336_stacked_labels_are_not_padded() -> None:
+    # PRD-336 R1: the stacked cell drops the PRD-224 &nbsp; column padding (each
+    # cell is its own grid column). Labels are the bare display text; the pad never
+    # leaks into data-symbol ids. Red test: re-introducing padding fails a literal.
     html = render_dashboard_html(_payload(macro_drivers=_drivers()), _run(), market_map=_market_map())
     tape = _macro_tape_block(html)
-    assert '<span class="macro-tape-label">BTC ↑</span>' in tape
-    assert '<span class="macro-tape-label">VIX ↓</span>' in tape
-    assert 'BTC&nbsp;' not in tape
+    assert '<span class="macro-tape-label">BTC</span>' in tape
+    assert '<span class="macro-tape-label">VIX</span>' in tape
+    assert '<span class="macro-tape-label">GC</span>' in tape   # metals no longer padded
+    assert 'BTC&nbsp;' not in tape and 'GC&nbsp;' not in tape
     assert 'data-symbol="XAU"' in tape and 'data-symbol="XAU&nbsp;"' not in tape

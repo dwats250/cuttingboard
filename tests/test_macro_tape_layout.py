@@ -38,13 +38,16 @@ def test_macro_tape_layout_metals_display_is_futures_ticker() -> None:
     }
     assert by_label["XAU"].display == "GC"
     assert by_label["XAG"].display == "SI"
-    # Non-metals slots default the display to their label (id == visible text).
+    # PRD-336 R5: the oil future's "CL" relabel is COCKPIT-LOCAL (renderer, not the
+    # shared slot) so the notification tape stays "OIL" — the slot display is OIL.
     for label in ("BTC", "VIX", "DXY", "USDJPY", "2Y", "10Y", "30Y", "OIL"):
         assert by_label[label].display == label
 
 
 def test_macro_tape_layout_macro_mappings_are_exhaustive() -> None:
-    macro_slots = (*layout.MACRO_ROW_1.slots, *layout.MACRO_ROW_2.slots)
+    # PRD-336: MACRO_ROW_3 is the dashboard-only row; the label/payload maps span
+    # all three rows (notifications still iterate only rows 1-2).
+    macro_slots = (*layout.MACRO_ROW_1.slots, *layout.MACRO_ROW_2.slots, *layout.MACRO_ROW_3.slots)
 
     assert set(layout.MACRO_LABEL_TO_PAYLOAD_KEY) == {slot.label for slot in macro_slots}
     assert set(layout.MACRO_PAYLOAD_KEY_TO_QUOTE_SYMBOL) == {
@@ -60,6 +63,7 @@ def test_macro_tape_layout_has_only_pure_semantic_exports() -> None:
     allowed_instances = (
         layout.MACRO_ROW_1,
         layout.MACRO_ROW_2,
+        layout.MACRO_ROW_3,  # PRD-336: dashboard-only macro row
         layout.TRADABLES_ROW,
         layout.MACRO_LABEL_TO_PAYLOAD_KEY,
         layout.MACRO_PAYLOAD_KEY_TO_QUOTE_SYMBOL,

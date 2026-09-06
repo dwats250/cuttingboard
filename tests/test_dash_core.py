@@ -250,12 +250,12 @@ def test_section_order_four_questions_sequence() -> None:
         _payload(macro_drivers=_macro_drivers()), _run(),
         previous_run=_run(), market_map=mm, regime_history=hist, red_folder=rf,
     )
-    # PRD-334 R9: VERDICT -> NEXT EVENT (red folder) -> MARKET STRUCTURE (macro
-    # families, Trend Structure table) -> WATCHING (candidate-board) -> HISTORY
-    # (run delta, scoreboard).
+    # PRD-334 R9 / PRD-336 R10: VERDICT -> NEXT EVENT (red folder) -> MARKET
+    # STRUCTURE (macro families, Trend Structure table) -> WATCHING
+    # (candidate-board) -> HISTORY, which is reordered SCOREBOARD -> run delta (R10).
     order = [
         "system-state", "red-folder", "macro-tape", "trend-structure",
-        "candidate-board", "run-delta", "scoreboard",
+        "candidate-board", "scoreboard", "run-delta",
     ]
     ids = _top_ids(html)
     positions = [ids.index(section) for section in order]

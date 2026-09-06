@@ -260,9 +260,15 @@ EVALUATION_TIMEFRAME    = "1m"
 # FRED public CSV (source "fred", D-1). All three are optional and fenced from
 # macro-pressure voting (see contract_types._OPTIONAL_MACRO_DRIVERS and the
 # decision-authority fence tests) — they never enter REQUIRED_SYMBOLS/HALT_SYMBOLS.
+# PRD-336 (R2/R4/R5/R6): five further DISPLAY-ONLY cockpit observations — DGS5
+# (actual 5Y yield, FRED daily), EURUSD/USDCAD (FX pairs, yfinance), NG=F
+# (front-month natural gas), ETH-USD (crypto). All optional and fenced from every
+# vote site (Helm Gate A 2026-09-06); COCKPIT-ONLY (Helm ruling 1) — kept OUT of
+# the notification tape by living in the dashboard-only MACRO_ROW_3.
 MACRO_DRIVERS = [
     "^VIX", "DX-Y.NYB", "^TNX", "BTC-USD", "CL=F", "GC=F", "SI=F",
     "^TYX", "JPY=X", "DGS2",
+    "DGS5", "EURUSD=X", "USDCAD=X", "NG=F", "ETH-USD",
 ]
 NON_TRADABLE_SYMBOLS: frozenset[str] = frozenset(MACRO_DRIVERS)
 INDICES       = ["SPY", "QQQ", "IWM"]
@@ -303,6 +309,13 @@ SYMBOL_SOURCE_PRIORITY: dict[str, list[str]] = {
     # public CSV endpoint; the "fred" source is handled by ingestion's dedicated
     # branch and never reaches yfinance.
     "DGS2":     ["fred"],
+    # PRD-336: DGS5 (actual 5Y) is FRED like DGS2; the FX/futures/crypto adds use
+    # yfinance. All display-only, cockpit-only.
+    "DGS5":     ["fred"],
+    "EURUSD=X": ["yfinance"],
+    "USDCAD=X": ["yfinance"],
+    "NG=F":     ["yfinance"],
+    "ETH-USD":  ["yfinance"],
     "default":  ["yfinance"],
 }
 
@@ -338,6 +351,12 @@ PRICE_BOUNDS: dict[str, tuple[float, float]] = {
     "^TYX":     (1.0,   8.0),      # 30Y yield points
     "JPY=X":    (80.0,  250.0),    # yen per dollar
     "DGS2":     (0.0,   8.0),      # 2Y yield points (FRED DGS2)
+    # PRD-336: display-only cockpit context.
+    "DGS5":     (0.0,   8.0),      # 5Y yield points (FRED DGS5)
+    "EURUSD=X": (0.5,   2.0),      # USD per EUR
+    "USDCAD=X": (1.0,   2.0),      # CAD per USD
+    "NG=F":     (0.5,   20.0),     # front-month natural gas (USD/MMBtu)
+    "ETH-USD":  (100,   20000),    # ETH price (USD)
 }
 
 # ---------------------------------------------------------------------------
@@ -354,6 +373,11 @@ SYMBOL_UNITS: dict[str, str] = {
     "^TYX":     "yield_pct",
     "JPY=X":    "jpy_per_usd",
     "DGS2":     "yield_pct",
+    # PRD-336: display-only cockpit context. NG=F and ETH-USD use DEFAULT_UNITS
+    # (usd_price); the FX pairs carry descriptive per-pair tokens.
+    "DGS5":     "yield_pct",
+    "EURUSD=X": "usd_per_eur",
+    "USDCAD=X": "cad_per_usd",
 }
 DEFAULT_UNITS = "usd_price"
 

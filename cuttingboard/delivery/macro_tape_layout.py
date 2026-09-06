@@ -52,7 +52,27 @@ MACRO_ROW_2 = TapeRow(
         TapeSlot(label="2Y", payload_key="rates_2y", quote_symbol="DGS2"),
         TapeSlot(label="10Y", payload_key="rates", quote_symbol="^TNX"),
         TapeSlot(label="30Y", payload_key="rates_30y", quote_symbol="^TYX"),
+        # PRD-336 R5: the oil future is shown as "CL" in the cockpit FUTURES
+        # family, but that relabel is COCKPIT-LOCAL (applied in the renderer, not
+        # here) so the notification tape stays byte-unchanged (Helm ruling 1). The
+        # shared slot keeps display "OIL"; only the dashboard cell substitutes CL.
         TapeSlot(label="OIL", payload_key="oil", quote_symbol="CL=F"),
+    ),
+)
+
+# PRD-336 (Helm ruling 1): DASHBOARD-ONLY macro slots. They render on the cockpit
+# macro tape (added to the renderer's display iterations and _slot_by_label) but
+# are DELIBERATELY kept OUT of the notification/alert tape, which iterates only
+# (MACRO_ROW_1, MACRO_ROW_2). Do NOT add MACRO_ROW_3 to the notification
+# projection. All five are display-only and fenced from every vote site.
+MACRO_ROW_3 = TapeRow(
+    name="macro_row_3",
+    slots=(
+        TapeSlot(label="5Y", payload_key="rates_5y", quote_symbol="DGS5"),
+        TapeSlot(label="EURUSD", payload_key="eurusd", quote_symbol="EURUSD=X"),
+        TapeSlot(label="USDCAD", payload_key="usdcad", quote_symbol="USDCAD=X"),
+        TapeSlot(label="NG", payload_key="natgas", quote_symbol="NG=F"),
+        TapeSlot(label="ETH", payload_key="ethereum", quote_symbol="ETH-USD"),
     ),
 )
 
@@ -71,7 +91,7 @@ TRADABLES_ROW = TapeRow(
 MACRO_LABEL_TO_PAYLOAD_KEY = _types.MappingProxyType(
     {
         slot.label: slot.payload_key
-        for row in (MACRO_ROW_1, MACRO_ROW_2)
+        for row in (MACRO_ROW_1, MACRO_ROW_2, MACRO_ROW_3)
         for slot in row.slots
         if slot.payload_key is not None
     }
@@ -80,7 +100,7 @@ MACRO_LABEL_TO_PAYLOAD_KEY = _types.MappingProxyType(
 MACRO_PAYLOAD_KEY_TO_QUOTE_SYMBOL = _types.MappingProxyType(
     {
         slot.payload_key: slot.quote_symbol
-        for row in (MACRO_ROW_1, MACRO_ROW_2)
+        for row in (MACRO_ROW_1, MACRO_ROW_2, MACRO_ROW_3)
         for slot in row.slots
         if slot.payload_key is not None
     }

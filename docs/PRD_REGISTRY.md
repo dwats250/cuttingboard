@@ -353,6 +353,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-333 | — | GEX synthetic reference context disclosure | IN PROGRESS | [PRD-333](prd_history/PRD-333.md) |
 | PRD-334 | — | Operator-composition dashboard presentation pass | IN PROGRESS | [PRD-334](prd_history/PRD-334.md) |
 | PRD-335 | #323 | Market context completion and second editorial pass | COMPLETE | [PRD-335](prd_history/PRD-335.md) |
+| PRD-336 | — | Cockpit context polish (final pre-live pass) | IN PROGRESS | [PRD-336](prd_history/PRD-336.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

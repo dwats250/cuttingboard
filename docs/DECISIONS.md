@@ -16,6 +16,45 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-09-06 — PRD-336 Gate A: five cockpit drivers ruled COCKPIT-ONLY; bounded FRED is a mitigation (ruled: Dustin / HELM)
+
+Gate A GRANTED for PRD-336 (cockpit context polish, final pre-live pass) on
+authorized head `1ecb1974`, PR #324, with two binding rulings that OVERRIDE any
+conflicting Stage-0 wording:
+
+1. **COCKPIT-ONLY (resolves the Gate-A confirmation item).** PRD-336 defaulted
+   the five new display-only drivers (`rates_5y`/DGS5, `eurusd`, `usdcad`,
+   `natgas`, `ethereum`) to INCLUDED via `MACRO_ROW_2`, which the notification
+   path consumes — matching the PRD-335 precedent that put 30Y/USDJPY on the
+   tape. Helm instead ruled them **dashboard/cockpit-only**: they live on a new
+   `macro_tape_layout.MACRO_ROW_3` that the notification path does NOT iterate
+   (notifications read only `MACRO_ROW_1`+`MACRO_ROW_2`). `notifications/__init__.py`
+   is untouched and existing notification projection stays byte-identical. The
+   cockpit `OIL`→`CL` relabel is renderer-local (`_COCKPIT_LABEL_OVERRIDE`); the
+   shared slot label stays `OIL` so notifications do not see it.
+
+2. **Bounded-window FRED = reliability MITIGATION, not root-cause proof (R3).**
+   The DGS2 acquisition failure is fixed with a bounded recent-window FRED
+   request (`_FRED_WINDOW_DAYS`) and DGS5 is added as a SEPARATE per-symbol daily
+   series on the same fail-closed carrier. Accepted as a mitigation, not a proven
+   root cause (the failure is not reproducible on demand); preserved: authoritative
+   yields, public/no-key carrier, 5-calendar-day fail-closed `as_of`,
+   stale/future/malformed rejection, acquisition-clock distinct from observation
+   date, `--` when unavailable, per-symbol never-raises isolation, deterministic
+   carrier tests. R3-STOP (report, do not swap to a futures proxy) remains binding.
+
+Design narrowings carried from the charge: R6/**D-4** — BTC moves into an
+un-muted VOL / CRYPTO top family, vote unchanged (supersedes PRD-335 D-4's
+muting); R10/**D-2** — reorder HISTORY and un-hide SCOREBOARD/MARKET CONTROL;
+R11/**D-3** — the Trade Vehicles grid becomes a conditional fallback under a
+degraded Trend Structure; **R12** — GEX stays held with no arithmetic/admission/
+freshness/PRD-333-isolation change; the SPY-useful future-GEX preference is
+recorded for a later PRD. Production-file ceiling: 7 files; the fresh-context
+review's OBSERVATIONAL-ONLY = CONFIRMED verdict (the six macro-pressure vote sites
+are the complete decision surface) held, and the decision-authority fence was
+extended with the `regime.py` raw_votes absence assertion. Registry/state flips
+and the merge remain Helm's at closeout.
+
 ## 2026-09-04 — GEX provider question closed: free Cboe path DISALLOWED, All Access dormant (ruled: Dustin / HELM)
 
 Provider-rights recovery (a charge to return to the original free Cboe `_SPX`

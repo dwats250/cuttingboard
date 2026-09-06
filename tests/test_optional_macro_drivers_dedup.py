@@ -14,8 +14,12 @@ def test_single_authority_identity() -> None:
 
 def test_vocabulary_preserved() -> None:
     # PRD-335: the display-only rate/FX drivers join the visibility fence.
+    # PRD-336: five further display-only cockpit drivers join the same fence.
     assert leaf_ref == frozenset(
-        {"oil", "gold", "silver", "rates_2y", "rates_30y", "usdjpy"}
+        {
+            "oil", "gold", "silver", "rates_2y", "rates_30y", "usdjpy",
+            "rates_5y", "eurusd", "usdcad", "natgas", "ethereum",
+        }
     )
 
 
