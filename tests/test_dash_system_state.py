@@ -84,27 +84,27 @@ def test_system_state_expansion_renders_momentum_longs() -> None:
 
 
 def test_system_state_regime_badge_class() -> None:
-    # PRD-219: regime colour now rides the verdict line (no separate badge).
+    # PRD-219 / PRD-335 R5: regime colour rides the always-present decision-state
+    # word (the sys-verdict paraphrase is omitted for a STAY FLAT no-trade).
     html = render_dashboard_html(_payload(market_regime="RISK_OFF"), _run())
-    assert 'class="sys-verdict sys-down"' in html
+    assert 'class="decision-state sys-down"' in html
 
 
 def test_system_state_regime_badge_risk_on_class() -> None:
     html = render_dashboard_html(_payload(market_regime="RISK_ON"), _run())
-    assert 'class="sys-verdict sys-up"' in html
+    assert 'class="decision-state sys-up"' in html
 
 
 def test_system_state_permission_shows_dash_when_none() -> None:
-    # PRD-120: the former `&#8212;` Permission fallback is replaced with a
-    # deterministic source-derived label. Under default _payload/_run with
-    # no market_map, lineage is MISSING -> Permission renders UNKNOWN.
+    # PRD-335 R5: a non-locked run renders NO Permission line/field and no dash
+    # placeholder; the always-present decision-state word carries the state.
     r = _run(permission=None)
     html = render_dashboard_html(_payload(), r)
     state = _top_block(html, "system-state")
-    # PRD-219: no Permission field / no dash placeholder; a distilled verdict.
-    assert 'class="sys-verdict' in state
+    assert 'class="decision-state' in state
     assert ">&#8212;<" not in state
     assert ">Permission<" not in state
+    assert 'class="sys-permission"' not in state
 
 
 def test_system_state_stay_flat_omitted_when_none() -> None:
@@ -124,54 +124,52 @@ def test_system_state_stay_flat_present_when_set() -> None:
 
 
 def test_system_state_no_redundant_permission_copy() -> None:
-    """The authoritative permission renders once without the stale posture internals."""
+    """PRD-335 R5: a non-locked run surfaces NO permission line, and never the
+    confidence-laden posture internals."""
     html = render_dashboard_html(
         _payload(validation_halt_detail={"reason": "STAY_FLAT posture (regime=RISK_OFF, confidence=0.25)"}),
         _run(permission="No new trades permitted."),
     )
     state = _top_block(html, "system-state")
-    # PRD-318 correction: retain one authoritative permission sentence without
-    # restoring the old labelled projection or confidence-laden posture string.
     assert ">Permission<" not in state
     assert "confidence=" not in state
-    assert state.count('class="sys-permission"') == 1
-    assert state.count("No new trades permitted.") == 1
-    assert 'class="sys-verdict' in state
+    assert 'class="sys-permission"' not in state       # only the operator lock renders one
+    assert 'class="decision-state' in state
 
 
 def test_system_state_permission_fallback_when_no_reason() -> None:
-    """Shows permission text when stay_flat_reason is absent."""
+    """PRD-335 R5: the raw run permission line is removed for a non-locked run
+    (the value survives in data-raw-permission on the decision-state div)."""
     html = render_dashboard_html(
         _payload(validation_halt_detail=None),
         _run(permission="No new trades permitted."),
     )
     state = _top_block(html, "system-state")
-    assert 'class="sys-verdict' in state
-    assert state.count('class="sys-permission"') == 1
-    assert state.count("No new trades permitted.") == 1
+    assert 'class="decision-state' in state
+    assert 'class="sys-permission"' not in state
 
 
 def test_system_state_permission_shows_from_run_when_non_null() -> None:
-    """Permission shows the run value when run.permission is a non-null string."""
+    """PRD-335 R5: a non-locked run's permission string is NOT surfaced as a
+    standalone line; no dash placeholder either."""
     r = _run(permission="No new trades permitted.")
     html = render_dashboard_html(_payload(), r)
     state = _top_block(html, "system-state")
-    assert 'class="sys-verdict' in state
-    assert state.count('class="sys-permission"') == 1
-    assert state.count("No new trades permitted.") == 1
+    assert 'class="decision-state' in state
+    assert 'class="sys-permission"' not in state
     assert "&#8212;" not in state
 
 
 def test_system_state_permission_falls_back_to_payload_when_run_none() -> None:
-    """When run.permission is None, Permission shows payload['summary']['permission'] value."""
+    """PRD-335 R5: the payload-summary permission fallback line is removed too; no
+    sys-permission line renders for a non-locked run."""
     payload_with_perm = _payload()
     payload_with_perm["summary"]["permission"] = "No new trades permitted."
     r = _run(permission=None)
     html = render_dashboard_html(payload_with_perm, r)
     state = _top_block(html, "system-state")
-    assert 'class="sys-verdict' in state
-    assert state.count('class="sys-permission"') == 1
-    assert state.count("No new trades permitted.") == 1
+    assert 'class="decision-state' in state
+    assert 'class="sys-permission"' not in state
 
 
 # ---------------------------------------------------------------------------
@@ -209,8 +207,7 @@ def test_prd280_status_fail_system_halted_false_renders_halt_color() -> None:
         _payload(market_regime="RISK_ON"), _run(status="FAIL", system_halted=False)
     )
     state = _header_block(html)
-    assert 'class="decision-state sys-halt" data-raw-state="HALT">HALT</div>' in state
-    assert 'class="sys-verdict sys-halt"' in state
+    assert 'class="decision-state sys-halt"' in state and 'data-raw-state="HALT"' in state and '>HALT</div>' in state
     assert "SYSTEM HALT" in state
     assert "sys-up" not in state
 
@@ -221,8 +218,7 @@ def test_prd280_status_error_system_halted_false_renders_halt_color() -> None:
         _payload(market_regime="RISK_ON"), _run(status="ERROR", system_halted=False)
     )
     state = _header_block(html)
-    assert 'class="decision-state sys-halt" data-raw-state="HALT">HALT</div>' in state
-    assert 'class="sys-verdict sys-halt"' in state
+    assert 'class="decision-state sys-halt"' in state and 'data-raw-state="HALT"' in state and '>HALT</div>' in state
     assert "SYSTEM HALT" in state
     assert "sys-up" not in state
 
@@ -231,8 +227,7 @@ def test_prd280_system_halted_true_still_renders_halt_color() -> None:
     # R2: explicit system_halted=True is unaffected by the R1 change.
     html = render_dashboard_html(_payload(market_regime="RISK_ON"), _run(system_halted=True))
     state = _header_block(html)
-    assert 'class="decision-state sys-halt" data-raw-state="HALT">HALT</div>' in state
-    assert 'class="sys-verdict sys-halt"' in state
+    assert 'class="decision-state sys-halt"' in state and 'data-raw-state="HALT"' in state and '>HALT</div>' in state
 
 
 def test_prd280_mixed_artifacts_with_explicit_halt_preserves_halt_color() -> None:
@@ -262,8 +257,7 @@ def test_prd280_normal_risk_on_run_still_renders_sys_up() -> None:
         _run(status="SUCCESS", system_halted=False, outcome="NO_TRADE"),
     )
     state = _header_block(html)
-    assert 'class="decision-state sys-up" data-raw-state="STAY FLAT">STAY FLAT</div>' in state
-    assert 'class="sys-verdict sys-up"' in state
+    assert 'class="decision-state sys-up"' in state and 'data-raw-state="STAY FLAT"' in state and '>STAY FLAT</div>' in state
 
 
 def test_prd280_trade_permitted_still_renders_its_own_color() -> None:
@@ -273,7 +267,7 @@ def test_prd280_trade_permitted_still_renders_its_own_color() -> None:
         _run(status="SUCCESS", system_halted=False, outcome="TRADE"),
     )
     state = _header_block(html)
-    assert 'class="decision-state sys-up" data-raw-state="TRADE PERMITTED">TRADE PERMITTED</div>' in state
+    assert 'class="decision-state sys-up"' in state and 'data-raw-state="TRADE PERMITTED"' in state and '>TRADE PERMITTED</div>' in state
 
 
 def test_decision_title_trade() -> None:
@@ -376,7 +370,7 @@ def test_prd281_halt_first_error_shows_why() -> None:
     run = _run(system_halted=True, errors=["disk full"])
     html = render_dashboard_html(_payload(), run)
     state = _header_block(html)
-    assert 'class="decision-state sys-halt" data-raw-state="HALT">HALT</div>' in state
+    assert 'class="decision-state sys-halt"' in state and 'data-raw-state="HALT"' in state and '>HALT</div>' in state
     why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
     assert "disk full" in why
 
@@ -386,7 +380,7 @@ def test_prd281_halt_stay_flat_reason_shows_why_when_no_error() -> None:
     run = _run(system_halted=True, errors=[])
     html = render_dashboard_html(payload, run)
     state = _header_block(html)
-    assert 'class="decision-state sys-halt" data-raw-state="HALT">HALT</div>' in state
+    assert 'class="decision-state sys-halt"' in state and 'data-raw-state="HALT"' in state and '>HALT</div>' in state
     why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
     assert "STAY_FLAT regime" in why
 
@@ -395,7 +389,7 @@ def test_prd281_non_halt_explicit_error_shows_why() -> None:
     run = _run(system_halted=False, outcome="NO_TRADE", errors=["late data feed"])
     html = render_dashboard_html(_payload(), run)
     state = _header_block(html)
-    assert 'class="decision-state sys-up" data-raw-state="STAY FLAT">STAY FLAT</div>' in state
+    assert 'class="decision-state sys-up"' in state and 'data-raw-state="STAY FLAT"' in state and '>STAY FLAT</div>' in state
     why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
     assert "late data feed" in why
 
@@ -405,7 +399,7 @@ def test_prd281_no_qualified_setups_shows_why() -> None:
         _payload(validation_halt_detail=None), _run(permission=None), alert_candidates=[]
     )
     state = _header_block(html)
-    assert 'class="decision-state sys-up" data-raw-state="STAY FLAT">STAY FLAT</div>' in state
+    assert 'class="decision-state sys-up"' in state and 'data-raw-state="STAY FLAT"' in state and '>STAY FLAT</div>' in state
     why = state.split('class="sys-why"', 1)[1].split("</div>", 1)[0]
     assert "no qualified setups" in why
 
@@ -434,7 +428,7 @@ def test_prd281_high_grade_setups_gated_shows_count_in_why() -> None:
 def test_prd281_trade_permitted_has_no_why_line() -> None:
     html = render_dashboard_html(_payload(), _run(system_halted=False, outcome="TRADE"))
     state = _header_block(html)
-    assert 'class="decision-state sys-up" data-raw-state="TRADE PERMITTED">TRADE PERMITTED</div>' in state
+    assert 'class="decision-state sys-up"' in state and 'data-raw-state="TRADE PERMITTED"' in state and '>TRADE PERMITTED</div>' in state
     assert not _has_why(state)
 
 
@@ -453,7 +447,9 @@ def test_prd281_mixed_artifacts_no_trade_has_no_why_line() -> None:
 
     html = render_dashboard_html(payload, run, market_map=mm)
     state = _header_block(html)
-    assert 'class="decision-state sys-flat" data-raw-state="STATE UNAVAILABLE">STATE UNAVAILABLE</div>' in state
+    assert ('class="decision-state sys-flat"' in state
+            and 'data-raw-state="STATE UNAVAILABLE"' in state
+            and '>STATE UNAVAILABLE</div>' in state)
     assert not _has_why(state)
     assert "no qualified setups" not in state
     assert "candidates gated" not in state

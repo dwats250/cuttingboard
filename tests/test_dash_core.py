@@ -223,14 +223,17 @@ def test_section_order_full_r5_sequence() -> None:
     # PRD-334 R9: the recomposed order is VERDICT -> NEXT EVENT -> MARKET STRUCTURE
     # (macro families + trend table) -> SPY -> WATCHING -> GEX -> HISTORY. So the
     # macro-tape (MARKET STRUCTURE) now precedes the candidate-board (WATCHING), and
-    # run-delta (HISTORY) comes last. macro-pressure stays inline inside macro-tape.
+    # run-delta (HISTORY) comes last.
     assert ids.index("system-state") < ids.index("macro-tape")
     assert ids.index("macro-tape") < ids.index("candidate-board")
     assert ids.index("candidate-board") < ids.index("run-delta")
     if "opportunity-survival" in ids:
         assert ids.index("system-state") < ids.index("opportunity-survival") < ids.index("candidate-board")
+    # PRD-335 R4: the macro-pressure PROSE was removed; the engine value survives
+    # as the data-macro-pressure attribute on #macro-tape (arithmetic guard).
     macro = _top_block(html, "macro-tape")
-    assert 'class="macro-pressure-line' in macro
+    assert 'data-macro-pressure="' in macro
+    assert 'class="macro-pressure-line' not in macro
 
 
 # PRD-177 R2: four-questions section order

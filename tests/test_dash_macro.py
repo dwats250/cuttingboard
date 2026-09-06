@@ -31,6 +31,20 @@ def _freeze_fresh(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(_dr, "_utcnow", lambda: ts)
 
 
+# PRD-335 R4: the MACRO BIAS headline / risk-vote tally / per-component pressure
+# phrases are removed from the human surface; the computed engine values survive
+# verbatim as data-* attributes on the #macro-tape element. These read them.
+import re as _re
+
+
+def _macro_tape_attr(html: str, name: str) -> str | None:
+    m = _re.search(r'<div class="block" id="macro-tape"([^>]*)>', html)
+    if not m:
+        return None
+    a = _re.search(name + r'="([^"]*)"', m.group(1))
+    return a.group(1) if a else None
+
+
 # ---------------------------------------------------------------------------
 # R1 — Macro Tape
 # ---------------------------------------------------------------------------
@@ -51,7 +65,8 @@ def test_macro_tape_empty_macro_drivers() -> None:
     # macro_drivers={} → slots render with em dash / N/A, no crash
     html = render_dashboard_html(_payload(), _run())
     tape = _macro_tape_block(html)
-    for label in ("XAU", "XAG", "BTC", "VIX", "DXY", "10Y", "OIL", "SPY", "QQQ", "GLD", "GDX", "SLV", "XLE"):
+    for label in ("XAU", "XAG", "BTC", "VIX", "DXY", "USDJPY", "2Y", "10Y", "30Y",
+                  "OIL", "SPY", "QQQ", "GLD", "GDX", "SLV", "XLE"):
         assert label in tape
 
 
@@ -78,23 +93,27 @@ def test_macro_tape_value_row_present() -> None:
 
 
 def test_macro_tape_value_row_slot_order() -> None:
-    # PRD-334 R5: the macro drivers regroup into market families
-    # (VOLATILITY / RATES-FX / COMMODITIES / CRYPTO), then the canonical
-    # tradables row (unchanged). Cell markup / data-symbol is byte-identical.
+    # PRD-335 R1/R4: the macro drivers regroup into market families
+    # (VOLATILITY / RATES [2Y,10Y,30Y] / FX [DXY,USDJPY] / COMMODITIES / CRYPTO),
+    # then the canonical tradables row (unchanged). Cell markup / data-symbol is
+    # byte-identical to the pre-PRD rows.
     html = render_dashboard_html(_payload(), _run())
     slots = _macro_tape_value_slots(html)
     assert [symbol for symbol, _ in slots] == [
-        "VIX", "10Y", "DXY",
+        "VIX",
+        "2Y", "10Y", "30Y",
+        "DXY", "USDJPY",
         "XAU", "XAG", "OIL",
         "BTC",
         "SPY", "QQQ", "GLD", "GDX", "SLV", "XLE",
     ]
 
 
-def test_macro_tape_value_row_has_thirteen_fixed_slots() -> None:
-    # PRD-136: slot count grew from 11 → 13 (added XAU, XAG).
+def test_macro_tape_value_row_has_sixteen_fixed_slots() -> None:
+    # PRD-335 R1: slot count grew from 13 -> 16 (added 2Y, 30Y, USDJPY drivers;
+    # the six tradables are unchanged).
     html = render_dashboard_html(_payload(), _run())
-    assert len(_macro_tape_value_slots(html)) == 13
+    assert len(_macro_tape_value_slots(html)) == 16
 
 
 def test_macro_tape_value_row_vix_format() -> None:
@@ -183,21 +202,23 @@ def test_macro_tape_tradable_no_arrow_with_na_value() -> None:
 
 
 def test_macro_tape_macro_bias_text_unchanged_with_value_row() -> None:
-    # PRD-160: VIX↓ DXY↓ 10Y↓ (risk-on) + BTC↑ → LONG.
+    # PRD-160 arithmetic preserved (PRD-335 R4: read from data-macro-bias, the
+    # visible headline was removed): VIX↓ DXY↓ 10Y↓ (risk-on) + BTC↑ → LONG.
     p = _payload(macro_drivers=_macro_drivers(vix=-0.05, dxy=-0.01, tnx=-0.02, btc=0.03))
     html = render_dashboard_html(p, _run(), market_map=None)
-    assert "MACRO BIAS: LONG" in html
+    assert _macro_tape_attr(html, "data-macro-bias") == "LONG"
 
 
 def test_macro_tape_macro_bias_class_unchanged_with_value_row() -> None:
-    # PRD-160: VIX↓ DXY↓ 10Y↓ (risk-on) + BTC↑ → LONG.
+    # PRD-160/PRD-335 R4: the raw bias direction now lives in data-macro-bias.
     p = _payload(macro_drivers=_macro_drivers(vix=-0.05, dxy=-0.01, tnx=-0.02, btc=0.03))
     html = render_dashboard_html(p, _run(), market_map=None)
-    assert 'class="macro-bias long"' in html
+    assert _macro_tape_attr(html, "data-macro-bias") == "LONG"
 
 
 # ---------------------------------------------------------------------------
-# R1.1 — Macro Bias Summary
+# R1.1 — Macro Bias Summary (engine data preserved as #macro-tape data-* attrs
+# after the PRD-335 R4 prose deletion; the arithmetic guard survives).
 # ---------------------------------------------------------------------------
 
 def test_macro_bias_long() -> None:
@@ -205,7 +226,9 @@ def test_macro_bias_long() -> None:
     # risk-on) + BTC↑ (pro-cyclical rising = risk-on) → 4 long votes → LONG.
     p = _payload(macro_drivers=_macro_drivers(vix=-0.05, dxy=-0.01, tnx=-0.02, btc=0.03))
     html = render_dashboard_html(p, _run())
-    assert "MACRO BIAS: LONG" in html
+    assert _macro_tape_attr(html, "data-macro-bias") == "LONG"
+    assert _macro_tape_attr(html, "data-risk-on") == "4"
+    assert _macro_tape_attr(html, "data-risk-off") == "0"
 
 
 def test_macro_bias_short() -> None:
@@ -213,19 +236,21 @@ def test_macro_bias_short() -> None:
     # (pro-cyclical falling = risk-off) → 4 short votes → SHORT.
     p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.01, tnx=0.02, btc=-0.01))
     html = render_dashboard_html(p, _run())
-    assert "MACRO BIAS: SHORT" in html
+    assert _macro_tape_attr(html, "data-macro-bias") == "SHORT"
+    assert _macro_tape_attr(html, "data-risk-off") == "4"
+    assert _macro_tape_attr(html, "data-risk-on") == "0"
 
 
 def test_macro_bias_mixed() -> None:
     # PRD-160: DXY↓ + 10Y↓ → 2 long; VIX↑ + BTC↓ → 2 short → tie → MIXED.
     p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=-0.01, tnx=-0.02, btc=-0.01))
     html = render_dashboard_html(p, _run(), market_map=None)
-    assert "MACRO BIAS: MIXED" in html
+    assert _macro_tape_attr(html, "data-macro-bias") == "MIXED"
 
 
 def test_macro_bias_element_present() -> None:
     html = render_dashboard_html(_payload(), _run())
-    assert 'class="macro-bias' in html  # matches macro-bias long/short/mixed
+    assert _macro_tape_attr(html, "data-macro-bias") in {"LONG", "SHORT", "MIXED"}
 
 
 # ---------------------------------------------------------------------------
@@ -235,19 +260,17 @@ def test_macro_bias_element_present() -> None:
 def test_prd160_contra_cyclical_falling_is_long() -> None:
     # Headline failing case: VIX↓ DXY↓ 10Y↓ are all risk-ON (falling
     # contra-cyclical drivers). The old arrow-count arithmetic read three
-    # falling arrows as SHORT while the sub-signals said "VIX permits longs".
+    # falling arrows as SHORT. Read from the preserved data-macro-bias attr.
     p = _payload(macro_drivers=_macro_drivers(vix=-0.05, dxy=-0.01, tnx=-0.02, btc=0.0))
     html = render_dashboard_html(p, _run(), market_map=None)
-    assert "MACRO BIAS: LONG" in html
-    assert "MACRO BIAS: SHORT" not in html
+    assert _macro_tape_attr(html, "data-macro-bias") == "LONG"
 
 
 def test_prd160_contra_cyclical_rising_is_short() -> None:
     # VIX↑ DXY↑ 10Y↑ are all risk-OFF (rising contra-cyclical drivers).
     p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.01, tnx=0.02, btc=0.0))
     html = render_dashboard_html(p, _run(), market_map=None)
-    assert "MACRO BIAS: SHORT" in html
-    assert "MACRO BIAS: LONG" not in html
+    assert _macro_tape_attr(html, "data-macro-bias") == "SHORT"
 
 
 def test_prd160_pro_cyclical_btc_keeps_sign() -> None:
@@ -255,7 +278,7 @@ def test_prd160_pro_cyclical_btc_keeps_sign() -> None:
     # vote → LONG. Confirms the per-driver flip does not invert BTC.
     p = _payload(macro_drivers=_macro_drivers(vix=0.0, dxy=0.0, tnx=0.0, btc=0.05))
     html = render_dashboard_html(p, _run(), market_map=None)
-    assert "MACRO BIAS: LONG" in html
+    assert _macro_tape_attr(html, "data-macro-bias") == "LONG"
 
 
 # ---------------------------------------------------------------------------
@@ -275,19 +298,21 @@ def test_prd160_unwind_no_false_conflict_when_macro_agrees(monkeypatch) -> None:
     p = _payload(macro_drivers=_macro_drivers(vix=-0.05, dxy=-0.01, tnx=-0.02, btc=0.0))
     html = render_dashboard_html(p, _run(), market_map=mm)
     assert RULE3_MIXED_VERDICT not in html
-    assert "MACRO BIAS: LONG" in html
+    assert _macro_tape_attr(html, "data-macro-bias") == "LONG"
 
 
 def test_prd160_rule3_still_fires_on_genuine_divergence(monkeypatch) -> None:
     _freeze_fresh(monkeypatch)
     # Genuinely risk-off macro (VIX↑ DXY↑ 10Y↑ → SHORT) against a RISK_ON
-    # regime (longs) and a long setup → real conflict → Rule 3 fires and the
-    # raw MACRO BIAS label is suppressed.
+    # regime (longs) and a long setup → real conflict → Rule 3 fires. PRD-335 R4:
+    # the raw SHORT direction is still carried unconditionally in data-macro-bias
+    # (the human MACRO BIAS headline that Rule 3 used to suppress is gone), so the
+    # engine data does not lie even as the integrator emits its mixed-tape line.
     mm = _market_map({"SPY": _mm_symbol("SPY", grade="A", bias="BULL")})
     p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.01, tnx=0.02, btc=0.0))
     html = render_dashboard_html(p, _run(), market_map=mm)
     assert RULE3_MIXED_VERDICT in html
-    assert "MACRO BIAS: SHORT" not in html
+    assert _macro_tape_attr(html, "data-macro-bias") == "SHORT"
 
 
 # ---------------------------------------------------------------------------
@@ -355,96 +380,82 @@ def test_tape_slot_na_class() -> None:
 
 
 # ---------------------------------------------------------------------------
-# PRD-055 PATCH — macro bias CSS class
+# PRD-335 R4 — macro bias direction (was a CSS class; now a data-* attr)
 # ---------------------------------------------------------------------------
 
 def test_macro_bias_long_class() -> None:
     # PRD-160: VIX↓ DXY↓ 10Y↓ (risk-on) + BTC↑ → LONG.
     p = _payload(macro_drivers=_macro_drivers(vix=-0.05, dxy=-0.01, tnx=-0.02, btc=0.03))
     html = render_dashboard_html(p, _run(), market_map=None)
-    assert 'class="macro-bias long"' in html
+    assert _macro_tape_attr(html, "data-macro-bias") == "LONG"
 
 
 def test_macro_bias_short_class() -> None:
     # PRD-160: VIX↑ DXY↑ 10Y↑ (risk-off) + BTC↓ → SHORT.
     p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=0.01, tnx=0.02, btc=-0.01))
     html = render_dashboard_html(p, _run(), market_map=None)
-    assert 'class="macro-bias short"' in html
+    assert _macro_tape_attr(html, "data-macro-bias") == "SHORT"
 
 
 def test_macro_bias_mixed_class() -> None:
     # PRD-160: DXY↓ + 10Y↓ → 2 long; VIX↑ + BTC↓ → 2 short → MIXED.
     p = _payload(macro_drivers=_macro_drivers(vix=0.05, dxy=-0.01, tnx=-0.02, btc=-0.01))
     html = render_dashboard_html(p, _run(), market_map=None)
-    assert 'class="macro-bias mixed"' in html
+    assert _macro_tape_attr(html, "data-macro-bias") == "MIXED"
 
 
 # ---------------------------------------------------------------------------
-# PRD-062 — Macro Pressure block
+# PRD-335 R4 — Macro pressure (was inline prose; now data-macro-pressure on
+# #macro-tape, carrying the unchanged macro_pressure engine value)
 # ---------------------------------------------------------------------------
-
-def _macro_pressure_block(html: str) -> str:
-    parts = html.split('class="macro-pressure-line', 1)
-    assert len(parts) == 2, 'macro-pressure-line not found'
-    return parts[1].split("</div>", 1)[0]
-
 
 def test_macro_pressure_block_present() -> None:
-    # PRD-217: pressure renders as one inline line (no standalone disclosure).
+    # The engine value is exposed as an attribute, not visible prose; the old
+    # standalone disclosure and the inline pressure line are both gone.
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
-    assert 'class="macro-pressure-line' in html
+    assert _macro_tape_attr(html, "data-macro-pressure") is not None
     assert '<details id="macro-pressure">' not in html
+    assert 'class="macro-pressure-line' not in html
 
 
 def test_macro_pressure_block_no_data_when_empty_drivers() -> None:
-    # Empty payload drivers + no snapshot → truly no data → "MACRO PRESSURE UNAVAILABLE"
+    # Empty payload drivers + no snapshot → no votable data → engine value UNKNOWN
+    # (exposed as data-macro-pressure; no visible prose line to author).
     html = render_dashboard_html(
         _payload(), _run(), macro_snapshot_path=Path("/nonexistent/no_snap.json")
     )
-    block = _macro_pressure_block(html)
-    assert "Macro pressure unavailable" in block
-    assert "NO PRESSURE DATA" not in block
+    assert _macro_tape_attr(html, "data-macro-pressure") == "UNKNOWN"
+    assert 'class="macro-pressure-line' not in html
 
 
 def test_macro_pressure_block_no_data_does_not_raise() -> None:
     html = render_dashboard_html(_payload(), _run())
-    assert 'class="macro-pressure-line' in html
+    assert _macro_tape_attr(html, "data-macro-pressure") is not None
 
 
 def test_macro_pressure_block_risk_on_drivers_produce_decision_phrase() -> None:
-    # vix falling, dxy falling, btc rising → translated to long-permitting phrases.
+    # vix falling, dxy falling, btc rising → RISK_ON overall pressure (was
+    # translated to "VIX permits longs" prose; PRD-335 R4 keeps the engine value).
     drivers = _macro_drivers(vix=-0.05, dxy=-0.01, tnx=-0.01, btc=0.05)
     drivers["rates"]["change_bps"] = -5.0
     html = render_dashboard_html(_payload(macro_drivers=drivers), _run())
-    block = _macro_pressure_block(html)
-    assert "VIX permits longs" in block
-    assert "DXY supports risk-on" in block
-    assert "BTC supports risk-on" in block
+    assert _macro_tape_attr(html, "data-macro-pressure") == "RISK_ON"
 
 
 def test_macro_pressure_block_risk_off_drivers_produce_decision_phrase() -> None:
-    # vix rising, dxy rising, btc falling → translated to long-blocking phrases.
+    # vix rising, dxy rising, btc falling → RISK_OFF overall pressure.
     drivers = _macro_drivers(vix=0.05, dxy=0.01, tnx=0.05, btc=-0.05)
     drivers["rates"]["change_bps"] = 5.0
     html = render_dashboard_html(_payload(macro_drivers=drivers), _run())
-    block = _macro_pressure_block(html)
-    assert "VIX blocks longs" in block
-    assert "DXY pressures longs" in block
-    assert "BTC pressures risk-on" in block
+    assert _macro_tape_attr(html, "data-macro-pressure") == "RISK_OFF"
 
 
-def test_macro_pressure_block_position_after_macro_tape() -> None:
+def test_macro_pressure_value_lives_on_macro_tape() -> None:
+    # PRD-335 R4: the pressure value is an attribute ON #macro-tape (not a
+    # separate block below it), and #system-state still precedes #macro-tape.
     html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
-    tape_pos = html.find('id="macro-tape"')
-    pressure_pos = html.find('class="macro-pressure-line')
-    assert tape_pos < pressure_pos
-
-
-def test_macro_pressure_block_position_after_system_state() -> None:
-    html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), _run())
-    system_pos = html.find('id="system-state"')
-    pressure_pos = html.find('class="macro-pressure-line')
-    assert system_pos < pressure_pos
+    assert _macro_tape_attr(html, "data-macro-pressure") is not None
+    assert html.find('id="system-state"') < html.find('id="macro-tape"')
 
 
 # ---------------------------------------------------------------------------
