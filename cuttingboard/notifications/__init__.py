@@ -78,13 +78,25 @@ def _regime_line(regime: Optional[RegimeState]) -> str:
 
 
 def _fmt_level(label: str, price: float) -> str:
-    if label == "10Y":
+    # PRD-335: yields render to 2dp (2Y/10Y/30Y); USDJPY falls to the default 1dp.
+    if label in ("2Y", "10Y", "30Y"):
         return f"{price:.2f}"
     if label == "BTC":
         if price >= 1000:
             return f"{price / 1000:.1f}K"
         return f"{price:.0f}"
     return f"{price:.1f}"
+
+
+def _asof_marker(as_of: object) -> str:
+    """PRD-335 R2/R9: format a producer-written ISO observation date as a compact
+    " (Sep 4)" marker; empty string when absent/unparseable (never invented)."""
+    if not isinstance(as_of, str) or not as_of:
+        return ""
+    try:
+        return f" ({datetime.strptime(as_of[:10], '%Y-%m-%d').strftime('%b %-d')})"
+    except ValueError:
+        return ""
 
 
 def _macro_row(slot: TapeSlot, quotes: dict) -> Optional[str]:
@@ -99,7 +111,10 @@ def _macro_row(slot: TapeSlot, quotes: dict) -> Optional[str]:
     # PRD-211: show the honest display text (GC/SI for the metals futures, else
     # the slot label); left-pad to 3 so the value column stays aligned -- a no-op
     # for the existing 3-char labels. Level format stays keyed on slot.label.
-    return f"{slot.display:<3}  {level:<5}  {pct_str}"
+    # PRD-335 R2/R9: a daily driver (the FRED 2Y) appends its observation-date
+    # marker, read DIRECTLY from the NormalizedQuote as_of -- never inferred, and
+    # never a "live"/"now" claim.
+    return f"{slot.display:<3}  {level:<5}  {pct_str}{_asof_marker(getattr(q, 'as_of', None))}"
 
 
 def _macro_tape_block(normalized_quotes: dict) -> list[str]:
