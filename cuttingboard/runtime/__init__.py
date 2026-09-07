@@ -58,7 +58,7 @@ from cuttingboard.intraday_state_engine import (
 from cuttingboard.market_map import build_market_map
 from cuttingboard.delivery.primary_selection import select_primary_card_symbol
 from cuttingboard.trend_structure import build_trend_structure_snapshot
-from cuttingboard.watchlist_sidecar import build_watchlist_snapshot
+from cuttingboard.watchlist_sidecar import MARKET_STRUCTURE_SYMBOLS, build_watchlist_snapshot
 from cuttingboard.trade_visibility import build_visibility_map
 from cuttingboard.trade_explanation import build_explanation_map
 from cuttingboard.market_map_lifecycle import inject_lifecycle
@@ -806,11 +806,39 @@ def _execute_notify_run(
                 generated_at=run_at_utc,
             )
             if not validation_summary.system_halted:
-                # PRD-311 (NS-4B): merge observation-only quotes (UCO/GOOG) into a
-                # NEW mapping passed ONLY to the watchlist writer. normalized_quotes
-                # (the decision-pipeline input) is not mutated (R1/R2).
+                # NS-4A v2 (PRD-337 precursor): merge the market-structure
+                # observation-only quotes into a NEW mapping passed ONLY to the
+                # watchlist writer. normalized_quotes (the decision-pipeline input)
+                # is not mutated; observe-only keys are a subset of
+                # _OBSERVE_ONLY_FETCH, disjoint from ALL_SYMBOLS, so no decision
+                # quote can be overwritten (R1/R2).
+                #
+                # Astra R1 (whole-helper containment): the observation layer is
+                # best-effort at the WHOLE-helper level, not only per symbol.
+                # _fetch_observe_only_quotes is designed never to raise, but if it
+                # ever did, the exception -- evaluated here inside the dict literal,
+                # BEFORE _write_watchlist_snapshot is entered, so the writer's own
+                # try/except cannot contain it -- would escape to the outer run
+                # handler (the `except Exception` below), send a SECOND (failure)
+                # notification, and REPLACE the already-successful hourly artifacts
+                # with FAIL/HALT. Contain the entire helper invocation locally so a
+                # helper-level failure degrades to "observation unavailable" (no
+                # extras), exactly like a run where no observation data was
+                # returned. The boundary is deliberately NARROW: only the auxiliary
+                # observation fetch is wrapped. The primary quotes and the watchlist
+                # write stay OUTSIDE it, so the writer still receives the primary
+                # decision quotes when extras are unavailable, and no
+                # decision-authoritative stage is swallowed.
+                try:
+                    _observe_only_extras = _fetch_observe_only_quotes()
+                except Exception:
+                    logger.exception(
+                        "observe-only helper failed at watchlist seam; continuing "
+                        "with primary quotes only (best-effort, observation-only)"
+                    )
+                    _observe_only_extras = {}
                 _write_watchlist_snapshot(
-                    normalized_quotes={**normalized_quotes, **_fetch_observe_only_quotes()},
+                    normalized_quotes={**normalized_quotes, **_observe_only_extras},
                     generated_at=run_at_utc,
                 )
 
@@ -2794,21 +2822,90 @@ def _refresh_trend_structure_sidecar(
     )
 
 
+# --- NS-4A v2 (PRD-337 precursor): market-structure observation fetch seam ----
+# DERIVED, never hand-listed: the measurement projection MINUS the tradable
+# universe. A set-difference FROM the measurement set can only subtract, so this
+# can never add a symbol to config.ALL_SYMBOLS or any decision list (F13). Pinned
+# to a literal 12-tuple by test.
+_OBSERVE_ONLY_FETCH: tuple[str, ...] = tuple(
+    s for s in MARKET_STRUCTURE_SYMBOLS if s not in config.ALL_SYMBOLS
+)
+# Best-effort SUBSEQUENT-CALL start budget for the observation fetch seam (F1 /
+# section 4; Astra R2). Checked monotonically BEFORE each symbol: once the elapsed
+# time has REACHED the budget (elapsed >= budget) the seam STOPS issuing NEW
+# fetches (remaining rows render n/a) and logs one warning. Scope of the guarantee,
+# stated honestly so downstream docs do not overclaim it:
+#   - it DOES stop STARTING further observation fetches once completed work has
+#     consumed the budget;
+#   - it does NOT interrupt a fetch already in flight (a hung provider call is not
+#     cancelled), does NOT guarantee a 60 s total wall-clock for the seam, provides
+#     NO hard socket / per-symbol deadline, and does NOT eliminate next-slot
+#     wall-clock coupling -- the executor-cleanup wait in ingestion.py can block on
+#     a worker indefinitely, so the per-symbol FETCH_TIMEOUT is not itself an
+#     elapsed bound. Bounding an in-flight hang needs separate provider/ingestion
+#     authority and is deliberately out of this slice.
+# It NEVER raises.
+_OBSERVE_ONLY_FETCH_BUDGET_SECONDS = 60.0
+
+
 def _fetch_observe_only_quotes() -> dict[str, NormalizedQuote]:
-    """PRD-311 (NS-4B): best-effort fetch of the observation-only symbols for the
-    MARKET MOVEMENT card, via the EXISTING per-symbol fetch + normalize. These are
-    disjoint from ALL_SYMBOLS and are merged ONLY into the watchlist sidecar
-    mapping at the call site below; they NEVER enter ``normalized_quotes`` /
-    ``validate_quotes`` / any decision surface (R1/R2). Per-symbol failures are
-    swallowed so a bad observe-only fetch renders `n/a` and never halts (R1)."""
+    """NS-4A v2 (PRD-337 precursor): best-effort fetch of the market-structure
+    observation-only symbols for the MARKET MOVEMENT card, via the EXISTING
+    per-symbol fetch + normalize. These are disjoint from ALL_SYMBOLS and are
+    merged ONLY into the watchlist sidecar mapping at the call site above; they
+    NEVER enter ``normalized_quotes`` / ``validate_quotes`` / any decision surface
+    (R1/R2). Per-symbol failures are swallowed so a bad observe-only fetch renders
+    `n/a` and never halts.
+
+    A monotonic elapsed budget bounds the START of subsequent fetches: once
+    ``_OBSERVE_ONLY_FETCH_BUDGET_SECONDS`` has been reached (elapsed >= budget),
+    no further fetch is started. It does NOT cancel an in-flight call and is NOT a
+    total wall-clock guarantee (see the constant's comment). Best-effort
+    throughout; this function NEVER raises."""
+    # Fail WITHIN the observation boundary (log + empty), never into the decision
+    # path: the derived fetch set must stay disjoint from every decision list. A
+    # non-disjoint edit renders every observation n/a rather than contaminating a
+    # decision quote.
+    obs = set(_OBSERVE_ONLY_FETCH)
+    for name, decision_list in (
+        ("ALL_SYMBOLS", config.ALL_SYMBOLS),
+        ("REQUIRED_SYMBOLS", config.REQUIRED_SYMBOLS),
+        ("HALT_SYMBOLS", config.HALT_SYMBOLS),
+        ("NON_TRADABLE_SYMBOLS", config.NON_TRADABLE_SYMBOLS),
+        ("TREND_STRUCTURE_SYMBOLS", config.TREND_STRUCTURE_SYMBOLS),
+    ):
+        overlap = obs & set(decision_list)
+        if overlap:
+            logger.error(
+                "observe-only fetch set overlaps %s (%s); skipping observation fetch",
+                name, sorted(overlap),
+            )
+            return {}
+
     out: dict[str, NormalizedQuote] = {}
-    for sym in config.OBSERVE_ONLY_SYMBOLS:
+    started = time.monotonic()
+    total = len(_OBSERVE_ONLY_FETCH)
+    for i, sym in enumerate(_OBSERVE_ONLY_FETCH):
+        if time.monotonic() - started >= _OBSERVE_ONLY_FETCH_BUDGET_SECONDS:
+            # Exhausted-at-equality (Astra R2): once elapsed has REACHED the
+            # budget, no NEW fetch begins -- the call at exactly 60 s does not
+            # start. This bounds only the START of subsequent calls, not an
+            # already-running one (see the constant's comment).
+            logger.warning(
+                "observe-only budget exhausted after %d/%d; remaining render n/a "
+                "(best-effort start budget, not a hard timeout)",
+                i, total,
+            )
+            break
         try:
             nq = normalize_quote(fetch_quote(sym))
         except Exception:
             logger.exception("observe-only fetch failed for %s", sym)
             continue
-        if nq is not None:
+        # Admit only a well-formed quote for the requested symbol: a provider that
+        # echoes a different symbol can never overwrite a decision quote (e.g. SPY)
+        # in the merged watchlist mapping.
+        if nq is not None and nq.symbol == sym:
             out[sym] = nq
     return out
 

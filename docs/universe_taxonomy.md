@@ -95,21 +95,71 @@ display. Mutation boundaries below are governance rules, not advisory notes.
 
 ---
 
-## OBSERVE_ONLY_SYMBOLS
+## OBSERVE_ONLY fetch set (market-structure measurement universe)
 
 - **Purpose:** Observation-only symbols fetched solely for the MARKET MOVEMENT
-  dashboard card (PRD-311). NOT trade candidates, NOT macro context, NOT part of
-  any decision computation.
-- **Ownership:** `cuttingboard/config.py:OBSERVE_ONLY_SYMBOLS` (`("UCO", "GOOG")`).
+  dashboard card. NOT trade candidates, NOT macro context, NOT part of any
+  decision computation. The measurement universe is the 22 market-structure
+  symbols in `universe_registry.py` (owner-authored `market_structure=True` rows).
+- **Ownership / derivation:** The human-authored membership lives in
+  `cuttingboard/universe_registry.py` (the `market_structure` flag), projected by
+  `cuttingboard/watchlist_sidecar.py:MARKET_STRUCTURE_SYMBOLS` (22, registry
+  order). The runtime fetch set is DERIVED, never hand-listed:
+  `runtime._OBSERVE_ONLY_FETCH = tuple(s for s in MARKET_STRUCTURE_SYMBOLS if s
+  not in config.ALL_SYMBOLS)` (currently the 12 measurement symbols not already
+  fetched by the decision loop: `XLK XLF XLI XLY XLP XLV XLU XLB XLRE XLC MSFT
+  GOOG`). A set-difference FROM the measurement set can only subtract — it can
+  never add a symbol to `ALL_SYMBOLS` or any decision list. The legacy
+  `config.OBSERVE_ONLY_SYMBOLS` constant is DELETED. Personal-only `UCO` is
+  `market_structure=False` and is NOT in the fetch set; the disabled `TSLA`
+  tombstone is excluded too.
 - **Consumers:** `runtime._fetch_observe_only_quotes` (best-effort fetch via the
-  existing `fetch_quote` + `normalize_quote`) → merged only into the watchlist
-  sidecar mapping at the hourly write seam → `movement_card` display.
-- **Isolation (binding):** DISJOINT from `ALL_SYMBOLS` and `NON_TRADABLE_SYMBOLS`.
-  These symbols never enter the ingestion universe loop,
-  `normalize_all(fetch_all())`, `validate_quotes`, `valid_quotes`, derived,
-  structure, regime, candidates, qualification, notification counts, ranking, or
-  permission — the structural proof that fetching them creates no decision
-  authority (PRD-311 R2/R8; guarded by `tests/test_observe_only_isolation.py`).
+  existing `fetch_quote` + `normalize_quote`, admitting a result only when
+  `nq.symbol == sym`) → merged only into the watchlist sidecar mapping at the
+  hourly write seam → `movement_card` display.
+- **Elapsed budget (subsequent-call START budget):** the fetch seam carries a
+  60 s monotonic best-effort budget (`_OBSERVE_ONLY_FETCH_BUDGET_SECONDS`) checked
+  before each symbol; once elapsed has **reached** the budget (`elapsed >= budget`,
+  so the call at exactly 60 s does NOT start) it stops issuing NEW fetches
+  (remaining rows render `n/a`) and logs one warning. Scope, stated honestly: it
+  bounds only the START of subsequent fetches. It NEVER raises, does NOT interrupt
+  an in-flight/hung provider call, does NOT guarantee a 60 s total wall-clock,
+  gives NO hard socket/per-symbol deadline, and does NOT eliminate next-slot
+  wall-clock coupling (the ingestion executor-cleanup wait can block on a worker
+  indefinitely). A genuine total-runtime bound needs separate provider/ingestion
+  authority and is out of this slice.
+- **Whole-helper containment:** the single call site
+  (`runtime._execute_notify_run`, hourly watchlist seam) wraps the *entire*
+  `_fetch_observe_only_quotes` invocation in a local best-effort `try/except`. A
+  helper-level exception degrades to "observation unavailable" (no extras) and can
+  NEVER escape to the run-level failure handler, so it cannot flip a successful
+  run to FAIL, replace the successful hourly artifacts with HALT, or trigger a
+  second (failure) notification. The primary decision quotes still reach the
+  watchlist writer when extras are unavailable.
+- **Benchmark map (F7; INERT):** `universe_registry.py:benchmark_symbol` records
+  owner-authored relationships for *future* NS-4C relative-move measurement. No
+  relative performance is computed in this slice and the field is not serialized
+  into the carrier. Map: sectors + `QQQ` -> `SPY`; `SLV`/`GDX` -> `GLD`; the six
+  MEGACAPS (`AAPL MSFT NVDA META AMZN GOOG`) -> `QQQ`; anchors/non-measurement
+  rows (`SPY GLD UCO TSLA`) -> `null`. **Why MEGACAPS benchmark to `QQQ`:** the
+  product question is "how is this selected mega-cap / growth-complex constituent
+  behaving relative to the broader QQQ growth complex?" It is NOT sector-relative
+  breadth, NOT a claim all six are Technology-sector names (META/GOOG are
+  Communication Services, AMZN is Consumer Discretionary), and NOT a trading
+  recommendation. **Self-weight caveat:** these six are themselves meaningful
+  components of `QQQ`, so a constituent's move versus `QQQ` is NOT an independent
+  factor comparison -- it partly compares each name with itself. The spread is
+  still useful for divergence / relative-behaviour context, but future NS-4C must
+  not overstate its statistical independence.
+- **Isolation (binding):** DISJOINT from `ALL_SYMBOLS`, `REQUIRED_SYMBOLS`,
+  `HALT_SYMBOLS`, `NON_TRADABLE_SYMBOLS`, and `TREND_STRUCTURE_SYMBOLS` (the seam
+  asserts this and returns empty on any overlap). These symbols never enter the
+  ingestion universe loop, `normalize_all(fetch_all())`, `validate_quotes`,
+  `valid_quotes`, derived, structure, regime, candidates, qualification,
+  notification counts, ranking, or permission — the structural proof that
+  fetching them creates no decision authority (guarded by
+  `tests/test_observe_only_isolation.py`, including a real-stage decision-
+  invariance paired run).
 - **Mutation boundaries:** Members are fetched-but-decision-blind by construction.
   Adding a member to `ALL_SYMBOLS` or `NON_TRADABLE_SYMBOLS`, or letting an
   observe-only symbol reach any decision surface, is a stop-and-renew requiring a
@@ -126,9 +176,11 @@ display. Mutation boundaries below are governance rules, not advisory notes.
    computation, never a constant.
 3. **Sidecar universes are subsets, except the observe-only display universe.**
    Any sidecar universe that FEEDS the decision pipeline must be a strict subset
-   of `ALL_SYMBOLS` and cannot introduce new fetch targets. `OBSERVE_ONLY_SYMBOLS`
-   (PRD-311) is the sole sanctioned exception: display-only, disjoint from
-   `ALL_SYMBOLS`, fetched separately, and structurally excluded from every
+   of `ALL_SYMBOLS` and cannot introduce new fetch targets. The market-structure
+   observation set (`runtime._OBSERVE_ONLY_FETCH`, derived from the registry's
+   `market_structure` projection minus `ALL_SYMBOLS`) is the sole sanctioned
+   exception: display-only, disjoint from every decision list, fetched
+   separately under an elapsed budget, and structurally excluded from every
    decision surface — it introduces fetch targets without introducing decision
    inputs.
 4. **Universe changes are PRD-gated.** Adding, removing, or reordering

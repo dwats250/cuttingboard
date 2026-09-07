@@ -120,14 +120,18 @@ defaults differ.
 - **Writer:** `runtime.py:_write_watchlist_snapshot` →
   `cuttingboard.watchlist_sidecar.build_watchlist_snapshot`
 - **Constant:** `runtime.WATCHLIST_PATH` (= `LOGS_DIR / "watchlist_snapshot.json"`)
-- **Universe:** `cuttingboard.watchlist_sidecar.WATCHLIST_SYMBOLS` (frozen 12-tuple of `(symbol, sector_theme, watch_reason, primary_group, registry_index)`; PRD-311)
-- **Schema (PRD-311):** `schema_version: 2`; each row adds `daily_change_pct`
-  (float % or null — the n/a hook, never fabricated 0.0), `primary_group`
-  (INDEX/METALS/ENERGY/TECH/HIGH_BETA), and `registry_index` (0-based enabled-registry position).
-- **Observe-only merge (PRD-311):** the hourly seam merges UCO/GOOG (fetched via
-  `fetch_quote`+`normalize_quote` in `runtime._fetch_observe_only_quotes`) into a
-  temp mapping passed ONLY to the writer; they never enter `normalized_quotes`/
-  `validate_quotes`/any decision surface.
+- **Universe:** `cuttingboard.watchlist_sidecar.MARKET_STRUCTURE_SYMBOLS` (22, registry order) with `MARKET_STRUCTURE_ROWS` = `(symbol, primary_group, registry_index)`; NS-4A v2 (PRD-337 precursor)
+- **Schema (NS-4A v2):** `schema_version: 3`; each row carries exactly `symbol`,
+  `primary_group` (MARKET/SECTORS/METALS/MEGACAPS), `registry_index` (0-based
+  position in `MARKET_STRUCTURE_SYMBOLS`), `current_price`, and `daily_change_pct`
+  (float % or null — the n/a hook, never fabricated 0.0). Personal-only UCO and
+  disabled TSLA are not serialized.
+- **Observe-only merge (NS-4A v2):** the hourly seam fetches the DERIVED set
+  `runtime._OBSERVE_ONLY_FETCH` (12 = measurement projection minus `ALL_SYMBOLS`)
+  via `fetch_quote`+`normalize_quote` under a 60 s monotonic budget, admitting a
+  result only when `nq.symbol == sym`, and merges them into a temp mapping passed
+  ONLY to the writer; they never enter `normalized_quotes`/`validate_quotes`/any
+  decision surface.
 - **Consumers:** `cuttingboard.delivery.movement_card` (via `dashboard_renderer`,
   PRD-311 MARKET MOVEMENT card — the first machine reader; validates + suppresses
   baseline-neutral on any contract violation); and (PRD-312) the MARKET STATE

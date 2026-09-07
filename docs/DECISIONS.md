@@ -16,6 +16,36 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-09-06 — PRD-337 precursor Gate A GRANTED; fresh-context GOV-2 CLEAN on repaired head `6593accd`; NS-4C/NS-4D NOT authorized (ruled: Dustin / HELM)
+
+Gate A GRANTED for the PRD-337 precursor (Market Structure Universe / NS-4A v2,
+the carrier for NS-4C Leadership) on authorized head `6593accd`, PR #325, with
+these bindings:
+
+1. **Precursor only; NS-4C/NS-4D NOT authorized.** Gate A covers the bounded
+   NS-4A v2 measurement universe, the observation-only carrier, and the MARKET
+   MOVEMENT wiring. It grants NO authority to implement NS-4C Leadership relative
+   performance or NS-4D Breadth; those remain later work, and the benchmark map
+   stays INERT.
+2. **Fresh-context GOV-2 satisfied.** The Fable 5.1 design review (ACCEPT WITH
+   CHANGES) and the Astra fresh-context adversarial exact-head review (REQUIRED
+   CHANGES R1-R4 on `0b5bd551`) are recorded in
+   `audits/prd-337-market-structure-universe-stage0-2026-09/`. The R1-R4 repair
+   landed at `6593accd`; the fresh-context GOV-2 exact-head confirmation of the
+   repaired head is CLEAN (R1-R4 PASS, regression-safety PASS).
+3. **Authoritative evidence.** Exact-head CI PASS (run 34083011453): 4633 passed,
+   1 xfailed; Ruff clean; PRD registry validator PASS
+   (`--skip-commit-resolvability`). The earlier local 4652-passed figure is a
+   dirty-log local delta; the clean CI checkout is authoritative (invariant 5).
+4. **NOT merged.** Gate A is not merge authority. PRD-337 stays IN PROGRESS in the
+   registry/index (there is no "ready-for-merge" status token) with the
+   done-but-unmerged detail in `PROJECT_STATE.md` and
+   `docs/prd_history/PRD-337.md`; held for Dustin's merge (ChatGPT executes). The
+   registry row flips to COMPLETE at merge. At the COMPLETE flip, PRD-337
+   (HIGH-RISK >= 242) needs its PRD-242 second-model disposition recorded (the
+   Astra exact-head review exists in `audits/`, not yet at the
+   `docs/prd_history/PRD-337.review.<model>.md` path).
+
 ## 2026-09-06 — PRD-336 Gate A: five cockpit drivers ruled COCKPIT-ONLY; bounded FRED is a mitigation (ruled: Dustin / HELM)
 
 Gate A GRANTED for PRD-336 (cockpit context polish, final pre-live pass) on
