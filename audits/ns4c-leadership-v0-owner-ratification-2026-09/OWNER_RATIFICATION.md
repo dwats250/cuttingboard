@@ -1,7 +1,32 @@
 # NS-4C Leadership v0 — owner ratification sheet
 
-Status: STAGE-0 / OWNER INPUT REQUIRED
+Status: SUPERSEDED — historical Stage-0 proposal; no implementation authority
 Date: 2026-09-06 PT
+
+## Current owner direction — 2026-09-06
+
+Dustin superseded the original 12-row benchmark ratification proposal below.
+Personal/trade attention and market-structure measurement are separate universes.
+Owner approved designing a bounded market-structure universe and observation-wiring
+refactor before Leadership, preserving the observe-only isolation seam.
+
+Current provisional packet:
+[Market Structure Universe v1 — Astra review brief](../prd-337-market-structure-universe-stage0-2026-09/ASTRA_REVIEW_BRIEF.md).
+Its exact membership, roles, benchmark map and file fence are proposals for review,
+not owner-ratified implementation authority.
+
+Sequence: **NS-4A v2 / Market Structure Universe → NS-4C Leadership → NS-4D Breadth**.
+NS-4C implementation is held until this precursor is reviewed and authorized.
+Future Leadership starts numeric with explicit benchmark context; the historical
+LEADING/INLINE/LAGGING thresholds below are superseded and are not to be built.
+
+Handoff: Astra design packet → Fable 5.1 architectural review in one fresh session
+→ accepted design and required owner/governance authorization → Opus implementation
+in a second session on the same persistent branch lineage or deliberate successor
+→ adversarial exact-implementation-head review. PR #325 remains draft. No merge.
+Benchmark-table approval alone does not grant implementation authority.
+
+## Historical proposal — all remaining sections below are superseded
 
 ## Product target
 
