@@ -1,23 +1,23 @@
 {
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -0.7534448855746908,
-      "level": 79734.0078125,
+      "change_pct": -1.440550057553737,
+      "level": 79181.9921875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.0030238431184024628,
-      "level": 99.15399932861328,
+      "change_pct": -0.2561572139894524,
+      "level": 98.90299987792969,
       "symbol": "DX-Y.NYB"
     },
     "ethereum": {
-      "change_pct": -0.40996549125427983,
-      "level": 2504.550048828125,
+      "change_pct": -0.8596946257048071,
+      "level": 2493.239990234375,
       "symbol": "ETH-USD"
     },
     "eurusd": {
-      "change_pct": -0.04646855402169435,
-      "level": 1.1615750789642334,
+      "change_pct": 0.05813185334237128,
+      "level": 1.1627906560897827,
       "symbol": "EURUSD=X"
     },
     "gold": {
@@ -52,25 +52,25 @@
       "symbol": "SI=F"
     },
     "usdcad": {
-      "change_pct": -0.01806619049001591,
-      "level": 1.3834500312805176,
+      "change_pct": -0.17272725471355696,
+      "level": 1.381309986114502,
       "symbol": "USDCAD=X"
     },
     "usdjpy": {
-      "change_pct": -0.2547640924355195,
-      "level": 155.822998046875,
+      "change_pct": -1.2021372327030635,
+      "level": 154.34300231933594,
       "symbol": "JPY=X"
     },
     "volatility": {
-      "change_pct": 1.5373815996043485,
-      "level": 14.529999732971191,
+      "change_pct": 5.371898818048142,
+      "level": 15.300000190734863,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "live-20260907T060028Z",
+    "generation_id": "live-20260907T181542Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-09-07T06:00:28Z"
+    "timestamp": "2026-09-07T18:15:42Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -96,12 +96,12 @@
         "orb": {
           "orb_high": null,
           "orb_low": null,
-          "reason": "pre_open_prior_session",
-          "state": "PRE_OPEN"
+          "reason": "session_mismatch",
+          "state": "INVALID"
         },
         "price_vs_vwap": null,
-        "reason": "pre_open_prior_session",
-        "state": "PRE_OPEN"
+        "reason": "session_mismatch",
+        "state": "STALE"
       },
       "permission": {
         "value": "No new trades permitted \u2014 operator cannot monitor."
@@ -133,14 +133,14 @@
         "observed_at_utc": "2026-09-04T19:30:00+00:00",
         "orb_high": null,
         "orb_low": null,
-        "reason": "pre_open_prior_session",
-        "state": "PRE_OPEN",
-        "trading_date": "2026-09-07"
+        "reason": "session_mismatch",
+        "state": "INVALID",
+        "trading_date": "2026-09-04"
       },
       "price_vs_vwap": null,
-      "reason": "pre_open_prior_session",
+      "reason": "session_mismatch",
       "session_vwap": null,
-      "state": "PRE_OPEN",
+      "state": "STALE",
       "timezone": "America/New_York"
     },
     "top_trades": [],
@@ -148,7 +148,9 @@
     "validation_halt_detail": {
       "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)"
     },
-    "watch_summary_detail": null,
+    "watch_summary_detail": {
+      "session": "POWER_HOUR"
+    },
     "watchlist": []
   },
   "summary": {
